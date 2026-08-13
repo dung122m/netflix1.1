@@ -13,7 +13,9 @@ export const FilterBar: React.FC = () => {
   const searchParams = useSearchParams();
 
   const [filters, setFilters] = useState<{
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     genres: any[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     countries: any[];
     years: string[];
   }>({
@@ -361,14 +363,17 @@ export const FilterBar: React.FC = () => {
 
               {activeDropdown === "the-loai" && (
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2.5 max-h-80 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                  {filters.genres.map((genre: any) => (
-                    <Chip
-                      key={genre.slug}
-                      label={genre.name}
-                      value={genre.slug}
-                      type="the-loai"
-                    />
-                  ))}
+                  {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    filters.genres.map((genre: any) => (
+                      <Chip
+                        key={genre.slug}
+                        label={genre.name}
+                        value={genre.slug}
+                        type="the-loai"
+                      />
+                    ))
+                  }
                 </div>
               )}
 
@@ -378,14 +383,17 @@ export const FilterBar: React.FC = () => {
 
               {activeDropdown === "quoc-gia" && (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5 max-h-80 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                  {filters.countries.map((country: any) => (
-                    <Chip
-                      key={country.slug}
-                      label={country.name}
-                      value={country.slug}
-                      type="quoc-gia"
-                    />
-                  ))}
+                  {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    filters.countries.map((country: any) => (
+                      <Chip
+                        key={country.slug}
+                        label={country.name}
+                        value={country.slug}
+                        type="quoc-gia"
+                      />
+                    ))
+                  }
                 </div>
               )}
 

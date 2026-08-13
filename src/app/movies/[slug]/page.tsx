@@ -107,6 +107,7 @@ export default async function MovieDetail({
   // Gợi ý phim theo cùng thể loại trước, thiếu thì bổ sung theo quốc gia
   const primaryGenreSlug = movie.category?.[0]?.slug;
   const primaryCountrySlug = movie.country?.[0]?.slug;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recommendationPool: any[] = [];
 
   if (primaryGenreSlug) {
@@ -128,7 +129,7 @@ export default async function MovieDetail({
       ...(byCountry?.data?.items || byCountry?.items || []),
     );
   }
-
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const deduped = new Map<string, any>();
   for (const item of recommendationPool) {
     if (!item?.slug || item.slug === movie.slug) continue;
@@ -241,23 +242,26 @@ export default async function MovieDetail({
             <h3 className="text-xl font-bold mb-4">Danh sách tập</h3>
             {serverData.length > 0 ? (
               <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-4 gap-3">
-                {serverData.map((tap: any) => {
-                  const isActive = activeEpisode?.slug === tap.slug;
-                  return (
-                    <Link
-                      key={tap.slug}
-                      href={`?ep=${tap.slug}`}
-                      scroll={false}
-                      className={`flex items-center justify-center text-center py-3 rounded-lg font-semibold transition ${
-                        isActive
-                          ? "bg-netflix-red text-white shadow-lg"
-                          : "bg-zinc-800 text-gray-300 hover:bg-zinc-700 hover:text-white"
-                      }`}
-                    >
-                      {tap.name}
-                    </Link>
-                  );
-                })}
+                {
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  serverData.map((tap: any) => {
+                    const isActive = activeEpisode?.slug === tap.slug;
+                    return (
+                      <Link
+                        key={tap.slug}
+                        href={`?ep=${tap.slug}`}
+                        scroll={false}
+                        className={`flex items-center justify-center text-center py-3 rounded-lg font-semibold transition ${
+                          isActive
+                            ? "bg-netflix-red text-white shadow-lg"
+                            : "bg-zinc-800 text-gray-300 hover:bg-zinc-700 hover:text-white"
+                        }`}
+                      >
+                        {tap.name}
+                      </Link>
+                    );
+                  })
+                }
               </div>
             ) : (
               <div className="rounded-lg border border-white/10 bg-black/25 p-4 text-gray-300">

@@ -22,8 +22,10 @@ export const NavbarAuth: React.FC = () => {
   useEffect(() => {
     const urlKeyword = searchParams.get("keyword");
     if (urlKeyword && inputRef.current) {
-      inputRef.current.value = urlKeyword; // Gán thẳng giá trị vào DOM
+      inputRef.current.value = urlKeyword;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setHasText(true);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsSearchExpanded(true);
     }
   }, [searchParams]);

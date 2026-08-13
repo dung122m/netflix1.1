@@ -4,8 +4,11 @@ import Link from "next/link";
 import Image from "next/image";
 import { Play, Star } from "lucide-react";
 import { movieApi } from "@/services/movieApi";
-import { buildMovieDescriptionFallback, pickBestMovieImage } from "@/lib/movieMedia";
-
+import {
+  buildMovieDescriptionFallback,
+  pickBestMovieImage,
+} from "@/lib/movieMedia";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Props = { m: any };
 
 function MovieCardInner({ m }: Props) {
@@ -13,7 +16,8 @@ function MovieCardInner({ m }: Props) {
   const title = m.name || m.title || "Phim";
   const year = m.year ? String(m.year) : "N/A";
   const quality = m.quality || "HD";
-  const isTrailerOnly = m.status === "trailer" || m.episode_current === "Trailer";
+  const isTrailerOnly =
+    m.status === "trailer" || m.episode_current === "Trailer";
   const ratingRaw =
     m?.imdb?.rating ?? m?.tmdb?.vote_average ?? m?.vote_average ?? m?.rating;
   const rating =
@@ -25,25 +29,36 @@ function MovieCardInner({ m }: Props) {
   const [isLoadingDescription, setIsLoadingDescription] = useState(false);
   const [hasFetchedDescription, setHasFetchedDescription] = useState(false);
 
-  const listDescription = useMemo(
-    () => {
-      const cleaned = String(m.content || m.description || "").replace(/<[^>]*>/g, "");
-      if (cleaned) return cleaned;
-      return (
-        buildMovieDescriptionFallback({
-          origin_name: m.origin_name,
-          year: m.year,
-          time: m.time,
-          lang: m.lang,
-          quality: m.quality,
-          category: m.category,
-          country: m.country,
-          director: m.director,
-        }) || "Đang cập nhật mô tả phim."
-      );
-    },
-    [m.content, m.description, m.origin_name, m.year, m.time, m.lang, m.quality, m.category, m.country, m.director],
-  );
+  const listDescription = useMemo(() => {
+    const cleaned = String(m.content || m.description || "").replace(
+      /<[^>]*>/g,
+      "",
+    );
+    if (cleaned) return cleaned;
+    return (
+      buildMovieDescriptionFallback({
+        origin_name: m.origin_name,
+        year: m.year,
+        time: m.time,
+        lang: m.lang,
+        quality: m.quality,
+        category: m.category,
+        country: m.country,
+        director: m.director,
+      }) || "Đang cập nhật mô tả phim."
+    );
+  }, [
+    m.content,
+    m.description,
+    m.origin_name,
+    m.year,
+    m.time,
+    m.lang,
+    m.quality,
+    m.category,
+    m.country,
+    m.director,
+  ]);
   const description = detailDescription || listDescription;
 
   const loadMovieDescription = async () => {
@@ -125,9 +140,7 @@ function MovieCardInner({ m }: Props) {
           {title}
         </h3>
         <p className="mt-2 text-gray-200/95 text-xs line-clamp-3 opacity-0 max-h-0 overflow-hidden transition-all duration-300 group-hover:opacity-100 group-hover:max-h-24">
-          {isLoadingDescription
-            ? "Đang tải mô tả..."
-            : description}
+          {isLoadingDescription ? "Đang tải mô tả..." : description}
         </p>
       </div>
 

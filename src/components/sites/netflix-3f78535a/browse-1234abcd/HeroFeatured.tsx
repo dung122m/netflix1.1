@@ -48,6 +48,7 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
   const reduceMotion = useReducedMotion();
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIndex(0);
   }, [slides.length]);
 
@@ -78,7 +79,8 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
   const isTrailerOnly =
     featuredMovie?.status === "trailer" ||
     featuredMovie?.episode_current === "Trailer";
-  const descriptionRaw = featuredMovie?.content || featuredMovie?.description || "";
+  const descriptionRaw =
+    featuredMovie?.content || featuredMovie?.description || "";
   const descriptionClean = String(descriptionRaw).replace(/<[^>]*>/g, "");
   const description =
     descriptionClean ||
