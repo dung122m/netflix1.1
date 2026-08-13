@@ -116,14 +116,14 @@ export default async function BrowsePage({
   // ========================================
   // GỌI API
   // ========================================
-  const response = await movieApi.getMovies({
+  const response = await {
     category,
     country,
     year,
     keyword,
     page: currentPage,
     limit: 24,
-  });
+  };
 
   // ========================================
   // LẤY DANH SÁCH PHIM

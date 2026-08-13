@@ -111,11 +111,11 @@ export default async function MovieDetail({
   const recommendationPool: any[] = [];
 
   if (primaryGenreSlug) {
-    const byGenre = await movieApi.getMovies({
+    const byGenre = await {
       type: "the-loai",
       slug: primaryGenreSlug,
       page: 1,
-    });
+    };
     recommendationPool.push(...(byGenre?.data?.items || byGenre?.items || []));
   }
 
