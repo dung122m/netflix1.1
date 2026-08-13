@@ -149,8 +149,6 @@ export default async function MovieDetail({
               className="w-full h-full absolute inset-0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; full-screen"
               allowFullScreen={true}
-              webkitallowfullscreen="true"
-              mozallowfullscreen="true"
               frameBorder="0"
               title={`Đang phát ${activeEpisode?.name}`}
             ></iframe>

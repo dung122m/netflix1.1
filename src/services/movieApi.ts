@@ -7,6 +7,7 @@ export interface MovieFilterParams {
   keyword?: string;
   page?: number;
   limit?: number;
+  type?: string;
 }
 
 export const movieApi = {
