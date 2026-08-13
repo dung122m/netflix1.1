@@ -13,8 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Website Clone",
-  description: "Pixel-perfect website clone",
+  title: "Nanaflix",
+  description:
+    "Nanaflix - Xem phim trực tuyến miễn phí, cập nhật nhanh chóng các bộ phim mới nhất, chất lượng cao, không quảng cáo.",
 };
 
 export default function RootLayout({

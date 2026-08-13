@@ -1,8 +1,16 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
-  /* config options here */
-  output: "standalone",
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "vsmov.com",
+        pathname: "/**", // Cho phép lấy mọi ảnh từ domain này
+      },
+      // Nếu API phim của bạn trả về ảnh từ nhiều domain khác nhau (ví dụ: imgur, cloudinary...),
+      // bạn cứ copy object trên và đổi hostname là được.
+    ],
+  },
 };
 
-export default nextConfig;
+module.exports = nextConfig;
