@@ -2,7 +2,10 @@ import { movieApi } from "@/services/movieApi";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import Image from "next/image";
-import { buildMovieDescriptionFallback, pickBestMovieImage } from "@/lib/movieMedia";
+import {
+  buildMovieDescriptionFallback,
+  pickBestMovieImage,
+} from "@/lib/movieMedia";
 
 const NavbarAuth = dynamic(() =>
   import("@/components/sites/netflix-3f78535a/browse-1234abcd/NavbarAuth").then(
@@ -17,10 +20,11 @@ const SetTitleClient = dynamic(() =>
 export async function generateMetadata({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
   try {
-    const data = await movieApi.getMovieDetail(params.slug);
+    const { slug } = await params;
+    const data = await movieApi.getMovieDetail(slug);
     const rawTitle = data?.movie?.name || data?.movie?.title || "Phim";
     return { title: `Nanaflix - ${rawTitle}` };
   } catch {
@@ -53,7 +57,10 @@ export default async function MovieDetail({
   const { movie, episodes } = data;
   const title = movie.name || movie.title;
   const description =
-    (movie.content && String(movie.content).replace(/<[^>]*>/g, "").trim()) ||
+    (movie.content &&
+      String(movie.content)
+        .replace(/<[^>]*>/g, "")
+        .trim()) ||
     buildMovieDescriptionFallback({
       origin_name: movie.origin_name,
       year: movie.year,
@@ -67,10 +74,13 @@ export default async function MovieDetail({
     "Nội dung phim đang được cập nhật.";
 
   const genres =
-    movie.category?.map((c: { name?: string }) => c.name).join(", ") || movie.genre;
+    movie.category?.map((c: { name?: string }) => c.name).join(", ") ||
+    movie.genre;
   const countries =
-    movie.country?.map((c: { name?: string }) => c.name).join(", ") || "Đang cập nhật";
-  const directors = (movie.director || []).slice(0, 3).join(", ") || "Đang cập nhật";
+    movie.country?.map((c: { name?: string }) => c.name).join(", ") ||
+    "Đang cập nhật";
+  const directors =
+    (movie.director || []).slice(0, 3).join(", ") || "Đang cập nhật";
   const actors = (movie.actor || []).slice(0, 6).join(", ");
 
   const serverData = episodes?.[0]?.server_data || [];
@@ -86,7 +96,8 @@ export default async function MovieDetail({
     if (!videoLink) return undefined;
     try {
       const url = new URL(videoLink);
-      if (!url.searchParams.has("autoplay")) url.searchParams.set("autoplay", "1");
+      if (!url.searchParams.has("autoplay"))
+        url.searchParams.set("autoplay", "1");
       return url.toString();
     } catch {
       return videoLink;
@@ -113,7 +124,9 @@ export default async function MovieDetail({
       slug: primaryCountrySlug,
       page: 1,
     });
-    recommendationPool.push(...(byCountry?.data?.items || byCountry?.items || []));
+    recommendationPool.push(
+      ...(byCountry?.data?.items || byCountry?.items || []),
+    );
   }
 
   const deduped = new Map<string, any>();
@@ -134,8 +147,10 @@ export default async function MovieDetail({
             <iframe
               src={embedSrc}
               className="w-full h-full absolute inset-0"
-              allow="autoplay; fullscreen; picture-in-picture"
-              allowFullScreen
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; full-screen"
+              allowFullScreen={true}
+              webkitallowfullscreen="true"
+              mozallowfullscreen="true"
               frameBorder="0"
               title={`Đang phát ${activeEpisode?.name}`}
             ></iframe>
@@ -172,7 +187,9 @@ export default async function MovieDetail({
             <h1 className="text-3xl md:text-5xl font-extrabold leading-tight">
               {title}{" "}
               <span className="text-xl md:text-3xl text-gray-400 font-normal">
-                {isTrailerOnly ? "• Trailer" : `• Tập ${activeEpisode?.name || "1"}`}
+                {isTrailerOnly
+                  ? "• Trailer"
+                  : `• Tập ${activeEpisode?.name || "1"}`}
               </span>
             </h1>
 
@@ -256,7 +273,9 @@ export default async function MovieDetail({
       <div className="max-w-7xl mx-auto px-4 md:px-8 mt-10">
         <div className="flex items-end justify-between gap-4 mb-5">
           <div>
-            <h2 className="text-2xl md:text-3xl font-extrabold">Gợi ý cho bạn</h2>
+            <h2 className="text-2xl md:text-3xl font-extrabold">
+              Gợi ý cho bạn
+            </h2>
             <p className="text-sm text-gray-400 mt-1">
               Ưu tiên cùng thể loại và quốc gia để phù hợp gu xem hiện tại.
             </p>
