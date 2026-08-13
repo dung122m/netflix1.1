@@ -8,6 +8,7 @@ export interface MovieFilterParams {
   page?: number;
   limit?: number;
   type?: string;
+  slug?: string; // Bổ sung dòng này
 }
 
 export const movieApi = {
