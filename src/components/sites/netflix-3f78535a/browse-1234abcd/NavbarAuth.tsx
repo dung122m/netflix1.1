@@ -14,21 +14,19 @@ export const NavbarAuth: React.FC = () => {
 
   const router = useRouter();
   const searchParams = useSearchParams();
+  const urlKeyword = searchParams.get("keyword") || "";
+  const isSearchOpen = isSearchExpanded || Boolean(urlKeyword);
+  const hasSearchText = hasText || Boolean(urlKeyword);
 
   // Dùng ref để lấy dữ liệu ô input thay vì dùng state để tránh lỗi bộ gõ tiếng Việt
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Đồng bộ từ khoá từ URL vào ô input khi load trang
   useEffect(() => {
-    const urlKeyword = searchParams.get("keyword");
-    if (urlKeyword && inputRef.current) {
+    if (inputRef.current) {
       inputRef.current.value = urlKeyword;
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setHasText(true);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setIsSearchExpanded(true);
     }
-  }, [searchParams]);
+  }, [urlKeyword]);
 
   // Hiệu ứng đổi màu nền khi cuộn
   useEffect(() => {
@@ -40,10 +38,10 @@ export const NavbarAuth: React.FC = () => {
   }, []);
 
   const toggleSearch = () => {
-    if (!isSearchExpanded) {
+    if (!isSearchOpen) {
       setIsSearchExpanded(true);
       setTimeout(() => inputRef.current?.focus(), 100);
-    } else if (!hasText) {
+    } else if (!hasSearchText) {
       setIsSearchExpanded(false);
     }
   };
@@ -97,7 +95,7 @@ export const NavbarAuth: React.FC = () => {
       <div className="flex items-center gap-5 text-white">
         <form
           onSubmit={handleSearchSubmit}
-          className={`flex items-center  transition-all duration-300 border ${isSearchExpanded ? "border-white px-2 py-1" : "border-transparent"}`}
+          className={`flex items-center  transition-all duration-300 border ${isSearchOpen ? "border-white px-2 py-1" : "border-transparent"}`}
         >
           <Search size={20} className="cursor-pointer" onClick={toggleSearch} />
           <input
@@ -107,12 +105,12 @@ export const NavbarAuth: React.FC = () => {
             // Chỉ cập nhật state hasText để ẩn/hiện nút X, không can thiệp vào value của thẻ
             onChange={(e) => setHasText(e.target.value.length > 0)}
             className={`bg-transparent text-white text-sm outline-none transition-all duration-300 ${
-              isSearchExpanded
+              isSearchOpen
                 ? "w-48 lg:w-64 ml-2 opacity-100 placeholder:text-gray-400"
                 : "w-0 opacity-0"
             }`}
           />
-          {isSearchExpanded && hasText && (
+          {isSearchOpen && hasSearchText && (
             <X
               size={18}
               className="cursor-pointer text-gray-400 hover:text-white"

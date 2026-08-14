@@ -16,7 +16,10 @@ export const CarouselRow: React.FC<CarouselRowProps> = ({ title, items }) => {
   return (
     <div className="py-6 px-8">
       <h2 className="text-xl font-bold text-white mb-4">{title}</h2>
-      <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
+      <div
+        data-lenis-prevent
+        className="flex snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain scroll-smooth pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
         {items.map((item) => (
           <MediaCard
             key={item.slug}

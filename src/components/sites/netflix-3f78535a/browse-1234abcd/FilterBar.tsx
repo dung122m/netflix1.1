@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { movieApi } from "@/services/movieApi";
 
@@ -31,88 +31,139 @@ export const FilterBar: React.FC = () => {
 
   const [activeDropdown, setActiveDropdown] = useState<FilterType | null>(null);
 
-  const firstRender = useRef(true);
+  // =========================================================
+  // LOAD FILTERS
+  // =========================================================
 
-  // Load danh sách filter
   useEffect(() => {
     const loadFilters = async () => {
       try {
         const data = await movieApi.getFilters();
+
         setFilters(data);
       } catch (error) {
         console.error("❌ Lỗi tải bộ lọc:", error);
       }
     };
+
     loadFilters();
   }, []);
 
-  // Tự động scroll sau khi filter thay đổi
-  useEffect(() => {
-    if (firstRender.current) {
-      firstRender.current = false;
-      return;
+  // =========================================================
+  // LẤY PARAM TƯƠNG ỨNG VỚI FILTER
+  // =========================================================
+
+  const getParamKey = (filterType: FilterType) => {
+    if (filterType === "type") {
+      return "type";
     }
 
-    const timer = window.setTimeout(() => {
-      const movieList = document.getElementById("movie-list");
-      if (!movieList) return;
+    if (filterType === "the-loai") {
+      return "category";
+    }
 
-      movieList.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-    }, 700);
+    if (filterType === "quoc-gia") {
+      return "country";
+    }
 
-    return () => {
-      window.clearTimeout(timer);
-    };
-  }, [searchParams]);
+    return "year";
+  };
+
+  // =========================================================
+  // CHỌN FILTER
+  // =========================================================
 
   const handleFilterChange = (filterType: FilterType, value: string) => {
     const params = new URLSearchParams(searchParams.toString());
 
-    if (filterType === "type") {
-      const current = params.get("type");
-      if (current === value) params.delete("type");
-      else params.set("type", value);
+    const key = getParamKey(filterType);
+
+    // Nếu bấm lại đúng lựa chọn đang chọn
+    // => bỏ chọn
+    if (params.get(key) === value) {
+      params.delete(key);
+    } else {
+      // Chọn giá trị mới
+      params.set(key, value);
     }
 
-    if (filterType === "the-loai") {
-      const current = params.get("category");
-      if (current === value) params.delete("category");
-      else params.set("category", value);
-    }
-
-    if (filterType === "quoc-gia") {
-      const current = params.get("country");
-      if (current === value) params.delete("country");
-      else params.set("country", value);
-    }
-
-    if (filterType === "year") {
-      const current = params.get("year");
-      if (current === value) params.delete("year");
-      else params.set("year", value);
-    }
-
+    // Khi filter thay đổi thì quay về page 1
     params.delete("page");
-    const query = params.toString();
 
-    router.push(query ? `?${query}` : "?");
+    router.push(`?${params.toString()}`);
+
+    // Đóng dropdown
     setActiveDropdown(null);
   };
 
-  const isSelected = (filterType: FilterType, value: string) => {
-    if (filterType === "type") return searchParams.get("type") === value;
-    if (filterType === "the-loai")
-      return searchParams.get("category") === value;
-    if (filterType === "quoc-gia") return searchParams.get("country") === value;
-    return searchParams.get("year") === value;
+  // =========================================================
+  // BẤM "TẤT CẢ"
+  // =========================================================
+
+  const handleClearFilter = (filterType: FilterType) => {
+    const params = new URLSearchParams(searchParams.toString());
+
+    const key = getParamKey(filterType);
+
+    // Xóa filter hiện tại
+    params.delete(key);
+
+    // Reset page
+    params.delete("page");
+
+    router.push(`?${params.toString()}`);
+
+    // Đóng dropdown
+    setActiveDropdown(null);
   };
 
-  const toggleDropdown = (dropdown: FilterType) => {
-    setActiveDropdown(activeDropdown === dropdown ? null : dropdown);
+  // =========================================================
+  // KIỂM TRA ITEM CÓ ĐANG ĐƯỢC CHỌN KHÔNG
+  // =========================================================
+
+  const isSelected = (filterType: FilterType, value: string) => {
+    const key = getParamKey(filterType);
+
+    return searchParams.get(key) === value;
   };
+
+  // =========================================================
+  // KIỂM TRA FILTER CÓ ĐANG ĐƯỢC CHỌN KHÔNG
+  // =========================================================
+
+  const hasSelectedFilter = (filterType: FilterType) => {
+    const key = getParamKey(filterType);
+
+    return !!searchParams.get(key);
+  };
+
+  // =========================================================
+  // TÊN HIỂN THỊ TRÊN BUTTON
+  // =========================================================
+
+  const activeTypeSlug = searchParams.get("type");
+
+  const activeTypeName =
+    MOVIE_TYPES.find((item) => item.slug === activeTypeSlug)?.name ||
+    "Loại phim";
+
+  const activeCategorySlug = searchParams.get("category");
+
+  const activeCategoryName =
+    filters.genres.find((item) => item.slug === activeCategorySlug)?.name ||
+    "Thể loại";
+
+  const activeCountrySlug = searchParams.get("country");
+
+  const activeCountryName =
+    filters.countries.find((item) => item.slug === activeCountrySlug)?.name ||
+    "Quốc gia";
+
+  const activeYear = searchParams.get("year") || "Năm phát hành";
+
+  // =========================================================
+  // CHIP
+  // =========================================================
 
   const Chip = ({
     label,
@@ -127,34 +178,71 @@ export const FilterBar: React.FC = () => {
 
     return (
       <button
+        type="button"
         onClick={() => handleFilterChange(type, value)}
-        className={`px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-center truncate ${
-          selected
-            ? "bg-white text-black font-semibold shadow-md"
-            : "bg-zinc-800 text-gray-300 hover:bg-zinc-700 hover:text-white"
-        }`}
-        title={label}
+        className={`
+          px-3
+          py-2.5
+          rounded-lg
+          text-sm
+          font-medium
+          transition-all
+          text-center
+          truncate
+          border
+
+          ${
+            selected
+              ? "bg-white text-black border-white font-semibold shadow-md"
+              : "bg-zinc-800 text-gray-300 border-zinc-800 hover:bg-zinc-700 hover:text-white"
+          }
+        `}
       >
+        {selected && <span className="mr-1">✓</span>}
+
         {label}
       </button>
     );
   };
 
-  const activeTypeSlug = searchParams.get("type");
-  const activeTypeName =
-    MOVIE_TYPES.find((t) => t.slug === activeTypeSlug)?.name || "Loại phim";
+  // =========================================================
+  // NÚT "TẤT CẢ"
+  // =========================================================
 
-  const activeCategorySlug = searchParams.get("category");
-  const activeCategoryName =
-    filters.genres.find((genre) => genre.slug === activeCategorySlug)?.name ||
-    "Thể loại";
+  const renderAllButton = (type: FilterType) => {
+    const isAllSelected = !hasSelectedFilter(type);
 
-  const activeCountrySlug = searchParams.get("country");
-  const activeCountryName =
-    filters.countries.find((country) => country.slug === activeCountrySlug)
-      ?.name || "Quốc gia";
+    return (
+      <button
+        type="button"
+        onClick={() => handleClearFilter(type)}
+        className={`
+          px-3
+          py-2.5
+          rounded-lg
+          text-sm
+          font-medium
+          transition-all
+          text-center
+          truncate
+          border
 
-  const activeYear = searchParams.get("year") || "Năm phát hành";
+          ${
+            isAllSelected
+              ? "bg-white text-black border-white font-semibold shadow-md"
+              : "bg-zinc-800 text-gray-300 border-zinc-800 hover:bg-zinc-700 hover:text-white"
+          }
+        `}
+      >
+        {isAllSelected && <span className="mr-1">✓</span>}
+        Tất cả
+      </button>
+    );
+  };
+
+  // =========================================================
+  // XÓA TẤT CẢ FILTER
+  // =========================================================
 
   const hasFilters =
     !!searchParams.get("type") ||
@@ -162,153 +250,300 @@ export const FilterBar: React.FC = () => {
     !!searchParams.get("country") ||
     !!searchParams.get("year");
 
-  const clearFilters = () => {
-    router.push("?");
+  const clearAllFilters = () => {
     setActiveDropdown(null);
+
+    router.push("?");
   };
 
   return (
     <div className="relative z-50 mt-20 px-4 md:px-8">
-      {/* Thanh Filter */}
-      <div className="flex flex-wrap items-center gap-4 relative z-50">
+      {/* ================================================= */}
+      {/* FILTER BUTTONS */}
+      {/* ================================================= */}
+
+      <div className="flex flex-wrap items-center gap-4">
+        {/* LOẠI PHIM */}
         <button
-          onClick={() => toggleDropdown("type")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg border font-semibold transition text-sm ${
-            activeDropdown === "type" || activeTypeSlug
-              ? "bg-zinc-800 text-white border-zinc-500"
-              : "bg-black text-gray-300 border-zinc-800 hover:border-zinc-500"
-          }`}
+          type="button"
+          onClick={() =>
+            setActiveDropdown(activeDropdown === "type" ? null : "type")
+          }
+          className={`
+            flex
+            items-center
+            gap-2
+            px-4
+            py-2
+            rounded-lg
+            border
+            font-semibold
+            transition
+            text-sm
+
+            ${
+              activeDropdown === "type" || hasSelectedFilter("type")
+                ? "bg-zinc-800 text-white border-zinc-500"
+                : "bg-black text-gray-300 border-zinc-800 hover:border-zinc-500"
+            }
+          `}
         >
           {activeTypeName}
-          <span className="text-[10px]">▼</span>
+
+          <span className="text-[10px]">
+            {activeDropdown === "type" ? "▲" : "▼"}
+          </span>
         </button>
 
+        {/* THỂ LOẠI */}
         <button
-          onClick={() => toggleDropdown("the-loai")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg border font-semibold transition text-sm ${
-            activeDropdown === "the-loai" || activeCategorySlug
-              ? "bg-zinc-800 text-white border-zinc-500"
-              : "bg-black text-gray-300 border-zinc-800 hover:border-zinc-500"
-          }`}
+          type="button"
+          onClick={() =>
+            setActiveDropdown(activeDropdown === "the-loai" ? null : "the-loai")
+          }
+          className={`
+            flex
+            items-center
+            gap-2
+            px-4
+            py-2
+            rounded-lg
+            border
+            font-semibold
+            transition
+            text-sm
+
+            ${
+              activeDropdown === "the-loai" || hasSelectedFilter("the-loai")
+                ? "bg-zinc-800 text-white border-zinc-500"
+                : "bg-black text-gray-300 border-zinc-800 hover:border-zinc-500"
+            }
+          `}
         >
           {activeCategoryName}
-          <span className="text-[10px]">▼</span>
+
+          <span className="text-[10px]">
+            {activeDropdown === "the-loai" ? "▲" : "▼"}
+          </span>
         </button>
 
+        {/* QUỐC GIA */}
         <button
-          onClick={() => toggleDropdown("quoc-gia")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg border font-semibold transition text-sm ${
-            activeDropdown === "quoc-gia" || activeCountrySlug
-              ? "bg-zinc-800 text-white border-zinc-500"
-              : "bg-black text-gray-300 border-zinc-800 hover:border-zinc-500"
-          }`}
+          type="button"
+          onClick={() =>
+            setActiveDropdown(activeDropdown === "quoc-gia" ? null : "quoc-gia")
+          }
+          className={`
+            flex
+            items-center
+            gap-2
+            px-4
+            py-2
+            rounded-lg
+            border
+            font-semibold
+            transition
+            text-sm
+
+            ${
+              activeDropdown === "quoc-gia" || hasSelectedFilter("quoc-gia")
+                ? "bg-zinc-800 text-white border-zinc-500"
+                : "bg-black text-gray-300 border-zinc-800 hover:border-zinc-500"
+            }
+          `}
         >
           {activeCountryName}
-          <span className="text-[10px]">▼</span>
+
+          <span className="text-[10px]">
+            {activeDropdown === "quoc-gia" ? "▲" : "▼"}
+          </span>
         </button>
 
+        {/* NĂM */}
         <button
-          onClick={() => toggleDropdown("year")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg border font-semibold transition text-sm ${
-            activeDropdown === "year" || searchParams.get("year")
-              ? "bg-zinc-800 text-white border-zinc-500"
-              : "bg-black text-gray-300 border-zinc-800 hover:border-zinc-500"
-          }`}
+          type="button"
+          onClick={() =>
+            setActiveDropdown(activeDropdown === "year" ? null : "year")
+          }
+          className={`
+            flex
+            items-center
+            gap-2
+            px-4
+            py-2
+            rounded-lg
+            border
+            font-semibold
+            transition
+            text-sm
+
+            ${
+              activeDropdown === "year" || hasSelectedFilter("year")
+                ? "bg-zinc-800 text-white border-zinc-500"
+                : "bg-black text-gray-300 border-zinc-800 hover:border-zinc-500"
+            }
+          `}
         >
           {activeYear}
-          <span className="text-[10px]">▼</span>
+
+          <span className="text-[10px]">
+            {activeDropdown === "year" ? "▲" : "▼"}
+          </span>
         </button>
 
+        {/* XÓA TẤT CẢ */}
         {hasFilters && (
           <button
-            onClick={clearFilters}
-            className="text-gray-400 hover:text-white px-3 py-2 text-sm underline underline-offset-4 transition"
+            type="button"
+            onClick={clearAllFilters}
+            className="
+              text-gray-400
+              hover:text-white
+              px-3
+              py-2
+              text-sm
+              underline
+              underline-offset-4
+              transition
+            "
           >
             Xoá bộ lọc
           </button>
         )}
       </div>
 
-      {/* Lớp nền tối che chắn sự kiện (Overlay) khi dropdown mở */}
-      {activeDropdown && (
-        <div
-          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px]"
-          onClick={() => setActiveDropdown(null)}
-        />
-      )}
+      {/* ================================================= */}
+      {/* DROPDOWN */}
+      {/* ================================================= */}
 
-      {/* Dropdown Menu */}
       {activeDropdown && (
-        <div className="absolute top-full left-4 md:left-8 mt-3 w-[calc(100%-2rem)] max-w-4xl bg-zinc-950 border border-zinc-700 rounded-2xl p-6 shadow-2xl z-50">
-          {filters.genres.length === 0 &&
-          filters.countries.length === 0 &&
-          activeDropdown !== "type" &&
-          activeDropdown !== "year" ? (
-            <div className="text-gray-400 animate-pulse text-sm">
-              Đang tải dữ liệu...
+        <>
+          {/* OVERLAY */}
+          <div
+            className="
+              fixed
+              inset-0
+              z-40
+              bg-black/40
+              backdrop-blur-[2px]
+            "
+            onClick={() => setActiveDropdown(null)}
+          />
+
+          {/* ================================================= */}
+          {/* DROPDOWN BOX */}
+          {/* ================================================= */}
+
+          <div
+            className="
+              absolute
+              top-full
+              left-4
+              md:left-8
+              mt-3
+
+              w-[calc(100%-2rem)]
+              max-w-4xl
+
+              bg-zinc-950
+              border
+              border-zinc-700
+              rounded-2xl
+
+              p-6
+
+              shadow-2xl
+
+              z-50
+            "
+          >
+            {/* ================================================= */}
+            {/* DANH SÁCH */}
+            {/* ================================================= */}
+
+            <div
+              className="
+                grid
+                grid-cols-2
+                sm:grid-cols-4
+                md:grid-cols-6
+
+                gap-2.5
+
+                max-h-80
+                overflow-y-auto
+                overscroll-contain
+
+                pr-2
+
+                [&::-webkit-scrollbar]:w-2
+                [&::-webkit-scrollbar-thumb]:bg-zinc-700
+                [&::-webkit-scrollbar-thumb]:rounded-full
+                [&::-webkit-scrollbar-track]:bg-transparent
+              "
+              onWheel={(e) => {
+                e.stopPropagation();
+              }}
+            >
+              {/* ================================================= */}
+              {/* TẤT CẢ */}
+              {/* ================================================= */}
+
+              {renderAllButton(activeDropdown)}
+
+              {/* ================================================= */}
+              {/* LOẠI PHIM */}
+              {/* ================================================= */}
+
+              {activeDropdown === "type" &&
+                MOVIE_TYPES.map((item) => (
+                  <Chip
+                    key={item.slug}
+                    label={item.name}
+                    value={item.slug}
+                    type="type"
+                  />
+                ))}
+
+              {/* ================================================= */}
+              {/* THỂ LOẠI */}
+              {/* ================================================= */}
+
+              {activeDropdown === "the-loai" &&
+                filters.genres.map((item) => (
+                  <Chip
+                    key={item.slug}
+                    label={item.name}
+                    value={item.slug}
+                    type="the-loai"
+                  />
+                ))}
+
+              {/* ================================================= */}
+              {/* QUỐC GIA */}
+              {/* ================================================= */}
+
+              {activeDropdown === "quoc-gia" &&
+                filters.countries.map((item) => (
+                  <Chip
+                    key={item.slug}
+                    label={item.name}
+                    value={item.slug}
+                    type="quoc-gia"
+                  />
+                ))}
+
+              {/* ================================================= */}
+              {/* NĂM */}
+              {/* ================================================= */}
+
+              {activeDropdown === "year" &&
+                filters.years.map((year) => (
+                  <Chip key={year} label={year} value={year} type="year" />
+                ))}
             </div>
-          ) : (
-            <>
-              {activeDropdown === "type" && (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 max-h-80 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                  {MOVIE_TYPES.map((type) => (
-                    <Chip
-                      key={type.slug}
-                      label={type.name}
-                      value={type.slug}
-                      type="type"
-                    />
-                  ))}
-                </div>
-              )}
-
-              {activeDropdown === "the-loai" && (
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2.5 max-h-80 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                  {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    filters.genres.map((genre: any) => (
-                      <Chip
-                        key={genre.slug}
-                        label={genre.name}
-                        value={genre.slug}
-                        type="the-loai"
-                      />
-                    ))
-                  }
-                </div>
-              )}
-
-              {activeDropdown === "quoc-gia" && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5 max-h-80 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                  {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    filters.countries.map((country: any) => (
-                      <Chip
-                        key={country.slug}
-                        label={country.name}
-                        value={country.slug}
-                        type="quoc-gia"
-                      />
-                    ))
-                  }
-                </div>
-              )}
-
-              {activeDropdown === "year" && (
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2.5 max-h-80 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                  {filters.years.map((year) => (
-                    <Chip
-                      key={year}
-                      label={year}
-                      value={year}
-                      type="year"
-                    />
-                  ))}
-                </div>
-              )}
-            </>
-          )}
-        </div>
+          </div>
+        </>
       )}
     </div>
   );

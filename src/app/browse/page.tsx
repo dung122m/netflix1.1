@@ -1,6 +1,7 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { MovieGrid } from "@/components/MovieGrid";
+import { FilterBarClient } from "@/components/FilterBarClient";
 
 import { movieApi } from "@/services/movieApi";
 
@@ -13,12 +14,6 @@ const NavbarAuth = dynamic(() =>
 const HeroFeatured = dynamic(() =>
   import("@/components/sites/netflix-3f78535a/browse-1234abcd/HeroFeatured").then(
     (mod) => mod.HeroFeatured,
-  ),
-);
-
-const FilterBar = dynamic(() =>
-  import("@/components/sites/netflix-3f78535a/browse-1234abcd/FilterBar").then(
-    (mod) => mod.FilterBar,
   ),
 );
 
@@ -143,7 +138,7 @@ export default async function BrowsePage({
       {currentPage === 1 && !keyword && <HeroFeatured movies={movies} />}
 
       <div className={`px-4 md:px-8 ${keyword ? "mt-24" : "mt-6"}`}>
-        {!keyword && <FilterBar />}
+        {!keyword && <FilterBarClient />}
       </div>
 
       <div className="px-4 md:px-8 pt-10">

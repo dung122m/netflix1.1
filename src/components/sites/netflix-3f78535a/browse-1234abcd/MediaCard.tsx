@@ -19,18 +19,18 @@ export const MediaCard: React.FC<MediaCardProps> = ({
   description,
 }) => {
   return (
-    <Link href={`/movies/${slug}`}>
-      <div className="relative group min-w-70 h-40 rounded-md overflow-hidden cursor-pointer transition-all duration-300 hover:scale-105 hover:z-20 bg-gray-900 shadow-md">
+    <Link href={`/movies/${slug}`} className="snap-start">
+      <div className="group relative h-40 min-w-70 cursor-pointer overflow-hidden rounded-md bg-gray-900 shadow-md transition-transform duration-300 ease-out will-change-transform hover:z-20 hover:scale-105">
         <Image
           src={imageUrl}
           alt={title}
           fill
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 280px"
-          className="object-cover transition-transform duration-300 group-hover:scale-110"
+          className="object-cover transition-transform duration-500 ease-out will-change-transform group-hover:scale-110"
         />
 
         {/* Hover Overlay */}
-        <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 p-3 flex flex-col justify-between transition-opacity duration-300">
+        <div className="absolute inset-0 flex flex-col justify-between bg-black/70 p-3 opacity-0 transition-opacity duration-300 ease-out group-hover:opacity-100">
           {/* Center: Play Button */}
           <div className="flex-grow flex items-center justify-center">
             <div className="bg-white/20 text-white rounded-full p-3 backdrop-blur-sm border border-white/30 hover:bg-white hover:text-black transition">

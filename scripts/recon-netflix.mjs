@@ -47,8 +47,6 @@ async function run() {
   console.log(`Saved desktop full screenshot to ${desktopScreenshotPath}`);
 
   // Extract critical metadata and structure
-  const pageTitle = await desktopPage.title();
-  const pageContent = await desktopPage.content();
 
   // Run DOM extraction in browser
   const domReport = await desktopPage.evaluate(() => {
@@ -78,14 +76,6 @@ async function run() {
       });
       return styles;
     }
-
-    // Capture main sections
-    const body = document.body;
-    
-    // We want to detect the prominent sections. Netflix usually has several cards or sections on the home/landing page.
-    // Let's identify sections by querying semantic structures (like section, header, footer, or divs with data-uia)
-    const elements = [...document.querySelectorAll('section, header, footer, [data-uia]')];
-    const sectionList = [];
 
     // Simple pass to see main structural elements
     const mainChildren = [...document.querySelectorAll('body > div, body > header, body > footer, body > section, main > section, [data-uia]')];
