@@ -4,10 +4,8 @@ import React, { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { movieApi } from "@/services/movieApi";
 
-// 1. Bổ sung "type" vào FilterType
 type FilterType = "the-loai" | "quoc-gia" | "year" | "type";
 
-// 2. Định nghĩa danh sách các Loại phim cố định
 const MOVIE_TYPES = [
   { name: "Phim Lẻ", slug: "phim-le" },
   { name: "Phim Bộ", slug: "phim-bo" },
@@ -33,12 +31,9 @@ export const FilterBar: React.FC = () => {
 
   const [activeDropdown, setActiveDropdown] = useState<FilterType | null>(null);
 
-  // Dùng để không scroll ngay lần đầu mở trang
   const firstRender = useRef(true);
 
-  // =====================================================
-  // LOAD DANH SÁCH FILTER
-  // =====================================================
+  // Load danh sách filter
   useEffect(() => {
     const loadFilters = async () => {
       try {
@@ -51,32 +46,17 @@ export const FilterBar: React.FC = () => {
     loadFilters();
   }, []);
 
-  // =====================================================
-  // TỰ ĐỘNG SCROLL SAU KHI FILTER THAY ĐỔI
-  // =====================================================
+  // Tự động scroll sau khi filter thay đổi
   useEffect(() => {
-    // Không scroll khi vừa mở trang
     if (firstRender.current) {
       firstRender.current = false;
       return;
     }
 
-    console.log("🔄 Filter đã thay đổi -> chờ render danh sách...");
-
-    /*
-     * router.push() làm Server Component render lại.
-     * Vì vậy KHÔNG scroll ngay trong handleFilterChange.
-     * Chờ DOM cập nhật xong rồi mới scroll.
-     */
     const timer = window.setTimeout(() => {
       const movieList = document.getElementById("movie-list");
+      if (!movieList) return;
 
-      if (!movieList) {
-        console.warn("⚠️ Không tìm thấy #movie-list");
-        return;
-      }
-
-      console.log("✅ Scroll xuống danh sách phim");
       movieList.scrollIntoView({
         behavior: "smooth",
         block: "start",
@@ -88,77 +68,40 @@ export const FilterBar: React.FC = () => {
     };
   }, [searchParams]);
 
-  // =====================================================
-  // XỬ LÝ KHI CHỌN FILTER
-  // =====================================================
   const handleFilterChange = (filterType: FilterType, value: string) => {
     const params = new URLSearchParams(searchParams.toString());
 
-    // ---------------------------------------------
-    // LOẠI PHIM
-    // ---------------------------------------------
     if (filterType === "type") {
       const current = params.get("type");
-      if (current === value) {
-        params.delete("type");
-      } else {
-        params.set("type", value);
-      }
+      if (current === value) params.delete("type");
+      else params.set("type", value);
     }
 
-    // ---------------------------------------------
-    // THỂ LOẠI
-    // ---------------------------------------------
     if (filterType === "the-loai") {
       const current = params.get("category");
-      if (current === value) {
-        params.delete("category");
-      } else {
-        params.set("category", value);
-      }
+      if (current === value) params.delete("category");
+      else params.set("category", value);
     }
 
-    // ---------------------------------------------
-    // QUỐC GIA
-    // ---------------------------------------------
     if (filterType === "quoc-gia") {
       const current = params.get("country");
-      if (current === value) {
-        params.delete("country");
-      } else {
-        params.set("country", value);
-      }
+      if (current === value) params.delete("country");
+      else params.set("country", value);
     }
 
-    // ---------------------------------------------
-    // NĂM
-    // ---------------------------------------------
     if (filterType === "year") {
       const current = params.get("year");
-      if (current === value) {
-        params.delete("year");
-      } else {
-        params.set("year", value);
-      }
+      if (current === value) params.delete("year");
+      else params.set("year", value);
     }
 
-    // ---------------------------------------------
-    // MỖI LẦN ĐỔI FILTER -> VỀ TRANG 1
-    // ---------------------------------------------
     params.delete("page");
     const query = params.toString();
-    console.log("🚀 Filter mới:", query);
 
-    // ---------------------------------------------
-    // CẬP NHẬT URL
-    // ---------------------------------------------
     router.push(query ? `?${query}` : "?");
     setActiveDropdown(null);
   };
 
-  // =====================================================
-  // KIỂM TRA FILTER ĐANG ĐƯỢC CHỌN
-  // =====================================================
   const isSelected = (filterType: FilterType, value: string) => {
     if (filterType === "type") return searchParams.get("type") === value;
     if (filterType === "the-loai")
@@ -167,16 +110,10 @@ export const FilterBar: React.FC = () => {
     return searchParams.get("year") === value;
   };
 
-  // =====================================================
-  // DROPDOWN
-  // =====================================================
   const toggleDropdown = (dropdown: FilterType) => {
     setActiveDropdown(activeDropdown === dropdown ? null : dropdown);
   };
 
-  // =====================================================
-  // CHIP COMPONENT
-  // =====================================================
   const Chip = ({
     label,
     value,
@@ -203,9 +140,6 @@ export const FilterBar: React.FC = () => {
     );
   };
 
-  // =====================================================
-  // LẤY TÊN ĐANG HIỂN THỊ
-  // =====================================================
   const activeTypeSlug = searchParams.get("type");
   const activeTypeName =
     MOVIE_TYPES.find((t) => t.slug === activeTypeSlug)?.name || "Loại phim";
@@ -222,35 +156,21 @@ export const FilterBar: React.FC = () => {
 
   const activeYear = searchParams.get("year") || "Năm phát hành";
 
-  // =====================================================
-  // CÓ FILTER HAY KHÔNG
-  // =====================================================
   const hasFilters =
     !!searchParams.get("type") ||
     !!searchParams.get("category") ||
     !!searchParams.get("country") ||
     !!searchParams.get("year");
 
-  // =====================================================
-  // XÓA TOÀN BỘ FILTER
-  // =====================================================
   const clearFilters = () => {
     router.push("?");
     setActiveDropdown(null);
   };
 
-  // =====================================================
-  // RENDER
-  // =====================================================
   return (
-    <div className="relative z-30 mt-20 px-4 md:px-8">
-      {/* =================================================
-          THANH FILTER
-      ================================================= */}
-      <div className="flex flex-wrap items-center gap-4">
-        {/* ===============================================
-            LOẠI PHIM
-        =============================================== */}
+    <div className="relative z-50 mt-20 px-4 md:px-8">
+      {/* Thanh Filter */}
+      <div className="flex flex-wrap items-center gap-4 relative z-50">
         <button
           onClick={() => toggleDropdown("type")}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg border font-semibold transition text-sm ${
@@ -263,9 +183,6 @@ export const FilterBar: React.FC = () => {
           <span className="text-[10px]">▼</span>
         </button>
 
-        {/* ===============================================
-            THỂ LOẠI
-        =============================================== */}
         <button
           onClick={() => toggleDropdown("the-loai")}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg border font-semibold transition text-sm ${
@@ -278,9 +195,6 @@ export const FilterBar: React.FC = () => {
           <span className="text-[10px]">▼</span>
         </button>
 
-        {/* ===============================================
-            QUỐC GIA
-        =============================================== */}
         <button
           onClick={() => toggleDropdown("quoc-gia")}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg border font-semibold transition text-sm ${
@@ -293,9 +207,6 @@ export const FilterBar: React.FC = () => {
           <span className="text-[10px]">▼</span>
         </button>
 
-        {/* ===============================================
-            NĂM
-        =============================================== */}
         <button
           onClick={() => toggleDropdown("year")}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg border font-semibold transition text-sm ${
@@ -308,9 +219,6 @@ export const FilterBar: React.FC = () => {
           <span className="text-[10px]">▼</span>
         </button>
 
-        {/* ===============================================
-            XÓA FILTER
-        =============================================== */}
         {hasFilters && (
           <button
             onClick={clearFilters}
@@ -321,12 +229,17 @@ export const FilterBar: React.FC = () => {
         )}
       </div>
 
-      {/* =================================================
-          DROPDOWN CÁC BỘ LỌC
-      ================================================= */}
+      {/* Lớp nền tối che chắn sự kiện (Overlay) khi dropdown mở */}
       {activeDropdown && (
-        <div className="absolute top-full left-4 md:left-8 mt-3 w-[calc(100%-2rem)] max-w-4xl bg-zinc-900 border border-zinc-700 rounded-2xl p-6 shadow-2xl">
-          {/* TRẠNG THÁI LOADING CHO THỂ LOẠI/QUỐC GIA */}
+        <div
+          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px]"
+          onClick={() => setActiveDropdown(null)}
+        />
+      )}
+
+      {/* Dropdown Menu */}
+      {activeDropdown && (
+        <div className="absolute top-full left-4 md:left-8 mt-3 w-[calc(100%-2rem)] max-w-4xl bg-zinc-950 border border-zinc-700 rounded-2xl p-6 shadow-2xl z-50">
           {filters.genres.length === 0 &&
           filters.countries.length === 0 &&
           activeDropdown !== "type" &&
@@ -336,9 +249,6 @@ export const FilterBar: React.FC = () => {
             </div>
           ) : (
             <>
-              {/* =========================================
-                  DROPDOWN LOẠI PHIM
-              ========================================= */}
               {activeDropdown === "type" && (
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 max-h-80 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                   {MOVIE_TYPES.map((type) => (
@@ -352,9 +262,6 @@ export const FilterBar: React.FC = () => {
                 </div>
               )}
 
-              {/* =========================================
-                  DROPDOWN THỂ LOẠI
-              ========================================= */}
               {activeDropdown === "the-loai" && (
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2.5 max-h-80 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                   {
@@ -371,9 +278,6 @@ export const FilterBar: React.FC = () => {
                 </div>
               )}
 
-              {/* =========================================
-                  DROPDOWN QUỐC GIA
-              ========================================= */}
               {activeDropdown === "quoc-gia" && (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5 max-h-80 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                   {
@@ -390,13 +294,15 @@ export const FilterBar: React.FC = () => {
                 </div>
               )}
 
-              {/* =========================================
-                  DROPDOWN NĂM
-              ========================================= */}
               {activeDropdown === "year" && (
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2.5 max-h-80 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                   {filters.years.map((year) => (
-                    <Chip key={year} label={year} value={year} type="year" />
+                    <Chip
+                      key={year}
+                      label={year}
+                      value={year}
+                      type="year"
+                    />
                   ))}
                 </div>
               )}

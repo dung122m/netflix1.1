@@ -1,5 +1,6 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { MovieGrid } from "@/components/MovieGrid";
 
 import { movieApi } from "@/services/movieApi";
 
@@ -25,10 +26,6 @@ const SetTitleClient = dynamic(() =>
   import("@/components/SetTitleClient").then((mod) => mod.default),
 );
 
-const MovieCard = dynamic(() =>
-  import("@/components/MovieCard").then((mod) => mod.default),
-);
-
 // ==========================================
 // METADATA
 // ==========================================
@@ -40,7 +37,7 @@ export async function generateMetadata({
     country?: string;
     year?: string;
     keyword?: string;
-    type?: string; // 👈 Khai báo type
+    type?: string; 
   }>;
 }) {
   const params = await searchParams;
@@ -89,37 +86,19 @@ export default async function BrowsePage({
     year?: string;
     keyword?: string;
     page?: string;
-    type?: string; // 👈 Khai báo type
+    type?: string;
   }>;
 }) {
   const params = await searchParams;
 
-  // ========================================
-  // LẤY PARAMS TỪ URL
-  // ========================================
   const category = params.category || undefined;
   const country = params.country || undefined;
   const year = params.year || undefined;
   const keyword = params.keyword || undefined;
-  const type = params.type || undefined; // 👈 Lấy type từ URL
+  const type = params.type || undefined;
 
   const currentPage = params.page ? parseInt(params.page, 10) : 1;
 
-  // ========================================
-  // DEBUG
-  // ========================================
-  console.log("================================");
-  console.log("🎬 BROWSE FILTER (GỘP NGUỒN)");
-  console.log("TYPE:", type);
-  console.log("CATEGORY:", category);
-  console.log("COUNTRY:", country);
-  console.log("YEAR:", year);
-  console.log("PAGE:", currentPage);
-  console.log("================================");
-
-  // ========================================
-  // GỌI API (Đã xử lý gộp 2 nguồn trong movieApi)
-  // ========================================
   const response = await movieApi.getMovies({
     category,
     country,
@@ -127,27 +106,14 @@ export default async function BrowsePage({
     keyword,
     page: currentPage,
     limit: 24,
-    type, // 👈 Truyền type xuống API
+    type,
   });
 
-  // ========================================
-  // LẤY DANH SÁCH PHIM
-  // ========================================
   const movies = response?.items || [];
-
-  // ========================================
-  // TỔNG SỐ TRANG VÀ TỔNG SỐ PHIM
-  // ========================================
   const totalPages = response?.pagination?.totalPages || 50;
-
-  // 👈 Lấy tổng số lượng phim từ API gộp, nếu không có thì lấy số phim trên trang hiện tại
   const totalItems = response?.pagination?.totalItems || movies.length;
-
   const pages = getPagination(currentPage, totalPages);
 
-  // ========================================
-  // TITLE
-  // ========================================
   let title = "Phim Mới Cập Nhật";
 
   if (keyword) {
@@ -156,106 +122,53 @@ export default async function BrowsePage({
     title = "Kết quả lọc";
   }
 
-  // ========================================
-  // URL PHÂN TRANG
-  // ========================================
   const buildPaginationUrl = (newPage: number) => {
     const query = new URLSearchParams();
 
-    if (category) {
-      query.set("category", category);
-    }
-
-    if (country) {
-      query.set("country", country);
-    }
-
-    if (year) {
-      query.set("year", year);
-    }
-
-    if (keyword) {
-      query.set("keyword", keyword);
-    }
-
-    if (type) {
-      query.set("type", type); // 👈 Giữ lại bộ lọc loại phim khi sang trang mới
-    }
-
+    if (category) query.set("category", category);
+    if (country) query.set("country", country);
+    if (year) query.set("year", year);
+    if (keyword) query.set("keyword", keyword);
+    if (type) query.set("type", type);
     query.set("page", newPage.toString());
 
     return `?${query.toString()}`;
   };
 
-  // ========================================
-  // RENDER
-  // ========================================
   return (
     <div className="bg-black min-h-screen text-white pb-20">
       <NavbarAuth />
-
       <SetTitleClient title={title} />
 
-      {/* =====================================
-          HERO
-      ===================================== */}
       {currentPage === 1 && !keyword && <HeroFeatured movies={movies} />}
 
-      {/* =====================================
-          FILTER BAR
-      ===================================== */}
       <div className={`px-4 md:px-8 ${keyword ? "mt-24" : "mt-6"}`}>
         {!keyword && <FilterBar />}
       </div>
 
-      {/* =====================================
-          CONTENT
-      ===================================== */}
       <div className="px-4 md:px-8 pt-10">
-        {/* HEADER */}
         <div className="mb-7 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight">
               {title}
             </h2>
-
             <p className="mt-1 text-sm text-gray-400">
               Khám phá bộ sưu tập phim chất lượng cao từ nhiều nguồn, cập nhật
               liên tục.
             </p>
           </div>
-
           <div className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-xs md:text-sm text-gray-200">
-            {/* 👈 Hiển thị tổng số lượng phim khổng lồ */}
             <span>{totalItems.toLocaleString("vi-VN")} phim</span>
-
             <span className="text-white/40">•</span>
-
             <span>Trang {currentPage}</span>
           </div>
         </div>
 
-        {/* =====================================
-            MOVIES
-        ===================================== */}
         {movies.length > 0 ? (
           <>
-            <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-zinc-900/45 to-zinc-950/45 p-3 sm:p-4 md:p-5">
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4 md:gap-5">
-                {
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  movies.map((m: any) => (
-                    <MovieCard key={m.slug} m={m} />
-                  ))
-                }
-              </div>
-            </div>
+            <MovieGrid movies={movies} />
 
-            {/* =================================
-                PHÂN TRANG
-            ================================= */}
             <div className="flex justify-center items-center gap-2 mt-16 flex-wrap">
-              {/* PREVIOUS */}
               <Link
                 href={buildPaginationUrl(Math.max(1, currentPage - 1))}
                 className={`px-3 py-2 rounded font-semibold transition ${
@@ -267,7 +180,6 @@ export default async function BrowsePage({
                 &laquo; Trở lại
               </Link>
 
-              {/* PAGE NUMBERS */}
               {pages.map((p, index) => {
                 if (p === "...") {
                   return (
@@ -276,7 +188,6 @@ export default async function BrowsePage({
                     </span>
                   );
                 }
-
                 return (
                   <Link
                     key={index}
@@ -292,7 +203,6 @@ export default async function BrowsePage({
                 );
               })}
 
-              {/* NEXT */}
               <Link
                 href={buildPaginationUrl(currentPage + 1)}
                 className={`px-3 py-2 rounded font-semibold transition ${

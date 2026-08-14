@@ -64,11 +64,9 @@ export const movieApi = {
           }
         }
 
-        console.log(`[ĐANG GỌI API] -> ${fullUrl}`);
         const res = await fetch(fullUrl, { next: { revalidate: 30 } });
 
         if (!res.ok) {
-          console.log(`[🚨 LỖI HTTP ${res.status}] khi gọi -> ${fullUrl}`);
           return null;
         }
 
@@ -119,15 +117,10 @@ export const movieApi = {
             json.pagination?.totalPages ||
             0,
         };
-      } catch (error) {
-        console.error(`❌ [LỖI CATCH] (${baseUrl}):`, error);
+      } catch {
         return null;
       }
     };
-
-    console.log("================================");
-    console.log("🎬 MOVIE API - LỌC VÀ GỘP NGUỒN");
-    console.log("================================");
 
     const isSearch = Boolean(keyword?.trim());
 
@@ -139,11 +132,9 @@ export const movieApi = {
     // ========================================
     if (type) {
       // NẾU CÓ CHỌN LOẠI PHIM -> CHỈ GỌI PHIMAPI (Bỏ qua VSMOV để tránh trộn sai kết quả)
-      console.log(`👉 Đang lọc loại phim [${type}] -> Chỉ gọi PHIMAPI`);
       dataPhimApi = await fetchSource(API_PHIMAPI, isSearch);
     } else {
       // NẾU KHÔNG CHỌN LOẠI PHIM -> GỌI ĐỒNG THỜI CẢ 2 NGUỒN
-      console.log("👉 Không dùng bộ lọc Loại Phim -> Gọi gộp cả 2 nguồn");
       const [resVsmov, resPhimApi] = await Promise.all([
         fetchSource(API_VSMOV, isSearch),
         fetchSource(API_PHIMAPI, isSearch),
@@ -178,12 +169,6 @@ export const movieApi = {
 
     // Tính tổng số phim bằng cách lấy (số trang * số limit) của từng nguồn cộng lại
     const totalItemsCount = totalPagesVsmov * limit + totalPagesPhimApi * limit;
-
-    console.log("=== KẾT QUẢ GỘP ===");
-    console.log("✅ Tổng phim hiển thị trang này:", finalItems.length);
-    console.log("✅ Tổng số lượng phim toàn bộ:", totalItemsCount);
-    console.log("✅ Tổng trang lớn nhất:", maxTotalPages);
-    console.log("================================");
 
     return {
       status: true,
@@ -247,9 +232,9 @@ export const movieApi = {
       }
 
       return await response.json();
-    } catch (error) {
-      console.error("❌ Lỗi tải chi tiết phim:", error);
-      throw error;
+    } catch {
+      console.error("❌ Lỗi tải chi tiết phim");
+      throw new Error("Lỗi tải chi tiết phim");
     }
   },
 };

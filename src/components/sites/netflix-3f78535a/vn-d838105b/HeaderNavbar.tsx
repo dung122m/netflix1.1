@@ -14,13 +14,8 @@ export const HeaderNavbar = () => {
           <option>Tiếng Việt</option>
           <option>English</option>
         </select>
-        <Link
-          href="/login"
-          className="bg-netflix-red text-white px-4 py-1 rounded text-sm font-semibold"
-        >
-          Đăng nhập
-        </Link>
       </div>
+
     </header>
   );
 };

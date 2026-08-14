@@ -93,7 +93,8 @@ function MovieCardInner({ m }: Props) {
           "--my": "50%",
         } as React.CSSProperties
       }
-      className="group relative aspect-[2/3] overflow-hidden rounded-xl border border-white/10 bg-zinc-900/85 transition-all duration-300 hover:-translate-y-1 hover:border-white/25 hover:shadow-[0_20px_50px_rgba(0,0,0,0.55)]"
+      // Tăng duration và cải thiện hiệu ứng hover cho cảm giác premium
+      className="group relative aspect-[2/3] overflow-hidden rounded-xl border border-white/5 bg-zinc-900/85 transition-all duration-500 ease-out hover:-translate-y-2 hover:border-white/20 hover:shadow-[0_20px_60px_-10px_rgba(0,0,0,0.8)]"
     >
       <Link
         href={`/movies/${m.slug}`}
@@ -105,8 +106,7 @@ function MovieCardInner({ m }: Props) {
         src={imgUrl}
         alt={title}
         fill
-        quality={100}
-        unoptimized
+        quality={90}
         sizes="(max-width: 640px) 52vw, (max-width: 1024px) 34vw, (max-width: 1536px) 22vw, 18vw"
         className="object-cover transition-[filter,transform] duration-300 group-hover:brightness-[1.1] group-hover:scale-[1.02]"
       />
