@@ -40,6 +40,7 @@ export async function generateMetadata({
     country?: string;
     year?: string;
     keyword?: string;
+    type?: string; // 👈 Khai báo type
   }>;
 }) {
   const params = await searchParams;
@@ -48,7 +49,7 @@ export async function generateMetadata({
 
   if (params.keyword) {
     title = `Kết quả tìm kiếm: "${params.keyword}"`;
-  } else if (params.category || params.country || params.year) {
+  } else if (params.category || params.country || params.year || params.type) {
     title = "Kết quả lọc";
   }
 
@@ -88,6 +89,7 @@ export default async function BrowsePage({
     year?: string;
     keyword?: string;
     page?: string;
+    type?: string; // 👈 Khai báo type
   }>;
 }) {
   const params = await searchParams;
@@ -99,6 +101,7 @@ export default async function BrowsePage({
   const country = params.country || undefined;
   const year = params.year || undefined;
   const keyword = params.keyword || undefined;
+  const type = params.type || undefined; // 👈 Lấy type từ URL
 
   const currentPage = params.page ? parseInt(params.page, 10) : 1;
 
@@ -106,7 +109,8 @@ export default async function BrowsePage({
   // DEBUG
   // ========================================
   console.log("================================");
-  console.log("🎬 BROWSE FILTER");
+  console.log("🎬 BROWSE FILTER (GỘP NGUỒN)");
+  console.log("TYPE:", type);
   console.log("CATEGORY:", category);
   console.log("COUNTRY:", country);
   console.log("YEAR:", year);
@@ -114,29 +118,30 @@ export default async function BrowsePage({
   console.log("================================");
 
   // ========================================
-  // GỌI API
+  // GỌI API (Đã xử lý gộp 2 nguồn trong movieApi)
   // ========================================
-  const response = await {
+  const response = await movieApi.getMovies({
     category,
     country,
     year,
     keyword,
     page: currentPage,
     limit: 24,
-  };
+    type, // 👈 Truyền type xuống API
+  });
 
   // ========================================
   // LẤY DANH SÁCH PHIM
   // ========================================
-  const movies = response?.data?.items || response?.items || [];
+  const movies = response?.items || [];
 
   // ========================================
-  // TỔNG SỐ TRANG
+  // TỔNG SỐ TRANG VÀ TỔNG SỐ PHIM
   // ========================================
-  const totalPages =
-    response?.data?.params?.pagination?.totalPages ||
-    response?.pagination?.totalPages ||
-    50;
+  const totalPages = response?.pagination?.totalPages || 50;
+
+  // 👈 Lấy tổng số lượng phim từ API gộp, nếu không có thì lấy số phim trên trang hiện tại
+  const totalItems = response?.pagination?.totalItems || movies.length;
 
   const pages = getPagination(currentPage, totalPages);
 
@@ -147,13 +152,12 @@ export default async function BrowsePage({
 
   if (keyword) {
     title = `Kết quả tìm kiếm: "${keyword}"`;
-  } else if (category || country || year) {
+  } else if (category || country || year || type) {
     title = "Kết quả lọc";
   }
 
   // ========================================
   // URL PHÂN TRANG
-  // Giữ nguyên category + country + year
   // ========================================
   const buildPaginationUrl = (newPage: number) => {
     const query = new URLSearchParams();
@@ -172,6 +176,10 @@ export default async function BrowsePage({
 
     if (keyword) {
       query.set("keyword", keyword);
+    }
+
+    if (type) {
+      query.set("type", type); // 👈 Giữ lại bộ lọc loại phim khi sang trang mới
     }
 
     query.set("page", newPage.toString());
@@ -212,12 +220,14 @@ export default async function BrowsePage({
             </h2>
 
             <p className="mt-1 text-sm text-gray-400">
-              Khám phá bộ sưu tập phim chất lượng cao, cập nhật liên tục.
+              Khám phá bộ sưu tập phim chất lượng cao từ nhiều nguồn, cập nhật
+              liên tục.
             </p>
           </div>
 
           <div className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-xs md:text-sm text-gray-200">
-            <span>{movies.length} phim</span>
+            {/* 👈 Hiển thị tổng số lượng phim khổng lồ */}
+            <span>{totalItems.toLocaleString("vi-VN")} phim</span>
 
             <span className="text-white/40">•</span>
 

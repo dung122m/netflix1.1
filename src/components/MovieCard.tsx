@@ -2,7 +2,7 @@
 import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Play, Star } from "lucide-react";
+import { Star } from "lucide-react";
 import { movieApi } from "@/services/movieApi";
 import {
   buildMovieDescriptionFallback,
@@ -95,7 +95,11 @@ function MovieCardInner({ m }: Props) {
       }
       className="group relative aspect-[2/3] overflow-hidden rounded-xl border border-white/10 bg-zinc-900/85 transition-all duration-300 hover:-translate-y-1 hover:border-white/25 hover:shadow-[0_20px_50px_rgba(0,0,0,0.55)]"
     >
-      <Link href={`/movies/${m.slug}`} className="absolute inset-0 z-10" />
+      <Link
+        href={`/movies/${m.slug}`}
+        aria-label={`${isTrailerOnly ? "Xem trailer" : "Xem phim"} ${title}`}
+        className="absolute inset-0 z-30"
+      />
 
       <Image
         src={imgUrl}
@@ -135,7 +139,17 @@ function MovieCardInner({ m }: Props) {
         </div>
       )}
 
-      <div className="absolute inset-x-0 bottom-0 z-20 p-4">
+      {/* =========================================
+          NÚT PLAY KIỂU NETFLIX (NẰM CHÍNH GIỮA KHI HOVER)
+      ========================================= */}
+      <div className="absolute inset-0 z-20 flex items-center justify-center opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 pointer-events-none">
+        <div className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center shadow-lg transition-transform duration-200 hover:scale-110">
+          {/* Tam giác play thuần CSS */}
+          <div className="w-0 h-0 border-t-[7px] border-t-transparent border-l-[12px] border-l-black border-b-[7px] border-b-transparent ml-1"></div>
+        </div>
+      </div>
+
+      <div className="absolute inset-x-0 bottom-0 z-20 p-4 pointer-events-none">
         <h3 className="text-white font-bold text-sm md:text-base leading-snug line-clamp-2 drop-shadow">
           {title}
         </h3>
@@ -143,15 +157,6 @@ function MovieCardInner({ m }: Props) {
           {isLoadingDescription ? "Đang tải mô tả..." : description}
         </p>
       </div>
-
-      <Link
-        href={`/movies/${m.slug}`}
-        aria-label={`${isTrailerOnly ? "Xem trailer" : "Xem phim"} ${title}`}
-        className="absolute right-3 bottom-3 z-30 inline-flex items-center gap-1 rounded-full bg-white text-black px-3 py-1.5 text-xs font-bold shadow-lg transition-all duration-300 opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 hover:bg-gray-200"
-      >
-        <Play size={14} fill="black" />
-        {isTrailerOnly ? "Trailer" : "Play"}
-      </Link>
     </article>
   );
 }

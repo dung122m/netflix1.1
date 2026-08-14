@@ -111,23 +111,19 @@ export default async function MovieDetail({
   const recommendationPool: any[] = [];
 
   if (primaryGenreSlug) {
-    const byGenre = await {
-      type: "the-loai",
-      slug: primaryGenreSlug,
+    const byGenre = await movieApi.getMovies({
+      category: primaryGenreSlug,
       page: 1,
-    };
-    recommendationPool.push(...(byGenre?.data?.items || byGenre?.items || []));
+    });
+    recommendationPool.push(...(byGenre?.items || []));
   }
 
   if (recommendationPool.length < 10 && primaryCountrySlug) {
     const byCountry = await movieApi.getMovies({
-      type: "quoc-gia",
-      slug: primaryCountrySlug,
+      country: primaryCountrySlug,
       page: 1,
     });
-    recommendationPool.push(
-      ...(byCountry?.data?.items || byCountry?.items || []),
-    );
+    recommendationPool.push(...(byCountry?.items || []));
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const deduped = new Map<string, any>();

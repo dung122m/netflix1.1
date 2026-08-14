@@ -1,4 +1,5 @@
-const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+const API_VSMOV = process.env.NEXT_PUBLIC_API_URL || "https://vsmov.com/api";
+const API_PHIMAPI = process.env.NEXT_PUBLIC_API_URL_2 || "https://phimapi.com";
 
 export interface MovieFilterParams {
   category?: string;
@@ -8,12 +9,12 @@ export interface MovieFilterParams {
   page?: number;
   limit?: number;
   type?: string;
-  slug?: string; // Bổ sung dòng này
+  slug?: string;
 }
 
 export const movieApi = {
   // ==========================================
-  // 1. LẤY DANH SÁCH PHIM
+  // 1. LẤY DANH SÁCH PHIM TỪ CẢ 2 NGUỒN
   // ==========================================
   getMovies: async ({
     category,
@@ -22,174 +23,204 @@ export const movieApi = {
     keyword,
     page = 1,
     limit = 24,
+    type,
   }: MovieFilterParams = {}) => {
-    if (!baseUrl) {
-      throw new Error("Chưa cấu hình NEXT_PUBLIC_API_URL");
-    }
-
-    // ========================================
-    // TÌM KIẾM
-    // ========================================
-    if (keyword?.trim()) {
-      const searchParams = new URLSearchParams();
-
-      searchParams.set("keyword", keyword.trim());
-
-      searchParams.set("page", String(page));
-
-      searchParams.set("limit", String(limit));
-
-      const searchUrl = `${baseUrl}/tim-kiem?${searchParams.toString()}`;
-
-      console.log("🔎 SEARCH API:", searchUrl);
-
+    // Hàm phụ để fetch và parse dữ liệu an toàn
+    const fetchSource = async (baseUrl: string, isSearch: boolean) => {
       try {
-        const response = await fetch(searchUrl, {
-          method: "GET",
-          next: {
-            revalidate: 30,
-          },
-        });
+        const params = new URLSearchParams();
+        params.set("page", String(page));
+        params.set("limit", String(limit));
 
-        if (!response.ok) {
-          throw new Error(`Lỗi ${response.status}`);
+        let fullUrl = "";
+
+        // ========================================
+        // 🛠 XỬ LÝ ĐƯỜNG DẪN RIÊNG CHO TỪNG NGUỒN
+        // ========================================
+        if (baseUrl === API_PHIMAPI) {
+          if (isSearch && keyword) {
+            params.set("keyword", keyword.trim());
+            // Link tìm kiếm của KKPhim/Ophim thường là v1/api/tim-kiem
+            fullUrl = `${baseUrl}/v1/api/tim-kiem?${params.toString()}`;
+          } else {
+            if (category) params.set("category", category);
+            if (country) params.set("country", country);
+            if (year) params.set("year", year);
+
+            // PhimAPI bắt buộc phải có type. Nếu UI của bạn chưa có bộ lọc type, ta mặc định là 'phim-le'
+            const currentType = type || "phim-le";
+            fullUrl = `${baseUrl}/v1/api/danh-sach/${currentType}?${params.toString()}`;
+          }
+        } else {
+          // VSMOV
+          if (isSearch && keyword) {
+            params.set("keyword", keyword.trim());
+            fullUrl = `${baseUrl}/tim-kiem?${params.toString()}`;
+          } else {
+            if (category) params.set("category", category);
+            if (country) params.set("country", country);
+            if (year) params.set("year", year);
+            fullUrl = `${baseUrl}/danh-sach/?${params.toString()}`;
+          }
         }
 
-        return await response.json();
-      } catch (error) {
-        console.error("❌ Lỗi tìm kiếm:", error);
+        console.log(`[ĐANG GỌI API] -> ${fullUrl}`);
+        const res = await fetch(fullUrl, { next: { revalidate: 30 } });
 
+        if (!res.ok) {
+          console.log(`[🚨 LỖI HTTP ${res.status}] khi gọi -> ${fullUrl}`);
+          return null;
+        }
+
+        const json = await res.json();
+
+        // ========================================
+        // 🛠 CHUẨN HÓA DỮ LIỆU (DATA MAPPING)
+        // ========================================
+        if (baseUrl === API_PHIMAPI) {
+          // Lấy domain ảnh từ API trả về, hoặc dùng domain dự phòng
+          const imageDomain =
+            json.data?.APP_DOMAIN_CDN_IMAGE ||
+            json.data?.APP_DOMAIN_FRONTEND ||
+            "https://phimimg.com/";
+          const items = json.data?.items || json.items || [];
+
+          // PhimAPI v1 trả về ảnh bị cụt, cần nối chuỗi
+          const mappedItems = items.map((item: { thumb_url?: string; poster_url?: string; slug?: string; [key: string]: unknown }) => {
+            // Kiểm tra nếu thumb_url chưa có chữ http thì mới nối tên miền vào
+            const fixedThumb = typeof item.thumb_url === 'string' && item.thumb_url.startsWith("http")
+              ? item.thumb_url
+              : `${imageDomain}/${item.thumb_url}`;
+            const fixedPoster = typeof item.poster_url === 'string' && item.poster_url.startsWith("http")
+              ? item.poster_url
+              : `${imageDomain}/${item.poster_url}`;
+
+            return {
+              ...item,
+              thumb_url: fixedThumb,
+              poster_url: fixedPoster,
+            };
+          });
+
+          return {
+            items: mappedItems,
+            totalPages:
+              json.data?.params?.pagination?.totalPages ||
+              json.pagination?.totalPages ||
+              0,
+          };
+        }
+
+        // Với VSMOV, dữ liệu đã chuẩn nên chỉ việc trả về
         return {
-          status: false,
-          items: [],
+          items: json.data?.items || json.items || [],
+          totalPages:
+            json.data?.params?.pagination?.totalPages ||
+            json.pagination?.totalPages ||
+            0,
         };
+      } catch (error) {
+        console.error(`❌ [LỖI CATCH] (${baseUrl}):`, error);
+        return null;
       }
+    };
+
+    console.log("================================");
+    console.log("🎬 MOVIE API - LỌC VÀ GỘP NGUỒN");
+    console.log("================================");
+
+    const isSearch = Boolean(keyword?.trim());
+
+    let dataVsmov = null;
+    let dataPhimApi = null;
+
+    // ========================================
+    // 🛠 LOGIC CHỌN NGUỒN GỌI API THÔNG MINH
+    // ========================================
+    if (type) {
+      // NẾU CÓ CHỌN LOẠI PHIM -> CHỈ GỌI PHIMAPI (Bỏ qua VSMOV để tránh trộn sai kết quả)
+      console.log(`👉 Đang lọc loại phim [${type}] -> Chỉ gọi PHIMAPI`);
+      dataPhimApi = await fetchSource(API_PHIMAPI, isSearch);
+    } else {
+      // NẾU KHÔNG CHỌN LOẠI PHIM -> GỌI ĐỒNG THỜI CẢ 2 NGUỒN
+      console.log("👉 Không dùng bộ lọc Loại Phim -> Gọi gộp cả 2 nguồn");
+      const [resVsmov, resPhimApi] = await Promise.all([
+        fetchSource(API_VSMOV, isSearch),
+        fetchSource(API_PHIMAPI, isSearch),
+      ]);
+      dataVsmov = resVsmov;
+      dataPhimApi = resPhimApi;
     }
 
     // ========================================
-    // DANH SÁCH + FILTER
+    // XỬ LÝ DỮ LIỆU ĐẦU RA
     // ========================================
-    const queryParams = new URLSearchParams();
+    const itemsVsmov = dataVsmov?.items || [];
+    const itemsPhimApi = dataPhimApi?.items || [];
 
-    queryParams.set("page", String(page));
-
-    queryParams.set("limit", String(limit));
-
-    // CATEGORY
-    if (category && category.trim() !== "") {
-      queryParams.set("category", category);
-    }
-
-    // COUNTRY
-    if (country && country.trim() !== "") {
-      queryParams.set("country", country);
-    }
-
-    // YEAR
-    if (year && year.trim() !== "") {
-      queryParams.set("year", year);
-    }
-
-    const url = `${baseUrl}/danh-sach/?${queryParams.toString()}`;
-
-    console.log("================================");
-
-    console.log("🎬 MOVIE API");
-
-    console.log("CATEGORY:", category);
-
-    console.log("COUNTRY:", country);
-
-    console.log("YEAR:", year);
-
-    console.log("PAGE:", page);
-
-    console.log("API URL:", url);
-
-    console.log("================================");
-
-    try {
-      const response = await fetch(url, {
-        method: "GET",
-        next: {
-          revalidate: 30,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`API lỗi ${response.status}: ${url}`);
+    // Gộp và lọc trùng lặp slug
+    const combinedItems = [...itemsVsmov, ...itemsPhimApi];
+    const uniqueItemsMap = new Map();
+    combinedItems.forEach((item) => {
+      if (!uniqueItemsMap.has(item.slug)) {
+        uniqueItemsMap.set(item.slug, item);
       }
+    });
 
-      return await response.json();
-    } catch (error) {
-      console.error("❌ Lỗi gọi API:", error);
+    const finalItems = Array.from(uniqueItemsMap.values());
 
-      return {
-        status: false,
-        items: [],
-      };
-    }
+    // Tính tổng số trang và tổng số phim
+    const totalPagesVsmov = dataVsmov?.totalPages || 0;
+    const totalPagesPhimApi = dataPhimApi?.totalPages || 0;
+
+    // Nếu chỉ gọi 1 nguồn thì maxTotalPages lấy của nguồn đó
+    const maxTotalPages = Math.max(totalPagesVsmov, totalPagesPhimApi) || 1;
+
+    // Tính tổng số phim bằng cách lấy (số trang * số limit) của từng nguồn cộng lại
+    const totalItemsCount = totalPagesVsmov * limit + totalPagesPhimApi * limit;
+
+    console.log("=== KẾT QUẢ GỘP ===");
+    console.log("✅ Tổng phim hiển thị trang này:", finalItems.length);
+    console.log("✅ Tổng số lượng phim toàn bộ:", totalItemsCount);
+    console.log("✅ Tổng trang lớn nhất:", maxTotalPages);
+    console.log("================================");
+
+    return {
+      status: true,
+      items: finalItems,
+      pagination: {
+        currentPage: page,
+        totalPages: maxTotalPages,
+        totalItems: totalItemsCount, // Trả về tổng số lượng phim
+      },
+    };
   },
 
   // ==========================================
   // 2. LẤY FILTER
   // ==========================================
   getFilters: async () => {
-    if (!baseUrl) {
-      throw new Error("Chưa cấu hình NEXT_PUBLIC_API_URL");
-    }
-
     try {
       const [theLoaiRes, quocGiaRes] = await Promise.all([
-        fetch(`${baseUrl}/the-loai`, {
-          next: {
-            revalidate: 3600,
-          },
-        }),
-
-        fetch(`${baseUrl}/quoc-gia`, {
-          next: {
-            revalidate: 3600,
-          },
-        }),
+        fetch(`${API_VSMOV}/the-loai`, { next: { revalidate: 3600 } }),
+        fetch(`${API_VSMOV}/quoc-gia`, { next: { revalidate: 3600 } }),
       ]);
 
-      if (!theLoaiRes.ok) {
-        throw new Error("Không thể tải danh sách thể loại");
-      }
-
-      if (!quocGiaRes.ok) {
-        throw new Error("Không thể tải danh sách quốc gia");
-      }
-
       const theLoaiData = await theLoaiRes.json();
-
       const quocGiaData = await quocGiaRes.json();
-
       const currentYear = new Date().getFullYear();
-
-      const years = Array.from(
-        {
-          length: 50,
-        },
-        (_, index) => String(currentYear - index),
+      const years = Array.from({ length: 50 }, (_, index) =>
+        String(currentYear - index),
       );
 
       return {
         genres: theLoaiData.data?.items || theLoaiData.items || [],
-
         countries: quocGiaData.data?.items || quocGiaData.items || [],
-
         years,
       };
     } catch (error) {
       console.error("❌ Lỗi tải filter:", error);
-
-      return {
-        genres: [],
-        countries: [],
-        years: [],
-      };
+      return { genres: [], countries: [], years: [] };
     }
   },
 
@@ -197,30 +228,27 @@ export const movieApi = {
   // 3. CHI TIẾT PHIM
   // ==========================================
   getMovieDetail: async (slug: string) => {
-    if (!baseUrl) {
-      throw new Error("Chưa cấu hình NEXT_PUBLIC_API_URL");
-    }
-
     try {
-      const response = await fetch(`${baseUrl}/phim/${slug}`, {
+      let response = await fetch(`${API_VSMOV}/phim/${slug}`, {
         method: "GET",
-        next: {
-          revalidate: 300,
-        },
+        next: { revalidate: 300 },
       });
 
-      if (!response.ok) {
-        if (response.status === 404) {
-          return undefined;
-        }
+      if (!response.ok && response.status === 404) {
+        response = await fetch(`${API_PHIMAPI}/phim/${slug}`, {
+          method: "GET",
+          next: { revalidate: 300 },
+        });
+      }
 
+      if (!response.ok) {
+        if (response.status === 404) return undefined;
         throw new Error(`Lỗi ${response.status} khi tải chi tiết phim`);
       }
 
       return await response.json();
     } catch (error) {
       console.error("❌ Lỗi tải chi tiết phim:", error);
-
       throw error;
     }
   },

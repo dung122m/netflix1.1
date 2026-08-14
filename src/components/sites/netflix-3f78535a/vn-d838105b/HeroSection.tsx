@@ -10,6 +10,7 @@ export const HeroSection = () => {
             src="/sites/netflix-3f78535a/vn-d838105b/images/img_1.jpg" 
             alt="Netflix Background"
             fill
+            priority={true}
             className="object-cover opacity-60"
          />
       </div>
