@@ -1,8 +1,8 @@
-import type { NextConfig } from 'next';
-import withBundleAnalyzer from '@next/bundle-analyzer';
+import type { NextConfig } from "next";
+import withBundleAnalyzer from "@next/bundle-analyzer";
 
 const bundleAnalyzer = withBundleAnalyzer({
-  enabled: process.env.ANALYZE === 'true',
+  enabled: process.env.ANALYZE === "true",
 });
 
 const nextConfig: NextConfig = {
@@ -23,6 +23,7 @@ const nextConfig: NextConfig = {
       },
     ],
     formats: ["image/avif", "image/webp"],
+    qualities: [25, 50, 75, 80, 88, 95, 100], // <-- Mình đã thêm dòng này vào đây
   },
   experimental: {
     scrollRestoration: true,

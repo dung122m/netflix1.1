@@ -84,21 +84,32 @@ export const movieApi = {
           const items = json.data?.items || json.items || [];
 
           // PhimAPI v1 trả về ảnh bị cụt, cần nối chuỗi
-          const mappedItems = items.map((item: { thumb_url?: string; poster_url?: string; slug?: string; [key: string]: unknown }) => {
-            // Kiểm tra nếu thumb_url chưa có chữ http thì mới nối tên miền vào
-            const fixedThumb = typeof item.thumb_url === 'string' && item.thumb_url.startsWith("http")
-              ? item.thumb_url
-              : `${imageDomain}/${item.thumb_url}`;
-            const fixedPoster = typeof item.poster_url === 'string' && item.poster_url.startsWith("http")
-              ? item.poster_url
-              : `${imageDomain}/${item.poster_url}`;
+          const mappedItems = items.map(
+            (item: {
+              thumb_url?: string;
+              poster_url?: string;
+              slug?: string;
+              [key: string]: unknown;
+            }) => {
+              // Kiểm tra nếu thumb_url chưa có chữ http thì mới nối tên miền vào
+              const fixedThumb =
+                typeof item.thumb_url === "string" &&
+                item.thumb_url.startsWith("http")
+                  ? item.thumb_url
+                  : `${imageDomain}/${item.thumb_url}`;
+              const fixedPoster =
+                typeof item.poster_url === "string" &&
+                item.poster_url.startsWith("http")
+                  ? item.poster_url
+                  : `${imageDomain}/${item.poster_url}`;
 
-            return {
-              ...item,
-              thumb_url: fixedThumb,
-              poster_url: fixedPoster,
-            };
-          });
+              return {
+                ...item,
+                thumb_url: fixedThumb,
+                poster_url: fixedPoster,
+              };
+            },
+          );
 
           return {
             items: mappedItems,
@@ -210,31 +221,52 @@ export const movieApi = {
   },
 
   // ==========================================
-  // 3. CHI TIẾT PHIM
+  // 3. CHI TIẾT PHIM (ĐÃ CẬP NHẬT TỐI ƯU 100%)
   // ==========================================
-  getMovieDetail: async (slug: string) => {
+  getMovieDetail: async (slug: string, source?: "vsmov" | "ophim") => {
     try {
-      let response = await fetch(`${API_VSMOV}/phim/${slug}`, {
-        method: "GET",
-        next: { revalidate: 300 },
-      });
-
-      if (!response.ok && response.status === 404) {
-        response = await fetch(`${API_PHIMAPI}/phim/${slug}`, {
-          method: "GET",
+      // 1. Nếu đã biết chính xác nguồn là VSMOV
+      if (source === "vsmov") {
+        const res = await fetch(`${API_VSMOV}/phim/${slug}`, {
           next: { revalidate: 300 },
         });
+        if (res.ok) return await res.json();
       }
 
-      if (!response.ok) {
-        if (response.status === 404) return undefined;
-        throw new Error(`Lỗi ${response.status} khi tải chi tiết phim`);
+      // 2. Nếu đã biết chính xác nguồn là Ophim/KKPhim
+      if (source === "ophim") {
+        const res = await fetch(`${API_PHIMAPI}/phim/${slug}`, {
+          next: { revalidate: 300 },
+        });
+        if (res.ok) return await res.json();
       }
 
-      return await response.json();
+      // 3. Nếu không truyền source, bắn Promise.any để đua tốc độ 2 bên
+      if (!source) {
+        try {
+          const result = await Promise.any([
+            fetch(`${API_VSMOV}/phim/${slug}`, {
+              next: { revalidate: 300 },
+            }).then((res) => {
+              if (!res.ok) throw new Error("VSMOV 404");
+              return res.json();
+            }),
+
+            fetch(`${API_PHIMAPI}/phim/${slug}`, {
+              next: { revalidate: 300 },
+            }).then((res) => {
+              if (!res.ok) throw new Error("PhimAPI 404");
+              return res.json();
+            }),
+          ]);
+          return result;
+        } catch {
+          return undefined;
+        }
+      }
     } catch {
-      console.error("❌ Lỗi tải chi tiết phim");
-      throw new Error("Lỗi tải chi tiết phim");
+      console.error("❌ Lỗi tải chi tiết phim:", slug);
+      return undefined;
     }
   },
 };

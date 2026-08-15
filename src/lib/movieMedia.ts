@@ -2,16 +2,23 @@ type MovieLike = {
   poster_url?: unknown;
   thumb_url?: unknown;
   imageUrl?: unknown;
+  [key: string]: unknown;
 };
 
 function scoreImageUrl(url?: unknown): number {
   if (typeof url !== "string" || !url) return -1;
   const lower = url.toLowerCase();
   let score = 0;
-  if (lower.includes("poster_")) score += 4;
-  if (lower.includes("/poster")) score += 3;
-  if (lower.includes("thumb_")) score -= 2;
-  if (lower.includes("/thumb")) score -= 1;
+
+  // 🛠 SỬA TẠI ĐÂY: Ưu tiên ảnh ngang (thumb) để khớp với khung aspect-video
+  if (lower.includes("thumb_")) score += 4;
+  if (lower.includes("/thumb")) score += 3;
+  if (lower.includes("backdrop")) score += 4;
+
+  // Trừ điểm ảnh dọc (poster) để tránh bị cắt xén khung hình
+  if (lower.includes("poster_")) score -= 2;
+  if (lower.includes("/poster")) score -= 1;
+
   if (lower.includes("w780") || lower.includes("w1280")) score += 2;
   return score;
 }
@@ -57,14 +64,21 @@ export function buildMovieDescriptionFallback(movie: {
   if (meta) parts.push(meta);
 
   const genres =
-    movie.category?.map((item) => item.name).filter(Boolean).join(", ") || "";
+    movie.category
+      ?.map((item) => item.name)
+      .filter(Boolean)
+      .join(", ") || "";
   if (genres) parts.push(`Thể loại: ${genres}.`);
 
   const countries =
-    movie.country?.map((item) => item.name).filter(Boolean).join(", ") || "";
+    movie.country
+      ?.map((item) => item.name)
+      .filter(Boolean)
+      .join(", ") || "";
   if (countries) parts.push(`Quốc gia: ${countries}.`);
 
-  const directors = movie.director?.filter(Boolean).slice(0, 2).join(", ") || "";
+  const directors =
+    movie.director?.filter(Boolean).slice(0, 2).join(", ") || "";
   if (directors) parts.push(`Đạo diễn: ${directors}.`);
 
   return parts.join(" ").trim();

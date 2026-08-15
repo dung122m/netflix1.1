@@ -7,6 +7,8 @@ import {
   pickBestMovieImage,
 } from "@/lib/movieMedia";
 
+import { MovieCard } from "@/components/MovieCard";
+
 const NavbarAuth = dynamic(() =>
   import("@/components/sites/netflix-3f78535a/browse-1234abcd/NavbarAuth").then(
     (mod) => mod.NavbarAuth,
@@ -16,7 +18,6 @@ const SetTitleClient = dynamic(() =>
   import("@/components/SetTitleClient").then((mod) => mod.default),
 );
 
-// Tạo metadata động để Next.js cập nhật <title> khi truy cập trang phim
 export async function generateMetadata({
   params,
 }: {
@@ -25,6 +26,7 @@ export async function generateMetadata({
   try {
     const { slug } = await params;
     const data = await movieApi.getMovieDetail(slug);
+
     const rawTitle = data?.movie?.name || data?.movie?.title || "Phim";
     return { title: `Nanaflix - ${rawTitle}` };
   } catch {
@@ -104,7 +106,6 @@ export default async function MovieDetail({
     }
   })();
 
-  // Gợi ý phim theo cùng thể loại trước, thiếu thì bổ sung theo quốc gia
   const primaryGenreSlug = movie.category?.[0]?.slug;
   const primaryCountrySlug = movie.country?.[0]?.slug;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -138,16 +139,15 @@ export default async function MovieDetail({
       <NavbarAuth />
       <SetTitleClient title={title} />
 
-      <div className="w-full pt-[62px] md:pt-[74px] bg-black px-3 md:px-6">
-        <div className="w-full max-w-[1800px] mx-auto aspect-video bg-zinc-900 relative overflow-hidden rounded-xl md:rounded-2xl border border-white/10 shadow-[0_25px_70px_rgba(0,0,0,0.55)]">
+      <div className="w-full pt-[62px] md:pt-[74px] bg-black px-0 sm:px-3 md:px-6">
+        <div className="w-full max-w-[1800px] mx-auto aspect-video bg-zinc-900 relative overflow-hidden rounded-none sm:rounded-xl md:rounded-2xl border-y sm:border border-white/10 shadow-[0_25px_70px_rgba(0,0,0,0.55)]">
           {videoLink ? (
             <iframe
               src={embedSrc}
-              className="w-full h-full absolute inset-0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; full-screen"
-              allowFullScreen={true}
-              frameBorder="0"
-              title={`Đang phát ${activeEpisode?.name}`}
+              className="w-full h-full absolute inset-0 border-0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+              allowFullScreen
+              title={`Đang phát ${activeEpisode?.name || "phim"}`}
             ></iframe>
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center border border-white/10 relative">
@@ -234,7 +234,7 @@ export default async function MovieDetail({
         </div>
 
         <div className="lg:col-span-4">
-          <div className="rounded-2xl border border-white/10 bg-zinc-900/80 p-5 md:p-6 h-fit max-h-[680px] overflow-y-auto">
+          <div className="rounded-2xl border border-white/10 bg-zinc-900/80 p-5 md:p-6 h-fit max-h-[680px] overflow-y-auto overscroll-contain scroll-smooth [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-zinc-700 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-zinc-500 pr-2">
             <h3 className="text-xl font-bold mb-4">Danh sách tập</h3>
             {serverData.length > 0 ? (
               <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-4 gap-3">
@@ -282,35 +282,9 @@ export default async function MovieDetail({
 
         {recommendedMovies.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {recommendedMovies.map((item) => {
-              const recTitle = item.name || item.title || "Phim";
-              const recImage = pickBestMovieImage(item, "/default-poster.jpg");
-              return (
-                <Link
-                  key={item.slug}
-                  href={`/movies/${item.slug}`}
-                  className="group relative aspect-[2/3] rounded-xl overflow-hidden border border-white/10 bg-zinc-900 hover:border-white/25 transition"
-                >
-                  <Image
-                    src={recImage}
-                    alt={recTitle}
-                    fill
-                    quality={95}
-                    sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 16vw"
-                    className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/92 via-black/35 to-transparent" />
-                  <div className="absolute inset-x-0 bottom-0 p-3">
-                    <p className="text-white text-sm font-semibold line-clamp-2">
-                      {recTitle}
-                    </p>
-                    <p className="text-xs text-gray-300 mt-1">
-                      {item.year || "N/A"} • {item.quality || "HD"}
-                    </p>
-                  </div>
-                </Link>
-              );
-            })}
+            {recommendedMovies.map((item) => (
+              <MovieCard key={item.slug} m={item} />
+            ))}
           </div>
         ) : (
           <div className="rounded-xl border border-white/10 bg-zinc-900/50 p-5 text-gray-300">

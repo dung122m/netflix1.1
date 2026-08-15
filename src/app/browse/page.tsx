@@ -33,7 +33,7 @@ export async function generateMetadata({
     country?: string;
     year?: string;
     keyword?: string;
-    type?: string; 
+    type?: string;
   }>;
 }) {
   const params = await searchParams;
@@ -149,7 +149,8 @@ export default async function BrowsePage({
               {title}
             </h2>
             <p className="mt-1 text-sm text-gray-400">
-              Khám phá bộ sưu tập phim chất lượng cao từ nhiều nguồn, cập nhật liên tục.
+              Khám phá bộ sưu tập phim chất lượng cao từ nhiều nguồn, cập nhật
+              liên tục.
             </p>
           </div>
           <div className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-xs md:text-sm text-gray-200">
@@ -177,7 +178,11 @@ export default async function BrowsePage({
 
               {pages.map((p, index) => {
                 if (p === "...") {
-                  return <span key={index} className="px-2 text-gray-500">...</span>;
+                  return (
+                    <span key={index} className="px-2 text-gray-500">
+                      ...
+                    </span>
+                  );
                 }
                 return (
                   <Link

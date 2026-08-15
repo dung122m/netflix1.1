@@ -10,9 +10,9 @@ import {
 } from "@/lib/movieMedia";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Props = { m: any };
-
 function MovieCardInner({ m }: Props) {
   const imgUrl = pickBestMovieImage(m, "/default-poster.jpg");
+
   const title = m.name || m.title || "Phim";
   const year = m.year ? String(m.year) : "N/A";
   const quality = m.quality || "HD";
@@ -24,7 +24,6 @@ function MovieCardInner({ m }: Props) {
     ratingRaw !== undefined && ratingRaw !== null && ratingRaw !== ""
       ? Number(ratingRaw).toFixed(1)
       : null;
-
 
   const listDescription = useMemo(() => {
     const cleaned = String(m.content || m.description || "").replace(
