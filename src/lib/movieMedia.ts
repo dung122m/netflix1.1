@@ -121,6 +121,74 @@ export interface NormalizedMovie {
   raw: any;
 }
 
+const KNOWN_COUNTRIES = [
+  "Hàn Quốc",
+  "Trung Quốc",
+  "Mỹ",
+  "Âu Mỹ",
+  "Nhật Bản",
+  "Thái Lan",
+  "Việt Nam",
+  "Đài Loan",
+  "Ấn Độ",
+  "Hồng Kông",
+  "Anh",
+  "Pháp",
+  "Tây Ban Nha",
+  "Thổ Nhĩ Kỳ",
+  "Đức",
+  "Ý",
+  "Nga",
+  "Canada",
+  "Úc",
+  "Philippines",
+  "Indonesia",
+  "Malaysia",
+  "Singapore",
+  "Mexico",
+  "Brazil",
+];
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function extractMovieCountry(m: any): string | undefined {
+  if (!m) return undefined;
+
+  // 1. Array of objects or strings: m.country or m.countries
+  const countryList = m.country || m.countries;
+  if (Array.isArray(countryList) && countryList.length > 0) {
+    const first = countryList[0];
+    if (typeof first === "string" && first.trim()) return first.trim();
+    if (first && typeof first === "object" && first.name) return String(first.name).trim();
+  }
+  if (typeof countryList === "string" && countryList.trim()) {
+    return countryList.trim();
+  }
+
+  // 2. Direct string fields
+  if (m.country_name && typeof m.country_name === "string") return m.country_name.trim();
+  if (m.countryName && typeof m.countryName === "string") return m.countryName.trim();
+
+  // 3. Check categories for country tags
+  const catList = m.category || m.categories;
+  if (Array.isArray(catList)) {
+    for (const cat of catList) {
+      const catName = (typeof cat === "string" ? cat : cat?.name || "").trim();
+      for (const kc of KNOWN_COUNTRIES) {
+        if (catName.toLowerCase().includes(kc.toLowerCase())) {
+          return kc;
+        }
+      }
+    }
+  }
+
+  // 4. Check origin_name or title for language/script clues
+  const origin = String(m.origin_name || "");
+  if (/[\uac00-\ud7a3]/.test(origin)) return "Hàn Quốc";
+  if (/[\u3040-\u30ff]/.test(origin)) return "Nhật Bản";
+
+  return undefined;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function normalizeMovie(m: any): NormalizedMovie {
   const title = m?.name || m?.title || "Phim";
@@ -195,9 +263,7 @@ export function normalizeMovie(m: any): NormalizedMovie {
     director = m.director.split(",").map((s: string) => s.trim()).filter(Boolean);
   }
 
-  const country =
-    m?.country?.[0]?.name ||
-    (typeof m?.country === "string" ? m.country : undefined);
+  const country = extractMovieCountry(m);
 
   const cleanedDesc = String(m?.content || m?.description || "")
     .replace(/<[^>]*>/g, "")

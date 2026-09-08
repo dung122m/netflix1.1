@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Timer, X, Moon, BellRing, Play, RotateCcw } from "lucide-react";
+import { Timer, X, Moon, Play } from "lucide-react";
 
 interface SleepTimerModalProps {
   isOpen?: boolean;

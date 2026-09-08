@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
@@ -8,7 +8,6 @@ import { normalizeMovie } from "@/lib/movieMedia";
 import {
   clientSynopsisCache,
   clientExtraInfoCache,
-  clientTrailerCache,
 } from "./sites/netflix-3f78535a/browse-1234abcd/MediaCard";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

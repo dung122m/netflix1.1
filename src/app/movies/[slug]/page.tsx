@@ -1,7 +1,6 @@
 import { movieApi } from "@/services/movieApi";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import Image from "next/image";
 import {
   buildMovieDescriptionFallback,
   pickBestMovieImage,
@@ -11,7 +10,6 @@ import {
   ExternalLink,
   Calendar,
   BellRing,
-  Star,
   Eye,
   Clock,
   ShieldCheck,
@@ -22,7 +20,6 @@ import {
   Users,
   Globe2,
 } from "lucide-react";
-import { MovieCard } from "@/components/MovieCard";
 import { MovieSynopsis } from "@/components/MovieSynopsis";
 import { ShareButton } from "@/components/ShareButton";
 import { MobileQrModal } from "@/components/MobileQrModal";

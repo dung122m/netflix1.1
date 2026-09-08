@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Flame, Tv, Radio, Info } from "lucide-react";
+import { Flame, Tv, Radio } from "lucide-react";
 import { LiveFootballData } from "@/services/liveFootballService";
 import { LiveTvData } from "@/services/liveTvService";
 import { LiveFootballClient } from "./LiveFootballClient";

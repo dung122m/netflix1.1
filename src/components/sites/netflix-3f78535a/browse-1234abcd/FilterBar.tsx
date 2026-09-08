@@ -9,7 +9,6 @@ import {
   Globe2,
   Calendar,
   RotateCcw,
-  SlidersHorizontal,
 } from "lucide-react";
 
 type FilterType = "the-loai" | "quoc-gia" | "year" | "type";

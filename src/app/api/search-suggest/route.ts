@@ -16,9 +16,21 @@ export async function GET(req: NextRequest) {
       limit: 6,
     });
 
-    const items = (res?.items || []).slice(0, 5).map((item: any) => ({
-      slug: item.slug,
-      title: item.name || item.title,
+    interface SuggestMovieItem {
+      slug?: string;
+      name?: string;
+      title?: string;
+      poster_url?: string;
+      thumb_url?: string;
+      year?: number | string;
+      quality?: string;
+      type?: string;
+      category?: Array<{ name?: string }>;
+    }
+
+    const items = ((res?.items || []) as SuggestMovieItem[]).slice(0, 5).map((item) => ({
+      slug: item.slug || "",
+      title: item.name || item.title || "",
       poster: item.poster_url || item.thumb_url || "/default-hero.jpg",
       year: item.year || "",
       quality: item.quality || "HD",

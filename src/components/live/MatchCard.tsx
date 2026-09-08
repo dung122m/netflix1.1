@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import { FootballMatch } from "@/services/liveFootballService";
-import { Play, Radio, Shield } from "lucide-react";
 
 interface MatchCardProps {
   match: FootballMatch;

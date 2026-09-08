@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Dices, Play, Star, X, RotateCw, Sparkles, Film, Clapperboard } from "lucide-react";
+import { Dices, Play, Star, X, RotateCw, Sparkles, Film } from "lucide-react";
 
 interface RandomMovieItem {
   slug: string;

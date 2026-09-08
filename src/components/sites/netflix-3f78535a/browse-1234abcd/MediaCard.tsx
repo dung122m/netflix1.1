@@ -18,6 +18,7 @@ import {
   Clapperboard,
 } from "lucide-react";
 import { isInWatchlist, toggleWatchlist } from "@/lib/watchlist";
+import { extractMovieCountry } from "@/lib/movieMedia";
 
 export interface MovieExtraInfo {
   actor?: string[];
@@ -327,6 +328,8 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       year: displayYear,
       genre,
       time: displayTime,
+      country: displayCountry,
+      type_name: displayType,
     });
     setInList(nextState);
   };
@@ -363,7 +366,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   const displayOrigin = extraInfo.origin_name || origin_name;
 
   // Quốc gia phim
-  const displayCountry =
+  const resolvedCountry =
     initialCountry ||
     (Array.isArray(extraInfo.country) && extraInfo.country.length > 0
       ? typeof extraInfo.country[0] === "string"
@@ -371,7 +374,14 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         : (extraInfo.country[0] as { name?: string })?.name
       : typeof extraInfo.country === "string"
       ? extraInfo.country
-      : undefined);
+      : undefined) ||
+    extractMovieCountry({
+      origin_name,
+      title,
+      slug,
+      category: genre,
+    });
+  const displayCountry = resolvedCountry;
 
   // Loại phim: Phim lẻ / Phim bộ / Hoạt hình / Phim rạp
   const displayType =
@@ -470,30 +480,24 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           </span>
         </div>
 
-        {/* 3. LỚP PHỦ THÔNG TIN CHÂN CARD: HIỂN THỊ QUỐC GIA, NĂM, THỜI LƯỢNG/TẬP, TIẾNG (KHÔNG LẶP LẠI FHD) */}
+        {/* 3. LỚP PHỦ THÔNG TIN CHÂN CARD: HIỂN THỊ NĂM, THỜI LƯỢNG/TẬP, TIẾNG (ĐỒNG NHẤT, GỌN GÀNG) */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent flex flex-col justify-end p-3 sm:p-4">
           <h4 className="text-white font-black text-sm sm:text-base line-clamp-1 drop-shadow-md">
             {title}
           </h4>
           <div className="flex items-center gap-2 text-xs font-semibold text-gray-300 mt-1 flex-wrap">
-            {displayCountry && (
-              <span className="text-amber-300/90 font-bold">{displayCountry}</span>
-            )}
             {displayYear && (
-              <>
-                {displayCountry && <span className="text-white/30">•</span>}
-                <span>{displayYear}</span>
-              </>
+              <span>{displayYear}</span>
             )}
             {displayTime && (
               <>
-                <span className="text-white/30">•</span>
+                {displayYear && <span className="text-white/30">•</span>}
                 <span className="truncate max-w-[120px]">{displayTime}</span>
               </>
             )}
             {lang && (
               <>
-                <span className="text-white/30">•</span>
+                {(displayYear || displayTime) && <span className="text-white/30">•</span>}
                 <span className="text-rose-400 font-bold">{lang}</span>
               </>
             )}

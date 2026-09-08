@@ -1,5 +1,6 @@
 import React from "react";
 import { MediaCard } from "./MediaCard";
+import { normalizeMovie } from "@/lib/movieMedia";
 
 interface CarouselRowProps {
   title: string;
@@ -15,28 +16,35 @@ export const CarouselRow: React.FC<CarouselRowProps> = ({ title, items }) => {
         data-lenis-prevent
         className="flex snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain scroll-smooth pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
-        {items.map((item, index) => (
-          <div key={item.slug || index} className="w-[260px] sm:w-[300px] flex-none">
-            <MediaCard
-              slug={item.slug}
-              title={item.title || item.name}
-              origin_name={item.origin_name}
-              imageUrl={item.imageUrl || item.thumb_url || item.poster_url}
-              genre={item.genre}
-              description={item.description}
-              time={item.time}
-              year={item.year}
-              rating={item.rating || item.score}
-              quality={item.quality}
-              lang={item.lang}
-              chieurap={item.chieurap}
-              sub_docquyen={item.sub_docquyen}
-              hasTrailer={item.hasTrailer || Boolean(item.trailer_url) || item.isTrailerOnly}
-              trailer_url={item.trailer_url}
-              isTrailerOnly={item.isTrailerOnly}
-            />
-          </div>
-        ))}
+        {items.map((item, index) => {
+          const norm = normalizeMovie(item);
+          return (
+            <div key={norm.slug || index} className="w-[260px] sm:w-[300px] flex-none">
+              <MediaCard
+                slug={norm.slug}
+                title={norm.title}
+                origin_name={norm.origin_name}
+                imageUrl={norm.imageUrl}
+                genre={norm.genre}
+                description={norm.description}
+                time={norm.time}
+                year={norm.year}
+                rating={norm.score}
+                quality={norm.quality}
+                lang={norm.lang}
+                chieurap={norm.chieurap}
+                sub_docquyen={norm.sub_docquyen}
+                actor={norm.actor}
+                director={norm.director}
+                country={norm.country}
+                type_name={norm.type_name}
+                hasTrailer={norm.hasTrailer}
+                trailer_url={norm.trailer_url}
+                isTrailerOnly={norm.isTrailerOnly}
+              />
+            </div>
+          );
+        })}
       </div>
     </div>
   );

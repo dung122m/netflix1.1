@@ -205,6 +205,8 @@ function MyListContent() {
                   genre={item.genre || ""}
                   year={item.year}
                   time={item.time}
+                  country={item.country}
+                  type_name={item.type_name}
                 />
               ))}
             </div>

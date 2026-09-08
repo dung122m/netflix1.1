@@ -5,6 +5,8 @@ export interface WatchlistItem {
   year?: string | number;
   genre?: string;
   time?: string;
+  country?: string;
+  type_name?: string;
   addedAt: number;
 }
 
