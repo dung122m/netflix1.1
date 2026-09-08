@@ -16,6 +16,8 @@ import {
   AlertCircle,
   Radio,
   Tv,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { FootballMatch, StreamServer } from "@/services/liveFootballService";
 
@@ -60,6 +62,22 @@ export function LivePlayer({
   const [errorMessage, setErrorMessage] = useState("");
   const [copied, setCopied] = useState(false);
   const [showControls, setShowControls] = useState(true);
+  const [showAllServers, setShowAllServers] = useState(false);
+
+  const INITIAL_SERVER_LIMIT = 8;
+  const hasMoreServers = servers.length > INITIAL_SERVER_LIMIT;
+
+  // Tự động mở rộng nếu server đang phát nằm ngoài 8 máy chủ đầu
+  useEffect(() => {
+    if (selectedServerIndex >= INITIAL_SERVER_LIMIT) {
+      setShowAllServers(true);
+    }
+  }, [selectedServerIndex]);
+
+  const displayedServers =
+    showAllServers || !hasMoreServers
+      ? servers
+      : servers.slice(0, INITIAL_SERVER_LIMIT);
 
   const [homeImgError, setHomeImgError] = useState(false);
   const [awayImgError, setAwayImgError] = useState(false);
@@ -727,29 +745,54 @@ export function LivePlayer({
           </div>
         </div>
 
-        {/* HÀNG 2: DANH SÁCH MÁY CHỦ PHÁT SÓNG TOÀN DẢI ĐỘC LẬP */}
-        <div className="space-y-2 w-full min-w-0">
-          <div className="flex items-center justify-between text-xs text-gray-400 font-bold">
-            <span className="flex items-center gap-1.5 text-gray-300">
-              <span>📡 Chọn Máy Chủ Phát Sóng</span>
-              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-white/10 text-gray-400">
-                {servers.length} nguồn
+        {/* HÀNG 2: DANH SÁCH MÁY CHỦ PHÁT SÓNG (NHIỀU DÒNG & CÓ NÚT XEM THÊM) */}
+        <div className="space-y-2.5 w-full min-w-0">
+          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-400 font-bold">
+            <div className="flex items-center gap-2">
+              <span className="flex items-center gap-1.5 text-gray-200">
+                <span>📡 Chọn Máy Chủ Phát Sóng</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-white font-extrabold">
+                  {servers.length} nguồn
+                </span>
               </span>
-            </span>
-            <span className="text-[11px] text-gray-500 hidden sm:inline font-normal">
-              Đổi máy chủ nếu đường truyền bị giật lag
-            </span>
+              {hasMoreServers && (
+                <span className="text-[11px] text-gray-500 font-normal hidden sm:inline">
+                  ({showAllServers ? `Đang hiện toàn bộ ${servers.length}` : `Đang hiện 8/${servers.length}`})
+                </span>
+              )}
+            </div>
+
+            {hasMoreServers && (
+              <button
+                type="button"
+                onClick={() => setShowAllServers((prev) => !prev)}
+                className="flex items-center gap-1 text-xs font-extrabold text-netflix-red hover:text-red-400 transition cursor-pointer bg-white/5 hover:bg-white/10 px-2.5 py-1 rounded-lg border border-white/10"
+              >
+                <span>
+                  {showAllServers
+                    ? "Thu gọn bớt"
+                    : `Xem thêm (+${servers.length - INITIAL_SERVER_LIMIT} nguồn)`}
+                </span>
+                {showAllServers ? (
+                  <ChevronUp className="w-3.5 h-3.5" />
+                ) : (
+                  <ChevronDown className="w-3.5 h-3.5" />
+                )}
+              </button>
+            )}
           </div>
 
-          <div className="flex items-center gap-2 overflow-x-auto py-1 scrollbar-none [&::-webkit-scrollbar]:hidden w-full min-w-0">
-            {servers.map((s, idx) => {
-              const isSelected = selectedServerIndex === idx;
+          {/* DANH SÁCH CÁC NÚT MÁY CHỦ: TỰ ĐỘNG XUỐNG DÒNG (FLEX-WRAP) */}
+          <div className="flex flex-wrap items-center gap-2 w-full min-w-0 pt-0.5">
+            {displayedServers.map((s, idx) => {
+              const actualIdx = idx;
+              const isSelected = selectedServerIndex === actualIdx;
               return (
                 <button
-                  key={idx}
+                  key={actualIdx}
                   type="button"
-                  onClick={() => setSelectedServerIndex(idx)}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 flex-none cursor-pointer border shadow-sm ${
+                  onClick={() => setSelectedServerIndex(actualIdx)}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer border shadow-sm ${
                     isSelected
                       ? "bg-netflix-red text-white border-netflix-red shadow-md shadow-red-950/60 scale-102"
                       : "bg-black/60 text-gray-300 border-white/15 hover:border-white/30 hover:text-white hover:bg-zinc-800"
@@ -764,6 +807,30 @@ export function LivePlayer({
                 </button>
               );
             })}
+
+            {/* NÚT XEM THÊM NẰM TRỰC TIẾP TRONG DÒNG NẾU ĐANG THU GỌN */}
+            {hasMoreServers && !showAllServers && (
+              <button
+                type="button"
+                onClick={() => setShowAllServers(true)}
+                className="px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer bg-white/10 hover:bg-white/20 text-gray-200 hover:text-white border border-dashed border-white/30 hover:border-white/60 shadow-sm"
+              >
+                <span>+ Xem thêm {servers.length - INITIAL_SERVER_LIMIT} nguồn khác</span>
+                <ChevronDown className="w-3.5 h-3.5 text-netflix-red" />
+              </button>
+            )}
+
+            {/* NÚT THU GỌN NẰM CUỐI DÒNG KHI ĐÃ MỞ RỘNG */}
+            {hasMoreServers && showAllServers && (
+              <button
+                type="button"
+                onClick={() => setShowAllServers(false)}
+                className="px-3 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white border border-white/10"
+              >
+                <span>Thu gọn lại</span>
+                <ChevronUp className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
         </div>
       </div>

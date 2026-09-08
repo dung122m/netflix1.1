@@ -355,8 +355,9 @@ export const liveFootballService = {
             if (!existing.awayLogo && awayLogo) {
               existing.awayLogo = awayLogo;
             }
+            const cleanBaseLabel = serverLabel.replace(/\s+#\d+$/g, "").trim();
             existing.servers.push({
-              name: `${serverLabel} #${existing.servers.length + 1}`,
+              name: `${cleanBaseLabel} #${existing.servers.length + 1}`,
               url,
               format,
               isHls,
