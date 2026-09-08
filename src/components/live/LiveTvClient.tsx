@@ -163,15 +163,10 @@ export function LiveTvClient({ initialData }: LiveTvClientProps) {
     }
   };
 
-  // Tạo URL proxy bypass CORS
-  const activeUrl = selectedChannel
-    ? `/api/live-football/proxy?url=${encodeURIComponent(selectedChannel.url)}`
-    : "";
-
-  // Khởi tạo luồng phát HLS
+  // Khởi tạo luồng phát HLS với cơ chế Fallback thông minh (Trực tiếp CDN -> Proxy Bypass)
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || !selectedChannel || !activeUrl) return;
+    if (!video || !selectedChannel?.url) return;
 
     setIsLoading(true);
     setHasError(false);
@@ -181,62 +176,95 @@ export function LiveTvClient({ initialData }: LiveTvClientProps) {
       hlsRef.current = null;
     }
 
-    if (Hls.isSupported()) {
-      const hls = new Hls({
-        enableWorker: true,
-        lowLatencyMode: false,
-        backBufferLength: 30,
-        manifestLoadingTimeOut: 12000,
-        levelLoadingTimeOut: 12000,
-        capLevelToPlayerSize: false,
-      });
+    const isHttpsStream = selectedChannel.url.startsWith("https://");
+    const directUrl = selectedChannel.url;
+    const proxyUrl = `/api/live-football/proxy?url=${encodeURIComponent(selectedChannel.url)}`;
 
-      hlsRef.current = hls;
-      hls.loadSource(activeUrl);
-      hls.attachMedia(video);
+    // Nếu là HTTPS: ưu tiên phát trực tiếp CDN để có tốc độ 1080p cao nhất không bị nghẽn bởi serverless Vercel
+    // Nếu là HTTP: đi qua Proxy để tránh lỗi Mixed Content trên Vercel HTTPS
+    const primaryUrl = isHttpsStream ? directUrl : proxyUrl;
+    const fallbackUrl = isHttpsStream ? proxyUrl : directUrl;
+    let hasTriedFallback = false;
 
-      hls.on(Hls.Events.MANIFEST_PARSED, (_, data) => {
-        // Tự động ưu tiên tầng Full HD 1080p cao nhất trong manifest
-        if (data.levels && data.levels.length > 0) {
-          hls.currentLevel = data.levels.length - 1;
-        }
-        setIsLoading(false);
+    const startHls = (sourceUrl: string) => {
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+
+      if (Hls.isSupported()) {
+        const hls = new Hls({
+          enableWorker: true,
+          lowLatencyMode: false,
+          backBufferLength: 30,
+          manifestLoadingTimeOut: 15000,
+          levelLoadingTimeOut: 15000,
+          capLevelToPlayerSize: false,
+          xhrSetup: (xhr) => {
+            xhr.withCredentials = false;
+          },
+        });
+
+        hlsRef.current = hls;
+        hls.loadSource(sourceUrl);
+        hls.attachMedia(video);
+
+        hls.on(Hls.Events.MANIFEST_PARSED, (_, data) => {
+          if (data.levels && data.levels.length > 0) {
+            hls.currentLevel = data.levels.length - 1;
+          }
+          setIsLoading(false);
+          setHasError(false);
+          video.volume = volume;
+          video.muted = isMuted;
+
+          video
+            .play()
+            .then(() => setIsPlaying(true))
+            .catch(() => {
+              setIsMuted(true);
+              video.muted = true;
+              video
+                .play()
+                .then(() => setIsPlaying(true))
+                .catch(() => {});
+            });
+        });
+
+        hls.on(Hls.Events.ERROR, (_, data) => {
+          if (data.fatal) {
+            if (!hasTriedFallback && fallbackUrl && fallbackUrl !== sourceUrl) {
+              hasTriedFallback = true;
+              startHls(fallbackUrl);
+              return;
+            }
+            setIsLoading(false);
+            setHasError(true);
+          }
+        });
+      } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+        video.src = sourceUrl;
         video.volume = volume;
         video.muted = isMuted;
 
-        video
-          .play()
-          .then(() => setIsPlaying(true))
-          .catch(() => {
-            setIsMuted(true);
-            video.muted = true;
-            video
-              .play()
-              .then(() => setIsPlaying(true))
-              .catch(() => {});
-          });
-      });
-
-      hls.on(Hls.Events.ERROR, (_, data) => {
-        if (data.fatal) {
+        video.addEventListener("loadedmetadata", () => {
+          setIsLoading(false);
+          setHasError(false);
+          video.play().then(() => setIsPlaying(true)).catch(() => {});
+        });
+        video.addEventListener("error", () => {
+          if (!hasTriedFallback && fallbackUrl && fallbackUrl !== sourceUrl) {
+            hasTriedFallback = true;
+            video.src = fallbackUrl;
+            return;
+          }
           setIsLoading(false);
           setHasError(true);
-        }
-      });
-    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-      video.src = activeUrl;
-      video.volume = volume;
-      video.muted = isMuted;
+        });
+      }
+    };
 
-      video.addEventListener("loadedmetadata", () => {
-        setIsLoading(false);
-        video.play().then(() => setIsPlaying(true)).catch(() => {});
-      });
-      video.addEventListener("error", () => {
-        setIsLoading(false);
-        setHasError(true);
-      });
-    }
+    startHls(primaryUrl);
 
     return () => {
       if (hlsRef.current) {
@@ -244,7 +272,7 @@ export function LiveTvClient({ initialData }: LiveTvClientProps) {
         hlsRef.current = null;
       }
     };
-  }, [selectedChannel, activeUrl]);
+  }, [selectedChannel]);
 
   // Volume & Sound Helpers
   const unmuteSound = () => {

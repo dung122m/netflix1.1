@@ -112,10 +112,21 @@ export const liveTvService = {
         const commaIdx = line.indexOf(",");
         const rawName = commaIdx !== -1 ? line.slice(commaIdx + 1).trim() : "";
 
-        const url = lines[i + 1]?.trim() || "";
+        let finalUrl = lines[i + 1]?.trim() || "";
 
-        if (!url || (!url.startsWith("http://") && !url.startsWith("https://"))) {
+        if (!finalUrl || (!finalUrl.startsWith("http://") && !finalUrl.startsWith("https://"))) {
           continue;
+        }
+
+        // Nâng cấp http sang https cho các domain hỗ trợ HTTPS
+        if (finalUrl.startsWith("http://") && (
+          finalUrl.includes("fptplay") ||
+          finalUrl.includes("akamaized") ||
+          finalUrl.includes("vtv") ||
+          finalUrl.includes("cdn") ||
+          finalUrl.includes("cloudfront")
+        )) {
+          finalUrl = finalUrl.replace(/^http:\/\//i, "https://");
         }
 
         // Tự động gom VTV5 / VTV Cần Thơ / HTV Thể Thao vào mục Kênh Thể Thao
@@ -134,19 +145,19 @@ export const liveTvService = {
 
         // Đánh giá chất lượng (Ưu tiên FHD 5000000 bitrates hoặc master stream 1080p)
         const isFhd =
-          url.includes("5000000") ||
-          url.includes("live247-hls-avc") ||
+          finalUrl.includes("5000000") ||
+          finalUrl.includes("live247-hls-avc") ||
           upperName.includes("HD") ||
           upperName.includes("FHD") ||
           upperName.includes("1080") ||
-          url.includes("fnxhd") ||
-          url.includes("epzhd");
+          finalUrl.includes("fnxhd") ||
+          finalUrl.includes("epzhd");
 
         const channel: TvChannel = {
           id: `${tvgId || rawName}-${channelList.length}`,
           name: rawName,
           logo: logo || "https://i.imgur.com/q3fjpYc.png",
-          url,
+          url: finalUrl,
           category: finalCategory,
           quality: isFhd ? "FHD 1080p" : "HD 720p",
         };
