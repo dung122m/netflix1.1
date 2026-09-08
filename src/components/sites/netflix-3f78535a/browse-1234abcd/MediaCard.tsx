@@ -33,42 +33,26 @@ export const clientSynopsisCache = new Map<string, string>();
 export const clientTrailerCache = new Map<string, string>();
 export const clientExtraInfoCache = new Map<string, MovieExtraInfo>();
 
-function getYoutubeEmbedUrl(url?: string | null, muted = true): string | null {
+export function extractYoutubeId(url?: string | null): string | null {
   if (!url) return null;
-  try {
-    let videoId = "";
-    if (url.includes("watch?v=")) {
-      videoId = new URL(url).searchParams.get("v") || "";
-    } else if (url.includes("youtu.be/")) {
-      videoId = url.split("youtu.be/")[1]?.split("?")[0] || "";
-    } else if (url.includes("youtube.com/embed/")) {
-      videoId = url.split("youtube.com/embed/")[1]?.split("?")[0] || "";
-    }
-    if (!videoId) return null;
-    return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=${
-      muted ? 1 : 0
-    }&controls=0&modestbranding=1&rel=0&loop=1&playlist=${videoId}&disablekb=1&fs=0`;
-  } catch {
-    return null;
-  }
+  const match = url.match(
+    /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/
+  );
+  return match ? match[1] : null;
+}
+
+function getYoutubeEmbedUrl(url?: string | null, muted = true): string | null {
+  const videoId = extractYoutubeId(url);
+  if (!videoId) return null;
+  return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=${
+    muted ? 1 : 0
+  }&controls=0&modestbranding=1&rel=0&loop=1&playlist=${videoId}&disablekb=1&fs=0&iv_load_policy=3&playsinline=1`;
 }
 
 function getYoutubeModalUrl(url?: string | null): string | null {
-  if (!url) return null;
-  try {
-    let videoId = "";
-    if (url.includes("watch?v=")) {
-      videoId = new URL(url).searchParams.get("v") || "";
-    } else if (url.includes("youtu.be/")) {
-      videoId = url.split("youtu.be/")[1]?.split("?")[0] || "";
-    } else if (url.includes("youtube.com/embed/")) {
-      videoId = url.split("youtube.com/embed/")[1]?.split("?")[0] || "";
-    }
-    if (!videoId) return null;
-    return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=0&controls=1&rel=0`;
-  } catch {
-    return null;
-  }
+  const videoId = extractYoutubeId(url);
+  if (!videoId) return null;
+  return `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=0&controls=1&rel=0`;
 }
 
 export interface MediaCardProps {
@@ -428,9 +412,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           alt={title}
           fill
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1440px) 33vw, 25vw"
-          className={`object-cover group-hover:scale-105 transition-all duration-500 ${
-            isImgLoaded ? "opacity-100 scale-100" : "opacity-0 scale-102"
-          }`}
+          className="object-cover group-hover:scale-105 transition-transform duration-300"
           priority={priority}
           loading={priority ? "eager" : "lazy"}
           decoding="async"
@@ -531,7 +513,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
             <div className="absolute inset-0 z-0 bg-black overflow-hidden pointer-events-none animate-in fade-in duration-300">
               <iframe
                 src={embedTrailerUrl}
-                className="w-[140%] h-[140%] -ml-[20%] -mt-[20%] border-0 object-cover"
+                className="w-[160%] h-[160%] -ml-[30%] -mt-[30%] border-0 object-cover pointer-events-none select-none"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 title={`Preview ${title}`}
               />

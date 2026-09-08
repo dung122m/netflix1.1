@@ -332,6 +332,7 @@ export default async function MovieDetail({
         <CinemaPlayer
           embedSrc={embedSrc}
           videoLink={videoLink}
+          trailerUrl={movie.trailer_url}
           title={title}
           activeEpisodeName={activeEpisode?.name}
           activeEpisodeSlug={activeEpisode?.slug}

@@ -22,6 +22,7 @@ export interface FootballMatch {
   groups: string[];
   quality: "FHD 1080p" | "HD 720p" | "HD";
   tournament?: string;
+  timeline?: "live" | "today" | "upcoming";
   servers: StreamServer[];
 }
 
@@ -65,6 +66,30 @@ export function parseMatchTimeToTimestamp(timeStr: string): number {
   const isoVN = `${currentYear}-${pad(month + 1)}-${pad(day)}T${pad(hours)}:${pad(minutes)}:00+07:00`;
   const parsed = new Date(isoVN).getTime();
   return isNaN(parsed) ? Number.MAX_SAFE_INTEGER : parsed;
+}
+
+export function getMatchTimeline(timestamp: number): "live" | "today" | "upcoming" {
+  if (timestamp === Number.MAX_SAFE_INTEGER) return "today";
+  const now = Date.now();
+  // Trận đấu bắt đầu từ 2h30p trước đến 10p sau hiện tại tính là đang diễn ra
+  if (timestamp >= now - 150 * 60 * 1000 && timestamp <= now + 10 * 60 * 1000) {
+    return "live";
+  }
+
+  // So sánh ngày theo múi giờ Việt Nam (UTC+7)
+  const vnNowStr = new Date().toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" });
+  const vnNow = new Date(vnNowStr);
+  const matchDate = new Date(new Date(timestamp).toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" }));
+
+  if (
+    vnNow.getFullYear() === matchDate.getFullYear() &&
+    vnNow.getMonth() === matchDate.getMonth() &&
+    vnNow.getDate() === matchDate.getDate()
+  ) {
+    return "today";
+  }
+
+  return "upcoming";
 }
 
 function detectTournament(title: string, team1: string, team2: string): string {
@@ -294,6 +319,7 @@ export const liveFootballService = {
               group,
               groups: [group],
               tournament,
+              timeline: getMatchTimeline(timestamp),
               quality: isFhd ? "FHD 1080p" : "HD 720p",
               servers: [
                 {
@@ -348,18 +374,26 @@ export const liveFootballService = {
         (a, b) => a.timestamp - b.timestamp
       );
 
-      // Lọc các trận từ cách đây 2 tiếng trở lại (đang trực tiếp hoặc sắp đá)
-      const twoHoursAgo = Date.now() - 2 * 60 * 60 * 1000;
-      const recentMatches = sortedMatches.filter(
+      // Lọc các trận trong khung giờ trước 2 tiếng và sau 2 tiếng (±2h) theo yêu cầu
+      const twoHoursAgo = now - 2 * 60 * 60 * 1000;
+      const twoHoursLater = now + 2 * 60 * 60 * 1000;
+
+      const windowMatches = sortedMatches.filter(
         (m) =>
-          m.timestamp >= twoHoursAgo ||
+          (m.timestamp >= twoHoursAgo && m.timestamp <= twoHoursLater) ||
           m.timestamp === Number.MAX_SAFE_INTEGER
       );
+
+      // Nếu trong khung ±2h có trận thì lấy đúng danh sách đó, nếu không có trận nào thì lấy các trận sắp tới gần nhất
+      const activeMatches =
+        windowMatches.length > 0
+          ? windowMatches
+          : sortedMatches.filter((m) => m.timestamp >= twoHoursAgo).slice(0, 12);
 
       const result: LiveFootballData = {
         updatedAt: new Date().toISOString(),
         channels: Array.from(channelsSet),
-        matches: recentMatches.length > 0 ? recentMatches : sortedMatches,
+        matches: activeMatches,
       };
 
       memoryCache = {

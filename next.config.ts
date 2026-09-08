@@ -16,23 +16,12 @@ const nextConfig: NextConfig = {
         : false,
   },
   images: {
-    unoptimized: true, // Tải ảnh trực tiếp từ CDN phim, không tốn quota Vercel
+    unoptimized: true, // Free plan Vercel: không dùng quota image optimization
     remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "vsmov.com",
-        port: "",
-        pathname: "/**",
-      },
-      {
-        protocol: "https",
-        hostname: "**",
-        port: "",
-        pathname: "/**",
-      },
+      { protocol: "https", hostname: "**", port: "", pathname: "/**" },
+      { protocol: "http", hostname: "**", port: "", pathname: "/**" },
     ],
     formats: ["image/avif", "image/webp"],
-    qualities: [25, 50, 75, 80, 88, 95, 100],
   },
   async headers() {
     return [
@@ -42,6 +31,26 @@ const nextConfig: NextConfig = {
           {
             key: "Cache-Control",
             value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+      {
+        // Cache API live football/tv 3 phút ở CDN edge
+        source: "/api/live-football/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, s-maxage=180, stale-while-revalidate=60",
+          },
+        ],
+      },
+      {
+        // Cache search suggest 1 phút
+        source: "/api/search-suggest",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, s-maxage=60, stale-while-revalidate=30",
           },
         ],
       },

@@ -8,29 +8,18 @@ interface TrailerModalProps {
   title: string;
 }
 
+function extractYoutubeId(url?: string | null): string | null {
+  if (!url) return null;
+  const match = url.match(
+    /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/
+  );
+  return match ? match[1] : null;
+}
+
 function getYoutubeEmbedUrl(url: string): string | null {
-  try {
-    if (url.includes("youtube.com/embed/")) {
-      return url.includes("autoplay=1") ? url : `${url}?autoplay=1`;
-    }
-    // youtube.com/watch?v=ID
-    if (url.includes("watch?v=")) {
-      const videoId = new URL(url).searchParams.get("v");
-      return videoId
-        ? `https://www.youtube.com/embed/${videoId}?autoplay=1`
-        : null;
-    }
-    // youtu.be/ID
-    if (url.includes("youtu.be/")) {
-      const videoId = url.split("youtu.be/")[1]?.split("?")[0];
-      return videoId
-        ? `https://www.youtube.com/embed/${videoId}?autoplay=1`
-        : null;
-    }
-    return url;
-  } catch {
-    return null;
-  }
+  const videoId = extractYoutubeId(url);
+  if (!videoId) return null;
+  return `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=0&controls=1&rel=0`;
 }
 
 export const TrailerModal: React.FC<TrailerModalProps> = ({

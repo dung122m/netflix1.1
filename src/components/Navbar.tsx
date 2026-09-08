@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import {
   Search,
   Bell,
@@ -26,6 +26,7 @@ import Image from "next/image";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { NetflixLogo } from "./sites/netflix-3f78535a/vn-d838105b/icons";
 import { RandomMovieButton } from "./RandomMovieButton";
+import { useDebounce } from "@/hooks/useDebounce";
 
 interface SearchSuggestion {
   slug: string;
@@ -48,7 +49,7 @@ const NAV_LINKS = [
   { name: "Danh sách của tôi", href: "/my-list", type: "my-list", icon: Bookmark, isLive: false },
 ];
 
-export const Navbar: React.FC = () => {
+const NavbarInner: React.FC = () => {
   const [showBackground, setShowBackground] = useState(false);
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -77,10 +78,29 @@ export const Navbar: React.FC = () => {
   const inputRef = useRef<HTMLInputElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const notificationRef = useRef<HTMLDivElement>(null);
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Lịch sử tìm kiếm gần đây
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
+
+  // Debounced search fetcher (300ms)
+  const [debouncedFetchSuggestions, cancelDebouncedFetch] = useDebounce(
+    async (val: string) => {
+      try {
+        const res = await fetch(
+          `/api/search-suggest?keyword=${encodeURIComponent(val.trim())}`,
+        );
+        const data = await res.json();
+        setSuggestions(data.items || []);
+        setShowDropdown(true);
+      } catch (err) {
+        console.error("Lỗi gợi ý tìm kiếm:", err);
+        setSuggestions([]);
+      } finally {
+        setIsSearching(false);
+      }
+    },
+    300
+  );
 
   useEffect(() => {
     try {
@@ -92,6 +112,9 @@ export const Navbar: React.FC = () => {
       // Ignore
     }
   }, []);
+
+  // Cleanup debounce on unmount
+  useEffect(() => () => cancelDebouncedFetch(), [cancelDebouncedFetch]);
 
   const saveRecentSearch = (kw: string) => {
     const clean = kw.trim();
@@ -255,41 +278,24 @@ export const Navbar: React.FC = () => {
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setHasText(val.length > 0);
 
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
-
     if (val.trim().length >= 2) {
       setIsSearching(true);
-      debounceTimerRef.current = setTimeout(async () => {
-        try {
-          const res = await fetch(
-            `/api/search-suggest?keyword=${encodeURIComponent(val.trim())}`,
-          );
-          const data = await res.json();
-          setSuggestions(data.items || []);
-          setShowDropdown(true);
-        } catch (err) {
-          console.error("Lỗi gợi ý tìm kiếm:", err);
-          setSuggestions([]);
-        } finally {
-          setIsSearching(false);
-        }
-      }, 300);
+      debouncedFetchSuggestions(val);
     } else {
+      cancelDebouncedFetch();
       setSuggestions([]);
+      setIsSearching(false);
       if (recentSearches.length > 0) {
         setShowDropdown(true);
       } else {
         setShowDropdown(false);
       }
-      setIsSearching(false);
     }
-  };
+  }, [debouncedFetchSuggestions, cancelDebouncedFetch, recentSearches.length]);
 
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!showDropdown) return;
@@ -889,4 +895,16 @@ export const Navbar: React.FC = () => {
   );
 };
 
-export default Navbar;
+// Wrap với Suspense vì useSearchParams() cần Suspense boundary
+function NavbarWithSuspense() {
+  return (
+    <Suspense fallback={null}>
+      <NavbarInner />
+    </Suspense>
+  );
+}
+
+// Named export tương thích với các file đang import { Navbar }
+export { NavbarWithSuspense as Navbar };
+
+export default NavbarWithSuspense;

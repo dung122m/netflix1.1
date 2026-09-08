@@ -27,9 +27,11 @@ function sanitizeImageUrl(url: string): string {
   if (!url) return url;
   // Sửa lỗi url có 2 dấu gạch chéo // sau tên miền (gây redirect chậm)
   let clean = url.replace(/(https?:\/\/)([^/]+)\/\/+/g, "$1$2/");
-  // Tối ưu ảnh TMDB original sang w780 để tải nhanh hơn 5x mà vẫn siêu nét
+  // Tối ưu ảnh TMDB original / w780 sang w500 để tải nhanh gấp nhiều lần, tốn ít băng thông
   if (clean.includes("image.tmdb.org/t/p/original/")) {
-    clean = clean.replace("/t/p/original/", "/t/p/w780/");
+    clean = clean.replace("/t/p/original/", "/t/p/w500/");
+  } else if (clean.includes("image.tmdb.org/t/p/w780/")) {
+    clean = clean.replace("/t/p/w780/", "/t/p/w500/");
   }
   return clean;
 }

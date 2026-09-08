@@ -3,6 +3,7 @@ import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import SmoothScroll from "@/components/SmoothScroll";
 import { BackToTop } from "@/components/BackToTop";
+import { ToastContainer } from "@/components/Toast";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -20,6 +21,15 @@ export const metadata: Metadata = {
   title: "Nanaflix",
   description:
     "Nanaflix - Xem phim trực tuyến miễn phí, cập nhật nhanh chóng các bộ phim mới nhất, chất lượng cao, không quảng cáo.",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Nanaflix",
+  },
+  formatDetection: {
+    telephone: false,
+  },
 };
 
 export default function RootLayout({
@@ -34,6 +44,23 @@ export default function RootLayout({
       className={`${inter.variable} ${plusJakartaSans.variable} font-sans antialiased bg-black text-white`}
     >
       <head>
+        {/* PWA & Mobile Web App */}
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="Nanaflix" />
+        <meta name="application-name" content="Nanaflix" />
+        <meta name="msapplication-TileColor" content="#000000" />
+        <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
+        <meta name="theme-color" content="#000000" />
+
+        {/* Viewport với safe-area cho iPhone notch & home indicator */}
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover"
+        />
+
+        {/* DNS Prefetch & Preconnect cho image CDNs */}
         <link rel="preconnect" href="https://phimimg.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://phimimg.com" />
         <link rel="preconnect" href="https://img.phimapi.com" crossOrigin="anonymous" />
@@ -44,20 +71,22 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://img.gvapi.cc" />
         <link rel="preconnect" href="https://image.tmdb.org" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://image.tmdb.org" />
-        <link rel="preconnect" href="https://occ-0-395-325.1.nflxso.net" crossOrigin="anonymous" />
-        <link rel="dns-prefetch" href="https://occ-0-395-325.1.nflxso.net" />
         <link rel="preconnect" href="https://i.ytimg.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://i.ytimg.com" />
         <link rel="preconnect" href="https://www.youtube-nocookie.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://www.youtube-nocookie.com" />
-        <meta
-          name="viewport"
-          content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover"
-        />
       </head>
-      <body className="min-h-screen flex flex-col bg-black text-white" suppressHydrationWarning>
+      <body
+        className="min-h-screen flex flex-col bg-black text-white"
+        suppressHydrationWarning
+      >
         <SmoothScroll>{children}</SmoothScroll>
+
+        {/* Back to top với progress ring */}
         <BackToTop />
+
+        {/* Toast notification system — global */}
+        <ToastContainer />
       </body>
     </html>
   );

@@ -51,8 +51,15 @@ function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
       {/* 1. HEADER: KÊNH, THỜI GIAN & HUY HIỆU CHẤT LƯỢNG (FHD / HD) */}
       <div className="flex items-center justify-between gap-2 mb-3">
         <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="px-2.5 py-1 rounded-full bg-netflix-red/15 border border-netflix-red/30 text-rose-400 font-bold text-[11px] flex items-center gap-1.5 shadow-sm">
-            <span className="w-1.5 h-1.5 rounded-full bg-netflix-red animate-ping" />
+          {match.timeline === "live" ? (
+            <span className="px-2.5 py-0.5 rounded-full bg-red-600 text-white font-black text-[10px] flex items-center gap-1.5 shadow-md shadow-red-950/60 tracking-wider animate-pulse">
+              <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+              <span>ĐANG ĐÁ</span>
+            </span>
+          ) : null}
+
+          <span className="px-2.5 py-0.5 rounded-full bg-netflix-red/15 border border-netflix-red/30 text-rose-400 font-bold text-[11px] flex items-center gap-1.5 shadow-sm">
+            <span className="w-1.5 h-1.5 rounded-full bg-netflix-red" />
             <span>{match.group}</span>
           </span>
 

@@ -1,0 +1,49 @@
+{
+  "name": "Nanaflix",
+  "short_name": "Nanaflix",
+  "description": "Xem phim trực tuyến miễn phí, chất lượng cao, không quảng cáo.",
+  "start_url": "/browse",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#e50914",
+  "orientation": "portrait-primary",
+  "lang": "vi",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "categories": ["entertainment", "video"],
+  "shortcuts": [
+    {
+      "name": "Trang chủ",
+      "url": "/browse",
+      "description": "Khám phá phim mới nhất"
+    },
+    {
+      "name": "Bóng đá trực tiếp",
+      "url": "/live?tab=football",
+      "description": "Xem bóng đá trực tiếp"
+    },
+    {
+      "name": "Danh sách của tôi",
+      "url": "/my-list",
+      "description": "Phim đã lưu"
+    }
+  ]
+}

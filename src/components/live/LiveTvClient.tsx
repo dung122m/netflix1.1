@@ -19,12 +19,31 @@ import {
   AlertCircle,
   ChevronLeft,
   ChevronRight,
+  X,
+  LayoutGrid,
+  List,
+  ChevronDown,
+  RotateCcw,
+  Sparkles,
 } from "lucide-react";
 import { LiveTvData, TvChannel } from "@/services/liveTvService";
 import { useSearchParams } from "next/navigation";
 
 interface LiveTvClientProps {
   initialData: LiveTvData;
+}
+
+const INITIAL_PAGE_SIZE = 24;
+
+function getCategoryEmoji(category: string): string {
+  if (category.includes("Thể Thao")) return "⚽";
+  if (category.includes("VTV")) return "🇻🇳";
+  if (category.includes("HTV")) return "🏙️";
+  if (category.includes("Vĩnh Long")) return "🌾";
+  if (category.includes("VTC") || category.includes("Tin Tức")) return "📰";
+  if (category.includes("Quốc Tế")) return "🌍";
+  if (category.includes("Địa Phương")) return "📍";
+  return "📺";
 }
 
 export function LiveTvClient({ initialData }: LiveTvClientProps) {
@@ -65,6 +84,8 @@ export function LiveTvClient({ initialData }: LiveTvClientProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [onlyFhd, setOnlyFhd] = useState<boolean>(false);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [visibleCount, setVisibleCount] = useState<number>(INITIAL_PAGE_SIZE);
 
   // Video Player States
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -72,6 +93,7 @@ export function LiveTvClient({ initialData }: LiveTvClientProps) {
   const hlsRef = useRef<Hls | null>(null);
   const playerRef = useRef<HTMLDivElement>(null);
   const categoryScrollRef = useRef<HTMLDivElement>(null);
+  const popularScrollRef = useRef<HTMLDivElement>(null);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -80,6 +102,27 @@ export function LiveTvClient({ initialData }: LiveTvClientProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  // Dải kênh phổ biến xem nhiều nhất (Quick Access Bar)
+  const popularChannels = useMemo(() => {
+    return channels
+      .filter((ch) => {
+        const lower = (ch.name + " " + ch.id).toLowerCase();
+        return (
+          lower.includes("vtv1") ||
+          lower.includes("vtv3") ||
+          lower.includes("vtv5") ||
+          lower.includes("htv the thao") ||
+          lower.includes("htv thể thao") ||
+          lower.includes("htv7") ||
+          lower.includes("htv9") ||
+          lower.includes("thvl2") ||
+          lower.includes("qpvn") ||
+          lower.includes("red bull")
+        );
+      })
+      .slice(0, 10);
+  }, [channels]);
 
   // Khôi phục volume từ localStorage
   useEffect(() => {
@@ -98,7 +141,10 @@ export function LiveTvClient({ initialData }: LiveTvClientProps) {
   useEffect(() => {
     if (channels.length === 0) return;
     const channelParam = searchParams.get("channel");
-    const savedId = typeof window !== "undefined" ? localStorage.getItem("nanaflix_live_channel_id") : null;
+    const savedId =
+      typeof window !== "undefined"
+        ? localStorage.getItem("nanaflix_live_channel_id")
+        : null;
     const target = channelParam || savedId;
 
     if (target) {
@@ -119,6 +165,11 @@ export function LiveTvClient({ initialData }: LiveTvClientProps) {
     }
   }, [channels, searchParams, defaultChannel]);
 
+  // Reset phân trang khi đổi bộ lọc
+  useEffect(() => {
+    setVisibleCount(INITIAL_PAGE_SIZE);
+  }, [selectedCategory, searchQuery, onlyFhd]);
+
   // Lọc danh sách kênh
   const filteredChannels = useMemo(() => {
     return channels.filter((ch) => {
@@ -137,6 +188,11 @@ export function LiveTvClient({ initialData }: LiveTvClientProps) {
       return true;
     });
   }, [channels, selectedCategory, searchQuery, onlyFhd]);
+
+  // Danh sách kênh hiển thị chống ngợp
+  const displayedChannels = useMemo(() => {
+    return filteredChannels.slice(0, visibleCount);
+  }, [filteredChannels, visibleCount]);
 
   // Chọn kênh và cuộn lên + lưu localStorage & URL
   const handleSelectChannel = (channel: TvChannel) => {
@@ -161,6 +217,13 @@ export function LiveTvClient({ initialData }: LiveTvClientProps) {
     }
   };
 
+  const scrollPopular = (direction: "left" | "right") => {
+    if (popularScrollRef.current) {
+      const offset = direction === "left" ? -260 : 260;
+      popularScrollRef.current.scrollBy({ left: offset, behavior: "smooth" });
+    }
+  };
+
   // Khởi tạo luồng phát HLS — luôn đi qua proxy /api/live-tv/proxy để tránh CORS & IP block của CDN trên Vercel
   useEffect(() => {
     const video = videoRef.current;
@@ -174,10 +237,8 @@ export function LiveTvClient({ initialData }: LiveTvClientProps) {
       hlsRef.current = null;
     }
 
-    // Luôn dùng proxy Live TV (có Referer đúng theo domain CDN) thay vì direct để tránh bị block trên Vercel
     const proxyUrl = `/api/live-tv/proxy?url=${encodeURIComponent(selectedChannel.url)}`;
     const primaryUrl = proxyUrl;
-    // Fallback: thử trực tiếp nếu proxy cũng lỗi (ví dụ khi test local)
     const fallbackUrl = selectedChannel.url;
     let hasTriedFallback = false;
 
@@ -329,6 +390,15 @@ export function LiveTvClient({ initialData }: LiveTvClientProps) {
     window.location.href = `vlc://${selectedChannel.url}`;
   };
 
+  const handleResetFilters = () => {
+    setSelectedCategory("all");
+    setSearchQuery("");
+    setOnlyFhd(false);
+  };
+
+  const hasActiveFilters =
+    selectedCategory !== "all" || searchQuery.trim() !== "" || onlyFhd;
+
   const VolumeIcon =
     isMuted || volume === 0
       ? VolumeX
@@ -337,7 +407,7 @@ export function LiveTvClient({ initialData }: LiveTvClientProps) {
       : Volume2;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* 1. KHUNG TRÌNH PHÁT TRUYỀN HÌNH TRỰC TIẾP */}
       {selectedChannel ? (
         <div ref={playerRef} className="scroll-mt-24 space-y-4">
@@ -549,15 +619,91 @@ export function LiveTvClient({ initialData }: LiveTvClientProps) {
         </div>
       ) : null}
 
-      {/* 2. DANH MỤC KÊNH & Ô TÌM KIẾM */}
-      <div className="space-y-4 pt-2">
+      {/* 2. DẢI "⭐ KÊNH PHỔ BIẾN / XEM NHIỀU NHẤT" (QUICK ACCESS ROW) */}
+      <div className="space-y-2 pt-2">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-extrabold text-gray-300 flex items-center gap-1.5 uppercase tracking-wider">
+            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+            <span>Kênh Phổ Biến (Xem nhiều)</span>
+          </span>
+          <span className="text-[11px] text-gray-500">1-chạm để chuyển kênh</span>
+        </div>
+
+        <div className="relative group/popular">
+          <button
+            type="button"
+            onClick={() => scrollPopular("left")}
+            className="absolute -left-2 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-zinc-900/95 hover:bg-white text-gray-300 hover:text-black border border-white/20 shadow-lg flex items-center justify-center transition-all opacity-80 hover:opacity-100 backdrop-blur-md cursor-pointer"
+            title="Cuộn trái"
+          >
+            <ChevronLeft className="w-3.5 h-3.5" />
+          </button>
+
+          <div
+            ref={popularScrollRef}
+            className="flex items-center gap-2 overflow-x-auto py-1 px-3 scrollbar-none [&::-webkit-scrollbar]:hidden scroll-smooth"
+          >
+            {popularChannels.map((ch) => {
+              const isSelected = selectedChannel?.id === ch.id;
+              return (
+                <button
+                  key={ch.id}
+                  type="button"
+                  onClick={() => handleSelectChannel(ch)}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all flex-none cursor-pointer ${
+                    isSelected
+                      ? "bg-netflix-red text-white border-netflix-red shadow-lg shadow-red-950/60 scale-102 font-bold"
+                      : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
+                  }`}
+                >
+                  <div className="w-5 h-5 rounded-md bg-zinc-950 border border-white/10 p-0.5 flex items-center justify-center overflow-hidden flex-shrink-0">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={ch.logo}
+                      alt={ch.name}
+                      className="w-full h-full object-contain"
+                      onError={(e) => {
+                        (e.target as HTMLElement).style.display = "none";
+                      }}
+                    />
+                  </div>
+                  <span className="text-xs whitespace-nowrap">{ch.name.split(" ")[0]}</span>
+                  <span
+                    className={`text-[9px] px-1 py-0.2 rounded font-black uppercase ${
+                      isSelected
+                        ? "bg-black/30 text-white"
+                        : "bg-emerald-500/15 text-emerald-400"
+                    }`}
+                  >
+                    FHD
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => scrollPopular("right")}
+            className="absolute -right-2 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-zinc-900/95 hover:bg-white text-gray-300 hover:text-black border border-white/20 shadow-lg flex items-center justify-center transition-all opacity-80 hover:opacity-100 backdrop-blur-md cursor-pointer"
+            title="Cuộn phải"
+          >
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+
+      {/* 3. DANH MỤC KÊNH & THANH TÌM KIẾM */}
+      <div className="space-y-4 pt-2 border-t border-white/10">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <h2 className="text-xl md:text-2xl font-bold text-white flex items-center gap-2">
-            <span>Danh sách kênh truyền hình</span>
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-white/10 text-gray-300 font-normal">
-              {filteredChannels.length} kênh
+          <div className="flex items-center gap-3">
+            <h2 className="text-lg md:text-xl font-bold text-white flex items-center gap-2">
+              <span>Danh mục truyền hình</span>
+            </h2>
+            <span className="text-xs px-2.5 py-0.5 rounded-full bg-white/10 text-gray-300 font-semibold">
+              Hiển thị {Math.min(displayedChannels.length, filteredChannels.length)} / {filteredChannels.length} kênh
             </span>
-          </h2>
+          </div>
 
           <div className="flex items-center gap-2 w-full sm:w-auto">
             {/* LỌC NHANH FHD */}
@@ -566,29 +712,67 @@ export function LiveTvClient({ initialData }: LiveTvClientProps) {
               onClick={() => setOnlyFhd((prev) => !prev)}
               className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition border shadow-sm cursor-pointer whitespace-nowrap ${
                 onlyFhd
-                  ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-emerald-400 shadow-emerald-950/50 scale-105"
+                  ? "bg-emerald-600 text-white border-emerald-400 shadow-emerald-950/50 scale-102"
                   : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/20 hover:text-white"
               }`}
             >
               <span>⚡</span>
-              <span>Chỉ kênh FHD 1080p</span>
+              <span>Chỉ FHD</span>
             </button>
 
+            {/* NÚT CHUYỂN CHẾ ĐỘ XEM: GRID HOẶC LIST */}
+            <div className="flex items-center p-1 rounded-xl bg-zinc-900 border border-white/10">
+              <button
+                type="button"
+                onClick={() => setViewMode("grid")}
+                title="Xem dạng lưới"
+                className={`p-1.5 rounded-lg transition cursor-pointer ${
+                  viewMode === "grid"
+                    ? "bg-white text-black shadow-sm"
+                    : "text-gray-400 hover:text-white"
+                }`}
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("list")}
+                title="Xem dạng danh sách gọn"
+                className={`p-1.5 rounded-lg transition cursor-pointer ${
+                  viewMode === "list"
+                    ? "bg-white text-black shadow-sm"
+                    : "text-gray-400 hover:text-white"
+                }`}
+              >
+                <List className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
             {/* THANH TÌM KIẾM KÊNH */}
-            <div className="relative flex-1 sm:w-72">
+            <div className="relative flex-1 sm:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Tìm tên kênh (VTV3, HTV7, THVL...)"
-                className="w-full pl-9 pr-4 py-2 rounded-xl bg-zinc-900 border border-white/10 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-netflix-red transition"
+                className="w-full pl-9 pr-8 py-2 rounded-xl bg-zinc-900 border border-white/10 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-netflix-red transition"
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition p-0.5 cursor-pointer"
+                  title="Xóa tìm kiếm"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
           </div>
         </div>
 
-        {/* TABS DANH MỤC TRUYỀN HÌNH */}
+        {/* TABS DANH MỤC TRUYỀN HÌNH (CAROUSEL) */}
         <div className="relative group/carousel">
           <button
             type="button"
@@ -601,20 +785,20 @@ export function LiveTvClient({ initialData }: LiveTvClientProps) {
 
           <div
             ref={categoryScrollRef}
-            className="flex items-center gap-2 overflow-x-auto py-1.5 px-4 sm:px-6 scroll-smooth scrollbar-none [&::-webkit-scrollbar]:hidden"
+            className="flex items-center gap-2 overflow-x-auto py-1 px-4 sm:px-6 scroll-smooth scrollbar-none [&::-webkit-scrollbar]:hidden"
           >
             <button
               type="button"
               onClick={() => setSelectedCategory("all")}
-              className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 border shadow-sm ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 border shadow-sm cursor-pointer ${
                 selectedCategory === "all"
-                  ? "bg-white text-black border-white shadow-md font-extrabold scale-105"
+                  ? "bg-white text-black border-white shadow-md font-extrabold scale-102"
                   : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
               }`}
             >
               <span>📺 Tất cả kênh</span>
               <span
-                className={`text-[10px] px-1.5 py-0.5 rounded-full font-black ${
+                className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
                   selectedCategory === "all"
                     ? "bg-black text-white"
                     : "bg-white/10 text-gray-300"
@@ -627,20 +811,22 @@ export function LiveTvClient({ initialData }: LiveTvClientProps) {
             {categories.map((cat) => {
               const count = channels.filter((c) => c.category === cat).length;
               const isSelected = selectedCategory === cat;
+              const emoji = getCategoryEmoji(cat);
               return (
                 <button
                   key={cat}
                   type="button"
                   onClick={() => setSelectedCategory(cat)}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 border shadow-sm ${
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 border shadow-sm cursor-pointer ${
                     isSelected
-                      ? "bg-netflix-red text-white border-netflix-red shadow-lg shadow-red-950/50 scale-105"
+                      ? "bg-sky-600 text-white border-sky-500 shadow-lg shadow-sky-950/50 scale-102"
                       : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
                   }`}
                 >
-                  <span>{cat}</span>
+                  <span>{emoji}</span>
+                  <span>{cat.replace("Kênh ", "")}</span>
                   <span
-                    className={`text-[10px] px-1.5 py-0.5 rounded-full font-black ${
+                    className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
                       isSelected
                         ? "bg-black/40 text-white"
                         : "bg-white/10 text-gray-300"
@@ -664,62 +850,171 @@ export function LiveTvClient({ initialData }: LiveTvClientProps) {
         </div>
       </div>
 
-      {/* 3. LƯỚI DANH SÁCH KÊNH TRUYỀN HÌNH (CHANNEL GRID) */}
-      {filteredChannels.length > 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
-          {filteredChannels.map((ch) => {
-            const isSelected = selectedChannel?.id === ch.id;
-            return (
-              <div
-                key={ch.id}
-                onClick={() => handleSelectChannel(ch)}
-                className={`group relative rounded-2xl border p-3.5 cursor-pointer transition-all duration-300 flex flex-col items-center justify-between text-center ${
-                  isSelected
-                    ? "bg-gradient-to-b from-zinc-900 to-zinc-950 border-netflix-red shadow-xl shadow-red-950/60 ring-2 ring-netflix-red/60 scale-[1.03]"
-                    : "bg-zinc-900/80 border-white/10 hover:border-white/35 hover:bg-zinc-850 hover:shadow-lg hover:-translate-y-1"
-                }`}
-              >
-                {/* HUY HIỆU FHD GÓC TRÊN */}
-                <div className="w-full flex items-center justify-between gap-1 mb-2">
-                  <span className="text-[10px] font-bold text-gray-400 truncate max-w-[80px]">
-                    {ch.category.replace("Kênh ", "")}
-                  </span>
-                  <span
-                    className={`px-1.5 py-0.2 rounded text-[9.5px] font-black uppercase tracking-wider border ${
-                      ch.quality.includes("FHD")
-                        ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-400"
-                        : "bg-sky-500/15 border-sky-500/40 text-sky-400"
+      {/* 4. DANH SÁCH KÊNH TRUYỀN HÌNH (GRID HOẶC COMPACT LIST) */}
+      {displayedChannels.length > 0 ? (
+        <div className="space-y-6">
+          {viewMode === "grid" ? (
+            /* VIEW MODE: LƯỚI THẺ HIỆN ĐẠI */
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
+              {displayedChannels.map((ch) => {
+                const isSelected = selectedChannel?.id === ch.id;
+                return (
+                  <div
+                    key={ch.id}
+                    onClick={() => handleSelectChannel(ch)}
+                    className={`group relative rounded-2xl border p-3.5 cursor-pointer transition-all duration-300 flex flex-col items-center justify-between text-center ${
+                      isSelected
+                        ? "bg-gradient-to-b from-zinc-900 to-zinc-950 border-sky-500 shadow-xl shadow-sky-950/60 ring-2 ring-sky-500/60 scale-102"
+                        : "bg-zinc-900/80 border-white/10 hover:border-white/35 hover:bg-zinc-850 hover:shadow-lg hover:-translate-y-0.5"
                     }`}
                   >
-                    {ch.quality.replace(" 1080p", "").replace(" 720p", "")}
-                  </span>
-                </div>
+                    {/* HUY HIỆU GÓC TRÊN */}
+                    <div className="w-full flex items-center justify-between gap-1 mb-2">
+                      <span className="text-[10px] font-bold text-gray-400 truncate max-w-[80px]">
+                        {ch.category.replace("Kênh ", "")}
+                      </span>
+                      <span
+                        className={`px-1.5 py-0.2 rounded text-[9.5px] font-black uppercase tracking-wider border ${
+                          ch.quality.includes("FHD")
+                            ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-400"
+                            : "bg-sky-500/15 border-sky-500/40 text-sky-400"
+                        }`}
+                      >
+                        {ch.quality.replace(" 1080p", "").replace(" 720p", "")}
+                      </span>
+                    </div>
 
-                {/* LOGO KÊNH */}
-                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-zinc-950 border border-white/10 p-2 flex items-center justify-center my-2 shadow-inner group-hover:scale-105 transition-transform overflow-hidden">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={ch.logo}
-                    alt={ch.name}
-                    className="w-full h-full object-contain filter drop-shadow-md"
-                    loading="lazy"
-                    onError={(e) => {
-                      (e.target as HTMLElement).style.display = "none";
-                    }}
-                  />
-                </div>
+                    {/* LOGO KÊNH */}
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-zinc-950 border border-white/10 p-2 flex items-center justify-center my-1.5 shadow-inner group-hover:scale-105 transition-transform overflow-hidden">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={ch.logo}
+                        alt={ch.name}
+                        className="w-full h-full object-contain filter drop-shadow-md"
+                        loading="lazy"
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = "none";
+                        }}
+                      />
+                    </div>
 
-                {/* TÊN KÊNH */}
-                <h3 className="text-xs sm:text-sm font-extrabold text-white group-hover:text-rose-400 transition line-clamp-1 mt-1 leading-snug w-full">
-                  {ch.name}
-                </h3>
-              </div>
-            );
-          })}
+                    {/* TÊN KÊNH */}
+                    <h3 className="text-xs sm:text-sm font-extrabold text-white group-hover:text-sky-400 transition line-clamp-1 mt-1 leading-snug w-full">
+                      {ch.name}
+                    </h3>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            /* VIEW MODE: DANH SÁCH GỌN (COMPACT LIST) */
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+              {displayedChannels.map((ch) => {
+                const isSelected = selectedChannel?.id === ch.id;
+                return (
+                  <div
+                    key={ch.id}
+                    onClick={() => handleSelectChannel(ch)}
+                    className={`group rounded-xl border p-2.5 cursor-pointer transition-all flex items-center justify-between gap-3 ${
+                      isSelected
+                        ? "bg-zinc-850 border-sky-500 shadow-md ring-1 ring-sky-500/60"
+                        : "bg-zinc-900/80 border-white/10 hover:border-white/25 hover:bg-zinc-850"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-zinc-950 border border-white/10 p-1.5 flex items-center justify-center overflow-hidden flex-shrink-0">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={ch.logo}
+                          alt={ch.name}
+                          className="w-full h-full object-contain"
+                          loading="lazy"
+                          onError={(e) => {
+                            (e.target as HTMLElement).style.display = "none";
+                          }}
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="text-xs font-bold text-white group-hover:text-sky-300 truncate">
+                          {ch.name}
+                        </h4>
+                        <span className="text-[10px] text-gray-400">
+                          {ch.category.replace("Kênh ", "")}
+                        </span>
+                      </div>
+                    </div>
+
+                    <span
+                      className={`text-[9.5px] px-2 py-0.5 rounded font-black uppercase flex-shrink-0 border ${
+                        ch.quality.includes("FHD")
+                          ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-400"
+                          : "bg-sky-500/15 border-sky-500/40 text-sky-400"
+                      }`}
+                    >
+                      {ch.quality.replace(" 1080p", "").replace(" 720p", "")}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* NÚT XEM THÊM KÊNH (PAGINATION LOAD MORE CHỐNG NGỢP) */}
+          {filteredChannels.length > visibleCount && (
+            <div className="flex flex-col items-center justify-center pt-4 pb-2 space-y-2">
+              <button
+                type="button"
+                onClick={() => setVisibleCount((prev) => prev + INITIAL_PAGE_SIZE)}
+                className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-zinc-900 hover:bg-zinc-800 text-white font-black text-xs sm:text-sm border border-white/20 hover:border-white/40 shadow-xl transition-all hover:scale-102 active:scale-98 cursor-pointer"
+              >
+                <span>Xem thêm các kênh khác</span>
+                <span className="px-2 py-0.5 rounded-full bg-white/15 text-[11px] text-gray-200">
+                  +{Math.min(INITIAL_PAGE_SIZE, filteredChannels.length - visibleCount)} kênh
+                </span>
+                <ChevronDown className="w-4 h-4" />
+              </button>
+              <span className="text-[11px] text-gray-400">
+                Còn lại {filteredChannels.length - visibleCount} kênh truyền hình
+              </span>
+            </div>
+          )}
+
+          {/* Nút thu gọn nếu đã xem nhiều */}
+          {visibleCount > INITIAL_PAGE_SIZE && (
+            <div className="text-center pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setVisibleCount(INITIAL_PAGE_SIZE);
+                  if (playerRef.current) {
+                    playerRef.current.scrollIntoView({ behavior: "smooth" });
+                  }
+                }}
+                className="text-xs text-gray-400 hover:text-white transition underline cursor-pointer"
+              >
+                Thu gọn danh sách về 24 kênh đầu ↑
+              </button>
+            </div>
+          )}
         </div>
       ) : (
-        <div className="rounded-3xl border border-white/10 bg-zinc-900/50 p-12 text-center text-gray-400">
-          Không tìm thấy kênh truyền hình nào phù hợp với bộ lọc.
+        <div className="rounded-3xl border border-white/10 bg-zinc-900/50 p-12 text-center text-gray-400 space-y-3">
+          <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mx-auto text-gray-400">
+            <Search className="w-6 h-6" />
+          </div>
+          <p className="text-sm font-semibold text-gray-300">
+            Không tìm thấy kênh truyền hình nào phù hợp với bộ lọc.
+          </p>
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={handleResetFilters}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold transition shadow-lg shadow-sky-950/50 cursor-pointer"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Xóa bộ lọc để xem tất cả {channels.length} kênh</span>
+            </button>
+          )}
         </div>
       )}
     </div>

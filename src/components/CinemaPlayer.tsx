@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -27,6 +27,7 @@ interface EpisodeItem {
 interface CinemaPlayerProps {
   embedSrc?: string;
   videoLink?: string;
+  trailerUrl?: string | null;
   title: string;
   activeEpisodeName?: string;
   activeEpisodeSlug?: string;
@@ -38,6 +39,7 @@ interface CinemaPlayerProps {
 export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   embedSrc,
   videoLink,
+  trailerUrl,
   title,
   activeEpisodeName,
   activeEpisodeSlug,
@@ -53,9 +55,25 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   // Floating Mini-Player States
   const [showMiniPlayer, setShowMiniPlayer] = useState(false);
   const [dismissedMini, setDismissedMini] = useState(false);
+  // Mini player chỉ load iframe khi thực sự cần (tránh 2 iframe cùng lúc)
+  const [miniPlayerLoaded, setMiniPlayerLoaded] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
   const router = useRouter();
+
+  // Tạo embed trailer nếu không có videoLink nhưng có trailerUrl
+  const trailerEmbedSrc = useMemo(() => {
+    if (videoLink || !trailerUrl) return null;
+    const match = trailerUrl.match(
+      /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/
+    );
+    return match
+      ? `https://www.youtube-nocookie.com/embed/${match[1]}?autoplay=1&mute=0&controls=1&rel=0`
+      : null;
+  }, [videoLink, trailerUrl]);
+
+  const activeSrc = videoLink ? embedSrc : trailerEmbedSrc;
 
   // Tìm tập hiện tại, tập trước và tập kế tiếp
   const currentIndex = episodes.findIndex((ep) => ep.slug === activeEpisodeSlug);
@@ -65,23 +83,34 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       ? episodes[currentIndex + 1]
       : null;
 
-  // Lắng nghe scroll để tự động bật Mini-Player khi video trôi ra khỏi màn hình
+  // Dùng IntersectionObserver thay scroll event — hiệu quả hơn nhiều (không fire liên tục)
   useEffect(() => {
-    if (!videoLink) return;
-    const handleScroll = () => {
-      if (!containerRef.current) return;
-      const rect = containerRef.current.getBoundingClientRect();
-      const isOutOfView = rect.bottom < 100;
-      setShowMiniPlayer(isOutOfView);
+    if (!activeSrc || !containerRef.current) return;
 
-      // Nếu cuộn ngược lại đầu trang, reset dismissedMini
-      if (rect.top > -50) {
-        setDismissedMini(false);
+    observerRef.current = new IntersectionObserver(
+      ([entry]) => {
+        const isOutOfView = !entry.isIntersecting;
+        setShowMiniPlayer(isOutOfView);
+        if (!isOutOfView) {
+          setDismissedMini(false);
+        }
+        // Lazy load: chỉ tạo mini iframe lần đầu khi cần
+        if (isOutOfView && !miniPlayerLoaded) {
+          setMiniPlayerLoaded(true);
+        }
+      },
+      {
+        threshold: 0.1, // Ẩn khi < 10% container còn visible
+        rootMargin: "-100px 0px 0px 0px",
       }
-    };
+    );
 
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
+    observerRef.current.observe(containerRef.current);
+
+    return () => {
+      observerRef.current?.disconnect();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [videoLink]);
 
   // Lắng nghe phím tắt: T, L, P, N, Esc, ?
@@ -104,39 +133,25 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         return;
       }
 
-      // Phím T: Bật/Tắt chế độ Rạp phim
-      if (e.key === "t" || e.key === "T") {
-        setIsTheaterMode((prev) => !prev);
-      }
+      if (e.key === "t" || e.key === "T") setIsTheaterMode((prev) => !prev);
+      if (e.key === "l" || e.key === "L") setIsLightsOff((prev) => !prev);
 
-      // Phím L: Bật/Tắt đèn
-      if (e.key === "l" || e.key === "L") {
-        setIsLightsOff((prev) => !prev);
-      }
-
-      // Phím P: Tập trước đó
       if ((e.key === "p" || e.key === "P") && prevEpisode?.slug) {
         router.push(`?ep=${prevEpisode.slug}`, { scroll: false });
       }
-
-      // Phím N: Tập tiếp theo
       if ((e.key === "n" || e.key === "N") && nextEpisode?.slug) {
         router.push(`?ep=${nextEpisode.slug}`, { scroll: false });
       }
-
-      // Phím ?: Xem danh sách phím tắt
-      if (e.key === "?") {
-        setShowShortcutModal((prev) => !prev);
-      }
+      if (e.key === "?") setShowShortcutModal((prev) => !prev);
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isLightsOff, isTheaterMode, showShortcutModal, prevEpisode, nextEpisode, router]);
 
-  const scrollToPlayer = () => {
+  const scrollToPlayer = useCallback(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+  }, []);
 
   return (
     <>
@@ -166,23 +181,32 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
               : "rounded-none sm:rounded-xl md:rounded-2xl border-y sm:border border-white/10 shadow-[0_25px_70px_rgba(0,0,0,0.55)]"
           }`}
         >
-          {videoLink ? (
-            <iframe
-              src={embedSrc}
-              className="w-full h-full absolute inset-0 border-0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-              allowFullScreen
-              referrerPolicy="no-referrer"
-              title={`Đang phát ${activeEpisodeName || "phim"}`}
-            />
+          {activeSrc ? (
+            <>
+              <iframe
+                src={activeSrc}
+                className="w-full h-full absolute inset-0 border-0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                allowFullScreen
+                referrerPolicy="no-referrer"
+                title={videoLink ? `Đang phát ${activeEpisodeName || "phim"}` : `Trailer: ${title}`}
+              />
+              {!videoLink && trailerEmbedSrc && (
+                <div className="absolute top-3 left-3 z-20 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-netflix-red/90 text-white text-xs font-bold shadow-lg backdrop-blur-md">
+                  <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                  <span>Đang phát Trailer</span>
+                </div>
+              )}
+            </>
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center border border-white/10 relative">
               <Image
                 src={posterUrl}
                 alt={title}
                 fill
-                quality={95}
+                quality={80}
                 className="object-cover opacity-35"
+                sizes="100vw"
               />
               <div className="absolute inset-0 bg-black/55" />
               <div className="relative z-10 text-center px-6">
@@ -248,7 +272,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
               )}
             </button>
 
-            {/* NÚT HẸN GIỜ TẮT */}
             <button
               type="button"
               onClick={() => setShowSleepTimerModal(true)}
@@ -259,7 +282,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
               <span className="hidden xs:inline">Hẹn giờ</span>
             </button>
 
-            {/* NÚT BẢNG PHÍM TẮT */}
             <button
               type="button"
               onClick={() => setShowShortcutModal(true)}
@@ -299,10 +321,9 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         </div>
       </div>
 
-      {/* FLOATING MINI-PLAYER KHI CUỘN TRANG */}
+      {/* FLOATING MINI-PLAYER — chỉ render iframe khi đã lazy load */}
       {videoLink && showMiniPlayer && !dismissedMini && !isTheaterMode && (
         <div className="fixed bottom-6 right-6 z-40 w-72 sm:w-80 md:w-96 aspect-video bg-zinc-950 rounded-xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.9)] border border-white/20 animate-in slide-in-from-bottom-5 duration-200">
-          {/* MINI CONTROLS BAR */}
           <div className="absolute top-0 inset-x-0 bg-gradient-to-b from-black/90 to-transparent p-2 flex items-center justify-between z-20">
             <span className="text-white text-xs font-semibold truncate max-w-[180px] drop-shadow-md">
               {title} {activeEpisodeName ? `• Tập ${activeEpisodeName}` : ""}
@@ -327,18 +348,22 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
             </div>
           </div>
 
-          <iframe
-            src={embedSrc}
-            className="w-full h-full border-0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-            allowFullScreen
-            referrerPolicy="no-referrer"
-            title={`Mini ${title}`}
-          />
+          {/* Lazy: chỉ tạo iframe khi lần đầu mini player hiện */}
+          {miniPlayerLoaded && (
+            <iframe
+              src={embedSrc}
+              className="w-full h-full border-0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+              allowFullScreen
+              referrerPolicy="no-referrer"
+              title={`Mini ${title}`}
+              loading="lazy"
+            />
+          )}
         </div>
       )}
 
-      {/* MODAL DANH SÁCH PHÍM TẮT (SHORTCUTS MODAL) */}
+      {/* MODAL DANH SÁCH PHÍM TẮT */}
       {showShortcutModal && (
         <div
           onClick={() => setShowShortcutModal(false)}
@@ -363,40 +388,20 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
             </div>
 
             <div className="space-y-3 text-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-gray-300">Chế độ Rạp phim</span>
-                <kbd className="px-2 py-1 rounded bg-zinc-800 border border-white/15 text-xs font-mono text-white">
-                  T
-                </kbd>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-gray-300">Tắt / Bật đèn xung quanh</span>
-                <kbd className="px-2 py-1 rounded bg-zinc-800 border border-white/15 text-xs font-mono text-white">
-                  L
-                </kbd>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-gray-300">Chuyển về tập trước</span>
-                <kbd className="px-2 py-1 rounded bg-zinc-800 border border-white/15 text-xs font-mono text-white">
-                  P
-                </kbd>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-gray-300">Chuyển sang tập kế tiếp</span>
-                <kbd className="px-2 py-1 rounded bg-zinc-800 border border-white/15 text-xs font-mono text-white">
-                  N
-                </kbd>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-gray-300">Thoát chế độ xem / Đóng</span>
-                <kbd className="px-2 py-1 rounded bg-zinc-800 border border-white/15 text-xs font-mono text-white">
-                  Esc
-                </kbd>
-              </div>
+              {[
+                { label: "Chế độ Rạp phim", key: "T" },
+                { label: "Tắt / Bật đèn xung quanh", key: "L" },
+                { label: "Chuyển về tập trước", key: "P" },
+                { label: "Chuyển sang tập kế tiếp", key: "N" },
+                { label: "Thoát chế độ xem / Đóng", key: "Esc" },
+              ].map(({ label, key }) => (
+                <div key={key} className="flex items-center justify-between">
+                  <span className="text-gray-300">{label}</span>
+                  <kbd className="px-2 py-1 rounded bg-zinc-800 border border-white/15 text-xs font-mono text-white">
+                    {key}
+                  </kbd>
+                </div>
+              ))}
             </div>
 
             <div className="mt-6 pt-3 border-t border-white/10 text-center">
