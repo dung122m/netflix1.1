@@ -14,7 +14,9 @@ import {
   Keyboard,
   X,
   ArrowUpRight,
+  Clock,
 } from "lucide-react";
+import { SleepTimerModal } from "./SleepTimerModal";
 
 interface EpisodeItem {
   name?: string;
@@ -46,6 +48,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const [isTheaterMode, setIsTheaterMode] = useState(false);
   const [isLightsOff, setIsLightsOff] = useState(false);
   const [showShortcutModal, setShowShortcutModal] = useState(false);
+  const [showSleepTimerModal, setShowSleepTimerModal] = useState(false);
 
   // Floating Mini-Player States
   const [showMiniPlayer, setShowMiniPlayer] = useState(false);
@@ -245,6 +248,17 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
               )}
             </button>
 
+            {/* NÚT HẸN GIỜ TẮT */}
+            <button
+              type="button"
+              onClick={() => setShowSleepTimerModal(true)}
+              title="Hẹn giờ tắt phim thông minh"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-zinc-900/80 hover:bg-zinc-800 text-amber-400/90 hover:text-amber-300 border border-amber-500/20 hover:border-amber-500/40 transition cursor-pointer"
+            >
+              <Clock className="w-3.5 h-3.5" />
+              <span className="hidden xs:inline">Hẹn giờ</span>
+            </button>
+
             {/* NÚT BẢNG PHÍM TẮT */}
             <button
               type="button"
@@ -397,6 +411,12 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           </div>
         </div>
       )}
+
+      {/* MODAL HẸN GIỜ TẮT (SLEEP TIMER) */}
+      <SleepTimerModal
+        isOpen={showSleepTimerModal}
+        onClose={() => setShowSleepTimerModal(false)}
+      />
     </>
   );
 };

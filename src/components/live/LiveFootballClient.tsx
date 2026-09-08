@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useMemo, useRef } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { FootballMatch, LiveFootballData } from "@/services/liveFootballService";
 import { LivePlayer } from "./LivePlayer";
 import { MatchCard } from "./MatchCard";
@@ -17,12 +18,17 @@ import {
 
 interface LiveFootballClientProps {
   initialData: LiveFootballData;
+  hideHeader?: boolean;
 }
 
-export function LiveFootballClient({ initialData }: LiveFootballClientProps) {
+export function LiveFootballClient({
+  initialData,
+  hideHeader = false,
+}: LiveFootballClientProps) {
   const { channels, matches } = initialData;
+  const searchParams = useSearchParams();
 
-  // Chọn trận đầu tiên có HLS hoặc trận đầu tiên
+  // Khởi tạo match mặc định
   const defaultMatch = useMemo(() => {
     return (
       matches.find((m) => m.servers.some((s) => s.isHls)) || matches[0] || null
@@ -30,13 +36,49 @@ export function LiveFootballClient({ initialData }: LiveFootballClientProps) {
   }, [matches]);
 
   const [selectedMatch, setSelectedMatch] = useState<FootballMatch | null>(
-    defaultMatch
+    () => {
+      // Ưu tiên đọc từ URL hoặc localStorage ngay lúc mount
+      if (typeof window !== "undefined") {
+        try {
+          const matchParam = new URLSearchParams(window.location.search).get("match");
+          const savedId = localStorage.getItem("nanaflix_live_match_id");
+          const target = matchParam || savedId;
+          if (target) {
+            const found = matches.find((m) => m.id === target || m.title.toLowerCase().includes(target.toLowerCase()));
+            if (found) return found;
+          }
+        } catch {}
+      }
+      return defaultMatch;
+    }
   );
+
   const [selectedChannel, setSelectedChannel] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [onlyFhd, setOnlyFhd] = useState<boolean>(false);
 
   const playerRef = useRef<HTMLDivElement>(null);
   const channelsScrollRef = useRef<HTMLDivElement>(null);
+
+  // Đồng bộ khi matches hoặc URL thay đổi
+  useEffect(() => {
+    if (matches.length === 0) return;
+    const matchParam = searchParams.get("match");
+    const savedId = typeof window !== "undefined" ? localStorage.getItem("nanaflix_live_match_id") : null;
+    const target = matchParam || savedId;
+
+    if (target) {
+      const found = matches.find((m) => m.id === target || m.title.toLowerCase().includes(target.toLowerCase()));
+      if (found) {
+        setSelectedMatch(found);
+        return;
+      }
+    }
+
+    if (!selectedMatch) {
+      setSelectedMatch(defaultMatch);
+    }
+  }, [matches, searchParams, defaultMatch]);
 
   const scrollChannels = (direction: "left" | "right") => {
     if (channelsScrollRef.current) {
@@ -53,6 +95,11 @@ export function LiveFootballClient({ initialData }: LiveFootballClientProps) {
         return false;
       }
 
+      // Lọc FHD 1080p
+      if (onlyFhd && !m.quality.includes("FHD") && !m.servers.some((s) => s.quality === "FHD")) {
+        return false;
+      }
+
       // Lọc theo tìm kiếm
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
@@ -60,66 +107,83 @@ export function LiveFootballClient({ initialData }: LiveFootballClientProps) {
         const inTeam1 = m.team1.toLowerCase().includes(q);
         const inTeam2 = m.team2.toLowerCase().includes(q);
         const inBlv = m.blv?.toLowerCase().includes(q);
-        if (!inTitle && !inTeam1 && !inTeam2 && !inBlv) return false;
+        const inTournament = m.tournament?.toLowerCase().includes(q);
+        if (!inTitle && !inTeam1 && !inTeam2 && !inBlv && !inTournament) return false;
       }
 
       return true;
     });
-  }, [matches, selectedChannel, searchQuery]);
+  }, [matches, selectedChannel, searchQuery, onlyFhd]);
 
   const handleSelectMatch = (match: FootballMatch) => {
     setSelectedMatch(match);
+    try {
+      localStorage.setItem("nanaflix_live_match_id", match.id);
+      const url = new URL(window.location.href);
+      url.searchParams.set("tab", "football");
+      url.searchParams.set("match", match.id);
+      window.history.replaceState(null, "", url.toString());
+    } catch {}
+
     if (playerRef.current) {
       playerRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 md:px-8 pt-24 pb-16 space-y-8">
-      {/* TIÊU ĐỀ TRANG */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-white/10 pb-6">
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-netflix-red/20 border border-netflix-red/40 text-netflix-red text-xs font-bold animate-pulse">
-              <Radio className="w-3.5 h-3.5" />
-              <span>LIVE SPORTS</span>
-            </span>
-            <span className="text-xs text-gray-400 font-medium">
-              Cập nhật trực tiếp từ M3U
+    <div className={hideHeader ? "space-y-8" : "max-w-7xl mx-auto px-4 md:px-8 pt-24 pb-16 space-y-8"}>
+      {/* TIÊU ĐỀ TRANG (CHỈ HIỆN KHI KHÔNG NHÚNG TRONG HUB) */}
+      {!hideHeader && (
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-white/10 pb-6">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-netflix-red/20 border border-netflix-red/40 text-netflix-red text-xs font-bold animate-pulse">
+                <Radio className="w-3.5 h-3.5" />
+                <span>LIVE SPORTS</span>
+              </span>
+              <span className="text-xs text-gray-400 font-medium">
+                Cập nhật trực tiếp từ M3U
+              </span>
+            </div>
+            <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight">
+              Trực Tiếp Bóng Đá HD
+            </h1>
+            <p className="text-sm text-gray-400 mt-2">
+              Phát sóng trực tiếp các trận đấu đỉnh cao kèm Bình luận tiếng Việt
+              từ Xôi Lạc, Cola TV, Gà Vàng, Socolive...
+            </p>
+          </div>
+
+          {/* MẸO XEM VLC */}
+          <div className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-zinc-900 border border-white/10 text-xs text-gray-300 max-w-md">
+            <Info className="w-4 h-4 text-orange-400 flex-shrink-0" />
+            <span>
+              Hỗ trợ phát sóng qua HLS Web Player hoặc mở nhanh 1 chạm bằng{" "}
+              <strong className="text-orange-400 font-bold">VLC / IPTV</strong>.
             </span>
           </div>
-          <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight">
-            Trực Tiếp Bóng Đá HD
-          </h1>
-          <p className="text-sm text-gray-400 mt-2">
-            Phát sóng trực tiếp các trận đấu đỉnh cao kèm Bình luận tiếng Việt
-            từ Xôi Lạc, Cola TV, Gà Vàng, Socolive...
-          </p>
         </div>
-
-        {/* MẸO XEM VLC */}
-        <div className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-zinc-900 border border-white/10 text-xs text-gray-300 max-w-md">
-          <Info className="w-4 h-4 text-orange-400 flex-shrink-0" />
-          <span>
-            Hỗ trợ phát sóng qua HLS Web Player hoặc mở nhanh 1 chạm bằng{" "}
-            <strong className="text-orange-400 font-bold">VLC / IPTV</strong>.
-          </span>
-        </div>
-      </div>
+      )}
 
       {/* KHU VỰC TRÌNH PHÁT VIDEO CHÍNH */}
       {selectedMatch ? (
         <div ref={playerRef} className="scroll-mt-24">
           <LivePlayer
+            match={selectedMatch}
             title={selectedMatch.title}
             servers={selectedMatch.servers}
             blv={selectedMatch.blv}
             time={selectedMatch.time}
             group={selectedMatch.group}
+            team1={selectedMatch.team1}
+            team2={selectedMatch.team2}
+            homeLogo={selectedMatch.homeLogo}
+            awayLogo={selectedMatch.awayLogo}
+            logo={selectedMatch.logo}
           />
         </div>
       ) : (
-        <div className="rounded-2xl border border-white/10 bg-zinc-900/50 p-12 text-center text-gray-400">
+        <div className="rounded-3xl border border-white/10 bg-zinc-900/50 p-12 text-center text-gray-400">
           Hiện chưa có trận đấu nào được chọn.
         </div>
       )}
@@ -134,17 +198,70 @@ export function LiveFootballClient({ initialData }: LiveFootballClientProps) {
             </span>
           </h2>
 
-          {/* THANH TÌM KIẾM TRẬN ĐẤU */}
-          <div className="relative w-full sm:w-72">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Tìm theo tên đội bóng, BLV..."
-              className="w-full pl-9 pr-4 py-2 rounded-xl bg-zinc-900 border border-white/10 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-netflix-red transition"
-            />
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            {/* NÚT LỌC NHANH FHD 1080P */}
+            <button
+              type="button"
+              onClick={() => setOnlyFhd((prev) => !prev)}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition border shadow-sm cursor-pointer whitespace-nowrap ${
+                onlyFhd
+                  ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-emerald-400 shadow-emerald-950/50 scale-105"
+                  : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/20 hover:text-white"
+              }`}
+            >
+              <span>⚡</span>
+              <span>Chỉ trận FHD 1080p</span>
+            </button>
+
+            {/* THANH TÌM KIẾM TRẬN ĐẤU */}
+            <div className="relative flex-1 sm:w-72">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Tìm tên đội, BLV..."
+                className="w-full pl-9 pr-4 py-2 rounded-xl bg-zinc-900 border border-white/10 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-netflix-red transition"
+              />
+            </div>
           </div>
+        </div>
+
+        {/* CÁC NÚT LỌC NHANH GIẢI ĐẤU (NGOẠI HẠNG ANH, C1, LA LIGA...) */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none [&::-webkit-scrollbar]:hidden">
+          <span className="text-[11px] text-gray-400 font-bold whitespace-nowrap flex-none">
+            Giải đấu:
+          </span>
+          {[
+            { label: "🦁 Ngoại Hạng Anh", query: "Ngoại Hạng Anh" },
+            { label: "⭐ Cúp C1", query: "Cúp C1" },
+            { label: "🇪🇸 La Liga", query: "La Liga" },
+            { label: "🇮🇹 Serie A", query: "Serie A" },
+            { label: "🇩🇪 Bundesliga", query: "Bundesliga" },
+            { label: "🇻🇳 V-League", query: "V-League" },
+          ].map((item) => {
+            const isFilterActive = searchQuery.toLowerCase() === item.query.toLowerCase();
+            return (
+              <button
+                key={item.label}
+                type="button"
+                onClick={() => {
+                  if (isFilterActive) {
+                    setSearchQuery("");
+                  } else {
+                    setSearchQuery(item.query);
+                  }
+                }}
+                className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-all border cursor-pointer ${
+                  isFilterActive
+                    ? "bg-purple-600 text-white border-purple-400 shadow-md shadow-purple-950/50 scale-105"
+                    : "bg-white/5 text-gray-300 border-white/10 hover:border-white/25 hover:bg-white/10 hover:text-white"
+                }`}
+              >
+                {item.label}
+              </button>
+            );
+          })}
         </div>
 
         {/* CAROUSEL TABS CHỌN KÊNH PHÁT (KHÔNG CÒN THANH CUỘN THÔ CỨNG) */}

@@ -95,33 +95,41 @@ export default async function MovieDetail({
       country: movie.country,
       director: movie.director,
     }) ||
-    "Nội dung phim đang được cập nhật.";
+    "";
 
-  // Danh sách diễn viên dạng mảng
-  const actorList: string[] = Array.isArray(movie.actor)
-    ? movie.actor.map(String).map((s: string) => s.trim()).filter(Boolean)
-    : typeof movie.actor === "string" && movie.actor
-    ? movie.actor.split(",").map((s: string) => s.trim()).filter(Boolean)
-    : [];
+  // Danh sách diễn viên dạng mảng (lọc bỏ null/đang cập nhật)
+  const actorList: string[] = (
+    Array.isArray(movie.actor)
+      ? movie.actor.map(String).map((s: string) => s.trim()).filter(Boolean)
+      : typeof movie.actor === "string" && movie.actor
+      ? movie.actor.split(",").map((s: string) => s.trim()).filter(Boolean)
+      : []
+  ).filter((a: string) => !a.toLowerCase().includes("cập nhật") && !a.toLowerCase().includes("updating"));
 
-  // Danh sách đạo diễn dạng mảng
-  const directorList: string[] = Array.isArray(movie.director)
-    ? movie.director.map(String).map((s: string) => s.trim()).filter(Boolean)
-    : typeof movie.director === "string" && movie.director
-    ? movie.director.split(",").map((s: string) => s.trim()).filter(Boolean)
-    : [];
+  // Danh sách đạo diễn dạng mảng (lọc bỏ null/đang cập nhật)
+  const directorList: string[] = (
+    Array.isArray(movie.director)
+      ? movie.director.map(String).map((s: string) => s.trim()).filter(Boolean)
+      : typeof movie.director === "string" && movie.director
+      ? movie.director.split(",").map((s: string) => s.trim()).filter(Boolean)
+      : []
+  ).filter((d: string) => !d.toLowerCase().includes("cập nhật") && !d.toLowerCase().includes("updating"));
 
   // Danh sách thể loại
-  const categoryList: Array<{ name: string; slug?: string }> = Array.isArray(movie.category)
-    ? movie.category
-    : typeof movie.genre === "string"
-    ? movie.genre.split(",").map((g: string) => ({ name: g.trim(), slug: undefined }))
-    : [];
+  const categoryList: Array<{ name: string; slug?: string }> = (
+    Array.isArray(movie.category)
+      ? (movie.category as Array<{ name: string; slug?: string }>)
+      : typeof movie.genre === "string"
+      ? movie.genre.split(",").map((g: string) => ({ name: g.trim(), slug: undefined }))
+      : []
+  ).filter((c: { name: string; slug?: string }) => c?.name && !c.name.toLowerCase().includes("cập nhật"));
 
   // Danh sách quốc gia
-  const countryList: Array<{ name: string; slug?: string }> = Array.isArray(movie.country)
-    ? movie.country
-    : [];
+  const countryList: Array<{ name: string; slug?: string }> = (
+    Array.isArray(movie.country)
+      ? (movie.country as Array<{ name: string; slug?: string }>)
+      : []
+  ).filter((c: { name: string; slug?: string }) => c?.name && !c.name.toLowerCase().includes("cập nhật"));
 
   // Đánh giá IMDb & TMDB
   const imdbScore = movie.imdb?.vote_average ? Number(movie.imdb.vote_average) : undefined;
@@ -521,107 +529,101 @@ export default async function MovieDetail({
             )}
 
             {/* BỐ BẢNG THÔNG TIN TƯƠNG TÁC (BẤM VÀO ĐỂ TÌM PHIM) */}
-            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-              {/* THỂ LOẠI */}
-              <div className="rounded-xl border border-white/10 bg-black/30 p-3.5">
-                <p className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-netflix-red" />
-                  <span>Thể loại</span>
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {categoryList.length > 0 ? (
-                    categoryList.map((cat, idx) => (
-                      <Link
-                        key={cat.slug || idx}
-                        href={
-                          cat.slug
-                            ? `/browse?category=${cat.slug}`
-                            : `/browse?keyword=${encodeURIComponent(cat.name)}`
-                        }
-                        className="inline-flex items-center px-2.5 py-1 rounded-md bg-white/5 hover:bg-white/15 text-gray-200 hover:text-white text-xs transition border border-white/10 hover:border-white/25"
-                      >
-                        {cat.name}
-                      </Link>
-                    ))
-                  ) : (
-                    <span className="text-gray-400 text-xs">Đang cập nhật</span>
-                  )}
-                </div>
-              </div>
+            {(categoryList.length > 0 || countryList.length > 0 || directorList.length > 0 || actorList.length > 0) && (
+              <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                {/* THỂ LOẠI */}
+                {categoryList.length > 0 && (
+                  <div className="rounded-xl border border-white/10 bg-black/30 p-3.5">
+                    <p className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-netflix-red" />
+                      <span>Thể loại</span>
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {categoryList.map((cat, idx) => (
+                        <Link
+                          key={cat.slug || idx}
+                          href={
+                            cat.slug
+                              ? `/browse?category=${cat.slug}`
+                              : `/browse?keyword=${encodeURIComponent(cat.name)}`
+                          }
+                          className="inline-flex items-center px-2.5 py-1 rounded-md bg-white/5 hover:bg-white/15 text-gray-200 hover:text-white text-xs transition border border-white/10 hover:border-white/25"
+                        >
+                          {cat.name}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-              {/* QUỐC GIA */}
-              <div className="rounded-xl border border-white/10 bg-black/30 p-3.5">
-                <p className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                  <Globe2 className="w-3.5 h-3.5 text-sky-400" />
-                  <span>Quốc gia</span>
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {countryList.length > 0 ? (
-                    countryList.map((cnt, idx) => (
-                      <Link
-                        key={cnt.slug || idx}
-                        href={
-                          cnt.slug
-                            ? `/browse?country=${cnt.slug}`
-                            : `/browse?keyword=${encodeURIComponent(cnt.name)}`
-                        }
-                        className="inline-flex items-center px-2.5 py-1 rounded-md bg-white/5 hover:bg-white/15 text-gray-200 hover:text-white text-xs transition border border-white/10 hover:border-white/25"
-                      >
-                        {cnt.name}
-                      </Link>
-                    ))
-                  ) : (
-                    <span className="text-gray-400 text-xs">Đang cập nhật</span>
-                  )}
-                </div>
-              </div>
+                {/* QUỐC GIA */}
+                {countryList.length > 0 && (
+                  <div className="rounded-xl border border-white/10 bg-black/30 p-3.5">
+                    <p className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                      <Globe2 className="w-3.5 h-3.5 text-sky-400" />
+                      <span>Quốc gia</span>
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {countryList.map((cnt, idx) => (
+                        <Link
+                          key={cnt.slug || idx}
+                          href={
+                            cnt.slug
+                              ? `/browse?country=${cnt.slug}`
+                              : `/browse?keyword=${encodeURIComponent(cnt.name)}`
+                          }
+                          className="inline-flex items-center px-2.5 py-1 rounded-md bg-white/5 hover:bg-white/15 text-gray-200 hover:text-white text-xs transition border border-white/10 hover:border-white/25"
+                        >
+                          {cnt.name}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-              {/* ĐẠO DIỄN */}
-              <div className="rounded-xl border border-white/10 bg-black/30 p-3.5">
-                <p className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                  <Clapperboard className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Đạo diễn</span>
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {directorList.length > 0 ? (
-                    directorList.slice(0, 4).map((d, idx) => (
-                      <span
-                        key={idx}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-white/5 text-gray-300 text-xs border border-white/10"
-                      >
-                        <span className="text-[10px] text-gray-500">🎬</span>
-                        <span>{d}</span>
-                      </span>
-                    ))
-                  ) : (
-                    <span className="text-gray-400 text-xs">Đang cập nhật</span>
-                  )}
-                </div>
-              </div>
+                {/* ĐẠO DIỄN */}
+                {directorList.length > 0 && (
+                  <div className="rounded-xl border border-white/10 bg-black/30 p-3.5">
+                    <p className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                      <Clapperboard className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Đạo diễn</span>
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {directorList.slice(0, 4).map((d, idx) => (
+                        <span
+                          key={idx}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-white/5 text-gray-300 text-xs border border-white/10"
+                        >
+                          <span className="text-[10px] text-gray-500">🎬</span>
+                          <span>{d}</span>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-              {/* DIỄN VIÊN */}
-              <div className="rounded-xl border border-white/10 bg-black/30 p-3.5">
-                <p className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                  <Users className="w-3.5 h-3.5 text-rose-400" />
-                  <span>Diễn viên</span>
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {actorList.length > 0 ? (
-                    actorList.slice(0, 12).map((a, idx) => (
-                      <span
-                        key={idx}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-white/5 text-gray-300 text-xs border border-white/10"
-                      >
-                        <span className="text-[10px] text-gray-500">👤</span>
-                        <span>{a}</span>
-                      </span>
-                    ))
-                  ) : (
-                    <span className="text-gray-400 text-xs">Đang cập nhật</span>
-                  )}
-                </div>
+                {/* DIỄN VIÊN */}
+                {actorList.length > 0 && (
+                  <div className="rounded-xl border border-white/10 bg-black/30 p-3.5">
+                    <p className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                      <Users className="w-3.5 h-3.5 text-rose-400" />
+                      <span>Diễn viên</span>
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {actorList.slice(0, 12).map((a, idx) => (
+                        <span
+                          key={idx}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-white/5 text-gray-300 text-xs border border-white/10"
+                        >
+                          <span className="text-[10px] text-gray-500">👤</span>
+                          <span>{a}</span>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
+            )}
           </div>
         </div>
 

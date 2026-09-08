@@ -202,7 +202,7 @@ function MyListContent() {
                   slug={item.slug}
                   title={item.title}
                   imageUrl={item.imageUrl}
-                  genre={item.genre || "Đang cập nhật"}
+                  genre={item.genre || ""}
                   year={item.year}
                   time={item.time}
                 />

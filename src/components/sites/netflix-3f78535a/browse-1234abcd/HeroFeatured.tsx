@@ -23,6 +23,7 @@ import {
   pickBestMovieImage,
 } from "@/lib/movieMedia";
 import { clientSynopsisCache } from "./MediaCard";
+import TrailerModal from "@/components/TrailerModal";
 
 const AUTO_SLIDE_MS = 5500;
 
@@ -45,6 +46,7 @@ type HeroMovie = {
   category?: Array<{ name?: string }>;
   country?: Array<{ name?: string }>;
   director?: string[];
+  trailer_url?: string;
   tmdb?: { vote_average?: string | number; vote_count?: number };
 };
 
@@ -136,7 +138,14 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
       country: featuredMovie?.country,
       director: featuredMovie?.director,
     }) ||
-    "Nội dung phim đang được cập nhật.";
+    "";
+
+  const heroCountry = featuredMovie?.country?.[0]?.name;
+  const isSeries = Boolean(
+    (featuredMovie?.episode_current && String(featuredMovie.episode_current).toLowerCase().includes("tập")) ||
+    (featuredMovie?.time && String(featuredMovie.time).toLowerCase().includes("tập"))
+  );
+  const heroType = isSeries ? "Phim Bộ" : "Phim Lẻ";
 
   const voteAverage = featuredMovie?.tmdb?.vote_average;
   const voteText =
@@ -185,7 +194,7 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
 
   return (
     <section
-      className="relative h-[84vh] min-h-[580px] w-full overflow-hidden bg-black"
+      className="relative h-[78vh] sm:h-[84vh] min-h-[500px] sm:min-h-[580px] w-full overflow-hidden bg-black"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
@@ -222,8 +231,8 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
         </AnimatePresence>
       </div>
 
-      <div className="absolute inset-0 bg-gradient-to-r from-black/92 via-black/55 to-black/20" />
-      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/35 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-r from-black/95 via-black/60 to-black/20" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_28%,rgba(229,9,20,0.16),transparent_38%)]" />
 
       <motion.div
@@ -233,66 +242,70 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
         transition={{ duration: 0.35, ease: "easeOut" }}
         className="relative z-10 flex h-full items-end"
       >
-        <div className="w-full px-4 pb-6 md:px-10 md:pb-10">
+        <div className="w-full px-3 sm:px-6 pb-6 md:px-10 md:pb-10">
           <div className="mx-auto max-w-7xl">
-            <div className="max-w-3xl rounded-2xl border border-white/10 bg-black/40 p-5 backdrop-blur-md md:p-8 shadow-2xl">
-              <div className="mb-4 flex flex-wrap items-center gap-2 text-xs md:text-sm">
-                <span className="rounded-full border border-netflix-red/40 bg-gradient-to-r from-netflix-red/30 to-rose-600/20 text-rose-300 px-3 py-1 font-bold text-xs flex items-center gap-1.5 shadow-sm">
+            <div className="max-w-3xl rounded-3xl border border-white/15 bg-black/60 p-4 sm:p-6 md:p-8 backdrop-blur-xl shadow-2xl">
+              <div className="mb-3 sm:mb-4 flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs md:text-sm">
+                <span className="rounded-full border border-netflix-red/40 bg-gradient-to-r from-netflix-red/30 to-rose-600/20 text-rose-300 px-2.5 sm:px-3 py-0.5 sm:py-1 font-bold text-[11px] sm:text-xs flex items-center gap-1.5 shadow-sm">
                   <Sparkles size={12} className="text-netflix-red animate-pulse" />
-                  <span>Đang nổi bật</span>
+                  <span>{heroType}</span>
                 </span>
+                {heroCountry && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/15 px-2.5 sm:px-3 py-0.5 sm:py-1 text-[11px] sm:text-xs font-bold text-amber-300 shadow-sm">
+                    <Globe2 size={11} className="text-amber-400" />
+                    <span>{heroCountry}</span>
+                  </span>
+                )}
                 {featuredMovie?.year && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-black/55 px-3 py-1 text-gray-200">
-                    <Calendar size={12} className="text-emerald-400" />
+                  <span className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-black/55 px-2.5 sm:px-3 py-0.5 sm:py-1 text-[11px] sm:text-xs text-gray-200">
+                    <Calendar size={11} className="text-emerald-400" />
                     <span>{featuredMovie.year}</span>
                   </span>
                 )}
                 {featuredMovie?.quality && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-netflix-red/45 bg-netflix-red/90 px-3 py-1 font-bold text-white shadow-md shadow-red-950/50">
-                    <Sparkles size={12} />
+                  <span className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-white/10 px-2.5 sm:px-3 py-0.5 sm:py-1 text-[11px] sm:text-xs font-bold text-white shadow-sm">
                     <span>{featuredMovie.quality}</span>
                   </span>
                 )}
                 {featuredMovie?.lang && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-black/55 px-3 py-1 text-gray-200">
-                    <Globe2 size={12} className="text-sky-400" />
+                  <span className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-black/55 px-2.5 sm:px-3 py-0.5 sm:py-1 text-[11px] sm:text-xs text-rose-300 font-semibold">
                     <span>{featuredMovie.lang}</span>
                   </span>
                 )}
                 {voteText && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-300/40 bg-black/55 px-3 py-1 text-amber-300 font-semibold shadow-sm">
-                    <Star size={13} className="fill-amber-400 text-amber-400" />
+                  <span className="inline-flex items-center gap-1 rounded-full border border-amber-300/40 bg-black/55 px-2.5 sm:px-3 py-0.5 sm:py-1 text-[11px] sm:text-xs text-amber-300 font-semibold shadow-sm">
+                    <Star size={11} className="fill-amber-400 text-amber-400" />
                     <span>{voteText}</span>
                   </span>
                 )}
-                <span className="rounded-full border border-white/20 bg-black/55 px-3 py-1 text-gray-300 text-xs font-medium">
-                  {isTrailerOnly ? "🎬 Trailer" : "🍿 Full Movie"}
-                </span>
               </div>
 
-              <h1 className="mb-3 text-3xl font-extrabold leading-tight text-white md:text-6xl">
+              <h1 className="mb-2 sm:mb-3 text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight text-white line-clamp-2">
                 {title}
               </h1>
-              <p className="mb-6 max-w-2xl text-sm leading-relaxed text-gray-200 md:text-base line-clamp-3">
+              <p className="mb-4 sm:mb-6 max-w-2xl text-xs sm:text-sm md:text-base leading-relaxed text-gray-200 line-clamp-2 sm:line-clamp-3">
                 {description}
               </p>
 
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
                 {featuredMovie?.slug && (
                   <Link
                     href={`/movies/${featuredMovie.slug}`}
-                    className="inline-flex items-center gap-2 rounded-md bg-white px-6 py-3 text-sm font-bold text-black transition hover:bg-gray-200 md:text-base"
+                    className="inline-flex items-center gap-1.5 sm:gap-2 rounded-xl bg-white px-4 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm md:text-base font-extrabold text-black transition hover:bg-gray-200 active:scale-95 shadow-lg"
                   >
-                    <Play size={20} fill="black" />
+                    <Play size={18} fill="black" />
                     {isTrailerOnly ? "Xem trailer" : "Xem ngay"}
                   </Link>
+                )}
+                {featuredMovie?.trailer_url && (
+                  <TrailerModal trailerUrl={featuredMovie.trailer_url} title={title} />
                 )}
                 {featuredMovie?.slug && (
                   <Link
                     href={`/movies/${featuredMovie.slug}`}
-                    className="inline-flex items-center gap-2 rounded-md border border-white/25 bg-white/10 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/20 md:text-base"
+                    className="inline-flex items-center gap-1.5 sm:gap-2 rounded-xl border border-white/25 bg-white/10 px-4 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm md:text-base font-semibold text-white transition hover:bg-white/20 active:scale-95"
                   >
-                    <Info size={20} />
+                    <Info size={18} />
                     Thông tin
                   </Link>
                 )}

@@ -19,6 +19,7 @@ import {
   Sparkles,
   Radio,
   Bookmark,
+  Dices,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -42,7 +43,8 @@ const NAV_LINKS = [
   { name: "Chiếu rạp", href: "/browse?type=phim-chieu-rap", type: "phim-chieu-rap", icon: Clapperboard, isLive: false },
   { name: "Hoạt hình", href: "/browse?type=hoat-hinh", type: "hoat-hinh", icon: Sparkles, isLive: false },
   { name: "TV Shows", href: "/browse?type=tv-shows", type: "tv-shows", icon: Radio, isLive: false },
-  { name: "Bóng đá", href: "/live", type: "live", icon: Flame, isLive: true },
+  { name: "Bóng đá", href: "/live?tab=football", type: "live-football", icon: Flame, isLive: true },
+  { name: "Truyền hình", href: "/live?tab=tv", type: "live-tv", icon: Tv, isLive: false },
   { name: "Danh sách của tôi", href: "/my-list", type: "my-list", icon: Bookmark, isLive: false },
 ];
 
@@ -56,6 +58,7 @@ export const Navbar: React.FC = () => {
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
 
   // Notification Center & Hotkey States
   const [showNotifications, setShowNotifications] = useState(false);
@@ -288,18 +291,66 @@ export const Navbar: React.FC = () => {
     }
   };
 
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!showDropdown) return;
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (suggestions.length > 0) {
+        setSelectedSuggestionIndex((prev) =>
+          prev < suggestions.length - 1 ? prev + 1 : 0
+        );
+      } else if (recentSearches.length > 0) {
+        setSelectedSuggestionIndex((prev) =>
+          prev < recentSearches.length - 1 ? prev + 1 : 0
+        );
+      }
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (suggestions.length > 0) {
+        setSelectedSuggestionIndex((prev) =>
+          prev > 0 ? prev - 1 : suggestions.length - 1
+        );
+      } else if (recentSearches.length > 0) {
+        setSelectedSuggestionIndex((prev) =>
+          prev > 0 ? prev - 1 : recentSearches.length - 1
+        );
+      }
+    } else if (e.key === "Enter") {
+      if (suggestions.length > 0 && selectedSuggestionIndex >= 0 && selectedSuggestionIndex < suggestions.length) {
+        e.preventDefault();
+        const selected = suggestions[selectedSuggestionIndex];
+        if (inputRef.current?.value) {
+          saveRecentSearch(inputRef.current.value);
+        }
+        setShowDropdown(false);
+        router.push(`/movies/${selected.slug}`);
+      } else if (!hasSearchText && recentSearches.length > 0 && selectedSuggestionIndex >= 0 && selectedSuggestionIndex < recentSearches.length) {
+        e.preventDefault();
+        const selected = recentSearches[selectedSuggestionIndex];
+        handleRecentClick(selected);
+      }
+    }
+  };
+
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setShowDropdown(false);
     const currentKeyword = inputRef.current?.value.trim();
 
     if (currentKeyword) {
+      saveRecentSearch(currentKeyword);
       router.push(`/browse?keyword=${encodeURIComponent(currentKeyword)}`);
     }
   };
 
   const isLinkActive = (type: string | null) => {
-    if (type === "live") return pathname === "/live";
+    if (type === "live-football") {
+      return pathname === "/live" && (!searchParams.get("tab") || searchParams.get("tab") === "football");
+    }
+    if (type === "live-tv") {
+      return pathname === "/live" && searchParams.get("tab") === "tv";
+    }
     if (type === "my-list") return pathname === "/my-list";
     if (pathname !== "/browse") return false;
     if (urlKeyword) return false;
@@ -309,23 +360,22 @@ export const Navbar: React.FC = () => {
 
   return (
     <nav
-      className={`fixed top-0 w-full z-50 transition-all duration-300 ${
-        showBackground
+      className={`fixed top-0 w-full z-50 transition-all duration-300 ${showBackground
           ? "bg-black/95 backdrop-blur-md border-b border-white/10 shadow-lg py-2.5"
           : "bg-gradient-to-b from-black/85 via-black/40 to-transparent py-3.5"
-      }`}
+        }`}
     >
       <div className="flex items-center justify-between px-4 sm:px-8 max-w-[1800px] mx-auto">
         {/* LOGO & DESKTOP NAV */}
-        <div className="flex items-center gap-6 lg:gap-10">
-          <Link href="/browse" className="flex items-center gap-2 group">
+        <div className="flex items-center gap-3 md:gap-5 lg:gap-7 flex-shrink-0">
+          <Link href="/browse" className="flex items-center gap-2 group flex-shrink-0">
             <NetflixLogo className="w-5 md:w-6 h-auto transition-transform group-hover:scale-105" />
             <span className="text-netflix-red font-black tracking-tighter text-xl hidden sm:inline-block">
               NANAFLIX
             </span>
           </Link>
 
-          <div className="hidden md:flex items-center gap-4 lg:gap-6 text-sm font-medium">
+          <div className="hidden md:flex items-center gap-2 md:gap-2.5 lg:gap-4 xl:gap-5 2xl:gap-6 text-xs lg:text-sm font-medium flex-shrink-0">
             {NAV_LINKS.map((link) => {
               const active = isLinkActive(link.type);
               const IconComp = link.icon;
@@ -333,7 +383,7 @@ export const Navbar: React.FC = () => {
                 <Link
                   key={link.name}
                   href={link.href}
-                  className={`transition-all relative py-1 flex items-center gap-1.5 group ${
+                  className={`transition-all relative py-1 flex items-center gap-1 xl:gap-1.5 whitespace-nowrap flex-shrink-0 group ${
                     active
                       ? "text-white font-bold"
                       : "text-gray-300 hover:text-white"
@@ -341,7 +391,7 @@ export const Navbar: React.FC = () => {
                 >
                   <IconComp
                     size={14}
-                    className={`transition-colors ${
+                    className={`transition-colors flex-shrink-0 ${
                       link.isLive
                         ? "text-netflix-red animate-pulse"
                         : active
@@ -349,9 +399,9 @@ export const Navbar: React.FC = () => {
                         : "text-gray-400 group-hover:text-white"
                     }`}
                   />
-                  <span>{link.name}</span>
+                  <span className="whitespace-nowrap">{link.name}</span>
                   {link.isLive && (
-                    <span className="relative flex h-2 w-2">
+                    <span className="relative flex h-2 w-2 flex-shrink-0">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                       <span className="relative inline-flex rounded-full h-2 w-2 bg-netflix-red"></span>
                     </span>
@@ -366,12 +416,12 @@ export const Navbar: React.FC = () => {
         </div>
 
         {/* RIGHT ACTIONS */}
-        <div className="flex items-center gap-2.5 sm:gap-4 text-white">
+        <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 text-white">
           {/* NÚT PHIM NGẪU NHIÊN */}
           <RandomMovieButton />
 
           {/* Ô TÌM KIẾM CÓ GỢI Ý TRỰC TIẾP */}
-          <div ref={searchContainerRef} className="relative">
+          <div ref={searchContainerRef} className="relative flex-shrink-0">
             <form
               onSubmit={handleSearchSubmit}
               className={`flex items-center transition-all duration-300 rounded-full ${
@@ -395,6 +445,7 @@ export const Navbar: React.FC = () => {
                 type="text"
                 placeholder="Tìm kiếm phim..."
                 onChange={handleInputChange}
+                onKeyDown={handleInputKeyDown}
                 onFocus={() => {
                   if (!hasSearchText && recentSearches.length > 0) {
                     setShowDropdown(true);
@@ -404,7 +455,7 @@ export const Navbar: React.FC = () => {
                 }}
                 className={`bg-transparent text-white text-xs sm:text-sm outline-none transition-all duration-300 ${
                   isSearchOpen
-                    ? "w-36 sm:w-52 lg:w-64 ml-2 opacity-100 placeholder:text-gray-400"
+                    ? "w-28 min-[380px]:w-36 sm:w-44 md:w-36 lg:w-48 xl:w-56 ml-1.5 sm:ml-2 opacity-100 placeholder:text-gray-400"
                     : "w-0 opacity-0 pointer-events-none"
                 }`}
               />
@@ -448,15 +499,19 @@ export const Navbar: React.FC = () => {
                     </div>
 
                     <div className="flex flex-col gap-0.5 mt-1">
-                      {recentSearches.map((kw) => (
+                      {recentSearches.map((kw, idx) => (
                         <div
                           key={kw}
                           onClick={() => handleRecentClick(kw)}
-                          className="flex items-center justify-between px-2.5 py-1.5 rounded-lg hover:bg-zinc-800/80 transition cursor-pointer group"
+                          className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg transition cursor-pointer group ${
+                            selectedSuggestionIndex === idx
+                              ? "bg-zinc-800 text-white ring-1 ring-white/20"
+                              : "hover:bg-zinc-850 text-gray-300 hover:text-white"
+                          }`}
                         >
                           <div className="flex items-center gap-2.5 min-w-0">
                             <History size={13} className="text-gray-500 group-hover:text-netflix-red transition flex-none" />
-                            <span className="text-xs text-gray-300 group-hover:text-white transition truncate">
+                            <span className="text-xs transition truncate">
                               {kw}
                             </span>
                           </div>
@@ -478,7 +533,7 @@ export const Navbar: React.FC = () => {
                       Gợi ý phim
                     </div>
                     <div className="flex flex-col gap-1 mt-1">
-                      {suggestions.map((item) => (
+                      {suggestions.map((item, idx) => (
                         <Link
                           key={item.slug}
                           href={`/movies/${item.slug}`}
@@ -488,9 +543,13 @@ export const Navbar: React.FC = () => {
                             }
                             setShowDropdown(false);
                           }}
-                          className="flex items-center gap-3 p-2 rounded-lg hover:bg-zinc-800/80 transition group"
+                          className={`flex items-center gap-3 p-2 rounded-lg transition group ${
+                            selectedSuggestionIndex === idx
+                              ? "bg-zinc-800 text-white ring-1 ring-netflix-red/60"
+                              : "hover:bg-zinc-850"
+                          }`}
                         >
-                          <div className="relative w-10 h-14 bg-zinc-800 rounded overflow-hidden flex-none">
+                          <div className="relative w-10 h-14 bg-zinc-800 rounded overflow-hidden flex-none border border-white/10">
                             <Image
                               src={item.poster}
                               alt={item.title}
@@ -505,6 +564,11 @@ export const Navbar: React.FC = () => {
                             </h4>
                             <div className="flex items-center gap-2 text-xs text-gray-400 mt-1">
                               {item.year && <span>{item.year}</span>}
+                              {item.category && (
+                                <span className="text-amber-400 font-medium">
+                                  {item.category}
+                                </span>
+                              )}
                               {item.quality && (
                                 <span className="border border-white/20 px-1 py-0.2 rounded text-[10px]">
                                   {item.quality}
@@ -520,7 +584,7 @@ export const Navbar: React.FC = () => {
                       <button
                         type="button"
                         onClick={handleSearchSubmit}
-                        className="w-full text-center text-xs text-netflix-red font-medium py-1 hover:underline cursor-pointer"
+                        className="w-full text-center text-xs text-netflix-red font-semibold py-1 hover:underline cursor-pointer"
                       >
                         Xem tất cả kết quả cho &quot;{inputRef.current?.value}&quot;
                       </button>
@@ -661,6 +725,26 @@ export const Navbar: React.FC = () => {
       {isMobileMenuOpen && (
         <div className="md:hidden border-t border-white/10 bg-black/95 backdrop-blur-xl px-4 py-4 animate-in slide-in-from-top duration-200">
           <div className="flex flex-col gap-1.5">
+            {/* NÚT GỢI Ý PHIM NGẪU NHIÊN TRÊN MOBILE */}
+            <button
+              type="button"
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                if (typeof window !== "undefined") {
+                  window.dispatchEvent(new CustomEvent("open-random-movie-modal"));
+                }
+              }}
+              className="text-sm font-bold py-2.5 px-3 text-white flex items-center justify-between rounded-xl bg-gradient-to-r from-red-600/25 via-red-950/40 to-transparent border border-red-500/40 hover:bg-red-600/30 transition text-left cursor-pointer shadow-sm mb-1"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-7 h-7 rounded-lg bg-netflix-red text-white flex items-center justify-center shadow-md shadow-red-950/60">
+                  <Dices size={16} />
+                </div>
+                <span>Hôm Nay Xem Gì? (Gợi ý ngẫu nhiên)</span>
+              </div>
+              <Sparkles size={14} className="text-amber-400 animate-pulse" />
+            </button>
+
             {NAV_LINKS.map((link) => {
               const active = isLinkActive(link.type);
               const IconComp = link.icon;
@@ -669,19 +753,17 @@ export const Navbar: React.FC = () => {
                   key={link.name}
                   href={link.href}
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className={`text-sm font-medium py-2 px-3 transition-all flex items-center justify-between rounded-xl ${
-                    active
+                  className={`text-sm font-medium py-2 px-3 transition-all flex items-center justify-between rounded-xl ${active
                       ? "text-white font-bold bg-white/10 border border-white/15 shadow-sm"
                       : "text-gray-300 hover:text-white hover:bg-white/5"
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center gap-3">
                     <div
-                      className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
-                        active
+                      className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${active
                           ? "bg-netflix-red text-white shadow-md shadow-red-950/50"
                           : "bg-zinc-900 text-gray-400 border border-white/5"
-                      }`}
+                        }`}
                     >
                       <IconComp
                         size={15}

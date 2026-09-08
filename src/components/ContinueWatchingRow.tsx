@@ -140,6 +140,8 @@ export function ContinueWatchingRow() {
                       fill
                       sizes="(max-width: 768px) 260px, 300px"
                       className="object-cover transition-transform duration-300 group-hover:scale-105"
+                      decoding="async"
+                      loading="lazy"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
 

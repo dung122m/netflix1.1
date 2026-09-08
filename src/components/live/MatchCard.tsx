@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { FootballMatch } from "@/services/liveFootballService";
-import { Play, Radio, Sparkles } from "lucide-react";
+import { Play, Radio, Shield } from "lucide-react";
 
 interface MatchCardProps {
   match: FootballMatch;
@@ -10,33 +10,59 @@ interface MatchCardProps {
   onSelect: (match: FootballMatch) => void;
 }
 
-export function MatchCard({ match, isSelected, onSelect }: MatchCardProps) {
+function getTeamInitials(teamName: string): string {
+  if (!teamName) return "⚽";
+  const clean = teamName
+    .replace(/^CLB\s+/i, "")
+    .replace(/^FC\s+/i, "")
+    .replace(/^U\d+\s+/i, "")
+    .trim();
+  const words = clean.split(/\s+/).filter(Boolean);
+  if (words.length >= 2) {
+    return (words[0][0] + words[1][0]).toUpperCase();
+  }
+  return clean.slice(0, 2).toUpperCase();
+}
+
+function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
   const [homeError, setHomeError] = useState(false);
   const [awayError, setAwayError] = useState(false);
-  const [bannerError, setBannerError] = useState(false);
 
   const isFhd = match.quality.includes("FHD");
 
-  const hasSeparateLogos =
+  const validHomeLogo =
     Boolean(match.homeLogo) &&
+    !match.homeLogo?.includes("tinhlagi.pro/logo.jpg") &&
+    !homeError;
+
+  const validAwayLogo =
     Boolean(match.awayLogo) &&
-    !match.awayLogo?.includes("tinhlagi.pro/logo.jpg");
+    !match.awayLogo?.includes("tinhlagi.pro/logo.jpg") &&
+    !awayError;
 
   return (
     <div
       onClick={() => onSelect(match)}
-      className={`group relative rounded-2xl border p-4 cursor-pointer transition-all duration-300 flex flex-col justify-between ${
+      className={`group relative rounded-2xl sm:rounded-3xl border p-4 cursor-pointer transition-all duration-300 flex flex-col justify-between ${
         isSelected
-          ? "bg-gradient-to-b from-zinc-900 via-zinc-900 to-zinc-950 border-netflix-red shadow-xl shadow-red-950/50 ring-2 ring-netflix-red/50 scale-[1.02]"
-          : "bg-gradient-to-b from-zinc-900/90 to-zinc-950/80 border-white/10 hover:border-white/30 hover:bg-zinc-900 hover:shadow-lg hover:shadow-black/60 hover:-translate-y-1"
+          ? "bg-gradient-to-b from-zinc-900 via-zinc-900 to-zinc-950 border-netflix-red shadow-xl shadow-red-950/60 ring-2 ring-netflix-red/60 scale-[1.02]"
+          : "bg-gradient-to-b from-zinc-900/90 to-zinc-950/80 border-white/10 hover:border-white/35 hover:bg-zinc-900 hover:shadow-xl hover:shadow-black/70 hover:-translate-y-1"
       }`}
     >
       {/* 1. HEADER: KÊNH, THỜI GIAN & HUY HIỆU CHẤT LƯỢNG (FHD / HD) */}
       <div className="flex items-center justify-between gap-2 mb-3">
-        <span className="px-2.5 py-1 rounded-full bg-netflix-red/15 border border-netflix-red/30 text-rose-400 font-bold text-[11px] flex items-center gap-1.5 shadow-sm">
-          <span className="w-1.5 h-1.5 rounded-full bg-netflix-red animate-ping" />
-          <span>{match.group}</span>
-        </span>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="px-2.5 py-1 rounded-full bg-netflix-red/15 border border-netflix-red/30 text-rose-400 font-bold text-[11px] flex items-center gap-1.5 shadow-sm">
+            <span className="w-1.5 h-1.5 rounded-full bg-netflix-red animate-ping" />
+            <span>{match.group}</span>
+          </span>
+
+          {match.tournament && (
+            <span className="px-2 py-0.5 rounded-full bg-purple-500/20 border border-purple-500/40 text-purple-300 font-black text-[10px] tracking-wide shadow-sm">
+              🏆 {match.tournament}
+            </span>
+          )}
+        </div>
 
         <div className="flex items-center gap-1.5">
           {/* HUY HIỆU CHẤT LƯỢNG NỔI BẬT */}
@@ -56,110 +82,98 @@ export function MatchCard({ match, isSelected, onSelect }: MatchCardProps) {
         </div>
       </div>
 
-      {/* 2. KHU VỰC LOGO & ĐỐI ĐẦU (VISUAL MATCHUP SCOREBOARD) */}
-      <div className="my-2 py-2 px-3 rounded-xl bg-black/40 border border-white/5">
-        {hasSeparateLogos ? (
-          /* TRÌNH BÀY 2 LOGO 2 ĐỘI TÁCH BIỆT */
-          <div className="flex items-center justify-between gap-3">
-            {/* ĐỘI 1 */}
-            <div className="flex-1 flex flex-col items-center text-center">
-              <div className="w-12 h-12 rounded-full bg-zinc-900 border border-white/10 p-1.5 flex items-center justify-center shadow-md mb-1.5 overflow-hidden">
-                {!homeError && match.homeLogo ? (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img
-                    src={match.homeLogo}
-                    alt={match.team1}
-                    className="w-full h-full object-contain"
-                    onError={() => setHomeError(true)}
-                  />
-                ) : (
-                  <span className="text-base font-bold text-gray-400">
-                    {match.team1.slice(0, 2).toUpperCase()}
+      {/* 2. KHU VỰC LOGO & ĐỐI ĐẦU (DUAL CLUB SCOREBOARD - CHUẨN ĐỈNH CAO) */}
+      <div className="my-2.5 p-3 sm:p-4 rounded-2xl bg-gradient-to-b from-black/70 to-zinc-950/90 border border-white/10 backdrop-blur-sm">
+        <div className="flex items-center justify-between gap-2 sm:gap-3">
+          {/* ĐỘI NHÀ (TEAM 1) */}
+          <div className="flex-1 flex flex-col items-center text-center group/team">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-zinc-850 to-zinc-950 border-2 border-white/15 p-2.5 flex items-center justify-center shadow-xl mb-2 overflow-hidden transition-all duration-300 group-hover:scale-105 group-hover:border-netflix-red/60 group-hover:shadow-red-950/40">
+              {validHomeLogo ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={match.homeLogo}
+                  alt={match.team1}
+                  className="w-full h-full object-contain filter drop-shadow-md"
+                  onError={() => setHomeError(true)}
+                  loading="lazy"
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center text-center">
+                  <span className="text-xl sm:text-2xl font-black text-rose-400 tracking-wider">
+                    {getTeamInitials(match.team1)}
                   </span>
-                )}
-              </div>
-              <span className="text-xs font-bold text-white line-clamp-1 group-hover:text-rose-400 transition">
-                {match.team1}
-              </span>
+                  <span className="text-[9px] uppercase tracking-widest text-gray-400 font-bold mt-0.5">
+                    CLB
+                  </span>
+                </div>
+              )}
             </div>
+            <span className="text-xs sm:text-sm font-extrabold text-white line-clamp-2 leading-tight group-hover:text-rose-400 transition min-h-[2rem] flex items-center justify-center">
+              {match.team1}
+            </span>
+          </div>
 
-            {/* HUY HIỆU VS Ở GIỮA */}
-            <div className="flex flex-col items-center flex-shrink-0 px-2">
-              <span className="px-2 py-1 rounded-full bg-zinc-800 border border-white/10 text-[10px] font-black text-rose-400 tracking-wider shadow-inner">
+          {/* HUY HIỆU VS TRUNG TÂM */}
+          <div className="flex flex-col items-center flex-shrink-0 px-1 -mt-5">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-zinc-800/90 border border-white/20 flex items-center justify-center shadow-inner">
+              <span className="text-[11px] sm:text-xs font-black text-rose-400 tracking-wider">
                 VS
               </span>
             </div>
-
-            {/* ĐỘI 2 */}
-            <div className="flex-1 flex flex-col items-center text-center">
-              <div className="w-12 h-12 rounded-full bg-zinc-900 border border-white/10 p-1.5 flex items-center justify-center shadow-md mb-1.5 overflow-hidden">
-                {!awayError && match.awayLogo ? (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img
-                    src={match.awayLogo}
-                    alt={match.team2}
-                    className="w-full h-full object-contain"
-                    onError={() => setAwayError(true)}
-                  />
-                ) : (
-                  <span className="text-base font-bold text-gray-400">
-                    {match.team2.slice(0, 2).toUpperCase() || "⚽"}
-                  </span>
-                )}
-              </div>
-              <span className="text-xs font-bold text-white line-clamp-1 group-hover:text-rose-400 transition">
-                {match.team2 || "Đối thủ"}
-              </span>
-            </div>
           </div>
-        ) : (
-          /* TRÌNH BÀY GRAPHIC MERGED LOGO CỦA M3U */
-          <div className="flex items-center gap-3">
-            {match.logo && !bannerError ? (
-              <div className="w-16 h-12 flex-shrink-0 rounded-lg bg-zinc-900 border border-white/10 p-1 flex items-center justify-center overflow-hidden shadow-inner">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
+
+          {/* ĐỘI KHÁCH (TEAM 2) */}
+          <div className="flex-1 flex flex-col items-center text-center group/team">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-zinc-850 to-zinc-950 border-2 border-white/15 p-2.5 flex items-center justify-center shadow-xl mb-2 overflow-hidden transition-all duration-300 group-hover:scale-105 group-hover:border-netflix-red/60 group-hover:shadow-red-950/40">
+              {validAwayLogo ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
                 <img
-                  src={match.logo}
-                  alt={match.title}
-                  className="w-full h-full object-contain"
-                  onError={() => setBannerError(true)}
+                  src={match.awayLogo}
+                  alt={match.team2}
+                  className="w-full h-full object-contain filter drop-shadow-md"
+                  onError={() => setAwayError(true)}
                   loading="lazy"
                 />
-              </div>
-            ) : (
-              <div className="w-12 h-12 flex-shrink-0 rounded-xl bg-zinc-800 border border-white/10 flex items-center justify-center text-lg">
-                ⚽
-              </div>
-            )}
-
-            <div className="flex-1 min-w-0">
-              <h3 className="text-xs sm:text-sm font-bold text-white group-hover:text-rose-400 transition truncate leading-snug">
-                {match.team1}
-              </h3>
-              <div className="text-[10px] text-gray-500 font-semibold my-0.5">
-                vs
-              </div>
-              <h3 className="text-xs sm:text-sm font-bold text-white group-hover:text-rose-400 transition truncate leading-snug">
-                {match.team2 || match.title}
-              </h3>
+              ) : (
+                <div className="flex flex-col items-center justify-center text-center">
+                  <span className="text-xl sm:text-2xl font-black text-sky-400 tracking-wider">
+                    {getTeamInitials(match.team2)}
+                  </span>
+                  <span className="text-[9px] uppercase tracking-widest text-gray-400 font-bold mt-0.5">
+                    CLB
+                  </span>
+                </div>
+              )}
             </div>
+            <span className="text-xs sm:text-sm font-extrabold text-white line-clamp-2 leading-tight group-hover:text-rose-400 transition min-h-[2rem] flex items-center justify-center">
+              {match.team2 || "Đối thủ"}
+            </span>
           </div>
-        )}
+        </div>
       </div>
 
       {/* 3. FOOTER: BLV TIẾNG VIỆT & SỐ LƯỢNG MÁY CHỦ */}
-      <div className="mt-3 pt-2.5 border-t border-white/5 flex items-center justify-between text-xs text-gray-400">
-        <span className="truncate max-w-[150px] font-medium text-gray-300">
-          {match.blv ? `🎙️ ${match.blv}` : "🎙️ BLV Tiếng Việt"}
-        </span>
+      <div className="flex items-center justify-between gap-2 pt-2 border-t border-white/5 text-[11px]">
+        {match.blv ? (
+          <span className="text-rose-400 font-bold flex items-center gap-1 truncate">
+            <span>🎙️</span>
+            <span className="truncate">{match.blv}</span>
+          </span>
+        ) : (
+          <span className="text-gray-400 font-medium flex items-center gap-1">
+            <span>⚽</span>
+            <span>Bình luận TV</span>
+          </span>
+        )}
 
-        <span className="flex items-center gap-1.5 text-[11px] font-bold text-gray-300 group-hover:text-white transition">
-          <Play className="w-3.5 h-3.5 fill-current text-netflix-red" />
-          <span>{match.servers.length} nguồn phát</span>
+        <span className="text-gray-400 flex items-center gap-1 flex-shrink-0">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+          <span>{match.servers.length} máy chủ</span>
         </span>
       </div>
     </div>
   );
 }
 
+export const MatchCard = React.memo(MatchCardInner);
 export default MatchCard;

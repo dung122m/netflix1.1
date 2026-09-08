@@ -4,6 +4,7 @@ export interface StreamServer {
   format: "hls" | "flv" | "other";
   isHls: boolean;
   quality: "FHD" | "HD";
+  sourceName?: string;
 }
 
 export interface FootballMatch {
@@ -18,6 +19,7 @@ export interface FootballMatch {
   awayLogo?: string;
   group: string;
   quality: "FHD 1080p" | "HD 720p" | "HD";
+  tournament?: string;
   servers: StreamServer[];
 }
 
@@ -27,7 +29,54 @@ export interface LiveFootballData {
   matches: FootballMatch[];
 }
 
-const M3U_URL = "https://tinhlagi.pro/s.m3u";
+// Danh sách các nguồn phát bóng đá & thể thao trực tiếp
+const FOOTBALL_M3U_SOURCES = [
+  {
+    name: "Nguồn Trực Tiếp Tổng Hợp (Xôi Lạc / Thập Cẩm / S8 / Cà Khịa)",
+    url: "https://tinhlagi.pro/s.m3u",
+    priority: 1,
+  },
+];
+
+function detectTournament(title: string, team1: string, team2: string): string {
+  const text = `${title} ${team1} ${team2}`.toLowerCase();
+
+  // Ngoại Hạng Anh (Premier League / EPL)
+  const eplClubs = [
+    "manchester united", "man utd", "mu ", "man city", "manchester city", "arsenal",
+    "liverpool", "chelsea", "tottenham", "spurs", "newcastle", "aston villa",
+    "west ham", "brighton", "everton", "wolves", "wolverhampton", "fulham",
+    "crystal palace", "brentford", "bournemouth", "nottingham", "forest",
+    "leicester", "southampton", "ipswich", "epl", "premier league", "ngoại hạng anh"
+  ];
+  if (eplClubs.some((c) => text.includes(c))) return "Ngoại Hạng Anh";
+
+  // Cúp C1 / Champions League
+  const c1Clubs = [
+    "champions league", "cúp c1", "cup c1", "uefa", "real madrid", "barcelona",
+    "bayern munich", "bayern", "psg", "paris saint-germain", "inter milan",
+    "ac milan", "juventus", "dortmund", "atletico madrid", "leverkusen"
+  ];
+  if (c1Clubs.some((c) => text.includes(c))) return "Cúp C1";
+
+  // La Liga
+  const laLigaClubs = ["la liga", "sevilla", "valencia", "villarreal", "athletic bilbao", "sociedad", "betis", "girona", "mallorca"];
+  if (laLigaClubs.some((c) => text.includes(c))) return "La Liga";
+
+  // Serie A
+  const serieAClubs = ["serie a", "napoli", "roma", "lazio", "atalanta", "fiorentina", "bologna", "torino", "genoa"];
+  if (serieAClubs.some((c) => text.includes(c))) return "Serie A";
+
+  // Bundesliga
+  const bundeClubs = ["bundesliga", "leipzig", "frankfurt", "stuttgart", "monchengladbach", "bremen"];
+  if (bundeClubs.some((c) => text.includes(c))) return "Bundesliga";
+
+  // V-League
+  const vleagueClubs = ["v-league", "vleague", "hà nội fc", "hagl", "nam định", "thể công", "viettel", "cahn", "bình định", "hải phòng fc", "thanh hóa fc", "slna", "bình dương"];
+  if (vleagueClubs.some((c) => text.includes(c))) return "V-League";
+
+  return "";
+}
 
 // Bộ nhớ đệm Server 3 phút
 let memoryCache: { data: LiveFootballData; expireAt: number } | null = null;
@@ -40,28 +89,36 @@ export const liveFootballService = {
     }
 
     try {
-      const res = await fetch(M3U_URL, {
-        next: { revalidate: 180 }, // 3 phút Next.js cache
-        headers: {
-          "User-Agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        },
-        signal: AbortSignal.timeout(8000),
-      });
-
-      if (!res.ok) {
-        throw new Error(`Failed to fetch M3U: ${res.status}`);
-      }
-
-      const text = await res.text();
-      const lines = text.split("\n");
-
       const matchMap = new Map<string, FootballMatch>();
       const channelsSet = new Set<string>();
 
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (!line.startsWith("#EXTINF")) continue;
+      const fetchPromises = FOOTBALL_M3U_SOURCES.map(async (source) => {
+        try {
+          const res = await fetch(source.url, {
+            next: { revalidate: 180 },
+            headers: {
+              "User-Agent":
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            },
+            signal: AbortSignal.timeout(8000),
+          });
+          if (!res.ok) return "";
+          return await res.text();
+        } catch {
+          return "";
+        }
+      });
+
+      const m3uTexts = await Promise.allSettled(fetchPromises);
+
+      for (const res of m3uTexts) {
+        if (res.status !== "fulfilled" || !res.value) continue;
+        const text = res.value;
+        const lines = text.split("\n");
+
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i].trim();
+          if (!line.startsWith("#EXTINF")) continue;
 
         const groupMatch = line.match(/group-title="([^"]+)"/);
         const group = groupMatch ? groupMatch[1].trim() : "Khác";
@@ -80,11 +137,19 @@ export const liveFootballService = {
         if (rawLogo.includes("merge_logos.php")) {
           try {
             const urlObj = new URL(rawLogo);
-            homeLogo = urlObj.searchParams.get("home") || "";
-            awayLogo = urlObj.searchParams.get("away") || "";
+            const h = urlObj.searchParams.get("home") || "";
+            const a = urlObj.searchParams.get("away") || "";
+            if (h && !h.includes("tinhlagi.pro/logo.jpg")) {
+              homeLogo = h;
+            }
+            if (a && !a.includes("tinhlagi.pro/logo.jpg")) {
+              awayLogo = a;
+            }
           } catch {
             // ignore
           }
+        } else if (rawLogo && !rawLogo.includes("tinhlagi.pro/logo.jpg")) {
+          homeLogo = rawLogo;
         }
 
         const commaIdx = line.indexOf(",");
@@ -166,6 +231,8 @@ export const liveFootballService = {
         else serverLabel += " (HD)";
         if (rawTitle.toLowerCase().includes("hls 2")) serverLabel += " 2";
 
+        const tournament = detectTournament(rawTitle, team1, team2);
+
         if (!matchMap.has(matchKey)) {
           matchMap.set(matchKey, {
             id: matchKey,
@@ -178,6 +245,7 @@ export const liveFootballService = {
             homeLogo,
             awayLogo,
             group,
+            tournament,
             quality: isFhd ? "FHD 1080p" : "HD 720p",
             servers: [
               {
@@ -194,6 +262,9 @@ export const liveFootballService = {
           if (isFhd) {
             existing.quality = "FHD 1080p";
           }
+          if (tournament && !existing.tournament) {
+            existing.tournament = tournament;
+          }
           existing.servers.push({
             name: `${serverLabel} #${existing.servers.length + 1}`,
             url,
@@ -203,6 +274,7 @@ export const liveFootballService = {
           });
         }
       }
+    }
 
       // Ưu tiên sắp xếp các server HLS lên trước
       for (const m of matchMap.values()) {

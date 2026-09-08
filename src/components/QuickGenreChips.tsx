@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Sparkles,
@@ -10,6 +10,9 @@ import {
   RotateCcw,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
+  Filter,
 } from "lucide-react";
 
 const POPULAR_GENRES = [
@@ -56,7 +59,7 @@ const RECENT_YEARS = [
   { name: "2018", year: "2018" },
 ];
 
-export const QuickGenreChips: React.FC = () => {
+const QuickGenreChipsInner: React.FC = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -66,17 +69,30 @@ export const QuickGenreChips: React.FC = () => {
   const currentSort = searchParams.get("sort") || "";
   const currentType = searchParams.get("type") || "";
 
-  const [isExpanded, setIsExpanded] = useState(true);
-
   const [mobileTab, setMobileTab] = useState<"genre" | "country" | "year">("genre");
   const [showAllMobileRows, setShowAllMobileRows] = useState(false);
 
-  // Kiểm tra có filter nào đang kích hoạt
-  const hasActiveFilters = Boolean(
-    currentCategory || currentCountry || currentYear || currentSort || currentType
-  );
+  // Refs for horizontal scrolling
+  const genreRowRef = useRef<HTMLDivElement>(null);
+  const countryRowRef = useRef<HTMLDivElement>(null);
+  const yearRowRef = useRef<HTMLDivElement>(null);
 
-  const handleCategorySelect = (item: {
+  const scrollRow = (ref: React.RefObject<HTMLDivElement | null>, offset: number) => {
+    if (ref.current) {
+      ref.current.scrollBy({ left: offset, behavior: "smooth" });
+    }
+  };
+
+  // Đếm số lượng bộ lọc đang chọn
+  const activeCount = [
+    Boolean(currentCategory),
+    Boolean(currentCountry),
+    Boolean(currentYear),
+    Boolean(currentSort),
+    Boolean(currentType),
+  ].filter(Boolean).length;
+
+  const handleCategorySelect = useCallback((item: {
     slug: string;
     isSort: boolean;
     isType: boolean;
@@ -109,9 +125,9 @@ export const QuickGenreChips: React.FC = () => {
 
     params.delete("page");
     router.push(`/browse?${params.toString()}`);
-  };
+  }, [searchParams, router]);
 
-  const handleCountrySelect = (slug: string) => {
+  const handleCountrySelect = useCallback((slug: string) => {
     const params = new URLSearchParams(searchParams.toString());
     if (!slug) {
       params.delete("country");
@@ -122,9 +138,9 @@ export const QuickGenreChips: React.FC = () => {
     }
     params.delete("page");
     router.push(`/browse?${params.toString()}`);
-  };
+  }, [searchParams, router]);
 
-  const handleYearSelect = (year: string) => {
+  const handleYearSelect = useCallback((year: string) => {
     const params = new URLSearchParams(searchParams.toString());
     if (!year) {
       params.delete("year");
@@ -135,12 +151,12 @@ export const QuickGenreChips: React.FC = () => {
     }
     params.delete("page");
     router.push(`/browse?${params.toString()}`);
-  };
+  }, [searchParams, router]);
 
-  const handleClearAll = () => {
+  const handleClearAll = useCallback(() => {
     const params = new URLSearchParams();
     router.push(`/browse?${params.toString()}`);
-  };
+  }, [router]);
 
   // Tên hiển thị các bộ lọc đang chọn
   const activeCategoryName =
@@ -157,13 +173,26 @@ export const QuickGenreChips: React.FC = () => {
 
   // Render hàng thể loại
   const renderGenreRow = () => (
-    <div className="flex items-center gap-2 overflow-x-auto py-1 scrollbar-none [&::-webkit-scrollbar]:hidden touch-pan-x">
-      <div className="hidden md:flex flex-none items-center gap-1.5 text-xs text-gray-400 pl-1 pr-2 font-medium w-24 sm:w-28">
+    <div className="relative group/row flex items-center gap-2">
+      <div className="hidden md:flex flex-none items-center gap-1.5 text-xs text-gray-400 pl-1 pr-2 font-semibold w-24 sm:w-28">
         <Sparkles className="w-3.5 h-3.5 text-netflix-red" />
         <span>Thể loại:</span>
       </div>
 
-      <div className="flex items-center gap-1.5 flex-nowrap">
+      <button
+        type="button"
+        onClick={() => scrollRow(genreRowRef, -240)}
+        className="hidden md:flex flex-none items-center justify-center w-6 h-6 rounded-full bg-zinc-900/90 hover:bg-white text-gray-400 hover:text-black border border-white/10 transition z-10 cursor-pointer shadow-md opacity-0 group-hover/row:opacity-100"
+        title="Cuộn trái"
+        aria-label="Cuộn thể loại sang trái"
+      >
+        <ChevronLeft className="w-3.5 h-3.5" />
+      </button>
+
+      <div
+        ref={genreRowRef}
+        className="flex-1 flex items-center gap-1.5 overflow-x-auto py-1 scrollbar-none [&::-webkit-scrollbar]:hidden touch-pan-x scroll-smooth"
+      >
         {POPULAR_GENRES.map((g) => {
           const isActive = g.isSort
             ? currentSort === g.slug
@@ -180,7 +209,7 @@ export const QuickGenreChips: React.FC = () => {
               onClick={() => handleCategorySelect(g)}
               className={`flex-none px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 cursor-pointer ${
                 isActive
-                  ? "bg-netflix-red text-white shadow-md shadow-red-950/50 scale-105"
+                  ? "bg-netflix-red text-white shadow-md shadow-red-950/60 scale-105"
                   : "bg-zinc-900/90 hover:bg-zinc-800 text-gray-300 hover:text-white border border-white/10 hover:border-white/25"
               }`}
             >
@@ -189,18 +218,41 @@ export const QuickGenreChips: React.FC = () => {
           );
         })}
       </div>
+
+      <button
+        type="button"
+        onClick={() => scrollRow(genreRowRef, 240)}
+        className="hidden md:flex flex-none items-center justify-center w-6 h-6 rounded-full bg-zinc-900/90 hover:bg-white text-gray-400 hover:text-black border border-white/10 transition z-10 cursor-pointer shadow-md opacity-0 group-hover/row:opacity-100"
+        title="Cuộn phải"
+        aria-label="Cuộn thể loại sang phải"
+      >
+        <ChevronRight className="w-3.5 h-3.5" />
+      </button>
     </div>
   );
 
   // Render hàng quốc gia
   const renderCountryRow = () => (
-    <div className="flex items-center gap-2 overflow-x-auto py-1 scrollbar-none [&::-webkit-scrollbar]:hidden touch-pan-x">
-      <div className="hidden md:flex flex-none items-center gap-1.5 text-xs text-gray-400 pl-1 pr-2 font-medium w-24 sm:w-28">
+    <div className="relative group/row flex items-center gap-2">
+      <div className="hidden md:flex flex-none items-center gap-1.5 text-xs text-gray-400 pl-1 pr-2 font-semibold w-24 sm:w-28">
         <Globe2 className="w-3.5 h-3.5 text-sky-400" />
         <span>Quốc gia:</span>
       </div>
 
-      <div className="flex items-center gap-1.5 flex-nowrap">
+      <button
+        type="button"
+        onClick={() => scrollRow(countryRowRef, -240)}
+        className="hidden md:flex flex-none items-center justify-center w-6 h-6 rounded-full bg-zinc-900/90 hover:bg-white text-gray-400 hover:text-black border border-white/10 transition z-10 cursor-pointer shadow-md opacity-0 group-hover/row:opacity-100"
+        title="Cuộn trái"
+        aria-label="Cuộn quốc gia sang trái"
+      >
+        <ChevronLeft className="w-3.5 h-3.5" />
+      </button>
+
+      <div
+        ref={countryRowRef}
+        className="flex-1 flex items-center gap-1.5 overflow-x-auto py-1 scrollbar-none [&::-webkit-scrollbar]:hidden touch-pan-x scroll-smooth"
+      >
         {POPULAR_COUNTRIES.map((c) => {
           const isActive = c.slug === "" ? !currentCountry : currentCountry === c.slug;
 
@@ -211,7 +263,7 @@ export const QuickGenreChips: React.FC = () => {
               onClick={() => handleCountrySelect(c.slug)}
               className={`flex-none px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 cursor-pointer ${
                 isActive
-                  ? "bg-sky-600 text-white shadow-md shadow-sky-950/50 scale-105"
+                  ? "bg-sky-600 text-white shadow-md shadow-sky-950/60 scale-105"
                   : "bg-zinc-900/90 hover:bg-zinc-800 text-gray-300 hover:text-white border border-white/10 hover:border-white/25"
               }`}
             >
@@ -220,18 +272,41 @@ export const QuickGenreChips: React.FC = () => {
           );
         })}
       </div>
+
+      <button
+        type="button"
+        onClick={() => scrollRow(countryRowRef, 240)}
+        className="hidden md:flex flex-none items-center justify-center w-6 h-6 rounded-full bg-zinc-900/90 hover:bg-white text-gray-400 hover:text-black border border-white/10 transition z-10 cursor-pointer shadow-md opacity-0 group-hover/row:opacity-100"
+        title="Cuộn phải"
+        aria-label="Cuộn quốc gia sang phải"
+      >
+        <ChevronRight className="w-3.5 h-3.5" />
+      </button>
     </div>
   );
 
   // Render hàng năm phát hành
   const renderYearRow = () => (
-    <div className="flex items-center gap-2 overflow-x-auto py-1 scrollbar-none [&::-webkit-scrollbar]:hidden touch-pan-x">
-      <div className="hidden md:flex flex-none items-center gap-1.5 text-xs text-gray-400 pl-1 pr-2 font-medium w-24 sm:w-28">
+    <div className="relative group/row flex items-center gap-2">
+      <div className="hidden md:flex flex-none items-center gap-1.5 text-xs text-gray-400 pl-1 pr-2 font-semibold w-24 sm:w-28">
         <Calendar className="w-3.5 h-3.5 text-emerald-400" />
-        <span>Năm phát hành:</span>
+        <span>Năm chiếu:</span>
       </div>
 
-      <div className="flex items-center gap-1.5 flex-nowrap">
+      <button
+        type="button"
+        onClick={() => scrollRow(yearRowRef, -240)}
+        className="hidden md:flex flex-none items-center justify-center w-6 h-6 rounded-full bg-zinc-900/90 hover:bg-white text-gray-400 hover:text-black border border-white/10 transition z-10 cursor-pointer shadow-md opacity-0 group-hover/row:opacity-100"
+        title="Cuộn trái"
+        aria-label="Cuộn năm sang trái"
+      >
+        <ChevronLeft className="w-3.5 h-3.5" />
+      </button>
+
+      <div
+        ref={yearRowRef}
+        className="flex-1 flex items-center gap-1.5 overflow-x-auto py-1 scrollbar-none [&::-webkit-scrollbar]:hidden touch-pan-x scroll-smooth"
+      >
         {RECENT_YEARS.map((y) => {
           const isActive = y.year === "" ? !currentYear : currentYear === y.year;
 
@@ -242,7 +317,7 @@ export const QuickGenreChips: React.FC = () => {
               onClick={() => handleYearSelect(y.year)}
               className={`flex-none px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 cursor-pointer ${
                 isActive
-                  ? "bg-emerald-600 text-white shadow-md shadow-emerald-950/50 scale-105"
+                  ? "bg-emerald-600 text-white shadow-md shadow-emerald-950/60 scale-105"
                   : "bg-zinc-900/90 hover:bg-zinc-800 text-gray-300 hover:text-white border border-white/10 hover:border-white/25"
               }`}
             >
@@ -251,22 +326,35 @@ export const QuickGenreChips: React.FC = () => {
           );
         })}
       </div>
+
+      <button
+        type="button"
+        onClick={() => scrollRow(yearRowRef, 240)}
+        className="hidden md:flex flex-none items-center justify-center w-6 h-6 rounded-full bg-zinc-900/90 hover:bg-white text-gray-400 hover:text-black border border-white/10 transition z-10 cursor-pointer shadow-md opacity-0 group-hover/row:opacity-100"
+        title="Cuộn phải"
+        aria-label="Cuộn năm sang phải"
+      >
+        <ChevronRight className="w-3.5 h-3.5" />
+      </button>
     </div>
   );
 
   return (
-    <div className="w-full mb-6 rounded-2xl border border-white/10 bg-zinc-950/75 p-3 sm:p-4 backdrop-blur-md shadow-xl space-y-2.5 sm:space-y-3">
+    <div className="w-full mb-6 rounded-3xl border border-white/10 bg-zinc-950/80 p-3.5 sm:p-5 backdrop-blur-xl shadow-2xl space-y-3">
       {/* THANH ĐIỀU HƯỚNG BỘ LỌC ĐANG CHỌN (NẾU CÓ) */}
-      {hasActiveFilters && (
-        <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-white/10 text-xs">
+      {activeCount > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-white/10 text-xs">
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-gray-400 font-medium mr-1">Đang lọc theo:</span>
+            <span className="flex items-center gap-1 text-gray-300 font-bold bg-white/10 px-2 py-0.5 rounded-md mr-1">
+              <Filter className="w-3 h-3 text-netflix-red" />
+              Đang lọc ({activeCount}):
+            </span>
 
             {currentCategory && (
               <button
                 type="button"
                 onClick={() => handleCategorySelect({ slug: "", isSort: false, isType: false })}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-netflix-red/20 border border-netflix-red/40 text-rose-300 font-bold hover:bg-netflix-red hover:text-white transition"
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-netflix-red/20 border border-netflix-red/40 text-rose-300 font-bold hover:bg-netflix-red hover:text-white transition cursor-pointer"
               >
                 <span>{activeCategoryName}</span>
                 <X className="w-3 h-3" />
@@ -281,7 +369,7 @@ export const QuickGenreChips: React.FC = () => {
                   p.delete("type");
                   router.push(`/browse?${p.toString()}`);
                 }}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold hover:bg-amber-500 hover:text-black transition"
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold hover:bg-amber-500 hover:text-black transition cursor-pointer"
               >
                 <span>Chiếu Rạp</span>
                 <X className="w-3 h-3" />
@@ -296,7 +384,7 @@ export const QuickGenreChips: React.FC = () => {
                   p.delete("sort");
                   router.push(`/browse?${p.toString()}`);
                 }}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-purple-500/20 border border-purple-500/40 text-purple-300 font-bold hover:bg-purple-500 hover:text-white transition"
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-purple-500/20 border border-purple-500/40 text-purple-300 font-bold hover:bg-purple-500 hover:text-white transition cursor-pointer"
               >
                 <span>{currentSort === "rating" ? "⭐ Điểm cao" : "🔥 Xem nhiều"}</span>
                 <X className="w-3 h-3" />
@@ -307,7 +395,7 @@ export const QuickGenreChips: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleCountrySelect("")}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-sky-500/20 border border-sky-500/40 text-sky-300 font-bold hover:bg-sky-500 hover:text-white transition"
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-sky-500/20 border border-sky-500/40 text-sky-300 font-bold hover:bg-sky-500 hover:text-white transition cursor-pointer"
               >
                 <span>{activeCountryName}</span>
                 <X className="w-3 h-3" />
@@ -318,7 +406,7 @@ export const QuickGenreChips: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleYearSelect("")}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-bold hover:bg-emerald-500 hover:text-black transition"
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-bold hover:bg-emerald-500 hover:text-black transition cursor-pointer"
               >
                 <span>Năm: {currentYear}</span>
                 <X className="w-3 h-3" />
@@ -329,7 +417,7 @@ export const QuickGenreChips: React.FC = () => {
           <button
             type="button"
             onClick={handleClearAll}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-gray-400 hover:text-rose-400 hover:bg-white/5 transition ml-auto"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-gray-400 hover:text-rose-400 hover:bg-white/5 transition ml-auto cursor-pointer"
           >
             <RotateCcw className="w-3 h-3" />
             <span>Đặt lại tất cả</span>
@@ -337,13 +425,13 @@ export const QuickGenreChips: React.FC = () => {
         </div>
       )}
 
-      {/* MOBILE SEGMENTED CONTROL: Chuyển đổi linh hoạt Thể loại / Quốc gia / Năm để tiết kiệm diện tích màn hình */}
+      {/* MOBILE SEGMENTED CONTROL */}
       <div className="flex md:hidden items-center justify-between gap-1 pb-1">
         <div className="flex items-center gap-1 bg-zinc-900/90 p-1 rounded-xl border border-white/10 text-xs">
           <button
             type="button"
             onClick={() => setMobileTab("genre")}
-            className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1 ${
+            className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1 cursor-pointer ${
               mobileTab === "genre"
                 ? "bg-netflix-red text-white shadow-sm"
                 : "text-gray-400 hover:text-white"
@@ -359,7 +447,7 @@ export const QuickGenreChips: React.FC = () => {
           <button
             type="button"
             onClick={() => setMobileTab("country")}
-            className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1 ${
+            className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1 cursor-pointer ${
               mobileTab === "country"
                 ? "bg-sky-600 text-white shadow-sm"
                 : "text-gray-400 hover:text-white"
@@ -375,7 +463,7 @@ export const QuickGenreChips: React.FC = () => {
           <button
             type="button"
             onClick={() => setMobileTab("year")}
-            className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1 ${
+            className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1 cursor-pointer ${
               mobileTab === "year"
                 ? "bg-emerald-600 text-white shadow-sm"
                 : "text-gray-400 hover:text-white"
@@ -392,7 +480,7 @@ export const QuickGenreChips: React.FC = () => {
         <button
           type="button"
           onClick={() => setShowAllMobileRows((prev) => !prev)}
-          className="text-[11px] text-gray-400 hover:text-white px-2 py-1 transition flex items-center gap-0.5"
+          className="text-[11px] text-gray-400 hover:text-white px-2 py-1 transition flex items-center gap-0.5 cursor-pointer"
         >
           <span>{showAllMobileRows ? "Thu gọn" : "Hiện đủ"}</span>
           {showAllMobileRows ? (
@@ -430,4 +518,5 @@ export const QuickGenreChips: React.FC = () => {
   );
 };
 
+export const QuickGenreChips = React.memo(QuickGenreChipsInner);
 export default QuickGenreChips;
