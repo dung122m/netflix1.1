@@ -161,7 +161,7 @@ export function LiveTvClient({ initialData }: LiveTvClientProps) {
     }
   };
 
-  // Khởi tạo luồng phát HLS với cơ chế Fallback thông minh (Trực tiếp CDN -> Proxy Bypass)
+  // Khởi tạo luồng phát HLS — luôn đi qua proxy /api/live-tv/proxy để tránh CORS & IP block của CDN trên Vercel
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !selectedChannel?.url) return;
@@ -174,14 +174,11 @@ export function LiveTvClient({ initialData }: LiveTvClientProps) {
       hlsRef.current = null;
     }
 
-    const isHttpsStream = selectedChannel.url.startsWith("https://");
-    const directUrl = selectedChannel.url;
-    const proxyUrl = `/api/live-football/proxy?url=${encodeURIComponent(selectedChannel.url)}`;
-
-    // Nếu là HTTPS: ưu tiên phát trực tiếp CDN để có tốc độ 1080p cao nhất không bị nghẽn bởi serverless Vercel
-    // Nếu là HTTP: đi qua Proxy để tránh lỗi Mixed Content trên Vercel HTTPS
-    const primaryUrl = isHttpsStream ? directUrl : proxyUrl;
-    const fallbackUrl = isHttpsStream ? proxyUrl : directUrl;
+    // Luôn dùng proxy Live TV (có Referer đúng theo domain CDN) thay vì direct để tránh bị block trên Vercel
+    const proxyUrl = `/api/live-tv/proxy?url=${encodeURIComponent(selectedChannel.url)}`;
+    const primaryUrl = proxyUrl;
+    // Fallback: thử trực tiếp nếu proxy cũng lỗi (ví dụ khi test local)
+    const fallbackUrl = selectedChannel.url;
     let hasTriedFallback = false;
 
     const startHls = (sourceUrl: string) => {
