@@ -8,10 +8,7 @@ import { MatchCard } from "./MatchCard";
 import {
   Search,
   Radio,
-  Sparkles,
-  Filter,
   Info,
-  Tv,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -56,6 +53,7 @@ export function LiveFootballClient({
   const [selectedChannel, setSelectedChannel] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [onlyFhd, setOnlyFhd] = useState<boolean>(false);
+  const [showPastMatches, setShowPastMatches] = useState<boolean>(false);
 
   const playerRef = useRef<HTMLDivElement>(null);
   const channelsScrollRef = useRef<HTMLDivElement>(null);
@@ -89,31 +87,53 @@ export function LiveFootballClient({
 
   // Lọc danh sách trận đấu
   const filteredMatches = useMemo(() => {
-    return matches.filter((m) => {
-      // Lọc theo kênh
-      if (selectedChannel !== "all" && m.group !== selectedChannel) {
-        return false;
-      }
+    const twoHoursAgo = Date.now() - 2 * 60 * 60 * 1000;
 
-      // Lọc FHD 1080p
-      if (onlyFhd && !m.quality.includes("FHD") && !m.servers.some((s) => s.quality === "FHD")) {
-        return false;
-      }
+    return matches
+      .filter((m) => {
+        // Lọc ẩn trận đã kết thúc > 2 tiếng trước nếu không bật showPastMatches
+        if (
+          !showPastMatches &&
+          m.timestamp !== Number.MAX_SAFE_INTEGER &&
+          m.timestamp < twoHoursAgo
+        ) {
+          return false;
+        }
 
-      // Lọc theo tìm kiếm
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim();
-        const inTitle = m.title.toLowerCase().includes(q);
-        const inTeam1 = m.team1.toLowerCase().includes(q);
-        const inTeam2 = m.team2.toLowerCase().includes(q);
-        const inBlv = m.blv?.toLowerCase().includes(q);
-        const inTournament = m.tournament?.toLowerCase().includes(q);
-        if (!inTitle && !inTeam1 && !inTeam2 && !inBlv && !inTournament) return false;
-      }
+        // Lọc theo kênh
+        if (
+          selectedChannel !== "all" &&
+          m.group !== selectedChannel &&
+          !m.groups?.includes(selectedChannel)
+        ) {
+          return false;
+        }
 
-      return true;
-    });
-  }, [matches, selectedChannel, searchQuery, onlyFhd]);
+        // Lọc FHD 1080p
+        if (
+          onlyFhd &&
+          !m.quality.includes("FHD") &&
+          !m.servers.some((s) => s.quality === "FHD")
+        ) {
+          return false;
+        }
+
+        // Lọc theo tìm kiếm
+        if (searchQuery.trim()) {
+          const q = searchQuery.toLowerCase().trim();
+          const inTitle = m.title.toLowerCase().includes(q);
+          const inTeam1 = m.team1.toLowerCase().includes(q);
+          const inTeam2 = m.team2.toLowerCase().includes(q);
+          const inBlv = m.blv?.toLowerCase().includes(q);
+          const inTournament = m.tournament?.toLowerCase().includes(q);
+          if (!inTitle && !inTeam1 && !inTeam2 && !inBlv && !inTournament)
+            return false;
+        }
+
+        return true;
+      })
+      .sort((a, b) => a.timestamp - b.timestamp);
+  }, [matches, selectedChannel, searchQuery, onlyFhd, showPastMatches]);
 
   const handleSelectMatch = (match: FootballMatch) => {
     setSelectedMatch(match);
@@ -179,7 +199,6 @@ export function LiveFootballClient({
             team2={selectedMatch.team2}
             homeLogo={selectedMatch.homeLogo}
             awayLogo={selectedMatch.awayLogo}
-            logo={selectedMatch.logo}
           />
         </div>
       ) : (
@@ -191,14 +210,35 @@ export function LiveFootballClient({
       {/* BỘ LỌC KÊNH & Ô TÌM KIẾM */}
       <div className="space-y-4 pt-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <h2 className="text-xl md:text-2xl font-bold text-white flex items-center gap-2">
-            <span>Lịch thi đấu hôm nay</span>
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-white/10 text-gray-300 font-normal">
-              {filteredMatches.length} trận
-            </span>
-          </h2>
+          <div>
+            <h2 className="text-xl md:text-2xl font-bold text-white flex items-center gap-2">
+              <span>Lịch thi đấu trực tiếp</span>
+              <span className="text-xs px-2.5 py-0.5 rounded-full bg-white/10 text-gray-300 font-normal">
+                {filteredMatches.length} trận
+              </span>
+            </h2>
+            <p className="text-xs text-gray-400 mt-1">
+              {!showPastMatches
+                ? "⚡ Đang hiển thị các trận từ 2 giờ trước đến sắp diễn ra"
+                : "📜 Hiển thị tất cả trận đấu trong ngày"}
+            </p>
+          </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
+            {/* NÚT BẬT/TẮT TRẬN ĐÃ QUA */}
+            <button
+              type="button"
+              onClick={() => setShowPastMatches((prev) => !prev)}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition border shadow-sm cursor-pointer whitespace-nowrap ${
+                !showPastMatches
+                  ? "bg-gradient-to-r from-red-600 to-rose-600 text-white border-red-500 shadow-red-950/50"
+                  : "bg-zinc-900 text-gray-400 border-white/10 hover:text-white"
+              }`}
+            >
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>{!showPastMatches ? "Đang & Sắp đá (từ 2h trước)" : "Xem tất cả (cả trận cũ)"}</span>
+            </button>
+
             {/* NÚT LỌC NHANH FHD 1080P */}
             <button
               type="button"
@@ -210,11 +250,11 @@ export function LiveFootballClient({
               }`}
             >
               <span>⚡</span>
-              <span>Chỉ trận FHD 1080p</span>
+              <span>Chỉ FHD 1080p</span>
             </button>
 
             {/* THANH TÌM KIẾM TRẬN ĐẤU */}
-            <div className="relative flex-1 sm:w-72">
+            <div className="relative flex-1 sm:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="text"

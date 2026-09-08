@@ -17,10 +17,8 @@ import {
   Copy,
   Check,
   AlertCircle,
-  Sparkles,
   ChevronLeft,
   ChevronRight,
-  ShieldCheck,
 } from "lucide-react";
 import { LiveTvData, TvChannel } from "@/services/liveTvService";
 import { useSearchParams } from "next/navigation";

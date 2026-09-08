@@ -10,6 +10,7 @@ export interface StreamServer {
 export interface FootballMatch {
   id: string;
   time: string;
+  timestamp: number;
   title: string;
   team1: string;
   team2: string;
@@ -18,6 +19,7 @@ export interface FootballMatch {
   homeLogo?: string;
   awayLogo?: string;
   group: string;
+  groups: string[];
   quality: "FHD 1080p" | "HD 720p" | "HD";
   tournament?: string;
   servers: StreamServer[];
@@ -37,6 +39,33 @@ const FOOTBALL_M3U_SOURCES = [
     priority: 1,
   },
 ];
+
+export function parseMatchTimeToTimestamp(timeStr: string): number {
+  if (!timeStr) return Number.MAX_SAFE_INTEGER;
+  // Format: "HH:mm DD/MM" or "HH:mm"
+  const match = timeStr.trim().match(/^(\d{1,2}):(\d{2})(?:\s+(\d{1,2})\/(\d{1,2}))?/);
+  if (!match) return Number.MAX_SAFE_INTEGER;
+
+  const hours = parseInt(match[1], 10);
+  const minutes = parseInt(match[2], 10);
+
+  // Lấy ngày tháng hiện tại theo múi giờ Việt Nam (UTC+7)
+  const vnNowStr = new Date().toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" });
+  const vnNow = new Date(vnNowStr);
+  const currentYear = vnNow.getFullYear();
+  let day = vnNow.getDate();
+  let month = vnNow.getMonth();
+
+  if (match[3] && match[4]) {
+    day = parseInt(match[3], 10);
+    month = parseInt(match[4], 10) - 1;
+  }
+
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const isoVN = `${currentYear}-${pad(month + 1)}-${pad(day)}T${pad(hours)}:${pad(minutes)}:00+07:00`;
+  const parsed = new Date(isoVN).getTime();
+  return isNaN(parsed) ? Number.MAX_SAFE_INTEGER : parsed;
+}
 
 function detectTournament(title: string, team1: string, team2: string): string {
   const text = `${title} ${team1} ${team2}`.toLowerCase();
@@ -120,171 +149,217 @@ export const liveFootballService = {
           const line = lines[i].trim();
           if (!line.startsWith("#EXTINF")) continue;
 
-        const groupMatch = line.match(/group-title="([^"]+)"/);
-        const group = groupMatch ? groupMatch[1].trim() : "Khác";
+          const groupMatch = line.match(/group-title="([^"]+)"/);
+          const group = groupMatch ? groupMatch[1].trim() : "Khác";
 
-        // Bỏ qua thẻ thông báo, IP, QR
-        if (group.includes("TINHLAGI.PRO")) continue;
+          // Bỏ qua thẻ thông báo, IP, QR
+          if (group.includes("TINHLAGI.PRO")) continue;
 
-        channelsSet.add(group);
+          channelsSet.add(group);
 
-        const logoMatch = line.match(/tvg-logo="([^"]+)"/);
-        const rawLogo = logoMatch ? logoMatch[1].trim() : "";
+          const logoMatch = line.match(/tvg-logo="([^"]+)"/);
+          const rawLogo = logoMatch ? logoMatch[1].trim() : "";
 
-        // Bóc tách logo đội nhà và đội khách nếu có trong merge_logos.php
-        let homeLogo = "";
-        let awayLogo = "";
-        if (rawLogo.includes("merge_logos.php")) {
-          try {
-            const urlObj = new URL(rawLogo);
-            const h = urlObj.searchParams.get("home") || "";
-            const a = urlObj.searchParams.get("away") || "";
-            if (h && !h.includes("tinhlagi.pro/logo.jpg")) {
-              homeLogo = h;
+          // Bóc tách logo đội nhà và đội khách nếu có trong merge_logos.php
+          let homeLogo = "";
+          let awayLogo = "";
+          if (rawLogo.includes("merge_logos.php")) {
+            try {
+              const urlObj = new URL(rawLogo);
+              const h = urlObj.searchParams.get("home") || "";
+              const a = urlObj.searchParams.get("away") || "";
+              if (h && !h.includes("tinhlagi.pro/logo.jpg")) {
+                homeLogo = h;
+              }
+              if (a && !a.includes("tinhlagi.pro/logo.jpg")) {
+                awayLogo = a;
+              }
+            } catch {
+              // ignore
             }
-            if (a && !a.includes("tinhlagi.pro/logo.jpg")) {
-              awayLogo = a;
+          } else if (rawLogo && !rawLogo.includes("tinhlagi.pro/logo.jpg")) {
+            homeLogo = rawLogo;
+          }
+
+          const commaIdx = line.indexOf(",");
+          const rawTitle = commaIdx !== -1 ? line.slice(commaIdx + 1).trim() : "";
+          const url = lines[i + 1]?.trim() || "";
+
+          if (
+            !url ||
+            (!url.startsWith("http://") && !url.startsWith("https://"))
+          ) {
+            continue;
+          }
+
+          // Nhận diện định dạng
+          const isHls =
+            url.includes(".m3u8") || rawTitle.toLowerCase().includes("[hls");
+          const isFlv =
+            url.includes(".flv") || rawTitle.toLowerCase().includes("[flv");
+          const format: "hls" | "flv" | "other" = isHls
+            ? "hls"
+            : isFlv
+            ? "flv"
+            : "other";
+
+          // Xác định chất lượng FHD / HD
+          const upperTitle = rawTitle.toUpperCase();
+          const upperUrl = url.toUpperCase();
+          const isFhd =
+            upperTitle.includes("FHD") ||
+            upperTitle.includes("1080P") ||
+            upperUrl.includes("1080P") ||
+            upperUrl.includes("_1080P");
+          const serverQuality: "FHD" | "HD" = isFhd ? "FHD" : "HD";
+
+          // Bóc tách thời gian
+          const timeMatch = rawTitle.match(
+            /^(\d{1,2}:\d{2}(?:\s+\d{1,2}\/\d{1,2})?)/
+          );
+          const time = timeMatch ? timeMatch[1] : "";
+
+          // Bóc tách BLV
+          const blvMatch = rawTitle.match(/\((BLV\s+[^)]+|[^)]*)\)/i);
+          let blv = "";
+          if (
+            blvMatch &&
+            !blvMatch[1].toLowerCase().includes("fhd") &&
+            !blvMatch[1].toLowerCase().includes("hd")
+          ) {
+            blv = blvMatch[1].trim();
+          }
+
+          // Tên trận đấu sạch
+          let cleanTitle = rawTitle
+            .replace(/^(\d{1,2}:\d{2}(?:\s+\d{1,2}\/\d{1,2})?)/, "")
+            .replace(/\[[^\]]+\]/g, "")
+            .replace(/\((FHD|HD|1080p|720p)\)/gi, "")
+            .trim();
+
+          if (blv) {
+            cleanTitle = cleanTitle.replace(`(${blv})`, "").trim();
+          }
+
+          // Tách 2 đội
+          let team1 = cleanTitle;
+          let team2 = "";
+          const vsMatch = cleanTitle.match(/(.+?)\s+(?:vs|-)\s+(.+)/i);
+          if (vsMatch) {
+            team1 = vsMatch[1].trim();
+            team2 = vsMatch[2].trim();
+          }
+
+          const normT1 = team1
+            .toLowerCase()
+            .replace(/^(clb|fc)\s+/i, "")
+            .replace(/[^a-z0-9]/g, "");
+          const normT2 = team2
+            .toLowerCase()
+            .replace(/^(clb|fc)\s+/i, "")
+            .replace(/[^a-z0-9]/g, "");
+
+          // Khóa trận đấu để gộp các nguồn phát và sắp xếp theo thời gian
+          const matchKey = time
+            ? `${time}_${normT1}_${normT2}`
+            : `${group}_${cleanTitle || rawTitle}`
+                .toLowerCase()
+                .replace(/[^a-z0-9]/g, "");
+
+          const cleanGroupLabel = group
+            .replace(/^[🔴🟢🟡⚪🟠\s]+/, "")
+            .trim();
+
+          let serverLabel = cleanGroupLabel;
+          if (blv) serverLabel += ` (${blv})`;
+          if (isFhd) serverLabel += " [FHD]";
+          else if (format === "hls") serverLabel += " [HLS]";
+          if (rawTitle.toLowerCase().includes("hls 2")) serverLabel += " #2";
+
+          const tournament = detectTournament(rawTitle, team1, team2);
+          const timestamp = parseMatchTimeToTimestamp(time);
+
+          if (!matchMap.has(matchKey)) {
+            matchMap.set(matchKey, {
+              id: matchKey,
+              time,
+              timestamp,
+              title: cleanTitle || rawTitle,
+              team1,
+              team2,
+              blv,
+              logo: rawLogo,
+              homeLogo,
+              awayLogo,
+              group,
+              groups: [group],
+              tournament,
+              quality: isFhd ? "FHD 1080p" : "HD 720p",
+              servers: [
+                {
+                  name: serverLabel,
+                  url,
+                  format,
+                  isHls,
+                  quality: serverQuality,
+                  sourceName: group,
+                },
+              ],
+            });
+          } else {
+            const existing = matchMap.get(matchKey)!;
+            if (!existing.groups.includes(group)) {
+              existing.groups.push(group);
             }
-          } catch {
-            // ignore
+            if (isFhd) {
+              existing.quality = "FHD 1080p";
+            }
+            if (tournament && !existing.tournament) {
+              existing.tournament = tournament;
+            }
+            if (blv && !existing.blv?.includes(blv)) {
+              existing.blv = existing.blv ? `${existing.blv}, ${blv}` : blv;
+            }
+            if (!existing.homeLogo && homeLogo) {
+              existing.homeLogo = homeLogo;
+            }
+            if (!existing.awayLogo && awayLogo) {
+              existing.awayLogo = awayLogo;
+            }
+            existing.servers.push({
+              name: `${serverLabel} #${existing.servers.length + 1}`,
+              url,
+              format,
+              isHls,
+              quality: serverQuality,
+              sourceName: group,
+            });
           }
-        } else if (rawLogo && !rawLogo.includes("tinhlagi.pro/logo.jpg")) {
-          homeLogo = rawLogo;
-        }
-
-        const commaIdx = line.indexOf(",");
-        const rawTitle = commaIdx !== -1 ? line.slice(commaIdx + 1).trim() : "";
-        const url = lines[i + 1]?.trim() || "";
-
-        if (
-          !url ||
-          (!url.startsWith("http://") && !url.startsWith("https://"))
-        ) {
-          continue;
-        }
-
-        // Nhận diện định dạng
-        const isHls =
-          url.includes(".m3u8") || rawTitle.toLowerCase().includes("[hls");
-        const isFlv =
-          url.includes(".flv") || rawTitle.toLowerCase().includes("[flv");
-        const format: "hls" | "flv" | "other" = isHls
-          ? "hls"
-          : isFlv
-          ? "flv"
-          : "other";
-
-        // Xác định chất lượng FHD / HD
-        const upperTitle = rawTitle.toUpperCase();
-        const upperUrl = url.toUpperCase();
-        const isFhd =
-          upperTitle.includes("FHD") ||
-          upperTitle.includes("1080P") ||
-          upperUrl.includes("1080P") ||
-          upperUrl.includes("_1080P");
-        const serverQuality: "FHD" | "HD" = isFhd ? "FHD" : "HD";
-
-        // Bóc tách thời gian
-        const timeMatch = rawTitle.match(
-          /^(\d{1,2}:\d{2}(?:\s+\d{1,2}\/\d{1,2})?)/
-        );
-        const time = timeMatch ? timeMatch[1] : "";
-
-        // Bóc tách BLV
-        const blvMatch = rawTitle.match(/\((BLV\s+[^)]+|[^)]*)\)/i);
-        let blv = "";
-        if (
-          blvMatch &&
-          !blvMatch[1].toLowerCase().includes("fhd") &&
-          !blvMatch[1].toLowerCase().includes("hd")
-        ) {
-          blv = blvMatch[1].trim();
-        }
-
-        // Tên trận đấu sạch
-        let cleanTitle = rawTitle
-          .replace(/^(\d{1,2}:\d{2}(?:\s+\d{1,2}\/\d{1,2})?)/, "")
-          .replace(/\[[^\]]+\]/g, "")
-          .replace(/\((FHD|HD|1080p|720p)\)/gi, "")
-          .trim();
-
-        if (blv) {
-          cleanTitle = cleanTitle.replace(`(${blv})`, "").trim();
-        }
-
-        // Tách 2 đội
-        let team1 = cleanTitle;
-        let team2 = "";
-        const vsMatch = cleanTitle.match(/(.+?)\s+(?:vs|-)\s+(.+)/i);
-        if (vsMatch) {
-          team1 = vsMatch[1].trim();
-          team2 = vsMatch[2].trim();
-        }
-
-        const matchKey = `${group}_${time}_${team1}_${team2}`
-          .toLowerCase()
-          .replace(/[^a-z0-9]/g, "");
-
-        let serverLabel =
-          format === "hls" ? "HLS" : format === "flv" ? "FLV" : "Dự phòng";
-        if (isFhd) serverLabel += " (FHD)";
-        else serverLabel += " (HD)";
-        if (rawTitle.toLowerCase().includes("hls 2")) serverLabel += " 2";
-
-        const tournament = detectTournament(rawTitle, team1, team2);
-
-        if (!matchMap.has(matchKey)) {
-          matchMap.set(matchKey, {
-            id: matchKey,
-            time,
-            title: cleanTitle || rawTitle,
-            team1,
-            team2,
-            blv,
-            logo: rawLogo,
-            homeLogo,
-            awayLogo,
-            group,
-            tournament,
-            quality: isFhd ? "FHD 1080p" : "HD 720p",
-            servers: [
-              {
-                name: serverLabel,
-                url,
-                format,
-                isHls,
-                quality: serverQuality,
-              },
-            ],
-          });
-        } else {
-          const existing = matchMap.get(matchKey)!;
-          if (isFhd) {
-            existing.quality = "FHD 1080p";
-          }
-          if (tournament && !existing.tournament) {
-            existing.tournament = tournament;
-          }
-          existing.servers.push({
-            name: `${serverLabel} #${existing.servers.length + 1}`,
-            url,
-            format,
-            isHls,
-            quality: serverQuality,
-          });
         }
       }
-    }
 
       // Ưu tiên sắp xếp các server HLS lên trước
       for (const m of matchMap.values()) {
         m.servers.sort((a, b) => (b.isHls ? 1 : 0) - (a.isHls ? 1 : 0));
       }
 
+      // SẮP XẾP TẤT CẢ CÁC TRẬN ĐẤU THEO THỨ TỰ THỜI GIAN (CHRONOLOGICAL ORDER)
+      const sortedMatches = Array.from(matchMap.values()).sort(
+        (a, b) => a.timestamp - b.timestamp
+      );
+
+      // Lọc các trận từ cách đây 2 tiếng trở lại (đang trực tiếp hoặc sắp đá)
+      const twoHoursAgo = Date.now() - 2 * 60 * 60 * 1000;
+      const recentMatches = sortedMatches.filter(
+        (m) =>
+          m.timestamp >= twoHoursAgo ||
+          m.timestamp === Number.MAX_SAFE_INTEGER
+      );
+
       const result: LiveFootballData = {
         updatedAt: new Date().toISOString(),
         channels: Array.from(channelsSet),
-        matches: Array.from(matchMap.values()),
+        matches: recentMatches.length > 0 ? recentMatches : sortedMatches,
       };
 
       memoryCache = {

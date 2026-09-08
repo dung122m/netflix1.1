@@ -44,7 +44,6 @@ export function LivePlayer({
   team2 = match?.team2,
   homeLogo = match?.homeLogo,
   awayLogo = match?.awayLogo,
-  logo = match?.logo,
 }: LivePlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -64,7 +63,6 @@ export function LivePlayer({
 
   const [homeImgError, setHomeImgError] = useState(false);
   const [awayImgError, setAwayImgError] = useState(false);
-  const [bannerImgError, setBannerImgError] = useState(false);
 
   const currentServer = servers[selectedServerIndex] || servers[0];
   const volumeRef = useRef(volume);
@@ -377,11 +375,6 @@ export function LivePlayer({
       : volume < 0.5
       ? Volume1
       : Volume2;
-
-  const hasSeparateLogos =
-    Boolean(homeLogo) &&
-    Boolean(awayLogo) &&
-    !awayLogo?.includes("tinhlagi.pro/logo.jpg");
 
   return (
     <div className="space-y-4">
