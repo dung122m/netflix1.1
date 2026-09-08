@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 import Link from "next/link";
 import { Dices, Play, Star, X, RotateCw, Sparkles, Film } from "lucide-react";
@@ -25,6 +26,23 @@ export const RandomMovieButton: React.FC<RandomMovieButtonProps> = ({ customTrig
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [movies, setMovies] = useState<RandomMovieItem[]>([]);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Khóa cuộn trang khi mở modal
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isOpen]);
 
   const fetchRandomMovies = async () => {
     setLoading(true);
@@ -93,12 +111,14 @@ export const RandomMovieButton: React.FC<RandomMovieButtonProps> = ({ customTrig
         </button>
       )}
 
-      {/* MODAL GỢI Ý PHIM NGẪU NHIÊN CHUẨN NETFLIX (RESPONSIVE TOÀN DIỆN) */}
-      {isOpen && (
-        <div
-          onClick={() => setIsOpen(false)}
-          className="fixed inset-0 z-[100] bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 md:p-6 animate-in fade-in duration-200"
-        >
+      {/* MODAL GỢI Ý PHIM NGẪU NHIÊN CHUẨN NETFLIX (RESPONSIVE TOÀN DIỆN, CHÍNH GIỮA MÀN HÌNH) */}
+      {isOpen &&
+        mounted &&
+        createPortal(
+          <div
+            onClick={() => setIsOpen(false)}
+            className="fixed inset-0 z-[9999] bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 md:p-6 animate-in fade-in duration-200"
+          >
           <div
             onClick={(e) => e.stopPropagation()}
             className="relative w-full max-w-4xl max-h-[92vh] flex flex-col bg-zinc-950 rounded-2xl overflow-hidden border border-white/20 shadow-[0_35px_90px_rgba(0,0,0,0.95)] animate-in zoom-in-95 duration-200"
@@ -255,7 +275,8 @@ export const RandomMovieButton: React.FC<RandomMovieButtonProps> = ({ customTrig
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

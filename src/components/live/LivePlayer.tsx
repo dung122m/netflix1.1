@@ -18,8 +18,10 @@ import {
   Tv,
   ChevronDown,
   ChevronUp,
+  Bell,
 } from "lucide-react";
 import { FootballMatch, StreamServer } from "@/services/liveFootballService";
+import { useMatchReminders } from "@/hooks/useMatchReminders";
 
 interface LivePlayerProps {
   match?: FootballMatch;
@@ -46,7 +48,11 @@ export function LivePlayer({
   team2 = match?.team2,
   homeLogo = match?.homeLogo,
   awayLogo = match?.awayLogo,
+  logo: _logo = match?.logo,
 }: LivePlayerProps) {
+  const { isReminded, addReminder, removeReminder } = useMatchReminders();
+  const matchId = match?.id;
+  const isCurrentlyReminded = matchId ? isReminded(matchId) : false;
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const hlsRef = useRef<Hls | null>(null);
@@ -720,6 +726,40 @@ export function LivePlayer({
           </div>
 
           <div className="flex items-center gap-2 flex-shrink-0 self-start sm:self-center">
+            {match && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (isCurrentlyReminded) {
+                    removeReminder(match.id);
+                  } else {
+                    addReminder(match);
+                  }
+                }}
+                title={
+                  isCurrentlyReminded
+                    ? "Đã hẹn thông báo (Bấm để hủy)"
+                    : "Nhận thông báo khi trận đấu bắt đầu"
+                }
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-extrabold transition cursor-pointer border shadow-sm ${
+                  isCurrentlyReminded
+                    ? "bg-amber-500/25 text-amber-300 border-amber-500/50 shadow-amber-950/40"
+                    : "bg-white/10 hover:bg-white/20 text-gray-200 hover:text-white border-white/10"
+                }`}
+              >
+                <Bell
+                  className={`w-3.5 h-3.5 ${
+                    isCurrentlyReminded
+                      ? "fill-amber-400 text-amber-400 animate-bounce"
+                      : ""
+                  }`}
+                />
+                <span className="hidden sm:inline">
+                  {isCurrentlyReminded ? "Đã hẹn nhắc" : "Nhắc tôi"}
+                </span>
+              </button>
+            )}
+
             <button
               type="button"
               onClick={openInVlc}

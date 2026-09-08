@@ -428,6 +428,21 @@ const NavbarInner: React.FC = () => {
             <RandomMovieButton />
           </div>
 
+          {/* NÚT TRỢ LÝ AI GỢI Ý PHIM */}
+          <button
+            type="button"
+            onClick={() => {
+              if (typeof window !== "undefined") {
+                window.dispatchEvent(new CustomEvent("open-ai-concierge"));
+              }
+            }}
+            title="Trợ lý AI Gợi ý phim theo tâm trạng"
+            className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-bold bg-gradient-to-r from-red-600/20 to-purple-600/20 hover:from-red-600/30 hover:to-purple-600/30 text-rose-300 hover:text-white border border-rose-500/30 hover:border-rose-400 transition cursor-pointer shadow-sm"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+            <span>AI Gợi Ý</span>
+          </button>
+
           {/* Ô TÌM KIẾM CÓ GỢI Ý TRỰC TIẾP */}
           <div ref={searchContainerRef} className="relative flex-shrink-0">
             <form
@@ -751,6 +766,28 @@ const NavbarInner: React.FC = () => {
                 <span>Hôm Nay Xem Gì? (Gợi ý ngẫu nhiên)</span>
               </div>
               <Sparkles size={14} className="text-amber-400 animate-pulse" />
+            </button>
+
+            {/* NÚT TRỢ LÝ AI GỢI Ý PHIM TRÊN MOBILE */}
+            <button
+              type="button"
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                if (typeof window !== "undefined") {
+                  window.dispatchEvent(new CustomEvent("open-ai-concierge"));
+                }
+              }}
+              className="text-sm font-bold py-2.5 px-3 text-white flex items-center justify-between rounded-xl bg-gradient-to-r from-purple-600/25 via-red-950/40 to-transparent border border-purple-500/40 hover:bg-purple-600/30 transition text-left cursor-pointer shadow-sm mb-1.5"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-red-600 to-purple-600 text-white flex items-center justify-center shadow-md">
+                  <Sparkles size={15} className="text-amber-300" />
+                </div>
+                <span>Trợ Lý AI Gợi Ý Phim Theo Tâm Trạng</span>
+              </div>
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-500/30 text-purple-300 border border-purple-500/40 font-black">
+                GEMINI
+              </span>
             </button>
 
             {NAV_LINKS.map((link) => {

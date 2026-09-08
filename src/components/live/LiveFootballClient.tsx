@@ -21,7 +21,10 @@ import {
   Calendar,
   ChevronDown,
   RotateCcw,
+  Bell,
 } from "lucide-react";
+import { MatchReminderModal } from "./MatchReminderModal";
+import { useMatchReminders } from "@/hooks/useMatchReminders";
 
 interface LiveFootballClientProps {
   initialData: LiveFootballData;
@@ -82,6 +85,8 @@ export function LiveFootballClient({
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [onlyFhd, setOnlyFhd] = useState<boolean>(false);
   const [visibleCount, setVisibleCount] = useState<number>(INITIAL_PAGE_SIZE);
+  const [isReminderModalOpen, setIsReminderModalOpen] = useState<boolean>(false);
+  const { reminders } = useMatchReminders();
 
   const playerRef = useRef<HTMLDivElement>(null);
   const channelsScrollRef = useRef<HTMLDivElement>(null);
@@ -448,6 +453,26 @@ export function LiveFootballClient({
 
           {/* Ô TÌM KIẾM & NÚT FHD */}
           <div className="flex items-center gap-2 w-full lg:w-auto">
+            {/* NÚT XEM LỊCH NHẮC CỦA TÔI */}
+            <button
+              type="button"
+              onClick={() => setIsReminderModalOpen(true)}
+              title="Xem danh sách các trận đã đặt lịch nhắc hẹn"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition border shadow-sm cursor-pointer whitespace-nowrap bg-zinc-900/90 hover:bg-zinc-800 text-amber-300 border-amber-500/30 hover:border-amber-400"
+            >
+              <Bell
+                className={`w-3.5 h-3.5 text-amber-400 ${
+                  reminders.length > 0 ? "animate-bounce" : ""
+                }`}
+              />
+              <span>Lịch nhắc</span>
+              {reminders.length > 0 && (
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full font-black bg-amber-500 text-black">
+                  {reminders.length}
+                </span>
+              )}
+            </button>
+
             {/* LỌC FHD 1080P */}
             <button
               type="button"
@@ -723,6 +748,21 @@ export function LiveFootballClient({
           )}
         </div>
       )}
+
+      {/* MODAL DANH SÁCH TRẬN ĐÃ ĐẶT NHẮC HẸN */}
+      <MatchReminderModal
+        isOpen={isReminderModalOpen}
+        onClose={() => setIsReminderModalOpen(false)}
+        onSelectMatchId={(id) => {
+          const found = matches.find((m) => m.id === id);
+          if (found) {
+            setSelectedMatch(found);
+            if (playerRef.current) {
+              playerRef.current.scrollIntoView({ behavior: "smooth" });
+            }
+          }
+        }}
+      />
     </div>
   );
 }

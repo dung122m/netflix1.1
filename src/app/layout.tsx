@@ -4,6 +4,7 @@ import "./globals.css";
 import SmoothScroll from "@/components/SmoothScroll";
 import { BackToTop } from "@/components/BackToTop";
 import { ToastContainer } from "@/components/Toast";
+import { AiMovieConcierge } from "@/components/AiMovieConcierge";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -87,6 +88,9 @@ export default function RootLayout({
 
         {/* Toast notification system — global */}
         <ToastContainer />
+
+        {/* Trợ lý AI Gợi ý phim thông minh toàn trang */}
+        <AiMovieConcierge />
       </body>
     </html>
   );

@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
+import { Bell } from "lucide-react";
 import { FootballMatch } from "@/services/liveFootballService";
+import { useMatchReminders } from "@/hooks/useMatchReminders";
 
 interface MatchCardProps {
   match: FootballMatch;
@@ -26,8 +28,11 @@ function getTeamInitials(teamName: string): string {
 function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
   const [homeError, setHomeError] = useState(false);
   const [awayError, setAwayError] = useState(false);
+  const { isReminded, addReminder, removeReminder } = useMatchReminders();
 
   const isFhd = match.quality.includes("FHD");
+  const reminded = isReminded(match.id);
+  const isUpcoming = match.timeline !== "live" || match.timestamp > Date.now();
 
   const validHomeLogo =
     Boolean(match.homeLogo) &&
@@ -85,6 +90,36 @@ function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
           <span className="text-[11px] text-gray-400 font-semibold bg-white/5 border border-white/10 px-2 py-0.5 rounded-md">
             {match.time || "Trực tiếp"}
           </span>
+
+          {isUpcoming && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (reminded) removeReminder(match.id);
+                else addReminder(match);
+              }}
+              title={
+                reminded
+                  ? "Đã hẹn thông báo (Bấm để hủy)"
+                  : "Nhận thông báo khi trận đấu bắt đầu"
+              }
+              className={`px-1.5 sm:px-2 py-0.5 rounded-md text-[10.5px] font-bold flex items-center gap-1 transition-all cursor-pointer border ${
+                reminded
+                  ? "bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm"
+                  : "bg-white/5 hover:bg-white/15 text-gray-400 hover:text-white border-white/10"
+              }`}
+            >
+              <Bell
+                className={`w-3 h-3 ${
+                  reminded ? "fill-amber-400 text-amber-400 animate-pulse" : ""
+                }`}
+              />
+              <span className="hidden sm:inline">
+                {reminded ? "Đã hẹn" : "Nhắc tôi"}
+              </span>
+            </button>
+          )}
         </div>
       </div>
 
