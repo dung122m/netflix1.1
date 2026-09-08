@@ -8,6 +8,7 @@ const bundleAnalyzer = withBundleAnalyzer({
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   images: {
+    unoptimized: true, // Tải ảnh trực tiếp từ CDN phim, không tốn quota Vercel
     remotePatterns: [
       {
         protocol: "https",

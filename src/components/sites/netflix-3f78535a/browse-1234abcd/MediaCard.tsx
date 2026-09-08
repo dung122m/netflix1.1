@@ -65,6 +65,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         try {
           const source = imageUrl.includes("vsmov.com") ? "vsmov" : "ophim";
           const detail = await movieApi.getMovieDetail(slug, source);
+          console.log(detail);
 
           const data = detail?.data?.movie || detail?.movie;
           if (data) {
@@ -96,8 +97,8 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
 
   const rawDesc = movieDetail?.content
     ? String(movieDetail.content)
-        .replace(/<[^>]*>/g, "")
-        .trim()
+      .replace(/<[^>]*>/g, "")
+      .trim()
     : initialDescription;
 
   return (
@@ -135,11 +136,10 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
 
       {/* THẺ EXPAND (Nổi lên khi hover) */}
       <div
-        className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[125%] bg-[#141414] rounded-lg shadow-[0_15px_50px_rgba(0,0,0,0.85)] flex flex-col overflow-hidden transition-all duration-300 ease-out z-50 ${
-          isHovered
+        className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[125%] bg-[#141414] rounded-lg shadow-[0_15px_50px_rgba(0,0,0,0.85)] flex flex-col overflow-hidden transition-all duration-300 ease-out z-50 ${isHovered
             ? "scale-100 opacity-100 visible"
             : "scale-95 opacity-0 invisible"
-        }`}
+          }`}
       >
         <Link href={`/movies/${slug}`} className="block w-full">
           {/* Nửa trên: Hình ảnh gốc */}
