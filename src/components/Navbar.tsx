@@ -381,7 +381,7 @@ const NavbarInner: React.FC = () => {
             </span>
           </Link>
 
-          <div className="hidden md:flex items-center gap-2 md:gap-2.5 lg:gap-4 xl:gap-5 2xl:gap-6 text-xs lg:text-sm font-medium flex-shrink-0">
+          <div className="hidden xl:flex items-center gap-3 2xl:gap-5 text-xs xl:text-sm font-medium flex-shrink-0">
             {NAV_LINKS.map((link) => {
               const active = isLinkActive(link.type);
               const IconComp = link.icon;
@@ -424,7 +424,9 @@ const NavbarInner: React.FC = () => {
         {/* RIGHT ACTIONS */}
         <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 text-white">
           {/* NÚT PHIM NGẪU NHIÊN */}
-          <RandomMovieButton />
+          <div className="hidden sm:block">
+            <RandomMovieButton />
+          </div>
 
           {/* Ô TÌM KIẾM CÓ GỢI Ý TRỰC TIẾP */}
           <div ref={searchContainerRef} className="relative flex-shrink-0">
@@ -720,7 +722,7 @@ const NavbarInner: React.FC = () => {
             type="button"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             aria-label="Menu"
-            className="md:hidden text-gray-300 hover:text-white transition p-1"
+            className="xl:hidden text-gray-300 hover:text-white transition p-1"
           >
             {isMobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
@@ -729,7 +731,7 @@ const NavbarInner: React.FC = () => {
 
       {/* MOBILE DROPDOWN MENU */}
       {isMobileMenuOpen && (
-        <div className="md:hidden border-t border-white/10 bg-black/95 backdrop-blur-xl px-4 py-4 animate-in slide-in-from-top duration-200">
+        <div className="xl:hidden border-t border-white/10 bg-black/95 backdrop-blur-xl px-4 py-4 animate-in slide-in-from-top duration-200 max-h-[80vh] overflow-y-auto">
           <div className="flex flex-col gap-1.5">
             {/* NÚT GỢI Ý PHIM NGẪU NHIÊN TRÊN MOBILE */}
             <button

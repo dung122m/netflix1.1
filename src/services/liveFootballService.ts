@@ -344,7 +344,10 @@ export const liveFootballService = {
               existing.tournament = tournament;
             }
             if (blv && !existing.blv?.includes(blv)) {
-              existing.blv = existing.blv ? `${existing.blv}, ${blv}` : blv;
+              const currentBlvs = existing.blv ? existing.blv.split(", ") : [];
+              if (currentBlvs.length < 3) {
+                existing.blv = existing.blv ? `${existing.blv}, ${blv}` : blv;
+              }
             }
             if (!existing.homeLogo && homeLogo) {
               existing.homeLogo = homeLogo;
