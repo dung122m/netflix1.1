@@ -83,3 +83,95 @@ export function buildMovieDescriptionFallback(movie: {
 
   return parts.join(" ").trim();
 }
+
+export interface NormalizedMovie {
+  slug: string;
+  title: string;
+  imageUrl: string;
+  year: string;
+  time?: string;
+  quality: string;
+  genre: string;
+  description: string;
+  score: string;
+  isTrailerOnly: boolean;
+  lang?: string;
+  chieurap?: boolean;
+  sub_docquyen?: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  raw: any;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function normalizeMovie(m: any): NormalizedMovie {
+  const title = m?.name || m?.title || "Phim";
+  const imageUrl = pickBestMovieImage(m, "/default-poster.jpg");
+  const year = m?.year ? String(m.year) : "N/A";
+  const quality = m?.quality || "FHD";
+  const time = m?.time || m?.episode_current || undefined;
+  const genre =
+    m?.category?.[0]?.name ||
+    (Array.isArray(m?.genre) ? m.genre.join(", ") : m?.genre) ||
+    "Đang cập nhật";
+  const isTrailerOnly =
+    m?.status === "trailer" || m?.episode_current === "Trailer";
+
+  const chieurap = Boolean(
+    m?.chieurap === true ||
+      m?.chieurap === "true" ||
+      m?.chieurap === 1 ||
+      m?.chieu_rap === true
+  );
+  const sub_docquyen = Boolean(
+    m?.sub_docquyen === true ||
+      m?.sub_docquyen === "true" ||
+      m?.sub_docquyen === 1 ||
+      m?.doc_quyen === true
+  );
+
+  const ratingRaw =
+    m?.imdb?.rating ??
+    m?.imdb?.vote_average ??
+    m?.tmdb?.vote_average ??
+    m?.vote_average ??
+    m?.rating;
+  const score =
+    ratingRaw !== undefined && ratingRaw !== null && ratingRaw !== ""
+      ? Number(ratingRaw).toFixed(1)
+      : "N/A";
+
+  const cleanedDesc = String(m?.content || m?.description || "")
+    .replace(/<[^>]*>/g, "")
+    .trim();
+  const description =
+    cleanedDesc ||
+    buildMovieDescriptionFallback({
+      origin_name: m?.origin_name,
+      year: m?.year,
+      time: m?.time,
+      lang: m?.lang,
+      quality: m?.quality,
+      category: m?.category,
+      country: m?.country,
+      director: m?.director,
+    }) ||
+    "Nội dung phim đang được cập nhật.";
+
+  return {
+    slug: m?.slug || "",
+    title,
+    imageUrl,
+    year,
+    time,
+    quality,
+    genre,
+    description,
+    score,
+    isTrailerOnly,
+    lang: m?.lang,
+    chieurap,
+    sub_docquyen,
+    raw: m,
+  };
+}
+

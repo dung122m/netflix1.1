@@ -2,7 +2,16 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Info, Play, Star } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Info,
+  Play,
+  Star,
+  Calendar,
+  Globe2,
+  Sparkles,
+} from "lucide-react";
 import {
   AnimatePresence,
   motion,
@@ -13,6 +22,7 @@ import {
   buildMovieDescriptionFallback,
   pickBestMovieImage,
 } from "@/lib/movieMedia";
+import { clientSynopsisCache } from "./MediaCard";
 
 const AUTO_SLIDE_MS = 5500;
 
@@ -52,25 +62,56 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
     setIndex(0);
   }, [slides.length]);
 
-  useEffect(() => {
-    if (slides.length === 0) return;
-    const imageUrls = slides.map((movie) =>
-      pickBestMovieImage(movie, "/default-hero.jpg"),
-    );
-    imageUrls.forEach((url) => {
-      const img = new window.Image();
-      img.src = url;
-    });
-  }, [slides]);
+  const [isHeroVisible, setIsHeroVisible] = useState(true);
 
   useEffect(() => {
-    if (slides.length <= 1 || paused) return;
+    const handleScroll = () => {
+      setIsHeroVisible(window.scrollY < 700);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Chỉ tải trước ảnh của slide tiếp theo để không nghẽn băng thông
+  useEffect(() => {
+    if (slides.length <= 1) return;
+    const nextIndex = (index + 1) % slides.length;
+    const nextMovie = slides[nextIndex];
+    if (nextMovie) {
+      const nextUrl = pickBestMovieImage(nextMovie, "/default-hero.jpg");
+      const img = new window.Image();
+      img.src = nextUrl;
+    }
+  }, [index, slides]);
+
+  useEffect(() => {
+    if (slides.length <= 1 || paused || !isHeroVisible) return;
     const id = setInterval(() => {
       setDirection(1);
       setIndex((prev) => (prev + 1) % slides.length);
     }, AUTO_SLIDE_MS);
     return () => clearInterval(id);
-  }, [slides.length, paused]);
+  }, [slides.length, paused, isHeroVisible]);
+
+  const currentSlug = slides[index]?.slug;
+  const [heroSynopsis, setHeroSynopsis] = useState<string>("");
+
+  useEffect(() => {
+    if (!currentSlug) return;
+    if (clientSynopsisCache.has(currentSlug)) {
+      setHeroSynopsis(clientSynopsisCache.get(currentSlug)!);
+      return;
+    }
+    fetch(`/api/synopsis?slug=${encodeURIComponent(currentSlug)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.content) {
+          clientSynopsisCache.set(currentSlug, data.content);
+          setHeroSynopsis(data.content);
+        }
+      })
+      .catch(() => {});
+  }, [currentSlug]);
 
   if (slides.length === 0) return null;
 
@@ -83,6 +124,7 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
     featuredMovie?.content || featuredMovie?.description || "";
   const descriptionClean = String(descriptionRaw).replace(/<[^>]*>/g, "");
   const description =
+    heroSynopsis ||
     descriptionClean ||
     buildMovieDescriptionFallback({
       origin_name: featuredMovie?.origin_name,
@@ -193,34 +235,38 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
       >
         <div className="w-full px-4 pb-6 md:px-10 md:pb-10">
           <div className="mx-auto max-w-7xl">
-            <div className="max-w-3xl rounded-2xl border border-white/10 bg-black/35 p-5 backdrop-blur-sm md:p-8">
+            <div className="max-w-3xl rounded-2xl border border-white/10 bg-black/40 p-5 backdrop-blur-md md:p-8 shadow-2xl">
               <div className="mb-4 flex flex-wrap items-center gap-2 text-xs md:text-sm">
-                <span className="rounded-full border border-white/25 bg-white/10 px-3 py-1 font-semibold text-white">
-                  Đang nổi bật
+                <span className="rounded-full border border-netflix-red/40 bg-gradient-to-r from-netflix-red/30 to-rose-600/20 text-rose-300 px-3 py-1 font-bold text-xs flex items-center gap-1.5 shadow-sm">
+                  <Sparkles size={12} className="text-netflix-red animate-pulse" />
+                  <span>Đang nổi bật</span>
                 </span>
                 {featuredMovie?.year && (
-                  <span className="rounded-full border border-white/20 bg-black/45 px-3 py-1 text-gray-200">
-                    {featuredMovie.year}
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-black/55 px-3 py-1 text-gray-200">
+                    <Calendar size={12} className="text-emerald-400" />
+                    <span>{featuredMovie.year}</span>
                   </span>
                 )}
                 {featuredMovie?.quality && (
-                  <span className="rounded-full border border-netflix-red/45 bg-netflix-red/90 px-3 py-1 font-semibold text-white">
-                    {featuredMovie.quality}
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-netflix-red/45 bg-netflix-red/90 px-3 py-1 font-bold text-white shadow-md shadow-red-950/50">
+                    <Sparkles size={12} />
+                    <span>{featuredMovie.quality}</span>
                   </span>
                 )}
                 {featuredMovie?.lang && (
-                  <span className="rounded-full border border-white/20 bg-black/45 px-3 py-1 text-gray-200">
-                    {featuredMovie.lang}
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-black/55 px-3 py-1 text-gray-200">
+                    <Globe2 size={12} className="text-sky-400" />
+                    <span>{featuredMovie.lang}</span>
                   </span>
                 )}
                 {voteText && (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-amber-300/40 bg-black/45 px-3 py-1 text-amber-200">
-                    <Star size={13} fill="currentColor" />
-                    {voteText}
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-300/40 bg-black/55 px-3 py-1 text-amber-300 font-semibold shadow-sm">
+                    <Star size={13} className="fill-amber-400 text-amber-400" />
+                    <span>{voteText}</span>
                   </span>
                 )}
-                <span className="rounded-full border border-white/20 bg-black/45 px-3 py-1 text-gray-200">
-                  {isTrailerOnly ? "Trailer" : "Full Movie"}
+                <span className="rounded-full border border-white/20 bg-black/55 px-3 py-1 text-gray-300 text-xs font-medium">
+                  {isTrailerOnly ? "🎬 Trailer" : "🍿 Full Movie"}
                 </span>
               </div>
 

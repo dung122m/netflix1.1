@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import SmoothScroll from "@/components/SmoothScroll";
+import { BackToTop } from "@/components/BackToTop";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -26,11 +27,24 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      lang="vi"
+      className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black text-white`}
     >
-      <body className="min-h-full flex flex-col">
+      <head>
+        <link rel="preconnect" href="https://phimimg.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://phimimg.com" />
+        <link rel="preconnect" href="https://vsmov.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://vsmov.com" />
+        <link rel="preconnect" href="https://img.gvapi.cc" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://img.gvapi.cc" />
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover"
+        />
+      </head>
+      <body className="min-h-screen flex flex-col bg-black text-white">
         <SmoothScroll>{children}</SmoothScroll>
+        <BackToTop />
       </body>
     </html>
   );

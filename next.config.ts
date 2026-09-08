@@ -7,27 +7,34 @@ const bundleAnalyzer = withBundleAnalyzer({
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  compiler: {
+    removeConsole:
+      process.env.NODE_ENV === "production"
+        ? { exclude: ["error", "warn"] }
+        : false,
+  },
   images: {
     unoptimized: true, // Tải ảnh trực tiếp từ CDN phim, không tốn quota Vercel
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "vsmov.com", // Hạn chế domain để bảo mật và tối ưu
+        hostname: "vsmov.com",
         port: "",
         pathname: "/**",
       },
       {
         protocol: "https",
-        hostname: "**", // Giữ fallback nếu cần, nhưng ưu tiên cụ thể ở trên
+        hostname: "**",
         port: "",
         pathname: "/**",
       },
     ],
     formats: ["image/avif", "image/webp"],
-    qualities: [25, 50, 75, 80, 88, 95, 100], // <-- Mình đã thêm dòng này vào đây
+    qualities: [25, 50, 75, 80, 88, 95, 100],
   },
   experimental: {
     scrollRestoration: true,
+    optimizePackageImports: ["lucide-react", "framer-motion"],
   },
 };
 

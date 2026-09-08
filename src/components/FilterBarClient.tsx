@@ -9,7 +9,7 @@ const FilterBar = dynamic(
     ).then((mod) => mod.FilterBar),
   {
     ssr: false,
-    loading: () => <div className="mt-20 h-10" aria-hidden="true" />,
+    loading: () => <div className="h-10 animate-pulse bg-zinc-900/50 rounded-lg max-w-md" aria-hidden="true" />,
   },
 );
 

@@ -1,5 +1,23 @@
+import { cache } from "react";
+
 const API_VSMOV = process.env.NEXT_PUBLIC_API_URL || "https://vsmov.com/api";
 const API_PHIMAPI = process.env.NEXT_PUBLIC_API_URL_2 || "https://phimapi.com";
+
+// =========================================================
+// BỘ NHỚ ĐỆM SERVER (IN-MEMORY CACHE) TĂNG TỐC TỐI ĐA (0ms)
+// =========================================================
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const moviesMemoryCache = new Map<string, { data: any; expireAt: number }>();
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const movieDetailMemoryCache = new Map<string, { data: any; expireAt: number }>();
+
+let cachedFilters: {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  genres: any[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  countries: any[];
+  years: string[];
+} | null = null;
 
 export interface MovieFilterParams {
   category?: string;
@@ -10,11 +28,90 @@ export interface MovieFilterParams {
   limit?: number;
   type?: string;
   slug?: string;
+  sort?: "latest" | "rating" | "views" | "year";
 }
+
+// Hàm nội bộ lấy chi tiết phim có in-memory cache
+const fetchMovieDetailInternal = async (
+  slug: string,
+  source?: "vsmov" | "ophim",
+) => {
+  const cacheKey = `${slug}_${source || "any"}`;
+  const now = Date.now();
+
+  if (movieDetailMemoryCache.has(cacheKey)) {
+    const cached = movieDetailMemoryCache.get(cacheKey)!;
+    if (cached.expireAt > now) {
+      return cached.data;
+    }
+    movieDetailMemoryCache.delete(cacheKey);
+  }
+
+  try {
+    let result = undefined;
+
+    // 1. Nếu đã biết chính xác nguồn là VSMOV
+    if (source === "vsmov") {
+      const res = await fetch(`${API_VSMOV}/phim/${slug}`, {
+        next: { revalidate: 600 },
+        signal: AbortSignal.timeout(6000),
+      });
+      if (res.ok) result = await res.json();
+    }
+    // 2. Nếu đã biết chính xác nguồn là Ophim/KKPhim
+    else if (source === "ophim") {
+      const res = await fetch(`${API_PHIMAPI}/phim/${slug}`, {
+        next: { revalidate: 600 },
+        signal: AbortSignal.timeout(6000),
+      });
+      if (res.ok) result = await res.json();
+    }
+    // 3. Nếu không truyền source, bắn Promise.any để đua tốc độ 2 bên
+    else {
+      try {
+        result = await Promise.any([
+          fetch(`${API_VSMOV}/phim/${slug}`, {
+            next: { revalidate: 600 },
+            signal: AbortSignal.timeout(6000),
+          }).then((res) => {
+            if (!res.ok) throw new Error("VSMOV 404");
+            return res.json();
+          }),
+
+          fetch(`${API_PHIMAPI}/phim/${slug}`, {
+            next: { revalidate: 600 },
+            signal: AbortSignal.timeout(6000),
+          }).then((res) => {
+            if (!res.ok) throw new Error("PhimAPI 404");
+            return res.json();
+          }),
+        ]);
+      } catch {
+        result = undefined;
+      }
+    }
+
+    if (result) {
+      // Cache 10 phút trên server
+      movieDetailMemoryCache.set(cacheKey, {
+        data: result,
+        expireAt: now + 600 * 1000,
+      });
+    }
+
+    return result;
+  } catch {
+    console.error("❌ Lỗi tải chi tiết phim:", slug);
+    return undefined;
+  }
+};
+
+// Sử dụng React cache để khử trùng lặp giữa generateMetadata và Page Component
+const cachedGetMovieDetail = cache(fetchMovieDetailInternal);
 
 export const movieApi = {
   // ==========================================
-  // 1. LẤY DANH SÁCH PHIM TỪ CẢ 2 NGUỒN
+  // 1. LẤY DANH SÁCH PHIM TỪ CẢ 2 NGUỒN (CÓ MEMORY CACHE)
   // ==========================================
   getMovies: async ({
     category,
@@ -24,7 +121,28 @@ export const movieApi = {
     page = 1,
     limit = 24,
     type,
+    sort,
   }: MovieFilterParams = {}) => {
+    const cacheKey = JSON.stringify({
+      category: category || "",
+      country: country || "",
+      year: year || "",
+      keyword: keyword?.trim() || "",
+      page,
+      limit,
+      type: type || "",
+      sort: sort || "latest",
+    });
+
+    const now = Date.now();
+    if (moviesMemoryCache.has(cacheKey)) {
+      const cached = moviesMemoryCache.get(cacheKey)!;
+      if (cached.expireAt > now) {
+        return cached.data;
+      }
+      moviesMemoryCache.delete(cacheKey);
+    }
+
     // Hàm phụ để fetch và parse dữ liệu an toàn
     const fetchSource = async (baseUrl: string, isSearch: boolean) => {
       try {
@@ -34,25 +152,19 @@ export const movieApi = {
 
         let fullUrl = "";
 
-        // ========================================
-        // 🛠 XỬ LÝ ĐƯỜNG DẪN RIÊNG CHO TỪNG NGUỒN
-        // ========================================
         if (baseUrl === API_PHIMAPI) {
           if (isSearch && keyword) {
             params.set("keyword", keyword.trim());
-            // Link tìm kiếm của KKPhim/Ophim thường là v1/api/tim-kiem
             fullUrl = `${baseUrl}/v1/api/tim-kiem?${params.toString()}`;
           } else {
             if (category) params.set("category", category);
             if (country) params.set("country", country);
             if (year) params.set("year", year);
 
-            // PhimAPI bắt buộc phải có type. Nếu UI của bạn chưa có bộ lọc type, ta mặc định là 'phim-le'
             const currentType = type || "phim-le";
             fullUrl = `${baseUrl}/v1/api/danh-sach/${currentType}?${params.toString()}`;
           }
         } else {
-          // VSMOV
           if (isSearch && keyword) {
             params.set("keyword", keyword.trim());
             fullUrl = `${baseUrl}/tim-kiem?${params.toString()}`;
@@ -64,7 +176,10 @@ export const movieApi = {
           }
         }
 
-        const res = await fetch(fullUrl, { next: { revalidate: 30 } });
+        const res = await fetch(fullUrl, {
+          next: { revalidate: 300 }, // 5 phút Next.js cache
+          signal: AbortSignal.timeout(6000), // Timeout 6s tránh treo trang
+        });
 
         if (!res.ok) {
           return null;
@@ -72,18 +187,13 @@ export const movieApi = {
 
         const json = await res.json();
 
-        // ========================================
-        // 🛠 CHUẨN HÓA DỮ LIỆU (DATA MAPPING)
-        // ========================================
         if (baseUrl === API_PHIMAPI) {
-          // Lấy domain ảnh từ API trả về, hoặc dùng domain dự phòng
           const imageDomain =
             json.data?.APP_DOMAIN_CDN_IMAGE ||
             json.data?.APP_DOMAIN_FRONTEND ||
             "https://phimimg.com/";
           const items = json.data?.items || json.items || [];
 
-          // PhimAPI v1 trả về ảnh bị cụt, cần nối chuỗi
           const mappedItems = items.map(
             (item: {
               thumb_url?: string;
@@ -91,7 +201,6 @@ export const movieApi = {
               slug?: string;
               [key: string]: unknown;
             }) => {
-              // Kiểm tra nếu thumb_url chưa có chữ http thì mới nối tên miền vào
               const fixedThumb =
                 typeof item.thumb_url === "string" &&
                 item.thumb_url.startsWith("http")
@@ -120,7 +229,6 @@ export const movieApi = {
           };
         }
 
-        // Với VSMOV, dữ liệu đã chuẩn nên chỉ việc trả về
         return {
           items: json.data?.items || json.items || [],
           totalPages:
@@ -138,14 +246,9 @@ export const movieApi = {
     let dataVsmov = null;
     let dataPhimApi = null;
 
-    // ========================================
-    // 🛠 LOGIC CHỌN NGUỒN GỌI API THÔNG MINH
-    // ========================================
     if (type) {
-      // NẾU CÓ CHỌN LOẠI PHIM -> CHỈ GỌI PHIMAPI (Bỏ qua VSMOV để tránh trộn sai kết quả)
       dataPhimApi = await fetchSource(API_PHIMAPI, isSearch);
     } else {
-      // NẾU KHÔNG CHỌN LOẠI PHIM -> GỌI ĐỒNG THỜI CẢ 2 NGUỒN
       const [resVsmov, resPhimApi] = await Promise.all([
         fetchSource(API_VSMOV, isSearch),
         fetchSource(API_PHIMAPI, isSearch),
@@ -154,13 +257,10 @@ export const movieApi = {
       dataPhimApi = resPhimApi;
     }
 
-    // ========================================
-    // XỬ LÝ DỮ LIỆU ĐẦU RA
-    // ========================================
     const itemsVsmov = dataVsmov?.items || [];
     const itemsPhimApi = dataPhimApi?.items || [];
 
-    // Gộp và lọc trùng lặp slug
+    // Gộp và khử trùng lặp slug
     const combinedItems = [...itemsVsmov, ...itemsPhimApi];
     const uniqueItemsMap = new Map();
     combinedItems.forEach((item) => {
@@ -169,37 +269,74 @@ export const movieApi = {
       }
     });
 
-    const finalItems = Array.from(uniqueItemsMap.values());
+    const allUniqueItems = Array.from(uniqueItemsMap.values());
 
-    // Tính tổng số trang và tổng số phim
+    // Sắp xếp theo yêu cầu người dùng
+    if (sort === "rating") {
+      allUniqueItems.sort((a, b) => {
+        const rateA = Number(a.tmdb?.vote_average || a.imdb?.vote_average || 0);
+        const rateB = Number(b.tmdb?.vote_average || b.imdb?.vote_average || 0);
+        return rateB - rateA;
+      });
+    } else if (sort === "views") {
+      allUniqueItems.sort((a, b) => {
+        const countA = Number(a.tmdb?.vote_count || a.view || 0);
+        const countB = Number(b.tmdb?.vote_count || b.view || 0);
+        return countB - countA;
+      });
+    } else if (sort === "year") {
+      allUniqueItems.sort((a, b) => {
+        const yearA = Number(a.year || 0);
+        const yearB = Number(b.year || 0);
+        return yearB - yearA;
+      });
+    }
+
+    // Cắt chính xác số lượng limit (24 phim) để tránh render gấp đôi DOM
+    const finalItems = allUniqueItems.slice(0, limit);
+
     const totalPagesVsmov = dataVsmov?.totalPages || 0;
     const totalPagesPhimApi = dataPhimApi?.totalPages || 0;
-
-    // Nếu chỉ gọi 1 nguồn thì maxTotalPages lấy của nguồn đó
     const maxTotalPages = Math.max(totalPagesVsmov, totalPagesPhimApi) || 1;
-
-    // Tính tổng số phim bằng cách lấy (số trang * số limit) của từng nguồn cộng lại
     const totalItemsCount = totalPagesVsmov * limit + totalPagesPhimApi * limit;
 
-    return {
+    const payload = {
       status: true,
       items: finalItems,
       pagination: {
         currentPage: page,
         totalPages: maxTotalPages,
-        totalItems: totalItemsCount, // Trả về tổng số lượng phim
+        totalItems: totalItemsCount,
       },
     };
+
+    // Lưu vào in-memory cache 5 phút
+    moviesMemoryCache.set(cacheKey, {
+      data: payload,
+      expireAt: now + 300 * 1000,
+    });
+
+    return payload;
   },
 
   // ==========================================
-  // 2. LẤY FILTER
+  // 2. LẤY FILTER (VỚI IN-MEMORY CACHE)
   // ==========================================
   getFilters: async () => {
+    if (cachedFilters) {
+      return cachedFilters;
+    }
+
     try {
       const [theLoaiRes, quocGiaRes] = await Promise.all([
-        fetch(`${API_VSMOV}/the-loai`, { next: { revalidate: 3600 } }),
-        fetch(`${API_VSMOV}/quoc-gia`, { next: { revalidate: 3600 } }),
+        fetch(`${API_VSMOV}/the-loai`, {
+          next: { revalidate: 3600 },
+          signal: AbortSignal.timeout(6000),
+        }),
+        fetch(`${API_VSMOV}/quoc-gia`, {
+          next: { revalidate: 3600 },
+          signal: AbortSignal.timeout(6000),
+        }),
       ]);
 
       const theLoaiData = await theLoaiRes.json();
@@ -209,11 +346,14 @@ export const movieApi = {
         String(currentYear - index),
       );
 
-      return {
+      const result = {
         genres: theLoaiData.data?.items || theLoaiData.items || [],
         countries: quocGiaData.data?.items || quocGiaData.items || [],
         years,
       };
+
+      cachedFilters = result;
+      return result;
     } catch (error) {
       console.error("❌ Lỗi tải filter:", error);
       return { genres: [], countries: [], years: [] };
@@ -221,52 +361,7 @@ export const movieApi = {
   },
 
   // ==========================================
-  // 3. CHI TIẾT PHIM (ĐÃ CẬP NHẬT TỐI ƯU 100%)
+  // 3. CHI TIẾT PHIM (ĐÃ ĐƯỢC CACHE REACT & MEMORY)
   // ==========================================
-  getMovieDetail: async (slug: string, source?: "vsmov" | "ophim") => {
-    try {
-      // 1. Nếu đã biết chính xác nguồn là VSMOV
-      if (source === "vsmov") {
-        const res = await fetch(`${API_VSMOV}/phim/${slug}`, {
-          next: { revalidate: 300 },
-        });
-        if (res.ok) return await res.json();
-      }
-
-      // 2. Nếu đã biết chính xác nguồn là Ophim/KKPhim
-      if (source === "ophim") {
-        const res = await fetch(`${API_PHIMAPI}/phim/${slug}`, {
-          next: { revalidate: 300 },
-        });
-        if (res.ok) return await res.json();
-      }
-
-      // 3. Nếu không truyền source, bắn Promise.any để đua tốc độ 2 bên
-      if (!source) {
-        try {
-          const result = await Promise.any([
-            fetch(`${API_VSMOV}/phim/${slug}`, {
-              next: { revalidate: 300 },
-            }).then((res) => {
-              if (!res.ok) throw new Error("VSMOV 404");
-              return res.json();
-            }),
-
-            fetch(`${API_PHIMAPI}/phim/${slug}`, {
-              next: { revalidate: 300 },
-            }).then((res) => {
-              if (!res.ok) throw new Error("PhimAPI 404");
-              return res.json();
-            }),
-          ]);
-          return result;
-        } catch {
-          return undefined;
-        }
-      }
-    } catch {
-      console.error("❌ Lỗi tải chi tiết phim:", slug);
-      return undefined;
-    }
-  },
+  getMovieDetail: cachedGetMovieDetail,
 };
