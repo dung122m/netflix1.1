@@ -5,28 +5,14 @@ type MovieLike = {
   [key: string]: unknown;
 };
 
-function scoreImageUrl(url?: unknown): number {
-  if (typeof url !== "string" || !url) return -1;
-  const lower = url.toLowerCase();
-  let score = 0;
-
-  // Ưu tiên ảnh ngang (thumb) để khớp với khung aspect-video
-  if (lower.includes("thumb_")) score += 4;
-  if (lower.includes("/thumb")) score += 3;
-  if (lower.includes("backdrop")) score += 4;
-
-  // Trừ điểm ảnh dọc (poster) để tránh bị cắt xén khung hình
-  if (lower.includes("poster_")) score -= 2;
-  if (lower.includes("/poster")) score -= 1;
-
-  if (lower.includes("w780") || lower.includes("w1280")) score += 2;
-  return score;
-}
-
 function sanitizeImageUrl(url: string): string {
   if (!url) return url;
+  let clean = url.trim();
+  if (!clean.startsWith("http://") && !clean.startsWith("https://") && !clean.startsWith("/")) {
+    clean = `https://phimimg.com/${clean.replace(/^\/+/, "")}`;
+  }
   // Sửa lỗi url có 2 dấu gạch chéo // sau tên miền (gây redirect chậm)
-  let clean = url.replace(/(https?:\/\/)([^/]+)\/\/+/g, "$1$2/");
+  clean = clean.replace(/(https?:\/\/)([^/]+)\/\/+/g, "$1$2/");
   // Tối ưu ảnh TMDB original / w780 sang w500 để tải nhanh gấp nhiều lần, tốn ít băng thông
   if (clean.includes("image.tmdb.org/t/p/original/")) {
     clean = clean.replace("/t/p/original/", "/t/p/w500/");
@@ -36,22 +22,81 @@ function sanitizeImageUrl(url: string): string {
   return clean;
 }
 
-export function pickBestMovieImage(movie: MovieLike, fallback: string) {
-  const candidates = [movie.poster_url, movie.thumb_url, movie.imageUrl]
+export function isVsmovSource(movie: MovieLike): boolean {
+  if (!movie) return false;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const raw = (movie as any)?.movie || movie;
+  const p = String(raw.poster_url || raw.posterUrl || "");
+  const t = String(raw.thumb_url || raw.thumbUrl || "");
+  return (
+    p.includes("vsmov.com") ||
+    t.includes("vsmov.com") ||
+    (raw._id !== undefined && typeof raw._id === "number")
+  );
+}
+
+export function pickBestMoviePoster(movie: MovieLike, fallback = "/default-poster.jpg"): string {
+  if (!movie) return fallback;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rawMovie = (movie as any)?.movie || movie;
+  const isVsmov = isVsmovSource(movie);
+
+  // VSMOV đảo ngược trường: thumb_url là poster dọc (2:3), poster_url là backdrop ngang (16:9)
+  const primary = isVsmov
+    ? rawMovie.thumb_url || rawMovie.thumbUrl || movie.thumb_url || movie.thumbUrl
+    : rawMovie.poster_url || rawMovie.posterUrl || movie.poster_url || movie.posterUrl;
+
+  const secondary = isVsmov
+    ? rawMovie.poster_url || rawMovie.posterUrl || movie.poster_url || movie.posterUrl
+    : rawMovie.thumb_url || rawMovie.thumbUrl || movie.thumb_url || movie.thumbUrl;
+
+  const candidates = [primary, secondary, movie.imageUrl]
     .filter((value): value is string => typeof value === "string" && value.length > 0)
     .map(sanitizeImageUrl);
   if (candidates.length === 0) return fallback;
 
-  let best = candidates[0];
-  let bestScore = scoreImageUrl(best);
-  for (const candidate of candidates.slice(1)) {
-    const score = scoreImageUrl(candidate);
-    if (score > bestScore) {
-      best = candidate;
-      bestScore = score;
+  // Ưu tiên ảnh poster dọc
+  for (const c of candidates) {
+    const l = c.toLowerCase();
+    if (l.includes("poster_") || l.includes("/poster") || l.includes("-poster") || l.includes("/w500") || l.includes("/w300")) {
+      return c;
     }
   }
-  return best;
+  return candidates[0];
+}
+
+export function pickBestMovieThumb(movie: MovieLike, fallback = "/default-hero.jpg"): string {
+  if (!movie) return fallback;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rawMovie = (movie as any)?.movie || movie;
+  const isVsmov = isVsmovSource(movie);
+
+  // VSMOV đảo ngược trường: poster_url là backdrop ngang (16:9), thumb_url là poster dọc (2:3)
+  const primary = isVsmov
+    ? rawMovie.poster_url || rawMovie.posterUrl || movie.poster_url || movie.posterUrl
+    : rawMovie.thumb_url || rawMovie.thumbUrl || movie.thumb_url || movie.thumbUrl;
+
+  const secondary = isVsmov
+    ? rawMovie.thumb_url || rawMovie.thumbUrl || movie.thumb_url || movie.thumbUrl
+    : rawMovie.poster_url || rawMovie.posterUrl || movie.poster_url || movie.posterUrl;
+
+  const candidates = [primary, secondary, movie.imageUrl]
+    .filter((value): value is string => typeof value === "string" && value.length > 0)
+    .map(sanitizeImageUrl);
+  if (candidates.length === 0) return fallback;
+
+  // Ưu tiên ảnh thumb ngang / backdrop
+  for (const c of candidates) {
+    const l = c.toLowerCase();
+    if (l.includes("thumb_") || l.includes("/thumb") || l.includes("-thumb") || l.includes("backdrop") || l.includes("w780") || l.includes("w1280")) {
+      return c;
+    }
+  }
+  return candidates[0];
+}
+
+export function pickBestMovieImage(movie: MovieLike, fallback: string) {
+  return pickBestMovieThumb(movie, fallback);
 }
 
 export function buildMovieDescriptionFallback(movie: {
@@ -103,6 +148,8 @@ export interface NormalizedMovie {
   title: string;
   origin_name?: string;
   imageUrl: string;
+  posterUrl: string;
+  thumbUrl: string;
   year: string;
   time?: string;
   quality: string;
@@ -195,7 +242,9 @@ export function extractMovieCountry(m: any): string | undefined {
 export function normalizeMovie(m: any): NormalizedMovie {
   const title = m?.name || m?.title || "Phim";
   const origin_name = m?.origin_name || undefined;
-  const imageUrl = pickBestMovieImage(m, "/default-poster.jpg");
+  const posterUrl = pickBestMoviePoster(m, "/default-poster.jpg");
+  const thumbUrl = pickBestMovieThumb(m, "/default-hero.jpg");
+  const imageUrl = posterUrl;
   const year = m?.year ? String(m.year) : "";
   const quality = m?.quality || "FHD";
   const time = m?.time || m?.episode_current || undefined;
@@ -296,6 +345,8 @@ export function normalizeMovie(m: any): NormalizedMovie {
     title,
     origin_name,
     imageUrl,
+    posterUrl,
+    thumbUrl,
     year,
     time,
     quality,

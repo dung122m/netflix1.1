@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Bell } from "lucide-react";
+import { Bell, Play, Zap } from "lucide-react";
 import { FootballMatch } from "@/services/liveFootballService";
 import { useMatchReminders } from "@/hooks/useMatchReminders";
 
@@ -16,6 +16,7 @@ function getTeamInitials(teamName: string): string {
   const clean = teamName
     .replace(/^CLB\s+/i, "")
     .replace(/^FC\s+/i, "")
+    .replace(/^SSC\s+/i, "")
     .replace(/^U\d+\s+/i, "")
     .trim();
   const words = clean.split(/\s+/).filter(Boolean);
@@ -31,8 +32,9 @@ function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
   const { isReminded, addReminder, removeReminder } = useMatchReminders();
 
   const isFhd = match.quality.includes("FHD");
+  const isLive = match.timeline === "live";
   const reminded = isReminded(match.id);
-  const isUpcoming = match.timeline !== "live" || match.timestamp > Date.now();
+  const isUpcoming = !isLive || match.timestamp > Date.now();
 
   const validHomeLogo =
     Boolean(match.homeLogo) &&
@@ -44,50 +46,57 @@ function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
     !match.awayLogo?.includes("tinhlagi.pro/logo.jpg") &&
     !awayError;
 
+  // Tổng hợp tên các đài phát (COLA TV, Gà Vàng...)
+  const displayGroups = match.groups && match.groups.length > 0
+    ? match.groups.map((g) => g.replace(/^[🔴🟢🟡⚪🟠\s]+/, "").trim())
+    : [match.group.replace(/^[🔴🟢🟡⚪🟠\s]+/, "").trim()];
+
+  const primaryGroup = displayGroups[0] || match.group;
+
   return (
     <div
       onClick={() => onSelect(match)}
-      className={`group relative rounded-2xl sm:rounded-3xl border p-4 cursor-pointer transition-all duration-300 flex flex-col justify-between ${
+      className={`group relative rounded-2xl sm:rounded-3xl border p-4 cursor-pointer transition-all duration-300 flex flex-col justify-between overflow-hidden ${
         isSelected
-          ? "bg-gradient-to-b from-zinc-900 via-zinc-900 to-zinc-950 border-netflix-red shadow-xl shadow-red-950/60 ring-2 ring-netflix-red/60 scale-[1.02]"
-          : "bg-gradient-to-b from-zinc-900/90 to-zinc-950/80 border-white/10 hover:border-white/35 hover:bg-zinc-900 hover:shadow-xl hover:shadow-black/70 hover:-translate-y-1"
+          ? "bg-gradient-to-b from-zinc-900 via-zinc-900 to-zinc-950 border-netflix-red shadow-2xl shadow-red-950/70 ring-2 ring-netflix-red/60 scale-[1.02]"
+          : "bg-gradient-to-b from-zinc-900/90 to-zinc-950/90 border-white/10 hover:border-white/35 hover:bg-zinc-850 hover:shadow-xl hover:shadow-black/80 hover:-translate-y-1"
       }`}
     >
-      {/* 1. HEADER: KÊNH, THỜI GIAN & HUY HIỆU CHẤT LƯỢNG (FHD / HD) */}
-      <div className="flex items-center justify-between gap-2 mb-3">
-        <div className="flex items-center gap-1.5 flex-wrap">
-          {match.timeline === "live" ? (
-            <span className="px-2.5 py-0.5 rounded-full bg-red-600 text-white font-black text-[10px] flex items-center gap-1.5 shadow-md shadow-red-950/60 tracking-wider animate-pulse">
+      {/* Glow viền ambient khi đang đá (Live) */}
+      {isLive && (
+        <div className="pointer-events-none absolute -top-12 -right-12 w-32 h-32 bg-red-600/20 rounded-full blur-2xl group-hover:bg-red-600/30 transition-all" />
+      )}
+
+      {/* 1. HEADER ROW: TRẠNG THÁI / NGUỒN PHÁT (TRÁI) & THỜI GIAN / CHẤT LƯỢNG / NHẮC HẸN (PHẢI) */}
+      <div className="flex items-center justify-between gap-1.5 mb-2.5 relative z-10 w-full min-w-0">
+        {/* TRÁI: ĐANG ĐÁ HOẶC NGUỒN PHÁT */}
+        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+          {isLive ? (
+            <span className="px-2.5 py-0.5 rounded-full bg-red-600 text-white font-black text-[10.5px] flex items-center gap-1.5 shadow-md shadow-red-950/60 tracking-wider animate-pulse whitespace-nowrap flex-shrink-0">
               <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
               <span>ĐANG ĐÁ</span>
             </span>
-          ) : null}
-
-          <span className="px-2.5 py-0.5 rounded-full bg-netflix-red/15 border border-netflix-red/30 text-rose-400 font-bold text-[11px] flex items-center gap-1.5 shadow-sm">
-            <span className="w-1.5 h-1.5 rounded-full bg-netflix-red" />
-            <span>{match.group}</span>
-          </span>
-
-          {match.tournament && (
-            <span className="px-2 py-0.5 rounded-full bg-purple-500/20 border border-purple-500/40 text-purple-300 font-black text-[10px] tracking-wide shadow-sm">
-              🏆 {match.tournament}
+          ) : (
+            <span className="px-2 py-0.5 rounded-full bg-white/10 border border-white/15 text-gray-300 font-bold text-[10.5px] truncate whitespace-nowrap">
+              {primaryGroup}
             </span>
           )}
         </div>
 
-        <div className="flex items-center gap-1.5">
-          {/* HUY HIỆU CHẤT LƯỢNG NỔI BẬT */}
+        {/* PHẢI: CHẤT LƯỢNG + GIỜ ĐÁ + NHẮC HẸN */}
+        <div className="flex items-center gap-1.5 flex-shrink-0">
           <span
-            className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider border shadow-sm ${
+            className={`px-1.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider border shadow-sm flex items-center gap-0.5 whitespace-nowrap ${
               isFhd
                 ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-400 shadow-emerald-950/40"
                 : "bg-sky-500/15 border-sky-500/40 text-sky-400 shadow-sky-950/40"
             }`}
           >
-            {match.quality}
+            <Zap className="w-2.5 h-2.5 fill-current" />
+            <span>{isFhd ? "1080P" : "720P"}</span>
           </span>
 
-          <span className="text-[11px] text-gray-400 font-semibold bg-white/5 border border-white/10 px-2 py-0.5 rounded-md">
+          <span className="text-[11px] text-gray-300 font-bold bg-white/5 border border-white/10 px-2 py-0.5 rounded-md whitespace-nowrap">
             {match.time || "Trực tiếp"}
           </span>
 
@@ -104,31 +113,28 @@ function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
                   ? "Đã hẹn thông báo (Bấm để hủy)"
                   : "Nhận thông báo khi trận đấu bắt đầu"
               }
-              className={`px-1.5 sm:px-2 py-0.5 rounded-md text-[10.5px] font-bold flex items-center gap-1 transition-all cursor-pointer border ${
+              className={`p-1 rounded-md text-[10.5px] font-bold flex items-center gap-1 transition-all cursor-pointer border whitespace-nowrap ${
                 reminded
                   ? "bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm"
                   : "bg-white/5 hover:bg-white/15 text-gray-400 hover:text-white border-white/10"
               }`}
             >
               <Bell
-                className={`w-3 h-3 ${
+                className={`w-3.5 h-3.5 ${
                   reminded ? "fill-amber-400 text-amber-400 animate-pulse" : ""
                 }`}
               />
-              <span className="hidden sm:inline">
-                {reminded ? "Đã hẹn" : "Nhắc tôi"}
-              </span>
             </button>
           )}
         </div>
       </div>
 
-      {/* 2. KHU VỰC LOGO & ĐỐI ĐẦU (DUAL CLUB SCOREBOARD - CHUẨN ĐỈNH CAO) */}
-      <div className="my-2.5 p-3 sm:p-4 rounded-2xl bg-gradient-to-b from-black/70 to-zinc-950/90 border border-white/10 backdrop-blur-sm">
+      {/* 2. KHU VỰC LOGO & ĐỐI ĐẦU (DUAL CLUB SCOREBOARD) */}
+      <div className="my-2 p-3 sm:p-3.5 rounded-2xl bg-gradient-to-b from-black/70 to-zinc-950/90 border border-white/10 backdrop-blur-sm relative z-10">
         <div className="flex items-center justify-between gap-2 sm:gap-3">
           {/* ĐỘI NHÀ (TEAM 1) */}
-          <div className="flex-1 flex flex-col items-center text-center group/team">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-zinc-850 to-zinc-950 border-2 border-white/15 p-2.5 flex items-center justify-center shadow-xl mb-2 overflow-hidden transition-all duration-300 group-hover:scale-105 group-hover:border-netflix-red/60 group-hover:shadow-red-950/40">
+          <div className="flex-1 flex flex-col items-center text-center group/team min-w-0">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-950 border-2 border-white/15 p-2 flex items-center justify-center shadow-xl mb-1.5 overflow-hidden transition-all duration-300 group-hover:scale-105 group-hover:border-netflix-red/60 group-hover:shadow-red-950/40">
               {validHomeLogo ? (
                 /* eslint-disable-next-line @next/next/no-img-element */
                 <img
@@ -140,32 +146,32 @@ function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
                 />
               ) : (
                 <div className="flex flex-col items-center justify-center text-center">
-                  <span className="text-xl sm:text-2xl font-black text-rose-400 tracking-wider">
+                  <span className="text-lg sm:text-xl font-black text-rose-400 tracking-wider">
                     {getTeamInitials(match.team1)}
                   </span>
-                  <span className="text-[9px] uppercase tracking-widest text-gray-400 font-bold mt-0.5">
+                  <span className="text-[8px] uppercase tracking-widest text-gray-400 font-bold">
                     CLB
                   </span>
                 </div>
               )}
             </div>
-            <span className="text-xs sm:text-sm font-extrabold text-white line-clamp-2 leading-tight group-hover:text-rose-400 transition min-h-[2rem] flex items-center justify-center">
+            <span className="text-xs sm:text-sm font-extrabold text-white line-clamp-2 leading-tight group-hover:text-rose-400 transition min-h-[2rem] flex items-center justify-center text-center">
               {match.team1}
             </span>
           </div>
 
           {/* HUY HIỆU VS TRUNG TÂM */}
-          <div className="flex flex-col items-center flex-shrink-0 px-1 -mt-5">
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-zinc-800/90 border border-white/20 flex items-center justify-center shadow-inner">
-              <span className="text-[11px] sm:text-xs font-black text-rose-400 tracking-wider">
+          <div className="flex flex-col items-center flex-shrink-0 px-1 -mt-4">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-zinc-800/90 border border-white/20 flex items-center justify-center shadow-inner">
+              <span className="text-[10px] sm:text-[11px] font-black text-rose-400 tracking-wider">
                 VS
               </span>
             </div>
           </div>
 
           {/* ĐỘI KHÁCH (TEAM 2) */}
-          <div className="flex-1 flex flex-col items-center text-center group/team">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-zinc-850 to-zinc-950 border-2 border-white/15 p-2.5 flex items-center justify-center shadow-xl mb-2 overflow-hidden transition-all duration-300 group-hover:scale-105 group-hover:border-netflix-red/60 group-hover:shadow-red-950/40">
+          <div className="flex-1 flex flex-col items-center text-center group/team min-w-0">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-950 border-2 border-white/15 p-2 flex items-center justify-center shadow-xl mb-1.5 overflow-hidden transition-all duration-300 group-hover:scale-105 group-hover:border-sky-500/60 group-hover:shadow-sky-950/40">
               {validAwayLogo ? (
                 /* eslint-disable-next-line @next/next/no-img-element */
                 <img
@@ -177,40 +183,48 @@ function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
                 />
               ) : (
                 <div className="flex flex-col items-center justify-center text-center">
-                  <span className="text-xl sm:text-2xl font-black text-sky-400 tracking-wider">
+                  <span className="text-lg sm:text-xl font-black text-sky-400 tracking-wider">
                     {getTeamInitials(match.team2)}
                   </span>
-                  <span className="text-[9px] uppercase tracking-widest text-gray-400 font-bold mt-0.5">
+                  <span className="text-[8px] uppercase tracking-widest text-gray-400 font-bold">
                     CLB
                   </span>
                 </div>
               )}
             </div>
-            <span className="text-xs sm:text-sm font-extrabold text-white line-clamp-2 leading-tight group-hover:text-rose-400 transition min-h-[2rem] flex items-center justify-center">
+            <span className="text-xs sm:text-sm font-extrabold text-white line-clamp-2 leading-tight group-hover:text-rose-400 transition min-h-[2rem] flex items-center justify-center text-center">
               {match.team2 || "Đối thủ"}
             </span>
           </div>
         </div>
       </div>
 
-      {/* 3. FOOTER: BLV TIẾNG VIỆT & SỐ LƯỢNG MÁY CHỦ */}
-      <div className="flex items-center justify-between gap-2 pt-2 border-t border-white/5 text-[11px]">
-        {match.blv ? (
-          <span className="text-rose-400 font-bold flex items-center gap-1 truncate">
-            <span>🎙️</span>
-            <span className="truncate">{match.blv}</span>
-          </span>
-        ) : (
-          <span className="text-gray-400 font-medium flex items-center gap-1">
-            <span>⚽</span>
-            <span>Bình luận TV</span>
-          </span>
-        )}
+      {/* 3. FOOTER: BLV TIẾNG VIỆT & DANH SÁCH NGUỒN PHÁT */}
+      <div className="flex items-center justify-between gap-2 pt-2 border-t border-white/5 text-[11px] relative z-10">
+        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+          {match.blv ? (
+            <span className="text-rose-400 font-bold flex items-center gap-1 truncate" title={`BLV ${match.blv}`}>
+              <span>🎙️</span>
+              <span className="truncate">{match.blv}</span>
+            </span>
+          ) : (
+            <span className="text-gray-400 font-medium flex items-center gap-1 truncate">
+              <span>⚽</span>
+              <span className="truncate">{primaryGroup}</span>
+            </span>
+          )}
+        </div>
 
-        <span className="text-gray-400 flex items-center gap-1 flex-shrink-0">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-          <span>{match.servers.length} máy chủ</span>
-        </span>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <span className="text-gray-400 flex items-center gap-1 text-[10.5px] font-semibold">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+            <span>{match.servers.length} nguồn</span>
+          </span>
+
+          <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-netflix-red text-white p-1 rounded-full shadow-md">
+            <Play className="w-2.5 h-2.5 fill-current" />
+          </span>
+        </div>
       </div>
     </div>
   );

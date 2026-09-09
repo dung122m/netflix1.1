@@ -1,4 +1,5 @@
 import { movieApi } from "@/services/movieApi";
+import { GoogleGenAI } from "@google/genai";
 
 export interface ActorFilmography {
   name: string;
@@ -7,11 +8,14 @@ export interface ActorFilmography {
   titles: string[];
 }
 
-// 1. KHO TRI THỨC DIỄN VIÊN ĐIỆN ẢNH TUYỂN CHỌN (0 TOKEN & 0MS PHẢN HỒI)
+// =========================================================================
+// 1. KHO TRI THỨC DIỄN VIÊN & ĐẠO DIỄN TUYỂN CHỌN SIÊU TỐC (0 TOKEN & 0MS)
+// =========================================================================
 export const KNOWN_ACTORS_FILMOGRAPHY: ActorFilmography[] = [
+  // --- HỒNG KÔNG & TRUNG QUỐC ---
   {
     name: "Thành Long",
-    aliases: ["thanh long", "jackie chan", "thành long"],
+    aliases: ["thanh long", "jackie chan", "thành long", "thanhlong"],
     country: "Hồng Kông 🇭🇰",
     titles: [
       "Kế Hoạch Baby",
@@ -29,7 +33,7 @@ export const KNOWN_ACTORS_FILMOGRAPHY: ActorFilmography[] = [
   },
   {
     name: "Châu Tinh Trì",
-    aliases: ["chau tinh tri", "stephen chow", "châu tinh trì", "tinh gia"],
+    aliases: ["chau tinh tri", "stephen chow", "châu tinh trì", "tinh gia", "chautinhtri"],
     country: "Hồng Kông 🇭🇰",
     titles: [
       "Tuyệt Đỉnh Kungfu",
@@ -47,7 +51,7 @@ export const KNOWN_ACTORS_FILMOGRAPHY: ActorFilmography[] = [
   },
   {
     name: "Chân Tử Đan",
-    aliases: ["chan tu dan", "donnie yen", "chân tử đan"],
+    aliases: ["chan tu dan", "donnie yen", "chân tử đan", "chantudan"],
     country: "Trung Quốc 🇨🇳",
     titles: [
       "Diệp Vấn",
@@ -64,7 +68,7 @@ export const KNOWN_ACTORS_FILMOGRAPHY: ActorFilmography[] = [
   },
   {
     name: "Lý Liên Kiệt",
-    aliases: ["ly lien kiet", "jet li", "lý liên kiệt"],
+    aliases: ["ly lien kiet", "jet li", "lý liên kiệt", "lylienkid"],
     country: "Trung Quốc 🇨🇳",
     titles: [
       "Hoàng Phi Hồng",
@@ -78,7 +82,7 @@ export const KNOWN_ACTORS_FILMOGRAPHY: ActorFilmography[] = [
   },
   {
     name: "Ngô Kinh",
-    aliases: ["ngo kinh", "wu jing", "ngô kinh"],
+    aliases: ["ngo kinh", "wu jing", "ngô kinh", "ngokinh"],
     country: "Trung Quốc 🇨🇳",
     titles: [
       "Chiến Lang",
@@ -157,6 +161,102 @@ export const KNOWN_ACTORS_FILMOGRAPHY: ActorFilmography[] = [
     ],
   },
   {
+    name: "Địch Lệ Nhiệt Ba",
+    aliases: ["dich le nhiet ba", "dilraba", "địch lệ nhiệt ba", "dilraba dilmurat"],
+    country: "Trung Quốc 🇨🇳",
+    titles: [
+      "Em Là Niềm Kiêu Hãnh Của Anh",
+      "Ngự Giao Ký",
+      "Tam Sinh Tam Thế Chẩm Thượng Thư",
+      "Trường Ca Hành",
+      "An Lạc Truyện",
+    ],
+  },
+  {
+    name: "Dương Dương",
+    aliases: ["duong duong", "yang yang", "dương dương"],
+    country: "Trung Quốc 🇨🇳",
+    titles: [
+      "Yêu Em Từ Cái Nhìn Đầu Tiên",
+      "Em Là Niềm Kiêu Hãnh Của Anh",
+      "Toàn Chức Cao Thủ",
+      "Thả Thí Thiên Hạ",
+      "Khói Lửa Nhân Gian Của Tôi",
+    ],
+  },
+
+  // --- VIỆT NAM ---
+  {
+    name: "Trấn Thành",
+    aliases: ["tran thanh", "trấn thành", "tranthanh", "xìn"],
+    country: "Việt Nam 🇻🇳",
+    titles: [
+      "Mai",
+      "Nhà Bà Nữ",
+      "Bố Già",
+      "Cua Lại Vợ Bầu",
+      "Trạng Quỳnh",
+      "Đất Rừng Phương Nam",
+      "Bệnh Viện Ma",
+    ],
+  },
+  {
+    name: "Thái Hòa",
+    aliases: ["thai hoa", "thái hòa", "ông hoàng phòng vé"],
+    country: "Việt Nam 🇻🇳",
+    titles: [
+      "Để Mai Tính",
+      "Tèo Em",
+      "Quả Tim Máu",
+      "Tiệc Trăng Máu",
+      "Chàng Vợ Của Em",
+      "Cây Táo Nở Hoa",
+      "Con Nhót Mót Chồng",
+      "Địa Đạo",
+    ],
+  },
+  {
+    name: "Ninh Dương Lan Ngọc",
+    aliases: ["ninh duong lan ngoc", "lan ngoc", "ninh dương lan ngọc"],
+    country: "Việt Nam 🇻🇳",
+    titles: [
+      "Cua Lại Vợ Bầu",
+      "Gái Già Lắm Chiêu 2",
+      "Gái Già Lắm Chiêu 3",
+      "Cô Ba Sài Gòn",
+      "Tấm Cám: Chuyện Chưa Kể",
+      "Cô Gái Từ Quá Khứ",
+    ],
+  },
+  {
+    name: "Thu Trang",
+    aliases: ["thu trang", "tiến luật", "hoa hậu làng hài"],
+    country: "Việt Nam 🇻🇳",
+    titles: [
+      "Chị Mười Ba",
+      "Tiệc Trăng Máu",
+      "Nghề Siêu Dễ",
+      "Đôi Mắt Âm Dương",
+      "Chuyện Xóm Tui",
+      "Con Nhót Mót Chồng",
+    ],
+  },
+  {
+    name: "Kiều Minh Tuấn",
+    aliases: ["kieu minh tuan", "kiều minh tuấn"],
+    country: "Việt Nam 🇻🇳",
+    titles: [
+      "Em Chưa 18",
+      "Tiệc Trăng Máu",
+      "Chìa Khóa Trăm Tỷ",
+      "Nghề Siêu Dễ",
+      "Kẻ Ẩn Danh",
+      "Cô Gái Đến Từ Hôm Qua",
+    ],
+  },
+
+  // --- HÀN QUỐC ---
+  {
     name: "Song Joong Ki",
     aliases: ["song joong ki", "song joong-ki", "song joongki"],
     country: "Hàn Quốc 🇰🇷",
@@ -197,6 +297,18 @@ export const KNOWN_ACTORS_FILMOGRAPHY: ActorFilmography[] = [
     ],
   },
   {
+    name: "Son Ye Jin",
+    aliases: ["son ye jin", "son ye-jin", "sonyejin"],
+    country: "Hàn Quốc 🇰🇷",
+    titles: [
+      "Hạ Cánh Nơi Anh",
+      "Chị Đẹp Mua Cơm Ngon Cho Tôi",
+      "Cổ Điển",
+      "Và Em Sẽ Đến",
+      "Đàm Phán Sinh Tử",
+    ],
+  },
+  {
     name: "Park Seo Joon",
     aliases: ["park seo joon", "park seo-joon", "park seojoon"],
     country: "Hàn Quốc 🇰🇷",
@@ -206,7 +318,7 @@ export const KNOWN_ACTORS_FILMOGRAPHY: ActorFilmography[] = [
       "Thanh Xuân Vật Vã",
       "Cảnh Sát Tập Sự",
       "Bàn Tay Diệt Quỷ",
-      "Ký Sinh Trùng",
+      "Sinh Vật Gyeongseong",
     ],
   },
   {
@@ -236,8 +348,34 @@ export const KNOWN_ACTORS_FILMOGRAPHY: ActorFilmography[] = [
     ],
   },
   {
+    name: "Song Hye Kyo",
+    aliases: ["song hye kyo", "song hye-kyo", "songhyekyo"],
+    country: "Hàn Quốc 🇰🇷",
+    titles: [
+      "Vinh Quang Trong Thù Hận",
+      "Hậu Duệ Mặt Trời",
+      "Gió Mùa Đông Năm Ấy",
+      "Ngôi Nhà Hạnh Phúc",
+      "Trái Tim Mùa Thu",
+    ],
+  },
+  {
+    name: "IU (Lee Ji Eun)",
+    aliases: ["iu", "lee ji eun", "lee ji-eun"],
+    country: "Hàn Quốc 🇰🇷",
+    titles: [
+      "Khách Sạn Ánh Trăng",
+      "Người Tình Ánh Trăng",
+      "Ông Chú Của Tôi",
+      "Người Môi Giới",
+      "Dream (Ước Mơ)",
+    ],
+  },
+
+  // --- HOLLYWOOD & QUỐC TẾ ---
+  {
     name: "Tom Cruise",
-    aliases: ["tom cruise"],
+    aliases: ["tom cruise", "tomcruise"],
     country: "Hollywood 🇺🇸",
     titles: [
       "Nhiệm Vụ Bất Khả Thi",
@@ -249,110 +387,157 @@ export const KNOWN_ACTORS_FILMOGRAPHY: ActorFilmography[] = [
     ],
   },
   {
-    name: "Leonardo DiCaprio",
-    aliases: ["leonardo dicaprio", "dicaprio", "leo dicaprio"],
-    country: "Hollywood 🇺🇸",
-    titles: [
-      "Titanic",
-      "Kẻ Trộm Giấc Mơ",
-      "Đảo Kinh Hoàng",
-      "Sói Già Phố Wall",
-      "Người Về Từ Cõi Chết",
-      "Bắt Tôi Nếu Có Thể",
-    ],
-  },
-  {
-    name: "Keanu Reeves",
-    aliases: ["keanu reeves", "john wick"],
-    country: "Hollywood 🇺🇸",
-    titles: [
-      "John Wick",
-      "John Wick 2",
-      "John Wick 3",
-      "John Wick 4",
-      "Ma Trận",
-      "Địa Ngục Constantine",
-      "Tốc Độ",
-    ],
-  },
-  {
     name: "Robert Downey Jr",
-    aliases: ["robert downey", "robert downey jr", "iron man"],
+    aliases: ["robert downey jr", "rdj", "iron man", "tony stark"],
     country: "Hollywood 🇺🇸",
     titles: [
       "Người Sắt",
       "Người Sắt 2",
       "Người Sắt 3",
-      "Biệt Đội Siêu Anh Hùng",
+      "Avengers: Hồi Kết",
+      "Avengers: Cuộc Chiến Vô Cực",
       "Sherlock Holmes",
       "Oppenheimer",
     ],
   },
   {
-    name: "Dwayne Johnson",
-    aliases: ["dwayne johnson", "the rock"],
+    name: "Leonardo DiCaprio",
+    aliases: ["leonardo dicaprio", "leo dicaprio"],
     country: "Hollywood 🇺🇸",
     titles: [
-      "Fast & Furious 7",
-      "Fast & Furious 8",
-      "Jumanji: Trò Chơi Kỳ Ảo",
-      "Tòa Tháp Chọc Trời",
-      "Siêu Thú Cuồng Nộ",
-      "Black Adam",
+      "Titanic",
+      "Kẻ Đánh Cắp Giấc Mơ",
+      "Sói Già Phố Wall",
+      "Người Về Từ Cõi Chết",
+      "Đảo Kinh Hoàng",
+      "Chuyện Ngày Xưa Ở Hollywood",
     ],
   },
   {
-    name: "Trấn Thành",
-    aliases: ["tran thanh", "trấn thành"],
-    country: "Việt Nam 🇻🇳",
+    name: "Keanu Reeves",
+    aliases: ["keanu reeves", "john wick", "neo"],
+    country: "Hollywood 🇺🇸",
     titles: [
-      "Bố Già",
-      "Nhà Bà Nữ",
-      "Mai",
-      "Cua Lại Vợ Bầu",
-      "Trạng Quỳnh",
+      "Sát Thủ John Wick",
+      "John Wick 2",
+      "John Wick 3",
+      "Sát Thủ John Wick 4",
+      "Ma Trận",
+      "Constantine",
+      "Kẻ Tốc Độ",
     ],
   },
   {
-    name: "Thái Hòa",
-    aliases: ["thai hoa", "thái hòa"],
-    country: "Việt Nam 🇻🇳",
+    name: "Cillian Murphy",
+    aliases: ["cillian murphy", "tommy shelby", "oppenheimer"],
+    country: "Hollywood 🇺🇸",
     titles: [
-      "Để Mai Tính",
-      "Tèo Em",
-      "Tiệc Trăng Máu",
-      "Chuyện Xóm Tui",
-      "Quả Tim Máu",
-      "Cây Táo Nở Hoa",
+      "Oppenheimer",
+      "Bóng Ma Anh Quốc (Peaky Blinders)",
+      "Kẻ Đánh Cắp Giấc Mơ",
+      "Cuộc Di Tản Dunkirk",
+      "Kỵ Sĩ Bóng Đêm",
+    ],
+  },
+  {
+    name: "Brad Pitt",
+    aliases: ["brad pitt", "bradpitt"],
+    country: "Hollywood 🇺🇸",
+    titles: [
+      "Sát Thủ Đối Đầu",
+      "Chiến Binh Số Một",
+      "Ông Bà Smith",
+      "Chuyện Ngày Xưa Ở Hollywood",
+      "Cuộc Chiến Sinh Tử",
+      "Câu Lạc Bộ Đấm Bốc",
+    ],
+  },
+  {
+    name: "Scarlett Johansson",
+    aliases: ["scarlett johansson", "black widow", "natasha romanoff"],
+    country: "Hollywood 🇺🇸",
+    titles: [
+      "Góa Phụ Đen",
+      "Avengers: Hồi Kết",
+      "Avengers: Cuộc Chiến Vô Cực",
+      "Vỏ Bọc Ma Ma",
+      "Lucy",
+      "Câu Chuyện Hôn Nhân",
+    ],
+  },
+
+  // --- ĐẠO DIỄN HUYỀN THOẠI ---
+  {
+    name: "Christopher Nolan",
+    aliases: ["christopher nolan", "nolan"],
+    country: "Đạo Diễn Huyền Thoại 🎬",
+    titles: [
+      "Oppenheimer",
+      "Hố Tử Thần (Interstellar)",
+      "Kẻ Đánh Cắp Giấc Mơ (Inception)",
+      "Kỵ Sĩ Bóng Đêm (The Dark Knight)",
+      "Kỵ Sĩ Bóng Đêm Trỗi Dậy",
+      "Tenet",
+      "Cuộc Di Tản Dunkirk",
+      "Mê Cung Ký Ức (Memento)",
+    ],
+  },
+  {
+    name: "James Cameron",
+    aliases: ["james cameron"],
+    country: "Đạo Diễn Huyền Thoại 🎬",
+    titles: [
+      "Avatar: Dòng Chảy Của Nước",
+      "Avatar",
+      "Titanic",
+      "Kẻ Hủy Diệt 2",
+      "Quái Vật Không Gian (Aliens)",
+    ],
+  },
+  {
+    name: "Denis Villeneuve",
+    aliases: ["denis villeneuve"],
+    country: "Đạo Diễn Huyền Thoại 🎬",
+    titles: [
+      "Dune: Hành Tinh Cát",
+      "Dune: Hành Tinh Cát (Phần 2)",
+      "Tử Địa Blade Runner 2049",
+      "Cuộc Đổ Bộ Bí Ẩn (Arrival)",
+      "Ranh Giới (Sicario)",
+    ],
+  },
+  {
+    name: "Bong Joon Ho",
+    aliases: ["bong joon ho", "bong joon-ho"],
+    country: "Hàn Quốc 🇰🇷",
+    titles: [
+      "Ký Sinh Trùng (Parasite)",
+      "Chuyến Tàu Băng Giá (Snowpiercer)",
+      "Quái Vật Sông Hàn (The Host)",
+      "Hồi Ức Kẻ Sát Nhân",
     ],
   },
 ];
 
-// Bộ nhớ đệm tra cứu diễn viên bằng AI (TTL: 7 ngày)
-const ACTOR_AI_CACHE = new Map<string, { titles: string[]; actorName: string; expireAt: number }>();
+// Cache bộ nhớ nhanh cho các câu hỏi AI (TTL: 7 ngày)
+const ACTOR_AI_CACHE = new Map<string, { actorName: string; titles: string[]; expireAt: number }>();
 const CACHE_7_DAYS = 7 * 24 * 60 * 60 * 1000;
 
-export function cleanString(str: string): string {
-  return str
+/**
+ * Chuẩn hoá chuỗi để so khớp không dấu
+ */
+function normalizeForMatch(str: string): string {
+  return (str || "")
     .toLowerCase()
-    .normalize("NFC")
-    .replace(/[.,/#!$%^&*;:{}=\-_`~()?"'<>\\/]/g, " ")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\w\s]/gi, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
 
-export function removeAccents(str: string): string {
-  return str
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/đ/g, "d")
-    .replace(/Đ/g, "D");
-}
-
 /**
- * 2. NHẬN DIỆN DIỄN VIÊN & LẤY DANH SÁCH PHIM TIÊU BIỂU
- * Kiểm tra local dictionary trước (0 token).
- * Nếu không có trong từ điển, gọi Google Gemini để chuyển đổi tên diễn viên thành danh sách phim!
+ * 2. PHÂN GIẢI NHANH TÊN DIỄN VIÊN / ĐẠO DIỄN (Ưu tiên Dictionary 0ms, fallback Gemini 1.2s)
  */
 export async function resolveActorMovies(keyword: string): Promise<{
   actorName: string;
@@ -361,23 +546,24 @@ export async function resolveActorMovies(keyword: string): Promise<{
   isActor: boolean;
   source: "local" | "gemini" | "none";
 }> {
-  const clean = cleanString(keyword);
-  const cleanNoAccent = removeAccents(clean);
+  if (!keyword || keyword.trim().length < 2) {
+    return { actorName: "", titles: [], isActor: false, source: "none" };
+  }
 
-  // 2.1 Kiểm tra Local Dictionary (0 Token, 0ms)
+  const clean = keyword.trim().toLowerCase();
+  const normalizedKeyword = normalizeForMatch(clean);
+
+  // 2.1 Tra cứu tức thì trong Kho Tri Thức Local (0ms)
   for (const item of KNOWN_ACTORS_FILMOGRAPHY) {
     const isMatch = item.aliases.some((alias) => {
-      const aClean = cleanString(alias);
-      const aNoAccent = removeAccents(aClean);
+      const normAlias = normalizeForMatch(alias);
       return (
-        clean === aClean ||
-        cleanNoAccent === aNoAccent ||
-        clean.includes(aClean) ||
-        cleanNoAccent.includes(aNoAccent) ||
-        (clean.length >= 4 && aClean.includes(clean)) ||
-        (cleanNoAccent.length >= 4 && aNoAccent.includes(cleanNoAccent))
+        normalizedKeyword === normAlias ||
+        normalizedKeyword.includes(normAlias) ||
+        normAlias.includes(normalizedKeyword)
       );
     });
+
     if (isMatch) {
       return {
         actorName: item.name,
@@ -400,65 +586,67 @@ export async function resolveActorMovies(keyword: string): Promise<{
     };
   }
 
-  // 2.3 Nếu keyword có dấu hiệu tìm diễn viên hoặc là từ 2-4 chữ (tên riêng), hỏi Gemini
+  // 2.3 Nhận diện nếu từ khóa có dấu hiệu tìm diễn viên hoặc là tên riêng
   const words = clean.split(/\s+/);
   const looksLikeActor =
     clean.includes("diễn viên") ||
     clean.includes("đóng") ||
     clean.includes("phim của") ||
+    clean.includes("đạo diễn") ||
     (words.length >= 2 && words.length <= 4 && !clean.includes("tập") && !clean.includes("phim lẻ"));
 
   if (!looksLikeActor) {
-    return {
-      actorName: "",
-      titles: [],
-      isActor: false,
-      source: "none",
-    };
+    return { actorName: "", titles: [], isActor: false, source: "none" };
   }
 
   const apiKey = process.env.GEMINI_API_KEY?.trim();
   if (!apiKey) {
-    return {
-      actorName: "",
-      titles: [],
-      isActor: false,
-      source: "none",
-    };
+    return { actorName: "", titles: [], isActor: false, source: "none" };
   }
 
   try {
     const promptText = `Người dùng đang tìm phim liên quan đến từ khóa: "${keyword}".
-Nếu đây là tên một diễn viên điện ảnh (hoặc người nổi tiếng tham gia đóng phim), hãy trả về:
+Nếu đây là tên một diễn viên/đạo diễn điện ảnh, hãy trả về:
 {
   "isActor": true,
-  "actorName": "Tên chuẩn của diễn viên",
-  "titles": ["Tên phim 1 (tiếng Việt)", "Tên phim 2 (tiếng Việt)", "Tên phim 3", "Tên phim 4", "Tên phim 5", "Tên phim 6", "Tên phim 7", "Tên phim 8"]
+  "actorName": "Tên chuẩn",
+  "titles": ["Phim 1 (tiếng Việt)", "Phim 2", "Phim 3", "Phim 4", "Phim 5", "Phim 6"]
 }
-Nếu đây KHÔNG PHẢI là tên diễn viên (mà là tên phim, câu hỏi thông thường), trả về {"isActor": false}.
-Trả về DUY NHẤT một chuỗi JSON hợp lệ.`;
+Nếu KHÔNG PHẢI tên diễn viên/đạo diễn, trả về {"isActor": false}.
+Chỉ trả về JSON thuần túy.`;
 
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: promptText }] }],
-          generationConfig: {
-            responseMimeType: "application/json",
-            temperature: 0.3,
-            maxOutputTokens: 600, // Token cực nhỏ chỉ ~100 tokens
-          },
-        }),
-        signal: AbortSignal.timeout(5000),
+    const ai = new GoogleGenAI({ apiKey, vertexai: false });
+    const ACTOR_MODELS = ["gemini-3.6-flash", "gemini-2.5-flash"];
+    let rawText: string | null = null;
+
+    for (const model of ACTOR_MODELS) {
+      try {
+        const result = await Promise.race([
+          ai.models.generateContent({
+            model,
+            contents: promptText,
+            config: {
+              responseMimeType: "application/json",
+              temperature: 0.2,
+              maxOutputTokens: 500,
+            },
+          }),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error("AI timeout")), 1200)
+          ),
+        ]);
+        const text = result.text?.trim();
+        if (text) {
+          rawText = text;
+          break;
+        }
+      } catch {
+        // Fallback tức thì nếu timeout hoặc quá tải
       }
-    );
+    }
 
-    if (res.ok) {
-      const data = await res.json();
-      let text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "{}";
-      text = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "");
+    if (rawText) {
+      const text = rawText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "");
       const parsed = JSON.parse(text);
 
       if (parsed.isActor && Array.isArray(parsed.titles) && parsed.titles.length > 0) {
@@ -499,10 +687,10 @@ const CACHE_1_HOUR = 60 * 60 * 1000;
  */
 export async function fetchMoviesByTitles(
   titles: string[],
-  maxMovies = 18
+  maxMovies = 16
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<any[]> {
-  const cacheKey = titles.slice(0, 10).join("|");
+  const cacheKey = titles.slice(0, 8).join("|");
   const cached = ACTOR_FILM_CACHE.get(cacheKey);
   if (cached && cached.expireAt > Date.now()) {
     return cached.items.slice(0, maxMovies);
@@ -512,8 +700,8 @@ export async function fetchMoviesByTitles(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const results: any[] = [];
 
-  // Giảm số lượng truy vấn xuống 8 tựa đề chính xác nhất để tối ưu tốc độ phản hồi và tải trang tức thì
-  const tasks = titles.slice(0, 8).map(async (t) => {
+  // Thực thi song song tối đa 6 truy vấn chính xác nhất để phản hồi trong chớp mắt
+  const tasks = titles.slice(0, 6).map(async (t) => {
     try {
       const cleanTitle = t.replace(/\([^)]*\)/g, "").trim();
       const res = await movieApi.getMovies({

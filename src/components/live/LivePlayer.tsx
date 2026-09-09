@@ -19,6 +19,9 @@ import {
   ChevronDown,
   ChevronUp,
   Bell,
+  Sparkles,
+  PictureInPicture2,
+  Zap,
 } from "lucide-react";
 import { FootballMatch, StreamServer } from "@/services/liveFootballService";
 import { useMatchReminders } from "@/hooks/useMatchReminders";
@@ -48,7 +51,6 @@ export function LivePlayer({
   team2 = match?.team2,
   homeLogo = match?.homeLogo,
   awayLogo = match?.awayLogo,
-  logo: _logo = match?.logo,
 }: LivePlayerProps) {
   const { isReminded, addReminder, removeReminder } = useMatchReminders();
   const matchId = match?.id;
@@ -61,8 +63,9 @@ export function LivePlayer({
   const [selectedServerIndex, setSelectedServerIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
-  const [volume, setVolume] = useState<number>(0.9); // Mặc định 90%
+  const [volume, setVolume] = useState<number>(0.9);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isPip, setIsPip] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -73,7 +76,6 @@ export function LivePlayer({
   const INITIAL_SERVER_LIMIT = 8;
   const hasMoreServers = servers.length > INITIAL_SERVER_LIMIT;
 
-  // Tự động mở rộng nếu server đang phát nằm ngoài 8 máy chủ đầu
   useEffect(() => {
     if (selectedServerIndex >= INITIAL_SERVER_LIMIT) {
       setShowAllServers(true);
@@ -92,7 +94,7 @@ export function LivePlayer({
   const volumeRef = useRef(volume);
   const isMutedRef = useRef(isMuted);
 
-  // Khôi phục mức âm lượng đã lưu từ localStorage (nếu không có hoặc bằng 0 thì lấy 0.9)
+  // Khôi phục mức âm lượng đã lưu từ localStorage
   useEffect(() => {
     try {
       const savedVol = localStorage.getItem("nanaflix_live_volume");
@@ -125,7 +127,7 @@ export function LivePlayer({
     }
   }, [volume, isMuted]);
 
-  // Tạo URL qua proxy để bypass CORS
+  // Tạo URL qua proxy để bypass CORS & IP restrictions
   const getStreamUrl = (rawUrl: string, isHls: boolean) => {
     if (!rawUrl) return "";
     if (isHls) {
@@ -151,6 +153,7 @@ export function LivePlayer({
     }, 3500);
   }, [isPlaying]);
 
+  // Khởi tạo luồng phát HLS tối ưu độ trễ thấp (Ultra Low Latency)
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !currentServer) return;
@@ -164,7 +167,6 @@ export function LivePlayer({
       hlsRef.current = null;
     }
 
-    // Nếu là luồng FLV
     if (currentServer.format === "flv") {
       setIsLoading(false);
       setHasError(true);
@@ -174,14 +176,18 @@ export function LivePlayer({
       return;
     }
 
-    // Luồng HLS (.m3u8)
     if (Hls.isSupported()) {
       const hls = new Hls({
         enableWorker: true,
-        lowLatencyMode: false,
-        backBufferLength: 30,
-        manifestLoadingTimeOut: 12000,
-        levelLoadingTimeOut: 12000,
+        lowLatencyMode: true,
+        maxBufferLength: 15,
+        maxMaxBufferLength: 30,
+        liveSyncDuration: 3,
+        liveMaxLatencyDuration: 8,
+        backBufferLength: 15,
+        manifestLoadingTimeOut: 10000,
+        levelLoadingTimeOut: 10000,
+        fragLoadingTimeOut: 10000,
         capLevelToPlayerSize: false,
       });
 
@@ -198,14 +204,12 @@ export function LivePlayer({
         video.volume = curVol;
         video.muted = isMutedRef.current;
 
-        // Thử phát có tiếng trước
         video
           .play()
           .then(() => {
             setIsPlaying(true);
           })
           .catch(() => {
-            // Trình duyệt chặn autoplay có tiếng -> Mute để tự phát, hiện nút Bật Tiếng
             setIsMuted(true);
             video.muted = true;
             video
@@ -219,15 +223,24 @@ export function LivePlayer({
 
       hls.on(Hls.Events.ERROR, (_, data) => {
         if (data.fatal) {
-          setIsLoading(false);
-          setHasError(true);
-          setErrorMessage(
-            "Tín hiệu luồng phát tạm thời gián đoạn hoặc trận đấu chưa bắt đầu. Hãy thử đổi máy chủ khác hoặc mở bằng VLC."
-          );
+          switch (data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              hls.startLoad();
+              break;
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              hls.recoverMediaError();
+              break;
+            default:
+              setIsLoading(false);
+              setHasError(true);
+              setErrorMessage(
+                "Tín hiệu luồng phát tạm thời gián đoạn hoặc trận đấu chưa bắt đầu. Hãy thử đổi máy chủ khác hoặc mở bằng VLC."
+              );
+              break;
+          }
         }
       });
     } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-      // Safari HLS Native
       video.src = activeUrl;
       const curVol = volumeRef.current || 0.9;
       video.volume = curVol;
@@ -269,7 +282,7 @@ export function LivePlayer({
   }, [selectedServerIndex, currentServer, activeUrl]);
 
   // Điều khiển Play / Pause
-  const togglePlay = () => {
+  const togglePlay = useCallback(() => {
     if (!videoRef.current) return;
     if (isPlaying) {
       videoRef.current.pause();
@@ -280,10 +293,10 @@ export function LivePlayer({
       setIsPlaying(true);
       resetControlsTimeout();
     }
-  };
+  }, [isPlaying, resetControlsTimeout]);
 
-  // Bật tiếng dứt khoát
-  const unmuteSound = () => {
+  // Bật tiếng
+  const unmuteSound = useCallback(() => {
     const targetVol = volume > 0 ? volume : 0.9;
     setVolume(targetVol);
     setIsMuted(false);
@@ -295,10 +308,10 @@ export function LivePlayer({
     try {
       localStorage.setItem("nanaflix_live_volume", String(targetVol));
     } catch {}
-  };
+  }, [volume]);
 
-  // Điều khiển Bật / Tắt tiếng (Mute / Unmute)
-  const toggleMute = () => {
+  // Bật / Tắt tiếng
+  const toggleMute = useCallback(() => {
     if (isMuted) {
       unmuteSound();
     } else {
@@ -307,18 +320,13 @@ export function LivePlayer({
         videoRef.current.muted = true;
       }
     }
-  };
+  }, [isMuted, unmuteSound]);
 
-  // Thay đổi âm lượng trực tiếp (0.0 -> 1.0)
-  const handleVolumeChange = (newVolume: number) => {
+  // Thay đổi âm lượng
+  const handleVolumeChange = useCallback((newVolume: number) => {
     const clamped = Math.max(0, Math.min(1, newVolume));
     setVolume(clamped);
-
-    if (clamped > 0) {
-      setIsMuted(false);
-    } else {
-      setIsMuted(true);
-    }
+    setIsMuted(clamped === 0);
 
     if (videoRef.current) {
       videoRef.current.volume = clamped;
@@ -328,10 +336,10 @@ export function LivePlayer({
     try {
       localStorage.setItem("nanaflix_live_volume", String(clamped));
     } catch {}
-  };
+  }, []);
 
   // Toàn màn hình
-  const toggleFullscreen = () => {
+  const toggleFullscreen = useCallback(() => {
     if (!containerRef.current) return;
     if (!document.fullscreenElement) {
       containerRef.current.requestFullscreen().catch(() => {});
@@ -340,7 +348,23 @@ export function LivePlayer({
       document.exitFullscreen().catch(() => {});
       setIsFullscreen(false);
     }
-  };
+  }, []);
+
+  // Picture in Picture (PiP)
+  const togglePip = useCallback(async () => {
+    if (!videoRef.current) return;
+    try {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+        setIsPip(false);
+      } else {
+        await videoRef.current.requestPictureInPicture();
+        setIsPip(true);
+      }
+    } catch {
+      // Ignore PiP error
+    }
+  }, []);
 
   useEffect(() => {
     const handleFsChange = () => {
@@ -351,7 +375,7 @@ export function LivePlayer({
       document.removeEventListener("fullscreenchange", handleFsChange);
   }, []);
 
-  // Phím tắt bàn phím
+  // Phím tắt bàn phím tiện ích
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (["input", "textarea"].includes((e.target as HTMLElement)?.tagName?.toLowerCase())) {
@@ -366,6 +390,9 @@ export function LivePlayer({
       } else if (e.key === "f" || e.key === "F") {
         e.preventDefault();
         toggleFullscreen();
+      } else if (e.key === "p" || e.key === "P") {
+        e.preventDefault();
+        togglePip();
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
         handleVolumeChange(volume + 0.1);
@@ -377,7 +404,7 @@ export function LivePlayer({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isPlaying, isMuted, volume]);
+  }, [togglePlay, toggleMute, toggleFullscreen, togglePip, handleVolumeChange, volume]);
 
   const handleCopyStream = () => {
     if (typeof navigator !== "undefined" && navigator.clipboard && currentServer) {
@@ -392,7 +419,14 @@ export function LivePlayer({
     window.location.href = `vlc://${currentServer.url}`;
   };
 
-  // Biểu tượng âm lượng linh hoạt
+  // Tự động chuyển máy chủ kế tiếp khi lỗi
+  const handleSwitchNextServer = () => {
+    if (servers.length > 1) {
+      const nextIndex = (selectedServerIndex + 1) % servers.length;
+      setSelectedServerIndex(nextIndex);
+    }
+  };
+
   const VolumeIcon =
     isMuted || volume === 0
       ? VolumeX
@@ -402,17 +436,18 @@ export function LivePlayer({
 
   return (
     <div className="space-y-4">
-      {/* 1. SCOREBOARD HEADER ĐỈNH CAO: HUY HIỆU CLB SIÊU TO & SẮC NÉT */}
-      <div className="relative rounded-2xl sm:rounded-3xl border border-white/15 bg-gradient-to-b from-zinc-900 via-zinc-950 to-black p-3 sm:p-5 shadow-2xl overflow-hidden w-full min-w-0">
-        {/* Glow hiệu ứng sân vận động */}
-        <div className="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 w-96 h-96 bg-red-600/15 rounded-full blur-3xl" />
+      {/* 1. SCOREBOARD HEADER SÂN CỎ ĐỈNH CAO: AMBIENT GLOW & HUY HIỆU CLB SẮC NÉT */}
+      <div className="relative rounded-2xl sm:rounded-3xl border border-white/15 bg-gradient-to-b from-zinc-900/95 via-zinc-950/98 to-black p-4 sm:p-5 shadow-2xl overflow-hidden w-full min-w-0 backdrop-blur-xl">
+        {/* Glow hiệu ứng sân vận động 2 bên */}
+        <div className="pointer-events-none absolute -top-24 left-1/4 w-96 h-96 bg-red-600/15 rounded-full blur-3xl" />
+        <div className="pointer-events-none absolute -top-24 right-1/4 w-96 h-96 bg-sky-600/15 rounded-full blur-3xl" />
 
         <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-4 sm:gap-6">
           {/* KHU VỰC 2 ĐỘI & HUY HIỆU CLB */}
           <div className="flex-1 w-full flex items-center justify-around sm:justify-center gap-2 sm:gap-6">
             {/* ĐỘI NHÀ (TEAM 1) */}
             <div className="flex flex-col items-center text-center max-w-[120px] sm:max-w-[180px] group">
-              <div className="w-14 h-14 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-2xl bg-zinc-900/90 border-2 border-white/20 p-2 sm:p-2.5 flex items-center justify-center shadow-xl transition-all duration-300 group-hover:scale-105 group-hover:border-netflix-red/70 group-hover:shadow-red-950/60">
+              <div className="w-14 h-14 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-950 border-2 border-white/20 p-2 sm:p-2.5 flex items-center justify-center shadow-xl transition-all duration-300 group-hover:scale-105 group-hover:border-netflix-red/70 group-hover:shadow-red-950/60">
                 {!homeImgError && homeLogo && !homeLogo.includes("tinhlagi.pro/logo.jpg") ? (
                   /* eslint-disable-next-line @next/next/no-img-element */
                   <img
@@ -424,7 +459,7 @@ export function LivePlayer({
                 ) : (
                   <div className="flex flex-col items-center justify-center">
                     <span className="text-xl sm:text-2xl font-black text-rose-400 tracking-wider">
-                      {team1 ? (team1.replace(/^CLB\s+/i, "").replace(/^FC\s+/i, "").slice(0, 2).toUpperCase()) : "H"}
+                      {team1 ? team1.replace(/^CLB\s+/i, "").replace(/^FC\s+/i, "").slice(0, 2).toUpperCase() : "H"}
                     </span>
                     <span className="text-[8px] sm:text-[9px] uppercase tracking-widest text-gray-400 font-bold mt-0.5">
                       CLB
@@ -444,7 +479,7 @@ export function LivePlayer({
                 <span>TRỰC TIẾP</span>
               </div>
 
-              <div className="px-2.5 py-0.5 sm:px-3.5 sm:py-1 rounded-xl bg-zinc-800/90 border border-white/15 text-xs sm:text-base font-black text-rose-400 tracking-wider shadow-inner">
+              <div className="px-3 py-1 rounded-xl bg-zinc-800/90 border border-white/15 text-xs sm:text-base font-black text-rose-400 tracking-wider shadow-inner">
                 VS
               </div>
 
@@ -457,7 +492,7 @@ export function LivePlayer({
 
             {/* ĐỘI KHÁCH (TEAM 2) */}
             <div className="flex flex-col items-center text-center max-w-[120px] sm:max-w-[180px] group">
-              <div className="w-14 h-14 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-2xl bg-zinc-900/90 border-2 border-white/20 p-2 sm:p-2.5 flex items-center justify-center shadow-xl transition-all duration-300 group-hover:scale-105 group-hover:border-netflix-red/70 group-hover:shadow-red-950/60">
+              <div className="w-14 h-14 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-950 border-2 border-white/20 p-2 sm:p-2.5 flex items-center justify-center shadow-xl transition-all duration-300 group-hover:scale-105 group-hover:border-sky-500/70 group-hover:shadow-sky-950/60">
                 {!awayImgError && awayLogo && !awayLogo.includes("tinhlagi.pro/logo.jpg") ? (
                   /* eslint-disable-next-line @next/next/no-img-element */
                   <img
@@ -469,7 +504,7 @@ export function LivePlayer({
                 ) : (
                   <div className="flex flex-col items-center justify-center">
                     <span className="text-xl sm:text-2xl font-black text-sky-400 tracking-wider">
-                      {team2 ? (team2.replace(/^CLB\s+/i, "").replace(/^FC\s+/i, "").slice(0, 2).toUpperCase()) : "A"}
+                      {team2 ? team2.replace(/^CLB\s+/i, "").replace(/^FC\s+/i, "").slice(0, 2).toUpperCase() : "A"}
                     </span>
                     <span className="text-[8px] sm:text-[9px] uppercase tracking-widest text-gray-400 font-bold mt-0.5">
                       CLB
@@ -495,26 +530,26 @@ export function LivePlayer({
                 🎙️ BLV {blv}
               </span>
             )}
-            {currentServer?.quality && (
-              <span className="px-2.5 py-0.5 rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-xs font-black uppercase">
-                ⚡ {currentServer.quality}
+            <div className="flex items-center gap-1.5">
+              <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-xs font-black uppercase">
+                <Zap className="w-3 h-3 fill-emerald-400" />
+                <span>{currentServer?.quality || "FHD 1080p"}</span>
               </span>
-            )}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* 2. KHUNG PHÁT VIDEO CHUYÊN NGHIỆP */}
+      {/* 2. KHUNG PHÁT VIDEO CHUYÊN NGHIỆP VỚI LOW-LATENCY ENGINE */}
       <div
         ref={containerRef}
         onMouseMove={resetControlsTimeout}
         onClick={() => {
-          // Trên mobile: chạm vào video để toggle controls
           setShowControls((prev) => !prev);
           resetControlsTimeout();
         }}
         onDoubleClick={toggleFullscreen}
-        className="relative w-full aspect-video bg-black rounded-2xl sm:rounded-3xl overflow-hidden border border-white/15 shadow-2xl group select-none cursor-pointer"
+        className="relative w-full aspect-video bg-black rounded-2xl sm:rounded-3xl overflow-hidden border border-white/15 shadow-2xl group select-none cursor-pointer ring-1 ring-white/10"
       >
         <video
           ref={videoRef}
@@ -525,17 +560,16 @@ export function LivePlayer({
           onPause={() => setIsPlaying(false)}
         />
 
-        {/* HUY HIỆU LIVE GÓC TRÊN TRÁI TRONG VIDEO */}
+        {/* HUY HIỆU SIGNAL & LIVE TRÊN TRÁI */}
         <div className="absolute top-3 left-3 sm:top-4 sm:left-4 flex items-center gap-2 z-20 pointer-events-none">
-          <span className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full bg-netflix-red/90 text-white text-[11px] sm:text-xs font-bold shadow-lg animate-pulse">
-            <Radio className="w-3 sm:w-3.5 h-3 sm:h-3.5" />
+          <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-netflix-red/90 text-white text-[11px] sm:text-xs font-black shadow-lg animate-pulse backdrop-blur-md">
+            <Radio className="w-3.5 h-3.5" />
             <span>TRỰC TIẾP</span>
           </span>
-          {group && (
-            <span className="px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full bg-black/70 backdrop-blur-md border border-white/20 text-gray-200 text-[10.5px] sm:text-xs font-semibold">
-              {group}
-            </span>
-          )}
+          <span className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/75 backdrop-blur-md border border-white/20 text-emerald-400 text-[11px] font-bold">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+            <span>Độ trễ thấp (Ultra Low Latency)</span>
+          </span>
         </div>
 
         {/* NÚT BẬT ÂM THANH NỔI BẬT (HIỂN THỊ KHI ĐANG MUTE) */}
@@ -549,7 +583,7 @@ export function LivePlayer({
           >
             <button
               type="button"
-              className="flex items-center gap-2 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-full bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white text-xs sm:text-sm font-black shadow-2xl border-2 border-white/40 backdrop-blur-md transition-transform hover:scale-105 active:scale-95 cursor-pointer"
+              className="flex items-center gap-2 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-full bg-gradient-to-r from-red-600 via-rose-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white text-xs sm:text-sm font-black shadow-2xl border-2 border-white/40 backdrop-blur-md transition-transform hover:scale-105 active:scale-95 cursor-pointer"
             >
               <Volume2 className="w-4 h-4 sm:w-5 sm:h-5 animate-pulse" />
               <span>🔊 BẬT ÂM THANH ({Math.round(volume * 100)}%)</span>
@@ -559,15 +593,16 @@ export function LivePlayer({
 
         {/* LOADING SPINNER */}
         {isLoading && !hasError && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/75 backdrop-blur-sm z-20 pointer-events-none">
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm z-20 pointer-events-none">
             <div className="w-12 h-12 rounded-full border-4 border-netflix-red border-t-transparent animate-spin mb-3 shadow-lg" />
-            <p className="text-xs sm:text-sm font-bold text-gray-200">
-              Đang kết nối luồng phát sóng trực tiếp...
+            <p className="text-xs sm:text-sm font-bold text-gray-200 flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-amber-400 animate-spin" />
+              <span>Đang kết nối luồng phát sóng trực tiếp...</span>
             </p>
           </div>
         )}
 
-        {/* THÔNG BÁO LỖI KHI LUỒNG CHƯA PHÁT / LỖI MẠNG */}
+        {/* THÔNG BÁO LỖI VÀ GỢI Ý CHUYỂN SERVER */}
         {hasError && (
           <div
             onClick={(e) => e.stopPropagation()}
@@ -581,7 +616,7 @@ export function LivePlayer({
             </h4>
             <p className="text-xs sm:text-sm text-gray-400 max-w-md mb-5 leading-relaxed">
               {errorMessage ||
-                "Luồng phát bóng đá thường mở trước giờ đá 15-30 phút. Nếu trận đấu đang diễn ra, vui lòng đổi sang Máy Chủ khác hoặc bấm 'Mở Bằng VLC'."}
+                "Luồng phát bóng đá thường mở trước giờ bóng lăn 15-30 phút. Hãy bấm thử lại hoặc chuyển sang máy chủ khác."}
             </p>
             <div className="flex flex-wrap gap-2.5 justify-center">
               <button
@@ -598,19 +633,31 @@ export function LivePlayer({
                 <RefreshCw className="w-3.5 h-3.5" />
                 <span>Thử tải lại</span>
               </button>
+
+              {servers.length > 1 && (
+                <button
+                  type="button"
+                  onClick={handleSwitchNextServer}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-netflix-red hover:bg-red-700 text-xs font-bold text-white transition shadow-lg shadow-red-950/50 cursor-pointer"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Đổi Máy Chủ #{((selectedServerIndex + 1) % servers.length) + 1}</span>
+                </button>
+              )}
+
               <button
                 type="button"
                 onClick={openInVlc}
                 className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-xs font-bold text-white transition shadow-lg shadow-orange-950/50 cursor-pointer"
               >
                 <Tv className="w-3.5 h-3.5" />
-                <span>Mở bằng VLC / IPTV</span>
+                <span>Mở bằng VLC</span>
               </button>
             </div>
           </div>
         )}
 
-        {/* THANH ĐIỀU KHIỂN DƯỚI ĐÁY ĐẦY ĐỦ ÂM LƯỢNG & CHỨC NĂNG */}
+        {/* THANH ĐIỀU KHIỂN DƯỚI ĐÁY ĐẦY ĐỦ CHỨC NĂNG */}
         <div
           onClick={(e) => e.stopPropagation()}
           className={`absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/95 via-black/60 to-transparent p-3 sm:p-5 flex items-center justify-between transition-opacity duration-300 z-30 ${
@@ -619,9 +666,8 @@ export function LivePlayer({
               : "opacity-0 pointer-events-none"
           }`}
         >
-          {/* CỤM BÊN TRÁI: PLAY/PAUSE + BẬT TẮT TIẾNG + THANH TRƯỢT ÂM LƯỢNG */}
+          {/* CỤM TRÁI: PLAY/PAUSE + ÂM LƯỢNG */}
           <div className="flex items-center gap-2 sm:gap-4">
-            {/* Nút Play / Pause */}
             <button
               type="button"
               onClick={togglePlay}
@@ -635,9 +681,7 @@ export function LivePlayer({
               )}
             </button>
 
-            {/* CỤM ĐIỀU KHIỂN ÂM LƯỢNG CHUYÊN NGHIỆP */}
             <div className="flex items-center gap-2 bg-black/60 px-3 py-2 rounded-full border border-white/20 backdrop-blur-md">
-              {/* Nút Mute / Unmute */}
               <button
                 type="button"
                 onClick={toggleMute}
@@ -651,7 +695,6 @@ export function LivePlayer({
                 />
               </button>
 
-              {/* Thanh trượt âm lượng (Volume Slider) */}
               <input
                 type="range"
                 min="0"
@@ -663,7 +706,6 @@ export function LivePlayer({
                 className="w-16 sm:w-24 h-1.5 bg-zinc-700 accent-netflix-red rounded-lg appearance-none cursor-pointer hover:accent-red-500 transition"
               />
 
-              {/* Hiển thị % âm lượng */}
               <span
                 onClick={toggleMute}
                 className="text-[10px] sm:text-[11px] font-mono font-bold text-gray-200 cursor-pointer hover:text-white select-none whitespace-nowrap min-w-[36px]"
@@ -673,14 +715,28 @@ export function LivePlayer({
             </div>
           </div>
 
-          {/* CỤM BÊN PHẢI: CHẤT LƯỢNG & TOÀN MÀN HÌNH */}
+          {/* CỤM PHẢI: PIP + TOÀN MÀN HÌNH */}
           <div className="flex items-center gap-2">
-            {currentServer?.quality && (
-              <span className="hidden sm:inline-block px-2.5 py-1 rounded-md bg-white/15 text-gray-200 border border-white/20 text-[10.5px] font-black uppercase tracking-wider">
-                {currentServer.quality}
-              </span>
-            )}
+            {/* Phím tắt gợi ý */}
+            <span className="hidden lg:inline text-[11px] text-gray-400 bg-black/50 px-2.5 py-1 rounded-full border border-white/10 font-mono">
+              Space: Dừng/Phát • F: Fullscreen • P: PiP
+            </span>
 
+            {/* Nút Picture in Picture */}
+            <button
+              type="button"
+              onClick={togglePip}
+              title="Xem thu nhỏ góc màn hình (PiP - Phím P)"
+              className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center transition hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md border border-white/10 ${
+                isPip
+                  ? "bg-netflix-red text-white"
+                  : "bg-white/20 hover:bg-white/30 text-white"
+              }`}
+            >
+              <PictureInPicture2 className="w-4 h-4 sm:w-5 sm:h-5" />
+            </button>
+
+            {/* Nút Toàn màn hình */}
             <button
               type="button"
               onClick={toggleFullscreen}
@@ -697,9 +753,8 @@ export function LivePlayer({
         </div>
       </div>
 
-      {/* 3. THANH THÔNG TIN TRẬN ĐẤU & CHỌN MÁY CHỦ (KHÔNG BỊ BÓP MÉO) */}
+      {/* 3. THANH THÔNG TIN TRẬN ĐẤU & CHỌN MÁY CHỦ SẮC NÉT */}
       <div className="rounded-2xl sm:rounded-3xl border border-white/10 bg-zinc-900/95 p-3.5 sm:p-5 shadow-xl space-y-3 sm:space-y-4 w-full min-w-0">
-        {/* HÀNG 1: THÔNG TIN TRẬN ĐẤU & NÚT TIỆN ÍCH */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
           <div className="space-y-1 min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs text-gray-400">
@@ -785,7 +840,7 @@ export function LivePlayer({
           </div>
         </div>
 
-        {/* HÀNG 2: DANH SÁCH MÁY CHỦ PHÁT SÓNG (NHIỀU DÒNG & CÓ NÚT XEM THÊM) */}
+        {/* DANH SÁCH MÁY CHỦ PHÁT SÓNG */}
         <div className="space-y-2.5 w-full min-w-0">
           <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-400 font-bold">
             <div className="flex items-center gap-2">
@@ -822,7 +877,6 @@ export function LivePlayer({
             )}
           </div>
 
-          {/* DANH SÁCH CÁC NÚT MÁY CHỦ: TỰ ĐỘNG XUỐNG DÒNG (FLEX-WRAP) */}
           <div className="flex flex-wrap items-center gap-2 w-full min-w-0 pt-0.5">
             {displayedServers.map((s, idx) => {
               const actualIdx = idx;
@@ -848,7 +902,6 @@ export function LivePlayer({
               );
             })}
 
-            {/* NÚT XEM THÊM NẰM TRỰC TIẾP TRONG DÒNG NẾU ĐANG THU GỌN */}
             {hasMoreServers && !showAllServers && (
               <button
                 type="button"
@@ -860,7 +913,6 @@ export function LivePlayer({
               </button>
             )}
 
-            {/* NÚT THU GỌN NẰM CUỐI DÒNG KHI ĐÃ MỞ RỘNG */}
             {hasMoreServers && showAllServers && (
               <button
                 type="button"

@@ -1,93 +1,115 @@
 import { NextRequest, NextResponse } from "next/server";
+import { GoogleGenAI } from "@google/genai";
 
-interface MovieInsight {
-  vibe: string;
-  targetAudience: string;
-  hook: string;
-  matchScore: number;
+export interface MovieEmotionalInsight {
+  actionScore: number;     // 💥 Kịch tính & Hồi hộp (0-100)
+  emotionScore: number;    // 😭 Cảm động & Sâu lắng (0-100)
+  twistScore: number;      // 🤯 Bất ngờ & Plot Twist (0-100)
+  chillScore: number;      // 🛋️ Thư giãn & Hài hước (0-100)
+  bingeScore: number;      // 🍿 Độ cuốn & Hút mắt (0-100)
+  vibeSummary: string;     // Đánh giá tổng quan phong cách & không khí phim
+  contentWarning: string;  // Lưu ý xem phim (Spoiler-free)
+  bestTimeToWatch: string; // Thời điểm xem thích hợp nhất
   highlightBadges: string[];
   provider: string;
 }
 
-// BỘ NHỚ ĐỆM CHO CÁC PHIM (LƯU 24 GIỜ TRÁNH GỌI GEMINI LẶP LẠI -> TIẾT KIỆM 100% TOKEN)
-const INSIGHT_CACHE = new Map<string, { data: MovieInsight; cachedAt: number }>();
-const INSIGHT_TTL = 24 * 60 * 60 * 1000; // 24 giờ
+// BỘ NHỚ ĐỆM 30 NGÀY CHO MỖI PHIM (TIẾT KIỆM 100% TOKEN CHO CÁC LẦN TRUY CẬP SAU)
+const EMOTIONAL_CACHE = new Map<string, { data: MovieEmotionalInsight; cachedAt: number }>();
+const CACHE_30_DAYS = 30 * 24 * 60 * 60 * 1000;
 
-// BỘ TẠO NHẬN ĐỊNH BẰNG THUẬT TOÁN ĐỊA PHƯƠNG (0 TOKEN FALLBACK)
-function generateLocalInsight(params: {
-  title: string;
+/**
+ * Thuật toán tính toán cảm xúc địa phương (0 TOKEN FALLBACK)
+ */
+function calculateLocalEmotionalRadar(params: {
+  title?: string;
   category?: string;
   country?: string;
   year?: number | string;
-  quality?: string;
-}): MovieInsight {
-  const { title, category = "", country = "", year = 2024 } = params;
+}): MovieEmotionalInsight {
+  const { category = "", country = "" } = params;
   const cat = category.toLowerCase();
   const ctry = country.toLowerCase();
 
-  let vibe = "Kịch tính, cuốn hút và giàu cảm xúc";
-  let targetAudience = "Khán giả yêu thích những câu chuyện điện ảnh có chiều sâu";
-  let hook = `Cốt truyện hấp dẫn cùng nhịp phim giữ chân người xem từ đầu đến cuối`;
-  let badges = ["Đặc Sắc", "Đáng Xem", "Trending"];
-  let score = 92;
+  let action = 65;
+  let emotion = 60;
+  let twist = 55;
+  let chill = 50;
+  let binge = 85;
+  let vibe = "Cốt truyện hấp dẫn, kịch bản cuốn hút và giữ nhịp độ tốt";
+  let warning = "Phim xem thoải mái, phù hợp cho mọi khán giả yêu điện ảnh";
+  let time = "Thích hợp xem vào buổi tối hoặc những ngày nghỉ cuối tuần";
+  const badges = ["Đặc Sắc", "Đáng Xem"];
 
-  if (cat.includes("hành động") || cat.includes("action")) {
-    vibe = "Mãn nhãn, dồn dập và nghẹt thở từng phút giây 💥";
-    targetAudience = "Fan của những pha combat đỉnh cao và rượt đuổi kịch tính";
-    hook = `Những màn giao tranh võ thuật và kỹ xảo điện ảnh đỉnh chóp`;
-    badges = ["Hành Động Đỉnh", "Kỹ Xảo Chuẩn Rạp", "Adrenaline Cao"];
-    score = 95;
+  if (cat.includes("hành động") || cat.includes("action") || cat.includes("võ thuật")) {
+    action = 92;
+    twist = 70;
+    chill = 30;
+    binge = 94;
+    vibe = "Mãn nhãn, tiết tấu dồn dập và nghẹt thở từng phút giây 💥";
+    warning = "Cảnh giác với nhịp tim tăng nhanh do các pha giao tranh đỉnh cao!";
+    time = "Xem khi cần nạp năng lượng adrenaline và bùng nổ cảm xúc";
+    badges.push("Hành Động 92%", "Adrenaline Cao");
   } else if (cat.includes("tình cảm") || cat.includes("lãng mạn") || cat.includes("romance")) {
-    vibe = "Ngọt ngào, sâu lắng và rung động từng xúc cảm 💖";
-    targetAudience = "Những ai muốn tìm kiếm sự chữa lành và niềm tin vào tình yêu";
-    hook = `Phản ứng hóa học bùng nổ cùng những thước phim thơ mộng`;
-    badges = ["Ngọt Ngào", "Chữa Lành", "Phản Ứng Bùng Nổ"];
-    score = 94;
+    emotion = 95;
+    action = 20;
+    chill = 80;
+    binge = 88;
+    vibe = "Ngọt ngào, sâu lắng và rung động từng cung bậc cảm xúc 💖";
+    warning = "Nên chuẩn bị sẵn khăn giấy cho những phân cảnh chạm tới trái tim";
+    time = "Lý tưởng xem cùng người thương hoặc những đêm tĩnh lặng một mình";
+    badges.push("Cảm Động 95%", "Chữa Lành");
   } else if (cat.includes("kinh dị") || cat.includes("horror") || cat.includes("ma")) {
-    vibe = "Rùng rợn, u ám và lạnh gáy trong bóng tối 👻";
-    targetAudience = "Tín đồ cảm giác mạnh và đam mê bóc tách bí ẩn tâm linh";
-    hook = `Bầu không khí căng thẳng nghẹt thở cùng những cú jumpscare thót tim`;
-    badges = ["Rùng Rợn", "Không Khí U Ám", "Cảm Giác Mạnh"];
-    score = 91;
+    action = 75;
+    twist = 88;
+    chill = 15;
+    binge = 90;
+    vibe = "Rùng rợn, lạnh gáy và bầu không khí u ám bao trùm 👻";
+    warning = "Khuyến cáo không nên xem một mình trong bóng tối nếu yếu tim!";
+    time = "Thích hợp xem đêm khuya để trải nghiệm trọn vẹn cảm giác rùng mình";
+    badges.push("Rùng Rợn 88%", "Thót Tim");
   } else if (cat.includes("hài") || cat.includes("comedy")) {
-    vibe = "Duyên dáng, hóm hỉnh và giải tỏa mọi áp lực 🤣";
-    targetAudience = "Thích hợp xem cùng bạn bè hoặc thư giãn sau ngày dài bận rộn";
-    hook = `Những mảng miếng hài hước thông minh không hề gượng ép`;
-    badges = ["Cười Thả Ga", "Xả Stress", "Xem Cùng Bạn Bè"];
-    score = 93;
+    chill = 95;
+    emotion = 50;
+    action = 30;
+    binge = 89;
+    vibe = "Hóm hỉnh, duyên dáng và xua tan mọi âu lo mệt mỏi 🤣";
+    warning = "Coi chừng cười nghiêng ngả vì các mảng miếng bất ngờ!";
+    time = "Xem để xả stress sau một ngày làm việc học tập căng thẳng";
+    badges.push("Hài Hước 95%", "Cười Thả Ga");
+  } else if (cat.includes("tâm lý") || cat.includes("trinh thám") || cat.includes("bí ẩn")) {
+    twist = 96;
+    action = 60;
+    chill = 25;
+    binge = 95;
+    vibe = "Căng não, đa tầng ý nghĩa và những cú bẻ lái không thể đoán trước 🧠";
+    warning = "Đừng bỏ lỡ từng chi tiết nhỏ vì đều là chìa khóa mở nút thắt cuối cùng!";
+    time = "Xem khi tinh thần tỉnh táo, thích đọ trí và suy luận logic";
+    badges.push("Plot Twist 96%", "Căng Não");
   } else if (cat.includes("hoạt hình") || cat.includes("anime")) {
-    vibe = "Màu sắc diệu kỳ, giàu trí tưởng tượng và đong đầy xúc cảm 🎨";
-    targetAudience = "Mọi lứa tuổi yêu thích nghệ thuật đồ họa và thế giới huyền ảo";
-    hook = `Nét vẽ tuyệt mỹ truyền tải thông điệp nhân văn sâu sắc`;
-    badges = ["Đồ Họa Tuyệt Đẹp", "Mọi Lứa Tuổi", "Chữa Lành"];
-    score = 96;
-  } else if (cat.includes("tâm lý") || cat.includes("trinh thám")) {
-    vibe = "Căng não, đa tầng ý nghĩa và những cú twist khó lường 🧠";
-    targetAudience = "Người thích suy luận, bóc tách tâm lý tội phạm và đấu trí";
-    hook = `Kịch bản cài cắm chi tiết tinh vi khiến bạn phải ồ lên ở phút cuối`;
-    badges = ["Plot Twist", "Căng Não", "Kịch Bản Xuất Sắc"];
-    score = 97;
-  } else if (cat.includes("cổ trang") || cat.includes("kiếm hiệp")) {
-    vibe = "Hùng tráng, giang hồ nghĩa hiệp và bối cảnh tráng lệ 🏯";
-    targetAudience = "Mê mẩn thế giới võ lâm tiên hiệp và ân oán tình thù";
-    hook = `Tạo hình cổ phong mãn nhãn cùng kỹ xảo huyền ảo`;
-    badges = ["Cổ Phong Tuyệt Mỹ", "Ân Oán Giang Hồ", "Tạo Hình Đỉnh"];
-    score = 94;
+    chill = 85;
+    emotion = 80;
+    binge = 92;
+    vibe = "Thế giới rực rỡ sắc màu, giàu trí tưởng tượng và chan chứa tình người 🎨";
+    warning = "Phù hợp cho cả gia đình cùng quây quần thưởng thức";
+    time = "Xem vào những buổi chiều thảnh thơi hoặc dịp sum họp gia đình";
+    badges.push("Đồ Họa Đỉnh", "Ý Nghĩa");
   }
 
-  if (ctry.includes("hàn quốc") || ctry.includes("korea")) {
-    badges.push("K-Drama Chuẩn");
-  } else if (ctry.includes("trung quốc") || ctry.includes("china")) {
-    badges.push("Điện Ảnh Hoa Ngữ");
-  }
+  if (ctry.includes("hàn quốc")) badges.push("K-Drama");
+  if (ctry.includes("âu mỹ") || ctry.includes("mỹ")) badges.push("Hollywood");
 
   return {
-    vibe,
-    targetAudience,
-    hook,
-    matchScore: score,
-    highlightBadges: badges.slice(0, 3),
-    provider: "Nanaflix Neural Engine (0 Token)",
+    actionScore: action,
+    emotionScore: emotion,
+    twistScore: twist,
+    chillScore: chill,
+    bingeScore: binge,
+    vibeSummary: vibe,
+    contentWarning: warning,
+    bestTimeToWatch: time,
+    highlightBadges: Array.from(new Set(badges)).slice(0, 3),
+    provider: "Nana AI",
   };
 }
 
@@ -98,90 +120,104 @@ export async function POST(req: NextRequest) {
     const title: string = body.title?.trim() || "";
     const category: string = body.category || "";
     const country: string = body.country || "";
-    const synopsis: string = (body.synopsis || "").slice(0, 300); // Cắt ngắn để tiết kiệm token
+    const synopsis: string = (body.synopsis || "").slice(0, 280); // Tối ưu prompt ngắn gọn
     const year = body.year || 2024;
 
     if (!slug || !title) {
       return NextResponse.json({ error: "Thiếu thông tin phim" }, { status: 400 });
     }
 
-    // 1. KIỂM TRA CACHE TRƯỚC (TIẾT KIỆM 100% TOKEN)
-    const cached = INSIGHT_CACHE.get(slug);
-    if (cached && Date.now() - cached.cachedAt < INSIGHT_TTL) {
+    // 1. KIỂM TRA BỘ NHỚ ĐỆM TRƯỚC (TIẾT KIỆM 100% TOKEN)
+    const cached = EMOTIONAL_CACHE.get(slug);
+    if (cached && Date.now() - cached.cachedAt < CACHE_30_DAYS) {
       return NextResponse.json({ ...cached.data, fromCache: true });
     }
 
     const apiKey = process.env.GEMINI_API_KEY?.trim();
 
-    // 2. GỌI GEMINI NẾU CÓ KEY (SIÊU TIẾT KIỆM: CHỈ ~150 PROMPT TOKEN + 150 OUTPUT TOKEN)
+    // 2. GỌI GEMINI NẾU CÓ KEY (SIÊU TIẾT KIỆM TOKEN: ~50 PROMPT TOKEN + 80 OUTPUT TOKEN)
     if (apiKey && apiKey.length > 5) {
       try {
-        const miniPrompt = `Phim: "${title}", thể loại: "${category}", quốc gia: "${country}".
-Tóm tắt ngắn: "${synopsis}".
-Hãy đóng vai chuyên gia điện ảnh, đưa ra nhận định chớp nhoáng (tối đa 30 từ mỗi mục).
-Trả về duy nhất JSON hợp lệ (không markdown block):
+        const miniPrompt = `Đánh giá chỉ số cảm xúc phim: "${title}", thể loại: "${category}". Tóm tắt: "${synopsis}".
+Trả về DUY NHẤT JSON hợp lệ:
 {
-  "vibe": "1 câu ngắn gọn về phong cách, không khí phim (kèm 1 emoji)",
-  "targetAudience": "1 câu ngắn về đối tượng khán giả phù hợp nhất",
-  "hook": "1 câu ngắn chỉ ra điểm cuốn hút nhất đáng xem",
-  "matchScore": 95,
-  "highlightBadges": ["Hấp Dẫn", "Căng Não", "Siêu Phẩm"]
+  "actionScore": 85,
+  "emotionScore": 90,
+  "twistScore": 95,
+  "chillScore": 30,
+  "bingeScore": 92,
+  "vibeSummary": "1 câu ngắn gọn về không khí phim",
+  "contentWarning": "1 câu lưu ý xem phim không spoiler",
+  "bestTimeToWatch": "1 câu thời điểm xem thích hợp",
+  "highlightBadges": ["Plot Twist 95%", "Cảm Động", "Mãn Nhãn"]
 }`;
 
-        const geminiRes = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: miniPrompt }] }],
-              generationConfig: {
-                responseMimeType: "application/json",
-                temperature: 0.6,
-                maxOutputTokens: 250, // Rất ngắn, siêu tiết kiệm token
-              },
-            }),
-            signal: AbortSignal.timeout(6000),
+        const ai = new GoogleGenAI({ apiKey, vertexai: false });
+        const RACE_MODELS = ["gemini-3.6-flash", "gemini-2.5-flash"];
+
+        let rawText: string | null = null;
+        for (const model of RACE_MODELS) {
+          try {
+            const result = await Promise.race([
+              ai.models.generateContent({
+                model,
+                contents: miniPrompt,
+                config: {
+                  responseMimeType: "application/json",
+                  temperature: 0.3,
+                  maxOutputTokens: 250,
+                },
+              }),
+              new Promise<never>((_, reject) =>
+                setTimeout(() => reject(new Error("Timeout")), 2000)
+              ),
+            ]);
+            const text = result.text?.trim();
+            if (text) {
+              rawText = text;
+              break;
+            }
+          } catch {
+            // Thử model tiếp theo
           }
-        );
+        }
 
-        if (geminiRes.ok) {
-          const resData = await geminiRes.json();
-          let rawText = resData?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "{}";
-          rawText = rawText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "");
-          const parsed = JSON.parse(rawText);
+        if (rawText) {
+          const cleaned = rawText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "");
+          const parsed = JSON.parse(cleaned);
 
-          if (parsed.vibe && parsed.targetAudience) {
-            const insightResult: MovieInsight = {
-              vibe: parsed.vibe,
-              targetAudience: parsed.targetAudience,
-              hook: parsed.hook || "Một tác phẩm đáng để dành thời gian thưởng thức",
-              matchScore: typeof parsed.matchScore === "number" ? parsed.matchScore : 95,
-              highlightBadges: Array.isArray(parsed.highlightBadges) && parsed.highlightBadges.length > 0
-                ? parsed.highlightBadges.slice(0, 3)
-                : ["Đặc Sắc", "Đề Xuất", "Chất Lượng"],
-              provider: "Google Gemini AI",
+          if (typeof parsed.actionScore === "number") {
+            const radarResult: MovieEmotionalInsight = {
+              actionScore: Math.min(100, Math.max(10, parsed.actionScore)),
+              emotionScore: Math.min(100, Math.max(10, parsed.emotionScore)),
+              twistScore: Math.min(100, Math.max(10, parsed.twistScore)),
+              chillScore: Math.min(100, Math.max(10, parsed.chillScore)),
+              bingeScore: Math.min(100, Math.max(10, parsed.bingeScore || 90)),
+              vibeSummary: parsed.vibeSummary || "Cốt truyện giàu cảm xúc và nhịp phim cuốn hút",
+              contentWarning: parsed.contentWarning || "Phim mang tính giải trí cao, thích hợp cho nhiều đối tượng",
+              bestTimeToWatch: parsed.bestTimeToWatch || "Thích hợp xem thư giãn vào buổi tối",
+              highlightBadges: Array.isArray(parsed.highlightBadges) ? parsed.highlightBadges.slice(0, 3) : ["Đặc Sắc", "Chất Lượng"],
+              provider: "Nana AI Radar",
             };
 
-            // Lưu cache 24h
-            INSIGHT_CACHE.set(slug, { data: insightResult, cachedAt: Date.now() });
-            return NextResponse.json(insightResult);
+            EMOTIONAL_CACHE.set(slug, { data: radarResult, cachedAt: Date.now() });
+            return NextResponse.json(radarResult);
           }
         }
       } catch (err) {
-        console.warn("Lỗi gọi Gemini Insight, chuyển sang engine cục bộ:", err);
+        console.warn("Gemini Radar error, fallback to local:", err);
       }
     }
 
-    // 3. NẾU KHÔNG CÓ GEMINI HOẶC LỖI -> DÙNG THUẬT TOÁN ĐỊA PHƯƠNG (0 TOKEN)
-    const localInsight = generateLocalInsight({ title, category, country, year });
-    INSIGHT_CACHE.set(slug, { data: localInsight, cachedAt: Date.now() });
+    // 3. THUẬT TOÁN ĐỊA PHƯƠNG TỨC THÌ (0 TOKEN)
+    const localRadar = calculateLocalEmotionalRadar({ title, category, country, year });
+    EMOTIONAL_CACHE.set(slug, { data: localRadar, cachedAt: Date.now() });
 
-    return NextResponse.json(localInsight);
+    return NextResponse.json(localRadar);
   } catch (error) {
     console.error("Lỗi POST /api/ai-insight:", error);
     return NextResponse.json(
-      { error: "Không thể tạo nhận định AI lúc này" },
+      { error: "Không thể tính toán chỉ số cảm xúc" },
       { status: 500 }
     );
   }

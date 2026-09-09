@@ -45,6 +45,16 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        // Cache tóm tắt phim 1 giờ
+        source: "/api/synopsis",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, s-maxage=3600, stale-while-revalidate=86400",
+          },
+        ],
+      },
+      {
         // Cache search suggest 1 phút
         source: "/api/search-suggest",
         headers: [
@@ -57,12 +67,17 @@ const nextConfig: NextConfig = {
     ];
   },
   experimental: {
+    staleTimes: {
+      dynamic: 180, // Giữ trang động trong Router Cache client 3 phút (chuyển tab 0ms)
+      static: 600,  // Giữ trang tĩnh trong Router Cache client 10 phút
+    },
     scrollRestoration: true,
     optimizePackageImports: [
       "lucide-react",
       "framer-motion",
       "clsx",
       "tailwind-merge",
+      "@google/genai",
     ],
   },
 };

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import Link from "next/link";
@@ -67,19 +67,19 @@ export const RandomMovieButton: React.FC<RandomMovieButtonProps> = ({ customTrig
     }
   };
 
-  const handleOpenModal = () => {
+  const handleOpenModal = useCallback(() => {
     setIsOpen(true);
     if (movies.length === 0) {
       fetchRandomMovies();
     }
-  };
+  }, [movies.length]);
 
   // Lắng nghe sự kiện mở modal toàn cục từ mobile navbar
   useEffect(() => {
     const handleGlobalOpen = () => handleOpenModal();
     window.addEventListener("open-random-movie-modal", handleGlobalOpen);
     return () => window.removeEventListener("open-random-movie-modal", handleGlobalOpen);
-  }, [movies.length]);
+  }, [handleOpenModal]);
 
   // Đóng modal bằng phím ESC
   useEffect(() => {

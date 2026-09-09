@@ -112,30 +112,13 @@ export default async function BrowsePage({
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let movies: any[] = [];
-  let detectedActor: { name: string; country?: string; source: string } | null = null;
   let totalPages = 1;
   let totalItems = 0;
+  let detectedActor: { name: string; country?: string } | null = null;
 
-  // 1. HỖ TRỢ TÌM KIẾM THEO DIỄN VIÊN BẰNG AI:
-  // Kiểm tra trước: Nếu là diễn viên, tải trực tiếp phim của diễn viên và BỎ QUA truy vấn kép để web nhanh gấp 2 lần!
-  if (keyword) {
-    const actorInfo = await resolveActorMovies(keyword);
-    if (actorInfo.isActor && actorInfo.titles.length > 0) {
-      detectedActor = {
-        name: actorInfo.actorName,
-        country: actorInfo.country,
-        source: actorInfo.source,
-      };
-      // Lấy danh sách phim diễn viên từ bộ nhớ đệm (0ms) hoặc truy vấn siêu tốc
-      movies = await fetchMoviesByTitles(actorInfo.titles, PAGE_LIMIT);
-      totalItems = movies.length;
-      totalPages = 1;
-    }
-  }
-
-  // 2. NẾU KHÔNG PHẢI DIỄN VIÊN: Tải danh sách phim qua movieApi bình thường
-  if (!detectedActor) {
-    const response = await movieApi.getMovies({
+  // Thực thi song song: Tải phim & Phân giải tên diễn viên (< 1ms nếu trong local dictionary)
+  const [response, actorRes] = await Promise.all([
+    movieApi.getMovies({
       category,
       country,
       year,
@@ -144,10 +127,42 @@ export default async function BrowsePage({
       limit: PAGE_LIMIT,
       type,
       sort,
-    });
-    movies = response?.items || [];
-    totalPages = response?.pagination?.totalPages || 50;
-    totalItems = response?.pagination?.totalItems || movies.length;
+    }),
+    keyword && currentPage === 1
+      ? resolveActorMovies(keyword)
+      : Promise.resolve({ isActor: false, actorName: "", titles: [], country: undefined, source: "none" as const }),
+  ]);
+
+  movies = response?.items || [];
+  totalPages = response?.pagination?.totalPages || 50;
+  totalItems = response?.pagination?.totalItems || movies.length;
+
+  // Nếu phát hiện tìm kiếm diễn viên, nạp ngay danh sách phim tiêu biểu của diễn viên
+  if (actorRes?.isActor && actorRes.titles.length > 0) {
+    detectedActor = {
+      name: actorRes.actorName,
+      country: actorRes.country,
+    };
+    const actorMovies = await fetchMoviesByTitles(actorRes.titles, 16);
+    if (actorMovies.length > 0) {
+      const seenSlugs = new Set<string>();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const combined: any[] = [];
+      for (const m of actorMovies) {
+        if (m?.slug && !seenSlugs.has(m.slug)) {
+          seenSlugs.add(m.slug);
+          combined.push(m);
+        }
+      }
+      for (const m of movies) {
+        if (m?.slug && !seenSlugs.has(m.slug)) {
+          seenSlugs.add(m.slug);
+          combined.push(m);
+        }
+      }
+      movies = combined;
+      totalItems = Math.max(movies.length, response?.pagination?.totalItems || 0);
+    }
   }
 
   const pages = getPagination(currentPage, totalPages);
@@ -162,9 +177,7 @@ export default async function BrowsePage({
   let title = "Phim Mới Cập Nhật";
 
   if (keyword) {
-    if (detectedActor) {
-      title = `Tuyển tập phim của diễn viên: ${detectedActor.name}`;
-    } else if (country) {
+    if (country) {
       title = `Kết quả tìm kiếm: "${keyword}" • ${country}`;
     } else {
       title = `Kết quả tìm kiếm: "${keyword}"`;
@@ -250,24 +263,29 @@ export default async function BrowsePage({
           </div>
         </div>
 
+
+
         {detectedActor && (
-          <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-red-950/80 via-zinc-900 to-zinc-900 border border-red-500/30 flex items-center justify-between gap-3 shadow-lg animate-in fade-in duration-300">
+          <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-red-950/80 via-zinc-900 to-zinc-900 border border-red-500/30 flex items-center justify-between gap-3 shadow-xl animate-in fade-in duration-300">
             <div className="flex items-center gap-3.5">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-red-600 to-purple-600 text-white flex items-center justify-center text-white flex-none shadow-md border border-white/20">
-                <Sparkles className="w-5 h-5 text-amber-300" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-red-600 to-purple-600 text-white flex items-center justify-center flex-none shadow-md border border-white/20">
+                <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-amber-300" />
               </div>
               <div>
                 <h4 className="text-sm sm:text-base font-black text-white flex items-center gap-2 flex-wrap">
-                  <span>Tuyển Tập Tác Phẩm Của {detectedActor.name} • Nana Gợi Ý</span>
+                  <span>Tuyển Tập Tác Phẩm Của {detectedActor.name}</span>
                   {detectedActor.country && (
-                    <span className="text-xs text-rose-300 font-bold px-2 py-0.5 rounded-full bg-white/5 border border-white/10">
+                    <span className="text-xs text-rose-300 font-bold px-2.5 py-0.5 rounded-full bg-white/10 border border-white/10">
                       {detectedActor.country}
                     </span>
                   )}
                   <span className="text-[10px] px-2 py-0.5 rounded-full bg-gradient-to-r from-red-600/30 to-purple-600/30 text-rose-300 font-bold border border-red-500/40">
-                    ✨ Nana Nhận Diện
+                    ✨ Nana AI Nhận Diện
                   </span>
                 </h4>
+                <p className="text-xs text-gray-300 mt-0.5">
+                  Tự động tổng hợp các tác phẩm tiêu biểu & xuất sắc nhất của {detectedActor.name}
+                </p>
               </div>
             </div>
           </div>

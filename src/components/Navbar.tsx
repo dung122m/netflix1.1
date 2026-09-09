@@ -20,12 +20,12 @@ import {
   Radio,
   Bookmark,
   Dices,
+  Mic,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { NetflixLogo } from "./sites/netflix-3f78535a/vn-d838105b/icons";
-import { RandomMovieButton } from "./RandomMovieButton";
 import { useDebounce } from "@/hooks/useDebounce";
 
 interface SearchSuggestion {
@@ -43,10 +43,9 @@ const NAV_LINKS = [
   { name: "Phim lẻ", href: "/browse?type=phim-le", type: "phim-le", icon: Film, isLive: false },
   { name: "Chiếu rạp", href: "/browse?type=phim-chieu-rap", type: "phim-chieu-rap", icon: Clapperboard, isLive: false },
   { name: "Hoạt hình", href: "/browse?type=hoat-hinh", type: "hoat-hinh", icon: Sparkles, isLive: false },
-  { name: "TV Shows", href: "/browse?type=tv-shows", type: "tv-shows", icon: Radio, isLive: false },
-  { name: "Bóng đá", href: "/live?tab=football", type: "live-football", icon: Flame, isLive: true },
-  { name: "Truyền hình", href: "/live?tab=tv", type: "live-tv", icon: Tv, isLive: false },
-  { name: "Danh sách của tôi", href: "/my-list", type: "my-list", icon: Bookmark, isLive: false },
+  { name: "TV Shows", href: "/browse?type=tv-shows", type: "tv-shows", icon: Radio, isLive: false, hideOnLg: true },
+  { name: "Trực tiếp", href: "/live", type: "live", icon: Flame, isLive: true },
+  { name: "Danh sách", href: "/my-list", type: "my-list", icon: Bookmark, isLive: false },
 ];
 
 const NavbarInner: React.FC = () => {
@@ -81,6 +80,12 @@ const NavbarInner: React.FC = () => {
 
   // Lịch sử tìm kiếm gần đây
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
+
+  const toggleVoiceSearch = () => {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("open-ai-voice-command"));
+    }
+  };
 
   // Debounced search fetcher (300ms)
   const [debouncedFetchSuggestions, cancelDebouncedFetch] = useDebounce(
@@ -250,6 +255,22 @@ const NavbarInner: React.FC = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // Tự động tải trước (prefetch) tất cả các tab điều hướng vào Client Router Cache
+  useEffect(() => {
+    const mainTabs = [
+      "/browse",
+      "/browse?type=phim-bo",
+      "/browse?type=phim-le",
+      "/browse?type=phim-chieu-rap",
+      "/browse?type=hoat-hinh",
+      "/live",
+      "/my-list",
+    ];
+    mainTabs.forEach((tab) => {
+      router.prefetch(tab);
+    });
+  }, [router]);
+
   const toggleSearch = () => {
     if (!isSearchOpen) {
       setIsSearchExpanded(true);
@@ -351,11 +372,8 @@ const NavbarInner: React.FC = () => {
   };
 
   const isLinkActive = (type: string | null) => {
-    if (type === "live-football") {
-      return pathname === "/live" && (!searchParams.get("tab") || searchParams.get("tab") === "football");
-    }
-    if (type === "live-tv") {
-      return pathname === "/live" && searchParams.get("tab") === "tv";
+    if (type === "live") {
+      return pathname === "/live";
     }
     if (type === "my-list") return pathname === "/my-list";
     if (pathname !== "/browse") return false;
@@ -366,45 +384,38 @@ const NavbarInner: React.FC = () => {
 
   return (
     <nav
-      className={`fixed top-0 w-full z-50 transition-all duration-300 ${showBackground
+      className={`fixed top-0 left-0 right-0 w-full z-50 transition-all duration-300 ${showBackground
           ? "bg-black/95 backdrop-blur-md border-b border-white/10 shadow-lg py-2.5"
-          : "bg-gradient-to-b from-black/85 via-black/40 to-transparent py-3.5"
+          : "bg-gradient-to-b from-black/90 via-black/50 to-transparent py-3 sm:py-3.5"
         }`}
     >
-      <div className="flex items-center justify-between px-4 sm:px-8 max-w-[1800px] mx-auto">
+      <div className="flex items-center justify-between px-3 sm:px-6 lg:px-8 max-w-[1700px] mx-auto gap-2 sm:gap-4">
         {/* LOGO & DESKTOP NAV */}
-        <div className="flex items-center gap-3 md:gap-5 lg:gap-7 flex-shrink-0">
-          <Link href="/browse" className="flex items-center gap-2 group flex-shrink-0">
-            <NetflixLogo className="w-5 md:w-6 h-auto transition-transform group-hover:scale-105" />
-            <span className="text-netflix-red font-black tracking-tighter text-xl hidden sm:inline-block">
+        <div className="flex items-center gap-3 sm:gap-6 lg:gap-7 flex-shrink-0 min-w-0">
+          <Link href="/browse" className="flex items-center gap-1.5 sm:gap-2 group flex-shrink-0">
+            <NetflixLogo className="w-5 sm:w-6 h-auto transition-transform group-hover:scale-105" />
+            <span className="text-netflix-red font-black tracking-tighter text-lg sm:text-xl inline-block">
               NANAFLIX
             </span>
           </Link>
 
-          <div className="hidden xl:flex items-center gap-3 2xl:gap-5 text-xs xl:text-sm font-medium flex-shrink-0">
+          {/* DESKTOP NAV LINKS (CLEAN, NO WRAPPING, ULTRA RESPONSIVE) */}
+          <div className="hidden lg:flex items-center gap-3.5 xl:gap-5 text-xs xl:text-sm font-semibold flex-shrink-0">
             {NAV_LINKS.map((link) => {
               const active = isLinkActive(link.type);
-              const IconComp = link.icon;
               return (
                 <Link
                   key={link.name}
                   href={link.href}
-                  className={`transition-all relative py-1 flex items-center gap-1 xl:gap-1.5 whitespace-nowrap flex-shrink-0 group ${
+                  prefetch={true}
+                  className={`transition-all relative py-1 flex items-center gap-1.5 whitespace-nowrap flex-shrink-0 ${
+                    link.hideOnLg ? "hidden 2xl:flex" : ""
+                  } ${
                     active
                       ? "text-white font-bold"
                       : "text-gray-300 hover:text-white"
                   }`}
                 >
-                  <IconComp
-                    size={14}
-                    className={`transition-colors flex-shrink-0 ${
-                      link.isLive
-                        ? "text-netflix-red animate-pulse"
-                        : active
-                        ? "text-netflix-red"
-                        : "text-gray-400 group-hover:text-white"
-                    }`}
-                  />
                   <span className="whitespace-nowrap">{link.name}</span>
                   {link.isLive && (
                     <span className="relative flex h-2 w-2 flex-shrink-0">
@@ -413,7 +424,7 @@ const NavbarInner: React.FC = () => {
                     </span>
                   )}
                   {active && (
-                    <span className="absolute bottom-0 left-0 w-full h-0.5 bg-netflix-red rounded-full" />
+                    <span className="absolute bottom-0 left-0 w-full h-0.5 bg-netflix-red rounded-full shadow-[0_0_8px_rgba(229,9,20,0.8)]" />
                   )}
                 </Link>
               );
@@ -422,11 +433,22 @@ const NavbarInner: React.FC = () => {
         </div>
 
         {/* RIGHT ACTIONS */}
-        <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 text-white">
-          {/* NÚT PHIM NGẪU NHIÊN */}
-          <div className="hidden sm:block">
-            <RandomMovieButton />
-          </div>
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0 text-white">
+
+          {/* NÚT VÒNG QUAY SUẤT CHIẾU ĐỊNH MỆNH */}
+          <button
+            type="button"
+            onClick={() => {
+              if (typeof window !== "undefined") {
+                window.dispatchEvent(new CustomEvent("open-ai-roulette"));
+              }
+            }}
+            title="Suất Chiếu Định Mệnh (Bốc quẻ điện ảnh)"
+            className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-bold bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 hover:text-white border border-amber-500/35 transition cursor-pointer shadow-sm active:scale-95 flex-shrink-0"
+          >
+            <Dices className="w-3.5 h-3.5 text-amber-400 animate-spin [animation-duration:6s]" />
+            <span className="hidden 2xl:inline">Bốc Quẻ</span>
+          </button>
 
           {/* NÚT TRỢ LÝ NANA GỢI Ý PHIM */}
           <button
@@ -436,11 +458,11 @@ const NavbarInner: React.FC = () => {
                 window.dispatchEvent(new CustomEvent("open-ai-concierge"));
               }
             }}
-            title="Trợ lý Nana gợi ý phim theo tâm trạng"
-            className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-bold bg-gradient-to-r from-red-600/20 to-purple-600/20 hover:from-red-600/30 hover:to-purple-600/30 text-rose-300 hover:text-white border border-rose-500/30 hover:border-rose-400 transition cursor-pointer shadow-sm"
+            title="Trợ lý Nana gợi ý phim thông minh"
+            className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-bold bg-gradient-to-r from-red-600/25 via-rose-600/25 to-purple-600/25 hover:from-red-600/40 hover:to-purple-600/40 text-rose-300 hover:text-white border border-rose-500/35 transition cursor-pointer shadow-sm active:scale-95 flex-shrink-0"
           >
             <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
-            <span>Nana Gợi Ý</span>
+            <span>Nana AI</span>
           </button>
 
           {/* Ô TÌM KIẾM CÓ GỢI Ý TRỰC TIẾP */}
@@ -449,15 +471,15 @@ const NavbarInner: React.FC = () => {
               onSubmit={handleSearchSubmit}
               className={`flex items-center transition-all duration-300 rounded-full ${
                 isSearchOpen
-                  ? "border border-white/40 bg-black/60 px-3 py-1.5 backdrop-blur-sm"
+                  ? "border border-white/35 bg-black/80 px-2.5 sm:px-3 py-1.5 backdrop-blur-md"
                   : "border-transparent px-1 py-1"
               }`}
             >
               {isSearching ? (
-                <Loader2 size={18} className="animate-spin text-netflix-red" />
+                <Loader2 size={17} className="animate-spin text-netflix-red" />
               ) : (
                 <Search
-                  size={18}
+                  size={17}
                   className="cursor-pointer text-gray-300 hover:text-white transition"
                   onClick={toggleSearch}
                 />
@@ -466,7 +488,7 @@ const NavbarInner: React.FC = () => {
               <input
                 ref={inputRef}
                 type="text"
-                placeholder="Tìm phim cùng Nana..."
+                placeholder="Tìm phim..."
                 onChange={handleInputChange}
                 onKeyDown={handleInputKeyDown}
                 onFocus={() => {
@@ -478,27 +500,28 @@ const NavbarInner: React.FC = () => {
                 }}
                 className={`bg-transparent text-white text-xs sm:text-sm outline-none transition-all duration-300 ${
                   isSearchOpen
-                    ? "w-28 min-[380px]:w-36 sm:w-44 md:w-36 lg:w-48 xl:w-56 ml-1.5 sm:ml-2 opacity-100 placeholder:text-gray-400"
+                    ? "w-24 min-[400px]:w-32 sm:w-36 md:w-40 lg:w-44 ml-1.5 opacity-100 placeholder:text-gray-400"
                     : "w-0 opacity-0 pointer-events-none"
                 }`}
               />
 
-              {isSearchOpen && hasSearchText && (
-                <X
-                  size={16}
-                  className="cursor-pointer text-gray-400 hover:text-white transition ml-1"
-                  onClick={clearSearch}
-                />
+              {isSearchOpen && (
+                <button
+                  type="button"
+                  onClick={toggleVoiceSearch}
+                  title="Tìm kiếm & Điều khiển bằng giọng nói tiếng Việt"
+                  className="p-1 rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition flex items-center justify-center cursor-pointer ml-0.5"
+                >
+                  <Mic size={14} className="text-netflix-red" />
+                </button>
               )}
 
-              {!isSearchOpen && (
-                <span
-                  onClick={toggleSearch}
-                  className="hidden xl:inline-block text-[10px] text-gray-400 bg-white/10 hover:bg-white/20 px-1.5 py-0.5 rounded border border-white/10 cursor-pointer ml-1 select-none font-mono"
-                  title="Nhấn Ctrl + K để tìm kiếm"
-                >
-                  Ctrl K
-                </span>
+              {isSearchOpen && hasSearchText && (
+                <X
+                  size={15}
+                  className="cursor-pointer text-gray-400 hover:text-white transition ml-0.5"
+                  onClick={clearSearch}
+                />
               )}
             </form>
 
@@ -630,7 +653,7 @@ const NavbarInner: React.FC = () => {
               aria-label="Thông báo"
               className="relative text-gray-300 hover:text-white transition p-1.5 rounded-full hover:bg-white/10 cursor-pointer"
             >
-              <Bell size={19} />
+              <Bell size={18} />
               {hasUnread && (
                 <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-netflix-red animate-pulse ring-2 ring-black" />
               )}
@@ -638,33 +661,32 @@ const NavbarInner: React.FC = () => {
 
             {/* NOTIFICATION POPUP DROPDOWN */}
             {showNotifications && (
-              <div className="absolute top-full mt-2 right-0 w-[320px] sm:w-[380px] bg-zinc-950/95 border border-white/15 backdrop-blur-xl rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.95)] p-3.5 z-50 animate-in fade-in zoom-in-95 duration-150">
-                <div className="flex items-center justify-between pb-2.5 mb-2 border-b border-white/10">
+              <div className="absolute top-full mt-2 right-0 w-[300px] sm:w-[360px] bg-zinc-950/95 border border-white/15 backdrop-blur-xl rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.95)] p-3.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                <div className="flex items-center justify-between pb-2 mb-2 border-b border-white/10">
                   <div className="flex items-center gap-2">
-                    <Bell size={16} className="text-netflix-red" />
+                    <Bell size={15} className="text-netflix-red" />
                     <h4 className="text-white font-bold text-sm">Thông Báo Mới</h4>
                   </div>
                   <span className="text-[11px] text-gray-400">Vừa cập nhật</span>
                 </div>
 
-                <div className="space-y-2 max-h-[380px] overflow-y-auto overscroll-contain pr-1 scrollbar-none">
+                <div className="space-y-2 max-h-[360px] overflow-y-auto overscroll-contain pr-1 scrollbar-none">
                   {/* NOTIFICATION ITEM 1 */}
                   <Link
                     href="/browse?sort=latest"
                     onClick={() => setShowNotifications(false)}
-                    className="flex items-start gap-3 p-2.5 rounded-xl hover:bg-zinc-900 transition border border-transparent hover:border-white/10 group"
+                    className="flex items-start gap-3 p-2 rounded-xl hover:bg-zinc-900 transition border border-transparent hover:border-white/10 group"
                   >
                     <div className="p-2 rounded-lg bg-netflix-red/20 text-netflix-red flex-none mt-0.5">
-                      <Film size={16} />
+                      <Film size={15} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs text-white font-semibold group-hover:text-netflix-red transition-colors">
                         50+ Phim mới lên sóng tuần này
                       </p>
                       <p className="text-[11px] text-gray-400 mt-0.5 line-clamp-2">
-                        Các tập phim mới nhất đã có bản Vietsub &amp; Thuyết minh chất lượng cao Full HD.
+                        Các tập phim mới nhất đã có bản Vietsub &amp; Thuyết minh Full HD.
                       </p>
-                      <span className="text-[10px] text-gray-500 mt-1 block">Hôm nay</span>
                     </div>
                   </Link>
 
@@ -672,19 +694,18 @@ const NavbarInner: React.FC = () => {
                   <Link
                     href="/browse?sort=views"
                     onClick={() => setShowNotifications(false)}
-                    className="flex items-start gap-3 p-2.5 rounded-xl hover:bg-zinc-900 transition border border-transparent hover:border-white/10 group"
+                    className="flex items-start gap-3 p-2 rounded-xl hover:bg-zinc-900 transition border border-transparent hover:border-white/10 group"
                   >
                     <div className="p-2 rounded-lg bg-amber-500/20 text-amber-400 flex-none mt-0.5">
-                      <Flame size={16} />
+                      <Flame size={15} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs text-white font-semibold group-hover:text-amber-400 transition-colors">
                         Top 10 Phim Thịnh Hành Hôm Nay
                       </p>
                       <p className="text-[11px] text-gray-400 mt-0.5 line-clamp-2">
-                        Khám phá những bộ phim đang có lượt xem bùng nổ nhất trên toàn hệ thống.
+                        Khám phá những bộ phim đang có lượt xem bùng nổ nhất.
                       </p>
-                      <span className="text-[10px] text-gray-500 mt-1 block">2 giờ trước</span>
                     </div>
                   </Link>
 
@@ -692,19 +713,18 @@ const NavbarInner: React.FC = () => {
                   <Link
                     href="/browse?sort=rating"
                     onClick={() => setShowNotifications(false)}
-                    className="flex items-start gap-3 p-2.5 rounded-xl hover:bg-zinc-900 transition border border-transparent hover:border-white/10 group"
+                    className="flex items-start gap-3 p-2 rounded-xl hover:bg-zinc-900 transition border border-transparent hover:border-white/10 group"
                   >
                     <div className="p-2 rounded-lg bg-emerald-500/20 text-emerald-400 flex-none mt-0.5">
-                      <Star size={16} />
+                      <Star size={15} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs text-white font-semibold group-hover:text-emerald-400 transition-colors">
                         Tuyển tập phim đạt &gt; 8.5 Điểm
                       </p>
                       <p className="text-[11px] text-gray-400 mt-0.5 line-clamp-2">
-                        Danh sách các kiệt tác điện ảnh được đánh giá cao nhất từ giới phê bình.
+                        Danh sách các kiệt tác điện ảnh được đánh giá cao nhất.
                       </p>
-                      <span className="text-[10px] text-gray-500 mt-1 block">Hôm qua</span>
                     </div>
                   </Link>
                 </div>
@@ -712,24 +732,13 @@ const NavbarInner: React.FC = () => {
             )}
           </div>
 
-          {/* NÚT BẢNG PHÍM TẮT */}
-          <button
-            type="button"
-            onClick={() => setShowHotkeyModal(true)}
-            title="Bảng phím tắt (?)"
-            aria-label="Phím tắt"
-            className="hidden lg:flex text-gray-400 hover:text-white transition p-1.5 rounded-full hover:bg-white/10 cursor-pointer"
-          >
-            <Keyboard size={18} />
-          </button>
-
           <Link
             href="/my-list?tab=history"
-            title="Lịch sử xem phim"
+            title="Lịch sử xem & tài khoản"
             aria-label="Tài khoản"
-            className="flex items-center justify-center h-8 w-8 rounded-full bg-zinc-800 border border-white/20 text-gray-300 hover:border-white transition"
+            className="flex items-center justify-center h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-zinc-800 border border-white/20 text-gray-300 hover:border-white hover:text-white transition flex-shrink-0"
           >
-            <User size={18} />
+            <User size={16} />
           </Link>
 
           {/* MOBILE MENU TOGGLE */}
@@ -737,7 +746,7 @@ const NavbarInner: React.FC = () => {
             type="button"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             aria-label="Menu"
-            className="xl:hidden text-gray-300 hover:text-white transition p-1"
+            className="lg:hidden text-gray-300 hover:text-white transition p-1 cursor-pointer flex-shrink-0"
           >
             {isMobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
@@ -746,26 +755,32 @@ const NavbarInner: React.FC = () => {
 
       {/* MOBILE DROPDOWN MENU */}
       {isMobileMenuOpen && (
-        <div className="xl:hidden border-t border-white/10 bg-black/95 backdrop-blur-xl px-4 py-4 animate-in slide-in-from-top duration-200 max-h-[80vh] overflow-y-auto">
+        <div className="lg:hidden border-t border-white/10 bg-black/95 backdrop-blur-xl px-4 py-4 animate-in slide-in-from-top duration-200 max-h-[85vh] overflow-y-auto">
           <div className="flex flex-col gap-1.5">
-            {/* NÚT GỢI Ý PHIM NGẪU NHIÊN TRÊN MOBILE */}
+
+
+
+
+            {/* NÚT SUẤT CHIẾU ĐỊNH MỆNH TRÊN MOBILE */}
             <button
               type="button"
               onClick={() => {
                 setIsMobileMenuOpen(false);
                 if (typeof window !== "undefined") {
-                  window.dispatchEvent(new CustomEvent("open-random-movie-modal"));
+                  window.dispatchEvent(new CustomEvent("open-ai-roulette"));
                 }
               }}
-              className="text-sm font-bold py-2.5 px-3 text-white flex items-center justify-between rounded-xl bg-gradient-to-r from-red-600/25 via-red-950/40 to-transparent border border-red-500/40 hover:bg-red-600/30 transition text-left cursor-pointer shadow-sm mb-1"
+              className="text-sm font-bold py-2.5 px-3 text-white flex items-center justify-between rounded-xl bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-transparent border border-amber-500/40 hover:bg-amber-500/30 transition text-left cursor-pointer shadow-sm mb-1"
             >
               <div className="flex items-center gap-3">
-                <div className="w-7 h-7 rounded-lg bg-netflix-red text-white flex items-center justify-center shadow-md shadow-red-950/60">
+                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-amber-500 to-red-600 text-white flex items-center justify-center shadow-md shadow-amber-950/60">
                   <Dices size={16} />
                 </div>
-                <span>Hôm Nay Xem Gì? (Gợi ý ngẫu nhiên)</span>
+                <span>Suất Chiếu Định Mệnh 🎲</span>
               </div>
-              <Sparkles size={14} className="text-amber-400 animate-pulse" />
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/30 text-amber-300 font-bold border border-amber-500/40">
+                Roulette
+              </span>
             </button>
 
             {/* NÚT TRỢ LÝ NANA GỢI Ý PHIM TRÊN MOBILE */}
@@ -777,13 +792,13 @@ const NavbarInner: React.FC = () => {
                   window.dispatchEvent(new CustomEvent("open-ai-concierge"));
                 }
               }}
-              className="text-sm font-bold py-2.5 px-3 text-white flex items-center justify-between rounded-xl bg-gradient-to-r from-purple-600/25 via-red-950/40 to-transparent border border-purple-500/40 hover:bg-purple-600/30 transition text-left cursor-pointer shadow-sm mb-1.5"
+              className="text-sm font-bold py-2.5 px-3 text-white flex items-center justify-between rounded-xl bg-gradient-to-r from-purple-600/25 via-red-950/40 to-transparent border border-purple-500/40 hover:bg-purple-600/30 transition text-left cursor-pointer shadow-sm mb-2"
             >
               <div className="flex items-center gap-3">
                 <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-red-600 to-purple-600 text-white flex items-center justify-center shadow-md">
                   <Sparkles size={15} className="text-amber-300" />
                 </div>
-                <span>Trợ Lý Nana Gợi Ý Phim Theo Tâm Trạng</span>
+                <span>Trợ Lý Nana Gợi Ý Phim</span>
               </div>
               <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-500/30 text-purple-300 border border-purple-500/40 font-black">
                 NANA AI
@@ -797,6 +812,7 @@ const NavbarInner: React.FC = () => {
                 <Link
                   key={link.name}
                   href={link.href}
+                  prefetch={true}
                   onClick={() => setIsMobileMenuOpen(false)}
                   className={`text-sm font-medium py-2 px-3 transition-all flex items-center justify-between rounded-xl ${active
                       ? "text-white font-bold bg-white/10 border border-white/15 shadow-sm"

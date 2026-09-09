@@ -24,7 +24,7 @@ export const CarouselRow: React.FC<CarouselRowProps> = ({ title, items }) => {
                 slug={norm.slug}
                 title={norm.title}
                 origin_name={norm.origin_name}
-                imageUrl={norm.imageUrl}
+                imageUrl={norm.thumbUrl || norm.imageUrl}
                 genre={norm.genre}
                 description={norm.description}
                 time={norm.time}

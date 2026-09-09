@@ -454,12 +454,26 @@ export function AiMovieConcierge() {
 
   const handleSaveKey = () => {
     try {
-      localStorage.setItem("nanaflix_gemini_key", apiKey.trim());
+      if (!apiKey.trim()) {
+        localStorage.removeItem("nanaflix_gemini_key");
+        setApiKey("");
+      } else {
+        localStorage.setItem("nanaflix_gemini_key", apiKey.trim());
+      }
       setKeySaved(true);
       setTimeout(() => {
         setKeySaved(false);
         setShowKeyInput(false);
-      }, 1500);
+      }, 1200);
+    } catch {}
+  };
+
+  const handleClearKey = () => {
+    try {
+      localStorage.removeItem("nanaflix_gemini_key");
+      setApiKey("");
+      setKeySaved(false);
+      setShowKeyInput(false);
     } catch {}
   };
 
@@ -519,7 +533,7 @@ export function AiMovieConcierge() {
           text: cachedData.reply || "Dưới đây là một số gợi ý phù hợp với bạn:",
           mood: cachedData.mood,
           movies: cachedData.movies || [],
-          provider: `${cachedData.provider || "Gemini Flash"} (Bộ nhớ máy)`,
+          provider: "Nana AI",
           time: new Date().toLocaleTimeString("vi-VN", {
             hour: "2-digit",
             minute: "2-digit",
@@ -583,7 +597,7 @@ export function AiMovieConcierge() {
   return (
     <>
       {/* 1. NÚT NỔI GÓC DƯỚI PHẢI (FLOATING TRIGGER BUTTON) */}
-      <div className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-40">
+      <div className="fixed bottom-6 right-4 sm:bottom-6 sm:right-6 z-40">
         <button
           type="button"
           onClick={() => {
@@ -638,6 +652,21 @@ export function AiMovieConcierge() {
               <div className="flex items-center gap-2 flex-none">
                 <button
                   type="button"
+                  onClick={() => {
+                    setIsOpen(false);
+                    if (typeof window !== "undefined") {
+                      window.dispatchEvent(new CustomEvent("open-ai-roulette"));
+                    }
+                  }}
+                  title="Mở vòng quay Suất Chiếu Định Mệnh"
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl transition cursor-pointer border text-xs font-bold text-amber-300 bg-amber-500/15 border-amber-500/30 hover:bg-amber-500/25"
+                >
+                  <Dices className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Bốc Quẻ 🎲</span>
+                </button>
+
+                <button
+                  type="button"
                   onClick={() => setShowKeyInput(!showKeyInput)}
                   title="Cài đặt Google Gemini API Key"
                   className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl transition cursor-pointer border text-xs font-bold ${
@@ -690,7 +719,7 @@ export function AiMovieConcierge() {
                     type="password"
                     value={apiKey}
                     onChange={(e) => setApiKey(e.target.value)}
-                    placeholder="Dán key nếu bạn muốn dùng key riêng khác..."
+                    placeholder={serverKeyActive ? "Đang dùng key hệ thống .env.local (hoặc dán key riêng...)" : "Dán Gemini API Key của bạn tại đây..."}
                     className="flex-1 bg-zinc-950 border border-white/15 px-3 py-1.5 rounded-xl text-white text-xs placeholder-gray-500 outline-none focus:border-netflix-red"
                   />
                   <button
@@ -698,8 +727,18 @@ export function AiMovieConcierge() {
                     onClick={handleSaveKey}
                     className="px-3 py-1.5 rounded-xl bg-netflix-red text-white font-bold hover:bg-red-700 transition cursor-pointer flex items-center gap-1"
                   >
-                    {keySaved ? <Check className="w-3.5 h-3.5" /> : "Lưu"}
+                    {keySaved ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : "Lưu"}
                   </button>
+                  {apiKey && (
+                    <button
+                      type="button"
+                      onClick={handleClearKey}
+                      title="Xóa key trình duyệt và dùng key mặc định hệ thống"
+                      className="px-2.5 py-1.5 rounded-xl bg-zinc-800 text-gray-300 hover:text-white hover:bg-zinc-700 transition cursor-pointer text-[11px]"
+                    >
+                      Xóa
+                    </button>
+                  )}
                 </div>
               </div>
             )}
@@ -747,18 +786,10 @@ export function AiMovieConcierge() {
                               )}
                             </button>
                           )}
-                          {msg.provider && (
-                            <span
-                              className={`px-2 py-0.5 rounded-full text-[9.5px] font-bold border flex items-center gap-1 flex-none ${
-                                msg.provider.includes("Gemini")
-                                  ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/40 shadow-sm shadow-emerald-950"
-                                  : "bg-blue-500/15 text-blue-300 border-blue-500/40"
-                              }`}
-                            >
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                              {msg.provider.includes("Gemini") ? "✨ Google Gemini Flash" : "⚡ Neural Engine"}
-                            </span>
-                          )}
+                          <span className="px-2 py-0.5 rounded-full text-[9.5px] font-bold bg-rose-500/15 text-rose-300 border border-rose-500/30 flex items-center gap-1 flex-none">
+                            <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
+                            Nana AI
+                          </span>
                         </div>
                       </div>
                     )}

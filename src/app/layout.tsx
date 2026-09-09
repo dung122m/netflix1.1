@@ -5,6 +5,8 @@ import SmoothScroll from "@/components/SmoothScroll";
 import { BackToTop } from "@/components/BackToTop";
 import { ToastContainer } from "@/components/Toast";
 import { AiMovieConcierge } from "@/components/AiMovieConcierge";
+import { AiMovieRoulette } from "@/components/AiMovieRoulette";
+import { AiVoiceCommandModal } from "@/components/AiVoiceCommandModal";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -91,6 +93,12 @@ export default function RootLayout({
 
         {/* Trợ lý AI Gợi ý phim thông minh toàn trang */}
         <AiMovieConcierge />
+
+        {/* Vòng quay Suất Chiếu Định Mệnh AI Roulette */}
+        <AiMovieRoulette />
+
+        {/* Trợ lý Giọng Nói Điều Khiển Rạp Chiếu Tiếng Việt */}
+        <AiVoiceCommandModal />
       </body>
     </html>
   );

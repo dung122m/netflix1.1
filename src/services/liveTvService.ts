@@ -215,23 +215,41 @@ const VERIFIED_CHANNELS: TvChannel[] = [
   },
 ];
 
-let memoryCache: { data: LiveTvData; expireAt: number } | null = null;
+let memoryCache: { data: LiveTvData; expireAt: number; staleUntil: number } | null = null;
 
 export const liveTvService = {
   getTvChannels: async (): Promise<LiveTvData> => {
     const now = Date.now();
-    if (memoryCache && memoryCache.expireAt > now) {
-      return memoryCache.data;
+    if (memoryCache) {
+      if (memoryCache.expireAt > now) {
+        return memoryCache.data;
+      }
+      // Dùng tạm stale data 60 phút (0ms) và fetch cập nhật ngầm
+      if (memoryCache.staleUntil > now) {
+        liveTvService.revalidateTvChannels().catch(() => {});
+        return memoryCache.data;
+      }
     }
 
+    return await liveTvService.fetchAndCacheTvChannels();
+  },
+
+  revalidateTvChannels: async () => {
+    try {
+      await liveTvService.fetchAndCacheTvChannels();
+    } catch {}
+  },
+
+  fetchAndCacheTvChannels: async (): Promise<LiveTvData> => {
+    const now = Date.now();
     try {
       const res = await fetch(VIETNAM_IPTV_M3U, {
-        next: { revalidate: 600 }, // Cache 10 phút
+        next: { revalidate: 300 }, // Cache 5 phút
         headers: {
           "User-Agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
         },
-        signal: AbortSignal.timeout(8000),
+        signal: AbortSignal.timeout(3500),
       });
 
       const channelList: TvChannel[] = [];
@@ -369,7 +387,8 @@ export const liveTvService = {
 
       memoryCache = {
         data,
-        expireAt: now + 10 * 60 * 1000,
+        expireAt: now + 10 * 60 * 1000,    // 10 phút tươi
+        staleUntil: now + 60 * 60 * 1000,  // 60 phút stale
       };
 
       return data;

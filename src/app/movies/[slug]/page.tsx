@@ -21,7 +21,7 @@ import {
   Globe2,
 } from "lucide-react";
 import { MovieSynopsis } from "@/components/MovieSynopsis";
-import { AiMovieVibe } from "@/components/AiMovieVibe";
+import { MovieEmotionalRadar } from "@/components/MovieEmotionalRadar";
 import { ShareButton } from "@/components/ShareButton";
 import { MobileQrModal } from "@/components/MobileQrModal";
 import { ReportIssueModal } from "@/components/ReportIssueModal";
@@ -258,16 +258,21 @@ export default async function MovieDetail({
 
   const primaryGenreSlug = movie.category?.[0]?.slug;
   const primaryCountrySlug = movie.country?.[0]?.slug;
+  const primaryActor = actorList.length > 0 ? actorList[0] : undefined;
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recommendationPool: any[] = [];
 
-  // Tải đồng thời danh sách phim theo thể loại và quốc gia để loại bỏ waterfall
-  const [byGenre, byCountry] = await Promise.all([
+  // Tải đồng thời danh sách phim theo thể loại, quốc gia và diễn viên chính
+  const [byGenre, byCountry, byActor] = await Promise.all([
     primaryGenreSlug
-      ? movieApi.getMovies({ category: primaryGenreSlug, page: 1, limit: 8 })
+      ? movieApi.getMovies({ category: primaryGenreSlug, page: 1, limit: 16 })
       : Promise.resolve(null),
     primaryCountrySlug
-      ? movieApi.getMovies({ country: primaryCountrySlug, page: 1, limit: 8 })
+      ? movieApi.getMovies({ country: primaryCountrySlug, page: 1, limit: 16 })
+      : Promise.resolve(null),
+    primaryActor
+      ? movieApi.getMovies({ keyword: primaryActor, page: 1, limit: 12 })
       : Promise.resolve(null),
   ]);
 
@@ -277,6 +282,9 @@ export default async function MovieDetail({
   if (byCountry?.items) {
     recommendationPool.push(...byCountry.items);
   }
+  if (byActor?.items) {
+    recommendationPool.push(...byActor.items);
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const deduped = new Map<string, any>();
@@ -284,7 +292,7 @@ export default async function MovieDetail({
     if (!item?.slug || item.slug === movie.slug) continue;
     if (!deduped.has(item.slug)) deduped.set(item.slug, item);
   }
-  const recommendedMovies = Array.from(deduped.values()).slice(0, 12);
+  const recommendedMovies = Array.from(deduped.values()).slice(0, 24);
 
   return (
     <div className="bg-black min-h-screen text-white pb-12">
@@ -497,7 +505,7 @@ export default async function MovieDetail({
               </div>
             )}
 
-            <AiMovieVibe
+            <MovieEmotionalRadar
               slug={slug}
               title={title}
               category={categoryList.map((c) => c.name).join(", ")}
@@ -598,13 +606,15 @@ export default async function MovieDetail({
                     </p>
                     <div className="flex flex-wrap gap-1.5">
                       {directorList.slice(0, 4).map((d, idx) => (
-                        <span
+                        <Link
                           key={idx}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-white/5 text-gray-300 text-xs border border-white/10"
+                          href={`/browse?keyword=${encodeURIComponent(d)}`}
+                          title={`Tìm các phim của đạo diễn ${d}`}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-white/5 hover:bg-white/15 text-gray-200 hover:text-white text-xs border border-white/10 hover:border-amber-500/40 transition cursor-pointer"
                         >
-                          <span className="text-[10px] text-gray-500">🎬</span>
+                          <span className="text-[10px] text-amber-400">🎬</span>
                           <span>{d}</span>
-                        </span>
+                        </Link>
                       ))}
                     </div>
                   </div>
@@ -619,13 +629,15 @@ export default async function MovieDetail({
                     </p>
                     <div className="flex flex-wrap gap-1.5">
                       {actorList.slice(0, 12).map((a, idx) => (
-                        <span
+                        <Link
                           key={idx}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-white/5 text-gray-300 text-xs border border-white/10"
+                          href={`/browse?keyword=${encodeURIComponent(a)}`}
+                          title={`Tìm các phim của diễn viên ${a}`}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-white/5 hover:bg-white/15 text-gray-200 hover:text-white text-xs border border-white/10 hover:border-rose-500/40 transition cursor-pointer"
                         >
-                          <span className="text-[10px] text-gray-500">👤</span>
+                          <span className="text-[10px] text-rose-400">👤</span>
                           <span>{a}</span>
-                        </span>
+                        </Link>
                       ))}
                     </div>
                   </div>
@@ -696,10 +708,13 @@ export default async function MovieDetail({
         </div>
 
         <RecommendationTabs
+          currentMovieTitle={title}
           genreName={movie.category?.[0]?.name}
           countryName={movie.country?.[0]?.name}
+          actorName={primaryActor}
           genreMovies={byGenre?.items || []}
           countryMovies={byCountry?.items || []}
+          actorMovies={byActor?.items || []}
           allMovies={recommendedMovies}
         />
       </div>

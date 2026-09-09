@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { GoogleGenAI } from "@google/genai";
 import { movieApi } from "@/services/movieApi";
-import { resolveActorMovies, fetchMoviesByTitles } from "@/services/aiActorService";
 
 interface SuggestionCard {
   slug: string;
@@ -45,6 +45,49 @@ function toSafeActors(item: any): string[] {
     return item.actor.split(",").map((s: string) => s.trim()).filter(Boolean);
   }
   return [];
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const TITLE_LOOKUP_CACHE = new Map<string, { item: any; expireAt: number }>();
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function searchSingleMovieFast(title: string, originalTitle: string): Promise<any> {
+  const cleanTitle = (title || "").replace(/\([^)]*\)/g, "").replace(/\[[^\]]*\]/g, "").trim();
+  const cleanOriginal = (originalTitle || "").replace(/\([^)]*\)/g, "").replace(/\[[^\]]*\]/g, "").trim();
+  const key = `${cleanTitle}__${cleanOriginal}`.toLowerCase();
+
+  const cached = TITLE_LOOKUP_CACHE.get(key);
+  if (cached && Date.now() < cached.expireAt) return cached.item;
+
+  let foundItem = null;
+  // 1. Thử tìm bằng tên tiếng Việt
+  if (cleanTitle) {
+    try {
+      const res1 = await Promise.race([
+        movieApi.getMovies({ keyword: cleanTitle, page: 1, limit: 3 }),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 2000)),
+      ]);
+      if (res1?.items && res1.items.length > 0) {
+        foundItem = res1.items[0];
+      }
+    } catch {}
+  }
+
+  // 2. Thử tìm bằng tên gốc / tiếng Anh nếu chưa thấy
+  if (!foundItem && cleanOriginal) {
+    try {
+      const res2 = await Promise.race([
+        movieApi.getMovies({ keyword: cleanOriginal, page: 1, limit: 3 }),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 2000)),
+      ]);
+      if (res2?.items && res2.items.length > 0) {
+        foundItem = res2.items[0];
+      }
+    } catch {}
+  }
+
+  TITLE_LOOKUP_CACHE.set(key, { item: foundItem, expireAt: Date.now() + 1000 * 60 * 60 * 24 });
+  return foundItem;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -652,14 +695,15 @@ export async function POST(req: NextRequest) {
         reply: cachedItem.reply,
         mood: cachedItem.mood,
         movies: cachedItem.movies,
-        provider: `${cachedItem.provider} (Bộ nhớ đệm)`,
+        provider: cachedItem.provider || "Nana AI",
         cached: true,
       });
     }
 
+    // Ưu tiên key từ biến môi trường của server trước, sau đó mới tới key người dùng (để tránh key hỏng từ browser làm nghẽn)
     const candidateKeys = Array.from(
       new Set(
-        [userApiKey?.trim(), process.env.GEMINI_API_KEY?.trim()].filter(
+        [process.env.GEMINI_API_KEY?.trim(), userApiKey?.trim()].filter(
           (k): k is string => Boolean(k && k.length > 5)
         )
       )
@@ -670,15 +714,15 @@ export async function POST(req: NextRequest) {
       try {
         const systemPrompt = `Bạn là Trợ lý Nana (Nana Concierge) - trợ lý gợi ý phim thông minh, ân cần và am hiểu điện ảnh hàng đầu.
 Người dùng yêu cầu: "${prompt}".
-Nhiệm vụ của bạn là thấu hiểu cảm xúc, chủ đề, diễn viên cụ thể (nếu có) và quốc gia (nếu có), gợi ý từ 10 đến 14 bộ phim nổi tiếng, kinh điển hoặc đúng nhất với yêu cầu (ưu tiên phim có trên các nền tảng phim phổ biến như Netflix, phim Châu Á, phim Rạp).
+Nhiệm vụ của bạn là thấu hiểu cảm xúc, chủ đề, diễn viên cụ thể (nếu có) và quốc gia (nếu có), gợi ý từ 6 đến 10 bộ phim nổi tiếng, kinh điển hoặc đúng nhất với yêu cầu (ưu tiên phim có trên các nền tảng phim phổ biến như Netflix, phim Châu Á, phim Rạp).
 Đặc biệt: Hãy cung cấp cả tên tiếng Việt phổ biến và tên gốc/tiếng Anh (original_title) của mỗi phim để hệ thống dễ dàng tra cứu chính xác trong kho phim.
 Trả về DUY NHẤT một chuỗi JSON hợp lệ (không bao bọc bởi markdown code block):
 {
-  "analysis": "1 đến 2 câu ngắn gọn, ấm áp xưng là Nana chia sẻ vì sao Nana chọn nhóm phim này cho bạn xem (ví dụ: 'Nana chọn cho bạn những siêu phẩm võ thuật mãn nhãn nhất...')",
+  "analysis": "1 đến 2 câu ngắn gọn, ấm áp xưng là Nana chia sẻ vì sao Nana chọn nhóm phim này cho bạn xem",
   "mood": "Tên tâm trạng hoặc chủ đề đại diện (ví dụ: 'Tuyển Tập Diễn Viên Thành Long 🥋', 'Võ Thuật Trung Hoa 🥋🇨🇳', 'Đau Thắt Lòng 💧😭')",
-  "actor": "Tên diễn viên nếu người dùng hỏi đích danh (vd: 'Thành Long', 'Châu Tinh Trì', 'Trấn Thành', 'Tom Cruise') hoặc để trống",
-  "genre_slug": "slug thể loại phù hợp nhất trong các slug: vo-thuat, tinh-cam, hanh-dong, hai-huoc, kinh-di, tam-ly, vien-tuong, hoat-hinh, co-trang",
-  "country_slug": "slug quốc gia nếu có: trung-quoc, han-quoc, au-my, nhat-ban, thai-lan, viet-nam, hong-kong, an-do (hoặc để trống)",
+  "actor": "Tên diễn viên nếu người dùng hỏi đích danh (vd: 'Thành Long', 'Châu Tinh Trì', 'Trấn Thành') hoặc để trống",
+  "genre_slug": "slug thể loại phù hợp nhất: vo-thuat, tinh-cam, hanh-dong, hai-huoc, kinh-di, tam-ly, vien-tuong, hoat-hinh, co-trang",
+  "country_slug": "slug quốc gia: trung-quoc, han-quoc, au-my, nhat-ban, thai-lan, viet-nam, hong-kong, an-do (hoặc để trống)",
   "movies": [
     {
       "title": "Tên phim tiếng Việt phổ biến",
@@ -688,47 +732,47 @@ Trả về DUY NHẤT một chuỗi JSON hợp lệ (không bao bọc bởi mark
   ]
 }`;
 
-        // Sử dụng danh sách model chính thức hiện hành của Google Gemini API
-        const candidateModels = [
+        // Gọi song song (Parallel Race) các model hàng đầu - Model nào phản hồi trước thắng
+        // Bỏ qua lỗi 503 của từng model và cho phép timeout 12 giây để đón nhận kết quả hoàn chỉnh từ Google!
+        const PRIMARY_KEY = candidateKeys[0];
+        const ai = new GoogleGenAI({ apiKey: PRIMARY_KEY, vertexai: false });
+        const RACE_MODELS = [
           "gemini-3.6-flash",
           "gemini-3.5-flash",
-          "gemini-2.5-flash",
         ];
-        let geminiRes: Response | null = null;
 
-        keyLoop: for (const currentKey of candidateKeys) {
-          for (const model of candidateModels) {
-            try {
-              const res = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${currentKey}`,
-                {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    contents: [{ parts: [{ text: systemPrompt }] }],
-                    generationConfig: {
-                      responseMimeType: "application/json",
-                      temperature: 0.7,
-                      maxOutputTokens: 1800, // Đủ để trả về 12-14 phim hoàn chỉnh
-                    },
-                  }),
-                  signal: AbortSignal.timeout(10000),
-                }
-              );
-              if (res.ok) {
-                geminiRes = res;
-                break keyLoop;
-              }
-            } catch {
-              // Thử model / key tiếp theo
-            }
-          }
+        let geminiText: string | null = null;
+
+        try {
+          const modelPromises = RACE_MODELS.map(async (model) => {
+            const res = await ai.models.generateContent({
+              model,
+              contents: systemPrompt,
+              config: {
+                responseMimeType: "application/json",
+                temperature: 0.7,
+                maxOutputTokens: 1000,
+              },
+            });
+            const text = res.text?.trim();
+            if (!text) throw new Error(`Empty response from ${model}`);
+            return text;
+          });
+
+          const raceResult = await Promise.race([
+            Promise.any(modelPromises),
+            new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error("Gemini parallel timeout 12s")), 12000)
+            ),
+          ]);
+
+          geminiText = raceResult;
+        } catch (raceErr) {
+          console.warn("[ai-concierge] Gemini unavailable/timeout, fallback to Neural Engine:", raceErr instanceof Error ? raceErr.message : raceErr);
         }
 
-        if (geminiRes && geminiRes.ok) {
-          const geminiData = await geminiRes.json();
-          let rawText =
-            geminiData?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "{}";
+        if (geminiText) {
+          let rawText = geminiText;
           rawText = rawText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "");
           const parsed = JSON.parse(rawText);
 
@@ -751,73 +795,14 @@ Trả về DUY NHẤT một chuỗi JSON hợp lệ (không bao bọc bởi mark
 
           const genreSlug: string = parsed.genre_slug || "";
           const countrySlug: string = parsed.country_slug || "";
-          const actorName: string = parsed.actor || "";
           const cards: SuggestionCard[] = [];
           const seenSlugs = new Set<string>();
 
-          // Tìm kiếm song song lên tới 14 phim gợi ý
-          const searchTasks = suggestedItems.slice(0, 14).map(async (itemObj) => {
-            const cleanTitle = (itemObj.title || "")
-              .replace(/\([^)]*\)/g, "")
-              .replace(/\[[^\]]*\]/g, "")
-              .trim();
-            const cleanOriginal = (itemObj.original_title || "")
-              .replace(/\([^)]*\)/g, "")
-              .replace(/\[[^\]]*\]/g, "")
-              .trim();
-
-            let foundItem = null;
-
-            // 1. Thử tìm bằng tên tiếng Việt
-            if (cleanTitle) {
-              const res1 = await movieApi.getMovies({
-                keyword: cleanTitle,
-                page: 1,
-                limit: 3,
-              });
-              if (res1?.items && res1.items.length > 0) {
-                foundItem = res1.items[0];
-              }
-            }
-
-            // 2. Nếu không ra và có tên gốc / tiếng Anh -> Thử tìm bằng original_title
-            if (!foundItem && cleanOriginal) {
-              const res2 = await movieApi.getMovies({
-                keyword: cleanOriginal,
-                page: 1,
-                limit: 3,
-              });
-              if (res2?.items && res2.items.length > 0) {
-                foundItem = res2.items[0];
-              }
-            }
-
-            // 3. Xử lý chính tả i/y (ví dụ: Kì Diệu <-> Kỳ Diệu)
-            if (!foundItem && cleanTitle.includes("Kỳ Diệu")) {
-              const alt = cleanTitle.replace("Kỳ Diệu", "Kì Diệu");
-              const res3 = await movieApi.getMovies({ keyword: alt, page: 1, limit: 3 });
-              if (res3?.items && res3.items.length > 0) foundItem = res3.items[0];
-            } else if (!foundItem && cleanTitle.includes("Kì Diệu")) {
-              const alt = cleanTitle.replace("Kì Diệu", "Kỳ Diệu");
-              const res3 = await movieApi.getMovies({ keyword: alt, page: 1, limit: 3 });
-              if (res3?.items && res3.items.length > 0) foundItem = res3.items[0];
-            }
-
-            // 4. Nếu vẫn không thấy và tên dài, thử lấy 3 từ khóa đầu
-            if (!foundItem && cleanTitle) {
-              const words = cleanTitle.split(/\s+/);
-              if (words.length >= 4) {
-                const shortTitle = words.slice(0, 3).join(" ");
-                const res4 = await movieApi.getMovies({
-                  keyword: shortTitle,
-                  page: 1,
-                  limit: 3,
-                });
-                if (res4?.items && res4.items.length > 0) {
-                  foundItem = res4.items[0];
-                }
-              }
-            }
+          // Tìm kiếm song song nhanh và tối ưu với bộ nhớ đệm
+          const searchTasks = suggestedItems.slice(0, 12).map(async (itemObj) => {
+            const cleanTitle = (itemObj.title || "").trim();
+            const cleanOriginal = (itemObj.original_title || "").trim();
+            const foundItem = await searchSingleMovieFast(cleanTitle, cleanOriginal);
 
             return {
               item: foundItem,
@@ -844,32 +829,7 @@ Trả về DUY NHẤT một chuỗi JSON hợp lệ (không bao bọc bởi mark
             }
           }
 
-          // Nếu người dùng hỏi về diễn viên, tra cứu ngay phim tiêu biểu của diễn viên đó
-          const detectedActorName =
-            actorName || (await resolveActorMovies(prompt)).actorName || intent.actor;
 
-          if (detectedActorName) {
-            const actorInfo = await resolveActorMovies(detectedActorName);
-            if (actorInfo.isActor && actorInfo.titles.length > 0) {
-              const actorMovies = await fetchMoviesByTitles(actorInfo.titles, 14);
-              for (const item of actorMovies) {
-                if (!seenSlugs.has(item.slug)) {
-                  seenSlugs.add(item.slug);
-                  cards.unshift({
-                    slug: item.slug,
-                    title: item.name || item.title || "Phim Hay",
-                    poster: toSafePoster(item),
-                    year: item.year || 2024,
-                    quality: item.quality || "FHD",
-                    category: item.category?.[0]?.name || "Đặc sắc",
-                    country: toSafeCountry(item) || actorInfo.country || countrySlug,
-                    actors: toSafeActors(item),
-                    reason: `Siêu phẩm điện ảnh ghi dấu ấn của ${actorInfo.actorName}`,
-                  });
-                }
-              }
-            }
-          }
 
           // Tự động bù thêm phim cùng thể loại/quốc gia nếu chưa đủ 12 phim
           if (cards.length < 10 && (genreSlug || countrySlug)) {
@@ -906,7 +866,7 @@ Trả về DUY NHẤT một chuỗi JSON hợp lệ (không bao bọc bởi mark
                 "Dưới đây là các tác phẩm được AI tuyển chọn kỹ lưỡng dành riêng cho bạn:",
               mood: parsed.mood || "Gợi Ý Cho Bạn",
               movies: cards.slice(0, 14),
-              provider: "Google Gemini Flash",
+              provider: "Nana AI",
             };
 
             // Lưu vào bộ nhớ đệm để các truy vấn tương tự sau này tốn 0 token
@@ -945,20 +905,7 @@ Trả về DUY NHẤT một chuỗi JSON hợp lệ (không bao bọc bởi mark
       lowerPrompt.includes("hàn quốc") ||
       lowerPrompt.includes("xem");
 
-    // ƯU TIÊN 1: Nếu người dùng tìm kiếm diễn viên (Thành Long, Châu Tinh Trì, Song Joong Ki, v.v.)
-    // Dùng ngay AI Actor Bridge để lấy các siêu phẩm kinh điển của diễn viên đó!
-    const actorCheck = await resolveActorMovies(prompt);
-    const targetActor = actorCheck.isActor ? actorCheck.actorName : intent.actor;
 
-    if (targetActor) {
-      const actorInfo = actorCheck.isActor ? actorCheck : await resolveActorMovies(targetActor);
-      if (actorInfo.isActor && actorInfo.titles.length > 0) {
-        const actorMovies = await fetchMoviesByTitles(actorInfo.titles, 16);
-        if (actorMovies.length > 0) {
-          movieList = actorMovies as RawMovieItem[];
-        }
-      }
-    }
 
     // ƯU TIÊN 2: Nếu không phải diễn viên và không phải câu miêu tả chung chung, thử tìm theo tên phim
     if (movieList.length === 0 && !isDescriptive && prompt.trim().length > 1) {
@@ -1050,7 +997,7 @@ Trả về DUY NHẤT một chuỗi JSON hợp lệ (không bao bọc bởi mark
       reply: `${intent.defaultAnalysis}`,
       mood: intent.moodLabel,
       movies: cards,
-      provider: "Trợ Lý Nana (Neural Engine)",
+      provider: "Nana AI",
     };
 
     if (cards.length > 0) {

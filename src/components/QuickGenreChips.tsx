@@ -14,6 +14,7 @@ import {
   ChevronRight,
   Filter,
   Users,
+  Dices,
 } from "lucide-react";
 
 const POPULAR_GENRES = [
@@ -123,7 +124,7 @@ const QuickGenreChipsInner: React.FC = () => {
       params.set("keyword", kw);
     }
     params.delete("page");
-    router.push(`/browse?${params.toString()}`);
+    router.push(`/browse?${params.toString()}`, { scroll: false });
   }, [searchParams, router]);
 
   const handleCategorySelect = useCallback((item: {
@@ -158,7 +159,7 @@ const QuickGenreChipsInner: React.FC = () => {
     }
 
     params.delete("page");
-    router.push(`/browse?${params.toString()}`);
+    router.push(`/browse?${params.toString()}`, { scroll: false });
   }, [searchParams, router]);
 
   const handleCountrySelect = useCallback((slug: string) => {
@@ -171,7 +172,7 @@ const QuickGenreChipsInner: React.FC = () => {
       params.set("country", slug);
     }
     params.delete("page");
-    router.push(`/browse?${params.toString()}`);
+    router.push(`/browse?${params.toString()}`, { scroll: false });
   }, [searchParams, router]);
 
   const handleYearSelect = useCallback((year: string) => {
@@ -184,12 +185,12 @@ const QuickGenreChipsInner: React.FC = () => {
       params.set("year", year);
     }
     params.delete("page");
-    router.push(`/browse?${params.toString()}`);
+    router.push(`/browse?${params.toString()}`, { scroll: false });
   }, [searchParams, router]);
 
   const handleClearAll = useCallback(() => {
     const params = new URLSearchParams();
-    router.push(`/browse?${params.toString()}`);
+    router.push(`/browse?${params.toString()}`, { scroll: false });
   }, [router]);
 
   // Tên hiển thị các bộ lọc đang chọn
@@ -227,6 +228,18 @@ const QuickGenreChipsInner: React.FC = () => {
         ref={genreRowRef}
         className="flex-1 flex items-center gap-1.5 overflow-x-auto py-1 scrollbar-none [&::-webkit-scrollbar]:hidden touch-pan-x scroll-smooth"
       >
+        <button
+          type="button"
+          onClick={() => {
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(new CustomEvent("open-ai-roulette"));
+            }
+          }}
+          className="flex-none px-3.5 py-1.5 rounded-full text-xs font-black transition-all duration-300 cursor-pointer bg-gradient-to-r from-amber-500 via-orange-500 to-red-600 text-white shadow-md shadow-amber-950/60 hover:scale-105 active:scale-95 border border-amber-400/40 flex items-center gap-1.5"
+        >
+          <Dices className="w-3.5 h-3.5 text-amber-200" />
+          <span>Suất Chiếu Định Mệnh 🎲</span>
+        </button>
         {POPULAR_GENRES.map((g) => {
           const isActive = g.isSort
             ? currentSort === g.slug

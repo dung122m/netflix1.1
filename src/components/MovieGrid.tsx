@@ -13,6 +13,7 @@ const MovieGridInner = ({ movies }: MovieGridProps) => {
       <div className="grid grid-cols-1 min-[480px]:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-4 gap-4 sm:gap-5 md:gap-6">
         {movies.map((m, index) => {
           const norm = normalizeMovie(m);
+          const bestThumb = norm.thumbUrl || norm.imageUrl;
 
           return (
             <MediaCard
@@ -20,7 +21,7 @@ const MovieGridInner = ({ movies }: MovieGridProps) => {
               slug={norm.slug}
               title={norm.title}
               origin_name={norm.origin_name}
-              imageUrl={norm.imageUrl}
+              imageUrl={bestThumb}
               genre={norm.genre}
               description={norm.description}
               time={norm.time}

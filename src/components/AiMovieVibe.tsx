@@ -186,11 +186,6 @@ export function AiMovieVibe({
                   <p className="text-gray-300 leading-normal">{data.hook}</p>
                 </div>
               </div>
-
-              <div className="flex items-center justify-between text-[10px] text-gray-500 pt-1">
-                <span>✨ Đánh giá được xử lý bởi {data.provider}</span>
-                <span className="text-emerald-400 font-medium">Đã lưu đệm (0 Token lượt xem lại)</span>
-              </div>
             </div>
           ) : null}
         </div>

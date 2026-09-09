@@ -412,7 +412,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           alt={title}
           fill
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1440px) 33vw, 25vw"
-          className="object-cover group-hover:scale-105 transition-transform duration-300"
+          className="object-cover object-top group-hover:scale-105 transition-transform duration-300"
           priority={priority}
           loading={priority ? "eager" : "lazy"}
           decoding="async"
@@ -503,7 +503,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
             alt={title}
             fill
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-            className={`object-cover transition-opacity duration-300 ${
+            className={`object-cover object-top transition-opacity duration-300 ${
               isPlayingTrailer && embedTrailerUrl ? "opacity-0" : "opacity-100"
             }`}
           />

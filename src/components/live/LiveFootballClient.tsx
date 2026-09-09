@@ -31,15 +31,6 @@ interface LiveFootballClientProps {
   hideHeader?: boolean;
 }
 
-const POPULAR_TOURNAMENTS = [
-  { label: "🦁 Ngoại Hạng Anh", query: "Ngoại Hạng Anh" },
-  { label: "⭐ Cúp C1", query: "Cúp C1" },
-  { label: "🇪🇸 La Liga", query: "La Liga" },
-  { label: "🇮🇹 Serie A", query: "Serie A" },
-  { label: "🇩🇪 Bundesliga", query: "Bundesliga" },
-  { label: "🇻🇳 V-League", query: "V-League" },
-];
-
 const INITIAL_PAGE_SIZE = 16;
 
 export function LiveFootballClient({
@@ -81,7 +72,6 @@ export function LiveFootballClient({
   const [timelineFilter, setTimelineFilter] = useState<"all" | "live" | "upcoming">("all");
   const [showAllUpcoming, setShowAllUpcoming] = useState<boolean>(false);
   const [selectedChannel, setSelectedChannel] = useState<string>("all");
-  const [selectedTournament, setSelectedTournament] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [onlyFhd, setOnlyFhd] = useState<boolean>(false);
   const [visibleCount, setVisibleCount] = useState<number>(INITIAL_PAGE_SIZE);
@@ -102,7 +92,16 @@ export function LiveFootballClient({
     });
   }, [matches]);
 
-  // Thống kê số lượng theo timeline để hiển thị trên tabs (mặc định trong khung ±2h)
+  // Chỉ lấy các kênh có trận đấu thực tế (loại bỏ các kênh 0 trận)
+  const activeChannels = useMemo(() => {
+    return channels.filter((ch) =>
+      enrichedMatches.some(
+        (m) => m.group === ch || m.groups?.includes(ch)
+      )
+    );
+  }, [channels, enrichedMatches]);
+
+  // Thống kê số lượng theo timeline để hiển thị trên tabs
   const timelineCounts = useMemo(() => {
     const now = Date.now();
     const twoHoursAgo = now - 2 * 60 * 60 * 1000;
@@ -152,15 +151,13 @@ export function LiveFootballClient({
       }
     }
 
-    if (!selectedMatch) {
-      setSelectedMatch(defaultMatch);
-    }
+    setSelectedMatch((prev) => prev || defaultMatch);
   }, [matches, searchParams, defaultMatch]);
 
   // Reset phân trang khi thay đổi bất kỳ bộ lọc nào
   useEffect(() => {
     setVisibleCount(INITIAL_PAGE_SIZE);
-  }, [timelineFilter, showAllUpcoming, selectedChannel, selectedTournament, searchQuery, onlyFhd]);
+  }, [timelineFilter, showAllUpcoming, selectedChannel, searchQuery, onlyFhd]);
 
   const scrollChannels = (direction: "left" | "right") => {
     if (channelsScrollRef.current) {
@@ -169,7 +166,7 @@ export function LiveFootballClient({
     }
   };
 
-  // Lọc danh sách trận đấu (mặc định chỉ hiện trước 2h và sau 2h theo yêu cầu)
+  // Lọc danh sách trận đấu
   const filteredMatches = useMemo(() => {
     const now = Date.now();
     const twoHoursAgo = now - 2 * 60 * 60 * 1000;
@@ -211,18 +208,6 @@ export function LiveFootballClient({
           return false;
         }
 
-        // Lọc theo Giải đấu nhanh
-        if (selectedTournament) {
-          const tQ = selectedTournament.toLowerCase();
-          const inTourn = m.tournament?.toLowerCase().includes(tQ);
-          const inTitle = m.title.toLowerCase().includes(tQ);
-          const inTeam1 = m.team1.toLowerCase().includes(tQ);
-          const inTeam2 = m.team2.toLowerCase().includes(tQ);
-          if (!inTourn && !inTitle && !inTeam1 && !inTeam2) {
-            return false;
-          }
-        }
-
         // Lọc FHD 1080p
         if (
           onlyFhd &&
@@ -253,12 +238,10 @@ export function LiveFootballClient({
     timelineFilter,
     showAllUpcoming,
     selectedChannel,
-    selectedTournament,
     searchQuery,
     onlyFhd,
   ]);
 
-  // Danh sách hiển thị theo phân trang chống ngợp
   const displayedMatches = useMemo(() => {
     return filteredMatches.slice(0, visibleCount);
   }, [filteredMatches, visibleCount]);
@@ -282,7 +265,6 @@ export function LiveFootballClient({
     setTimelineFilter("all");
     setShowAllUpcoming(false);
     setSelectedChannel("all");
-    setSelectedTournament("");
     setSearchQuery("");
     setOnlyFhd(false);
   };
@@ -291,7 +273,6 @@ export function LiveFootballClient({
     timelineFilter !== "all" ||
     showAllUpcoming ||
     selectedChannel !== "all" ||
-    selectedTournament !== "" ||
     searchQuery.trim() !== "" ||
     onlyFhd;
 
@@ -357,7 +338,7 @@ export function LiveFootballClient({
         </div>
       )}
 
-      {/* BỘ LỌC ĐIỀU HƯỚNG THÔNG MINH (CHỐNG NGỢP GIAO DIỆN) */}
+      {/* BỘ LỌC ĐIỀU HƯỚNG THÔNG MINH */}
       <div className="space-y-4 pt-4">
         {/* 1. THANH CHUYỂN DÒNG THỜI GIAN (TIMELINE SEGMENTED TABS) */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-white/10 pb-4">
@@ -451,7 +432,7 @@ export function LiveFootballClient({
             </button>
           </div>
 
-          {/* Ô TÌM KIẾM & NÚT FHD */}
+          {/* Ô TÌM KIẾM & NÚT FHD & LỊCH NHẮC */}
           <div className="flex items-center gap-2 w-full lg:w-auto">
             {/* NÚT XEM LỊCH NHẮC CỦA TÔI */}
             <button
@@ -511,142 +492,86 @@ export function LiveFootballClient({
           </div>
         </div>
 
-        {/* 2. CÁC NÚT LỌC NHANH GIẢI ĐẤU (NGOẠI HẠNG ANH, C1, LA LIGA...) */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none [&::-webkit-scrollbar]:hidden">
-          <span className="text-[11px] text-gray-400 font-bold whitespace-nowrap flex-none">
-            Giải đấu:
-          </span>
 
-          <button
-            type="button"
-            onClick={() => setSelectedTournament("")}
-            className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-all border cursor-pointer ${
-              selectedTournament === ""
-                ? "bg-purple-600 text-white border-purple-400 shadow-md shadow-purple-950/50 scale-105"
-                : "bg-white/5 text-gray-300 border-white/10 hover:border-white/25 hover:bg-white/10 hover:text-white"
-            }`}
-          >
-            Tất cả giải đấu
-          </button>
 
-          {POPULAR_TOURNAMENTS.map((item) => {
-            const isFilterActive = selectedTournament === item.query;
-            const count = enrichedMatches.filter((m) => {
-              const tQ = item.query.toLowerCase();
-              return (
-                m.tournament?.toLowerCase().includes(tQ) ||
-                m.title.toLowerCase().includes(tQ) ||
-                m.team1.toLowerCase().includes(tQ) ||
-                m.team2.toLowerCase().includes(tQ)
-              );
-            }).length;
-
-            return (
-              <button
-                key={item.label}
-                type="button"
-                onClick={() => {
-                  if (isFilterActive) {
-                    setSelectedTournament("");
-                  } else {
-                    setSelectedTournament(item.query);
-                  }
-                }}
-                className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-all border cursor-pointer flex items-center gap-1.5 ${
-                  isFilterActive
-                    ? "bg-purple-600 text-white border-purple-400 shadow-md shadow-purple-950/50 scale-105"
-                    : "bg-white/5 text-gray-300 border-white/10 hover:border-white/25 hover:bg-white/10 hover:text-white"
-                }`}
-              >
-                <span>{item.label}</span>
-                {count > 0 && (
-                  <span
-                    className={`text-[9.5px] px-1.5 py-0.2 rounded-full font-bold ${
-                      isFilterActive ? "bg-black/30 text-white" : "bg-white/10 text-gray-300"
-                    }`}
-                  >
-                    {count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* 3. CAROUSEL TABS CHỌN NGUỒN PHÁT (XÔI LẠC, S8, COLA TV...) */}
-        <div className="relative group/carousel">
-          <button
-            type="button"
-            onClick={() => scrollChannels("left")}
-            className="absolute -left-2 sm:-left-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-zinc-900/90 hover:bg-white text-gray-300 hover:text-black border border-white/20 shadow-xl flex items-center justify-center transition-all opacity-80 hover:opacity-100 backdrop-blur-md cursor-pointer"
-            title="Cuộn sang trái"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-
-          <div
-            ref={channelsScrollRef}
-            className="flex items-center gap-2 overflow-x-auto py-1 px-4 sm:px-6 scroll-smooth scrollbar-none [&::-webkit-scrollbar]:hidden"
-          >
+        {/* 3. CAROUSEL TABS CHỌN NGUỒN PHÁT (CHỈ HIỆN CÁC NGUỒN CÓ TRẬN) */}
+        {activeChannels.length > 0 && (
+          <div className="relative group/carousel">
             <button
               type="button"
-              onClick={() => setSelectedChannel("all")}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 border shadow-sm cursor-pointer ${
-                selectedChannel === "all"
-                  ? "bg-zinc-200 text-black border-white shadow-md font-extrabold scale-102"
-                  : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
-              }`}
+              onClick={() => scrollChannels("left")}
+              className="absolute -left-2 sm:-left-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-zinc-900/90 hover:bg-white text-gray-300 hover:text-black border border-white/20 shadow-xl flex items-center justify-center transition-all opacity-80 hover:opacity-100 backdrop-blur-md cursor-pointer"
+              title="Cuộn sang trái"
             >
-              <span>Tất cả nguồn</span>
-              <span
-                className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
-                  selectedChannel === "all"
-                    ? "bg-black text-white"
-                    : "bg-white/10 text-gray-300"
-                }`}
-              >
-                {matches.length}
-              </span>
+              <ChevronLeft className="w-4 h-4" />
             </button>
 
-            {channels.map((ch) => {
-              const count = matches.filter((m) => m.group === ch).length;
-              const isSelected = selectedChannel === ch;
-              return (
-                <button
-                  key={ch}
-                  type="button"
-                  onClick={() => setSelectedChannel(ch)}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 border shadow-sm cursor-pointer ${
-                    isSelected
-                      ? "bg-netflix-red text-white border-netflix-red shadow-lg shadow-red-950/50 scale-102"
-                      : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
+            <div
+              ref={channelsScrollRef}
+              className="flex items-center gap-2 overflow-x-auto py-1 px-4 sm:px-6 scroll-smooth scrollbar-none [&::-webkit-scrollbar]:hidden"
+            >
+              <button
+                type="button"
+                onClick={() => setSelectedChannel("all")}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 border shadow-sm cursor-pointer ${
+                  selectedChannel === "all"
+                    ? "bg-zinc-200 text-black border-white shadow-md font-extrabold scale-102"
+                    : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
+                }`}
+              >
+                <span>Tất cả nguồn</span>
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
+                    selectedChannel === "all"
+                      ? "bg-black text-white"
+                      : "bg-white/10 text-gray-300"
                   }`}
                 >
-                  <span>{ch}</span>
-                  <span
-                    className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
+                  {matches.length}
+                </span>
+              </button>
+
+              {activeChannels.map((ch) => {
+                const count = matches.filter(
+                  (m) => m.group === ch || m.groups?.includes(ch)
+                ).length;
+                const isSelected = selectedChannel === ch;
+                return (
+                  <button
+                    key={ch}
+                    type="button"
+                    onClick={() => setSelectedChannel(ch)}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 border shadow-sm cursor-pointer ${
                       isSelected
-                        ? "bg-black/40 text-white"
-                        : "bg-white/10 text-gray-300"
+                        ? "bg-netflix-red text-white border-netflix-red shadow-lg shadow-red-950/50 scale-102"
+                        : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
                     }`}
                   >
-                    {count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+                    <span>{ch}</span>
+                    <span
+                      className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
+                        isSelected
+                          ? "bg-black/40 text-white"
+                          : "bg-white/10 text-gray-300"
+                      }`}
+                    >
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
 
-          <button
-            type="button"
-            onClick={() => scrollChannels("right")}
-            className="absolute -right-2 sm:-right-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-zinc-900/90 hover:bg-white text-gray-300 hover:text-black border border-white/20 shadow-xl flex items-center justify-center transition-all opacity-80 hover:opacity-100 backdrop-blur-md cursor-pointer"
-            title="Cuộn sang phải"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
+            <button
+              type="button"
+              onClick={() => scrollChannels("right")}
+              className="absolute -right-2 sm:-right-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-zinc-900/90 hover:bg-white text-gray-300 hover:text-black border border-white/20 shadow-xl flex items-center justify-center transition-all opacity-80 hover:opacity-100 backdrop-blur-md cursor-pointer"
+              title="Cuộn sang phải"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        )}
 
         {/* TIÊU ĐỀ KHU VỰC VÀ SỐ LƯỢNG TRẬN */}
         <div className="flex items-center justify-between text-xs text-gray-400 pt-2">
@@ -690,7 +615,7 @@ export function LiveFootballClient({
             ))}
           </div>
 
-          {/* NÚT XEM THÊM TRẬN ĐẤU (PAGINATION LOAD MORE ĐẸP MẮT & CHỐNG NGỢP) */}
+          {/* NÚT XEM THÊM TRẬN ĐẤU (PAGINATION LOAD MORE) */}
           {filteredMatches.length > visibleCount && (
             <div className="flex flex-col items-center justify-center pt-4 pb-2 space-y-2">
               <button

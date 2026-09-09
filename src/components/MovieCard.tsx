@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
-import { Star, Users } from "lucide-react";
+import { Star, Users, Play } from "lucide-react";
 import { normalizeMovie } from "@/lib/movieMedia";
 import {
   clientSynopsisCache,
@@ -11,12 +11,25 @@ import {
 } from "./sites/netflix-3f78535a/browse-1234abcd/MediaCard";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Props = { m: any };
+type Props = { m: any; priority?: boolean };
 
-function MovieCardInner({ m }: Props) {
+function MovieCardInner({ m, priority = false }: Props) {
   const norm = normalizeMovie(m);
-  const { title, year, quality, isTrailerOnly, description, imageUrl, slug } =
-    norm;
+  const {
+    title,
+    year,
+    quality,
+    isTrailerOnly,
+    description,
+    posterUrl,
+    imageUrl,
+    slug,
+    time,
+    lang,
+    chieurap,
+    sub_docquyen,
+    type_name,
+  } = norm;
   const rating = norm.score !== "N/A" ? norm.score : null;
   const [isHovered, setIsHovered] = useState(false);
 
@@ -97,6 +110,7 @@ function MovieCardInner({ m }: Props) {
   };
 
   const [isImgLoaded, setIsImgLoaded] = useState(false);
+  const displayImage = posterUrl || imageUrl || "/default-poster.jpg";
 
   return (
     <motion.article
@@ -104,7 +118,7 @@ function MovieCardInner({ m }: Props) {
       onHoverEnd={handleHoverEnd}
       animate={{ y: isHovered ? -6 : 0 }}
       transition={{ type: "spring", stiffness: 420, damping: 30, mass: 0.65 }}
-      className={`relative aspect-[2/3] overflow-hidden rounded-2xl border bg-zinc-900/85 transition-shadow duration-300 shadow-lg ${
+      className={`group relative aspect-[2/3] overflow-hidden rounded-2xl border bg-zinc-900/85 transition-shadow duration-300 shadow-lg ${
         isHovered
           ? "border-white/40 shadow-[0_20px_45px_-12px_rgba(0,0,0,0.95)]"
           : "border-white/10"
@@ -127,60 +141,104 @@ function MovieCardInner({ m }: Props) {
         transition={{ type: "spring", stiffness: 420, damping: 30, mass: 0.65 }}
       >
         <Image
-          src={imageUrl}
+          src={displayImage}
           alt={title}
           fill
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
-          className={`object-cover transition-all duration-500 ${
+          className={`object-cover object-center transition-all duration-500 ${
             isImgLoaded ? "opacity-100 scale-100" : "opacity-0 scale-102"
           }`}
+          priority={priority}
+          loading={priority ? "eager" : "lazy"}
           decoding="async"
-          loading="lazy"
           onLoad={() => setIsImgLoaded(true)}
         />
       </motion.div>
 
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent" />
+      {/* Lớp phủ chuyển màu gradient từ dưới lên */}
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/95 via-black/35 to-transparent" />
 
-      <div className="absolute left-2.5 top-2.5 z-20 inline-flex items-center gap-1.5 rounded-lg border border-white/20 bg-black/60 px-2 py-0.5 text-[11px] font-bold text-white backdrop-blur">
-        <span className="text-netflix-red">{quality}</span>
-        <span className="text-white/60">•</span>
-        <span>{year}</span>
+      {/* 1. GÓC TRÊN TRÁI: DÀNH CHO LOẠI PHIM (PHIM RẠP, ĐỘC QUYỀN, BỘ, LẺ) */}
+      <div className="absolute left-2 top-2 z-20 flex items-center gap-1 flex-wrap max-w-[70%]">
+        {chieurap ? (
+          <div className="flex items-center gap-0.5 bg-gradient-to-r from-amber-600 to-orange-500 text-white font-black px-1.5 py-0.5 rounded-md text-[9px] uppercase tracking-wider backdrop-blur-md shadow-md border border-amber-400/40">
+            <span>🎬 Rạp</span>
+          </div>
+        ) : sub_docquyen ? (
+          <div className="flex items-center gap-0.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black px-1.5 py-0.5 rounded-md text-[9px] uppercase tracking-wider backdrop-blur-md shadow-md border border-purple-400/40">
+            <span>💎 Độc Quyền</span>
+          </div>
+        ) : type_name === "Phim bộ" ? (
+          <div className="flex items-center gap-0.5 bg-blue-600/90 text-white font-black px-1.5 py-0.5 rounded-md text-[9px] uppercase tracking-wider backdrop-blur-md shadow-md border border-blue-400/40">
+            <span>📺 Bộ</span>
+          </div>
+        ) : type_name === "Hoạt hình" ? (
+          <div className="flex items-center gap-0.5 bg-pink-600/90 text-white font-black px-1.5 py-0.5 rounded-md text-[9px] uppercase tracking-wider backdrop-blur-md shadow-md border border-pink-400/40">
+            <span>✨ Hoạt Hình</span>
+          </div>
+        ) : type_name === "TV Shows" ? (
+          <div className="flex items-center gap-0.5 bg-emerald-600/90 text-white font-black px-1.5 py-0.5 rounded-md text-[9px] uppercase tracking-wider backdrop-blur-md shadow-md border border-emerald-400/40">
+            <span>🎙️ Show</span>
+          </div>
+        ) : null}
       </div>
 
-      {rating && (
-        <div className="absolute right-2.5 top-2.5 z-20 inline-flex items-center gap-1 rounded-lg border border-amber-300/40 bg-black/65 px-2 py-0.5 text-[11px] font-bold text-amber-300 backdrop-blur">
-          <Star size={11} fill="currentColor" />
-          {rating}
+      {/* 2. GÓC TRÊN PHẢI: ĐIỂM SAO VÀNG & CHẤT LƯỢNG (HD/FHD) */}
+      <div className="absolute right-2 top-2 z-20 flex items-center gap-1">
+        {rating && Number(rating) > 0 && (
+          <div className="inline-flex items-center gap-1 rounded-md border border-amber-400/40 bg-black/75 px-1.5 py-0.5 text-[10px] font-extrabold text-amber-300 backdrop-blur-md shadow-sm">
+            <Star size={10} fill="currentColor" />
+            <span>{rating}</span>
+          </div>
+        )}
+        <div className="inline-flex items-center rounded-md border border-white/20 bg-black/60 px-1.5 py-0.5 text-[9.5px] font-bold text-white backdrop-blur-md">
+          <span>{quality || "FHD"}</span>
         </div>
-      )}
+      </div>
 
-      {/* NÚT PLAY KIỂU NETFLIX (NẰM CHÍNH GIỮA KHI HOVER) */}
+      {/* 3. NÚT PLAY KIỂU NETFLIX (NẰM CHÍNH GIỮA KHI HOVER) */}
       <motion.div
         className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center"
         animate={{ opacity: isHovered ? 1 : 0, scale: isHovered ? 1 : 0.8 }}
         transition={{ duration: 0.2, ease: "easeOut" }}
       >
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-black shadow-2xl">
-          <div className="w-0 h-0 border-t-[7px] border-t-transparent border-l-[12px] border-l-black border-b-[7px] border-b-transparent ml-1"></div>
+        <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-black shadow-2xl">
+          <Play size={18} className="fill-black ml-0.5" />
         </div>
       </motion.div>
 
-      <div className="absolute inset-x-0 bottom-0 z-20 p-3 pointer-events-none space-y-1">
-        <h3 className="text-white font-extrabold text-xs sm:text-sm leading-snug line-clamp-1 drop-shadow">
+      {/* 4. CHÂN POSTER: TIÊU ĐỀ & THÔNG SỐ (NĂM, THỜI LƯỢNG, TIẾNG) */}
+      <div className="absolute inset-x-0 bottom-0 z-20 p-2.5 sm:p-3 pointer-events-none space-y-1">
+        <h3 className="text-white font-black text-xs sm:text-[13px] leading-snug line-clamp-1 drop-shadow-md">
           {title}
         </h3>
 
+        <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-semibold text-gray-300 flex-wrap">
+          {year && <span>{year}</span>}
+          {time && (
+            <>
+              {year && <span className="text-white/30">•</span>}
+              <span className="truncate max-w-[85px]">{time}</span>
+            </>
+          )}
+          {lang && (
+            <>
+              {(year || time) && <span className="text-white/30">•</span>}
+              <span className="text-rose-400 font-bold">{lang}</span>
+            </>
+          )}
+        </div>
+
         {actors.length > 0 && isHovered && (
-          <div className="flex items-center gap-1 text-[10.5px] text-gray-300 animate-in fade-in duration-150">
-            <Users size={11} className="text-rose-400 flex-none" />
+          <div className="flex items-center gap-1 text-[10px] text-gray-300 animate-in fade-in duration-150">
+            <Users size={10} className="text-rose-400 flex-none" />
             <span className="truncate">{actors.slice(0, 2).join(", ")}</span>
           </div>
         )}
 
         <p
-          className={`overflow-hidden text-[10.5px] text-gray-300 transition-[max-height,opacity] duration-200 ease-out line-clamp-2 leading-relaxed ${
-            isHovered ? "max-h-16 opacity-100" : "max-h-0 opacity-0"
+          className={`overflow-hidden text-[10px] text-gray-300 transition-[max-height,opacity] duration-200 ease-out line-clamp-2 leading-relaxed ${
+            isHovered ? "max-h-12 opacity-100" : "max-h-0 opacity-0"
           }`}
         >
           {synopsis || description}
@@ -192,3 +250,4 @@ function MovieCardInner({ m }: Props) {
 
 export const MovieCard = React.memo(MovieCardInner);
 export default MovieCard;
+
