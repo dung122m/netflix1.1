@@ -48,7 +48,7 @@ export function RecommendationTabs({
           }`}
         >
           <Sparkles className="w-3.5 h-3.5" />
-          <span>Tất cả đề xuất ({allMovies.length})</span>
+          <span>Nana Đề Xuất Cho Bạn ({allMovies.length})</span>
         </button>
 
         {genreName && genreMovies.length > 0 && (

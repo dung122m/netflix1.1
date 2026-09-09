@@ -21,6 +21,7 @@ import {
   Globe2,
 } from "lucide-react";
 import { MovieSynopsis } from "@/components/MovieSynopsis";
+import { AiMovieVibe } from "@/components/AiMovieVibe";
 import { ShareButton } from "@/components/ShareButton";
 import { MobileQrModal } from "@/components/MobileQrModal";
 import { ReportIssueModal } from "@/components/ReportIssueModal";
@@ -496,6 +497,15 @@ export default async function MovieDetail({
               </div>
             )}
 
+            <AiMovieVibe
+              slug={slug}
+              title={title}
+              category={categoryList.map((c) => c.name).join(", ")}
+              country={countryList.map((c) => c.name).join(", ")}
+              synopsis={description}
+              year={movie.year}
+            />
+
             <MovieSynopsis
               synopsis={description}
               originName={movie.origin_name}
@@ -676,11 +686,11 @@ export default async function MovieDetail({
       <div className="max-w-7xl mx-auto px-4 md:px-8 mt-10">
         <div className="flex items-end justify-between gap-4 mb-5">
           <div>
-            <h2 className="text-2xl md:text-3xl font-extrabold">
-              Gợi ý cho bạn
+            <h2 className="text-2xl md:text-3xl font-extrabold flex items-center gap-2">
+              <span>Nana Gợi Ý Cho Bạn</span>
             </h2>
             <p className="text-sm text-gray-400 mt-1">
-              Ưu tiên cùng thể loại và quốc gia để phù hợp gu xem hiện tại.
+              Nana đã chọn lọc những bộ phim cùng thể loại và quốc gia phù hợp nhất với gu xem của bạn.
             </p>
           </div>
         </div>

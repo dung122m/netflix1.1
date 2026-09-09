@@ -7,8 +7,9 @@ import { Footer } from "@/components/Footer";
 import { ContinueWatchingRow } from "@/components/ContinueWatchingRow";
 import { QuickGenreChips } from "@/components/QuickGenreChips";
 import { SortSelector } from "@/components/SortSelector";
-import { Film, ExternalLink } from "lucide-react";
+import { Film, ExternalLink, Sparkles } from "lucide-react";
 import { movieApi } from "@/services/movieApi";
+import { resolveActorMovies, fetchMoviesByTitles } from "@/services/aiActorService";
 
 const HeroFeatured = dynamic(() =>
   import("@/components/sites/netflix-3f78535a/browse-1234abcd/HeroFeatured").then(
@@ -107,34 +108,67 @@ export default async function BrowsePage({
   const sort = (params.sort as "latest" | "rating" | "views" | "year") || undefined;
 
   const currentPage = params.page ? parseInt(params.page, 10) : 1;
+  const PAGE_LIMIT = 24; // Chuẩn lưới 4 cột (desktop), 3 cột (tablet), 2 cột (mobile) -> chia hết cho cả 2, 3, 4 giúp hàng luôn lấp đầy 100%, không bị khuyết ô
 
-  const response = await movieApi.getMovies({
-    category,
-    country,
-    year,
-    keyword,
-    page: currentPage,
-    limit: 24,
-    type,
-    sort,
-  });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let movies: any[] = [];
+  let detectedActor: { name: string; country?: string; source: string } | null = null;
+  let totalPages = 1;
+  let totalItems = 0;
 
-  const movies = response?.items || [];
-  const totalPages = response?.pagination?.totalPages || 50;
-  const totalItems = response?.pagination?.totalItems || movies.length;
+  // 1. HỖ TRỢ TÌM KIẾM THEO DIỄN VIÊN BẰNG AI:
+  // Kiểm tra trước: Nếu là diễn viên, tải trực tiếp phim của diễn viên và BỎ QUA truy vấn kép để web nhanh gấp 2 lần!
+  if (keyword) {
+    const actorInfo = await resolveActorMovies(keyword);
+    if (actorInfo.isActor && actorInfo.titles.length > 0) {
+      detectedActor = {
+        name: actorInfo.actorName,
+        country: actorInfo.country,
+        source: actorInfo.source,
+      };
+      // Lấy danh sách phim diễn viên từ bộ nhớ đệm (0ms) hoặc truy vấn siêu tốc
+      movies = await fetchMoviesByTitles(actorInfo.titles, PAGE_LIMIT);
+      totalItems = movies.length;
+      totalPages = 1;
+    }
+  }
+
+  // 2. NẾU KHÔNG PHẢI DIỄN VIÊN: Tải danh sách phim qua movieApi bình thường
+  if (!detectedActor) {
+    const response = await movieApi.getMovies({
+      category,
+      country,
+      year,
+      keyword,
+      page: currentPage,
+      limit: PAGE_LIMIT,
+      type,
+      sort,
+    });
+    movies = response?.items || [];
+    totalPages = response?.pagination?.totalPages || 50;
+    totalItems = response?.pagination?.totalItems || movies.length;
+  }
+
   const pages = getPagination(currentPage, totalPages);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let fallbackMovies: any[] = [];
   if (movies.length === 0 && keyword) {
-    const fallbackRes = await movieApi.getMovies({ limit: 12, sort: "views" });
+    const fallbackRes = await movieApi.getMovies({ limit: 16, sort: "views" });
     fallbackMovies = fallbackRes?.items || [];
   }
 
   let title = "Phim Mới Cập Nhật";
 
   if (keyword) {
-    title = `Kết quả tìm kiếm: "${keyword}"`;
+    if (detectedActor) {
+      title = `Tuyển tập phim của diễn viên: ${detectedActor.name}`;
+    } else if (country) {
+      title = `Kết quả tìm kiếm: "${keyword}" • ${country}`;
+    } else {
+      title = `Kết quả tìm kiếm: "${keyword}"`;
+    }
   } else if (sort === "rating") {
     title = "⭐ Phim Có Điểm Đánh Giá Cao Nhất";
   } else if (sort === "views") {
@@ -178,24 +212,22 @@ export default async function BrowsePage({
       {/* TIẾP TỤC XEM: Hiển thị ngay trên trang chủ khi có lịch sử */}
       {isPlainHomepage && <ContinueWatchingRow />}
 
-      {/* BỘ LỌC PHIM: Khi không có Hero (trang 2+, có lọc thể loại/quốc gia), có pt-24 sm:pt-28 đảm bảo không bao giờ bị Header che */}
+      {/* BỘ LỌC PHIM: Khi không có Hero, có khoảng cách trên tránh header che */}
       {!keyword && (
         <div
-          className={`px-4 md:px-8 ${
-            isPlainHomepage ? "mt-8" : "pt-24 sm:pt-28"
-          }`}
+          className={`px-4 md:px-8 ${isPlainHomepage ? "mt-8" : "pt-24 sm:pt-28"
+            }`}
         >
           <FilterBarClient />
         </div>
       )}
 
       <div
-        className={`px-4 md:px-8 ${
-          keyword ? "pt-24 sm:pt-28" : !keyword && !isPlainHomepage ? "pt-6" : "pt-8"
-        }`}
+        className={`px-4 md:px-8 ${keyword ? "pt-24 sm:pt-28" : !keyword && !isPlainHomepage ? "pt-6" : "pt-8"
+          }`}
       >
-        {/* DẢI THẺ LỌC NHANH THỂ LOẠI */}
-        {!keyword && <QuickGenreChips />}
+        {/* DẢI THẺ LỌC NHANH THỂ LOẠI & QUỐC GIA (Hiển thị cả khi đang tìm kiếm để người dùng lọc theo quốc gia của diễn viên) */}
+        <QuickGenreChips />
 
         <div className="mb-7 flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -203,7 +235,7 @@ export default async function BrowsePage({
               {title}
             </h2>
             <p className="mt-1 text-sm text-gray-400">
-              Khám phá bộ sưu tập phim chất lượng cao từ nhiều nguồn, cập nhật
+              Khám phá bộ sưu tập phim chất lượng cao do Nana tuyển chọn, cập nhật
               liên tục.
             </p>
           </div>
@@ -218,6 +250,29 @@ export default async function BrowsePage({
           </div>
         </div>
 
+        {detectedActor && (
+          <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-red-950/80 via-zinc-900 to-zinc-900 border border-red-500/30 flex items-center justify-between gap-3 shadow-lg animate-in fade-in duration-300">
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-red-600 to-purple-600 text-white flex items-center justify-center text-white flex-none shadow-md border border-white/20">
+                <Sparkles className="w-5 h-5 text-amber-300" />
+              </div>
+              <div>
+                <h4 className="text-sm sm:text-base font-black text-white flex items-center gap-2 flex-wrap">
+                  <span>Tuyển Tập Tác Phẩm Của {detectedActor.name} • Nana Gợi Ý</span>
+                  {detectedActor.country && (
+                    <span className="text-xs text-rose-300 font-bold px-2 py-0.5 rounded-full bg-white/5 border border-white/10">
+                      {detectedActor.country}
+                    </span>
+                  )}
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-gradient-to-r from-red-600/30 to-purple-600/30 text-rose-300 font-bold border border-red-500/40">
+                    ✨ Nana Nhận Diện
+                  </span>
+                </h4>
+              </div>
+            </div>
+          </div>
+        )}
+
         {movies.length > 0 ? (
           <>
             <MovieGrid movies={movies} />
@@ -225,11 +280,10 @@ export default async function BrowsePage({
             <div className="flex justify-center items-center gap-1.5 sm:gap-2 mt-10 sm:mt-16 flex-wrap">
               <Link
                 href={buildPaginationUrl(Math.max(1, currentPage - 1))}
-                className={`px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm rounded font-semibold transition ${
-                  currentPage === 1
+                className={`px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm rounded font-semibold transition ${currentPage === 1
                     ? "bg-zinc-900 text-zinc-600 pointer-events-none"
                     : "bg-zinc-800 text-white hover:bg-zinc-700"
-                }`}
+                  }`}
               >
                 &laquo; Trở lại
               </Link>
@@ -246,11 +300,10 @@ export default async function BrowsePage({
                   <Link
                     key={index}
                     href={buildPaginationUrl(p as number)}
-                    className={`w-8 h-8 sm:w-10 sm:h-10 text-xs sm:text-sm flex items-center justify-center rounded font-semibold transition-colors ${
-                      currentPage === p
+                    className={`w-8 h-8 sm:w-10 sm:h-10 text-xs sm:text-sm flex items-center justify-center rounded font-semibold transition-colors ${currentPage === p
                         ? "bg-netflix-red text-white shadow-sm"
                         : "bg-zinc-800 text-gray-300 hover:bg-zinc-700 hover:text-white"
-                    }`}
+                      }`}
                   >
                     {p}
                   </Link>
@@ -259,11 +312,10 @@ export default async function BrowsePage({
 
               <Link
                 href={buildPaginationUrl(currentPage + 1)}
-                className={`px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm rounded font-semibold transition ${
-                  currentPage >= totalPages
+                className={`px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm rounded font-semibold transition ${currentPage >= totalPages
                     ? "bg-zinc-900 text-zinc-600 pointer-events-none"
                     : "bg-zinc-800 text-white hover:bg-zinc-700"
-                }`}
+                  }`}
               >
                 Tiếp theo &raquo;
               </Link>
@@ -318,7 +370,7 @@ export default async function BrowsePage({
                 <div className="flex items-center gap-2 mb-5">
                   <span className="text-xl">🔥</span>
                   <h3 className="text-xl md:text-2xl font-extrabold text-white">
-                    Phim Thịnh Hành Đang Được Xem Nhiều Nhất
+                    Phim Thịnh Hành Nana Gợi Ý Cho Bạn
                   </h3>
                 </div>
                 <MovieGrid movies={fallbackMovies} />

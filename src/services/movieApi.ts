@@ -269,7 +269,50 @@ export const movieApi = {
       }
     });
 
-    const allUniqueItems = Array.from(uniqueItemsMap.values());
+    let allUniqueItems = Array.from(uniqueItemsMap.values());
+
+    // Lọc theo Quốc Gia chính xác khi tìm kiếm từ khóa/diễn viên
+    if (country) {
+      const targetCountry = country.toLowerCase().trim();
+      const filtered = allUniqueItems.filter((item) => {
+        const ctryArray = Array.isArray(item.country)
+          ? item.country.map((c: { slug?: string; name?: string }) =>
+              `${c.slug || ""} ${c.name || ""}`.toLowerCase()
+            )
+          : [String(item.country || "").toLowerCase()];
+        return ctryArray.some((cStr: string) => cStr.includes(targetCountry));
+      });
+      // Nếu lọc ra kết quả thì áp dụng kết quả lọc chính xác
+      if (filtered.length > 0) {
+        allUniqueItems = filtered;
+      }
+    }
+
+    // Lọc theo Thể Loại chính xác
+    if (category) {
+      const targetCat = category.toLowerCase().trim();
+      const filtered = allUniqueItems.filter((item) => {
+        const catArray = Array.isArray(item.category)
+          ? item.category.map((c: { slug?: string; name?: string }) =>
+              `${c.slug || ""} ${c.name || ""}`.toLowerCase()
+            )
+          : [String(item.category || "").toLowerCase()];
+        return catArray.some((cStr: string) => cStr.includes(targetCat));
+      });
+      if (filtered.length > 0) {
+        allUniqueItems = filtered;
+      }
+    }
+
+    // Lọc theo Năm
+    if (year) {
+      const filtered = allUniqueItems.filter((item) =>
+        String(item.year || "").includes(String(year))
+      );
+      if (filtered.length > 0) {
+        allUniqueItems = filtered;
+      }
+    }
 
     // Sắp xếp theo yêu cầu người dùng
     if (sort === "rating") {
@@ -292,7 +335,7 @@ export const movieApi = {
       });
     }
 
-    // Cắt chính xác số lượng limit (24 phim) để tránh render gấp đôi DOM
+    // Cắt theo số lượng limit yêu cầu (mặc định 24-36 phim)
     const finalItems = allUniqueItems.slice(0, limit);
 
     const totalPagesVsmov = dataVsmov?.totalPages || 0;

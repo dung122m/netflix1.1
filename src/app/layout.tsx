@@ -19,9 +19,9 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Nanaflix",
+  title: "Nanaflix - Thế Giới Điện Ảnh Của Nana",
   description:
-    "Nanaflix - Xem phim trực tuyến miễn phí, cập nhật nhanh chóng các bộ phim mới nhất, chất lượng cao, không quảng cáo.",
+    "Nanaflix - Xem phim trực tuyến chất lượng cao cùng Trợ lý Nana gợi ý phim thông minh, cập nhật liên tục các siêu phẩm điện ảnh mới nhất.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,

@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Filter,
+  Users,
 } from "lucide-react";
 
 const POPULAR_GENRES = [
@@ -46,6 +47,25 @@ const POPULAR_COUNTRIES = [
   { name: "🇫🇷 Pháp", slug: "phap" },
 ];
 
+const POPULAR_ACTORS = [
+  { name: "🎬 Trấn Thành", keyword: "Trấn Thành" },
+  { name: "🥋 Thành Long", keyword: "Thành Long" },
+  { name: "⚡ Châu Tinh Trì", keyword: "Châu Tinh Trì" },
+  { name: "💥 Chân Tử Đan", keyword: "Chân Tử Đan" },
+  { name: "🥊 Lý Liên Kiệt", keyword: "Lý Liên Kiệt" },
+  { name: "✨ Lưu Diệc Phi", keyword: "Lưu Diệc Phi" },
+  { name: "👑 Dương Mịch", keyword: "Dương Mịch" },
+  { name: "🌟 Triệu Lệ Dĩnh", keyword: "Triệu Lệ Dĩnh" },
+  { name: "⭐ Tiêu Chiến", keyword: "Tiêu Chiến" },
+  { name: "🇰🇷 Song Joong Ki", keyword: "Song Joong Ki" },
+  { name: "💫 Lee Min Ho", keyword: "Lee Min Ho" },
+  { name: "💖 Hyun Bin", keyword: "Hyun Bin" },
+  { name: "👊 Ma Dong Seok", keyword: "Ma Dong Seok" },
+  { name: "🕶️ Tom Cruise", keyword: "Tom Cruise" },
+  { name: "🎭 Leonardo DiCaprio", keyword: "Leonardo DiCaprio" },
+  { name: "🔫 Keanu Reeves", keyword: "Keanu Reeves" },
+];
+
 const RECENT_YEARS = [
   { name: "📅 Tất cả năm", year: "" },
   { name: "🚀 2026", year: "2026" },
@@ -65,16 +85,18 @@ const QuickGenreChipsInner: React.FC = () => {
 
   const currentCategory = searchParams.get("category") || "";
   const currentCountry = searchParams.get("country") || "";
+  const currentKeyword = searchParams.get("keyword") || "";
   const currentYear = searchParams.get("year") || "";
   const currentSort = searchParams.get("sort") || "";
   const currentType = searchParams.get("type") || "";
 
-  const [mobileTab, setMobileTab] = useState<"genre" | "country" | "year">("genre");
+  const [mobileTab, setMobileTab] = useState<"genre" | "country" | "actor" | "year">("genre");
   const [showAllMobileRows, setShowAllMobileRows] = useState(false);
 
   // Refs for horizontal scrolling
   const genreRowRef = useRef<HTMLDivElement>(null);
   const countryRowRef = useRef<HTMLDivElement>(null);
+  const actorRowRef = useRef<HTMLDivElement>(null);
   const yearRowRef = useRef<HTMLDivElement>(null);
 
   const scrollRow = (ref: React.RefObject<HTMLDivElement | null>, offset: number) => {
@@ -87,10 +109,22 @@ const QuickGenreChipsInner: React.FC = () => {
   const activeCount = [
     Boolean(currentCategory),
     Boolean(currentCountry),
+    Boolean(currentKeyword),
     Boolean(currentYear),
     Boolean(currentSort),
     Boolean(currentType),
   ].filter(Boolean).length;
+
+  const handleActorSelect = useCallback((kw: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (params.get("keyword")?.toLowerCase() === kw.toLowerCase()) {
+      params.delete("keyword");
+    } else {
+      params.set("keyword", kw);
+    }
+    params.delete("page");
+    router.push(`/browse?${params.toString()}`);
+  }, [searchParams, router]);
 
   const handleCategorySelect = useCallback((item: {
     slug: string;
@@ -339,6 +373,61 @@ const QuickGenreChipsInner: React.FC = () => {
     </div>
   );
 
+  // Render hàng diễn viên
+  const renderActorRow = () => (
+    <div className="relative group/row flex items-center gap-2">
+      <div className="hidden md:flex flex-none items-center gap-1.5 text-xs text-gray-400 pl-1 pr-2 font-semibold w-24 sm:w-28">
+        <Users className="w-3.5 h-3.5 text-amber-400" />
+        <span>Diễn viên:</span>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => scrollRow(actorRowRef, -240)}
+        className="hidden md:flex flex-none items-center justify-center w-6 h-6 rounded-full bg-zinc-900/90 hover:bg-white text-gray-400 hover:text-black border border-white/10 transition z-10 cursor-pointer shadow-md opacity-0 group-hover/row:opacity-100"
+        title="Cuộn trái"
+        aria-label="Cuộn diễn viên sang trái"
+      >
+        <ChevronLeft className="w-3.5 h-3.5" />
+      </button>
+
+      <div
+        ref={actorRowRef}
+        className="flex-1 flex items-center gap-1.5 overflow-x-auto py-1 scrollbar-none [&::-webkit-scrollbar]:hidden touch-pan-x scroll-smooth"
+      >
+        {POPULAR_ACTORS.map((act) => {
+          const isActive =
+            currentKeyword.toLowerCase().trim() === act.keyword.toLowerCase().trim();
+
+          return (
+            <button
+              key={act.keyword}
+              type="button"
+              onClick={() => handleActorSelect(act.keyword)}
+              className={`flex-none px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 cursor-pointer ${
+                isActive
+                  ? "bg-gradient-to-r from-amber-500 to-orange-500 text-black font-extrabold shadow-md shadow-amber-950/60 scale-105"
+                  : "bg-zinc-900/90 hover:bg-zinc-800 text-gray-300 hover:text-white border border-white/10 hover:border-white/25"
+              }`}
+            >
+              {act.name}
+            </button>
+          );
+        })}
+      </div>
+
+      <button
+        type="button"
+        onClick={() => scrollRow(actorRowRef, 240)}
+        className="hidden md:flex flex-none items-center justify-center w-6 h-6 rounded-full bg-zinc-900/90 hover:bg-white text-gray-400 hover:text-black border border-white/10 transition z-10 cursor-pointer shadow-md opacity-0 group-hover/row:opacity-100"
+        title="Cuộn phải"
+        aria-label="Cuộn diễn viên sang phải"
+      >
+        <ChevronRight className="w-3.5 h-3.5" />
+      </button>
+    </div>
+  );
+
   return (
     <div className="w-full mb-6 rounded-3xl border border-white/10 bg-zinc-950/80 p-3.5 sm:p-5 backdrop-blur-xl shadow-2xl space-y-3">
       {/* THANH ĐIỀU HƯỚNG BỘ LỌC ĐANG CHỌN (NẾU CÓ) */}
@@ -402,6 +491,22 @@ const QuickGenreChipsInner: React.FC = () => {
               </button>
             )}
 
+            {currentKeyword && (
+              <button
+                type="button"
+                onClick={() => {
+                  const p = new URLSearchParams(searchParams.toString());
+                  p.delete("keyword");
+                  p.delete("page");
+                  router.push(`/browse?${p.toString()}`);
+                }}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold hover:bg-amber-500 hover:text-black transition cursor-pointer"
+              >
+                <span>Diễn viên: {currentKeyword}</span>
+                <X className="w-3 h-3" />
+              </button>
+            )}
+
             {currentYear && (
               <button
                 type="button"
@@ -427,11 +532,11 @@ const QuickGenreChipsInner: React.FC = () => {
 
       {/* MOBILE SEGMENTED CONTROL */}
       <div className="flex md:hidden items-center justify-between gap-1 pb-1">
-        <div className="flex items-center gap-1 bg-zinc-900/90 p-1 rounded-xl border border-white/10 text-xs">
+        <div className="flex items-center gap-1 bg-zinc-900/90 p-1 rounded-xl border border-white/10 text-xs overflow-x-auto scrollbar-none">
           <button
             type="button"
             onClick={() => setMobileTab("genre")}
-            className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1 cursor-pointer ${
+            className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1 cursor-pointer flex-none ${
               mobileTab === "genre"
                 ? "bg-netflix-red text-white shadow-sm"
                 : "text-gray-400 hover:text-white"
@@ -447,7 +552,7 @@ const QuickGenreChipsInner: React.FC = () => {
           <button
             type="button"
             onClick={() => setMobileTab("country")}
-            className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1 cursor-pointer ${
+            className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1 cursor-pointer flex-none ${
               mobileTab === "country"
                 ? "bg-sky-600 text-white shadow-sm"
                 : "text-gray-400 hover:text-white"
@@ -462,8 +567,24 @@ const QuickGenreChipsInner: React.FC = () => {
 
           <button
             type="button"
+            onClick={() => setMobileTab("actor")}
+            className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1 cursor-pointer flex-none ${
+              mobileTab === "actor"
+                ? "bg-amber-500 text-black shadow-sm font-extrabold"
+                : "text-gray-400 hover:text-white"
+            }`}
+          >
+            <Users className="w-3 h-3" />
+            <span>Diễn viên</span>
+            {currentKeyword && (
+              <span className="w-1.5 h-1.5 rounded-full bg-white ml-0.5" />
+            )}
+          </button>
+
+          <button
+            type="button"
             onClick={() => setMobileTab("year")}
-            className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1 cursor-pointer ${
+            className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1 cursor-pointer flex-none ${
               mobileTab === "year"
                 ? "bg-emerald-600 text-white shadow-sm"
                 : "text-gray-400 hover:text-white"
@@ -480,7 +601,7 @@ const QuickGenreChipsInner: React.FC = () => {
         <button
           type="button"
           onClick={() => setShowAllMobileRows((prev) => !prev)}
-          className="text-[11px] text-gray-400 hover:text-white px-2 py-1 transition flex items-center gap-0.5 cursor-pointer"
+          className="text-[11px] text-gray-400 hover:text-white px-2 py-1 transition flex items-center gap-0.5 cursor-pointer flex-none"
         >
           <span>{showAllMobileRows ? "Thu gọn" : "Hiện đủ"}</span>
           {showAllMobileRows ? (
@@ -497,21 +618,24 @@ const QuickGenreChipsInner: React.FC = () => {
           <>
             {renderGenreRow()}
             {renderCountryRow()}
+            {renderActorRow()}
             {renderYearRow()}
           </>
         ) : (
           <>
             {mobileTab === "genre" && renderGenreRow()}
             {mobileTab === "country" && renderCountryRow()}
+            {mobileTab === "actor" && renderActorRow()}
             {mobileTab === "year" && renderYearRow()}
           </>
         )}
       </div>
 
-      {/* HIỂN THỊ TRÊN MÀN HÌNH DESKTOP (MD+): CẢ 3 HÀNG CÙNG LÚC ĐẦY ĐỦ VÀ TRỰC QUAN */}
+      {/* HIỂN THỊ TRÊN MÀN HÌNH DESKTOP (MD+): CẢ 4 HÀNG CÙNG LÚC ĐẦY ĐỦ VÀ TRỰC QUAN */}
       <div className="hidden md:block space-y-2.5">
         {renderGenreRow()}
         {renderCountryRow()}
+        {renderActorRow()}
         {renderYearRow()}
       </div>
     </div>

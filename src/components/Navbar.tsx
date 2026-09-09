@@ -428,7 +428,7 @@ const NavbarInner: React.FC = () => {
             <RandomMovieButton />
           </div>
 
-          {/* NÚT TRỢ LÝ AI GỢI Ý PHIM */}
+          {/* NÚT TRỢ LÝ NANA GỢI Ý PHIM */}
           <button
             type="button"
             onClick={() => {
@@ -436,11 +436,11 @@ const NavbarInner: React.FC = () => {
                 window.dispatchEvent(new CustomEvent("open-ai-concierge"));
               }
             }}
-            title="Trợ lý AI Gợi ý phim theo tâm trạng"
+            title="Trợ lý Nana gợi ý phim theo tâm trạng"
             className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-bold bg-gradient-to-r from-red-600/20 to-purple-600/20 hover:from-red-600/30 hover:to-purple-600/30 text-rose-300 hover:text-white border border-rose-500/30 hover:border-rose-400 transition cursor-pointer shadow-sm"
           >
             <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
-            <span>AI Gợi Ý</span>
+            <span>Nana Gợi Ý</span>
           </button>
 
           {/* Ô TÌM KIẾM CÓ GỢI Ý TRỰC TIẾP */}
@@ -466,7 +466,7 @@ const NavbarInner: React.FC = () => {
               <input
                 ref={inputRef}
                 type="text"
-                placeholder="Tìm kiếm phim..."
+                placeholder="Tìm phim cùng Nana..."
                 onChange={handleInputChange}
                 onKeyDown={handleInputKeyDown}
                 onFocus={() => {
@@ -768,7 +768,7 @@ const NavbarInner: React.FC = () => {
               <Sparkles size={14} className="text-amber-400 animate-pulse" />
             </button>
 
-            {/* NÚT TRỢ LÝ AI GỢI Ý PHIM TRÊN MOBILE */}
+            {/* NÚT TRỢ LÝ NANA GỢI Ý PHIM TRÊN MOBILE */}
             <button
               type="button"
               onClick={() => {
@@ -783,10 +783,10 @@ const NavbarInner: React.FC = () => {
                 <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-red-600 to-purple-600 text-white flex items-center justify-center shadow-md">
                   <Sparkles size={15} className="text-amber-300" />
                 </div>
-                <span>Trợ Lý AI Gợi Ý Phim Theo Tâm Trạng</span>
+                <span>Trợ Lý Nana Gợi Ý Phim Theo Tâm Trạng</span>
               </div>
               <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-500/30 text-purple-300 border border-purple-500/40 font-black">
-                GEMINI
+                NANA AI
               </span>
             </button>
 

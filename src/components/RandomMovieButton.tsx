@@ -131,13 +131,13 @@ export const RandomMovieButton: React.FC<RandomMovieButtonProps> = ({ customTrig
                 </div>
                 <div className="min-w-0">
                   <h3 className="text-white font-black text-sm sm:text-base md:text-lg flex items-center gap-1.5 truncate">
-                    Hôm Nay Xem Gì?
+                    Nana: Hôm Nay Xem Gì?
                     <span className="text-[11px] sm:text-xs font-normal text-gray-400 hidden sm:inline">
                       (Vòng quay may mắn)
                     </span>
                   </h3>
                   <p className="text-[11px] sm:text-xs text-gray-400 truncate mt-0.5">
-                    3 gợi ý ngẫu nhiên đặc sắc không làm bạn thất vọng!
+                    Nana chọn ngẫu nhiên 3 tác phẩm đặc sắc không làm bạn thất vọng!
                   </p>
                 </div>
               </div>
@@ -147,11 +147,11 @@ export const RandomMovieButton: React.FC<RandomMovieButtonProps> = ({ customTrig
                   type="button"
                   onClick={fetchRandomMovies}
                   disabled={loading}
-                  title="Quay tiếp bộ khác"
+                  title="Nana chọn tiếp bộ khác"
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-bold text-gray-200 hover:text-white border border-white/15 transition cursor-pointer active:scale-95 disabled:opacity-50 shadow-sm"
                 >
                   <RotateCw className={`w-3.5 h-3.5 ${loading ? "animate-spin text-netflix-red" : ""}`} />
-                  <span className="hidden sm:inline">Quay tiếp</span>
+                  <span className="hidden sm:inline">Nana chọn tiếp</span>
                 </button>
 
                 <button

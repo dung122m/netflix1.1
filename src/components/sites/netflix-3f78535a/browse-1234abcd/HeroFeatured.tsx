@@ -247,7 +247,7 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
               <div className="mb-3 sm:mb-4 flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs md:text-sm">
                 <span className="rounded-full border border-netflix-red/40 bg-gradient-to-r from-netflix-red/30 to-rose-600/20 text-rose-300 px-2.5 sm:px-3 py-0.5 sm:py-1 font-bold text-[11px] sm:text-xs flex items-center gap-1.5 shadow-sm">
                   <Sparkles size={12} className="text-netflix-red animate-pulse" />
-                  <span>{heroType}</span>
+                  <span>Nana Chọn Lọc • {heroType}</span>
                 </span>
                 {heroCountry && (
                   <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/15 px-2.5 sm:px-3 py-0.5 sm:py-1 text-[11px] sm:text-xs font-bold text-amber-300 shadow-sm">
