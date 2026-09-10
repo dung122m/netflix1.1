@@ -829,7 +829,7 @@ export function LiveTvClient({ initialData, isActive = true }: LiveTvClientProps
             onMouseMove={resetControlsTimeout}
             onClick={togglePlay}
             onDoubleClick={toggleFullscreen}
-            className="relative w-full aspect-video max-h-[calc(100vh-210px)] max-w-[calc((100vh-210px)*16/9)] mx-auto bg-black rounded-2xl sm:rounded-3xl overflow-hidden border border-white/15 shadow-2xl group select-none ring-1 ring-white/10 cursor-pointer"
+            className="relative w-full aspect-video sm:max-h-[calc(100vh-210px)] sm:max-w-[calc((100vh-210px)*16/9)] mx-auto bg-black rounded-2xl sm:rounded-3xl overflow-hidden border border-white/15 shadow-2xl group select-none ring-1 ring-white/10 cursor-pointer"
           >
             <video
               ref={videoRef}
@@ -862,9 +862,9 @@ export function LiveTvClient({ initialData, isActive = true }: LiveTvClientProps
               </span>
             </div>
 
-            {/* NÚT BẬT TIẾNG & NÚT FULLSCREEN NHANH GÓC TRÊN PHẢI */}
-            <div className="absolute top-3 right-3 sm:top-4 sm:right-4 z-30 flex items-center gap-2">
-              {isPlaying && isMuted && !isLoading && !hasError && (
+            {/* NÚT BẬT TIẾNG KHI ĐANG MUTE GÓC TRÊN PHẢI */}
+            {isPlaying && isMuted && !isLoading && !hasError && (
+              <div className="absolute top-3 right-3 sm:top-4 sm:right-4 z-30">
                 <button
                   type="button"
                   onClick={(e) => {
@@ -876,31 +876,8 @@ export function LiveTvClient({ initialData, isActive = true }: LiveTvClientProps
                   <Volume2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-pulse" />
                   <span>BẬT TIẾNG</span>
                 </button>
-              )}
-
-              {/* Nút Quick Fullscreen ở góc trên phải cho điện thoại và máy tính */}
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleFullscreen();
-                }}
-                title={isFullscreen ? "Thu nhỏ (F)" : "Toàn màn hình (F)"}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-full bg-black/75 hover:bg-black/90 text-white text-[11px] sm:text-xs font-bold border border-white/25 backdrop-blur-md shadow-xl transition-transform hover:scale-105 active:scale-95 cursor-pointer flex-shrink-0"
-              >
-                {isFullscreen ? (
-                  <>
-                    <Minimize className="w-3.5 h-3.5 text-white" />
-                    <span className="hidden sm:inline">Thu nhỏ</span>
-                  </>
-                ) : (
-                  <>
-                    <Maximize className="w-3.5 h-3.5 text-white" />
-                    <span className="hidden sm:inline">Toàn màn hình</span>
-                  </>
-                )}
-              </button>
-            </div>
+              </div>
+            )}
 
             {/* ACTION FEEDBACK OVERLAY (PLAY, PAUSE, VOLUME, CHANNEL SWITCH) */}
             {actionFeedback && (
