@@ -24,7 +24,6 @@ import {
   Zap,
   ChevronLeft,
   ChevronRight,
-  Activity,
 } from "lucide-react";
 import { FootballMatch, StreamServer } from "@/services/liveFootballService";
 import { useMatchReminders } from "@/hooks/useMatchReminders";
@@ -42,7 +41,6 @@ interface LivePlayerProps {
   awayLogo?: string;
   logo?: string;
   isActive?: boolean;
-  onOpenMatchCenter?: () => void;
 }
 
 export function LivePlayer({
@@ -57,7 +55,6 @@ export function LivePlayer({
   homeLogo = match?.homeLogo,
   awayLogo = match?.awayLogo,
   isActive = true,
-  onOpenMatchCenter,
 }: LivePlayerProps) {
   const { isReminded, addReminder, removeReminder } = useMatchReminders();
   const matchId = match?.id;
@@ -983,17 +980,6 @@ export function LivePlayer({
           </div>
 
           <div className="flex items-center gap-2 flex-shrink-0 self-start sm:self-center">
-            {onOpenMatchCenter && (
-              <button
-                type="button"
-                onClick={onOpenMatchCenter}
-                title="Xem đội hình ra sân, tỉ số realtime và thống kê trận đấu"
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white text-xs font-extrabold transition shadow-md shadow-red-950/40 cursor-pointer whitespace-nowrap"
-              >
-                <Activity className="w-3.5 h-3.5 animate-pulse" />
-                <span>Đội Hình & Tỉ Số</span>
-              </button>
-            )}
 
             {match && (
               <button

@@ -22,13 +22,8 @@ import {
   ChevronDown,
   RotateCcw,
   Bell,
-  Trophy,
-  Activity,
 } from "lucide-react";
 import { MatchReminderModal } from "./MatchReminderModal";
-import { FootballStandingsModal } from "./FootballStandingsModal";
-import { FootballMatchCenterModal } from "./FootballMatchCenterModal";
-import { FootballMatchDetailModal } from "./FootballMatchDetailModal";
 import { useMatchReminders } from "@/hooks/useMatchReminders";
 
 interface LiveFootballClientProps {
@@ -84,38 +79,7 @@ export function LiveFootballClient({
   const [onlyFhd, setOnlyFhd] = useState<boolean>(false);
   const [visibleCount, setVisibleCount] = useState<number>(INITIAL_PAGE_SIZE);
   const [isReminderModalOpen, setIsReminderModalOpen] = useState<boolean>(false);
-  const [isStandingsModalOpen, setIsStandingsModalOpen] = useState<boolean>(false);
-  const [isMatchCenterOpen, setIsMatchCenterOpen] = useState<boolean>(false);
-  const [selectedDetailEventId, setSelectedDetailEventId] = useState<string | null>(null);
-  const [selectedDetailMatchTitle, setSelectedDetailMatchTitle] = useState<string>("");
-  const [, setIsSearchingMatch] = useState<boolean>(false);
   const { reminders } = useMatchReminders();
-
-  const handleOpenCurrentMatchDetail = async (targetMatch?: FootballMatch | null) => {
-    const m = targetMatch || selectedMatch;
-    if (!m) {
-      setIsMatchCenterOpen(true);
-      return;
-    }
-
-    setIsSearchingMatch(true);
-    try {
-      const res = await fetch(
-        `/api/football-match-search?team1=${encodeURIComponent(m.team1)}&team2=${encodeURIComponent(m.team2)}&title=${encodeURIComponent(m.title)}`
-      );
-      const json = await res.json();
-      if (json.success && json.found && json.eventId) {
-        setSelectedDetailEventId(json.eventId);
-        setSelectedDetailMatchTitle(json.matchName || m.title);
-      } else {
-        setIsMatchCenterOpen(true);
-      }
-    } catch {
-      setIsMatchCenterOpen(true);
-    } finally {
-      setIsSearchingMatch(false);
-    }
-  };
 
   const playerRef = useRef<HTMLDivElement>(null);
   const channelsScrollRef = useRef<HTMLDivElement>(null);
@@ -392,7 +356,6 @@ export function LiveFootballClient({
             homeLogo={selectedMatch.homeLogo}
             awayLogo={selectedMatch.awayLogo}
             isActive={isActive}
-            onOpenMatchCenter={() => handleOpenCurrentMatchDetail(selectedMatch)}
           />
         </div>
       ) : (
@@ -495,29 +458,8 @@ export function LiveFootballClient({
             </button>
           </div>
 
-          {/* Ô TÌM KIẾM & NÚT FHD & LỊCH NHẮC & BẢNG XẾP HẠNG & TRUNG TÂM TRẬN ĐẤU */}
+          {/* Ô TÌM KIẾM & NÚT FHD & LỊCH NHẮC */}
           <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full lg:w-auto">
-            {/* NÚT TRUNG TÂM TỈ SỐ REALTIME & ĐỘI HÌNH */}
-            <button
-              type="button"
-              onClick={() => setIsMatchCenterOpen(true)}
-              title="Xem tỉ số realtime, đội hình ra sân chính thức & thống kê trận đấu"
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition border shadow-sm cursor-pointer whitespace-nowrap bg-gradient-to-r from-red-600/20 to-rose-600/20 hover:from-red-600/30 hover:to-rose-600/30 text-rose-300 border-red-500/40 hover:border-red-400"
-            >
-              <Activity className="w-3.5 h-3.5 text-red-400 animate-pulse" />
-              <span>Tỉ Số & Đội Hình</span>
-            </button>
-
-            {/* NÚT XEM BẢNG XẾP HẠNG GIẢI ĐẤU */}
-            <button
-              type="button"
-              onClick={() => setIsStandingsModalOpen(true)}
-              title="Xem Bảng xếp hạng các giải đấu bóng đá (Ngoại Hạng Anh, C1, La Liga, V-League...)"
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition border shadow-sm cursor-pointer whitespace-nowrap bg-zinc-900/90 hover:bg-zinc-800 text-yellow-400 border-yellow-500/30 hover:border-yellow-400"
-            >
-              <Trophy className="w-3.5 h-3.5 text-yellow-400" />
-              <span>BXH Giải Đấu</span>
-            </button>
 
             {/* NÚT XEM LỊCH NHẮC CỦA TÔI */}
             <button
@@ -811,30 +753,6 @@ export function LiveFootballClient({
               playerRef.current.scrollIntoView({ behavior: "smooth" });
             }
           }
-        }}
-      />
-
-      {/* MODAL BẢNG XẾP HẠNG BÓNG ĐÁ */}
-      <FootballStandingsModal
-        isOpen={isStandingsModalOpen}
-        onClose={() => setIsStandingsModalOpen(false)}
-      />
-
-      {/* MODAL TRUNG TÂM TRẬN ĐẤU & TỈ SỐ REALTIME & ĐỘI HÌNH */}
-      <FootballMatchCenterModal
-        isOpen={isMatchCenterOpen}
-        onClose={() => setIsMatchCenterOpen(false)}
-      />
-
-      {/* MODAL CHI TIẾT ĐỘI HÌNH & TỈ SỐ TRỰC TIẾP TRẬN ĐANG XEM */}
-      <FootballMatchDetailModal
-        isOpen={!!selectedDetailEventId}
-        onClose={() => setSelectedDetailEventId(null)}
-        eventId={selectedDetailEventId}
-        matchTitle={selectedDetailMatchTitle}
-        onOpenMatchCenter={() => {
-          setSelectedDetailEventId(null);
-          setIsMatchCenterOpen(true);
         }}
       />
     </div>
