@@ -128,12 +128,98 @@ async function fetchAndCacheMovieDetail(slug: string, source?: "vsmov" | "ophim"
 // Sử dụng React cache để khử trùng lặp giữa generateMetadata và Page Component
 const cachedGetMovieDetail = cache(fetchMovieDetailInternal);
 
+// Hàm kiểm tra chính xác loại phim (Khử hoàn toàn việc lẫn lộn phim lẻ / phim bộ / hoạt hình / tv-shows)
+function isMovieOfType(item: Record<string, unknown>, type: string): boolean {
+  if (!type) return true;
+  const rawType = String(item.type || "").toLowerCase().trim();
+  const timeStr = String(item.time || "").toLowerCase();
+  const epTotal = Number(item.episode_total || 0);
+  const epCurrent = String(item.episode_current || "").toLowerCase();
+
+  const catSlugs = Array.isArray(item.category)
+    ? item.category.map((c: unknown) =>
+        typeof c === "string"
+          ? c.toLowerCase()
+          : `${(c as { slug?: string })?.slug || ""} ${(c as { name?: string })?.name || ""}`.toLowerCase()
+      )
+    : [String(item.category || "").toLowerCase()];
+
+  const isHoatHinh =
+    rawType === "hoathinh" ||
+    rawType === "hoat-hinh" ||
+    rawType === "anime" ||
+    catSlugs.some(
+      (c) =>
+        c.includes("hoat-hinh") ||
+        c.includes("hoạt hình") ||
+        c.includes("anime")
+    );
+
+  const isPhimBo =
+    rawType === "series" ||
+    rawType === "phim-bo" ||
+    epTotal > 1 ||
+    timeStr.includes("phút/tập") ||
+    timeStr.includes("/tập") ||
+    (epCurrent.includes("tập") && !epCurrent.includes("1 tập") && !epCurrent.includes("full")) ||
+    catSlugs.some((c) => c.includes("phim-bo") || c.includes("phim bộ"));
+
+  const isTvShows =
+    rawType === "tvshows" ||
+    rawType === "tv-shows" ||
+    catSlugs.some((c) => c.includes("tv-shows") || c.includes("tv shows") || c.includes("show"));
+
+  const isChieuRap = Boolean(
+    item.chieurap === true ||
+      item.chieurap === "true" ||
+      item.chieurap === 1 ||
+      item.chieu_rap === true ||
+      catSlugs.some((c) => c.includes("chieu-rap") || c.includes("chiếu rạp"))
+  );
+
+  switch (type) {
+    case "phim-le":
+      // Phim lẻ: Tuyệt đối KHÔNG phải hoạt hình/anime, KHÔNG phải phim bộ nhiều tập, KHÔNG phải TV Shows
+      return !isHoatHinh && !isPhimBo && !isTvShows;
+    case "phim-bo":
+      // Phim bộ: Là phim bộ nhiều tập, không phải anime hoạt hình
+      return isPhimBo && !isHoatHinh;
+    case "hoat-hinh":
+      // Hoạt hình & Anime
+      return isHoatHinh;
+    case "phim-chieu-rap":
+      return isChieuRap;
+    case "tv-shows":
+      return isTvShows;
+    default:
+      return true;
+  }
+}
+
 // Hàm tải nguồn phim nhanh có giới hạn timeout an toàn
 async function fetchSourceData(baseUrl: string, params: MovieFilterParams, isSearch: boolean) {
   try {
+    const isMultiFilter = Boolean(params.type && (params.category || params.country || params.year));
+    
+    // VSMOV không hỗ trợ kết hợp type + category/country/year trên /danh-sach/ -> Bỏ qua để tránh dump toàn bộ 37k phim rác
+    if (baseUrl === API_VSMOV && isMultiFilter) {
+      return null;
+    }
+
     const urlParams = new URLSearchParams();
     urlParams.set("page", String(params.page || 1));
-    urlParams.set("limit", String(params.limit || 24));
+    const fetchLimit = isMultiFilter ? 48 : (params.limit || 24);
+    urlParams.set("limit", String(fetchLimit));
+
+    if (params.category) urlParams.set("category", params.category);
+    if (params.country) urlParams.set("country", params.country);
+    if (params.year) urlParams.set("year", params.year);
+    if (params.sort) {
+      urlParams.set(
+        "sort_field",
+        params.sort === "views" ? "view" : params.sort === "year" ? "year" : "modified.time"
+      );
+    }
 
     let fullUrl = "";
 
@@ -141,32 +227,31 @@ async function fetchSourceData(baseUrl: string, params: MovieFilterParams, isSea
       if (isSearch && params.keyword) {
         urlParams.set("keyword", params.keyword.trim());
         fullUrl = `${baseUrl}/v1/api/tim-kiem?${urlParams.toString()}`;
+      } else if (params.type) {
+        fullUrl = `${baseUrl}/v1/api/danh-sach/${params.type}?${urlParams.toString()}`;
       } else if (params.category) {
-        if (params.country) urlParams.set("country", params.country);
-        if (params.year) urlParams.set("year", params.year);
         fullUrl = `${baseUrl}/v1/api/the-loai/${params.category}?${urlParams.toString()}`;
       } else if (params.country) {
-        if (params.year) urlParams.set("year", params.year);
         fullUrl = `${baseUrl}/v1/api/quoc-gia/${params.country}?${urlParams.toString()}`;
       } else {
-        if (params.year) urlParams.set("year", params.year);
-        const currentType = params.type || "phim-le";
-        fullUrl = `${baseUrl}/v1/api/danh-sach/${currentType}?${urlParams.toString()}`;
+        fullUrl = `${baseUrl}/v1/api/danh-sach/phim-moi-cap-nhat?${urlParams.toString()}`;
       }
     } else {
       if (isSearch && params.keyword) {
         urlParams.set("keyword", params.keyword.trim());
         fullUrl = `${baseUrl}/tim-kiem?${urlParams.toString()}`;
+      } else if (params.type) {
+        if (params.type === "hoat-hinh" || params.type === "tv-shows") {
+          fullUrl = `${baseUrl}/the-loai/${params.type}?${urlParams.toString()}`;
+        } else {
+          fullUrl = `${baseUrl}/danh-sach/${params.type}?${urlParams.toString()}`;
+        }
       } else if (params.category) {
-        if (params.country) urlParams.set("country", params.country);
-        if (params.year) urlParams.set("year", params.year);
         fullUrl = `${baseUrl}/the-loai/${params.category}?${urlParams.toString()}`;
       } else if (params.country) {
-        if (params.year) urlParams.set("year", params.year);
         fullUrl = `${baseUrl}/quoc-gia/${params.country}?${urlParams.toString()}`;
       } else {
-        if (params.year) urlParams.set("year", params.year);
-        fullUrl = `${baseUrl}/danh-sach/?${urlParams.toString()}`;
+        fullUrl = `${baseUrl}/danh-sach/phim-moi-cap-nhat?${urlParams.toString()}`;
       }
     }
 
@@ -210,12 +295,22 @@ async function fetchSourceData(baseUrl: string, params: MovieFilterParams, isSea
         },
       );
 
+      const totalItems =
+        json.data?.params?.pagination?.totalItems ||
+        json.pagination?.totalItems ||
+        mappedItems.length ||
+        0;
+
+      const totalPages =
+        json.data?.params?.pagination?.totalPages ||
+        json.pagination?.totalPages ||
+        Math.ceil(totalItems / 24) ||
+        1;
+
       return {
         items: mappedItems,
-        totalPages:
-          json.data?.params?.pagination?.totalPages ||
-          json.pagination?.totalPages ||
-          0,
+        totalPages,
+        totalItems,
       };
     }
 
@@ -226,7 +321,6 @@ async function fetchSourceData(baseUrl: string, params: MovieFilterParams, isSea
       slug?: string;
       [key: string]: unknown;
     }) => {
-      // VSMOV có poster_url là backdrop 16:9, thumb_url là poster dọc 2:3
       const vsmovBackdrop = item.poster_url;
       const vsmovPoster = item.thumb_url;
       return {
@@ -236,12 +330,22 @@ async function fetchSourceData(baseUrl: string, params: MovieFilterParams, isSea
       };
     });
 
+    const totalItems =
+      json.data?.params?.pagination?.totalItems ||
+      json.pagination?.totalItems ||
+      mappedVsmovItems.length ||
+      0;
+
+    const totalPages =
+      json.data?.params?.pagination?.totalPages ||
+      json.pagination?.totalPages ||
+      Math.ceil(totalItems / 24) ||
+      1;
+
     return {
       items: mappedVsmovItems,
-      totalPages:
-        json.data?.params?.pagination?.totalPages ||
-        json.pagination?.totalPages ||
-        0,
+      totalPages,
+      totalItems,
     };
   } catch {
     return null;
@@ -250,22 +354,15 @@ async function fetchSourceData(baseUrl: string, params: MovieFilterParams, isSea
 
 async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
   const isSearch = Boolean(params.keyword?.trim());
-  let dataVsmov = null;
-  let dataPhimApi = null;
+  
+  // Tải đồng thời từ cả 2 nguồn API để có kho phim phong phú nhất
+  const [resVsmov, resPhimApi] = await Promise.all([
+    fetchSourceData(API_VSMOV, params, isSearch),
+    fetchSourceData(API_PHIMAPI, params, isSearch),
+  ]);
 
-  if (params.type) {
-    dataPhimApi = await fetchSourceData(API_PHIMAPI, params, isSearch);
-  } else {
-    const [resVsmov, resPhimApi] = await Promise.all([
-      fetchSourceData(API_VSMOV, params, isSearch),
-      fetchSourceData(API_PHIMAPI, params, isSearch),
-    ]);
-    dataVsmov = resVsmov;
-    dataPhimApi = resPhimApi;
-  }
-
-  const itemsVsmov = dataVsmov?.items || [];
-  const itemsPhimApi = dataPhimApi?.items || [];
+  const itemsVsmov = resVsmov?.items || [];
+  const itemsPhimApi = resPhimApi?.items || [];
 
   // Gộp và khử trùng lặp slug
   const combinedItems = [...itemsVsmov, ...itemsPhimApi];
@@ -278,7 +375,17 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
 
   let allUniqueItems = Array.from(uniqueItemsMap.values());
 
-  // Lọc theo Quốc Gia
+  // 1. Lọc theo Loại Phim (Phim lẻ / Phim bộ / Hoạt hình / Chiếu rạp / TV Shows)
+  if (params.type) {
+    const filteredByType = allUniqueItems.filter((item) =>
+      isMovieOfType(item, params.type!)
+    );
+    if (filteredByType.length > 0) {
+      allUniqueItems = filteredByType;
+    }
+  }
+
+  // 2. Lọc theo Quốc Gia
   if (params.country) {
     const targetCountry = params.country.toLowerCase().trim();
     const filtered = allUniqueItems.filter((item) => {
@@ -292,7 +399,7 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
     if (filtered.length > 0) allUniqueItems = filtered;
   }
 
-  // Lọc theo Thể Loại
+  // 3. Lọc theo Thể Loại
   if (params.category) {
     const targetCat = params.category.toLowerCase().trim();
     const filtered = allUniqueItems.filter((item) => {
@@ -306,7 +413,7 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
     if (filtered.length > 0) allUniqueItems = filtered;
   }
 
-  // Lọc theo Năm
+  // 4. Lọc theo Năm
   if (params.year) {
     const filtered = allUniqueItems.filter((item) =>
       String(item.year || "").includes(String(params.year))
@@ -314,7 +421,7 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
     if (filtered.length > 0) allUniqueItems = filtered;
   }
 
-  // Sắp xếp
+  // 5. Sắp xếp
   if (params.sort === "rating") {
     allUniqueItems.sort((a, b) => {
       const rateA = Number(a.tmdb?.vote_average || a.imdb?.vote_average || 0);
@@ -337,10 +444,18 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
 
   const limit = params.limit || 24;
   const finalItems = allUniqueItems.slice(0, limit);
-  const totalPagesVsmov = dataVsmov?.totalPages || 0;
-  const totalPagesPhimApi = dataPhimApi?.totalPages || 0;
-  const maxTotalPages = Math.max(totalPagesVsmov, totalPagesPhimApi) || 1;
-  const totalItemsCount = totalPagesVsmov * limit + totalPagesPhimApi * limit;
+
+  // Tính số lượng tổng và số trang chính xác nhất
+  const totalItemsCount =
+    resPhimApi?.totalItems ||
+    resVsmov?.totalItems ||
+    allUniqueItems.length;
+
+  const maxTotalPages =
+    resPhimApi?.totalPages ||
+    resVsmov?.totalPages ||
+    Math.ceil(totalItemsCount / limit) ||
+    1;
 
   const payload = {
     status: true,

@@ -174,11 +174,42 @@ export default async function BrowsePage({
     fallbackMovies = fallbackRes?.items || [];
   }
 
+  const GENRE_NAMES: Record<string, string> = {
+    "hanh-dong": "Hành Động",
+    "tinh-cam": "Tình Cảm",
+    "kinh-di": "Kinh Dị",
+    "hai-huoc": "Hài Hước",
+    "vien-tuong": "Viễn Tưởng",
+    "co-trang": "Cổ Trang",
+    "tam-ly": "Tâm Lý",
+    "vo-thuat": "Võ Thuật",
+    "trinh-tham": "Trinh Thám",
+    "chien-tranh": "Chiến Tranh",
+    "phieu-luu": "Phiêu Lưu",
+    "am-nhac": "Âm Nhạc",
+    "the-thao": "Thể Thao",
+    "tai-lieu": "Tài Liệu",
+  };
+
+  const COUNTRY_NAMES: Record<string, string> = {
+    "han-quoc": "Hàn Quốc",
+    "trung-quoc": "Trung Quốc",
+    "au-my": "Âu Mỹ",
+    "nhat-ban": "Nhật Bản",
+    "thai-lan": "Thái Lan",
+    "viet-nam": "Việt Nam",
+    "hong-kong": "Hồng Kông",
+    "dai-loan": "Đài Loan",
+    "an-do": "Ấn Độ",
+    "anh": "Anh",
+    "phap": "Pháp",
+  };
+
   let title = "Phim Mới Cập Nhật";
 
   if (keyword) {
     if (country) {
-      title = `Kết quả tìm kiếm: "${keyword}" • ${country}`;
+      title = `Kết quả tìm kiếm: "${keyword}" • ${COUNTRY_NAMES[country] || country}`;
     } else {
       title = `Kết quả tìm kiếm: "${keyword}"`;
     }
@@ -186,8 +217,22 @@ export default async function BrowsePage({
     title = "⭐ Phim Có Điểm Đánh Giá Cao Nhất";
   } else if (sort === "views") {
     title = "🔥 Phim Có Lượt Xem & Bình Chọn Nhiều Nhất";
+  } else if (type && category) {
+    const typeLabel = TYPE_TITLES[type] || type;
+    const catLabel = GENRE_NAMES[category] || category;
+    title = `${typeLabel} • ${catLabel}`;
+  } else if (type && country) {
+    const typeLabel = TYPE_TITLES[type] || type;
+    const ctryLabel = COUNTRY_NAMES[country] || country;
+    title = `${typeLabel} • ${ctryLabel}`;
   } else if (type && TYPE_TITLES[type]) {
     title = TYPE_TITLES[type];
+  } else if (category) {
+    title = `🎬 Phim ${GENRE_NAMES[category] || category}`;
+  } else if (country) {
+    title = `🌐 Phim ${COUNTRY_NAMES[country] || country}`;
+  } else if (year) {
+    title = `📅 Phim Năm ${year}`;
   } else if (category || country || year || type) {
     title = "Kết quả lọc";
   }
