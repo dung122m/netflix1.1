@@ -178,15 +178,20 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
               >
                 <span className="truncate">{tap.name}</span>
 
-                {/* ICON CHECK CHO TẬP ĐÃ XEM */}
-                {isWatched && !isActive && (
+                {/* ICON CHECK CHO TẬP ĐÃ XEM HOẶC CHỈ BÁO TẬP ĐANG XEM */}
+                {isActive ? (
+                  <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-netflix-red border border-white"></span>
+                  </span>
+                ) : isWatched ? (
                   <span
                     title="Đã xem"
                     className="absolute top-1 right-1 flex items-center justify-center w-3 h-3 rounded-full bg-white/10 text-green-400"
                   >
                     <Check className="w-2 h-2" />
                   </span>
-                )}
+                ) : null}
               </Link>
             );
           })}

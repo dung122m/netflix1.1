@@ -58,8 +58,8 @@ function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
       onClick={() => onSelect(match)}
       className={`group relative rounded-2xl sm:rounded-3xl border p-4 cursor-pointer transition-all duration-300 flex flex-col justify-between overflow-hidden ${
         isSelected
-          ? "bg-gradient-to-b from-zinc-900 via-zinc-900 to-zinc-950 border-netflix-red shadow-2xl shadow-red-950/70 ring-2 ring-netflix-red/60 scale-[1.02]"
-          : "bg-gradient-to-b from-zinc-900/90 to-zinc-950/90 border-white/10 hover:border-white/35 hover:bg-zinc-850 hover:shadow-xl hover:shadow-black/80 hover:-translate-y-1"
+          ? "football-match-active bg-gradient-to-b from-zinc-900 via-zinc-900 to-zinc-950 border-netflix-red shadow-2xl shadow-red-950/70 ring-2 ring-netflix-red/60 scale-[1.02]"
+          : "football-match-card bg-gradient-to-b from-zinc-900/90 to-zinc-950/90 border-white/10 hover:border-white/35 hover:bg-zinc-850 hover:shadow-xl hover:shadow-black/80 hover:-translate-y-1"
       }`}
     >
       {/* Glow viền ambient khi đang đá (Live) */}
@@ -130,7 +130,7 @@ function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
       </div>
 
       {/* 2. KHU VỰC LOGO & ĐỐI ĐẦU (DUAL CLUB SCOREBOARD) */}
-      <div className="my-2 p-3 sm:p-3.5 rounded-2xl bg-gradient-to-b from-black/70 to-zinc-950/90 border border-white/10 backdrop-blur-sm relative z-10">
+      <div className="football-scoreboard my-2 p-3 sm:p-3.5 rounded-2xl bg-gradient-to-b from-black/70 to-zinc-950/90 border border-white/10 backdrop-blur-sm relative z-10">
         <div className="flex items-center justify-between gap-2 sm:gap-3">
           {/* ĐỘI NHÀ (TEAM 1) */}
           <div className="flex-1 flex flex-col items-center text-center group/team min-w-0">
@@ -143,6 +143,7 @@ function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
                   className="w-full h-full object-contain filter drop-shadow-md"
                   onError={() => setHomeError(true)}
                   loading="lazy"
+                  referrerPolicy="no-referrer"
                 />
               ) : (
                 <div className="flex flex-col items-center justify-center text-center">
@@ -180,6 +181,7 @@ function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
                   className="w-full h-full object-contain filter drop-shadow-md"
                   onError={() => setAwayError(true)}
                   loading="lazy"
+                  referrerPolicy="no-referrer"
                 />
               ) : (
                 <div className="flex flex-col items-center justify-center text-center">

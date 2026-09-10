@@ -43,7 +43,7 @@ export const SortSelector: React.FC = () => {
       params.delete("sort");
     }
     params.delete("page");
-    router.push(`?${params.toString()}`);
+    router.push(`?${params.toString()}`, { scroll: false });
     setIsOpen(false);
   };
 

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Flame, Tv, Radio, Zap } from "lucide-react";
 import { LiveFootballData } from "@/services/liveFootballService";
@@ -19,19 +19,24 @@ export function LiveHubClient({ footballData, tvData }: LiveHubClientProps) {
   const initialTab = searchParams.get("tab") === "tv" ? "tv" : "football";
   const [activeTab, setActiveTab] = useState<"football" | "tv">(initialTab);
 
+  // Sync tab từ URL chỉ khi URL thay đổi bởi external navigation (back/forward)
   useEffect(() => {
     const tabParam = searchParams.get("tab");
-    if (tabParam === "tv") {
+    if (tabParam === "tv" && activeTab !== "tv") {
       setActiveTab("tv");
-    } else if (tabParam === "football") {
+    } else if (tabParam === "football" && activeTab !== "football") {
       setActiveTab("football");
     }
-  }, [searchParams]);
+  }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleTabChange = (tab: "football" | "tv") => {
-    setActiveTab(tab);
-    router.replace(`/live?tab=${tab}`, { scroll: false });
-  };
+  // Dùng useCallback để không tạo lại hàm khi re-render
+  const handleTabChange = useCallback(
+    (tab: "football" | "tv") => {
+      setActiveTab(tab);
+      router.replace(`/live?tab=${tab}`, { scroll: false });
+    },
+    [router]
+  );
 
   const liveFootballCount = useMemo(() => {
     return footballData.matches.filter((m) => m.timeline === "live").length;
@@ -71,7 +76,7 @@ export function LiveHubClient({ footballData, tvData }: LiveHubClientProps) {
           </p>
         </div>
 
-        {/* CỤM NÚT CHUYỂN TAB ĐẲNG CẤP */}
+        {/* CỤM NÚT CHUYỂN TAB */}
         <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-zinc-900/90 border border-white/15 shadow-2xl backdrop-blur-xl self-start md:self-auto">
           {/* TAB BÓNG ĐÁ */}
           <button
@@ -121,12 +126,20 @@ export function LiveHubClient({ footballData, tvData }: LiveHubClientProps) {
         </div>
       </div>
 
-      {/* 2. NỘI DUNG TƯƠNG ỨNG THEO TAB */}
-      {activeTab === "football" ? (
-        <LiveFootballClient initialData={footballData} hideHeader />
-      ) : (
-        <LiveTvClient initialData={tvData} />
-      )}
+      {/* 2. NỘI DUNG THEO TAB - truyền isActive để tự động pause player của tab không active, tránh chạy song song */}
+      <div className={activeTab === "football" ? "block" : "hidden"}>
+        <LiveFootballClient
+          initialData={footballData}
+          hideHeader
+          isActive={activeTab === "football"}
+        />
+      </div>
+      <div className={activeTab === "tv" ? "block" : "hidden"}>
+        <LiveTvClient
+          initialData={tvData}
+          isActive={activeTab === "tv"}
+        />
+      </div>
     </div>
   );
 }

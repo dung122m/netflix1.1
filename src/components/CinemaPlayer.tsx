@@ -174,8 +174,11 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           isTheaterMode ? "max-w-none px-0 sm:px-0" : "max-w-[1800px]"
         } ${isLightsOff ? "relative z-50" : "relative"}`}
       >
+        {/* Cinema Ambient Backlight */}
+        <div className="ambient-cinema-glow opacity-80" aria-hidden="true" />
+
         <div
-          className={`w-full aspect-video bg-zinc-950 relative overflow-hidden transition-all duration-300 ${
+          className={`w-full aspect-video bg-zinc-950 relative overflow-hidden transition-all duration-300 z-10 ${
             isTheaterMode
               ? "rounded-none border-y border-white/20 shadow-[0_30px_90px_rgba(0,0,0,0.85)] max-h-[85vh]"
               : "rounded-none sm:rounded-xl md:rounded-2xl border-y sm:border border-white/10 shadow-[0_25px_70px_rgba(0,0,0,0.55)]"

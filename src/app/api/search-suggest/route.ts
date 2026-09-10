@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { movieApi } from "@/services/movieApi";
 import { KNOWN_ACTORS_FILMOGRAPHY } from "@/services/aiActorService";
+import { pickBestMoviePoster, MovieLike } from "@/lib/movieMedia";
 
 function normalizeForMatch(str: string): string {
   return (str || "")
@@ -54,7 +55,7 @@ export async function GET(req: NextRequest) {
     const items = rawItems.slice(0, 5).map((item) => ({
       slug: item.slug || "",
       title: item.name || item.title || "",
-      poster: item.poster_url || item.thumb_url || "/default-hero.jpg",
+      poster: pickBestMoviePoster(item as MovieLike, "/default-poster.svg"),
       year: item.year || "",
       quality: item.quality || "HD",
       category: item.category?.[0]?.name || item.type || "",

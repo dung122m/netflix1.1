@@ -110,7 +110,24 @@ function MovieCardInner({ m, priority = false }: Props) {
   };
 
   const [isImgLoaded, setIsImgLoaded] = useState(false);
-  const displayImage = posterUrl || imageUrl || "/default-poster.jpg";
+  const displayImage = posterUrl || imageUrl || "/default-poster.svg";
+  const [currentImgSrc, setCurrentImgSrc] = useState(displayImage);
+
+  React.useEffect(() => {
+    setCurrentImgSrc(displayImage);
+  }, [displayImage]);
+
+  const handleImageError = () => {
+    if (currentImgSrc.includes("image.tmdb.org")) {
+      const match = currentImgSrc.match(/\/w500\/([a-zA-Z0-9_-]{20,}\.(?:jpg|jpeg|png|webp))/i);
+      if (match) {
+        setCurrentImgSrc(`https://vsmov.com/storage/images/${match[1]}`);
+        return;
+      }
+    }
+    setCurrentImgSrc("/default-poster.svg");
+    setIsImgLoaded(true);
+  };
 
   return (
     <motion.article
@@ -130,9 +147,9 @@ function MovieCardInner({ m, priority = false }: Props) {
         className="absolute inset-0 z-30"
       />
 
-      {/* Skeleton Shimmer trong khi tải ảnh */}
+      {/* Shimmer tĩnh mượt mà trong khi tải ảnh */}
       {!isImgLoaded && (
-        <div className="absolute inset-0 bg-gradient-to-br from-zinc-800 via-zinc-850 to-zinc-950 animate-pulse z-0" />
+        <div className="absolute inset-0 bg-gradient-to-br from-zinc-800 to-zinc-950 z-0" />
       )}
 
       <motion.div
@@ -141,7 +158,7 @@ function MovieCardInner({ m, priority = false }: Props) {
         transition={{ type: "spring", stiffness: 420, damping: 30, mass: 0.65 }}
       >
         <Image
-          src={displayImage}
+          src={currentImgSrc}
           alt={title}
           fill
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
@@ -152,6 +169,7 @@ function MovieCardInner({ m, priority = false }: Props) {
           loading={priority ? "eager" : "lazy"}
           decoding="async"
           onLoad={() => setIsImgLoaded(true)}
+          onError={handleImageError}
         />
       </motion.div>
 

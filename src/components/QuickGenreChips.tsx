@@ -116,7 +116,9 @@ const QuickGenreChipsInner: React.FC = () => {
     Boolean(currentType),
   ].filter(Boolean).length;
 
-  const handleActorSelect = useCallback((kw: string) => {
+  const [isPending, startTransition] = React.useTransition();
+
+  const getActorUrl = useCallback((kw: string) => {
     const params = new URLSearchParams(searchParams.toString());
     if (params.get("keyword")?.toLowerCase() === kw.toLowerCase()) {
       params.delete("keyword");
@@ -124,16 +126,22 @@ const QuickGenreChipsInner: React.FC = () => {
       params.set("keyword", kw);
     }
     params.delete("page");
-    router.push(`/browse?${params.toString()}`, { scroll: false });
-  }, [searchParams, router]);
+    return `/browse?${params.toString()}`;
+  }, [searchParams]);
 
-  const handleCategorySelect = useCallback((item: {
+  const handleActorSelect = useCallback((kw: string) => {
+    const url = getActorUrl(kw);
+    startTransition(() => {
+      router.push(url, { scroll: false });
+    });
+  }, [getActorUrl, router]);
+
+  const getCategoryUrl = useCallback((item: {
     slug: string;
     isSort: boolean;
     isType: boolean;
   }) => {
     const params = new URLSearchParams(searchParams.toString());
-
     if (item.isSort) {
       if (params.get("sort") === item.slug) {
         params.delete("sort");
@@ -157,12 +165,22 @@ const QuickGenreChipsInner: React.FC = () => {
         params.set("category", item.slug);
       }
     }
-
     params.delete("page");
-    router.push(`/browse?${params.toString()}`, { scroll: false });
-  }, [searchParams, router]);
+    return `/browse?${params.toString()}`;
+  }, [searchParams]);
 
-  const handleCountrySelect = useCallback((slug: string) => {
+  const handleCategorySelect = useCallback((item: {
+    slug: string;
+    isSort: boolean;
+    isType: boolean;
+  }) => {
+    const url = getCategoryUrl(item);
+    startTransition(() => {
+      router.push(url, { scroll: false });
+    });
+  }, [getCategoryUrl, router]);
+
+  const getCountryUrl = useCallback((slug: string) => {
     const params = new URLSearchParams(searchParams.toString());
     if (!slug) {
       params.delete("country");
@@ -172,10 +190,17 @@ const QuickGenreChipsInner: React.FC = () => {
       params.set("country", slug);
     }
     params.delete("page");
-    router.push(`/browse?${params.toString()}`, { scroll: false });
-  }, [searchParams, router]);
+    return `/browse?${params.toString()}`;
+  }, [searchParams]);
 
-  const handleYearSelect = useCallback((year: string) => {
+  const handleCountrySelect = useCallback((slug: string) => {
+    const url = getCountryUrl(slug);
+    startTransition(() => {
+      router.push(url, { scroll: false });
+    });
+  }, [getCountryUrl, router]);
+
+  const getYearUrl = useCallback((year: string) => {
     const params = new URLSearchParams(searchParams.toString());
     if (!year) {
       params.delete("year");
@@ -185,12 +210,21 @@ const QuickGenreChipsInner: React.FC = () => {
       params.set("year", year);
     }
     params.delete("page");
-    router.push(`/browse?${params.toString()}`, { scroll: false });
-  }, [searchParams, router]);
+    return `/browse?${params.toString()}`;
+  }, [searchParams]);
+
+  const handleYearSelect = useCallback((year: string) => {
+    const url = getYearUrl(year);
+    startTransition(() => {
+      router.push(url, { scroll: false });
+    });
+  }, [getYearUrl, router]);
 
   const handleClearAll = useCallback(() => {
     const params = new URLSearchParams();
-    router.push(`/browse?${params.toString()}`, { scroll: false });
+    startTransition(() => {
+      router.push(`/browse?${params.toString()}`, { scroll: false });
+    });
   }, [router]);
 
   // Tên hiển thị các bộ lọc đang chọn
@@ -253,11 +287,12 @@ const QuickGenreChipsInner: React.FC = () => {
             <button
               key={g.slug || "all-genre"}
               type="button"
+              onMouseEnter={() => router.prefetch(getCategoryUrl(g))}
               onClick={() => handleCategorySelect(g)}
-              className={`flex-none px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 cursor-pointer ${
+              className={`flex-none px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 cursor-pointer ${
                 isActive
-                  ? "bg-netflix-red text-white shadow-md shadow-red-950/60 scale-105"
-                  : "bg-zinc-900/90 hover:bg-zinc-800 text-gray-300 hover:text-white border border-white/10 hover:border-white/25"
+                  ? "bg-gradient-to-r from-red-600 to-netflix-red text-white shadow-[0_0_15px_rgba(229,9,20,0.45)] border border-red-400/60 scale-105 font-bold"
+                  : "bg-zinc-900/90 hover:bg-zinc-800 text-gray-300 hover:text-white border border-white/10 hover:border-white/30"
               }`}
             >
               {g.name}
@@ -307,11 +342,12 @@ const QuickGenreChipsInner: React.FC = () => {
             <button
               key={c.slug || "all-country"}
               type="button"
+              onMouseEnter={() => router.prefetch(getCountryUrl(c.slug))}
               onClick={() => handleCountrySelect(c.slug)}
-              className={`flex-none px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 cursor-pointer ${
+              className={`flex-none px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 cursor-pointer ${
                 isActive
-                  ? "bg-sky-600 text-white shadow-md shadow-sky-950/60 scale-105"
-                  : "bg-zinc-900/90 hover:bg-zinc-800 text-gray-300 hover:text-white border border-white/10 hover:border-white/25"
+                  ? "bg-gradient-to-r from-sky-600 to-blue-600 text-white shadow-[0_0_15px_rgba(2,132,199,0.45)] border border-sky-400/60 scale-105 font-bold"
+                  : "bg-zinc-900/90 hover:bg-zinc-800 text-gray-300 hover:text-white border border-white/10 hover:border-white/30"
               }`}
             >
               {c.name}
@@ -361,11 +397,12 @@ const QuickGenreChipsInner: React.FC = () => {
             <button
               key={y.year || "all-year"}
               type="button"
+              onMouseEnter={() => router.prefetch(getYearUrl(y.year))}
               onClick={() => handleYearSelect(y.year)}
-              className={`flex-none px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 cursor-pointer ${
+              className={`flex-none px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 cursor-pointer ${
                 isActive
-                  ? "bg-emerald-600 text-white shadow-md shadow-emerald-950/60 scale-105"
-                  : "bg-zinc-900/90 hover:bg-zinc-800 text-gray-300 hover:text-white border border-white/10 hover:border-white/25"
+                  ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-[0_0_15px_rgba(5,150,105,0.45)] border border-emerald-400/60 scale-105 font-bold"
+                  : "bg-zinc-900/90 hover:bg-zinc-800 text-gray-300 hover:text-white border border-white/10 hover:border-white/30"
               }`}
             >
               {y.name}
@@ -416,11 +453,12 @@ const QuickGenreChipsInner: React.FC = () => {
             <button
               key={act.keyword}
               type="button"
+              onMouseEnter={() => router.prefetch(getActorUrl(act.keyword))}
               onClick={() => handleActorSelect(act.keyword)}
-              className={`flex-none px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 cursor-pointer ${
+              className={`flex-none px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 cursor-pointer ${
                 isActive
-                  ? "bg-gradient-to-r from-amber-500 to-orange-500 text-black font-extrabold shadow-md shadow-amber-950/60 scale-105"
-                  : "bg-zinc-900/90 hover:bg-zinc-800 text-gray-300 hover:text-white border border-white/10 hover:border-white/25"
+                  ? "bg-gradient-to-r from-amber-500 to-orange-500 text-black font-black shadow-[0_0_15px_rgba(245,158,11,0.5)] border border-amber-300 scale-105"
+                  : "bg-zinc-900/90 hover:bg-zinc-800 text-gray-300 hover:text-white border border-white/10 hover:border-white/30"
               }`}
             >
               {act.name}
@@ -442,7 +480,11 @@ const QuickGenreChipsInner: React.FC = () => {
   );
 
   return (
-    <div className="w-full mb-6 rounded-3xl border border-white/10 bg-zinc-950/80 p-3.5 sm:p-5 backdrop-blur-xl shadow-2xl space-y-3">
+    <div className="w-full mb-6 rounded-3xl border border-white/10 bg-zinc-950/80 p-3.5 sm:p-5 backdrop-blur-xl shadow-2xl space-y-3 relative overflow-hidden">
+      {/* THANH TIẾN TRÌNH NẠP KHI CHUYỂN BỘ LỌC */}
+      {isPending && (
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-600 via-amber-400 to-red-600 animate-pulse z-30 shadow-[0_0_10px_rgba(229,9,20,0.8)]" />
+      )}
       {/* THANH ĐIỀU HƯỚNG BỘ LỌC ĐANG CHỌN (NẾU CÓ) */}
       {activeCount > 0 && (
         <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-white/10 text-xs">
@@ -469,7 +511,7 @@ const QuickGenreChipsInner: React.FC = () => {
                 onClick={() => {
                   const p = new URLSearchParams(searchParams.toString());
                   p.delete("type");
-                  router.push(`/browse?${p.toString()}`);
+                  router.push(`/browse?${p.toString()}`, { scroll: false });
                 }}
                 className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold hover:bg-amber-500 hover:text-black transition cursor-pointer"
               >
@@ -484,7 +526,7 @@ const QuickGenreChipsInner: React.FC = () => {
                 onClick={() => {
                   const p = new URLSearchParams(searchParams.toString());
                   p.delete("sort");
-                  router.push(`/browse?${p.toString()}`);
+                  router.push(`/browse?${p.toString()}`, { scroll: false });
                 }}
                 className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-purple-500/20 border border-purple-500/40 text-purple-300 font-bold hover:bg-purple-500 hover:text-white transition cursor-pointer"
               >
@@ -511,7 +553,7 @@ const QuickGenreChipsInner: React.FC = () => {
                   const p = new URLSearchParams(searchParams.toString());
                   p.delete("keyword");
                   p.delete("page");
-                  router.push(`/browse?${p.toString()}`);
+                  router.push(`/browse?${p.toString()}`, { scroll: false });
                 }}
                 className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold hover:bg-amber-500 hover:text-black transition cursor-pointer"
               >

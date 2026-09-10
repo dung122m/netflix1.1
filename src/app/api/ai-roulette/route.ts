@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 import { movieApi } from "@/services/movieApi";
+
+export const maxDuration = 15;
 
 // In-memory cache cho các kết hợp roulette
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -389,7 +391,18 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const apiKey = process.env.GEMINI_API_KEY?.trim() || userApiKey?.trim();
+    const envKeys = (process.env.GEMINI_API_KEY || "")
+      .split(",")
+      .map((k) => k.trim())
+      .filter((k) => k.length > 5);
+
+    const candidateKeys = Array.from(
+      new Set(
+        [...envKeys, userApiKey?.trim()].filter(
+          (k): k is string => Boolean(k && k.length > 5)
+        )
+      )
+    );
 
     let chosenTitle = "";
     let chosenOriginal = "";
@@ -402,8 +415,8 @@ export async function POST(req: NextRequest) {
       new Set([...excludeTitles, ...excludeSlugs].map((s) => s.toLowerCase().trim()))
     );
 
-    // 1. GỌI GEMINI NẾU CÓ KEY (SIÊU NHANH BẰNG PARALLEL MODEL RACING)
-    if (apiKey && apiKey.length > 5) {
+    // 1. GỌI GEMINI NẾU CÓ KEY (TỰ ĐỘNG XOAY VÒNG KEY NẾU GẶP QUOTA 429)
+    if (candidateKeys.length > 0) {
       try {
         const excludePrompt = hasExclusions
           ? `\nQUAN TRỌNG: TUYỆT ĐỐI KHÔNG CHỌN bất kỳ phim nào trong danh sách đã xem/bỏ qua sau: [${allExclusions.slice(-15).join(", ")}]. Phải chọn 1 phim KHÁC BIỆT HOÀN TOÀN!`
@@ -425,35 +438,78 @@ Trả về DUY NHẤT một chuỗi JSON hợp lệ (không markdown block):
   "matchScore": 99
 }`;
 
-        const ai = new GoogleGenAI({ apiKey, vertexai: false });
-        const RACE_MODELS = ["gemini-3.6-flash", "gemini-3.5-flash"];
+        const MODELS = ["gemini-3.5-flash", "gemini-3.6-flash"];
+        let raceResult: string | null = null;
 
-        const modelPromises = RACE_MODELS.map(async (model) => {
-          const res = await ai.models.generateContent({
-            model,
-            contents: promptText,
-            config: {
-              responseMimeType: "application/json",
-              temperature: 0.9,
-              maxOutputTokens: 300,
-            },
-          });
-          const text = res.text?.trim();
-          if (!text) throw new Error(`Empty from ${model}`);
-          return text;
-        });
+        keyLoop: for (const currentKey of candidateKeys) {
+          try {
+            const ai = new GoogleGenAI({ apiKey: currentKey, vertexai: false });
+            for (const model of MODELS) {
+              try {
+                const is35 = model.includes("3.5");
+                const res = await Promise.race([
+                  ai.models.generateContent({
+                    model,
+                    contents: promptText,
+                    config: {
+                      responseMimeType: "application/json",
+                      temperature: 0.85,
+                      maxOutputTokens: 400,
+                      ...(is35
+                        ? { thinkingConfig: { thinkingBudget: 0 } }
+                        : { thinkingConfig: { thinkingLevel: ThinkingLevel.LOW } }),
+                    },
+                  }),
+                  new Promise<never>((_, reject) =>
+                    setTimeout(() => reject(new Error(`${model} roulette timeout`)), 4000)
+                  ),
+                ]);
 
-        const raceResult = await Promise.race([
-          Promise.any(modelPromises),
-          new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error("Roulette Gemini timeout")), 6500)
-          ),
-        ]);
+                const text = res.text?.trim();
+                if (text) {
+                  raceResult = text;
+                  break keyLoop;
+                }
+              } catch (mErr) {
+                console.warn(
+                  `[ai-roulette] ${model} failed:`,
+                  mErr instanceof Error ? mErr.message : mErr
+                );
+              }
+            }
+          } catch (kErr) {
+            console.warn(
+              "[ai-roulette] Key failed, trying fallback key:",
+              kErr instanceof Error ? kErr.message : kErr
+            );
+          }
+        }
 
         if (raceResult) {
-          const cleaned = raceResult.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "");
-          const parsed = JSON.parse(cleaned);
-          if (parsed.title) {
+          let cleaned = raceResult.replace(/```(?:json)?\s*/gi, "").replace(/\s*```/g, "").trim();
+          const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+          if (jsonMatch) cleaned = jsonMatch[0];
+
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          let parsed: any = null;
+          try {
+            parsed = JSON.parse(cleaned);
+          } catch {
+            const titleM = cleaned.match(/"title"\s*:\s*"((?:\\.|[^"\\])*)"/);
+            const origM = cleaned.match(/"originalTitle"\s*:\s*"((?:\\.|[^"\\])*)"/);
+            const punchM = cleaned.match(/"punchline"\s*:\s*"((?:\\.|[^"\\])*)"/);
+            if (titleM) {
+              parsed = {
+                title: titleM[1],
+                originalTitle: origM ? origM[1] : "",
+                punchline: punchM ? punchM[1] : "Tác phẩm xuất sắc được tuyển chọn cho bạn!",
+                badges: ["Đề Xuất AI", "Đặc Sắc"],
+                matchScore: 98,
+              };
+            }
+          }
+
+          if (parsed && parsed.title) {
             const candidateTitle = parsed.title.trim().toLowerCase();
             const candidateOriginal = (parsed.originalTitle || "").trim().toLowerCase();
             // Đảm bảo không trùng danh sách exclude

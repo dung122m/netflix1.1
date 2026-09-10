@@ -21,7 +21,7 @@ export default async function LivePage() {
   ]);
 
   return (
-    <div className="bg-black min-h-screen text-white">
+    <div className="page-cinema-container min-h-screen">
       <Navbar />
       <Suspense fallback={<div className="min-h-[60vh] flex items-center justify-center text-white">Đang tải...</div>}>
         <LiveHubClient footballData={footballData} tvData={tvData} />

@@ -33,6 +33,7 @@ import { useSearchParams } from "next/navigation";
 
 interface LiveTvClientProps {
   initialData: LiveTvData;
+  isActive?: boolean;
 }
 
 const INITIAL_PAGE_SIZE = 24;
@@ -48,7 +49,53 @@ function getCategoryEmoji(category: string): string {
   return "📺";
 }
 
-export function LiveTvClient({ initialData }: LiveTvClientProps) {
+function TvChannelLogo({
+  logo,
+  name,
+}: {
+  logo: string;
+  name: string;
+  size?: "sm" | "md" | "lg";
+}) {
+  const [error, setError] = useState(false);
+
+  // Nếu có logo URL và chưa bị lỗi → hiển thị ảnh trực tiếp từ nguồn
+  if (logo && !error) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={logo}
+        alt={name}
+        className="w-full h-full object-contain filter drop-shadow-md transition-transform duration-200 group-hover:scale-105"
+        loading="lazy"
+        decoding="async"
+        onError={() => setError(true)}
+      />
+    );
+  }
+
+  // Fallback: Badge chữ đơn giản khi không có logo hoặc ảnh lỗi
+  const words = name.toUpperCase().split(/[\s\-_]+/).filter(Boolean);
+  const code = words.slice(0, 2).join(" ").slice(0, 7);
+  const sub = words.length > 2 ? words[2].slice(0, 4) : "";
+
+  return (
+    <div
+      className="w-full h-full rounded-xl bg-gradient-to-br from-zinc-800 to-zinc-950 border border-white/10 flex flex-col items-center justify-center text-white select-none overflow-hidden gap-0.5 p-1"
+    >
+      <span className="text-[11px] sm:text-xs font-black tracking-tight text-white leading-none font-mono line-clamp-1 text-center w-full px-0.5">
+        {code}
+      </span>
+      {sub && (
+        <span className="text-[8px] font-bold text-white/70 leading-none truncate">
+          {sub}
+        </span>
+      )}
+    </div>
+  );
+}
+
+export function LiveTvClient({ initialData, isActive = true }: LiveTvClientProps) {
   const { categories, channels } = initialData;
   const searchParams = useSearchParams();
 
@@ -96,6 +143,8 @@ export function LiveTvClient({ initialData }: LiveTvClientProps) {
   const playerRef = useRef<HTMLDivElement>(null);
   const categoryScrollRef = useRef<HTMLDivElement>(null);
   const popularScrollRef = useRef<HTMLDivElement>(null);
+  const userPausedRef = useRef<boolean>(false);
+  const lastLoadedUrlRef = useRef<string>("");
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -108,6 +157,7 @@ export function LiveTvClient({ initialData }: LiveTvClientProps) {
 
   const volumeRef = useRef(volume);
   const isMutedRef = useRef(isMuted);
+  const userMutedRef = useRef<boolean>(false);
   useEffect(() => {
     volumeRef.current = volume;
   }, [volume]);
@@ -205,6 +255,11 @@ export function LiveTvClient({ initialData }: LiveTvClientProps) {
   }, [filteredChannels, visibleCount]);
 
   const handleSelectChannel = (channel: TvChannel) => {
+    userPausedRef.current = false;
+    if (!userMutedRef.current) {
+      setIsMuted(false);
+      isMutedRef.current = false;
+    }
     setSelectedChannel(channel);
     try {
       localStorage.setItem("nanaflix_live_channel_id", channel.id);
@@ -233,15 +288,47 @@ export function LiveTvClient({ initialData }: LiveTvClientProps) {
     }
   };
 
+  // Đồng bộ trạng thái tab (khi chuyển tab Bóng Đá <-> TV)
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (!isActive) {
+      video.pause();
+      setIsPlaying(false);
+      if (hlsRef.current) {
+        hlsRef.current.stopLoad();
+      }
+      if (typeof document !== "undefined" && document.pictureInPictureElement === video) {
+        document.exitPictureInPicture().catch(() => {});
+        setIsPip(false);
+      }
+    } else {
+      if (hlsRef.current) {
+        hlsRef.current.startLoad();
+      }
+      if (!userPausedRef.current) {
+        video.play().then(() => setIsPlaying(true)).catch(() => {});
+      }
+    }
+  }, [isActive]);
+
   // Khởi tạo luồng phát HLS với Proxy + Auto-Fallback + Low Latency Engine
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !selectedChannel?.url) return;
 
+    const primaryUrl = selectedChannel.url;
+
+    // Tránh khởi tạo lại Hls khi URL không đổi
+    if (primaryUrl === lastLoadedUrlRef.current && hlsRef.current) {
+      return;
+    }
+
+    lastLoadedUrlRef.current = primaryUrl;
     setIsLoading(true);
     setHasError(false);
 
-    const primaryUrl = selectedChannel.url;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const fallbackUrl = (selectedChannel as any)?.fallback_url || (selectedChannel as any)?.fallbackUrl;
     let hasTriedFallback = false;
@@ -282,20 +369,30 @@ export function LiveTvClient({ initialData }: LiveTvClientProps) {
           }
           setIsLoading(false);
           setHasError(false);
-          video.volume = volumeRef.current;
-          video.muted = isMutedRef.current;
+          video.volume = volumeRef.current || 0.9;
+          const shouldBeMuted = userMutedRef.current;
+          video.muted = shouldBeMuted;
 
-          video
-            .play()
-            .then(() => setIsPlaying(true))
-            .catch(() => {
-              setIsMuted(true);
-              video.muted = true;
-              video
-                .play()
-                .then(() => setIsPlaying(true))
-                .catch(() => {});
-            });
+          // Chỉ tự phát nếu đang ở tab active và người dùng không bấm Pause
+          if (isActive && !userPausedRef.current) {
+            video
+              .play()
+              .then(() => {
+                setIsPlaying(true);
+                setIsMuted(video.muted || video.volume === 0);
+              })
+              .catch(() => {
+                video.muted = true;
+                setIsMuted(true);
+                video
+                  .play()
+                  .then(() => {
+                    setIsPlaying(true);
+                    setIsMuted(true);
+                  })
+                  .catch(() => {});
+              });
+          }
         });
 
         hls.on(Hls.Events.ERROR, (_, data) => {
@@ -323,7 +420,9 @@ export function LiveTvClient({ initialData }: LiveTvClientProps) {
         video.addEventListener("loadedmetadata", () => {
           setIsLoading(false);
           setHasError(false);
-          video.play().then(() => setIsPlaying(true)).catch(() => {});
+          if (isActive && !userPausedRef.current) {
+            video.play().then(() => setIsPlaying(true)).catch(() => {});
+          }
         });
         video.addEventListener("error", () => {
           if (!hasTriedFallback && fallbackUrl && fallbackUrl !== sourceUrl) {
@@ -345,26 +444,44 @@ export function LiveTvClient({ initialData }: LiveTvClientProps) {
         hlsRef.current = null;
       }
     };
-  }, [selectedChannel]);
+  }, [selectedChannel, isActive]);
+
+  // Điều khiển Play / Pause
+  const togglePlay = useCallback(() => {
+    if (!videoRef.current) return;
+    if (isPlaying) {
+      userPausedRef.current = true;
+      videoRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      userPausedRef.current = false;
+      videoRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+    }
+  }, [isPlaying]);
 
   // Volume & Sound Helpers
   const unmuteSound = useCallback(() => {
+    userMutedRef.current = false;
     const targetVol = volume > 0 ? volume : 0.9;
     setVolume(targetVol);
     setIsMuted(false);
     if (videoRef.current) {
       videoRef.current.muted = false;
       videoRef.current.volume = targetVol;
+      if (!userPausedRef.current && isActive) {
+        videoRef.current.play().catch(() => {});
+      }
     }
     try {
       localStorage.setItem("nanaflix_live_volume", String(targetVol));
     } catch {}
-  }, [volume]);
+  }, [volume, isActive]);
 
   const toggleMute = useCallback(() => {
     if (isMuted) {
       unmuteSound();
     } else {
+      userMutedRef.current = true;
       setIsMuted(true);
       if (videoRef.current) videoRef.current.muted = true;
     }
@@ -373,10 +490,12 @@ export function LiveTvClient({ initialData }: LiveTvClientProps) {
   const handleVolumeChange = useCallback((newVol: number) => {
     const clamped = Math.max(0, Math.min(1, newVol));
     setVolume(clamped);
-    setIsMuted(clamped === 0);
+    const shouldMute = clamped === 0;
+    userMutedRef.current = shouldMute;
+    setIsMuted(shouldMute);
     if (videoRef.current) {
       videoRef.current.volume = clamped;
-      videoRef.current.muted = clamped === 0;
+      videoRef.current.muted = shouldMute;
     }
     try {
       localStorage.setItem("nanaflix_live_volume", String(clamped));
@@ -415,15 +534,7 @@ export function LiveTvClient({ initialData }: LiveTvClientProps) {
       }
       if (e.code === "Space") {
         e.preventDefault();
-        if (videoRef.current) {
-          if (isPlaying) {
-            videoRef.current.pause();
-            setIsPlaying(false);
-          } else {
-            videoRef.current.play().catch(() => {});
-            setIsPlaying(true);
-          }
-        }
+        togglePlay();
       } else if (e.key === "m" || e.key === "M") {
         e.preventDefault();
         toggleMute();
@@ -444,7 +555,7 @@ export function LiveTvClient({ initialData }: LiveTvClientProps) {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isPlaying, toggleMute, toggleFullscreen, togglePip, handleVolumeChange, volume]);
+  }, [isPlaying, togglePlay, toggleMute, toggleFullscreen, togglePip, handleVolumeChange, volume]);
 
   const handleCopy = () => {
     if (selectedChannel && typeof navigator !== "undefined") {
@@ -481,19 +592,11 @@ export function LiveTvClient({ initialData }: LiveTvClientProps) {
       {selectedChannel ? (
         <div ref={playerRef} className="scroll-mt-24 space-y-4">
           {/* HEADER KÊNH ĐANG PHÁT */}
-          <div className="relative rounded-2xl sm:rounded-3xl border border-white/15 bg-gradient-to-b from-zinc-900/95 via-zinc-950/98 to-black p-4 sm:p-5 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-4 backdrop-blur-xl">
+          <div className="keep-dark-cinema relative rounded-2xl sm:rounded-3xl border border-white/15 bg-gradient-to-b from-zinc-900/95 via-zinc-950/98 to-black p-4 sm:p-5 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-4 backdrop-blur-xl">
             <div className="flex items-center gap-3.5 sm:gap-4 w-full md:w-auto">
               {/* LOGO KÊNH */}
-              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-zinc-900 border-2 border-white/20 p-2 flex items-center justify-center shadow-xl flex-shrink-0">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={selectedChannel.logo}
-                  alt={selectedChannel.name}
-                  className="w-full h-full object-contain filter drop-shadow-md"
-                  onError={(e) => {
-                    (e.target as HTMLElement).style.display = "none";
-                  }}
-                />
+              <div className="w-20 h-14 sm:w-24 sm:h-16 rounded-2xl bg-zinc-900/90 border-2 border-white/20 p-2 flex items-center justify-center shadow-xl flex-shrink-0 overflow-hidden">
+                <TvChannelLogo logo={selectedChannel.logo} name={selectedChannel.name} />
               </div>
 
               <div>
@@ -510,7 +613,7 @@ export function LiveTvClient({ initialData }: LiveTvClientProps) {
                     <span>{selectedChannel.quality}</span>
                   </span>
                 </div>
-                <h2 className="text-lg sm:text-2xl font-black text-white">
+                <h2 className="text-lg sm:text-2xl font-black text-white keep-white" style={{ color: "#ffffff" }}>
                   {selectedChannel.name}
                 </h2>
               </div>
@@ -549,9 +652,22 @@ export function LiveTvClient({ initialData }: LiveTvClientProps) {
           >
             <video
               ref={videoRef}
-              className="w-full h-full object-contain"
+              className="w-full h-full object-contain cursor-pointer"
               playsInline
-              muted={isMuted}
+              onPlay={() => setIsPlaying(true)}
+              onPause={() => setIsPlaying(false)}
+              onVolumeChange={(e) => {
+                const v = e.currentTarget;
+                const isActuallyMuted = v.muted || v.volume === 0;
+                setIsMuted(isActuallyMuted);
+                if (!isActuallyMuted) {
+                  setVolume(v.volume);
+                  try {
+                    localStorage.setItem("nanaflix_live_volume", String(v.volume));
+                  } catch {}
+                }
+              }}
+              onClick={togglePlay}
             />
 
             {/* HUY HIỆU SIGNAL GÓC TRÊN TRÁI */}
@@ -636,17 +752,7 @@ export function LiveTvClient({ initialData }: LiveTvClientProps) {
               <div className="flex items-center gap-2 sm:gap-3">
                 <button
                   type="button"
-                  onClick={() => {
-                    if (videoRef.current) {
-                      if (isPlaying) {
-                        videoRef.current.pause();
-                        setIsPlaying(false);
-                      } else {
-                        videoRef.current.play().catch(() => {});
-                        setIsPlaying(true);
-                      }
-                    }
-                  }}
+                  onClick={togglePlay}
                   className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition backdrop-blur-md cursor-pointer"
                 >
                   {isPlaying ? (
@@ -760,16 +866,8 @@ export function LiveTvClient({ initialData }: LiveTvClientProps) {
                       : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
                   }`}
                 >
-                  <div className="w-5 h-5 rounded-md bg-zinc-950 border border-white/10 p-0.5 flex items-center justify-center overflow-hidden flex-shrink-0">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={ch.logo}
-                      alt={ch.name}
-                      className="w-full h-full object-contain"
-                      onError={(e) => {
-                        (e.target as HTMLElement).style.display = "none";
-                      }}
-                    />
+                  <div className="w-7 h-5 sm:w-8 sm:h-6 rounded-md bg-zinc-950/90 border border-white/10 p-0.5 flex items-center justify-center overflow-hidden flex-shrink-0">
+                    <TvChannelLogo logo={ch.logo} name={ch.name} size="sm" />
                   </div>
                   <span className="text-xs whitespace-nowrap">{ch.name.split(" ")[0]}</span>
                   <span
@@ -966,10 +1064,10 @@ export function LiveTvClient({ initialData }: LiveTvClientProps) {
                   <div
                     key={ch.id}
                     onClick={() => handleSelectChannel(ch)}
-                    className={`group relative rounded-2xl border p-3.5 cursor-pointer transition-all duration-300 flex flex-col items-center justify-between text-center ${
+                    className={`live-channel-card group relative rounded-2xl border p-3.5 cursor-pointer transition-all duration-300 flex flex-col items-center justify-between text-center ${
                       isSelected
-                        ? "bg-gradient-to-b from-zinc-900 to-zinc-950 border-sky-500 shadow-xl shadow-sky-950/60 ring-2 ring-sky-500/60 scale-102"
-                        : "bg-zinc-900/80 border-white/10 hover:border-white/35 hover:bg-zinc-850 hover:shadow-lg hover:-translate-y-0.5"
+                        ? "live-channel-active ring-2 ring-sky-500/60 scale-102"
+                        : "hover:shadow-lg hover:-translate-y-0.5"
                     }`}
                   >
                     {/* HUY HIỆU GÓC TRÊN */}
@@ -989,21 +1087,12 @@ export function LiveTvClient({ initialData }: LiveTvClientProps) {
                     </div>
 
                     {/* LOGO KÊNH */}
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-zinc-950 border border-white/10 p-2 flex items-center justify-center my-1.5 shadow-inner group-hover:scale-105 transition-transform overflow-hidden">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={ch.logo}
-                        alt={ch.name}
-                        className="w-full h-full object-contain filter drop-shadow-md"
-                        loading="lazy"
-                        onError={(e) => {
-                          (e.target as HTMLElement).style.display = "none";
-                        }}
-                      />
+                    <div className="live-channel-logo-container w-full h-16 sm:h-20 rounded-xl bg-zinc-950/60 border border-white/10 p-2 sm:p-2.5 flex items-center justify-center my-1.5 shadow-inner group-hover:scale-105 transition-transform overflow-hidden">
+                      <TvChannelLogo logo={ch.logo} name={ch.name} />
                     </div>
 
                     {/* TÊN KÊNH */}
-                    <h3 className="text-xs sm:text-sm font-extrabold text-white group-hover:text-sky-400 transition line-clamp-1 mt-1 leading-snug w-full">
+                    <h3 className="live-channel-title text-xs sm:text-sm font-extrabold text-white group-hover:text-sky-400 transition line-clamp-1 mt-1 leading-snug w-full">
                       {ch.name}
                     </h3>
                   </div>
@@ -1021,25 +1110,16 @@ export function LiveTvClient({ initialData }: LiveTvClientProps) {
                     onClick={() => handleSelectChannel(ch)}
                     className={`group rounded-xl border p-2.5 cursor-pointer transition-all flex items-center justify-between gap-3 ${
                       isSelected
-                        ? "bg-zinc-850 border-sky-500 shadow-md ring-1 ring-sky-500/60"
-                        : "bg-zinc-900/80 border-white/10 hover:border-white/25 hover:bg-zinc-850"
+                        ? "live-channel-active ring-1 ring-sky-500/60"
+                        : "live-channel-card hover:border-white/25"
                     }`}
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-10 h-10 rounded-xl bg-zinc-950 border border-white/10 p-1.5 flex items-center justify-center overflow-hidden flex-shrink-0">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={ch.logo}
-                          alt={ch.name}
-                          className="w-full h-full object-contain"
-                          loading="lazy"
-                          onError={(e) => {
-                            (e.target as HTMLElement).style.display = "none";
-                          }}
-                        />
+                      <div className="live-channel-logo-container w-14 h-10 rounded-xl bg-zinc-950/60 border border-white/10 p-1 flex items-center justify-center overflow-hidden flex-shrink-0">
+                        <TvChannelLogo logo={ch.logo} name={ch.name} />
                       </div>
                       <div className="min-w-0">
-                        <h4 className="text-xs font-bold text-white group-hover:text-sky-300 truncate">
+                        <h4 className="live-channel-title text-xs font-bold text-white group-hover:text-sky-300 truncate">
                           {ch.name}
                         </h4>
                         <span className="text-[10px] text-gray-400">

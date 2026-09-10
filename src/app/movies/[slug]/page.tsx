@@ -1,3 +1,4 @@
+import React, { Suspense } from "react";
 import { movieApi } from "@/services/movieApi";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -21,7 +22,6 @@ import {
   Globe2,
 } from "lucide-react";
 import { MovieSynopsis } from "@/components/MovieSynopsis";
-import { MovieEmotionalRadar } from "@/components/MovieEmotionalRadar";
 import { ShareButton } from "@/components/ShareButton";
 import { MobileQrModal } from "@/components/MobileQrModal";
 import { ReportIssueModal } from "@/components/ReportIssueModal";
@@ -260,42 +260,8 @@ export default async function MovieDetail({
   const primaryCountrySlug = movie.country?.[0]?.slug;
   const primaryActor = actorList.length > 0 ? actorList[0] : undefined;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const recommendationPool: any[] = [];
-
-  // Tải đồng thời danh sách phim theo thể loại, quốc gia và diễn viên chính
-  const [byGenre, byCountry, byActor] = await Promise.all([
-    primaryGenreSlug
-      ? movieApi.getMovies({ category: primaryGenreSlug, page: 1, limit: 16 })
-      : Promise.resolve(null),
-    primaryCountrySlug
-      ? movieApi.getMovies({ country: primaryCountrySlug, page: 1, limit: 16 })
-      : Promise.resolve(null),
-    primaryActor
-      ? movieApi.getMovies({ keyword: primaryActor, page: 1, limit: 12 })
-      : Promise.resolve(null),
-  ]);
-
-  if (byGenre?.items) {
-    recommendationPool.push(...byGenre.items);
-  }
-  if (byCountry?.items) {
-    recommendationPool.push(...byCountry.items);
-  }
-  if (byActor?.items) {
-    recommendationPool.push(...byActor.items);
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const deduped = new Map<string, any>();
-  for (const item of recommendationPool) {
-    if (!item?.slug || item.slug === movie.slug) continue;
-    if (!deduped.has(item.slug)) deduped.set(item.slug, item);
-  }
-  const recommendedMovies = Array.from(deduped.values()).slice(0, 24);
-
   return (
-    <div className="bg-black min-h-screen text-white pb-12">
+    <div className="page-cinema-container min-h-screen pb-12">
       <Navbar />
       <SetTitleClient title={title} />
       <TrackHistoryClient
@@ -353,7 +319,7 @@ export default async function MovieDetail({
 
       <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-8 mt-6 sm:mt-8 md:mt-10 grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6">
         <div className="lg:col-span-8 space-y-5 sm:space-y-6">
-          <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-zinc-900/75 to-zinc-950/70 p-4 sm:p-5 md:p-7">
+          <div className="rounded-3xl border border-white/15 bg-gradient-to-b from-zinc-900/80 via-zinc-950/85 to-black/90 p-5 sm:p-6 md:p-8 backdrop-blur-xl shadow-2xl">
             <h1 className="text-2xl sm:text-3xl md:text-5xl font-extrabold leading-tight">
               <span>{title}</span>{" "}
               {movie.origin_name && movie.origin_name !== title && (
@@ -505,15 +471,6 @@ export default async function MovieDetail({
               </div>
             )}
 
-            <MovieEmotionalRadar
-              slug={slug}
-              title={title}
-              category={categoryList.map((c) => c.name).join(", ")}
-              country={countryList.map((c) => c.name).join(", ")}
-              synopsis={description}
-              year={movie.year}
-            />
-
             <MovieSynopsis
               synopsis={description}
               originName={movie.origin_name}
@@ -648,7 +605,7 @@ export default async function MovieDetail({
         </div>
 
         <div className="lg:col-span-4">
-          <div className="rounded-2xl border border-white/10 bg-zinc-900/80 p-5 md:p-6 h-fit max-h-[680px] overflow-y-auto overscroll-contain scroll-smooth [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-zinc-700 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-zinc-500 pr-2 shadow-xl">
+          <div className="rounded-3xl border border-white/15 bg-gradient-to-b from-zinc-900/80 via-zinc-950/85 to-black/90 p-5 md:p-6 h-fit max-h-[680px] overflow-y-auto overscroll-contain [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-zinc-700 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-zinc-500 pr-2 shadow-2xl backdrop-blur-xl">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-bold flex items-center gap-2">
                 <span>Danh sách tập</span>
@@ -707,19 +664,95 @@ export default async function MovieDetail({
           </div>
         </div>
 
-        <RecommendationTabs
-          currentMovieTitle={title}
-          genreName={movie.category?.[0]?.name}
-          countryName={movie.country?.[0]?.name}
-          actorName={primaryActor}
-          genreMovies={byGenre?.items || []}
-          countryMovies={byCountry?.items || []}
-          actorMovies={byActor?.items || []}
-          allMovies={recommendedMovies}
-        />
+        <Suspense fallback={<RecommendationSkeleton />}>
+          <AsyncRecommendations
+            currentMovieSlug={movie.slug}
+            currentMovieTitle={title}
+            primaryGenreSlug={primaryGenreSlug}
+            primaryCountrySlug={primaryCountrySlug}
+            primaryActor={primaryActor}
+            genreName={movie.category?.[0]?.name}
+            countryName={movie.country?.[0]?.name}
+          />
+        </Suspense>
       </div>
 
       <Footer />
+    </div>
+  );
+}
+
+// Tải ngầm đề xuất phim không làm chậm quá trình nạp Player xem phim
+async function AsyncRecommendations({
+  currentMovieSlug,
+  currentMovieTitle,
+  primaryGenreSlug,
+  primaryCountrySlug,
+  primaryActor,
+  genreName,
+  countryName,
+}: {
+  currentMovieSlug: string;
+  currentMovieTitle: string;
+  primaryGenreSlug?: string;
+  primaryCountrySlug?: string;
+  primaryActor?: string;
+  genreName?: string;
+  countryName?: string;
+}) {
+  const [byGenre, byCountry, byActor] = await Promise.all([
+    primaryGenreSlug
+      ? movieApi.getMovies({ category: primaryGenreSlug, page: 1, limit: 16 })
+      : Promise.resolve(null),
+    primaryCountrySlug
+      ? movieApi.getMovies({ country: primaryCountrySlug, page: 1, limit: 16 })
+      : Promise.resolve(null),
+    primaryActor
+      ? movieApi.getMovies({ keyword: primaryActor, page: 1, limit: 12 })
+      : Promise.resolve(null),
+  ]);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recommendationPool: any[] = [];
+  if (byGenre?.items) recommendationPool.push(...byGenre.items);
+  if (byCountry?.items) recommendationPool.push(...byCountry.items);
+  if (byActor?.items) recommendationPool.push(...byActor.items);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const deduped = new Map<string, any>();
+  for (const item of recommendationPool) {
+    if (!item?.slug || item.slug === currentMovieSlug) continue;
+    if (!deduped.has(item.slug)) deduped.set(item.slug, item);
+  }
+  const recommendedMovies = Array.from(deduped.values()).slice(0, 24);
+
+  return (
+    <RecommendationTabs
+      currentMovieTitle={currentMovieTitle}
+      genreName={genreName}
+      countryName={countryName}
+      actorName={primaryActor}
+      genreMovies={byGenre?.items || []}
+      countryMovies={byCountry?.items || []}
+      actorMovies={byActor?.items || []}
+      allMovies={recommendedMovies}
+    />
+  );
+}
+
+function RecommendationSkeleton() {
+  return (
+    <div className="space-y-4 animate-pulse">
+      <div className="flex gap-2">
+        <div className="h-9 w-28 bg-zinc-800 rounded-full" />
+        <div className="h-9 w-28 bg-zinc-900 rounded-full" />
+        <div className="h-9 w-28 bg-zinc-900 rounded-full" />
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="aspect-[2/3] bg-zinc-900/80 rounded-2xl border border-white/5" />
+        ))}
+      </div>
     </div>
   );
 }

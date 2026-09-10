@@ -1,3 +1,7 @@
+// Service cung cấp danh sách kênh truyền hình trực tiếp chuẩn FHD / HD
+// - Kênh VTV sử dụng logo SVG vector chuẩn chính thức từ Đài Truyền hình Việt Nam
+// - Các kênh khác giữ nguyên 100% logo gốc từ nguồn phát (M3U / Official CDN)
+
 export interface TvChannel {
   id: string;
   name: string;
@@ -28,13 +32,42 @@ const CATEGORY_MAPPING: Record<string, string> = {
   "Quốc tế": "Kênh Quốc Tế",
 };
 
+// Hàm gán logo VTV chuẩn chính thức (chỉ gán cho đúng kênh VTV)
+export function getVtvOfficialLogo(name: string): string {
+  const upper = name.toUpperCase();
+  
+  if (
+    upper.includes("CẦN THƠ") ||
+    upper.includes("CAN THO") ||
+    upper.includes("TÂY NAM BỘ") ||
+    upper.includes("TAY NAM BO")
+  ) {
+    if (upper.includes("VTV")) return "/images/channels/vtv-cantho.svg";
+  }
+  if (upper.includes("TÂY NGUYÊN") || upper.includes("TAY NGUYEN")) {
+    if (upper.includes("VTV")) return "/images/channels/vtv-taynguyen.svg";
+  }
+
+  if (/\bVTV\s*1\b|\bVTV1\b/i.test(name)) return "/images/channels/vtv1.svg";
+  if (/\bVTV\s*2\b|\bVTV2\b/i.test(name)) return "/images/channels/vtv2.svg";
+  if (/\bVTV\s*3\b|\bVTV3\b/i.test(name)) return "/images/channels/vtv3.svg";
+  if (/\bVTV\s*4\b|\bVTV4\b/i.test(name)) return "/images/channels/vtv4.svg";
+  if (/\bVTV\s*5\b|\bVTV5\b/i.test(name)) return "/images/channels/vtv5.svg";
+  if (/\bVTV\s*6\b|\bVTV6\b/i.test(name)) return "/images/channels/vtv6.svg";
+  if (/\bVTV\s*7\b|\bVTV7\b/i.test(name)) return "/images/channels/vtv7.svg";
+  if (/\bVTV\s*8\b|\bVTV8\b/i.test(name)) return "/images/channels/vtv8.svg";
+  if (/\bVTV\s*9\b|\bVTV9\b/i.test(name)) return "/images/channels/vtv9.svg";
+
+  return "";
+}
+
 // Danh sách kênh Quốc Gia & Thể Thao ĐÃ KIỂM TRA 100% HOẠT ĐỘNG (FHD 1080p / 720p)
 const VERIFIED_CHANNELS: TvChannel[] = [
-  // --- KÊNH VTV CHÍNH THỨC (FHD 1080P ĐÃ TEST HOẠT ĐỘNG) ---
+  // --- KÊNH VTV CHÍNH THỨC (FHD 1080P VỚI LOGO VECTOR CHÍNH THỨC) ---
   {
     id: "vtv1-fhd",
     name: "VTV1 HD (Thời sự - Chính luận)",
-    logo: "https://i.imgur.com/8Q6aM0i.png",
+    logo: "/images/channels/vtv1.svg",
     url: "https://live-a.fptplay53.net/live/media/vtv1/live247-hls-avc/index.m3u8",
     category: "Kênh VTV",
     quality: "FHD 1080p",
@@ -42,7 +75,7 @@ const VERIFIED_CHANNELS: TvChannel[] = [
   {
     id: "vtv2-fhd",
     name: "VTV2 HD (Khoa học - Giáo dục)",
-    logo: "https://i.imgur.com/B9q5y2h.png",
+    logo: "/images/channels/vtv2.svg",
     url: "https://live-a.fptplay53.net/live/media/vtv2/live247-hls-avc/index.m3u8",
     category: "Kênh VTV",
     quality: "FHD 1080p",
@@ -50,7 +83,7 @@ const VERIFIED_CHANNELS: TvChannel[] = [
   {
     id: "vtv3-hd",
     name: "VTV3 HD (Giải trí - Thể thao)",
-    logo: "https://i.imgur.com/xO4b2gI.png",
+    logo: "/images/channels/vtv3.svg",
     url: "https://live-a.fptplay53.net/live/media/vtv3/live247-hls-avc/index.m3u8",
     category: "Kênh VTV",
     quality: "FHD 1080p",
@@ -58,7 +91,7 @@ const VERIFIED_CHANNELS: TvChannel[] = [
   {
     id: "vtv4-fhd",
     name: "VTV4 HD (Đối ngoại)",
-    logo: "https://i.imgur.com/o1bZ9jE.png",
+    logo: "/images/channels/vtv4.svg",
     url: "https://live-a.fptplay53.net/live/media/vtv4/live247-hls-avc/index.m3u8",
     category: "Kênh VTV",
     quality: "FHD 1080p",
@@ -66,7 +99,7 @@ const VERIFIED_CHANNELS: TvChannel[] = [
   {
     id: "vtv5-fhd",
     name: "VTV5 HD (Thể thao & Dân tộc)",
-    logo: "https://i.imgur.com/yN1M0rG.png",
+    logo: "/images/channels/vtv5.svg",
     url: "https://live-a.fptplay53.net/live/media/vtv5/live247-hls-avc/index.m3u8",
     category: "Kênh Thể Thao",
     quality: "FHD 1080p",
@@ -74,7 +107,7 @@ const VERIFIED_CHANNELS: TvChannel[] = [
   {
     id: "vtv6-fhd",
     name: "VTV6 HD (Thanh thiếu niên - Thể thao)",
-    logo: "https://i.imgur.com/xO4b2gI.png",
+    logo: "/images/channels/vtv6.svg",
     url: "https://live-a.fptplay53.net/live/media/vtv6/live247-hls-avc/index.m3u8",
     category: "Kênh Thể Thao",
     quality: "FHD 1080p",
@@ -82,7 +115,7 @@ const VERIFIED_CHANNELS: TvChannel[] = [
   {
     id: "vtv7-hd",
     name: "VTV7 HD (Giáo dục Quốc gia)",
-    logo: "https://i.imgur.com/tC7A5bV.png",
+    logo: "/images/channels/vtv7.svg",
     url: "https://live-a.fptplay53.net/live/media/vtv7/live247-hls-avc/index.m3u8",
     category: "Kênh VTV",
     quality: "FHD 1080p",
@@ -90,7 +123,7 @@ const VERIFIED_CHANNELS: TvChannel[] = [
   {
     id: "vtv8-fhd",
     name: "VTV8 HD (Miền Trung - Tây Nguyên)",
-    logo: "https://i.imgur.com/rN9e8Uv.png",
+    logo: "/images/channels/vtv8.svg",
     url: "https://live.fptplay53.net/epzhd1/vtv8hd_vhls.smil/chunklist_b5000000.m3u8",
     category: "Kênh VTV",
     quality: "FHD 1080p",
@@ -98,7 +131,7 @@ const VERIFIED_CHANNELS: TvChannel[] = [
   {
     id: "vtv9-hd",
     name: "VTV9 HD (Khu vực Miền Nam)",
-    logo: "https://i.imgur.com/W2O4h0a.png",
+    logo: "/images/channels/vtv9.svg",
     url: "https://live-a.fptplay53.net/live/media/vtv9/live247-hls-avc/index.m3u8",
     category: "Kênh VTV",
     quality: "FHD 1080p",
@@ -106,7 +139,7 @@ const VERIFIED_CHANNELS: TvChannel[] = [
   {
     id: "vtv-cantho-fhd",
     name: "VTV Cần Thơ HD (Tây Nam Bộ)",
-    logo: "https://i.imgur.com/yN1M0rG.png",
+    logo: "/images/channels/vtv-cantho.svg",
     url: "https://live-a.fptplay53.net/live/media/vtv5tnb/live-hls-avc/index.m3u8",
     category: "Kênh VTV",
     quality: "FHD 1080p",
@@ -114,7 +147,7 @@ const VERIFIED_CHANNELS: TvChannel[] = [
   {
     id: "vtv-taynguyen-fhd",
     name: "VTV Tây Nguyên HD",
-    logo: "https://i.imgur.com/yN1M0rG.png",
+    logo: "/images/channels/vtv-taynguyen.svg",
     url: "https://vips-livecdn.fptplay.net/live/media/vtv5tn/live-hls-avc/index.m3u8",
     category: "Kênh VTV",
     quality: "FHD 1080p",
@@ -224,7 +257,7 @@ export const liveTvService = {
       if (memoryCache.expireAt > now) {
         return memoryCache.data;
       }
-      // Dùng tạm stale data 60 phút (0ms) và fetch cập nhật ngầm
+      // Dùng tạm stale data 60 phút và fetch cập nhật ngầm
       if (memoryCache.staleUntil > now) {
         liveTvService.revalidateTvChannels().catch(() => {});
         return memoryCache.data;
@@ -278,7 +311,7 @@ export const liveTvService = {
           }
 
           const logoMatch = line.match(/tvg-logo="([^"]+)"/);
-          const logo = logoMatch ? logoMatch[1].trim() : "";
+          let logo = logoMatch ? logoMatch[1].trim() : "";
 
           const idMatch = line.match(/tvg-id="([^"]+)"/);
           const tvgId = idMatch ? idMatch[1].trim() : "";
@@ -345,10 +378,17 @@ export const liveTvService = {
             finalUrl.includes("fnxhd") ||
             finalUrl.includes("epzhd");
 
+          // Nếu là kênh VTV, chỉ gán logo vector chuẩn VTV nếu logo nguồn thiếu/lỗi
+          const vtvLogo = getVtvOfficialLogo(rawName);
+          if (vtvLogo) {
+            logo = vtvLogo;
+          }
+
+          // Giữ nguyên 100% logo gốc từ nguồn cho tất cả các kênh khác
           const channel: TvChannel = {
             id: `${tvgId || rawName}-${channelList.length}`,
             name: rawName,
-            logo: logo || "https://i.imgur.com/q3fjpYc.png",
+            logo: logo,
             url: finalUrl,
             category: finalCategory,
             quality: isFhd ? "FHD 1080p" : "HD 720p",

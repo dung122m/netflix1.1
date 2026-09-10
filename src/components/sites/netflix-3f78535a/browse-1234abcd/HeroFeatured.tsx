@@ -193,7 +193,7 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
 
   return (
     <section
-      className="relative h-[78vh] sm:h-[84vh] min-h-[500px] sm:min-h-[580px] w-full overflow-hidden bg-black"
+      className="hero-cinema-section keep-dark-cinema relative h-[78vh] sm:h-[84vh] min-h-[500px] sm:min-h-[580px] w-full overflow-hidden bg-black"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
@@ -243,7 +243,7 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
       >
         <div className="w-full px-3 sm:px-6 pb-6 md:px-10 md:pb-10">
           <div className="mx-auto max-w-7xl">
-            <div className="max-w-3xl rounded-3xl border border-white/15 bg-black/60 p-4 sm:p-6 md:p-8 backdrop-blur-xl shadow-2xl">
+            <div className="max-w-3xl rounded-3xl border border-white/20 bg-black/65 p-4 sm:p-6 md:p-8 backdrop-blur-2xl shadow-[0_30px_90px_rgba(0,0,0,0.95),0_0_30px_rgba(229,9,20,0.1)]">
               <div className="mb-3 sm:mb-4 flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs md:text-sm">
                 <span className="rounded-full border border-netflix-red/40 bg-gradient-to-r from-netflix-red/30 to-rose-600/20 text-rose-300 px-2.5 sm:px-3 py-0.5 sm:py-1 font-bold text-[11px] sm:text-xs flex items-center gap-1.5 shadow-sm">
                   <Sparkles size={12} className="text-netflix-red animate-pulse" />
@@ -279,10 +279,16 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
                 )}
               </div>
 
-              <h1 className="mb-2 sm:mb-3 text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight text-white line-clamp-2">
+              <h1
+                style={{ color: "#ffffff" }}
+                className="hero-cinema-title mb-2 sm:mb-3 text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight text-white line-clamp-2 drop-shadow-md"
+              >
                 {title}
               </h1>
-              <p className="mb-4 sm:mb-6 max-w-2xl text-xs sm:text-sm md:text-base leading-relaxed text-gray-200 line-clamp-2 sm:line-clamp-3">
+              <p
+                style={{ color: "#e2e8f0" }}
+                className="hero-cinema-desc mb-4 sm:mb-6 max-w-2xl text-xs sm:text-sm md:text-base leading-relaxed text-gray-200 line-clamp-2 sm:line-clamp-3 drop-shadow-sm"
+              >
                 {description}
               </p>
 
@@ -290,9 +296,9 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
                 {featuredMovie?.slug && (
                   <Link
                     href={`/movies/${featuredMovie.slug}`}
-                    className="inline-flex items-center gap-1.5 sm:gap-2 rounded-xl bg-white px-4 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm md:text-base font-extrabold text-black transition hover:bg-gray-200 active:scale-95 shadow-lg"
+                    className="inline-flex items-center gap-1.5 sm:gap-2 rounded-xl bg-netflix-red hover:bg-red-700 text-white px-5 sm:px-7 py-2.5 sm:py-3.5 text-xs sm:text-sm md:text-base font-extrabold transition active:scale-95 shadow-[0_0_25px_rgba(229,9,20,0.55)] cursor-pointer"
                   >
-                    <Play size={18} fill="black" />
+                    <Play size={18} fill="white" />
                     {isTrailerOnly ? "Xem trailer" : "Xem ngay"}
                   </Link>
                 )}
@@ -302,7 +308,7 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
                 {featuredMovie?.slug && (
                   <Link
                     href={`/movies/${featuredMovie.slug}`}
-                    className="inline-flex items-center gap-1.5 sm:gap-2 rounded-xl border border-white/25 bg-white/10 px-4 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm md:text-base font-semibold text-white transition hover:bg-white/20 active:scale-95"
+                    className="inline-flex items-center gap-1.5 sm:gap-2 rounded-xl border border-white/30 bg-white/15 hover:bg-white/25 px-5 sm:px-7 py-2.5 sm:py-3.5 text-xs sm:text-sm md:text-base font-semibold text-white backdrop-blur-md transition active:scale-95 cursor-pointer shadow-md"
                   >
                     <Info size={18} />
                     Thông tin

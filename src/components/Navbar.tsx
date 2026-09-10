@@ -10,7 +10,6 @@ import {
   Loader2,
   Film,
   Flame,
-  Star,
   Keyboard,
   History,
   Home,
@@ -27,6 +26,7 @@ import Image from "next/image";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { NetflixLogo } from "./sites/netflix-3f78535a/vn-d838105b/icons";
 import { useDebounce } from "@/hooks/useDebounce";
+import { ThemeSwitcher, ThemeModeToggle } from "./ThemeSwitcher";
 
 interface SearchSuggestion {
   slug: string;
@@ -61,9 +61,23 @@ const NavbarInner: React.FC = () => {
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
 
   // Notification Center & Hotkey States
+  interface DynamicNotification {
+    id: string;
+    type: "movie" | "live" | "hot";
+    title: string;
+    message: string;
+    time: string;
+    link: string;
+    image?: string;
+    badge?: string;
+    badgeColor?: string;
+  }
+
   const [showNotifications, setShowNotifications] = useState(false);
   const [hasUnread, setHasUnread] = useState(true);
   const [showHotkeyModal, setShowHotkeyModal] = useState(false);
+  const [notifications, setNotifications] = useState<DynamicNotification[]>([]);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
 
   const router = useRouter();
   const pathname = usePathname();
@@ -241,6 +255,58 @@ const NavbarInner: React.FC = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Tải thông báo động từ API (phim mới, bóng đá trực tiếp, xem tiếp)
+  useEffect(() => {
+    let isMounted = true;
+    const loadDynamicNotifications = async () => {
+      setLoadingNotifications(true);
+      try {
+        const res = await fetch("/api/notifications");
+        if (res.ok) {
+          const data = await res.json();
+          const items: DynamicNotification[] = Array.isArray(data.items) ? [...data.items] : [];
+
+          // Tích hợp phim đang xem dở từ localStorage
+          try {
+            const historyRaw = localStorage.getItem("nanaflix_history");
+            if (historyRaw) {
+              const hist = JSON.parse(historyRaw);
+              if (Array.isArray(hist) && hist.length > 0) {
+                const last = hist[0];
+                if (last?.slug && last?.name) {
+                  items.unshift({
+                    id: `continue-${last.slug}`,
+                    type: "movie",
+                    title: "Tiếp Tục Xem Phim",
+                    message: `${last.name}${last.episodeName ? ` (${last.episodeName})` : ""} đang chờ bạn. Bấm để xem tiếp ngay!`,
+                    time: "Gần đây",
+                    link: last.currentEpisodeUrl || `/movies/${last.slug}`,
+                    image: last.poster || last.thumb || "/default-hero.jpg",
+                    badge: "XEM TIẾP",
+                    badgeColor: "bg-emerald-600 text-white",
+                  });
+                }
+              }
+            }
+          } catch {}
+
+          if (isMounted) {
+            setNotifications(items.slice(0, 6));
+          }
+        }
+      } catch (err) {
+        console.error("Lỗi lấy thông báo:", err);
+      } finally {
+        if (isMounted) setLoadingNotifications(false);
+      }
+    };
+
+    loadDynamicNotifications();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   // Hiệu ứng đổi màu nền khi cuộn
   useEffect(() => {
     let prevScrolled = false;
@@ -384,7 +450,7 @@ const NavbarInner: React.FC = () => {
 
   return (
     <nav
-      className={`fixed top-0 left-0 right-0 w-full z-50 transition-all duration-300 ${showBackground
+      className={`nanaflix-navbar fixed top-0 left-0 right-0 w-full z-50 transition-all duration-300 ${showBackground
           ? "bg-black/95 backdrop-blur-md border-b border-white/10 shadow-lg py-2.5"
           : "bg-gradient-to-b from-black/90 via-black/50 to-transparent py-3 sm:py-3.5"
         }`}
@@ -412,7 +478,7 @@ const NavbarInner: React.FC = () => {
                     link.hideOnLg ? "hidden 2xl:flex" : ""
                   } ${
                     active
-                      ? "text-white font-bold"
+                      ? "text-white font-bold light-nav-active"
                       : "text-gray-300 hover:text-white"
                   }`}
                 >
@@ -641,7 +707,7 @@ const NavbarInner: React.FC = () => {
             )}
           </div>
 
-          {/* TRUNG TÂM THÔNG BÁO (NOTIFICATION CENTER) */}
+          {/* TRUNG TÂM THÔNG BÁO (NOTIFICATION CENTER - DYNAMIC) */}
           <div ref={notificationRef} className="relative hidden sm:block">
             <button
               type="button"
@@ -661,76 +727,84 @@ const NavbarInner: React.FC = () => {
 
             {/* NOTIFICATION POPUP DROPDOWN */}
             {showNotifications && (
-              <div className="absolute top-full mt-2 right-0 w-[300px] sm:w-[360px] bg-zinc-950/95 border border-white/15 backdrop-blur-xl rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.95)] p-3.5 z-50 animate-in fade-in zoom-in-95 duration-150">
-                <div className="flex items-center justify-between pb-2 mb-2 border-b border-white/10">
+              <div className="absolute top-full mt-2 right-0 w-[310px] sm:w-[380px] bg-zinc-950/95 border border-white/15 backdrop-blur-xl rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.95)] p-3.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-white/10">
                   <div className="flex items-center gap-2">
                     <Bell size={15} className="text-netflix-red" />
                     <h4 className="text-white font-bold text-sm">Thông Báo Mới</h4>
                   </div>
-                  <span className="text-[11px] text-gray-400">Vừa cập nhật</span>
+                  <span className="text-[11px] text-gray-400">
+                    {loadingNotifications ? "Đang tải..." : "Trực tiếp & Cập nhật"}
+                  </span>
                 </div>
 
-                <div className="space-y-2 max-h-[360px] overflow-y-auto overscroll-contain pr-1 scrollbar-none">
-                  {/* NOTIFICATION ITEM 1 */}
-                  <Link
-                    href="/browse?sort=latest"
-                    onClick={() => setShowNotifications(false)}
-                    className="flex items-start gap-3 p-2 rounded-xl hover:bg-zinc-900 transition border border-transparent hover:border-white/10 group"
-                  >
-                    <div className="p-2 rounded-lg bg-netflix-red/20 text-netflix-red flex-none mt-0.5">
-                      <Film size={15} />
+                <div className="space-y-2 max-h-[380px] overflow-y-auto overscroll-contain pr-1 scrollbar-none">
+                  {notifications.length > 0 ? (
+                    notifications.map((item) => (
+                      <Link
+                        key={item.id}
+                        href={item.link}
+                        onClick={() => setShowNotifications(false)}
+                        className="flex items-start gap-3 p-2 rounded-xl hover:bg-white/5 transition border border-transparent hover:border-white/10 group"
+                      >
+                        {item.image ? (
+                          <div className="relative w-12 h-14 rounded-lg overflow-hidden flex-shrink-0 bg-zinc-800 border border-white/10">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={item.image}
+                              alt={item.title}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                            />
+                            {item.badge && (
+                              <span
+                                className={`absolute bottom-0 inset-x-0 text-[8px] font-black text-center py-0.5 uppercase tracking-wider ${
+                                  item.badgeColor || "bg-netflix-red text-white"
+                                }`}
+                              >
+                                {item.badge}
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="p-2 rounded-lg bg-netflix-red/20 text-netflix-red flex-none mt-0.5">
+                            <Film size={16} />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-1 mb-0.5">
+                            <p className="text-xs text-white font-bold group-hover:text-netflix-red transition-colors truncate">
+                              {item.title}
+                            </p>
+                            <span className="text-[10px] text-gray-400 flex-shrink-0">
+                              {item.time}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-gray-300 line-clamp-2 leading-relaxed">
+                            {item.message}
+                          </p>
+                        </div>
+                      </Link>
+                    ))
+                  ) : loadingNotifications ? (
+                    <div className="py-8 text-center text-gray-400 text-xs flex items-center justify-center gap-2">
+                      <Loader2 size={16} className="animate-spin text-netflix-red" />
+                      <span>Đang kiểm tra cập nhật mới...</span>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-white font-semibold group-hover:text-netflix-red transition-colors">
-                        50+ Phim mới lên sóng tuần này
-                      </p>
-                      <p className="text-[11px] text-gray-400 mt-0.5 line-clamp-2">
-                        Các tập phim mới nhất đã có bản Vietsub &amp; Thuyết minh Full HD.
-                      </p>
+                  ) : (
+                    <div className="py-6 text-center text-gray-400 text-xs">
+                      Không có thông báo mới nào
                     </div>
-                  </Link>
-
-                  {/* NOTIFICATION ITEM 2 */}
-                  <Link
-                    href="/browse?sort=views"
-                    onClick={() => setShowNotifications(false)}
-                    className="flex items-start gap-3 p-2 rounded-xl hover:bg-zinc-900 transition border border-transparent hover:border-white/10 group"
-                  >
-                    <div className="p-2 rounded-lg bg-amber-500/20 text-amber-400 flex-none mt-0.5">
-                      <Flame size={15} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-white font-semibold group-hover:text-amber-400 transition-colors">
-                        Top 10 Phim Thịnh Hành Hôm Nay
-                      </p>
-                      <p className="text-[11px] text-gray-400 mt-0.5 line-clamp-2">
-                        Khám phá những bộ phim đang có lượt xem bùng nổ nhất.
-                      </p>
-                    </div>
-                  </Link>
-
-                  {/* NOTIFICATION ITEM 3 */}
-                  <Link
-                    href="/browse?sort=rating"
-                    onClick={() => setShowNotifications(false)}
-                    className="flex items-start gap-3 p-2 rounded-xl hover:bg-zinc-900 transition border border-transparent hover:border-white/10 group"
-                  >
-                    <div className="p-2 rounded-lg bg-emerald-500/20 text-emerald-400 flex-none mt-0.5">
-                      <Star size={15} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-white font-semibold group-hover:text-emerald-400 transition-colors">
-                        Tuyển tập phim đạt &gt; 8.5 Điểm
-                      </p>
-                      <p className="text-[11px] text-gray-400 mt-0.5 line-clamp-2">
-                        Danh sách các kiệt tác điện ảnh được đánh giá cao nhất.
-                      </p>
-                    </div>
-                  </Link>
+                  )}
                 </div>
               </div>
             )}
           </div>
+
+          {/* CHẾ ĐỘ SÁNG / TỐI NHANH 1-CLICK */}
+          <ThemeModeToggle className="flex-shrink-0" />
+
+          {/* BẢNG MÀU CHỦ ĐỀ & GIAO DIỆN */}
+          <ThemeSwitcher className="flex-shrink-0" />
 
           <Link
             href="/my-list?tab=history"
@@ -876,6 +950,11 @@ const NavbarInner: React.FC = () => {
                 </div>
                 <span className="text-[10px] text-gray-500 font-mono bg-zinc-800 px-1.5 py-0.5 rounded border border-white/10">?</span>
               </button>
+
+              {/* TÙY CHỌN MÀU GIAO DIỆN TRÊN MOBILE */}
+              <div className="border-t border-white/10 pt-2 mt-1">
+                <ThemeSwitcher isMobileInline={true} />
+              </div>
             </div>
           </div>
         </div>

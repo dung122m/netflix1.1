@@ -9,6 +9,7 @@ import {
   removeWatchHistoryItem,
   WatchHistoryItem,
 } from "@/lib/watchHistory";
+import { sanitizeImageUrl } from "@/lib/movieMedia";
 
 export function ContinueWatchingRow() {
   const [items, setItems] = useState<WatchHistoryItem[]>([]);
@@ -135,7 +136,7 @@ export function ContinueWatchingRow() {
                   {/* ẢNH THUMBNAIL */}
                   <div className="relative aspect-video w-full bg-zinc-800 overflow-hidden">
                     <Image
-                      src={item.poster || "/default-hero.jpg"}
+                      src={sanitizeImageUrl(item.poster || "/default-hero.jpg")}
                       alt={item.title}
                       fill
                       sizes="(max-width: 768px) 260px, 300px"

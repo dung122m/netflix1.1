@@ -9,7 +9,7 @@ interface MovieGridProps {
 
 const MovieGridInner = ({ movies }: MovieGridProps) => {
   return (
-    <div className="rounded-3xl border border-white/10 bg-gradient-to-b from-zinc-900/40 via-zinc-950/50 to-black/60 p-3 sm:p-5 md:p-6 shadow-2xl">
+    <div className="movie-grid-container rounded-3xl border border-white/10 p-3 sm:p-5 md:p-6 shadow-2xl">
       <div className="grid grid-cols-1 min-[480px]:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-4 gap-4 sm:gap-5 md:gap-6">
         {movies.map((m, index) => {
           const norm = normalizeMovie(m);

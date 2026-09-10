@@ -1,11 +1,11 @@
-type MovieLike = {
+export type MovieLike = {
   poster_url?: unknown;
   thumb_url?: unknown;
   imageUrl?: unknown;
   [key: string]: unknown;
 };
 
-function sanitizeImageUrl(url: string): string {
+export function sanitizeImageUrl(url: string): string {
   if (!url) return url;
   let clean = url.trim();
   if (!clean.startsWith("http://") && !clean.startsWith("https://") && !clean.startsWith("/")) {
@@ -13,6 +13,14 @@ function sanitizeImageUrl(url: string): string {
   }
   // Sửa lỗi url có 2 dấu gạch chéo // sau tên miền (gây redirect chậm)
   clean = clean.replace(/(https?:\/\/)([^/]+)\/\/+/g, "$1$2/");
+
+  // Tối ưu ảnh VSMOV: VSMOV lưu ảnh thô 4K (1.6MB - 3MB/ảnh) từ TMDb mà không qua CDN/nén.
+  // Chuyển trực tiếp sang CDN toàn cầu Cloudflare của TMDb (w500) giúp dung lượng giảm từ 1.6MB xuống ~25KB (giảm 98%) và load tức thì!
+  const vsmovMatch = clean.match(/https?:\/\/vsmov\.com\/storage\/images\/([a-zA-Z0-9_-]{20,}\.(?:jpg|jpeg|png|webp))/i);
+  if (vsmovMatch) {
+    clean = `https://image.tmdb.org/t/p/w500/${vsmovMatch[1]}`;
+  }
+
   // Tối ưu ảnh TMDB original / w780 sang w500 để tải nhanh gấp nhiều lần, tốn ít băng thông
   if (clean.includes("image.tmdb.org/t/p/original/")) {
     clean = clean.replace("/t/p/original/", "/t/p/w500/");

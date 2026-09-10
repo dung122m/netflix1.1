@@ -29,6 +29,7 @@ import { useMatchReminders } from "@/hooks/useMatchReminders";
 interface LiveFootballClientProps {
   initialData: LiveFootballData;
   hideHeader?: boolean;
+  isActive?: boolean;
 }
 
 const INITIAL_PAGE_SIZE = 16;
@@ -36,6 +37,7 @@ const INITIAL_PAGE_SIZE = 16;
 export function LiveFootballClient({
   initialData,
   hideHeader = false,
+  isActive = true,
 }: LiveFootballClientProps) {
   const { channels, matches } = initialData;
   const searchParams = useSearchParams();
@@ -72,6 +74,7 @@ export function LiveFootballClient({
   const [timelineFilter, setTimelineFilter] = useState<"all" | "live" | "upcoming">("all");
   const [showAllUpcoming, setShowAllUpcoming] = useState<boolean>(false);
   const [selectedChannel, setSelectedChannel] = useState<string>("all");
+  const [selectedTournament, setSelectedTournament] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [onlyFhd, setOnlyFhd] = useState<boolean>(false);
   const [visibleCount, setVisibleCount] = useState<number>(INITIAL_PAGE_SIZE);
@@ -91,6 +94,20 @@ export function LiveFootballClient({
       };
     });
   }, [matches]);
+
+  // Danh sách các giải đấu có trong lịch thi đấu
+  const availableTournaments = useMemo(() => {
+    const map = new Map<string, number>();
+    enrichedMatches.forEach((m) => {
+      if (m.tournament && m.tournament.trim()) {
+        const t = m.tournament.trim();
+        map.set(t, (map.get(t) || 0) + 1);
+      }
+    });
+    return Array.from(map.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([name, count]) => ({ name, count }));
+  }, [enrichedMatches]);
 
   // Chỉ lấy các kênh có trận đấu thực tế (loại bỏ các kênh 0 trận)
   const activeChannels = useMemo(() => {
@@ -157,7 +174,7 @@ export function LiveFootballClient({
   // Reset phân trang khi thay đổi bất kỳ bộ lọc nào
   useEffect(() => {
     setVisibleCount(INITIAL_PAGE_SIZE);
-  }, [timelineFilter, showAllUpcoming, selectedChannel, searchQuery, onlyFhd]);
+  }, [timelineFilter, showAllUpcoming, selectedChannel, selectedTournament, searchQuery, onlyFhd]);
 
   const scrollChannels = (direction: "left" | "right") => {
     if (channelsScrollRef.current) {
@@ -196,6 +213,11 @@ export function LiveFootballClient({
           return false;
         }
         if (timelineFilter === "upcoming" && m.timeline === "live") {
+          return false;
+        }
+
+        // Lọc theo Giải đấu (Tournament)
+        if (selectedTournament !== "all" && m.tournament !== selectedTournament) {
           return false;
         }
 
@@ -238,6 +260,7 @@ export function LiveFootballClient({
     timelineFilter,
     showAllUpcoming,
     selectedChannel,
+    selectedTournament,
     searchQuery,
     onlyFhd,
   ]);
@@ -265,6 +288,7 @@ export function LiveFootballClient({
     setTimelineFilter("all");
     setShowAllUpcoming(false);
     setSelectedChannel("all");
+    setSelectedTournament("all");
     setSearchQuery("");
     setOnlyFhd(false);
   };
@@ -273,6 +297,7 @@ export function LiveFootballClient({
     timelineFilter !== "all" ||
     showAllUpcoming ||
     selectedChannel !== "all" ||
+    selectedTournament !== "all" ||
     searchQuery.trim() !== "" ||
     onlyFhd;
 
@@ -330,6 +355,7 @@ export function LiveFootballClient({
             team2={selectedMatch.team2}
             homeLogo={selectedMatch.homeLogo}
             awayLogo={selectedMatch.awayLogo}
+            isActive={isActive}
           />
         </div>
       ) : (
@@ -570,6 +596,46 @@ export function LiveFootballClient({
             >
               <ChevronRight className="w-4 h-4" />
             </button>
+          </div>
+        )}
+
+        {/* 4. CAROUSEL TABS GIẢI ĐẤU (NGOẠI HẠNG ANH, CÚP C1, LA LIGA...) */}
+        {availableTournaments.length > 0 && (
+          <div className="flex items-center gap-1.5 overflow-x-auto py-1 scroll-smooth scrollbar-none [&::-webkit-scrollbar]:hidden">
+            <button
+              type="button"
+              onClick={() => setSelectedTournament("all")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all border cursor-pointer ${
+                selectedTournament === "all"
+                  ? "bg-white text-black border-white shadow-sm font-extrabold"
+                  : "bg-zinc-900/80 text-gray-400 border-white/10 hover:border-white/20 hover:text-white"
+              }`}
+            >
+              Tất cả giải đấu
+            </button>
+            {availableTournaments.map((t) => (
+              <button
+                key={t.name}
+                type="button"
+                onClick={() => setSelectedTournament(t.name)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all border cursor-pointer flex items-center gap-1.5 ${
+                  selectedTournament === t.name
+                    ? "bg-gradient-to-r from-amber-500 to-orange-600 text-white border-amber-400 shadow-md shadow-amber-950/50 font-extrabold scale-102"
+                    : "bg-zinc-900/80 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
+                }`}
+              >
+                <span>🏆 {t.name}</span>
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
+                    selectedTournament === t.name
+                      ? "bg-black/40 text-white"
+                      : "bg-white/10 text-gray-400"
+                  }`}
+                >
+                  {t.count}
+                </span>
+              </button>
+            ))}
           </div>
         )}
 

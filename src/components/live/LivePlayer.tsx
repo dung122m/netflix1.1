@@ -38,6 +38,7 @@ interface LivePlayerProps {
   homeLogo?: string;
   awayLogo?: string;
   logo?: string;
+  isActive?: boolean;
 }
 
 export function LivePlayer({
@@ -51,6 +52,7 @@ export function LivePlayer({
   team2 = match?.team2,
   homeLogo = match?.homeLogo,
   awayLogo = match?.awayLogo,
+  isActive = true,
 }: LivePlayerProps) {
   const { isReminded, addReminder, removeReminder } = useMatchReminders();
   const matchId = match?.id;
@@ -59,6 +61,8 @@ export function LivePlayer({
   const containerRef = useRef<HTMLDivElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const userPausedRef = useRef<boolean>(false);
+  const lastLoadedUrlRef = useRef<string>("");
 
   const [selectedServerIndex, setSelectedServerIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -93,6 +97,7 @@ export function LivePlayer({
   const currentServer = servers[selectedServerIndex] || servers[0];
   const volumeRef = useRef(volume);
   const isMutedRef = useRef(isMuted);
+  const userMutedRef = useRef<boolean>(false);
 
   // Khôi phục mức âm lượng đã lưu từ localStorage
   useEffect(() => {
@@ -127,13 +132,29 @@ export function LivePlayer({
     }
   }, [volume, isMuted]);
 
+  // Tự động chuyển đổi link FLV sang HLS nếu nhà đài hỗ trợ
+  const toPlayableHlsUrl = (url: string): string => {
+    if (!url) return "";
+    if (url.includes("lauthaitv.cc") && url.includes(".flv")) {
+      return url
+        .replace("flv.lauthaitv.cc", "hls.lauthaitv.cc")
+        .replace(/\.flv(\?.*)?$/i, "/index.m3u8$1");
+    }
+    if (url.includes(".flv")) {
+      return url.replace(/\.flv(\?.*)?$/i, ".m3u8$1");
+    }
+    return url;
+  };
+
   // Tạo URL qua proxy để bypass CORS & IP restrictions
   const getStreamUrl = (rawUrl: string, isHls: boolean) => {
     if (!rawUrl) return "";
-    if (isHls) {
-      return `/api/live-football/proxy?url=${encodeURIComponent(rawUrl)}`;
+    const playableUrl = toPlayableHlsUrl(rawUrl);
+    const finalIsHls = isHls || playableUrl.includes(".m3u8");
+    if (finalIsHls) {
+      return `/api/live-football/proxy?url=${encodeURIComponent(playableUrl)}`;
     }
-    return rawUrl;
+    return playableUrl;
   };
 
   const activeUrl = currentServer
@@ -153,11 +174,44 @@ export function LivePlayer({
     }, 3500);
   }, [isPlaying]);
 
+  // Xử lý khi tab thay đổi (isActive true/false)
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (!isActive) {
+      video.pause();
+      setIsPlaying(false);
+      if (hlsRef.current) {
+        hlsRef.current.stopLoad();
+      }
+      if (typeof document !== "undefined" && document.pictureInPictureElement === video) {
+        document.exitPictureInPicture().catch(() => {});
+        setIsPip(false);
+      }
+    } else {
+      if (hlsRef.current) {
+        hlsRef.current.startLoad();
+      }
+      // Chỉ tự động phát lại nếu trước đó người dùng KHÔNG bấm Pause
+      if (!userPausedRef.current) {
+        video.play().then(() => setIsPlaying(true)).catch(() => {});
+      }
+    }
+  }, [isActive]);
+
   // Khởi tạo luồng phát HLS tối ưu độ trễ thấp (Ultra Low Latency)
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !currentServer) return;
 
+    // Tránh khởi tạo lại Hls khi URL không đổi
+    if (activeUrl === lastLoadedUrlRef.current && hlsRef.current) {
+      return;
+    }
+
+    lastLoadedUrlRef.current = activeUrl;
+    userPausedRef.current = false;
     setIsLoading(true);
     setHasError(false);
     setErrorMessage("");
@@ -167,11 +221,25 @@ export function LivePlayer({
       hlsRef.current = null;
     }
 
-    if (currentServer.format === "flv") {
+    const effectiveUrl = toPlayableHlsUrl(currentServer.url);
+    const isEffectiveHls = currentServer.isHls || effectiveUrl.includes(".m3u8");
+
+    if (!isEffectiveHls && currentServer.format === "flv") {
+      // Tự động chuyển sang máy chủ HLS khả dụng tiếp theo nếu có
+      const nextHlsIdx = servers.findIndex(
+        (s, idx) =>
+          idx !== selectedServerIndex &&
+          (s.isHls || toPlayableHlsUrl(s.url).includes(".m3u8"))
+      );
+      if (nextHlsIdx !== -1) {
+        setSelectedServerIndex(nextHlsIdx);
+        return;
+      }
+
       setIsLoading(false);
       setHasError(true);
       setErrorMessage(
-        "Định dạng FLV không thể phát trực tiếp trên trình duyệt Web. Vui lòng bấm 'Mở bằng VLC' bên dưới hoặc chuyển sang máy chủ HLS!"
+        "Định dạng này cần mở bằng ứng dụng ngoài (VLC/PotPlayer). Hãy chọn máy chủ HLS khác để xem trực tiếp trên Web!"
       );
       return;
     }
@@ -202,23 +270,28 @@ export function LivePlayer({
         setIsLoading(false);
         const curVol = volumeRef.current || 0.9;
         video.volume = curVol;
-        video.muted = isMutedRef.current;
+        video.muted = userMutedRef.current;
 
-        video
-          .play()
-          .then(() => {
-            setIsPlaying(true);
-          })
-          .catch(() => {
-            setIsMuted(true);
-            video.muted = true;
-            video
-              .play()
-              .then(() => {
-                setIsPlaying(true);
-              })
-              .catch(() => {});
-          });
+        // Chỉ phát nếu đang ở tab active và người dùng chưa bấm Pause
+        if (isActive && !userPausedRef.current) {
+          video
+            .play()
+            .then(() => {
+              setIsPlaying(true);
+              setIsMuted(video.muted || video.volume === 0);
+            })
+            .catch(() => {
+              video.muted = true;
+              setIsMuted(true);
+              video
+                .play()
+                .then(() => {
+                  setIsPlaying(true);
+                  setIsMuted(true);
+                })
+                .catch(() => {});
+            });
+        }
       });
 
       hls.on(Hls.Events.ERROR, (_, data) => {
@@ -248,21 +321,23 @@ export function LivePlayer({
 
       video.addEventListener("loadedmetadata", () => {
         setIsLoading(false);
-        video
-          .play()
-          .then(() => {
-            setIsPlaying(true);
-          })
-          .catch(() => {
-            setIsMuted(true);
-            video.muted = true;
-            video
-              .play()
-              .then(() => {
-                setIsPlaying(true);
-              })
-              .catch(() => {});
-          });
+        if (isActive && !userPausedRef.current) {
+          video
+            .play()
+            .then(() => {
+              setIsPlaying(true);
+            })
+            .catch(() => {
+              setIsMuted(true);
+              video.muted = true;
+              video
+                .play()
+                .then(() => {
+                  setIsPlaying(true);
+                })
+                .catch(() => {});
+            });
+        }
       });
       video.addEventListener("error", () => {
         setIsLoading(false);
@@ -279,42 +354,48 @@ export function LivePlayer({
         hlsRef.current = null;
       }
     };
-  }, [selectedServerIndex, currentServer, activeUrl]);
+  }, [selectedServerIndex, currentServer, activeUrl, isActive, servers]);
 
   // Điều khiển Play / Pause
   const togglePlay = useCallback(() => {
     if (!videoRef.current) return;
     if (isPlaying) {
+      userPausedRef.current = true;
       videoRef.current.pause();
       setIsPlaying(false);
       setShowControls(true);
     } else {
-      videoRef.current.play().catch(() => {});
-      setIsPlaying(true);
+      userPausedRef.current = false;
+      videoRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
       resetControlsTimeout();
     }
   }, [isPlaying, resetControlsTimeout]);
 
   // Bật tiếng
   const unmuteSound = useCallback(() => {
+    userMutedRef.current = false;
     const targetVol = volume > 0 ? volume : 0.9;
     setVolume(targetVol);
     setIsMuted(false);
     if (videoRef.current) {
       videoRef.current.muted = false;
       videoRef.current.volume = targetVol;
-      videoRef.current.play().catch(() => {});
+      // Chỉ phát nếu người dùng chưa bấm Pause và đang ở tab active
+      if (!userPausedRef.current && isActive) {
+        videoRef.current.play().catch(() => {});
+      }
     }
     try {
       localStorage.setItem("nanaflix_live_volume", String(targetVol));
     } catch {}
-  }, [volume]);
+  }, [volume, isActive]);
 
   // Bật / Tắt tiếng
   const toggleMute = useCallback(() => {
     if (isMuted) {
       unmuteSound();
     } else {
+      userMutedRef.current = true;
       setIsMuted(true);
       if (videoRef.current) {
         videoRef.current.muted = true;
@@ -326,11 +407,13 @@ export function LivePlayer({
   const handleVolumeChange = useCallback((newVolume: number) => {
     const clamped = Math.max(0, Math.min(1, newVolume));
     setVolume(clamped);
-    setIsMuted(clamped === 0);
+    const shouldMute = clamped === 0;
+    userMutedRef.current = shouldMute;
+    setIsMuted(shouldMute);
 
     if (videoRef.current) {
       videoRef.current.volume = clamped;
-      videoRef.current.muted = clamped === 0;
+      videoRef.current.muted = shouldMute;
     }
 
     try {
@@ -455,6 +538,7 @@ export function LivePlayer({
                     alt={team1 || "Đội nhà"}
                     className="w-full h-full object-contain filter drop-shadow-xl"
                     onError={() => setHomeImgError(true)}
+                    referrerPolicy="no-referrer"
                   />
                 ) : (
                   <div className="flex flex-col items-center justify-center">
@@ -500,6 +584,7 @@ export function LivePlayer({
                     alt={team2 || "Đội khách"}
                     className="w-full h-full object-contain filter drop-shadow-xl"
                     onError={() => setAwayImgError(true)}
+                    referrerPolicy="no-referrer"
                   />
                 ) : (
                   <div className="flex flex-col items-center justify-center">
@@ -555,9 +640,19 @@ export function LivePlayer({
           ref={videoRef}
           className="w-full h-full object-contain pointer-events-none"
           playsInline
-          muted={isMuted}
           onPlay={() => setIsPlaying(true)}
           onPause={() => setIsPlaying(false)}
+          onVolumeChange={(e) => {
+            const v = e.currentTarget;
+            const isActuallyMuted = v.muted || v.volume === 0;
+            setIsMuted(isActuallyMuted);
+            if (!isActuallyMuted) {
+              setVolume(v.volume);
+              try {
+                localStorage.setItem("nanaflix_live_volume", String(v.volume));
+              } catch {}
+            }
+          }}
         />
 
         {/* HUY HIỆU SIGNAL & LIVE TRÊN TRÁI */}
@@ -754,7 +849,7 @@ export function LivePlayer({
       </div>
 
       {/* 3. THANH THÔNG TIN TRẬN ĐẤU & CHỌN MÁY CHỦ SẮC NÉT */}
-      <div className="rounded-2xl sm:rounded-3xl border border-white/10 bg-zinc-900/95 p-3.5 sm:p-5 shadow-xl space-y-3 sm:space-y-4 w-full min-w-0">
+      <div className="keep-dark-cinema rounded-2xl sm:rounded-3xl border border-white/10 bg-zinc-900/95 p-3.5 sm:p-5 shadow-xl space-y-3 sm:space-y-4 w-full min-w-0">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
           <div className="space-y-1 min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs text-gray-400">
@@ -775,7 +870,7 @@ export function LivePlayer({
                 </span>
               )}
             </div>
-            <h2 className="text-base sm:text-xl font-black text-white leading-snug break-words">
+            <h2 className="text-base sm:text-xl font-black text-white leading-snug break-words keep-white" style={{ color: "#ffffff" }}>
               {title}
             </h2>
           </div>

@@ -141,11 +141,15 @@ async function fetchSourceData(baseUrl: string, params: MovieFilterParams, isSea
       if (isSearch && params.keyword) {
         urlParams.set("keyword", params.keyword.trim());
         fullUrl = `${baseUrl}/v1/api/tim-kiem?${urlParams.toString()}`;
-      } else {
-        if (params.category) urlParams.set("category", params.category);
+      } else if (params.category) {
         if (params.country) urlParams.set("country", params.country);
         if (params.year) urlParams.set("year", params.year);
-
+        fullUrl = `${baseUrl}/v1/api/the-loai/${params.category}?${urlParams.toString()}`;
+      } else if (params.country) {
+        if (params.year) urlParams.set("year", params.year);
+        fullUrl = `${baseUrl}/v1/api/quoc-gia/${params.country}?${urlParams.toString()}`;
+      } else {
+        if (params.year) urlParams.set("year", params.year);
         const currentType = params.type || "phim-le";
         fullUrl = `${baseUrl}/v1/api/danh-sach/${currentType}?${urlParams.toString()}`;
       }
@@ -153,9 +157,14 @@ async function fetchSourceData(baseUrl: string, params: MovieFilterParams, isSea
       if (isSearch && params.keyword) {
         urlParams.set("keyword", params.keyword.trim());
         fullUrl = `${baseUrl}/tim-kiem?${urlParams.toString()}`;
-      } else {
-        if (params.category) urlParams.set("category", params.category);
+      } else if (params.category) {
         if (params.country) urlParams.set("country", params.country);
+        if (params.year) urlParams.set("year", params.year);
+        fullUrl = `${baseUrl}/the-loai/${params.category}?${urlParams.toString()}`;
+      } else if (params.country) {
+        if (params.year) urlParams.set("year", params.year);
+        fullUrl = `${baseUrl}/quoc-gia/${params.country}?${urlParams.toString()}`;
+      } else {
         if (params.year) urlParams.set("year", params.year);
         fullUrl = `${baseUrl}/danh-sach/?${urlParams.toString()}`;
       }
@@ -362,6 +371,7 @@ function warmUpTopCategories() {
     { type: "phim-le" },
     { type: "phim-chieu-rap" },
     { type: "hoat-hinh" },
+    { year: "2026" },
   ];
   setTimeout(() => {
     commonTabs.forEach((tab) => {

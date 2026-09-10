@@ -15,6 +15,7 @@ import {
   clearWatchHistory,
   WatchHistoryItem,
 } from "@/lib/watchHistory";
+import { sanitizeImageUrl } from "@/lib/movieMedia";
 
 function MyListContent() {
   const searchParams = useSearchParams();
@@ -248,7 +249,7 @@ function MyListContent() {
                     <Link href={href} className="block">
                       <div className="relative aspect-video w-full bg-zinc-800 overflow-hidden">
                         <Image
-                          src={item.poster || "/default-hero.jpg"}
+                          src={sanitizeImageUrl(item.poster || "/default-hero.jpg")}
                           alt={item.title}
                           fill
                           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
@@ -307,7 +308,7 @@ function MyListContent() {
 
 export default function MyListPage() {
   return (
-    <div className="bg-black min-h-screen text-white flex flex-col justify-between">
+    <div className="page-cinema-container min-h-screen flex flex-col justify-between">
       <div>
         <Suspense fallback={<div className="h-16 bg-black" />}>
           <Navbar />

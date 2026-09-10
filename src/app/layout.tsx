@@ -78,6 +78,27 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://i.ytimg.com" />
         <link rel="preconnect" href="https://www.youtube-nocookie.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://www.youtube-nocookie.com" />
+
+        {/* Khởi tạo màu giao diện và chế độ sáng/tối tức thì chống chớp nháy màu khi tải trang */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var m = localStorage.getItem('nanaflix_mode') || 'dark';
+                  document.documentElement.classList.remove('light', 'dark');
+                  document.documentElement.classList.add(m);
+                  document.documentElement.setAttribute('data-mode', m);
+
+                  var t = localStorage.getItem('nanaflix_theme');
+                  if (t) {
+                    document.documentElement.setAttribute('data-theme', t);
+                  }
+                } catch(e) {}
+              })();
+            `,
+          }}
+        />
       </head>
       <body
         className="min-h-screen flex flex-col bg-black text-white"

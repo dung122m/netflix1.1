@@ -144,11 +144,6 @@
   perspective: 1000px;
 }
 
-.content-auto {
-  content-visibility: auto;
-  contain-intrinsic-size: 320px;
-}
-
 /* Custom Netflix Sleek Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
@@ -169,8 +164,635 @@
   background: #e50914;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  html {
-    scroll-behavior: smooth;
-  }
+/* Glassmorphism & Cinema Glow Effects */
+.glass-panel {
+  background: rgba(18, 18, 22, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
+
+.glass-panel-hover {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.glass-panel-hover:hover {
+  background: rgba(26, 26, 32, 0.85);
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+}
+
+.ambient-cinema-glow {
+  position: absolute;
+  inset: -12px;
+  background: radial-gradient(
+    circle at 50% 50%,
+    color-mix(in srgb, var(--netflix-red) 30%, transparent) 0%,
+    rgba(147, 51, 234, 0.12) 40%,
+    transparent 70%
+  );
+  filter: blur(40px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.netflix-red-glow {
+  box-shadow: 0 0 16px color-mix(in srgb, var(--netflix-red) 55%, transparent);
+}
+
+/* Color Theme Presets for Nanaflix */
+[data-theme="netflix-red"] {
+  --netflix-red: oklch(0.55 0.23 25);
+}
+[data-theme="cyber-cyan"] {
+  --netflix-red: oklch(0.68 0.18 220);
+}
+[data-theme="amethyst-purple"] {
+  --netflix-red: oklch(0.58 0.22 300);
+}
+[data-theme="emerald-green"] {
+  --netflix-red: oklch(0.62 0.20 150);
+}
+[data-theme="sunset-gold"] {
+  --netflix-red: oklch(0.68 0.21 48);
+}
+[data-theme="hot-pink"] {
+  --netflix-red: oklch(0.62 0.24 350);
+}
+
+/* ============================================================ */
+/* LIGHT MODE (DAY CINEMA STYLING)                              */
+/* ============================================================ */
+:is(html.light, html[data-mode="light"]) {
+  color-scheme: light;
+}
+
+:is(html.light, html[data-mode="light"]) body,
+:is(html.light, html[data-mode="light"]) .page-cinema-container {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+:is(html.light, html[data-mode="light"]) .min-h-screen.text-white {
+  color: #0f172a !important;
+}
+
+/* Light mode custom scrollbar */
+:is(html.light, html[data-mode="light"]) ::-webkit-scrollbar-track {
+  background: #e2e8f0;
+}
+
+:is(html.light, html[data-mode="light"]) ::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border: 2px solid #e2e8f0;
+}
+
+:is(html.light, html[data-mode="light"]) ::-webkit-scrollbar-thumb:hover {
+  background: var(--netflix-red);
+}
+
+/* Light mode navbar & header (Always clean white frosted glass) */
+/* Light mode navbar & header (Always clean white frosted glass) */
+:is(html.light, html[data-mode="light"]) nav,
+:is(html.light, html[data-mode="light"]) .nanaflix-navbar,
+:is(html.light, html[data-mode="light"]) header {
+  background: rgba(255, 255, 255, 0.96) !important;
+  background-color: rgba(255, 255, 255, 0.96) !important;
+  background-image: none !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+}
+
+:is(html.light, html[data-mode="light"]) nav .light-nav-active {
+  color: #0f172a !important;
+  font-weight: 800 !important;
+}
+
+:is(html.light, html[data-mode="light"]) nav .text-gray-300 {
+  color: #475569 !important;
+}
+
+:is(html.light, html[data-mode="light"]) nav .text-gray-400 {
+  color: #64748b !important;
+}
+
+:is(html.light, html[data-mode="light"]) nav .text-gray-300:hover,
+:is(html.light, html[data-mode="light"]) nav .hover\:text-white:hover {
+  color: #0f172a !important;
+}
+
+/* Search bar inside navbar in light mode */
+:is(html.light, html[data-mode="light"]) nav form {
+  background-color: #f1f5f9 !important;
+  border-color: rgba(0, 0, 0, 0.12) !important;
+}
+
+:is(html.light, html[data-mode="light"]) nav form input {
+  color: #0f172a !important;
+}
+
+:is(html.light, html[data-mode="light"]) nav form input::placeholder {
+  color: #94a3b8 !important;
+}
+
+:is(html.light, html[data-mode="light"]) nav button,
+:is(html.light, html[data-mode="light"]) nav a[title="Lịch sử xem & tài khoản"],
+:is(html.light, html[data-mode="light"]) nav a[title="Tài khoản"] {
+  background-color: #f1f5f9 !important;
+  border-color: rgba(0, 0, 0, 0.12) !important;
+  color: #334155 !important;
+}
+
+:is(html.light, html[data-mode="light"]) nav button:hover,
+:is(html.light, html[data-mode="light"]) nav a[title="Lịch sử xem & tài khoản"]:hover,
+:is(html.light, html[data-mode="light"]) nav a[title="Tài khoản"]:hover {
+  background-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+/* General surfaces typography in light mode */
+:is(html.light, html[data-mode="light"]) h1:not(.hero-cinema-section *, .hero-cinema-title, .keep-white, .keep-dark-cinema *, .aspect-video *, [class*="aspect-"] *, .cinema-player-frame *),
+:is(html.light, html[data-mode="light"]) h2:not(.hero-cinema-section *, .keep-white, .keep-dark-cinema *, .aspect-video *, [class*="aspect-"] *, .cinema-player-frame *),
+:is(html.light, html[data-mode="light"]) h3:not(.hero-cinema-section *, .keep-white, .keep-dark-cinema *, .aspect-video *, [class*="aspect-"] *, .cinema-player-frame *),
+:is(html.light, html[data-mode="light"]) h4:not(.hero-cinema-section *, .keep-white, .keep-dark-cinema *, .aspect-video *, [class*="aspect-"] *, .cinema-player-frame *) {
+  color: #0f172a;
+}
+
+:is(html.light, html[data-mode="light"]) p:not(.hero-cinema-section *, .hero-cinema-desc, .keep-white, .keep-dark-cinema *, .aspect-video *, [class*="aspect-"] *, .cinema-player-frame *) {
+  color: #475569;
+}
+
+:is(html.light, html[data-mode="light"]) .text-gray-400:not(.hero-cinema-section *, .hero-cinema-desc, .keep-white, .keep-dark-cinema *, .aspect-video *, [class*="aspect-"] *, .cinema-player-frame *) {
+  color: #64748b;
+}
+
+/* Movie Grid Container in light mode */
+.movie-grid-container {
+  background: linear-gradient(to bottom, rgba(24, 24, 27, 0.4), rgba(9, 9, 11, 0.5), rgba(0, 0, 0, 0.6));
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+:is(html.light, html[data-mode="light"]) .movie-grid-container {
+  background: #ffffff !important;
+  background-image: none !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.06) !important;
+}
+
+/* Sort Selector & Buttons in light mode */
+:is(html.light, html[data-mode="light"]) button[aria-expanded] {
+  background-color: #ffffff !important;
+  border-color: rgba(0, 0, 0, 0.12) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+:is(html.light, html[data-mode="light"]) button[aria-expanded] span.text-white {
+  color: #0f172a !important;
+}
+
+:is(html.light, html[data-mode="light"]) button[aria-expanded] span.text-gray-400 {
+  color: #64748b !important;
+}
+
+/* Quick Genre Chips in light mode */
+:is(html.light, html[data-mode="light"]) button.bg-zinc-900\/90:not(.keep-dark-cinema *) {
+  background-color: #ffffff !important;
+  color: #334155 !important;
+  border-color: rgba(0, 0, 0, 0.12) !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+:is(html.light, html[data-mode="light"]) button.bg-zinc-900\/90:not(.keep-dark-cinema *):hover {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+  border-color: rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Filter Bar in light mode */
+:is(html.light, html[data-mode="light"]) .relative.z-40 button.bg-zinc-950\/80,
+:is(html.light, html[data-mode="light"]) .relative.z-40 button.bg-zinc-800 {
+  background-color: #ffffff !important;
+  color: #334155 !important;
+  border-color: rgba(0, 0, 0, 0.12) !important;
+}
+
+:is(html.light, html[data-mode="light"]) .relative.z-40 button.bg-zinc-950\/80:hover,
+:is(html.light, html[data-mode="light"]) .relative.z-40 button.bg-zinc-800:hover {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+:is(html.light, html[data-mode="light"]) .relative.z-40 .bg-zinc-950 {
+  background-color: #ffffff !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.12) !important;
+}
+
+/* General panels, dropdowns & cards in light mode (outside hover cinema card) */
+:is(html.light, html[data-mode="light"]) .bg-zinc-950:not(.hero-cinema-section *, .keep-dark-cinema, .keep-dark-cinema *),
+:is(html.light, html[data-mode="light"]) .bg-zinc-950\/95:not(.hero-cinema-section *, .keep-dark-cinema, .keep-dark-cinema *),
+:is(html.light, html[data-mode="light"]) .bg-zinc-950\/90:not(.hero-cinema-section *, .keep-dark-cinema, .keep-dark-cinema *),
+:is(html.light, html[data-mode="light"]) .bg-zinc-900:not(.hero-cinema-section *, .keep-dark-cinema, .keep-dark-cinema *),
+:is(html.light, html[data-mode="light"]) .bg-zinc-900\/75:not(.hero-cinema-section *, .keep-dark-cinema, .keep-dark-cinema *),
+:is(html.light, html[data-mode="light"]) .bg-zinc-900\/80:not(.hero-cinema-section *, .keep-dark-cinema, .keep-dark-cinema *),
+:is(html.light, html[data-mode="light"]) .bg-zinc-900\/90:not(.hero-cinema-section *, .keep-dark-cinema, .keep-dark-cinema *) {
+  background-color: #ffffff !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06) !important;
+}
+
+:is(html.light, html[data-mode="light"]) .bg-zinc-800:not(.hero-cinema-section *, .keep-dark-cinema, .keep-dark-cinema *),
+:is(html.light, html[data-mode="light"]) .bg-zinc-800\/80:not(.hero-cinema-section *, .keep-dark-cinema, .keep-dark-cinema *),
+:is(html.light, html[data-mode="light"]) .bg-zinc-800\/90:not(.hero-cinema-section *, .keep-dark-cinema, .keep-dark-cinema *),
+:is(html.light, html[data-mode="light"]) .bg-zinc-850:not(.hero-cinema-section *, .keep-dark-cinema, .keep-dark-cinema *) {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Light mode glass panels */
+:is(html.light, html[data-mode="light"]) .glass-panel:not(.hero-cinema-section *, .keep-dark-cinema, .keep-dark-cinema *) {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+  color: #0f172a !important;
+}
+
+/* ============================================================ */
+/* THEATER & HOVER CARD PROTECTIONS (Must ALWAYS remain dark)  */
+/* ============================================================ */
+.keep-dark-cinema,
+.keep-dark-cinema * {
+  color-scheme: dark !important;
+}
+
+:is(html.light, html[data-mode="light"]) .keep-dark-cinema {
+  background-color: rgba(12, 12, 16, 0.98) !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+  box-shadow: 0 25px 65px -10px rgba(0, 0, 0, 0.75), 0 0 25px color-mix(in srgb, var(--netflix-red) 30%, transparent) !important;
+}
+
+:is(html.light, html[data-mode="light"]) .keep-dark-cinema .bg-zinc-900,
+:is(html.light, html[data-mode="light"]) .keep-dark-cinema .bg-zinc-950 {
+  background-color: #16161c !important;
+  color: #ffffff !important;
+}
+
+:is(html.light, html[data-mode="light"]) .keep-dark-cinema h4,
+:is(html.light, html[data-mode="light"]) .keep-dark-cinema .text-white {
+  color: #ffffff !important;
+}
+
+:is(html.light, html[data-mode="light"]) .keep-dark-cinema .text-gray-300,
+:is(html.light, html[data-mode="light"]) .keep-dark-cinema .text-gray-400 {
+  color: #d1d5db !important;
+}
+
+:is(html.light, html[data-mode="light"]) .keep-dark-cinema button {
+  color: #ffffff !important;
+}
+
+:is(html.light, html[data-mode="light"]) .keep-dark-cinema .border-white\/10,
+:is(html.light, html[data-mode="light"]) .keep-dark-cinema .border-white\/15,
+:is(html.light, html[data-mode="light"]) .keep-dark-cinema .border-white\/20,
+:is(html.light, html[data-mode="light"]) .keep-dark-cinema .border-white\/30,
+:is(html.light, html[data-mode="light"]) .keep-dark-cinema .border-white\/40 {
+  border-color: rgba(255, 255, 255, 0.25) !important;
+}
+
+:is(html.light, html[data-mode="light"]) .keep-dark-cinema .bg-white\/10 {
+  background-color: rgba(255, 255, 255, 0.14) !important;
+}
+
+:is(html.light, html[data-mode="light"]) .keep-dark-cinema .bg-zinc-800\/80 {
+  background-color: rgba(39, 39, 42, 0.85) !important;
+}
+
+/* Posters and video player protections */
+:is(html.light, html[data-mode="light"]) .aspect-video .text-white,
+:is(html.light, html[data-mode="light"]) .aspect-video h4,
+:is(html.light, html[data-mode="light"]) .aspect-\[2\/3\] h3,
+:is(html.light, html[data-mode="light"]) .aspect-\[2\/3\] .text-white,
+:is(html.light, html[data-mode="light"]) .keep-white {
+  color: #ffffff !important;
+}
+
+:is(html.light, html[data-mode="light"]) .aspect-video .text-gray-300,
+:is(html.light, html[data-mode="light"]) .aspect-\[2\/3\] .text-gray-300 {
+  color: #e2e8f0 !important;
+}
+
+:is(html.light, html[data-mode="light"]) .aspect-video .text-gray-400,
+:is(html.light, html[data-mode="light"]) .aspect-\[2\/3\] .text-gray-400 {
+  color: #cbd5e1 !important;
+}
+
+/* ============================================================ */
+/* LIVE TV CHANNELS (LIVE HUB)                                  */
+/* ============================================================ */
+/* Dark Mode defaults */
+.live-channel-card {
+  background-color: rgba(24, 24, 27, 0.8);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+.live-channel-card:hover {
+  background-color: rgba(39, 39, 42, 0.9);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+.live-channel-active {
+  background: linear-gradient(to bottom, #18181b, #09090b);
+  border-color: #0ea5e9 !important;
+  box-shadow: 0 10px 25px -5px rgba(14, 165, 233, 0.3) !important;
+}
+.live-channel-active .live-channel-title {
+  color: #38bdf8 !important;
+}
+
+/* Light Mode Overrides */
+:is(html.light, html[data-mode="light"]) .live-channel-card {
+  background-color: #ffffff !important;
+  background-image: none !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+}
+
+:is(html.light, html[data-mode="light"]) .live-channel-card:hover {
+  background-color: #f8fafc !important;
+  border-color: rgba(14, 165, 233, 0.4) !important;
+}
+
+:is(html.light, html[data-mode="light"]) .live-channel-active {
+  background: #f0f9ff !important;
+  background-image: none !important;
+  border-color: #0284c7 !important;
+  box-shadow: 0 4px 20px rgba(14, 165, 233, 0.2) !important;
+}
+
+:is(html.light, html[data-mode="light"]) .live-channel-active .live-channel-title {
+  color: #0284c7 !important;
+  font-weight: 900 !important;
+}
+
+:is(html.light, html[data-mode="light"]) .live-channel-card .live-channel-title {
+  color: #0f172a !important;
+}
+
+:is(html.light, html[data-mode="light"]) .live-channel-card .text-gray-400 {
+  color: #64748b !important;
+}
+
+:is(html.light, html[data-mode="light"]) .live-channel-logo-container {
+  background-color: #f8fafc !important;
+  border-color: rgba(0, 0, 0, 0.06) !important;
+}
+
+:is(html.light, html[data-mode="light"]) .live-channel-active .live-channel-logo-container {
+  background-color: #ffffff !important;
+  border-color: #bae6fd !important;
+}
+
+/* ============================================================ */
+/* FOOTBALL MATCH CARDS                                         */
+/* ============================================================ */
+:is(html.light, html[data-mode="light"]) .football-match-card {
+  background: #ffffff !important;
+  background-image: none !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04) !important;
+}
+
+:is(html.light, html[data-mode="light"]) .football-match-active {
+  background: #fff5f5 !important;
+  background-image: none !important;
+  border-color: var(--netflix-red) !important;
+  box-shadow: 0 8px 30px rgba(229, 9, 20, 0.15) !important;
+}
+
+:is(html.light, html[data-mode="light"]) .football-scoreboard {
+  background: #f8fafc !important;
+  background-image: none !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+:is(html.light, html[data-mode="light"]) .football-scoreboard span {
+  color: #0f172a !important;
+}
+
+/* ============================================================ */
+/* MOVIE DETAIL PAGE & EPISODE LIST                             */
+/* ============================================================ */
+:is(html.light, html[data-mode="light"]) .rounded-3xl.border-white\/15.bg-gradient-to-b {
+  background: #ffffff !important;
+  background-image: none !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.05) !important;
+}
+
+:is(html.light, html[data-mode="light"]) .grid a.bg-zinc-800 {
+  background-color: #f1f5f9 !important;
+  color: #1e293b !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+:is(html.light, html[data-mode="light"]) .grid a.bg-zinc-800:hover {
+  background-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+:is(html.light, html[data-mode="light"]) .grid a.bg-netflix-red {
+  background-color: var(--netflix-red) !important;
+  color: #ffffff !important;
+}
+
+:is(html.light, html[data-mode="light"]) .grid a.bg-zinc-800\/60 {
+  background-color: #f8fafc !important;
+  color: #64748b !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+}
+
+/* ============================================================ */
+/* MY LIST & HISTORY IN LIGHT MODE                              */
+/* ============================================================ */
+:is(html.light, html[data-mode="light"]) main .bg-zinc-900\/80 {
+  background-color: #f1f5f9 !important;
+  color: #334155 !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+:is(html.light, html[data-mode="light"]) main .bg-zinc-900\/80:hover {
+  background-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+:is(html.light, html[data-mode="light"]) main .border-white\/10 {
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+/* ============================================================ */
+/* FOOTER IN LIGHT MODE                                         */
+/* ============================================================ */
+:is(html.light, html[data-mode="light"]) footer {
+  background: #ffffff !important;
+  background-image: none !important;
+  border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
+  color: #475569 !important;
+}
+
+:is(html.light, html[data-mode="light"]) footer h4 {
+  color: #0f172a !important;
+}
+
+:is(html.light, html[data-mode="light"]) footer .bg-zinc-900\/60 {
+  background: #f8fafc !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+:is(html.light, html[data-mode="light"]) footer .text-white {
+  color: #0f172a !important;
+}
+
+:is(html.light, html[data-mode="light"]) footer .text-gray-400 {
+  color: #64748b !important;
+}
+
+:is(html.light, html[data-mode="light"]) footer a:hover {
+  color: #0f172a !important;
+}
+
+/* ============================================================ */
+/* HERO BANNER ABSOLUTE SHIELD (ALWAYS CINEMATIC WHITE)         */
+/* Must remain at the absolute bottom for highest specificity   */
+/* ============================================================ */
+.hero-cinema-section,
+.hero-cinema-section * {
+  color-scheme: dark !important;
+}
+
+html .hero-cinema-section,
+html.light .hero-cinema-section,
+html[data-mode="light"] .hero-cinema-section {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+
+html .hero-cinema-section h1,
+html.light .hero-cinema-section h1,
+html[data-mode="light"] .hero-cinema-section h1,
+.hero-cinema-title {
+  color: #ffffff !important;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.85) !important;
+}
+
+html .hero-cinema-section p,
+html.light .hero-cinema-section p,
+html[data-mode="light"] .hero-cinema-section p,
+.hero-cinema-desc {
+  color: #e2e8f0 !important;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.85) !important;
+}
+
+html .hero-cinema-section .text-white,
+html.light .hero-cinema-section .text-white,
+html[data-mode="light"] .hero-cinema-section .text-white {
+  color: #ffffff !important;
+}
+
+html .hero-cinema-section .text-gray-200,
+html .hero-cinema-section .text-gray-300,
+html.light .hero-cinema-section .text-gray-200,
+html.light .hero-cinema-section .text-gray-300,
+html[data-mode="light"] .hero-cinema-section .text-gray-200,
+html[data-mode="light"] .hero-cinema-section .text-gray-300 {
+  color: #e2e8f0 !important;
+}
+
+html .hero-cinema-section .bg-black\/65,
+html.light .hero-cinema-section .bg-black\/65,
+html[data-mode="light"] .hero-cinema-section .bg-black\/65 {
+  background-color: rgba(0, 0, 0, 0.65) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* ============================================================ */
+/* CINEMA & LIVE PLAYER CARDS ABSOLUTE SHIELD                   */
+/* ============================================================ */
+.keep-dark-cinema,
+.keep-dark-cinema * {
+  color-scheme: dark !important;
+}
+
+html .keep-dark-cinema,
+html.light .keep-dark-cinema,
+html[data-mode="light"] .keep-dark-cinema {
+  background-color: #121214 !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+html .keep-dark-cinema h1,
+html .keep-dark-cinema h2,
+html .keep-dark-cinema h3,
+html .keep-dark-cinema h4,
+html.light .keep-dark-cinema h1,
+html.light .keep-dark-cinema h2,
+html.light .keep-dark-cinema h3,
+html.light .keep-dark-cinema h4,
+html[data-mode="light"] .keep-dark-cinema h1,
+html[data-mode="light"] .keep-dark-cinema h2,
+html[data-mode="light"] .keep-dark-cinema h3,
+html[data-mode="light"] .keep-dark-cinema h4,
+.keep-white {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+html .keep-dark-cinema p,
+html.light .keep-dark-cinema p,
+html[data-mode="light"] .keep-dark-cinema p {
+  color: #cbd5e1 !important;
+}
+
+html .keep-dark-cinema .text-gray-300,
+html .keep-dark-cinema .text-gray-400,
+html.light .keep-dark-cinema .text-gray-300,
+html.light .keep-dark-cinema .text-gray-400,
+html[data-mode="light"] .keep-dark-cinema .text-gray-300,
+html[data-mode="light"] .keep-dark-cinema .text-gray-400 {
+  color: #94a3b8 !important;
+}
+
+/* ============================================================ */
+/* ENFORCE CRISP ACTIVE CHANNEL CONTRAST IN BOTH MODES          */
+/* ============================================================ */
+html.light .live-channel-active,
+html[data-mode="light"] .live-channel-active {
+  background-color: #f0f9ff !important;
+  background-image: none !important;
+  border-color: #0284c7 !important;
+  box-shadow: 0 4px 20px rgba(14, 165, 233, 0.25) !important;
+}
+
+html.light .live-channel-active .live-channel-title,
+html[data-mode="light"] .live-channel-active .live-channel-title {
+  color: #0284c7 !important;
+  -webkit-text-fill-color: #0284c7 !important;
+  font-weight: 900 !important;
+}
+
+html:not(.light) .live-channel-active,
+html[data-mode="dark"] .live-channel-active {
+  background-color: #09090b !important;
+  background-image: linear-gradient(to bottom, #18181b, #09090b) !important;
+  border-color: #38bdf8 !important;
+  box-shadow: 0 10px 25px -5px rgba(14, 165, 233, 0.4) !important;
+}
+
+html:not(.light) .live-channel-active .live-channel-title,
+html[data-mode="dark"] .live-channel-active .live-channel-title {
+  color: #38bdf8 !important;
+  -webkit-text-fill-color: #38bdf8 !important;
+}
+
+
+
+

@@ -616,11 +616,12 @@ Nếu KHÔNG PHẢI tên diễn viên/đạo diễn, trả về {"isActor": fals
 Chỉ trả về JSON thuần túy.`;
 
     const ai = new GoogleGenAI({ apiKey, vertexai: false });
-    const ACTOR_MODELS = ["gemini-3.6-flash", "gemini-2.5-flash"];
+    const ACTOR_MODELS = ["gemini-3.5-flash", "gemini-3.6-flash"];
     let rawText: string | null = null;
 
     for (const model of ACTOR_MODELS) {
       try {
+        const is35 = model.includes("3.5");
         const result = await Promise.race([
           ai.models.generateContent({
             model,
@@ -629,10 +630,11 @@ Chỉ trả về JSON thuần túy.`;
               responseMimeType: "application/json",
               temperature: 0.2,
               maxOutputTokens: 500,
+              ...(is35 ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
             },
           }),
           new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error("AI timeout")), 1200)
+            setTimeout(() => reject(new Error("AI timeout")), 2500)
           ),
         ]);
         const text = result.text?.trim();

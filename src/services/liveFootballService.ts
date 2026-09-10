@@ -1,3 +1,5 @@
+import { enrichMatchLogos } from "@/services/footballLogoService";
+
 export interface StreamServer {
   name: string;
   url: string;
@@ -639,11 +641,20 @@ export const liveFootballService = {
             continue;
           }
 
-          // Nhận diện định dạng
+          // Nhận diện định dạng & Tự động chuyển đổi link FLV sang HLS tương ứng
+          let effectiveUrl = url;
+          if (url.includes("lauthaitv.cc") && url.includes(".flv")) {
+            effectiveUrl = url
+              .replace("flv.lauthaitv.cc", "hls.lauthaitv.cc")
+              .replace(/\.flv(\?.*)?$/i, "/index.m3u8$1");
+          } else if (url.includes(".flv")) {
+            effectiveUrl = url.replace(/\.flv(\?.*)?$/i, ".m3u8$1");
+          }
+
           const isHls =
-            url.includes(".m3u8") || rawTitle.toLowerCase().includes("[hls");
+            effectiveUrl.includes(".m3u8") || rawTitle.toLowerCase().includes("[hls");
           const isFlv =
-            url.includes(".flv") || rawTitle.toLowerCase().includes("[flv");
+            !isHls && (url.includes(".flv") || rawTitle.toLowerCase().includes("[flv"));
           const format: "hls" | "flv" | "other" = isHls
             ? "hls"
             : isFlv
@@ -740,7 +751,7 @@ export const liveFootballService = {
               servers: [
                 {
                   name: serverLabel,
-                  url,
+                  url: effectiveUrl,
                   format,
                   isHls,
                   quality: serverQuality,
@@ -771,15 +782,20 @@ export const liveFootballService = {
             if (!existing.awayLogo && awayLogo) {
               existing.awayLogo = awayLogo;
             }
-            const cleanBaseLabel = serverLabel.replace(/\s+#\d+$/g, "").trim();
-            existing.servers.push({
-              name: `${cleanBaseLabel} #${existing.servers.length + 1}`,
-              url,
-              format,
-              isHls,
-              quality: serverQuality,
-              sourceName: group,
-            });
+            const alreadyExists = existing.servers.some(
+              (s) => s.url === effectiveUrl
+            );
+            if (!alreadyExists) {
+              const cleanBaseLabel = serverLabel.replace(/\s+#\d+$/g, "").trim();
+              existing.servers.push({
+                name: `${cleanBaseLabel} #${existing.servers.length + 1}`,
+                url: effectiveUrl,
+                format,
+                isHls,
+                quality: serverQuality,
+                sourceName: group,
+              });
+            }
           }
         }
       }
@@ -835,9 +851,14 @@ export const liveFootballService = {
         uniqueMatches.push(m1);
       }
 
-      // Ưu tiên sắp xếp các server HLS lên trước
+      // Ưu tiên sắp xếp các server HLS lên trước và loại bỏ FLV không tương thích web
       for (const m of uniqueMatches) {
-        m.servers.sort((a, b) => (b.isHls ? 1 : 0) - (a.isHls ? 1 : 0));
+        const hlsServers = m.servers.filter((s) => s.isHls);
+        if (hlsServers.length > 0) {
+          m.servers = hlsServers;
+        } else {
+          m.servers.sort((a, b) => (b.isHls ? 1 : 0) - (a.isHls ? 1 : 0));
+        }
       }
 
       // SẮP XẾP TẤT CẢ CÁC TRẬN ĐẤU THEO THỨ TỰ THỜI GIAN
@@ -859,6 +880,9 @@ export const liveFootballService = {
         windowMatches.length > 0
           ? windowMatches
           : sortedMatches.filter((m) => m.timestamp >= twoHoursAgo).slice(0, 16);
+
+      // Tự động bổ sung Logo HD cho cả Đội Nhà & Đội Khách
+      await enrichMatchLogos(activeMatches);
 
       const result: LiveFootballData = {
         updatedAt: new Date().toISOString(),

@@ -106,6 +106,24 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   const [inList, setInList] = useState(false);
   const [liked, setLiked] = useState(false);
   const [isImgLoaded, setIsImgLoaded] = useState(false);
+  const [currentImgSrc, setCurrentImgSrc] = useState(imageUrl);
+
+  useEffect(() => {
+    setCurrentImgSrc(imageUrl);
+  }, [imageUrl]);
+
+  const handleImageError = () => {
+    if (currentImgSrc.includes("image.tmdb.org")) {
+      const match = currentImgSrc.match(/\/w500\/([a-zA-Z0-9_-]{20,}\.(?:jpg|jpeg|png|webp))/i);
+      if (match) {
+        // Dự phòng: Thử link gốc VSMOV nếu TMDb không tìm thấy ảnh
+        setCurrentImgSrc(`https://vsmov.com/storage/images/${match[1]}`);
+        return;
+      }
+    }
+    setCurrentImgSrc("/default-hero.svg");
+    setIsImgLoaded(true);
+  };
 
   // Trailer Video & Modal States
   const [isPlayingTrailer, setIsPlayingTrailer] = useState(false);
@@ -136,6 +154,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
 
   const hoverTimerRef = useRef<NodeJS.Timeout | null>(null);
   const trailerTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const unmountTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Khởi tạo tóm tắt
   const [synopsis, setSynopsis] = useState<string>(() => {
@@ -153,6 +172,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     return "";
   });
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const [isCardHovered, setIsCardHovered] = useState(false);
 
   // Đồng bộ Watchlist
   useEffect(() => {
@@ -163,6 +183,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       window.removeEventListener("watchlist-updated", handleSync);
       if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
       if (trailerTimerRef.current) clearTimeout(trailerTimerRef.current);
+      if (unmountTimerRef.current) clearTimeout(unmountTimerRef.current);
     };
   }, [slug]);
 
@@ -183,6 +204,11 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
 
   // Hover Intent: Nạp thông tin diễn viên, tóm tắt và trailer
   const handleMouseEnter = () => {
+    if (unmountTimerRef.current) {
+      clearTimeout(unmountTimerRef.current);
+      unmountTimerRef.current = null;
+    }
+    setIsCardHovered(true);
     if (cardRef.current) {
       const rect = cardRef.current.getBoundingClientRect();
       const distLeft = rect.left;
@@ -300,6 +326,13 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       trailerTimerRef.current = null;
     }
     setIsPlayingTrailer(false);
+
+    // Giữ nội dung hiển thị trong suốt 280ms thời gian fade-out của card, tránh chớp nháy
+    if (unmountTimerRef.current) clearTimeout(unmountTimerRef.current);
+    unmountTimerRef.current = setTimeout(() => {
+      setIsCardHovered(false);
+      unmountTimerRef.current = null;
+    }, 280);
   };
 
   const handleToggleList = (e: React.MouseEvent) => {
@@ -400,15 +433,15 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       {/* ============================================================ */}
       <Link
         href={`/movies/${slug}`}
-        className="block w-full h-full rounded-2xl overflow-hidden bg-zinc-900 border border-white/10 relative transition-all duration-300 shadow-md group-hover:border-white/35 group-hover:shadow-xl"
+        className="block w-full h-full rounded-2xl overflow-hidden bg-zinc-950 border border-white/[0.12] relative transition-all duration-300 shadow-md group-hover:border-white/40 group-hover:shadow-[0_16px_40px_rgba(0,0,0,0.85)]"
       >
         {/* Placeholder gradient mượt mà chống giật hình ảnh */}
         {!isImgLoaded && (
-          <div className="absolute inset-0 bg-gradient-to-br from-zinc-800 via-zinc-850 to-zinc-950 animate-pulse z-0" />
+          <div className="absolute inset-0 bg-gradient-to-br from-zinc-800 to-zinc-950 z-0" />
         )}
 
         <Image
-          src={imageUrl}
+          src={currentImgSrc}
           alt={title}
           fill
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1440px) 33vw, 25vw"
@@ -417,6 +450,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           loading={priority ? "eager" : "lazy"}
           decoding="async"
           onLoad={() => setIsImgLoaded(true)}
+          onError={handleImageError}
         />
 
         {/* 1. GÓC TRÊN TRÁI: DÀNH CHO LOẠI PHIM (PHIM BỘ, PHIM LẺ, PHIM RẠP, HOẠT HÌNH) */}
@@ -491,21 +525,24 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       {/* 2. EXPANDED HOVER CARD (Giao diện tinh gọn, vừa vặn, chuẩn Netflix) */}
       {/* ============================================================ */}
       <div
-        className={`hidden sm:block absolute top-0 left-0 w-full opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-hover:scale-[1.08] md:group-hover:scale-[1.10] group-hover:z-50 transition-all duration-250 ease-out delay-0 group-hover:delay-150 ${originClass} rounded-2xl overflow-hidden bg-zinc-900 border border-white/25 shadow-[0_20px_50px_rgba(0,0,0,0.95)] will-change-transform`}
+        className={`hidden sm:block absolute top-0 left-0 w-full opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-hover:scale-[1.08] md:group-hover:scale-[1.10] group-hover:z-50 transition-all duration-250 ease-out delay-0 group-hover:delay-150 ${originClass} rounded-2xl overflow-hidden keep-dark-cinema bg-zinc-950/95 backdrop-blur-2xl border border-white/30 shadow-[0_24px_60px_-10px_rgba(0,0,0,0.98),0_0_20px_rgba(229,9,20,0.15)] will-change-transform`}
       >
-        {/* PHẦN TRÊN: VIDEO TRAILER HOẶC POSTER */}
-        <Link
-          href={`/movies/${slug}`}
-          className="block relative aspect-video w-full overflow-hidden bg-black cursor-pointer group/video"
-        >
+        {isCardHovered && (
+          <>
+            {/* PHẦN TRÊN: VIDEO TRAILER HOẶC POSTER */}
+            <Link
+              href={`/movies/${slug}`}
+              className="block relative aspect-video w-full overflow-hidden bg-black cursor-pointer group/video"
+            >
           <Image
-            src={imageUrl}
+            src={currentImgSrc}
             alt={title}
             fill
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             className={`object-cover object-top transition-opacity duration-300 ${
               isPlayingTrailer && embedTrailerUrl ? "opacity-0" : "opacity-100"
             }`}
+            onError={handleImageError}
           />
 
           {/* Video Trailer Preview tự động chạy */}
@@ -724,6 +761,8 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
             </div>
           )}
         </div>
+          </>
+        )}
       </div>
 
       {/* ============================================================ */}

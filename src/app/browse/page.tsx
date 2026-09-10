@@ -216,7 +216,7 @@ export default async function BrowsePage({
     !sort;
 
   return (
-    <div className="bg-black min-h-screen text-white pb-20">
+    <div className="page-cinema-container min-h-screen pb-20">
       <Navbar />
       <SetTitleClient title={title} />
 
@@ -298,6 +298,7 @@ export default async function BrowsePage({
             <div className="flex justify-center items-center gap-1.5 sm:gap-2 mt-10 sm:mt-16 flex-wrap">
               <Link
                 href={buildPaginationUrl(Math.max(1, currentPage - 1))}
+                prefetch={true}
                 className={`px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm rounded font-semibold transition ${currentPage === 1
                     ? "bg-zinc-900 text-zinc-600 pointer-events-none"
                     : "bg-zinc-800 text-white hover:bg-zinc-700"
@@ -318,6 +319,7 @@ export default async function BrowsePage({
                   <Link
                     key={index}
                     href={buildPaginationUrl(p as number)}
+                    prefetch={true}
                     className={`w-8 h-8 sm:w-10 sm:h-10 text-xs sm:text-sm flex items-center justify-center rounded font-semibold transition-colors ${currentPage === p
                         ? "bg-netflix-red text-white shadow-sm"
                         : "bg-zinc-800 text-gray-300 hover:bg-zinc-700 hover:text-white"
@@ -330,6 +332,7 @@ export default async function BrowsePage({
 
               <Link
                 href={buildPaginationUrl(currentPage + 1)}
+                prefetch={true}
                 className={`px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm rounded font-semibold transition ${currentPage >= totalPages
                     ? "bg-zinc-900 text-zinc-600 pointer-events-none"
                     : "bg-zinc-800 text-white hover:bg-zinc-700"

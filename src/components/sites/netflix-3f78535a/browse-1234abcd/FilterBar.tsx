@@ -82,7 +82,7 @@ export const FilterBar: React.FC = () => {
     }
 
     params.delete("page");
-    router.push(`?${params.toString()}`);
+    router.push(`?${params.toString()}`, { scroll: false });
     setActiveDropdown(null);
   };
 
@@ -95,7 +95,7 @@ export const FilterBar: React.FC = () => {
 
     params.delete(key);
     params.delete("page");
-    router.push(`?${params.toString()}`);
+    router.push(`?${params.toString()}`, { scroll: false });
     setActiveDropdown(null);
   };
 

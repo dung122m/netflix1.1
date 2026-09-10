@@ -22,6 +22,7 @@ const nextConfig: NextConfig = {
       { protocol: "http", hostname: "**", port: "", pathname: "/**" },
     ],
     formats: ["image/avif", "image/webp"],
+    qualities: [75, 88, 95], // Tắt warning về quality không cấu hình
   },
   async headers() {
     return [
@@ -41,6 +42,26 @@ const nextConfig: NextConfig = {
           {
             key: "Cache-Control",
             value: "public, s-maxage=180, stale-while-revalidate=60",
+          },
+        ],
+      },
+      {
+        // Cache API live TV 5 phút
+        source: "/api/live-tv/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, s-maxage=300, stale-while-revalidate=60",
+          },
+        ],
+      },
+      {
+        // Cache thông báo 2 phút
+        source: "/api/notifications",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, s-maxage=120, stale-while-revalidate=60",
           },
         ],
       },
@@ -71,7 +92,6 @@ const nextConfig: NextConfig = {
       dynamic: 180, // Giữ trang động trong Router Cache client 3 phút (chuyển tab 0ms)
       static: 600,  // Giữ trang tĩnh trong Router Cache client 10 phút
     },
-    scrollRestoration: true,
     optimizePackageImports: [
       "lucide-react",
       "framer-motion",
