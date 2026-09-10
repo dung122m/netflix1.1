@@ -7,6 +7,7 @@ import { ToastContainer } from "@/components/Toast";
 import { AiMovieConcierge } from "@/components/AiMovieConcierge";
 import { AiMovieRoulette } from "@/components/AiMovieRoulette";
 import { AiVoiceCommandModal } from "@/components/AiVoiceCommandModal";
+import { ActorBioModal } from "@/components/ActorBioModal";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -120,6 +121,9 @@ export default function RootLayout({
 
         {/* Trợ lý Giọng Nói Điều Khiển Rạp Chiếu Tiếng Việt */}
         <AiVoiceCommandModal />
+
+        {/* Hồ Sơ Tiểu Sử Diễn Viên Wikipedia */}
+        <ActorBioModal />
       </body>
     </html>
   );

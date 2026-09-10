@@ -28,6 +28,7 @@ import { ReportIssueModal } from "@/components/ReportIssueModal";
 import { RecommendationTabs } from "@/components/RecommendationTabs";
 import { TrailerModal } from "@/components/TrailerModal";
 import { Navbar } from "@/components/Navbar";
+import { ActorChipClient } from "@/components/ActorChipClient";
 import { Footer } from "@/components/Footer";
 import TrackHistoryClient from "@/components/TrackHistoryClient";
 import { CinemaPlayer } from "@/components/CinemaPlayer";
@@ -559,19 +560,11 @@ export default async function MovieDetail({
                   <div className="rounded-xl border border-white/10 bg-black/30 p-3.5">
                     <p className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-2 flex items-center gap-1.5">
                       <Clapperboard className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Đạo diễn</span>
+                      <span>Đạo diễn (Wikipedia)</span>
                     </p>
                     <div className="flex flex-wrap gap-1.5">
                       {directorList.slice(0, 4).map((d, idx) => (
-                        <Link
-                          key={idx}
-                          href={`/browse?keyword=${encodeURIComponent(d)}`}
-                          title={`Tìm các phim của đạo diễn ${d}`}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-white/5 hover:bg-white/15 text-gray-200 hover:text-white text-xs border border-white/10 hover:border-amber-500/40 transition cursor-pointer"
-                        >
-                          <span className="text-[10px] text-amber-400">🎬</span>
-                          <span>{d}</span>
-                        </Link>
+                        <ActorChipClient key={idx} name={d} isDirector={true} />
                       ))}
                     </div>
                   </div>
@@ -582,19 +575,11 @@ export default async function MovieDetail({
                   <div className="rounded-xl border border-white/10 bg-black/30 p-3.5">
                     <p className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-2 flex items-center gap-1.5">
                       <Users className="w-3.5 h-3.5 text-rose-400" />
-                      <span>Diễn viên</span>
+                      <span>Diễn viên (Wikipedia)</span>
                     </p>
                     <div className="flex flex-wrap gap-1.5">
                       {actorList.slice(0, 12).map((a, idx) => (
-                        <Link
-                          key={idx}
-                          href={`/browse?keyword=${encodeURIComponent(a)}`}
-                          title={`Tìm các phim của diễn viên ${a}`}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-white/5 hover:bg-white/15 text-gray-200 hover:text-white text-xs border border-white/10 hover:border-rose-500/40 transition cursor-pointer"
-                        >
-                          <span className="text-[10px] text-rose-400">👤</span>
-                          <span>{a}</span>
-                        </Link>
+                        <ActorChipClient key={idx} name={a} isDirector={false} />
                       ))}
                     </div>
                   </div>
