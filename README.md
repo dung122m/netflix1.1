@@ -1,12 +1,12 @@
 <div align="center">
 
-<img src="docs/screenshots/banner.png" alt="Nanaflix Banner" width="100%" style="border-radius: 16px; box-shadow: 0 20px 50px rgba(0,0,0,0.8);" />
+<img src="docs/screenshots/banner.png" alt="Nanaflix Hero Banner" width="100%" style="border-radius: 16px; box-shadow: 0 20px 50px rgba(0,0,0,0.8);" />
 
 <br /><br />
 
 # 🎬 NANAFLIX - NEXT-GEN STREAMING PLATFORM
 
-### *Nền tảng Xem Phim & Trực Tiếp Bóng Đá / Truyền Hình TV Trực Tuyến Đỉnh Cao*
+### *The Ultimate AI-Powered Cinema Experience, Live Sports & IPTV Streaming Web Application*
 
 [![Next.js 16](https://img.shields.io/badge/Next.js-16.0-black?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
 [![React 19](https://img.shields.io/badge/React-19.0-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
@@ -18,205 +18,205 @@
 
 <br />
 
-[✨ Tính Năng](#-tính-năng-nổi-bật) • [📸 Giao Diện](#-hình-ảnh-giao-diện-thực-tế) • [🛠️ Công Nghệ](#️-công-nghệ-sử-dụng) • [🚀 Cài Đặt](#-hướng-dẫn-cài-đặt--chạy-dự-án) • [⌨️ Phím Tắt](#️-bảng-phím-tắt-tiện-ích)
+[✨ Features](#-key-features) • [📸 Screenshots](#-visual-showcase) • [🛠️ Tech Stack](#️-tech-stack--architecture) • [🚀 Quick Start](#-quick-start--installation) • [⌨️ Shortcuts](#️-keyboard-shortcuts)
 
 </div>
 
 ---
 
-## 🌟 Giới Thiệu
+## 🌟 Overview
 
-**NANAFLIX** là ứng dụng web giải trí đa phương tiện thế hệ mới được xây dựng trên nền tảng **Next.js 16 (App Router)** và **React 19**. Ứng dụng mang đến trải nghiệm điện ảnh chuẩn rạp ngay trên trình duyệt, kết hợp trí tuệ nhân tạo **Google Gemini AI**, tính năng **điều khiển bằng giọng nói tiếng Việt**, cùng hệ thống phát trực tiếp **Bóng đá đỉnh cao** và hơn **100+ kênh truyền hình TV** chuẩn Full HD độ trễ cực thấp (*Ultra Low Latency*).
+**NANAFLIX** is a state-of-the-art, high-performance multimedia streaming web application crafted with **Next.js 16 (App Router)** and **React 19**. 
 
----
-
-## ✨ Tính Năng Nổi Bật
-
-### 🤖 1. Trợ Lý Điện Ảnh AI Thông Minh (Google Gemini AI)
-- **Nana AI Movie Concierge**: Trò chuyện tự nhiên, tư vấn phim theo tâm trạng, sở thích, cốt truyện hoặc diễn viên yêu thích.
-- **Nana AI Roulette**: Vòng quay may mắn gợi ý phim ngẫu nhiên khi bạn chưa biết xem gì hôm nay.
-- **Tóm tắt cốt truyện thông minh**: AI tự động trích xuất điểm nhấn, thông điệp và đánh giá phim súc tích.
-
-### 🎙️ 2. Điều Khiển Bằng Giọng Nói (AI Voice Assistant)
-- Tích hợp chuẩn **Web Speech API** với bộ lọc tiếng Việt chuẩn xác.
-- Nhận diện tức thì các câu lệnh tự nhiên:
-  - *"Tìm phim hành động Hàn Quốc"*
-  - *"Mở phim Squid Game"*
-  - *"Xem trực tiếp bóng đá"*
-  - *"Bật kênh VTV3"*
-- Hỗ trợ phản hồi bằng giọng nói tiếng Việt mượt mà, tự nhiên.
-
-### 🍿 3. Kho Phim Kép Đồ Sộ (Dual Aggregator Engine)
-- Tích hợp đồng thời 2 nguồn phim hàng đầu: **KKPhim** và **VSMOV**.
-- Thuật toán **khử trùng lặp thông minh (Deduplication)**: Tự động gộp phim cùng tên và gom nguồn phát chất lượng cao nhất.
-- Bộ lọc đa chiều: Lọc chuẩn xác theo **Loại phim** (Phim lẻ, Phim bộ, Hoạt hình, TV Shows), **Thể loại**, **Quốc gia**, **Năm phát hành** và **Sắp xếp**.
-
-### ⚽ 4. Trực Tiếp Bóng Đá HD Có BLV Tiếng Việt
-- Tổng hợp các trận đấu hấp dẫn từ Ngoại Hạng Anh, Cúp C1 Champions League, La Liga, Serie A, Bundesliga, V-League, MLS, Saudi League...
-- Bình luận viên tiếng Việt sôi động từ **Xôi Lạc, Cola TV, Gà Vàng, S8 TV, Cà Khịa TV**.
-- Phân luồng thời gian thực: Đang đá (`LIVE`), Sắp diễn ra (`2h tới`), hoặc Toàn bộ lịch thi đấu.
-- Tính năng **Hẹn giờ nhắc trận đấu (Match Reminder)**: Đặt lịch và nhận thông báo trước giờ bóng lăn.
-
-### 📺 5. Truyền Hình TV Trực Tuyến 100+ Kênh Chuẩn FHD
-- Danh mục đa dạng: **Kênh VTV (VTV1 - VTV9), Kênh HTV/HTVC, Truyền hình Vĩnh Long (THVL), Kênh Thể Thao, Kênh Quốc Tế (Red Bull TV, NASA TV, NHK World)**.
-- Logo đài truyền hình chuẩn SVG vector sắc nét.
-- Hoạt ảnh sóng âm **Equalizer** nhảy theo nhịp kênh đang phát sóng.
-- Dải kênh phổ biến **Quick Access Bar**: Chuyển kênh tức thì với 1-chạm.
-
-### 🎭 6. Trình Phát Rạp Phim (Cinema Player) Vừa Khung Nhìn
-- **Thiết kế tối ưu Viewport**: Vừa vặn 100% trong khung hình màn hình, người dùng có thể điều khiển Play/Pause, Âm lượng, Chọn tập mà **không cần phải cuộn/lăn chuột**.
-- **Chế độ Rạp phim (Theater Mode)** & **Tắt đèn (Lights Off)** cho trải nghiệm xem đắm chìm.
-- **Hẹn giờ tắt phim thông minh (Sleep Timer)**: Tự động dừng phát sau 15p, 30p, 45p, 60p hoặc khi hết tập.
-- **Thu nhỏ góc màn hình (Picture-in-Picture)** & Mini Floating Player khi cuộn trang.
-- **Tự động lưu lịch sử xem & Xem tiếp (Continue Watching)**.
+Designed with modern dark-cinema aesthetics and glassmorphism UI, NANAFLIX integrates **Google Gemini AI** for intelligent movie recommendations, **Web Speech API** for hands-free voice control, a **Dual API Aggregator** combining 40,000+ movies & TV shows, and an **Ultra Low Latency HLS Engine** for live sports football and 100+ national/international IPTV channels.
 
 ---
 
-## 📸 Hình Ảnh Giao Diện Thực Tế
+## ✨ Key Features
+
+### 🤖 1. AI Movie Concierge (Google Gemini AI)
+- **Nana AI Assistant**: Natural language conversational agent powered by Gemini 1.5 Flash. Ask for recommendations by mood, plot twists, actor names, or genre combinations.
+- **Nana AI Roulette**: Spin the wheel to get instant, smart movie suggestions when you're undecided.
+- **Smart Synopses & Themes**: AI-generated movie highlights, themes, and key takeaways.
+
+### 🎙️ 2. Intelligent Voice Control (Web Speech API)
+- Real-time Vietnamese voice recognition with native Speech-to-Text & Text-to-Speech feedback.
+- Hands-free navigation with commands such as:
+  - *"Search for action movies"*
+  - *"Open Squid Game"*
+  - *"Watch live football"*
+  - *"Switch to VTV3"*
+
+### 🍿 3. Dual Source Aggregator (40,000+ Titles)
+- Unified catalog streaming from **KKPhim** and **VSMOV** APIs.
+- **Smart Deduplication**: Automatically merges duplicate movie titles across providers and prioritizes the highest resolution stream.
+- **Multi-Dimensional Filter**: Seamlessly filter by Movie Type (Single Movies, TV Series, Anime, TV Shows), Genre, Country, Year, and Sorting criteria.
+
+### ⚽ 4. Live Football with Vietnamese Commentary
+- Comprehensive schedule covering Premier League, UEFA Champions League, La Liga, Serie A, Bundesliga, V-League, MLS, Saudi Pro League, and more.
+- Native commentary feeds from popular broadcasters (Xôi Lạc, Cola TV, Gà Vàng, S8 TV, Cà Khịa TV...).
+- Timeline tabs: Real-time Live matches (`LIVE`), Upcoming fixtures (`Next 2h`), and Full calendar.
+- **Match Reminder Modal**: Schedule reminders and never miss kick-off.
+
+### 📺 5. Live IPTV Streaming (100+ Channels in FHD)
+- Wide channel selection: **National TV (VTV1 - VTV9), Regional (HTV, THVL), Sports Channels, and International (Red Bull TV, NASA TV, NHK World)**.
+- Official vector SVG channel badges with active neon equalizer animations.
+- **Quick Access Row**: 1-click channel switcher for popular favorites.
+
+### 🎭 6. Viewport-Fitted Cinema Player
+- **Zero-Scroll Viewport Design**: The entire video player, scoreboard/header, and bottom controls fit 100% within the visible screen height on any device.
+- **Theater Mode & Lights Off**: Dim ambient background lighting for an immersive theater experience.
+- **Sleep Timer**: Automatically pause playback after 15, 30, 45, 60 minutes or at the end of the episode.
+- **Picture-in-Picture (PiP)** & Floating Mini Player when scrolling down.
+- **Continue Watching**: Persistent local watch history and progress tracking.
+
+---
+
+## 📸 Visual Showcase
 
 <div align="center">
 
-### 🎬 Trình Phát Phim Rạp Chiếu Đỉnh Cao
+### 🎬 Cinema Player with Viewport Fitting
 <img src="docs/screenshots/cinema-player.png" alt="Cinema Player" width="95%" style="border-radius: 12px; margin-bottom: 20px;" />
 
-### 🌐 Kho Phim & Bộ Lọc Đa Nguồn Chuyên Sâu
+### 🌐 Dual Catalog & Multi-Filter System
 <img src="docs/screenshots/browse-catalog.png" alt="Browse Catalog" width="95%" style="border-radius: 12px; margin-bottom: 20px;" />
 
-### 🎙️ Trợ Lý Điều Khiển Bằng Giọng Nói & Tương Tác AI
+### 🎙️ AI Voice Controller & Smart Assistant
 <img src="docs/screenshots/ai-voice.png" alt="AI Voice Controller" width="95%" style="border-radius: 12px;" />
 
 </div>
 
 ---
 
-## 🛠️ Công Nghệ Sử Dụng
+## 🛠️ Tech Stack & Architecture
 
-| Lĩnh Vực | Công Nghệ / Thư Viện |
+| Layer | Technologies & Tools |
 | :--- | :--- |
 | **Framework** | [Next.js 16 (App Router)](https://nextjs.org/) + [React 19](https://react.dev/) |
-| **Ngôn Ngữ** | [TypeScript 5](https://www.typescriptlang.org/) (Strict Mode) |
-| **Styling & UI** | [Tailwind CSS v4](https://tailwindcss.com/) + CSS Variables Tokens + Glassmorphism |
-| **Icons & Hoạt Ảnh** | [Lucide React](https://lucide.dev/) + Framer Motion |
-| **AI Integration** | [Google Gemini 1.5 Flash API](https://ai.google.dev/) (`@google/genai`) |
-| **Voice Engine** | Web Speech API (SpeechRecognition & SpeechSynthesis Native TTS) |
-| **Video Stream** | [HLS.js](https://github.com/video-dev/hls.js) (Ultra Low Latency Engine) + Proxy Stream |
-| **Data Sources** | KKPhim API, VSMOV API, Vietnam IPTV M3U, Live Sports Stream |
+| **Language** | [TypeScript 5](https://www.typescriptlang.org/) (Strict Mode) |
+| **Styling & Theme** | [Tailwind CSS v4](https://tailwindcss.com/) + CSS Variables + Glassmorphism + Ambient Glow |
+| **Icons & Motion** | [Lucide React](https://lucide.dev/) + Framer Motion |
+| **Generative AI** | [Google Gemini 1.5 Flash API](https://ai.google.dev/) (`@google/genai`) |
+| **Voice Processing** | Web Speech API (SpeechRecognition + Web SpeechSynthesis Native TTS) |
+| **Media Player** | [HLS.js](https://github.com/video-dev/hls.js) (Ultra Low Latency + Auto-Recovery Engine) + Stream Proxy |
+| **Data APIs** | KKPhim API, VSMOV API, Vietnam IPTV M3U, Live Sports Stream M3U |
 | **Deployment** | [Vercel](https://vercel.com/) |
 
 ---
 
-## 🚀 Hướng Dẫn Cài Đặt & Chạy Dự Án
+## 🚀 Quick Start & Installation
 
-### 1. Yêu Cầu Môi Trường
-- [Node.js](https://nodejs.org/) phiên bản **18.18+** hoặc **20+**
-- Trình quản lý gói `npm` hoặc `pnpm` / `yarn`
+### 1. Prerequisites
+- [Node.js](https://nodejs.org/) version **18.18+** or **20+**
+- Package manager: `npm`, `pnpm`, or `yarn`
 
-### 2. Tải Mã Nguồn & Cài Đặt Thư Viện
+### 2. Clone Repository & Install Dependencies
 ```bash
-# Clone repository
+# Clone the repository
 git clone https://github.com/dung122m/netflix1.1.git
 
-# Di chuyển vào thư mục dự án
+# Navigate to project directory
 cd netflix1.1
 
-# Cài đặt các dependencies
+# Install dependencies
 npm install
 ```
 
-### 3. Cấu Hình Biến Môi Trường (`.env.local`)
-Tạo file `.env.local` ở thư mục gốc và cấu hình API Key của Google Gemini:
+### 3. Environment Variables Configuration
+Create a `.env.local` file in the project root:
 
 ```env
-# Google Gemini AI API Key (Lấy miễn phí tại https://aistudio.google.com/)
+# Google Gemini AI API Key (Get a free key at https://aistudio.google.com/)
 GEMINI_API_KEY=your_gemini_api_key_here
 
-# (Tùy chọn) Next.js Public Config
+# (Optional) Application Base URL
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-### 4. Khởi Chạy Server Phát Triển (Development)
+### 4. Run Development Server
 ```bash
 npm run dev
 ```
-Mở trình duyệt và truy cập: **`http://localhost:3000`**
+Open your browser and navigate to: **`http://localhost:3000`**
 
-### 5. Kiểm Tra Chất Lượng Mã Nguồn & Build
+### 5. Code Quality & Production Build
 ```bash
-# Kiểm tra Type Safety
+# Run TypeScript typecheck
 npm run typecheck
 
-# Kiểm tra Linter
+# Run ESLint validation
 npm run lint
 
-# Build bản Production
+# Build production bundle
 npm run build
 ```
 
 ---
 
-## ⌨️ Bảng Phím Tắt Tiện Ích
+## ⌨️ Keyboard Shortcuts
 
-### 🎬 Trình Phát Phim (Cinema Player):
-| Phím Tắt | Chức Năng |
+### 🎬 Cinema Movie Player:
+| Shortcut | Action |
 | :---: | :--- |
-| `Space` | Tạm dừng / Tiếp tục phát video |
-| `F` | Bật / Thoát chế độ Toàn màn hình (*Fullscreen*) |
-| `T` | Bật / Tắt chế độ Rạp phim (*Theater Mode*) |
-| `L` | Bật / Tắt đèn nền (*Lights Off*) |
-| `P` | Chuyển về tập phim trước |
-| `N` | Chuyển sang tập phim kế tiếp |
-| `?` | Mở bảng hướng dẫn phím tắt |
-| `Esc` | Thoát chế độ Rạp phim / Bật lại đèn |
+| `Space` | Play / Pause video |
+| `F` | Toggle Fullscreen |
+| `T` | Toggle Theater Mode |
+| `L` | Toggle Lights Off mode |
+| `P` | Previous episode |
+| `N` | Next episode |
+| `?` | Open keyboard shortcuts modal |
+| `Esc` | Exit Theater mode / Turn lights on |
 
-### ⚽ Trình Phát Bóng Đá & 📺 Truyền Hình TV:
-| Phím Tắt | Chức Năng |
+### ⚽ Live Football & 📺 Live TV:
+| Shortcut | Action |
 | :---: | :--- |
-| `Space` | Dừng / Phát luồng trực tiếp |
-| `M` | Bật / Tắt âm thanh (*Mute/Unmute*) |
-| `F` | Bật / Thoát toàn màn hình |
-| `P` | Xem thu nhỏ góc màn hình (*Picture-in-Picture*) |
-| `↑` / `↓` | Tăng / Giảm âm lượng 10% |
-| `←` / `→` | **Chuyển máy chủ phát** *(Bóng đá)* hoặc **Lướt kênh trước / sau** *(Live TV)* |
+| `Space` | Play / Pause live stream |
+| `M` | Mute / Unmute audio |
+| `F` | Toggle Fullscreen |
+| `P` | Picture-in-Picture (PiP) |
+| `↑` / `↓` | Volume Up / Down (10% step) |
+| `←` / `→` | **Switch Stream Server** *(Football)* or **Channel Surfing** *(Live TV)* |
 
 ---
 
-## 📁 Cấu Trúc Thư Mục Dự Án
+## 📁 Project Structure
 
 ```plaintext
 netflix1.1/
 ├── src/
 │   ├── app/                    # Next.js App Router Pages & API Routes
-│   │   ├── api/                # API Routes (Gemini AI, Voice, Live Proxy, Match)
-│   │   ├── browse/             # Trang Khám phá & Lọc phim nâng cao
-│   │   ├── live/               # Trang Trực tiếp Bóng đá & Truyền hình TV
-│   │   ├── movies/[slug]/      # Trang Chi tiết phim & Trình phát rạp chiếu
-│   │   ├── my-list/            # Danh sách phim yêu thích & Lịch sử xem
-│   │   ├── globals.css         # CSS Tokens, Ambient Light & Theme System
-│   │   └── page.tsx            # Trang chủ Nanaflix Home Page
-│   ├── components/             # React UI Components
-│   │   ├── live/               # LivePlayer, LiveFootballClient, LiveTvClient
-│   │   ├── CinemaPlayer.tsx    # Trình phát phim rạp chuyên nghiệp
-│   │   ├── VoiceController.tsx # Trợ lý điều khiển bằng giọng nói
-│   │   ├── AiConcierge.tsx     # Chatbot tư vấn phim Gemini AI
-│   │   └── Navbar.tsx          # Thanh điều hướng chuẩn Netflix
-│   ├── services/               # Data Fetching & API Aggregators
-│   │   ├── kkphimService.ts    # KKPhim API Client
-│   │   ├── vsmovService.ts     # VSMOV API Client
-│   │   ├── liveFootballService.ts # Live Football M3U Parser & Dedup
+│   │   ├── api/                # Backend API Routes (Gemini AI, Voice, Live Proxy, Match)
+│   │   ├── browse/             # Browse & Advanced Multi-Filter Catalog
+│   │   ├── live/               # Live Sports (Football) & IPTV Live Channels
+│   │   ├── movies/[slug]/      # Movie Detail & Cinema Player page
+│   │   ├── my-list/            # Watchlist & Continue Watching history
+│   │   ├── globals.css         # CSS Tokens, Theme System & Animations
+│   │   └── page.tsx            # Main Homepage
+│   ├── components/             # Reusable UI Components
+│   │   ├── live/               # LivePlayer, LiveFootballClient, LiveTvClient, MatchCard
+│   │   ├── CinemaPlayer.tsx    # Responsive Cinema Video Player
+│   │   ├── VoiceController.tsx # AI Voice Command Controller
+│   │   ├── AiConcierge.tsx     # Gemini AI Concierge Chatbot
+│   │   └── Navbar.tsx          # Netflix-Style Navigation Header
+│   ├── services/               # API Clients & Data Services
+│   │   ├── kkphimService.ts    # KKPhim API Service
+│   │   ├── vsmovService.ts     # VSMOV API Service
+│   │   ├── liveFootballService.ts # Live Sports M3U Parser & Dedup
 │   │   └── liveTvService.ts    # Live TV Channels & Official SVG Logos
 │   └── hooks/                  # Custom React Hooks
 ├── public/                     # Static Assets, SVGs, Favicons
-├── docs/screenshots/           # Screenshots & Banners giới thiệu
-├── README.md                   # Tài liệu dự án
+├── docs/screenshots/           # Screenshots & Preview Banners
+├── README.md                   # Project Documentation
 └── package.json
 ```
 
 ---
 
-## 📄 Bản Quyền & Giấy Phép
+## 📄 License
 
-Dự án được phát hành theo giấy phép **[MIT License](LICENSE)**.
+This project is licensed under the **[MIT License](LICENSE)**.
 
 <div align="center">
-  <sub>Được phát triển với niềm đam mê điện ảnh và công nghệ bởi <strong>NANAFLIX Team</strong> ❤️</sub>
+  <sub>Built with passion for cinema and modern web technologies by <strong>NANAFLIX Team</strong> ❤️</sub>
 </div>
