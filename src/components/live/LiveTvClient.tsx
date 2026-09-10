@@ -563,16 +563,70 @@ export function LiveTvClient({ initialData, isActive = true }: LiveTvClientProps
     [triggerActionFeedback]
   );
 
+  // Toàn màn hình hỗ trợ đa nền tảng (Desktop, Android, iOS Safari)
   const toggleFullscreen = useCallback(() => {
-    if (!containerRef.current) return;
-    if (!document.fullscreenElement) {
-      containerRef.current.requestFullscreen().catch(() => {});
-      setIsFullscreen(true);
-    } else {
-      document.exitFullscreen().catch(() => {});
+    const container = containerRef.current;
+    const video = videoRef.current;
+
+    // Kiểm tra trạng thái fullscreen hiện tại
+    const isDocFs = Boolean(
+      document.fullscreenElement ||
+        (document as unknown as { webkitFullscreenElement?: Element }).webkitFullscreenElement ||
+        (document as unknown as { mozFullScreenElement?: Element }).mozFullScreenElement ||
+        (document as unknown as { msFullscreenElement?: Element }).msFullscreenElement
+    );
+
+    // Kiểm tra trạng thái fullscreen riêng của iOS Safari trên video element
+    const isVideoFs = Boolean(
+      video && (video as unknown as { webkitDisplayingFullscreen?: boolean }).webkitDisplayingFullscreen
+    );
+
+    if (isDocFs || isVideoFs || isFullscreen) {
+      // Thoát toàn màn hình
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      } else if ((document as unknown as { webkitExitFullscreen?: () => void }).webkitExitFullscreen) {
+        (document as unknown as { webkitExitFullscreen: () => void }).webkitExitFullscreen();
+      } else if ((document as unknown as { mozCancelFullScreen?: () => void }).mozCancelFullScreen) {
+        (document as unknown as { mozCancelFullScreen: () => void }).mozCancelFullScreen();
+      } else if ((document as unknown as { msExitFullscreen?: () => void }).msExitFullscreen) {
+        (document as unknown as { msExitFullscreen: () => void }).msExitFullscreen();
+      }
       setIsFullscreen(false);
+    } else {
+      // Bật toàn màn hình
+      if (container && container.requestFullscreen) {
+        container.requestFullscreen().catch(() => {
+          // Fallback cho iOS Safari
+          if (video && (video as unknown as { webkitEnterFullscreen?: () => void }).webkitEnterFullscreen) {
+            (video as unknown as { webkitEnterFullscreen: () => void }).webkitEnterFullscreen();
+          }
+        });
+      } else if (
+        container &&
+        (container as unknown as { webkitRequestFullscreen?: () => void }).webkitRequestFullscreen
+      ) {
+        (container as unknown as { webkitRequestFullscreen: () => void }).webkitRequestFullscreen();
+      } else if (
+        container &&
+        (container as unknown as { mozRequestFullScreen?: () => void }).mozRequestFullScreen
+      ) {
+        (container as unknown as { mozRequestFullScreen: () => void }).mozRequestFullScreen();
+      } else if (
+        container &&
+        (container as unknown as { msRequestFullscreen?: () => void }).msRequestFullscreen
+      ) {
+        (container as unknown as { msRequestFullscreen: () => void }).msRequestFullscreen();
+      } else if (
+        video &&
+        (video as unknown as { webkitEnterFullscreen?: () => void }).webkitEnterFullscreen
+      ) {
+        // iOS Safari trên iPhone bắt buộc dùng webkitEnterFullscreen trên video element
+        (video as unknown as { webkitEnterFullscreen: () => void }).webkitEnterFullscreen();
+      }
+      setIsFullscreen(true);
     }
-  }, []);
+  }, [isFullscreen]);
 
   const togglePip = useCallback(async () => {
     if (!videoRef.current) return;
@@ -585,6 +639,43 @@ export function LiveTvClient({ initialData, isActive = true }: LiveTvClientProps
         setIsPip(true);
       }
     } catch {}
+  }, []);
+
+  useEffect(() => {
+    const handleFsChange = () => {
+      const isFs = Boolean(
+        document.fullscreenElement ||
+          (document as unknown as { webkitFullscreenElement?: Element }).webkitFullscreenElement ||
+          (document as unknown as { mozFullScreenElement?: Element }).mozFullScreenElement ||
+          (document as unknown as { msFullscreenElement?: Element }).msFullscreenElement
+      );
+      setIsFullscreen(isFs);
+    };
+
+    const video = videoRef.current;
+    const handleVideoBeginFs = () => setIsFullscreen(true);
+    const handleVideoEndFs = () => setIsFullscreen(false);
+
+    document.addEventListener("fullscreenchange", handleFsChange);
+    document.addEventListener("webkitfullscreenchange", handleFsChange);
+    document.addEventListener("mozfullscreenchange", handleFsChange);
+    document.addEventListener("MSFullscreenChange", handleFsChange);
+
+    if (video) {
+      video.addEventListener("webkitbeginfullscreen", handleVideoBeginFs);
+      video.addEventListener("webkitendfullscreen", handleVideoEndFs);
+    }
+
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFsChange);
+      document.removeEventListener("webkitfullscreenchange", handleFsChange);
+      document.removeEventListener("mozfullscreenchange", handleFsChange);
+      document.removeEventListener("MSFullscreenChange", handleFsChange);
+      if (video) {
+        video.removeEventListener("webkitbeginfullscreen", handleVideoBeginFs);
+        video.removeEventListener("webkitendfullscreen", handleVideoEndFs);
+      }
+    };
   }, []);
 
   // Chuyển kênh bằng phím mũi tên Trái / Phải
@@ -771,24 +862,45 @@ export function LiveTvClient({ initialData, isActive = true }: LiveTvClientProps
               </span>
             </div>
 
-            {/* NÚT BẬT TIẾNG KHI ĐANG MUTE */}
-            {isPlaying && isMuted && !isLoading && !hasError && (
-              <div
-                onClick={(e) => {
-                  e.stopPropagation();
-                  unmuteSound();
-                }}
-                className="absolute top-3 right-3 sm:top-4 sm:right-4 z-30 animate-bounce cursor-pointer"
-              >
+            {/* NÚT BẬT TIẾNG & NÚT FULLSCREEN NHANH GÓC TRÊN PHẢI */}
+            <div className="absolute top-3 right-3 sm:top-4 sm:right-4 z-30 flex items-center gap-2">
+              {isPlaying && isMuted && !isLoading && !hasError && (
                 <button
                   type="button"
-                  className="flex items-center gap-2 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-full bg-gradient-to-r from-red-600 via-rose-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white text-xs sm:text-sm font-black shadow-2xl border-2 border-white/40 backdrop-blur-md transition-transform hover:scale-105 active:scale-95 cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    unmuteSound();
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-gradient-to-r from-red-600 via-rose-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white text-[11px] sm:text-xs font-black shadow-2xl border border-white/40 backdrop-blur-md transition-transform hover:scale-105 active:scale-95 cursor-pointer animate-bounce"
                 >
-                  <Volume2 className="w-4 h-4 sm:w-5 sm:h-5 animate-pulse" />
-                  <span>🔊 BẬT ÂM THANH ({Math.round(volume * 100)}%)</span>
+                  <Volume2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-pulse" />
+                  <span>BẬT TIẾNG</span>
                 </button>
-              </div>
-            )}
+              )}
+
+              {/* Nút Quick Fullscreen ở góc trên phải cho điện thoại và máy tính */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleFullscreen();
+                }}
+                title={isFullscreen ? "Thu nhỏ (F)" : "Toàn màn hình (F)"}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-full bg-black/75 hover:bg-black/90 text-white text-[11px] sm:text-xs font-bold border border-white/25 backdrop-blur-md shadow-xl transition-transform hover:scale-105 active:scale-95 cursor-pointer flex-shrink-0"
+              >
+                {isFullscreen ? (
+                  <>
+                    <Minimize className="w-3.5 h-3.5 text-white" />
+                    <span className="hidden sm:inline">Thu nhỏ</span>
+                  </>
+                ) : (
+                  <>
+                    <Maximize className="w-3.5 h-3.5 text-white" />
+                    <span className="hidden sm:inline">Toàn màn hình</span>
+                  </>
+                )}
+              </button>
+            </div>
 
             {/* ACTION FEEDBACK OVERLAY (PLAY, PAUSE, VOLUME, CHANNEL SWITCH) */}
             {actionFeedback && (
@@ -873,17 +985,18 @@ export function LiveTvClient({ initialData, isActive = true }: LiveTvClientProps
             {/* THANH ĐIỀU KHIỂN DƯỚI ĐÁY */}
             <div
               onClick={(e) => e.stopPropagation()}
-              className={`absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/95 via-black/60 to-transparent p-3 sm:p-4 flex items-center justify-between z-30 transition-opacity duration-300 ${
+              className={`absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/95 via-black/70 to-transparent p-2.5 sm:p-4 flex items-center justify-between gap-2 z-30 transition-opacity duration-300 ${
                 showControls || !isPlaying
                   ? "opacity-100 pointer-events-auto"
                   : "opacity-0 pointer-events-none"
               }`}
             >
-              <div className="flex items-center gap-2 sm:gap-3">
+              {/* CỤM TRÁI: PLAY/PAUSE + ĐỔI KÊNH + ÂM LƯỢNG */}
+              <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0 flex-shrink">
                 <button
                   type="button"
                   onClick={togglePlay}
-                  className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition backdrop-blur-md cursor-pointer"
+                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/20 hover:bg-white/30 flex-shrink-0 flex items-center justify-center text-white transition backdrop-blur-md cursor-pointer hover:scale-105 active:scale-95"
                 >
                   {isPlaying ? (
                     <Pause className="w-4 h-4 fill-current" />
@@ -893,29 +1006,44 @@ export function LiveTvClient({ initialData, isActive = true }: LiveTvClientProps
                 </button>
 
                 {/* NÚT CHUYỂN KÊNH TRƯỚC / SAU TRÊN CONTROL */}
-                <div className="flex items-center bg-black/60 rounded-full border border-white/15 p-0.5 backdrop-blur-md">
+                <div className="flex items-center bg-black/60 rounded-full border border-white/15 p-0.5 backdrop-blur-md flex-shrink-0">
                   <button
                     type="button"
                     onClick={() => handleSwitchChannel("prev")}
                     title="Kênh trước (Phím ←)"
-                    className="p-1.5 text-gray-300 hover:text-white hover:bg-white/10 rounded-full transition cursor-pointer"
+                    className="p-1 sm:p-1.5 text-gray-300 hover:text-white hover:bg-white/10 rounded-full transition cursor-pointer"
                   >
-                    <ChevronLeft className="w-3.5 h-3.5" />
+                    <ChevronLeft className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                   </button>
-                  <span className="text-[10px] font-mono font-bold px-1.5 text-sky-300 whitespace-nowrap">
+                  <span className="text-[9px] sm:text-[10px] font-mono font-bold px-1 sm:px-1.5 text-sky-300 whitespace-nowrap">
                     Đổi kênh
                   </span>
                   <button
                     type="button"
                     onClick={() => handleSwitchChannel("next")}
                     title="Kênh kế tiếp (Phím →)"
-                    className="p-1.5 text-gray-300 hover:text-white hover:bg-white/10 rounded-full transition cursor-pointer"
+                    className="p-1 sm:p-1.5 text-gray-300 hover:text-white hover:bg-white/10 rounded-full transition cursor-pointer"
                   >
-                    <ChevronRight className="w-3.5 h-3.5" />
+                    <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                   </button>
                 </div>
 
-                <div className="flex items-center gap-2 bg-black/60 px-3 py-2 rounded-full border border-white/20 backdrop-blur-md">
+                {/* CỤM VOLUME TRÊN MOBILE (Chỉ hiện nút Mute) */}
+                <button
+                  type="button"
+                  onClick={toggleMute}
+                  title={isMuted ? "Bật âm thanh (M)" : "Tắt âm thanh (M)"}
+                  className="sm:hidden w-8 h-8 rounded-full bg-black/60 border border-white/20 flex items-center justify-center text-white hover:text-rose-400 transition cursor-pointer flex-shrink-0"
+                >
+                  <VolumeIcon
+                    className={`w-4 h-4 ${
+                      isMuted || volume === 0 ? "text-rose-400" : "text-white"
+                    }`}
+                  />
+                </button>
+
+                {/* CỤM VOLUME TRÊN TABLET & DESKTOP (Hiện đầy đủ Slider + % text) */}
+                <div className="hidden sm:flex items-center gap-2 bg-black/60 px-3 py-2 rounded-full border border-white/20 backdrop-blur-md">
                   <button
                     type="button"
                     onClick={toggleMute}
@@ -944,7 +1072,8 @@ export function LiveTvClient({ initialData, isActive = true }: LiveTvClientProps
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              {/* CỤM PHẢI: PIP + FULLSCREEN */}
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
                 <span className="hidden lg:inline text-[11px] text-gray-400 bg-black/50 px-2.5 py-1 rounded-full border border-white/10 font-mono">
                   Space: Dừng/Phát • ← / →: Đổi Kênh • F: Fullscreen
                 </span>
@@ -954,20 +1083,21 @@ export function LiveTvClient({ initialData, isActive = true }: LiveTvClientProps
                   type="button"
                   onClick={togglePip}
                   title="Xem thu nhỏ góc màn hình (PiP - Phím P)"
-                  className={`w-10 h-10 rounded-full flex items-center justify-center transition backdrop-blur-md cursor-pointer border border-white/10 ${
+                  className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition backdrop-blur-md cursor-pointer border border-white/10 flex-shrink-0 ${
                     isPip
                       ? "bg-netflix-red text-white"
                       : "bg-white/20 hover:bg-white/30 text-white"
                   }`}
                 >
-                  <PictureInPicture2 className="w-4 h-4" />
+                  <PictureInPicture2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </button>
 
-                {/* Nút Toàn màn hình */}
+                {/* Nút Toàn màn hình - Nổi bật và luôn hiển thị trên mobile */}
                 <button
                   type="button"
                   onClick={toggleFullscreen}
-                  className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition backdrop-blur-md cursor-pointer"
+                  title={isFullscreen ? "Thu nhỏ (F)" : "Toàn màn hình (F)"}
+                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-netflix-red sm:bg-white/20 hover:bg-red-700 sm:hover:bg-white/30 flex items-center justify-center text-white transition backdrop-blur-md cursor-pointer flex-shrink-0 shadow-lg border border-white/20 active:scale-95"
                 >
                   {isFullscreen ? (
                     <Minimize className="w-4 h-4" />
