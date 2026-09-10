@@ -188,6 +188,12 @@ const standingsMemoryCache = new Map<string, { data: TeamStanding[]; expireAt: n
 const scoreboardMemoryCache = new Map<string, { data: LiveScoreboardMatch[]; expireAt: number }>();
 const matchSummaryMemoryCache = new Map<string, { data: MatchSummaryData; expireAt: number }>();
 
+const DEFAULT_HEADERS = {
+  "User-Agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+  Accept: "application/json",
+};
+
 // 1. Fetch League Standings
 export async function fetchLeagueStandings(leagueId: string = "eng.1"): Promise<TeamStanding[]> {
   const now = Date.now();
@@ -200,8 +206,9 @@ export async function fetchLeagueStandings(leagueId: string = "eng.1"): Promise<
 
   try {
     const res = await fetch(`https://site.api.espn.com/apis/v2/sports/soccer/${leagueId}/standings`, {
+      headers: DEFAULT_HEADERS,
       next: { revalidate: 1800 },
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(6000),
     });
 
     if (res.ok) {
@@ -257,67 +264,87 @@ export async function fetchLeagueScoreboard(leagueId: string = "eng.1"): Promise
     }
   }
 
-  try {
-    const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/${leagueId}/scoreboard`, {
-      next: { revalidate: 30 },
-      signal: AbortSignal.timeout(5000),
-    });
+  // Tạo dải ngày linh hoạt (từ 4 ngày trước đến 6 ngày tới) để luôn hiển thị đủ trọn vẹn vòng đấu
+  const nowObj = new Date();
+  const pastObj = new Date(nowObj.getTime() - 4 * 24 * 60 * 60 * 1000);
+  const futureObj = new Date(nowObj.getTime() + 6 * 24 * 60 * 60 * 1000);
+  const fmt = (d: Date) => d.toISOString().slice(0, 10).replace(/-/g, "");
+  const dateRange = `${fmt(pastObj)}-${fmt(futureObj)}`;
 
-    if (res.ok) {
-      const json = await res.json();
-      const leagueName = json.leagues?.[0]?.name || "Bóng đá";
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const rawEvents = json.events || [];
+  const urlsToTry = [
+    `https://site.api.espn.com/apis/site/v2/sports/soccer/${leagueId}/scoreboard?dates=${dateRange}`,
+    `https://site.api.espn.com/apis/site/v2/sports/soccer/${leagueId}/scoreboard`,
+  ];
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const matches: LiveScoreboardMatch[] = rawEvents.map((ev: any) => {
-        const comp = ev.competitions?.[0] || {};
-        const homeComp = (comp.competitors || []).find((c: any) => c.homeAway === "home") || comp.competitors?.[0] || {};
-        const awayComp = (comp.competitors || []).find((c: any) => c.homeAway === "away") || comp.competitors?.[1] || {};
-
-        const state = ev.status?.type?.state as "pre" | "in" | "post" || "pre";
-        const isLive = state === "in";
-
-        return {
-          id: ev.id,
-          name: ev.name || `${homeComp.team?.displayName} vs ${awayComp.team?.displayName}`,
-          shortName: ev.shortName || `${homeComp.team?.shortDisplayName} vs ${awayComp.team?.shortDisplayName}`,
-          date: ev.date || "",
-          statusState: state,
-          statusDetail: ev.status?.type?.detail || (isLive ? "Đang đá" : state === "post" ? "Hết giờ" : "Sắp đá"),
-          clock: ev.status?.displayClock || "",
-          isLive,
-          leagueId,
-          leagueName,
-          homeTeam: {
-            id: homeComp.team?.id || "home",
-            name: homeComp.team?.displayName || homeComp.team?.name || "Đội nhà",
-            shortName: homeComp.team?.shortDisplayName || homeComp.team?.abbreviation,
-            logo: homeComp.team?.logo || homeComp.team?.logos?.[0]?.href,
-            score: Number(homeComp.score || 0),
-            winner: homeComp.winner,
-          },
-          awayTeam: {
-            id: awayComp.team?.id || "away",
-            name: awayComp.team?.displayName || awayComp.team?.name || "Đội khách",
-            shortName: awayComp.team?.shortDisplayName || awayComp.team?.abbreviation,
-            logo: awayComp.team?.logo || awayComp.team?.logos?.[0]?.href,
-            score: Number(awayComp.score || 0),
-            winner: awayComp.winner,
-          },
-          venue: comp.venue?.fullName || comp.venue?.address?.city,
-        };
+  for (const url of urlsToTry) {
+    try {
+      const res = await fetch(url, {
+        headers: DEFAULT_HEADERS,
+        next: { revalidate: 20 },
+        signal: AbortSignal.timeout(6000),
       });
 
-      scoreboardMemoryCache.set(leagueId, {
-        data: matches,
-        expireAt: now + 20 * 1000, // 20s cache
-      });
+      if (res.ok) {
+        const json = await res.json();
+        const leagueName = json.leagues?.[0]?.name || "Bóng đá";
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const rawEvents = json.events || [];
 
-      return matches;
+        if (rawEvents.length === 0 && url === urlsToTry[0]) {
+          continue; // thử url tiếp theo
+        }
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const matches: LiveScoreboardMatch[] = rawEvents.map((ev: any) => {
+          const comp = ev.competitions?.[0] || {};
+          const homeComp = (comp.competitors || []).find((c: any) => c.homeAway === "home") || comp.competitors?.[0] || {};
+          const awayComp = (comp.competitors || []).find((c: any) => c.homeAway === "away") || comp.competitors?.[1] || {};
+
+          const state = (ev.status?.type?.state as "pre" | "in" | "post") || "pre";
+          const isLive = state === "in";
+
+          return {
+            id: ev.id,
+            name: ev.name || `${homeComp.team?.displayName} vs ${awayComp.team?.displayName}`,
+            shortName: ev.shortName || `${homeComp.team?.shortDisplayName} vs ${awayComp.team?.shortDisplayName}`,
+            date: ev.date || "",
+            statusState: state,
+            statusDetail: ev.status?.type?.detail || (isLive ? "Đang đá" : state === "post" ? "Hết giờ" : "Sắp đá"),
+            clock: ev.status?.displayClock || "",
+            isLive,
+            leagueId,
+            leagueName,
+            homeTeam: {
+              id: homeComp.team?.id || "home",
+              name: homeComp.team?.displayName || homeComp.team?.name || "Đội nhà",
+              shortName: homeComp.team?.shortDisplayName || homeComp.team?.abbreviation,
+              logo: homeComp.team?.logo || homeComp.team?.logos?.[0]?.href,
+              score: Number(homeComp.score || 0),
+              winner: homeComp.winner,
+            },
+            awayTeam: {
+              id: awayComp.team?.id || "away",
+              name: awayComp.team?.displayName || awayComp.team?.name || "Đội khách",
+              shortName: awayComp.team?.shortDisplayName || awayComp.team?.abbreviation,
+              logo: awayComp.team?.logo || awayComp.team?.logos?.[0]?.href,
+              score: Number(awayComp.score || 0),
+              winner: awayComp.winner,
+            },
+            venue: comp.venue?.fullName || comp.venue?.address?.city,
+          };
+        });
+
+        if (matches.length > 0) {
+          scoreboardMemoryCache.set(leagueId, {
+            data: matches,
+            expireAt: now + 20 * 1000, // 20s cache
+          });
+          return matches;
+        }
+      }
+    } catch (error) {
+      console.error(`Lỗi tải tỉ số live ${leagueId} từ ${url}:`, error);
     }
-  } catch (error) {
-    console.error(`Lỗi tải tỉ số live ${leagueId}:`, error);
   }
 
   return [];
@@ -402,6 +429,7 @@ export async function fetchMatchSummary(eventId: string): Promise<MatchSummaryDa
 
   try {
     const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/all/summary?event=${eventId}`, {
+      headers: DEFAULT_HEADERS,
       next: { revalidate: 20 },
       signal: AbortSignal.timeout(6000),
     });
@@ -482,6 +510,7 @@ export async function fetchMatchSummary(eventId: string): Promise<MatchSummaryDa
         const espnPromises = candidateSlugs.map(async (slug) => {
           try {
             const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/${slug}/teams/${teamId}/roster`, {
+              headers: DEFAULT_HEADERS,
               next: { revalidate: 1800 },
               signal: AbortSignal.timeout(3500),
             });
