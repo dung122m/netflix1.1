@@ -1,204 +1,222 @@
 <div align="center">
 
-# AI Website Cloner Template
+<img src="docs/screenshots/banner.png" alt="Nanaflix Banner" width="100%" style="border-radius: 16px; box-shadow: 0 20px 50px rgba(0,0,0,0.8);" />
 
-### Clone any website with one command
-
-Give your AI coding agent a URL and watch it recreate the website as a clean Next.js app.
-
-**Best results with [Claude Code](https://docs.anthropic.com/en/docs/claude-code) + Opus 5. Works with Codex, Cursor, Gemini, and more.**
-
-[![Use this template](https://img.shields.io/badge/Use_this_template-Create_your_copy-2ea44f?style=for-the-badge&logo=github&logoColor=white)](https://github.com/JCodesMore/ai-website-cloner-template/generate) [![Discord](https://img.shields.io/badge/Join_the_community-Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/hrTSX5yTpB)
-
-[Quick Start](#quick-start) · [Watch Demo](#demo) · [Supported Platforms](#supported-platforms)
-
-<a href="https://github.com/JCodesMore/ai-website-cloner-template/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT License" /></a> <a href="https://github.com/JCodesMore/ai-website-cloner-template"><img src="https://img.shields.io/github/stars/JCodesMore/ai-website-cloner-template?style=flat" alt="Stars" /></a> <img src="https://img.shields.io/endpoint?url=https://gittokens.rsamf.com/badge/JCodesMore/ai-website-cloner-template" alt="tokens" />
-
-  <a href="https://trendshift.io/repositories/24302?utm_source=repository-badge&amp;utm_medium=badge&amp;utm_campaign=badge-repository-24302" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/repositories/24302" alt="JCodesMore%2Fai-website-cloner-template | Trendshift" width="250" height="55" /></a> <a href="https://www.star-history.com/jcodesmore/ai-website-cloner-template/"><picture><source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/badge?repo=JCodesMore/ai-website-cloner-template&amp;theme=dark" /><source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/badge?repo=JCodesMore/ai-website-cloner-template" /><img alt="Star History Global Rank" src="https://api.star-history.com/badge?repo=JCodesMore/ai-website-cloner-template" width="216" height="55" /></picture></a>
-
-<br />
-<sub><strong>SPONSORED BY</strong></sub>
 <br /><br />
-<a href="https://www.rapidproxy.io/?ref=JCM"><img src="docs/assets/sponsors/rapidproxy-banner.png" alt="RapidProxy residential proxy service" width="680" /></a>
+
+# 🎬 NANAFLIX - NEXT-GEN STREAMING PLATFORM
+
+### *Nền tảng Xem Phim & Trực Tiếp Bóng Đá / Truyền Hình TV Trực Tuyến Đỉnh Cao*
+
+[![Next.js 16](https://img.shields.io/badge/Next.js-16.0-black?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
+[![React 19](https://img.shields.io/badge/React-19.0-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+[![Google Gemini AI](https://img.shields.io/badge/Google_Gemini-AI_Powered-EA4335?style=for-the-badge&logo=google&logoColor=white)](https://ai.google.dev/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
+[![Vercel Ready](https://img.shields.io/badge/Vercel-Deployed-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://vercel.com/)
+
 <br />
-<sub>Power your scraping and automation with 90M+ residential IPs, 500MB free traffic, and non-expiring bandwidth. <a href="https://www.rapidproxy.io/?ref=JCM">Explore RapidProxy →</a></sub>
+
+[✨ Tính Năng](#-tính-năng-nổi-bật) • [📸 Giao Diện](#-hình-ảnh-giao-diện-thực-tế) • [🛠️ Công Nghệ](#️-công-nghệ-sử-dụng) • [🚀 Cài Đặt](#-hướng-dẫn-cài-đặt--chạy-dự-án) • [⌨️ Phím Tắt](#️-bảng-phím-tắt-tiện-ích)
 
 </div>
 
 ---
 
-## Demo
+## 🌟 Giới Thiệu
 
-[![Watch the demo](docs/design-references/comparison.png)](https://youtu.be/O669pVZ_qr0)
+**NANAFLIX** là ứng dụng web giải trí đa phương tiện thế hệ mới được xây dựng trên nền tảng **Next.js 16 (App Router)** và **React 19**. Ứng dụng mang đến trải nghiệm điện ảnh chuẩn rạp ngay trên trình duyệt, kết hợp trí tuệ nhân tạo **Google Gemini AI**, tính năng **điều khiển bằng giọng nói tiếng Việt**, cùng hệ thống phát trực tiếp **Bóng đá đỉnh cao** và hơn **100+ kênh truyền hình TV** chuẩn Full HD độ trễ cực thấp (*Ultra Low Latency*).
 
-> Click the image above to watch the full demo on YouTube.
+---
 
-## Quick Start
+## ✨ Tính Năng Nổi Bật
 
-> **Important:** Start by making your own copy with GitHub's **Use this template** button. Do not clone this template repository directly for your website project, and do not open pull requests here with your generated website.
+### 🤖 1. Trợ Lý Điện Ảnh AI Thông Minh (Google Gemini AI)
+- **Nana AI Movie Concierge**: Trò chuyện tự nhiên, tư vấn phim theo tâm trạng, sở thích, cốt truyện hoặc diễn viên yêu thích.
+- **Nana AI Roulette**: Vòng quay may mắn gợi ý phim ngẫu nhiên khi bạn chưa biết xem gì hôm nay.
+- **Tóm tắt cốt truyện thông minh**: AI tự động trích xuất điểm nhấn, thông điệp và đánh giá phim súc tích.
 
-1. **Create your own repository from this template**
+### 🎙️ 2. Điều Khiển Bằng Giọng Nói (AI Voice Assistant)
+- Tích hợp chuẩn **Web Speech API** với bộ lọc tiếng Việt chuẩn xác.
+- Nhận diện tức thì các câu lệnh tự nhiên:
+  - *"Tìm phim hành động Hàn Quốc"*
+  - *"Mở phim Squid Game"*
+  - *"Xem trực tiếp bóng đá"*
+  - *"Bật kênh VTV3"*
+- Hỗ trợ phản hồi bằng giọng nói tiếng Việt mượt mà, tự nhiên.
 
-   On the GitHub page for this project, click **Use this template**, then click **Create a new repository**.
+### 🍿 3. Kho Phim Kép Đồ Sộ (Dual Aggregator Engine)
+- Tích hợp đồng thời 2 nguồn phim hàng đầu: **KKPhim** và **VSMOV**.
+- Thuật toán **khử trùng lặp thông minh (Deduplication)**: Tự động gộp phim cùng tên và gom nguồn phát chất lượng cao nhất.
+- Bộ lọc đa chiều: Lọc chuẩn xác theo **Loại phim** (Phim lẻ, Phim bộ, Hoạt hình, TV Shows), **Thể loại**, **Quốc gia**, **Năm phát hành** và **Sắp xếp**.
 
-   Give your new repository a name, choose whether it should be public or private, then click **Create repository**. If GitHub shows an **Include all branches** option, you can leave it off.
+### ⚽ 4. Trực Tiếp Bóng Đá HD Có BLV Tiếng Việt
+- Tổng hợp các trận đấu hấp dẫn từ Ngoại Hạng Anh, Cúp C1 Champions League, La Liga, Serie A, Bundesliga, V-League, MLS, Saudi League...
+- Bình luận viên tiếng Việt sôi động từ **Xôi Lạc, Cola TV, Gà Vàng, S8 TV, Cà Khịa TV**.
+- Phân luồng thời gian thực: Đang đá (`LIVE`), Sắp diễn ra (`2h tới`), hoặc Toàn bộ lịch thi đấu.
+- Tính năng **Hẹn giờ nhắc trận đấu (Match Reminder)**: Đặt lịch và nhận thông báo trước giờ bóng lăn.
 
-   This gives you your own separate project to work in, so your website changes stay in your account instead of coming back to the main template.
+### 📺 5. Truyền Hình TV Trực Tuyến 100+ Kênh Chuẩn FHD
+- Danh mục đa dạng: **Kênh VTV (VTV1 - VTV9), Kênh HTV/HTVC, Truyền hình Vĩnh Long (THVL), Kênh Thể Thao, Kênh Quốc Tế (Red Bull TV, NASA TV, NHK World)**.
+- Logo đài truyền hình chuẩn SVG vector sắc nét.
+- Hoạt ảnh sóng âm **Equalizer** nhảy theo nhịp kênh đang phát sóng.
+- Dải kênh phổ biến **Quick Access Bar**: Chuyển kênh tức thì với 1-chạm.
 
-2. **Open your new repository on your computer**
+### 🎭 6. Trình Phát Rạp Phim (Cinema Player) Vừa Khung Nhìn
+- **Thiết kế tối ưu Viewport**: Vừa vặn 100% trong khung hình màn hình, người dùng có thể điều khiển Play/Pause, Âm lượng, Chọn tập mà **không cần phải cuộn/lăn chuột**.
+- **Chế độ Rạp phim (Theater Mode)** & **Tắt đèn (Lights Off)** cho trải nghiệm xem đắm chìm.
+- **Hẹn giờ tắt phim thông minh (Sleep Timer)**: Tự động dừng phát sau 15p, 30p, 45p, 60p hoặc khi hết tập.
+- **Thu nhỏ góc màn hình (Picture-in-Picture)** & Mini Floating Player khi cuộn trang.
+- **Tự động lưu lịch sử xem & Xem tiếp (Continue Watching)**.
 
-   After GitHub creates your copy, open that new repository. Click **Code** and open or clone your new repository with your preferred coding tool.
+---
 
-   If you use the terminal, the command will look like this:
+## 📸 Hình Ảnh Giao Diện Thực Tế
 
-   ```bash
-   git clone https://github.com/YOUR-USERNAME/YOUR-NEW-REPOSITORY.git
-   cd YOUR-NEW-REPOSITORY
-   ```
+<div align="center">
 
-3. **Install dependencies**
-   ```bash
-   npm install
-   ```
-4. **Start your AI agent** — Claude Code recommended:
-   ```bash
-   claude --chrome
-   ```
-5. **Run the skill**:
-   ```
-   /clone-website <target-url1> [<target-url2> ...]
-   ```
-6. **Customize** (optional) — after the base clone is built, modify as needed
+### 🎬 Trình Phát Phim Rạp Chiếu Đỉnh Cao
+<img src="docs/screenshots/cinema-player.png" alt="Cinema Player" width="95%" style="border-radius: 12px; margin-bottom: 20px;" />
 
-> Most supported clients expose `/clone-website` directly. If your client activates skills from natural-language requests, enter `Clone <target-url> using the clone-website workflow`. Project instructions are in `AGENTS.md`.
+### 🌐 Kho Phim & Bộ Lọc Đa Nguồn Chuyên Sâu
+<img src="docs/screenshots/browse-catalog.png" alt="Browse Catalog" width="95%" style="border-radius: 12px; margin-bottom: 20px;" />
 
-## Supported Platforms
+### 🎙️ Trợ Lý Điều Khiển Bằng Giọng Nói & Tương Tác AI
+<img src="docs/screenshots/ai-voice.png" alt="AI Voice Controller" width="95%" style="border-radius: 12px;" />
 
-| Agent                                                         | Status                     |
-| ------------------------------------------------------------- | -------------------------- |
-| [Claude Code](https://docs.anthropic.com/en/docs/claude-code) | **Recommended** — Opus 5   |
-| [Codex CLI](https://github.com/openai/codex)                  | Supported                  |
-| [OpenCode](https://opencode.ai/)                              | Supported                  |
-| [GitHub Copilot](https://github.com/features/copilot)         | Supported                  |
-| [Kiro](https://kiro.dev/)                                    | Supported                  |
-| [Cursor](https://cursor.com/)                                 | Supported                  |
-| [Windsurf](https://codeium.com/windsurf)                      | Supported                  |
-| [Gemini CLI](https://github.com/google-gemini/gemini-cli)     | Supported                  |
-| [Cline](https://github.com/cline/cline)                       | Supported                  |
-| [Roo Code](https://github.com/RooCodeInc/Roo-Code)            | Supported                  |
-| [Continue](https://continue.dev/)                             | Supported                  |
-| [Amazon Q](https://aws.amazon.com/q/developer/)               | Supported                  |
-| [Augment Code](https://www.augmentcode.com/)                  | Supported                  |
+</div>
 
-## Prerequisites
+---
 
-- [Node.js](https://nodejs.org/) 24+
-- An AI coding agent (see [Supported Platforms](#supported-platforms))
+## 🛠️ Công Nghệ Sử Dụng
 
-## Tech Stack
+| Lĩnh Vực | Công Nghệ / Thư Viện |
+| :--- | :--- |
+| **Framework** | [Next.js 16 (App Router)](https://nextjs.org/) + [React 19](https://react.dev/) |
+| **Ngôn Ngữ** | [TypeScript 5](https://www.typescriptlang.org/) (Strict Mode) |
+| **Styling & UI** | [Tailwind CSS v4](https://tailwindcss.com/) + CSS Variables Tokens + Glassmorphism |
+| **Icons & Hoạt Ảnh** | [Lucide React](https://lucide.dev/) + Framer Motion |
+| **AI Integration** | [Google Gemini 1.5 Flash API](https://ai.google.dev/) (`@google/genai`) |
+| **Voice Engine** | Web Speech API (SpeechRecognition & SpeechSynthesis Native TTS) |
+| **Video Stream** | [HLS.js](https://github.com/video-dev/hls.js) (Ultra Low Latency Engine) + Proxy Stream |
+| **Data Sources** | KKPhim API, VSMOV API, Vietnam IPTV M3U, Live Sports Stream |
+| **Deployment** | [Vercel](https://vercel.com/) |
 
-- **Next.js 16** — App Router, React 19, TypeScript strict
-- **shadcn/ui** — Radix primitives + Tailwind CSS v4
-- **Tailwind CSS v4** — oklch design tokens
-- **Lucide React** — default icons (replaced by extracted SVGs during cloning)
+---
 
-## How It Works
+## 🚀 Hướng Dẫn Cài Đặt & Chạy Dự Án
 
-The `/clone-website` skill runs a multi-phase pipeline:
+### 1. Yêu Cầu Môi Trường
+- [Node.js](https://nodejs.org/) phiên bản **18.18+** hoặc **20+**
+- Trình quản lý gói `npm` hoặc `pnpm` / `yarn`
 
-```mermaid
-flowchart LR
-    P1["1. Reconnaissance"] --> P2["2. Foundation"]
-    P2 --> P3["3. Component Specs"]
-    P3 --> P4["4. Parallel Build"]
-    P4 --> P5["5. Assembly and QA"]
-```
-
-1. **Reconnaissance** — screenshots, design token extraction, interaction sweep (scroll, click, hover, responsive)
-2. **Foundation** — updates fonts, colors, globals, downloads all assets
-3. **Component Specs** — writes detailed spec files (`docs/research/components/`) with exact computed CSS values, states, behaviors, and content
-4. **Parallel Build** — dispatches builder agents in git worktrees, one per section/component
-5. **Assembly & QA** — merges worktrees, wires up the page, runs visual diff against the original
-
-Each builder agent receives the full component specification inline — exact `getComputedStyle()` values, interaction models, multi-state content, responsive breakpoints, and asset paths. No guessing.
-
-## Use Cases
-
-- **Platform migration** — rebuild a site you own from WordPress/Webflow/Squarespace into a modern Next.js codebase
-- **Lost source code** — your site is live but the repo is gone, the developer left, or the stack is legacy. Get the code back in a modern format
-- **Learning** — deconstruct how production sites achieve specific layouts, animations, and responsive behavior by working with real code
-
-## Not Intended For
-
-- **Phishing or impersonation** — this project must not be used for deceptive purposes, impersonation, or any activity that breaks the law.
-- **Passing off someone's design as your own** — logos, brand assets, and original copy belong to their owners.
-- **Violating terms of service** — some sites explicitly prohibit scraping or reproduction. Check first.
-
-## Project Structure
-
-```
-src/
-  app/              # Next.js routes
-  components/       # React components
-    ui/             # shadcn/ui primitives
-    icons.tsx       # Extracted SVG icons
-  lib/utils.ts      # cn() utility
-  types/            # TypeScript interfaces
-  hooks/            # Custom React hooks
-public/
-  images/           # Downloaded images from target
-  videos/           # Downloaded videos from target
-  seo/              # Favicons, OG images
-docs/
-  research/         # Extraction output & component specs
-  design-references/ # Screenshots
-scripts/
-  sync-agent-rules.sh  # Regenerate agent instruction files
-  sync-skills.mjs      # Regenerate /clone-website for all platforms
-.kiro/skills/          # Generated Kiro workspace skill
-.cline/skills/         # Generated Cline workspace skill
-.roo/skills/           # Generated Roo Code workspace skill
-.roo/commands/         # Generated Roo Code slash command
-AGENTS.md           # Agent instructions (single source of truth)
-CLAUDE.md           # Claude Code config (imports AGENTS.md)
-GEMINI.md           # Gemini CLI config (imports AGENTS.md)
-```
-
-## Commands
-
+### 2. Tải Mã Nguồn & Cài Đặt Thư Viện
 ```bash
-npm run dev    # Start dev server
-npm run build  # Production build
-npm run lint   # ESLint check
-npm run typecheck # TypeScript check
-npm run check  # Run lint + typecheck + build
+# Clone repository
+git clone https://github.com/dung122m/netflix1.1.git
+
+# Di chuyển vào thư mục dự án
+cd netflix1.1
+
+# Cài đặt các dependencies
+npm install
 ```
 
-### If using docker
+### 3. Cấu Hình Biến Môi Trường (`.env.local`)
+Tạo file `.env.local` ở thư mục gốc và cấu hình API Key của Google Gemini:
 
+```env
+# Google Gemini AI API Key (Lấy miễn phí tại https://aistudio.google.com/)
+GEMINI_API_KEY=your_gemini_api_key_here
+
+# (Tùy chọn) Next.js Public Config
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
+
+### 4. Khởi Chạy Server Phát Triển (Development)
 ```bash
-docker compose up app --build # build and run the app
-docker compose up dev --build # run the app in dev mode on port 3001
+npm run dev
+```
+Mở trình duyệt và truy cập: **`http://localhost:3000`**
+
+### 5. Kiểm Tra Chất Lượng Mã Nguồn & Build
+```bash
+# Kiểm tra Type Safety
+npm run typecheck
+
+# Kiểm tra Linter
+npm run lint
+
+# Build bản Production
+npm run build
 ```
 
-## Updating for Other Platforms
+---
 
-Two source-of-truth files power all platform support. Edit the source, then run the sync script:
+## ⌨️ Bảng Phím Tắt Tiện Ích
 
-| What                   | Source of truth                         | Sync command                       |
-| ---------------------- | --------------------------------------- | ---------------------------------- |
-| Project instructions   | `AGENTS.md`                             | `bash scripts/sync-agent-rules.sh` |
-| `/clone-website` skill | `.claude/skills/clone-website/SKILL.md` | `node scripts/sync-skills.mjs`     |
+### 🎬 Trình Phát Phim (Cinema Player):
+| Phím Tắt | Chức Năng |
+| :---: | :--- |
+| `Space` | Tạm dừng / Tiếp tục phát video |
+| `F` | Bật / Thoát chế độ Toàn màn hình (*Fullscreen*) |
+| `T` | Bật / Tắt chế độ Rạp phim (*Theater Mode*) |
+| `L` | Bật / Tắt đèn nền (*Lights Off*) |
+| `P` | Chuyển về tập phim trước |
+| `N` | Chuyển sang tập phim kế tiếp |
+| `?` | Mở bảng hướng dẫn phím tắt |
+| `Esc` | Thoát chế độ Rạp phim / Bật lại đèn |
 
-Each script regenerates the platform-specific copies automatically. Agents that read the source files natively need no regeneration.
+### ⚽ Trình Phát Bóng Đá & 📺 Truyền Hình TV:
+| Phím Tắt | Chức Năng |
+| :---: | :--- |
+| `Space` | Dừng / Phát luồng trực tiếp |
+| `M` | Bật / Tắt âm thanh (*Mute/Unmute*) |
+| `F` | Bật / Thoát toàn màn hình |
+| `P` | Xem thu nhỏ góc màn hình (*Picture-in-Picture*) |
+| `↑` / `↓` | Tăng / Giảm âm lượng 10% |
+| `←` / `→` | **Chuyển máy chủ phát** *(Bóng đá)* hoặc **Lướt kênh trước / sau** *(Live TV)* |
 
+---
 
-## Star History
+## 📁 Cấu Trúc Thư Mục Dự Án
 
-![Star History Chart](docs/assets/star-history.png)
+```plaintext
+netflix1.1/
+├── src/
+│   ├── app/                    # Next.js App Router Pages & API Routes
+│   │   ├── api/                # API Routes (Gemini AI, Voice, Live Proxy, Match)
+│   │   ├── browse/             # Trang Khám phá & Lọc phim nâng cao
+│   │   ├── live/               # Trang Trực tiếp Bóng đá & Truyền hình TV
+│   │   ├── movies/[slug]/      # Trang Chi tiết phim & Trình phát rạp chiếu
+│   │   ├── my-list/            # Danh sách phim yêu thích & Lịch sử xem
+│   │   ├── globals.css         # CSS Tokens, Ambient Light & Theme System
+│   │   └── page.tsx            # Trang chủ Nanaflix Home Page
+│   ├── components/             # React UI Components
+│   │   ├── live/               # LivePlayer, LiveFootballClient, LiveTvClient
+│   │   ├── CinemaPlayer.tsx    # Trình phát phim rạp chuyên nghiệp
+│   │   ├── VoiceController.tsx # Trợ lý điều khiển bằng giọng nói
+│   │   ├── AiConcierge.tsx     # Chatbot tư vấn phim Gemini AI
+│   │   └── Navbar.tsx          # Thanh điều hướng chuẩn Netflix
+│   ├── services/               # Data Fetching & API Aggregators
+│   │   ├── kkphimService.ts    # KKPhim API Client
+│   │   ├── vsmovService.ts     # VSMOV API Client
+│   │   ├── liveFootballService.ts # Live Football M3U Parser & Dedup
+│   │   └── liveTvService.ts    # Live TV Channels & Official SVG Logos
+│   └── hooks/                  # Custom React Hooks
+├── public/                     # Static Assets, SVGs, Favicons
+├── docs/screenshots/           # Screenshots & Banners giới thiệu
+├── README.md                   # Tài liệu dự án
+└── package.json
+```
 
-## License
+---
 
-MIT
+## 📄 Bản Quyền & Giấy Phép
 
-<sub>Translations: <a href="README.ja.md">日本語</a> · <a href="README.zh-CN.md">Simplified Chinese</a></sub>
+Dự án được phát hành theo giấy phép **[MIT License](LICENSE)**.
+
+<div align="center">
+  <sub>Được phát triển với niềm đam mê điện ảnh và công nghệ bởi <strong>NANAFLIX Team</strong> ❤️</sub>
+</div>
