@@ -60,6 +60,8 @@ export interface MediaCardProps {
   title: string;
   origin_name?: string;
   imageUrl: string;
+  posterUrl?: string;
+  thumbUrl?: string;
   genre: string;
   description?: string;
   priority?: boolean;
@@ -85,6 +87,8 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   title,
   origin_name,
   imageUrl,
+  posterUrl,
+  thumbUrl,
   genre,
   description,
   priority = false,
@@ -106,21 +110,51 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   const [inList, setInList] = useState(false);
   const [liked, setLiked] = useState(false);
   const [isImgLoaded, setIsImgLoaded] = useState(false);
-  const [currentImgSrc, setCurrentImgSrc] = useState(imageUrl);
+
+  // Danh sách các link ảnh dự phòng theo thứ tự ưu tiên
+  const candidateImages = React.useMemo(() => {
+    const list: string[] = [];
+    if (imageUrl) list.push(imageUrl);
+    if (thumbUrl && !list.includes(thumbUrl)) list.push(thumbUrl);
+    if (posterUrl && !list.includes(posterUrl)) list.push(posterUrl);
+    return list.filter(
+      (u) =>
+        Boolean(u) &&
+        !u.includes("/undefined") &&
+        !u.includes("/null") &&
+        !u.startsWith("/default-")
+    );
+  }, [imageUrl, thumbUrl, posterUrl]);
+
+  const [imageAttemptIndex, setImageAttemptIndex] = useState(0);
+  const [currentImgSrc, setCurrentImgSrc] = useState(
+    candidateImages[0] || imageUrl || "/default-hero.svg"
+  );
 
   useEffect(() => {
-    setCurrentImgSrc(imageUrl);
-  }, [imageUrl]);
+    setImageAttemptIndex(0);
+    setCurrentImgSrc(candidateImages[0] || imageUrl || "/default-hero.svg");
+  }, [imageUrl, candidateImages]);
 
   const handleImageError = () => {
+    // 1. Nếu đang thử link TMDb CDN (từ VSMOV) bị lỗi 404, thử link gốc lưu trữ VSMOV
     if (currentImgSrc.includes("image.tmdb.org")) {
       const match = currentImgSrc.match(/\/w500\/([a-zA-Z0-9_-]{20,}\.(?:jpg|jpeg|png|webp))/i);
       if (match) {
-        // Dự phòng: Thử link gốc VSMOV nếu TMDb không tìm thấy ảnh
         setCurrentImgSrc(`https://vsmov.com/storage/images/${match[1]}`);
         return;
       }
     }
+
+    // 2. Chuyển sang nguồn ảnh tiếp theo trong danh sách candidate (vd: từ thumb_url bị 404 sang poster_url hoạt động tốt)
+    const nextIdx = imageAttemptIndex + 1;
+    if (nextIdx < candidateImages.length) {
+      setImageAttemptIndex(nextIdx);
+      setCurrentImgSrc(candidateImages[nextIdx]);
+      return;
+    }
+
+    // 3. Nếu tất cả đều lỗi 404, chuyển về ảnh placeholder
     setCurrentImgSrc("/default-hero.svg");
     setIsImgLoaded(true);
   };

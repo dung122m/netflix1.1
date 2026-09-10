@@ -6,8 +6,17 @@ export type MovieLike = {
 };
 
 export function sanitizeImageUrl(url: string): string {
-  if (!url) return url;
+  if (!url || typeof url !== "string") return "";
   let clean = url.trim();
+  if (
+    !clean ||
+    clean === "null" ||
+    clean === "undefined" ||
+    clean.endsWith("/null") ||
+    clean.endsWith("/undefined")
+  ) {
+    return "";
+  }
   if (!clean.startsWith("http://") && !clean.startsWith("https://") && !clean.startsWith("/")) {
     clean = `https://phimimg.com/${clean.replace(/^\/+/, "")}`;
   }
@@ -60,7 +69,9 @@ export function pickBestMoviePoster(movie: MovieLike, fallback = "/default-poste
 
   const candidates = [primary, secondary, movie.imageUrl]
     .filter((value): value is string => typeof value === "string" && value.length > 0)
-    .map(sanitizeImageUrl);
+    .map(sanitizeImageUrl)
+    .filter((url) => Boolean(url) && !url.endsWith("/null") && !url.endsWith("/undefined"));
+
   if (candidates.length === 0) return fallback;
 
   // Ưu tiên ảnh poster dọc
@@ -90,7 +101,9 @@ export function pickBestMovieThumb(movie: MovieLike, fallback = "/default-hero.j
 
   const candidates = [primary, secondary, movie.imageUrl]
     .filter((value): value is string => typeof value === "string" && value.length > 0)
-    .map(sanitizeImageUrl);
+    .map(sanitizeImageUrl)
+    .filter((url) => Boolean(url) && !url.endsWith("/null") && !url.endsWith("/undefined"));
+
   if (candidates.length === 0) return fallback;
 
   // Ưu tiên ảnh thumb ngang / backdrop
@@ -250,8 +263,14 @@ export function extractMovieCountry(m: any): string | undefined {
 export function normalizeMovie(m: any): NormalizedMovie {
   const title = m?.name || m?.title || "Phim";
   const origin_name = m?.origin_name || undefined;
-  const posterUrl = pickBestMoviePoster(m, "/default-poster.jpg");
-  const thumbUrl = pickBestMovieThumb(m, "/default-hero.jpg");
+  let posterUrl = pickBestMoviePoster(m, "");
+  let thumbUrl = pickBestMovieThumb(m, "");
+
+  if (!thumbUrl && posterUrl) thumbUrl = posterUrl;
+  if (!posterUrl && thumbUrl) posterUrl = thumbUrl;
+  if (!thumbUrl) thumbUrl = "/default-hero.jpg";
+  if (!posterUrl) posterUrl = "/default-poster.jpg";
+
   const imageUrl = posterUrl;
   const year = m?.year ? String(m.year) : "";
   const quality = m?.quality || "FHD";

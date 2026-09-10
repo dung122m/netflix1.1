@@ -22,6 +22,8 @@ const MovieGridInner = ({ movies }: MovieGridProps) => {
               title={norm.title}
               origin_name={norm.origin_name}
               imageUrl={bestThumb}
+              posterUrl={norm.posterUrl}
+              thumbUrl={norm.thumbUrl}
               genre={norm.genre}
               description={norm.description}
               time={norm.time}

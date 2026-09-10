@@ -278,19 +278,36 @@ async function fetchSourceData(baseUrl: string, params: MovieFilterParams, isSea
           slug?: string;
           [key: string]: unknown;
         }) => {
-          const fixedThumb =
-            typeof item.thumb_url === "string" && item.thumb_url.startsWith("http")
-              ? item.thumb_url
-              : `${imageDomain}/${item.thumb_url}`;
-          const fixedPoster =
-            typeof item.poster_url === "string" && item.poster_url.startsWith("http")
-              ? item.poster_url
-              : `${imageDomain}/${item.poster_url}`;
+          const rawThumb =
+            typeof item.thumb_url === "string" &&
+            item.thumb_url.trim() &&
+            item.thumb_url !== "null" &&
+            item.thumb_url !== "undefined"
+              ? item.thumb_url.trim()
+              : "";
+          const rawPoster =
+            typeof item.poster_url === "string" &&
+            item.poster_url.trim() &&
+            item.poster_url !== "null" &&
+            item.poster_url !== "undefined"
+              ? item.poster_url.trim()
+              : "";
+
+          const cdnClean = imageDomain.replace(/\/+$/, "");
+
+          const formatImg = (path: string) => {
+            if (!path) return "";
+            if (path.startsWith("http://") || path.startsWith("https://")) return path;
+            return `${cdnClean}/${path.replace(/^\/+/, "")}`;
+          };
+
+          const formattedThumb = formatImg(rawThumb);
+          const formattedPoster = formatImg(rawPoster);
 
           return {
             ...item,
-            thumb_url: fixedThumb,
-            poster_url: fixedPoster,
+            thumb_url: formattedThumb || formattedPoster,
+            poster_url: formattedPoster || formattedThumb,
           };
         },
       );
@@ -323,10 +340,12 @@ async function fetchSourceData(baseUrl: string, params: MovieFilterParams, isSea
     }) => {
       const vsmovBackdrop = item.poster_url;
       const vsmovPoster = item.thumb_url;
+      const cleanPoster = vsmovPoster || item.poster_url || "";
+      const cleanThumb = vsmovBackdrop || item.thumb_url || "";
       return {
         ...item,
-        poster_url: vsmovPoster || item.poster_url,
-        thumb_url: vsmovBackdrop || item.thumb_url,
+        poster_url: cleanPoster || cleanThumb,
+        thumb_url: cleanThumb || cleanPoster,
       };
     });
 

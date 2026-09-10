@@ -110,12 +110,30 @@ function MovieCardInner({ m, priority = false }: Props) {
   };
 
   const [isImgLoaded, setIsImgLoaded] = useState(false);
-  const displayImage = posterUrl || imageUrl || "/default-poster.svg";
-  const [currentImgSrc, setCurrentImgSrc] = useState(displayImage);
+
+  const candidateImages = React.useMemo(() => {
+    const list: string[] = [];
+    if (posterUrl) list.push(posterUrl);
+    if (imageUrl && !list.includes(imageUrl)) list.push(imageUrl);
+    if (norm.thumbUrl && !list.includes(norm.thumbUrl)) list.push(norm.thumbUrl);
+    return list.filter(
+      (u) =>
+        Boolean(u) &&
+        !u.includes("/undefined") &&
+        !u.includes("/null") &&
+        !u.startsWith("/default-")
+    );
+  }, [posterUrl, imageUrl, norm.thumbUrl]);
+
+  const [imageAttemptIndex, setImageAttemptIndex] = useState(0);
+  const [currentImgSrc, setCurrentImgSrc] = useState(
+    candidateImages[0] || posterUrl || imageUrl || "/default-poster.svg"
+  );
 
   React.useEffect(() => {
-    setCurrentImgSrc(displayImage);
-  }, [displayImage]);
+    setImageAttemptIndex(0);
+    setCurrentImgSrc(candidateImages[0] || posterUrl || imageUrl || "/default-poster.svg");
+  }, [posterUrl, imageUrl, candidateImages]);
 
   const handleImageError = () => {
     if (currentImgSrc.includes("image.tmdb.org")) {
@@ -125,6 +143,14 @@ function MovieCardInner({ m, priority = false }: Props) {
         return;
       }
     }
+
+    const nextIdx = imageAttemptIndex + 1;
+    if (nextIdx < candidateImages.length) {
+      setImageAttemptIndex(nextIdx);
+      setCurrentImgSrc(candidateImages[nextIdx]);
+      return;
+    }
+
     setCurrentImgSrc("/default-poster.svg");
     setIsImgLoaded(true);
   };
