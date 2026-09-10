@@ -369,7 +369,7 @@ export function LiveFootballClient({
         {/* 1. THANH CHUYỂN DÒNG THỜI GIAN (TIMELINE SEGMENTED TABS) */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-white/10 pb-4">
           {/* Cụm Tabs: Tất cả (±2h) | Đang đá (LIVE) | Sắp đá (2h tới) */}
-          <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-zinc-900/90 border border-white/10 overflow-x-auto scrollbar-none [&::-webkit-scrollbar]:hidden">
+          <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-zinc-900/90 border border-white/10 overflow-x-auto scrollbar-none [&::-webkit-scrollbar]:hidden touch-pan-x max-w-full">
             <button
               type="button"
               onClick={() => setTimelineFilter("all")}
@@ -459,7 +459,7 @@ export function LiveFootballClient({
           </div>
 
           {/* Ô TÌM KIẾM & NÚT FHD & LỊCH NHẮC */}
-          <div className="flex items-center gap-2 w-full lg:w-auto">
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full lg:w-auto">
             {/* NÚT XEM LỊCH NHẮC CỦA TÔI */}
             <button
               type="button"

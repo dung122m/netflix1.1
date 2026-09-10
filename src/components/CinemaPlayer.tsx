@@ -243,12 +243,14 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
               {isTheaterMode ? (
                 <>
                   <Minimize2 className="w-3.5 h-3.5" />
-                  <span>Thu nhỏ player (T)</span>
+                  <span>Thu nhỏ</span>
+                  <span className="hidden sm:inline"> (T)</span>
                 </>
               ) : (
                 <>
                   <Maximize2 className="w-3.5 h-3.5" />
-                  <span>Chế độ Rạp phim (T)</span>
+                  <span>Rạp phim</span>
+                  <span className="hidden sm:inline"> (T)</span>
                 </>
               )}
             </button>
@@ -256,7 +258,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
             <button
               type="button"
               onClick={() => setIsLightsOff(!isLightsOff)}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition cursor-pointer ${
+              className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg border transition cursor-pointer text-xs ${
                 isLightsOff
                   ? "bg-yellow-500/20 text-yellow-300 border-yellow-500/40 font-medium"
                   : "bg-zinc-900/80 hover:bg-zinc-800 text-gray-300 hover:text-white border-white/10"
@@ -265,12 +267,14 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
               {isLightsOff ? (
                 <>
                   <Sun className="w-3.5 h-3.5 text-yellow-400" />
-                  <span>Bật đèn (L)</span>
+                  <span>Bật đèn</span>
+                  <span className="hidden sm:inline"> (L)</span>
                 </>
               ) : (
                 <>
                   <Moon className="w-3.5 h-3.5" />
-                  <span>Tắt đèn (L)</span>
+                  <span>Tắt đèn</span>
+                  <span className="hidden sm:inline"> (L)</span>
                 </>
               )}
             </button>
@@ -279,17 +283,17 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
               type="button"
               onClick={() => setShowSleepTimerModal(true)}
               title="Hẹn giờ tắt phim thông minh"
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-zinc-900/80 hover:bg-zinc-800 text-amber-400/90 hover:text-amber-300 border border-amber-500/20 hover:border-amber-500/40 transition cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-zinc-900/80 hover:bg-zinc-800 text-amber-400/90 hover:text-amber-300 border border-amber-500/20 hover:border-amber-500/40 transition cursor-pointer text-xs"
             >
               <Clock className="w-3.5 h-3.5" />
-              <span className="hidden xs:inline">Hẹn giờ</span>
+              <span>Hẹn giờ</span>
             </button>
 
             <button
               type="button"
               onClick={() => setShowShortcutModal(true)}
               title="Xem danh sách phím tắt"
-              className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-zinc-900/80 hover:bg-zinc-800 text-gray-400 hover:text-white border border-white/10 transition cursor-pointer"
+              className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-zinc-900/80 hover:bg-zinc-800 text-gray-400 hover:text-white border border-white/10 transition cursor-pointer text-xs"
             >
               <Keyboard className="w-3.5 h-3.5" />
               <span>Phím tắt</span>
@@ -306,7 +310,8 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-zinc-900/90 hover:bg-zinc-800 text-gray-300 hover:text-white transition font-medium border border-white/10 text-xs"
               >
                 <SkipBack className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Tập trước ({prevEpisode.name}) [P]</span>
+                <span>Tập trước</span>
+                <span className="hidden md:inline"> ({prevEpisode.name}) [P]</span>
               </Link>
             )}
             {nextEpisode && (
@@ -316,7 +321,8 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 title={`Tập tiếp theo: ${nextEpisode.name} (Phím N)`}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-netflix-red text-white transition font-semibold border border-white/10 shadow-md text-xs"
               >
-                <span>Tập tiếp ({nextEpisode.name}) [N]</span>
+                <span>Tập tiếp</span>
+                <span className="hidden md:inline"> ({nextEpisode.name}) [N]</span>
                 <SkipForward className="w-3.5 h-3.5 fill-white" />
               </Link>
             )}
@@ -326,7 +332,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
 
       {/* FLOATING MINI-PLAYER — chỉ render iframe khi đã lazy load */}
       {videoLink && showMiniPlayer && !dismissedMini && !isTheaterMode && (
-        <div className="fixed bottom-6 right-6 z-40 w-72 sm:w-80 md:w-96 aspect-video bg-zinc-950 rounded-xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.9)] border border-white/20 animate-in slide-in-from-bottom-5 duration-200">
+        <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40 w-[min(calc(100vw-32px),320px)] sm:w-80 md:w-96 aspect-video bg-zinc-950 rounded-xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.9)] border border-white/20 animate-in slide-in-from-bottom-5 duration-200">
           <div className="absolute top-0 inset-x-0 bg-gradient-to-b from-black/90 to-transparent p-2 flex items-center justify-between z-20">
             <span className="text-white text-xs font-semibold truncate max-w-[180px] drop-shadow-md">
               {title} {activeEpisodeName ? `• Tập ${activeEpisodeName}` : ""}

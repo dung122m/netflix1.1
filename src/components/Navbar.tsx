@@ -501,7 +501,7 @@ const NavbarInner: React.FC = () => {
         {/* RIGHT ACTIONS */}
         <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0 text-white">
 
-          {/* NÚT VÒNG QUAY SUẤT CHIẾU ĐỊNH MỆNH */}
+          {/* NÚT VÒNG QUAY SUẤT CHIẾU ĐỊNH MỆNH (DESKTOP) */}
           <button
             type="button"
             onClick={() => {
@@ -516,7 +516,7 @@ const NavbarInner: React.FC = () => {
             <span className="hidden 2xl:inline">Bốc Quẻ</span>
           </button>
 
-          {/* NÚT TRỢ LÝ NANA GỢI Ý PHIM */}
+          {/* NÚT TRỢ LÝ NANA GỢI Ý PHIM (DESKTOP / TABLET) */}
           <button
             type="button"
             onClick={() => {
@@ -525,21 +525,21 @@ const NavbarInner: React.FC = () => {
               }
             }}
             title="Trợ lý Nana gợi ý phim thông minh"
-            className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-bold bg-gradient-to-r from-red-600/25 via-rose-600/25 to-purple-600/25 hover:from-red-600/40 hover:to-purple-600/40 text-rose-300 hover:text-white border border-rose-500/35 transition cursor-pointer shadow-sm active:scale-95 flex-shrink-0"
+            className="hidden md:inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-bold bg-gradient-to-r from-red-600/25 via-rose-600/25 to-purple-600/25 hover:from-red-600/40 hover:to-purple-600/40 text-rose-300 hover:text-white border border-rose-500/35 transition cursor-pointer shadow-sm active:scale-95 flex-shrink-0"
           >
             <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
             <span>Nana AI</span>
           </button>
 
-          {/* NÚT ĐIỀU KHIỂN GIỌNG NÓI */}
+          {/* NÚT ĐIỀU KHIỂN GIỌNG NÓI (DESKTOP) */}
           <button
             type="button"
             onClick={toggleVoiceSearch}
             title="Điều khiển & Tìm kiếm bằng giọng nói tiếng Việt"
-            className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-bold bg-rose-600/15 hover:bg-rose-600/25 text-rose-300 hover:text-white border border-rose-500/30 transition cursor-pointer shadow-sm active:scale-95 flex-shrink-0"
+            className="hidden xl:inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-bold bg-rose-600/15 hover:bg-rose-600/25 text-rose-300 hover:text-white border border-rose-500/30 transition cursor-pointer shadow-sm active:scale-95 flex-shrink-0"
           >
             <Mic className="w-3.5 h-3.5 text-rose-400" />
-            <span className="hidden xl:inline">Giọng Nói</span>
+            <span>Giọng Nói</span>
           </button>
 
           {/* Ô TÌM KIẾM CÓ GỢI Ý TRỰC TIẾP */}
@@ -548,7 +548,7 @@ const NavbarInner: React.FC = () => {
               onSubmit={handleSearchSubmit}
               className={`flex items-center transition-all duration-300 rounded-full ${
                 isSearchOpen
-                  ? "border border-white/35 bg-black/80 px-2.5 sm:px-3 py-1.5 backdrop-blur-md"
+                  ? "border border-white/35 bg-black/90 px-2 sm:px-3 py-1.5 backdrop-blur-md shadow-lg"
                   : "border-transparent px-1 py-1"
               }`}
             >
@@ -577,7 +577,7 @@ const NavbarInner: React.FC = () => {
                 }}
                 className={`bg-transparent text-white text-xs sm:text-sm outline-none transition-all duration-300 ${
                   isSearchOpen
-                    ? "w-24 min-[400px]:w-32 sm:w-36 md:w-40 lg:w-44 ml-1.5 opacity-100 placeholder:text-gray-400"
+                    ? "w-24 min-[360px]:w-28 min-[420px]:w-36 sm:w-40 md:w-44 ml-1.5 opacity-100 placeholder:text-gray-400"
                     : "w-0 opacity-0 pointer-events-none"
                 }`}
               />
@@ -587,7 +587,7 @@ const NavbarInner: React.FC = () => {
                   type="button"
                   onClick={toggleVoiceSearch}
                   title="Tìm kiếm & Điều khiển bằng giọng nói tiếng Việt"
-                  className="p-1 rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition flex items-center justify-center cursor-pointer ml-0.5"
+                  className="p-1 rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition flex items-center justify-center cursor-pointer ml-0.5 flex-shrink-0"
                 >
                   <Mic size={14} className="text-netflix-red" />
                 </button>
@@ -596,7 +596,7 @@ const NavbarInner: React.FC = () => {
               {isSearchOpen && hasSearchText && (
                 <X
                   size={15}
-                  className="cursor-pointer text-gray-400 hover:text-white transition ml-0.5"
+                  className="cursor-pointer text-gray-400 hover:text-white transition ml-0.5 flex-shrink-0"
                   onClick={clearSearch}
                 />
               )}
@@ -604,7 +604,7 @@ const NavbarInner: React.FC = () => {
 
             {/* FLOATING RECENT SEARCHES OR SUGGESTIONS DROPDOWN */}
             {showDropdown && (
-              <div className="absolute top-full mt-2 right-0 w-[280px] sm:w-[350px] bg-zinc-950/95 border border-white/15 backdrop-blur-xl rounded-xl shadow-2xl p-2.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+              <div className="absolute top-full mt-2 right-0 w-[min(calc(100vw-24px),350px)] bg-zinc-950/95 border border-white/15 backdrop-blur-xl rounded-xl shadow-2xl p-2.5 z-50 animate-in fade-in zoom-in-95 duration-150">
                 {!hasSearchText && recentSearches.length > 0 ? (
                   <div>
                     <div className="flex items-center justify-between text-[11px] font-semibold text-gray-400 px-2 py-1 mb-1 border-b border-white/10">
@@ -738,7 +738,7 @@ const NavbarInner: React.FC = () => {
 
             {/* NOTIFICATION POPUP DROPDOWN */}
             {showNotifications && (
-              <div className="absolute top-full mt-2 right-0 w-[310px] sm:w-[380px] bg-zinc-950/95 border border-white/15 backdrop-blur-xl rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.95)] p-3.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+              <div className="absolute top-full mt-2 right-0 w-[min(calc(100vw-24px),380px)] bg-zinc-950/95 border border-white/15 backdrop-blur-xl rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.95)] p-3.5 z-50 animate-in fade-in zoom-in-95 duration-150">
                 <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-white/10">
                   <div className="flex items-center gap-2">
                     <Bell size={15} className="text-netflix-red" />
@@ -814,33 +814,40 @@ const NavbarInner: React.FC = () => {
           {/* CHẾ ĐỘ SÁNG / TỐI NHANH 1-CLICK */}
           <ThemeModeToggle className="flex-shrink-0" />
 
-          {/* BẢNG MÀU CHỦ ĐỀ & GIAO DIỆN */}
-          <ThemeSwitcher className="flex-shrink-0" />
+          {/* BẢNG MÀU CHỦ ĐỀ & GIAO DIỆN (DESKTOP) */}
+          <div className="hidden lg:block flex-shrink-0">
+            <ThemeSwitcher />
+          </div>
 
+          {/* USER PROFILE & LỊCH SỬ (DESKTOP / TABLET) */}
           <Link
             href="/my-list?tab=history"
             title="Lịch sử xem & tài khoản"
             aria-label="Tài khoản"
-            className="flex items-center justify-center h-7 w-7 sm:h-8 sm:w-8 rounded-full bg-zinc-800 border border-white/20 text-gray-300 hover:border-white hover:text-white transition flex-shrink-0"
+            className="hidden sm:flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-zinc-800 border border-white/20 text-gray-300 hover:border-white hover:text-white transition flex-shrink-0"
           >
             <User size={16} />
           </Link>
 
-          {/* MOBILE MENU TOGGLE */}
+          {/* MOBILE MENU TOGGLE (LUÔN NỔI BẬT & DỄ CHẠM TRÊN MOBILE) */}
           <button
             type="button"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             aria-label="Menu"
-            className="lg:hidden text-gray-300 hover:text-white transition p-1 cursor-pointer flex-shrink-0"
+            className="lg:hidden flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 transition cursor-pointer flex-shrink-0 active:scale-95 shadow-sm ml-0.5"
           >
-            {isMobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+            {isMobileMenuOpen ? (
+              <X size={20} className="text-netflix-red" />
+            ) : (
+              <Menu size={20} />
+            )}
           </button>
         </div>
       </div>
 
       {/* MOBILE DROPDOWN MENU */}
       {isMobileMenuOpen && (
-        <div className="lg:hidden border-t border-white/10 bg-black/95 backdrop-blur-xl px-4 py-4 animate-in slide-in-from-top duration-200 max-h-[85vh] overflow-y-auto">
+        <div className="lg:hidden border-t border-white/10 bg-black/98 backdrop-blur-2xl px-4 py-4 animate-in slide-in-from-top duration-200 max-h-[82vh] overflow-y-auto shadow-2xl safe-area-bottom">
           <div className="flex flex-col gap-1.5">
 
 
