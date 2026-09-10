@@ -83,7 +83,7 @@ export const Footer = () => {
         </div>
 
         {/* Links */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8 text-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 mb-8 text-sm">
           <Link href="#" className="hover:underline">
             Câu hỏi thường gặp
           </Link>

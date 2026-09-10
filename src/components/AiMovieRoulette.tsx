@@ -218,7 +218,7 @@ export function AiMovieRoulette() {
                   </span>
                   <span className="text-[10px] text-gray-400">Chọn 1 vibe</span>
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-2">
                   {MOODS.map((m) => {
                     const isSelected = selectedMood === m.id;
                     return (
@@ -280,7 +280,7 @@ export function AiMovieRoulette() {
                   <Users className="w-3.5 h-3.5 text-emerald-400" />
                   <span>3. Bạn đang xem cùng ai?</span>
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2">
                   {COMPANIONS.map((c) => {
                     const isSelected = selectedCompanion === c.id;
                     return (
@@ -309,7 +309,7 @@ export function AiMovieRoulette() {
                   <Clock className="w-3.5 h-3.5 text-purple-400" />
                   <span>4. Thời lượng & Định dạng?</span>
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2">
                   {DURATIONS.map((d) => {
                     const isSelected = selectedDuration === d.id;
                     return (

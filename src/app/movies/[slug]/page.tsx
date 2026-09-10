@@ -748,7 +748,7 @@ function RecommendationSkeleton() {
         <div className="h-9 w-28 bg-zinc-900 rounded-full" />
         <div className="h-9 w-28 bg-zinc-900 rounded-full" />
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 lg:grid-cols-6 gap-3.5 sm:gap-4">
         {Array.from({ length: 6 }).map((_, i) => (
           <div key={i} className="aspect-[2/3] bg-zinc-900/80 rounded-2xl border border-white/5" />
         ))}

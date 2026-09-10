@@ -36,7 +36,7 @@ export const Footer: React.FC = () => {
         {/* ============================================================ */}
         {/* 1. KHU VỰC TÍNH NĂNG ĐẲNG CẤP (4 PILLS) */}
         {/* ============================================================ */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
           <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-zinc-900/60 border border-white/10 backdrop-blur-md shadow-sm hover:border-white/25 transition-all">
             <div className="p-2 rounded-xl bg-red-600/20 text-netflix-red border border-red-500/30">
               <Zap className="w-4 h-4" />
@@ -81,7 +81,7 @@ export const Footer: React.FC = () => {
         {/* ============================================================ */}
         {/* 2. 4 CỘT ĐIỀU HƯỚNG CHUYÊN NGHIỆP */}
         {/* ============================================================ */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-10 pt-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 md:gap-10 pt-4">
           {/* CỘT 1: THẾ GIỚI ĐIỆN ẢNH */}
           <div className="space-y-4">
             <h4 className="text-white font-black text-sm tracking-wider uppercase flex items-center gap-2">

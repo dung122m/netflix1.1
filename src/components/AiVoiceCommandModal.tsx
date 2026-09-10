@@ -743,7 +743,7 @@ export const AiVoiceCommandModal: React.FC = () => {
           <p className="text-[11px] text-gray-400 uppercase font-bold tracking-wider">
             Thử nói hoặc bấm vào câu lệnh mẫu:
           </p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
             {[
               { label: "Mở kênh VTV3", icon: Tv, cmd: "mở kênh vtv3" },
               { label: "Trực tiếp bóng đá", icon: Radio, cmd: "xem trực tiếp bóng đá" },
