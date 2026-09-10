@@ -95,6 +95,17 @@ function TvChannelLogo({
   );
 }
 
+// Bouncing equalizer bars for live channel
+function PlayingEqualizer() {
+  return (
+    <div className="flex items-end gap-0.5 h-3 px-1">
+      <span className="w-0.5 bg-emerald-400 rounded-full animate-bounce [animation-delay:-0.3s] h-3" />
+      <span className="w-0.5 bg-emerald-400 rounded-full animate-bounce [animation-delay:-0.15s] h-2" />
+      <span className="w-0.5 bg-emerald-400 rounded-full animate-bounce h-3" />
+    </div>
+  );
+}
+
 export function LiveTvClient({ initialData, isActive = true }: LiveTvClientProps) {
   const { categories, channels } = initialData;
   const searchParams = useSearchParams();
@@ -143,6 +154,8 @@ export function LiveTvClient({ initialData, isActive = true }: LiveTvClientProps
   const playerRef = useRef<HTMLDivElement>(null);
   const categoryScrollRef = useRef<HTMLDivElement>(null);
   const popularScrollRef = useRef<HTMLDivElement>(null);
+  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const actionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const userPausedRef = useRef<boolean>(false);
   const lastLoadedUrlRef = useRef<string>("");
 
@@ -154,6 +167,11 @@ export function LiveTvClient({ initialData, isActive = true }: LiveTvClientProps
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showControls, setShowControls] = useState(true);
+  const [actionFeedback, setActionFeedback] = useState<{
+    icon: "play" | "pause" | "volume" | "mute" | "channel";
+    text?: string;
+  } | null>(null);
 
   const volumeRef = useRef(volume);
   const isMutedRef = useRef(isMuted);
@@ -164,6 +182,18 @@ export function LiveTvClient({ initialData, isActive = true }: LiveTvClientProps
   useEffect(() => {
     isMutedRef.current = isMuted;
   }, [isMuted]);
+
+  // Hiển thị visual feedback overlay tạm thời
+  const triggerActionFeedback = useCallback(
+    (icon: "play" | "pause" | "volume" | "mute" | "channel", text?: string) => {
+      if (actionTimeoutRef.current) clearTimeout(actionTimeoutRef.current);
+      setActionFeedback({ icon, text });
+      actionTimeoutRef.current = setTimeout(() => {
+        setActionFeedback(null);
+      }, 700);
+    },
+    []
+  );
 
   // Dải kênh phổ biến xem nhiều nhất (Quick Access Bar)
   const popularChannels = useMemo(() => {
@@ -254,25 +284,29 @@ export function LiveTvClient({ initialData, isActive = true }: LiveTvClientProps
     return filteredChannels.slice(0, visibleCount);
   }, [filteredChannels, visibleCount]);
 
-  const handleSelectChannel = (channel: TvChannel) => {
-    userPausedRef.current = false;
-    if (!userMutedRef.current) {
-      setIsMuted(false);
-      isMutedRef.current = false;
-    }
-    setSelectedChannel(channel);
-    try {
-      localStorage.setItem("nanaflix_live_channel_id", channel.id);
-      const url = new URL(window.location.href);
-      url.searchParams.set("tab", "tv");
-      url.searchParams.set("channel", channel.id);
-      window.history.replaceState(null, "", url.toString());
-    } catch {}
+  const handleSelectChannel = useCallback(
+    (channel: TvChannel) => {
+      userPausedRef.current = false;
+      if (!userMutedRef.current) {
+        setIsMuted(false);
+        isMutedRef.current = false;
+      }
+      setSelectedChannel(channel);
+      triggerActionFeedback("channel", channel.name);
+      try {
+        localStorage.setItem("nanaflix_live_channel_id", channel.id);
+        const url = new URL(window.location.href);
+        url.searchParams.set("tab", "tv");
+        url.searchParams.set("channel", channel.id);
+        window.history.replaceState(null, "", url.toString());
+      } catch {}
 
-    if (playerRef.current) {
-      playerRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  };
+      if (playerRef.current) {
+        playerRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    },
+    [triggerActionFeedback]
+  );
 
   const scrollCategories = (direction: "left" | "right") => {
     if (categoryScrollRef.current) {
@@ -287,6 +321,19 @@ export function LiveTvClient({ initialData, isActive = true }: LiveTvClientProps
       popularScrollRef.current.scrollBy({ left: offset, behavior: "smooth" });
     }
   };
+
+  // Tự động ẩn controls sau 3.5s
+  const resetControlsTimeout = useCallback(() => {
+    setShowControls(true);
+    if (controlsTimeoutRef.current) {
+      clearTimeout(controlsTimeoutRef.current);
+    }
+    controlsTimeoutRef.current = setTimeout(() => {
+      if (isPlaying) {
+        setShowControls(false);
+      }
+    }, 3500);
+  }, [isPlaying]);
 
   // Đồng bộ trạng thái tab (khi chuyển tab Bóng Đá <-> TV)
   useEffect(() => {
@@ -320,7 +367,6 @@ export function LiveTvClient({ initialData, isActive = true }: LiveTvClientProps
 
     const primaryUrl = selectedChannel.url;
 
-    // Tránh khởi tạo lại Hls khi URL không đổi
     if (primaryUrl === lastLoadedUrlRef.current && hlsRef.current) {
       return;
     }
@@ -345,14 +391,17 @@ export function LiveTvClient({ initialData, isActive = true }: LiveTvClientProps
         const hls = new Hls({
           enableWorker: true,
           lowLatencyMode: true,
-          maxBufferLength: 15,
-          maxMaxBufferLength: 30,
-          liveSyncDuration: 3,
-          liveMaxLatencyDuration: 8,
-          backBufferLength: 15,
+          maxBufferLength: 20,
+          maxMaxBufferLength: 40,
+          liveSyncDurationCount: 3,
+          liveMaxLatencyDurationCount: 7,
+          backBufferLength: 20,
           manifestLoadingTimeOut: 10000,
           levelLoadingTimeOut: 10000,
           fragLoadingTimeOut: 10000,
+          fragLoadingMaxRetry: 3,
+          levelLoadingMaxRetry: 3,
+          manifestLoadingMaxRetry: 3,
           capLevelToPlayerSize: false,
           xhrSetup: (xhr) => {
             xhr.withCredentials = false;
@@ -373,7 +422,6 @@ export function LiveTvClient({ initialData, isActive = true }: LiveTvClientProps
           const shouldBeMuted = userMutedRef.current;
           video.muted = shouldBeMuted;
 
-          // Chỉ tự phát nếu đang ở tab active và người dùng không bấm Pause
           if (isActive && !userPausedRef.current) {
             video
               .play()
@@ -453,11 +501,15 @@ export function LiveTvClient({ initialData, isActive = true }: LiveTvClientProps
       userPausedRef.current = true;
       videoRef.current.pause();
       setIsPlaying(false);
+      setShowControls(true);
+      triggerActionFeedback("pause");
     } else {
       userPausedRef.current = false;
       videoRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+      triggerActionFeedback("play");
+      resetControlsTimeout();
     }
-  }, [isPlaying]);
+  }, [isPlaying, resetControlsTimeout, triggerActionFeedback]);
 
   // Volume & Sound Helpers
   const unmuteSound = useCallback(() => {
@@ -472,10 +524,11 @@ export function LiveTvClient({ initialData, isActive = true }: LiveTvClientProps
         videoRef.current.play().catch(() => {});
       }
     }
+    triggerActionFeedback("volume", `${Math.round(targetVol * 100)}%`);
     try {
       localStorage.setItem("nanaflix_live_volume", String(targetVol));
     } catch {}
-  }, [volume, isActive]);
+  }, [volume, isActive, triggerActionFeedback]);
 
   const toggleMute = useCallback(() => {
     if (isMuted) {
@@ -484,23 +537,31 @@ export function LiveTvClient({ initialData, isActive = true }: LiveTvClientProps
       userMutedRef.current = true;
       setIsMuted(true);
       if (videoRef.current) videoRef.current.muted = true;
+      triggerActionFeedback("mute", "Tắt tiếng");
     }
-  }, [isMuted, unmuteSound]);
+  }, [isMuted, unmuteSound, triggerActionFeedback]);
 
-  const handleVolumeChange = useCallback((newVol: number) => {
-    const clamped = Math.max(0, Math.min(1, newVol));
-    setVolume(clamped);
-    const shouldMute = clamped === 0;
-    userMutedRef.current = shouldMute;
-    setIsMuted(shouldMute);
-    if (videoRef.current) {
-      videoRef.current.volume = clamped;
-      videoRef.current.muted = shouldMute;
-    }
-    try {
-      localStorage.setItem("nanaflix_live_volume", String(clamped));
-    } catch {}
-  }, []);
+  const handleVolumeChange = useCallback(
+    (newVol: number) => {
+      const clamped = Math.max(0, Math.min(1, newVol));
+      setVolume(clamped);
+      const shouldMute = clamped === 0;
+      userMutedRef.current = shouldMute;
+      setIsMuted(shouldMute);
+      if (videoRef.current) {
+        videoRef.current.volume = clamped;
+        videoRef.current.muted = shouldMute;
+      }
+      triggerActionFeedback(
+        shouldMute ? "mute" : "volume",
+        shouldMute ? "Tắt tiếng" : `${Math.round(clamped * 100)}%`
+      );
+      try {
+        localStorage.setItem("nanaflix_live_volume", String(clamped));
+      } catch {}
+    },
+    [triggerActionFeedback]
+  );
 
   const toggleFullscreen = useCallback(() => {
     if (!containerRef.current) return;
@@ -526,6 +587,23 @@ export function LiveTvClient({ initialData, isActive = true }: LiveTvClientProps
     } catch {}
   }, []);
 
+  // Chuyển kênh bằng phím mũi tên Trái / Phải
+  const handleSwitchChannel = useCallback(
+    (direction: "next" | "prev") => {
+      if (channels.length <= 1 || !selectedChannel) return;
+      const currentIdx = channels.findIndex((c) => c.id === selectedChannel.id);
+      if (currentIdx === -1) return;
+
+      const targetIdx =
+        direction === "next"
+          ? (currentIdx + 1) % channels.length
+          : (currentIdx - 1 + channels.length) % channels.length;
+
+      handleSelectChannel(channels[targetIdx]);
+    },
+    [channels, selectedChannel, handleSelectChannel]
+  );
+
   // Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -550,12 +628,18 @@ export function LiveTvClient({ initialData, isActive = true }: LiveTvClientProps
       } else if (e.key === "ArrowDown") {
         e.preventDefault();
         handleVolumeChange(volume - 0.1);
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        handleSwitchChannel("next");
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        handleSwitchChannel("prev");
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isPlaying, togglePlay, toggleMute, toggleFullscreen, togglePip, handleVolumeChange, volume]);
+  }, [isPlaying, togglePlay, toggleMute, toggleFullscreen, togglePip, handleVolumeChange, handleSwitchChannel, volume]);
 
   const handleCopy = () => {
     if (selectedChannel && typeof navigator !== "undefined") {
@@ -613,9 +697,12 @@ export function LiveTvClient({ initialData, isActive = true }: LiveTvClientProps
                     <span>{selectedChannel.quality}</span>
                   </span>
                 </div>
-                <h2 className="text-lg sm:text-2xl font-black text-white keep-white" style={{ color: "#ffffff" }}>
-                  {selectedChannel.name}
-                </h2>
+                <div className="flex items-center gap-2.5">
+                  <h2 className="text-lg sm:text-2xl font-black text-white keep-white" style={{ color: "#ffffff" }}>
+                    {selectedChannel.name}
+                  </h2>
+                  {isPlaying && <PlayingEqualizer />}
+                </div>
               </div>
             </div>
 
@@ -648,11 +735,14 @@ export function LiveTvClient({ initialData, isActive = true }: LiveTvClientProps
           {/* KHUNG PHÁT VIDEO PLAYER */}
           <div
             ref={containerRef}
-            className="relative w-full aspect-video bg-black rounded-2xl sm:rounded-3xl overflow-hidden border border-white/15 shadow-2xl group select-none ring-1 ring-white/10"
+            onMouseMove={resetControlsTimeout}
+            onClick={togglePlay}
+            onDoubleClick={toggleFullscreen}
+            className="relative w-full aspect-video bg-black rounded-2xl sm:rounded-3xl overflow-hidden border border-white/15 shadow-2xl group select-none ring-1 ring-white/10 cursor-pointer"
           >
             <video
               ref={videoRef}
-              className="w-full h-full object-contain cursor-pointer"
+              className="w-full h-full object-contain pointer-events-none"
               playsInline
               onPlay={() => setIsPlaying(true)}
               onPause={() => setIsPlaying(false)}
@@ -667,7 +757,6 @@ export function LiveTvClient({ initialData, isActive = true }: LiveTvClientProps
                   } catch {}
                 }
               }}
-              onClick={togglePlay}
             />
 
             {/* HUY HIỆU SIGNAL GÓC TRÊN TRÁI */}
@@ -685,7 +774,10 @@ export function LiveTvClient({ initialData, isActive = true }: LiveTvClientProps
             {/* NÚT BẬT TIẾNG KHI ĐANG MUTE */}
             {isPlaying && isMuted && !isLoading && !hasError && (
               <div
-                onClick={unmuteSound}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  unmuteSound();
+                }}
                 className="absolute top-3 right-3 sm:top-4 sm:right-4 z-30 animate-bounce cursor-pointer"
               >
                 <button
@@ -695,6 +787,34 @@ export function LiveTvClient({ initialData, isActive = true }: LiveTvClientProps
                   <Volume2 className="w-4 h-4 sm:w-5 sm:h-5 animate-pulse" />
                   <span>🔊 BẬT ÂM THANH ({Math.round(volume * 100)}%)</span>
                 </button>
+              </div>
+            )}
+
+            {/* ACTION FEEDBACK OVERLAY (PLAY, PAUSE, VOLUME, CHANNEL SWITCH) */}
+            {actionFeedback && (
+              <div className="absolute inset-0 flex items-center justify-center z-25 pointer-events-none">
+                <div className="flex flex-col items-center justify-center px-6 py-4 rounded-3xl bg-black/75 border border-white/25 backdrop-blur-xl shadow-2xl animate-in fade-in zoom-in duration-200">
+                  {actionFeedback.icon === "play" && (
+                    <Play className="w-12 h-12 text-white fill-white ml-1" />
+                  )}
+                  {actionFeedback.icon === "pause" && (
+                    <Pause className="w-12 h-12 text-white fill-white" />
+                  )}
+                  {actionFeedback.icon === "volume" && (
+                    <Volume2 className="w-12 h-12 text-white" />
+                  )}
+                  {actionFeedback.icon === "mute" && (
+                    <VolumeX className="w-12 h-12 text-rose-400" />
+                  )}
+                  {actionFeedback.icon === "channel" && (
+                    <Tv className="w-10 h-10 text-sky-400" />
+                  )}
+                  {actionFeedback.text && (
+                    <span className="mt-2 text-xs sm:text-sm font-bold text-white font-mono">
+                      {actionFeedback.text}
+                    </span>
+                  )}
+                </div>
               </div>
             )}
 
@@ -710,7 +830,10 @@ export function LiveTvClient({ initialData, isActive = true }: LiveTvClientProps
 
             {/* THÔNG BÁO LỖI KHI MẤT TÍN HIỆU */}
             {hasError && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-950/95 p-4 sm:p-6 text-center z-20">
+              <div
+                onClick={(e) => e.stopPropagation()}
+                className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-950/95 p-4 sm:p-6 text-center z-20"
+              >
                 <div className="w-12 h-12 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center mb-3">
                   <AlertCircle className="w-7 h-7" />
                 </div>
@@ -748,7 +871,14 @@ export function LiveTvClient({ initialData, isActive = true }: LiveTvClientProps
             )}
 
             {/* THANH ĐIỀU KHIỂN DƯỚI ĐÁY */}
-            <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/95 via-black/60 to-transparent p-3 sm:p-4 flex items-center justify-between z-30">
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className={`absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/95 via-black/60 to-transparent p-3 sm:p-4 flex items-center justify-between z-30 transition-opacity duration-300 ${
+                showControls || !isPlaying
+                  ? "opacity-100 pointer-events-auto"
+                  : "opacity-0 pointer-events-none"
+              }`}
+            >
               <div className="flex items-center gap-2 sm:gap-3">
                 <button
                   type="button"
@@ -761,6 +891,29 @@ export function LiveTvClient({ initialData, isActive = true }: LiveTvClientProps
                     <Play className="w-4 h-4 fill-current ml-0.5" />
                   )}
                 </button>
+
+                {/* NÚT CHUYỂN KÊNH TRƯỚC / SAU TRÊN CONTROL */}
+                <div className="flex items-center bg-black/60 rounded-full border border-white/15 p-0.5 backdrop-blur-md">
+                  <button
+                    type="button"
+                    onClick={() => handleSwitchChannel("prev")}
+                    title="Kênh trước (Phím ←)"
+                    className="p-1.5 text-gray-300 hover:text-white hover:bg-white/10 rounded-full transition cursor-pointer"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                  </button>
+                  <span className="text-[10px] font-mono font-bold px-1.5 text-sky-300 whitespace-nowrap">
+                    Đổi kênh
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleSwitchChannel("next")}
+                    title="Kênh kế tiếp (Phím →)"
+                    className="p-1.5 text-gray-300 hover:text-white hover:bg-white/10 rounded-full transition cursor-pointer"
+                  >
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
 
                 <div className="flex items-center gap-2 bg-black/60 px-3 py-2 rounded-full border border-white/20 backdrop-blur-md">
                   <button
@@ -792,9 +945,8 @@ export function LiveTvClient({ initialData, isActive = true }: LiveTvClientProps
               </div>
 
               <div className="flex items-center gap-2">
-                {/* Phím tắt gợi ý */}
                 <span className="hidden lg:inline text-[11px] text-gray-400 bg-black/50 px-2.5 py-1 rounded-full border border-white/10 font-mono">
-                  Space: Dừng/Phát • F: Fullscreen • P: PiP
+                  Space: Dừng/Phát • ← / →: Đổi Kênh • F: Fullscreen
                 </span>
 
                 {/* Nút Picture in Picture */}
@@ -870,6 +1022,7 @@ export function LiveTvClient({ initialData, isActive = true }: LiveTvClientProps
                     <TvChannelLogo logo={ch.logo} name={ch.name} size="sm" />
                   </div>
                   <span className="text-xs whitespace-nowrap">{ch.name.split(" ")[0]}</span>
+                  {isSelected && <PlayingEqualizer />}
                   <span
                     className={`text-[9px] px-1 py-0.2 rounded font-black uppercase ${
                       isSelected
@@ -1075,15 +1228,18 @@ export function LiveTvClient({ initialData, isActive = true }: LiveTvClientProps
                       <span className="text-[10px] font-bold text-gray-400 truncate max-w-[80px]">
                         {ch.category.replace("Kênh ", "")}
                       </span>
-                      <span
-                        className={`px-1.5 py-0.2 rounded text-[9.5px] font-black uppercase tracking-wider border ${
-                          ch.quality.includes("FHD")
-                            ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-400"
-                            : "bg-sky-500/15 border-sky-500/40 text-sky-400"
-                        }`}
-                      >
-                        {ch.quality.replace(" 1080p", "").replace(" 720p", "")}
-                      </span>
+                      <div className="flex items-center gap-1">
+                        {isSelected && isPlaying && <PlayingEqualizer />}
+                        <span
+                          className={`px-1.5 py-0.2 rounded text-[9.5px] font-black uppercase tracking-wider border ${
+                            ch.quality.includes("FHD")
+                              ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-400"
+                              : "bg-sky-500/15 border-sky-500/40 text-sky-400"
+                          }`}
+                        >
+                          {ch.quality.replace(" 1080p", "").replace(" 720p", "")}
+                        </span>
+                      </div>
                     </div>
 
                     {/* LOGO KÊNH */}
@@ -1119,9 +1275,12 @@ export function LiveTvClient({ initialData, isActive = true }: LiveTvClientProps
                         <TvChannelLogo logo={ch.logo} name={ch.name} />
                       </div>
                       <div className="min-w-0">
-                        <h4 className="live-channel-title text-xs font-bold text-white group-hover:text-sky-300 truncate">
-                          {ch.name}
-                        </h4>
+                        <div className="flex items-center gap-1.5">
+                          <h4 className="live-channel-title text-xs font-bold text-white group-hover:text-sky-300 truncate">
+                            {ch.name}
+                          </h4>
+                          {isSelected && isPlaying && <PlayingEqualizer />}
+                        </div>
                         <span className="text-[10px] text-gray-400">
                           {ch.category.replace("Kênh ", "")}
                         </span>

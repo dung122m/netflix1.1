@@ -22,6 +22,8 @@ import {
   Sparkles,
   PictureInPicture2,
   Zap,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { FootballMatch, StreamServer } from "@/services/liveFootballService";
 import { useMatchReminders } from "@/hooks/useMatchReminders";
@@ -61,8 +63,10 @@ export function LivePlayer({
   const containerRef = useRef<HTMLDivElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const actionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const userPausedRef = useRef<boolean>(false);
   const lastLoadedUrlRef = useRef<string>("");
+  const retryCountRef = useRef<number>(0);
 
   const [selectedServerIndex, setSelectedServerIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -76,6 +80,10 @@ export function LivePlayer({
   const [copied, setCopied] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [showAllServers, setShowAllServers] = useState(false);
+  const [actionFeedback, setActionFeedback] = useState<{
+    icon: "play" | "pause" | "volume" | "mute" | "server";
+    text?: string;
+  } | null>(null);
 
   const INITIAL_SERVER_LIMIT = 8;
   const hasMoreServers = servers.length > INITIAL_SERVER_LIMIT;
@@ -98,6 +106,18 @@ export function LivePlayer({
   const volumeRef = useRef(volume);
   const isMutedRef = useRef(isMuted);
   const userMutedRef = useRef<boolean>(false);
+
+  // Hiển thị visual feedback overlay tạm thời
+  const triggerActionFeedback = useCallback(
+    (icon: "play" | "pause" | "volume" | "mute" | "server", text?: string) => {
+      if (actionTimeoutRef.current) clearTimeout(actionTimeoutRef.current);
+      setActionFeedback({ icon, text });
+      actionTimeoutRef.current = setTimeout(() => {
+        setActionFeedback(null);
+      }, 700);
+    },
+    []
+  );
 
   // Khôi phục mức âm lượng đã lưu từ localStorage
   useEffect(() => {
@@ -174,7 +194,7 @@ export function LivePlayer({
     }, 3500);
   }, [isPlaying]);
 
-  // Xử lý khi tab thay đổi (isActive true/false)
+  // Xử lý khi tab thay đổi (isActive true/false) hoặc minimize tab
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -193,25 +213,24 @@ export function LivePlayer({
       if (hlsRef.current) {
         hlsRef.current.startLoad();
       }
-      // Chỉ tự động phát lại nếu trước đó người dùng KHÔNG bấm Pause
       if (!userPausedRef.current) {
         video.play().then(() => setIsPlaying(true)).catch(() => {});
       }
     }
   }, [isActive]);
 
-  // Khởi tạo luồng phát HLS tối ưu độ trễ thấp (Ultra Low Latency)
+  // Khởi tạo luồng phát HLS tối ưu độ trễ thấp (Ultra Low Latency) + Auto Recovery
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !currentServer) return;
 
-    // Tránh khởi tạo lại Hls khi URL không đổi
     if (activeUrl === lastLoadedUrlRef.current && hlsRef.current) {
       return;
     }
 
     lastLoadedUrlRef.current = activeUrl;
     userPausedRef.current = false;
+    retryCountRef.current = 0;
     setIsLoading(true);
     setHasError(false);
     setErrorMessage("");
@@ -225,7 +244,6 @@ export function LivePlayer({
     const isEffectiveHls = currentServer.isHls || effectiveUrl.includes(".m3u8");
 
     if (!isEffectiveHls && currentServer.format === "flv") {
-      // Tự động chuyển sang máy chủ HLS khả dụng tiếp theo nếu có
       const nextHlsIdx = servers.findIndex(
         (s, idx) =>
           idx !== selectedServerIndex &&
@@ -248,14 +266,17 @@ export function LivePlayer({
       const hls = new Hls({
         enableWorker: true,
         lowLatencyMode: true,
-        maxBufferLength: 15,
-        maxMaxBufferLength: 30,
-        liveSyncDuration: 3,
-        liveMaxLatencyDuration: 8,
-        backBufferLength: 15,
+        maxBufferLength: 20,
+        maxMaxBufferLength: 40,
+        liveSyncDurationCount: 3,
+        liveMaxLatencyDurationCount: 7,
+        backBufferLength: 20,
         manifestLoadingTimeOut: 10000,
         levelLoadingTimeOut: 10000,
         fragLoadingTimeOut: 10000,
+        fragLoadingMaxRetry: 3,
+        levelLoadingMaxRetry: 3,
+        manifestLoadingMaxRetry: 3,
         capLevelToPlayerSize: false,
       });
 
@@ -272,7 +293,6 @@ export function LivePlayer({
         video.volume = curVol;
         video.muted = userMutedRef.current;
 
-        // Chỉ phát nếu đang ở tab active và người dùng chưa bấm Pause
         if (isActive && !userPausedRef.current) {
           video
             .play()
@@ -298,7 +318,16 @@ export function LivePlayer({
         if (data.fatal) {
           switch (data.type) {
             case Hls.ErrorTypes.NETWORK_ERROR:
-              hls.startLoad();
+              retryCountRef.current += 1;
+              if (retryCountRef.current <= 2) {
+                hls.startLoad();
+              } else {
+                setIsLoading(false);
+                setHasError(true);
+                setErrorMessage(
+                  "Tín hiệu gián đoạn hoặc trận đấu chưa bắt đầu. Hãy thử chuyển sang máy chủ khác."
+                );
+              }
               break;
             case Hls.ErrorTypes.MEDIA_ERROR:
               hls.recoverMediaError();
@@ -307,7 +336,7 @@ export function LivePlayer({
               setIsLoading(false);
               setHasError(true);
               setErrorMessage(
-                "Tín hiệu luồng phát tạm thời gián đoạn hoặc trận đấu chưa bắt đầu. Hãy thử đổi máy chủ khác hoặc mở bằng VLC."
+                "Tín hiệu luồng phát tạm thời gián đoạn. Hãy thử đổi máy chủ khác hoặc mở bằng VLC."
               );
               break;
           }
@@ -343,7 +372,7 @@ export function LivePlayer({
         setIsLoading(false);
         setHasError(true);
         setErrorMessage(
-          "Không thể tải luồng phát trên Safari. Vui lòng đổi máy chủ hoặc mở bằng VLC."
+          "Không thể tải luồng phát trên trình duyệt này. Vui lòng đổi máy chủ hoặc mở bằng VLC."
         );
       });
     }
@@ -364,12 +393,14 @@ export function LivePlayer({
       videoRef.current.pause();
       setIsPlaying(false);
       setShowControls(true);
+      triggerActionFeedback("pause");
     } else {
       userPausedRef.current = false;
       videoRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+      triggerActionFeedback("play");
       resetControlsTimeout();
     }
-  }, [isPlaying, resetControlsTimeout]);
+  }, [isPlaying, resetControlsTimeout, triggerActionFeedback]);
 
   // Bật tiếng
   const unmuteSound = useCallback(() => {
@@ -380,15 +411,15 @@ export function LivePlayer({
     if (videoRef.current) {
       videoRef.current.muted = false;
       videoRef.current.volume = targetVol;
-      // Chỉ phát nếu người dùng chưa bấm Pause và đang ở tab active
       if (!userPausedRef.current && isActive) {
         videoRef.current.play().catch(() => {});
       }
     }
+    triggerActionFeedback("volume", `${Math.round(targetVol * 100)}%`);
     try {
       localStorage.setItem("nanaflix_live_volume", String(targetVol));
     } catch {}
-  }, [volume, isActive]);
+  }, [volume, isActive, triggerActionFeedback]);
 
   // Bật / Tắt tiếng
   const toggleMute = useCallback(() => {
@@ -400,26 +431,35 @@ export function LivePlayer({
       if (videoRef.current) {
         videoRef.current.muted = true;
       }
+      triggerActionFeedback("mute", "Tắt tiếng");
     }
-  }, [isMuted, unmuteSound]);
+  }, [isMuted, unmuteSound, triggerActionFeedback]);
 
   // Thay đổi âm lượng
-  const handleVolumeChange = useCallback((newVolume: number) => {
-    const clamped = Math.max(0, Math.min(1, newVolume));
-    setVolume(clamped);
-    const shouldMute = clamped === 0;
-    userMutedRef.current = shouldMute;
-    setIsMuted(shouldMute);
+  const handleVolumeChange = useCallback(
+    (newVolume: number) => {
+      const clamped = Math.max(0, Math.min(1, newVolume));
+      setVolume(clamped);
+      const shouldMute = clamped === 0;
+      userMutedRef.current = shouldMute;
+      setIsMuted(shouldMute);
 
-    if (videoRef.current) {
-      videoRef.current.volume = clamped;
-      videoRef.current.muted = shouldMute;
-    }
+      if (videoRef.current) {
+        videoRef.current.volume = clamped;
+        videoRef.current.muted = shouldMute;
+      }
 
-    try {
-      localStorage.setItem("nanaflix_live_volume", String(clamped));
-    } catch {}
-  }, []);
+      triggerActionFeedback(
+        shouldMute ? "mute" : "volume",
+        shouldMute ? "Tắt tiếng" : `${Math.round(clamped * 100)}%`
+      );
+
+      try {
+        localStorage.setItem("nanaflix_live_volume", String(clamped));
+      } catch {}
+    },
+    [triggerActionFeedback]
+  );
 
   // Toàn màn hình
   const toggleFullscreen = useCallback(() => {
@@ -458,7 +498,24 @@ export function LivePlayer({
       document.removeEventListener("fullscreenchange", handleFsChange);
   }, []);
 
-  // Phím tắt bàn phím tiện ích
+  // Chuyển sang máy chủ tiếp theo / trước đó
+  const handleSwitchServer = useCallback(
+    (direction: "next" | "prev") => {
+      if (servers.length <= 1) return;
+      const targetIdx =
+        direction === "next"
+          ? (selectedServerIndex + 1) % servers.length
+          : (selectedServerIndex - 1 + servers.length) % servers.length;
+      setSelectedServerIndex(targetIdx);
+      triggerActionFeedback(
+        "server",
+        `Máy chủ #${targetIdx + 1}: ${servers[targetIdx]?.name || ""}`
+      );
+    },
+    [servers, selectedServerIndex, triggerActionFeedback]
+  );
+
+  // Phím tắt bàn phím
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (["input", "textarea"].includes((e.target as HTMLElement)?.tagName?.toLowerCase())) {
@@ -482,12 +539,18 @@ export function LivePlayer({
       } else if (e.key === "ArrowDown") {
         e.preventDefault();
         handleVolumeChange(volume - 0.1);
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        handleSwitchServer("next");
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        handleSwitchServer("prev");
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [togglePlay, toggleMute, toggleFullscreen, togglePip, handleVolumeChange, volume]);
+  }, [togglePlay, toggleMute, toggleFullscreen, togglePip, handleVolumeChange, handleSwitchServer, volume]);
 
   const handleCopyStream = () => {
     if (typeof navigator !== "undefined" && navigator.clipboard && currentServer) {
@@ -500,14 +563,6 @@ export function LivePlayer({
   const openInVlc = () => {
     if (!currentServer) return;
     window.location.href = `vlc://${currentServer.url}`;
-  };
-
-  // Tự động chuyển máy chủ kế tiếp khi lỗi
-  const handleSwitchNextServer = () => {
-    if (servers.length > 1) {
-      const nextIndex = (selectedServerIndex + 1) % servers.length;
-      setSelectedServerIndex(nextIndex);
-    }
   };
 
   const VolumeIcon =
@@ -629,10 +684,7 @@ export function LivePlayer({
       <div
         ref={containerRef}
         onMouseMove={resetControlsTimeout}
-        onClick={() => {
-          setShowControls((prev) => !prev);
-          resetControlsTimeout();
-        }}
+        onClick={togglePlay}
         onDoubleClick={toggleFullscreen}
         className="relative w-full aspect-video bg-black rounded-2xl sm:rounded-3xl overflow-hidden border border-white/15 shadow-2xl group select-none cursor-pointer ring-1 ring-white/10"
       >
@@ -663,7 +715,7 @@ export function LivePlayer({
           </span>
           <span className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/75 backdrop-blur-md border border-white/20 text-emerald-400 text-[11px] font-bold">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-            <span>Độ trễ thấp (Ultra Low Latency)</span>
+            <span>Ultra Low Latency • Tốc độ cao</span>
           </span>
         </div>
 
@@ -683,6 +735,34 @@ export function LivePlayer({
               <Volume2 className="w-4 h-4 sm:w-5 sm:h-5 animate-pulse" />
               <span>🔊 BẬT ÂM THANH ({Math.round(volume * 100)}%)</span>
             </button>
+          </div>
+        )}
+
+        {/* ACTION FEEDBACK OVERLAY (PLAY, PAUSE, VOLUME, SERVER SWITCH) */}
+        {actionFeedback && (
+          <div className="absolute inset-0 flex items-center justify-center z-25 pointer-events-none">
+            <div className="flex flex-col items-center justify-center px-6 py-4 rounded-3xl bg-black/75 border border-white/25 backdrop-blur-xl shadow-2xl animate-in fade-in zoom-in duration-200">
+              {actionFeedback.icon === "play" && (
+                <Play className="w-12 h-12 text-white fill-white ml-1" />
+              )}
+              {actionFeedback.icon === "pause" && (
+                <Pause className="w-12 h-12 text-white fill-white" />
+              )}
+              {actionFeedback.icon === "volume" && (
+                <Volume2 className="w-12 h-12 text-white" />
+              )}
+              {actionFeedback.icon === "mute" && (
+                <VolumeX className="w-12 h-12 text-rose-400" />
+              )}
+              {actionFeedback.icon === "server" && (
+                <Sparkles className="w-10 h-10 text-amber-400" />
+              )}
+              {actionFeedback.text && (
+                <span className="mt-2 text-xs sm:text-sm font-bold text-white font-mono">
+                  {actionFeedback.text}
+                </span>
+              )}
+            </div>
           </div>
         )}
 
@@ -732,7 +812,7 @@ export function LivePlayer({
               {servers.length > 1 && (
                 <button
                   type="button"
-                  onClick={handleSwitchNextServer}
+                  onClick={() => handleSwitchServer("next")}
                   className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-netflix-red hover:bg-red-700 text-xs font-bold text-white transition shadow-lg shadow-red-950/50 cursor-pointer"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
@@ -761,8 +841,8 @@ export function LivePlayer({
               : "opacity-0 pointer-events-none"
           }`}
         >
-          {/* CỤM TRÁI: PLAY/PAUSE + ÂM LƯỢNG */}
-          <div className="flex items-center gap-2 sm:gap-4">
+          {/* CỤM TRÁI: PLAY/PAUSE + ĐỔI SERVER NHANH + ÂM LƯỢNG */}
+          <div className="flex items-center gap-2 sm:gap-3">
             <button
               type="button"
               onClick={togglePlay}
@@ -775,6 +855,31 @@ export function LivePlayer({
                 <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current ml-0.5" />
               )}
             </button>
+
+            {/* NÚT ĐỔI SERVER NHANH TRÊN THANH CONTROL */}
+            {servers.length > 1 && (
+              <div className="flex items-center bg-black/60 rounded-full border border-white/15 p-0.5 backdrop-blur-md">
+                <button
+                  type="button"
+                  onClick={() => handleSwitchServer("prev")}
+                  title="Máy chủ trước (Phím ←)"
+                  className="p-1.5 text-gray-300 hover:text-white hover:bg-white/10 rounded-full transition cursor-pointer"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                </button>
+                <span className="text-[10px] font-mono font-bold px-1.5 text-amber-300 whitespace-nowrap">
+                  Server {selectedServerIndex + 1}/{servers.length}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleSwitchServer("next")}
+                  title="Máy chủ kế tiếp (Phím →)"
+                  className="p-1.5 text-gray-300 hover:text-white hover:bg-white/10 rounded-full transition cursor-pointer"
+                >
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
 
             <div className="flex items-center gap-2 bg-black/60 px-3 py-2 rounded-full border border-white/20 backdrop-blur-md">
               <button
@@ -810,11 +915,10 @@ export function LivePlayer({
             </div>
           </div>
 
-          {/* CỤM PHẢI: PIP + TOÀN MÀN HÌNH */}
+          {/* CỤM PHẢI: PHÍM TẮT GỢI Ý + PIP + TOÀN MÀN HÌNH */}
           <div className="flex items-center gap-2">
-            {/* Phím tắt gợi ý */}
             <span className="hidden lg:inline text-[11px] text-gray-400 bg-black/50 px-2.5 py-1 rounded-full border border-white/10 font-mono">
-              Space: Dừng/Phát • F: Fullscreen • P: PiP
+              Space: Dừng/Phát • ← / →: Đổi Server • F: Fullscreen
             </span>
 
             {/* Nút Picture in Picture */}
