@@ -575,17 +575,17 @@ export function LivePlayer({
   return (
     <div className="space-y-4">
       {/* 1. SCOREBOARD HEADER SÂN CỎ ĐỈNH CAO: AMBIENT GLOW & HUY HIỆU CLB SẮC NÉT */}
-      <div className="relative rounded-2xl sm:rounded-3xl border border-white/15 bg-gradient-to-b from-zinc-900/95 via-zinc-950/98 to-black p-4 sm:p-5 shadow-2xl overflow-hidden w-full min-w-0 backdrop-blur-xl">
+      <div className="relative rounded-2xl sm:rounded-3xl border border-white/15 bg-gradient-to-b from-zinc-900/95 via-zinc-950/98 to-black p-3 sm:p-4 shadow-2xl overflow-hidden w-full min-w-0 backdrop-blur-xl">
         {/* Glow hiệu ứng sân vận động 2 bên */}
         <div className="pointer-events-none absolute -top-24 left-1/4 w-96 h-96 bg-red-600/15 rounded-full blur-3xl" />
         <div className="pointer-events-none absolute -top-24 right-1/4 w-96 h-96 bg-sky-600/15 rounded-full blur-3xl" />
 
-        <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-4 sm:gap-6">
+        <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-4">
           {/* KHU VỰC 2 ĐỘI & HUY HIỆU CLB */}
-          <div className="flex-1 w-full flex items-center justify-around sm:justify-center gap-2 sm:gap-6">
+          <div className="flex-1 w-full flex items-center justify-around sm:justify-center gap-2 sm:gap-4">
             {/* ĐỘI NHÀ (TEAM 1) */}
-            <div className="flex flex-col items-center text-center max-w-[120px] sm:max-w-[180px] group">
-              <div className="w-14 h-14 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-950 border-2 border-white/20 p-2 sm:p-2.5 flex items-center justify-center shadow-xl transition-all duration-300 group-hover:scale-105 group-hover:border-netflix-red/70 group-hover:shadow-red-950/60">
+            <div className="flex flex-col items-center text-center max-w-[110px] sm:max-w-[150px] group">
+              <div className="w-11 h-11 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-xl sm:rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-950 border-2 border-white/20 p-1.5 sm:p-2 flex items-center justify-center shadow-xl transition-all duration-300 group-hover:scale-105 group-hover:border-netflix-red/70 group-hover:shadow-red-950/60">
                 {!homeImgError && homeLogo && !homeLogo.includes("tinhlagi.pro/logo.jpg") ? (
                   /* eslint-disable-next-line @next/next/no-img-element */
                   <img
@@ -597,41 +597,41 @@ export function LivePlayer({
                   />
                 ) : (
                   <div className="flex flex-col items-center justify-center">
-                    <span className="text-xl sm:text-2xl font-black text-rose-400 tracking-wider">
+                    <span className="text-base sm:text-xl font-black text-rose-400 tracking-wider">
                       {team1 ? team1.replace(/^CLB\s+/i, "").replace(/^FC\s+/i, "").slice(0, 2).toUpperCase() : "H"}
                     </span>
-                    <span className="text-[8px] sm:text-[9px] uppercase tracking-widest text-gray-400 font-bold mt-0.5">
+                    <span className="text-[7px] sm:text-[8px] uppercase tracking-widest text-gray-400 font-bold">
                       CLB
                     </span>
                   </div>
                 )}
               </div>
-              <h3 className="mt-1.5 sm:mt-2 text-[11px] sm:text-sm font-black text-white line-clamp-2 leading-tight">
+              <h3 className="mt-1 text-[11px] sm:text-xs font-black text-white line-clamp-1 leading-tight">
                 {team1}
               </h3>
             </div>
 
             {/* TRUNG TÂM VS & THỜI GIAN TRẬN ĐẤU */}
-            <div className="flex flex-col items-center flex-shrink-0 px-1 sm:px-3">
-              <div className="flex items-center gap-1 sm:gap-1.5 px-2.5 py-0.5 sm:py-1 rounded-full bg-netflix-red/20 border border-netflix-red/40 text-netflix-red text-[10px] sm:text-xs font-black animate-pulse mb-1 sm:mb-2 shadow-sm">
-                <Radio className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+            <div className="flex flex-col items-center flex-shrink-0 px-1 sm:px-2">
+              <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-netflix-red/20 border border-netflix-red/40 text-netflix-red text-[9px] sm:text-[10px] font-black animate-pulse mb-0.5 sm:mb-1 shadow-sm">
+                <Radio className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                 <span>TRỰC TIẾP</span>
               </div>
 
-              <div className="px-3 py-1 rounded-xl bg-zinc-800/90 border border-white/15 text-xs sm:text-base font-black text-rose-400 tracking-wider shadow-inner">
+              <div className="px-2.5 py-0.5 rounded-lg bg-zinc-800/90 border border-white/15 text-xs sm:text-sm font-black text-rose-400 tracking-wider shadow-inner">
                 VS
               </div>
 
               {time && (
-                <span className="mt-1 sm:mt-1.5 text-[10px] sm:text-xs text-gray-300 font-semibold bg-white/10 px-2 py-0.5 rounded-full border border-white/10 whitespace-nowrap">
+                <span className="mt-1 text-[9px] sm:text-[10px] text-gray-300 font-semibold bg-white/10 px-1.5 py-0.5 rounded-full border border-white/10 whitespace-nowrap">
                   ⏰ {time}
                 </span>
               )}
             </div>
 
             {/* ĐỘI KHÁCH (TEAM 2) */}
-            <div className="flex flex-col items-center text-center max-w-[120px] sm:max-w-[180px] group">
-              <div className="w-14 h-14 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-950 border-2 border-white/20 p-2 sm:p-2.5 flex items-center justify-center shadow-xl transition-all duration-300 group-hover:scale-105 group-hover:border-sky-500/70 group-hover:shadow-sky-950/60">
+            <div className="flex flex-col items-center text-center max-w-[110px] sm:max-w-[150px] group">
+              <div className="w-11 h-11 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-xl sm:rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-950 border-2 border-white/20 p-1.5 sm:p-2 flex items-center justify-center shadow-xl transition-all duration-300 group-hover:scale-105 group-hover:border-sky-500/70 group-hover:shadow-sky-950/60">
                 {!awayImgError && awayLogo && !awayLogo.includes("tinhlagi.pro/logo.jpg") ? (
                   /* eslint-disable-next-line @next/next/no-img-element */
                   <img
@@ -643,36 +643,36 @@ export function LivePlayer({
                   />
                 ) : (
                   <div className="flex flex-col items-center justify-center">
-                    <span className="text-xl sm:text-2xl font-black text-sky-400 tracking-wider">
+                    <span className="text-base sm:text-xl font-black text-sky-400 tracking-wider">
                       {team2 ? team2.replace(/^CLB\s+/i, "").replace(/^FC\s+/i, "").slice(0, 2).toUpperCase() : "A"}
                     </span>
-                    <span className="text-[8px] sm:text-[9px] uppercase tracking-widest text-gray-400 font-bold mt-0.5">
+                    <span className="text-[7px] sm:text-[8px] uppercase tracking-widest text-gray-400 font-bold">
                       CLB
                     </span>
                   </div>
                 )}
               </div>
-              <h3 className="mt-1.5 sm:mt-2 text-[11px] sm:text-sm font-black text-white line-clamp-2 leading-tight">
+              <h3 className="mt-1 text-[11px] sm:text-xs font-black text-white line-clamp-1 leading-tight">
                 {team2 || "Đối thủ"}
               </h3>
             </div>
           </div>
 
           {/* META INFO BÊN PHẢI (GIẢI ĐẤU, BLV, CHẤT LƯỢNG) */}
-          <div className="flex flex-row md:flex-col items-center md:items-end justify-between w-full md:w-auto gap-1.5 sm:gap-2 border-t md:border-t-0 border-white/10 pt-2 md:pt-0">
+          <div className="flex flex-row md:flex-col items-center md:items-end justify-between w-full md:w-auto gap-1 sm:gap-1.5 border-t md:border-t-0 border-white/10 pt-1.5 md:pt-0">
             {group && (
-              <span className="px-3 py-1 rounded-full bg-white/10 border border-white/20 text-gray-200 text-xs font-bold shadow-sm">
+              <span className="px-2.5 py-0.5 rounded-full bg-white/10 border border-white/20 text-gray-200 text-[11px] font-bold shadow-sm">
                 🏆 {group}
               </span>
             )}
             {blv && (
-              <span className="px-3 py-1 rounded-full bg-netflix-red/20 border border-netflix-red/40 text-rose-300 text-xs font-extrabold shadow-sm">
+              <span className="px-2.5 py-0.5 rounded-full bg-netflix-red/20 border border-netflix-red/40 text-rose-300 text-[11px] font-extrabold shadow-sm">
                 🎙️ BLV {blv}
               </span>
             )}
-            <div className="flex items-center gap-1.5">
-              <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-xs font-black uppercase">
-                <Zap className="w-3 h-3 fill-emerald-400" />
+            <div className="flex items-center gap-1">
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-[10px] font-black uppercase">
+                <Zap className="w-2.5 h-2.5 fill-emerald-400" />
                 <span>{currentServer?.quality || "FHD 1080p"}</span>
               </span>
             </div>
@@ -686,7 +686,7 @@ export function LivePlayer({
         onMouseMove={resetControlsTimeout}
         onClick={togglePlay}
         onDoubleClick={toggleFullscreen}
-        className="relative w-full aspect-video bg-black rounded-2xl sm:rounded-3xl overflow-hidden border border-white/15 shadow-2xl group select-none cursor-pointer ring-1 ring-white/10"
+        className="relative w-full aspect-video max-h-[calc(100vh-210px)] max-w-[calc((100vh-210px)*16/9)] mx-auto bg-black rounded-2xl sm:rounded-3xl overflow-hidden border border-white/15 shadow-2xl group select-none cursor-pointer ring-1 ring-white/10"
       >
         <video
           ref={videoRef}

@@ -178,10 +178,10 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         <div className="ambient-cinema-glow opacity-80" aria-hidden="true" />
 
         <div
-          className={`w-full aspect-video bg-zinc-950 relative overflow-hidden transition-all duration-300 z-10 ${
+          className={`w-full aspect-video bg-zinc-950 relative overflow-hidden transition-all duration-300 z-10 mx-auto ${
             isTheaterMode
-              ? "rounded-none border-y border-white/20 shadow-[0_30px_90px_rgba(0,0,0,0.85)] max-h-[85vh]"
-              : "rounded-none sm:rounded-xl md:rounded-2xl border-y sm:border border-white/10 shadow-[0_25px_70px_rgba(0,0,0,0.55)]"
+              ? "rounded-none border-y border-white/20 shadow-[0_30px_90px_rgba(0,0,0,0.85)] max-h-[calc(100vh-90px)] max-w-[calc((100vh-90px)*16/9)]"
+              : "rounded-none sm:rounded-xl md:rounded-2xl border-y sm:border border-white/10 shadow-[0_25px_70px_rgba(0,0,0,0.55)] max-h-[calc(100vh-140px)] max-w-[calc((100vh-140px)*16/9)]"
           }`}
         >
           {activeSrc ? (

@@ -43,33 +43,33 @@ export function LiveHubClient({ footballData, tvData }: LiveHubClientProps) {
   }, [footballData.matches]);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 md:px-8 pt-24 pb-16 space-y-8">
+    <div className="max-w-7xl mx-auto px-4 md:px-8 pt-20 md:pt-22 pb-12 space-y-4">
       {/* 1. HEADER TRANG CHÍNH & TABS CHUYỂN ĐỔI BÓNG ĐÁ / TRUYỀN HÌNH */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-white/10 pb-6">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 border-b border-white/10 pb-3">
         <div>
-          <div className="flex items-center gap-2 mb-2 flex-wrap">
-            <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-netflix-red/20 border border-netflix-red/40 text-netflix-red text-xs font-black animate-pulse shadow-sm">
-              <Radio className="w-3.5 h-3.5" />
+          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+            <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-netflix-red/20 border border-netflix-red/40 text-netflix-red text-[11px] font-black animate-pulse shadow-sm">
+              <Radio className="w-3 h-3" />
               <span>LIVE HUB</span>
             </span>
-            <span className="flex items-center gap-1 text-xs text-emerald-400 font-bold bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
-              <Zap className="w-3 h-3 fill-emerald-400" />
+            <span className="flex items-center gap-1 text-[11px] text-emerald-400 font-bold bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+              <Zap className="w-2.5 h-2.5 fill-emerald-400" />
               <span>Ultra Low Latency (HLS FHD)</span>
             </span>
             {liveFootballCount > 0 && (
-              <span className="flex items-center gap-1 text-xs text-rose-400 font-bold bg-red-500/10 px-2.5 py-1 rounded-full border border-red-500/20">
-                <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
+              <span className="flex items-center gap-1 text-[11px] text-rose-400 font-bold bg-red-500/10 px-2.5 py-0.5 rounded-full border border-red-500/20">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
                 <span>{liveFootballCount} trận đang đá</span>
               </span>
             )}
           </div>
 
-          <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight">
+          <h1 className="text-2xl md:text-4xl font-black text-white tracking-tight">
             {activeTab === "football"
               ? "Trực Tiếp Bóng Đá HD"
               : "Truyền Hình TV Miễn Phí"}
           </h1>
-          <p className="text-sm text-gray-400 mt-2 max-w-2xl leading-relaxed">
+          <p className="text-xs sm:text-sm text-gray-400 mt-1 max-w-2xl leading-relaxed">
             {activeTab === "football"
               ? "Xem các trận cầu đỉnh cao có Bình luận viên tiếng Việt từ Xôi Lạc, Cola TV, Gà Vàng, S8 TV... Tốc độ cao, không giật lag."
               : "Xem trực tiếp các kênh VTV, HTV, Truyền hình Vĩnh Long, Kênh Thể Thao & Kênh Quốc Tế chuẩn FHD 1080p."}

@@ -275,7 +275,7 @@ export default async function MovieDetail({
         category={movie.category?.[0]?.name}
       />
 
-      <div className="w-full pt-[62px] md:pt-[74px] bg-black px-2 sm:px-4 md:px-8">
+      <div className="w-full pt-[56px] md:pt-[66px] bg-black px-2 sm:px-4 md:px-8">
         {/* BANNER XEM TIẾP NẾU CÓ TẬP XEM DỞ TRƯỚC ĐÓ */}
         <ResumeEpisodeBanner
           movieSlug={movie.slug}
@@ -283,7 +283,7 @@ export default async function MovieDetail({
         />
 
         {/* BREADCRUMB */}
-        <div className="max-w-[1800px] mx-auto py-2.5 flex items-center gap-2 text-xs sm:text-sm text-gray-400">
+        <div className="max-w-[1800px] mx-auto py-1.5 flex items-center gap-2 text-xs sm:text-sm text-gray-400">
           <Link href="/browse" className="hover:text-white transition">
             Trang chủ
           </Link>
