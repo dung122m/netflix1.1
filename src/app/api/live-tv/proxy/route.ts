@@ -48,14 +48,15 @@ export async function GET(request: NextRequest) {
 
   try {
     const referer = getReferer(targetUrl);
-    const isFptStream = /fptplay(?:53)?\.net/i.test(new URL(targetUrl).hostname);
+    const isFptStream = /fptplay(?:53)?\.net/i.test(
+      new URL(targetUrl).hostname,
+    );
 
     const response = await fetch(targetUrl, {
       headers: {
-        "User-Agent":
-          isFptStream
-            ? "Mozilla/5.0 (SMART-TV; LINUX; Tizen 10.0) AppleWebKit/537.36 (KHTML, like Gecko) 130.0.6723.116/10.0 TV Safari/537.36"
-            : "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+        "User-Agent": isFptStream
+          ? "Mozilla/5.0 (SMART-TV; LINUX; Tizen 10.0) AppleWebKit/537.36 (KHTML, like Gecko) 130.0.6723.116/10.0 TV Safari/537.36"
+          : "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
         Referer: referer,
         Origin: new URL(referer).origin,
         Accept: "*/*",
