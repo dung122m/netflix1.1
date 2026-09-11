@@ -20,10 +20,16 @@ export async function GET(request: NextRequest) {
   try {
     const parsedTarget = new URL(targetUrl);
     const origin = parsedTarget.origin;
+    const isFptStream = /fptplay(?:53)?\.net/i.test(parsedTarget.hostname);
+    const isColaStream = /miekgo\.app|msdht\.app/i.test(parsedTarget.hostname);
     const response = await fetch(targetUrl, {
       headers: {
         "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          isFptStream
+            ? "Mozilla/5.0 (SMART-TV; LINUX; Tizen 10.0) AppleWebKit/537.36 (KHTML, like Gecko) 130.0.6723.116/10.0 TV Safari/537.36"
+            : isColaStream
+              ? "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
+            : "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         Referer: origin + "/",
         Origin: origin,
       },
