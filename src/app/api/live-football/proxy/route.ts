@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isBlockedStreamUrl } from "@/services/live/shared/streamHealth";
 
 export const dynamic = "force-dynamic";
 
@@ -10,11 +11,15 @@ export async function GET(request: NextRequest) {
     return new NextResponse("Missing url parameter", { status: 400 });
   }
 
+  if (isBlockedStreamUrl(targetUrl)) {
+    return new NextResponse("Stream source is blocked or invalid", {
+      status: 410,
+    });
+  }
+
   try {
     const parsedTarget = new URL(targetUrl);
     const origin = parsedTarget.origin;
-    const basePath = targetUrl.substring(0, targetUrl.lastIndexOf("/") + 1);
-
     const response = await fetch(targetUrl, {
       headers: {
         "User-Agent":
@@ -36,6 +41,11 @@ export async function GET(request: NextRequest) {
 
     const contentType = response.headers.get("content-type") || "";
 
+    const toProxyUrl = (value: string) => {
+      const absoluteUrl = new URL(value, targetUrl).toString();
+      return `/api/live-football/proxy?url=${encodeURIComponent(absoluteUrl)}`;
+    };
+
     // Nếu là file playlist m3u8 -> viết lại URL segment để đi qua proxy
     if (
       targetUrl.includes(".m3u8") ||
@@ -47,31 +57,13 @@ export async function GET(request: NextRequest) {
       const rewrittenLines = lines.map((line) => {
         const trimmed = line.trim();
         if (!trimmed || trimmed.startsWith("#")) {
-          // Xử lý nếu dòng #EXT-X-KEY chứa URI="..."
-          if (trimmed.startsWith("#EXT-X-KEY")) {
-            return trimmed.replace(/URI="([^"]+)"/, (_, uri) => {
-              let fullUri = uri;
-              if (!uri.startsWith("http://") && !uri.startsWith("https://")) {
-                fullUri = uri.startsWith("/") ? origin + uri : basePath + uri;
-              }
-              return `URI="/api/live-football/proxy?url=${encodeURIComponent(
-                fullUri
-              )}"`;
-            });
-          }
-          return line;
+          return line.replace(
+            /URI="([^"]+)"/g,
+            (_, uri) => `URI="${toProxyUrl(uri)}"`,
+          );
         }
 
-        let fullSegmentUrl = trimmed;
-        if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://")) {
-          fullSegmentUrl = trimmed.startsWith("/")
-            ? origin + trimmed
-            : basePath + trimmed;
-        }
-
-        return `/api/live-football/proxy?url=${encodeURIComponent(
-          fullSegmentUrl
-        )}`;
+        return toProxyUrl(trimmed);
       });
 
       return new NextResponse(rewrittenLines.join("\n"), {
@@ -91,7 +83,7 @@ export async function GET(request: NextRequest) {
         "Content-Type": contentType || "video/mp2t",
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET, OPTIONS",
-        "Cache-Control": "public, max-age=86400, immutable",
+        "Cache-Control": "no-store, no-cache, must-revalidate",
       },
     });
   } catch (error) {

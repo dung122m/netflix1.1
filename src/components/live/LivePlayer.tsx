@@ -37,10 +37,16 @@ interface LivePlayerProps {
   group?: string;
   team1?: string;
   team2?: string;
+  isEvent?: boolean;
   homeLogo?: string;
   awayLogo?: string;
   logo?: string;
   isActive?: boolean;
+  matchOptions?: FootballMatch[];
+  showMatchRail?: boolean;
+  onToggleMatchRail?: () => void;
+  onCloseMatchRail?: () => void;
+  onSelectMatch?: (match: FootballMatch) => void;
 }
 
 export function LivePlayer({
@@ -52,9 +58,15 @@ export function LivePlayer({
   group = match?.group,
   team1 = match?.team1,
   team2 = match?.team2,
+  isEvent = match?.isEvent,
   homeLogo = match?.homeLogo,
   awayLogo = match?.awayLogo,
   isActive = true,
+  matchOptions = [],
+  showMatchRail = false,
+  onToggleMatchRail,
+  onCloseMatchRail,
+  onSelectMatch,
 }: LivePlayerProps) {
   const { isReminded, addReminder, removeReminder } = useMatchReminders();
   const matchId = match?.id;
@@ -67,6 +79,8 @@ export function LivePlayer({
   const userPausedRef = useRef<boolean>(false);
   const lastLoadedUrlRef = useRef<string>("");
   const retryCountRef = useRef<number>(0);
+  const fallbackCountRef = useRef<number>(0);
+  const loadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const [selectedServerIndex, setSelectedServerIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -78,7 +92,7 @@ export function LivePlayer({
   const [hasError, setHasError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [copied, setCopied] = useState(false);
-  const [showControls, setShowControls] = useState(true);
+  const [showControls, setShowControls] = useState(false);
   const [showAllServers, setShowAllServers] = useState(false);
   const [actionFeedback, setActionFeedback] = useState<{
     icon: "play" | "pause" | "volume" | "mute" | "server";
@@ -116,7 +130,7 @@ export function LivePlayer({
         setActionFeedback(null);
       }, 700);
     },
-    []
+    [],
   );
 
   // Khôi phục mức âm lượng đã lưu từ localStorage
@@ -205,7 +219,10 @@ export function LivePlayer({
       if (hlsRef.current) {
         hlsRef.current.stopLoad();
       }
-      if (typeof document !== "undefined" && document.pictureInPictureElement === video) {
+      if (
+        typeof document !== "undefined" &&
+        document.pictureInPictureElement === video
+      ) {
         document.exitPictureInPicture().catch(() => {});
         setIsPip(false);
       }
@@ -214,7 +231,10 @@ export function LivePlayer({
         hlsRef.current.startLoad();
       }
       if (!userPausedRef.current) {
-        video.play().then(() => setIsPlaying(true)).catch(() => {});
+        video
+          .play()
+          .then(() => setIsPlaying(true))
+          .catch(() => {});
       }
     }
   }, [isActive]);
@@ -241,13 +261,14 @@ export function LivePlayer({
     }
 
     const effectiveUrl = toPlayableHlsUrl(currentServer.url);
-    const isEffectiveHls = currentServer.isHls || effectiveUrl.includes(".m3u8");
+    const isEffectiveHls =
+      currentServer.isHls || effectiveUrl.includes(".m3u8");
 
     if (!isEffectiveHls && currentServer.format === "flv") {
       const nextHlsIdx = servers.findIndex(
         (s, idx) =>
           idx !== selectedServerIndex &&
-          (s.isHls || toPlayableHlsUrl(s.url).includes(".m3u8"))
+          (s.isHls || toPlayableHlsUrl(s.url).includes(".m3u8")),
       );
       if (nextHlsIdx !== -1) {
         setSelectedServerIndex(nextHlsIdx);
@@ -257,7 +278,7 @@ export function LivePlayer({
       setIsLoading(false);
       setHasError(true);
       setErrorMessage(
-        "Định dạng này cần mở bằng ứng dụng ngoài (VLC/PotPlayer). Hãy chọn máy chủ HLS khác để xem trực tiếp trên Web!"
+        "Định dạng này cần mở bằng ứng dụng ngoài (VLC/PotPlayer). Hãy chọn máy chủ HLS khác để xem trực tiếp trên Web!",
       );
       return;
     }
@@ -283,8 +304,29 @@ export function LivePlayer({
       hlsRef.current = hls;
       hls.loadSource(activeUrl);
       hls.attachMedia(video);
+      loadTimeoutRef.current = setTimeout(() => {
+        if (hlsRef.current !== hls) return;
+        if (fallbackCountRef.current < servers.length - 1) {
+          const nextServerIndex = servers.findIndex(
+            (_, index) => index > selectedServerIndex,
+          );
+          if (nextServerIndex !== -1) {
+            fallbackCountRef.current += 1;
+            setSelectedServerIndex(nextServerIndex);
+            return;
+          }
+        }
+        hls.destroy();
+        hlsRef.current = null;
+        setIsLoading(false);
+        setHasError(true);
+        setErrorMessage(
+          "Nguồn chưa phát hoặc không phản hồi sau 12 giây. Hãy thử đổi máy chủ khác.",
+        );
+      }, 12000);
 
       hls.on(Hls.Events.MANIFEST_PARSED, (_, data) => {
+        if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
         if (data.levels && data.levels.length > 0) {
           hls.currentLevel = data.levels.length - 1;
         }
@@ -321,11 +363,25 @@ export function LivePlayer({
               retryCountRef.current += 1;
               if (retryCountRef.current <= 2) {
                 hls.startLoad();
+              } else if (fallbackCountRef.current < servers.length - 1) {
+                const nextServerIndex = servers.findIndex(
+                  (_, index) => index > selectedServerIndex,
+                );
+                if (nextServerIndex !== -1) {
+                  fallbackCountRef.current += 1;
+                  setSelectedServerIndex(nextServerIndex);
+                  return;
+                }
+                setIsLoading(false);
+                setHasError(true);
+                setErrorMessage(
+                  "Không còn máy chủ phát khả dụng cho trận này. Hãy thử lại sau.",
+                );
               } else {
                 setIsLoading(false);
                 setHasError(true);
                 setErrorMessage(
-                  "Tín hiệu gián đoạn hoặc trận đấu chưa bắt đầu. Hãy thử chuyển sang máy chủ khác."
+                  "Tín hiệu gián đoạn hoặc trận đấu chưa bắt đầu. Hãy thử chuyển sang máy chủ khác.",
                 );
               }
               break;
@@ -333,10 +389,20 @@ export function LivePlayer({
               hls.recoverMediaError();
               break;
             default:
+              if (fallbackCountRef.current < servers.length - 1) {
+                const nextServerIndex = servers.findIndex(
+                  (_, index) => index > selectedServerIndex,
+                );
+                if (nextServerIndex !== -1) {
+                  fallbackCountRef.current += 1;
+                  setSelectedServerIndex(nextServerIndex);
+                  return;
+                }
+              }
               setIsLoading(false);
               setHasError(true);
               setErrorMessage(
-                "Tín hiệu luồng phát tạm thời gián đoạn. Hãy thử đổi máy chủ khác hoặc mở bằng VLC."
+                "Tín hiệu luồng phát tạm thời gián đoạn. Hãy thử đổi máy chủ khác hoặc mở bằng VLC.",
               );
               break;
           }
@@ -372,12 +438,16 @@ export function LivePlayer({
         setIsLoading(false);
         setHasError(true);
         setErrorMessage(
-          "Không thể tải luồng phát trên trình duyệt này. Vui lòng đổi máy chủ hoặc mở bằng VLC."
+          "Không thể tải luồng phát trên trình duyệt này. Vui lòng đổi máy chủ hoặc mở bằng VLC.",
         );
       });
     }
 
     return () => {
+      if (loadTimeoutRef.current) {
+        clearTimeout(loadTimeoutRef.current);
+        loadTimeoutRef.current = null;
+      }
       if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;
@@ -396,7 +466,10 @@ export function LivePlayer({
       triggerActionFeedback("pause");
     } else {
       userPausedRef.current = false;
-      videoRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+      videoRef.current
+        .play()
+        .then(() => setIsPlaying(true))
+        .catch(() => {});
       triggerActionFeedback("play");
       resetControlsTimeout();
     }
@@ -451,14 +524,14 @@ export function LivePlayer({
 
       triggerActionFeedback(
         shouldMute ? "mute" : "volume",
-        shouldMute ? "Tắt tiếng" : `${Math.round(clamped * 100)}%`
+        shouldMute ? "Tắt tiếng" : `${Math.round(clamped * 100)}%`,
       );
 
       try {
         localStorage.setItem("nanaflix_live_volume", String(clamped));
       } catch {}
     },
-    [triggerActionFeedback]
+    [triggerActionFeedback],
   );
 
   // Toàn màn hình hỗ trợ đa nền tảng (Desktop, Android, iOS Safari)
@@ -469,26 +542,46 @@ export function LivePlayer({
     // Kiểm tra trạng thái fullscreen hiện tại
     const isDocFs = Boolean(
       document.fullscreenElement ||
-        (document as unknown as { webkitFullscreenElement?: Element }).webkitFullscreenElement ||
-        (document as unknown as { mozFullScreenElement?: Element }).mozFullScreenElement ||
-        (document as unknown as { msFullscreenElement?: Element }).msFullscreenElement
+      (document as unknown as { webkitFullscreenElement?: Element })
+        .webkitFullscreenElement ||
+      (document as unknown as { mozFullScreenElement?: Element })
+        .mozFullScreenElement ||
+      (document as unknown as { msFullscreenElement?: Element })
+        .msFullscreenElement,
     );
 
     // Kiểm tra trạng thái fullscreen riêng của iOS Safari trên video element
     const isVideoFs = Boolean(
-      video && (video as unknown as { webkitDisplayingFullscreen?: boolean }).webkitDisplayingFullscreen
+      video &&
+      (video as unknown as { webkitDisplayingFullscreen?: boolean })
+        .webkitDisplayingFullscreen,
     );
 
     if (isDocFs || isVideoFs || isFullscreen) {
       // Thoát toàn màn hình
       if (document.exitFullscreen) {
         document.exitFullscreen().catch(() => {});
-      } else if ((document as unknown as { webkitExitFullscreen?: () => void }).webkitExitFullscreen) {
-        (document as unknown as { webkitExitFullscreen: () => void }).webkitExitFullscreen();
-      } else if ((document as unknown as { mozCancelFullScreen?: () => void }).mozCancelFullScreen) {
-        (document as unknown as { mozCancelFullScreen: () => void }).mozCancelFullScreen();
-      } else if ((document as unknown as { msExitFullscreen?: () => void }).msExitFullscreen) {
-        (document as unknown as { msExitFullscreen: () => void }).msExitFullscreen();
+      } else if (
+        (document as unknown as { webkitExitFullscreen?: () => void })
+          .webkitExitFullscreen
+      ) {
+        (
+          document as unknown as { webkitExitFullscreen: () => void }
+        ).webkitExitFullscreen();
+      } else if (
+        (document as unknown as { mozCancelFullScreen?: () => void })
+          .mozCancelFullScreen
+      ) {
+        (
+          document as unknown as { mozCancelFullScreen: () => void }
+        ).mozCancelFullScreen();
+      } else if (
+        (document as unknown as { msExitFullscreen?: () => void })
+          .msExitFullscreen
+      ) {
+        (
+          document as unknown as { msExitFullscreen: () => void }
+        ).msExitFullscreen();
       }
       setIsFullscreen(false);
     } else {
@@ -496,31 +589,49 @@ export function LivePlayer({
       if (container && container.requestFullscreen) {
         container.requestFullscreen().catch(() => {
           // Fallback cho iOS Safari
-          if (video && (video as unknown as { webkitEnterFullscreen?: () => void }).webkitEnterFullscreen) {
-            (video as unknown as { webkitEnterFullscreen: () => void }).webkitEnterFullscreen();
+          if (
+            video &&
+            (video as unknown as { webkitEnterFullscreen?: () => void })
+              .webkitEnterFullscreen
+          ) {
+            (
+              video as unknown as { webkitEnterFullscreen: () => void }
+            ).webkitEnterFullscreen();
           }
         });
       } else if (
         container &&
-        (container as unknown as { webkitRequestFullscreen?: () => void }).webkitRequestFullscreen
+        (container as unknown as { webkitRequestFullscreen?: () => void })
+          .webkitRequestFullscreen
       ) {
-        (container as unknown as { webkitRequestFullscreen: () => void }).webkitRequestFullscreen();
+        (
+          container as unknown as { webkitRequestFullscreen: () => void }
+        ).webkitRequestFullscreen();
       } else if (
         container &&
-        (container as unknown as { mozRequestFullScreen?: () => void }).mozRequestFullScreen
+        (container as unknown as { mozRequestFullScreen?: () => void })
+          .mozRequestFullScreen
       ) {
-        (container as unknown as { mozRequestFullScreen: () => void }).mozRequestFullScreen();
+        (
+          container as unknown as { mozRequestFullScreen: () => void }
+        ).mozRequestFullScreen();
       } else if (
         container &&
-        (container as unknown as { msRequestFullscreen?: () => void }).msRequestFullscreen
+        (container as unknown as { msRequestFullscreen?: () => void })
+          .msRequestFullscreen
       ) {
-        (container as unknown as { msRequestFullscreen: () => void }).msRequestFullscreen();
+        (
+          container as unknown as { msRequestFullscreen: () => void }
+        ).msRequestFullscreen();
       } else if (
         video &&
-        (video as unknown as { webkitEnterFullscreen?: () => void }).webkitEnterFullscreen
+        (video as unknown as { webkitEnterFullscreen?: () => void })
+          .webkitEnterFullscreen
       ) {
         // iOS Safari trên iPhone bắt buộc dùng webkitEnterFullscreen trên video element
-        (video as unknown as { webkitEnterFullscreen: () => void }).webkitEnterFullscreen();
+        (
+          video as unknown as { webkitEnterFullscreen: () => void }
+        ).webkitEnterFullscreen();
       }
       setIsFullscreen(true);
     }
@@ -546,9 +657,12 @@ export function LivePlayer({
     const handleFsChange = () => {
       const isFs = Boolean(
         document.fullscreenElement ||
-          (document as unknown as { webkitFullscreenElement?: Element }).webkitFullscreenElement ||
-          (document as unknown as { mozFullScreenElement?: Element }).mozFullScreenElement ||
-          (document as unknown as { msFullscreenElement?: Element }).msFullscreenElement
+        (document as unknown as { webkitFullscreenElement?: Element })
+          .webkitFullscreenElement ||
+        (document as unknown as { mozFullScreenElement?: Element })
+          .mozFullScreenElement ||
+        (document as unknown as { msFullscreenElement?: Element })
+          .msFullscreenElement,
       );
       setIsFullscreen(isFs);
     };
@@ -590,16 +704,20 @@ export function LivePlayer({
       setSelectedServerIndex(targetIdx);
       triggerActionFeedback(
         "server",
-        `Máy chủ #${targetIdx + 1}: ${servers[targetIdx]?.name || ""}`
+        `Máy chủ #${targetIdx + 1}: ${servers[targetIdx]?.name || ""}`,
       );
     },
-    [servers, selectedServerIndex, triggerActionFeedback]
+    [servers, selectedServerIndex, triggerActionFeedback],
   );
 
   // Phím tắt bàn phím
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (["input", "textarea"].includes((e.target as HTMLElement)?.tagName?.toLowerCase())) {
+      if (
+        ["input", "textarea"].includes(
+          (e.target as HTMLElement)?.tagName?.toLowerCase(),
+        )
+      ) {
         return;
       }
       if (e.code === "Space") {
@@ -631,10 +749,22 @@ export function LivePlayer({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [togglePlay, toggleMute, toggleFullscreen, togglePip, handleVolumeChange, handleSwitchServer, volume]);
+  }, [
+    togglePlay,
+    toggleMute,
+    toggleFullscreen,
+    togglePip,
+    handleVolumeChange,
+    handleSwitchServer,
+    volume,
+  ]);
 
   const handleCopyStream = () => {
-    if (typeof navigator !== "undefined" && navigator.clipboard && currentServer) {
+    if (
+      typeof navigator !== "undefined" &&
+      navigator.clipboard &&
+      currentServer
+    ) {
       navigator.clipboard.writeText(currentServer.url);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -647,11 +777,7 @@ export function LivePlayer({
   };
 
   const VolumeIcon =
-    isMuted || volume === 0
-      ? VolumeX
-      : volume < 0.5
-      ? Volume1
-      : Volume2;
+    isMuted || volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
 
   return (
     <div className="space-y-4">
@@ -662,82 +788,116 @@ export function LivePlayer({
         <div className="pointer-events-none absolute -top-24 right-1/4 w-96 h-96 bg-sky-600/15 rounded-full blur-3xl" />
 
         <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-4">
-          {/* KHU VỰC 2 ĐỘI & HUY HIỆU CLB */}
-          <div className="flex-1 w-full flex items-center justify-around sm:justify-center gap-2 sm:gap-4">
-            {/* ĐỘI NHÀ (TEAM 1) */}
-            <div className="flex flex-col items-center text-center max-w-[110px] sm:max-w-[150px] group">
-              <div className="w-11 h-11 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-xl sm:rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-950 border-2 border-white/20 p-1.5 sm:p-2 flex items-center justify-center shadow-xl transition-all duration-300 group-hover:scale-105 group-hover:border-netflix-red/70 group-hover:shadow-red-950/60">
-                {!homeImgError && homeLogo && !homeLogo.includes("tinhlagi.pro/logo.jpg") ? (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img
-                    src={homeLogo}
-                    alt={team1 || "Đội nhà"}
-                    className="w-full h-full object-contain filter drop-shadow-xl"
-                    onError={() => setHomeImgError(true)}
-                    referrerPolicy="no-referrer"
-                  />
-                ) : (
-                  <div className="flex flex-col items-center justify-center">
-                    <span className="text-base sm:text-xl font-black text-rose-400 tracking-wider">
-                      {team1 ? team1.replace(/^CLB\s+/i, "").replace(/^FC\s+/i, "").slice(0, 2).toUpperCase() : "H"}
-                    </span>
-                    <span className="text-[7px] sm:text-[8px] uppercase tracking-widest text-gray-400 font-bold">
-                      CLB
-                    </span>
-                  </div>
-                )}
-              </div>
-              <h3 className="mt-1 text-[11px] sm:text-xs font-black text-white line-clamp-1 leading-tight">
-                {team1}
-              </h3>
-            </div>
-
-            {/* TRUNG TÂM VS & THỜI GIAN TRẬN ĐẤU */}
-            <div className="flex flex-col items-center flex-shrink-0 px-1 sm:px-2">
-              <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-netflix-red/20 border border-netflix-red/40 text-netflix-red text-[9px] sm:text-[10px] font-black animate-pulse mb-0.5 sm:mb-1 shadow-sm">
-                <Radio className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                <span>TRỰC TIẾP</span>
-              </div>
-
-              <div className="px-2.5 py-0.5 rounded-lg bg-zinc-800/90 border border-white/15 text-xs sm:text-sm font-black text-rose-400 tracking-wider shadow-inner">
-                VS
-              </div>
-
-              {time && (
-                <span className="mt-1 text-[9px] sm:text-[10px] text-gray-300 font-semibold bg-white/10 px-1.5 py-0.5 rounded-full border border-white/10 whitespace-nowrap">
+          {isEvent ? (
+            <div className="flex-1 w-full min-h-32 flex flex-col items-center justify-center text-center">
+              <span className="text-xs sm:text-sm font-black uppercase tracking-[0.24em] text-red-300">
+                Sự kiện trực tiếp
+              </span>
+              <h2 className="mt-2 text-2xl sm:text-4xl font-black text-white leading-tight">
+                {title}
+              </h2>
+              {time && time !== "Trực tiếp" && (
+                <span className="mt-3 text-sm font-bold text-gray-300">
                   ⏰ {time}
                 </span>
               )}
             </div>
-
-            {/* ĐỘI KHÁCH (TEAM 2) */}
-            <div className="flex flex-col items-center text-center max-w-[110px] sm:max-w-[150px] group">
-              <div className="w-11 h-11 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-xl sm:rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-950 border-2 border-white/20 p-1.5 sm:p-2 flex items-center justify-center shadow-xl transition-all duration-300 group-hover:scale-105 group-hover:border-sky-500/70 group-hover:shadow-sky-950/60">
-                {!awayImgError && awayLogo && !awayLogo.includes("tinhlagi.pro/logo.jpg") ? (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img
-                    src={awayLogo}
-                    alt={team2 || "Đội khách"}
-                    className="w-full h-full object-contain filter drop-shadow-xl"
-                    onError={() => setAwayImgError(true)}
-                    referrerPolicy="no-referrer"
-                  />
-                ) : (
-                  <div className="flex flex-col items-center justify-center">
-                    <span className="text-base sm:text-xl font-black text-sky-400 tracking-wider">
-                      {team2 ? team2.replace(/^CLB\s+/i, "").replace(/^FC\s+/i, "").slice(0, 2).toUpperCase() : "A"}
-                    </span>
-                    <span className="text-[7px] sm:text-[8px] uppercase tracking-widest text-gray-400 font-bold">
-                      CLB
-                    </span>
+          ) : (
+            <>
+              {/* KHU VỰC 2 ĐỘI & HUY HIỆU CLB */}
+              <div className="flex-1 w-full flex items-center justify-around sm:justify-center gap-2 sm:gap-4">
+                {/* ĐỘI NHÀ (TEAM 1) */}
+                <div className="flex flex-col items-center text-center max-w-[110px] sm:max-w-[150px] group">
+                  <div className="w-11 h-11 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-xl sm:rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-950 border-2 border-white/20 p-1.5 sm:p-2 flex items-center justify-center shadow-xl transition-all duration-300 group-hover:scale-105 group-hover:border-netflix-red/70 group-hover:shadow-red-950/60">
+                    {!homeImgError &&
+                    homeLogo &&
+                    !homeLogo.includes("tinhlagi.pro/logo.jpg") ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img
+                        src={homeLogo}
+                        alt={team1 || "Đội nhà"}
+                        className="w-full h-full object-contain filter drop-shadow-xl"
+                        onError={() => setHomeImgError(true)}
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center">
+                        <span className="text-base sm:text-xl font-black text-rose-400 tracking-wider">
+                          {team1
+                            ? team1
+                                .replace(/^CLB\s+/i, "")
+                                .replace(/^FC\s+/i, "")
+                                .slice(0, 2)
+                                .toUpperCase()
+                            : "H"}
+                        </span>
+                        <span className="text-[7px] sm:text-[8px] uppercase tracking-widest text-gray-400 font-bold">
+                          CLB
+                        </span>
+                      </div>
+                    )}
                   </div>
-                )}
+                  <h3 className="mt-1 text-[11px] sm:text-xs font-black text-white line-clamp-1 leading-tight">
+                    {team1}
+                  </h3>
+                </div>
+
+                {/* TRUNG TÂM VS & THỜI GIAN TRẬN ĐẤU */}
+                <div className="flex flex-col items-center flex-shrink-0 px-1 sm:px-2">
+                  <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-netflix-red/20 border border-netflix-red/40 text-netflix-red text-[9px] sm:text-[10px] font-black animate-pulse mb-0.5 sm:mb-1 shadow-sm">
+                    <Radio className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                    <span>TRỰC TIẾP</span>
+                  </div>
+
+                  <div className="px-2.5 py-0.5 rounded-lg bg-zinc-800/90 border border-white/15 text-xs sm:text-sm font-black text-rose-400 tracking-wider shadow-inner">
+                    VS
+                  </div>
+
+                  {time && (
+                    <span className="mt-1 text-[9px] sm:text-[10px] text-gray-300 font-semibold bg-white/10 px-1.5 py-0.5 rounded-full border border-white/10 whitespace-nowrap">
+                      ⏰ {time}
+                    </span>
+                  )}
+                </div>
+
+                {/* ĐỘI KHÁCH (TEAM 2) */}
+                <div className="flex flex-col items-center text-center max-w-[110px] sm:max-w-[150px] group">
+                  <div className="w-11 h-11 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-xl sm:rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-950 border-2 border-white/20 p-1.5 sm:p-2 flex items-center justify-center shadow-xl transition-all duration-300 group-hover:scale-105 group-hover:border-sky-500/70 group-hover:shadow-sky-950/60">
+                    {!awayImgError &&
+                    awayLogo &&
+                    !awayLogo.includes("tinhlagi.pro/logo.jpg") ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img
+                        src={awayLogo}
+                        alt={team2 || "Đội khách"}
+                        className="w-full h-full object-contain filter drop-shadow-xl"
+                        onError={() => setAwayImgError(true)}
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center">
+                        <span className="text-base sm:text-xl font-black text-sky-400 tracking-wider">
+                          {team2
+                            ? team2
+                                .replace(/^CLB\s+/i, "")
+                                .replace(/^FC\s+/i, "")
+                                .slice(0, 2)
+                                .toUpperCase()
+                            : "A"}
+                        </span>
+                        <span className="text-[7px] sm:text-[8px] uppercase tracking-widest text-gray-400 font-bold">
+                          CLB
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <h3 className="mt-1 text-[11px] sm:text-xs font-black text-white line-clamp-1 leading-tight">
+                    {team2 || "Đối thủ"}
+                  </h3>
+                </div>
               </div>
-              <h3 className="mt-1 text-[11px] sm:text-xs font-black text-white line-clamp-1 leading-tight">
-                {team2 || "Đối thủ"}
-              </h3>
-            </div>
-          </div>
+            </>
+          )}
 
           {/* META INFO BÊN PHẢI (GIẢI ĐẤU, BLV, CHẤT LƯỢNG) */}
           <div className="flex flex-row md:flex-col items-center md:items-end justify-between w-full md:w-auto gap-1 sm:gap-1.5 border-t md:border-t-0 border-white/10 pt-1.5 md:pt-0">
@@ -799,6 +959,86 @@ export function LivePlayer({
             <span>Ultra Low Latency • Tốc độ cao</span>
           </span>
         </div>
+
+        {matchOptions.length > 0 && onToggleMatchRail && (
+          <>
+            <div
+              className={`absolute top-1/2 right-0 z-30 -translate-y-1/2 transition-opacity duration-300 ${
+                showControls || showMatchRail
+                  ? "opacity-100"
+                  : "opacity-0 pointer-events-none"
+              }`}
+            >
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onToggleMatchRail();
+                }}
+                className="rounded-l-xl border border-white/20 border-r-0 bg-black/70 px-2 py-3 text-[10px] font-black text-white shadow-xl backdrop-blur-md"
+                title="Mở danh sách trận đấu"
+              >
+                TRẬN
+              </button>
+            </div>
+
+            <aside
+              className={`absolute inset-y-0 right-0 z-40 w-[min(84vw,320px)] border-l border-white/15 bg-zinc-950/90 p-3 shadow-2xl backdrop-blur-xl transition-transform duration-300 ${
+                showMatchRail
+                  ? "translate-x-0 pointer-events-auto"
+                  : "translate-x-full pointer-events-none"
+              }`}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="mb-3 flex items-center justify-between border-b border-white/10 pb-2">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-rose-300">
+                    Bóng đá trực tiếp
+                  </p>
+                  <p className="mt-1 truncate text-xs font-bold text-white">
+                    {title}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={onCloseMatchRail}
+                  className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10 hover:text-white"
+                  title="Đóng danh sách trận"
+                >
+                  <ChevronRight className="h-4 w-4 rotate-180" />
+                </button>
+              </div>
+              <div className="h-[calc(100%-58px)] space-y-1.5 overflow-y-auto pr-1 scrollbar-thin">
+                {matchOptions.map((option) => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => onSelectMatch?.(option)}
+                    className={`w-full rounded-xl border px-3 py-2 text-left transition ${
+                      option.id === match?.id
+                        ? "border-rose-400/70 bg-rose-500/15 text-white"
+                        : "border-white/10 bg-white/[0.03] text-gray-300 hover:border-white/25 hover:bg-white/[0.08]"
+                    }`}
+                  >
+                    <span className="flex items-center justify-between gap-2">
+                      <span className="truncate text-xs font-bold">
+                        {option.isEvent
+                          ? option.title
+                          : `${option.team1}${option.team2 ? ` vs ${option.team2}` : ""}`}
+                      </span>
+                      <span className="shrink-0 text-[10px] font-bold text-sky-300">
+                        {option.time}
+                      </span>
+                    </span>
+                    <span className="mt-1 block truncate text-[10px] text-gray-500">
+                      {option.group} · {option.servers.length} nguồn
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </aside>
+          </>
+        )}
 
         {/* NÚT BẬT ÂM THANH NỔI BẬT KHI ĐANG MUTE Ở GÓC TRÊN PHẢI */}
         {isPlaying && isMuted && !isLoading && !hasError && (
@@ -895,7 +1135,10 @@ export function LivePlayer({
                   className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-netflix-red hover:bg-red-700 text-xs font-bold text-white transition shadow-lg shadow-red-950/50 cursor-pointer"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
-                  <span>Đổi Máy Chủ #{((selectedServerIndex + 1) % servers.length) + 1}</span>
+                  <span>
+                    Đổi Máy Chủ #
+                    {((selectedServerIndex + 1) % servers.length) + 1}
+                  </span>
                 </button>
               )}
 
@@ -915,7 +1158,7 @@ export function LivePlayer({
         <div
           onClick={(e) => e.stopPropagation()}
           className={`absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/95 via-black/70 to-transparent p-2.5 sm:p-4 flex items-center justify-between gap-2 transition-opacity duration-300 z-30 ${
-            showControls || !isPlaying
+            showControls
               ? "opacity-100 pointer-events-auto"
               : "opacity-0 pointer-events-none"
           }`}
@@ -1068,13 +1311,15 @@ export function LivePlayer({
                 </span>
               )}
             </div>
-            <h2 className="text-base sm:text-xl font-black text-white leading-snug break-words keep-white" style={{ color: "#ffffff" }}>
+            <h2
+              className="text-base sm:text-xl font-black text-white leading-snug break-words keep-white"
+              style={{ color: "#ffffff" }}
+            >
               {title}
             </h2>
           </div>
 
           <div className="flex items-center gap-2 flex-shrink-0 self-start sm:self-center">
-
             {match && (
               <button
                 type="button"
@@ -1146,7 +1391,11 @@ export function LivePlayer({
               </span>
               {hasMoreServers && (
                 <span className="text-[11px] text-gray-500 font-normal hidden sm:inline">
-                  ({showAllServers ? `Đang hiện toàn bộ ${servers.length}` : `Đang hiện 8/${servers.length}`})
+                  (
+                  {showAllServers
+                    ? `Đang hiện toàn bộ ${servers.length}`
+                    : `Đang hiện 8/${servers.length}`}
+                  )
                 </span>
               )}
             </div>
@@ -1202,7 +1451,9 @@ export function LivePlayer({
                 onClick={() => setShowAllServers(true)}
                 className="px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer bg-white/10 hover:bg-white/20 text-gray-200 hover:text-white border border-dashed border-white/30 hover:border-white/60 shadow-sm"
               >
-                <span>+ Xem thêm {servers.length - INITIAL_SERVER_LIMIT} nguồn khác</span>
+                <span>
+                  + Xem thêm {servers.length - INITIAL_SERVER_LIMIT} nguồn khác
+                </span>
                 <ChevronDown className="w-3.5 h-3.5 text-netflix-red" />
               </button>
             )}

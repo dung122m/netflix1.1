@@ -53,32 +53,38 @@ export function LiveFootballClient({
     () => {
       if (typeof window !== "undefined") {
         try {
-          const matchParam = new URLSearchParams(window.location.search).get("match");
+          const matchParam = new URLSearchParams(window.location.search).get(
+            "match",
+          );
           const savedId = localStorage.getItem("nanaflix_live_match_id");
           const target = matchParam || savedId;
           if (target) {
             const found = matches.find(
               (m) =>
                 m.id === target ||
-                m.title.toLowerCase().includes(target.toLowerCase())
+                m.title.toLowerCase().includes(target.toLowerCase()),
             );
             if (found) return found;
           }
         } catch {}
       }
       return defaultMatch;
-    }
+    },
   );
 
   // Bộ lọc timeline: all | live | upcoming (sắp đá)
-  const [timelineFilter, setTimelineFilter] = useState<"all" | "live" | "upcoming">("all");
+  const [timelineFilter, setTimelineFilter] = useState<
+    "all" | "live" | "upcoming"
+  >("all");
   const [showAllUpcoming, setShowAllUpcoming] = useState<boolean>(false);
   const [selectedChannel, setSelectedChannel] = useState<string>("all");
   const [selectedTournament, setSelectedTournament] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [onlyFhd, setOnlyFhd] = useState<boolean>(false);
   const [visibleCount, setVisibleCount] = useState<number>(INITIAL_PAGE_SIZE);
-  const [isReminderModalOpen, setIsReminderModalOpen] = useState<boolean>(false);
+  const [isReminderModalOpen, setIsReminderModalOpen] =
+    useState<boolean>(false);
+  const [showMatchRail, setShowMatchRail] = useState(false);
   const { reminders } = useMatchReminders();
 
   const playerRef = useRef<HTMLDivElement>(null);
@@ -109,13 +115,16 @@ export function LiveFootballClient({
       .map(([name, count]) => ({ name, count }));
   }, [enrichedMatches]);
 
-  // Chỉ lấy các kênh có trận đấu thực tế (loại bỏ các kênh 0 trận)
+  // Chỉ lấy các kênh nguồn bóng đá & thể thao thực tế (lọc sạch các tag lộn xộn)
   const activeChannels = useMemo(() => {
-    return channels.filter((ch) =>
-      enrichedMatches.some(
-        (m) => m.group === ch || m.groups?.includes(ch)
-      )
+    const validChannels = channels.filter(
+      (ch) =>
+        ch &&
+        !ch.includes(";") &&
+        !["Undefined", "General", "Shop", "Kids", "Education"].includes(ch) &&
+        enrichedMatches.some((m) => m.group === ch || m.groups?.includes(ch)),
     );
+    return validChannels;
   }, [channels, enrichedMatches]);
 
   // Thống kê số lượng theo timeline để hiển thị trên tabs
@@ -125,6 +134,7 @@ export function LiveFootballClient({
     const twoHoursLater = now + 2 * 60 * 60 * 1000;
 
     const activeMatches = enrichedMatches.filter((m) => {
+      if (m.timestamp === Number.MAX_SAFE_INTEGER && !m.isEvent) return false;
       if (m.timestamp === Number.MAX_SAFE_INTEGER) return true;
       if (m.timestamp < twoHoursAgo) return false;
       if (!showAllUpcoming && m.timestamp > twoHoursLater) return false;
@@ -160,7 +170,7 @@ export function LiveFootballClient({
       const found = matches.find(
         (m) =>
           m.id === target ||
-          m.title.toLowerCase().includes(target.toLowerCase())
+          m.title.toLowerCase().includes(target.toLowerCase()),
       );
       if (found) {
         setSelectedMatch(found);
@@ -174,7 +184,22 @@ export function LiveFootballClient({
   // Reset phân trang khi thay đổi bất kỳ bộ lọc nào
   useEffect(() => {
     setVisibleCount(INITIAL_PAGE_SIZE);
-  }, [timelineFilter, showAllUpcoming, selectedChannel, selectedTournament, searchQuery, onlyFhd]);
+  }, [
+    timelineFilter,
+    showAllUpcoming,
+    selectedChannel,
+    selectedTournament,
+    searchQuery,
+    onlyFhd,
+  ]);
+
+  useEffect(() => {
+    setShowMatchRail(false);
+  }, [selectedMatch?.id]);
+
+  useEffect(() => {
+    setShowMatchRail(false);
+  }, [isActive]);
 
   const scrollChannels = (direction: "left" | "right") => {
     if (channelsScrollRef.current) {
@@ -191,6 +216,10 @@ export function LiveFootballClient({
 
     return enrichedMatches
       .filter((m) => {
+        if (m.timestamp === Number.MAX_SAFE_INTEGER && !m.isEvent) {
+          return false;
+        }
+
         // Ẩn trận đã kết thúc hơn 2 tiếng trước
         if (
           m.timestamp !== Number.MAX_SAFE_INTEGER &&
@@ -217,7 +246,10 @@ export function LiveFootballClient({
         }
 
         // Lọc theo Giải đấu (Tournament)
-        if (selectedTournament !== "all" && m.tournament !== selectedTournament) {
+        if (
+          selectedTournament !== "all" &&
+          m.tournament !== selectedTournament
+        ) {
           return false;
         }
 
@@ -271,6 +303,7 @@ export function LiveFootballClient({
 
   const handleSelectMatch = (match: FootballMatch) => {
     setSelectedMatch(match);
+    setShowMatchRail(false);
     try {
       localStorage.setItem("nanaflix_live_match_id", match.id);
       const url = new URL(window.location.href);
@@ -343,7 +376,11 @@ export function LiveFootballClient({
 
       {/* KHU VỰC TRÌNH PHÁT VIDEO CHÍNH */}
       {selectedMatch ? (
-        <div ref={playerRef} className="scroll-mt-24">
+        <div
+          ref={playerRef}
+          onMouseLeave={() => setShowMatchRail(false)}
+          className="group/player relative scroll-mt-24"
+        >
           <LivePlayer
             match={selectedMatch}
             title={selectedMatch.title}
@@ -355,6 +392,12 @@ export function LiveFootballClient({
             team2={selectedMatch.team2}
             homeLogo={selectedMatch.homeLogo}
             awayLogo={selectedMatch.awayLogo}
+            isEvent={selectedMatch.isEvent}
+            matchOptions={filteredMatches}
+            showMatchRail={showMatchRail}
+            onToggleMatchRail={() => setShowMatchRail((visible) => !visible)}
+            onCloseMatchRail={() => setShowMatchRail(false)}
+            onSelectMatch={handleSelectMatch}
             isActive={isActive}
           />
         </div>
@@ -380,7 +423,9 @@ export function LiveFootballClient({
               }`}
             >
               <Flame className="w-3.5 h-3.5 text-amber-500" />
-              <span>{showAllUpcoming ? "Tất cả các trận" : "Tất cả (±2h)"}</span>
+              <span>
+                {showAllUpcoming ? "Tất cả các trận" : "Tất cả (±2h)"}
+              </span>
               <span
                 className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
                   timelineFilter === "all"
@@ -454,13 +499,14 @@ export function LiveFootballClient({
               }
             >
               <Calendar className="w-3.5 h-3.5" />
-              <span>{showAllUpcoming ? "Thu gọn về ±2h" : "+ Xem thêm sau 2h"}</span>
+              <span>
+                {showAllUpcoming ? "Thu gọn về ±2h" : "+ Xem thêm sau 2h"}
+              </span>
             </button>
           </div>
 
           {/* Ô TÌM KIẾM & NÚT FHD & LỊCH NHẮC */}
           <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full lg:w-auto">
-
             {/* NÚT XEM LỊCH NHẮC CỦA TÔI */}
             <button
               type="button"
@@ -519,8 +565,6 @@ export function LiveFootballClient({
           </div>
         </div>
 
-
-
         {/* 3. CAROUSEL TABS CHỌN NGUỒN PHÁT (CHỈ HIỆN CÁC NGUỒN CÓ TRẬN) */}
         {activeChannels.length > 0 && (
           <div className="relative group/carousel">
@@ -560,7 +604,7 @@ export function LiveFootballClient({
 
               {activeChannels.map((ch) => {
                 const count = matches.filter(
-                  (m) => m.group === ch || m.groups?.includes(ch)
+                  (m) => m.group === ch || m.groups?.includes(ch),
                 ).length;
                 const isSelected = selectedChannel === ch;
                 return (
@@ -647,11 +691,13 @@ export function LiveFootballClient({
               {timelineFilter === "live"
                 ? "🔴 Trận đấu đang phát trực tiếp"
                 : timelineFilter === "upcoming"
-                ? `⏰ Trận đấu sắp diễn ra (${showAllUpcoming ? "Tất cả" : "trong 2 giờ tới"})`
-                : `🔥 Trận đấu đang & sắp diễn ra (${showAllUpcoming ? "Tất cả lịch thi đấu" : "khung giờ ±2h"})`}
+                  ? `⏰ Trận đấu sắp diễn ra (${showAllUpcoming ? "Tất cả" : "trong 2 giờ tới"})`
+                  : `🔥 Trận đấu đang & sắp diễn ra (${showAllUpcoming ? "Tất cả lịch thi đấu" : "khung giờ ±2h"})`}
             </span>
             <span className="px-2 py-0.5 rounded-full bg-white/10 text-gray-300 font-semibold">
-              Hiển thị {Math.min(displayedMatches.length, filteredMatches.length)} / {filteredMatches.length} trận
+              Hiển thị{" "}
+              {Math.min(displayedMatches.length, filteredMatches.length)} /{" "}
+              {filteredMatches.length} trận
             </span>
           </div>
 
@@ -687,12 +733,19 @@ export function LiveFootballClient({
             <div className="flex flex-col items-center justify-center pt-4 pb-2 space-y-2">
               <button
                 type="button"
-                onClick={() => setVisibleCount((prev) => prev + INITIAL_PAGE_SIZE)}
+                onClick={() =>
+                  setVisibleCount((prev) => prev + INITIAL_PAGE_SIZE)
+                }
                 className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-zinc-900 hover:bg-zinc-800 text-white font-black text-xs sm:text-sm border border-white/20 hover:border-white/40 shadow-xl transition-all hover:scale-102 active:scale-98 cursor-pointer"
               >
                 <span>Xem thêm các trận khác</span>
                 <span className="px-2 py-0.5 rounded-full bg-white/15 text-[11px] text-gray-200">
-                  +{Math.min(INITIAL_PAGE_SIZE, filteredMatches.length - visibleCount)} trận
+                  +
+                  {Math.min(
+                    INITIAL_PAGE_SIZE,
+                    filteredMatches.length - visibleCount,
+                  )}{" "}
+                  trận
                 </span>
                 <ChevronDown className="w-4 h-4" />
               </button>

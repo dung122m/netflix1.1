@@ -36,22 +36,22 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        // Cache API live football/tv 3 phút ở CDN edge
+        // Live sources change frequently; never serve stale stream URLs from the edge.
         source: "/api/live-football/:path*",
         headers: [
           {
             key: "Cache-Control",
-            value: "public, s-maxage=180, stale-while-revalidate=60",
+            value: "no-store, max-age=0, must-revalidate",
           },
         ],
       },
       {
-        // Cache API live TV 5 phút
+        // Live sources change frequently; never serve stale stream URLs from the edge.
         source: "/api/live-tv/:path*",
         headers: [
           {
             key: "Cache-Control",
-            value: "public, s-maxage=300, stale-while-revalidate=60",
+            value: "no-store, max-age=0, must-revalidate",
           },
         ],
       },
@@ -90,7 +90,7 @@ const nextConfig: NextConfig = {
   experimental: {
     staleTimes: {
       dynamic: 180, // Giữ trang động trong Router Cache client 3 phút (chuyển tab 0ms)
-      static: 600,  // Giữ trang tĩnh trong Router Cache client 10 phút
+      static: 600, // Giữ trang tĩnh trong Router Cache client 10 phút
     },
     optimizePackageImports: [
       "lucide-react",
