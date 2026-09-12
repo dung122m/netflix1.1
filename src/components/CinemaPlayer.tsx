@@ -1375,6 +1375,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                   poster: posterUrl,
                 }}
                 variant="player"
+                className="hidden sm:inline-flex"
               />
             )}
             {movieSlug && episodes && episodes.length > 1 && (
@@ -1387,6 +1388,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                   latestEpisodeName: episodes[episodes.length - 1]?.name,
                 }}
                 variant="player"
+                className="hidden sm:inline-flex"
               />
             )}
           </div>

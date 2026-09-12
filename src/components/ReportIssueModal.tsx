@@ -58,7 +58,7 @@ export function ReportIssueModal({
         type="button"
         onClick={() => setIsOpen(true)}
         title="Báo lỗi video / link hỏng"
-        className="inline-flex items-center gap-1.5 rounded-md border border-white/20 bg-zinc-900/80 px-2.5 py-1 text-xs md:text-sm font-medium text-gray-200 hover:bg-rose-950/40 hover:text-rose-300 hover:border-rose-500/40 transition-all cursor-pointer active:scale-95"
+        className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-zinc-900/80 px-3 py-1.5 text-xs sm:text-sm font-medium text-gray-300 hover:bg-rose-950/40 hover:text-rose-300 hover:border-rose-500/40 transition-all cursor-pointer active:scale-95"
       >
         <Flag className="h-3.5 w-3.5 text-rose-400" />
         <span className="hidden sm:inline">Báo lỗi</span>

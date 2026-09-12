@@ -48,10 +48,10 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="inline-flex items-center gap-1.5 rounded-md border border-red-500/50 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white px-3 py-1 text-xs sm:text-sm font-bold shadow-md shadow-red-950/50 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+        className="inline-flex items-center gap-1.5 rounded-lg bg-netflix-red hover:bg-red-700 text-white px-3.5 py-1.5 text-xs sm:text-sm font-semibold shadow transition-all active:scale-95 cursor-pointer"
       >
         <Film className="w-3.5 h-3.5 text-white" />
-        <span>🎬 Xem Trailer</span>
+        <span>Xem Trailer</span>
       </button>
 
       {isOpen && (

@@ -122,7 +122,8 @@ function MyListContent() {
 
   const handleShareCollection = (colId: string) => {
     if (typeof window !== "undefined") {
-      const url = `${window.location.origin}/collection/${colId}`;
+      const col = collections.find((c) => c.id === colId);
+      const url = `${window.location.origin}/collection/${colId}${col?.userId ? `?u=${col.userId}` : ""}`;
       navigator.clipboard.writeText(url);
       setCopiedId(colId);
       toast.success("Đã sao chép liên kết chia sẻ bộ sưu tập!");

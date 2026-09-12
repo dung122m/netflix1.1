@@ -107,19 +107,19 @@ export const FollowSeriesButton: React.FC<FollowSeriesButtonProps> = ({
               ? "px-2.5 py-1.5 rounded-lg bg-rose-600/20 border border-rose-500/50 text-rose-300 hover:bg-rose-600/30 text-xs font-semibold"
               : "px-2.5 py-1.5 rounded-lg bg-zinc-900/80 hover:bg-zinc-800 border border-white/10 hover:border-white/20 text-gray-300 hover:text-white text-xs font-medium"
             : isFollowing
-            ? "px-3 py-1 sm:py-1.5 rounded-lg border text-xs sm:text-sm font-semibold bg-rose-600/20 border-rose-500/50 text-rose-300 hover:bg-rose-600/30 shadow-rose-950/40"
-            : "px-3 py-1 sm:py-1.5 rounded-lg border text-xs sm:text-sm font-semibold bg-zinc-900/80 hover:bg-zinc-800 text-gray-200 hover:text-white border-white/15"
+            ? "px-3.5 py-1.5 rounded-lg border text-xs sm:text-sm font-medium bg-rose-600/20 border-rose-500/50 text-rose-300 hover:bg-rose-600/30"
+            : "px-3.5 py-1.5 rounded-lg border text-xs sm:text-sm font-medium bg-zinc-900/80 hover:bg-zinc-800 text-gray-200 hover:text-white border-white/15"
         } ${className}`}
       >
         {isFollowing ? (
           <>
-            <BellRing className={`${variant === "player" ? "w-3.5 h-3.5" : "w-3.5 h-3.5 sm:w-4 sm:h-4"} text-rose-400 animate-bounce`} />
-            <span className="font-bold text-rose-300">{variant === "player" ? "Đang theo dõi" : "Đang theo dõi"}</span>
+            <BellRing className={`${variant === "player" ? "w-3.5 h-3.5" : "w-3.5 h-3.5 sm:w-4 sm:h-4"} text-rose-400`} />
+            <span className="font-semibold text-rose-300">Đang theo dõi</span>
           </>
         ) : (
           <>
-            <Bell className={`${variant === "player" ? "w-3.5 h-3.5" : "w-3.5 h-3.5 sm:w-4 sm:h-4"} text-gray-400 group-hover:text-rose-400`} />
-            <span>{variant === "player" ? "Theo dõi tập" : "Theo dõi tập mới"}</span>
+            <Bell className={`${variant === "player" ? "w-3.5 h-3.5" : "w-3.5 h-3.5 sm:w-4 sm:h-4"} text-gray-400`} />
+            <span>Theo dõi</span>
           </>
         )}
       </button>

@@ -1,0 +1,15 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Quyền truy cập dữ liệu cá nhân của người dùng (watchlist, lịch sử, phiên đồng bộ, theo dõi phim, thông báo)
+    match /users/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // 2. Bộ sưu tập phim công khai: Bất kỳ ai có liên kết đều có thể đọc
+    match /public_collections/{collectionId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+  }
+}

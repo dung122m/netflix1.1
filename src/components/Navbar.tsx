@@ -31,7 +31,7 @@ import Image from "next/image";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { NetflixLogo } from "./sites/netflix-3f78535a/vn-d838105b/icons";
 import { useDebounce } from "@/hooks/useDebounce";
-import { ThemeSwitcher, ThemeModeToggle } from "./ThemeSwitcher";
+import { ThemeSwitcher } from "./ThemeSwitcher";
 import {
   subscribeUserNotifications,
   markNotificationAsRead,
@@ -765,7 +765,7 @@ const NavbarInner: React.FC = () => {
             title="Suất Chiếu Định Mệnh (Bốc quẻ điện ảnh)"
             className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-bold bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 hover:text-white border border-amber-500/35 transition cursor-pointer shadow-sm active:scale-95 flex-shrink-0"
           >
-            <Dices className="w-3.5 h-3.5 text-amber-400 animate-spin [animation-duration:6s]" />
+            <Dices className="w-3.5 h-3.5 text-amber-400" />
             <span className="hidden 2xl:inline">Bốc Quẻ</span>
           </button>
 
@@ -778,9 +778,9 @@ const NavbarInner: React.FC = () => {
               }
             }}
             title="Trợ lý Nana gợi ý phim thông minh"
-            className="hidden md:inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-bold bg-gradient-to-r from-red-600/25 via-rose-600/25 to-purple-600/25 hover:from-red-600/40 hover:to-purple-600/40 text-rose-300 hover:text-white border border-rose-500/35 transition cursor-pointer shadow-sm active:scale-95 flex-shrink-0"
+            className="hidden md:inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-bold bg-zinc-900/80 hover:bg-zinc-800 text-rose-300 hover:text-white border border-rose-500/30 transition cursor-pointer shadow-sm active:scale-95 flex-shrink-0"
           >
-            <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+            <Sparkles className="w-3.5 h-3.5 text-rose-400" />
             <span>Nana AI</span>
           </button>
 
@@ -1122,11 +1122,8 @@ const NavbarInner: React.FC = () => {
             )}
           </div>
 
-          {/* CHẾ ĐỘ SÁNG / TỐI NHANH 1-CLICK */}
-          <ThemeModeToggle className="flex-shrink-0" />
-
-          {/* BẢNG MÀU CHỦ ĐỀ & GIAO DIỆN (DESKTOP) */}
-          <div className="hidden lg:block flex-shrink-0">
+          {/* BẢNG MÀU CHỦ ĐỀ & GIAO DIỆN (CHẾ ĐỘ SÁNG / TỐI & THEMES) */}
+          <div className="hidden sm:block flex-shrink-0">
             <ThemeSwitcher />
           </div>
 

@@ -112,10 +112,10 @@ export const WatchlistButton: React.FC<WatchlistButtonProps> = ({
       type="button"
       onClick={handleToggle}
       title={inList ? "Đã lưu vào danh sách yêu thích" : "Thêm vào danh sách yêu thích"}
-      className={`inline-flex items-center gap-1.5 rounded-md border transition-all cursor-pointer active:scale-95 px-3 py-1 text-xs md:text-sm font-medium shadow-sm ${
+      className={`inline-flex items-center gap-1.5 rounded-lg border transition-all cursor-pointer active:scale-95 px-3.5 py-1.5 text-xs sm:text-sm font-medium shadow-sm ${
         inList
           ? "bg-amber-500/20 border-amber-500/40 text-amber-300 hover:bg-amber-500/30"
-          : "border-white/20 bg-zinc-900/80 text-gray-200 hover:bg-white/10 hover:text-white"
+          : "border-white/15 bg-zinc-900/80 text-gray-200 hover:bg-white/10 hover:text-white"
       } ${className}`}
     >
       {inList ? (

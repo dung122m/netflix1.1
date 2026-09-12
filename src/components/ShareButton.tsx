@@ -45,7 +45,7 @@ export function ShareButton({ title }: ShareButtonProps) {
       onClick={handleShare}
       title="Chia sẻ phim này"
       aria-label="Chia sẻ phim"
-      className="inline-flex items-center gap-1.5 rounded-md border border-white/20 bg-zinc-900/80 px-3 py-1 text-xs md:text-sm font-medium text-gray-200 hover:bg-white/10 hover:text-white transition-all cursor-pointer active:scale-95"
+      className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-zinc-900/80 px-3 py-1.5 text-xs sm:text-sm font-medium text-gray-300 hover:bg-white/10 hover:text-white transition-all cursor-pointer active:scale-95"
     >
       {copied ? (
         <>

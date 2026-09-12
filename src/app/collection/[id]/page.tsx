@@ -22,12 +22,16 @@ import { addToWatchlist } from "@/lib/watchlist";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "@/components/Toast";
 
+import { useRouter, useSearchParams } from "next/navigation";
+
 export default function CollectionDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const searchParams = useSearchParams();
+  const userId = searchParams.get("u");
   const { user } = useAuth();
   const [collection, setCollection] = useState<MovieCollection | null>(null);
   const [loading, setLoading] = useState(true);
@@ -38,7 +42,7 @@ export default function CollectionDetailPage({
     let isMounted = true;
     setLoading(true);
 
-    getPublicCollection(id)
+    getPublicCollection(id, userId)
       .then((data) => {
         if (isMounted) setCollection(data);
       })

@@ -99,8 +99,12 @@ export async function createCollection(
 
     // Nếu công khai, ghi thêm vào public_collections/{id} để chia sẻ
     if (isPublic) {
-      const publicRef = doc(db, "public_collections", newDocRef.id);
-      await setDoc(publicRef, collectionData);
+      try {
+        const publicRef = doc(db, "public_collections", newDocRef.id);
+        await setDoc(publicRef, collectionData);
+      } catch (pubErr) {
+        console.warn("Lưu ý: Chưa cấu hình Firestore Rules cho public_collections:", pubErr);
+      }
     }
 
     return collectionData;
@@ -274,7 +278,7 @@ export async function toggleCollectionPrivacy(
         ...data,
         isPublic: true,
         updatedAt: now,
-      });
+      }).catch(() => {});
     } else {
       await deleteDoc(publicDocRef).catch(() => {});
     }
@@ -290,10 +294,12 @@ export async function toggleCollectionPrivacy(
  * Lấy bộ sưu tập công khai theo ID để bất kỳ ai có link đều xem được
  */
 export async function getPublicCollection(
-  collectionId: string
+  collectionId: string,
+  userId?: string | null
 ): Promise<MovieCollection | null> {
   if (!db || !collectionId) return null;
 
+  // 1. Thử đọc từ public_collections
   try {
     const publicDocRef = doc(db, "public_collections", collectionId);
     const snap = await getDoc(publicDocRef);
@@ -303,9 +309,28 @@ export async function getPublicCollection(
         ...snap.data(),
       } as MovieCollection;
     }
-    return null;
   } catch (err) {
-    console.warn("Lỗi đọc bộ sưu tập công khai:", err);
-    return null;
+    console.warn("Không thể đọc từ public_collections:", err);
   }
+
+  // 2. Fallback: Nếu có userId truyền kèm trên URL (?u=...)
+  if (userId) {
+    try {
+      const userColRef = doc(db, "users", userId, "collections", collectionId);
+      const snap = await getDoc(userColRef);
+      if (snap.exists()) {
+        const data = snap.data();
+        if (data.isPublic !== false) {
+          return {
+            ...data,
+            id: snap.id,
+          } as MovieCollection;
+        }
+      }
+    } catch (err) {
+      console.warn("Không thể đọc từ users collection:", err);
+    }
+  }
+
+  return null;
 }
