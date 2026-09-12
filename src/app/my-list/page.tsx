@@ -18,6 +18,7 @@ import {
   WatchHistoryItem,
 } from "@/lib/watchHistory";
 import { sanitizeImageUrl } from "@/lib/movieMedia";
+import { formatEpisodeName } from "@/lib/formatEpisode";
 
 function MyListContent() {
   const searchParams = useSearchParams();
@@ -347,7 +348,7 @@ function MyListContent() {
                         </h3>
                         <div className="flex items-center justify-between text-xs text-gray-400 mt-2">
                           <span className="text-netflix-red font-semibold">
-                            {item.episodeName ? `Đang xem: Tập ${item.episodeName}` : "Đã xem"}
+                            {item.episodeName ? `Đang xem: ${formatEpisodeName(item.episodeName)}` : "Đã xem"}
                           </span>
                           {item.quality && (
                             <span className="bg-zinc-800 px-2 py-0.5 rounded text-[11px] text-gray-300">

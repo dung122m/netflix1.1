@@ -10,6 +10,7 @@ import {
   WatchHistoryItem,
 } from "@/lib/watchHistory";
 import { sanitizeImageUrl } from "@/lib/movieMedia";
+import { formatEpisodeName } from "@/lib/formatEpisode";
 
 export function ContinueWatchingRow() {
   const [items, setItems] = useState<WatchHistoryItem[]>([]);
@@ -177,7 +178,7 @@ export function ContinueWatchingRow() {
                     <div className="flex items-center justify-between text-xs text-gray-400 mt-1">
                       <span className="text-netflix-red font-semibold flex items-center gap-1">
                         <span className="w-1.5 h-1.5 rounded-full bg-netflix-red animate-pulse" />
-                        <span>{item.episodeName ? `Tập ${item.episodeName}` : "Đang xem dở"}</span>
+                        <span>{item.episodeName ? formatEpisodeName(item.episodeName) : "Đang xem dở"}</span>
                       </span>
                       {item.quality && (
                         <span className="bg-zinc-800/90 border border-white/10 px-1.5 py-0.5 rounded text-[10px] text-gray-300 font-semibold">

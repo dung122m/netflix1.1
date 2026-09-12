@@ -32,6 +32,8 @@ import { EpisodeList } from "@/components/EpisodeList";
 import { ResumeEpisodeBanner } from "@/components/ResumeEpisodeBanner";
 import { WatchController } from "@/components/WatchController";
 import { ServerSelector } from "@/components/ServerSelector";
+import { WatchlistButton } from "@/components/WatchlistButton";
+import { formatEpisodeName } from "@/lib/formatEpisode";
 
 const MobileQrModal = dynamic(
   () => import("@/components/MobileQrModal").then((mod) => mod.MobileQrModal),
@@ -331,6 +333,7 @@ export default async function MovieDetail({
           m3u8Link={rawM3u8}
           trailerUrl={movie.trailer_url}
           title={title}
+          movieSlug={movie.slug}
           activeEpisodeName={activeEpisode?.name}
           activeEpisodeSlug={activeEpisode?.slug}
           isTrailerOnly={isTrailerOnly}
@@ -352,7 +355,7 @@ export default async function MovieDetail({
               <span className="text-base sm:text-xl md:text-3xl text-gray-400 font-normal">
                 {isTrailerOnly
                   ? "• Trailer"
-                  : `• Tập ${activeEpisode?.name || "1"}`}
+                  : `• ${formatEpisodeName(activeEpisode?.name, "Tập 1")}`}
               </span>
             </h1>
 
@@ -442,6 +445,16 @@ export default async function MovieDetail({
                 </span>
               )}
 
+              <WatchlistButton
+                movie={{
+                  slug: movie.slug,
+                  title,
+                  poster: pickBestMovieImage(movie, "/default-poster.jpg"),
+                  year: movie.year,
+                  quality: movie.quality,
+                  category: movie.category?.[0]?.name,
+                }}
+              />
               <TrailerModal trailerUrl={movie.trailer_url} title={title} />
               <ShareButton title={title} />
               <MobileQrModal

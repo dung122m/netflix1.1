@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Flag, X, CheckCircle2, AlertTriangle } from "lucide-react";
+import { formatEpisodeName } from "@/lib/formatEpisode";
 
 interface ReportIssueModalProps {
   movieTitle: string;
@@ -102,7 +103,7 @@ export function ReportIssueModal({
                   {episodeName && (
                     <>
                       {" "}
-                      • Tập: <strong className="text-netflix-red">{episodeName}</strong>
+                      • <strong className="text-netflix-red">{formatEpisodeName(episodeName)}</strong>
                     </>
                   )}
                 </p>

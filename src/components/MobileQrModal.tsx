@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import QRCode from "qrcode";
 import { Smartphone, X, Copy, Check, QrCode, Clock, Film, ExternalLink } from "lucide-react";
 import { getWatchProgress } from "@/lib/watchHistory";
+import { formatEpisodeName } from "@/lib/formatEpisode";
 
 interface MobileQrModalProps {
   title: string;
@@ -192,7 +193,7 @@ export function MobileQrModal({
                 <>
                   <div className="flex items-center gap-1 text-white font-bold">
                     <Film className="w-3.5 h-3.5 text-rose-400 flex-none" />
-                    <span>Tập {activeEpisodeName}</span>
+                    <span>{formatEpisodeName(activeEpisodeName)}</span>
                   </div>
                   <span className="text-gray-600">•</span>
                 </>

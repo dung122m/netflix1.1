@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Play, RotateCcw, X } from "lucide-react";
 import { getWatchHistory } from "@/lib/watchHistory";
+import { formatEpisodeName } from "@/lib/formatEpisode";
 import { useWatchController } from "./WatchController";
 
 interface ResumeEpisodeBannerProps {
@@ -55,7 +56,7 @@ export const ResumeEpisodeBanner: React.FC<ResumeEpisodeBannerProps> = ({
           <span className="truncate">
             Lần trước bạn đang xem dở:{" "}
             <strong className="text-white font-bold">
-              Tập {resumeData.episodeName || resumeData.episodeSlug}
+              {formatEpisodeName(resumeData.episodeName || resumeData.episodeSlug)}
             </strong>
           </span>
         </div>

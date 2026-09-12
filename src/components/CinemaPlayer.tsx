@@ -31,6 +31,8 @@ import {
 import { PlayerScrubBar } from "./PlayerScrubBar";
 import { useWatchController } from "./WatchController";
 import { getWatchProgress, saveWatchProgress } from "@/lib/watchHistory";
+import { formatEpisodeName } from "@/lib/formatEpisode";
+import { WatchlistButton } from "./WatchlistButton";
 
 // Lazy-load SleepTimerModal & MobileQrModal để giảm bundle ban đầu
 const SleepTimerModal = dynamic(
@@ -55,6 +57,7 @@ interface CinemaPlayerProps {
   m3u8Link?: string;
   trailerUrl?: string | null;
   title: string;
+  movieSlug?: string;
   activeEpisodeName?: string;
   activeEpisodeSlug?: string;
   isTrailerOnly: boolean;
@@ -68,6 +71,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   m3u8Link: propM3u8Link,
   trailerUrl,
   title: propTitle,
+  movieSlug: propMovieSlug,
   activeEpisodeName: propActiveEpisodeName,
   activeEpisodeSlug: propActiveEpisodeSlug,
   isTrailerOnly: propIsTrailerOnly,
@@ -77,6 +81,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const watchContext = useWatchController();
 
   const title = watchContext?.movieTitle || propTitle;
+  const movieSlug = watchContext?.movieSlug || propMovieSlug;
   const isTrailerOnly = watchContext?.isTrailerOnly ?? propIsTrailerOnly;
   const episodes = watchContext?.episodes || propEpisodes;
   const activeEpisodeSlug = watchContext?.activeEpisodeSlug || propActiveEpisodeSlug;
@@ -843,7 +848,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
             <div className="flex items-center gap-1.5 min-w-0 pr-2">
               <span className="w-2 h-2 rounded-full bg-netflix-red animate-pulse flex-shrink-0" />
               <span className="text-white font-bold text-[11px] truncate">
-                {title} {activeEpisodeName ? `• Tập ${activeEpisodeName}` : ""}
+                {title} {activeEpisodeName ? `• ${formatEpisodeName(activeEpisodeName)}` : ""}
               </span>
             </div>
             <button
@@ -1321,6 +1326,18 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
               <Keyboard className="w-3.5 h-3.5" />
               <span>Phím tắt</span>
             </button>
+
+            {/* 6. Nút Thêm vào Danh sách yêu thích */}
+            {movieSlug && (
+              <WatchlistButton
+                movie={{
+                  slug: movieSlug,
+                  title,
+                  poster: posterUrl,
+                }}
+                variant="player"
+              />
+            )}
           </div>
 
           {/* CỤM NÚT ĐIỀU HƯỚNG TẬP: TRƯỚC / SAU (CHUYỂN TỨC THÌ 0MS) */}
