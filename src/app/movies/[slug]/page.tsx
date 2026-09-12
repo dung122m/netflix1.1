@@ -243,17 +243,7 @@ export default async function MovieDetail({
     ? serverData.find((tap: { slug?: string }) => tap.slug === ep)
     : serverData[0];
   const videoLink = activeEpisode?.link_embed;
-  const embedSrc = (() => {
-    if (!videoLink) return undefined;
-    try {
-      const url = new URL(videoLink);
-      if (!url.searchParams.has("autoplay"))
-        url.searchParams.set("autoplay", "1");
-      return url.toString();
-    } catch {
-      return videoLink;
-    }
-  })();
+  const embedSrc = videoLink;
 
   const primaryGenreSlug = movie.category?.[0]?.slug;
   const primaryCountrySlug = movie.country?.[0]?.slug;
