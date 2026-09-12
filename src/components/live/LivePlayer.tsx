@@ -841,18 +841,20 @@ export function LivePlayer({
 
         <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-4">
           {isEvent ? (
-            <div className="flex-1 w-full min-h-32 flex flex-col items-center justify-center text-center">
-              <span className="text-xs sm:text-sm font-black uppercase tracking-[0.24em] text-red-300">
-                Sự kiện trực tiếp
-              </span>
-              <h2 className="mt-2 text-2xl sm:text-4xl font-black text-white leading-tight">
+            <div className="flex-1 w-full flex flex-col items-center justify-center text-center py-1">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] text-rose-400 bg-rose-500/15 border border-rose-500/30 px-2.5 py-0.5 rounded-full">
+                  Kênh / Sự kiện
+                </span>
+                {time && time !== "Trực tiếp" && (
+                  <span className="text-[10px] sm:text-xs font-bold text-gray-300 bg-white/10 px-2 py-0.5 rounded-full border border-white/10">
+                    ⏰ {time}
+                  </span>
+                )}
+              </div>
+              <h2 className="mt-1 text-lg sm:text-2xl font-black text-white tracking-wide">
                 {title}
               </h2>
-              {time && time !== "Trực tiếp" && (
-                <span className="mt-3 text-sm font-bold text-gray-300">
-                  ⏰ {time}
-                </span>
-              )}
             </div>
           ) : (
             <>
@@ -1214,10 +1216,10 @@ export function LivePlayer({
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="bg-gradient-to-t from-black/95 via-black/80 to-transparent p-3 sm:p-5 pt-8 flex items-center justify-between gap-2 sm:gap-4 select-none"
+            className="bg-gradient-to-t from-black/95 via-black/80 to-transparent p-3 sm:p-4 pt-8 flex items-center justify-between gap-2 sm:gap-4 select-none"
           >
             {/* CỤM TRÁI: PLAY/PAUSE + ĐỔI TRẬN NHANH + ÂM LƯỢNG */}
-            <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0 flex-shrink">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-shrink">
               <button
                 type="button"
                 onClick={togglePlay}
@@ -1241,7 +1243,7 @@ export function LivePlayer({
                 >
                   <ChevronLeft className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                 </button>
-                <span className="text-[9px] sm:text-[10px] font-mono font-bold px-1 sm:px-1.5 text-amber-300 whitespace-nowrap">
+                <span className="text-[9px] sm:text-[10px] font-mono font-bold px-1.5 sm:px-2 text-amber-300 whitespace-nowrap">
                   {matchOptions && matchOptions.length > 1
                     ? "Đổi trận"
                     : `SV ${selectedServerIndex + 1}/${servers.length}`}
@@ -1255,90 +1257,90 @@ export function LivePlayer({
                   <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                 </button>
               </div>
-            </div>
 
-            {/* CỤM VOLUME TRÊN MOBILE (Chỉ hiện nút Mute nhỏ gọn) */}
-            <button
-              type="button"
-              onClick={toggleMute}
-              title={isMuted ? "Bật âm thanh (M)" : "Tắt âm thanh (M)"}
-              className="sm:hidden w-8 h-8 rounded-full bg-black/60 border border-white/20 flex items-center justify-center text-white hover:text-rose-400 transition cursor-pointer flex-shrink-0"
-            >
-              <VolumeIcon
-                className={`w-4 h-4 ${
-                  isMuted || volume === 0 ? "text-rose-400" : "text-white"
-                }`}
-              />
-            </button>
-
-            {/* CỤM VOLUME TRÊN TABLET & DESKTOP (Hiện đầy đủ Slider + % text) */}
-            <div className="hidden sm:flex items-center gap-2 bg-black/60 px-3 py-2 rounded-full border border-white/20 backdrop-blur-md">
+              {/* CỤM VOLUME TRÊN MOBILE (Chỉ hiện nút Mute nhỏ gọn) */}
               <button
                 type="button"
                 onClick={toggleMute}
                 title={isMuted ? "Bật âm thanh (M)" : "Tắt âm thanh (M)"}
-                className="text-white hover:text-rose-400 transition cursor-pointer p-0.5"
+                className="sm:hidden w-8 h-8 rounded-full bg-black/60 border border-white/20 flex items-center justify-center text-white hover:text-rose-400 transition cursor-pointer flex-shrink-0"
               >
                 <VolumeIcon
-                  className={`w-4 h-4 sm:w-5 sm:h-5 ${
+                  className={`w-4 h-4 ${
                     isMuted || volume === 0 ? "text-rose-400" : "text-white"
                   }`}
                 />
               </button>
 
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.02"
-                value={isMuted ? 0 : volume}
-                onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
-                aria-label="Điều chỉnh âm lượng"
-                className="w-16 sm:w-24 h-1.5 bg-zinc-700 accent-netflix-red rounded-lg appearance-none cursor-pointer hover:accent-red-500 transition"
-              />
+              {/* CỤM VOLUME TRÊN TABLET & DESKTOP (Hiện đầy đủ Slider + % text) */}
+              <div className="hidden sm:flex items-center gap-2 bg-black/60 px-3 py-1.5 rounded-full border border-white/20 backdrop-blur-md">
+                <button
+                  type="button"
+                  onClick={toggleMute}
+                  title={isMuted ? "Bật âm thanh (M)" : "Tắt âm thanh (M)"}
+                  className="text-white hover:text-rose-400 transition cursor-pointer p-0.5"
+                >
+                  <VolumeIcon
+                    className={`w-4 h-4 sm:w-5 sm:h-5 ${
+                      isMuted || volume === 0 ? "text-rose-400" : "text-white"
+                    }`}
+                  />
+                </button>
 
-              <span
-                onClick={toggleMute}
-                className="text-[10px] sm:text-[11px] font-mono font-bold text-gray-200 cursor-pointer hover:text-white select-none whitespace-nowrap min-w-[36px]"
-              >
-                {isMuted ? "Tắt tiếng" : `${Math.round(volume * 100)}%`}
-              </span>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.02"
+                  value={isMuted ? 0 : volume}
+                  onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
+                  aria-label="Điều chỉnh âm lượng"
+                  className="w-16 sm:w-24 h-1.5 bg-zinc-700 accent-netflix-red rounded-lg appearance-none cursor-pointer hover:accent-red-500 transition"
+                />
+
+                <span
+                  onClick={toggleMute}
+                  className="text-[10px] sm:text-[11px] font-mono font-bold text-gray-200 cursor-pointer hover:text-white select-none whitespace-nowrap min-w-[36px]"
+                >
+                  {isMuted ? "Tắt tiếng" : `${Math.round(volume * 100)}%`}
+                </span>
+              </div>
             </div>
-          </div>
 
-          {/* CỤM PHẢI: PHÍM TẮT GỢI Ý + PIP + TOÀN MÀN HÌNH */}
-          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-            <span className="hidden lg:inline text-[11px] text-gray-400 bg-black/50 px-2.5 py-1 rounded-full border border-white/10 font-mono">
-              Space: Dừng/Phát • ← / →: Đổi Server • F: Fullscreen
-            </span>
+            {/* CỤM PHẢI: PHÍM TẮT GỢI Ý + PIP + TOÀN MÀN HÌNH */}
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+              <span className="hidden lg:inline text-[11px] text-gray-400 bg-black/50 px-2.5 py-1 rounded-full border border-white/10 font-mono">
+                Space: Dừng/Phát • ← / →: Đổi Server • F: Fullscreen
+              </span>
 
-            {/* Nút Picture in Picture */}
-            <button
-              type="button"
-              onClick={togglePip}
-              title="Xem thu nhỏ góc màn hình (PiP - Phím P)"
-              className={`w-8 h-8 sm:w-11 sm:h-11 rounded-full flex items-center justify-center transition hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md border border-white/10 flex-shrink-0 ${
-                isPip
-                  ? "bg-netflix-red text-white"
-                  : "bg-white/20 hover:bg-white/30 text-white"
-              }`}
-            >
-              <PictureInPicture2 className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
-            </button>
+              {/* Nút Picture in Picture */}
+              <button
+                type="button"
+                onClick={togglePip}
+                title="Xem thu nhỏ góc màn hình (PiP - Phím P)"
+                className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md border border-white/10 flex-shrink-0 ${
+                  isPip
+                    ? "bg-netflix-red text-white"
+                    : "bg-white/20 hover:bg-white/30 text-white"
+                }`}
+              >
+                <PictureInPicture2 className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5" />
+              </button>
 
-            {/* Nút Toàn màn hình - Luôn hiển thị và nổi bật trên mọi thiết bị */}
-            <button
-              type="button"
-              onClick={toggleFullscreen}
-              title={isFullscreen ? "Thu nhỏ (F)" : "Toàn màn hình (F)"}
-              className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-netflix-red sm:bg-white/20 hover:bg-red-700 sm:hover:bg-white/30 flex items-center justify-center text-white transition hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md flex-shrink-0 shadow-lg border border-white/20"
-            >
-              {isFullscreen ? (
-                <Minimize className="w-4 h-4 sm:w-5 sm:h-5" />
-              ) : (
-                <Maximize className="w-4 h-4 sm:w-5 sm:h-5" />
-              )}
-            </button>
+              {/* Nút Toàn màn hình */}
+              <button
+                type="button"
+                onClick={toggleFullscreen}
+                title={isFullscreen ? "Thu nhỏ (F)" : "Toàn màn hình (F)"}
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-netflix-red hover:bg-red-700 flex items-center justify-center text-white transition hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md flex-shrink-0 shadow-lg border border-white/20"
+              >
+                {isFullscreen ? (
+                  <Minimize className="w-4 h-4 sm:w-5 sm:h-5" />
+                ) : (
+                  <Maximize className="w-4 h-4 sm:w-5 sm:h-5" />
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </div>
