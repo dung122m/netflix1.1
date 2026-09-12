@@ -8,6 +8,7 @@ interface SleepTimerModalProps {
   onClose?: () => void;
   onTimerExpired?: () => void;
   customTrigger?: (openModal: () => void, remainingText: string | null) => React.ReactNode;
+  hideTrigger?: boolean;
 }
 
 const TIMER_OPTIONS = [
@@ -24,6 +25,7 @@ export const SleepTimerModal: React.FC<SleepTimerModalProps> = ({
   onClose: externalOnClose,
   onTimerExpired,
   customTrigger,
+  hideTrigger = false,
 }) => {
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
@@ -118,7 +120,7 @@ export const SleepTimerModal: React.FC<SleepTimerModalProps> = ({
     <>
       {customTrigger ? (
         customTrigger(handleOpen, remainingText)
-      ) : (
+      ) : hideTrigger || externalIsOpen !== undefined ? null : (
         <button
           type="button"
           onClick={handleOpen}

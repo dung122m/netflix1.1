@@ -15,6 +15,11 @@ import {
   X,
   ArrowUpRight,
   Clock,
+  Play,
+  Pause,
+  Volume2,
+  Volume1,
+  VolumeX,
 } from "lucide-react";
 import { SleepTimerModal } from "./SleepTimerModal";
 
@@ -49,8 +54,23 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
 }) => {
   const [isTheaterMode, setIsTheaterMode] = useState(false);
   const [isLightsOff, setIsLightsOff] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(true);
   const [showShortcutModal, setShowShortcutModal] = useState(false);
   const [showSleepTimerModal, setShowSleepTimerModal] = useState(false);
+
+  // HUD feedback khi bấm phím tắt
+  const [hudState, setHudState] = useState<{ icon: React.ReactNode; text: string } | null>(null);
+  const hudTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const showHud = useCallback((icon: React.ReactNode, text: string) => {
+    if (hudTimerRef.current) clearTimeout(hudTimerRef.current);
+    setHudState({ icon, text });
+    hudTimerRef.current = setTimeout(() => {
+      setHudState(null);
+    }, 1000);
+  }, []);
 
   // Floating Mini-Player States
   const [showMiniPlayer, setShowMiniPlayer] = useState(false);
@@ -59,6 +79,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const [miniPlayerLoaded, setMiniPlayerLoaded] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const router = useRouter();
 
@@ -88,6 +109,44 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const [isScrolledPast, setIsScrolledPast] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
+  // Gửi lệnh điều khiển đến iframe player (JWPlayer, Video.js, Plyr, YouTube, HLS embed)
+  const sendPlayerCommand = useCallback((cmd: string, val?: any) => {
+    if (!iframeRef.current?.contentWindow) return;
+    try {
+      // 1. YouTube postMessage API
+      iframeRef.current.contentWindow.postMessage(
+        JSON.stringify({ event: "command", func: cmd, args: val !== undefined ? [val] : [] }),
+        "*"
+      );
+      // 2. Generic postMessage for embedded HTML5/HLS players
+      iframeRef.current.contentWindow.postMessage({ method: cmd, value: val, action: cmd, type: cmd }, "*");
+      iframeRef.current.contentWindow.postMessage(JSON.stringify({ method: cmd, value: val }), "*");
+    } catch {}
+  }, []);
+
+  // Bật/Tắt Toàn Màn Hình
+  const toggleFullscreen = useCallback(() => {
+    if (!containerRef.current) return;
+    if (!document.fullscreenElement) {
+      containerRef.current.requestFullscreen().catch(() => {});
+      setIsFullscreen(true);
+      showHud(<Maximize2 className="w-5 h-5 text-netflix-red" />, "Toàn màn hình");
+    } else {
+      document.exitFullscreen().catch(() => {});
+      setIsFullscreen(false);
+      showHud(<Minimize2 className="w-5 h-5 text-gray-300" />, "Thoát toàn màn hình");
+    }
+  }, [showHud]);
+
+  // Lắng nghe thay đổi Fullscreen từ trình duyệt
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
+
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768);
@@ -103,7 +162,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     const handleScroll = () => {
       if (!sentinelRef.current) return;
       const rect = sentinelRef.current.getBoundingClientRect();
-      // Kích hoạt khi đỉnh player đã cuộn khuất khỏi viewport
       setIsScrolledPast(rect.top < -50);
     };
 
@@ -123,13 +181,12 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         if (!isOutOfView) {
           setDismissedMini(false);
         }
-        // Lazy load: chỉ tạo mini iframe lần đầu khi cần
         if (isOutOfView && !miniPlayerLoaded) {
           setMiniPlayerLoaded(true);
         }
       },
       {
-        threshold: 0.1, // Ẩn khi < 10% container còn visible
+        threshold: 0.1,
         rootMargin: "-100px 0px 0px 0px",
       }
     );
@@ -139,10 +196,9 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     return () => {
       observerRef.current?.disconnect();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [videoLink]);
+  }, [videoLink, activeSrc, miniPlayerLoaded]);
 
-  // Lắng nghe phím tắt: T, L, P, N, Esc, ?
+  // Lắng nghe phím tắt chuyên nghiệp: Space, F, M, ArrowLeft, ArrowRight, ArrowUp, ArrowDown, T, L, P, N, Esc, ?
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
@@ -155,28 +211,135 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         return;
       }
 
+      // 1. Phím Space: Play / Pause
+      if (e.code === "Space" || e.key === " ") {
+        e.preventDefault();
+        setIsPlaying((prev) => {
+          const next = !prev;
+          if (next) {
+            sendPlayerCommand("playVideo");
+            sendPlayerCommand("play");
+            showHud(<Play className="w-5 h-5 text-emerald-400 fill-current" />, "Đang phát");
+          } else {
+            sendPlayerCommand("pauseVideo");
+            sendPlayerCommand("pause");
+            showHud(<Pause className="w-5 h-5 text-amber-400 fill-current" />, "Tạm dừng");
+          }
+          return next;
+        });
+        return;
+      }
+
+      // 2. Phím F: Toàn màn hình
+      if (e.key === "f" || e.key === "F") {
+        e.preventDefault();
+        toggleFullscreen();
+        return;
+      }
+
+      // 3. Phím M: Tắt / Bật tiếng
+      if (e.key === "m" || e.key === "M") {
+        e.preventDefault();
+        setIsMuted((prev) => {
+          const next = !prev;
+          if (next) {
+            sendPlayerCommand("mute");
+            showHud(<VolumeX className="w-5 h-5 text-rose-400" />, "Đã tắt tiếng");
+          } else {
+            sendPlayerCommand("unMute");
+            showHud(<Volume2 className="w-5 h-5 text-emerald-400" />, "Đã bật tiếng");
+          }
+          return next;
+        });
+        return;
+      }
+
+      // 4. Mũi tên Phải: Tua tới 10 giây
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        sendPlayerCommand("seekTo", "+10");
+        sendPlayerCommand("seek", 10);
+        showHud(<SkipForward className="w-5 h-5 text-netflix-red fill-current" />, "Tua tới +10s");
+        return;
+      }
+
+      // 5. Mũi tên Trái: Tua lùi 10 giây
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        sendPlayerCommand("seekTo", "-10");
+        sendPlayerCommand("seek", -10);
+        showHud(<SkipBack className="w-5 h-5 text-netflix-red fill-current" />, "Tua lùi -10s");
+        return;
+      }
+
+      // 6. Mũi tên Lên: Tăng âm lượng
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        sendPlayerCommand("setVolume", 100);
+        showHud(<Volume2 className="w-5 h-5 text-emerald-400" />, "Tăng âm lượng");
+        return;
+      }
+
+      // 7. Mũi tên Xuống: Giảm âm lượng
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        sendPlayerCommand("setVolume", 50);
+        showHud(<Volume1 className="w-5 h-5 text-amber-400" />, "Giảm âm lượng");
+        return;
+      }
+
+      // 8. Phím Escape
       if (e.key === "Escape") {
         if (showShortcutModal) setShowShortcutModal(false);
+        else if (showSleepTimerModal) setShowSleepTimerModal(false);
         else if (isLightsOff) setIsLightsOff(false);
         else if (isTheaterMode) setIsTheaterMode(false);
         return;
       }
 
-      if (e.key === "t" || e.key === "T") setIsTheaterMode((prev) => !prev);
-      if (e.key === "l" || e.key === "L") setIsLightsOff((prev) => !prev);
+      // 9. Phím T: Rạp phim
+      if (e.key === "t" || e.key === "T") {
+        setIsTheaterMode((prev) => {
+          const next = !prev;
+          showHud(<Maximize2 className="w-5 h-5 text-netflix-red" />, next ? "Chế độ Rạp phim" : "Chế độ Mặc định");
+          return next;
+        });
+        return;
+      }
 
+      // 10. Phím L: Tắt / Bật đèn
+      if (e.key === "l" || e.key === "L") {
+        setIsLightsOff((prev) => {
+          const next = !prev;
+          showHud(next ? <Moon className="w-5 h-5 text-yellow-300" /> : <Sun className="w-5 h-5 text-yellow-400" />, next ? "Đã tắt đèn" : "Đã bật đèn");
+          return next;
+        });
+        return;
+      }
+
+      // 11. Phím P: Tập trước
       if ((e.key === "p" || e.key === "P") && prevEpisode?.slug) {
+        showHud(<SkipBack className="w-5 h-5 text-netflix-red" />, `Chuyển về ${prevEpisode.name}`);
         router.push(`?ep=${prevEpisode.slug}`, { scroll: false });
+        return;
       }
+
+      // 12. Phím N: Tập kế tiếp
       if ((e.key === "n" || e.key === "N") && nextEpisode?.slug) {
+        showHud(<SkipForward className="w-5 h-5 text-netflix-red" />, `Chuyển sang ${nextEpisode.name}`);
         router.push(`?ep=${nextEpisode.slug}`, { scroll: false });
+        return;
       }
-      if (e.key === "?") setShowShortcutModal((prev) => !prev);
+
+      // 13. Phím ? hoặc /: Bật modal phím tắt
+      if (e.key === "?" || (e.key === "/" && !e.shiftKey)) {
+        setShowShortcutModal((prev) => !prev);
+      }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isLightsOff, isTheaterMode, showShortcutModal, prevEpisode, nextEpisode, router]);
+  }, [isLightsOff, isTheaterMode, showShortcutModal, showSleepTimerModal, prevEpisode, nextEpisode, router, sendPlayerCommand, toggleFullscreen, showHud]);
 
   const scrollToPlayer = useCallback(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -252,6 +415,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           {activeSrc ? (
             <>
               <iframe
+                ref={iframeRef}
                 src={activeSrc}
                 className="w-full h-full absolute inset-0 border-0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
@@ -291,15 +455,26 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
               </div>
             </div>
           )}
+
+          {/* ON-SCREEN HUD OVERLAY KHI BẤM PHÍM TẮT (GIỐNG NETFLIX / YOUTUBE) */}
+          {hudState && (
+            <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none animate-in fade-in zoom-in-95 duration-150">
+              <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-black/85 backdrop-blur-md border border-white/20 text-white font-bold text-sm sm:text-base shadow-2xl">
+                {hudState.icon}
+                <span>{hudState.text}</span>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* THANH ĐIỀU KHIỂN RẠP PHIM & TẮT ĐÈN & PHÍM TẮT */}
-        <div className="flex items-center justify-between gap-2 py-2.5 px-1 text-xs text-gray-300">
-          <div className="flex items-center gap-2">
+        {/* THANH ĐIỀU KHIỂN RẠP PHIM & TẮT ĐÈN & PHÍM TẮT (GỌN GÀNG, KHÔNG LỖI GIAO DIỆN) */}
+        <div className="flex flex-wrap items-center justify-between gap-2 py-2.5 px-1 text-xs text-gray-300">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+            {/* 1. Nút Rạp phim */}
             <button
               type="button"
               onClick={() => setIsTheaterMode(!isTheaterMode)}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition cursor-pointer ${
+              className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg border transition cursor-pointer text-xs ${
                 isTheaterMode
                   ? "bg-netflix-red/90 text-white border-netflix-red font-medium"
                   : "bg-zinc-900/80 hover:bg-zinc-800 text-gray-300 hover:text-white border-white/10"
@@ -309,17 +484,18 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 <>
                   <Minimize2 className="w-3.5 h-3.5" />
                   <span>Thu nhỏ</span>
-                  <span className="hidden sm:inline"> (T)</span>
+                  <span className="hidden sm:inline text-white/60">(T)</span>
                 </>
               ) : (
                 <>
                   <Maximize2 className="w-3.5 h-3.5" />
                   <span>Rạp phim</span>
-                  <span className="hidden sm:inline"> (T)</span>
+                  <span className="hidden sm:inline text-white/60">(T)</span>
                 </>
               )}
             </button>
 
+            {/* 2. Nút Tắt đèn */}
             <button
               type="button"
               onClick={() => setIsLightsOff(!isLightsOff)}
@@ -333,17 +509,40 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 <>
                   <Sun className="w-3.5 h-3.5 text-yellow-400" />
                   <span>Bật đèn</span>
-                  <span className="hidden sm:inline"> (L)</span>
+                  <span className="hidden sm:inline text-white/60">(L)</span>
                 </>
               ) : (
                 <>
                   <Moon className="w-3.5 h-3.5" />
                   <span>Tắt đèn</span>
-                  <span className="hidden sm:inline"> (L)</span>
+                  <span className="hidden sm:inline text-white/60">(L)</span>
                 </>
               )}
             </button>
 
+            {/* 3. Nút Toàn màn hình */}
+            <button
+              type="button"
+              onClick={toggleFullscreen}
+              title="Phóng to toàn màn hình (Phím F)"
+              className="hidden sm:inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-zinc-900/80 hover:bg-zinc-800 text-gray-300 hover:text-white border border-white/10 transition cursor-pointer text-xs"
+            >
+              {isFullscreen ? (
+                <>
+                  <Minimize2 className="w-3.5 h-3.5" />
+                  <span>Thoát Fullscreen</span>
+                  <span className="text-white/60">(F)</span>
+                </>
+              ) : (
+                <>
+                  <Maximize2 className="w-3.5 h-3.5" />
+                  <span>Toàn màn hình</span>
+                  <span className="text-white/60">(F)</span>
+                </>
+              )}
+            </button>
+
+            {/* 4. Nút Hẹn giờ tắt */}
             <button
               type="button"
               onClick={() => setShowSleepTimerModal(true)}
@@ -354,10 +553,11 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
               <span>Hẹn giờ</span>
             </button>
 
+            {/* 5. Nút Danh sách Phím tắt */}
             <button
               type="button"
               onClick={() => setShowShortcutModal(true)}
-              title="Xem danh sách phím tắt"
+              title="Xem danh sách phím tắt (?)"
               className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-zinc-900/80 hover:bg-zinc-800 text-gray-400 hover:text-white border border-white/10 transition cursor-pointer text-xs"
             >
               <Keyboard className="w-3.5 h-3.5" />
@@ -366,7 +566,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           </div>
 
           {/* CỤM NÚT ĐIỀU HƯỚNG TẬP: TRƯỚC / SAU */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 ml-auto sm:ml-0">
             {prevEpisode && (
               <Link
                 href={`?ep=${prevEpisode.slug}`}
@@ -395,8 +595,8 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         </div>
       </div>
 
-      {/* FLOATING MINI-PLAYER (DESKTOP ONLY) — Trên mobile khung phát chính đã tự động Sticky Top liền mạch */}
-      {videoLink && showMiniPlayer && !dismissedMini && !isTheaterMode && (
+      {/* FLOATING MINI-PLAYER (DESKTOP ONLY) */}
+      {videoLink && showMiniPlayer && !dismissedMini && !isTheaterMode && !isFullscreen && (
         <div className="hidden sm:block sm:fixed sm:bottom-6 sm:right-6 z-50 sm:w-80 md:w-96 aspect-video bg-zinc-950 sm:rounded-2xl overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.95)] border border-white/20 animate-in slide-in-from-bottom-5 duration-200">
           <div className="absolute top-0 inset-x-0 bg-gradient-to-b from-black/90 via-black/60 to-transparent p-2 sm:p-2.5 flex items-center justify-between z-20">
             <div className="flex items-center gap-1.5 min-w-0 pr-2">
@@ -440,7 +640,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         </div>
       )}
 
-      {/* MODAL DANH SÁCH PHÍM TẮT */}
+      {/* MODAL DANH SÁCH PHÍM TẮT ĐẦY ĐỦ */}
       {showShortcutModal && (
         <div
           onClick={() => setShowShortcutModal(false)}
@@ -448,12 +648,12 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-sm rounded-2xl border border-white/15 bg-zinc-950 p-6 shadow-2xl animate-in zoom-in-95 duration-150"
+            className="w-full max-w-md rounded-2xl border border-white/15 bg-zinc-950 p-6 shadow-2xl animate-in zoom-in-95 duration-150"
           >
             <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-4">
               <div className="flex items-center gap-2 font-bold text-base text-white">
-                <Keyboard className="w-4 h-4 text-netflix-red" />
-                <span>Phím tắt xem phim</span>
+                <Keyboard className="w-5 h-5 text-netflix-red" />
+                <span>Phím tắt xem phim chuyên nghiệp</span>
               </div>
               <button
                 type="button"
@@ -464,28 +664,35 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
               </button>
             </div>
 
-            <div className="space-y-3 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs sm:text-sm">
               {[
+                { label: "Phát / Tạm dừng", key: "Space" },
+                { label: "Toàn màn hình", key: "F" },
+                { label: "Tua tới 10 giây", key: "→" },
+                { label: "Tua lùi 10 giây", key: "←" },
+                { label: "Tắt / Bật âm thanh", key: "M" },
+                { label: "Tăng / Giảm âm lượng", key: "↑ / ↓" },
                 { label: "Chế độ Rạp phim", key: "T" },
                 { label: "Tắt / Bật đèn xung quanh", key: "L" },
                 { label: "Chuyển về tập trước", key: "P" },
                 { label: "Chuyển sang tập kế tiếp", key: "N" },
-                { label: "Thoát chế độ xem / Đóng", key: "Esc" },
+                { label: "Thoát chế độ / Đóng", key: "Esc" },
+                { label: "Bật / Tắt bảng phím tắt", key: "?" },
               ].map(({ label, key }) => (
-                <div key={key} className="flex items-center justify-between">
+                <div key={key} className="flex items-center justify-between p-2 rounded-xl bg-zinc-900 border border-white/5">
                   <span className="text-gray-300">{label}</span>
-                  <kbd className="px-2 py-1 rounded bg-zinc-800 border border-white/15 text-xs font-mono text-white">
+                  <kbd className="px-2 py-0.5 rounded bg-zinc-800 border border-white/20 text-xs font-mono font-bold text-amber-300">
                     {key}
                   </kbd>
                 </div>
               ))}
             </div>
 
-            <div className="mt-6 pt-3 border-t border-white/10 text-center">
+            <div className="mt-5 pt-3 border-t border-white/10 text-center">
               <button
                 type="button"
                 onClick={() => setShowShortcutModal(false)}
-                className="w-full py-2 rounded-lg bg-netflix-red text-white text-xs font-bold hover:bg-red-700 transition cursor-pointer"
+                className="w-full py-2.5 rounded-xl bg-netflix-red text-white text-xs sm:text-sm font-bold hover:bg-red-700 transition cursor-pointer shadow-lg"
               >
                 Đã hiểu
               </button>
@@ -498,6 +705,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       <SleepTimerModal
         isOpen={showSleepTimerModal}
         onClose={() => setShowSleepTimerModal(false)}
+        hideTrigger={true}
       />
     </>
   );
