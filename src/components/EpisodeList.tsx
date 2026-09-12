@@ -14,6 +14,7 @@ interface EpisodeItem {
   name: string;
   slug: string;
   link_embed?: string;
+  link_m3u8?: string;
 }
 
 interface EpisodeListProps {

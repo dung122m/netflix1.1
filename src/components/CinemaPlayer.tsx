@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Hls from "hls.js";
 import {
   Maximize2,
   Minimize2,
@@ -20,6 +21,11 @@ import {
   Volume2,
   Volume1,
   VolumeX,
+  RotateCcw,
+  Sparkles,
+  Zap,
+  Radio,
+  Tv,
 } from "lucide-react";
 import { SleepTimerModal } from "./SleepTimerModal";
 
@@ -27,11 +33,13 @@ interface EpisodeItem {
   name?: string;
   slug?: string;
   link_embed?: string;
+  link_m3u8?: string;
 }
 
 interface CinemaPlayerProps {
   embedSrc?: string;
   videoLink?: string;
+  m3u8Link?: string;
   trailerUrl?: string | null;
   title: string;
   activeEpisodeName?: string;
@@ -44,6 +52,7 @@ interface CinemaPlayerProps {
 export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   embedSrc,
   videoLink,
+  m3u8Link,
   trailerUrl,
   title,
   activeEpisodeName,
@@ -57,12 +66,40 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isPlaying, setIsPlaying] = useState(true);
+  const [volume, setVolume] = useState(1);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [buffered, setBuffered] = useState(0);
+  const [isBuffering, setIsBuffering] = useState(false);
+  const [useIframeFallback, setUseIframeFallback] = useState(false);
+  const [showControls, setShowControls] = useState(true);
   const [showShortcutModal, setShowShortcutModal] = useState(false);
   const [showSleepTimerModal, setShowSleepTimerModal] = useState(false);
+  const [bigCenterIcon, setBigCenterIcon] = useState<"play" | "pause" | null>(null);
 
   // HUD feedback khi bấm phím tắt
   const [hudState, setHudState] = useState<{ icon: React.ReactNode; text: string } | null>(null);
   const hudTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const centerIconTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const controlsTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const hlsRef = useRef<Hls | null>(null);
+  const progressBarRef = useRef<HTMLDivElement>(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const router = useRouter();
+
+  // Floating Mini-Player States
+  const [showMiniPlayer, setShowMiniPlayer] = useState(false);
+  const [dismissedMini, setDismissedMini] = useState(false);
+  const [miniPlayerLoaded, setMiniPlayerLoaded] = useState(false);
+
+  // Mobile Sticky State
+  const [isMobile, setIsMobile] = useState(false);
+  const [isScrolledPast, setIsScrolledPast] = useState(false);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   const showHud = useCallback((icon: React.ReactNode, text: string) => {
     if (hudTimerRef.current) clearTimeout(hudTimerRef.current);
@@ -72,16 +109,23 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     }, 1000);
   }, []);
 
-  // Floating Mini-Player States
-  const [showMiniPlayer, setShowMiniPlayer] = useState(false);
-  const [dismissedMini, setDismissedMini] = useState(false);
-  // Mini player chỉ load iframe khi thực sự cần (tránh 2 iframe cùng lúc)
-  const [miniPlayerLoaded, setMiniPlayerLoaded] = useState(false);
+  const triggerCenterAnimation = useCallback((type: "play" | "pause") => {
+    if (centerIconTimerRef.current) clearTimeout(centerIconTimerRef.current);
+    setBigCenterIcon(type);
+    centerIconTimerRef.current = setTimeout(() => {
+      setBigCenterIcon(null);
+    }, 500);
+  }, []);
 
-  const containerRef = useRef<HTMLDivElement>(null);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-  const observerRef = useRef<IntersectionObserver | null>(null);
-  const router = useRouter();
+  const resetControlsTimeout = useCallback(() => {
+    setShowControls(true);
+    if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
+    controlsTimerRef.current = setTimeout(() => {
+      if (isPlaying) {
+        setShowControls(false);
+      }
+    }, 3200);
+  }, [isPlaying]);
 
   // Tạo embed trailer nếu không có videoLink nhưng có trailerUrl
   const trailerEmbedSrc = useMemo(() => {
@@ -111,21 +155,17 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       ? episodes[currentIndex + 1]
       : null;
 
-  // Mobile Sticky State (khi lướt qua khung phát trên màn hình điện thoại)
-  const [isMobile, setIsMobile] = useState(false);
-  const [isScrolledPast, setIsScrolledPast] = useState(false);
-  const sentinelRef = useRef<HTMLDivElement>(null);
+  // Xác định xem có phát trực tiếp qua HTML5 Video Native HLS không
+  const isNativeVideo = Boolean(m3u8Link && !useIframeFallback && videoLink);
 
-  // Gửi lệnh điều khiển đến iframe player (JWPlayer, Video.js, Plyr, YouTube, HLS embed)
+  // Gửi lệnh điều khiển đến iframe player (dùng cho trường hợp fallback iframe)
   const sendPlayerCommand = useCallback((cmd: string, val?: any) => {
     if (!iframeRef.current?.contentWindow) return;
     try {
-      // 1. YouTube postMessage API
       iframeRef.current.contentWindow.postMessage(
         JSON.stringify({ event: "command", func: cmd, args: val !== undefined ? [val] : [] }),
         "*"
       );
-      // 2. Generic postMessage for embedded HTML5/HLS players
       iframeRef.current.contentWindow.postMessage({ method: cmd, value: val, action: cmd, type: cmd }, "*");
       iframeRef.current.contentWindow.postMessage(JSON.stringify({ method: cmd, value: val }), "*");
     } catch {}
@@ -145,7 +185,181 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     }
   }, [showHud]);
 
-  // Lắng nghe thay đổi Fullscreen từ trình duyệt
+  // TOGGLE PLAY / PAUSE CHUẨN XÁC (DÙNG ĐƯỢC NGAY CẢ KHI VỪA VÀO TRANG KHÔNG CẦN CLICK)
+  const togglePlayPause = useCallback(() => {
+    if (isNativeVideo && videoRef.current) {
+      const v = videoRef.current;
+      if (v.paused) {
+        if (v.muted && isMuted) {
+          v.muted = false;
+          setIsMuted(false);
+        }
+        v.play().catch(() => {});
+        setIsPlaying(true);
+        triggerCenterAnimation("play");
+        showHud(<Play className="w-5 h-5 text-emerald-400 fill-current" />, "Đang phát");
+      } else {
+        v.pause();
+        setIsPlaying(false);
+        triggerCenterAnimation("pause");
+        showHud(<Pause className="w-5 h-5 text-amber-400 fill-current" />, "Tạm dừng");
+      }
+    } else {
+      setIsPlaying((prev) => {
+        const next = !prev;
+        if (next) {
+          sendPlayerCommand("playVideo");
+          sendPlayerCommand("play");
+          triggerCenterAnimation("play");
+          showHud(<Play className="w-5 h-5 text-emerald-400 fill-current" />, "Đang phát");
+        } else {
+          sendPlayerCommand("pauseVideo");
+          sendPlayerCommand("pause");
+          triggerCenterAnimation("pause");
+          showHud(<Pause className="w-5 h-5 text-amber-400 fill-current" />, "Tạm dừng");
+        }
+        return next;
+      });
+    }
+    resetControlsTimeout();
+  }, [isNativeVideo, isMuted, sendPlayerCommand, showHud, triggerCenterAnimation, resetControlsTimeout]);
+
+  // KHỞI TẠO NATIVE HLS VIDEO PLAYER & AUTOPLAY NGAY KHI VÀO TRANG
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !m3u8Link || useIframeFallback) return;
+
+    if (hlsRef.current) {
+      hlsRef.current.destroy();
+      hlsRef.current = null;
+    }
+
+    setIsBuffering(true);
+
+    if (Hls.isSupported()) {
+      const hls = new Hls({
+        enableWorker: true,
+        lowLatencyMode: false,
+        backBufferLength: 90,
+      });
+      hlsRef.current = hls;
+      hls.loadSource(m3u8Link);
+      hls.attachMedia(video);
+
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        setIsBuffering(false);
+        // Tự động phát ngay lập tức khi người dùng chọn phim/tập
+        const playPromise = video.play();
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              setIsPlaying(true);
+            })
+            .catch(() => {
+              // Nếu trình duyệt chặn âm thanh khi vào trực tiếp, tự động phát ở chế độ tắt tiếng
+              video.muted = true;
+              setIsMuted(true);
+              video
+                .play()
+                .then(() => setIsPlaying(true))
+                .catch(() => setIsPlaying(false));
+            });
+        }
+      });
+
+      hls.on(Hls.Events.ERROR, (_event, data) => {
+        if (data.fatal) {
+          switch (data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              hls.startLoad();
+              break;
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              hls.recoverMediaError();
+              break;
+            default:
+              console.warn("HLS fatal error -> fallback to iframe embed:", data);
+              setUseIframeFallback(true);
+              break;
+          }
+        }
+      });
+    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+      // Safari iOS / macOS Native HLS
+      video.src = m3u8Link;
+      const onLoaded = () => {
+        setIsBuffering(false);
+        video
+          .play()
+          .then(() => setIsPlaying(true))
+          .catch(() => {
+            video.muted = true;
+            setIsMuted(true);
+            video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+          });
+      };
+      video.addEventListener("loadedmetadata", onLoaded);
+      return () => video.removeEventListener("loadedmetadata", onLoaded);
+    } else {
+      setUseIframeFallback(true);
+    }
+
+    return () => {
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+    };
+  }, [m3u8Link, useIframeFallback]);
+
+  // LẮNG NGHE SỰ KIỆN VIDEO (TIẾN TRÌNH, ÂM LƯỢNG, BUFFER, KẾT THÚC)
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const handleTimeUpdate = () => {
+      setCurrentTime(video.currentTime);
+      if (video.duration && !isNaN(video.duration)) {
+        setDuration(video.duration);
+      }
+    };
+
+    const handleProgress = () => {
+      if (video.buffered.length > 0 && video.duration) {
+        setBuffered(video.buffered.end(video.buffered.length - 1));
+      }
+    };
+
+    const handleWaiting = () => setIsBuffering(true);
+    const handlePlaying = () => {
+      setIsBuffering(false);
+      setIsPlaying(true);
+    };
+    const handlePause = () => setIsPlaying(false);
+    const handleEnded = () => {
+      setIsPlaying(false);
+      if (nextEpisode?.slug) {
+        router.push(`?ep=${nextEpisode.slug}`, { scroll: false });
+      }
+    };
+
+    video.addEventListener("timeupdate", handleTimeUpdate);
+    video.addEventListener("progress", handleProgress);
+    video.addEventListener("waiting", handleWaiting);
+    video.addEventListener("playing", handlePlaying);
+    video.addEventListener("pause", handlePause);
+    video.addEventListener("ended", handleEnded);
+
+    return () => {
+      video.removeEventListener("timeupdate", handleTimeUpdate);
+      video.removeEventListener("progress", handleProgress);
+      video.removeEventListener("waiting", handleWaiting);
+      video.removeEventListener("playing", handlePlaying);
+      video.removeEventListener("pause", handlePause);
+      video.removeEventListener("ended", handleEnded);
+    };
+  }, [nextEpisode, router]);
+
+  // LẮNG NGHE THAY ĐỔI FULLSCREEN TỪ BROWSER
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(Boolean(document.fullscreenElement));
@@ -154,6 +368,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
 
+  // PHÁT HIỆN MÀN HÌNH MOBILE
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768);
@@ -163,8 +378,9 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  // LẮNG NGHE SCROLL ĐỂ GHIM CỐ ĐỊNH TRÊN MOBILE
   useEffect(() => {
-    if (!activeSrc) return;
+    if (!activeSrc && !m3u8Link) return;
 
     const handleScroll = () => {
       if (!sentinelRef.current) return;
@@ -175,11 +391,11 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     window.addEventListener("scroll", handleScroll, { passive: true });
     handleScroll();
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [activeSrc]);
+  }, [activeSrc, m3u8Link]);
 
-  // Dùng IntersectionObserver thay scroll event cho Desktop Mini-Player
+  // DESKTOP MINI PLAYER OBSERVER
   useEffect(() => {
-    if (!activeSrc || !containerRef.current) return;
+    if ((!activeSrc && !m3u8Link) || !containerRef.current) return;
 
     observerRef.current = new IntersectionObserver(
       ([entry]) => {
@@ -203,9 +419,12 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     return () => {
       observerRef.current?.disconnect();
     };
-  }, [videoLink, activeSrc, miniPlayerLoaded]);
+  }, [videoLink, activeSrc, m3u8Link, miniPlayerLoaded]);
 
-  // Lắng nghe phím tắt chuyên nghiệp: Space, F, M, ArrowLeft, ArrowRight, ArrowUp, ArrowDown, T, L, P, N, Esc, ?
+  // =========================================================================
+  // TOÀN BỘ HỆ THỐNG PHÍM TẮT: SPACE, F, M, ←, →, ↑, ↓, T, L, P, N, ESC, ?
+  // HOẠT ĐỘNG NGAY LẬP TỨC TỪ CẤP WINDOW (KHÔNG BẮT BUỘC PHẢI CLICK VÀO TRÌNH PHÁT)
+  // =========================================================================
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
@@ -221,19 +440,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       // 1. Phím Space: Play / Pause
       if (e.code === "Space" || e.key === " ") {
         e.preventDefault();
-        setIsPlaying((prev) => {
-          const next = !prev;
-          if (next) {
-            sendPlayerCommand("playVideo");
-            sendPlayerCommand("play");
-            showHud(<Play className="w-5 h-5 text-emerald-400 fill-current" />, "Đang phát");
-          } else {
-            sendPlayerCommand("pauseVideo");
-            sendPlayerCommand("pause");
-            showHud(<Pause className="w-5 h-5 text-amber-400 fill-current" />, "Tạm dừng");
-          }
-          return next;
-        });
+        togglePlayPause();
         return;
       }
 
@@ -247,51 +454,100 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       // 3. Phím M: Tắt / Bật tiếng
       if (e.key === "m" || e.key === "M") {
         e.preventDefault();
-        setIsMuted((prev) => {
-          const next = !prev;
-          if (next) {
-            sendPlayerCommand("mute");
-            showHud(<VolumeX className="w-5 h-5 text-rose-400" />, "Đã tắt tiếng");
-          } else {
-            sendPlayerCommand("unMute");
-            showHud(<Volume2 className="w-5 h-5 text-emerald-400" />, "Đã bật tiếng");
-          }
-          return next;
-        });
+        if (isNativeVideo && videoRef.current) {
+          const v = videoRef.current;
+          v.muted = !v.muted;
+          setIsMuted(v.muted);
+          showHud(
+            v.muted ? <VolumeX className="w-5 h-5 text-rose-400" /> : <Volume2 className="w-5 h-5 text-emerald-400" />,
+            v.muted ? "Đã tắt tiếng" : "Đã bật tiếng"
+          );
+        } else {
+          setIsMuted((prev) => {
+            const next = !prev;
+            if (next) {
+              sendPlayerCommand("mute");
+              showHud(<VolumeX className="w-5 h-5 text-rose-400" />, "Đã tắt tiếng");
+            } else {
+              sendPlayerCommand("unMute");
+              showHud(<Volume2 className="w-5 h-5 text-emerald-400" />, "Đã bật tiếng");
+            }
+            return next;
+          });
+        }
+        resetControlsTimeout();
         return;
       }
 
       // 4. Mũi tên Phải: Tua tới 10 giây
       if (e.key === "ArrowRight") {
         e.preventDefault();
-        sendPlayerCommand("seekTo", "+10");
-        sendPlayerCommand("seek", 10);
-        showHud(<SkipForward className="w-5 h-5 text-netflix-red fill-current" />, "Tua tới +10s");
+        if (isNativeVideo && videoRef.current) {
+          const v = videoRef.current;
+          v.currentTime = Math.min(v.duration || 999999, v.currentTime + 10);
+          showHud(<SkipForward className="w-5 h-5 text-netflix-red fill-current" />, "Tua tới +10s");
+        } else {
+          sendPlayerCommand("seekTo", "+10");
+          sendPlayerCommand("seek", 10);
+          showHud(<SkipForward className="w-5 h-5 text-netflix-red fill-current" />, "Tua tới +10s");
+        }
+        resetControlsTimeout();
         return;
       }
 
       // 5. Mũi tên Trái: Tua lùi 10 giây
       if (e.key === "ArrowLeft") {
         e.preventDefault();
-        sendPlayerCommand("seekTo", "-10");
-        sendPlayerCommand("seek", -10);
-        showHud(<SkipBack className="w-5 h-5 text-netflix-red fill-current" />, "Tua lùi -10s");
+        if (isNativeVideo && videoRef.current) {
+          const v = videoRef.current;
+          v.currentTime = Math.max(0, v.currentTime - 10);
+          showHud(<SkipBack className="w-5 h-5 text-netflix-red fill-current" />, "Tua lùi -10s");
+        } else {
+          sendPlayerCommand("seekTo", "-10");
+          sendPlayerCommand("seek", -10);
+          showHud(<SkipBack className="w-5 h-5 text-netflix-red fill-current" />, "Tua lùi -10s");
+        }
+        resetControlsTimeout();
         return;
       }
 
       // 6. Mũi tên Lên: Tăng âm lượng
       if (e.key === "ArrowUp") {
         e.preventDefault();
-        sendPlayerCommand("setVolume", 100);
-        showHud(<Volume2 className="w-5 h-5 text-emerald-400" />, "Tăng âm lượng");
+        if (isNativeVideo && videoRef.current) {
+          const v = videoRef.current;
+          const nextVol = Math.min(1, Math.round((v.volume + 0.1) * 10) / 10);
+          v.volume = nextVol;
+          v.muted = false;
+          setIsMuted(false);
+          setVolume(nextVol);
+          showHud(<Volume2 className="w-5 h-5 text-emerald-400" />, `Âm lượng: ${Math.round(nextVol * 100)}%`);
+        } else {
+          sendPlayerCommand("setVolume", 100);
+          showHud(<Volume2 className="w-5 h-5 text-emerald-400" />, "Tăng âm lượng");
+        }
+        resetControlsTimeout();
         return;
       }
 
       // 7. Mũi tên Xuống: Giảm âm lượng
       if (e.key === "ArrowDown") {
         e.preventDefault();
-        sendPlayerCommand("setVolume", 50);
-        showHud(<Volume1 className="w-5 h-5 text-amber-400" />, "Giảm âm lượng");
+        if (isNativeVideo && videoRef.current) {
+          const v = videoRef.current;
+          const nextVol = Math.max(0, Math.round((v.volume - 0.1) * 10) / 10);
+          v.volume = nextVol;
+          setVolume(nextVol);
+          if (nextVol === 0) {
+            v.muted = true;
+            setIsMuted(true);
+          }
+          showHud(<Volume1 className="w-5 h-5 text-amber-400" />, `Âm lượng: ${Math.round(nextVol * 100)}%`);
+        } else {
+          sendPlayerCommand("setVolume", 50);
+          showHud(<Volume1 className="w-5 h-5 text-amber-400" />, "Giảm âm lượng");
+        }
+        resetControlsTimeout();
         return;
       }
 
@@ -346,13 +602,49 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isLightsOff, isTheaterMode, showShortcutModal, showSleepTimerModal, prevEpisode, nextEpisode, router, sendPlayerCommand, toggleFullscreen, showHud]);
+  }, [
+    isNativeVideo,
+    isMuted,
+    isLightsOff,
+    isTheaterMode,
+    showShortcutModal,
+    showSleepTimerModal,
+    prevEpisode,
+    nextEpisode,
+    router,
+    togglePlayPause,
+    toggleFullscreen,
+    sendPlayerCommand,
+    showHud,
+    resetControlsTimeout,
+  ]);
 
   const scrollToPlayer = useCallback(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
-  const isMobileStickyActive = isMobile && isScrolledPast && Boolean(activeSrc);
+  // Xử lý kéo thanh tiến trình (Scrub Bar)
+  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!progressBarRef.current || !videoRef.current || !duration) return;
+    const rect = progressBarRef.current.getBoundingClientRect();
+    const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    videoRef.current.currentTime = pos * duration;
+    setCurrentTime(pos * duration);
+  };
+
+  // Format thời lượng hiển thị
+  const formatTime = (secs: number) => {
+    if (isNaN(secs) || secs < 0) return "00:00";
+    const h = Math.floor(secs / 3600);
+    const m = Math.floor((secs % 3600) / 60);
+    const s = Math.floor(secs % 60);
+    if (h > 0) {
+      return `${h}:${m < 10 ? "0" : ""}${m}:${s < 10 ? "0" : ""}${s}`;
+    }
+    return `${m < 10 ? "0" : ""}${m}:${s < 10 ? "0" : ""}${s}`;
+  };
+
+  const isMobileStickyActive = isMobile && isScrolledPast && Boolean(activeSrc || m3u8Link);
 
   return (
     <>
@@ -371,14 +663,15 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       {/* Điểm neo để phát hiện cuộn trang (Sentinel) */}
       <div ref={sentinelRef} className="w-full h-0 pointer-events-none" />
 
-      {/* PLACEHOLDER KHI PLAYER ĐANG Ở CHẾ ĐỘ FIXED TOP TRÊN MOBILE (TRÁNH BỊ GIẬT TRANG) */}
+      {/* PLACEHOLDER KHI PLAYER ĐANG Ở CHẾ ĐỘ FIXED TOP TRÊN MOBILE */}
       {isMobileStickyActive && (
         <div className="w-full aspect-video md:hidden" aria-hidden="true" />
       )}
 
-      {/* CONTAINER KHUNG PHÁT VIDEO CHÍNH — Tự động chuyển Fixed Top trên Mobile khi lướt xuống dưới */}
+      {/* CONTAINER KHUNG PHÁT VIDEO CHÍNH */}
       <div
         ref={containerRef}
+        onMouseMove={resetControlsTimeout}
         className={`w-full mx-auto transition-all duration-300 bg-black ${
           isMobileStickyActive
             ? "fixed top-0 left-0 right-0 z-50 shadow-2xl border-b border-white/25 md:relative md:top-auto"
@@ -399,7 +692,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
             <button
               type="button"
               onClick={scrollToPlayer}
-              className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/10 text-gray-200 hover:text-white text-[10px] font-semibold transition"
+              className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/10 text-gray-200 hover:text-white text-[10px] font-semibold transition cursor-pointer"
             >
               <ArrowUpRight className="w-3 h-3" />
               <span>Lên đầu</span>
@@ -410,8 +703,9 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         {/* Cinema Ambient Backlight */}
         <div className="ambient-cinema-glow opacity-80" aria-hidden="true" />
 
+        {/* KHUNG VIDEO CHÍNH */}
         <div
-          className={`w-full aspect-video bg-zinc-950 relative overflow-hidden transition-all duration-300 z-10 mx-auto shadow-2xl ${
+          className={`w-full aspect-video bg-zinc-950 relative overflow-hidden transition-all duration-300 z-10 mx-auto shadow-2xl select-none group ${
             isMobileStickyActive
               ? "rounded-none max-h-[38vh]"
               : isTheaterMode
@@ -419,7 +713,202 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
               : "rounded-none sm:rounded-2xl md:rounded-3xl border-b sm:border border-white/15 shadow-[0_25px_70px_rgba(0,0,0,0.55)]"
           }`}
         >
-          {activeSrc ? (
+          {isNativeVideo ? (
+            // ==========================================
+            // NATIVE HTML5 VIDEO PLAYER (HLS 0MS LATENCY)
+            // ==========================================
+            <div
+              className="w-full h-full relative cursor-pointer"
+              onClick={togglePlayPause}
+              onDoubleClick={toggleFullscreen}
+            >
+              <video
+                ref={videoRef}
+                className="w-full h-full object-contain bg-black"
+                playsInline
+                autoPlay
+              />
+
+              {/* SPINNER BUFFERING */}
+              {isBuffering && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none bg-black/40 z-20">
+                  <div className="w-12 h-12 border-4 border-netflix-red border-t-transparent rounded-full animate-spin" />
+                </div>
+              )}
+
+              {/* ICON HIỆU ỨNG TRUNG TÂM KHI BẤM PLAY / PAUSE */}
+              {bigCenterIcon && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20 animate-out fade-out zoom-out-125 duration-300">
+                  <div className="p-5 rounded-full bg-black/75 backdrop-blur-md border border-white/20 text-white shadow-2xl">
+                    {bigCenterIcon === "play" ? (
+                      <Play className="w-10 h-10 text-emerald-400 fill-current ml-1" />
+                    ) : (
+                      <Pause className="w-10 h-10 text-amber-400 fill-current" />
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* HUY HIỆU NATIVE HLS */}
+              <div className="absolute top-3 left-3 z-20 pointer-events-none flex items-center gap-2">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/75 backdrop-blur-md border border-emerald-500/40 text-emerald-400 text-[11px] font-bold shadow-lg">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>HLS Tốc độ cao • Tự động phát</span>
+                </div>
+              </div>
+
+              {/* THANH ĐIỀU KHIỂN NATIVE NETFLIX HOVER CONTROLS */}
+              <div
+                onClick={(e) => e.stopPropagation()}
+                className={`absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 via-black/70 to-transparent pt-10 pb-3 px-3 sm:px-5 transition-opacity duration-300 z-30 ${
+                  showControls || !isPlaying ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+                }`}
+              >
+                {/* THANH TIẾN TRÌNH SCRUB BAR */}
+                <div
+                  ref={progressBarRef}
+                  onClick={handleSeek}
+                  className="w-full h-1.5 hover:h-2.5 bg-white/20 rounded-full cursor-pointer relative transition-all mb-3 group/bar"
+                >
+                  {/* Buffered */}
+                  <div
+                    className="absolute top-0 left-0 bottom-0 bg-white/30 rounded-full"
+                    style={{ width: `${duration ? (buffered / duration) * 100 : 0}%` }}
+                  />
+                  {/* Played */}
+                  <div
+                    className="absolute top-0 left-0 bottom-0 bg-netflix-red rounded-full flex items-center justify-end"
+                    style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
+                  >
+                    <div className="w-3.5 h-3.5 rounded-full bg-white shadow-md scale-0 group-hover/bar:scale-100 transition-transform" />
+                  </div>
+                </div>
+
+                {/* HÀNG CÁC NÚT ĐIỀU KHIỂN CHÍNH */}
+                <div className="flex items-center justify-between text-white text-xs sm:text-sm">
+                  <div className="flex items-center gap-2 sm:gap-4">
+                    {/* Play / Pause */}
+                    <button
+                      type="button"
+                      onClick={togglePlayPause}
+                      title={isPlaying ? "Tạm dừng (Space)" : "Phát (Space)"}
+                      className="p-2 rounded-full hover:bg-white/20 text-white transition cursor-pointer"
+                    >
+                      {isPlaying ? (
+                        <Pause className="w-5 h-5 fill-white" />
+                      ) : (
+                        <Play className="w-5 h-5 fill-white ml-0.5" />
+                      )}
+                    </button>
+
+                    {/* Tua lùi 10s */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (videoRef.current) videoRef.current.currentTime = Math.max(0, videoRef.current.currentTime - 10);
+                        showHud(<SkipBack className="w-5 h-5 text-netflix-red fill-current" />, "Tua lùi -10s");
+                      }}
+                      title="Tua lùi 10 giây (←)"
+                      className="p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer"
+                    >
+                      <SkipBack className="w-4 h-4 fill-current" />
+                    </button>
+
+                    {/* Tua tới 10s */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (videoRef.current) videoRef.current.currentTime = Math.min(duration || 999999, videoRef.current.currentTime + 10);
+                        showHud(<SkipForward className="w-5 h-5 text-netflix-red fill-current" />, "Tua tới +10s");
+                      }}
+                      title="Tua tới 10 giây (→)"
+                      className="p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer"
+                    >
+                      <SkipForward className="w-4 h-4 fill-current" />
+                    </button>
+
+                    {/* Âm lượng */}
+                    <div className="flex items-center gap-1.5 group/vol">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (videoRef.current) {
+                            videoRef.current.muted = !videoRef.current.muted;
+                            setIsMuted(videoRef.current.muted);
+                          }
+                        }}
+                        title="Tắt/Bật tiếng (M)"
+                        className="p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer"
+                      >
+                        {isMuted || volume === 0 ? (
+                          <VolumeX className="w-4 h-4 text-rose-400" />
+                        ) : volume < 0.5 ? (
+                          <Volume1 className="w-4 h-4 text-emerald-400" />
+                        ) : (
+                          <Volume2 className="w-4 h-4 text-emerald-400" />
+                        )}
+                      </button>
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.05"
+                        value={isMuted ? 0 : volume}
+                        onChange={(e) => {
+                          const newVol = parseFloat(e.target.value);
+                          setVolume(newVol);
+                          if (videoRef.current) {
+                            videoRef.current.volume = newVol;
+                            videoRef.current.muted = newVol === 0;
+                            setIsMuted(newVol === 0);
+                          }
+                        }}
+                        className="w-16 sm:w-20 accent-netflix-red h-1.5 bg-white/20 rounded-full cursor-pointer hidden sm:inline-block"
+                      />
+                    </div>
+
+                    {/* Thời lượng */}
+                    <span className="text-[11px] sm:text-xs text-gray-300 font-mono">
+                      {formatTime(currentTime)} / {formatTime(duration)}
+                    </span>
+                  </div>
+
+                  {/* Nút Phải */}
+                  <div className="flex items-center gap-1.5 sm:gap-3">
+                    {/* Chuyển qua Iframe Embed nếu muốn */}
+                    {embedSrc && (
+                      <button
+                        type="button"
+                        onClick={() => setUseIframeFallback(true)}
+                        title="Đổi sang trình phát Iframe dự phòng"
+                        className="hidden md:inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-white/10 hover:bg-white/20 text-gray-300 text-[11px] font-medium transition cursor-pointer"
+                      >
+                        <Tv className="w-3 h-3" />
+                        <span>Nguồn Iframe</span>
+                      </button>
+                    )}
+
+                    {/* Toàn màn hình */}
+                    <button
+                      type="button"
+                      onClick={toggleFullscreen}
+                      title="Toàn màn hình (F)"
+                      className="p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer"
+                    >
+                      {isFullscreen ? (
+                        <Minimize2 className="w-4 h-4" />
+                      ) : (
+                        <Maximize2 className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : activeSrc ? (
+            // ==========================================
+            // IFRAME PLAYER FALLBACK (KHI KHÔNG CÓ M3U8 HOẶC LÀ TRAILER)
+            // ==========================================
             <>
               <iframe
                 ref={iframeRef}
@@ -436,8 +925,21 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                   <span>Đang phát Trailer</span>
                 </div>
               )}
+              {m3u8Link && useIframeFallback && (
+                <button
+                  type="button"
+                  onClick={() => setUseIframeFallback(false)}
+                  className="absolute top-3 right-3 z-20 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-600/90 hover:bg-emerald-600 text-white text-xs font-bold shadow-lg backdrop-blur-md transition cursor-pointer"
+                >
+                  <Zap className="w-3.5 h-3.5 fill-white" />
+                  <span>Đổi sang Native HLS</span>
+                </button>
+              )}
             </>
           ) : (
+            // ==========================================
+            // PLACEHOLDER KHI PHIM CHƯA CÓ NGUỒN
+            // ==========================================
             <div className="w-full h-full flex flex-col items-center justify-center border border-white/10 relative">
               <Image
                 src={posterUrl}
@@ -463,9 +965,9 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
             </div>
           )}
 
-          {/* ON-SCREEN HUD OVERLAY KHI BẤM PHÍM TẮT (GIỐNG NETFLIX / YOUTUBE) */}
+          {/* ON-SCREEN HUD OVERLAY KHI BẤM PHÍM TẮT */}
           {hudState && (
-            <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none animate-in fade-in zoom-in-95 duration-150">
+            <div className="absolute inset-0 z-40 flex items-center justify-center pointer-events-none animate-in fade-in zoom-in-95 duration-150">
               <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-black/85 backdrop-blur-md border border-white/20 text-white font-bold text-sm sm:text-base shadow-2xl">
                 {hudState.icon}
                 <span>{hudState.text}</span>
@@ -474,7 +976,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           )}
         </div>
 
-        {/* THANH ĐIỀU KHIỂN RẠP PHIM & TẮT ĐÈN & PHÍM TẮT (GỌN GÀNG, KHÔNG LỖI GIAO DIỆN) */}
+        {/* THANH ĐIỀU KHIỂN RẠP PHIM & TẮT ĐÈN & PHÍM TẮT */}
         <div className="flex flex-wrap items-center justify-between gap-2 py-2.5 px-1 text-xs text-gray-300">
           <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
             {/* 1. Nút Rạp phim */}
@@ -632,7 +1134,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
             </div>
           </div>
 
-          {/* Lazy: chỉ tạo iframe khi lần đầu mini player hiện */}
           {miniPlayerLoaded && (
             <iframe
               src={embedSrc}
