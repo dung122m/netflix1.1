@@ -1041,6 +1041,14 @@ export const liveFootballService = {
       const matchMap = new Map<string, FootballMatch>();
       const channelsSet = new Set<string>();
 
+      // 1. NẠP CÁC KÊNH THỂ THAO 24/7 CHÍNH THỨC
+      const verifiedChannels = getVerified247Channels();
+      for (const m of verifiedChannels) {
+        matchMap.set(m.id, m);
+        channelsSet.add(m.group);
+        m.groups.forEach((g) => channelsSet.add(g));
+      }
+
       // QUÉT TẤT CẢ NGUỒN M3U THỰC TẾ (CHỈ LẤY TRẬN ĐẤU & PHÒNG BLV)
       const sources = getFootballM3uSources();
       const fetchPromises = sources.map(async (source) => {
@@ -1128,33 +1136,43 @@ export const liveFootballService = {
             continue;
           }
 
-          // 2. LOẠI TRỪ CÁC KÊNH TRUYỀN HÌNH TỔNG HỢP VÀ KÊNH TRUYỀN HÌNH TV 24/7 (VTV, HTV, THVL, SCTV, VTC...)
-          // Dành toàn bộ các kênh truyền hình cho Tab "Truyền Hình TV", Tab "Bóng Đá" chỉ chứa Trận đấu thực tế & Phòng BLV
-          const isPureTvChannel =
-            /^(VTV|HTV|THVL|SCTV|VTC|K\+|BTV|DN|HN[12]|HANOI|ON\s|BOX\s|IN\s|AXN|HBO|CINEMAX|DISCOVERY)/i.test(
-              rawTitle.trim(),
-            ) ||
-            /HTV[0-9]|HTVC|THVL[0-9]|VTV[0-9]|VTC[0-9]|SCTV[0-9]/i.test(
+          // 2. LOẠI BỎ PHIM / HÀI / TẬP PHIM / WEB DRAMA / SHOW
+          const isMovieOrDrama =
+            /Tập\s*\d+|Tập\s*Cuối|Phần\s*\d+|Thuyết\s*Minh|Lồng\s*Tiếng|Vietsub|Chiếu\s*Rạp|Phim\s*(Bộ|Lẻ|Truyện|Ngắn)|Hài\s*Kịch|Hùng\s*Long|Cuốc\s*Xe|Bố\s*Già|Lật\s*Mặt|Nhà\s*Bà|Mai\s*\(|Web\s*Drama|Gái\s*Già|Trailer/i.test(
               rawTitle,
             ) ||
-            /(HTV\s*THỂ\s*THAO|VTV5|VTV6|VTV3|VTV1|THVL1|THVL2)/i.test(
+            /Tập\s*\d+|Tập\s*Cuối|Phần\s*\d+|Phim/i.test(group);
+
+          if (isMovieOrDrama) continue;
+
+          // 3. LOẠI TRỪ CÁC KÊNH TRUYỀN HÌNH TỔNG HỢP (HTV1..HTV9, THVL, VTV TỔNG HỢP, VTV5 TÂY NAM BỘ...)
+          if (
+            /HTV[1-9]\b|HTVC\s+(THUẦN|PHIM|GIA|DU|CA)|THVL[1-4]\b|VTV[1-4789]\b|VTV5\s+TÂY|VTV5\s+TN/i.test(
               rawTitle,
-            );
-
-          const isMatchOrBlv =
-            /\s+(?:vs|v|-)\s+/i.test(rawTitle) ||
-            /BLV\s+/i.test(rawTitle) ||
-            upperGroup.includes("COLA") ||
-            upperGroup.includes("PHÁO HOA") ||
-            upperGroup.includes("SỰ KIỆN FPT") ||
-            upperGroup.includes("TV360") ||
-            upperTitle.includes("SỰ KIỆN");
-
-          if (isPureTvChannel && !isMatchOrBlv) {
+            )
+          ) {
             continue;
           }
 
-          if (!isMatchOrBlv) continue;
+          const isSportsOrEvent =
+            upperGroup.includes("COLA TV") ||
+            upperGroup.includes("PHÁO HOA TV") ||
+            upperGroup.includes("FPT PLAY") ||
+            upperGroup.includes("SỰ KIỆN FPT") ||
+            upperGroup.includes("TV360") ||
+            upperGroup.includes("VTVPRIME") ||
+            upperGroup.includes("THỂ THAO") ||
+            upperGroup.includes("SPORT") ||
+            upperGroup.includes("ASIAN GAMES") ||
+            upperTitle.includes("SỰ KIỆN") ||
+            upperTitle.includes("EVENT ") ||
+            upperTitle.includes("VS") ||
+            upperTitle.includes("BLV ") ||
+            upperTitle.includes("SPORTS") ||
+            upperTitle.includes("FOOTBALL") ||
+            upperTitle.includes("THỂ THAO");
+
+          if (!isSportsOrEvent) continue;
 
           candidates.push({ line, rawTitle, group, rawLogo, url });
         }
@@ -1213,6 +1231,11 @@ export const liveFootballService = {
           upperTitle.includes("SKY")
         ) {
           cleanGroup = "Thể Thao Quốc Tế";
+        } else if (
+          upperGroup.includes("HTV") ||
+          upperGroup.includes("VTV") ||
+          upperGroup.includes("THỂ THAO")
+        ) {
           cleanGroup = "Kênh Thể Thao VTV & HTV";
         }
 
@@ -1271,7 +1294,7 @@ export const liveFootballService = {
 
         // Kiểm tra xem có trận đối đầu 2 đội (Team A vs Team B) thực tế không
         const isOfficialMatch =
-          /\s+(?:vs|v|-)\s+/i.test(rawTitle) &&
+          /\s+(?:vs|v)\s+/i.test(rawTitle) &&
           !upperTitle.includes("VTV") &&
           !upperTitle.includes("HTV") &&
           !upperTitle.includes("TV360") &&
@@ -1283,7 +1306,7 @@ export const liveFootballService = {
         let team2 = "";
 
         if (isOfficialMatch) {
-          const vsMatch = rawTitle.match(/(.+?)\s+(?:vs|v|-)\s+(.+)/i);
+          const vsMatch = rawTitle.match(/(.+?)\s+(?:vs|v)\s+(.+)/i);
           if (vsMatch) {
             team1 = vsMatch[1].replace(/\([^)]*\)/g, " ").replace(/\[[^\]]*\]/g, " ").trim();
             team2 = vsMatch[2].replace(/\([^)]*\)/g, " ").replace(/\[[^\]]*\]/g, " ").trim();
