@@ -244,7 +244,9 @@ export default async function MovieDetail({
     : serverData[0];
   const videoLink = activeEpisode?.link_embed || activeEpisode?.link_m3u8;
   const embedSrc = activeEpisode?.link_embed;
-  const rawM3u8 = activeEpisode?.link_m3u8 || (activeEpisode as any)?.m3u8 || (activeEpisode as any)?.file;
+  const rawM3u8 = activeEpisode?.link_m3u8
+    || (activeEpisode as Record<string, string | undefined>)?.m3u8
+    || (activeEpisode as Record<string, string | undefined>)?.file;
 
   const primaryGenreSlug = movie.category?.[0]?.slug;
   const primaryCountrySlug = movie.country?.[0]?.slug;

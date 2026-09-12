@@ -18,7 +18,6 @@ import {
   X,
   Flame,
   Clock,
-  Calendar,
   ChevronDown,
   RotateCcw,
   Bell,
@@ -84,7 +83,6 @@ export function LiveFootballClient({
   const [visibleCount, setVisibleCount] = useState<number>(INITIAL_PAGE_SIZE);
   const [isReminderModalOpen, setIsReminderModalOpen] =
     useState<boolean>(false);
-  const [showMatchRail, setShowMatchRail] = useState(false);
   const { reminders } = useMatchReminders();
 
   const playerRef = useRef<HTMLDivElement>(null);

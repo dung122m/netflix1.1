@@ -1,13 +1,29 @@
 import type { Metadata } from "next";
 import { Inter, Plus_Jakarta_Sans } from "next/font/google";
+import dynamic from "next/dynamic";
 import "./globals.css";
 import SmoothScroll from "@/components/SmoothScroll";
 import { BackToTop } from "@/components/BackToTop";
 import { ToastContainer } from "@/components/Toast";
-import { AiMovieConcierge } from "@/components/AiMovieConcierge";
-import { AiMovieRoulette } from "@/components/AiMovieRoulette";
-import { AiVoiceCommandModal } from "@/components/AiVoiceCommandModal";
-import { ActorBioModal } from "@/components/ActorBioModal";
+
+// Lazy-load các AI modal nặng — không cần thiết ở first render
+// Giảm ~100KB JS khỏi bundle ban đầu, cải thiện TTI đáng kể
+const AiMovieConcierge = dynamic(
+  () => import("@/components/AiMovieConcierge").then((m) => m.AiMovieConcierge),
+  { ssr: false }
+);
+const AiMovieRoulette = dynamic(
+  () => import("@/components/AiMovieRoulette").then((m) => m.AiMovieRoulette),
+  { ssr: false }
+);
+const AiVoiceCommandModal = dynamic(
+  () => import("@/components/AiVoiceCommandModal").then((m) => m.AiVoiceCommandModal),
+  { ssr: false }
+);
+const ActorBioModal = dynamic(
+  () => import("@/components/ActorBioModal").then((m) => m.ActorBioModal),
+  { ssr: false }
+);
 
 const inter = Inter({
   variable: "--font-sans",

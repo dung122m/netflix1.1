@@ -21,10 +21,7 @@ import {
   Volume2,
   Volume1,
   VolumeX,
-  RotateCcw,
-  Sparkles,
   Zap,
-  Radio,
   Tv,
 } from "lucide-react";
 import { SleepTimerModal } from "./SleepTimerModal";
@@ -195,7 +192,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const isNativeVideo = Boolean(resolvedM3u8 && !useIframeFallback);
 
   // Gửi lệnh điều khiển đến iframe player (dùng cho trường hợp fallback iframe)
-  const sendPlayerCommand = useCallback((cmd: string, val?: any) => {
+  const sendPlayerCommand = useCallback((cmd: string, val?: string | number | boolean) => {
     if (!iframeRef.current?.contentWindow) return;
     try {
       iframeRef.current.contentWindow.postMessage(

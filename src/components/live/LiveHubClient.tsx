@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Flame, Tv, Radio, Zap } from "lucide-react";
 import { LiveFootballData } from "@/services/liveFootballService";
 import { LiveTvData } from "@/services/liveTvService";
@@ -15,7 +15,6 @@ interface LiveHubClientProps {
 
 export function LiveHubClient({ footballData, tvData }: LiveHubClientProps) {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const initialTab = searchParams.get("tab") === "tv" ? "tv" : "football";
   const [activeTab, setActiveTab] = useState<"football" | "tv">(initialTab);
 

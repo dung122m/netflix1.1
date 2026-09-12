@@ -90,7 +90,7 @@ const nextConfig: NextConfig = {
   experimental: {
     staleTimes: {
       dynamic: 180, // Giữ trang động trong Router Cache client 3 phút (chuyển tab 0ms)
-      static: 600, // Giữ trang tĩnh trong Router Cache client 10 phút
+      static: 600,  // Giữ trang tĩnh trong Router Cache client 10 phút
     },
     optimizePackageImports: [
       "lucide-react",
@@ -99,6 +99,7 @@ const nextConfig: NextConfig = {
       "tailwind-merge",
       "@google/genai",
     ],
+    optimizeServerReact: true,  // Server Components: loại bỏ re-render thừa trên server
   },
 };
 
