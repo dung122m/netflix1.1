@@ -6,6 +6,7 @@ import { BackToTop } from "@/components/BackToTop";
 import { ToastContainer } from "@/components/Toast";
 import { ClientModals } from "@/components/ClientModals";
 import { InstallPwaBanner } from "@/components/InstallPwaBanner";
+import { CrossDeviceHandoffBanner } from "@/components/CrossDeviceHandoffBanner";
 import { AuthProvider } from "@/context/AuthContext";
 
 const inter = Inter({
@@ -126,6 +127,9 @@ export default function RootLayout({
 
           {/* PWA Smart Install Banner & Modal */}
           <InstallPwaBanner />
+
+          {/* Seamless Cross-Device Playback Handoff */}
+          <CrossDeviceHandoffBanner />
         </AuthProvider>
       </body>
     </html>

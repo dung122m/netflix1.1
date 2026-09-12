@@ -33,6 +33,10 @@ import { useWatchController } from "./WatchController";
 import { getWatchProgress, saveWatchProgress } from "@/lib/watchHistory";
 import { formatEpisodeName } from "@/lib/formatEpisode";
 import { WatchlistButton } from "./WatchlistButton";
+import { FollowSeriesButton } from "./FollowSeriesButton";
+import { AddToCollectionButton } from "./Collections/AddToCollectionButton";
+import { useAuth } from "@/context/AuthContext";
+import { updateActivePlaybackSession } from "@/services/handoffService";
 
 // Lazy-load SleepTimerModal & MobileQrModal để giảm bundle ban đầu
 const SleepTimerModal = dynamic(
@@ -79,6 +83,8 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   episodes: propEpisodes,
 }) => {
   const watchContext = useWatchController();
+  const { user } = useAuth();
+  const lastHandoffSyncRef = useRef<number>(0);
 
   const title = watchContext?.movieTitle || propTitle;
   const movieSlug = watchContext?.movieSlug || propMovieSlug;
@@ -539,9 +545,20 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       if (movieSlug && activeEpisodeSlug && video.currentTime > 5) {
         saveWatchProgress(movieSlug, video.currentTime, video.duration, activeEpisodeSlug);
       }
+      if (user?.uid && movieSlug && video.currentTime > 5) {
+        updateActivePlaybackSession(user.uid, {
+          movieSlug,
+          movieTitle: title,
+          episodeName: activeEpisodeName,
+          episodeSlug: activeEpisodeSlug,
+          currentTime: video.currentTime,
+          duration: video.duration || 0,
+          posterUrl,
+        });
+      }
     };
 
-    // Lưu tiến độ định kỳ mỗi 5s
+    // Lưu tiến độ định kỳ mỗi 5s và đồng bộ đa thiết bị mỗi 8s
     const handleTimeUpdateThrottled = () => {
       const now = Date.now();
       if (now - lastProgressSaveRef.current > 5000) {
@@ -549,6 +566,18 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         if (movieSlug && activeEpisodeSlug && video.currentTime > 5) {
           saveWatchProgress(movieSlug, video.currentTime, video.duration, activeEpisodeSlug);
         }
+      }
+      if (user?.uid && now - lastHandoffSyncRef.current > 8000 && movieSlug && video.currentTime > 5) {
+        lastHandoffSyncRef.current = now;
+        updateActivePlaybackSession(user.uid, {
+          movieSlug,
+          movieTitle: title,
+          episodeName: activeEpisodeName,
+          episodeSlug: activeEpisodeSlug,
+          currentTime: video.currentTime,
+          duration: video.duration || 0,
+          posterUrl,
+        });
       }
     };
 
@@ -574,7 +603,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       video.removeEventListener("timeupdate", handleTimeUpdateThrottled);
       video.removeEventListener("ended", handleEnded);
     };
-  }, [nextEpisode, switchEpisode, watchContext?.movieSlug, activeEpisodeSlug]);
+  }, [nextEpisode, switchEpisode, watchContext?.movieSlug, activeEpisodeSlug, user?.uid, title, activeEpisodeName, posterUrl]);
 
   // Fullscreen change
   useEffect(() => {
@@ -1327,13 +1356,35 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
               <span>Phím tắt</span>
             </button>
 
-            {/* 6. Nút Thêm vào Danh sách yêu thích */}
+            {/* 6. Nút Thêm vào Danh sách yêu thích, Bộ sưu tập & Theo dõi tập mới */}
             {movieSlug && (
               <WatchlistButton
                 movie={{
                   slug: movieSlug,
                   title,
                   poster: posterUrl,
+                }}
+                variant="player"
+              />
+            )}
+            {movieSlug && (
+              <AddToCollectionButton
+                movie={{
+                  slug: movieSlug,
+                  title,
+                  poster: posterUrl,
+                }}
+                variant="player"
+              />
+            )}
+            {movieSlug && episodes && episodes.length > 1 && (
+              <FollowSeriesButton
+                movie={{
+                  slug: movieSlug,
+                  title,
+                  poster: posterUrl,
+                  currentEpisodes: episodes.length,
+                  latestEpisodeName: episodes[episodes.length - 1]?.name,
                 }}
                 variant="player"
               />

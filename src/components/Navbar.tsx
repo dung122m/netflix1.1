@@ -22,6 +22,7 @@ import {
   ChevronDown,
   LogOut,
   Smartphone,
+  CheckCheck,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { AuthModal } from "./AuthModal";
@@ -31,6 +32,12 @@ import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { NetflixLogo } from "./sites/netflix-3f78535a/vn-d838105b/icons";
 import { useDebounce } from "@/hooks/useDebounce";
 import { ThemeSwitcher, ThemeModeToggle } from "./ThemeSwitcher";
+import {
+  subscribeUserNotifications,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
+} from "@/services/notificationService";
+import { UserNotification } from "@/types/notification";
 
 interface SearchSuggestion {
   slug: string;
@@ -88,6 +95,31 @@ const NavbarInner: React.FC = () => {
   const [loadingNotifications, setLoadingNotifications] = useState(false);
 
   const { user, logout } = useAuth();
+  const [userNotifications, setUserNotifications] = useState<UserNotification[]>([]);
+
+  useEffect(() => {
+    if (!user?.uid) {
+      setUserNotifications([]);
+      return;
+    }
+    const unsub = subscribeUserNotifications(user.uid, (items) => {
+      setUserNotifications(items);
+    });
+    return () => unsub();
+  }, [user?.uid]);
+
+  const userUnreadCount = userNotifications.filter((n) => !n.isRead).length;
+
+  const formatTimeAgo = (timestamp: number) => {
+    const diff = Math.max(0, Date.now() - timestamp);
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return "Vừa xong";
+    if (mins < 60) return `${mins} phút trước`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours} giờ trước`;
+    const days = Math.floor(hours / 24);
+    return `${days} ngày trước`;
+  };
 
   const router = useRouter();
   const pathname = usePathname();
@@ -927,7 +959,7 @@ const NavbarInner: React.FC = () => {
             )}
           </div>
 
-          {/* TRUNG TÂM THÔNG BÁO (NOTIFICATION CENTER - DYNAMIC) */}
+          {/* TRUNG TÂM THÔNG BÁO (NOTIFICATION CENTER - DYNAMIC & REAL-TIME EPISODES) */}
           <div ref={notificationRef} className="relative hidden sm:block">
             <button
               type="button"
@@ -940,25 +972,95 @@ const NavbarInner: React.FC = () => {
               className="relative text-gray-300 hover:text-white transition p-1.5 rounded-full hover:bg-white/10 cursor-pointer"
             >
               <Bell size={18} />
-              {hasUnread && (
+              {userUnreadCount > 0 ? (
+                <span className="absolute -top-1 -right-1 px-1.5 py-0.2 min-w-[17px] h-[17px] rounded-full bg-netflix-red text-white text-[10px] font-black flex items-center justify-center shadow-lg border border-black animate-pulse">
+                  {userUnreadCount > 9 ? "9+" : userUnreadCount}
+                </span>
+              ) : hasUnread ? (
                 <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-netflix-red animate-pulse ring-2 ring-black" />
-              )}
+              ) : null}
             </button>
 
             {/* NOTIFICATION POPUP DROPDOWN */}
             {showNotifications && (
-              <div className="absolute top-full mt-2 right-0 w-[min(calc(100vw-24px),380px)] bg-zinc-950/95 border border-white/15 backdrop-blur-xl rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.95)] p-3.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+              <div className="absolute top-full mt-2 right-0 w-[min(calc(100vw-24px),390px)] bg-zinc-950/98 border border-white/15 backdrop-blur-2xl rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.95)] p-3.5 z-50 animate-in fade-in zoom-in-95 duration-150">
                 <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-white/10">
                   <div className="flex items-center gap-2">
                     <Bell size={15} className="text-netflix-red" />
-                    <h4 className="text-white font-bold text-sm">Thông Báo Mới</h4>
+                    <h4 className="text-white font-bold text-sm">Thông Báo</h4>
+                    {userUnreadCount > 0 && (
+                      <span className="px-1.5 py-0.5 rounded-full bg-netflix-red text-white text-[10px] font-black">
+                        {userUnreadCount} mới
+                      </span>
+                    )}
                   </div>
-                  <span className="text-[11px] text-gray-400">
-                    {loadingNotifications ? "Đang tải..." : "Trực tiếp & Cập nhật"}
-                  </span>
+                  {user && userUnreadCount > 0 ? (
+                    <button
+                      type="button"
+                      onClick={() => markAllNotificationsAsRead(user.uid)}
+                      className="text-[11px] text-gray-400 hover:text-white flex items-center gap-1 transition cursor-pointer hover:underline"
+                      title="Đánh dấu tất cả đã đọc"
+                    >
+                      <CheckCheck size={13} className="text-emerald-400" />
+                      <span>Đã đọc hết</span>
+                    </button>
+                  ) : (
+                    <span className="text-[11px] text-gray-400">
+                      {loadingNotifications ? "Đang tải..." : "Trực tiếp & Cập nhật"}
+                    </span>
+                  )}
                 </div>
 
-                <div className="space-y-2 max-h-[380px] overflow-y-auto overscroll-contain pr-1 scrollbar-none">
+                <div className="space-y-2 max-h-[400px] overflow-y-auto overscroll-contain pr-1 scrollbar-none">
+                  {/* DANH SÁCH THÔNG BÁO TẬP MỚI TỪ PHIM THEO DÕI */}
+                  {userNotifications.map((item) => (
+                    <div
+                      key={item.id}
+                      onClick={() => {
+                        if (user) markNotificationAsRead(user.uid, item.id);
+                        setShowNotifications(false);
+                        router.push(item.link || `/movies/${item.movieSlug}`);
+                      }}
+                      className={`flex items-start gap-3 p-2.5 rounded-xl transition border cursor-pointer group ${
+                        !item.isRead
+                          ? "bg-rose-950/25 border-rose-500/35 hover:bg-rose-950/40"
+                          : "hover:bg-white/5 border-transparent hover:border-white/10"
+                      }`}
+                    >
+                      <div className="relative w-12 h-14 rounded-lg overflow-hidden flex-shrink-0 bg-zinc-800 border border-white/10">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={item.image || "/default-poster.jpg"}
+                          alt={item.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                        />
+                        <span className="absolute bottom-0 inset-x-0 text-[8px] font-black text-center py-0.5 uppercase tracking-wider bg-rose-600 text-white">
+                          TẬP MỚI
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-1 mb-0.5">
+                          <p className="text-xs text-white font-bold group-hover:text-netflix-red transition-colors truncate">
+                            {item.title}
+                          </p>
+                          <span className="text-[10px] text-gray-400 flex-shrink-0">
+                            {formatTimeAgo(item.createdAt)}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-rose-300 font-semibold line-clamp-1">
+                          🎉 {item.episodeName || "Tập mới"} đã phát hành!
+                        </p>
+                        <p className="text-[10px] text-gray-400 line-clamp-1 mt-0.5">
+                          {item.message}
+                        </p>
+                      </div>
+                      {!item.isRead && (
+                        <span className="w-2 h-2 rounded-full bg-rose-500 flex-shrink-0 mt-1.5 ring-2 ring-rose-950/50" />
+                      )}
+                    </div>
+                  ))}
+
+                  {/* THÔNG BÁO TỔNG HỢP & TIẾP TỤC XEM */}
                   {notifications.length > 0 ? (
                     notifications.map((item) => (
                       <Link
@@ -1005,16 +1107,16 @@ const NavbarInner: React.FC = () => {
                         </div>
                       </Link>
                     ))
-                  ) : loadingNotifications ? (
+                  ) : loadingNotifications && userNotifications.length === 0 ? (
                     <div className="py-8 text-center text-gray-400 text-xs flex items-center justify-center gap-2">
                       <Loader2 size={16} className="animate-spin text-netflix-red" />
                       <span>Đang kiểm tra cập nhật mới...</span>
                     </div>
-                  ) : (
+                  ) : userNotifications.length === 0 ? (
                     <div className="py-6 text-center text-gray-400 text-xs">
                       Không có thông báo mới nào
                     </div>
-                  )}
+                  ) : null}
                 </div>
               </div>
             )}

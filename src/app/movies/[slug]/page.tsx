@@ -33,6 +33,8 @@ import { ResumeEpisodeBanner } from "@/components/ResumeEpisodeBanner";
 import { WatchController } from "@/components/WatchController";
 import { ServerSelector } from "@/components/ServerSelector";
 import { WatchlistButton } from "@/components/WatchlistButton";
+import { FollowSeriesButton } from "@/components/FollowSeriesButton";
+import { AddToCollectionButton } from "@/components/Collections/AddToCollectionButton";
 import { formatEpisodeName } from "@/lib/formatEpisode";
 
 const MobileQrModal = dynamic(
@@ -446,6 +448,28 @@ export default async function MovieDetail({
               )}
 
               <WatchlistButton
+                movie={{
+                  slug: movie.slug,
+                  title,
+                  poster: pickBestMovieImage(movie, "/default-poster.jpg"),
+                  year: movie.year,
+                  quality: movie.quality,
+                  category: movie.category?.[0]?.name,
+                }}
+              />
+              {(movie.type === "series" || totalEpNum > 1 || serverData.length > 1) && (
+                <FollowSeriesButton
+                  movie={{
+                    slug: movie.slug,
+                    title,
+                    poster: pickBestMovieImage(movie, "/default-poster.jpg"),
+                    currentEpisodes: currentEpNum,
+                    latestEpisodeName: serverData[serverData.length - 1]?.name || movie.episode_current || "Tập mới",
+                    totalEpisodes: String(totalEpNum || movie.episode_total || ""),
+                  }}
+                />
+              )}
+              <AddToCollectionButton
                 movie={{
                   slug: movie.slug,
                   title,

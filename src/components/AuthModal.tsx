@@ -7,9 +7,10 @@ import { useAuth } from "@/context/AuthContext";
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
+  customTitle?: string;
 }
 
-export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
+export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, customTitle }) => {
   const { user, isConfigured, signInWithGoogle, logout } = useAuth();
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -120,7 +121,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 <Sparkles className="w-6 h-6" />
               </div>
               <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                Đăng Nhập Nanaflix
+                {customTitle || "Đăng Nhập Nanaflix"}
               </h3>
               <p className="text-xs text-gray-400 max-w-xs mx-auto">
                 Đồng bộ số phút đang xem và lưu trữ danh sách phim yêu thích trên mọi thiết bị
