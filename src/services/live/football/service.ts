@@ -1000,12 +1000,21 @@ export function getVerified247Channels(): FootballMatch[] {
   ];
 }
 
-// Hàm kiểm tra nhanh tính khả dụng thực tế của luồng stream (Status 200 OK)
+// Cache kết quả kiểm tra luồng stream (TTL 3 phút cho luồng sống, 45s cho luồng chết)
+const urlHealthCache = new Map<string, { isLive: boolean; expireAt: number }>();
+
 export async function isStreamPlayable(
   url: string,
-  timeoutMs: number = 2000,
+  timeoutMs: number = 1500,
 ): Promise<boolean> {
   if (!url || isBlockedStreamUrl(url)) return false;
+
+  const now = Date.now();
+  const cached = urlHealthCache.get(url);
+  if (cached && cached.expireAt > now) {
+    return cached.isLive;
+  }
+
   try {
     let checkUrl = url;
     if (checkUrl.includes("lauthaitv.cc") && checkUrl.includes(".flv")) {
@@ -1018,11 +1027,18 @@ export async function isStreamPlayable(
       headers: {
         "User-Agent":
           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        Range: "bytes=0-100",
       },
       signal: AbortSignal.timeout(timeoutMs),
     });
-    return res.ok;
+    const isLive = res.ok;
+    urlHealthCache.set(url, {
+      isLive,
+      expireAt: now + (isLive ? 180 * 1000 : 45 * 1000),
+    });
+    return isLive;
   } catch {
+    urlHealthCache.set(url, { isLive: false, expireAt: now + 45 * 1000 });
     return false;
   }
 }

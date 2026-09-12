@@ -57,7 +57,8 @@ function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
   return (
     <div
       onClick={() => onSelect(match)}
-      className={`group relative rounded-2xl sm:rounded-3xl border p-4 cursor-pointer transition-all duration-300 flex flex-col justify-between overflow-hidden ${
+      style={{ contentVisibility: "auto", containIntrinsicSize: "0 220px" }}
+      className={`group relative rounded-2xl sm:rounded-3xl border p-4 cursor-pointer transition-all duration-300 flex flex-col justify-between overflow-hidden transform-gpu will-change-transform ${
         isSelected
           ? "football-match-active bg-gradient-to-b from-zinc-900 via-zinc-900 to-zinc-950 border-netflix-red shadow-2xl shadow-red-950/70 ring-2 ring-netflix-red/60 scale-[1.02]"
           : "football-match-card bg-gradient-to-b from-zinc-900/90 to-zinc-950/90 border-white/10 hover:border-white/35 hover:bg-zinc-850 hover:shadow-xl hover:shadow-black/80 hover:-translate-y-1"
