@@ -33,9 +33,13 @@ export function LiveHubClient({ footballData, tvData }: LiveHubClientProps) {
   const handleTabChange = useCallback(
     (tab: "football" | "tv") => {
       setActiveTab(tab);
-      router.replace(`/live?tab=${tab}`, { scroll: false });
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.set("tab", tab);
+        window.history.replaceState(null, "", url.toString());
+      } catch {}
     },
-    [router]
+    []
   );
 
   const liveFootballCount = useMemo(() => {

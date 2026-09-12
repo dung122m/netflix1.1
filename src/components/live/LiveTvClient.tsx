@@ -837,21 +837,30 @@ export function LiveTvClient({
     };
   }, []);
 
-  // Chuyển kênh bằng phím mũi tên Trái / Phải
+  // Chuyển kênh bằng phím mũi tên Trái / Phải hoặc nút trên Player
   const handleSwitchChannel = useCallback(
     (direction: "next" | "prev") => {
-      if (channels.length <= 1 || !selectedChannel) return;
-      const currentIdx = channels.findIndex((c) => c.id === selectedChannel.id);
-      if (currentIdx === -1) return;
+      const activeList =
+        filteredChannels.length > 0 ? filteredChannels : channels;
+      if (activeList.length <= 1 || !selectedChannel) return;
 
-      const targetIdx =
-        direction === "next"
-          ? (currentIdx + 1) % channels.length
-          : (currentIdx - 1 + channels.length) % channels.length;
+      const currentIdx = activeList.findIndex(
+        (c) =>
+          c.id === selectedChannel.id ||
+          c.name.toLowerCase() === selectedChannel.name.toLowerCase(),
+      );
 
-      handleSelectChannel(channels[targetIdx]);
+      let targetIdx = 0;
+      if (currentIdx !== -1) {
+        targetIdx =
+          direction === "next"
+            ? (currentIdx + 1) % activeList.length
+            : (currentIdx - 1 + activeList.length) % activeList.length;
+      }
+
+      handleSelectChannel(activeList[targetIdx]);
     },
-    [channels, selectedChannel, handleSelectChannel],
+    [filteredChannels, channels, selectedChannel, handleSelectChannel],
   );
 
   // Keyboard Shortcuts

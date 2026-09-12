@@ -95,7 +95,7 @@ export function LivePlayer({
   const [showControls, setShowControls] = useState(false);
   const [showAllServers, setShowAllServers] = useState(false);
   const [actionFeedback, setActionFeedback] = useState<{
-    icon: "play" | "pause" | "volume" | "mute" | "server";
+    icon: "play" | "pause" | "volume" | "mute" | "server" | "match";
     text?: string;
   } | null>(null);
 
@@ -123,7 +123,10 @@ export function LivePlayer({
 
   // Hiển thị visual feedback overlay tạm thời
   const triggerActionFeedback = useCallback(
-    (icon: "play" | "pause" | "volume" | "mute" | "server", text?: string) => {
+    (
+      icon: "play" | "pause" | "volume" | "mute" | "server" | "match",
+      text?: string,
+    ) => {
       if (actionTimeoutRef.current) clearTimeout(actionTimeoutRef.current);
       setActionFeedback({ icon, text });
       actionTimeoutRef.current = setTimeout(() => {
@@ -732,6 +735,33 @@ export function LivePlayer({
     [servers, selectedServerIndex, triggerActionFeedback],
   );
 
+  // Chuyển sang trận đấu / sự kiện thể thao tiếp theo hoặc trước đó
+  const handleSwitchMatch = useCallback(
+    (direction: "next" | "prev") => {
+      if (!matchOptions || matchOptions.length <= 1 || !match) {
+        handleSwitchServer(direction);
+        return;
+      }
+      const currentIdx = matchOptions.findIndex(
+        (m) =>
+          m.id === match.id ||
+          m.title.toLowerCase() === match.title.toLowerCase(),
+      );
+      let targetIdx = 0;
+      if (currentIdx !== -1) {
+        targetIdx =
+          direction === "next"
+            ? (currentIdx + 1) % matchOptions.length
+            : (currentIdx - 1 + matchOptions.length) % matchOptions.length;
+      }
+      if (onSelectMatch && matchOptions[targetIdx]) {
+        onSelectMatch(matchOptions[targetIdx]);
+        triggerActionFeedback("match", matchOptions[targetIdx].title);
+      }
+    },
+    [matchOptions, match, onSelectMatch, handleSwitchServer, triggerActionFeedback],
+  );
+
   // Phím tắt bàn phím
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -762,10 +792,10 @@ export function LivePlayer({
         handleVolumeChange(volume - 0.1);
       } else if (e.key === "ArrowRight") {
         e.preventDefault();
-        handleSwitchServer("next");
+        handleSwitchMatch("next");
       } else if (e.key === "ArrowLeft") {
         e.preventDefault();
-        handleSwitchServer("prev");
+        handleSwitchMatch("prev");
       }
     };
 
@@ -777,7 +807,7 @@ export function LivePlayer({
     toggleFullscreen,
     togglePip,
     handleVolumeChange,
-    handleSwitchServer,
+    handleSwitchMatch,
     volume,
   ]);
 
@@ -1176,54 +1206,56 @@ export function LivePlayer({
           </div>
         )}
 
-        {/* THANH ĐIỀU KHIỂN DƯỚI ĐÁY ĐẦY ĐỦ CHỨC NĂNG */}
+        {/* CONTROLS OVERLAY BOTTOM BAR */}
         <div
-          onClick={(e) => e.stopPropagation()}
-          className={`absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/95 via-black/70 to-transparent p-2.5 sm:p-4 flex items-center justify-between gap-2 transition-opacity duration-300 z-30 ${
-            showControls
-              ? "opacity-100 pointer-events-auto"
-              : "opacity-0 pointer-events-none"
+          className={`absolute inset-x-0 bottom-0 z-30 transition-opacity duration-300 ${
+            showControls ? "opacity-100" : "opacity-0 pointer-events-none"
           }`}
         >
-          {/* CỤM TRÁI: PLAY/PAUSE + ĐỔI SERVER NHANH + ÂM LƯỢNG */}
-          <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0 flex-shrink">
-            <button
-              type="button"
-              onClick={togglePlay}
-              title={isPlaying ? "Tạm dừng (Space)" : "Phát (Space)"}
-              className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-white/20 hover:bg-white/30 flex-shrink-0 flex items-center justify-center text-white transition hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md"
-            >
-              {isPlaying ? (
-                <Pause className="w-4 h-4 sm:w-5 sm:h-5 fill-current" />
-              ) : (
-                <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current ml-0.5" />
-              )}
-            </button>
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-gradient-to-t from-black/95 via-black/80 to-transparent p-3 sm:p-5 pt-8 flex items-center justify-between gap-2 sm:gap-4 select-none"
+          >
+            {/* CỤM TRÁI: PLAY/PAUSE + ĐỔI TRẬN NHANH + ÂM LƯỢNG */}
+            <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0 flex-shrink">
+              <button
+                type="button"
+                onClick={togglePlay}
+                title={isPlaying ? "Tạm dừng (Space)" : "Phát (Space)"}
+                className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-white/20 hover:bg-white/30 flex-shrink-0 flex items-center justify-center text-white transition hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md"
+              >
+                {isPlaying ? (
+                  <Pause className="w-4 h-4 sm:w-5 sm:h-5 fill-current" />
+                ) : (
+                  <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current ml-0.5" />
+                )}
+              </button>
 
-            {/* NÚT ĐỔI SERVER NHANH TRÊN THANH CONTROL */}
-            {servers.length > 1 && (
+              {/* NÚT ĐỔI TRẬN / ĐỔI KÊNH NHANH TRÊN THANH CONTROL */}
               <div className="flex items-center bg-black/60 rounded-full border border-white/15 p-0.5 backdrop-blur-md flex-shrink-0">
                 <button
                   type="button"
-                  onClick={() => handleSwitchServer("prev")}
-                  title="Máy chủ trước (Phím ←)"
+                  onClick={() => handleSwitchMatch("prev")}
+                  title="Trận trước (Phím ←)"
                   className="p-1 sm:p-1.5 text-gray-300 hover:text-white hover:bg-white/10 rounded-full transition cursor-pointer"
                 >
                   <ChevronLeft className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                 </button>
                 <span className="text-[9px] sm:text-[10px] font-mono font-bold px-1 sm:px-1.5 text-amber-300 whitespace-nowrap">
-                  SV {selectedServerIndex + 1}/{servers.length}
+                  {matchOptions && matchOptions.length > 1
+                    ? "Đổi trận"
+                    : `SV ${selectedServerIndex + 1}/${servers.length}`}
                 </span>
                 <button
                   type="button"
-                  onClick={() => handleSwitchServer("next")}
-                  title="Máy chủ kế tiếp (Phím →)"
+                  onClick={() => handleSwitchMatch("next")}
+                  title="Trận kế tiếp (Phím →)"
                   className="p-1 sm:p-1.5 text-gray-300 hover:text-white hover:bg-white/10 rounded-full transition cursor-pointer"
                 >
                   <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                 </button>
               </div>
-            )}
+            </div>
 
             {/* CỤM VOLUME TRÊN MOBILE (Chỉ hiện nút Mute nhỏ gọn) */}
             <button
