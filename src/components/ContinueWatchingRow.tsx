@@ -130,7 +130,7 @@ export function ContinueWatchingRow() {
             return (
               <div
                 key={item.slug}
-                className="group relative flex-none w-[220px] sm:w-[260px] md:w-[280px] bg-zinc-900 rounded-xl overflow-hidden border border-white/10 hover:border-white/30 transition-all duration-300 hover:scale-[1.03] shadow-md hover:shadow-xl"
+                className="group relative flex-none w-[180px] sm:w-[240px] md:w-[280px] bg-zinc-900 rounded-xl overflow-hidden border border-white/10 hover:border-white/30 transition-all duration-300 hover:scale-[1.03] shadow-md hover:shadow-xl"
               >
                 <Link href={href} className="block">
                   {/* ẢNH THUMBNAIL */}
@@ -163,7 +163,7 @@ export function ContinueWatchingRow() {
                       type="button"
                       onClick={(e) => handleRemove(e, item.slug)}
                       aria-label="Xoá khỏi danh sách tiếp tục xem"
-                      className="absolute top-2 right-2 p-1 rounded-full bg-black/60 text-gray-300 hover:text-white hover:bg-black/90 backdrop-blur-sm transition z-10 opacity-0 group-hover:opacity-100"
+                      className="absolute top-2 right-2 p-1 rounded-full bg-black/60 text-gray-300 hover:text-white hover:bg-black/90 backdrop-blur-sm transition z-10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
                     >
                       <X className="w-4 h-4" />
                     </button>
