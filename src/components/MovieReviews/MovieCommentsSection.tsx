@@ -62,18 +62,22 @@ export const MovieCommentsSection: React.FC<MovieCommentsSectionProps> = ({
 
   // Filter / Sort states
   const [sortBy, setSortBy] = useState<"newest" | "topLikes" | "onlyFiveStar">("newest");
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Subscribe to real-time comments from Firestore
   useEffect(() => {
     setLoading(true);
+    setLoadError(null);
     const unsubscribe = subscribeMovieComments(
       movieSlug,
       (data) => {
         setComments(data);
         setLoading(false);
+        setLoadError(null);
       },
       (error) => {
         console.warn("Lỗi tải bình luận:", error);
+        setLoadError(error.message);
         setLoading(false);
       },
     );
@@ -440,6 +444,11 @@ export const MovieCommentsSection: React.FC<MovieCommentsSectionProps> = ({
             <div className="py-12 flex flex-col items-center justify-center gap-3 text-zinc-500">
               <Loader2 className="w-6 h-6 animate-spin text-red-500" />
               <span className="text-xs">Đang tải bình luận cộng đồng...</span>
+            </div>
+          ) : loadError ? (
+            <div className="py-8 text-center bg-red-950/20 border border-red-500/30 rounded-2xl p-4 text-xs text-red-400">
+              <p className="font-semibold mb-1">Không thể tải bình luận từ Firebase:</p>
+              <p className="text-zinc-400">{loadError}</p>
             </div>
           ) : sortedComments.length > 0 ? (
             sortedComments.map((comment) => (

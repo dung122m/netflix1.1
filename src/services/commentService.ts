@@ -6,7 +6,6 @@ import {
   updateDoc,
   query,
   where,
-  orderBy,
   limit,
   onSnapshot,
   arrayUnion,
@@ -44,11 +43,11 @@ export function subscribeMovieComments(
   }
 
   const commentsRef = collection(db, COLLECTION_NAME);
+  // Sử dụng single-field query (where movieSlug) để không bao giờ bị lỗi thiếu Composite Index của Firestore
   const q = query(
     commentsRef,
     where("movieSlug", "==", movieSlug),
-    orderBy("createdAt", "desc"),
-    limit(100),
+    limit(150),
   );
 
   return onSnapshot(
@@ -61,6 +60,8 @@ export function subscribeMovieComments(
           ...(docSnap.data() as Omit<MovieComment, "id">),
         });
       });
+      // Sắp xếp theo thời gian mới nhất trực tiếp trong bộ nhớ
+      items.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
       onUpdate(items);
     },
     (error) => {

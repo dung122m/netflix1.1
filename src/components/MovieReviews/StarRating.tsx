@@ -16,7 +16,7 @@ const RATING_LABELS: Record<number, string> = {
   2: "Tạm ổn 🙂",
   3: "Khá hay 👍",
   4: "Rất đáng xem 🔥",
-  5: "Tuyệt phẩm 10/10! ⭐⭐⭐⭐⭐",
+  5: "Tuyệt phẩm 10/10! 🏆",
 };
 
 export const StarRating: React.FC<StarRatingProps> = ({
@@ -30,15 +30,15 @@ export const StarRating: React.FC<StarRatingProps> = ({
 
   const starSizes = {
     sm: "w-4 h-4",
-    md: "w-6 h-6",
-    lg: "w-8 h-8",
+    md: "w-5 h-5 md:w-6 md:h-6",
+    lg: "w-7 h-7 md:w-8 md:h-8",
   };
 
   const activeRating = hoverValue ?? value;
 
   return (
-    <div className="inline-flex items-center gap-2">
-      <div className="flex items-center gap-1">
+    <div className="inline-flex items-center gap-2.5 select-none">
+      <div className="flex items-center gap-0.5">
         {[1, 2, 3, 4, 5].map((star) => {
           const isFilled = star <= activeRating;
           return (
@@ -49,18 +49,18 @@ export const StarRating: React.FC<StarRatingProps> = ({
               onClick={() => onChange && onChange(star)}
               onMouseEnter={() => !readOnly && setHoverValue(star)}
               onMouseLeave={() => !readOnly && setHoverValue(null)}
-              className={`transition-all transform ${
+              className={`p-0.5 transition-transform ${
                 readOnly
                   ? "cursor-default"
-                  : "cursor-pointer hover:scale-125 active:scale-95 focus:outline-none"
+                  : "cursor-pointer active:scale-90 focus:outline-none"
               }`}
               title={readOnly ? `${value} sao` : RATING_LABELS[star]}
               aria-label={`${star} sao`}
             >
               <Star
-                className={`${starSizes[size]} transition-colors duration-150 ${
+                className={`${starSizes[size]} transition-colors duration-100 ${
                   isFilled
-                    ? "fill-amber-400 text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]"
+                    ? "fill-amber-400 text-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.5)]"
                     : "fill-transparent text-zinc-600 hover:text-zinc-400"
                 }`}
               />
@@ -69,9 +69,9 @@ export const StarRating: React.FC<StarRatingProps> = ({
         })}
       </div>
 
-      {showLabel && activeRating > 0 && (
-        <span className="text-xs md:text-sm font-medium text-amber-400 animate-fadeIn">
-          {RATING_LABELS[activeRating]}
+      {showLabel && (
+        <span className="text-xs md:text-sm font-semibold text-amber-400 min-w-[130px] whitespace-nowrap">
+          {activeRating > 0 ? RATING_LABELS[activeRating] : ""}
         </span>
       )}
     </div>
