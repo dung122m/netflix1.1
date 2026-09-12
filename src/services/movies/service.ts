@@ -383,44 +383,28 @@ async function fetchSourceData(baseUrl: string, params: MovieFilterParams, isSea
 async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
   const isSearch = Boolean(params.keyword?.trim());
   const limit = params.limit || 24;
-  const currentPage = params.page || 1;
 
   // ============================================================
-  // CHIẾN LƯỢC MERGE THỰC SỰ:
-  // Để gộp 2 nguồn và bỏ trùng lặp một cách chính xác, ta fetch
-  // nhiều trang hơn từ mỗi nguồn rồi paginate trên kết quả merged.
-  //
-  // Ví dụ: user yêu cầu page 3 (24 phim):
-  //   - PhimAPI: fetch page 5 + 6 (48 phim)
-  //   - VSmov  : fetch page 5 + 6 (48 phim)
-  //   - Gộp: ~96 phim → dedup → ~60-70 unique
-  //   - Lấy 24 phim từ offset của page 3 trong merged window
-  //
-  // Tỷ lệ fetch: mỗi user-page = 2 API-pages (để bù trừ overlap ~40-50%)
+  // CHIẾN LƯỢC MERGE ĐÚNG:
+  // - Fetch page N từ cả 2 nguồn cùng lúc (song song)
+  // - Gộp ~48 phim → khử trùng → hiện 24 unique đầu tiên
+  // - VSmov unique sẽ xuất hiện khi chúng không trùng PhimAPI
+  // - Pages 1–807: cả 2 nguồn đóng góp (bonus VSmov unique)
+  // - Pages 808–1,251: chỉ PhimAPI → vẫn có dữ liệu thật
+  // - totalPages = 1,251 → browse được toàn bộ 30k+ phim
   // ============================================================
-
-  // Tính 2 API-page tương ứng với user-page hiện tại
-  // user-page N → API-page (2N-1) và (2N)
-  const apiPage1 = currentPage * 2 - 1;
-  const apiPage2 = currentPage * 2;
-
-  // Fetch song song: 2 pages từ mỗi nguồn = 4 request đồng thời
-  const [resVsmovP1, resVsmovP2, resPhimApiP1, resPhimApiP2] = await Promise.all([
-    fetchSourceData(API_VSMOV,    { ...params, page: apiPage1, limit }, isSearch),
-    fetchSourceData(API_VSMOV,    { ...params, page: apiPage2, limit }, isSearch),
-    fetchSourceData(API_PHIMAPI,  { ...params, page: apiPage1, limit }, isSearch),
-    fetchSourceData(API_PHIMAPI,  { ...params, page: apiPage2, limit }, isSearch),
+  const [resVsmov, resPhimApi] = await Promise.all([
+    fetchSourceData(API_VSMOV,   params, isSearch),
+    fetchSourceData(API_PHIMAPI, params, isSearch),
   ]);
 
-  // Gộp tất cả items từ 2 nguồn, 2 trang mỗi nguồn
+  // Gộp: VSmov trước (ưu tiên) → PhimAPI sau
   const allItems = [
-    ...(resVsmovP1?.items   || []),
-    ...(resVsmovP2?.items   || []),
-    ...(resPhimApiP1?.items || []),
-    ...(resPhimApiP2?.items || []),
+    ...(resVsmov?.items   || []),
+    ...(resPhimApi?.items || []),
   ];
 
-  // Khử trùng lặp theo slug (VSmov ưu tiên vì đứng đầu)
+  // Khử trùng lặp theo slug — giữ phần tử đầu tiên gặp (VSmov được ưu tiên)
   const uniqueItemsMap = new Map();
   allItems.forEach((item) => {
     if (item?.slug && !uniqueItemsMap.has(item.slug)) {
@@ -502,28 +486,27 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
   const finalItems = allUniqueItems.slice(0, limit);
 
   // ============================================================
-  // TÍNH TỔNG SỐ PHIM VÀ TRANG THỰC TẾ SAU KHI MERGE
+  // TÍNH TỔNG SỐ PHIM VÀ TRANG
   //
-  // - PhimAPI: ~30,009 phim / 1,251 trang (nguồn chính)
-  // - VSmov  : ~19,364 phim / 807 trang (nguồn phụ)
-  // - Overlap ước tính ~60% → VSmov unique = 19,364 × 40% = ~7,746
-  // - Tổng unique ≈ 30,009 + 7,746 = ~37,755
+  // totalPages = max(PhimAPI pages, VSmov pages) = 1,251
+  //   → Pages 1–807  : cả 2 nguồn có data thật
+  //   → Pages 808–1,251: chỉ PhimAPI, vẫn có data thật
+  //   → Không có phantom page nào
   //
-  // totalPages: mỗi user-page dùng 2 API-pages → chia đôi
-  //   max(1,251, 807) / 2 ≈ 625 user-pages (tất cả đều có dữ liệu thật)
+  // totalItems ≈ PhimAPI(30k) + VSmov_unique(19k × 40%) = ~37,755
   // ============================================================
-  const countApi1 = resPhimApiP1?.totalItems || resPhimApiP2?.totalItems || 0;
-  const countApi2 = resVsmovP1?.totalItems   || resVsmovP2?.totalItems   || 0;
+  const countApi1 = resPhimApi?.totalItems || 0;
+  const countApi2 = resVsmov?.totalItems   || 0;
 
-  // Ước tính số phim unique thực sự từ 2 nguồn (trừ ~60% overlap VSmov với PhimAPI)
+  // 40% VSmov không trùng với PhimAPI → unique content bổ sung
   const OVERLAP_RATIO = 0.60;
   const uniqueFromVsmov = Math.round(countApi2 * (1 - OVERLAP_RATIO));
   const totalItemsCount = (countApi1 || 0) + (countApi2 > 0 ? uniqueFromVsmov : 0) || allUniqueItems.length;
 
-  // totalPages: chia đôi vì mỗi user-page tiêu thụ 2 API-pages
-  const realApiPages1 = resPhimApiP1?.totalPages || resPhimApiP2?.totalPages || 0;
-  const realApiPages2 = resVsmovP1?.totalPages   || resVsmovP2?.totalPages   || 0;
-  const maxTotalPages = Math.ceil(Math.max(realApiPages1, realApiPages2) / 2) || 1;
+  // totalPages = số trang thực tế tối đa từ API (không bị chia đôi)
+  const realPages1 = resPhimApi?.totalPages || 0;
+  const realPages2 = resVsmov?.totalPages   || 0;
+  const maxTotalPages = Math.max(realPages1, realPages2) || 1;
 
   const payload = {
     status: true,
