@@ -24,6 +24,7 @@ import {
   Smartphone,
   CheckCheck,
   ShieldCheck,
+  ChevronRight,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { isUserAdmin } from "@/lib/adminConfig";
@@ -962,7 +963,7 @@ const NavbarInner: React.FC = () => {
           </div>
 
           {/* TRUNG TÂM THÔNG BÁO (NOTIFICATION CENTER - DYNAMIC & REAL-TIME EPISODES) */}
-          <div ref={notificationRef} className="relative hidden sm:block">
+          <div ref={notificationRef} className="relative flex-shrink-0">
             <button
               type="button"
               onClick={() => {
@@ -971,11 +972,12 @@ const NavbarInner: React.FC = () => {
               }}
               title="Thông báo mới"
               aria-label="Thông báo"
-              className="relative text-gray-300 hover:text-white transition p-1.5 rounded-full hover:bg-white/10 cursor-pointer"
+              className="relative flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-white/10 hover:bg-white/20 text-gray-200 hover:text-white border border-white/10 transition cursor-pointer flex-shrink-0 active:scale-95"
             >
-              <Bell size={18} />
+              <Bell size={16} className="sm:hidden" />
+              <Bell size={18} className="hidden sm:block" />
               {userUnreadCount > 0 ? (
-                <span className="absolute -top-1 -right-1 px-1.5 py-0.2 min-w-[17px] h-[17px] rounded-full bg-netflix-red text-white text-[10px] font-black flex items-center justify-center shadow-lg border border-black animate-pulse">
+                <span className="absolute -top-1 -right-1 px-1 min-w-[16px] h-[16px] rounded-full bg-netflix-red text-white text-[9px] sm:text-[10px] font-black flex items-center justify-center shadow-lg border border-black animate-pulse">
                   {userUnreadCount > 9 ? "9+" : userUnreadCount}
                 </span>
               ) : hasUnread ? (
@@ -985,7 +987,7 @@ const NavbarInner: React.FC = () => {
 
             {/* NOTIFICATION POPUP DROPDOWN */}
             {showNotifications && (
-              <div className="absolute top-full mt-2 right-0 w-[min(calc(100vw-24px),390px)] bg-zinc-950/98 border border-white/15 backdrop-blur-2xl rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.95)] p-3.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+              <div className="fixed sm:absolute top-[52px] sm:top-full mt-0 sm:mt-2 left-2 right-2 sm:left-auto sm:right-0 w-auto sm:w-[390px] max-w-sm sm:max-w-none mx-auto sm:mx-0 bg-zinc-950/98 border border-white/15 backdrop-blur-2xl rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.95)] p-3.5 z-50 animate-in fade-in zoom-in-95 duration-150">
                 <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-white/10">
                   <div className="flex items-center gap-2">
                     <Bell size={15} className="text-netflix-red" />
@@ -1356,6 +1358,30 @@ const NavbarInner: React.FC = () => {
 
 
 
+
+            {/* THÔNG BÁO TRÊN MOBILE MENU */}
+            <button
+              type="button"
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                setShowNotifications(true);
+              }}
+              className="w-full text-sm font-medium py-2.5 px-3 text-gray-300 hover:text-white flex items-center justify-between rounded-xl bg-white/[0.04] hover:bg-white/10 border border-white/5 transition text-left cursor-pointer mb-1.5 shadow-sm"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-7 h-7 rounded-lg bg-netflix-red/20 border border-netflix-red/30 flex items-center justify-center text-netflix-red flex-shrink-0">
+                  <Bell size={15} />
+                </div>
+                <span className="font-semibold text-white">Trung tâm Thông báo</span>
+              </div>
+              {userUnreadCount > 0 ? (
+                <span className="px-2 py-0.5 rounded-full bg-netflix-red text-white text-[11px] font-bold shadow-md">
+                  {userUnreadCount} mới
+                </span>
+              ) : (
+                <ChevronRight size={15} className="text-gray-500" />
+              )}
+            </button>
 
             {/* DANH SÁCH NAV LINKS */}
             <div className="space-y-0.5">

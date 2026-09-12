@@ -897,6 +897,16 @@ export default function AdminDashboardPage() {
                           </span>
                         )}
 
+                        {item.parentId ? (
+                          <span className="px-2 py-0.5 rounded-md bg-blue-500/20 border border-blue-500/30 text-[10px] text-blue-300 font-medium">
+                            💬 Trả lời
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-md bg-amber-500/20 border border-amber-500/30 text-[10px] text-amber-300 font-medium">
+                            ⭐ Đánh giá
+                          </span>
+                        )}
+
                         {item.likes > 0 && (
                           <span className="inline-flex items-center gap-1 text-[11px] text-rose-400 font-medium">
                             <Heart size={11} className="fill-rose-500 text-rose-500" />

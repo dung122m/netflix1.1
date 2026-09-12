@@ -89,10 +89,10 @@ export const MovieCommentsSection: React.FC<MovieCommentsSectionProps> = ({
     return () => unsubscribe();
   }, [movieSlug]);
 
-  // Tìm bài đánh giá đã có của chính người dùng hiện tại (nếu có)
+  // Tìm bài đánh giá đã có của chính người dùng hiện tại (chỉ tính đánh giá gốc, không tính reply)
   const myExistingReview = useMemo(() => {
     if (!user?.uid) return null;
-    return comments.find((c) => c.userId === user.uid) || null;
+    return comments.find((c) => !c.parentId && c.userId === user.uid) || null;
   }, [comments, user?.uid]);
 
   // Tự động điền dữ liệu đánh giá cũ vào form khi tải xong
@@ -262,7 +262,7 @@ export const MovieCommentsSection: React.FC<MovieCommentsSectionProps> = ({
             <MessageSquare className="w-5 h-5 sm:w-6 sm:h-6 text-red-500 flex-shrink-0" />
             <span>Đánh Giá &amp; Bình Luận Cộng Đồng</span>
             <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-500/20">
-              {comments.length}
+              {sortedComments.length}
             </span>
           </h3>
           <p className="text-xs text-zinc-400 mt-1 line-clamp-2 sm:line-clamp-none">
