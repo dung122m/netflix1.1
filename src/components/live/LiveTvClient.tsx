@@ -863,8 +863,10 @@ export function LiveTvClient({
     [filteredChannels, channels, selectedChannel, handleSelectChannel],
   );
 
-  // Keyboard Shortcuts
+  // Keyboard Shortcuts (chỉ kích hoạt khi Tab Truyền hình đang active)
   useEffect(() => {
+    if (!isActive) return;
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (
         ["input", "textarea"].includes(
@@ -903,6 +905,7 @@ export function LiveTvClient({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [
+    isActive,
     isPlaying,
     togglePlay,
     toggleMute,

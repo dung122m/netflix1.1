@@ -762,8 +762,10 @@ export function LivePlayer({
     [matchOptions, match, onSelectMatch, handleSwitchServer, triggerActionFeedback],
   );
 
-  // Phím tắt bàn phím
+  // Phím tắt bàn phím (chỉ kích hoạt khi LivePlayer đang active)
   useEffect(() => {
+    if (!isActive) return;
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (
         ["input", "textarea"].includes(
@@ -802,6 +804,7 @@ export function LivePlayer({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [
+    isActive,
     togglePlay,
     toggleMute,
     toggleFullscreen,

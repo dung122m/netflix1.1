@@ -350,7 +350,9 @@ export function LiveFootballClient({
             servers={selectedMatch.servers}
             blv={selectedMatch.blv}
             time={selectedMatch.time}
-            matchOptions={matches}
+            matchOptions={
+              filteredMatches.length > 0 ? filteredMatches : enrichedMatches
+            }
             onSelectMatch={handleSelectMatch}
             isActive={isActive}
           />
