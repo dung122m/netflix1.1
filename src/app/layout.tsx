@@ -1,29 +1,10 @@
 import type { Metadata } from "next";
 import { Inter, Plus_Jakarta_Sans } from "next/font/google";
-import dynamic from "next/dynamic";
 import "./globals.css";
 import SmoothScroll from "@/components/SmoothScroll";
 import { BackToTop } from "@/components/BackToTop";
 import { ToastContainer } from "@/components/Toast";
-
-// Lazy-load các AI modal nặng — không cần thiết ở first render
-// Giảm ~100KB JS khỏi bundle ban đầu, cải thiện TTI đáng kể
-const AiMovieConcierge = dynamic(
-  () => import("@/components/AiMovieConcierge").then((m) => m.AiMovieConcierge),
-  { ssr: false }
-);
-const AiMovieRoulette = dynamic(
-  () => import("@/components/AiMovieRoulette").then((m) => m.AiMovieRoulette),
-  { ssr: false }
-);
-const AiVoiceCommandModal = dynamic(
-  () => import("@/components/AiVoiceCommandModal").then((m) => m.AiVoiceCommandModal),
-  { ssr: false }
-);
-const ActorBioModal = dynamic(
-  () => import("@/components/ActorBioModal").then((m) => m.ActorBioModal),
-  { ssr: false }
-);
+import { ClientModals } from "@/components/ClientModals";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -129,17 +110,8 @@ export default function RootLayout({
         {/* Toast notification system — global */}
         <ToastContainer />
 
-        {/* Trợ lý AI Gợi ý phim thông minh toàn trang */}
-        <AiMovieConcierge />
-
-        {/* Vòng quay Suất Chiếu Định Mệnh AI Roulette */}
-        <AiMovieRoulette />
-
-        {/* Trợ lý Giọng Nói Điều Khiển Rạp Chiếu Tiếng Việt */}
-        <AiVoiceCommandModal />
-
-        {/* Hồ Sơ Tiểu Sử Diễn Viên Wikipedia */}
-        <ActorBioModal />
+        {/* AI Modals: Concierge, Roulette, Voice, Actor Bio — lazy-loaded client-side */}
+        <ClientModals />
       </body>
     </html>
   );
