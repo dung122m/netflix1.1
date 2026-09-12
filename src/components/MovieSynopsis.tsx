@@ -2,14 +2,16 @@
 
 import React, { useState } from "react";
 import { ChevronDown, ChevronUp, FileText } from "lucide-react";
+import { cleanHtmlText } from "@/lib/cleanHtml";
 
 interface MovieSynopsisProps {
   synopsis: string;
   originName?: string;
 }
 
-export function MovieSynopsis({ synopsis, originName }: MovieSynopsisProps) {
+export function MovieSynopsis({ synopsis: rawSynopsis, originName }: MovieSynopsisProps) {
   const [expanded, setExpanded] = useState(false);
+  const synopsis = cleanHtmlText(rawSynopsis);
   const isLong = synopsis.length > 280;
 
   return (

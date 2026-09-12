@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { movieApi } from "@/services/movieApi";
+import { cleanHtmlText } from "@/lib/cleanHtml";
 
 export interface SynopsisDetailPayload {
   content: string;
@@ -18,17 +19,17 @@ export interface SynopsisDetailPayload {
 const serverSynopsisCache = new Map<string, SynopsisDetailPayload>();
 
 export async function GET(request: NextRequest) {
-  const { searchParams } = request.nextUrl;
+  const { searchParams } = new URL(request.url);
   const slug = searchParams.get("slug");
 
   if (!slug) {
     return NextResponse.json(
-      { error: "Tham số slug là bắt buộc" },
+      { error: "Thiếu tham số slug phim" },
       { status: 400 }
     );
   }
 
-  // 1. Kiểm tra cache RAM
+  // 1. Kiểm tra RAM Cache Server (0ms Response)
   if (serverSynopsisCache.has(slug)) {
     const cached = serverSynopsisCache.get(slug)!;
     return NextResponse.json(
@@ -46,15 +47,12 @@ export async function GET(request: NextRequest) {
     // 2. Lấy dữ liệu chi tiết phim
     const data = await movieApi.getMovieDetail(slug);
     const movie = data?.movie;
-    const rawContent = movie?.content || "";
+    const rawContent = movie?.content || movie?.description || "";
     const originName = movie?.origin_name || "";
     const trailerUrl = movie?.trailer_url || "";
 
-    // Làm sạch thẻ HTML (<p>, <em>, <b>, <br>) thành văn bản thuần túy
-    const cleanContent = String(rawContent)
-      .replace(/<[^>]*>/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
+    // Làm sạch toàn bộ thẻ HTML và giải mã các thực thể HTML (&nbsp;, &amp;, &quot;...)
+    const cleanContent = cleanHtmlText(rawContent);
 
     // Bóc tách danh sách diễn viên (actor / casts)
     let actorList: string[] = [];

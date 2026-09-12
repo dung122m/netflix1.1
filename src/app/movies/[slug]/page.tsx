@@ -6,6 +6,7 @@ import {
   buildMovieDescriptionFallback,
   pickBestMovieImage,
 } from "@/lib/movieMedia";
+import { cleanHtmlText } from "@/lib/cleanHtml";
 
 import {
   ExternalLink,
@@ -80,10 +81,7 @@ export default async function MovieDetail({
   const { movie, episodes } = data;
   const title = movie.name || movie.title;
   const description =
-    (movie.content &&
-      String(movie.content)
-        .replace(/<[^>]*>/g, "")
-        .trim()) ||
+    cleanHtmlText(movie.content || movie.description) ||
     buildMovieDescriptionFallback({
       origin_name: movie.origin_name,
       year: movie.year,

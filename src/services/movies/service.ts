@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { cleanHtmlText } from "@/lib/cleanHtml";
 
 const API_VSMOV = process.env.NEXT_PUBLIC_API_URL || "https://vsmov.com/api";
 const API_PHIMAPI = process.env.NEXT_PUBLIC_API_URL_2 || "https://phimapi.com";
@@ -111,6 +112,14 @@ async function fetchAndCacheMovieDetail(slug: string, source?: "vsmov" | "ophim"
     }
 
     if (result) {
+      if (result.movie) {
+        if (result.movie.content) {
+          result.movie.content = cleanHtmlText(result.movie.content);
+        }
+        if (result.movie.description) {
+          result.movie.description = cleanHtmlText(result.movie.description);
+        }
+      }
       // Cache tươi 10 phút, cho phép dùng lại stale tới 60 phút
       movieDetailMemoryCache.set(key, {
         data: result,

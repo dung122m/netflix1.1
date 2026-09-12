@@ -22,6 +22,7 @@ import {
   buildMovieDescriptionFallback,
   pickBestMovieImage,
 } from "@/lib/movieMedia";
+import { cleanHtmlText } from "@/lib/cleanHtml";
 import { clientSynopsisCache } from "./MediaCard";
 import TrailerModal from "@/components/TrailerModal";
 
@@ -123,7 +124,7 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
     featuredMovie?.episode_current === "Trailer";
   const descriptionRaw =
     featuredMovie?.content || featuredMovie?.description || "";
-  const descriptionClean = String(descriptionRaw).replace(/<[^>]*>/g, "");
+  const descriptionClean = cleanHtmlText(descriptionRaw);
   const description =
     heroSynopsis ||
     descriptionClean ||

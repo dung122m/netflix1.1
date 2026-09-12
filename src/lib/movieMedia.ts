@@ -1,3 +1,5 @@
+import { cleanHtmlText } from "@/lib/cleanHtml";
+
 export type MovieLike = {
   poster_url?: unknown;
   thumb_url?: unknown;
@@ -343,9 +345,7 @@ export function normalizeMovie(m: any): NormalizedMovie {
 
   const country = extractMovieCountry(m);
 
-  const cleanedDesc = String(m?.content || m?.description || "")
-    .replace(/<[^>]*>/g, "")
-    .trim();
+  const cleanedDesc = cleanHtmlText(m?.content || m?.description || "");
   const description =
     cleanedDesc ||
     buildMovieDescriptionFallback({
