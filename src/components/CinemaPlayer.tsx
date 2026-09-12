@@ -718,7 +718,9 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
             // NATIVE HTML5 VIDEO PLAYER (HLS 0MS LATENCY)
             // ==========================================
             <div
-              className="w-full h-full relative cursor-pointer"
+              className={`w-full h-full relative ${
+                showControls || !isPlaying ? "cursor-pointer" : "cursor-none"
+              }`}
               onClick={togglePlayPause}
               onDoubleClick={toggleFullscreen}
             >
@@ -749,15 +751,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 </div>
               )}
 
-              {/* HUY HIỆU NATIVE HLS */}
-              <div className="absolute top-3 left-3 z-20 pointer-events-none flex items-center gap-2">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/75 backdrop-blur-md border border-emerald-500/40 text-emerald-400 text-[11px] font-bold shadow-lg">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <span>HLS Tốc độ cao • Tự động phát</span>
-                </div>
-              </div>
-
-              {/* THANH ĐIỀU KHIỂN NATIVE NETFLIX HOVER CONTROLS */}
+              {/* THANH ĐIỀU KHIỂN NATIVE NETFLIX HOVER CONTROLS (TỰ ĐỘNG ẨN HOÀN TOÀN KHI KHÔNG TƯƠNG TÁC) */}
               <div
                 onClick={(e) => e.stopPropagation()}
                 className={`absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 via-black/70 to-transparent pt-10 pb-3 px-3 sm:px-5 transition-opacity duration-300 z-30 ${
@@ -920,7 +914,11 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 title={videoLink ? `Đang phát ${activeEpisodeName || "phim"}` : `Trailer: ${title}`}
               />
               {!videoLink && trailerEmbedSrc && (
-                <div className="absolute top-3 left-3 z-20 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-netflix-red/90 text-white text-xs font-bold shadow-lg backdrop-blur-md">
+                <div
+                  className={`absolute top-3 left-3 z-20 pointer-events-none inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-netflix-red/90 text-white text-xs font-bold shadow-lg backdrop-blur-md transition-opacity duration-300 ${
+                    showControls || !isPlaying ? "opacity-100" : "opacity-0"
+                  }`}
+                >
                   <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
                   <span>Đang phát Trailer</span>
                 </div>
@@ -929,7 +927,9 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 <button
                   type="button"
                   onClick={() => setUseIframeFallback(false)}
-                  className="absolute top-3 right-3 z-20 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-600/90 hover:bg-emerald-600 text-white text-xs font-bold shadow-lg backdrop-blur-md transition cursor-pointer"
+                  className={`absolute top-3 right-3 z-20 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-600/90 hover:bg-emerald-600 text-white text-xs font-bold shadow-lg backdrop-blur-md transition-opacity duration-300 cursor-pointer ${
+                    showControls || !isPlaying ? "opacity-100" : "opacity-0 pointer-events-none"
+                  }`}
                 >
                   <Zap className="w-3.5 h-3.5 fill-white" />
                   <span>Đổi sang Native HLS</span>
