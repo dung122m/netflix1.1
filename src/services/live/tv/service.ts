@@ -611,7 +611,7 @@ export const liveTvService = {
       memoryCache = {
         data,
         expireAt: now + 10 * 60 * 1000, // 10 phút tươi
-        staleUntil: now + 5 * 60 * 1000, // Chỉ giữ dữ liệu cũ ngắn khi nguồn thay đổi
+        staleUntil: now + 24 * 60 * 60 * 1000, // 24h stale-while-revalidate
       };
 
       return data;

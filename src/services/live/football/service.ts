@@ -894,9 +894,181 @@ export const VERIFIED_SPORTS_STREAMS = {
   redbull: "https://rbmn-live.akamaized.net/hls/live/590964/BoRB-AT/master.m3u8",
 };
 
+const FPT_EVENT_POSTER = "https://images.fptplay53.net/media/home_event/OTT_ECS/2026/09/09/slide-thumb_1788937623612.jpg";
+
 export function getVerified247Channels(): FootballMatch[] {
   const now = Date.now();
   return [
+    {
+      id: "fpt_event_01",
+      time: "Trực tiếp",
+      timestamp: now,
+      title: "FPT Play - Sự Kiện Thể Thao 1 (FHD)",
+      team1: "FPT Play Sự Kiện 1",
+      team2: "",
+      blv: "FPT Play",
+      logo: FPT_EVENT_POSTER,
+      group: "Sự Kiện FPT Play",
+      groups: ["Sự Kiện FPT Play"],
+      tournament: "Sự Kiện FPT Play",
+      isEvent: true,
+      timeline: "live",
+      quality: "FHD 1080p",
+      servers: [
+        {
+          name: "FPT Play Sự Kiện 1 (VIP CDN)",
+          url: "https://vips-livecdn.fptplay.net/live/media/su-kien-01/hls_avc_v6/index.m3u8",
+          format: "hls",
+          isHls: true,
+          quality: "FHD",
+          sourceName: "FPT Play",
+        },
+        {
+          name: "FPT Play Sự Kiện 1 (Backup)",
+          url: "https://live.fptplay53.net/live/media/su-kien-01/hls_avc_v6/index.m3u8",
+          format: "hls",
+          isHls: true,
+          quality: "FHD",
+          sourceName: "FPT Play",
+        },
+      ],
+    },
+    {
+      id: "fpt_event_02",
+      time: "Trực tiếp",
+      timestamp: now,
+      title: "FPT Play - Sự Kiện Thể Thao 2 (FHD)",
+      team1: "FPT Play Sự Kiện 2",
+      team2: "",
+      blv: "FPT Play",
+      logo: FPT_EVENT_POSTER,
+      group: "Sự Kiện FPT Play",
+      groups: ["Sự Kiện FPT Play"],
+      tournament: "Sự Kiện FPT Play",
+      isEvent: true,
+      timeline: "live",
+      quality: "FHD 1080p",
+      servers: [
+        {
+          name: "FPT Play Sự Kiện 2 (VIP CDN)",
+          url: "https://vips-livecdn.fptplay.net/live/media/su-kien-02/hls_avc_v6/index.m3u8",
+          format: "hls",
+          isHls: true,
+          quality: "FHD",
+          sourceName: "FPT Play",
+        },
+        {
+          name: "FPT Play Sự Kiện 2 (Backup)",
+          url: "https://live.fptplay53.net/live/media/su-kien-02/hls_avc_v6/index.m3u8",
+          format: "hls",
+          isHls: true,
+          quality: "FHD",
+          sourceName: "FPT Play",
+        },
+      ],
+    },
+    {
+      id: "fpt_event_05",
+      time: "Trực tiếp",
+      timestamp: now,
+      title: "FPT Play - Sự Kiện Thể Thao 5 (FHD)",
+      team1: "FPT Play Sự Kiện 5",
+      team2: "",
+      blv: "FPT Play",
+      logo: FPT_EVENT_POSTER,
+      group: "Sự Kiện FPT Play",
+      groups: ["Sự Kiện FPT Play"],
+      tournament: "Sự Kiện FPT Play",
+      isEvent: true,
+      timeline: "live",
+      quality: "FHD 1080p",
+      servers: [
+        {
+          name: "FPT Play Sự Kiện 5 (VIP CDN)",
+          url: "https://vips-livecdn.fptplay.net/live/media/su-kien-05/hls_avc_v6/index.m3u8",
+          format: "hls",
+          isHls: true,
+          quality: "FHD",
+          sourceName: "FPT Play",
+        },
+        {
+          name: "FPT Play Sự Kiện 5 (Backup)",
+          url: "https://live.fptplay53.net/live/media/su-kien-05/hls_avc_v6/index.m3u8",
+          format: "hls",
+          isHls: true,
+          quality: "FHD",
+          sourceName: "FPT Play",
+        },
+      ],
+    },
+    {
+      id: "fpt_event_06",
+      time: "Trực tiếp",
+      timestamp: now,
+      title: "FPT Play - Sự Kiện Thể Thao 6 (FHD)",
+      team1: "FPT Play Sự Kiện 6",
+      team2: "",
+      blv: "FPT Play",
+      logo: FPT_EVENT_POSTER,
+      group: "Sự Kiện FPT Play",
+      groups: ["Sự Kiện FPT Play"],
+      tournament: "Sự Kiện FPT Play",
+      isEvent: true,
+      timeline: "live",
+      quality: "FHD 1080p",
+      servers: [
+        {
+          name: "FPT Play Sự Kiện 6 (VIP CDN)",
+          url: "https://vips-livecdn.fptplay.net/live/media/su-kien-06/hls_avc_v6/index.m3u8",
+          format: "hls",
+          isHls: true,
+          quality: "FHD",
+          sourceName: "FPT Play",
+        },
+        {
+          name: "FPT Play Sự Kiện 6 (Backup)",
+          url: "https://live.fptplay53.net/live/media/su-kien-06/hls_avc_v6/index.m3u8",
+          format: "hls",
+          isHls: true,
+          quality: "FHD",
+          sourceName: "FPT Play",
+        },
+      ],
+    },
+    {
+      id: "fpt_event_07",
+      time: "Trực tiếp",
+      timestamp: now,
+      title: "FPT Play - Sự Kiện Thể Thao 7 (FHD)",
+      team1: "FPT Play Sự Kiện 7",
+      team2: "",
+      blv: "FPT Play",
+      logo: FPT_EVENT_POSTER,
+      group: "Sự Kiện FPT Play",
+      groups: ["Sự Kiện FPT Play"],
+      tournament: "Sự Kiện FPT Play",
+      isEvent: true,
+      timeline: "live",
+      quality: "FHD 1080p",
+      servers: [
+        {
+          name: "FPT Play Sự Kiện 7 (VIP CDN)",
+          url: "https://vips-livecdn.fptplay.net/live/media/su-kien-07/hls_avc_v6/index.m3u8",
+          format: "hls",
+          isHls: true,
+          quality: "FHD",
+          sourceName: "FPT Play",
+        },
+        {
+          name: "FPT Play Sự Kiện 7 (Backup)",
+          url: "https://live.fptplay53.net/live/media/su-kien-07/hls_avc_v6/index.m3u8",
+          format: "hls",
+          isHls: true,
+          quality: "FHD",
+          sourceName: "FPT Play",
+        },
+      ],
+    },
     {
       id: "sport_htv_thethao_247",
       time: "24/7",
@@ -950,7 +1122,7 @@ export function getVerified247Channels(): FootballMatch[] {
   ];
 }
 
-// Cache kết quả kiểm tra luồng stream (TTL 3 phút cho luồng sống, 45s cho luồng chết)
+// Cache kết quả kiểm tra luồng stream (TTL 5 phút cho luồng sống, 60s cho luồng chết)
 const urlHealthCache = new Map<string, { isLive: boolean; expireAt: number }>();
 
 export async function isStreamPlayable(
@@ -1525,8 +1697,8 @@ export const liveFootballService = {
 
       memoryCache = {
         data: result,
-        expireAt: now + 120 * 1000,
-        staleUntil: now + 5 * 60 * 1000,
+        expireAt: now + 5 * 60 * 1000,
+        staleUntil: now + 24 * 60 * 60 * 1000,
       };
 
       return result;

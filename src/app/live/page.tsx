@@ -12,7 +12,7 @@ export const metadata: Metadata = {
     "Xem trực tiếp bóng đá có BLV tiếng Việt và hơn 100 kênh truyền hình VTV, HTV, THVL, Kênh thể thao chất lượng cao Full HD.",
 };
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export default async function LivePage() {
   const [footballData, tvData] = await Promise.all([

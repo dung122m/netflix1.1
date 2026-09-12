@@ -29,6 +29,7 @@ function getTeamInitials(teamName: string): string {
 function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
   const [homeError, setHomeError] = useState(false);
   const [awayError, setAwayError] = useState(false);
+  const [logoError, setLogoError] = useState(false);
   const { isReminded, addReminder, removeReminder } = useMatchReminders();
 
   const isFhd = match.quality.includes("FHD");
@@ -45,6 +46,11 @@ function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
     Boolean(match.awayLogo) &&
     !match.awayLogo?.includes("tinhlagi.pro/logo.jpg") &&
     !awayError;
+
+  const validEventLogo =
+    Boolean(match.logo || match.homeLogo) &&
+    !match.logo?.includes("tinhlagi.pro/logo.jpg") &&
+    !logoError;
 
   // Tổng hợp tên các đài phát (COLA TV, Gà Vàng...)
   const displayGroups =
@@ -133,18 +139,35 @@ function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
 
       {/* 2. KHU VỰC LOGO & ĐỐI ĐẦU HOẶC SỰ KIỆN THỂ THAO */}
       {match.isEvent ? (
-        <div className="football-scoreboard my-2 min-h-[135px] p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-red-950/40 via-zinc-950/95 to-black border border-red-500/25 backdrop-blur-sm relative z-10 flex flex-col items-center justify-center text-center">
-          <span className="text-[10px] font-black uppercase tracking-[0.16em] text-rose-300 bg-rose-500/15 px-2.5 py-0.5 rounded-full border border-rose-500/30">
-            Sự kiện thể thao
-          </span>
-          <strong className="mt-2 text-sm sm:text-base font-black text-white line-clamp-2 leading-tight">
-            {match.title || match.team1}
-          </strong>
-          {match.blv && (
-            <span className="mt-1.5 text-[11px] font-extrabold text-rose-300 bg-black/60 px-2.5 py-0.5 rounded-full border border-white/10">
-              🎙️ BLV {match.blv}
-            </span>
+        <div className="football-scoreboard my-2 min-h-[140px] rounded-2xl bg-gradient-to-br from-red-950/40 via-zinc-950/95 to-black border border-red-500/25 backdrop-blur-sm relative z-10 flex flex-col justify-between overflow-hidden p-3.5 sm:p-4 text-center group/event">
+          {validEventLogo && (
+            <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={match.logo || match.homeLogo}
+                alt={match.title}
+                className="w-full h-full object-cover object-center filter brightness-[0.35] group-hover/event:scale-105 group-hover/event:brightness-[0.5] transition-all duration-500"
+                onError={() => setLogoError(true)}
+                loading="lazy"
+                referrerPolicy="no-referrer"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/30" />
+            </div>
           )}
+
+          <div className="relative z-10 flex flex-col items-center justify-center flex-1 my-auto">
+            <span className="text-[10px] font-black uppercase tracking-[0.16em] text-rose-300 bg-rose-500/20 px-2.5 py-0.5 rounded-full border border-rose-500/40 shadow-sm backdrop-blur-md">
+              {match.group === "Sự Kiện FPT Play" ? "FPT Play Event" : "Sự kiện thể thao"}
+            </span>
+            <strong className="mt-2 text-sm sm:text-base font-black text-white line-clamp-2 leading-tight drop-shadow-md">
+              {match.title || match.team1}
+            </strong>
+            {match.blv && (
+              <span className="mt-1.5 text-[11px] font-extrabold text-rose-300 bg-black/80 px-2.5 py-0.5 rounded-full border border-white/15 backdrop-blur-sm shadow-sm">
+                🎙️ BLV {match.blv}
+              </span>
+            )}
+          </div>
         </div>
       ) : (
         <div className="football-scoreboard my-2 p-3 sm:p-3.5 rounded-2xl bg-gradient-to-b from-black/70 to-zinc-950/90 border border-white/10 backdrop-blur-sm relative z-10">
