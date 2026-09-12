@@ -330,27 +330,30 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         </div>
       </div>
 
-      {/* FLOATING MINI-PLAYER — chỉ render iframe khi đã lazy load */}
+      {/* FLOATING / STICKY MINI-PLAYER — Mobile: Ghim cố định ở cạnh trên (Sticky Top), Desktop: Góc dưới phải */}
       {videoLink && showMiniPlayer && !dismissedMini && !isTheaterMode && (
-        <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40 w-[min(calc(100vw-32px),320px)] sm:w-80 md:w-96 aspect-video bg-zinc-950 rounded-xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.9)] border border-white/20 animate-in slide-in-from-bottom-5 duration-200">
-          <div className="absolute top-0 inset-x-0 bg-gradient-to-b from-black/90 to-transparent p-2 flex items-center justify-between z-20">
-            <span className="text-white text-xs font-semibold truncate max-w-[180px] drop-shadow-md">
-              {title} {activeEpisodeName ? `• Tập ${activeEpisodeName}` : ""}
-            </span>
-            <div className="flex items-center gap-1">
+        <div className="fixed top-0 inset-x-0 sm:top-auto sm:inset-x-auto sm:bottom-6 sm:right-6 z-50 w-full sm:w-80 md:w-96 aspect-video bg-black sm:bg-zinc-950 sm:rounded-2xl overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.95)] border-b sm:border border-white/20 animate-in slide-in-from-top-4 sm:slide-in-from-bottom-5 duration-200">
+          <div className="absolute top-0 inset-x-0 bg-gradient-to-b from-black/90 via-black/60 to-transparent p-2 sm:p-2.5 flex items-center justify-between z-20">
+            <div className="flex items-center gap-1.5 min-w-0 pr-2">
+              <span className="w-2 h-2 rounded-full bg-netflix-red animate-pulse flex-shrink-0" />
+              <span className="text-white text-xs font-bold truncate drop-shadow-md">
+                {title} {activeEpisodeName ? `• Tập ${activeEpisodeName}` : ""}
+              </span>
+            </div>
+            <div className="flex items-center gap-1 flex-shrink-0">
               <button
                 type="button"
                 onClick={scrollToPlayer}
                 title="Quay lại khung lớn"
-                className="p-1 rounded-full bg-black/60 text-gray-300 hover:text-white hover:bg-black transition cursor-pointer"
+                className="p-1.5 rounded-full bg-black/70 text-gray-200 hover:text-white hover:bg-black/90 transition cursor-pointer backdrop-blur-md"
               >
                 <ArrowUpRight className="w-3.5 h-3.5" />
               </button>
               <button
                 type="button"
                 onClick={() => setDismissedMini(true)}
-                title="Đóng mini-player"
-                className="p-1 rounded-full bg-black/60 text-gray-300 hover:text-white hover:bg-black transition cursor-pointer"
+                title="Đóng trình phát ghim"
+                className="p-1.5 rounded-full bg-black/70 text-gray-200 hover:text-white hover:bg-black/90 transition cursor-pointer backdrop-blur-md"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
