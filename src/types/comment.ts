@@ -1,9 +1,11 @@
 export interface MovieComment {
   id: string;
   movieSlug: string;
+  movieTitle?: string;
   userId: string;
   userName: string;
   userAvatar?: string;
+  userEmail?: string;
   rating: number; // 0 (nếu không chấm sao) hoặc 1 - 5 sao
   content: string;
   episodeSlug?: string; // Ví dụ: "tap-1" hoặc "full"

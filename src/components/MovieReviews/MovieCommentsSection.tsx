@@ -175,9 +175,11 @@ export const MovieCommentsSection: React.FC<MovieCommentsSectionProps> = ({
         // Tạo đánh giá mới (lần đầu)
         await addMovieComment({
           movieSlug,
+          movieTitle: movieTitle || undefined,
           userId: user.uid,
           userName: user.displayName || "Thành viên Nanaflix",
           userAvatar: user.photoURL || undefined,
+          userEmail: user.email || undefined,
           rating,
           content: trimmed,
           episodeSlug:

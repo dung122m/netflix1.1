@@ -8,6 +8,8 @@ import {
   onSnapshot,
   query,
   orderBy,
+  limit,
+  type Unsubscribe,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { MovieCollection, CollectionMovieItem } from "@/types/collection";
@@ -511,3 +513,54 @@ export async function getPublicCollection(
 
   return null;
 }
+
+/**
+ * Lắng nghe toàn bộ bộ sưu tập công khai theo thời gian thực (Dành cho Quản Trị Viên)
+ */
+export function subscribeAllPublicCollections(
+  onUpdate: (collections: MovieCollection[]) => void,
+  onError?: (err: Error) => void
+): Unsubscribe {
+  if (!db) {
+    onUpdate([]);
+    return () => {};
+  }
+
+  const colRef = collection(db, "public_collections");
+  const q = query(colRef, limit(100));
+
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const items: MovieCollection[] = [];
+      snapshot.forEach((docSnap) => {
+        items.push({
+          id: docSnap.id,
+          ...(docSnap.data() as Omit<MovieCollection, "id">),
+        });
+      });
+      items.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+      onUpdate(items);
+    },
+    (error) => {
+      console.warn("Lỗi tải public_collections cho Admin:", error);
+      if (onError) onError(error);
+    }
+  );
+}
+
+/**
+ * Xóa bộ sưu tập công khai (Dành cho Quản trị viên khi phát hiện nội dung spam/vi phạm)
+ */
+export async function deletePublicCollectionAdmin(collectionId: string): Promise<boolean> {
+  if (!db || !collectionId) return false;
+  try {
+    const docRef = doc(db, "public_collections", collectionId);
+    await deleteDoc(docRef);
+    return true;
+  } catch (err) {
+    console.error("Lỗi xóa public_collection:", err);
+    return false;
+  }
+}
+

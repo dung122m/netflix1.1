@@ -72,6 +72,44 @@ export function subscribeMovieComments(
 }
 
 /**
+ * Lắng nghe toàn bộ bình luận từ cộng đồng theo thời gian thực (Dành riêng cho Quản Trị Viên)
+ */
+export function subscribeAllComments(
+  onUpdate: (comments: MovieComment[]) => void,
+  onError?: (err: Error) => void,
+  maxLimit: number = 300,
+): Unsubscribe {
+  if (!db) {
+    onUpdate([]);
+    return () => {};
+  }
+
+  const commentsRef = collection(db, COLLECTION_NAME);
+  const q = query(commentsRef, limit(maxLimit));
+
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const items: MovieComment[] = [];
+      snapshot.forEach((docSnap) => {
+        items.push({
+          id: docSnap.id,
+          ...(docSnap.data() as Omit<MovieComment, "id">),
+        });
+      });
+      // Sắp xếp thời gian mới nhất lên đầu trong bộ nhớ để không cần Firestore composite index
+      items.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      onUpdate(items);
+    },
+    (error) => {
+      console.warn("Lỗi tải toàn bộ bình luận cho Admin:", error);
+      if (onError) onError(error);
+    },
+  );
+}
+
+
+/**
  * Thêm một bình luận hoặc đánh giá mới cho phim
  */
 export async function addMovieComment(

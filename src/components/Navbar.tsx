@@ -23,8 +23,10 @@ import {
   LogOut,
   Smartphone,
   CheckCheck,
+  ShieldCheck,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { isUserAdmin } from "@/lib/adminConfig";
 import { AuthModal } from "./AuthModal";
 import Link from "next/link";
 import Image from "next/image";
@@ -1167,6 +1169,17 @@ const NavbarInner: React.FC = () => {
                     </div>
                   </div>
 
+                  {isUserAdmin(user?.email) && (
+                    <Link
+                      href="/admin"
+                      onClick={() => setShowUserDropdown(false)}
+                      className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-amber-400 bg-amber-500/15 border border-amber-500/30 hover:bg-amber-500/25 hover:text-amber-300 transition my-1 shadow-sm"
+                    >
+                      <ShieldCheck size={15} className="text-amber-400" />
+                      <span>👑 Bảng Quản Trị (Admin)</span>
+                    </Link>
+                  )}
+
                   <Link
                     href="/my-list?tab=history"
                     onClick={() => setShowUserDropdown(false)}
@@ -1420,6 +1433,22 @@ const NavbarInner: React.FC = () => {
                       Đăng xuất
                     </button>
                   </div>
+
+                  {isUserAdmin(user?.email) && (
+                    <Link
+                      href="/admin"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold text-amber-400 bg-amber-500/15 border border-amber-500/30 hover:bg-amber-500/25 transition mt-1.5"
+                    >
+                      <div className="flex items-center gap-2">
+                        <ShieldCheck size={15} />
+                        <span>👑 Bảng Quản Trị (Admin)</span>
+                      </div>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-semibold">
+                        Admin
+                      </span>
+                    </Link>
+                  )}
                 </div>
               ) : (
                 <button
