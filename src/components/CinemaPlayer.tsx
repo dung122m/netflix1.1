@@ -94,7 +94,14 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       : null;
   }, [videoLink, trailerUrl]);
 
-  const activeSrc = videoLink ? embedSrc : trailerEmbedSrc;
+  const activeSrc = useMemo(() => {
+    let src = videoLink ? embedSrc : trailerEmbedSrc;
+    if (!src) return "";
+    if (!src.includes("autoplay=")) {
+      src += (src.includes("?") ? "&" : "?") + "autoplay=1";
+    }
+    return src;
+  }, [videoLink, embedSrc, trailerEmbedSrc]);
 
   // Tìm tập hiện tại, tập trước và tập kế tiếp
   const currentIndex = episodes.findIndex((ep) => ep.slug === activeEpisodeSlug);
@@ -376,7 +383,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           isMobileStickyActive
             ? "fixed top-0 left-0 right-0 z-50 shadow-2xl border-b border-white/25 md:relative md:top-auto"
             : "relative z-30"
-        } ${isTheaterMode ? "max-w-none px-0 sm:px-0" : "max-w-[1800px]"} ${
+        } ${isTheaterMode ? "max-w-none px-0 sm:px-0" : "max-w-7xl"} ${
           isLightsOff ? "z-50" : ""
         }`}
       >
@@ -408,8 +415,8 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
             isMobileStickyActive
               ? "rounded-none max-h-[38vh]"
               : isTheaterMode
-              ? "rounded-none border-y border-white/20 shadow-[0_30px_90px_rgba(0,0,0,0.85)] sm:max-h-[calc(100vh-90px)] sm:max-w-[calc((100vh-90px)*16/9)]"
-              : "rounded-none sm:rounded-xl md:rounded-2xl border-b sm:border border-white/15 shadow-[0_25px_70px_rgba(0,0,0,0.55)] sm:max-h-[calc(100vh-140px)] sm:max-w-[calc((100vh-140px)*16/9)]"
+              ? "rounded-none border-y border-white/20 shadow-[0_30px_90px_rgba(0,0,0,0.85)] sm:max-h-[calc(100vh-90px)]"
+              : "rounded-none sm:rounded-2xl md:rounded-3xl border-b sm:border border-white/15 shadow-[0_25px_70px_rgba(0,0,0,0.55)]"
           }`}
         >
           {activeSrc ? (

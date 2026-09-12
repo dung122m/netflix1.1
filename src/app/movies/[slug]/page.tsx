@@ -272,7 +272,7 @@ export default async function MovieDetail({
         />
 
         {/* BREADCRUMB */}
-        <div className="max-w-[1800px] mx-auto py-1.5 flex items-center gap-2 text-xs sm:text-sm text-gray-400">
+        <div className="max-w-7xl mx-auto py-1.5 flex items-center gap-2 text-xs sm:text-sm text-gray-400">
           <Link href="/browse" className="hover:text-white transition">
             Trang chủ
           </Link>
