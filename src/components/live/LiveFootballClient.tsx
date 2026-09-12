@@ -76,7 +76,7 @@ export function LiveFootballClient({
   const [timelineFilter, setTimelineFilter] = useState<
     "all" | "live" | "upcoming"
   >("all");
-  const [showAllUpcoming, setShowAllUpcoming] = useState<boolean>(false);
+  const [showAllUpcoming, setShowAllUpcoming] = useState<boolean>(true);
   const [selectedChannel, setSelectedChannel] = useState<string>("all");
   const [selectedTournament, setSelectedTournament] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");

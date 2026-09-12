@@ -1242,6 +1242,33 @@ export function getCuratedDailyMatches(now: number): FootballMatch[] {
   return [...matches, ...sports247];
 }
 
+// Hàm kiểm tra nhanh tính khả dụng thực tế của luồng stream (Status 200 OK)
+export async function isStreamPlayable(
+  url: string,
+  timeoutMs: number = 2000,
+): Promise<boolean> {
+  if (!url || isBlockedStreamUrl(url)) return false;
+  try {
+    let checkUrl = url;
+    if (checkUrl.includes("lauthaitv.cc") && checkUrl.includes(".flv")) {
+      checkUrl = checkUrl
+        .replace("flv.lauthaitv.cc", "hls.lauthaitv.cc")
+        .replace(/\.flv(\?.*)?$/i, "/index.m3u8$1");
+    }
+    const res = await fetch(checkUrl, {
+      method: "GET",
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+      },
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 // Bộ nhớ đệm Server SWR (Stale-While-Revalidate)
 let memoryCache: {
   data: LiveFootballData;
@@ -1291,7 +1318,7 @@ export const liveFootballService = {
       const matchMap = new Map<string, FootballMatch>();
       const channelsSet = new Set<string>();
 
-      // 1. NẠP DANH SÁCH CÁC TRẬN ĐẤU THỰC TẾ & KÊNH THỂ THAO CHUẨN
+      // 1. NẠP DANH SÁCH CÁC TRẬN ĐẤU THỰC TẾ & KÊNH THỂ THAO CHUẨN ĐÃ XÁC THỰC
       const curatedMatches = getCuratedDailyMatches(now);
       for (const m of curatedMatches) {
         matchMap.set(m.id, m);
@@ -1299,7 +1326,7 @@ export const liveFootballService = {
         m.groups.forEach((g) => channelsSet.add(g));
       }
 
-      // 2. QUÉT & TÍCH HỢP NGUỒN M3U BỔ SUNG (NẾU CÓ)
+      // 2. QUÉT NGUỒN M3U VÀ LỌC CÁC ỨNG VIÊN BÓNG ĐÁ / THỂ THAO
       const sources = getFootballM3uSources();
       const fetchPromises = sources.map(async (source) => {
         try {
@@ -1321,6 +1348,15 @@ export const liveFootballService = {
 
       const m3uTexts = await Promise.allSettled(fetchPromises);
 
+      interface RawCandidate {
+        line: string;
+        rawTitle: string;
+        group: string;
+        rawLogo: string;
+        url: string;
+      }
+      const candidates: RawCandidate[] = [];
+
       for (const res of m3uTexts) {
         if (res.status !== "fulfilled" || !res.value) continue;
         const text = res.value;
@@ -1333,37 +1369,15 @@ export const liveFootballService = {
           const groupMatch = line.match(/group-title="([^"]+)"/);
           const group = groupMatch ? groupMatch[1].trim() : "Khác";
 
-          // Bỏ qua thẻ thông báo, IP, QR
           if (group.includes("TINHLAGI.PRO")) continue;
 
           const logoMatch = line.match(/tvg-logo="([^"]+)"/);
           const rawLogo = logoMatch ? logoMatch[1].trim() : "";
 
-          let homeLogo = "";
-          let awayLogo = "";
-          if (rawLogo.includes("merge_logos.php")) {
-            try {
-              const urlObj = new URL(rawLogo);
-              const h = urlObj.searchParams.get("home") || "";
-              const a = urlObj.searchParams.get("away") || "";
-              if (h && !h.includes("tinhlagi.pro/logo.jpg")) {
-                homeLogo = h;
-              }
-              if (a && !a.includes("tinhlagi.pro/logo.jpg")) {
-                awayLogo = a;
-              }
-            } catch {
-              // ignore
-            }
-          } else if (rawLogo && !rawLogo.includes("tinhlagi.pro/logo.jpg")) {
-            homeLogo = rawLogo;
-          }
-
           const commaIdx = line.indexOf(",");
           const rawTitle =
             commaIdx !== -1 ? line.slice(commaIdx + 1).trim() : "";
 
-          // Quét tìm URL stream thực tế
           let url = "";
           for (let j = i + 1; j < lines.length && j < i + 8; j++) {
             const nextL = lines[j].trim();
@@ -1374,14 +1388,12 @@ export const liveFootballService = {
             if (nextL.startsWith("#EXTINF")) break;
           }
 
-          if (!url) continue;
-          if (isBlockedStreamUrl(url)) continue;
-          if (url.includes("msdht.app") || url.includes("miekgo.app")) continue;
+          if (!url || isBlockedStreamUrl(url)) continue;
+          if (url.includes("msdht.app")) continue; // Domain chết
 
           const upperGroup = group.toUpperCase();
           const upperTitle = rawTitle.toUpperCase();
 
-          // Lọc bỏ VOD, phim, radio
           if (
             group === "LIVE EVENTS 🔴" ||
             upperGroup.includes("RADIO") ||
@@ -1414,185 +1426,193 @@ export const liveFootballService = {
 
           if (!isSportsOrEvent) continue;
 
-          let cleanGroup = group;
-          let tournament = "Thể Thao Trực Tiếp";
+          candidates.push({ line, rawTitle, group, rawLogo, url });
+        }
+      }
 
-          if (
-            upperGroup.includes("FPT PLAY") ||
-            upperGroup.includes("SỰ KIỆN FPT") ||
-            upperTitle.includes("SỰ KIỆN FPT")
-          ) {
-            cleanGroup = "Sự Kiện FPT Play";
-            tournament = "FPT Play Thể Thao";
-          } else if (
-            upperGroup.includes("TV360") ||
-            upperTitle.includes("TV360+")
-          ) {
-            cleanGroup = "Sự Kiện TV360+";
-            tournament = "TV360+ Độc Quyền";
-          } else if (upperGroup.includes("VTVPRIME")) {
-            cleanGroup = "Sự Kiện VTV Prime";
-            tournament = "VTV Prime Thể Thao";
-          } else if (upperGroup.includes("COLA TV")) {
-            cleanGroup = "COLA TV (BLV Tiếng Việt)";
-            tournament = "Trực Tiếp Bóng Đá HD";
-          } else if (upperGroup.includes("PHÁO HOA TV")) {
-            cleanGroup = "PHÁO HOA TV (BLV Tiếng Việt)";
-            tournament = "Trực Tiếp Bóng Đá HD";
-          } else if (
-            upperGroup.includes("THỂ THAO QUỐC TẾ") ||
-            upperGroup.includes("SPORT")
-          ) {
-            cleanGroup = "Thể Thao Quốc Tế";
-            tournament = "Kênh Thể Thao Quốc Tế";
-          } else if (
-            upperGroup.includes("HTV") &&
-            upperTitle.includes("THỂ THAO")
-          ) {
-            cleanGroup = "Kênh Thể Thao";
-            tournament = "HTV Thể Thao";
-          }
-
-          channelsSet.add(cleanGroup);
-
-          let effectiveUrl = url;
-          if (url.includes("lauthaitv.cc") && url.includes(".flv")) {
-            effectiveUrl = url
+      // 3. KIỂM TRA SỨC KHỎE ĐỒNG THỜI (PARALLEL HEALTH CHECK): CHỈ GIỮ LUỒNG ĐANG PHÁT (200 OK)
+      const healthResults = await Promise.allSettled(
+        candidates.map(async (c) => {
+          let effectiveUrl = c.url;
+          if (effectiveUrl.includes("lauthaitv.cc") && effectiveUrl.includes(".flv")) {
+            effectiveUrl = effectiveUrl
               .replace("flv.lauthaitv.cc", "hls.lauthaitv.cc")
               .replace(/\.flv(\?.*)?$/i, "/index.m3u8$1");
-          } else if (url.includes(".flv")) {
-            effectiveUrl = url.replace(/\.flv(\?.*)?$/i, ".m3u8$1");
+          } else if (effectiveUrl.includes(".flv")) {
+            effectiveUrl = effectiveUrl.replace(/\.flv(\?.*)?$/i, ".m3u8$1");
           }
 
-          const isHls =
-            effectiveUrl.includes(".m3u8") ||
-            rawTitle.toLowerCase().includes("[hls");
-          const isFlv =
-            !isHls &&
-            (url.includes(".flv") || rawTitle.toLowerCase().includes("[flv"));
-          const format: "hls" | "flv" | "other" = isHls
-            ? "hls"
-            : isFlv
-              ? "flv"
-              : "other";
+          const isAlive = await isStreamPlayable(effectiveUrl, 1800);
+          if (!isAlive) throw new Error("Stream offline");
+          return { ...c, effectiveUrl };
+        }),
+      );
 
-          if (!isHls && !isFlv) continue;
+      const activeCandidates = healthResults
+        .filter((r): r is PromiseFulfilledResult<RawCandidate & { effectiveUrl: string }> => r.status === "fulfilled")
+        .map((r) => r.value);
 
-          const isFhd =
-            upperTitle.includes("FHD") ||
-            upperTitle.includes("1080P") ||
-            url.toUpperCase().includes("1080P") ||
-            url.toUpperCase().includes("_1080P");
-          const serverQuality: "FHD" | "HD" = isFhd ? "FHD" : "HD";
+      // 4. PARSE VÀ BỔ SUNG CÁC KÊNH/BLV ĐANG THỰC SỰ ON-AIR VÀO DANH SÁCH
+      for (const item of activeCandidates) {
+        const { group, rawTitle, rawLogo, effectiveUrl } = item;
+        const upperGroup = group.toUpperCase();
+        const upperTitle = rawTitle.toUpperCase();
 
-          const timeMatch = rawTitle.match(
-            /(?:^|\s)(\d{1,2}:\d{2}(?:\s+\d{1,2}\/\d{1,2})?)/,
-          );
-          const time = timeMatch ? timeMatch[1] : "Trực tiếp";
+        let cleanGroup = group;
+        let tournament = "Thể Thao Trực Tiếp";
 
-          const blvMatch = rawTitle.match(/\((BLV\s+[^)]+|[^)]*)\)/i);
-          let blv = "";
-          if (
-            blvMatch &&
-            !blvMatch[1].toLowerCase().includes("fhd") &&
-            !blvMatch[1].toLowerCase().includes("hd")
-          ) {
-            blv = blvMatch[1].trim();
-          }
+        if (
+          upperGroup.includes("FPT PLAY") ||
+          upperGroup.includes("SỰ KIỆN FPT") ||
+          upperTitle.includes("SỰ KIỆN FPT")
+        ) {
+          cleanGroup = "Sự Kiện FPT Play";
+          tournament = "FPT Play Thể Thao";
+        } else if (upperGroup.includes("TV360") || upperTitle.includes("TV360+")) {
+          cleanGroup = "Sự Kiện TV360+";
+          tournament = "TV360+ Độc Quyền";
+        } else if (upperGroup.includes("COLA TV")) {
+          cleanGroup = "COLA TV (BLV Tiếng Việt)";
+          tournament = "Trực Tiếp Bóng Đá HD";
+        } else if (upperGroup.includes("PHÁO HOA TV")) {
+          cleanGroup = "PHÁO HOA TV (BLV Tiếng Việt)";
+          tournament = "Trực Tiếp Bóng Đá HD";
+        } else if (upperGroup.includes("THỂ THAO QUỐC TẾ") || upperGroup.includes("SPORT")) {
+          cleanGroup = "Thể Thao Quốc Tế";
+          tournament = "Kênh Thể Thao Quốc Tế";
+        } else if (upperGroup.includes("HTV") && upperTitle.includes("THỂ THAO")) {
+          cleanGroup = "Kênh Thể Thao";
+          tournament = "HTV Thể Thao";
+        }
 
-          let cleanTitle = rawTitle
-            .replace(/(?:^|\s)\d{1,2}:\d{2}(?:\s+\d{1,2}\/\d{1,2})?/, " ")
-            .replace(/\[[^\]]*\]/g, " ")
-            .replace(/\([^)]*\)/g, " ")
-            .replace(/\s+/g, " ")
-            .trim();
+        channelsSet.add(cleanGroup);
 
-          const hasTeamSeparator = /\s+(?:vs|v|-)\s+/i.test(cleanTitle);
-          const isEvent =
-            cleanGroup === "Sự Kiện FPT Play" ||
-            cleanGroup === "Sự Kiện TV360+" ||
-            cleanGroup === "Sự Kiện VTV Prime" ||
-            !hasTeamSeparator;
+        const isHls =
+          effectiveUrl.includes(".m3u8") ||
+          rawTitle.toLowerCase().includes("[hls");
+        const isFlv =
+          !isHls &&
+          (effectiveUrl.includes(".flv") || rawTitle.toLowerCase().includes("[flv"));
+        const format: "hls" | "flv" | "other" = isHls
+          ? "hls"
+          : isFlv
+            ? "flv"
+            : "other";
 
-          let team1 = cleanTitle;
-          let team2 = "";
-          const vsMatch = cleanTitle.match(/(.+?)\s+(?:vs|v|-)\s+(.+)/i);
-          if (!isEvent && vsMatch) {
-            team1 = vsMatch[1].replace(/\([^)]*\)/g, " ").replace(/\[[^\]]*\]/g, " ").trim();
-            team2 = vsMatch[2].replace(/\([^)]*\)/g, " ").replace(/\[[^\]]*\]/g, " ").trim();
-          }
+        if (!isHls && !isFlv) continue;
 
-          const normT1 = normalizeClubKey(team1);
-          const normT2 = normalizeClubKey(team2);
-          const matchTimeKey = time;
-          const sortedClubKey = [normT1, normT2].sort().join("_");
+        const isFhd =
+          upperTitle.includes("FHD") ||
+          upperTitle.includes("1080P") ||
+          effectiveUrl.toUpperCase().includes("1080P") ||
+          effectiveUrl.toUpperCase().includes("_1080P");
+        const serverQuality: "FHD" | "HD" = isFhd ? "FHD" : "HD";
 
-          const matchKey =
-            normT1 && normT2 && matchTimeKey !== "Trực tiếp"
-              ? `${matchTimeKey}_${sortedClubKey}`
-              : `${cleanGroup}_${cleanTitle || rawTitle}`
-                  .toLowerCase()
-                  .replace(/[^a-z0-9]/g, "");
+        const timeMatch = rawTitle.match(
+          /(?:^|\s)(\d{1,2}:\d{2}(?:\s+\d{1,2}\/\d{1,2})?)/,
+        );
+        const time = timeMatch ? timeMatch[1] : "Trực tiếp";
 
-          let serverLabel = cleanGroup;
-          if (blv) serverLabel += ` (${blv})`;
-          if (isFhd) serverLabel += " [FHD]";
-          else if (format === "hls") serverLabel += " [HLS]";
+        const blvMatch = rawTitle.match(/\((BLV\s+[^)]+|[^)]*)\)/i);
+        let blv = "";
+        if (
+          blvMatch &&
+          !blvMatch[1].toLowerCase().includes("fhd") &&
+          !blvMatch[1].toLowerCase().includes("hd")
+        ) {
+          blv = blvMatch[1].trim();
+        }
 
-          const detectedTour = detectTournament(rawTitle, team1, team2);
-          if (detectedTour) tournament = detectedTour;
+        let cleanTitle = rawTitle
+          .replace(/(?:^|\s)\d{1,2}:\d{2}(?:\s+\d{1,2}\/\d{1,2})?/, " ")
+          .replace(/\[[^\]]*\]/g, " ")
+          .replace(/\([^)]*\)/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
 
-          const timestamp = parseMatchTimeToTimestamp(time);
+        const hasTeamSeparator = /\s+(?:vs|v|-)\s+/i.test(cleanTitle);
+        const isEvent =
+          cleanGroup === "Sự Kiện FPT Play" ||
+          cleanGroup === "Sự Kiện TV360+" ||
+          cleanGroup === "Sự Kiện VTV Prime" ||
+          !hasTeamSeparator;
 
-          if (!matchMap.has(matchKey)) {
-            matchMap.set(matchKey, {
-              id: matchKey,
-              time,
-              timestamp,
-              title: cleanTitle || rawTitle,
-              team1,
-              team2,
-              blv,
-              logo: rawLogo,
-              homeLogo,
-              awayLogo,
-              group: cleanGroup,
-              groups: [cleanGroup],
-              tournament,
-              isEvent,
-              timeline: isEvent ? "live" : getMatchTimeline(timestamp),
-              quality: isFhd ? "FHD 1080p" : "HD 720p",
-              servers: [
-                {
-                  name: serverLabel,
-                  url: effectiveUrl,
-                  format,
-                  isHls,
-                  quality: serverQuality,
-                  sourceName: cleanGroup,
-                },
-              ],
-            });
-          } else {
-            const existing = matchMap.get(matchKey)!;
-            if (!existing.groups.includes(cleanGroup)) {
-              existing.groups.push(cleanGroup);
-            }
-            if (isFhd) existing.quality = "FHD 1080p";
-            if (blv && !existing.blv?.includes(blv)) {
-              existing.blv = existing.blv ? `${existing.blv}, ${blv}` : blv;
-            }
-            const alreadyExists = existing.servers.some((s) => s.url === effectiveUrl);
-            if (!alreadyExists) {
-              existing.servers.push({
-                name: `${serverLabel} #${existing.servers.length + 1}`,
+        let team1 = cleanTitle;
+        let team2 = "";
+        const vsMatch = cleanTitle.match(/(.+?)\s+(?:vs|v|-)\s+(.+)/i);
+        if (!isEvent && vsMatch) {
+          team1 = vsMatch[1].replace(/\([^)]*\)/g, " ").replace(/\[[^\]]*\]/g, " ").trim();
+          team2 = vsMatch[2].replace(/\([^)]*\)/g, " ").replace(/\[[^\]]*\]/g, " ").trim();
+        }
+
+        const normT1 = normalizeClubKey(team1);
+        const normT2 = normalizeClubKey(team2);
+        const matchTimeKey = time;
+        const sortedClubKey = [normT1, normT2].sort().join("_");
+
+        const matchKey =
+          normT1 && normT2 && matchTimeKey !== "Trực tiếp"
+            ? `${matchTimeKey}_${sortedClubKey}`
+            : `${cleanGroup}_${cleanTitle || rawTitle}`
+                .toLowerCase()
+                .replace(/[^a-z0-9]/g, "");
+
+        let serverLabel = cleanGroup;
+        if (blv) serverLabel += ` (${blv})`;
+        if (isFhd) serverLabel += " [FHD]";
+        else if (format === "hls") serverLabel += " [HLS]";
+
+        const detectedTour = detectTournament(rawTitle, team1, team2);
+        if (detectedTour) tournament = detectedTour;
+
+        const timestamp = parseMatchTimeToTimestamp(time);
+
+        if (!matchMap.has(matchKey)) {
+          matchMap.set(matchKey, {
+            id: matchKey,
+            time,
+            timestamp,
+            title: cleanTitle || rawTitle,
+            team1,
+            team2,
+            blv,
+            logo: rawLogo,
+            group: cleanGroup,
+            groups: [cleanGroup],
+            tournament,
+            isEvent,
+            timeline: "live",
+            quality: isFhd ? "FHD 1080p" : "HD 720p",
+            servers: [
+              {
+                name: serverLabel,
                 url: effectiveUrl,
                 format,
                 isHls,
                 quality: serverQuality,
                 sourceName: cleanGroup,
-              });
-            }
+              },
+            ],
+          });
+        } else {
+          const existing = matchMap.get(matchKey)!;
+          if (!existing.groups.includes(cleanGroup)) {
+            existing.groups.push(cleanGroup);
+          }
+          if (isFhd) existing.quality = "FHD 1080p";
+          if (blv && !existing.blv?.includes(blv)) {
+            existing.blv = existing.blv ? `${existing.blv}, ${blv}` : blv;
+          }
+          const alreadyExists = existing.servers.some((s) => s.url === effectiveUrl);
+          if (!alreadyExists) {
+            existing.servers.push({
+              name: `${serverLabel} #${existing.servers.length + 1}`,
+              url: effectiveUrl,
+              format,
+              isHls,
+              quality: serverQuality,
+              sourceName: cleanGroup,
+            });
           }
         }
       }
@@ -1704,4 +1724,5 @@ export const liveFootballService = {
     }
   },
 };
+
 
