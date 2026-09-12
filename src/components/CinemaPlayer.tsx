@@ -83,7 +83,36 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       ? episodes[currentIndex + 1]
       : null;
 
-  // Dùng IntersectionObserver thay scroll event — hiệu quả hơn nhiều (không fire liên tục)
+  // Mobile Sticky State (khi lướt qua khung phát trên màn hình điện thoại)
+  const [isMobile, setIsMobile] = useState(false);
+  const [isScrolledPast, setIsScrolledPast] = useState(false);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  useEffect(() => {
+    if (!activeSrc) return;
+
+    const handleScroll = () => {
+      if (!sentinelRef.current) return;
+      const rect = sentinelRef.current.getBoundingClientRect();
+      // Kích hoạt khi đỉnh player đã cuộn khuất khỏi viewport
+      setIsScrolledPast(rect.top < -50);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [activeSrc]);
+
+  // Dùng IntersectionObserver thay scroll event cho Desktop Mini-Player
   useEffect(() => {
     if (!activeSrc || !containerRef.current) return;
 
@@ -153,6 +182,8 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
+  const isMobileStickyActive = isMobile && isScrolledPast && Boolean(activeSrc);
+
   return (
     <>
       {/* LỚP NỀN TẮT ĐÈN (LIGHTS OFF OVERLAY) */}
@@ -167,19 +198,53 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         </div>
       )}
 
-      {/* CONTAINER KHUNG PHÁT VIDEO CHÍNH — Mobile: Tự động Ghim cố định ở trên (Sticky Top) liền mạch */}
+      {/* Điểm neo để phát hiện cuộn trang (Sentinel) */}
+      <div ref={sentinelRef} className="w-full h-0 pointer-events-none" />
+
+      {/* PLACEHOLDER KHI PLAYER ĐANG Ở CHẾ ĐỘ FIXED TOP TRÊN MOBILE (TRÁNH BỊ GIẬT TRANG) */}
+      {isMobileStickyActive && (
+        <div className="w-full aspect-video md:hidden" aria-hidden="true" />
+      )}
+
+      {/* CONTAINER KHUNG PHÁT VIDEO CHÍNH — Tự động chuyển Fixed Top trên Mobile khi lướt xuống dưới */}
       <div
         ref={containerRef}
-        className={`w-full mx-auto transition-all duration-300 sticky top-0 sm:relative z-30 bg-black ${
-          isTheaterMode ? "max-w-none px-0 sm:px-0" : "max-w-[1800px]"
-        } ${isLightsOff ? "z-50" : ""}`}
+        className={`w-full mx-auto transition-all duration-300 bg-black ${
+          isMobileStickyActive
+            ? "fixed top-0 left-0 right-0 z-50 shadow-2xl border-b border-white/25 md:relative md:top-auto"
+            : "relative z-30"
+        } ${isTheaterMode ? "max-w-none px-0 sm:px-0" : "max-w-[1800px]"} ${
+          isLightsOff ? "z-50" : ""
+        }`}
       >
+        {/* Thanh tiêu đề nhỏ gọn khi đang Ghim Cố Định trên Mobile */}
+        {isMobileStickyActive && (
+          <div className="md:hidden bg-gradient-to-r from-zinc-950 via-zinc-900 to-black px-3 py-1.5 flex items-center justify-between border-b border-white/10 text-xs">
+            <div className="flex items-center gap-1.5 min-w-0 pr-2">
+              <span className="w-2 h-2 rounded-full bg-netflix-red animate-pulse flex-shrink-0" />
+              <span className="text-white font-bold text-[11px] truncate">
+                {title} {activeEpisodeName ? `• Tập ${activeEpisodeName}` : ""}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={scrollToPlayer}
+              className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/10 text-gray-200 hover:text-white text-[10px] font-semibold transition"
+            >
+              <ArrowUpRight className="w-3 h-3" />
+              <span>Lên đầu</span>
+            </button>
+          </div>
+        )}
+
         {/* Cinema Ambient Backlight */}
         <div className="ambient-cinema-glow opacity-80" aria-hidden="true" />
 
         <div
           className={`w-full aspect-video bg-zinc-950 relative overflow-hidden transition-all duration-300 z-10 mx-auto shadow-2xl ${
-            isTheaterMode
+            isMobileStickyActive
+              ? "rounded-none max-h-[38vh]"
+              : isTheaterMode
               ? "rounded-none border-y border-white/20 shadow-[0_30px_90px_rgba(0,0,0,0.85)] sm:max-h-[calc(100vh-90px)] sm:max-w-[calc((100vh-90px)*16/9)]"
               : "rounded-none sm:rounded-xl md:rounded-2xl border-b sm:border border-white/15 shadow-[0_25px_70px_rgba(0,0,0,0.55)] sm:max-h-[calc(100vh-140px)] sm:max-w-[calc((100vh-140px)*16/9)]"
           }`}
@@ -191,7 +256,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 className="w-full h-full absolute inset-0 border-0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
                 allowFullScreen
-                referrerPolicy="no-referrer"
+                referrerPolicy="strict-origin-when-cross-origin"
                 title={videoLink ? `Đang phát ${activeEpisodeName || "phim"}` : `Trailer: ${title}`}
               />
               {!videoLink && trailerEmbedSrc && (
@@ -367,7 +432,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
               className="w-full h-full border-0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
               allowFullScreen
-              referrerPolicy="no-referrer"
+              referrerPolicy="strict-origin-when-cross-origin"
               title={`Mini ${title}`}
               loading="lazy"
             />
