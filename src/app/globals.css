@@ -144,17 +144,6 @@
   perspective: 1000px;
 }
 
-/* Content Visibility: Bỏ qua render cards ngoài viewport (tiết kiệm ~70% render time cho movie grid) */
-.movie-card-contain {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 360px;
-}
-
-/* CSS Containment cho movie grid container — không dùng paint để tránh clip hover popup */
-.movie-grid-container {
-  contain: layout style;
-}
-
 
 /* Custom Netflix Sleek Scrollbar */
 ::-webkit-scrollbar {

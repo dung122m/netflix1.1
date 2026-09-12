@@ -458,7 +458,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   return (
     <div
       ref={cardRef}
-      className="movie-card-contain relative aspect-video w-full group select-none hover:z-50"
+      className="relative aspect-video w-full group select-none hover:z-50"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
