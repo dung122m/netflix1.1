@@ -242,8 +242,9 @@ export default async function MovieDetail({
   const activeEpisode = ep
     ? serverData.find((tap: { slug?: string }) => tap.slug === ep)
     : serverData[0];
-  const videoLink = activeEpisode?.link_embed;
-  const embedSrc = videoLink;
+  const videoLink = activeEpisode?.link_embed || activeEpisode?.link_m3u8;
+  const embedSrc = activeEpisode?.link_embed;
+  const rawM3u8 = activeEpisode?.link_m3u8 || (activeEpisode as any)?.m3u8 || (activeEpisode as any)?.file;
 
   const primaryGenreSlug = movie.category?.[0]?.slug;
   const primaryCountrySlug = movie.country?.[0]?.slug;
@@ -296,7 +297,7 @@ export default async function MovieDetail({
         <CinemaPlayer
           embedSrc={embedSrc}
           videoLink={videoLink}
-          m3u8Link={activeEpisode?.link_m3u8}
+          m3u8Link={rawM3u8}
           trailerUrl={movie.trailer_url}
           title={title}
           activeEpisodeName={activeEpisode?.name}

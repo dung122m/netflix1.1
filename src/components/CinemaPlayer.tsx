@@ -155,8 +155,44 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       ? episodes[currentIndex + 1]
       : null;
 
+  // Tìm m3u8 thực tế (kể cả khi API chỉ trả link_embed chứa param ?url=...m3u8 hoặc regex)
+  const resolvedM3u8 = useMemo(() => {
+    if (m3u8Link && m3u8Link.trim() && (m3u8Link.includes(".m3u8") || !m3u8Link.includes("<iframe"))) {
+      return m3u8Link.trim();
+    }
+    const src = embedSrc || videoLink;
+    if (src) {
+      try {
+        const parsed = new URL(src, "https://dummy.com");
+        const u =
+          parsed.searchParams.get("url") ||
+          parsed.searchParams.get("link") ||
+          parsed.searchParams.get("src") ||
+          parsed.searchParams.get("file");
+        if (u && (u.includes(".m3u8") || u.includes("/hls/"))) {
+          return decodeURIComponent(u.trim());
+        }
+      } catch {}
+
+      const match = src.match(/https?(?::%2F%2F|:\/\/)[^&\s"']+\.m3u8[^&\s"']*/i);
+      if (match) {
+        try {
+          return decodeURIComponent(match[0]);
+        } catch {
+          return match[0];
+        }
+      }
+    }
+    return m3u8Link || "";
+  }, [m3u8Link, embedSrc, videoLink]);
+
+  // Reset iframe fallback khi đổi phim / tập
+  useEffect(() => {
+    setUseIframeFallback(false);
+  }, [activeEpisodeSlug, m3u8Link, embedSrc]);
+
   // Xác định xem có phát trực tiếp qua HTML5 Video Native HLS không
-  const isNativeVideo = Boolean(m3u8Link && !useIframeFallback && videoLink);
+  const isNativeVideo = Boolean(resolvedM3u8 && !useIframeFallback && videoLink);
 
   // Gửi lệnh điều khiển đến iframe player (dùng cho trường hợp fallback iframe)
   const sendPlayerCommand = useCallback((cmd: string, val?: any) => {
@@ -227,7 +263,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   // KHỞI TẠO NATIVE HLS VIDEO PLAYER & AUTOPLAY NGAY KHI VÀO TRANG
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || !m3u8Link || useIframeFallback) return;
+    if (!video || !resolvedM3u8 || useIframeFallback) return;
 
     if (hlsRef.current) {
       hlsRef.current.destroy();
@@ -243,7 +279,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         backBufferLength: 90,
       });
       hlsRef.current = hls;
-      hls.loadSource(m3u8Link);
+      hls.loadSource(resolvedM3u8);
       hls.attachMedia(video);
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
@@ -285,7 +321,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       });
     } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
       // Safari iOS / macOS Native HLS
-      video.src = m3u8Link;
+      video.src = resolvedM3u8;
       const onLoaded = () => {
         setIsBuffering(false);
         video
@@ -309,7 +345,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         hlsRef.current = null;
       }
     };
-  }, [m3u8Link, useIframeFallback]);
+  }, [resolvedM3u8, useIframeFallback]);
 
   // LẮNG NGHE SỰ KIỆN VIDEO (TIẾN TRÌNH, ÂM LƯỢNG, BUFFER, KẾT THÚC)
   useEffect(() => {
