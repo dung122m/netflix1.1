@@ -23,7 +23,9 @@ import {
   addReplyComment,
   setCommentReaction,
   deleteMovieComment,
+  reportCommentViolation,
 } from "@/services/commentService";
+import { checkContentModeration } from "@/lib/contentModeration";
 import { toast } from "@/components/Toast";
 import { showConfirmDialog } from "@/components/ui/ConfirmDialog";
 
@@ -166,6 +168,28 @@ export const CommentItem: React.FC<CommentItemProps> = ({
     const trimmed = replyContent.trim();
     if (!trimmed) {
       toast.error("Vui lòng nhập nội dung trả lời!");
+      return;
+    }
+
+    // 1. Kiểm tra từ ngữ cấm & spam
+    const modCheck = checkContentModeration(trimmed);
+    if (!modCheck.isAllowed) {
+      reportCommentViolation({
+        userId: currentUserId,
+        userName: currentUserName,
+        userAvatar: currentUserAvatar,
+        movieSlug: comment.movieSlug,
+        movieTitle: comment.movieTitle,
+        attemptedContent: trimmed,
+        reason: modCheck.reason || "Sử dụng từ ngữ không phù hợp thuần phong mỹ tục",
+        violations: modCheck.violations,
+        isSpam: modCheck.isSpam,
+        commentId: comment.id,
+      }).catch(() => {});
+
+      toast.error(
+        modCheck.reason || "Nội dung chứa từ ngữ không phù hợp thuần phong mỹ tục. Hành vi cố ý spam sẽ bị khóa tài khoản!"
+      );
       return;
     }
 

@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import {
   ShieldCheck,
   ShieldAlert,
@@ -18,21 +17,20 @@ import {
   FolderHeart,
   RefreshCw,
   Clock,
-  ChevronRight,
-  Filter,
-  CheckCircle2,
   Lock,
   ArrowUpDown,
   Home,
   Sparkles,
   Info,
   Copy,
-  UserCheck,
   History,
   Bookmark,
-  X,
+  Flag,
+  AlertOctagon,
+  Ban,
   Eye,
   Check,
+  X,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { isUserAdmin } from "@/lib/adminConfig";
@@ -47,6 +45,7 @@ import { WatchlistItem } from "@/lib/watchlist";
 import {
   subscribeAllComments,
   deleteMovieComment,
+  unflagComment,
 } from "@/services/commentService";
 import {
   subscribeAllPublicCollections,
@@ -57,6 +56,7 @@ import {
   getUserCloudWatchHistory,
   getUserCloudWatchlist,
   deleteAllUserComments,
+  setUserCommentRestriction,
 } from "@/services/userService";
 import { StarRating } from "@/components/MovieReviews/StarRating";
 
@@ -79,6 +79,7 @@ export default function AdminDashboardPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [starFilter, setStarFilter] = useState<number | "all">("all");
   const [spoilerFilter, setSpoilerFilter] = useState<"all" | "spoiler" | "no_spoiler">("all");
+  const [flaggedFilter, setFlaggedFilter] = useState<"all" | "flagged" | "clean">("all");
   const [sortBy, setSortBy] = useState<SortOption>("newest");
 
   // Filter & Search states for members
@@ -253,6 +254,7 @@ export default function AdminDashboardPage() {
     const uniqueUsers = allMembers.length;
     const uniqueMovies = new Set(comments.map((c) => c.movieSlug)).size;
     const spoilerCount = comments.filter((c) => c.isSpoiler).length;
+    const flaggedCount = comments.filter((c) => c.isFlagged).length;
     const totalPublicCols = collections.length;
 
     // Phân bổ sao
@@ -269,6 +271,7 @@ export default function AdminDashboardPage() {
       uniqueUsers,
       uniqueMovies,
       spoilerCount,
+      flaggedCount,
       totalPublicCols,
       starDistribution,
     };
@@ -285,7 +288,8 @@ export default function AdminDashboardPage() {
           const matchSlug = item.movieSlug?.toLowerCase().includes(q);
           const matchTitle = item.movieTitle?.toLowerCase().includes(q);
           const matchContent = item.content?.toLowerCase().includes(q);
-          if (!matchUser && !matchEmail && !matchSlug && !matchTitle && !matchContent) {
+          const matchReason = item.flagReason?.toLowerCase().includes(q);
+          if (!matchUser && !matchEmail && !matchSlug && !matchTitle && !matchContent && !matchReason) {
             return false;
           }
         }
@@ -297,6 +301,9 @@ export default function AdminDashboardPage() {
         if (spoilerFilter === "spoiler" && !item.isSpoiler) return false;
         if (spoilerFilter === "no_spoiler" && item.isSpoiler) return false;
 
+        if (flaggedFilter === "flagged" && !item.isFlagged) return false;
+        if (flaggedFilter === "clean" && item.isFlagged) return false;
+
         return true;
       })
       .sort((a, b) => {
@@ -307,7 +314,40 @@ export default function AdminDashboardPage() {
         if (sortBy === "most_liked") return (b.likes || 0) - (a.likes || 0);
         return 0;
       });
-  }, [comments, searchQuery, starFilter, spoilerFilter, sortBy]);
+  }, [comments, searchQuery, starFilter, spoilerFilter, flaggedFilter, sortBy]);
+
+  // Handler: Unflag comment
+  const handleUnflagComment = async (comment: MovieComment) => {
+    try {
+      await unflagComment(comment.id);
+      toast.success("Đã gỡ cờ đánh dấu bình luận thành công!");
+    } catch (err) {
+      console.error("Lỗi gỡ cờ:", err);
+      toast.error("Không thể gỡ cờ đánh dấu!");
+    }
+  };
+
+  // Handler: Toggle User Comment Ban
+  const handleToggleUserCommentBan = async (member: MemberWithStats) => {
+    const willBan = !member.isCommentRestricted;
+    const confirmed = await showConfirmDialog({
+      title: willBan ? "Khóa quyền bình luận" : "Mở khóa quyền bình luận",
+      message: willBan
+        ? `Bạn có chắc muốn KHÓA quyền bình luận của thành viên "${member.displayName}" do vi phạm tiêu chuẩn cộng đồng?`
+        : `Mở lại quyền bình luận cho "${member.displayName}"?`,
+      confirmText: willBan ? "Khóa bình luận" : "Mở khóa",
+      cancelText: "Hủy",
+      variant: willBan ? "danger" : "info",
+    });
+    if (!confirmed) return;
+    try {
+      await setUserCommentRestriction(member.uid, willBan, willBan ? "Vi phạm thuần phong mỹ tục / Spam" : undefined);
+      toast.success(willBan ? `Đã khóa quyền bình luận của ${member.displayName}` : `Đã mở khóa bình luận cho ${member.displayName}`);
+    } catch (err) {
+      console.error("Lỗi cập nhật quyền bình luận:", err);
+      toast.error("Không thể cập nhật quyền bình luận!");
+    }
+  };
 
   // Filtered collections
   const filteredCollections = useMemo(() => {
@@ -597,7 +637,21 @@ export default function AdminDashboardPage() {
             <p className="text-[10px] text-gray-400 mt-1">Phim có bình luận</p>
           </div>
 
-          {/* Card 5: Spoilers */}
+          {/* Card 5: Flagged & Moderation (MỚI) */}
+          <div className="p-4 rounded-2xl bg-zinc-900/60 border border-white/10 hover:border-white/20 transition backdrop-blur-sm relative overflow-hidden group">
+            <div className="flex items-center justify-between text-gray-400 mb-2">
+              <span className="text-xs font-medium">Vi Phạm / Cờ</span>
+              <div className={`p-1.5 rounded-lg ${metrics.flaggedCount > 0 ? "bg-red-500/20 text-red-400" : "bg-zinc-800 text-gray-400"}`}>
+                <Flag size={16} className={metrics.flaggedCount > 0 ? "text-red-400 animate-pulse" : ""} />
+              </div>
+            </div>
+            <div className={`text-2xl font-black ${metrics.flaggedCount > 0 ? "text-red-400" : "text-white"} group-hover:scale-105 transition-transform origin-left`}>
+              {metrics.flaggedCount}
+            </div>
+            <p className="text-[10px] text-gray-400 mt-1">Cần Admin xét duyệt</p>
+          </div>
+
+          {/* Card 6: Spoilers */}
           <div className="p-4 rounded-2xl bg-zinc-900/60 border border-white/10 hover:border-white/20 transition backdrop-blur-sm relative overflow-hidden group">
             <div className="flex items-center justify-between text-gray-400 mb-2">
               <span className="text-xs font-medium">Cảnh Báo Spoil</span>
@@ -609,20 +663,6 @@ export default function AdminDashboardPage() {
               {metrics.spoilerCount}
             </div>
             <p className="text-[10px] text-gray-400 mt-1">Cảnh báo nội dung</p>
-          </div>
-
-          {/* Card 6: Public Collections */}
-          <div className="p-4 rounded-2xl bg-zinc-900/60 border border-white/10 hover:border-white/20 transition backdrop-blur-sm relative overflow-hidden group">
-            <div className="flex items-center justify-between text-gray-400 mb-2">
-              <span className="text-xs font-medium">Bộ Sưu Tập</span>
-              <div className="p-1.5 rounded-lg bg-teal-500/10 text-teal-400">
-                <FolderHeart size={16} />
-              </div>
-            </div>
-            <div className="text-2xl font-black text-white group-hover:scale-105 transition-transform origin-left">
-              {metrics.totalPublicCols}
-            </div>
-            <p className="text-[10px] text-gray-400 mt-1">Chia sẻ cộng đồng</p>
           </div>
         </div>
 
@@ -642,6 +682,11 @@ export default function AdminDashboardPage() {
             <span className="px-1.5 py-0.2 rounded-full bg-black/40 text-[10px] font-mono">
               {comments.length}
             </span>
+            {metrics.flaggedCount > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full bg-red-600 text-white text-[9px] font-bold animate-pulse">
+                {metrics.flaggedCount} vi phạm
+              </span>
+            )}
           </button>
 
           <button
@@ -701,7 +746,7 @@ export default function AdminDashboardPage() {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Tìm theo tên người dùng, email, phim, nội dung bình luận..."
+                  placeholder="Tìm theo tên người dùng, email, phim, nội dung bình luận, lý do vi phạm..."
                   className="w-full bg-black/60 border border-white/10 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-netflix-red transition"
                 />
                 {searchQuery && (
@@ -716,6 +761,36 @@ export default function AdminDashboardPage() {
               </div>
 
               <div className="flex items-center gap-2 flex-wrap">
+                {/* Moderation / Flagged Filter */}
+                <div className="flex items-center gap-1 bg-black/50 p-1 rounded-xl border border-white/10 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setFlaggedFilter("all")}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                      flaggedFilter === "all" ? "bg-white/15 text-white" : "text-gray-400 hover:text-white"
+                    }`}
+                  >
+                    Tất cả
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFlaggedFilter("flagged")}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1 ${
+                      flaggedFilter === "flagged"
+                        ? "bg-red-500/25 text-red-400 border border-red-500/40 font-bold shadow-sm"
+                        : "text-gray-400 hover:text-white"
+                    }`}
+                  >
+                    <Flag size={12} className={metrics.flaggedCount > 0 ? "text-red-400" : ""} />
+                    <span>🚨 Vi phạm</span>
+                    {metrics.flaggedCount > 0 && (
+                      <span className="px-1.5 py-0.2 rounded-full bg-red-600 text-white text-[9px] font-bold">
+                        {metrics.flaggedCount}
+                      </span>
+                    )}
+                  </button>
+                </div>
+
                 {/* Star Filter */}
                 <div className="flex items-center gap-1 bg-black/50 p-1 rounded-xl border border-white/10 text-xs">
                   <span className="text-[11px] text-gray-400 px-2 flex items-center gap-1">
@@ -824,126 +899,202 @@ export default function AdminDashboardPage() {
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-3">
-                {filteredComments.map((item) => (
-                  <div
-                    key={item.id}
-                    className="p-4 sm:p-5 rounded-2xl bg-zinc-900/60 border border-white/10 hover:border-white/20 transition backdrop-blur-sm flex flex-col sm:flex-row sm:items-start justify-between gap-4 group"
-                  >
-                    {/* Left: User & Content */}
-                    <div className="flex-1 min-w-0 space-y-2.5">
-                      <div className="flex items-center gap-3 flex-wrap">
-                        <div className="w-8 h-8 rounded-full bg-netflix-red flex items-center justify-center text-xs font-bold text-white uppercase overflow-hidden relative border border-white/15 flex-shrink-0">
-                          {item.userAvatar ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={item.userAvatar}
-                              alt={item.userName}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                e.currentTarget.style.display = "none";
-                              }}
-                            />
-                          ) : (
-                            <span>{item.userName ? item.userName[0] : "U"}</span>
+                {filteredComments.map((item) => {
+                  const itemUser = allMembers.find((m) => m.uid === item.userId);
+                  const isUserRestricted = Boolean(itemUser?.isCommentRestricted);
+
+                  return (
+                    <div
+                      key={item.id}
+                      className={`p-4 sm:p-5 rounded-2xl transition backdrop-blur-sm flex flex-col sm:flex-row sm:items-start justify-between gap-4 group ${
+                        item.isFlagged
+                          ? "bg-red-950/20 border-2 border-red-500/40 shadow-lg shadow-red-950/30 hover:border-red-500/60"
+                          : "bg-zinc-900/60 border border-white/10 hover:border-white/20"
+                      }`}
+                    >
+                      {/* Left: User & Content */}
+                      <div className="flex-1 min-w-0 space-y-2.5">
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <div className="w-8 h-8 rounded-full bg-netflix-red flex items-center justify-center text-xs font-bold text-white uppercase overflow-hidden relative border border-white/15 flex-shrink-0">
+                            {item.userAvatar ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={item.userAvatar}
+                                alt={item.userName}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = "none";
+                                }}
+                              />
+                            ) : (
+                              <span>{item.userName ? item.userName[0] : "U"}</span>
+                            )}
+                          </div>
+
+                          <div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-xs font-bold text-white">{item.userName}</span>
+                              {item.userEmail && (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-gray-400 font-mono">
+                                  {item.userEmail}
+                                </span>
+                              )}
+                              {isUserRestricted && (
+                                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-red-500/20 border border-red-500/30 text-red-300 font-bold flex items-center gap-1">
+                                  <Ban size={10} />
+                                  <span>Bị cấm cmt</span>
+                                </span>
+                              )}
+                              <span className="text-[10px] text-gray-500 flex items-center gap-1">
+                                <Clock size={11} />
+                                {formatDate(item.createdAt)}
+                              </span>
+                            </div>
+                          </div>
+
+                          {item.rating > 0 && (
+                            <div className="ml-auto sm:ml-0">
+                              <StarRating value={item.rating} size="sm" readOnly />
+                            </div>
                           )}
                         </div>
 
-                        <div>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-xs font-bold text-white">{item.userName}</span>
-                            {item.userEmail && (
-                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-gray-400 font-mono">
-                                {item.userEmail}
-                              </span>
-                            )}
-                            <span className="text-[10px] text-gray-500 flex items-center gap-1">
-                              <Clock size={11} />
-                              {formatDate(item.createdAt)}
+                        {/* Movie tag & Episode info */}
+                        <div className="flex items-center gap-2 flex-wrap text-xs">
+                          <span className="text-gray-400 text-[11px]">Phim:</span>
+                          <Link
+                            href={`/movies/${item.movieSlug}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-netflix-red/15 border border-netflix-red/30 text-red-300 hover:text-white hover:bg-netflix-red/25 transition text-xs font-semibold"
+                          >
+                            <Film size={12} />
+                            <span>{item.movieTitle || item.movieSlug}</span>
+                            <ExternalLink size={11} className="opacity-70" />
+                          </Link>
+
+                          {item.episodeName && (
+                            <span className="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-[11px] text-gray-300">
+                              {item.episodeName}
                             </span>
-                          </div>
+                          )}
+
+                          {item.isFlagged && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-red-600/30 border border-red-500/50 text-[10px] text-red-300 font-bold animate-pulse">
+                              <Flag size={11} className="fill-red-400 text-red-400" />
+                              <span>BỊ ĐÁNH DẤU VI PHẠM</span>
+                            </span>
+                          )}
+
+                          {item.isSpoiler && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-500/20 border border-rose-500/30 text-[10px] text-rose-400 font-bold">
+                              <AlertTriangle size={11} />
+                              <span>Cảnh Báo Spoil</span>
+                            </span>
+                          )}
+
+                          {item.parentId ? (
+                            <span className="px-2 py-0.5 rounded-md bg-blue-500/20 border border-blue-500/30 text-[10px] text-blue-300 font-medium">
+                              💬 Trả lời
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-md bg-amber-500/20 border border-amber-500/30 text-[10px] text-amber-300 font-medium">
+                              ⭐ Đánh giá
+                            </span>
+                          )}
+
+                          {item.likes > 0 && (
+                            <span className="inline-flex items-center gap-1 text-[11px] text-rose-400 font-medium">
+                              <Heart size={11} className="fill-rose-500 text-rose-500" />
+                              <span>{item.likes} lượt thích</span>
+                            </span>
+                          )}
                         </div>
 
-                        {item.rating > 0 && (
-                          <div className="ml-auto sm:ml-0">
-                            <StarRating value={item.rating} size="sm" readOnly />
+                        {/* Moderation Warning Banner */}
+                        {item.isFlagged && (
+                          <div className="p-3 rounded-xl bg-red-950/40 border border-red-500/40 text-xs space-y-1.5">
+                            <div className="flex items-center gap-1.5 text-red-400 font-bold">
+                              <ShieldAlert size={14} className="text-red-400 flex-shrink-0" />
+                              <span>Hệ thống kiểm duyệt phát hiện nội dung nhạy cảm / không đúng thuần phong mỹ tục</span>
+                            </div>
+                            <p className="text-red-200/90 text-[11px]">
+                              <strong className="text-red-300">Lý do:</strong> {item.flagReason || "Chứa từ cấm hoặc hành vi spam"}
+                            </p>
+                            {item.flaggedKeywords && item.flaggedKeywords.length > 0 && (
+                              <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                                <span className="text-[10px] text-red-300 font-medium">Từ khóa phát hiện:</span>
+                                {item.flaggedKeywords.map((kw, i) => (
+                                  <span
+                                    key={i}
+                                    className="px-1.5 py-0.2 rounded bg-red-900/80 border border-red-500/40 text-red-100 text-[10px] font-mono font-bold"
+                                  >
+                                    {kw}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         )}
+
+                        {/* Content */}
+                        <div className="text-xs text-gray-200 leading-relaxed bg-black/40 p-3 rounded-xl border border-white/5 whitespace-pre-wrap font-sans">
+                          &ldquo;{item.content}&rdquo;
+                        </div>
                       </div>
 
-                      {/* Movie tag & Episode info */}
-                      <div className="flex items-center gap-2 flex-wrap text-xs">
-                        <span className="text-gray-400 text-[11px]">Phim:</span>
+                      {/* Actions */}
+                      <div className="flex sm:flex-col items-center gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-white/10 flex-shrink-0">
                         <Link
                           href={`/movies/${item.movieSlug}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-netflix-red/15 border border-netflix-red/30 text-red-300 hover:text-white hover:bg-netflix-red/25 transition text-xs font-semibold"
+                          className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-gray-200 hover:text-white text-xs font-medium transition flex items-center gap-1.5"
                         >
-                          <Film size={12} />
-                          <span>{item.movieTitle || item.movieSlug}</span>
-                          <ExternalLink size={11} className="opacity-70" />
+                          <ExternalLink size={13} />
+                          <span>Xem phim</span>
                         </Link>
 
-                        {item.episodeName && (
-                          <span className="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-[11px] text-gray-300">
-                            {item.episodeName}
-                          </span>
+                        {item.isFlagged && (
+                          <button
+                            type="button"
+                            onClick={() => handleUnflagComment(item)}
+                            className="px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 transition cursor-pointer text-xs font-semibold flex items-center gap-1.5 shadow-sm active:scale-95"
+                            title="Gỡ cờ & duyệt bình luận này hợp lệ"
+                          >
+                            <ShieldCheck size={13} />
+                            <span>Gỡ cờ</span>
+                          </button>
                         )}
 
-                        {item.isSpoiler && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-500/20 border border-rose-500/30 text-[10px] text-rose-400 font-bold">
-                            <AlertTriangle size={11} />
-                            <span>Cảnh Báo Spoil</span>
-                          </span>
+                        {itemUser && (
+                          <button
+                            type="button"
+                            onClick={() => handleToggleUserCommentBan(itemUser)}
+                            className={`px-3 py-1.5 rounded-xl border transition cursor-pointer text-xs font-semibold flex items-center gap-1.5 shadow-sm active:scale-95 ${
+                              isUserRestricted
+                                ? "bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border-emerald-500/30"
+                                : "bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border-amber-500/30"
+                            }`}
+                            title={isUserRestricted ? "Mở lại quyền bình luận" : "Khóa quyền bình luận thành viên"}
+                          >
+                            {isUserRestricted ? <ShieldCheck size={13} /> : <Ban size={13} />}
+                            <span>{isUserRestricted ? "Mở cmt" : "Khóa cmt"}</span>
+                          </button>
                         )}
 
-                        {item.parentId ? (
-                          <span className="px-2 py-0.5 rounded-md bg-blue-500/20 border border-blue-500/30 text-[10px] text-blue-300 font-medium">
-                            💬 Trả lời
-                          </span>
-                        ) : (
-                          <span className="px-2 py-0.5 rounded-md bg-amber-500/20 border border-amber-500/30 text-[10px] text-amber-300 font-medium">
-                            ⭐ Đánh giá
-                          </span>
-                        )}
-
-                        {item.likes > 0 && (
-                          <span className="inline-flex items-center gap-1 text-[11px] text-rose-400 font-medium">
-                            <Heart size={11} className="fill-rose-500 text-rose-500" />
-                            <span>{item.likes} lượt thích</span>
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Content */}
-                      <div className="text-xs text-gray-200 leading-relaxed bg-black/40 p-3 rounded-xl border border-white/5 whitespace-pre-wrap font-sans">
-                        &ldquo;{item.content}&rdquo;
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteComment(item)}
+                          className="px-3 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/20 transition cursor-pointer text-xs font-medium flex items-center gap-1.5 shadow-sm active:scale-95"
+                        >
+                          <Trash2 size={13} />
+                          <span>Xóa bỏ</span>
+                        </button>
                       </div>
                     </div>
-
-                    {/* Actions */}
-                    <div className="flex sm:flex-col items-center gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-white/10 flex-shrink-0">
-                      <Link
-                        href={`/movies/${item.movieSlug}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-gray-200 hover:text-white text-xs font-medium transition flex items-center gap-1.5"
-                      >
-                        <ExternalLink size={13} />
-                        <span>Xem phim</span>
-                      </Link>
-
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteComment(item)}
-                        className="px-3 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/20 transition cursor-pointer text-xs font-medium flex items-center gap-1.5 shadow-sm active:scale-95"
-                      >
-                        <Trash2 size={13} />
-                        <span>Xóa bỏ</span>
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -1104,6 +1255,14 @@ export default function AdminDashboardPage() {
                           </button>
                         </div>
 
+                        {/* Member restriction status */}
+                        {m.isCommentRestricted && (
+                          <div className="p-2 rounded-xl bg-red-500/15 border border-red-500/30 text-[11px] text-red-300 flex items-center gap-1.5 font-medium mb-3">
+                            <Ban size={13} className="text-red-400 flex-shrink-0" />
+                            <span className="truncate">Đang bị khóa quyền bình luận</span>
+                          </div>
+                        )}
+
                         {/* Member stats chips */}
                         <div className="grid grid-cols-2 gap-2 text-xs">
                           <div className="p-2 rounded-xl bg-white/[0.03] border border-white/5">
@@ -1123,10 +1282,18 @@ export default function AdminDashboardPage() {
                           </div>
                         </div>
 
-                        <p className="text-[10px] text-gray-500 mt-2.5 flex items-center gap-1">
-                          <Clock size={11} />
-                          <span>Lần hoạt động: {formatDate(m.lastLoginAt)}</span>
-                        </p>
+                        <div className="flex items-center justify-between mt-2.5 text-[10px] text-gray-500 flex-wrap gap-1">
+                          <span className="flex items-center gap-1">
+                            <Clock size={11} />
+                            <span>Lần hoạt động: {formatDate(m.lastLoginAt)}</span>
+                          </span>
+                          {m.violationsCount && m.violationsCount > 0 ? (
+                            <span className="text-red-400 font-semibold flex items-center gap-1">
+                              <AlertOctagon size={11} />
+                              <span>{m.violationsCount} lần vi phạm</span>
+                            </span>
+                          ) : null}
+                        </div>
                       </div>
 
                       {/* Action buttons */}
@@ -1138,6 +1305,19 @@ export default function AdminDashboardPage() {
                         >
                           <Eye size={13} />
                           <span>Chi Tiết Hoạt Động</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleToggleUserCommentBan(m)}
+                          className={`p-2 rounded-xl border transition cursor-pointer flex items-center justify-center ${
+                            m.isCommentRestricted
+                              ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/25"
+                              : "bg-amber-500/10 text-amber-300 border-amber-500/20 hover:bg-amber-500/20"
+                          }`}
+                          title={m.isCommentRestricted ? "Mở khóa quyền bình luận" : "Khóa quyền bình luận thành viên"}
+                        >
+                          {m.isCommentRestricted ? <ShieldCheck size={15} /> : <Ban size={15} />}
                         </button>
 
                         {m.commentsCount > 0 && (
@@ -1332,7 +1512,7 @@ export default function AdminDashboardPage() {
                     )}
                   </div>
                   <div className="min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <h2 className="text-base font-bold text-white truncate">
                         {selectedMember.displayName}
                       </h2>
@@ -1341,19 +1521,48 @@ export default function AdminDashboardPage() {
                           👑 Admin
                         </span>
                       )}
+                      {selectedMember.isCommentRestricted && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/20 text-red-300 font-bold border border-red-500/30 flex items-center gap-1">
+                          <Ban size={10} />
+                          <span>Bị khóa bình luận</span>
+                        </span>
+                      )}
+                      {selectedMember.violationsCount && selectedMember.violationsCount > 0 ? (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/30">
+                          ⚠️ {selectedMember.violationsCount} vi phạm
+                        </span>
+                      ) : null}
                     </div>
                     <p className="text-xs text-gray-400 truncate">{selectedMember.email || "Chưa có email"}</p>
                     <p className="text-[11px] text-gray-500 font-mono mt-0.5">UID: {selectedMember.uid}</p>
                   </div>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => setSelectedMember(null)}
-                  className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition cursor-pointer"
-                >
-                  <X size={18} />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleToggleUserCommentBan(selectedMember);
+                      setSelectedMember((prev) => prev ? { ...prev, isCommentRestricted: !prev.isCommentRestricted } : null);
+                    }}
+                    className={`px-3 py-1.5 rounded-xl border text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
+                      selectedMember.isCommentRestricted
+                        ? "bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border-emerald-500/30"
+                        : "bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border-amber-500/30"
+                    }`}
+                  >
+                    {selectedMember.isCommentRestricted ? <ShieldCheck size={14} /> : <Ban size={14} />}
+                    <span>{selectedMember.isCommentRestricted ? "Mở khóa bình luận" : "Khóa quyền bình luận"}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedMember(null)}
+                    className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition cursor-pointer"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
               </div>
 
               {/* Modal Tabs */}
@@ -1447,24 +1656,43 @@ export default function AdminDashboardPage() {
                               <span className="text-[10px] text-gray-500">{formatDate(c.createdAt)}</span>
                             </div>
 
+                            {c.isFlagged && (
+                              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[11px]">
+                                <ShieldCheck size={13} className="flex-shrink-0 text-amber-400" />
+                                <span>Bình luận này đã bị báo cáo vi phạm.</span>
+                              </div>
+                            )}
+
                             {c.rating > 0 && <StarRating value={c.rating} size="sm" readOnly />}
 
                             <p className="text-gray-300 bg-black/40 p-2.5 rounded-lg border border-white/5">
                               &ldquo;{c.content}&rdquo;
                             </p>
 
-                            <div className="flex items-center justify-between pt-1">
+                            <div className="flex items-center justify-between pt-1 flex-wrap gap-2">
                               <span className="text-[10px] text-gray-500">
                                 {c.likes > 0 ? `${c.likes} lượt thích` : "0 lượt thích"}
                               </span>
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteComment(c)}
-                                className="text-[11px] text-red-400 hover:text-red-300 flex items-center gap-1 cursor-pointer"
-                              >
-                                <Trash2 size={12} />
-                                <span>Xóa bình luận này</span>
-                              </button>
+                              <div className="flex items-center gap-3">
+                                {c.isFlagged && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleUnflagComment(c)}
+                                    className="text-[11px] text-emerald-400 hover:text-emerald-300 flex items-center gap-1 cursor-pointer font-medium"
+                                  >
+                                    <ShieldCheck size={12} />
+                                    <span>Gỡ cờ</span>
+                                  </button>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteComment(c)}
+                                  className="text-[11px] text-red-400 hover:text-red-300 flex items-center gap-1 cursor-pointer"
+                                >
+                                  <Trash2 size={12} />
+                                  <span>Xóa bình luận này</span>
+                                </button>
+                              </div>
                             </div>
                           </div>
                         ))}

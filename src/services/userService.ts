@@ -81,6 +81,10 @@ export function subscribeAllUsers(
             createdAt: data.createdAt || data.lastLoginAt || Date.now(),
             lastLoginAt: data.lastLoginAt || Date.now(),
             role: data.role || (isUserAdmin(data.email) ? "admin" : "member"),
+            isCommentRestricted: Boolean(data.isCommentRestricted),
+            violationsCount: Number(data.violationsCount || 0),
+            lastViolationAt: data.lastViolationAt,
+            lastViolationReason: data.lastViolationReason,
           });
         }
       });
@@ -93,6 +97,31 @@ export function subscribeAllUsers(
       if (onError) onError(error);
     }
   );
+}
+
+/**
+ * Khóa hoặc Mở khóa quyền bình luận của một thành viên (Dành cho Quản trị viên)
+ */
+export async function setUserCommentRestriction(
+  userId: string,
+  isRestricted: boolean,
+  reason?: string
+): Promise<void> {
+  if (!db || !userId) return;
+  try {
+    const userRef = doc(db, USERS_COLLECTION, userId);
+    await setDoc(
+      userRef,
+      {
+        isCommentRestricted: isRestricted,
+        ...(reason ? { lastViolationReason: reason } : {}),
+      },
+      { merge: true }
+    );
+  } catch (err) {
+    console.error("Lỗi cập nhật quyền bình luận của user:", err);
+    throw err;
+  }
 }
 
 /**

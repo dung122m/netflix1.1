@@ -24,6 +24,12 @@ export interface MovieComment {
   replyToUserId?: string;   // ID của user được reply trực tiếp trong thread
   replyToUserName?: string; // Tên của user được reply trực tiếp trong thread
   replyCount?: number;  // Số lượng replies (đếm client-side)
+  // --- Moderation & Admin Flagging ---
+  isFlagged?: boolean;          // Đánh dấu vi phạm thuần phong mỹ tục hoặc spam
+  flagReason?: string;         // Lý do bị đánh dấu (vd: "Từ ngữ thô tục", "Spam liên tục")
+  flaggedAt?: number;          // Thời điểm bị đánh dấu
+  flaggedKeywords?: string[];  // Danh sách từ cấm bị phát hiện
+  violationCount?: number;     // Số lần user cố tình thử gửi từ cấm
 }
 
 export interface MovieRatingStats {

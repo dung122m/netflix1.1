@@ -24,7 +24,9 @@ import {
   setCommentReaction,
   deleteMovieComment,
   calculateMovieRatingStats,
+  reportCommentViolation,
 } from "@/services/commentService";
+import { checkContentModeration } from "@/lib/contentModeration";
 import { StarRating } from "./StarRating";
 import { CommentItem } from "./CommentItem";
 
@@ -164,6 +166,29 @@ export const MovieCommentsSection: React.FC<MovieCommentsSectionProps> = ({
     const trimmed = content.trim();
     if (!trimmed) {
       toast.error("Vui lòng nhập nội dung bình luận!");
+      return;
+    }
+
+    // 1. Kiểm tra từ ngữ cấm & spam
+    const modCheck = checkContentModeration(trimmed);
+    if (!modCheck.isAllowed) {
+      // Báo cáo vi phạm cho Admin
+      reportCommentViolation({
+        userId: user.uid,
+        userName: user.displayName || "Thành viên Nanaflix",
+        userEmail: user.email || undefined,
+        userAvatar: user.photoURL || undefined,
+        movieSlug,
+        movieTitle,
+        attemptedContent: trimmed,
+        reason: modCheck.reason || "Sử dụng từ ngữ không phù hợp thuần phong mỹ tục",
+        violations: modCheck.violations,
+        isSpam: modCheck.isSpam,
+      }).catch(() => {});
+
+      toast.error(
+        modCheck.reason || "Bình luận chứa từ ngữ không phù hợp thuần phong mỹ tục. Hành vi cố ý spam sẽ bị khóa tài khoản!"
+      );
       return;
     }
 

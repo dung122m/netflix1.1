@@ -4,6 +4,7 @@ import {
   addDoc,
   deleteDoc,
   updateDoc,
+  getDoc,
   query,
   where,
   limit,
@@ -18,9 +19,11 @@ import {
 import { db } from "@/lib/firebase";
 import { MovieComment, MovieRatingStats, CommentReactionType } from "@/types/comment";
 import { UserNotification } from "@/types/notification";
+import { checkContentModeration } from "@/lib/contentModeration";
 
 const COLLECTION_NAME = "movie_comments";
 const USERS_COLLECTION = "users";
+const VIOLATIONS_COLLECTION = "admin_violations";
 
 // Hàm làm sạch dữ liệu trước khi gửi lên Firestore để tránh lỗi 'undefined'
 function sanitizeCommentData(data: Record<string, unknown>): Record<string, unknown> {
@@ -155,13 +158,124 @@ export function subscribeAllComments(
 
 
 /**
- * Thêm một bình luận hoặc đánh giá mới cho phim
+ * Báo cáo hoặc tự động ghi nhận vi phạm thuần phong mỹ tục / spam cho Quản trị viên
+ */
+export async function reportCommentViolation(params: {
+  userId: string;
+  userName: string;
+  userEmail?: string;
+  userAvatar?: string;
+  movieSlug: string;
+  movieTitle?: string;
+  attemptedContent: string;
+  reason: string;
+  violations: string[];
+  isSpam?: boolean;
+  commentId?: string;
+}): Promise<void> {
+  if (!db || !params.userId) return;
+
+  try {
+    const violationId = `viol_${params.userId}_${Date.now()}`;
+    const violRef = doc(db, VIOLATIONS_COLLECTION, violationId);
+
+    // 1. Lưu bản ghi chi tiết vi phạm vào admin_violations
+    await setDoc(
+      violRef,
+      sanitizeCommentData({
+        id: violationId,
+        userId: params.userId,
+        userName: params.userName,
+        userEmail: params.userEmail || "",
+        userAvatar: params.userAvatar || "",
+        movieSlug: params.movieSlug,
+        movieTitle: params.movieTitle || "",
+        attemptedContent: params.attemptedContent,
+        reason: params.reason,
+        violations: params.violations,
+        isSpam: Boolean(params.isSpam),
+        commentId: params.commentId || "",
+        createdAt: Date.now(),
+        status: "pending_admin_review",
+      })
+    );
+
+    // 2. Cập nhật hồ sơ thành viên (tăng số lần vi phạm)
+    const userRef = doc(db, USERS_COLLECTION, params.userId);
+    const userSnap = await getDoc(userRef);
+    const currentViolations = userSnap.exists() ? Number(userSnap.data()?.violationsCount || 0) : 0;
+    const newViolationsCount = currentViolations + 1;
+
+    await setDoc(
+      userRef,
+      sanitizeCommentData({
+        violationsCount: newViolationsCount,
+        lastViolationAt: Date.now(),
+        lastViolationReason: params.reason,
+        // Tự động hạn chế quyền bình luận nếu cố tình vi phạm từ 3 lần trở lên
+        isCommentRestricted: newViolationsCount >= 3,
+      }),
+      { merge: true }
+    );
+  } catch (err) {
+    console.warn("Lỗi ghi nhận vi phạm vào Firestore:", err);
+  }
+}
+
+/**
+ * Gỡ cờ đánh dấu bình luận (Dành cho Quản trị viên duyệt lại bình luận hợp lệ)
+ */
+export async function unflagComment(commentId: string): Promise<void> {
+  if (!db || !commentId) return;
+  try {
+    const docRef = doc(db, COLLECTION_NAME, commentId);
+    await updateDoc(docRef, {
+      isFlagged: false,
+      flagReason: deleteField(),
+      flaggedKeywords: deleteField(),
+      flaggedAt: deleteField(),
+    });
+  } catch (err) {
+    console.error("Lỗi gỡ đánh dấu bình luận:", err);
+    throw err;
+  }
+}
+
+/**
+ * Thêm một bình luận hoặc đánh giá mới cho phim (Có kiểm duyệt nội dung)
  */
 export async function addMovieComment(
   comment: Omit<MovieComment, "id" | "likes" | "likedBy" | "createdAt">,
 ): Promise<string> {
   if (!db) {
     throw new Error("Chưa kết nối được cơ sở dữ liệu Firebase!");
+  }
+
+  // 1. Kiểm tra tài khoản có đang bị hạn chế bình luận không
+  const userRef = doc(db, USERS_COLLECTION, comment.userId);
+  const userSnap = await getDoc(userRef);
+  if (userSnap.exists() && userSnap.data()?.isCommentRestricted) {
+    throw new Error("Tài khoản của bạn tạm thời bị khóa tính năng bình luận do vi phạm tiêu chuẩn cộng đồng nhiều lần!");
+  }
+
+  // 2. Kiểm duyệt nội dung từ ngữ & spam
+  const modCheck = checkContentModeration(comment.content);
+  if (!modCheck.isAllowed) {
+    // Tự động ghi nhận vi phạm cho Admin
+    reportCommentViolation({
+      userId: comment.userId,
+      userName: comment.userName,
+      userEmail: comment.userEmail,
+      userAvatar: comment.userAvatar,
+      movieSlug: comment.movieSlug,
+      movieTitle: comment.movieTitle,
+      attemptedContent: comment.content,
+      reason: modCheck.reason || "Sử dụng từ ngữ không phù hợp thuần phong mỹ tục",
+      violations: modCheck.violations,
+      isSpam: modCheck.isSpam,
+    }).catch(() => {});
+
+    throw new Error(modCheck.reason || "Nội dung vi phạm tiêu chuẩn cộng đồng!");
   }
 
   const commentsRef = collection(db, COLLECTION_NAME);
@@ -177,7 +291,7 @@ export async function addMovieComment(
 }
 
 /**
- * Thêm reply cho một bình luận và gửi thông báo cho người được trả lời
+ * Thêm reply cho một bình luận và gửi thông báo cho người được trả lời (Có kiểm duyệt)
  */
 export async function addReplyComment(params: {
   parentId: string;
@@ -190,6 +304,7 @@ export async function addReplyComment(params: {
   userId: string;
   userName: string;
   userAvatar?: string;
+  userEmail?: string;
   content: string;
   isSpoiler?: boolean;
 }): Promise<string> {
@@ -197,16 +312,43 @@ export async function addReplyComment(params: {
     throw new Error("Chưa kết nối được cơ sở dữ liệu Firebase!");
   }
 
+  // 1. Kiểm tra hạn chế tài khoản
+  const userRef = doc(db, USERS_COLLECTION, params.userId);
+  const userSnap = await getDoc(userRef);
+  if (userSnap.exists() && userSnap.data()?.isCommentRestricted) {
+    throw new Error("Tài khoản của bạn tạm thời bị khóa tính năng bình luận do vi phạm tiêu chuẩn cộng đồng nhiều lần!");
+  }
+
+  // 2. Kiểm duyệt nội dung phản hồi
+  const modCheck = checkContentModeration(params.content);
+  if (!modCheck.isAllowed) {
+    reportCommentViolation({
+      userId: params.userId,
+      userName: params.userName,
+      userEmail: params.userEmail,
+      userAvatar: params.userAvatar,
+      movieSlug: params.movieSlug,
+      movieTitle: params.movieTitle,
+      attemptedContent: params.content,
+      reason: modCheck.reason || "Sử dụng từ ngữ không phù hợp thuần phong mỹ tục trong phản hồi",
+      violations: modCheck.violations,
+      isSpam: modCheck.isSpam,
+      commentId: params.parentId,
+    }).catch(() => {});
+
+    throw new Error(modCheck.reason || "Nội dung phản hồi vi phạm tiêu chuẩn cộng đồng!");
+  }
+
   const { parentId, parentOwnerId, parentOwnerName, replyToUserId, replyToUserName, ...replyData } = params;
 
-  // 1. Lưu reply vào Firestore (dùng chung collection movie_comments với parentId)
+  // 3. Lưu reply vào Firestore
   const commentsRef = collection(db, COLLECTION_NAME);
   const newReply = sanitizeCommentData({
     ...replyData,
     parentId,
     replyToUserId,
     replyToUserName,
-    rating: 0, // Reply không có rating
+    rating: 0,
     likes: 0,
     likedBy: [],
     createdAt: Date.now(),
@@ -214,8 +356,7 @@ export async function addReplyComment(params: {
 
   const docRef = await addDoc(commentsRef, newReply);
 
-  // 2. Gửi thông báo
-  // A. Gửi cho người được reply trực tiếp (nếu có và không phải chính họ)
+  // 4. Gửi thông báo
   if (replyToUserId && replyToUserId !== params.userId) {
     try {
       const notifId = `reply_target_${docRef.id}`;
@@ -239,7 +380,6 @@ export async function addReplyComment(params: {
     } catch {}
   }
 
-  // B. Gửi cho chủ bài đánh giá gốc (nếu khác người gửi và khác người ở mục A)
   if (parentOwnerId && parentOwnerId !== params.userId && parentOwnerId !== replyToUserId) {
     try {
       const notifId = `reply_root_${docRef.id}`;
@@ -263,9 +403,7 @@ export async function addReplyComment(params: {
     } catch {}
   }
 
-  // Suppress unused variable warning
   void parentOwnerName;
-
   return docRef.id;
 }
 
