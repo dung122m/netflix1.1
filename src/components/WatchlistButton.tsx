@@ -70,10 +70,10 @@ export const WatchlistButton: React.FC<WatchlistButtonProps> = ({
       <button
         type="button"
         disabled
-        className={`inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-zinc-900/60 px-3 py-1 text-xs md:text-sm font-medium text-gray-500 opacity-60 ${className}`}
+        className={`inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-zinc-900/60 px-3 py-1.5 text-xs font-medium text-gray-500 opacity-60 flex-shrink-0 ${className}`}
       >
-        <Bookmark className="h-3.5 w-3.5" />
-        <span>Yêu thích</span>
+        <Bookmark className="h-3.5 w-3.5 flex-shrink-0" />
+        <span className="hidden sm:inline">Yêu thích</span>
       </button>
     );
   }
@@ -112,7 +112,7 @@ export const WatchlistButton: React.FC<WatchlistButtonProps> = ({
       type="button"
       onClick={handleToggle}
       title={inList ? "Đã lưu vào danh sách yêu thích" : "Thêm vào danh sách yêu thích"}
-      className={`inline-flex items-center gap-1.5 rounded-lg border transition-all cursor-pointer active:scale-95 px-3.5 py-1.5 text-xs sm:text-sm font-medium shadow-sm ${
+      className={`inline-flex items-center gap-1.5 rounded-lg border transition-all cursor-pointer active:scale-95 px-3 sm:px-3.5 py-1.5 text-xs sm:text-sm font-medium shadow-sm flex-shrink-0 ${
         inList
           ? "bg-amber-500/20 border-amber-500/40 text-amber-300 hover:bg-amber-500/30"
           : "border-white/15 bg-zinc-900/80 text-gray-200 hover:bg-white/10 hover:text-white"
@@ -120,13 +120,13 @@ export const WatchlistButton: React.FC<WatchlistButtonProps> = ({
     >
       {inList ? (
         <>
-          <Check className="h-3.5 w-3.5 text-amber-400" />
-          <span className="font-semibold text-amber-300">Đã lưu</span>
+          <Check className="h-3.5 w-3.5 text-amber-400 flex-shrink-0" />
+          <span className="hidden xs:inline sm:inline">Đã lưu</span>
         </>
       ) : (
         <>
-          <Bookmark className="h-3.5 w-3.5 text-amber-400" />
-          <span>Yêu thích</span>
+          <Bookmark className="h-3.5 w-3.5 text-amber-400 flex-shrink-0" />
+          <span className="hidden xs:inline sm:inline">Yêu thích</span>
         </>
       )}
     </button>

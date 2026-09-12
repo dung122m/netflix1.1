@@ -31,13 +31,16 @@ if (typeof window !== "undefined" && isFirebaseConfigured()) {
   try {
     app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
     auth = getAuth(app);
-    
-    // Sử dụng experimentalForceLongPolling để khắc phục triệt để lỗi WebChannel transport errored trên localhost/Adblock
+
+    // ForceLongPolling: bỏ qua hoàn toàn WebChannel (hay bị block bởi Adblocker/Extension)
+    // ignoreUndefinedProperties: tránh lỗi "Cannot serialize undefined" khi ghi Firestore
     try {
       db = initializeFirestore(app, {
         experimentalForceLongPolling: true,
+        ignoreUndefinedProperties: true,
       });
     } catch {
+      // initializeFirestore ném lỗi nếu đã có instance → dùng getFirestore
       db = getFirestore(app);
     }
   } catch (error) {

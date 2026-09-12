@@ -302,7 +302,7 @@ export default async function MovieDetail({
         initialEpisodeSlug={ep || serverData[0]?.slug}
         isTrailerOnly={isTrailerOnly}
       >
-        <div className="w-full pt-[56px] md:pt-[66px] bg-black px-2 sm:px-4 md:px-8">
+        <div className="w-full pt-[56px] md:pt-[66px] bg-black px-0 sm:px-2 md:px-6">
           {/* BANNER XEM TIẾP NẾU CÓ TẬP XEM DỞ TRƯỚC ĐÓ */}
           <ResumeEpisodeBanner
             movieSlug={movie.slug}
@@ -310,7 +310,7 @@ export default async function MovieDetail({
           />
 
         {/* BREADCRUMB */}
-        <div className="max-w-7xl mx-auto py-1.5 flex items-center gap-2 text-xs sm:text-sm text-gray-400">
+        <div className="max-w-7xl mx-auto py-1.5 px-3 sm:px-4 flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-gray-400 overflow-hidden">
           <Link href="/browse" className="hover:text-white transition">
             Trang chủ
           </Link>
@@ -326,7 +326,7 @@ export default async function MovieDetail({
               <span className="text-gray-600">/</span>
             </>
           )}
-          <span className="text-gray-200 font-medium truncate max-w-[220px] sm:max-w-none">
+          <span className="text-gray-200 font-medium truncate max-w-[150px] xs:max-w-[200px] sm:max-w-none">
             {title}
           </span>
         </div>
@@ -346,9 +346,9 @@ export default async function MovieDetail({
         />
       </div>
 
-      <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-8 mt-6 sm:mt-8 md:mt-10 grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6">
-        <div className="lg:col-span-8 space-y-5 sm:space-y-6">
-          <div className="rounded-3xl border border-white/15 bg-gradient-to-b from-zinc-900/80 via-zinc-950/85 to-black/90 p-5 sm:p-6 md:p-8 backdrop-blur-xl shadow-2xl">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-8 mt-4 sm:mt-6 md:mt-10 grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 sm:gap-6">
+        <div className="lg:col-span-8 space-y-4 sm:space-y-5 sm:space-y-6">
+          <div className="rounded-2xl sm:rounded-3xl border border-white/15 bg-gradient-to-b from-zinc-900/80 via-zinc-950/85 to-black/90 p-4 sm:p-6 md:p-8 backdrop-blur-xl shadow-2xl">
             <h1 className="text-2xl sm:text-3xl md:text-5xl font-extrabold leading-tight">
               <span>{title}</span>{" "}
               {movie.origin_name && movie.origin_name !== title && (
@@ -420,38 +420,44 @@ export default async function MovieDetail({
               )}
             </div>
 
-            {/* THANH NÚT TÁC VỤ THOÁNG ĐÃNG & RÕ RÀNG (ACTION TOOLBAR) */}
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-4 sm:mt-5 pt-3.5 border-t border-white/10">
-              {/* Nút Xem Trailer */}
-              <TrailerModal trailerUrl={movie.trailer_url} title={title} />
+            {/* THANH NÚT TÁC VỤ - 1 DÒNG DUY NHẤT */}
+            <div className="mt-4 sm:mt-5 pt-3.5 border-t border-white/10">
+              <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none pb-0.5 -mx-1 px-1">
+                {/* Nút Xem Trailer */}
+                <TrailerModal trailerUrl={movie.trailer_url} title={title} />
 
-              {/* Nút Danh sách yêu thích */}
-              <WatchlistButton
-                movie={{
-                  slug: movie.slug,
-                  title,
-                  poster: pickBestMovieImage(movie, "/default-poster.jpg"),
-                  year: movie.year,
-                  quality: movie.quality,
-                  category: movie.category?.[0]?.name,
-                }}
-              />
+                {/* Divider */}
+                <div className="h-6 w-px bg-white/10 mx-0.5 flex-shrink-0" />
 
-              {/* Nút Thêm vào Bộ sưu tập */}
-              <AddToCollectionButton
-                movie={{
-                  slug: movie.slug,
-                  title,
-                  poster: pickBestMovieImage(movie, "/default-poster.jpg"),
-                  year: movie.year,
-                  quality: movie.quality,
-                  category: movie.category?.[0]?.name,
-                }}
-              />
+                {/* Nút Danh sách yêu thích */}
+                <WatchlistButton
+                  movie={{
+                    slug: movie.slug,
+                    title,
+                    poster: pickBestMovieImage(movie, "/default-poster.jpg"),
+                    year: movie.year,
+                    quality: movie.quality,
+                    category: movie.category?.[0]?.name,
+                  }}
+                />
 
+                {/* Nút Thêm vào Bộ sưu tập */}
+                <AddToCollectionButton
+                  movie={{
+                    slug: movie.slug,
+                    title,
+                    poster: pickBestMovieImage(movie, "/default-poster.jpg"),
+                    year: movie.year,
+                    quality: movie.quality,
+                    category: movie.category?.[0]?.name,
+                  }}
+                />
 
-              {/* Cụm tiện ích phụ tinh gọn: Chia sẻ, Xem trên điện thoại, Báo lỗi */}
-              <div className="flex items-center gap-1.5 sm:gap-2 ml-auto sm:ml-0">
+                {/* Divider */}
+                <div className="h-6 w-px bg-white/10 mx-0.5 flex-shrink-0 ml-auto hidden sm:block" />
+                <div className="flex-1 sm:hidden" />
+
+                {/* Cụm tiện ích: Chia sẻ, Xem trên điện thoại, Báo lỗi */}
                 <ShareButton title={title} />
                 <MobileQrModal
                   title={title}
@@ -462,6 +468,7 @@ export default async function MovieDetail({
                 <ReportIssueModal movieTitle={title} episodeName={activeEpisode?.name} />
               </div>
             </div>
+
 
             {/* TIẾN ĐỘ PHÁT SÓNG (DÀNH CHO PHIM BỘ) */}
             {hasProgress && (

@@ -48,9 +48,9 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="inline-flex items-center gap-1.5 rounded-lg bg-netflix-red hover:bg-red-700 text-white px-3.5 py-1.5 text-xs sm:text-sm font-semibold shadow transition-all active:scale-95 cursor-pointer"
+        className="inline-flex items-center gap-1.5 rounded-lg bg-netflix-red hover:bg-red-700 text-white px-3.5 py-1.5 text-xs sm:text-sm font-semibold shadow transition-all active:scale-95 cursor-pointer flex-shrink-0"
       >
-        <Film className="w-3.5 h-3.5 text-white" />
+        <Film className="w-3.5 h-3.5 text-white flex-shrink-0" />
         <span>Xem Trailer</span>
       </button>
 

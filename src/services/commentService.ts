@@ -11,12 +11,15 @@ import {
   arrayUnion,
   arrayRemove,
   increment,
+  setDoc,
   type Unsubscribe,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { MovieComment, MovieRatingStats } from "@/types/comment";
+import { UserNotification } from "@/types/notification";
 
 const COLLECTION_NAME = "movie_comments";
+const USERS_COLLECTION = "users";
 
 // Hàm làm sạch dữ liệu trước khi gửi lên Firestore để tránh lỗi 'undefined'
 function sanitizeCommentData(data: Record<string, unknown>): Record<string, unknown> {
@@ -31,6 +34,7 @@ function sanitizeCommentData(data: Record<string, unknown>): Record<string, unkn
 
 /**
  * Đăng ký lắng nghe bình luận theo thời gian thực (Real-time listener)
+ * Chỉ lấy top-level comments (không có parentId)
  */
 export function subscribeMovieComments(
   movieSlug: string,
@@ -47,7 +51,7 @@ export function subscribeMovieComments(
   const q = query(
     commentsRef,
     where("movieSlug", "==", movieSlug),
-    limit(150),
+    limit(300),
   );
 
   return onSnapshot(
@@ -66,6 +70,46 @@ export function subscribeMovieComments(
     },
     (error) => {
       console.warn("Lỗi tải bình luận phim từ Firestore:", error);
+      if (onError) onError(error);
+    },
+  );
+}
+
+/**
+ * Lắng nghe replies (trả lời) của một comment cụ thể theo thời gian thực
+ */
+export function subscribeCommentReplies(
+  parentId: string,
+  onUpdate: (replies: MovieComment[]) => void,
+  onError?: (err: Error) => void,
+): Unsubscribe {
+  if (!db || !parentId) {
+    onUpdate([]);
+    return () => {};
+  }
+
+  const commentsRef = collection(db, COLLECTION_NAME);
+  const q = query(
+    commentsRef,
+    where("parentId", "==", parentId),
+    limit(50),
+  );
+
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const items: MovieComment[] = [];
+      snapshot.forEach((docSnap) => {
+        items.push({
+          id: docSnap.id,
+          ...(docSnap.data() as Omit<MovieComment, "id">),
+        });
+      });
+      items.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0)); // Cũ nhất lên trên trong replies
+      onUpdate(items);
+    },
+    (error) => {
+      console.warn("Lỗi tải replies từ Firestore:", error);
       if (onError) onError(error);
     },
   );
@@ -132,6 +176,73 @@ export async function addMovieComment(
 }
 
 /**
+ * Thêm reply cho một bình luận và gửi thông báo cho chủ bình luận gốc
+ */
+export async function addReplyComment(params: {
+  parentId: string;
+  parentOwnerId: string;     // userId của chủ comment gốc
+  parentOwnerName: string;   // tên chủ comment gốc (hiển thị trong toast/notif)
+  movieSlug: string;
+  movieTitle?: string;
+  userId: string;
+  userName: string;
+  userAvatar?: string;
+  content: string;
+  isSpoiler?: boolean;
+}): Promise<string> {
+  if (!db) {
+    throw new Error("Chưa kết nối được cơ sở dữ liệu Firebase!");
+  }
+
+  const { parentId, parentOwnerId, parentOwnerName, ...replyData } = params;
+
+  // 1. Lưu reply vào Firestore (dùng chung collection movie_comments với parentId)
+  const commentsRef = collection(db, COLLECTION_NAME);
+  const newReply = sanitizeCommentData({
+    ...replyData,
+    parentId,
+    rating: 0, // Reply không có rating
+    likes: 0,
+    likedBy: [],
+    createdAt: Date.now(),
+  });
+
+  const docRef = await addDoc(commentsRef, newReply);
+
+  // 2. Gửi thông báo cho chủ comment gốc (nếu không phải chính họ reply)
+  if (parentOwnerId && parentOwnerId !== params.userId) {
+    try {
+      const notifId = `reply_${docRef.id}`;
+      const notifRef = doc(db, USERS_COLLECTION, parentOwnerId, "notifications", notifId);
+      const notifData: UserNotification = {
+        id: notifId,
+        type: "comment_reply",
+        title: `${params.userName} đã trả lời bình luận của bạn`,
+        message: params.content.length > 80
+          ? params.content.slice(0, 80) + "..."
+          : params.content,
+        link: `/movies/${params.movieSlug}#comments`,
+        movieSlug: params.movieSlug,
+        commentId: parentId,
+        replierName: params.userName,
+        replierAvatar: params.userAvatar,
+        isRead: false,
+        createdAt: Date.now(),
+      };
+      // fire-and-forget (không await để không block UI)
+      setDoc(notifRef, sanitizeCommentData(notifData as unknown as Record<string, unknown>)).catch(() => {});
+    } catch {
+      // Thông báo không quan trọng bằng reply thành công
+    }
+  }
+
+  // Suppress unused variable warning
+  void parentOwnerName;
+
+  return docRef.id;
+}
+
+/**
  * Thả tim hoặc bỏ tim cho một bình luận
  */
 export async function toggleLikeComment(
@@ -187,12 +298,13 @@ export async function deleteMovieComment(commentId: string): Promise<void> {
 /**
  * Tính toán thống kê điểm số đánh giá từ danh sách bình luận.
  * ĐẢM BẢO: Mỗi người dùng (userId) chỉ đóng góp đúng 1 lá phiếu điểm số duy nhất!
+ * Chỉ tính top-level comments (không phải replies)
  */
 export function calculateMovieRatingStats(comments: MovieComment[]): MovieRatingStats {
-  // Lọc lấy 1 đánh giá mới nhất có rating > 0 của mỗi user
+  // Lọc chỉ top-level comments có rating > 0
   const userRatingsMap = new Map<string, number>();
   for (const c of comments) {
-    if (c.rating > 0 && !userRatingsMap.has(c.userId)) {
+    if (c.rating > 0 && !c.parentId && !userRatingsMap.has(c.userId)) {
       userRatingsMap.set(c.userId, c.rating);
     }
   }

@@ -32,11 +32,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, customTit
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 z-[120] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200"
+      className="fixed inset-0 z-[200] bg-black/85 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200 overflow-y-auto"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md bg-zinc-950/95 border border-white/15 rounded-3xl p-6 sm:p-7 shadow-2xl relative overflow-hidden space-y-5 animate-in zoom-in-95 duration-200"
+        className="w-full max-w-md bg-zinc-950/98 border border-white/15 rounded-3xl p-5 sm:p-7 shadow-2xl relative overflow-hidden space-y-5 animate-in zoom-in-95 duration-200 my-auto"
       >
         {/* Glow hiệu ứng nền đỏ Netflix */}
         <div className="absolute -top-24 -left-24 w-48 h-48 bg-netflix-red/20 rounded-full blur-3xl pointer-events-none" />

@@ -15,6 +15,9 @@ export interface MovieComment {
   likedBy: string[]; // Danh sách userId đã thích bình luận này
   createdAt: number; // Timestamp (Date.now())
   updatedAt?: number; // Timestamp cập nhật (Date.now())
+  // --- Reply / Thread ---
+  parentId?: string;    // ID của comment cha (nếu là reply). Undefined = top-level comment
+  replyCount?: number;  // Số lượng replies (đếm client-side)
 }
 
 export interface MovieRatingStats {

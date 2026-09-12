@@ -135,11 +135,10 @@ export function MobileQrModal({
           type="button"
           onClick={() => setInternalIsOpen(true)}
           title="Quét mã QR xem tiếp trên điện thoại đúng số phút đang xem"
-          className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-zinc-900/80 px-3 py-1.5 text-xs sm:text-sm font-medium text-gray-300 hover:bg-white/10 hover:text-white transition-all cursor-pointer active:scale-95"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-zinc-900/80 px-3 py-1.5 text-xs sm:text-sm font-medium text-gray-300 hover:bg-white/10 hover:text-white transition-all cursor-pointer active:scale-95 flex-shrink-0"
         >
-          <Smartphone className="h-4 w-4 text-sky-400" />
+          <Smartphone className="h-4 w-4 text-sky-400 flex-shrink-0" />
           <span className="hidden sm:inline">Xem trên điện thoại</span>
-          <span className="sm:hidden">QR</span>
           {exactProgressSeconds > 0 && (
             <span className="text-[10px] text-amber-300 font-bold bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.2 rounded-md ml-0.5">
               {formatTime(exactProgressSeconds)}

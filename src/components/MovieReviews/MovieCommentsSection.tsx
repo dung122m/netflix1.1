@@ -127,9 +127,9 @@ export const MovieCommentsSection: React.FC<MovieCommentsSectionProps> = ({
   // Calculate rating statistics (đã khử trùng lặp theo từng user)
   const stats = useMemo(() => calculateMovieRatingStats(comments), [comments]);
 
-  // Filter & sort comments
+  // Filter & sort comments - CHỈ hiển thị top-level comments (không phải replies)
   const sortedComments = useMemo(() => {
-    let result = [...comments];
+    let result = comments.filter((c) => !c.parentId); // Lọc bỏ replies
 
     if (sortBy === "onlyFiveStar") {
       result = result.filter((c) => c.rating === 5);
@@ -140,7 +140,17 @@ export const MovieCommentsSection: React.FC<MovieCommentsSectionProps> = ({
       result.sort((a, b) => b.createdAt - a.createdAt);
     }
 
-    return result;
+    // Bổ sung replyCount từ danh sách replies trong bộ nhớ
+    const replyCountMap = new Map<string, number>();
+    comments.forEach((c) => {
+      if (c.parentId) {
+        replyCountMap.set(c.parentId, (replyCountMap.get(c.parentId) || 0) + 1);
+      }
+    });
+    return result.map((c) => ({
+      ...c,
+      replyCount: replyCountMap.get(c.id) || c.replyCount || 0,
+    }));
   }, [comments, sortBy]);
 
   // Submit or Update review
@@ -158,6 +168,13 @@ export const MovieCommentsSection: React.FC<MovieCommentsSectionProps> = ({
     }
 
     setIsSubmitting(true);
+
+    // Timeout 10s: tránh UI bị kẹt "Đang lưu..." vô hạn nếu Firestore không phản hồi
+    const timeoutId = setTimeout(() => {
+      setIsSubmitting(false);
+      toast.error("Kết nối Firestore bị gián đoạn. Vui lòng tắt Adblocker hoặc thử lại!");
+    }, 10000);
+
     try {
       if (myExistingReview) {
         // Cập nhật bài đánh giá hiện có
@@ -190,7 +207,9 @@ export const MovieCommentsSection: React.FC<MovieCommentsSectionProps> = ({
         });
         toast.success("Đã đăng bình luận và đánh giá thành công!");
       }
+      clearTimeout(timeoutId);
     } catch (err: unknown) {
+      clearTimeout(timeoutId);
       const errorMsg =
         err instanceof Error ? err.message : "Không thể lưu đánh giá. Vui lòng thử lại!";
       console.error("Lỗi khi lưu đánh giá:", err);
@@ -235,27 +254,27 @@ export const MovieCommentsSection: React.FC<MovieCommentsSectionProps> = ({
   };
 
   return (
-    <section className="mt-12 bg-zinc-950/80 rounded-3xl border border-white/5 p-5 md:p-8 backdrop-blur-md shadow-2xl">
+    <section className="mt-8 sm:mt-12 bg-zinc-950/80 rounded-2xl sm:rounded-3xl border border-white/5 p-4 sm:p-6 md:p-8 backdrop-blur-md shadow-2xl">
       {/* Title & Section Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-white/10">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 pb-5 sm:pb-6 border-b border-white/10">
         <div>
-          <h3 className="text-xl md:text-2xl font-extrabold text-white flex items-center gap-2.5">
-            <MessageSquare className="w-6 h-6 text-red-500" />
-            <span>Đánh Giá & Bình Luận Cộng Đồng</span>
+          <h3 className="text-lg sm:text-xl md:text-2xl font-extrabold text-white flex items-center gap-2 sm:gap-2.5 flex-wrap">
+            <MessageSquare className="w-5 h-5 sm:w-6 sm:h-6 text-red-500 flex-shrink-0" />
+            <span>Đánh Giá &amp; Bình Luận Cộng Đồng</span>
             <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-500/20">
               {comments.length}
             </span>
           </h3>
-          <p className="text-xs md:text-sm text-zinc-400 mt-1">
+          <p className="text-xs text-zinc-400 mt-1 line-clamp-2 sm:line-clamp-none">
             Cùng trao đổi, chấm điểm và thảo luận về các tình tiết trong &quot;{movieTitle}&quot;.
           </p>
         </div>
 
         {/* Aggregate Score Card */}
         {stats.totalReviews > 0 && (
-          <div className="flex items-center gap-4 bg-zinc-900/90 border border-white/10 rounded-2xl px-4 py-2.5 shrink-0">
+          <div className="flex items-center gap-3 sm:gap-4 bg-zinc-900/90 border border-white/10 rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5 shrink-0 self-start sm:self-auto">
             <div className="text-center">
-              <div className="text-2xl font-black text-amber-400 flex items-center justify-center gap-1">
+              <div className="text-xl sm:text-2xl font-black text-amber-400 flex items-center justify-center gap-1">
                 <span>{stats.averageRating}</span>
                 <span className="text-sm font-normal text-zinc-400">/5</span>
               </div>
@@ -458,16 +477,16 @@ export const MovieCommentsSection: React.FC<MovieCommentsSectionProps> = ({
           </form>
         ) : (
           /* Login Banner */
-          <div className="relative overflow-hidden bg-gradient-to-r from-zinc-900/90 via-zinc-900/60 to-red-950/30 border border-white/10 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-4 text-center sm:text-left">
-              <div className="w-12 h-12 rounded-2xl bg-red-600/10 border border-red-500/20 flex items-center justify-center text-red-500 shrink-0">
-                <LogIn className="w-6 h-6" />
+          <div className="relative overflow-hidden bg-gradient-to-r from-zinc-900/90 via-zinc-900/60 to-red-950/30 border border-white/10 rounded-xl sm:rounded-2xl p-4 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3 sm:gap-4 text-center sm:text-left w-full sm:w-auto">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-red-600/10 border border-red-500/20 flex items-center justify-center text-red-500 shrink-0">
+                <LogIn className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
-              <div>
-                <h4 className="font-bold text-white text-base">
+              <div className="flex-1 min-w-0">
+                <h4 className="font-bold text-white text-sm sm:text-base">
                   Đăng nhập để bình luận và chấm điểm phim
                 </h4>
-                <p className="text-xs text-zinc-400 mt-0.5">
+                <p className="text-xs text-zinc-400 mt-0.5 line-clamp-2 sm:line-clamp-none">
                   Đăng nhập nhanh 1 chạm bằng Google để chia sẻ cảm nghĩ cùng hàng ngàn khán giả khác.
                 </p>
               </div>
@@ -476,7 +495,7 @@ export const MovieCommentsSection: React.FC<MovieCommentsSectionProps> = ({
             <button
               type="button"
               onClick={() => setShowAuthModal(true)}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm bg-white text-black hover:bg-zinc-200 transition-all active:scale-95 shrink-0 shadow-lg"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm bg-white text-black hover:bg-zinc-200 transition-all active:scale-95 shrink-0 shadow-lg w-full sm:w-auto justify-center"
             >
               <LogIn className="w-4 h-4 text-red-600" />
               <span>Đăng nhập ngay</span>
@@ -487,16 +506,16 @@ export const MovieCommentsSection: React.FC<MovieCommentsSectionProps> = ({
 
       {/* Filter Tabs & Comments List */}
       <div className="mt-8">
-        <div className="flex items-center justify-between gap-2 pb-3 border-b border-white/10 flex-wrap">
+        <div className="flex items-center justify-between gap-2 pb-3 border-b border-white/10 flex-wrap gap-y-2">
           <div className="text-sm font-semibold text-zinc-300">
             Tất cả bình luận ({sortedComments.length})
           </div>
 
-          <div className="flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-white/5 text-xs">
+          <div className="flex items-center gap-0.5 sm:gap-1 bg-black/40 p-1 rounded-xl border border-white/5 text-xs">
             <button
               type="button"
               onClick={() => setSortBy("newest")}
-              className={`px-3 py-1 rounded-lg font-medium transition-colors ${
+              className={`px-2 sm:px-3 py-1 rounded-lg font-medium transition-colors ${
                 sortBy === "newest"
                   ? "bg-zinc-800 text-white shadow-sm"
                   : "text-zinc-400 hover:text-zinc-200"
@@ -507,18 +526,18 @@ export const MovieCommentsSection: React.FC<MovieCommentsSectionProps> = ({
             <button
               type="button"
               onClick={() => setSortBy("topLikes")}
-              className={`px-3 py-1 rounded-lg font-medium transition-colors ${
+              className={`px-2 sm:px-3 py-1 rounded-lg font-medium transition-colors ${
                 sortBy === "topLikes"
                   ? "bg-zinc-800 text-white shadow-sm"
                   : "text-zinc-400 hover:text-zinc-200"
               }`}
             >
-              Nhiều thích nhất 🔥
+              <span className="hidden sm:inline">Nhiều thích nhất </span>&#128293;
             </button>
             <button
               type="button"
               onClick={() => setSortBy("onlyFiveStar")}
-              className={`px-3 py-1 rounded-lg font-medium transition-colors ${
+              className={`px-2 sm:px-3 py-1 rounded-lg font-medium transition-colors ${
                 sortBy === "onlyFiveStar"
                   ? "bg-zinc-800 text-white shadow-sm"
                   : "text-zinc-400 hover:text-zinc-200"
@@ -547,9 +566,12 @@ export const MovieCommentsSection: React.FC<MovieCommentsSectionProps> = ({
                 key={comment.id}
                 comment={comment}
                 currentUserId={user?.uid}
+                currentUserName={user?.displayName || "Thành viên Nanaflix"}
+                currentUserAvatar={user?.photoURL || undefined}
                 onLike={handleToggleLike}
                 onDelete={handleDeleteComment}
                 onEdit={handleEditReview}
+                onRequireAuth={() => setShowAuthModal(true)}
               />
             ))
           ) : (

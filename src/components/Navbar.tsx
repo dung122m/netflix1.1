@@ -1274,128 +1274,15 @@ const NavbarInner: React.FC = () => {
 
       {/* MOBILE DROPDOWN MENU */}
       {isMobileMenuOpen && (
-        <div className="lg:hidden border-t border-white/10 bg-black/98 backdrop-blur-2xl px-4 py-4 animate-in slide-in-from-top duration-200 max-h-[82vh] overflow-y-auto shadow-2xl safe-area-bottom">
+        <div className="lg:hidden border-t border-white/10 bg-black/98 backdrop-blur-2xl px-3 sm:px-4 py-3 sm:py-4 animate-in slide-in-from-top duration-200 max-h-[85vh] overflow-y-auto shadow-2xl safe-area-bottom overscroll-contain">
           <div className="flex flex-col gap-1.5">
 
-
-
-
-            {/* CÀI ĐẶT ỨNG DỤNG PWA TRÊN MOBILE */}
-            <button
-              type="button"
-              onClick={() => {
-                setIsMobileMenuOpen(false);
-                if (typeof window !== "undefined") {
-                  window.dispatchEvent(new CustomEvent("open-pwa-install"));
-                }
-              }}
-              className="text-sm font-bold py-2.5 px-3 text-white flex items-center justify-between rounded-xl bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-transparent border border-emerald-500/30 hover:bg-emerald-500/20 transition text-left cursor-pointer shadow-sm mb-1"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center shadow-md shadow-emerald-950/60">
-                  <Smartphone size={16} />
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-white">Cài Đặt Nanaflix App 📱</div>
-                  <div className="text-[10px] text-zinc-400">Xem toàn màn hình trên điện thoại</div>
-                </div>
-              </div>
-              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                Tải App
-              </span>
-            </button>
-
-            {/* NÚT SUẤT CHIẾU ĐỊNH MỆNH TRÊN MOBILE */}
-            <button
-              type="button"
-              onClick={() => {
-                setIsMobileMenuOpen(false);
-                if (typeof window !== "undefined") {
-                  window.dispatchEvent(new CustomEvent("open-ai-roulette"));
-                }
-              }}
-              className="text-sm font-bold py-2.5 px-3 text-white flex items-center justify-between rounded-xl bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-transparent border border-amber-500/40 hover:bg-amber-500/30 transition text-left cursor-pointer shadow-sm mb-1"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-amber-500 to-red-600 text-white flex items-center justify-center shadow-md shadow-amber-950/60">
-                  <Dices size={16} />
-                </div>
-                <span>Suất Chiếu Định Mệnh 🎲</span>
-              </div>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/30 text-amber-300 font-bold border border-amber-500/40">
-                Roulette
-              </span>
-            </button>
-
-            {/* NÚT TRỢ LÝ NANA GỢI Ý PHIM TRÊN MOBILE */}
-            <button
-              type="button"
-              onClick={() => {
-                setIsMobileMenuOpen(false);
-                if (typeof window !== "undefined") {
-                  window.dispatchEvent(new CustomEvent("open-ai-concierge"));
-                }
-              }}
-              className="text-sm font-bold py-2.5 px-3 text-white flex items-center justify-between rounded-xl bg-gradient-to-r from-purple-600/25 via-red-950/40 to-transparent border border-purple-500/40 hover:bg-purple-600/30 transition text-left cursor-pointer shadow-sm mb-2"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-red-600 to-purple-600 text-white flex items-center justify-center shadow-md">
-                  <Sparkles size={15} className="text-amber-300" />
-                </div>
-                <span>Trợ Lý Nana Gợi Ý Phim</span>
-              </div>
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-500/30 text-purple-300 border border-purple-500/40 font-black">
-                NANA AI
-              </span>
-            </button>
-
-            {NAV_LINKS.map((link) => {
-              const active = isLinkActive(link.type);
-              const IconComp = link.icon;
-              return (
-                <Link
-                  key={link.name}
-                  href={link.href}
-                  prefetch={true}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className={`text-sm font-medium py-2 px-3 transition-all flex items-center justify-between rounded-xl ${active
-                      ? "text-white font-bold bg-white/10 border border-white/15 shadow-sm"
-                      : "text-gray-300 hover:text-white hover:bg-white/5"
-                    }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${active
-                          ? "bg-netflix-red text-white shadow-md shadow-red-950/50"
-                          : "bg-zinc-900 text-gray-400 border border-white/5"
-                        }`}
-                    >
-                      <IconComp
-                        size={15}
-                        className={link.isLive ? "text-rose-400 animate-pulse" : ""}
-                      />
-                    </div>
-                    <span>{link.name}</span>
-                    {link.isLive && (
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-netflix-red text-white font-black uppercase tracking-wider animate-pulse">
-                        LIVE
-                      </span>
-                    )}
-                  </div>
-
-                  {active && (
-                    <span className="h-2 w-2 rounded-full bg-netflix-red" />
-                  )}
-                </Link>
-              );
-            })}
-
-            {/* KHỐI TÀI KHOẢN NGƯỜI DÙNG TRÊN MOBILE */}
+            {/* KHỐI TÀI KHOẢN NGƯỜI DÙNG TRÊN MOBILE - ĐẶT LÊN TRÊN CÙNG */}
             <div className="p-3 rounded-2xl bg-white/[0.04] border border-white/10 mb-2">
               {user ? (
                 <div className="space-y-2.5">
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-netflix-red flex items-center justify-center text-sm font-bold text-white uppercase overflow-hidden relative flex-shrink-0 border border-white/20">
+                    <div className="w-10 h-10 rounded-full bg-netflix-red flex items-center justify-center text-sm font-bold text-white uppercase overflow-hidden relative flex-shrink-0 border-2 border-white/20 shadow-lg">
                       <span>{(user.displayName || user.email || "U")[0]}</span>
                       {user.photoURL && (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -1411,78 +1298,183 @@ const NavbarInner: React.FC = () => {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-white truncate">
+                      <p className="text-sm font-bold text-white truncate">
                         {user.displayName || "Thành viên"}
                       </p>
                       <p className="text-[11px] text-gray-400 truncate">{user.email}</p>
                     </div>
-                  </div>
-                  <div className="flex items-center justify-between pt-2 border-t border-white/10">
-                    <span className="text-[10px] text-emerald-400 flex items-center gap-1 font-medium">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      Đồng bộ đám mây
-                    </span>
                     <button
                       type="button"
                       onClick={async () => {
                         setIsMobileMenuOpen(false);
                         await logout();
                       }}
-                      className="text-xs text-red-400 hover:text-red-300 font-medium cursor-pointer"
+                      className="text-xs text-red-400 hover:text-red-300 font-semibold cursor-pointer px-2.5 py-1 rounded-lg hover:bg-red-500/10 transition flex-shrink-0"
                     >
                       Đăng xuất
                     </button>
                   </div>
-
-                  {isUserAdmin(user?.email) && (
-                    <Link
-                      href="/admin"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold text-amber-400 bg-amber-500/15 border border-amber-500/30 hover:bg-amber-500/25 transition mt-1.5"
-                    >
-                      <div className="flex items-center gap-2">
-                        <ShieldCheck size={15} />
-                        <span>👑 Bảng Quản Trị (Admin)</span>
-                      </div>
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-semibold">
-                        Admin
-                      </span>
-                    </Link>
-                  )}
+                  <div className="flex items-center justify-between pt-2 border-t border-white/10">
+                    <span className="text-[10px] text-emerald-400 flex items-center gap-1 font-medium">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      Đồng bộ đám mây đang hoạt động
+                    </span>
+                    {isUserAdmin(user?.email) && (
+                      <Link
+                        href="/admin"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold text-amber-400 bg-amber-500/15 border border-amber-500/30 hover:bg-amber-500/25 transition"
+                      >
+                        <ShieldCheck size={13} />
+                        <span>Admin</span>
+                      </Link>
+                    )}
+                  </div>
                 </div>
               ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsMobileMenuOpen(false);
-                    setShowAuthModal(true);
-                  }}
-                  className="w-full py-2.5 px-3 rounded-xl bg-white text-gray-950 font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-sm"
-                >
-                  <svg className="w-4 h-4" viewBox="0 0 24 24">
-                    <path
-                      fill="#4285F4"
-                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                    />
-                    <path
-                      fill="#34A853"
-                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                    />
-                    <path
-                      fill="#FBBC05"
-                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                    />
-                    <path
-                      fill="#EA4335"
-                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                    />
-                  </svg>
-                  <span>Đăng nhập bằng Google</span>
-                </button>
+                <div>
+                  <p className="text-xs text-gray-400 mb-2.5">Đăng nhập để đồng bộ xem phim trên mọi thiết bị</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      setShowAuthModal(true);
+                    }}
+                    className="w-full py-3 px-3 rounded-xl bg-white text-gray-950 font-bold text-sm flex items-center justify-center gap-2.5 transition cursor-pointer shadow-md hover:bg-gray-100 active:scale-[0.98]"
+                  >
+                    <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24">
+                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                    </svg>
+                    <span>Đăng nhập bằng Google</span>
+                  </button>
+                </div>
               )}
             </div>
 
-            <div className="border-t border-white/10 pt-2.5 mt-1.5 flex flex-col gap-1">
+
+
+
+            {/* DANH SÁCH NAV LINKS */}
+            <div className="space-y-0.5">
+              {NAV_LINKS.map((link) => {
+                const active = isLinkActive(link.type);
+                const IconComp = link.icon;
+                return (
+                  <Link
+                    key={link.name}
+                    href={link.href}
+                    prefetch={true}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={`text-sm font-medium py-2.5 px-3 transition-all flex items-center justify-between rounded-xl ${active
+                        ? "text-white font-bold bg-white/10 border border-white/15 shadow-sm"
+                        : "text-gray-300 hover:text-white hover:bg-white/5"
+                      }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors flex-shrink-0 ${active
+                            ? "bg-netflix-red text-white shadow-md shadow-red-950/50"
+                            : "bg-zinc-900 text-gray-400 border border-white/5"
+                          }`}
+                      >
+                        <IconComp
+                          size={15}
+                          className={link.isLive ? "text-rose-400 animate-pulse" : ""}
+                        />
+                      </div>
+                      <span>{link.name}</span>
+                      {link.isLive && (
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-netflix-red text-white font-black uppercase tracking-wider animate-pulse">
+                          LIVE
+                        </span>
+                      )}
+                    </div>
+
+                    {active && (
+                      <span className="h-2 w-2 rounded-full bg-netflix-red" />
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+
+            {/* CÁC TÍNH NĂNG ĐẶC BIỆT */}
+            <div className="border-t border-white/10 pt-2 mt-1 space-y-1">
+              {/* CÀI ĐẶT ỨNG DỤNG PWA TRÊN MOBILE */}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  if (typeof window !== "undefined") {
+                    window.dispatchEvent(new CustomEvent("open-pwa-install"));
+                  }
+                }}
+                className="w-full text-sm font-bold py-2.5 px-3 text-white flex items-center justify-between rounded-xl bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-transparent border border-emerald-500/30 hover:bg-emerald-500/20 transition text-left cursor-pointer shadow-sm"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center shadow-md shadow-emerald-950/60 flex-shrink-0">
+                    <Smartphone size={15} />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-white">Cài Đặt Nanaflix App 📱</div>
+                    <div className="text-[10px] text-zinc-400">Xem toàn màn hình trên điện thoại</div>
+                  </div>
+                </div>
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex-shrink-0">
+                  Tải App
+                </span>
+              </button>
+
+              {/* NÚT SUẤT CHIẾU ĐỊNH MỆNH TRÊN MOBILE */}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  if (typeof window !== "undefined") {
+                    window.dispatchEvent(new CustomEvent("open-ai-roulette"));
+                  }
+                }}
+                className="w-full text-sm font-bold py-2.5 px-3 text-white flex items-center justify-between rounded-xl bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-transparent border border-amber-500/40 hover:bg-amber-500/30 transition text-left cursor-pointer shadow-sm"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-amber-500 to-red-600 text-white flex items-center justify-center shadow-md shadow-amber-950/60 flex-shrink-0">
+                    <Dices size={15} />
+                  </div>
+                  <span>Suất Chiếu Định Mệnh 🎲</span>
+                </div>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/30 text-amber-300 font-bold border border-amber-500/40 flex-shrink-0">
+                  Roulette
+                </span>
+              </button>
+
+              {/* NÚT TRỢ LÝ NANA GỢI Ý PHIM TRÊN MOBILE */}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  if (typeof window !== "undefined") {
+                    window.dispatchEvent(new CustomEvent("open-ai-concierge"));
+                  }
+                }}
+                className="w-full text-sm font-bold py-2.5 px-3 text-white flex items-center justify-between rounded-xl bg-gradient-to-r from-purple-600/25 via-red-950/40 to-transparent border border-purple-500/40 hover:bg-purple-600/30 transition text-left cursor-pointer shadow-sm"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-red-600 to-purple-600 text-white flex items-center justify-center shadow-md flex-shrink-0">
+                    <Sparkles size={14} className="text-amber-300" />
+                  </div>
+                  <span>Trợ Lý Nana Gợi Ý Phim</span>
+                </div>
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-500/30 text-purple-300 border border-purple-500/40 font-black flex-shrink-0">
+                  NANA AI
+                </span>
+              </button>
+            </div>
+
+
+            <div className="border-t border-white/10 pt-2 mt-1 flex flex-col gap-0.5">
               <Link
                 href="/my-list?tab=history"
                 onClick={() => setIsMobileMenuOpen(false)}

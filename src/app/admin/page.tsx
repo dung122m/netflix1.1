@@ -874,7 +874,7 @@ export default function AdminDashboardPage() {
                       <div className="flex items-center gap-2 flex-wrap text-xs">
                         <span className="text-gray-400 text-[11px]">Phim:</span>
                         <Link
-                          href={`/watch/${item.movieSlug}`}
+                          href={`/movies/${item.movieSlug}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-netflix-red/15 border border-netflix-red/30 text-red-300 hover:text-white hover:bg-netflix-red/25 transition text-xs font-semibold"
@@ -914,7 +914,7 @@ export default function AdminDashboardPage() {
                     {/* Actions */}
                     <div className="flex sm:flex-col items-center gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-white/10 flex-shrink-0">
                       <Link
-                        href={`/watch/${item.movieSlug}`}
+                        href={`/movies/${item.movieSlug}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-gray-200 hover:text-white text-xs font-medium transition flex items-center gap-1.5"
@@ -1416,7 +1416,7 @@ export default function AdminDashboardPage() {
                             <div className="flex items-center justify-between gap-2">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <Link
-                                  href={`/watch/${c.movieSlug}`}
+                                  href={`/movies/${c.movieSlug}`}
                                   target="_blank"
                                   className="font-bold text-red-400 hover:underline flex items-center gap-1"
                                 >
@@ -1482,7 +1482,7 @@ export default function AdminDashboardPage() {
                             </p>
                           </div>
                           <Link
-                            href={`/watch/${item.slug}`}
+                            href={`/movies/${item.slug}`}
                             target="_blank"
                             className="p-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-white flex items-center gap-1 text-[11px]"
                           >
@@ -1513,7 +1513,7 @@ export default function AdminDashboardPage() {
                             </p>
                           </div>
                           <Link
-                            href={`/watch/${item.slug}`}
+                            href={`/movies/${item.slug}`}
                             target="_blank"
                             className="p-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-white flex items-center gap-1 text-[11px]"
                           >
