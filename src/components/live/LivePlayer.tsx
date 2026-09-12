@@ -95,7 +95,7 @@ export function LivePlayer({
   const [showControls, setShowControls] = useState(false);
   const [showAllServers, setShowAllServers] = useState(false);
   const [actionFeedback, setActionFeedback] = useState<{
-    icon: "play" | "pause" | "volume" | "mute" | "server" | "match";
+    icon: "play" | "pause" | "volume" | "mute" | "server" | "match" | "seek";
     text?: string;
   } | null>(null);
 
@@ -124,7 +124,7 @@ export function LivePlayer({
   // Hiển thị visual feedback overlay tạm thời
   const triggerActionFeedback = useCallback(
     (
-      icon: "play" | "pause" | "volume" | "mute" | "server" | "match",
+      icon: "play" | "pause" | "volume" | "mute" | "server" | "match" | "seek",
       text?: string,
     ) => {
       if (actionTimeoutRef.current) clearTimeout(actionTimeoutRef.current);
@@ -774,6 +774,25 @@ export function LivePlayer({
     [matchOptions, match, onSelectMatch, handleSwitchServer, triggerActionFeedback],
   );
 
+  // Tua thời gian (Seek ±5s)
+  const handleSeek = useCallback(
+    (seconds: number) => {
+      const video = videoRef.current;
+      if (!video) return;
+      try {
+        const newTime = Math.max(0, video.currentTime + seconds);
+        video.currentTime = newTime;
+        triggerActionFeedback(
+          "seek",
+          seconds > 0 ? `+${seconds}s ⏩` : `${seconds}s ⏪`,
+        );
+      } catch (err) {
+        console.warn("Seek error:", err);
+      }
+    },
+    [triggerActionFeedback],
+  );
+
   // Phím tắt bàn phím (chỉ kích hoạt khi LivePlayer đang active)
   useEffect(() => {
     if (!isActive) return;
@@ -800,16 +819,22 @@ export function LivePlayer({
         togglePip();
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
-        handleVolumeChange(volume + 0.1);
+        handleSwitchMatch("prev");
       } else if (e.key === "ArrowDown") {
         e.preventDefault();
-        handleVolumeChange(volume - 0.1);
+        handleSwitchMatch("next");
       } else if (e.key === "ArrowRight") {
         e.preventDefault();
-        handleSwitchMatch("next");
+        handleSeek(5);
       } else if (e.key === "ArrowLeft") {
         e.preventDefault();
-        handleSwitchMatch("prev");
+        handleSeek(-5);
+      } else if (e.key === "[" || e.key === "-") {
+        e.preventDefault();
+        handleVolumeChange(volume - 0.1);
+      } else if (e.key === "]" || e.key === "=" || e.key === "+") {
+        e.preventDefault();
+        handleVolumeChange(volume + 0.1);
       }
     };
 
@@ -823,6 +848,7 @@ export function LivePlayer({
     togglePip,
     handleVolumeChange,
     handleSwitchMatch,
+    handleSeek,
     volume,
   ]);
 
@@ -1154,6 +1180,9 @@ export function LivePlayer({
               )}
               {actionFeedback.icon === "server" && (
                 <Sparkles className="w-10 h-10 text-amber-400" />
+              )}
+              {actionFeedback.icon === "seek" && (
+                <Zap className="w-10 h-10 text-cyan-400 fill-cyan-400" />
               )}
               {actionFeedback.text && (
                 <span className="mt-2 text-xs sm:text-sm font-bold text-white font-mono">

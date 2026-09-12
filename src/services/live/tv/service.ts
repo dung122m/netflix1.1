@@ -111,6 +111,15 @@ export function getHtvOfficialLogo(name: string): string {
   return "/images/channels/htv7.svg";
 }
 
+// Hàm gán logo THVL chuẩn chính thức
+export function getThvlOfficialLogo(name: string): string {
+  if (/\bTHVL\s*1\b|\bTHVL1\b|VĨNH LONG 1|VINH LONG 1/i.test(name)) return "/images/channels/thvl1.svg";
+  if (/\bTHVL\s*2\b|\bTHVL2\b|VĨNH LONG 2|VINH LONG 2/i.test(name)) return "/images/channels/thvl2.svg";
+  if (/\bTHVL\s*3\b|\bTHVL3\b|VĨNH LONG 3|VINH LONG 3/i.test(name)) return "/images/channels/thvl3.svg";
+  if (/\bTHVL\s*4\b|\bTHVL4\b|VĨNH LONG 4|VINH LONG 4/i.test(name)) return "/images/channels/thvl4.svg";
+  return "/images/channels/thvl1.svg";
+}
+
 // Danh sách kênh Quốc Gia & Thể Thao ĐÃ KIỂM TRA 100% HOẠT ĐỘNG (FHD 1080p / 720p - Master Index)
 const VERIFIED_CHANNELS: TvChannel[] = [
   // --- KÊNH VTV CHÍNH THỨC (FHD 1080P VỚI LOGO VECTOR CHÍNH THỨC) ---
@@ -271,7 +280,7 @@ const VERIFIED_CHANNELS: TvChannel[] = [
   {
     id: "thvl1-fhd",
     name: "THVL1 HD (Truyền hình Vĩnh Long 1)",
-    logo: "https://i.imgur.com/q3fjpYc.png",
+    logo: "/images/channels/thvl1.svg",
     url: "https://live.fptplay53.net/epzhd2/vinhlong1_vhls.smil/chunklist.m3u8",
     category: "Truyền Hình Vĩnh Long",
     quality: "FHD 1080p",
@@ -279,7 +288,7 @@ const VERIFIED_CHANNELS: TvChannel[] = [
   {
     id: "thvl2-fhd",
     name: "THVL2 HD (Truyền hình Vĩnh Long 2)",
-    logo: "https://i.imgur.com/q3fjpYc.png",
+    logo: "/images/channels/thvl2.svg",
     url: "https://live.fptplay53.net/epzhd2/vinhlong2_vhls.smil/chunklist.m3u8",
     fallbackUrl: "https://1011154949.vnns.net/CDN-FPT02/THVL2-HD-1080p/playlist.m3u8",
     category: "Truyền Hình Vĩnh Long",
@@ -288,7 +297,7 @@ const VERIFIED_CHANNELS: TvChannel[] = [
   {
     id: "thvl3-hd",
     name: "THVL3 HD (Phim Hay)",
-    logo: "https://i.imgur.com/q3fjpYc.png",
+    logo: "/images/channels/thvl3.svg",
     url: "https://live.fptplay53.net/epzhd2/vinhlong3_vhls.smil/chunklist.m3u8",
     category: "Truyền Hình Vĩnh Long",
     quality: "HD 720p",
@@ -296,7 +305,7 @@ const VERIFIED_CHANNELS: TvChannel[] = [
   {
     id: "thvl4-hd",
     name: "THVL4 HD (Giải trí tổng hợp)",
-    logo: "https://i.imgur.com/q3fjpYc.png",
+    logo: "/images/channels/thvl4.svg",
     url: "https://live.fptplay53.net/epzhd2/vinhlong4-hd_vhls.smil/chunklist.m3u8",
     category: "Truyền Hình Vĩnh Long",
     quality: "HD 720p",
@@ -306,7 +315,7 @@ const VERIFIED_CHANNELS: TvChannel[] = [
   {
     id: "qpvn-fhd",
     name: "QPVN HD (Quốc Phòng Việt Nam)",
-    logo: "https://i.imgur.com/q3fjpYc.png",
+    logo: "/images/channels/qpvn.svg",
     url: "https://qpvn.vn/live/qpvn/master.m3u8",
     category: "Tin Tức & Thời Sự",
     quality: "FHD 1080p",
@@ -314,7 +323,7 @@ const VERIFIED_CHANNELS: TvChannel[] = [
   {
     id: "hanoi1-hd",
     name: "Hà Nội 1 HD (HanoiTV1)",
-    logo: "https://i.imgur.com/q3fjpYc.png",
+    logo: "/images/channels/hanoi1.svg",
     url: "https://liveh34.vtvprime.vn/hls/HANOI1TV/index.m3u8",
     category: "Kênh Địa Phương",
     quality: "HD 720p",
@@ -324,7 +333,7 @@ const VERIFIED_CHANNELS: TvChannel[] = [
   {
     id: "redbull-tv",
     name: "Red Bull TV Sports HD",
-    logo: "https://upload.wikimedia.org/wikipedia/en/thumb/f/f5/Red_Bull_TV_logo.svg/512px-Red_Bull_TV_logo.svg.png",
+    logo: "/images/channels/redbull.svg",
     url: "https://rbmn-live.akamaized.net/hls/live/590964/BoRB-AT/master.m3u8",
     category: "Kênh Thể Thao",
     quality: "FHD 1080p",
@@ -558,13 +567,20 @@ export const liveTvService = {
             finalUrl.includes("fnxhd") ||
             finalUrl.includes("epzhd");
 
-          // Nếu là kênh VTV hoặc HTV, gán logo vector chuẩn chính thức
+          // Gán logo vector chuẩn cho các kênh quốc gia & đài truyền hình lớn
           const vtvLogo = getVtvOfficialLogo(rawName);
           if (vtvLogo) {
             logo = vtvLogo;
           } else if (upperName.includes("HTV") && !upperName.includes("HTVC")) {
             const htvLogo = getHtvOfficialLogo(rawName);
             if (htvLogo) logo = htvLogo;
+          } else if (upperName.includes("THVL") || upperName.includes("VĨNH LONG") || upperName.includes("VINH LONG")) {
+            const thvlLogo = getThvlOfficialLogo(rawName);
+            if (thvlLogo) logo = thvlLogo;
+          } else if (upperName.includes("QPVN") || upperName.includes("QUỐC PHÒNG")) {
+            logo = "/images/channels/qpvn.svg";
+          } else if (upperName.includes("HÀ NỘI 1") || upperName.includes("HANOI 1") || upperName.includes("HANOITV1")) {
+            logo = "/images/channels/hanoi1.svg";
           }
 
           // Giữ nguyên 100% logo gốc từ nguồn cho tất cả các kênh khác

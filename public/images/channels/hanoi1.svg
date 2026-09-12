@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 360" width="960" height="360" fill="none">
+  <defs>
+    <linearGradient id="hn-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0277BD" />
+      <stop offset="100%" stop-color="#01579B" />
+    </linearGradient>
+  </defs>
+
+  <!-- Rounded Rectangle Badge -->
+  <rect x="80" y="45" width="800" height="270" rx="36" fill="url(#hn-grad)" stroke="#FFFFFF" stroke-width="8"/>
+  
+  <!-- Khuê Văn Các Emblem Icon on Left -->
+  <g transform="translate(180, 180) scale(1.1)" stroke="#FFFFFF" stroke-width="7" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Roof -->
+    <path d="M -70 -20 L 0 -65 L 70 -20 Z" fill="#FFE082" stroke="#FFF" stroke-width="5" />
+    <line x1="-55" y1="-20" x2="55" y2="-20" stroke="#FFF" stroke-width="8" />
+    <!-- Pillars -->
+    <line x1="-45" y1="-20" x2="-45" y2="45" stroke="#FFF" stroke-width="8" />
+    <line x1="45" y1="-20" x2="45" y2="45" stroke="#FFF" stroke-width="8" />
+    <!-- Sun Window in Center -->
+    <circle cx="0" cy="10" r="22" fill="#D32F2F" stroke="#FFF" stroke-width="6"/>
+    <!-- Base Platform -->
+    <rect x="-65" y="45" width="130" height="20" rx="4" fill="#FFE082" stroke="#FFF" stroke-width="4"/>
+  </g>
+
+  <!-- HÀ NỘI 1 Text -->
+  <text x="440" y="165" font-family="'Arial Black', Impact, sans-serif" font-size="92" font-weight="900" font-style="italic" fill="#FFFFFF">HÀ NỘI</text>
+  <text x="750" y="235" font-family="'Arial Black', Impact, sans-serif" font-size="200" font-weight="900" font-style="italic" fill="#FFEB3B">1</text>
+  <text x="440" y="240" font-family="'Montserrat', sans-serif" font-size="34" font-weight="900" fill="#E1F5FE" letter-spacing="4">HANOITV</text>
+</svg>

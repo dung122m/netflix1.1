@@ -194,7 +194,7 @@ export function LiveTvClient({
   const [copied, setCopied] = useState(false);
   const [showControls, setShowControls] = useState(false);
   const [actionFeedback, setActionFeedback] = useState<{
-    icon: "play" | "pause" | "volume" | "mute" | "channel";
+    icon: "play" | "pause" | "volume" | "mute" | "channel" | "seek";
     text?: string;
   } | null>(null);
 
@@ -234,7 +234,10 @@ export function LiveTvClient({
 
   // Hiển thị visual feedback overlay tạm thời
   const triggerActionFeedback = useCallback(
-    (icon: "play" | "pause" | "volume" | "mute" | "channel", text?: string) => {
+    (
+      icon: "play" | "pause" | "volume" | "mute" | "channel" | "seek",
+      text?: string,
+    ) => {
       if (actionTimeoutRef.current) clearTimeout(actionTimeoutRef.current);
       setActionFeedback({ icon, text });
       actionTimeoutRef.current = setTimeout(() => {
@@ -875,6 +878,25 @@ export function LiveTvClient({
     [filteredChannels, channels, selectedChannel, handleSelectChannel],
   );
 
+  // Tua thời gian (Seek ±5s)
+  const handleSeek = useCallback(
+    (seconds: number) => {
+      const video = videoRef.current;
+      if (!video) return;
+      try {
+        const newTime = Math.max(0, video.currentTime + seconds);
+        video.currentTime = newTime;
+        triggerActionFeedback(
+          "seek",
+          seconds > 0 ? `+${seconds}s ⏩` : `${seconds}s ⏪`,
+        );
+      } catch (err) {
+        console.warn("Seek error:", err);
+      }
+    },
+    [triggerActionFeedback],
+  );
+
   // Keyboard Shortcuts (chỉ kích hoạt khi Tab Truyền hình đang active)
   useEffect(() => {
     if (!isActive) return;
@@ -901,16 +923,22 @@ export function LiveTvClient({
         togglePip();
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
-        handleVolumeChange(volume + 0.1);
+        handleSwitchChannel("prev");
       } else if (e.key === "ArrowDown") {
         e.preventDefault();
-        handleVolumeChange(volume - 0.1);
+        handleSwitchChannel("next");
       } else if (e.key === "ArrowRight") {
         e.preventDefault();
-        handleSwitchChannel("next");
+        handleSeek(5);
       } else if (e.key === "ArrowLeft") {
         e.preventDefault();
-        handleSwitchChannel("prev");
+        handleSeek(-5);
+      } else if (e.key === "[" || e.key === "-") {
+        e.preventDefault();
+        handleVolumeChange(volume - 0.1);
+      } else if (e.key === "]" || e.key === "=" || e.key === "+") {
+        e.preventDefault();
+        handleVolumeChange(volume + 0.1);
       }
     };
 
@@ -925,6 +953,7 @@ export function LiveTvClient({
     togglePip,
     handleVolumeChange,
     handleSwitchChannel,
+    handleSeek,
     volume,
   ]);
 
@@ -1190,6 +1219,9 @@ export function LiveTvClient({
                   )}
                   {actionFeedback.icon === "channel" && (
                     <Tv className="w-10 h-10 text-sky-400" />
+                  )}
+                  {actionFeedback.icon === "seek" && (
+                    <Zap className="w-10 h-10 text-cyan-400 fill-cyan-400" />
                   )}
                   {actionFeedback.text && (
                     <span className="mt-2 text-xs sm:text-sm font-bold text-white font-mono">
