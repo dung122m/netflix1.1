@@ -1292,25 +1292,57 @@ export const liveFootballService = {
           }
         }
 
-        // Kiểm tra xem có trận đối đầu 2 đội (Team A vs Team B) thực tế không
-        const isOfficialMatch =
-          /\s+(?:vs|v)\s+/i.test(rawTitle) &&
-          !upperTitle.includes("VTV") &&
-          !upperTitle.includes("HTV") &&
-          !upperTitle.includes("TV360") &&
-          !upperTitle.includes("SKY") &&
-          !upperTitle.includes("TNT");
-
+        // Kiểm tra linh hoạt: Trận đối đầu 2 đội (Team A vs Team B / Team A - Team B) hoặc Sự kiện / Phòng BLV / Kênh thể thao
         let isEvent = true;
         let team1 = displayTitle;
         let team2 = "";
 
-        if (isOfficialMatch) {
+        const hasVs = /\s+(?:vs|v)\s+/i.test(rawTitle);
+        const hasHyphen =
+          /\s+-\s+/.test(rawTitle) &&
+          !upperTitle.includes("COLA") &&
+          !upperTitle.includes("PHÁO HOA");
+
+        if (hasVs) {
           const vsMatch = rawTitle.match(/(.+?)\s+(?:vs|v)\s+(.+)/i);
           if (vsMatch) {
-            team1 = vsMatch[1].replace(/\([^)]*\)/g, " ").replace(/\[[^\]]*\]/g, " ").trim();
-            team2 = vsMatch[2].replace(/\([^)]*\)/g, " ").replace(/\[[^\]]*\]/g, " ").trim();
-            isEvent = false;
+            const t1 = vsMatch[1]
+              .replace(/\([^)]*\)/g, " ")
+              .replace(/\[[^\]]*\]/g, " ")
+              .trim();
+            const t2 = vsMatch[2]
+              .replace(/\([^)]*\)/g, " ")
+              .replace(/\[[^\]]*\]/g, " ")
+              .trim();
+            if (t1 && t2 && t1.length >= 2 && t2.length >= 2) {
+              team1 = t1;
+              team2 = t2;
+              isEvent = false;
+            }
+          }
+        } else if (hasHyphen) {
+          const hyphenMatch = rawTitle.match(/(.+?)\s+-\s+(.+)/);
+          if (hyphenMatch) {
+            const t1 = hyphenMatch[1]
+              .replace(/\([^)]*\)/g, " ")
+              .replace(/\[[^\]]*\]/g, " ")
+              .trim();
+            const t2 = hyphenMatch[2]
+              .replace(/\([^)]*\)/g, " ")
+              .replace(/\[[^\]]*\]/g, " ")
+              .trim();
+            if (
+              t1 &&
+              t2 &&
+              t1.length >= 2 &&
+              t2.length >= 2 &&
+              !/^(Sự\s*kiện|Kênh|FPT|TV360|Live|Trực\s*tiếp)/i.test(t1) &&
+              !/^(Sự\s*kiện|Kênh|FPT|TV360|Live|Trực\s*tiếp|Tập|Phần|SV\d+)/i.test(t2)
+            ) {
+              team1 = t1;
+              team2 = t2;
+              isEvent = false;
+            }
           }
         }
 
@@ -1392,7 +1424,7 @@ export const liveFootballService = {
         }
       }
 
-      // PASS 2: GỘP CÁC NGUỒN CÙNG PHÁT 1 TRẬN
+      // PASS 2: GỘP CÁC NGUỒN CÙNG PHÁT 1 TRẬN HOẶC 1 SỰ KIỆN
       const uniqueMatches: FootballMatch[] = [];
       const mergedSet = new Set<string>();
       const allRawMatches = Array.from(matchMap.values());
@@ -1441,6 +1473,21 @@ export const liveFootballService = {
                   if (!m1.servers.some((existS) => existS.url === s.url)) {
                     m1.servers.push(s);
                   }
+                }
+              }
+            }
+          } else if (m1.isEvent && m2.isEvent) {
+            const key1 = m1.title.toLowerCase().replace(/[^a-z0-9]/g, "");
+            const key2 = m2.title.toLowerCase().replace(/[^a-z0-9]/g, "");
+            if (key1 === key2 && key1.length > 3) {
+              mergedSet.add(m2.id);
+              m2.groups.forEach((g) => {
+                if (!m1.groups.includes(g)) m1.groups.push(g);
+              });
+              if (m2.quality.includes("FHD")) m1.quality = "FHD 1080p";
+              for (const s of m2.servers) {
+                if (!m1.servers.some((existS) => existS.url === s.url)) {
+                  m1.servers.push(s);
                 }
               }
             }

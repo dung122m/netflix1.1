@@ -131,18 +131,18 @@ function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
         </div>
       </div>
 
-      {/* 2. KHU VỰC LOGO & ĐỐI ĐẦU (DUAL CLUB SCOREBOARD) */}
+      {/* 2. KHU VỰC LOGO & ĐỐI ĐẦU HOẶC SỰ KIỆN THỂ THAO */}
       {match.isEvent ? (
-        <div className="football-scoreboard my-2 min-h-36 p-5 sm:p-7 rounded-2xl bg-gradient-to-br from-red-950/70 via-zinc-950/95 to-black border border-red-500/30 backdrop-blur-sm relative z-10 flex flex-col items-center justify-center text-center">
-          <span className="text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] text-red-300">
-            Sự kiện trực tiếp
+        <div className="football-scoreboard my-2 min-h-[135px] p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-red-950/40 via-zinc-950/95 to-black border border-red-500/25 backdrop-blur-sm relative z-10 flex flex-col items-center justify-center text-center">
+          <span className="text-[10px] font-black uppercase tracking-[0.16em] text-rose-300 bg-rose-500/15 px-2.5 py-0.5 rounded-full border border-rose-500/30">
+            Sự kiện thể thao
           </span>
-          <strong className="mt-2 text-xl sm:text-2xl font-black text-white leading-tight">
+          <strong className="mt-2 text-sm sm:text-base font-black text-white line-clamp-2 leading-tight">
             {match.title || match.team1}
           </strong>
-          {match.time && match.time !== "Trực tiếp" && (
-            <span className="mt-3 text-sm font-bold text-gray-300">
-              ⏰ {match.time}
+          {match.blv && (
+            <span className="mt-1.5 text-[11px] font-extrabold text-rose-300 bg-black/60 px-2.5 py-0.5 rounded-full border border-white/10">
+              🎙️ BLV {match.blv}
             </span>
           )}
         </div>
