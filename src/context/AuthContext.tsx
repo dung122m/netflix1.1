@@ -15,6 +15,7 @@ import {
 } from "firebase/auth";
 import { auth, googleProvider, isFirebaseConfigured } from "@/lib/firebase";
 import { syncWatchHistoryWithCloud } from "@/lib/cloudSync";
+import { clearLocalWatchHistoryOnly } from "@/lib/watchHistory";
 
 interface AuthContextType {
   user: User | null;
@@ -127,6 +128,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       await signOut(auth);
       setUser(null);
+      // Trả máy tính về trạng thái sạch cho người tiếp theo, không lo lẫn lộn tài khoản
+      clearLocalWatchHistoryOnly();
     } catch (err) {
       console.error("Lỗi đăng xuất:", err);
     }

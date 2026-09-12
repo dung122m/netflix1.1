@@ -51,51 +51,32 @@ export async function syncWatchHistoryWithCloud(
       }
     });
 
-    const localList = getWatchHistory();
-    const mergedMap = new Map<string, WatchHistoryItem>();
+    // TRƯỜNG HỢP 1: Tài khoản Google này ĐÃ CÓ dữ liệu trên Cloud
+    // => Lấy 100% dữ liệu từ Cloud của tài khoản đó đè lên máy tính (không lấy dữ liệu rác của người khác trước đó trên máy)
+    if (cloudMap.size > 0) {
+      const cloudList = Array.from(cloudMap.values())
+        .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
+        .slice(0, MAX_ITEMS);
 
-    // 1. Đưa cloud items vào
-    cloudMap.forEach((item, slug) => {
-      mergedMap.set(slug, item);
-    });
-
-    // 2. So sánh và hợp nhất với local
-    const batch = writeBatch(firestore);
-    let hasCloudWrites = false;
-
-    localList.forEach((localItem) => {
-      const cloudItem = mergedMap.get(localItem.slug);
-      if (!cloudItem) {
-        // Có ở local nhưng chưa có trên cloud -> Đẩy lên cloud
-        mergedMap.set(localItem.slug, localItem);
-        const ref = doc(firestore, "users", userId, "watch_history", localItem.slug);
-        batch.set(ref, cleanFirestoreData(localItem));
-        hasCloudWrites = true;
-      } else {
-        // Có ở cả hai: lấy bản ghi có thời gian mới hơn
-        if ((localItem.updatedAt || 0) > (cloudItem.updatedAt || 0)) {
-          mergedMap.set(localItem.slug, localItem);
-          const ref = doc(firestore, "users", userId, "watch_history", localItem.slug);
-          batch.set(ref, cleanFirestoreData(localItem));
-          hasCloudWrites = true;
-        }
-      }
-    });
-
-    if (hasCloudWrites) {
-      await batch.commit();
+      localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(cloudList));
+      window.dispatchEvent(new CustomEvent("watch-history-updated"));
+      return cloudList;
     }
 
-    // Sắp xếp theo updatedAt giảm dần
-    const mergedList = Array.from(mergedMap.values())
-      .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
-      .slice(0, MAX_ITEMS);
-
-    // Cập nhật lại localStorage để đồng bộ offline
-    localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(mergedList));
+    // TRƯỜNG HỢP 2: Tài khoản Google này mới toanh (trên Cloud chưa có phim nào)
+    // => Chuyển giao các phim đang xem dở lúc làm khách (local) lên tài khoản mới
+    const localList = getWatchHistory();
+    if (localList.length > 0) {
+      const batch = writeBatch(firestore);
+      localList.forEach((localItem) => {
+        const ref = doc(firestore, "users", userId, "watch_history", localItem.slug);
+        batch.set(ref, cleanFirestoreData(localItem));
+      });
+      await batch.commit();
+    }
     window.dispatchEvent(new CustomEvent("watch-history-updated"));
 
-    return mergedList;
+    return localList;
   } catch (error) {
     console.warn("Lỗi đồng bộ lịch sử xem với Cloud:", error);
     return getWatchHistory();

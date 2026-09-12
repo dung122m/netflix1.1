@@ -127,6 +127,16 @@ export const removeWatchHistoryItem = (slug: string): void => {
   }
 };
 
+export const clearLocalWatchHistoryOnly = (): void => {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(HISTORY_KEY);
+    window.dispatchEvent(new CustomEvent("watch-history-updated"));
+  } catch (error) {
+    console.error("Lỗi xoá lịch sử local:", error);
+  }
+};
+
 export const clearWatchHistory = (): void => {
   if (typeof window === "undefined") return;
   try {
