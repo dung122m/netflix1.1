@@ -970,7 +970,8 @@ export function getCuratedDailyMatches(now: number): FootballMatch[] {
       hour: liveHour,
       min: liveMin,
       tournament: "Ngoại Hạng Anh",
-      group: "Ngoại Hạng Anh HD",
+      group: "Phòng BLV Tiếng Việt",
+      groups: ["Phòng BLV Tiếng Việt", "Kênh Thể Thao VTV & HTV"],
       blv: "BLV Giàng A Phò",
     },
     {
@@ -980,7 +981,8 @@ export function getCuratedDailyMatches(now: number): FootballMatch[] {
       hour: live2Hour,
       min: live2Min,
       tournament: "Ngoại Hạng Anh",
-      group: "Ngoại Hạng Anh HD",
+      group: "Phòng BLV Tiếng Việt",
+      groups: ["Phòng BLV Tiếng Việt", "Kênh Thể Thao VTV & HTV"],
       blv: "BLV Batman",
     },
 
@@ -992,7 +994,8 @@ export function getCuratedDailyMatches(now: number): FootballMatch[] {
       hour: 18,
       min: 30,
       tournament: "La Liga",
-      group: "La Liga HD",
+      group: "Phòng BLV Tiếng Việt",
+      groups: ["Phòng BLV Tiếng Việt", "Kênh Thể Thao VTV & HTV"],
       blv: "BLV Quang Huy",
     },
     {
@@ -1002,7 +1005,8 @@ export function getCuratedDailyMatches(now: number): FootballMatch[] {
       hour: 20,
       min: 0,
       tournament: "Bundesliga",
-      group: "Trực Tiếp Bóng Đá HD",
+      group: "Phòng BLV Tiếng Việt",
+      groups: ["Phòng BLV Tiếng Việt", "Kênh Thể Thao VTV & HTV"],
       blv: "BLV Thập Cẩm",
     },
     {
@@ -1012,7 +1016,8 @@ export function getCuratedDailyMatches(now: number): FootballMatch[] {
       hour: 21,
       min: 30,
       tournament: "Ngoại Hạng Anh",
-      group: "Ngoại Hạng Anh HD",
+      group: "Phòng BLV Tiếng Việt",
+      groups: ["Phòng BLV Tiếng Việt", "Kênh Thể Thao VTV & HTV"],
       blv: "BLV Anh Quân",
     },
     {
@@ -1022,7 +1027,8 @@ export function getCuratedDailyMatches(now: number): FootballMatch[] {
       hour: 19,
       min: 15,
       tournament: "V-League",
-      group: "V-League 1",
+      group: "Kênh Thể Thao VTV & HTV",
+      groups: ["Kênh Thể Thao VTV & HTV", "Phòng BLV Tiếng Việt"],
       blv: "BLV Việt Nam",
     },
     {
@@ -1032,7 +1038,8 @@ export function getCuratedDailyMatches(now: number): FootballMatch[] {
       hour: 22,
       min: 0,
       tournament: "Ngoại Hạng Anh",
-      group: "Ngoại Hạng Anh HD",
+      group: "Phòng BLV Tiếng Việt",
+      groups: ["Phòng BLV Tiếng Việt"],
       blv: "BLV Captain",
     },
     {
@@ -1042,7 +1049,8 @@ export function getCuratedDailyMatches(now: number): FootballMatch[] {
       hour: 23,
       min: 30,
       tournament: "Serie A",
-      group: "Trực Tiếp Bóng Đá HD",
+      group: "Phòng BLV Tiếng Việt",
+      groups: ["Phòng BLV Tiếng Việt"],
       blv: "BLV Cà Khịa",
     },
 
@@ -1054,7 +1062,8 @@ export function getCuratedDailyMatches(now: number): FootballMatch[] {
       hour: 23,
       min: 45,
       tournament: "Ligue 1",
-      group: "Trực Tiếp Bóng Đá HD",
+      group: "Phòng BLV Tiếng Việt",
+      groups: ["Phòng BLV Tiếng Việt"],
       blv: "BLV Rùa",
     },
     {
@@ -1064,7 +1073,8 @@ export function getCuratedDailyMatches(now: number): FootballMatch[] {
       hour: 2,
       min: 0,
       tournament: "La Liga",
-      group: "La Liga HD",
+      group: "Phòng BLV Tiếng Việt",
+      groups: ["Phòng BLV Tiếng Việt"],
       blv: "BLV Leo",
     },
     {
@@ -1075,6 +1085,7 @@ export function getCuratedDailyMatches(now: number): FootballMatch[] {
       min: 45,
       tournament: "Cúp Châu Âu",
       group: "Thể Thao Quốc Tế",
+      groups: ["Thể Thao Quốc Tế", "Phòng BLV Tiếng Việt"],
       blv: "BLV Quốc Tế",
     },
     {
@@ -1084,7 +1095,8 @@ export function getCuratedDailyMatches(now: number): FootballMatch[] {
       hour: 19,
       min: 30,
       tournament: "Serie A",
-      group: "Trực Tiếp Bóng Đá HD",
+      group: "Phòng BLV Tiếng Việt",
+      groups: ["Phòng BLV Tiếng Việt"],
       blv: "BLV Giàng A Lử",
     },
     {
@@ -1094,7 +1106,8 @@ export function getCuratedDailyMatches(now: number): FootballMatch[] {
       hour: 18,
       min: 0,
       tournament: "V-League",
-      group: "V-League 1",
+      group: "Kênh Thể Thao VTV & HTV",
+      groups: ["Kênh Thể Thao VTV & HTV", "Phòng BLV Tiếng Việt"],
       blv: "BLV Thể Thao",
     },
     {
@@ -1104,7 +1117,8 @@ export function getCuratedDailyMatches(now: number): FootballMatch[] {
       hour: 21,
       min: 30,
       tournament: "Bundesliga",
-      group: "Trực Tiếp Bóng Đá HD",
+      group: "Phòng BLV Tiếng Việt",
+      groups: ["Phòng BLV Tiếng Việt"],
       blv: "BLV Tốc Độ",
     },
   ];
@@ -1126,7 +1140,7 @@ export function getCuratedDailyMatches(now: number): FootballMatch[] {
       team2: f.team2,
       blv: f.blv,
       group: f.group,
-      groups: [f.group, "Trực Tiếp Bóng Đá HD"],
+      groups: f.groups,
       tournament: f.tournament,
       isEvent: false,
       timeline: getMatchTimeline(timestamp),
@@ -1145,9 +1159,9 @@ export function getCuratedDailyMatches(now: number): FootballMatch[] {
       team1: "HTV Thể Thao HD",
       team2: "",
       blv: "HTV Sports",
-      group: "Kênh Thể Thao",
-      groups: ["Kênh Thể Thao"],
-      tournament: "Kênh Thể Thao",
+      group: "Kênh Thể Thao VTV & HTV",
+      groups: ["Kênh Thể Thao VTV & HTV"],
+      tournament: "Kênh Thể Thao 24/7",
       isEvent: true,
       timeline: "live",
       quality: "FHD 1080p",
@@ -1170,9 +1184,9 @@ export function getCuratedDailyMatches(now: number): FootballMatch[] {
       team1: "VTV5 HD Thể Thao",
       team2: "",
       blv: "VTV Sports",
-      group: "Kênh Thể Thao",
-      groups: ["Kênh Thể Thao"],
-      tournament: "Kênh Thể Thao",
+      group: "Kênh Thể Thao VTV & HTV",
+      groups: ["Kênh Thể Thao VTV & HTV"],
+      tournament: "Kênh Thể Thao 24/7",
       isEvent: true,
       timeline: "live",
       quality: "FHD 1080p",
@@ -1195,9 +1209,9 @@ export function getCuratedDailyMatches(now: number): FootballMatch[] {
       team1: "VTV6 Cần Thơ HD",
       team2: "",
       blv: "VTV Sports",
-      group: "Kênh Thể Thao",
-      groups: ["Kênh Thể Thao"],
-      tournament: "Kênh Thể Thao",
+      group: "Kênh Thể Thao VTV & HTV",
+      groups: ["Kênh Thể Thao VTV & HTV"],
+      tournament: "Kênh Thể Thao 24/7",
       isEvent: true,
       timeline: "live",
       quality: "FHD 1080p",
@@ -1222,7 +1236,7 @@ export function getCuratedDailyMatches(now: number): FootballMatch[] {
       blv: "Quốc Tế",
       group: "Thể Thao Quốc Tế",
       groups: ["Thể Thao Quốc Tế"],
-      tournament: "Thể Thao Quốc Tế",
+      tournament: "Kênh Thể Thao 24/7",
       isEvent: true,
       timeline: "live",
       quality: "FHD 1080p",
@@ -1284,7 +1298,6 @@ export const liveFootballService = {
       if (memoryCache.expireAt > now) {
         return memoryCache.data;
       }
-      // Dùng tạm stale data trong 30 phút (0ms load) và fetch cập nhật ngầm
       if (memoryCache.staleUntil > now) {
         liveFootballService.revalidateFootballMatches().catch(() => {});
         return memoryCache.data;
@@ -1389,7 +1402,7 @@ export const liveFootballService = {
           }
 
           if (!url || isBlockedStreamUrl(url)) continue;
-          if (url.includes("msdht.app")) continue; // Domain chết
+          if (url.includes("msdht.app")) continue;
 
           const upperGroup = group.toUpperCase();
           const upperTitle = rawTitle.toUpperCase();
@@ -1430,7 +1443,7 @@ export const liveFootballService = {
         }
       }
 
-      // 3. KIỂM TRA SỨC KHỎE ĐỒNG THỜI (PARALLEL HEALTH CHECK): CHỈ GIỮ LUỒNG ĐANG PHÁT (200 OK)
+      // 3. KIỂM TRA SỨC KHỎE ĐỒNG THỜI (PARALLEL HEALTH CHECK)
       const healthResults = await Promise.allSettled(
         candidates.map(async (c) => {
           let effectiveUrl = c.url;
@@ -1452,37 +1465,43 @@ export const liveFootballService = {
         .filter((r): r is PromiseFulfilledResult<RawCandidate & { effectiveUrl: string }> => r.status === "fulfilled")
         .map((r) => r.value);
 
-      // 4. PARSE VÀ BỔ SUNG CÁC KÊNH/BLV ĐANG THỰC SỰ ON-AIR VÀO DANH SÁCH
+      // 4. PHÂN LOẠI CHUẨN XÁC NGUỒN PHÁT & GIẢI ĐẤU
       for (const item of activeCandidates) {
         const { group, rawTitle, rawLogo, effectiveUrl } = item;
         const upperGroup = group.toUpperCase();
         const upperTitle = rawTitle.toUpperCase();
 
-        let cleanGroup = group;
-        let tournament = "Thể Thao Trực Tiếp";
-
+        let cleanGroup = "Kênh Thể Thao VTV & HTV";
         if (
           upperGroup.includes("FPT PLAY") ||
           upperGroup.includes("SỰ KIỆN FPT") ||
           upperTitle.includes("SỰ KIỆN FPT")
         ) {
           cleanGroup = "Sự Kiện FPT Play";
-          tournament = "FPT Play Thể Thao";
         } else if (upperGroup.includes("TV360") || upperTitle.includes("TV360+")) {
           cleanGroup = "Sự Kiện TV360+";
-          tournament = "TV360+ Độc Quyền";
-        } else if (upperGroup.includes("COLA TV")) {
-          cleanGroup = "COLA TV (BLV Tiếng Việt)";
-          tournament = "Trực Tiếp Bóng Đá HD";
-        } else if (upperGroup.includes("PHÁO HOA TV")) {
-          cleanGroup = "PHÁO HOA TV (BLV Tiếng Việt)";
-          tournament = "Trực Tiếp Bóng Đá HD";
-        } else if (upperGroup.includes("THỂ THAO QUỐC TẾ") || upperGroup.includes("SPORT")) {
+        } else if (
+          upperGroup.includes("COLA") ||
+          upperGroup.includes("PHÁO HOA") ||
+          upperGroup.includes("BLV") ||
+          upperTitle.includes("BLV")
+        ) {
+          cleanGroup = "Phòng BLV Tiếng Việt";
+        } else if (
+          upperGroup.includes("QUỐC TẾ") ||
+          upperGroup.includes("SPORT") ||
+          upperTitle.includes("SPORT") ||
+          upperTitle.includes("TNT") ||
+          upperTitle.includes("CANAL") ||
+          upperTitle.includes("SKY")
+        ) {
           cleanGroup = "Thể Thao Quốc Tế";
-          tournament = "Kênh Thể Thao Quốc Tế";
-        } else if (upperGroup.includes("HTV") && upperTitle.includes("THỂ THAO")) {
-          cleanGroup = "Kênh Thể Thao";
-          tournament = "HTV Thể Thao";
+        } else if (
+          upperGroup.includes("HTV") ||
+          upperGroup.includes("VTV") ||
+          upperGroup.includes("THỂ THAO")
+        ) {
+          cleanGroup = "Kênh Thể Thao VTV & HTV";
         }
 
         channelsSet.add(cleanGroup);
@@ -1534,7 +1553,6 @@ export const liveFootballService = {
         const isEvent =
           cleanGroup === "Sự Kiện FPT Play" ||
           cleanGroup === "Sự Kiện TV360+" ||
-          cleanGroup === "Sự Kiện VTV Prime" ||
           !hasTeamSeparator;
 
         let team1 = cleanTitle;
@@ -1543,6 +1561,15 @@ export const liveFootballService = {
         if (!isEvent && vsMatch) {
           team1 = vsMatch[1].replace(/\([^)]*\)/g, " ").replace(/\[[^\]]*\]/g, " ").trim();
           team2 = vsMatch[2].replace(/\([^)]*\)/g, " ").replace(/\[[^\]]*\]/g, " ").trim();
+        }
+
+        let tournament = detectTournament(rawTitle, team1, team2);
+        if (!tournament) {
+          if (cleanGroup === "Phòng BLV Tiếng Việt") tournament = "Cúp Châu Âu";
+          else if (cleanGroup === "Sự Kiện FPT Play") tournament = "Sự Kiện FPT Play";
+          else if (cleanGroup === "Sự Kiện TV360+") tournament = "Sự Kiện TV360";
+          else if (cleanGroup === "Thể Thao Quốc Tế") tournament = "Cúp Châu Âu";
+          else tournament = "Kênh Thể Thao 24/7";
         }
 
         const normT1 = normalizeClubKey(team1);
@@ -1561,9 +1588,6 @@ export const liveFootballService = {
         if (blv) serverLabel += ` (${blv})`;
         if (isFhd) serverLabel += " [FHD]";
         else if (format === "hls") serverLabel += " [HLS]";
-
-        const detectedTour = detectTournament(rawTitle, team1, team2);
-        if (detectedTour) tournament = detectedTour;
 
         const timestamp = parseMatchTimeToTimestamp(time);
 
