@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isBlockedStreamUrl } from "@/services/live/shared/streamHealth";
+import { isSafePublicUrl, checkRateLimit, getClientIp } from "@/lib/security";
 
 export const dynamic = "force-dynamic";
 
@@ -33,11 +34,26 @@ function getReferer(url: string): string {
 }
 
 export async function GET(request: NextRequest) {
+  // 1. Rate Limit Protection (Max 300 segments per minute per IP)
+  const clientIp = getClientIp(request);
+  const rateLimit = checkRateLimit(`livetv_proxy_${clientIp}`, 300, 60);
+  if (!rateLimit.allowed) {
+    return new NextResponse("Too many proxy requests. Rate limit exceeded.", {
+      status: 429,
+      headers: { "Retry-After": String(rateLimit.resetSeconds) },
+    });
+  }
+
   const { searchParams } = new URL(request.url);
   const targetUrl = searchParams.get("url");
 
   if (!targetUrl) {
     return new NextResponse("Missing url parameter", { status: 400 });
+  }
+
+  // 2. Anti-SSRF URL Validation (Chống tấn công nội mạng & proxy abuse)
+  if (!isSafePublicUrl(targetUrl)) {
+    return new NextResponse("Forbidden target URL", { status: 403 });
   }
 
   if (isBlockedStreamUrl(targetUrl)) {

@@ -16,6 +16,7 @@ import { UserProfile } from "@/types/user";
 import { WatchHistoryItem } from "@/lib/watchHistory";
 import { WatchlistItem } from "@/lib/watchlist";
 import { isUserAdmin } from "@/lib/adminConfig";
+import { sanitizeSafeText } from "@/lib/security";
 
 const USERS_COLLECTION = "users";
 const COMMENTS_COLLECTION = "movie_comments";
@@ -36,7 +37,7 @@ export async function recordUserProfile(user: User): Promise<void> {
       {
         uid: user.uid,
         email: user.email || "",
-        displayName: user.displayName || "Thành viên Nanaflix",
+        displayName: sanitizeSafeText(user.displayName || "Thành viên Nanaflix", 100),
         photoURL: user.photoURL || "",
         lastLoginAt: now,
         role: isAdmin ? "admin" : "member",
@@ -114,7 +115,7 @@ export async function setUserCommentRestriction(
       userRef,
       {
         isCommentRestricted: isRestricted,
-        ...(reason ? { lastViolationReason: reason } : {}),
+        ...(reason ? { lastViolationReason: sanitizeSafeText(reason, 200) } : {}),
       },
       { merge: true }
     );

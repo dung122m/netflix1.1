@@ -21,6 +21,7 @@ import { db } from "@/lib/firebase";
 import { MovieComment, MovieRatingStats, CommentReactionType } from "@/types/comment";
 import { UserNotification } from "@/types/notification";
 import { checkContentModeration } from "@/lib/contentModeration";
+import { sanitizeSafeText } from "@/lib/security";
 
 const COLLECTION_NAME = "movie_comments";
 const USERS_COLLECTION = "users";
@@ -305,6 +306,9 @@ export async function addMovieComment(
   const commentsRef = collection(db, COLLECTION_NAME);
   const newComment = sanitizeCommentData({
     ...comment,
+    content: sanitizeSafeText(comment.content, 2500),
+    userName: sanitizeSafeText(comment.userName, 100),
+    movieTitle: sanitizeSafeText(comment.movieTitle || "", 200),
     likes: 0,
     likedBy: [],
     createdAt: Date.now(),
@@ -369,9 +373,12 @@ export async function addReplyComment(params: {
   const commentsRef = collection(db, COLLECTION_NAME);
   const newReply = sanitizeCommentData({
     ...replyData,
+    content: sanitizeSafeText(replyData.content, 2500),
+    userName: sanitizeSafeText(replyData.userName, 100),
+    movieTitle: sanitizeSafeText(replyData.movieTitle || "", 200),
     parentId,
     replyToUserId,
-    replyToUserName,
+    replyToUserName: sanitizeSafeText(replyToUserName || "", 100),
     rating: 0,
     likes: 0,
     likedBy: [],
@@ -504,10 +511,14 @@ export async function updateMovieComment(
 ): Promise<void> {
   if (!db || !commentId) return;
   const docRef = doc(db, COLLECTION_NAME, commentId);
+  const safeData: typeof data = { ...data };
+  if (safeData.content) {
+    safeData.content = sanitizeSafeText(safeData.content, 2500);
+  }
   await updateDoc(
     docRef,
     sanitizeCommentData({
-      ...data,
+      ...safeData,
       updatedAt: Date.now(),
     }),
   );

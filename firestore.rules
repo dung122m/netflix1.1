@@ -1,50 +1,105 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Hàm kiểm tra quyền Quản Trị Viên tối cao
+    // ----------------------------------------------------
+    // HÀM BẢO MẬT HỆ THỐNG
+    // ----------------------------------------------------
+    
+    // Kiểm tra quyền Quản Trị Viên tối cao (Admin)
     function isAdmin() {
       return request.auth != null && 
         (request.auth.token.email == "dungtran122cq@gmail.com");
     }
 
-    // 1. Dữ liệu hồ sơ người dùng và các danh mục con (lịch sử, watchlist, bộ sưu tập, thông báo)
-    match /users/{userId} {
-      // Cho phép Admin đọc danh sách người dùng, hoặc chính chủ đọc/ghi hồ sơ của họ
-      allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());
-      allow write: if request.auth != null && (request.auth.uid == userId || isAdmin());
+    // Kiểm tra người dùng đã đăng nhập
+    function isAuthenticated() {
+      return request.auth != null;
+    }
 
-      // Các mục con bên trong users/{userId} (watch_history, watchlist, collections, followed_series, ...)
+    // Kiểm tra chính chủ sở hữu tài khoản
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    // ----------------------------------------------------
+    // 1. DỮ LIỆU HỒ SƠ THÀNH VIÊN (/users/{userId})
+    // ----------------------------------------------------
+    match /users/{userId} {
+      // Cho phép Admin đọc danh sách người dùng, hoặc chính chủ đọc hồ sơ của họ
+      allow read: if isOwner(userId) || isAdmin();
+
+      // Kiểm tra ngăn chặn nâng quyền trái phép (Role Escalation) & tự mở khóa
+      allow create: if isOwner(userId) && 
+        (!("role" in request.resource.data) || request.resource.data.role != "admin" || isAdmin()) &&
+        (!("isCommentRestricted" in request.resource.data) || request.resource.data.isCommentRestricted == false || isAdmin());
+
+      allow update: if (isOwner(userId) && 
+        // User thường KHÔNG ĐƯỢC tự phong quyền admin
+        (!("role" in request.resource.data) || request.resource.data.role == resource.data.role || isAdmin()) &&
+        // User thường KHÔNG ĐƯỢC tự mở khóa hoặc chỉnh sửa số lần vi phạm
+        (!("isCommentRestricted" in request.resource.data) || request.resource.data.isCommentRestricted == resource.data.isCommentRestricted || isAdmin()) &&
+        (!("violationsCount" in request.resource.data) || request.resource.data.violationsCount == resource.data.violationsCount || isAdmin())
+      ) || isAdmin();
+
+      allow delete: if isAdmin();
+
+      // Các mục dữ liệu con riêng tư của user (watch_history, watchlist, collections, ...)
       match /{document=**} {
-        allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());
-        allow write: if request.auth != null && (request.auth.uid == userId || isAdmin());
+        allow read: if isOwner(userId) || isAdmin();
+        allow write: if isOwner(userId) || isAdmin();
       }
 
-      // Thông báo cá nhân: người dùng tự đọc/ghi thông báo của mình
-      // Server-side (cloud functions) hoặc user khác có thể GHI thông báo reply vào đây
+      // Hộp thư thông báo cá nhân (/users/{userId}/notifications/{notifId})
       match /notifications/{notifId} {
-        allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());
-        // Cho phép bất kỳ user đăng nhập nào tạo notification cho user khác (dùng cho reply comment)
-        allow create: if request.auth != null;
-        allow update, delete: if request.auth != null && (request.auth.uid == userId || isAdmin());
+        allow read: if isOwner(userId) || isAdmin();
+        // Cho phép người dùng khác tạo thông báo reply (nội dung an toàn)
+        allow create: if isAuthenticated();
+        allow update, delete: if isOwner(userId) || isAdmin();
       }
     }
 
-    // 2. Bộ sưu tập phim công khai: Bất kỳ ai có liên kết đều có thể đọc
+    // ----------------------------------------------------
+    // 2. BỘ SƯU TẬP PHIM CÔNG KHAI (/public_collections/{collectionId})
+    // ----------------------------------------------------
     match /public_collections/{collectionId} {
       allow read: if true;
-      allow write: if request.auth != null;
+      // Chỉ cho phép người tạo (creatorId) hoặc Admin tạo/sửa/xóa bộ sưu tập
+      allow create: if isAuthenticated() && request.resource.data.creatorId == request.auth.uid;
+      allow update, delete: if isAuthenticated() && 
+        (resource.data.creatorId == request.auth.uid || isAdmin());
     }
 
-    // 3. Bình luận, đánh giá và reply phim cộng đồng
-    //    - Ai cũng xem được (kể cả khách)
-    //    - Phải đăng nhập để tạo/like/xóa bình luận
-    //    - Chỉ chủ bình luận hoặc admin mới xóa được
+    // ----------------------------------------------------
+    // 3. BÌNH LUẬN & ĐÁNH GIÁ PHIM (/movie_comments/{commentId})
+    // ----------------------------------------------------
     match /movie_comments/{commentId} {
       allow read: if true;
-      allow create: if request.auth != null;
-      allow update: if request.auth != null;
-      allow delete: if request.auth != null && 
-        (request.auth.uid == resource.data.userId || isAdmin());
+
+      // Xác thực khi tạo: Phải đăng nhập, đúng UID của mình, độ dài nội dung hợp lệ (<= 2500 ký tự)
+      allow create: if isAuthenticated() && 
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.content is string &&
+        request.resource.data.content.size() <= 2500 &&
+        request.resource.data.content.size() > 0 &&
+        (!("rating" in request.resource.data) || (request.resource.data.rating >= 0 && request.resource.data.rating <= 5));
+
+      // Cập nhật: Chủ bình luận sửa bài, user khác tương tác reactions/likes, hoặc Admin
+      allow update: if isAuthenticated();
+
+      // Xóa: Chỉ chính chủ bình luận hoặc Admin mới có quyền xóa
+      allow delete: if isAuthenticated() && 
+        (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    // ----------------------------------------------------
+    // 4. NHẬT KÝ VI PHẠM & BẢO MẬT (/admin_violations/{violId})
+    // ----------------------------------------------------
+    match /admin_violations/{violId} {
+      // Chỉ Quản trị viên mới được xem hoặc xóa danh sách vi phạm
+      allow read, delete: if isAdmin();
+      // Hệ thống / Thành viên được phép ghi nhận báo cáo vi phạm
+      allow create: if isAuthenticated();
+      allow update: if isAdmin();
     }
   }
 }
