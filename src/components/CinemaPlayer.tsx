@@ -32,8 +32,6 @@ import { PlayerScrubBar } from "./PlayerScrubBar";
 import { useWatchController } from "./WatchController";
 import { getWatchProgress, saveWatchProgress } from "@/lib/watchHistory";
 import { formatEpisodeName } from "@/lib/formatEpisode";
-import { WatchlistButton } from "./WatchlistButton";
-import { AddToCollectionButton } from "./Collections/AddToCollectionButton";
 import { useAuth } from "@/context/AuthContext";
 import { updateActivePlaybackSession } from "@/services/handoffService";
 
@@ -1354,29 +1352,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
               <Keyboard className="w-3.5 h-3.5" />
               <span>Phím tắt</span>
             </button>
-
-            {/* 6. Nút Thêm vào Danh sách yêu thích, Bộ sưu tập & Theo dõi tập mới */}
-            {movieSlug && (
-              <WatchlistButton
-                movie={{
-                  slug: movieSlug,
-                  title,
-                  poster: posterUrl,
-                }}
-                variant="player"
-              />
-            )}
-            {movieSlug && (
-              <AddToCollectionButton
-                movie={{
-                  slug: movieSlug,
-                  title,
-                  poster: posterUrl,
-                }}
-                variant="player"
-                className="hidden sm:inline-flex"
-              />
-            )}
           </div>
 
           {/* CỤM NÚT ĐIỀU HƯỚNG TẬP: TRƯỚC / SAU (CHUYỂN TỨC THÌ 0MS) */}
