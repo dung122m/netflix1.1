@@ -399,9 +399,9 @@ export async function addReplyComment(params: {
         message: params.content.length > 80
           ? params.content.slice(0, 80) + "..."
           : params.content,
-        link: `/movies/${params.movieSlug}#comments`,
+        link: `/movies/${params.movieSlug}?highlightComment=${docRef.id}#comment-${docRef.id}`,
         movieSlug: params.movieSlug,
-        commentId: parentId,
+        commentId: docRef.id,
         replierName: params.userName,
         replierAvatar: params.userAvatar,
         isRead: false,
@@ -422,9 +422,9 @@ export async function addReplyComment(params: {
         message: params.content.length > 80
           ? params.content.slice(0, 80) + "..."
           : params.content,
-        link: `/movies/${params.movieSlug}#comments`,
+        link: `/movies/${params.movieSlug}?highlightComment=${docRef.id}#comment-${docRef.id}`,
         movieSlug: params.movieSlug,
-        commentId: parentId,
+        commentId: docRef.id,
         replierName: params.userName,
         replierAvatar: params.userAvatar,
         isRead: false,

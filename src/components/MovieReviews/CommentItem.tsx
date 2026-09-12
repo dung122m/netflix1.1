@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import {
   Trash2,
@@ -14,6 +14,7 @@ import {
   ChevronUp,
   CornerDownRight,
   Reply,
+  Sparkles,
 } from "lucide-react";
 import { MovieComment, CommentReactionType } from "@/types/comment";
 import { StarRating } from "./StarRating";
@@ -44,6 +45,10 @@ interface CommentItemProps {
   onRequireAuth?: () => void;
   /** Callback khi bấm trả lời một reply cụ thể trong thread */
   onReplyTo?: (targetUserId: string, targetUserName: string) => void;
+  /** ID của comment hoặc reply cần highlight và cuộn tới */
+  highlightCommentId?: string | null;
+  /** ID của reply con nằm trong thread này cần tự động mở */
+  targetReplyId?: string | null;
 }
 
 function formatRelativeTime(timestamp: number): string {
@@ -89,9 +94,16 @@ export const CommentItem: React.FC<CommentItemProps> = ({
   isReply = false,
   onRequireAuth,
   onReplyTo,
+  highlightCommentId,
+  targetReplyId,
 }) => {
   const [showSpoiler, setShowSpoiler] = useState(false);
   const [avatarError, setAvatarError] = useState(false);
+
+  // --- Highlight & Scroll state ---
+  const isTarget = Boolean(highlightCommentId && comment.id === highlightCommentId);
+  const [isHighlighted, setIsHighlighted] = useState(false);
+  const itemRef = useRef<HTMLDivElement>(null);
 
   // --- Reply form state ---
   const [showReplyForm, setShowReplyForm] = useState(false);
@@ -111,6 +123,47 @@ export const CommentItem: React.FC<CommentItemProps> = ({
 
   // Tổng số replies (từ realtime hoặc từ replyCount field)
   const totalReplies = showReplies ? replies.length : (comment.replyCount || 0);
+
+  // Tự động mở replies nếu có reply con trong thread này được chỉ định highlight
+  useEffect(() => {
+    if (targetReplyId && !showReplies && !isReply) {
+      setShowReplies(true);
+      setLoadingReplies(true);
+      const unsub = subscribeCommentReplies(
+        comment.id,
+        (data) => {
+          setReplies(data);
+          setLoadingReplies(false);
+        },
+        () => setLoadingReplies(false),
+      );
+      setRepliesUnsubscribe(() => unsub);
+    }
+  }, [targetReplyId, showReplies, isReply, comment.id]);
+
+  // Tự động cuộn tới vị trí comment và kích hoạt hiệu ứng phát sáng (highlight)
+  useEffect(() => {
+    if (isTarget) {
+      setIsHighlighted(true);
+      const scrollTimer = setTimeout(() => {
+        if (itemRef.current) {
+          itemRef.current.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+          });
+        }
+      }, 350);
+
+      const unhighlightTimer = setTimeout(() => {
+        setIsHighlighted(false);
+      }, 5000);
+
+      return () => {
+        clearTimeout(scrollTimer);
+        clearTimeout(unhighlightTimer);
+      };
+    }
+  }, [isTarget]);
 
   const handleToggleReplies = () => {
     if (showReplies) {
@@ -264,12 +317,28 @@ export const CommentItem: React.FC<CommentItemProps> = ({
 
   return (
     <div
-      className={`group ${
+      ref={itemRef}
+      id={`comment-${comment.id}`}
+      className={`group relative ${
+        isHighlighted
+          ? "ring-2 ring-red-500 shadow-[0_0_35px_rgba(229,9,20,0.65)] bg-red-950/40 border-red-500/80"
+          : isReply
+          ? "bg-zinc-900/40 hover:bg-zinc-900/60 border-white/5"
+          : "bg-zinc-900/60 hover:bg-zinc-900/90 border-white/5 hover:border-white/10"
+      } ${
         isReply
-          ? "bg-zinc-900/40 hover:bg-zinc-900/60 p-2.5 sm:p-3.5 rounded-xl border border-white/5"
-          : "bg-zinc-900/60 hover:bg-zinc-900/90 p-3 sm:p-4 md:p-5 rounded-2xl border border-white/5 hover:border-white/10"
-      } transition-all duration-200`}
+          ? "p-2.5 sm:p-3.5 rounded-xl border"
+          : "p-3 sm:p-4 md:p-5 rounded-2xl border"
+      } transition-all duration-500`}
     >
+      {/* BADGE THÔNG BÁO KHI ĐƯỢC CHỌN TỪ POPUP / THÔNG BÁO */}
+      {isHighlighted && (
+        <div className="mb-2.5 flex items-center gap-1.5 text-[11px] font-bold text-red-300 bg-red-500/15 px-2.5 py-1 rounded-lg border border-red-500/30 w-fit animate-pulse">
+          <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+          <span>Bình luận bạn vừa chọn từ thông báo</span>
+        </div>
+      )}
+
       {/* HEADER: AVATAR & USER INFO & ACTIONS */}
       <div className="flex items-start justify-between gap-2 sm:gap-3">
         {/* User Avatar + Meta */}
@@ -570,6 +639,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                   onReplyTo={(targetUserId, targetUserName) => {
                     handleReplyClick(targetUserId, targetUserName);
                   }}
+                  highlightCommentId={highlightCommentId}
                 />
               ))
             )}

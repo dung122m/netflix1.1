@@ -1027,7 +1027,14 @@ const NavbarInner: React.FC = () => {
                         onClick={() => {
                           if (user) markNotificationAsRead(user.uid, item.id);
                           setShowNotifications(false);
-                          router.push(item.link || `/movies/${item.movieSlug}`);
+                          const targetLink =
+                            item.link ||
+                            (item.movieSlug
+                              ? item.commentId
+                                ? `/movies/${item.movieSlug}?highlightComment=${item.commentId}#comment-${item.commentId}`
+                                : `/movies/${item.movieSlug}#comments`
+                              : "/browse");
+                          router.push(targetLink);
                         }}
                         className={`flex items-start gap-3 p-2.5 rounded-xl transition border cursor-pointer group ${
                           !item.isRead

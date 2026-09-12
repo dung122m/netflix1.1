@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import {
   MessageSquare,
@@ -46,16 +47,42 @@ const QUICK_TAGS = [
   "🤯 Plot twist bất ngờ",
 ];
 
-export const MovieCommentsSection: React.FC<MovieCommentsSectionProps> = ({
+const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
   movieSlug,
   movieTitle,
   currentEpisodeSlug,
   currentEpisodeName,
 }) => {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
   const [comments, setComments] = useState<MovieComment[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+
+  // Lấy ID comment cần highlight từ query params (?highlightComment=xxx) hoặc URL hash (#comment-xxx)
+  useEffect(() => {
+    const paramHighlight = searchParams?.get("highlightComment");
+    if (paramHighlight) {
+      setHighlightId(paramHighlight);
+      return;
+    }
+    if (typeof window !== "undefined" && window.location.hash.startsWith("#comment-")) {
+      setHighlightId(window.location.hash.replace("#comment-", ""));
+    }
+  }, [searchParams]);
+
+  // Tìm bài viết mục tiêu (có thể là root comment hoặc reply)
+  const targetComment = useMemo(() => {
+    if (!highlightId) return null;
+    return comments.find((c) => c.id === highlightId) || null;
+  }, [comments, highlightId]);
+
+  // Nếu mục tiêu là một reply con, xác định ID bài comment cha chứa nó
+  const targetParentId = useMemo(() => {
+    if (!targetComment) return null;
+    return targetComment.parentId || null;
+  }, [targetComment]);
 
   // Form states
   const [rating, setRating] = useState<number>(5);
@@ -283,7 +310,7 @@ export const MovieCommentsSection: React.FC<MovieCommentsSectionProps> = ({
   };
 
   return (
-    <section className="mt-8 sm:mt-12 bg-zinc-950/80 rounded-2xl sm:rounded-3xl border border-white/5 p-4 sm:p-6 md:p-8 backdrop-blur-md shadow-2xl">
+    <section id="comments" className="mt-8 sm:mt-12 bg-zinc-950/80 rounded-2xl sm:rounded-3xl border border-white/5 p-4 sm:p-6 md:p-8 backdrop-blur-md shadow-2xl">
       {/* Title & Section Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 pb-5 sm:pb-6 border-b border-white/10">
         <div>
@@ -601,6 +628,8 @@ export const MovieCommentsSection: React.FC<MovieCommentsSectionProps> = ({
                 onDelete={handleDeleteComment}
                 onEdit={handleEditReview}
                 onRequireAuth={() => setShowAuthModal(true)}
+                highlightCommentId={highlightId}
+                targetReplyId={targetParentId === comment.id ? highlightId : undefined}
               />
             ))
           ) : (
@@ -620,5 +649,13 @@ export const MovieCommentsSection: React.FC<MovieCommentsSectionProps> = ({
       {/* Auth Modal Trigger */}
       <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
     </section>
+  );
+};
+
+export const MovieCommentsSection: React.FC<MovieCommentsSectionProps> = (props) => {
+  return (
+    <React.Suspense fallback={null}>
+      <MovieCommentsSectionContent {...props} />
+    </React.Suspense>
   );
 };

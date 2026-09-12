@@ -96,7 +96,13 @@ export const DesktopReplyPopup: React.FC = () => {
   const handleClickNotification = useCallback(() => {
     if (!activeNotification || !user) return;
     markNotificationAsRead(user.uid, activeNotification.id);
-    const targetLink = activeNotification.link || (activeNotification.movieSlug ? `/movies/${activeNotification.movieSlug}#comments` : "/browse");
+    const targetLink =
+      activeNotification.link ||
+      (activeNotification.movieSlug
+        ? activeNotification.commentId
+          ? `/movies/${activeNotification.movieSlug}?highlightComment=${activeNotification.commentId}#comment-${activeNotification.commentId}`
+          : `/movies/${activeNotification.movieSlug}#comments`
+        : "/browse");
     handleDismiss();
     router.push(targetLink);
   }, [activeNotification, user, handleDismiss, router]);
