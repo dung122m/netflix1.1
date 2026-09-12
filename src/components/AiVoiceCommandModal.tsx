@@ -12,7 +12,6 @@ import {
   Radio,
   Flame,
   Film,
-  Dices,
   Volume2,
   CheckCircle2,
   Search,
@@ -36,13 +35,12 @@ function speakResponse(text: string) {
         v.name.toLowerCase().includes("an")
     );
 
-    // Chỉ phát âm thanh nếu máy có cài giọng Tiếng Việt chuẩn
-    if (!viVoice) return;
-
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.voice = viVoice;
-    utterance.lang = viVoice.lang || "vi-VN";
-    utterance.rate = 1.0;
+    if (viVoice) {
+      utterance.voice = viVoice;
+    }
+    utterance.lang = viVoice?.lang || "vi-VN";
+    utterance.rate = 1.05;
     utterance.pitch = 1.0;
     window.speechSynthesis.speak(utterance);
   } catch {}
@@ -63,8 +61,19 @@ export const AiVoiceCommandModal: React.FC = () => {
   const latestTranscriptRef = useRef<string>("");
   const hasExecutedRef = useRef<boolean>(false);
   const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isListeningRef = useRef<boolean>(false);
+  const isOpenRef = useRef<boolean>(false);
+
+  useEffect(() => {
+    isListeningRef.current = isListening;
+  }, [isListening]);
+
+  useEffect(() => {
+    isOpenRef.current = isOpen;
+  }, [isOpen]);
 
   const stopListening = useCallback(() => {
+    isListeningRef.current = false;
     if (silenceTimerRef.current) {
       clearTimeout(silenceTimerRef.current);
       silenceTimerRef.current = null;
@@ -86,6 +95,74 @@ export const AiVoiceCommandModal: React.FC = () => {
     hasExecutedRef.current = true;
     setIsExecuting(true);
     stopListening();
+
+    // 0. ĐIỀU KHIỂN TRÌNH PHÁT VIDEO KHI ĐANG XEM PHIM
+    const video = typeof document !== "undefined" ? document.querySelector("video") : null;
+    if (video) {
+      if (text.includes("tạm dừng") || text.includes("dừng phim") || text.includes("dừng lại") || text === "pause" || text === "stop") {
+        video.pause();
+        setFeedback("Đã tạm dừng phát video");
+        speakResponse("Đã tạm dừng video");
+        toast.info("Tạm dừng phát");
+        setTimeout(() => setIsOpen(false), 700);
+        return;
+      }
+
+      if (text.includes("phát tiếp") || text.includes("tiếp tục") || text.includes("chạy tiếp") || text === "play" || text === "resume") {
+        video.play();
+        setFeedback("Đang tiếp tục phát video");
+        speakResponse("Đang tiếp tục phát");
+        toast.success("Tiếp tục phát");
+        setTimeout(() => setIsOpen(false), 700);
+        return;
+      }
+
+      if (text.includes("tắt tiếng") || text.includes("im lặng") || text === "mute") {
+        video.muted = true;
+        setFeedback("Đã tắt tiếng video");
+        speakResponse("Đã tắt tiếng");
+        toast.info("Đã tắt tiếng");
+        setTimeout(() => setIsOpen(false), 700);
+        return;
+      }
+
+      if (text.includes("bật tiếng") || text.includes("mở tiếng") || text === "unmute") {
+        video.muted = false;
+        setFeedback("Đã bật tiếng video");
+        speakResponse("Đã bật tiếng");
+        toast.info("Đã bật tiếng");
+        setTimeout(() => setIsOpen(false), 700);
+        return;
+      }
+
+      if (text.includes("tua tới") || text.includes("tua nhanh") || text.includes("tua tiếp") || text.includes("tua 10 giây")) {
+        video.currentTime = Math.min(video.duration || 99999, video.currentTime + 10);
+        setFeedback("Đã tua tới 10 giây");
+        speakResponse("Tua tới 10 giây");
+        toast.info("Tua tới 10s");
+        setTimeout(() => setIsOpen(false), 700);
+        return;
+      }
+
+      if (text.includes("tua lùi") || text.includes("lùi lại") || text.includes("tua lại") || text.includes("quay lại 10 giây")) {
+        video.currentTime = Math.max(0, video.currentTime - 10);
+        setFeedback("Đã tua lùi 10 giây");
+        speakResponse("Tua lùi 10 giây");
+        toast.info("Tua lùi 10s");
+        setTimeout(() => setIsOpen(false), 700);
+        return;
+      }
+
+      if (text.includes("toàn màn hình") || text.includes("phóng to") || text === "fullscreen") {
+        const playerContainer = document.querySelector(".cinema-player-container") || video;
+        if (playerContainer && !document.fullscreenElement) {
+          playerContainer.requestFullscreen?.();
+          toast.success("Toàn màn hình");
+          setIsOpen(false);
+          return;
+        }
+      }
+    }
 
     // 1. KÊNH TRUYỀN HÌNH (VTV & TV LIVE)
     if (text.includes("vtv3") || text.includes("vtv 3")) {
@@ -422,7 +499,7 @@ export const AiVoiceCommandModal: React.FC = () => {
     }, 650);
   }, [router, stopListening]);
 
-  const startListening = useCallback(() => {
+  const startListening = useCallback(async () => {
     if (typeof window === "undefined") return;
 
     setErrorMessage(null);
@@ -437,6 +514,22 @@ export const AiVoiceCommandModal: React.FC = () => {
       setErrorMessage("Trình duyệt hiện tại chưa hỗ trợ nhận diện giọng nói Web Speech. Hãy sử dụng Google Chrome, Cốc Cốc hoặc Microsoft Edge!");
       setFeedback("Trình duyệt chưa hỗ trợ Web Speech");
       setIsListening(false);
+      isListeningRef.current = false;
+      return;
+    }
+
+    // Yêu cầu quyền Micro chủ động nếu chưa cấp
+    try {
+      if (navigator?.mediaDevices?.getUserMedia) {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach((t) => t.stop());
+      }
+    } catch (permErr) {
+      console.warn("Microphone access check:", permErr);
+      setErrorMessage("Trình duyệt chưa được cấp quyền Micro. Hãy bấm vào biểu tượng Micro/Ổ khóa trên thanh địa chỉ URL để chọn 'Cho phép (Allow)' nhé!");
+      setFeedback("Chưa được cấp quyền sử dụng Micro!");
+      setIsListening(false);
+      isListeningRef.current = false;
       return;
     }
 
@@ -445,71 +538,96 @@ export const AiVoiceCommandModal: React.FC = () => {
         try {
           recognitionRef.current.abort();
         } catch {}
+        recognitionRef.current = null;
       }
 
       const recognition = new SpeechRecognition();
       recognition.lang = "vi-VN";
       recognition.interimResults = true;
-      recognition.continuous = false; // continuous = false cho nhận diện lệnh chuẩn xác và phản hồi tức thì
+      recognition.continuous = true;
       recognition.maxAlternatives = 1;
 
       recognition.onstart = () => {
         setIsListening(true);
+        isListeningRef.current = true;
         setFeedback("Đang lắng nghe... Hãy nói câu lệnh hoặc tên phim!");
       };
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       recognition.onresult = (event: any) => {
-        let currentText = "";
+        let fullTranscript = "";
         let isFinal = false;
 
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const item = event.results[i];
-          currentText += item[0].transcript;
-          if (item.isFinal) {
-            isFinal = true;
+        for (let i = 0; i < event.results.length; i++) {
+          const res = event.results[i];
+          if (res && res[0]) {
+            fullTranscript += res[0].transcript + " ";
+            if (res.isFinal) {
+              isFinal = true;
+            }
           }
         }
 
-        const trimmed = currentText.trim();
+        const trimmed = fullTranscript.trim();
         if (trimmed) {
           latestTranscriptRef.current = trimmed;
           setTranscript(trimmed);
 
+          if (silenceTimerRef.current) {
+            clearTimeout(silenceTimerRef.current);
+          }
+
           if (isFinal) {
-            executeVoiceCommand(trimmed);
-          } else {
-            if (silenceTimerRef.current) {
-              clearTimeout(silenceTimerRef.current);
-            }
             silenceTimerRef.current = setTimeout(() => {
               if (latestTranscriptRef.current && !hasExecutedRef.current) {
                 executeVoiceCommand(latestTranscriptRef.current);
               }
-            }, 1000);
+            }, 800);
+          } else {
+            silenceTimerRef.current = setTimeout(() => {
+              if (latestTranscriptRef.current && !hasExecutedRef.current) {
+                executeVoiceCommand(latestTranscriptRef.current);
+              }
+            }, 1400);
           }
         }
       };
 
       recognition.onerror = (event: { error?: string }) => {
         console.warn("Speech Recognition error:", event.error);
+
+        if (event.error === "no-speech") {
+          setFeedback("Đang lắng nghe... Hãy nói câu lệnh hoặc tên phim!");
+          return;
+        }
+
+        if (event.error === "aborted") {
+          return;
+        }
+
         setIsListening(false);
+        isListeningRef.current = false;
 
         if (event.error === "not-allowed" || event.error === "service-not-allowed") {
-          setErrorMessage("Trình duyệt chưa được cấp quyền Micro. Hãy bấm vào biểu tượng Micro/Ổ khóa trên thanh địa chỉ để Chọn Cho phép (Allow) nhé!");
+          setErrorMessage("Trình duyệt chưa được cấp quyền Micro. Hãy bấm vào biểu tượng Micro/Ổ khóa trên thanh địa chỉ URL để Chọn Cho phép (Allow) nhé!");
           setFeedback("Chưa được cấp quyền sử dụng Micro!");
         } else if (event.error === "audio-capture") {
           setErrorMessage("Không tìm thấy micro trên máy tính. Hãy kiểm tra lại thiết bị thu âm của bạn.");
           setFeedback("Không tìm thấy thiết bị thu âm!");
-        } else if (event.error === "no-speech") {
-          setFeedback("Chưa nghe thấy giọng nói. Hãy bấm lại vào Micro và thử nói nhé!");
         } else {
           setFeedback("Hãy bấm vào Micro để thử lại nhé!");
         }
       };
 
       recognition.onend = () => {
+        if (isOpenRef.current && isListeningRef.current && !hasExecutedRef.current) {
+          try {
+            recognition.start();
+            return;
+          } catch {}
+        }
         setIsListening(false);
+        isListeningRef.current = false;
         if (latestTranscriptRef.current && !hasExecutedRef.current) {
           executeVoiceCommand(latestTranscriptRef.current);
         }
@@ -520,6 +638,7 @@ export const AiVoiceCommandModal: React.FC = () => {
     } catch (e) {
       console.warn("SpeechRecognition start exception:", e);
       setIsListening(false);
+      isListeningRef.current = false;
       setFeedback("Không thể khởi động micro. Hãy bấm vào micro để thử lại!");
     }
   }, [executeVoiceCommand]);
@@ -527,15 +646,14 @@ export const AiVoiceCommandModal: React.FC = () => {
   useEffect(() => {
     const handleOpen = () => {
       setIsOpen(true);
+      isOpenRef.current = true;
       setTranscript("");
       setManualInput("");
       setErrorMessage(null);
       hasExecutedRef.current = false;
       setIsExecuting(false);
       setFeedback("Đang khởi động micro... Hãy nói câu lệnh của bạn!");
-      setTimeout(() => {
-        startListening();
-      }, 150);
+      startListening();
     };
 
     window.addEventListener("open-ai-voice-command" as unknown as keyof WindowEventMap, handleOpen as EventListener);
@@ -749,7 +867,7 @@ export const AiVoiceCommandModal: React.FC = () => {
               { label: "Trực tiếp bóng đá", icon: Radio, cmd: "xem trực tiếp bóng đá" },
               { label: "Phim Hành Động", icon: Flame, cmd: "mở phim hành động" },
               { label: "Phim Hoạt Hình", icon: Film, cmd: "mở phim hoạt hình anime" },
-              { label: "Bốc quẻ điện ảnh", icon: Dices, cmd: "bốc quẻ may mắn" },
+              { label: "Tạm dừng / Tiếp tục", icon: Play, cmd: "tạm dừng phim" },
               { label: "Tìm Đào, Phở và Piano", icon: Sparkles, cmd: "tìm phim Đào Phở và Piano" },
             ].map((sample, idx) => {
               const Icon = sample.icon;

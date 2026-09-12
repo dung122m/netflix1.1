@@ -11,6 +11,7 @@ import {
   Shuffle,
   ChevronDown,
   ChevronUp,
+  Loader2,
 } from "lucide-react";
 import { toast } from "./Toast";
 
@@ -54,6 +55,7 @@ export function RecommendationTabs({
   const [isShuffling, setIsShuffling] = useState(false);
   const [shuffleSeed, setShuffleSeed] = useState(0);
   const [visibleLimit, setVisibleLimit] = useState(12);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   // Lọc phim theo diễn viên loại bỏ phim hiện tại
@@ -124,15 +126,21 @@ export function RecommendationTabs({
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0]?.isIntersecting) {
-          setVisibleLimit((prev) => {
-            if (prev < currentTabMovies.length) {
-              return prev + 12;
-            }
-            return prev;
-          });
+          setIsLoadingMore(true);
+          const timer = setTimeout(() => {
+            setVisibleLimit((prev) => {
+              if (prev < currentTabMovies.length) {
+                return prev + 12;
+              }
+              return prev;
+            });
+            setIsLoadingMore(false);
+          }, 350);
+
+          return () => clearTimeout(timer);
         }
       },
-      { rootMargin: "350px" }
+      { rootMargin: "180px" }
     );
 
     observer.observe(sentinel);
@@ -276,7 +284,11 @@ export function RecommendationTabs({
               const matchPercent = Math.max(85, 98 - (index % 12));
 
               return (
-                <div key={item.slug} className="relative group/rec">
+                <div
+                  key={item.slug}
+                  className="relative group/rec lazy-card-enter"
+                  style={{ animationDelay: `${(index % 6) * 50}ms` }}
+                >
                   {/* Badge độ tương đồng thông minh của Nana */}
                   <div className="absolute top-2 left-2 z-20 pointer-events-none">
                     <span className="px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-black/80 backdrop-blur-md text-amber-300 border border-amber-500/40 shadow-lg flex items-center gap-1">
@@ -291,9 +303,34 @@ export function RecommendationTabs({
             })}
           </div>
 
+          {/* Skeletons hiển thị rõ ràng khi đang lazy loading thêm đề xuất */}
+          {isLoadingMore && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3.5 sm:gap-4 animate-in fade-in duration-300">
+              {Array.from({ length: Math.min(6, currentTabMovies.length - visibleLimit) }).map((_, i) => (
+                <div
+                  key={`rec-skel-${i}`}
+                  className="aspect-[2/3] rounded-2xl bg-zinc-900/80 animate-pulse border border-white/5 relative overflow-hidden"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                  <div className="absolute bottom-3 left-3 right-3 space-y-2">
+                    <div className="h-3.5 w-3/4 bg-white/20 rounded" />
+                    <div className="h-2.5 w-1/2 bg-white/10 rounded" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Sentinel kích hoạt cuộn tự động lazy load mượt mà */}
           {currentTabMovies.length > visibleLimit && (
-            <div ref={sentinelRef} className="w-full h-8 pointer-events-none opacity-0" aria-hidden="true" />
+            <div ref={sentinelRef} className="w-full pt-4 pb-2 flex flex-col items-center justify-center gap-2">
+              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-zinc-900/90 border border-white/15 text-xs font-bold text-gray-200 shadow-xl backdrop-blur-md">
+                <Loader2 className="w-3.5 h-3.5 text-netflix-red animate-spin" />
+                <span>
+                  Đang cuộn tải thêm đề xuất... ({displayedMovies.length}/{currentTabMovies.length})
+                </span>
+              </div>
+            </div>
           )}
 
           {/* NÚT XEM THÊM PHIM ĐỀ XUẤT */}
