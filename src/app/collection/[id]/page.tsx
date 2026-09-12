@@ -53,7 +53,7 @@ export default function CollectionDetailPage({
     return () => {
       isMounted = false;
     };
-  }, [id]);
+  }, [id, userId]);
 
   const handleShare = () => {
     if (typeof window !== "undefined") {
