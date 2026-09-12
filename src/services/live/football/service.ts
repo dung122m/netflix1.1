@@ -923,56 +923,6 @@ export function getVerified247Channels(): FootballMatch[] {
       ],
     },
     {
-      id: "sport_vtv5_thethao_247",
-      time: "24/7",
-      timestamp: now,
-      title: "VTV5 HD (Thể Thao & Sự Kiện Trực Tiếp)",
-      team1: "VTV5 HD Thể Thao",
-      team2: "",
-      blv: "VTV Sports",
-      group: "Kênh Thể Thao VTV & HTV",
-      groups: ["Kênh Thể Thao VTV & HTV"],
-      tournament: "Kênh Thể Thao 24/7",
-      isEvent: true,
-      timeline: "live",
-      quality: "FHD 1080p",
-      servers: [
-        {
-          name: "VTV5 HD Thể Thao (Master)",
-          url: VERIFIED_SPORTS_STREAMS.vtv5,
-          format: "hls",
-          isHls: true,
-          quality: "FHD",
-          sourceName: "VTV5",
-        },
-      ],
-    },
-    {
-      id: "sport_vtv6_thethao_247",
-      time: "24/7",
-      timestamp: now,
-      title: "VTV Cần Thơ / VTV6 HD (Thể Thao Trực Tiếp)",
-      team1: "VTV6 Cần Thơ HD",
-      team2: "",
-      blv: "VTV Sports",
-      group: "Kênh Thể Thao VTV & HTV",
-      groups: ["Kênh Thể Thao VTV & HTV"],
-      tournament: "Kênh Thể Thao 24/7",
-      isEvent: true,
-      timeline: "live",
-      quality: "FHD 1080p",
-      servers: [
-        {
-          name: "VTV Cần Thơ / VTV6 FHD",
-          url: VERIFIED_SPORTS_STREAMS.vtv6,
-          format: "hls",
-          isHls: true,
-          quality: "FHD",
-          sourceName: "VTV Cần Thơ",
-        },
-      ],
-    },
-    {
       id: "sport_redbull_thethao_247",
       time: "24/7",
       timestamp: now,
@@ -1167,14 +1117,29 @@ export const liveFootballService = {
           const upperGroup = group.toUpperCase();
           const upperTitle = rawTitle.toUpperCase();
 
+          // 1. LOẠI BỎ TOÀN BỘ CÁC KÊNH TRUYỀN HÌNH TỔNG HỢP / ĐỊA PHƯƠNG / GIẢI TRÍ
           if (
-            group === "LIVE EVENTS 🔴" ||
+            upperGroup.includes("TINHLAGI.PRO") ||
             upperGroup.includes("RADIO") ||
             upperGroup.includes("BÁN HÀNG") ||
-            upperTitle.includes("TẬP ") ||
-            upperTitle.includes("PHẦN ") ||
-            upperTitle.includes("EPISODE") ||
-            (group === "Giải Trí" && !upperTitle.includes("SPORTS"))
+            upperGroup.includes("PHIM TRUYỆN") ||
+            upperGroup.includes("GIẢI TRÍ") ||
+            upperGroup.includes("THIẾU NHI") ||
+            upperGroup.includes("CA NHẠC") ||
+            upperGroup.includes("TIN TỨC") ||
+            upperGroup.includes("ĐẶC SẮC") ||
+            upperGroup.includes("THIẾT YẾU") ||
+            upperGroup.includes("ĐỊA PHƯƠNG") ||
+            upperGroup.includes("TRONG NƯỚC")
+          ) {
+            continue;
+          }
+
+          // 2. LOẠI TRỪ CÁC KÊNH TRUYỀN HÌNH TỔNG HỢP (HTV1..HTV9, THVL, VTV TỔNG HỢP, VTV5 TÂY NAM BỘ...)
+          if (
+            /HTV[1-9]\b|HTVC\s+(THUẦN|PHIM|GIA|DU|CA)|THVL[1-4]\b|VTV[1-4789]\b|VTV5\s+TÂY|VTV5\s+TN/i.test(
+              rawTitle,
+            )
           ) {
             continue;
           }
@@ -1195,9 +1160,7 @@ export const liveFootballService = {
             upperTitle.includes("BLV ") ||
             upperTitle.includes("SPORTS") ||
             upperTitle.includes("FOOTBALL") ||
-            upperTitle.includes("THỂ THAO") ||
-            upperTitle.includes("VTV5") ||
-            upperTitle.includes("HTV");
+            upperTitle.includes("THỂ THAO");
 
           if (!isSportsOrEvent) continue;
 
