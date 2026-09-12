@@ -5,6 +5,7 @@ import {
   deleteDoc,
   updateDoc,
   getDoc,
+  getDocs,
   query,
   where,
   limit,
@@ -63,10 +64,22 @@ export function subscribeMovieComments(
     (snapshot) => {
       const items: MovieComment[] = [];
       snapshot.forEach((docSnap) => {
-        items.push({
+        const commentData = {
           id: docSnap.id,
           ...(docSnap.data() as Omit<MovieComment, "id">),
-        });
+        };
+
+        // TỰ ĐỘNG LỌC & TỰ ĐỘNG XÓA BÌNH LUẬN VÔ VĂN HÓA / SPAM
+        const mod = checkContentModeration(commentData.content || "");
+        if (!mod.isAllowed || commentData.isFlagged) {
+          // Tự động xóa ngầm khỏi Firestore
+          if (db) {
+            deleteDoc(doc(db, COLLECTION_NAME, docSnap.id)).catch(() => {});
+          }
+          return; // Không hiển thị cho người xem
+        }
+
+        items.push(commentData);
       });
       // Sắp xếp theo thời gian mới nhất trực tiếp trong bộ nhớ
       items.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
@@ -104,10 +117,21 @@ export function subscribeCommentReplies(
     (snapshot) => {
       const items: MovieComment[] = [];
       snapshot.forEach((docSnap) => {
-        items.push({
+        const commentData = {
           id: docSnap.id,
           ...(docSnap.data() as Omit<MovieComment, "id">),
-        });
+        };
+
+        // TỰ ĐỘNG LỌC & TỰ ĐỘNG XÓA REPLY VÔ VĂN HÓA / SPAM
+        const mod = checkContentModeration(commentData.content || "");
+        if (!mod.isAllowed || commentData.isFlagged) {
+          if (db) {
+            deleteDoc(doc(db, COLLECTION_NAME, docSnap.id)).catch(() => {});
+          }
+          return;
+        }
+
+        items.push(commentData);
       });
       items.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0)); // Cũ nhất lên trên trong replies
       onUpdate(items);
@@ -545,4 +569,112 @@ export function calculateMovieRatingStats(comments: MovieComment[]): MovieRating
     totalReviews,
     starCounts,
   };
+}
+
+export interface AutoCleanResult {
+  scannedCount: number;
+  deletedCount: number;
+  deletedItems: Array<{
+    id: string;
+    userName: string;
+    movieSlug: string;
+    content: string;
+    reason: string;
+    violations: string[];
+  }>;
+}
+
+/**
+ * HỆ THỐNG TỰ ĐỘNG QUÉT & XÓA BÌNH LUẬN VÔ VĂN HÓA, TỤC TĨU, SPAM
+ * Quét toàn bộ hoặc danh sách bình luận đã tải, phát hiện và xóa vĩnh viễn các bình luận vi phạm
+ */
+export async function autoCleanAllToxicAndSpamComments(allComments?: MovieComment[]): Promise<AutoCleanResult> {
+  if (!db) {
+    return { scannedCount: 0, deletedCount: 0, deletedItems: [] };
+  }
+
+  let itemsToScan = allComments;
+  if (!itemsToScan || itemsToScan.length === 0) {
+    try {
+      const commentsRef = collection(db, COLLECTION_NAME);
+      const q = query(commentsRef, limit(500));
+      const snap = await getDocs(q);
+      const fetched: MovieComment[] = [];
+      snap.forEach((docSnap) => {
+        fetched.push({
+          id: docSnap.id,
+          ...(docSnap.data() as Omit<MovieComment, "id">),
+        });
+      });
+      itemsToScan = fetched;
+    } catch (e) {
+      console.error("Lỗi tải bình luận để quét tự động:", e);
+      return { scannedCount: 0, deletedCount: 0, deletedItems: [] };
+    }
+  }
+
+  const deletedItems: AutoCleanResult["deletedItems"] = [];
+
+  for (const c of itemsToScan) {
+    const mod = checkContentModeration(c.content || "");
+    const isToxicOrSpam = !mod.isAllowed || c.isFlagged;
+
+    if (isToxicOrSpam) {
+      try {
+        await deleteDoc(doc(db, COLLECTION_NAME, c.id));
+        deletedItems.push({
+          id: c.id,
+          userName: c.userName || "Ẩn danh",
+          movieSlug: c.movieSlug || "",
+          content: c.content || "",
+          reason: mod.reason || c.flagReason || "Bình luận vi phạm thuần phong mỹ tục hoặc spam",
+          violations: mod.violations?.length ? mod.violations : (c.flaggedKeywords || []),
+        });
+
+        // Ghi nhận / tăng số lần vi phạm của user
+        if (c.userId) {
+          const userRef = doc(db, USERS_COLLECTION, c.userId);
+          const userSnap = await getDoc(userRef);
+          const currentViolations = userSnap.exists() ? Number(userSnap.data()?.violationsCount || 0) : 0;
+          const newCount = currentViolations + 1;
+          await setDoc(
+            userRef,
+            {
+              violationsCount: newCount,
+              lastViolationAt: Date.now(),
+              lastViolationReason: mod.reason || c.flagReason || "Tự động xóa do vi phạm tiêu chuẩn cộng đồng",
+              isCommentRestricted: newCount >= 3,
+            },
+            { merge: true }
+          );
+        }
+      } catch (err) {
+        console.warn("Lỗi xóa tự động comment rác:", c.id, err);
+      }
+    }
+  }
+
+  return {
+    scannedCount: itemsToScan.length,
+    deletedCount: deletedItems.length,
+    deletedItems,
+  };
+}
+
+/**
+ * Xóa nhanh tất cả bình luận đang bị gắn cờ vi phạm trong 1 thao tác
+ */
+export async function purgeAllFlaggedComments(commentsList: MovieComment[]): Promise<number> {
+  if (!db || !commentsList) return 0;
+  const flagged = commentsList.filter((c) => c.isFlagged);
+  let deletedCount = 0;
+  for (const c of flagged) {
+    try {
+      await deleteDoc(doc(db, COLLECTION_NAME, c.id));
+      deletedCount++;
+    } catch (e) {
+      console.warn("Lỗi xóa cmt gắn cờ:", c.id, e);
+    }
+  }
+  return deletedCount;
 }

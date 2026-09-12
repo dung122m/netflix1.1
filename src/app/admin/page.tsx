@@ -46,6 +46,9 @@ import {
   subscribeAllComments,
   deleteMovieComment,
   unflagComment,
+  autoCleanAllToxicAndSpamComments,
+  purgeAllFlaggedComments,
+  type AutoCleanResult,
 } from "@/services/commentService";
 import {
   subscribeAllPublicCollections,
@@ -97,6 +100,10 @@ export default function AdminDashboardPage() {
 
   // Filter & Search states for collections
   const [colSearchQuery, setColSearchQuery] = useState("");
+
+  // Auto-clean & purge states
+  const [isCleaning, setIsCleaning] = useState(false);
+  const [cleanResultModal, setCleanResultModal] = useState<AutoCleanResult | null>(null);
 
   const isAdmin = useMemo(() => isUserAdmin(user?.email), [user?.email]);
 
@@ -346,6 +353,49 @@ export default function AdminDashboardPage() {
     } catch (err) {
       console.error("Lỗi cập nhật quyền bình luận:", err);
       toast.error("Không thể cập nhật quyền bình luận!");
+    }
+  };
+
+  // Handler: Tự động quét và dọn dẹp bình luận vi phạm / spam
+  const handleAutoCleanComments = async () => {
+    setIsCleaning(true);
+    try {
+      const res = await autoCleanAllToxicAndSpamComments(comments);
+      if (res.deletedCount === 0) {
+        toast.success(`Hệ thống đã quét ${res.scannedCount} bình luận: Toàn bộ bình luận sạch, không phát hiện vi phạm!`);
+      } else {
+        toast.success(`Đã tự động quét và xóa sạch ${res.deletedCount} bình luận vi phạm / spam!`);
+        setCleanResultModal(res);
+      }
+    } catch (e) {
+      console.error("Lỗi tự động dọn rác cmt:", e);
+      toast.error("Lỗi khi chạy dọn dẹp tự động!");
+    } finally {
+      setIsCleaning(false);
+    }
+  };
+
+  // Handler: Xóa sạch toàn bộ bình luận đang bị gắn cờ
+  const handlePurgeAllFlagged = async () => {
+    const flaggedCount = comments.filter((c) => c.isFlagged).length;
+    if (flaggedCount === 0) {
+      toast.success("Hiện không có bình luận nào đang bị gắn cờ vi phạm.");
+      return;
+    }
+    const confirmed = await showConfirmDialog({
+      title: "Xóa sạch toàn bộ bình luận vi phạm",
+      message: `Bạn có chắc muốn xóa vĩnh viễn toàn bộ ${flaggedCount} bình luận đang bị gắn cờ vi phạm khỏi hệ thống?`,
+      confirmText: `Xóa sạch ${flaggedCount} bình luận`,
+      cancelText: "Hủy",
+      variant: "danger",
+    });
+    if (!confirmed) return;
+    try {
+      const count = await purgeAllFlaggedComments(comments);
+      toast.success(`Đã xóa vĩnh viễn ${count} bình luận vi phạm!`);
+    } catch (e) {
+      console.error("Lỗi xóa cmt gắn cờ:", e);
+      toast.error("Lỗi khi xóa bình luận vi phạm!");
     }
   };
 
@@ -738,6 +788,52 @@ export default function AdminDashboardPage() {
         {/* TAB 1: COMMENTS MANAGEMENT */}
         {activeTab === "comments" && (
           <div className="space-y-4">
+            {/* AUTO CLEAN & PURGE CONTROL BAR */}
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-red-950/40 via-zinc-900/60 to-amber-950/30 border border-red-500/20 backdrop-blur-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-red-500/15 border border-red-500/30 text-red-400 shadow-inner flex-shrink-0">
+                  <ShieldAlert size={20} className="animate-pulse" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-sm font-bold text-white">
+                      Hệ Thống Tự Động Quét & Xóa Bình Luận Rác
+                    </h3>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-bold uppercase tracking-wider flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                      Auto-Shield Active
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    Tự động nhận diện và xóa vĩnh viễn ngôn từ vô văn hóa, tục tĩu, 18+, cờ bạc, scam và chuỗi spam.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={handleAutoCleanComments}
+                  disabled={isCleaning}
+                  className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white text-xs font-bold transition cursor-pointer flex items-center gap-2 shadow-lg shadow-red-950/40 active:scale-95 disabled:opacity-50"
+                >
+                  <Sparkles size={15} className={isCleaning ? "animate-spin" : ""} />
+                  <span>{isCleaning ? "Đang quét..." : "Quét & Xóa Rác Tự Động"}</span>
+                </button>
+
+                {metrics.flaggedCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={handlePurgeAllFlagged}
+                    className="px-3.5 py-2.5 rounded-xl bg-red-500/15 hover:bg-red-500/25 text-red-300 border border-red-500/30 text-xs font-bold transition cursor-pointer flex items-center gap-1.5 active:scale-95"
+                  >
+                    <Trash2 size={14} />
+                    <span>Xóa Sạch Cờ ({metrics.flaggedCount})</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
             {/* TOOLBAR */}
             <div className="p-4 rounded-2xl bg-zinc-900/60 border border-white/10 backdrop-blur-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
               <div className="relative flex-1">
@@ -1788,6 +1884,95 @@ export default function AdminDashboardPage() {
                   className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition cursor-pointer"
                 >
                   Đóng
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL: AUTO-CLEAN SCAN RESULTS AUDIT */}
+        {cleanResultModal && (
+          <div className="fixed inset-0 z-[160] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+            <div className="max-w-2xl w-full bg-zinc-950 border border-red-500/30 rounded-3xl p-6 shadow-2xl space-y-5 max-h-[85vh] flex flex-col overflow-hidden">
+              {/* Header */}
+              <div className="flex items-start justify-between gap-4 pb-4 border-b border-white/10 flex-shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 rounded-2xl bg-red-500/20 text-red-400 border border-red-500/30">
+                    <ShieldAlert size={22} />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-bold text-white">
+                      Báo Cáo Tự Động Quét & Xóa Bình Luận Rác
+                    </h2>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      Đã quét <strong className="text-white">{cleanResultModal.scannedCount}</strong> bình luận • Đã xóa sạch <strong className="text-red-400">{cleanResultModal.deletedCount}</strong> vi phạm
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setCleanResultModal(null)}
+                  className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition cursor-pointer"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="flex-1 overflow-y-auto pr-1 space-y-3">
+                <p className="text-xs text-gray-400">
+                  Danh sách các bình luận chứa từ ngữ vô văn hóa, tục tĩu hoặc hành vi spam đã được hệ thống tự động xóa vĩnh viễn khỏi Firestore:
+                </p>
+
+                <div className="space-y-2.5">
+                  {cleanResultModal.deletedItems.map((item, idx) => (
+                    <div
+                      key={item.id || idx}
+                      className="p-3.5 rounded-2xl bg-red-950/20 border border-red-500/20 text-xs space-y-2"
+                    >
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-white">{item.userName}</span>
+                          <span className="text-[10px] px-2 py-0.2 rounded-full bg-red-500/20 text-red-300 font-semibold border border-red-500/30">
+                            {item.reason}
+                          </span>
+                        </div>
+                        <span className="text-[11px] text-gray-400 font-mono">
+                          Phim: {item.movieSlug}
+                        </span>
+                      </div>
+
+                      <div className="p-2.5 rounded-xl bg-black/50 border border-white/5 text-gray-200 font-sans">
+                        &ldquo;{item.content}&rdquo;
+                      </div>
+
+                      {item.violations && item.violations.length > 0 && (
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-[10px] text-red-300 font-medium">Từ khóa phát hiện:</span>
+                          {item.violations.map((kw, i) => (
+                            <span
+                              key={i}
+                              className="px-1.5 py-0.2 rounded bg-red-900/60 border border-red-500/30 text-red-200 text-[10px] font-mono"
+                            >
+                              {kw}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="pt-3 border-t border-white/10 flex items-center justify-end flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setCleanResultModal(null)}
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white text-xs font-bold transition cursor-pointer shadow-lg shadow-red-950/40"
+                >
+                  Xác Nhận & Đóng
                 </button>
               </div>
             </div>
