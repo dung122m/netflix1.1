@@ -64,11 +64,6 @@ export function getFootballM3uSources(): {
       url: "https://raw.githubusercontent.com/vietng228/m3u/refs/heads/main/new.m3u",
       priority: 3,
     },
-    {
-      name: "Tinhlagi Bóng Đá (tự khôi phục)",
-      url: "https://tinhlagi.pro/s.m3u",
-      priority: 4,
-    },
   ];
 
   const customSources = envUrls.map((url, idx) => ({
@@ -950,9 +945,7 @@ export const liveFootballService = {
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
               Accept: "*/*",
             },
-            signal: AbortSignal.timeout(
-              source.url.includes("tinhlagi.pro") ? 1200 : 2800,
-            ),
+            signal: AbortSignal.timeout(4500),
           });
           if (!res.ok) return "";
           return await res.text();

@@ -180,15 +180,31 @@ export function LivePlayer({
     return url;
   };
 
-  // Tạo URL qua proxy để bypass CORS & IP restrictions
+  // Tạo URL tối ưu: Direct-first cho HTTPS (tránh bị 403 Vercel Proxy) & Proxy cho HTTP (tránh Mixed Content)
   const getStreamUrl = (rawUrl: string, isHls: boolean) => {
     if (!rawUrl) return "";
-    const playableUrl = toPlayableHlsUrl(rawUrl);
-    const finalIsHls = isHls || playableUrl.includes(".m3u8");
-    if (finalIsHls) {
-      return `/api/live-football/proxy?url=${encodeURIComponent(playableUrl)}`;
+    const playableUrl = toPlayableHlsUrl(rawUrl).trim();
+    let finalUrl = playableUrl;
+    // Nâng cấp http sang https nếu domain hỗ trợ HTTPS
+    if (
+      finalUrl.startsWith("http://") &&
+      /fptplay|akamaized|cloudfront|vtv|cdn|vietnam/i.test(finalUrl)
+    ) {
+      finalUrl = finalUrl.replace(/^http:\/\//i, "https://");
     }
-    return playableUrl;
+
+    const finalIsHls = isHls || finalUrl.includes(".m3u8");
+    if (finalIsHls) {
+      // Ưu tiên phát trực tiếp từ trình duyệt cho các link HTTPS
+      if (finalUrl.startsWith("https://")) {
+        return finalUrl;
+      }
+      // Link HTTP thuần cần qua Proxy để không bị chặn Mixed Content trên trang HTTPS
+      if (finalUrl.startsWith("http://")) {
+        return `/api/live-football/proxy?url=${encodeURIComponent(finalUrl)}`;
+      }
+    }
+    return finalUrl;
   };
 
   const activeUrl = currentServer
@@ -356,12 +372,18 @@ export function LivePlayer({
         }
       });
 
+      let hasTriedProxy = activeUrl.includes("/api/live-football/proxy");
+
       hls.on(Hls.Events.ERROR, (_, data) => {
         if (data.fatal) {
           switch (data.type) {
             case Hls.ErrorTypes.NETWORK_ERROR:
               retryCountRef.current += 1;
               if (retryCountRef.current <= 2) {
+                hls.startLoad();
+              } else if (!hasTriedProxy && activeUrl.startsWith("https://")) {
+                hasTriedProxy = true;
+                hls.loadSource(`/api/live-football/proxy?url=${encodeURIComponent(activeUrl)}`);
                 hls.startLoad();
               } else if (fallbackCountRef.current < servers.length - 1) {
                 const nextServerIndex = servers.findIndex(

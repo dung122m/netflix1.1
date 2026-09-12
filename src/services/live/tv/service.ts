@@ -9,6 +9,7 @@ export interface TvChannel {
   name: string;
   logo: string;
   url: string;
+  fallbackUrl?: string;
   category: string;
   quality: "FHD 1080p" | "HD 720p";
 }
@@ -96,14 +97,15 @@ export function getVtvOfficialLogo(name: string): string {
   return "";
 }
 
-// Danh sách kênh Quốc Gia & Thể Thao ĐÃ KIỂM TRA 100% HOẠT ĐỘNG (FHD 1080p / 720p)
+// Danh sách kênh Quốc Gia & Thể Thao ĐÃ KIỂM TRA 100% HOẠT ĐỘNG (FHD 1080p / 720p - Master Index)
 const VERIFIED_CHANNELS: TvChannel[] = [
   // --- KÊNH VTV CHÍNH THỨC (FHD 1080P VỚI LOGO VECTOR CHÍNH THỨC) ---
   {
     id: "vtv1-fhd",
     name: "VTV1 HD (Thời sự - Chính luận)",
     logo: "/images/channels/vtv1.svg",
-    url: "https://vips-livecdn.fptplay.net/live/media/vtv1/live247-hls-avc/vtv1-avc1_5600000=10000-mp4a_131600=20000.m3u8",
+    url: "https://vips-livecdn.fptplay.net/live/media/vtv1/live247-hls-avc/index.m3u8",
+    fallbackUrl: "https://live.fptplay53.net/live/media/vtv1/live247-hls-avc/index.m3u8",
     category: "Kênh VTV",
     quality: "FHD 1080p",
   },
@@ -111,7 +113,8 @@ const VERIFIED_CHANNELS: TvChannel[] = [
     id: "vtv2-fhd",
     name: "VTV2 HD (Khoa học - Giáo dục)",
     logo: "/images/channels/vtv2.svg",
-    url: "https://vips-livecdn.fptplay.net/live/media/vtv2/live247-hls-avc/vtv2-avc1_5600000=10000-mp4a_131600=20000.m3u8",
+    url: "https://vips-livecdn.fptplay.net/live/media/vtv2/live247-hls-avc/index.m3u8",
+    fallbackUrl: "https://live.fptplay53.net/live/media/vtv2/live247-hls-avc/index.m3u8",
     category: "Kênh VTV",
     quality: "FHD 1080p",
   },
@@ -119,7 +122,8 @@ const VERIFIED_CHANNELS: TvChannel[] = [
     id: "vtv3-hd",
     name: "VTV3 HD (Giải trí - Thể thao)",
     logo: "/images/channels/vtv3.svg",
-    url: "https://vips-livecdn.fptplay.net/live/media/vtv3/live247-hls-avc/vtv3-avc1_5600000=10000-mp4a_131600=20000.m3u8",
+    url: "https://vips-livecdn.fptplay.net/live/media/vtv3/live247-hls-avc/index.m3u8",
+    fallbackUrl: "https://live.fptplay53.net/live/media/vtv3/live247-hls-avc/index.m3u8",
     category: "Kênh VTV",
     quality: "FHD 1080p",
   },
@@ -127,7 +131,8 @@ const VERIFIED_CHANNELS: TvChannel[] = [
     id: "vtv4-fhd",
     name: "VTV4 HD (Đối ngoại)",
     logo: "/images/channels/vtv4.svg",
-    url: "https://vips-livecdn.fptplay.net/live/media/vtv4/live247-hls-avc/vtv4-avc1_5600000=10000-mp4a_131600=20000.m3u8",
+    url: "https://vips-livecdn.fptplay.net/live/media/vtv4/live247-hls-avc/index.m3u8",
+    fallbackUrl: "https://live.fptplay53.net/live/media/vtv4/live247-hls-avc/index.m3u8",
     category: "Kênh VTV",
     quality: "FHD 1080p",
   },
@@ -135,7 +140,8 @@ const VERIFIED_CHANNELS: TvChannel[] = [
     id: "vtv5-fhd",
     name: "VTV5 HD (Thể thao & Dân tộc)",
     logo: "/images/channels/vtv5.svg",
-    url: "https://vips-livecdn.fptplay.net/live/media/vtv5/live247-hls-avc/vtv5-avc1_5600000=10000-mp4a_131600=20000.m3u8",
+    url: "https://vips-livecdn.fptplay.net/live/media/vtv5/live247-hls-avc/index.m3u8",
+    fallbackUrl: "https://live.fptplay53.net/live/media/vtv5/live247-hls-avc/index.m3u8",
     category: "Kênh Thể Thao",
     quality: "FHD 1080p",
   },
@@ -143,7 +149,8 @@ const VERIFIED_CHANNELS: TvChannel[] = [
     id: "vtv6-fhd",
     name: "VTV6 HD (Thanh thiếu niên - Thể thao)",
     logo: "/images/channels/vtv6.svg",
-    url: "https://vips-livecdn.fptplay.net/live/media/vtv6/live247-hls-avc/vtv6-avc1_5600000=10000-mp4a_131600=20000.m3u8",
+    url: "https://vips-livecdn.fptplay.net/live/media/vtv6/live247-hls-avc/index.m3u8",
+    fallbackUrl: "https://live.fptplay53.net/live/media/vtv6/live247-hls-avc/index.m3u8",
     category: "Kênh Thể Thao",
     quality: "FHD 1080p",
   },
@@ -151,7 +158,8 @@ const VERIFIED_CHANNELS: TvChannel[] = [
     id: "vtv7-hd",
     name: "VTV7 HD (Giáo dục Quốc gia)",
     logo: "/images/channels/vtv7.svg",
-    url: "https://vips-livecdn.fptplay.net/live/media/vtv7/live247-hls-avc/vtv7-avc1_5600000=10000-mp4a_131600=20000.m3u8",
+    url: "https://vips-livecdn.fptplay.net/live/media/vtv7/live247-hls-avc/index.m3u8",
+    fallbackUrl: "https://live.fptplay53.net/live/media/vtv7/live247-hls-avc/index.m3u8",
     category: "Kênh VTV",
     quality: "FHD 1080p",
   },
@@ -159,7 +167,8 @@ const VERIFIED_CHANNELS: TvChannel[] = [
     id: "vtv8-fhd",
     name: "VTV8 HD (Miền Trung - Tây Nguyên)",
     logo: "/images/channels/vtv8.svg",
-    url: "https://live.fptplay53.net/epzhd1/vtv8hd_vhls.smil/chunklist_b5000000.m3u8",
+    url: "https://vips-livecdn.fptplay.net/live/media/vtv8/live-hls-avc/index.m3u8",
+    fallbackUrl: "https://live.fptplay53.net/epzhd1/vtv8hd_vhls.smil/chunklist_b5000000.m3u8",
     category: "Kênh VTV",
     quality: "FHD 1080p",
   },
@@ -167,7 +176,8 @@ const VERIFIED_CHANNELS: TvChannel[] = [
     id: "vtv9-hd",
     name: "VTV9 HD (Khu vực Miền Nam)",
     logo: "/images/channels/vtv9.svg",
-    url: "https://vips-livecdn.fptplay.net/live/media/vtv9/live247-hls-avc/vtv9-avc1_5600000=10000-mp4a_131600=20000.m3u8",
+    url: "https://vips-livecdn.fptplay.net/live/media/vtv9/live247-hls-avc/index.m3u8",
+    fallbackUrl: "https://live.fptplay53.net/live/media/vtv9/live247-hls-avc/index.m3u8",
     category: "Kênh VTV",
     quality: "FHD 1080p",
   },
@@ -175,7 +185,8 @@ const VERIFIED_CHANNELS: TvChannel[] = [
     id: "vtv-cantho-fhd",
     name: "VTV Cần Thơ HD (Tây Nam Bộ)",
     logo: "/images/channels/vtv-cantho.svg",
-    url: "https://live-a.fptplay53.net/live/media/vtv5tnb/live-hls-avc/index.m3u8",
+    url: "https://vips-livecdn.fptplay.net/live/media/vtv5tnb/live-hls-avc/index.m3u8",
+    fallbackUrl: "https://live-a.fptplay53.net/live/media/vtv5tnb/live-hls-avc/index.m3u8",
     category: "Kênh VTV",
     quality: "FHD 1080p",
   },
@@ -184,6 +195,7 @@ const VERIFIED_CHANNELS: TvChannel[] = [
     name: "VTV Tây Nguyên HD",
     logo: "/images/channels/vtv-taynguyen.svg",
     url: "https://vips-livecdn.fptplay.net/live/media/vtv5tn/live-hls-avc/index.m3u8",
+    fallbackUrl: "https://live.fptplay53.net/live/media/vtv5tn/live-hls-avc/index.m3u8",
     category: "Kênh VTV",
     quality: "FHD 1080p",
   },
@@ -193,7 +205,8 @@ const VERIFIED_CHANNELS: TvChannel[] = [
     id: "htv-thethao-fhd",
     name: "HTV Thể Thao HD",
     logo: "https://i.imgur.com/KEMSBD3.png",
-    url: "https://live.fptplay53.net/live/media/htvthethao/live247-hls-avc/htvthethao-avc1_5600000=10000-mp4a_131600=20000.m3u8",
+    url: "https://live.fptplay53.net/live/media/htvthethao/live247-hls-avc/index.m3u8",
+    fallbackUrl: "https://live.fptplay53.net/epzhd1/htvcthethao_vhls.smil/chunklist.m3u8",
     category: "Kênh Thể Thao",
     quality: "FHD 1080p",
   },
@@ -201,7 +214,8 @@ const VERIFIED_CHANNELS: TvChannel[] = [
     id: "htv7-fhd",
     name: "HTV7 HD",
     logo: "https://i.imgur.com/KEMSBD3.png",
-    url: "https://live.fptplay53.net/live/media/htv7/live247-hls-avc/htv7-avc1_5600000=10000-mp4a_131600=20000.m3u8",
+    url: "https://live.fptplay53.net/live/media/htv7/live247-hls-avc/index.m3u8",
+    fallbackUrl: "https://live.fptplay53.net/epzhd1/htv7hd_vhls.smil/chunklist_b5000000.m3u8",
     category: "Kênh HTV & HTVC",
     quality: "FHD 1080p",
   },
@@ -209,7 +223,8 @@ const VERIFIED_CHANNELS: TvChannel[] = [
     id: "htv9-fhd",
     name: "HTV9 HD",
     logo: "https://i.imgur.com/KEMSBD3.png",
-    url: "https://live.fptplay53.net/live/media/htv9/live247-hls-avc/htv9-avc1_5600000=10000-mp4a_131600=20000.m3u8",
+    url: "https://live.fptplay53.net/live/media/htv9/live247-hls-avc/index.m3u8",
+    fallbackUrl: "https://live.fptplay53.net/epzhd1/htv9hd_vhls.smil/chunklist_b5000000.m3u8",
     category: "Kênh HTV & HTVC",
     quality: "FHD 1080p",
   },
@@ -217,34 +232,69 @@ const VERIFIED_CHANNELS: TvChannel[] = [
     id: "htv1-hd",
     name: "HTV1",
     logo: "https://i.imgur.com/KEMSBD3.png",
-    url: "https://live.fptplay53.net/epzhd1/htv1_hls.smil/chunklist_b2500000.m3u8",
+    url: "https://live.fptplay53.net/epzhd1/htv1_hls.smil/chunklist.m3u8",
     category: "Kênh HTV & HTVC",
     quality: "HD 720p",
+  },
+  {
+    id: "htv2-hd",
+    name: "HTV2 - Vie Channel HD",
+    logo: "https://i.imgur.com/KEMSBD3.png",
+    url: "https://live.fptplay53.net/epzhd1/htv2hd_vhls.smil/chunklist_b5000000.m3u8",
+    category: "Kênh HTV & HTVC",
+    quality: "FHD 1080p",
   },
   {
     id: "htv3-hd",
     name: "HTV3 - DreamsTV (Thiếu Nhi)",
     logo: "https://i.imgur.com/KEMSBD3.png",
-    url: "https://live.fptplay53.net/epzhd1/htv3_hls.smil/chunklist_b2500000.m3u8",
+    url: "https://live.fptplay53.net/epzhd1/htv3_hls.smil/chunklist.m3u8",
     category: "Kênh HTV & HTVC",
     quality: "HD 720p",
   },
 
-  // --- TRUYỀN HÌNH VĨNH LONG & QUÂN ĐỘI ---
+  // --- TRUYỀN HÌNH VĨNH LONG ---
+  {
+    id: "thvl1-fhd",
+    name: "THVL1 HD (Truyền hình Vĩnh Long 1)",
+    logo: "https://i.imgur.com/q3fjpYc.png",
+    url: "https://live.fptplay53.net/epzhd2/vinhlong1_vhls.smil/chunklist.m3u8",
+    category: "Truyền Hình Vĩnh Long",
+    quality: "FHD 1080p",
+  },
   {
     id: "thvl2-fhd",
     name: "THVL2 HD (Truyền hình Vĩnh Long 2)",
     logo: "https://i.imgur.com/q3fjpYc.png",
-    url: "https://1011154949.vnns.net/CDN-FPT02/THVL2-HD-1080p/playlist.m3u8",
+    url: "https://live.fptplay53.net/epzhd2/vinhlong2_vhls.smil/chunklist.m3u8",
+    fallbackUrl: "https://1011154949.vnns.net/CDN-FPT02/THVL2-HD-1080p/playlist.m3u8",
     category: "Truyền Hình Vĩnh Long",
     quality: "FHD 1080p",
   },
+  {
+    id: "thvl3-hd",
+    name: "THVL3 HD (Phim Hay)",
+    logo: "https://i.imgur.com/q3fjpYc.png",
+    url: "https://live.fptplay53.net/epzhd2/vinhlong3_vhls.smil/chunklist.m3u8",
+    category: "Truyền Hình Vĩnh Long",
+    quality: "HD 720p",
+  },
+  {
+    id: "thvl4-hd",
+    name: "THVL4 HD (Giải trí tổng hợp)",
+    logo: "https://i.imgur.com/q3fjpYc.png",
+    url: "https://live.fptplay53.net/epzhd2/vinhlong4-hd_vhls.smil/chunklist.m3u8",
+    category: "Truyền Hình Vĩnh Long",
+    quality: "HD 720p",
+  },
+
+  // --- TIN TỨC & QUÂN ĐỘI ---
   {
     id: "qpvn-fhd",
     name: "QPVN HD (Quốc Phòng Việt Nam)",
     logo: "https://i.imgur.com/q3fjpYc.png",
     url: "https://qpvn.vn/live/qpvn/master.m3u8",
-    category: "Kênh VTC & Tin Tức",
+    category: "Tin Tức & Thời Sự",
     quality: "FHD 1080p",
   },
   {
@@ -270,14 +320,6 @@ const VERIFIED_CHANNELS: TvChannel[] = [
     name: "NASA TV HD (Khám Phá)",
     logo: "https://upload.wikimedia.org/wikipedia/commons/e/e5/NASA_logo.svg",
     url: "https://ntv1.akamaized.net/hls/live/2014075/NASA-NTV1-HLS/master.m3u8",
-    category: "Kênh Quốc Tế",
-    quality: "FHD 1080p",
-  },
-  {
-    id: "nhk-world-japan",
-    name: "NHK World Japan HD",
-    logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/NHK_World-Japan.svg/512px-NHK_World-Japan.svg.png",
-    url: "https://nhkwlive-ojp.akamaized.net/hls/live/2003459/nhkwlive-ojp-en/index.m3u8",
     category: "Kênh Quốc Tế",
     quality: "FHD 1080p",
   },
@@ -336,7 +378,7 @@ export const liveTvService = {
               "User-Agent":
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
             },
-            signal: AbortSignal.timeout(2000),
+            signal: AbortSignal.timeout(4500),
           });
           if (!res.ok) return "";
           return await res.text();

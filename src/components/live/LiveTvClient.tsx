@@ -202,10 +202,28 @@ export function LiveTvClient({
   const isMutedRef = useRef(isMuted);
   const userMutedRef = useRef<boolean>(false);
 
-  const getStreamUrl = (url: string) =>
-    url.startsWith("http://") || url.startsWith("https://")
-      ? `/api/live-tv/proxy?url=${encodeURIComponent(url)}`
-      : url;
+  const getStreamUrl = (url: string) => {
+    if (!url) return "";
+    let cleanUrl = url.trim();
+    // Nâng cấp http sang https nếu domain hỗ trợ HTTPS
+    if (
+      cleanUrl.startsWith("http://") &&
+      /fptplay|akamaized|cloudfront|vtv|cdn|vietnam|vnns/i.test(cleanUrl)
+    ) {
+      cleanUrl = cleanUrl.replace(/^http:\/\//i, "https://");
+    }
+
+    // Nếu là HTTPS -> phát trực tiếp từ trình duyệt để tối ưu độ trễ và tránh bị Vercel Proxy 403
+    if (cleanUrl.startsWith("https://")) {
+      return cleanUrl;
+    }
+
+    // Nếu là link HTTP thuần trên trang HTTPS -> Bắt buộc bọc qua Proxy để tránh Mixed Content
+    if (cleanUrl.startsWith("http://")) {
+      return `/api/live-tv/proxy?url=${encodeURIComponent(cleanUrl)}`;
+    }
+    return cleanUrl;
+  };
 
   useEffect(() => {
     volumeRef.current = volume;
@@ -507,9 +525,16 @@ export function LiveTvClient({
           }
         });
 
+        let hasTriedProxy = sourceUrl.includes("/api/live-tv/proxy");
+
         hls.on(Hls.Events.ERROR, (_, data) => {
           if (data.fatal) {
             if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+              if (!hasTriedProxy && sourceUrl.startsWith("https://")) {
+                hasTriedProxy = true;
+                startHls(`/api/live-tv/proxy?url=${encodeURIComponent(sourceUrl)}`);
+                return;
+              }
               if (
                 !hasTriedFallback &&
                 fallbackUrl &&

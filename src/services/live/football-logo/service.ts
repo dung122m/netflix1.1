@@ -278,25 +278,51 @@ export async function resolveTeamLogo(teamName: string): Promise<string> {
 }
 
 /**
- * Bổ sung logo cho tất cả các trận đấu song song
+ * Bổ sung logo cho tất cả các trận đấu song song (Tối ưu hóa siêu tốc cho Vercel SSR)
  */
 export async function enrichMatchLogos<T extends { team1: string; team2: string; homeLogo?: string; awayLogo?: string }>(
   matches: T[]
 ): Promise<T[]> {
-  await Promise.allSettled(
-    matches.map(async (m) => {
-      const needHome = !m.homeLogo || m.homeLogo.includes("tinhlagi.pro/logo.jpg");
-      const needAway = !m.awayLogo || m.awayLogo.includes("tinhlagi.pro/logo.jpg");
+  // 1. Phục hồi 0ms từ static dictionary trước
+  for (const m of matches) {
+    if (!m.homeLogo || m.homeLogo.includes("tinhlagi.pro/logo.jpg")) {
+      const key = normalizeTeamKey(m.team1);
+      if (STATIC_CLUB_LOGOS[key]) m.homeLogo = STATIC_CLUB_LOGOS[key];
+      else if (LOGO_CACHE.has(key)) m.homeLogo = LOGO_CACHE.get(key) || "";
+    }
+    if (!m.awayLogo || m.awayLogo.includes("tinhlagi.pro/logo.jpg")) {
+      const key = normalizeTeamKey(m.team2);
+      if (STATIC_CLUB_LOGOS[key]) m.awayLogo = STATIC_CLUB_LOGOS[key];
+      else if (LOGO_CACHE.has(key)) m.awayLogo = LOGO_CACHE.get(key) || "";
+    }
+  }
 
-      if (needHome) {
-        const logo = await resolveTeamLogo(m.team1);
-        if (logo) m.homeLogo = logo;
-      }
-      if (needAway) {
-        const logo = await resolveTeamLogo(m.team2);
-        if (logo) m.awayLogo = logo;
-      }
-    })
-  );
+  // 2. Chỉ query TheSportsDB cho tối đa 8 trận đầu tiên chưa có logo để tránh nghẽn timeout Vercel (10s)
+  const pending = matches
+    .filter(
+      (m) =>
+        (!m.homeLogo || m.homeLogo.includes("tinhlagi.pro/logo.jpg")) ||
+        (!m.awayLogo || m.awayLogo.includes("tinhlagi.pro/logo.jpg"))
+    )
+    .slice(0, 8);
+
+  if (pending.length > 0) {
+    await Promise.allSettled(
+      pending.map(async (m) => {
+        const needHome = !m.homeLogo || m.homeLogo.includes("tinhlagi.pro/logo.jpg");
+        const needAway = !m.awayLogo || m.awayLogo.includes("tinhlagi.pro/logo.jpg");
+
+        if (needHome) {
+          const logo = await resolveTeamLogo(m.team1);
+          if (logo) m.homeLogo = logo;
+        }
+        if (needAway) {
+          const logo = await resolveTeamLogo(m.team2);
+          if (logo) m.awayLogo = logo;
+        }
+      })
+    );
+  }
+
   return matches;
 }
