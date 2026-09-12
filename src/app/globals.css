@@ -147,18 +147,12 @@
 /* Content Visibility: Bỏ qua render cards ngoài viewport (tiết kiệm ~70% render time cho movie grid) */
 .movie-card-contain {
   content-visibility: auto;
-  contain-intrinsic-size: auto 360px; /* Chiều cao ước tính để tránh layout shift */
+  contain-intrinsic-size: auto 360px;
 }
 
-/* CSS Containment cho movie grid - tránh layout reflow lan ra ngoài */
+/* CSS Containment cho movie grid container — không dùng paint để tránh clip hover popup */
 .movie-grid-container {
   contain: layout style;
-}
-
-/* Promote hover elements lên GPU layer trước khi hover (giảm jank khi hover) */
-article.group {
-  will-change: transform;
-  contain: layout style paint;
 }
 
 
