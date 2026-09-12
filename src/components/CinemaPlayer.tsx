@@ -1439,12 +1439,15 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       {showShortcutModal && (
         <div
           onClick={() => setShowShortcutModal(false)}
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-150"
+          className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-200"
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md rounded-2xl border border-white/15 bg-zinc-950 p-6 shadow-2xl animate-in zoom-in-95 duration-150"
+            className="relative w-full max-w-md rounded-3xl border border-white/20 bg-zinc-950 p-6 sm:p-7 shadow-[0_25px_70px_rgba(0,0,0,0.95)] animate-in zoom-in-95 duration-200 overflow-hidden"
           >
+            {/* Ambient Glow */}
+            <div className="absolute -top-20 -left-20 w-44 h-44 bg-netflix-red/20 rounded-full blur-3xl pointer-events-none" />
+
             <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-4">
               <div className="flex items-center gap-2 font-bold text-base text-white">
                 <Keyboard className="w-5 h-5 text-netflix-red" />

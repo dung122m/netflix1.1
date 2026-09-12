@@ -17,12 +17,15 @@ const ActorBioModal = dynamic(
   { ssr: false }
 );
 
+import { GlobalConfirmDialog } from "@/components/ui/ConfirmDialog";
+
 export function ClientModals() {
   return (
     <>
       <AiMovieConcierge />
       <AiMovieRoulette />
       <ActorBioModal />
+      <GlobalConfirmDialog />
     </>
   );
 }

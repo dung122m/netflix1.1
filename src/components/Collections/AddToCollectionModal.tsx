@@ -54,6 +54,15 @@ export const AddToCollectionModal: React.FC<AddToCollectionModalProps> = ({
     };
   }, [isOpen, user?.uid]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const handleToggle = async (collectionItem: MovieCollection) => {
@@ -105,11 +114,11 @@ export const AddToCollectionModal: React.FC<AddToCollectionModalProps> = ({
               : col
           )
         );
-        toast.success(`Đã thêm vào bộ sưu tập "${collectionItem.name}"!`);
+        toast.success(`Đã thêm vào "${collectionItem.name}"!`);
       }
     } catch (err) {
       console.error(err);
-      toast.error("Thao tác thất bại. Vui lòng thử lại!");
+      toast.error("Có lỗi xảy ra, vui lòng thử lại!");
     } finally {
       setActionLoadingId(null);
     }
@@ -117,18 +126,24 @@ export const AddToCollectionModal: React.FC<AddToCollectionModalProps> = ({
 
   return (
     <>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+      <div
+        onClick={onClose}
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200"
+      >
         <div
-          className="relative w-full max-w-md bg-zinc-950 border border-white/20 rounded-3xl p-6 shadow-[0_25px_60px_rgba(0,0,0,0.95)] text-white animate-in zoom-in-95 duration-200 flex flex-col max-h-[85vh]"
+          className="relative w-full max-w-md bg-zinc-950 border border-white/20 rounded-3xl p-6 shadow-[0_25px_70px_rgba(0,0,0,0.95)] text-white animate-in zoom-in-95 duration-200 flex flex-col max-h-[85vh] overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
+          {/* Ambient Glow */}
+          <div className="absolute -top-20 -left-20 w-44 h-44 bg-netflix-red/20 rounded-full blur-3xl pointer-events-none" />
+
           {/* Nút đóng */}
           <button
             type="button"
             onClick={onClose}
-            className="absolute top-4 right-4 p-1.5 rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition cursor-pointer"
+            className="absolute top-4 right-4 p-1.5 rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition cursor-pointer z-10"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
 
           {/* Tiêu đề & Thông tin phim */}

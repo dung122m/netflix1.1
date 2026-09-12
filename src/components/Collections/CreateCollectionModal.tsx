@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { X, FolderPlus, Globe, Lock, Loader2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { createCollection } from "@/services/collectionService";
@@ -23,6 +23,15 @@ export const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
   const [description, setDescription] = useState("");
   const [isPublic, setIsPublic] = useState(true);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !loading) onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, loading, onClose]);
 
   if (!isOpen) return null;
 
@@ -69,18 +78,24 @@ export const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200"
+    >
       <div
-        className="relative w-full max-w-md bg-zinc-950 border border-white/20 rounded-3xl p-6 shadow-[0_25px_60px_rgba(0,0,0,0.95)] text-white animate-in zoom-in-95 duration-200"
+        className="relative w-full max-w-md bg-zinc-950 border border-white/20 rounded-3xl p-6 sm:p-7 shadow-[0_25px_70px_rgba(0,0,0,0.95)] text-white animate-in zoom-in-95 duration-200 overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Glow hiệu ứng nền đỏ Netflix */}
+        <div className="absolute -top-20 -left-20 w-48 h-48 bg-netflix-red/20 rounded-full blur-3xl pointer-events-none" />
+
         {/* Nút đóng */}
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 p-1.5 rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition cursor-pointer"
+          className="absolute top-4 right-4 p-1.5 rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition cursor-pointer z-10"
         >
-          <X className="w-5 h-5" />
+          <X className="w-4 h-4" />
         </button>
 
         {/* Tiêu đề */}

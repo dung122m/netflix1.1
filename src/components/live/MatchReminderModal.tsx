@@ -12,6 +12,7 @@ import {
 import {
   useMatchReminders,
 } from "@/hooks/useMatchReminders";
+import { showConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 interface MatchReminderModalProps {
   isOpen: boolean;
@@ -199,7 +200,16 @@ export function MatchReminderModal({
 
                     <button
                       type="button"
-                      onClick={() => removeReminder(item.id)}
+                      onClick={async () => {
+                        const ok = await showConfirmDialog({
+                          title: "Hủy nhắc trận đấu",
+                          message: `Bạn có chắc muốn hủy thông báo cho trận "${item.team1} vs ${item.team2}"?`,
+                          confirmText: "Hủy thông báo",
+                          cancelText: "Giữ lại",
+                          variant: "danger",
+                        });
+                        if (ok) removeReminder(item.id);
+                      }}
                       title="Hủy nhắc trận này"
                       className="p-2 rounded-xl bg-white/5 hover:bg-rose-500/20 text-gray-400 hover:text-rose-400 border border-white/5 transition cursor-pointer"
                     >

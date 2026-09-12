@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { AuthModal } from "@/components/AuthModal";
+import { showConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { toast } from "@/components/Toast";
 import { MovieComment } from "@/types/comment";
 import {
@@ -162,7 +163,16 @@ export const MovieCommentsSection: React.FC<MovieCommentsSectionProps> = ({
 
   // Delete Comment
   const handleDeleteComment = async (commentId: string) => {
-    if (!confirm("Bạn có chắc chắn muốn xóa bình luận này không?")) return;
+    const confirmed = await showConfirmDialog({
+      title: "Xóa bình luận",
+      message: "Bạn có chắc chắn muốn xóa bình luận này không? Bình luận đã xóa sẽ không thể phục hồi.",
+      confirmText: "Xóa bình luận",
+      cancelText: "Hủy",
+      variant: "danger",
+    });
+
+    if (!confirmed) return;
+
     try {
       await deleteMovieComment(commentId);
       toast.info("Đã xóa bình luận.");

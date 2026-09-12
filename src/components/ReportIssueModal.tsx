@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Flag, X, CheckCircle2, AlertTriangle } from "lucide-react";
 import { formatEpisodeName } from "@/lib/formatEpisode";
 
@@ -25,6 +25,15 @@ export function ReportIssueModal({
   const [selectedIssue, setSelectedIssue] = useState<string>(ISSUE_TYPES[0]);
   const [customNote, setCustomNote] = useState("");
   const [isSubmitted, setIsSubmitted] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsOpen(false);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,19 +75,22 @@ export function ReportIssueModal({
 
       {isOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in duration-200"
           onClick={() => setIsOpen(false)}
         >
           <div
-            className="relative w-full max-w-md rounded-2xl border border-white/15 bg-zinc-900 p-6 shadow-2xl text-left"
+            className="relative w-full max-w-md rounded-3xl border border-white/20 bg-zinc-950 p-6 sm:p-7 shadow-[0_25px_70px_rgba(0,0,0,0.95)] text-left overflow-hidden animate-in zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Ambient Glow */}
+            <div className="absolute -top-20 -left-20 w-44 h-44 bg-rose-600/20 rounded-full blur-3xl pointer-events-none" />
+
             <button
               type="button"
               onClick={() => setIsOpen(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-white transition p-1"
+              className="absolute top-4 right-4 text-gray-400 hover:text-white transition p-1.5 rounded-full hover:bg-white/10 cursor-pointer z-10"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
 
             {isSubmitted ? (

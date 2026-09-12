@@ -44,6 +44,7 @@ import {
 } from "@/services/collectionService";
 import { MovieCollection } from "@/types/collection";
 import { CreateCollectionModal } from "@/components/Collections/CreateCollectionModal";
+import { showConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { toast } from "@/components/Toast";
 
 function MyListContent() {
@@ -103,20 +104,38 @@ function MyListContent() {
   }, [user?.uid]);
 
   const handleClearWatchlist = async () => {
-    if (window.confirm("Bạn có chắc chắn muốn xoá toàn bộ phim trong danh sách đã lưu?")) {
+    const confirmed = await showConfirmDialog({
+      title: "Xóa danh sách yêu thích",
+      message: "Bạn có chắc chắn muốn xoá toàn bộ phim trong danh sách đã lưu? Hành động này sẽ dọn sạch toàn bộ phim đã lưu xem sau.",
+      confirmText: "Xóa toàn bộ",
+      cancelText: "Giữ lại",
+      variant: "danger",
+    });
+
+    if (confirmed) {
       localStorage.removeItem("nanaflix_watchlist_v1");
       setWatchlist([]);
       window.dispatchEvent(new Event("watchlist-updated"));
       if (user) {
         await clearAllWatchlistFromCloud(user.uid);
       }
+      toast.info("Đã dọn sạch danh sách yêu thích.");
     }
   };
 
-  const handleClearHistory = () => {
-    if (window.confirm("Bạn có chắc chắn muốn xoá toàn bộ lịch sử xem phim?")) {
+  const handleClearHistory = async () => {
+    const confirmed = await showConfirmDialog({
+      title: "Xóa lịch sử xem phim",
+      message: "Bạn có chắc chắn muốn xoá toàn bộ lịch sử xem phim? Tiến trình xem các tập phim sẽ được làm mới.",
+      confirmText: "Xóa lịch sử",
+      cancelText: "Giữ lại",
+      variant: "danger",
+    });
+
+    if (confirmed) {
       clearWatchHistory();
       setHistory([]);
+      toast.info("Đã xóa toàn bộ lịch sử xem phim.");
     }
   };
 
@@ -146,7 +165,15 @@ function MyListContent() {
 
   const handleDeleteCollection = async (col: MovieCollection) => {
     if (!user?.uid) return;
-    if (window.confirm(`Bạn có chắc chắn muốn xóa bộ sưu tập "${col.name}"?`)) {
+    const confirmed = await showConfirmDialog({
+      title: "Xóa bộ sưu tập",
+      message: `Bạn có chắc chắn muốn xóa bộ sưu tập "${col.name}"? Toàn bộ danh sách phim trong bộ sưu tập này cũng sẽ bị xóa.`,
+      confirmText: "Xóa bộ sưu tập",
+      cancelText: "Hủy",
+      variant: "danger",
+    });
+
+    if (confirmed) {
       const ok = await deleteCollection(user.uid, col.id);
       if (ok) {
         toast.info(`Đã xóa bộ sưu tập "${col.name}".`);

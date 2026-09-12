@@ -42,6 +42,15 @@ export const SleepTimerModal: React.FC<SleepTimerModalProps> = ({
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
   const [isExpired, setIsExpired] = useState(false);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") handleClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen]);
+
   // Khôi phục timer từ sessionStorage nếu có
   useEffect(() => {
     try {

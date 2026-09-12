@@ -61,7 +61,7 @@ export const TrailerModal: React.FC<TrailerModalProps> = ({
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-4xl bg-zinc-950 rounded-2xl overflow-hidden border border-white/15 shadow-2xl animate-in zoom-in-95 duration-200"
+            className="relative w-full max-w-4xl bg-zinc-950 rounded-3xl overflow-hidden border border-white/20 shadow-[0_25px_70px_rgba(0,0,0,0.95)] animate-in zoom-in-95 duration-200"
           >
             {/* MODAL HEADER */}
             <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/10 bg-zinc-900/60">
