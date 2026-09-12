@@ -143,7 +143,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
 
       {/* DẢI TABS PHÂN NHÓM TẬP (Khi có trên 25 tập và không trong chế độ tìm kiếm) */}
       {!searchQuery.trim() && chunks.length > 1 && (
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none touch-pan-y overscroll-x-contain">
           {chunks.map((chunk) => {
             const isSelected = activeChunk === chunk.index;
             return (
@@ -164,9 +164,9 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
         </div>
       )}
 
-      {/* LƯỚI TẬP PHIM */}
+      {/* LƯỚI TẬP PHIM: 5 cột trên điện thoại giúp danh sách gọn gàng, giảm 40% chiều cao */}
       {displayEpisodes.length > 0 ? (
-        <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-4 gap-2.5">
+        <div className="grid grid-cols-5 sm:grid-cols-6 lg:grid-cols-4 gap-2 sm:gap-2.5">
           {displayEpisodes.map((tap) => {
             const isActive = activeEpisodeSlug === tap.slug;
             const isWatched = watchedList.includes(tap.slug);
@@ -182,7 +182,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
                     switchEpisode(tap.slug);
                   }
                 }}
-                className={`relative flex items-center justify-center text-center py-2.5 px-1 rounded-lg text-xs font-semibold transition group ${
+                className={`relative flex items-center justify-center text-center py-2 sm:py-2.5 px-1 rounded-lg text-xs font-semibold transition group ${
                   isActive
                     ? "bg-netflix-red text-white shadow-lg shadow-red-950/60 scale-[1.02] ring-1 ring-white/30"
                     : isWatched
