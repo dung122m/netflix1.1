@@ -167,21 +167,21 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         </div>
       )}
 
-      {/* CONTAINER KHUNG PHÁT VIDEO CHÍNH */}
+      {/* CONTAINER KHUNG PHÁT VIDEO CHÍNH — Mobile: Tự động Ghim cố định ở trên (Sticky Top) liền mạch */}
       <div
         ref={containerRef}
-        className={`w-full mx-auto transition-all duration-300 ${
+        className={`w-full mx-auto transition-all duration-300 sticky top-0 sm:relative z-30 bg-black ${
           isTheaterMode ? "max-w-none px-0 sm:px-0" : "max-w-[1800px]"
-        } ${isLightsOff ? "relative z-50" : "relative"}`}
+        } ${isLightsOff ? "z-50" : ""}`}
       >
         {/* Cinema Ambient Backlight */}
         <div className="ambient-cinema-glow opacity-80" aria-hidden="true" />
 
         <div
-          className={`w-full aspect-video bg-zinc-950 relative overflow-hidden transition-all duration-300 z-10 mx-auto ${
+          className={`w-full aspect-video bg-zinc-950 relative overflow-hidden transition-all duration-300 z-10 mx-auto shadow-2xl ${
             isTheaterMode
               ? "rounded-none border-y border-white/20 shadow-[0_30px_90px_rgba(0,0,0,0.85)] sm:max-h-[calc(100vh-90px)] sm:max-w-[calc((100vh-90px)*16/9)]"
-              : "rounded-none sm:rounded-xl md:rounded-2xl border-y sm:border border-white/10 shadow-[0_25px_70px_rgba(0,0,0,0.55)] sm:max-h-[calc(100vh-140px)] sm:max-w-[calc((100vh-140px)*16/9)]"
+              : "rounded-none sm:rounded-xl md:rounded-2xl border-b sm:border border-white/15 shadow-[0_25px_70px_rgba(0,0,0,0.55)] sm:max-h-[calc(100vh-140px)] sm:max-w-[calc((100vh-140px)*16/9)]"
           }`}
         >
           {activeSrc ? (
@@ -330,9 +330,9 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         </div>
       </div>
 
-      {/* FLOATING / STICKY MINI-PLAYER — Mobile: Ghim cố định ở cạnh trên (Sticky Top), Desktop: Góc dưới phải */}
+      {/* FLOATING MINI-PLAYER (DESKTOP ONLY) — Trên mobile khung phát chính đã tự động Sticky Top liền mạch */}
       {videoLink && showMiniPlayer && !dismissedMini && !isTheaterMode && (
-        <div className="fixed top-0 inset-x-0 sm:top-auto sm:inset-x-auto sm:bottom-6 sm:right-6 z-50 w-full sm:w-80 md:w-96 aspect-video bg-black sm:bg-zinc-950 sm:rounded-2xl overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.95)] border-b sm:border border-white/20 animate-in slide-in-from-top-4 sm:slide-in-from-bottom-5 duration-200">
+        <div className="hidden sm:block sm:fixed sm:bottom-6 sm:right-6 z-50 sm:w-80 md:w-96 aspect-video bg-zinc-950 sm:rounded-2xl overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.95)] border border-white/20 animate-in slide-in-from-bottom-5 duration-200">
           <div className="absolute top-0 inset-x-0 bg-gradient-to-b from-black/90 via-black/60 to-transparent p-2 sm:p-2.5 flex items-center justify-between z-20">
             <div className="flex items-center gap-1.5 min-w-0 pr-2">
               <span className="w-2 h-2 rounded-full bg-netflix-red animate-pulse flex-shrink-0" />
@@ -352,7 +352,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
               <button
                 type="button"
                 onClick={() => setDismissedMini(true)}
-                title="Đóng trình phát ghim"
+                title="Đóng trình phát góc"
                 className="p-1.5 rounded-full bg-black/70 text-gray-200 hover:text-white hover:bg-black/90 transition cursor-pointer backdrop-blur-md"
               >
                 <X className="w-3.5 h-3.5" />
