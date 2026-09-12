@@ -1015,7 +1015,9 @@ export function LiveTvClient({
             onMouseMove={resetControlsTimeout}
             onClick={togglePlay}
             onDoubleClick={toggleFullscreen}
-            className="relative w-full aspect-video sm:max-h-[calc(100vh-210px)] sm:max-w-[calc((100vh-210px)*16/9)] mx-auto bg-black rounded-2xl sm:rounded-3xl overflow-hidden border border-white/15 shadow-2xl group select-none ring-1 ring-white/10 cursor-pointer"
+            className={`relative w-full aspect-video sm:max-h-[calc(100vh-210px)] sm:max-w-[calc((100vh-210px)*16/9)] mx-auto bg-black rounded-2xl sm:rounded-3xl overflow-hidden border border-white/15 shadow-2xl group select-none ring-1 ring-white/10 ${
+              showControls ? "cursor-default" : "cursor-none"
+            }`}
           >
             <video
               ref={videoRef}
@@ -1039,8 +1041,12 @@ export function LiveTvClient({
               }}
             />
 
-            {/* HUY HIỆU SIGNAL GÓC TRÊN TRÁI */}
-            <div className="absolute top-3 left-3 sm:top-4 sm:left-4 flex items-center gap-2 z-20 pointer-events-none">
+            {/* HUY HIỆU SIGNAL GÓC TRÊN TRÁI (TỰ ĐỘNG ẨN KHI KHÔNG TƯƠNG TÁC) */}
+            <div
+              className={`absolute top-3 left-3 sm:top-4 sm:left-4 flex items-center gap-2 z-20 pointer-events-none transition-opacity duration-300 ${
+                showControls ? "opacity-100" : "opacity-0"
+              }`}
+            >
               <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-netflix-red/90 text-white text-[11px] sm:text-xs font-black shadow-lg animate-pulse backdrop-blur-md">
                 <Radio className="w-3.5 h-3.5" />
                 <span>TV LIVE</span>
@@ -1133,9 +1139,13 @@ export function LiveTvClient({
               </div>
             </aside>
 
-            {/* NÚT BẬT TIẾNG KHI ĐANG MUTE GÓC TRÊN PHẢI */}
+            {/* NÚT BẬT TIẾNG KHI ĐANG MUTE GÓC TRÊN PHẢI (ẨN KHI KHÔNG TƯƠNG TÁC) */}
             {isPlaying && isMuted && !isLoading && !hasError && (
-              <div className="absolute top-3 right-3 sm:top-4 sm:right-4 z-30">
+              <div
+                className={`absolute top-3 right-3 sm:top-4 sm:right-4 z-30 transition-opacity duration-300 ${
+                  showControls ? "opacity-100" : "opacity-0 pointer-events-none"
+                }`}
+              >
                 <button
                   type="button"
                   onClick={(e) => {
