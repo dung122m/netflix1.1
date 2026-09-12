@@ -12,10 +12,11 @@ import {
   arrayRemove,
   increment,
   setDoc,
+  deleteField,
   type Unsubscribe,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { MovieComment, MovieRatingStats } from "@/types/comment";
+import { MovieComment, MovieRatingStats, CommentReactionType } from "@/types/comment";
 import { UserNotification } from "@/types/notification";
 
 const COLLECTION_NAME = "movie_comments";
@@ -269,28 +270,66 @@ export async function addReplyComment(params: {
 }
 
 /**
- * Thả tim hoặc bỏ tim cho một bình luận
+ * Thả cảm xúc đa dạng (Facebook Reactions: Like, Love, Haha, Wow, Sad, Angry) cho một bình luận
+ */
+export async function setCommentReaction(
+  commentId: string,
+  userId: string,
+  reactionType: CommentReactionType | null,
+  prevReactionType?: CommentReactionType | null,
+): Promise<void> {
+  if (!db || !commentId || !userId) return;
+
+  const docRef = doc(db, COLLECTION_NAME, commentId);
+
+  // 1. Trường hợp gỡ bỏ cảm xúc (Un-react)
+  if (!reactionType) {
+    const updatePayload: Record<string, unknown> = {
+      likes: increment(-1),
+      likedBy: arrayRemove(userId),
+      [`reactions.${userId}`]: deleteField(),
+    };
+    if (prevReactionType) {
+      updatePayload[`reactionCounts.${prevReactionType}`] = increment(-1);
+    }
+    await updateDoc(docRef, updatePayload);
+    return;
+  }
+
+  // 2. Trường hợp thả cảm xúc lần đầu (chưa có cảm xúc trước đó)
+  if (!prevReactionType) {
+    await updateDoc(docRef, {
+      likes: increment(1),
+      likedBy: arrayUnion(userId),
+      [`reactions.${userId}`]: reactionType,
+      [`reactionCounts.${reactionType}`]: increment(1),
+    });
+    return;
+  }
+
+  // 3. Trường hợp đổi từ cảm xúc này sang cảm xúc khác (vd: Like -> Love)
+  if (prevReactionType !== reactionType) {
+    await updateDoc(docRef, {
+      [`reactions.${userId}`]: reactionType,
+      [`reactionCounts.${prevReactionType}`]: increment(-1),
+      [`reactionCounts.${reactionType}`]: increment(1),
+    });
+  }
+}
+
+/**
+ * Thả tim hoặc bỏ tim cơ bản cho một bình luận (Tương thích ngược)
  */
 export async function toggleLikeComment(
   commentId: string,
   userId: string,
   hasLiked: boolean,
+  currentReaction?: CommentReactionType | null,
 ): Promise<void> {
-  if (!db || !commentId || !userId) return;
-
-  const docRef = doc(db, COLLECTION_NAME, commentId);
   if (hasLiked) {
-    // Đã like rồi -> Bỏ like
-    await updateDoc(docRef, {
-      likes: increment(-1),
-      likedBy: arrayRemove(userId),
-    });
+    await setCommentReaction(commentId, userId, null, currentReaction || "like");
   } else {
-    // Chưa like -> Thả tim
-    await updateDoc(docRef, {
-      likes: increment(1),
-      likedBy: arrayUnion(userId),
-    });
+    await setCommentReaction(commentId, userId, "like", null);
   }
 }
 

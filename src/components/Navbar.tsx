@@ -1016,53 +1016,76 @@ const NavbarInner: React.FC = () => {
                 </div>
 
                 <div className="space-y-2 max-h-[400px] overflow-y-auto overscroll-contain pr-1 scrollbar-none">
-                  {/* DANH SÁCH THÔNG BÁO TẬP MỚI TỪ PHIM THEO DÕI */}
-                  {userNotifications.map((item) => (
-                    <div
-                      key={item.id}
-                      onClick={() => {
-                        if (user) markNotificationAsRead(user.uid, item.id);
-                        setShowNotifications(false);
-                        router.push(item.link || `/movies/${item.movieSlug}`);
-                      }}
-                      className={`flex items-start gap-3 p-2.5 rounded-xl transition border cursor-pointer group ${
-                        !item.isRead
-                          ? "bg-rose-950/25 border-rose-500/35 hover:bg-rose-950/40"
-                          : "hover:bg-white/5 border-transparent hover:border-white/10"
-                      }`}
-                    >
-                      <div className="relative w-12 h-14 rounded-lg overflow-hidden flex-shrink-0 bg-zinc-800 border border-white/10">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={item.image || "/default-poster.jpg"}
-                          alt={item.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                        />
-                        <span className="absolute bottom-0 inset-x-0 text-[8px] font-black text-center py-0.5 uppercase tracking-wider bg-rose-600 text-white">
-                          TẬP MỚI
-                        </span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-1 mb-0.5">
-                          <p className="text-xs text-white font-bold group-hover:text-netflix-red transition-colors truncate">
-                            {item.title}
-                          </p>
-                          <span className="text-[10px] text-gray-400 flex-shrink-0">
-                            {formatTimeAgo(item.createdAt)}
+                  {/* DANH SÁCH THÔNG BÁO TỪ HỆ THỐNG VÀ BÌNH LUẬN */}
+                  {userNotifications.map((item) => {
+                    const isReply = item.type === "comment_reply";
+                    const itemAvatar = isReply ? (item.replierAvatar || item.image) : item.image;
+
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => {
+                          if (user) markNotificationAsRead(user.uid, item.id);
+                          setShowNotifications(false);
+                          router.push(item.link || `/movies/${item.movieSlug}`);
+                        }}
+                        className={`flex items-start gap-3 p-2.5 rounded-xl transition border cursor-pointer group ${
+                          !item.isRead
+                            ? isReply
+                              ? "bg-blue-950/25 border-blue-500/35 hover:bg-blue-950/40"
+                              : "bg-rose-950/25 border-rose-500/35 hover:bg-rose-950/40"
+                            : "hover:bg-white/5 border-transparent hover:border-white/10"
+                        }`}
+                      >
+                        <div className="relative w-12 h-14 rounded-lg overflow-hidden flex-shrink-0 bg-zinc-800 border border-white/10">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={itemAvatar || "/default-poster.jpg"}
+                            alt={item.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                          />
+                          <span
+                            className={`absolute bottom-0 inset-x-0 text-[8px] font-black text-center py-0.5 uppercase tracking-wider text-white ${
+                              isReply ? "bg-blue-600" : "bg-rose-600"
+                            }`}
+                          >
+                            {isReply ? "PHẢN HỒI" : "TẬP MỚI"}
                           </span>
                         </div>
-                        <p className="text-[11px] text-rose-300 font-semibold line-clamp-1">
-                          🎉 {item.episodeName || "Tập mới"} đã phát hành!
-                        </p>
-                        <p className="text-[10px] text-gray-400 line-clamp-1 mt-0.5">
-                          {item.message}
-                        </p>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-1 mb-0.5">
+                            <p className="text-xs text-white font-bold group-hover:text-netflix-red transition-colors truncate">
+                              {item.title}
+                            </p>
+                            <span className="text-[10px] text-gray-400 flex-shrink-0">
+                              {formatTimeAgo(item.createdAt)}
+                            </span>
+                          </div>
+                          <p
+                            className={`text-[11px] font-semibold line-clamp-1 ${
+                              isReply ? "text-blue-300" : "text-rose-300"
+                            }`}
+                          >
+                            {isReply
+                              ? `💬 ${item.replierName || "Ai đó"} đã trả lời`
+                              : `🎉 ${item.episodeName || "Tập mới"} đã phát hành!`}
+                          </p>
+                          <p className="text-[10px] text-gray-400 line-clamp-1 mt-0.5">
+                            {item.message}
+                          </p>
+                        </div>
+                        {!item.isRead && (
+                          <span
+                            className={`w-2 h-2 rounded-full flex-shrink-0 mt-1.5 ring-2 ${
+                              isReply
+                                ? "bg-blue-500 ring-blue-950/50"
+                                : "bg-rose-500 ring-rose-950/50"
+                            }`}
+                          />
+                        )}
                       </div>
-                      {!item.isRead && (
-                        <span className="w-2 h-2 rounded-full bg-rose-500 flex-shrink-0 mt-1.5 ring-2 ring-rose-950/50" />
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
 
                   {/* THÔNG BÁO TỔNG HỢP & TIẾP TỤC XEM */}
                   {notifications.length > 0 ? (

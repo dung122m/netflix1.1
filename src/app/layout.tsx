@@ -7,6 +7,7 @@ import { ToastContainer } from "@/components/Toast";
 import { ClientModals } from "@/components/ClientModals";
 import { InstallPwaBanner } from "@/components/InstallPwaBanner";
 import { CrossDeviceHandoffBanner } from "@/components/CrossDeviceHandoffBanner";
+import { DesktopReplyPopup } from "@/components/Notifications/DesktopReplyPopup";
 import { AuthProvider } from "@/context/AuthContext";
 
 const inter = Inter({
@@ -121,6 +122,9 @@ export default function RootLayout({
 
           {/* Toast notification system — global */}
           <ToastContainer />
+
+          {/* Facebook-style Desktop Reply & Realtime Notification Popup */}
+          <DesktopReplyPopup />
 
           {/* AI Modals: Concierge, Roulette, Actor Bio — lazy-loaded client-side */}
           <ClientModals />

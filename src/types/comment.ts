@@ -1,3 +1,5 @@
+export type CommentReactionType = "like" | "love" | "haha" | "wow" | "sad" | "angry";
+
 export interface MovieComment {
   id: string;
   movieSlug: string;
@@ -13,6 +15,8 @@ export interface MovieComment {
   isSpoiler?: boolean; // Người dùng bật cờ cảnh báo spoil
   likes: number;
   likedBy: string[]; // Danh sách userId đã thích bình luận này
+  reactions?: Record<string, CommentReactionType>; // Bản đồ userId -> loại cảm xúc (like, love, haha, wow, sad, angry)
+  reactionCounts?: Partial<Record<CommentReactionType, number>>; // Số lượng từng loại cảm xúc
   createdAt: number; // Timestamp (Date.now())
   updatedAt?: number; // Timestamp cập nhật (Date.now())
   // --- Reply / Thread ---

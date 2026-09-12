@@ -16,12 +16,12 @@ import { useAuth } from "@/context/AuthContext";
 import { AuthModal } from "@/components/AuthModal";
 import { showConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { toast } from "@/components/Toast";
-import { MovieComment } from "@/types/comment";
+import { MovieComment, CommentReactionType } from "@/types/comment";
 import {
   subscribeMovieComments,
   addMovieComment,
   updateMovieComment,
-  toggleLikeComment,
+  setCommentReaction,
   deleteMovieComment,
   calculateMovieRatingStats,
 } from "@/services/commentService";
@@ -219,16 +219,20 @@ export const MovieCommentsSection: React.FC<MovieCommentsSectionProps> = ({
     }
   };
 
-  // Toggle Like
-  const handleToggleLike = async (commentId: string, hasLiked: boolean) => {
+  // Thả cảm xúc đa dạng (Facebook Reactions)
+  const handleReact = async (
+    commentId: string,
+    reactionType: CommentReactionType | null,
+    prevReactionType?: CommentReactionType | null,
+  ) => {
     if (!user) {
       setShowAuthModal(true);
       return;
     }
     try {
-      await toggleLikeComment(commentId, user.uid, hasLiked);
+      await setCommentReaction(commentId, user.uid, reactionType, prevReactionType);
     } catch (err) {
-      console.warn("Lỗi khi like bình luận:", err);
+      console.warn("Lỗi khi thả cảm xúc bình luận:", err);
     }
   };
 
@@ -568,7 +572,7 @@ export const MovieCommentsSection: React.FC<MovieCommentsSectionProps> = ({
                 currentUserId={user?.uid}
                 currentUserName={user?.displayName || "Thành viên Nanaflix"}
                 currentUserAvatar={user?.photoURL || undefined}
-                onLike={handleToggleLike}
+                onReact={handleReact}
                 onDelete={handleDeleteComment}
                 onEdit={handleEditReview}
                 onRequireAuth={() => setShowAuthModal(true)}
