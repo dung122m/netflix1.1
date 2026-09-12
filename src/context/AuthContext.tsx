@@ -20,6 +20,7 @@ import {
 } from "@/lib/cloudSync";
 import { clearLocalWatchHistoryOnly } from "@/lib/watchHistory";
 import { clearLocalWatchlistOnly } from "@/lib/watchlist";
+import { recordUserProfile } from "@/services/userService";
 
 interface AuthContextType {
   user: User | null;
@@ -80,6 +81,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           await Promise.all([
             syncWatchHistoryWithCloud(currentUser.uid),
             syncWatchlistWithCloud(currentUser.uid),
+            recordUserProfile(currentUser),
           ]);
         } catch (err) {
           console.warn("Lỗi tự động sync khi đăng nhập:", err);
@@ -112,6 +114,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         await Promise.all([
           syncWatchHistoryWithCloud(res.user.uid),
           syncWatchlistWithCloud(res.user.uid),
+          recordUserProfile(res.user),
         ]);
         return { success: true };
       }

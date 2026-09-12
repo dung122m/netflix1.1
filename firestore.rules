@@ -1,9 +1,23 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // 1. Quyền truy cập dữ liệu cá nhân của người dùng (watchlist, lịch sử, phiên đồng bộ, bộ sưu tập cá nhân)
-    match /users/{userId}/{document=**} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+    // Hàm kiểm tra quyền Quản Trị Viên tối cao
+    function isAdmin() {
+      return request.auth != null && 
+        (request.auth.token.email == "dungtran122cq@gmail.com");
+    }
+
+    // 1. Dữ liệu hồ sơ người dùng và các danh mục con (lịch sử, watchlist, bộ sưu tập)
+    match /users/{userId} {
+      // Cho phép Admin đọc danh sách người dùng, hoặc chính chủ đọc/ghi hồ sơ của họ
+      allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      allow write: if request.auth != null && (request.auth.uid == userId || isAdmin());
+
+      // Các mục con bên trong users/{userId} (watch_history, watchlist, collections, ...)
+      match /{document=**} {
+        allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());
+        allow write: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      }
     }
 
     // 2. Bộ sưu tập phim công khai: Bất kỳ ai có liên kết đều có thể đọc

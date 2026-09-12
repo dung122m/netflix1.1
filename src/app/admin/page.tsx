@@ -26,14 +26,24 @@ import {
   Home,
   Sparkles,
   Info,
+  Copy,
+  UserCheck,
+  History,
+  Bookmark,
+  X,
+  Eye,
+  Check,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { isUserAdmin, ADMIN_EMAILS } from "@/lib/adminConfig";
+import { isUserAdmin } from "@/lib/adminConfig";
 import { AuthModal } from "@/components/AuthModal";
 import { showConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { toast } from "@/components/Toast";
 import { MovieComment } from "@/types/comment";
 import { MovieCollection } from "@/types/collection";
+import { UserProfile, MemberWithStats } from "@/types/user";
+import { WatchHistoryItem } from "@/lib/watchHistory";
+import { WatchlistItem } from "@/lib/watchlist";
 import {
   subscribeAllComments,
   deleteMovieComment,
@@ -42,6 +52,12 @@ import {
   subscribeAllPublicCollections,
   deletePublicCollectionAdmin,
 } from "@/services/collectionService";
+import {
+  subscribeAllUsers,
+  getUserCloudWatchHistory,
+  getUserCloudWatchlist,
+  deleteAllUserComments,
+} from "@/services/userService";
 import { StarRating } from "@/components/MovieReviews/StarRating";
 
 type SortOption = "newest" | "oldest" | "highest_rating" | "lowest_rating" | "most_liked";
@@ -50,12 +66,13 @@ export default function AdminDashboardPage() {
   const { user, loading: authLoading } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
 
-  // Tab navigation
-  const [activeTab, setActiveTab] = useState<"comments" | "collections" | "analytics">("comments");
+  // Tab navigation: comments | members | collections | analytics
+  const [activeTab, setActiveTab] = useState<"comments" | "members" | "collections" | "analytics">("comments");
 
   // Data states
   const [comments, setComments] = useState<MovieComment[]>([]);
   const [collections, setCollections] = useState<MovieCollection[]>([]);
+  const [rawUsers, setRawUsers] = useState<UserProfile[]>([]);
   const [loadingData, setLoadingData] = useState(true);
 
   // Filter & Search states for comments
@@ -63,6 +80,19 @@ export default function AdminDashboardPage() {
   const [starFilter, setStarFilter] = useState<number | "all">("all");
   const [spoilerFilter, setSpoilerFilter] = useState<"all" | "spoiler" | "no_spoiler">("all");
   const [sortBy, setSortBy] = useState<SortOption>("newest");
+
+  // Filter & Search states for members
+  const [memberSearchQuery, setMemberSearchQuery] = useState("");
+  const [memberFilter, setMemberFilter] = useState<"all" | "admin" | "has_comments">("all");
+  const [memberSortBy, setMemberSortBy] = useState<"recent" | "comments" | "name">("recent");
+
+  // Member detail modal
+  const [selectedMember, setSelectedMember] = useState<MemberWithStats | null>(null);
+  const [memberHistory, setMemberHistory] = useState<WatchHistoryItem[]>([]);
+  const [memberWatchlist, setMemberWatchlist] = useState<WatchlistItem[]>([]);
+  const [loadingMemberDetails, setLoadingMemberDetails] = useState(false);
+  const [memberDetailTab, setMemberDetailTab] = useState<"comments" | "history" | "watchlist">("comments");
+  const [copiedUid, setCopiedUid] = useState<string | null>(null);
 
   // Filter & Search states for collections
   const [colSearchQuery, setColSearchQuery] = useState("");
@@ -100,11 +130,110 @@ export default function AdminDashboardPage() {
       }
     );
 
+    const unsubUsers = subscribeAllUsers(
+      (items) => {
+        setRawUsers(items);
+      },
+      (err) => {
+        console.warn("Lỗi realtime users:", err);
+      }
+    );
+
     return () => {
       unsubComments();
       unsubCollections();
+      unsubUsers();
     };
   }, [isAdmin]);
+
+  // Derived: Merge rawUsers with any unique commenters
+  const allMembers = useMemo<MemberWithStats[]>(() => {
+    const memberMap = new Map<string, MemberWithStats>();
+
+    // 1. Thêm các user đã đăng ký profile trong Firestore
+    rawUsers.forEach((u) => {
+      memberMap.set(u.uid, {
+        ...u,
+        commentsCount: 0,
+        avgRatingGiven: 0,
+        spoilerCount: 0,
+      });
+    });
+
+    // 2. Thêm và tính toán thống kê từ danh sách comments
+    const userCommentsMap = new Map<string, MovieComment[]>();
+    comments.forEach((c) => {
+      const list = userCommentsMap.get(c.userId) || [];
+      list.push(c);
+      userCommentsMap.set(c.userId, list);
+
+      if (!memberMap.has(c.userId)) {
+        memberMap.set(c.userId, {
+          uid: c.userId,
+          email: c.userEmail || "",
+          displayName: c.userName || "Thành viên Nanaflix",
+          photoURL: c.userAvatar,
+          createdAt: c.createdAt || Date.now(),
+          lastLoginAt: c.createdAt || Date.now(),
+          role: isUserAdmin(c.userEmail) ? "admin" : "member",
+          commentsCount: 0,
+          avgRatingGiven: 0,
+          spoilerCount: 0,
+        });
+      }
+    });
+
+    // 3. Tính toán số liệu tương tác cho từng thành viên
+    const result: MemberWithStats[] = [];
+    memberMap.forEach((m) => {
+      const userComms = userCommentsMap.get(m.uid) || [];
+      const ratedComms = userComms.filter((c) => c.rating > 0);
+      const avg =
+        ratedComms.length > 0
+          ? Number(
+              (
+                ratedComms.reduce((acc, curr) => acc + curr.rating, 0) /
+                ratedComms.length
+              ).toFixed(1)
+            )
+          : 0;
+      const spoilers = userComms.filter((c) => c.isSpoiler).length;
+
+      result.push({
+        ...m,
+        commentsCount: userComms.length,
+        avgRatingGiven: avg,
+        spoilerCount: spoilers,
+      });
+    });
+
+    return result;
+  }, [rawUsers, comments]);
+
+  // Filtered members
+  const filteredMembers = useMemo(() => {
+    return allMembers
+      .filter((m) => {
+        if (memberSearchQuery.trim()) {
+          const q = memberSearchQuery.toLowerCase().trim();
+          const matchName = m.displayName?.toLowerCase().includes(q);
+          const matchEmail = m.email?.toLowerCase().includes(q);
+          const matchUid = m.uid?.toLowerCase().includes(q);
+          if (!matchName && !matchEmail && !matchUid) return false;
+        }
+
+        if (memberFilter === "admin" && m.role !== "admin") return false;
+        if (memberFilter === "has_comments" && m.commentsCount === 0) return false;
+
+        return true;
+      })
+      .sort((a, b) => {
+        if (memberSortBy === "recent") return (b.lastLoginAt || 0) - (a.lastLoginAt || 0);
+        if (memberSortBy === "comments") return b.commentsCount - a.commentsCount;
+        if (memberSortBy === "name") return (a.displayName || "").localeCompare(b.displayName || "");
+        return 0;
+      });
+  }, [allMembers, memberSearchQuery, memberFilter, memberSortBy]);
 
   // Derived metrics
   const metrics = useMemo(() => {
@@ -121,7 +250,7 @@ export default function AdminDashboardPage() {
           )
         : 0;
 
-    const uniqueUsers = new Set(comments.map((c) => c.userId)).size;
+    const uniqueUsers = allMembers.length;
     const uniqueMovies = new Set(comments.map((c) => c.movieSlug)).size;
     const spoilerCount = comments.filter((c) => c.isSpoiler).length;
     const totalPublicCols = collections.length;
@@ -143,13 +272,12 @@ export default function AdminDashboardPage() {
       totalPublicCols,
       starDistribution,
     };
-  }, [comments, collections]);
+  }, [comments, collections, allMembers]);
 
   // Filtered comments
   const filteredComments = useMemo(() => {
     return comments
       .filter((item) => {
-        // Search filter
         if (searchQuery.trim()) {
           const q = searchQuery.toLowerCase().trim();
           const matchUser = item.userName?.toLowerCase().includes(q);
@@ -162,12 +290,10 @@ export default function AdminDashboardPage() {
           }
         }
 
-        // Star filter
         if (starFilter !== "all") {
           if (item.rating !== starFilter) return false;
         }
 
-        // Spoiler filter
         if (spoilerFilter === "spoiler" && !item.isSpoiler) return false;
         if (spoilerFilter === "no_spoiler" && item.isSpoiler) return false;
 
@@ -196,59 +322,11 @@ export default function AdminDashboardPage() {
     });
   }, [collections, colSearchQuery]);
 
-  // Top reviewed movies
-  const topMovies = useMemo(() => {
-    const map = new Map<string, { slug: string; title: string; count: number; totalScore: number }>();
-    comments.forEach((c) => {
-      const existing = map.get(c.movieSlug) || {
-        slug: c.movieSlug,
-        title: c.movieTitle || c.movieSlug,
-        count: 0,
-        totalScore: 0,
-      };
-      existing.count += 1;
-      if (c.rating > 0) {
-        existing.totalScore += c.rating;
-      }
-      if (!existing.title && c.movieTitle) {
-        existing.title = c.movieTitle;
-      }
-      map.set(c.movieSlug, existing);
-    });
-
-    return Array.from(map.values())
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 10);
-  }, [comments]);
-
-  // Top reviewers
-  const topUsers = useMemo(() => {
-    const map = new Map<string, { id: string; name: string; avatar?: string; count: number; email?: string }>();
-    comments.forEach((c) => {
-      const existing = map.get(c.userId) || {
-        id: c.userId,
-        name: c.userName || "Người dùng",
-        avatar: c.userAvatar,
-        count: 0,
-        email: c.userEmail,
-      };
-      existing.count += 1;
-      if (!existing.email && c.userEmail) {
-        existing.email = c.userEmail;
-      }
-      map.set(c.userId, existing);
-    });
-
-    return Array.from(map.values())
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 10);
-  }, [comments]);
-
-  // Handler: Delete comment
+  // Handler: Delete single comment
   const handleDeleteComment = async (comment: MovieComment) => {
     const confirmed = await showConfirmDialog({
       title: "Xác nhận xóa bình luận",
-      message: `Bạn có chắc chắn muốn xóa bình luận của "${comment.userName}" cho phim "${comment.movieTitle || comment.movieSlug}" không? Hành động này không thể phục hồi.`,
+      message: `Bạn có chắc chắn muốn xóa bình luận của "${comment.userName}" cho phim "${comment.movieTitle || comment.movieSlug}" không?`,
       confirmText: "Xác nhận xóa",
       cancelText: "Hủy bỏ",
       variant: "danger",
@@ -262,6 +340,27 @@ export default function AdminDashboardPage() {
     } catch (err) {
       console.error("Lỗi xóa bình luận:", err);
       toast.error("Không thể xóa bình luận. Vui lòng kiểm tra lại kết nối!");
+    }
+  };
+
+  // Handler: Delete all comments of a user
+  const handleDeleteAllUserComments = async (member: MemberWithStats) => {
+    const confirmed = await showConfirmDialog({
+      title: "Xóa toàn bộ bình luận thành viên",
+      message: `CẢNH BÁO: Hành động này sẽ xóa tất cả ${member.commentsCount} bình luận của thành viên "${member.displayName}" khỏi hệ thống. Bạn có chắc chắn muốn thực hiện?`,
+      confirmText: "Xóa tất cả bình luận",
+      cancelText: "Hủy bỏ",
+      variant: "danger",
+    });
+
+    if (!confirmed) return;
+
+    try {
+      const deletedCount = await deleteAllUserComments(member.uid);
+      toast.success(`Đã xóa thành công ${deletedCount} bình luận của ${member.displayName}!`);
+    } catch (err) {
+      console.error("Lỗi xóa bình luận user:", err);
+      toast.error("Không thể xóa bình luận của người dùng này!");
     }
   };
 
@@ -290,6 +389,34 @@ export default function AdminDashboardPage() {
     }
   };
 
+  // Open member details modal
+  const handleOpenMemberDetails = async (member: MemberWithStats) => {
+    setSelectedMember(member);
+    setMemberDetailTab("comments");
+    setLoadingMemberDetails(true);
+    try {
+      const [history, watchlist] = await Promise.all([
+        getUserCloudWatchHistory(member.uid),
+        getUserCloudWatchlist(member.uid),
+      ]);
+      setMemberHistory(history);
+      setMemberWatchlist(watchlist);
+    } catch (e) {
+      console.warn("Lỗi tải chi tiết user:", e);
+    } finally {
+      setLoadingMemberDetails(false);
+    }
+  };
+
+  const copyToClipboard = (text: string, id: string) => {
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(text);
+      setCopiedUid(id);
+      toast.info("Đã sao chép vào bộ nhớ đệm!");
+      setTimeout(() => setCopiedUid(null), 2000);
+    }
+  };
+
   // Format date helper
   const formatDate = (ts?: number) => {
     if (!ts) return "Chưa rõ";
@@ -312,7 +439,6 @@ export default function AdminDashboardPage() {
     return (
       <div className="min-h-screen bg-gradient-to-b from-zinc-950 via-black to-zinc-950 text-white flex flex-col items-center justify-center p-4">
         <div className="max-w-md w-full p-8 rounded-3xl bg-white/[0.03] border border-white/10 shadow-2xl backdrop-blur-xl text-center relative overflow-hidden">
-          {/* Subtle ambient red background glow */}
           <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-48 h-48 bg-netflix-red/20 rounded-full blur-3xl pointer-events-none" />
 
           <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 flex items-center justify-center mx-auto mb-5 shadow-lg shadow-red-950/50">
@@ -440,10 +566,10 @@ export default function AdminDashboardPage() {
               <span>{metrics.avgScore}</span>
               <span className="text-xs font-normal text-gray-400">/ 5.0</span>
             </div>
-            <p className="text-[10px] text-gray-400 mt-1">{metrics.totalRatingReviews} lượt đánh giá sao</p>
+            <p className="text-[10px] text-gray-400 mt-1">{metrics.totalRatingReviews} lượt chấm sao</p>
           </div>
 
-          {/* Card 3: Unique Users */}
+          {/* Card 3: Unique Users / Members */}
           <div className="p-4 rounded-2xl bg-zinc-900/60 border border-white/10 hover:border-white/20 transition backdrop-blur-sm relative overflow-hidden group">
             <div className="flex items-center justify-between text-gray-400 mb-2">
               <span className="text-xs font-medium">Thành Viên</span>
@@ -454,7 +580,7 @@ export default function AdminDashboardPage() {
             <div className="text-2xl font-black text-white group-hover:scale-105 transition-transform origin-left">
               {metrics.uniqueUsers}
             </div>
-            <p className="text-[10px] text-gray-400 mt-1">Đã để lại tương tác</p>
+            <p className="text-[10px] text-gray-400 mt-1">Thành viên ghi nhận</p>
           </div>
 
           {/* Card 4: Unique Movies */}
@@ -482,7 +608,7 @@ export default function AdminDashboardPage() {
             <div className="text-2xl font-black text-rose-400 group-hover:scale-105 transition-transform origin-left">
               {metrics.spoilerCount}
             </div>
-            <p className="text-[10px] text-gray-400 mt-1">Cảnh báo tiết lộ phim</p>
+            <p className="text-[10px] text-gray-400 mt-1">Cảnh báo nội dung</p>
           </div>
 
           {/* Card 6: Public Collections */}
@@ -496,7 +622,7 @@ export default function AdminDashboardPage() {
             <div className="text-2xl font-black text-white group-hover:scale-105 transition-transform origin-left">
               {metrics.totalPublicCols}
             </div>
-            <p className="text-[10px] text-gray-400 mt-1">Được chia sẻ công khai</p>
+            <p className="text-[10px] text-gray-400 mt-1">Chia sẻ cộng đồng</p>
           </div>
         </div>
 
@@ -512,9 +638,25 @@ export default function AdminDashboardPage() {
             }`}
           >
             <MessageSquare size={15} />
-            <span>Quản Lý Bình Luận & Đánh Giá</span>
+            <span>Quản Lý Bình Luận</span>
             <span className="px-1.5 py-0.2 rounded-full bg-black/40 text-[10px] font-mono">
               {comments.length}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("members")}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer flex-shrink-0 ${
+              activeTab === "members"
+                ? "bg-netflix-red text-white shadow-lg shadow-red-950/60"
+                : "bg-white/5 text-gray-400 hover:text-white hover:bg-white/10"
+            }`}
+          >
+            <Users size={15} />
+            <span>Danh Sách Thành Viên</span>
+            <span className="px-1.5 py-0.2 rounded-full bg-black/40 text-[10px] font-mono">
+              {allMembers.length}
             </span>
           </button>
 
@@ -548,12 +690,11 @@ export default function AdminDashboardPage() {
           </button>
         </div>
 
-        {/* TAB CONTENT */}
+        {/* TAB 1: COMMENTS MANAGEMENT */}
         {activeTab === "comments" && (
           <div className="space-y-4">
-            {/* TOOLBAR: SEARCH & FILTERS */}
+            {/* TOOLBAR */}
             <div className="p-4 rounded-2xl bg-zinc-900/60 border border-white/10 backdrop-blur-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
-              {/* Search input */}
               <div className="relative flex-1">
                 <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
@@ -574,7 +715,6 @@ export default function AdminDashboardPage() {
                 )}
               </div>
 
-              {/* Filters */}
               <div className="flex items-center gap-2 flex-wrap">
                 {/* Star Filter */}
                 <div className="flex items-center gap-1 bg-black/50 p-1 rounded-xl border border-white/10 text-xs">
@@ -665,7 +805,7 @@ export default function AdminDashboardPage() {
                   }}
                   className="text-netflix-red hover:underline cursor-pointer"
                 >
-                  Xóa toàn bộ bộ lọc
+                  Xóa bộ lọc
                 </button>
               )}
             </div>
@@ -689,11 +829,9 @@ export default function AdminDashboardPage() {
                     key={item.id}
                     className="p-4 sm:p-5 rounded-2xl bg-zinc-900/60 border border-white/10 hover:border-white/20 transition backdrop-blur-sm flex flex-col sm:flex-row sm:items-start justify-between gap-4 group"
                   >
-                    {/* Left: User & Content Info */}
+                    {/* Left: User & Content */}
                     <div className="flex-1 min-w-0 space-y-2.5">
-                      {/* User row */}
                       <div className="flex items-center gap-3 flex-wrap">
-                        {/* Avatar */}
                         <div className="w-8 h-8 rounded-full bg-netflix-red flex items-center justify-center text-xs font-bold text-white uppercase overflow-hidden relative border border-white/15 flex-shrink-0">
                           {item.userAvatar ? (
                             // eslint-disable-next-line @next/next/no-img-element
@@ -725,7 +863,6 @@ export default function AdminDashboardPage() {
                           </div>
                         </div>
 
-                        {/* Stars */}
                         {item.rating > 0 && (
                           <div className="ml-auto sm:ml-0">
                             <StarRating value={item.rating} size="sm" readOnly />
@@ -768,13 +905,13 @@ export default function AdminDashboardPage() {
                         )}
                       </div>
 
-                      {/* Comment text */}
+                      {/* Content */}
                       <div className="text-xs text-gray-200 leading-relaxed bg-black/40 p-3 rounded-xl border border-white/5 whitespace-pre-wrap font-sans">
                         &ldquo;{item.content}&rdquo;
                       </div>
                     </div>
 
-                    {/* Right: Actions */}
+                    {/* Actions */}
                     <div className="flex sm:flex-col items-center gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-white/10 flex-shrink-0">
                       <Link
                         href={`/watch/${item.movieSlug}`}
@@ -802,7 +939,217 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
-        {/* TAB 2: PUBLIC COLLECTIONS */}
+        {/* TAB 2: MEMBERS DIRECTORY (MỚI) */}
+        {activeTab === "members" && (
+          <div className="space-y-4">
+            {/* Toolbar for members */}
+            <div className="p-4 rounded-2xl bg-zinc-900/60 border border-white/10 backdrop-blur-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div className="relative flex-1">
+                <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  value={memberSearchQuery}
+                  onChange={(e) => setMemberSearchQuery(e.target.value)}
+                  placeholder="Tìm thành viên theo tên, email hoặc UID..."
+                  className="w-full bg-black/60 border border-white/10 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-netflix-red transition"
+                />
+                {memberSearchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setMemberSearchQuery("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white text-xs"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Filter role */}
+                <div className="flex items-center gap-1 bg-black/50 p-1 rounded-xl border border-white/10 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setMemberFilter("all")}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                      memberFilter === "all" ? "bg-white/15 text-white" : "text-gray-400 hover:text-white"
+                    }`}
+                  >
+                    Tất cả ({allMembers.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMemberFilter("admin")}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                      memberFilter === "admin"
+                        ? "bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold"
+                        : "text-gray-400 hover:text-white"
+                    }`}
+                  >
+                    👑 Quản Trị Viên
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMemberFilter("has_comments")}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                      memberFilter === "has_comments"
+                        ? "bg-blue-500/20 text-blue-300 border border-blue-500/30 font-bold"
+                        : "text-gray-400 hover:text-white"
+                    }`}
+                  >
+                    Đã bình luận
+                  </button>
+                </div>
+
+                {/* Sort members */}
+                <div className="flex items-center gap-1 bg-black/50 px-2.5 py-1.5 rounded-xl border border-white/10 text-xs">
+                  <ArrowUpDown size={12} className="text-gray-400" />
+                  <select
+                    value={memberSortBy}
+                    onChange={(e) => setMemberSortBy(e.target.value as "recent" | "comments" | "name")}
+                    className="bg-transparent text-gray-300 text-xs focus:outline-none cursor-pointer"
+                  >
+                    <option value="recent" className="bg-zinc-900 text-white">Hoạt động mới nhất</option>
+                    <option value="comments" className="bg-zinc-900 text-white">Nhiều bình luận nhất</option>
+                    <option value="name" className="bg-zinc-900 text-white">Tên (A-Z)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* COUNT HEADER */}
+            <div className="flex items-center justify-between text-xs text-gray-400 px-1">
+              <span>
+                Hiển thị <strong className="text-white">{filteredMembers.length}</strong> / {allMembers.length} thành viên
+              </span>
+            </div>
+
+            {/* MEMBERS GRID */}
+            {filteredMembers.length === 0 ? (
+              <div className="p-12 text-center rounded-2xl bg-zinc-900/40 border border-white/10">
+                <Users size={36} className="text-gray-600 mx-auto mb-2" />
+                <p className="text-sm font-semibold text-gray-300">Không tìm thấy thành viên nào phù hợp</p>
+                <p className="text-xs text-gray-500 mt-1">Hãy thử từ khóa tìm kiếm khác.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredMembers.map((m) => {
+                  const isSuperAdmin = m.role === "admin";
+                  return (
+                    <div
+                      key={m.uid}
+                      className="p-5 rounded-2xl bg-zinc-900/60 border border-white/10 hover:border-white/20 transition backdrop-blur-sm flex flex-col justify-between space-y-4 group"
+                    >
+                      <div>
+                        {/* Member Header */}
+                        <div className="flex items-start gap-3 mb-3">
+                          <div className="w-11 h-11 rounded-2xl bg-netflix-red flex items-center justify-center text-sm font-bold text-white uppercase overflow-hidden relative border border-white/15 flex-shrink-0 shadow-md">
+                            {m.photoURL ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={m.photoURL}
+                                alt={m.displayName}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = "none";
+                                }}
+                              />
+                            ) : (
+                              <span>{(m.displayName || "U")[0]}</span>
+                            )}
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <h3 className="text-sm font-bold text-white truncate">
+                                {m.displayName}
+                              </h3>
+                              {isSuperAdmin && (
+                                <span className="text-[10px] px-2 py-0.2 rounded-full bg-gradient-to-r from-amber-500/20 to-red-500/20 border border-amber-500/30 text-amber-300 font-bold">
+                                  👑 Admin
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-400 truncate mt-0.5">
+                              {m.email || "Chưa có email"}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* UID badge */}
+                        <div className="flex items-center justify-between p-2 rounded-xl bg-black/50 border border-white/5 text-[11px] mb-3">
+                          <span className="text-gray-500 font-mono truncate max-w-[190px]">
+                            UID: {m.uid}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => copyToClipboard(m.uid, m.uid)}
+                            className="text-gray-400 hover:text-white p-1 rounded transition cursor-pointer"
+                            title="Sao chép UID"
+                          >
+                            {copiedUid === m.uid ? (
+                              <Check size={13} className="text-emerald-400" />
+                            ) : (
+                              <Copy size={13} />
+                            )}
+                          </button>
+                        </div>
+
+                        {/* Member stats chips */}
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div className="p-2 rounded-xl bg-white/[0.03] border border-white/5">
+                            <span className="text-[10px] text-gray-400 block">Bình luận</span>
+                            <span className="font-bold text-white flex items-center gap-1 mt-0.5">
+                              <MessageSquare size={13} className="text-blue-400" />
+                              <span>{m.commentsCount} bài</span>
+                            </span>
+                          </div>
+
+                          <div className="p-2 rounded-xl bg-white/[0.03] border border-white/5">
+                            <span className="text-[10px] text-gray-400 block">Điểm trung bình</span>
+                            <span className="font-bold text-amber-400 flex items-center gap-1 mt-0.5">
+                              <Star size={13} className="fill-amber-400" />
+                              <span>{m.avgRatingGiven > 0 ? `${m.avgRatingGiven}★` : "Chưa chấm"}</span>
+                            </span>
+                          </div>
+                        </div>
+
+                        <p className="text-[10px] text-gray-500 mt-2.5 flex items-center gap-1">
+                          <Clock size={11} />
+                          <span>Lần hoạt động: {formatDate(m.lastLoginAt)}</span>
+                        </p>
+                      </div>
+
+                      {/* Action buttons */}
+                      <div className="pt-3 border-t border-white/10 flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenMemberDetails(m)}
+                          className="flex-1 py-2 px-3 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold transition cursor-pointer flex items-center justify-center gap-1.5"
+                        >
+                          <Eye size={13} />
+                          <span>Chi Tiết Hoạt Động</span>
+                        </button>
+
+                        {m.commentsCount > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteAllUserComments(m)}
+                            className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 transition cursor-pointer"
+                            title="Xóa tất cả bình luận của thành viên này"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB 3: PUBLIC COLLECTIONS */}
         {activeTab === "collections" && (
           <div className="space-y-4">
             <div className="p-4 rounded-2xl bg-zinc-900/60 border border-white/10 backdrop-blur-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
@@ -878,7 +1225,7 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
-        {/* TAB 3: ANALYTICS & INSIGHTS */}
+        {/* TAB 4: ANALYTICS & INSIGHTS */}
         {activeTab === "analytics" && (
           <div className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -943,80 +1290,267 @@ export default function AdminDashboardPage() {
                   </div>
                   <div className="flex items-center justify-between p-3 rounded-xl bg-black/40 border border-white/5">
                     <span className="text-gray-400">Quy tắc bảo mật (Security Rules):</span>
-                    <span className="text-gray-200 font-mono">Version 2 (Đã cấu hình)</span>
+                    <span className="text-gray-200 font-mono">Version 2 (Đã cấp quyền Admin)</span>
                   </div>
                   <div className="flex items-center justify-between p-3 rounded-xl bg-black/40 border border-white/5">
-                    <span className="text-gray-400">Giới hạn tải bình luận:</span>
-                    <span className="text-gray-200 font-mono">300 items / real-time query</span>
+                    <span className="text-gray-400">Tổng thành viên ghi nhận:</span>
+                    <span className="text-gray-200 font-mono font-bold">{allMembers.length} người</span>
                   </div>
                 </div>
               </div>
             </div>
+          </div>
+        )}
 
-            {/* Top Movies & Top Users */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Top Movies */}
-              <div className="p-6 rounded-2xl bg-zinc-900/60 border border-white/10 backdrop-blur-sm space-y-4">
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <Film size={16} className="text-netflix-red" />
-                  <span>Top Phim Nhận Được Nhiều Đánh Giá Nhất</span>
-                </h3>
+        {/* MODAL: MEMBER ACTIVITY DETAILS */}
+        {selectedMember && (
+          <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+            <div className="max-w-2xl w-full bg-zinc-950 border border-white/15 rounded-3xl p-6 shadow-2xl space-y-5 max-h-[90vh] flex flex-col overflow-hidden">
+              {/* Modal Header */}
+              <div className="flex items-start justify-between gap-4 pb-4 border-b border-white/10 flex-shrink-0">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-12 h-12 rounded-2xl bg-netflix-red flex items-center justify-center text-base font-bold text-white uppercase overflow-hidden relative border border-white/15 flex-shrink-0">
+                    {selectedMember.photoURL ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={selectedMember.photoURL}
+                        alt={selectedMember.displayName}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span>{(selectedMember.displayName || "U")[0]}</span>
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-base font-bold text-white truncate">
+                        {selectedMember.displayName}
+                      </h2>
+                      {selectedMember.role === "admin" && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">
+                          👑 Admin
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-400 truncate">{selectedMember.email || "Chưa có email"}</p>
+                    <p className="text-[11px] text-gray-500 font-mono mt-0.5">UID: {selectedMember.uid}</p>
+                  </div>
+                </div>
 
-                {topMovies.length === 0 ? (
-                  <p className="text-xs text-gray-500">Chưa có dữ liệu phim.</p>
-                ) : (
-                  <div className="divide-y divide-white/5">
-                    {topMovies.map((movie, idx) => (
-                      <div key={movie.slug} className="py-2.5 flex items-center justify-between gap-3 text-xs">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <span className="w-5 text-center font-bold text-gray-500">{idx + 1}</span>
-                          <Link
-                            href={`/watch/${movie.slug}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="font-semibold text-white hover:text-netflix-red transition truncate"
+                <button
+                  type="button"
+                  onClick={() => setSelectedMember(null)}
+                  className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition cursor-pointer"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Modal Tabs */}
+              <div className="flex items-center gap-2 border-b border-white/10 pb-2 flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setMemberDetailTab("comments")}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                    memberDetailTab === "comments"
+                      ? "bg-netflix-red text-white"
+                      : "text-gray-400 hover:text-white"
+                  }`}
+                >
+                  <MessageSquare size={13} />
+                  <span>Bình luận ({selectedMember.commentsCount})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setMemberDetailTab("history")}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                    memberDetailTab === "history"
+                      ? "bg-netflix-red text-white"
+                      : "text-gray-400 hover:text-white"
+                  }`}
+                >
+                  <History size={13} />
+                  <span>Lịch sử xem ({memberHistory.length})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setMemberDetailTab("watchlist")}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                    memberDetailTab === "watchlist"
+                      ? "bg-netflix-red text-white"
+                      : "text-gray-400 hover:text-white"
+                  }`}
+                >
+                  <Bookmark size={13} />
+                  <span>Phim đã lưu ({memberWatchlist.length})</span>
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="flex-1 overflow-y-auto pr-1 space-y-3">
+                {loadingMemberDetails ? (
+                  <div className="p-8 text-center">
+                    <div className="w-6 h-6 rounded-full border-2 border-netflix-red border-t-transparent animate-spin mx-auto mb-2" />
+                    <p className="text-xs text-gray-400">Đang tải dữ liệu đám mây của thành viên...</p>
+                  </div>
+                ) : memberDetailTab === "comments" ? (
+                  // Tab: Comments of this member
+                  (() => {
+                    const userComms = comments.filter((c) => c.userId === selectedMember.uid);
+                    if (userComms.length === 0) {
+                      return (
+                        <div className="p-8 text-center text-xs text-gray-500">
+                          Thành viên này chưa để lại bình luận nào trên hệ thống.
+                        </div>
+                      );
+                    }
+                    return (
+                      <div className="space-y-2.5">
+                        {userComms.map((c) => (
+                          <div
+                            key={c.id}
+                            className="p-3.5 rounded-xl bg-white/[0.03] border border-white/5 space-y-2 text-xs"
                           >
-                            {movie.title}
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <Link
+                                  href={`/watch/${c.movieSlug}`}
+                                  target="_blank"
+                                  className="font-bold text-red-400 hover:underline flex items-center gap-1"
+                                >
+                                  <span>{c.movieTitle || c.movieSlug}</span>
+                                  <ExternalLink size={11} />
+                                </Link>
+                                {c.episodeName && (
+                                  <span className="text-[10px] px-1.5 py-0.2 rounded bg-white/5 text-gray-400">
+                                    {c.episodeName}
+                                  </span>
+                                )}
+                                {c.isSpoiler && (
+                                  <span className="text-[10px] px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-300 font-bold">
+                                    Spoil
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-[10px] text-gray-500">{formatDate(c.createdAt)}</span>
+                            </div>
+
+                            {c.rating > 0 && <StarRating value={c.rating} size="sm" readOnly />}
+
+                            <p className="text-gray-300 bg-black/40 p-2.5 rounded-lg border border-white/5">
+                              &ldquo;{c.content}&rdquo;
+                            </p>
+
+                            <div className="flex items-center justify-between pt-1">
+                              <span className="text-[10px] text-gray-500">
+                                {c.likes > 0 ? `${c.likes} lượt thích` : "0 lượt thích"}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteComment(c)}
+                                className="text-[11px] text-red-400 hover:text-red-300 flex items-center gap-1 cursor-pointer"
+                              >
+                                <Trash2 size={12} />
+                                <span>Xóa bình luận này</span>
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()
+                ) : memberDetailTab === "history" ? (
+                  // Tab: Watch History
+                  memberHistory.length === 0 ? (
+                    <div className="p-8 text-center text-xs text-gray-500">
+                      Chưa có lịch sử xem phim đồng bộ trên Cloud.
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {memberHistory.map((item, idx) => (
+                        <div
+                          key={item.slug || idx}
+                          className="p-3 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-between gap-3 text-xs"
+                        >
+                          <div className="min-w-0">
+                            <p className="font-bold text-white truncate">{item.title || item.slug}</p>
+                            <p className="text-[10px] text-gray-400 mt-0.5">
+                              {item.episodeName ? `Đang xem: ${item.episodeName}` : "Đã xem"} •{" "}
+                              {formatDate(item.updatedAt)}
+                            </p>
+                          </div>
+                          <Link
+                            href={`/watch/${item.slug}`}
+                            target="_blank"
+                            className="p-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-white flex items-center gap-1 text-[11px]"
+                          >
+                            <ExternalLink size={12} />
+                            <span>Mở</span>
                           </Link>
                         </div>
-                        <span className="text-gray-400 font-mono flex-shrink-0">
-                          <strong className="text-white">{movie.count}</strong> bình luận
-                        </span>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )
+                ) : (
+                  // Tab: Watchlist
+                  memberWatchlist.length === 0 ? (
+                    <div className="p-8 text-center text-xs text-gray-500">
+                      Thành viên chưa lưu bộ phim nào vào danh sách yêu thích.
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {memberWatchlist.map((item, idx) => (
+                        <div
+                          key={item.slug || idx}
+                          className="p-3 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-between gap-3 text-xs"
+                        >
+                          <div className="min-w-0">
+                            <p className="font-bold text-white truncate">{item.title || item.slug}</p>
+                            <p className="text-[10px] text-gray-400 mt-0.5">
+                              Đã lưu vào danh sách • {formatDate(item.addedAt)}
+                            </p>
+                          </div>
+                          <Link
+                            href={`/watch/${item.slug}`}
+                            target="_blank"
+                            className="p-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-white flex items-center gap-1 text-[11px]"
+                          >
+                            <ExternalLink size={12} />
+                            <span>Xem</span>
+                          </Link>
+                        </div>
+                      ))}
+                    </div>
+                  )
                 )}
               </div>
 
-              {/* Top Reviewers */}
-              <div className="p-6 rounded-2xl bg-zinc-900/60 border border-white/10 backdrop-blur-sm space-y-4">
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <Users size={16} className="text-emerald-400" />
-                  <span>Top Thành Viên Tích Cực Nhất</span>
-                </h3>
-
-                {topUsers.length === 0 ? (
-                  <p className="text-xs text-gray-500">Chưa có dữ liệu thành viên.</p>
+              {/* Modal Footer */}
+              <div className="pt-3 border-t border-white/10 flex items-center justify-between flex-shrink-0">
+                {selectedMember.commentsCount > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleDeleteAllUserComments(selectedMember);
+                    }}
+                    className="px-3.5 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs font-semibold transition cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Trash2 size={14} />
+                    <span>Xóa toàn bộ {selectedMember.commentsCount} bình luận của user</span>
+                  </button>
                 ) : (
-                  <div className="divide-y divide-white/5">
-                    {topUsers.map((u, idx) => (
-                      <div key={u.id} className="py-2.5 flex items-center justify-between gap-3 text-xs">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <span className="w-5 text-center font-bold text-gray-500">{idx + 1}</span>
-                          <span className="font-semibold text-white truncate">{u.name}</span>
-                          {u.email && (
-                            <span className="text-[10px] text-gray-500 font-mono truncate hidden sm:inline">
-                              ({u.email})
-                            </span>
-                          )}
-                        </div>
-                        <span className="text-gray-400 font-mono flex-shrink-0">
-                          <strong className="text-emerald-400">{u.count}</strong> đánh giá
-                        </span>
-                      </div>
-                    ))}
-                  </div>
+                  <div />
                 )}
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedMember(null)}
+                  className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition cursor-pointer"
+                >
+                  Đóng
+                </button>
               </div>
             </div>
           </div>
