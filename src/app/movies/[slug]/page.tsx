@@ -436,7 +436,12 @@ export default async function MovieDetail({
 
               <TrailerModal trailerUrl={movie.trailer_url} title={title} />
               <ShareButton title={title} />
-              <MobileQrModal title={title} />
+              <MobileQrModal
+                title={title}
+                movieSlug={slug}
+                activeEpisodeSlug={activeEpisode?.slug}
+                activeEpisodeName={activeEpisode?.name}
+              />
               <ReportIssueModal movieTitle={title} episodeName={activeEpisode?.name} />
             </div>
 

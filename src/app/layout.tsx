@@ -5,6 +5,7 @@ import SmoothScroll from "@/components/SmoothScroll";
 import { BackToTop } from "@/components/BackToTop";
 import { ToastContainer } from "@/components/Toast";
 import { ClientModals } from "@/components/ClientModals";
+import { AuthProvider } from "@/context/AuthContext";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -106,16 +107,18 @@ export default function RootLayout({
         className="min-h-screen flex flex-col bg-black text-white"
         suppressHydrationWarning
       >
-        <SmoothScroll>{children}</SmoothScroll>
+        <AuthProvider>
+          <SmoothScroll>{children}</SmoothScroll>
 
-        {/* Back to top với progress ring */}
-        <BackToTop />
+          {/* Back to top với progress ring */}
+          <BackToTop />
 
-        {/* Toast notification system — global */}
-        <ToastContainer />
+          {/* Toast notification system — global */}
+          <ToastContainer />
 
-        {/* AI Modals: Concierge, Roulette, Actor Bio — lazy-loaded client-side */}
-        <ClientModals />
+          {/* AI Modals: Concierge, Roulette, Actor Bio — lazy-loaded client-side */}
+          <ClientModals />
+        </AuthProvider>
       </body>
     </html>
   );

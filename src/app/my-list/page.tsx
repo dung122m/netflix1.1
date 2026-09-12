@@ -4,8 +4,10 @@ import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
-import { Bookmark, Film, Trash2, ArrowLeft, Clock, Play, X } from "lucide-react";
+import { Bookmark, Film, Trash2, ArrowLeft, Clock, Play, X, Cloud, RefreshCw, LogIn } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
+import { useAuth } from "@/context/AuthContext";
+import { AuthModal } from "@/components/AuthModal";
 import { Footer } from "@/components/Footer";
 import { MediaCard } from "@/components/sites/netflix-3f78535a/browse-1234abcd/MediaCard";
 import { getWatchlist, WatchlistItem } from "@/lib/watchlist";
@@ -25,6 +27,9 @@ function MyListContent() {
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
   const [history, setHistory] = useState<WatchHistoryItem[]>([]);
   const [mounted, setMounted] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+
+  const { user, isSyncing, syncNow } = useAuth();
 
   useEffect(() => {
     setWatchlist(getWatchlist());
@@ -133,6 +138,63 @@ function MyListContent() {
             )}
           </div>
         )}
+      </div>
+
+      {/* BANNER ĐỒNG BỘ ĐÁM MÂY (CLOUD SYNC) */}
+      <div className="mb-6 p-4 rounded-2xl bg-white/[0.03] border border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        {user ? (
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center flex-shrink-0">
+              <Cloud className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-white flex items-center gap-1.5">
+                <span>Đã kết nối tài khoản Google:</span>
+                <span className="text-emerald-400 font-semibold">{user.email}</span>
+              </p>
+              <p className="text-[11px] text-gray-400">
+                Lịch sử xem và số phút xem dở đang được đồng bộ tự động giữa các thiết bị.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-netflix-red/10 border border-netflix-red/20 text-netflix-red flex items-center justify-center flex-shrink-0">
+              <Cloud className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-white">
+                Đồng bộ số phút & lịch sử xem lên Đám mây
+              </p>
+              <p className="text-[11px] text-gray-400">
+                Đăng nhập tài khoản Google miễn phí để xem tiếp đúng phút trên mọi thiết bị và không bị mất lịch sử.
+              </p>
+            </div>
+          </div>
+        )}
+
+        <div className="flex-shrink-0">
+          {user ? (
+            <button
+              type="button"
+              disabled={isSyncing}
+              onClick={syncNow}
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-semibold text-gray-200 hover:text-white transition cursor-pointer disabled:opacity-50"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 text-emerald-400 ${isSyncing ? "animate-spin" : ""}`} />
+              <span>{isSyncing ? "Đang đồng bộ..." : "Đồng bộ lại"}</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowAuthModal(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white hover:bg-gray-100 text-xs font-bold text-gray-950 transition cursor-pointer shadow-sm"
+            >
+              <LogIn className="w-3.5 h-3.5 text-netflix-red" />
+              <span>Đăng nhập Google</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* TAB SELECTOR */}
@@ -302,6 +364,8 @@ function MyListContent() {
           </div>
         )
       )}
+      {/* MODAL ĐĂNG NHẬP GOOGLE */}
+      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
     </main>
   );
 }

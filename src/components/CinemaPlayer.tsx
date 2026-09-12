@@ -26,14 +26,19 @@ import {
   Settings,
   PictureInPicture,
   RotateCcw,
+  QrCode,
 } from "lucide-react";
 import { PlayerScrubBar } from "./PlayerScrubBar";
 import { useWatchController } from "./WatchController";
 import { getWatchProgress, saveWatchProgress } from "@/lib/watchHistory";
 
-// Lazy-load SleepTimerModal để giảm bundle ban đầu
+// Lazy-load SleepTimerModal & MobileQrModal để giảm bundle ban đầu
 const SleepTimerModal = dynamic(
   () => import("./SleepTimerModal").then((mod) => mod.SleepTimerModal),
+  { ssr: false }
+);
+const MobileQrModal = dynamic(
+  () => import("./MobileQrModal").then((mod) => mod.MobileQrModal),
   { ssr: false }
 );
 
@@ -101,6 +106,9 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const [showControls, setShowControls] = useState(true);
   const [showShortcutModal, setShowShortcutModal] = useState(false);
   const [showSleepTimerModal, setShowSleepTimerModal] = useState(false);
+  const [showQrModal, setShowQrModal] = useState(false);
+  const [qrTime, setQrTime] = useState(0);
+  const [qrDuration, setQrDuration] = useState(0);
   const [bigCenterIcon, setBigCenterIcon] = useState<"play" | "pause" | null>(null);
 
   // Tốc độ phát & Chất lượng video HLS
@@ -404,16 +412,25 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           setQualityLevels([]);
         }
 
-        // Tự động phục hồi mốc thời gian xem dở trước đó
+        // Tự động phục hồi mốc thời gian xem dở hoặc mốc thời gian từ mã QR trên điện thoại (?t=...)
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlTime = parseFloat(urlParams.get("t") || "0");
         const movieSlug = watchContext?.movieSlug;
-        if (movieSlug && activeEpisodeSlug) {
-          const savedProgress = getWatchProgress(movieSlug, activeEpisodeSlug);
-          if (savedProgress > 15) {
-            video.currentTime = savedProgress;
-            showHud(
-              <RotateCcw className="w-5 h-5 text-netflix-red" />,
-              `Tiếp tục xem từ ${Math.floor(savedProgress / 60)}:${(savedProgress % 60).toString().padStart(2, "0")}`
-            );
+        const savedProgress = movieSlug && activeEpisodeSlug ? getWatchProgress(movieSlug, activeEpisodeSlug) : 0;
+        const targetProgress = urlTime > 0 ? urlTime : (savedProgress > 15 ? savedProgress : 0);
+
+        if (targetProgress > 0) {
+          video.currentTime = targetProgress;
+          const mins = Math.floor(targetProgress / 60);
+          const secs = (Math.floor(targetProgress) % 60).toString().padStart(2, "0");
+          showHud(
+            <RotateCcw className="w-5 h-5 text-netflix-red" />,
+            urlTime > 0
+              ? `Xem tiếp từ điện thoại: ${mins}:${secs}`
+              : `Tiếp tục xem từ ${mins}:${secs}`
+          );
+          if (movieSlug && activeEpisodeSlug) {
+            saveWatchProgress(movieSlug, targetProgress, video.duration || 0, activeEpisodeSlug);
           }
         }
 
@@ -456,11 +473,24 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       video.src = resolvedM3u8;
       const onLoaded = () => {
         setIsBuffering(false);
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlTime = parseFloat(urlParams.get("t") || "0");
         const movieSlug = watchContext?.movieSlug;
-        if (movieSlug && activeEpisodeSlug) {
-          const savedProgress = getWatchProgress(movieSlug, activeEpisodeSlug);
-          if (savedProgress > 15) {
-            video.currentTime = savedProgress;
+        const savedProgress = movieSlug && activeEpisodeSlug ? getWatchProgress(movieSlug, activeEpisodeSlug) : 0;
+        const targetProgress = urlTime > 0 ? urlTime : (savedProgress > 15 ? savedProgress : 0);
+
+        if (targetProgress > 0) {
+          video.currentTime = targetProgress;
+          const mins = Math.floor(targetProgress / 60);
+          const secs = (Math.floor(targetProgress) % 60).toString().padStart(2, "0");
+          showHud(
+            <RotateCcw className="w-5 h-5 text-netflix-red" />,
+            urlTime > 0
+              ? `Xem tiếp từ điện thoại: ${mins}:${secs}`
+              : `Tiếp tục xem từ ${mins}:${secs}`
+          );
+          if (movieSlug && activeEpisodeSlug) {
+            saveWatchProgress(movieSlug, targetProgress, video.duration || 0, activeEpisodeSlug);
           }
         }
         video
@@ -1067,6 +1097,27 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                       <PictureInPicture className="w-4 h-4" />
                     </button>
 
+                    {/* Nút Xem tiếp trên điện thoại (QR Code đúng số phút) */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setQrTime(videoRef.current?.currentTime || 0);
+                        setQrDuration(videoRef.current?.duration || 0);
+                        setShowQrModal(true);
+                        if (videoRef.current && isPlaying) {
+                          videoRef.current.pause();
+                          setIsPlaying(false);
+                        }
+                      }}
+                      title="Xem tiếp trên điện thoại (Quét mã QR đúng số phút đang xem)"
+                      className="p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer flex items-center gap-1 group/qr"
+                    >
+                      <QrCode className="w-4 h-4 text-sky-400 group-hover/qr:scale-110 transition-transform" />
+                      <span className="hidden xl:inline text-[11px] font-semibold text-gray-300">
+                        Điện thoại
+                      </span>
+                    </button>
+
                     {/* Nguồn Iframe fallback nếu muốn */}
                     {embedSrc && (
                       <button
@@ -1381,6 +1432,21 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           isOpen={showSleepTimerModal}
           onClose={() => setShowSleepTimerModal(false)}
           hideTrigger={true}
+        />
+      )}
+
+      {/* MODAL MÃ QR XEM TIẾP TRÊN ĐIỆN THOẠI ĐÚNG SỐ PHÚT (LAZY LOADED) */}
+      {showQrModal && (
+        <MobileQrModal
+          isOpen={showQrModal}
+          onClose={() => setShowQrModal(false)}
+          triggerButton={false}
+          title={title}
+          movieSlug={watchContext?.movieSlug}
+          activeEpisodeSlug={activeEpisodeSlug}
+          activeEpisodeName={activeEpisodeName}
+          currentTime={qrTime}
+          duration={qrDuration}
         />
       )}
     </>

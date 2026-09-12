@@ -1,3 +1,10 @@
+import { auth } from "./firebase";
+import {
+  saveWatchItemToCloudDebounced,
+  removeWatchItemFromCloud,
+  clearAllWatchHistoryFromCloud,
+} from "./cloudSync";
+
 export interface WatchHistoryItem {
   slug: string;
   title: string;
@@ -47,6 +54,11 @@ export const saveWatchHistory = (
     const updated = [newItem, ...filtered].slice(0, MAX_HISTORY_ITEMS);
     localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
     window.dispatchEvent(new CustomEvent("watch-history-updated"));
+
+    // Tự động đẩy lên Cloud nếu người dùng đã đăng nhập Google
+    if (auth?.currentUser) {
+      saveWatchItemToCloudDebounced(auth.currentUser.uid, newItem, 2000);
+    }
   } catch (error) {
     console.error("Lỗi lưu lịch sử xem:", error);
   }
@@ -74,7 +86,11 @@ export const saveWatchProgress = (
     existing.updatedAt = Date.now();
 
     localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
-    // Không dispatch custom event liên tục mỗi vài giây để tránh re-render ngoài ý muốn
+
+    // Tự động đồng bộ số phút lên Cloud nếu đã đăng nhập Google
+    if (auth?.currentUser) {
+      saveWatchItemToCloudDebounced(auth.currentUser.uid, existing, 4000);
+    }
   } catch (error) {
     console.error("Lỗi lưu tiến trình xem:", error);
   }
@@ -102,6 +118,10 @@ export const removeWatchHistoryItem = (slug: string): void => {
     const updated = list.filter((i) => i.slug !== slug);
     localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
     window.dispatchEvent(new CustomEvent("watch-history-updated"));
+
+    if (auth?.currentUser) {
+      removeWatchItemFromCloud(auth.currentUser.uid, slug);
+    }
   } catch (error) {
     console.error("Lỗi xoá mục lịch sử:", error);
   }
@@ -112,6 +132,10 @@ export const clearWatchHistory = (): void => {
   try {
     localStorage.removeItem(HISTORY_KEY);
     window.dispatchEvent(new CustomEvent("watch-history-updated"));
+
+    if (auth?.currentUser) {
+      clearAllWatchHistoryFromCloud(auth.currentUser.uid);
+    }
   } catch (error) {
     console.error("Lỗi xoá toàn bộ lịch sử:", error);
   }
