@@ -457,17 +457,18 @@ export function LiveTvClient({
         const hls = new Hls({
           enableWorker: true,
           lowLatencyMode: true,
-          maxBufferLength: 20,
-          maxMaxBufferLength: 40,
+          maxBufferLength: 30,
+          maxMaxBufferLength: 60,
+          maxBufferSize: 60 * 1000 * 1000,
           liveSyncDurationCount: 3,
-          liveMaxLatencyDurationCount: 7,
-          backBufferLength: 20,
+          liveMaxLatencyDurationCount: 8,
+          backBufferLength: 30,
           manifestLoadingTimeOut: 10000,
           levelLoadingTimeOut: 10000,
           fragLoadingTimeOut: 10000,
-          fragLoadingMaxRetry: 3,
-          levelLoadingMaxRetry: 3,
-          manifestLoadingMaxRetry: 3,
+          fragLoadingMaxRetry: 4,
+          levelLoadingMaxRetry: 4,
+          manifestLoadingMaxRetry: 4,
           capLevelToPlayerSize: false,
           xhrSetup: (xhr) => {
             xhr.withCredentials = false;
@@ -496,7 +497,18 @@ export function LiveTvClient({
         hls.on(Hls.Events.MANIFEST_PARSED, (_, data) => {
           if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
           if (data.levels && data.levels.length > 0) {
-            hls.currentLevel = data.levels.length - 1;
+            let highestIdx = 0;
+            let maxScore = 0;
+            data.levels.forEach((lvl, idx) => {
+              const score = (lvl.height || 0) * 1000000 + (lvl.bitrate || 0);
+              if (score > maxScore) {
+                maxScore = score;
+                highestIdx = idx;
+              }
+            });
+            hls.currentLevel = highestIdx;
+            hls.loadLevel = highestIdx;
+            hls.nextLevel = highestIdx;
           }
           setIsLoading(false);
           setHasError(false);
