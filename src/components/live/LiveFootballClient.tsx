@@ -38,15 +38,79 @@ export function LiveFootballClient({
   hideHeader = false,
   isActive = true,
 }: LiveFootballClientProps) {
-  const { channels, matches } = initialData;
+  const { channels } = initialData;
   const searchParams = useSearchParams();
+  const [liveMatches, setLiveMatches] = useState<FootballMatch[]>(
+    initialData.matches,
+  );
+
+  // Đồng bộ khi dữ liệu từ server thay đổi
+  useEffect(() => {
+    setLiveMatches(initialData.matches);
+  }, [initialData.matches]);
+
+  // Client-side verification cho các kênh Sự Kiện FPT Play:
+  // Vì các luồng sự kiện FPT Play mở CORS *, client kiểm tra trực tiếp qua HEAD request
+  // Kênh nào trả về 200 OK thì giữ lại, kênh nào 404 (chưa tới giờ phát sóng hoặc đã kết thúc) sẽ lọc sạch khỏi giao diện.
+  useEffect(() => {
+    const fptCandidates = initialData.matches.filter(
+      (m) =>
+        m.group === "Sự Kiện FPT Play" ||
+        m.servers.some((s) => s.url.includes("fptplay")),
+    );
+    if (fptCandidates.length === 0) return;
+
+    let isMounted = true;
+    Promise.all(
+      fptCandidates.map(async (m) => {
+        const primaryUrl = m.servers[0]?.url;
+        if (!primaryUrl) return { id: m.id, playable: false };
+        try {
+          const res = await fetch(primaryUrl, {
+            method: "HEAD",
+            signal: AbortSignal.timeout(2500),
+          });
+          return { id: m.id, playable: res.status === 200 };
+        } catch {
+          return { id: m.id, playable: false };
+        }
+      }),
+    ).then((results) => {
+      if (!isMounted) return;
+      const deadIds = new Set(
+        results.filter((r) => !r.playable).map((r) => r.id),
+      );
+      if (deadIds.size > 0) {
+        setLiveMatches((prev) => {
+          const updated = prev.filter((m) => !deadIds.has(m.id));
+          setSelectedMatch((curr) => {
+            if (curr && deadIds.has(curr.id)) {
+              return (
+                updated.find((m) => m.servers.some((s) => s.isHls)) ||
+                updated[0] ||
+                null
+              );
+            }
+            return curr;
+          });
+          return updated;
+        });
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [initialData.matches]);
 
   // Khởi tạo match mặc định
   const defaultMatch = useMemo(() => {
     return (
-      matches.find((m) => m.servers.some((s) => s.isHls)) || matches[0] || null
+      liveMatches.find((m) => m.servers.some((s) => s.isHls)) ||
+      liveMatches[0] ||
+      null
     );
-  }, [matches]);
+  }, [liveMatches]);
 
   const [selectedMatch, setSelectedMatch] = useState<FootballMatch | null>(
     () => {
@@ -58,7 +122,7 @@ export function LiveFootballClient({
           const savedId = localStorage.getItem("nanaflix_live_match_id");
           const target = matchParam || savedId;
           if (target) {
-            const found = matches.find(
+            const found = liveMatches.find(
               (m) =>
                 m.id === target ||
                 m.title.toLowerCase().includes(target.toLowerCase()),
@@ -83,7 +147,6 @@ export function LiveFootballClient({
   const [visibleCount, setVisibleCount] = useState<number>(INITIAL_PAGE_SIZE);
   const [isReminderModalOpen, setIsReminderModalOpen] =
     useState<boolean>(false);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [showMatchRail, setShowMatchRail] = useState(false);
   const { reminders } = useMatchReminders();
 
@@ -92,14 +155,14 @@ export function LiveFootballClient({
 
   // Gán timeline cho từng trận nếu chưa có
   const enrichedMatches = useMemo(() => {
-    return matches.map((m) => {
+    return liveMatches.map((m) => {
       if (m.timeline) return m;
       return {
         ...m,
         timeline: getMatchTimeline(m.timestamp),
       };
     });
-  }, [matches]);
+  }, [liveMatches]);
 
   // Danh sách các giải đấu có trong lịch thi đấu
   const availableTournaments = useMemo(() => {
@@ -146,7 +209,7 @@ export function LiveFootballClient({
 
   // Đồng bộ khi URL / localStorage thay đổi
   useEffect(() => {
-    if (matches.length === 0) return;
+    if (liveMatches.length === 0) return;
     const matchParam = searchParams.get("match");
     const savedId =
       typeof window !== "undefined"
@@ -155,7 +218,7 @@ export function LiveFootballClient({
     const target = matchParam || savedId;
 
     if (target) {
-      const found = matches.find(
+      const found = liveMatches.find(
         (m) =>
           m.id === target ||
           m.title.toLowerCase().includes(target.toLowerCase()),
@@ -167,7 +230,7 @@ export function LiveFootballClient({
     }
 
     setSelectedMatch((prev) => prev || defaultMatch);
-  }, [matches, searchParams, defaultMatch]);
+  }, [liveMatches, searchParams, defaultMatch]);
 
   // Reset phân trang khi thay đổi bất kỳ bộ lọc nào
   useEffect(() => {
@@ -354,6 +417,9 @@ export function LiveFootballClient({
               filteredMatches.length > 0 ? filteredMatches : enrichedMatches
             }
             onSelectMatch={handleSelectMatch}
+            showMatchRail={showMatchRail}
+            onToggleMatchRail={() => setShowMatchRail((prev) => !prev)}
+            onCloseMatchRail={() => setShowMatchRail(false)}
             isActive={isActive}
           />
         </div>
@@ -531,12 +597,12 @@ export function LiveFootballClient({
                       : "bg-white/10 text-gray-300"
                   }`}
                 >
-                  {matches.length}
+                  {liveMatches.length}
                 </span>
               </button>
 
               {activeChannels.map((ch) => {
-                const count = matches.filter(
+                const count = liveMatches.filter(
                   (m) => m.group === ch || m.groups?.includes(ch),
                 ).length;
                 const isSelected = selectedChannel === ch;
@@ -749,7 +815,7 @@ export function LiveFootballClient({
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-netflix-red hover:bg-red-700 text-white text-xs font-bold transition shadow-lg shadow-red-950/50 cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              <span>Xóa bộ lọc để xem tất cả {matches.length} trận</span>
+              <span>Xóa bộ lọc để xem tất cả {liveMatches.length} trận</span>
             </button>
           )}
         </div>
@@ -760,7 +826,7 @@ export function LiveFootballClient({
         isOpen={isReminderModalOpen}
         onClose={() => setIsReminderModalOpen(false)}
         onSelectMatchId={(id) => {
-          const found = matches.find((m) => m.id === id);
+          const found = liveMatches.find((m) => m.id === id);
           if (found) {
             setSelectedMatch(found);
             if (playerRef.current) {

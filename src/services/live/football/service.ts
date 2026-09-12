@@ -952,20 +952,66 @@ export function getVerified247Channels(): FootballMatch[] {
   ];
 }
 
-export function getFptEventChannels(): FootballMatch[] {
+export async function getFptEventChannels(): Promise<FootballMatch[]> {
   const now = Date.now();
-  const events: FootballMatch[] = [];
-  for (let i = 1; i <= 10; i++) {
-    const num = i < 10 ? `0${i}` : `${i}`;
-    const primaryUrl = `https://vips-livecdn.fptplay.net/live/media/event-${num}/hls_avc_v6/index.m3u8`;
-    const backupUrl = `https://live.fptplay53.net/live/media/event-${num}/hls_avc_v6/index.m3u8`;
-    const id = `skinfptplayevent${i}`;
-    events.push({
+  const candidateList = [
+    { key: "event-03", title: "Sự Kiện FPT Play - Kênh 03" },
+    { key: "event-07", title: "Sự Kiện FPT Play - Kênh 07" },
+    { key: "su-kien-05", title: "FPT Play - Sự Kiện Thể Thao 5" },
+    { key: "su-kien-06", title: "FPT Play - Sự Kiện Thể Thao 6" },
+    { key: "event-01", title: "Sự Kiện FPT Play - Kênh 01" },
+    { key: "event-02", title: "Sự Kiện FPT Play - Kênh 02" },
+    { key: "event-04", title: "Sự Kiện FPT Play - Kênh 04" },
+    { key: "event-05", title: "Sự Kiện FPT Play - Kênh 05" },
+    { key: "event-06", title: "Sự Kiện FPT Play - Kênh 06" },
+    { key: "event-08", title: "Sự Kiện FPT Play - Kênh 08" },
+    { key: "event-09", title: "Sự Kiện FPT Play - Kênh 09" },
+    { key: "event-10", title: "Sự Kiện FPT Play - Kênh 10" },
+    { key: "su-kien-01", title: "FPT Play - Sự Kiện Thể Thao 1" },
+    { key: "su-kien-02", title: "FPT Play - Sự Kiện Thể Thao 2" },
+    { key: "su-kien-03", title: "FPT Play - Sự Kiện Thể Thao 3" },
+    { key: "su-kien-04", title: "FPT Play - Sự Kiện Thể Thao 4" },
+    { key: "su-kien-07", title: "FPT Play - Sự Kiện Thể Thao 7" },
+    { key: "su-kien-08", title: "FPT Play - Sự Kiện Thể Thao 8" },
+  ];
+
+  let playableCandidates = candidateList;
+  // Khi không ở môi trường datacenter Vercel (ví dụ local dev hoặc server nội địa), lọc trực tiếp các kênh live 200 OK
+  if (process.env.VERCEL !== "1") {
+    try {
+      const verified = await Promise.all(
+        candidateList.map(async (c) => {
+          const u = `https://vips-livecdn.fptplay.net/live/media/${c.key}/hls_avc_v6/index.m3u8`;
+          try {
+            const res = await fetch(u, {
+              method: "HEAD",
+              signal: AbortSignal.timeout(1500),
+            });
+            return res.status === 200 ? c : null;
+          } catch {
+            return null;
+          }
+        }),
+      );
+      const activeOnly = verified.filter(Boolean) as typeof candidateList;
+      if (activeOnly.length > 0) {
+        playableCandidates = activeOnly;
+      }
+    } catch {
+      // Fallback giữ candidateList
+    }
+  }
+
+  return playableCandidates.map((c) => {
+    const primaryUrl = `https://vips-livecdn.fptplay.net/live/media/${c.key}/hls_avc_v6/index.m3u8`;
+    const backupUrl = `https://live.fptplay53.net/live/media/${c.key}/hls_avc_v6/index.m3u8`;
+    const id = `skinfptplay_${c.key.replace("-", "_")}`;
+    return {
       id,
       time: "Trực tiếp",
       timestamp: now,
-      title: `Sự Kiện FPT Play - Kênh ${num}`,
-      team1: `Sự Kiện FPT Play #${num}`,
+      title: c.title,
+      team1: c.title,
       team2: "",
       blv: "FPT Play",
       logo: FPT_EVENT_POSTER,
@@ -977,7 +1023,7 @@ export function getFptEventChannels(): FootballMatch[] {
       quality: "FHD 1080p",
       servers: [
         {
-          name: `Sự Kiện FPT Play #${num} [HLS]`,
+          name: `${c.title} [HLS]`,
           url: primaryUrl,
           format: "hls",
           isHls: true,
@@ -985,7 +1031,7 @@ export function getFptEventChannels(): FootballMatch[] {
           sourceName: "Sự Kiện FPT Play",
         },
         {
-          name: `Sự Kiện FPT Play #${num} [HLS] (Dự phòng)`,
+          name: `${c.title} [HLS] (Dự phòng)`,
           url: backupUrl,
           format: "hls",
           isHls: true,
@@ -993,9 +1039,8 @@ export function getFptEventChannels(): FootballMatch[] {
           sourceName: "Sự Kiện FPT Play",
         },
       ],
-    });
-  }
-  return events;
+    };
+  });
 }
 
 // Cache kết quả kiểm tra luồng stream (TTL 5 phút cho luồng sống, 60s cho luồng chết)
@@ -1106,7 +1151,7 @@ export const liveFootballService = {
         m.groups.forEach((g) => channelsSet.add(g));
       }
 
-      const fptEvents = getFptEventChannels();
+      const fptEvents = await getFptEventChannels();
       for (const m of fptEvents) {
         matchMap.set(m.id, m);
         channelsSet.add(m.group);
