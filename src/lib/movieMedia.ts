@@ -54,7 +54,7 @@ export function isVsmovSource(movie: MovieLike): boolean {
   );
 }
 
-export function pickBestMoviePoster(movie: MovieLike, fallback = "/default-poster.jpg"): string {
+export function pickBestMoviePoster(movie: MovieLike, fallback = "/default-poster.svg"): string {
   if (!movie) return fallback;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rawMovie = (movie as any)?.movie || movie;
@@ -86,7 +86,7 @@ export function pickBestMoviePoster(movie: MovieLike, fallback = "/default-poste
   return candidates[0];
 }
 
-export function pickBestMovieThumb(movie: MovieLike, fallback = "/default-hero.jpg"): string {
+export function pickBestMovieThumb(movie: MovieLike, fallback = "/default-hero.svg"): string {
   if (!movie) return fallback;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rawMovie = (movie as any)?.movie || movie;
@@ -189,6 +189,8 @@ export interface NormalizedMovie {
   director?: string[];
   country?: string;
   type_name?: string;
+  matchSnippet?: string;
+  matchType?: "title" | "actor" | "content";
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   raw: any;
 }
@@ -270,8 +272,8 @@ export function normalizeMovie(m: any): NormalizedMovie {
 
   if (!thumbUrl && posterUrl) thumbUrl = posterUrl;
   if (!posterUrl && thumbUrl) posterUrl = thumbUrl;
-  if (!thumbUrl) thumbUrl = "/default-hero.jpg";
-  if (!posterUrl) posterUrl = "/default-poster.jpg";
+  if (!thumbUrl) thumbUrl = "/default-hero.svg";
+  if (!posterUrl) posterUrl = "/default-poster.svg";
 
   const imageUrl = posterUrl;
   const year = m?.year ? String(m.year) : "";
@@ -390,6 +392,8 @@ export function normalizeMovie(m: any): NormalizedMovie {
     director,
     country,
     type_name,
+    matchSnippet: m?.matchSnippet,
+    matchType: m?.matchType,
     raw: m,
   };
 }

@@ -97,6 +97,49 @@ function formatCountryBadge(name?: string): string {
   return "🌏 " + name;
 }
 
+function AiMovieCardPoster({
+  src,
+  alt,
+  quality,
+}: {
+  src?: string;
+  alt: string;
+  quality?: string;
+}) {
+  const [imgSrc, setImgSrc] = useState(src || "/default-poster.svg");
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    setImgSrc(src || "/default-poster.svg");
+    setHasError(false);
+  }, [src]);
+
+  return (
+    <div className="relative w-14 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-zinc-900 border border-white/10 flex items-center justify-center">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={imgSrc}
+        alt={alt}
+        className={`w-full h-full object-cover group-hover/card:scale-105 transition-all duration-300 ${
+          hasError ? "opacity-85" : "opacity-100"
+        }`}
+        loading="lazy"
+        onError={() => {
+          if (!hasError) {
+            setHasError(true);
+            setImgSrc("/default-poster.svg");
+          }
+        }}
+      />
+      {quality && (
+        <span className="absolute bottom-1 right-1 px-1 py-0.2 rounded text-[8.5px] font-black bg-black/80 text-white border border-white/20">
+          {quality}
+        </span>
+      )}
+    </div>
+  );
+}
+
 function AiMovieSection({
   movies,
   onSelectMovie,
@@ -302,22 +345,11 @@ function AiMovieSection({
               key={movie.slug}
               className="group/card rounded-xl bg-black/60 border border-white/15 p-2.5 flex gap-2.5 hover:border-netflix-red/60 hover:bg-zinc-900/80 transition-all shadow-md"
             >
-              <div className="relative w-14 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-zinc-900">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={movie.poster}
-                  alt={movie.title}
-                  className="w-full h-full object-cover group-hover/card:scale-105 transition-transform"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = "/default-hero.jpg";
-                  }}
-                />
-                {movie.quality && (
-                  <span className="absolute bottom-1 right-1 px-1 py-0.2 rounded text-[8.5px] font-black bg-black/80 text-white border border-white/20">
-                    {movie.quality}
-                  </span>
-                )}
-              </div>
+              <AiMovieCardPoster
+                src={movie.poster}
+                alt={movie.title}
+                quality={movie.quality}
+              />
 
               <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
                 <div>
@@ -438,11 +470,28 @@ export function AiMovieConcierge() {
     } catch {}
   }, []);
 
+  const handleSendMessageRef = useRef<(prompt?: string) => Promise<void>>(async () => {});
+
   // Lắng nghe sự kiện mở toàn cục
   useEffect(() => {
-    const handleOpen = () => {
+    const handleOpen = (e: Event) => {
       setIsOpen(true);
-      setTimeout(() => inputRef.current?.focus(), 150);
+      const customEvent = e as CustomEvent<{ prompt?: string; autoSearch?: boolean }>;
+      const promptText = customEvent?.detail?.prompt?.trim();
+      const shouldAutoSearch = customEvent?.detail?.autoSearch ?? Boolean(promptText);
+
+      if (promptText) {
+        setInput(promptText);
+        if (shouldAutoSearch) {
+          setTimeout(() => {
+            handleSendMessageRef.current(promptText);
+          }, 250);
+        } else {
+          setTimeout(() => inputRef.current?.focus(), 150);
+        }
+      } else {
+        setTimeout(() => inputRef.current?.focus(), 150);
+      }
     };
     window.addEventListener("open-ai-concierge", handleOpen);
     return () => window.removeEventListener("open-ai-concierge", handleOpen);
@@ -535,7 +584,7 @@ export function AiMovieConcierge() {
     setLoading(true);
 
     // 1. KIỂM TRA BỘ NHỚ TRÌNH DUYỆT (0 TOKEN & 0MS NẾU ĐÃ HỎI TRONG PHIÊN NÀY)
-    const clientCacheKey = `concierge_cache_${query.toLowerCase().trim()}`;
+    const clientCacheKey = `concierge_cache_v3_${query.toLowerCase().trim()}`;
     try {
       const cached = sessionStorage.getItem(clientCacheKey);
       if (cached) {
@@ -606,6 +655,8 @@ export function AiMovieConcierge() {
       setLoading(false);
     }
   };
+
+  handleSendMessageRef.current = handleSendMessage;
 
   return (
     <>

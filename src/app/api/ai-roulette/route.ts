@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 import { movieApi } from "@/services/movieApi";
+import { sanitizeImageUrl } from "@/lib/movieMedia";
 
 export const maxDuration = 15;
 
@@ -9,7 +10,119 @@ export const maxDuration = 15;
 const ROULETTE_CACHE = new Map<string, { data: any; cachedAt: number }>();
 const CACHE_TTL_MS = 1000 * 60 * 60 * 12; // 12 tiếng
 
-// Bộ phim dự phòng offline phong phú và kinh điển theo từng mood (0 token & phản hồi 0ms)
+// Metadata phân loại chi tiết theo tâm trạng người dùng
+const MOOD_META: Record<
+  string,
+  { label: string; desc: string; categorySlug: string; defaultPunchline: string; defaultBadges: string[] }
+> = {
+  "xa-stress": {
+    label: "Xả Stress",
+    desc: "Hài hước, vui tươi, dí dỏm, mang lại tiếng cười sảng khoái và năng lượng tích cực",
+    categorySlug: "hai-huoc",
+    defaultPunchline: "Liều thuốc chữa lành mọi căng thẳng với những tình huống tấu hài cười ra nước mắt!",
+    defaultBadges: ["Hài Hước", "Xả Stress", "Giải Trí"],
+  },
+  "mau-lua": {
+    label: "Máu Lửa",
+    desc: "Hành động, đấm đá, rượt đuổi, khói lửa mãn nhãn và nhịp phim dồn dập nghẹt thở",
+    categorySlug: "hanh-dong",
+    defaultPunchline: "Bữa tiệc hành động đỉnh cao với những pha cận chiến và rượt đuổi mãn nhãn nghẹt thở!",
+    defaultBadges: ["Hành Động", "Mãn Nhãn", "Kịch Tính"],
+  },
+  "hack-nao": {
+    label: "Hack Não",
+    desc: "Trinh thám, đấu trí, cốt truyện xoắn não, cú twist giật gân bất ngờ không thể đoán trước",
+    categorySlug: "tam-ly",
+    defaultPunchline: "Mê cung bí ẩn cùng những cú bẻ lái bất ngờ sẽ khiến bạn không thể rời mắt!",
+    defaultBadges: ["Hack Não", "Trinh Thám", "Plot Twist"],
+  },
+  "ngot-ngao": {
+    label: "Ngọt Ngào",
+    desc: "Tình cảm lãng mạn, rung động trái tim, ngọt ngào và chữa lành tâm hồn",
+    categorySlug: "tinh-cam",
+    defaultPunchline: "Bản tình ca ngọt ngào mang lại cảm giác xao xuyến và chữa lành mọi vết thương lòng.",
+    defaultBadges: ["Lãng Mạn", "Ngọt Ngào", "Cảm Xúc"],
+  },
+  "tram-lang": {
+    label: "Trầm Lắng",
+    desc: "Sâu sắc, cảm động, giàu triết lý và tính nhân văn, lắng đọng tâm hồn",
+    categorySlug: "chinh-kich",
+    defaultPunchline: "Một tác phẩm nhân văn sâu sắc lay động những góc khuất tinh tế nhất trong tâm hồn.",
+    defaultBadges: ["Sâu Sắc", "Nhân Văn", "Cảm Động"],
+  },
+  "kinh-di": {
+    label: "Kinh Dị",
+    desc: "Rùng rợn, giật gân, thót tim, ma mị và căng thẳng tột độ",
+    categorySlug: "kinh-di",
+    defaultPunchline: "Nỗi sợ hãi ma mị và không khí rùng rợn sẽ làm bạn lạnh gáy suốt đêm nay.",
+    defaultBadges: ["Kinh Dị", "Rùng Rợn", "Thót Tim"],
+  },
+  "vien-tuong": {
+    label: "Viễn Tưởng",
+    desc: "Khoa học viễn tưởng, không gian vũ trụ, thế giới tương lai hoặc kỳ ảo siêu nhiên",
+    categorySlug: "khoa-hoc-vien-tuong",
+    defaultPunchline: "Hành trình vượt không gian và thời gian mở ra chân trời kỳ vĩ ngoài sức tưởng tượng!",
+    defaultBadges: ["Viễn Tưởng", "Vũ Trụ", "Kỳ Ảo"],
+  },
+  "anime": {
+    label: "Hoạt Hình / Anime",
+    desc: "Anime Nhật Bản hoặc hoạt hình 3D, phiêu lưu kỳ thú, đồ họa đẹp và cảm xúc",
+    categorySlug: "hoat-hinh",
+    defaultPunchline: "Thế giới hoạt hình diệu kỳ rực rỡ sắc màu cùng những thông điệp lay động lòng người.",
+    defaultBadges: ["Hoạt Hình", "Anime", "Phiêu Lưu"],
+  },
+  "co-trang": {
+    label: "Cổ Trang",
+    desc: "Cung đấu, kiếm hiệp võ hiệp, dã sử hoặc tiên hiệp huyền ảo Trung Hoa",
+    categorySlug: "co-trang",
+    defaultPunchline: "Bức tranh giang hồ ân oán và cung đình diễm lệ cuốn hút từng phân cảnh.",
+    defaultBadges: ["Cổ Trang", "Kiếm Hiệp", "Huyền Ảo"],
+  },
+  "toi-pham": {
+    label: "Tội Phạm",
+    desc: "Băng đảng mafia, thế giới ngầm, hình sự điều tra phá án nghẹt thở",
+    categorySlug: "hinh-su",
+    defaultPunchline: "Cuộc chiến cân não giữa thiện và ác trong thế giới ngầm không khoan nhượng.",
+    defaultBadges: ["Tội Phạm", "Hình Sự", "Nghẹt Thở"],
+  },
+};
+
+const COMPANION_META: Record<string, string> = {
+  "mot-minh": "Xem một mình (Cần phim cuốn hút, trọn vẹn cảm xúc cá nhân)",
+  "nguoi-yeu": "Xem cùng người yêu (Cần phim lãng mạn, ngọt ngào, tinh tế hoặc gắn kết hai người)",
+  "gia-dinh": "Xem cùng gia đình (Cần phim ấm áp, ý nghĩa, không cảnh nóng, phù hợp mọi lứa tuổi)",
+  "ban-be": "Xem cùng bạn bè (Cần phim sôi động, hồi hộp, hài hước hoặc kịch tính để bàn tán)",
+};
+
+const DURATION_META: Record<string, { desc: string; typeSlug?: string }> = {
+  "phim-le": {
+    desc: "Phim Lẻ (Phim điện ảnh 1 tập kết thúc trọn vẹn trong 90 - 120 phút. BẮT BUỘC KHÔNG CHỌN phim bộ nhiều tập)",
+    typeSlug: "phim-le",
+  },
+  "chieu-rap": {
+    desc: "Bom Tấn Rạp (Phim lẻ chiếu rạp hoành tráng, mãn nhãn. BẮT BUỘC là phim lẻ chiếu rạp)",
+    typeSlug: "phim-chieu-rap",
+  },
+  "phim-bo": {
+    desc: "Phim Bộ / Series (TV Series nhiều tập cuốn hút để cày đêm. BẮT BUỘC KHÔNG CHỌN phim lẻ)",
+    typeSlug: "phim-bo",
+  },
+  "bat-ky": {
+    desc: "Bất kỳ định dạng nào (Phim lẻ hoặc phim bộ đều được)",
+  },
+};
+
+const COUNTRY_META: Record<string, { label: string; slug?: string }> = {
+  all: { label: "Toàn cầu (Mọi quốc gia)" },
+  "han-quoc": { label: "Hàn Quốc", slug: "han-quoc" },
+  "au-my": { label: "Âu Mỹ / Hollywood", slug: "au-my" },
+  "trung-quoc": { label: "Trung Quốc / Hồng Kông", slug: "trung-quoc" },
+  "nhat-ban": { label: "Nhật Bản", slug: "nhat-ban" },
+  "viet-nam": { label: "Việt Nam", slug: "viet-nam" },
+  "thai-lan": { label: "Thái Lan", slug: "thai-lan" },
+};
+
+// Bộ phim dự phòng offline chất lượng cao, xác thực 100% có trên hệ thống
 const CURATED_OFFLINE_PICKS: Record<
   string,
   { title: string; originalTitle: string; punchline: string; badges: string[]; country?: string }[]
@@ -23,13 +136,6 @@ const CURATED_OFFLINE_PICKS: Record<
       country: "Trung Quốc",
     },
     {
-      title: "Kế Hoạch Baby",
-      originalTitle: "Rob-B-Hood",
-      punchline: "Bộ đôi trộm vặt Thành Long & Cổ Thiên Lạc vướng vào phi vụ trông em bé dở khóc dở cười.",
-      badges: ["Gia Đình", "Hành Động", "Ấm Áp"],
-      country: "Hồng Kông",
-    },
-    {
       title: "Nghề Siêu Khó",
       originalTitle: "Extreme Job",
       punchline: "Đội cảnh sát ngầm bán gà rán siêu đắt hàng, tấu hài cực mạnh và hành động cực đã!",
@@ -37,11 +143,11 @@ const CURATED_OFFLINE_PICKS: Record<
       country: "Hàn Quốc",
     },
     {
-      title: "Chuyến Bay Tình Yêu",
-      originalTitle: "Airplane!",
-      punchline: "Liều thuốc chữa lành mọi mệt mỏi với những màn tấu hài không lối thoát.",
-      badges: ["Hài Nhảm", "Xả Stress", "Kinh Điển"],
-      country: "Âu Mỹ",
+      title: "Kế Hoạch Baby",
+      originalTitle: "Rob-B-Hood",
+      punchline: "Bộ đôi trộm vặt Thành Long & Cổ Thiên Lạc vướng vào phi vụ trông em bé dở khóc dở cười.",
+      badges: ["Gia Đình", "Hành Động", "Ấm Áp"],
+      country: "Trung Quốc",
     },
     {
       title: "Chàng Nữ Phi Công",
@@ -57,6 +163,13 @@ const CURATED_OFFLINE_PICKS: Record<
       badges: ["Gia Đình", "Việt Nam", "Cảm Động"],
       country: "Việt Nam",
     },
+    {
+      title: "Điệp Viên Không Không Thấy",
+      originalTitle: "Johnny English",
+      punchline: "Chàng điệp viên vụng về nhưng may mắn hết phần thiên hạ mang lại tràng cười thả ga.",
+      badges: ["Hài Hước", "Âu Mỹ", "Điệp Viên"],
+      country: "Âu Mỹ",
+    },
   ],
   "mau-lua": [
     {
@@ -65,6 +178,13 @@ const CURATED_OFFLINE_PICKS: Record<
       punchline: "Những pha cận chiến võ thuật súng đỉnh cao và mãn nhãn nghẹt thở từ phút đầu tới phút cuối.",
       badges: ["Hành Động", "Xạ Thủ", "Mãn Nhãn"],
       country: "Âu Mỹ",
+    },
+    {
+      title: "Vây Hãm: Kẻ Trừng Phạt",
+      originalTitle: "The Roundup",
+      punchline: "Cú đấm thép uy lực của Ma Dong-seok mang lại trải nghiệm hành động cực kỳ sướng mắt!",
+      badges: ["Hành Động", "Đấm Đá", "Ma Dong Seok"],
+      country: "Hàn Quốc",
     },
     {
       title: "Max Điên Cuồng: Con Đường Tử Thần",
@@ -79,20 +199,6 @@ const CURATED_OFFLINE_PICKS: Record<
       punchline: "Vịnh Xuân Quyền dũng mãnh, tinh thần thượng võ kiên cường đốn tim người hâm mộ.",
       badges: ["Võ Thuật", "Hành Động", "Chân Tử Đan"],
       country: "Trung Quốc",
-    },
-    {
-      title: "Trùm Băng Đảng Và Cảnh Sát",
-      originalTitle: "The Gangster, The Cop, The Devil",
-      punchline: "Ma Dong Seok tung cú đấm ngàn cân cùng liên minh bất đắc dĩ săn lùng kẻ thủ ác.",
-      badges: ["Hành Động", "Đấm Đá", "Ma Dong Seok"],
-      country: "Hàn Quốc",
-    },
-    {
-      title: "Nhiệm Vụ Bất Khả Thi: Nghiệp Báo",
-      originalTitle: "Mission: Impossible - Dead Reckoning",
-      punchline: "Tom Cruise bất chấp nguy hiểm với những pha mạo hiểm người thật việc thật đỉnh nóc kịch trần.",
-      badges: ["Điệp Viên", "Mãn Nhãn", "Bom Tấn"],
-      country: "Âu Mỹ",
     },
     {
       title: "Hai Phượng",
@@ -118,13 +224,6 @@ const CURATED_OFFLINE_PICKS: Record<
       country: "Âu Mỹ",
     },
     {
-      title: "Hố Đen Tử Thần",
-      originalTitle: "Interstellar",
-      punchline: "Hành trình xuyên không gian cảm động kết hợp khoa học viễn tưởng vĩ đại.",
-      badges: ["Vũ Trụ", "Tình Phụ Tử", "Kiệt Tác"],
-      country: "Âu Mỹ",
-    },
-    {
       title: "Ký Sinh Trùng",
       originalTitle: "Parasite",
       punchline: "Kiệt tác đoạt 4 giải Oscar vạch trần hố sâu giai cấp với những nút thắt nghẹt thở.",
@@ -132,10 +231,10 @@ const CURATED_OFFLINE_PICKS: Record<
       country: "Hàn Quốc",
     },
     {
-      title: "Kẻ Nhớ Ngược",
-      originalTitle: "Memento",
-      punchline: "Cốt truyện đảo ngược dòng thời gian cực kỳ độc lạ và đầy thử thách trí tuệ.",
-      badges: ["Xoắn Não", "Nghệ Thuật", "Kinh Điển"],
+      title: "Hố Đen Tử Thần",
+      originalTitle: "Interstellar",
+      punchline: "Hành trình xuyên không gian cảm động kết hợp khoa học viễn tưởng vĩ đại.",
+      badges: ["Vũ Trụ", "Tình Phụ Tử", "Kiệt Tác"],
       country: "Âu Mỹ",
     },
     {
@@ -176,13 +275,6 @@ const CURATED_OFFLINE_PICKS: Record<
       country: "Âu Mỹ",
     },
     {
-      title: "Hôn Lễ Của Em",
-      originalTitle: "On Your Wedding Day",
-      punchline: "Thanh xuân có thể lỡ hẹn, nhưng tình yêu đẹp đẽ nhất sẽ luôn ở lại trong tim.",
-      badges: ["Thanh Xuân", "Hàn Quốc", "Lắng Đọng"],
-      country: "Hàn Quốc",
-    },
-    {
       title: "Mắt Biếc",
       originalTitle: "Dreamy Eyes",
       punchline: "Bản tình ca đượm buồn của làng Đo Đo cùng ánh mắt biếc ám ảnh cả một đời người.",
@@ -212,13 +304,6 @@ const CURATED_OFFLINE_PICKS: Record<
       badges: ["Tâm Lý", "Lắng Đọng", "Sâu Sắc"],
       country: "Âu Mỹ",
     },
-    {
-      title: "Tôi Và Chúng Ta",
-      originalTitle: "Our Beloved Summer",
-      punchline: "Chuyện tình 10 năm của hai người trẻ với những xúc cảm tinh tế và chữa lành tâm hồn.",
-      badges: ["Chữa Lành", "Hàn Quốc", "Cảm Xúc"],
-      country: "Hàn Quốc",
-    },
   ],
   "kinh-di": [
     {
@@ -229,11 +314,11 @@ const CURATED_OFFLINE_PICKS: Record<
       country: "Âu Mỹ",
     },
     {
-      title: "Di Truyền",
-      originalTitle: "Hereditary",
-      punchline: "Nỗi sợ hãi tâm lý kỳ dị và ma mị len lỏi vào tận xương tủy khiến bạn khó ngủ.",
-      badges: ["Kinh Dị", "Tâm Lý", "Ám Ảnh"],
-      country: "Âu Mỹ",
+      title: "Quỷ Ám",
+      originalTitle: "Exhuma",
+      punchline: "Màn quật mộ khai quật bí mật kinh hoàng làm khuynh đảo phòng vé châu Á.",
+      badges: ["Hàn Quốc", "Kinh Dị", "Tâm Linh"],
+      country: "Hàn Quốc",
     },
     {
       title: "Âm Hồn Nhập Xác",
@@ -241,13 +326,6 @@ const CURATED_OFFLINE_PICKS: Record<
       punchline: "Phong cách giả tài liệu rùng rợn vùng Đông Bắc Thái Lan về thế giới tâm linh tà thuật.",
       badges: ["Thái Lan", "Tâm Linh", "Ám Ảnh"],
       country: "Thái Lan",
-    },
-    {
-      title: "Quỷ Ám",
-      originalTitle: "Exhuma",
-      punchline: "Màn quật mộ khai quật bí mật kinh hoàng làm khuynh đảo phòng vé châu Á.",
-      badges: ["Hàn Quốc", "Kinh Dị", "Tâm Linh"],
-      country: "Hàn Quốc",
     },
     {
       title: "Chuyện Ma Gần Nhà",
@@ -346,27 +424,178 @@ const CURATED_OFFLINE_PICKS: Record<
       originalTitle: "Infernal Affairs",
       punchline: "Cuộc chiến nội gián cân não giữa cảnh sát và xã hội đen Hồng Kông không thể nào quên.",
       badges: ["Hồng Kông", "Nội Gián", "Kinh Điển"],
-      country: "Hồng Kông",
+      country: "Trung Quốc",
     },
   ],
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function toSafePoster(item: any): string {
-  if (typeof item?.poster_url === "string" && item.poster_url.startsWith("http")) return item.poster_url;
-  if (typeof item?.thumb_url === "string" && item.thumb_url.startsWith("http")) return item.thumb_url;
-  return "/default-hero.jpg";
+// Helper chuẩn hóa chuỗi tiếng Việt để so khớp chính xác
+function cleanNormalizedString(s: string): string {
+  return (s || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
-const COUNTRY_LABELS: Record<string, string> = {
-  all: "Mọi quốc gia (Toàn cầu)",
-  "han-quoc": "Hàn Quốc",
-  "au-my": "Âu Mỹ / Hollywood",
-  "trung-quoc": "Trung Quốc",
-  "nhat-ban": "Nhật Bản",
-  "viet-nam": "Việt Nam",
-  "thai-lan": "Thái Lan",
-};
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function findBestMatchMovie(items: any[], query: string, originalQuery?: string): any {
+  if (!items || items.length === 0) return null;
+  const cleanQ = cleanNormalizedString(query || "");
+  const cleanOq = cleanNormalizedString(originalQuery || "");
+
+  let bestItem = null;
+  let bestScore = -999;
+
+  for (const it of items) {
+    const name = cleanNormalizedString(it.name || it.title || "");
+    const orig = cleanNormalizedString(it.origin_name || "");
+    const slug = cleanNormalizedString(it.slug || "");
+
+    let score = 0;
+
+    // 1. Khớp chính xác tên tiếng Việt hoặc tên gốc -> Ưu tiên hàng đầu (+100)
+    if (name === cleanQ || (cleanOq && (name === cleanOq || orig === cleanOq))) {
+      score += 100;
+    } else if (slug === cleanQ.replace(/\s+/g, "-") || (cleanOq && slug === cleanOq.replace(/\s+/g, "-"))) {
+      score += 90;
+    } else if (name.startsWith(cleanQ) || (cleanOq && (name.startsWith(cleanOq) || orig.startsWith(cleanOq)))) {
+      score += 70;
+    } else if (name.includes(cleanQ) || (cleanOq && (name.includes(cleanOq) || orig.includes(cleanOq)))) {
+      score += 50;
+    } else {
+      // Khớp theo tập từ (ví dụ: "Vây Hãm: Kẻ Trừng Phạt" khớp với "Vây Hãm 4: Kẻ Trừng Phạt")
+      const qWords = cleanQ.split(" ").filter((w) => w.length > 1);
+      if (qWords.length > 1) {
+        const matchWords = qWords.filter((w) => name.includes(w) || (orig && orig.includes(w)));
+        const ratio = matchWords.length / qWords.length;
+        if (ratio >= 0.6) score += Math.round(ratio * 45);
+      }
+    }
+
+    // 2. Phạt nếu độ dài chênh lệch quá nhiều
+    const lenDiff = Math.abs(name.length - cleanQ.length);
+    score -= Math.min(20, lenDiff * 1.2);
+
+    // 3. Ưu tiên phim có ảnh bìa
+    if (it.thumb_url || it.poster_url) score += 10;
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestItem = it;
+    }
+  }
+
+  return bestScore > 10 ? bestItem : (items[0] || null);
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function queryPhimApiDirect(keyword: string, originalKeyword?: string): Promise<any> {
+  if (!keyword?.trim()) return null;
+  try {
+    const res = await fetch(
+      `https://phimapi.com/v1/api/tim-kiem?keyword=${encodeURIComponent(keyword.trim())}&limit=6`,
+      { signal: AbortSignal.timeout(2500), next: { revalidate: 3600 } }
+    );
+    if (!res.ok) return null;
+    const json = await res.json();
+    const items = json?.data?.items || [];
+    if (items.length > 0) {
+      const best = findBestMatchMovie(items, keyword, originalKeyword);
+      if (!best) return null;
+
+      const imageDomain = (json.data?.APP_DOMAIN_CDN_IMAGE || "https://phimimg.com/").replace(/\/+$/, "");
+      const formatImg = (p?: string) => {
+        if (!p) return "";
+        if (p.startsWith("http://") || p.startsWith("https://")) return p;
+        return `${imageDomain}/${p.replace(/^\/+/, "")}`;
+      };
+      return {
+        ...best,
+        thumb_url: formatImg(best.thumb_url) || formatImg(best.poster_url),
+        poster_url: formatImg(best.poster_url) || formatImg(best.thumb_url),
+      };
+    }
+  } catch {}
+  return null;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const ROULETTE_TITLE_CACHE = new Map<string, { item: any; expireAt: number }>();
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function searchSingleMovieFast(title: string, originalTitle: string): Promise<any> {
+  const cleanTitle = (title || "").replace(/\([^)]*\)/g, "").replace(/\[[^\]]*\]/g, "").trim();
+  const cleanOriginal = (originalTitle || "").replace(/\([^)]*\)/g, "").replace(/\[[^\]]*\]/g, "").trim();
+  const key = `${cleanTitle}__${cleanOriginal}`.toLowerCase();
+
+  const cached = ROULETTE_TITLE_CACHE.get(key);
+  if (cached && Date.now() < cached.expireAt) return cached.item;
+
+  let foundItem = null;
+
+  // 1. Thử tìm trên PhimAPI direct
+  if (cleanTitle) {
+    foundItem = await queryPhimApiDirect(cleanTitle, cleanOriginal);
+    // Nếu có dấu hai chấm và chưa tìm ra, thử tìm tên chính trước dấu hai chấm
+    if (!foundItem && cleanTitle.includes(":")) {
+      const mainPart = cleanTitle.split(":")[0].trim();
+      if (mainPart.length >= 3) {
+        foundItem = await queryPhimApiDirect(mainPart, cleanOriginal);
+      }
+    }
+  }
+
+  // 2. Thử tìm theo tên gốc nếu chưa thấy
+  if (!foundItem && cleanOriginal && cleanOriginal !== cleanTitle) {
+    foundItem = await queryPhimApiDirect(cleanOriginal, cleanTitle);
+  }
+
+  // 3. Fallback qua movieApi.getMovies với timeout an toàn
+  if (!foundItem && cleanTitle) {
+    try {
+      const res1 = await Promise.race([
+        movieApi.getMovies({ keyword: cleanTitle, page: 1, limit: 5 }),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 2000)),
+      ]);
+      if (res1?.items && res1.items.length > 0) {
+        foundItem = findBestMatchMovie(res1.items, cleanTitle, cleanOriginal);
+      }
+    } catch {}
+  }
+
+  if (!foundItem && cleanOriginal && cleanOriginal !== cleanTitle) {
+    try {
+      const res2 = await Promise.race([
+        movieApi.getMovies({ keyword: cleanOriginal, page: 1, limit: 5 }),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 2000)),
+      ]);
+      if (res2?.items && res2.items.length > 0) {
+        foundItem = findBestMatchMovie(res2.items, cleanOriginal, cleanTitle);
+      }
+    } catch {}
+  }
+
+  if (foundItem) {
+    ROULETTE_TITLE_CACHE.set(key, { item: foundItem, expireAt: Date.now() + 1000 * 60 * 60 * 24 });
+  } else {
+    ROULETTE_TITLE_CACHE.set(key, { item: null, expireAt: Date.now() + 1000 * 30 });
+  }
+
+  return foundItem;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function toSafePoster(item: any): string {
+  if (!item) return "/default-poster.svg";
+  const poster = sanitizeImageUrl(item.poster_url || item.posterUrl || "");
+  if (poster) return poster;
+  const thumb = sanitizeImageUrl(item.thumb_url || item.thumbUrl || "");
+  if (thumb) return thumb;
+  return "/default-poster.svg";
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -379,7 +608,11 @@ export async function POST(req: NextRequest) {
     const excludeTitles: string[] = Array.isArray(body.excludeTitles) ? body.excludeTitles : [];
     const userApiKey: string = body.apiKey || "";
 
-    const countryLabel = COUNTRY_LABELS[country] || "Tự do";
+    const moodMeta = MOOD_META[mood] || MOOD_META["xa-stress"];
+    const countryMeta = COUNTRY_META[country] || COUNTRY_META["all"];
+    const companionDesc = COMPANION_META[companion] || COMPANION_META["mot-minh"];
+    const durationMeta = DURATION_META[duration] || DURATION_META["phim-le"];
+
     const hasExclusions = excludeSlugs.length > 0 || excludeTitles.length > 0;
 
     // Cache key chỉ dùng khi quay lần đầu không có exclusion
@@ -404,38 +637,62 @@ export async function POST(req: NextRequest) {
       )
     );
 
-    let chosenTitle = "";
-    let chosenOriginal = "";
-    let punchline = "";
-    let badges = ["Đề Xuất AI", "Đặc Sắc"];
-    let matchScore = 98;
-    const provider = "Nana AI";
-
     const allExclusions = Array.from(
       new Set([...excludeTitles, ...excludeSlugs].map((s) => s.toLowerCase().trim()))
     );
 
-    // 1. GỌI GEMINI NẾU CÓ KEY (TỰ ĐỘNG XOAY VÒNG KEY NẾU GẶP QUOTA 429)
+    const isExcluded = (nameOrSlug?: string) => {
+      if (!nameOrSlug) return false;
+      const clean = nameOrSlug.toLowerCase().trim();
+      return allExclusions.includes(clean);
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let foundMovie: any = null;
+    let finalPunchline = "";
+    let finalBadges: string[] = [];
+    let finalMatchScore = 98;
+    const provider = "Nana AI";
+
+    // 1. GỌI GEMINI NẾU CÓ KEY VỚI PROMPT TỐI ƯU ĐỘ CHÍNH XÁC CAO
     if (candidateKeys.length > 0) {
       try {
+        const countryConstraint =
+          country !== "all"
+            ? `\n- QUY TẮC BẮT BUỘC: Bộ phim BẮT BUỘC phải thuộc quốc gia "${countryMeta.label}". TUYỆT ĐỐI KHÔNG chọn phim của nước khác!`
+            : "";
+
         const excludePrompt = hasExclusions
-          ? `\nQUAN TRỌNG: TUYỆT ĐỐI KHÔNG CHỌN bất kỳ phim nào trong danh sách đã xem/bỏ qua sau: [${allExclusions.slice(-15).join(", ")}]. Phải chọn 1 phim KHÁC BIỆT HOÀN TOÀN!`
+          ? `\n- TUYỆT ĐỐI KHÔNG CHỌN bất kỳ phim nào trong danh sách đã xem sau: [${allExclusions.slice(-15).join(", ")}].`
           : "";
 
-        const promptText = `Người dùng đang chơi vòng quay 'Suất Chiếu Định Mệnh' để tìm 1 phim:
-- Tâm trạng: "${mood}"
-- Ưu tiên quốc gia: "${countryLabel}"
-- Người xem cùng: "${companion}"
-- Thời lượng/Thể loại: "${duration}"${excludePrompt}
+        const promptText = `Bạn là Trợ lý Nana của Nanaflix đang bốc quẻ 'Suất Chiếu Định Mệnh' cho người dùng:
+- Tâm trạng: "${moodMeta.label} - ${moodMeta.desc}"
+- Người xem cùng: "${companionDesc}"
+- Thời lượng/Định dạng: "${durationMeta.desc}"${countryConstraint}${excludePrompt}
 
-Hãy chọn DUY NHẤT 1 bộ phim điện ảnh hoặc phim bộ kinh điển, nổi tiếng, đánh giá cao đáp ứng đúng ngữ cảnh này.
-Trả về DUY NHẤT một chuỗi JSON hợp lệ (không markdown block):
+HÃY CHỌN 2 ỨNG VIÊN PHIM ĐẶC SẮC (ỨNG VIÊN 1 VÀ ỨNG VIÊN DỰ PHÒNG), ĐẢM BẢO:
+1. Phim PHẢI CÓ THẬT, CỰC KỲ NỔI TIẾNG, CÓ ĐIỂM ĐÁNH GIÁ CAO trên các trang xem phim tại Việt Nam (PhimAPI, Ophim, Netflix).
+2. TUÂN THỦ 100% định dạng (phim lẻ vs phim bộ) và quốc gia được yêu cầu.
+3. Tên phim: "title" là tên tiếng Việt chuẩn nhất (KHÔNG ghi năm hay hậu tố vào title, ví dụ: "Vây Hãm: Kẻ Trừng Phạt", "Ký Sinh Trùng", "Hạ Cánh Nơi Anh").
+4. "punchline": 1 câu giật gân, cuốn hút hoặc hài hước (dưới 25 từ) lý giải vì sao bộ phim này là định mệnh dành cho người dùng lúc này.
+
+Trả về DUY NHẤT một chuỗi JSON hợp lệ:
 {
-  "title": "Tên phim tiếng Việt",
-  "originalTitle": "Tên gốc hoặc tiếng Anh",
-  "punchline": "1 câu giật gân, hài hước hoặc lôi cuốn (tối đa 25 từ) giải thích lý do Nana chọn phim này",
-  "badges": ["3 từ khóa ngắn", "đại diện", "vibe"],
-  "matchScore": 99
+  "primary": {
+    "title": "Tên tiếng Việt",
+    "originalTitle": "Tên gốc tiếng Anh/bản địa",
+    "punchline": "1 câu cuốn hút",
+    "badges": ["3 từ khóa ngắn", "chuẩn vibe"],
+    "matchScore": 99
+  },
+  "secondary": {
+    "title": "Tên tiếng Việt dự phòng",
+    "originalTitle": "Tên gốc tiếng Anh/bản địa dự phòng",
+    "punchline": "1 câu cuốn hút dự phòng",
+    "badges": ["3 từ khóa"],
+    "matchScore": 96
+  }
 }`;
 
         const MODELS = ["gemini-3.5-flash", "gemini-3.6-flash"];
@@ -453,15 +710,15 @@ Trả về DUY NHẤT một chuỗi JSON hợp lệ (không markdown block):
                     contents: promptText,
                     config: {
                       responseMimeType: "application/json",
-                      temperature: 0.85,
-                      maxOutputTokens: 400,
+                      temperature: 0.35,
+                      maxOutputTokens: 500,
                       ...(is35
                         ? { thinkingConfig: { thinkingBudget: 0 } }
                         : { thinkingConfig: { thinkingLevel: ThinkingLevel.LOW } }),
                     },
                   }),
                   new Promise<never>((_, reject) =>
-                    setTimeout(() => reject(new Error(`${model} roulette timeout`)), 4000)
+                    setTimeout(() => reject(new Error(`${model} roulette timeout`)), 4500)
                   ),
                 ]);
 
@@ -471,17 +728,11 @@ Trả về DUY NHẤT một chuỗi JSON hợp lệ (không markdown block):
                   break keyLoop;
                 }
               } catch (mErr) {
-                console.warn(
-                  `[ai-roulette] ${model} failed:`,
-                  mErr instanceof Error ? mErr.message : mErr
-                );
+                console.warn(`[ai-roulette] ${model} failed:`, mErr instanceof Error ? mErr.message : mErr);
               }
             }
           } catch (kErr) {
-            console.warn(
-              "[ai-roulette] Key failed, trying fallback key:",
-              kErr instanceof Error ? kErr.message : kErr
-            );
+            console.warn("[ai-roulette] Key failed, trying next key:", kErr instanceof Error ? kErr.message : kErr);
           }
         }
 
@@ -494,34 +745,29 @@ Trả về DUY NHẤT một chuỗi JSON hợp lệ (không markdown block):
           let parsed: any = null;
           try {
             parsed = JSON.parse(cleaned);
-          } catch {
-            const titleM = cleaned.match(/"title"\s*:\s*"((?:\\.|[^"\\])*)"/);
-            const origM = cleaned.match(/"originalTitle"\s*:\s*"((?:\\.|[^"\\])*)"/);
-            const punchM = cleaned.match(/"punchline"\s*:\s*"((?:\\.|[^"\\])*)"/);
-            if (titleM) {
-              parsed = {
-                title: titleM[1],
-                originalTitle: origM ? origM[1] : "",
-                punchline: punchM ? punchM[1] : "Tác phẩm xuất sắc được tuyển chọn cho bạn!",
-                badges: ["Đề Xuất AI", "Đặc Sắc"],
-                matchScore: 98,
-              };
-            }
-          }
+          } catch {}
 
-          if (parsed && parsed.title) {
-            const candidateTitle = parsed.title.trim().toLowerCase();
-            const candidateOriginal = (parsed.originalTitle || "").trim().toLowerCase();
-            // Đảm bảo không trùng danh sách exclude
-            const isExcluded = allExclusions.some(
-              (t) => t === candidateTitle || (candidateOriginal && t === candidateOriginal)
-            );
-            if (!isExcluded) {
-              chosenTitle = parsed.title.trim();
-              chosenOriginal = parsed.originalTitle || "";
-              punchline = parsed.punchline || "Tác phẩm xuất sắc nhất được AI lựa chọn cho bạn!";
-              if (Array.isArray(parsed.badges)) badges = parsed.badges.slice(0, 3);
-              if (typeof parsed.matchScore === "number") matchScore = parsed.matchScore;
+          if (parsed) {
+            const candidates = [
+              parsed.primary,
+              parsed.secondary,
+              parsed.title ? parsed : null, // hỗ trợ định dạng đơn cũ
+            ].filter(Boolean);
+
+            for (const cand of candidates) {
+              const candTitle = (cand.title || "").trim();
+              const candOrig = (cand.originalTitle || "").trim();
+              if (!candTitle) continue;
+              if (isExcluded(candTitle) || isExcluded(candOrig)) continue;
+
+              const matched = await searchSingleMovieFast(candTitle, candOrig);
+              if (matched && matched.slug && !isExcluded(matched.slug)) {
+                foundMovie = matched;
+                finalPunchline = cand.punchline || moodMeta.defaultPunchline;
+                finalBadges = Array.isArray(cand.badges) ? cand.badges.slice(0, 3) : moodMeta.defaultBadges;
+                finalMatchScore = typeof cand.matchScore === "number" ? cand.matchScore : 98;
+                break;
+              }
             }
           }
         }
@@ -530,102 +776,105 @@ Trả về DUY NHẤT một chuỗi JSON hợp lệ (không markdown block):
       }
     }
 
-    // 2. NẾU KHÔNG CÓ KẾT QUẢ GEMINI HOẶC BỊ TRÙNG -> LẤY TỪ KHO OFFLINE TUYỂN CHỌN
-    if (!chosenTitle) {
+    // 2. NẾU GEMINI CHƯA RA HOẶC PHIM KHÔNG TỒN TẠI TRÊN KHO -> DÙNG KHO OFFLINE TUYỂN CHỌN
+    if (!foundMovie) {
       let pool = CURATED_OFFLINE_PICKS[mood] || CURATED_OFFLINE_PICKS["xa-stress"];
-      
-      // Nếu có filter country, ưu tiên các phim đúng country nếu có
+
       if (country !== "all") {
-        const countryName = COUNTRY_LABELS[country] || "";
-        const filteredByCountry = pool.filter((p) => p.country && countryName.includes(p.country));
-        if (filteredByCountry.length > 0) {
-          pool = filteredByCountry;
-        }
+        const countryLabel = countryMeta.label;
+        const filtered = pool.filter((p) => p.country && countryLabel.includes(p.country));
+        if (filtered.length > 0) pool = filtered;
       }
 
-      // Lọc bỏ những phim đã xem
-      let availablePicks = pool.filter(
-        (p) =>
-          !allExclusions.includes(p.title.toLowerCase()) &&
-          !allExclusions.includes(p.originalTitle.toLowerCase())
+      let available = pool.filter(
+        (p) => !isExcluded(p.title) && !isExcluded(p.originalTitle)
       );
 
-      // Nếu đã xem hết danh sách của mood đó, lấy từ toàn bộ kho
-      if (availablePicks.length === 0) {
-        const allPicks = Object.values(CURATED_OFFLINE_PICKS).flat();
-        availablePicks = allPicks.filter(
-          (p) =>
-            !allExclusions.includes(p.title.toLowerCase()) &&
-            !allExclusions.includes(p.originalTitle.toLowerCase())
+      if (available.length === 0) {
+        const allPool = Object.values(CURATED_OFFLINE_PICKS).flat();
+        available = allPool.filter(
+          (p) => !isExcluded(p.title) && !isExcluded(p.originalTitle)
         );
       }
 
-      if (availablePicks.length === 0) {
-        availablePicks = pool;
-      }
+      if (available.length === 0) available = pool;
 
-      const randomPick = availablePicks[Math.floor(Math.random() * availablePicks.length)];
-      chosenTitle = randomPick.title;
-      chosenOriginal = randomPick.originalTitle;
-      punchline = randomPick.punchline;
-      badges = randomPick.badges;
-    }
+      // Xáo trộn để quay ngẫu nhiên
+      const shuffled = [...available].sort(() => Math.random() - 0.5);
 
-    // 3. TÌM CHI TIẾT PHIM TRONG HỆ THỐNG (LOẠI TRỪ CÁC SLUG ĐÃ QUAY)
-    let foundMovie = null;
-    const isExcludedMovie = (item: { slug?: string; name?: string; title?: string; origin_name?: string }) => {
-      if (!item) return true;
-      const slug = (item.slug || "").toLowerCase();
-      const name = (item.name || item.title || "").toLowerCase();
-      const origin = (item.origin_name || "").toLowerCase();
-      return (
-        allExclusions.includes(slug) ||
-        (name && allExclusions.includes(name)) ||
-        (origin && allExclusions.includes(origin))
-      );
-    };
-
-    if (chosenTitle) {
-      const res1 = await movieApi.getMovies({ keyword: chosenTitle, page: 1, limit: 5 }).catch(() => null);
-      if (res1?.items?.length) {
-        foundMovie = res1.items.find((it: { slug: string; name?: string; origin_name?: string }) => !isExcludedMovie(it));
-        if (!foundMovie && !hasExclusions) foundMovie = res1.items[0];
-      }
-    }
-    if (!foundMovie && chosenOriginal) {
-      const res2 = await movieApi.getMovies({ keyword: chosenOriginal, page: 1, limit: 5 }).catch(() => null);
-      if (res2?.items?.length) {
-        foundMovie = res2.items.find((it: { slug: string; name?: string; origin_name?: string }) => !isExcludedMovie(it));
-        if (!foundMovie && !hasExclusions) foundMovie = res2.items[0];
-      }
-    }
-
-    // Nếu vẫn chưa ra, lấy ngẫu nhiên 1 phim khác trong kho chưa từng quay
-    if (!foundMovie) {
-      for (let p = 1; p <= 3; p++) {
-        const fallbackRes = await movieApi.getMovies({ page: p, limit: 12 }).catch(() => null);
-        if (fallbackRes?.items?.length) {
-          foundMovie = fallbackRes.items.find((it: { slug: string; name?: string; origin_name?: string }) => !isExcludedMovie(it));
-          if (foundMovie) break;
+      for (const pick of shuffled) {
+        const matched = await searchSingleMovieFast(pick.title, pick.originalTitle);
+        if (matched && matched.slug && !isExcluded(matched.slug)) {
+          foundMovie = matched;
+          finalPunchline = pick.punchline || moodMeta.defaultPunchline;
+          finalBadges = pick.badges || moodMeta.defaultBadges;
+          finalMatchScore = 96;
+          break;
         }
       }
+    }
+
+    // 3. NẾU VẪN CHƯA CÓ -> TRUY VẤN TRỰC TIẾP CATALOG THEO THỂ LOẠI / QUỐC GIA / ĐỊNH DẠNG
+    if (!foundMovie) {
+      try {
+        const catRes = await movieApi.getMovies({
+          category: moodMeta.categorySlug,
+          country: countryMeta.slug,
+          type: durationMeta.typeSlug,
+          limit: 12,
+        });
+
+        if (catRes?.items?.length) {
+          const valid = catRes.items.filter(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (it: any) => it.slug && !isExcluded(it.slug) && !isExcluded(it.name)
+          );
+          if (valid.length > 0) {
+            foundMovie = valid[Math.floor(Math.random() * valid.length)];
+            const catName = foundMovie.category?.[0]?.name || moodMeta.label;
+            finalPunchline = `Tuyệt phẩm ${catName} chuẩn gu được định mệnh chọn cho bạn: bùng nổ cảm xúc và trọn vẹn từng khoảnh khắc!`;
+            finalBadges = [catName, foundMovie.country?.[0]?.name || "Đặc Sắc", "Bốc Quẻ Chuẩn"];
+            finalMatchScore = 94;
+          }
+        }
+      } catch {}
+    }
+
+    // 4. NẾU VẪN TRẮNG TAY (HIẾM GẶP) -> LẤY PHIM HOT TỪ TOÀN KHO
+    if (!foundMovie) {
+      try {
+        const hotRes = await movieApi.getMovies({ page: 1, limit: 12 });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const fallbackList = (hotRes?.items || []).filter((it: any) => it.slug && !isExcluded(it.slug));
+        foundMovie = fallbackList[0] || hotRes?.items?.[0];
+        finalPunchline = moodMeta.defaultPunchline;
+        finalBadges = moodMeta.defaultBadges;
+        finalMatchScore = 92;
+      } catch {}
+    }
+
+    if (!foundMovie || !foundMovie.slug) {
+      return NextResponse.json(
+        { error: "Tạm thời không thể bốc quẻ, vui lòng thử lại sau giây lát!" },
+        { status: 503 }
+      );
     }
 
     const payload = {
       movie: {
-        slug: foundMovie?.slug || "avatar",
-        title: foundMovie?.name || foundMovie?.title || chosenTitle,
-        originalTitle: foundMovie?.origin_name || chosenOriginal || chosenTitle,
+        slug: foundMovie.slug,
+        title: foundMovie.name || foundMovie.title || "Tác Phẩm Đặc Sắc",
+        originalTitle: foundMovie.origin_name || "",
         poster: toSafePoster(foundMovie),
-        year: foundMovie?.year || 2024,
-        quality: foundMovie?.quality || "FHD",
-        category: foundMovie?.category?.[0]?.name || "Đặc sắc",
-        country: foundMovie?.country?.[0]?.name || "Quốc tế",
-        episodeCurrent: foundMovie?.episode_current || "Trọn bộ",
+        year: foundMovie.year || 2024,
+        quality: foundMovie.quality || "FHD",
+        category: foundMovie.category?.[0]?.name || moodMeta.label,
+        country: foundMovie.country?.[0]?.name || countryMeta.label,
+        episodeCurrent: foundMovie.episode_current || "Trọn bộ",
       },
-      punchline,
-      badges,
-      matchScore: Math.min(99, Math.max(92, matchScore)),
+      punchline: finalPunchline || moodMeta.defaultPunchline,
+      badges: finalBadges.length > 0 ? finalBadges : moodMeta.defaultBadges,
+      matchScore: Math.min(99, Math.max(92, finalMatchScore)),
       provider,
     };
 

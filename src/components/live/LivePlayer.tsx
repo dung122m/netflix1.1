@@ -396,7 +396,11 @@ export function LivePlayer({
               retryCountRef.current += 1;
               if (retryCountRef.current <= 2) {
                 hls.startLoad();
-              } else if (!hasTriedProxy && activeUrl.startsWith("https://")) {
+              } else if (
+                !hasTriedProxy &&
+                activeUrl.startsWith("https://") &&
+                !/fptplay(?:53)?\.net/i.test(activeUrl)
+              ) {
                 hasTriedProxy = true;
                 hls.loadSource(`/api/live-football/proxy?url=${encodeURIComponent(activeUrl)}`);
                 hls.startLoad();

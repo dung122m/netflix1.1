@@ -91,6 +91,13 @@ export function AiMovieRoulette() {
 
   const [isSpinning, setIsSpinning] = useState(false);
   const [result, setResult] = useState<RouletteResult | null>(null);
+  const [posterSrc, setPosterSrc] = useState<string>("/default-poster.svg");
+
+  useEffect(() => {
+    if (result?.movie?.poster) {
+      setPosterSrc(result.movie.poster);
+    }
+  }, [result?.movie?.poster]);
 
   // Danh sách các phim đã quay trong phiên để đảm bảo không bị lặp
   const [seenSlugs, setSeenSlugs] = useState<string[]>([]);
@@ -339,11 +346,12 @@ export function AiMovieRoulette() {
                 {/* POSTER */}
                 <div className="relative w-40 sm:w-44 aspect-[2/3] rounded-2xl overflow-hidden flex-none shadow-xl border border-white/10 group">
                   <Image
-                    src={result.movie.poster}
+                    src={posterSrc}
                     alt={result.movie.title}
                     fill
                     className="object-cover group-hover:scale-105 transition duration-500"
                     sizes="180px"
+                    onError={() => setPosterSrc("/default-poster.svg")}
                   />
                   <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-red-600 text-white text-[10px] font-black shadow">
                     {result.movie.quality || "FHD"}

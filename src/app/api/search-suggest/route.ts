@@ -36,6 +36,7 @@ export async function GET(req: NextRequest) {
       slug?: string;
       name?: string;
       title?: string;
+      origin_name?: string;
       poster_url?: string;
       thumb_url?: string;
       year?: number | string;
@@ -48,9 +49,23 @@ export async function GET(req: NextRequest) {
     const res = await movieApi.getMovies({
       keyword,
       page: 1,
-      limit: 6,
+      limit: 8,
     });
     const rawItems = ((res?.items || []) as SuggestMovieItem[]);
+
+    // Sắp xếp gợi ý nhanh: Ưu tiên tuyệt đối các phim có tên khớp với từ khóa gõ vào
+    const getSuggestScore = (item: SuggestMovieItem, kw: string): number => {
+      const normTitle = normalizeForMatch(item.name || item.title || "");
+      const normOrig = normalizeForMatch(item.origin_name || "");
+      const normSlug = normalizeForMatch(item.slug || "");
+
+      if (normTitle === kw || normOrig === kw || normSlug === kw.replace(/\s+/g, "-")) return 100;
+      if (normTitle.startsWith(kw) || normOrig.startsWith(kw)) return 80;
+      if (normTitle.includes(kw) || normOrig.includes(kw)) return 60;
+      return 20; // Khớp trong mô tả / nội dung
+    };
+
+    rawItems.sort((a, b) => getSuggestScore(b, normKw) - getSuggestScore(a, normKw));
 
     const items = rawItems.slice(0, 5).map((item) => ({
       slug: item.slug || "",

@@ -80,6 +80,8 @@ const MovieGridInner = ({ movies }: MovieGridProps) => {
               hasTrailer={norm.hasTrailer}
               trailer_url={norm.trailer_url}
               isTrailerOnly={norm.isTrailerOnly}
+              matchSnippet={norm.matchSnippet}
+              matchType={norm.matchType}
               priority={index < 4}
             />
           );

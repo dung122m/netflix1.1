@@ -80,6 +80,8 @@ export interface MediaCardProps {
   hasTrailer?: boolean;
   trailer_url?: string;
   isTrailerOnly?: boolean;
+  matchSnippet?: string;
+  matchType?: "title" | "actor" | "content";
 }
 
 const MediaCardInner: React.FC<MediaCardProps> = ({
@@ -106,6 +108,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   hasTrailer: initialHasTrailer = false,
   trailer_url: initialTrailerUrl,
   isTrailerOnly = false,
+  matchSnippet,
 }) => {
   const [inList, setInList] = useState(false);
   const [liked, setLiked] = useState(false);
@@ -155,8 +158,10 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     }
 
     // 3. Nếu tất cả đều lỗi 404, chuyển về ảnh placeholder
-    setCurrentImgSrc("/default-hero.svg");
-    setIsImgLoaded(true);
+    if (currentImgSrc !== "/default-hero.svg") {
+      setCurrentImgSrc("/default-hero.svg");
+      setIsImgLoaded(true);
+    }
   };
 
   // Trailer Video & Modal States
@@ -532,6 +537,12 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
 
         {/* 3. LỚP PHỦ THÔNG TIN CHÂN CARD: HIỂN THỊ NĂM, THỜI LƯỢNG/TẬP, TIẾNG (ĐỒNG NHẤT, GỌN GÀNG) */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent flex flex-col justify-end p-3 sm:p-4">
+          {matchSnippet && (
+            <div className="mb-1.5 flex items-center gap-1 text-[9px] text-amber-300 font-bold bg-amber-500/20 border border-amber-500/30 px-2 py-0.5 rounded-md backdrop-blur-md shadow-sm line-clamp-1">
+              <span className="flex-none">💬 Khớp tóm tắt:</span>
+              <span className="font-normal italic text-amber-200/90 truncate">{matchSnippet}</span>
+            </div>
+          )}
           <h4 className="text-white font-black text-sm sm:text-base line-clamp-1 drop-shadow-md">
             {title}
           </h4>
@@ -766,7 +777,16 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           )}
 
           {/* 5. Tóm tắt cốt truyện */}
-          {synopsis ? (
+          {matchSnippet ? (
+            <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/25 my-1 text-left">
+              <p className="text-[9.5px] font-bold text-amber-300 flex items-center gap-1 mb-0.5">
+                <span>💬 Khớp trong tóm tắt nội dung phim:</span>
+              </p>
+              <p className="text-[10px] text-amber-100/90 italic leading-relaxed line-clamp-2">
+                &ldquo;{matchSnippet}&rdquo;
+              </p>
+            </div>
+          ) : synopsis ? (
             <p className="text-[10px] text-gray-300 line-clamp-2 leading-relaxed">
               {synopsis}
             </p>

@@ -19,7 +19,6 @@ import {
   Radio,
   Bookmark,
   Dices,
-  Mic,
   ArrowLeft,
 } from "lucide-react";
 import Link from "next/link";
@@ -100,12 +99,6 @@ const NavbarInner: React.FC = () => {
 
   // Lịch sử tìm kiếm gần đây
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
-
-  const toggleVoiceSearch = () => {
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(new CustomEvent("open-ai-voice-command"));
-    }
-  };
 
   // Debounced search fetcher (300ms)
   const [debouncedFetchSuggestions, cancelDebouncedFetch] = useDebounce(
@@ -537,15 +530,6 @@ const NavbarInner: React.FC = () => {
               className="w-full bg-transparent text-white text-xs sm:text-sm outline-none placeholder:text-gray-400 min-w-0"
             />
 
-            <button
-              type="button"
-              onClick={toggleVoiceSearch}
-              title="Tìm kiếm bằng giọng nói"
-              className="p-1 rounded-full text-gray-400 hover:text-white transition flex items-center justify-center cursor-pointer ml-1 flex-shrink-0"
-            >
-              <Mic size={15} className="text-netflix-red" />
-            </button>
-
             {hasSearchText && (
               <button
                 type="button"
@@ -752,17 +736,6 @@ const NavbarInner: React.FC = () => {
             <span>Nana AI</span>
           </button>
 
-          {/* NÚT ĐIỀU KHIỂN GIỌNG NÓI (DESKTOP) */}
-          <button
-            type="button"
-            onClick={toggleVoiceSearch}
-            title="Điều khiển & Tìm kiếm bằng giọng nói tiếng Việt"
-            className="hidden xl:inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-bold bg-rose-600/15 hover:bg-rose-600/25 text-rose-300 hover:text-white border border-rose-500/30 transition cursor-pointer shadow-sm active:scale-95 flex-shrink-0"
-          >
-            <Mic className="w-3.5 h-3.5 text-rose-400" />
-            <span>Giọng Nói</span>
-          </button>
-
           {/* NÚT TÌM KIẾM TRÊN MOBILE (BẤM VÀO SẼ MỞ THANH TÌM KIẾM TOÀN MÀN HÌNH CHUYÊN NGHIỆP) */}
           <button
             type="button"
@@ -812,17 +785,6 @@ const NavbarInner: React.FC = () => {
                     : "w-0 opacity-0 pointer-events-none"
                 }`}
               />
-
-              {isSearchOpen && (
-                <button
-                  type="button"
-                  onClick={toggleVoiceSearch}
-                  title="Tìm kiếm & Điều khiển bằng giọng nói tiếng Việt"
-                  className="p-1 rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition flex items-center justify-center cursor-pointer ml-1 flex-shrink-0"
-                >
-                  <Mic size={14} className="text-netflix-red" />
-                </button>
-              )}
 
               {isSearchOpen && hasSearchText && (
                 <X
@@ -1182,22 +1144,6 @@ const NavbarInner: React.FC = () => {
                   <span>Lịch sử xem phim</span>
                 </div>
               </Link>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setIsMobileMenuOpen(false);
-                  toggleVoiceSearch();
-                }}
-                className="text-sm font-medium py-2 px-3 text-gray-300 hover:text-white flex items-center justify-between rounded-xl hover:bg-white/5 transition text-left cursor-pointer"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-7 h-7 rounded-lg bg-zinc-900 border border-white/5 flex items-center justify-center text-rose-400">
-                    <Mic size={15} />
-                  </div>
-                  <span>Điều khiển bằng giọng nói</span>
-                </div>
-              </button>
 
               <button
                 type="button"

@@ -114,7 +114,7 @@ export default function RootLayout({
         {/* Toast notification system — global */}
         <ToastContainer />
 
-        {/* AI Modals: Concierge, Roulette, Voice, Actor Bio — lazy-loaded client-side */}
+        {/* AI Modals: Concierge, Roulette, Actor Bio — lazy-loaded client-side */}
         <ClientModals />
       </body>
     </html>

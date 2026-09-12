@@ -952,6 +952,52 @@ export function getVerified247Channels(): FootballMatch[] {
   ];
 }
 
+export function getFptEventChannels(): FootballMatch[] {
+  const now = Date.now();
+  const events: FootballMatch[] = [];
+  for (let i = 1; i <= 10; i++) {
+    const num = i < 10 ? `0${i}` : `${i}`;
+    const primaryUrl = `https://vips-livecdn.fptplay.net/live/media/event-${num}/hls_avc_v6/index.m3u8`;
+    const backupUrl = `https://live.fptplay53.net/live/media/event-${num}/hls_avc_v6/index.m3u8`;
+    const id = `skinfptplayevent${i}`;
+    events.push({
+      id,
+      time: "Trực tiếp",
+      timestamp: now,
+      title: `Sự Kiện FPT Play - Kênh ${num}`,
+      team1: `Sự Kiện FPT Play #${num}`,
+      team2: "",
+      blv: "FPT Play",
+      logo: FPT_EVENT_POSTER,
+      group: "Sự Kiện FPT Play",
+      groups: ["Sự Kiện FPT Play"],
+      tournament: "Sự Kiện FPT Play",
+      isEvent: true,
+      timeline: "live",
+      quality: "FHD 1080p",
+      servers: [
+        {
+          name: `Sự Kiện FPT Play #${num} [HLS]`,
+          url: primaryUrl,
+          format: "hls",
+          isHls: true,
+          quality: "FHD",
+          sourceName: "Sự Kiện FPT Play",
+        },
+        {
+          name: `Sự Kiện FPT Play #${num} [HLS] (Dự phòng)`,
+          url: backupUrl,
+          format: "hls",
+          isHls: true,
+          quality: "FHD",
+          sourceName: "Sự Kiện FPT Play",
+        },
+      ],
+    });
+  }
+  return events;
+}
+
 // Cache kết quả kiểm tra luồng stream (TTL 5 phút cho luồng sống, 60s cho luồng chết)
 const urlHealthCache = new Map<string, { isLive: boolean; expireAt: number }>();
 
@@ -960,6 +1006,15 @@ export async function isStreamPlayable(
   timeoutMs: number = 1500,
 ): Promise<boolean> {
   if (!url || isBlockedStreamUrl(url)) return false;
+
+  // Trên Vercel hoặc server nước ngoài, CDN FPT/TV360 chặn IP datacenter qua Geo-IP.
+  // Trình duyệt client tại Việt Nam sẽ phát trực tiếp bình thường.
+  if (
+    process.env.VERCEL === "1" &&
+    (/fptplay(?:53)?\.net/i.test(url) || /tv360\.vn/i.test(url))
+  ) {
+    return true;
+  }
 
   const now = Date.now();
   const cached = urlHealthCache.get(url);
@@ -1043,9 +1098,16 @@ export const liveFootballService = {
       const matchMap = new Map<string, FootballMatch>();
       const channelsSet = new Set<string>();
 
-      // 1. NẠP CÁC KÊNH THỂ THAO 24/7 CHÍNH THỨC
+      // 1. NẠP CÁC KÊNH THỂ THAO 24/7 CHÍNH THỨC & CÁC KÊNH SỰ KIỆN FPT PLAY
       const verifiedChannels = getVerified247Channels();
       for (const m of verifiedChannels) {
+        matchMap.set(m.id, m);
+        channelsSet.add(m.group);
+        m.groups.forEach((g) => channelsSet.add(g));
+      }
+
+      const fptEvents = getFptEventChannels();
+      for (const m of fptEvents) {
         matchMap.set(m.id, m);
         channelsSet.add(m.group);
         m.groups.forEach((g) => channelsSet.add(g));
@@ -1192,6 +1254,21 @@ export const liveFootballService = {
             effectiveUrl = effectiveUrl.replace(/\.flv(\?.*)?$/i, ".m3u8$1");
           }
 
+          // Kiểm tra luồng thuộc CDN nội địa / có rào cản Geo-blocking
+          const isDomesticOrGeoFenced =
+            /fptplay(?:53)?\.net/i.test(effectiveUrl) ||
+            /tv360\.vn/i.test(effectiveUrl) ||
+            /fpt\s*play|sự\s*kiện\s*fpt/i.test(c.group) ||
+            /fpt\s*play|sự\s*kiện\s*fpt/i.test(c.rawTitle);
+
+          // QUAN TRỌNG: Trên Vercel hoặc server ngoài Việt Nam, FPT/TV360 chặn IP datacenter gây ra lỗi 403 hoặc timeout.
+          // Hơn nữa các kênh sự kiện ở trạng thái chờ trước giờ bóng lăn sẽ trả về 404 cho tới khi phát sóng.
+          // Trình duyệt của người dùng tại Việt Nam sẽ phát trực tiếp HTTPS HLS bình thường.
+          // Không drop các luồng nội địa này khi server ping thất bại.
+          if (isDomesticOrGeoFenced) {
+            return { ...c, effectiveUrl };
+          }
+
           const isAlive = await isStreamPlayable(effectiveUrl, 1800);
           if (!isAlive) throw new Error("Stream offline");
           return { ...c, effectiveUrl };
@@ -1212,7 +1289,9 @@ export const liveFootballService = {
         if (
           upperGroup.includes("FPT PLAY") ||
           upperGroup.includes("SỰ KIỆN FPT") ||
-          upperTitle.includes("SỰ KIỆN FPT")
+          upperTitle.includes("SỰ KIỆN FPT") ||
+          effectiveUrl.includes("fptplay.net") ||
+          effectiveUrl.includes("fptplay53.net")
         ) {
           cleanGroup = "Sự Kiện FPT Play";
         } else if (upperGroup.includes("TV360") || upperTitle.includes("TV360+")) {
@@ -1361,12 +1440,22 @@ export const liveFootballService = {
         const normT2 = normalizeClubKey(team2);
         const sortedClubKey = [normT1, normT2].sort().join("_");
 
-        const matchKey =
+        let matchKey =
           !isEvent && normT1 && normT2 && time !== "Trực tiếp"
             ? `${time}_${sortedClubKey}`
             : `${cleanGroup}_${displayTitle}`
                 .toLowerCase()
                 .replace(/[^a-z0-9]/g, "");
+
+        if (cleanGroup === "Sự Kiện FPT Play") {
+          const evMatch =
+            displayTitle.match(/event\s*(\d+)/i) ||
+            effectiveUrl.match(/event-(\d+)/i);
+          if (evMatch) {
+            const evNum = parseInt(evMatch[1], 10);
+            matchKey = `skinfptplayevent${evNum}`;
+          }
+        }
 
         let serverLabel = cleanGroup;
         if (blv) serverLabel += ` (${blv})`;
@@ -1430,6 +1519,26 @@ export const liveFootballService = {
           if (isFhd) existing.quality = "FHD 1080p";
           if (blv && !existing.blv?.includes(blv)) {
             existing.blv = existing.blv ? `${existing.blv}, ${blv}` : blv;
+          }
+          // Bổ sung poster / tên trận thực tế từ M3U nếu có
+          if (
+            effectiveLogo &&
+            effectiveLogo !== FPT_EVENT_POSTER &&
+            (!existing.logo || existing.logo === FPT_EVENT_POSTER)
+          ) {
+            existing.logo = effectiveLogo;
+          }
+          if (
+            displayTitle &&
+            !displayTitle.toLowerCase().startsWith("sự kiện fpt play - kênh") &&
+            displayTitle.toLowerCase() !== "event"
+          ) {
+            existing.title = displayTitle;
+            if (!isEvent && team1 && team2) {
+              existing.team1 = team1;
+              existing.team2 = team2;
+              existing.isEvent = false;
+            }
           }
           const alreadyExists = existing.servers.some((s) => s.url === effectiveUrl);
           if (!alreadyExists) {

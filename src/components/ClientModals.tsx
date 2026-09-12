@@ -12,10 +12,6 @@ const AiMovieRoulette = dynamic(
   () => import("@/components/AiMovieRoulette").then((m) => m.AiMovieRoulette),
   { ssr: false }
 );
-const AiVoiceCommandModal = dynamic(
-  () => import("@/components/AiVoiceCommandModal").then((m) => m.AiVoiceCommandModal),
-  { ssr: false }
-);
 const ActorBioModal = dynamic(
   () => import("@/components/ActorBioModal").then((m) => m.ActorBioModal),
   { ssr: false }
@@ -26,7 +22,6 @@ export function ClientModals() {
     <>
       <AiMovieConcierge />
       <AiMovieRoulette />
-      <AiVoiceCommandModal />
       <ActorBioModal />
     </>
   );

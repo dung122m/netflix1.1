@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 import { movieApi } from "@/services/movieApi";
+import { sanitizeImageUrl } from "@/lib/movieMedia";
 
 export const maxDuration = 15;
 
@@ -20,6 +21,7 @@ interface SuggestionCard {
 interface UserIntent {
   category?: string;
   country?: string;
+  countryName?: string;
   actor?: string;
   type?: string;
   moodLabel: string;
@@ -29,13 +31,12 @@ interface UserIntent {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function toSafePoster(item: any): string {
-  if (typeof item?.poster_url === "string" && item.poster_url.startsWith("http")) {
-    return item.poster_url;
-  }
-  if (typeof item?.thumb_url === "string" && item.thumb_url.startsWith("http")) {
-    return item.thumb_url;
-  }
-  return "/default-hero.jpg";
+  if (!item) return "/default-poster.svg";
+  const poster = sanitizeImageUrl(item.poster_url || item.posterUrl || "");
+  if (poster) return poster;
+  const thumb = sanitizeImageUrl(item.thumb_url || item.thumbUrl || "");
+  if (thumb) return thumb;
+  return "/default-poster.svg";
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -52,6 +53,100 @@ function toSafeActors(item: any): string[] {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const TITLE_LOOKUP_CACHE = new Map<string, { item: any; expireAt: number }>();
 
+// Helper chuẩn hóa chuỗi tiếng Việt để so sánh độ tương đồng chính xác
+function cleanNormalizedString(s: string): string {
+  return (s || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// Thuật toán chấm điểm để tìm bộ phim khớp nhất trong danh sách kết quả tìm kiếm
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function findBestMatchMovie(items: any[], query: string, originalQuery?: string): any {
+  if (!items || items.length === 0) return null;
+  const cleanQ = cleanNormalizedString(query || "");
+  const cleanOq = cleanNormalizedString(originalQuery || "");
+
+  let bestItem = null;
+  let bestScore = -999;
+
+  for (const it of items) {
+    const name = cleanNormalizedString(it.name || it.title || "");
+    const orig = cleanNormalizedString(it.origin_name || "");
+    const slug = cleanNormalizedString(it.slug || "");
+
+    let score = 0;
+
+    // 1. Khớp chính xác tên tiếng Việt hoặc tên gốc -> Ưu tiên hàng đầu (+100)
+    if (name === cleanQ || (cleanOq && (name === cleanOq || orig === cleanOq))) {
+      score += 100;
+    } else if (slug === cleanQ.replace(/\s+/g, "-") || (cleanOq && slug === cleanOq.replace(/\s+/g, "-"))) {
+      score += 90;
+    } else if (name.startsWith(cleanQ) || (cleanOq && (name.startsWith(cleanOq) || orig.startsWith(cleanOq)))) {
+      score += 70;
+    } else if (name.includes(cleanQ) || (cleanOq && (name.includes(cleanOq) || orig.includes(cleanOq)))) {
+      score += 50;
+    } else {
+      // Khớp theo tập hợp từ (ví dụ: "Vây Hãm: Kẻ Trừng Phạt" khớp với "Vây Hãm 4: Kẻ Trừng Phạt")
+      const qWords = cleanQ.split(" ").filter((w) => w.length > 1);
+      if (qWords.length > 1) {
+        const matchWords = qWords.filter((w) => name.includes(w) || (orig && orig.includes(w)));
+        const ratio = matchWords.length / qWords.length;
+        if (ratio >= 0.6) score += Math.round(ratio * 45);
+      }
+    }
+
+    // 2. Phạt nếu độ dài chênh lệch quá nhiều (tránh nhầm phim gốc với ngoại truyện/phim hoạt hình ăn theo)
+    const lenDiff = Math.abs(name.length - cleanQ.length);
+    score -= Math.min(20, lenDiff * 1.2);
+
+    // 3. Ưu tiên phim có ảnh bìa
+    if (it.thumb_url || it.poster_url) score += 10;
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestItem = it;
+    }
+  }
+
+  return bestScore > 10 ? bestItem : (items[0] || null);
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function queryPhimApiDirect(keyword: string, originalKeyword?: string): Promise<any> {
+  if (!keyword?.trim()) return null;
+  try {
+    const res = await fetch(
+      `https://phimapi.com/v1/api/tim-kiem?keyword=${encodeURIComponent(keyword.trim())}&limit=6`,
+      { signal: AbortSignal.timeout(2000), next: { revalidate: 3600 } }
+    );
+    if (!res.ok) return null;
+    const json = await res.json();
+    const items = json?.data?.items || [];
+    if (items.length > 0) {
+      const best = findBestMatchMovie(items, keyword, originalKeyword);
+      if (!best) return null;
+
+      const imageDomain = (json.data?.APP_DOMAIN_CDN_IMAGE || "https://phimimg.com/").replace(/\/+$/, "");
+      const formatImg = (p?: string) => {
+        if (!p) return "";
+        if (p.startsWith("http://") || p.startsWith("https://")) return p;
+        return `${imageDomain}/${p.replace(/^\/+/, "")}`;
+      };
+      return {
+        ...best,
+        thumb_url: formatImg(best.thumb_url) || formatImg(best.poster_url),
+        poster_url: formatImg(best.poster_url) || formatImg(best.thumb_url),
+      };
+    }
+  } catch {}
+  return null;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function searchSingleMovieFast(title: string, originalTitle: string): Promise<any> {
   const cleanTitle = (title || "").replace(/\([^)]*\)/g, "").replace(/\[[^\]]*\]/g, "").trim();
@@ -62,33 +157,49 @@ async function searchSingleMovieFast(title: string, originalTitle: string): Prom
   if (cached && Date.now() < cached.expireAt) return cached.item;
 
   let foundItem = null;
-  // 1. Thử tìm bằng tên tiếng Việt
+
+  // 1. Tìm trực tiếp trên PhimAPI qua tên tiếng Việt với thuật toán so khớp thông minh (cực nhanh ~200ms)
   if (cleanTitle) {
+    foundItem = await queryPhimApiDirect(cleanTitle, cleanOriginal);
+  }
+
+  // 2. Tìm trực tiếp trên PhimAPI qua tên gốc nếu chưa thấy
+  if (!foundItem && cleanOriginal && cleanOriginal !== cleanTitle) {
+    foundItem = await queryPhimApiDirect(cleanOriginal, cleanTitle);
+  }
+
+  // 3. Fallback qua movieApi.getMovies (VSMOV + PhimAPI) với timeout an toàn 2.5s
+  if (!foundItem && cleanTitle) {
     try {
       const res1 = await Promise.race([
-        movieApi.getMovies({ keyword: cleanTitle, page: 1, limit: 2 }),
-        new Promise<null>((resolve) => setTimeout(() => resolve(null), 800)),
+        movieApi.getMovies({ keyword: cleanTitle, page: 1, limit: 5 }),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 2500)),
       ]);
       if (res1?.items && res1.items.length > 0) {
-        foundItem = res1.items[0];
+        foundItem = findBestMatchMovie(res1.items, cleanTitle, cleanOriginal);
       }
     } catch {}
   }
 
-  // 2. Thử tìm bằng tên gốc nếu chưa thấy
   if (!foundItem && cleanOriginal && cleanOriginal !== cleanTitle) {
     try {
       const res2 = await Promise.race([
-        movieApi.getMovies({ keyword: cleanOriginal, page: 1, limit: 2 }),
-        new Promise<null>((resolve) => setTimeout(() => resolve(null), 600)),
+        movieApi.getMovies({ keyword: cleanOriginal, page: 1, limit: 5 }),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 2000)),
       ]);
       if (res2?.items && res2.items.length > 0) {
-        foundItem = res2.items[0];
+        foundItem = findBestMatchMovie(res2.items, cleanOriginal, cleanTitle);
       }
     } catch {}
   }
 
-  TITLE_LOOKUP_CACHE.set(key, { item: foundItem, expireAt: Date.now() + 1000 * 60 * 60 * 24 });
+  // Chỉ cache 24h nếu tìm thấy phim. Nếu null thì chỉ cache 30s để tránh vĩnh viễn mất ảnh do timeout mạng!
+  if (foundItem) {
+    TITLE_LOOKUP_CACHE.set(key, { item: foundItem, expireAt: Date.now() + 1000 * 60 * 60 * 24 });
+  } else {
+    TITLE_LOOKUP_CACHE.set(key, { item: null, expireAt: Date.now() + 1000 * 30 });
+  }
+
   return foundItem;
 }
 
@@ -593,6 +704,7 @@ function parseUserIntent(prompt: string): UserIntent {
   return {
     category,
     country,
+    countryName,
     actor,
     type,
     moodLabel,
@@ -766,21 +878,39 @@ export async function POST(req: NextRequest) {
     // 3. NẾU CÓ GEMINI API KEY -> GỌI GEMINI VỚI CÁC MODEL CHUẨN CỦA GOOGLE
     if (candidateKeys.length > 0) {
       try {
-        const systemPrompt = `Bạn là Trợ lý Nana (Nana Concierge) - trợ lý gợi ý phim thông minh và am hiểu điện ảnh.
-Người dùng: "${prompt}".
-Gợi ý 6-8 bộ phim xuất sắc, đúng nhất với yêu cầu.
+        const intentHints: string[] = [];
+        if (intent.actor) intentHints.push(`- BẮT BUỘC: Diễn viên chính phải là "${intent.actor}".`);
+        if (intent.country) intentHints.push(`- BẮT BUỘC: Phim phải thuộc quốc gia "${intent.countryName || intent.country}".`);
+        if (intent.category) intentHints.push(`- Thể loại trọng tâm: "${intent.category}".`);
+        const intentInstruction = intentHints.length > 0 ? `\nLƯU Ý ĐẶC BIỆT TỪ YÊU CẦU:\n${intentHints.join("\n")}\n` : "";
+
+        const systemPrompt = `Bạn là Trợ lý Nana (Nana Concierge) - chuyên gia gợi ý phim am hiểu điện ảnh của Nanaflix.
+Người dùng: "${prompt}".${intentInstruction}
+HÃY GỢI Ý 6 ĐẾN 8 BỘ PHIM XUẤT SẮC, NỔI TIẾNG, CÓ THẬT VÀ PHỔ BIẾN TRÊN CÁC TRANG PHIM VIỆT NAM (PhimAPI, Ophim, Netflix).
+
+QUY TẮC BẮT BUỘC ĐỂ ĐẠT ĐỘ CHÍNH XÁC CAO NHẤT:
+1. ĐÚNG 100% YÊU CẦU:
+   - Nếu hỏi diễn viên: 100% phim phải do diễn viên đó đóng chính.
+   - Nếu hỏi quốc gia: 100% phim phải đúng quốc gia đó.
+   - Nếu hỏi thể loại/tâm trạng: chọn đúng tuyệt đối theo cảm xúc người dùng cần.
+2. TÊN PHIM CHUẨN ĐỂ TÌM KIẾM:
+   - "title": Tên tiếng Việt chính xác và phổ biến nhất (ví dụ: "Ký Sinh Trùng", "Hạ Cánh Nơi Anh", "Người Sắt", "Thần Thoại"). KHÔNG ghi năm hay ngoặc đơn phụ đề vào title.
+   - "original_title": Tên gốc chuẩn quốc tế (tiếng Anh/Hàn/Trung, ví dụ: "Parasite", "Crash Landing on You", "Iron Man", "The Myth").
+3. LÝ DO GỢI Ý:
+   - "reason": 1 câu ngắn gọn, súc tích (dưới 18 từ) chỉ ra điểm đặc sắc nhất.
+
 Trả về DUY NHẤT chuỗi JSON hợp lệ:
 {
-  "analysis": "1 câu ngắn gọn ấm áp xưng Nana chia sẻ lý do chọn nhóm phim này",
-  "mood": "Tên chủ đề hoặc cảm xúc ngắn",
-  "actor": "Tên diễn viên nếu người dùng hỏi đích danh, hoặc để trống",
+  "analysis": "1-2 câu ấm áp xưng Nana chia sẻ lý do chọn nhóm phim này cho bạn",
+  "mood": "Tên chủ đề hoặc cảm xúc ngắn (ví dụ: Cười Xả Stress, Tình Yêu Lãng Mạn, Hồi Hộp Thót Tim)",
+  "actor": "${intent.actor || ""}",
   "genre_slug": "hanh-dong, tinh-cam, hai-huoc, kinh-di, tam-ly, vien-tuong, hoat-hinh, vo-thuat, co-trang",
   "country_slug": "trung-quoc, han-quoc, au-my, nhat-ban, thai-lan, viet-nam, hong-kong, an-do",
   "movies": [
     {
-      "title": "Tên tiếng Việt phổ biến",
-      "original_title": "Tên gốc hoặc tiếng Anh",
-      "reason": "1 câu ngắn dưới 15 từ"
+      "title": "Tên tiếng Việt",
+      "original_title": "Tên gốc",
+      "reason": "Điểm cuốn hút nhất"
     }
   ]
 }`;
@@ -805,7 +935,7 @@ Trả về DUY NHẤT chuỗi JSON hợp lệ:
                     contents: systemPrompt,
                     config: {
                       responseMimeType: "application/json",
-                      temperature: 0.6,
+                      temperature: 0.35,
                       maxOutputTokens: 500,
                       ...(is35
                         ? { thinkingConfig: { thinkingBudget: 0 } }
@@ -877,22 +1007,56 @@ Trả về DUY NHẤT chuỗi JSON hợp lệ:
           });
 
           const searchResults = await Promise.all(searchTasks);
+
+          // 1. Đưa các phim tìm thấy thật sự trong cơ sở dữ liệu lên trước
           for (const r of searchResults) {
-            const effectiveSlug = r.item?.slug || r.fallbackTitle.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-            if (!seenSlugs.has(effectiveSlug)) {
-              seenSlugs.add(effectiveSlug);
+            if (r.item && r.item.slug && !seenSlugs.has(r.item.slug)) {
+              seenSlugs.add(r.item.slug);
               cards.push({
-                slug: effectiveSlug,
-                title: r.item?.name || r.item?.title || r.fallbackTitle,
-                poster: r.item ? toSafePoster(r.item) : "/default-hero.jpg",
-                year: r.item?.year || 2024,
-                quality: r.item?.quality || "FHD",
-                category: r.item?.category?.[0]?.name || genreSlug || "Đặc sắc",
-                country: r.item ? toSafeCountry(r.item) : (countrySlug || "Quốc tế"),
-                actors: r.item ? toSafeActors(r.item) : [],
+                slug: r.item.slug,
+                title: r.item.name || r.item.title || r.fallbackTitle,
+                poster: toSafePoster(r.item),
+                year: r.item.year || 2024,
+                quality: r.item.quality || "FHD",
+                category: r.item.category?.[0]?.name || genreSlug || "Đặc sắc",
+                country: toSafeCountry(r.item) || countrySlug || "Quốc tế",
+                actors: toSafeActors(r.item),
                 reason: r.reason || "Được Nana AI chọn lọc đặc biệt cho bạn",
               });
             }
+          }
+
+          // 2. Nếu sau khi tìm kiếm còn ít hơn 6 phim (do một số phim không có trên kho), tự động bổ sung phim hay nhất cùng thể loại/quốc gia/diễn viên
+          if (cards.length < 6) {
+            try {
+              const supplementRes = await movieApi.getMovies({
+                keyword: intent.actor || undefined,
+                category: genreSlug || intent.category,
+                country: countrySlug || intent.country,
+                limit: 10,
+              });
+              if (supplementRes?.items?.length) {
+                for (const sItem of supplementRes.items) {
+                  if (cards.length >= 8) break;
+                  if (sItem.slug && !seenSlugs.has(sItem.slug)) {
+                    seenSlugs.add(sItem.slug);
+                    cards.push({
+                      slug: sItem.slug,
+                      title: sItem.name || sItem.title || "Phim Hay",
+                      poster: toSafePoster(sItem),
+                      year: sItem.year || 2024,
+                      quality: sItem.quality || "FHD",
+                      category: sItem.category?.[0]?.name || genreSlug || "Đặc sắc",
+                      country: toSafeCountry(sItem) || countrySlug || "Quốc tế",
+                      actors: toSafeActors(sItem),
+                      reason: intent.actor
+                        ? `Tác phẩm tiêu biểu có sự tham gia của ${intent.actor} được yêu thích hàng đầu`
+                        : "Tác phẩm tiêu biểu cùng thể loại được cộng đồng đánh giá rất cao",
+                    });
+                  }
+                }
+              }
+            } catch {}
           }
 
           if (cards.length > 0) {

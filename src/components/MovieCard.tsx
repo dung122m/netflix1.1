@@ -151,8 +151,10 @@ function MovieCardInner({ m, priority = false }: Props) {
       return;
     }
 
-    setCurrentImgSrc("/default-poster.svg");
-    setIsImgLoaded(true);
+    if (currentImgSrc !== "/default-poster.svg") {
+      setCurrentImgSrc("/default-poster.svg");
+      setIsImgLoaded(true);
+    }
   };
 
   return (

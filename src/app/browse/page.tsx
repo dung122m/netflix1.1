@@ -10,6 +10,7 @@ import { SortSelector } from "@/components/SortSelector";
 import { Film, ExternalLink, Sparkles } from "lucide-react";
 import { movieApi } from "@/services/movieApi";
 import { resolveActorMovies, fetchMoviesByTitles } from "@/services/aiActorService";
+import { BrowseAiSearchBanner } from "@/components/BrowseAiSearchBanner";
 
 const HeroFeatured = dynamic(() =>
   import("@/components/sites/netflix-3f78535a/browse-1234abcd/HeroFeatured").then(
@@ -81,6 +82,36 @@ const getPagination = (current: number, total: number) => {
 
   return [1, "...", current - 1, current, current + 1, "...", total];
 };
+
+function cleanNormalizedForMatch(str: string): string {
+  return (str || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function extractDescriptionSnippet(content: string, kw: string): string | undefined {
+  if (!content || !kw) return undefined;
+  const plainText = content.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  const cleanPlain = cleanNormalizedForMatch(plainText);
+  const cleanKw = cleanNormalizedForMatch(kw);
+
+  if (!cleanKw || cleanKw.length < 2) return undefined;
+
+  const idx = cleanPlain.indexOf(cleanKw);
+  if (idx === -1) return undefined;
+
+  const start = Math.max(0, idx - 30);
+  const end = Math.min(plainText.length, idx + kw.length + 45);
+
+  let snippet = plainText.slice(start, end).trim();
+  if (start > 0) snippet = "..." + snippet;
+  if (end < plainText.length) snippet = snippet + "...";
+  return snippet;
+}
 
 // ==========================================
 // BROWSE PAGE
@@ -163,6 +194,70 @@ export default async function BrowsePage({
       movies = combined;
       totalItems = Math.max(movies.length, response?.pagination?.totalItems || 0);
     }
+  }
+
+  let hasContentMatches = false;
+
+  // Nếu có keyword tìm kiếm: Đánh giá độ phù hợp (Relevance Scoring) & Trích xuất đoạn khớp trong mô tả
+  if (keyword && movies.length > 0) {
+    const normKw = cleanNormalizedForMatch(keyword);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const scoredMovies = movies.map((m: any) => {
+      const title = cleanNormalizedForMatch(m.name || m.title || "");
+      const orig = cleanNormalizedForMatch(m.origin_name || "");
+      const slug = cleanNormalizedForMatch(m.slug || "");
+      const actorStr = cleanNormalizedForMatch(
+        Array.isArray(m.actor) ? m.actor.join(" ") : typeof m.actor === "string" ? m.actor : ""
+      );
+      const desc = cleanNormalizedForMatch(m.content || m.description || "");
+
+      let score = 0;
+      let matchType: "title" | "actor" | "content" = "title";
+      let matchSnippet: string | undefined = undefined;
+
+      // 1. Khớp chính xác hoặc phần đầu tiêu đề tiếng Việt / tên gốc / slug (Ưu tiên cao nhất)
+      if (title === normKw || orig === normKw || slug === normKw.replace(/\s+/g, "-")) {
+        score = 100;
+        matchType = "title";
+      } else if (title.startsWith(normKw) || orig.startsWith(normKw)) {
+        score = 85;
+        matchType = "title";
+      } else if (title.includes(normKw) || orig.includes(normKw)) {
+        score = 70;
+        matchType = "title";
+      } else if (actorStr && actorStr.includes(normKw)) {
+        score = 55;
+        matchType = "actor";
+      } else if (desc && desc.includes(normKw)) {
+        score = 30;
+        matchType = "content";
+        matchSnippet = extractDescriptionSnippet(m.content || m.description || "", keyword);
+        if (matchSnippet) hasContentMatches = true;
+      } else {
+        const kwWords = normKw.split(" ").filter((w) => w.length > 1);
+        const titleWords = kwWords.filter((w) => title.includes(w) || orig.includes(w));
+        if (titleWords.length > 0) {
+          score = 40 + Math.round((titleWords.length / kwWords.length) * 20);
+          matchType = "title";
+        } else {
+          score = 15;
+          matchSnippet = extractDescriptionSnippet(m.content || m.description || "", keyword);
+          if (matchSnippet) hasContentMatches = true;
+        }
+      }
+
+      return {
+        ...m,
+        relevanceScore: score,
+        matchType,
+        matchSnippet,
+      };
+    });
+
+    // Sắp xếp giảm dần theo độ phù hợp: Phim khớp tiêu đề đứng trước, phim chỉ khớp mô tả đứng sau
+    scoredMovies.sort((a, b) => b.relevanceScore - a.relevanceScore);
+    movies = scoredMovies;
   }
 
   const pages = getPagination(currentPage, totalPages);
@@ -334,6 +429,10 @@ export default async function BrowsePage({
               </div>
             </div>
           </div>
+        )}
+
+        {keyword && (
+          <BrowseAiSearchBanner keyword={keyword} hasContentMatches={hasContentMatches} />
         )}
 
         {movies.length > 0 ? (
