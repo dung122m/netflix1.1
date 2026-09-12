@@ -21,6 +21,7 @@ import {
   ArrowLeft,
   ChevronDown,
   LogOut,
+  Smartphone,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { AuthModal } from "./AuthModal";
@@ -1085,6 +1086,20 @@ const NavbarInner: React.FC = () => {
                     <span>Phim đã lưu</span>
                   </Link>
 
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowUserDropdown(false);
+                      if (typeof window !== "undefined") {
+                        window.dispatchEvent(new CustomEvent("open-pwa-install"));
+                      }
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-emerald-400 hover:text-emerald-300 hover:bg-white/10 transition cursor-pointer text-left"
+                  >
+                    <Smartphone size={14} />
+                    <span>Cài đặt Ứng dụng App</span>
+                  </button>
+
                   <div className="border-t border-white/10 mt-1 pt-1">
                     <button
                       type="button"
@@ -1152,6 +1167,31 @@ const NavbarInner: React.FC = () => {
 
 
 
+
+            {/* CÀI ĐẶT ỨNG DỤNG PWA TRÊN MOBILE */}
+            <button
+              type="button"
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                if (typeof window !== "undefined") {
+                  window.dispatchEvent(new CustomEvent("open-pwa-install"));
+                }
+              }}
+              className="text-sm font-bold py-2.5 px-3 text-white flex items-center justify-between rounded-xl bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-transparent border border-emerald-500/30 hover:bg-emerald-500/20 transition text-left cursor-pointer shadow-sm mb-1"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center shadow-md shadow-emerald-950/60">
+                  <Smartphone size={16} />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-white">Cài Đặt Nanaflix App 📱</div>
+                  <div className="text-[10px] text-zinc-400">Xem toàn màn hình trên điện thoại</div>
+                </div>
+              </div>
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                Tải App
+              </span>
+            </button>
 
             {/* NÚT SUẤT CHIẾU ĐỊNH MỆNH TRÊN MOBILE */}
             <button

@@ -173,6 +173,16 @@ export const Footer: React.FC = () => {
                   <span>Vòng quay &quot;Hôm nay xem gì?&quot;</span>
                 </button>
               </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => window.dispatchEvent(new CustomEvent("open-pwa-install"))}
+                  className="hover:text-white transition flex items-center gap-2 cursor-pointer text-emerald-400 hover:text-emerald-300 font-medium"
+                >
+                  <Smartphone size={13} />
+                  <span>Cài đặt Ứng dụng App (PWA)</span>
+                </button>
+              </li>
               <li className="flex items-center gap-2 text-gray-400">
                 <CheckCircle2 size={13} className="text-emerald-400" />
                 <span>Trailer tự động & Thuyết minh</span>

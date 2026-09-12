@@ -5,6 +5,7 @@ import SmoothScroll from "@/components/SmoothScroll";
 import { BackToTop } from "@/components/BackToTop";
 import { ToastContainer } from "@/components/Toast";
 import { ClientModals } from "@/components/ClientModals";
+import { InstallPwaBanner } from "@/components/InstallPwaBanner";
 import { AuthProvider } from "@/context/AuthContext";
 
 const inter = Inter({
@@ -24,6 +25,10 @@ export const metadata: Metadata = {
   description:
     "Nanaflix - Xem phim trực tuyến chất lượng cao cùng Trợ lý Nana gợi ý phim thông minh, cập nhật liên tục các siêu phẩm điện ảnh mới nhất.",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/favicon.ico",
+    apple: "/apple-touch-icon.png",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
@@ -118,6 +123,9 @@ export default function RootLayout({
 
           {/* AI Modals: Concierge, Roulette, Actor Bio — lazy-loaded client-side */}
           <ClientModals />
+
+          {/* PWA Smart Install Banner & Modal */}
+          <InstallPwaBanner />
         </AuthProvider>
       </body>
     </html>

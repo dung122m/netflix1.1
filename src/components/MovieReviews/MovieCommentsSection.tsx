@@ -1,0 +1,472 @@
+"use client";
+
+import React, { useState, useEffect, useMemo } from "react";
+import Image from "next/image";
+import {
+  MessageSquare,
+  Sparkles,
+  Send,
+  AlertTriangle,
+  LogIn,
+  Loader2,
+  CheckCircle2,
+  Film,
+} from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import { AuthModal } from "@/components/AuthModal";
+import { toast } from "@/components/Toast";
+import { MovieComment } from "@/types/comment";
+import {
+  subscribeMovieComments,
+  addMovieComment,
+  toggleLikeComment,
+  deleteMovieComment,
+  calculateMovieRatingStats,
+} from "@/services/commentService";
+import { StarRating } from "./StarRating";
+import { CommentItem } from "./CommentItem";
+
+interface MovieCommentsSectionProps {
+  movieSlug: string;
+  movieTitle: string;
+  currentEpisodeSlug?: string;
+  currentEpisodeName?: string;
+}
+
+const QUICK_TAGS = [
+  "🔥 Siêu phẩm đáng xem",
+  "❤️ Xúc động rơi nước mắt",
+  "🍿 Giải trí cuối tuần",
+  "🤣 Hài hước đau bụng",
+  "👏 Diễn xuất 10/10",
+  "🤯 Plot twist bất ngờ",
+];
+
+export const MovieCommentsSection: React.FC<MovieCommentsSectionProps> = ({
+  movieSlug,
+  movieTitle,
+  currentEpisodeSlug,
+  currentEpisodeName,
+}) => {
+  const { user } = useAuth();
+  const [comments, setComments] = useState<MovieComment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+
+  // Form states
+  const [rating, setRating] = useState<number>(5);
+  const [content, setContent] = useState("");
+  const [isSpoiler, setIsSpoiler] = useState(false);
+  const [scopeEpisode, setScopeEpisode] = useState<"all" | "episode">("all");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Filter / Sort states
+  const [sortBy, setSortBy] = useState<"newest" | "topLikes" | "onlyFiveStar">("newest");
+
+  // Subscribe to real-time comments from Firestore
+  useEffect(() => {
+    setLoading(true);
+    const unsubscribe = subscribeMovieComments(
+      movieSlug,
+      (data) => {
+        setComments(data);
+        setLoading(false);
+      },
+      (error) => {
+        console.warn("Lỗi tải bình luận:", error);
+        setLoading(false);
+      },
+    );
+
+    return () => unsubscribe();
+  }, [movieSlug]);
+
+  // Calculate rating statistics
+  const stats = useMemo(() => calculateMovieRatingStats(comments), [comments]);
+
+  // Filter & sort comments
+  const sortedComments = useMemo(() => {
+    let result = [...comments];
+
+    if (sortBy === "onlyFiveStar") {
+      result = result.filter((c) => c.rating === 5);
+    } else if (sortBy === "topLikes") {
+      result.sort((a, b) => (b.likes || 0) - (a.likes || 0));
+    } else {
+      // newest
+      result.sort((a, b) => b.createdAt - a.createdAt);
+    }
+
+    return result;
+  }, [comments, sortBy]);
+
+  // Submit new review
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+
+    const trimmed = content.trim();
+    if (!trimmed) {
+      toast.error("Vui lòng nhập nội dung bình luận!");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await addMovieComment({
+        movieSlug,
+        userId: user.uid,
+        userName: user.displayName || "Thành viên Nanaflix",
+        userAvatar: user.photoURL || undefined,
+        rating,
+        content: trimmed,
+        episodeSlug:
+          scopeEpisode === "episode" && currentEpisodeSlug ? currentEpisodeSlug : undefined,
+        episodeName:
+          scopeEpisode === "episode" && currentEpisodeName ? currentEpisodeName : undefined,
+        isSpoiler,
+      });
+
+      setContent("");
+      setIsSpoiler(false);
+      toast.success("Đã đăng bình luận và đánh giá thành công!");
+    } catch (err: unknown) {
+      const errorMsg =
+        err instanceof Error ? err.message : "Không thể gửi bình luận. Vui lòng thử lại!";
+      console.error("Lỗi khi đăng bình luận:", err);
+      toast.error(errorMsg);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Toggle Like
+  const handleToggleLike = async (commentId: string, hasLiked: boolean) => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+    try {
+      await toggleLikeComment(commentId, user.uid, hasLiked);
+    } catch (err) {
+      console.warn("Lỗi khi like bình luận:", err);
+    }
+  };
+
+  // Delete Comment
+  const handleDeleteComment = async (commentId: string) => {
+    if (!confirm("Bạn có chắc chắn muốn xóa bình luận này không?")) return;
+    try {
+      await deleteMovieComment(commentId);
+      toast.info("Đã xóa bình luận.");
+    } catch (err) {
+      console.error("Lỗi khi xóa bình luận:", err);
+      toast.error("Không thể xóa bình luận!");
+    }
+  };
+
+  return (
+    <section className="mt-12 bg-zinc-950/80 rounded-3xl border border-white/5 p-5 md:p-8 backdrop-blur-md shadow-2xl">
+      {/* Title & Section Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-white/10">
+        <div>
+          <h3 className="text-xl md:text-2xl font-extrabold text-white flex items-center gap-2.5">
+            <MessageSquare className="w-6 h-6 text-red-500" />
+            <span>Đánh Giá & Bình Luận Cộng Đồng</span>
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-500/20">
+              {comments.length}
+            </span>
+          </h3>
+          <p className="text-xs md:text-sm text-zinc-400 mt-1">
+            Cùng trao đổi, chấm điểm và thảo luận về các tình tiết trong &quot;{movieTitle}&quot;.
+          </p>
+        </div>
+
+        {/* Aggregate Score Card */}
+        {stats.totalReviews > 0 && (
+          <div className="flex items-center gap-4 bg-zinc-900/90 border border-white/10 rounded-2xl px-4 py-2.5 shrink-0">
+            <div className="text-center">
+              <div className="text-2xl font-black text-amber-400 flex items-center justify-center gap-1">
+                <span>{stats.averageRating}</span>
+                <span className="text-sm font-normal text-zinc-400">/5</span>
+              </div>
+              <div className="text-[10px] text-zinc-500">
+                {stats.totalReviews} lượt đánh giá
+              </div>
+            </div>
+            <div className="h-8 w-[1px] bg-white/10" />
+            <div className="flex flex-col gap-0.5">
+              <StarRating value={Math.round(stats.averageRating)} readOnly size="sm" />
+              <span className="text-[11px] text-zinc-400 font-medium">
+                {stats.averageRating >= 4.5
+                  ? "Tuyệt tác được yêu thích"
+                  : stats.averageRating >= 3.5
+                    ? "Đánh giá tích cực"
+                    : "Đánh giá hỗn hợp"}
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Main Review Form */}
+      <div className="mt-6">
+        {user ? (
+          <form
+            onSubmit={handleSubmit}
+            className="bg-zinc-900/50 border border-white/10 rounded-2xl p-4 md:p-6 transition-all focus-within:border-red-500/40"
+          >
+            {/* User Header & Star Selector */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="relative w-8 h-8 rounded-full overflow-hidden bg-gradient-to-tr from-red-600 to-amber-500 flex items-center justify-center font-bold text-white text-xs shrink-0">
+                  {user.photoURL ? (
+                    <Image
+                      src={user.photoURL}
+                      alt={user.displayName || "Avatar"}
+                      fill
+                      sizes="32px"
+                      className="object-cover"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    (user.displayName || "U").charAt(0).toUpperCase()
+                  )}
+                </div>
+                <div>
+                  <span className="text-sm font-semibold text-zinc-200 block leading-tight">
+                    {user.displayName || "Thành viên Nanaflix"}
+                  </span>
+                  <span className="text-[11px] text-zinc-500">
+                    Chọn số sao bạn muốn chấm:
+                  </span>
+                </div>
+              </div>
+
+              {/* Star Rating Interactive */}
+              <div className="bg-black/40 px-3 py-1.5 rounded-xl border border-white/5 inline-flex items-center">
+                <StarRating
+                  value={rating}
+                  onChange={setRating}
+                  size="md"
+                  showLabel
+                />
+              </div>
+            </div>
+
+            {/* Quick Emoji / Tag chips */}
+            <div className="flex items-center gap-1.5 flex-wrap mb-3">
+              <span className="text-[11px] text-zinc-500 mr-1 flex items-center gap-1">
+                <Sparkles className="w-3 h-3 text-amber-400" />
+                Gợi ý nhanh:
+              </span>
+              {QUICK_TAGS.map((tag) => (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() =>
+                    setContent((prev) =>
+                      prev ? `${prev} ${tag}` : tag,
+                    )
+                  }
+                  className="px-2.5 py-1 rounded-full text-xs bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white border border-white/5 hover:border-white/15 transition-colors cursor-pointer"
+                >
+                  {tag}
+                </button>
+              ))}
+            </div>
+
+            {/* Textarea */}
+            <div className="relative">
+              <textarea
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="Viết nhận xét của bạn về bộ phim này... (Cảm nghĩ, diễn xuất, nội dung,...)"
+                rows={3}
+                className="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-red-500/60 focus:ring-1 focus:ring-red-500/30 resize-y transition-all"
+                maxLength={1000}
+              />
+              <div className="text-[11px] text-zinc-600 text-right mt-1">
+                {content.length}/1000 ký tự
+              </div>
+            </div>
+
+            {/* Options Row: Episode scope, Spoil toggle, Submit button */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-3 pt-3 border-t border-white/5">
+              <div className="flex items-center gap-4 flex-wrap">
+                {/* Episode scope toggle */}
+                {currentEpisodeName && (
+                  <div className="flex items-center gap-1 bg-black/40 p-1 rounded-lg border border-white/5 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setScopeEpisode("all")}
+                      className={`px-2.5 py-1 rounded-md font-medium transition-colors ${
+                        scopeEpisode === "all"
+                          ? "bg-zinc-800 text-white shadow-sm"
+                          : "text-zinc-400 hover:text-zinc-200"
+                      }`}
+                    >
+                      Cả bộ phim
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setScopeEpisode("episode")}
+                      className={`px-2.5 py-1 rounded-md font-medium transition-colors flex items-center gap-1 ${
+                        scopeEpisode === "episode"
+                          ? "bg-red-600/30 text-red-400 border border-red-500/30"
+                          : "text-zinc-400 hover:text-zinc-200"
+                      }`}
+                    >
+                      <Film className="w-3 h-3" />
+                      {currentEpisodeName}
+                    </button>
+                  </div>
+                )}
+
+                {/* Spoiler checkbox */}
+                <label className="inline-flex items-center gap-2 cursor-pointer select-none text-xs text-zinc-400 hover:text-zinc-200">
+                  <input
+                    type="checkbox"
+                    checked={isSpoiler}
+                    onChange={(e) => setIsSpoiler(e.target.checked)}
+                    className="rounded border-zinc-700 bg-zinc-900 text-red-600 focus:ring-red-500 w-4 h-4 cursor-pointer"
+                  />
+                  <span className="flex items-center gap-1">
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                    Bình luận có Spoil nội dung
+                  </span>
+                </label>
+              </div>
+
+              {/* Submit button */}
+              <button
+                type="submit"
+                disabled={isSubmitting || !content.trim()}
+                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white shadow-lg shadow-red-900/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95 shrink-0"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Đang gửi...</span>
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4" />
+                    <span>Gửi Đánh Giá</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        ) : (
+          /* Login Banner */
+          <div className="relative overflow-hidden bg-gradient-to-r from-zinc-900/90 via-zinc-900/60 to-red-950/30 border border-white/10 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-4 text-center sm:text-left">
+              <div className="w-12 h-12 rounded-2xl bg-red-600/10 border border-red-500/20 flex items-center justify-center text-red-500 shrink-0">
+                <LogIn className="w-6 h-6" />
+              </div>
+              <div>
+                <h4 className="font-bold text-white text-base">
+                  Đăng nhập để bình luận và chấm điểm phim
+                </h4>
+                <p className="text-xs text-zinc-400 mt-0.5">
+                  Đăng nhập nhanh 1 chạm bằng Google để chia sẻ cảm nghĩ cùng hàng ngàn khán giả khác.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowAuthModal(true)}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm bg-white text-black hover:bg-zinc-200 transition-all active:scale-95 shrink-0 shadow-lg"
+            >
+              <LogIn className="w-4 h-4 text-red-600" />
+              <span>Đăng nhập ngay</span>
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Filter Tabs & Comments List */}
+      <div className="mt-8">
+        <div className="flex items-center justify-between gap-2 pb-3 border-b border-white/10 flex-wrap">
+          <div className="text-sm font-semibold text-zinc-300">
+            Tất cả bình luận ({sortedComments.length})
+          </div>
+
+          <div className="flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-white/5 text-xs">
+            <button
+              type="button"
+              onClick={() => setSortBy("newest")}
+              className={`px-3 py-1 rounded-lg font-medium transition-colors ${
+                sortBy === "newest"
+                  ? "bg-zinc-800 text-white shadow-sm"
+                  : "text-zinc-400 hover:text-zinc-200"
+              }`}
+            >
+              Mới nhất
+            </button>
+            <button
+              type="button"
+              onClick={() => setSortBy("topLikes")}
+              className={`px-3 py-1 rounded-lg font-medium transition-colors ${
+                sortBy === "topLikes"
+                  ? "bg-zinc-800 text-white shadow-sm"
+                  : "text-zinc-400 hover:text-zinc-200"
+              }`}
+            >
+              Nhiều thích nhất 🔥
+            </button>
+            <button
+              type="button"
+              onClick={() => setSortBy("onlyFiveStar")}
+              className={`px-3 py-1 rounded-lg font-medium transition-colors ${
+                sortBy === "onlyFiveStar"
+                  ? "bg-zinc-800 text-white shadow-sm"
+                  : "text-zinc-400 hover:text-zinc-200"
+              }`}
+            >
+              5 sao ⭐
+            </button>
+          </div>
+        </div>
+
+        {/* Comments Feed */}
+        <div className="mt-4 space-y-3">
+          {loading ? (
+            <div className="py-12 flex flex-col items-center justify-center gap-3 text-zinc-500">
+              <Loader2 className="w-6 h-6 animate-spin text-red-500" />
+              <span className="text-xs">Đang tải bình luận cộng đồng...</span>
+            </div>
+          ) : sortedComments.length > 0 ? (
+            sortedComments.map((comment) => (
+              <CommentItem
+                key={comment.id}
+                comment={comment}
+                currentUserId={user?.uid}
+                onLike={handleToggleLike}
+                onDelete={handleDeleteComment}
+              />
+            ))
+          ) : (
+            <div className="py-12 text-center bg-zinc-900/30 rounded-2xl border border-dashed border-white/10 p-6">
+              <MessageSquare className="w-10 h-10 text-zinc-600 mx-auto mb-2" />
+              <div className="font-semibold text-zinc-300 text-sm">
+                Chưa có bình luận nào cho bộ phim này
+              </div>
+              <p className="text-xs text-zinc-500 mt-1 max-w-sm mx-auto">
+                Hãy là người đầu tiên để lại cảm nghĩ và chấm điểm cho &quot;{movieTitle}&quot;!
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Auth Modal Trigger */}
+      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
+    </section>
+  );
+};

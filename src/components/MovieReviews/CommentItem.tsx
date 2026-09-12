@@ -1,0 +1,169 @@
+"use client";
+
+import React, { useState } from "react";
+import Image from "next/image";
+import { Heart, Trash2, AlertTriangle, Eye, EyeOff } from "lucide-react";
+import { MovieComment } from "@/types/comment";
+import { StarRating } from "./StarRating";
+
+interface CommentItemProps {
+  comment: MovieComment;
+  currentUserId?: string | null;
+  onLike: (commentId: string, hasLiked: boolean) => void;
+  onDelete: (commentId: string) => void;
+}
+
+function formatRelativeTime(timestamp: number): string {
+  const diff = Date.now() - timestamp;
+  const seconds = Math.floor(diff / 1000);
+  if (seconds < 60) return "Vừa xong";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} phút trước`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} giờ trước`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days} ngày trước`;
+  const date = new Date(timestamp);
+  return date.toLocaleDateString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
+
+export const CommentItem: React.FC<CommentItemProps> = ({
+  comment,
+  currentUserId,
+  onLike,
+  onDelete,
+}) => {
+  const [showSpoiler, setShowSpoiler] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
+
+  const hasLiked = Boolean(currentUserId && comment.likedBy?.includes(currentUserId));
+  const isAuthor = Boolean(currentUserId && currentUserId === comment.userId);
+
+  return (
+    <div className="group bg-zinc-900/60 hover:bg-zinc-900/90 border border-white/5 hover:border-white/10 rounded-2xl p-4 md:p-5 transition-all duration-200">
+      <div className="flex items-start justify-between gap-3">
+        {/* User Info */}
+        <div className="flex items-center gap-3">
+          <div className="relative w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-red-600 to-amber-600 flex items-center justify-center font-bold text-white text-sm shrink-0 border border-white/10 shadow-sm">
+            {comment.userAvatar && !avatarError ? (
+              <Image
+                src={comment.userAvatar}
+                alt={comment.userName}
+                fill
+                sizes="40px"
+                className="object-cover"
+                referrerPolicy="no-referrer"
+                onError={() => setAvatarError(true)}
+              />
+            ) : (
+              (comment.userName || "U").charAt(0).toUpperCase()
+            )}
+          </div>
+
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-semibold text-zinc-100 text-sm md:text-base">
+                {comment.userName}
+              </span>
+
+              {comment.episodeName && (
+                <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-red-500/10 text-red-400 border border-red-500/20">
+                  {comment.episodeName}
+                </span>
+              )}
+
+              {comment.isSpoiler && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                  <AlertTriangle className="w-3 h-3" />
+                  Spoil
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 mt-0.5">
+              {comment.rating > 0 && (
+                <StarRating value={comment.rating} readOnly size="sm" />
+              )}
+              <span className="text-xs text-zinc-500">
+                {formatRelativeTime(comment.createdAt)}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Actions (Delete if author) */}
+        {isAuthor && (
+          <button
+            type="button"
+            onClick={() => onDelete(comment.id)}
+            className="opacity-0 group-hover:opacity-100 text-zinc-500 hover:text-red-400 transition-all p-1.5 rounded-lg hover:bg-white/5"
+            title="Xóa bình luận của bạn"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+
+      {/* Content */}
+      <div className="mt-3.5 pl-13">
+        {comment.isSpoiler && !showSpoiler ? (
+          <div className="relative rounded-xl overflow-hidden bg-black/40 border border-amber-500/20 p-4">
+            <p className="filter blur-md select-none text-zinc-400 text-sm line-clamp-2">
+              {comment.content}
+            </p>
+            <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+              <button
+                type="button"
+                onClick={() => setShowSpoiler(true)}
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 transition-colors shadow-lg"
+              >
+                <Eye className="w-3.5 h-3.5" />
+                Nội dung có tiết lộ tình tiết phim. Bấm để xem
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="relative">
+            <p className="text-zinc-200 text-sm md:text-[15px] leading-relaxed whitespace-pre-line break-words">
+              {comment.content}
+            </p>
+            {comment.isSpoiler && (
+              <button
+                type="button"
+                onClick={() => setShowSpoiler(false)}
+                className="inline-flex items-center gap-1 text-[11px] text-zinc-500 hover:text-zinc-300 mt-1 transition-colors"
+              >
+                <EyeOff className="w-3 h-3" />
+                Ẩn lại nội dung spoil
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Bottom Actions: Like / Heart */}
+        <div className="flex items-center gap-4 mt-3">
+          <button
+            type="button"
+            onClick={() => onLike(comment.id, hasLiked)}
+            className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full transition-all ${
+              hasLiked
+                ? "bg-red-500/15 text-red-400 border border-red-500/30"
+                : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5 border border-transparent"
+            }`}
+          >
+            <Heart
+              className={`w-3.5 h-3.5 transition-transform ${
+                hasLiked ? "fill-red-500 text-red-500 scale-110" : ""
+              }`}
+            />
+            <span>{comment.likes > 0 ? comment.likes : "Thích"}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
