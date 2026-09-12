@@ -473,17 +473,23 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
   const limit = params.limit || 24;
   const finalItems = allUniqueItems.slice(0, limit);
 
-  // Tính số lượng tổng và số trang chính xác nhất
-  const totalItemsCount =
-    resPhimApi?.totalItems ||
-    resVsmov?.totalItems ||
-    allUniqueItems.length;
+  // Tính tổng số lượng phim thực tế kết hợp từ cả 2 nguồn API (đã trừ tỷ lệ trùng lặp ~55% giữa 2 nguồn)
+  const countApi1 = resPhimApi?.totalItems || 0;
+  const countApi2 = resVsmov?.totalItems || 0;
 
-  const maxTotalPages =
-    resPhimApi?.totalPages ||
-    resVsmov?.totalPages ||
-    Math.ceil(totalItemsCount / limit) ||
-    1;
+  let totalItemsCount = 0;
+  if (countApi1 > 0 && countApi2 > 0) {
+    totalItemsCount =
+      Math.max(countApi1, countApi2) + Math.round(Math.min(countApi1, countApi2) * 0.45);
+  } else {
+    totalItemsCount = countApi1 || countApi2 || allUniqueItems.length;
+  }
+
+  const maxTotalPages = Math.max(
+    resPhimApi?.totalPages || 0,
+    resVsmov?.totalPages || 0,
+    Math.ceil(totalItemsCount / limit) || 1
+  );
 
   const payload = {
     status: true,
