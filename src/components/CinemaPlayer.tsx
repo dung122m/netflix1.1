@@ -191,8 +191,8 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     setUseIframeFallback(false);
   }, [activeEpisodeSlug, m3u8Link, embedSrc]);
 
-  // Xác định xem có phát trực tiếp qua HTML5 Video Native HLS không
-  const isNativeVideo = Boolean(resolvedM3u8 && !useIframeFallback && videoLink);
+  // Xác định xem có phát trực tiếp qua HTML5 Video Native HLS không (Ưu tiên tuyệt đối Native HLS nếu có m3u8)
+  const isNativeVideo = Boolean(resolvedM3u8 && !useIframeFallback);
 
   // Gửi lệnh điều khiển đến iframe player (dùng cho trường hợp fallback iframe)
   const sendPlayerCommand = useCallback((cmd: string, val?: any) => {
@@ -277,6 +277,8 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         enableWorker: true,
         lowLatencyMode: false,
         backBufferLength: 90,
+        maxBufferLength: 30,
+        maxMaxBufferLength: 60,
       });
       hlsRef.current = hls;
       hls.loadSource(resolvedM3u8);
@@ -303,18 +305,24 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         }
       });
 
+      let retryCount = 0;
       hls.on(Hls.Events.ERROR, (_event, data) => {
         if (data.fatal) {
           switch (data.type) {
             case Hls.ErrorTypes.NETWORK_ERROR:
-              hls.startLoad();
+              retryCount += 1;
+              if (retryCount <= 3) {
+                hls.startLoad();
+              } else {
+                hls.recoverMediaError();
+              }
               break;
             case Hls.ErrorTypes.MEDIA_ERROR:
               hls.recoverMediaError();
               break;
             default:
-              console.warn("HLS fatal error -> fallback to iframe embed:", data);
-              setUseIframeFallback(true);
+              console.warn("HLS recoverable error:", data);
+              hls.startLoad();
               break;
           }
         }
@@ -335,8 +343,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       };
       video.addEventListener("loadedmetadata", onLoaded);
       return () => video.removeEventListener("loadedmetadata", onLoaded);
-    } else {
-      setUseIframeFallback(true);
     }
 
     return () => {
