@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import Image from "next/image";
 import {
   MessageSquare,
@@ -20,6 +20,7 @@ import { MovieComment } from "@/types/comment";
 import {
   subscribeMovieComments,
   addMovieComment,
+  updateMovieComment,
   toggleLikeComment,
   deleteMovieComment,
   calculateMovieRatingStats,
@@ -60,6 +61,8 @@ export const MovieCommentsSection: React.FC<MovieCommentsSectionProps> = ({
   const [isSpoiler, setIsSpoiler] = useState(false);
   const [scopeEpisode, setScopeEpisode] = useState<"all" | "episode">("all");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasInitializedForm, setHasInitializedForm] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
 
   // Filter / Sort states
   const [sortBy, setSortBy] = useState<"newest" | "topLikes" | "onlyFiveStar">("newest");
@@ -86,7 +89,42 @@ export const MovieCommentsSection: React.FC<MovieCommentsSectionProps> = ({
     return () => unsubscribe();
   }, [movieSlug]);
 
-  // Calculate rating statistics
+  // Tìm bài đánh giá đã có của chính người dùng hiện tại (nếu có)
+  const myExistingReview = useMemo(() => {
+    if (!user?.uid) return null;
+    return comments.find((c) => c.userId === user.uid) || null;
+  }, [comments, user?.uid]);
+
+  // Tự động điền dữ liệu đánh giá cũ vào form khi tải xong
+  useEffect(() => {
+    if (myExistingReview && !hasInitializedForm) {
+      setRating(myExistingReview.rating || 5);
+      setContent(myExistingReview.content || "");
+      setIsSpoiler(Boolean(myExistingReview.isSpoiler));
+      if (myExistingReview.episodeSlug) {
+        setScopeEpisode("episode");
+      }
+      setHasInitializedForm(true);
+    } else if (!myExistingReview && hasInitializedForm) {
+      setContent("");
+      setRating(5);
+      setIsSpoiler(false);
+      setHasInitializedForm(false);
+    }
+  }, [myExistingReview, hasInitializedForm]);
+
+  // Khi click nút sửa trên bài đánh giá ở danh sách bên dưới
+  const handleEditReview = (item: MovieComment) => {
+    setRating(item.rating || 5);
+    setContent(item.content || "");
+    setIsSpoiler(Boolean(item.isSpoiler));
+    if (item.episodeSlug) {
+      setScopeEpisode("episode");
+    }
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+
+  // Calculate rating statistics (đã khử trùng lặp theo từng user)
   const stats = useMemo(() => calculateMovieRatingStats(comments), [comments]);
 
   // Filter & sort comments
@@ -105,7 +143,7 @@ export const MovieCommentsSection: React.FC<MovieCommentsSectionProps> = ({
     return result;
   }, [comments, sortBy]);
 
-  // Submit new review
+  // Submit or Update review
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) {
@@ -121,27 +159,39 @@ export const MovieCommentsSection: React.FC<MovieCommentsSectionProps> = ({
 
     setIsSubmitting(true);
     try {
-      await addMovieComment({
-        movieSlug,
-        userId: user.uid,
-        userName: user.displayName || "Thành viên Nanaflix",
-        userAvatar: user.photoURL || undefined,
-        rating,
-        content: trimmed,
-        episodeSlug:
-          scopeEpisode === "episode" && currentEpisodeSlug ? currentEpisodeSlug : undefined,
-        episodeName:
-          scopeEpisode === "episode" && currentEpisodeName ? currentEpisodeName : undefined,
-        isSpoiler,
-      });
-
-      setContent("");
-      setIsSpoiler(false);
-      toast.success("Đã đăng bình luận và đánh giá thành công!");
+      if (myExistingReview) {
+        // Cập nhật bài đánh giá hiện có
+        await updateMovieComment(myExistingReview.id, {
+          rating,
+          content: trimmed,
+          episodeSlug:
+            scopeEpisode === "episode" && currentEpisodeSlug ? currentEpisodeSlug : undefined,
+          episodeName:
+            scopeEpisode === "episode" && currentEpisodeName ? currentEpisodeName : undefined,
+          isSpoiler,
+        });
+        toast.success("Đã cập nhật đánh giá của bạn thành công!");
+      } else {
+        // Tạo đánh giá mới (lần đầu)
+        await addMovieComment({
+          movieSlug,
+          userId: user.uid,
+          userName: user.displayName || "Thành viên Nanaflix",
+          userAvatar: user.photoURL || undefined,
+          rating,
+          content: trimmed,
+          episodeSlug:
+            scopeEpisode === "episode" && currentEpisodeSlug ? currentEpisodeSlug : undefined,
+          episodeName:
+            scopeEpisode === "episode" && currentEpisodeName ? currentEpisodeName : undefined,
+          isSpoiler,
+        });
+        toast.success("Đã đăng bình luận và đánh giá thành công!");
+      }
     } catch (err: unknown) {
       const errorMsg =
-        err instanceof Error ? err.message : "Không thể gửi bình luận. Vui lòng thử lại!";
-      console.error("Lỗi khi đăng bình luận:", err);
+        err instanceof Error ? err.message : "Không thể lưu đánh giá. Vui lòng thử lại!";
+      console.error("Lỗi khi lưu đánh giá:", err);
       toast.error(errorMsg);
     } finally {
       setIsSubmitting(false);
@@ -230,9 +280,29 @@ export const MovieCommentsSection: React.FC<MovieCommentsSectionProps> = ({
       <div className="mt-6">
         {user ? (
           <form
+            ref={formRef}
             onSubmit={handleSubmit}
             className="bg-zinc-900/50 border border-white/10 rounded-2xl p-4 md:p-6 transition-all focus-within:border-red-500/40"
           >
+            {/* Existing Review Notice Banner */}
+            {myExistingReview && (
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-2.5 mb-4 text-xs text-amber-300">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span>
+                    Bạn đã đánh giá bộ phim này ({myExistingReview.rating} sao). Bạn có thể chỉnh sửa nhận xét bên dưới và bấm Cập nhật.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteComment(myExistingReview.id)}
+                  className="text-zinc-400 hover:text-red-400 transition underline underline-offset-2 shrink-0 cursor-pointer self-end sm:self-auto"
+                >
+                  Xóa đánh giá
+                </button>
+              </div>
+            )}
+
             {/* User Header & Star Selector */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
               <div className="flex items-center gap-2.5">
@@ -255,7 +325,7 @@ export const MovieCommentsSection: React.FC<MovieCommentsSectionProps> = ({
                     {user.displayName || "Thành viên Nanaflix"}
                   </span>
                   <span className="text-[11px] text-zinc-500">
-                    Chọn số sao bạn muốn chấm:
+                    {myExistingReview ? "Cập nhật số sao bạn muốn chấm:" : "Chọn số sao bạn muốn chấm:"}
                   </span>
                 </div>
               </div>
@@ -359,12 +429,21 @@ export const MovieCommentsSection: React.FC<MovieCommentsSectionProps> = ({
               <button
                 type="submit"
                 disabled={isSubmitting || !content.trim()}
-                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white shadow-lg shadow-red-900/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95 shrink-0"
+                className={`inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-white shadow-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95 shrink-0 ${
+                  myExistingReview
+                    ? "bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 shadow-amber-900/30"
+                    : "bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 shadow-red-900/30"
+                }`}
               >
                 {isSubmitting ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Đang gửi...</span>
+                    <span>{myExistingReview ? "Đang lưu..." : "Đang gửi..."}</span>
+                  </>
+                ) : myExistingReview ? (
+                  <>
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Cập nhật Đánh Giá</span>
                   </>
                 ) : (
                   <>
@@ -468,6 +547,7 @@ export const MovieCommentsSection: React.FC<MovieCommentsSectionProps> = ({
                 currentUserId={user?.uid}
                 onLike={handleToggleLike}
                 onDelete={handleDeleteComment}
+                onEdit={handleEditReview}
               />
             ))
           ) : (

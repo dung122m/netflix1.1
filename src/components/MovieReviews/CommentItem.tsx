@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
-import { Heart, Trash2, AlertTriangle, Eye, EyeOff } from "lucide-react";
+import { Heart, Trash2, AlertTriangle, Eye, EyeOff, Pencil } from "lucide-react";
 import { MovieComment } from "@/types/comment";
 import { StarRating } from "./StarRating";
 
@@ -11,6 +11,7 @@ interface CommentItemProps {
   currentUserId?: string | null;
   onLike: (commentId: string, hasLiked: boolean) => void;
   onDelete: (commentId: string) => void;
+  onEdit?: (comment: MovieComment) => void;
 }
 
 function formatRelativeTime(timestamp: number): string {
@@ -36,6 +37,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
   currentUserId,
   onLike,
   onDelete,
+  onEdit,
 }) => {
   const [showSpoiler, setShowSpoiler] = useState(false);
   const [avatarError, setAvatarError] = useState(false);
@@ -70,6 +72,12 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                 {comment.userName}
               </span>
 
+              {isAuthor && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                  Đánh giá của bạn
+                </span>
+              )}
+
               {comment.episodeName && (
                 <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-red-500/10 text-red-400 border border-red-500/20">
                   {comment.episodeName}
@@ -90,21 +98,34 @@ export const CommentItem: React.FC<CommentItemProps> = ({
               )}
               <span className="text-xs text-zinc-500">
                 {formatRelativeTime(comment.createdAt)}
+                {comment.updatedAt ? " (đã sửa)" : ""}
               </span>
             </div>
           </div>
         </div>
 
-        {/* Actions (Delete if author) */}
+        {/* Actions (Edit / Delete if author) */}
         {isAuthor && (
-          <button
-            type="button"
-            onClick={() => onDelete(comment.id)}
-            className="opacity-0 group-hover:opacity-100 text-zinc-500 hover:text-red-400 transition-all p-1.5 rounded-lg hover:bg-white/5"
-            title="Xóa bình luận của bạn"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-1 opacity-80 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+            {onEdit && (
+              <button
+                type="button"
+                onClick={() => onEdit(comment)}
+                className="text-zinc-400 hover:text-amber-400 transition-all p-1.5 rounded-lg hover:bg-white/5 cursor-pointer"
+                title="Chỉnh sửa đánh giá của bạn"
+              >
+                <Pencil className="w-4 h-4" />
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => onDelete(comment.id)}
+              className="text-zinc-400 hover:text-red-400 transition-all p-1.5 rounded-lg hover:bg-white/5 cursor-pointer"
+              title="Xóa đánh giá của bạn"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
         )}
       </div>
 

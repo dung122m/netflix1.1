@@ -120,6 +120,24 @@ export async function toggleLikeComment(
 }
 
 /**
+ * Cập nhật nội dung hoặc điểm đánh giá của bình luận đã có
+ */
+export async function updateMovieComment(
+  commentId: string,
+  data: Partial<Pick<MovieComment, "rating" | "content" | "isSpoiler" | "episodeSlug" | "episodeName">>,
+): Promise<void> {
+  if (!db || !commentId) return;
+  const docRef = doc(db, COLLECTION_NAME, commentId);
+  await updateDoc(
+    docRef,
+    sanitizeCommentData({
+      ...data,
+      updatedAt: Date.now(),
+    }),
+  );
+}
+
+/**
  * Xóa bình luận của chính người dùng
  */
 export async function deleteMovieComment(commentId: string): Promise<void> {
@@ -129,11 +147,20 @@ export async function deleteMovieComment(commentId: string): Promise<void> {
 }
 
 /**
- * Tính toán thống kê điểm số đánh giá từ danh sách bình luận
+ * Tính toán thống kê điểm số đánh giá từ danh sách bình luận.
+ * ĐẢM BẢO: Mỗi người dùng (userId) chỉ đóng góp đúng 1 lá phiếu điểm số duy nhất!
  */
 export function calculateMovieRatingStats(comments: MovieComment[]): MovieRatingStats {
-  const ratedComments = comments.filter((c) => c.rating > 0);
-  const totalReviews = ratedComments.length;
+  // Lọc lấy 1 đánh giá mới nhất có rating > 0 của mỗi user
+  const userRatingsMap = new Map<string, number>();
+  for (const c of comments) {
+    if (c.rating > 0 && !userRatingsMap.has(c.userId)) {
+      userRatingsMap.set(c.userId, c.rating);
+    }
+  }
+
+  const uniqueRatings = Array.from(userRatingsMap.values());
+  const totalReviews = uniqueRatings.length;
 
   const starCounts = {
     5: 0,
@@ -152,10 +179,10 @@ export function calculateMovieRatingStats(comments: MovieComment[]): MovieRating
   }
 
   let totalScore = 0;
-  ratedComments.forEach((c) => {
-    const star = Math.min(5, Math.max(1, Math.round(c.rating))) as 1 | 2 | 3 | 4 | 5;
+  uniqueRatings.forEach((ratingScore) => {
+    const star = Math.min(5, Math.max(1, Math.round(ratingScore))) as 1 | 2 | 3 | 4 | 5;
     starCounts[star] += 1;
-    totalScore += c.rating;
+    totalScore += ratingScore;
   });
 
   const averageRating = Number((totalScore / totalReviews).toFixed(1));

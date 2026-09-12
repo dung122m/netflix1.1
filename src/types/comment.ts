@@ -12,6 +12,7 @@ export interface MovieComment {
   likes: number;
   likedBy: string[]; // Danh sách userId đã thích bình luận này
   createdAt: number; // Timestamp (Date.now())
+  updatedAt?: number; // Timestamp cập nhật (Date.now())
 }
 
 export interface MovieRatingStats {
