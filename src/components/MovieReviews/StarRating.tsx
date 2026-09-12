@@ -37,8 +37,14 @@ export const StarRating: React.FC<StarRatingProps> = ({
   const activeRating = hoverValue ?? value;
 
   return (
-    <div className="inline-flex items-center gap-2.5 select-none">
-      <div className="flex items-center gap-0.5">
+    <div className="inline-flex items-center gap-2 select-none">
+      {/* Container của các sao: onMouseLeave đặt ở đây để tránh giật khi lia chuột giữa các sao */}
+      <div
+        className="flex items-center"
+        onMouseLeave={() => {
+          if (!readOnly) setHoverValue(null);
+        }}
+      >
         {[1, 2, 3, 4, 5].map((star) => {
           const isFilled = star <= activeRating;
           return (
@@ -47,21 +53,22 @@ export const StarRating: React.FC<StarRatingProps> = ({
               type="button"
               disabled={readOnly}
               onClick={() => onChange && onChange(star)}
-              onMouseEnter={() => !readOnly && setHoverValue(star)}
-              onMouseLeave={() => !readOnly && setHoverValue(null)}
-              className={`p-0.5 transition-transform ${
+              onMouseEnter={() => {
+                if (!readOnly) setHoverValue(star);
+              }}
+              className={`p-1 flex items-center justify-center ${
                 readOnly
                   ? "cursor-default"
-                  : "cursor-pointer active:scale-90 focus:outline-none"
+                  : "cursor-pointer focus:outline-none"
               }`}
               title={readOnly ? `${value} sao` : RATING_LABELS[star]}
               aria-label={`${star} sao`}
             >
               <Star
-                className={`${starSizes[size]} transition-colors duration-100 ${
+                className={`${starSizes[size]} transition-colors duration-150 ${
                   isFilled
-                    ? "fill-amber-400 text-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.5)]"
-                    : "fill-transparent text-zinc-600 hover:text-zinc-400"
+                    ? "fill-amber-400 text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.45)]"
+                    : "fill-transparent text-zinc-600"
                 }`}
               />
             </button>
@@ -70,7 +77,7 @@ export const StarRating: React.FC<StarRatingProps> = ({
       </div>
 
       {showLabel && (
-        <span className="text-xs md:text-sm font-semibold text-amber-400 min-w-[130px] whitespace-nowrap">
+        <span className="text-xs md:text-sm font-semibold text-amber-400 w-36 pl-1 inline-block select-none truncate">
           {activeRating > 0 ? RATING_LABELS[activeRating] : ""}
         </span>
       )}
