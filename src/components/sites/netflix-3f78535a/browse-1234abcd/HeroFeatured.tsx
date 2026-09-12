@@ -342,14 +342,14 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
           <button
             onClick={goPrev}
             aria-label="Slide trước"
-            className="absolute left-3 top-1/2 z-20 -translate-y-1/2 rounded-full border border-white/25 bg-black/45 p-2 text-white backdrop-blur transition hover:bg-black/75 md:left-6 md:p-3"
+            className="hidden sm:flex absolute left-3 top-1/2 z-20 -translate-y-1/2 rounded-full border border-white/25 bg-black/45 p-2 text-white backdrop-blur transition hover:bg-black/75 md:left-6 md:p-3 items-center justify-center cursor-pointer"
           >
             <ChevronLeft size={22} />
           </button>
           <button
             onClick={goNext}
             aria-label="Slide tiếp"
-            className="absolute right-3 top-1/2 z-20 -translate-y-1/2 rounded-full border border-white/25 bg-black/45 p-2 text-white backdrop-blur transition hover:bg-black/75 md:right-6 md:p-3"
+            className="hidden sm:flex absolute right-3 top-1/2 z-20 -translate-y-1/2 rounded-full border border-white/25 bg-black/45 p-2 text-white backdrop-blur transition hover:bg-black/75 md:right-6 md:p-3 items-center justify-center cursor-pointer"
           >
             <ChevronRight size={22} />
           </button>

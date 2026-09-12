@@ -20,6 +20,7 @@ import {
   Bookmark,
   Dices,
   Mic,
+  ArrowLeft,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -89,7 +90,9 @@ const NavbarInner: React.FC = () => {
   const hasSearchText = hasText || Boolean(urlKeyword);
 
   const inputRef = useRef<HTMLInputElement>(null);
+  const mobileInputRef = useRef<HTMLInputElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
+  const mobileSearchRef = useRef<HTMLDivElement>(null);
   const notificationRef = useRef<HTMLDivElement>(null);
 
   // Lịch sử tìm kiếm gần đây
@@ -175,8 +178,12 @@ const NavbarInner: React.FC = () => {
     if (inputRef.current) {
       inputRef.current.value = kw;
     }
+    if (mobileInputRef.current) {
+      mobileInputRef.current.value = kw;
+    }
     setHasText(true);
     setShowDropdown(false);
+    setIsSearchExpanded(false);
     saveRecentSearch(kw);
     router.push(`/browse?keyword=${encodeURIComponent(kw)}`);
   };
@@ -238,10 +245,9 @@ const NavbarInner: React.FC = () => {
   // Đóng dropdown khi click ra ngoài
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (
-        searchContainerRef.current &&
-        !searchContainerRef.current.contains(e.target as Node)
-      ) {
+      const insideDesktopSearch = searchContainerRef.current?.contains(e.target as Node);
+      const insideMobileSearch = mobileSearchRef.current?.contains(e.target as Node);
+      if (!insideDesktopSearch && !insideMobileSearch) {
         setShowDropdown(false);
       }
       if (
@@ -340,7 +346,10 @@ const NavbarInner: React.FC = () => {
   const toggleSearch = () => {
     if (!isSearchOpen) {
       setIsSearchExpanded(true);
-      setTimeout(() => inputRef.current?.focus(), 100);
+      setTimeout(() => {
+        inputRef.current?.focus();
+        mobileInputRef.current?.focus();
+      }, 100);
     } else if (!hasSearchText) {
       setIsSearchExpanded(false);
       setShowDropdown(false);
@@ -351,6 +360,9 @@ const NavbarInner: React.FC = () => {
     if (inputRef.current) {
       inputRef.current.value = "";
     }
+    if (mobileInputRef.current) {
+      mobileInputRef.current.value = "";
+    }
     setHasText(false);
     setSuggestions([]);
     if (recentSearches.length > 0) {
@@ -359,6 +371,7 @@ const NavbarInner: React.FC = () => {
       setShowDropdown(false);
     }
     inputRef.current?.focus();
+    mobileInputRef.current?.focus();
 
     if (searchParams.get("keyword")) {
       router.push("/browse");
@@ -413,10 +426,12 @@ const NavbarInner: React.FC = () => {
       if (suggestions.length > 0 && selectedSuggestionIndex >= 0 && selectedSuggestionIndex < suggestions.length) {
         e.preventDefault();
         const selected = suggestions[selectedSuggestionIndex];
-        if (inputRef.current?.value) {
-          saveRecentSearch(inputRef.current.value);
+        const val = inputRef.current?.value || mobileInputRef.current?.value;
+        if (val) {
+          saveRecentSearch(val);
         }
         setShowDropdown(false);
+        setIsSearchExpanded(false);
         router.push(`/movies/${selected.slug}`);
       } else if (!hasSearchText && recentSearches.length > 0 && selectedSuggestionIndex >= 0 && selectedSuggestionIndex < recentSearches.length) {
         e.preventDefault();
@@ -429,7 +444,8 @@ const NavbarInner: React.FC = () => {
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setShowDropdown(false);
-    const currentKeyword = inputRef.current?.value.trim();
+    setIsSearchExpanded(false);
+    const currentKeyword = (inputRef.current?.value || mobileInputRef.current?.value || "").trim();
 
     if (currentKeyword) {
       saveRecentSearch(currentKeyword);
@@ -455,6 +471,192 @@ const NavbarInner: React.FC = () => {
           : "bg-gradient-to-b from-black/90 via-black/50 to-transparent py-3 sm:py-3.5"
         }`}
     >
+      {/* THANH TÌM KIẾM TOÀN MÀN HÌNH TRÊN MOBILE (FULL-WIDTH MOBILE SEARCH OVERLAY) */}
+      {isSearchOpen && (
+        <div
+          ref={mobileSearchRef}
+          className="md:hidden absolute inset-0 bg-black/98 px-2.5 sm:px-4 py-2 flex items-center gap-2 z-50 animate-in fade-in duration-150 border-b border-white/20 shadow-2xl"
+        >
+          <button
+            type="button"
+            onClick={() => {
+              setIsSearchExpanded(false);
+              setShowDropdown(false);
+            }}
+            aria-label="Đóng tìm kiếm"
+            className="p-1.5 rounded-full text-gray-300 hover:text-white hover:bg-white/10 transition cursor-pointer flex-shrink-0"
+          >
+            <ArrowLeft size={20} />
+          </button>
+
+          <form
+            onSubmit={handleSearchSubmit}
+            className="flex-1 flex items-center bg-zinc-900/90 border border-white/25 rounded-full px-3 py-1.5 shadow-inner min-w-0"
+          >
+            {isSearching ? (
+              <Loader2 size={16} className="animate-spin text-netflix-red mr-2 flex-shrink-0" />
+            ) : (
+              <Search size={16} className="text-gray-400 mr-2 flex-shrink-0" />
+            )}
+
+            <input
+              ref={mobileInputRef}
+              type="text"
+              placeholder="Tìm phim, diễn viên, anime..."
+              onChange={(e) => {
+                handleInputChange(e);
+                if (inputRef.current) inputRef.current.value = e.target.value;
+              }}
+              onKeyDown={handleInputKeyDown}
+              onFocus={() => {
+                if (!hasSearchText && recentSearches.length > 0) {
+                  setShowDropdown(true);
+                } else if (suggestions.length > 0) {
+                  setShowDropdown(true);
+                }
+              }}
+              className="w-full bg-transparent text-white text-xs sm:text-sm outline-none placeholder:text-gray-400 min-w-0"
+            />
+
+            <button
+              type="button"
+              onClick={toggleVoiceSearch}
+              title="Tìm kiếm bằng giọng nói"
+              className="p-1 rounded-full text-gray-400 hover:text-white transition flex items-center justify-center cursor-pointer ml-1 flex-shrink-0"
+            >
+              <Mic size={15} className="text-netflix-red" />
+            </button>
+
+            {hasSearchText && (
+              <button
+                type="button"
+                onClick={clearSearch}
+                aria-label="Xóa nội dung tìm kiếm"
+                className="p-1 text-gray-400 hover:text-white transition ml-1 flex-shrink-0"
+              >
+                <X size={15} />
+              </button>
+            )}
+          </form>
+
+          {/* GỢI Ý & LỊCH SỬ TÌM KIẾM TRÊN MOBILE */}
+          {showDropdown && (
+            <div className="fixed top-[52px] sm:top-[56px] inset-x-2 w-auto max-w-lg mx-auto bg-zinc-950/98 border border-white/20 backdrop-blur-2xl rounded-2xl p-3 shadow-2xl z-50 max-h-[75vh] overflow-y-auto overscroll-contain">
+              {!hasSearchText && recentSearches.length > 0 ? (
+                <div>
+                  <div className="flex items-center justify-between text-[11px] font-semibold text-gray-400 px-2 py-1 mb-1 border-b border-white/10">
+                    <span className="flex items-center gap-1.5 uppercase tracking-wider text-[10px]">
+                      <History size={12} className="text-netflix-red" />
+                      Tìm kiếm gần đây
+                    </span>
+                    <button
+                      type="button"
+                      onClick={clearAllRecentSearches}
+                      className="text-[10px] text-gray-400 hover:text-white transition cursor-pointer"
+                    >
+                      Xóa tất cả
+                    </button>
+                  </div>
+
+                  <div className="flex flex-col gap-0.5 mt-1">
+                    {recentSearches.map((kw, idx) => (
+                      <div
+                        key={kw}
+                        onClick={() => handleRecentClick(kw)}
+                        className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg transition cursor-pointer group ${
+                          selectedSuggestionIndex === idx
+                            ? "bg-zinc-800 text-white ring-1 ring-white/20"
+                            : "hover:bg-zinc-850 text-gray-300 hover:text-white"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <History size={13} className="text-gray-500 group-hover:text-netflix-red transition flex-none" />
+                          <span className="text-xs transition truncate">
+                            {kw}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => removeRecentSearch(kw, e)}
+                          className="p-1 text-gray-500 hover:text-white rounded transition cursor-pointer hover:bg-white/10"
+                          title="Xóa từ khóa này"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : suggestions.length > 0 ? (
+                <>
+                  <div className="text-[11px] font-semibold text-gray-400 px-2.5 py-1 uppercase tracking-wider">
+                    Gợi ý phim
+                  </div>
+                  <div className="flex flex-col gap-1 mt-1">
+                    {suggestions.map((item, idx) => (
+                      <Link
+                        key={item.slug}
+                        href={`/movies/${item.slug}`}
+                        onClick={() => {
+                          const val = mobileInputRef.current?.value || inputRef.current?.value;
+                          if (val) {
+                            saveRecentSearch(val);
+                          }
+                          setShowDropdown(false);
+                          setIsSearchExpanded(false);
+                        }}
+                        className={`flex items-center gap-3 p-2 rounded-lg transition group ${
+                          selectedSuggestionIndex === idx
+                            ? "bg-zinc-800 text-white ring-1 ring-netflix-red/60"
+                            : "hover:bg-zinc-850"
+                        }`}
+                      >
+                        <div className="relative w-10 h-14 bg-zinc-800 rounded overflow-hidden flex-none border border-white/10">
+                          <Image
+                            src={item.poster}
+                            alt={item.title}
+                            fill
+                            sizes="40px"
+                            className="object-cover group-hover:scale-105 transition-transform"
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-sm font-semibold text-white group-hover:text-netflix-red transition-colors truncate">
+                            {item.title}
+                          </h4>
+                          <div className="flex items-center gap-2 text-xs text-gray-400 mt-1">
+                            {item.year && <span>{item.year}</span>}
+                            {item.category && (
+                              <span className="text-amber-400 font-medium">
+                                {item.category}
+                              </span>
+                            )}
+                            {item.quality && (
+                              <span className="border border-white/20 px-1 py-0.2 rounded text-[10px]">
+                                {item.quality}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+
+                  <div className="border-t border-white/10 mt-2 pt-1.5">
+                    <button
+                      type="button"
+                      onClick={handleSearchSubmit}
+                      className="w-full text-center text-xs text-netflix-red font-semibold py-1 hover:underline cursor-pointer"
+                    >
+                      Xem tất cả kết quả cho &quot;{mobileInputRef.current?.value || inputRef.current?.value}&quot;
+                    </button>
+                  </div>
+                </>
+              ) : null}
+            </div>
+          )}
+        </div>
+      )}
       <div className="flex items-center justify-between px-3 sm:px-6 lg:px-8 max-w-[1700px] mx-auto gap-2 sm:gap-4">
         {/* LOGO & DESKTOP NAV */}
         <div className="flex items-center gap-3 sm:gap-6 lg:gap-7 flex-shrink-0 min-w-0">
@@ -542,13 +744,23 @@ const NavbarInner: React.FC = () => {
             <span>Giọng Nói</span>
           </button>
 
-          {/* Ô TÌM KIẾM CÓ GỢI Ý TRỰC TIẾP */}
-          <div ref={searchContainerRef} className="relative flex-shrink-0">
+          {/* NÚT TÌM KIẾM TRÊN MOBILE (BẤM VÀO SẼ MỞ THANH TÌM KIẾM TOÀN MÀN HÌNH CHUYÊN NGHIỆP) */}
+          <button
+            type="button"
+            onClick={toggleSearch}
+            aria-label="Tìm kiếm phim"
+            className="md:hidden flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-white/10 hover:bg-white/20 text-gray-200 hover:text-white border border-white/10 transition cursor-pointer flex-shrink-0 active:scale-95"
+          >
+            <Search size={16} />
+          </button>
+
+          {/* Ô TÌM KIẾM TRÊN DESKTOP & TABLET (INLINE EXPANDING) */}
+          <div ref={searchContainerRef} className="relative hidden md:block flex-shrink-0">
             <form
               onSubmit={handleSearchSubmit}
               className={`flex items-center transition-all duration-300 rounded-full ${
                 isSearchOpen
-                  ? "border border-white/35 bg-black/90 px-2 sm:px-3 py-1.5 backdrop-blur-md shadow-lg"
+                  ? "border border-white/35 bg-black/90 px-3 py-1.5 backdrop-blur-md shadow-lg"
                   : "border-transparent px-1 py-1"
               }`}
             >
@@ -575,9 +787,9 @@ const NavbarInner: React.FC = () => {
                     setShowDropdown(true);
                   }
                 }}
-                className={`bg-transparent text-white text-xs sm:text-sm outline-none transition-all duration-300 ${
+                className={`bg-transparent text-white text-sm outline-none transition-all duration-300 ${
                   isSearchOpen
-                    ? "w-24 min-[360px]:w-28 min-[420px]:w-36 sm:w-40 md:w-44 ml-1.5 opacity-100 placeholder:text-gray-400"
+                    ? "w-40 lg:w-48 xl:w-56 ml-2 opacity-100 placeholder:text-gray-400"
                     : "w-0 opacity-0 pointer-events-none"
                 }`}
               />
@@ -587,7 +799,7 @@ const NavbarInner: React.FC = () => {
                   type="button"
                   onClick={toggleVoiceSearch}
                   title="Tìm kiếm & Điều khiển bằng giọng nói tiếng Việt"
-                  className="p-1 rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition flex items-center justify-center cursor-pointer ml-0.5 flex-shrink-0"
+                  className="p-1 rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition flex items-center justify-center cursor-pointer ml-1 flex-shrink-0"
                 >
                   <Mic size={14} className="text-netflix-red" />
                 </button>
@@ -596,15 +808,15 @@ const NavbarInner: React.FC = () => {
               {isSearchOpen && hasSearchText && (
                 <X
                   size={15}
-                  className="cursor-pointer text-gray-400 hover:text-white transition ml-0.5 flex-shrink-0"
+                  className="cursor-pointer text-gray-400 hover:text-white transition ml-1 flex-shrink-0"
                   onClick={clearSearch}
                 />
               )}
             </form>
 
-            {/* FLOATING RECENT SEARCHES OR SUGGESTIONS DROPDOWN */}
+            {/* FLOATING RECENT SEARCHES OR SUGGESTIONS DROPDOWN (DESKTOP) */}
             {showDropdown && (
-              <div className="absolute top-full mt-2 right-0 w-[min(calc(100vw-24px),350px)] bg-zinc-950/95 border border-white/15 backdrop-blur-xl rounded-xl shadow-2xl p-2.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+              <div className="absolute top-full mt-2 right-0 w-[360px] bg-zinc-950/95 border border-white/15 backdrop-blur-xl rounded-xl shadow-2xl p-2.5 z-50 animate-in fade-in zoom-in-95 duration-150">
                 {!hasSearchText && recentSearches.length > 0 ? (
                   <div>
                     <div className="flex items-center justify-between text-[11px] font-semibold text-gray-400 px-2 py-1 mb-1 border-b border-white/10">
