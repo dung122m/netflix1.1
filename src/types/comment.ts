@@ -17,6 +17,8 @@ export interface MovieComment {
   updatedAt?: number; // Timestamp cập nhật (Date.now())
   // --- Reply / Thread ---
   parentId?: string;    // ID của comment cha (nếu là reply). Undefined = top-level comment
+  replyToUserId?: string;   // ID của user được reply trực tiếp trong thread
+  replyToUserName?: string; // Tên của user được reply trực tiếp trong thread
   replyCount?: number;  // Số lượng replies (đếm client-side)
 }
 

@@ -176,12 +176,14 @@ export async function addMovieComment(
 }
 
 /**
- * Thêm reply cho một bình luận và gửi thông báo cho chủ bình luận gốc
+ * Thêm reply cho một bình luận và gửi thông báo cho người được trả lời
  */
 export async function addReplyComment(params: {
   parentId: string;
   parentOwnerId: string;     // userId của chủ comment gốc
-  parentOwnerName: string;   // tên chủ comment gốc (hiển thị trong toast/notif)
+  parentOwnerName?: string;  // tên chủ comment gốc
+  replyToUserId?: string;    // userId của người được reply cụ thể (nếu reply lại một reply)
+  replyToUserName?: string;  // tên người được reply cụ thể
   movieSlug: string;
   movieTitle?: string;
   userId: string;
@@ -194,13 +196,15 @@ export async function addReplyComment(params: {
     throw new Error("Chưa kết nối được cơ sở dữ liệu Firebase!");
   }
 
-  const { parentId, parentOwnerId, parentOwnerName, ...replyData } = params;
+  const { parentId, parentOwnerId, parentOwnerName, replyToUserId, replyToUserName, ...replyData } = params;
 
   // 1. Lưu reply vào Firestore (dùng chung collection movie_comments với parentId)
   const commentsRef = collection(db, COLLECTION_NAME);
   const newReply = sanitizeCommentData({
     ...replyData,
     parentId,
+    replyToUserId,
+    replyToUserName,
     rating: 0, // Reply không có rating
     likes: 0,
     likedBy: [],
@@ -209,11 +213,12 @@ export async function addReplyComment(params: {
 
   const docRef = await addDoc(commentsRef, newReply);
 
-  // 2. Gửi thông báo cho chủ comment gốc (nếu không phải chính họ reply)
-  if (parentOwnerId && parentOwnerId !== params.userId) {
+  // 2. Gửi thông báo
+  // A. Gửi cho người được reply trực tiếp (nếu có và không phải chính họ)
+  if (replyToUserId && replyToUserId !== params.userId) {
     try {
-      const notifId = `reply_${docRef.id}`;
-      const notifRef = doc(db, USERS_COLLECTION, parentOwnerId, "notifications", notifId);
+      const notifId = `reply_target_${docRef.id}`;
+      const notifRef = doc(db, USERS_COLLECTION, replyToUserId, "notifications", notifId);
       const notifData: UserNotification = {
         id: notifId,
         type: "comment_reply",
@@ -229,11 +234,32 @@ export async function addReplyComment(params: {
         isRead: false,
         createdAt: Date.now(),
       };
-      // fire-and-forget (không await để không block UI)
       setDoc(notifRef, sanitizeCommentData(notifData as unknown as Record<string, unknown>)).catch(() => {});
-    } catch {
-      // Thông báo không quan trọng bằng reply thành công
-    }
+    } catch {}
+  }
+
+  // B. Gửi cho chủ bài đánh giá gốc (nếu khác người gửi và khác người ở mục A)
+  if (parentOwnerId && parentOwnerId !== params.userId && parentOwnerId !== replyToUserId) {
+    try {
+      const notifId = `reply_root_${docRef.id}`;
+      const notifRef = doc(db, USERS_COLLECTION, parentOwnerId, "notifications", notifId);
+      const notifData: UserNotification = {
+        id: notifId,
+        type: "comment_reply",
+        title: `${params.userName} đã bình luận trong bài đánh giá của bạn`,
+        message: params.content.length > 80
+          ? params.content.slice(0, 80) + "..."
+          : params.content,
+        link: `/movies/${params.movieSlug}#comments`,
+        movieSlug: params.movieSlug,
+        commentId: parentId,
+        replierName: params.userName,
+        replierAvatar: params.userAvatar,
+        isRead: false,
+        createdAt: Date.now(),
+      };
+      setDoc(notifRef, sanitizeCommentData(notifData as unknown as Record<string, unknown>)).catch(() => {});
+    } catch {}
   }
 
   // Suppress unused variable warning

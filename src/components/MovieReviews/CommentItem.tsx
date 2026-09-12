@@ -35,10 +35,12 @@ interface CommentItemProps {
   onLike: (commentId: string, hasLiked: boolean) => void;
   onDelete: (commentId: string) => void;
   onEdit?: (comment: MovieComment) => void;
-  /** Nếu true: đây là reply (hiển thị nhỏ hơn, không có nested reply) */
+  /** Nếu true: đây là reply (hiển thị nhỏ hơn) */
   isReply?: boolean;
   /** Callback để mở auth modal nếu user chưa đăng nhập */
   onRequireAuth?: () => void;
+  /** Callback khi bấm trả lời một reply cụ thể trong thread */
+  onReplyTo?: (targetUserId: string, targetUserName: string) => void;
 }
 
 function formatRelativeTime(timestamp: number): string {
@@ -59,6 +61,20 @@ function formatRelativeTime(timestamp: number): string {
   });
 }
 
+function renderCommentContent(text: string) {
+  const parts = text.split(/(@[^\s@]+)/g);
+  return parts.map((part, index) => {
+    if (part.startsWith("@")) {
+      return (
+        <span key={index} className="text-blue-400 font-semibold inline-block mr-0.5">
+          {part}
+        </span>
+      );
+    }
+    return part;
+  });
+}
+
 export const CommentItem: React.FC<CommentItemProps> = ({
   comment,
   currentUserId,
@@ -69,6 +85,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
   onEdit,
   isReply = false,
   onRequireAuth,
+  onReplyTo,
 }) => {
   const [showSpoiler, setShowSpoiler] = useState(false);
   const [avatarError, setAvatarError] = useState(false);
@@ -76,6 +93,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
   // --- Reply state ---
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [replyContent, setReplyContent] = useState("");
+  const [replyTargetUser, setReplyTargetUser] = useState<{ userId: string; userName: string } | null>(null);
   const [isSubmittingReply, setIsSubmittingReply] = useState(false);
 
   // --- Replies list state ---
@@ -118,15 +136,28 @@ export const CommentItem: React.FC<CommentItemProps> = ({
     setRepliesUnsubscribe(() => unsub);
   };
 
-  const handleReplyClick = () => {
+  const handleReplyClick = (targetUserId?: string, targetUserName?: string) => {
     if (!currentUserId) {
       onRequireAuth?.();
       return;
     }
-    setShowReplyForm((prev) => !prev);
-    if (!showReplyForm) {
-      setTimeout(() => replyInputRef.current?.focus(), 100);
+    if (targetUserId && targetUserName && targetUserId !== comment.userId) {
+      setReplyTargetUser({ userId: targetUserId, userName: targetUserName });
+      setReplyContent(`@${targetUserName} `);
+    } else {
+      setReplyTargetUser(null);
+      if (!replyContent || replyContent.startsWith("@")) {
+        setReplyContent("");
+      }
     }
+    setShowReplyForm(true);
+    setTimeout(() => {
+      if (replyInputRef.current) {
+        replyInputRef.current.focus();
+        replyInputRef.current.selectionStart = replyInputRef.current.value.length;
+        replyInputRef.current.selectionEnd = replyInputRef.current.value.length;
+      }
+    }, 100);
   };
 
   const handleSubmitReply = async () => {
@@ -146,6 +177,8 @@ export const CommentItem: React.FC<CommentItemProps> = ({
         parentId: comment.id,
         parentOwnerId: comment.userId,
         parentOwnerName: comment.userName,
+        replyToUserId: replyTargetUser?.userId,
+        replyToUserName: replyTargetUser?.userName,
         movieSlug: comment.movieSlug,
         movieTitle: comment.movieTitle,
         userId: currentUserId,
@@ -154,6 +187,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
         content: trimmed,
       });
       setReplyContent("");
+      setReplyTargetUser(null);
       setShowReplyForm(false);
       // Tự động mở replies để thấy reply vừa gửi
       if (!showReplies) {
@@ -308,7 +342,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
         ) : (
           <div className="relative">
             <p className="text-zinc-200 text-sm md:text-[15px] leading-relaxed whitespace-pre-line break-words">
-              {comment.content}
+              {renderCommentContent(comment.content)}
             </p>
             {comment.isSpoiler && (
               <button
@@ -329,7 +363,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
           <button
             type="button"
             onClick={() => onLike(comment.id, hasLiked)}
-            className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full transition-all ${
+            className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full transition-all cursor-pointer ${
               hasLiked
                 ? "bg-red-500/15 text-red-400 border border-red-500/30"
                 : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5 border border-transparent"
@@ -343,24 +377,28 @@ export const CommentItem: React.FC<CommentItemProps> = ({
             <span>{comment.likes > 0 ? comment.likes : "Thích"}</span>
           </button>
 
-          {/* Reply button (chỉ ở top-level comments) */}
-          {!isReply && (
-            <button
-              type="button"
-              onClick={handleReplyClick}
-              className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full text-zinc-400 hover:text-blue-400 hover:bg-blue-500/10 border border-transparent hover:border-blue-500/20 transition-all"
-            >
-              <MessageSquare className="w-3.5 h-3.5" />
-              <span>Trả lời</span>
-            </button>
-          )}
+          {/* Reply button (cho cả root comment và reply item) */}
+          <button
+            type="button"
+            onClick={() => {
+              if (isReply) {
+                onReplyTo?.(comment.userId, comment.userName);
+              } else {
+                handleReplyClick();
+              }
+            }}
+            className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full text-zinc-400 hover:text-blue-400 hover:bg-blue-500/10 border border-transparent hover:border-blue-500/20 transition-all cursor-pointer"
+          >
+            <MessageSquare className="w-3.5 h-3.5" />
+            <span>Trả lời</span>
+          </button>
 
           {/* Show/hide replies button */}
-          {!isReply && (comment.replyCount || 0) > 0 || (!isReply && replies.length > 0) ? (
+          {!isReply && ((comment.replyCount || 0) > 0 || replies.length > 0) ? (
             <button
               type="button"
               onClick={handleToggleReplies}
-              className="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+              className="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer"
             >
               {showReplies ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
               <span>
@@ -374,7 +412,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
 
         {/* Reply Form */}
         {showReplyForm && !isReply && (
-          <div className="mt-3 flex gap-2.5 items-start">
+          <div className="mt-3 flex gap-2.5 items-start animate-in fade-in duration-150">
             <div className="w-7 h-7 rounded-full bg-gradient-to-br from-red-600 to-amber-600 flex items-center justify-center font-bold text-white text-xs shrink-0 overflow-hidden relative border border-white/10">
               {currentUserAvatar ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -389,11 +427,33 @@ export const CommentItem: React.FC<CommentItemProps> = ({
               )}
             </div>
             <div className="flex-1 relative">
+              {replyTargetUser && (
+                <div className="flex items-center justify-between mb-1.5 px-1">
+                  <span className="text-xs text-blue-400 font-medium flex items-center gap-1">
+                    <span>Đang trả lời</span>
+                    <strong className="text-blue-300">@{replyTargetUser.userName}</strong>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setReplyTargetUser(null);
+                      setReplyContent((prev) => prev.replace(new RegExp(`^@${replyTargetUser.userName}\\s*`), ""));
+                    }}
+                    className="text-[11px] text-zinc-500 hover:text-zinc-300 cursor-pointer hover:underline"
+                  >
+                    Hủy chỉ định
+                  </button>
+                </div>
+              )}
               <textarea
                 ref={replyInputRef}
                 value={replyContent}
                 onChange={(e) => setReplyContent(e.target.value)}
-                placeholder={`Trả lời ${comment.userName}...`}
+                placeholder={
+                  replyTargetUser
+                    ? `Trả lời @${replyTargetUser.userName}...`
+                    : `Trả lời ${comment.userName}...`
+                }
                 rows={2}
                 maxLength={500}
                 onKeyDown={(e) => {
@@ -409,7 +469,11 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                 <div className="flex items-center gap-1.5">
                   <button
                     type="button"
-                    onClick={() => { setShowReplyForm(false); setReplyContent(""); }}
+                    onClick={() => {
+                      setShowReplyForm(false);
+                      setReplyContent("");
+                      setReplyTargetUser(null);
+                    }}
                     className="text-xs text-zinc-500 hover:text-zinc-300 px-2 py-1 rounded-lg hover:bg-white/5 transition cursor-pointer"
                   >
                     Hủy
@@ -459,6 +523,9 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                   onDelete={handleDeleteReply}
                   isReply={true}
                   onRequireAuth={onRequireAuth}
+                  onReplyTo={(targetUserId, targetUserName) => {
+                    handleReplyClick(targetUserId, targetUserName);
+                  }}
                 />
               ))
             )}
