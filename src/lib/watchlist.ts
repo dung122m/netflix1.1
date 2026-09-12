@@ -1,3 +1,9 @@
+import { auth } from "./firebase";
+import {
+  saveWatchlistItemToCloud,
+  removeWatchlistItemFromCloud,
+} from "./cloudSync";
+
 export interface WatchlistItem {
   slug: string;
   title: string;
@@ -34,9 +40,15 @@ export function addToWatchlist(item: Omit<WatchlistItem, "addedAt">): void {
   try {
     const list = getWatchlist();
     if (list.some((i) => i.slug === item.slug)) return;
-    const updated = [{ ...item, addedAt: Date.now() }, ...list];
+    const itemWithAddedAt: WatchlistItem = { ...item, addedAt: Date.now() };
+    const updated = [itemWithAddedAt, ...list];
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
     window.dispatchEvent(new Event("watchlist-updated"));
+
+    // Tự động lưu lên Firebase Cloud Firestore nếu đang đăng nhập
+    if (auth?.currentUser) {
+      saveWatchlistItemToCloud(auth.currentUser.uid, itemWithAddedAt);
+    }
   } catch (e) {
     console.error("Lỗi lưu danh sách:", e);
   }
@@ -49,6 +61,11 @@ export function removeFromWatchlist(slug: string): void {
     const updated = list.filter((i) => i.slug !== slug);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
     window.dispatchEvent(new Event("watchlist-updated"));
+
+    // Tự động xóa khỏi Firebase Cloud Firestore nếu đang đăng nhập
+    if (auth?.currentUser) {
+      removeWatchlistItemFromCloud(auth.currentUser.uid, slug);
+    }
   } catch (e) {
     console.error("Lỗi xóa khỏi danh sách:", e);
   }
@@ -61,5 +78,18 @@ export function toggleWatchlist(item: Omit<WatchlistItem, "addedAt">): boolean {
   } else {
     addToWatchlist(item);
     return true;
+  }
+}
+
+/**
+ * Xóa danh sách yêu thích trên máy tính này khi đăng xuất để trả máy về trạng thái sạch
+ */
+export function clearLocalWatchlistOnly(): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+    window.dispatchEvent(new Event("watchlist-updated"));
+  } catch (e) {
+    console.error("Lỗi xóa local watchlist:", e);
   }
 }

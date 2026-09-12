@@ -14,8 +14,12 @@ import {
   onAuthStateChanged,
 } from "firebase/auth";
 import { auth, googleProvider, isFirebaseConfigured } from "@/lib/firebase";
-import { syncWatchHistoryWithCloud } from "@/lib/cloudSync";
+import {
+  syncWatchHistoryWithCloud,
+  syncWatchlistWithCloud,
+} from "@/lib/cloudSync";
 import { clearLocalWatchHistoryOnly } from "@/lib/watchHistory";
+import { clearLocalWatchlistOnly } from "@/lib/watchlist";
 
 interface AuthContextType {
   user: User | null;
@@ -49,7 +53,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!user) return;
     setIsSyncing(true);
     try {
-      await syncWatchHistoryWithCloud(user.uid);
+      await Promise.all([
+        syncWatchHistoryWithCloud(user.uid),
+        syncWatchlistWithCloud(user.uid),
+      ]);
     } catch (err) {
       console.warn("Lỗi sync thủ công:", err);
     } finally {
@@ -70,7 +77,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       if (currentUser) {
         setIsSyncing(true);
         try {
-          await syncWatchHistoryWithCloud(currentUser.uid);
+          await Promise.all([
+            syncWatchHistoryWithCloud(currentUser.uid),
+            syncWatchlistWithCloud(currentUser.uid),
+          ]);
         } catch (err) {
           console.warn("Lỗi tự động sync khi đăng nhập:", err);
         } finally {
@@ -99,7 +109,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const res = await signInWithPopup(auth, googleProvider);
       if (res.user) {
         setUser(res.user);
-        await syncWatchHistoryWithCloud(res.user.uid);
+        await Promise.all([
+          syncWatchHistoryWithCloud(res.user.uid),
+          syncWatchlistWithCloud(res.user.uid),
+        ]);
         return { success: true };
       }
       return { success: false, error: "Đăng nhập không thành công" };
@@ -130,6 +143,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setUser(null);
       // Trả máy tính về trạng thái sạch cho người tiếp theo, không lo lẫn lộn tài khoản
       clearLocalWatchHistoryOnly();
+      clearLocalWatchlistOnly();
     } catch (err) {
       console.error("Lỗi đăng xuất:", err);
     }

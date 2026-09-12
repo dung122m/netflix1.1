@@ -19,6 +19,7 @@ import {
 } from "@/lib/watchHistory";
 import { sanitizeImageUrl } from "@/lib/movieMedia";
 import { formatEpisodeName } from "@/lib/formatEpisode";
+import { clearAllWatchlistFromCloud } from "@/lib/cloudSync";
 
 function MyListContent() {
   const searchParams = useSearchParams();
@@ -53,11 +54,14 @@ function MyListContent() {
     };
   }, []);
 
-  const handleClearWatchlist = () => {
+  const handleClearWatchlist = async () => {
     if (window.confirm("Bạn có chắc chắn muốn xoá toàn bộ phim trong danh sách đã lưu?")) {
       localStorage.removeItem("nanaflix_watchlist_v1");
       setWatchlist([]);
       window.dispatchEvent(new Event("watchlist-updated"));
+      if (user) {
+        await clearAllWatchlistFromCloud(user.uid);
+      }
     }
   };
 
