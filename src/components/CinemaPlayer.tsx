@@ -33,7 +33,6 @@ import { useWatchController } from "./WatchController";
 import { getWatchProgress, saveWatchProgress } from "@/lib/watchHistory";
 import { formatEpisodeName } from "@/lib/formatEpisode";
 import { WatchlistButton } from "./WatchlistButton";
-import { FollowSeriesButton } from "./FollowSeriesButton";
 import { AddToCollectionButton } from "./Collections/AddToCollectionButton";
 import { useAuth } from "@/context/AuthContext";
 import { updateActivePlaybackSession } from "@/services/handoffService";
@@ -1373,19 +1372,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                   slug: movieSlug,
                   title,
                   poster: posterUrl,
-                }}
-                variant="player"
-                className="hidden sm:inline-flex"
-              />
-            )}
-            {movieSlug && episodes && episodes.length > 1 && (
-              <FollowSeriesButton
-                movie={{
-                  slug: movieSlug,
-                  title,
-                  poster: posterUrl,
-                  currentEpisodes: episodes.length,
-                  latestEpisodeName: episodes[episodes.length - 1]?.name,
                 }}
                 variant="player"
                 className="hidden sm:inline-flex"

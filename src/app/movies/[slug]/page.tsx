@@ -26,7 +26,6 @@ import { ResumeEpisodeBanner } from "@/components/ResumeEpisodeBanner";
 import { WatchController } from "@/components/WatchController";
 import { ServerSelector } from "@/components/ServerSelector";
 import { WatchlistButton } from "@/components/WatchlistButton";
-import { FollowSeriesButton } from "@/components/FollowSeriesButton";
 import { AddToCollectionButton } from "@/components/Collections/AddToCollectionButton";
 import { formatEpisodeName } from "@/lib/formatEpisode";
 
@@ -450,19 +449,6 @@ export default async function MovieDetail({
                 }}
               />
 
-              {/* Nút Theo dõi tập mới (chỉ hiện khi là phim bộ) */}
-              {(movie.type === "series" || totalEpNum > 1 || serverData.length > 1) && (
-                <FollowSeriesButton
-                  movie={{
-                    slug: movie.slug,
-                    title,
-                    poster: pickBestMovieImage(movie, "/default-poster.jpg"),
-                    currentEpisodes: currentEpNum,
-                    latestEpisodeName: serverData[serverData.length - 1]?.name || movie.episode_current || "Tập mới",
-                    totalEpisodes: String(totalEpNum || movie.episode_total || ""),
-                  }}
-                />
-              )}
 
               {/* Cụm tiện ích phụ tinh gọn: Chia sẻ, Xem trên điện thoại, Báo lỗi */}
               <div className="flex items-center gap-1.5 sm:gap-2 ml-auto sm:ml-0">
