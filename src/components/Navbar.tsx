@@ -49,6 +49,21 @@ const NAV_LINKS = [
   { name: "Danh sách", href: "/my-list", type: "my-list", icon: Bookmark, isLive: false },
 ];
 
+interface DynamicNotification {
+  id: string;
+  type: "movie" | "live" | "hot";
+  title: string;
+  message: string;
+  time: string;
+  link: string;
+  image?: string;
+  badge?: string;
+  badgeColor?: string;
+}
+
+let cachedNotificationsData: DynamicNotification[] | null = null;
+let lastNotificationsFetchTime = 0;
+
 const NavbarInner: React.FC = () => {
   const [showBackground, setShowBackground] = useState(false);
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
@@ -62,22 +77,10 @@ const NavbarInner: React.FC = () => {
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
 
   // Notification Center & Hotkey States
-  interface DynamicNotification {
-    id: string;
-    type: "movie" | "live" | "hot";
-    title: string;
-    message: string;
-    time: string;
-    link: string;
-    image?: string;
-    badge?: string;
-    badgeColor?: string;
-  }
-
   const [showNotifications, setShowNotifications] = useState(false);
   const [hasUnread, setHasUnread] = useState(true);
   const [showHotkeyModal, setShowHotkeyModal] = useState(false);
-  const [notifications, setNotifications] = useState<DynamicNotification[]>([]);
+  const [notifications, setNotifications] = useState<DynamicNotification[]>(() => cachedNotificationsData || []);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
 
   const router = useRouter();
@@ -261,10 +264,16 @@ const NavbarInner: React.FC = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Tải thông báo động từ API (phim mới, bóng đá trực tiếp, xem tiếp)
+  // Tải thông báo động từ API có cache 3 phút và hoãn tải tránh nghẽn mạng ban đầu
   useEffect(() => {
     let isMounted = true;
     const loadDynamicNotifications = async () => {
+      const now = Date.now();
+      if (cachedNotificationsData && now - lastNotificationsFetchTime < 180000) {
+        if (isMounted) setNotifications(cachedNotificationsData);
+        return;
+      }
+
       setLoadingNotifications(true);
       try {
         const res = await fetch("/api/notifications");
@@ -296,8 +305,12 @@ const NavbarInner: React.FC = () => {
             }
           } catch {}
 
+          const finalItems = items.slice(0, 6);
+          cachedNotificationsData = finalItems;
+          lastNotificationsFetchTime = Date.now();
+
           if (isMounted) {
-            setNotifications(items.slice(0, 6));
+            setNotifications(finalItems);
           }
         }
       } catch (err) {
@@ -307,9 +320,15 @@ const NavbarInner: React.FC = () => {
       }
     };
 
-    loadDynamicNotifications();
+    if (cachedNotificationsData) {
+      setNotifications(cachedNotificationsData);
+    }
+    // Hoãn tải 1.5s để nhường hoàn toàn băng thông mạng cho video streaming và trang chính
+    const deferTimer = setTimeout(loadDynamicNotifications, cachedNotificationsData ? 5000 : 1500);
+
     return () => {
       isMounted = false;
+      clearTimeout(deferTimer);
     };
   }, []);
 

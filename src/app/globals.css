@@ -794,6 +794,10 @@ html[data-mode="dark"] .live-channel-active .live-channel-title {
   -webkit-text-fill-color: #38bdf8 !important;
 }
 
-
-
-
+/* ============================================================ */
+/* PERFORMANCE OPTIMIZATIONS: FOOTER CONTENT-VISIBILITY         */
+/* ============================================================ */
+.cv-auto-footer {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 400px;
+}

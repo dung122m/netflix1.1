@@ -15,8 +15,6 @@ import {
   Eye,
   Clock,
   ShieldCheck,
-  Server,
-  Zap,
   Sparkles,
   Clapperboard,
   Users,
@@ -24,10 +22,7 @@ import {
 } from "lucide-react";
 import { MovieSynopsis } from "@/components/MovieSynopsis";
 import { ShareButton } from "@/components/ShareButton";
-import { MobileQrModal } from "@/components/MobileQrModal";
-import { ReportIssueModal } from "@/components/ReportIssueModal";
 import { RecommendationTabs } from "@/components/RecommendationTabs";
-import { TrailerModal } from "@/components/TrailerModal";
 import { Navbar } from "@/components/Navbar";
 import { ActorChipClient } from "@/components/ActorChipClient";
 import { Footer } from "@/components/Footer";
@@ -35,6 +30,20 @@ import TrackHistoryClient from "@/components/TrackHistoryClient";
 import { CinemaPlayer } from "@/components/CinemaPlayer";
 import { EpisodeList } from "@/components/EpisodeList";
 import { ResumeEpisodeBanner } from "@/components/ResumeEpisodeBanner";
+import { WatchController } from "@/components/WatchController";
+import { ServerSelector } from "@/components/ServerSelector";
+
+const MobileQrModal = dynamic(
+  () => import("@/components/MobileQrModal").then((mod) => mod.MobileQrModal),
+);
+
+const ReportIssueModal = dynamic(
+  () => import("@/components/ReportIssueModal").then((mod) => mod.ReportIssueModal),
+);
+
+const TrailerModal = dynamic(
+  () => import("@/components/TrailerModal").then((mod) => mod.TrailerModal),
+);
 
 const SetTitleClient = dynamic(() =>
   import("@/components/SetTitleClient").then((mod) => mod.default),
@@ -267,12 +276,24 @@ export default async function MovieDetail({
         category={movie.category?.[0]?.name}
       />
 
-      <div className="w-full pt-[56px] md:pt-[66px] bg-black px-2 sm:px-4 md:px-8">
-        {/* BANNER XEM TIẾP NẾU CÓ TẬP XEM DỞ TRƯỚC ĐÓ */}
-        <ResumeEpisodeBanner
-          movieSlug={movie.slug}
-          activeEpisodeSlug={activeEpisode?.slug}
-        />
+      <WatchController
+        movieSlug={movie.slug}
+        movieTitle={title}
+        posterUrl={pickBestMovieImage(movie, "/default-hero.jpg")}
+        year={movie.year}
+        quality={movie.quality}
+        category={movie.category?.[0]?.name}
+        initialServers={episodeServers}
+        initialServerIndex={currentServerIndex}
+        initialEpisodeSlug={ep || serverData[0]?.slug}
+        isTrailerOnly={isTrailerOnly}
+      >
+        <div className="w-full pt-[56px] md:pt-[66px] bg-black px-2 sm:px-4 md:px-8">
+          {/* BANNER XEM TIẾP NẾU CÓ TẬP XEM DỞ TRƯỚC ĐÓ */}
+          <ResumeEpisodeBanner
+            movieSlug={movie.slug}
+            activeEpisodeSlug={activeEpisode?.slug}
+          />
 
         {/* BREADCRUMB */}
         <div className="max-w-7xl mx-auto py-1.5 flex items-center gap-2 text-xs sm:text-sm text-gray-400">
@@ -592,33 +613,11 @@ export default async function MovieDetail({
               </span>
             </div>
 
-            {/* THANH CHUYỂN SERVER NẾU PHIM CÓ NHIỀU NGUỒN PHÁT */}
-            {episodeServers.length > 1 && (
-              <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1 scrollbar-none">
-                <span className="text-xs text-gray-400 font-medium flex-none flex items-center gap-1">
-                  <Server className="w-3.5 h-3.5 text-netflix-red" />
-                  <span>Nguồn phát:</span>
-                </span>
-                {episodeServers.map((s: { server_name?: string }, sIdx: number) => {
-                  const isSelected = sIdx === currentServerIndex;
-                  return (
-                    <Link
-                      key={s.server_name || sIdx}
-                      href={`?server=${sIdx}`}
-                      scroll={false}
-                      className={`px-3 py-1 rounded-full text-xs font-semibold transition flex-none flex items-center gap-1.5 ${
-                        isSelected
-                          ? "bg-netflix-red text-white shadow-md shadow-red-950/50"
-                          : "bg-zinc-800 text-gray-300 hover:text-white hover:bg-zinc-700"
-                      }`}
-                    >
-                      <Zap className={`w-3 h-3 ${isSelected ? "text-amber-300" : "text-gray-400"}`} />
-                      <span>{s.server_name || `Server #${sIdx + 1}`}</span>
-                    </Link>
-                  );
-                })}
-              </div>
-            )}
+            {/* THANH CHUYỂN SERVER NẾU PHIM CÓ NHIỀU NGUỒN PHÁT (0MS SWITCHING) */}
+            <ServerSelector
+              servers={episodeServers}
+              initialServerIndex={currentServerIndex}
+            />
 
             <EpisodeList
               movieSlug={movie.slug}
@@ -628,6 +627,7 @@ export default async function MovieDetail({
           </div>
         </div>
       </div>
+      </WatchController>
 
       <div className="max-w-7xl mx-auto px-4 md:px-8 mt-10">
         <div className="flex items-end justify-between gap-4 mb-5">

@@ -40,7 +40,7 @@ const MovieGridInner = ({ movies }: MovieGridProps) => {
               hasTrailer={norm.hasTrailer}
               trailer_url={norm.trailer_url}
               isTrailerOnly={norm.isTrailerOnly}
-              priority={index < 8}
+              priority={index < 4}
             />
           );
         })}

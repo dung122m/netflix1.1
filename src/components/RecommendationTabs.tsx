@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import { MovieCard } from "./MovieCard";
 import {
   Sparkles,
@@ -54,6 +54,7 @@ export function RecommendationTabs({
   const [isShuffling, setIsShuffling] = useState(false);
   const [shuffleSeed, setShuffleSeed] = useState(0);
   const [visibleLimit, setVisibleLimit] = useState(12);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   // Lọc phim theo diễn viên loại bỏ phim hiện tại
   const validActorMovies = useMemo(() => {
@@ -114,6 +115,29 @@ export function RecommendationTabs({
   const displayedMovies = useMemo(() => {
     return currentTabMovies.slice(0, visibleLimit);
   }, [currentTabMovies, visibleLimit]);
+
+  // Auto lazy load more movies when scrolling near bottom of list
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setVisibleLimit((prev) => {
+            if (prev < currentTabMovies.length) {
+              return prev + 12;
+            }
+            return prev;
+          });
+        }
+      },
+      { rootMargin: "350px" }
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [currentTabMovies.length]);
 
   // Xử lý đổi gợi ý ngẫu nhiên (Shuffle)
   const handleShuffle = () => {
@@ -266,6 +290,11 @@ export function RecommendationTabs({
               );
             })}
           </div>
+
+          {/* Sentinel kích hoạt cuộn tự động lazy load mượt mà */}
+          {currentTabMovies.length > visibleLimit && (
+            <div ref={sentinelRef} className="w-full h-8 pointer-events-none opacity-0" aria-hidden="true" />
+          )}
 
           {/* NÚT XEM THÊM PHIM ĐỀ XUẤT */}
           {currentTabMovies.length > visibleLimit && (

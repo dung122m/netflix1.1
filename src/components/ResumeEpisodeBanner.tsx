@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Play, RotateCcw, X } from "lucide-react";
 import { getWatchHistory } from "@/lib/watchHistory";
+import { useWatchController } from "./WatchController";
 
 interface ResumeEpisodeBannerProps {
   movieSlug: string;
@@ -12,8 +13,12 @@ interface ResumeEpisodeBannerProps {
 
 export const ResumeEpisodeBanner: React.FC<ResumeEpisodeBannerProps> = ({
   movieSlug,
-  activeEpisodeSlug,
+  activeEpisodeSlug: propActiveEpisodeSlug,
 }) => {
+  const watchContext = useWatchController();
+  const activeEpisodeSlug = watchContext?.activeEpisodeSlug ?? propActiveEpisodeSlug;
+  const switchEpisode = watchContext?.switchEpisode;
+
   const [resumeData, setResumeData] = useState<{
     episodeName?: string;
     episodeSlug?: string;
@@ -59,6 +64,12 @@ export const ResumeEpisodeBanner: React.FC<ResumeEpisodeBannerProps> = ({
           <Link
             href={`?ep=${resumeData.episodeSlug}`}
             scroll={false}
+            onClick={(e) => {
+              if (switchEpisode && resumeData.episodeSlug) {
+                e.preventDefault();
+                switchEpisode(resumeData.episodeSlug);
+              }
+            }}
             className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-netflix-red hover:bg-red-700 text-white text-xs font-bold transition shadow-md hover:scale-105"
           >
             <Play className="w-3 h-3 fill-white" />

@@ -7,6 +7,7 @@ import {
   getWatchedEpisodes,
   markEpisodeAsWatched,
 } from "@/lib/episodeTracker";
+import { useWatchController } from "./WatchController";
 
 const CHUNK_SIZE = 25;
 
@@ -21,13 +22,19 @@ interface EpisodeListProps {
   movieSlug: string;
   episodes: EpisodeItem[];
   activeEpisodeSlug?: string;
+  onSelectEpisode?: (slug: string) => void;
 }
 
 export const EpisodeList: React.FC<EpisodeListProps> = ({
   movieSlug,
   episodes = [],
-  activeEpisodeSlug,
+  activeEpisodeSlug: propActiveEpisodeSlug,
+  onSelectEpisode,
 }) => {
+  const watchContext = useWatchController();
+  const activeEpisodeSlug = watchContext?.activeEpisodeSlug ?? propActiveEpisodeSlug;
+  const switchEpisode = watchContext?.switchEpisode ?? onSelectEpisode;
+
   const [watchedList, setWatchedList] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -169,6 +176,12 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
                 key={tap.slug}
                 href={`?ep=${tap.slug}`}
                 scroll={false}
+                onClick={(e) => {
+                  if (switchEpisode) {
+                    e.preventDefault();
+                    switchEpisode(tap.slug);
+                  }
+                }}
                 className={`relative flex items-center justify-center text-center py-2.5 px-1 rounded-lg text-xs font-semibold transition group ${
                   isActive
                     ? "bg-netflix-red text-white shadow-lg shadow-red-950/60 scale-[1.02] ring-1 ring-white/30"

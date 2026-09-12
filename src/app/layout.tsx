@@ -76,6 +76,10 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://i.ytimg.com" />
         <link rel="preconnect" href="https://www.youtube-nocookie.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://www.youtube-nocookie.com" />
+        <link rel="preconnect" href="https://s1.phimapi.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://s1.phimapi.com" />
+        <link rel="dns-prefetch" href="https://vip.opstream16.com" />
+        <link rel="dns-prefetch" href="https://hls.vsmov.com" />
 
         {/* Khởi tạo màu giao diện và chế độ sáng/tối tức thì chống chớp nháy màu khi tải trang */}
         <script

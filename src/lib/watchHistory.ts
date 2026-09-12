@@ -8,6 +8,8 @@ export interface WatchHistoryItem {
   quality?: string;
   category?: string;
   updatedAt: number;
+  progressSeconds?: number;
+  durationSeconds?: number;
 }
 
 const HISTORY_KEY = "nanaflix_watch_history";
@@ -31,11 +33,14 @@ export const saveWatchHistory = (
   if (typeof window === "undefined" || !item.slug) return;
   try {
     const list = getWatchHistory();
-    // Loại bỏ mục cũ nếu có để đưa lên đầu danh sách
+    // Loại bỏ mục cũ nếu có để đưa lên đầu danh sách, nhưng giữ lại progressSeconds nếu chưa truyền mới
+    const existing = list.find((i) => i.slug === item.slug);
     const filtered = list.filter((i) => i.slug !== item.slug);
 
     const newItem: WatchHistoryItem = {
       ...item,
+      progressSeconds: item.progressSeconds ?? existing?.progressSeconds,
+      durationSeconds: item.durationSeconds ?? existing?.durationSeconds,
       updatedAt: Date.now(),
     };
 
@@ -44,6 +49,49 @@ export const saveWatchHistory = (
     window.dispatchEvent(new CustomEvent("watch-history-updated"));
   } catch (error) {
     console.error("Lỗi lưu lịch sử xem:", error);
+  }
+};
+
+export const saveWatchProgress = (
+  slug: string,
+  progressSeconds: number,
+  durationSeconds?: number,
+  episodeSlug?: string,
+): void => {
+  if (typeof window === "undefined" || !slug) return;
+  try {
+    const list = getWatchHistory();
+    const existing = list.find((i) => i.slug === slug);
+    if (!existing) return;
+
+    existing.progressSeconds = Math.floor(progressSeconds);
+    if (durationSeconds && durationSeconds > 0) {
+      existing.durationSeconds = Math.floor(durationSeconds);
+    }
+    if (episodeSlug) {
+      existing.episodeSlug = episodeSlug;
+    }
+    existing.updatedAt = Date.now();
+
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
+    // Không dispatch custom event liên tục mỗi vài giây để tránh re-render ngoài ý muốn
+  } catch (error) {
+    console.error("Lỗi lưu tiến trình xem:", error);
+  }
+};
+
+export const getWatchProgress = (slug: string, episodeSlug?: string): number => {
+  if (typeof window === "undefined" || !slug) return 0;
+  try {
+    const list = getWatchHistory();
+    const existing = list.find((i) => i.slug === slug);
+    if (!existing) return 0;
+    if (episodeSlug && existing.episodeSlug && existing.episodeSlug !== episodeSlug) {
+      return 0;
+    }
+    return existing.progressSeconds || 0;
+  } catch {
+    return 0;
   }
 };
 
