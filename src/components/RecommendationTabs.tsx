@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useMemo, useRef, useEffect } from "react";
-import { MovieCard } from "./MovieCard";
+import Link from "next/link";
+import Image from "next/image";
 import {
   Sparkles,
   Clapperboard,
@@ -11,7 +12,9 @@ import {
   Shuffle,
   ChevronDown,
   ChevronUp,
+  Play,
 } from "lucide-react";
+import { pickBestMovieThumb } from "@/lib/movieMedia";
 import { toast } from "./Toast";
 
 interface MovieItem {
@@ -267,29 +270,20 @@ export function RecommendationTabs({
         </div>
       </div>
 
-      {/* 2. LƯỚI PHIM GỢI Ý ĐẸP MẮT */}
+      {/* 2. LƯỚI PHIM GỢI Ý ĐẸP MẮT THEO PHONG CÁCH TIẾP TỤC XEM (16:9 GỌN GÀNG, KHÔNG RỐI MẮT) */}
       {displayedMovies.length > 0 ? (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3.5 sm:gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4.5">
             {displayedMovies.map((item, index) => {
               // Điểm tương đồng giả lập thông minh (98% -> 85%) theo thứ tự tuyển chọn
               const matchPercent = Math.max(85, 98 - (index % 12));
 
               return (
-                <div
+                <RecommendedMovieCard
                   key={item.slug}
-                  className="relative group/rec"
-                >
-                  {/* Badge độ tương đồng thông minh của Nana */}
-                  <div className="absolute top-2 left-2 z-20 pointer-events-none">
-                    <span className="px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-black/80 backdrop-blur-md text-amber-300 border border-amber-500/40 shadow-lg flex items-center gap-1">
-                      <Sparkles className="w-2.5 h-2.5 text-amber-400 fill-current" />
-                      <span>{matchPercent}% Khớp</span>
-                    </span>
-                  </div>
-
-                  <MovieCard m={item} />
-                </div>
+                  item={item}
+                  matchPercent={matchPercent}
+                />
               );
             })}
           </div>
@@ -342,6 +336,93 @@ export function RecommendationTabs({
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * Thẻ phim đề xuất phong cách Tiếp tục xem (Aspect-Video 16:9, thoáng đãng, không bị đè chữ lên hình)
+ */
+function RecommendedMovieCard({
+  item,
+  matchPercent,
+}: {
+  item: MovieItem;
+  matchPercent: number;
+}) {
+  const thumbUrl = pickBestMovieThumb(item, "/default-hero.jpg");
+  const title = item.name || item.title || "Phim đề xuất";
+  const categoryName = item.category?.[0]?.name;
+  const year = item.year;
+  const time = item.time;
+  const quality = item.quality || "FHD";
+  const score = item.score || item.imdb?.vote_average;
+
+  return (
+    <div className="group relative bg-zinc-900 rounded-2xl overflow-hidden border border-white/10 hover:border-white/25 transition-all duration-300 hover:scale-[1.02] shadow-md hover:shadow-2xl flex flex-col">
+      <Link href={`/movies/${item.slug}`} className="block h-full flex flex-col">
+        {/* 1. ẢNH THUMBNAIL (aspect-video 16:9 chuẩn như Tiếp tục xem) */}
+        <div className="relative aspect-video w-full bg-zinc-950 overflow-hidden">
+          <Image
+            src={thumbUrl}
+            alt={title}
+            fill
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
+            decoding="async"
+            loading="lazy"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+
+          {/* Badge % Khớp thông minh góc trên bên trái */}
+          <div className="absolute top-2 left-2 z-10 pointer-events-none">
+            <span className="px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wide bg-black/80 backdrop-blur-md text-amber-300 border border-amber-500/30 flex items-center gap-1 shadow-md">
+              <Sparkles className="w-2.5 h-2.5 text-amber-400 fill-current" />
+              <span>{matchPercent}% Khớp</span>
+            </span>
+          </div>
+
+          {/* Badge Chất lượng / Điểm số góc trên bên phải */}
+          <div className="absolute top-2 right-2 z-10 flex items-center gap-1 pointer-events-none">
+            {score && Number(score) > 0 && (
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 backdrop-blur-md text-amber-300 border border-amber-500/30 flex items-center gap-0.5">
+                <Star className="w-2.5 h-2.5 fill-current" />
+                <span>{typeof score === "number" ? score.toFixed(1) : score}</span>
+              </span>
+            )}
+            {quality && (
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-black/75 backdrop-blur-md text-zinc-300 border border-white/10">
+                {quality}
+              </span>
+            )}
+          </div>
+
+          {/* Nút Play trung tâm khi hover */}
+          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-red-600 text-white flex items-center justify-center shadow-xl shadow-red-950/70 transform group-hover:scale-110 transition-transform">
+              <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-white ml-0.5" />
+            </div>
+          </div>
+        </div>
+
+        {/* 2. THÔNG TIN PHIM BÊN DƯỚI (Ngăn nắp, thoáng đãng, không bị đè lên hình) */}
+        <div className="p-3 sm:p-3.5 flex-1 flex flex-col justify-between">
+          <h4 className="text-white text-xs sm:text-sm font-semibold truncate group-hover:text-red-500 transition-colors leading-snug">
+            {title}
+          </h4>
+          <div className="flex items-center justify-between text-[11px] sm:text-xs text-zinc-400 mt-2 gap-1">
+            <div className="flex items-center gap-1.5 truncate">
+              {year && <span>{year}</span>}
+              {time && <span className="text-zinc-500 truncate">• {time}</span>}
+            </div>
+            {categoryName && (
+              <span className="text-[10px] sm:text-[11px] font-medium text-zinc-400 bg-white/5 px-2 py-0.5 rounded border border-white/5 truncate max-w-[85px] sm:max-w-[110px] shrink-0">
+                {categoryName}
+              </span>
+            )}
+          </div>
+        </div>
+      </Link>
     </div>
   );
 }
