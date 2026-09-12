@@ -11,8 +11,7 @@ export function isBlockedStreamUrl(streamUrl: string): boolean {
     return (
       BLOCKED_STREAM_HOSTS.has(hostname) ||
       hostname.endsWith(".dpdns.org") ||
-      hostname.endsWith(".msdht.app") ||
-      /\/su-kien-02\//i.test(streamUrl)
+      hostname.endsWith(".msdht.app")
     );
   } catch {
     return true;
