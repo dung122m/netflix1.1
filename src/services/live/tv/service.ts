@@ -97,6 +97,20 @@ export function getVtvOfficialLogo(name: string): string {
   return "";
 }
 
+// Hàm gán logo HTV chuẩn chính thức
+export function getHtvOfficialLogo(name: string): string {
+  const upper = name.toUpperCase();
+  if (upper.includes("THỂ THAO") || upper.includes("THE THAO")) {
+    return "/images/channels/htv-thethao.svg";
+  }
+  if (/\bHTV\s*7\b|\bHTV7\b/i.test(name)) return "/images/channels/htv7.svg";
+  if (/\bHTV\s*9\b|\bHTV9\b/i.test(name)) return "/images/channels/htv9.svg";
+  if (/\bHTV\s*1\b|\bHTV1\b/i.test(name)) return "/images/channels/htv1.svg";
+  if (/\bHTV\s*2\b|\bHTV2\b/i.test(name)) return "/images/channels/htv2.svg";
+  if (/\bHTV\s*3\b|\bHTV3\b/i.test(name)) return "/images/channels/htv3.svg";
+  return "/images/channels/htv7.svg";
+}
+
 // Danh sách kênh Quốc Gia & Thể Thao ĐÃ KIỂM TRA 100% HOẠT ĐỘNG (FHD 1080p / 720p - Master Index)
 const VERIFIED_CHANNELS: TvChannel[] = [
   // --- KÊNH VTV CHÍNH THỨC (FHD 1080P VỚI LOGO VECTOR CHÍNH THỨC) ---
@@ -204,7 +218,7 @@ const VERIFIED_CHANNELS: TvChannel[] = [
   {
     id: "htv-thethao-fhd",
     name: "HTV Thể Thao HD",
-    logo: "https://i.imgur.com/KEMSBD3.png",
+    logo: "/images/channels/htv-thethao.svg",
     url: "https://live.fptplay53.net/live/media/htvthethao/live247-hls-avc/index.m3u8",
     fallbackUrl: "https://live.fptplay53.net/epzhd1/htvcthethao_vhls.smil/chunklist.m3u8",
     category: "Kênh Thể Thao",
@@ -213,7 +227,7 @@ const VERIFIED_CHANNELS: TvChannel[] = [
   {
     id: "htv7-fhd",
     name: "HTV7 HD",
-    logo: "https://i.imgur.com/KEMSBD3.png",
+    logo: "/images/channels/htv7.svg",
     url: "https://live.fptplay53.net/live/media/htv7/live247-hls-avc/index.m3u8",
     fallbackUrl: "https://live.fptplay53.net/epzhd1/htv7hd_vhls.smil/chunklist_b5000000.m3u8",
     category: "Kênh HTV & HTVC",
@@ -222,7 +236,7 @@ const VERIFIED_CHANNELS: TvChannel[] = [
   {
     id: "htv9-fhd",
     name: "HTV9 HD",
-    logo: "https://i.imgur.com/KEMSBD3.png",
+    logo: "/images/channels/htv9.svg",
     url: "https://live.fptplay53.net/live/media/htv9/live247-hls-avc/index.m3u8",
     fallbackUrl: "https://live.fptplay53.net/epzhd1/htv9hd_vhls.smil/chunklist_b5000000.m3u8",
     category: "Kênh HTV & HTVC",
@@ -231,7 +245,7 @@ const VERIFIED_CHANNELS: TvChannel[] = [
   {
     id: "htv1-hd",
     name: "HTV1",
-    logo: "https://i.imgur.com/KEMSBD3.png",
+    logo: "/images/channels/htv1.svg",
     url: "https://live.fptplay53.net/epzhd1/htv1_hls.smil/chunklist.m3u8",
     category: "Kênh HTV & HTVC",
     quality: "HD 720p",
@@ -239,7 +253,7 @@ const VERIFIED_CHANNELS: TvChannel[] = [
   {
     id: "htv2-hd",
     name: "HTV2 - Vie Channel HD",
-    logo: "https://i.imgur.com/KEMSBD3.png",
+    logo: "/images/channels/htv2.svg",
     url: "https://live.fptplay53.net/epzhd1/htv2hd_vhls.smil/chunklist_b5000000.m3u8",
     category: "Kênh HTV & HTVC",
     quality: "FHD 1080p",
@@ -247,7 +261,7 @@ const VERIFIED_CHANNELS: TvChannel[] = [
   {
     id: "htv3-hd",
     name: "HTV3 - DreamsTV (Thiếu Nhi)",
-    logo: "https://i.imgur.com/KEMSBD3.png",
+    logo: "/images/channels/htv3.svg",
     url: "https://live.fptplay53.net/epzhd1/htv3_hls.smil/chunklist.m3u8",
     category: "Kênh HTV & HTVC",
     quality: "HD 720p",
@@ -544,10 +558,13 @@ export const liveTvService = {
             finalUrl.includes("fnxhd") ||
             finalUrl.includes("epzhd");
 
-          // Nếu là kênh VTV, chỉ gán logo vector chuẩn VTV nếu logo nguồn thiếu/lỗi
+          // Nếu là kênh VTV hoặc HTV, gán logo vector chuẩn chính thức
           const vtvLogo = getVtvOfficialLogo(rawName);
           if (vtvLogo) {
             logo = vtvLogo;
+          } else if (upperName.includes("HTV") && !upperName.includes("HTVC")) {
+            const htvLogo = getHtvOfficialLogo(rawName);
+            if (htvLogo) logo = htvLogo;
           }
 
           // Giữ nguyên 100% logo gốc từ nguồn cho tất cả các kênh khác

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 360" width="960" height="360" fill="none">
+  <g transform="translate(100, 60)">
+    <path d="M 40 0 L 160 0 L 120 180 L 0 180 Z" fill="#E50914" />
+    <text x="75" y="140" font-family="'Arial Black', Impact, sans-serif" font-size="120" font-weight="900" font-style="italic" fill="#FFFFFF" text-anchor="middle">H</text>
+
+    <path d="M 175 0 L 295 0 L 255 180 L 135 180 Z" fill="#0072CE" />
+    <text x="210" y="140" font-family="'Arial Black', Impact, sans-serif" font-size="120" font-weight="900" font-style="italic" fill="#FFFFFF" text-anchor="middle">T</text>
+
+    <path d="M 310 0 L 430 0 L 390 180 L 270 180 Z" fill="#0C2340" />
+    <text x="345" y="140" font-family="'Arial Black', Impact, sans-serif" font-size="120" font-weight="900" font-style="italic" fill="#FFFFFF" text-anchor="middle">V</text>
+
+    <g transform="translate(460, 0)">
+      <path d="M 40 0 L 240 0 L 200 180 L 0 180 Z" fill="#E02475" />
+      <text x="115" y="145" font-family="'Montserrat', 'Arial Black', Impact, sans-serif" font-size="150" font-weight="900" font-style="italic" fill="#FFFFFF" text-anchor="middle">2</text>
+    </g>
+  </g>
+</svg>

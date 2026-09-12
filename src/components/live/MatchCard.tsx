@@ -139,33 +139,48 @@ function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
 
       {/* 2. KHU VỰC LOGO & ĐỐI ĐẦU HOẶC SỰ KIỆN THỂ THAO */}
       {match.isEvent ? (
-        <div className="football-scoreboard my-2 min-h-[140px] rounded-2xl bg-gradient-to-br from-red-950/40 via-zinc-950/95 to-black border border-red-500/25 backdrop-blur-sm relative z-10 flex flex-col justify-between overflow-hidden p-3.5 sm:p-4 text-center group/event">
-          {validEventLogo && (
-            <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+        <div className="football-scoreboard my-2 p-2.5 sm:p-3 rounded-2xl bg-gradient-to-b from-black/80 to-zinc-950 border border-white/10 relative z-10 flex flex-col justify-between">
+          {validEventLogo ? (
+            <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-white/10 bg-zinc-900 mb-2 shadow-inner group/poster">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={match.logo || match.homeLogo}
                 alt={match.title}
-                className="w-full h-full object-cover object-center filter brightness-[0.35] group-hover/event:scale-105 group-hover/event:brightness-[0.5] transition-all duration-500"
+                className="w-full h-full object-cover object-center transform group-hover/poster:scale-105 transition-transform duration-500"
                 onError={() => setLogoError(true)}
                 loading="lazy"
                 referrerPolicy="no-referrer"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/30" />
+              <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-md border border-white/15 text-[9.5px] font-black text-rose-300 uppercase tracking-wider">
+                {match.group === "Sự Kiện FPT Play" ? "FPT Play" : "Sự kiện"}
+              </div>
+              <div className="absolute inset-0 bg-black/20 group-hover/poster:bg-black/0 transition-colors flex items-center justify-center">
+                <div className="w-9 h-9 rounded-full bg-netflix-red/90 text-white flex items-center justify-center shadow-lg shadow-black/80 transform scale-90 group-hover/poster:scale-100 transition-transform">
+                  <Play className="w-4 h-4 fill-white ml-0.5" />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="my-2 min-h-[90px] p-3 rounded-xl bg-gradient-to-br from-red-950/30 via-zinc-950 to-black border border-red-500/20 flex flex-col items-center justify-center text-center">
+              <span className="text-[10px] font-black uppercase tracking-[0.16em] text-rose-300 bg-rose-500/15 px-2.5 py-0.5 rounded-full border border-rose-500/30 mb-1.5">
+                {match.group === "Sự Kiện FPT Play" ? "FPT Play Event" : "Sự kiện thể thao"}
+              </span>
+              <strong className="text-sm font-black text-white line-clamp-2 leading-tight">
+                {match.title || match.team1}
+              </strong>
             </div>
           )}
 
-          <div className="relative z-10 flex flex-col items-center justify-center flex-1 my-auto">
-            <span className="text-[10px] font-black uppercase tracking-[0.16em] text-rose-300 bg-rose-500/20 px-2.5 py-0.5 rounded-full border border-rose-500/40 shadow-sm backdrop-blur-md">
-              {match.group === "Sự Kiện FPT Play" ? "FPT Play Event" : "Sự kiện thể thao"}
-            </span>
-            <strong className="mt-2 text-sm sm:text-base font-black text-white line-clamp-2 leading-tight drop-shadow-md">
+          <div className="flex flex-col gap-1 px-1">
+            <strong className="text-xs sm:text-sm font-black text-white line-clamp-1 leading-snug group-hover:text-rose-400 transition">
               {match.title || match.team1}
             </strong>
             {match.blv && (
-              <span className="mt-1.5 text-[11px] font-extrabold text-rose-300 bg-black/80 px-2.5 py-0.5 rounded-full border border-white/15 backdrop-blur-sm shadow-sm">
-                🎙️ BLV {match.blv}
-              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10.5px] font-bold text-gray-300 bg-white/10 px-2 py-0.5 rounded-md truncate max-w-full">
+                  🎙️ {match.blv}
+                </span>
+              </div>
             )}
           </div>
         </div>
