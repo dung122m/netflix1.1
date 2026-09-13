@@ -229,19 +229,33 @@ export async function deleteAllUserComments(userId: string): Promise<number> {
  * Lấy hồ sơ người dùng đầy đủ từ Firestore (bao gồm bio, sở thích, avatar tùy chỉnh)
  */
 export async function getUserProfile(userId: string): Promise<UserProfile | null> {
-  if (!db || !userId) return null;
-  try {
-    const docRef = doc(db, USERS_COLLECTION, userId);
-    const snap = await getDoc(docRef);
-    if (!snap.exists()) return null;
-    return {
-      uid: snap.id,
-      ...(snap.data() as Omit<UserProfile, "uid">),
-    };
-  } catch (err) {
-    console.warn("Lỗi đọc hồ sơ user:", userId, err);
-    return null;
+  if (!userId) return null;
+
+  if (db) {
+    try {
+      const docRef = doc(db, USERS_COLLECTION, userId);
+      const snap = await getDoc(docRef);
+      if (snap.exists()) {
+        return {
+          uid: snap.id,
+          ...(snap.data() as Omit<UserProfile, "uid">),
+        };
+      }
+    } catch (err) {
+      console.warn("Lỗi đọc hồ sơ user trực tiếp:", userId, err);
+    }
   }
+
+  // Fallback đọc qua Server API
+  try {
+    const res = await fetch(`/api/user-profile?userId=${encodeURIComponent(userId)}`);
+    if (res.ok) {
+      const json = await res.json();
+      if (json.profile) return json.profile as UserProfile;
+    }
+  } catch {}
+
+  return null;
 }
 
 /**
@@ -252,15 +266,36 @@ export function subscribeUserProfile(
   onUpdate: (profile: UserProfile | null) => void,
   onError?: (err: Error) => void
 ): Unsubscribe {
-  if (!db || !userId) {
+  if (!userId) {
     onUpdate(null);
     return () => {};
   }
 
+  let isUnsubscribed = false;
+  let hasReceivedSnapshot = false;
+
+  // Nạp ngay dữ liệu từ Server API tức thì trong 50ms
+  fetch(`/api/user-profile?userId=${encodeURIComponent(userId)}`)
+    .then((res) => res.json())
+    .then((json) => {
+      if (json.profile && !hasReceivedSnapshot && !isUnsubscribed) {
+        onUpdate(json.profile as UserProfile);
+      }
+    })
+    .catch(() => {});
+
+  if (!db) {
+    return () => {
+      isUnsubscribed = true;
+    };
+  }
+
   const userRef = doc(db, USERS_COLLECTION, userId);
-  return onSnapshot(
+  const unsubscribe = onSnapshot(
     userRef,
     (snap) => {
+      if (isUnsubscribed) return;
+      hasReceivedSnapshot = true;
       if (snap.exists()) {
         onUpdate({
           uid: snap.id,
@@ -275,6 +310,11 @@ export function subscribeUserProfile(
       if (onError) onError(err);
     }
   );
+
+  return () => {
+    isUnsubscribed = true;
+    unsubscribe();
+  };
 }
 
 /**
@@ -292,7 +332,7 @@ export async function updateUserProfile(
     badges?: string[];
   }
 ): Promise<void> {
-  if (!db || !userId) return;
+  if (!userId) return;
 
   const payload: Record<string, unknown> = {
     updatedAt: Date.now(),
@@ -317,8 +357,46 @@ export async function updateUserProfile(
     payload.badges = data.badges;
   }
 
-  const userRef = doc(db, USERS_COLLECTION, userId);
-  await setDoc(userRef, payload, { merge: true });
+  let savedSuccessfully = false;
+
+  if (db) {
+    try {
+      const userRef = doc(db, USERS_COLLECTION, userId);
+      await Promise.race([
+        setDoc(userRef, payload, { merge: true }),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("setDoc timeout")), 3500)
+        ),
+      ]);
+      savedSuccessfully = true;
+    } catch (err) {
+      console.warn("Lỗi ghi Firestore userRef trực tiếp, chuyển sang Server API Fallback:", err);
+    }
+  }
+
+  if (!savedSuccessfully) {
+    let authHeader = "";
+    if (authUser) {
+      try {
+        const idToken = await authUser.getIdToken();
+        authHeader = `Bearer ${idToken}`;
+      } catch {}
+    }
+
+    const res = await fetch("/api/user-profile", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(authHeader ? { Authorization: authHeader } : {}),
+      },
+      body: JSON.stringify({ userId, ...payload }),
+    });
+
+    if (!res.ok) {
+      const resJson = await res.json().catch(() => ({}));
+      throw new Error(resJson.error || "Không thể lưu hồ sơ cá nhân lúc này!");
+    }
+  }
 
   // Cập nhật profile Firebase Auth nếu đang đăng nhập đúng tài khoản
   if (authUser && authUser.uid === userId) {
