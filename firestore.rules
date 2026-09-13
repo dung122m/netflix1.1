@@ -9,8 +9,8 @@ service cloud.firestore {
 
     // 1. Dữ liệu hồ sơ người dùng và các danh mục con (lịch sử, watchlist, bộ sưu tập, thông báo)
     match /users/{userId} {
-      // Cho phép Admin đọc danh sách người dùng, hoặc chính chủ đọc/ghi hồ sơ của họ
-      allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      // Cho phép thành viên đã đăng nhập đọc thông tin hồ sơ (phục vụ Leaderboard, Comment, Cấp độ)
+      allow read: if request.auth != null;
       allow write: if request.auth != null && (request.auth.uid == userId || isAdmin());
 
       // Các mục con bên trong users/{userId} (watch_history, watchlist, collections, followed_series, ...)
