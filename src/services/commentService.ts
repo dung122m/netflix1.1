@@ -282,6 +282,85 @@ export function subscribeCommentReplies(
 }
 
 /**
+ * Lắng nghe tất cả bình luận do một Người Dùng đăng theo thời gian thực
+ */
+export function subscribeUserComments(
+  userId: string,
+  onUpdate: (comments: MovieComment[]) => void,
+  onError?: (err: Error) => void,
+): Unsubscribe {
+  if (!userId) {
+    onUpdate([]);
+    return () => {};
+  }
+
+  let isUnsubscribed = false;
+
+  const fallbackFetch = async () => {
+    try {
+      const res = await fetch(`/api/comments?userId=${encodeURIComponent(userId)}&all=true`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.items && !isUnsubscribed) {
+          onUpdate(data.items);
+        }
+      }
+    } catch {}
+  };
+
+  // Nạp dữ liệu lập tức từ Server API trong 50ms
+  fallbackFetch();
+
+  if (!db) {
+    const interval = setInterval(fallbackFetch, 8000);
+    return () => {
+      isUnsubscribed = true;
+      clearInterval(interval);
+    };
+  }
+
+  const commentsRef = collection(db, COLLECTION_NAME);
+  const q = query(
+    commentsRef,
+    where("userId", "==", userId),
+    limit(300),
+  );
+
+  let fallbackInterval: NodeJS.Timeout | null = null;
+
+  const unsubscribe = onSnapshot(
+    q,
+    (snapshot) => {
+      if (isUnsubscribed) return;
+      const items: MovieComment[] = [];
+      snapshot.forEach((docSnap) => {
+        const commentData = {
+          id: docSnap.id,
+          ...(docSnap.data() as Omit<MovieComment, "id">),
+        };
+        items.push(commentData);
+      });
+      items.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      onUpdate(items);
+    },
+    (error) => {
+      console.warn("Lỗi tải bình luận cá nhân từ Firestore client, dùng Server API Fallback:", error);
+      fallbackFetch();
+      if (!fallbackInterval && !isUnsubscribed) {
+        fallbackInterval = setInterval(fallbackFetch, 8000);
+      }
+      if (onError) onError(error);
+    },
+  );
+
+  return () => {
+    isUnsubscribed = true;
+    if (fallbackInterval) clearInterval(fallbackInterval);
+    unsubscribe();
+  };
+}
+
+/**
  * Lắng nghe toàn bộ bình luận từ cộng đồng theo thời gian thực (Dành riêng cho Quản Trị Viên)
  */
 export function subscribeAllComments(

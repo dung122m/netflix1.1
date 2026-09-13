@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+import Link from "next/link";
 import {
   X,
   User,
@@ -14,6 +15,12 @@ import {
   Trophy,
   Flame,
   Lock,
+  MessageSquare,
+  Star,
+  Trash2,
+  ExternalLink,
+  Clock,
+  ThumbsUp,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -21,8 +28,11 @@ import {
   updateUserProfile,
   getWatchLevelInfo,
 } from "@/services/userService";
+import { subscribeUserComments, deleteMovieComment } from "@/services/commentService";
+import { MovieComment } from "@/types/comment";
 import { UserProfile } from "@/types/user";
 import { toast } from "@/components/Toast";
+import { showConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 // Danh sách Avatar đẹp chuẩn VIP Cinema & Anime Style
 export const PRESET_AVATARS = [
@@ -85,17 +95,58 @@ function UserProfileModalInner() {
   const [badgeHint, setBadgeHint] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [useCustomUrl, setUseCustomUrl] = useState(false);
+  const [activeTab, setActiveTab] = useState<"profile" | "comments">("profile");
+  const [userComments, setUserComments] = useState<MovieComment[]>([]);
+  const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
 
   // Lắng nghe sự kiện mở modal từ mọi nơi trong ứng dụng
   useEffect(() => {
-    const handleOpen = () => setIsOpen(true);
-    window.addEventListener("open-user-profile-modal", handleOpen);
-    window.addEventListener("open-user-profile", handleOpen);
+    const handleOpen = (e: Event) => {
+      setIsOpen(true);
+      const customEv = e as CustomEvent;
+      if (customEv?.detail?.tab === "comments") {
+        setActiveTab("comments");
+      }
+    };
+    window.addEventListener("open-user-profile-modal", handleOpen as EventListener);
+    window.addEventListener("open-user-profile", handleOpen as EventListener);
     return () => {
-      window.removeEventListener("open-user-profile-modal", handleOpen);
-      window.removeEventListener("open-user-profile", handleOpen);
+      window.removeEventListener("open-user-profile-modal", handleOpen as EventListener);
+      window.removeEventListener("open-user-profile", handleOpen as EventListener);
     };
   }, []);
+
+  // Lắng nghe danh sách bình luận của chính người dùng theo thời gian thực
+  useEffect(() => {
+    if (!user?.uid || !isOpen) return;
+    const unsub = subscribeUserComments(user.uid, (items) => {
+      setUserComments(items);
+    });
+    return () => unsub();
+  }, [user?.uid, isOpen]);
+
+  const handleDeleteComment = async (commentId: string) => {
+    const confirmed = await showConfirmDialog({
+      title: "Xóa bình luận",
+      message: "Bạn có chắc chắn muốn xóa nhận xét này? Bình luận sẽ bị gỡ vĩnh viễn khỏi bộ phim.",
+      confirmText: "Xóa bình luận",
+      cancelText: "Giữ lại",
+      variant: "danger",
+    });
+
+    if (!confirmed) return;
+
+    setDeletingCommentId(commentId);
+    try {
+      await deleteMovieComment(commentId);
+      toast.success("Đã xóa bình luận thành công!");
+    } catch (err) {
+      console.error("Lỗi xóa bình luận:", err);
+      toast.error("Không thể xóa bình luận lúc này!");
+    } finally {
+      setDeletingCommentId(null);
+    }
+  };
 
   // Khóa cuộn trang khi mở modal
   useEffect(() => {
@@ -305,7 +356,7 @@ function UserProfileModalInner() {
                 <Sparkles className="w-4 h-4 text-amber-400" />
               </h3>
               <p className="text-xs text-gray-400">
-                Tùy chỉnh ảnh đại diện, danh hiệu và cấp độ cày phim của bạn.
+                Tùy chỉnh ảnh đại diện, danh hiệu, lịch sử bình luận và cấp độ cày phim.
               </p>
             </div>
           </div>
@@ -323,285 +374,404 @@ function UserProfileModalInner() {
           </button>
         </div>
 
-        {/* CẤP ĐỘ CÀY PHIM (WATCH LEVEL CARD) */}
-        <div className="p-4 rounded-2xl border border-white/10 bg-white/5 space-y-2">
-          <div className="flex items-center justify-between text-xs sm:text-sm">
-            <div className="flex items-center gap-2">
-              <span className="text-lg">{levelInfo.badgeIcon}</span>
-              <span className="font-extrabold text-white">{levelInfo.levelName}</span>
-              <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10.5px] font-bold">
-                Level VIP
-              </span>
-            </div>
-            <div className="flex items-center gap-1 text-xs text-amber-400 font-bold">
-              <Flame className="w-3.5 h-3.5 fill-amber-400" />
-              <span>{watchHours} giờ cày phim</span>
-            </div>
-          </div>
+        {/* TAB CHUYỂN ĐỔI: HỒ SƠ & LỊCH SỬ BÌNH LUẬN */}
+        <div className="flex items-center gap-2 bg-white/5 p-1 rounded-2xl border border-white/10">
+          <button
+            type="button"
+            onClick={() => setActiveTab("profile")}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+              activeTab === "profile"
+                ? "bg-netflix-red text-white shadow-md shadow-rose-950/50"
+                : "text-gray-400 hover:text-white hover:bg-white/5"
+            }`}
+          >
+            <User className="w-3.5 h-3.5" />
+            <span>Hồ Sơ VIP</span>
+          </button>
 
-          {/* Thanh Tiến Độ Lên Cấp */}
-          {levelInfo.nextMinMinutes && (
-            <div className="space-y-1 pt-1">
-              <div className="flex justify-between text-[11px] text-gray-400">
-                <span>Tiến độ lên {levelInfo.nextLevelName}:</span>
-                <span>
-                  {watchMins} / {levelInfo.nextMinMinutes} phút
-                </span>
-              </div>
-              <div className="w-full bg-zinc-800 h-2 rounded-full overflow-hidden">
-                <div
-                  className="bg-gradient-to-r from-amber-500 to-rose-500 h-full rounded-full transition-all duration-500"
-                  style={{
-                    width: `${Math.min(
-                      100,
-                      Math.max(5, (watchMins / levelInfo.nextMinMinutes) * 100)
-                    )}%`,
-                  }}
-                />
-              </div>
-            </div>
-          )}
+          <button
+            type="button"
+            onClick={() => setActiveTab("comments")}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+              activeTab === "comments"
+                ? "bg-netflix-red text-white shadow-md shadow-rose-950/50"
+                : "text-gray-400 hover:text-white hover:bg-white/5"
+            }`}
+          >
+            <MessageSquare className="w-3.5 h-3.5" />
+            <span>Lịch Sử Bình Luận ({userComments.length})</span>
+          </button>
         </div>
 
-        <form onSubmit={handleSave} className="space-y-5">
-          {/* 1. CHỌN KHO AVATAR VIP & TẢI ẢNH CÁ NHÂN */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-gray-300 uppercase tracking-wider block">
-                1. Kho Avatar VIP & Tải ảnh riêng
-              </label>
+        {/* TAB 1: HỒ SƠ CÁ NHÂN */}
+        {activeTab === "profile" && (
+          <>
+            {/* CẤP ĐỘ CÀY PHIM (WATCH LEVEL CARD) */}
+            <div className="p-4 rounded-2xl border border-white/10 bg-white/5 space-y-2">
+              <div className="flex items-center justify-between text-xs sm:text-sm">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">{levelInfo.badgeIcon}</span>
+                  <span className="font-extrabold text-white">{levelInfo.levelName}</span>
+                  <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10.5px] font-bold">
+                    Level VIP
+                  </span>
+                </div>
+                <div className="flex items-center gap-1 text-xs text-amber-400 font-bold">
+                  <Flame className="w-3.5 h-3.5 fill-amber-400" />
+                  <span>{watchHours} giờ cày phim</span>
+                </div>
+              </div>
 
-              {/* NÚT TẢI ẢNH TỪ MÁY */}
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-netflix-red/20 border border-netflix-red/40 text-rose-300 hover:bg-netflix-red hover:text-white text-xs font-bold transition cursor-pointer"
-              >
-                <Upload className="w-3.5 h-3.5" />
-                <span>Tải ảnh từ máy</span>
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleFileUpload}
-                className="hidden"
-              />
-            </div>
-
-            {/* PRESET AVATARS GRID */}
-            <div className="grid grid-cols-4 sm:grid-cols-6 gap-2.5">
-              {PRESET_AVATARS.map((av) => {
-                const isSelected = !useCustomUrl && selectedAvatar === av.url;
-                return (
-                  <button
-                    key={av.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedAvatar(av.url);
-                      setUseCustomUrl(false);
-                    }}
-                    title={av.name}
-                    className={`relative aspect-square rounded-2xl border overflow-hidden p-1 transition-all cursor-pointer ${
-                      isSelected
-                        ? "border-netflix-red bg-netflix-red/20 ring-2 ring-netflix-red scale-105"
-                        : "border-white/10 bg-white/5 hover:border-white/30 hover:bg-white/10"
-                    }`}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={av.url}
-                      alt={av.name}
-                      className="w-full h-full object-cover rounded-xl"
-                    />
-                    {isSelected && (
-                      <div className="absolute inset-0 bg-netflix-red/40 flex items-center justify-center">
-                        <Check className="w-5 h-5 text-white font-black stroke-[3]" />
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* OPTION NHẬP URL AVATAR TỰ CHỌN */}
-            <div className="flex items-center gap-2 pt-1">
-              <button
-                type="button"
-                onClick={() => setUseCustomUrl(!useCustomUrl)}
-                className="text-xs text-rose-400 hover:underline flex items-center gap-1 font-semibold cursor-pointer"
-              >
-                <Camera className="w-3.5 h-3.5" />
-                <span>{useCustomUrl ? "Dùng Avatar mẫu" : "Hoặc dán URL link ảnh bất kỳ"}</span>
-              </button>
-            </div>
-
-            {useCustomUrl && (
-              <div className="flex items-center gap-3">
-                <input
-                  type="url"
-                  value={customAvatarUrl}
-                  onChange={(e) => {
-                    setCustomAvatarUrl(e.target.value);
-                    setSelectedAvatar(e.target.value);
-                  }}
-                  placeholder="Dán đường dẫn URL ảnh của bạn (https://...)"
-                  className="flex-1 px-3.5 py-2 rounded-xl bg-zinc-900 border border-white/15 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-netflix-red transition"
-                />
-                {customAvatarUrl && (
-                  <div className="w-9 h-9 rounded-full border border-white/20 overflow-hidden flex-shrink-0">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={customAvatarUrl}
-                      alt="Preview"
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        e.currentTarget.style.display = "none";
+              {/* Thanh Tiến Độ Lên Cấp */}
+              {levelInfo.nextMinMinutes && (
+                <div className="space-y-1 pt-1">
+                  <div className="flex justify-between text-[11px] text-gray-400">
+                    <span>Tiến độ lên {levelInfo.nextLevelName}:</span>
+                    <span>
+                      {watchMins} / {levelInfo.nextMinMinutes} phút
+                    </span>
+                  </div>
+                  <div className="w-full bg-zinc-800 h-2 rounded-full overflow-hidden">
+                    <div
+                      className="bg-gradient-to-r from-amber-500 to-rose-500 h-full rounded-full transition-all duration-500"
+                      style={{
+                        width: `${Math.min(
+                          100,
+                          Math.max(5, (watchMins / levelInfo.nextMinMinutes) * 100)
+                        )}%`,
                       }}
                     />
                   </div>
+                </div>
+              )}
+            </div>
+
+            <form onSubmit={handleSave} className="space-y-5">
+              {/* 1. CHỌN KHO AVATAR VIP & TẢI ẢNH CÁ NHÂN */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-gray-300 uppercase tracking-wider block">
+                    1. Kho Avatar VIP & Tải ảnh riêng
+                  </label>
+
+                  {/* NÚT TẢI ẢNH TỪ MÁY */}
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-netflix-red/20 border border-netflix-red/40 text-rose-300 hover:bg-netflix-red hover:text-white text-xs font-bold transition cursor-pointer"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>Tải ảnh từ máy</span>
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                </div>
+
+                {/* PRESET AVATARS GRID */}
+                <div className="grid grid-cols-4 sm:grid-cols-6 gap-2.5">
+                  {PRESET_AVATARS.map((av) => {
+                    const isSelected = !useCustomUrl && selectedAvatar === av.url;
+                    return (
+                      <button
+                        key={av.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedAvatar(av.url);
+                          setUseCustomUrl(false);
+                        }}
+                        title={av.name}
+                        className={`relative aspect-square rounded-2xl border overflow-hidden p-1 transition-all cursor-pointer ${
+                          isSelected
+                            ? "border-netflix-red bg-netflix-red/20 ring-2 ring-netflix-red scale-105"
+                            : "border-white/10 bg-white/5 hover:border-white/30 hover:bg-white/10"
+                        }`}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={av.url}
+                          alt={av.name}
+                          className="w-full h-full object-cover rounded-xl"
+                        />
+                        {isSelected && (
+                          <div className="absolute inset-0 bg-netflix-red/40 flex items-center justify-center">
+                            <Check className="w-5 h-5 text-white font-black stroke-[3]" />
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* OPTION NHẬP URL AVATAR TỰ CHỌN */}
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setUseCustomUrl(!useCustomUrl)}
+                    className="text-xs text-rose-400 hover:underline flex items-center gap-1 font-semibold cursor-pointer"
+                  >
+                    <Camera className="w-3.5 h-3.5" />
+                    <span>{useCustomUrl ? "Dùng Avatar mẫu" : "Hoặc dán URL link ảnh bất kỳ"}</span>
+                  </button>
+                </div>
+
+                {useCustomUrl && (
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="url"
+                      value={customAvatarUrl}
+                      onChange={(e) => {
+                        setCustomAvatarUrl(e.target.value);
+                        setSelectedAvatar(e.target.value);
+                      }}
+                      placeholder="Dán đường dẫn URL ảnh của bạn (https://...)"
+                      className="flex-1 px-3.5 py-2 rounded-xl bg-zinc-900 border border-white/15 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-netflix-red transition"
+                    />
+                    {customAvatarUrl && (
+                      <div className="w-9 h-9 rounded-full border border-white/20 overflow-hidden flex-shrink-0">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={customAvatarUrl}
+                          alt="Preview"
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none";
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
+
+              {/* 2. TÊN HIỂN THỊ & TIỂU SỬ */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-gray-300 uppercase tracking-wider">
+                      2. Tên hiển thị
+                    </label>
+                    <span className="text-[11px] text-gray-500">{displayName.length}/40</span>
+                  </div>
+                  <input
+                    type="text"
+                    maxLength={40}
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    placeholder="Nhập tên hiển thị..."
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-white/15 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-netflix-red transition font-semibold"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-gray-300 uppercase tracking-wider">
+                      3. Tiểu sử (Bio Slogan)
+                    </label>
+                    <span className="text-[11px] text-gray-500">{bio.length}/150</span>
+                  </div>
+                  <textarea
+                    rows={2}
+                    maxLength={150}
+                    value={bio}
+                    onChange={(e) => setBio(e.target.value)}
+                    placeholder="Mê phim Marvel, cuồng cày phim bộ ban đêm 🍿..."
+                    className="w-full px-3.5 py-2 rounded-xl bg-zinc-900 border border-white/15 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-netflix-red transition resize-none leading-relaxed"
+                  />
+                </div>
+              </div>
+
+              {/* 4. BỘ DANH HIỆU SỞ HỮU (BADGES) */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-gray-300 uppercase tracking-wider block">
+                    4. Bộ Danh Hiệu (Mở khóa theo cấp độ cày phim)
+                  </label>
+                  <span className="text-[11px] text-amber-400 font-bold">
+                    Đã mở: {AVAILABLE_BADGES.filter((b) => watchMins >= b.minMinutesReq).length}/{AVAILABLE_BADGES.length}
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {AVAILABLE_BADGES.map((b) => {
+                    const isUnlocked = watchMins >= b.minMinutesReq;
+                    const active = isUnlocked && userBadges.includes(b.label);
+
+                    return (
+                      <button
+                        key={b.id}
+                        type="button"
+                        onClick={() => toggleBadge(b)}
+                        title={isUnlocked ? b.label : `Đang khóa - Cần ${b.reqText}`}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border flex items-center gap-1.5 ${
+                          !isUnlocked
+                            ? "bg-zinc-900/40 text-gray-500 border-white/5 opacity-55 hover:opacity-80"
+                            : active
+                            ? "bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-md shadow-amber-950/40 scale-102"
+                            : "bg-zinc-900 text-gray-300 border-white/10 hover:border-white/25 hover:text-white"
+                        }`}
+                      >
+                        {!isUnlocked ? (
+                          <Lock className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
+                        ) : null}
+                        <span>{b.label}</span>
+                        {active && <Check className="w-3 h-3 text-amber-300 flex-shrink-0" />}
+                      </button>
+                    );
+                  })}
+                </div>
+                {badgeHint && (
+                  <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-[11.5px] text-amber-300 font-semibold flex items-center gap-2 animate-in fade-in duration-150">
+                    <Lock className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+                    <span>{badgeHint}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* 5. SỞ THÍCH THỂ LOẠI */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-gray-300 uppercase tracking-wider block">
+                  5. Thể loại phim yêu thích (Tối đa 5)
+                </label>
+                <div className="flex flex-wrap gap-1.5">
+                  {GENRE_OPTIONS.map((genre) => {
+                    const active = favoriteGenres.includes(genre);
+                    return (
+                      <button
+                        key={genre}
+                        type="button"
+                        onClick={() => toggleGenre(genre)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                          active
+                            ? "bg-netflix-red text-white shadow-md border border-rose-500 font-bold"
+                            : "bg-zinc-900 text-gray-400 hover:text-white border border-white/10 hover:border-white/25"
+                        }`}
+                      >
+                        {genre}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* NÚT LƯU THAY ĐỔI */}
+              <div className="pt-3 border-t border-white/10 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsOpen(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-gray-400 hover:text-white hover:bg-white/5 transition cursor-pointer"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSaving}
+                  className="px-5 py-2.5 rounded-xl bg-netflix-red hover:bg-rose-700 text-white text-xs font-black shadow-lg shadow-rose-950/60 transition flex items-center gap-2 cursor-pointer disabled:opacity-50 active:scale-95"
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Đang lưu...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      <span>Lưu Hồ Sơ</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </>
+        )}
+
+        {/* TAB 2: LỊCH SỬ BÌNH LUẬN */}
+        {activeTab === "comments" && (
+          <div className="space-y-4 py-1">
+            {userComments.length === 0 ? (
+              <div className="py-12 px-4 text-center border border-dashed border-white/10 rounded-2xl bg-white/[0.02]">
+                <MessageSquare className="w-10 h-10 text-gray-500 mx-auto mb-3 opacity-60" />
+                <h4 className="text-base font-bold text-white mb-1">
+                  Bạn chưa đăng bình luận nào
+                </h4>
+                <p className="text-xs text-gray-400 max-w-sm mx-auto">
+                  Hãy ghé xem các bộ phim hot trên Nanaflix và để lại cảm nhận, đánh giá sao nhé!
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-[55vh] overflow-y-auto pr-1 scrollbar-thin">
+                {userComments.map((c) => (
+                  <div
+                    key={c.id}
+                    className="p-4 rounded-2xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] transition space-y-2.5"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <Link
+                          href={`/watch/${c.movieSlug}`}
+                          onClick={() => setIsOpen(false)}
+                          className="text-sm font-bold text-white hover:text-rose-400 transition flex items-center gap-1.5 group"
+                        >
+                          <span>{c.movieTitle || c.movieSlug}</span>
+                          <ExternalLink className="w-3.5 h-3.5 text-gray-500 group-hover:text-rose-400 transition" />
+                        </Link>
+                        {c.episodeName && (
+                          <span className="text-[11px] text-rose-300 font-semibold bg-rose-500/10 px-2 py-0.5 rounded-md border border-rose-500/20 inline-block mt-1">
+                            {c.episodeName}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* STAR RATING */}
+                      {c.rating > 0 && (
+                        <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-black">
+                          <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                          <span>{c.rating}/5</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <p className="text-xs text-gray-200 leading-relaxed bg-black/40 p-3 rounded-xl border border-white/5 whitespace-pre-line">
+                      {c.content}
+                    </p>
+
+                    <div className="flex items-center justify-between text-[11px] text-gray-400 pt-1">
+                      <div className="flex items-center gap-3">
+                        <span className="flex items-center gap-1 text-gray-400">
+                          <Clock className="w-3 h-3 text-gray-500" />
+                          {new Date(c.createdAt).toLocaleString("vi-VN")}
+                        </span>
+                        {c.likes > 0 && (
+                          <span className="flex items-center gap-1 text-rose-400 font-bold">
+                            <ThumbsUp className="w-3 h-3 fill-rose-400" />
+                            {c.likes}
+                          </span>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        disabled={deletingCommentId === c.id}
+                        onClick={() => handleDeleteComment(c.id)}
+                        className="flex items-center gap-1 text-red-400 hover:text-red-300 hover:bg-red-500/15 px-2.5 py-1 rounded-lg transition text-xs font-bold cursor-pointer disabled:opacity-50"
+                      >
+                        {deletingCommentId === c.id ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-3.5 h-3.5" />
+                        )}
+                        <span>Xóa</span>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
-
-          {/* 2. TÊN HIỂN THỊ & TIỂU SỬ */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-gray-300 uppercase tracking-wider">
-                  2. Tên hiển thị
-                </label>
-                <span className="text-[11px] text-gray-500">{displayName.length}/40</span>
-              </div>
-              <input
-                type="text"
-                maxLength={40}
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="Nhập tên hiển thị..."
-                className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-white/15 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-netflix-red transition font-semibold"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-gray-300 uppercase tracking-wider">
-                  3. Tiểu sử (Bio Slogan)
-                </label>
-                <span className="text-[11px] text-gray-500">{bio.length}/150</span>
-              </div>
-              <textarea
-                rows={2}
-                maxLength={150}
-                value={bio}
-                onChange={(e) => setBio(e.target.value)}
-                placeholder="Mê phim Marvel, cuồng cày phim bộ ban đêm 🍿..."
-                className="w-full px-3.5 py-2 rounded-xl bg-zinc-900 border border-white/15 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-netflix-red transition resize-none leading-relaxed"
-              />
-            </div>
-          </div>
-
-          {/* 4. BỘ DANH HIỆU SỞ HỮU (BADGES) */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-gray-300 uppercase tracking-wider block">
-                4. Bộ Danh Hiệu (Mở khóa theo cấp độ cày phim)
-              </label>
-              <span className="text-[11px] text-amber-400 font-bold">
-                Đã mở: {AVAILABLE_BADGES.filter((b) => watchMins >= b.minMinutesReq).length}/{AVAILABLE_BADGES.length}
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {AVAILABLE_BADGES.map((b) => {
-                const isUnlocked = watchMins >= b.minMinutesReq;
-                const active = isUnlocked && userBadges.includes(b.label);
-
-                return (
-                  <button
-                    key={b.id}
-                    type="button"
-                    onClick={() => toggleBadge(b)}
-                    title={isUnlocked ? b.label : `Đang khóa - Cần ${b.reqText}`}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border flex items-center gap-1.5 ${
-                      !isUnlocked
-                        ? "bg-zinc-900/40 text-gray-500 border-white/5 opacity-55 hover:opacity-80"
-                        : active
-                        ? "bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-md shadow-amber-950/40 scale-102"
-                        : "bg-zinc-900 text-gray-300 border-white/10 hover:border-white/25 hover:text-white"
-                    }`}
-                  >
-                    {!isUnlocked ? (
-                      <Lock className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
-                    ) : null}
-                    <span>{b.label}</span>
-                    {active && <Check className="w-3 h-3 text-amber-300 flex-shrink-0" />}
-                  </button>
-                );
-              })}
-            </div>
-            {badgeHint && (
-              <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-[11.5px] text-amber-300 font-semibold flex items-center gap-2 animate-in fade-in duration-150">
-                <Lock className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
-                <span>{badgeHint}</span>
-              </div>
-            )}
-          </div>
-
-          {/* 4. SỞ THÍCH THỂ LOẠI */}
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-gray-300 uppercase tracking-wider block">
-              5. Thể loại phim yêu thích (Tối đa 5)
-            </label>
-            <div className="flex flex-wrap gap-1.5">
-              {GENRE_OPTIONS.map((genre) => {
-                const active = favoriteGenres.includes(genre);
-                return (
-                  <button
-                    key={genre}
-                    type="button"
-                    onClick={() => toggleGenre(genre)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
-                      active
-                        ? "bg-netflix-red text-white shadow-md border border-rose-500 font-bold"
-                        : "bg-zinc-900 text-gray-400 hover:text-white border border-white/10 hover:border-white/25"
-                    }`}
-                  >
-                    {genre}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* NÚT LƯU THAY ĐỔI */}
-          <div className="pt-3 border-t border-white/10 flex items-center justify-end gap-3">
-            <button
-              type="button"
-              onClick={() => setIsOpen(false)}
-              className="px-4 py-2 rounded-xl text-xs font-bold text-gray-400 hover:text-white hover:bg-white/5 transition cursor-pointer"
-            >
-              Hủy
-            </button>
-            <button
-              type="submit"
-              disabled={isSaving}
-              className="px-5 py-2.5 rounded-xl bg-netflix-red hover:bg-rose-700 text-white text-xs font-black shadow-lg shadow-rose-950/60 transition flex items-center gap-2 cursor-pointer disabled:opacity-50 active:scale-95"
-            >
-              {isSaving ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Đang lưu...</span>
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4" />
-                  <span>Lưu Hồ Sơ</span>
-                </>
-              )}
-            </button>
-          </div>
-        </form>
+        )}
       </div>
     </div>,
     document.body

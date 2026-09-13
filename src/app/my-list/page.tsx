@@ -22,6 +22,11 @@ import {
   Check,
   Plus,
   User,
+  MessageSquare,
+  Star,
+  ExternalLink,
+  Loader2,
+  ThumbsUp,
 } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { useAuth } from "@/context/AuthContext";
@@ -43,7 +48,9 @@ import {
   deleteCollection,
   toggleCollectionPrivacy,
 } from "@/services/collectionService";
+import { subscribeUserComments, deleteMovieComment } from "@/services/commentService";
 import { MovieCollection } from "@/types/collection";
+import { MovieComment } from "@/types/comment";
 import { CreateCollectionModal } from "@/components/Collections/CreateCollectionModal";
 import { showConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { toast } from "@/components/Toast";
@@ -51,17 +58,21 @@ import { toast } from "@/components/Toast";
 function MyListContent() {
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
-  const initialTab: "watchlist" | "history" | "collections" =
+  const initialTab: "watchlist" | "history" | "collections" | "comments" =
     tabParam === "history"
       ? "history"
       : tabParam === "collections"
       ? "collections"
+      : tabParam === "comments"
+      ? "comments"
       : "watchlist";
 
-  const [activeTab, setActiveTab] = useState<"watchlist" | "history" | "collections">(initialTab);
+  const [activeTab, setActiveTab] = useState<"watchlist" | "history" | "collections" | "comments">(initialTab);
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
   const [history, setHistory] = useState<WatchHistoryItem[]>([]);
   const [collections, setCollections] = useState<MovieCollection[]>([]);
+  const [userComments, setUserComments] = useState<MovieComment[]>([]);
+  const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showCreateCollectionModal, setShowCreateCollectionModal] = useState(false);
@@ -103,6 +114,43 @@ function MyListContent() {
 
     return () => unsub();
   }, [user?.uid]);
+
+  // Lắng nghe bình luận của người dùng theo thời gian thực
+  useEffect(() => {
+    if (!user?.uid) {
+      setUserComments([]);
+      return;
+    }
+
+    const unsub = subscribeUserComments(user.uid, (items) => {
+      setUserComments(items);
+    });
+
+    return () => unsub();
+  }, [user?.uid]);
+
+  const handleDeleteComment = async (commentId: string) => {
+    const confirmed = await showConfirmDialog({
+      title: "Xóa bình luận",
+      message: "Bạn có chắc chắn muốn xóa nhận xét này? Bình luận sẽ bị gỡ vĩnh viễn khỏi bộ phim.",
+      confirmText: "Xóa bình luận",
+      cancelText: "Giữ lại",
+      variant: "danger",
+    });
+
+    if (!confirmed) return;
+
+    setDeletingCommentId(commentId);
+    try {
+      await deleteMovieComment(commentId);
+      toast.success("Đã xóa bình luận thành công!");
+    } catch (err) {
+      console.error("Lỗi xóa bình luận:", err);
+      toast.error("Không thể xóa bình luận lúc này!");
+    } finally {
+      setDeletingCommentId(null);
+    }
+  };
 
   const handleClearWatchlist = async () => {
     const confirmed = await showConfirmDialog({
@@ -404,6 +452,19 @@ function MyListContent() {
           <FolderHeart className="w-4 h-4" />
           <span>Bộ sưu tập ({mounted && user ? collections.length : 0})</span>
         </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("comments")}
+          className={`flex-none flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition cursor-pointer whitespace-nowrap ${
+            activeTab === "comments"
+              ? "bg-netflix-red text-white shadow-md shadow-red-950/40"
+              : "bg-zinc-900/80 text-gray-400 hover:text-white hover:bg-zinc-800"
+          }`}
+        >
+          <MessageSquare className="w-4 h-4" />
+          <span>Bình luận của tôi ({mounted && user ? userComments.length : 0})</span>
+        </button>
       </div>
 
       {/* NỘI DUNG THEO TAB */}
@@ -543,7 +604,7 @@ function MyListContent() {
             </div>
           </div>
         )
-      ) : (
+      ) : activeTab === "collections" ? (
         /* TAB 3: CUSTOM COLLECTIONS */
         !user ? (
           <div className="flex flex-col items-center justify-center py-20 px-4 text-center max-w-lg mx-auto">
@@ -702,7 +763,104 @@ function MyListContent() {
             })}
           </div>
         )
-      )}
+      ) : activeTab === "comments" ? (
+        /* TAB 4: LỊCH SỬ BÌNH LUẬN */
+        userComments.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 px-4 text-center max-w-lg mx-auto">
+            <div className="h-20 w-20 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-center mb-5 text-gray-400">
+              <MessageSquare className="h-9 w-9 text-rose-500" />
+            </div>
+            <h2 className="text-xl sm:text-2xl font-bold mb-2">
+              Bạn chưa viết bình luận nào
+            </h2>
+            <p className="text-gray-400 text-sm leading-relaxed mb-6">
+              Mỗi đánh giá và nhận xét của bạn giúp cộng đồng Nanaflix tìm được bộ phim hay nhất!
+            </p>
+            <Link
+              href="/browse"
+              className="inline-flex items-center gap-2 rounded-lg bg-netflix-red px-6 py-3 text-sm sm:text-base font-bold text-white transition hover:bg-red-700 shadow-lg"
+            >
+              Xem phim & Đánh giá ngay
+            </Link>
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-zinc-900/45 to-zinc-950/45 p-4 sm:p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <MessageSquare className="w-4 h-4 text-rose-400" />
+                <span>Tất cả nhận xét & đánh giá ({userComments.length})</span>
+              </h3>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {userComments.map((c) => (
+                <div
+                  key={c.id}
+                  className="p-4 rounded-2xl border border-white/10 bg-zinc-900/80 hover:bg-zinc-900 hover:border-white/25 transition space-y-3"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <Link
+                        href={`/watch/${c.movieSlug}`}
+                        className="text-sm sm:text-base font-bold text-white hover:text-rose-400 transition flex items-center gap-1.5 group"
+                      >
+                        <span>{c.movieTitle || c.movieSlug}</span>
+                        <ExternalLink className="w-3.5 h-3.5 text-gray-500 group-hover:text-rose-400 transition" />
+                      </Link>
+                      {c.episodeName && (
+                        <span className="text-[11px] text-rose-300 font-semibold bg-rose-500/10 px-2 py-0.5 rounded-md border border-rose-500/20 inline-block mt-1">
+                          {c.episodeName}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* STAR RATING */}
+                    {c.rating > 0 && (
+                      <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-black">
+                        <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                        <span>{c.rating}/5</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <p className="text-xs sm:text-sm text-gray-200 leading-relaxed bg-black/50 p-3 rounded-xl border border-white/5 whitespace-pre-line">
+                    {c.content}
+                  </p>
+
+                  <div className="flex items-center justify-between text-xs text-gray-400 pt-1">
+                    <div className="flex items-center gap-3">
+                      <span className="flex items-center gap-1 text-gray-400">
+                        <Clock className="w-3.5 h-3.5 text-gray-500" />
+                        {new Date(c.createdAt).toLocaleString("vi-VN")}
+                      </span>
+                      {c.likes > 0 && (
+                        <span className="flex items-center gap-1 text-rose-400 font-bold">
+                          <ThumbsUp className="w-3.5 h-3.5 fill-rose-400" />
+                          {c.likes}
+                        </span>
+                      )}
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={deletingCommentId === c.id}
+                      onClick={() => handleDeleteComment(c.id)}
+                      className="flex items-center gap-1 text-red-400 hover:text-red-300 hover:bg-red-500/15 px-3 py-1.5 rounded-xl transition text-xs font-bold cursor-pointer disabled:opacity-50 border border-transparent hover:border-red-500/30"
+                    >
+                      {deletingCommentId === c.id ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Trash2 className="w-3.5 h-3.5" />
+                      )}
+                      <span>Xóa</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )
+      ) : null}
 
       {/* MODAL TẠO BỘ SƯU TẬP MỚI */}
       <CreateCollectionModal

@@ -42,6 +42,7 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const movieSlug = searchParams.get("movieSlug");
   const parentId = searchParams.get("parentId");
+  const userId = searchParams.get("userId");
   const all = searchParams.get("all");
 
   try {
@@ -58,6 +59,11 @@ export async function GET(req: NextRequest) {
     const json = await res.json();
     const rawDocs = json.documents || [];
     let items: Record<string, unknown>[] = rawDocs.map(parseFirestoreDoc);
+
+    // Lọc theo userId nếu có
+    if (userId) {
+      items = items.filter((c: Record<string, unknown>) => c.userId === userId);
+    }
 
     // Lọc theo movieSlug nếu có
     if (movieSlug) {
