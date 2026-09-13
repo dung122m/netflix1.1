@@ -34,6 +34,9 @@ export async function recordUserProfile(user: User): Promise<void> {
     const now = Date.now();
     const isAdmin = isUserAdmin(user.email);
 
+    const docSnap = await getDoc(userRef);
+    const existingData = docSnap.exists() ? docSnap.data() : null;
+
     await setDoc(
       userRef,
       {
@@ -43,7 +46,8 @@ export async function recordUserProfile(user: User): Promise<void> {
         photoURL: user.photoURL || "",
         lastLoginAt: now,
         role: isAdmin ? "admin" : "member",
-        // merge: true giữ nguyên createdAt nếu tài liệu đã có từ trước
+        createdAt: existingData?.createdAt || now,
+        ...(existingData?.watchTimeMinutes === undefined ? { watchTimeMinutes: 0 } : {}),
       },
       { merge: true }
     );

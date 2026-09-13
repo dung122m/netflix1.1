@@ -37,7 +37,7 @@ if (typeof window !== "undefined" && isFirebaseConfigured()) {
     // ignoreUndefinedProperties: tránh lỗi "Cannot serialize undefined" khi ghi Firestore
     try {
       db = initializeFirestore(app, {
-        experimentalForceLongPolling: true,
+        experimentalAutoDetectLongPolling: true,
         ignoreUndefinedProperties: true,
       });
     } catch {
