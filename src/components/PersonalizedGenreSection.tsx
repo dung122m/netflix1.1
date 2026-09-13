@@ -62,7 +62,10 @@ function PersonalizedGenreSectionInner({ allMovies = [] }: PersonalizedGenreSect
     return () => unsub();
   }, [user]);
 
-  const favoriteGenres = profile?.favoriteGenres || [];
+  const favoriteGenres = React.useMemo(
+    () => profile?.favoriteGenres || [],
+    [profile?.favoriteGenres]
+  );
 
   // Tự động tải phim theo thể loại từ API khi chọn Tab cụ thể
   useEffect(() => {

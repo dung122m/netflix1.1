@@ -12,8 +12,6 @@ import {
   Save,
   Loader2,
   Trophy,
-  Award,
-  Crown,
   Flame,
   Lock,
 } from "lucide-react";

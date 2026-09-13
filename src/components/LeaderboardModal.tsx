@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { Trophy, X, Crown, Flame, Award, Loader2, Sparkles } from "lucide-react";
+import { Trophy, X, Crown, Flame, Loader2, Sparkles } from "lucide-react";
 import { getTopWatchLeaderboard, getWatchLevelInfo } from "@/services/userService";
 import { UserProfile } from "@/types/user";
 

@@ -658,7 +658,7 @@ const QuickGenreChipsInner: React.FC = () => {
               <button
                 key={tab.id}
                 type="button"
-                onClick={() => setMobileTab(tab.id as any)}
+                onClick={() => setMobileTab(tab.id as "type" | "genre" | "country" | "actor" | "year")}
                 className={`flex-none px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                   isActive
                     ? "bg-netflix-red text-white shadow-md shadow-red-950/50 scale-[1.02]"
