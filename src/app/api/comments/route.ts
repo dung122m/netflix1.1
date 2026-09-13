@@ -188,9 +188,13 @@ export async function PATCH(req: NextRequest) {
       pinnedBy: { stringValue: adminEmail },
     };
 
+    const authHeader = req.headers.get("authorization");
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (authHeader) headers["Authorization"] = authHeader;
+
     const res = await fetch(url, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify({ fields }),
     });
 
@@ -201,6 +205,101 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Lỗi API patch comment pin:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}
+
+/**
+ * PUT /api/comments
+ * Cập nhật nội dung, điểm đánh giá hoặc cảnh báo spoil của bình luận
+ */
+export async function PUT(req: NextRequest) {
+  try {
+    const { commentId, rating, content, isSpoiler, episodeSlug, episodeName } = await req.json();
+    if (!commentId) {
+      return NextResponse.json({ error: "Thiếu commentId!" }, { status: 400 });
+    }
+
+    const fieldPaths: string[] = ["updatedAt"];
+    const fields: Record<string, FirestoreField> = {
+      updatedAt: { integerValue: Date.now() },
+    };
+
+    if (content !== undefined) {
+      fieldPaths.push("content");
+      fields.content = { stringValue: sanitizeSafeText(content, 2500) };
+    }
+    if (rating !== undefined) {
+      fieldPaths.push("rating");
+      fields.rating = { integerValue: Number(rating) };
+    }
+    if (isSpoiler !== undefined) {
+      fieldPaths.push("isSpoiler");
+      fields.isSpoiler = { booleanValue: Boolean(isSpoiler) };
+    }
+    if (episodeSlug !== undefined) {
+      fieldPaths.push("episodeSlug");
+      fields.episodeSlug = { stringValue: episodeSlug };
+    }
+    if (episodeName !== undefined) {
+      fieldPaths.push("episodeName");
+      fields.episodeName = { stringValue: episodeName };
+    }
+
+    const maskParams = fieldPaths.map((p) => `updateMask.fieldPaths=${p}`).join("&");
+    const authHeader = req.headers.get("authorization");
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (authHeader) headers["Authorization"] = authHeader;
+
+    const url = `${FIRESTORE_REST_BASE}/movie_comments/${commentId}?${maskParams}${API_KEY ? `&key=${API_KEY}` : ""}`;
+    const res = await fetch(url, {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify({ fields }),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      return NextResponse.json({ error: "Không thể cập nhật bình luận", details: errText }, { status: res.status });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Lỗi API update comment:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}
+
+/**
+ * DELETE /api/comments?commentId=xxx
+ * Xóa bình luận khỏi Firestore qua Server API
+ */
+export async function DELETE(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const commentId = searchParams.get("commentId");
+    if (!commentId) {
+      return NextResponse.json({ error: "Thiếu commentId!" }, { status: 400 });
+    }
+
+    const authHeader = req.headers.get("authorization");
+    const headers: Record<string, string> = {};
+    if (authHeader) headers["Authorization"] = authHeader;
+
+    const url = `${FIRESTORE_REST_BASE}/movie_comments/${commentId}${API_KEY ? `?key=${API_KEY}` : ""}`;
+    const res = await fetch(url, {
+      method: "DELETE",
+      headers,
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      return NextResponse.json({ error: "Không thể xóa bình luận", details: errText }, { status: res.status });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Lỗi API delete comment:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

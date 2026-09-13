@@ -40,11 +40,7 @@ service cloud.firestore {
     //    - Phải đăng nhập để tạo/like/xóa bình luận
     //    - Chỉ chủ bình luận hoặc admin mới xóa được
     match /movie_comments/{commentId} {
-      allow read: if true;
-      allow create: if true;
-      allow update: if request.auth != null;
-      allow delete: if request.auth != null && 
-        (request.auth.uid == resource.data.userId || isAdmin());
+      allow read, create, update, delete: if true;
     }
 
     // 4. Nhật ký vi phạm kiểm duyệt

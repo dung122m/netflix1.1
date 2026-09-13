@@ -39,6 +39,36 @@ const addDocWithTimeout = (
   ]);
 };
 
+const updateDocWithTimeout = (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ref: any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  data: any,
+  timeoutMs = 3500
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): Promise<any> => {
+  return Promise.race([
+    updateDoc(ref, data),
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Firestore update timeout")), timeoutMs)
+    ),
+  ]);
+};
+
+const deleteDocWithTimeout = (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ref: any,
+  timeoutMs = 3500
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): Promise<any> => {
+  return Promise.race([
+    deleteDoc(ref),
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Firestore delete timeout")), timeoutMs)
+    ),
+  ]);
+};
+
 const COLLECTION_NAME = "movie_comments";
 const USERS_COLLECTION = "users";
 const VIOLATIONS_COLLECTION = "admin_violations";
@@ -692,28 +722,81 @@ export async function updateMovieComment(
   commentId: string,
   data: Partial<Pick<MovieComment, "rating" | "content" | "isSpoiler" | "episodeSlug" | "episodeName">>,
 ): Promise<void> {
-  if (!db || !commentId) return;
-  const docRef = doc(db, COLLECTION_NAME, commentId);
+  if (!commentId) return;
   const safeData: typeof data = { ...data };
   if (safeData.content) {
     safeData.content = sanitizeSafeText(safeData.content, 2500);
   }
-  await updateDoc(
-    docRef,
-    sanitizeCommentData({
-      ...safeData,
-      updatedAt: Date.now(),
-    }),
-  );
+
+  const payload = sanitizeCommentData({
+    ...safeData,
+    updatedAt: Date.now(),
+  });
+
+  if (db) {
+    try {
+      const docRef = doc(db, COLLECTION_NAME, commentId);
+      await updateDocWithTimeout(docRef, payload, 3500);
+      return;
+    } catch (err) {
+      console.warn("Lỗi updateDoc trực tiếp, chuyển sang Server API Fallback:", err);
+    }
+  }
+
+  let authHeader = "";
+  if (auth?.currentUser) {
+    try {
+      const idToken = await auth.currentUser.getIdToken();
+      authHeader = `Bearer ${idToken}`;
+    } catch {}
+  }
+
+  const res = await fetch("/api/comments", {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      ...(authHeader ? { Authorization: authHeader } : {}),
+    },
+    body: JSON.stringify({ commentId, ...payload }),
+  });
+  if (!res.ok) {
+    const resJson = await res.json().catch(() => ({}));
+    throw new Error(resJson.error || "Không thể cập nhật bình luận lúc này!");
+  }
 }
 
 /**
  * Xóa bình luận của chính người dùng
  */
 export async function deleteMovieComment(commentId: string): Promise<void> {
-  if (!db || !commentId) return;
-  const docRef = doc(db, COLLECTION_NAME, commentId);
-  await deleteDoc(docRef);
+  if (!commentId) return;
+
+  if (db) {
+    try {
+      const docRef = doc(db, COLLECTION_NAME, commentId);
+      await deleteDocWithTimeout(docRef, 3500);
+      return;
+    } catch (err) {
+      console.warn("Lỗi deleteDoc trực tiếp, chuyển sang Server API Fallback:", err);
+    }
+  }
+
+  let authHeader = "";
+  if (auth?.currentUser) {
+    try {
+      const idToken = await auth.currentUser.getIdToken();
+      authHeader = `Bearer ${idToken}`;
+    } catch {}
+  }
+
+  const res = await fetch(`/api/comments?commentId=${encodeURIComponent(commentId)}`, {
+    method: "DELETE",
+    headers: authHeader ? { Authorization: authHeader } : {},
+  });
+  if (!res.ok) {
+    const resJson = await res.json().catch(() => ({}));
+    throw new Error(resJson.error || "Không thể xóa bình luận lúc này!");
+  }
 }
 
 /**
