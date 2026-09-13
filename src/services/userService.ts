@@ -72,13 +72,15 @@ export function subscribeAllUsers(
   const usersRef = collection(db, USERS_COLLECTION);
   const q = query(usersRef, limit(maxLimit));
 
-  return onSnapshot(
-    q,
-    (snapshot) => {
+  let hasReceivedSnapshot = false;
+
+  // Lấy dữ liệu ngay lập tức tránh việc onSnapshot bị hoãn/treo do tiện ích mở rộng
+  getDocs(q)
+    .then((snapshot) => {
+      if (hasReceivedSnapshot) return;
       const items: UserProfile[] = [];
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
-        // Chỉ lấy những doc là profile người dùng (có uid hoặc email)
         if (data && (data.uid || data.email)) {
           items.push({
             uid: docSnap.id,
@@ -95,7 +97,34 @@ export function subscribeAllUsers(
           });
         }
       });
-      // Sắp xếp người hoạt động mới nhất lên đầu
+      items.sort((a, b) => (b.lastLoginAt || 0) - (a.lastLoginAt || 0));
+      onUpdate(items);
+    })
+    .catch(() => {});
+
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      hasReceivedSnapshot = true;
+      const items: UserProfile[] = [];
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        if (data && (data.uid || data.email)) {
+          items.push({
+            uid: docSnap.id,
+            email: data.email || "",
+            displayName: data.displayName || "Thành viên Nanaflix",
+            photoURL: data.photoURL || "",
+            createdAt: data.createdAt || data.lastLoginAt || Date.now(),
+            lastLoginAt: data.lastLoginAt || Date.now(),
+            role: data.role || (isUserAdmin(data.email) ? "admin" : "member"),
+            isCommentRestricted: Boolean(data.isCommentRestricted),
+            violationsCount: Number(data.violationsCount || 0),
+            lastViolationAt: data.lastViolationAt,
+            lastViolationReason: data.lastViolationReason,
+          });
+        }
+      });
       items.sort((a, b) => (b.lastLoginAt || 0) - (a.lastLoginAt || 0));
       onUpdate(items);
     },

@@ -214,33 +214,40 @@ export function subscribeAllComments(
   onError?: (err: Error) => void,
   maxLimit: number = 300,
 ): Unsubscribe {
+  let isUnsubscribed = false;
+
   const fallbackFetch = async () => {
     try {
       const res = await fetch(`/api/comments?all=true`);
       if (res.ok) {
         const data = await res.json();
-        if (data.items) {
+        if (data.items && !isUnsubscribed) {
           onUpdate(data.items);
         }
       }
     } catch {}
   };
 
+  // Nạp ngay dữ liệu từ Server API giúp hiển thị tức thì 100% không sợ Adblocker / Extension chặn Firestore client
+  fallbackFetch();
+
   if (!db) {
-    fallbackFetch();
     const interval = setInterval(fallbackFetch, 8000);
-    return () => clearInterval(interval);
+    return () => {
+      isUnsubscribed = true;
+      clearInterval(interval);
+    };
   }
 
   const commentsRef = collection(db, COLLECTION_NAME);
   const q = query(commentsRef, limit(maxLimit));
 
-  let isUnsubscribed = false;
   let fallbackInterval: NodeJS.Timeout | null = null;
 
   const unsubscribe = onSnapshot(
     q,
     (snapshot) => {
+      if (isUnsubscribed) return;
       const items: MovieComment[] = [];
       snapshot.forEach((docSnap) => {
         items.push({
