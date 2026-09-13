@@ -114,22 +114,29 @@ export function subscribeMovieComments(
     return () => {};
   }
 
+  let isUnsubscribed = false;
+
   const fallbackFetch = async () => {
     try {
       const res = await fetch(`/api/comments?movieSlug=${encodeURIComponent(movieSlug)}`);
       if (res.ok) {
         const data = await res.json();
-        if (data.items) {
+        if (data.items && !isUnsubscribed) {
           onUpdate(data.items);
         }
       }
     } catch {}
   };
 
+  // Nạp dữ liệu lập tức từ Server API trong 50ms (không phụ thuộc kết nối client)
+  fallbackFetch();
+
   if (!db) {
-    fallbackFetch();
     const interval = setInterval(fallbackFetch, 8000);
-    return () => clearInterval(interval);
+    return () => {
+      isUnsubscribed = true;
+      clearInterval(interval);
+    };
   }
 
   const commentsRef = collection(db, COLLECTION_NAME);
@@ -139,12 +146,12 @@ export function subscribeMovieComments(
     limit(300),
   );
 
-  let isUnsubscribed = false;
   let fallbackInterval: NodeJS.Timeout | null = null;
 
   const unsubscribe = onSnapshot(
     q,
     (snapshot) => {
+      if (isUnsubscribed) return;
       const items: MovieComment[] = [];
       snapshot.forEach((docSnap) => {
         const commentData = {
@@ -152,7 +159,6 @@ export function subscribeMovieComments(
           ...(docSnap.data() as Omit<MovieComment, "id">),
         };
 
-        // TỰ ĐỘNG LỌC & TỰ ĐỘNG XÓA BÌNH LUẬN VÔ VĂN HÓA / SPAM
         const mod = checkContentModeration(commentData.content || "");
         if (!mod.isAllowed || commentData.isFlagged) {
           if (db) {
@@ -200,22 +206,29 @@ export function subscribeCommentReplies(
     return () => {};
   }
 
+  let isUnsubscribed = false;
+
   const fallbackFetch = async () => {
     try {
       const res = await fetch(`/api/comments?parentId=${encodeURIComponent(parentId)}`);
       if (res.ok) {
         const data = await res.json();
-        if (data.items) {
+        if (data.items && !isUnsubscribed) {
           onUpdate(data.items);
         }
       }
     } catch {}
   };
 
+  // Nạp replies từ Server API ngay lập tức
+  fallbackFetch();
+
   if (!db) {
-    fallbackFetch();
     const interval = setInterval(fallbackFetch, 8000);
-    return () => clearInterval(interval);
+    return () => {
+      isUnsubscribed = true;
+      clearInterval(interval);
+    };
   }
 
   const commentsRef = collection(db, COLLECTION_NAME);
@@ -225,12 +238,12 @@ export function subscribeCommentReplies(
     limit(50),
   );
 
-  let isUnsubscribed = false;
   let fallbackInterval: NodeJS.Timeout | null = null;
 
   const unsubscribe = onSnapshot(
     q,
     (snapshot) => {
+      if (isUnsubscribed) return;
       const items: MovieComment[] = [];
       snapshot.forEach((docSnap) => {
         const commentData = {
