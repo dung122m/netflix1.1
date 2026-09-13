@@ -22,8 +22,10 @@ function parseFirestoreDoc(doc: { name: string; fields?: Record<string, Firestor
     if (v.stringValue !== undefined) data[k] = v.stringValue;
     else if (v.integerValue !== undefined) data[k] = Number(v.integerValue);
     else if (v.booleanValue !== undefined) data[k] = v.booleanValue;
-    else if (v.arrayValue?.values) {
-      data[k] = v.arrayValue.values.map((item) => item.stringValue || "");
+    else if (v.arrayValue !== undefined) {
+      data[k] = v.arrayValue.values
+        ? v.arrayValue.values.map((item) => item.stringValue || "")
+        : [];
     } else {
       data[k] = null;
     }
