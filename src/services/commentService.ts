@@ -23,6 +23,22 @@ import { UserNotification } from "@/types/notification";
 import { checkContentModeration } from "@/lib/contentModeration";
 import { sanitizeSafeText } from "@/lib/security";
 
+const setDocWithTimeout = (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ref: any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  data: any,
+  timeoutMs = 3500
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): Promise<any> => {
+  return Promise.race([
+    setDoc(ref, data),
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Firestore setDoc timeout")), timeoutMs)
+    ),
+  ]);
+};
+
 const addDocWithTimeout = (
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ref: any,
@@ -600,51 +616,74 @@ export async function addReplyComment(params: {
     createdId = resJson.id || `reply_${Date.now()}`;
   }
 
-  // 4. Gửi thông báo
-  if (replyToUserId && replyToUserId !== params.userId) {
+  // 4. Gửi thông báo trực tiếp qua Server API đảm bảo 100% người dùng nhận được thông báo
+  const sendNotificationServer = async (targetUserId: string, notifPayload: UserNotification) => {
     try {
-      const notifId = `reply_target_${createdId}`;
-      const notifRef = doc(db, USERS_COLLECTION, replyToUserId, "notifications", notifId);
-      const notifData: UserNotification = {
-        id: notifId,
-        type: "comment_reply",
-        title: `${params.userName} đã trả lời bình luận của bạn`,
-        message: params.content.length > 80
-          ? params.content.slice(0, 80) + "..."
-          : params.content,
-        link: `/movies/${params.movieSlug}?highlightComment=${createdId}#comment-${createdId}`,
-        movieSlug: params.movieSlug,
-        commentId: createdId,
-        replierName: params.userName,
-        replierAvatar: params.userAvatar,
-        isRead: false,
-        createdAt: Date.now(),
-      };
-      setDoc(notifRef, sanitizeCommentData(notifData as unknown as Record<string, unknown>)).catch(() => {});
+      if (db) {
+        const notifRef = doc(db, USERS_COLLECTION, targetUserId, "notifications", notifPayload.id);
+        await setDocWithTimeout(notifRef, sanitizeCommentData(notifPayload as unknown as Record<string, unknown>), 2000);
+        return;
+      }
     } catch {}
+
+    try {
+      await fetch("/api/notifications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: targetUserId,
+          notifId: notifPayload.id,
+          type: notifPayload.type,
+          title: notifPayload.title,
+          message: notifPayload.message,
+          link: notifPayload.link,
+          movieSlug: notifPayload.movieSlug,
+          commentId: notifPayload.commentId,
+          replierName: notifPayload.replierName,
+          replierAvatar: notifPayload.replierAvatar,
+        }),
+      });
+    } catch {}
+  };
+
+  if (replyToUserId && replyToUserId !== params.userId) {
+    const notifId = `reply_target_${createdId}`;
+    const notifData: UserNotification = {
+      id: notifId,
+      type: "comment_reply",
+      title: `${params.userName} đã trả lời bình luận của bạn`,
+      message: params.content.length > 80
+        ? params.content.slice(0, 80) + "..."
+        : params.content,
+      link: `/movies/${params.movieSlug}?highlightComment=${createdId}#comment-${createdId}`,
+      movieSlug: params.movieSlug,
+      commentId: createdId,
+      replierName: params.userName,
+      replierAvatar: params.userAvatar,
+      isRead: false,
+      createdAt: Date.now(),
+    };
+    sendNotificationServer(replyToUserId, notifData).catch(() => {});
   }
 
   if (parentOwnerId && parentOwnerId !== params.userId && parentOwnerId !== replyToUserId) {
-    try {
-      const notifId = `reply_root_${createdId}`;
-      const notifRef = doc(db, USERS_COLLECTION, parentOwnerId, "notifications", notifId);
-      const notifData: UserNotification = {
-        id: notifId,
-        type: "comment_reply",
-        title: `${params.userName} đã bình luận trong bài đánh giá của bạn`,
-        message: params.content.length > 80
-          ? params.content.slice(0, 80) + "..."
-          : params.content,
-        link: `/movies/${params.movieSlug}?highlightComment=${createdId}#comment-${createdId}`,
-        movieSlug: params.movieSlug,
-        commentId: createdId,
-        replierName: params.userName,
-        replierAvatar: params.userAvatar,
-        isRead: false,
-        createdAt: Date.now(),
-      };
-      setDoc(notifRef, sanitizeCommentData(notifData as unknown as Record<string, unknown>)).catch(() => {});
-    } catch {}
+    const notifId = `reply_root_${createdId}`;
+    const notifData: UserNotification = {
+      id: notifId,
+      type: "comment_reply",
+      title: `${params.userName} đã bình luận trong bài đánh giá của bạn`,
+      message: params.content.length > 80
+        ? params.content.slice(0, 80) + "..."
+        : params.content,
+      link: `/movies/${params.movieSlug}?highlightComment=${createdId}#comment-${createdId}`,
+      movieSlug: params.movieSlug,
+      commentId: createdId,
+      replierName: params.userName,
+      replierAvatar: params.userAvatar,
+      isRead: false,
+      createdAt: Date.now(),
+    };
+    sendNotificationServer(parentOwnerId, notifData).catch(() => {});
   }
 
   void parentOwnerName;

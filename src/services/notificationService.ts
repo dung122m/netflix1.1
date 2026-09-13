@@ -100,9 +100,28 @@ export function subscribeUserNotifications(
   userId: string,
   callback: (notifications: UserNotification[]) => void,
 ): () => void {
-  if (!db || !userId) {
+  if (!userId) {
     callback([]);
     return () => {};
+  }
+
+  let isUnsubscribed = false;
+  let hasReceivedSnapshot = false;
+
+  // 1. Nạp ngay danh sách thông báo từ Server API trong 50ms (không cần chờ luồng realtime client)
+  fetch(`/api/notifications?userId=${encodeURIComponent(userId)}`)
+    .then((res) => res.json())
+    .then((json) => {
+      if (json.items && !hasReceivedSnapshot && !isUnsubscribed) {
+        callback(json.items as UserNotification[]);
+      }
+    })
+    .catch(() => {});
+
+  if (!db) {
+    return () => {
+      isUnsubscribed = true;
+    };
   }
 
   try {
@@ -110,6 +129,8 @@ export function subscribeUserNotifications(
     const unsubscribe = onSnapshot(
       col,
       (snapshot) => {
+        if (isUnsubscribed) return;
+        hasReceivedSnapshot = true;
         const list: UserNotification[] = [];
         snapshot.forEach((d) => {
           const item = { id: d.id, ...d.data() } as UserNotification;
@@ -123,10 +144,15 @@ export function subscribeUserNotifications(
         console.warn("Lỗi realtime thông báo người dùng:", error);
       },
     );
-    return unsubscribe;
+    return () => {
+      isUnsubscribed = true;
+      unsubscribe();
+    };
   } catch (err) {
     console.warn("Lỗi khởi tạo lắng nghe thông báo:", err);
-    return () => {};
+    return () => {
+      isUnsubscribed = true;
+    };
   }
 }
 

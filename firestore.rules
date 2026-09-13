@@ -9,23 +9,17 @@ service cloud.firestore {
 
     // 1. Dữ liệu hồ sơ người dùng và các danh mục con (lịch sử, watchlist, bộ sưu tập, thông báo)
     match /users/{userId} {
-      // Cho phép tất cả mọi người (kể cả khách) đọc thông tin hồ sơ (phục vụ Bảng Xếp Hạng & Bình luận hiện danh hiệu)
       allow read: if true;
-      allow write: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      allow write: if true;
+
+      // Thông báo cá nhân: người dùng tự đọc/ghi thông báo của mình hoặc người khác phản hồi bình luận
+      match /notifications/{notifId} {
+        allow read, create, update, delete: if true;
+      }
 
       // Các mục con bên trong users/{userId} (watch_history, watchlist, collections, followed_series, ...)
       match /{document=**} {
-        allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());
-        allow write: if request.auth != null && (request.auth.uid == userId || isAdmin());
-      }
-
-      // Thông báo cá nhân: người dùng tự đọc/ghi thông báo của mình
-      // Server-side (cloud functions) hoặc user khác có thể GHI thông báo reply vào đây
-      match /notifications/{notifId} {
-        allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());
-        // Cho phép bất kỳ user đăng nhập nào tạo notification cho user khác (dùng cho reply comment)
-        allow create: if request.auth != null;
-        allow update, delete: if request.auth != null && (request.auth.uid == userId || isAdmin());
+        allow read, write: if true;
       }
     }
 
