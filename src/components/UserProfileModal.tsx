@@ -711,7 +711,7 @@ function UserProfileModalInner() {
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <Link
-                          href={`/watch/${c.movieSlug}`}
+                          href={`/movies/${c.movieSlug}#comments`}
                           onClick={() => setIsOpen(false)}
                           className="text-sm font-bold text-white hover:text-rose-400 transition flex items-center gap-1.5 group"
                         >
