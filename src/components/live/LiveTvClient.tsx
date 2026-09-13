@@ -1107,30 +1107,6 @@ export function LiveTvClient({
               </span>
             </div>
 
-            {/* NÚT MỞ DANH SÁCH KÊNH Ở CẠNH PHẢI CỦA PLAYER */}
-            <div
-              className={`absolute top-1/2 right-0 z-30 -translate-y-1/2 transition-all duration-300 ${
-                showControls || showChannelRail
-                  ? "translate-x-0 opacity-100"
-                  : "translate-x-3 opacity-0 pointer-events-none"
-              }`}
-            >
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowChannelRail((visible) => !visible);
-                }}
-                className="rounded-l-xl border border-white/20 border-r-0 bg-black/85 hover:bg-black/95 px-2.5 py-3 text-[10px] font-black text-white shadow-2xl backdrop-blur-md flex flex-col items-center gap-1.5 cursor-pointer transition-transform hover:scale-105 active:scale-95 group/railbtn ring-1 ring-white/10"
-                title="Mở danh sách kênh"
-              >
-                <Tv className="w-3.5 h-3.5 text-sky-400 group-hover/railbtn:animate-pulse" />
-                <span className="[writing-mode:vertical-lr] tracking-widest text-[9.5px] font-mono text-sky-300 font-black">
-                  KÊNH
-                </span>
-              </button>
-            </div>
-
             {/* BACKDROP KHI MỞ DRAWER KÊNH TRÊN MOBILE */}
             {showChannelRail && (
               <div
