@@ -162,12 +162,16 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
 
     if (sortBy === "onlyFiveStar") {
       result = result.filter((c) => c.rating === 5);
-    } else if (sortBy === "topLikes") {
-      result.sort((a, b) => (b.likes || 0) - (a.likes || 0));
-    } else {
-      // newest
-      result.sort((a, b) => b.createdAt - a.createdAt);
     }
+
+    result.sort((a, b) => {
+      if (a.isPinned && !b.isPinned) return -1;
+      if (!a.isPinned && b.isPinned) return 1;
+      if (sortBy === "topLikes") {
+        return (b.likes || 0) - (a.likes || 0);
+      }
+      return b.createdAt - a.createdAt;
+    });
 
     // Bổ sung replyCount từ danh sách replies trong bộ nhớ
     const replyCountMap = new Map<string, number>();
@@ -624,6 +628,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
                 currentUserId={user?.uid}
                 currentUserName={user?.displayName || "Thành viên Nanaflix"}
                 currentUserAvatar={user?.photoURL || undefined}
+                currentUserEmail={user?.email || undefined}
                 onReact={handleReact}
                 onDelete={handleDeleteComment}
                 onEdit={handleEditReview}

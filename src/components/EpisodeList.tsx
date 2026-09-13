@@ -164,9 +164,9 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
         </div>
       )}
 
-      {/* LƯỚI TẬP PHIM: 5 cột trên điện thoại giúp danh sách gọn gàng, giảm 40% chiều cao */}
+      {/* LƯỚI TẬP PHIM: 6 cột mobile giúp danh sách rất gọn, tối ưu touch */}
       {displayEpisodes.length > 0 ? (
-        <div className="grid grid-cols-5 sm:grid-cols-6 lg:grid-cols-4 gap-2 sm:gap-2.5">
+        <div className="grid grid-cols-6 sm:grid-cols-7 lg:grid-cols-5 xl:grid-cols-6 gap-1.5 sm:gap-2">
           {displayEpisodes.map((tap) => {
             const isActive = activeEpisodeSlug === tap.slug;
             const isWatched = watchedList.includes(tap.slug);

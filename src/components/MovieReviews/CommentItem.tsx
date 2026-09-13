@@ -15,6 +15,7 @@ import {
   CornerDownRight,
   Reply,
   Sparkles,
+  Pin,
 } from "lucide-react";
 import { MovieComment, CommentReactionType } from "@/types/comment";
 import { StarRating } from "./StarRating";
@@ -25,7 +26,9 @@ import {
   setCommentReaction,
   deleteMovieComment,
   reportCommentViolation,
+  togglePinComment,
 } from "@/services/commentService";
+import { isUserAdmin } from "@/lib/adminConfig";
 import { checkContentModeration } from "@/lib/contentModeration";
 import { toast } from "@/components/Toast";
 import { showConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -35,6 +38,7 @@ interface CommentItemProps {
   currentUserId?: string | null;
   currentUserName?: string;
   currentUserAvatar?: string;
+  currentUserEmail?: string;
   onLike?: (commentId: string, hasLiked: boolean) => void;
   onReact?: (commentId: string, reactionType: CommentReactionType | null, prevReactionType?: CommentReactionType | null) => void;
   onDelete: (commentId: string) => void;
@@ -88,6 +92,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
   currentUserId,
   currentUserName,
   currentUserAvatar,
+  currentUserEmail,
   onReact,
   onDelete,
   onEdit,
@@ -315,6 +320,22 @@ export const CommentItem: React.FC<CommentItemProps> = ({
     }
   };
 
+  const isAdmin = isUserAdmin(currentUserEmail);
+  const [isPinning, setIsPinning] = useState(false);
+
+  const handleTogglePin = async () => {
+    if (!isAdmin || !currentUserEmail) return;
+    setIsPinning(true);
+    try {
+      const isPinnedNow = await togglePinComment(comment.id, Boolean(comment.isPinned), currentUserEmail);
+      toast.success(isPinnedNow ? "Đã ghim bình luận lên đầu!" : "Đã bỏ ghim bình luận.");
+    } catch {
+      toast.error("Không thể ghim/bỏ ghim bình luận!");
+    } finally {
+      setIsPinning(false);
+    }
+  };
+
   return (
     <div
       ref={itemRef}
@@ -322,6 +343,8 @@ export const CommentItem: React.FC<CommentItemProps> = ({
       className={`group relative ${
         isHighlighted
           ? "ring-2 ring-red-500 shadow-[0_0_35px_rgba(229,9,20,0.65)] bg-red-950/40 border-red-500/80"
+          : comment.isPinned
+          ? "bg-gradient-to-r from-amber-950/30 via-zinc-900/90 to-zinc-950/90 border-amber-500/50 shadow-[0_0_20px_rgba(245,158,11,0.15)] ring-1 ring-amber-500/30"
           : isReply
           ? "bg-zinc-900/40 hover:bg-zinc-900/60 border-white/5"
           : "bg-zinc-900/60 hover:bg-zinc-900/90 border-white/5 hover:border-white/10"
@@ -331,6 +354,14 @@ export const CommentItem: React.FC<CommentItemProps> = ({
           : "p-3 sm:p-4 md:p-5 rounded-2xl border"
       } transition-all duration-500`}
     >
+      {/* BADGE BÌNH LUẬN ĐÃ GHIM BỞI ADMIN */}
+      {comment.isPinned && (
+        <div className="mb-2.5 flex items-center gap-1.5 text-[11px] sm:text-xs font-bold text-amber-300 bg-amber-500/15 px-2.5 py-1 rounded-xl border border-amber-500/40 w-fit shadow-md">
+          <Pin className="w-3.5 h-3.5 text-amber-400 fill-amber-400 animate-bounce" />
+          <span>📌 Bình luận quan trọng được ghim bởi Quản trị viên</span>
+        </div>
+      )}
+
       {/* BADGE THÔNG BÁO KHI ĐƯỢC CHỌN TỪ POPUP / THÔNG BÁO */}
       {isHighlighted && (
         <div className="mb-2.5 flex items-center gap-1.5 text-[11px] font-bold text-red-300 bg-red-500/15 px-2.5 py-1 rounded-lg border border-red-500/30 w-fit animate-pulse">
@@ -372,6 +403,25 @@ export const CommentItem: React.FC<CommentItemProps> = ({
               >
                 {comment.userName}
               </span>
+
+              {/* BỘ DANH HIỆU VIP SỞ HỮU HIỂN THỊ TRÊN BÌNH LUẬN */}
+              {(() => {
+                const badgesToRender =
+                  comment.userBadges && comment.userBadges.length > 0
+                    ? comment.userBadges
+                    : ["🍿 Mọt Phim Đêm"];
+
+                return badgesToRender.slice(0, 2).map((badgeLabel, bIdx) => (
+                  <span
+                    key={bIdx}
+                    className={`inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[9.5px] sm:text-[11px] font-black bg-gradient-to-r from-amber-500/20 to-rose-500/20 text-amber-300 border border-amber-500/40 shadow-sm shadow-amber-950/40 animate-in fade-in ${
+                      bIdx >= 1 ? "hidden sm:inline-flex" : ""
+                    }`}
+                  >
+                    <span>{badgeLabel}</span>
+                  </span>
+                ));
+              })()}
 
               {isAuthor && !isReply && (
                 <span className="px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">
@@ -498,6 +548,24 @@ export const CommentItem: React.FC<CommentItemProps> = ({
             <Reply className="w-3.5 h-3.5" />
             <span>Trả lời</span>
           </button>
+
+          {/* Admin Pin Button */}
+          {isAdmin && !isReply && (
+            <button
+              type="button"
+              disabled={isPinning}
+              onClick={handleTogglePin}
+              className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border transition-all cursor-pointer active:scale-95 ${
+                comment.isPinned
+                  ? "bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30"
+                  : "bg-white/5 text-zinc-400 hover:text-amber-300 border-white/10 hover:border-amber-500/30"
+              }`}
+              title={comment.isPinned ? "Bỏ ghim bình luận này" : "Ghim bình luận quan trọng lên đầu"}
+            >
+              <Pin className={`w-3.5 h-3.5 ${comment.isPinned ? "fill-amber-300 text-amber-300" : ""}`} />
+              <span>{comment.isPinned ? "Bỏ ghim" : "Ghim"}</span>
+            </button>
+          )}
 
           {/* Toggle view replies button (chỉ hiển thị ở root comment) */}
           {!isReply && ((comment.replyCount || 0) > 0 || replies.length > 0) ? (

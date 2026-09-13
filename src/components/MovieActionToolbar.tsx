@@ -94,9 +94,6 @@ export function MovieActionToolbar({
           activeEpisodeSlug={activeEpisode?.slug}
           activeEpisodeName={activeEpisode?.name}
         />
-
-        {/* Báo lỗi */}
-        <ReportIssueModal movieTitle={title} episodeName={activeEpisode?.name} />
       </div>
     </div>
   );

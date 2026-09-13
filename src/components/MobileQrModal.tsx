@@ -234,11 +234,7 @@ export function MobileQrModal({
               Mở ứng dụng <strong className="text-white font-bold">Camera</strong> hoặc <strong className="text-sky-400 font-bold">Zalo</strong> trên điện thoại quét mã trên để mở ngay lập tức tại đúng mốc <span className="text-amber-400 font-bold">{formatTime(exactProgressSeconds)}</span>.
             </p>
 
-            {isLocalhost && (
-              <div className="mt-2.5 p-2 rounded-lg bg-amber-500/10 border border-amber-500/25 text-[10.5px] text-amber-300 text-left leading-snug">
-                💡 <strong>Mẹo:</strong> Khi deploy lên Vercel, điện thoại quét mã sẽ mở ngay lập tức qua Internet. Ở localhost, điện thoại cần kết nối cùng Wi-Fi với máy tính hoặc bạn có thể sao chép link bên dưới.
-              </div>
-            )}
+
 
             {/* Cụm nút hành động */}
             <div className="mt-4 flex gap-2">

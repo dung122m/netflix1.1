@@ -16,16 +16,32 @@ const ActorBioModal = dynamic(
   () => import("@/components/ActorBioModal").then((m) => m.ActorBioModal),
   { ssr: false }
 );
+const UserProfileModal = dynamic(
+  () => import("@/components/UserProfileModal").then((m) => m.UserProfileModal),
+  { ssr: false }
+);
+const LeaderboardModal = dynamic(
+  () => import("@/components/LeaderboardModal").then((m) => m.LeaderboardModal),
+  { ssr: false }
+);
+const ContinueWatchingSync = dynamic(
+  () => import("@/components/ContinueWatchingSync").then((m) => m.ContinueWatchingSync),
+  { ssr: false }
+);
 
+import React from "react";
 import { GlobalConfirmDialog } from "@/components/ui/ConfirmDialog";
 
-export function ClientModals() {
+export const ClientModals = React.memo(function ClientModals() {
   return (
     <>
       <AiMovieConcierge />
       <AiMovieRoulette />
       <ActorBioModal />
+      <UserProfileModal />
+      <LeaderboardModal />
+      <ContinueWatchingSync />
       <GlobalConfirmDialog />
     </>
   );
-}
+});

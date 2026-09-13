@@ -11,6 +11,7 @@ import { Film, ExternalLink, Sparkles } from "lucide-react";
 import { movieApi } from "@/services/movieApi";
 import { resolveActorMovies, fetchMoviesByTitles } from "@/services/aiActorService";
 import { BrowseAiSearchBanner } from "@/components/BrowseAiSearchBanner";
+import { PersonalizedGenreSection } from "@/components/PersonalizedGenreSection";
 
 const HeroFeatured = dynamic(() =>
   import("@/components/sites/netflix-3f78535a/browse-1234abcd/HeroFeatured").then(
@@ -382,6 +383,9 @@ export default async function BrowsePage({
         {/* DẢI THẺ LỌC NHANH THỂ LOẠI & QUỐC GIA (Hiển thị cả khi đang tìm kiếm để người dùng lọc theo quốc gia của diễn viên) */}
         <QuickGenreChips />
 
+        {/* KHU VỰC ĐỀ XUẤT PHIM THEO GU YÊU THÍCH (PREFERENCES) */}
+        {isPlainHomepage && <PersonalizedGenreSection allMovies={movies} />}
+
         <div className="mb-7 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight">
@@ -440,49 +444,59 @@ export default async function BrowsePage({
             <MovieGrid movies={movies} />
 
             <div className="flex justify-center items-center gap-1.5 sm:gap-2 mt-10 sm:mt-16 flex-wrap">
+              {/* NÚT TRƯỚC */}
               <Link
                 href={buildPaginationUrl(Math.max(1, currentPage - 1))}
                 prefetch={true}
-                className={`px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm rounded font-semibold transition ${currentPage === 1
+                className={`px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm rounded-xl font-semibold transition touch-target flex items-center ${currentPage === 1
                     ? "bg-zinc-900 text-zinc-600 pointer-events-none"
-                    : "bg-zinc-800 text-white hover:bg-zinc-700"
+                    : "bg-zinc-800 text-white hover:bg-zinc-700 active:scale-95"
                   }`}
               >
-                &laquo; Trở lại
+                « Trước
               </Link>
 
-              {pages.map((p, index) => {
-                if (p === "...") {
+              {/* SỐ TRANG — ẩn trên mobile, chỉ hiện từ sm */}
+              <div className="hidden sm:flex items-center gap-1.5">
+                {pages.map((p, index) => {
+                  if (p === "...") {
+                    return (
+                      <span key={index} className="px-1.5 sm:px-2 text-xs sm:text-sm text-gray-500">
+                        ...
+                      </span>
+                    );
+                  }
                   return (
-                    <span key={index} className="px-1.5 sm:px-2 text-xs sm:text-sm text-gray-500">
-                      ...
-                    </span>
+                    <Link
+                      key={index}
+                      href={buildPaginationUrl(p as number)}
+                      prefetch={true}
+                      className={`w-8 h-8 sm:w-10 sm:h-10 text-xs sm:text-sm flex items-center justify-center rounded-lg font-semibold transition-colors ${currentPage === p
+                          ? "bg-netflix-red text-white shadow-sm"
+                          : "bg-zinc-800 text-gray-300 hover:bg-zinc-700 hover:text-white"
+                        }`}
+                    >
+                      {p}
+                    </Link>
                   );
-                }
-                return (
-                  <Link
-                    key={index}
-                    href={buildPaginationUrl(p as number)}
-                    prefetch={true}
-                    className={`w-8 h-8 sm:w-10 sm:h-10 text-xs sm:text-sm flex items-center justify-center rounded font-semibold transition-colors ${currentPage === p
-                        ? "bg-netflix-red text-white shadow-sm"
-                        : "bg-zinc-800 text-gray-300 hover:bg-zinc-700 hover:text-white"
-                      }`}
-                  >
-                    {p}
-                  </Link>
-                );
-              })}
+                })}
+              </div>
 
+              {/* TRANG HIỆN TẠI — chỉ hiện trên mobile */}
+              <span className="sm:hidden px-3 py-2 text-xs font-bold text-white bg-netflix-red rounded-xl">
+                {currentPage} / {totalPages}
+              </span>
+
+              {/* NÚT TIẾP */}
               <Link
                 href={buildPaginationUrl(currentPage + 1)}
                 prefetch={true}
-                className={`px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm rounded font-semibold transition ${currentPage >= totalPages
+                className={`px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm rounded-xl font-semibold transition touch-target flex items-center ${currentPage >= totalPages
                     ? "bg-zinc-900 text-zinc-600 pointer-events-none"
-                    : "bg-zinc-800 text-white hover:bg-zinc-700"
+                    : "bg-zinc-800 text-white hover:bg-zinc-700 active:scale-95"
                   }`}
               >
-                Tiếp theo &raquo;
+                Tiếp »
               </Link>
             </div>
           </>

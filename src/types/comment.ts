@@ -8,6 +8,8 @@ export interface MovieComment {
   userName: string;
   userAvatar?: string;
   userEmail?: string;
+  userBadges?: string[]; // Danh hiệu sở hữu của tác giả bình luận
+  userWatchTimeMinutes?: number; // Tổng số phút cày phim
   rating: number; // 0 (nếu không chấm sao) hoặc 1 - 5 sao
   content: string;
   episodeSlug?: string; // Ví dụ: "tap-1" hoặc "full"
@@ -24,7 +26,10 @@ export interface MovieComment {
   replyToUserId?: string;   // ID của user được reply trực tiếp trong thread
   replyToUserName?: string; // Tên của user được reply trực tiếp trong thread
   replyCount?: number;  // Số lượng replies (đếm client-side)
-  // --- Moderation & Admin Flagging ---
+  // --- Moderation & Admin Flagging & Pinning ---
+  isPinned?: boolean;           // Ghim bởi Admin
+  pinnedAt?: number;            // Thời điểm ghim
+  pinnedBy?: string;            // Email hoặc ID của Admin đã ghim
   isFlagged?: boolean;          // Đánh dấu vi phạm thuần phong mỹ tục hoặc spam
   flagReason?: string;         // Lý do bị đánh dấu (vd: "Từ ngữ thô tục", "Spam liên tục")
   flaggedAt?: number;          // Thời điểm bị đánh dấu

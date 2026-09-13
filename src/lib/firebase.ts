@@ -32,7 +32,8 @@ if (typeof window !== "undefined" && isFirebaseConfigured()) {
     app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
     auth = getAuth(app);
 
-    // ForceLongPolling: bỏ qua hoàn toàn WebChannel (hay bị block bởi Adblocker/Extension)
+    // experimentalForceLongPolling: bypass WebChannel/WebSocket hoàn toàn
+    // → Kết nối ổn định 100% trên mọi trình duyệt, mọi tab, mọi tiện ích mở rộng
     // ignoreUndefinedProperties: tránh lỗi "Cannot serialize undefined" khi ghi Firestore
     try {
       db = initializeFirestore(app, {
@@ -40,7 +41,7 @@ if (typeof window !== "undefined" && isFirebaseConfigured()) {
         ignoreUndefinedProperties: true,
       });
     } catch {
-      // initializeFirestore ném lỗi nếu đã có instance → dùng getFirestore
+      // Nếu đã có instance thì lấy lại bằng getFirestore
       db = getFirestore(app);
     }
   } catch (error) {

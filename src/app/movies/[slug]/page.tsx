@@ -346,22 +346,28 @@ export default async function MovieDetail({
         />
       </div>
 
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-8 mt-4 sm:mt-6 md:mt-10 grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 sm:gap-6">
-        <div className="lg:col-span-8 space-y-4 sm:space-y-5 sm:space-y-6">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-8 mt-4 sm:mt-6 md:mt-10 grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 lg:gap-6">
+        <div className="lg:col-span-8 space-y-4 sm:space-y-5 lg:space-y-6">
           <div className="rounded-2xl sm:rounded-3xl border border-white/15 bg-gradient-to-b from-zinc-900/80 via-zinc-950/85 to-black/90 p-4 sm:p-6 md:p-8 backdrop-blur-xl shadow-2xl">
-            <h1 className="text-2xl sm:text-3xl md:text-5xl font-extrabold leading-tight">
-              <span>{title}</span>{" "}
-              {movie.origin_name && movie.origin_name !== title && (
-                <span className="text-sm sm:text-lg md:text-2xl text-gray-400 font-normal block sm:inline">
-                  ({movie.origin_name})
+            {/* TIÊU ĐỀ PHIM & TÊN GỐC TÁCH BIỆT RÕ RÀNG */}
+            <div className="space-y-1.5">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight">
+                  {title}
+                </h1>
+                <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-netflix-red/20 border border-netflix-red/40 text-rose-300 font-extrabold text-xs sm:text-sm shadow-sm flex-shrink-0">
+                  {isTrailerOnly
+                    ? "Trailer"
+                    : formatEpisodeName(activeEpisode?.name, "Tập 1")}
                 </span>
-              )}{" "}
-              <span className="text-base sm:text-xl md:text-3xl text-gray-400 font-normal">
-                {isTrailerOnly
-                  ? "• Trailer"
-                  : `• ${formatEpisodeName(activeEpisode?.name, "Tập 1")}`}
-              </span>
-            </h1>
+              </div>
+
+              {movie.origin_name && movie.origin_name !== title && (
+                <p className="text-xs sm:text-sm md:text-base text-gray-400 font-medium italic">
+                  {movie.origin_name}
+                </p>
+              )}
+            </div>
 
             {/* THÔNG TIN PHIM TINH GỌN (METADATA LINE - NETFLIX STANDARD) */}
             <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 mt-3 sm:mt-4 text-xs text-gray-300 font-medium">
@@ -457,7 +463,7 @@ export default async function MovieDetail({
                 <div className="h-6 w-px bg-white/10 mx-0.5 flex-shrink-0 ml-auto hidden sm:block" />
                 <div className="flex-1 sm:hidden" />
 
-                {/* Cụm tiện ích: Chia sẻ, Xem trên điện thoại, Báo lỗi */}
+                {/* Cụm tiện ích: Chia sẻ, Xem trên điện thoại */}
                 <ShareButton title={title} />
                 <MobileQrModal
                   title={title}
@@ -465,14 +471,13 @@ export default async function MovieDetail({
                   activeEpisodeSlug={activeEpisode?.slug}
                   activeEpisodeName={activeEpisode?.name}
                 />
-                <ReportIssueModal movieTitle={title} episodeName={activeEpisode?.name} />
               </div>
             </div>
 
 
             {/* TIẾN ĐỘ PHÁT SÓNG (DÀNH CHO PHIM BỘ) */}
             {hasProgress && (
-              <div className="mt-5 rounded-xl border border-white/10 bg-white/5 p-3.5">
+              <div className="mt-5 rounded-2xl border border-white/10 bg-zinc-900/60 p-4 backdrop-blur-md">
                 <div className="flex items-center justify-between text-xs sm:text-sm mb-2">
                   <span className="text-gray-300 font-medium">
                     {isCompleted ? "Trọn bộ phát hành:" : "Tiến độ phát sóng:"}
@@ -484,7 +489,7 @@ export default async function MovieDetail({
                 </div>
                 <div className="w-full bg-zinc-800 h-2 rounded-full overflow-hidden">
                   <div
-                    className="bg-gradient-to-r from-netflix-red to-rose-500 h-full rounded-full transition-all duration-500"
+                    className="bg-gradient-to-r from-netflix-red to-rose-500 h-full rounded-full transition-all duration-500 shadow-[0_0_10px_rgba(229,9,20,0.5)]"
                     style={{ width: `${progressPercent}%` }}
                   />
                 </div>
@@ -520,20 +525,20 @@ export default async function MovieDetail({
               originName={movie.origin_name}
             />
 
-            {/* TÊN GỌI KHÁC NẾU CÓ TỪ API */}
+            {/* TÊN GỌI KHÁC NẾU CÓ TỪ API (HIỂN THỊ DẠNG CHỮ GỌN GÀNG, KHÔNG RỐI MẮT) */}
             {altNames.length > 0 && (
-              <div className="mt-4 pt-4 border-t border-white/10 flex flex-wrap items-center gap-1.5 text-xs text-gray-400">
-                <span className="text-gray-500 font-semibold uppercase tracking-wider text-[11px] mr-1">
+              <div className="mt-4 pt-3.5 border-t border-white/10 flex flex-wrap items-center gap-2 text-xs text-gray-400">
+                <span className="text-gray-500 font-semibold uppercase tracking-wider text-[11px] flex-shrink-0">
                   Tên gọi khác:
                 </span>
-                {altNames.map((name, i) => (
-                  <span
-                    key={i}
-                    className="px-2.5 py-1 rounded-md bg-white/5 border border-white/10 text-gray-300 font-medium"
-                  >
-                    {name}
-                  </span>
-                ))}
+                <span className="text-gray-300 font-medium leading-relaxed">
+                  {altNames.slice(0, 3).join(" • ")}
+                  {altNames.length > 3 && (
+                    <span className="text-gray-500 text-[11px] ml-1.5 font-normal">
+                      (+{altNames.length - 3} tên khác)
+                    </span>
+                  )}
+                </span>
               </div>
             )}
 
@@ -547,7 +552,7 @@ export default async function MovieDetail({
 
             {/* BẢNG THÔNG TIN CHI TIẾT TINH GỌN (STREAMLINED METADATA) */}
             {(categoryList.length > 0 || countryList.length > 0 || directorList.length > 0 || actorList.length > 0) && (
-              <div className="mt-6 pt-5 border-t border-white/10 space-y-2.5 text-xs sm:text-sm">
+              <div className="mt-6 pt-5 border-t border-white/10 space-y-3 text-xs sm:text-sm">
                 {/* THỂ LOẠI */}
                 {categoryList.length > 0 && (
                   <div className="flex flex-wrap items-baseline gap-2">
@@ -563,7 +568,7 @@ export default async function MovieDetail({
                               ? `/browse?category=${cat.slug}`
                               : `/browse?keyword=${encodeURIComponent(cat.name)}`
                           }
-                          className="inline-flex items-center px-2 py-0.5 rounded-md bg-white/5 hover:bg-white/15 text-gray-200 hover:text-white text-xs transition border border-white/10 hover:border-white/20"
+                          className="inline-flex items-center px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/15 text-gray-200 hover:text-white text-xs transition border border-white/10 hover:border-white/25"
                         >
                           {cat.name}
                         </Link>
@@ -587,7 +592,7 @@ export default async function MovieDetail({
                               ? `/browse?country=${cnt.slug}`
                               : `/browse?keyword=${encodeURIComponent(cnt.name)}`
                           }
-                          className="inline-flex items-center px-2 py-0.5 rounded-md bg-white/5 hover:bg-white/15 text-gray-200 hover:text-white text-xs transition border border-white/10 hover:border-white/20"
+                          className="inline-flex items-center px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/15 text-gray-200 hover:text-white text-xs transition border border-white/10 hover:border-white/25"
                         >
                           {cnt.name}
                         </Link>
@@ -616,10 +621,20 @@ export default async function MovieDetail({
                     <span className="text-gray-400 font-medium min-w-[75px] flex-shrink-0 text-xs uppercase tracking-wider">
                       Diễn viên:
                     </span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {actorList.slice(0, 10).map((a, idx) => (
-                        <ActorChipClient key={idx} name={a} isDirector={false} />
+                    <div className="flex flex-wrap gap-1.5 items-center">
+                      {actorList.slice(0, 8).map((a, idx) => (
+                        <span key={idx} className={idx >= 3 ? "hidden sm:inline-block" : "inline-block"}>
+                          <ActorChipClient name={a} isDirector={false} />
+                        </span>
                       ))}
+                      {actorList.length > 3 && (
+                        <Link
+                          href={`/browse?keyword=${encodeURIComponent(title)}`}
+                          className="sm:hidden text-xs text-rose-400 hover:underline flex items-center gap-0.5 ml-1 font-semibold"
+                        >
+                          +{actorList.length - 3} diễn viên
+                        </Link>
+                      )}
                     </div>
                   </div>
                 )}

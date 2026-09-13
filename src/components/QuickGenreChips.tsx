@@ -22,86 +22,86 @@ import {
 // 1. LOẠI PHIM (LOẠT PHIM)
 // =========================================================
 const POPULAR_TYPES = [
-  { name: "🎬 Tất cả loại phim", slug: "" },
-  { name: "🍿 Phim Lẻ", slug: "phim-le" },
-  { name: "📺 Phim Bộ", slug: "phim-bo" },
-  { name: "🎟️ Chiếu Rạp", slug: "phim-chieu-rap" },
-  { name: "🎨 Hoạt Hình / Anime", slug: "hoat-hinh" },
-  { name: "🎪 TV Shows", slug: "tv-shows" },
-  { name: "⏳ Sắp Chiếu", slug: "phim-sap-chieu" },
-  { name: "🎙️ Thuyết Minh", slug: "phim-thuyet-minh" },
-  { name: "🗣️ Lồng Tiếng", slug: "phim-long-tieng" },
+  { name: "Tất cả loại", slug: "" },
+  { name: "Phim Lẻ", slug: "phim-le" },
+  { name: "Phim Bộ", slug: "phim-bo" },
+  { name: "Chiếu Rạp", slug: "phim-chieu-rap" },
+  { name: "Hoạt Hình / Anime", slug: "hoat-hinh" },
+  { name: "TV Shows", slug: "tv-shows" },
+  { name: "Sắp Chiếu", slug: "phim-sap-chieu" },
+  { name: "Thuyết Minh", slug: "phim-thuyet-minh" },
+  { name: "Lồng Tiếng", slug: "phim-long-tieng" },
 ];
 
 // =========================================================
 // 2. THỂ LOẠI (GENRES)
 // =========================================================
 const POPULAR_GENRES = [
-  { name: "✨ Tất cả thể loại", slug: "" },
-  { name: "💥 Hành Động", slug: "hanh-dong" },
-  { name: "💖 Tình Cảm", slug: "tinh-cam" },
-  { name: "👻 Kinh Dị", slug: "kinh-di" },
-  { name: "🤣 Hài Hước", slug: "hai-huoc" },
-  { name: "🛸 Viễn Tưởng", slug: "vien-tuong" },
-  { name: "🏯 Cổ Trang", slug: "co-trang" },
-  { name: "🧠 Tâm Lý", slug: "tam-ly" },
-  { name: "🥋 Võ Thuật", slug: "vo-thuat" },
-  { name: "🕵️ Trinh Thám", slug: "trinh-tham" },
-  { name: "⚔️ Chiến Tranh", slug: "chien-tranh" },
-  { name: "🌟 Phiêu Lưu", slug: "phieu-luu" },
-  { name: "🎵 Âm Nhạc", slug: "am-nhac" },
-  { name: "🏆 Thể Thao", slug: "the-thao" },
-  { name: "📚 Tài Liệu", slug: "tai-lieu" },
+  { name: "Tất cả thể loại", slug: "" },
+  { name: "Hành Động", slug: "hanh-dong" },
+  { name: "Tình Cảm", slug: "tinh-cam" },
+  { name: "Kinh Dị", slug: "kinh-di" },
+  { name: "Hài Hước", slug: "hai-huoc" },
+  { name: "Viễn Tưởng", slug: "vien-tuong" },
+  { name: "Cổ Trang", slug: "co-trang" },
+  { name: "Tâm Lý", slug: "tam-ly" },
+  { name: "Võ Thuật", slug: "vo-thuat" },
+  { name: "Trinh Thám", slug: "trinh-tham" },
+  { name: "Chiến Tranh", slug: "chien-tranh" },
+  { name: "Phiêu Lưu", slug: "phieu-luu" },
+  { name: "Âm Nhạc", slug: "am-nhac" },
+  { name: "Thể Thao", slug: "the-thao" },
+  { name: "Tài Liệu", slug: "tai-lieu" },
 ];
 
 // =========================================================
 // 3. QUỐC GIA (COUNTRIES)
 // =========================================================
 const POPULAR_COUNTRIES = [
-  { name: "🌐 Tất cả quốc gia", slug: "" },
-  { name: "🇰🇷 Hàn Quốc", slug: "han-quoc" },
-  { name: "🇨🇳 Trung Quốc", slug: "trung-quoc" },
-  { name: "🇺🇸 Âu Mỹ", slug: "au-my" },
-  { name: "🇯🇵 Nhật Bản", slug: "nhat-ban" },
-  { name: "🇹🇭 Thái Lan", slug: "thai-lan" },
-  { name: "🇻🇳 Việt Nam", slug: "viet-nam" },
-  { name: "🇭🇰 Hồng Kông", slug: "hong-kong" },
-  { name: "🇹🇼 Đài Loan", slug: "dai-loan" },
-  { name: "🇮🇳 Ấn Độ", slug: "an-do" },
-  { name: "🇬🇧 Anh", slug: "anh" },
-  { name: "🇫🇷 Pháp", slug: "phap" },
+  { name: "Tất cả quốc gia", slug: "" },
+  { name: "Hàn Quốc", slug: "han-quoc" },
+  { name: "Trung Quốc", slug: "trung-quoc" },
+  { name: "Âu Mỹ", slug: "au-my" },
+  { name: "Nhật Bản", slug: "nhat-ban" },
+  { name: "Thái Lan", slug: "thai-lan" },
+  { name: "Việt Nam", slug: "viet-nam" },
+  { name: "Hồng Kông", slug: "hong-kong" },
+  { name: "Đài Loan", slug: "dai-loan" },
+  { name: "Ấn Độ", slug: "an-do" },
+  { name: "Anh", slug: "anh" },
+  { name: "Pháp", slug: "phap" },
 ];
 
 // =========================================================
 // 4. DIỄN VIÊN (ACTORS)
 // =========================================================
 const POPULAR_ACTORS = [
-  { name: "🎬 Trấn Thành", keyword: "Trấn Thành" },
-  { name: "🥋 Thành Long", keyword: "Thành Long" },
-  { name: "⚡ Châu Tinh Trì", keyword: "Châu Tinh Trì" },
-  { name: "💥 Chân Tử Đan", keyword: "Chân Tử Đan" },
-  { name: "🥊 Lý Liên Kiệt", keyword: "Lý Liên Kiệt" },
-  { name: "✨ Lưu Diệc Phi", keyword: "Lưu Diệc Phi" },
-  { name: "👑 Dương Mịch", keyword: "Dương Mịch" },
-  { name: "🌟 Triệu Lệ Dĩnh", keyword: "Triệu Lệ Dĩnh" },
-  { name: "⭐ Tiêu Chiến", keyword: "Tiêu Chiến" },
-  { name: "🇰🇷 Song Joong Ki", keyword: "Song Joong Ki" },
-  { name: "💫 Lee Min Ho", keyword: "Lee Min Ho" },
-  { name: "💖 Hyun Bin", keyword: "Hyun Bin" },
-  { name: "👊 Ma Dong Seok", keyword: "Ma Dong Seok" },
-  { name: "🕶️ Tom Cruise", keyword: "Tom Cruise" },
-  { name: "🎭 Leonardo DiCaprio", keyword: "Leonardo DiCaprio" },
-  { name: "🔫 Keanu Reeves", keyword: "Keanu Reeves" },
+  { name: "Trấn Thành", keyword: "Trấn Thành" },
+  { name: "Thành Long", keyword: "Thành Long" },
+  { name: "Châu Tinh Trì", keyword: "Châu Tinh Trì" },
+  { name: "Chân Tử Đan", keyword: "Chân Tử Đan" },
+  { name: "Lý Liên Kiệt", keyword: "Lý Liên Kiệt" },
+  { name: "Lưu Diệc Phi", keyword: "Lưu Diệc Phi" },
+  { name: "Dương Mịch", keyword: "Dương Mịch" },
+  { name: "Triệu Lệ Dĩnh", keyword: "Triệu Lệ Dĩnh" },
+  { name: "Tiêu Chiến", keyword: "Tiêu Chiến" },
+  { name: "Song Joong Ki", keyword: "Song Joong Ki" },
+  { name: "Lee Min Ho", keyword: "Lee Min Ho" },
+  { name: "Hyun Bin", keyword: "Hyun Bin" },
+  { name: "Ma Dong Seok", keyword: "Ma Dong Seok" },
+  { name: "Tom Cruise", keyword: "Tom Cruise" },
+  { name: "Leonardo DiCaprio", keyword: "Leonardo DiCaprio" },
+  { name: "Keanu Reeves", keyword: "Keanu Reeves" },
 ];
 
 // =========================================================
 // 5. NĂM PHÁT HÀNH (YEARS)
 // =========================================================
 const RECENT_YEARS = [
-  { name: "📅 Tất cả năm", year: "" },
-  { name: "🚀 2026", year: "2026" },
-  { name: "✨ 2025", year: "2025" },
-  { name: "🌟 2024", year: "2024" },
+  { name: "Tất cả năm", year: "" },
+  { name: "2026", year: "2026" },
+  { name: "2025", year: "2025" },
+  { name: "2024", year: "2024" },
   { name: "2023", year: "2023" },
   { name: "2022", year: "2022" },
   { name: "2021", year: "2021" },
@@ -265,7 +265,7 @@ const QuickGenreChipsInner: React.FC = () => {
   const activeCountryName =
     POPULAR_COUNTRIES.find((c) => c.slug === currentCountry)?.name || currentCountry;
 
-  // 1. Render hàng Loại Phim (Loạt phim)
+  // 1. Render hàng Loại Phim
   const renderTypeRow = () => (
     <div className="relative group/row flex items-center gap-2">
       <div className="hidden md:flex flex-none items-center gap-1.5 text-xs text-gray-400 pl-1 pr-2 font-semibold w-24 sm:w-28">
@@ -285,7 +285,7 @@ const QuickGenreChipsInner: React.FC = () => {
 
       <div
         ref={typeRowRef}
-        className="flex-1 flex items-center gap-1.5 overflow-x-auto py-1 scrollbar-none [&::-webkit-scrollbar]:hidden touch-pan-x scroll-smooth"
+        className="flex-1 flex items-center gap-1.5 overflow-x-auto py-2 px-1 -mx-1 scrollbar-none [&::-webkit-scrollbar]:hidden touch-pan-x scroll-smooth"
       >
         {POPULAR_TYPES.map((t) => {
           const isActive = t.slug === "" ? !currentType : currentType === t.slug;
@@ -296,10 +296,10 @@ const QuickGenreChipsInner: React.FC = () => {
               type="button"
               onMouseEnter={() => router.prefetch(getTypeUrl(t.slug))}
               onClick={() => handleTypeSelect(t.slug)}
-              className={`flex-none px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 cursor-pointer ${
+              className={`flex-none px-3.5 py-1.5 rounded-full text-xs transition-all duration-150 cursor-pointer ${
                 isActive
-                  ? "bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 text-white shadow-[0_0_15px_rgba(229,9,20,0.5)] border border-rose-400 scale-105 font-bold"
-                  : "bg-zinc-900/90 hover:bg-zinc-800 text-gray-300 hover:text-white border border-white/10 hover:border-white/30"
+                  ? "bg-netflix-red text-white font-bold border border-rose-500 shadow-sm shadow-red-950/50"
+                  : "bg-zinc-900/90 hover:bg-zinc-800 text-gray-300 hover:text-white border border-white/10 hover:border-white/20 font-medium"
               }`}
             >
               {t.name}
@@ -340,7 +340,7 @@ const QuickGenreChipsInner: React.FC = () => {
 
       <div
         ref={genreRowRef}
-        className="flex-1 flex items-center gap-1.5 overflow-x-auto py-1 scrollbar-none [&::-webkit-scrollbar]:hidden touch-pan-x scroll-smooth"
+        className="flex-1 flex items-center gap-1.5 overflow-x-auto py-2 px-1 -mx-1 scrollbar-none [&::-webkit-scrollbar]:hidden touch-pan-x scroll-smooth"
       >
         <button
           type="button"
@@ -349,10 +349,10 @@ const QuickGenreChipsInner: React.FC = () => {
               window.dispatchEvent(new CustomEvent("open-ai-roulette"));
             }
           }}
-          className="flex-none px-3.5 py-1.5 rounded-full text-xs font-black transition-all duration-300 cursor-pointer bg-gradient-to-r from-amber-500 via-orange-500 to-red-600 text-white shadow-md shadow-amber-950/60 hover:scale-105 active:scale-95 border border-amber-400/40 flex items-center gap-1.5"
+          className="flex-none px-3.5 py-1.5 rounded-full text-xs font-bold transition-all duration-200 cursor-pointer bg-gradient-to-r from-netflix-red to-rose-700 text-white shadow-sm shadow-red-950/50 hover:bg-rose-600 border border-rose-500/50 flex items-center gap-1.5"
         >
-          <Dices className="w-3.5 h-3.5 text-amber-200" />
-          <span>Suất Chiếu Định Mệnh 🎲</span>
+          <Dices className="w-3.5 h-3.5 text-amber-300" />
+          <span>Suất Chiếu Định Mệnh</span>
         </button>
 
         {POPULAR_GENRES.map((g) => {
@@ -364,10 +364,10 @@ const QuickGenreChipsInner: React.FC = () => {
               type="button"
               onMouseEnter={() => router.prefetch(getCategoryUrl(g.slug))}
               onClick={() => handleCategorySelect(g.slug)}
-              className={`flex-none px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 cursor-pointer ${
+              className={`flex-none px-3.5 py-1.5 rounded-full text-xs transition-all duration-150 cursor-pointer ${
                 isActive
-                  ? "bg-gradient-to-r from-red-600 to-netflix-red text-white shadow-[0_0_15px_rgba(229,9,20,0.45)] border border-red-400/60 scale-105 font-bold"
-                  : "bg-zinc-900/90 hover:bg-zinc-800 text-gray-300 hover:text-white border border-white/10 hover:border-white/30"
+                  ? "bg-netflix-red text-white font-bold border border-rose-500 shadow-sm shadow-red-950/50"
+                  : "bg-zinc-900/90 hover:bg-zinc-800 text-gray-300 hover:text-white border border-white/10 hover:border-white/20 font-medium"
               }`}
             >
               {g.name}
@@ -408,7 +408,7 @@ const QuickGenreChipsInner: React.FC = () => {
 
       <div
         ref={countryRowRef}
-        className="flex-1 flex items-center gap-1.5 overflow-x-auto py-1 scrollbar-none [&::-webkit-scrollbar]:hidden touch-pan-x scroll-smooth"
+        className="flex-1 flex items-center gap-1.5 overflow-x-auto py-2 px-1 -mx-1 scrollbar-none [&::-webkit-scrollbar]:hidden touch-pan-x scroll-smooth"
       >
         {POPULAR_COUNTRIES.map((c) => {
           const isActive = c.slug === "" ? !currentCountry : currentCountry === c.slug;
@@ -419,10 +419,10 @@ const QuickGenreChipsInner: React.FC = () => {
               type="button"
               onMouseEnter={() => router.prefetch(getCountryUrl(c.slug))}
               onClick={() => handleCountrySelect(c.slug)}
-              className={`flex-none px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 cursor-pointer ${
+              className={`flex-none px-3.5 py-1.5 rounded-full text-xs transition-all duration-150 cursor-pointer ${
                 isActive
-                  ? "bg-gradient-to-r from-sky-600 to-blue-600 text-white shadow-[0_0_15px_rgba(2,132,199,0.45)] border border-sky-400/60 scale-105 font-bold"
-                  : "bg-zinc-900/90 hover:bg-zinc-800 text-gray-300 hover:text-white border border-white/10 hover:border-white/30"
+                  ? "bg-sky-600 text-white font-bold border border-sky-400 shadow-sm shadow-sky-950/50"
+                  : "bg-zinc-900/90 hover:bg-zinc-800 text-gray-300 hover:text-white border border-white/10 hover:border-white/20 font-medium"
               }`}
             >
               {c.name}
@@ -463,7 +463,7 @@ const QuickGenreChipsInner: React.FC = () => {
 
       <div
         ref={actorRowRef}
-        className="flex-1 flex items-center gap-1.5 overflow-x-auto py-1 scrollbar-none [&::-webkit-scrollbar]:hidden touch-pan-x scroll-smooth"
+        className="flex-1 flex items-center gap-1.5 overflow-x-auto py-2 px-1 -mx-1 scrollbar-none [&::-webkit-scrollbar]:hidden touch-pan-x scroll-smooth"
       >
         {POPULAR_ACTORS.map((act) => {
           const isActive =
@@ -475,10 +475,10 @@ const QuickGenreChipsInner: React.FC = () => {
               type="button"
               onMouseEnter={() => router.prefetch(getActorUrl(act.keyword))}
               onClick={() => handleActorSelect(act.keyword)}
-              className={`flex-none px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 cursor-pointer ${
+              className={`flex-none px-3.5 py-1.5 rounded-full text-xs transition-all duration-150 cursor-pointer ${
                 isActive
-                  ? "bg-gradient-to-r from-amber-500 to-orange-500 text-black font-black shadow-[0_0_15px_rgba(245,158,11,0.5)] border border-amber-300 scale-105"
-                  : "bg-zinc-900/90 hover:bg-zinc-800 text-gray-300 hover:text-white border border-white/10 hover:border-white/30"
+                  ? "bg-amber-500 text-black font-bold border border-amber-300 shadow-sm shadow-amber-950/50"
+                  : "bg-zinc-900/90 hover:bg-zinc-800 text-gray-300 hover:text-white border border-white/10 hover:border-white/20 font-medium"
               }`}
             >
               {act.name}
@@ -519,7 +519,7 @@ const QuickGenreChipsInner: React.FC = () => {
 
       <div
         ref={yearRowRef}
-        className="flex-1 flex items-center gap-1.5 overflow-x-auto py-1 scrollbar-none [&::-webkit-scrollbar]:hidden touch-pan-x scroll-smooth"
+        className="flex-1 flex items-center gap-1.5 overflow-x-auto py-2 px-1 -mx-1 scrollbar-none [&::-webkit-scrollbar]:hidden touch-pan-x scroll-smooth"
       >
         {RECENT_YEARS.map((y) => {
           const isActive = y.year === "" ? !currentYear : currentYear === y.year;
@@ -530,10 +530,10 @@ const QuickGenreChipsInner: React.FC = () => {
               type="button"
               onMouseEnter={() => router.prefetch(getYearUrl(y.year))}
               onClick={() => handleYearSelect(y.year)}
-              className={`flex-none px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 cursor-pointer ${
+              className={`flex-none px-3.5 py-1.5 rounded-full text-xs transition-all duration-150 cursor-pointer ${
                 isActive
-                  ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-[0_0_15px_rgba(5,150,105,0.45)] border border-emerald-400/60 scale-105 font-bold"
-                  : "bg-zinc-900/90 hover:bg-zinc-800 text-gray-300 hover:text-white border border-white/10 hover:border-white/30"
+                  ? "bg-emerald-600 text-white font-bold border border-emerald-400 shadow-sm shadow-emerald-950/50"
+                  : "bg-zinc-900/90 hover:bg-zinc-800 text-gray-300 hover:text-white border border-white/10 hover:border-white/20 font-medium"
               }`}
             >
               {y.name}
@@ -555,7 +555,7 @@ const QuickGenreChipsInner: React.FC = () => {
   );
 
   return (
-    <div className="w-full mb-6 rounded-3xl border border-white/10 bg-zinc-950/80 p-3.5 sm:p-5 backdrop-blur-xl shadow-2xl space-y-3 relative overflow-hidden">
+    <div className="w-full mb-6 rounded-2xl sm:rounded-3xl border border-white/15 bg-zinc-950/90 p-3 sm:p-4 backdrop-blur-xl shadow-2xl space-y-3 relative overflow-hidden">
       {/* THANH TIẾN TRÌNH NẠP KHI CHUYỂN BỘ LỌC */}
       {isPending && (
         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-600 via-amber-400 to-red-600 animate-pulse z-30 shadow-[0_0_10px_rgba(229,9,20,0.8)]" />
@@ -563,18 +563,18 @@ const QuickGenreChipsInner: React.FC = () => {
 
       {/* THANH ĐIỀU HƯỚNG BỘ LỌC ĐANG CHỌN (NẾU CÓ) */}
       {activeCount > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-white/10 text-xs">
+        <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-white/10 text-xs">
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="flex items-center gap-1 text-gray-300 font-bold bg-white/10 px-2 py-0.5 rounded-md mr-1">
+            <span className="flex items-center gap-1.5 text-gray-300 font-bold bg-white/5 px-2.5 py-1 rounded-full border border-white/10">
               <Filter className="w-3 h-3 text-netflix-red" />
-              Đang lọc ({activeCount}):
+              <span>Đang lọc ({activeCount})</span>
             </span>
 
             {currentType && (
               <button
                 type="button"
                 onClick={() => handleTypeSelect("")}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold hover:bg-rose-500 hover:text-white transition cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-netflix-red/15 border border-netflix-red/30 text-rose-200 font-semibold hover:bg-netflix-red hover:text-white transition cursor-pointer text-xs"
               >
                 <span>{activeTypeName}</span>
                 <X className="w-3 h-3" />
@@ -585,7 +585,7 @@ const QuickGenreChipsInner: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleCategorySelect("")}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-netflix-red/20 border border-netflix-red/40 text-rose-300 font-bold hover:bg-netflix-red hover:text-white transition cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-netflix-red/15 border border-netflix-red/30 text-rose-200 font-semibold hover:bg-netflix-red hover:text-white transition cursor-pointer text-xs"
               >
                 <span>{activeCategoryName}</span>
                 <X className="w-3 h-3" />
@@ -596,7 +596,7 @@ const QuickGenreChipsInner: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleCountrySelect("")}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-sky-500/20 border border-sky-500/40 text-sky-300 font-bold hover:bg-sky-500 hover:text-white transition cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-500/15 border border-sky-500/30 text-sky-200 font-semibold hover:bg-sky-500 hover:text-white transition cursor-pointer text-xs"
               >
                 <span>{activeCountryName}</span>
                 <X className="w-3 h-3" />
@@ -612,7 +612,7 @@ const QuickGenreChipsInner: React.FC = () => {
                   p.delete("page");
                   router.push(`/browse?${p.toString()}`, { scroll: false });
                 }}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold hover:bg-amber-500 hover:text-black transition cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-200 font-semibold hover:bg-amber-500 hover:text-black transition cursor-pointer text-xs"
               >
                 <span>Diễn viên: {currentKeyword}</span>
                 <X className="w-3 h-3" />
@@ -623,7 +623,7 @@ const QuickGenreChipsInner: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleYearSelect("")}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-bold hover:bg-emerald-500 hover:text-black transition cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-200 font-semibold hover:bg-emerald-500 hover:text-black transition cursor-pointer text-xs"
               >
                 <span>Năm: {currentYear}</span>
                 <X className="w-3 h-3" />
@@ -634,87 +634,48 @@ const QuickGenreChipsInner: React.FC = () => {
           <button
             type="button"
             onClick={handleClearAll}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-gray-400 hover:text-rose-400 hover:bg-white/5 transition ml-auto cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold text-gray-400 hover:text-white hover:bg-white/10 transition ml-auto cursor-pointer border border-white/10"
           >
-            <RotateCcw className="w-3 h-3" />
-            <span>Đặt lại tất cả</span>
+            <RotateCcw className="w-3 h-3 text-netflix-red" />
+            <span>Đặt lại</span>
           </button>
         </div>
       )}
 
-      {/* MOBILE SEGMENTED CONTROL */}
-      <div className="flex md:hidden items-center justify-between gap-1 pb-1">
-        <div className="flex items-center gap-1 bg-zinc-900/90 p-1 rounded-xl border border-white/10 text-xs overflow-x-auto scrollbar-none">
-          <button
-            type="button"
-            onClick={() => setMobileTab("type")}
-            className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1 cursor-pointer flex-none ${
-              mobileTab === "type"
-                ? "bg-netflix-red text-white shadow-sm"
-                : "text-gray-400 hover:text-white"
-            }`}
-          >
-            <Film className="w-3 h-3" />
-            <span>Loại phim</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setMobileTab("genre")}
-            className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1 cursor-pointer flex-none ${
-              mobileTab === "genre"
-                ? "bg-netflix-red text-white shadow-sm"
-                : "text-gray-400 hover:text-white"
-            }`}
-          >
-            <Sparkles className="w-3 h-3" />
-            <span>Thể loại</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setMobileTab("country")}
-            className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1 cursor-pointer flex-none ${
-              mobileTab === "country"
-                ? "bg-sky-600 text-white shadow-sm"
-                : "text-gray-400 hover:text-white"
-            }`}
-          >
-            <Globe2 className="w-3 h-3" />
-            <span>Quốc gia</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setMobileTab("actor")}
-            className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1 cursor-pointer flex-none ${
-              mobileTab === "actor"
-                ? "bg-amber-500 text-black shadow-sm font-black"
-                : "text-gray-400 hover:text-white"
-            }`}
-          >
-            <Users className="w-3 h-3" />
-            <span>Diễn viên</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setMobileTab("year")}
-            className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1 cursor-pointer flex-none ${
-              mobileTab === "year"
-                ? "bg-emerald-600 text-white shadow-sm"
-                : "text-gray-400 hover:text-white"
-            }`}
-          >
-            <Calendar className="w-3 h-3" />
-            <span>Năm</span>
-          </button>
+      {/* MOBILE SEGMENTED CONTROL: Tối giản, thanh lịch, chuẩn Netflix */}
+      <div className="flex md:hidden items-center justify-between gap-2 pb-1">
+        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-0.5">
+          {[
+            { id: "type", label: "Loại phim", icon: Film },
+            { id: "genre", label: "Thể loại", icon: Sparkles },
+            { id: "country", label: "Quốc gia", icon: Globe2 },
+            { id: "actor", label: "Diễn viên", icon: Users },
+            { id: "year", label: "Năm", icon: Calendar },
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const isActive = mobileTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setMobileTab(tab.id as any)}
+                className={`flex-none px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  isActive
+                    ? "bg-netflix-red text-white shadow-md shadow-red-950/50 scale-[1.02]"
+                    : "bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10"
+                }`}
+              >
+                <Icon className={`w-3.5 h-3.5 ${isActive ? "text-white" : "text-gray-400"}`} />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
         </div>
 
         <button
           type="button"
           onClick={() => setShowAllMobileRows(!showAllMobileRows)}
-          className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 text-xs font-semibold border border-white/10 transition cursor-pointer flex-none"
+          className="flex-none flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-white/5 hover:bg-white/10 text-gray-300 text-xs font-semibold border border-white/10 transition cursor-pointer"
         >
           <span>{showAllMobileRows ? "Thu gọn" : "Tất cả"}</span>
           {showAllMobileRows ? (
@@ -758,6 +719,5 @@ const QuickGenreChipsInner: React.FC = () => {
   );
 };
 
-export const QuickGenreChips: React.FC = () => {
-  return <QuickGenreChipsInner />;
-};
+export const QuickGenreChips: React.FC = React.memo(QuickGenreChipsInner);
+export default QuickGenreChips;

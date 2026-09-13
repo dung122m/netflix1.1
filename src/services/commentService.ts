@@ -40,27 +40,47 @@ function sanitizeCommentData(data: Record<string, unknown>): Record<string, unkn
 
 /**
  * Đăng ký lắng nghe bình luận theo thời gian thực (Real-time listener)
- * Chỉ lấy top-level comments (không có parentId)
+ * Tự động chuyển sang Next.js Server API nếu Firestore client bị Adblocker chặn
  */
 export function subscribeMovieComments(
   movieSlug: string,
   onUpdate: (comments: MovieComment[]) => void,
   onError?: (err: Error) => void,
 ): Unsubscribe {
-  if (!db || !movieSlug) {
+  if (!movieSlug) {
     onUpdate([]);
     return () => {};
   }
 
+  const fallbackFetch = async () => {
+    try {
+      const res = await fetch(`/api/comments?movieSlug=${encodeURIComponent(movieSlug)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.items) {
+          onUpdate(data.items);
+        }
+      }
+    } catch {}
+  };
+
+  if (!db) {
+    fallbackFetch();
+    const interval = setInterval(fallbackFetch, 8000);
+    return () => clearInterval(interval);
+  }
+
   const commentsRef = collection(db, COLLECTION_NAME);
-  // Sử dụng single-field query (where movieSlug) để không bao giờ bị lỗi thiếu Composite Index của Firestore
   const q = query(
     commentsRef,
     where("movieSlug", "==", movieSlug),
     limit(300),
   );
 
-  return onSnapshot(
+  let isUnsubscribed = false;
+  let fallbackInterval: NodeJS.Timeout | null = null;
+
+  const unsubscribe = onSnapshot(
     q,
     (snapshot) => {
       const items: MovieComment[] = [];
@@ -73,24 +93,36 @@ export function subscribeMovieComments(
         // TỰ ĐỘNG LỌC & TỰ ĐỘNG XÓA BÌNH LUẬN VÔ VĂN HÓA / SPAM
         const mod = checkContentModeration(commentData.content || "");
         if (!mod.isAllowed || commentData.isFlagged) {
-          // Tự động xóa ngầm khỏi Firestore
           if (db) {
             deleteDoc(doc(db, COLLECTION_NAME, docSnap.id)).catch(() => {});
           }
-          return; // Không hiển thị cho người xem
+          return;
         }
 
         items.push(commentData);
       });
-      // Sắp xếp theo thời gian mới nhất trực tiếp trong bộ nhớ
-      items.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      items.sort((a, b) => {
+        if (a.isPinned && !b.isPinned) return -1;
+        if (!a.isPinned && b.isPinned) return 1;
+        return (b.createdAt || 0) - (a.createdAt || 0);
+      });
       onUpdate(items);
     },
     (error) => {
-      console.warn("Lỗi tải bình luận phim từ Firestore:", error);
+      console.warn("Lỗi tải bình luận từ Firestore client, tự động dùng Server API Fallback:", error);
+      fallbackFetch();
+      if (!fallbackInterval && !isUnsubscribed) {
+        fallbackInterval = setInterval(fallbackFetch, 8000);
+      }
       if (onError) onError(error);
     },
   );
+
+  return () => {
+    isUnsubscribed = true;
+    if (fallbackInterval) clearInterval(fallbackInterval);
+    unsubscribe();
+  };
 }
 
 /**
@@ -101,9 +133,27 @@ export function subscribeCommentReplies(
   onUpdate: (replies: MovieComment[]) => void,
   onError?: (err: Error) => void,
 ): Unsubscribe {
-  if (!db || !parentId) {
+  if (!parentId) {
     onUpdate([]);
     return () => {};
+  }
+
+  const fallbackFetch = async () => {
+    try {
+      const res = await fetch(`/api/comments?parentId=${encodeURIComponent(parentId)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.items) {
+          onUpdate(data.items);
+        }
+      }
+    } catch {}
+  };
+
+  if (!db) {
+    fallbackFetch();
+    const interval = setInterval(fallbackFetch, 8000);
+    return () => clearInterval(interval);
   }
 
   const commentsRef = collection(db, COLLECTION_NAME);
@@ -113,7 +163,10 @@ export function subscribeCommentReplies(
     limit(50),
   );
 
-  return onSnapshot(
+  let isUnsubscribed = false;
+  let fallbackInterval: NodeJS.Timeout | null = null;
+
+  const unsubscribe = onSnapshot(
     q,
     (snapshot) => {
       const items: MovieComment[] = [];
@@ -123,7 +176,6 @@ export function subscribeCommentReplies(
           ...(docSnap.data() as Omit<MovieComment, "id">),
         };
 
-        // TỰ ĐỘNG LỌC & TỰ ĐỘNG XÓA REPLY VÔ VĂN HÓA / SPAM
         const mod = checkContentModeration(commentData.content || "");
         if (!mod.isAllowed || commentData.isFlagged) {
           if (db) {
@@ -134,14 +186,24 @@ export function subscribeCommentReplies(
 
         items.push(commentData);
       });
-      items.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0)); // Cũ nhất lên trên trong replies
+      items.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
       onUpdate(items);
     },
     (error) => {
-      console.warn("Lỗi tải replies từ Firestore:", error);
+      console.warn("Lỗi tải replies từ Firestore client, dùng Server API Fallback:", error);
+      fallbackFetch();
+      if (!fallbackInterval && !isUnsubscribed) {
+        fallbackInterval = setInterval(fallbackFetch, 8000);
+      }
       if (onError) onError(error);
     },
   );
+
+  return () => {
+    isUnsubscribed = true;
+    if (fallbackInterval) clearInterval(fallbackInterval);
+    unsubscribe();
+  };
 }
 
 /**
@@ -152,15 +214,31 @@ export function subscribeAllComments(
   onError?: (err: Error) => void,
   maxLimit: number = 300,
 ): Unsubscribe {
+  const fallbackFetch = async () => {
+    try {
+      const res = await fetch(`/api/comments?all=true`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.items) {
+          onUpdate(data.items);
+        }
+      }
+    } catch {}
+  };
+
   if (!db) {
-    onUpdate([]);
-    return () => {};
+    fallbackFetch();
+    const interval = setInterval(fallbackFetch, 8000);
+    return () => clearInterval(interval);
   }
 
   const commentsRef = collection(db, COLLECTION_NAME);
   const q = query(commentsRef, limit(maxLimit));
 
-  return onSnapshot(
+  let isUnsubscribed = false;
+  let fallbackInterval: NodeJS.Timeout | null = null;
+
+  const unsubscribe = onSnapshot(
     q,
     (snapshot) => {
       const items: MovieComment[] = [];
@@ -170,15 +248,24 @@ export function subscribeAllComments(
           ...(docSnap.data() as Omit<MovieComment, "id">),
         });
       });
-      // Sắp xếp thời gian mới nhất lên đầu trong bộ nhớ để không cần Firestore composite index
       items.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
       onUpdate(items);
     },
     (error) => {
-      console.warn("Lỗi tải toàn bộ bình luận cho Admin:", error);
+      console.warn("Lỗi tải toàn bộ bình luận cho Admin, kích hoạt Server Fallback:", error);
+      fallbackFetch();
+      if (!fallbackInterval && !isUnsubscribed) {
+        fallbackInterval = setInterval(fallbackFetch, 8000);
+      }
       if (onError) onError(error);
     },
   );
+
+  return () => {
+    isUnsubscribed = true;
+    if (fallbackInterval) clearInterval(fallbackInterval);
+    unsubscribe();
+  };
 }
 
 
@@ -276,11 +363,25 @@ export async function addMovieComment(
     throw new Error("Chưa kết nối được cơ sở dữ liệu Firebase!");
   }
 
-  // 1. Kiểm tra tài khoản có đang bị hạn chế bình luận không
-  const userRef = doc(db, USERS_COLLECTION, comment.userId);
-  const userSnap = await getDoc(userRef);
-  if (userSnap.exists() && userSnap.data()?.isCommentRestricted) {
-    throw new Error("Tài khoản của bạn tạm thời bị khóa tính năng bình luận do vi phạm tiêu chuẩn cộng đồng nhiều lần!");
+  let userBadges: string[] = [];
+  let userWatchTimeMinutes = 0;
+
+  // 1. Kiểm tra tài khoản có đang bị hạn chế bình luận không (bọc try-catch an toàn)
+  try {
+    const userRef = doc(db, USERS_COLLECTION, comment.userId);
+    const userSnap = await getDoc(userRef);
+    if (userSnap.exists()) {
+      const uData = userSnap.data();
+      if (uData?.isCommentRestricted) {
+        throw new Error("Tài khoản của bạn tạm thời bị khóa tính năng bình luận do vi phạm tiêu chuẩn cộng đồng nhiều lần!");
+      }
+      userBadges = uData?.badges || [];
+      userWatchTimeMinutes = uData?.watchTimeMinutes || 0;
+    }
+  } catch (err: unknown) {
+    if (err instanceof Error && err.message.includes("bị khóa tính năng")) {
+      throw err;
+    }
   }
 
   // 2. Kiểm duyệt nội dung từ ngữ & spam
@@ -306,6 +407,8 @@ export async function addMovieComment(
   const commentsRef = collection(db, COLLECTION_NAME);
   const newComment = sanitizeCommentData({
     ...comment,
+    userBadges: comment.userBadges || userBadges,
+    userWatchTimeMinutes: comment.userWatchTimeMinutes || userWatchTimeMinutes,
     content: sanitizeSafeText(comment.content, 2500),
     userName: sanitizeSafeText(comment.userName, 100),
     movieTitle: sanitizeSafeText(comment.movieTitle || "", 200),
@@ -314,8 +417,20 @@ export async function addMovieComment(
     createdAt: Date.now(),
   });
 
-  const docRef = await addDoc(commentsRef, newComment);
-  return docRef.id;
+  try {
+    const docRef = await addDoc(commentsRef, newComment);
+    return docRef.id;
+  } catch (err) {
+    console.warn("Lỗi ghi Firestore trực tiếp, chuyển sang Server API Fallback:", err);
+    const res = await fetch("/api/comments", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newComment),
+    });
+    const resJson = await res.json();
+    if (!res.ok) throw new Error(resJson.error || "Không thể gửi bình luận lúc này!");
+    return resJson.id || `cmt_${Date.now()}`;
+  }
 }
 
 /**
@@ -340,11 +455,17 @@ export async function addReplyComment(params: {
     throw new Error("Chưa kết nối được cơ sở dữ liệu Firebase!");
   }
 
-  // 1. Kiểm tra hạn chế tài khoản
-  const userRef = doc(db, USERS_COLLECTION, params.userId);
-  const userSnap = await getDoc(userRef);
-  if (userSnap.exists() && userSnap.data()?.isCommentRestricted) {
-    throw new Error("Tài khoản của bạn tạm thời bị khóa tính năng bình luận do vi phạm tiêu chuẩn cộng đồng nhiều lần!");
+  // 1. Kiểm tra hạn chế tài khoản (bọc try-catch an toàn)
+  try {
+    const userRef = doc(db, USERS_COLLECTION, params.userId);
+    const userSnap = await getDoc(userRef);
+    if (userSnap.exists() && userSnap.data()?.isCommentRestricted) {
+      throw new Error("Tài khoản của bạn tạm thời bị khóa tính năng bình luận do vi phạm tiêu chuẩn cộng đồng nhiều lần!");
+    }
+  } catch (err: unknown) {
+    if (err instanceof Error && err.message.includes("bị khóa tính năng")) {
+      throw err;
+    }
   }
 
   // 2. Kiểm duyệt nội dung phản hồi
@@ -385,12 +506,31 @@ export async function addReplyComment(params: {
     createdAt: Date.now(),
   });
 
-  const docRef = await addDoc(commentsRef, newReply);
+  let createdId = "";
+  try {
+    const docRef = await addDoc(commentsRef, newReply);
+    createdId = docRef.id;
+  } catch (err) {
+    console.warn("Lỗi ghi reply Firestore trực tiếp, chuyển sang Server API Fallback:", err);
+    const res = await fetch("/api/comments", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...newReply,
+        parentId,
+        replyToUserId,
+        replyToUserName,
+      }),
+    });
+    const resJson = await res.json();
+    if (!res.ok) throw new Error(resJson.error || "Không thể gửi phản hồi lúc này!");
+    createdId = resJson.id || `reply_${Date.now()}`;
+  }
 
   // 4. Gửi thông báo
   if (replyToUserId && replyToUserId !== params.userId) {
     try {
-      const notifId = `reply_target_${docRef.id}`;
+      const notifId = `reply_target_${createdId}`;
       const notifRef = doc(db, USERS_COLLECTION, replyToUserId, "notifications", notifId);
       const notifData: UserNotification = {
         id: notifId,
@@ -399,9 +539,9 @@ export async function addReplyComment(params: {
         message: params.content.length > 80
           ? params.content.slice(0, 80) + "..."
           : params.content,
-        link: `/movies/${params.movieSlug}?highlightComment=${docRef.id}#comment-${docRef.id}`,
+        link: `/movies/${params.movieSlug}?highlightComment=${createdId}#comment-${createdId}`,
         movieSlug: params.movieSlug,
-        commentId: docRef.id,
+        commentId: createdId,
         replierName: params.userName,
         replierAvatar: params.userAvatar,
         isRead: false,
@@ -413,7 +553,7 @@ export async function addReplyComment(params: {
 
   if (parentOwnerId && parentOwnerId !== params.userId && parentOwnerId !== replyToUserId) {
     try {
-      const notifId = `reply_root_${docRef.id}`;
+      const notifId = `reply_root_${createdId}`;
       const notifRef = doc(db, USERS_COLLECTION, parentOwnerId, "notifications", notifId);
       const notifData: UserNotification = {
         id: notifId,
@@ -422,9 +562,9 @@ export async function addReplyComment(params: {
         message: params.content.length > 80
           ? params.content.slice(0, 80) + "..."
           : params.content,
-        link: `/movies/${params.movieSlug}?highlightComment=${docRef.id}#comment-${docRef.id}`,
+        link: `/movies/${params.movieSlug}?highlightComment=${createdId}#comment-${createdId}`,
         movieSlug: params.movieSlug,
-        commentId: docRef.id,
+        commentId: createdId,
         replierName: params.userName,
         replierAvatar: params.userAvatar,
         isRead: false,
@@ -435,7 +575,7 @@ export async function addReplyComment(params: {
   }
 
   void parentOwnerName;
-  return docRef.id;
+  return createdId;
 }
 
 /**
@@ -689,3 +829,44 @@ export async function purgeAllFlaggedComments(commentsList: MovieComment[]): Pro
   }
   return deletedCount;
 }
+
+/**
+ * Ghim hoặc bỏ ghim một bình luận (Dành riêng cho Quản trị viên)
+ */
+export async function togglePinComment(
+  commentId: string,
+  currentIsPinned: boolean,
+  adminEmail: string
+): Promise<boolean> {
+  const newPinnedState = !currentIsPinned;
+  if (db) {
+    try {
+      const commentRef = doc(db, COLLECTION_NAME, commentId);
+      await updateDoc(commentRef, {
+        isPinned: newPinnedState,
+        pinnedAt: newPinnedState ? Date.now() : deleteField(),
+        pinnedBy: newPinnedState ? adminEmail : deleteField(),
+      });
+      return newPinnedState;
+    } catch (err) {
+      console.warn("Lỗi ghim/bỏ ghim comment Firestore client, thử dùng API server:", err);
+    }
+  }
+
+  try {
+    const res = await fetch("/api/comments", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        commentId,
+        isPinned: newPinnedState,
+        adminEmail,
+      }),
+    });
+    return res.ok;
+  } catch (err) {
+    console.error("Lỗi togglePinComment:", err);
+    throw err;
+  }
+}
+

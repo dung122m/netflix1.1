@@ -548,10 +548,11 @@ export default function AdminDashboardPage() {
               </span>
             </div>
             <div className="text-[11px] text-gray-400 flex items-center justify-between">
-              <span>Email quản trị được duyệt:</span>
-              <span className="text-amber-400 font-mono font-bold">dungtran122cq@gmail.com</span>
+              <span>Trạng thái:</span>
+              <span className="text-red-400 font-semibold">Không có quyền truy cập</span>
             </div>
           </div>
+
 
           <div className="flex flex-col gap-2.5">
             {!user ? (

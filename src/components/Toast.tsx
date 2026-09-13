@@ -121,7 +121,7 @@ export function ToastContainer() {
   return (
     <div
       aria-label="Thông báo"
-      className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[200] flex flex-col-reverse gap-2 items-center pointer-events-none w-full px-4 sm:bottom-8 sm:left-auto sm:right-6 sm:translate-x-0 sm:items-end sm:px-0 sm:max-w-sm"
+      className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[100000] flex flex-col-reverse gap-2 items-center pointer-events-none w-full px-4 sm:bottom-8 sm:left-auto sm:right-6 sm:translate-x-0 sm:items-end sm:px-0 sm:max-w-sm"
     >
       {toasts.map((item) => (
         <div key={item.id} className="pointer-events-auto w-full sm:w-auto">

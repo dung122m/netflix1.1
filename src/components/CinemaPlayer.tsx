@@ -34,6 +34,7 @@ import { getWatchProgress, saveWatchProgress } from "@/lib/watchHistory";
 import { formatEpisodeName } from "@/lib/formatEpisode";
 import { useAuth } from "@/context/AuthContext";
 import { updateActivePlaybackSession } from "@/services/handoffService";
+import { incrementUserWatchTime } from "@/services/userService";
 
 // Lazy-load SleepTimerModal & MobileQrModal để giảm bundle ban đầu
 const SleepTimerModal = dynamic(
@@ -260,6 +261,32 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
 
   const isNativeVideo = Boolean(resolvedM3u8 && !useIframeFallback);
 
+  // BỘ ĐẾM THỜI GIAN CÀY PHIM TỰ ĐỘNG (WATCH TIME TRACKER HEARTBEAT)
+  useEffect(() => {
+    if (!user?.uid) return;
+
+    // Tích lũy phút xem đầu tiên sau 15s để người dùng thấy bộ đếm hoạt động ngay lập tức
+    const initialTimer = setTimeout(() => {
+      if (typeof document !== "undefined" && !document.hidden) {
+        if (isNativeVideo && videoRef.current && (videoRef.current.paused || videoRef.current.ended)) return;
+        incrementUserWatchTime(user.uid, 1);
+      }
+    }, 15000);
+
+    // Tự động tích lũy +1 phút sau mỗi 60 giây khi đang xem phim
+    const interval = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      if (isNativeVideo && videoRef.current && (videoRef.current.paused || videoRef.current.ended)) return;
+
+      incrementUserWatchTime(user.uid, 1);
+    }, 60000);
+
+    return () => {
+      clearTimeout(initialTimer);
+      clearInterval(interval);
+    };
+  }, [user, isNativeVideo]);
+
   // Điều khiển Iframe fallback
   const sendPlayerCommand = useCallback((cmd: string, val?: string | number | boolean) => {
     if (!iframeRef.current?.contentWindow) return;
@@ -273,19 +300,48 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     } catch {}
   }, []);
 
-  // Fullscreen
+  // Fullscreen (hỗ trợ iOS Safari & vendor prefixes)
   const toggleFullscreen = useCallback(() => {
-    if (!containerRef.current) return;
-    if (!document.fullscreenElement) {
-      containerRef.current.requestFullscreen().catch(() => {});
-      setIsFullscreen(true);
-      showHud(<Maximize2 className="w-5 h-5 text-netflix-red" />, "Toàn màn hình");
-    } else {
-      document.exitFullscreen().catch(() => {});
-      setIsFullscreen(false);
-      showHud(<Minimize2 className="w-5 h-5 text-gray-300" />, "Thoát toàn màn hình");
+    const container = containerRef.current;
+    const video = videoRef.current;
+    if (!container) return;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const webkitVideo = video as any;
+    if (webkitVideo && typeof webkitVideo.webkitEnterFullscreen === "function" && isNativeVideo) {
+      try {
+        webkitVideo.webkitEnterFullscreen();
+        setIsFullscreen(true);
+        showHud(<Maximize2 className="w-5 h-5 text-netflix-red" />, "Toàn màn hình (iOS)");
+        return;
+      } catch (e) {
+        console.warn("iOS fullscreen fallback:", e);
+      }
     }
-  }, [showHud]);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const doc = document as any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const elem = container as any;
+
+    const fullscreenElement = doc.fullscreenElement || doc.webkitFullscreenElement || doc.mozFullScreenElement || doc.msFullscreenElement;
+
+    if (!fullscreenElement) {
+      const requestFS = elem.requestFullscreen || elem.webkitRequestFullscreen || elem.mozRequestFullScreen || elem.msRequestFullscreen;
+      if (requestFS) {
+        requestFS.call(elem).catch(() => {});
+        setIsFullscreen(true);
+        showHud(<Maximize2 className="w-5 h-5 text-netflix-red" />, "Toàn màn hình");
+      }
+    } else {
+      const exitFS = doc.exitFullscreen || doc.webkitExitFullscreen || doc.mozCancelFullScreen || doc.msExitFullscreen;
+      if (exitFS) {
+        exitFS.call(doc).catch(() => {});
+        setIsFullscreen(false);
+        showHud(<Minimize2 className="w-5 h-5 text-gray-300" />, "Thoát toàn màn hình");
+      }
+    }
+  }, [isNativeVideo, showHud]);
 
   // Picture-in-Picture (Tiết kiệm 100% băng thông, chạy phần cứng)
   const togglePiP = useCallback(async () => {
@@ -602,13 +658,31 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     };
   }, [nextEpisode, switchEpisode, watchContext?.movieSlug, activeEpisodeSlug, user?.uid, title, activeEpisodeName, posterUrl]);
 
-  // Fullscreen change
+  // Fullscreen change (Hỗ trợ iOS Safari & vendor prefixes)
   useEffect(() => {
     const handleFullscreenChange = () => {
-      setIsFullscreen(Boolean(document.fullscreenElement));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const doc = document as any;
+      setIsFullscreen(Boolean(doc.fullscreenElement || doc.webkitFullscreenElement || doc.mozFullScreenElement));
     };
+    const video = videoRef.current;
+    const handleWebkitBegin = () => setIsFullscreen(true);
+    const handleWebkitEnd = () => setIsFullscreen(false);
+
     document.addEventListener("fullscreenchange", handleFullscreenChange);
-    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
+    if (video) {
+      video.addEventListener("webkitbeginfullscreen", handleWebkitBegin);
+      video.addEventListener("webkitendfullscreen", handleWebkitEnd);
+    }
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      document.removeEventListener("webkitfullscreenchange", handleFullscreenChange);
+      if (video) {
+        video.removeEventListener("webkitbeginfullscreen", handleWebkitBegin);
+        video.removeEventListener("webkitendfullscreen", handleWebkitEnd);
+      }
+    };
   }, []);
 
   // Mobile detection
@@ -909,7 +983,16 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
               className={`w-full h-full relative ${
                 showControls || !isPlaying ? "cursor-pointer" : "cursor-none"
               }`}
-              onClick={togglePlayPause}
+              onClick={(e) => {
+                // Trên điện thoại & web: Nếu controls đang ẩn -> chạm để HIỆN lại controls, KHÔNG pause video!
+                if (!showControls && isPlaying) {
+                  setShowControls(true);
+                  resetControlsTimeout();
+                  return;
+                }
+                // Nếu controls đang hiện -> bấm để toggle play / pause
+                togglePlayPause();
+              }}
               onDoubleClick={toggleFullscreen}
             >
               <video

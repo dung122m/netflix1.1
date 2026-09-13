@@ -21,6 +21,7 @@ import {
   Lock,
   Check,
   Plus,
+  User,
 } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { useAuth } from "@/context/AuthContext";
@@ -326,15 +327,30 @@ function MyListContent() {
 
         <div className="flex-shrink-0">
           {user ? (
-            <button
-              type="button"
-              disabled={isSyncing}
-              onClick={syncNow}
-              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-semibold text-gray-200 hover:text-white transition cursor-pointer disabled:opacity-50"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 text-emerald-400 ${isSyncing ? "animate-spin" : ""}`} />
-              <span>{isSyncing ? "Đang đồng bộ..." : "Đồng bộ lại"}</span>
-            </button>
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={() => {
+                  if (typeof window !== "undefined") {
+                    window.dispatchEvent(new CustomEvent("open-user-profile-modal"));
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-netflix-red/20 hover:bg-netflix-red/30 border border-netflix-red/40 text-xs font-bold text-rose-300 hover:text-white transition cursor-pointer active:scale-95"
+              >
+                <User className="w-3.5 h-3.5 text-rose-400" />
+                <span>Sửa hồ sơ</span>
+              </button>
+
+              <button
+                type="button"
+                disabled={isSyncing}
+                onClick={syncNow}
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-semibold text-gray-200 hover:text-white transition cursor-pointer disabled:opacity-50"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 text-emerald-400 ${isSyncing ? "animate-spin" : ""}`} />
+                <span>{isSyncing ? "Đang đồng bộ..." : "Đồng bộ lại"}</span>
+              </button>
+            </div>
           ) : (
             <button
               type="button"
@@ -348,38 +364,38 @@ function MyListContent() {
         </div>
       </div>
 
-      {/* TAB SELECTOR */}
-      <div className="flex flex-wrap items-center gap-2 mb-6">
+      {/* TAB SELECTOR: Scroll ngang trên mobile */}
+      <div className="flex items-center gap-2 mb-6 overflow-x-auto scrollbar-none pb-1 [&::-webkit-scrollbar]:hidden touch-pan-x">
         <button
           type="button"
           onClick={() => setActiveTab("watchlist")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition cursor-pointer ${
+          className={`flex-none flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition cursor-pointer whitespace-nowrap ${
             activeTab === "watchlist"
               ? "bg-netflix-red text-white shadow-md shadow-red-950/40"
               : "bg-zinc-900/80 text-gray-400 hover:text-white hover:bg-zinc-800"
           }`}
         >
           <Bookmark className="w-4 h-4" />
-          <span>Danh sách yêu thích ({mounted ? watchlist.length : 0})</span>
+          <span>Yêu thích ({mounted ? watchlist.length : 0})</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab("history")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition cursor-pointer ${
+          className={`flex-none flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition cursor-pointer whitespace-nowrap ${
             activeTab === "history"
               ? "bg-netflix-red text-white shadow-md shadow-red-950/40"
               : "bg-zinc-900/80 text-gray-400 hover:text-white hover:bg-zinc-800"
           }`}
         >
           <Clock className="w-4 h-4" />
-          <span>Lịch sử đã xem ({mounted ? history.length : 0})</span>
+          <span>Lịch sử ({mounted ? history.length : 0})</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab("collections")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition cursor-pointer ${
+          className={`flex-none flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition cursor-pointer whitespace-nowrap ${
             activeTab === "collections"
               ? "bg-netflix-red text-white shadow-md shadow-red-950/40"
               : "bg-zinc-900/80 text-gray-400 hover:text-white hover:bg-zinc-800"
@@ -392,7 +408,7 @@ function MyListContent() {
 
       {/* NỘI DUNG THEO TAB */}
       {!mounted ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5 xl:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4 md:gap-5">
           {Array.from({ length: 4 }).map((_, i) => (
             <div
               key={i}
@@ -422,7 +438,7 @@ function MyListContent() {
           </div>
         ) : (
           <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-zinc-900/45 to-zinc-950/45 p-3 sm:p-4 md:p-5">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5 xl:gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4 md:gap-5">
               {watchlist.map((item) => (
                 <MediaCard
                   key={item.slug}
@@ -461,7 +477,7 @@ function MyListContent() {
           </div>
         ) : (
           <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-zinc-900/45 to-zinc-950/45 p-3 sm:p-4 md:p-5">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5 xl:gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4 md:gap-5">
               {history.map((item) => {
                 const href = item.episodeSlug
                   ? `/movies/${item.slug}?ep=${item.episodeSlug}`
@@ -570,7 +586,7 @@ function MyListContent() {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-5">
             {collections.map((col) => {
               const previewPosters = (col.movies || []).slice(0, 4);
               return (

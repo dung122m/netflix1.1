@@ -49,8 +49,8 @@ const MovieGridInner = ({ movies }: MovieGridProps) => {
 
   return (
     <div className="movie-grid-container rounded-2xl sm:rounded-3xl border border-white/10 p-2.5 sm:p-5 md:p-6 shadow-2xl space-y-6">
-      {/* Lưới phim chính - MediaCard là con trực tiếp để hover:z-50 hoạt động chuẩn xác không bị đè */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-4 gap-3.5 sm:gap-4 md:gap-6">
+      {/* LƯỚI PHIM CHÍNH: 1 cột trên mobile (rộng rãi, rõ nét), 2 cột sm, 3 cột md, 4 cột trên PC (lg/xl) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4 sm:gap-5 md:gap-6">
         {displayedMovies.map((m, index) => {
           const norm = normalizeMovie(m);
           const bestThumb = norm.thumbUrl || norm.imageUrl;

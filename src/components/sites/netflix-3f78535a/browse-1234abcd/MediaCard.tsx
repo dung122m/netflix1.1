@@ -776,27 +776,28 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
             </div>
           )}
 
-          {/* 5. Tóm tắt cốt truyện */}
+          {/* 5. Tóm tắt cốt truyện (Hiển thị 5 dòng mô tả đầy đủ, chi tiết) */}
           {matchSnippet ? (
             <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/25 my-1 text-left">
               <p className="text-[9.5px] font-bold text-amber-300 flex items-center gap-1 mb-0.5">
                 <span>💬 Khớp trong tóm tắt nội dung phim:</span>
               </p>
-              <p className="text-[10px] text-amber-100/90 italic leading-relaxed line-clamp-2">
+              <p className="text-[10.5px] text-amber-100/90 italic leading-relaxed line-clamp-4">
                 &ldquo;{matchSnippet}&rdquo;
               </p>
             </div>
           ) : synopsis ? (
-            <p className="text-[10px] text-gray-300 line-clamp-2 leading-relaxed">
+            <p className="text-[10.5px] text-zinc-300 line-clamp-5 leading-relaxed pt-1 border-t border-white/10">
               {synopsis}
             </p>
           ) : loadingDetails ? (
-            <div className="w-full space-y-1 pt-1 animate-pulse">
+            <div className="w-full space-y-1.5 pt-1 animate-pulse">
               <div className="h-1.5 bg-white/20 rounded w-full"></div>
-              <div className="h-1.5 bg-white/15 rounded w-3/4"></div>
+              <div className="h-1.5 bg-white/15 rounded w-5/6"></div>
+              <div className="h-1.5 bg-white/10 rounded w-4/5"></div>
             </div>
           ) : description ? (
-            <p className="text-[10px] text-gray-300 line-clamp-2 leading-relaxed">
+            <p className="text-[10.5px] text-zinc-300 line-clamp-5 leading-relaxed pt-1 border-t border-white/10">
               {description}
             </p>
           ) : null}

@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
-import { X, CheckCircle2, ShieldCheck, Smartphone, Sparkles, Loader2, AlertCircle } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
+import { X, CheckCircle2, Film, Loader2, AlertCircle, LogOut } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
 interface AuthModalProps {
@@ -14,8 +15,30 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, customTit
   const { user, isConfigured, signInWithGoogle, logout } = useAuth();
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen, onClose]);
+
+  if (!isOpen || !mounted) return null;
 
   const handleGoogleLogin = async () => {
     setLoading(true);
@@ -29,18 +52,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, customTit
     }
   };
 
-  return (
+  return createPortal(
     <div
       onClick={onClose}
-      className="fixed inset-0 z-[200] bg-black/85 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200 overflow-y-auto"
+      className="fixed inset-0 z-[99999] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200 overflow-y-auto overscroll-contain"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md bg-zinc-950/98 border border-white/15 rounded-3xl p-5 sm:p-7 shadow-2xl relative overflow-hidden space-y-5 animate-in zoom-in-95 duration-200 my-auto"
+        className="w-full max-w-sm sm:max-w-md bg-zinc-950 border border-white/10 rounded-2xl p-6 sm:p-8 shadow-2xl relative overflow-hidden space-y-6 animate-in zoom-in-95 duration-200 my-auto"
       >
-        {/* Glow hiệu ứng nền đỏ Netflix */}
-        <div className="absolute -top-24 -left-24 w-48 h-48 bg-netflix-red/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-blue-500/15 rounded-full blur-3xl pointer-events-none" />
+        {/* Glow đỏ nhẹ background */}
+        <div className="absolute -top-20 -left-20 w-40 h-40 bg-netflix-red/15 rounded-full blur-3xl pointer-events-none" />
 
         {/* Nút đóng */}
         <button
@@ -54,7 +76,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, customTit
         {user ? (
           /* TRẠNG THÁI ĐÃ ĐĂNG NHẬP */
           <div className="text-center space-y-5 py-2">
-            <div className="relative mx-auto w-20 h-20 rounded-full ring-4 ring-netflix-red/40 overflow-hidden shadow-xl bg-zinc-800 flex items-center justify-center">
+            <div className="relative mx-auto w-20 h-20 rounded-full ring-2 ring-netflix-red/50 overflow-hidden shadow-xl bg-zinc-900 flex items-center justify-center">
               <span className="text-2xl font-bold text-white uppercase">
                 {(user.displayName || user.email || "U")[0]}
               </span>
@@ -75,7 +97,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, customTit
             <div>
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold mb-2">
                 <CheckCircle2 size={13} />
-                <span>Đã kết nối tài khoản Google</span>
+                <span>Đã đăng nhập</span>
               </div>
               <h3 className="text-xl font-bold text-white">
                 {user.displayName || "Thành viên Nanaflix"}
@@ -83,21 +105,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, customTit
               <p className="text-xs text-gray-400 mt-0.5">{user.email}</p>
             </div>
 
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5 text-left space-y-2 text-xs text-gray-300">
-              <div className="flex items-center gap-2 text-emerald-400 font-medium">
-                <Sparkles size={14} />
-                <span>Đồng bộ Đám mây đang hoạt động</span>
-              </div>
-              <p className="text-[11px] text-gray-400 leading-relaxed">
-                Tiến trình xem, số phút và tập phim dở dang của bạn đang được tự động lưu lên đám mây. Bạn có thể mở Nanaflix trên bất kỳ thiết bị nào để tiếp tục xem ngay lập tức!
-              </p>
-            </div>
-
-            <div className="flex gap-2.5 pt-2">
+            <div className="flex gap-3 pt-2">
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition cursor-pointer"
+                className="flex-1 py-2.5 px-4 rounded-xl bg-netflix-red hover:bg-rose-700 text-white text-xs font-bold transition cursor-pointer shadow-md shadow-red-950/50"
               >
                 Tiếp tục xem
               </button>
@@ -107,47 +119,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, customTit
                   await logout();
                   onClose();
                 }}
-                className="py-2.5 px-4 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs font-semibold transition cursor-pointer"
+                className="py-2.5 px-4 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-white/10 text-xs font-semibold transition cursor-pointer flex items-center gap-1.5"
               >
-                Đăng xuất
+                <LogOut size={14} />
+                <span>Đăng xuất</span>
               </button>
             </div>
           </div>
         ) : (
-          /* TRẠNG THÁI CHƯA ĐĂNG NHẬP */
-          <div className="space-y-5">
-            <div className="text-center space-y-1.5 pt-2">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-netflix-red/15 text-netflix-red border border-netflix-red/30 mb-2 shadow-inner">
-                <Sparkles className="w-6 h-6" />
+          /* TRẠNG THÁI CHƯA ĐĂNG NHẬP (MINIMAL, PHONG CÁCH NETFLIX CHUẨN) */
+          <div className="space-y-6">
+            <div className="text-center space-y-2 pt-2">
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-netflix-red/10 text-netflix-red border border-netflix-red/20 mb-1">
+                <Film className="w-6 h-6" />
               </div>
-              <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+              <h3 className="text-2xl font-black text-white tracking-tight">
                 {customTitle || "Đăng Nhập Nanaflix"}
               </h3>
-              <p className="text-xs text-gray-400 max-w-xs mx-auto">
-                Đồng bộ số phút đang xem và lưu trữ danh sách phim yêu thích trên mọi thiết bị
+              <p className="text-xs text-gray-400 max-w-xs mx-auto leading-relaxed">
+                Đồng bộ tiến trình xem dở và bộ sưu tập phim của bạn trên mọi thiết bị
               </p>
-            </div>
-
-            {/* DANH SÁCH LỢI ÍCH */}
-            <div className="space-y-2.5 bg-white/[0.03] border border-white/10 rounded-2xl p-4 text-xs text-gray-300">
-              <div className="flex items-start gap-2.5">
-                <Smartphone className="w-4 h-4 text-sky-400 flex-shrink-0 mt-0.5" />
-                <span className="leading-snug">
-                  <strong className="text-white">Xem tiếp đúng phút:</strong> Chuyển đổi mượt mà giữa máy tính, điện thoại, máy tính bảng.
-                </span>
-              </div>
-              <div className="flex items-start gap-2.5">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
-                <span className="leading-snug">
-                  <strong className="text-white">Không lo mất dữ liệu:</strong> Lịch sử xem được lưu an toàn trên đám mây Google.
-                </span>
-              </div>
-              <div className="flex items-start gap-2.5">
-                <ShieldCheck className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
-                <span className="leading-snug">
-                  <strong className="text-white">100% Miễn phí trọn đời:</strong> Xác thực an toàn chỉ với 1 chạm qua tài khoản Google.
-                </span>
-              </div>
             </div>
 
             {/* BÁO LỖI NẾU CÓ */}
@@ -160,13 +151,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, customTit
 
             {/* HƯỚNG DẪN NẾU CHƯA CẤU HÌNH ENV FIREBASE */}
             {!isConfigured && (
-              <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs space-y-1.5">
+              <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs space-y-1.5">
                 <div className="flex items-center gap-2 font-bold text-amber-300">
                   <AlertCircle size={15} />
                   <span>Chưa thêm khóa Firebase API</span>
                 </div>
                 <p className="text-[11px] text-amber-200/80 leading-relaxed">
-                  Để bật đăng nhập Google thật, bạn chỉ cần tạo 1 dự án Firebase miễn phí và dán các biến vào file <code className="bg-black/40 px-1 py-0.5 rounded font-mono text-white">.env.local</code> (hệ thống đã tạo sẵn file hướng dẫn mẫu <code className="bg-black/40 px-1 py-0.5 rounded font-mono text-white">.env.example</code>).
+                  Cấu hình khóa Firebase trong file <code className="bg-black/40 px-1 py-0.5 rounded font-mono text-white">.env.local</code> để kết nối Google Login thật.
                 </p>
               </div>
             )}
@@ -176,7 +167,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, customTit
               type="button"
               disabled={loading}
               onClick={handleGoogleLogin}
-              className="w-full py-3.5 px-5 rounded-2xl bg-white hover:bg-gray-100 active:scale-[0.98] text-gray-900 font-bold text-sm flex items-center justify-center gap-3 transition shadow-lg shadow-white/10 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full py-3.5 px-5 rounded-xl bg-white hover:bg-gray-100 active:scale-[0.98] text-gray-900 font-bold text-sm flex items-center justify-center gap-3 transition shadow-md cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <>
@@ -185,7 +176,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, customTit
                 </>
               ) : (
                 <>
-                  {/* Google "G" Logo SVG chuẩn */}
                   <svg className="w-5 h-5" viewBox="0 0 24 24">
                     <path
                       fill="#4285F4"
@@ -209,12 +199,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, customTit
               )}
             </button>
 
-            <p className="text-[11px] text-center text-gray-400">
-              Bằng việc đăng nhập, bạn đồng ý với Điều khoản và Chính sách của Nanaflix.
+            <p className="text-[11px] text-center text-gray-500 leading-relaxed">
+              Bằng việc đăng nhập, bạn đồng ý với Điều khoản dịch vụ và Chính sách riêng tư của Nanaflix.
             </p>
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

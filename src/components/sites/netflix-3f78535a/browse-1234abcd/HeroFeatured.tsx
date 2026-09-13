@@ -194,7 +194,7 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
 
   return (
     <section
-      className="hero-cinema-section keep-dark-cinema relative h-[78vh] sm:h-[84vh] min-h-[500px] sm:min-h-[580px] w-full overflow-hidden bg-black"
+      className="hero-cinema-section keep-dark-cinema relative h-[48vh] sm:h-[75vh] md:h-[84vh] min-h-[340px] sm:min-h-[520px] w-full overflow-hidden bg-black"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >

@@ -564,9 +564,9 @@ export function LiveFootballClient({
           </div>
         </div>
 
-        {/* 3. CAROUSEL TABS CHỌN NGUỒN PHÁT (CHỈ HIỆN CÁC NGUỒN CÓ TRẬN) */}
+        {/* 3. CAROUSEL TABS CHỌN NGUỒN PHÁT - Ẩn trên mobile, chỉ hiện từ sm */}
         {activeChannels.length > 0 && (
-          <div className="relative group/carousel">
+          <div className="hidden sm:block relative group/carousel">
             <button
               type="button"
               onClick={() => scrollChannels("left")}
@@ -653,9 +653,9 @@ export function LiveFootballClient({
           </div>
         )}
 
-        {/* 4. CAROUSEL TABS GIẢI ĐẤU (NGOẠI HẠNG ANH, CÚP C1, LA LIGA...) */}
+        {/* 4. CAROUSEL TABS GIẢI ĐẤU - Ẩn trên mobile, chỉ hiện từ sm */}
         {availableTournaments.length > 0 && (
-          <div className="flex items-center gap-1.5 overflow-x-auto py-1 scroll-smooth scrollbar-none [&::-webkit-scrollbar]:hidden">
+          <div className="hidden sm:flex items-center gap-1.5 overflow-x-auto py-1 scroll-smooth scrollbar-none [&::-webkit-scrollbar]:hidden">
             <button
               type="button"
               onClick={() => setSelectedTournament("all")}

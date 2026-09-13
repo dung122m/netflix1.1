@@ -1054,7 +1054,16 @@ export function LiveTvClient({
           <div
             ref={containerRef}
             onMouseMove={resetControlsTimeout}
-            onClick={togglePlay}
+            onClick={(e) => {
+              // Trên màn hình cảm ứng & web: Nếu controls đang ẩn -> chạm để HIỆN lại controls, KHÔNG pause video!
+              if (!showControls) {
+                setShowControls(true);
+                resetControlsTimeout();
+                return;
+              }
+              // Nếu controls đang hiện và bấm vào nền video trống -> ẩn controls
+              setShowControls(false);
+            }}
             onDoubleClick={toggleFullscreen}
             className={`relative w-full aspect-video sm:max-h-[calc(100vh-210px)] sm:max-w-[calc((100vh-210px)*16/9)] mx-auto bg-black rounded-2xl sm:rounded-3xl overflow-hidden border border-white/15 shadow-2xl group select-none ring-1 ring-white/10 ${
               showControls ? "cursor-default" : "cursor-none"
@@ -1098,9 +1107,10 @@ export function LiveTvClient({
               </span>
             </div>
 
+            {/* NÚT MỞ DANH SÁCH KÊNH Ở CẠNH PHẢI CỦA PLAYER */}
             <div
               className={`absolute top-1/2 right-0 z-30 -translate-y-1/2 transition-all duration-300 ${
-                showControls
+                showControls || showChannelRail
                   ? "translate-x-0 opacity-100"
                   : "translate-x-3 opacity-0 pointer-events-none"
               }`}
@@ -1111,72 +1121,129 @@ export function LiveTvClient({
                   e.stopPropagation();
                   setShowChannelRail((visible) => !visible);
                 }}
-                className="rounded-l-xl border border-white/20 border-r-0 bg-black/70 px-2 py-3 text-[10px] font-black text-white shadow-xl backdrop-blur-md"
+                className="rounded-l-xl border border-white/20 border-r-0 bg-black/85 hover:bg-black/95 px-2.5 py-3 text-[10px] font-black text-white shadow-2xl backdrop-blur-md flex flex-col items-center gap-1.5 cursor-pointer transition-transform hover:scale-105 active:scale-95 group/railbtn ring-1 ring-white/10"
                 title="Mở danh sách kênh"
               >
-                KÊNH
+                <Tv className="w-3.5 h-3.5 text-sky-400 group-hover/railbtn:animate-pulse" />
+                <span className="[writing-mode:vertical-lr] tracking-widest text-[9.5px] font-mono text-sky-300 font-black">
+                  KÊNH
+                </span>
               </button>
             </div>
 
+            {/* BACKDROP KHI MỞ DRAWER KÊNH TRÊN MOBILE */}
+            {showChannelRail && (
+              <div
+                className="fixed inset-0 sm:absolute sm:inset-0 bg-black/75 sm:bg-black/40 backdrop-blur-sm z-40 transition-opacity"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowChannelRail(false);
+                }}
+              />
+            )}
+
+            {/* DRAWER / BOTTOM SHEET DANH SÁCH KÊNH TRUYỀN HÌNH (TỐI ƯU CẢM ỨNG MOBILE) */}
             <aside
-              className={`absolute inset-y-0 right-0 z-40 w-[min(82vw,280px)] border-l border-white/15 bg-zinc-950/90 p-3 shadow-2xl backdrop-blur-xl transition-transform duration-300 ${
-                showChannelRail ? "translate-x-0" : "translate-x-full"
+              className={`fixed inset-x-0 bottom-0 sm:absolute sm:inset-y-0 sm:right-0 sm:left-auto z-50 w-full sm:w-[380px] max-h-[85vh] sm:max-h-full rounded-t-3xl sm:rounded-none border-t sm:border-t-0 sm:border-l border-white/20 bg-zinc-950/98 sm:bg-zinc-950/95 p-3.5 sm:p-4 shadow-2xl backdrop-blur-2xl transition-transform duration-300 flex flex-col ${
+                showChannelRail
+                  ? "translate-y-0 sm:translate-x-0 pointer-events-auto"
+                  : "translate-y-full sm:translate-y-0 sm:translate-x-full pointer-events-none"
               }`}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="mb-3 flex items-center justify-between border-b border-white/10 pb-2">
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-sky-300">
-                    Kênh trực tiếp
-                  </p>
-                  <p className="mt-1 line-clamp-1 text-xs font-bold text-white">
+              {/* THANH VUỐT KÉO GỢI Ý TRÊN MOBILE */}
+              <div className="w-12 h-1.5 bg-white/30 rounded-full mx-auto mb-2 sm:hidden flex-shrink-0" />
+
+              <div className="mb-2.5 flex items-center justify-between border-b border-white/10 pb-2.5 flex-shrink-0">
+                <div className="min-w-0 pr-2">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-sky-400 animate-ping" />
+                    <p className="text-[11px] sm:text-[10px] font-black uppercase tracking-[0.18em] text-sky-300">
+                      Kênh Truyền Hình Trực Tiếp
+                    </p>
+                  </div>
+                  <p className="mt-0.5 truncate text-xs sm:text-xs font-bold text-white">
                     Đang xem: {selectedChannel.name}
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowChannelRail(false)}
-                  className="rounded-lg p-1.5 text-gray-400 hover:bg-white/10 hover:text-white"
+                  className="rounded-full p-2 text-gray-400 hover:bg-white/10 hover:text-white bg-white/5 transition flex-shrink-0 cursor-pointer"
                   title="Đóng danh sách kênh"
                 >
                   <X className="h-4 w-4" />
                 </button>
               </div>
-              <div className="h-[calc(100%-58px)] space-y-1.5 overflow-y-auto pr-1 scrollbar-thin">
-                {filteredChannels.map((channel) => {
-                  const active = selectedChannel.id === channel.id;
-                  return (
-                    <button
-                      key={channel.id}
-                      type="button"
-                      onClick={() => handleSelectChannel(channel)}
-                      className={`flex w-full items-center gap-2 rounded-xl border px-2.5 py-2 text-left transition ${
-                        active
-                          ? "border-sky-400/70 bg-sky-500/15 text-white"
-                          : "border-white/10 bg-white/[0.03] text-gray-300 hover:border-white/25 hover:bg-white/[0.08]"
-                      }`}
-                    >
-                      <span className="flex h-8 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-black/50 p-1">
-                        <TvChannelLogo
-                          logo={channel.logo}
-                          name={channel.name}
-                          size="sm"
-                        />
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-xs font-bold">
-                          {channel.name}
+
+              {/* Ô TÌM KIẾM KÊNH TRONG DRAWER */}
+              <div className="relative mb-2.5 flex-shrink-0">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Tìm kênh theo tên, đài, danh mục..."
+                  className="w-full pl-9 pr-8 py-2 sm:py-1.5 rounded-xl bg-white/10 border border-white/15 text-xs text-white placeholder-gray-400 focus:outline-none focus:border-sky-400 transition"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white p-1 cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* DANH SÁCH CUỘN KÊNH (TOUCH-FRIENDLY CHO MOBILE) */}
+              <div className="flex-1 overflow-y-auto space-y-2 pr-0.5 scrollbar-thin">
+                {filteredChannels.length === 0 ? (
+                  <div className="py-12 text-center text-xs text-gray-400">
+                    Không tìm thấy kênh phù hợp với tìm kiếm.
+                  </div>
+                ) : (
+                  filteredChannels.map((channel) => {
+                    const active = selectedChannel.id === channel.id;
+                    return (
+                      <button
+                        key={channel.id}
+                        type="button"
+                        onClick={() => handleSelectChannel(channel)}
+                        className={`flex w-full items-center gap-3 rounded-2xl border p-2.5 sm:p-2 text-left transition min-h-[56px] active:scale-[0.98] cursor-pointer ${
+                          active
+                            ? "border-sky-400/90 bg-sky-500/20 text-white shadow-lg shadow-sky-950/50 ring-1 ring-sky-400/50"
+                            : "border-white/10 bg-white/[0.04] text-gray-200 hover:border-white/30 hover:bg-white/[0.1] active:bg-white/[0.15]"
+                        }`}
+                      >
+                        <span className="flex h-11 w-14 sm:h-10 sm:w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-zinc-900/90 border border-white/15 p-1 shadow-inner">
+                          <TvChannelLogo
+                            logo={channel.logo}
+                            name={channel.name}
+                            size="sm"
+                          />
                         </span>
-                        <span className="block truncate text-[10px] text-gray-500">
-                          {channel.category}
+                        <span className="min-w-0 flex-1">
+                          <span className="flex items-center justify-between gap-1">
+                            <span className="truncate text-xs sm:text-xs font-bold">
+                              {channel.name}
+                            </span>
+                            {active && <PlayingEqualizer />}
+                          </span>
+                          <span className="flex items-center gap-1.5 mt-0.5">
+                            <span className="truncate text-[11px] sm:text-[10px] text-gray-400">
+                              {channel.category}
+                            </span>
+                            <span className="text-[9px] px-1.5 py-0.2 rounded bg-white/10 text-emerald-400 font-bold uppercase">
+                              {channel.quality}
+                            </span>
+                          </span>
                         </span>
-                      </span>
-                      {active && (
-                        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400" />
-                      )}
-                    </button>
-                  );
-                })}
+                      </button>
+                    );
+                  })
+                )}
               </div>
             </aside>
 
@@ -1308,28 +1375,6 @@ export function LiveTvClient({
                   )}
                 </button>
 
-                {/* NÚT CHUYỂN KÊNH TRƯỚC / SAU TRÊN CONTROL */}
-                <div className="flex items-center bg-black/60 rounded-full border border-white/15 p-0.5 backdrop-blur-md flex-shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => handleSwitchChannel("prev")}
-                    title="Kênh trước (Phím ←)"
-                    className="p-1 sm:p-1.5 text-gray-300 hover:text-white hover:bg-white/10 rounded-full transition cursor-pointer"
-                  >
-                    <ChevronLeft className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                  </button>
-                  <span className="text-[9px] sm:text-[10px] font-mono font-bold px-1 sm:px-1.5 text-sky-300 whitespace-nowrap">
-                    Đổi kênh
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => handleSwitchChannel("next")}
-                    title="Kênh kế tiếp (Phím →)"
-                    className="p-1 sm:p-1.5 text-gray-300 hover:text-white hover:bg-white/10 rounded-full transition cursor-pointer"
-                  >
-                    <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                  </button>
-                </div>
 
                 {/* CỤM VOLUME TRÊN MOBILE (Chỉ hiện nút Mute) */}
                 <button
@@ -1377,8 +1422,27 @@ export function LiveTvClient({
                 </div>
               </div>
 
-              {/* CỤM PHẢI: PIP + FULLSCREEN */}
+              {/* CỤM PHẢI: NÚT KÊNH + PIP + FULLSCREEN */}
               <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+                {/* Nút Mở Danh sách Kênh */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowChannelRail((visible) => !visible);
+                  }}
+                  title="Mở danh sách kênh"
+                  className={`flex items-center gap-1 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-full border text-[11px] sm:text-xs font-bold transition backdrop-blur-md cursor-pointer ${
+                    showChannelRail
+                      ? "bg-gradient-to-r from-sky-600 to-blue-600 text-white border-sky-400 shadow-md shadow-sky-950/60 scale-102"
+                      : "bg-white/15 hover:bg-white/25 text-gray-200 hover:text-white border-white/20"
+                  }`}
+                >
+                  <Tv className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-sky-300" />
+                  <span className="hidden sm:inline">Danh sách kênh</span>
+                  <span className="sm:hidden">Kênh</span>
+                </button>
+
                 <span className="hidden lg:inline text-[11px] text-gray-400 bg-black/50 px-2.5 py-1 rounded-full border border-white/10 font-mono">
                   Space: Dừng/Phát • ← / →: Đổi Kênh • F: Fullscreen
                 </span>

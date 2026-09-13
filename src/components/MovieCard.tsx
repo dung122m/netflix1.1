@@ -276,15 +276,15 @@ function MovieCardInner({ m, priority = false }: Props) {
         </div>
 
         {actors.length > 0 && isHovered && (
-          <div className="flex items-center gap-1 text-[10px] text-gray-300 animate-in fade-in duration-150">
+          <div className="hidden sm:flex items-center gap-1 text-[10px] text-gray-300 animate-in fade-in duration-150">
             <Users size={10} className="text-rose-400 flex-none" />
             <span className="truncate">{actors.slice(0, 2).join(", ")}</span>
           </div>
         )}
 
         <p
-          className={`overflow-hidden text-[10px] text-gray-300 transition-[max-height,opacity] duration-200 ease-out line-clamp-2 leading-relaxed ${
-            isHovered ? "max-h-12 opacity-100" : "max-h-0 opacity-0"
+          className={`hidden sm:block overflow-hidden text-[10.5px] text-gray-300 transition-[max-height,opacity] duration-200 ease-out line-clamp-4 sm:line-clamp-5 leading-relaxed ${
+            isHovered ? "max-h-28 opacity-100" : "max-h-0 opacity-0"
           }`}
         >
           {synopsis || description}

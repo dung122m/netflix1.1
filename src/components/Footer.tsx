@@ -27,16 +27,16 @@ import {
 
 export const Footer: React.FC = () => {
   return (
-    <footer className="relative bg-gradient-to-b from-transparent via-zinc-950/90 to-black text-gray-400 pt-16 pb-12 px-4 sm:px-8 md:px-16 mt-20 border-t border-white/10 overflow-hidden cv-auto-footer">
+    <footer className="relative bg-gradient-to-b from-transparent via-zinc-950/90 to-black text-gray-400 pt-10 sm:pt-16 pb-8 sm:pb-12 px-4 sm:px-8 md:px-16 mt-12 sm:mt-20 border-t border-white/10 overflow-hidden cv-auto-footer">
       {/* Hiệu ứng hào quang rực rỡ phía trên footer */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 max-w-4xl h-px bg-gradient-to-r from-transparent via-netflix-red/60 to-transparent" />
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 max-w-2xl h-16 bg-netflix-red/10 blur-3xl pointer-events-none" />
 
       <div className="max-w-7xl mx-auto space-y-12 relative z-10">
         {/* ============================================================ */}
-        {/* 1. KHU VỰC TÍNH NĂNG ĐẲNG CẤP (4 PILLS) */}
+        {/* 1. KẤU VỰC TÍNH NĂNG ĐẲNG CẤP (4 PILLS) — Ẩn trên mobile */}
         {/* ============================================================ */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+        <div className="hidden sm:grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
           <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-zinc-900/60 border border-white/10 backdrop-blur-md shadow-sm hover:border-white/25 transition-all">
             <div className="p-2 rounded-xl bg-red-600/20 text-netflix-red border border-red-500/30">
               <Zap className="w-4 h-4" />
@@ -79,9 +79,9 @@ export const Footer: React.FC = () => {
         </div>
 
         {/* ============================================================ */}
-        {/* 2. 4 CỘT ĐIỀU HƯỚNG CHUYÊN NGHIỆP */}
+        {/* 2. 4 CỘT ĐIỀU HƯỚNG — Ẩn trên mobile */}
         {/* ============================================================ */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 md:gap-10 pt-4">
+        <div className="hidden sm:grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 md:gap-10 pt-4">
           {/* CỘT 1: THẾ GIỚI ĐIỆN ẢNH */}
           <div className="space-y-4">
             <h4 className="text-white font-black text-sm tracking-wider uppercase flex items-center gap-2">
@@ -226,9 +226,9 @@ export const Footer: React.FC = () => {
         </div>
 
         {/* ============================================================ */}
-        {/* 3. THIẾT BỊ HỖ TRỢ (ECOSYSTEM BAR) */}
+        {/* 3. THIẾT BỊ HỖ TRỢ (ECOSYSTEM BAR) — Ẩn trên mobile */}
         {/* ============================================================ */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-zinc-950/80 border border-white/10 backdrop-blur-md flex flex-wrap items-center justify-between gap-4">
+        <div className="hidden sm:flex p-4 sm:p-5 rounded-2xl bg-zinc-950/80 border border-white/10 backdrop-blur-md flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <span className="relative flex h-2.5 w-2.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>

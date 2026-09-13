@@ -251,7 +251,7 @@ export default function CollectionDetailPage({
                 </div>
               ) : (
                 <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-zinc-900/40 to-zinc-950/40 p-3 sm:p-4 md:p-5">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5 xl:gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4 md:gap-5">
                     {collection.movies.map((item) => (
                       <MediaCard
                         key={item.slug}
