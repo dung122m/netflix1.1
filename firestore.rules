@@ -41,7 +41,7 @@ service cloud.firestore {
     //    - Chỉ chủ bình luận hoặc admin mới xóa được
     match /movie_comments/{commentId} {
       allow read: if true;
-      allow create: if request.auth != null;
+      allow create: if true;
       allow update: if request.auth != null;
       allow delete: if request.auth != null && 
         (request.auth.uid == resource.data.userId || isAdmin());

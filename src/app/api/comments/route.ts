@@ -142,10 +142,16 @@ export async function POST(req: NextRequest) {
     if (replyToUserId) docFields.replyToUserId = { stringValue: replyToUserId };
     if (replyToUserName) docFields.replyToUserName = { stringValue: sanitizeSafeText(replyToUserName, 100) };
 
+    const authHeader = req.headers.get("authorization");
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (authHeader) {
+      headers["Authorization"] = authHeader;
+    }
+
     const url = `${FIRESTORE_REST_BASE}/movie_comments${API_KEY ? `?key=${API_KEY}` : ""}`;
     const res = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify({ fields: docFields }),
     });
 

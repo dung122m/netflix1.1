@@ -17,11 +17,27 @@ import {
   deleteField,
   type Unsubscribe,
 } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { db, auth } from "@/lib/firebase";
 import { MovieComment, MovieRatingStats, CommentReactionType } from "@/types/comment";
 import { UserNotification } from "@/types/notification";
 import { checkContentModeration } from "@/lib/contentModeration";
 import { sanitizeSafeText } from "@/lib/security";
+
+const addDocWithTimeout = (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ref: any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  data: any,
+  timeoutMs = 3500
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): Promise<any> => {
+  return Promise.race([
+    addDoc(ref, data),
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Firestore write timeout")), timeoutMs)
+    ),
+  ]);
+};
 
 const COLLECTION_NAME = "movie_comments";
 const USERS_COLLECTION = "users";
@@ -425,13 +441,23 @@ export async function addMovieComment(
   });
 
   try {
-    const docRef = await addDoc(commentsRef, newComment);
+    const docRef = await addDocWithTimeout(commentsRef, newComment, 3500);
     return docRef.id;
   } catch (err) {
     console.warn("Lỗi ghi Firestore trực tiếp, chuyển sang Server API Fallback:", err);
+    let authHeader = "";
+    if (auth?.currentUser) {
+      try {
+        const idToken = await auth.currentUser.getIdToken();
+        authHeader = `Bearer ${idToken}`;
+      } catch {}
+    }
     const res = await fetch("/api/comments", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(authHeader ? { Authorization: authHeader } : {}),
+      },
       body: JSON.stringify(newComment),
     });
     const resJson = await res.json();
@@ -515,13 +541,23 @@ export async function addReplyComment(params: {
 
   let createdId = "";
   try {
-    const docRef = await addDoc(commentsRef, newReply);
+    const docRef = await addDocWithTimeout(commentsRef, newReply, 3500);
     createdId = docRef.id;
   } catch (err) {
     console.warn("Lỗi ghi reply Firestore trực tiếp, chuyển sang Server API Fallback:", err);
+    let authHeader = "";
+    if (auth?.currentUser) {
+      try {
+        const idToken = await auth.currentUser.getIdToken();
+        authHeader = `Bearer ${idToken}`;
+      } catch {}
+    }
     const res = await fetch("/api/comments", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(authHeader ? { Authorization: authHeader } : {}),
+      },
       body: JSON.stringify({
         ...newReply,
         parentId,
