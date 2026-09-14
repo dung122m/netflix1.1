@@ -1076,6 +1076,7 @@ const NavbarInner: React.FC = () => {
                   {notifTab !== "system" && userNotifications.map((item) => {
                     const isReply = item.type === "comment_reply";
                     const itemAvatar = isReply ? (item.replierAvatar || item.image) : item.image;
+                    const initialLetter = (item.replierName || item.title || "U").trim().charAt(0).toUpperCase();
 
                     return (
                       <div
@@ -1095,46 +1096,86 @@ const NavbarInner: React.FC = () => {
                         className={`flex items-start gap-3 p-2.5 rounded-xl transition border cursor-pointer group ${
                           !item.isRead
                             ? isReply
-                              ? "bg-blue-950/30 border-blue-500/40 hover:bg-blue-950/50"
-                              : "bg-rose-950/30 border-rose-500/40 hover:bg-rose-950/50"
+                              ? "bg-blue-950/25 border-blue-500/40 hover:bg-blue-950/45"
+                              : "bg-rose-950/25 border-rose-500/40 hover:bg-rose-950/45"
                             : "hover:bg-white/5 border-transparent hover:border-white/10"
                         }`}
                       >
-                        <div className="relative w-11 h-13 rounded-lg overflow-hidden flex-shrink-0 bg-zinc-800 border border-white/10">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={itemAvatar || "/default-poster.jpg"}
-                            alt={item.title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                          />
-                          <span
-                            className={`absolute bottom-0 inset-x-0 text-[8px] font-black text-center py-0.5 uppercase tracking-wider text-white ${
+                        {/* AVATAR VỚI BADGE TRÒN TINH TẾ */}
+                        <div className="relative flex-shrink-0">
+                          {isReply ? (
+                            <div className="relative w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 flex items-center justify-center font-bold text-white text-sm shadow-md ring-1 ring-white/20">
+                              {itemAvatar ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                  src={itemAvatar}
+                                  alt={item.replierName || item.title}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    (e.target as HTMLElement).style.display = "none";
+                                  }}
+                                />
+                              ) : null}
+                              <span className="select-none font-black">{initialLetter}</span>
+                            </div>
+                          ) : (
+                            <div className="relative w-10 h-12 rounded-lg overflow-hidden bg-zinc-800 flex items-center justify-center shadow-md border border-white/15">
+                              {itemAvatar ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                  src={itemAvatar}
+                                  alt={item.title}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <Film size={18} className="text-netflix-red" />
+                              )}
+                            </div>
+                          )}
+
+                          {/* MINI CORNER BADGE ICON */}
+                          <div
+                            className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-zinc-950 flex items-center justify-center text-white shadow-md ${
                               isReply ? "bg-blue-600" : "bg-rose-600"
                             }`}
                           >
-                            {isReply ? "PHẢN HỒI" : "TẬP MỚI"}
-                          </span>
+                            {isReply ? (
+                              <MessageSquare size={8} className="fill-white text-white" />
+                            ) : (
+                              <Sparkles size={8} className="fill-white text-white" />
+                            )}
+                          </div>
                         </div>
+
+                        {/* NỘI DUNG THÔNG BÁO */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-1 mb-0.5">
                             <p className="text-xs text-white font-bold group-hover:text-netflix-red transition-colors truncate">
-                              {item.title}
+                              {isReply ? (item.replierName || item.title) : item.title}
                             </p>
                             <span className="text-[10px] text-gray-400 flex-shrink-0">
                               {formatTimeAgo(item.createdAt)}
                             </span>
                           </div>
                           <p
-                            className={`text-[11px] font-semibold line-clamp-1 ${
-                              isReply ? "text-blue-300" : "text-rose-300"
+                            className={`text-[11px] font-semibold flex items-center gap-1 ${
+                              isReply ? "text-blue-400" : "text-rose-400"
                             }`}
                           >
-                            {isReply
-                              ? `💬 ${item.replierName || "Ai đó"} đã trả lời`
-                              : `🎉 ${item.episodeName || "Tập mới"} đã phát hành!`}
+                            {isReply ? (
+                              <>
+                                <MessageSquare size={10} className="flex-shrink-0" />
+                                <span className="truncate">Đã trả lời bình luận của bạn</span>
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles size={10} className="flex-shrink-0" />
+                                <span className="truncate">{item.episodeName || "Tập mới"} đã phát hành!</span>
+                              </>
+                            )}
                           </p>
-                          <p className="text-[10px] text-gray-300 line-clamp-2 mt-0.5 leading-relaxed">
-                            {item.message}
+                          <p className="text-[11px] text-gray-300 line-clamp-2 mt-1 bg-white/[0.04] rounded-lg px-2.5 py-1 border border-white/5 leading-relaxed italic">
+                            &quot;{item.message}&quot;
                           </p>
                         </div>
                         {!item.isRead && (
@@ -1156,31 +1197,42 @@ const NavbarInner: React.FC = () => {
                       key={item.id}
                       href={item.link}
                       onClick={() => setShowNotifications(false)}
-                      className="flex items-start gap-3 p-2 rounded-xl hover:bg-white/5 transition border border-transparent hover:border-white/10 group"
+                      className="flex items-start gap-3 p-2.5 rounded-xl hover:bg-white/5 transition border border-transparent hover:border-white/10 group"
                     >
-                      {item.image ? (
-                        <div className="relative w-11 h-13 rounded-lg overflow-hidden flex-shrink-0 bg-zinc-800 border border-white/10">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={item.image}
-                            alt={item.title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                          />
-                          {item.badge && (
-                            <span
-                              className={`absolute bottom-0 inset-x-0 text-[8px] font-black text-center py-0.5 uppercase tracking-wider ${
-                                item.badgeColor || "bg-netflix-red text-white"
-                              }`}
-                            >
-                              {item.badge}
+                      {/* ICON / THUMBNAIL PHIM & LIVE THỂ THAO */}
+                      <div className="relative flex-shrink-0">
+                        {item.type === "live" ? (
+                          <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 via-rose-600 to-red-600 flex items-center justify-center text-white shadow-md shadow-rose-950/40 border border-white/20">
+                            <Flame size={20} className="fill-white animate-pulse" />
+                            <span className="absolute -bottom-1 -right-1 px-1 py-0.2 rounded-full bg-red-600 text-white text-[7px] font-black border-2 border-zinc-950 tracking-tighter">
+                              LIVE
                             </span>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="p-2 rounded-lg bg-netflix-red/20 text-netflix-red flex-none mt-0.5">
-                          <Film size={16} />
-                        </div>
-                      )}
+                          </div>
+                        ) : item.image ? (
+                          <div className="relative w-10 h-13 rounded-lg overflow-hidden bg-zinc-800 border border-white/15 shadow-md">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={item.image}
+                              alt={item.title}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                            />
+                            {item.badge && (
+                              <span
+                                className={`absolute bottom-0 inset-x-0 text-[7px] font-black text-center py-0.5 uppercase tracking-wider ${
+                                  item.badgeColor || "bg-netflix-red text-white"
+                                }`}
+                              >
+                                {item.badge}
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="p-2.5 rounded-xl bg-netflix-red/20 text-netflix-red flex-none border border-netflix-red/30">
+                            <Film size={18} />
+                          </div>
+                        )}
+                      </div>
+
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-1 mb-0.5">
                           <p className="text-xs text-white font-bold group-hover:text-netflix-red transition-colors truncate">

@@ -80,9 +80,8 @@ export async function GET(req: NextRequest) {
         message: "Xem trực tiếp các trận cầu đỉnh cao Ngoại Hạng Anh, C1 chất lượng Full HD không giật lag!",
         time: "Trực tiếp",
         link: "/live",
-        image: "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=500&auto=format&fit=crop&q=60",
         badge: "LIVE 🔴",
-        badgeColor: "bg-amber-600 text-white animate-pulse",
+        badgeColor: "bg-red-600 text-white animate-pulse",
       });
 
       return NextResponse.json({ success: true, items: dynamicItems });
