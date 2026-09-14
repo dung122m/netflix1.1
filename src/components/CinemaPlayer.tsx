@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import Image from "next/image";
 import Link from "next/link";
 import dynamic from "next/dynamic";
+import { useSearchParams } from "next/navigation";
 import Hls from "hls.js";
 import {
   Maximize2,
@@ -65,6 +66,7 @@ interface CinemaPlayerProps {
   isTrailerOnly: boolean;
   posterUrl: string;
   episodes: EpisodeItem[];
+  initialTime?: number;
 }
 
 export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
@@ -79,9 +81,11 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   isTrailerOnly: propIsTrailerOnly,
   posterUrl,
   episodes: propEpisodes,
+  initialTime,
 }) => {
   const watchContext = useWatchController();
   const { user } = useAuth();
+  const searchParams = useSearchParams();
   const lastHandoffSyncRef = useRef<number>(0);
 
   const title = watchContext?.movieTitle || propTitle;
@@ -214,15 +218,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       : null;
   }, [videoLink, trailerUrl]);
 
-  const activeSrc = useMemo(() => {
-    let src = videoLink ? embedSrc : trailerEmbedSrc;
-    if (!src) return "";
-    if (!src.includes("autoplay=")) {
-      src += (src.includes("?") ? "&" : "?") + "autoplay=1";
-    }
-    return src;
-  }, [videoLink, embedSrc, trailerEmbedSrc]);
-
   // Giải mã m3u8 thực tế
   const resolvedM3u8 = useMemo(() => {
     if (m3u8Link && m3u8Link.trim() && (m3u8Link.includes(".m3u8") || !m3u8Link.includes("<iframe"))) {
@@ -253,6 +248,46 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     }
     return m3u8Link || "";
   }, [m3u8Link, embedSrc, videoLink]);
+
+  // Lấy mốc thời gian từ query param 't' hoặc prop initialTime hoặc lịch sử xem dở
+  const urlParamT = searchParams?.get("t");
+  const targetProgress = useMemo(() => {
+    if (typeof initialTime === "number" && initialTime > 0) return initialTime;
+    if (urlParamT) {
+      const parsed = parseFloat(urlParamT);
+      if (!isNaN(parsed) && parsed > 0) return parsed;
+    }
+    if (typeof window !== "undefined") {
+      try {
+        const urlObj = new URL(window.location.href);
+        const tVal = urlObj.searchParams.get("t");
+        if (tVal) {
+          const parsed = parseFloat(tVal);
+          if (!isNaN(parsed) && parsed > 0) return parsed;
+        }
+      } catch {}
+    }
+    const currentMovieSlug = watchContext?.movieSlug || propMovieSlug;
+    const savedProgress = currentMovieSlug && activeEpisodeSlug ? getWatchProgress(currentMovieSlug, activeEpisodeSlug) : 0;
+    return savedProgress > 3 ? savedProgress : 0;
+  }, [initialTime, urlParamT, watchContext?.movieSlug, propMovieSlug, activeEpisodeSlug]);
+
+  const hasSeekedInitialRef = useRef<boolean>(false);
+  useEffect(() => {
+    hasSeekedInitialRef.current = false;
+  }, [activeEpisodeSlug, resolvedM3u8, targetProgress]);
+
+  const activeSrc = useMemo(() => {
+    let src = videoLink ? embedSrc : trailerEmbedSrc;
+    if (!src) return "";
+    if (!src.includes("autoplay=")) {
+      src += (src.includes("?") ? "&" : "?") + "autoplay=1";
+    }
+    if (targetProgress > 0 && !src.includes("t=") && !src.includes("time=")) {
+      src += `&t=${Math.floor(targetProgress)}`;
+    }
+    return src;
+  }, [videoLink, embedSrc, trailerEmbedSrc, targetProgress]);
 
   // Reset fallback khi đổi tập
   useEffect(() => {
@@ -443,12 +478,35 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     video.removeAttribute("src");
     video.load();
 
-    // Xác định mốc thời gian xem dở trước khi nạp nguồn phát
-    const urlParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
-    const urlTime = parseFloat(urlParams?.get("t") || "0");
     const currentMovieSlug = watchContext?.movieSlug || propMovieSlug;
-    const savedProgress = currentMovieSlug && activeEpisodeSlug ? getWatchProgress(currentMovieSlug, activeEpisodeSlug) : 0;
-    const targetProgress = urlTime > 0 ? urlTime : (savedProgress > 3 ? savedProgress : 0);
+
+    const trySeekToTarget = () => {
+      if (targetProgress <= 0 || hasSeekedInitialRef.current) return;
+      const v = videoRef.current;
+      if (!v) return;
+      try {
+        v.currentTime = targetProgress;
+        if (Math.abs(v.currentTime - targetProgress) <= 2.5) {
+          hasSeekedInitialRef.current = true;
+        }
+      } catch {}
+    };
+
+    if (targetProgress > 0) {
+      const mins = Math.floor(targetProgress / 60);
+      const secs = (Math.floor(targetProgress) % 60).toString().padStart(2, "0");
+      showHud(
+        <RotateCcw className="w-5 h-5 text-netflix-red" />,
+        (initialTime || urlParamT)
+          ? `Bắt đầu xem từ mốc: ${mins}:${secs}`
+          : `Tiếp tục xem từ ${mins}:${secs}`
+      );
+      if (currentMovieSlug && activeEpisodeSlug) {
+        saveWatchProgress(currentMovieSlug, targetProgress, video.duration || 0, activeEpisodeSlug);
+      }
+    }
+
+    const seekTimeouts: NodeJS.Timeout[] = [];
 
     if (Hls.isSupported()) {
       const hls = new Hls({
@@ -459,7 +517,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         maxBufferLength: 25,             // Giữ buffer 25 giây cho độ phản hồi nhanh
         maxMaxBufferLength: 50,
         backBufferLength: 60,
-        startPosition: targetProgress > 0 ? targetProgress : -1, // Phát ngay từ mốc xem dở, chống reset về 0 khi reload
+        startPosition: targetProgress > 0 ? targetProgress : -1, // Phát ngay từ mốc xem dở / query param t
         startLevel: -1,
         autoStartLoad: true,
         abrEwmaDefaultEstimate: 5000000, // Ước lượng 5Mbps ban đầu để tránh phát 240p
@@ -484,45 +542,68 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           setQualityLevels([]);
         }
 
-        // Đảm bảo seek tới đúng mốc thời gian xem dở
-        if (targetProgress > 0) {
-          try {
-            video.currentTime = targetProgress;
-          } catch {}
-          const mins = Math.floor(targetProgress / 60);
-          const secs = (Math.floor(targetProgress) % 60).toString().padStart(2, "0");
-          showHud(
-            <RotateCcw className="w-5 h-5 text-netflix-red" />,
-            urlTime > 0
-              ? `Xem tiếp từ điện thoại: ${mins}:${secs}`
-              : `Tiếp tục xem từ ${mins}:${secs}`
-          );
-          if (currentMovieSlug && activeEpisodeSlug) {
-            saveWatchProgress(currentMovieSlug, targetProgress, video.duration || 0, activeEpisodeSlug);
-          }
-        }
+        trySeekToTarget();
 
         const playPromise = video.play();
         if (playPromise !== undefined) {
           playPromise
-            .then(() => setIsPlaying(true))
+            .then(() => {
+              setIsPlaying(true);
+              trySeekToTarget();
+            })
             .catch(() => {
               video.muted = true;
               setIsMuted(true);
-              video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+              video
+                .play()
+                .then(() => {
+                  setIsPlaying(true);
+                  trySeekToTarget();
+                })
+                .catch(() => setIsPlaying(false));
             });
         }
       });
 
-      // Lắng nghe canplay để backup seek nếu trình duyệt bỏ qua startPosition
-      const handleCanPlayBackup = () => {
-        if (targetProgress > 0 && Math.abs(video.currentTime - targetProgress) > 3) {
-          try {
-            video.currentTime = targetProgress;
-          } catch {}
+      hls.on(Hls.Events.FRAG_BUFFERED, () => {
+        if (!hasSeekedInitialRef.current && targetProgress > 0) {
+          trySeekToTarget();
         }
+      });
+
+      hls.on(Hls.Events.LEVEL_LOADED, () => {
+        if (!hasSeekedInitialRef.current && targetProgress > 0) {
+          trySeekToTarget();
+        }
+      });
+
+      // Lắng nghe các mốc sẵn sàng của media element
+      const onCanPlay = () => {
+        trySeekToTarget();
       };
-      video.addEventListener("canplay", handleCanPlayBackup, { once: true });
+      const onLoadedData = () => {
+        trySeekToTarget();
+      };
+      const onPlaying = () => {
+        trySeekToTarget();
+      };
+
+      video.addEventListener("canplay", onCanPlay);
+      video.addEventListener("loadeddata", onLoadedData);
+      video.addEventListener("playing", onPlaying);
+
+      // Thử seek liên tục ở các mốc thời gian ban đầu để đảm bảo 100% video nhảy đúng vị trí t
+      [100, 300, 600, 1000, 1800, 3000].forEach((ms) => {
+        seekTimeouts.push(
+          setTimeout(() => {
+            if (!hasSeekedInitialRef.current && targetProgress > 0 && videoRef.current) {
+              if (videoRef.current.currentTime < 4 || Math.abs(videoRef.current.currentTime - targetProgress) > 2) {
+                trySeekToTarget();
+              }
+            }
+          }, ms)
+        );
+      });
 
       let retryCount = 0;
       hls.on(Hls.Events.ERROR, (_event, data) => {
@@ -551,25 +632,13 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       video.src = resolvedM3u8;
       const onLoaded = () => {
         setIsBuffering(false);
-        if (targetProgress > 0) {
-          try {
-            video.currentTime = targetProgress;
-          } catch {}
-          const mins = Math.floor(targetProgress / 60);
-          const secs = (Math.floor(targetProgress) % 60).toString().padStart(2, "0");
-          showHud(
-            <RotateCcw className="w-5 h-5 text-netflix-red" />,
-            urlTime > 0
-              ? `Xem tiếp từ điện thoại: ${mins}:${secs}`
-              : `Tiếp tục xem từ ${mins}:${secs}`
-          );
-          if (currentMovieSlug && activeEpisodeSlug) {
-            saveWatchProgress(currentMovieSlug, targetProgress, video.duration || 0, activeEpisodeSlug);
-          }
-        }
+        trySeekToTarget();
         video
           .play()
-          .then(() => setIsPlaying(true))
+          .then(() => {
+            setIsPlaying(true);
+            trySeekToTarget();
+          })
           .catch(() => {
             video.muted = true;
             setIsMuted(true);
@@ -577,10 +646,25 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           });
       };
       video.addEventListener("loadedmetadata", onLoaded);
-      return () => video.removeEventListener("loadedmetadata", onLoaded);
+
+      [100, 300, 600, 1200, 2000].forEach((ms) => {
+        seekTimeouts.push(
+          setTimeout(() => {
+            if (!hasSeekedInitialRef.current && targetProgress > 0 && videoRef.current) {
+              trySeekToTarget();
+            }
+          }, ms)
+        );
+      });
+
+      return () => {
+        video.removeEventListener("loadedmetadata", onLoaded);
+        seekTimeouts.forEach((t) => clearTimeout(t));
+      };
     }
 
     return () => {
+      seekTimeouts.forEach((t) => clearTimeout(t));
       if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;
@@ -589,7 +673,17 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       video.removeAttribute("src");
       video.load();
     };
-  }, [resolvedM3u8, useIframeFallback, activeEpisodeSlug, watchContext?.movieSlug, propMovieSlug, showHud]);
+  }, [
+    resolvedM3u8,
+    useIframeFallback,
+    activeEpisodeSlug,
+    watchContext?.movieSlug,
+    propMovieSlug,
+    targetProgress,
+    initialTime,
+    urlParamT,
+    showHud,
+  ]);
 
   // LẮNG NGHE SỰ KIỆN VIDEO (BUFFERING, AUTO-NEXT, LƯU TIẾN TRÌNH)
   useEffect(() => {
@@ -623,6 +717,16 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
 
     // Lưu tiến độ định kỳ mỗi 3s và đồng bộ đa thiết bị mỗi 8s
     const handleTimeUpdateThrottled = () => {
+      // Đảm bảo seek ngay nếu ban đầu video bị phát từ 0 trong khi targetProgress > 0
+      if (!hasSeekedInitialRef.current && targetProgress > 0 && video.currentTime < 4 && targetProgress >= 5) {
+        try {
+          video.currentTime = targetProgress;
+          hasSeekedInitialRef.current = true;
+        } catch {}
+      } else if (!hasSeekedInitialRef.current && targetProgress > 0 && Math.abs(video.currentTime - targetProgress) <= 3) {
+        hasSeekedInitialRef.current = true;
+      }
+
       const now = Date.now();
       if (now - lastProgressSaveRef.current > 3000) {
         lastProgressSaveRef.current = now;
@@ -666,7 +770,18 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       video.removeEventListener("timeupdate", handleTimeUpdateThrottled);
       video.removeEventListener("ended", handleEnded);
     };
-  }, [nextEpisode, switchEpisode, watchContext?.movieSlug, propMovieSlug, activeEpisodeSlug, user?.uid, title, activeEpisodeName, posterUrl]);
+  }, [
+    nextEpisode,
+    switchEpisode,
+    watchContext?.movieSlug,
+    propMovieSlug,
+    activeEpisodeSlug,
+    user?.uid,
+    title,
+    activeEpisodeName,
+    posterUrl,
+    targetProgress,
+  ]);
 
   // LƯU TIẾN ĐỘ XEM NGAY LẬP TỨC KHI RELOAD TRANG HOẶC ĐÓNG TAB (CHỐNG MẤT MỐC XEM)
   useEffect(() => {

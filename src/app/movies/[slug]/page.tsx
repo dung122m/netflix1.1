@@ -105,10 +105,10 @@ export default async function MovieDetail({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ ep?: string; server?: string }>;
+  searchParams: Promise<{ ep?: string; server?: string; t?: string }>;
 }) {
   const { slug } = await params;
-  const { ep, server } = await searchParams;
+  const { ep, server, t } = await searchParams;
 
   const data = await movieApi.getMovieDetail(slug);
   if (!data || !data.movie) {
@@ -412,6 +412,7 @@ export default async function MovieDetail({
           isTrailerOnly={isTrailerOnly}
           posterUrl={pickBestMovieImage(movie, "/default-hero.jpg")}
           episodes={serverData}
+          initialTime={t ? parseFloat(t) : undefined}
         />
       </div>
 
