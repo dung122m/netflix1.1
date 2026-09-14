@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sanitizeSafeText } from "@/lib/security";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
+
 const PROJECT_ID =
   process.env.FIREBASE_PROJECT_ID ||
   process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ||

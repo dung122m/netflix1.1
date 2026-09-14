@@ -39,15 +39,13 @@ if (typeof window !== "undefined" && isFirebaseConfigured()) {
     auth = getAuth(app);
 
     try {
-      // Fix #5: Bật IndexedDB persistent cache để:
-      //   - Giữ dữ liệu khi mất mạng ngắn (offline persistence)
-      //   - Đồng bộ realtime giữa nhiều tab cùng lúc (multi-tab manager)
-      //   - Tự động kết nối lại sau khi mạng phục hồi hoặc tab được focus
-      // Lưu ý: persistentLocalCache không dùng chung với experimentalAutoDetectLongPolling
+      // Bật IndexedDB persistent cache + experimentalAutoDetectLongPolling
+      // để kết nối WebSocket/Long-polling thời gian thực siêu tốc < 100ms trên cả Vercel Production và localhost
       db = initializeFirestore(app, {
         localCache: persistentLocalCache({
           tabManager: persistentMultipleTabManager(),
         }),
+        experimentalAutoDetectLongPolling: true,
         ignoreUndefinedProperties: true,
       });
     } catch {

@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { checkContentModeration } from "@/lib/contentModeration";
 import { sanitizeSafeText } from "@/lib/security";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
+
 // Fix #1: Hỗ trợ cả server-side env var (không có NEXT_PUBLIC_) để đảm bảo
 // hoạt động ổn định trong Vercel serverless functions
 const PROJECT_ID =
@@ -178,7 +182,16 @@ export async function GET(req: NextRequest) {
       return (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0);
     });
 
-    return NextResponse.json({ success: true, items });
+    return NextResponse.json(
+      { success: true, items },
+      {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+          "CDN-Cache-Control": "no-store",
+          "Vercel-CDN-Cache-Control": "no-store",
+        },
+      }
+    );
   } catch (error) {
     console.error("Lỗi API get comments:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

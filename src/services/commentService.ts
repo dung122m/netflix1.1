@@ -157,7 +157,7 @@ export function subscribeMovieComments(
   const fallbackFetch = async () => {
     if (isUnsubscribed) return;
     try {
-      const res = await fetch(`/api/comments?movieSlug=${encodeURIComponent(movieSlug)}&all=true`, {
+      const res = await fetch(`/api/comments?movieSlug=${encodeURIComponent(movieSlug)}&all=true&_t=${Date.now()}`, {
         cache: "no-store",
       });
       if (isUnsubscribed) return;
@@ -296,7 +296,7 @@ export function subscribeCommentReplies(
   const fallbackFetch = async () => {
     if (isUnsubscribed) return;
     try {
-      const res = await fetch(`/api/comments?parentId=${encodeURIComponent(parentId)}`);
+      const res = await fetch(`/api/comments?parentId=${encodeURIComponent(parentId)}&_t=${Date.now()}`, { cache: "no-store" });
       if (isUnsubscribed) return;
       if (res.ok) {
         const data = await res.json();
@@ -308,7 +308,7 @@ export function subscribeCommentReplies(
   fallbackFetch();
 
   if (!db) {
-    const interval = setInterval(fallbackFetch, 8000);
+    const interval = setInterval(fallbackFetch, 5000);
     return () => { isUnsubscribed = true; clearInterval(interval); };
   }
 
@@ -334,7 +334,7 @@ export function subscribeCommentReplies(
         if (isUnsubscribed) return;
         console.warn("Lỗi tải replies từ Firestore, dùng Server API Fallback:", error);
         fallbackFetch();
-        if (!fallbackInterval) fallbackInterval = setInterval(fallbackFetch, 8000);
+        if (!fallbackInterval) fallbackInterval = setInterval(fallbackFetch, 5000);
         if (onError) onError(error);
         // Fix #2: exponential backoff
         const delay = Math.min(2000 * Math.pow(2, retryCount), 30000);
@@ -383,7 +383,7 @@ export function subscribeUserComments(
   const fallbackFetch = async () => {
     if (isUnsubscribed) return;
     try {
-      const res = await fetch(`/api/comments?userId=${encodeURIComponent(userId)}&all=true`);
+      const res = await fetch(`/api/comments?userId=${encodeURIComponent(userId)}&all=true&_t=${Date.now()}`, { cache: "no-store" });
       if (isUnsubscribed) return;
       if (res.ok) {
         const data = await res.json();

@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sanitizeSafeText } from "@/lib/security";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
+
 const PROJECT_ID = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "nanaflix-9e8f3";
 const API_KEY = process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "";
 const FIRESTORE_REST_BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
@@ -219,7 +223,16 @@ export async function GET(req: NextRequest) {
 
     const items = Array.from(notifMap.values());
     items.sort((a: Record<string, unknown>, b: Record<string, unknown>) => (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0));
-    return NextResponse.json({ success: true, items });
+    return NextResponse.json(
+      { success: true, items },
+      {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+          "CDN-Cache-Control": "no-store",
+          "Vercel-CDN-Cache-Control": "no-store",
+        },
+      }
+    );
   } catch (error) {
     console.error("Lỗi API get notifications:", error);
     return NextResponse.json({ success: true, items: [] });
