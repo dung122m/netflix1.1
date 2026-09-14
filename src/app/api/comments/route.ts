@@ -58,7 +58,8 @@ function buildStructuredQuery(params: {
   all?: string | null;
   pageSize?: number;
 }) {
-  const { movieSlug, parentId, userId, pageSize = 200 } = params;
+  const { movieSlug, parentId, userId, all } = params;
+  const pageSize = all ? 500 : (params.pageSize || 200);
 
   // Xác định điều kiện filter chính
   const filters: object[] = [];
@@ -104,6 +105,7 @@ function buildStructuredQuery(params: {
     structuredQuery: {
       from: [{ collectionId: "movie_comments" }],
       ...(whereClause ? { where: whereClause } : {}),
+      orderBy: [{ field: { fieldPath: "createdAt" }, direction: "DESCENDING" }],
       limit: pageSize,
     },
   };
@@ -125,7 +127,7 @@ export async function GET(req: NextRequest) {
     const keyParam = API_KEY ? `?key=${API_KEY}` : "";
     const queryUrl = `${FIRESTORE_RUN_QUERY}${keyParam}`;
 
-    const body = buildStructuredQuery({ movieSlug, parentId, userId, all, pageSize: 200 });
+    const body = buildStructuredQuery({ movieSlug, parentId, userId, all });
 
     let rawDocs: Array<{ name: string; fields?: Record<string, FirestoreField>; createTime?: string }> = [];
 
@@ -145,7 +147,8 @@ export async function GET(req: NextRequest) {
     } else {
       // Fallback: nếu runQuery bị từ chối, thử fetch trực tiếp qua collection documents
       try {
-        const fallbackUrl = `${FIRESTORE_REST_BASE}/movie_comments?pageSize=150${API_KEY ? `&key=${API_KEY}` : ""}`;
+        const fallbackPageSize = all ? 300 : 150;
+        const fallbackUrl = `${FIRESTORE_REST_BASE}/movie_comments?pageSize=${fallbackPageSize}${API_KEY ? `&key=${API_KEY}` : ""}`;
         const fallbackRes = await fetch(fallbackUrl, { cache: "no-store" });
         if (fallbackRes.ok) {
           const fbJson = await fallbackRes.json();
@@ -161,8 +164,10 @@ export async function GET(req: NextRequest) {
       items = items.filter((c) => c.userId === userId);
     }
 
-    // Ẩn comment bị flagged
-    items = items.filter((c) => !c.isFlagged);
+    // Ẩn comment bị flagged (chỉ ẩn cho user thường, Admin all=true cần thấy hết cả bình luận vi phạm)
+    if (!all) {
+      items = items.filter((c) => !c.isFlagged);
+    }
 
     // Sắp xếp: ghim lên đầu → mới nhất
     items.sort((a, b) => {

@@ -44,6 +44,7 @@ import { WatchHistoryItem } from "@/lib/watchHistory";
 import { WatchlistItem } from "@/lib/watchlist";
 import {
   subscribeAllComments,
+  fetchAllCommentsDirect,
   deleteMovieComment,
   unflagComment,
   autoCleanAllToxicAndSpamComments,
@@ -104,6 +105,24 @@ export default function AdminDashboardPage() {
   // Auto-clean & purge states
   const [isCleaning, setIsCleaning] = useState(false);
   const [cleanResultModal, setCleanResultModal] = useState<AutoCleanResult | null>(null);
+  const [isManualRefreshing, setIsManualRefreshing] = useState(false);
+
+  const handleManualRefresh = async () => {
+    setIsManualRefreshing(true);
+    try {
+      const items = await fetchAllCommentsDirect();
+      if (items.length > 0) {
+        setComments(items);
+        toast.success(`Đã đồng bộ tức thì ${items.length} bình luận mới nhất!`);
+      } else {
+        toast.info("Dữ liệu bình luận đã là mới nhất.");
+      }
+    } catch {
+      toast.error("Không thể làm mới danh sách bình luận!");
+    } finally {
+      setIsManualRefreshing(false);
+    }
+  };
 
   const isAdmin = useMemo(() => isUserAdmin(user?.email), [user?.email]);
 
@@ -619,6 +638,15 @@ export default function AdminDashboardPage() {
           </div>
 
           <div className="flex items-center gap-2.5 flex-wrap">
+            <button
+              type="button"
+              onClick={handleManualRefresh}
+              disabled={isManualRefreshing}
+              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-netflix-red/20 hover:bg-netflix-red/30 text-red-300 hover:text-white text-xs font-semibold transition border border-netflix-red/30 cursor-pointer active:scale-95 disabled:opacity-50"
+            >
+              <RefreshCw size={14} className={isManualRefreshing ? "animate-spin" : ""} />
+              <span>{isManualRefreshing ? "Đang đồng bộ..." : "Làm Mới Dữ Liệu"}</span>
+            </button>
             <Link
               href="/browse"
               className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold transition border border-white/10"

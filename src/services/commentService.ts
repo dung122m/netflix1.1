@@ -448,71 +448,83 @@ export function subscribeUserComments(
 
 
 /**
+ * Lấy toàn bộ bình luận trực tiếp từ Server API (dùng cho tải ban đầu và làm mới tức thì)
+ */
+export async function fetchAllCommentsDirect(): Promise<MovieComment[]> {
+  try {
+    const res = await fetch(`/api/comments?all=true&_t=${Date.now()}`, { cache: "no-store" });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data.items)) {
+        return data.items as MovieComment[];
+      }
+    }
+  } catch (err) {
+    console.warn("Lỗi fetchAllCommentsDirect:", err);
+  }
+  return [];
+}
+
+/**
  * Lắng nghe toàn bộ bình luận từ cộng đồng theo thời gian thực (Dành riêng cho Quản Trị Viên)
  */
 export function subscribeAllComments(
   onUpdate: (comments: MovieComment[]) => void,
   onError?: (err: Error) => void,
-  maxLimit: number = 300,
+  maxLimit: number = 500,
 ): Unsubscribe {
   let isUnsubscribed = false;
 
   const fallbackFetch = async () => {
     try {
-      const res = await fetch(`/api/comments?all=true`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.items && !isUnsubscribed) {
-          onUpdate(data.items);
-        }
+      const items = await fetchAllCommentsDirect();
+      if (items.length > 0 && !isUnsubscribed) {
+        onUpdate(items);
       }
     } catch {}
   };
 
-  // Nạp ngay dữ liệu từ Server API giúp hiển thị tức thì 100% không sợ Adblocker / Extension chặn Firestore client
+  // 1. Nạp ngay tức thì qua Server API (0 delay)
   fallbackFetch();
 
-  if (!db) {
-    const interval = setInterval(fallbackFetch, 8000);
-    return () => {
-      isUnsubscribed = true;
-      clearInterval(interval);
-    };
+  // 2. Định kỳ polling ngầm mỗi 4 giây để bắt kịp bình luận gửi từ Server REST hoặc các client khác
+  const syncInterval = setInterval(fallbackFetch, 4000);
+
+  let unsubscribeFirestore: Unsubscribe | null = null;
+
+  if (db) {
+    try {
+      const commentsRef = collection(db, COLLECTION_NAME);
+      unsubscribeFirestore = onSnapshot(
+        commentsRef,
+        (snapshot) => {
+          if (isUnsubscribed) return;
+          const items: MovieComment[] = [];
+          snapshot.forEach((docSnap) => {
+            items.push({
+              id: docSnap.id,
+              ...(docSnap.data() as Omit<MovieComment, "id">),
+            });
+          });
+          items.sort((a, b) => (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0));
+          if (items.length > 0) {
+            onUpdate(items);
+          }
+        },
+        (error) => {
+          console.warn("Lỗi onSnapshot movie_comments cho Admin, chuyển sang polling:", error);
+          if (onError) onError(error);
+        },
+      );
+    } catch (e) {
+      console.warn("Lỗi khởi tạo onSnapshot admin comments:", e);
+    }
   }
-
-  const commentsRef = collection(db, COLLECTION_NAME);
-  const q = query(commentsRef, limit(maxLimit));
-
-  let fallbackInterval: NodeJS.Timeout | null = null;
-
-  const unsubscribe = onSnapshot(
-    q,
-    (snapshot) => {
-      if (isUnsubscribed) return;
-      const items: MovieComment[] = [];
-      snapshot.forEach((docSnap) => {
-        items.push({
-          id: docSnap.id,
-          ...(docSnap.data() as Omit<MovieComment, "id">),
-        });
-      });
-      items.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-      onUpdate(items);
-    },
-    (error) => {
-      console.warn("Lỗi tải toàn bộ bình luận cho Admin, kích hoạt Server Fallback:", error);
-      fallbackFetch();
-      if (!fallbackInterval && !isUnsubscribed) {
-        fallbackInterval = setInterval(fallbackFetch, 8000);
-      }
-      if (onError) onError(error);
-    },
-  );
 
   return () => {
     isUnsubscribed = true;
-    if (fallbackInterval) clearInterval(fallbackInterval);
-    unsubscribe();
+    clearInterval(syncInterval);
+    unsubscribeFirestore?.();
   };
 }
 
