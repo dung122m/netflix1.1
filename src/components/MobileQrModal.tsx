@@ -184,11 +184,11 @@ export function MobileQrModal({
         <button
           type="button"
           onClick={() => setInternalIsOpen(true)}
-          title="Quét mã QR xem tiếp trên điện thoại đúng số phút đang xem"
+          title="Quét mã QR để xem tiếp trên thiết bị di động"
           className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-zinc-900/80 px-3 py-1.5 text-xs sm:text-sm font-medium text-gray-300 hover:bg-white/10 hover:text-white transition-all cursor-pointer active:scale-95 flex-shrink-0"
         >
           <Smartphone className="h-4 w-4 text-sky-400 flex-shrink-0" />
-          <span className="hidden sm:inline">Xem trên điện thoại</span>
+          <span className="hidden sm:inline">Chuyển sang di động</span>
           {exactProgressSeconds > 0 && (
             <span className="text-[10px] text-amber-300 font-bold bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.2 rounded-md ml-0.5">
               {formatTime(exactProgressSeconds)}
@@ -225,11 +225,11 @@ export function MobileQrModal({
             </div>
 
             <span className="text-[10px] font-black uppercase tracking-wider text-rose-400 bg-rose-500/10 px-2.5 py-0.5 rounded-full border border-rose-500/20">
-              Chuyển Thiết Bị Xem Phim
+              Đồng Bộ Đa Thiết Bị
             </span>
 
             <h3 className="text-lg sm:text-xl font-black text-white mt-1.5 mb-1 tracking-tight">
-              Xem Tiếp Trên Điện Thoại
+              Xem Tiếp Trên Di Động
             </h3>
 
             <p className="text-xs text-gray-400 mb-3 px-2 line-clamp-1">

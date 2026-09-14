@@ -1443,13 +1443,13 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
               {isLightsOff ? (
                 <>
                   <Sun className="w-3.5 h-3.5 text-yellow-400" />
-                  <span>Bật đèn</span>
+                  <span>Bật sáng</span>
                   <span className="hidden sm:inline text-white/60">(L)</span>
                 </>
               ) : (
                 <>
                   <Moon className="w-3.5 h-3.5" />
-                  <span>Tắt đèn</span>
+                  <span>Chế độ Cinema</span>
                   <span className="hidden sm:inline text-white/60">(L)</span>
                 </>
               )}
@@ -1481,11 +1481,11 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
             <button
               type="button"
               onClick={() => setShowSleepTimerModal(true)}
-              title="Hẹn giờ tắt phim thông minh"
+              title="Hẹn giờ tự động tắt phim"
               className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-zinc-900/80 hover:bg-zinc-800 text-amber-400/90 hover:text-amber-300 border border-amber-500/20 hover:border-amber-500/40 transition cursor-pointer text-xs"
             >
               <Clock className="w-3.5 h-3.5" />
-              <span>Hẹn giờ</span>
+              <span>Hẹn giờ tắt</span>
             </button>
 
             {/* 5. Nút Danh sách Phím tắt */}

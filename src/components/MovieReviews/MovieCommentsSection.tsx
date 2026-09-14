@@ -449,7 +449,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
               <textarea
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                placeholder="Viết nhận xét của bạn về bộ phim này... (Cảm nghĩ, diễn xuất, nội dung,...)"
+                placeholder="Chia sẻ cảm nghĩ của bạn về bộ phim... (Vui lòng không tiết lộ trước nội dung 🤫)"
                 rows={3}
                 className="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-red-500/60 focus:ring-1 focus:ring-red-500/30 resize-y transition-all"
                 maxLength={1000}
