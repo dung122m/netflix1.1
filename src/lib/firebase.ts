@@ -1,6 +1,12 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, Auth } from "firebase/auth";
-import { initializeFirestore, getFirestore, Firestore } from "firebase/firestore";
+import {
+  initializeFirestore,
+  getFirestore,
+  Firestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+} from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -32,16 +38,20 @@ if (typeof window !== "undefined" && isFirebaseConfigured()) {
     app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
     auth = getAuth(app);
 
-    // experimentalForceLongPolling: bypass WebChannel/WebSocket hoàn toàn
-    // → Kết nối ổn định 100% trên mọi trình duyệt, mọi tab, mọi tiện ích mở rộng
-    // ignoreUndefinedProperties: tránh lỗi "Cannot serialize undefined" khi ghi Firestore
     try {
+      // Fix #5: Bật IndexedDB persistent cache để:
+      //   - Giữ dữ liệu khi mất mạng ngắn (offline persistence)
+      //   - Đồng bộ realtime giữa nhiều tab cùng lúc (multi-tab manager)
+      //   - Tự động kết nối lại sau khi mạng phục hồi hoặc tab được focus
+      // Lưu ý: persistentLocalCache không dùng chung với experimentalAutoDetectLongPolling
       db = initializeFirestore(app, {
-        experimentalAutoDetectLongPolling: true,
+        localCache: persistentLocalCache({
+          tabManager: persistentMultipleTabManager(),
+        }),
         ignoreUndefinedProperties: true,
       });
     } catch {
-      // Nếu đã có instance thì lấy lại bằng getFirestore
+      // Nếu đã có instance (hot reload dev) thì lấy lại
       db = getFirestore(app);
     }
   } catch (error) {

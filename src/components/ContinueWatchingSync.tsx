@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Play, X, Sparkles, Clock } from "lucide-react";
 import { getWatchHistory, WatchHistoryItem } from "@/lib/watchHistory";
 
@@ -11,38 +12,105 @@ function formatTime(seconds: number): string {
   return `${m}:${s < 10 ? "0" : ""}${s}`;
 }
 
+const SESSION_DISMISSED_KEY = "nanaflix_continue_watching_dismissed";
+
 function ContinueWatchingSyncInner() {
+  const pathname = usePathname();
   const [recentItem, setRecentItem] = useState<WatchHistoryItem | null>(null);
-  const [dismissed, setDismissed] = useState(false);
+  const [dismissed, setDismissed] = useState(true);
+  const autoHideTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    // Chỉ chạy ở phía Client
+    // Chỉ chạy ở phía Client và KHÔNG hiển thị khi đang ở trang xem phim (/movies/...)
     if (typeof window === "undefined") return;
+    if (
+      pathname &&
+      (pathname.startsWith("/movies/") ||
+        pathname.startsWith("/live-tv") ||
+        pathname.startsWith("/live-football"))
+    ) {
+      setRecentItem(null);
+      return;
+    }
 
     const checkHistory = () => {
+      // Kiểm tra nếu người dùng đã bấm tắt trong phiên duyệt web này
+      try {
+        const isSessionDismissed = sessionStorage.getItem(SESSION_DISMISSED_KEY);
+        if (isSessionDismissed === "true") {
+          setRecentItem(null);
+          return;
+        }
+      } catch {}
+
       const history = getWatchHistory();
       if (!history || history.length === 0) {
         setRecentItem(null);
         return;
       }
 
-      // Tìm mục xem dở mới nhất có progress > 15s và cập nhật trong 7 ngày gần đây
-      const latest = history.find(
-        (item) =>
-          item.progressSeconds &&
-          item.progressSeconds > 15 &&
-          Date.now() - (item.updatedAt || 0) < 7 * 24 * 60 * 60 * 1000
-      );
+      // Chỉ gợi ý nếu đã xem dở > 30s và xem trong vòng 24 giờ qua (thay vì 7 ngày trước đó)
+      const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+      const latest = history.find((item) => {
+        if (!item.progressSeconds || item.progressSeconds < 30) return false;
+        // Nếu đã xem gần hết phim (> 92% thời lượng) thì không gợi ý xem lại
+        if (item.durationSeconds && item.durationSeconds > 0) {
+          if (item.progressSeconds / item.durationSeconds > 0.92) return false;
+        }
+        // Kiểm tra xem trong vòng 24h qua
+        return Date.now() - (item.updatedAt || 0) < ONE_DAY_MS;
+      });
 
       if (latest) {
-        setRecentItem(latest);
+        // Kiểm tra xem phim này cụ thể đã bị dismiss chưa
+        try {
+          const itemDismissed = sessionStorage.getItem(
+            `${SESSION_DISMISSED_KEY}_${latest.slug}`
+          );
+          if (itemDismissed === "true") {
+            setRecentItem(null);
+            return;
+          }
+        } catch {}
+
+        // Trì hoãn 1.2s trước khi hiện để tránh giật UI khi mới load trang
+        const showTimer = setTimeout(() => {
+          setRecentItem(latest);
+          setDismissed(false);
+
+          // Tự động biến mất sau 7 giây để không che chắn màn hình người dùng
+          if (autoHideTimerRef.current) clearTimeout(autoHideTimerRef.current);
+          autoHideTimerRef.current = setTimeout(() => {
+            setDismissed(true);
+          }, 7000);
+        }, 1200);
+
+        return () => clearTimeout(showTimer);
+      } else {
+        setRecentItem(null);
       }
     };
 
-    checkHistory();
+    const cleanup = checkHistory();
     window.addEventListener("watch-history-updated", checkHistory);
-    return () => window.removeEventListener("watch-history-updated", checkHistory);
-  }, []);
+    return () => {
+      if (cleanup) cleanup();
+      if (autoHideTimerRef.current) clearTimeout(autoHideTimerRef.current);
+      window.removeEventListener("watch-history-updated", checkHistory);
+    };
+  }, [pathname]);
+
+  const handleDismiss = () => {
+    setDismissed(true);
+    if (autoHideTimerRef.current) clearTimeout(autoHideTimerRef.current);
+    try {
+      // Nhớ rằng người dùng đã chủ động tắt thông báo này trong phiên làm việc
+      if (recentItem?.slug) {
+        sessionStorage.setItem(`${SESSION_DISMISSED_KEY}_${recentItem.slug}`, "true");
+      }
+      sessionStorage.setItem(SESSION_DISMISSED_KEY, "true");
+    } catch {}
+  };
 
   if (!recentItem || dismissed) return null;
 
@@ -90,7 +158,7 @@ function ContinueWatchingSyncInner() {
         {/* Nút Xem tiếp 1-chạm */}
         <Link
           href={targetUrl}
-          onClick={() => setDismissed(true)}
+          onClick={handleDismiss}
           className="w-9 h-9 rounded-full bg-netflix-red hover:bg-rose-700 text-white flex items-center justify-center transition shadow-md shadow-red-950/60 flex-shrink-0 cursor-pointer hover:scale-105 active:scale-95"
           title="Bấm để xem tiếp ngay"
         >
@@ -100,8 +168,9 @@ function ContinueWatchingSyncInner() {
         {/* Nút Đóng */}
         <button
           type="button"
-          onClick={() => setDismissed(true)}
+          onClick={handleDismiss}
           className="absolute top-2 right-2 p-1 rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition cursor-pointer"
+          title="Đóng thông báo"
         >
           <X className="w-3.5 h-3.5" />
         </button>

@@ -343,7 +343,7 @@ export function RecommendationTabs({
 /**
  * Thẻ phim đề xuất phong cách Tiếp tục xem (Aspect-Video 16:9, thoáng đãng, không bị đè chữ lên hình)
  */
-function RecommendedMovieCard({
+const RecommendedMovieCard = React.memo(function RecommendedMovieCard({
   item,
   matchPercent,
 }: {
@@ -425,6 +425,6 @@ function RecommendedMovieCard({
       </Link>
     </div>
   );
-}
+});
 
 export default RecommendationTabs;

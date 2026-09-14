@@ -30,9 +30,14 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { isUserAdmin } from "@/lib/adminConfig";
-import { AuthModal } from "./AuthModal";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import Image from "next/image";
+
+const AuthModal = dynamic(
+  () => import("./AuthModal").then((mod) => mod.AuthModal),
+  { ssr: false }
+);
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { NetflixLogo } from "./sites/netflix-3f78535a/vn-d838105b/icons";
 import { useDebounce } from "@/hooks/useDebounce";

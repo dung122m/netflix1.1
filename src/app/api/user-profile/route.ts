@@ -1,15 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sanitizeSafeText } from "@/lib/security";
 
-const PROJECT_ID = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "nanaflix-9e8f3";
-const API_KEY = process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "";
+const PROJECT_ID =
+  process.env.FIREBASE_PROJECT_ID ||
+  process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ||
+  "nanaflix-9e8f3";
+const API_KEY =
+  process.env.FIREBASE_API_KEY ||
+  process.env.NEXT_PUBLIC_FIREBASE_API_KEY ||
+  "";
 const FIRESTORE_REST_BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
 
 interface FirestoreField {
   stringValue?: string;
   integerValue?: string | number;
+  doubleValue?: number;
   booleanValue?: boolean;
-  arrayValue?: { values?: Array<{ stringValue?: string }> };
+  timestampValue?: string;
+  arrayValue?: {
+    values?: Array<{
+      stringValue?: string;
+      integerValue?: string | number;
+      doubleValue?: number;
+    }>;
+  };
 }
 
 function parseFirestoreDoc(doc: { name: string; fields?: Record<string, FirestoreField> }): Record<string, unknown> {
@@ -18,11 +32,25 @@ function parseFirestoreDoc(doc: { name: string; fields?: Record<string, Firestor
   const fields = doc.fields || {};
 
   for (const [k, v] of Object.entries(fields)) {
-    if (v.stringValue !== undefined) data[k] = v.stringValue;
-    else if (v.integerValue !== undefined) data[k] = Number(v.integerValue);
-    else if (v.booleanValue !== undefined) data[k] = v.booleanValue;
-    else if (v.arrayValue !== undefined) {
-      data[k] = v.arrayValue.values ? v.arrayValue.values.map((item) => item.stringValue || "") : [];
+    if (v.stringValue !== undefined) {
+      data[k] = v.stringValue;
+    } else if (v.integerValue !== undefined) {
+      data[k] = Number(v.integerValue);
+    } else if (v.doubleValue !== undefined) {
+      data[k] = Number(v.doubleValue);
+    } else if (v.booleanValue !== undefined) {
+      data[k] = v.booleanValue;
+    } else if (v.timestampValue !== undefined) {
+      data[k] = new Date(v.timestampValue).getTime();
+    } else if (v.arrayValue !== undefined) {
+      data[k] = v.arrayValue.values
+        ? v.arrayValue.values.map((item) => {
+            if (item.stringValue !== undefined) return item.stringValue;
+            if (item.integerValue !== undefined) return Number(item.integerValue);
+            if (item.doubleValue !== undefined) return Number(item.doubleValue);
+            return "";
+          })
+        : [];
     } else {
       data[k] = null;
     }
@@ -59,12 +87,22 @@ export async function GET(req: NextRequest) {
 
 /**
  * POST /api/user-profile
- * Cập nhật hồ sơ cá nhân (sở thích, danh hiệu, bio, avatar) qua Server API
+ * Cập nhật hồ sơ cá nhân (sở thích, danh hiệu, bio, avatar, số phút xem) qua Server API
  */
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { userId, displayName, customAvatar, photoURL, bio, favoriteGenres, badges } = body;
+    const {
+      userId,
+      displayName,
+      customAvatar,
+      photoURL,
+      bio,
+      favoriteGenres,
+      badges,
+      watchTimeMinutes,
+      incrementMinutes,
+    } = body;
     if (!userId) {
       return NextResponse.json({ error: "Thiếu userId!" }, { status: 400 });
     }
@@ -105,6 +143,29 @@ export async function POST(req: NextRequest) {
           values: badges.map((b) => ({ stringValue: String(b) })),
         },
       };
+    }
+    if (watchTimeMinutes !== undefined) {
+      fieldPaths.push("watchTimeMinutes");
+      fields.watchTimeMinutes = { integerValue: Math.max(0, Math.floor(Number(watchTimeMinutes))) };
+    }
+
+    // Nếu là request cộng dồn số phút qua API
+    if (incrementMinutes !== undefined && Number(incrementMinutes) > 0) {
+      // Đọc giá trị hiện tại trước
+      let currentWatchMins = 0;
+      try {
+        const getUrl = `${FIRESTORE_REST_BASE}/users/${userId}${API_KEY ? `?key=${API_KEY}` : ""}`;
+        const getRes = await fetch(getUrl, { cache: "no-store" });
+        if (getRes.ok) {
+          const docJson = await getRes.json();
+          const p = parseFirestoreDoc(docJson);
+          currentWatchMins = Number(p.watchTimeMinutes || 0);
+        }
+      } catch {}
+
+      const newWatchMins = currentWatchMins + Math.floor(Number(incrementMinutes));
+      fieldPaths.push("watchTimeMinutes");
+      fields.watchTimeMinutes = { integerValue: newWatchMins };
     }
 
     const maskParams = fieldPaths.map((p) => `updateMask.fieldPaths=${p}`).join("&");

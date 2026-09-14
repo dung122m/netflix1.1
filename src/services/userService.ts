@@ -22,35 +22,111 @@ import { sanitizeSafeText } from "@/lib/security";
 
 const USERS_COLLECTION = "users";
 const COMMENTS_COLLECTION = "movie_comments";
+const PROFILE_CACHE_PREFIX = "nanaflix_user_profile_";
+
+/**
+ * Lấy cache hồ sơ người dùng từ LocalStorage (giúp UI hiển thị tức thì 0ms)
+ */
+export function getCachedUserProfile(userId: string): UserProfile | null {
+  if (typeof window === "undefined" || !userId) return null;
+  try {
+    const raw = localStorage.getItem(`${PROFILE_CACHE_PREFIX}${userId}`);
+    if (raw) return JSON.parse(raw) as UserProfile;
+  } catch {}
+  return null;
+}
+
+/**
+ * Lưu cache hồ sơ người dùng vào LocalStorage
+ */
+export function setCachedUserProfile(userId: string, profile: Partial<UserProfile>): void {
+  if (typeof window === "undefined" || !userId) return;
+  try {
+    const current = getCachedUserProfile(userId) || ({ uid: userId } as UserProfile);
+    const merged = { ...current, ...profile };
+    localStorage.setItem(`${PROFILE_CACHE_PREFIX}${userId}`, JSON.stringify(merged));
+  } catch {}
+}
+
+/**
+ * Tính tổng số phút cày phim từ lịch sử xem cục bộ
+ */
+function calculateLocalHistoryWatchMinutes(): number {
+  if (typeof window === "undefined") return 0;
+  try {
+    const raw = localStorage.getItem("nanaflix_watch_history");
+    if (!raw) return 0;
+    const list: WatchHistoryItem[] = JSON.parse(raw);
+    let totalSecs = 0;
+    list.forEach((item) => {
+      if (item.progressSeconds && item.progressSeconds > 0) {
+        totalSecs += item.progressSeconds;
+      }
+    });
+    return Math.floor(totalSecs / 60);
+  } catch {
+    return 0;
+  }
+}
 
 /**
  * Ghi nhận hoặc cập nhật hồ sơ người dùng vào Firestore khi đăng nhập
  */
 export async function recordUserProfile(user: User): Promise<void> {
-  if (!db || !user || !user.uid) return;
+  if (!user || !user.uid) return;
 
   try {
-    const userRef = doc(db, USERS_COLLECTION, user.uid);
     const now = Date.now();
     const isAdmin = isUserAdmin(user.email);
+    const cached = getCachedUserProfile(user.uid);
+    const localHistoryMins = calculateLocalHistoryWatchMinutes();
 
-    const docSnap = await getDoc(userRef);
-    const existingData = docSnap.exists() ? docSnap.data() : null;
+    let existingData: Record<string, unknown> | null = null;
 
-    await setDoc(
-      userRef,
-      {
-        uid: user.uid,
-        email: user.email || "",
-        displayName: sanitizeSafeText(user.displayName || "Thành viên Nanaflix", 100),
-        photoURL: user.photoURL || "",
-        lastLoginAt: now,
-        role: isAdmin ? "admin" : "member",
-        createdAt: existingData?.createdAt || now,
-        ...(existingData?.watchTimeMinutes === undefined ? { watchTimeMinutes: 0 } : {}),
-      },
-      { merge: true }
+    if (db) {
+      try {
+        const userRef = doc(db, USERS_COLLECTION, user.uid);
+        const docSnap = await getDoc(userRef);
+        existingData = docSnap.exists() ? docSnap.data() : null;
+      } catch (e) {
+        console.warn("Lỗi đọc user doc trực tiếp khi login:", e);
+      }
+    }
+
+    const currentWatchMins = Number(
+      existingData?.watchTimeMinutes ?? cached?.watchTimeMinutes ?? localHistoryMins
     );
+
+    const profileData: Record<string, unknown> = {
+      uid: user.uid,
+      email: user.email || "",
+      displayName:
+        (existingData?.displayName as string) ||
+        cached?.displayName ||
+        sanitizeSafeText(user.displayName || "Thành viên Nanaflix", 100),
+      photoURL:
+        (existingData?.photoURL as string) ||
+        (existingData?.customAvatar as string) ||
+        cached?.photoURL ||
+        user.photoURL ||
+        "",
+      lastLoginAt: now,
+      role: isAdmin ? "admin" : (existingData?.role as string) || "member",
+      createdAt: (existingData?.createdAt as number) || cached?.createdAt || now,
+      watchTimeMinutes: currentWatchMins,
+      ...(existingData?.favoriteGenres ? { favoriteGenres: existingData.favoriteGenres } : cached?.favoriteGenres ? { favoriteGenres: cached.favoriteGenres } : {}),
+      ...(existingData?.badges ? { badges: existingData.badges } : cached?.badges ? { badges: cached.badges } : {}),
+      ...(existingData?.bio ? { bio: existingData.bio } : cached?.bio ? { bio: cached.bio } : {}),
+      ...(existingData?.customAvatar ? { customAvatar: existingData.customAvatar } : cached?.customAvatar ? { customAvatar: cached.customAvatar } : {}),
+    };
+
+    // Lưu vào Local cache
+    setCachedUserProfile(user.uid, profileData as Partial<UserProfile>);
+
+    if (db) {
+      const userRef = doc(db, USERS_COLLECTION, user.uid);
+      await setDoc(userRef, profileData, { merge: true });
+    }
   } catch (err) {
     console.warn("Lỗi lưu thông tin người dùng vào Firestore:", err);
   }
@@ -231,15 +307,20 @@ export async function deleteAllUserComments(userId: string): Promise<number> {
 export async function getUserProfile(userId: string): Promise<UserProfile | null> {
   if (!userId) return null;
 
+  // 1. Đọc nhanh từ local cache
+  const cached = getCachedUserProfile(userId);
+
   if (db) {
     try {
       const docRef = doc(db, USERS_COLLECTION, userId);
       const snap = await getDoc(docRef);
       if (snap.exists()) {
-        return {
+        const data = {
           uid: snap.id,
           ...(snap.data() as Omit<UserProfile, "uid">),
         };
+        setCachedUserProfile(userId, data);
+        return data;
       }
     } catch (err) {
       console.warn("Lỗi đọc hồ sơ user trực tiếp:", userId, err);
@@ -251,11 +332,14 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
     const res = await fetch(`/api/user-profile?userId=${encodeURIComponent(userId)}`);
     if (res.ok) {
       const json = await res.json();
-      if (json.profile) return json.profile as UserProfile;
+      if (json.profile) {
+        setCachedUserProfile(userId, json.profile);
+        return json.profile as UserProfile;
+      }
     }
   } catch {}
 
-  return null;
+  return cached;
 }
 
 /**
@@ -274,11 +358,18 @@ export function subscribeUserProfile(
   let isUnsubscribed = false;
   let hasReceivedSnapshot = false;
 
-  // Nạp ngay dữ liệu từ Server API tức thì trong 50ms
+  // 1. Phục vụ ngay từ Local cache (0ms delay)
+  const cached = getCachedUserProfile(userId);
+  if (cached) {
+    onUpdate(cached);
+  }
+
+  // 2. Nạp ngay dữ liệu từ Server API tức thì
   fetch(`/api/user-profile?userId=${encodeURIComponent(userId)}`)
     .then((res) => res.json())
     .then((json) => {
       if (json.profile && !hasReceivedSnapshot && !isUnsubscribed) {
+        setCachedUserProfile(userId, json.profile);
         onUpdate(json.profile as UserProfile);
       }
     })
@@ -297,10 +388,12 @@ export function subscribeUserProfile(
       if (isUnsubscribed) return;
       hasReceivedSnapshot = true;
       if (snap.exists()) {
-        onUpdate({
+        const fullData: UserProfile = {
           uid: snap.id,
           ...(snap.data() as Omit<UserProfile, "uid">),
-        });
+        };
+        setCachedUserProfile(userId, fullData);
+        onUpdate(fullData);
       } else {
         onUpdate(null);
       }
@@ -330,6 +423,7 @@ export async function updateUserProfile(
     favoriteGenres?: string[];
     customAvatar?: string;
     badges?: string[];
+    watchTimeMinutes?: number;
   }
 ): Promise<void> {
   if (!userId) return;
@@ -356,6 +450,12 @@ export async function updateUserProfile(
   if (data.badges !== undefined) {
     payload.badges = data.badges;
   }
+  if (data.watchTimeMinutes !== undefined) {
+    payload.watchTimeMinutes = data.watchTimeMinutes;
+  }
+
+  // Cập nhật ngay lập tức vào Local cache (Optimistic UI)
+  setCachedUserProfile(userId, payload as Partial<UserProfile>);
 
   let savedSuccessfully = false;
 
@@ -425,26 +525,51 @@ export async function updateUserProfile(
  * Tích lũy thời gian cày phim (phút) cho người dùng trong Firestore khi đang xem phim
  */
 export async function incrementUserWatchTime(userId: string, minutes: number = 1): Promise<number> {
-  if (!db || !userId || minutes <= 0) return 0;
-  try {
-    const userRef = doc(db, USERS_COLLECTION, userId);
-    await setDoc(
-      userRef,
-      {
-        watchTimeMinutes: increment(minutes),
-        lastWatchedAt: Date.now(),
-      },
-      { merge: true }
-    );
+  if (!userId || minutes <= 0) return 0;
 
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(new CustomEvent("user-watch-time-updated", { detail: { minutes } }));
+  // 1. Cập nhật ngay lập tức vào Local Cache để UI hiển thị tức thì
+  try {
+    const cached = getCachedUserProfile(userId);
+    const newMins = (cached?.watchTimeMinutes || 0) + minutes;
+    setCachedUserProfile(userId, { watchTimeMinutes: newMins });
+  } catch {}
+
+  let savedDirectly = false;
+
+  if (db) {
+    try {
+      const userRef = doc(db, USERS_COLLECTION, userId);
+      await setDoc(
+        userRef,
+        {
+          watchTimeMinutes: increment(minutes),
+          lastWatchedAt: Date.now(),
+        },
+        { merge: true }
+      );
+      savedDirectly = true;
+    } catch (err) {
+      console.warn("Lỗi cộng thời gian cày phim qua Firestore trực tiếp:", err);
     }
-    return minutes;
-  } catch (err) {
-    console.warn("Lỗi cộng thời gian cày phim:", err);
-    return 0;
   }
+
+  if (!savedDirectly) {
+    // Fallback qua Server API
+    try {
+      await fetch("/api/user-profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, incrementMinutes: minutes }),
+      });
+    } catch (apiErr) {
+      console.warn("Lỗi fallback API incrementWatchTime:", apiErr);
+    }
+  }
+
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("user-watch-time-updated", { detail: { minutes } }));
+  }
+  return minutes;
 }
 
 /**

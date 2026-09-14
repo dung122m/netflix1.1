@@ -115,20 +115,30 @@ export function subscribeMovieComments(
   }
 
   let isUnsubscribed = false;
+  let fallbackInterval: NodeJS.Timeout | null = null;
+  let retryTimer: NodeJS.Timeout | null = null;
+  let retryCount = 0;
+  // Giữ reference tới unsubscribe hiện tại để có thể tái tạo listener
+  let currentFirestoreUnsub: (() => void) | null = null;
 
+  // Fix #3: Guard isUnsubscribed trước và sau mọi async operation
   const fallbackFetch = async () => {
+    if (isUnsubscribed) return;
     try {
       const res = await fetch(`/api/comments?movieSlug=${encodeURIComponent(movieSlug)}`);
+      if (isUnsubscribed) return; // Check lại sau await
       if (res.ok) {
         const data = await res.json();
-        if (data.items && !isUnsubscribed) {
+        if (!isUnsubscribed && data.items) {
           onUpdate(data.items);
         }
       }
-    } catch {}
+    } catch {
+      // Bỏ qua lỗi mạng — sẽ thử lại theo interval
+    }
   };
 
-  // Nạp dữ liệu lập tức từ Server API trong 50ms (không phụ thuộc kết nối client)
+  // Nạp dữ liệu ngay lập tức từ Server API (không chờ Firestore client kết nối)
   fallbackFetch();
 
   if (!db) {
@@ -139,59 +149,101 @@ export function subscribeMovieComments(
     };
   }
 
-  const commentsRef = collection(db, COLLECTION_NAME);
-  const q = query(
-    commentsRef,
-    where("movieSlug", "==", movieSlug),
-    limit(300),
-  );
+  // Fix #2: Hàm tạo / tái tạo Firestore listener
+  const createFirestoreListener = () => {
+    if (isUnsubscribed || !db) return;
 
-  let fallbackInterval: NodeJS.Timeout | null = null;
+    const commentsRef = collection(db, COLLECTION_NAME);
+    const q = query(
+      commentsRef,
+      where("movieSlug", "==", movieSlug),
+      limit(150),
+    );
 
-  const unsubscribe = onSnapshot(
-    q,
-    (snapshot) => {
-      if (isUnsubscribed) return;
-      const items: MovieComment[] = [];
-      snapshot.forEach((docSnap) => {
-        const commentData = {
-          id: docSnap.id,
-          ...(docSnap.data() as Omit<MovieComment, "id">),
-        };
-
-        const mod = checkContentModeration(commentData.content || "");
-        if (!mod.isAllowed || commentData.isFlagged) {
-          if (db) {
-            deleteDoc(doc(db, COLLECTION_NAME, docSnap.id)).catch(() => {});
-          }
-          return;
+    const unsub = onSnapshot(
+      q,
+      (snapshot) => {
+        if (isUnsubscribed) return;
+        // Khi nhận được snapshot hợp lệ → reset retry counter và dừng fallback poll
+        retryCount = 0;
+        if (fallbackInterval) {
+          clearInterval(fallbackInterval);
+          fallbackInterval = null;
         }
+        const items: MovieComment[] = [];
+        snapshot.forEach((docSnap) => {
+          const commentData = {
+            id: docSnap.id,
+            ...(docSnap.data() as Omit<MovieComment, "id">),
+          };
+          // Chỉ ẩn comment bị admin đánh dấu isFlagged, không tự xóa
+          if (commentData.isFlagged) return;
+          items.push(commentData);
+        });
+        items.sort((a, b) => {
+          if (a.isPinned && !b.isPinned) return -1;
+          if (!a.isPinned && b.isPinned) return 1;
+          return (b.createdAt || 0) - (a.createdAt || 0);
+        });
+        onUpdate(items);
+      },
+      (error) => {
+        if (isUnsubscribed) return;
+        console.warn("Lỗi tải bình luận từ Firestore, dùng Server API Fallback:", error);
+        fallbackFetch();
+        // Bật fallback poll nếu chưa có
+        if (!fallbackInterval) {
+          fallbackInterval = setInterval(fallbackFetch, 8000);
+        }
+        if (onError) onError(error);
 
-        items.push(commentData);
-      });
-      items.sort((a, b) => {
-        if (a.isPinned && !b.isPinned) return -1;
-        if (!a.isPinned && b.isPinned) return 1;
-        return (b.createdAt || 0) - (a.createdAt || 0);
-      });
-      onUpdate(items);
-    },
-    (error) => {
-      console.warn("Lỗi tải bình luận từ Firestore client, tự động dùng Server API Fallback:", error);
-      fallbackFetch();
-      if (!fallbackInterval && !isUnsubscribed) {
-        fallbackInterval = setInterval(fallbackFetch, 8000);
-      }
-      if (onError) onError(error);
-    },
-  );
+        // Fix #2: Exponential backoff reconnect Firestore
+        const delay = Math.min(2000 * Math.pow(2, retryCount), 30000);
+        retryCount++;
+        if (retryTimer) clearTimeout(retryTimer);
+        retryTimer = setTimeout(() => {
+          if (isUnsubscribed) return;
+          // Hủy listener cũ bị lỗi
+          currentFirestoreUnsub?.();
+          // Tạo listener mới
+          createFirestoreListener();
+        }, delay);
+      },
+    );
+
+    currentFirestoreUnsub = unsub;
+  };
+
+  // Khởi tạo listener lần đầu
+  createFirestoreListener();
+
+  // Fix #2: Reconnect khi tab được focus lại sau khi bị background
+  const handleVisibilityChange = () => {
+    if (isUnsubscribed) return;
+    if (document.visibilityState === "visible") {
+      // Tab active lại → reset và tái kết nối Firestore ngay
+      retryCount = 0;
+      if (retryTimer) clearTimeout(retryTimer);
+      currentFirestoreUnsub?.();
+      createFirestoreListener();
+    }
+  };
+
+  if (typeof document !== "undefined") {
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+  }
 
   return () => {
     isUnsubscribed = true;
+    if (retryTimer) clearTimeout(retryTimer);
     if (fallbackInterval) clearInterval(fallbackInterval);
-    unsubscribe();
+    if (typeof document !== "undefined") {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    }
+    currentFirestoreUnsub?.();
   };
 }
+
 
 /**
  * Lắng nghe replies (trả lời) của một comment cụ thể theo thời gian thực
@@ -207,77 +259,76 @@ export function subscribeCommentReplies(
   }
 
   let isUnsubscribed = false;
+  let fallbackInterval: NodeJS.Timeout | null = null;
+  let retryTimer: NodeJS.Timeout | null = null;
+  let retryCount = 0;
+  let currentFirestoreUnsub: (() => void) | null = null;
 
+  // Fix #3: guard isUnsubscribed sau await
   const fallbackFetch = async () => {
+    if (isUnsubscribed) return;
     try {
       const res = await fetch(`/api/comments?parentId=${encodeURIComponent(parentId)}`);
+      if (isUnsubscribed) return;
       if (res.ok) {
         const data = await res.json();
-        if (data.items && !isUnsubscribed) {
-          onUpdate(data.items);
-        }
+        if (!isUnsubscribed && data.items) onUpdate(data.items);
       }
     } catch {}
   };
 
-  // Nạp replies từ Server API ngay lập tức
   fallbackFetch();
 
   if (!db) {
     const interval = setInterval(fallbackFetch, 8000);
-    return () => {
-      isUnsubscribed = true;
-      clearInterval(interval);
-    };
+    return () => { isUnsubscribed = true; clearInterval(interval); };
   }
 
-  const commentsRef = collection(db, COLLECTION_NAME);
-  const q = query(
-    commentsRef,
-    where("parentId", "==", parentId),
-    limit(50),
-  );
+  const createListener = () => {
+    if (isUnsubscribed || !db) return;
+    const q = query(collection(db, COLLECTION_NAME), where("parentId", "==", parentId), limit(50));
+    const unsub = onSnapshot(
+      q,
+      (snapshot) => {
+        if (isUnsubscribed) return;
+        retryCount = 0;
+        if (fallbackInterval) { clearInterval(fallbackInterval); fallbackInterval = null; }
+        const items: MovieComment[] = [];
+        snapshot.forEach((docSnap) => {
+          const commentData = { id: docSnap.id, ...(docSnap.data() as Omit<MovieComment, "id">) };
+          if (commentData.isFlagged) return;
+          items.push(commentData);
+        });
+        items.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+        onUpdate(items);
+      },
+      (error) => {
+        if (isUnsubscribed) return;
+        console.warn("Lỗi tải replies từ Firestore, dùng Server API Fallback:", error);
+        fallbackFetch();
+        if (!fallbackInterval) fallbackInterval = setInterval(fallbackFetch, 8000);
+        if (onError) onError(error);
+        // Fix #2: exponential backoff
+        const delay = Math.min(2000 * Math.pow(2, retryCount), 30000);
+        retryCount++;
+        if (retryTimer) clearTimeout(retryTimer);
+        retryTimer = setTimeout(() => {
+          if (isUnsubscribed) return;
+          currentFirestoreUnsub?.();
+          createListener();
+        }, delay);
+      },
+    );
+    currentFirestoreUnsub = unsub;
+  };
 
-  let fallbackInterval: NodeJS.Timeout | null = null;
-
-  const unsubscribe = onSnapshot(
-    q,
-    (snapshot) => {
-      if (isUnsubscribed) return;
-      const items: MovieComment[] = [];
-      snapshot.forEach((docSnap) => {
-        const commentData = {
-          id: docSnap.id,
-          ...(docSnap.data() as Omit<MovieComment, "id">),
-        };
-
-        const mod = checkContentModeration(commentData.content || "");
-        if (!mod.isAllowed || commentData.isFlagged) {
-          if (db) {
-            deleteDoc(doc(db, COLLECTION_NAME, docSnap.id)).catch(() => {});
-          }
-          return;
-        }
-
-        items.push(commentData);
-      });
-      items.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
-      onUpdate(items);
-    },
-    (error) => {
-      console.warn("Lỗi tải replies từ Firestore client, dùng Server API Fallback:", error);
-      fallbackFetch();
-      if (!fallbackInterval && !isUnsubscribed) {
-        fallbackInterval = setInterval(fallbackFetch, 8000);
-      }
-      if (onError) onError(error);
-    },
-  );
+  createListener();
 
   return () => {
     isUnsubscribed = true;
+    if (retryTimer) clearTimeout(retryTimer);
     if (fallbackInterval) clearInterval(fallbackInterval);
-    unsubscribe();
+    currentFirestoreUnsub?.();
   };
 }
 
@@ -295,70 +346,78 @@ export function subscribeUserComments(
   }
 
   let isUnsubscribed = false;
+  let fallbackInterval: NodeJS.Timeout | null = null;
+  let retryTimer: NodeJS.Timeout | null = null;
+  let retryCount = 0;
+  let currentFirestoreUnsub: (() => void) | null = null;
 
+  // Fix #3: guard isUnsubscribed sau await
   const fallbackFetch = async () => {
+    if (isUnsubscribed) return;
     try {
       const res = await fetch(`/api/comments?userId=${encodeURIComponent(userId)}&all=true`);
+      if (isUnsubscribed) return;
       if (res.ok) {
         const data = await res.json();
-        if (data.items && !isUnsubscribed) {
-          onUpdate(data.items);
-        }
+        if (!isUnsubscribed && data.items) onUpdate(data.items);
       }
     } catch {}
   };
 
-  // Nạp dữ liệu lập tức từ Server API trong 50ms
   fallbackFetch();
 
   if (!db) {
     const interval = setInterval(fallbackFetch, 8000);
-    return () => {
-      isUnsubscribed = true;
-      clearInterval(interval);
-    };
+    return () => { isUnsubscribed = true; clearInterval(interval); };
   }
 
-  const commentsRef = collection(db, COLLECTION_NAME);
-  const q = query(
-    commentsRef,
-    where("userId", "==", userId),
-    limit(300),
-  );
+  const createListener = () => {
+    if (isUnsubscribed || !db) return;
+    const q = query(collection(db, COLLECTION_NAME), where("userId", "==", userId), limit(150));
+    const unsub = onSnapshot(
+      q,
+      (snapshot) => {
+        if (isUnsubscribed) return;
+        retryCount = 0;
+        if (fallbackInterval) { clearInterval(fallbackInterval); fallbackInterval = null; }
+        const items: MovieComment[] = [];
+        snapshot.forEach((docSnap) => {
+          const commentData = { id: docSnap.id, ...(docSnap.data() as Omit<MovieComment, "id">) };
+          items.push(commentData);
+        });
+        items.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+        onUpdate(items);
+      },
+      (error) => {
+        if (isUnsubscribed) return;
+        console.warn("Lỗi tải bình luận cá nhân từ Firestore, dùng Server API Fallback:", error);
+        fallbackFetch();
+        if (!fallbackInterval) fallbackInterval = setInterval(fallbackFetch, 8000);
+        if (onError) onError(error);
+        // Fix #2: exponential backoff
+        const delay = Math.min(2000 * Math.pow(2, retryCount), 30000);
+        retryCount++;
+        if (retryTimer) clearTimeout(retryTimer);
+        retryTimer = setTimeout(() => {
+          if (isUnsubscribed) return;
+          currentFirestoreUnsub?.();
+          createListener();
+        }, delay);
+      },
+    );
+    currentFirestoreUnsub = unsub;
+  };
 
-  let fallbackInterval: NodeJS.Timeout | null = null;
-
-  const unsubscribe = onSnapshot(
-    q,
-    (snapshot) => {
-      if (isUnsubscribed) return;
-      const items: MovieComment[] = [];
-      snapshot.forEach((docSnap) => {
-        const commentData = {
-          id: docSnap.id,
-          ...(docSnap.data() as Omit<MovieComment, "id">),
-        };
-        items.push(commentData);
-      });
-      items.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-      onUpdate(items);
-    },
-    (error) => {
-      console.warn("Lỗi tải bình luận cá nhân từ Firestore client, dùng Server API Fallback:", error);
-      fallbackFetch();
-      if (!fallbackInterval && !isUnsubscribed) {
-        fallbackInterval = setInterval(fallbackFetch, 8000);
-      }
-      if (onError) onError(error);
-    },
-  );
+  createListener();
 
   return () => {
     isUnsubscribed = true;
+    if (retryTimer) clearTimeout(retryTimer);
     if (fallbackInterval) clearInterval(fallbackInterval);
-    unsubscribe();
+    currentFirestoreUnsub?.();
   };
 }
+
 
 /**
  * Lắng nghe toàn bộ bình luận từ cộng đồng theo thời gian thực (Dành riêng cho Quản Trị Viên)

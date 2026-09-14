@@ -116,6 +116,21 @@ function UserProfileModalInner() {
     };
   }, []);
 
+  // Đồng bộ lại form khi mở modal
+  useEffect(() => {
+    if (isOpen && profile) {
+      setDisplayName(profile.displayName || user?.displayName || "");
+      setBio(profile.bio || "");
+      setFavoriteGenres(profile.favoriteGenres || []);
+      const currentAvatar = profile.customAvatar || profile.photoURL || user?.photoURL || "";
+      setSelectedAvatar(currentAvatar);
+      if (currentAvatar && !PRESET_AVATARS.some((a) => a.url === currentAvatar)) {
+        setCustomAvatarUrl(currentAvatar);
+        setUseCustomUrl(true);
+      }
+    }
+  }, [isOpen, profile, user]);
+
   // Lắng nghe danh sách bình luận của chính người dùng theo thời gian thực
   useEffect(() => {
     if (!user?.uid || !isOpen) return;

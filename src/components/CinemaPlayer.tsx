@@ -658,6 +658,40 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     };
   }, [nextEpisode, switchEpisode, watchContext?.movieSlug, activeEpisodeSlug, user?.uid, title, activeEpisodeName, posterUrl]);
 
+  // TÍCH LŨY THỜI GIAN CÀY PHIM (Mỗi 60s xem phim -> +1 phút VIP)
+  const watchAccumulatorSecsRef = useRef<number>(0);
+  const lastTickTimeRef = useRef<number>(Date.now());
+
+  useEffect(() => {
+    if (!user?.uid) return;
+
+    lastTickTimeRef.current = Date.now();
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const deltaSecs = Math.round((now - lastTickTimeRef.current) / 1000);
+      lastTickTimeRef.current = now;
+
+      // Chỉ tính thời gian khi video đang phát & không bị buffer
+      if (isPlaying && !isBuffering && deltaSecs > 0 && deltaSecs <= 10) {
+        watchAccumulatorSecsRef.current += deltaSecs;
+
+        if (watchAccumulatorSecsRef.current >= 60) {
+          const minutesToAdd = Math.floor(watchAccumulatorSecsRef.current / 60);
+          watchAccumulatorSecsRef.current = watchAccumulatorSecsRef.current % 60;
+          incrementUserWatchTime(user.uid, minutesToAdd);
+        }
+      }
+    }, 3000);
+
+    return () => {
+      clearInterval(interval);
+      if (watchAccumulatorSecsRef.current >= 30 && user?.uid) {
+        incrementUserWatchTime(user.uid, 1);
+        watchAccumulatorSecsRef.current = 0;
+      }
+    };
+  }, [user?.uid, isPlaying, isBuffering]);
+
   // Fullscreen change (Hỗ trợ iOS Safari & vendor prefixes)
   useEffect(() => {
     const handleFullscreenChange = () => {
