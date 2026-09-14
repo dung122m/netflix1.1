@@ -191,12 +191,22 @@ export function LiveTvClient({
   const [hasError, setHasError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [showChannelRail, setShowChannelRail] = useState(false);
+  const activeTvChannelRef = useRef<HTMLButtonElement | null>(null);
   const [copied, setCopied] = useState(false);
   const [showControls, setShowControls] = useState(false);
   const [actionFeedback, setActionFeedback] = useState<{
     icon: "play" | "pause" | "volume" | "mute" | "channel" | "seek";
     text?: string;
   } | null>(null);
+
+  useEffect(() => {
+    if (showChannelRail && activeTvChannelRef.current) {
+      activeTvChannelRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+      });
+    }
+  }, [showChannelRail, selectedChannel?.id]);
 
   const volumeRef = useRef(volume);
   const isMutedRef = useRef(isMuted);
@@ -339,14 +349,16 @@ export function LiveTvClient({
   }, [filteredChannels, visibleCount]);
 
   const handleSelectChannel = useCallback(
-    (channel: TvChannel) => {
+    (channel: TvChannel, keepRailOpen = false) => {
       userPausedRef.current = false;
       if (!userMutedRef.current) {
         setIsMuted(false);
         isMutedRef.current = false;
       }
       setSelectedChannel(channel);
-      setShowChannelRail(false);
+      if (!keepRailOpen) {
+        setShowChannelRail(false);
+      }
       triggerActionFeedback("channel", channel.name);
       try {
         localStorage.setItem("nanaflix_live_channel_id", channel.id);
@@ -357,10 +369,11 @@ export function LiveTvClient({
       } catch {}
 
       if (playerRef.current) {
-        playerRef.current.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
+        const topOffset =
+          playerRef.current.getBoundingClientRect().top +
+          window.scrollY -
+          80;
+        window.scrollTo({ top: Math.max(0, topOffset), behavior: "smooth" });
       }
     },
     [triggerActionFeedback],
@@ -1185,8 +1198,9 @@ export function LiveTvClient({
                     return (
                       <button
                         key={channel.id}
+                        ref={active ? activeTvChannelRef : undefined}
                         type="button"
-                        onClick={() => handleSelectChannel(channel)}
+                        onClick={() => handleSelectChannel(channel, true)}
                         className={`flex w-full items-center gap-3 rounded-2xl border p-2.5 sm:p-2 text-left transition min-h-[56px] active:scale-[0.98] cursor-pointer ${
                           active
                             ? "border-sky-400/90 bg-sky-500/20 text-white shadow-lg shadow-sky-950/50 ring-1 ring-sky-400/50"

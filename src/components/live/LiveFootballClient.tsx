@@ -246,10 +246,6 @@ export function LiveFootballClient({
 
   useEffect(() => {
     setShowMatchRail(false);
-  }, [selectedMatch?.id]);
-
-  useEffect(() => {
-    setShowMatchRail(false);
   }, [isActive]);
 
   const scrollChannels = (direction: "left" | "right") => {
@@ -329,7 +325,6 @@ export function LiveFootballClient({
 
   const handleSelectMatch = (match: FootballMatch) => {
     setSelectedMatch(match);
-    setShowMatchRail(false);
     try {
       localStorage.setItem("nanaflix_live_match_id", match.id);
       const url = new URL(window.location.href);
@@ -339,7 +334,9 @@ export function LiveFootballClient({
     } catch {}
 
     if (playerRef.current) {
-      playerRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      const topOffset =
+        playerRef.current.getBoundingClientRect().top + window.scrollY - 80;
+      window.scrollTo({ top: Math.max(0, topOffset), behavior: "smooth" });
     }
   };
 
@@ -403,7 +400,6 @@ export function LiveFootballClient({
       {selectedMatch ? (
         <div
           ref={playerRef}
-          onMouseLeave={() => setShowMatchRail(false)}
           className="group/player relative scroll-mt-24"
         >
           <LivePlayer

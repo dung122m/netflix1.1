@@ -149,6 +149,7 @@ export function LivePlayer({
   const [internalMatchRail, setInternalMatchRail] = useState(false);
   const [railSearch, setRailSearch] = useState("");
   const [railFilter, setRailFilter] = useState<"all" | "live" | "fpt">("all");
+  const activeOptionRef = useRef<HTMLButtonElement | null>(null);
 
   const isRailVisible =
     showMatchRail !== undefined ? showMatchRail : internalMatchRail;
@@ -168,6 +169,15 @@ export function LivePlayer({
       setInternalMatchRail(false);
     }
   }, [onCloseMatchRail]);
+
+  useEffect(() => {
+    if (isRailVisible && activeOptionRef.current) {
+      activeOptionRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+      });
+    }
+  }, [isRailVisible, match?.id]);
 
   const liveOptionsCount = useMemo(() => {
     return matchOptions.filter((m) => m.timeline === "live").length;
@@ -1297,10 +1307,10 @@ export function LivePlayer({
                     return (
                       <button
                         key={option.id}
+                        ref={isCurrent ? activeOptionRef : undefined}
                         type="button"
                         onClick={() => {
                           onSelectMatch?.(option);
-                          closeRail();
                         }}
                         className={`w-full rounded-2xl border p-2.5 sm:p-2 text-left transition flex items-center gap-3 cursor-pointer min-h-[56px] active:scale-[0.98] ${
                           isCurrent
