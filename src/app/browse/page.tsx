@@ -12,6 +12,7 @@ import { movieApi } from "@/services/movieApi";
 import { resolveActorMovies, fetchMoviesByTitles } from "@/services/aiActorService";
 import { BrowseAiSearchBanner } from "@/components/BrowseAiSearchBanner";
 import { PersonalizedGenreSection } from "@/components/PersonalizedGenreSection";
+import { CuratedMovieSection } from "@/components/CuratedMovieSection";
 
 const HeroFeatured = dynamic(() =>
   import("@/components/sites/netflix-3f78535a/browse-1234abcd/HeroFeatured").then(
@@ -142,6 +143,17 @@ export default async function BrowsePage({
   const currentPage = params.page ? parseInt(params.page, 10) : 1;
   const PAGE_LIMIT = 24; // Chuẩn lưới 4 cột (desktop), 3 cột (tablet), 2 cột (mobile) -> chia hết cho cả 2, 3, 4 giúp hàng luôn lấp đầy 100%, không bị khuyết ô
 
+  const isPlainHomepage =
+    currentPage === 1 &&
+    !keyword &&
+    !category &&
+    !country &&
+    !year &&
+    !type &&
+    !sort;
+
+  const effectiveSort = sort || (isPlainHomepage ? "views" : undefined);
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let movies: any[] = [];
   let totalPages = 1;
@@ -158,7 +170,7 @@ export default async function BrowsePage({
       page: currentPage,
       limit: PAGE_LIMIT,
       type,
-      sort,
+      sort: effectiveSort,
     }),
     keyword && currentPage === 1
       ? resolveActorMovies(keyword)
@@ -347,15 +359,6 @@ export default async function BrowsePage({
     return `?${query.toString()}`;
   };
 
-  const isPlainHomepage =
-    currentPage === 1 &&
-    !keyword &&
-    !category &&
-    !country &&
-    !year &&
-    !type &&
-    !sort;
-
   return (
     <div className="page-cinema-container min-h-screen pb-20">
       <Navbar />
@@ -386,26 +389,34 @@ export default async function BrowsePage({
         {/* KHU VỰC ĐỀ XUẤT PHIM THEO GU YÊU THÍCH (PREFERENCES) */}
         {isPlainHomepage && <PersonalizedGenreSection allMovies={movies} />}
 
-        <div className="mb-7 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight">
-              {title}
-            </h2>
-            <p className="mt-1 text-sm text-gray-400">
-              Khám phá bộ sưu tập phim chất lượng cao do Nana tuyển chọn, cập nhật
-              liên tục.
-            </p>
-          </div>
-          <div className="flex items-center gap-3 flex-wrap">
-            <SortSelector />
-            <div className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-3 py-1.5 text-xs md:text-sm text-gray-200 backdrop-blur-sm shadow-sm">
-              <Film className="w-3.5 h-3.5 text-netflix-red" />
-              <span>{totalItems.toLocaleString("vi-VN")} phim</span>
-              <span className="text-white/40">•</span>
-              <span>Trang {currentPage}</span>
+        {isPlainHomepage ? (
+          /* TAB TUYỂN CHỌN PHIM ĐA NĂNG TRÊN TRANG CHỦ (Tối ưu hiệu suất & 100% giữ nguyên hiệu ứng hover) */
+          <CuratedMovieSection
+            initialMovies={movies}
+            initialTotalItems={totalItems}
+          />
+        ) : (
+          <>
+            <div className="mb-7 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight">
+                  {title}
+                </h2>
+                <p className="mt-1 text-sm text-gray-400">
+                  Khám phá bộ sưu tập phim chất lượng cao do Nana tuyển chọn, cập nhật
+                  liên tục.
+                </p>
+              </div>
+              <div className="flex items-center gap-3 flex-wrap">
+                <SortSelector />
+                <div className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-3 py-1.5 text-xs md:text-sm text-gray-200 backdrop-blur-sm shadow-sm">
+                  <Film className="w-3.5 h-3.5 text-netflix-red" />
+                  <span>{totalItems.toLocaleString("vi-VN")} phim</span>
+                  <span className="text-white/40">•</span>
+                  <span>Trang {currentPage}</span>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
 
 
 
@@ -556,6 +567,8 @@ export default async function BrowsePage({
               </div>
             )}
           </div>
+        )}
+          </>
         )}
       </div>
       <Footer />
