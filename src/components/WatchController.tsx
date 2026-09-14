@@ -9,6 +9,7 @@ import React, {
   useEffect,
 } from "react";
 import { saveWatchHistory } from "@/lib/watchHistory";
+import { findEpisodeMatch } from "@/lib/formatEpisode";
 
 export interface EpisodeItem {
   name?: string;
@@ -87,8 +88,8 @@ export function WatchController({
 
   const [activeEpisodeSlug, setActiveEpisodeSlug] = useState<string>(() => {
     if (initialEpisodeSlug) {
-      const found = episodes.find((ep) => ep.slug === initialEpisodeSlug);
-      if (found) return found.slug || "";
+      const found = findEpisodeMatch(episodes, initialEpisodeSlug);
+      if (found?.slug) return found.slug;
     }
     return episodes[0]?.slug || "";
   });
@@ -96,11 +97,35 @@ export function WatchController({
   // Đồng bộ khi episodes hoặc initialEpisodeSlug thay đổi từ ngoài
   useEffect(() => {
     if (initialEpisodeSlug) {
-      setActiveEpisodeSlug(initialEpisodeSlug);
-    } else if (episodes.length > 0 && !episodes.some((e) => e.slug === activeEpisodeSlug)) {
+      const found = findEpisodeMatch(episodes, initialEpisodeSlug);
+      if (found?.slug) {
+        setActiveEpisodeSlug(found.slug);
+        return;
+      }
+    }
+    if (episodes.length > 0 && !episodes.some((e) => e.slug === activeEpisodeSlug)) {
       setActiveEpisodeSlug(episodes[0]?.slug || "");
     }
   }, [initialEpisodeSlug, episodes, activeEpisodeSlug]);
+
+  // Lắng nghe sự kiện điều hướng URL (Back / Forward / Link) từ trình duyệt
+  useEffect(() => {
+    const handlePopState = () => {
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const epParam = urlParams.get("ep");
+        if (epParam && episodes.length > 0) {
+          const found = findEpisodeMatch(episodes, epParam);
+          if (found?.slug) {
+            setActiveEpisodeSlug(found.slug);
+          }
+        }
+      } catch {}
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [episodes]);
 
   const activeEpisode = useMemo(() => {
     return episodes.find((ep) => ep.slug === activeEpisodeSlug) || episodes[0];

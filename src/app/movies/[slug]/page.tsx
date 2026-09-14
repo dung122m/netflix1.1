@@ -31,7 +31,7 @@ import { WatchController } from "@/components/WatchController";
 import { ServerSelector } from "@/components/ServerSelector";
 import { WatchlistButton } from "@/components/WatchlistButton";
 import { AddToCollectionButton } from "@/components/Collections/AddToCollectionButton";
-import { formatEpisodeName } from "@/lib/formatEpisode";
+import { formatEpisodeName, findEpisodeMatch } from "@/lib/formatEpisode";
 
 const MobileQrModal = dynamic(
   () => import("@/components/MobileQrModal").then((mod) => mod.MobileQrModal),
@@ -331,7 +331,7 @@ export default async function MovieDetail({
     : 0;
 
   const activeEpisode = ep
-    ? serverData.find((tap: { slug?: string }) => tap.slug === ep)
+    ? findEpisodeMatch(serverData, ep) || serverData[0]
     : serverData[0];
   const videoLink = activeEpisode?.link_embed || activeEpisode?.link_m3u8;
   const embedSrc = activeEpisode?.link_embed;
@@ -367,7 +367,7 @@ export default async function MovieDetail({
         category={movie.category?.[0]?.name}
         initialServers={episodeServers}
         initialServerIndex={currentServerIndex}
-        initialEpisodeSlug={ep || serverData[0]?.slug}
+        initialEpisodeSlug={activeEpisode?.slug || serverData[0]?.slug}
         isTrailerOnly={isTrailerOnly}
       >
         <div className="w-full pt-[56px] md:pt-[66px] bg-black px-0 sm:px-2 md:px-6">
