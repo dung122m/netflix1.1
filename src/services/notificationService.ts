@@ -94,7 +94,52 @@ export async function getFollowedSeriesList(
 }
 
 /**
- * Lắng nghe thông báo thời gian thực từ Firestore (onSnapshot)
+ * Lấy danh sách thông báo từ bộ nhớ đệm LocalStorage
+ */
+function getLocalNotifications(userId: string): UserNotification[] {
+  if (typeof window === "undefined" || !userId) return [];
+  try {
+    const raw = localStorage.getItem(`nanaflix_notifs_${userId}`);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch {}
+  return [];
+}
+
+/**
+ * Lưu danh sách thông báo vào bộ nhớ đệm LocalStorage
+ */
+function saveLocalNotifications(userId: string, items: UserNotification[]): void {
+  if (typeof window === "undefined" || !userId) return;
+  try {
+    localStorage.setItem(`nanaflix_notifs_${userId}`, JSON.stringify(items.slice(0, 50)));
+  } catch {}
+}
+
+/**
+ * Hợp nhất danh sách thông báo mới với danh sách cũ theo id
+ */
+function mergeNotifications(
+  current: UserNotification[],
+  incoming: UserNotification[],
+): UserNotification[] {
+  const map = new Map<string, UserNotification>();
+  current.forEach((item) => map.set(item.id, item));
+  incoming.forEach((item) => {
+    const existing = map.get(item.id);
+    if (existing) {
+      map.set(item.id, { ...existing, ...item, isRead: existing.isRead || item.isRead });
+    } else {
+      map.set(item.id, item);
+    }
+  });
+  return Array.from(map.values()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+}
+
+/**
+ * Lắng nghe thông báo thời gian thực từ Firestore (onSnapshot) + Local Storage Cache
  */
 export function subscribeUserNotifications(
   userId: string,
@@ -106,14 +151,21 @@ export function subscribeUserNotifications(
   }
 
   let isUnsubscribed = false;
-  let hasReceivedSnapshot = false;
 
-  // 1. Nạp ngay danh sách thông báo từ Server API trong 50ms (không cần chờ luồng realtime client)
+  // 1. Phục hồi ngay lập tức thông báo từ LocalStorage (0ms - không lo gián đoạn mạng hay reload trang)
+  const cached = getLocalNotifications(userId);
+  if (cached.length > 0) {
+    callback(cached);
+  }
+
+  // 2. Nạp ngay danh sách thông báo từ Server API dự phòng
   fetch(`/api/notifications?userId=${encodeURIComponent(userId)}`)
     .then((res) => res.json())
     .then((json) => {
-      if (json.items && !hasReceivedSnapshot && !isUnsubscribed) {
-        callback(json.items as UserNotification[]);
+      if (json.items && Array.isArray(json.items) && !isUnsubscribed) {
+        const merged = mergeNotifications(getLocalNotifications(userId), json.items as UserNotification[]);
+        saveLocalNotifications(userId, merged);
+        callback(merged);
       }
     })
     .catch(() => {});
@@ -130,15 +182,25 @@ export function subscribeUserNotifications(
       col,
       (snapshot) => {
         if (isUnsubscribed) return;
-        hasReceivedSnapshot = true;
         const list: UserNotification[] = [];
         snapshot.forEach((d) => {
           const item = { id: d.id, ...d.data() } as UserNotification;
           list.push(item);
         });
-        // Sắp xếp giảm dần theo thời gian tạo trong bộ nhớ (tránh composite index)
-        list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-        callback(list);
+
+        if (list.length > 0) {
+          const merged = mergeNotifications(getLocalNotifications(userId), list);
+          saveLocalNotifications(userId, merged);
+          callback(merged);
+        } else {
+          // Giữ lại cache local nếu snapshot trống (tránh bị reset khi chưa kịp sync)
+          const cur = getLocalNotifications(userId);
+          if (cur.length > 0) {
+            callback(cur);
+          } else {
+            callback([]);
+          }
+        }
       },
       (error) => {
         console.warn("Lỗi realtime thông báo người dùng:", error);
@@ -163,7 +225,15 @@ export async function markNotificationAsRead(
   userId: string,
   notificationId: string,
 ): Promise<void> {
-  if (!db || !userId || !notificationId) return;
+  if (!userId || !notificationId) return;
+
+  // 1. Cập nhật ngay trong LocalStorage
+  const list = getLocalNotifications(userId);
+  const updated = list.map((item) => (item.id === notificationId ? { ...item, isRead: true } : item));
+  saveLocalNotifications(userId, updated);
+
+  // 2. Cập nhật Firestore
+  if (!db) return;
   try {
     const ref = doc(db, "users", userId, "notifications", notificationId);
     await updateDoc(ref, { isRead: true });
@@ -178,7 +248,15 @@ export async function markNotificationAsRead(
 export async function markAllNotificationsAsRead(
   userId: string,
 ): Promise<void> {
-  if (!db || !userId) return;
+  if (!userId) return;
+
+  // 1. Cập nhật ngay trong LocalStorage
+  const list = getLocalNotifications(userId);
+  const updated = list.map((item) => ({ ...item, isRead: true }));
+  saveLocalNotifications(userId, updated);
+
+  // 2. Cập nhật Firestore
+  if (!db) return;
   try {
     const col = collection(db, "users", userId, "notifications");
     const snapshot = await getDocs(col);
@@ -201,7 +279,13 @@ export async function deleteNotification(
   userId: string,
   notificationId: string,
 ): Promise<void> {
-  if (!db || !userId || !notificationId) return;
+  if (!userId || !notificationId) return;
+
+  const list = getLocalNotifications(userId);
+  const updated = list.filter((item) => item.id !== notificationId);
+  saveLocalNotifications(userId, updated);
+
+  if (!db) return;
   try {
     const ref = doc(db, "users", userId, "notifications", notificationId);
     await deleteDoc(ref);

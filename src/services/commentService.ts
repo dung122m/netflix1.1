@@ -769,6 +769,23 @@ export async function addReplyComment(params: {
 
   // 4. Gửi thông báo trực tiếp qua Server API đảm bảo 100% người dùng nhận được thông báo
   const sendNotificationServer = async (targetUserId: string, notifPayload: UserNotification) => {
+    // Cập nhật localStorage ngay lập tức
+    try {
+      if (typeof window !== "undefined") {
+        const localKey = `nanaflix_notifs_${targetUserId}`;
+        const raw = localStorage.getItem(localKey);
+        const list = raw ? JSON.parse(raw) : [];
+        if (Array.isArray(list)) {
+          const map = new Map<string, UserNotification>();
+          map.set(notifPayload.id, notifPayload);
+          list.forEach((item: UserNotification) => {
+            if (!map.has(item.id)) map.set(item.id, item);
+          });
+          localStorage.setItem(localKey, JSON.stringify(Array.from(map.values()).slice(0, 50)));
+        }
+      }
+    } catch {}
+
     try {
       if (db) {
         const notifRef = doc(db, USERS_COLLECTION, targetUserId, "notifications", notifPayload.id);

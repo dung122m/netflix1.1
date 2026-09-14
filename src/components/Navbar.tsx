@@ -27,6 +27,7 @@ import {
   ChevronRight,
   User,
   MessageSquare,
+  RefreshCw,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { isUserAdmin } from "@/lib/adminConfig";
@@ -103,6 +104,7 @@ const NavbarInner: React.FC = () => {
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [notifications, setNotifications] = useState<DynamicNotification[]>(() => cachedNotificationsData || []);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
+  const [notifTab, setNotifTab] = useState<"all" | "replies" | "system">("all");
 
   const { user, logout } = useAuth();
   const [userNotifications, setUserNotifications] = useState<UserNotification[]>([]);
@@ -315,73 +317,68 @@ const NavbarInner: React.FC = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Tải thông báo động từ API có cache 3 phút và hoãn tải tránh nghẽn mạng ban đầu
-  useEffect(() => {
-    let isMounted = true;
-    const loadDynamicNotifications = async () => {
-      const now = Date.now();
-      if (cachedNotificationsData && now - lastNotificationsFetchTime < 180000) {
-        if (isMounted) setNotifications(cachedNotificationsData);
-        return;
-      }
+  // Hàm tải thông báo hệ thống và phim mới có hỗ trợ làm mới thủ công
+  const loadDynamicNotifications = useCallback(async (force = false) => {
+    const now = Date.now();
+    if (!force && cachedNotificationsData && now - lastNotificationsFetchTime < 180000) {
+      setNotifications(cachedNotificationsData);
+      return;
+    }
 
-      setLoadingNotifications(true);
-      try {
-        const res = await fetch("/api/notifications");
-        if (res.ok) {
-          const data = await res.json();
-          const items: DynamicNotification[] = Array.isArray(data.items) ? [...data.items] : [];
+    setLoadingNotifications(true);
+    try {
+      const res = await fetch("/api/notifications");
+      if (res.ok) {
+        const data = await res.json();
+        const items: DynamicNotification[] = Array.isArray(data.items) ? [...data.items] : [];
 
-          // Tích hợp phim đang xem dở từ localStorage
-          try {
-            const historyRaw = localStorage.getItem("nanaflix_history");
-            if (historyRaw) {
-              const hist = JSON.parse(historyRaw);
-              if (Array.isArray(hist) && hist.length > 0) {
-                const last = hist[0];
-                if (last?.slug && last?.name) {
-                  items.unshift({
-                    id: `continue-${last.slug}`,
-                    type: "movie",
-                    title: "Tiếp Tục Xem Phim",
-                    message: `${last.name}${last.episodeName ? ` (${last.episodeName})` : ""} đang chờ bạn. Bấm để xem tiếp ngay!`,
-                    time: "Gần đây",
-                    link: last.currentEpisodeUrl || `/movies/${last.slug}`,
-                    image: last.poster || last.thumb || "/default-hero.jpg",
-                    badge: "XEM TIẾP",
-                    badgeColor: "bg-emerald-600 text-white",
-                  });
-                }
+        // Tích hợp phim đang xem dở từ localStorage
+        try {
+          const historyRaw = localStorage.getItem("nanaflix_history");
+          if (historyRaw) {
+            const hist = JSON.parse(historyRaw);
+            if (Array.isArray(hist) && hist.length > 0) {
+              const last = hist[0];
+              if (last?.slug && last?.name) {
+                items.unshift({
+                  id: `continue-${last.slug}`,
+                  type: "movie",
+                  title: "Tiếp Tục Xem Phim",
+                  message: `${last.name}${last.episodeName ? ` (${last.episodeName})` : ""} đang chờ bạn. Bấm để xem tiếp ngay!`,
+                  time: "Gần đây",
+                  link: last.currentEpisodeUrl || `/movies/${last.slug}`,
+                  image: last.poster || last.thumb || "/default-hero.jpg",
+                  badge: "XEM TIẾP",
+                  badgeColor: "bg-emerald-600 text-white",
+                });
               }
             }
-          } catch {}
-
-          const finalItems = items.slice(0, 6);
-          cachedNotificationsData = finalItems;
-          lastNotificationsFetchTime = Date.now();
-
-          if (isMounted) {
-            setNotifications(finalItems);
           }
-        }
-      } catch (err) {
-        console.error("Lỗi lấy thông báo:", err);
-      } finally {
-        if (isMounted) setLoadingNotifications(false);
-      }
-    };
+        } catch {}
 
+        const finalItems = items.slice(0, 8);
+        cachedNotificationsData = finalItems;
+        lastNotificationsFetchTime = Date.now();
+        setNotifications(finalItems);
+      }
+    } catch (err) {
+      console.error("Lỗi lấy thông báo:", err);
+    } finally {
+      setLoadingNotifications(false);
+    }
+  }, []);
+
+  // Tự động tải thông báo sau khi trang tải xong
+  useEffect(() => {
     if (cachedNotificationsData) {
       setNotifications(cachedNotificationsData);
     }
-    // Hoãn tải 1.5s để nhường hoàn toàn băng thông mạng cho video streaming và trang chính
-    const deferTimer = setTimeout(loadDynamicNotifications, cachedNotificationsData ? 5000 : 1500);
+    const deferTimer = setTimeout(() => {
+      loadDynamicNotifications();
+    }, cachedNotificationsData ? 5000 : 1200);
 
-    return () => {
-      isMounted = false;
-      clearTimeout(deferTimer);
-    };
-  }, []);
+    return () => clearTimeout(deferTimer);
+  }, [loadDynamicNotifications]);
 
   // Hiệu ứng đổi màu nền khi cuộn
   useEffect(() => {
@@ -974,8 +971,12 @@ const NavbarInner: React.FC = () => {
             <button
               type="button"
               onClick={() => {
-                setShowNotifications((prev) => !prev);
+                const nextState = !showNotifications;
+                setShowNotifications(nextState);
                 setHasUnread(false);
+                if (nextState && notifications.length === 0) {
+                  loadDynamicNotifications(true);
+                }
               }}
               title="Thông báo mới"
               aria-label="Thông báo"
@@ -994,37 +995,85 @@ const NavbarInner: React.FC = () => {
 
             {/* NOTIFICATION POPUP DROPDOWN */}
             {showNotifications && (
-              <div className="fixed sm:absolute top-[52px] sm:top-full mt-0 sm:mt-2 left-2 right-2 sm:left-auto sm:right-0 w-auto sm:w-[390px] max-w-sm sm:max-w-none mx-auto sm:mx-0 bg-zinc-950/98 border border-white/15 backdrop-blur-2xl rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.95)] p-3.5 z-50 animate-in fade-in zoom-in-95 duration-150">
-                <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-white/10">
+              <div className="fixed sm:absolute top-[52px] sm:top-full mt-0 sm:mt-2 left-2 right-2 sm:left-auto sm:right-0 w-auto sm:w-[410px] max-w-sm sm:max-w-none mx-auto sm:mx-0 bg-zinc-950/98 border border-white/15 backdrop-blur-2xl rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.95)] p-3.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                {/* HEADER */}
+                <div className="flex items-center justify-between pb-2.5 mb-2 border-b border-white/10">
                   <div className="flex items-center gap-2">
-                    <Bell size={15} className="text-netflix-red" />
+                    <Bell size={16} className="text-netflix-red" />
                     <h4 className="text-white font-bold text-sm">Thông Báo</h4>
                     {userUnreadCount > 0 && (
-                      <span className="px-1.5 py-0.5 rounded-full bg-netflix-red text-white text-[10px] font-black">
+                      <span className="px-1.5 py-0.5 rounded-full bg-netflix-red text-white text-[10px] font-black animate-pulse">
                         {userUnreadCount} mới
                       </span>
                     )}
                   </div>
-                  {user && userUnreadCount > 0 ? (
+                  <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => markAllNotificationsAsRead(user.uid)}
-                      className="text-[11px] text-gray-400 hover:text-white flex items-center gap-1 transition cursor-pointer hover:underline"
-                      title="Đánh dấu tất cả đã đọc"
+                      onClick={() => loadDynamicNotifications(true)}
+                      className="p-1 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition cursor-pointer"
+                      title="Làm mới thông báo"
                     >
-                      <CheckCheck size={13} className="text-emerald-400" />
-                      <span>Đã đọc hết</span>
+                      <RefreshCw size={13} className={loadingNotifications ? "animate-spin text-netflix-red" : ""} />
                     </button>
-                  ) : (
-                    <span className="text-[11px] text-gray-400">
-                      {loadingNotifications ? "Đang tải..." : "Trực tiếp & Cập nhật"}
-                    </span>
-                  )}
+                    {user && userUnreadCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => markAllNotificationsAsRead(user.uid)}
+                        className="text-[11px] text-gray-400 hover:text-emerald-400 flex items-center gap-1 transition cursor-pointer hover:underline"
+                        title="Đánh dấu tất cả đã đọc"
+                      >
+                        <CheckCheck size={13} className="text-emerald-400" />
+                        <span>Đã đọc hết</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
 
-                <div className="space-y-2 max-h-[400px] overflow-y-auto overscroll-contain pr-1 scrollbar-none">
-                  {/* DANH SÁCH THÔNG BÁO TỪ HỆ THỐNG VÀ BÌNH LUẬN */}
-                  {userNotifications.map((item) => {
+                {/* SEGMENT TABS */}
+                <div className="flex items-center gap-1 p-1 mb-2.5 bg-zinc-900/90 rounded-xl border border-white/5 text-[11px] font-medium">
+                  <button
+                    type="button"
+                    onClick={() => setNotifTab("all")}
+                    className={`flex-1 py-1 px-2 rounded-lg text-center transition cursor-pointer ${
+                      notifTab === "all"
+                        ? "bg-netflix-red text-white font-bold shadow"
+                        : "text-gray-400 hover:text-white hover:bg-white/5"
+                    }`}
+                  >
+                    Tất cả ({userNotifications.length + notifications.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNotifTab("replies")}
+                    className={`flex-1 py-1 px-2 rounded-lg text-center transition cursor-pointer flex items-center justify-center gap-1 ${
+                      notifTab === "replies"
+                        ? "bg-netflix-red text-white font-bold shadow"
+                        : "text-gray-400 hover:text-white hover:bg-white/5"
+                    }`}
+                  >
+                    <span>💬 Cá nhân</span>
+                    {userUnreadCount > 0 && (
+                      <span className="w-2 h-2 rounded-full bg-blue-400 animate-ping" />
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNotifTab("system")}
+                    className={`flex-1 py-1 px-2 rounded-lg text-center transition cursor-pointer ${
+                      notifTab === "system"
+                        ? "bg-netflix-red text-white font-bold shadow"
+                        : "text-gray-400 hover:text-white hover:bg-white/5"
+                    }`}
+                  >
+                    🎬 Phim mới ({notifications.length})
+                  </button>
+                </div>
+
+                {/* LIST */}
+                <div className="space-y-2 max-h-[380px] overflow-y-auto overscroll-contain pr-1 scrollbar-none">
+                  {/* DANH SÁCH THÔNG BÁO CÁ NHÂN (BÌNH LUẬN & THEO DÕI) */}
+                  {notifTab !== "system" && userNotifications.map((item) => {
                     const isReply = item.type === "comment_reply";
                     const itemAvatar = isReply ? (item.replierAvatar || item.image) : item.image;
 
@@ -1046,12 +1095,12 @@ const NavbarInner: React.FC = () => {
                         className={`flex items-start gap-3 p-2.5 rounded-xl transition border cursor-pointer group ${
                           !item.isRead
                             ? isReply
-                              ? "bg-blue-950/25 border-blue-500/35 hover:bg-blue-950/40"
-                              : "bg-rose-950/25 border-rose-500/35 hover:bg-rose-950/40"
+                              ? "bg-blue-950/30 border-blue-500/40 hover:bg-blue-950/50"
+                              : "bg-rose-950/30 border-rose-500/40 hover:bg-rose-950/50"
                             : "hover:bg-white/5 border-transparent hover:border-white/10"
                         }`}
                       >
-                        <div className="relative w-12 h-14 rounded-lg overflow-hidden flex-shrink-0 bg-zinc-800 border border-white/10">
+                        <div className="relative w-11 h-13 rounded-lg overflow-hidden flex-shrink-0 bg-zinc-800 border border-white/10">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={itemAvatar || "/default-poster.jpg"}
@@ -1084,7 +1133,7 @@ const NavbarInner: React.FC = () => {
                               ? `💬 ${item.replierName || "Ai đó"} đã trả lời`
                               : `🎉 ${item.episodeName || "Tập mới"} đã phát hành!`}
                           </p>
-                          <p className="text-[10px] text-gray-400 line-clamp-1 mt-0.5">
+                          <p className="text-[10px] text-gray-300 line-clamp-2 mt-0.5 leading-relaxed">
                             {item.message}
                           </p>
                         </div>
@@ -1101,61 +1150,74 @@ const NavbarInner: React.FC = () => {
                     );
                   })}
 
-                  {/* THÔNG BÁO TỔNG HỢP & TIẾP TỤC XEM */}
-                  {notifications.length > 0 ? (
-                    notifications.map((item) => (
-                      <Link
-                        key={item.id}
-                        href={item.link}
-                        onClick={() => setShowNotifications(false)}
-                        className="flex items-start gap-3 p-2 rounded-xl hover:bg-white/5 transition border border-transparent hover:border-white/10 group"
-                      >
-                        {item.image ? (
-                          <div className="relative w-12 h-14 rounded-lg overflow-hidden flex-shrink-0 bg-zinc-800 border border-white/10">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={item.image}
-                              alt={item.title}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                            />
-                            {item.badge && (
-                              <span
-                                className={`absolute bottom-0 inset-x-0 text-[8px] font-black text-center py-0.5 uppercase tracking-wider ${
-                                  item.badgeColor || "bg-netflix-red text-white"
-                                }`}
-                              >
-                                {item.badge}
-                              </span>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="p-2 rounded-lg bg-netflix-red/20 text-netflix-red flex-none mt-0.5">
-                            <Film size={16} />
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-1 mb-0.5">
-                            <p className="text-xs text-white font-bold group-hover:text-netflix-red transition-colors truncate">
-                              {item.title}
-                            </p>
-                            <span className="text-[10px] text-gray-400 flex-shrink-0">
-                              {item.time}
+                  {/* DANH SÁCH THÔNG BÁO TỔNG HỢP & TIẾP TỤC XEM */}
+                  {notifTab !== "replies" && notifications.map((item) => (
+                    <Link
+                      key={item.id}
+                      href={item.link}
+                      onClick={() => setShowNotifications(false)}
+                      className="flex items-start gap-3 p-2 rounded-xl hover:bg-white/5 transition border border-transparent hover:border-white/10 group"
+                    >
+                      {item.image ? (
+                        <div className="relative w-11 h-13 rounded-lg overflow-hidden flex-shrink-0 bg-zinc-800 border border-white/10">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={item.image}
+                            alt={item.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                          />
+                          {item.badge && (
+                            <span
+                              className={`absolute bottom-0 inset-x-0 text-[8px] font-black text-center py-0.5 uppercase tracking-wider ${
+                                item.badgeColor || "bg-netflix-red text-white"
+                              }`}
+                            >
+                              {item.badge}
                             </span>
-                          </div>
-                          <p className="text-[11px] text-gray-300 line-clamp-2 leading-relaxed">
-                            {item.message}
-                          </p>
+                          )}
                         </div>
-                      </Link>
-                    ))
-                  ) : loadingNotifications && userNotifications.length === 0 ? (
+                      ) : (
+                        <div className="p-2 rounded-lg bg-netflix-red/20 text-netflix-red flex-none mt-0.5">
+                          <Film size={16} />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-1 mb-0.5">
+                          <p className="text-xs text-white font-bold group-hover:text-netflix-red transition-colors truncate">
+                            {item.title}
+                          </p>
+                          <span className="text-[10px] text-gray-400 flex-shrink-0">
+                            {item.time}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-gray-300 line-clamp-2 leading-relaxed">
+                          {item.message}
+                        </p>
+                      </div>
+                    </Link>
+                  ))}
+
+                  {/* LOADING & EMPTY STATES */}
+                  {loadingNotifications && notifications.length === 0 && userNotifications.length === 0 ? (
                     <div className="py-8 text-center text-gray-400 text-xs flex items-center justify-center gap-2">
                       <Loader2 size={16} className="animate-spin text-netflix-red" />
                       <span>Đang kiểm tra cập nhật mới...</span>
                     </div>
-                  ) : userNotifications.length === 0 ? (
-                    <div className="py-6 text-center text-gray-400 text-xs">
-                      Không có thông báo mới nào
+                  ) : notifTab === "replies" && userNotifications.length === 0 ? (
+                    <div className="py-8 text-center text-gray-400 text-xs flex flex-col items-center justify-center gap-1.5">
+                      <MessageSquare size={24} className="text-gray-600 mb-1" />
+                      <span>Chưa có phản hồi bình luận nào mới</span>
+                      <span className="text-[10px] text-gray-500">Bình luận trên các bộ phim để nhận thông báo khi có người trả lời</span>
+                    </div>
+                  ) : notifTab === "system" && notifications.length === 0 ? (
+                    <div className="py-8 text-center text-gray-400 text-xs flex flex-col items-center justify-center gap-1.5">
+                      <Film size={24} className="text-gray-600 mb-1" />
+                      <span>Đang nạp cập nhật phim mới...</span>
+                    </div>
+                  ) : userNotifications.length === 0 && notifications.length === 0 ? (
+                    <div className="py-8 text-center text-gray-400 text-xs flex flex-col items-center justify-center gap-1.5">
+                      <Bell size={24} className="text-gray-600 mb-1" />
+                      <span>Không có thông báo mới nào</span>
                     </div>
                   ) : null}
                 </div>

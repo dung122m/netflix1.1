@@ -27,19 +27,93 @@ function parseFirestoreDoc(doc: { name: string; fields?: Record<string, Firestor
 }
 
 /**
- * GET /api/notifications?userId=xxx
- * Lấy danh sách thông báo của người dùng qua Server API
+ * GET /api/notifications
+ * - Không có userId: Trả về danh sách thông báo hệ thống / phim mới cập nhật / sự kiện hot
+ * - Có userId: Lấy danh sách thông báo cá nhân (phản hồi bình luận, tập mới phim theo dõi)
  */
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const userId = searchParams.get("userId");
+
+  // 1. Trường hợp không có userId: Trả về thông báo hệ thống & phim mới cập nhật
   if (!userId) {
-    return NextResponse.json({ error: "Thiếu userId!" }, { status: 400 });
+    try {
+      // Lấy danh sách phim mới cập nhật từ upstream API
+      const upstreamRes = await fetch("https://phimapi.com/danh-sach/phim-moi-cap-nhat?page=1", {
+        next: { revalidate: 300 }, // Cache 5 phút
+      });
+
+      const dynamicItems: Array<Record<string, unknown>> = [];
+
+      if (upstreamRes.ok) {
+        const data = await upstreamRes.json();
+        const movies = Array.isArray(data.items) ? data.items.slice(0, 5) : [];
+
+        movies.forEach((m: { name?: string; slug?: string; poster_url?: string; thumb_url?: string; episode_current?: string; year?: number }) => {
+          if (m.slug && m.name) {
+            const posterImg = m.poster_url?.startsWith("http")
+              ? m.poster_url
+              : m.thumb_url?.startsWith("http")
+                ? m.thumb_url
+                : `https://phimimg.com/${m.poster_url || m.thumb_url}`;
+
+            dynamicItems.push({
+              id: `sys_movie_${m.slug}`,
+              type: "movie",
+              title: m.name,
+              message: `Đã cập nhật ${m.episode_current || "bản HD Vietsub"}. Bấm xem ngay hôm nay!`,
+              time: "Hôm nay",
+              link: `/movies/${m.slug}`,
+              image: posterImg,
+              badge: "TẬP MỚI",
+              badgeColor: "bg-netflix-red text-white",
+            });
+          }
+        });
+      }
+
+      // Thông báo trực tiếp bóng đá / sự kiện hot
+      dynamicItems.unshift({
+        id: "sys_live_hot",
+        type: "live",
+        title: "Trực Tiếp Bóng Đá & Sự Kiện Thể Thao",
+        message: "Xem trực tiếp các trận cầu đỉnh cao Ngoại Hạng Anh, C1 chất lượng Full HD không giật lag!",
+        time: "Trực tiếp",
+        link: "/live",
+        image: "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=500&auto=format&fit=crop&q=60",
+        badge: "LIVE 🔴",
+        badgeColor: "bg-amber-600 text-white animate-pulse",
+      });
+
+      return NextResponse.json({ success: true, items: dynamicItems });
+    } catch (err) {
+      console.error("Lỗi lấy thông báo hệ thống:", err);
+      return NextResponse.json({
+        success: true,
+        items: [
+          {
+            id: "sys_welcome",
+            type: "system",
+            title: "Chào mừng bạn đến với Nanaflix!",
+            message: "Hàng ngàn bộ phim bom tấn và phim bộ chất lượng 4K đang chờ bạn khám phá.",
+            time: "Hôm nay",
+            link: "/browse",
+            badge: "HOT",
+            badgeColor: "bg-netflix-red text-white",
+          },
+        ],
+      });
+    }
   }
 
+  // 2. Trường hợp có userId: Lấy thông báo cá nhân từ Firestore REST API
   try {
+    const authHeader = req.headers.get("authorization");
+    const headers: Record<string, string> = {};
+    if (authHeader) headers["Authorization"] = authHeader;
+
     const url = `${FIRESTORE_REST_BASE}/users/${userId}/notifications?pageSize=100${API_KEY ? `&key=${API_KEY}` : ""}`;
-    const res = await fetch(url, { cache: "no-store" });
+    const res = await fetch(url, { headers, cache: "no-store" });
     if (!res.ok) {
       return NextResponse.json({ success: true, items: [] });
     }
@@ -50,7 +124,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ success: true, items });
   } catch (error) {
     console.error("Lỗi API get notifications:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json({ success: true, items: [] });
   }
 }
 
