@@ -1093,33 +1093,36 @@ const NavbarInner: React.FC = () => {
                               : "/browse");
                           router.push(targetLink);
                         }}
-                        className={`flex items-start gap-3 p-2.5 rounded-xl transition border cursor-pointer group ${
+                        className={`flex items-start gap-3 p-3 rounded-2xl transition border cursor-pointer group ${
                           !item.isRead
                             ? isReply
-                              ? "bg-blue-950/25 border-blue-500/40 hover:bg-blue-950/45"
-                              : "bg-rose-950/25 border-rose-500/40 hover:bg-rose-950/45"
-                            : "hover:bg-white/5 border-transparent hover:border-white/10"
+                              ? "bg-blue-950/30 border-blue-500/30 hover:bg-blue-950/45"
+                              : "bg-rose-950/30 border-rose-500/30 hover:bg-rose-950/45"
+                            : "bg-zinc-900/40 hover:bg-zinc-800/60 border-white/5 hover:border-white/10"
                         }`}
                       >
-                        {/* AVATAR VỚI BADGE TRÒN TINH TẾ */}
+                        {/* AVATAR TRÒN KHÔNG BỊ TRÀN CHỮ */}
                         <div className="relative flex-shrink-0">
                           {isReply ? (
-                            <div className="relative w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 flex items-center justify-center font-bold text-white text-sm shadow-md ring-1 ring-white/20">
+                            <div className="relative w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-indigo-600 via-blue-600 to-purple-600 flex items-center justify-center shadow-md ring-1 ring-white/15">
                               {itemAvatar ? (
                                 // eslint-disable-next-line @next/next/no-img-element
                                 <img
                                   src={itemAvatar}
                                   alt={item.replierName || item.title}
-                                  className="w-full h-full object-cover"
+                                  className="w-full h-full object-cover rounded-full"
+                                  referrerPolicy="no-referrer"
                                   onError={(e) => {
                                     (e.target as HTMLElement).style.display = "none";
                                   }}
                                 />
                               ) : null}
-                              <span className="select-none font-black">{initialLetter}</span>
+                              {!itemAvatar && (
+                                <span className="text-white font-black text-sm select-none">{initialLetter}</span>
+                              )}
                             </div>
                           ) : (
-                            <div className="relative w-10 h-12 rounded-lg overflow-hidden bg-zinc-800 flex items-center justify-center shadow-md border border-white/15">
+                            <div className="relative w-10 h-13 rounded-xl overflow-hidden bg-zinc-800 flex items-center justify-center shadow-md border border-white/15">
                               {itemAvatar ? (
                                 // eslint-disable-next-line @next/next/no-img-element
                                 <img
@@ -1133,10 +1136,10 @@ const NavbarInner: React.FC = () => {
                             </div>
                           )}
 
-                          {/* MINI CORNER BADGE ICON */}
+                          {/* MINI CORNER BADGE */}
                           <div
-                            className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-zinc-950 flex items-center justify-center text-white shadow-md ${
-                              isReply ? "bg-blue-600" : "bg-rose-600"
+                            className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border border-zinc-950 flex items-center justify-center text-white shadow-md ${
+                              isReply ? "bg-blue-500" : "bg-rose-500"
                             }`}
                           >
                             {isReply ? (
@@ -1149,34 +1152,31 @@ const NavbarInner: React.FC = () => {
 
                         {/* NỘI DUNG THÔNG BÁO */}
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-1 mb-0.5">
-                            <p className="text-xs text-white font-bold group-hover:text-netflix-red transition-colors truncate">
-                              {isReply ? (item.replierName || item.title) : item.title}
-                            </p>
-                            <span className="text-[10px] text-gray-400 flex-shrink-0">
+                          <div className="flex items-center justify-between gap-1.5 mb-0.5">
+                            <h5 className="text-[13px] font-bold text-white group-hover:text-blue-400 transition-colors truncate">
+                              {isReply ? (item.replierName || "Thành viên") : item.title}
+                            </h5>
+                            <span className="text-[10px] text-zinc-400 font-medium flex-shrink-0">
                               {formatTimeAgo(item.createdAt)}
                             </span>
                           </div>
                           <p
-                            className={`text-[11px] font-semibold flex items-center gap-1 ${
+                            className={`text-[11px] font-medium flex items-center gap-1.5 ${
                               isReply ? "text-blue-400" : "text-rose-400"
                             }`}
                           >
-                            {isReply ? (
-                              <>
-                                <MessageSquare size={10} className="flex-shrink-0" />
-                                <span className="truncate">Đã trả lời bình luận của bạn</span>
-                              </>
-                            ) : (
-                              <>
-                                <Sparkles size={10} className="flex-shrink-0" />
-                                <span className="truncate">{item.episodeName || "Tập mới"} đã phát hành!</span>
-                              </>
-                            )}
+                            <span
+                              className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+                                isReply ? "bg-blue-400" : "bg-rose-400"
+                              }`}
+                            />
+                            <span className="truncate">
+                              {isReply ? "Đã trả lời bình luận của bạn" : `${item.episodeName || "Tập mới"} đã phát hành!`}
+                            </span>
                           </p>
-                          <p className="text-[11px] text-gray-300 line-clamp-2 mt-1 bg-white/[0.04] rounded-lg px-2.5 py-1 border border-white/5 leading-relaxed italic">
-                            &quot;{item.message}&quot;
-                          </p>
+                          <div className="text-xs text-zinc-200 line-clamp-2 mt-1.5 bg-white/[0.06] rounded-xl px-2.5 py-1.5 border border-white/5 leading-relaxed">
+                            {item.message}
+                          </div>
                         </div>
                         {!item.isRead && (
                           <span
@@ -1197,19 +1197,19 @@ const NavbarInner: React.FC = () => {
                       key={item.id}
                       href={item.link}
                       onClick={() => setShowNotifications(false)}
-                      className="flex items-start gap-3 p-2.5 rounded-xl hover:bg-white/5 transition border border-transparent hover:border-white/10 group"
+                      className="flex items-start gap-3 p-3 rounded-2xl bg-zinc-900/40 hover:bg-zinc-800/60 transition border border-white/5 hover:border-white/10 group"
                     >
                       {/* ICON / THUMBNAIL PHIM & LIVE THỂ THAO */}
                       <div className="relative flex-shrink-0">
                         {item.type === "live" ? (
-                          <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 via-rose-600 to-red-600 flex items-center justify-center text-white shadow-md shadow-rose-950/40 border border-white/20">
+                          <div className="relative w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500 via-rose-600 to-red-600 flex items-center justify-center text-white shadow-md shadow-rose-950/40 border border-white/15">
                             <Flame size={20} className="fill-white animate-pulse" />
-                            <span className="absolute -bottom-1 -right-1 px-1 py-0.2 rounded-full bg-red-600 text-white text-[7px] font-black border-2 border-zinc-950 tracking-tighter">
+                            <span className="absolute -bottom-1 -right-1 px-1.5 py-0.5 rounded-full bg-red-600 text-white text-[7px] font-black border border-zinc-950 tracking-wider">
                               LIVE
                             </span>
                           </div>
                         ) : item.image ? (
-                          <div className="relative w-10 h-13 rounded-lg overflow-hidden bg-zinc-800 border border-white/15 shadow-md">
+                          <div className="relative w-10 h-13 rounded-xl overflow-hidden bg-zinc-800 border border-white/15 shadow-md">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                               src={item.image}
@@ -1235,14 +1235,18 @@ const NavbarInner: React.FC = () => {
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-1 mb-0.5">
-                          <p className="text-xs text-white font-bold group-hover:text-netflix-red transition-colors truncate">
+                          <h5 className="text-[13px] text-white font-bold group-hover:text-netflix-red transition-colors truncate">
                             {item.title}
-                          </p>
-                          <span className="text-[10px] text-gray-400 flex-shrink-0">
+                          </h5>
+                          <span className="text-[10px] text-zinc-400 font-medium flex-shrink-0">
                             {item.time}
                           </span>
                         </div>
-                        <p className="text-[11px] text-gray-300 line-clamp-2 leading-relaxed">
+                        <p className="text-[11px] text-emerald-400 font-medium flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
+                          <span className="truncate">Cập nhật mới</span>
+                        </p>
+                        <p className="text-xs text-zinc-300 line-clamp-2 leading-relaxed mt-1">
                           {item.message}
                         </p>
                       </div>
