@@ -1367,7 +1367,7 @@ const NavbarInner: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1.5 pt-2 border-t border-white/5 flex-wrap">
+                  <div className="grid grid-cols-2 gap-2 pt-2.5 border-t border-white/10">
                     <button
                       type="button"
                       onClick={() => {
@@ -1377,27 +1377,27 @@ const NavbarInner: React.FC = () => {
                           window.dispatchEvent(new CustomEvent("open-user-profile"));
                         }
                       }}
-                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 transition cursor-pointer"
+                      className="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-zinc-200 bg-white/5 hover:bg-white/10 border border-white/10 transition active:scale-95 cursor-pointer shadow-sm"
                     >
-                      <User size={12} className="text-red-400" />
-                      <span>Hồ sơ cá nhân</span>
+                      <User size={13} className="text-red-400 shrink-0" />
+                      <span className="truncate">Hồ sơ cá nhân</span>
                     </button>
                     <Link
                       href="/my-list?tab=comments"
                       onClick={() => setIsMobileMenuOpen(false)}
-                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 transition cursor-pointer"
+                      className="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 transition active:scale-95 cursor-pointer shadow-sm"
                     >
-                      <MessageSquare size={12} className="text-rose-400" />
-                      <span>Bình luận</span>
+                      <MessageSquare size={13} className="text-rose-400 shrink-0" />
+                      <span className="truncate">Bình luận</span>
                     </Link>
                     {isUserAdmin(user?.email) && (
                       <Link
                         href="/admin"
                         onClick={() => setIsMobileMenuOpen(false)}
-                        className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold text-amber-400 bg-amber-500/15 border border-amber-500/30 hover:bg-amber-500/25 transition"
+                        className="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-bold text-amber-300 bg-amber-500/15 border border-amber-500/30 hover:bg-amber-500/25 transition active:scale-95 shadow-sm"
                       >
-                        <ShieldCheck size={12} />
-                        <span>Admin</span>
+                        <ShieldCheck size={13} className="text-amber-400 shrink-0" />
+                        <span className="truncate">Admin VIP</span>
                       </Link>
                     )}
                     <button
@@ -1406,9 +1406,11 @@ const NavbarInner: React.FC = () => {
                         setIsMobileMenuOpen(false);
                         await logout();
                       }}
-                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-red-400 bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 transition cursor-pointer ml-auto"
+                      className={`flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-red-400 bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 transition active:scale-95 cursor-pointer shadow-sm ${
+                        !isUserAdmin(user?.email) ? "col-span-2" : ""
+                      }`}
                     >
-                      <LogOut size={12} />
+                      <LogOut size={13} className="shrink-0" />
                       <span>Đăng xuất</span>
                     </button>
                   </div>

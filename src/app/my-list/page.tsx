@@ -412,68 +412,68 @@ function MyListContent() {
         </div>
       </div>
 
-      {/* TAB SELECTOR: Scroll ngang trên mobile */}
-      <div className="flex items-center gap-2 mb-6 overflow-x-auto scrollbar-none pb-1 [&::-webkit-scrollbar]:hidden touch-pan-x">
+      {/* TAB SELECTOR: Segmented Control thiết kế phẳng trượt mượt trên mobile */}
+      <div className="flex items-center gap-2 mb-6 overflow-x-auto scrollbar-none pb-1 touch-pan-x overscroll-x-contain">
         <button
           type="button"
           onClick={() => setActiveTab("watchlist")}
-          className={`flex-none flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition cursor-pointer whitespace-nowrap ${
+          className={`flex-none flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
             activeTab === "watchlist"
-              ? "bg-netflix-red text-white shadow-md shadow-red-950/40"
-              : "bg-zinc-900/80 text-gray-400 hover:text-white hover:bg-zinc-800"
+              ? "bg-netflix-red text-white shadow-lg shadow-red-950/50"
+              : "bg-white/[0.04] text-zinc-400 hover:text-white hover:bg-white/10 border border-white/5"
           }`}
         >
-          <Bookmark className="w-4 h-4" />
+          <Bookmark className="w-4 h-4 text-red-400" />
           <span>Yêu thích ({mounted ? watchlist.length : 0})</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab("history")}
-          className={`flex-none flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition cursor-pointer whitespace-nowrap ${
+          className={`flex-none flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
             activeTab === "history"
-              ? "bg-netflix-red text-white shadow-md shadow-red-950/40"
-              : "bg-zinc-900/80 text-gray-400 hover:text-white hover:bg-zinc-800"
+              ? "bg-netflix-red text-white shadow-lg shadow-red-950/50"
+              : "bg-white/[0.04] text-zinc-400 hover:text-white hover:bg-white/10 border border-white/5"
           }`}
         >
-          <Clock className="w-4 h-4" />
+          <Clock className="w-4 h-4 text-amber-400" />
           <span>Lịch sử ({mounted ? history.length : 0})</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab("collections")}
-          className={`flex-none flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition cursor-pointer whitespace-nowrap ${
+          className={`flex-none flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
             activeTab === "collections"
-              ? "bg-netflix-red text-white shadow-md shadow-red-950/40"
-              : "bg-zinc-900/80 text-gray-400 hover:text-white hover:bg-zinc-800"
+              ? "bg-netflix-red text-white shadow-lg shadow-red-950/50"
+              : "bg-white/[0.04] text-zinc-400 hover:text-white hover:bg-white/10 border border-white/5"
           }`}
         >
-          <FolderHeart className="w-4 h-4" />
+          <FolderHeart className="w-4 h-4 text-pink-400" />
           <span>Bộ sưu tập ({mounted && user ? collections.length : 0})</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab("comments")}
-          className={`flex-none flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition cursor-pointer whitespace-nowrap ${
+          className={`flex-none flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
             activeTab === "comments"
-              ? "bg-netflix-red text-white shadow-md shadow-red-950/40"
-              : "bg-zinc-900/80 text-gray-400 hover:text-white hover:bg-zinc-800"
+              ? "bg-netflix-red text-white shadow-lg shadow-red-950/50"
+              : "bg-white/[0.04] text-zinc-400 hover:text-white hover:bg-white/10 border border-white/5"
           }`}
         >
-          <MessageSquare className="w-4 h-4" />
-          <span>Bình luận của tôi ({mounted && user ? userComments.length : 0})</span>
+          <MessageSquare className="w-4 h-4 text-purple-400" />
+          <span>Bình luận ({mounted && user ? userComments.length : 0})</span>
         </button>
       </div>
 
       {/* NỘI DUNG THEO TAB */}
       {!mounted ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4 md:gap-5">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
           {Array.from({ length: 4 }).map((_, i) => (
             <div
               key={i}
-              className="aspect-video w-full rounded-lg bg-zinc-900/60 animate-pulse border border-white/5"
+              className="aspect-video w-full rounded-xl bg-zinc-900/60 animate-pulse border border-white/5"
             />
           ))}
         </div>
@@ -499,7 +499,7 @@ function MyListContent() {
           </div>
         ) : (
           <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-zinc-900/45 to-zinc-950/45 p-3 sm:p-4 md:p-5">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4 md:gap-5">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
               {watchlist.map((item) => (
                 <MediaCard
                   key={item.slug}
@@ -538,32 +538,37 @@ function MyListContent() {
           </div>
         ) : (
           <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-zinc-900/45 to-zinc-950/45 p-3 sm:p-4 md:p-5">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4 md:gap-5">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
               {history.map((item) => {
                 const href = item.episodeSlug
                   ? `/movies/${item.slug}?ep=${item.episodeSlug}`
                   : `/movies/${item.slug}`;
 
+                const progressPercent =
+                  item.progressSeconds && item.durationSeconds && item.durationSeconds > 0
+                    ? Math.min(100, Math.round((item.progressSeconds / item.durationSeconds) * 100))
+                    : 0;
+
                 return (
                   <div
                     key={item.slug}
-                    className="group relative rounded-xl bg-zinc-900 border border-white/10 overflow-hidden hover:border-white/30 transition-all duration-300 hover:scale-[1.02] shadow-lg"
+                    className="group relative rounded-xl bg-zinc-900 border border-white/10 overflow-hidden hover:border-white/30 transition-all duration-300 hover:scale-[1.02] shadow-lg flex flex-col"
                   >
-                    <Link href={href} className="block">
+                    <Link href={href} className="block flex-1 flex flex-col">
                       <div className="relative aspect-video w-full bg-zinc-800 overflow-hidden">
                         <Image
                           src={sanitizeImageUrl(item.poster || "/default-hero.jpg")}
                           alt={item.title}
                           fill
-                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                          sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
                           className="object-cover transition-transform duration-300 group-hover:scale-105"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
 
                         {/* PLAY BUTTON OVERLAY */}
                         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                          <div className="w-12 h-12 rounded-full bg-netflix-red text-white flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
-                            <Play className="w-6 h-6 fill-white ml-0.5" />
+                          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-netflix-red text-white flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
+                            <Play className="w-5 h-5 sm:w-6 sm:h-6 fill-white ml-0.5" />
                           </div>
                         </div>
 
@@ -576,23 +581,33 @@ function MyListContent() {
                             removeWatchHistoryItem(item.slug);
                           }}
                           aria-label="Xoá khỏi lịch sử"
-                          className="absolute top-2 right-2 p-1.5 rounded-full bg-black/60 text-gray-300 hover:text-white hover:bg-black/90 backdrop-blur-sm transition z-10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                          className="absolute top-2 right-2 p-1.5 rounded-full bg-black/70 text-gray-300 hover:text-white hover:bg-black/90 backdrop-blur-sm transition z-10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 cursor-pointer shadow-md"
                         >
-                          <X className="w-4 h-4" />
+                          <X className="w-3.5 h-3.5" />
                         </button>
+
+                        {/* THANH TIẾN ĐỘ XEM (PROGRESS BAR) */}
+                        {progressPercent > 0 ? (
+                          <div className="absolute bottom-0 left-0 right-0 h-1 bg-zinc-800/80 z-10">
+                            <div
+                              className="h-full bg-netflix-red shadow-[0_0_8px_#E50914]"
+                              style={{ width: `${progressPercent}%` }}
+                            />
+                          </div>
+                        ) : null}
                       </div>
 
-                      <div className="p-4">
-                        <h3 className="text-white font-semibold text-base truncate group-hover:text-netflix-red transition-colors">
+                      <div className="p-2.5 sm:p-3.5 flex-1 flex flex-col justify-between">
+                        <h3 className="text-white font-semibold text-xs sm:text-sm line-clamp-2 group-hover:text-netflix-red transition-colors">
                           {item.title}
                         </h3>
-                        <div className="flex items-center justify-between text-xs text-gray-400 mt-2">
-                          <span className="text-netflix-red font-semibold">
-                            {item.episodeName ? `Đang xem: ${formatEpisodeName(item.episodeName)}` : "Đã xem"}
+                        <div className="flex items-center justify-between text-[10px] sm:text-xs text-gray-400 mt-2">
+                          <span className="text-red-400 font-semibold truncate max-w-[120px]">
+                            {item.episodeName ? formatEpisodeName(item.episodeName) : "Đã xem"}
                           </span>
-                          {item.quality && (
-                            <span className="bg-zinc-800 px-2 py-0.5 rounded text-[11px] text-gray-300">
-                              {item.quality}
+                          {progressPercent > 0 && (
+                            <span className="text-zinc-400 font-mono text-[10px]">
+                              {progressPercent}%
                             </span>
                           )}
                         </div>

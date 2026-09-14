@@ -1,22 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import {
-  Film,
-  Bookmark,
-  Check,
-  FolderHeart,
-  Share2,
-  Smartphone,
-  Flag,
-} from "lucide-react";
-import { isInWatchlist } from "@/lib/watchlist";
+import React from "react";
 import { TrailerModal } from "@/components/TrailerModal";
 import { WatchlistButton } from "@/components/WatchlistButton";
 import { AddToCollectionButton } from "@/components/Collections/AddToCollectionButton";
 import { ShareButton } from "@/components/ShareButton";
 import { MobileQrModal } from "@/components/MobileQrModal";
-import { ReportIssueModal } from "@/components/ReportIssueModal";
 
 interface MovieActionToolbarProps {
   movie: {

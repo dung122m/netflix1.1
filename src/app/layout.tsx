@@ -8,6 +8,7 @@ import { ClientModals } from "@/components/ClientModals";
 import { InstallPwaBanner } from "@/components/InstallPwaBanner";
 import { CrossDeviceHandoffBanner } from "@/components/CrossDeviceHandoffBanner";
 import { DesktopReplyPopup } from "@/components/Notifications/DesktopReplyPopup";
+import { BottomNav } from "@/components/BottomNav";
 import { AuthProvider } from "@/context/AuthContext";
 
 const inter = Inter({
@@ -115,7 +116,14 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <AuthProvider>
-          <SmoothScroll>{children}</SmoothScroll>
+          <SmoothScroll>
+            <div className="pb-16 lg:pb-0 min-h-screen flex flex-col">
+              {children}
+            </div>
+          </SmoothScroll>
+
+          {/* Thanh điều hướng cố định ở đáy cho điện thoại (Bottom Navigation) */}
+          <BottomNav />
 
           {/* Back to top với progress ring */}
           <BackToTop />

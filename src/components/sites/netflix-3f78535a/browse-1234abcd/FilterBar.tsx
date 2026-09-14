@@ -185,8 +185,8 @@ export const FilterBar: React.FC = () => {
 
   return (
     <div className="relative z-40">
-      {/* FILTER BUTTONS */}
-      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+      {/* FILTER BUTTONS: Cuộn ngang mượt mà trên mobile, wrap trên PC */}
+      <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto scrollbar-none pb-1 touch-pan-x overscroll-x-contain sm:flex-wrap sm:overflow-visible">
         {/* LOẠI PHIM */}
         <button
           type="button"
