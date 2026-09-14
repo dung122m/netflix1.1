@@ -100,6 +100,9 @@ function sanitizeCommentData(data: Record<string, unknown>): Record<string, unkn
   return result;
 }
 
+// In-memory cache lưu danh sách bình luận theo movieSlug để hiển thị ngay 0ms không bị chớp hay mất
+const movieCommentsMemoryCache: Record<string, MovieComment[]> = {};
+
 /**
  * Đăng ký lắng nghe bình luận theo thời gian thực (Real-time listener)
  * Tự động chuyển sang Next.js Server API nếu Firestore client bị Adblocker chặn
@@ -121,16 +124,47 @@ export function subscribeMovieComments(
   // Giữ reference tới unsubscribe hiện tại để có thể tái tạo listener
   let currentFirestoreUnsub: (() => void) | null = null;
 
-  // Fix #3: Guard isUnsubscribed trước và sau mọi async operation
+  // 1. Phục hồi ngay lập tức từ bộ nhớ đệm (0ms - không bị nhấp nháy hay mất comment)
+  const memCached = movieCommentsMemoryCache[movieSlug];
+  if (memCached && memCached.length > 0) {
+    onUpdate(memCached);
+  } else if (typeof window !== "undefined") {
+    try {
+      const local = localStorage.getItem(`nanaflix_comments_${movieSlug}`);
+      if (local) {
+        const parsed = JSON.parse(local);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          movieCommentsMemoryCache[movieSlug] = parsed;
+          onUpdate(parsed);
+        }
+      }
+    } catch {}
+  }
+
+  const handleNewData = (items: MovieComment[]) => {
+    if (items.length > 0 || !movieCommentsMemoryCache[movieSlug] || movieCommentsMemoryCache[movieSlug].length === 0) {
+      movieCommentsMemoryCache[movieSlug] = items;
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem(`nanaflix_comments_${movieSlug}`, JSON.stringify(items.slice(0, 100)));
+        } catch {}
+      }
+    }
+    onUpdate(items);
+  };
+
+  // 2. Fetch dữ liệu từ Server API
   const fallbackFetch = async () => {
     if (isUnsubscribed) return;
     try {
-      const res = await fetch(`/api/comments?movieSlug=${encodeURIComponent(movieSlug)}`);
-      if (isUnsubscribed) return; // Check lại sau await
+      const res = await fetch(`/api/comments?movieSlug=${encodeURIComponent(movieSlug)}&all=true`, {
+        cache: "no-store",
+      });
+      if (isUnsubscribed) return;
       if (res.ok) {
         const data = await res.json();
-        if (!isUnsubscribed && data.items) {
-          onUpdate(data.items);
+        if (!isUnsubscribed && data.items && Array.isArray(data.items)) {
+          handleNewData(data.items);
         }
       }
     } catch {
@@ -138,18 +172,18 @@ export function subscribeMovieComments(
     }
   };
 
-  // Nạp dữ liệu ngay lập tức từ Server API (không chờ Firestore client kết nối)
+  // Nạp dữ liệu ngay lập tức từ Server API
   fallbackFetch();
 
   if (!db) {
-    const interval = setInterval(fallbackFetch, 8000);
+    const interval = setInterval(fallbackFetch, 6000);
     return () => {
       isUnsubscribed = true;
       clearInterval(interval);
     };
   }
 
-  // Fix #2: Hàm tạo / tái tạo Firestore listener
+  // 3. Hàm tạo / tái tạo Firestore listener
   const createFirestoreListener = () => {
     if (isUnsubscribed || !db) return;
 
@@ -157,14 +191,13 @@ export function subscribeMovieComments(
     const q = query(
       commentsRef,
       where("movieSlug", "==", movieSlug),
-      limit(150),
+      limit(200),
     );
 
     const unsub = onSnapshot(
       q,
       (snapshot) => {
         if (isUnsubscribed) return;
-        // Khi nhận được snapshot hợp lệ → reset retry counter và dừng fallback poll
         retryCount = 0;
         if (fallbackInterval) {
           clearInterval(fallbackInterval);
@@ -176,7 +209,6 @@ export function subscribeMovieComments(
             id: docSnap.id,
             ...(docSnap.data() as Omit<MovieComment, "id">),
           };
-          // Chỉ ẩn comment bị admin đánh dấu isFlagged, không tự xóa
           if (commentData.isFlagged) return;
           items.push(commentData);
         });
@@ -185,27 +217,23 @@ export function subscribeMovieComments(
           if (!a.isPinned && b.isPinned) return 1;
           return (b.createdAt || 0) - (a.createdAt || 0);
         });
-        onUpdate(items);
+        handleNewData(items);
       },
       (error) => {
         if (isUnsubscribed) return;
         console.warn("Lỗi tải bình luận từ Firestore, dùng Server API Fallback:", error);
         fallbackFetch();
-        // Bật fallback poll nếu chưa có
         if (!fallbackInterval) {
-          fallbackInterval = setInterval(fallbackFetch, 8000);
+          fallbackInterval = setInterval(fallbackFetch, 6000);
         }
         if (onError) onError(error);
 
-        // Fix #2: Exponential backoff reconnect Firestore
         const delay = Math.min(2000 * Math.pow(2, retryCount), 30000);
         retryCount++;
         if (retryTimer) clearTimeout(retryTimer);
         retryTimer = setTimeout(() => {
           if (isUnsubscribed) return;
-          // Hủy listener cũ bị lỗi
           currentFirestoreUnsub?.();
-          // Tạo listener mới
           createFirestoreListener();
         }, delay);
       },
@@ -639,7 +667,16 @@ export async function addMovieComment(
 
   try {
     const docRef = await addDocWithTimeout(commentsRef, newComment, 3500);
-    return docRef.id;
+    const createdId = docRef.id;
+    const fullComment: MovieComment = { id: createdId, ...newComment } as MovieComment;
+    const curList = movieCommentsMemoryCache[comment.movieSlug] || [];
+    movieCommentsMemoryCache[comment.movieSlug] = [fullComment, ...curList.filter((c) => c.id !== createdId)];
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem(`nanaflix_comments_${comment.movieSlug}`, JSON.stringify(movieCommentsMemoryCache[comment.movieSlug].slice(0, 100)));
+      } catch {}
+    }
+    return createdId;
   } catch (err) {
     console.warn("Lỗi ghi Firestore trực tiếp, chuyển sang Server API Fallback:", err);
     let authHeader = "";
@@ -659,7 +696,16 @@ export async function addMovieComment(
     });
     const resJson = await res.json();
     if (!res.ok) throw new Error(resJson.error || "Không thể gửi bình luận lúc này!");
-    return resJson.id || `cmt_${Date.now()}`;
+    const createdId = resJson.id || `cmt_${Date.now()}`;
+    const fullComment: MovieComment = { id: createdId, ...newComment } as MovieComment;
+    const curList = movieCommentsMemoryCache[comment.movieSlug] || [];
+    movieCommentsMemoryCache[comment.movieSlug] = [fullComment, ...curList.filter((c) => c.id !== createdId)];
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem(`nanaflix_comments_${comment.movieSlug}`, JSON.stringify(movieCommentsMemoryCache[comment.movieSlug].slice(0, 100)));
+      } catch {}
+    }
+    return createdId;
   }
 }
 
@@ -765,6 +811,15 @@ export async function addReplyComment(params: {
     const resJson = await res.json();
     if (!res.ok) throw new Error(resJson.error || "Không thể gửi phản hồi lúc này!");
     createdId = resJson.id || `reply_${Date.now()}`;
+  }
+
+  const fullReply: MovieComment = { id: createdId, ...newReply } as MovieComment;
+  const curList = movieCommentsMemoryCache[params.movieSlug] || [];
+  movieCommentsMemoryCache[params.movieSlug] = [...curList.filter((c) => c.id !== createdId), fullReply];
+  if (typeof window !== "undefined") {
+    try {
+      localStorage.setItem(`nanaflix_comments_${params.movieSlug}`, JSON.stringify(movieCommentsMemoryCache[params.movieSlug].slice(0, 100)));
+    } catch {}
   }
 
   // 4. Gửi thông báo trực tiếp qua Server API đảm bảo 100% người dùng nhận được thông báo

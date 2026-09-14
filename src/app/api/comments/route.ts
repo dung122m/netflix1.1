@@ -58,7 +58,7 @@ function buildStructuredQuery(params: {
   all?: string | null;
   pageSize?: number;
 }) {
-  const { movieSlug, parentId, userId, all, pageSize = 150 } = params;
+  const { movieSlug, parentId, userId, pageSize = 200 } = params;
 
   // Xác định điều kiện filter chính
   const filters: object[] = [];
@@ -79,15 +79,6 @@ function buildStructuredQuery(params: {
         field: { fieldPath: "parentId" },
         op: "EQUAL",
         value: { stringValue: parentId },
-      },
-    });
-  } else if (!all && movieSlug) {
-    // Chỉ lấy root comments (không có parentId)
-    filters.push({
-      fieldFilter: {
-        field: { fieldPath: "parentId" },
-        op: "EQUAL",
-        value: { nullValue: "NULL_VALUE" },
       },
     });
   }
@@ -120,10 +111,8 @@ function buildStructuredQuery(params: {
 
 /**
  * GET /api/comments?movieSlug=xxx
- * Fix #4: Dùng :runQuery thay vì /documents?pageSize=300
- * → Chỉ đọc docs phù hợp (tiết kiệm Firestore reads ~10-50x)
- * → Sắp xếp in-memory không cần composite index (tránh lỗi 400 Firestore)
- * → Cache 10s trên server
+ * Fix: Dùng runQuery query đúng theo movieSlug
+ * Sắp xếp in-memory và không cache rỗng
  */
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -136,7 +125,7 @@ export async function GET(req: NextRequest) {
     const keyParam = API_KEY ? `?key=${API_KEY}` : "";
     const queryUrl = `${FIRESTORE_RUN_QUERY}${keyParam}`;
 
-    const body = buildStructuredQuery({ movieSlug, parentId, userId, all, pageSize: 150 });
+    const body = buildStructuredQuery({ movieSlug, parentId, userId, all, pageSize: 200 });
 
     let rawDocs: Array<{ name: string; fields?: Record<string, FirestoreField>; createTime?: string }> = [];
 
@@ -144,7 +133,7 @@ export async function GET(req: NextRequest) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
-      next: { revalidate: 10 },
+      cache: "no-store",
     });
 
     if (res.ok) {
@@ -156,7 +145,7 @@ export async function GET(req: NextRequest) {
     } else {
       // Fallback: nếu runQuery bị từ chối, thử fetch trực tiếp qua collection documents
       try {
-        const fallbackUrl = `${FIRESTORE_REST_BASE}/movie_comments?pageSize=100${API_KEY ? `&key=${API_KEY}` : ""}`;
+        const fallbackUrl = `${FIRESTORE_REST_BASE}/movie_comments?pageSize=150${API_KEY ? `&key=${API_KEY}` : ""}`;
         const fallbackRes = await fetch(fallbackUrl, { cache: "no-store" });
         if (fallbackRes.ok) {
           const fbJson = await fallbackRes.json();
