@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import {
   Sparkles,
@@ -10,6 +10,7 @@ import {
   ChevronLeft,
   Loader2,
   ExternalLink,
+  Flame,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { subscribeUserProfile } from "@/services/userService";
@@ -42,14 +43,245 @@ export const GENRE_MAP: Record<string, GenreMeta> = {
   "🥋 Võ Thuật": { slug: "vo-thuat", name: "Võ Thuật" },
 };
 
+/**
+ * Bóc tách tên 1-2 thể loại chính của phim để hiển thị rõ ràng, chuyên nghiệp
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function extractMovieGenres(movie: any, defaultGenreName?: string): string {
+  if (!movie) return defaultGenreName || "Phim hay";
+
+  if (Array.isArray(movie.category) && movie.category.length > 0) {
+    const names = movie.category
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .map((c: any) => (typeof c === "string" ? c : c?.name || ""))
+      .filter(Boolean);
+    if (names.length > 0) {
+      return names.slice(0, 2).join(" • ");
+    }
+  } else if (typeof movie.category === "string" && movie.category.trim()) {
+    const parts = movie.category
+      .split(/[,/•]/)
+      .map((s: string) => s.trim())
+      .filter(Boolean);
+    if (parts.length > 0) {
+      return parts.slice(0, 2).join(" • ");
+    }
+  }
+
+  if (movie.type_name) return movie.type_name;
+  if (defaultGenreName) return defaultGenreName;
+  return "Phim hot";
+}
+
+/**
+ * Từng hàng phim độc lập cho mỗi thể loại yêu thích (Lazy-loaded & Cached)
+ */
+interface SingleGenreRowProps {
+  genreLabel: string;
+  meta: GenreMeta;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  initialMovies?: any[];
+}
+
+// Bộ nhớ đệm tĩnh lưu kết quả phim đã fetch theo slug thể loại tránh fetch lặp lại
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const genreMoviesCache: Record<string, any[]> = {};
+
+const SingleGenreRow: React.FC<SingleGenreRowProps> = React.memo(
+  ({ genreLabel, meta, initialMovies = [] }) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [movies, setMovies] = useState<any[]>(() => {
+      if (genreMoviesCache[meta.slug]?.length) {
+        return genreMoviesCache[meta.slug];
+      }
+      // Lọc từ allMovies nếu đã có sẵn
+      const matches = initialMovies.filter((movie) => {
+        if (!movie) return false;
+        const categories = movie.category || [];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return categories.some(
+          (c: any) => c.slug === meta.slug || (c.name || "").includes(meta.name)
+        );
+      });
+      return matches.length >= 6 ? matches : [];
+    });
+
+    const [loading, setLoading] = useState<boolean>(movies.length === 0);
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+      if (movies.length >= 8) return;
+      if (genreMoviesCache[meta.slug]?.length) {
+        setMovies(genreMoviesCache[meta.slug]);
+        setLoading(false);
+        return;
+      }
+
+      let isMounted = true;
+      setLoading(true);
+
+      const fetchCategoryMovies = async () => {
+        try {
+          const res = await movieApi.getMovies({
+            ...(meta.isType ? { type: meta.slug } : { category: meta.slug }),
+            limit: 14,
+            page: 1,
+          });
+          if (isMounted && res?.items && res.items.length > 0) {
+            genreMoviesCache[meta.slug] = res.items;
+            setMovies(res.items);
+          }
+        } catch (err) {
+          console.warn(`Lỗi tải phim hàng thể loại ${meta.name}:`, err);
+        } finally {
+          if (isMounted) setLoading(false);
+        }
+      };
+
+      fetchCategoryMovies();
+      return () => {
+        isMounted = false;
+      };
+    }, [meta, movies.length]);
+
+    const scroll = (direction: "left" | "right") => {
+      if (scrollContainerRef.current) {
+        const scrollAmount = direction === "left" ? -480 : 480;
+        scrollContainerRef.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
+      }
+    };
+
+    const viewAllUrl = meta.isType
+      ? `/browse?type=${meta.slug}`
+      : `/browse?category=${meta.slug}`;
+
+    return (
+      <div className="w-full space-y-3 pt-2 pb-3">
+        {/* HEADER CỦA TỪNG HÀNG THỂ LOẠI */}
+        <div className="flex items-center justify-between gap-2 px-1">
+          <div className="flex items-center gap-2">
+            <h4 className="text-sm sm:text-base font-black text-white flex items-center gap-1.5 hover:text-netflix-red transition-colors">
+              <span>{genreLabel}</span>
+              <span className="text-xs font-normal text-rose-400">· Chuẩn gu</span>
+            </h4>
+          </div>
+
+          <Link
+            href={viewAllUrl}
+            className="text-[11px] sm:text-xs font-bold text-gray-400 hover:text-white flex items-center gap-1 transition px-2.5 py-1 rounded-lg hover:bg-white/5 cursor-pointer flex-shrink-0"
+          >
+            <span>Khám phá thêm</span>
+            <ChevronRight className="w-3.5 h-3.5 text-netflix-red" />
+          </Link>
+        </div>
+
+        {/* CAROUSEL CONTAINER */}
+        <div className="relative group/row">
+          {/* NÚT CUỘN TRÁI */}
+          <button
+            type="button"
+            onClick={() => scroll("left")}
+            aria-label="Cuộn sang trái"
+            className="absolute -left-2 top-1/2 -translate-y-1/2 z-20 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/85 border border-white/20 text-white flex items-center justify-center shadow-2xl opacity-0 group-hover/row:opacity-100 transition-all hover:scale-110 cursor-pointer backdrop-blur-md active:scale-95"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+
+          {/* NÚT CUỘN PHẢI */}
+          <button
+            type="button"
+            onClick={() => scroll("right")}
+            aria-label="Cuộn sang phải"
+            className="absolute -right-2 top-1/2 -translate-y-1/2 z-20 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/85 border border-white/20 text-white flex items-center justify-center shadow-2xl opacity-0 group-hover/row:opacity-100 transition-all hover:scale-110 cursor-pointer backdrop-blur-md active:scale-95"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+
+          {loading && movies.length === 0 ? (
+            <div className="w-full py-8 flex items-center justify-center text-xs text-gray-400 gap-2">
+              <Loader2 className="w-4 h-4 animate-spin text-netflix-red" />
+              <span>Đang tải danh sách phim {meta.name}...</span>
+            </div>
+          ) : movies.length > 0 ? (
+            <div
+              ref={scrollContainerRef}
+              className="flex items-center gap-3 sm:gap-4 overflow-x-auto py-1.5 px-0.5 scrollbar-none scroll-smooth"
+            >
+              {movies.map((movie) => {
+                const poster =
+                  movie.poster_url || movie.poster || movie.thumb_url || "/default-poster.jpg";
+                const fullPoster = poster.startsWith("http")
+                  ? poster
+                  : `https://phimimg.com/${poster}`;
+
+                const genreSnippet = extractMovieGenres(movie, meta.name);
+
+                return (
+                  <Link
+                    key={movie.slug}
+                    href={`/movies/${movie.slug}`}
+                    className="group relative flex-shrink-0 w-32 sm:w-40 rounded-xl overflow-hidden border border-white/10 bg-zinc-900 transition-all duration-300 hover:scale-105 hover:border-netflix-red/70 hover:shadow-xl hover:shadow-red-950/40"
+                  >
+                    <div className="aspect-[2/3] w-full overflow-hidden relative">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={fullPoster}
+                        alt={movie.name || movie.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        loading="lazy"
+                        onError={(e) => {
+                          e.currentTarget.src = "/default-poster.jpg";
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-80 group-hover:opacity-50 transition-opacity" />
+
+                      {/* BADGE THỂ LOẠI / CHUẨN GU */}
+                      <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-md bg-netflix-red text-white text-[9px] font-black tracking-wider uppercase shadow-md flex items-center gap-0.5">
+                        <Flame size={9} className="fill-white" />
+                        <span>{meta.name}</span>
+                      </span>
+
+                      {movie.episode_current && (
+                        <span className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded-md bg-black/80 backdrop-blur-md text-amber-300 text-[9px] font-bold border border-white/10">
+                          {movie.episode_current}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="p-2 sm:p-2.5 space-y-0.5">
+                      <h5 className="text-xs font-bold text-white truncate group-hover:text-rose-400 transition-colors">
+                        {movie.name || movie.title}
+                      </h5>
+                      <p className="text-[10.5px] text-gray-400 truncate flex items-center gap-1">
+                        {movie.year && (
+                          <span className="text-zinc-300 font-medium">{movie.year} •</span>
+                        )}
+                        <span className="text-zinc-400 truncate">{genreSnippet}</span>
+                      </p>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="p-4 text-center text-xs text-gray-500">
+              Đang cập nhật thêm phim cho thể loại này.
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+);
+
+SingleGenreRow.displayName = "SingleGenreRow";
+
+/**
+ * Khung chứa chính: Hiển thị tối đa 5 hàng thể loại yêu thích (Netflix Style)
+ */
 function PersonalizedGenreSectionInner({ allMovies = [] }: PersonalizedGenreSectionProps) {
   const { user } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [activeTab, setActiveTab] = useState<string>("ALL");
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [genreFetchedMovies, setGenreFetchedMovies] = useState<Record<string, any[]>>({});
-  const [loadingGenre, setLoadingGenre] = useState<boolean>(false);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!user?.uid) {
@@ -62,98 +294,11 @@ function PersonalizedGenreSectionInner({ allMovies = [] }: PersonalizedGenreSect
     return () => unsub();
   }, [user]);
 
-  const favoriteGenres = React.useMemo(
-    () => profile?.favoriteGenres || [],
-    [profile?.favoriteGenres]
-  );
-
-  // Tự động tải phim theo thể loại từ API khi chọn Tab cụ thể
-  useEffect(() => {
-    if (activeTab === "ALL" || !activeTab) return;
-    const meta = GENRE_MAP[activeTab];
-    if (!meta) return;
-
-    if (genreFetchedMovies[activeTab] && genreFetchedMovies[activeTab].length > 0) {
-      return; // Đã có trong cache
-    }
-
-    let isMounted = true;
-    setLoadingGenre(true);
-
-    const fetchCategoryMovies = async () => {
-      try {
-        const res = await movieApi.getMovies({
-          ...(meta.isType ? { type: meta.slug } : { category: meta.slug }),
-          limit: 18,
-          page: 1,
-        });
-        if (isMounted && res?.items) {
-          setGenreFetchedMovies((prev) => ({
-            ...prev,
-            [activeTab]: res.items,
-          }));
-        }
-      } catch (err) {
-        console.warn("Lỗi tải phim theo thể loại:", activeTab, err);
-      } finally {
-        if (isMounted) setLoadingGenre(false);
-      }
-    };
-
-    fetchCategoryMovies();
-    return () => {
-      isMounted = false;
-    };
-  }, [activeTab, genreFetchedMovies]);
-
-  // Cuộn mượt hàng phim sang Trái / Phải
-  const scroll = (direction: "left" | "right") => {
-    if (scrollContainerRef.current) {
-      const scrollAmount = direction === "left" ? -400 : 400;
-      scrollContainerRef.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
-    }
-  };
-
-  // Xác định danh sách phim hiển thị dựa trên Tab được chọn
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const displayMovies: any[] = React.useMemo(() => {
-    if (favoriteGenres.length === 0) return [];
-
-    // Nếu chọn Tab thể loại cụ thể
-    if (activeTab !== "ALL" && GENRE_MAP[activeTab]) {
-      const fetched = genreFetchedMovies[activeTab];
-      if (fetched && fetched.length > 0) return fetched;
-
-      // Fallback tìm trong allMovies
-      const meta = GENRE_MAP[activeTab];
-      return allMovies.filter((movie) => {
-        if (!movie) return false;
-        const categories = movie.category || [];
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return categories.some((c: any) => c.slug === meta.slug || (c.name || "").includes(meta.name));
-      });
-    }
-
-    // Nếu chọn Tab "Tất Cả Gu": Tổng hợp phim từ allMovies khớp với các thể loại yêu thích
-    const lowerFavNames = favoriteGenres.map((g) => {
-      const meta = GENRE_MAP[g];
-      return meta ? meta.name.toLowerCase() : g.replace(/^[^\w\s]+/g, "").trim().toLowerCase();
-    });
-
-    const matches = allMovies.filter((movie) => {
-      if (!movie) return false;
-      const categories = (movie.category || []).map((c: { name: string }) =>
-        (c.name || "").toLowerCase()
-      );
-      const title = (movie.name || movie.title || "").toLowerCase();
-
-      return lowerFavNames.some(
-        (fav) => categories.some((cat: string) => cat.includes(fav) || fav.includes(cat)) || title.includes(fav)
-      );
-    });
-
-    return matches.length > 0 ? matches : allMovies.slice(0, 12);
-  }, [activeTab, allMovies, favoriteGenres, genreFetchedMovies]);
+  const favoriteGenres = React.useMemo(() => {
+    const list = profile?.favoriteGenres || [];
+    // Giới hạn tối đa 5 hàng cho 5 thể loại yêu thích
+    return list.slice(0, 5);
+  }, [profile?.favoriteGenres]);
 
   // Nếu người dùng chưa chọn thể loại yêu thích -> Hiện Banner gợi ý cài đặt
   if (!favoriteGenres || favoriteGenres.length === 0) {
@@ -169,7 +314,7 @@ function PersonalizedGenreSectionInner({ allMovies = [] }: PersonalizedGenreSect
               <Sparkles className="w-4 h-4 text-amber-400" />
             </h4>
             <p className="text-xs text-gray-400 mt-0.5">
-              Chọn 3–5 thể loại khoái khẩu trong Hồ sơ để Nanaflix tự động ưu tiên gợi ý đúng bộ phim bạn yêu thích nhất!
+              Chọn các thể loại khoái khẩu trong Hồ sơ để Nanaflix tự động xếp các hàng phim theo đúng sở thích của bạn!
             </p>
           </div>
         </div>
@@ -188,170 +333,54 @@ function PersonalizedGenreSectionInner({ allMovies = [] }: PersonalizedGenreSect
     );
   }
 
-  const activeGenreMeta = activeTab !== "ALL" ? GENRE_MAP[activeTab] : null;
-  const viewAllUrl = activeGenreMeta
-    ? activeGenreMeta.isType
-      ? `/browse?type=${activeGenreMeta.slug}`
-      : `/browse?category=${activeGenreMeta.slug}`
-    : `/browse`;
-
   return (
-    <div className="w-full my-6 sm:my-8 space-y-3.5 bg-gradient-to-b from-zinc-950/80 to-transparent p-4 sm:p-5 rounded-2xl border border-white/10 shadow-2xl">
-      {/* HEADER ROW */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
+    <div className="w-full my-6 sm:my-8 space-y-4 bg-gradient-to-b from-zinc-950/90 via-zinc-950/60 to-transparent p-4 sm:p-6 rounded-3xl border border-white/10 shadow-2xl">
+      {/* HEADER SECTION TỔNG QUAN */}
+      <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-3.5">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-rose-600/30 to-amber-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400 shadow-md">
-            <Sparkles className="w-4 h-4 text-amber-400" />
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-br from-rose-600/30 to-amber-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400 shadow-md flex-shrink-0">
+            <Sparkles className="w-5 h-5 text-amber-400" />
           </div>
           <div>
             <h3 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
-              <span>Gợi Ý Đúng Gu Của Bạn</span>
+              <span>Tuyển Tập Phim Đúng Gu Của Bạn</span>
             </h3>
             <p className="text-xs text-gray-400">
-              {activeTab === "ALL"
-                ? `Tổng hợp phim đúng với ${favoriteGenres.length} thể loại bạn thích`
-                : `Danh sách phim thể loại ${activeGenreMeta?.name || activeTab}`}
+              Tự động phân loại thành {favoriteGenres.length} hàng phim theo các thể loại bạn quan tâm nhất
             </p>
           </div>
         </div>
 
-        {/* NÚT ĐỔI GU PHIM & XEM TẤT CẢ PHIM THEO THỂ LOẠI */}
-        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap justify-between sm:justify-end w-full sm:w-auto">
-          {activeTab !== "ALL" && activeGenreMeta && (
-            <Link
-              href={viewAllUrl}
-              className="px-2.5 py-1.5 rounded-xl bg-netflix-red/20 border border-netflix-red/40 text-rose-300 hover:bg-netflix-red hover:text-white text-[11.5px] sm:text-xs font-bold transition flex items-center gap-1 cursor-pointer"
-            >
-              <span>Xem tất cả <span className="hidden sm:inline">phim {activeGenreMeta.name}</span></span>
-              <ExternalLink className="w-3.5 h-3.5" />
-            </Link>
-          )}
-
-          <button
-            type="button"
-            onClick={() => {
-              window.dispatchEvent(new CustomEvent("open-user-profile"));
-            }}
-            className="text-[11.5px] sm:text-xs text-gray-300 hover:text-white flex items-center gap-1 font-semibold transition cursor-pointer bg-white/5 hover:bg-white/10 px-2.5 py-1.5 rounded-xl border border-white/10 ml-auto sm:ml-0 flex-shrink-0"
-          >
-            <span>Đổi gu phim</span>
-            <ChevronRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </div>
-
-      {/* TABS CHỌN THỂ LOẠI NHANH */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+        {/* NÚT ĐỔI GU PHIM */}
         <button
           type="button"
-          onClick={() => setActiveTab("ALL")}
-          className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex-shrink-0 cursor-pointer border ${
-            activeTab === "ALL"
-              ? "bg-netflix-red text-white border-rose-500 shadow-md shadow-rose-950/50"
-              : "bg-zinc-900 text-gray-400 hover:text-white border-white/10 hover:border-white/25"
-          }`}
+          onClick={() => {
+            window.dispatchEvent(new CustomEvent("open-user-profile"));
+          }}
+          className="text-xs text-gray-300 hover:text-white flex items-center gap-1.5 font-semibold transition cursor-pointer bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-xl border border-white/10 flex-shrink-0"
         >
-          ✨ Tất Cả Gu ({favoriteGenres.length})
+          <SlidersHorizontal className="w-3.5 h-3.5 text-netflix-red" />
+          <span>Đổi gu phim</span>
         </button>
+      </div>
 
-        {favoriteGenres.map((g) => {
-          const isSelected = activeTab === g;
+      {/* HIỂN THỊ TỐI ĐA 5 HÀNG THỂ LOẠI (NETFLIX MULTI-ROW STYLE) */}
+      <div className="space-y-4 divide-y divide-white/5">
+        {favoriteGenres.map((genreLabel) => {
+          const meta = GENRE_MAP[genreLabel] || {
+            slug: genreLabel.replace(/^[^\w\s]+/g, "").trim().toLowerCase(),
+            name: genreLabel.replace(/^[^\w\s]+/g, "").trim(),
+          };
+
           return (
-            <button
-              key={g}
-              type="button"
-              onClick={() => setActiveTab(g)}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex-shrink-0 cursor-pointer border ${
-                isSelected
-                  ? "bg-netflix-red text-white border-rose-500 shadow-md shadow-rose-950/50 scale-102"
-                  : "bg-zinc-900 text-gray-400 hover:text-white border-white/10 hover:border-white/25"
-              }`}
-            >
-              {g}
-            </button>
+            <SingleGenreRow
+              key={genreLabel}
+              genreLabel={genreLabel}
+              meta={meta}
+              initialMovies={allMovies}
+            />
           );
         })}
-      </div>
-
-      {/* HORIZONTAL CAROUSEL SLIDER (Gọn gàng 1 hàng mượt mà) */}
-      <div className="relative group/carousel">
-        {/* NÚT CUỘN TRÁI */}
-        <button
-          type="button"
-          onClick={() => scroll("left")}
-          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-black/80 border border-white/20 text-white flex items-center justify-center shadow-2xl opacity-0 group-hover/carousel:opacity-100 transition-opacity hover:scale-110 cursor-pointer backdrop-blur-md"
-        >
-          <ChevronLeft className="w-5 h-5" />
-        </button>
-
-        {/* NÚT CUỘN PHẢI */}
-        <button
-          type="button"
-          onClick={() => scroll("right")}
-          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-black/80 border border-white/20 text-white flex items-center justify-center shadow-2xl opacity-0 group-hover/carousel:opacity-100 transition-opacity hover:scale-110 cursor-pointer backdrop-blur-md"
-        >
-          <ChevronRight className="w-5 h-5" />
-        </button>
-
-        {loadingGenre ? (
-          <div className="w-full py-12 flex items-center justify-center text-xs text-rose-400 gap-2">
-            <Loader2 className="w-5 h-5 animate-spin" />
-            <span>Đang tải danh sách phim chuẩn gu...</span>
-          </div>
-        ) : displayMovies.length > 0 ? (
-          <div
-            ref={scrollContainerRef}
-            className="flex items-center gap-3.5 overflow-x-auto py-1 scrollbar-none scroll-smooth"
-          >
-            {displayMovies.map((movie) => {
-              const poster =
-                movie.poster_url || movie.poster || movie.thumb_url || "/default-poster.jpg";
-              const fullPoster = poster.startsWith("http")
-                ? poster
-                : `https://phimimg.com/${poster}`;
-
-              return (
-                <Link
-                  key={movie.slug}
-                  href={`/movies/${movie.slug}`}
-                  className="group relative flex-shrink-0 w-36 sm:w-44 rounded-xl overflow-hidden border border-white/10 bg-zinc-900 transition-all duration-300 hover:scale-105 hover:border-netflix-red/70 hover:shadow-xl hover:shadow-red-950/50"
-                >
-                  <div className="aspect-[2/3] w-full overflow-hidden relative">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={fullPoster}
-                      alt={movie.name || movie.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      loading="lazy"
-                      onError={(e) => {
-                        e.currentTarget.src = "/default-poster.jpg";
-                      }}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-85 group-hover:opacity-60 transition-opacity" />
-
-                    <span className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-netflix-red text-white text-[9.5px] font-black tracking-wider uppercase shadow-md">
-                      Chuẩn Gu
-                    </span>
-                  </div>
-
-                  <div className="p-2 sm:p-2.5 space-y-0.5">
-                    <h4 className="text-xs font-bold text-white truncate group-hover:text-rose-400 transition-colors">
-                      {movie.name || movie.title}
-                    </h4>
-                    <p className="text-[10.5px] text-gray-400 truncate">
-                      {movie.year ? `${movie.year} • ` : ""}
-                      {movie.category?.[0]?.name || "Đặc sắc"}
-                    </p>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="p-6 text-center text-xs text-gray-400">
-            Không tìm thấy phim khớp với gu phim đã chọn.
-          </div>
-        )}
       </div>
     </div>
   );
