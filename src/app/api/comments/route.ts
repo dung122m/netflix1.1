@@ -202,6 +202,7 @@ export async function POST(req: NextRequest) {
       episodeSlug,
       episodeName,
       parentId,
+      parentOwnerId,
       replyToUserId,
       replyToUserName,
     } = body;
@@ -233,6 +234,7 @@ export async function POST(req: NextRequest) {
     if (episodeSlug) docFields.episodeSlug = { stringValue: episodeSlug };
     if (episodeName) docFields.episodeName = { stringValue: episodeName };
     if (parentId) docFields.parentId = { stringValue: parentId };
+    if (parentOwnerId) docFields.parentOwnerId = { stringValue: parentOwnerId };
     if (replyToUserId) docFields.replyToUserId = { stringValue: replyToUserId };
     if (replyToUserName) docFields.replyToUserName = { stringValue: sanitizeSafeText(replyToUserName, 100) };
 
@@ -256,6 +258,35 @@ export async function POST(req: NextRequest) {
 
     const createdDoc = await res.json();
     const commentId = createdDoc.name.split("/").pop() || "";
+
+    // Tự động tạo thông báo cho người nhận (nếu có replyToUserId hoặc parentOwnerId)
+    const targetUserId = replyToUserId || (parentOwnerId && parentOwnerId !== userId ? parentOwnerId : null);
+    if (targetUserId && targetUserId !== userId) {
+      const notifDocId = `reply_${commentId || Date.now()}`;
+      const notifUrl = `${FIRESTORE_REST_BASE}/users/${targetUserId}/notifications?documentId=${notifDocId}${API_KEY ? `&key=${API_KEY}` : ""}`;
+      const cleanReplierName = sanitizeSafeText(userName || "Thành viên Nanaflix", 100);
+      const isDirect = Boolean(replyToUserId);
+      const notifPayload = {
+        fields: {
+          id: { stringValue: notifDocId },
+          type: { stringValue: "comment_reply" },
+          title: { stringValue: isDirect ? `${cleanReplierName} đã trả lời bình luận của bạn` : `${cleanReplierName} đã bình luận trong bài đánh giá của bạn` },
+          message: { stringValue: sanitizeSafeText(content, 200) },
+          link: { stringValue: `/movies/${movieSlug}?highlightComment=${commentId}#comment-${commentId}` },
+          movieSlug: { stringValue: movieSlug },
+          commentId: { stringValue: commentId },
+          replierName: { stringValue: cleanReplierName },
+          ...(userAvatar ? { replierAvatar: { stringValue: userAvatar } } : {}),
+          isRead: { booleanValue: false },
+          createdAt: { integerValue: Date.now() },
+        }
+      };
+      fetch(notifUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(notifPayload),
+      }).catch((e) => console.warn("Lỗi tạo thông báo server:", e));
+    }
 
     return NextResponse.json({ success: true, id: commentId });
   } catch (error) {

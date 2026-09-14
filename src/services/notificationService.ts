@@ -8,6 +8,9 @@ import {
   updateDoc,
   onSnapshot,
   writeBatch,
+  query,
+  where,
+  limit,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { FollowedSeries, UserNotification } from "@/types/notification";
@@ -192,6 +195,7 @@ export function subscribeUserNotifications(
   }
 
   let isUnsubscribed = false;
+  const unsubs: Array<() => void> = [];
 
   // 1. Phục hồi ngay lập tức thông báo từ LocalStorage (0ms)
   const cached = getLocalNotifications(userId);
@@ -199,7 +203,18 @@ export function subscribeUserNotifications(
     callback(cached);
   }
 
-  // 2. Lắng nghe CustomEvent khi có cập nhật đánh dấu đã đọc từ bất kỳ component nào
+  const dispatchUpdate = (incoming: UserNotification[]) => {
+    if (isUnsubscribed) return;
+    const merged = mergeNotifications(
+      getLocalNotifications(userId),
+      incoming,
+      userId,
+    );
+    saveLocalNotifications(userId, merged);
+    callback(merged);
+  };
+
+  // 2. Lắng nghe CustomEvent khi có cập nhật từ component khác
   const handleLocalEvent = (e: Event) => {
     const customEvt = e as CustomEvent<{ userId: string; items: UserNotification[] }>;
     if (customEvt.detail && customEvt.detail.userId === userId && !isUnsubscribed) {
@@ -211,72 +226,147 @@ export function subscribeUserNotifications(
     window.addEventListener("nanaflix-notifications-updated", handleLocalEvent);
   }
 
-  // 3. Nạp danh sách thông báo từ Server API dự phòng
-  fetch(`/api/notifications?userId=${encodeURIComponent(userId)}`)
-    .then((res) => res.json())
-    .then((json) => {
-      if (json.items && Array.isArray(json.items) && !isUnsubscribed) {
-        const merged = mergeNotifications(
-          getLocalNotifications(userId),
-          json.items as UserNotification[],
-          userId,
-        );
-        saveLocalNotifications(userId, merged);
-        callback(merged);
-      }
-    })
-    .catch(() => {});
-
-  if (!db) {
-    return () => {
-      isUnsubscribed = true;
-      if (typeof window !== "undefined") {
-        window.removeEventListener("nanaflix-notifications-updated", handleLocalEvent);
-      }
-    };
-  }
-
-  try {
-    const col = collection(db, "users", userId, "notifications");
-    const unsubscribe = onSnapshot(
-      col,
-      (snapshot) => {
-        if (isUnsubscribed) return;
-        const list: UserNotification[] = [];
-        snapshot.forEach((d) => {
-          const item = { id: d.id, ...d.data() } as UserNotification;
-          list.push(item);
-        });
-
-        if (list.length > 0) {
-          const merged = mergeNotifications(getLocalNotifications(userId), list, userId);
-          saveLocalNotifications(userId, merged);
-          callback(merged);
-        } else {
-          const cur = getLocalNotifications(userId);
-          callback(cur);
+  // 3. Nạp danh sách thông báo từ Server API và poll ngầm định kỳ
+  const fetchServerNotifications = () => {
+    if (isUnsubscribed) return;
+    fetch(`/api/notifications?userId=${encodeURIComponent(userId)}`, { cache: "no-store" })
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.items && Array.isArray(json.items) && !isUnsubscribed) {
+          dispatchUpdate(json.items as UserNotification[]);
         }
-      },
-      (error) => {
-        console.warn("Lỗi realtime thông báo người dùng:", error);
-      },
-    );
-    return () => {
-      isUnsubscribed = true;
-      if (typeof window !== "undefined") {
-        window.removeEventListener("nanaflix-notifications-updated", handleLocalEvent);
-      }
-      unsubscribe();
-    };
-  } catch (err) {
-    console.warn("Lỗi khởi tạo lắng nghe thông báo:", err);
-    return () => {
-      isUnsubscribed = true;
-      if (typeof window !== "undefined") {
-        window.removeEventListener("nanaflix-notifications-updated", handleLocalEvent);
-      }
-    };
+      })
+      .catch(() => {});
+  };
+
+  fetchServerNotifications();
+  const pollInterval = setInterval(fetchServerNotifications, 8000);
+
+  if (db) {
+    try {
+      // 4. Kênh 1: Lắng nghe subcollection notifications của user
+      const col = collection(db, "users", userId, "notifications");
+      const unsub1 = onSnapshot(
+        col,
+        (snapshot) => {
+          if (isUnsubscribed) return;
+          const list: UserNotification[] = [];
+          snapshot.forEach((d) => {
+            const item = { id: d.id, ...d.data() } as UserNotification;
+            list.push(item);
+          });
+          if (list.length > 0) {
+            dispatchUpdate(list);
+          }
+        },
+        (error) => {
+          console.warn("Lỗi realtime subcollection notifications:", error);
+        },
+      );
+      unsubs.push(unsub1);
+
+      // 5. Kênh 2: Lắng nghe realtime trực tiếp từ movie_comments (khi ai đó reply trực tiếp @userId)
+      const qReplies = query(
+        collection(db, "movie_comments"),
+        where("replyToUserId", "==", userId),
+        limit(50),
+      );
+      const unsub2 = onSnapshot(
+        qReplies,
+        (snapshot) => {
+          if (isUnsubscribed) return;
+          const lastRead = getLastReadTimestamp(userId);
+          const list: UserNotification[] = [];
+          snapshot.forEach((d) => {
+            const data = d.data();
+            if (data.userId === userId) return; // Không tự thông báo cho chính mình
+            const cId = d.id;
+            const cCreatedAt = Number(data.createdAt) || Date.now();
+            const notifItem: UserNotification = {
+              id: `reply_direct_${cId}`,
+              type: "comment_reply",
+              title: `${data.userName || "Thành viên"} đã trả lời bình luận của bạn`,
+              message:
+                data.content && data.content.length > 80
+                  ? data.content.slice(0, 80) + "..."
+                  : data.content || "",
+              link: `/movies/${data.movieSlug}?highlightComment=${cId}#comment-${cId}`,
+              movieSlug: data.movieSlug,
+              commentId: cId,
+              replierName: data.userName,
+              replierAvatar: data.userAvatar,
+              isRead: Boolean(lastRead > 0 && cCreatedAt <= lastRead),
+              createdAt: cCreatedAt,
+            };
+            list.push(notifItem);
+          });
+          if (list.length > 0) {
+            dispatchUpdate(list);
+          }
+        },
+        (error) => {
+          console.warn("Lỗi realtime replyToUserId movie_comments:", error);
+        },
+      );
+      unsubs.push(unsub2);
+
+      // 6. Kênh 3: Lắng nghe realtime từ movie_comments khi ai đó reply vào bài đánh giá gốc (parentOwnerId == userId)
+      const qParentOwner = query(
+        collection(db, "movie_comments"),
+        where("parentOwnerId", "==", userId),
+        limit(50),
+      );
+      const unsub3 = onSnapshot(
+        qParentOwner,
+        (snapshot) => {
+          if (isUnsubscribed) return;
+          const lastRead = getLastReadTimestamp(userId);
+          const list: UserNotification[] = [];
+          snapshot.forEach((d) => {
+            const data = d.data();
+            if (data.userId === userId) return;
+            const cId = d.id;
+            const cCreatedAt = Number(data.createdAt) || Date.now();
+            const notifItem: UserNotification = {
+              id: `reply_root_${cId}`,
+              type: "comment_reply",
+              title: `${data.userName || "Thành viên"} đã bình luận trong bài đánh giá của bạn`,
+              message:
+                data.content && data.content.length > 80
+                  ? data.content.slice(0, 80) + "..."
+                  : data.content || "",
+              link: `/movies/${data.movieSlug}?highlightComment=${cId}#comment-${cId}`,
+              movieSlug: data.movieSlug,
+              commentId: cId,
+              replierName: data.userName,
+              replierAvatar: data.userAvatar,
+              isRead: Boolean(lastRead > 0 && cCreatedAt <= lastRead),
+              createdAt: cCreatedAt,
+            };
+            list.push(notifItem);
+          });
+          if (list.length > 0) {
+            dispatchUpdate(list);
+          }
+        },
+        (error) => {
+          console.warn("Lỗi realtime parentOwnerId movie_comments:", error);
+        },
+      );
+      unsubs.push(unsub3);
+    } catch (err) {
+      console.warn("Lỗi khởi tạo listener thông báo:", err);
+    }
   }
+
+  return () => {
+    isUnsubscribed = true;
+    clearInterval(pollInterval);
+    if (typeof window !== "undefined") {
+      window.removeEventListener("nanaflix-notifications-updated", handleLocalEvent);
+    }
+    unsubs.forEach((u) => u());
+  };
 }
 
 /**
