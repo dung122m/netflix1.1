@@ -23,6 +23,15 @@ const MAX_ITEMS = 30;
 // Debounce map để hạn chế số lần ghi Firestore khi người dùng đang xem phim liên tục
 const cloudSaveTimers = new Map<string, NodeJS.Timeout>();
 
+// Helper bọc Promise với timeout chống treo khi bị AdBlock chặn Firestore
+async function withTimeout<T>(promise: Promise<T>, timeoutMs = 2500): Promise<T> {
+  let timer: NodeJS.Timeout;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error("Firestore sync timeout")), timeoutMs);
+  });
+  return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timer));
+}
+
 // Lọc bỏ các thuộc tính undefined vì Firestore không chấp nhận giá trị undefined
 function cleanFirestoreData<T extends object>(data: T): Record<string, unknown> {
   const cleaned: Record<string, unknown> = {};
@@ -46,7 +55,7 @@ export async function syncWatchHistoryWithCloud(
 
   try {
     const historyCol = collection(firestore, "users", userId, "watch_history");
-    const snapshot = await getDocs(historyCol);
+    const snapshot = await withTimeout(getDocs(historyCol), 2500);
 
     const cloudMap = new Map<string, WatchHistoryItem>();
     snapshot.forEach((docSnap) => {
@@ -171,7 +180,7 @@ export async function syncWatchlistWithCloud(
 
   try {
     const watchlistCol = collection(firestore, "users", userId, "watchlist");
-    const snapshot = await getDocs(watchlistCol);
+    const snapshot = await withTimeout(getDocs(watchlistCol), 2500);
 
     const cloudMap = new Map<string, WatchlistItem>();
     snapshot.forEach((docSnap) => {

@@ -54,9 +54,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!user) return;
     setIsSyncing(true);
     try {
-      await Promise.all([
-        syncWatchHistoryWithCloud(user.uid),
-        syncWatchlistWithCloud(user.uid),
+      await Promise.race([
+        Promise.all([
+          syncWatchHistoryWithCloud(user.uid),
+          syncWatchlistWithCloud(user.uid),
+        ]),
+        new Promise((resolve) => setTimeout(resolve, 3000)),
       ]);
     } catch (err) {
       console.warn("Lỗi sync thủ công:", err);
@@ -78,10 +81,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       if (currentUser) {
         setIsSyncing(true);
         try {
-          await Promise.all([
-            syncWatchHistoryWithCloud(currentUser.uid),
-            syncWatchlistWithCloud(currentUser.uid),
-            recordUserProfile(currentUser),
+          await Promise.race([
+            Promise.all([
+              syncWatchHistoryWithCloud(currentUser.uid),
+              syncWatchlistWithCloud(currentUser.uid),
+              recordUserProfile(currentUser),
+            ]),
+            new Promise((resolve) => setTimeout(resolve, 3000)),
           ]);
         } catch (err) {
           console.warn("Lỗi tự động sync khi đăng nhập:", err);
