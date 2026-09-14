@@ -98,7 +98,7 @@ const NavbarInner: React.FC = () => {
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
 
   const [showNotifications, setShowNotifications] = useState(false);
-  const [hasUnread, setHasUnread] = useState(true);
+  const [hasUnread, setHasUnread] = useState(false);
   const [showHotkeyModal, setShowHotkeyModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
@@ -1016,14 +1016,24 @@ const NavbarInner: React.FC = () => {
                     >
                       <RefreshCw size={13} className={loadingNotifications ? "animate-spin text-netflix-red" : ""} />
                     </button>
-                    {user && userUnreadCount > 0 && (
+                    {user && (
                       <button
                         type="button"
-                        onClick={() => markAllNotificationsAsRead(user.uid)}
-                        className="text-[11px] text-gray-400 hover:text-emerald-400 flex items-center gap-1 transition cursor-pointer hover:underline"
+                        onClick={async () => {
+                          setUserNotifications((prev) =>
+                            prev.map((item) => ({ ...item, isRead: true }))
+                          );
+                          setHasUnread(false);
+                          await markAllNotificationsAsRead(user.uid);
+                        }}
+                        className={`text-[11px] flex items-center gap-1 transition cursor-pointer hover:underline ${
+                          userUnreadCount > 0
+                            ? "text-gray-300 hover:text-emerald-400 font-semibold"
+                            : "text-gray-500 hover:text-gray-400"
+                        }`}
                         title="Đánh dấu tất cả đã đọc"
                       >
-                        <CheckCheck size={13} className="text-emerald-400" />
+                        <CheckCheck size={13} className={userUnreadCount > 0 ? "text-emerald-400" : "text-gray-500"} />
                         <span>Đã đọc hết</span>
                       </button>
                     )}
@@ -1082,7 +1092,12 @@ const NavbarInner: React.FC = () => {
                       <div
                         key={item.id}
                         onClick={() => {
-                          if (user) markNotificationAsRead(user.uid, item.id);
+                          if (user) {
+                            setUserNotifications((prev) =>
+                              prev.map((n) => (n.id === item.id ? { ...n, isRead: true } : n))
+                            );
+                            markNotificationAsRead(user.uid, item.id);
+                          }
                           setShowNotifications(false);
                           const targetLink =
                             item.link ||

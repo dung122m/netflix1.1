@@ -29,7 +29,7 @@ function parseFirestoreDoc(doc: { name: string; fields?: Record<string, Firestor
 /**
  * GET /api/notifications
  * - Không có userId: Trả về danh sách thông báo hệ thống / phim mới cập nhật / sự kiện hot
- * - Có userId: Lấy danh sách thông báo cá nhân (phản hồi bình luận, tập mới phim theo dõi)
+ * - Có userId: Lấy danh sách thông báo cá nhân (kết hợp subcollection & truy quét từ movie_comments)
  */
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -38,7 +38,6 @@ export async function GET(req: NextRequest) {
   // 1. Trường hợp không có userId: Trả về thông báo hệ thống & phim mới cập nhật
   if (!userId) {
     try {
-      // Lấy danh sách phim mới cập nhật từ upstream API
       const upstreamRes = await fetch("https://phimapi.com/danh-sach/phim-moi-cap-nhat?page=1", {
         next: { revalidate: 300 }, // Cache 5 phút
       });
@@ -105,11 +104,24 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // 2. Trường hợp có userId: Lấy thông báo cá nhân (kết hợp subcollection & truy quét từ movie_comments)
+  // 2. Trường hợp có userId: Lấy thông báo cá nhân
   try {
     const authHeader = req.headers.get("authorization");
     const headers: Record<string, string> = {};
     if (authHeader) headers["Authorization"] = authHeader;
+
+    let lastReadNotificationsAt = 0;
+
+    // 2.0 Lấy mốc lastReadNotificationsAt từ user profile
+    try {
+      const userDocUrl = `${FIRESTORE_REST_BASE}/users/${userId}${API_KEY ? `&key=${API_KEY}` : ""}`;
+      const userRes = await fetch(userDocUrl, { headers, cache: "no-store" });
+      if (userRes.ok) {
+        const userDoc = await userRes.json();
+        const userData = parseFirestoreDoc(userDoc);
+        lastReadNotificationsAt = Number(userData.lastReadNotificationsAt) || 0;
+      }
+    } catch {}
 
     const notifMap = new Map<string, Record<string, unknown>>();
 
@@ -122,12 +134,19 @@ export async function GET(req: NextRequest) {
         const rawDocs = json.documents || [];
         const items = rawDocs.map(parseFirestoreDoc);
         items.forEach((item: Record<string, unknown>) => {
-          if (item.id) notifMap.set(String(item.id), item);
+          if (item.id) {
+            const createdAt = Number(item.createdAt) || 0;
+            const isRead = Boolean(
+              item.isRead ||
+              (lastReadNotificationsAt > 0 && createdAt <= lastReadNotificationsAt),
+            );
+            notifMap.set(String(item.id), { ...item, isRead });
+          }
         });
       }
     } catch {}
 
-    // 2.2 Quét toàn bộ phản hồi từ collection movie_comments để đảm bảo 100% không bị mất thông báo reply
+    // 2.2 Quét phản hồi từ movie_comments
     try {
       const commentsUrl = `${FIRESTORE_REST_BASE}/movie_comments?pageSize=150${API_KEY ? `&key=${API_KEY}` : ""}`;
       const commentsRes = await fetch(commentsUrl, { cache: "no-store" });
@@ -154,6 +173,7 @@ export async function GET(req: NextRequest) {
           const cUserName = String(c.userName || "Thành viên Nanaflix");
           const cUserAvatar = c.userAvatar ? String(c.userAvatar) : undefined;
           const cCreatedAt = Number(c.createdAt) || Date.now();
+          const isReadByTime = lastReadNotificationsAt > 0 && cCreatedAt <= lastReadNotificationsAt;
 
           // TH1: Được reply trực tiếp (@user)
           if (c.replyToUserId === userId) {
@@ -169,7 +189,7 @@ export async function GET(req: NextRequest) {
                 commentId: cId,
                 replierName: cUserName,
                 replierAvatar: cUserAvatar,
-                isRead: false,
+                isRead: isReadByTime,
                 createdAt: cCreatedAt,
               });
             }
@@ -188,7 +208,7 @@ export async function GET(req: NextRequest) {
                 commentId: cId,
                 replierName: cUserName,
                 replierAvatar: cUserAvatar,
-                isRead: false,
+                isRead: isReadByTime,
                 createdAt: cCreatedAt,
               });
             }
@@ -203,6 +223,62 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     console.error("Lỗi API get notifications:", error);
     return NextResponse.json({ success: true, items: [] });
+  }
+}
+
+/**
+ * PATCH /api/notifications
+ * Đánh dấu thông báo là đã đọc (hỗ trợ cả từng item hoặc toàn bộ thông báo)
+ */
+export async function PATCH(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { userId, notifId, all, timestamp } = body;
+
+    if (!userId) {
+      return NextResponse.json({ error: "Thiếu userId" }, { status: 400 });
+    }
+
+    const authHeader = req.headers.get("authorization");
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (authHeader) headers["Authorization"] = authHeader;
+
+    const readTimestamp = Number(timestamp) || Date.now();
+
+    if (all) {
+      // 1. Cập nhật mốc lastReadNotificationsAt trên User doc
+      const userUrl = `${FIRESTORE_REST_BASE}/users/${userId}?updateMask.fieldPaths=lastReadNotificationsAt${API_KEY ? `&key=${API_KEY}` : ""}`;
+      await fetch(userUrl, {
+        method: "PATCH",
+        headers,
+        body: JSON.stringify({
+          fields: {
+            lastReadNotificationsAt: { integerValue: readTimestamp },
+          },
+        }),
+      }).catch(() => {});
+
+      return NextResponse.json({ success: true, allRead: true, timestamp: readTimestamp });
+    } else if (notifId) {
+      // 2. Cập nhật doc đơn lẻ
+      const notifUrl = `${FIRESTORE_REST_BASE}/users/${userId}/notifications/${notifId}?updateMask.fieldPaths=isRead${API_KEY ? `&key=${API_KEY}` : ""}`;
+      await fetch(notifUrl, {
+        method: "PATCH",
+        headers,
+        body: JSON.stringify({
+          fields: {
+            isRead: { booleanValue: true },
+          },
+        }),
+      }).catch(() => {});
+
+      return NextResponse.json({ success: true, notifId, isRead: true });
+    }
+
+    return NextResponse.json({ error: "Tham số không hợp lệ" }, { status: 400 });
+  } catch (error) {
+    console.error("Lỗi API PATCH notifications:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
 

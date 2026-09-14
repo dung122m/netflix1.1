@@ -23,6 +23,28 @@ function cleanData<T extends object>(data: T): Record<string, unknown> {
 }
 
 /**
+ * Lấy mốc thời gian đã đọc hết thông báo từ LocalStorage
+ */
+export function getLastReadTimestamp(userId: string): number {
+  if (typeof window === "undefined" || !userId) return 0;
+  try {
+    const raw = localStorage.getItem(`nanaflix_notifs_last_read_${userId}`);
+    if (raw) return Number(raw) || 0;
+  } catch {}
+  return 0;
+}
+
+/**
+ * Lưu mốc thời gian đã đọc hết thông báo vào LocalStorage
+ */
+export function setLastReadTimestamp(userId: string, ts: number): void {
+  if (typeof window === "undefined" || !userId) return;
+  try {
+    localStorage.setItem(`nanaflix_notifs_last_read_${userId}`, String(ts));
+  } catch {}
+}
+
+/**
  * Kiểm tra xem người dùng có đang theo dõi phim bộ này không
  */
 export async function isFollowingSeries(
@@ -96,13 +118,22 @@ export async function getFollowedSeriesList(
 /**
  * Lấy danh sách thông báo từ bộ nhớ đệm LocalStorage
  */
-function getLocalNotifications(userId: string): UserNotification[] {
+export function getLocalNotifications(userId: string): UserNotification[] {
   if (typeof window === "undefined" || !userId) return [];
+  const lastRead = getLastReadTimestamp(userId);
   try {
     const raw = localStorage.getItem(`nanaflix_notifs_${userId}`);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed;
+      if (Array.isArray(parsed)) {
+        return parsed.map((item) => ({
+          ...item,
+          isRead: Boolean(
+            item.isRead ||
+            (lastRead > 0 && (item.createdAt || 0) <= lastRead),
+          ),
+        }));
+      }
     }
   } catch {}
   return [];
@@ -111,7 +142,7 @@ function getLocalNotifications(userId: string): UserNotification[] {
 /**
  * Lưu danh sách thông báo vào bộ nhớ đệm LocalStorage
  */
-function saveLocalNotifications(userId: string, items: UserNotification[]): void {
+export function saveLocalNotifications(userId: string, items: UserNotification[]): void {
   if (typeof window === "undefined" || !userId) return;
   try {
     localStorage.setItem(`nanaflix_notifs_${userId}`, JSON.stringify(items.slice(0, 50)));
@@ -121,25 +152,35 @@ function saveLocalNotifications(userId: string, items: UserNotification[]): void
 /**
  * Hợp nhất danh sách thông báo mới với danh sách cũ theo id
  */
-function mergeNotifications(
+export function mergeNotifications(
   current: UserNotification[],
   incoming: UserNotification[],
+  userId?: string,
 ): UserNotification[] {
+  const lastRead = userId ? getLastReadTimestamp(userId) : 0;
   const map = new Map<string, UserNotification>();
   current.forEach((item) => map.set(item.id, item));
   incoming.forEach((item) => {
     const existing = map.get(item.id);
+    const isAutoRead = lastRead > 0 && (item.createdAt || 0) <= lastRead;
     if (existing) {
-      map.set(item.id, { ...existing, ...item, isRead: existing.isRead || item.isRead });
+      map.set(item.id, {
+        ...existing,
+        ...item,
+        isRead: Boolean(existing.isRead || item.isRead || isAutoRead),
+      });
     } else {
-      map.set(item.id, item);
+      map.set(item.id, {
+        ...item,
+        isRead: Boolean(item.isRead || isAutoRead),
+      });
     }
   });
   return Array.from(map.values()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 }
 
 /**
- * Lắng nghe thông báo thời gian thực từ Firestore (onSnapshot) + Local Storage Cache
+ * Lắng nghe thông báo thời gian thực từ Firestore (onSnapshot) + Local Storage Cache + Custom Event
  */
 export function subscribeUserNotifications(
   userId: string,
@@ -152,18 +193,34 @@ export function subscribeUserNotifications(
 
   let isUnsubscribed = false;
 
-  // 1. Phục hồi ngay lập tức thông báo từ LocalStorage (0ms - không lo gián đoạn mạng hay reload trang)
+  // 1. Phục hồi ngay lập tức thông báo từ LocalStorage (0ms)
   const cached = getLocalNotifications(userId);
   if (cached.length > 0) {
     callback(cached);
   }
 
-  // 2. Nạp ngay danh sách thông báo từ Server API dự phòng
+  // 2. Lắng nghe CustomEvent khi có cập nhật đánh dấu đã đọc từ bất kỳ component nào
+  const handleLocalEvent = (e: Event) => {
+    const customEvt = e as CustomEvent<{ userId: string; items: UserNotification[] }>;
+    if (customEvt.detail && customEvt.detail.userId === userId && !isUnsubscribed) {
+      callback(customEvt.detail.items);
+    }
+  };
+
+  if (typeof window !== "undefined") {
+    window.addEventListener("nanaflix-notifications-updated", handleLocalEvent);
+  }
+
+  // 3. Nạp danh sách thông báo từ Server API dự phòng
   fetch(`/api/notifications?userId=${encodeURIComponent(userId)}`)
     .then((res) => res.json())
     .then((json) => {
       if (json.items && Array.isArray(json.items) && !isUnsubscribed) {
-        const merged = mergeNotifications(getLocalNotifications(userId), json.items as UserNotification[]);
+        const merged = mergeNotifications(
+          getLocalNotifications(userId),
+          json.items as UserNotification[],
+          userId,
+        );
         saveLocalNotifications(userId, merged);
         callback(merged);
       }
@@ -173,6 +230,9 @@ export function subscribeUserNotifications(
   if (!db) {
     return () => {
       isUnsubscribed = true;
+      if (typeof window !== "undefined") {
+        window.removeEventListener("nanaflix-notifications-updated", handleLocalEvent);
+      }
     };
   }
 
@@ -189,17 +249,12 @@ export function subscribeUserNotifications(
         });
 
         if (list.length > 0) {
-          const merged = mergeNotifications(getLocalNotifications(userId), list);
+          const merged = mergeNotifications(getLocalNotifications(userId), list, userId);
           saveLocalNotifications(userId, merged);
           callback(merged);
         } else {
-          // Giữ lại cache local nếu snapshot trống (tránh bị reset khi chưa kịp sync)
           const cur = getLocalNotifications(userId);
-          if (cur.length > 0) {
-            callback(cur);
-          } else {
-            callback([]);
-          }
+          callback(cur);
         }
       },
       (error) => {
@@ -208,18 +263,24 @@ export function subscribeUserNotifications(
     );
     return () => {
       isUnsubscribed = true;
+      if (typeof window !== "undefined") {
+        window.removeEventListener("nanaflix-notifications-updated", handleLocalEvent);
+      }
       unsubscribe();
     };
   } catch (err) {
     console.warn("Lỗi khởi tạo lắng nghe thông báo:", err);
     return () => {
       isUnsubscribed = true;
+      if (typeof window !== "undefined") {
+        window.removeEventListener("nanaflix-notifications-updated", handleLocalEvent);
+      }
     };
   }
 }
 
 /**
- * Đánh dấu thông báo là đã đọc
+ * Đánh dấu 1 thông báo là đã đọc
  */
 export async function markNotificationAsRead(
   userId: string,
@@ -227,19 +288,40 @@ export async function markNotificationAsRead(
 ): Promise<void> {
   if (!userId || !notificationId) return;
 
-  // 1. Cập nhật ngay trong LocalStorage
+  // 1. Cập nhật ngay trong LocalStorage & Broadcast 0ms
   const list = getLocalNotifications(userId);
-  const updated = list.map((item) => (item.id === notificationId ? { ...item, isRead: true } : item));
+  const updated = list.map((item) =>
+    item.id === notificationId ? { ...item, isRead: true } : item,
+  );
   saveLocalNotifications(userId, updated);
 
-  // 2. Cập nhật Firestore
-  if (!db) return;
-  try {
-    const ref = doc(db, "users", userId, "notifications", notificationId);
-    await updateDoc(ref, { isRead: true });
-  } catch (err) {
-    console.warn("Lỗi đánh dấu đã đọc thông báo:", err);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent("nanaflix-notifications-updated", {
+        detail: { userId, items: updated },
+      }),
+    );
   }
+
+  // 2. Cập nhật Firestore (dùng setDoc merge để tạo doc nếu chưa có)
+  const firestore = db;
+  if (firestore) {
+    try {
+      const ref = doc(firestore, "users", userId, "notifications", notificationId);
+      await setDoc(ref, { isRead: true }, { merge: true });
+    } catch (err) {
+      console.warn("Lỗi đánh dấu đã đọc thông báo qua Firestore:", err);
+    }
+  }
+
+  // 3. Fallback Server API PATCH
+  try {
+    fetch("/api/notifications", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, notifId: notificationId }),
+    }).catch(() => {});
+  } catch {}
 }
 
 /**
@@ -250,26 +332,65 @@ export async function markAllNotificationsAsRead(
 ): Promise<void> {
   if (!userId) return;
 
-  // 1. Cập nhật ngay trong LocalStorage
+  const now = Date.now();
+  setLastReadTimestamp(userId, now);
+
+  // 1. Cập nhật ngay trong LocalStorage & Broadcast 0ms
   const list = getLocalNotifications(userId);
   const updated = list.map((item) => ({ ...item, isRead: true }));
   saveLocalNotifications(userId, updated);
 
-  // 2. Cập nhật Firestore
-  if (!db) return;
-  try {
-    const col = collection(db, "users", userId, "notifications");
-    const snapshot = await getDocs(col);
-    const batch = writeBatch(db);
-    snapshot.forEach((d) => {
-      if (!d.data().isRead) {
-        batch.update(d.ref, { isRead: true });
-      }
-    });
-    await batch.commit();
-  } catch (err) {
-    console.warn("Lỗi đánh dấu đã đọc tất cả thông báo:", err);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent("nanaflix-notifications-updated", {
+        detail: { userId, items: updated },
+      }),
+    );
   }
+
+  // 2. Cập nhật Firestore (Cập nhật cả user doc lastReadNotificationsAt và các doc con)
+  const firestore = db;
+  if (firestore) {
+    try {
+      // Cập nhật timestamp trên user profile
+      const userRef = doc(firestore, "users", userId);
+      await setDoc(userRef, { lastReadNotificationsAt: now }, { merge: true });
+
+      // Cập nhật tất cả docs trong notifications
+      const col = collection(firestore, "users", userId, "notifications");
+      const snapshot = await getDocs(col);
+      if (!snapshot.empty) {
+        const batch = writeBatch(firestore);
+        snapshot.forEach((d) => {
+          if (!d.data().isRead) {
+            batch.set(d.ref, { isRead: true }, { merge: true });
+          }
+        });
+        await batch.commit();
+      }
+
+      // Lưu lại trạng thái đã đọc cho các thông báo hiện có trong list
+      if (updated.length > 0) {
+        const batch2 = writeBatch(firestore);
+        updated.forEach((item) => {
+          const itemRef = doc(firestore, "users", userId, "notifications", item.id);
+          batch2.set(itemRef, { isRead: true }, { merge: true });
+        });
+        await batch2.commit().catch(() => {});
+      }
+    } catch (err) {
+      console.warn("Lỗi đánh dấu đã đọc tất cả thông báo qua Firestore:", err);
+    }
+  }
+
+  // 3. Fallback Server API PATCH
+  try {
+    fetch("/api/notifications", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, all: true, timestamp: now }),
+    }).catch(() => {});
+  } catch {}
 }
 
 /**
@@ -284,6 +405,14 @@ export async function deleteNotification(
   const list = getLocalNotifications(userId);
   const updated = list.filter((item) => item.id !== notificationId);
   saveLocalNotifications(userId, updated);
+
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent("nanaflix-notifications-updated", {
+        detail: { userId, items: updated },
+      }),
+    );
+  }
 
   if (!db) return;
   try {
