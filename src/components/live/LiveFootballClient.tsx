@@ -375,18 +375,17 @@ export function LiveFootballClient({
             <div className="flex items-center gap-2 mb-2">
               <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-netflix-red/20 border border-netflix-red/40 text-netflix-red text-xs font-bold animate-pulse">
                 <Radio className="w-3.5 h-3.5" />
-                <span>LIVE SPORTS</span>
+                <span>NANA SPORTS LIVE</span>
               </span>
-              <span className="text-xs text-gray-400 font-medium">
-                Cập nhật trực tiếp từ M3U
+              <span className="text-xs text-emerald-400 font-medium bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+                Full HD • Tốc độ cao
               </span>
             </div>
             <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight">
-              Trực Tiếp Bóng Đá HD
+              Trực Tiếp Bóng Đá & Thể Thao
             </h1>
             <p className="text-sm text-gray-400 mt-2">
-              Phát sóng trực tiếp các trận đấu đỉnh cao kèm Bình luận tiếng Việt
-              từ Xôi Lạc, Cola TV, Gà Vàng, Socolive...
+              Phát sóng trực tiếp các trận cầu tâm điểm kèm Bình luận viên Tiếng Việt. Trải nghiệm mượt mà, không giật lag.
             </p>
           </div>
 

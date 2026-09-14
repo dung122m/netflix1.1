@@ -1099,7 +1099,7 @@ export function LiveTvClient({
             >
               <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-netflix-red/90 text-white text-[11px] sm:text-xs font-black shadow-lg animate-pulse backdrop-blur-md">
                 <Radio className="w-3.5 h-3.5" />
-                <span>TV LIVE</span>
+                <span>NANA TV LIVE</span>
               </span>
               <span className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/75 backdrop-blur-md border border-white/20 text-emerald-400 text-[11px] font-bold">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />

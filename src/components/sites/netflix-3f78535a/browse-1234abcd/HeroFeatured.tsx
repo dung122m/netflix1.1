@@ -248,7 +248,7 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
               <div className="mb-3 sm:mb-4 flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs md:text-sm">
                 <span className="rounded-full border border-netflix-red/40 bg-gradient-to-r from-netflix-red/30 to-rose-600/20 text-rose-300 px-2.5 sm:px-3 py-0.5 sm:py-1 font-bold text-[11px] sm:text-xs flex items-center gap-1.5 shadow-sm">
                   <Sparkles size={12} className="text-netflix-red animate-pulse" />
-                  <span>Nana Chọn Lọc • {heroType}</span>
+                  <span>Nana Tuyển Chọn • {heroType}</span>
                 </span>
                 {heroCountry && (
                   <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/15 px-2.5 sm:px-3 py-0.5 sm:py-1 text-[11px] sm:text-xs font-bold text-amber-300 shadow-sm">
@@ -312,7 +312,7 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
                     className="inline-flex items-center gap-1.5 sm:gap-2 rounded-xl border border-white/30 bg-white/15 hover:bg-white/25 px-5 sm:px-7 py-2.5 sm:py-3.5 text-xs sm:text-sm md:text-base font-semibold text-white backdrop-blur-md transition active:scale-95 cursor-pointer shadow-md"
                   >
                     <Info size={18} />
-                    Thông tin
+                    Chi tiết phim
                   </Link>
                 )}
               </div>
