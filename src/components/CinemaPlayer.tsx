@@ -611,12 +611,12 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       }
     };
 
-    // Lưu tiến độ định kỳ mỗi 5s và đồng bộ đa thiết bị mỗi 8s
+    // Lưu tiến độ định kỳ mỗi 3s và đồng bộ đa thiết bị mỗi 8s
     const handleTimeUpdateThrottled = () => {
       const now = Date.now();
-      if (now - lastProgressSaveRef.current > 5000) {
+      if (now - lastProgressSaveRef.current > 3000) {
         lastProgressSaveRef.current = now;
-        if (movieSlug && activeEpisodeSlug && video.currentTime > 5) {
+        if (movieSlug && activeEpisodeSlug && video.currentTime > 0) {
           saveWatchProgress(movieSlug, video.currentTime, video.duration, activeEpisodeSlug);
         }
       }

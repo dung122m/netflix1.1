@@ -87,6 +87,13 @@ export const saveWatchProgress = (
 
     localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
 
+    // Phát sự kiện realtime cho toàn bộ trang (nút QR xem trên điện thoại, đồng bộ...)
+    window.dispatchEvent(
+      new CustomEvent("watch-progress-updated", {
+        detail: { slug, episodeSlug, progressSeconds: Math.floor(progressSeconds) },
+      })
+    );
+
     // Tự động đồng bộ số phút lên Cloud nếu đã đăng nhập Google
     if (auth?.currentUser) {
       saveWatchItemToCloudDebounced(auth.currentUser.uid, existing, 4000);

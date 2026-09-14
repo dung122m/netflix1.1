@@ -54,8 +54,8 @@ export function MobileQrModal({
     }
   };
 
-  // Xác định chính xác số giây xem dở (ưu tiên prop từ player, sau đó từ localStorage)
-  const exactProgressSeconds = useMemo(() => {
+  // Xác định chính xác số giây xem dở (cập nhật theo thời gian thực khi player phát)
+  const [exactProgressSeconds, setExactProgressSeconds] = useState<number>(() => {
     if (propCurrentTime !== undefined && propCurrentTime > 0) {
       return Math.floor(propCurrentTime);
     }
@@ -64,7 +64,57 @@ export function MobileQrModal({
       if (saved > 0) return Math.floor(saved);
     }
     return 0;
+  });
+
+  // Đồng bộ khi propCurrentTime hoặc slug thay đổi
+  useEffect(() => {
+    if (propCurrentTime !== undefined && propCurrentTime > 0) {
+      setExactProgressSeconds(Math.floor(propCurrentTime));
+    } else if (movieSlug) {
+      const saved = getWatchProgress(movieSlug, activeEpisodeSlug);
+      setExactProgressSeconds(saved > 0 ? Math.floor(saved) : 0);
+    }
   }, [propCurrentTime, movieSlug, activeEpisodeSlug]);
+
+  // Lắng nghe sự kiện phát tiến độ xem realtime từ CinemaPlayer và localStorage
+  useEffect(() => {
+    if (!movieSlug) return;
+
+    const handleProgressUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent<{ slug?: string; episodeSlug?: string; progressSeconds?: number }>;
+      if (customEvent.detail) {
+        if (
+          (!customEvent.detail.slug || customEvent.detail.slug === movieSlug) &&
+          (!activeEpisodeSlug || !customEvent.detail.episodeSlug || customEvent.detail.episodeSlug === activeEpisodeSlug)
+        ) {
+          if (customEvent.detail.progressSeconds !== undefined) {
+            setExactProgressSeconds(Math.floor(customEvent.detail.progressSeconds));
+            return;
+          }
+        }
+      }
+      const saved = getWatchProgress(movieSlug, activeEpisodeSlug);
+      if (saved > 0) {
+        setExactProgressSeconds(Math.floor(saved));
+      }
+    };
+
+    window.addEventListener("watch-progress-updated", handleProgressUpdate);
+    window.addEventListener("watch-history-updated", handleProgressUpdate);
+
+    // Khi modal mở, tự động làm mới mốc thời gian ngay lập tức
+    if (isModalOpen) {
+      const saved = getWatchProgress(movieSlug, activeEpisodeSlug);
+      if (saved > 0) {
+        setExactProgressSeconds(Math.floor(saved));
+      }
+    }
+
+    return () => {
+      window.removeEventListener("watch-progress-updated", handleProgressUpdate);
+      window.removeEventListener("watch-history-updated", handleProgressUpdate);
+    };
+  }, [movieSlug, activeEpisodeSlug, isModalOpen]);
 
   // Xây dựng URL xem tiếp chính xác mang theo tập và số giây
   const watchUrl = useMemo(() => {
