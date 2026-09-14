@@ -18,10 +18,40 @@ export const CrossDeviceHandoffBanner: React.FC = () => {
   const [activeSession, setActiveSession] = useState<PlaybackSession | null>(null);
   const [dismissedSessionTime, setDismissedSessionTime] = useState<number>(0);
   const [currentTabId, setCurrentTabId] = useState<string>("");
+  const [isHovered, setIsHovered] = useState<boolean>(false);
+  const [progressPercent, setProgressPercent] = useState<number>(100);
 
   useEffect(() => {
     setCurrentTabId(getTabSessionId());
   }, []);
+
+  // Tự động tắt sau 10 giây nếu người dùng không tương tác (tự dừng đếm khi rê chuột vào)
+  useEffect(() => {
+    if (!activeSession) {
+      setProgressPercent(100);
+      return;
+    }
+
+    if (isHovered) return;
+
+    const DURATION = 10000; // 10 giây
+    const INTERVAL = 100;
+    let elapsed = 0;
+
+    const timer = setInterval(() => {
+      elapsed += INTERVAL;
+      const remaining = Math.max(0, 100 - (elapsed / DURATION) * 100);
+      setProgressPercent(remaining);
+
+      if (elapsed >= DURATION) {
+        clearInterval(timer);
+        setDismissedSessionTime(activeSession.updatedAt);
+        setActiveSession(null);
+      }
+    }, INTERVAL);
+
+    return () => clearInterval(timer);
+  }, [activeSession, isHovered]);
 
   useEffect(() => {
     if (!user?.uid) {
@@ -41,8 +71,8 @@ export const CrossDeviceHandoffBanner: React.FC = () => {
         return;
       }
 
-      // Chỉ hiển thị nếu phiên được cập nhật trong vòng 20 phút
-      const isRecent = Date.now() - session.updatedAt < 20 * 60 * 1000;
+      // Chỉ hiển thị nếu phiên được cập nhật trong vòng 15 phút
+      const isRecent = Date.now() - session.updatedAt < 15 * 60 * 1000;
       // Và người dùng đã xem được ít nhất 10 giây
       const hasWatchedEnough = session.currentTime > 10;
 
@@ -79,6 +109,7 @@ export const CrossDeviceHandoffBanner: React.FC = () => {
   const handleDismiss = (e: React.MouseEvent) => {
     e.stopPropagation();
     setDismissedSessionTime(activeSession.updatedAt);
+    setActiveSession(null);
   };
 
   const DeviceIcon =
@@ -93,7 +124,11 @@ export const CrossDeviceHandoffBanner: React.FC = () => {
       aria-label="Tiếp tục xem từ thiết bị khác"
       className="fixed bottom-5 right-4 sm:right-6 z-50 max-w-[390px] w-[calc(100vw-32px)] animate-in slide-in-from-bottom-5 fade-in duration-300"
     >
-      <div className="relative rounded-2xl bg-zinc-950/95 border border-white/20 p-3.5 shadow-[0_20px_50px_rgba(0,0,0,0.85)] backdrop-blur-2xl text-white overflow-hidden ring-1 ring-white/10 group">
+      <div
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        className="relative rounded-2xl bg-zinc-950/95 border border-white/20 p-3.5 shadow-[0_20px_50px_rgba(0,0,0,0.85)] backdrop-blur-2xl text-white overflow-hidden ring-1 ring-white/10 group transition-all duration-200 hover:border-white/30"
+      >
         {/* Glow ambient background */}
         <div className="absolute -top-12 -right-12 w-32 h-32 bg-netflix-red/20 rounded-full blur-2xl pointer-events-none" />
 
@@ -163,6 +198,14 @@ export const CrossDeviceHandoffBanner: React.FC = () => {
             <Play className="w-3.5 h-3.5 fill-current" />
             <span>Xem tiếp ngay</span>
           </button>
+        </div>
+
+        {/* Thanh đếm ngược tự động đóng (tự dừng khi rê chuột) */}
+        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white/5 overflow-hidden">
+          <div
+            className="h-full bg-gradient-to-r from-red-600 via-rose-500 to-amber-400 transition-[width] duration-100 ease-linear"
+            style={{ width: `${progressPercent}%` }}
+          />
         </div>
       </div>
     </aside>
