@@ -63,10 +63,13 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
     // Đọc danh sách tập đã xem của phim này
     setWatchedList(getWatchedEpisodes(movieSlug));
 
-    // Nếu có tập đang phát, tự động đánh dấu đã xem
+    // CHỈ ĐÁNH DẤU ĐÃ XEM KHI NGƯỜI DÙNG Ở LẠI TẬP NÀY TỐI THIỂU 60 GIÂY (1 PHÚT)
+    let watchTimer: NodeJS.Timeout | null = null;
     if (activeEpisodeSlug) {
-      markEpisodeAsWatched(movieSlug, activeEpisodeSlug);
-      setWatchedList(getWatchedEpisodes(movieSlug));
+      watchTimer = setTimeout(() => {
+        markEpisodeAsWatched(movieSlug, activeEpisodeSlug);
+        setWatchedList(getWatchedEpisodes(movieSlug));
+      }, 60000); // 60 giây
     }
 
     const handleUpdate = () => {
@@ -74,8 +77,10 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
     };
 
     window.addEventListener("watched-episodes-updated", handleUpdate);
-    return () =>
+    return () => {
+      if (watchTimer) clearTimeout(watchTimer);
       window.removeEventListener("watched-episodes-updated", handleUpdate);
+    };
   }, [movieSlug, activeEpisodeSlug]);
 
   // Tạo các dải tập nếu số tập > 25
@@ -182,15 +187,20 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
                     switchEpisode(tap.slug);
                   }
                 }}
-                className={`relative flex items-center justify-center text-center py-2 sm:py-2.5 px-1 rounded-lg text-xs font-semibold transition group ${
+                className={`relative flex items-center justify-center text-center py-2 sm:py-2.5 px-1 rounded-xl text-xs font-bold transition-all duration-200 group ${
                   isActive
-                    ? "bg-netflix-red text-white shadow-lg shadow-red-950/60 scale-[1.02] ring-1 ring-white/30"
+                    ? "bg-gradient-to-r from-red-600 via-netflix-red to-rose-600 text-white font-black shadow-[0_0_16px_rgba(229,9,20,0.7)] ring-2 ring-white/80 border border-white/40 scale-[1.05] z-10"
                     : isWatched
-                    ? "bg-zinc-800/60 text-gray-400 hover:bg-zinc-700 hover:text-white border border-white/5"
-                    : "bg-zinc-800 text-gray-200 hover:bg-zinc-700 hover:text-white"
+                    ? "bg-zinc-900/90 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 border border-white/10"
+                    : "bg-zinc-800 text-zinc-200 hover:bg-zinc-700 hover:text-white border border-white/5"
                 }`}
               >
-                <span className="truncate">{tap.name}</span>
+                <span className="truncate flex items-center gap-1">
+                  {isActive && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping shrink-0" />
+                  )}
+                  {tap.name}
+                </span>
 
                 {/* ICON CHECK CHO TẬP ĐÃ XEM HOẶC CHỈ BÁO TẬP ĐANG XEM */}
                 {isActive ? (
@@ -201,9 +211,9 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
                 ) : isWatched ? (
                   <span
                     title="Đã xem"
-                    className="absolute top-1 right-1 flex items-center justify-center w-3 h-3 rounded-full bg-white/10 text-green-400"
+                    className="absolute top-1 right-1 flex items-center justify-center w-3.5 h-3.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
                   >
-                    <Check className="w-2 h-2" />
+                    <Check className="w-2.5 h-2.5" />
                   </span>
                 ) : null}
               </Link>

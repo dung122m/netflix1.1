@@ -39,6 +39,13 @@ export const ResumeEpisodeBanner: React.FC<ResumeEpisodeBannerProps> = ({
         episodeName: item.episodeName,
         episodeSlug: item.episodeSlug,
       });
+
+      // Tự động ẩn thông báo sau 12 giây để không làm phiền trải nghiệm xem
+      const autoDismissTimer = setTimeout(() => {
+        setDismissed(true);
+      }, 12000);
+
+      return () => clearTimeout(autoDismissTimer);
     } else {
       setResumeData(null);
     }
