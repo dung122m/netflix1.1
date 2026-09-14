@@ -443,6 +443,13 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     video.removeAttribute("src");
     video.load();
 
+    // Xác định mốc thời gian xem dở trước khi nạp nguồn phát
+    const urlParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+    const urlTime = parseFloat(urlParams?.get("t") || "0");
+    const currentMovieSlug = watchContext?.movieSlug || propMovieSlug;
+    const savedProgress = currentMovieSlug && activeEpisodeSlug ? getWatchProgress(currentMovieSlug, activeEpisodeSlug) : 0;
+    const targetProgress = urlTime > 0 ? urlTime : (savedProgress > 3 ? savedProgress : 0);
+
     if (Hls.isSupported()) {
       const hls = new Hls({
         enableWorker: true,
@@ -452,6 +459,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         maxBufferLength: 25,             // Giữ buffer 25 giây cho độ phản hồi nhanh
         maxMaxBufferLength: 50,
         backBufferLength: 60,
+        startPosition: targetProgress > 0 ? targetProgress : -1, // Phát ngay từ mốc xem dở, chống reset về 0 khi reload
         startLevel: -1,
         autoStartLoad: true,
         abrEwmaDefaultEstimate: 5000000, // Ước lượng 5Mbps ban đầu để tránh phát 240p
@@ -476,15 +484,11 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           setQualityLevels([]);
         }
 
-        // Tự động phục hồi mốc thời gian xem dở hoặc mốc thời gian từ mã QR trên điện thoại (?t=...)
-        const urlParams = new URLSearchParams(window.location.search);
-        const urlTime = parseFloat(urlParams.get("t") || "0");
-        const movieSlug = watchContext?.movieSlug;
-        const savedProgress = movieSlug && activeEpisodeSlug ? getWatchProgress(movieSlug, activeEpisodeSlug) : 0;
-        const targetProgress = urlTime > 0 ? urlTime : (savedProgress > 15 ? savedProgress : 0);
-
+        // Đảm bảo seek tới đúng mốc thời gian xem dở
         if (targetProgress > 0) {
-          video.currentTime = targetProgress;
+          try {
+            video.currentTime = targetProgress;
+          } catch {}
           const mins = Math.floor(targetProgress / 60);
           const secs = (Math.floor(targetProgress) % 60).toString().padStart(2, "0");
           showHud(
@@ -493,8 +497,8 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
               ? `Xem tiếp từ điện thoại: ${mins}:${secs}`
               : `Tiếp tục xem từ ${mins}:${secs}`
           );
-          if (movieSlug && activeEpisodeSlug) {
-            saveWatchProgress(movieSlug, targetProgress, video.duration || 0, activeEpisodeSlug);
+          if (currentMovieSlug && activeEpisodeSlug) {
+            saveWatchProgress(currentMovieSlug, targetProgress, video.duration || 0, activeEpisodeSlug);
           }
         }
 
@@ -509,6 +513,16 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
             });
         }
       });
+
+      // Lắng nghe canplay để backup seek nếu trình duyệt bỏ qua startPosition
+      const handleCanPlayBackup = () => {
+        if (targetProgress > 0 && Math.abs(video.currentTime - targetProgress) > 3) {
+          try {
+            video.currentTime = targetProgress;
+          } catch {}
+        }
+      };
+      video.addEventListener("canplay", handleCanPlayBackup, { once: true });
 
       let retryCount = 0;
       hls.on(Hls.Events.ERROR, (_event, data) => {
@@ -537,14 +551,10 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       video.src = resolvedM3u8;
       const onLoaded = () => {
         setIsBuffering(false);
-        const urlParams = new URLSearchParams(window.location.search);
-        const urlTime = parseFloat(urlParams.get("t") || "0");
-        const movieSlug = watchContext?.movieSlug;
-        const savedProgress = movieSlug && activeEpisodeSlug ? getWatchProgress(movieSlug, activeEpisodeSlug) : 0;
-        const targetProgress = urlTime > 0 ? urlTime : (savedProgress > 15 ? savedProgress : 0);
-
         if (targetProgress > 0) {
-          video.currentTime = targetProgress;
+          try {
+            video.currentTime = targetProgress;
+          } catch {}
           const mins = Math.floor(targetProgress / 60);
           const secs = (Math.floor(targetProgress) % 60).toString().padStart(2, "0");
           showHud(
@@ -553,8 +563,8 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
               ? `Xem tiếp từ điện thoại: ${mins}:${secs}`
               : `Tiếp tục xem từ ${mins}:${secs}`
           );
-          if (movieSlug && activeEpisodeSlug) {
-            saveWatchProgress(movieSlug, targetProgress, video.duration || 0, activeEpisodeSlug);
+          if (currentMovieSlug && activeEpisodeSlug) {
+            saveWatchProgress(currentMovieSlug, targetProgress, video.duration || 0, activeEpisodeSlug);
           }
         }
         video
@@ -579,7 +589,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       video.removeAttribute("src");
       video.load();
     };
-  }, [resolvedM3u8, useIframeFallback, activeEpisodeSlug, watchContext?.movieSlug, showHud]);
+  }, [resolvedM3u8, useIframeFallback, activeEpisodeSlug, watchContext?.movieSlug, propMovieSlug, showHud]);
 
   // LẮNG NGHE SỰ KIỆN VIDEO (BUFFERING, AUTO-NEXT, LƯU TIẾN TRÌNH)
   useEffect(() => {
@@ -656,7 +666,25 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       video.removeEventListener("timeupdate", handleTimeUpdateThrottled);
       video.removeEventListener("ended", handleEnded);
     };
-  }, [nextEpisode, switchEpisode, watchContext?.movieSlug, activeEpisodeSlug, user?.uid, title, activeEpisodeName, posterUrl]);
+  }, [nextEpisode, switchEpisode, watchContext?.movieSlug, propMovieSlug, activeEpisodeSlug, user?.uid, title, activeEpisodeName, posterUrl]);
+
+  // LƯU TIẾN ĐỘ XEM NGAY LẬP TỨC KHI RELOAD TRANG HOẶC ĐÓNG TAB (CHỐNG MẤT MỐC XEM)
+  useEffect(() => {
+    const handleSaveOnLeave = () => {
+      const video = videoRef.current;
+      const currentMovieSlug = watchContext?.movieSlug || propMovieSlug;
+      if (video && currentMovieSlug && activeEpisodeSlug && video.currentTime > 1) {
+        saveWatchProgress(currentMovieSlug, video.currentTime, video.duration || 0, activeEpisodeSlug);
+      }
+    };
+
+    window.addEventListener("beforeunload", handleSaveOnLeave);
+    window.addEventListener("pagehide", handleSaveOnLeave);
+    return () => {
+      window.removeEventListener("beforeunload", handleSaveOnLeave);
+      window.removeEventListener("pagehide", handleSaveOnLeave);
+    };
+  }, [watchContext?.movieSlug, propMovieSlug, activeEpisodeSlug]);
 
   // TÍCH LŨY THỜI GIAN CÀY PHIM (Mỗi 60s xem phim -> +1 phút VIP)
   const watchAccumulatorSecsRef = useRef<number>(0);
