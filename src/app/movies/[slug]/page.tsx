@@ -31,6 +31,7 @@ import { WatchController } from "@/components/WatchController";
 import { ServerSelector } from "@/components/ServerSelector";
 import { WatchlistButton } from "@/components/WatchlistButton";
 import { AddToCollectionButton } from "@/components/Collections/AddToCollectionButton";
+import { ActiveEpisodeBadge } from "@/components/ActiveEpisodeBadge";
 import { formatEpisodeName, findEpisodeMatch } from "@/lib/formatEpisode";
 
 const MobileQrModal = dynamic(
@@ -423,11 +424,10 @@ export default async function MovieDetail({
                 <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight">
                   {title}
                 </h1>
-                <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-netflix-red/20 border border-netflix-red/40 text-rose-300 font-extrabold text-xs sm:text-sm shadow-sm flex-shrink-0">
-                  {isTrailerOnly
-                    ? "Trailer"
-                    : formatEpisodeName(activeEpisode?.name, "Tập 1")}
-                </span>
+                <ActiveEpisodeBadge
+                  initialEpisodeName={activeEpisode?.name}
+                  isTrailerOnly={isTrailerOnly}
+                />
               </div>
 
               {movie.origin_name && movie.origin_name !== title && (

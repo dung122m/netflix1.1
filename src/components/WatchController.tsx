@@ -4,6 +4,7 @@ import React, {
   createContext,
   useContext,
   useState,
+  useRef,
   useCallback,
   useMemo,
   useEffect,
@@ -94,21 +95,20 @@ export function WatchController({
     return episodes[0]?.slug || "";
   });
 
-  // Đồng bộ khi episodes hoặc initialEpisodeSlug thay đổi từ ngoài
+  const prevInitialSlugRef = useRef(initialEpisodeSlug);
+
+  // Chỉ đồng bộ khi initialEpisodeSlug từ Server hoặc Router Navigation bên ngoài thay đổi
   useEffect(() => {
-    if (initialEpisodeSlug) {
+    if (initialEpisodeSlug && initialEpisodeSlug !== prevInitialSlugRef.current) {
+      prevInitialSlugRef.current = initialEpisodeSlug;
       const found = findEpisodeMatch(episodes, initialEpisodeSlug);
       if (found?.slug) {
         setActiveEpisodeSlug(found.slug);
-        return;
       }
     }
-    if (episodes.length > 0 && !episodes.some((e) => e.slug === activeEpisodeSlug)) {
-      setActiveEpisodeSlug(episodes[0]?.slug || "");
-    }
-  }, [initialEpisodeSlug, episodes, activeEpisodeSlug]);
+  }, [initialEpisodeSlug, episodes]);
 
-  // Lắng nghe sự kiện điều hướng URL (Back / Forward / Link) từ trình duyệt
+  // Lắng nghe sự kiện điều hướng URL (Back / Forward) từ trình duyệt
   useEffect(() => {
     const handlePopState = () => {
       try {
@@ -145,7 +145,7 @@ export function WatchController({
       : null;
   }, [currentIndex, episodes]);
 
-  // Cập nhật URL sạch không làm trigger Next.js Server Re-render
+  // Cập nhật URL sạch trên thanh địa chỉ không làm reload trang
   const updateUrlQuietly = useCallback((epSlug: string, sIndex: number) => {
     if (typeof window === "undefined") return;
     try {
@@ -160,7 +160,7 @@ export function WatchController({
       } else {
         url.searchParams.delete("server");
       }
-      window.history.replaceState(null, "", url.pathname + url.search);
+      window.history.pushState(null, "", url.pathname + url.search);
     } catch {}
   }, []);
 

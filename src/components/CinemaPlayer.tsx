@@ -1330,6 +1330,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
             // ==========================================
             <>
               <iframe
+                key={activeEpisodeSlug || activeSrc}
                 ref={iframeRef}
                 src={activeSrc}
                 className="w-full h-full absolute inset-0 border-0"
