@@ -48,7 +48,9 @@ import {
   markNotificationAsRead,
   markAllNotificationsAsRead,
 } from "@/services/notificationService";
+import { subscribeUserProfile } from "@/services/userService";
 import { UserNotification } from "@/types/notification";
+import { UserProfile } from "@/types/user";
 
 interface SearchSuggestion {
   slug: string;
@@ -108,19 +110,30 @@ const NavbarInner: React.FC = () => {
 
   const { user, logout } = useAuth();
   const [userNotifications, setUserNotifications] = useState<UserNotification[]>([]);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
   useEffect(() => {
     if (!user?.uid) {
       setUserNotifications([]);
+      setUserProfile(null);
       return;
     }
-    const unsub = subscribeUserNotifications(user.uid, (items) => {
+    const unsubNotif = subscribeUserNotifications(user.uid, (items) => {
       setUserNotifications(items);
     });
-    return () => unsub();
+    const unsubProfile = subscribeUserProfile(user.uid, (p) => {
+      if (p) setUserProfile(p);
+    });
+    return () => {
+      unsubNotif();
+      unsubProfile();
+    };
   }, [user?.uid]);
 
   const userUnreadCount = userNotifications.filter((n) => !n.isRead).length;
+
+  const effectiveAvatar = userProfile?.customAvatar || userProfile?.photoURL || user?.photoURL || "";
+  const effectiveDisplayName = userProfile?.displayName || user?.displayName || "Thành viên Nanaflix";
 
   const formatTimeAgo = (timestamp: number) => {
     const diff = Math.max(0, Date.now() - timestamp);
@@ -1308,15 +1321,15 @@ const NavbarInner: React.FC = () => {
                 type="button"
                 onClick={() => setShowUserDropdown(!showUserDropdown)}
                 className="flex items-center gap-1.5 p-1 pr-2 rounded-full bg-zinc-800/80 hover:bg-zinc-700/80 border border-white/20 transition cursor-pointer"
-                title={user.displayName || user.email || "Tài khoản"}
+                title={effectiveDisplayName || user.email || "Tài khoản"}
               >
                 <div className="w-7 h-7 rounded-full bg-netflix-red flex items-center justify-center text-xs font-bold text-white uppercase overflow-hidden relative flex-shrink-0">
-                  <span>{(user.displayName || user.email || "U")[0]}</span>
-                  {user.photoURL && (
+                  <span>{(effectiveDisplayName || user.email || "U")[0]}</span>
+                  {effectiveAvatar && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={user.photoURL}
-                      alt={user.displayName || "Avatar"}
+                      src={effectiveAvatar}
+                      alt={effectiveDisplayName || "Avatar"}
                       referrerPolicy="no-referrer"
                       onError={(e) => {
                         e.currentTarget.style.display = "none";
@@ -1332,7 +1345,7 @@ const NavbarInner: React.FC = () => {
                 <div className="absolute right-0 mt-2 w-60 bg-zinc-950/95 border border-white/15 rounded-2xl shadow-2xl p-2 z-[100] backdrop-blur-md animate-in fade-in zoom-in-95 duration-150">
                   <div className="px-3 py-2.5 border-b border-white/10 mb-1">
                     <p className="text-xs font-bold text-white truncate">
-                      {user.displayName || "Thành viên Nanaflix"}
+                      {effectiveDisplayName}
                     </p>
                     <p className="text-[11px] text-gray-400 truncate mt-0.5">{user.email}</p>
                     <div className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] text-emerald-400 font-medium">
@@ -1478,11 +1491,11 @@ const NavbarInner: React.FC = () => {
                 <div className="space-y-2.5">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-netflix-red flex items-center justify-center text-sm font-bold text-white uppercase overflow-hidden relative flex-shrink-0 border-2 border-white/20 shadow-lg">
-                      <span>{(user.displayName || user.email || "U")[0]}</span>
-                      {user.photoURL && (
+                      <span>{(effectiveDisplayName || user.email || "U")[0]}</span>
+                      {effectiveAvatar && (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
-                          src={user.photoURL}
+                          src={effectiveAvatar}
                           alt="Avatar"
                           referrerPolicy="no-referrer"
                           onError={(e) => {
@@ -1494,7 +1507,7 @@ const NavbarInner: React.FC = () => {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold text-white truncate">
-                        {user.displayName || "Thành viên"}
+                        {effectiveDisplayName}
                       </p>
                       <p className="text-[11px] text-gray-400 truncate">{user.email}</p>
                     </div>

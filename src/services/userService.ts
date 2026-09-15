@@ -75,28 +75,64 @@ export async function recordUserProfile(user: User): Promise<void> {
     const cached = getCachedUserProfile(user.uid);
     const localHistoryMins = calculateLocalHistoryWatchMinutes();
 
-    const currentWatchMins = Number(
-      cached?.watchTimeMinutes ?? localHistoryMins
+    // Lấy profile hiện có từ Supabase nếu có
+    let remoteProfile: UserProfile | null = null;
+    if (isSupabaseConfigured()) {
+      try {
+        remoteProfile = await getUserProfileSupabase(user.uid);
+      } catch {}
+    }
+
+    const mergedDisplayName =
+      cached?.displayName ||
+      remoteProfile?.displayName ||
+      sanitizeSafeText(user.displayName || "Thành viên Nanaflix", 100);
+
+    const mergedCustomAvatar =
+      cached?.customAvatar ||
+      remoteProfile?.customAvatar ||
+      "";
+
+    const mergedPhotoURL =
+      cached?.photoURL ||
+      remoteProfile?.photoURL ||
+      user.photoURL ||
+      "";
+
+    const mergedBio =
+      cached?.bio ||
+      remoteProfile?.bio ||
+      "";
+
+    const mergedFavoriteGenres =
+      cached?.favoriteGenres && cached.favoriteGenres.length > 0
+        ? cached.favoriteGenres
+        : remoteProfile?.favoriteGenres || [];
+
+    const mergedBadges =
+      cached?.badges && cached.badges.length > 0
+        ? cached.badges
+        : remoteProfile?.badges || [];
+
+    const currentWatchMins = Math.max(
+      Number(cached?.watchTimeMinutes || 0),
+      Number(remoteProfile?.watchTimeMinutes || 0),
+      localHistoryMins
     );
 
     const profileData: Partial<UserProfile> & { uid: string } = {
       uid: user.uid,
       email: user.email || "",
-      displayName:
-        cached?.displayName ||
-        sanitizeSafeText(user.displayName || "Thành viên Nanaflix", 100),
-      photoURL:
-        cached?.photoURL ||
-        user.photoURL ||
-        "",
+      displayName: mergedDisplayName,
+      photoURL: mergedPhotoURL,
+      customAvatar: mergedCustomAvatar || undefined,
+      bio: mergedBio || undefined,
+      favoriteGenres: mergedFavoriteGenres,
+      badges: mergedBadges,
       lastLoginAt: now,
-      role: isAdmin ? "admin" : "member",
-      createdAt: cached?.createdAt || now,
+      role: isAdmin ? "admin" : (remoteProfile?.role || "member"),
+      createdAt: remoteProfile?.createdAt || cached?.createdAt || now,
       watchTimeMinutes: currentWatchMins,
-      ...(cached?.favoriteGenres ? { favoriteGenres: cached.favoriteGenres } : {}),
-      ...(cached?.badges ? { badges: cached.badges } : {}),
-      ...(cached?.bio ? { bio: cached.bio } : {}),
-      ...(cached?.customAvatar ? { customAvatar: cached.customAvatar } : {}),
     };
 
     // Lưu vào Local cache
@@ -280,8 +316,16 @@ export function subscribeUserProfile(
 
   fetchProfile();
 
-  const handleUpdate = () => {
-    if (!isUnsubscribed) fetchProfile();
+  const handleUpdate = (e: Event) => {
+    if (isUnsubscribed) return;
+    const customEv = e as CustomEvent<{ userId?: string; profile?: UserProfile }>;
+    if (customEv?.detail?.userId === userId && customEv?.detail?.profile) {
+      onUpdate(customEv.detail.profile);
+    } else {
+      const freshCached = getCachedUserProfile(userId);
+      if (freshCached) onUpdate(freshCached);
+      fetchProfile();
+    }
   };
 
   if (typeof window !== "undefined") {
@@ -314,8 +358,13 @@ export async function updateUserProfile(
 ): Promise<void> {
   if (!userId) return;
 
-  const payload: Record<string, unknown> = {
-    updatedAt: Date.now(),
+  const currentCached = getCachedUserProfile(userId);
+  const now = Date.now();
+
+  const payload: Partial<UserProfile> = {
+    ...currentCached,
+    uid: userId,
+    updatedAt: now,
   };
 
   if (data.displayName !== undefined) {
@@ -340,32 +389,33 @@ export async function updateUserProfile(
     payload.watchTimeMinutes = data.watchTimeMinutes;
   }
 
-  // Cập nhật ngay lập tức vào Local cache (Optimistic UI 0ms)
-  setCachedUserProfile(userId, payload as Partial<UserProfile>);
+  // 1. Cập nhật ngay lập tức vào Local cache (Optimistic UI 0ms)
+  setCachedUserProfile(userId, payload);
 
-  // 1. Lưu trực tiếp vào Supabase Database
+  // 2. Lưu trực tiếp vào Supabase Database
   if (isSupabaseConfigured()) {
     try {
       await updateUserProfileSupabase(userId, {
-        displayName: payload.displayName as string | undefined,
-        photoURL: payload.photoURL as string | undefined,
-        customAvatar: payload.customAvatar as string | undefined,
-        bio: payload.bio as string | undefined,
-        favoriteGenres: payload.favoriteGenres as string[] | undefined,
-        badges: payload.badges as string[] | undefined,
-        watchTimeMinutes: payload.watchTimeMinutes as number | undefined,
+        displayName: payload.displayName,
+        photoURL: payload.photoURL,
+        customAvatar: payload.customAvatar,
+        bio: payload.bio,
+        favoriteGenres: payload.favoriteGenres,
+        badges: payload.badges,
+        watchTimeMinutes: payload.watchTimeMinutes,
       });
     } catch (e) {
       console.warn("Lỗi lưu user profile vào Supabase:", e);
     }
   }
 
-  // Cập nhật profile Firebase Auth nếu đang đăng nhập đúng tài khoản
+  // 3. Cập nhật profile Firebase Auth nếu đang đăng nhập đúng tài khoản
   if (authUser && authUser.uid === userId) {
     const authUpdates: { displayName?: string; photoURL?: string } = {};
-    if (data.displayName) authUpdates.displayName = payload.displayName as string;
-    if (data.photoURL || data.customAvatar) {
-      authUpdates.photoURL = (data.customAvatar || data.photoURL) as string;
+    if (payload.displayName) authUpdates.displayName = payload.displayName;
+    const targetPhoto = payload.customAvatar || payload.photoURL;
+    if (targetPhoto && (targetPhoto.startsWith("http://") || targetPhoto.startsWith("https://"))) {
+      authUpdates.photoURL = targetPhoto;
     }
 
     if (Object.keys(authUpdates).length > 0) {
@@ -377,9 +427,9 @@ export async function updateUserProfile(
     }
   }
 
-  // Bắn event toàn cục để Navbar & UI tự động cập nhật
+  // 4. Bắn event toàn cục để Navbar & UI tự động cập nhật
   if (typeof window !== "undefined") {
-    window.dispatchEvent(new Event("user-profile-updated"));
+    window.dispatchEvent(new CustomEvent("user-profile-updated", { detail: { userId, profile: payload } }));
   }
 }
 

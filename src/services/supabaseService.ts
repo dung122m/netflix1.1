@@ -115,6 +115,7 @@ export async function updateUserProfileSupabase(
   if (!supabase || !userId) return;
   try {
     const payload: Record<string, unknown> = {
+      id: userId,
       updated_at: Date.now(),
     };
     if (data.displayName !== undefined) payload.display_name = data.displayName;
@@ -126,7 +127,10 @@ export async function updateUserProfileSupabase(
     if (data.watchTimeMinutes !== undefined) payload.watch_time_minutes = data.watchTimeMinutes;
     if (data.role !== undefined) payload.role = data.role;
 
-    await supabase.from("profiles").update(payload).eq("id", userId);
+    const { error } = await supabase.from("profiles").upsert(payload, { onConflict: "id" });
+    if (error) {
+      console.warn("Lỗi update user profile trong Supabase:", error);
+    }
   } catch (err) {
     console.warn("Lỗi update user profile trong Supabase:", err);
   }

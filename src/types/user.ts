@@ -5,6 +5,7 @@ export interface UserProfile {
   photoURL?: string;
   createdAt: number;
   lastLoginAt: number;
+  updatedAt?: number;
   role?: "admin" | "member";
   // --- Profile tùy chỉnh ---
   bio?: string;                 // Tiểu sử ngắn / Giới thiệu bản thân

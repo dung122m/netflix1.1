@@ -127,6 +127,11 @@ function UserProfileModalInner() {
       if (currentAvatar && !PRESET_AVATARS.some((a) => a.url === currentAvatar)) {
         setCustomAvatarUrl(currentAvatar);
         setUseCustomUrl(true);
+      } else {
+        setUseCustomUrl(false);
+      }
+      if (profile.badges && profile.badges.length > 0) {
+        setUserBadges(profile.badges);
       }
     }
   }, [isOpen, profile, user]);

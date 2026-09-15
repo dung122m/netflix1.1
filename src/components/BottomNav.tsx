@@ -1,14 +1,31 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Tv, Sparkles, Bookmark, User } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { subscribeUserProfile } from "@/services/userService";
+import { UserProfile } from "@/types/user";
 
 export function BottomNav() {
   const pathname = usePathname();
   const { user } = useAuth();
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+
+  useEffect(() => {
+    if (!user?.uid) {
+      setUserProfile(null);
+      return;
+    }
+    const unsub = subscribeUserProfile(user.uid, (p) => {
+      if (p) setUserProfile(p);
+    });
+    return () => unsub();
+  }, [user?.uid]);
+
+  const effectiveAvatar = userProfile?.customAvatar || userProfile?.photoURL || user?.photoURL || "";
+  const effectiveDisplayName = userProfile?.displayName || user?.displayName || "";
 
   // Ẩn bottom nav trong trang admin để tối đa diện tích làm việc
   if (pathname?.startsWith("/admin")) {
@@ -116,12 +133,12 @@ export function BottomNav() {
         >
           {user ? (
             <div className="w-5 h-5 rounded-full overflow-hidden border border-white/30 relative flex items-center justify-center bg-netflix-red text-[10px] font-bold text-white uppercase">
-              <span>{(user.displayName || user.email || "U")[0]}</span>
-              {user.photoURL && (
+              <span>{(effectiveDisplayName || user.email || "U")[0]}</span>
+              {effectiveAvatar && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={user.photoURL}
-                  alt="Avatar"
+                  src={effectiveAvatar}
+                  alt={effectiveDisplayName || "Avatar"}
                   referrerPolicy="no-referrer"
                   className="absolute inset-0 w-full h-full object-cover"
                 />
@@ -131,7 +148,7 @@ export function BottomNav() {
             <User size={19} />
           )}
           <span className="text-[10px] mt-0.5 tracking-tight truncate max-w-[56px]">
-            {user ? (user.displayName ? user.displayName.split(" ").pop() : "Cá nhân") : "Cá nhân"}
+            {user ? (effectiveDisplayName ? effectiveDisplayName.split(" ").pop() : "Cá nhân") : "Cá nhân"}
           </span>
         </button>
       </div>
