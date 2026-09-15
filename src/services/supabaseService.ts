@@ -289,7 +289,12 @@ export async function getCommentRepliesSupabase(parentId: string): Promise<Movie
   }
 }
 
-export async function postCommentSupabase(comment: Omit<MovieComment, "id" | "createdAt" | "updatedAt">): Promise<string> {
+export async function postCommentSupabase(
+  comment: Omit<MovieComment, "id" | "createdAt" | "updatedAt" | "likes" | "likedBy"> & {
+    likes?: number;
+    likedBy?: string[];
+  }
+): Promise<string> {
   if (!supabase) throw new Error("Supabase chưa được cấu hình");
 
   const id = `cmt_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
@@ -542,10 +547,10 @@ export async function syncWatchlistSupabase(userId: string, items: WatchlistItem
       user_id: userId,
       slug: item.slug,
       title: item.title,
-      poster: item.poster || null,
+      poster: item.imageUrl || item.poster || null,
       year: item.year || null,
       quality: item.quality || null,
-      category: item.category || null,
+      category: item.category || item.genre || null,
       added_at: item.addedAt || Date.now(),
     }));
 
@@ -568,11 +573,13 @@ export async function getWatchlistSupabase(userId: string): Promise<WatchlistIte
     return data.map((d) => ({
       slug: d.slug,
       title: d.title,
+      imageUrl: d.poster || "",
       poster: d.poster || "",
       year: d.year,
       quality: d.quality,
       category: d.category,
-      addedAt: d.added_at,
+      genre: d.category,
+      addedAt: Number(d.added_at) || Date.now(),
     }));
   } catch {
     return [];

@@ -607,14 +607,17 @@ export async function setCommentReaction(
         newLikedBy = newLikedBy.filter((id) => id !== userId);
         newLikes = Math.max(0, newLikes - 1);
       }
+      const updatedReactions: Record<string, CommentReactionType> = { ...(c.reactions || {}) };
+      if (reactionType) {
+        updatedReactions[userId] = reactionType;
+      } else {
+        delete updatedReactions[userId];
+      }
       return {
         ...c,
         likes: newLikes,
         likedBy: newLikedBy,
-        reactions: {
-          ...(c.reactions || {}),
-          [userId]: reactionType || undefined,
-        },
+        reactions: updatedReactions,
       };
     });
     saveLocalMovieComments(slug, movieCommentsMemoryCache[slug]);

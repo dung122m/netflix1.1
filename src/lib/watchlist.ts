@@ -8,8 +8,11 @@ export interface WatchlistItem {
   slug: string;
   title: string;
   imageUrl: string;
+  poster?: string;
   year?: string | number;
   genre?: string;
+  category?: string;
+  quality?: string;
   time?: string;
   country?: string;
   type_name?: string;
