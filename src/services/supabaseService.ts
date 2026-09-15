@@ -34,6 +34,39 @@ export async function upsertUserProfileSupabase(profile: Partial<UserProfile> & 
   }
 }
 
+export async function getUserProfileSupabase(userId: string): Promise<UserProfile | null> {
+  if (!supabase || !userId) return null;
+  try {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (error || !data) return null;
+
+    return {
+      uid: data.id,
+      email: data.email || "",
+      displayName: data.display_name || "Thành viên",
+      photoURL: data.photo_url || data.custom_avatar || "",
+      customAvatar: data.custom_avatar,
+      bio: data.bio,
+      favoriteGenres: data.favorite_genres || [],
+      badges: data.badges || [],
+      watchTimeMinutes: data.watch_time_minutes || 0,
+      role: (data.role as "admin" | "member") || "member",
+      isCommentRestricted: Boolean(data.is_comment_restricted),
+      violationsCount: data.violations_count || 0,
+      lastViolationReason: data.last_violation_reason,
+      createdAt: data.created_at,
+      lastLoginAt: data.last_login_at,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function getAllProfilesSupabase(): Promise<UserProfile[]> {
   if (!supabase) return [];
   try {
@@ -63,6 +96,66 @@ export async function getAllProfilesSupabase(): Promise<UserProfile[]> {
     }));
   } catch {
     return [];
+  }
+}
+
+export async function updateUserProfileSupabase(
+  userId: string,
+  data: Partial<{
+    displayName: string;
+    photoURL: string;
+    bio: string;
+    favoriteGenres: string[];
+    customAvatar: string;
+    badges: string[];
+    watchTimeMinutes: number;
+    role: "admin" | "member";
+  }>
+): Promise<void> {
+  if (!supabase || !userId) return;
+  try {
+    const payload: Record<string, unknown> = {
+      updated_at: Date.now(),
+    };
+    if (data.displayName !== undefined) payload.display_name = data.displayName;
+    if (data.photoURL !== undefined) payload.photo_url = data.photoURL;
+    if (data.customAvatar !== undefined) payload.custom_avatar = data.customAvatar;
+    if (data.bio !== undefined) payload.bio = data.bio;
+    if (data.favoriteGenres !== undefined) payload.favorite_genres = data.favoriteGenres;
+    if (data.badges !== undefined) payload.badges = data.badges;
+    if (data.watchTimeMinutes !== undefined) payload.watch_time_minutes = data.watchTimeMinutes;
+    if (data.role !== undefined) payload.role = data.role;
+
+    await supabase.from("profiles").update(payload).eq("id", userId);
+  } catch (err) {
+    console.warn("Lỗi update user profile trong Supabase:", err);
+  }
+}
+
+export async function setUserCommentRestrictionSupabase(
+  userId: string,
+  isRestricted: boolean,
+  reason?: string
+): Promise<void> {
+  if (!supabase || !userId) return;
+  try {
+    const payload: Record<string, unknown> = {
+      is_comment_restricted: isRestricted,
+      updated_at: Date.now(),
+    };
+    if (reason !== undefined) payload.last_violation_reason = reason;
+    await supabase.from("profiles").update(payload).eq("id", userId);
+  } catch (err) {
+    console.warn("Lỗi update comment restriction Supabase:", err);
+  }
+}
+
+export async function deleteAllUserCommentsSupabase(userId: string): Promise<void> {
+  if (!supabase || !userId) return;
+  try {
+    await supabase.from("movie_comments").delete().eq("user_id", userId);
+  } catch (err) {
+    console.warn("Lỗi xóa comments của user trên Supabase:", err);
   }
 }
 

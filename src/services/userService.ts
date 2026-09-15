@@ -71,7 +71,13 @@ function calculateLocalHistoryWatchMinutes(): number {
 
 import {
   upsertUserProfileSupabase,
+  getUserProfileSupabase,
   getAllProfilesSupabase,
+  updateUserProfileSupabase,
+  setUserCommentRestrictionSupabase,
+  deleteAllUserCommentsSupabase,
+  getWatchHistorySupabase,
+  getWatchlistSupabase,
 } from "./supabaseService";
 import { isSupabaseConfigured } from "@/lib/supabase";
 
@@ -221,7 +227,13 @@ export async function setUserCommentRestriction(
   isRestricted: boolean,
   reason?: string
 ): Promise<void> {
-  if (!db || !userId) return;
+  if (!userId) return;
+
+  if (isSupabaseConfigured()) {
+    await setUserCommentRestrictionSupabase(userId, isRestricted, reason);
+  }
+
+  if (!db) return;
   try {
     const userRef = doc(db, USERS_COLLECTION, userId);
     await setDoc(
@@ -234,15 +246,23 @@ export async function setUserCommentRestriction(
     );
   } catch (err) {
     console.error("Lỗi cập nhật quyền bình luận của user:", err);
-    throw err;
   }
 }
 
 /**
- * Lấy lịch sử xem phim của 1 người dùng cụ thể từ Cloud Firestore
+ * Lấy lịch sử xem phim của 1 người dùng cụ thể từ Supabase / Cloud Firestore
  */
 export async function getUserCloudWatchHistory(userId: string): Promise<WatchHistoryItem[]> {
-  if (!db || !userId) return [];
+  if (!userId) return [];
+
+  if (isSupabaseConfigured()) {
+    try {
+      const items = await getWatchHistorySupabase(userId);
+      if (items && items.length > 0) return items;
+    } catch {}
+  }
+
+  if (!db) return [];
   try {
     const colRef = collection(db, USERS_COLLECTION, userId, "watch_history");
     const snap = await getDocs(colRef);
@@ -259,10 +279,19 @@ export async function getUserCloudWatchHistory(userId: string): Promise<WatchHis
 }
 
 /**
- * Lấy danh sách phim yêu thích (Watchlist) của 1 người dùng từ Cloud Firestore
+ * Lấy danh sách phim yêu thích (Watchlist) của 1 người dùng từ Supabase / Cloud Firestore
  */
 export async function getUserCloudWatchlist(userId: string): Promise<WatchlistItem[]> {
-  if (!db || !userId) return [];
+  if (!userId) return [];
+
+  if (isSupabaseConfigured()) {
+    try {
+      const items = await getWatchlistSupabase(userId);
+      if (items && items.length > 0) return items;
+    } catch {}
+  }
+
+  if (!db) return [];
   try {
     const colRef = collection(db, USERS_COLLECTION, userId, "watchlist");
     const snap = await getDocs(colRef);
@@ -282,7 +311,13 @@ export async function getUserCloudWatchlist(userId: string): Promise<WatchlistIt
  * Xóa toàn bộ bình luận của một thành viên vi phạm (Dành cho Quản trị viên xóa hàng loạt spam)
  */
 export async function deleteAllUserComments(userId: string): Promise<number> {
-  if (!db || !userId) return 0;
+  if (!userId) return 0;
+
+  if (isSupabaseConfigured()) {
+    await deleteAllUserCommentsSupabase(userId);
+  }
+
+  if (!db) return 0;
   try {
     const commentsRef = collection(db, COMMENTS_COLLECTION);
     const q = query(commentsRef, where("userId", "==", userId));
@@ -304,13 +339,24 @@ export async function deleteAllUserComments(userId: string): Promise<number> {
 }
 
 /**
- * Lấy hồ sơ người dùng đầy đủ từ Firestore (bao gồm bio, sở thích, avatar tùy chỉnh)
+ * Lấy hồ sơ người dùng đầy đủ từ Supabase / Firestore (bao gồm bio, sở thích, avatar tùy chỉnh)
  */
 export async function getUserProfile(userId: string): Promise<UserProfile | null> {
   if (!userId) return null;
 
   // 1. Đọc nhanh từ local cache
   const cached = getCachedUserProfile(userId);
+
+  // 2. Đọc từ Supabase Database
+  if (isSupabaseConfigured()) {
+    try {
+      const supaProfile = await getUserProfileSupabase(userId);
+      if (supaProfile) {
+        setCachedUserProfile(userId, supaProfile);
+        return supaProfile;
+      }
+    } catch {}
+  }
 
   if (db) {
     try {
@@ -366,7 +412,20 @@ export function subscribeUserProfile(
     onUpdate(cached);
   }
 
-  // 2. Nạp ngay dữ liệu từ Server API tức thì
+  // 2. Nạp từ Supabase Database
+  if (isSupabaseConfigured()) {
+    getUserProfileSupabase(userId)
+      .then((profile) => {
+        if (profile && !isUnsubscribed) {
+          hasReceivedSnapshot = true;
+          setCachedUserProfile(userId, profile);
+          onUpdate(profile);
+        }
+      })
+      .catch(() => {});
+  }
+
+  // 3. Nạp ngay dữ liệu từ Server API tức thì
   fetch(`/api/user-profile?userId=${encodeURIComponent(userId)}`)
     .then((res) => res.json())
     .then((json) => {
@@ -460,6 +519,24 @@ export async function updateUserProfile(
   setCachedUserProfile(userId, payload as Partial<UserProfile>);
 
   let savedSuccessfully = false;
+
+  // 1. Lưu trực tiếp vào Supabase Database
+  if (isSupabaseConfigured()) {
+    try {
+      await updateUserProfileSupabase(userId, {
+        displayName: payload.displayName as string | undefined,
+        photoURL: payload.photoURL as string | undefined,
+        customAvatar: payload.customAvatar as string | undefined,
+        bio: payload.bio as string | undefined,
+        favoriteGenres: payload.favoriteGenres as string[] | undefined,
+        badges: payload.badges as string[] | undefined,
+        watchTimeMinutes: payload.watchTimeMinutes as number | undefined,
+      });
+      savedSuccessfully = true;
+    } catch (e) {
+      console.warn("Lỗi lưu user profile vào Supabase:", e);
+    }
+  }
 
   if (db) {
     try {
