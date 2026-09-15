@@ -607,7 +607,7 @@ export default function AdminDashboardPage() {
       const res = await fetch("/api/admin/sync-embeddings?limit=30");
       const data = await res.json();
       if (data.success) {
-        toast.success(`Đã nạp thành công ${data.syncedCount}/${data.totalRequested} vector phim vào Supabase!`);
+        toast.success(data.message || `Đã nạp thành công ${data.syncedCount}/${data.totalRequested} vector phim!`);
       } else {
         toast.error(data.error || "Không thể nạp vector phim!");
       }
