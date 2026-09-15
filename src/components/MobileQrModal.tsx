@@ -54,25 +54,20 @@ export function MobileQrModal({
     }
   };
 
-  // Xác định chính xác số giây xem dở (cập nhật theo thời gian thực khi player phát)
-  const [exactProgressSeconds, setExactProgressSeconds] = useState<number>(() => {
-    if (propCurrentTime !== undefined && propCurrentTime > 0) {
-      return Math.floor(propCurrentTime);
-    }
-    if (movieSlug) {
-      const saved = getWatchProgress(movieSlug, activeEpisodeSlug);
-      if (saved > 0) return Math.floor(saved);
-    }
-    return 0;
-  });
+  const [mounted, setMounted] = useState(false);
+  const [exactProgressSeconds, setExactProgressSeconds] = useState<number>(
+    propCurrentTime !== undefined && propCurrentTime > 0 ? Math.floor(propCurrentTime) : 0
+  );
 
-  // Đồng bộ khi propCurrentTime hoặc slug thay đổi
   useEffect(() => {
+    setMounted(true);
     if (propCurrentTime !== undefined && propCurrentTime > 0) {
       setExactProgressSeconds(Math.floor(propCurrentTime));
     } else if (movieSlug) {
       const saved = getWatchProgress(movieSlug, activeEpisodeSlug);
-      setExactProgressSeconds(saved > 0 ? Math.floor(saved) : 0);
+      if (saved > 0) {
+        setExactProgressSeconds(Math.floor(saved));
+      }
     }
   }, [propCurrentTime, movieSlug, activeEpisodeSlug]);
 
@@ -183,7 +178,7 @@ export function MobileQrModal({
         >
           <Smartphone className="h-4 w-4 text-sky-400 flex-shrink-0" />
           <span className="hidden sm:inline">Chuyển sang di động</span>
-          {exactProgressSeconds > 0 && (
+          {mounted && exactProgressSeconds > 0 && (
             <span className="text-[10px] text-amber-300 font-bold bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.2 rounded-md ml-0.5">
               {formatTime(exactProgressSeconds)}
             </span>

@@ -1,6 +1,5 @@
 import React, { Suspense } from "react";
 import { movieApi } from "@/services/movieApi";
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import {
   buildMovieDescriptionFallback,
@@ -34,28 +33,10 @@ import { AddToCollectionButton } from "@/components/Collections/AddToCollectionB
 import { ActiveEpisodeBadge, EpisodeCountBadge } from "@/components/ActiveEpisodeBadge";
 import { findEpisodeMatch } from "@/lib/formatEpisode";
 
-const MobileQrModal = dynamic(
-  () => import("@/components/MobileQrModal").then((mod) => mod.MobileQrModal),
-  { ssr: false }
-);
-
-const TrailerModal = dynamic(
-  () => import("@/components/TrailerModal").then((mod) => mod.TrailerModal),
-  { ssr: false }
-);
-
-const SetTitleClient = dynamic(
-  () => import("@/components/SetTitleClient").then((mod) => mod.default),
-  { ssr: false }
-);
-
-const MovieCommentsSection = dynamic(
-  () =>
-    import("@/components/MovieReviews/MovieCommentsSection").then(
-      (mod) => mod.MovieCommentsSection,
-    ),
-  { ssr: false }
-);
+import { MobileQrModal } from "@/components/MobileQrModal";
+import { TrailerModal } from "@/components/TrailerModal";
+import SetTitleClient from "@/components/SetTitleClient";
+import { MovieCommentsSection } from "@/components/MovieReviews/MovieCommentsSection";
 
 
 export async function generateMetadata({
