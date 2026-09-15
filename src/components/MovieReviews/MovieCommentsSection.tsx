@@ -243,8 +243,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
 
     try {
       if (myExistingReview) {
-        // Cập nhật bài đánh giá hiện có
-        await updateMovieComment(myExistingReview.id, {
+        const updatePayload = {
           rating,
           content: trimmed,
           episodeSlug:
@@ -252,24 +251,23 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
           episodeName:
             scopeEpisode === "episode" && currentEpisodeName ? currentEpisodeName : undefined,
           isSpoiler,
-        });
+        };
+
+        // 1. Optimistic update local state ngay lập tức
         setComments((prev) =>
           prev.map((c) =>
             c.id === myExistingReview.id
               ? {
                   ...c,
-                  rating,
-                  content: trimmed,
-                  episodeSlug:
-                    scopeEpisode === "episode" && currentEpisodeSlug ? currentEpisodeSlug : undefined,
-                  episodeName:
-                    scopeEpisode === "episode" && currentEpisodeName ? currentEpisodeName : undefined,
-                  isSpoiler,
+                  ...updatePayload,
                   updatedAt: Date.now(),
                 }
               : c
           )
         );
+
+        // 2. Ghi vào database Supabase
+        await updateMovieComment(myExistingReview.id, updatePayload, movieSlug);
         toast.success("Đã cập nhật đánh giá của bạn thành công!");
       } else {
         // Tạo đánh giá mới (lần đầu)
@@ -340,6 +338,38 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
       setShowAuthModal(true);
       return;
     }
+
+    // 0ms Optimistic UI update cho bình luận
+    setComments((prev) =>
+      prev.map((c) => {
+        if (c.id !== commentId) return c;
+        const currentLikedBy = Array.isArray(c.likedBy) ? c.likedBy : [];
+        let newLikedBy = currentLikedBy;
+        let newLikes = c.likes || 0;
+        if (reactionType !== null) {
+          if (!newLikedBy.includes(user.uid)) {
+            newLikedBy = [...newLikedBy, user.uid];
+            newLikes += 1;
+          }
+        } else {
+          newLikedBy = newLikedBy.filter((id) => id !== user.uid);
+          newLikes = Math.max(0, newLikes - 1);
+        }
+        const updatedReactions: Record<string, CommentReactionType> = { ...(c.reactions || {}) };
+        if (reactionType) {
+          updatedReactions[user.uid] = reactionType;
+        } else {
+          delete updatedReactions[user.uid];
+        }
+        return {
+          ...c,
+          likes: newLikes,
+          likedBy: newLikedBy,
+          reactions: updatedReactions,
+        };
+      })
+    );
+
     try {
       await setCommentReaction(commentId, user.uid, reactionType, prevReactionType);
     } catch (err) {

@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase";
-import { MovieComment } from "@/types/comment";
+import { MovieComment, CommentReactionType } from "@/types/comment";
 import { UserProfile } from "@/types/user";
 import { WatchHistoryItem } from "@/lib/watchHistory";
 import { WatchlistItem } from "@/lib/watchlist";
@@ -163,6 +163,45 @@ export async function deleteAllUserCommentsSupabase(userId: string): Promise<voi
 // 2. BÌNH LUẬN & ĐÁNH GIÁ (COMMENTS)
 // ============================================================================
 
+export function parseReactionsAndLikedBy(likedByRaw: unknown): {
+  likedBy: string[];
+  reactions: Record<string, CommentReactionType>;
+} {
+  const likedBy: string[] = [];
+  const reactions: Record<string, CommentReactionType> = {};
+
+  if (!likedByRaw) return { likedBy, reactions };
+
+  if (Array.isArray(likedByRaw)) {
+    likedByRaw.forEach((item) => {
+      if (typeof item === "string" && item) {
+        likedBy.push(item);
+        reactions[item] = "like";
+      } else if (item && typeof item === "object" && "userId" in item) {
+        const uId = String((item as { userId: string }).userId);
+        const rType = ((item as { type?: string }).type as CommentReactionType) || "like";
+        if (uId) {
+          likedBy.push(uId);
+          reactions[uId] = rType;
+        }
+      }
+    });
+  } else if (typeof likedByRaw === "object") {
+    Object.entries(likedByRaw as Record<string, unknown>).forEach(([uid, val]) => {
+      if (uid) {
+        likedBy.push(uid);
+        if (typeof val === "string" && ["like", "love", "haha", "wow", "sad", "angry"].includes(val)) {
+          reactions[uid] = val as CommentReactionType;
+        } else {
+          reactions[uid] = "like";
+        }
+      }
+    });
+  }
+
+  return { likedBy, reactions };
+}
+
 export async function getMovieCommentsSupabase(movieSlug: string): Promise<MovieComment[]> {
   if (!supabase || !movieSlug) return [];
   try {
@@ -174,32 +213,36 @@ export async function getMovieCommentsSupabase(movieSlug: string): Promise<Movie
 
     if (error || !data) return [];
 
-    return data.map((d) => ({
-      id: d.id,
-      movieSlug: d.movie_slug,
-      movieTitle: d.movie_title || "",
-      userId: d.user_id,
-      userName: d.user_name || "Thành viên",
-      userAvatar: d.user_avatar || "",
-      userEmail: d.user_email,
-      rating: d.rating || 5,
-      content: d.content || "",
-      episodeSlug: d.episode_slug,
-      episodeName: d.episode_name,
-      parentId: d.parent_id,
-      parentOwnerId: d.parent_owner_id,
-      replyToUserId: d.reply_to_user_id,
-      replyToUserName: d.reply_to_user_name,
-      isSpoiler: Boolean(d.is_spoiler),
-      likes: d.likes || 0,
-      likedBy: d.liked_by || [],
-      isFlagged: Boolean(d.is_flagged),
-      flagReason: d.flag_reason,
-      isApproved: d.is_approved !== false,
-      isPinned: Boolean(d.is_pinned),
-      createdAt: Number(d.created_at) || Date.now(),
-      updatedAt: Number(d.updated_at) || Date.now(),
-    }));
+    return data.map((d) => {
+      const { likedBy, reactions } = parseReactionsAndLikedBy(d.liked_by);
+      return {
+        id: d.id,
+        movieSlug: d.movie_slug,
+        movieTitle: d.movie_title || "",
+        userId: d.user_id,
+        userName: d.user_name || "Thành viên",
+        userAvatar: d.user_avatar || "",
+        userEmail: d.user_email,
+        rating: d.rating || 5,
+        content: d.content || "",
+        episodeSlug: d.episode_slug,
+        episodeName: d.episode_name,
+        parentId: d.parent_id,
+        parentOwnerId: d.parent_owner_id,
+        replyToUserId: d.reply_to_user_id,
+        replyToUserName: d.reply_to_user_name,
+        isSpoiler: Boolean(d.is_spoiler),
+        likes: Math.max(d.likes || 0, likedBy.length),
+        likedBy,
+        reactions,
+        isFlagged: Boolean(d.is_flagged),
+        flagReason: d.flag_reason,
+        isApproved: d.is_approved !== false,
+        isPinned: Boolean(d.is_pinned),
+        createdAt: Number(d.created_at) || Date.now(),
+        updatedAt: Number(d.updated_at) || Date.now(),
+      };
+    });
   } catch {
     return [];
   }
@@ -216,32 +259,36 @@ export async function getUserCommentsSupabase(userId: string): Promise<MovieComm
       .limit(100);
 
     if (error || !data) return [];
-    return data.map((d) => ({
-      id: d.id,
-      movieSlug: d.movie_slug,
-      movieTitle: d.movie_title || "",
-      userId: d.user_id,
-      userName: d.user_name || "Thành viên",
-      userAvatar: d.user_avatar || "",
-      userEmail: d.user_email,
-      rating: d.rating || 5,
-      content: d.content || "",
-      episodeSlug: d.episode_slug,
-      episodeName: d.episode_name,
-      parentId: d.parent_id,
-      parentOwnerId: d.parent_owner_id,
-      replyToUserId: d.reply_to_user_id,
-      replyToUserName: d.reply_to_user_name,
-      isSpoiler: Boolean(d.is_spoiler),
-      likes: d.likes || 0,
-      likedBy: d.liked_by || [],
-      isFlagged: Boolean(d.is_flagged),
-      flagReason: d.flag_reason,
-      isApproved: d.is_approved !== false,
-      isPinned: Boolean(d.is_pinned),
-      createdAt: Number(d.created_at) || Date.now(),
-      updatedAt: Number(d.updated_at) || Date.now(),
-    }));
+    return data.map((d) => {
+      const { likedBy, reactions } = parseReactionsAndLikedBy(d.liked_by);
+      return {
+        id: d.id,
+        movieSlug: d.movie_slug,
+        movieTitle: d.movie_title || "",
+        userId: d.user_id,
+        userName: d.user_name || "Thành viên",
+        userAvatar: d.user_avatar || "",
+        userEmail: d.user_email,
+        rating: d.rating || 5,
+        content: d.content || "",
+        episodeSlug: d.episode_slug,
+        episodeName: d.episode_name,
+        parentId: d.parent_id,
+        parentOwnerId: d.parent_owner_id,
+        replyToUserId: d.reply_to_user_id,
+        replyToUserName: d.reply_to_user_name,
+        isSpoiler: Boolean(d.is_spoiler),
+        likes: Math.max(d.likes || 0, likedBy.length),
+        likedBy,
+        reactions,
+        isFlagged: Boolean(d.is_flagged),
+        flagReason: d.flag_reason,
+        isApproved: d.is_approved !== false,
+        isPinned: Boolean(d.is_pinned),
+        createdAt: Number(d.created_at) || Date.now(),
+        updatedAt: Number(d.updated_at) || Date.now(),
+      };
+    });
   } catch {
     return [];
   }
@@ -258,32 +305,36 @@ export async function getCommentRepliesSupabase(parentId: string): Promise<Movie
       .limit(50);
 
     if (error || !data) return [];
-    return data.map((d) => ({
-      id: d.id,
-      movieSlug: d.movie_slug,
-      movieTitle: d.movie_title || "",
-      userId: d.user_id,
-      userName: d.user_name || "Thành viên",
-      userAvatar: d.user_avatar || "",
-      userEmail: d.user_email,
-      rating: d.rating || 0,
-      content: d.content || "",
-      episodeSlug: d.episode_slug,
-      episodeName: d.episode_name,
-      parentId: d.parent_id,
-      parentOwnerId: d.parent_owner_id,
-      replyToUserId: d.reply_to_user_id,
-      replyToUserName: d.reply_to_user_name,
-      isSpoiler: Boolean(d.is_spoiler),
-      likes: d.likes || 0,
-      likedBy: d.liked_by || [],
-      isFlagged: Boolean(d.is_flagged),
-      flagReason: d.flag_reason,
-      isApproved: d.is_approved !== false,
-      isPinned: Boolean(d.is_pinned),
-      createdAt: Number(d.created_at) || Date.now(),
-      updatedAt: Number(d.updated_at) || Date.now(),
-    }));
+    return data.map((d) => {
+      const { likedBy, reactions } = parseReactionsAndLikedBy(d.liked_by);
+      return {
+        id: d.id,
+        movieSlug: d.movie_slug,
+        movieTitle: d.movie_title || "",
+        userId: d.user_id,
+        userName: d.user_name || "Thành viên",
+        userAvatar: d.user_avatar || "",
+        userEmail: d.user_email,
+        rating: d.rating || 0,
+        content: d.content || "",
+        episodeSlug: d.episode_slug,
+        episodeName: d.episode_name,
+        parentId: d.parent_id,
+        parentOwnerId: d.parent_owner_id,
+        replyToUserId: d.reply_to_user_id,
+        replyToUserName: d.reply_to_user_name,
+        isSpoiler: Boolean(d.is_spoiler),
+        likes: Math.max(d.likes || 0, likedBy.length),
+        likedBy,
+        reactions,
+        isFlagged: Boolean(d.is_flagged),
+        flagReason: d.flag_reason,
+        isApproved: d.is_approved !== false,
+        isPinned: Boolean(d.is_pinned),
+        createdAt: Number(d.created_at) || Date.now(),
+        updatedAt: Number(d.updated_at) || Date.now(),
+      };
+    });
   } catch {
     return [];
   }
@@ -371,32 +422,36 @@ export async function getAllCommentsSupabase(): Promise<MovieComment[]> {
 
     if (error || !data) return [];
 
-    return data.map((d) => ({
-      id: d.id,
-      movieSlug: d.movie_slug,
-      movieTitle: d.movie_title || "",
-      userId: d.user_id,
-      userName: d.user_name || "Thành viên",
-      userAvatar: d.user_avatar || "",
-      userEmail: d.user_email,
-      rating: d.rating || 5,
-      content: d.content || "",
-      episodeSlug: d.episode_slug,
-      episodeName: d.episode_name,
-      parentId: d.parent_id,
-      parentOwnerId: d.parent_owner_id,
-      replyToUserId: d.reply_to_user_id,
-      replyToUserName: d.reply_to_user_name,
-      isSpoiler: Boolean(d.is_spoiler),
-      likes: d.likes || 0,
-      likedBy: Array.isArray(d.liked_by) ? d.liked_by : [],
-      isFlagged: Boolean(d.is_flagged),
-      flagReason: d.flag_reason,
-      isApproved: d.is_approved !== false,
-      isPinned: Boolean(d.is_pinned),
-      createdAt: Number(d.created_at) || Date.now(),
-      updatedAt: Number(d.updated_at) || Date.now(),
-    }));
+    return data.map((d) => {
+      const { likedBy, reactions } = parseReactionsAndLikedBy(d.liked_by);
+      return {
+        id: d.id,
+        movieSlug: d.movie_slug,
+        movieTitle: d.movie_title || "",
+        userId: d.user_id,
+        userName: d.user_name || "Thành viên",
+        userAvatar: d.user_avatar || "",
+        userEmail: d.user_email,
+        rating: d.rating || 5,
+        content: d.content || "",
+        episodeSlug: d.episode_slug,
+        episodeName: d.episode_name,
+        parentId: d.parent_id,
+        parentOwnerId: d.parent_owner_id,
+        replyToUserId: d.reply_to_user_id,
+        replyToUserName: d.reply_to_user_name,
+        isSpoiler: Boolean(d.is_spoiler),
+        likes: Math.max(d.likes || 0, likedBy.length),
+        likedBy,
+        reactions,
+        isFlagged: Boolean(d.is_flagged),
+        flagReason: d.flag_reason,
+        isApproved: d.is_approved !== false,
+        isPinned: Boolean(d.is_pinned),
+        createdAt: Number(d.created_at) || Date.now(),
+        updatedAt: Number(d.updated_at) || Date.now(),
+      };
+    });
   } catch {
     return [];
   }
@@ -417,7 +472,7 @@ export async function togglePinCommentSupabase(commentId: string, isPinned: bool
 export async function setCommentReactionSupabase(
   commentId: string,
   userId: string,
-  hasLiked: boolean
+  reactionType: string | null
 ): Promise<void> {
   if (!supabase || !commentId || !userId) return;
   try {
@@ -429,23 +484,25 @@ export async function setCommentReactionSupabase(
 
     if (!data) return;
 
-    const currentLikedBy: string[] = Array.isArray(data.liked_by) ? data.liked_by : [];
-    let newLikedBy: string[];
-    let newLikes: number;
+    const { reactions } = parseReactionsAndLikedBy(data.liked_by);
+    const updatedReactions: Record<string, string> = { ...reactions };
 
-    if (hasLiked) {
-      if (currentLikedBy.includes(userId)) return;
-      newLikedBy = [...currentLikedBy, userId];
-      newLikes = (data.likes || 0) + 1;
+    if (reactionType) {
+      updatedReactions[userId] = reactionType;
     } else {
-      if (!currentLikedBy.includes(userId)) return;
-      newLikedBy = currentLikedBy.filter((id) => id !== userId);
-      newLikes = Math.max(0, (data.likes || 0) - 1);
+      delete updatedReactions[userId];
     }
+
+    const newLikedBy = Object.keys(updatedReactions);
+    const newLikes = newLikedBy.length;
 
     await supabase
       .from("movie_comments")
-      .update({ likes: newLikes, liked_by: newLikedBy, updated_at: Date.now() })
+      .update({
+        likes: newLikes,
+        liked_by: updatedReactions,
+        updated_at: Date.now(),
+      })
       .eq("id", commentId);
   } catch (err) {
     console.warn("Lỗi setCommentReaction Supabase:", err);

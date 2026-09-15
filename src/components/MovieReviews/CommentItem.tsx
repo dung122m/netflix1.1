@@ -321,6 +321,54 @@ export const CommentItem: React.FC<CommentItemProps> = ({
     }
   };
 
+  const handleReplyReact = async (
+    replyId: string,
+    reactionType: CommentReactionType | null,
+    prevReactionType?: CommentReactionType | null
+  ) => {
+    if (!currentUserId) {
+      onRequireAuth?.();
+      return;
+    }
+
+    // 0ms Optimistic UI update cho danh sách reply
+    setReplies((prev) =>
+      prev.map((r) => {
+        if (r.id !== replyId) return r;
+        const currentLikedBy = Array.isArray(r.likedBy) ? r.likedBy : [];
+        let newLikedBy = currentLikedBy;
+        let newLikes = r.likes || 0;
+        if (reactionType !== null) {
+          if (!newLikedBy.includes(currentUserId)) {
+            newLikedBy = [...newLikedBy, currentUserId];
+            newLikes += 1;
+          }
+        } else {
+          newLikedBy = newLikedBy.filter((id) => id !== currentUserId);
+          newLikes = Math.max(0, newLikes - 1);
+        }
+        const updatedReactions: Record<string, CommentReactionType> = { ...(r.reactions || {}) };
+        if (reactionType) {
+          updatedReactions[currentUserId] = reactionType;
+        } else {
+          delete updatedReactions[currentUserId];
+        }
+        return {
+          ...r,
+          likes: newLikes,
+          likedBy: newLikedBy,
+          reactions: updatedReactions,
+        };
+      })
+    );
+
+    try {
+      await setCommentReaction(replyId, currentUserId, reactionType, prevReactionType);
+    } catch (err) {
+      console.warn("Lỗi thả cảm xúc reply:", err);
+    }
+  };
+
   const handleSelfReact = async (reactionType: CommentReactionType | null) => {
     if (!currentUserId) {
       onRequireAuth?.();
@@ -727,6 +775,8 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                   currentUserId={currentUserId}
                   currentUserName={currentUserName}
                   currentUserAvatar={currentUserAvatar}
+                  currentUserEmail={currentUserEmail}
+                  onReact={handleReplyReact}
                   onDelete={handleDeleteReply}
                   isReply={true}
                   onRequireAuth={onRequireAuth}

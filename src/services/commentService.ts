@@ -21,6 +21,7 @@ import { isSupabaseConfigured } from "@/lib/supabase";
 
 // In-memory cache lưu danh sách bình luận theo movieSlug để hiển thị ngay 0ms không bị chớp hay mất
 const movieCommentsMemoryCache: Record<string, MovieComment[]> = {};
+const replyCommentsMemoryCache: Record<string, MovieComment[]> = {};
 
 /**
  * Lấy danh sách bình luận từ LocalStorage theo movieSlug
@@ -77,17 +78,62 @@ export function subscribeMovieComments(
   const handleNewData = (items: MovieComment[]) => {
     const validItems = items.filter((c) => !c.movieSlug || c.movieSlug === movieSlug);
     const existingCache = movieCommentsMemoryCache[movieSlug] || [];
+    const localMap = new Map<string, MovieComment>();
+    existingCache.forEach((item) => localMap.set(item.id, item));
 
-    const map = new Map<string, MovieComment>();
-    validItems.forEach((item) => map.set(item.id, item));
-    existingCache.forEach((item) => {
-      if (!map.has(item.id)) {
-        map.set(item.id, item);
+    const mergedItems = validItems.map((remoteItem) => {
+      const localItem = localMap.get(remoteItem.id);
+      if (!localItem) return remoteItem;
+
+      // Nếu local có bản sửa mới hơn chưa kịp sync (hoặc vừa lưu xong), giữ lại dữ liệu edit
+      const isLocalNewer = (localItem.updatedAt || 0) > (remoteItem.updatedAt || 0);
+
+      // Hợp nhất reactions từ remote và local để tránh bị mất emoji reaction
+      const mergedReactions: Record<string, CommentReactionType> = {
+        ...(remoteItem.reactions || {}),
+        ...(localItem.reactions || {}),
+      };
+
+      const likedBySet = new Set<string>([
+        ...(Array.isArray(remoteItem.likedBy) ? remoteItem.likedBy : []),
+        ...(Array.isArray(localItem.likedBy) ? localItem.likedBy : []),
+        ...Object.keys(mergedReactions),
+      ]);
+
+      const calculatedLikes = Math.max(
+        remoteItem.likes || 0,
+        localItem.likes || 0,
+        likedBySet.size,
+        Object.keys(mergedReactions).length
+      );
+
+      return {
+        ...remoteItem,
+        ...(isLocalNewer
+          ? {
+              content: localItem.content,
+              rating: localItem.rating,
+              isSpoiler: localItem.isSpoiler,
+              episodeSlug: localItem.episodeSlug,
+              episodeName: localItem.episodeName,
+              updatedAt: localItem.updatedAt,
+            }
+          : {}),
+        reactions: mergedReactions,
+        likedBy: Array.from(likedBySet),
+        likes: calculatedLikes,
+        isPinned: localItem.isPinned !== undefined ? localItem.isPinned : remoteItem.isPinned,
+      };
+    });
+
+    // Giữ lại các comment vừa tạo cục bộ mà Supabase chưa kịp trả về trong request này
+    existingCache.forEach((localItem) => {
+      if (!mergedItems.some((m) => m.id === localItem.id)) {
+        mergedItems.push(localItem);
       }
     });
 
-    const merged = Array.from(map.values());
-    merged.sort((a, b) => {
+    mergedItems.sort((a, b) => {
       const isPinnedA = Boolean(a.isPinned);
       const isPinnedB = Boolean(b.isPinned);
       if (isPinnedA && !isPinnedB) return -1;
@@ -95,9 +141,9 @@ export function subscribeMovieComments(
       return (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0);
     });
 
-    movieCommentsMemoryCache[movieSlug] = merged;
-    saveLocalMovieComments(movieSlug, merged);
-    onUpdate(merged);
+    movieCommentsMemoryCache[movieSlug] = mergedItems;
+    saveLocalMovieComments(movieSlug, mergedItems);
+    onUpdate(mergedItems);
   };
 
   // 2. Fetch dữ liệu mới nhất từ Supabase
@@ -129,9 +175,9 @@ export function subscribeMovieComments(
     if (isUnsubscribed) return;
     const customEvent = e as CustomEvent<{ movieSlug?: string }>;
     if (!customEvent.detail?.movieSlug || customEvent.detail.movieSlug === movieSlug) {
-      fetchSupabase();
       const cur = movieCommentsMemoryCache[movieSlug];
       if (cur) onUpdate([...cur]);
+      fetchSupabase();
     }
   };
 
@@ -166,13 +212,61 @@ export function subscribeCommentReplies(
 
   let isUnsubscribed = false;
 
+  const handleNewReplies = (items: MovieComment[]) => {
+    const existingReplies = replyCommentsMemoryCache[parentId] || [];
+    const localMap = new Map<string, MovieComment>();
+    existingReplies.forEach((r) => localMap.set(r.id, r));
+
+    const merged = items.map((remoteItem) => {
+      const localItem = localMap.get(remoteItem.id);
+      if (!localItem) return remoteItem;
+
+      const mergedReactions: Record<string, CommentReactionType> = {
+        ...(remoteItem.reactions || {}),
+        ...(localItem.reactions || {}),
+      };
+
+      const likedBySet = new Set<string>([
+        ...(Array.isArray(remoteItem.likedBy) ? remoteItem.likedBy : []),
+        ...(Array.isArray(localItem.likedBy) ? localItem.likedBy : []),
+        ...Object.keys(mergedReactions),
+      ]);
+
+      return {
+        ...remoteItem,
+        reactions: mergedReactions,
+        likedBy: Array.from(likedBySet),
+        likes: Math.max(
+          remoteItem.likes || 0,
+          localItem.likes || 0,
+          likedBySet.size,
+          Object.keys(mergedReactions).length
+        ),
+      };
+    });
+
+    existingReplies.forEach((localItem) => {
+      if (!merged.some((m) => m.id === localItem.id)) {
+        merged.push(localItem);
+      }
+    });
+
+    merged.sort((a, b) => (Number(a.createdAt) || 0) - (Number(b.createdAt) || 0));
+    replyCommentsMemoryCache[parentId] = merged;
+    onUpdate(merged);
+  };
+
+  if (replyCommentsMemoryCache[parentId]) {
+    onUpdate(replyCommentsMemoryCache[parentId]);
+  }
+
   const fetchReplies = async () => {
     if (isUnsubscribed) return;
     if (isSupabaseConfigured()) {
       try {
         const items = await getCommentRepliesSupabase(parentId);
         if (!isUnsubscribed) {
-          onUpdate(items);
+          handleNewReplies(items);
         }
       } catch (err) {
         if (onError && err instanceof Error) onError(err);
@@ -186,6 +280,12 @@ export function subscribeCommentReplies(
     if (isUnsubscribed) return;
     const customEvent = e as CustomEvent<{ parentId?: string; reply?: MovieComment }>;
     if (customEvent.detail?.parentId === parentId) {
+      if (customEvent.detail.reply) {
+        const cur = replyCommentsMemoryCache[parentId] || [];
+        const updated = [...cur.filter((r) => r.id !== customEvent.detail.reply!.id), customEvent.detail.reply];
+        replyCommentsMemoryCache[parentId] = updated;
+        onUpdate(updated);
+      }
       fetchReplies();
     }
   };
@@ -595,10 +695,10 @@ export async function setCommentReaction(
 
   // 1. Cập nhật Supabase ngay lập tức
   if (isSupabaseConfigured()) {
-    setCommentReactionSupabase(commentId, userId, reactionType !== null).catch(() => {});
+    setCommentReactionSupabase(commentId, userId, reactionType).catch(() => {});
   }
 
-  // 2. Cập nhật ngay bộ nhớ cache & localStorage
+  // 2. Cập nhật ngay bộ nhớ cache & localStorage cho root comments
   Object.keys(movieCommentsMemoryCache).forEach((slug) => {
     movieCommentsMemoryCache[slug] = movieCommentsMemoryCache[slug].map((c) => {
       if (c.id !== commentId) return c;
@@ -630,6 +730,37 @@ export async function setCommentReaction(
     saveLocalMovieComments(slug, movieCommentsMemoryCache[slug]);
   });
 
+  // 3. Cập nhật cache của reply comments (nếu reaction thuộc về một reply)
+  Object.keys(replyCommentsMemoryCache).forEach((parentId) => {
+    replyCommentsMemoryCache[parentId] = replyCommentsMemoryCache[parentId].map((r) => {
+      if (r.id !== commentId) return r;
+      const currentLikedBy = Array.isArray(r.likedBy) ? r.likedBy : [];
+      let newLikedBy = currentLikedBy;
+      let newLikes = r.likes || 0;
+      if (reactionType !== null) {
+        if (!newLikedBy.includes(userId)) {
+          newLikedBy = [...newLikedBy, userId];
+          newLikes += 1;
+        }
+      } else {
+        newLikedBy = newLikedBy.filter((id) => id !== userId);
+        newLikes = Math.max(0, newLikes - 1);
+      }
+      const updatedReactions: Record<string, CommentReactionType> = { ...(r.reactions || {}) };
+      if (reactionType) {
+        updatedReactions[userId] = reactionType;
+      } else {
+        delete updatedReactions[userId];
+      }
+      return {
+        ...r,
+        likes: newLikes,
+        likedBy: newLikedBy,
+        reactions: updatedReactions,
+      };
+    });
+  });
+
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent("comments-updated", { detail: { commentId } }));
   }
@@ -657,28 +788,27 @@ export async function toggleLikeComment(
 export async function updateMovieComment(
   commentId: string,
   data: Partial<Pick<MovieComment, "rating" | "content" | "isSpoiler" | "episodeSlug" | "episodeName">>,
+  movieSlug?: string,
 ): Promise<void> {
   if (!commentId) return;
 
+  const now = Date.now();
+
   // 1. Cập nhật ngay lập tức vào Memory Cache & LocalStorage
-  let affectedMovieSlug: string | undefined;
+  let affectedMovieSlug: string | undefined = movieSlug;
   for (const [slug, list] of Object.entries(movieCommentsMemoryCache)) {
     const idx = list.findIndex((c) => c.id === commentId);
     if (idx !== -1) {
-      affectedMovieSlug = slug;
+      if (!affectedMovieSlug) affectedMovieSlug = slug;
       movieCommentsMemoryCache[slug] = list.map((c) =>
-        c.id === commentId ? { ...c, ...data, updatedAt: Date.now() } : c
+        c.id === commentId ? { ...c, ...data, updatedAt: now } : c
       );
       saveLocalMovieComments(slug, movieCommentsMemoryCache[slug]);
       break;
     }
   }
 
-  if (typeof window !== "undefined") {
-    window.dispatchEvent(new CustomEvent("comments-updated", { detail: { commentId, movieSlug: affectedMovieSlug } }));
-  }
-
-  // 2. Cập nhật vào Supabase Database
+  // 2. Ghi trực tiếp vào Supabase Database trước
   if (isSupabaseConfigured()) {
     await updateCommentSupabase(commentId, {
       rating: data.rating,
@@ -687,6 +817,11 @@ export async function updateMovieComment(
       episode_name: data.episodeName || null,
       is_spoiler: data.isSpoiler,
     });
+  }
+
+  // 3. Sau khi Supabase ghi xong, phát event để đồng bộ toàn bộ tab/component
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("comments-updated", { detail: { commentId, movieSlug: affectedMovieSlug } }));
   }
 }
 
