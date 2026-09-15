@@ -160,6 +160,8 @@ export function WatchController({
       } else {
         url.searchParams.delete("server");
       }
+      // Xóa mốc thời gian cũ khỏi thanh địa chỉ để tập mới luôn phát từ đầu (0:00)
+      url.searchParams.delete("t");
       window.history.pushState(null, "", url.pathname + url.search);
     } catch {}
   }, []);

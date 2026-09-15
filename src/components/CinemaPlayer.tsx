@@ -249,23 +249,29 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     return m3u8Link || "";
   }, [m3u8Link, embedSrc, videoLink]);
 
-  // Lấy mốc thời gian từ query param 't' hoặc prop initialTime hoặc lịch sử xem dở
+  // Theo dõi episode khởi tạo ban đầu để chỉ áp dụng initialTime/urlParamT cho đúng tập đó
+  const initialEpSlugRef = useRef<string | undefined>(activeEpisodeSlug);
+
+  // Lấy mốc thời gian từ query param 't' hoặc prop initialTime (chỉ cho tập khởi đầu) hoặc lịch sử xem dở của tập hiện tại
   const urlParamT = searchParams?.get("t");
   const targetProgress = useMemo(() => {
-    if (typeof initialTime === "number" && initialTime > 0) return initialTime;
-    if (urlParamT) {
-      const parsed = parseFloat(urlParamT);
-      if (!isNaN(parsed) && parsed > 0) return parsed;
-    }
-    if (typeof window !== "undefined") {
-      try {
-        const urlObj = new URL(window.location.href);
-        const tVal = urlObj.searchParams.get("t");
-        if (tVal) {
-          const parsed = parseFloat(tVal);
-          if (!isNaN(parsed) && parsed > 0) return parsed;
-        }
-      } catch {}
+    const isInitialEpisode = !initialEpSlugRef.current || activeEpisodeSlug === initialEpSlugRef.current;
+    if (isInitialEpisode) {
+      if (typeof initialTime === "number" && initialTime > 0) return initialTime;
+      if (urlParamT) {
+        const parsed = parseFloat(urlParamT);
+        if (!isNaN(parsed) && parsed > 0) return parsed;
+      }
+      if (typeof window !== "undefined") {
+        try {
+          const urlObj = new URL(window.location.href);
+          const tVal = urlObj.searchParams.get("t");
+          if (tVal) {
+            const parsed = parseFloat(tVal);
+            if (!isNaN(parsed) && parsed > 0) return parsed;
+          }
+        } catch {}
+      }
     }
     const currentMovieSlug = watchContext?.movieSlug || propMovieSlug;
     const savedProgress = currentMovieSlug && activeEpisodeSlug ? getWatchProgress(currentMovieSlug, activeEpisodeSlug) : 0;
@@ -473,8 +479,11 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
 
     setIsBuffering(true);
 
-    // Dọn dẹp src cũ
+    // Dọn dẹp src cũ và reset mốc thời gian phát
     video.pause();
+    try {
+      video.currentTime = targetProgress > 0 ? targetProgress : 0;
+    } catch {}
     video.removeAttribute("src");
     video.load();
 
