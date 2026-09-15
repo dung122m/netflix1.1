@@ -18,10 +18,26 @@ function ContinueWatchingSyncInner() {
   const pathname = usePathname();
   const [recentItem, setRecentItem] = useState<WatchHistoryItem | null>(null);
   const [dismissed, setDismissed] = useState(true);
+  const [isHandoffActive, setIsHandoffActive] = useState(false);
   const autoHideTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Lắng nghe trạng thái của CrossDeviceHandoffBanner để không bao giờ bị hiện đè 2 banner cùng lúc
   useEffect(() => {
-    // Chỉ chạy ở phía Client và KHÔNG hiển thị khi đang ở trang xem phim (/movies/...)
+    const handleHandoffState = (e: Event) => {
+      const customEvt = e as CustomEvent<{ isShowing: boolean }>;
+      if (customEvt.detail) {
+        setIsHandoffActive(Boolean(customEvt.detail.isShowing));
+      }
+    };
+
+    window.addEventListener("nanaflix-handoff-banner-state", handleHandoffState);
+    return () => {
+      window.removeEventListener("nanaflix-handoff-banner-state", handleHandoffState);
+    };
+  }, []);
+
+  useEffect(() => {
+    // Chỉ chạy ở phía Client và KHÔNG hiển thị khi đang ở trang xem phim (/movies/...) hoặc khi handoff banner đang hiện
     if (typeof window === "undefined") return;
     if (
       pathname &&
@@ -112,14 +128,14 @@ function ContinueWatchingSyncInner() {
     } catch {}
   };
 
-  if (!recentItem || dismissed) return null;
+  if (!recentItem || dismissed || isHandoffActive) return null;
 
   const targetUrl = `/movies/${recentItem.slug}${
     recentItem.episodeSlug ? `?ep=${recentItem.episodeSlug}` : ""
   }`;
 
   return (
-    <div className="fixed bottom-5 right-4 sm:right-6 z-[90] max-w-sm animate-in slide-in-from-bottom-5 fade-in duration-300">
+    <div className="fixed bottom-20 lg:bottom-5 right-4 sm:right-6 z-[80] max-w-sm animate-in slide-in-from-bottom-5 fade-in duration-300">
       <div className="relative rounded-2xl border border-netflix-red/40 bg-zinc-950/95 p-3.5 sm:p-4 shadow-2xl backdrop-blur-xl flex items-center gap-3 space-y-0 group">
         {/* Glow hiệu ứng nền đỏ */}
         <div className="absolute -inset-1 bg-netflix-red/10 rounded-2xl blur-md pointer-events-none" />

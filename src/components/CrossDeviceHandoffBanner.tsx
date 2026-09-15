@@ -81,13 +81,32 @@ export const CrossDeviceHandoffBanner: React.FC = () => {
     return () => unsub();
   }, [user?.uid]);
 
-  if (!activeSession) return null;
+  const isVisible = Boolean(
+    activeSession &&
+    dismissedSessionTime !== activeSession.updatedAt &&
+    !pathname.includes(`/movies/${activeSession.movieSlug}`)
+  );
 
-  // Nếu người dùng đã bấm tắt thông báo cho phiên này
-  if (dismissedSessionTime === activeSession.updatedAt) return null;
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("nanaflix-handoff-banner-state", {
+          detail: { isShowing: isVisible, movieSlug: activeSession?.movieSlug },
+        })
+      );
+    }
+    return () => {
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("nanaflix-handoff-banner-state", {
+            detail: { isShowing: false },
+          })
+        );
+      }
+    };
+  }, [isVisible, activeSession?.movieSlug]);
 
-  // Nếu người dùng đang ở ngay trang phim đó, ẩn banner để tránh che màn hình
-  if (pathname.includes(`/movies/${activeSession.movieSlug}`)) return null;
+  if (!activeSession || !isVisible) return null;
 
   const formatTime = (secs: number) => {
     const mins = Math.floor(secs / 60);
@@ -117,7 +136,7 @@ export const CrossDeviceHandoffBanner: React.FC = () => {
   return (
     <aside
       aria-label="Tiếp tục xem từ thiết bị khác"
-      className="fixed bottom-5 right-4 sm:right-6 z-50 max-w-[390px] w-[calc(100vw-32px)] animate-in slide-in-from-bottom-5 fade-in duration-300"
+      className="fixed bottom-20 lg:bottom-5 right-4 sm:right-6 z-[85] max-w-[390px] w-[calc(100vw-32px)] animate-in slide-in-from-bottom-5 fade-in duration-300"
     >
       <div
         onMouseEnter={() => setIsHovered(true)}
