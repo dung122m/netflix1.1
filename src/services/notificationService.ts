@@ -220,6 +220,7 @@ export function subscribeUserNotifications(
   }
 
   // 3. Nạp danh sách thông báo từ Supabase lúc khởi tạo
+  let lastNotificationFetch = Date.now();
   const fetchSupabaseNotifications = () => {
     if (isSupabaseConfigured()) {
       getUserNotificationsSupabase(userId)
@@ -234,18 +235,36 @@ export function subscribeUserNotifications(
 
   fetchSupabaseNotifications();
 
-  // Polling định kỳ mỗi 8s để đồng bộ thông báo mới từ Supabase
+  const handleVisibilityOrFocus = () => {
+    if (isUnsubscribed) return;
+    if (typeof document !== "undefined" && !document.hidden) {
+      if (Date.now() - lastNotificationFetch > 25000) {
+        lastNotificationFetch = Date.now();
+        fetchSupabaseNotifications();
+      }
+    }
+  };
+
+  // Polling định kỳ mỗi 45s để đồng bộ thông báo mới từ Supabase (chỉ khi tab đang active)
   const pollInterval = setInterval(() => {
     if (!isUnsubscribed && typeof document !== "undefined" && !document.hidden) {
+      lastNotificationFetch = Date.now();
       fetchSupabaseNotifications();
     }
-  }, 8000);
+  }, 45000);
+
+  if (typeof window !== "undefined") {
+    document.addEventListener("visibilitychange", handleVisibilityOrFocus);
+    window.addEventListener("focus", handleVisibilityOrFocus);
+  }
 
   return () => {
     isUnsubscribed = true;
     clearInterval(pollInterval);
     if (typeof window !== "undefined") {
       window.removeEventListener("nanaflix-notifications-updated", handleLocalEvent);
+      document.removeEventListener("visibilitychange", handleVisibilityOrFocus);
+      window.removeEventListener("focus", handleVisibilityOrFocus);
     }
   };
 }

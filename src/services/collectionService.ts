@@ -395,15 +395,21 @@ export function subscribeAllPublicCollections(
 
   if (typeof window !== "undefined") {
     window.addEventListener("collections-updated", handleUpdate);
+    document.addEventListener("visibilitychange", handleUpdate);
   }
 
-  const interval = setInterval(fetchCollections, 5000);
+  const interval = setInterval(() => {
+    if (!isUnsubscribed && typeof document !== "undefined" && !document.hidden) {
+      fetchCollections();
+    }
+  }, 45000);
 
   return () => {
     isUnsubscribed = true;
     clearInterval(interval);
     if (typeof window !== "undefined") {
       window.removeEventListener("collections-updated", handleUpdate);
+      document.removeEventListener("visibilitychange", handleUpdate);
     }
   };
 }

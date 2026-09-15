@@ -170,6 +170,17 @@ export function subscribeMovieComments(
 
   fetchSupabase();
 
+  let lastFetchTime = Date.now();
+  const handleVisibilityOrFocus = () => {
+    if (isUnsubscribed) return;
+    if (typeof document !== "undefined" && !document.hidden) {
+      if (Date.now() - lastFetchTime > 15000) {
+        lastFetchTime = Date.now();
+        fetchSupabase();
+      }
+    }
+  };
+
   // 3. Lắng nghe event comments-updated để reload tức thời
   const handleCommentsUpdated = (e: Event) => {
     if (isUnsubscribed) return;
@@ -177,15 +188,23 @@ export function subscribeMovieComments(
     if (!customEvent.detail?.movieSlug || customEvent.detail.movieSlug === movieSlug) {
       const cur = movieCommentsMemoryCache[movieSlug];
       if (cur) onUpdate([...cur]);
+      lastFetchTime = Date.now();
       fetchSupabase();
     }
   };
 
-  // 4. Polling nhẹ mỗi 4s
-  const syncInterval = setInterval(fetchSupabase, 4000);
+  // 4. Polling nhẹ mỗi 45s và chỉ khi tab đang hoạt động
+  const syncInterval = setInterval(() => {
+    if (!isUnsubscribed && typeof document !== "undefined" && !document.hidden) {
+      lastFetchTime = Date.now();
+      fetchSupabase();
+    }
+  }, 45000);
 
   if (typeof window !== "undefined") {
     window.addEventListener("comments-updated", handleCommentsUpdated);
+    document.addEventListener("visibilitychange", handleVisibilityOrFocus);
+    window.addEventListener("focus", handleVisibilityOrFocus);
   }
 
   return () => {
@@ -193,6 +212,8 @@ export function subscribeMovieComments(
     clearInterval(syncInterval);
     if (typeof window !== "undefined") {
       window.removeEventListener("comments-updated", handleCommentsUpdated);
+      document.removeEventListener("visibilitychange", handleVisibilityOrFocus);
+      window.removeEventListener("focus", handleVisibilityOrFocus);
     }
   };
 }
@@ -276,6 +297,17 @@ export function subscribeCommentReplies(
 
   fetchReplies();
 
+  let lastReplyFetch = Date.now();
+  const handleVisibilityOrFocus = () => {
+    if (isUnsubscribed) return;
+    if (typeof document !== "undefined" && !document.hidden) {
+      if (Date.now() - lastReplyFetch > 20000) {
+        lastReplyFetch = Date.now();
+        fetchReplies();
+      }
+    }
+  };
+
   const handleLocalReplyUpdated = (e: Event) => {
     if (isUnsubscribed) return;
     const customEvent = e as CustomEvent<{ parentId?: string; reply?: MovieComment }>;
@@ -286,21 +318,31 @@ export function subscribeCommentReplies(
         replyCommentsMemoryCache[parentId] = updated;
         onUpdate(updated);
       }
+      lastReplyFetch = Date.now();
       fetchReplies();
     }
   };
 
   if (typeof window !== "undefined") {
     window.addEventListener("comments-updated", handleLocalReplyUpdated);
+    document.addEventListener("visibilitychange", handleVisibilityOrFocus);
+    window.addEventListener("focus", handleVisibilityOrFocus);
   }
 
-  const interval = setInterval(fetchReplies, 4000);
+  const interval = setInterval(() => {
+    if (!isUnsubscribed && typeof document !== "undefined" && !document.hidden) {
+      lastReplyFetch = Date.now();
+      fetchReplies();
+    }
+  }, 45000);
 
   return () => {
     isUnsubscribed = true;
     clearInterval(interval);
     if (typeof window !== "undefined") {
       window.removeEventListener("comments-updated", handleLocalReplyUpdated);
+      document.removeEventListener("visibilitychange", handleVisibilityOrFocus);
+      window.removeEventListener("focus", handleVisibilityOrFocus);
     }
   };
 }
@@ -369,15 +411,21 @@ export function subscribeAllComments(
 
   if (typeof window !== "undefined") {
     window.addEventListener("comments-updated", handleCommentsUpdated);
+    document.addEventListener("visibilitychange", handleCommentsUpdated);
   }
 
-  const syncInterval = setInterval(fetchAll, 3000);
+  const syncInterval = setInterval(() => {
+    if (!isUnsubscribed && typeof document !== "undefined" && !document.hidden) {
+      fetchAll();
+    }
+  }, 45000);
 
   return () => {
     isUnsubscribed = true;
     clearInterval(syncInterval);
     if (typeof window !== "undefined") {
       window.removeEventListener("comments-updated", handleCommentsUpdated);
+      document.removeEventListener("visibilitychange", handleCommentsUpdated);
     }
   };
 }
@@ -419,15 +467,21 @@ export function subscribeUserComments(
 
   if (typeof window !== "undefined") {
     window.addEventListener("comments-updated", handleCommentsUpdated);
+    document.addEventListener("visibilitychange", handleCommentsUpdated);
   }
 
-  const interval = setInterval(fetchUserComments, 5000);
+  const interval = setInterval(() => {
+    if (!isUnsubscribed && typeof document !== "undefined" && !document.hidden) {
+      fetchUserComments();
+    }
+  }, 45000);
 
   return () => {
     isUnsubscribed = true;
     clearInterval(interval);
     if (typeof window !== "undefined") {
       window.removeEventListener("comments-updated", handleCommentsUpdated);
+      document.removeEventListener("visibilitychange", handleCommentsUpdated);
     }
   };
 }

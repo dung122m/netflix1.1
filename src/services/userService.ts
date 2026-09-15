@@ -180,15 +180,21 @@ export function subscribeAllUsers(
 
   if (typeof window !== "undefined") {
     window.addEventListener("user-profile-updated", handleUpdate);
+    document.addEventListener("visibilitychange", handleUpdate);
   }
 
-  const interval = setInterval(fetchUsers, 5000);
+  const interval = setInterval(() => {
+    if (!isUnsubscribed && typeof document !== "undefined" && !document.hidden) {
+      fetchUsers();
+    }
+  }, 45000);
 
   return () => {
     isUnsubscribed = true;
     clearInterval(interval);
     if (typeof window !== "undefined") {
       window.removeEventListener("user-profile-updated", handleUpdate);
+      document.removeEventListener("visibilitychange", handleUpdate);
     }
   };
 }
