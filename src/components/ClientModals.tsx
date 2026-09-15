@@ -24,10 +24,6 @@ const LeaderboardModal = dynamic(
   () => import("@/components/LeaderboardModal").then((m) => m.LeaderboardModal),
   { ssr: false }
 );
-const ContinueWatchingSync = dynamic(
-  () => import("@/components/ContinueWatchingSync").then((m) => m.ContinueWatchingSync),
-  { ssr: false }
-);
 const PublicUserProfileModal = dynamic(
   () => import("@/components/PublicUserProfileModal").then((m) => m.PublicUserProfileModal),
   { ssr: false }
@@ -45,7 +41,6 @@ export const ClientModals = React.memo(function ClientModals() {
       <UserProfileModal />
       <PublicUserProfileModal />
       <LeaderboardModal />
-      <ContinueWatchingSync />
       <GlobalConfirmDialog />
     </>
   );
