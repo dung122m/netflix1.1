@@ -263,7 +263,10 @@ export default async function BrowsePage({
       for (const m of actorMovies) {
         if (m?.slug && !seenSlugs.has(m.slug)) {
           seenSlugs.add(m.slug);
-          combined.push(m);
+          combined.push({
+            ...m,
+            isActorFilmography: true,
+          });
         }
       }
       for (const m of movies) {
@@ -282,6 +285,7 @@ export default async function BrowsePage({
   // Nếu có keyword tìm kiếm: Đánh giá độ phù hợp (Relevance Scoring) & Trích xuất đoạn khớp trong mô tả
   if (keyword && movies.length > 0) {
     const normKw = cleanNormalizedForMatch(keyword);
+    const actorNameNorm = detectedActor ? cleanNormalizedForMatch(detectedActor.name) : "";
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const scoredMovies = movies.map((m: any) => {
@@ -297,8 +301,19 @@ export default async function BrowsePage({
       let matchType: "title" | "actor" | "content" = "title";
       let matchSnippet: string | undefined = undefined;
 
-      // 1. Khớp chính xác hoặc phần đầu tiêu đề tiếng Việt / tên gốc / slug (Ưu tiên cao nhất)
-      if (title === normKw || orig === normKw || slug === normKw.replace(/\s+/g, "-")) {
+      // 0. ƯU TIÊN SỐ 1 TUYỆT ĐỐI: Phim thuộc gia tài diễn viên được phát hiện hoặc diễn viên có mặt trong dàn cast
+      if (m.isActorFilmography) {
+        score = 200;
+        matchType = "actor";
+      } else if (
+        (actorNameNorm && actorStr && (actorStr === actorNameNorm || actorStr.includes(actorNameNorm))) ||
+        (normKw.length >= 3 && actorStr && (actorStr === normKw || actorStr.includes(normKw)))
+      ) {
+        score = 180;
+        matchType = "actor";
+      }
+      // 1. Khớp chính xác hoặc phần đầu tiêu đề tiếng Việt / tên gốc / slug (Ưu tiên tiếp theo)
+      else if (title === normKw || orig === normKw || slug === normKw.replace(/\s+/g, "-")) {
         score = 100;
         matchType = "title";
       } else if (title.startsWith(normKw) || orig.startsWith(normKw)) {
@@ -308,7 +323,7 @@ export default async function BrowsePage({
         score = 70;
         matchType = "title";
       } else if (actorStr && actorStr.includes(normKw)) {
-        score = 55;
+        score = 65;
         matchType = "actor";
       } else if (desc && desc.includes(normKw)) {
         score = 30;
@@ -336,7 +351,7 @@ export default async function BrowsePage({
       };
     });
 
-    // Sắp xếp giảm dần theo độ phù hợp: Phim khớp tiêu đề đứng trước, phim chỉ khớp mô tả đứng sau
+    // Sắp xếp giảm dần theo độ phù hợp: Phim của diễn viên đứng trước, rồi mới tới phim khớp tiêu đề, sau cùng là phim liên quan/khớp mô tả
     scoredMovies.sort((a, b) => b.relevanceScore - a.relevanceScore);
     movies = scoredMovies;
   }

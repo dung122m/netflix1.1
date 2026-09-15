@@ -700,8 +700,8 @@ export async function fetchMoviesByTitles(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const results: any[] = [];
 
-  // Thực thi song song tối đa 6 truy vấn chính xác nhất để phản hồi trong chớp mắt
-  const tasks = titles.slice(0, 6).map(async (t) => {
+  // Thực thi song song tối đa 10 truy vấn chính xác nhất để phản hồi trong chớp mắt
+  const tasks = titles.slice(0, 10).map(async (t) => {
     try {
       const cleanTitle = t.replace(/\([^)]*\)/g, "").trim();
       const res = await movieApi.getMovies({

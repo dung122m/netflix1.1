@@ -369,9 +369,26 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     if (!fullscreenElement) {
       const requestFS = elem.requestFullscreen || elem.webkitRequestFullscreen || elem.mozRequestFullScreen || elem.msRequestFullscreen;
       if (requestFS) {
-        requestFS.call(elem).catch(() => {});
+        const p = requestFS.call(elem);
         setIsFullscreen(true);
         showHud(<Maximize2 className="w-5 h-5 text-netflix-red" />, "Toàn màn hình");
+
+        // Tự động xoay ngang màn hình trên thiết bị di động (Screen Orientation API)
+        const lockLandscape = () => {
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const orientation = (screen?.orientation || (screen as any)?.mozOrientation || (screen as any)?.msOrientation) as any;
+            if (orientation && typeof orientation.lock === "function") {
+              orientation.lock("landscape").catch(() => {});
+            }
+          } catch {}
+        };
+
+        if (p && typeof p.then === "function") {
+          p.then(lockLandscape).catch(() => {});
+        } else {
+          lockLandscape();
+        }
       }
     } else {
       const exitFS = doc.exitFullscreen || doc.webkitExitFullscreen || doc.mozCancelFullScreen || doc.msExitFullscreen;
@@ -379,6 +396,15 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         exitFS.call(doc).catch(() => {});
         setIsFullscreen(false);
         showHud(<Minimize2 className="w-5 h-5 text-gray-300" />, "Thoát toàn màn hình");
+
+        // Mở khóa xoay màn hình khi thoát toàn màn hình
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const orientation = (screen?.orientation || (screen as any)?.mozOrientation || (screen as any)?.msOrientation) as any;
+          if (orientation && typeof orientation.unlock === "function") {
+            orientation.unlock();
+          }
+        } catch {}
       }
     }
   }, [isNativeVideo, showHud]);
@@ -848,11 +874,36 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     const handleFullscreenChange = () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const doc = document as any;
-      setIsFullscreen(Boolean(doc.fullscreenElement || doc.webkitFullscreenElement || doc.mozFullScreenElement));
+      const isFS = Boolean(doc.fullscreenElement || doc.webkitFullscreenElement || doc.mozFullScreenElement);
+      setIsFullscreen(isFS);
+
+      // Tự động xoay ngang khi vào Fullscreen và nhả xoay khi thoát Fullscreen
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const orientation = (screen?.orientation || (screen as any)?.mozOrientation || (screen as any)?.msOrientation) as any;
+        if (isFS) {
+          if (orientation && typeof orientation.lock === "function") {
+            orientation.lock("landscape").catch(() => {});
+          }
+        } else {
+          if (orientation && typeof orientation.unlock === "function") {
+            orientation.unlock();
+          }
+        }
+      } catch {}
     };
     const video = videoRef.current;
     const handleWebkitBegin = () => setIsFullscreen(true);
-    const handleWebkitEnd = () => setIsFullscreen(false);
+    const handleWebkitEnd = () => {
+      setIsFullscreen(false);
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const orientation = (screen?.orientation || (screen as any)?.mozOrientation || (screen as any)?.msOrientation) as any;
+        if (orientation && typeof orientation.unlock === "function") {
+          orientation.unlock();
+        }
+      } catch {}
+    };
 
     document.addEventListener("fullscreenchange", handleFullscreenChange);
     document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
