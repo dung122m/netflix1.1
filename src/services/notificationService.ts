@@ -6,7 +6,7 @@ import {
   createNotificationSupabase,
   deleteNotificationSupabase,
 } from "./supabaseService";
-import { isSupabaseConfigured } from "@/lib/supabase";
+import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 /**
  * Lấy mốc thời gian đã đọc hết thông báo từ LocalStorage
@@ -253,14 +253,42 @@ export function subscribeUserNotifications(
     }
   }, 45000);
 
-  if (typeof window !== "undefined") {
-    document.addEventListener("visibilitychange", handleVisibilityOrFocus);
-    window.addEventListener("focus", handleVisibilityOrFocus);
+  // 4. Lắng nghe thông báo mới tức thời qua Supabase Realtime WebSocket (< 50ms)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let channel: any = null;
+  if (supabase) {
+    try {
+      channel = supabase
+        .channel(`realtime_notifs_${userId}_${Date.now()}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "notifications",
+            filter: `user_id=eq.${userId}`,
+          },
+          () => {
+            if (!isUnsubscribed) {
+              lastNotificationFetch = Date.now();
+              fetchSupabaseNotifications();
+            }
+          }
+        )
+        .subscribe();
+    } catch (err) {
+      console.warn("Lỗi đăng ký Realtime notifications:", err);
+    }
   }
 
   return () => {
     isUnsubscribed = true;
     clearInterval(pollInterval);
+    if (channel && supabase) {
+      try {
+        supabase.removeChannel(channel);
+      } catch {}
+    }
     if (typeof window !== "undefined") {
       window.removeEventListener("nanaflix-notifications-updated", handleLocalEvent);
       document.removeEventListener("visibilitychange", handleVisibilityOrFocus);

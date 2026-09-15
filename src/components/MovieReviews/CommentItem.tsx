@@ -533,7 +533,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
               )}
               <span className="text-[10px] sm:text-xs text-zinc-500">
                 {formatRelativeTime(comment.createdAt)}
-                {comment.updatedAt ? " (đã sửa)" : ""}
+                {comment.updatedAt && comment.createdAt && comment.updatedAt - comment.createdAt > 3000 ? " (đã sửa)" : ""}
               </span>
             </div>
           </div>

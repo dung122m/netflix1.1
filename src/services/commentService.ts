@@ -17,7 +17,7 @@ import {
   createNotificationSupabase,
   getUserProfileSupabase,
 } from "./supabaseService";
-import { isSupabaseConfigured } from "@/lib/supabase";
+import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 // In-memory cache lưu danh sách bình luận theo movieSlug để hiển thị ngay 0ms không bị chớp hay mất
 const movieCommentsMemoryCache: Record<string, MovieComment[]> = {};
@@ -207,9 +207,42 @@ export function subscribeMovieComments(
     window.addEventListener("focus", handleVisibilityOrFocus);
   }
 
+  // 5. Lắng nghe bình luận mới qua Supabase Realtime WebSocket (< 50ms)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let realtimeChannel: any = null;
+  if (supabase) {
+    try {
+      realtimeChannel = supabase
+        .channel(`realtime_comments_${movieSlug}_${Date.now()}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "movie_comments",
+            filter: `movie_slug=eq.${movieSlug}`,
+          },
+          () => {
+            if (!isUnsubscribed) {
+              lastFetchTime = Date.now();
+              fetchSupabase();
+            }
+          }
+        )
+        .subscribe();
+    } catch (err) {
+      console.warn("Lỗi đăng ký Realtime comments:", err);
+    }
+  }
+
   return () => {
     isUnsubscribed = true;
     clearInterval(syncInterval);
+    if (realtimeChannel && supabase) {
+      try {
+        supabase.removeChannel(realtimeChannel);
+      } catch {}
+    }
     if (typeof window !== "undefined") {
       window.removeEventListener("comments-updated", handleCommentsUpdated);
       document.removeEventListener("visibilitychange", handleVisibilityOrFocus);
@@ -336,9 +369,42 @@ export function subscribeCommentReplies(
     }
   }, 45000);
 
+  // Lắng nghe replies mới qua Supabase Realtime WebSocket (< 50ms)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let replyRealtimeChannel: any = null;
+  if (supabase) {
+    try {
+      replyRealtimeChannel = supabase
+        .channel(`realtime_replies_${parentId}_${Date.now()}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "movie_comments",
+            filter: `parent_id=eq.${parentId}`,
+          },
+          () => {
+            if (!isUnsubscribed) {
+              lastReplyFetch = Date.now();
+              fetchReplies();
+            }
+          }
+        )
+        .subscribe();
+    } catch (err) {
+      console.warn("Lỗi đăng ký Realtime replies:", err);
+    }
+  }
+
   return () => {
     isUnsubscribed = true;
     clearInterval(interval);
+    if (replyRealtimeChannel && supabase) {
+      try {
+        supabase.removeChannel(replyRealtimeChannel);
+      } catch {}
+    }
     if (typeof window !== "undefined") {
       window.removeEventListener("comments-updated", handleLocalReplyUpdated);
       document.removeEventListener("visibilitychange", handleVisibilityOrFocus);

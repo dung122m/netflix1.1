@@ -96,6 +96,13 @@ export const DesktopReplyPopup: React.FC = () => {
   const handleClickNotification = useCallback(() => {
     if (!activeNotification || !user) return;
     markNotificationAsRead(user.uid, activeNotification.id);
+    if (activeNotification.commentId && typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("nanaflix-highlight-comment", {
+          detail: { commentId: activeNotification.commentId },
+        })
+      );
+    }
     const targetLink =
       activeNotification.link ||
       (activeNotification.movieSlug

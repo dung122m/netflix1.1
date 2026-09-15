@@ -1112,6 +1112,13 @@ const NavbarInner: React.FC = () => {
                             markNotificationAsRead(user.uid, item.id);
                           }
                           setShowNotifications(false);
+                          if (item.commentId && typeof window !== "undefined") {
+                            window.dispatchEvent(
+                              new CustomEvent("nanaflix-highlight-comment", {
+                                detail: { commentId: item.commentId },
+                              })
+                            );
+                          }
                           const targetLink =
                             item.link ||
                             (item.movieSlug

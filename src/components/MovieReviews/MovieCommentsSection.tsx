@@ -77,7 +77,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
   const effectiveAvatar = userProfile?.customAvatar || userProfile?.photoURL || user?.photoURL || "";
   const effectiveDisplayName = userProfile?.displayName || user?.displayName || "Thành viên Nanaflix";
 
-  // Lấy ID comment cần highlight từ query params (?highlightComment=xxx) hoặc URL hash (#comment-xxx)
+  // Lấy ID comment cần highlight từ query params (?highlightComment=xxx) hoặc URL hash (#comment-xxx) hoặc event
   useEffect(() => {
     const paramHighlight = searchParams?.get("highlightComment");
     if (paramHighlight) {
@@ -87,6 +87,17 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
     if (typeof window !== "undefined" && window.location.hash.startsWith("#comment-")) {
       setHighlightId(window.location.hash.replace("#comment-", ""));
     }
+
+    const handleHighlightEvent = (e: Event) => {
+      const customEv = e as CustomEvent<{ commentId?: string }>;
+      if (customEv.detail?.commentId) {
+        setHighlightId(customEv.detail.commentId);
+      }
+    };
+    window.addEventListener("nanaflix-highlight-comment", handleHighlightEvent);
+    return () => {
+      window.removeEventListener("nanaflix-highlight-comment", handleHighlightEvent);
+    };
   }, [searchParams]);
 
   // Tìm bài viết mục tiêu (có thể là root comment hoặc reply)
