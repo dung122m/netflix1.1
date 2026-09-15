@@ -46,6 +46,13 @@ const SetTitleClient = dynamic(() =>
   import("@/components/SetTitleClient").then((mod) => mod.default),
 );
 
+const MovieCommentsSection = dynamic(
+  () =>
+    import("@/components/MovieReviews/MovieCommentsSection").then(
+      (mod) => mod.MovieCommentsSection,
+    ),
+);
+
 
 export async function generateMetadata({
   params,
@@ -754,6 +761,16 @@ export default async function MovieDetail({
         </div>
       </div>
       </WatchController>
+
+      {/* ĐÁNH GIÁ & BÌNH LUẬN CỘNG ĐỒNG */}
+      <div className="max-w-7xl mx-auto px-4 md:px-8 mt-10">
+        <MovieCommentsSection
+          movieSlug={movie.slug}
+          movieTitle={title}
+          currentEpisodeSlug={activeEpisode?.slug}
+          currentEpisodeName={activeEpisode?.name}
+        />
+      </div>
 
       <div className="max-w-7xl mx-auto px-4 md:px-8 mt-10">
         <div className="flex items-end justify-between gap-4 mb-5">
