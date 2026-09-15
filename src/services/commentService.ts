@@ -813,12 +813,7 @@ export async function setCommentReaction(
   void _prevReactionType;
   if (!commentId || !userId) return;
 
-  // 1. Cập nhật Supabase ngay lập tức
-  if (isSupabaseConfigured()) {
-    setCommentReactionSupabase(commentId, userId, reactionType).catch(() => {});
-  }
-
-  // 2. Cập nhật ngay bộ nhớ cache & localStorage cho root comments
+  // 1. Cập nhật ngay bộ nhớ cache & localStorage cho root comments
   Object.keys(movieCommentsMemoryCache).forEach((slug) => {
     movieCommentsMemoryCache[slug] = movieCommentsMemoryCache[slug].map((c) => {
       if (c.id !== commentId) return c;
@@ -850,7 +845,7 @@ export async function setCommentReaction(
     saveLocalMovieComments(slug, movieCommentsMemoryCache[slug]);
   });
 
-  // 3. Cập nhật cache của reply comments (nếu reaction thuộc về một reply)
+  // 2. Cập nhật cache của reply comments (nếu reaction thuộc về một reply)
   Object.keys(replyCommentsMemoryCache).forEach((parentId) => {
     replyCommentsMemoryCache[parentId] = replyCommentsMemoryCache[parentId].map((r) => {
       if (r.id !== commentId) return r;
@@ -883,6 +878,19 @@ export async function setCommentReaction(
 
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent("comments-updated", { detail: { commentId } }));
+  }
+
+  // 3. Cập nhật Supabase trực tiếp & fallback qua API route
+  if (isSupabaseConfigured()) {
+    try {
+      await setCommentReactionSupabase(commentId, userId, reactionType);
+    } catch {
+      fetch("/api/comments", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ commentId, userId, reactionType, action: "reaction" }),
+      }).catch(() => {});
+    }
   }
 }
 
@@ -928,15 +936,30 @@ export async function updateMovieComment(
     }
   }
 
+  // Cập nhật cả trong reply memory cache nếu là reply
+  Object.keys(replyCommentsMemoryCache).forEach((parentId) => {
+    replyCommentsMemoryCache[parentId] = replyCommentsMemoryCache[parentId].map((r) =>
+      r.id === commentId ? { ...r, ...data, updatedAt: now } : r
+    );
+  });
+
   // 2. Ghi trực tiếp vào Supabase Database trước
   if (isSupabaseConfigured()) {
-    await updateCommentSupabase(commentId, {
-      rating: data.rating,
-      content: data.content,
-      episode_slug: data.episodeSlug || null,
-      episode_name: data.episodeName || null,
-      is_spoiler: data.isSpoiler,
-    });
+    try {
+      await updateCommentSupabase(commentId, {
+        rating: data.rating,
+        content: data.content,
+        episode_slug: data.episodeSlug || null,
+        episode_name: data.episodeName || null,
+        is_spoiler: data.isSpoiler,
+      });
+    } catch {
+      fetch("/api/comments", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ commentId, ...data }),
+      }).catch(() => {});
+    }
   }
 
   // 3. Sau khi Supabase ghi xong, phát event để đồng bộ toàn bộ tab/component
@@ -962,13 +985,24 @@ export async function deleteMovieComment(commentId: string): Promise<void> {
     }
   }
 
+  // Xóa trong reply cache
+  Object.keys(replyCommentsMemoryCache).forEach((parentId) => {
+    replyCommentsMemoryCache[parentId] = replyCommentsMemoryCache[parentId].filter(
+      (r) => r.id !== commentId && r.parentId !== commentId
+    );
+  });
+
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent("comments-updated", { detail: { commentId, movieSlug: affectedMovieSlug, deleted: true } }));
   }
 
   // 2. Xóa trên Supabase
   if (isSupabaseConfigured()) {
-    await deleteCommentSupabase(commentId);
+    try {
+      await deleteCommentSupabase(commentId);
+    } catch {
+      fetch(`/api/comments?commentId=${encodeURIComponent(commentId)}`, { method: "DELETE" }).catch(() => {});
+    }
   }
 }
 
@@ -993,7 +1027,15 @@ export async function togglePinComment(
 
   // 2. Cập nhật Supabase ngay lập tức
   if (isSupabaseConfigured()) {
-    await togglePinCommentSupabase(commentId, newPinnedState);
+    try {
+      await togglePinCommentSupabase(commentId, newPinnedState);
+    } catch {
+      fetch("/api/comments", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ commentId, isPinned: newPinnedState, action: "pin" }),
+      }).catch(() => {});
+    }
   }
 
   // 3. Phát event cập nhật toàn bộ giao diện realtime 0ms

@@ -138,37 +138,82 @@ ALTER TABLE public.collections ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 
 -- Tạo chính sách cho phép đọc & ghi ẩn danh / xác thực qua API Anon Key
+DROP POLICY IF EXISTS "Public Read Profiles" ON public.profiles;
 CREATE POLICY "Public Read Profiles" ON public.profiles FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Public Insert Profiles" ON public.profiles;
 CREATE POLICY "Public Insert Profiles" ON public.profiles FOR INSERT WITH CHECK (true);
-CREATE POLICY "Public Update Profiles" ON public.profiles FOR UPDATE USING (true);
+DROP POLICY IF EXISTS "Public Update Profiles" ON public.profiles;
+CREATE POLICY "Public Update Profiles" ON public.profiles FOR UPDATE USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "Public Delete Profiles" ON public.profiles;
 CREATE POLICY "Public Delete Profiles" ON public.profiles FOR DELETE USING (true);
 
+DROP POLICY IF EXISTS "Public Read Comments" ON public.movie_comments;
 CREATE POLICY "Public Read Comments" ON public.movie_comments FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Public Insert Comments" ON public.movie_comments;
 CREATE POLICY "Public Insert Comments" ON public.movie_comments FOR INSERT WITH CHECK (true);
-CREATE POLICY "Public Update Comments" ON public.movie_comments FOR UPDATE USING (true);
+DROP POLICY IF EXISTS "Public Update Comments" ON public.movie_comments;
+CREATE POLICY "Public Update Comments" ON public.movie_comments FOR UPDATE USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "Public Delete Comments" ON public.movie_comments;
 CREATE POLICY "Public Delete Comments" ON public.movie_comments FOR DELETE USING (true);
 
+DROP POLICY IF EXISTS "Public Read Watch History" ON public.watch_history;
 CREATE POLICY "Public Read Watch History" ON public.watch_history FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Public Insert Watch History" ON public.watch_history;
 CREATE POLICY "Public Insert Watch History" ON public.watch_history FOR INSERT WITH CHECK (true);
-CREATE POLICY "Public Update Watch History" ON public.watch_history FOR UPDATE USING (true);
+DROP POLICY IF EXISTS "Public Update Watch History" ON public.watch_history;
+CREATE POLICY "Public Update Watch History" ON public.watch_history FOR UPDATE USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "Public Delete Watch History" ON public.watch_history;
 CREATE POLICY "Public Delete Watch History" ON public.watch_history FOR DELETE USING (true);
 
+DROP POLICY IF EXISTS "Public Read Watchlist" ON public.watchlist;
 CREATE POLICY "Public Read Watchlist" ON public.watchlist FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Public Insert Watchlist" ON public.watchlist;
 CREATE POLICY "Public Insert Watchlist" ON public.watchlist FOR INSERT WITH CHECK (true);
-CREATE POLICY "Public Update Watchlist" ON public.watchlist FOR UPDATE USING (true);
+DROP POLICY IF EXISTS "Public Update Watchlist" ON public.watchlist;
+CREATE POLICY "Public Update Watchlist" ON public.watchlist FOR UPDATE USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "Public Delete Watchlist" ON public.watchlist;
 CREATE POLICY "Public Delete Watchlist" ON public.watchlist FOR DELETE USING (true);
 
+DROP POLICY IF EXISTS "Public Read Collections" ON public.collections;
 CREATE POLICY "Public Read Collections" ON public.collections FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Public Insert Collections" ON public.collections;
 CREATE POLICY "Public Insert Collections" ON public.collections FOR INSERT WITH CHECK (true);
-CREATE POLICY "Public Update Collections" ON public.collections FOR UPDATE USING (true);
+DROP POLICY IF EXISTS "Public Update Collections" ON public.collections;
+CREATE POLICY "Public Update Collections" ON public.collections FOR UPDATE USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "Public Delete Collections" ON public.collections;
 CREATE POLICY "Public Delete Collections" ON public.collections FOR DELETE USING (true);
 
+DROP POLICY IF EXISTS "Public Read Notifications" ON public.notifications;
 CREATE POLICY "Public Read Notifications" ON public.notifications FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Public Insert Notifications" ON public.notifications;
 CREATE POLICY "Public Insert Notifications" ON public.notifications FOR INSERT WITH CHECK (true);
-CREATE POLICY "Public Update Notifications" ON public.notifications FOR UPDATE USING (true);
+DROP POLICY IF EXISTS "Public Update Notifications" ON public.notifications;
+CREATE POLICY "Public Update Notifications" ON public.notifications FOR UPDATE USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "Public Delete Notifications" ON public.notifications;
 CREATE POLICY "Public Delete Notifications" ON public.notifications FOR DELETE USING (true);
 
--- BẬT REALTIME CHO CÁC BẢNG CẦN THỜI GIAN THỰC
-ALTER PUBLICATION supabase_realtime ADD TABLE public.movie_comments;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.profiles;
+-- BẬT REALTIME CHO CÁC BẢNG CẦN THỜI GIAN THỰC (Bỏ qua lỗi nếu đã add)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND tablename = 'movie_comments'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.movie_comments;
+  END IF;
+  
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND tablename = 'notifications'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND tablename = 'profiles'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.profiles;
+  END IF;
+END $$;
+

@@ -150,22 +150,34 @@ export async function POST(req: NextRequest) {
 
 /**
  * PATCH /api/comments
- * Ghim hoặc bỏ ghim bình luận trên Supabase
+ * Ghim/bỏ ghim, thả reaction, báo cáo/gỡ báo cáo bình luận trên Supabase
  */
 export async function PATCH(req: NextRequest) {
   try {
-    const { commentId, isPinned } = await req.json();
+    const body = await req.json();
+    const { commentId, isPinned, action, userId, reactionType, reason } = body;
     if (!commentId) {
       return NextResponse.json({ error: "Thiếu commentId!" }, { status: 400 });
     }
 
     if (isSupabaseConfigured()) {
-      await togglePinCommentSupabase(commentId, Boolean(isPinned));
+      if (action === "reaction" && userId) {
+        const { setCommentReactionSupabase } = await import("@/services/supabaseService");
+        await setCommentReactionSupabase(commentId, userId, reactionType || null);
+      } else if (action === "flag" && reason) {
+        const { flagCommentSupabase } = await import("@/services/supabaseService");
+        await flagCommentSupabase(commentId, reason);
+      } else if (action === "unflag") {
+        const { unflagCommentSupabase } = await import("@/services/supabaseService");
+        await unflagCommentSupabase(commentId);
+      } else if (isPinned !== undefined || action === "pin") {
+        await togglePinCommentSupabase(commentId, Boolean(isPinned));
+      }
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Lỗi API patch comment pin:", error);
+    console.error("Lỗi API patch comment:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

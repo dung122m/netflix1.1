@@ -464,12 +464,16 @@ export async function getAllCommentsSupabase(): Promise<MovieComment[]> {
 export async function togglePinCommentSupabase(commentId: string, isPinned: boolean): Promise<void> {
   if (!supabase || !commentId) return;
   try {
-    await supabase
+    const { error } = await supabase
       .from("movie_comments")
       .update({ is_pinned: isPinned, updated_at: Date.now() })
       .eq("id", commentId);
+
+    if (error) {
+      console.error("Lỗi togglePinComment Supabase:", error.message || error);
+    }
   } catch (err) {
-    console.warn("Lỗi togglePinComment Supabase:", err);
+    console.error("Lỗi ngoại lệ togglePinComment Supabase:", err);
   }
 }
 
@@ -480,12 +484,16 @@ export async function setCommentReactionSupabase(
 ): Promise<void> {
   if (!supabase || !commentId || !userId) return;
   try {
-    const { data } = await supabase
+    const { data, error: selectErr } = await supabase
       .from("movie_comments")
       .select("likes, liked_by")
       .eq("id", commentId)
       .maybeSingle();
 
+    if (selectErr) {
+      console.error("Lỗi lấy reaction Supabase:", selectErr.message || selectErr);
+      return;
+    }
     if (!data) return;
 
     const { reactions } = parseReactionsAndLikedBy(data.liked_by);
@@ -500,7 +508,7 @@ export async function setCommentReactionSupabase(
     const newLikedBy = Object.keys(updatedReactions);
     const newLikes = newLikedBy.length;
 
-    await supabase
+    const { error: updateErr } = await supabase
       .from("movie_comments")
       .update({
         likes: newLikes,
@@ -508,37 +516,54 @@ export async function setCommentReactionSupabase(
         updated_at: Date.now(),
       })
       .eq("id", commentId);
+
+    if (updateErr) {
+      console.error("Lỗi cập nhật reaction vào Supabase:", updateErr.message || updateErr);
+    }
   } catch (err) {
-    console.warn("Lỗi setCommentReaction Supabase:", err);
+    console.error("Lỗi ngoại lệ setCommentReaction Supabase:", err);
   }
 }
 
 export async function deleteCommentSupabase(commentId: string): Promise<void> {
   if (!supabase || !commentId) return;
-  await supabase.from("movie_comments").delete().eq("id", commentId);
+  try {
+    const { error } = await supabase.from("movie_comments").delete().eq("id", commentId);
+    if (error) {
+      console.error("Lỗi deleteComment Supabase:", error.message || error);
+    }
+  } catch (err) {
+    console.error("Lỗi ngoại lệ deleteComment Supabase:", err);
+  }
 }
 
 export async function flagCommentSupabase(commentId: string, reason: string): Promise<void> {
   if (!supabase || !commentId) return;
   try {
-    await supabase
+    const { error } = await supabase
       .from("movie_comments")
       .update({ is_flagged: true, flag_reason: reason, updated_at: Date.now() })
       .eq("id", commentId);
+    if (error) {
+      console.error("Lỗi flagComment Supabase:", error.message || error);
+    }
   } catch (err) {
-    console.warn("Lỗi flagComment Supabase:", err);
+    console.error("Lỗi flagComment Supabase:", err);
   }
 }
 
 export async function unflagCommentSupabase(commentId: string): Promise<void> {
   if (!supabase || !commentId) return;
   try {
-    await supabase
+    const { error } = await supabase
       .from("movie_comments")
       .update({ is_flagged: false, flag_reason: null, updated_at: Date.now() })
       .eq("id", commentId);
+    if (error) {
+      console.error("Lỗi unflagComment Supabase:", error.message || error);
+    }
   } catch (err) {
-    console.warn("Lỗi unflagComment Supabase:", err);
+    console.error("Lỗi unflagComment Supabase:", err);
   }
 }
 
