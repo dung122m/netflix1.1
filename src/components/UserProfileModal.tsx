@@ -354,29 +354,29 @@ function UserProfileModalInner() {
 
   return createPortal(
     <div className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl border border-white/15 bg-gradient-to-b from-zinc-900 via-zinc-950 to-black p-4 sm:p-7 shadow-2xl space-y-6 scrollbar-thin">
+      <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl sm:rounded-3xl border border-white/15 bg-gradient-to-b from-zinc-900 via-zinc-950 to-black p-4 sm:p-6 shadow-2xl space-y-4 sm:space-y-6 scrollbar-thin">
         {/* NÚT ĐÓNG */}
         <button
           type="button"
           onClick={() => setIsOpen(false)}
-          className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white transition cursor-pointer"
+          className="absolute top-3.5 right-3.5 sm:top-4 sm:right-4 p-1.5 sm:p-2 rounded-full bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white transition cursor-pointer z-10"
         >
           <X className="w-4 h-4" />
         </button>
 
         {/* HEADER */}
-        <div className="flex items-center justify-between border-b border-white/10 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-netflix-red/20 border border-netflix-red/40 flex items-center justify-center text-rose-400 shadow-inner">
-              <User className="w-6 h-6" />
+        <div className="flex items-center justify-between border-b border-white/10 pb-3 sm:pb-4 pr-10 sm:pr-0">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-netflix-red/20 border border-netflix-red/40 flex items-center justify-center text-rose-400 shadow-inner flex-shrink-0">
+              <User className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
-            <div>
-              <h3 className="text-xl font-black text-white flex items-center gap-2">
+            <div className="min-w-0">
+              <h3 className="text-lg sm:text-xl font-black text-white flex items-center gap-1.5 truncate">
                 <span>Hồ Sơ Cá Nhân VIP</span>
-                <Sparkles className="w-4 h-4 text-amber-400" />
+                <Sparkles className="w-4 h-4 text-amber-400 flex-shrink-0" />
               </h3>
-              <p className="text-xs text-gray-400">
-                Tùy chỉnh ảnh đại diện, danh hiệu, lịch sử bình luận và cấp độ cày phim.
+              <p className="text-[11px] sm:text-xs text-gray-400 truncate">
+                Tùy chỉnh ảnh đại diện, danh hiệu và cấp độ cày phim.
               </p>
             </div>
           </div>
@@ -387,39 +387,39 @@ function UserProfileModalInner() {
             onClick={() => {
               window.dispatchEvent(new CustomEvent("open-leaderboard-modal"));
             }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/15 border border-amber-500/40 text-amber-300 hover:bg-amber-500 hover:text-black text-xs font-bold transition cursor-pointer"
+            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/15 border border-amber-500/40 text-amber-300 hover:bg-amber-500 hover:text-black text-xs font-bold transition cursor-pointer flex-shrink-0 whitespace-nowrap"
           >
             <Trophy className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Bảng Xếp Hạng</span>
+            <span>Bảng Xếp Hạng</span>
           </button>
         </div>
 
         {/* TAB CHUYỂN ĐỔI: HỒ SƠ & LỊCH SỬ BÌNH LUẬN */}
-        <div className="flex items-center gap-2 bg-white/5 p-1 rounded-2xl border border-white/10">
+        <div className="flex items-center gap-1.5 bg-white/5 p-1 rounded-2xl border border-white/10 text-xs font-bold">
           <button
             type="button"
             onClick={() => setActiveTab("profile")}
-            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl transition cursor-pointer whitespace-nowrap ${
               activeTab === "profile"
                 ? "bg-netflix-red text-white shadow-md shadow-rose-950/50"
                 : "text-gray-400 hover:text-white hover:bg-white/5"
             }`}
           >
-            <User className="w-3.5 h-3.5" />
+            <User className="w-3.5 h-3.5 flex-shrink-0" />
             <span>Hồ Sơ VIP</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab("comments")}
-            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl transition cursor-pointer whitespace-nowrap ${
               activeTab === "comments"
                 ? "bg-netflix-red text-white shadow-md shadow-rose-950/50"
                 : "text-gray-400 hover:text-white hover:bg-white/5"
             }`}
           >
-            <MessageSquare className="w-3.5 h-3.5" />
-            <span>Lịch Sử Bình Luận ({userComments.length})</span>
+            <MessageSquare className="w-3.5 h-3.5 flex-shrink-0" />
+            <span>Lịch Sử Đánh Giá ({userComments.length})</span>
           </button>
         </div>
 
@@ -427,17 +427,17 @@ function UserProfileModalInner() {
         {activeTab === "profile" && (
           <>
             {/* CẤP ĐỘ CÀY PHIM (WATCH LEVEL CARD) */}
-            <div className="p-4 rounded-2xl border border-white/10 bg-white/5 space-y-2">
-              <div className="flex items-center justify-between text-xs sm:text-sm">
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">{levelInfo.badgeIcon}</span>
+            <div className="p-3.5 sm:p-4 rounded-2xl border border-white/10 bg-white/5 space-y-2">
+              <div className="flex items-center justify-between text-xs sm:text-sm gap-2 flex-wrap">
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <span className="text-base sm:text-lg">{levelInfo.badgeIcon}</span>
                   <span className="font-extrabold text-white">{levelInfo.levelName}</span>
-                  <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10.5px] font-bold">
+                  <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] sm:text-[10.5px] font-bold whitespace-nowrap">
                     Level VIP
                   </span>
                 </div>
-                <div className="flex items-center gap-1 text-xs text-amber-400 font-bold">
-                  <Flame className="w-3.5 h-3.5 fill-amber-400" />
+                <div className="flex items-center gap-1 text-[11px] sm:text-xs text-amber-400 font-bold whitespace-nowrap">
+                  <Flame className="w-3.5 h-3.5 fill-amber-400 flex-shrink-0" />
                   <span>{watchHours} giờ cày phim</span>
                 </div>
               </div>
@@ -447,7 +447,7 @@ function UserProfileModalInner() {
                 <div className="space-y-1 pt-1">
                   <div className="flex justify-between text-[11px] text-gray-400">
                     <span>Tiến độ lên {levelInfo.nextLevelName}:</span>
-                    <span>
+                    <span className="font-mono">
                       {watchMins} / {levelInfo.nextMinMinutes} phút
                     </span>
                   </div>
