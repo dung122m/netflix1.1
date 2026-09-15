@@ -194,10 +194,11 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
 
   return (
     <section
-      className="hero-cinema-section keep-dark-cinema relative h-[48vh] sm:h-[75vh] md:h-[84vh] min-h-[340px] sm:min-h-[520px] w-full overflow-hidden bg-black"
+      className="hero-cinema-section keep-dark-cinema relative h-[56vh] sm:h-[78vh] md:h-[86vh] min-h-[420px] sm:min-h-[560px] w-full overflow-hidden bg-black select-none"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
+      {/* 1. HÌNH NỀN HERO BANNER TOÀN MÀN HÌNH VỚI HIỆU ỨNG CHUYỂN SLIDE MƯỢT MÀ */}
       <div className="absolute inset-0">
         <AnimatePresence initial={false} custom={direction} mode="wait">
           <motion.div
@@ -209,8 +210,8 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
             exit="exit"
             transition={{
               x: { type: "spring", stiffness: 115, damping: 22, mass: 0.75 },
-              opacity: { duration: 0.38, ease: "easeOut" },
-              scale: { duration: 0.6, ease: "easeOut" },
+              opacity: { duration: 0.45, ease: "easeOut" },
+              scale: { duration: 0.75, ease: "easeOut" },
             }}
             drag={slides.length > 1 ? "x" : false}
             dragElastic={0.08}
@@ -225,111 +226,129 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
               priority
               quality={95}
               sizes="100vw"
-              className="object-cover"
+              className="object-cover object-top sm:object-center"
             />
           </motion.div>
         </AnimatePresence>
       </div>
 
-      <div className="absolute inset-0 bg-gradient-to-r from-black/95 via-black/60 to-black/20" />
-      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_28%,rgba(229,9,20,0.16),transparent_38%)]" />
+      {/* 2. CÁC LỚP MÀNG GRADIENT ĐIỆN ẢNH (CINEMATIC FULL-BLEED GRADIENTS) */}
+      <div className="absolute inset-0 bg-gradient-to-r from-black/95 via-black/80 to-transparent sm:w-3/4 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent pointer-events-none" />
+      <div className="absolute top-0 left-0 right-0 h-36 bg-gradient-to-b from-black/80 to-transparent pointer-events-none" />
+      <div className="absolute -left-20 bottom-1/4 w-[500px] h-[500px] bg-rose-600/15 rounded-full blur-[120px] pointer-events-none" />
 
+      {/* 3. NỘI DUNG CHÍNH (TYPOGRAPHY, BADGES & CTA BUTTONS) */}
       <motion.div
         key={`content-${index}`}
-        initial={{ opacity: 0, y: 16 }}
+        initial={{ opacity: 0, y: 22 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35, ease: "easeOut" }}
+        transition={{ duration: 0.45, ease: "easeOut" }}
         className="relative z-10 flex h-full items-end"
       >
-        <div className="w-full px-3 sm:px-6 pb-6 md:px-10 md:pb-10">
+        <div className="w-full px-4 sm:px-8 md:px-14 pb-12 sm:pb-16 md:pb-20">
           <div className="mx-auto max-w-7xl">
-            <div className="max-w-3xl rounded-3xl border border-white/20 bg-black/65 p-4 sm:p-6 md:p-8 backdrop-blur-2xl shadow-[0_30px_90px_rgba(0,0,0,0.95),0_0_30px_rgba(229,9,20,0.1)]">
-              <div className="mb-3 sm:mb-4 flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs md:text-sm">
-                <span className="rounded-full border border-netflix-red/40 bg-gradient-to-r from-netflix-red/30 to-rose-600/20 text-rose-300 px-2.5 sm:px-3 py-0.5 sm:py-1 font-bold text-[11px] sm:text-xs flex items-center gap-1.5 shadow-sm">
-                  <Sparkles size={12} className="text-netflix-red animate-pulse" />
+            <div className="max-w-3xl space-y-4 sm:space-y-5">
+              {/* BADGES METADATA */}
+              <div className="flex flex-wrap items-center gap-2 text-xs md:text-sm">
+                <span className="rounded-full border border-netflix-red/50 bg-gradient-to-r from-netflix-red/35 via-rose-600/25 to-transparent text-white px-3.5 py-1 font-black text-[11px] sm:text-xs flex items-center gap-1.5 shadow-[0_0_18px_rgba(229,9,20,0.45)]">
+                  <Sparkles size={13} className="text-netflix-red fill-netflix-red animate-pulse" />
                   <span>Nana Tuyển Chọn • {heroType}</span>
                 </span>
-                {heroCountry && (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/15 px-2.5 sm:px-3 py-0.5 sm:py-1 text-[11px] sm:text-xs font-bold text-amber-300 shadow-sm">
-                    <Globe2 size={11} className="text-amber-400" />
-                    <span>{heroCountry}</span>
+
+                {voteText && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-500/15 backdrop-blur-md px-3 py-1 text-[11px] sm:text-xs font-black text-amber-300 shadow-sm">
+                    <Star size={12} className="fill-amber-400 text-amber-400" />
+                    <span>{voteText}</span>
                   </span>
                 )}
+
                 {featuredMovie?.year && (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-black/55 px-2.5 sm:px-3 py-0.5 sm:py-1 text-[11px] sm:text-xs text-gray-200">
-                    <Calendar size={11} className="text-emerald-400" />
+                  <span className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-black/60 backdrop-blur-md px-3 py-1 text-[11px] sm:text-xs text-gray-200 font-bold">
+                    <Calendar size={12} className="text-emerald-400" />
                     <span>{featuredMovie.year}</span>
                   </span>
                 )}
+
                 {featuredMovie?.quality && (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-white/10 px-2.5 sm:px-3 py-0.5 sm:py-1 text-[11px] sm:text-xs font-bold text-white shadow-sm">
+                  <span className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-white/15 backdrop-blur-md px-2.5 py-1 text-[11px] sm:text-xs font-black text-white shadow-sm uppercase tracking-wider">
                     <span>{featuredMovie.quality}</span>
                   </span>
                 )}
-                {featuredMovie?.lang && (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-black/55 px-2.5 sm:px-3 py-0.5 sm:py-1 text-[11px] sm:text-xs text-rose-300 font-semibold">
-                    <span>{featuredMovie.lang}</span>
+
+                {heroCountry && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-black/60 backdrop-blur-md px-3 py-1 text-[11px] sm:text-xs font-semibold text-gray-300">
+                    <Globe2 size={12} className="text-sky-400" />
+                    <span>{heroCountry}</span>
                   </span>
                 )}
-                {voteText && (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-amber-300/40 bg-black/55 px-2.5 sm:px-3 py-0.5 sm:py-1 text-[11px] sm:text-xs text-amber-300 font-semibold shadow-sm">
-                    <Star size={11} className="fill-amber-400 text-amber-400" />
-                    <span>{voteText}</span>
+
+                {featuredMovie?.lang && (
+                  <span className="inline-flex items-center rounded-full border border-rose-500/20 bg-rose-500/10 backdrop-blur-md px-3 py-1 text-[11px] sm:text-xs text-rose-300 font-semibold">
+                    <span>{featuredMovie.lang}</span>
                   </span>
                 )}
               </div>
 
+              {/* TIÊU ĐỀ PHIM ĐỈNH CAO */}
               <h1
                 style={{ color: "#ffffff" }}
-                className="hero-cinema-title mb-2 sm:mb-3 text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight text-white line-clamp-2 drop-shadow-md"
+                className="hero-cinema-title text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black leading-[1.08] text-white line-clamp-2 tracking-tight drop-shadow-[0_4px_24px_rgba(0,0,0,0.95)]"
               >
                 {title}
               </h1>
+
+              {/* TÓM TẮT NỘI DUNG */}
               <p
                 style={{ color: "#e2e8f0" }}
-                className="hero-cinema-desc mb-4 sm:mb-6 max-w-2xl text-xs sm:text-sm md:text-base leading-relaxed text-gray-200 line-clamp-2 sm:line-clamp-3 drop-shadow-sm"
+                className="hero-cinema-desc max-w-2xl text-xs sm:text-sm md:text-base leading-relaxed text-zinc-300 line-clamp-2 sm:line-clamp-3 drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]"
               >
                 {description}
               </p>
 
-              <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
+              {/* CỤM NÚT HÀNH ĐỘNG (CTA) */}
+              <div className="flex flex-wrap items-center gap-3 pt-2">
                 {featuredMovie?.slug && (
                   <Link
                     href={`/movies/${featuredMovie.slug}`}
-                    className="inline-flex items-center gap-1.5 sm:gap-2 rounded-xl bg-netflix-red hover:bg-red-700 text-white px-5 sm:px-7 py-2.5 sm:py-3.5 text-xs sm:text-sm md:text-base font-extrabold transition active:scale-95 shadow-[0_0_25px_rgba(229,9,20,0.55)] cursor-pointer"
+                    className="inline-flex items-center gap-2.5 rounded-2xl bg-gradient-to-r from-netflix-red to-red-600 hover:from-red-600 hover:to-rose-600 text-white px-7 sm:px-9 py-3.5 sm:py-4 text-xs sm:text-sm md:text-base font-black transition-all duration-300 hover:scale-105 active:scale-95 shadow-[0_10px_30px_-5px_rgba(229,9,20,0.7)] hover:shadow-[0_15px_35px_-5px_rgba(229,9,20,0.9)] cursor-pointer"
                   >
-                    <Play size={18} fill="white" />
-                    {isTrailerOnly ? "Xem trailer" : "Xem ngay"}
+                    <Play size={19} fill="white" className="ml-0.5" />
+                    <span>{isTrailerOnly ? "Xem trailer" : "Xem ngay"}</span>
                   </Link>
                 )}
+
                 {featuredMovie?.trailer_url && (
                   <TrailerModal trailerUrl={featuredMovie.trailer_url} title={title} />
                 )}
+
                 {featuredMovie?.slug && (
                   <Link
                     href={`/movies/${featuredMovie.slug}`}
-                    className="inline-flex items-center gap-1.5 sm:gap-2 rounded-xl border border-white/30 bg-white/15 hover:bg-white/25 px-5 sm:px-7 py-2.5 sm:py-3.5 text-xs sm:text-sm md:text-base font-semibold text-white backdrop-blur-md transition active:scale-95 cursor-pointer shadow-md"
+                    className="inline-flex items-center gap-2 rounded-2xl border border-white/20 bg-white/10 hover:bg-white/20 px-6 sm:px-8 py-3.5 sm:py-4 text-xs sm:text-sm md:text-base font-bold text-white backdrop-blur-xl transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer shadow-lg hover:border-white/35"
                   >
-                    <Info size={18} />
-                    Chi tiết phim
+                    <Info size={19} />
+                    <span>Chi tiết phim</span>
                   </Link>
                 )}
               </div>
 
+              {/* THANH TIẾN TRÌNH AUTO-SLIDE */}
               {slides.length > 1 && (
-                <div className="mt-6 h-1.5 w-full overflow-hidden rounded-full bg-white/20">
-                  <motion.div
-                    key={`progress-${index}-${paused ? "pause" : "play"}`}
-                    initial={{ width: "0%" }}
-                    animate={{ width: paused ? "0%" : "100%" }}
-                    transition={
-                      paused
-                        ? { duration: 0 }
-                        : { duration: AUTO_SLIDE_MS / 1000, ease: "linear" }
-                    }
-                    className="h-full rounded-full bg-netflix-red"
-                  />
+                <div className="pt-3 max-w-sm">
+                  <div className="h-1 w-full overflow-hidden rounded-full bg-white/15">
+                    <motion.div
+                      key={`progress-${index}-${paused ? "pause" : "play"}`}
+                      initial={{ width: "0%" }}
+                      animate={{ width: paused ? "0%" : "100%" }}
+                      transition={
+                        paused
+                          ? { duration: 0 }
+                          : { duration: AUTO_SLIDE_MS / 1000, ease: "linear" }
+                      }
+                      className="h-full rounded-full bg-netflix-red shadow-[0_0_10px_rgba(229,9,20,0.8)]"
+                    />
+                  </div>
                 </div>
               )}
             </div>
@@ -337,24 +356,26 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
         </div>
       </motion.div>
 
+      {/* 4. NÚT ĐIỀU HƯỚNG TRÁI/PHẢI */}
       {slides.length > 1 && (
         <>
           <button
             onClick={goPrev}
             aria-label="Slide trước"
-            className="hidden sm:flex absolute left-3 top-1/2 z-20 -translate-y-1/2 rounded-full border border-white/25 bg-black/45 p-2 text-white backdrop-blur transition hover:bg-black/75 md:left-6 md:p-3 items-center justify-center cursor-pointer"
+            className="hidden sm:flex absolute left-4 md:left-8 top-1/2 z-20 -translate-y-1/2 rounded-full border border-white/20 bg-black/60 hover:bg-netflix-red hover:border-netflix-red p-3.5 text-white backdrop-blur-xl transition-all duration-300 shadow-2xl hover:scale-110 active:scale-95 items-center justify-center cursor-pointer"
           >
             <ChevronLeft size={22} />
           </button>
           <button
             onClick={goNext}
             aria-label="Slide tiếp"
-            className="hidden sm:flex absolute right-3 top-1/2 z-20 -translate-y-1/2 rounded-full border border-white/25 bg-black/45 p-2 text-white backdrop-blur transition hover:bg-black/75 md:right-6 md:p-3 items-center justify-center cursor-pointer"
+            className="hidden sm:flex absolute right-4 md:right-8 top-1/2 z-20 -translate-y-1/2 rounded-full border border-white/20 bg-black/60 hover:bg-netflix-red hover:border-netflix-red p-3.5 text-white backdrop-blur-xl transition-all duration-300 shadow-2xl hover:scale-110 active:scale-95 items-center justify-center cursor-pointer"
           >
             <ChevronRight size={22} />
           </button>
 
-          <div className="absolute bottom-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 md:bottom-4">
+          {/* CHẤM CHỈ SỐ PHÂN TRANG (DOTS) */}
+          <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2">
             {slides.map((_, i) => (
               <button
                 key={i}
@@ -363,16 +384,17 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
                   setDirection(i > index ? 1 : -1);
                   setIndex(i);
                 }}
-                className={`h-2.5 rounded-full transition-all ${
+                className={`h-2 rounded-full transition-all duration-300 ${
                   i === index
-                    ? "w-8 bg-white"
-                    : "w-2.5 bg-white/45 hover:bg-white/85"
+                    ? "w-8 bg-netflix-red shadow-[0_0_10px_rgba(229,9,20,0.8)]"
+                    : "w-2 bg-white/40 hover:bg-white/80"
                 }`}
               />
             ))}
           </div>
 
-          <div className="absolute bottom-3 right-3 z-20 hidden items-center gap-2 rounded-xl border border-white/20 bg-black/45 p-2 backdrop-blur lg:flex">
+          {/* DOCK CHUYỂN NHANH POSTER THUMBNAIL Ở GÓC PHẢI DƯỚI */}
+          <div className="absolute bottom-6 right-8 z-20 hidden items-center gap-2.5 rounded-2xl border border-white/15 bg-black/60 p-2 backdrop-blur-2xl shadow-2xl lg:flex">
             {slides.slice(0, 5).map((movie, i) => {
               const thumb = pickBestMovieImage(movie, "/default-poster.jpg");
               const active = i === index;
@@ -383,10 +405,10 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
                     setDirection(i > index ? 1 : -1);
                     setIndex(i);
                   }}
-                  className={`relative h-14 w-10 overflow-hidden rounded-md border transition ${
+                  className={`relative h-16 w-11 overflow-hidden rounded-xl border-2 transition-all duration-300 ${
                     active
-                      ? "scale-105 border-white ring-1 ring-white"
-                      : "border-white/20 opacity-80 hover:opacity-100"
+                      ? "scale-110 border-netflix-red shadow-[0_0_18px_rgba(229,9,20,0.7)] ring-2 ring-red-500/40 z-10"
+                      : "border-white/15 opacity-65 hover:opacity-100 hover:scale-105 hover:border-white/40"
                   }`}
                   aria-label={`Xem phim ${movie.name || movie.title || i + 1}`}
                 >
@@ -395,7 +417,7 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
                     alt={movie.name || movie.title || "thumb"}
                     fill
                     quality={88}
-                    sizes="40px"
+                    sizes="44px"
                     className="object-cover"
                   />
                 </button>
