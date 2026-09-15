@@ -106,11 +106,18 @@ export function subscribeMovieComments(
     if (isSupabaseConfigured()) {
       try {
         const items = await getMovieCommentsSupabase(movieSlug);
-        if (!isUnsubscribed && items.length > 0) {
+        if (!isUnsubscribed) {
           handleNewData(items);
         }
       } catch (err) {
+        if (!isUnsubscribed) {
+          handleNewData(getLocalMovieComments(movieSlug));
+        }
         if (onError && err instanceof Error) onError(err);
+      }
+    } else {
+      if (!isUnsubscribed) {
+        handleNewData(getLocalMovieComments(movieSlug));
       }
     }
   };
