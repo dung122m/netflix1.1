@@ -10,6 +10,7 @@ import { CrossDeviceHandoffBanner } from "@/components/CrossDeviceHandoffBanner"
 import { DesktopReplyPopup } from "@/components/Notifications/DesktopReplyPopup";
 import { BottomNav } from "@/components/BottomNav";
 import { AuthProvider } from "@/context/AuthContext";
+import { NavigationProgressBar } from "@/components/NavigationProgressBar";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -201,6 +202,9 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <AuthProvider>
+          {/* Thanh chỉ báo tải trang toàn cục mượt mà (Top Progress Bar) */}
+          <NavigationProgressBar />
+
           <SmoothScroll>
             <div className="pb-16 lg:pb-0 min-h-screen flex flex-col" suppressHydrationWarning>
               {children}

@@ -186,22 +186,22 @@ export const FilterBar: React.FC = () => {
   return (
     <div className="relative z-40">
       {/* FILTER BUTTONS: Cuộn ngang mượt mà trên mobile, wrap trên PC */}
-      <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto scrollbar-none pb-1 touch-pan-x overscroll-x-contain sm:flex-wrap sm:overflow-visible">
+      <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pb-2 pt-1 touch-pan-x overscroll-x-contain sm:flex-wrap sm:overflow-visible w-full">
         {/* LOẠI PHIM */}
         <button
           type="button"
           onClick={() =>
             setActiveDropdown(activeDropdown === "type" ? null : "type")
           }
-          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl border font-semibold transition text-xs sm:text-sm shadow-sm ${
+          className={`flex-shrink-0 whitespace-nowrap flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl border font-semibold transition text-xs sm:text-sm shadow-sm cursor-pointer ${
             activeDropdown === "type" || hasSelectedFilter("type")
               ? "bg-zinc-800 text-white border-purple-500/60 shadow-purple-950/40"
               : "bg-zinc-950/80 text-gray-300 border-zinc-800 hover:border-zinc-600 hover:text-white"
           }`}
         >
-          <Layers className="w-3.5 h-3.5 text-purple-400" />
-          <span>{activeTypeName}</span>
-          <span className="text-[9px] sm:text-[10px] text-gray-500">
+          <Layers className="w-3.5 h-3.5 text-purple-400 flex-shrink-0" />
+          <span className="whitespace-nowrap">{activeTypeName}</span>
+          <span className="text-[9px] sm:text-[10px] text-gray-500 ml-0.5">
             {activeDropdown === "type" ? "▲" : "▼"}
           </span>
         </button>
@@ -212,15 +212,15 @@ export const FilterBar: React.FC = () => {
           onClick={() =>
             setActiveDropdown(activeDropdown === "the-loai" ? null : "the-loai")
           }
-          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl border font-semibold transition text-xs sm:text-sm shadow-sm ${
+          className={`flex-shrink-0 whitespace-nowrap flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl border font-semibold transition text-xs sm:text-sm shadow-sm cursor-pointer ${
             activeDropdown === "the-loai" || hasSelectedFilter("the-loai")
               ? "bg-zinc-800 text-white border-rose-500/60 shadow-red-950/40"
               : "bg-zinc-950/80 text-gray-300 border-zinc-800 hover:border-zinc-600 hover:text-white"
           }`}
         >
-          <Sparkles className="w-3.5 h-3.5 text-netflix-red" />
-          <span>{activeCategoryName}</span>
-          <span className="text-[9px] sm:text-[10px] text-gray-500">
+          <Sparkles className="w-3.5 h-3.5 text-netflix-red flex-shrink-0" />
+          <span className="whitespace-nowrap">{activeCategoryName}</span>
+          <span className="text-[9px] sm:text-[10px] text-gray-500 ml-0.5">
             {activeDropdown === "the-loai" ? "▲" : "▼"}
           </span>
         </button>
@@ -231,15 +231,15 @@ export const FilterBar: React.FC = () => {
           onClick={() =>
             setActiveDropdown(activeDropdown === "quoc-gia" ? null : "quoc-gia")
           }
-          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl border font-semibold transition text-xs sm:text-sm shadow-sm ${
+          className={`flex-shrink-0 whitespace-nowrap flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl border font-semibold transition text-xs sm:text-sm shadow-sm cursor-pointer ${
             activeDropdown === "quoc-gia" || hasSelectedFilter("quoc-gia")
               ? "bg-zinc-800 text-white border-sky-500/60 shadow-sky-950/40"
               : "bg-zinc-950/80 text-gray-300 border-zinc-800 hover:border-zinc-600 hover:text-white"
           }`}
         >
-          <Globe2 className="w-3.5 h-3.5 text-sky-400" />
-          <span>{activeCountryName}</span>
-          <span className="text-[9px] sm:text-[10px] text-gray-500">
+          <Globe2 className="w-3.5 h-3.5 text-sky-400 flex-shrink-0" />
+          <span className="whitespace-nowrap">{activeCountryName}</span>
+          <span className="text-[9px] sm:text-[10px] text-gray-500 ml-0.5">
             {activeDropdown === "quoc-gia" ? "▲" : "▼"}
           </span>
         </button>
@@ -250,15 +250,15 @@ export const FilterBar: React.FC = () => {
           onClick={() =>
             setActiveDropdown(activeDropdown === "year" ? null : "year")
           }
-          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl border font-semibold transition text-xs sm:text-sm shadow-sm ${
+          className={`flex-shrink-0 whitespace-nowrap flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl border font-semibold transition text-xs sm:text-sm shadow-sm cursor-pointer ${
             activeDropdown === "year" || hasSelectedFilter("year")
               ? "bg-zinc-800 text-white border-emerald-500/60 shadow-emerald-950/40"
               : "bg-zinc-950/80 text-gray-300 border-zinc-800 hover:border-zinc-600 hover:text-white"
           }`}
         >
-          <Calendar className="w-3.5 h-3.5 text-emerald-400" />
-          <span>{activeYear}</span>
-          <span className="text-[9px] sm:text-[10px] text-gray-500">
+          <Calendar className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+          <span className="whitespace-nowrap">{activeYear}</span>
+          <span className="text-[9px] sm:text-[10px] text-gray-500 ml-0.5">
             {activeDropdown === "year" ? "▲" : "▼"}
           </span>
         </button>
@@ -268,7 +268,7 @@ export const FilterBar: React.FC = () => {
           <button
             type="button"
             onClick={clearAllFilters}
-            className="flex items-center gap-1 text-gray-400 hover:text-rose-400 px-2 sm:px-3 py-1.5 text-xs sm:text-sm transition cursor-pointer hover:bg-white/5 rounded-lg"
+            className="flex-shrink-0 whitespace-nowrap flex items-center gap-1 text-gray-400 hover:text-rose-400 px-3 py-2 text-xs sm:text-sm transition cursor-pointer hover:bg-white/5 rounded-xl border border-dashed border-zinc-700/80 hover:border-rose-500/40"
           >
             <RotateCcw className="w-3 h-3 text-rose-400" />
             <span>Xoá bộ lọc</span>
