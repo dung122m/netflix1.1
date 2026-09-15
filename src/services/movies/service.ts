@@ -88,26 +88,65 @@ async function fetchAndCacheMovieDetail(slug: string, source?: "vsmov" | "ophim"
       });
       if (res.ok) result = await res.json();
     } else {
-      try {
-        result = await Promise.any([
-          fetch(`${API_VSMOV}/phim/${slug}`, {
-            next: { revalidate: 600 },
-            signal: AbortSignal.timeout(4500),
-          }).then((res) => {
-            if (!res.ok) throw new Error("VSMOV 404");
-            return res.json();
-          }),
+      // Ưu tiên fetch đồng thời cả 2 nguồn và chọn nguồn có danh sách tập đầy đủ nhất (nhiều tập nhất)
+      // Chống triệt để lỗi VSMOV (chỉ có 476 tập) ghi đè làm mất tập của PhimAPI (1197 tập)
+      const results = await Promise.allSettled([
+        fetch(`${API_PHIMAPI}/phim/${slug}`, {
+          next: { revalidate: 600 },
+          signal: AbortSignal.timeout(5000),
+        }).then(async (res) => {
+          if (!res.ok) throw new Error("PhimAPI not ok");
+          return res.json();
+        }),
 
-          fetch(`${API_PHIMAPI}/phim/${slug}`, {
-            next: { revalidate: 600 },
-            signal: AbortSignal.timeout(4500),
-          }).then((res) => {
-            if (!res.ok) throw new Error("PhimAPI 404");
-            return res.json();
-          }),
-        ]);
-      } catch {
-        result = undefined;
+        fetch(`${API_VSMOV}/phim/${slug}`, {
+          next: { revalidate: 600 },
+          signal: AbortSignal.timeout(5000),
+        }).then(async (res) => {
+          if (!res.ok) throw new Error("VSMOV not ok");
+          return res.json();
+        }),
+      ]);
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const validCandidates: any[] = [];
+      for (const r of results) {
+        if (r.status === "fulfilled" && r.value?.movie) {
+          validCandidates.push(r.value);
+        }
+      }
+
+      if (validCandidates.length === 1) {
+        result = validCandidates[0];
+      } else if (validCandidates.length > 1) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const getEpMax = (data: any) => {
+          if (!data?.episodes || !Array.isArray(data.episodes)) return 0;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          return data.episodes.reduce((max: number, s: any) => Math.max(max, s?.server_data?.length || 0), 0);
+        };
+
+        // Sắp xếp ưu tiên nguồn có số tập lớn nhất
+        validCandidates.sort((a, b) => getEpMax(b) - getEpMax(a));
+        const primary = validCandidates[0];
+        const secondary = validCandidates[1];
+
+        // Bổ sung các server mà primary chưa có (nếu secondary có server khác biệt)
+        if (secondary?.episodes && Array.isArray(secondary.episodes)) {
+          const primaryServerNames = new Set(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (primary.episodes || []).map((s: any) => (s.server_name || "").trim().toLowerCase())
+          );
+          for (const s of secondary.episodes) {
+            const cleanName = (s.server_name || "").trim().toLowerCase();
+            if (!primaryServerNames.has(cleanName) && s.server_data?.length > 0) {
+              primary.episodes.push(s);
+              primaryServerNames.add(cleanName);
+            }
+          }
+        }
+
+        result = primary;
       }
     }
 

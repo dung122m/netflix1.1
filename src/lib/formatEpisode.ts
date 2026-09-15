@@ -60,3 +60,17 @@ export function findEpisodeMatch<T extends { slug?: string; name?: string }>(
   return cleanMatch;
 }
 
+/**
+ * Lấy nhãn hiển thị rút gọn cho nút bấm tập phim trong lưới (ví dụ: "Tập 490" -> "490", "Tập Full" -> "Full")
+ * Chống triệt để việc chữ bị tràn và cắt cụt thành "Tập 49..." trên mobile
+ */
+export function getShortEpisodeLabel(name?: string, fallback = "1"): string {
+  if (!name) return fallback;
+  const trimmed = name.trim();
+  if (!trimmed) return fallback;
+
+  // Bỏ tiền tố "Tập ", "tập ", "Tập: ", "Ep ", "Ep. "
+  const stripped = trimmed.replace(/^(tập|tap|ep|ep\.)\s*[:.-]?\s*/i, "").trim();
+  return stripped || trimmed;
+}
+

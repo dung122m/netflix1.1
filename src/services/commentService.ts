@@ -126,31 +126,38 @@ export function subscribeMovieComments(
 
   // 1. Phục hồi ngay lập tức từ bộ nhớ đệm (0ms - không bị nhấp nháy hay mất comment)
   const memCached = movieCommentsMemoryCache[movieSlug];
-  if (memCached && memCached.length > 0) {
-    onUpdate(memCached);
+  if (memCached && Array.isArray(memCached)) {
+    const validMem = memCached.filter((c) => !c.movieSlug || c.movieSlug === movieSlug);
+    movieCommentsMemoryCache[movieSlug] = validMem;
+    if (validMem.length > 0) {
+      onUpdate(validMem);
+    }
   } else if (typeof window !== "undefined") {
     try {
       const local = localStorage.getItem(`nanaflix_comments_${movieSlug}`);
       if (local) {
         const parsed = JSON.parse(local);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          movieCommentsMemoryCache[movieSlug] = parsed;
-          onUpdate(parsed);
+        if (Array.isArray(parsed)) {
+          const validLocal = parsed.filter((c) => !c.movieSlug || c.movieSlug === movieSlug);
+          movieCommentsMemoryCache[movieSlug] = validLocal;
+          if (validLocal.length > 0) {
+            onUpdate(validLocal);
+          }
         }
       }
     } catch {}
   }
 
   const handleNewData = (items: MovieComment[]) => {
-    if (items.length > 0 || !movieCommentsMemoryCache[movieSlug] || movieCommentsMemoryCache[movieSlug].length === 0) {
-      movieCommentsMemoryCache[movieSlug] = items;
-      if (typeof window !== "undefined") {
-        try {
-          localStorage.setItem(`nanaflix_comments_${movieSlug}`, JSON.stringify(items.slice(0, 100)));
-        } catch {}
-      }
+    // Đảm bảo tuyệt đối 100% chỉ lưu và hiển thị đúng bình luận của phim movieSlug hiện tại
+    const validItems = items.filter((c) => !c.movieSlug || c.movieSlug === movieSlug);
+    movieCommentsMemoryCache[movieSlug] = validItems;
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem(`nanaflix_comments_${movieSlug}`, JSON.stringify(validItems.slice(0, 100)));
+      } catch {}
     }
-    onUpdate(items);
+    onUpdate(validItems);
   };
 
   // 2. Fetch dữ liệu từ Server API
@@ -210,6 +217,7 @@ export function subscribeMovieComments(
             ...(docSnap.data() as Omit<MovieComment, "id">),
           };
           if (commentData.isFlagged) return;
+          if (commentData.movieSlug && commentData.movieSlug !== movieSlug) return;
           items.push(commentData);
         });
         items.sort((a, b) => {
@@ -300,7 +308,10 @@ export function subscribeCommentReplies(
       if (isUnsubscribed) return;
       if (res.ok) {
         const data = await res.json();
-        if (!isUnsubscribed && data.items) onUpdate(data.items);
+        if (!isUnsubscribed && data.items && Array.isArray(data.items)) {
+          const validReplies = data.items.filter((c: MovieComment) => !c.parentId || c.parentId === parentId);
+          onUpdate(validReplies);
+        }
       }
     } catch {}
   };
@@ -325,6 +336,7 @@ export function subscribeCommentReplies(
         snapshot.forEach((docSnap) => {
           const commentData = { id: docSnap.id, ...(docSnap.data() as Omit<MovieComment, "id">) };
           if (commentData.isFlagged) return;
+          if (commentData.parentId && commentData.parentId !== parentId) return;
           items.push(commentData);
         });
         items.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
@@ -387,7 +399,10 @@ export function subscribeUserComments(
       if (isUnsubscribed) return;
       if (res.ok) {
         const data = await res.json();
-        if (!isUnsubscribed && data.items) onUpdate(data.items);
+        if (!isUnsubscribed && data.items && Array.isArray(data.items)) {
+          const validUserComments = data.items.filter((c: MovieComment) => !c.userId || c.userId === userId);
+          onUpdate(validUserComments);
+        }
       }
     } catch {}
   };
@@ -411,6 +426,7 @@ export function subscribeUserComments(
         const items: MovieComment[] = [];
         snapshot.forEach((docSnap) => {
           const commentData = { id: docSnap.id, ...(docSnap.data() as Omit<MovieComment, "id">) };
+          if (commentData.userId && commentData.userId !== userId) return;
           items.push(commentData);
         });
         items.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));

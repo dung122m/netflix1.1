@@ -7,6 +7,7 @@ import {
   getWatchedEpisodes,
   markEpisodeAsWatched,
 } from "@/lib/episodeTracker";
+import { getShortEpisodeLabel } from "@/lib/formatEpisode";
 import { useWatchController } from "./WatchController";
 
 const CHUNK_SIZE = 25;
@@ -83,16 +84,23 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
     };
   }, [movieSlug, activeEpisodeSlug]);
 
-  // Tạo các dải tập nếu số tập > 25
+  // Tạo các dải tập chuẩn xác theo số tập thực tế bắt đầu và kết thúc trong dải
   const totalChunks = Math.ceil(episodes.length / CHUNK_SIZE);
   const chunks = useMemo(() => {
     if (totalChunks <= 1) return [];
     return Array.from({ length: totalChunks }, (_, i) => {
-      const start = i * CHUNK_SIZE + 1;
-      const end = Math.min((i + 1) * CHUNK_SIZE, episodes.length);
-      return { index: i, label: `Tập ${start} - ${end}` };
+      const startIdx = i * CHUNK_SIZE;
+      const endIdx = Math.min((i + 1) * CHUNK_SIZE - 1, episodes.length - 1);
+      const startEp = episodes[startIdx];
+      const endEp = episodes[endIdx];
+
+      const startShort = startEp?.name ? getShortEpisodeLabel(startEp.name) : String(startIdx + 1);
+      const endShort = endEp?.name ? getShortEpisodeLabel(endEp.name) : String(endIdx + 1);
+
+      const label = startShort === endShort ? `Tập ${startShort}` : `Tập ${startShort} - ${endShort}`;
+      return { index: i, label };
     });
-  }, [totalChunks, episodes.length]);
+  }, [totalChunks, episodes]);
 
   // Lọc danh sách tập hiển thị
   const displayEpisodes = useMemo(() => {
@@ -158,7 +166,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
                 onClick={() => setActiveChunk(chunk.index)}
                 className={`px-3 py-1 rounded-md text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
                   isSelected
-                    ? "bg-white text-black shadow-sm"
+                    ? "bg-white text-black shadow-sm font-bold"
                     : "bg-zinc-800/80 text-gray-400 hover:text-white hover:bg-zinc-700"
                 }`}
               >
@@ -169,18 +177,20 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
         </div>
       )}
 
-      {/* LƯỚI TẬP PHIM: 6 cột mobile giúp danh sách rất gọn, tối ưu touch */}
+      {/* LƯỚI TẬP PHIM: 6 cột mobile giúp danh sách rất gọn, số hiển thị lớn và rõ ràng */}
       {displayEpisodes.length > 0 ? (
         <div className="grid grid-cols-6 sm:grid-cols-7 lg:grid-cols-5 xl:grid-cols-6 gap-1.5 sm:gap-2">
           {displayEpisodes.map((tap) => {
             const isActive = activeEpisodeSlug === tap.slug;
             const isWatched = watchedList.includes(tap.slug);
+            const shortLabel = getShortEpisodeLabel(tap.name);
 
             return (
               <Link
                 key={tap.slug}
                 href={`?ep=${tap.slug}`}
                 scroll={false}
+                title={tap.name}
                 onClick={(e) => {
                   if (switchEpisode) {
                     e.preventDefault();
@@ -195,11 +205,11 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
                     : "bg-zinc-800 text-zinc-200 hover:bg-zinc-700 hover:text-white border border-white/5"
                 }`}
               >
-                <span className="truncate flex items-center gap-1">
+                <span className="truncate flex items-center justify-center gap-1 font-mono tracking-tight font-extrabold text-[13px] sm:text-xs">
                   {isActive && (
                     <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping shrink-0" />
                   )}
-                  {tap.name}
+                  {shortLabel}
                 </span>
 
                 {/* ICON CHECK CHO TẬP ĐÃ XEM HOẶC CHỈ BÁO TẬP ĐANG XEM */}

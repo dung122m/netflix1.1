@@ -88,7 +88,7 @@ function buildStructuredQuery(params: {
     });
   }
 
-  if (userId && !movieSlug) {
+  if (userId) {
     filters.push({
       fieldFilter: {
         field: { fieldPath: "userId" },
@@ -109,7 +109,6 @@ function buildStructuredQuery(params: {
     structuredQuery: {
       from: [{ collectionId: "movie_comments" }],
       ...(whereClause ? { where: whereClause } : {}),
-      orderBy: [{ field: { fieldPath: "createdAt" }, direction: "DESCENDING" }],
       limit: pageSize,
     },
   };
@@ -118,7 +117,7 @@ function buildStructuredQuery(params: {
 /**
  * GET /api/comments?movieSlug=xxx
  * Fix: Dùng runQuery query đúng theo movieSlug
- * Sắp xếp in-memory và không cache rỗng
+ * Sắp xếp in-memory và lọc chuẩn xác
  */
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -163,8 +162,14 @@ export async function GET(req: NextRequest) {
 
     let items: Record<string, unknown>[] = rawDocs.map(parseFirestoreDoc);
 
-    // Filter theo userId nếu cần (khi query kết hợp movieSlug + userId)
-    if (userId && movieSlug) {
+    // Lọc nghiêm ngặt theo các tiêu chí đã gửi lên để đảm bảo 100% không bao giờ bị rò rỉ bình luận từ phim khác
+    if (movieSlug) {
+      items = items.filter((c) => c.movieSlug === movieSlug);
+    }
+    if (parentId) {
+      items = items.filter((c) => c.parentId === parentId);
+    }
+    if (userId) {
       items = items.filter((c) => c.userId === userId);
     }
 

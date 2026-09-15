@@ -97,6 +97,16 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
   const [sortBy, setSortBy] = useState<"newest" | "topLikes" | "onlyFiveStar">("newest");
   const [loadError, setLoadError] = useState<string | null>(null);
 
+  // Reset comments and form state when movieSlug changes
+  useEffect(() => {
+    setComments([]);
+    setHasInitializedForm(false);
+    setContent("");
+    setRating(5);
+    setIsSpoiler(false);
+    setScopeEpisode("all");
+  }, [movieSlug]);
+
   // Subscribe to real-time comments from Firestore
   useEffect(() => {
     setLoading(true);
@@ -118,11 +128,11 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
     return () => unsubscribe();
   }, [movieSlug]);
 
-  // Tìm bài đánh giá đã có của chính người dùng hiện tại (chỉ tính đánh giá gốc, không tính reply)
+  // Tìm bài đánh giá đã có của chính người dùng hiện tại (chỉ tính đánh giá gốc của đúng movieSlug này, không tính reply)
   const myExistingReview = useMemo(() => {
     if (!user?.uid) return null;
-    return comments.find((c) => !c.parentId && c.userId === user.uid) || null;
-  }, [comments, user?.uid]);
+    return comments.find((c) => !c.parentId && c.userId === user.uid && (!c.movieSlug || c.movieSlug === movieSlug)) || null;
+  }, [comments, user?.uid, movieSlug]);
 
   // Tự động điền dữ liệu đánh giá cũ vào form khi tải xong
   useEffect(() => {

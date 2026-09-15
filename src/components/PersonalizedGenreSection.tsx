@@ -98,9 +98,8 @@ const SingleGenreRow: React.FC<SingleGenreRowProps> = React.memo(
       const matches = initialMovies.filter((movie) => {
         if (!movie) return false;
         const categories = movie.category || [];
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return categories.some(
-          (c: any) => c.slug === meta.slug || (c.name || "").includes(meta.name)
+          (c: { slug?: string; name?: string }) => c?.slug === meta.slug || (c?.name || "").includes(meta.name)
         );
       });
       return matches.length >= 6 ? matches : [];
