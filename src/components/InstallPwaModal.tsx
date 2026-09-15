@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Image from "next/image";
 import { createPortal } from "react-dom";
 import {
   X,
@@ -165,13 +166,12 @@ export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({
         {/* App Icon & Header */}
         <div className="flex items-center gap-3.5 mb-5">
           <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl overflow-hidden shadow-xl border border-red-500/30 shrink-0 bg-gradient-to-br from-red-600 to-zinc-900 flex items-center justify-center p-2">
-            <img
+            <Image
               src="/icon-192.png"
               alt="Nanaflix App"
+              width={64}
+              height={64}
               className="w-full h-full object-contain rounded-xl drop-shadow"
-              onError={(e) => {
-                e.currentTarget.style.display = "none";
-              }}
             />
             <span className="absolute inset-0 flex items-center justify-center font-black text-2xl text-white select-none -z-0">
               N

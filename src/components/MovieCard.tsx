@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { Star, Users, Play } from "lucide-react";
 import { normalizeMovie } from "@/lib/movieMedia";
 import {
@@ -14,6 +15,7 @@ import {
 type Props = { m: any; priority?: boolean };
 
 function MovieCardInner({ m, priority = false }: Props) {
+  const router = useRouter();
   const norm = normalizeMovie(m);
   const {
     title,
@@ -59,6 +61,10 @@ function MovieCardInner({ m, priority = false }: Props) {
 
   const handleHoverStart = () => {
     setIsHovered(true);
+
+    if (slug) {
+      router.prefetch(`/movies/${slug}`);
+    }
 
     if (slug && clientSynopsisCache.has(slug)) {
       const cached = clientSynopsisCache.get(slug)!;

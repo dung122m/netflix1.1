@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import {
   Play,
   Plus,
@@ -114,6 +115,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   isTrailerOnly = false,
   matchSnippet,
 }) => {
+  const router = useRouter();
   const [inList, setInList] = useState(false);
   const [liked, setLiked] = useState(false);
   const [isImgLoaded, setIsImgLoaded] = useState(false);
@@ -252,6 +254,9 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       unmountTimerRef.current = null;
     }
     setIsCardHovered(true);
+    if (slug) {
+      router.prefetch(`/movies/${slug}`);
+    }
     if (cardRef.current) {
       const rect = cardRef.current.getBoundingClientRect();
       const distLeft = rect.left;

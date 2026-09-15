@@ -127,7 +127,11 @@ export default function RootLayout({
           content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover"
         />
 
-        {/* DNS Prefetch & Preconnect cho image CDNs */}
+        {/* DNS Prefetch & Preconnect cho image CDNs, Supabase & Gemini AI */}
+        <link rel="preconnect" href="https://hbrubnilyefrjtglhyap.supabase.co" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://hbrubnilyefrjtglhyap.supabase.co" />
+        <link rel="preconnect" href="https://generativelanguage.googleapis.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://generativelanguage.googleapis.com" />
         <link rel="preconnect" href="https://phimimg.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://phimimg.com" />
         <link rel="preconnect" href="https://img.phimapi.com" crossOrigin="anonymous" />
