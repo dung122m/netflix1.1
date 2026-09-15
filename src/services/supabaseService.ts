@@ -517,10 +517,10 @@ export async function togglePinCommentSupabase(commentId: string, isPinned: bool
       .eq("id", commentId);
 
     if (error) {
-      console.error("Lỗi togglePinComment Supabase:", error.message || error);
+      console.warn("Lỗi togglePinComment Supabase:", error.message || error);
     }
   } catch (err) {
-    console.error("Lỗi ngoại lệ togglePinComment Supabase:", err);
+    console.warn("Lỗi ngoại lệ togglePinComment Supabase:", err);
   }
 }
 

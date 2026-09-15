@@ -1029,16 +1029,19 @@ export async function togglePinComment(
     saveLocalMovieComments(slug, movieCommentsMemoryCache[slug]);
   });
 
-  // 2. Cập nhật Supabase ngay lập tức
-  if (isSupabaseConfigured()) {
-    try {
-      await togglePinCommentSupabase(commentId, newPinnedState);
-    } catch {
-      fetch("/api/comments", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ commentId, isPinned: newPinnedState, action: "pin" }),
-      }).catch(() => {});
+  // 2. Cập nhật Supabase qua API server để tránh bị AdBlocker chặn và đảm bảo an toàn RLS
+  try {
+    const res = await fetch("/api/comments", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ commentId, isPinned: newPinnedState, action: "pin" }),
+    });
+    if (!res.ok && isSupabaseConfigured()) {
+      await togglePinCommentSupabase(commentId, newPinnedState).catch(() => {});
+    }
+  } catch {
+    if (isSupabaseConfigured()) {
+      await togglePinCommentSupabase(commentId, newPinnedState).catch(() => {});
     }
   }
 
