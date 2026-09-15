@@ -206,13 +206,14 @@ export function WatchController({
       setCurrentServerIndex(safeIndex);
       const newServer = initialServers[safeIndex];
       const newEpisodes = newServer?.server_data || [];
-      const currentTargetSlug = newEpisodes.some((e) => e.slug === activeEpisodeSlug)
-        ? activeEpisodeSlug
-        : newEpisodes[0]?.slug || "";
+      const foundMatch =
+        findEpisodeMatch(newEpisodes, activeEpisodeSlug) ||
+        (activeEpisode?.name ? findEpisodeMatch(newEpisodes, activeEpisode.name) : undefined);
+      const currentTargetSlug = foundMatch?.slug || newEpisodes[0]?.slug || "";
       setActiveEpisodeSlug(currentTargetSlug);
       updateUrlQuietly(currentTargetSlug, safeIndex);
     },
-    [initialServers, activeEpisodeSlug, updateUrlQuietly]
+    [initialServers, activeEpisodeSlug, activeEpisode?.name, updateUrlQuietly]
   );
 
   const value = useMemo<WatchContextValue>(() => {

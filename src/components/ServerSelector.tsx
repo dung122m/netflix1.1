@@ -28,6 +28,7 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
       </span>
       {servers.map((s, sIdx) => {
         const isSelected = sIdx === currentServerIndex;
+        const count = s.server_data?.length;
         return (
           <Link
             key={s.server_name || sIdx}
@@ -47,6 +48,11 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
           >
             <Zap className={`w-3 h-3 ${isSelected ? "text-amber-300" : "text-gray-400"}`} />
             <span>{s.server_name || `Server #${sIdx + 1}`}</span>
+            {count !== undefined && count > 0 && (
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${isSelected ? "bg-white/20 text-white" : "bg-white/10 text-gray-400"}`}>
+                {count} tập
+              </span>
+            )}
           </Link>
         );
       })}
