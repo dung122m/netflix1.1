@@ -12,7 +12,6 @@ import { movieApi } from "@/services/movieApi";
 import { resolveActorMovies, fetchMoviesByTitles } from "@/services/aiActorService";
 import { searchMoviesBySemantic, enqueueAutoEmbedMovies } from "@/services/aiVectorService";
 import { BrowseAiSearchBanner } from "@/components/BrowseAiSearchBanner";
-import { PersonalizedGenreSection } from "@/components/PersonalizedGenreSection";
 import { CuratedMovieSection } from "@/components/CuratedMovieSection";
 import { CommunityTopTrending } from "@/components/CommunityTopTrending";
 import { ForYouPersonalizedRow } from "@/components/ForYouPersonalizedRow";
@@ -465,9 +464,6 @@ export default async function BrowsePage({
 
         {/* BẢNG XẾP HẠNG TOP 10 TRENDING DỰA TRÊN LƯỢT XEM THỰC TẾ CỦA CỘNG ĐỒNG */}
         {isPlainHomepage && <CommunityTopTrending />}
-
-        {/* KHU VỰC ĐỀ XUẤT PHIM THEO GU YÊU THÍCH (PREFERENCES) */}
-        {isPlainHomepage && <PersonalizedGenreSection allMovies={movies} />}
 
         {isPlainHomepage ? (
           /* TAB TUYỂN CHỌN PHIM ĐA NĂNG TRÊN TRANG CHỦ (Tối ưu hiệu suất & 100% giữ nguyên hiệu ứng hover) */

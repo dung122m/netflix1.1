@@ -38,7 +38,7 @@ const CURATED_TABS: CuratedTabConfig[] = [
     icon: <Flame className="w-4 h-4 text-orange-500 animate-pulse" />,
     tag: "🔥 XEM NHIỀU NHẤT",
     subtitle: "Các siêu phẩm điện ảnh & phim bộ đang được quan tâm nhất hôm nay",
-    fetchParams: { sort: "views", limit: 24 },
+    fetchParams: { sort: "views", limit: 16 },
     viewAllHref: "/browse?sort=views",
   },
   {
@@ -47,7 +47,7 @@ const CURATED_TABS: CuratedTabConfig[] = [
     icon: <Star className="w-4 h-4 text-amber-400 fill-amber-400" />,
     tag: "⭐ IMDB & REVIEW CAO",
     subtitle: "Tuyển tập những tác phẩm nghệ thuật đạt điểm đánh giá xuất sắc",
-    fetchParams: { sort: "rating", limit: 24 },
+    fetchParams: { sort: "rating", limit: 16 },
     viewAllHref: "/browse?sort=rating",
   },
   {
@@ -56,7 +56,7 @@ const CURATED_TABS: CuratedTabConfig[] = [
     icon: <Clapperboard className="w-4 h-4 text-rose-500" />,
     tag: "🎬 BOM TẤN RẠP",
     subtitle: "Phim chiếu rạp chất lượng cao, hình ảnh & âm thanh sống động",
-    fetchParams: { type: "phim-chieu-rap", limit: 24 },
+    fetchParams: { type: "phim-chieu-rap", limit: 16 },
     viewAllHref: "/browse?type=phim-chieu-rap",
   },
   {
@@ -65,7 +65,7 @@ const CURATED_TABS: CuratedTabConfig[] = [
     icon: <Clock className="w-4 h-4 text-emerald-400" />,
     tag: "🆕 TẬP MỚI LÊN SÓNG",
     subtitle: "Phim mới phát hành và các tập mới nhất vừa được đưa lên hệ thống",
-    fetchParams: { sort: "latest", limit: 24 },
+    fetchParams: { sort: "latest", limit: 16 },
     viewAllHref: "/browse?sort=latest",
   },
 ];
