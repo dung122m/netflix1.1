@@ -28,6 +28,10 @@ const ContinueWatchingSync = dynamic(
   () => import("@/components/ContinueWatchingSync").then((m) => m.ContinueWatchingSync),
   { ssr: false }
 );
+const PublicUserProfileModal = dynamic(
+  () => import("@/components/PublicUserProfileModal").then((m) => m.PublicUserProfileModal),
+  { ssr: false }
+);
 
 import React from "react";
 import { GlobalConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -39,6 +43,7 @@ export const ClientModals = React.memo(function ClientModals() {
       <AiMovieRoulette />
       <ActorBioModal />
       <UserProfileModal />
+      <PublicUserProfileModal />
       <LeaderboardModal />
       <ContinueWatchingSync />
       <GlobalConfirmDialog />

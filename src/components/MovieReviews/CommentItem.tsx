@@ -133,6 +133,25 @@ export const CommentItem: React.FC<CommentItemProps> = ({
 
   const isAuthor = Boolean(currentUserId && currentUserId === comment.userId);
 
+  const handleOpenProfile = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (typeof window === "undefined") return;
+    if (isAuthor) {
+      window.dispatchEvent(new CustomEvent("open-user-profile-modal"));
+    } else {
+      window.dispatchEvent(
+        new CustomEvent("open-public-profile", {
+          detail: {
+            userId: comment.userId,
+            userName: comment.userName,
+            userAvatar: comment.userAvatar,
+            badges: comment.userBadges,
+          },
+        })
+      );
+    }
+  };
+
   // Tổng số replies (từ realtime hoặc từ replyCount field)
   const totalReplies = showReplies ? replies.length : (comment.replyCount || 0);
 
@@ -452,10 +471,13 @@ export const CommentItem: React.FC<CommentItemProps> = ({
       <div className="flex items-start justify-between gap-2 sm:gap-3">
         {/* User Avatar + Meta */}
         <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-          <div
+          <button
+            type="button"
+            onClick={handleOpenProfile}
+            title={isAuthor ? "Xem & chỉnh sửa hồ sơ của bạn" : `Xem trang cá nhân của ${comment.userName}`}
             className={`relative ${
               isReply ? "w-7 h-7 sm:w-8 sm:h-8 text-xs" : "w-8 h-8 sm:w-10 sm:h-10 text-sm"
-            } rounded-full overflow-hidden bg-gradient-to-br from-red-600 to-amber-600 flex items-center justify-center font-bold text-white shrink-0 border border-white/10 shadow-sm`}
+            } rounded-full overflow-hidden bg-gradient-to-br from-red-600 to-amber-600 flex items-center justify-center font-bold text-white shrink-0 border border-white/10 shadow-sm cursor-pointer hover:ring-2 hover:ring-amber-400/60 hover:scale-105 transition-all`}
           >
             {comment.userAvatar && !avatarError ? (
               <Image
@@ -470,17 +492,20 @@ export const CommentItem: React.FC<CommentItemProps> = ({
             ) : (
               (comment.userName || "U").charAt(0).toUpperCase()
             )}
-          </div>
+          </button>
 
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-              <span
-                className={`font-semibold text-zinc-100 truncate ${
+              <button
+                type="button"
+                onClick={handleOpenProfile}
+                title={isAuthor ? "Xem & chỉnh sửa hồ sơ của bạn" : `Xem trang cá nhân của ${comment.userName}`}
+                className={`font-semibold text-zinc-100 hover:text-amber-300 hover:underline transition cursor-pointer text-left truncate ${
                   isReply ? "text-xs sm:text-sm" : "text-xs sm:text-sm md:text-base"
                 }`}
               >
                 {comment.userName}
-              </span>
+              </button>
 
               {/* BỘ DANH HIỆU VIP SỞ HỮU HIỂN THỊ TRÊN BÌNH LUẬN */}
               {(() => {

@@ -102,7 +102,22 @@ function LeaderboardModalInner() {
               return (
                 <div
                   key={userItem.uid || index}
-                  className={`flex items-center gap-3 p-3 rounded-2xl border transition-all ${
+                  onClick={() => {
+                    if (typeof window !== "undefined" && userItem.uid) {
+                      window.dispatchEvent(
+                        new CustomEvent("open-public-profile", {
+                          detail: {
+                            userId: userItem.uid,
+                            userName: userItem.displayName,
+                            userAvatar: userItem.customAvatar || userItem.photoURL,
+                            badges: userItem.badges,
+                          },
+                        })
+                      );
+                    }
+                  }}
+                  title={`Xem trang cá nhân của ${userItem.displayName}`}
+                  className={`flex items-center gap-3 p-3 rounded-2xl border transition-all cursor-pointer hover:border-amber-400/50 hover:bg-white/10 active:scale-[0.99] ${
                     isTop1
                       ? "bg-gradient-to-r from-amber-500/20 via-rose-500/10 to-zinc-900 border-amber-500/40 shadow-lg shadow-amber-950/40 scale-[1.01]"
                       : isTop2

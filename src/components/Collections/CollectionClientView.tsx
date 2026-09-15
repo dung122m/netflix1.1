@@ -171,8 +171,25 @@ export function CollectionClientView({
 
                 {/* NGƯỜI TẠO & SỐ LƯỢNG PHIM */}
                 <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs text-gray-400">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-netflix-red text-white flex items-center justify-center font-bold text-[10px] uppercase overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (typeof window !== "undefined" && (collection.userId || userId)) {
+                        window.dispatchEvent(
+                          new CustomEvent("open-public-profile", {
+                            detail: {
+                              userId: collection.userId || userId,
+                              userName: collection.creatorName,
+                              userAvatar: collection.creatorPhoto,
+                            },
+                          })
+                        );
+                      }
+                    }}
+                    title={`Xem trang cá nhân của ${collection.creatorName || "thành viên"}`}
+                    className="flex items-center gap-2 hover:text-amber-300 hover:underline transition cursor-pointer"
+                  >
+                    <div className="w-6 h-6 rounded-full bg-netflix-red text-white flex items-center justify-center font-bold text-[10px] uppercase overflow-hidden ring-1 ring-white/20">
                       {collection.creatorPhoto ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
@@ -184,10 +201,10 @@ export function CollectionClientView({
                         <span>{collection.creatorName?.[0] || "U"}</span>
                       )}
                     </div>
-                    <span className="text-gray-200 font-semibold">
+                    <span className="text-gray-200 hover:text-amber-300 font-semibold">
                       {collection.creatorName}
                     </span>
-                  </div>
+                  </button>
                   <span>•</span>
                   <span className="text-rose-300 font-bold">
                     {collection.movies?.length || 0} bộ phim
