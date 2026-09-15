@@ -9,12 +9,13 @@ import {
   ChevronRight,
   ChevronLeft,
   Loader2,
-  Play,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { subscribeUserProfile } from "@/services/userService";
 import { UserProfile } from "@/types/user";
 import { movieApi } from "@/services/movieApi";
+import { MediaCard } from "@/components/sites/netflix-3f78535a/browse-1234abcd/MediaCard";
+import { normalizeMovie } from "@/lib/movieMedia";
 
 interface PersonalizedGenreSectionProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -136,36 +137,6 @@ export function resolveGenreMeta(genreLabel: string): GenreMeta {
     slug: rawSlug || "tinh-cam",
     name: cleanName || "Tình Cảm",
   };
-}
-
-/**
- * Bóc tách tên 1-2 thể loại chính của phim để hiển thị rõ ràng, chuyên nghiệp
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function extractMovieGenres(movie: any, defaultGenreName?: string): string {
-  if (!movie) return defaultGenreName || "Phim hay";
-
-  if (Array.isArray(movie.category) && movie.category.length > 0) {
-    const names = movie.category
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .map((c: any) => (typeof c === "string" ? c : c?.name || ""))
-      .filter(Boolean);
-    if (names.length > 0) {
-      return names.slice(0, 2).join(" • ");
-    }
-  } else if (typeof movie.category === "string" && movie.category.trim()) {
-    const parts = movie.category
-      .split(/[,/•]/)
-      .map((s: string) => s.trim())
-      .filter(Boolean);
-    if (parts.length > 0) {
-      return parts.slice(0, 2).join(" • ");
-    }
-  }
-
-  if (movie.type_name) return movie.type_name;
-  if (defaultGenreName) return defaultGenreName;
-  return "Phim hot";
 }
 
 /**
@@ -309,72 +280,38 @@ const SingleGenreRow: React.FC<SingleGenreRowProps> = React.memo(
           ) : movies.length > 0 ? (
             <div
               ref={scrollContainerRef}
-              className="flex items-center gap-3.5 sm:gap-4 overflow-x-auto py-2 px-1 scrollbar-none scroll-smooth"
+              data-lenis-prevent
+              className="flex snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain scroll-smooth py-3 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             >
-              {movies.map((movie) => {
-                const poster =
-                  movie.poster_url || movie.poster || movie.thumb_url || "/default-poster.jpg";
-                const fullPoster = poster.startsWith("http")
-                  ? poster
-                  : `https://phimimg.com/${poster}`;
-
-                const genreSnippet = extractMovieGenres(movie, meta.name);
-                const quality = movie.quality || "FHD";
-
+              {movies.map((movie, index) => {
+                const norm = normalizeMovie(movie);
                 return (
-                  <Link
-                    key={movie.slug}
-                    href={`/movies/${movie.slug}`}
-                    className="group relative flex-shrink-0 w-36 sm:w-44 rounded-2xl overflow-hidden border border-white/10 bg-zinc-900/90 transition-all duration-300 hover:-translate-y-1.5 hover:border-red-500/50 hover:shadow-[0_14px_30px_-6px_rgba(229,9,20,0.35)]"
-                  >
-                    <div className="aspect-[2/3] w-full overflow-hidden relative bg-zinc-950">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={fullPoster}
-                        alt={movie.name || movie.title}
-                        className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-500 ease-out"
-                        loading="lazy"
-                        onError={(e) => {
-                          e.currentTarget.src = "/default-poster.jpg";
-                        }}
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-80 group-hover:opacity-40 transition-opacity duration-300" />
-
-                      {/* BADGE CHẤT LƯỢNG CAO CẤP */}
-                      <div className="absolute top-2 left-2 flex items-center gap-1.5">
-                        <span className="px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-md text-[10px] font-black tracking-wider text-white border border-white/15 shadow-md uppercase">
-                          {quality}
-                        </span>
-                      </div>
-
-                      {/* NÚT PLAY NHẸ NHÀNG TRÊN HOVER */}
-                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none">
-                        <div className="w-11 h-11 rounded-full bg-netflix-red/90 text-white flex items-center justify-center shadow-2xl scale-75 group-hover:scale-100 transition-transform duration-300 backdrop-blur-sm border border-white/20">
-                          <Play className="w-5 h-5 fill-white ml-0.5" />
-                        </div>
-                      </div>
-
-                      {/* BADGE TẬP PHIM / TRẠNG THÁI */}
-                      {movie.episode_current && (
-                        <span className="absolute bottom-2 right-2 px-2 py-0.5 rounded-md bg-black/80 backdrop-blur-md text-amber-300 text-[10px] font-extrabold border border-amber-400/20 shadow-lg">
-                          {movie.episode_current}
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="p-2.5 sm:p-3 space-y-1 bg-gradient-to-b from-zinc-900/90 to-zinc-950">
-                      <h5 className="text-xs sm:text-[13px] font-bold text-white truncate group-hover:text-rose-400 transition-colors">
-                        {movie.name || movie.title}
-                      </h5>
-                      <p className="text-[11px] text-gray-400 truncate flex items-center gap-1.5">
-                        {movie.year && (
-                          <span className="text-zinc-300 font-medium">{movie.year}</span>
-                        )}
-                        {movie.year && <span className="text-zinc-600">•</span>}
-                        <span className="text-zinc-400 truncate">{genreSnippet}</span>
-                      </p>
-                    </div>
-                  </Link>
+                  <div key={norm.slug || index} className="w-[260px] sm:w-[300px] md:w-[320px] flex-none">
+                    <MediaCard
+                      slug={norm.slug}
+                      title={norm.title}
+                      origin_name={norm.origin_name}
+                      imageUrl={norm.thumbUrl || norm.imageUrl || norm.posterUrl}
+                      posterUrl={norm.posterUrl}
+                      thumbUrl={norm.thumbUrl}
+                      genre={norm.genre || meta.name}
+                      description={norm.description}
+                      time={norm.time}
+                      year={norm.year}
+                      rating={norm.score}
+                      quality={norm.quality}
+                      lang={norm.lang}
+                      chieurap={norm.chieurap}
+                      sub_docquyen={norm.sub_docquyen}
+                      actor={norm.actor}
+                      director={norm.director}
+                      country={norm.country}
+                      type_name={norm.type_name}
+                      hasTrailer={norm.hasTrailer}
+                      trailer_url={norm.trailer_url}
+                      isTrailerOnly={norm.isTrailerOnly}
+                    />
+                  </div>
                 );
               })}
             </div>
