@@ -107,7 +107,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
     setScopeEpisode("all");
   }, [movieSlug]);
 
-  // Subscribe to real-time comments from Firestore
+  // Subscribe to real-time comments from Supabase + LocalStorage
   useEffect(() => {
     setLoading(true);
     setLoadError(null);
@@ -235,10 +235,10 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
 
     setIsSubmitting(true);
 
-    // Timeout 10s: tránh UI bị kẹt "Đang lưu..." vô hạn nếu Firestore không phản hồi
+    // Timeout 10s: tránh UI bị kẹt "Đang lưu..." vô hạn nếu kết nối máy chủ chậm
     const timeoutId = setTimeout(() => {
       setIsSubmitting(false);
-      toast.error("Kết nối Firestore bị gián đoạn. Vui lòng tắt Adblocker hoặc thử lại!");
+      toast.error("Kết nối máy chủ bị gián đoạn. Vui lòng thử lại!");
     }, 10000);
 
     try {

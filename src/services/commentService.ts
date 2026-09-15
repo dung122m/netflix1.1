@@ -1,22 +1,3 @@
-import {
-  collection,
-  doc,
-  addDoc,
-  deleteDoc,
-  updateDoc,
-  getDoc,
-  getDocs,
-  query,
-  where,
-  limit,
-  onSnapshot,
-  arrayUnion,
-  arrayRemove,
-  increment,
-  deleteField,
-  type Unsubscribe,
-} from "firebase/firestore";
-import { db, auth } from "@/lib/firebase";
 import { MovieComment, MovieRatingStats, CommentReactionType } from "@/types/comment";
 import { UserNotification } from "@/types/notification";
 import { checkContentModeration } from "@/lib/contentModeration";
@@ -31,132 +12,66 @@ import {
   deleteCommentSupabase,
   togglePinCommentSupabase,
   setCommentReactionSupabase,
+  flagCommentSupabase,
+  unflagCommentSupabase,
+  createNotificationSupabase,
+  getUserProfileSupabase,
 } from "./supabaseService";
 import { isSupabaseConfigured } from "@/lib/supabase";
-
-const setDocWithTimeout = (
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ref: any,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  data: any,
-  timeoutMs = 3500
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-): Promise<any> => {
-  return Promise.race([
-    setDoc(ref, data),
-    new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("Firestore setDoc timeout")), timeoutMs)
-    ),
-  ]);
-};
-
-const addDocWithTimeout = (
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ref: any,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  data: any,
-  timeoutMs = 3500
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-): Promise<any> => {
-  return Promise.race([
-    addDoc(ref, data),
-    new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("Firestore write timeout")), timeoutMs)
-    ),
-  ]);
-};
-
-const updateDocWithTimeout = (
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ref: any,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  data: any,
-  timeoutMs = 3500
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-): Promise<any> => {
-  return Promise.race([
-    updateDoc(ref, data),
-    new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("Firestore update timeout")), timeoutMs)
-    ),
-  ]);
-};
-
-const deleteDocWithTimeout = (
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ref: any,
-  timeoutMs = 3500
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-): Promise<any> => {
-  return Promise.race([
-    deleteDoc(ref),
-    new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("Firestore delete timeout")), timeoutMs)
-    ),
-  ]);
-};
-
-const COLLECTION_NAME = "movie_comments";
-const USERS_COLLECTION = "users";
-const VIOLATIONS_COLLECTION = "admin_violations";
-
-// Hàm làm sạch dữ liệu trước khi gửi lên Firestore để tránh lỗi 'undefined'
-function sanitizeCommentData(data: Record<string, unknown>): Record<string, unknown> {
-  const result: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(data)) {
-    if (value !== undefined) {
-      result[key] = value;
-    }
-  }
-  return result;
-}
 
 // In-memory cache lưu danh sách bình luận theo movieSlug để hiển thị ngay 0ms không bị chớp hay mất
 const movieCommentsMemoryCache: Record<string, MovieComment[]> = {};
 
 /**
- * Đăng ký lắng nghe bình luận theo thời gian thực (Real-time listener)
- * Tự động chuyển sang Next.js Server API nếu Firestore client bị Adblocker chặn
+ * Lấy danh sách bình luận từ LocalStorage theo movieSlug
+ */
+function getLocalMovieComments(movieSlug: string): MovieComment[] {
+  if (typeof window === "undefined" || !movieSlug) return [];
+  try {
+    const raw = localStorage.getItem(`nanaflix_comments_${movieSlug}`);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    }
+  } catch {}
+  return [];
+}
+
+/**
+ * Lưu danh sách bình luận vào LocalStorage theo movieSlug
+ */
+function saveLocalMovieComments(movieSlug: string, items: MovieComment[]): void {
+  if (typeof window === "undefined" || !movieSlug) return;
+  try {
+    localStorage.setItem(`nanaflix_comments_${movieSlug}`, JSON.stringify(items.slice(0, 100)));
+  } catch {}
+}
+
+/**
+ * Đăng ký lắng nghe bình luận theo thời gian thực (Supabase PostgreSQL + 0ms Optimistic UI)
  */
 export function subscribeMovieComments(
   movieSlug: string,
   onUpdate: (comments: MovieComment[]) => void,
   onError?: (err: Error) => void,
-): Unsubscribe {
+): () => void {
   if (!movieSlug) {
     onUpdate([]);
     return () => {};
   }
 
   let isUnsubscribed = false;
-  let fallbackInterval: NodeJS.Timeout | null = null;
-  let retryTimer: NodeJS.Timeout | null = null;
-  let retryCount = 0;
-  // Giữ reference tới unsubscribe hiện tại để có thể tái tạo listener
-  let currentFirestoreUnsub: (() => void) | null = null;
 
   // 1. Phục hồi ngay lập tức từ bộ nhớ đệm (0ms - không bị nhấp nháy hay mất comment)
   const memCached = movieCommentsMemoryCache[movieSlug];
-  if (memCached && Array.isArray(memCached)) {
-    const validMem = memCached.filter((c) => !c.movieSlug || c.movieSlug === movieSlug);
-    movieCommentsMemoryCache[movieSlug] = validMem;
-    if (validMem.length > 0) {
-      onUpdate(validMem);
+  if (memCached && Array.isArray(memCached) && memCached.length > 0) {
+    onUpdate(memCached);
+  } else {
+    const local = getLocalMovieComments(movieSlug);
+    if (local.length > 0) {
+      movieCommentsMemoryCache[movieSlug] = local;
+      onUpdate(local);
     }
-  } else if (typeof window !== "undefined") {
-    try {
-      const local = localStorage.getItem(`nanaflix_comments_${movieSlug}`);
-      if (local) {
-        const parsed = JSON.parse(local);
-        if (Array.isArray(parsed)) {
-          const validLocal = parsed.filter((c) => !c.movieSlug || c.movieSlug === movieSlug);
-          movieCommentsMemoryCache[movieSlug] = validLocal;
-          if (validLocal.length > 0) {
-            onUpdate(validLocal);
-          }
-        }
-      }
-    } catch {}
   }
 
   const handleNewData = (items: MovieComment[]) => {
@@ -181,157 +96,53 @@ export function subscribeMovieComments(
     });
 
     movieCommentsMemoryCache[movieSlug] = merged;
-    if (typeof window !== "undefined") {
-      try {
-        localStorage.setItem(`nanaflix_comments_${movieSlug}`, JSON.stringify(merged.slice(0, 100)));
-      } catch {}
-    }
+    saveLocalMovieComments(movieSlug, merged);
     onUpdate(merged);
   };
 
-  // 2. Fetch dữ liệu từ Supabase hoặc Server API
-  if (isSupabaseConfigured()) {
-    getMovieCommentsSupabase(movieSlug).then((items) => {
-      if (!isUnsubscribed && items.length > 0) {
-        handleNewData(items);
-      }
-    }).catch(() => {});
-  }
-
-  const fallbackFetch = async () => {
+  // 2. Fetch dữ liệu mới nhất từ Supabase
+  const fetchSupabase = async () => {
     if (isUnsubscribed) return;
-    try {
-      const res = await fetch(`/api/comments?movieSlug=${encodeURIComponent(movieSlug)}&all=true&_t=${Date.now()}`, {
-        cache: "no-store",
-      });
-      if (isUnsubscribed) return;
-      if (res.ok) {
-        const data = await res.json();
-        if (!isUnsubscribed && data.items && Array.isArray(data.items)) {
-          handleNewData(data.items);
+    if (isSupabaseConfigured()) {
+      try {
+        const items = await getMovieCommentsSupabase(movieSlug);
+        if (!isUnsubscribed && items.length > 0) {
+          handleNewData(items);
         }
-      }
-    } catch {
-      // Bỏ qua lỗi mạng
-    }
-  };
-
-  fallbackFetch();
-
-  if (!db) {
-    const interval = setInterval(fallbackFetch, 4000);
-    return () => {
-      isUnsubscribed = true;
-      clearInterval(interval);
-    };
-  }
-
-  // 3. Hàm tạo / tái tạo Firestore listener
-  const createFirestoreListener = () => {
-    if (isUnsubscribed || !db) return;
-
-    const commentsRef = collection(db, COLLECTION_NAME);
-    const q = query(
-      commentsRef,
-      where("movieSlug", "==", movieSlug),
-      limit(200),
-    );
-
-    const unsub = onSnapshot(
-      q,
-      (snapshot) => {
-        if (isUnsubscribed) return;
-        retryCount = 0;
-        if (fallbackInterval) {
-          clearInterval(fallbackInterval);
-          fallbackInterval = null;
-        }
-        const items: MovieComment[] = [];
-        snapshot.forEach((docSnap) => {
-          const commentData = {
-            id: docSnap.id,
-            ...(docSnap.data() as Omit<MovieComment, "id">),
-          };
-          if (commentData.isFlagged) return;
-          if (commentData.movieSlug && commentData.movieSlug !== movieSlug) return;
-          items.push(commentData);
-        });
-        handleNewData(items);
-      },
-      (error) => {
-        if (isUnsubscribed) return;
-        fallbackFetch();
-        if (!fallbackInterval) {
-          fallbackInterval = setInterval(fallbackFetch, 5000);
-        }
-        if (onError) onError(error);
-
-        const delay = Math.min(2000 * Math.pow(2, retryCount), 30000);
-        retryCount++;
-        if (retryTimer) clearTimeout(retryTimer);
-        retryTimer = setTimeout(() => {
-          if (isUnsubscribed) return;
-          currentFirestoreUnsub?.();
-          createFirestoreListener();
-        }, delay);
-      },
-    );
-
-    currentFirestoreUnsub = unsub;
-  };
-
-  createFirestoreListener();
-
-  const handleVisibilityChange = () => {
-    if (isUnsubscribed) return;
-    if (document.visibilityState === "visible") {
-      retryCount = 0;
-      if (retryTimer) clearTimeout(retryTimer);
-      currentFirestoreUnsub?.();
-      createFirestoreListener();
-      if (isSupabaseConfigured()) {
-        getMovieCommentsSupabase(movieSlug).then((items) => {
-          if (!isUnsubscribed && items.length > 0) handleNewData(items);
-        }).catch(() => {});
+      } catch (err) {
+        if (onError && err instanceof Error) onError(err);
       }
     }
   };
 
+  fetchSupabase();
+
+  // 3. Lắng nghe event comments-updated để reload tức thời
   const handleCommentsUpdated = (e: Event) => {
     if (isUnsubscribed) return;
     const customEvent = e as CustomEvent<{ movieSlug?: string }>;
     if (!customEvent.detail?.movieSlug || customEvent.detail.movieSlug === movieSlug) {
-      if (isSupabaseConfigured()) {
-        getMovieCommentsSupabase(movieSlug).then((items) => {
-          if (!isUnsubscribed && items.length > 0) handleNewData(items);
-        }).catch(() => {});
-      }
+      fetchSupabase();
       const cur = movieCommentsMemoryCache[movieSlug];
       if (cur) onUpdate([...cur]);
     }
   };
 
-  if (typeof document !== "undefined") {
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-  }
+  // 4. Polling nhẹ mỗi 4s
+  const syncInterval = setInterval(fetchSupabase, 4000);
+
   if (typeof window !== "undefined") {
     window.addEventListener("comments-updated", handleCommentsUpdated);
   }
 
   return () => {
     isUnsubscribed = true;
-    if (retryTimer) clearTimeout(retryTimer);
-    if (fallbackInterval) clearInterval(fallbackInterval);
-    if (typeof document !== "undefined") {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    }
+    clearInterval(syncInterval);
     if (typeof window !== "undefined") {
       window.removeEventListener("comments-updated", handleCommentsUpdated);
     }
-    currentFirestoreUnsub?.();
   };
 }
-
 
 /**
  * Lắng nghe replies (trả lời) của một comment cụ thể theo thời gian thực
@@ -340,99 +151,35 @@ export function subscribeCommentReplies(
   parentId: string,
   onUpdate: (replies: MovieComment[]) => void,
   onError?: (err: Error) => void,
-): Unsubscribe {
+): () => void {
   if (!parentId) {
     onUpdate([]);
     return () => {};
   }
 
   let isUnsubscribed = false;
-  let fallbackInterval: NodeJS.Timeout | null = null;
-  let retryTimer: NodeJS.Timeout | null = null;
-  let retryCount = 0;
-  let currentFirestoreUnsub: (() => void) | null = null;
 
-  if (isSupabaseConfigured()) {
-    getCommentRepliesSupabase(parentId)
-      .then((items) => {
-        if (!isUnsubscribed && items.length > 0) {
+  const fetchReplies = async () => {
+    if (isUnsubscribed) return;
+    if (isSupabaseConfigured()) {
+      try {
+        const items = await getCommentRepliesSupabase(parentId);
+        if (!isUnsubscribed) {
           onUpdate(items);
         }
-      })
-      .catch(() => {});
-  }
-
-  const fallbackFetch = async () => {
-    if (isUnsubscribed) return;
-    try {
-      const res = await fetch(`/api/comments?parentId=${encodeURIComponent(parentId)}&_t=${Date.now()}`, { cache: "no-store" });
-      if (isUnsubscribed) return;
-      if (res.ok) {
-        const data = await res.json();
-        if (!isUnsubscribed && data.items && Array.isArray(data.items)) {
-          const validReplies = data.items.filter((c: MovieComment) => !c.parentId || c.parentId === parentId);
-          onUpdate(validReplies);
-        }
+      } catch (err) {
+        if (onError && err instanceof Error) onError(err);
       }
-    } catch {}
+    }
   };
 
-  fallbackFetch();
+  fetchReplies();
 
-  if (!db) {
-    const interval = setInterval(fallbackFetch, 4000);
-    return () => { isUnsubscribed = true; clearInterval(interval); };
-  }
-
-  const createListener = () => {
-    if (isUnsubscribed || !db) return;
-    const q = query(collection(db, COLLECTION_NAME), where("parentId", "==", parentId), limit(50));
-    const unsub = onSnapshot(
-      q,
-      (snapshot) => {
-        if (isUnsubscribed) return;
-        retryCount = 0;
-        if (fallbackInterval) { clearInterval(fallbackInterval); fallbackInterval = null; }
-        const items: MovieComment[] = [];
-        snapshot.forEach((docSnap) => {
-          const commentData = { id: docSnap.id, ...(docSnap.data() as Omit<MovieComment, "id">) };
-          if (commentData.isFlagged) return;
-          if (commentData.parentId && commentData.parentId !== parentId) return;
-          items.push(commentData);
-        });
-        items.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
-        onUpdate(items);
-      },
-      (error) => {
-        if (isUnsubscribed) return;
-        fallbackFetch();
-        if (!fallbackInterval) fallbackInterval = setInterval(fallbackFetch, 5000);
-        if (onError) onError(error);
-        const delay = Math.min(2000 * Math.pow(2, retryCount), 30000);
-        retryCount++;
-        if (retryTimer) clearTimeout(retryTimer);
-        retryTimer = setTimeout(() => {
-          if (isUnsubscribed) return;
-          currentFirestoreUnsub?.();
-          createListener();
-        }, delay);
-      },
-    );
-    currentFirestoreUnsub = unsub;
-  };
-
-  createListener();
-
-  // Lắng nghe sự kiện reply cập nhật cục bộ
   const handleLocalReplyUpdated = (e: Event) => {
     if (isUnsubscribed) return;
-    const customEvent = e as CustomEvent<{ parentId?: string }>;
+    const customEvent = e as CustomEvent<{ parentId?: string; reply?: MovieComment }>;
     if (customEvent.detail?.parentId === parentId) {
-      if (isSupabaseConfigured()) {
-        getCommentRepliesSupabase(parentId).then((items) => {
-          if (!isUnsubscribed && items.length > 0) onUpdate(items);
-        }).catch(() => {});
-      }
+      fetchReplies();
     }
   };
 
@@ -440,122 +187,27 @@ export function subscribeCommentReplies(
     window.addEventListener("comments-updated", handleLocalReplyUpdated);
   }
 
+  const interval = setInterval(fetchReplies, 4000);
+
   return () => {
     isUnsubscribed = true;
-    if (retryTimer) clearTimeout(retryTimer);
-    if (fallbackInterval) clearInterval(fallbackInterval);
+    clearInterval(interval);
     if (typeof window !== "undefined") {
       window.removeEventListener("comments-updated", handleLocalReplyUpdated);
     }
-    currentFirestoreUnsub?.();
   };
 }
 
 /**
- * Lắng nghe tất cả bình luận do một Người Dùng đăng theo thời gian thực
- */
-export function subscribeUserComments(
-  userId: string,
-  onUpdate: (comments: MovieComment[]) => void,
-  onError?: (err: Error) => void,
-): Unsubscribe {
-  if (!userId) {
-    onUpdate([]);
-    return () => {};
-  }
-
-  let isUnsubscribed = false;
-  let fallbackInterval: NodeJS.Timeout | null = null;
-  let retryTimer: NodeJS.Timeout | null = null;
-  let retryCount = 0;
-  let currentFirestoreUnsub: (() => void) | null = null;
-
-  if (isSupabaseConfigured()) {
-    getUserCommentsSupabase(userId)
-      .then((items) => {
-        if (!isUnsubscribed && items.length > 0) {
-          onUpdate(items);
-        }
-      })
-      .catch(() => {});
-  }
-
-  // Fix #3: guard isUnsubscribed sau await
-  const fallbackFetch = async () => {
-    if (isUnsubscribed) return;
-    try {
-      const res = await fetch(`/api/comments?userId=${encodeURIComponent(userId)}&all=true&_t=${Date.now()}`, { cache: "no-store" });
-      if (isUnsubscribed) return;
-      if (res.ok) {
-        const data = await res.json();
-        if (!isUnsubscribed && data.items && Array.isArray(data.items)) {
-          const validUserComments = data.items.filter((c: MovieComment) => !c.userId || c.userId === userId);
-          onUpdate(validUserComments);
-        }
-      }
-    } catch {}
-  };
-
-  fallbackFetch();
-
-  if (!db) {
-    const interval = setInterval(fallbackFetch, 8000);
-    return () => { isUnsubscribed = true; clearInterval(interval); };
-  }
-
-  const createListener = () => {
-    if (isUnsubscribed || !db) return;
-    const q = query(collection(db, COLLECTION_NAME), where("userId", "==", userId), limit(150));
-    const unsub = onSnapshot(
-      q,
-      (snapshot) => {
-        if (isUnsubscribed) return;
-        retryCount = 0;
-        if (fallbackInterval) { clearInterval(fallbackInterval); fallbackInterval = null; }
-        const items: MovieComment[] = [];
-        snapshot.forEach((docSnap) => {
-          const commentData = { id: docSnap.id, ...(docSnap.data() as Omit<MovieComment, "id">) };
-          if (commentData.userId && commentData.userId !== userId) return;
-          items.push(commentData);
-        });
-        items.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-        onUpdate(items);
-      },
-      (error) => {
-        if (isUnsubscribed) return;
-        console.warn("Lỗi tải bình luận cá nhân từ Firestore, dùng Server API Fallback:", error);
-        fallbackFetch();
-        if (!fallbackInterval) fallbackInterval = setInterval(fallbackFetch, 8000);
-        if (onError) onError(error);
-        // Fix #2: exponential backoff
-        const delay = Math.min(2000 * Math.pow(2, retryCount), 30000);
-        retryCount++;
-        if (retryTimer) clearTimeout(retryTimer);
-        retryTimer = setTimeout(() => {
-          if (isUnsubscribed) return;
-          currentFirestoreUnsub?.();
-          createListener();
-        }, delay);
-      },
-    );
-    currentFirestoreUnsub = unsub;
-  };
-
-  createListener();
-
-  return () => {
-    isUnsubscribed = true;
-    if (retryTimer) clearTimeout(retryTimer);
-    if (fallbackInterval) clearInterval(fallbackInterval);
-    currentFirestoreUnsub?.();
-  };
-}
-
-
-/**
- * Lấy toàn bộ bình luận trực tiếp từ Server API (dùng cho tải ban đầu và làm mới tức thì)
+ * Lấy toàn bộ bình luận trực tiếp từ Supabase / Server API (dùng cho tải ban đầu và làm mới tức thì)
  */
 export async function fetchAllCommentsDirect(): Promise<MovieComment[]> {
+  if (isSupabaseConfigured()) {
+    try {
+      const items = await getAllCommentsSupabase();
+      if (items && items.length > 0) return items;
+    } catch {}
+  }
   try {
     const res = await fetch(`/api/comments?all=true&_t=${Date.now()}`, { cache: "no-store" });
     if (res.ok) {
@@ -577,19 +229,22 @@ export function subscribeAllComments(
   onUpdate: (comments: MovieComment[]) => void,
   onError?: (err: Error) => void,
   _maxLimit: number = 500,
-): Unsubscribe {
+): () => void {
+  void _maxLimit;
   let isUnsubscribed = false;
 
-  const fetchSupabaseOrApi = async () => {
+  const fetchAll = async () => {
     if (isUnsubscribed) return;
     if (isSupabaseConfigured()) {
       try {
         const items = await getAllCommentsSupabase();
-        if (!isUnsubscribed && items.length > 0) {
+        if (!isUnsubscribed) {
           onUpdate(items);
           return;
         }
-      } catch {}
+      } catch (err) {
+        if (onError && err instanceof Error) onError(err);
+      }
     }
     try {
       const items = await fetchAllCommentsDirect();
@@ -599,47 +254,17 @@ export function subscribeAllComments(
     } catch {}
   };
 
-  // 1. Nạp ngay tức thì (0 delay)
-  fetchSupabaseOrApi();
+  fetchAll();
 
-  // 2. Lắng nghe sự kiện cập nhật để reload tức thời
   const handleCommentsUpdated = () => {
-    if (isUnsubscribed) return;
-    fetchSupabaseOrApi();
+    if (!isUnsubscribed) fetchAll();
   };
+
   if (typeof window !== "undefined") {
     window.addEventListener("comments-updated", handleCommentsUpdated);
   }
 
-  // 3. Polling định kỳ mỗi 3 giây
-  const syncInterval = setInterval(fetchSupabaseOrApi, 3000);
-
-  let unsubscribeFirestore: Unsubscribe | null = null;
-  if (db) {
-    try {
-      const commentsRef = collection(db, COLLECTION_NAME);
-      unsubscribeFirestore = onSnapshot(
-        commentsRef,
-        (snapshot) => {
-          if (isUnsubscribed) return;
-          const items: MovieComment[] = [];
-          snapshot.forEach((docSnap) => {
-            items.push({
-              id: docSnap.id,
-              ...(docSnap.data() as Omit<MovieComment, "id">),
-            });
-          });
-          items.sort((a, b) => (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0));
-          if (items.length > 0) {
-            onUpdate(items);
-          }
-        },
-        (error) => {
-          if (onError) onError(error);
-        },
-      );
-    } catch {}
-  }
+  const syncInterval = setInterval(fetchAll, 3000);
 
   return () => {
     isUnsubscribed = true;
@@ -647,10 +272,58 @@ export function subscribeAllComments(
     if (typeof window !== "undefined") {
       window.removeEventListener("comments-updated", handleCommentsUpdated);
     }
-    unsubscribeFirestore?.();
   };
 }
 
+/**
+ * Lắng nghe tất cả bình luận do một Người Dùng đăng theo thời gian thực
+ */
+export function subscribeUserComments(
+  userId: string,
+  onUpdate: (comments: MovieComment[]) => void,
+  onError?: (err: Error) => void,
+): () => void {
+  if (!userId) {
+    onUpdate([]);
+    return () => {};
+  }
+
+  let isUnsubscribed = false;
+
+  const fetchUserComments = async () => {
+    if (isUnsubscribed) return;
+    if (isSupabaseConfigured()) {
+      try {
+        const items = await getUserCommentsSupabase(userId);
+        if (!isUnsubscribed) {
+          onUpdate(items);
+        }
+      } catch (err) {
+        if (onError && err instanceof Error) onError(err);
+      }
+    }
+  };
+
+  fetchUserComments();
+
+  const handleCommentsUpdated = () => {
+    if (!isUnsubscribed) fetchUserComments();
+  };
+
+  if (typeof window !== "undefined") {
+    window.addEventListener("comments-updated", handleCommentsUpdated);
+  }
+
+  const interval = setInterval(fetchUserComments, 5000);
+
+  return () => {
+    isUnsubscribed = true;
+    clearInterval(interval);
+    if (typeof window !== "undefined") {
+      window.removeEventListener("comments-updated", handleCommentsUpdated);
+    }
+  };
+}
 
 /**
  * Báo cáo hoặc tự động ghi nhận vi phạm thuần phong mỹ tục / spam cho Quản trị viên
@@ -668,52 +341,14 @@ export async function reportCommentViolation(params: {
   isSpam?: boolean;
   commentId?: string;
 }): Promise<void> {
-  if (!db || !params.userId) return;
+  if (!params.userId) return;
 
   try {
-    const violationId = `viol_${params.userId}_${Date.now()}`;
-    const violRef = doc(db, VIOLATIONS_COLLECTION, violationId);
-
-    // 1. Lưu bản ghi chi tiết vi phạm vào admin_violations
-    await setDoc(
-      violRef,
-      sanitizeCommentData({
-        id: violationId,
-        userId: params.userId,
-        userName: params.userName,
-        userEmail: params.userEmail || "",
-        userAvatar: params.userAvatar || "",
-        movieSlug: params.movieSlug,
-        movieTitle: params.movieTitle || "",
-        attemptedContent: params.attemptedContent,
-        reason: params.reason,
-        violations: params.violations,
-        isSpam: Boolean(params.isSpam),
-        commentId: params.commentId || "",
-        createdAt: Date.now(),
-        status: "pending_admin_review",
-      })
-    );
-
-    // 2. Cập nhật hồ sơ thành viên (tăng số lần vi phạm)
-    const userRef = doc(db, USERS_COLLECTION, params.userId);
-    const userSnap = await getDoc(userRef);
-    const currentViolations = userSnap.exists() ? Number(userSnap.data()?.violationsCount || 0) : 0;
-    const newViolationsCount = currentViolations + 1;
-
-    await setDoc(
-      userRef,
-      sanitizeCommentData({
-        violationsCount: newViolationsCount,
-        lastViolationAt: Date.now(),
-        lastViolationReason: params.reason,
-        // Tự động hạn chế quyền bình luận nếu cố tình vi phạm từ 3 lần trở lên
-        isCommentRestricted: newViolationsCount >= 3,
-      }),
-      { merge: true }
-    );
+    if (params.commentId && isSupabaseConfigured()) {
+      await flagCommentSupabase(params.commentId, params.reason);
+    }
   } catch (err) {
-    console.warn("Lỗi ghi nhận vi phạm vào Firestore:", err);
+    console.warn("Lỗi ghi nhận vi phạm vào Supabase:", err);
   }
 }
 
@@ -721,15 +356,14 @@ export async function reportCommentViolation(params: {
  * Gỡ cờ đánh dấu bình luận (Dành cho Quản trị viên duyệt lại bình luận hợp lệ)
  */
 export async function unflagComment(commentId: string): Promise<void> {
-  if (!db || !commentId) return;
+  if (!commentId) return;
   try {
-    const docRef = doc(db, COLLECTION_NAME, commentId);
-    await updateDoc(docRef, {
-      isFlagged: false,
-      flagReason: deleteField(),
-      flaggedKeywords: deleteField(),
-      flaggedAt: deleteField(),
-    });
+    if (isSupabaseConfigured()) {
+      await unflagCommentSupabase(commentId);
+    }
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("comments-updated", { detail: { commentId } }));
+    }
   } catch (err) {
     console.error("Lỗi gỡ đánh dấu bình luận:", err);
     throw err;
@@ -742,24 +376,15 @@ export async function unflagComment(commentId: string): Promise<void> {
 export async function addMovieComment(
   comment: Omit<MovieComment, "id" | "likes" | "likedBy" | "createdAt">,
 ): Promise<string> {
-  if (!db) {
-    throw new Error("Chưa kết nối được cơ sở dữ liệu Firebase!");
+  if (!isSupabaseConfigured()) {
+    throw new Error("Chưa kết nối được cơ sở dữ liệu Supabase!");
   }
 
-  let userBadges: string[] = [];
-  let userWatchTimeMinutes = 0;
-
-  // 1. Kiểm tra tài khoản có đang bị hạn chế bình luận không (bọc try-catch an toàn)
+  // 1. Kiểm tra tài khoản có đang bị hạn chế bình luận không
   try {
-    const userRef = doc(db, USERS_COLLECTION, comment.userId);
-    const userSnap = await getDoc(userRef);
-    if (userSnap.exists()) {
-      const uData = userSnap.data();
-      if (uData?.isCommentRestricted) {
-        throw new Error("Tài khoản của bạn tạm thời bị khóa tính năng bình luận do vi phạm tiêu chuẩn cộng đồng nhiều lần!");
-      }
-      userBadges = uData?.badges || [];
-      userWatchTimeMinutes = uData?.watchTimeMinutes || 0;
+    const profile = await getUserProfileSupabase(comment.userId);
+    if (profile?.isCommentRestricted) {
+      throw new Error("Tài khoản của bạn tạm thời bị khóa tính năng bình luận do vi phạm tiêu chuẩn cộng đồng nhiều lần!");
     }
   } catch (err: unknown) {
     if (err instanceof Error && err.message.includes("bị khóa tính năng")) {
@@ -770,7 +395,6 @@ export async function addMovieComment(
   // 2. Kiểm duyệt nội dung từ ngữ & spam
   const modCheck = checkContentModeration(comment.content);
   if (!modCheck.isAllowed) {
-    // Tự động ghi nhận vi phạm cho Admin
     reportCommentViolation({
       userId: comment.userId,
       userName: comment.userName,
@@ -787,7 +411,7 @@ export async function addMovieComment(
     throw new Error(modCheck.reason || "Nội dung vi phạm tiêu chuẩn cộng đồng!");
   }
 
-  const commentsRef = collection(db, COLLECTION_NAME);
+  const now = Date.now();
   const newComment = {
     movieSlug: sanitizeSafeText(comment.movieSlug),
     movieTitle: sanitizeSafeText(comment.movieTitle || ""),
@@ -795,86 +419,33 @@ export async function addMovieComment(
     userName: sanitizeSafeText(comment.userName),
     userAvatar: comment.userAvatar || "",
     userEmail: comment.userEmail || "",
-    userBadges,
-    userWatchTimeMinutes,
     content: sanitizeSafeText(comment.content),
     rating: comment.rating || 0,
     likes: 0,
-    dislikes: 0,
     likedBy: [],
-    dislikedBy: [],
     reactions: {},
-    replies: [],
     replyCount: 0,
     isSpoiler: !!comment.isSpoiler,
     isPinned: false,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    episodeSlug: comment.episodeSlug,
+    episodeName: comment.episodeName,
+    createdAt: now,
+    updatedAt: now,
   };
 
-  // 3. Ghi trực tiếp vào Supabase Database
-  if (isSupabaseConfigured()) {
-    try {
-      const createdId = await postCommentSupabase(newComment as unknown as Omit<MovieComment, "id" | "createdAt" | "updatedAt">);
-      const fullComment: MovieComment = { id: createdId, ...newComment } as MovieComment;
-      const curList = movieCommentsMemoryCache[comment.movieSlug] || [];
-      movieCommentsMemoryCache[comment.movieSlug] = [fullComment, ...curList.filter((c) => c.id !== createdId)];
-      if (typeof window !== "undefined") {
-        try {
-          localStorage.setItem(`nanaflix_comments_${comment.movieSlug}`, JSON.stringify(movieCommentsMemoryCache[comment.movieSlug].slice(0, 100)));
-          window.dispatchEvent(new CustomEvent("comments-updated", { detail: { movieSlug: comment.movieSlug, comment: fullComment } }));
-        } catch {}
-      }
-      return createdId;
-    } catch (supabaseErr) {
-      console.warn("Lỗi ghi Supabase, chuyển sang fallback:", supabaseErr);
-    }
+  // 3. Ghi trực tiếp vào Supabase Database (0ms Optimistic Update)
+  const createdId = await postCommentSupabase(newComment as unknown as Omit<MovieComment, "id" | "createdAt" | "updatedAt">);
+  const fullComment: MovieComment = { id: createdId, ...newComment } as MovieComment;
+
+  const curList = movieCommentsMemoryCache[comment.movieSlug] || [];
+  movieCommentsMemoryCache[comment.movieSlug] = [fullComment, ...curList.filter((c) => c.id !== createdId)];
+  saveLocalMovieComments(comment.movieSlug, movieCommentsMemoryCache[comment.movieSlug]);
+
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("comments-updated", { detail: { movieSlug: comment.movieSlug, comment: fullComment } }));
   }
 
-  try {
-    const docRef = await addDocWithTimeout(commentsRef, newComment, 3500);
-    const createdId = docRef.id;
-    const fullComment: MovieComment = { id: createdId, ...newComment } as MovieComment;
-    const curList = movieCommentsMemoryCache[comment.movieSlug] || [];
-    movieCommentsMemoryCache[comment.movieSlug] = [fullComment, ...curList.filter((c) => c.id !== createdId)];
-    if (typeof window !== "undefined") {
-      try {
-        localStorage.setItem(`nanaflix_comments_${comment.movieSlug}`, JSON.stringify(movieCommentsMemoryCache[comment.movieSlug].slice(0, 100)));
-        window.dispatchEvent(new CustomEvent("comments-updated", { detail: { movieSlug: comment.movieSlug, comment: fullComment } }));
-      } catch {}
-    }
-    return createdId;
-  } catch (err) {
-    console.warn("Lỗi ghi Firestore trực tiếp, chuyển sang Server API Fallback:", err);
-    let authHeader = "";
-    if (auth?.currentUser) {
-      try {
-        const idToken = await auth.currentUser.getIdToken();
-        authHeader = `Bearer ${idToken}`;
-      } catch {}
-    }
-    const res = await fetch("/api/comments", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(authHeader ? { Authorization: authHeader } : {}),
-      },
-      body: JSON.stringify(newComment),
-    });
-    const resJson = await res.json();
-    if (!res.ok) throw new Error(resJson.error || "Không thể gửi bình luận lúc này!");
-    const createdId = resJson.id || `cmt_${Date.now()}`;
-    const fullComment: MovieComment = { id: createdId, ...newComment } as MovieComment;
-    const curList = movieCommentsMemoryCache[comment.movieSlug] || [];
-    movieCommentsMemoryCache[comment.movieSlug] = [fullComment, ...curList.filter((c) => c.id !== createdId)];
-    if (typeof window !== "undefined") {
-      try {
-        localStorage.setItem(`nanaflix_comments_${comment.movieSlug}`, JSON.stringify(movieCommentsMemoryCache[comment.movieSlug].slice(0, 100)));
-        window.dispatchEvent(new CustomEvent("comments-updated", { detail: { movieSlug: comment.movieSlug, comment: fullComment } }));
-      } catch {}
-    }
-    return createdId;
-  }
+  return createdId;
 }
 
 /**
@@ -882,10 +453,10 @@ export async function addMovieComment(
  */
 export async function addReplyComment(params: {
   parentId: string;
-  parentOwnerId: string;     // userId của chủ comment gốc
-  parentOwnerName?: string;  // tên chủ comment gốc
-  replyToUserId?: string;    // userId của người được reply cụ thể (nếu reply lại một reply)
-  replyToUserName?: string;  // tên người được reply cụ thể
+  parentOwnerId: string;
+  parentOwnerName?: string;
+  replyToUserId?: string;
+  replyToUserName?: string;
   movieSlug: string;
   movieTitle?: string;
   userId: string;
@@ -895,15 +466,14 @@ export async function addReplyComment(params: {
   content: string;
   isSpoiler?: boolean;
 }): Promise<string> {
-  if (!db) {
-    throw new Error("Chưa kết nối được cơ sở dữ liệu Firebase!");
+  if (!isSupabaseConfigured()) {
+    throw new Error("Chưa kết nối được cơ sở dữ liệu Supabase!");
   }
 
-  // 1. Kiểm tra hạn chế tài khoản (bọc try-catch an toàn)
+  // 1. Kiểm tra hạn chế tài khoản
   try {
-    const userRef = doc(db, USERS_COLLECTION, params.userId);
-    const userSnap = await getDoc(userRef);
-    if (userSnap.exists() && userSnap.data()?.isCommentRestricted) {
+    const profile = await getUserProfileSupabase(params.userId);
+    if (profile?.isCommentRestricted) {
       throw new Error("Tài khoản của bạn tạm thời bị khóa tính năng bình luận do vi phạm tiêu chuẩn cộng đồng nhiều lần!");
     }
   } catch (err: unknown) {
@@ -932,151 +502,64 @@ export async function addReplyComment(params: {
     throw new Error(modCheck.reason || "Nội dung phản hồi vi phạm tiêu chuẩn cộng đồng!");
   }
 
-  const { parentId, parentOwnerId, parentOwnerName, replyToUserId, replyToUserName, ...replyData } = params;
+  const { parentId, parentOwnerId, replyToUserId, replyToUserName, ...replyData } = params;
 
-  // 3. Lưu reply vào Firestore
-  const commentsRef = collection(db, COLLECTION_NAME);
-  const newReply = sanitizeCommentData({
-    ...replyData,
+  // 3. Ghi trực tiếp vào Supabase
+  const createdId = await postCommentSupabase({
+    movieSlug: params.movieSlug,
+    movieTitle: params.movieTitle,
+    userId: params.userId,
+    userName: params.userName,
+    userAvatar: params.userAvatar,
+    userEmail: params.userEmail,
     content: sanitizeSafeText(replyData.content, 2500),
-    userName: sanitizeSafeText(replyData.userName, 100),
-    movieTitle: sanitizeSafeText(replyData.movieTitle || "", 200),
     parentId,
+    parentOwnerId,
     replyToUserId,
-    replyToUserName: sanitizeSafeText(replyToUserName || "", 100),
+    replyToUserName: replyToUserName ? sanitizeSafeText(replyToUserName, 100) : undefined,
+    rating: 0,
+    isSpoiler: params.isSpoiler,
+  });
+
+  const fullReply: MovieComment = {
+    id: createdId,
+    parentId,
+    parentOwnerId,
+    replyToUserId,
+    replyToUserName,
+    movieSlug: params.movieSlug,
+    movieTitle: params.movieTitle,
+    userId: params.userId,
+    userName: params.userName,
+    userAvatar: params.userAvatar,
+    content: params.content,
     rating: 0,
     likes: 0,
     likedBy: [],
     createdAt: Date.now(),
-  });
-
-  let createdId = "";
-
-  // 3. Ghi trực tiếp vào Supabase nếu có cấu hình
-  if (isSupabaseConfigured()) {
-    try {
-      createdId = await postCommentSupabase({
-        movieSlug: params.movieSlug,
-        movieTitle: params.movieTitle,
-        userId: params.userId,
-        userName: params.userName,
-        userAvatar: params.userAvatar,
-        userEmail: params.userEmail,
-        content: params.content,
-        parentId,
-        parentOwnerId,
-        replyToUserId,
-        replyToUserName,
-        rating: 0,
-        isSpoiler: params.isSpoiler,
-      });
-    } catch (supaErr) {
-      console.warn("Lỗi ghi reply Supabase:", supaErr);
-    }
-  }
-
-  if (!createdId) {
-    try {
-      const docRef = await addDocWithTimeout(commentsRef, newReply, 3500);
-      createdId = docRef.id;
-    } catch (err) {
-      console.warn("Lỗi ghi reply Firestore trực tiếp, chuyển sang Server API Fallback:", err);
-      let authHeader = "";
-      if (auth?.currentUser) {
-        try {
-          const idToken = await auth.currentUser.getIdToken();
-          authHeader = `Bearer ${idToken}`;
-        } catch {}
-      }
-      const res = await fetch("/api/comments", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(authHeader ? { Authorization: authHeader } : {}),
-        },
-        body: JSON.stringify({
-          ...newReply,
-          parentId,
-          replyToUserId,
-          replyToUserName,
-        }),
-      });
-      const resJson = await res.json();
-      if (!res.ok) throw new Error(resJson.error || "Không thể gửi phản hồi lúc này!");
-      createdId = resJson.id || `reply_${Date.now()}`;
-    }
-  }
-
-  const fullReply: MovieComment = { id: createdId, ...newReply } as MovieComment;
-  const curList = movieCommentsMemoryCache[params.movieSlug] || [];
-  movieCommentsMemoryCache[params.movieSlug] = [...curList.filter((c) => c.id !== createdId), fullReply];
-  if (typeof window !== "undefined") {
-    try {
-      localStorage.setItem(`nanaflix_comments_${params.movieSlug}`, JSON.stringify(movieCommentsMemoryCache[params.movieSlug].slice(0, 100)));
-      window.dispatchEvent(new CustomEvent("comments-updated", { detail: { movieSlug: params.movieSlug, parentId } }));
-    } catch {}
-  }
-
-  // 4. Gửi thông báo trực tiếp qua Server API & Supabase đảm bảo 100% người dùng nhận được thông báo
-  const sendNotificationServer = async (targetUserId: string, notifPayload: UserNotification) => {
-    // Cập nhật localStorage ngay lập tức
-    try {
-      if (typeof window !== "undefined") {
-        const localKey = `nanaflix_notifs_${targetUserId}`;
-        const raw = localStorage.getItem(localKey);
-        const list = raw ? JSON.parse(raw) : [];
-        if (Array.isArray(list)) {
-          const map = new Map<string, UserNotification>();
-          map.set(notifPayload.id, notifPayload);
-          list.forEach((item: UserNotification) => {
-            if (!map.has(item.id)) map.set(item.id, item);
-          });
-          localStorage.setItem(localKey, JSON.stringify(Array.from(map.values()).slice(0, 50)));
-        }
-      }
-    } catch {}
-
-    if (isSupabaseConfigured()) {
-      createNotificationSupabase({ ...notifPayload, userId: targetUserId }).catch(() => {});
-    }
-
-    try {
-      if (db) {
-        const notifRef = doc(db, USERS_COLLECTION, targetUserId, "notifications", notifPayload.id);
-        await setDocWithTimeout(notifRef, sanitizeCommentData(notifPayload as unknown as Record<string, unknown>), 2000);
-        return;
-      }
-    } catch {}
-
-    try {
-      await fetch("/api/notifications", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: targetUserId,
-          notifId: notifPayload.id,
-          type: notifPayload.type,
-          title: notifPayload.title,
-          message: notifPayload.message,
-          link: notifPayload.link,
-          movieSlug: notifPayload.movieSlug,
-          commentId: notifPayload.commentId,
-          replierName: notifPayload.replierName,
-          replierAvatar: notifPayload.replierAvatar,
-        }),
-      });
-    } catch {}
+    updatedAt: Date.now(),
   };
 
-  if (replyToUserId && replyToUserId !== params.userId) {
-    const notifId = `reply_target_${createdId}`;
-    const notifData: UserNotification = {
-      id: notifId,
+  const curList = movieCommentsMemoryCache[params.movieSlug] || [];
+  movieCommentsMemoryCache[params.movieSlug] = [...curList.filter((c) => c.id !== createdId), fullReply];
+  saveLocalMovieComments(params.movieSlug, movieCommentsMemoryCache[params.movieSlug]);
+
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("comments-updated", { detail: { movieSlug: params.movieSlug, parentId, reply: fullReply } }));
+  }
+
+  // 4. Gửi thông báo cho người nhận
+  const targetUserId = replyToUserId || (parentOwnerId && parentOwnerId !== params.userId ? parentOwnerId : null);
+  if (targetUserId && targetUserId !== params.userId) {
+    const isDirect = Boolean(replyToUserId);
+    const notifData: UserNotification & { userId: string } = {
+      id: `notif_${createdId}_${Date.now()}`,
+      userId: targetUserId,
       type: "comment_reply",
-      title: `${params.userName} đã trả lời bình luận của bạn`,
-      message: params.content.length > 80
-        ? params.content.slice(0, 80) + "..."
-        : params.content,
+      title: isDirect
+        ? `${params.userName} đã trả lời bình luận của bạn`
+        : `${params.userName} đã bình luận trong bài đánh giá của bạn`,
+      message: params.content.length > 80 ? params.content.slice(0, 80) + "..." : params.content,
       link: `/movies/${params.movieSlug}?highlightComment=${createdId}#comment-${createdId}`,
       movieSlug: params.movieSlug,
       commentId: createdId,
@@ -1085,30 +568,9 @@ export async function addReplyComment(params: {
       isRead: false,
       createdAt: Date.now(),
     };
-    sendNotificationServer(replyToUserId, notifData).catch(() => {});
+    createNotificationSupabase(notifData).catch(() => {});
   }
 
-  if (parentOwnerId && parentOwnerId !== params.userId && parentOwnerId !== replyToUserId) {
-    const notifId = `reply_root_${createdId}`;
-    const notifData: UserNotification = {
-      id: notifId,
-      type: "comment_reply",
-      title: `${params.userName} đã bình luận trong bài đánh giá của bạn`,
-      message: params.content.length > 80
-        ? params.content.slice(0, 80) + "..."
-        : params.content,
-      link: `/movies/${params.movieSlug}?highlightComment=${createdId}#comment-${createdId}`,
-      movieSlug: params.movieSlug,
-      commentId: createdId,
-      replierName: params.userName,
-      replierAvatar: params.userAvatar,
-      isRead: false,
-      createdAt: Date.now(),
-    };
-    sendNotificationServer(parentOwnerId, notifData).catch(() => {});
-  }
-
-  void parentOwnerName;
   return createdId;
 }
 
@@ -1119,8 +581,9 @@ export async function setCommentReaction(
   commentId: string,
   userId: string,
   reactionType: CommentReactionType | null,
-  prevReactionType?: CommentReactionType | null,
+  _prevReactionType?: CommentReactionType | null,
 ): Promise<void> {
+  void _prevReactionType;
   if (!commentId || !userId) return;
 
   // 1. Cập nhật Supabase ngay lập tức
@@ -1154,41 +617,11 @@ export async function setCommentReaction(
         },
       };
     });
+    saveLocalMovieComments(slug, movieCommentsMemoryCache[slug]);
   });
 
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent("comments-updated", { detail: { commentId } }));
-  }
-
-  // 3. Đồng bộ ngầm Firestore nếu có
-  if (db) {
-    try {
-      const docRef = doc(db, COLLECTION_NAME, commentId);
-      if (!reactionType) {
-        const updatePayload: Record<string, unknown> = {
-          likes: increment(-1),
-          likedBy: arrayRemove(userId),
-          [`reactions.${userId}`]: deleteField(),
-        };
-        if (prevReactionType) {
-          updatePayload[`reactionCounts.${prevReactionType}`] = increment(-1);
-        }
-        updateDoc(docRef, updatePayload).catch(() => {});
-      } else if (!prevReactionType) {
-        updateDoc(docRef, {
-          likes: increment(1),
-          likedBy: arrayUnion(userId),
-          [`reactions.${userId}`]: reactionType,
-          [`reactionCounts.${reactionType}`]: increment(1),
-        }).catch(() => {});
-      } else if (prevReactionType !== reactionType) {
-        updateDoc(docRef, {
-          [`reactions.${userId}`]: reactionType,
-          [`reactionCounts.${prevReactionType}`]: increment(-1),
-          [`reactionCounts.${reactionType}`]: increment(1),
-        }).catch(() => {});
-      }
-    } catch {}
   }
 }
 
@@ -1216,15 +649,6 @@ export async function updateMovieComment(
   data: Partial<Pick<MovieComment, "rating" | "content" | "isSpoiler" | "episodeSlug" | "episodeName">>,
 ): Promise<void> {
   if (!commentId) return;
-  const safeData: typeof data = { ...data };
-  if (safeData.content) {
-    safeData.content = sanitizeSafeText(safeData.content, 2500);
-  }
-
-  const payload = sanitizeCommentData({
-    ...safeData,
-    updatedAt: Date.now(),
-  });
 
   // 1. Cập nhật ngay lập tức vào Memory Cache & LocalStorage
   let affectedMovieSlug: string | undefined;
@@ -1233,13 +657,9 @@ export async function updateMovieComment(
     if (idx !== -1) {
       affectedMovieSlug = slug;
       movieCommentsMemoryCache[slug] = list.map((c) =>
-        c.id === commentId ? { ...c, ...safeData, updatedAt: payload.updatedAt as number } : c
+        c.id === commentId ? { ...c, ...data, updatedAt: Date.now() } : c
       );
-      if (typeof window !== "undefined") {
-        try {
-          localStorage.setItem(`nanaflix_comments_${slug}`, JSON.stringify(movieCommentsMemoryCache[slug].slice(0, 100)));
-        } catch {}
-      }
+      saveLocalMovieComments(slug, movieCommentsMemoryCache[slug]);
       break;
     }
   }
@@ -1250,49 +670,13 @@ export async function updateMovieComment(
 
   // 2. Cập nhật vào Supabase Database
   if (isSupabaseConfigured()) {
-    try {
-      await updateCommentSupabase(commentId, {
-        rating: data.rating,
-        content: data.content,
-        episode_slug: data.episodeSlug || null,
-        episode_name: data.episodeName || null,
-        is_spoiler: data.isSpoiler,
-      });
-      return;
-    } catch (supaErr) {
-      console.warn("Lỗi update Supabase, chuyển sang fallback:", supaErr);
-    }
-  }
-
-  if (db) {
-    try {
-      const docRef = doc(db, COLLECTION_NAME, commentId);
-      await updateDocWithTimeout(docRef, payload, 3500);
-      return;
-    } catch (err) {
-      console.warn("Lỗi updateDoc trực tiếp, chuyển sang Server API Fallback:", err);
-    }
-  }
-
-  let authHeader = "";
-  if (auth?.currentUser) {
-    try {
-      const idToken = await auth.currentUser.getIdToken();
-      authHeader = `Bearer ${idToken}`;
-    } catch {}
-  }
-
-  const res = await fetch("/api/comments", {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      ...(authHeader ? { Authorization: authHeader } : {}),
-    },
-    body: JSON.stringify({ commentId, ...payload }),
-  });
-  if (!res.ok) {
-    const resJson = await res.json().catch(() => ({}));
-    throw new Error(resJson.error || "Không thể cập nhật bình luận lúc này!");
+    await updateCommentSupabase(commentId, {
+      rating: data.rating,
+      content: data.content,
+      episode_slug: data.episodeSlug || null,
+      episode_name: data.episodeName || null,
+      is_spoiler: data.isSpoiler,
+    });
   }
 }
 
@@ -1305,14 +689,10 @@ export async function deleteMovieComment(commentId: string): Promise<void> {
   // 1. Xóa ngay lập tức khỏi Memory Cache & LocalStorage
   let affectedMovieSlug: string | undefined;
   for (const [slug, list] of Object.entries(movieCommentsMemoryCache)) {
-    if (list.some((c) => c.id === commentId)) {
+    if (list.some((c) => c.id === commentId || c.parentId === commentId)) {
       affectedMovieSlug = slug;
-      movieCommentsMemoryCache[slug] = list.filter((c) => c.id !== commentId);
-      if (typeof window !== "undefined") {
-        try {
-          localStorage.setItem(`nanaflix_comments_${slug}`, JSON.stringify(movieCommentsMemoryCache[slug].slice(0, 100)));
-        } catch {}
-      }
+      movieCommentsMemoryCache[slug] = list.filter((c) => c.id !== commentId && c.parentId !== commentId);
+      saveLocalMovieComments(slug, movieCommentsMemoryCache[slug]);
       break;
     }
   }
@@ -1321,48 +701,48 @@ export async function deleteMovieComment(commentId: string): Promise<void> {
     window.dispatchEvent(new CustomEvent("comments-updated", { detail: { commentId, movieSlug: affectedMovieSlug, deleted: true } }));
   }
 
+  // 2. Xóa trên Supabase
   if (isSupabaseConfigured()) {
-    try {
-      await deleteCommentSupabase(commentId);
-      return;
-    } catch {}
-  }
-
-  if (db) {
-    try {
-      const docRef = doc(db, COLLECTION_NAME, commentId);
-      await deleteDocWithTimeout(docRef, 3500);
-      return;
-    } catch (err) {
-      console.warn("Lỗi deleteDoc trực tiếp, chuyển sang Server API Fallback:", err);
-    }
-  }
-
-  let authHeader = "";
-  if (auth?.currentUser) {
-    try {
-      const idToken = await auth.currentUser.getIdToken();
-      authHeader = `Bearer ${idToken}`;
-    } catch {}
-  }
-
-  const res = await fetch(`/api/comments?commentId=${encodeURIComponent(commentId)}`, {
-    method: "DELETE",
-    headers: authHeader ? { Authorization: authHeader } : {},
-  });
-  if (!res.ok) {
-    const resJson = await res.json().catch(() => ({}));
-    throw new Error(resJson.error || "Không thể xóa bình luận lúc này!");
+    await deleteCommentSupabase(commentId);
   }
 }
 
 /**
+ * Ghim hoặc bỏ ghim một bình luận (Dành riêng cho Quản trị viên)
+ */
+export async function togglePinComment(
+  commentId: string,
+  currentIsPinned: boolean,
+  _adminEmail: string
+): Promise<boolean> {
+  void _adminEmail;
+  const newPinnedState = !currentIsPinned;
+
+  // 1. Cập nhật ngay bộ nhớ cache & localStorage cho toàn bộ tabs
+  Object.keys(movieCommentsMemoryCache).forEach((slug) => {
+    movieCommentsMemoryCache[slug] = movieCommentsMemoryCache[slug].map((c) =>
+      c.id === commentId ? { ...c, isPinned: newPinnedState } : c
+    );
+    saveLocalMovieComments(slug, movieCommentsMemoryCache[slug]);
+  });
+
+  // 2. Cập nhật Supabase ngay lập tức
+  if (isSupabaseConfigured()) {
+    await togglePinCommentSupabase(commentId, newPinnedState);
+  }
+
+  // 3. Phát event cập nhật toàn bộ giao diện realtime 0ms
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("comments-updated", { detail: { commentId, isPinned: newPinnedState } }));
+  }
+
+  return newPinnedState;
+}
+
+/**
  * Tính toán thống kê điểm số đánh giá từ danh sách bình luận.
- * ĐẢM BẢO: Mỗi người dùng (userId) chỉ đóng góp đúng 1 lá phiếu điểm số duy nhất!
- * Chỉ tính top-level comments (không phải replies)
  */
 export function calculateMovieRatingStats(comments: MovieComment[]): MovieRatingStats {
-  // Lọc chỉ top-level comments có rating > 0
   const userRatingsMap = new Map<string, number>();
   for (const c of comments) {
     if (c.rating > 0 && !c.parentId && !userRatingsMap.has(c.userId)) {
@@ -1420,68 +800,37 @@ export interface AutoCleanResult {
 
 /**
  * HỆ THỐNG TỰ ĐỘNG QUÉT & XÓA BÌNH LUẬN VÔ VĂN HÓA, TỤC TĨU, SPAM
- * Quét toàn bộ hoặc danh sách bình luận đã tải, phát hiện và xóa vĩnh viễn các bình luận vi phạm
  */
 export async function autoCleanAllToxicAndSpamComments(allComments?: MovieComment[]): Promise<AutoCleanResult> {
-  if (!db) {
-    return { scannedCount: 0, deletedCount: 0, deletedItems: [] };
-  }
-
   let itemsToScan = allComments;
   if (!itemsToScan || itemsToScan.length === 0) {
-    try {
-      const commentsRef = collection(db, COLLECTION_NAME);
-      const q = query(commentsRef, limit(500));
-      const snap = await getDocs(q);
-      const fetched: MovieComment[] = [];
-      snap.forEach((docSnap) => {
-        fetched.push({
-          id: docSnap.id,
-          ...(docSnap.data() as Omit<MovieComment, "id">),
-        });
-      });
-      itemsToScan = fetched;
-    } catch (e) {
-      console.error("Lỗi tải bình luận để quét tự động:", e);
-      return { scannedCount: 0, deletedCount: 0, deletedItems: [] };
+    if (isSupabaseConfigured()) {
+      try {
+        itemsToScan = await getAllCommentsSupabase();
+      } catch {
+        itemsToScan = [];
+      }
     }
   }
 
+  const items = itemsToScan || [];
   const deletedItems: AutoCleanResult["deletedItems"] = [];
 
-  for (const c of itemsToScan) {
+  for (const c of items) {
     const mod = checkContentModeration(c.content || "");
     const isToxicOrSpam = !mod.isAllowed || c.isFlagged;
 
     if (isToxicOrSpam) {
       try {
-        await deleteDoc(doc(db, COLLECTION_NAME, c.id));
+        await deleteMovieComment(c.id);
         deletedItems.push({
           id: c.id,
-          userName: c.userName || "Ẩn danh",
-          movieSlug: c.movieSlug || "",
-          content: c.content || "",
-          reason: mod.reason || c.flagReason || "Bình luận vi phạm thuần phong mỹ tục hoặc spam",
-          violations: mod.violations?.length ? mod.violations : (c.flaggedKeywords || []),
+          userName: c.userName,
+          movieSlug: c.movieSlug,
+          content: c.content,
+          reason: mod.reason || c.flagReason || "Tự động xóa do vi phạm tiêu chuẩn cộng đồng",
+          violations: mod.violations,
         });
-
-        // Ghi nhận / tăng số lần vi phạm của user
-        if (c.userId) {
-          const userRef = doc(db, USERS_COLLECTION, c.userId);
-          const userSnap = await getDoc(userRef);
-          const currentViolations = userSnap.exists() ? Number(userSnap.data()?.violationsCount || 0) : 0;
-          const newCount = currentViolations + 1;
-          await setDoc(
-            userRef,
-            {
-              violationsCount: newCount,
-              lastViolationAt: Date.now(),
-              lastViolationReason: mod.reason || c.flagReason || "Tự động xóa do vi phạm tiêu chuẩn cộng đồng",
-              isCommentRestricted: newCount >= 3,
-            },
-            { merge: true }
-          );
-        }
       } catch (err) {
         console.warn("Lỗi xóa tự động comment rác:", c.id, err);
       }
@@ -1489,7 +838,7 @@ export async function autoCleanAllToxicAndSpamComments(allComments?: MovieCommen
   }
 
   return {
-    scannedCount: itemsToScan.length,
+    scannedCount: items.length,
     deletedCount: deletedItems.length,
     deletedItems,
   };
@@ -1499,12 +848,12 @@ export async function autoCleanAllToxicAndSpamComments(allComments?: MovieCommen
  * Xóa nhanh tất cả bình luận đang bị gắn cờ vi phạm trong 1 thao tác
  */
 export async function purgeAllFlaggedComments(commentsList: MovieComment[]): Promise<number> {
-  if (!db || !commentsList) return 0;
+  if (!commentsList) return 0;
   const flagged = commentsList.filter((c) => c.isFlagged);
   let deletedCount = 0;
   for (const c of flagged) {
     try {
-      await deleteDoc(doc(db, COLLECTION_NAME, c.id));
+      await deleteMovieComment(c.id);
       deletedCount++;
     } catch (e) {
       console.warn("Lỗi xóa cmt gắn cờ:", c.id, e);
@@ -1512,63 +861,3 @@ export async function purgeAllFlaggedComments(commentsList: MovieComment[]): Pro
   }
   return deletedCount;
 }
-
-/**
- * Ghim hoặc bỏ ghim một bình luận (Dành riêng cho Quản trị viên)
- */
-export async function togglePinComment(
-  commentId: string,
-  currentIsPinned: boolean,
-  adminEmail: string
-): Promise<boolean> {
-  const newPinnedState = !currentIsPinned;
-
-  // 1. Cập nhật ngay bộ nhớ cache & localStorage cho toàn bộ tabs
-  Object.keys(movieCommentsMemoryCache).forEach((slug) => {
-    movieCommentsMemoryCache[slug] = movieCommentsMemoryCache[slug].map((c) =>
-      c.id === commentId ? { ...c, isPinned: newPinnedState } : c
-    );
-    if (typeof window !== "undefined") {
-      try {
-        localStorage.setItem(`nanaflix_comments_${slug}`, JSON.stringify(movieCommentsMemoryCache[slug].slice(0, 100)));
-      } catch {}
-    }
-  });
-
-  // 2. Cập nhật Supabase ngay lập tức
-  if (isSupabaseConfigured()) {
-    togglePinCommentSupabase(commentId, newPinnedState).catch((err) => {
-      console.warn("Lỗi togglePinCommentSupabase:", err);
-    });
-  }
-
-  // 3. Phát event cập nhật toàn bộ giao diện realtime 0ms
-  if (typeof window !== "undefined") {
-    window.dispatchEvent(new CustomEvent("comments-updated", { detail: { commentId, isPinned: newPinnedState } }));
-  }
-
-  // 4. Đồng bộ ngầm Firestore / REST API
-  if (db) {
-    try {
-      const commentRef = doc(db, COLLECTION_NAME, commentId);
-      updateDoc(commentRef, {
-        isPinned: newPinnedState,
-        pinnedAt: newPinnedState ? Date.now() : deleteField(),
-        pinnedBy: newPinnedState ? adminEmail : deleteField(),
-      }).catch(() => {});
-    } catch {}
-  }
-
-  fetch("/api/comments", {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      commentId,
-      isPinned: newPinnedState,
-      adminEmail,
-    }),
-  }).catch(() => {});
-
-  return newPinnedState;
-}
-

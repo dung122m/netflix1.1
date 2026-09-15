@@ -1,39 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
+import { supabase } from "@/lib/supabase";
 import { sanitizeSafeText } from "@/lib/security";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 export const fetchCache = "force-no-store";
 
-const PROJECT_ID = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "nanaflix-9e8f3";
-const API_KEY = process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "";
-const FIRESTORE_REST_BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
-
-interface FirestoreField {
-  stringValue?: string;
-  integerValue?: string | number;
-  booleanValue?: boolean;
-}
-
-function parseFirestoreDoc(doc: { name: string; fields?: Record<string, FirestoreField> }): Record<string, unknown> {
-  const id = doc.name.split("/").pop() || "";
-  const data: Record<string, unknown> = { id };
-  const fields = doc.fields || {};
-
-  for (const [k, v] of Object.entries(fields)) {
-    if (v.stringValue !== undefined) data[k] = v.stringValue;
-    else if (v.integerValue !== undefined) data[k] = Number(v.integerValue);
-    else if (v.booleanValue !== undefined) data[k] = v.booleanValue;
-    else data[k] = null;
-  }
-
-  return data;
-}
-
 /**
  * GET /api/notifications
  * - Không có userId: Trả về danh sách thông báo hệ thống / phim mới cập nhật / sự kiện hot
- * - Có userId: Lấy danh sách thông báo cá nhân (kết hợp subcollection & truy quét từ movie_comments)
+ * - Có userId: Lấy danh sách thông báo cá nhân từ Supabase
  */
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -108,60 +84,38 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // 2. Trường hợp có userId: Lấy thông báo cá nhân
+  // 2. Trường hợp có userId: Lấy thông báo cá nhân từ Supabase
   try {
-    const authHeader = req.headers.get("authorization");
-    const headers: Record<string, string> = {};
-    if (authHeader) headers["Authorization"] = authHeader;
+    if (!supabase) {
+      return NextResponse.json({ success: true, items: [] });
+    }
 
-    let lastReadNotificationsAt = 0;
+    const { data, error } = await supabase
+      .from("notifications")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(30);
 
-    // 2.0 Lấy mốc lastReadNotificationsAt từ user profile
-    try {
-      const userDocUrl = `${FIRESTORE_REST_BASE}/users/${userId}${API_KEY ? `&key=${API_KEY}` : ""}`;
-      const userRes = await fetch(userDocUrl, { headers, cache: "no-store" });
-      if (userRes.ok) {
-        const userDoc = await userRes.json();
-        const userData = parseFirestoreDoc(userDoc);
-        lastReadNotificationsAt = Number(userData.lastReadNotificationsAt) || 0;
-      }
-    } catch {}
+    if (error || !data) {
+      return NextResponse.json({ success: true, items: [] });
+    }
 
-    const notifMap = new Map<string, Record<string, unknown>>();
+    const items = data.map((d) => ({
+      id: d.id,
+      type: d.type,
+      title: d.title,
+      message: d.message || "",
+      link: d.link,
+      movieSlug: d.movie_slug,
+      commentId: d.comment_id,
+      replierName: d.replier_name,
+      replierAvatar: d.replier_avatar,
+      isRead: Boolean(d.is_read),
+      createdAt: Number(d.created_at) || Date.now(),
+    }));
 
-    // 2.1 Lấy thông báo từ Firestore subcollection users/{userId}/notifications (giới hạn 20 thông báo gần nhất)
-    try {
-      const url = `${FIRESTORE_REST_BASE}/users/${userId}/notifications?pageSize=20${API_KEY ? `&key=${API_KEY}` : ""}`;
-      const res = await fetch(url, { headers, cache: "no-store" });
-      if (res.ok) {
-        const json = await res.json();
-        const rawDocs = json.documents || [];
-        const items = rawDocs.map(parseFirestoreDoc);
-        items.forEach((item: Record<string, unknown>) => {
-          if (item.id) {
-            const createdAt = Number(item.createdAt) || 0;
-            const isRead = Boolean(
-              item.isRead ||
-              (lastReadNotificationsAt > 0 && createdAt <= lastReadNotificationsAt),
-            );
-            notifMap.set(String(item.id), { ...item, isRead });
-          }
-        });
-      }
-    } catch {}
-
-    const items = Array.from(notifMap.values());
-    items.sort((a: Record<string, unknown>, b: Record<string, unknown>) => (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0));
-    return NextResponse.json(
-      { success: true, items },
-      {
-        headers: {
-          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
-          "CDN-Cache-Control": "no-store",
-          "Vercel-CDN-Cache-Control": "no-store",
-        },
-      }
-    );
+    return NextResponse.json({ success: true, items });
   } catch (error) {
     console.error("Lỗi API get notifications:", error);
     return NextResponse.json({ success: true, items: [] });
@@ -170,49 +124,34 @@ export async function GET(req: NextRequest) {
 
 /**
  * PATCH /api/notifications
- * Đánh dấu thông báo là đã đọc (hỗ trợ cả từng item hoặc toàn bộ thông báo)
+ * Đánh dấu thông báo là đã đọc
  */
 export async function PATCH(req: NextRequest) {
   try {
     const body = await req.json();
-    const { userId, notifId, all, timestamp } = body;
+    const { userId, notifId, all } = body;
 
     if (!userId) {
       return NextResponse.json({ error: "Thiếu userId" }, { status: 400 });
     }
 
-    const authHeader = req.headers.get("authorization");
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
-    if (authHeader) headers["Authorization"] = authHeader;
-
-    const readTimestamp = Number(timestamp) || Date.now();
+    if (!supabase) {
+      return NextResponse.json({ error: "Supabase chưa được cấu hình" }, { status: 500 });
+    }
 
     if (all) {
-      // 1. Cập nhật mốc lastReadNotificationsAt trên User doc
-      const userUrl = `${FIRESTORE_REST_BASE}/users/${userId}?updateMask.fieldPaths=lastReadNotificationsAt${API_KEY ? `&key=${API_KEY}` : ""}`;
-      await fetch(userUrl, {
-        method: "PATCH",
-        headers,
-        body: JSON.stringify({
-          fields: {
-            lastReadNotificationsAt: { integerValue: readTimestamp },
-          },
-        }),
-      }).catch(() => {});
+      await supabase
+        .from("notifications")
+        .update({ is_read: true })
+        .eq("user_id", userId);
 
-      return NextResponse.json({ success: true, allRead: true, timestamp: readTimestamp });
+      return NextResponse.json({ success: true, allRead: true });
     } else if (notifId) {
-      // 2. Cập nhật doc đơn lẻ
-      const notifUrl = `${FIRESTORE_REST_BASE}/users/${userId}/notifications/${notifId}?updateMask.fieldPaths=isRead${API_KEY ? `&key=${API_KEY}` : ""}`;
-      await fetch(notifUrl, {
-        method: "PATCH",
-        headers,
-        body: JSON.stringify({
-          fields: {
-            isRead: { booleanValue: true },
-          },
-        }),
-      }).catch(() => {});
+      await supabase
+        .from("notifications")
+        .update({ is_read: true })
+        .eq("user_id", userId)
+        .eq("id", notifId);
 
       return NextResponse.json({ success: true, notifId, isRead: true });
     }
@@ -226,7 +165,7 @@ export async function PATCH(req: NextRequest) {
 
 /**
  * POST /api/notifications
- * Tạo thông báo mới cho người dùng qua Server API
+ * Tạo thông báo mới cho người dùng
  */
 export async function POST(req: NextRequest) {
   try {
@@ -237,36 +176,30 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Thiếu thông tin thông báo!" }, { status: 400 });
     }
 
-    const docFields: Record<string, FirestoreField> = {
-      id: { stringValue: notifId || `notif_${Date.now()}` },
-      type: { stringValue: type || "comment_reply" },
-      title: { stringValue: sanitizeSafeText(title, 150) },
-      message: { stringValue: sanitizeSafeText(message || "", 500) },
-      isRead: { booleanValue: false },
-      createdAt: { integerValue: Date.now() },
-    };
-
-    if (link) docFields.link = { stringValue: link };
-    if (movieSlug) docFields.movieSlug = { stringValue: movieSlug };
-    if (commentId) docFields.commentId = { stringValue: commentId };
-    if (replierName) docFields.replierName = { stringValue: sanitizeSafeText(replierName, 100) };
-    if (replierAvatar) docFields.replierAvatar = { stringValue: replierAvatar };
+    if (!supabase) {
+      return NextResponse.json({ error: "Supabase chưa được cấu hình" }, { status: 500 });
+    }
 
     const docId = notifId || `notif_${Date.now()}`;
-    const authHeader = req.headers.get("authorization");
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
-    if (authHeader) headers["Authorization"] = authHeader;
+    const payload = {
+      id: docId,
+      user_id: userId,
+      type: type || "comment_reply",
+      title: sanitizeSafeText(title, 150),
+      message: sanitizeSafeText(message || "", 500),
+      link: link || null,
+      movie_slug: movieSlug || null,
+      comment_id: commentId || null,
+      replier_name: replierName ? sanitizeSafeText(replierName, 100) : null,
+      replier_avatar: replierAvatar || null,
+      is_read: false,
+      created_at: Date.now(),
+    };
 
-    const url = `${FIRESTORE_REST_BASE}/users/${userId}/notifications?documentId=${docId}${API_KEY ? `&key=${API_KEY}` : ""}`;
-    const res = await fetch(url, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({ fields: docFields }),
-    });
+    const { error } = await supabase.from("notifications").upsert(payload, { onConflict: "id" });
 
-    if (!res.ok) {
-      const errText = await res.text();
-      return NextResponse.json({ error: "Không thể lưu thông báo", details: errText }, { status: res.status });
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     return NextResponse.json({ success: true, id: docId });

@@ -173,7 +173,7 @@ function UserProfileModalInner() {
     };
   }, [isOpen]);
 
-  // Lắng nghe hồ sơ Firestore của người dùng theo thời gian thực
+  // Lắng nghe hồ sơ người dùng theo thời gian thực (Supabase + LocalStorage)
   useEffect(() => {
     if (!user?.uid) {
       setProfile(null);
@@ -218,7 +218,7 @@ function UserProfileModalInner() {
   const levelInfo = getWatchLevelInfo(watchMins);
   const watchHours = (watchMins / 60).toFixed(1);
 
-  // Hàm nén ảnh từ máy xuống 200x200px JPEG nhẹ (~15KB) để lưu mượt mà vào Firestore
+  // Hàm nén ảnh từ máy xuống 200x200px JPEG nhẹ (~15KB) để lưu mượt mà vào cơ sở dữ liệu
   const compressImage = (file: File, maxSize: number = 200, quality: number = 0.85): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();

@@ -1,124 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkContentModeration } from "@/lib/contentModeration";
 import { sanitizeSafeText } from "@/lib/security";
-
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
-export const fetchCache = "force-no-store";
-
-// Fix #1: Hỗ trợ cả server-side env var (không có NEXT_PUBLIC_) để đảm bảo
-// hoạt động ổn định trong Vercel serverless functions
-const PROJECT_ID =
-  process.env.FIREBASE_PROJECT_ID ||
-  process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ||
-  "";
-const API_KEY =
-  process.env.FIREBASE_API_KEY ||
-  process.env.NEXT_PUBLIC_FIREBASE_API_KEY ||
-  "";
-
-const FIRESTORE_REST_BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
-const FIRESTORE_RUN_QUERY = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents:runQuery`;
-
-interface FirestoreField {
-  stringValue?: string;
-  integerValue?: string | number;
-  booleanValue?: boolean;
-  nullValue?: string;
-  arrayValue?: { values?: Array<{ stringValue?: string }> };
-  mapValue?: { fields?: Record<string, FirestoreField> };
-}
-
-function parseFirestoreDoc(doc: { name: string; fields?: Record<string, FirestoreField>; createTime?: string }): Record<string, unknown> {
-  const id = doc.name.split("/").pop() || "";
-  const data: Record<string, unknown> = { id };
-  const fields = doc.fields || {};
-
-  for (const [k, v] of Object.entries(fields)) {
-    if (v.stringValue !== undefined) data[k] = v.stringValue;
-    else if (v.integerValue !== undefined) data[k] = Number(v.integerValue);
-    else if (v.booleanValue !== undefined) data[k] = v.booleanValue;
-    else if (v.nullValue !== undefined) data[k] = null;
-    else if (v.arrayValue !== undefined) {
-      data[k] = v.arrayValue.values
-        ? v.arrayValue.values.map((item) => item.stringValue || "")
-        : [];
-    } else {
-      data[k] = null;
-    }
-  }
-
-  return data;
-}
-
-/**
- * Fix #4: Xây dựng structuredQuery để query server-side trên Firestore REST
- * Thay vì lấy 300 docs rồi filter ở server → chỉ lấy đúng docs cần
- */
-function buildStructuredQuery(params: {
-  movieSlug?: string | null;
-  parentId?: string | null;
-  userId?: string | null;
-  all?: string | null;
-  pageSize?: number;
-}) {
-  const { movieSlug, parentId, userId, all } = params;
-  const pageSize = all ? 500 : (params.pageSize || 200);
-
-  // Xác định điều kiện filter chính
-  const filters: object[] = [];
-
-  if (movieSlug) {
-    filters.push({
-      fieldFilter: {
-        field: { fieldPath: "movieSlug" },
-        op: "EQUAL",
-        value: { stringValue: movieSlug },
-      },
-    });
-  }
-
-  if (parentId) {
-    filters.push({
-      fieldFilter: {
-        field: { fieldPath: "parentId" },
-        op: "EQUAL",
-        value: { stringValue: parentId },
-      },
-    });
-  }
-
-  if (userId) {
-    filters.push({
-      fieldFilter: {
-        field: { fieldPath: "userId" },
-        op: "EQUAL",
-        value: { stringValue: userId },
-      },
-    });
-  }
-
-  const whereClause =
-    filters.length === 0
-      ? undefined
-      : filters.length === 1
-        ? filters[0]
-        : { compositeFilter: { op: "AND", filters } };
-
-  return {
-    structuredQuery: {
-      from: [{ collectionId: "movie_comments" }],
-      ...(whereClause ? { where: whereClause } : {}),
-      limit: pageSize,
-    },
-  };
-}
-
-/**
- * GET /api/comments?movieSlug=xxx
- * Fix: Dùng runQuery query đúng theo movieSlug
- * Sắp xếp in-memory và lọc chuẩn xác
- */
 import {
   getMovieCommentsSupabase,
   getAllCommentsSupabase,
@@ -130,9 +12,16 @@ import {
   deleteCommentSupabase,
 } from "@/services/supabaseService";
 import { isSupabaseConfigured } from "@/lib/supabase";
-
 import { MovieComment } from "@/types/comment";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
+
+/**
+ * GET /api/comments?movieSlug=xxx
+ * Lấy bình luận trực tiếp từ Supabase
+ */
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const movieSlug = searchParams.get("movieSlug");
@@ -141,106 +30,29 @@ export async function GET(req: NextRequest) {
   const all = searchParams.get("all");
 
   try {
-    // 1. Ưu tiên lấy từ Supabase
-    if (isSupabaseConfigured()) {
-      try {
-        let supaItems: MovieComment[] = [];
-        if (all === "true") {
-          supaItems = await getAllCommentsSupabase();
-        } else if (movieSlug) {
-          supaItems = await getMovieCommentsSupabase(movieSlug);
-        } else if (parentId) {
-          supaItems = await getCommentRepliesSupabase(parentId);
-        } else if (userId) {
-          supaItems = await getUserCommentsSupabase(userId);
-        } else {
-          supaItems = await getAllCommentsSupabase();
-        }
-
-        if (Array.isArray(supaItems) && supaItems.length > 0) {
-          let items = supaItems;
-          if (movieSlug) items = items.filter((c) => c.movieSlug === movieSlug);
-          if (parentId) items = items.filter((c) => c.parentId === parentId);
-          if (userId) items = items.filter((c) => c.userId === userId);
-          if (!all) items = items.filter((c) => !c.isFlagged);
-
-          items.sort((a, b) => {
-            const isPinnedA = Boolean(a.isPinned);
-            const isPinnedB = Boolean(b.isPinned);
-            if (isPinnedA && !isPinnedB) return -1;
-            if (!isPinnedA && isPinnedB) return 1;
-            return (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0);
-          });
-
-          return NextResponse.json(
-            { success: true, items },
-            {
-              headers: {
-                "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
-                "CDN-Cache-Control": "no-store",
-                "Vercel-CDN-Cache-Control": "no-store",
-              },
-            }
-          );
-        }
-      } catch (supaErr) {
-        console.warn("Lỗi đọc comments Supabase trong API route, chuyển sang Firestore:", supaErr);
-      }
+    if (!isSupabaseConfigured()) {
+      return NextResponse.json({ success: true, items: [] });
     }
 
-    // 2. Fallback: Firebase REST API
-    const keyParam = API_KEY ? `?key=${API_KEY}` : "";
-    const queryUrl = `${FIRESTORE_RUN_QUERY}${keyParam}`;
-
-    const body = buildStructuredQuery({ movieSlug, parentId, userId, all });
-
-    let rawDocs: Array<{ name: string; fields?: Record<string, FirestoreField>; createTime?: string }> = [];
-
-    const res = await fetch(queryUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-      cache: "no-store",
-    });
-
-    if (res.ok) {
-      const json = await res.json();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      rawDocs = (json as any[])
-        .filter((r) => r.document)
-        .map((r) => r.document);
+    let supaItems: MovieComment[] = [];
+    if (all === "true") {
+      supaItems = await getAllCommentsSupabase();
+    } else if (movieSlug) {
+      supaItems = await getMovieCommentsSupabase(movieSlug);
+    } else if (parentId) {
+      supaItems = await getCommentRepliesSupabase(parentId);
+    } else if (userId) {
+      supaItems = await getUserCommentsSupabase(userId);
     } else {
-      // Fallback: nếu runQuery bị từ chối, thử fetch trực tiếp qua collection documents
-      try {
-        const fallbackPageSize = all ? 300 : 150;
-        const fallbackUrl = `${FIRESTORE_REST_BASE}/movie_comments?pageSize=${fallbackPageSize}${API_KEY ? `&key=${API_KEY}` : ""}`;
-        const fallbackRes = await fetch(fallbackUrl, { cache: "no-store" });
-        if (fallbackRes.ok) {
-          const fbJson = await fallbackRes.json();
-          rawDocs = fbJson.documents || [];
-        }
-      } catch {}
+      supaItems = await getAllCommentsSupabase();
     }
 
-    let items: Record<string, unknown>[] = rawDocs.map(parseFirestoreDoc);
+    let items = supaItems || [];
+    if (movieSlug) items = items.filter((c) => c.movieSlug === movieSlug);
+    if (parentId) items = items.filter((c) => c.parentId === parentId);
+    if (userId) items = items.filter((c) => c.userId === userId);
+    if (!all) items = items.filter((c) => !c.isFlagged);
 
-    // Lọc nghiêm ngặt theo các tiêu chí đã gửi lên để đảm bảo 100% không bao giờ bị rò rỉ bình luận từ phim khác
-    if (movieSlug) {
-      items = items.filter((c) => c.movieSlug === movieSlug);
-    }
-    if (parentId) {
-      items = items.filter((c) => c.parentId === parentId);
-    }
-    if (userId) {
-      items = items.filter((c) => c.userId === userId);
-    }
-
-    // Ẩn comment bị flagged (chỉ ẩn cho user thường, Admin all=true cần thấy hết cả bình luận vi phạm)
-    if (!all) {
-      items = items.filter((c) => !c.isFlagged);
-    }
-
-    // Sắp xếp: ghim lên đầu → mới nhất
     items.sort((a, b) => {
       const isPinnedA = Boolean(a.isPinned);
       const isPinnedB = Boolean(b.isPinned);
@@ -265,11 +77,9 @@ export async function GET(req: NextRequest) {
   }
 }
 
-
-
 /**
  * POST /api/comments
- * Gửi bình luận an toàn qua Server Next.js
+ * Gửi bình luận an toàn vào Supabase
  */
 export async function POST(req: NextRequest) {
   try {
@@ -303,7 +113,6 @@ export async function POST(req: NextRequest) {
 
     let commentId = "";
 
-    // 1. Lưu vào Supabase
     if (isSupabaseConfigured()) {
       try {
         commentId = await postCommentSupabase({
@@ -328,40 +137,6 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 2. Đồng bộ ngầm lên Firestore
-    const docFields: Record<string, FirestoreField> = {
-      movieSlug: { stringValue: movieSlug },
-      userId: { stringValue: userId },
-      userName: { stringValue: sanitizeSafeText(userName || "Thành viên Nanaflix", 100) },
-      content: { stringValue: sanitizeSafeText(content, 2500) },
-      rating: { integerValue: Number(rating) || 0 },
-      likes: { integerValue: 0 },
-      isSpoiler: { booleanValue: Boolean(isSpoiler) },
-      createdAt: { integerValue: Date.now() },
-      likedBy: { arrayValue: { values: [] } },
-    };
-
-    if (movieTitle) docFields.movieTitle = { stringValue: sanitizeSafeText(movieTitle, 200) };
-    if (userAvatar) docFields.userAvatar = { stringValue: userAvatar };
-    if (userEmail) docFields.userEmail = { stringValue: userEmail };
-    if (episodeSlug) docFields.episodeSlug = { stringValue: episodeSlug };
-    if (episodeName) docFields.episodeName = { stringValue: episodeName };
-    if (parentId) docFields.parentId = { stringValue: parentId };
-    if (parentOwnerId) docFields.parentOwnerId = { stringValue: parentOwnerId };
-    if (replyToUserId) docFields.replyToUserId = { stringValue: replyToUserId };
-    if (replyToUserName) docFields.replyToUserName = { stringValue: sanitizeSafeText(replyToUserName, 100) };
-
-    const authHeader = req.headers.get("authorization");
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
-    if (authHeader) headers["Authorization"] = authHeader;
-
-    const url = `${FIRESTORE_REST_BASE}/movie_comments${API_KEY ? `?key=${API_KEY}` : ""}`;
-    fetch(url, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({ fields: docFields }),
-    }).catch(() => {});
-
     if (!commentId) {
       commentId = `cmt_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
     }
@@ -375,41 +150,18 @@ export async function POST(req: NextRequest) {
 
 /**
  * PATCH /api/comments
- * Ghim hoặc bỏ ghim bình luận (dành riêng cho Admin)
+ * Ghim hoặc bỏ ghim bình luận trên Supabase
  */
 export async function PATCH(req: NextRequest) {
   try {
-    const { commentId, isPinned, adminEmail } = await req.json();
-    if (!commentId || !adminEmail) {
-      return NextResponse.json({ error: "Thiếu dữ liệu bắt buộc!" }, { status: 400 });
+    const { commentId, isPinned } = await req.json();
+    if (!commentId) {
+      return NextResponse.json({ error: "Thiếu commentId!" }, { status: 400 });
     }
 
-    // 1. Cập nhật Supabase
     if (isSupabaseConfigured()) {
-      try {
-        await togglePinCommentSupabase(commentId, Boolean(isPinned));
-      } catch (e) {
-        console.warn("Lỗi update Supabase pin:", e);
-      }
+      await togglePinCommentSupabase(commentId, Boolean(isPinned));
     }
-
-    // 2. Đồng bộ ngầm lên Firestore
-    const url = `${FIRESTORE_REST_BASE}/movie_comments/${commentId}?updateMask.fieldPaths=isPinned&updateMask.fieldPaths=pinnedAt&updateMask.fieldPaths=pinnedBy${API_KEY ? `&key=${API_KEY}` : ""}`;
-    const fields: Record<string, FirestoreField> = {
-      isPinned: { booleanValue: Boolean(isPinned) },
-      pinnedAt: { integerValue: Date.now() },
-      pinnedBy: { stringValue: adminEmail },
-    };
-
-    const authHeader = req.headers.get("authorization");
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
-    if (authHeader) headers["Authorization"] = authHeader;
-
-    fetch(url, {
-      method: "PATCH",
-      headers,
-      body: JSON.stringify({ fields }),
-    }).catch(() => {});
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -420,7 +172,7 @@ export async function PATCH(req: NextRequest) {
 
 /**
  * PUT /api/comments
- * Cập nhật nội dung, điểm đánh giá hoặc cảnh báo spoil của bình luận
+ * Cập nhật bình luận trên Supabase
  */
 export async function PUT(req: NextRequest) {
   try {
@@ -429,59 +181,15 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: "Thiếu commentId!" }, { status: 400 });
     }
 
-    // 1. Cập nhật Supabase
     if (isSupabaseConfigured()) {
-      try {
-        await updateCommentSupabase(commentId, {
-          rating: rating !== undefined ? Number(rating) : undefined,
-          content: content !== undefined ? sanitizeSafeText(content, 2500) : undefined,
-          is_spoiler: isSpoiler !== undefined ? Boolean(isSpoiler) : undefined,
-          episode_slug: episodeSlug !== undefined ? episodeSlug : undefined,
-          episode_name: episodeName !== undefined ? episodeName : undefined,
-        });
-      } catch (e) {
-        console.warn("Lỗi update Supabase comment:", e);
-      }
+      await updateCommentSupabase(commentId, {
+        rating: rating !== undefined ? Number(rating) : undefined,
+        content: content !== undefined ? sanitizeSafeText(content, 2500) : undefined,
+        is_spoiler: isSpoiler !== undefined ? Boolean(isSpoiler) : undefined,
+        episode_slug: episodeSlug !== undefined ? episodeSlug : undefined,
+        episode_name: episodeName !== undefined ? episodeName : undefined,
+      });
     }
-
-    // 2. Đồng bộ ngầm lên Firestore
-    const fieldPaths: string[] = ["updatedAt"];
-    const fields: Record<string, FirestoreField> = {
-      updatedAt: { integerValue: Date.now() },
-    };
-
-    if (content !== undefined) {
-      fieldPaths.push("content");
-      fields.content = { stringValue: sanitizeSafeText(content, 2500) };
-    }
-    if (rating !== undefined) {
-      fieldPaths.push("rating");
-      fields.rating = { integerValue: Number(rating) };
-    }
-    if (isSpoiler !== undefined) {
-      fieldPaths.push("isSpoiler");
-      fields.isSpoiler = { booleanValue: Boolean(isSpoiler) };
-    }
-    if (episodeSlug !== undefined) {
-      fieldPaths.push("episodeSlug");
-      fields.episodeSlug = { stringValue: episodeSlug };
-    }
-    if (episodeName !== undefined) {
-      fieldPaths.push("episodeName");
-      fields.episodeName = { stringValue: episodeName };
-    }
-
-    const maskParams = fieldPaths.map((p) => `updateMask.fieldPaths=${p}`).join("&");
-    const authHeader = req.headers.get("authorization");
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
-    if (authHeader) headers["Authorization"] = authHeader;
-
-    const url = `${FIRESTORE_REST_BASE}/movie_comments/${commentId}?${maskParams}${API_KEY ? `&key=${API_KEY}` : ""}`;
-    fetch(url, {
-      method: "PATCH",
-      headers,
-      body: JSON.stringify({ fields }),
-    }).catch(() => {});
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -492,7 +200,7 @@ export async function PUT(req: NextRequest) {
 
 /**
  * DELETE /api/comments?commentId=xxx
- * Xóa bình luận khỏi Firestore và Supabase qua Server API
+ * Xóa bình luận khỏi Supabase
  */
 export async function DELETE(req: NextRequest) {
   try {
@@ -502,25 +210,9 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: "Thiếu commentId!" }, { status: 400 });
     }
 
-    // 1. Xóa trong Supabase
     if (isSupabaseConfigured()) {
-      try {
-        await deleteCommentSupabase(commentId);
-      } catch (e) {
-        console.warn("Lỗi delete comment Supabase:", e);
-      }
+      await deleteCommentSupabase(commentId);
     }
-
-    // 2. Đồng bộ ngầm xóa trong Firestore
-    const authHeader = req.headers.get("authorization");
-    const headers: Record<string, string> = {};
-    if (authHeader) headers["Authorization"] = authHeader;
-
-    const url = `${FIRESTORE_REST_BASE}/movie_comments/${commentId}${API_KEY ? `&key=${API_KEY}` : ""}`;
-    fetch(url, {
-      method: "DELETE",
-      headers,
-    }).catch(() => {});
 
     return NextResponse.json({ success: true });
   } catch (error) {

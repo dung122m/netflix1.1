@@ -1,12 +1,5 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, Auth } from "firebase/auth";
-import {
-  initializeFirestore,
-  getFirestore,
-  Firestore,
-  persistentLocalCache,
-  persistentMultipleTabManager,
-} from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -27,7 +20,9 @@ export const isFirebaseConfigured = (): boolean => {
 
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
-let db: Firestore | null = null;
+// Firestore has been completely removed in favor of Supabase PostgreSQL
+const db = null;
+
 const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({
   prompt: "select_account",
@@ -37,23 +32,8 @@ if (typeof window !== "undefined" && isFirebaseConfigured()) {
   try {
     app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
     auth = getAuth(app);
-
-    try {
-      // Bật IndexedDB persistent cache + experimentalAutoDetectLongPolling
-      // để kết nối WebSocket/Long-polling thời gian thực siêu tốc < 100ms trên cả Vercel Production và localhost
-      db = initializeFirestore(app, {
-        localCache: persistentLocalCache({
-          tabManager: persistentMultipleTabManager(),
-        }),
-        experimentalAutoDetectLongPolling: true,
-        ignoreUndefinedProperties: true,
-      });
-    } catch {
-      // Nếu đã có instance (hot reload dev) thì lấy lại
-      db = getFirestore(app);
-    }
   } catch (error) {
-    console.warn("Lỗi khởi tạo Firebase:", error);
+    console.warn("Lỗi khởi tạo Firebase Auth:", error);
   }
 }
 

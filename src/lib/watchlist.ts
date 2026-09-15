@@ -45,7 +45,7 @@ export function addToWatchlist(item: Omit<WatchlistItem, "addedAt">): void {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
     window.dispatchEvent(new Event("watchlist-updated"));
 
-    // Tự động lưu lên Firebase Cloud Firestore nếu đang đăng nhập
+    // Tự động lưu lên Supabase Cloud nếu đang đăng nhập
     if (auth?.currentUser) {
       saveWatchlistItemToCloud(auth.currentUser.uid, itemWithAddedAt);
     }
@@ -62,7 +62,7 @@ export function removeFromWatchlist(slug: string): void {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
     window.dispatchEvent(new Event("watchlist-updated"));
 
-    // Tự động xóa khỏi Firebase Cloud Firestore nếu đang đăng nhập
+    // Tự động xóa khỏi Supabase Cloud nếu đang đăng nhập
     if (auth?.currentUser) {
       removeWatchlistItemFromCloud(auth.currentUser.uid, slug);
     }

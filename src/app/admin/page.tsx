@@ -445,7 +445,7 @@ export default function AdminDashboardPage() {
 
     try {
       await deleteMovieComment(comment.id);
-      toast.success("Đã xóa bình luận thành công khỏi Firestore!");
+      toast.success("Đã xóa bình luận thành công khỏi hệ thống!");
     } catch (err) {
       console.error("Lỗi xóa bình luận:", err);
       toast.error("Không thể xóa bình luận. Vui lòng kiểm tra lại kết nối!");
@@ -632,7 +632,7 @@ export default function AdminDashboardPage() {
               <span>•</span>
               <span className="inline-flex items-center gap-1.5 text-emerald-400 font-medium">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                Firestore Realtime Connected
+                Supabase Realtime Connected
               </span>
             </p>
           </div>
@@ -1597,15 +1597,15 @@ export default function AdminDashboardPage() {
                     <span className="font-mono font-bold text-white">{user.email}</span>
                   </div>
                   <div className="flex items-center justify-between p-3 rounded-xl bg-black/40 border border-white/5">
-                    <span className="text-gray-400">Trạng thái Firestore:</span>
+                    <span className="text-gray-400">Cơ sở dữ liệu Supabase:</span>
                     <span className="text-emerald-400 font-bold flex items-center gap-1.5">
                       <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                       Hoạt động bình thường
                     </span>
                   </div>
                   <div className="flex items-center justify-between p-3 rounded-xl bg-black/40 border border-white/5">
-                    <span className="text-gray-400">Quy tắc bảo mật (Security Rules):</span>
-                    <span className="text-gray-200 font-mono">Version 2 (Đã cấp quyền Admin)</span>
+                    <span className="text-gray-400">Bảo mật RLS (Row Level Security):</span>
+                    <span className="text-gray-200 font-mono">Đã kích hoạt & bảo vệ</span>
                   </div>
                   <div className="flex items-center justify-between p-3 rounded-xl bg-black/40 border border-white/5">
                     <span className="text-gray-400">Tổng thành viên ghi nhận:</span>
@@ -1951,7 +1951,7 @@ export default function AdminDashboardPage() {
               {/* Body */}
               <div className="flex-1 overflow-y-auto pr-1 space-y-3">
                 <p className="text-xs text-gray-400">
-                  Danh sách các bình luận chứa từ ngữ vô văn hóa, tục tĩu hoặc hành vi spam đã được hệ thống tự động xóa vĩnh viễn khỏi Firestore:
+                  Danh sách các bình luận chứa từ ngữ vô văn hóa, tục tĩu hoặc hành vi spam đã được hệ thống tự động xóa vĩnh viễn:
                 </p>
 
                 <div className="space-y-2.5">

@@ -452,6 +452,30 @@ export async function deleteCommentSupabase(commentId: string): Promise<void> {
   await supabase.from("movie_comments").delete().eq("id", commentId);
 }
 
+export async function flagCommentSupabase(commentId: string, reason: string): Promise<void> {
+  if (!supabase || !commentId) return;
+  try {
+    await supabase
+      .from("movie_comments")
+      .update({ is_flagged: true, flag_reason: reason, updated_at: Date.now() })
+      .eq("id", commentId);
+  } catch (err) {
+    console.warn("Lỗi flagComment Supabase:", err);
+  }
+}
+
+export async function unflagCommentSupabase(commentId: string): Promise<void> {
+  if (!supabase || !commentId) return;
+  try {
+    await supabase
+      .from("movie_comments")
+      .update({ is_flagged: false, flag_reason: null, updated_at: Date.now() })
+      .eq("id", commentId);
+  } catch (err) {
+    console.warn("Lỗi unflagComment Supabase:", err);
+  }
+}
+
 // ============================================================================
 // 3. LỊCH SỬ XEM & DANH SÁCH YÊU THÍCH (HISTORY & WATCHLIST)
 // ============================================================================

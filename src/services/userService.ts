@@ -1,27 +1,21 @@
-import {
-  collection,
-  doc,
-  setDoc,
-  getDoc,
-  getDocs,
-  query,
-  where,
-  limit,
-  writeBatch,
-  onSnapshot,
-  increment,
-  type Unsubscribe,
-} from "firebase/firestore";
 import { User, updateProfile as updateAuthProfile } from "firebase/auth";
-import { db } from "@/lib/firebase";
 import { UserProfile } from "@/types/user";
 import { WatchHistoryItem } from "@/lib/watchHistory";
 import { WatchlistItem } from "@/lib/watchlist";
 import { isUserAdmin } from "@/lib/adminConfig";
 import { sanitizeSafeText } from "@/lib/security";
+import {
+  upsertUserProfileSupabase,
+  getUserProfileSupabase,
+  getAllProfilesSupabase,
+  updateUserProfileSupabase,
+  setUserCommentRestrictionSupabase,
+  deleteAllUserCommentsSupabase,
+  getWatchHistorySupabase,
+  getWatchlistSupabase,
+} from "./supabaseService";
+import { isSupabaseConfigured } from "@/lib/supabase";
 
-const USERS_COLLECTION = "users";
-const COMMENTS_COLLECTION = "movie_comments";
 const PROFILE_CACHE_PREFIX = "nanaflix_user_profile_";
 
 /**
@@ -69,20 +63,8 @@ function calculateLocalHistoryWatchMinutes(): number {
   }
 }
 
-import {
-  upsertUserProfileSupabase,
-  getUserProfileSupabase,
-  getAllProfilesSupabase,
-  updateUserProfileSupabase,
-  setUserCommentRestrictionSupabase,
-  deleteAllUserCommentsSupabase,
-  getWatchHistorySupabase,
-  getWatchlistSupabase,
-} from "./supabaseService";
-import { isSupabaseConfigured } from "@/lib/supabase";
-
 /**
- * Ghi nhận hoặc cập nhật hồ sơ người dùng vào Supabase/Firestore khi đăng nhập
+ * Ghi nhận hoặc cập nhật hồ sơ người dùng vào Supabase khi đăng nhập
  */
 export async function recordUserProfile(user: User): Promise<void> {
   if (!user || !user.uid) return;
@@ -135,88 +117,44 @@ export async function recordUserProfile(user: User): Promise<void> {
 export function subscribeAllUsers(
   onUpdate: (users: UserProfile[]) => void,
   onError?: (err: Error) => void,
-  maxLimit: number = 300
-): Unsubscribe {
-  if (isSupabaseConfigured()) {
-    getAllProfilesSupabase()
-      .then((items) => {
-        if (items.length > 0) {
+  _maxLimit: number = 300
+): () => void {
+  void _maxLimit;
+  let isUnsubscribed = false;
+
+  const fetchUsers = async () => {
+    if (isUnsubscribed) return;
+    if (isSupabaseConfigured()) {
+      try {
+        const items = await getAllProfilesSupabase();
+        if (!isUnsubscribed) {
           onUpdate(items);
         }
-      })
-      .catch((e) => {
-        if (onError) onError(e);
-      });
-  }
-
-  if (!db) {
-    return () => {};
-  }
-
-  const usersRef = collection(db, USERS_COLLECTION);
-  const q = query(usersRef, limit(maxLimit));
-
-  let hasReceivedSnapshot = false;
-
-  // Lấy dữ liệu ngay lập tức tránh việc onSnapshot bị hoãn/treo do tiện ích mở rộng
-  getDocs(q)
-    .then((snapshot) => {
-      if (hasReceivedSnapshot) return;
-      const items: UserProfile[] = [];
-      snapshot.forEach((docSnap) => {
-        const data = docSnap.data();
-        if (data && (data.uid || data.email)) {
-          items.push({
-            uid: docSnap.id,
-            email: data.email || "",
-            displayName: data.displayName || "Thành viên Nanaflix",
-            photoURL: data.photoURL || "",
-            createdAt: data.createdAt || data.lastLoginAt || Date.now(),
-            lastLoginAt: data.lastLoginAt || Date.now(),
-            role: data.role || (isUserAdmin(data.email) ? "admin" : "member"),
-            isCommentRestricted: Boolean(data.isCommentRestricted),
-            violationsCount: Number(data.violationsCount || 0),
-            lastViolationAt: data.lastViolationAt,
-            lastViolationReason: data.lastViolationReason,
-          });
-        }
-      });
-      items.sort((a, b) => (b.lastLoginAt || 0) - (a.lastLoginAt || 0));
-      onUpdate(items);
-    })
-    .catch(() => {});
-
-  return onSnapshot(
-    q,
-    (snapshot) => {
-      hasReceivedSnapshot = true;
-      const items: UserProfile[] = [];
-      snapshot.forEach((docSnap) => {
-        const data = docSnap.data();
-        if (data && (data.uid || data.email)) {
-          items.push({
-            uid: docSnap.id,
-            email: data.email || "",
-            displayName: data.displayName || "Thành viên Nanaflix",
-            photoURL: data.photoURL || "",
-            createdAt: data.createdAt || data.lastLoginAt || Date.now(),
-            lastLoginAt: data.lastLoginAt || Date.now(),
-            role: data.role || (isUserAdmin(data.email) ? "admin" : "member"),
-            isCommentRestricted: Boolean(data.isCommentRestricted),
-            violationsCount: Number(data.violationsCount || 0),
-            lastViolationAt: data.lastViolationAt,
-            lastViolationReason: data.lastViolationReason,
-          });
-        }
-      });
-      items.sort((a, b) => (b.lastLoginAt || 0) - (a.lastLoginAt || 0));
-      onUpdate(items);
-    },
-    (error) => {
-      console.warn("Lỗi tải danh sách người dùng Firestore:", error);
-      if (onError) onError(error);
+      } catch (err) {
+        if (onError && err instanceof Error) onError(err);
+      }
     }
-  );
+  };
+
+  fetchUsers();
+
+  const handleUpdate = () => {
+    if (!isUnsubscribed) fetchUsers();
+  };
+
+  if (typeof window !== "undefined") {
+    window.addEventListener("user-profile-updated", handleUpdate);
+  }
+
+  const interval = setInterval(fetchUsers, 5000);
+
+  return () => {
+    isUnsubscribed = true;
+    clearInterval(interval);
+    if (typeof window !== "undefined") {
+      window.removeEventListener("user-profile-updated", handleUpdate);
+    }
+  };
 }
 
 /**
@@ -232,25 +170,10 @@ export async function setUserCommentRestriction(
   if (isSupabaseConfigured()) {
     await setUserCommentRestrictionSupabase(userId, isRestricted, reason);
   }
-
-  if (!db) return;
-  try {
-    const userRef = doc(db, USERS_COLLECTION, userId);
-    await setDoc(
-      userRef,
-      {
-        isCommentRestricted: isRestricted,
-        ...(reason ? { lastViolationReason: sanitizeSafeText(reason, 200) } : {}),
-      },
-      { merge: true }
-    );
-  } catch (err) {
-    console.error("Lỗi cập nhật quyền bình luận của user:", err);
-  }
 }
 
 /**
- * Lấy lịch sử xem phim của 1 người dùng cụ thể từ Supabase / Cloud Firestore
+ * Lấy lịch sử xem phim của 1 người dùng cụ thể từ Supabase
  */
 export async function getUserCloudWatchHistory(userId: string): Promise<WatchHistoryItem[]> {
   if (!userId) return [];
@@ -261,25 +184,11 @@ export async function getUserCloudWatchHistory(userId: string): Promise<WatchHis
       if (items && items.length > 0) return items;
     } catch {}
   }
-
-  if (!db) return [];
-  try {
-    const colRef = collection(db, USERS_COLLECTION, userId, "watch_history");
-    const snap = await getDocs(colRef);
-    const items: WatchHistoryItem[] = [];
-    snap.forEach((d) => {
-      items.push(d.data() as WatchHistoryItem);
-    });
-    items.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
-    return items;
-  } catch (err) {
-    console.warn("Lỗi đọc lịch sử xem của user:", err);
-    return [];
-  }
+  return [];
 }
 
 /**
- * Lấy danh sách phim yêu thích (Watchlist) của 1 người dùng từ Supabase / Cloud Firestore
+ * Lấy danh sách phim yêu thích (Watchlist) của 1 người dùng từ Supabase
  */
 export async function getUserCloudWatchlist(userId: string): Promise<WatchlistItem[]> {
   if (!userId) return [];
@@ -290,21 +199,7 @@ export async function getUserCloudWatchlist(userId: string): Promise<WatchlistIt
       if (items && items.length > 0) return items;
     } catch {}
   }
-
-  if (!db) return [];
-  try {
-    const colRef = collection(db, USERS_COLLECTION, userId, "watchlist");
-    const snap = await getDocs(colRef);
-    const items: WatchlistItem[] = [];
-    snap.forEach((d) => {
-      items.push(d.data() as WatchlistItem);
-    });
-    items.sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
-    return items;
-  } catch (err) {
-    console.warn("Lỗi đọc watchlist của user:", err);
-    return [];
-  }
+  return [];
 }
 
 /**
@@ -315,31 +210,16 @@ export async function deleteAllUserComments(userId: string): Promise<number> {
 
   if (isSupabaseConfigured()) {
     await deleteAllUserCommentsSupabase(userId);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("comments-updated", { detail: { userId } }));
+    }
+    return 1;
   }
-
-  if (!db) return 0;
-  try {
-    const commentsRef = collection(db, COMMENTS_COLLECTION);
-    const q = query(commentsRef, where("userId", "==", userId));
-    const snap = await getDocs(q);
-
-    if (snap.empty) return 0;
-
-    const batch = writeBatch(db);
-    snap.forEach((d) => {
-      batch.delete(d.ref);
-    });
-
-    await batch.commit();
-    return snap.size;
-  } catch (err) {
-    console.error("Lỗi xóa toàn bộ bình luận của user:", err);
-    throw err;
-  }
+  return 0;
 }
 
 /**
- * Lấy hồ sơ người dùng đầy đủ từ Supabase / Firestore (bao gồm bio, sở thích, avatar tùy chỉnh)
+ * Lấy hồ sơ người dùng đầy đủ từ Supabase (bao gồm bio, sở thích, avatar tùy chỉnh)
  */
 export async function getUserProfile(userId: string): Promise<UserProfile | null> {
   if (!userId) return null;
@@ -358,53 +238,24 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
     } catch {}
   }
 
-  if (db) {
-    try {
-      const docRef = doc(db, USERS_COLLECTION, userId);
-      const snap = await getDoc(docRef);
-      if (snap.exists()) {
-        const data = {
-          uid: snap.id,
-          ...(snap.data() as Omit<UserProfile, "uid">),
-        };
-        setCachedUserProfile(userId, data);
-        return data;
-      }
-    } catch (err) {
-      console.warn("Lỗi đọc hồ sơ user trực tiếp:", userId, err);
-    }
-  }
-
-  // Fallback đọc qua Server API
-  try {
-    const res = await fetch(`/api/user-profile?userId=${encodeURIComponent(userId)}`);
-    if (res.ok) {
-      const json = await res.json();
-      if (json.profile) {
-        setCachedUserProfile(userId, json.profile);
-        return json.profile as UserProfile;
-      }
-    }
-  } catch {}
-
   return cached;
 }
 
 /**
- * Lắng nghe hồ sơ người dùng theo thời gian thực (Real-time profile listener)
+ * Lắng nghe hồ sơ người dùng theo thời gian thực (Supabase + LocalStorage)
  */
 export function subscribeUserProfile(
   userId: string,
   onUpdate: (profile: UserProfile | null) => void,
-  onError?: (err: Error) => void
-): Unsubscribe {
+  _onError?: (err: Error) => void
+): () => void {
+  void _onError;
   if (!userId) {
     onUpdate(null);
     return () => {};
   }
 
   let isUnsubscribed = false;
-  let hasReceivedSnapshot = false;
 
   // 1. Phục vụ ngay từ Local cache (0ms delay)
   const cached = getCachedUserProfile(userId);
@@ -413,61 +264,35 @@ export function subscribeUserProfile(
   }
 
   // 2. Nạp từ Supabase Database
-  if (isSupabaseConfigured()) {
-    getUserProfileSupabase(userId)
-      .then((profile) => {
-        if (profile && !isUnsubscribed) {
-          hasReceivedSnapshot = true;
-          setCachedUserProfile(userId, profile);
-          onUpdate(profile);
-        }
-      })
-      .catch(() => {});
-  }
-
-  // 3. Nạp ngay dữ liệu từ Server API tức thì
-  fetch(`/api/user-profile?userId=${encodeURIComponent(userId)}`)
-    .then((res) => res.json())
-    .then((json) => {
-      if (json.profile && !hasReceivedSnapshot && !isUnsubscribed) {
-        setCachedUserProfile(userId, json.profile);
-        onUpdate(json.profile as UserProfile);
-      }
-    })
-    .catch(() => {});
-
-  if (!db) {
-    return () => {
-      isUnsubscribed = true;
-    };
-  }
-
-  const userRef = doc(db, USERS_COLLECTION, userId);
-  const unsubscribe = onSnapshot(
-    userRef,
-    (snap) => {
-      if (isUnsubscribed) return;
-      hasReceivedSnapshot = true;
-      if (snap.exists()) {
-        const fullData: UserProfile = {
-          uid: snap.id,
-          ...(snap.data() as Omit<UserProfile, "uid">),
-        };
-        setCachedUserProfile(userId, fullData);
-        onUpdate(fullData);
-      } else {
-        onUpdate(null);
-      }
-    },
-    (err) => {
-      console.warn("Lỗi lắng nghe hồ sơ user:", err);
-      if (onError) onError(err);
+  const fetchProfile = () => {
+    if (isUnsubscribed) return;
+    if (isSupabaseConfigured()) {
+      getUserProfileSupabase(userId)
+        .then((profile) => {
+          if (profile && !isUnsubscribed) {
+            setCachedUserProfile(userId, profile);
+            onUpdate(profile);
+          }
+        })
+        .catch(() => {});
     }
-  );
+  };
+
+  fetchProfile();
+
+  const handleUpdate = () => {
+    if (!isUnsubscribed) fetchProfile();
+  };
+
+  if (typeof window !== "undefined") {
+    window.addEventListener("user-profile-updated", handleUpdate);
+  }
 
   return () => {
     isUnsubscribed = true;
-    unsubscribe();
+    if (typeof window !== "undefined") {
+      window.removeEventListener("user-profile-updated", handleUpdate);
+    }
   };
 }
 
@@ -515,10 +340,8 @@ export async function updateUserProfile(
     payload.watchTimeMinutes = data.watchTimeMinutes;
   }
 
-  // Cập nhật ngay lập tức vào Local cache (Optimistic UI)
+  // Cập nhật ngay lập tức vào Local cache (Optimistic UI 0ms)
   setCachedUserProfile(userId, payload as Partial<UserProfile>);
-
-  let savedSuccessfully = false;
 
   // 1. Lưu trực tiếp vào Supabase Database
   if (isSupabaseConfigured()) {
@@ -532,48 +355,8 @@ export async function updateUserProfile(
         badges: payload.badges as string[] | undefined,
         watchTimeMinutes: payload.watchTimeMinutes as number | undefined,
       });
-      savedSuccessfully = true;
     } catch (e) {
       console.warn("Lỗi lưu user profile vào Supabase:", e);
-    }
-  }
-
-  if (db) {
-    try {
-      const userRef = doc(db, USERS_COLLECTION, userId);
-      await Promise.race([
-        setDoc(userRef, payload, { merge: true }),
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("setDoc timeout")), 3500)
-        ),
-      ]);
-      savedSuccessfully = true;
-    } catch (err) {
-      console.warn("Lỗi ghi Firestore userRef trực tiếp, chuyển sang Server API Fallback:", err);
-    }
-  }
-
-  if (!savedSuccessfully) {
-    let authHeader = "";
-    if (authUser) {
-      try {
-        const idToken = await authUser.getIdToken();
-        authHeader = `Bearer ${idToken}`;
-      } catch {}
-    }
-
-    const res = await fetch("/api/user-profile", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(authHeader ? { Authorization: authHeader } : {}),
-      },
-      body: JSON.stringify({ userId, ...payload }),
-    });
-
-    if (!res.ok) {
-      const resJson = await res.json().catch(() => ({}));
-      throw new Error(resJson.error || "Không thể lưu hồ sơ cá nhân lúc này!");
     }
   }
 
@@ -601,7 +384,7 @@ export async function updateUserProfile(
 }
 
 /**
- * Tích lũy thời gian cày phim (phút) cho người dùng trong Firestore khi đang xem phim
+ * Tích lũy thời gian cày phim (phút) cho người dùng trong Supabase khi đang xem phim
  */
 export async function incrementUserWatchTime(userId: string, minutes: number = 1): Promise<number> {
   if (!userId || minutes <= 0) return 0;
@@ -611,39 +394,11 @@ export async function incrementUserWatchTime(userId: string, minutes: number = 1
     const cached = getCachedUserProfile(userId);
     const newMins = (cached?.watchTimeMinutes || 0) + minutes;
     setCachedUserProfile(userId, { watchTimeMinutes: newMins });
+
+    if (isSupabaseConfigured()) {
+      updateUserProfileSupabase(userId, { watchTimeMinutes: newMins }).catch(() => {});
+    }
   } catch {}
-
-  let savedDirectly = false;
-
-  if (db) {
-    try {
-      const userRef = doc(db, USERS_COLLECTION, userId);
-      await setDoc(
-        userRef,
-        {
-          watchTimeMinutes: increment(minutes),
-          lastWatchedAt: Date.now(),
-        },
-        { merge: true }
-      );
-      savedDirectly = true;
-    } catch (err) {
-      console.warn("Lỗi cộng thời gian cày phim qua Firestore trực tiếp:", err);
-    }
-  }
-
-  if (!savedDirectly) {
-    // Fallback qua Server API
-    try {
-      await fetch("/api/user-profile", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, incrementMinutes: minutes }),
-      });
-    } catch (apiErr) {
-      console.warn("Lỗi fallback API incrementWatchTime:", apiErr);
-    }
-  }
 
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent("user-watch-time-updated", { detail: { minutes } }));
@@ -719,39 +474,17 @@ export function getWatchLevelInfo(totalMinutes: number = 0): WatchLevelInfo {
 }
 
 /**
- * Lấy danh sách Top Fan Cày Phim từ Firestore (Leaderboard)
+ * Lấy danh sách Top Fan Cày Phim từ Supabase (Leaderboard)
  */
 export async function getTopWatchLeaderboard(maxLimit: number = 10): Promise<UserProfile[]> {
-  if (!db) return [];
-  try {
-    const usersRef = collection(db, USERS_COLLECTION);
-    const snap = await getDocs(usersRef);
-    const items: UserProfile[] = [];
-    snap.forEach((docSnap) => {
-      const data = docSnap.data();
-      if (data && (data.uid || data.email)) {
-        items.push({
-          uid: docSnap.id,
-          email: data.email || "",
-          displayName: data.displayName || "Thành viên Nanaflix",
-          photoURL: data.customAvatar || data.photoURL || "",
-          customAvatar: data.customAvatar,
-          bio: data.bio,
-          favoriteGenres: data.favoriteGenres,
-          watchTimeMinutes: Number(data.watchTimeMinutes || 0),
-          badges: data.badges || [],
-          createdAt: data.createdAt || Date.now(),
-          lastLoginAt: data.lastLoginAt || Date.now(),
-          role: data.role || "member",
-        });
-      }
-    });
-    // Sắp xếp theo tổng số phút đã xem giảm dần
-    items.sort((a, b) => (b.watchTimeMinutes || 0) - (a.watchTimeMinutes || 0));
-    return items.slice(0, maxLimit);
-  } catch (err) {
-    console.warn("Lỗi đọc Bảng Xếp Hạng Leaderboard:", err);
-    return [];
+  if (isSupabaseConfigured()) {
+    try {
+      const all = await getAllProfilesSupabase();
+      const sorted = [...all].sort((a, b) => (b.watchTimeMinutes || 0) - (a.watchTimeMinutes || 0));
+      return sorted.slice(0, maxLimit);
+    } catch (err) {
+      console.warn("Lỗi đọc Bảng Xếp Hạng Leaderboard:", err);
+    }
   }
+  return [];
 }
-

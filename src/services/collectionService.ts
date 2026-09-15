@@ -1,17 +1,3 @@
-import {
-  collection,
-  doc,
-  setDoc,
-  getDoc,
-  getDocs,
-  deleteDoc,
-  onSnapshot,
-  query,
-  orderBy,
-  limit,
-  type Unsubscribe,
-} from "firebase/firestore";
-import { db } from "@/lib/firebase";
 import { MovieCollection, CollectionMovieItem } from "@/types/collection";
 import {
   getUserCollectionsSupabase,
@@ -57,7 +43,7 @@ export function saveLocalCollections(userId: string, items: MovieCollection[]): 
 }
 
 /**
- * Lấy danh sách bộ sưu tập của người dùng (Ưu tiên LocalStorage kết hợp Cloud Firestore)
+ * Lấy danh sách bộ sưu tập của người dùng (Supabase PostgreSQL + LocalStorage Cache)
  */
 export async function getUserCollections(userId: string): Promise<MovieCollection[]> {
   if (!userId) return [];
@@ -73,35 +59,11 @@ export async function getUserCollections(userId: string): Promise<MovieCollectio
     } catch {}
   }
 
-  if (!db) return localList;
-
-  try {
-    const colRef = collection(db, "users", userId, "collections");
-    const q = query(colRef, orderBy("updatedAt", "desc"));
-    const snap = await getDocs(q);
-
-    if (!snap.empty) {
-      const cloudItems = snap.docs.map((d) => {
-        const data = d.data();
-        return {
-          ...data,
-          id: d.id,
-        } as MovieCollection;
-      });
-
-      // Lưu lại bản sao mới nhất vào LocalStorage
-      saveLocalCollections(userId, cloudItems);
-      return cloudItems;
-    }
-  } catch (err) {
-    console.warn("Lỗi đọc Firestore collections (sử dụng bản lưu local):", err);
-  }
-
   return localList;
 }
 
 /**
- * Lắng nghe thay đổi real-time danh sách bộ sưu tập (Hybrid: LocalStorage + Firestore)
+ * Lắng nghe thay đổi real-time danh sách bộ sưu tập (Supabase + LocalStorage)
  */
 export function subscribeUserCollections(
   userId: string,
@@ -112,11 +74,23 @@ export function subscribeUserCollections(
     return () => {};
   }
 
-  // 1. Trả ngay dữ liệu local trước để không bị trễ giao diện
+  // 1. Trả ngay dữ liệu local trước để không bị trễ giao diện (0ms)
   const initialLocal = getLocalCollections(userId);
   callback(initialLocal);
 
-  // 2. Lắng nghe cập nhật local từ cùng tab hoặc các tab khác
+  // 2. Fetch mới nhất từ Supabase
+  if (isSupabaseConfigured()) {
+    getUserCollectionsSupabase(userId)
+      .then((items) => {
+        if (items.length > 0) {
+          saveLocalCollections(userId, items);
+          callback(items);
+        }
+      })
+      .catch(() => {});
+  }
+
+  // 3. Lắng nghe cập nhật local từ cùng tab hoặc các tab khác
   const handleLocalUpdate = (e: Event) => {
     const customEvent = e as CustomEvent<{ userId: string; items: MovieCollection[] }>;
     if (customEvent.detail && customEvent.detail.userId === userId) {
@@ -137,48 +111,16 @@ export function subscribeUserCollections(
     window.addEventListener("storage", handleStorageChange);
   }
 
-  // 3. Nếu có Firestore, lắng nghe onSnapshot
-  let unsubFirestore = () => {};
-  if (db) {
-    try {
-      const colRef = collection(db, "users", userId, "collections");
-      const q = query(colRef, orderBy("updatedAt", "desc"));
-
-      unsubFirestore = onSnapshot(
-        q,
-        (snapshot) => {
-          if (!snapshot.empty) {
-            const items = snapshot.docs.map((d) => {
-              const data = d.data();
-              return {
-                ...data,
-                id: d.id,
-              } as MovieCollection;
-            });
-            saveLocalCollections(userId, items);
-            callback(items);
-          }
-        },
-        (err) => {
-          console.warn("Lưu ý Firestore Rules (bộ sưu tập vẫn hoạt động bình thường qua Local cache):", err);
-        }
-      );
-    } catch {
-      // Bỏ qua lỗi Firestore
-    }
-  }
-
   return () => {
     if (typeof window !== "undefined") {
       window.removeEventListener("collections-updated", handleLocalUpdate);
       window.removeEventListener("storage", handleStorageChange);
     }
-    unsubFirestore();
   };
 }
 
 /**
- * Tạo bộ sưu tập mới (Lưu ngay vào LocalStorage và đồng bộ ngầm lên Firestore)
+ * Tạo bộ sưu tập mới (Lưu ngay vào LocalStorage và đồng bộ lên Supabase)
  */
 export async function createCollection(
   userId: string,
@@ -192,16 +134,7 @@ export async function createCollection(
 
   try {
     const now = Date.now();
-    let collectionId = `col_${now}_${Math.random().toString(36).slice(2, 8)}`;
-
-    if (db) {
-      try {
-        const colRef = collection(db, "users", userId, "collections");
-        collectionId = doc(colRef).id;
-      } catch {
-        // Fallback dùng id tạo tự động
-      }
-    }
+    const collectionId = `col_${now}_${Math.random().toString(36).slice(2, 8)}`;
 
     const collectionData: MovieCollection = {
       id: collectionId,
@@ -216,29 +149,16 @@ export async function createCollection(
       updatedAt: now,
     };
 
-    // 1. Luôn lưu vào LocalStorage trước để đảm bảo tính năng hoạt động 100%
+    // 1. Luôn lưu vào LocalStorage trước để đảm bảo tính năng phản hồi 0ms
     const currentLocal = getLocalCollections(userId);
     const updatedLocal = [collectionData, ...currentLocal.filter((c) => c.id !== collectionData.id)];
     saveLocalCollections(userId, updatedLocal);
 
-    // 2. Đồng bộ lên Supabase nếu có cấu hình
+    // 2. Lưu lên Supabase
     if (isSupabaseConfigured()) {
-      saveCollectionSupabase(collectionData).catch(() => {});
-    }
-
-    // 3. Thử lưu lên Firestore ngầm nếu có kết nối
-    if (db) {
-      try {
-        const userDocRef = doc(db, "users", userId, "collections", collectionId);
-        setDoc(userDocRef, collectionData).catch(() => {});
-
-        if (isPublic) {
-          const publicRef = doc(db, "public_collections", collectionId);
-          setDoc(publicRef, collectionData).catch(() => {});
-        }
-      } catch (cloudErr) {
-        console.warn("Lưu ý Firestore Rules:", cloudErr);
-      }
+      saveCollectionSupabase(collectionData).catch((err) => {
+        console.warn("Lỗi lưu Supabase collection:", err);
+      });
     }
 
     return collectionData;
@@ -268,19 +188,6 @@ export async function deleteCollection(
       deleteCollectionSupabase(collectionId).catch(() => {});
     }
 
-    // 3. Thử xóa trên Firestore ngầm
-    if (db) {
-      try {
-        const userDocRef = doc(db, "users", userId, "collections", collectionId);
-        deleteDoc(userDocRef).catch(() => {});
-
-        const publicDocRef = doc(db, "public_collections", collectionId);
-        deleteDoc(publicDocRef).catch(() => {});
-      } catch (err) {
-        console.warn("Lỗi xóa Firestore collection:", err);
-      }
-    }
-
     return true;
   } catch (err) {
     console.warn("Lỗi xóa bộ sưu tập:", err);
@@ -305,7 +212,7 @@ export async function addMovieToCollection(
       addedAt: now,
     };
 
-    // 1. Cập nhật LocalStorage trước
+    // 1. Cập nhật LocalStorage trước (0ms)
     const currentLocal = getLocalCollections(userId);
     let targetCol = currentLocal.find((c) => c.id === collectionId);
     let updatedMovies: CollectionMovieItem[] = [];
@@ -326,28 +233,10 @@ export async function addMovieToCollection(
         currentLocal.map((c) => (c.id === collectionId ? targetCol! : c))
       );
 
+      // 2. Cập nhật Supabase
       if (isSupabaseConfigured()) {
         saveCollectionSupabase(targetCol).catch(() => {});
       }
-    }
-
-    // 2. Cập nhật Firestore ngầm nếu có
-    if (db) {
-      const userDocRef = doc(db, "users", userId, "collections", collectionId);
-      getDoc(userDocRef).then((snap) => {
-        if (snap.exists()) {
-          const data = snap.data() as MovieCollection;
-          const currentCloudMovies = Array.isArray(data.movies) ? data.movies : [];
-          if (!currentCloudMovies.some((m) => m.slug === movie.slug)) {
-            const finalMovies = [newItem, ...currentCloudMovies];
-            setDoc(userDocRef, { movies: finalMovies, updatedAt: now }, { merge: true }).catch(() => {});
-            if (data.isPublic) {
-              const publicDocRef = doc(db, "public_collections", collectionId);
-              setDoc(publicDocRef, { movies: finalMovies, updatedAt: now }, { merge: true }).catch(() => {});
-            }
-          }
-        }
-      }).catch(() => {});
     }
 
     return true;
@@ -370,7 +259,7 @@ export async function removeMovieFromCollection(
   try {
     const now = Date.now();
 
-    // 1. Cập nhật LocalStorage
+    // 1. Cập nhật LocalStorage (0ms)
     const currentLocal = getLocalCollections(userId);
     const targetCol = currentLocal.find((c) => c.id === collectionId);
     if (targetCol) {
@@ -385,26 +274,10 @@ export async function removeMovieFromCollection(
         currentLocal.map((c) => (c.id === collectionId ? updatedCol : c))
       );
 
+      // 2. Cập nhật Supabase
       if (isSupabaseConfigured()) {
         saveCollectionSupabase(updatedCol).catch(() => {});
       }
-    }
-
-    // 2. Cập nhật Firestore ngầm
-    if (db) {
-      const userDocRef = doc(db, "users", userId, "collections", collectionId);
-      getDoc(userDocRef).then((snap) => {
-        if (snap.exists()) {
-          const data = snap.data() as MovieCollection;
-          const currentMovies = Array.isArray(data.movies) ? data.movies : [];
-          const updated = currentMovies.filter((m) => m.slug !== movieSlug);
-          setDoc(userDocRef, { movies: updated, updatedAt: now }, { merge: true }).catch(() => {});
-          if (data.isPublic) {
-            const publicDocRef = doc(db, "public_collections", collectionId);
-            setDoc(publicDocRef, { movies: updated, updatedAt: now }, { merge: true }).catch(() => {});
-          }
-        }
-      }).catch(() => {});
     }
 
     return true;
@@ -441,25 +314,9 @@ export async function toggleCollectionPrivacy(
         currentLocal.map((c) => (c.id === collectionId ? updatedCol : c))
       );
 
+      // 2. Cập nhật Supabase
       if (isSupabaseConfigured()) {
         saveCollectionSupabase(updatedCol).catch(() => {});
-      }
-    }
-
-    // 2. Cập nhật Firestore ngầm
-    if (db) {
-      try {
-        const userDocRef = doc(db, "users", userId, "collections", collectionId);
-        setDoc(userDocRef, { isPublic: makePublic, updatedAt: now }, { merge: true }).catch(() => {});
-
-        const publicDocRef = doc(db, "public_collections", collectionId);
-        if (makePublic && targetCol) {
-          setDoc(publicDocRef, { ...targetCol, isPublic: true, updatedAt: now }).catch(() => {});
-        } else {
-          deleteDoc(publicDocRef).catch(() => {});
-        }
-      } catch (err) {
-        console.warn("Lỗi đổi quyền riêng tư Firestore:", err);
       }
     }
 
@@ -488,57 +345,18 @@ export async function getPublicCollection(
     } catch {}
   }
 
-  // 2. Thử đọc từ Firestore public_collections
-  if (db) {
-    try {
-      const publicDocRef = doc(db, "public_collections", collectionId);
-      const snap = await getDoc(publicDocRef);
-      if (snap.exists()) {
-        const data = snap.data();
-        return {
-          ...data,
-          id: snap.id,
-        } as MovieCollection;
-      }
-    } catch {
-      // Firestore public permissions not configured yet
-    }
-  }
-
-  // 2. Fallback: Nếu có userId truyền kèm trên URL (?u=...)
-  if (db && userId) {
-    try {
-      const userColRef = doc(db, "users", userId, "collections", collectionId);
-      const snap = await getDoc(userColRef);
-      if (snap.exists()) {
-        const data = snap.data();
-        if (data.isPublic !== false) {
-          return {
-            ...data,
-            id: snap.id,
-          } as MovieCollection;
-        }
-      }
-    } catch {
-      // User collection not accessible without auth
-    }
-  }
-
-  // 3. Fallback: Nếu người dùng đang mở bộ sưu tập của chính mình trên trình duyệt này
+  // 2. Fallback: Nếu người dùng đang mở bộ sưu tập của chính mình trên trình duyệt này
   if (typeof window !== "undefined") {
-    // Tìm trong tất cả các key local collections
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (key && key.startsWith(LOCAL_COLLECTIONS_KEY_PREFIX)) {
         try {
           const items: MovieCollection[] = JSON.parse(localStorage.getItem(key) || "[]");
           const found = items.find((c) => c.id === collectionId);
-          if (found && found.isPublic !== false) {
+          if (found && (found.isPublic !== false || (userId && found.userId === userId))) {
             return found;
           }
-        } catch {
-          // ignore
-        }
+        } catch {}
       }
     }
   }
@@ -552,47 +370,56 @@ export async function getPublicCollection(
 export function subscribeAllPublicCollections(
   onUpdate: (collections: MovieCollection[]) => void,
   onError?: (err: Error) => void
-): Unsubscribe {
-  if (!db) {
-    onUpdate([]);
-    return () => {};
+): () => void {
+  let isUnsubscribed = false;
+
+  const fetchCollections = async () => {
+    if (isUnsubscribed) return;
+    if (isSupabaseConfigured()) {
+      try {
+        const items = await getPublicCollectionsSupabase();
+        if (!isUnsubscribed && items) {
+          onUpdate(items);
+        }
+      } catch (err) {
+        if (onError && err instanceof Error) onError(err);
+      }
+    }
+  };
+
+  fetchCollections();
+
+  const handleUpdate = () => {
+    if (!isUnsubscribed) fetchCollections();
+  };
+
+  if (typeof window !== "undefined") {
+    window.addEventListener("collections-updated", handleUpdate);
   }
 
-  const colRef = collection(db, "public_collections");
-  const q = query(colRef, limit(100));
+  const interval = setInterval(fetchCollections, 5000);
 
-  return onSnapshot(
-    q,
-    (snapshot) => {
-      const items: MovieCollection[] = [];
-      snapshot.forEach((docSnap) => {
-        items.push({
-          id: docSnap.id,
-          ...(docSnap.data() as Omit<MovieCollection, "id">),
-        });
-      });
-      items.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
-      onUpdate(items);
-    },
-    (error) => {
-      console.warn("Lỗi tải public_collections cho Admin:", error);
-      if (onError) onError(error);
+  return () => {
+    isUnsubscribed = true;
+    clearInterval(interval);
+    if (typeof window !== "undefined") {
+      window.removeEventListener("collections-updated", handleUpdate);
     }
-  );
+  };
 }
 
 /**
  * Xóa bộ sưu tập công khai (Dành cho Quản trị viên khi phát hiện nội dung spam/vi phạm)
  */
 export async function deletePublicCollectionAdmin(collectionId: string): Promise<boolean> {
-  if (!db || !collectionId) return false;
+  if (!collectionId) return false;
   try {
-    const docRef = doc(db, "public_collections", collectionId);
-    await deleteDoc(docRef);
+    if (isSupabaseConfigured()) {
+      await deleteCollectionSupabase(collectionId);
+    }
     return true;
   } catch (err) {
     console.error("Lỗi xóa public_collection:", err);
     return false;
   }
 }
-

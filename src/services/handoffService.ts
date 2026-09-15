@@ -1,5 +1,3 @@
-import { doc, setDoc, onSnapshot, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 import { PlaybackSession } from "@/types/deviceSession";
 
 /**
@@ -34,9 +32,10 @@ export function detectDeviceType(): "Điện thoại" | "Máy tính" | "Tablet" 
   return "Máy tính";
 }
 
+const STORAGE_SESSION_PREFIX = "nanaflix_active_playback_session_";
+
 /**
- * Cập nhật phiên phát phim hiện tại lên Firestore
- * Lưu tại users/{userId}/active_session/current
+ * Cập nhật phiên phát phim hiện tại (Broadcast Channel + LocalStorage)
  */
 export async function updateActivePlaybackSession(
   userId: string,
@@ -50,10 +49,9 @@ export async function updateActivePlaybackSession(
     posterUrl?: string;
   }
 ): Promise<void> {
-  if (!db || !userId) return;
+  if (!userId || typeof window === "undefined") return;
 
   try {
-    const sessionRef = doc(db, "users", userId, "active_session", "current");
     const payload: PlaybackSession = {
       sessionId: getTabSessionId(),
       deviceType: detectDeviceType(),
@@ -67,57 +65,78 @@ export async function updateActivePlaybackSession(
       updatedAt: Date.now(),
     };
 
-    await setDoc(sessionRef, payload, { merge: true });
+    localStorage.setItem(
+      `${STORAGE_SESSION_PREFIX}${userId}`,
+      JSON.stringify(payload)
+    );
+
+    if (typeof BroadcastChannel !== "undefined") {
+      try {
+        const channel = new BroadcastChannel(`nanaflix_handoff_${userId}`);
+        channel.postMessage(payload);
+        channel.close();
+      } catch {}
+    }
   } catch (err) {
     console.warn("Lỗi đồng bộ phiên phát đa thiết bị:", err);
   }
 }
 
 /**
- * Lắng nghe phiên phát trực tiếp từ các thiết bị khác
+ * Lắng nghe phiên phát trực tiếp từ các tab/thiết bị khác
  */
 export function subscribeActivePlaybackSession(
   userId: string,
   callback: (session: PlaybackSession | null) => void
 ): () => void {
-  if (!db || !userId) {
+  if (!userId || typeof window === "undefined") {
     callback(null);
     return () => {};
   }
 
-  const sessionRef = doc(db, "users", userId, "active_session", "current");
-  return onSnapshot(
-    sessionRef,
-    (snapshot) => {
-      if (snapshot.exists()) {
-        callback(snapshot.data() as PlaybackSession);
-      } else {
-        callback(null);
-      }
-    },
-    (error) => {
-      console.warn("Lỗi theo dõi active_session:", error);
-      callback(null);
-    }
-  );
-}
-
-/**
- * Lấy thông tin phiên phát hiện tại một lần
- */
-export async function getActivePlaybackSession(
-  userId: string
-): Promise<PlaybackSession | null> {
-  if (!db || !userId) return null;
+  let isUnsubscribed = false;
+  let channel: BroadcastChannel | null = null;
 
   try {
-    const sessionRef = doc(db, "users", userId, "active_session", "current");
-    const snap = await getDoc(sessionRef);
-    if (snap.exists()) {
-      return snap.data() as PlaybackSession;
+    // 1. Phục hồi phiên hiện tại từ LocalStorage
+    const raw = localStorage.getItem(`${STORAGE_SESSION_PREFIX}${userId}`);
+    if (raw) {
+      const parsed = JSON.parse(raw) as PlaybackSession;
+      if (parsed && Date.now() - parsed.updatedAt < 600000) {
+        callback(parsed);
+      }
     }
-    return null;
+
+    // 2. Lắng nghe qua BroadcastChannel
+    if (typeof BroadcastChannel !== "undefined") {
+      channel = new BroadcastChannel(`nanaflix_handoff_${userId}`);
+      channel.onmessage = (event) => {
+        if (!isUnsubscribed && event.data) {
+          callback(event.data as PlaybackSession);
+        }
+      };
+    }
+
+    // 3. Lắng nghe storage event
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === `${STORAGE_SESSION_PREFIX}${userId}` && e.newValue && !isUnsubscribed) {
+        try {
+          const parsed = JSON.parse(e.newValue) as PlaybackSession;
+          callback(parsed);
+        } catch {}
+      }
+    };
+
+    window.addEventListener("storage", handleStorage);
+
+    return () => {
+      isUnsubscribed = true;
+      if (channel) {
+        channel.close();
+      }
+      window.removeEventListener("storage", handleStorage);
+    };
   } catch {
-    return null;
+    return () => {};
   }
 }
