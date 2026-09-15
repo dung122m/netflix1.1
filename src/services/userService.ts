@@ -1,4 +1,9 @@
-import { User, updateProfile as updateAuthProfile } from "firebase/auth";
+export interface BaseAuthUser {
+  uid: string;
+  email?: string | null;
+  displayName?: string | null;
+  photoURL?: string | null;
+}
 import { UserProfile } from "@/types/user";
 import { WatchHistoryItem } from "@/lib/watchHistory";
 import { WatchlistItem } from "@/lib/watchlist";
@@ -66,7 +71,7 @@ function calculateLocalHistoryWatchMinutes(): number {
 /**
  * Ghi nhận hoặc cập nhật hồ sơ người dùng vào Supabase khi đăng nhập
  */
-export async function recordUserProfile(user: User): Promise<void> {
+export async function recordUserProfile(user: BaseAuthUser): Promise<void> {
   if (!user || !user.uid) return;
 
   try {
@@ -350,7 +355,7 @@ export function subscribeUserProfile(
  * Cập nhật hồ sơ tùy chỉnh của người dùng (tên hiển thị, avatar, bio, sở thích)
  */
 export async function updateUserProfile(
-  authUser: User | null,
+  authUser: BaseAuthUser | null,
   userId: string,
   data: {
     displayName?: string;
@@ -415,38 +420,7 @@ export async function updateUserProfile(
     }
   }
 
-  // 3. Cập nhật profile Auth (Supabase hoặc Firebase)
-  if (isSupabaseConfigured()) {
-    try {
-      const { supabase } = await import("@/lib/supabase");
-      if (supabase) {
-        const metaUpdates: Record<string, string> = {};
-        if (payload.displayName) metaUpdates.display_name = payload.displayName;
-        const targetPhoto = payload.customAvatar || payload.photoURL;
-        if (targetPhoto) metaUpdates.avatar_url = targetPhoto;
-        if (Object.keys(metaUpdates).length > 0) {
-          await supabase.auth.updateUser({ data: metaUpdates }).catch(() => {});
-        }
-      }
-    } catch {}
-  } else if (authUser && authUser.uid === userId) {
-    const authUpdates: { displayName?: string; photoURL?: string } = {};
-    if (payload.displayName) authUpdates.displayName = payload.displayName;
-    const targetPhoto = payload.customAvatar || payload.photoURL;
-    if (targetPhoto && (targetPhoto.startsWith("http://") || targetPhoto.startsWith("https://"))) {
-      authUpdates.photoURL = targetPhoto;
-    }
-
-    if (Object.keys(authUpdates).length > 0) {
-      try {
-        await updateAuthProfile(authUser, authUpdates);
-      } catch {
-        // Bỏ qua nếu Firebase Auth offline
-      }
-    }
-  }
-
-  // 4. Bắn event toàn cục để Navbar & UI tự động cập nhật
+  // 3. Bắn event toàn cục để Navbar & UI tự động cập nhật
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent("user-profile-updated", { detail: { userId, profile: payload } }));
   }
