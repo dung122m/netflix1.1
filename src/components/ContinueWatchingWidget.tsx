@@ -42,9 +42,12 @@ export function ContinueWatchingWidget() {
   const [viewState, setViewState] = useState<"toast" | "bubble" | "hidden">("hidden");
   const [isHovered, setIsHovered] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
+  const [isPinned, setIsPinned] = useState(false);
   const [progressPercent, setProgressPercent] = useState(100);
 
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const tooltipTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const widgetRef = useRef<HTMLDivElement>(null);
 
   // 1. Lắng nghe và đồng bộ dữ liệu (Ưu tiên Handoff đa thiết bị -> Fallback Local History)
   const syncSessionData = useCallback(() => {
@@ -235,6 +238,45 @@ export function ContinueWatchingWidget() {
     setViewState("bubble");
   };
 
+  // Hover & Click handlers cho Bubble (Tránh mất tooltip khi lia chuột sang)
+  const handleMouseEnterBubble = () => {
+    if (tooltipTimeoutRef.current) {
+      clearTimeout(tooltipTimeoutRef.current);
+      tooltipTimeoutRef.current = null;
+    }
+    setShowTooltip(true);
+  };
+
+  const handleMouseLeaveBubble = () => {
+    if (isPinned) return;
+    if (tooltipTimeoutRef.current) clearTimeout(tooltipTimeoutRef.current);
+    tooltipTimeoutRef.current = setTimeout(() => {
+      setShowTooltip(false);
+    }, 400); // 400ms grace period giúp lia chuột thoải mái sang nút X mà không bị mất
+  };
+
+  const handleBubbleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    // Bấm vào icon tròn -> Ghim mở hoặc đóng card
+    setIsPinned((prev) => {
+      const next = !prev;
+      setShowTooltip(next);
+      return next;
+    });
+  };
+
+  // Đóng card khi click ra ngoài vùng widget
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (widgetRef.current && !widgetRef.current.contains(e.target as Node)) {
+        setIsPinned(false);
+        setShowTooltip(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, []);
+
   if (!session || viewState === "hidden") return null;
 
   // Tính phần trăm xem
@@ -379,47 +421,105 @@ export function ContinueWatchingWidget() {
       {/* ======================================================== */}
       {viewState === "bubble" && (
         <div
+          ref={widgetRef}
           className="relative group/bubble flex items-center"
-          onMouseEnter={() => setShowTooltip(true)}
-          onMouseLeave={() => setShowTooltip(false)}
+          onMouseEnter={handleMouseEnterBubble}
+          onMouseLeave={handleMouseLeaveBubble}
         >
-          {/* Quick Tooltip/Card khi Hover trên Desktop */}
-          {showTooltip && (
-            <div className="hidden sm:flex absolute right-full mr-3 top-1/2 -translate-y-1/2 items-center gap-2 px-3 py-2 rounded-xl bg-zinc-950/95 border border-white/20 shadow-2xl backdrop-blur-xl text-white whitespace-nowrap animate-in fade-in slide-in-from-right-2 duration-200 z-10">
-              <div className="text-left min-w-0">
-                <div className="flex items-center gap-1 text-[10px] text-rose-300 font-bold">
-                  <DeviceIcon className="w-2.5 h-2.5" />
-                  <span>Xem tiếp {watchPercent}%</span>
-                </div>
-                <div className="text-xs font-bold text-white truncate max-w-[160px]">
-                  {session.movieTitle}
+          {/* Quick Floating Card khi Hover hoặc Click mở trên Desktop */}
+          {(showTooltip || isPinned) && (
+            <div
+              onMouseEnter={handleMouseEnterBubble}
+              onMouseLeave={handleMouseLeaveBubble}
+              className="hidden sm:flex absolute right-full mr-3.5 top-1/2 -translate-y-1/2 items-center gap-3 p-2.5 sm:p-3 rounded-2xl bg-zinc-950/95 border border-white/20 shadow-[0_20px_50px_rgba(0,0,0,0.95)] backdrop-blur-2xl text-white animate-in fade-in slide-in-from-right-3 duration-200 z-50 min-w-[290px] max-w-[340px]
+              before:content-[''] before:absolute before:-right-5 before:top-0 before:bottom-0 before:w-6 before:pointer-events-auto"
+            >
+              {/* Poster nhỏ bên trái, bấm để phát ngay */}
+              <div
+                onClick={handleResume}
+                className="relative w-11 h-14 rounded-lg overflow-hidden bg-zinc-900 flex-shrink-0 border border-white/15 cursor-pointer group/thumb shadow-md"
+                title="Bấm để phát tiếp ngay"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={session.posterUrl}
+                  alt={session.movieTitle}
+                  className="w-full h-full object-cover group-hover/thumb:scale-105 transition-transform duration-300"
+                  onError={(e) => {
+                    e.currentTarget.src = "/default-poster.jpg";
+                  }}
+                />
+                <div className="absolute inset-0 bg-black/35 group-hover/thumb:bg-black/10 transition-colors flex items-center justify-center">
+                  <Play className="w-4 h-4 fill-white text-white drop-shadow" />
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={handleResume}
-                className="p-1.5 rounded-lg bg-netflix-red text-white hover:scale-105 transition cursor-pointer"
-                title="Phát tiếp ngay"
-              >
-                <Play className="w-3 h-3 fill-current" />
-              </button>
-              <button
-                type="button"
-                onClick={handleDismiss}
-                className="p-1 rounded-md text-gray-400 hover:text-white hover:bg-white/10 transition cursor-pointer"
-                title="Bỏ qua"
-              >
-                <X className="w-3 h-3" />
-              </button>
+
+              {/* Chi tiết nội dung phim */}
+              <div className="flex-1 min-w-0 pr-1">
+                <div className="flex items-center gap-1.5 text-[11px] text-rose-300 font-bold">
+                  <DeviceIcon className="w-3 h-3 text-rose-400 flex-shrink-0" />
+                  <span className="truncate">Xem tiếp {watchPercent}%</span>
+                  {session.currentTime > 0 && (
+                    <span className="text-gray-400 font-mono text-[10px] font-normal flex-shrink-0">
+                      • {formatTime(session.currentTime)}
+                    </span>
+                  )}
+                </div>
+                <h4
+                  onClick={handleResume}
+                  className="text-xs sm:text-sm font-bold text-white truncate cursor-pointer hover:text-rose-400 transition-colors mt-0.5"
+                  title={session.movieTitle}
+                >
+                  {session.movieTitle}
+                </h4>
+                {session.episodeName && (
+                  <p className="text-[10px] text-gray-400 truncate mt-0.5">
+                    {session.episodeName}
+                  </p>
+                )}
+
+                {/* Progress bar nhỏ */}
+                <div className="w-full h-1 bg-white/15 rounded-full mt-1.5 overflow-hidden">
+                  <div
+                    className="h-full bg-netflix-red rounded-full"
+                    style={{ width: `${watchPercent}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Nhóm nút hành động: Play và Đóng (X) */}
+              <div className="flex items-center gap-1.5 flex-shrink-0 pl-2 border-l border-white/15">
+                {/* Nút Play to rõ */}
+                <button
+                  type="button"
+                  onClick={handleResume}
+                  className="w-8 h-8 rounded-full bg-netflix-red hover:bg-red-600 text-white flex items-center justify-center transition shadow-md shadow-red-950/60 hover:scale-110 active:scale-95 cursor-pointer"
+                  title="Phát tiếp ngay"
+                >
+                  <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
+                </button>
+
+                {/* Nút X hit-box rộng 32x32px cực kỳ dễ bấm */}
+                <button
+                  type="button"
+                  onClick={handleDismiss}
+                  className="w-8 h-8 rounded-full bg-white/10 hover:bg-rose-600/30 hover:text-rose-300 text-gray-300 flex items-center justify-center transition hover:scale-110 active:scale-90 cursor-pointer border border-white/10"
+                  title="Đóng / Bỏ qua"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           )}
 
           {/* Nút tròn chính (Floating Circular Button) */}
           <button
             type="button"
-            onClick={handleResume}
-            className="relative w-12 h-12 sm:w-13 sm:h-13 rounded-full bg-zinc-950 border border-white/20 p-0.5 shadow-[0_10px_30px_rgba(0,0,0,0.8)] backdrop-blur-xl flex items-center justify-center cursor-pointer transition-all duration-300 hover:scale-110 active:scale-95 group/btn"
-            title={`Xem tiếp: ${session.movieTitle} (${formatTime(session.currentTime)})`}
+            onClick={handleBubbleClick}
+            className={`relative w-12 h-12 sm:w-13 sm:h-13 rounded-full bg-zinc-950 border border-white/20 p-0.5 shadow-[0_10px_30px_rgba(0,0,0,0.8)] backdrop-blur-xl flex items-center justify-center cursor-pointer transition-all duration-300 hover:scale-110 active:scale-95 group/btn ${
+              isPinned ? "ring-2 ring-netflix-red/80 scale-105" : ""
+            }`}
+            title={`Xem tiếp: ${session.movieTitle} (${formatTime(session.currentTime)}) - Bấm để mở menu`}
           >
             {/* SVG Circular Progress Ring */}
             <svg
@@ -474,10 +574,10 @@ export function ContinueWatchingWidget() {
           <button
             type="button"
             onClick={handleDismiss}
-            className="sm:hidden absolute -top-1.5 -left-1.5 w-4 h-4 rounded-full bg-zinc-900 border border-white/20 text-gray-300 flex items-center justify-center text-[9px] shadow-md z-10"
+            className="sm:hidden absolute -top-1.5 -left-1.5 w-5 h-5 rounded-full bg-zinc-900 border border-white/20 text-gray-300 flex items-center justify-center shadow-md z-10 active:scale-90"
             title="Đóng"
           >
-            <X className="w-2.5 h-2.5" />
+            <X className="w-3 h-3" />
           </button>
         </div>
       )}
