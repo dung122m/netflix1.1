@@ -193,13 +193,15 @@ export function subscribeMovieComments(
     }
   };
 
-  // 4. Polling nhẹ mỗi 45s và chỉ khi tab đang hoạt động
+  // 4. Polling dự phòng mỗi 5 phút (chỉ khi tab hoạt động) nếu kết nối WebSocket gián đoạn
   const syncInterval = setInterval(() => {
     if (!isUnsubscribed && typeof document !== "undefined" && !document.hidden) {
-      lastFetchTime = Date.now();
-      fetchSupabase();
+      if (Date.now() - lastFetchTime > 180000) {
+        lastFetchTime = Date.now();
+        fetchSupabase();
+      }
     }
-  }, 45000);
+  }, 300000);
 
   if (typeof window !== "undefined") {
     window.addEventListener("comments-updated", handleCommentsUpdated);
@@ -364,10 +366,12 @@ export function subscribeCommentReplies(
 
   const interval = setInterval(() => {
     if (!isUnsubscribed && typeof document !== "undefined" && !document.hidden) {
-      lastReplyFetch = Date.now();
-      fetchReplies();
+      if (Date.now() - lastReplyFetch > 180000) {
+        lastReplyFetch = Date.now();
+        fetchReplies();
+      }
     }
-  }, 45000);
+  }, 300000);
 
   // Lắng nghe replies mới qua Supabase Realtime WebSocket (< 50ms)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -484,7 +488,7 @@ export function subscribeAllComments(
     if (!isUnsubscribed && typeof document !== "undefined" && !document.hidden) {
       fetchAll();
     }
-  }, 45000);
+  }, 300000);
 
   return () => {
     isUnsubscribed = true;
@@ -540,7 +544,7 @@ export function subscribeUserComments(
     if (!isUnsubscribed && typeof document !== "undefined" && !document.hidden) {
       fetchUserComments();
     }
-  }, 45000);
+  }, 300000);
 
   return () => {
     isUnsubscribed = true;

@@ -290,8 +290,11 @@ export function useMatchReminders() {
       }
     };
 
-    // Kiểm tra định kỳ mỗi 20 giây
-    const interval = setInterval(checkSchedule, 20000);
+    // Chỉ kiểm tra khi có lời nhắc được đặt
+    if (!reminders || reminders.length === 0) return;
+
+    // Kiểm tra định kỳ mỗi 60 giây
+    const interval = setInterval(checkSchedule, 60000);
     checkSchedule();
 
     return () => clearInterval(interval);

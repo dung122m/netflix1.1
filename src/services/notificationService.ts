@@ -256,13 +256,15 @@ export function subscribeUserNotifications(
     }
   };
 
-  // Polling định kỳ mỗi 45s để đồng bộ thông báo mới từ Supabase (chỉ khi tab đang active)
+  // Polling dự phòng nhẹ (chỉ mỗi 5 phút và khi tab active) đề phòng trường hợp mất kết nối WebSocket
   const pollInterval = setInterval(() => {
     if (!isUnsubscribed && typeof document !== "undefined" && !document.hidden) {
-      lastNotificationFetch = Date.now();
-      fetchSupabaseNotifications();
+      if (Date.now() - lastNotificationFetch > 180000) {
+        lastNotificationFetch = Date.now();
+        fetchSupabaseNotifications();
+      }
     }
-  }, 45000);
+  }, 300000);
 
   // 4. Lắng nghe thông báo mới tức thời qua Supabase Realtime WebSocket (< 50ms)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

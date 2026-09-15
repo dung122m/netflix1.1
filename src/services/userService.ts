@@ -193,7 +193,7 @@ export function subscribeAllUsers(
     if (!isUnsubscribed && typeof document !== "undefined" && !document.hidden) {
       fetchUsers();
     }
-  }, 45000);
+  }, 180000);
 
   return () => {
     isUnsubscribed = true;

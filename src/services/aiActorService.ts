@@ -586,14 +586,12 @@ export async function resolveActorMovies(keyword: string): Promise<{
     };
   }
 
-  // 2.3 Nhận diện nếu từ khóa có dấu hiệu tìm diễn viên hoặc là tên riêng
-  const words = clean.split(/\s+/);
+  // 2.3 Tiết kiệm Quota AI: Chỉ kích hoạt Gemini khi từ khóa có chỉ định rõ ràng tìm kiếm diễn viên/đạo diễn
   const looksLikeActor =
     clean.includes("diễn viên") ||
-    clean.includes("đóng") ||
-    clean.includes("phim của") ||
     clean.includes("đạo diễn") ||
-    (words.length >= 2 && words.length <= 4 && !clean.includes("tập") && !clean.includes("phim lẻ"));
+    clean.includes("phim của") ||
+    clean.startsWith("đóng bởi");
 
   if (!looksLikeActor) {
     return { actorName: "", titles: [], isActor: false, source: "none" };

@@ -51,15 +51,41 @@ export function ForYouPersonalizedRow() {
     return () => unsub();
   }, [user?.uid]);
 
-  // 2. Fetch danh sách phim đề xuất
-  const fetchRecommendations = useCallback(async () => {
+  // 2. Fetch danh sách phim đề xuất (có sessionStorage cache TTL 10 phút)
+  const fetchRecommendations = useCallback(async (forceRefresh = false) => {
+    const CACHE_KEY_NAME = "nanaflix_foryou_cache_v1";
+    const CACHE_TTL = 10 * 60 * 1000; // 10 phút
+
+    const history = getWatchHistory();
+    const watchedTitles = history.map((h) => h.title).filter(Boolean).slice(0, 3);
+    const watchedSlugs = history.map((h) => h.slug).filter(Boolean).slice(0, 5);
+    const favoriteGenres = profile?.favoriteGenres || [];
+    const currentFingerprint = `${user?.uid || "guest"}_${[...favoriteGenres].sort().join(",")}_${watchedSlugs.join(",")}`;
+
+    // Kiểm tra sessionStorage cache nếu không yêu cầu forceRefresh
+    if (!forceRefresh && typeof window !== "undefined") {
+      try {
+        const rawCached = sessionStorage.getItem(CACHE_KEY_NAME);
+        if (rawCached) {
+          const cached = JSON.parse(rawCached);
+          if (
+            cached &&
+            cached.fingerprint === currentFingerprint &&
+            Date.now() - cached.timestamp < CACHE_TTL &&
+            Array.isArray(cached.items) &&
+            cached.items.length > 0
+          ) {
+            setMovies(cached.items);
+            if (cached.context) setContextText(cached.context);
+            setLoading(false);
+            return;
+          }
+        }
+      } catch {}
+    }
+
     setLoading(true);
     try {
-      const history = getWatchHistory();
-      const watchedTitles = history.map((h) => h.title).filter(Boolean).slice(0, 3);
-      const watchedSlugs = history.map((h) => h.slug).filter(Boolean).slice(0, 5);
-      const favoriteGenres = profile?.favoriteGenres || [];
-
       const res = await fetch("/api/recommendations/for-you", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -74,9 +100,23 @@ export function ForYouPersonalizedRow() {
         const data = await res.json();
         if (Array.isArray(data.items) && data.items.length > 0) {
           setMovies(data.items);
-        }
-        if (data.context) {
-          setContextText(data.context);
+          if (data.context) {
+            setContextText(data.context);
+          }
+          // Lưu vào sessionStorage
+          if (typeof window !== "undefined") {
+            try {
+              sessionStorage.setItem(
+                CACHE_KEY_NAME,
+                JSON.stringify({
+                  items: data.items,
+                  context: data.context || "Tuyển chọn chuẩn gu cho bạn",
+                  timestamp: Date.now(),
+                  fingerprint: currentFingerprint,
+                })
+              );
+            } catch {}
+          }
         }
       }
     } catch (err) {
@@ -84,7 +124,7 @@ export function ForYouPersonalizedRow() {
     } finally {
       setLoading(false);
     }
-  }, [profile?.favoriteGenres]);
+  }, [profile?.favoriteGenres, user?.uid]);
 
   useEffect(() => {
     fetchRecommendations();
@@ -136,7 +176,7 @@ export function ForYouPersonalizedRow() {
         <div className="flex items-center justify-between sm:justify-end gap-2">
           <button
             type="button"
-            onClick={() => fetchRecommendations()}
+            onClick={() => fetchRecommendations(true)}
             title="Làm mới danh sách gợi ý"
             className="px-3 py-1.5 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-white/10 text-gray-300 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer active:scale-95"
           >

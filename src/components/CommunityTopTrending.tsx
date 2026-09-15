@@ -17,17 +17,26 @@ export function CommunityTopTrending() {
   const [items, setItems] = useState<MovieViewStatItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [timeframe, setTimeframe] = useState<"total" | "week">("total");
+  const tabCacheRef = useRef<Partial<Record<"total" | "week", MovieViewStatItem[]>>>({});
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
 
   const fetchTrending = async (tf: "total" | "week") => {
+    // Kiểm tra cache tab phía client
+    if (tabCacheRef.current[tf]) {
+      setItems(tabCacheRef.current[tf]!);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await fetch(`/api/trending-community?timeframe=${tf}&limit=10`);
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data.items) && data.items.length > 0) {
+          tabCacheRef.current[tf] = data.items;
           setItems(data.items);
         }
       }

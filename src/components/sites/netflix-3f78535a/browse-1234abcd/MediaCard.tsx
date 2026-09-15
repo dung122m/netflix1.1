@@ -38,6 +38,32 @@ export interface MovieExtraInfo {
 export const clientSynopsisCache = new Map<string, string>();
 export const clientTrailerCache = new Map<string, string>();
 export const clientExtraInfoCache = new Map<string, MovieExtraInfo>();
+// In-flight shared promise map để tránh fetch 2 lần cho cùng 1 slug
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const inFlightSynopsisRequests = new Map<string, Promise<any>>();
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function fetchMovieSynopsisShared(slug: string): Promise<any> {
+  if (!slug) return null;
+  if (inFlightSynopsisRequests.has(slug)) {
+    return inFlightSynopsisRequests.get(slug);
+  }
+
+  const promise = (async () => {
+    try {
+      const res = await fetch(`/api/synopsis?slug=${encodeURIComponent(slug)}`);
+      if (!res.ok) return null;
+      return await res.json();
+    } catch {
+      return null;
+    } finally {
+      inFlightSynopsisRequests.delete(slug);
+    }
+  })();
+
+  inFlightSynopsisRequests.set(slug, promise);
+  return promise;
+}
 
 export function extractYoutubeId(url?: string | null): string | null {
   if (!url) return null;
@@ -286,61 +312,57 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       }
     }
 
-    // Tải thông tin chi tiết (Diễn viên, đạo diễn, nội dung) nếu chưa có
+    // Tải thông tin chi tiết (Diễn viên, đạo diễn, nội dung, trailer) nếu chưa có
     if ((!synopsis || !extraInfo.actor?.length) && slug) {
       if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
-      hoverTimerRef.current = setTimeout(() => {
+      hoverTimerRef.current = setTimeout(async () => {
         setLoadingDetails(true);
-        fetch(`/api/synopsis?slug=${encodeURIComponent(slug)}`)
-          .then((res) => res.json())
-          .then((data) => {
-            if (data?.content) {
-              clientSynopsisCache.set(slug, data.content);
-              setSynopsis(data.content);
-            } else if (description) {
-              setSynopsis(description);
-            }
-            if (data?.trailer_url) {
-              clientTrailerCache.set(slug, data.trailer_url);
-              setTrailerUrl(data.trailer_url);
-              setHasTrailerState(true);
-            }
-            if (data?.backdrop_url) {
-              setCurrentImgSrc((prev) => {
-                if (!prev || prev.includes("-poster") || prev.includes("/default-")) {
-                  return data.backdrop_url;
-                }
-                return prev;
-              });
-            }
-            const info: MovieExtraInfo = {
-              actor: data?.actor || [],
-              director: data?.director || [],
-              country: data?.country || [],
-              category: data?.category || [],
-              origin_name: data?.origin_name || origin_name,
-              backdrop_url: data?.backdrop_url,
-            };
-            clientExtraInfoCache.set(slug, info);
-            setExtraInfo(info);
-          })
-          .catch(() => {
-            if (description) setSynopsis(description);
-          })
-          .finally(() => {
-            setLoadingDetails(false);
-          });
+        try {
+          const data = await fetchMovieSynopsisShared(slug);
+          if (data?.content) {
+            clientSynopsisCache.set(slug, data.content);
+            setSynopsis(data.content);
+          } else if (description) {
+            setSynopsis(description);
+          }
+          if (data?.trailer_url) {
+            clientTrailerCache.set(slug, data.trailer_url);
+            setTrailerUrl(data.trailer_url);
+            setHasTrailerState(true);
+          }
+          if (data?.backdrop_url) {
+            setCurrentImgSrc((prev) => {
+              if (!prev || prev.includes("-poster") || prev.includes("/default-")) {
+                return data.backdrop_url;
+              }
+              return prev;
+            });
+          }
+          const info: MovieExtraInfo = {
+            actor: data?.actor || [],
+            director: data?.director || [],
+            country: data?.country || [],
+            category: data?.category || [],
+            origin_name: data?.origin_name || origin_name,
+            backdrop_url: data?.backdrop_url,
+          };
+          clientExtraInfoCache.set(slug, info);
+          setExtraInfo(info);
+        } catch {
+          if (description) setSynopsis(description);
+        } finally {
+          setLoadingDetails(false);
+        }
       }, 100);
     }
 
-    // Bật trailer preview sau 700ms hover
+    // Bật trailer preview sau 700ms hover (sử dụng chung in-flight promise hoặc cache)
     if (trailerTimerRef.current) clearTimeout(trailerTimerRef.current);
     trailerTimerRef.current = setTimeout(async () => {
       let tUrl = clientTrailerCache.get(slug);
       if (tUrl === undefined) {
         try {
-          const res = await fetch(`/api/synopsis?slug=${encodeURIComponent(slug)}`);
-          const data = await res.json();
+          const data = await fetchMovieSynopsisShared(slug);
           tUrl = data?.trailer_url || "";
           clientTrailerCache.set(slug, tUrl || "");
           if (data?.content && !synopsis) {
