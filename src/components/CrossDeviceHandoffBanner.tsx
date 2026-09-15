@@ -17,13 +17,8 @@ export const CrossDeviceHandoffBanner: React.FC = () => {
 
   const [activeSession, setActiveSession] = useState<PlaybackSession | null>(null);
   const [dismissedSessionTime, setDismissedSessionTime] = useState<number>(0);
-  const [currentTabId, setCurrentTabId] = useState<string>("");
   const [isHovered, setIsHovered] = useState<boolean>(false);
   const [progressPercent, setProgressPercent] = useState<number>(100);
-
-  useEffect(() => {
-    setCurrentTabId(getTabSessionId());
-  }, []);
 
   // Tự động tắt sau 10 giây nếu người dùng không tương tác (tự dừng đếm khi rê chuột vào)
   useEffect(() => {

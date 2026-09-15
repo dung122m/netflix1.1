@@ -1138,7 +1138,7 @@ export function LivePlayer({
       <div
         ref={containerRef}
         onMouseMove={resetControlsTimeout}
-        onClick={(e) => {
+        onClick={() => {
           // Trên màn hình cảm ứng & web: Nếu controls đang ẩn -> chạm để HIỆN lại controls, KHÔNG pause video!
           if (!showControls) {
             setShowControls(true);

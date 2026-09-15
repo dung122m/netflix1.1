@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import {
   Sparkles,
@@ -9,7 +9,6 @@ import {
   ChevronRight,
   ChevronLeft,
   Loader2,
-  ExternalLink,
   Flame,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";

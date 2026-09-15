@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Bookmark, Check, Plus, Heart } from "lucide-react";
-import { isInWatchlist, toggleWatchlist, WatchlistItem } from "@/lib/watchlist";
+import { Bookmark, Check } from "lucide-react";
+import { isInWatchlist, toggleWatchlist } from "@/lib/watchlist";
 import { toast } from "@/components/Toast";
 
 interface WatchlistButtonProps {

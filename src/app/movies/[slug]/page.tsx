@@ -32,7 +32,7 @@ import { ServerSelector } from "@/components/ServerSelector";
 import { WatchlistButton } from "@/components/WatchlistButton";
 import { AddToCollectionButton } from "@/components/Collections/AddToCollectionButton";
 import { ActiveEpisodeBadge, EpisodeCountBadge } from "@/components/ActiveEpisodeBadge";
-import { formatEpisodeName, findEpisodeMatch } from "@/lib/formatEpisode";
+import { findEpisodeMatch } from "@/lib/formatEpisode";
 
 const MobileQrModal = dynamic(
   () => import("@/components/MobileQrModal").then((mod) => mod.MobileQrModal),
@@ -210,24 +210,15 @@ export default async function MovieDetail({
       : []
   ).filter((c: { name: string; slug?: string }) => c?.name && !c.name.toLowerCase().includes("cập nhật"));
 
-  // Đánh giá IMDb & TMDB
+  // Đánh giá IMDb
   const imdbScore = movie.imdb?.vote_average ? Number(movie.imdb.vote_average) : undefined;
-  const imdbVotes = movie.imdb?.vote_count ? Number(movie.imdb.vote_count) : undefined;
-  const imdbId = movie.imdb?.id;
-  const tmdbScore = movie.tmdb?.vote_average ? Number(movie.tmdb.vote_average) : undefined;
 
-  // Cờ Chiếu rạp & Độc quyền
+  // Cờ Chiếu rạp
   const isChieuRap = Boolean(
     movie.chieurap === true ||
       movie.chieurap === "true" ||
       movie.chieurap === 1 ||
       movie.chieu_rap === true
-  );
-  const isSubDocQuyen = Boolean(
-    movie.sub_docquyen === true ||
-      movie.sub_docquyen === "true" ||
-      movie.sub_docquyen === 1 ||
-      movie.doc_quyen === true
   );
 
   // Tên gọi khác (tên tiếng Trung/Anh/phụ)
@@ -251,9 +242,6 @@ export default async function MovieDetail({
           year: "numeric",
         })
       : null;
-
-  // Trạng thái bản quyền chính thức
-  const isCopyright = Boolean(movie.is_copyright);
 
   const episodeServers = episodes || [];
   const currentServerIndex = Math.min(

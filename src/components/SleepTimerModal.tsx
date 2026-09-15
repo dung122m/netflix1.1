@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Timer, X, Moon, Play } from "lucide-react";
 
 interface SleepTimerModalProps {
@@ -29,13 +29,13 @@ export const SleepTimerModal: React.FC<SleepTimerModalProps> = ({
 }) => {
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     if (externalOnClose) {
       externalOnClose();
     } else {
       setInternalIsOpen(false);
     }
-  };
+  }, [externalOnClose]);
   const handleOpen = () => {
     setInternalIsOpen(true);
   };
@@ -49,7 +49,7 @@ export const SleepTimerModal: React.FC<SleepTimerModalProps> = ({
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen]);
+  }, [isOpen, handleClose]);
 
   // Khôi phục timer từ sessionStorage nếu có
   useEffect(() => {

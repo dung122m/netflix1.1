@@ -89,7 +89,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const lastHandoffSyncRef = useRef<number>(0);
 
   const title = watchContext?.movieTitle || propTitle;
-  const movieSlug = watchContext?.movieSlug || propMovieSlug;
   const isTrailerOnly = watchContext?.isTrailerOnly ?? propIsTrailerOnly;
   const episodes = watchContext?.episodes || propEpisodes;
   const activeEpisodeSlug = watchContext?.activeEpisodeSlug || propActiveEpisodeSlug;
@@ -1169,7 +1168,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
               className={`w-full h-full relative ${
                 showControls || !isPlaying ? "cursor-pointer" : "cursor-none"
               }`}
-              onClick={(e) => {
+              onClick={() => {
                 // Trên điện thoại & web: Nếu controls đang ẩn -> chạm để HIỆN lại controls, KHÔNG pause video!
                 if (!showControls && isPlaying) {
                   setShowControls(true);

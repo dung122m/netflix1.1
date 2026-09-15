@@ -487,7 +487,7 @@ export async function fetchAllCommentsDirect(): Promise<MovieComment[]> {
 export function subscribeAllComments(
   onUpdate: (comments: MovieComment[]) => void,
   onError?: (err: Error) => void,
-  maxLimit: number = 500,
+  _maxLimit: number = 500,
 ): Unsubscribe {
   let isUnsubscribed = false;
 

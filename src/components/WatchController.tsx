@@ -215,7 +215,7 @@ export function WatchController({
       setActiveEpisodeSlug(currentTargetSlug);
       updateUrlQuietly(currentTargetSlug, safeIndex);
     },
-    [initialServers, activeEpisodeSlug, activeEpisode?.name, updateUrlQuietly]
+    [initialServers, activeEpisodeSlug, activeEpisode, updateUrlQuietly]
   );
 
   const value = useMemo<WatchContextValue>(() => {

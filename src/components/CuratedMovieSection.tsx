@@ -78,7 +78,6 @@ interface CuratedMovieSectionProps {
 
 export const CuratedMovieSection: React.FC<CuratedMovieSectionProps> = ({
   initialMovies,
-  initialTotalItems = 0,
 }) => {
   const [activeTab, setActiveTab] = useState<CuratedTabKey>("trending");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
