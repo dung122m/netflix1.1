@@ -924,123 +924,12 @@ export function getVerified247Channels(): FootballMatch[] {
         },
       ],
     },
-    {
-      id: "sport_redbull_thethao_247",
-      time: "24/7",
-      timestamp: now,
-      title: "RedBull TV Sports HD (Thể Thao Tốc Độ & Mạo Hiểm Quốc Tế)",
-      team1: "RedBull TV Thể Thao",
-      team2: "",
-      blv: "Quốc Tế",
-      group: "Thể Thao Quốc Tế",
-      groups: ["Thể Thao Quốc Tế"],
-      tournament: "Kênh Thể Thao 24/7",
-      isEvent: true,
-      timeline: "live",
-      quality: "FHD 1080p",
-      servers: [
-        {
-          name: "RedBull TV Sports Master",
-          url: VERIFIED_SPORTS_STREAMS.redbull,
-          format: "hls",
-          isHls: true,
-          quality: "HD",
-          sourceName: "RedBull Sports",
-        },
-      ],
-    },
   ];
 }
 
 export async function getFptEventChannels(): Promise<FootballMatch[]> {
-  const now = Date.now();
-  const candidateList = [
-    { key: "event-03", title: "Sự Kiện FPT Play - Kênh 03" },
-    { key: "event-07", title: "Sự Kiện FPT Play - Kênh 07" },
-    { key: "su-kien-05", title: "FPT Play - Sự Kiện Thể Thao 5" },
-    { key: "su-kien-06", title: "FPT Play - Sự Kiện Thể Thao 6" },
-    { key: "event-01", title: "Sự Kiện FPT Play - Kênh 01" },
-    { key: "event-02", title: "Sự Kiện FPT Play - Kênh 02" },
-    { key: "event-04", title: "Sự Kiện FPT Play - Kênh 04" },
-    { key: "event-05", title: "Sự Kiện FPT Play - Kênh 05" },
-    { key: "event-06", title: "Sự Kiện FPT Play - Kênh 06" },
-    { key: "event-08", title: "Sự Kiện FPT Play - Kênh 08" },
-    { key: "event-09", title: "Sự Kiện FPT Play - Kênh 09" },
-    { key: "event-10", title: "Sự Kiện FPT Play - Kênh 10" },
-    { key: "su-kien-01", title: "FPT Play - Sự Kiện Thể Thao 1" },
-    { key: "su-kien-02", title: "FPT Play - Sự Kiện Thể Thao 2" },
-    { key: "su-kien-03", title: "FPT Play - Sự Kiện Thể Thao 3" },
-    { key: "su-kien-04", title: "FPT Play - Sự Kiện Thể Thao 4" },
-    { key: "su-kien-07", title: "FPT Play - Sự Kiện Thể Thao 7" },
-    { key: "su-kien-08", title: "FPT Play - Sự Kiện Thể Thao 8" },
-  ];
-
-  let playableCandidates = candidateList;
-  // Khi không ở môi trường datacenter Vercel (ví dụ local dev hoặc server nội địa), lọc trực tiếp các kênh live 200 OK
-  if (process.env.VERCEL !== "1") {
-    try {
-      const verified = await Promise.all(
-        candidateList.map(async (c) => {
-          const u = `https://vips-livecdn.fptplay.net/live/media/${c.key}/hls_avc_v6/index.m3u8`;
-          try {
-            const res = await fetch(u, {
-              method: "HEAD",
-              signal: AbortSignal.timeout(1500),
-            });
-            return res.status === 200 ? c : null;
-          } catch {
-            return null;
-          }
-        }),
-      );
-      const activeOnly = verified.filter(Boolean) as typeof candidateList;
-      if (activeOnly.length > 0) {
-        playableCandidates = activeOnly;
-      }
-    } catch {
-      // Fallback giữ candidateList
-    }
-  }
-
-  return playableCandidates.map((c) => {
-    const primaryUrl = `https://vips-livecdn.fptplay.net/live/media/${c.key}/hls_avc_v6/index.m3u8`;
-    const backupUrl = `https://live.fptplay53.net/live/media/${c.key}/hls_avc_v6/index.m3u8`;
-    const id = `skinfptplay_${c.key.replace("-", "_")}`;
-    return {
-      id,
-      time: "Trực tiếp",
-      timestamp: now,
-      title: c.title,
-      team1: c.title,
-      team2: "",
-      blv: "FPT Play",
-      logo: FPT_EVENT_POSTER,
-      group: "Sự Kiện FPT Play",
-      groups: ["Sự Kiện FPT Play"],
-      tournament: "Sự Kiện FPT Play",
-      isEvent: true,
-      timeline: "live",
-      quality: "FHD 1080p",
-      servers: [
-        {
-          name: `${c.title} [HLS]`,
-          url: primaryUrl,
-          format: "hls",
-          isHls: true,
-          quality: "FHD",
-          sourceName: "Sự Kiện FPT Play",
-        },
-        {
-          name: `${c.title} [HLS] (Dự phòng)`,
-          url: backupUrl,
-          format: "hls",
-          isHls: true,
-          quality: "FHD",
-          sourceName: "Sự Kiện FPT Play",
-        },
-      ],
-    };
-  });
+  // Chỉ lấy các trận đấu thực tế từ feed M3U, không sinh dummy 18 kênh tĩnh gây lỗi 404
+  return [];
 }
 
 // Cache kết quả kiểm tra luồng stream (TTL 5 phút cho luồng sống, 60s cho luồng chết)
@@ -1263,6 +1152,17 @@ export const liveFootballService = {
             continue;
           }
 
+          // 4. LOẠI BỎ TOÀN BỘ CÁC KÊNH THỂ THAO NƯỚC NGOÀI (FightBox, KHL, MMA-TV, QAZSPORT, Viju+, RedBull...)
+          const isForeignSportsChannel =
+            upperGroup.includes("QUỐC TẾ") ||
+            upperGroup.includes("INTERNATIONAL") ||
+            upperGroup.includes("FOREIGN") ||
+            /FightBox|KHL\s*Prime|MMA-TV|QAZSPORT|Viju\+|Setanta|Trace\s*Sport|Fight\s*Network|Edge\s*Sport|Extreme\s*Sport|Motorvision|Speedway|Nova\s*Sport|Arena\s*Sport|Sky\s*Sport|TNT\s*Sport|Canal\+|DAZN|SuperSport|Astro|SPOTV|Optus|Fox\s*Sports|NBC\s*Sports|ESPN|TSN|Sportsnet|CBS\s*Sports|Premier\s*Sports|Fight\s*Box/i.test(
+              rawTitle,
+            );
+
+          if (isForeignSportsChannel) continue;
+
           const isSportsOrEvent =
             upperGroup.includes("COLA TV") ||
             upperGroup.includes("PHÁO HOA TV") ||
@@ -1271,14 +1171,10 @@ export const liveFootballService = {
             upperGroup.includes("TV360") ||
             upperGroup.includes("VTVPRIME") ||
             upperGroup.includes("THỂ THAO") ||
-            upperGroup.includes("SPORT") ||
-            upperGroup.includes("ASIAN GAMES") ||
             upperTitle.includes("SỰ KIỆN") ||
             upperTitle.includes("EVENT ") ||
             upperTitle.includes("VS") ||
             upperTitle.includes("BLV ") ||
-            upperTitle.includes("SPORTS") ||
-            upperTitle.includes("FOOTBALL") ||
             upperTitle.includes("THỂ THAO");
 
           if (!isSportsOrEvent) continue;
@@ -1330,6 +1226,16 @@ export const liveFootballService = {
         const upperGroup = group.toUpperCase();
         const upperTitle = rawTitle.toUpperCase();
 
+        // Loại bỏ mọi kênh ngoại quốc
+        if (
+          upperGroup.includes("QUỐC TẾ") ||
+          /FightBox|KHL\s*Prime|MMA-TV|QAZSPORT|Viju\+|Setanta|Trace\s*Sport|Fight\s*Network|Edge\s*Sport|Extreme\s*Sport/i.test(
+            rawTitle,
+          )
+        ) {
+          continue;
+        }
+
         let cleanGroup = "Phòng BLV Tiếng Việt";
         if (
           upperGroup.includes("FPT PLAY") ||
@@ -1349,20 +1255,13 @@ export const liveFootballService = {
         ) {
           cleanGroup = "Phòng BLV Tiếng Việt";
         } else if (
-          upperGroup.includes("QUỐC TẾ") ||
-          upperGroup.includes("SPORT") ||
-          upperTitle.includes("SPORT") ||
-          upperTitle.includes("TNT") ||
-          upperTitle.includes("CANAL") ||
-          upperTitle.includes("SKY")
-        ) {
-          cleanGroup = "Thể Thao Quốc Tế";
-        } else if (
           upperGroup.includes("HTV") ||
           upperGroup.includes("VTV") ||
           upperGroup.includes("THỂ THAO")
         ) {
           cleanGroup = "Kênh Thể Thao VTV & HTV";
+        } else {
+          continue; // Bỏ các kênh không thuộc nhóm thể thao Việt Nam / BLV Tiếng Việt
         }
 
         channelsSet.add(cleanGroup);
@@ -1404,8 +1303,6 @@ export const liveFootballService = {
           blv = "TV360 Sports";
         } else if (cleanGroup === "Sự Kiện FPT Play") {
           blv = "FPT Play";
-        } else if (cleanGroup === "Thể Thao Quốc Tế") {
-          blv = "Quốc tế";
         }
 
         // Định dạng tiêu đề hiển thị thật

@@ -30,7 +30,6 @@ import {
 } from "lucide-react";
 import { FootballMatch, StreamServer } from "@/services/liveFootballService";
 import { useMatchReminders } from "@/hooks/useMatchReminders";
-import { WebGLCasCanvas } from "./WebGLCasCanvas";
 
 // Logo hiển thị trong drawer danh sách kênh & trận đấu
 function MatchRailLogo({ option }: { option: FootballMatch }) {
@@ -435,12 +434,13 @@ export function LivePlayer({
         maxMaxBufferLength: 40,
         maxBufferSize: 30 * 1000 * 1000,
         // Ước tính băng thông cao ngay từ đầu → tránh startup ở 480p/720p
-        abrEwmaDefaultEstimate: 8_000_000,
+        abrEwmaDefaultEstimate: 12_000_000,
         capLevelToPlayerSize: false,
+        startLevel: -1,
         // Timeout nhanh hơn cho live stream
-        manifestLoadingTimeOut: 6000,
-        levelLoadingTimeOut: 6000,
-        fragLoadingTimeOut: 8000,
+        manifestLoadingTimeOut: 8000,
+        levelLoadingTimeOut: 8000,
+        fragLoadingTimeOut: 10000,
         fragLoadingMaxRetry: 6,
         levelLoadingMaxRetry: 6,
         manifestLoadingMaxRetry: 6,
@@ -487,6 +487,7 @@ export function LivePlayer({
           hls.currentLevel = highestIdx;
           hls.loadLevel = highestIdx;
           hls.nextLevel = highestIdx;
+          hls.startLevel = highestIdx;
         }
         setIsLoading(false);
         const curVol = volumeRef.current || 0.9;
@@ -1191,16 +1192,9 @@ export function LivePlayer({
           showControls ? "cursor-default" : "cursor-none"
         }`}
       >
-        {/* WebGL CAS Super Sharpening Canvas (Mặc định tự động làm nét & tối ưu màu sân cỏ) */}
-        <WebGLCasCanvas
-          videoRef={videoRef}
-          enabled={true}
-          sharpness={0.75}
-        />
-
         <video
           ref={videoRef}
-          className="w-full h-full object-contain pointer-events-none"
+          className="w-full h-full object-contain pointer-events-none bg-black transform-gpu will-change-transform"
           playsInline
           onPlay={() => setIsPlaying(true)}
           onPause={() => setIsPlaying(false)}

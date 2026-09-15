@@ -137,9 +137,11 @@ export function LiveFootballClient({
     };
   }, []);
 
-  // Khởi tạo match mặc định
+  // Khởi tạo match mặc định: Ưu tiên trận ĐANG ĐÁ (LIVE) và có luồng HLS
   const defaultMatch = useMemo(() => {
     return (
+      liveMatches.find((m) => m.timeline === "live" && m.servers.some((s) => s.isHls)) ||
+      liveMatches.find((m) => m.timeline === "live") ||
       liveMatches.find((m) => m.servers.some((s) => s.isHls)) ||
       liveMatches[0] ||
       null
@@ -169,10 +171,15 @@ export function LiveFootballClient({
     },
   );
 
-  // Bộ lọc timeline: all | live | upcoming (sắp đá)
+  // Bộ lọc timeline: Mặc định chọn "live" (Đang đá) nếu có trận đang diễn ra
   const [timelineFilter, setTimelineFilter] = useState<
     "all" | "live" | "upcoming"
-  >("all");
+  >(() => {
+    const liveCount = initialData.matches.filter(
+      (m) => m.timeline === "live",
+    ).length;
+    return liveCount > 0 ? "live" : "all";
+  });
   const [showAllUpcoming, setShowAllUpcoming] = useState<boolean>(true);
   const [selectedChannel, setSelectedChannel] = useState<string>("all");
   const [selectedTournament, setSelectedTournament] = useState<string>("all");
