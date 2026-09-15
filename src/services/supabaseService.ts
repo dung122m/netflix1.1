@@ -481,15 +481,12 @@ export async function getUserCollectionsSupabase(userId: string): Promise<MovieC
     return data.map((d) => ({
       id: d.id,
       userId: d.user_id,
-      userName: d.user_name || "Thành viên Nanaflix",
-      userAvatar: d.user_avatar,
+      creatorName: d.user_name || "Thành viên Nanaflix",
+      creatorPhoto: d.user_avatar || undefined,
       name: d.name,
-      description: d.description,
+      description: d.description || "",
       isPublic: Boolean(d.is_public),
-      colorGradient: d.color_gradient,
-      movies: d.movies || [],
-      likesCount: d.likes_count || 0,
-      viewsCount: d.views_count || 0,
+      movies: Array.isArray(d.movies) ? d.movies : [],
       createdAt: Number(d.created_at) || Date.now(),
       updatedAt: Number(d.updated_at) || Date.now(),
     }));
@@ -498,23 +495,20 @@ export async function getUserCollectionsSupabase(userId: string): Promise<MovieC
   }
 }
 
-export async function saveCollectionSupabase(collection: MovieCollection): Promise<void> {
-  if (!supabase || !collection.id || !collection.userId) return;
+export async function saveCollectionSupabase(col: MovieCollection): Promise<void> {
+  if (!supabase || !col.id || !col.userId) return;
   try {
     const payload = {
-      id: collection.id,
-      user_id: collection.userId,
-      user_name: collection.userName || "Thành viên Nanaflix",
-      user_avatar: collection.userAvatar || null,
-      name: collection.name,
-      description: collection.description || null,
-      is_public: Boolean(collection.isPublic),
-      color_gradient: collection.colorGradient || null,
-      movies: collection.movies || [],
-      likes_count: collection.likesCount || 0,
-      views_count: collection.viewsCount || 0,
-      created_at: collection.createdAt || Date.now(),
-      updated_at: collection.updatedAt || Date.now(),
+      id: col.id,
+      user_id: col.userId,
+      user_name: col.creatorName || "Thành viên Nanaflix",
+      user_avatar: col.creatorPhoto || null,
+      name: col.name,
+      description: col.description || null,
+      is_public: Boolean(col.isPublic),
+      movies: col.movies || [],
+      created_at: col.createdAt || Date.now(),
+      updated_at: col.updatedAt || Date.now(),
     };
     await supabase.from("collections").upsert(payload, { onConflict: "id" });
   } catch (err) {
@@ -544,15 +538,12 @@ export async function getPublicCollectionsSupabase(): Promise<MovieCollection[]>
     return data.map((d) => ({
       id: d.id,
       userId: d.user_id,
-      userName: d.user_name || "Thành viên Nanaflix",
-      userAvatar: d.user_avatar,
+      creatorName: d.user_name || "Thành viên Nanaflix",
+      creatorPhoto: d.user_avatar || undefined,
       name: d.name,
-      description: d.description,
+      description: d.description || "",
       isPublic: Boolean(d.is_public),
-      colorGradient: d.color_gradient,
-      movies: d.movies || [],
-      likesCount: d.likes_count || 0,
-      viewsCount: d.views_count || 0,
+      movies: Array.isArray(d.movies) ? d.movies : [],
       createdAt: Number(d.created_at) || Date.now(),
       updatedAt: Number(d.updated_at) || Date.now(),
     }));
