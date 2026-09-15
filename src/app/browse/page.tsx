@@ -67,6 +67,7 @@ export async function generateMetadata({
   }
 
   const fullTitle = `Nanaflix - ${title}`;
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://netflix1-1.vercel.app";
 
   return {
     title: fullTitle,
@@ -77,10 +78,12 @@ export async function generateMetadata({
       type: "website",
       images: [
         {
-          url: "/default-hero.jpg",
+          url: `${siteUrl}/default-hero.jpg`,
+          secureUrl: `${siteUrl}/default-hero.jpg`,
           width: 1200,
           height: 630,
           alt: fullTitle,
+          type: "image/jpeg",
         },
       ],
     },
@@ -88,7 +91,7 @@ export async function generateMetadata({
       card: "summary_large_image",
       title: fullTitle,
       description,
-      images: ["/default-hero.jpg"],
+      images: [`${siteUrl}/default-hero.jpg`],
     },
   };
 }

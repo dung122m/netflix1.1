@@ -70,10 +70,12 @@ export const metadata: Metadata = {
       "Nanaflix - Xem phim trực tuyến chất lượng cao cùng Trợ lý Nana gợi ý phim thông minh, cập nhật liên tục các siêu phẩm điện ảnh mới nhất.",
     images: [
       {
-        url: "/default-hero.jpg",
+        url: `${siteUrl}/default-hero.jpg`,
+        secureUrl: `${siteUrl}/default-hero.jpg`,
         width: 1200,
         height: 630,
         alt: "Nanaflix - Xem Phim Online HD",
+        type: "image/jpeg",
       },
     ],
   },
@@ -82,7 +84,7 @@ export const metadata: Metadata = {
     title: "Nanaflix - Thế Giới Điện Ảnh Của Nana",
     description:
       "Nanaflix - Xem phim trực tuyến chất lượng cao cùng Trợ lý Nana gợi ý phim thông minh, cập nhật liên tục các siêu phẩm điện ảnh mới nhất.",
-    images: ["/default-hero.jpg"],
+    images: [`${siteUrl}/default-hero.jpg`],
   },
   robots: {
     index: true,

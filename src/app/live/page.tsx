@@ -6,6 +6,8 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { LiveHubClient } from "@/components/live/LiveHubClient";
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://netflix1-1.vercel.app";
+
 export const metadata: Metadata = {
   title: "Nanaflix - Trực Tiếp Bóng Đá & Truyền Hình TV HD (VTV, HTV, THVL)",
   description:
@@ -17,10 +19,12 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "/default-hero.jpg",
+        url: `${siteUrl}/default-hero.jpg`,
+        secureUrl: `${siteUrl}/default-hero.jpg`,
         width: 1200,
         height: 630,
         alt: "Nanaflix Live TV & Bóng Đá",
+        type: "image/jpeg",
       },
     ],
   },
@@ -29,7 +33,7 @@ export const metadata: Metadata = {
     title: "Nanaflix - Trực Tiếp Bóng Đá & Truyền Hình TV HD",
     description:
       "Xem trực tiếp bóng đá và hơn 100 kênh truyền hình VTV, HTV, THVL chất lượng cao trên Nanaflix.",
-    images: ["/default-hero.jpg"],
+    images: [`${siteUrl}/default-hero.jpg`],
   },
 };
 
