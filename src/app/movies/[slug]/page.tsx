@@ -31,7 +31,7 @@ import { WatchController } from "@/components/WatchController";
 import { ServerSelector } from "@/components/ServerSelector";
 import { WatchlistButton } from "@/components/WatchlistButton";
 import { AddToCollectionButton } from "@/components/Collections/AddToCollectionButton";
-import { ActiveEpisodeBadge } from "@/components/ActiveEpisodeBadge";
+import { ActiveEpisodeBadge, EpisodeCountBadge } from "@/components/ActiveEpisodeBadge";
 import { formatEpisodeName, findEpisodeMatch } from "@/lib/formatEpisode";
 
 const MobileQrModal = dynamic(
@@ -718,9 +718,7 @@ export default async function MovieDetail({
               <h3 className="text-xl font-bold flex items-center gap-2">
                 <span>Danh sách tập</span>
               </h3>
-              <span className="text-xs px-2.5 py-1 rounded-full bg-white/10 text-gray-300 font-medium">
-                {serverData.length > 0 ? `${serverData.length} tập` : "Trailer"}
-              </span>
+              <EpisodeCountBadge initialCount={serverData.length} isTrailerOnly={isTrailerOnly} />
             </div>
 
             {/* THANH CHUYỂN SERVER NẾU PHIM CÓ NHIỀU NGUỒN PHÁT (0MS SWITCHING) */}

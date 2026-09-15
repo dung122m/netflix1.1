@@ -28,11 +28,12 @@ interface EpisodeListProps {
 
 export const EpisodeList: React.FC<EpisodeListProps> = ({
   movieSlug,
-  episodes = [],
+  episodes: propEpisodes = [],
   activeEpisodeSlug: propActiveEpisodeSlug,
   onSelectEpisode,
 }) => {
   const watchContext = useWatchController();
+  const episodes = watchContext?.episodes ?? propEpisodes;
   const activeEpisodeSlug = watchContext?.activeEpisodeSlug ?? propActiveEpisodeSlug;
   const switchEpisode = watchContext?.switchEpisode ?? onSelectEpisode;
 
@@ -53,12 +54,14 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
 
   const [activeChunk, setActiveChunk] = useState<number>(initialChunk);
 
-  // Cập nhật tab khi activeEpisodeSlug thay đổi
+  // Cập nhật tab khi activeEpisodeSlug hoặc danh sách tập thay đổi (khi đổi nguồn phát / server)
   useEffect(() => {
     if (activeEpisodeIndex >= 0) {
       setActiveChunk(Math.floor(activeEpisodeIndex / CHUNK_SIZE));
+    } else {
+      setActiveChunk(0);
     }
-  }, [activeEpisodeIndex]);
+  }, [activeEpisodeIndex, episodes]);
 
   useEffect(() => {
     // Đọc danh sách tập đã xem của phim này
@@ -108,8 +111,8 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
     if (query) {
       return episodes.filter(
         (tap) =>
-          tap.name.toLowerCase().includes(query) ||
-          tap.slug.toLowerCase().includes(query)
+          (tap.name && tap.name.toLowerCase().includes(query)) ||
+          (tap.slug && tap.slug.toLowerCase().includes(query))
       );
     }
 
@@ -180,19 +183,21 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
       {/* LƯỚI TẬP PHIM: 6 cột mobile giúp danh sách rất gọn, số hiển thị lớn và rõ ràng */}
       {displayEpisodes.length > 0 ? (
         <div className="grid grid-cols-6 sm:grid-cols-7 lg:grid-cols-5 xl:grid-cols-6 gap-1.5 sm:gap-2">
-          {displayEpisodes.map((tap) => {
-            const isActive = activeEpisodeSlug === tap.slug;
-            const isWatched = watchedList.includes(tap.slug);
-            const shortLabel = getShortEpisodeLabel(tap.name);
+          {displayEpisodes.map((tap, tapIdx) => {
+            const tapSlug = tap.slug || `ep-${tapIdx + 1}`;
+            const tapName = tap.name || `Tập ${tapIdx + 1}`;
+            const isActive = Boolean(activeEpisodeSlug && activeEpisodeSlug === tap.slug);
+            const isWatched = Boolean(tap.slug && watchedList.includes(tap.slug));
+            const shortLabel = getShortEpisodeLabel(tapName);
 
             return (
               <Link
-                key={tap.slug}
-                href={`?ep=${tap.slug}`}
+                key={tapSlug}
+                href={`?ep=${tapSlug}`}
                 scroll={false}
-                title={tap.name}
+                title={tapName}
                 onClick={(e) => {
-                  if (switchEpisode) {
+                  if (switchEpisode && tap.slug) {
                     e.preventDefault();
                     switchEpisode(tap.slug);
                   }

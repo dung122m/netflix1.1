@@ -25,4 +25,19 @@ export const ActiveEpisodeBadge: React.FC<ActiveEpisodeBadgeProps> = ({
   );
 };
 
+export const EpisodeCountBadge: React.FC<{ initialCount?: number; isTrailerOnly?: boolean }> = ({
+  initialCount = 0,
+  isTrailerOnly: propIsTrailerOnly = false,
+}) => {
+  const watchContext = useWatchController();
+  const isTrailerOnly = watchContext?.isTrailerOnly ?? propIsTrailerOnly;
+  const count = watchContext?.episodes?.length ?? initialCount;
+
+  return (
+    <span className="text-xs px-2.5 py-1 rounded-full bg-white/10 text-gray-300 font-medium transition-all">
+      {isTrailerOnly || count === 0 ? "Trailer" : `${count} tập`}
+    </span>
+  );
+};
+
 export default ActiveEpisodeBadge;
