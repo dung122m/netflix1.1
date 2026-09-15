@@ -32,7 +32,7 @@ export const GENRE_MAP: Record<string, GenreMeta> = {
   "💖 Tình Cảm": { slug: "tinh-cam", name: "Tình Cảm" },
   "👻 Kinh Dị": { slug: "kinh-di", name: "Kinh Dị" },
   "🛸 Viễn Tưởng": { slug: "vien-tuong", name: "Viễn Tưởng" },
-  "🎨 Hoạt Hình / Anime": { slug: "hoat-hinh", name: "Hoạt Hình & Anime" },
+  "🎨 Hoạt Hình / Anime": { slug: "hoat-hinh", isType: true, name: "Hoạt Hình & Anime" },
   "🤣 Hài Hước": { slug: "hai-huoc", name: "Hài Hước" },
   "🏯 Cổ Trang": { slug: "co-trang", name: "Cổ Trang" },
   "🕵️ Trinh Thám": { slug: "trinh-tham", name: "Trinh Thám" },
@@ -40,7 +40,103 @@ export const GENRE_MAP: Record<string, GenreMeta> = {
   "📺 Phim Bộ": { slug: "phim-bo", isType: true, name: "Phim Bộ" },
   "🎪 TV Shows": { slug: "tv-shows", isType: true, name: "TV Shows" },
   "🥋 Võ Thuật": { slug: "vo-thuat", name: "Võ Thuật" },
+  "🎭 Tâm Lý": { slug: "tam-ly", name: "Tâm Lý" },
 };
+
+export function toSlug(str: string): string {
+  return str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[đĐ]/g, "d")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+export function getGenreEmoji(slug: string): string {
+  if (slug === "hanh-dong") return "💥";
+  if (slug === "tinh-cam") return "💖";
+  if (slug === "kinh-di") return "👻";
+  if (slug === "vien-tuong") return "🛸";
+  if (slug === "hoat-hinh") return "🎨";
+  if (slug === "hai-huoc") return "🤣";
+  if (slug === "co-trang") return "🏯";
+  if (slug === "trinh-tham") return "🕵️";
+  if (slug === "phim-chieu-rap") return "🍿";
+  if (slug === "phim-bo") return "📺";
+  if (slug === "tv-shows") return "🎪";
+  if (slug === "vo-thuat") return "🥋";
+  if (slug === "tam-ly") return "🎭";
+  return "🎬";
+}
+
+export function resolveGenreMeta(genreLabel: string): GenreMeta {
+  if (GENRE_MAP[genreLabel]) {
+    return GENRE_MAP[genreLabel];
+  }
+
+  // Chuẩn hóa tên (bỏ emoji nếu có)
+  const cleanName = genreLabel.replace(/^[^\w\s\u00C0-\u1EF9]+/gu, "").trim();
+  const rawSlug = toSlug(cleanName || genreLabel);
+
+  // Tra cứu theo tên sạch trong GENRE_MAP
+  for (const [key, val] of Object.entries(GENRE_MAP)) {
+    const keyClean = key.replace(/^[^\w\s\u00C0-\u1EF9]+/gu, "").trim().toLowerCase();
+    if (
+      keyClean === cleanName.toLowerCase() ||
+      val.name.toLowerCase() === cleanName.toLowerCase() ||
+      val.slug === rawSlug
+    ) {
+      return val;
+    }
+  }
+
+  // Các trường hợp nhận diện thông minh
+  if (rawSlug.includes("tinh-cam") || rawSlug.includes("lang-man")) {
+    return { slug: "tinh-cam", name: "Tình Cảm" };
+  }
+  if (rawSlug.includes("hanh-dong")) {
+    return { slug: "hanh-dong", name: "Hành Động" };
+  }
+  if (rawSlug.includes("kinh-di")) {
+    return { slug: "kinh-di", name: "Kinh Dị" };
+  }
+  if (rawSlug.includes("vien-tuong")) {
+    return { slug: "vien-tuong", name: "Viễn Tưởng" };
+  }
+  if (rawSlug.includes("hoat-hinh") || rawSlug.includes("anime")) {
+    return { slug: "hoat-hinh", isType: true, name: "Hoạt Hình & Anime" };
+  }
+  if (rawSlug.includes("hai-huoc") || rawSlug.includes("hai")) {
+    return { slug: "hai-huoc", name: "Hài Hước" };
+  }
+  if (rawSlug.includes("co-trang")) {
+    return { slug: "co-trang", name: "Cổ Trang" };
+  }
+  if (rawSlug.includes("trinh-tham") || rawSlug.includes("hinh-su")) {
+    return { slug: "trinh-tham", name: "Trinh Thám" };
+  }
+  if (rawSlug.includes("chieu-rap")) {
+    return { slug: "phim-chieu-rap", isType: true, name: "Phim Chiếu Rạp" };
+  }
+  if (rawSlug.includes("phim-bo")) {
+    return { slug: "phim-bo", isType: true, name: "Phim Bộ" };
+  }
+  if (rawSlug.includes("tv-show")) {
+    return { slug: "tv-shows", isType: true, name: "TV Shows" };
+  }
+  if (rawSlug.includes("vo-thuat") || rawSlug.includes("kiem-hiep")) {
+    return { slug: "vo-thuat", name: "Võ Thuật" };
+  }
+  if (rawSlug.includes("tam-ly")) {
+    return { slug: "tam-ly", name: "Tâm Lý" };
+  }
+
+  return {
+    slug: rawSlug || "tinh-cam",
+    name: cleanName || "Tình Cảm",
+  };
+}
 
 /**
  * Bóc tách tên 1-2 thể loại chính của phim để hiển thị rõ ràng, chuyên nghiệp
@@ -94,11 +190,16 @@ const SingleGenreRow: React.FC<SingleGenreRowProps> = React.memo(
         return genreMoviesCache[meta.slug];
       }
       // Lọc từ allMovies nếu đã có sẵn
-      const matches = initialMovies.filter((movie) => {
+      const matches = (initialMovies || []).filter((movie) => {
         if (!movie) return false;
         const categories = movie.category || [];
-        return categories.some(
-          (c: { slug?: string; name?: string }) => c?.slug === meta.slug || (c?.name || "").includes(meta.name)
+        const catList = Array.isArray(categories) ? categories : [categories];
+        return catList.some(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (c: any) => {
+            const s = (typeof c === "string" ? c : c?.slug || c?.name || "").toLowerCase();
+            return s.includes(meta.slug) || s.includes(meta.name.toLowerCase());
+          }
         );
       });
       return matches.length >= 6 ? matches : [];
@@ -108,8 +209,7 @@ const SingleGenreRow: React.FC<SingleGenreRowProps> = React.memo(
     const scrollContainerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-      if (movies.length >= 8) return;
-      if (genreMoviesCache[meta.slug]?.length) {
+      if (genreMoviesCache[meta.slug]?.length >= 6) {
         setMovies(genreMoviesCache[meta.slug]);
         setLoading(false);
         return;
@@ -122,12 +222,15 @@ const SingleGenreRow: React.FC<SingleGenreRowProps> = React.memo(
         try {
           const res = await movieApi.getMovies({
             ...(meta.isType ? { type: meta.slug } : { category: meta.slug }),
-            limit: 14,
+            limit: 18,
             page: 1,
           });
-          if (isMounted && res?.items && res.items.length > 0) {
-            genreMoviesCache[meta.slug] = res.items;
-            setMovies(res.items);
+          if (isMounted) {
+            const list = res?.items || [];
+            if (list.length > 0) {
+              genreMoviesCache[meta.slug] = list;
+              setMovies(list);
+            }
           }
         } catch (err) {
           console.warn(`Lỗi tải phim hàng thể loại ${meta.name}:`, err);
@@ -140,7 +243,7 @@ const SingleGenreRow: React.FC<SingleGenreRowProps> = React.memo(
       return () => {
         isMounted = false;
       };
-    }, [meta, movies.length]);
+    }, [meta.slug, meta.isType, meta.name]);
 
     const scroll = (direction: "left" | "right") => {
       if (scrollContainerRef.current) {
@@ -365,15 +468,29 @@ function PersonalizedGenreSectionInner({ allMovies = [] }: PersonalizedGenreSect
       {/* HIỂN THỊ TỐI ĐA 5 HÀNG THỂ LOẠI (NETFLIX MULTI-ROW STYLE) */}
       <div className="space-y-4 divide-y divide-white/5">
         {favoriteGenres.map((genreLabel) => {
-          const meta = GENRE_MAP[genreLabel] || {
-            slug: genreLabel.replace(/^[^\w\s]+/g, "").trim().toLowerCase(),
-            name: genreLabel.replace(/^[^\w\s]+/g, "").trim(),
-          };
+          const meta = resolveGenreMeta(genreLabel);
+          const emoji = getGenreEmoji(meta.slug);
+          const displayLabel =
+            genreLabel.startsWith("💥") ||
+            genreLabel.startsWith("💖") ||
+            genreLabel.startsWith("👻") ||
+            genreLabel.startsWith("🛸") ||
+            genreLabel.startsWith("🎨") ||
+            genreLabel.startsWith("🤣") ||
+            genreLabel.startsWith("🏯") ||
+            genreLabel.startsWith("🕵️") ||
+            genreLabel.startsWith("🍿") ||
+            genreLabel.startsWith("📺") ||
+            genreLabel.startsWith("🎪") ||
+            genreLabel.startsWith("🥋") ||
+            genreLabel.startsWith("🎭")
+              ? genreLabel
+              : `${emoji} ${meta.name}`;
 
           return (
             <SingleGenreRow
               key={genreLabel}
-              genreLabel={genreLabel}
+              genreLabel={displayLabel}
               meta={meta}
               initialMovies={allMovies}
             />
