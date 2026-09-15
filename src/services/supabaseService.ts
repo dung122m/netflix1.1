@@ -818,7 +818,7 @@ export async function getUserNotificationsSupabase(userId: string): Promise<User
       .limit(30);
 
     if (!data) return [];
-    return data.map((d) => ({
+    const rawList: UserNotification[] = data.map((d) => ({
       id: d.id,
       type: d.type as UserNotification["type"],
       title: d.title,
@@ -831,6 +831,27 @@ export async function getUserNotificationsSupabase(userId: string): Promise<User
       isRead: Boolean(d.is_read),
       createdAt: Number(d.created_at) || Date.now(),
     }));
+
+    const seenIds = new Set<string>();
+    const seenKeys = new Set<string>();
+    const deduped: UserNotification[] = [];
+
+    for (const item of rawList) {
+      const semanticKey = item.commentId
+        ? `cmt_${item.commentId}`
+        : item.type === "new_episode"
+        ? `ep_${item.movieSlug}_${item.title}`
+        : `${item.type}_${item.title}_${item.message}_${Math.floor((item.createdAt || 0) / 120000)}`;
+
+      if (seenIds.has(item.id) || seenKeys.has(semanticKey)) {
+        continue;
+      }
+      seenIds.add(item.id);
+      seenKeys.add(semanticKey);
+      deduped.push(item);
+    }
+
+    return deduped;
   } catch {
     return [];
   }

@@ -780,7 +780,7 @@ export async function addReplyComment(params: {
   if (targetUserId && targetUserId !== params.userId) {
     const isDirect = Boolean(replyToUserId);
     const notifData: UserNotification & { userId: string } = {
-      id: `notif_${createdId}_${Date.now()}`,
+      id: `notif_reply_${createdId}_${targetUserId}`,
       userId: targetUserId,
       type: "comment_reply",
       title: isDirect

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback, Suspense } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo, Suspense } from "react";
 import {
   Search,
   Bell,
@@ -130,7 +130,27 @@ const NavbarInner: React.FC = () => {
     };
   }, [user?.uid]);
 
-  const userUnreadCount = userNotifications.filter((n) => !n.isRead).length;
+  const dedupedUserNotifications = useMemo(() => {
+    const seenIds = new Set<string>();
+    const seenKeys = new Set<string>();
+    const result: UserNotification[] = [];
+    for (const item of userNotifications) {
+      if (!item || !item.id) continue;
+      const semanticKey = item.commentId
+        ? `cmt_${item.commentId}`
+        : item.type === "new_episode"
+        ? `ep_${item.movieSlug}_${item.title}`
+        : `${item.type}_${item.title}_${item.message}_${Math.floor((item.createdAt || 0) / 120000)}`;
+
+      if (seenIds.has(item.id) || seenKeys.has(semanticKey)) continue;
+      seenIds.add(item.id);
+      seenKeys.add(semanticKey);
+      result.push(item);
+    }
+    return result;
+  }, [userNotifications]);
+
+  const userUnreadCount = dedupedUserNotifications.filter((n) => !n.isRead).length;
 
   const effectiveAvatar = userProfile?.customAvatar || userProfile?.photoURL || user?.photoURL || "";
   const effectiveDisplayName = userProfile?.displayName || user?.displayName || "Thành viên Nanaflix";
@@ -1064,7 +1084,7 @@ const NavbarInner: React.FC = () => {
                         : "text-gray-400 hover:text-white hover:bg-white/5"
                     }`}
                   >
-                    Tất cả ({userNotifications.length + notifications.length})
+                    Tất cả ({dedupedUserNotifications.length + notifications.length})
                   </button>
                   <button
                     type="button"
@@ -1096,7 +1116,7 @@ const NavbarInner: React.FC = () => {
                 {/* LIST */}
                 <div className="space-y-2 max-h-[380px] overflow-y-auto overscroll-contain pr-1 scrollbar-none">
                   {/* DANH SÁCH THÔNG BÁO CÁ NHÂN (BÌNH LUẬN & THEO DÕI) */}
-                  {notifTab !== "system" && userNotifications.map((item) => {
+                  {notifTab !== "system" && dedupedUserNotifications.map((item) => {
                     const isReply = item.type === "comment_reply";
                     const itemAvatar = isReply ? (item.replierAvatar || item.image) : item.image;
                     const initialLetter = (item.replierName || item.title || "U").trim().charAt(0).toUpperCase();
@@ -1294,7 +1314,7 @@ const NavbarInner: React.FC = () => {
                       <Loader2 size={16} className="animate-spin text-netflix-red" />
                       <span>Đang kiểm tra cập nhật mới...</span>
                     </div>
-                  ) : notifTab === "replies" && userNotifications.length === 0 ? (
+                  ) : notifTab === "replies" && dedupedUserNotifications.length === 0 ? (
                     <div className="py-8 text-center text-gray-400 text-xs flex flex-col items-center justify-center gap-1.5">
                       <MessageSquare size={24} className="text-gray-600 mb-1" />
                       <span>Chưa có phản hồi bình luận nào mới</span>
@@ -1305,7 +1325,7 @@ const NavbarInner: React.FC = () => {
                       <Film size={24} className="text-gray-600 mb-1" />
                       <span>Đang nạp cập nhật phim mới...</span>
                     </div>
-                  ) : userNotifications.length === 0 && notifications.length === 0 ? (
+                  ) : dedupedUserNotifications.length === 0 && notifications.length === 0 ? (
                     <div className="py-8 text-center text-gray-400 text-xs flex flex-col items-center justify-center gap-1.5">
                       <Bell size={24} className="text-gray-600 mb-1" />
                       <span>Không có thông báo mới nào</span>

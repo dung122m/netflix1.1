@@ -147,7 +147,7 @@ export function saveLocalNotifications(userId: string, items: UserNotification[]
 }
 
 /**
- * Hợp nhất danh sách thông báo mới với danh sách cũ theo id
+ * Hợp nhất danh sách thông báo mới với danh sách cũ và khử trùng lặp thông minh
  */
 export function mergeNotifications(
   current: UserNotification[],
@@ -155,25 +155,36 @@ export function mergeNotifications(
   userId?: string,
 ): UserNotification[] {
   const lastRead = userId ? getLastReadTimestamp(userId) : 0;
-  const map = new Map<string, UserNotification>();
-  current.forEach((item) => map.set(item.id, item));
-  incoming.forEach((item) => {
-    const existing = map.get(item.id);
-    const isAutoRead = lastRead > 0 && (item.createdAt || 0) <= lastRead;
-    if (existing) {
-      map.set(item.id, {
-        ...existing,
-        ...item,
-        isRead: Boolean(existing.isRead || item.isRead || isAutoRead),
-      });
-    } else {
-      map.set(item.id, {
-        ...item,
-        isRead: Boolean(item.isRead || isAutoRead),
-      });
+  const combined = [...incoming, ...current];
+  const seenExactIds = new Set<string>();
+  const seenSemanticKeys = new Set<string>();
+  const result: UserNotification[] = [];
+
+  for (const item of combined) {
+    if (!item || !item.id) continue;
+
+    // Khóa trùng lặp theo ID và theo nội dung bình luận
+    const semanticKey = item.commentId
+      ? `cmt_${item.commentId}`
+      : item.type === "new_episode"
+      ? `ep_${item.movieSlug}_${item.title}`
+      : `${item.type}_${item.title}_${item.message}_${Math.floor((item.createdAt || 0) / 120000)}`;
+
+    if (seenExactIds.has(item.id) || seenSemanticKeys.has(semanticKey)) {
+      continue;
     }
-  });
-  return Array.from(map.values()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+    seenExactIds.add(item.id);
+    seenSemanticKeys.add(semanticKey);
+
+    const isAutoRead = lastRead > 0 && (item.createdAt || 0) <= lastRead;
+    result.push({
+      ...item,
+      isRead: Boolean(item.isRead || isAutoRead),
+    });
+  }
+
+  return result.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 }
 
 /**
