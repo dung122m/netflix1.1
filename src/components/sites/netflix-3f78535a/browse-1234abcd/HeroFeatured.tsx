@@ -98,12 +98,12 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
 
   const currentSlug = slides[index]?.slug;
   const [heroSynopsis, setHeroSynopsis] = useState<string>("");
+  const [heroBackdropMap, setHeroBackdropMap] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!currentSlug) return;
     if (clientSynopsisCache.has(currentSlug)) {
       setHeroSynopsis(clientSynopsisCache.get(currentSlug)!);
-      return;
     }
     fetch(`/api/synopsis?slug=${encodeURIComponent(currentSlug)}`)
       .then((res) => res.json())
@@ -111,6 +111,9 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
         if (data?.content) {
           clientSynopsisCache.set(currentSlug, data.content);
           setHeroSynopsis(data.content);
+        }
+        if (data?.backdrop_url) {
+          setHeroBackdropMap((prev) => ({ ...prev, [currentSlug]: data.backdrop_url }));
         }
       })
       .catch(() => {});
@@ -193,9 +196,11 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
         }),
       };
 
+  const heroImageSrc = (currentSlug && heroBackdropMap[currentSlug]) || pickHeroBackdropImage(featuredMovie, "/default-hero.jpg");
+
   return (
     <section
-      className="hero-cinema-section keep-dark-cinema relative h-[56vh] sm:h-[78vh] md:h-[86vh] min-h-[420px] sm:min-h-[560px] w-full overflow-hidden bg-black select-none"
+      className="hero-cinema-section keep-dark-cinema relative h-[58vh] sm:h-[75vh] md:h-[82vh] min-h-[460px] sm:min-h-[540px] max-h-[850px] w-full overflow-hidden bg-black select-none"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
@@ -221,14 +226,14 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
             className="absolute inset-0 will-change-transform"
           >
             <Image
-              src={pickHeroBackdropImage(featuredMovie, "/default-hero.jpg")}
+              src={heroImageSrc}
               alt={title}
               fill
               priority
               quality={100}
               unoptimized
               sizes="100vw"
-              className="object-cover object-top sm:object-center"
+              className="object-cover object-[center_25%]"
             />
           </motion.div>
         </AnimatePresence>
@@ -236,7 +241,7 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
 
       {/* 2. CÁC LỚP MÀNG GRADIENT ĐIỆN ẢNH SẮC NÉT (CINEMATIC FULL-BLEED GRADIENTS) */}
       {/* Gradient mờ bên trái che chữ, giữ bên phải ảnh sắc nét */}
-      <div className="absolute inset-y-0 left-0 w-full sm:w-[62%] bg-gradient-to-r from-black/95 via-black/60 to-transparent pointer-events-none z-[1]" />
+      <div className="absolute inset-y-0 left-0 w-full sm:w-[60%] bg-gradient-to-r from-black/95 via-black/55 to-transparent pointer-events-none z-[1]" />
       {/* Gradient chân trang chuyển màu êm ái */}
       <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-black via-black/45 to-transparent pointer-events-none z-[1]" />
       {/* Gradient mép trên thanh header */}

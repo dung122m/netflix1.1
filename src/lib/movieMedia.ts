@@ -143,20 +143,41 @@ export function pickHeroBackdropImage(movie: MovieLike, fallback = "/default-her
     ? rawMovie.thumb_url || rawMovie.thumbUrl || movie.thumb_url || movie.thumbUrl
     : rawMovie.poster_url || rawMovie.posterUrl || movie.poster_url || movie.posterUrl;
 
-  const candidates = [primary, secondary, movie.imageUrl]
+  const candidates = [
+    rawMovie.backdrop_url,
+    rawMovie.backdropUrl,
+    movie.backdrop_url,
+    movie.backdropUrl,
+    primary,
+    secondary,
+    movie.imageUrl,
+    rawMovie.imageUrl,
+  ]
     .filter((value): value is string => typeof value === "string" && value.length > 0)
     .map(toHighResBackdropUrl)
     .filter((url) => Boolean(url) && !url.endsWith("/null") && !url.endsWith("/undefined"));
 
   if (candidates.length === 0) return fallback;
 
-  // Ưu tiên backdrop ngang
+  // 1. Tuyệt đối ưu tiên ảnh ngang (backdrop / thumb / w1280) không chứa từ khóa poster dọc
   for (const c of candidates) {
     const l = c.toLowerCase();
-    if (l.includes("thumb_") || l.includes("/thumb") || l.includes("-thumb") || l.includes("backdrop") || l.includes("w1280") || l.includes("w780")) {
+    const isExplicitPoster = l.includes("-poster.") || l.includes("_poster.") || l.includes("/poster/") || l.includes("poster_");
+    if (!isExplicitPoster) {
+      if (l.includes("thumb_") || l.includes("/thumb") || l.includes("-thumb") || l.includes("backdrop") || l.includes("w1280") || l.includes("w780")) {
+        return c;
+      }
+    }
+  }
+
+  // 2. Nếu không có thumb chuyên dụng, chọn bất kỳ ứng viên nào không phải là poster dọc
+  for (const c of candidates) {
+    const l = c.toLowerCase();
+    if (!l.includes("-poster.") && !l.includes("_poster.") && !l.includes("/poster/") && !l.includes("poster_")) {
       return c;
     }
   }
+
   return candidates[0];
 }
 

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { movieApi } from "@/services/movieApi";
 import { cleanHtmlText } from "@/lib/cleanHtml";
 
+import { pickHeroBackdropImage, pickBestMoviePoster, pickBestMovieThumb } from "@/lib/movieMedia";
+
 export interface SynopsisDetailPayload {
   content: string;
   origin_name?: string;
@@ -13,6 +15,9 @@ export interface SynopsisDetailPayload {
   episode_current?: string;
   time?: string;
   year?: string | number;
+  backdrop_url?: string;
+  poster_url?: string;
+  thumb_url?: string;
 }
 
 // Bộ nhớ đệm RAM trên server cho các yêu cầu tóm tắt và thông tin chi tiết phim
@@ -84,6 +89,10 @@ export async function GET(request: NextRequest) {
       ? movie.country.map((c: { name?: string }) => c.name || "").filter(Boolean)
       : [];
 
+    const backdropUrl = movie ? pickHeroBackdropImage(movie) : "";
+    const posterUrl = movie ? pickBestMoviePoster(movie) : "";
+    const thumbUrl = movie ? pickBestMovieThumb(movie) : "";
+
     const payload: SynopsisDetailPayload = {
       content: cleanContent,
       origin_name: originName,
@@ -95,6 +104,9 @@ export async function GET(request: NextRequest) {
       episode_current: movie?.episode_current || "",
       time: movie?.time || "",
       year: movie?.year || "",
+      backdrop_url: backdropUrl,
+      poster_url: posterUrl,
+      thumb_url: thumbUrl,
     };
 
     // Lưu vào RAM cache
