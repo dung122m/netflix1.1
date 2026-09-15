@@ -598,6 +598,26 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const [isSyncingEmbeddings, setIsSyncingEmbeddings] = useState(false);
+
+  const handleSyncEmbeddings = async () => {
+    setIsSyncingEmbeddings(true);
+    toast.info("Đang nạp 30 phim vào cơ sở dữ liệu Vector pgvector...");
+    try {
+      const res = await fetch("/api/admin/sync-embeddings?limit=30");
+      const data = await res.json();
+      if (data.success) {
+        toast.success(`Đã nạp thành công ${data.syncedCount}/${data.totalRequested} vector phim vào Supabase!`);
+      } else {
+        toast.error(data.error || "Không thể nạp vector phim!");
+      }
+    } catch {
+      toast.error("Lỗi kết nối khi nạp vector!");
+    } finally {
+      setIsSyncingEmbeddings(false);
+    }
+  };
+
   const copyToClipboard = (text: string, id: string) => {
     if (typeof navigator !== "undefined" && navigator.clipboard) {
       navigator.clipboard.writeText(text);
@@ -727,6 +747,16 @@ export default function AdminDashboardPage() {
             >
               <RefreshCw size={14} className={isManualRefreshing ? "animate-spin" : ""} />
               <span>{isManualRefreshing ? "Đang đồng bộ..." : "Làm Mới Dữ Liệu"}</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleSyncEmbeddings}
+              disabled={isSyncingEmbeddings}
+              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 hover:text-white text-xs font-semibold transition border border-purple-500/30 cursor-pointer active:scale-95 disabled:opacity-50"
+              title="Đồng bộ 30 phim vào bảng movie_embeddings để tìm kiếm AI dưới 50ms"
+            >
+              <Sparkles size={14} className={isSyncingEmbeddings ? "animate-spin" : ""} />
+              <span>{isSyncingEmbeddings ? "Đang nạp vector..." : "⚡ Nạp Vector Phim AI"}</span>
             </button>
             <Link
               href="/browse"

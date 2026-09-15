@@ -21,7 +21,7 @@ export function FollowSeriesButton({
   movieSlug,
   movieTitle,
   posterUrl,
-  isSeries = true,
+  isSeries: _isSeries = true,
 }: FollowSeriesButtonProps) {
   const { user } = useAuth();
   const [isFollowed, setIsFollowed] = useState(false);

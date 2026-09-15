@@ -23,6 +23,10 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   updated_at BIGINT DEFAULT (EXTRACT(EPOCH FROM NOW()) * 1000)::BIGINT
 );
 
+CREATE INDEX IF NOT EXISTS idx_profiles_watch_time ON public.profiles(watch_time_minutes DESC);
+CREATE INDEX IF NOT EXISTS idx_profiles_role ON public.profiles(role);
+CREATE INDEX IF NOT EXISTS idx_profiles_last_login ON public.profiles(last_login_at DESC);
+
 -- 2. BẢNG BÌNH LUẬN & ĐÁNH GIÁ PHIM (MOVIE_COMMENTS)
 CREATE TABLE IF NOT EXISTS public.movie_comments (
   id TEXT PRIMARY KEY,
@@ -52,8 +56,11 @@ CREATE TABLE IF NOT EXISTS public.movie_comments (
 );
 
 CREATE INDEX IF NOT EXISTS idx_comments_movie_slug ON public.movie_comments(movie_slug);
+CREATE INDEX IF NOT EXISTS idx_comments_slug_created ON public.movie_comments(movie_slug, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_comments_user_id ON public.movie_comments(user_id);
 CREATE INDEX IF NOT EXISTS idx_comments_parent_id ON public.movie_comments(parent_id);
+CREATE INDEX IF NOT EXISTS idx_comments_parent_created ON public.movie_comments(parent_id, created_at ASC);
+CREATE INDEX IF NOT EXISTS idx_comments_flagged ON public.movie_comments(is_flagged);
 
 -- 3. BẢNG LỊCH SỬ XEM PHIM (WATCH_HISTORY)
 CREATE TABLE IF NOT EXISTS public.watch_history (
@@ -74,6 +81,7 @@ CREATE TABLE IF NOT EXISTS public.watch_history (
 );
 
 CREATE INDEX IF NOT EXISTS idx_watch_history_user_id ON public.watch_history(user_id);
+CREATE INDEX IF NOT EXISTS idx_watch_history_user_updated ON public.watch_history(user_id, updated_at DESC);
 
 -- 4. BẢNG DANH SÁCH PHIM YÊU THÍCH (WATCHLIST)
 CREATE TABLE IF NOT EXISTS public.watchlist (
@@ -89,6 +97,7 @@ CREATE TABLE IF NOT EXISTS public.watchlist (
 );
 
 CREATE INDEX IF NOT EXISTS idx_watchlist_user_id ON public.watchlist(user_id);
+CREATE INDEX IF NOT EXISTS idx_watchlist_user_added ON public.watchlist(user_id, added_at DESC);
 
 -- 5. BẢNG BỘ SƯU TẬP PHIM (COLLECTIONS)
 CREATE TABLE IF NOT EXISTS public.collections (
@@ -110,6 +119,7 @@ CREATE TABLE IF NOT EXISTS public.collections (
 
 CREATE INDEX IF NOT EXISTS idx_collections_user_id ON public.collections(user_id);
 CREATE INDEX IF NOT EXISTS idx_collections_public ON public.collections(is_public);
+CREATE INDEX IF NOT EXISTS idx_collections_public_created ON public.collections(is_public, created_at DESC);
 
 -- 6. BẢNG THÔNG BÁO (NOTIFICATIONS)
 CREATE TABLE IF NOT EXISTS public.notifications (
@@ -128,6 +138,8 @@ CREATE TABLE IF NOT EXISTS public.notifications (
 );
 
 CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON public.notifications(user_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_user_created ON public.notifications(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_notifications_user_unread ON public.notifications(user_id, is_read);
 
 -- 7. BẢNG BÁO CÁO LỖI PHIM (ERROR_REPORTS)
 CREATE TABLE IF NOT EXISTS public.error_reports (
@@ -149,6 +161,7 @@ CREATE TABLE IF NOT EXISTS public.error_reports (
 );
 
 CREATE INDEX IF NOT EXISTS idx_error_reports_status ON public.error_reports(status);
+CREATE INDEX IF NOT EXISTS idx_error_reports_status_created ON public.error_reports(status, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_error_reports_slug ON public.error_reports(movie_slug);
 
 -- 8. BẢNG THEO DÕI PHIM BỘ (FOLLOWED_SERIES)
@@ -179,6 +192,7 @@ CREATE TABLE IF NOT EXISTS public.match_reminders (
 );
 
 CREATE INDEX IF NOT EXISTS idx_match_reminders_user ON public.match_reminders(user_id);
+CREATE INDEX IF NOT EXISTS idx_match_reminders_time ON public.match_reminders(match_time ASC);
 
 -- 10. BẢNG TIẾP TỤC XEM ĐA THIẾT BỊ (DEVICE_HANDOFF)
 CREATE TABLE IF NOT EXISTS public.device_handoff (
@@ -194,6 +208,8 @@ CREATE TABLE IF NOT EXISTS public.device_handoff (
   device_name TEXT,
   updated_at BIGINT DEFAULT (EXTRACT(EPOCH FROM NOW()) * 1000)::BIGINT
 );
+
+CREATE INDEX IF NOT EXISTS idx_device_handoff_user_updated ON public.device_handoff(user_id, updated_at DESC);
 
 -- =========================================================
 -- ROW LEVEL SECURITY POLICIES (CẤP QUYỀN TRUY CẬP)
@@ -422,5 +438,89 @@ CREATE POLICY "Public Upload Avatars" ON storage.objects FOR INSERT WITH CHECK (
 
 DROP POLICY IF EXISTS "Public Update Avatars" ON storage.objects;
 CREATE POLICY "Public Update Avatars" ON storage.objects FOR UPDATE USING (bucket_id IN ('avatars', 'collection-covers'));
+
+-- =========================================================
+-- 11. PGVECTOR: AI VECTOR EMBEDDINGS & SEMANTIC SEARCH
+-- =========================================================
+-- Kích hoạt extension vector trong PostgreSQL
+CREATE EXTENSION IF NOT EXISTS vector;
+
+-- Bảng lưu trữ vector embeddings của phim
+CREATE TABLE IF NOT EXISTS public.movie_embeddings (
+  id TEXT PRIMARY KEY, -- movie_slug
+  title TEXT NOT NULL,
+  original_name TEXT,
+  poster_url TEXT,
+  thumb_url TEXT,
+  year INTEGER,
+  quality TEXT,
+  category TEXT,
+  description TEXT,
+  embedding vector(768), -- Chuẩn Google Gemini text-embedding-004 (768 dimensions)
+  created_at BIGINT DEFAULT (EXTRACT(EPOCH FROM NOW()) * 1000)::BIGINT,
+  updated_at BIGINT DEFAULT (EXTRACT(EPOCH FROM NOW()) * 1000)::BIGINT
+);
+
+-- Tạo chỉ mục HNSW (Hierarchical Navigable Small World) tìm kiếm vector siêu tốc (<1ms)
+CREATE INDEX IF NOT EXISTS idx_movie_embeddings_hnsw 
+ON public.movie_embeddings USING hnsw (embedding vector_cosine_ops);
+
+CREATE INDEX IF NOT EXISTS idx_movie_embeddings_title 
+ON public.movie_embeddings(title);
+
+-- RLS Cấp quyền truy cập
+ALTER TABLE public.movie_embeddings ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public Read Movie Embeddings" ON public.movie_embeddings;
+CREATE POLICY "Public Read Movie Embeddings" ON public.movie_embeddings FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public Upsert Movie Embeddings" ON public.movie_embeddings;
+CREATE POLICY "Public Upsert Movie Embeddings" ON public.movie_embeddings FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public Update Movie Embeddings" ON public.movie_embeddings;
+CREATE POLICY "Public Update Movie Embeddings" ON public.movie_embeddings FOR UPDATE USING (true) WITH CHECK (true);
+
+-- Hàm RPC tìm kiếm phim bằng Cosine Similarity trong Supabase
+CREATE OR REPLACE FUNCTION public.match_movies_vector(
+  query_embedding vector(768),
+  match_threshold float DEFAULT 0.35,
+  match_count int DEFAULT 20
+)
+RETURNS TABLE (
+  id text,
+  title text,
+  original_name text,
+  poster_url text,
+  thumb_url text,
+  year int,
+  quality text,
+  category text,
+  description text,
+  similarity float
+)
+LANGUAGE plpgsql
+STABLE
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    me.id,
+    me.title,
+    me.original_name,
+    me.poster_url,
+    me.thumb_url,
+    me.year,
+    me.quality,
+    me.category,
+    me.description,
+    (1 - (me.embedding <=> query_embedding))::float AS similarity
+  FROM public.movie_embeddings me
+  WHERE me.embedding IS NOT NULL
+    AND 1 - (me.embedding <=> query_embedding) > match_threshold
+  ORDER BY me.embedding <=> query_embedding
+  LIMIT match_count;
+END;
+$$;
+
 
 

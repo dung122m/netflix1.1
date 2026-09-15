@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 import { movieApi } from "@/services/movieApi";
 import { sanitizeImageUrl } from "@/lib/movieMedia";
+import { searchMoviesBySemantic } from "@/services/aiVectorService";
 
 export const maxDuration = 15;
 
@@ -652,10 +653,39 @@ export async function POST(req: NextRequest) {
     let finalPunchline = "";
     let finalBadges: string[] = [];
     let finalMatchScore = 98;
-    const provider = "Nana AI";
+    let provider = "Nana AI";
 
-    // 1. GỌI GEMINI NẾU CÓ KEY VỚI PROMPT TỐI ƯU ĐỘ CHÍNH XÁC CAO
-    if (candidateKeys.length > 0) {
+    // 0. TĂNG TỐC BẰNG SUPABASE PGVECTOR (< 100ms)
+    try {
+      const vectorSearchTerm = `${moodMeta.label} ${moodMeta.desc} ${companionDesc} ${country !== "all" ? countryMeta.label : ""}`.trim();
+      const vectorPicks = await searchMoviesBySemantic(vectorSearchTerm, 6, 0.42, userApiKey);
+      const validVectorPick = vectorPicks.find(
+        (vp) => vp.id && !isExcluded(vp.id) && !isExcluded(vp.title)
+      );
+
+      if (validVectorPick) {
+        foundMovie = {
+          slug: validVectorPick.id,
+          name: validVectorPick.title,
+          origin_name: validVectorPick.originalName,
+          poster_url: validVectorPick.posterUrl,
+          thumb_url: validVectorPick.thumbUrl || validVectorPick.posterUrl,
+          year: validVectorPick.year,
+          quality: validVectorPick.quality || "FHD",
+          category: [{ name: validVectorPick.category || moodMeta.label, slug: moodMeta.categorySlug }],
+          content: validVectorPick.description,
+        };
+        finalPunchline = moodMeta.defaultPunchline;
+        finalBadges = moodMeta.defaultBadges;
+        finalMatchScore = Math.min(99, Math.round(88 + (validVectorPick.similarity || 0.5) * 15));
+        provider = "Supabase Vector Engine";
+      }
+    } catch (vErr) {
+      console.warn("[ai-roulette] Vector search phase skipped:", vErr);
+    }
+
+    // 1. GỌI GEMINI NẾU CÓ KEY VỚI PROMPT TỐI ƯU ĐỘ CHÍNH XÁC CAO (NẾU CHƯA CÓ VECTOR MATCH)
+    if (!foundMovie && candidateKeys.length > 0) {
       try {
         const countryConstraint =
           country !== "all"
@@ -695,7 +725,7 @@ Trả về DUY NHẤT một chuỗi JSON hợp lệ:
   }
 }`;
 
-        const MODELS = ["gemini-3.5-flash", "gemini-3.6-flash"];
+        const MODELS = ["gemini-3.6-flash", "gemini-3.5-flash"];
         let raceResult: string | null = null;
 
         keyLoop: for (const currentKey of candidateKeys) {

@@ -29,6 +29,7 @@ interface LiveFootballClientProps {
   initialData: LiveFootballData;
   hideHeader?: boolean;
   isActive?: boolean;
+  onMatchesCountChange?: (count: number) => void;
 }
 
 const INITIAL_PAGE_SIZE = 16;
@@ -37,6 +38,7 @@ export function LiveFootballClient({
   initialData,
   hideHeader = false,
   isActive = true,
+  onMatchesCountChange,
 }: LiveFootballClientProps) {
   const { channels } = initialData;
   const searchParams = useSearchParams();
@@ -44,10 +46,14 @@ export function LiveFootballClient({
     initialData.matches,
   );
 
-  // Đồng bộ khi dữ liệu từ server thay đổi
+  // Đồng bộ khi dữ liệu từ server thay đổi hoặc khi lọc kênh
   useEffect(() => {
     setLiveMatches(initialData.matches);
   }, [initialData.matches]);
+
+  useEffect(() => {
+    onMatchesCountChange?.(liveMatches.length);
+  }, [liveMatches.length, onMatchesCountChange]);
 
   // Client-side verification cho các kênh Sự Kiện FPT Play:
   // Vì các luồng sự kiện FPT Play mở CORS *, client kiểm tra trực tiếp qua HEAD request

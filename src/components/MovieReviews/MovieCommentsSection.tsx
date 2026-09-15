@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useSearchParams } from "next/navigation";
-import Image from "next/image";
 import {
   MessageSquare,
   Sparkles,

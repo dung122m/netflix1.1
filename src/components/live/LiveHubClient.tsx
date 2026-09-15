@@ -17,6 +17,9 @@ export function LiveHubClient({ footballData, tvData }: LiveHubClientProps) {
   const searchParams = useSearchParams();
   const initialTab = searchParams.get("tab") === "tv" ? "tv" : "football";
   const [activeTab, setActiveTab] = useState<"football" | "tv">(initialTab);
+  const [footballCount, setFootballCount] = useState<number>(
+    footballData.matches.length,
+  );
 
   // Sync tab từ URL chỉ khi URL thay đổi bởi external navigation (back/forward)
   useEffect(() => {
@@ -100,7 +103,7 @@ export function LiveHubClient({ footballData, tvData }: LiveHubClientProps) {
                   : "bg-white/10 text-gray-300"
               }`}
             >
-              {footballData.matches.length}
+              {footballCount}
             </span>
           </button>
 
@@ -135,6 +138,7 @@ export function LiveHubClient({ footballData, tvData }: LiveHubClientProps) {
           initialData={footballData}
           hideHeader
           isActive={activeTab === "football"}
+          onMatchesCountChange={setFootballCount}
         />
       </div>
       <div className={activeTab === "tv" ? "block" : "hidden"}>

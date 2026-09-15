@@ -10,6 +10,7 @@ import { SortSelector } from "@/components/SortSelector";
 import { Film, ExternalLink, Sparkles } from "lucide-react";
 import { movieApi } from "@/services/movieApi";
 import { resolveActorMovies, fetchMoviesByTitles } from "@/services/aiActorService";
+import { searchMoviesBySemantic, enqueueAutoEmbedMovies } from "@/services/aiVectorService";
 import { BrowseAiSearchBanner } from "@/components/BrowseAiSearchBanner";
 import { PersonalizedGenreSection } from "@/components/PersonalizedGenreSection";
 import { CuratedMovieSection } from "@/components/CuratedMovieSection";
@@ -190,8 +191,8 @@ export default async function BrowsePage({
   let totalItems = 0;
   let detectedActor: { name: string; country?: string } | null = null;
 
-  // Thực thi song song: Tải phim & Phân giải tên diễn viên (< 1ms nếu trong local dictionary)
-  const [response, actorRes] = await Promise.all([
+  // Thực thi song song: Tải phim, Phân giải tên diễn viên, và Semantic Vector Search (< 50ms)
+  const [response, actorRes, semanticPicks] = await Promise.all([
     movieApi.getMovies({
       category,
       country,
@@ -205,11 +206,47 @@ export default async function BrowsePage({
     keyword && currentPage === 1
       ? resolveActorMovies(keyword)
       : Promise.resolve({ isActor: false, actorName: "", titles: [], country: undefined, source: "none" as const }),
+    keyword && currentPage === 1 && keyword.trim().length >= 3
+      ? searchMoviesBySemantic(keyword, 16, 0.42).catch(() => [])
+      : Promise.resolve([]),
   ]);
 
   movies = response?.items || [];
   totalPages = response?.pagination?.totalPages || 50;
   totalItems = response?.pagination?.totalItems || movies.length;
+
+  // Nếu có kết quả Vector Semantic Match xuất sắc, hòa trộn lên đầu kết quả
+  if (Array.isArray(semanticPicks) && semanticPicks.length > 0) {
+    const seenSlugs = new Set<string>();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const combined: any[] = [];
+    for (const sp of semanticPicks) {
+      if (sp?.id && !seenSlugs.has(sp.id)) {
+        seenSlugs.add(sp.id);
+        combined.push({
+          slug: sp.id,
+          name: sp.title,
+          origin_name: sp.originalName || "",
+          poster_url: sp.posterUrl,
+          thumb_url: sp.thumbUrl || sp.posterUrl,
+          year: sp.year,
+          quality: sp.quality || "HD",
+          category: sp.category ? [{ name: sp.category, slug: "" }] : [],
+          content: sp.description,
+          isSemanticMatch: true,
+          similarity: sp.similarity,
+        });
+      }
+    }
+    for (const m of movies) {
+      if (m?.slug && !seenSlugs.has(m.slug)) {
+        seenSlugs.add(m.slug);
+        combined.push(m);
+      }
+    }
+    movies = combined;
+    totalItems = Math.max(movies.length, response?.pagination?.totalItems || 0);
+  }
 
   // Nếu phát hiện tìm kiếm diễn viên, nạp ngay danh sách phim tiêu biểu của diễn viên
   if (actorRes?.isActor && actorRes.titles.length > 0) {
@@ -301,6 +338,11 @@ export default async function BrowsePage({
     // Sắp xếp giảm dần theo độ phù hợp: Phim khớp tiêu đề đứng trước, phim chỉ khớp mô tả đứng sau
     scoredMovies.sort((a, b) => b.relevanceScore - a.relevanceScore);
     movies = scoredMovies;
+  }
+
+  // Tự động nạp vector phim vào Supabase pgvector hoàn toàn tự động trong nền (0% cản trở UI)
+  if (movies.length > 0) {
+    enqueueAutoEmbedMovies(movies);
   }
 
   const pages = getPagination(currentPage, totalPages);

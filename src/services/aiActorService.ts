@@ -616,7 +616,7 @@ Nếu KHÔNG PHẢI tên diễn viên/đạo diễn, trả về {"isActor": fals
 Chỉ trả về JSON thuần túy.`;
 
     const ai = new GoogleGenAI({ apiKey, vertexai: false });
-    const ACTOR_MODELS = ["gemini-3.5-flash", "gemini-3.6-flash"];
+    const ACTOR_MODELS = ["gemini-3.6-flash", "gemini-3.5-flash"];
     let rawText: string | null = null;
 
     for (const model of ACTOR_MODELS) {

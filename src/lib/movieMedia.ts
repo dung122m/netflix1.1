@@ -274,7 +274,6 @@ export function detectMovieTypeName(m: any): string {
   const epCurrent = String(m?.episode_current || "").toLowerCase();
   const epTotal = Number(m?.episode_total || 0);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const categories = Array.isArray(m?.category)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ? m.category.map((c: any) => (typeof c === "string" ? c : `${c?.slug || ""} ${c?.name || ""}`).toLowerCase())

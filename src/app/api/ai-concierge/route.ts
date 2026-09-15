@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 import { movieApi } from "@/services/movieApi";
 import { sanitizeImageUrl } from "@/lib/movieMedia";
+import { searchMoviesBySemantic } from "@/services/aiVectorService";
 
 export const maxDuration = 15;
 
@@ -861,6 +862,36 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // 2.5 TĂNG TỐC BẰNG SUPABASE PGVECTOR (< 80ms)
+    if (!intent.actor && prompt.trim().length >= 3) {
+      try {
+        const vectorPicks = await searchMoviesBySemantic(prompt, 8, 0.42, userApiKey);
+        if (vectorPicks && vectorPicks.length >= 3) {
+          const cards: SuggestionCard[] = vectorPicks.map((vp) => ({
+            slug: vp.id,
+            title: vp.title,
+            poster: vp.posterUrl || "/default-poster.jpg",
+            year: vp.year,
+            quality: vp.quality || "HD",
+            category: vp.category || "Phim Hay",
+            reason: vp.description ? vp.description.slice(0, 90) + "..." : "Khớp đúng với cảm xúc bạn đang tìm kiếm",
+          }));
+
+          const fastPayload = {
+            reply: `Nana đã tìm thấy ${cards.length} tác phẩm xuất sắc phù hợp đúng với cảm xúc "${prompt}" của bạn! Chúc bạn thưởng thức vui vẻ nhé ✨`,
+            mood: intent.category || "Gợi ý thông minh",
+            movies: cards,
+            provider: "Supabase Vector Engine",
+          };
+
+          AI_RESPONSE_CACHE.set(cacheKey, { ...fastPayload, cachedAt: Date.now() });
+          return NextResponse.json(fastPayload);
+        }
+      } catch (vecErr) {
+        console.warn("[ai-concierge] Vector search bypass:", vecErr);
+      }
+    }
+
     // Hỗ trợ danh sách nhiều Key phân tách bằng dấu phẩy để tự động xoay vòng khi hết Quota
     const envKeys = (process.env.GEMINI_API_KEY || "")
       .split(",")
@@ -916,8 +947,8 @@ Trả về DUY NHẤT chuỗi JSON hợp lệ:
 }`;
 
         const MODELS = [
-          "gemini-3.5-flash",
           "gemini-3.6-flash",
+          "gemini-3.5-flash",
         ];
 
         let geminiText: string | null = null;

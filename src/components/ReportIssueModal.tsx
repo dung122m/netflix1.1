@@ -6,6 +6,8 @@ import { formatEpisodeName } from "@/lib/formatEpisode";
 import { useAuth } from "@/context/AuthContext";
 import { createErrorReportSupabase } from "@/services/supabaseService";
 
+import { toast } from "@/components/Toast";
+
 interface ReportIssueModalProps {
   movieTitle: string;
   movieSlug?: string;
@@ -15,11 +17,11 @@ interface ReportIssueModalProps {
 }
 
 const ISSUE_TYPES = [
-  "⚠️ Video không tải được / Màn hình đen",
-  "🔇 Mất âm thanh / Tiếng bị rè, bé",
-  "🔤 Phụ đề bị lệch / Vietsub không khớp",
-  "⚡ Video bị đứng hình / Giật lag liên tục",
-  "❌ Nhầm tập / Thiếu tập so với mô tả",
+  { id: "broken_link", label: "⚠️ Video không tải được / Màn hình đen / Hỏng link" },
+  { id: "audio_issue", label: "🔇 Mất âm thanh / Tiếng bị rè, bé, lệch tiếng" },
+  { id: "subtitle_issue", label: "🔤 Phụ đề bị lệch / Vietsub không khớp" },
+  { id: "wrong_episode", label: "❌ Nhầm tập / Sai tập / Thiếu tập so với mô tả" },
+  { id: "other", label: "⚡ Video bị đứng hình / Giật lag / Lỗi khác" },
 ];
 
 export function ReportIssueModal({
@@ -31,7 +33,7 @@ export function ReportIssueModal({
 }: ReportIssueModalProps) {
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedIssue, setSelectedIssue] = useState<string>(ISSUE_TYPES[0]);
+  const [selectedIssueId, setSelectedIssueId] = useState<string>(ISSUE_TYPES[0].id);
   const [customNote, setCustomNote] = useState("");
   const [isSubmitted, setIsSubmitted] = useState(false);
 
@@ -55,10 +57,10 @@ export function ReportIssueModal({
         episodeName: episodeName || "Tập 1",
         episodeSlug: episodeSlug || "tap-1",
         serverName: serverName || "Server VIP",
-        issueType: selectedIssue,
+        issueType: selectedIssueId,
         description: customNote.trim() || undefined,
         userId: user?.uid,
-        userName: user?.displayName || "Khán giả Nanaflix",
+        userName: user?.displayName || (user?.email ? user.email.split("@")[0] : "Khán giả"),
         userEmail: user?.email || undefined,
       });
 
@@ -70,11 +72,12 @@ export function ReportIssueModal({
         movieTitle,
         movieSlug: slug,
         episodeName: episodeName || "Tập 1",
-        issue: selectedIssue,
+        issue: selectedIssueId,
         note: customNote,
         time: new Date().toISOString(),
       });
       localStorage.setItem("nanaflix_error_reports", JSON.stringify(reports));
+      toast.success("Đã gửi báo cáo lỗi thành công! Cảm ơn bạn.");
     } catch (err) {
       console.warn("Lỗi gửi báo cáo sự cố:", err);
     }
@@ -84,7 +87,7 @@ export function ReportIssueModal({
       setIsSubmitted(false);
       setIsOpen(false);
       setCustomNote("");
-    }, 2200);
+    }, 2000);
   };
 
   return (
@@ -153,9 +156,9 @@ export function ReportIssueModal({
                   <div className="space-y-1.5">
                     {ISSUE_TYPES.map((issue) => (
                       <label
-                        key={issue}
+                        key={issue.id}
                         className={`flex items-center gap-2.5 p-2.5 rounded-xl border text-xs cursor-pointer transition ${
-                          selectedIssue === issue
+                          selectedIssueId === issue.id
                             ? "bg-rose-500/10 border-rose-500/50 text-white font-medium"
                             : "bg-zinc-800/60 border-white/5 text-gray-300 hover:bg-zinc-800"
                         }`}
@@ -163,11 +166,11 @@ export function ReportIssueModal({
                         <input
                           type="radio"
                           name="issueType"
-                          checked={selectedIssue === issue}
-                          onChange={() => setSelectedIssue(issue)}
+                          checked={selectedIssueId === issue.id}
+                          onChange={() => setSelectedIssueId(issue.id)}
                           className="accent-rose-500"
                         />
-                        <span>{issue}</span>
+                        <span>{issue.label}</span>
                       </label>
                     ))}
                   </div>

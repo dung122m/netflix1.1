@@ -34,8 +34,18 @@ export async function upsertUserProfileSupabase(profile: Partial<UserProfile> & 
   }
 }
 
+// In-memory micro-cache for user profiles (TTL 30s) to eliminate duplicate DB reads on comment threads
+const profileMemoryCache = new Map<string, { data: UserProfile; expiry: number }>();
+
 export async function getUserProfileSupabase(userId: string): Promise<UserProfile | null> {
   if (!supabase || !userId) return null;
+
+  const now = Date.now();
+  const cached = profileMemoryCache.get(userId);
+  if (cached && cached.expiry > now) {
+    return cached.data;
+  }
+
   try {
     const { data, error } = await supabase
       .from("profiles")
@@ -45,7 +55,7 @@ export async function getUserProfileSupabase(userId: string): Promise<UserProfil
 
     if (error || !data) return null;
 
-    return {
+    const profile: UserProfile = {
       uid: data.id,
       email: data.email || "",
       displayName: data.display_name || "Thành viên",
@@ -62,8 +72,44 @@ export async function getUserProfileSupabase(userId: string): Promise<UserProfil
       createdAt: data.created_at,
       lastLoginAt: data.last_login_at,
     };
+
+    profileMemoryCache.set(userId, { data: profile, expiry: now + 30000 });
+    return profile;
   } catch {
     return null;
+  }
+}
+
+export async function getTopWatchLeaderboardSupabase(limit: number = 10): Promise<UserProfile[]> {
+  if (!supabase) return [];
+  try {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .order("watch_time_minutes", { ascending: false })
+      .limit(limit);
+
+    if (error || !data) return [];
+
+    return data.map((d) => ({
+      uid: d.id,
+      email: d.email || "",
+      displayName: d.display_name || "Thành viên",
+      photoURL: d.photo_url || d.custom_avatar || "",
+      customAvatar: d.custom_avatar,
+      bio: d.bio,
+      favoriteGenres: d.favorite_genres || [],
+      badges: d.badges || [],
+      watchTimeMinutes: d.watch_time_minutes || 0,
+      role: (d.role as "admin" | "member") || "member",
+      isCommentRestricted: Boolean(d.is_comment_restricted),
+      violationsCount: d.violations_count || 0,
+      lastViolationReason: d.last_violation_reason,
+      createdAt: d.created_at,
+      lastLoginAt: d.last_login_at,
+    }));
+  } catch {
+    return [];
   }
 }
 
@@ -73,7 +119,8 @@ export async function getAllProfilesSupabase(): Promise<UserProfile[]> {
     const { data, error } = await supabase
       .from("profiles")
       .select("*")
-      .order("last_login_at", { ascending: false });
+      .order("last_login_at", { ascending: false })
+      .limit(300);
 
     if (error || !data) return [];
 

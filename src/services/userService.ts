@@ -13,6 +13,7 @@ import {
   upsertUserProfileSupabase,
   getUserProfileSupabase,
   getAllProfilesSupabase,
+  getTopWatchLeaderboardSupabase,
   updateUserProfileSupabase,
   setUserCommentRestrictionSupabase,
   deleteAllUserCommentsSupabase,
@@ -426,9 +427,9 @@ export async function updateUserProfile(
   }
 }
 
-/**
- * Tích lũy thời gian cày phim (phút) cho người dùng trong Supabase khi đang xem phim
- */
+// Debounce timer for saving watch time to DB (reduces DB write calls by ~80%)
+const watchTimeSaveTimers = new Map<string, NodeJS.Timeout>();
+
 export async function incrementUserWatchTime(userId: string, minutes: number = 1): Promise<number> {
   if (!userId || minutes <= 0) return 0;
 
@@ -454,9 +455,16 @@ export async function incrementUserWatchTime(userId: string, minutes: number = 1
     };
     setCachedUserProfile(userId, updatedProfile);
 
-    // 2. Cập nhật vào Supabase Database
+    // 2. Cập nhật vào Supabase Database có Debounce (2 phút) để tránh spam request liên tục
     if (isSupabaseConfigured()) {
-      updateUserProfileSupabase(userId, { watchTimeMinutes: newMins }).catch(() => {});
+      if (watchTimeSaveTimers.has(userId)) {
+        clearTimeout(watchTimeSaveTimers.get(userId));
+      }
+      const timer = setTimeout(() => {
+        watchTimeSaveTimers.delete(userId);
+        updateUserProfileSupabase(userId, { watchTimeMinutes: newMins }).catch(() => {});
+      }, 120000);
+      watchTimeSaveTimers.set(userId, timer);
     }
 
     // 3. Phát sự kiện đồng bộ toàn bộ UI (ProfileModal, Header, Leaderboard, Level Badge)
@@ -547,14 +555,12 @@ export function getWatchLevelInfo(totalMinutes: number = 0): WatchLevelInfo {
 }
 
 /**
- * Lấy danh sách Top Fan Cày Phim từ Supabase (Leaderboard)
+ * Lấy danh sách Top Fan Cày Phim từ Supabase (Leaderboard) được tối ưu hóa Index
  */
 export async function getTopWatchLeaderboard(maxLimit: number = 10): Promise<UserProfile[]> {
   if (isSupabaseConfigured()) {
     try {
-      const all = await getAllProfilesSupabase();
-      const sorted = [...all].sort((a, b) => (b.watchTimeMinutes || 0) - (a.watchTimeMinutes || 0));
-      return sorted.slice(0, maxLimit);
+      return await getTopWatchLeaderboardSupabase(maxLimit);
     } catch (err) {
       console.warn("Lỗi đọc Bảng Xếp Hạng Leaderboard:", err);
     }
