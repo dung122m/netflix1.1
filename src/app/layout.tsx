@@ -147,7 +147,7 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://vip.opstream16.com" />
         <link rel="dns-prefetch" href="https://hls.vsmov.com" />
 
-        {/* Khởi tạo màu giao diện và chế độ sáng/tối tức thì chống chớp nháy màu khi tải trang */}
+        {/* Khởi tạo màu giao diện, chế độ sáng/tối và khử các attribute do browser extension tự tiêm vào (bts_skin_checked, etc.) */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -163,6 +163,30 @@ export default function RootLayout({
                     document.documentElement.setAttribute('data-theme', t);
                   }
                 } catch(e) {}
+
+                // Gỡ bỏ các thuộc tính do Chrome Extension (Baidu, Translators, Skins) tiêm vào DOM trước khi React hydrate
+                try {
+                  var extAttrs = ['bts_skin_checked', 'bis_skin_checked', 'cz-shortcut-listen', 'data-gr-ext-installed', 'data-adblockkey'];
+                  var cleanExtAttrs = function() {
+                    extAttrs.forEach(function(attr) {
+                      var els = document.querySelectorAll('[' + attr + ']');
+                      for (var i = 0; i < els.length; i++) {
+                        els[i].removeAttribute(attr);
+                      }
+                    });
+                  };
+                  cleanExtAttrs();
+                  if (typeof MutationObserver !== 'undefined') {
+                    var observer = new MutationObserver(function(mutations) {
+                      mutations.forEach(function(mutation) {
+                        if (mutation.type === 'attributes' && extAttrs.indexOf(mutation.attributeName) !== -1) {
+                          mutation.target.removeAttribute(mutation.attributeName);
+                        }
+                      });
+                    });
+                    observer.observe(document.documentElement, { attributes: true, subtree: true, attributeFilter: extAttrs });
+                  }
+                } catch(e) {}
               })();
             `,
           }}
@@ -174,7 +198,7 @@ export default function RootLayout({
       >
         <AuthProvider>
           <SmoothScroll>
-            <div className="pb-16 lg:pb-0 min-h-screen flex flex-col">
+            <div className="pb-16 lg:pb-0 min-h-screen flex flex-col" suppressHydrationWarning>
               {children}
             </div>
           </SmoothScroll>

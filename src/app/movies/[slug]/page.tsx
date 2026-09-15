@@ -36,14 +36,17 @@ import { findEpisodeMatch } from "@/lib/formatEpisode";
 
 const MobileQrModal = dynamic(
   () => import("@/components/MobileQrModal").then((mod) => mod.MobileQrModal),
+  { ssr: false }
 );
 
 const TrailerModal = dynamic(
   () => import("@/components/TrailerModal").then((mod) => mod.TrailerModal),
+  { ssr: false }
 );
 
-const SetTitleClient = dynamic(() =>
-  import("@/components/SetTitleClient").then((mod) => mod.default),
+const SetTitleClient = dynamic(
+  () => import("@/components/SetTitleClient").then((mod) => mod.default),
+  { ssr: false }
 );
 
 const MovieCommentsSection = dynamic(
@@ -51,6 +54,7 @@ const MovieCommentsSection = dynamic(
     import("@/components/MovieReviews/MovieCommentsSection").then(
       (mod) => mod.MovieCommentsSection,
     ),
+  { ssr: false }
 );
 
 
