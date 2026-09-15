@@ -129,9 +129,9 @@ export async function GET(req: NextRequest) {
 
     const notifMap = new Map<string, Record<string, unknown>>();
 
-    // 2.1 Lấy thông báo từ Firestore subcollection users/{userId}/notifications
+    // 2.1 Lấy thông báo từ Firestore subcollection users/{userId}/notifications (giới hạn 20 thông báo gần nhất)
     try {
-      const url = `${FIRESTORE_REST_BASE}/users/${userId}/notifications?pageSize=100${API_KEY ? `&key=${API_KEY}` : ""}`;
+      const url = `${FIRESTORE_REST_BASE}/users/${userId}/notifications?pageSize=20${API_KEY ? `&key=${API_KEY}` : ""}`;
       const res = await fetch(url, { headers, cache: "no-store" });
       if (res.ok) {
         const json = await res.json();
@@ -145,77 +145,6 @@ export async function GET(req: NextRequest) {
               (lastReadNotificationsAt > 0 && createdAt <= lastReadNotificationsAt),
             );
             notifMap.set(String(item.id), { ...item, isRead });
-          }
-        });
-      }
-    } catch {}
-
-    // 2.2 Quét phản hồi từ movie_comments
-    try {
-      const commentsUrl = `${FIRESTORE_REST_BASE}/movie_comments?pageSize=150${API_KEY ? `&key=${API_KEY}` : ""}`;
-      const commentsRes = await fetch(commentsUrl, { cache: "no-store" });
-      if (commentsRes.ok) {
-        const commentsJson = await commentsRes.json();
-        const rawComments = commentsJson.documents || [];
-        const allComments = rawComments.map(parseFirestoreDoc);
-
-        // Lưu danh sách comment gốc của userId này
-        const myRootCommentIds = new Set<string>();
-        allComments.forEach((c: Record<string, unknown>) => {
-          if (c.userId === userId && !c.parentId) {
-            myRootCommentIds.add(String(c.id));
-          }
-        });
-
-        // Tìm tất cả reply nhắm tới userId hoặc nằm trong thread comment gốc của userId
-        allComments.forEach((c: Record<string, unknown>) => {
-          if (c.userId === userId) return; // Không tự thông báo cho chính mình
-
-          const cId = String(c.id);
-          const cContent = String(c.content || "");
-          const cMovieSlug = String(c.movieSlug || "");
-          const cUserName = String(c.userName || "Thành viên Nanaflix");
-          const cUserAvatar = c.userAvatar ? String(c.userAvatar) : undefined;
-          const cCreatedAt = Number(c.createdAt) || Date.now();
-          const isReadByTime = lastReadNotificationsAt > 0 && cCreatedAt <= lastReadNotificationsAt;
-
-          // TH1: Được reply trực tiếp (@user)
-          if (c.replyToUserId === userId) {
-            const notifKey = `reply_direct_${cId}`;
-            if (!notifMap.has(notifKey)) {
-              notifMap.set(notifKey, {
-                id: notifKey,
-                type: "comment_reply",
-                title: `${cUserName} đã trả lời bình luận của bạn`,
-                message: cContent.length > 80 ? cContent.slice(0, 80) + "..." : cContent,
-                link: `/movies/${cMovieSlug}?highlightComment=${cId}#comment-${cId}`,
-                movieSlug: cMovieSlug,
-                commentId: cId,
-                replierName: cUserName,
-                replierAvatar: cUserAvatar,
-                isRead: isReadByTime,
-                createdAt: cCreatedAt,
-              });
-            }
-          }
-          // TH2: Reply vào bài đánh giá gốc của userId
-          else if (c.parentId && myRootCommentIds.has(String(c.parentId)) && !c.replyToUserId) {
-            const notifKey = `reply_root_${cId}`;
-            if (!notifMap.has(notifKey)) {
-              notifMap.set(notifKey, {
-                id: notifKey,
-                type: "comment_reply",
-                title: `${cUserName} đã bình luận trong bài đánh giá của bạn`,
-                message: cContent.length > 80 ? cContent.slice(0, 80) + "..." : cContent,
-                link: `/movies/${cMovieSlug}?highlightComment=${cId}#comment-${cId}`,
-                movieSlug: cMovieSlug,
-                commentId: cId,
-                replierName: cUserName,
-                replierAvatar: cUserAvatar,
-                isRead: isReadByTime,
-                createdAt: cCreatedAt,
-              });
-            }
           }
         });
       }

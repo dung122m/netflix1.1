@@ -226,7 +226,7 @@ export function subscribeUserNotifications(
     window.addEventListener("nanaflix-notifications-updated", handleLocalEvent);
   }
 
-  // 3. Nạp danh sách thông báo từ Server API và poll ngầm định kỳ
+  // 3. Nạp danh sách thông báo từ Server API lúc khởi tạo (chỉ gọi 1 lần duy nhất)
   const fetchServerNotifications = () => {
     if (isUnsubscribed) return;
     fetch(`/api/notifications?userId=${encodeURIComponent(userId)}`, { cache: "no-store" })
@@ -240,7 +240,6 @@ export function subscribeUserNotifications(
   };
 
   fetchServerNotifications();
-  const pollInterval = setInterval(fetchServerNotifications, 8000);
 
   if (db) {
     try {
@@ -361,7 +360,6 @@ export function subscribeUserNotifications(
 
   return () => {
     isUnsubscribed = true;
-    clearInterval(pollInterval);
     if (typeof window !== "undefined") {
       window.removeEventListener("nanaflix-notifications-updated", handleLocalEvent);
     }
