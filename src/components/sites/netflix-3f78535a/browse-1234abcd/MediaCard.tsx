@@ -18,7 +18,7 @@ import {
   Clapperboard,
 } from "lucide-react";
 import { isInWatchlist, toggleWatchlist } from "@/lib/watchlist";
-import { extractMovieCountry } from "@/lib/movieMedia";
+import { extractMovieCountry, detectMovieTypeName } from "@/lib/movieMedia";
 
 export interface MovieExtraInfo {
   actor?: string[];
@@ -26,6 +26,10 @@ export interface MovieExtraInfo {
   country?: string[];
   category?: string[];
   origin_name?: string;
+  type?: string;
+  time?: string;
+  episode_current?: string;
+  episode_total?: number;
 }
 
 // Bộ nhớ đệm client
@@ -440,16 +444,24 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   const displayCountry = resolvedCountry;
 
   // Loại phim: Phim lẻ / Phim bộ / Hoạt hình / Phim rạp
-  const displayType =
-    initialTypeName ||
-    (Array.isArray(extraInfo.category) &&
-    extraInfo.category.some((c) =>
-      typeof c === "string" ? c.includes("Bộ") : (c as { name?: string })?.name?.includes("Bộ")
-    )
-      ? "Phim bộ"
-      : chieurap
-      ? "Phim rạp"
-      : "Phim lẻ");
+  const displayType = (() => {
+    if (initialTypeName && initialTypeName !== "Phim lẻ") {
+      return initialTypeName;
+    }
+    return detectMovieTypeName({
+      name: title,
+      title,
+      slug,
+      origin_name: origin_name || extraInfo.origin_name,
+      category: extraInfo.category || genre,
+      time: time || extraInfo.time,
+      episode_current: extraInfo.episode_current,
+      episode_total: extraInfo.episode_total,
+      chieurap,
+      sub_docquyen,
+      type: extraInfo.type || initialTypeName,
+    });
+  })();
 
   // Lọc bỏ chuỗi "Đang cập nhật" trong danh sách thể loại
   const cleanGenres = genre

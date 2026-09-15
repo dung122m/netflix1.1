@@ -264,6 +264,79 @@ export function extractMovieCountry(m: any): string | undefined {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function detectMovieTypeName(m: any): string {
+  if (!m) return "Phim lẻ";
+
+  const rawType = String(m?.type || m?.type_name || m?.type_slug || "").toLowerCase().trim();
+  const rawName = String(m?.name || m?.title || m?.origin_name || "").toLowerCase();
+  const rawSlug = String(m?.slug || "").toLowerCase();
+  const timeStr = String(m?.time || "").toLowerCase();
+  const epCurrent = String(m?.episode_current || "").toLowerCase();
+  const epTotal = Number(m?.episode_total || 0);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const categories = Array.isArray(m?.category)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ? m.category.map((c: any) => (typeof c === "string" ? c : `${c?.slug || ""} ${c?.name || ""}`).toLowerCase())
+    : [String(m?.category || "").toLowerCase()];
+
+  const isHoatHinh =
+    rawType === "hoathinh" ||
+    rawType === "hoat-hinh" ||
+    rawType === "anime" ||
+    categories.some((c: string) => c.includes("hoat-hinh") || c.includes("hoạt hình") || c.includes("anime"));
+
+  const isTvShows =
+    rawType === "tvshows" ||
+    rawType === "tv-shows" ||
+    categories.some((c: string) => c.includes("tv-shows") || c.includes("tv shows") || c.includes("show"));
+
+  const isChieuRap = Boolean(
+    m?.chieurap === true ||
+      m?.chieurap === "true" ||
+      m?.chieurap === 1 ||
+      m?.chieu_rap === true ||
+      categories.some((c: string) => c.includes("chieu-rap") || c.includes("chiếu rạp"))
+  );
+
+  // Nhận diện phim bộ nhiều tập chuẩn xác tuyệt đối:
+  // 1. Phim có từ khóa phần/tập/season trong tiêu đề hoặc slug (ví dụ: "Tây Du Ký - Phần 1", "Tây Du Ký (Phần 2)", "-phan-1", "-phan-2", "Season 2")
+  const hasSeriesKeywordsInTitle =
+    /phần\s*\d+|phần\s*[ivx]+|season\s*\d+|ss\s*\d+|\btập\s*\d+/i.test(rawName) ||
+    /-phan-\d+|-phan-[ivx]+|-season-\d+|-tap-\d+/i.test(rawSlug);
+
+  // 2. Định dạng tập trong episode_current (ví dụ: "Hoàn Tất (16/16)", "Tập 25", "25/25", "45 phút/tập")
+  const hasEpCountPattern =
+    /\(\d+\/\d+\)|\d+\/\d+|\btập\s*\d+/i.test(epCurrent) ||
+    timeStr.includes("/tập") ||
+    timeStr.includes("phút/tập");
+
+  const isPhimBo =
+    rawType === "series" ||
+    rawType === "phim-bo" ||
+    rawType === "tv" ||
+    rawType.includes("bộ") ||
+    epTotal > 1 ||
+    hasEpCountPattern ||
+    hasSeriesKeywordsInTitle ||
+    categories.some(
+      (c: string) =>
+        c.includes("phim-bo") ||
+        c.includes("phim bộ") ||
+        c.includes("truyền hình") ||
+        c.includes("series") ||
+        c.includes("drama")
+    );
+
+  if (isHoatHinh) return "Hoạt hình";
+  if (isTvShows) return "TV Shows";
+  if (isPhimBo) return "Phim bộ";
+  if (isChieuRap) return "Phim rạp";
+
+  return "Phim lẻ";
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function normalizeMovie(m: any): NormalizedMovie {
   const title = m?.name || m?.title || "Phim";
   const origin_name = m?.origin_name || undefined;
@@ -299,22 +372,7 @@ export function normalizeMovie(m: any): NormalizedMovie {
       m?.doc_quyen === true
   );
 
-  const rawType = String(m?.type || "").toLowerCase();
-  let type_name = "Phim lẻ";
-  if (rawType === "series" || rawType === "phim-bo" || (m?.episode_total && Number(m?.episode_total) > 1)) {
-    type_name = "Phim bộ";
-  } else if (rawType === "hoathinh" || rawType === "hoat-hinh") {
-    type_name = "Hoạt hình";
-  } else if (rawType === "tvshows" || rawType === "tv-shows") {
-    type_name = "TV Shows";
-  } else if (chieurap) {
-    type_name = "Phim rạp";
-  } else if (
-    (m?.time && String(m.time).toLowerCase().includes("tập")) ||
-    (m?.episode_current && String(m.episode_current).toLowerCase().includes("tập"))
-  ) {
-    type_name = "Phim bộ";
-  }
+  const type_name = detectMovieTypeName(m);
 
   const ratingRaw =
     m?.imdb?.rating ??
