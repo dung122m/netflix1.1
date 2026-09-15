@@ -253,10 +253,27 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
             scopeEpisode === "episode" && currentEpisodeName ? currentEpisodeName : undefined,
           isSpoiler,
         });
+        setComments((prev) =>
+          prev.map((c) =>
+            c.id === myExistingReview.id
+              ? {
+                  ...c,
+                  rating,
+                  content: trimmed,
+                  episodeSlug:
+                    scopeEpisode === "episode" && currentEpisodeSlug ? currentEpisodeSlug : undefined,
+                  episodeName:
+                    scopeEpisode === "episode" && currentEpisodeName ? currentEpisodeName : undefined,
+                  isSpoiler,
+                  updatedAt: Date.now(),
+                }
+              : c
+          )
+        );
         toast.success("Đã cập nhật đánh giá của bạn thành công!");
       } else {
         // Tạo đánh giá mới (lần đầu)
-        await addMovieComment({
+        const createdId = await addMovieComment({
           movieSlug,
           movieTitle: movieTitle || undefined,
           userId: user.uid,
@@ -271,6 +288,34 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
             scopeEpisode === "episode" && currentEpisodeName ? currentEpisodeName : undefined,
           isSpoiler,
         });
+        setComments((prev) => [
+          {
+            id: createdId,
+            movieSlug,
+            movieTitle: movieTitle || undefined,
+            userId: user.uid,
+            userName: user.displayName || "Thành viên Nanaflix",
+            userAvatar: user.photoURL || undefined,
+            userEmail: user.email || undefined,
+            rating,
+            content: trimmed,
+            episodeSlug:
+              scopeEpisode === "episode" && currentEpisodeSlug ? currentEpisodeSlug : undefined,
+            episodeName:
+              scopeEpisode === "episode" && currentEpisodeName ? currentEpisodeName : undefined,
+            isSpoiler,
+            likes: 0,
+            dislikes: 0,
+            likedBy: [],
+            dislikedBy: [],
+            reactions: {},
+            replies: [],
+            replyCount: 0,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+          },
+          ...prev.filter((c) => c.id !== createdId),
+        ]);
         toast.success("Đã đăng bình luận và đánh giá thành công!");
       }
       clearTimeout(timeoutId);
@@ -316,6 +361,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
 
     try {
       await deleteMovieComment(commentId);
+      setComments((prev) => prev.filter((c) => c.id !== commentId));
       toast.info("Đã xóa bình luận.");
     } catch (err) {
       console.error("Lỗi khi xóa bình luận:", err);

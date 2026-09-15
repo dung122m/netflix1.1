@@ -24,6 +24,7 @@ import { sanitizeSafeText } from "@/lib/security";
 import {
   postCommentSupabase,
   getMovieCommentsSupabase,
+  updateCommentSupabase,
   deleteCommentSupabase,
 } from "./supabaseService";
 import { isSupabaseConfigured } from "@/lib/supabase";
@@ -278,8 +279,21 @@ export function subscribeMovieComments(
     }
   };
 
+  // Fix #3: Lắng nghe sự kiện cập nhật bình luận tức thì (Realtime 0ms không cần reload trang)
+  const handleCommentsUpdated = (e: Event) => {
+    if (isUnsubscribed) return;
+    const customEvent = e as CustomEvent<{ movieSlug?: string }>;
+    if (!customEvent.detail?.movieSlug || customEvent.detail.movieSlug === movieSlug) {
+      const cur = movieCommentsMemoryCache[movieSlug];
+      if (cur) onUpdate([...cur]);
+    }
+  };
+
   if (typeof document !== "undefined") {
     document.addEventListener("visibilitychange", handleVisibilityChange);
+  }
+  if (typeof window !== "undefined") {
+    window.addEventListener("comments-updated", handleCommentsUpdated);
   }
 
   return () => {
@@ -288,6 +302,9 @@ export function subscribeMovieComments(
     if (fallbackInterval) clearInterval(fallbackInterval);
     if (typeof document !== "undefined") {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+    }
+    if (typeof window !== "undefined") {
+      window.removeEventListener("comments-updated", handleCommentsUpdated);
     }
     currentFirestoreUnsub?.();
   };
@@ -728,6 +745,7 @@ export async function addMovieComment(
       if (typeof window !== "undefined") {
         try {
           localStorage.setItem(`nanaflix_comments_${comment.movieSlug}`, JSON.stringify(movieCommentsMemoryCache[comment.movieSlug].slice(0, 100)));
+          window.dispatchEvent(new CustomEvent("comments-updated", { detail: { movieSlug: comment.movieSlug, comment: fullComment } }));
         } catch {}
       }
       return createdId;
@@ -745,6 +763,7 @@ export async function addMovieComment(
     if (typeof window !== "undefined") {
       try {
         localStorage.setItem(`nanaflix_comments_${comment.movieSlug}`, JSON.stringify(movieCommentsMemoryCache[comment.movieSlug].slice(0, 100)));
+        window.dispatchEvent(new CustomEvent("comments-updated", { detail: { movieSlug: comment.movieSlug, comment: fullComment } }));
       } catch {}
     }
     return createdId;
@@ -774,6 +793,7 @@ export async function addMovieComment(
     if (typeof window !== "undefined") {
       try {
         localStorage.setItem(`nanaflix_comments_${comment.movieSlug}`, JSON.stringify(movieCommentsMemoryCache[comment.movieSlug].slice(0, 100)));
+        window.dispatchEvent(new CustomEvent("comments-updated", { detail: { movieSlug: comment.movieSlug, comment: fullComment } }));
       } catch {}
     }
     return createdId;
@@ -1066,6 +1086,44 @@ export async function updateMovieComment(
     updatedAt: Date.now(),
   });
 
+  // 1. Cập nhật ngay lập tức vào Memory Cache & LocalStorage
+  let affectedMovieSlug: string | undefined;
+  for (const [slug, list] of Object.entries(movieCommentsMemoryCache)) {
+    const idx = list.findIndex((c) => c.id === commentId);
+    if (idx !== -1) {
+      affectedMovieSlug = slug;
+      movieCommentsMemoryCache[slug] = list.map((c) =>
+        c.id === commentId ? { ...c, ...safeData, updatedAt: payload.updatedAt as number } : c
+      );
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem(`nanaflix_comments_${slug}`, JSON.stringify(movieCommentsMemoryCache[slug].slice(0, 100)));
+        } catch {}
+      }
+      break;
+    }
+  }
+
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("comments-updated", { detail: { commentId, movieSlug: affectedMovieSlug } }));
+  }
+
+  // 2. Cập nhật vào Supabase Database
+  if (isSupabaseConfigured()) {
+    try {
+      await updateCommentSupabase(commentId, {
+        rating: data.rating,
+        content: data.content,
+        episode_slug: data.episodeSlug || null,
+        episode_name: data.episodeName || null,
+        is_spoiler: data.isSpoiler,
+      });
+      return;
+    } catch (supaErr) {
+      console.warn("Lỗi update Supabase, chuyển sang fallback:", supaErr);
+    }
+  }
+
   if (db) {
     try {
       const docRef = doc(db, COLLECTION_NAME, commentId);
@@ -1104,9 +1162,29 @@ export async function updateMovieComment(
 export async function deleteMovieComment(commentId: string): Promise<void> {
   if (!commentId) return;
 
+  // 1. Xóa ngay lập tức khỏi Memory Cache & LocalStorage
+  let affectedMovieSlug: string | undefined;
+  for (const [slug, list] of Object.entries(movieCommentsMemoryCache)) {
+    if (list.some((c) => c.id === commentId)) {
+      affectedMovieSlug = slug;
+      movieCommentsMemoryCache[slug] = list.filter((c) => c.id !== commentId);
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem(`nanaflix_comments_${slug}`, JSON.stringify(movieCommentsMemoryCache[slug].slice(0, 100)));
+        } catch {}
+      }
+      break;
+    }
+  }
+
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("comments-updated", { detail: { commentId, movieSlug: affectedMovieSlug, deleted: true } }));
+  }
+
   if (isSupabaseConfigured()) {
     try {
       await deleteCommentSupabase(commentId);
+      return;
     } catch {}
   }
 

@@ -245,6 +245,33 @@ export async function postCommentSupabase(comment: Omit<MovieComment, "id" | "cr
   return id;
 }
 
+export async function updateCommentSupabase(
+  commentId: string,
+  data: Partial<{
+    rating: number;
+    content: string;
+    episode_slug: string | null;
+    episode_name: string | null;
+    is_spoiler: boolean;
+  }>
+): Promise<void> {
+  if (!supabase || !commentId) return;
+  try {
+    const payload: Record<string, unknown> = {
+      updated_at: Date.now(),
+    };
+    if (data.rating !== undefined) payload.rating = data.rating;
+    if (data.content !== undefined) payload.content = data.content;
+    if (data.episode_slug !== undefined) payload.episode_slug = data.episode_slug;
+    if (data.episode_name !== undefined) payload.episode_name = data.episode_name;
+    if (data.is_spoiler !== undefined) payload.is_spoiler = data.is_spoiler;
+
+    await supabase.from("movie_comments").update(payload).eq("id", commentId);
+  } catch (err) {
+    console.warn("Lỗi update comment Supabase:", err);
+  }
+}
+
 export async function deleteCommentSupabase(commentId: string): Promise<void> {
   if (!supabase || !commentId) return;
   await supabase.from("movie_comments").delete().eq("id", commentId);
