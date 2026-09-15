@@ -13,6 +13,13 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { MovieCollection, CollectionMovieItem } from "@/types/collection";
+import {
+  getUserCollectionsSupabase,
+  saveCollectionSupabase,
+  deleteCollectionSupabase,
+  getPublicCollectionsSupabase,
+} from "./supabaseService";
+import { isSupabaseConfigured } from "@/lib/supabase";
 
 const LOCAL_COLLECTIONS_KEY_PREFIX = "nanaflix_collections_";
 
@@ -55,6 +62,16 @@ export function saveLocalCollections(userId: string, items: MovieCollection[]): 
 export async function getUserCollections(userId: string): Promise<MovieCollection[]> {
   if (!userId) return [];
   const localList = getLocalCollections(userId);
+
+  if (isSupabaseConfigured()) {
+    try {
+      const supaItems = await getUserCollectionsSupabase(userId);
+      if (supaItems && supaItems.length > 0) {
+        saveLocalCollections(userId, supaItems);
+        return supaItems;
+      }
+    } catch {}
+  }
 
   if (!db) return localList;
 
@@ -204,7 +221,12 @@ export async function createCollection(
     const updatedLocal = [collectionData, ...currentLocal.filter((c) => c.id !== collectionData.id)];
     saveLocalCollections(userId, updatedLocal);
 
-    // 2. Thử lưu lên Firestore nếu có kết nối
+    // 2. Đồng bộ lên Supabase nếu có cấu hình
+    if (isSupabaseConfigured()) {
+      saveCollectionSupabase(collectionData).catch(() => {});
+    }
+
+    // 3. Thử lưu lên Firestore nếu có kết nối
     if (db) {
       try {
         const userDocRef = doc(db, "users", userId, "collections", collectionId);
@@ -241,7 +263,12 @@ export async function deleteCollection(
     const updatedLocal = currentLocal.filter((c) => c.id !== collectionId);
     saveLocalCollections(userId, updatedLocal);
 
-    // 2. Thử xóa trên Firestore
+    // 2. Xóa khỏi Supabase
+    if (isSupabaseConfigured()) {
+      deleteCollectionSupabase(collectionId).catch(() => {});
+    }
+
+    // 3. Thử xóa trên Firestore
     if (db) {
       try {
         const userDocRef = doc(db, "users", userId, "collections", collectionId);
@@ -298,6 +325,10 @@ export async function addMovieToCollection(
         userId,
         currentLocal.map((c) => (c.id === collectionId ? targetCol! : c))
       );
+
+      if (isSupabaseConfigured()) {
+        saveCollectionSupabase(targetCol).catch(() => {});
+      }
     }
 
     // 2. Cập nhật Firestore nếu có
@@ -365,6 +396,10 @@ export async function removeMovieFromCollection(
         userId,
         currentLocal.map((c) => (c.id === collectionId ? updatedCol : c))
       );
+
+      if (isSupabaseConfigured()) {
+        saveCollectionSupabase(updatedCol).catch(() => {});
+      }
     }
 
     // 2. Cập nhật Firestore
@@ -456,7 +491,16 @@ export async function getPublicCollection(
 ): Promise<MovieCollection | null> {
   if (!collectionId) return null;
 
-  // 1. Thử đọc từ Firestore public_collections
+  // 1. Thử đọc từ Supabase public collections
+  if (isSupabaseConfigured()) {
+    try {
+      const supaCollections = await getPublicCollectionsSupabase();
+      const found = supaCollections.find((c) => c.id === collectionId);
+      if (found) return found;
+    } catch {}
+  }
+
+  // 2. Thử đọc từ Firestore public_collections
   if (db) {
     try {
       const publicDocRef = doc(db, "public_collections", collectionId);

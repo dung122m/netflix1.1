@@ -264,6 +264,69 @@ export async function getWatchlistSupabase(userId: string): Promise<WatchlistIte
 // 4. BỘ SƯU TẬP (COLLECTIONS) & THÔNG BÁO (NOTIFICATIONS)
 // ============================================================================
 
+export async function getUserCollectionsSupabase(userId: string): Promise<MovieCollection[]> {
+  if (!supabase || !userId) return [];
+  try {
+    const { data } = await supabase
+      .from("collections")
+      .select("*")
+      .eq("user_id", userId)
+      .order("updated_at", { ascending: false });
+
+    if (!data) return [];
+    return data.map((d) => ({
+      id: d.id,
+      userId: d.user_id,
+      userName: d.user_name || "Thành viên Nanaflix",
+      userAvatar: d.user_avatar,
+      name: d.name,
+      description: d.description,
+      isPublic: Boolean(d.is_public),
+      colorGradient: d.color_gradient,
+      movies: d.movies || [],
+      likesCount: d.likes_count || 0,
+      viewsCount: d.views_count || 0,
+      createdAt: Number(d.created_at) || Date.now(),
+      updatedAt: Number(d.updated_at) || Date.now(),
+    }));
+  } catch {
+    return [];
+  }
+}
+
+export async function saveCollectionSupabase(collection: MovieCollection): Promise<void> {
+  if (!supabase || !collection.id || !collection.userId) return;
+  try {
+    const payload = {
+      id: collection.id,
+      user_id: collection.userId,
+      user_name: collection.userName || "Thành viên Nanaflix",
+      user_avatar: collection.userAvatar || null,
+      name: collection.name,
+      description: collection.description || null,
+      is_public: Boolean(collection.isPublic),
+      color_gradient: collection.colorGradient || null,
+      movies: collection.movies || [],
+      likes_count: collection.likesCount || 0,
+      views_count: collection.viewsCount || 0,
+      created_at: collection.createdAt || Date.now(),
+      updated_at: collection.updatedAt || Date.now(),
+    };
+    await supabase.from("collections").upsert(payload, { onConflict: "id" });
+  } catch (err) {
+    console.warn("Lỗi lưu collection lên Supabase:", err);
+  }
+}
+
+export async function deleteCollectionSupabase(id: string): Promise<void> {
+  if (!supabase || !id) return;
+  try {
+    await supabase.from("collections").delete().eq("id", id);
+  } catch (err) {
+    console.warn("Lỗi xóa collection trên Supabase:", err);
+  }
+}
+
 export async function getPublicCollectionsSupabase(): Promise<MovieCollection[]> {
   if (!supabase) return [];
   try {

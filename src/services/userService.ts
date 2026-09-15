@@ -69,8 +69,14 @@ function calculateLocalHistoryWatchMinutes(): number {
   }
 }
 
+import {
+  upsertUserProfileSupabase,
+  getAllProfilesSupabase,
+} from "./supabaseService";
+import { isSupabaseConfigured } from "@/lib/supabase";
+
 /**
- * Ghi nhận hoặc cập nhật hồ sơ người dùng vào Firestore khi đăng nhập
+ * Ghi nhận hoặc cập nhật hồ sơ người dùng vào Supabase/Firestore khi đăng nhập
  */
 export async function recordUserProfile(user: User): Promise<void> {
   if (!user || !user.uid) return;
@@ -81,54 +87,39 @@ export async function recordUserProfile(user: User): Promise<void> {
     const cached = getCachedUserProfile(user.uid);
     const localHistoryMins = calculateLocalHistoryWatchMinutes();
 
-    let existingData: Record<string, unknown> | null = null;
-
-    if (db) {
-      try {
-        const userRef = doc(db, USERS_COLLECTION, user.uid);
-        const docSnap = await getDoc(userRef);
-        existingData = docSnap.exists() ? docSnap.data() : null;
-      } catch (e) {
-        console.warn("Lỗi đọc user doc trực tiếp khi login:", e);
-      }
-    }
-
     const currentWatchMins = Number(
-      existingData?.watchTimeMinutes ?? cached?.watchTimeMinutes ?? localHistoryMins
+      cached?.watchTimeMinutes ?? localHistoryMins
     );
 
-    const profileData: Record<string, unknown> = {
+    const profileData: Partial<UserProfile> & { uid: string } = {
       uid: user.uid,
       email: user.email || "",
       displayName:
-        (existingData?.displayName as string) ||
         cached?.displayName ||
         sanitizeSafeText(user.displayName || "Thành viên Nanaflix", 100),
       photoURL:
-        (existingData?.photoURL as string) ||
-        (existingData?.customAvatar as string) ||
         cached?.photoURL ||
         user.photoURL ||
         "",
       lastLoginAt: now,
-      role: isAdmin ? "admin" : (existingData?.role as string) || "member",
-      createdAt: (existingData?.createdAt as number) || cached?.createdAt || now,
+      role: isAdmin ? "admin" : "member",
+      createdAt: cached?.createdAt || now,
       watchTimeMinutes: currentWatchMins,
-      ...(existingData?.favoriteGenres ? { favoriteGenres: existingData.favoriteGenres } : cached?.favoriteGenres ? { favoriteGenres: cached.favoriteGenres } : {}),
-      ...(existingData?.badges ? { badges: existingData.badges } : cached?.badges ? { badges: cached.badges } : {}),
-      ...(existingData?.bio ? { bio: existingData.bio } : cached?.bio ? { bio: cached.bio } : {}),
-      ...(existingData?.customAvatar ? { customAvatar: existingData.customAvatar } : cached?.customAvatar ? { customAvatar: cached.customAvatar } : {}),
+      ...(cached?.favoriteGenres ? { favoriteGenres: cached.favoriteGenres } : {}),
+      ...(cached?.badges ? { badges: cached.badges } : {}),
+      ...(cached?.bio ? { bio: cached.bio } : {}),
+      ...(cached?.customAvatar ? { customAvatar: cached.customAvatar } : {}),
     };
 
     // Lưu vào Local cache
     setCachedUserProfile(user.uid, profileData as Partial<UserProfile>);
 
-    if (db) {
-      const userRef = doc(db, USERS_COLLECTION, user.uid);
-      await setDoc(userRef, profileData, { merge: true });
+    // Lưu vào Supabase Database
+    if (isSupabaseConfigured()) {
+      await upsertUserProfileSupabase(profileData);
     }
   } catch (err) {
-    console.warn("Lỗi lưu thông tin người dùng vào Firestore:", err);
+    console.warn("Lỗi lưu thông tin người dùng vào Supabase:", err);
   }
 }
 
@@ -140,8 +131,19 @@ export function subscribeAllUsers(
   onError?: (err: Error) => void,
   maxLimit: number = 300
 ): Unsubscribe {
+  if (isSupabaseConfigured()) {
+    getAllProfilesSupabase()
+      .then((items) => {
+        if (items.length > 0) {
+          onUpdate(items);
+        }
+      })
+      .catch((e) => {
+        if (onError) onError(e);
+      });
+  }
+
   if (!db) {
-    onUpdate([]);
     return () => {};
   }
 

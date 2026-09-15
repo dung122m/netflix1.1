@@ -13,7 +13,6 @@ import {
   arrayUnion,
   arrayRemove,
   increment,
-  setDoc,
   deleteField,
   type Unsubscribe,
 } from "firebase/firestore";
@@ -22,6 +21,12 @@ import { MovieComment, MovieRatingStats, CommentReactionType } from "@/types/com
 import { UserNotification } from "@/types/notification";
 import { checkContentModeration } from "@/lib/contentModeration";
 import { sanitizeSafeText } from "@/lib/security";
+import {
+  postCommentSupabase,
+  getMovieCommentsSupabase,
+  deleteCommentSupabase,
+} from "./supabaseService";
+import { isSupabaseConfigured } from "@/lib/supabase";
 
 const setDocWithTimeout = (
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -160,7 +165,15 @@ export function subscribeMovieComments(
     onUpdate(validItems);
   };
 
-  // 2. Fetch dữ liệu từ Server API
+  // 2. Fetch dữ liệu từ Supabase hoặc Server API
+  if (isSupabaseConfigured()) {
+    getMovieCommentsSupabase(movieSlug).then((items) => {
+      if (!isUnsubscribed && items.length > 0) {
+        handleNewData(items);
+      }
+    }).catch(() => {});
+  }
+
   const fallbackFetch = async () => {
     if (isUnsubscribed) return;
     try {
@@ -179,7 +192,7 @@ export function subscribeMovieComments(
     }
   };
 
-  // Nạp dữ liệu ngay lập tức từ Server API
+  // Nạp dữ liệu từ Server API nếu chưa có Supabase
   fallbackFetch();
 
   if (!db) {
@@ -681,17 +694,47 @@ export async function addMovieComment(
   }
 
   const commentsRef = collection(db, COLLECTION_NAME);
-  const newComment = sanitizeCommentData({
-    ...comment,
-    userBadges: comment.userBadges || userBadges,
-    userWatchTimeMinutes: comment.userWatchTimeMinutes || userWatchTimeMinutes,
-    content: sanitizeSafeText(comment.content, 2500),
-    userName: sanitizeSafeText(comment.userName, 100),
-    movieTitle: sanitizeSafeText(comment.movieTitle || "", 200),
+  const newComment = {
+    movieSlug: sanitizeSafeText(comment.movieSlug),
+    movieTitle: sanitizeSafeText(comment.movieTitle || ""),
+    userId: comment.userId,
+    userName: sanitizeSafeText(comment.userName),
+    userAvatar: comment.userAvatar || "",
+    userEmail: comment.userEmail || "",
+    userBadges,
+    userWatchTimeMinutes,
+    content: sanitizeSafeText(comment.content),
+    rating: comment.rating || 0,
     likes: 0,
+    dislikes: 0,
     likedBy: [],
-    createdAt: Date.now(),
-  });
+    dislikedBy: [],
+    reactions: {},
+    replies: [],
+    replyCount: 0,
+    isSpoiler: !!comment.isSpoiler,
+    isPinned: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  // 3. Ghi trực tiếp vào Supabase Database
+  if (isSupabaseConfigured()) {
+    try {
+      const createdId = await postCommentSupabase(newComment as unknown as Omit<MovieComment, "id" | "createdAt" | "updatedAt">);
+      const fullComment: MovieComment = { id: createdId, ...newComment } as MovieComment;
+      const curList = movieCommentsMemoryCache[comment.movieSlug] || [];
+      movieCommentsMemoryCache[comment.movieSlug] = [fullComment, ...curList.filter((c) => c.id !== createdId)];
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem(`nanaflix_comments_${comment.movieSlug}`, JSON.stringify(movieCommentsMemoryCache[comment.movieSlug].slice(0, 100)));
+        } catch {}
+      }
+      return createdId;
+    } catch (supabaseErr) {
+      console.warn("Lỗi ghi Supabase, chuyển sang fallback:", supabaseErr);
+    }
+  }
 
   try {
     const docRef = await addDocWithTimeout(commentsRef, newComment, 3500);
@@ -1060,6 +1103,12 @@ export async function updateMovieComment(
  */
 export async function deleteMovieComment(commentId: string): Promise<void> {
   if (!commentId) return;
+
+  if (isSupabaseConfigured()) {
+    try {
+      await deleteCommentSupabase(commentId);
+    } catch {}
+  }
 
   if (db) {
     try {
