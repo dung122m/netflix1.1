@@ -415,8 +415,21 @@ export async function updateUserProfile(
     }
   }
 
-  // 3. Cập nhật profile Firebase Auth nếu đang đăng nhập đúng tài khoản
-  if (authUser && authUser.uid === userId) {
+  // 3. Cập nhật profile Auth (Supabase hoặc Firebase)
+  if (isSupabaseConfigured()) {
+    try {
+      const { supabase } = await import("@/lib/supabase");
+      if (supabase) {
+        const metaUpdates: Record<string, string> = {};
+        if (payload.displayName) metaUpdates.display_name = payload.displayName;
+        const targetPhoto = payload.customAvatar || payload.photoURL;
+        if (targetPhoto) metaUpdates.avatar_url = targetPhoto;
+        if (Object.keys(metaUpdates).length > 0) {
+          await supabase.auth.updateUser({ data: metaUpdates }).catch(() => {});
+        }
+      }
+    } catch {}
+  } else if (authUser && authUser.uid === userId) {
     const authUpdates: { displayName?: string; photoURL?: string } = {};
     if (payload.displayName) authUpdates.displayName = payload.displayName;
     const targetPhoto = payload.customAvatar || payload.photoURL;
@@ -427,8 +440,8 @@ export async function updateUserProfile(
     if (Object.keys(authUpdates).length > 0) {
       try {
         await updateAuthProfile(authUser, authUpdates);
-      } catch (err) {
-        console.warn("Lỗi cập nhật Auth profile:", err);
+      } catch {
+        // Bỏ qua nếu Firebase Auth offline
       }
     }
   }

@@ -585,6 +585,49 @@ function warmUpTopCategories() {
   }, 200);
 }
 
+const DEFAULT_GENRES = [
+  { name: "Hành Động", slug: "hanh-dong" },
+  { name: "Tình Cảm", slug: "tinh-cam" },
+  { name: "Cổ Trang", slug: "co-trang" },
+  { name: "Tâm Lý", slug: "tam-ly" },
+  { name: "Hài Hước", slug: "hai-huoc" },
+  { name: "Hoạt Hình", slug: "hoat-hinh" },
+  { name: "Kinh Dị", slug: "kinh-di" },
+  { name: "Viễn Tưởng", slug: "vien-tuong" },
+  { name: "Võ Thuật", slug: "vo-thuat" },
+  { name: "Phiêu Lưu", slug: "phieu-luu" },
+  { name: "Hình Sự", slug: "hinh-su" },
+  { name: "Chiến Tranh", slug: "chien-tranh" },
+  { name: "Tài Liệu", slug: "tai-lieu" },
+  { name: "Bí Ẩn", slug: "bi-an" },
+  { name: "Học Đường", slug: "hoc-duong" },
+  { name: "Gia Đình", slug: "gia-dinh" },
+  { name: "Âm Nhạc", slug: "am-nhac" },
+  { name: "Thể Thao", slug: "the-thao" },
+  { name: "Khoa Học", slug: "khoa-hoc" },
+  { name: "Thần Thoại", slug: "than-thoai" },
+];
+
+const DEFAULT_COUNTRIES = [
+  { name: "Việt Nam", slug: "viet-nam" },
+  { name: "Trung Quốc", slug: "trung-quoc" },
+  { name: "Hàn Quốc", slug: "han-quoc" },
+  { name: "Nhật Bản", slug: "nhat-ban" },
+  { name: "Thái Lan", slug: "thai-lan" },
+  { name: "Âu Mỹ", slug: "au-my" },
+  { name: "Đài Loan", slug: "dai-loan" },
+  { name: "Hồng Kông", slug: "hong-kong" },
+  { name: "Ấn Độ", slug: "an-do" },
+  { name: "Anh", slug: "anh" },
+  { name: "Pháp", slug: "phap" },
+  { name: "Canada", slug: "canada" },
+  { name: "Đức", slug: "duc" },
+  { name: "Tây Ban Nha", slug: "tay-ban-nha" },
+  { name: "Thổ Nhĩ Kỳ", slug: "tho-nhi-ky" },
+  { name: "Nga", slug: "nga" },
+  { name: "Úc", slug: "uc" },
+];
+
 export const movieApi = {
   // ==========================================
   // 1. LẤY DANH SÁCH PHIM (STALE-WHILE-REVALIDATE 0MS)
@@ -624,43 +667,53 @@ export const movieApi = {
   },
 
   // ==========================================
-  // 2. LẤY FILTER (VỚI IN-MEMORY CACHE)
+  // 2. LẤY FILTER (VỚI IN-MEMORY CACHE & FALLBACK AN TOÀN)
   // ==========================================
   getFilters: async () => {
     if (cachedFilters) {
       return cachedFilters;
     }
 
+    const currentYear = new Date().getFullYear();
+    const years = Array.from({ length: 50 }, (_, index) =>
+      String(currentYear - index),
+    );
+
     try {
-      const [theLoaiRes, quocGiaRes] = await Promise.all([
-        fetch(`${API_VSMOV}/the-loai`, {
-          next: { revalidate: 3600 },
+      // Ưu tiên PhimAPI (hỗ trợ CORS trên trình duyệt) với fallback an toàn
+      const [theLoaiRes, quocGiaRes] = await Promise.allSettled([
+        fetch(`${API_PHIMAPI}/v1/api/the-loai`, {
           signal: AbortSignal.timeout(4000),
-        }),
-        fetch(`${API_VSMOV}/quoc-gia`, {
-          next: { revalidate: 3600 },
+        }).then((r) => (r.ok ? r.json() : null)),
+        fetch(`${API_PHIMAPI}/v1/api/quoc-gia`, {
           signal: AbortSignal.timeout(4000),
-        }),
+        }).then((r) => (r.ok ? r.json() : null)),
       ]);
 
-      const theLoaiData = await theLoaiRes.json();
-      const quocGiaData = await quocGiaRes.json();
-      const currentYear = new Date().getFullYear();
-      const years = Array.from({ length: 50 }, (_, index) =>
-        String(currentYear - index),
-      );
+      const theLoaiData = theLoaiRes.status === "fulfilled" ? theLoaiRes.value : null;
+      const quocGiaData = quocGiaRes.status === "fulfilled" ? quocGiaRes.value : null;
+
+      const genres =
+        theLoaiData?.data?.items || theLoaiData?.items || DEFAULT_GENRES;
+      const countries =
+        quocGiaData?.data?.items || quocGiaData?.items || DEFAULT_COUNTRIES;
 
       const result = {
-        genres: theLoaiData.data?.items || theLoaiData.items || [],
-        countries: quocGiaData.data?.items || quocGiaData.items || [],
+        genres: genres.length > 0 ? genres : DEFAULT_GENRES,
+        countries: countries.length > 0 ? countries : DEFAULT_COUNTRIES,
         years,
       };
 
       cachedFilters = result;
       return result;
-    } catch (error) {
-      console.error("❌ Lỗi tải filter:", error);
-      return { genres: [], countries: [], years: [] };
+    } catch {
+      const fallbackResult = {
+        genres: DEFAULT_GENRES,
+        countries: DEFAULT_COUNTRIES,
+        years,
+      };
+      cachedFilters = fallbackResult;
+      return fallbackResult;
     }
   },
 
