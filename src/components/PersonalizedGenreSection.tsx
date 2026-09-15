@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
 import {
   Sparkles,
   Heart,
@@ -9,12 +11,13 @@ import {
   ChevronRight,
   ChevronLeft,
   Loader2,
+  Star,
+  Play,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { subscribeUserProfile } from "@/services/userService";
 import { UserProfile } from "@/types/user";
 import { movieApi } from "@/services/movieApi";
-import { MediaCard } from "@/components/sites/netflix-3f78535a/browse-1234abcd/MediaCard";
 import { normalizeMovie } from "@/lib/movieMedia";
 
 interface PersonalizedGenreSectionProps {
@@ -153,6 +156,195 @@ interface SingleGenreRowProps {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const genreMoviesCache: Record<string, any[]> = {};
 
+/**
+ * Card phim dạng ngang (16:9) cao cấp cho từng hàng thể loại
+ * Không phát trailer khi hover để đảm bảo mượt mà 100%, không bị vỡ layout cuộn ngang
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function GenreLandscapeCard({ movie, defaultGenre }: { movie: any; defaultGenre?: string }) {
+  const router = useRouter();
+  const norm = normalizeMovie(movie);
+  const {
+    slug,
+    title,
+    year,
+    time,
+    quality,
+    lang,
+    chieurap,
+    sub_docquyen,
+    type_name,
+    score,
+    thumbUrl,
+    imageUrl,
+    posterUrl,
+  } = norm;
+
+  const rating = score && score !== "N/A" && Number(score) > 0 ? score : null;
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // Danh sách ảnh ưu tiên cho khung hình 16:9
+  const candidateImages = React.useMemo(() => {
+    const list: string[] = [];
+    if (thumbUrl) list.push(thumbUrl);
+    if (imageUrl && !list.includes(imageUrl)) list.push(imageUrl);
+    if (posterUrl && !list.includes(posterUrl)) list.push(posterUrl);
+    return list.filter(
+      (u) =>
+        Boolean(u) &&
+        !u.includes("/undefined") &&
+        !u.includes("/null") &&
+        !u.startsWith("/default-")
+    );
+  }, [thumbUrl, imageUrl, posterUrl]);
+
+  const [attemptIndex, setAttemptIndex] = useState(0);
+  const [currentSrc, setCurrentSrc] = useState(
+    candidateImages[0] || thumbUrl || imageUrl || posterUrl || "/default-poster.svg"
+  );
+
+  React.useEffect(() => {
+    setAttemptIndex(0);
+    setCurrentSrc(candidateImages[0] || thumbUrl || imageUrl || posterUrl || "/default-poster.svg");
+  }, [candidateImages, thumbUrl, imageUrl, posterUrl]);
+
+  const handleImageError = () => {
+    if (currentSrc.includes("image.tmdb.org")) {
+      const match = currentSrc.match(/\/w500\/([a-zA-Z0-9_-]{20,}\.(?:jpg|jpeg|png|webp))/i);
+      if (match) {
+        setCurrentSrc(`https://vsmov.com/storage/images/${match[1]}`);
+        return;
+      }
+    }
+    const nextIdx = attemptIndex + 1;
+    if (nextIdx < candidateImages.length) {
+      setAttemptIndex(nextIdx);
+      setCurrentSrc(candidateImages[nextIdx]);
+      return;
+    }
+    if (currentSrc !== "/default-poster.svg") {
+      setCurrentSrc("/default-poster.svg");
+      setIsLoaded(true);
+    }
+  };
+
+  const handleMouseEnter = () => {
+    if (slug) {
+      router.prefetch(`/movies/${slug}`);
+    }
+  };
+
+  return (
+    <div
+      onMouseEnter={handleMouseEnter}
+      className="group relative aspect-[16/9] w-full overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/90 shadow-md transition-all duration-300 hover:-translate-y-1.5 hover:border-white/30 hover:shadow-[0_16px_36px_-8px_rgba(0,0,0,0.95)] select-none"
+    >
+      <Link
+        href={`/movies/${slug}`}
+        aria-label={`Xem phim ${title}`}
+        className="absolute inset-0 z-30"
+      />
+
+      {/* Ảnh backdrop 16:9 với hiệu ứng zoom nhẹ khi hover */}
+      <div className="absolute inset-0 overflow-hidden">
+        <Image
+          src={currentSrc}
+          alt={title}
+          fill
+          sizes="(max-width: 640px) 260px, (max-width: 1024px) 300px, 320px"
+          className={`object-cover object-center transition-all duration-500 group-hover:scale-105 ${
+            isLoaded ? "opacity-100" : "opacity-0 scale-102"
+          }`}
+          loading="lazy"
+          decoding="async"
+          onLoad={() => setIsLoaded(true)}
+          onError={handleImageError}
+        />
+      </div>
+
+      {/* Placeholder shimmer khi ảnh chưa tải */}
+      {!isLoaded && (
+        <div className="absolute inset-0 bg-gradient-to-br from-zinc-800 to-zinc-950 z-0 animate-pulse" />
+      )}
+
+      {/* Gradient phủ tối dần về phía chân để nổi bật text */}
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent z-10" />
+
+      {/* 1. GÓC TRÊN TRÁI: BADGE LOẠI PHIM */}
+      <div className="absolute left-2.5 top-2.5 z-20 flex items-center gap-1.5 flex-wrap max-w-[70%]">
+        {chieurap ? (
+          <div className="flex items-center gap-1 bg-gradient-to-r from-amber-600 to-orange-500 text-white font-black px-2 py-0.5 rounded-md text-[10px] uppercase tracking-wider backdrop-blur-md shadow-md border border-amber-400/40">
+            <span>🎬 Rạp</span>
+          </div>
+        ) : sub_docquyen ? (
+          <div className="flex items-center gap-1 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black px-2 py-0.5 rounded-md text-[10px] uppercase tracking-wider backdrop-blur-md shadow-md border border-purple-400/40">
+            <span>💎 Độc Quyền</span>
+          </div>
+        ) : type_name === "Phim bộ" ? (
+          <div className="flex items-center gap-1 bg-blue-600/90 text-white font-black px-2 py-0.5 rounded-md text-[10px] uppercase tracking-wider backdrop-blur-md shadow-md border border-blue-400/40">
+            <span>📺 Bộ</span>
+          </div>
+        ) : type_name === "Hoạt hình" ? (
+          <div className="flex items-center gap-1 bg-pink-600/90 text-white font-black px-2 py-0.5 rounded-md text-[10px] uppercase tracking-wider backdrop-blur-md shadow-md border border-pink-400/40">
+            <span>✨ Hoạt Hình</span>
+          </div>
+        ) : type_name === "TV Shows" ? (
+          <div className="flex items-center gap-1 bg-emerald-600/90 text-white font-black px-2 py-0.5 rounded-md text-[10px] uppercase tracking-wider backdrop-blur-md shadow-md border border-emerald-400/40">
+            <span>🎙️ Show</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1 bg-black/60 text-gray-200 font-bold px-2 py-0.5 rounded-md text-[10px] backdrop-blur-md border border-white/15">
+            <span>{defaultGenre || "Phim Lẻ"}</span>
+          </div>
+        )}
+      </div>
+
+      {/* 2. GÓC TRÊN PHẢI: SAO ĐÁNH GIÁ & CHẤT LƯỢNG */}
+      <div className="absolute right-2.5 top-2.5 z-20 flex items-center gap-1.5">
+        {rating && (
+          <div className="inline-flex items-center gap-1 rounded-md border border-amber-400/40 bg-black/80 px-2 py-0.5 text-[10.5px] font-black text-amber-300 backdrop-blur-md shadow-sm">
+            <Star size={10.5} className="fill-amber-400 text-amber-400" />
+            <span>{rating}</span>
+          </div>
+        )}
+        <div className="inline-flex items-center rounded-md border border-white/20 bg-black/70 px-1.5 py-0.5 text-[10px] font-extrabold text-white backdrop-blur-md">
+          <span>{quality || "FHD"}</span>
+        </div>
+      </div>
+
+      {/* 3. NÚT PLAY TRUNG TÂM (HIỆN LÊN MƯỢT KHI HOVER) */}
+      <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
+        <div className="flex h-11 w-11 items-center justify-center rounded-full bg-red-600 text-white shadow-[0_0_20px_rgba(229,9,20,0.6)] transform scale-75 group-hover:scale-100 transition-transform duration-300">
+          <Play size={18} className="fill-white ml-0.5" />
+        </div>
+      </div>
+
+      {/* 4. CHÂN CARD: TIÊU ĐỀ & THÔNG SỐ */}
+      <div className="absolute inset-x-0 bottom-0 z-20 p-2.5 sm:p-3 pointer-events-none space-y-1">
+        <h4 className="text-white font-black text-xs sm:text-[13px] leading-snug line-clamp-1 drop-shadow-md group-hover:text-red-400 transition-colors">
+          {title}
+        </h4>
+
+        <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-medium text-gray-300 flex-wrap">
+          {year && <span className="font-semibold text-gray-200">{year}</span>}
+          {time && (
+            <>
+              <span className="text-white/30">•</span>
+              <span className="truncate max-w-[90px]">{time}</span>
+            </>
+          )}
+          {lang && (
+            <>
+              <span className="text-white/30">•</span>
+              <span className="text-rose-400 font-bold">{lang}</span>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const SingleGenreRow: React.FC<SingleGenreRowProps> = React.memo(
   ({ genreLabel, meta, initialMovies = [] }) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -287,30 +479,7 @@ const SingleGenreRow: React.FC<SingleGenreRowProps> = React.memo(
                 const norm = normalizeMovie(movie);
                 return (
                   <div key={norm.slug || index} className="w-[260px] sm:w-[300px] md:w-[320px] flex-none">
-                    <MediaCard
-                      slug={norm.slug}
-                      title={norm.title}
-                      origin_name={norm.origin_name}
-                      imageUrl={norm.thumbUrl || norm.imageUrl || norm.posterUrl}
-                      posterUrl={norm.posterUrl}
-                      thumbUrl={norm.thumbUrl}
-                      genre={norm.genre || meta.name}
-                      description={norm.description}
-                      time={norm.time}
-                      year={norm.year}
-                      rating={norm.score}
-                      quality={norm.quality}
-                      lang={norm.lang}
-                      chieurap={norm.chieurap}
-                      sub_docquyen={norm.sub_docquyen}
-                      actor={norm.actor}
-                      director={norm.director}
-                      country={norm.country}
-                      type_name={norm.type_name}
-                      hasTrailer={norm.hasTrailer}
-                      trailer_url={norm.trailer_url}
-                      isTrailerOnly={norm.isTrailerOnly}
-                    />
+                    <GenreLandscapeCard movie={movie} defaultGenre={meta.name} />
                   </div>
                 );
               })}
