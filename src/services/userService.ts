@@ -445,21 +445,51 @@ export async function updateUserProfile(
 export async function incrementUserWatchTime(userId: string, minutes: number = 1): Promise<number> {
   if (!userId || minutes <= 0) return 0;
 
-  // 1. Cập nhật ngay lập tức vào Local Cache để UI hiển thị tức thì
   try {
     const cached = getCachedUserProfile(userId);
-    const newMins = (cached?.watchTimeMinutes || 0) + minutes;
-    setCachedUserProfile(userId, { watchTimeMinutes: newMins });
+    const prevMins = Number(cached?.watchTimeMinutes) || 0;
+    const newMins = prevMins + minutes;
 
+    // 1. Cập nhật ngay lập tức vào Local Cache để UI hiển thị tức thì 0ms
+    const updatedProfile: UserProfile = {
+      ...(cached || {
+        uid: userId,
+        email: "",
+        displayName: "Thành viên",
+        photoURL: "",
+        role: "member",
+        favoriteGenres: [],
+        badges: [],
+        createdAt: Date.now(),
+        lastLoginAt: Date.now(),
+      }),
+      watchTimeMinutes: newMins,
+    };
+    setCachedUserProfile(userId, updatedProfile);
+
+    // 2. Cập nhật vào Supabase Database
     if (isSupabaseConfigured()) {
       updateUserProfileSupabase(userId, { watchTimeMinutes: newMins }).catch(() => {});
     }
-  } catch {}
 
-  if (typeof window !== "undefined") {
-    window.dispatchEvent(new CustomEvent("user-watch-time-updated", { detail: { minutes } }));
+    // 3. Phát sự kiện đồng bộ toàn bộ UI (ProfileModal, Header, Leaderboard, Level Badge)
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("user-profile-updated", {
+          detail: { userId, profile: updatedProfile },
+        })
+      );
+      window.dispatchEvent(
+        new CustomEvent("user-watch-time-updated", {
+          detail: { userId, minutes, totalMinutes: newMins },
+        })
+      );
+    }
+    return newMins;
+  } catch (err) {
+    console.warn("Lỗi incrementUserWatchTime:", err);
+    return 0;
   }
-  return minutes;
 }
 
 /**

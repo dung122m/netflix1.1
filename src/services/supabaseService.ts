@@ -127,9 +127,9 @@ export async function updateUserProfileSupabase(
     if (data.watchTimeMinutes !== undefined) payload.watch_time_minutes = data.watchTimeMinutes;
     if (data.role !== undefined) payload.role = data.role;
 
-    const { error } = await supabase.from("profiles").upsert(payload, { onConflict: "id" });
+    const { error } = await supabase.from("profiles").update(payload).eq("id", userId);
     if (error) {
-      console.warn("Lỗi update user profile trong Supabase:", error);
+      await supabase.from("profiles").upsert({ id: userId, ...payload }, { onConflict: "id" });
     }
   } catch (err) {
     console.warn("Lỗi update user profile trong Supabase:", err);
