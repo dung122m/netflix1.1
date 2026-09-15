@@ -43,6 +43,7 @@ interface CommentItemProps {
   onReact?: (commentId: string, reactionType: CommentReactionType | null, prevReactionType?: CommentReactionType | null) => void;
   onDelete: (commentId: string) => void;
   onEdit?: (comment: MovieComment) => void;
+  onTogglePin?: (commentId: string, isPinned: boolean) => void;
   /** Nếu true: đây là reply (gọn hơn, lề phẳng trên mobile) */
   isReply?: boolean;
   /** Callback để mở auth modal nếu user chưa đăng nhập */
@@ -64,7 +65,7 @@ function formatRelativeTime(timestamp: number): string {
   if (minutes < 60) return `${minutes} phút trước`;
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return `${hours} giờ trước`;
-  const days = Math.floor(hours / 24);
+  const days = Math.floor(days / 24);
   if (days < 7) return `${days} ngày trước`;
   const date = new Date(timestamp);
   return date.toLocaleDateString("vi-VN", {
@@ -97,6 +98,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
   onReact,
   onDelete,
   onEdit,
+  onTogglePin,
   isReply = false,
   onRequireAuth,
   onReplyTo,
@@ -254,7 +256,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
 
     setIsSubmittingReply(true);
     try {
-      await addReplyComment({
+      const createdId = await addReplyComment({
         parentId: comment.id,
         parentOwnerId: comment.userId,
         parentOwnerName: comment.userName,
@@ -267,13 +269,31 @@ export const CommentItem: React.FC<CommentItemProps> = ({
         userAvatar: currentUserAvatar,
         content: trimmed,
       });
+
+      const newReplyItem: MovieComment = {
+        id: createdId || `reply_${Date.now()}`,
+        parentId: comment.id,
+        parentOwnerId: comment.userId,
+        replyToUserId: replyTargetUser?.userId,
+        replyToUserName: replyTargetUser?.userName,
+        movieSlug: comment.movieSlug,
+        movieTitle: comment.movieTitle,
+        userId: currentUserId,
+        userName: currentUserName,
+        userAvatar: currentUserAvatar,
+        content: trimmed,
+        rating: 0,
+        likes: 0,
+        likedBy: [],
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+
+      setReplies((prev) => [...prev.filter((r) => r.id !== newReplyItem.id), newReplyItem]);
       setReplyContent("");
       setReplyTargetUser(null);
       setShowReplyForm(false);
-      // Tự động mở replies để thấy reply vừa gửi
-      if (!showReplies) {
-        handleToggleReplies();
-      }
+      setShowReplies(true);
       toast.success("Đã gửi trả lời!");
     } catch (err) {
       console.error("Lỗi gửi reply:", err);
@@ -293,6 +313,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
     });
     if (!confirmed) return;
     try {
+      setReplies((prev) => prev.filter((r) => r.id !== replyId));
       await deleteMovieComment(replyId);
       toast.info("Đã xóa trả lời.");
     } catch {
@@ -327,10 +348,14 @@ export const CommentItem: React.FC<CommentItemProps> = ({
   const handleTogglePin = async () => {
     if (!isAdmin || !currentUserEmail) return;
     setIsPinning(true);
+    const nextPinnedState = !comment.isPinned;
+    onTogglePin?.(comment.id, nextPinnedState);
     try {
       const isPinnedNow = await togglePinComment(comment.id, Boolean(comment.isPinned), currentUserEmail);
+      onTogglePin?.(comment.id, isPinnedNow);
       toast.success(isPinnedNow ? "Đã ghim bình luận lên đầu!" : "Đã bỏ ghim bình luận.");
     } catch {
+      onTogglePin?.(comment.id, Boolean(comment.isPinned));
       toast.error("Không thể ghim/bỏ ghim bình luận!");
     } finally {
       setIsPinning(false);

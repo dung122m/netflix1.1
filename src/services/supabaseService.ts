@@ -356,6 +356,97 @@ export async function updateCommentSupabase(
   }
 }
 
+export async function getAllCommentsSupabase(): Promise<MovieComment[]> {
+  if (!supabase) return [];
+  try {
+    const { data, error } = await supabase
+      .from("movie_comments")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error || !data) return [];
+
+    return data.map((d) => ({
+      id: d.id,
+      movieSlug: d.movie_slug,
+      movieTitle: d.movie_title || "",
+      userId: d.user_id,
+      userName: d.user_name || "Thành viên",
+      userAvatar: d.user_avatar || "",
+      userEmail: d.user_email,
+      rating: d.rating || 5,
+      content: d.content || "",
+      episodeSlug: d.episode_slug,
+      episodeName: d.episode_name,
+      parentId: d.parent_id,
+      parentOwnerId: d.parent_owner_id,
+      replyToUserId: d.reply_to_user_id,
+      replyToUserName: d.reply_to_user_name,
+      isSpoiler: Boolean(d.is_spoiler),
+      likes: d.likes || 0,
+      likedBy: Array.isArray(d.liked_by) ? d.liked_by : [],
+      isFlagged: Boolean(d.is_flagged),
+      flagReason: d.flag_reason,
+      isApproved: d.is_approved !== false,
+      isPinned: Boolean(d.is_pinned),
+      createdAt: Number(d.created_at) || Date.now(),
+      updatedAt: Number(d.updated_at) || Date.now(),
+    }));
+  } catch {
+    return [];
+  }
+}
+
+export async function togglePinCommentSupabase(commentId: string, isPinned: boolean): Promise<void> {
+  if (!supabase || !commentId) return;
+  try {
+    await supabase
+      .from("movie_comments")
+      .update({ is_pinned: isPinned, updated_at: Date.now() })
+      .eq("id", commentId);
+  } catch (err) {
+    console.warn("Lỗi togglePinComment Supabase:", err);
+  }
+}
+
+export async function setCommentReactionSupabase(
+  commentId: string,
+  userId: string,
+  hasLiked: boolean
+): Promise<void> {
+  if (!supabase || !commentId || !userId) return;
+  try {
+    const { data } = await supabase
+      .from("movie_comments")
+      .select("likes, liked_by")
+      .eq("id", commentId)
+      .maybeSingle();
+
+    if (!data) return;
+
+    const currentLikedBy: string[] = Array.isArray(data.liked_by) ? data.liked_by : [];
+    let newLikedBy: string[];
+    let newLikes: number;
+
+    if (hasLiked) {
+      if (currentLikedBy.includes(userId)) return;
+      newLikedBy = [...currentLikedBy, userId];
+      newLikes = (data.likes || 0) + 1;
+    } else {
+      if (!currentLikedBy.includes(userId)) return;
+      newLikedBy = currentLikedBy.filter((id) => id !== userId);
+      newLikes = Math.max(0, (data.likes || 0) - 1);
+    }
+
+    await supabase
+      .from("movie_comments")
+      .update({ likes: newLikes, liked_by: newLikedBy, updated_at: Date.now() })
+      .eq("id", commentId);
+  } catch (err) {
+    console.warn("Lỗi setCommentReaction Supabase:", err);
+  }
+}
+
 export async function deleteCommentSupabase(commentId: string): Promise<void> {
   if (!supabase || !commentId) return;
   await supabase.from("movie_comments").delete().eq("id", commentId);

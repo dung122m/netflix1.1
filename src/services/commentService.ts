@@ -26,8 +26,11 @@ import {
   getMovieCommentsSupabase,
   getCommentRepliesSupabase,
   getUserCommentsSupabase,
+  getAllCommentsSupabase,
   updateCommentSupabase,
   deleteCommentSupabase,
+  togglePinCommentSupabase,
+  setCommentReactionSupabase,
 } from "./supabaseService";
 import { isSupabaseConfigured } from "@/lib/supabase";
 
@@ -157,15 +160,33 @@ export function subscribeMovieComments(
   }
 
   const handleNewData = (items: MovieComment[]) => {
-    // Đảm bảo tuyệt đối 100% chỉ lưu và hiển thị đúng bình luận của phim movieSlug hiện tại
     const validItems = items.filter((c) => !c.movieSlug || c.movieSlug === movieSlug);
-    movieCommentsMemoryCache[movieSlug] = validItems;
+    const existingCache = movieCommentsMemoryCache[movieSlug] || [];
+
+    const map = new Map<string, MovieComment>();
+    validItems.forEach((item) => map.set(item.id, item));
+    existingCache.forEach((item) => {
+      if (!map.has(item.id)) {
+        map.set(item.id, item);
+      }
+    });
+
+    const merged = Array.from(map.values());
+    merged.sort((a, b) => {
+      const isPinnedA = Boolean(a.isPinned);
+      const isPinnedB = Boolean(b.isPinned);
+      if (isPinnedA && !isPinnedB) return -1;
+      if (!isPinnedA && isPinnedB) return 1;
+      return (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0);
+    });
+
+    movieCommentsMemoryCache[movieSlug] = merged;
     if (typeof window !== "undefined") {
       try {
-        localStorage.setItem(`nanaflix_comments_${movieSlug}`, JSON.stringify(validItems.slice(0, 100)));
+        localStorage.setItem(`nanaflix_comments_${movieSlug}`, JSON.stringify(merged.slice(0, 100)));
       } catch {}
     }
-    onUpdate(validItems);
+    onUpdate(merged);
   };
 
   // 2. Fetch dữ liệu từ Supabase hoặc Server API
@@ -191,15 +212,14 @@ export function subscribeMovieComments(
         }
       }
     } catch {
-      // Bỏ qua lỗi mạng — sẽ thử lại theo interval
+      // Bỏ qua lỗi mạng
     }
   };
 
-  // Nạp dữ liệu từ Server API nếu chưa có Supabase
   fallbackFetch();
 
   if (!db) {
-    const interval = setInterval(fallbackFetch, 6000);
+    const interval = setInterval(fallbackFetch, 4000);
     return () => {
       isUnsubscribed = true;
       clearInterval(interval);
@@ -236,19 +256,13 @@ export function subscribeMovieComments(
           if (commentData.movieSlug && commentData.movieSlug !== movieSlug) return;
           items.push(commentData);
         });
-        items.sort((a, b) => {
-          if (a.isPinned && !b.isPinned) return -1;
-          if (!a.isPinned && b.isPinned) return 1;
-          return (b.createdAt || 0) - (a.createdAt || 0);
-        });
         handleNewData(items);
       },
       (error) => {
         if (isUnsubscribed) return;
-        console.warn("Lỗi tải bình luận từ Firestore, dùng Server API Fallback:", error);
         fallbackFetch();
         if (!fallbackInterval) {
-          fallbackInterval = setInterval(fallbackFetch, 6000);
+          fallbackInterval = setInterval(fallbackFetch, 5000);
         }
         if (onError) onError(error);
 
@@ -266,26 +280,32 @@ export function subscribeMovieComments(
     currentFirestoreUnsub = unsub;
   };
 
-  // Khởi tạo listener lần đầu
   createFirestoreListener();
 
-  // Fix #2: Reconnect khi tab được focus lại sau khi bị background
   const handleVisibilityChange = () => {
     if (isUnsubscribed) return;
     if (document.visibilityState === "visible") {
-      // Tab active lại → reset và tái kết nối Firestore ngay
       retryCount = 0;
       if (retryTimer) clearTimeout(retryTimer);
       currentFirestoreUnsub?.();
       createFirestoreListener();
+      if (isSupabaseConfigured()) {
+        getMovieCommentsSupabase(movieSlug).then((items) => {
+          if (!isUnsubscribed && items.length > 0) handleNewData(items);
+        }).catch(() => {});
+      }
     }
   };
 
-  // Fix #3: Lắng nghe sự kiện cập nhật bình luận tức thì (Realtime 0ms không cần reload trang)
   const handleCommentsUpdated = (e: Event) => {
     if (isUnsubscribed) return;
     const customEvent = e as CustomEvent<{ movieSlug?: string }>;
     if (!customEvent.detail?.movieSlug || customEvent.detail.movieSlug === movieSlug) {
+      if (isSupabaseConfigured()) {
+        getMovieCommentsSupabase(movieSlug).then((items) => {
+          if (!isUnsubscribed && items.length > 0) handleNewData(items);
+        }).catch(() => {});
+      }
       const cur = movieCommentsMemoryCache[movieSlug];
       if (cur) onUpdate([...cur]);
     }
@@ -342,7 +362,6 @@ export function subscribeCommentReplies(
       .catch(() => {});
   }
 
-  // Fix #3: guard isUnsubscribed sau await
   const fallbackFetch = async () => {
     if (isUnsubscribed) return;
     try {
@@ -361,7 +380,7 @@ export function subscribeCommentReplies(
   fallbackFetch();
 
   if (!db) {
-    const interval = setInterval(fallbackFetch, 5000);
+    const interval = setInterval(fallbackFetch, 4000);
     return () => { isUnsubscribed = true; clearInterval(interval); };
   }
 
@@ -386,11 +405,9 @@ export function subscribeCommentReplies(
       },
       (error) => {
         if (isUnsubscribed) return;
-        console.warn("Lỗi tải replies từ Firestore, dùng Server API Fallback:", error);
         fallbackFetch();
         if (!fallbackInterval) fallbackInterval = setInterval(fallbackFetch, 5000);
         if (onError) onError(error);
-        // Fix #2: exponential backoff
         const delay = Math.min(2000 * Math.pow(2, retryCount), 30000);
         retryCount++;
         if (retryTimer) clearTimeout(retryTimer);
@@ -563,23 +580,41 @@ export function subscribeAllComments(
 ): Unsubscribe {
   let isUnsubscribed = false;
 
-  const fallbackFetch = async () => {
+  const fetchSupabaseOrApi = async () => {
+    if (isUnsubscribed) return;
+    if (isSupabaseConfigured()) {
+      try {
+        const items = await getAllCommentsSupabase();
+        if (!isUnsubscribed && items.length > 0) {
+          onUpdate(items);
+          return;
+        }
+      } catch {}
+    }
     try {
       const items = await fetchAllCommentsDirect();
-      if (items.length > 0 && !isUnsubscribed) {
+      if (!isUnsubscribed && items.length > 0) {
         onUpdate(items);
       }
     } catch {}
   };
 
-  // 1. Nạp ngay tức thì qua Server API (0 delay)
-  fallbackFetch();
+  // 1. Nạp ngay tức thì (0 delay)
+  fetchSupabaseOrApi();
 
-  // 2. Định kỳ polling ngầm mỗi 4 giây để bắt kịp bình luận gửi từ Server REST hoặc các client khác
-  const syncInterval = setInterval(fallbackFetch, 4000);
+  // 2. Lắng nghe sự kiện cập nhật để reload tức thời
+  const handleCommentsUpdated = () => {
+    if (isUnsubscribed) return;
+    fetchSupabaseOrApi();
+  };
+  if (typeof window !== "undefined") {
+    window.addEventListener("comments-updated", handleCommentsUpdated);
+  }
+
+  // 3. Polling định kỳ mỗi 3 giây
+  const syncInterval = setInterval(fetchSupabaseOrApi, 3000);
 
   let unsubscribeFirestore: Unsubscribe | null = null;
-
   if (db) {
     try {
       const commentsRef = collection(db, COLLECTION_NAME);
@@ -600,18 +635,18 @@ export function subscribeAllComments(
           }
         },
         (error) => {
-          console.warn("Lỗi onSnapshot movie_comments cho Admin, chuyển sang polling:", error);
           if (onError) onError(error);
         },
       );
-    } catch (e) {
-      console.warn("Lỗi khởi tạo onSnapshot admin comments:", e);
-    }
+    } catch {}
   }
 
   return () => {
     isUnsubscribed = true;
     clearInterval(syncInterval);
+    if (typeof window !== "undefined") {
+      window.removeEventListener("comments-updated", handleCommentsUpdated);
+    }
     unsubscribeFirestore?.();
   };
 }
@@ -1086,42 +1121,74 @@ export async function setCommentReaction(
   reactionType: CommentReactionType | null,
   prevReactionType?: CommentReactionType | null,
 ): Promise<void> {
-  if (!db || !commentId || !userId) return;
+  if (!commentId || !userId) return;
 
-  const docRef = doc(db, COLLECTION_NAME, commentId);
-
-  // 1. Trường hợp gỡ bỏ cảm xúc (Un-react)
-  if (!reactionType) {
-    const updatePayload: Record<string, unknown> = {
-      likes: increment(-1),
-      likedBy: arrayRemove(userId),
-      [`reactions.${userId}`]: deleteField(),
-    };
-    if (prevReactionType) {
-      updatePayload[`reactionCounts.${prevReactionType}`] = increment(-1);
-    }
-    await updateDoc(docRef, updatePayload);
-    return;
+  // 1. Cập nhật Supabase ngay lập tức
+  if (isSupabaseConfigured()) {
+    setCommentReactionSupabase(commentId, userId, reactionType !== null).catch(() => {});
   }
 
-  // 2. Trường hợp thả cảm xúc lần đầu (chưa có cảm xúc trước đó)
-  if (!prevReactionType) {
-    await updateDoc(docRef, {
-      likes: increment(1),
-      likedBy: arrayUnion(userId),
-      [`reactions.${userId}`]: reactionType,
-      [`reactionCounts.${reactionType}`]: increment(1),
+  // 2. Cập nhật ngay bộ nhớ cache & localStorage
+  Object.keys(movieCommentsMemoryCache).forEach((slug) => {
+    movieCommentsMemoryCache[slug] = movieCommentsMemoryCache[slug].map((c) => {
+      if (c.id !== commentId) return c;
+      const currentLikedBy = Array.isArray(c.likedBy) ? c.likedBy : [];
+      let newLikedBy = currentLikedBy;
+      let newLikes = c.likes || 0;
+      if (reactionType !== null) {
+        if (!newLikedBy.includes(userId)) {
+          newLikedBy = [...newLikedBy, userId];
+          newLikes += 1;
+        }
+      } else {
+        newLikedBy = newLikedBy.filter((id) => id !== userId);
+        newLikes = Math.max(0, newLikes - 1);
+      }
+      return {
+        ...c,
+        likes: newLikes,
+        likedBy: newLikedBy,
+        reactions: {
+          ...(c.reactions || {}),
+          [userId]: reactionType || undefined,
+        },
+      };
     });
-    return;
+  });
+
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("comments-updated", { detail: { commentId } }));
   }
 
-  // 3. Trường hợp đổi từ cảm xúc này sang cảm xúc khác (vd: Like -> Love)
-  if (prevReactionType !== reactionType) {
-    await updateDoc(docRef, {
-      [`reactions.${userId}`]: reactionType,
-      [`reactionCounts.${prevReactionType}`]: increment(-1),
-      [`reactionCounts.${reactionType}`]: increment(1),
-    });
+  // 3. Đồng bộ ngầm Firestore nếu có
+  if (db) {
+    try {
+      const docRef = doc(db, COLLECTION_NAME, commentId);
+      if (!reactionType) {
+        const updatePayload: Record<string, unknown> = {
+          likes: increment(-1),
+          likedBy: arrayRemove(userId),
+          [`reactions.${userId}`]: deleteField(),
+        };
+        if (prevReactionType) {
+          updatePayload[`reactionCounts.${prevReactionType}`] = increment(-1);
+        }
+        updateDoc(docRef, updatePayload).catch(() => {});
+      } else if (!prevReactionType) {
+        updateDoc(docRef, {
+          likes: increment(1),
+          likedBy: arrayUnion(userId),
+          [`reactions.${userId}`]: reactionType,
+          [`reactionCounts.${reactionType}`]: increment(1),
+        }).catch(() => {});
+      } else if (prevReactionType !== reactionType) {
+        updateDoc(docRef, {
+          [`reactions.${userId}`]: reactionType,
+          [`reactionCounts.${prevReactionType}`]: increment(-1),
+          [`reactionCounts.${reactionType}`]: increment(1),
+        }).catch(() => {});
+      }
+    } catch {}
   }
 }
 
@@ -1455,34 +1522,53 @@ export async function togglePinComment(
   adminEmail: string
 ): Promise<boolean> {
   const newPinnedState = !currentIsPinned;
+
+  // 1. Cập nhật ngay bộ nhớ cache & localStorage cho toàn bộ tabs
+  Object.keys(movieCommentsMemoryCache).forEach((slug) => {
+    movieCommentsMemoryCache[slug] = movieCommentsMemoryCache[slug].map((c) =>
+      c.id === commentId ? { ...c, isPinned: newPinnedState } : c
+    );
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem(`nanaflix_comments_${slug}`, JSON.stringify(movieCommentsMemoryCache[slug].slice(0, 100)));
+      } catch {}
+    }
+  });
+
+  // 2. Cập nhật Supabase ngay lập tức
+  if (isSupabaseConfigured()) {
+    togglePinCommentSupabase(commentId, newPinnedState).catch((err) => {
+      console.warn("Lỗi togglePinCommentSupabase:", err);
+    });
+  }
+
+  // 3. Phát event cập nhật toàn bộ giao diện realtime 0ms
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("comments-updated", { detail: { commentId, isPinned: newPinnedState } }));
+  }
+
+  // 4. Đồng bộ ngầm Firestore / REST API
   if (db) {
     try {
       const commentRef = doc(db, COLLECTION_NAME, commentId);
-      await updateDoc(commentRef, {
+      updateDoc(commentRef, {
         isPinned: newPinnedState,
         pinnedAt: newPinnedState ? Date.now() : deleteField(),
         pinnedBy: newPinnedState ? adminEmail : deleteField(),
-      });
-      return newPinnedState;
-    } catch (err) {
-      console.warn("Lỗi ghim/bỏ ghim comment Firestore client, thử dùng API server:", err);
-    }
+      }).catch(() => {});
+    } catch {}
   }
 
-  try {
-    const res = await fetch("/api/comments", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        commentId,
-        isPinned: newPinnedState,
-        adminEmail,
-      }),
-    });
-    return res.ok;
-  } catch (err) {
-    console.error("Lỗi togglePinComment:", err);
-    throw err;
-  }
+  fetch("/api/comments", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      commentId,
+      isPinned: newPinnedState,
+      adminEmail,
+    }),
+  }).catch(() => {});
+
+  return newPinnedState;
 }
 

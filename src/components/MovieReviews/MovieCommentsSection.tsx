@@ -369,6 +369,12 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
     }
   };
 
+  const handleTogglePinComment = (commentId: string, isPinned: boolean) => {
+    setComments((prev) =>
+      prev.map((c) => (c.id === commentId ? { ...c, isPinned } : c))
+    );
+  };
+
   return (
     <section id="comments" className="mt-8 sm:mt-12 bg-zinc-950/80 rounded-2xl sm:rounded-3xl border border-white/5 p-4 sm:p-6 md:p-8 backdrop-blur-md shadow-2xl">
       {/* Title & Section Header */}
@@ -688,6 +694,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
                 onReact={handleReact}
                 onDelete={handleDeleteComment}
                 onEdit={handleEditReview}
+                onTogglePin={handleTogglePinComment}
                 onRequireAuth={() => setShowAuthModal(true)}
                 highlightCommentId={highlightId}
                 targetReplyId={targetParentId === comment.id ? highlightId : undefined}
