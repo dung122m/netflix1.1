@@ -21,6 +21,7 @@ import {
 import {
   buildMovieDescriptionFallback,
   pickBestMovieImage,
+  pickHeroBackdropImage,
 } from "@/lib/movieMedia";
 import { cleanHtmlText } from "@/lib/cleanHtml";
 import { clientSynopsisCache } from "./MediaCard";
@@ -80,7 +81,7 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
     const nextIndex = (index + 1) % slides.length;
     const nextMovie = slides[nextIndex];
     if (nextMovie) {
-      const nextUrl = pickBestMovieImage(nextMovie, "/default-hero.jpg");
+      const nextUrl = pickHeroBackdropImage(nextMovie, "/default-hero.jpg");
       const img = new window.Image();
       img.src = nextUrl;
     }
@@ -182,13 +183,13 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
         enter: (dir: number) => ({
           x: dir > 0 ? 120 : -120,
           opacity: 0,
-          scale: 1.06,
+          scale: 1.05,
         }),
         center: { x: 0, opacity: 1, scale: 1 },
         exit: (dir: number) => ({
           x: dir > 0 ? -110 : 110,
           opacity: 0,
-          scale: 1.08,
+          scale: 1.05,
         }),
       };
 
@@ -220,11 +221,12 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
             className="absolute inset-0 will-change-transform"
           >
             <Image
-              src={pickBestMovieImage(featuredMovie, "/default-hero.jpg")}
+              src={pickHeroBackdropImage(featuredMovie, "/default-hero.jpg")}
               alt={title}
               fill
               priority
-              quality={95}
+              quality={100}
+              unoptimized
               sizes="100vw"
               className="object-cover object-top sm:object-center"
             />
@@ -232,11 +234,15 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
         </AnimatePresence>
       </div>
 
-      {/* 2. CÁC LỚP MÀNG GRADIENT ĐIỆN ẢNH (CINEMATIC FULL-BLEED GRADIENTS) */}
-      <div className="absolute inset-0 bg-gradient-to-r from-black/95 via-black/80 to-transparent sm:w-3/4 pointer-events-none" />
-      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent pointer-events-none" />
-      <div className="absolute top-0 left-0 right-0 h-36 bg-gradient-to-b from-black/80 to-transparent pointer-events-none" />
-      <div className="absolute -left-20 bottom-1/4 w-[500px] h-[500px] bg-rose-600/15 rounded-full blur-[120px] pointer-events-none" />
+      {/* 2. CÁC LỚP MÀNG GRADIENT ĐIỆN ẢNH SẮC NÉT (CINEMATIC FULL-BLEED GRADIENTS) */}
+      {/* Gradient mờ bên trái che chữ, giữ bên phải ảnh sắc nét */}
+      <div className="absolute inset-y-0 left-0 w-full sm:w-[62%] bg-gradient-to-r from-black/95 via-black/60 to-transparent pointer-events-none z-[1]" />
+      {/* Gradient chân trang chuyển màu êm ái */}
+      <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-black via-black/45 to-transparent pointer-events-none z-[1]" />
+      {/* Gradient mép trên thanh header */}
+      <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/70 to-transparent pointer-events-none z-[1]" />
+      {/* Ambient glow đỏ tinh tế */}
+      <div className="absolute -left-20 bottom-1/4 w-[450px] h-[450px] bg-rose-600/10 rounded-full blur-[130px] pointer-events-none z-[1]" />
 
       {/* 3. NỘI DUNG CHÍNH (TYPOGRAPHY, BADGES & CTA BUTTONS) */}
       <motion.div

@@ -118,6 +118,48 @@ export function pickBestMovieThumb(movie: MovieLike, fallback = "/default-hero.s
   return candidates[0];
 }
 
+export function toHighResBackdropUrl(url: string): string {
+  if (!url || typeof url !== "string") return "";
+  let clean = sanitizeImageUrl(url);
+  // Nếu là ảnh từ TMDb (hoặc VSMOV đã chuyển sang TMDb CDN), nâng cấp lên w1280 (HD) sắc nét chuẩn màn hình lớn
+  if (clean.includes("image.tmdb.org/t/p/")) {
+    clean = clean.replace(/\/t\/p\/(w500|w780|w300)\//, "/t/p/w1280/");
+  }
+  return clean;
+}
+
+export function pickHeroBackdropImage(movie: MovieLike, fallback = "/default-hero.jpg"): string {
+  if (!movie) return fallback;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rawMovie = (movie as any)?.movie || movie;
+  const isVsmov = isVsmovSource(movie);
+
+  // VSMOV đảo ngược: poster_url là backdrop 16:9, thumb_url là poster dọc 2:3
+  const primary = isVsmov
+    ? rawMovie.poster_url || rawMovie.posterUrl || movie.poster_url || movie.posterUrl
+    : rawMovie.thumb_url || rawMovie.thumbUrl || movie.thumb_url || movie.thumbUrl;
+
+  const secondary = isVsmov
+    ? rawMovie.thumb_url || rawMovie.thumbUrl || movie.thumb_url || movie.thumbUrl
+    : rawMovie.poster_url || rawMovie.posterUrl || movie.poster_url || movie.posterUrl;
+
+  const candidates = [primary, secondary, movie.imageUrl]
+    .filter((value): value is string => typeof value === "string" && value.length > 0)
+    .map(toHighResBackdropUrl)
+    .filter((url) => Boolean(url) && !url.endsWith("/null") && !url.endsWith("/undefined"));
+
+  if (candidates.length === 0) return fallback;
+
+  // Ưu tiên backdrop ngang
+  for (const c of candidates) {
+    const l = c.toLowerCase();
+    if (l.includes("thumb_") || l.includes("/thumb") || l.includes("-thumb") || l.includes("backdrop") || l.includes("w1280") || l.includes("w780")) {
+      return c;
+    }
+  }
+  return candidates[0];
+}
+
 export function pickBestMovieImage(movie: MovieLike, fallback: string) {
   return pickBestMovieThumb(movie, fallback);
 }
