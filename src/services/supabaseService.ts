@@ -899,3 +899,529 @@ export async function clearAllWatchlistSupabase(userId: string): Promise<void> {
     console.warn("Lỗi xóa all watchlist Supabase:", err);
   }
 }
+
+// ============================================================================
+// 5. SUPABASE STORAGE (KHO LƯU TRỮ AVATAR & BỘ SƯU TẬP)
+// ============================================================================
+
+export async function uploadAvatarSupabase(
+  userId: string,
+  fileOrBlob: Blob | File,
+  fileExt: string = "jpg"
+): Promise<string | null> {
+  if (!supabase || !userId) return null;
+  try {
+    const fileName = `${userId}_${Date.now()}.${fileExt}`;
+    const filePath = `avatars/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("avatars")
+      .upload(filePath, fileOrBlob, {
+        upsert: true,
+        contentType: fileOrBlob.type || "image/jpeg",
+      });
+
+    if (uploadError) {
+      console.warn("Lỗi upload avatar lên Supabase Storage:", uploadError.message);
+      return null;
+    }
+
+    const { data } = supabase.storage.from("avatars").getPublicUrl(filePath);
+    return data?.publicUrl || null;
+  } catch (err) {
+    console.warn("Lỗi ngoại lệ upload avatar Supabase:", err);
+    return null;
+  }
+}
+
+export async function uploadCollectionCoverSupabase(
+  userId: string,
+  fileOrBlob: Blob | File,
+  fileExt: string = "jpg"
+): Promise<string | null> {
+  if (!supabase || !userId) return null;
+  try {
+    const fileName = `${userId}_${Date.now()}.${fileExt}`;
+    const filePath = `covers/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("collection-covers")
+      .upload(filePath, fileOrBlob, {
+        upsert: true,
+        contentType: fileOrBlob.type || "image/jpeg",
+      });
+
+    if (uploadError) {
+      console.warn("Lỗi upload cover lên Supabase Storage:", uploadError.message);
+      return null;
+    }
+
+    const { data } = supabase.storage.from("collection-covers").getPublicUrl(filePath);
+    return data?.publicUrl || null;
+  } catch (err) {
+    console.warn("Lỗi ngoại lệ upload collection cover Supabase:", err);
+    return null;
+  }
+}
+
+// ============================================================================
+// 6. POSTGRES FULL-TEXT SEARCH (RPC)
+// ============================================================================
+
+export async function searchCommentsFtsSupabase(searchTerm: string): Promise<MovieComment[]> {
+  if (!supabase || !searchTerm.trim()) return [];
+  try {
+    const { data, error } = await supabase.rpc("search_comments_fts", {
+      search_term: searchTerm.trim(),
+    });
+
+    if (error || !data) return [];
+    return (data as Record<string, unknown>[]).map((d) => {
+      const { likedBy, reactions } = parseReactionsAndLikedBy(d.liked_by);
+      return {
+        id: String(d.id),
+        movieSlug: String(d.movie_slug || ""),
+        movieTitle: String(d.movie_title || ""),
+        userId: String(d.user_id || ""),
+        userName: String(d.user_name || "Thành viên"),
+        userAvatar: String(d.user_avatar || ""),
+        userEmail: d.user_email ? String(d.user_email) : undefined,
+        rating: Number(d.rating) || 5,
+        content: String(d.content || ""),
+        episodeSlug: d.episode_slug ? String(d.episode_slug) : undefined,
+        episodeName: d.episode_name ? String(d.episode_name) : undefined,
+        parentId: d.parent_id ? String(d.parent_id) : undefined,
+        parentOwnerId: d.parent_owner_id ? String(d.parent_owner_id) : undefined,
+        replyToUserId: d.reply_to_user_id ? String(d.reply_to_user_id) : undefined,
+        replyToUserName: d.reply_to_user_name ? String(d.reply_to_user_name) : undefined,
+        isSpoiler: Boolean(d.is_spoiler),
+        likes: Math.max(Number(d.likes) || 0, likedBy.length),
+        likedBy,
+        reactions,
+        isFlagged: Boolean(d.is_flagged),
+        flagReason: d.flag_reason ? String(d.flag_reason) : undefined,
+        isApproved: d.is_approved !== false,
+        isPinned: Boolean(d.is_pinned),
+        createdAt: Number(d.created_at) || Date.now(),
+        updatedAt: Number(d.updated_at) || Date.now(),
+      };
+    });
+  } catch {
+    return [];
+  }
+}
+
+export async function searchCollectionsFtsSupabase(searchTerm: string): Promise<MovieCollection[]> {
+  if (!supabase || !searchTerm.trim()) return [];
+  try {
+    const { data, error } = await supabase.rpc("search_collections_fts", {
+      search_term: searchTerm.trim(),
+    });
+
+    if (error || !data) return [];
+    return (data as Record<string, unknown>[]).map((d) => ({
+      id: String(d.id),
+      userId: String(d.user_id),
+      creatorName: String(d.user_name || "Thành viên Nanaflix"),
+      creatorPhoto: d.user_avatar ? String(d.user_avatar) : undefined,
+      name: String(d.name || ""),
+      description: String(d.description || ""),
+      isPublic: Boolean(d.is_public),
+      movies: Array.isArray(d.movies) ? (d.movies as MovieCollection["movies"]) : [],
+      createdAt: Number(d.created_at) || Date.now(),
+      updatedAt: Number(d.updated_at) || Date.now(),
+    }));
+  } catch {
+    return [];
+  }
+}
+
+// ============================================================================
+// 7. BÁO CÁO LỖI PHIM (ERROR_REPORTS)
+// ============================================================================
+
+export interface ErrorReportItem {
+  id: string;
+  movieSlug: string;
+  movieTitle: string;
+  episodeName?: string;
+  episodeSlug?: string;
+  serverName?: string;
+  issueType: string;
+  description?: string;
+  userId?: string;
+  userName?: string;
+  userEmail?: string;
+  status: "pending" | "resolved" | "ignored";
+  adminNote?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export async function createErrorReportSupabase(
+  report: Omit<ErrorReportItem, "id" | "createdAt" | "updatedAt" | "status">
+): Promise<string> {
+  const id = `err_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  const now = Date.now();
+  if (!supabase) return id;
+
+  try {
+    const payload = {
+      id,
+      movie_slug: report.movieSlug,
+      movie_title: report.movieTitle,
+      episode_name: report.episodeName || null,
+      episode_slug: report.episodeSlug || null,
+      server_name: report.serverName || null,
+      issue_type: report.issueType,
+      description: report.description || null,
+      user_id: report.userId || null,
+      user_name: report.userName || null,
+      user_email: report.userEmail || null,
+      status: "pending",
+      created_at: now,
+      updated_at: now,
+    };
+    await supabase.from("error_reports").insert(payload);
+  } catch (err) {
+    console.warn("Lỗi lưu error report Supabase:", err);
+  }
+  return id;
+}
+
+export async function getErrorReportsSupabase(statusFilter?: string): Promise<ErrorReportItem[]> {
+  if (!supabase) return [];
+  try {
+    let query = supabase
+      .from("error_reports")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (statusFilter && statusFilter !== "all") {
+      query = query.eq("status", statusFilter);
+    }
+
+    const { data, error } = await query;
+    if (error || !data) return [];
+
+    return data.map((d) => ({
+      id: d.id,
+      movieSlug: d.movie_slug,
+      movieTitle: d.movie_title,
+      episodeName: d.episode_name,
+      episodeSlug: d.episode_slug,
+      serverName: d.server_name,
+      issueType: d.issue_type,
+      description: d.description,
+      userId: d.user_id,
+      userName: d.user_name,
+      userEmail: d.user_email,
+      status: d.status as ErrorReportItem["status"],
+      adminNote: d.admin_note,
+      createdAt: Number(d.created_at) || Date.now(),
+      updatedAt: Number(d.updated_at) || Date.now(),
+    }));
+  } catch {
+    return [];
+  }
+}
+
+export async function updateErrorReportStatusSupabase(
+  id: string,
+  status: "pending" | "resolved" | "ignored",
+  adminNote?: string
+): Promise<boolean> {
+  if (!supabase || !id) return false;
+  try {
+    const payload: Record<string, unknown> = {
+      status,
+      updated_at: Date.now(),
+    };
+    if (adminNote !== undefined) payload.admin_note = adminNote;
+
+    const { error } = await supabase.from("error_reports").update(payload).eq("id", id);
+    return !error;
+  } catch (err) {
+    console.warn("Lỗi cập nhật trạng thái báo cáo lỗi:", err);
+    return false;
+  }
+}
+
+export async function deleteErrorReportSupabase(id: string): Promise<boolean> {
+  if (!supabase || !id) return false;
+  try {
+    const { error } = await supabase.from("error_reports").delete().eq("id", id);
+    return !error;
+  } catch (err) {
+    console.warn("Lỗi xóa báo cáo lỗi:", err);
+    return false;
+  }
+}
+
+export function subscribeErrorReportsSupabase(
+  onUpdate: (reports: ErrorReportItem[]) => void
+): () => void {
+  if (!supabase) return () => {};
+
+  getErrorReportsSupabase().then(onUpdate);
+
+  const channel = supabase
+    .channel("realtime-error-reports")
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "error_reports" },
+      () => {
+        getErrorReportsSupabase().then(onUpdate);
+      }
+    )
+    .subscribe();
+
+  return () => {
+    if (supabase) {
+      supabase.removeChannel(channel);
+    }
+  };
+}
+
+// ============================================================================
+// 8. THEO DÕI PHIM BỘ (FOLLOWED_SERIES)
+// ============================================================================
+
+export interface FollowedSeriesItem {
+  id: string; // userId_movieSlug
+  userId: string;
+  movieSlug: string;
+  movieTitle: string;
+  poster?: string;
+  lastNotifiedEpisode?: string;
+  createdAt: number;
+}
+
+export async function followSeriesSupabase(
+  userId: string,
+  movieSlug: string,
+  movieTitle: string,
+  poster?: string
+): Promise<void> {
+  if (!supabase || !userId || !movieSlug) return;
+  try {
+    const id = `${userId}_${movieSlug}`;
+    await supabase.from("followed_series").upsert(
+      {
+        id,
+        user_id: userId,
+        movie_slug: movieSlug,
+        movie_title: movieTitle,
+        poster: poster || null,
+        created_at: Date.now(),
+      },
+      { onConflict: "id" }
+    );
+  } catch (err) {
+    console.warn("Lỗi follow series Supabase:", err);
+  }
+}
+
+export async function unfollowSeriesSupabase(userId: string, movieSlug: string): Promise<void> {
+  if (!supabase || !userId || !movieSlug) return;
+  try {
+    const id = `${userId}_${movieSlug}`;
+    await supabase.from("followed_series").delete().eq("id", id);
+  } catch (err) {
+    console.warn("Lỗi unfollow series Supabase:", err);
+  }
+}
+
+export async function isSeriesFollowedSupabase(userId: string, movieSlug: string): Promise<boolean> {
+  if (!supabase || !userId || !movieSlug) return false;
+  try {
+    const id = `${userId}_${movieSlug}`;
+    const { data } = await supabase
+      .from("followed_series")
+      .select("id")
+      .eq("id", id)
+      .maybeSingle();
+    return Boolean(data);
+  } catch {
+    return false;
+  }
+}
+
+export async function getUserFollowedSeriesSupabase(userId: string): Promise<FollowedSeriesItem[]> {
+  if (!supabase || !userId) return [];
+  try {
+    const { data, error } = await supabase
+      .from("followed_series")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+
+    if (error || !data) return [];
+    return data.map((d) => ({
+      id: d.id,
+      userId: d.user_id,
+      movieSlug: d.movie_slug,
+      movieTitle: d.movie_title,
+      poster: d.poster,
+      lastNotifiedEpisode: d.last_notified_episode,
+      createdAt: Number(d.created_at) || Date.now(),
+    }));
+  } catch {
+    return [];
+  }
+}
+
+// ============================================================================
+// 9. NHẮC LỊCH THỂ THAO & BÓNG ĐÁ (MATCH_REMINDERS)
+// ============================================================================
+
+export interface MatchReminderItem {
+  id: string; // userId_matchId
+  userId: string;
+  matchId: string;
+  homeTeam: string;
+  awayTeam: string;
+  matchTime: number;
+  tournament?: string;
+  isNotified?: boolean;
+  createdAt: number;
+}
+
+export async function saveMatchReminderSupabase(item: MatchReminderItem): Promise<void> {
+  if (!supabase || !item.userId || !item.matchId) return;
+  try {
+    const id = `${item.userId}_${item.matchId}`;
+    await supabase.from("match_reminders").upsert(
+      {
+        id,
+        user_id: item.userId,
+        match_id: item.matchId,
+        home_team: item.homeTeam,
+        away_team: item.awayTeam,
+        match_time: item.matchTime,
+        tournament: item.tournament || null,
+        is_notified: Boolean(item.isNotified),
+        created_at: item.createdAt || Date.now(),
+      },
+      { onConflict: "id" }
+    );
+  } catch (err) {
+    console.warn("Lỗi lưu match reminder Supabase:", err);
+  }
+}
+
+export async function getMatchRemindersSupabase(userId: string): Promise<MatchReminderItem[]> {
+  if (!supabase || !userId) return [];
+  try {
+    const { data, error } = await supabase
+      .from("match_reminders")
+      .select("*")
+      .eq("user_id", userId)
+      .order("match_time", { ascending: true });
+
+    if (error || !data) return [];
+    return data.map((d) => ({
+      id: d.id,
+      userId: d.user_id,
+      matchId: d.match_id,
+      homeTeam: d.home_team,
+      awayTeam: d.away_team,
+      matchTime: Number(d.match_time) || 0,
+      tournament: d.tournament,
+      isNotified: Boolean(d.is_notified),
+      createdAt: Number(d.created_at) || Date.now(),
+    }));
+  } catch {
+    return [];
+  }
+}
+
+export async function removeMatchReminderSupabase(userId: string, matchId: string): Promise<void> {
+  if (!supabase || !userId || !matchId) return;
+  try {
+    const id = `${userId}_${matchId}`;
+    await supabase.from("match_reminders").delete().eq("id", id);
+  } catch (err) {
+    console.warn("Lỗi xóa match reminder Supabase:", err);
+  }
+}
+
+// ============================================================================
+// 10. TIẾP TỤC XEM ĐA THIẾT BỊ (DEVICE_HANDOFF)
+// ============================================================================
+
+export interface DeviceHandoffItem {
+  id: string; // userId
+  userId: string;
+  movieSlug: string;
+  movieTitle: string;
+  poster?: string;
+  episodeSlug?: string;
+  episodeName?: string;
+  progressSeconds: number;
+  durationSeconds?: number;
+  deviceName?: string;
+  updatedAt: number;
+}
+
+export async function saveDeviceHandoffSupabase(item: DeviceHandoffItem): Promise<void> {
+  if (!supabase || !item.userId) return;
+  try {
+    await supabase.from("device_handoff").upsert(
+      {
+        id: item.userId,
+        user_id: item.userId,
+        movie_slug: item.movieSlug,
+        movie_title: item.movieTitle,
+        poster: item.poster || null,
+        episode_slug: item.episodeSlug || null,
+        episode_name: item.episodeName || null,
+        progress_seconds: item.progressSeconds,
+        duration_seconds: item.durationSeconds || 0,
+        device_name: item.deviceName || null,
+        updated_at: Date.now(),
+      },
+      { onConflict: "id" }
+    );
+  } catch (err) {
+    console.warn("Lỗi lưu device handoff Supabase:", err);
+  }
+}
+
+export async function getDeviceHandoffSupabase(userId: string): Promise<DeviceHandoffItem | null> {
+  if (!supabase || !userId) return null;
+  try {
+    const { data, error } = await supabase
+      .from("device_handoff")
+      .select("*")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (error || !data) return null;
+    return {
+      id: data.id,
+      userId: data.user_id,
+      movieSlug: data.movie_slug,
+      movieTitle: data.movie_title,
+      poster: data.poster,
+      episodeSlug: data.episode_slug,
+      episodeName: data.episode_name,
+      progressSeconds: data.progress_seconds || 0,
+      durationSeconds: data.duration_seconds || 0,
+      deviceName: data.device_name,
+      updatedAt: Number(data.updated_at) || Date.now(),
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function clearDeviceHandoffSupabase(userId: string): Promise<void> {
+  if (!supabase || !userId) return;
+  try {
+    await supabase.from("device_handoff").delete().eq("id", userId);
+  } catch (err) {
+    console.warn("Lỗi clear device handoff Supabase:", err);
+  }
+}
+

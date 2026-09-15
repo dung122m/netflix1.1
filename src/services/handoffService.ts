@@ -1,4 +1,9 @@
 import { PlaybackSession } from "@/types/deviceSession";
+import { supabase } from "@/lib/supabase";
+import {
+  saveDeviceHandoffSupabase,
+  getDeviceHandoffSupabase,
+} from "@/services/supabaseService";
 
 /**
  * Tạo hoặc lấy Tab Session ID duy nhất cho tab trình duyệt này
@@ -35,7 +40,7 @@ export function detectDeviceType(): "Điện thoại" | "Máy tính" | "Tablet" 
 const STORAGE_SESSION_PREFIX = "nanaflix_active_playback_session_";
 
 /**
- * Cập nhật phiên phát phim hiện tại (Broadcast Channel + LocalStorage)
+ * Cập nhật phiên phát phim hiện tại (Broadcast Channel + LocalStorage + Supabase)
  */
 export async function updateActivePlaybackSession(
   userId: string,
@@ -77,6 +82,21 @@ export async function updateActivePlaybackSession(
         channel.close();
       } catch {}
     }
+
+    // Đồng bộ lên Supabase realtime
+    saveDeviceHandoffSupabase({
+      id: userId,
+      userId,
+      movieSlug: data.movieSlug,
+      movieTitle: data.movieTitle,
+      poster: data.posterUrl,
+      episodeName: data.episodeName,
+      episodeSlug: data.episodeSlug,
+      progressSeconds: Math.floor(data.currentTime),
+      durationSeconds: Math.floor(data.duration || 0),
+      deviceName: detectDeviceType(),
+      updatedAt: Date.now(),
+    }).catch(() => {});
   } catch (err) {
     console.warn("Lỗi đồng bộ phiên phát đa thiết bị:", err);
   }
@@ -96,18 +116,40 @@ export function subscribeActivePlaybackSession(
 
   let isUnsubscribed = false;
   let channel: BroadcastChannel | null = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let realtimeChannel: any = null;
 
   try {
     // 1. Phục hồi phiên hiện tại từ LocalStorage
     const raw = localStorage.getItem(`${STORAGE_SESSION_PREFIX}${userId}`);
     if (raw) {
-      const parsed = JSON.parse(raw) as PlaybackSession;
-      if (parsed && Date.now() - parsed.updatedAt < 600000) {
-        callback(parsed);
-      }
+      try {
+        const parsed = JSON.parse(raw) as PlaybackSession;
+        if (parsed && Date.now() - parsed.updatedAt < 600000) {
+          callback(parsed);
+        }
+      } catch {}
     }
 
-    // 2. Lắng nghe qua BroadcastChannel
+    // 2. Lấy từ Supabase khi mở máy khác
+    getDeviceHandoffSupabase(userId).then((cloudData) => {
+      if (cloudData && !isUnsubscribed && Date.now() - cloudData.updatedAt < 600000) {
+        callback({
+          sessionId: `cloud_${cloudData.updatedAt}`,
+          deviceType: (cloudData.deviceName as "Điện thoại" | "Máy tính" | "Tablet") || "Máy tính",
+          movieSlug: cloudData.movieSlug,
+          movieTitle: cloudData.movieTitle,
+          episodeName: cloudData.episodeName || "Tập 1",
+          episodeSlug: cloudData.episodeSlug || "tap-1",
+          currentTime: cloudData.progressSeconds,
+          duration: cloudData.durationSeconds || 0,
+          posterUrl: cloudData.poster || "/default-poster.jpg",
+          updatedAt: cloudData.updatedAt,
+        });
+      }
+    }).catch(() => {});
+
+    // 3. Lắng nghe qua BroadcastChannel (trong cùng trình duyệt)
     if (typeof BroadcastChannel !== "undefined") {
       channel = new BroadcastChannel(`nanaflix_handoff_${userId}`);
       channel.onmessage = (event) => {
@@ -117,7 +159,7 @@ export function subscribeActivePlaybackSession(
       };
     }
 
-    // 3. Lắng nghe storage event
+    // 4. Lắng nghe storage event
     const handleStorage = (e: StorageEvent) => {
       if (e.key === `${STORAGE_SESSION_PREFIX}${userId}` && e.newValue && !isUnsubscribed) {
         try {
@@ -126,13 +168,49 @@ export function subscribeActivePlaybackSession(
         } catch {}
       }
     };
-
     window.addEventListener("storage", handleStorage);
+
+    // 5. Lắng nghe Supabase Realtime nếu người dùng mở trên thiết bị khác
+    if (supabase) {
+      realtimeChannel = supabase
+        .channel(`realtime-handoff-${userId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "device_handoff",
+            filter: `user_id=eq.${userId}`,
+          },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (payload: any) => {
+            const newRow = payload.new;
+            if (newRow && !isUnsubscribed) {
+              callback({
+                sessionId: `cloud_${newRow.updated_at}`,
+                deviceType: (newRow.device_name as "Điện thoại" | "Máy tính" | "Tablet") || "Thiết bị khác",
+                movieSlug: newRow.movie_slug,
+                movieTitle: newRow.movie_title,
+                episodeName: newRow.episode_name || "Tập 1",
+                episodeSlug: newRow.episode_slug || "tap-1",
+                currentTime: Number(newRow.progress_seconds) || 0,
+                duration: Number(newRow.duration_seconds) || 0,
+                posterUrl: newRow.poster || "/default-poster.jpg",
+                updatedAt: Number(newRow.updated_at) || Date.now(),
+              });
+            }
+          }
+        )
+        .subscribe();
+    }
 
     return () => {
       isUnsubscribed = true;
       if (channel) {
         channel.close();
+      }
+      if (realtimeChannel && supabase) {
+        supabase.removeChannel(realtimeChannel);
       }
       window.removeEventListener("storage", handleStorage);
     };
@@ -140,3 +218,4 @@ export function subscribeActivePlaybackSession(
     return () => {};
   }
 }
+

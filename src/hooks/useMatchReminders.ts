@@ -2,6 +2,12 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { FootballMatch } from "@/services/liveFootballService";
+import { useAuth } from "@/context/AuthContext";
+import {
+  saveMatchReminderSupabase,
+  getMatchRemindersSupabase,
+  removeMatchReminderSupabase,
+} from "@/services/supabaseService";
 
 export interface MatchReminder {
   id: string;
@@ -67,9 +73,10 @@ export function playChimeSound() {
 }
 
 export function useMatchReminders() {
+  const { user } = useAuth();
   const [reminders, setReminders] = useState<MatchReminder[]>([]);
 
-  // Đọc từ localStorage
+  // Đọc từ localStorage & Supabase
   const loadReminders = useCallback(() => {
     if (typeof window === "undefined") return;
     try {
@@ -84,6 +91,39 @@ export function useMatchReminders() {
       setReminders([]);
     }
   }, []);
+
+  // Tải từ Supabase khi user đăng nhập
+  useEffect(() => {
+    if (!user?.uid) return;
+    getMatchRemindersSupabase(user.uid).then((cloudItems) => {
+      if (cloudItems && cloudItems.length > 0) {
+        setReminders((prev) => {
+          const mergedMap = new Map<string, MatchReminder>();
+          prev.forEach((p) => mergedMap.set(p.id, p));
+          cloudItems.forEach((c) => {
+            if (!mergedMap.has(c.matchId)) {
+              mergedMap.set(c.matchId, {
+                id: c.matchId,
+                title: `${c.homeTeam} vs ${c.awayTeam}`,
+                team1: c.homeTeam,
+                team2: c.awayTeam,
+                timestamp: c.matchTime,
+                tournament: c.tournament,
+                notified10m: c.isNotified,
+                notifiedStart: c.isNotified,
+                createdAt: c.createdAt,
+              });
+            }
+          });
+          const mergedList = Array.from(mergedMap.values());
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(mergedList));
+          } catch {}
+          return mergedList;
+        });
+      }
+    }).catch(() => {});
+  }, [user?.uid]);
 
   useEffect(() => {
     loadReminders();
@@ -153,6 +193,21 @@ export function useMatchReminders() {
 
     saveReminders([newReminder, ...current]);
     playChimeSound();
+
+    if (user?.uid) {
+      saveMatchReminderSupabase({
+        id: `${user.uid}_${match.id}`,
+        userId: user.uid,
+        matchId: match.id,
+        homeTeam: match.team1,
+        awayTeam: match.team2,
+        matchTime: match.timestamp,
+        tournament: match.tournament || match.group,
+        isNotified: false,
+        createdAt: Date.now(),
+      }).catch(() => {});
+    }
+
     return true;
   };
 
@@ -160,6 +215,10 @@ export function useMatchReminders() {
   const removeReminder = (id: string) => {
     const filtered = reminders.filter((r) => r.id !== id);
     saveReminders(filtered);
+
+    if (user?.uid) {
+      removeMatchReminderSupabase(user.uid, id).catch(() => {});
+    }
   };
 
   // Kiểm tra 1 trận đã hẹn chưa

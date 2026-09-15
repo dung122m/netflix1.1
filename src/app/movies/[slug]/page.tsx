@@ -37,6 +37,8 @@ import { MobileQrModal } from "@/components/MobileQrModal";
 import { TrailerModal } from "@/components/TrailerModal";
 import SetTitleClient from "@/components/SetTitleClient";
 import { MovieCommentsSection } from "@/components/MovieReviews/MovieCommentsSection";
+import { FollowSeriesButton } from "@/components/FollowSeriesButton";
+import { ReportIssueModal } from "@/components/ReportIssueModal";
 
 
 export async function generateMetadata({
@@ -536,6 +538,23 @@ export default async function MovieDetail({
                     quality: movie.quality,
                     category: movie.category?.[0]?.name,
                   }}
+                />
+
+                {/* Nút Theo dõi phim bộ / cập nhật tập mới */}
+                <FollowSeriesButton
+                  movieSlug={movie.slug}
+                  movieTitle={title}
+                  posterUrl={pickBestMovieImage(movie, "/default-poster.jpg")}
+                  isSeries={isSeries}
+                />
+
+                {/* Nút Báo lỗi */}
+                <ReportIssueModal
+                  movieTitle={title}
+                  movieSlug={movie.slug}
+                  episodeName={activeEpisode?.name}
+                  episodeSlug={activeEpisode?.slug}
+                  serverName={currentServer?.server_name}
                 />
 
                 {/* Divider */}

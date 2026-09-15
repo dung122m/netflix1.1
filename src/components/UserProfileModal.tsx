@@ -29,6 +29,7 @@ import {
   getWatchLevelInfo,
 } from "@/services/userService";
 import { subscribeUserComments, deleteMovieComment } from "@/services/commentService";
+import { uploadAvatarSupabase } from "@/services/supabaseService";
 import { MovieComment } from "@/types/comment";
 import { UserProfile } from "@/types/user";
 import { toast } from "@/components/Toast";
@@ -266,7 +267,7 @@ function UserProfileModalInner() {
     });
   };
 
-  // Xử lý tải ảnh đại diện từ máy (File upload -> Nén 200px -> Base64 Data URL)
+  // Xử lý tải ảnh đại diện từ máy (Supabase Storage upload -> Fallback Base64 Data URL)
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -277,11 +278,26 @@ function UserProfileModalInner() {
     }
 
     try {
+      // 1. Nén ảnh chất lượng cao 200px
       const compressedDataUrl = await compressImage(file, 200, 0.85);
-      setCustomAvatarUrl(compressedDataUrl);
-      setSelectedAvatar(compressedDataUrl);
+
+      // 2. Thử tải lên Supabase Storage nếu đã đăng nhập
+      let finalUrl = compressedDataUrl;
+      if (user?.uid) {
+        try {
+          const cloudUrl = await uploadAvatarSupabase(user.uid, file);
+          if (cloudUrl) {
+            finalUrl = cloudUrl;
+          }
+        } catch {
+          // Fallback to local compressedDataUrl
+        }
+      }
+
+      setCustomAvatarUrl(finalUrl);
+      setSelectedAvatar(finalUrl);
       setUseCustomUrl(true);
-      toast.success("Đã chọn & tối ưu ảnh từ thiết bị thành công! 🎉");
+      toast.success("Đã chọn & tối ưu ảnh đại diện thành công! 🎉");
     } catch (err) {
       console.error("Lỗi xử lý ảnh:", err);
       toast.error("Không thể xử lý file ảnh này. Vui lòng thử lại!");

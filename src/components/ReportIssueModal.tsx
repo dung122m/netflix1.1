@@ -3,10 +3,15 @@
 import React, { useState, useEffect } from "react";
 import { Flag, X, CheckCircle2, AlertTriangle } from "lucide-react";
 import { formatEpisodeName } from "@/lib/formatEpisode";
+import { useAuth } from "@/context/AuthContext";
+import { createErrorReportSupabase } from "@/services/supabaseService";
 
 interface ReportIssueModalProps {
   movieTitle: string;
+  movieSlug?: string;
   episodeName?: string;
+  episodeSlug?: string;
+  serverName?: string;
 }
 
 const ISSUE_TYPES = [
@@ -19,8 +24,12 @@ const ISSUE_TYPES = [
 
 export function ReportIssueModal({
   movieTitle,
+  movieSlug,
   episodeName,
+  episodeSlug,
+  serverName,
 }: ReportIssueModalProps) {
+  const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [selectedIssue, setSelectedIssue] = useState<string>(ISSUE_TYPES[0]);
   const [customNote, setCustomNote] = useState("");
@@ -35,22 +44,39 @@ export function ReportIssueModal({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      // 1. Lưu vào Supabase
+      const slug = movieSlug || movieTitle.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+      await createErrorReportSupabase({
+        movieSlug: slug,
+        movieTitle,
+        episodeName: episodeName || "Tập 1",
+        episodeSlug: episodeSlug || "tap-1",
+        serverName: serverName || "Server VIP",
+        issueType: selectedIssue,
+        description: customNote.trim() || undefined,
+        userId: user?.uid,
+        userName: user?.displayName || "Khán giả Nanaflix",
+        userEmail: user?.email || undefined,
+      });
+
+      // 2. Lưu local fallback
       const reports = JSON.parse(
         localStorage.getItem("nanaflix_error_reports") || "[]"
       );
       reports.push({
         movieTitle,
+        movieSlug: slug,
         episodeName: episodeName || "Tập 1",
         issue: selectedIssue,
         note: customNote,
         time: new Date().toISOString(),
       });
       localStorage.setItem("nanaflix_error_reports", JSON.stringify(reports));
-    } catch {
-      // Ignore
+    } catch (err) {
+      console.warn("Lỗi gửi báo cáo sự cố:", err);
     }
 
     setIsSubmitted(true);
