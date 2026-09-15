@@ -10,7 +10,6 @@ import {
   SlidersHorizontal,
   ChevronRight,
   ChevronLeft,
-  Loader2,
   Star,
   Play,
 } from "lucide-react";
@@ -352,7 +351,7 @@ const SingleGenreRow: React.FC<SingleGenreRowProps> = React.memo(
       if (genreMoviesCache[meta.slug]?.length) {
         return genreMoviesCache[meta.slug];
       }
-      // Lọc từ allMovies nếu đã có sẵn
+      // Lấy ngay các phim khớp từ allMovies nếu đã có sẵn (0ms)
       const matches = (initialMovies || []).filter((movie) => {
         if (!movie) return false;
         const categories = movie.category || [];
@@ -365,10 +364,10 @@ const SingleGenreRow: React.FC<SingleGenreRowProps> = React.memo(
           }
         );
       });
-      return matches.length >= 6 ? matches : [];
+      return matches.length > 0 ? matches : [];
     });
 
-    const [loading, setLoading] = useState<boolean>(movies.length === 0);
+    const [loading, setLoading] = useState<boolean>(movies.length < 6);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -379,20 +378,34 @@ const SingleGenreRow: React.FC<SingleGenreRowProps> = React.memo(
       }
 
       let isMounted = true;
-      setLoading(true);
 
       const fetchCategoryMovies = async () => {
         try {
-          const res = await movieApi.getMovies({
-            ...(meta.isType ? { type: meta.slug } : { category: meta.slug }),
-            limit: 18,
-            page: 1,
-          });
-          if (isMounted) {
-            const list = res?.items || [];
-            if (list.length > 0) {
+          const endpoint = meta.isType
+            ? `/api/category-movies?type=${encodeURIComponent(meta.slug)}&limit=18`
+            : `/api/category-movies?category=${encodeURIComponent(meta.slug)}&limit=18`;
+
+          const res = await fetch(endpoint);
+          if (res.ok) {
+            const data = await res.json();
+            const list = data?.items || [];
+            if (isMounted && list.length > 0) {
               genreMoviesCache[meta.slug] = list;
               setMovies(list);
+            }
+          } else {
+            // Fallback trực tiếp
+            const fallbackRes = await movieApi.getMovies({
+              ...(meta.isType ? { type: meta.slug } : { category: meta.slug }),
+              limit: 18,
+              page: 1,
+            });
+            if (isMounted) {
+              const list = fallbackRes?.items || [];
+              if (list.length > 0) {
+                genreMoviesCache[meta.slug] = list;
+                setMovies(list);
+              }
             }
           }
         } catch (err) {
@@ -465,9 +478,16 @@ const SingleGenreRow: React.FC<SingleGenreRowProps> = React.memo(
           </button>
 
           {loading && movies.length === 0 ? (
-            <div className="w-full py-12 flex items-center justify-center text-xs text-gray-400 gap-2.5">
-              <Loader2 className="w-5 h-5 animate-spin text-netflix-red" />
-              <span>Đang tải danh sách phim {meta.name}...</span>
+            /* SHIMMER SKELETON CAROUSEL MƯỢT MÀ */
+            <div className="flex gap-4 overflow-hidden py-3 px-1">
+              {Array.from({ length: 5 }).map((_, idx) => (
+                <div
+                  key={idx}
+                  className="w-[260px] sm:w-[300px] md:w-[320px] aspect-[16/9] flex-none rounded-2xl bg-zinc-900/90 animate-pulse border border-white/5 relative overflow-hidden"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmer" />
+                </div>
+              ))}
             </div>
           ) : movies.length > 0 ? (
             <div
