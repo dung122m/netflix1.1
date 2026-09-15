@@ -52,17 +52,44 @@ export async function generateMetadata({
   const params = await searchParams;
 
   let title = "Phim Mới Cập Nhật";
+  let description =
+    "Xem phim trực tuyến chất lượng cao cùng Trợ lý Nana gợi ý phim thông minh, cập nhật liên tục các siêu phẩm điện ảnh mới nhất.";
 
   if (params.keyword) {
-    title = `Kết quả tìm kiếm: "${params.keyword}"`;
+    title = `Tìm kiếm "${params.keyword}"`;
+    description = `Kết quả tìm kiếm phim với từ khóa "${params.keyword}" trên Nanaflix. Xem phim chất lượng cao miễn phí.`;
   } else if (params.type && TYPE_TITLES[params.type]) {
     title = TYPE_TITLES[params.type].replace(/^[^\w\s\u00C0-\u1EF9]*\s*/u, "");
+    description = `Khám phá danh sách ${title} hay nhất, chất lượng Full HD Vietsub & Thuyết minh trên Nanaflix.`;
   } else if (params.category || params.country || params.year || params.type) {
-    title = "Kết quả lọc";
+    title = "Bộ Lọc Phim Nâng Cao";
+    description = "Tìm kiếm và lọc phim theo thể loại, quốc gia, năm phát hành chất lượng cao trên Nanaflix.";
   }
 
+  const fullTitle = `Nanaflix - ${title}`;
+
   return {
-    title: `Nanaflix - ${title}`,
+    title: fullTitle,
+    description,
+    openGraph: {
+      title: fullTitle,
+      description,
+      type: "website",
+      images: [
+        {
+          url: "/default-hero.jpg",
+          width: 1200,
+          height: 630,
+          alt: fullTitle,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: fullTitle,
+      description,
+      images: ["/default-hero.jpg"],
+    },
   };
 }
 

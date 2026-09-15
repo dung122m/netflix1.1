@@ -332,8 +332,45 @@ export default async function MovieDetail({
   const primaryCountrySlug = movie.country?.[0]?.slug;
   const primaryActor = actorList.length > 0 ? actorList[0] : undefined;
 
+  // JSON-LD Structured Data for Google Search Rich Results (SEO)
+  const isSeries = movie.type === "series" || (episodes && episodes.length > 1);
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": isSeries ? "TVSeries" : "Movie",
+    name: title,
+    alternateName: movie.origin_name || undefined,
+    image: pickBestMovieImage(movie, "https://netflix1-1.vercel.app/default-poster.jpg"),
+    description:
+      cleanHtmlText(movie.content || movie.description) ||
+      `Xem phim ${title} chất lượng cao Full HD, Vietsub trên Nanaflix.`,
+    datePublished: movie.year ? `${movie.year}` : undefined,
+    genre: movie.category?.map((c: { name: string }) => c.name) || [],
+    actor: actorList.slice(0, 10).map((actorName: string) => ({
+      "@type": "Person",
+      name: actorName,
+    })),
+    director: directorList.slice(0, 5).map((directorName: string) => ({
+      "@type": "Person",
+      name: directorName,
+    })),
+    ...(movie.tmdb?.vote_average
+      ? {
+          aggregateRating: {
+            "@type": "AggregateRating",
+            ratingValue: movie.tmdb.vote_average,
+            bestRating: "10",
+            ratingCount: movie.tmdb.vote_count || 50,
+          },
+        }
+      : {}),
+  };
+
   return (
     <div className="page-cinema-container min-h-screen pb-12">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <Navbar />
       <SetTitleClient title={title} />
       <TrackHistoryClient

@@ -23,10 +23,30 @@ const plusJakartaSans = Plus_Jakarta_Sans({
   display: "swap",
 });
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://netflix1-1.vercel.app";
+
 export const metadata: Metadata = {
-  title: "Nanaflix - Thế Giới Điện Ảnh Của Nana",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: "Nanaflix - Thế Giới Điện Ảnh Của Nana | Xem Phim HD Miễn Phí",
+    template: "%s | Nanaflix",
+  },
   description:
-    "Nanaflix - Xem phim trực tuyến chất lượng cao cùng Trợ lý Nana gợi ý phim thông minh, cập nhật liên tục các siêu phẩm điện ảnh mới nhất.",
+    "Nanaflix - Xem phim trực tuyến chất lượng cao Full HD cùng Trợ lý Nana gợi ý phim thông minh, cập nhật liên tục các siêu phẩm điện ảnh mới nhất, phim bộ, phim lẻ, anime vietsub và thuyết minh.",
+  keywords: [
+    "xem phim online",
+    "phim moi",
+    "phim chieu rap",
+    "phim bo",
+    "phim le",
+    "anime vietsub",
+    "phim thuyet minh",
+    "Nanaflix",
+    "xem phim hd",
+  ],
+  authors: [{ name: "Nanaflix Team", url: siteUrl }],
+  creator: "Nanaflix",
+  publisher: "Nanaflix",
   manifest: "/manifest.json",
   icons: {
     icon: "/favicon.ico",
@@ -39,6 +59,41 @@ export const metadata: Metadata = {
   },
   formatDetection: {
     telephone: false,
+  },
+  openGraph: {
+    type: "website",
+    locale: "vi_VN",
+    url: siteUrl,
+    siteName: "Nanaflix",
+    title: "Nanaflix - Thế Giới Điện Ảnh Của Nana | Xem Phim HD Miễn Phí",
+    description:
+      "Nanaflix - Xem phim trực tuyến chất lượng cao cùng Trợ lý Nana gợi ý phim thông minh, cập nhật liên tục các siêu phẩm điện ảnh mới nhất.",
+    images: [
+      {
+        url: "/default-hero.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Nanaflix - Xem Phim Online HD",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Nanaflix - Thế Giới Điện Ảnh Của Nana",
+    description:
+      "Nanaflix - Xem phim trực tuyến chất lượng cao cùng Trợ lý Nana gợi ý phim thông minh, cập nhật liên tục các siêu phẩm điện ảnh mới nhất.",
+    images: ["/default-hero.jpg"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
   },
 };
 
