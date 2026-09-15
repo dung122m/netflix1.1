@@ -25,10 +25,9 @@ export function sanitizeImageUrl(url: string): string {
   // Sửa lỗi url có 2 dấu gạch chéo // sau tên miền (gây redirect chậm)
   clean = clean.replace(/(https?:\/\/)([^/]+)\/\/+/g, "$1$2/");
 
-  // Tối ưu ảnh VSMOV: VSMOV lưu ảnh thô 4K (1.6MB - 3MB/ảnh) từ TMDb mà không qua CDN/nén.
-  // Chuyển trực tiếp sang CDN toàn cầu Cloudflare của TMDb (w500) giúp dung lượng giảm từ 1.6MB xuống ~25KB (giảm 98%) và load tức thì!
-  const vsmovMatch = clean.match(/https?:\/\/vsmov\.com\/storage\/images\/([a-zA-Z0-9_-]{20,}\.(?:jpg|jpeg|png|webp))/i);
-  if (vsmovMatch) {
+  // Tối ưu ảnh VSMOV: Chỉ chuyển sang TMDb CDN nếu filename là mã hash TMDb hợp lệ (chuỗi alphanumeric 22-35 ký tự, KHÔNG chứa dấu gạch nối hoặc từ ngữ tùy chỉnh)
+  const vsmovMatch = clean.match(/https?:\/\/vsmov\.com\/storage\/images\/([a-zA-Z0-9]{22,35}\.(?:jpg|jpeg|png|webp))$/i);
+  if (vsmovMatch && !vsmovMatch[1].includes("-") && !vsmovMatch[1].includes("_")) {
     clean = `https://image.tmdb.org/t/p/w500/${vsmovMatch[1]}`;
   }
 

@@ -205,6 +205,13 @@ export function CommunityTopTrending() {
                         sizes="(max-width: 640px) 140px, (max-width: 768px) 175px, 190px"
                         className="object-cover group-hover:scale-105 transition-transform duration-500"
                         loading={rank <= 4 ? "eager" : "lazy"}
+                        onError={(e) => {
+                          const target = e.currentTarget as HTMLImageElement;
+                          if (target && !target.src.includes("/default-poster.jpg")) {
+                            target.srcset = "";
+                            target.src = "/default-poster.jpg";
+                          }
+                        }}
                       />
 
                       {/* TOP BADGE */}

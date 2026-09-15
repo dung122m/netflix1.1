@@ -19,7 +19,7 @@ import {
   Clapperboard,
 } from "lucide-react";
 import { isInWatchlist, toggleWatchlist } from "@/lib/watchlist";
-import { extractMovieCountry, detectMovieTypeName, toOptimizedCardBackdropUrl } from "@/lib/movieMedia";
+import { extractMovieCountry, detectMovieTypeName, toOptimizedCardBackdropUrl, sanitizeImageUrl } from "@/lib/movieMedia";
 
 export interface MovieExtraInfo {
   actor?: string[];
@@ -124,39 +124,35 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   // Danh sách các link ảnh dự phòng theo thứ tự ưu tiên (chuẩn HD sắc nét)
   const candidateImages = React.useMemo(() => {
     const list: string[] = [];
-    if (imageUrl) list.push(toOptimizedCardBackdropUrl(imageUrl));
-    if (thumbUrl && !list.includes(thumbUrl)) list.push(toOptimizedCardBackdropUrl(thumbUrl));
-    if (posterUrl && !list.includes(posterUrl)) list.push(toOptimizedCardBackdropUrl(posterUrl));
-    return list.filter(
-      (u) =>
-        Boolean(u) &&
-        !u.includes("/undefined") &&
-        !u.includes("/null") &&
-        !u.startsWith("/default-")
-    );
+    const addUrl = (u?: string) => {
+      if (!u || typeof u !== "string" || !u.trim()) return;
+      const clean = toOptimizedCardBackdropUrl(u);
+      if (clean && !list.includes(clean) && !clean.includes("/undefined") && !clean.includes("/null") && !clean.startsWith("/default-")) {
+        list.push(clean);
+      }
+      const raw = sanitizeImageUrl(u);
+      if (raw && !list.includes(raw) && !raw.includes("/undefined") && !raw.includes("/null") && !raw.startsWith("/default-")) {
+        list.push(raw);
+      }
+    };
+    addUrl(imageUrl);
+    addUrl(thumbUrl);
+    addUrl(posterUrl);
+    return list;
   }, [imageUrl, thumbUrl, posterUrl]);
 
   const [imageAttemptIndex, setImageAttemptIndex] = useState(0);
   const [currentImgSrc, setCurrentImgSrc] = useState(
-    candidateImages[0] || (imageUrl ? toOptimizedCardBackdropUrl(imageUrl) : "/default-hero.svg")
+    candidateImages[0] || (imageUrl ? toOptimizedCardBackdropUrl(imageUrl) : "/default-hero.jpg")
   );
 
   useEffect(() => {
     setImageAttemptIndex(0);
-    setCurrentImgSrc(candidateImages[0] || (imageUrl ? toOptimizedCardBackdropUrl(imageUrl) : "/default-hero.svg"));
+    setCurrentImgSrc(candidateImages[0] || (imageUrl ? toOptimizedCardBackdropUrl(imageUrl) : "/default-hero.jpg"));
   }, [imageUrl, candidateImages]);
 
   const handleImageError = () => {
-    // 1. Nếu đang thử link TMDb CDN (từ VSMOV) bị lỗi 404, thử link gốc lưu trữ VSMOV
-    if (currentImgSrc.includes("image.tmdb.org")) {
-      const match = currentImgSrc.match(/\/w500\/([a-zA-Z0-9_-]{20,}\.(?:jpg|jpeg|png|webp))/i);
-      if (match) {
-        setCurrentImgSrc(`https://vsmov.com/storage/images/${match[1]}`);
-        return;
-      }
-    }
-
-    // 2. Chuyển sang nguồn ảnh tiếp theo trong danh sách candidate (vd: từ thumb_url bị 404 sang poster_url hoạt động tốt)
+    // 1. Chuyển sang nguồn ảnh tiếp theo trong danh sách candidate (vd: từ thumb sang poster hoặc link gốc)
     const nextIdx = imageAttemptIndex + 1;
     if (nextIdx < candidateImages.length) {
       setImageAttemptIndex(nextIdx);
@@ -164,9 +160,9 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       return;
     }
 
-    // 3. Nếu tất cả đều lỗi 404, chuyển về ảnh placeholder
-    if (currentImgSrc !== "/default-hero.svg") {
-      setCurrentImgSrc("/default-hero.svg");
+    // 2. Nếu tất cả đều lỗi, chuyển về ảnh bìa mặc định rõ nét
+    if (currentImgSrc !== "/default-hero.jpg") {
+      setCurrentImgSrc("/default-hero.jpg");
       setIsImgLoaded(true);
     }
   };

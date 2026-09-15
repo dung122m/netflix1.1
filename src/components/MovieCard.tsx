@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Star, Users, Play } from "lucide-react";
-import { normalizeMovie } from "@/lib/movieMedia";
+import { normalizeMovie, sanitizeImageUrl } from "@/lib/movieMedia";
 import {
   clientSynopsisCache,
   clientExtraInfoCache,
@@ -119,37 +119,30 @@ function MovieCardInner({ m, priority = false }: Props) {
 
   const candidateImages = React.useMemo(() => {
     const list: string[] = [];
-    if (posterUrl) list.push(posterUrl);
-    if (imageUrl && !list.includes(imageUrl)) list.push(imageUrl);
-    if (norm.thumbUrl && !list.includes(norm.thumbUrl)) list.push(norm.thumbUrl);
-    return list.filter(
-      (u) =>
-        Boolean(u) &&
-        !u.includes("/undefined") &&
-        !u.includes("/null") &&
-        !u.startsWith("/default-")
-    );
+    const addUrl = (u?: string) => {
+      if (!u || typeof u !== "string" || !u.trim()) return;
+      const clean = sanitizeImageUrl(u);
+      if (clean && !list.includes(clean) && !clean.includes("/undefined") && !clean.includes("/null") && !clean.startsWith("/default-")) {
+        list.push(clean);
+      }
+    };
+    addUrl(posterUrl);
+    addUrl(imageUrl);
+    addUrl(norm.thumbUrl);
+    return list;
   }, [posterUrl, imageUrl, norm.thumbUrl]);
 
   const [imageAttemptIndex, setImageAttemptIndex] = useState(0);
   const [currentImgSrc, setCurrentImgSrc] = useState(
-    candidateImages[0] || posterUrl || imageUrl || "/default-poster.svg"
+    candidateImages[0] || posterUrl || imageUrl || "/default-poster.jpg"
   );
 
   React.useEffect(() => {
     setImageAttemptIndex(0);
-    setCurrentImgSrc(candidateImages[0] || posterUrl || imageUrl || "/default-poster.svg");
+    setCurrentImgSrc(candidateImages[0] || posterUrl || imageUrl || "/default-poster.jpg");
   }, [posterUrl, imageUrl, candidateImages]);
 
   const handleImageError = () => {
-    if (currentImgSrc.includes("image.tmdb.org")) {
-      const match = currentImgSrc.match(/\/w500\/([a-zA-Z0-9_-]{20,}\.(?:jpg|jpeg|png|webp))/i);
-      if (match) {
-        setCurrentImgSrc(`https://vsmov.com/storage/images/${match[1]}`);
-        return;
-      }
-    }
-
     const nextIdx = imageAttemptIndex + 1;
     if (nextIdx < candidateImages.length) {
       setImageAttemptIndex(nextIdx);
@@ -157,8 +150,8 @@ function MovieCardInner({ m, priority = false }: Props) {
       return;
     }
 
-    if (currentImgSrc !== "/default-poster.svg") {
-      setCurrentImgSrc("/default-poster.svg");
+    if (currentImgSrc !== "/default-poster.jpg") {
+      setCurrentImgSrc("/default-poster.jpg");
       setIsImgLoaded(true);
     }
   };
@@ -196,9 +189,7 @@ function MovieCardInner({ m, priority = false }: Props) {
           alt={title}
           fill
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
-          className={`object-cover object-center transition-all duration-500 ${
-            isImgLoaded ? "opacity-100 scale-100" : "opacity-0 scale-102"
-          }`}
+          className="object-cover object-center transition-all duration-300"
           priority={priority}
           loading={priority ? "eager" : "lazy"}
           decoding="async"

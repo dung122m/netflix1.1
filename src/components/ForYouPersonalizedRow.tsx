@@ -212,6 +212,13 @@ export function ForYouPersonalizedRow() {
                         sizes="(max-width: 640px) 150px, (max-width: 768px) 190px, 210px"
                         className="object-cover group-hover:scale-105 transition-transform duration-500"
                         loading="lazy"
+                        onError={(e) => {
+                          const target = e.currentTarget as HTMLImageElement;
+                          if (target && !target.src.includes("/default-poster.jpg")) {
+                            target.srcset = "";
+                            target.src = "/default-poster.jpg";
+                          }
+                        }}
                       />
 
                       {/* AI MATCH BADGE */}
