@@ -205,6 +205,90 @@ export async function getMovieCommentsSupabase(movieSlug: string): Promise<Movie
   }
 }
 
+export async function getUserCommentsSupabase(userId: string): Promise<MovieComment[]> {
+  if (!supabase || !userId) return [];
+  try {
+    const { data, error } = await supabase
+      .from("movie_comments")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(100);
+
+    if (error || !data) return [];
+    return data.map((d) => ({
+      id: d.id,
+      movieSlug: d.movie_slug,
+      movieTitle: d.movie_title || "",
+      userId: d.user_id,
+      userName: d.user_name || "Thành viên",
+      userAvatar: d.user_avatar || "",
+      userEmail: d.user_email,
+      rating: d.rating || 5,
+      content: d.content || "",
+      episodeSlug: d.episode_slug,
+      episodeName: d.episode_name,
+      parentId: d.parent_id,
+      parentOwnerId: d.parent_owner_id,
+      replyToUserId: d.reply_to_user_id,
+      replyToUserName: d.reply_to_user_name,
+      isSpoiler: Boolean(d.is_spoiler),
+      likes: d.likes || 0,
+      likedBy: d.liked_by || [],
+      isFlagged: Boolean(d.is_flagged),
+      flagReason: d.flag_reason,
+      isApproved: d.is_approved !== false,
+      isPinned: Boolean(d.is_pinned),
+      createdAt: Number(d.created_at) || Date.now(),
+      updatedAt: Number(d.updated_at) || Date.now(),
+    }));
+  } catch {
+    return [];
+  }
+}
+
+export async function getCommentRepliesSupabase(parentId: string): Promise<MovieComment[]> {
+  if (!supabase || !parentId) return [];
+  try {
+    const { data, error } = await supabase
+      .from("movie_comments")
+      .select("*")
+      .eq("parent_id", parentId)
+      .order("created_at", { ascending: true })
+      .limit(50);
+
+    if (error || !data) return [];
+    return data.map((d) => ({
+      id: d.id,
+      movieSlug: d.movie_slug,
+      movieTitle: d.movie_title || "",
+      userId: d.user_id,
+      userName: d.user_name || "Thành viên",
+      userAvatar: d.user_avatar || "",
+      userEmail: d.user_email,
+      rating: d.rating || 0,
+      content: d.content || "",
+      episodeSlug: d.episode_slug,
+      episodeName: d.episode_name,
+      parentId: d.parent_id,
+      parentOwnerId: d.parent_owner_id,
+      replyToUserId: d.reply_to_user_id,
+      replyToUserName: d.reply_to_user_name,
+      isSpoiler: Boolean(d.is_spoiler),
+      likes: d.likes || 0,
+      likedBy: d.liked_by || [],
+      isFlagged: Boolean(d.is_flagged),
+      flagReason: d.flag_reason,
+      isApproved: d.is_approved !== false,
+      isPinned: Boolean(d.is_pinned),
+      createdAt: Number(d.created_at) || Date.now(),
+      updatedAt: Number(d.updated_at) || Date.now(),
+    }));
+  } catch {
+    return [];
+  }
+}
+
 export async function postCommentSupabase(comment: Omit<MovieComment, "id" | "createdAt" | "updatedAt">): Promise<string> {
   if (!supabase) throw new Error("Supabase chưa được cấu hình");
 
@@ -503,5 +587,53 @@ export async function getUserNotificationsSupabase(userId: string): Promise<User
     }));
   } catch {
     return [];
+  }
+}
+
+export async function createNotificationSupabase(notif: UserNotification & { userId: string }): Promise<void> {
+  if (!supabase || !notif.userId) return;
+  try {
+    const payload = {
+      id: notif.id,
+      user_id: notif.userId,
+      type: notif.type,
+      title: notif.title,
+      message: notif.message || null,
+      link: notif.link || null,
+      movie_slug: notif.movieSlug || null,
+      comment_id: notif.commentId || null,
+      replier_name: notif.replierName || null,
+      replier_avatar: notif.replierAvatar || null,
+      is_read: Boolean(notif.isRead),
+      created_at: notif.createdAt || Date.now(),
+    };
+    await supabase.from("notifications").upsert(payload, { onConflict: "id" });
+  } catch (err) {
+    console.warn("Lỗi lưu notification vào Supabase:", err);
+  }
+}
+
+export async function markNotificationAsReadSupabase(userId: string, notifId: string): Promise<void> {
+  if (!supabase || !userId || !notifId) return;
+  try {
+    await supabase
+      .from("notifications")
+      .update({ is_read: true })
+      .eq("user_id", userId)
+      .eq("id", notifId);
+  } catch (err) {
+    console.warn("Lỗi update notification Supabase:", err);
+  }
+}
+
+export async function markAllNotificationsAsReadSupabase(userId: string): Promise<void> {
+  if (!supabase || !userId) return;
+  try {
+    await supabase
+      .from("notifications")
+      .update({ is_read: true })
+      .eq("user_id", userId);
+  } catch (err) {
+    console.warn("Lỗi mark all notifications Supabase:", err);
   }
 }

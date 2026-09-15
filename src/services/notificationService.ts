@@ -14,6 +14,12 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { FollowedSeries, UserNotification } from "@/types/notification";
+import {
+  getUserNotificationsSupabase,
+  markNotificationAsReadSupabase,
+  markAllNotificationsAsReadSupabase,
+} from "./supabaseService";
+import { isSupabaseConfigured } from "@/lib/supabase";
 
 function cleanData<T extends object>(data: T): Record<string, unknown> {
   const cleaned: Record<string, unknown> = {};
@@ -226,7 +232,17 @@ export function subscribeUserNotifications(
     window.addEventListener("nanaflix-notifications-updated", handleLocalEvent);
   }
 
-  // 3. Nạp danh sách thông báo từ Server API lúc khởi tạo (chỉ gọi 1 lần duy nhất)
+  // 3. Nạp danh sách thông báo từ Supabase hoặc Server API lúc khởi tạo
+  if (isSupabaseConfigured()) {
+    getUserNotificationsSupabase(userId)
+      .then((items) => {
+        if (items && items.length > 0 && !isUnsubscribed) {
+          dispatchUpdate(items);
+        }
+      })
+      .catch(() => {});
+  }
+
   const fetchServerNotifications = () => {
     if (isUnsubscribed) return;
     fetch(`/api/notifications?userId=${encodeURIComponent(userId)}`, { cache: "no-store" })
@@ -391,7 +407,12 @@ export async function markNotificationAsRead(
     );
   }
 
-  // 2. Cập nhật Firestore (dùng setDoc merge để tạo doc nếu chưa có)
+  // 2. Cập nhật Supabase
+  if (isSupabaseConfigured()) {
+    markNotificationAsReadSupabase(userId, notificationId).catch(() => {});
+  }
+
+  // 3. Cập nhật Firestore (dùng setDoc merge để tạo doc nếu chưa có)
   const firestore = db;
   if (firestore) {
     try {
@@ -402,7 +423,7 @@ export async function markNotificationAsRead(
     }
   }
 
-  // 3. Fallback Server API PATCH
+  // 4. Fallback Server API PATCH
   try {
     fetch("/api/notifications", {
       method: "PATCH",
@@ -434,6 +455,11 @@ export async function markAllNotificationsAsRead(
         detail: { userId, items: updated },
       }),
     );
+  }
+
+  // 2. Cập nhật Supabase
+  if (isSupabaseConfigured()) {
+    markAllNotificationsAsReadSupabase(userId).catch(() => {});
   }
 
   // 2. Cập nhật Firestore (Cập nhật cả user doc lastReadNotificationsAt và các doc con)
