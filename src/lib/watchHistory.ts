@@ -20,7 +20,64 @@ export interface WatchHistoryItem {
 }
 
 const HISTORY_KEY = "nanaflix_watch_history";
+const EPISODES_PROGRESS_KEY = "nanaflix_episodes_progress";
 const MAX_HISTORY_ITEMS = 20;
+
+// Bản đồ lưu tiến trình chi tiết từng tập: { [movieSlug]: { [episodeSlug]: { progressSeconds, durationSeconds, updatedAt } } }
+export interface EpisodeProgressMap {
+  [movieSlug: string]: {
+    [episodeSlug: string]: {
+      progressSeconds: number;
+      durationSeconds?: number;
+      updatedAt: number;
+    };
+  };
+}
+
+export const getAllEpisodeProgress = (): EpisodeProgressMap => {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = localStorage.getItem(EPISODES_PROGRESS_KEY);
+    if (!raw) return {};
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+};
+
+export const saveEpisodeProgress = (
+  movieSlug: string,
+  episodeSlug: string,
+  progressSeconds: number,
+  durationSeconds?: number,
+): void => {
+  if (typeof window === "undefined" || !movieSlug || !episodeSlug) return;
+  try {
+    const all = getAllEpisodeProgress();
+    if (!all[movieSlug]) {
+      all[movieSlug] = {};
+    }
+    all[movieSlug][episodeSlug] = {
+      progressSeconds: Math.floor(progressSeconds),
+      durationSeconds: durationSeconds && durationSeconds > 0 ? Math.floor(durationSeconds) : undefined,
+      updatedAt: Date.now(),
+    };
+    localStorage.setItem(EPISODES_PROGRESS_KEY, JSON.stringify(all));
+  } catch (error) {
+    console.error("Lỗi lưu tiến trình tập:", error);
+  }
+};
+
+export const getEpisodeProgress = (movieSlug: string, episodeSlug: string): number => {
+  if (typeof window === "undefined" || !movieSlug || !episodeSlug) return 0;
+  try {
+    const all = getAllEpisodeProgress();
+    const epData = all[movieSlug]?.[episodeSlug];
+    return epData?.progressSeconds || 0;
+  } catch {
+    return 0;
+  }
+};
 
 export const getWatchHistory = (): WatchHistoryItem[] => {
   if (typeof window === "undefined") return [];
@@ -74,18 +131,22 @@ export const saveWatchProgress = (
   try {
     const list = getWatchHistory();
     const existing = list.find((i) => i.slug === slug);
-    if (!existing) return;
-
-    existing.progressSeconds = Math.floor(progressSeconds);
-    if (durationSeconds && durationSeconds > 0) {
-      existing.durationSeconds = Math.floor(durationSeconds);
+    if (existing) {
+      existing.progressSeconds = Math.floor(progressSeconds);
+      if (durationSeconds && durationSeconds > 0) {
+        existing.durationSeconds = Math.floor(durationSeconds);
+      }
+      if (episodeSlug) {
+        existing.episodeSlug = episodeSlug;
+      }
+      existing.updatedAt = Date.now();
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
     }
+
+    // Luôn lưu tiến trình riêng biệt cho tập đó (độc lập với các tập khác)
     if (episodeSlug) {
-      existing.episodeSlug = episodeSlug;
+      saveEpisodeProgress(slug, episodeSlug, progressSeconds, durationSeconds);
     }
-    existing.updatedAt = Date.now();
-
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
 
     // Phát sự kiện realtime cho toàn bộ trang (nút QR xem trên điện thoại, đồng bộ...)
     window.dispatchEvent(
@@ -95,7 +156,7 @@ export const saveWatchProgress = (
     );
 
     // Tự động đồng bộ số phút lên Cloud nếu đã đăng nhập Google
-    if (auth?.currentUser) {
+    if (auth?.currentUser && existing) {
       saveWatchItemToCloudDebounced(auth.currentUser.uid, existing, 4000);
     }
   } catch (error) {
@@ -106,6 +167,12 @@ export const saveWatchProgress = (
 export const getWatchProgress = (slug: string, episodeSlug?: string): number => {
   if (typeof window === "undefined" || !slug) return 0;
   try {
+    // 1. Kiểm tra tiến trình lưu riêng của tập này trước
+    if (episodeSlug) {
+      const epProg = getEpisodeProgress(slug, episodeSlug);
+      if (epProg > 0) return epProg;
+    }
+    // 2. Fallback sang mục lịch sử tổng của phim nếu khớp tập
     const list = getWatchHistory();
     const existing = list.find((i) => i.slug === slug);
     if (!existing) return 0;

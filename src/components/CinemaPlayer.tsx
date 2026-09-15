@@ -699,7 +699,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     const video = videoRef.current;
     if (!video) return;
 
-    const movieSlug = watchContext?.movieSlug;
+    const movieSlug = watchContext?.movieSlug || propMovieSlug;
 
     const handleWaiting = () => setIsBuffering(true);
     const handlePlaying = () => {
