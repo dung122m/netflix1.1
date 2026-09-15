@@ -19,7 +19,7 @@ import {
   Clapperboard,
 } from "lucide-react";
 import { isInWatchlist, toggleWatchlist } from "@/lib/watchlist";
-import { extractMovieCountry, detectMovieTypeName, toHighResBackdropUrl } from "@/lib/movieMedia";
+import { extractMovieCountry, detectMovieTypeName, toOptimizedCardBackdropUrl } from "@/lib/movieMedia";
 
 export interface MovieExtraInfo {
   actor?: string[];
@@ -124,9 +124,9 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   // Danh sách các link ảnh dự phòng theo thứ tự ưu tiên (chuẩn HD sắc nét)
   const candidateImages = React.useMemo(() => {
     const list: string[] = [];
-    if (imageUrl) list.push(toHighResBackdropUrl(imageUrl));
-    if (thumbUrl && !list.includes(thumbUrl)) list.push(toHighResBackdropUrl(thumbUrl));
-    if (posterUrl && !list.includes(posterUrl)) list.push(toHighResBackdropUrl(posterUrl));
+    if (imageUrl) list.push(toOptimizedCardBackdropUrl(imageUrl));
+    if (thumbUrl && !list.includes(thumbUrl)) list.push(toOptimizedCardBackdropUrl(thumbUrl));
+    if (posterUrl && !list.includes(posterUrl)) list.push(toOptimizedCardBackdropUrl(posterUrl));
     return list.filter(
       (u) =>
         Boolean(u) &&
@@ -138,12 +138,12 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
 
   const [imageAttemptIndex, setImageAttemptIndex] = useState(0);
   const [currentImgSrc, setCurrentImgSrc] = useState(
-    candidateImages[0] || (imageUrl ? toHighResBackdropUrl(imageUrl) : "/default-hero.svg")
+    candidateImages[0] || (imageUrl ? toOptimizedCardBackdropUrl(imageUrl) : "/default-hero.svg")
   );
 
   useEffect(() => {
     setImageAttemptIndex(0);
-    setCurrentImgSrc(candidateImages[0] || (imageUrl ? toHighResBackdropUrl(imageUrl) : "/default-hero.svg"));
+    setCurrentImgSrc(candidateImages[0] || (imageUrl ? toOptimizedCardBackdropUrl(imageUrl) : "/default-hero.svg"));
   }, [imageUrl, candidateImages]);
 
   const handleImageError = () => {

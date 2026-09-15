@@ -32,12 +32,19 @@ export function sanitizeImageUrl(url: string): string {
     clean = `https://image.tmdb.org/t/p/w500/${vsmovMatch[1]}`;
   }
 
-  // Tối ưu ảnh TMDB original / w780 sang w500 để tải nhanh gấp nhiều lần, tốn ít băng thông
+  // Tối ưu ảnh TMDB original / w1280 sang w500 để tải nhanh gấp nhiều lần, tốn ít băng thông
   if (clean.includes("image.tmdb.org/t/p/original/")) {
     clean = clean.replace("/t/p/original/", "/t/p/w500/");
-  } else if (clean.includes("image.tmdb.org/t/p/w780/")) {
-    clean = clean.replace("/t/p/w780/", "/t/p/w500/");
+  } else if (clean.includes("image.tmdb.org/t/p/w1280/")) {
+    clean = clean.replace("/t/p/w1280/", "/t/p/w500/");
   }
+
+  // Tối ưu ảnh IMDb: Amazon CloudFront CDN cho phép resize tự động bằng URL slug
+  // Chuyển từ ảnh gốc 1000px-2000px (_UX1000_) sang _UX400_ nén từ 300KB xuống ~18KB mà nét căng
+  if (clean.includes("media-amazon.com/images/M/")) {
+    clean = clean.replace(/_V1_.*(\.(?:jpg|jpeg|png|webp))$/i, "_V1_QL80_UX400_$1");
+  }
+
   return clean;
 }
 
@@ -111,13 +118,29 @@ export function pickBestMovieThumb(movie: MovieLike, fallback = "/default-hero.s
   // Ưu tiên ảnh thumb ngang / backdrop
   for (const c of candidates) {
     const l = c.toLowerCase();
-    if (l.includes("thumb_") || l.includes("/thumb") || l.includes("-thumb") || l.includes("backdrop") || l.includes("w780") || l.includes("w1280")) {
+    if (l.includes("thumb_") || l.includes("/thumb") || l.includes("-thumb") || l.includes("backdrop") || l.includes("w780") || l.includes("w1280") || l.includes("w500")) {
       return c;
     }
   }
   return candidates[0];
 }
 
+/**
+ * Tối ưu ảnh cho Thẻ phim 16:9 trong danh sách (CuratedMovieSection / MediaCard).
+ * Dùng TMDb w500 (~35KB) thay vì w1280 (1.5MB - 2.5MB), tăng tốc độ tải gấp 30 lần!
+ */
+export function toOptimizedCardBackdropUrl(url: string): string {
+  if (!url || typeof url !== "string") return "";
+  let clean = sanitizeImageUrl(url);
+  if (clean.includes("image.tmdb.org/t/p/")) {
+    clean = clean.replace(/\/t\/p\/(w1280|original|w780)\//, "/t/p/w500/");
+  }
+  return clean;
+}
+
+/**
+ * Dành riêng cho Banner Hero cỡ lớn toàn màn hình trên đầu trang
+ */
 export function toHighResBackdropUrl(url: string): string {
   if (!url || typeof url !== "string") return "";
   let clean = sanitizeImageUrl(url);
