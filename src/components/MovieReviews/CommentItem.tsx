@@ -108,6 +108,10 @@ export const CommentItem: React.FC<CommentItemProps> = ({
   const [showSpoiler, setShowSpoiler] = useState(false);
   const [avatarError, setAvatarError] = useState(false);
 
+  useEffect(() => {
+    setAvatarError(false);
+  }, [comment.userAvatar]);
+
   // --- Highlight & Scroll state ---
   const isTarget = Boolean(highlightCommentId && comment.id === highlightCommentId);
   const [isHighlighted, setIsHighlighted] = useState(false);

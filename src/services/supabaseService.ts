@@ -811,3 +811,66 @@ export async function markAllNotificationsAsReadSupabase(userId: string): Promis
     console.warn("Lỗi mark all notifications Supabase:", err);
   }
 }
+
+export async function deleteNotificationSupabase(userId: string, notifId: string): Promise<void> {
+  if (!supabase || !userId || !notifId) return;
+  try {
+    await supabase
+      .from("notifications")
+      .delete()
+      .eq("user_id", userId)
+      .eq("id", notifId);
+  } catch (err) {
+    console.warn("Lỗi delete notification Supabase:", err);
+  }
+}
+
+export async function removeWatchHistoryItemSupabase(userId: string, slug: string): Promise<void> {
+  if (!supabase || !userId || !slug) return;
+  try {
+    await supabase
+      .from("watch_history")
+      .delete()
+      .eq("user_id", userId)
+      .eq("slug", slug);
+  } catch (err) {
+    console.warn("Lỗi xóa watch history item Supabase:", err);
+  }
+}
+
+export async function clearAllWatchHistorySupabase(userId: string): Promise<void> {
+  if (!supabase || !userId) return;
+  try {
+    await supabase
+      .from("watch_history")
+      .delete()
+      .eq("user_id", userId);
+  } catch (err) {
+    console.warn("Lỗi xóa all watch history Supabase:", err);
+  }
+}
+
+export async function removeWatchlistItemSupabase(userId: string, slug: string): Promise<void> {
+  if (!supabase || !userId || !slug) return;
+  try {
+    await supabase
+      .from("watchlist")
+      .delete()
+      .eq("user_id", userId)
+      .eq("slug", slug);
+  } catch (err) {
+    console.warn("Lỗi xóa watchlist item Supabase:", err);
+  }
+}
+
+export async function clearAllWatchlistSupabase(userId: string): Promise<void> {
+  if (!supabase || !userId) return;
+  try {
+    await supabase
+      .from("watchlist")
+      .delete()
+      .eq("user_id", userId);
+  } catch (err) {
+    console.warn("Lỗi xóa all watchlist Supabase:", err);
+  }
+}

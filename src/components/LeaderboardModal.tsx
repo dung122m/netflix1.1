@@ -130,10 +130,10 @@ function LeaderboardModalInner() {
                     <span className="text-sm font-bold text-white uppercase">
                       {(userItem.displayName || "U")[0]}
                     </span>
-                    {userItem.photoURL && (
+                    {(userItem.customAvatar || userItem.photoURL) && (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
-                        src={userItem.photoURL}
+                        src={userItem.customAvatar || userItem.photoURL}
                         alt={userItem.displayName}
                         className="absolute inset-0 w-full h-full object-cover"
                         onError={(e) => {

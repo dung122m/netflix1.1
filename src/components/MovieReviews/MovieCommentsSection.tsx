@@ -28,6 +28,8 @@ import {
   reportCommentViolation,
 } from "@/services/commentService";
 import { checkContentModeration } from "@/lib/contentModeration";
+import { subscribeUserProfile } from "@/services/userService";
+import { UserProfile } from "@/types/user";
 import { StarRating } from "./StarRating";
 import { CommentItem } from "./CommentItem";
 
@@ -59,6 +61,21 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
   const [loading, setLoading] = useState(true);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [highlightId, setHighlightId] = useState<string | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+
+  useEffect(() => {
+    if (!user?.uid) {
+      setUserProfile(null);
+      return;
+    }
+    const unsub = subscribeUserProfile(user.uid, (p) => {
+      if (p) setUserProfile(p);
+    });
+    return () => unsub();
+  }, [user?.uid]);
+
+  const effectiveAvatar = userProfile?.customAvatar || userProfile?.photoURL || user?.photoURL || "";
+  const effectiveDisplayName = userProfile?.displayName || user?.displayName || "Thành viên Nanaflix";
 
   // Lấy ID comment cần highlight từ query params (?highlightComment=xxx) hoặc URL hash (#comment-xxx)
   useEffect(() => {
@@ -275,8 +292,8 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
           movieSlug,
           movieTitle: movieTitle || undefined,
           userId: user.uid,
-          userName: user.displayName || "Thành viên Nanaflix",
-          userAvatar: user.photoURL || undefined,
+          userName: effectiveDisplayName,
+          userAvatar: effectiveAvatar || undefined,
           userEmail: user.email || undefined,
           rating,
           content: trimmed,
@@ -480,22 +497,24 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
               <div className="flex items-center gap-2.5">
                 <div className="relative w-8 h-8 rounded-full overflow-hidden bg-gradient-to-tr from-red-600 to-amber-500 flex items-center justify-center font-bold text-white text-xs shrink-0">
-                  {user.photoURL ? (
-                    <Image
-                      src={user.photoURL}
-                      alt={user.displayName || "Avatar"}
-                      fill
-                      sizes="32px"
-                      className="object-cover"
+                  {effectiveAvatar ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={effectiveAvatar}
+                      alt={effectiveDisplayName}
+                      className="absolute inset-0 w-full h-full object-cover"
                       referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        e.currentTarget.style.display = "none";
+                      }}
                     />
                   ) : (
-                    (user.displayName || "U").charAt(0).toUpperCase()
+                    (effectiveDisplayName || "U").charAt(0).toUpperCase()
                   )}
                 </div>
                 <div>
                   <span className="text-sm font-semibold text-zinc-200 block leading-tight">
-                    {user.displayName || "Thành viên Nanaflix"}
+                    {effectiveDisplayName}
                   </span>
                   <span className="text-[11px] text-zinc-500">
                     {myExistingReview ? "Cập nhật số sao bạn muốn chấm:" : "Chọn số sao bạn muốn chấm:"}
@@ -709,7 +728,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
             </div>
           ) : loadError ? (
             <div className="py-8 text-center bg-red-950/20 border border-red-500/30 rounded-2xl p-4 text-xs text-red-400">
-              <p className="font-semibold mb-1">Không thể tải bình luận từ Firebase:</p>
+              <p className="font-semibold mb-1">Không thể tải bình luận máy chủ:</p>
               <p className="text-zinc-400">{loadError}</p>
             </div>
           ) : sortedComments.length > 0 ? (
@@ -718,8 +737,8 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
                 key={comment.id}
                 comment={comment}
                 currentUserId={user?.uid}
-                currentUserName={user?.displayName || "Thành viên Nanaflix"}
-                currentUserAvatar={user?.photoURL || undefined}
+                currentUserName={effectiveDisplayName}
+                currentUserAvatar={effectiveAvatar || undefined}
                 currentUserEmail={user?.email || undefined}
                 onReact={handleReact}
                 onDelete={handleDeleteComment}

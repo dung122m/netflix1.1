@@ -4,6 +4,7 @@ import {
   markNotificationAsReadSupabase,
   markAllNotificationsAsReadSupabase,
   createNotificationSupabase,
+  deleteNotificationSupabase,
 } from "./supabaseService";
 import { isSupabaseConfigured } from "@/lib/supabase";
 
@@ -328,6 +329,11 @@ export async function deleteNotification(
         detail: { userId, items: updated },
       }),
     );
+  }
+
+  // 2. Cập nhật Supabase
+  if (isSupabaseConfigured()) {
+    deleteNotificationSupabase(userId, notificationId).catch(() => {});
   }
 }
 

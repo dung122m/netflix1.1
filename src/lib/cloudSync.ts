@@ -1,8 +1,12 @@
 import {
   syncWatchHistorySupabase,
   getWatchHistorySupabase,
+  removeWatchHistoryItemSupabase,
+  clearAllWatchHistorySupabase,
   syncWatchlistSupabase,
   getWatchlistSupabase,
+  removeWatchlistItemSupabase,
+  clearAllWatchlistSupabase,
 } from "@/services/supabaseService";
 import { isSupabaseConfigured } from "./supabase";
 import {
@@ -86,6 +90,13 @@ export async function removeWatchItemFromCloud(
   slug: string,
 ): Promise<void> {
   if (!userId || !slug) return;
+  if (isSupabaseConfigured()) {
+    try {
+      await removeWatchHistoryItemSupabase(userId, slug);
+    } catch (err) {
+      console.warn("Lỗi removeWatchItemFromCloud:", err);
+    }
+  }
 }
 
 /**
@@ -95,6 +106,13 @@ export async function clearAllWatchHistoryFromCloud(
   userId: string,
 ): Promise<void> {
   if (!userId) return;
+  if (isSupabaseConfigured()) {
+    try {
+      await clearAllWatchHistorySupabase(userId);
+    } catch (err) {
+      console.warn("Lỗi clearAllWatchHistoryFromCloud:", err);
+    }
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -153,6 +171,13 @@ export async function removeWatchlistItemFromCloud(
   slug: string,
 ): Promise<void> {
   if (!userId || !slug) return;
+  if (isSupabaseConfigured()) {
+    try {
+      await removeWatchlistItemSupabase(userId, slug);
+    } catch (err) {
+      console.warn("Lỗi removeWatchlistItemFromCloud:", err);
+    }
+  }
 }
 
 /**
@@ -162,4 +187,11 @@ export async function clearAllWatchlistFromCloud(
   userId: string,
 ): Promise<void> {
   if (!userId) return;
+  if (isSupabaseConfigured()) {
+    try {
+      await clearAllWatchlistSupabase(userId);
+    } catch (err) {
+      console.warn("Lỗi clearAllWatchlistFromCloud:", err);
+    }
+  }
 }
