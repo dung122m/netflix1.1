@@ -65,7 +65,7 @@ function formatRelativeTime(timestamp: number): string {
   if (minutes < 60) return `${minutes} phút trước`;
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return `${hours} giờ trước`;
-  const days = Math.floor(days / 24);
+  const days = Math.floor(hours / 24);
   if (days < 7) return `${days} ngày trước`;
   const date = new Date(timestamp);
   return date.toLocaleDateString("vi-VN", {
