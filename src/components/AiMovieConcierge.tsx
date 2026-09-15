@@ -660,28 +660,7 @@ export function AiMovieConcierge() {
 
   return (
     <>
-      {/* 1. NÚT NỔI GÓC DƯỚI PHẢI (FLOATING TRIGGER BUTTON) */}
-      <div className="fixed bottom-6 right-4 sm:bottom-6 sm:right-6 z-40 hidden min-[450px]:block">
-        <button
-          type="button"
-          onClick={() => {
-            setIsOpen(true);
-            setTimeout(() => inputRef.current?.focus(), 150);
-          }}
-          title="Trợ Lý Nana Gợi Ý Phim Theo Tâm Trạng"
-          className="group relative flex items-center gap-2 px-3.5 sm:px-4 py-2.5 rounded-full bg-gradient-to-r from-red-600 via-rose-600 to-purple-600 text-white font-extrabold text-xs sm:text-sm shadow-[0_10px_35px_rgba(229,9,20,0.45)] hover:shadow-[0_15px_45px_rgba(229,9,20,0.7)] transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer border border-white/25"
-        >
-          <div className="relative">
-            <Sparkles className="w-4 h-4 text-amber-300 animate-spin [animation-duration:4s]" />
-            <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-          </div>
-          <span className="hidden min-[450px]:inline tracking-wide font-black">
-            Nana Gợi Ý Phim
-          </span>
-        </button>
-      </div>
-
-      {/* 2. MODAL TRÒ CHUYỆN NANA GỢI Ý PHIM CHUYÊN NGHIỆP */}
+      {/* MODAL TRÒ CHUYỆN NANA GỢI Ý PHIM CHUYÊN NGHIỆP (KÍCH HOẠT TỪ NAVBAR / BOTTOM NAV / BANNER) */}
       {isOpen &&
         mounted &&
         createPortal(
