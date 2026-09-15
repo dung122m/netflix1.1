@@ -116,6 +116,29 @@ export const saveWatchHistory = (
     if (auth?.currentUser) {
       saveWatchItemToCloudDebounced(auth.currentUser.uid, newItem, 2000);
     }
+
+    // Ghi nhận lượt xem vào Database để tính Top Trending (debounced 1 lần mỗi phiên xem)
+    try {
+      const sessionKey = `view_recorded_${newItem.slug}`;
+      if (!sessionStorage.getItem(sessionKey)) {
+        sessionStorage.setItem(sessionKey, "1");
+        fetch("/api/record-view", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            slug: newItem.slug,
+            title: newItem.title,
+            poster: newItem.poster,
+            year: newItem.year,
+            quality: newItem.quality,
+            category: newItem.category,
+          }),
+          keepalive: true,
+        }).catch(() => {});
+      }
+    } catch {
+      // Ignore
+    }
   } catch (error) {
     console.error("Lỗi lưu lịch sử xem:", error);
   }

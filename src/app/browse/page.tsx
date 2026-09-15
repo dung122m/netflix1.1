@@ -14,6 +14,8 @@ import { searchMoviesBySemantic, enqueueAutoEmbedMovies } from "@/services/aiVec
 import { BrowseAiSearchBanner } from "@/components/BrowseAiSearchBanner";
 import { PersonalizedGenreSection } from "@/components/PersonalizedGenreSection";
 import { CuratedMovieSection } from "@/components/CuratedMovieSection";
+import { CommunityTopTrending } from "@/components/CommunityTopTrending";
+import { ForYouPersonalizedRow } from "@/components/ForYouPersonalizedRow";
 
 const HeroFeatured = dynamic(() =>
   import("@/components/sites/netflix-3f78535a/browse-1234abcd/HeroFeatured").then(
@@ -457,6 +459,12 @@ export default async function BrowsePage({
       >
         {/* DẢI THẺ LỌC NHANH THỂ LOẠI & QUỐC GIA (Hiển thị cả khi đang tìm kiếm để người dùng lọc theo quốc gia của diễn viên) */}
         <QuickGenreChips />
+
+        {/* HÀNG PHIM DÀNH RIÊNG CHO BẠN (AI PERSONALIZED RECOMMENDATIONS) */}
+        {isPlainHomepage && <ForYouPersonalizedRow />}
+
+        {/* BẢNG XẾP HẠNG TOP 10 TRENDING DỰA TRÊN LƯỢT XEM THỰC TẾ CỦA CỘNG ĐỒNG */}
+        {isPlainHomepage && <CommunityTopTrending />}
 
         {/* KHU VỰC ĐỀ XUẤT PHIM THEO GU YÊU THÍCH (PREFERENCES) */}
         {isPlainHomepage && <PersonalizedGenreSection allMovies={movies} />}

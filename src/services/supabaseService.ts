@@ -1493,3 +1493,109 @@ export async function clearDeviceHandoffSupabase(userId: string): Promise<void> 
   }
 }
 
+// ============================================================================
+// 11. THỐNG KÊ LƯỢT XEM & TOP 10 TRENDING CỘNG ĐỒNG (MOVIE_VIEWS_STATS)
+// ============================================================================
+
+export interface MovieViewStatItem {
+  movieSlug: string;
+  movieTitle: string;
+  poster: string;
+  thumb?: string;
+  year?: number;
+  quality?: string;
+  category?: string;
+  viewsTotal: number;
+  viewsWeek: number;
+  lastViewedAt: number;
+}
+
+export async function recordMovieViewSupabase(movie: {
+  slug: string;
+  title: string;
+  poster?: string;
+  thumb?: string;
+  year?: number;
+  quality?: string;
+  category?: string;
+}): Promise<void> {
+  if (!supabase || !movie.slug) return;
+  const now = Date.now();
+
+  try {
+    // 1. Thử gọi RPC atomic increment nếu có
+    const { error: rpcError } = await supabase.rpc("increment_movie_view", {
+      p_slug: movie.slug,
+      p_title: movie.title || "",
+      p_poster: movie.poster || "",
+      p_thumb: movie.thumb || "",
+      p_year: movie.year || null,
+      p_quality: movie.quality || null,
+      p_category: movie.category || null,
+    });
+
+    if (!rpcError) return;
+
+    // 2. Fallback upsert trực tiếp qua REST API
+    const { data: existing } = await supabase
+      .from("movie_views_stats")
+      .select("views_total, views_week")
+      .eq("movie_slug", movie.slug)
+      .maybeSingle();
+
+    const currentTotal = Number(existing?.views_total) || 0;
+    const currentWeek = Number(existing?.views_week) || 0;
+
+    await supabase.from("movie_views_stats").upsert(
+      {
+        movie_slug: movie.slug,
+        movie_title: movie.title || "Phim",
+        poster: movie.poster || "/default-poster.jpg",
+        thumb: movie.thumb || movie.poster || "/default-hero.jpg",
+        year: movie.year || null,
+        quality: movie.quality || "HD",
+        category: movie.category || "Phim Hay",
+        views_total: currentTotal + 1,
+        views_week: currentWeek + 1,
+        last_viewed_at: now,
+      },
+      { onConflict: "movie_slug" }
+    );
+  } catch (err) {
+    console.warn("Lỗi ghi nhận lượt xem phim vào Supabase:", err);
+  }
+}
+
+export async function getTopTrendingCommunitySupabase(
+  limit: number = 10,
+  timeframe: "total" | "week" = "total"
+): Promise<MovieViewStatItem[]> {
+  if (!supabase) return [];
+  try {
+    const orderColumn = timeframe === "week" ? "views_week" : "views_total";
+    const { data, error } = await supabase
+      .from("movie_views_stats")
+      .select("*")
+      .order(orderColumn, { ascending: false })
+      .limit(limit);
+
+    if (error || !data || data.length === 0) return [];
+
+    return data.map((d) => ({
+      movieSlug: d.movie_slug,
+      movieTitle: d.movie_title || "",
+      poster: d.poster || "/default-poster.jpg",
+      thumb: d.thumb || d.poster || "/default-hero.jpg",
+      year: Number(d.year) || undefined,
+      quality: d.quality || undefined,
+      category: d.category || undefined,
+      viewsTotal: Number(d.views_total) || 1,
+      viewsWeek: Number(d.views_week) || 1,
+      lastViewedAt: Number(d.last_viewed_at) || Date.now(),
+    }));
+  } catch {
+    return [];
+  }
+}
+
+
