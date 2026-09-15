@@ -401,7 +401,7 @@ export const liveTvService = {
               "User-Agent":
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
             },
-            signal: AbortSignal.timeout(4500),
+            signal: AbortSignal.timeout(3000),
           });
           if (!res.ok) return "";
           return await res.text();

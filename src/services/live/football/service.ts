@@ -1086,7 +1086,7 @@ export async function isStreamPlayable(
     const isLive = res.ok;
     urlHealthCache.set(url, {
       isLive,
-      expireAt: now + (isLive ? 180 * 1000 : 45 * 1000),
+      expireAt: now + (isLive ? 600 * 1000 : 60 * 1000), // Sống: cache 10 phút (giảm request), chết: cache 60s
     });
     return isLive;
   } catch {

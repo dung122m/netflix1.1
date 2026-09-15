@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -52,6 +52,14 @@ export function ForYouPersonalizedRow() {
     return () => unsub();
   }, [user?.uid]);
 
+  const moviesRef = useRef<ForYouMovieItem[]>([]);
+  moviesRef.current = movies;
+  const inFlightRef = useRef(false);
+  const lastFingerprintRef = useRef("");
+
+  const favoriteGenres = useMemo(() => profile?.favoriteGenres || [], [profile?.favoriteGenres]);
+  const genresKey = useMemo(() => favoriteGenres.slice().sort().join(","), [favoriteGenres]);
+
   // 2. Fetch danh sách phim đề xuất (hỗ trợ đổi mới luân phiên khi bấm Đổi Gợi Ý)
   const fetchRecommendations = useCallback(async (forceRefresh = false, nextSeed?: number) => {
     const CACHE_KEY_NAME = "nanaflix_foryou_cache_v1";
@@ -61,8 +69,10 @@ export function ForYouPersonalizedRow() {
     const history = getWatchHistory();
     const watchedTitles = history.map((h) => h.title).filter(Boolean).slice(0, 3);
     const watchedSlugs = history.map((h) => h.slug).filter(Boolean).slice(0, 5);
-    const favoriteGenres = profile?.favoriteGenres || [];
-    const currentFingerprint = `${user?.uid || "guest"}_${[...favoriteGenres].sort().join(",")}_${watchedSlugs.join(",")}_seed${currentSeed}`;
+    const currentFingerprint = `${user?.uid || "guest"}_${genresKey}_${watchedSlugs.join(",")}_seed${currentSeed}`;
+
+    if (!forceRefresh && inFlightRef.current) return;
+    if (!forceRefresh && lastFingerprintRef.current === currentFingerprint && moviesRef.current.length > 0) return;
 
     // Kiểm tra sessionStorage cache nếu không yêu cầu forceRefresh
     if (!forceRefresh && typeof window !== "undefined") {
@@ -77,6 +87,7 @@ export function ForYouPersonalizedRow() {
             Array.isArray(cached.items) &&
             cached.items.length > 0
           ) {
+            lastFingerprintRef.current = currentFingerprint;
             setMovies(cached.items);
             if (cached.context) setContextText(cached.context);
             setLoading(false);
@@ -86,7 +97,10 @@ export function ForYouPersonalizedRow() {
       } catch {}
     }
 
+    inFlightRef.current = true;
+    lastFingerprintRef.current = currentFingerprint;
     setLoading(true);
+
     try {
       const res = await fetch("/api/recommendations/for-you", {
         method: "POST",
@@ -96,7 +110,7 @@ export function ForYouPersonalizedRow() {
           watchedTitles,
           watchedSlugs,
           refreshSeed: currentSeed,
-          currentSlugs: movies.map((m) => m.slug),
+          currentSlugs: moviesRef.current.map((m) => m.slug),
         }),
       });
 
@@ -127,8 +141,9 @@ export function ForYouPersonalizedRow() {
       console.warn("Lỗi tải phim đề xuất cho bạn:", err);
     } finally {
       setLoading(false);
+      inFlightRef.current = false;
     }
-  }, [profile?.favoriteGenres, user?.uid, refreshCount, movies]);
+  }, [genresKey, user?.uid, refreshCount, favoriteGenres]);
 
   useEffect(() => {
     fetchRecommendations();

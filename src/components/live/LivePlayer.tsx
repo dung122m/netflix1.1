@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { FootballMatch, StreamServer } from "@/services/liveFootballService";
 import { useMatchReminders } from "@/hooks/useMatchReminders";
+import { WebGLCasCanvas } from "./WebGLCasCanvas";
 
 // Logo hiển thị trong drawer danh sách kênh & trận đấu
 function MatchRailLogo({ option }: { option: FootballMatch }) {
@@ -178,6 +179,16 @@ export function LivePlayer({
       });
     }
   }, [isRailVisible, match?.id]);
+
+  // Reset trạng thái server & player khi chuyển sang trận đấu khác
+  useEffect(() => {
+    setSelectedServerIndex(0);
+    fallbackCountRef.current = 0;
+    userPausedRef.current = false;
+    setHasError(false);
+    setErrorMessage("");
+    setIsLoading(true);
+  }, [match?.id]);
 
   const liveOptionsCount = useMemo(() => {
     return matchOptions.filter((m) => m.timeline === "live").length;
@@ -406,7 +417,7 @@ export function LivePlayer({
       setIsLoading(false);
       setHasError(true);
       setErrorMessage(
-        "Định dạng này cần mở bằng ứng dụng ngoài (VLC/PotPlayer). Hãy chọn máy chủ HLS khác để xem trực tiếp trên Web!",
+        "Định dạng này chưa được hỗ trợ trên trình duyệt này. Hãy chọn máy chủ HLS khác để xem trực tiếp!",
       );
       return;
     }
@@ -415,19 +426,26 @@ export function LivePlayer({
       const hls = new Hls({
         enableWorker: true,
         lowLatencyMode: true,
-        maxBufferLength: 30,
-        maxMaxBufferLength: 60,
-        maxBufferSize: 60 * 1000 * 1000,
-        liveSyncDurationCount: 3,
-        liveMaxLatencyDurationCount: 8,
-        backBufferLength: 30,
-        manifestLoadingTimeOut: 10000,
-        levelLoadingTimeOut: 10000,
-        fragLoadingTimeOut: 10000,
-        fragLoadingMaxRetry: 4,
-        levelLoadingMaxRetry: 4,
-        manifestLoadingMaxRetry: 4,
+        // Đồng bộ live sát hơn: 2 segment thay vì 3 → giảm trễ còn ~4s
+        liveSyncDurationCount: 2,
+        liveMaxLatencyDurationCount: 5,
+        // Giảm back buffer tiết kiệm RAM điện thoại (không cần tua lại live)
+        backBufferLength: 8,
+        maxBufferLength: 20,
+        maxMaxBufferLength: 40,
+        maxBufferSize: 30 * 1000 * 1000,
+        // Ước tính băng thông cao ngay từ đầu → tránh startup ở 480p/720p
+        abrEwmaDefaultEstimate: 8_000_000,
         capLevelToPlayerSize: false,
+        // Timeout nhanh hơn cho live stream
+        manifestLoadingTimeOut: 6000,
+        levelLoadingTimeOut: 6000,
+        fragLoadingTimeOut: 8000,
+        fragLoadingMaxRetry: 6,
+        levelLoadingMaxRetry: 6,
+        manifestLoadingMaxRetry: 6,
+        fragLoadingMaxRetryTimeout: 1000,
+        levelLoadingMaxRetryTimeout: 1000,
       });
 
       hlsRef.current = hls;
@@ -552,7 +570,7 @@ export function LivePlayer({
               setIsLoading(false);
               setHasError(true);
               setErrorMessage(
-                "Tín hiệu luồng phát tạm thời gián đoạn. Hãy thử đổi máy chủ khác hoặc mở bằng VLC.",
+                "Tín hiệu luồng phát tạm thời gián đoạn. Hãy thử đổi máy chủ khác để tiếp tục xem.",
               );
               break;
           }
@@ -588,7 +606,7 @@ export function LivePlayer({
         setIsLoading(false);
         setHasError(true);
         setErrorMessage(
-          "Không thể tải luồng phát trên trình duyệt này. Vui lòng đổi máy chủ hoặc mở bằng VLC.",
+          "Không thể tải luồng phát trên trình duyệt này. Vui lòng đổi sang máy chủ khác.",
         );
       });
     }
@@ -734,21 +752,43 @@ export function LivePlayer({
         ).msExitFullscreen();
       }
       setIsFullscreen(false);
+      // Mở khóa xoay màn hình khi thoát fullscreen
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const ori = (screen?.orientation || (screen as any)?.mozOrientation) as any;
+        if (ori && typeof ori.unlock === "function") ori.unlock();
+      } catch {}
     } else {
+      // Helper: lock landscape sau khi fullscreen thành công
+      const lockLandscape = () => {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const ori = (screen?.orientation || (screen as any)?.mozOrientation) as any;
+          if (ori && typeof ori.lock === "function") {
+            ori.lock("landscape").catch(() => {});
+          }
+        } catch {}
+      };
+
       // Bật toàn màn hình
       if (container && container.requestFullscreen) {
-        container.requestFullscreen().catch(() => {
-          // Fallback cho iOS Safari
-          if (
-            video &&
-            (video as unknown as { webkitEnterFullscreen?: () => void })
-              .webkitEnterFullscreen
-          ) {
-            (
-              video as unknown as { webkitEnterFullscreen: () => void }
-            ).webkitEnterFullscreen();
-          }
-        });
+        const p = container.requestFullscreen();
+        if (p && typeof p.then === "function") {
+          p.then(lockLandscape).catch(() => {
+            // Fallback cho iOS Safari
+            if (
+              video &&
+              (video as unknown as { webkitEnterFullscreen?: () => void })
+                .webkitEnterFullscreen
+            ) {
+              (
+                video as unknown as { webkitEnterFullscreen: () => void }
+              ).webkitEnterFullscreen();
+            }
+          });
+        } else {
+          lockLandscape();
+        }
       } else if (
         container &&
         (container as unknown as { webkitRequestFullscreen?: () => void })
@@ -757,6 +797,7 @@ export function LivePlayer({
         (
           container as unknown as { webkitRequestFullscreen: () => void }
         ).webkitRequestFullscreen();
+        lockLandscape();
       } else if (
         container &&
         (container as unknown as { mozRequestFullScreen?: () => void })
@@ -765,6 +806,7 @@ export function LivePlayer({
         (
           container as unknown as { mozRequestFullScreen: () => void }
         ).mozRequestFullScreen();
+        lockLandscape();
       } else if (
         container &&
         (container as unknown as { msRequestFullscreen?: () => void })
@@ -773,6 +815,7 @@ export function LivePlayer({
         (
           container as unknown as { msRequestFullscreen: () => void }
         ).msRequestFullscreen();
+        lockLandscape();
       } else if (
         video &&
         (video as unknown as { webkitEnterFullscreen?: () => void })
@@ -984,11 +1027,6 @@ export function LivePlayer({
     }
   };
 
-  const openInVlc = () => {
-    if (!currentServer) return;
-    window.location.href = `vlc://${currentServer.url}`;
-  };
-
   const VolumeIcon =
     isMuted || volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
 
@@ -1153,6 +1191,13 @@ export function LivePlayer({
           showControls ? "cursor-default" : "cursor-none"
         }`}
       >
+        {/* WebGL CAS Super Sharpening Canvas (Mặc định tự động làm nét & tối ưu màu sân cỏ) */}
+        <WebGLCasCanvas
+          videoRef={videoRef}
+          enabled={true}
+          sharpness={0.75}
+        />
+
         <video
           ref={videoRef}
           className="w-full h-full object-contain pointer-events-none"
@@ -1476,15 +1521,6 @@ export function LivePlayer({
                   </span>
                 </button>
               )}
-
-              <button
-                type="button"
-                onClick={openInVlc}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-xs font-bold text-white transition shadow-lg shadow-orange-950/50 cursor-pointer"
-              >
-                <Tv className="w-3.5 h-3.5" />
-                <span>Mở bằng VLC</span>
-              </button>
             </div>
           </div>
         )}
@@ -1612,7 +1648,7 @@ export function LivePlayer({
               )}
 
               <span className="hidden lg:inline text-[11px] text-gray-400 bg-black/50 px-2.5 py-1 rounded-full border border-white/10 font-mono">
-                Space: Dừng/Phát • ← / →: Đổi Server • L: Kênh
+                Space: Dừng/Phát • ← / →: Đổi Server • L: Kênh • F: Toàn Màn Hình
               </span>
 
               {/* Nút Picture in Picture - Chỉ hiện trên tablet/desktop */}
@@ -1711,16 +1747,6 @@ export function LivePlayer({
                 </span>
               </button>
             )}
-
-            <button
-              type="button"
-              onClick={openInVlc}
-              title="Mở link stream này trong VLC"
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-xs font-extrabold transition shadow-md shadow-orange-950/40 cursor-pointer whitespace-nowrap"
-            >
-              <Tv className="w-3.5 h-3.5" />
-              <span>Mở bằng VLC</span>
-            </button>
 
             <button
               type="button"

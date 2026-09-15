@@ -13,13 +13,22 @@ function NavigationProgressBarInner() {
   const progressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const finishTimerRef = useRef<NodeJS.Timeout | null>(null);
   const safetyTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isRunningRef = useRef(false);
 
   const stopLoading = useCallback(() => {
-    if (progressTimerRef.current) clearInterval(progressTimerRef.current);
-    if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
+    if (progressTimerRef.current) {
+      clearInterval(progressTimerRef.current);
+      progressTimerRef.current = null;
+    }
+    if (safetyTimerRef.current) {
+      clearTimeout(safetyTimerRef.current);
+      safetyTimerRef.current = null;
+    }
 
+    isRunningRef.current = false;
     setProgress(100);
 
+    if (finishTimerRef.current) clearTimeout(finishTimerRef.current);
     finishTimerRef.current = setTimeout(() => {
       setLoading(false);
       setProgress(0);
@@ -27,9 +36,21 @@ function NavigationProgressBarInner() {
   }, []);
 
   const startLoading = useCallback(() => {
-    if (finishTimerRef.current) clearTimeout(finishTimerRef.current);
-    if (progressTimerRef.current) clearInterval(progressTimerRef.current);
-    if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
+    if (isRunningRef.current) return;
+    isRunningRef.current = true;
+
+    if (finishTimerRef.current) {
+      clearTimeout(finishTimerRef.current);
+      finishTimerRef.current = null;
+    }
+    if (progressTimerRef.current) {
+      clearInterval(progressTimerRef.current);
+      progressTimerRef.current = null;
+    }
+    if (safetyTimerRef.current) {
+      clearTimeout(safetyTimerRef.current);
+      safetyTimerRef.current = null;
+    }
 
     setLoading(true);
     setProgress(15);
@@ -38,7 +59,10 @@ function NavigationProgressBarInner() {
     let current = 15;
     progressTimerRef.current = setInterval(() => {
       current += (90 - current) * 0.18;
-      setProgress(Math.min(current, 92));
+      setProgress((prev) => {
+        if (prev >= 92) return prev;
+        return Math.min(current, 92);
+      });
     }, 120);
 
     // Timeout an toàn 9s tự tắt nếu mạng lag hoặc chuyển trang bị hủy
@@ -48,11 +72,12 @@ function NavigationProgressBarInner() {
   }, [stopLoading]);
 
   // 1. Theo dõi thay đổi URL (Pathname hoặc Query Params) -> Kết thúc loading
+  const searchStr = searchParams ? searchParams.toString() : "";
   useEffect(() => {
     startTransition(() => {
       stopLoading();
     });
-  }, [pathname, searchParams, stopLoading]);
+  }, [pathname, searchStr, stopLoading]);
 
   // 2. Bắt sự kiện click toàn trang trên thẻ <a> (Link nội bộ) để kích hoạt loading NGAY TỨC THÌ (0ms)
   useEffect(() => {

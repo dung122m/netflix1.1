@@ -109,6 +109,34 @@ export function LiveFootballClient({
     };
   }, [initialData.matches]);
 
+  // TỰ ĐỘNG LÀM MỚI DANH SÁCH TRẬN ĐẤU MỖI 3 PHÚT (không cần F5)
+  // Trận mới bắt đầu, trận kết thúc, kênh FPT lên sóng sẽ tự cập nhật
+  useEffect(() => {
+    const refreshMatches = async () => {
+      try {
+        const res = await fetch("/api/live-football/matches", {
+          signal: AbortSignal.timeout(8000),
+          cache: "no-store",
+        });
+        if (!res.ok) return;
+        const json = await res.json();
+        if (json.status && Array.isArray(json.data?.matches) && json.data.matches.length > 0) {
+          setLiveMatches(json.data.matches);
+        }
+      } catch {
+        // Giữ nguyên dữ liệu cũ nếu fetch thất bại
+      }
+    };
+
+    // Refresh ngay sau 30s lần đầu, sau đó mỗi 3 phút
+    const initialDelay = setTimeout(refreshMatches, 30_000);
+    const interval = setInterval(refreshMatches, 3 * 60 * 1000);
+    return () => {
+      clearTimeout(initialDelay);
+      clearInterval(interval);
+    };
+  }, []);
+
   // Khởi tạo match mặc định
   const defaultMatch = useMemo(() => {
     return (
