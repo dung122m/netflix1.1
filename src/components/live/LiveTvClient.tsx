@@ -1704,29 +1704,29 @@ export function LiveTvClient({
       {displayedChannels.length > 0 ? (
         <div className="space-y-6">
           {viewMode === "grid" ? (
-            /* VIEW MODE: LƯỚI THẺ HIỆN ĐẠI */
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4">
+            /* VIEW MODE: LƯỚI THẺ HIỆN ĐẠI (TỐI ƯU 2 CỘT GỌN GÀNG TRÊN ĐIỆN THOẠI) */
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-2 sm:gap-3.5">
               {displayedChannels.map((ch) => {
                 const isSelected = selectedChannel?.id === ch.id;
                 return (
                   <div
                     key={ch.id}
                     onClick={() => handleSelectChannel(ch)}
-                    className={`live-channel-card group relative rounded-2xl border p-3.5 cursor-pointer transition-all duration-300 flex flex-col items-center justify-between text-center ${
+                    className={`live-channel-card group relative rounded-xl sm:rounded-2xl border p-2 sm:p-3.5 cursor-pointer transition-all duration-300 flex flex-col items-center justify-between text-center ${
                       isSelected
                         ? "live-channel-active ring-2 ring-sky-500/60 scale-102"
                         : "hover:shadow-lg hover:-translate-y-0.5"
                     }`}
                   >
                     {/* HUY HIỆU GÓC TRÊN */}
-                    <div className="w-full flex items-center justify-between gap-1 mb-2">
-                      <span className="text-[10px] font-bold text-gray-400 truncate max-w-[80px]">
+                    <div className="w-full flex items-center justify-between gap-1 mb-1 sm:mb-2">
+                      <span className="text-[9px] sm:text-[10px] font-bold text-gray-400 truncate max-w-[55px] sm:max-w-[80px]">
                         {ch.category.replace("Kênh ", "")}
                       </span>
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 flex-shrink-0">
                         {isSelected && isPlaying && <PlayingEqualizer />}
                         <span
-                          className={`px-1.5 py-0.2 rounded text-[9.5px] font-black uppercase tracking-wider border ${
+                          className={`px-1 sm:px-1.5 py-0.2 rounded text-[8px] sm:text-[9.5px] font-black uppercase tracking-wider border ${
                             ch.quality.includes("FHD")
                               ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-400"
                               : "bg-sky-500/15 border-sky-500/40 text-sky-400"
@@ -1740,12 +1740,12 @@ export function LiveTvClient({
                     </div>
 
                     {/* LOGO KÊNH */}
-                    <div className="live-channel-logo-container w-full h-16 sm:h-20 rounded-xl bg-zinc-950/60 border border-white/10 p-2 sm:p-2.5 flex items-center justify-center my-1.5 shadow-inner group-hover:scale-105 transition-transform overflow-hidden">
+                    <div className="live-channel-logo-container w-full h-11 sm:h-16 md:h-20 rounded-lg sm:rounded-xl bg-zinc-950/60 border border-white/10 p-1.5 sm:p-2.5 flex items-center justify-center my-0.5 sm:my-1.5 shadow-inner group-hover:scale-105 transition-transform overflow-hidden">
                       <TvChannelLogo logo={ch.logo} name={ch.name} />
                     </div>
 
                     {/* TÊN KÊNH */}
-                    <h3 className="live-channel-title text-xs sm:text-sm font-extrabold text-white group-hover:text-sky-400 transition line-clamp-1 mt-1 leading-snug w-full">
+                    <h3 className="live-channel-title text-[11px] sm:text-xs md:text-sm font-bold sm:font-extrabold text-white group-hover:text-sky-400 transition line-clamp-1 mt-0.5 sm:mt-1 leading-tight w-full">
                       {ch.name}
                     </h3>
                   </div>
@@ -1754,38 +1754,38 @@ export function LiveTvClient({
             </div>
           ) : (
             /* VIEW MODE: DANH SÁCH GỌN (COMPACT LIST) */
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-2.5">
               {displayedChannels.map((ch) => {
                 const isSelected = selectedChannel?.id === ch.id;
                 return (
                   <div
                     key={ch.id}
                     onClick={() => handleSelectChannel(ch)}
-                    className={`group rounded-xl border p-2.5 cursor-pointer transition-all flex items-center justify-between gap-3 ${
+                    className={`group rounded-xl border p-2 sm:p-2.5 cursor-pointer transition-all flex items-center justify-between gap-2.5 sm:gap-3 ${
                       isSelected
                         ? "live-channel-active ring-1 ring-sky-500/60"
                         : "live-channel-card hover:border-white/25"
                     }`}
                   >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="live-channel-logo-container w-14 h-10 rounded-xl bg-zinc-950/60 border border-white/10 p-1 flex items-center justify-center overflow-hidden flex-shrink-0">
+                    <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                      <div className="live-channel-logo-container w-11 h-8 sm:w-14 sm:h-10 rounded-lg sm:rounded-xl bg-zinc-950/60 border border-white/10 p-1 flex items-center justify-center overflow-hidden flex-shrink-0">
                         <TvChannelLogo logo={ch.logo} name={ch.name} />
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
-                          <h4 className="live-channel-title text-xs font-bold text-white group-hover:text-sky-300 truncate">
+                          <h4 className="live-channel-title text-[11px] sm:text-xs font-bold text-white group-hover:text-sky-300 truncate">
                             {ch.name}
                           </h4>
                           {isSelected && isPlaying && <PlayingEqualizer />}
                         </div>
-                        <span className="text-[10px] text-gray-400">
+                        <span className="text-[9.5px] sm:text-[10px] text-gray-400">
                           {ch.category.replace("Kênh ", "")}
                         </span>
                       </div>
                     </div>
 
                     <span
-                      className={`text-[9.5px] px-2 py-0.5 rounded font-black uppercase flex-shrink-0 border ${
+                      className={`text-[8.5px] sm:text-[9.5px] px-1.5 sm:px-2 py-0.5 rounded font-black uppercase flex-shrink-0 border ${
                         ch.quality.includes("FHD")
                           ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-400"
                           : "bg-sky-500/15 border-sky-500/40 text-sky-400"

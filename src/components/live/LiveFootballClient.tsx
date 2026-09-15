@@ -745,7 +745,7 @@ export function LiveFootballClient({
       {/* DANH SÁCH CÁC TRẬN ĐẤU */}
       {displayedMatches.length > 0 ? (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4">
             {displayedMatches.map((match) => (
               <MatchCard
                 key={match.id}
