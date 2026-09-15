@@ -19,7 +19,7 @@ import {
   Clapperboard,
 } from "lucide-react";
 import { isInWatchlist, toggleWatchlist } from "@/lib/watchlist";
-import { extractMovieCountry, detectMovieTypeName } from "@/lib/movieMedia";
+import { extractMovieCountry, detectMovieTypeName, toHighResBackdropUrl } from "@/lib/movieMedia";
 
 export interface MovieExtraInfo {
   actor?: string[];
@@ -31,6 +31,7 @@ export interface MovieExtraInfo {
   time?: string;
   episode_current?: string;
   episode_total?: number;
+  backdrop_url?: string;
 }
 
 // Bộ nhớ đệm client
@@ -120,12 +121,12 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   const [liked, setLiked] = useState(false);
   const [isImgLoaded, setIsImgLoaded] = useState(false);
 
-  // Danh sách các link ảnh dự phòng theo thứ tự ưu tiên
+  // Danh sách các link ảnh dự phòng theo thứ tự ưu tiên (chuẩn HD sắc nét)
   const candidateImages = React.useMemo(() => {
     const list: string[] = [];
-    if (imageUrl) list.push(imageUrl);
-    if (thumbUrl && !list.includes(thumbUrl)) list.push(thumbUrl);
-    if (posterUrl && !list.includes(posterUrl)) list.push(posterUrl);
+    if (imageUrl) list.push(toHighResBackdropUrl(imageUrl));
+    if (thumbUrl && !list.includes(thumbUrl)) list.push(toHighResBackdropUrl(thumbUrl));
+    if (posterUrl && !list.includes(posterUrl)) list.push(toHighResBackdropUrl(posterUrl));
     return list.filter(
       (u) =>
         Boolean(u) &&
@@ -137,12 +138,12 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
 
   const [imageAttemptIndex, setImageAttemptIndex] = useState(0);
   const [currentImgSrc, setCurrentImgSrc] = useState(
-    candidateImages[0] || imageUrl || "/default-hero.svg"
+    candidateImages[0] || (imageUrl ? toHighResBackdropUrl(imageUrl) : "/default-hero.svg")
   );
 
   useEffect(() => {
     setImageAttemptIndex(0);
-    setCurrentImgSrc(candidateImages[0] || imageUrl || "/default-hero.svg");
+    setCurrentImgSrc(candidateImages[0] || (imageUrl ? toHighResBackdropUrl(imageUrl) : "/default-hero.svg"));
   }, [imageUrl, candidateImages]);
 
   const handleImageError = () => {
@@ -308,12 +309,21 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
               setTrailerUrl(data.trailer_url);
               setHasTrailerState(true);
             }
+            if (data?.backdrop_url) {
+              setCurrentImgSrc((prev) => {
+                if (!prev || prev.includes("-poster") || prev.includes("/default-")) {
+                  return data.backdrop_url;
+                }
+                return prev;
+              });
+            }
             const info: MovieExtraInfo = {
               actor: data?.actor || [],
               director: data?.director || [],
               country: data?.country || [],
               category: data?.category || [],
               origin_name: data?.origin_name || origin_name,
+              backdrop_url: data?.backdrop_url,
             };
             clientExtraInfoCache.set(slug, info);
             setExtraInfo(info);
@@ -501,7 +511,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           alt={title}
           fill
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1440px) 33vw, 25vw"
-          className="object-cover object-top group-hover:scale-105 transition-transform duration-300"
+          className="object-cover object-center group-hover:scale-105 transition-transform duration-300"
           priority={priority}
           loading={priority ? "eager" : "lazy"}
           decoding="async"
@@ -601,7 +611,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
             alt={title}
             fill
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-            className={`object-cover object-top transition-opacity duration-300 ${
+            className={`object-cover object-center transition-opacity duration-300 ${
               isPlayingTrailer && embedTrailerUrl ? "opacity-0" : "opacity-100"
             }`}
             onError={handleImageError}
