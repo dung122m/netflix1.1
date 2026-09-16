@@ -41,8 +41,9 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const mobileSearchRef = useRef<HTMLDivElement>(null);
 
-  const isSearchOpen = isSearchExpanded || Boolean(urlKeyword);
-  const hasSearchText = hasText || Boolean(urlKeyword);
+  const isSearchOpen = isSearchExpanded || hasText || Boolean(urlKeyword);
+  const hasSearchText = hasText;
+  const hasDropdownContent = (!hasSearchText && recentSearches.length > 0) || (hasSearchText && suggestions.length > 0);
 
   // Debounced search fetcher (300ms)
   const [debouncedFetchSuggestions, cancelDebouncedFetch] = useDebounce(
@@ -165,6 +166,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
   const toggleSearch = () => {
     if (!isSearchOpen) {
       setIsSearchExpanded(true);
+      setShowDropdown(true);
       setTimeout(() => {
         inputRef.current?.focus();
         mobileInputRef.current?.focus();
@@ -184,14 +186,17 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
     if (mobileInputRef.current) mobileInputRef.current.value = "";
     setHasText(false);
     setSuggestions([]);
-    setShowDropdown(recentSearches.length > 0);
+    setIsSearching(false);
+    setShowDropdown(true);
+    setSelectedSuggestionIndex(-1);
     inputRef.current?.focus();
     mobileInputRef.current?.focus();
   };
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
-    setHasText(val.length > 0);
+    const hasVal = val.length > 0;
+    setHasText(hasVal);
 
     if (val.trim().length >= 2) {
       setIsSearching(true);
@@ -200,9 +205,9 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
       cancelDebouncedFetch();
       setSuggestions([]);
       setIsSearching(false);
-      setShowDropdown(recentSearches.length > 0);
+      setShowDropdown(true);
     }
-  }, [debouncedFetchSuggestions, cancelDebouncedFetch, recentSearches.length]);
+  }, [debouncedFetchSuggestions, cancelDebouncedFetch]);
 
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!showDropdown) return;
@@ -298,11 +303,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
               }}
               onKeyDown={handleInputKeyDown}
               onFocus={() => {
-                if (!hasSearchText && recentSearches.length > 0) {
-                  setShowDropdown(true);
-                } else if (suggestions.length > 0) {
-                  setShowDropdown(true);
-                }
+                setShowDropdown(true);
               }}
               className="w-full bg-transparent text-white text-xs sm:text-sm outline-none placeholder:text-gray-400 min-w-0"
             />
@@ -320,7 +321,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
           </form>
 
           {/* MOBILE SEARCH DROPDOWN */}
-          {showDropdown && (
+          {showDropdown && hasDropdownContent && (
             <div className="fixed top-[52px] sm:top-[56px] inset-x-2 w-auto max-w-lg mx-auto bg-zinc-950/98 border border-white/20 backdrop-blur-2xl rounded-2xl p-3 shadow-2xl z-50 max-h-[75vh] overflow-y-auto overscroll-contain">
               {!hasSearchText && recentSearches.length > 0 ? (
                 <div>
@@ -471,11 +472,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
             onChange={handleInputChange}
             onKeyDown={handleInputKeyDown}
             onFocus={() => {
-              if (!hasSearchText && recentSearches.length > 0) {
-                setShowDropdown(true);
-              } else if (suggestions.length > 0) {
-                setShowDropdown(true);
-              }
+              setShowDropdown(true);
             }}
             className={`bg-transparent text-white text-sm outline-none transition-all duration-300 ${
               isSearchOpen
@@ -497,7 +494,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
         </form>
 
         {/* DESKTOP SEARCH DROPDOWN */}
-        {showDropdown && (
+        {showDropdown && hasDropdownContent && (
           <div className="absolute top-full mt-2 right-0 w-[360px] bg-zinc-950/95 border border-white/15 backdrop-blur-xl rounded-xl shadow-2xl p-2.5 z-50 animate-in fade-in zoom-in-95 duration-150">
             {!hasSearchText && recentSearches.length > 0 ? (
               <div>
