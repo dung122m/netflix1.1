@@ -675,20 +675,16 @@ export function isActorTopTitle(name: string, origName: string, actorSlug: strin
     if (engTitle && (cleanN === engTitle || cleanO === engTitle)) {
       return true;
     }
-    // 2. Chỉ cho phép khớp tiền tố nếu tựa phim dài (>= 5 ký tự) và có hậu tố rõ ràng (không khớp substring bừa bãi)
-    if (viTitle && viTitle.length >= 5) {
-      if (
-        cleanN.startsWith(viTitle + " ") || cleanN.startsWith(viTitle + ":") || cleanN.startsWith(viTitle + " -") ||
-        cleanO.startsWith(viTitle + " ") || cleanO.startsWith(viTitle + ":") || cleanO.startsWith(viTitle + " -")
-      ) {
+    // 2. Chỉ cho phép các phần tiếp theo chính thức được đánh số (Phần 2, Part 2, v.v.),
+    // TUYỆT ĐỐI CẤM khớp prefix tự do để không nhận nhầm 'Bố Già Vùng Harlem' khi tìm 'Bố Già'
+    const sequelSuffixes = [" 2", " 3", " 4", " 5", " ii", " iii", " iv", " v", ": phan 2", ": phan 3", " phan 2", " phan 3", ": part 2", ": part 3", " part 2", " part 3"];
+    if (viTitle) {
+      if (sequelSuffixes.some((s) => cleanN === viTitle + s || cleanO === viTitle + s)) {
         return true;
       }
     }
-    if (engTitle && engTitle.length >= 5) {
-      if (
-        cleanN.startsWith(engTitle + " ") || cleanN.startsWith(engTitle + ":") || cleanN.startsWith(engTitle + " -") ||
-        cleanO.startsWith(engTitle + " ") || cleanO.startsWith(engTitle + ":") || cleanO.startsWith(engTitle + " -")
-      ) {
+    if (engTitle) {
+      if (sequelSuffixes.some((s) => cleanN === engTitle + s || cleanO === engTitle + s)) {
         return true;
       }
     }

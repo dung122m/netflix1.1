@@ -21,7 +21,7 @@ export const GOLDEN_ACTOR_INDEX: ActorProfile[] = [
   },
   {
     name: "Trấn Thành",
-    aliases: ["tran thanh", "xìn", "mc tran thanh", "dao dien tran thanh"],
+    aliases: ["tran thanh", "a xìn", "mc xìn", "mc tran thanh", "dao dien tran thanh"],
     country: "Việt Nam 🇻🇳",
   },
   {
@@ -441,8 +441,7 @@ export const ACTOR_SLUG_MAP: Record<string, string[]> = {
   "pham-bang-bang": ["phạm băng băng", "pham bang bang", "fan bingbing"],
   "ly-bang-bang": ["lý băng băng", "ly bang bang", "li bingbing"],
 
-  // Việt Nam
-  "tran-thanh": ["trấn thành", "tran thanh", "mc tran thanh", "xìn", "dao dien tran thanh"],
+  "tran-thanh": ["trấn thành", "tran thanh", "mc tran thanh", "a xìn", "mc xìn", "dao dien tran thanh"],
   "truong-giang": ["trường giang", "truong giang", "mc truong giang", "mười khó", "muoi kho"],
   "thai-hoa": ["thái hòa", "thai hoa", "ông hoàng phòng vé thái hòa"],
   "ninh-duong-lan-ngoc": ["ninh dương lan ngọc", "ninh duong lan ngoc", "lan ngoc"],
@@ -595,7 +594,13 @@ export function getActorSynonyms(query: string): ActorSynonymResult {
  * cũng được so khớp chính xác với mảng actors trong Database.
  */
 export function buildActorMongoQuery(variants: string[]) {
-  const regexList = variants.map((v) => new RegExp(`(^|\\b)${escapeRegex(v)}(\\b|$)`, "i"));
+  // NGUYÊN TẮC STRICT ACTOR MAPPING:
+  // 1. Tuyệt đối cấm chiếu vào trường title/description.
+  // 2. Chỉ truy vấn chính xác trên mảng nhân sự (actors, actor, casts, cast, director).
+  // 3. Sử dụng regex ranh giới từ hỗ trợ đầy đủ ký tự Unicode (tiếng Việt có dấu).
+  const regexList = variants.map(
+    (v) => new RegExp(`(^|[^a-zA-Z0-9\u00C0-\u024F\u1EA0-\u1EF9])${escapeRegex(v)}($|[^a-zA-Z0-9\u00C0-\u024F\u1EA0-\u1EF9])`, "i")
+  );
   return {
     $or: [
       { actors: { $in: regexList } },
@@ -608,6 +613,7 @@ export function buildActorMongoQuery(variants: string[]) {
 }
 
 export function buildActorSqlQuery(variants: string[], columnName = "actors"): string {
+  // Chỉ truy vấn trên cột mảng nhân sự (actors / director / casts)
   const conditions = variants.map(
     (v) => `LOWER(${columnName}::text) LIKE '%${v.toLowerCase().replace(/'/g, "''")}%'`
   );
@@ -896,15 +902,14 @@ export function matchesActorAliases(castList: string[], aliases: string[]): bool
           }
         } catch {}
       } else {
-        // 3. Từ đơn lẻ / nickname ngắn (ví dụ: 'xin', 'iu'):
-        // Bắt buộc dùng regex ranh giới từ chính xác để không match nhầm (như 'kan xin' dính 'xìn', 'bạch long' dính 'long')
-        if (aliasNorm.length >= 2) {
-          try {
-            const singleWordRegex = new RegExp("(^|[^a-z0-9])" + escapeRegex(aliasNorm) + "($|[^a-z0-9])", "i");
-            if (singleWordRegex.test(actorNorm)) {
-              return true;
-            }
-          } catch {}
+        // 3. Từ đơn lẻ / nickname ngắn (ví dụ: 'iu', 'dilraba'):
+        // Bắt buộc so khớp chính xác toàn bộ tên diễn viên (tránh 'kan xin' dính 'xìn', 'bạch long' dính 'long')
+        // hoặc tên nghệ danh ghi rõ ràng trong ngoặc đơn: vd "Lee Ji-eun (IU)"
+        if (actorLower === aliasLower || actorNorm === aliasNorm) {
+          return true;
+        }
+        if (actorLower.includes(`(${aliasLower})`) || actorNorm.includes(`(${aliasNorm})`)) {
+          return true;
         }
       }
     }
@@ -948,7 +953,7 @@ export async function queryMoviesByActor(
   );
 
   const normalizedVariants = Array.from(new Set(allVariants.map(normalizeForMatch).filter(Boolean)));
-  const cacheKey = `ACTOR_QUERY_V4:${matchedSlug || normalizedVariants.sort().join("|")}`;
+  const cacheKey = `ACTOR_QUERY_V5:${matchedSlug || normalizedVariants.sort().join("|")}`;
 
   // 2. Cơ chế SWR Cache (Stale-While-Revalidate - Phản hồi 0ms tức thì)
   const cached = ACTOR_FILM_CACHE.get(cacheKey);
@@ -982,21 +987,18 @@ async function executeActorFilmQuery(
   const candidateItems: any[] = [];
   const seenSlugs = new Set<string>();
 
-  // Chuẩn hóa danh sách tên phim kinh điển đã biết để so khớp tức thì (0ms)
+  // Danh mục phim tiêu biểu của nghệ sĩ dùng để gom ứng viên từ API
   const topTitles = matchedSlug && ACTOR_TOP_TITLES[matchedSlug] ? ACTOR_TOP_TITLES[matchedSlug] : [];
-  const knownNorms = topTitles.map((t) =>
-    normalizeForMatch(t.replace(/\([^)]*\)/g, "").trim())
-  ).filter(Boolean);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const searchPromises: Promise<any>[] = [];
 
   if (topTitles.length > 0) {
-    // 1. Quét song song đồng loạt các tác phẩm kinh điển hàng đầu trong 1 đợt duy nhất
+    // 1. Quét song song các tác phẩm nổi tiếng để gom ứng viên (limit 8 để đảm bảo lấy đủ bản gốc và phần tiếp theo)
     for (const rawT of topTitles.slice(0, 24)) {
       const cleanVi = rawT.replace(/\([^)]*\)/g, "").trim();
       if (cleanVi && cleanVi.length >= 3) {
-        searchPromises.push(movieApi.getMovies({ keyword: cleanVi, page: 1, limit: 4 }));
+        searchPromises.push(movieApi.getMovies({ keyword: cleanVi, page: 1, limit: 8 }));
       }
     }
 
@@ -1043,45 +1045,34 @@ async function executeActorFilmQuery(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const needDetailCheck: any[] = [];
 
+  // =========================================================================
+  // NGUYÊN TẮC STRICT ACTOR MAPPING (BẮT BUỘC):
+  // 1. TUYỆT ĐỐI CẤM QUÉT TIÊU ĐỀ PHIM (Title Search) hoặc mô tả (description).
+  // 2. CHỈ QUERY CHÍNH XÁC TRÊN MẢNG NHÂN SỰ (actors, actor, casts, cast, director).
+  // 3. LOẠI BỎ TOÀN BỘ KẾT QUẢ MẬP MỜ: Mọi bộ phim bắt buộc phải có tên nghệ sĩ trong mảng nhân sự thực tế.
+  //    (Nếu phim chỉ có tên trùng chữ ngẫu nhiên như 'Trấn', 'Thành', 'Bố Già' nhưng mảng actors
+  //    không có nghệ sĩ thì HỆ THỐNG LOẠI BỎ HOÀN TOÀN, không có bất kỳ ngoại lệ nào).
+  // =========================================================================
   for (const item of candidateItems) {
     const castAndDirectors = extractItemActorsAndDirectors(item);
-    const itemName = normalizeForMatch(item.name || item.title || "");
-    const itemOrig = normalizeForMatch(item.origin_name || item.original_name || "");
-
-    // 1. So khớp trường actor/casts nếu đã có sẵn trong item summary
-    const hasExplicitCastMatch = matchesActorAliases(castAndDirectors, allVariants);
-
-    // 2. Khớp nếu tiêu đề phim là tên nghệ sĩ
-    const isExactNameTitle = allVariants.some((alias) => {
-      const aNorm = normalizeForMatch(alias);
-      return aNorm.length >= 3 && (itemName === aNorm || itemOrig === aNorm);
-    });
-
-    // 3. TỐI ƯU ĐỘT PHÁ (ZERO-COST VERIFICATION):
-    // Các phim tìm thấy trùng khớp với Danh bạ tác phẩm đã tuyển chọn (ACTOR_TOP_TITLES)
-    // được xác thực NGAY LẬP TỨC mà KHÔNG cần gọi chi tiết qua mạng!
-    const isCuratedTitleMatch = Boolean(
-      knownNorms.length > 0 &&
-      knownNorms.some((k) =>
-        k.length >= 3 &&
-        (itemName.includes(k) || k.includes(itemName) || itemOrig.includes(k) || k.includes(itemOrig))
-      )
-    );
-
-    if (hasExplicitCastMatch || isExactNameTitle || isCuratedTitleMatch) {
-      verifiedMovies.push({
-        ...item,
-        isActorFilmography: true,
-      });
+    if (castAndDirectors.length > 0) {
+      // Đã có sẵn dữ liệu mảng nhân sự trong summary: Kiểm tra trực tiếp
+      if (matchesActorAliases(castAndDirectors, allVariants)) {
+        verifiedMovies.push({
+          ...item,
+          isActorFilmography: true,
+        });
+      }
+      // Đã có mảng nhân sự mà KHÔNG chứa nghệ sĩ -> BỎ QUA HOÀN TOÀN, TUYỆT ĐỐI KHÔNG DÙNG TIÊU ĐỀ
     } else {
+      // Summary từ API chưa có mảng nhân sự -> Đưa vào danh sách kiểm tra chi tiết
       needDetailCheck.push(item);
     }
   }
 
-  // 4. BOUNDED PARALLEL DETAIL PROBING:
-  // Chỉ kiểm tra chi tiết tối đa 15 phim ứng viên chưa xác nhận trong 1 đợt song song duy nhất
-  // Kèm timeout 1800ms để không bao giờ làm nghẽn trang
-  const DETAIL_MAX_CHECKS = 15;
+  // BOUNDED PARALLEL DETAIL PROBING:
+  // Lấy chi tiết song song (tối đa 40 phim ứng viên) để kiểm tra mảng nhân sự thực tế từ detail.movie
+  const DETAIL_MAX_CHECKS = 40;
   const candidatesToCheck = needDetailCheck.slice(0, DETAIL_MAX_CHECKS);
   if (candidatesToCheck.length > 0) {
     const detailResults = await Promise.allSettled(
@@ -1089,10 +1080,11 @@ async function executeActorFilmQuery(
         try {
           const detail = await Promise.race([
             movieApi.getMovieDetail(item.slug),
-            new Promise<null>((resolve) => setTimeout(() => resolve(null), 1800)),
+            new Promise<null>((resolve) => setTimeout(() => resolve(null), 2500)),
           ]);
           if (!detail?.movie) return null;
           const detailCast = extractItemActorsAndDirectors(detail.movie);
+          // STRICT ACTOR MAPPING: Chỉ chấp nhận nếu mảng actors / casts / directors thực tế chứa nghệ sĩ
           const isMatch = matchesActorAliases(detailCast, allVariants);
           if (isMatch) {
             return {
