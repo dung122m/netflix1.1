@@ -514,6 +514,94 @@ BẮT BUỘC chỉ trả về DUY NHẤT một chuỗi JSON hợp lệ theo đ�
   };
 }
 
+// Bảng ánh xạ slug và bí danh diễn viên quốc tế & Việt Nam (ACTOR_SLUG_MAP)
+export const ACTOR_SLUG_MAP: Record<string, string[]> = {
+  "thanh-long": ["thanh long", "thành long", "jackie chan", "chan kong sang", "sing lung"],
+  "chau-tinh-tri": ["chau tinh tri", "châu tinh trì", "stephen chow", "chow sing chi", "tinh gia"],
+  "chan-tu-dan": ["chan tu dan", "chân tử đan", "donnie yen", "yen ji dan"],
+  "ly-lien-kiet": ["ly lien kiet", "lý liên kiệt", "jet li", "li lian jie"],
+  "ngo-kinh": ["ngo kinh", "ngô kinh", "wu jing"],
+  "luu-duc-hoa": ["luu duc hoa", "lưu đức hoa", "andy lau"],
+  "luong-trieu-vy": ["luong trieu vy", "lương triều vỹ", "tony leung"],
+  "quach-phu-thanh": ["quach phu thanh", "quách phú thành", "aaron kwok"],
+  "co-thien-lac": ["co thien lac", "cổ thiên lạc", "louis koo"],
+  "truong-gia-huy": ["truong gia huy", "trương gia huy", "nick cheung"],
+  "ta-dinh-phong": ["ta dinh phong", "tạ đình phong", "nicholas tse"],
+  "hong-kim-bao": ["hong kim bao", "hồng kim bảo", "sammo hung"],
+  "nguyen-biao": ["nguyen biao", "nguyên tiêu", "yuen biao"],
+  "tran-thanh": ["tran thanh", "trấn thành", "mc tran thanh", "xìn", "dao dien tran thanh"],
+  "truong-giang": ["truong giang", "trường giang", "mc truong giang", "mười khó", "muoi kho"],
+  "thai-hoa": ["thai hoa", "thái hòa", "ong hoang phong ve thai hoa"],
+  "ninh-duong-lan-ngoc": ["ninh duong lan ngoc", "ninh dương lan ngọc", "lan ngoc"],
+  "kieu-minh-tuan": ["kieu minh tuan", "kiều minh tuấn"],
+  "thu-trang": ["thu trang", "hoa hau hai thu trang", "chi muoi ba"],
+  "ly-hai": ["ly hai", "lý hải", "dao dien ly hai", "lat mat"],
+  "hoai-linh": ["hoai linh", "hoài linh", "sau sang"],
+  "viet-huong": ["viet huong", "việt hương"],
+  "tuan-tran": ["tuan tran", "tuấn trần"],
+  "miu-le": ["miu le", "miu lê"],
+  "tom-cruise": ["tom cruise", "thomas cruise mapother", "ethan hunt"],
+  "keanu-reeves": ["keanu reeves", "keanu charles reeves", "john wick"],
+  "leonardo-dicaprio": ["leonardo dicaprio", "leo dicaprio"],
+  "dwayne-johnson": ["dwayne johnson", "the rock"],
+  "jason-statham": ["jason statham"],
+  "brad-pitt": ["brad pitt", "william bradley pitt"],
+  "will-smith": ["will smith"],
+  "robert-downey-jr": ["robert downey jr", "robert downey", "iron man"],
+  "chris-evans": ["chris evans", "captain america"],
+  "chris-hemsworth": ["chris hemsworth", "thor"],
+  "scarlett-johansson": ["scarlett johansson", "black widow"],
+  "ryan-reynolds": ["ryan reynolds", "deadpool"],
+  "cillian-murphy": ["cillian murphy"],
+  "christian-bale": ["christian bale", "batman"],
+  "song-joong-ki": ["song joong ki", "song joong-ki"],
+  "kim-soo-hyun": ["kim soo hyun", "kim soo-hyun"],
+  "hyun-bin": ["hyun bin", "hyeon bin"],
+  "lee-min-ho": ["lee min ho", "lee min-ho"],
+  "park-seo-joon": ["park seo joon", "park seo-jun"],
+  "son-ye-jin": ["son ye jin", "son ye-jin"],
+  "kim-ji-won": ["kim ji won", "kim ji-won", "hong hae in"],
+  "song-kang": ["song kang"],
+  "iu": ["iu", "lee ji eun", "lee ji-eun"],
+  "huynh-hieu-minh": ["huynh hieu minh", "huỳnh hiểu minh", "huang xiaoming"],
+  "trieu-le-dinh": ["trieu le dinh", "triệu lệ dĩnh", "zhao liying"],
+  "duong-mich": ["duong mich", "dương mịch", "yang mi"],
+  "dich-le-nhiet-ba": ["dich le nhiet ba", "địch lệ nhiệt ba", "dilraba dilmurat"],
+  "tieu-chien": ["tieu chien", "tiêu chiến", "xiao zhan"],
+  "vuong-nhat-bac": ["vuong nhat bac", "vương nhất bác", "wang yibo"],
+};
+
+/**
+ * Trích xuất toàn bộ diễn viên, đạo diễn từ mọi biến thể tên trường trong Database (actor, actors, casts, cast, director, directors)
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function extractItemActorsAndDirectors(item: any): string[] {
+  if (!item) return [];
+  const list: string[] = [];
+
+  const rawActors = item.actor || item.actors || item.casts || item.cast;
+  if (Array.isArray(rawActors)) {
+    for (const a of rawActors) {
+      if (typeof a === "string") list.push(a);
+      else if (a && typeof a === "object") list.push(a.name || a.slug || "");
+    }
+  } else if (typeof rawActors === "string") {
+    list.push(...rawActors.split(",").map((s) => s.trim()));
+  }
+
+  const rawDirectors = item.director || item.directors || item.dao_dien;
+  if (Array.isArray(rawDirectors)) {
+    for (const d of rawDirectors) {
+      if (typeof d === "string") list.push(d);
+      else if (d && typeof d === "object") list.push(d.name || d.slug || "");
+    }
+  } else if (typeof rawDirectors === "string") {
+    list.push(...rawDirectors.split(",").map((s) => s.trim()));
+  }
+
+  return list.map((s) => s.trim()).filter(Boolean);
+}
+
 /**
  * 2. TRUY VẤN ĐỘNG TOÀN BỘ PHIM THEO DIỄN VIÊN / ĐẠO DIỄN TỪ DATABASE (DYNAMIC CAST QUERY)
  * Sử dụng danh sách aliases để truy vấn thẳng vào trường cast/actors/director trong database.
@@ -528,15 +616,37 @@ export async function queryMoviesByActor(
 ): Promise<any[]> {
   if (!actorName && aliases.length === 0) return [];
 
+  // Tự động làm giàu danh sách bí danh từ ACTOR_SLUG_MAP & GOLDEN_ACTOR_INDEX
+  const normalizedKey = normalizeForMatch(actorName);
+  const extraAliases: string[] = [];
+
+  for (const [slug, mapAliases] of Object.entries(ACTOR_SLUG_MAP)) {
+    const normSlug = slug.replace(/-/g, " ");
+    const matchesThis =
+      normalizedKey === normSlug ||
+      mapAliases.some((a) => normalizeForMatch(a) === normalizedKey || normalizedKey.includes(normalizeForMatch(a)));
+    if (matchesThis) {
+      extraAliases.push(...mapAliases);
+    }
+  }
+
+  for (const preset of GOLDEN_ACTOR_INDEX) {
+    const normPName = normalizeForMatch(preset.name);
+    if (normPName === normalizedKey || preset.aliases.some((a) => normalizeForMatch(a) === normalizedKey)) {
+      extraAliases.push(preset.name, ...preset.aliases);
+      if (!country && preset.country) country = preset.country;
+    }
+  }
+
   const allAliases = Array.from(
     new Set(
-      [actorName, ...aliases]
+      [actorName, ...aliases, ...extraAliases]
         .filter((s): s is string => typeof s === "string" && s.trim().length >= 2)
         .map((s) => s.trim())
     )
   );
 
-  const normalizedAliases = allAliases.map(normalizeForMatch).filter(Boolean);
+  const normalizedAliases = Array.from(new Set(allAliases.map(normalizeForMatch).filter(Boolean)));
   const cacheKey = `ACTOR_QUERY:${normalizedAliases.sort().join("|")}`;
   const cached = ACTOR_FILM_CACHE.get(cacheKey);
   if (cached && cached.expireAt > Date.now()) {
@@ -546,8 +656,9 @@ export async function queryMoviesByActor(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const queryPromises: Promise<any>[] = [];
 
-  // Truy vấn database theo các tên và bí danh chính (nhiều trang để lấy trọn vẹn danh sách phim)
-  for (const alias of allAliases.slice(0, 4)) {
+  // Truy vấn song song các biến thể tên chính và tên tiếng Anh/quốc tế
+  const searchQueries = allAliases.slice(0, 5);
+  for (const alias of searchQueries) {
     queryPromises.push(movieApi.getMovies({ keyword: alias, page: 1, limit: 30 }));
     queryPromises.push(movieApi.getMovies({ keyword: alias, page: 2, limit: 30 }));
   }
@@ -562,27 +673,30 @@ export async function queryMoviesByActor(
       for (const item of res.value.items) {
         if (!item || !item.slug || seenSlugs.has(item.slug)) continue;
 
-        // Trích xuất toàn bộ diễn viên (cast) và đạo diễn (director) từ dữ liệu thực tế
-        const itemCastAndDirector: string[] = [];
-        if (Array.isArray(item.actor)) itemCastAndDirector.push(...item.actor);
-        else if (typeof item.actor === "string") itemCastAndDirector.push(item.actor);
-        if (Array.isArray(item.director)) itemCastAndDirector.push(...item.director);
-        else if (typeof item.director === "string") itemCastAndDirector.push(item.director);
+        // Trích xuất toàn bộ diễn viên (cast) và đạo diễn (director) từ mọi biến thể trường trong database
+        const castAndDirectors = extractItemActorsAndDirectors(item);
+        const castStr = normalizeForMatch(castAndDirectors.join(" "));
+        const itemName = normalizeForMatch(item.name || item.title || "");
+        const itemOrig = normalizeForMatch(item.origin_name || item.original_name || "");
+        const itemContent = normalizeForMatch(item.content || item.description || "");
 
-        const castStr = normalizeForMatch(itemCastAndDirector.join(" "));
-        const itemName = normalizeForMatch(item.name || "");
-        const itemOrig = normalizeForMatch(item.origin_name || "");
         const itemCountry = normalizeForMatch(
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           Array.isArray(item.country) ? item.country.map((c: any) => c.name || c.slug || "").join(" ") : typeof item.country === "string" ? item.country : ""
         );
 
-        // Kiểm tra xem trường cast/actors hoặc director có chứa alias nào của nghệ sĩ không
-        const isCastMatch = normalizedAliases.some((alias) => castStr.includes(alias));
-        // Kiểm tra xem tiêu đề phim có khớp chính xác với tên nghệ sĩ không (trường hợp phim tài liệu / tiểu sử)
-        const isExactTitleMatch = normalizedAliases.some((alias) => itemName === alias || itemOrig === alias);
+        // 1. Kiểm tra trường cast/actors hoặc director (toán tử OR regex / case-insensitive substring)
+        const hasExplicitCastMatch = castAndDirectors.length > 0 && normalizedAliases.some((alias) => castStr.includes(alias) || alias.includes(castStr));
 
-        // Strict Country Filter: Nếu tìm kiếm nghệ sĩ Việt Nam, loại trừ phim nước ngoài nếu nghệ sĩ không có trong cast/director
+        // 2. Khớp theo tiêu đề hoặc tóm tắt phim (Phim tài liệu / phim mang tên nhân vật)
+        const isTitleOrDescMatch = normalizedAliases.some(
+          (alias) => itemName.includes(alias) || itemOrig.includes(alias) || itemContent.includes(alias)
+        );
+
+        // 3. Nếu API search trả về nhưng item không kèm trường actor (rỗng/undefined ở API list), mặc định chấp nhận nếu không vi phạm bộ lọc quốc gia
+        const isImplicitSearchMatch = castAndDirectors.length === 0;
+
+        // Strict Country Filter: Nếu tìm kiếm nghệ sĩ Việt Nam, loại trừ phim ngoại quốc nếu không có diễn viên/đạo diễn khớp
         if (country) {
           const normExpectedCountry = normalizeForMatch(country);
           const isVietnamTarget = normExpectedCountry.includes("viet nam");
@@ -590,17 +704,14 @@ export async function queryMoviesByActor(
             itemCountry.includes("au my") ||
             itemCountry.includes("my") ||
             itemCountry.includes("anh") ||
-            itemCountry.includes("phap") ||
-            itemCountry.includes("han quoc") ||
-            itemCountry.includes("trung quoc") ||
-            itemCountry.includes("nhat ban");
+            itemCountry.includes("phap");
 
-          if (isVietnamTarget && isForeignMovie && !isCastMatch) {
-            continue;
+          if (isVietnamTarget && isForeignMovie && !hasExplicitCastMatch) {
+            continue; // Bỏ qua phim ngoại quốc khi tìm nghệ sĩ Việt (ví dụ: Bố Già Vùng Harlem)
           }
         }
 
-        if (isCastMatch || isExactTitleMatch) {
+        if (hasExplicitCastMatch || isTitleOrDescMatch || isImplicitSearchMatch) {
           seenSlugs.add(item.slug);
           matchedMovies.push({
             ...item,

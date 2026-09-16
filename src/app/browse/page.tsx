@@ -9,7 +9,7 @@ import { QuickGenreChips } from "@/components/QuickGenreChips";
 import { SortSelector } from "@/components/SortSelector";
 import { Film, ExternalLink, Sparkles } from "lucide-react";
 import { movieApi } from "@/services/movieApi";
-import { resolveActorMovies, queryMoviesByActor, GOLDEN_ACTOR_INDEX } from "@/services/aiActorService";
+import { resolveActorMovies, queryMoviesByActor, GOLDEN_ACTOR_INDEX, extractItemActorsAndDirectors } from "@/services/aiActorService";
 import { searchMoviesBySemantic } from "@/services/aiVectorService";
 import { BrowseAiSearchBanner } from "@/components/BrowseAiSearchBanner";
 import { CuratedMovieSection } from "@/components/CuratedMovieSection";
@@ -309,10 +309,7 @@ export default async function BrowsePage({
 
     for (const m of response?.items || []) {
       if (m?.slug && !seenSlugs.has(m.slug)) {
-        const castAndDirector = [
-          ...(Array.isArray(m.actor) ? m.actor : typeof m.actor === "string" ? [m.actor] : []),
-          ...(Array.isArray(m.director) ? m.director : typeof m.director === "string" ? [m.director] : []),
-        ];
+        const castAndDirector = extractItemActorsAndDirectors(m);
         const castStr = cleanNormalizedForMatch(castAndDirector.join(" "));
         const hasStrictMatch = allAliases.some((alias) => castStr.includes(alias));
 
