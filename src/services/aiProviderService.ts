@@ -62,10 +62,9 @@ const CLOUDFLARE_MODELS = [
   "@cf/deepseek-ai/deepseek-r1-distill-qwen-32b",
 ];
 
-// Google Gemini: 4 keys xoay vòng = 6.000 req/ngày
+// Google Gemini: 4 keys xoay vòng = 6.000 req/ngày (chỉ dùng model 3.6-flash đang hoạt động)
 const GEMINI_MODELS = [
   "gemini-3.6-flash",
-  "gemini-2.5-flash-preview",
 ];
 
 /**
@@ -265,66 +264,131 @@ async function callGemini(
  */
 export async function generateFastAiChat(req: AiChatRequest): Promise<AiChatResponse | null> {
   const start = Date.now();
-  const maxTotalTimeout = req.timeoutMs || 4500;
+  const maxTotalTimeout = req.timeoutMs || 5000;
 
-  // 1. ƯU TIÊN CLOUDFLARE WORKERS AI (HẠN MỨC LỚN NHẤT: 10.000 req/ngày, không giới hạn Token/phút)
-  for (const cfModel of CLOUDFLARE_MODELS) {
-    if (Date.now() - start >= maxTotalTimeout) break;
-    const perCallTimeout = Math.min(maxTotalTimeout - (Date.now() - start), 2000);
-    const cfText = await callCloudflareAI(req, cfModel, perCallTimeout);
-    if (typeof cfText === "string" && cfText.trim()) {
-      const trimmed = cfText.trim();
-      // Nếu yêu cầu JSON mà model chỉ trả lời văn phong thường không có JSON, tự động chuyển sang Gemini/Groq
-      if (req.jsonMode && (!trimmed.includes("{") || !trimmed.includes("}"))) {
-        continue;
+  // Chiến lược định tuyến thông minh (Smart Router):
+  // A. Nếu là truy vấn cấu trúc JSON (jsonMode: true - như Phân tích Diễn viên, Tìm phim theo tâm trạng, Khớp gu xem phim):
+  //    Ưu tiên Google Gemini 3.6 Flash & Groq (Qwen / GPT-OSS) vì có dữ liệu bách khoa toàn thư điện ảnh thế giới chính xác tuyệt đối và Native JSON mode.
+  // B. Nếu là hội thoại văn bản tự nhiên (Chat với Nana AI, tóm tắt phim):
+  //    Ưu tiên Cloudflare Workers AI (10.000 req/ngày miễn phí) để tiết kiệm quota.
+
+  if (req.jsonMode) {
+    // 1. Groq AI (Qwen 3.8 27B / GPT-OSS 120B / allam - Siêu tốc 600ms-1200ms, hỗ trợ chuẩn Native JSON Schema)
+    const groqKeys = getGroqApiKeys();
+    if (groqKeys.length > 0) {
+      for (const key of groqKeys) {
+        const jsonGroqModels = ["openai/gpt-oss-120b", "qwen/qwen3.8-27b", "groq/compound-mini", "allam-2-7b"];
+        for (const model of jsonGroqModels) {
+          if (Date.now() - start >= maxTotalTimeout) break;
+          const perCallTimeout = Math.min(maxTotalTimeout - (Date.now() - start), 3500);
+          const text = await callGroq(req, key, model, perCallTimeout);
+          if (text && text.trim()) {
+            const providerName: AiChatResponse["provider"] = model.includes("70b") || model.includes("120b")
+              ? "Groq (Llama 3.3 70B)"
+              : "Groq (Llama 3.1 8B)";
+            return {
+              text: text.trim(),
+              provider: providerName,
+              model,
+              latencyMs: Date.now() - start,
+            };
+          }
+        }
       }
-      return {
-        text: trimmed,
-        provider: "Cloudflare Workers AI",
-        model: cfModel,
-        latencyMs: Date.now() - start,
-      };
     }
-  }
 
-  // 2. ƯU TIÊN GOOGLE GEMINI 3.6 FLASH (6.000 req/ngày xoay vòng 4 API Keys)
-  const geminiKeys = getGeminiApiKeys(req.customApiKey);
-  if (geminiKeys.length > 0) {
-    for (const key of geminiKeys) {
-      for (const model of GEMINI_MODELS) {
-        if (Date.now() - start >= maxTotalTimeout) break;
-        const perCallTimeout = Math.min(maxTotalTimeout - (Date.now() - start), 2500);
-        const text = await callGemini(req, key, model, perCallTimeout);
-        if (typeof text === "string" && text.trim()) {
+    // 2. Google Gemini 3.6 Flash (Dự phòng khi Groq bận)
+    const geminiKeys = getGeminiApiKeys(req.customApiKey);
+    if (geminiKeys.length > 0) {
+      for (const key of geminiKeys) {
+        for (const model of GEMINI_MODELS) {
+          if (Date.now() - start >= maxTotalTimeout) break;
+          const perCallTimeout = Math.min(maxTotalTimeout - (Date.now() - start), 4000);
+          const text = await callGemini(req, key, model, perCallTimeout);
+          if (typeof text === "string" && text.trim()) {
+            return {
+              text: text.trim(),
+              provider: "Google Gemini Flash",
+              model,
+              latencyMs: Date.now() - start,
+            };
+          }
+        }
+      }
+    }
+
+    // 3. Cloudflare Workers AI dự phòng cuối
+    for (const cfModel of CLOUDFLARE_MODELS) {
+      if (Date.now() - start >= maxTotalTimeout) break;
+      const perCallTimeout = Math.min(maxTotalTimeout - (Date.now() - start), 2500);
+      const cfText = await callCloudflareAI(req, cfModel, perCallTimeout);
+      if (typeof cfText === "string" && cfText.trim()) {
+        const trimmed = cfText.trim();
+        if (trimmed.includes("{") && trimmed.includes("}")) {
           return {
-            text: text.trim(),
-            provider: "Google Gemini Flash",
-            model,
+            text: trimmed,
+            provider: "Cloudflare Workers AI",
+            model: cfModel,
             latencyMs: Date.now() - start,
           };
         }
       }
     }
-  }
+  } else {
+    // Với hội thoại thông thường: Ưu tiên Cloudflare Workers AI (10.000 req/ngày)
+    for (const cfModel of CLOUDFLARE_MODELS) {
+      if (Date.now() - start >= maxTotalTimeout) break;
+      const perCallTimeout = Math.min(maxTotalTimeout - (Date.now() - start), 2000);
+      const cfText = await callCloudflareAI(req, cfModel, perCallTimeout);
+      if (typeof cfText === "string" && cfText.trim()) {
+        return {
+          text: cfText.trim(),
+          provider: "Cloudflare Workers AI",
+          model: cfModel,
+          latencyMs: Date.now() - start,
+        };
+      }
+    }
 
-  // 3. GROQ ACCELERATOR (Ưu tiên model 7.000 req/ngày `allam-2-7b` rồi mới đến các model 1.000 req/ngày)
-  const groqKeys = getGroqApiKeys();
-  if (groqKeys.length > 0) {
-    for (const key of groqKeys) {
-      for (const model of GROQ_MODELS) {
-        if (Date.now() - start >= maxTotalTimeout) break;
-        const perCallTimeout = Math.min(maxTotalTimeout - (Date.now() - start), 3000);
-        const text = await callGroq(req, key, model, perCallTimeout);
-        if (text && text.trim()) {
-          const providerName: AiChatResponse["provider"] = model.includes("70b") || model.includes("120b")
-            ? "Groq (Llama 3.3 70B)"
-            : "Groq (Llama 3.1 8B)";
-          return {
-            text: text.trim(),
-            provider: providerName,
-            model,
-            latencyMs: Date.now() - start,
-          };
+    // Tiếp theo: Google Gemini
+    const geminiKeys = getGeminiApiKeys(req.customApiKey);
+    if (geminiKeys.length > 0) {
+      for (const key of geminiKeys) {
+        for (const model of GEMINI_MODELS) {
+          if (Date.now() - start >= maxTotalTimeout) break;
+          const perCallTimeout = Math.min(maxTotalTimeout - (Date.now() - start), 2500);
+          const text = await callGemini(req, key, model, perCallTimeout);
+          if (typeof text === "string" && text.trim()) {
+            return {
+              text: text.trim(),
+              provider: "Google Gemini Flash",
+              model,
+              latencyMs: Date.now() - start,
+            };
+          }
+        }
+      }
+    }
+
+    // Cuối cùng: Groq AI
+    const groqKeys = getGroqApiKeys();
+    if (groqKeys.length > 0) {
+      for (const key of groqKeys) {
+        for (const model of GROQ_MODELS) {
+          if (Date.now() - start >= maxTotalTimeout) break;
+          const perCallTimeout = Math.min(maxTotalTimeout - (Date.now() - start), 2500);
+          const text = await callGroq(req, key, model, perCallTimeout);
+          if (text && text.trim()) {
+            const providerName: AiChatResponse["provider"] = model.includes("70b") || model.includes("120b")
+              ? "Groq (Llama 3.3 70B)"
+              : "Groq (Llama 3.1 8B)";
+            return {
+              text: text.trim(),
+              provider: providerName,
+              model,
+              latencyMs: Date.now() - start,
+            };
+          }
         }
       }
     }

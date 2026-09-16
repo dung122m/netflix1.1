@@ -473,7 +473,12 @@ BẮT BUỘC chỉ trả về DUY NHẤT một chuỗi JSON hợp lệ theo đ�
 
     const userPrompt = `Hãy phân tích mạng lưới vũ trụ điện ảnh và các bạn diễn ăn ý nhất của diễn viên: "${actorName}".`;
 
-    let parsed: any = null;
+    let parsed: {
+      actorName?: string;
+      era?: string;
+      universeTitle?: string;
+      coStars?: CoStarItem[];
+    } | null = null;
     let providerName = "Nana AI";
 
     try {
@@ -508,10 +513,12 @@ BẮT BUỘC chỉ trả về DUY NHẤT một chuỗi JSON hợp lệ theo đ�
       provider: providerName,
     };
 
-    UNIVERSE_GRAPH_CACHE.set(clean, {
-      data: resultData,
-      expireAt: Date.now() + CACHE_14_DAYS,
-    });
+    if (resultData.coStars.length > 0) {
+      UNIVERSE_GRAPH_CACHE.set(clean, {
+        data: resultData,
+        expireAt: Date.now() + CACHE_14_DAYS,
+      });
+    }
 
     return NextResponse.json({
       success: true,
