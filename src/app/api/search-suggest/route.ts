@@ -13,6 +13,10 @@ function normalizeForMatch(str: string): string {
     .trim();
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const SUGGEST_CACHE = new Map<string, { data: any; expireAt: number }>();
+const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -22,10 +26,28 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ items: [] });
     }
 
+    const cleanKey = keyword.toLowerCase();
+    const cached = SUGGEST_CACHE.get(cleanKey);
+    if (cached && cached.expireAt > Date.now()) {
+      return NextResponse.json(cached.data);
+    }
+
     const normKw = normalizeForMatch(keyword);
 
-    // 1. Phân giải diễn viên bằng AI + Cache thông minh (< 5ms khi có cache)
-    const actorRes = await resolveActorMovies(keyword).catch(() => null);
+    // Chạy song song tìm kiếm phim và phân giải diễn viên với timeout cực ngắn
+    const [res, actorRes] = await Promise.all([
+      movieApi.getMovies({
+        keyword,
+        page: 1,
+        limit: 8,
+      }),
+      Promise.race([
+        resolveActorMovies(keyword),
+        new Promise<{ isActor: boolean; actorName: string; titles: string[]; country?: string; source: "none" }>((resolve) =>
+          setTimeout(() => resolve({ isActor: false, actorName: "", titles: [], source: "none" }), 500)
+        ),
+      ]).catch(() => null),
+    ]);
 
     interface SuggestMovieItem {
       slug?: string;
@@ -40,12 +62,6 @@ export async function GET(req: NextRequest) {
       category?: Array<{ name?: string }>;
     }
 
-    // 2. Tìm kiếm trực tiếp qua movieApi với SWR Cache cực nhanh (< 5ms)
-    const res = await movieApi.getMovies({
-      keyword,
-      page: 1,
-      limit: 8,
-    });
     const rawItems = ((res?.items || []) as SuggestMovieItem[]);
 
     // Sắp xếp gợi ý nhanh: Ưu tiên tuyệt đối các phim có tên khớp với từ khóa gõ vào
@@ -83,7 +99,10 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    return NextResponse.json({ items });
+    const responseData = { items };
+    SUGGEST_CACHE.set(cleanKey, { data: responseData, expireAt: Date.now() + CACHE_TTL });
+
+    return NextResponse.json(responseData);
   } catch (error) {
     console.error("Lỗi tìm kiếm gợi ý:", error);
     return NextResponse.json({ items: [] });

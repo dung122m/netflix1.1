@@ -192,8 +192,18 @@ export default async function BrowsePage({
   let totalItems = 0;
   let detectedActor: { name: string; country?: string } | null = null;
 
-  // Thực thi song song: Tải phim, Phân giải tên diễn viên, và Semantic Vector Search (< 50ms)
-  const [response, actorRes, semanticPicks] = await Promise.all([
+  async function fetchActorAndMoviesData(kw: string) {
+    if (!kw || kw.trim().length < 2) return null;
+    const actorRes = await resolveActorMovies(kw);
+    if (actorRes.isActor && actorRes.titles.length > 0) {
+      const actorMovies = await fetchMoviesByTitles(actorRes.titles, 16);
+      return { actorRes, actorMovies };
+    }
+    return null;
+  }
+
+  // Thực thi song song: Tải phim, Phân giải & tải phim diễn viên, và Semantic Vector Search (< 50ms)
+  const [response, actorData, semanticPicks] = await Promise.all([
     movieApi.getMovies({
       category,
       country,
@@ -205,10 +215,14 @@ export default async function BrowsePage({
       sort: effectiveSort,
     }),
     keyword && currentPage === 1
-      ? resolveActorMovies(keyword)
-      : Promise.resolve({ isActor: false, actorName: "", titles: [], country: undefined, source: "none" as const }),
+      ? fetchActorAndMoviesData(keyword)
+      : Promise.resolve(null),
     keyword && currentPage === 1 && keyword.trim().length >= 3
-      ? searchMoviesBySemantic(keyword, 16, 0.42).catch(() => [])
+      ? Promise.race([
+          searchMoviesBySemantic(keyword, 16, 0.42),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          new Promise<any[]>((resolve) => setTimeout(() => resolve([]), 800)),
+        ]).catch(() => [])
       : Promise.resolve([]),
   ]);
 
@@ -250,18 +264,35 @@ export default async function BrowsePage({
   }
 
   // Nếu phát hiện tìm kiếm diễn viên, nạp ngay danh sách phim tiêu biểu của diễn viên
-  if (actorRes?.isActor && actorRes.titles.length > 0) {
+  const actorRes = actorData?.actorRes;
+  const actorMovies = actorData?.actorMovies || [];
+
+  if (actorRes?.isActor && actorMovies.length > 0) {
     detectedActor = {
       name: actorRes.actorName,
       country: actorRes.country,
     };
-    const actorMovies = await fetchMoviesByTitles(actorRes.titles, 16);
-    if (actorMovies.length > 0) {
-      const seenSlugs = new Set<string>();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const combined: any[] = [];
-      for (const m of actorMovies) {
-        if (m?.slug && !seenSlugs.has(m.slug)) {
+    const seenSlugs = new Set<string>();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const combined: any[] = [];
+    for (const m of actorMovies) {
+      if (m?.slug && !seenSlugs.has(m.slug)) {
+        seenSlugs.add(m.slug);
+        combined.push({
+          ...m,
+          isActorFilmography: true,
+        });
+      }
+    }
+
+    // Chỉ bổ sung thêm phim từ kết quả tìm kiếm gốc nếu nghệ sĩ thực sự có tên trong dàn cast
+    const normActorName = cleanNormalizedForMatch(actorRes.actorName);
+    for (const m of movies) {
+      if (m?.slug && !seenSlugs.has(m.slug)) {
+        const castStr = cleanNormalizedForMatch(
+          Array.isArray(m.actor) ? m.actor.join(" ") : typeof m.actor === "string" ? m.actor : ""
+        );
+        if (normActorName && castStr && castStr.includes(normActorName)) {
           seenSlugs.add(m.slug);
           combined.push({
             ...m,
@@ -269,26 +300,9 @@ export default async function BrowsePage({
           });
         }
       }
-
-      // Chỉ bổ sung thêm phim từ kết quả tìm kiếm gốc nếu nghệ sĩ thực sự có tên trong dàn cast
-      const normActorName = cleanNormalizedForMatch(actorRes.actorName);
-      for (const m of movies) {
-        if (m?.slug && !seenSlugs.has(m.slug)) {
-          const castStr = cleanNormalizedForMatch(
-            Array.isArray(m.actor) ? m.actor.join(" ") : typeof m.actor === "string" ? m.actor : ""
-          );
-          if (normActorName && castStr && castStr.includes(normActorName)) {
-            seenSlugs.add(m.slug);
-            combined.push({
-              ...m,
-              isActorFilmography: true,
-            });
-          }
-        }
-      }
-      movies = combined;
-      totalItems = combined.length;
     }
+    movies = combined;
+    totalItems = combined.length;
   }
 
   let hasContentMatches = false;

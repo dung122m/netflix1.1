@@ -832,10 +832,9 @@ const ACTOR_AI_CACHE = new Map<
 >();
 const CACHE_7_DAYS = 7 * 24 * 60 * 60 * 1000;
 
-// In-memory cache cho danh sách phim đã tìm thấy từ kho (TTL: 1 giờ)
+// In-memory cache cho danh sách phim đã tìm thấy từ kho (TTL: 24 giờ)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ACTOR_FILM_CACHE = new Map<string, { items: any[]; expireAt: number }>();
-const CACHE_1_HOUR = 60 * 60 * 1000;
 
 /**
  * Chuẩn hoá chuỗi để so khớp không dấu
@@ -1013,7 +1012,8 @@ export async function fetchMoviesByTitles(
 ): Promise<any[]> {
   if (!titles || titles.length === 0) return [];
 
-  const cacheKey = titles.slice(0, 10).join("|");
+  const topTitles = titles.slice(0, 10);
+  const cacheKey = topTitles.join("|");
   const cached = ACTOR_FILM_CACHE.get(cacheKey);
   if (cached && cached.expireAt > Date.now()) {
     return cached.items.slice(0, maxMovies);
@@ -1023,8 +1023,8 @@ export async function fetchMoviesByTitles(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const results: any[] = [];
 
-  // Thực thi song song tìm kiếm từng tựa phim
-  const tasks = titles.slice(0, 14).map(async (rawTitle) => {
+  // Thực thi song song tìm kiếm tối đa 8-10 tựa phim với timeout an toàn 1.5s
+  const tasks = topTitles.map(async (rawTitle) => {
     try {
       const viTitle = rawTitle.replace(/\([^)]*\)/g, "").trim();
       const matchEng = rawTitle.match(/\(([^)]+)\)/);
@@ -1035,81 +1035,90 @@ export async function fetchMoviesByTitles(
 
       if (!cleanTargetVi && !cleanTargetEng) return null;
 
-      // 1. Tìm theo tên tiếng Việt
-      let searchRes = cleanTargetVi.length >= 2 ? await movieApi.getMovies({ keyword: viTitle, limit: 8 }) : null;
-      let matchedItems = searchRes?.items || [];
+      // Tìm kiếm với timeout 1.5s
+      const searchPromise = (async () => {
+        let searchRes = cleanTargetVi.length >= 2 ? await movieApi.getMovies({ keyword: viTitle, limit: 6 }) : null;
+        let matchedItems = searchRes?.items || [];
 
-      // 2. Nếu không ra kết quả và có tên tiếng Anh/gốc -> tìm bổ sung
-      if (matchedItems.length === 0 && engTitle && cleanTargetEng.length >= 2) {
-        searchRes = await movieApi.getMovies({ keyword: engTitle, limit: 8 });
-        matchedItems = searchRes?.items || [];
-      }
+        if (matchedItems.length === 0 && engTitle && cleanTargetEng.length >= 2) {
+          searchRes = await movieApi.getMovies({ keyword: engTitle, limit: 6 });
+          matchedItems = searchRes?.items || [];
+        }
 
-      if (matchedItems.length === 0) return null;
+        if (matchedItems.length === 0) return null;
 
-      // Tính điểm so khớp chính xác
-      let bestItem = null;
-      let highestScore = -1;
+        // Tính điểm so khớp chính xác
+        let bestItem = null;
+        let highestScore = -1;
 
-      for (const item of matchedItems) {
-        if (!item || !item.slug || seenSlugs.has(item.slug)) continue;
+        for (const item of matchedItems) {
+          if (!item || !item.slug || seenSlugs.has(item.slug)) continue;
 
-        const normName = normalizeForMatch(item.name);
-        const normOrig = normalizeForMatch(item.origin_name);
+          const normName = normalizeForMatch(item.name);
+          const normOrig = normalizeForMatch(item.origin_name);
 
-        let score = 0;
+          let score = 0;
 
-        // Khớp tuyệt đối tên chính
-        if (cleanTargetVi && (normName === cleanTargetVi || normOrig === cleanTargetVi)) {
-          score = 100;
-        } else if (cleanTargetEng && (normName === cleanTargetEng || normOrig === cleanTargetEng)) {
-          score = 95;
-        } else {
-          // Khớp bao hàm
-          if (cleanTargetVi && (normName.includes(cleanTargetVi) || cleanTargetVi.includes(normName))) {
-            score = 70;
-          } else if (cleanTargetEng && (normOrig.includes(cleanTargetEng) || cleanTargetEng.includes(normOrig))) {
-            score = 65;
+          // Khớp tuyệt đối tên chính
+          if (cleanTargetVi && (normName === cleanTargetVi || normOrig === cleanTargetVi)) {
+            score = 100;
+          } else if (cleanTargetEng && (normName === cleanTargetEng || normOrig === cleanTargetEng)) {
+            score = 95;
           } else {
-            // So khớp từ khóa
-            const targetWords = (cleanTargetVi || cleanTargetEng).split(" ").filter((w) => w.length > 1);
-            if (targetWords.length > 0) {
-              const matchedWords = targetWords.filter(
-                (w) => normName.includes(w) || normOrig.includes(w)
-              );
-              const ratio = matchedWords.length / targetWords.length;
-              if (ratio >= 0.6) score = Math.round(ratio * 50);
+            // Khớp bao hàm
+            if (cleanTargetVi && (normName.includes(cleanTargetVi) || cleanTargetVi.includes(normName))) {
+              score = 70;
+            } else if (cleanTargetEng && (normOrig.includes(cleanTargetEng) || cleanTargetEng.includes(normOrig))) {
+              score = 65;
+            } else {
+              // So khớp từ khóa
+              const targetWords = (cleanTargetVi || cleanTargetEng).split(" ").filter((w) => w.length > 1);
+              if (targetWords.length > 0) {
+                const matchedWords = targetWords.filter(
+                  (w) => normName.includes(w) || normOrig.includes(w)
+                );
+                const ratio = matchedWords.length / targetWords.length;
+                if (ratio >= 0.6) score = Math.round(ratio * 50);
+              }
             }
+          }
+
+          if (score >= 35 && score > highestScore) {
+            highestScore = score;
+            bestItem = item;
           }
         }
 
-        if (score >= 35 && score > highestScore) {
-          highestScore = score;
-          bestItem = item;
-        }
-      }
+        return bestItem;
+      })();
 
-      return bestItem;
+      return await Promise.race([
+        searchPromise,
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 1600)),
+      ]);
     } catch (err) {
       console.warn(`[aiActorService] Error searching title "${rawTitle}":`, err);
       return null;
     }
   });
 
-  const resolved = await Promise.all(tasks);
+  const resolved = await Promise.allSettled(tasks);
 
-  for (const item of resolved) {
-    if (item && item.slug && !seenSlugs.has(item.slug)) {
-      seenSlugs.add(item.slug);
-      results.push(item);
-      if (results.length >= maxMovies) break;
+  for (const outcome of resolved) {
+    if (outcome.status === "fulfilled" && outcome.value) {
+      const item = outcome.value;
+      if (item && item.slug && !seenSlugs.has(item.slug)) {
+        seenSlugs.add(item.slug);
+        results.push(item);
+        if (results.length >= maxMovies) break;
+      }
     }
   }
 
   if (results.length > 0) {
     ACTOR_FILM_CACHE.set(cacheKey, {
       items: results,
-      expireAt: Date.now() + CACHE_1_HOUR,
+      expireAt: Date.now() + 24 * 60 * 60 * 1000,
     });
   }
 
