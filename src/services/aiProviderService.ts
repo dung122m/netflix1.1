@@ -42,15 +42,15 @@ function getGeminiApiKeys(customKey?: string): string[] {
 }
 
 // Các model Groq sắp xếp theo thứ tự hạn mức cao nhất trước:
-// 1. allam-2-7b: 7.000 req/ngày (7K)
-// 2. qwen/qwen3.8-27b: 1.000 req/ngày (1K)
-// 3. openai/gpt-oss-120b: 1.000 req/ngày (1K)
-// 4. groq/compound-mini: 250 req/ngày
+// 1. qwen/qwen3.8-27b: Siêu tốc 500ms, kiến thức điện ảnh chuẩn, JSON Schema 100% (Ưu tiên số 1)
+// 2. allam-2-7b: 7.000 req/ngày (7K)
+// 3. groq/compound-mini: 250 req/ngày
+// 4. openai/gpt-oss-120b: Giới hạn RPM thấp, để cuối cùng làm dự phòng
 const GROQ_MODELS = [
-  "allam-2-7b",
   "qwen/qwen3.8-27b",
-  "openai/gpt-oss-120b",
+  "allam-2-7b",
   "groq/compound-mini",
+  "openai/gpt-oss-120b",
 ];
 
 // Cloudflare Workers AI: 10.000 req/ngày hoàn toàn miễn phí
@@ -277,7 +277,7 @@ export async function generateFastAiChat(req: AiChatRequest): Promise<AiChatResp
     const groqKeys = getGroqApiKeys();
     if (groqKeys.length > 0) {
       for (const key of groqKeys) {
-        const jsonGroqModels = ["openai/gpt-oss-120b", "qwen/qwen3.8-27b", "groq/compound-mini", "allam-2-7b"];
+        const jsonGroqModels = ["qwen/qwen3.8-27b", "groq/compound-mini", "allam-2-7b", "openai/gpt-oss-120b"];
         for (const model of jsonGroqModels) {
           if (Date.now() - start >= maxTotalTimeout) break;
           const perCallTimeout = Math.min(maxTotalTimeout - (Date.now() - start), 3500);
