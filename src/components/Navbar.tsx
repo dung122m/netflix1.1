@@ -12,6 +12,7 @@ import {
   Tv,
   Clapperboard,
   Sparkles,
+  Dices,
   Radio,
   Bookmark,
   X,
@@ -169,21 +170,47 @@ const NavbarInner: React.FC = () => {
 
         {/* RIGHT ACTIONS */}
         <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0 text-white">
-          {/* NÚT STUDIO TRỢ LÝ NANA AI (3 TRONG 1) */}
-          <button
-            type="button"
-            onClick={() => {
-              if (typeof window !== "undefined") {
-                window.dispatchEvent(new CustomEvent("open-nana-ai-studio"));
-              }
-            }}
-            title="Studio Trợ Lý Nana AI (Chat thông minh, Tâm trạng & Bốc quẻ)"
-            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-gradient-to-r from-rose-500/15 via-purple-500/15 to-amber-500/15 hover:from-rose-500/25 hover:via-purple-500/25 hover:to-amber-500/25 text-rose-300 hover:text-white border border-rose-500/30 hover:border-purple-400/50 transition cursor-pointer shadow-sm active:scale-95 flex-shrink-0"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-rose-400 animate-pulse" />
-            <span>Nana AI</span>
-            <span className="hidden xl:inline text-[10px] px-1.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 font-medium">Studio</span>
-          </button>
+          {/* CỤM 2 TABS NANA AI TRÊN NAVBAR */}
+          <div className="flex items-center gap-1 sm:gap-1.5">
+            {/* 1. NÚT CHAT & TÌM PHIM NANA AI */}
+            <button
+              type="button"
+              onClick={() => {
+                if (typeof window !== "undefined") {
+                  window.dispatchEvent(
+                    new CustomEvent("open-nana-ai-studio", {
+                      detail: { tab: "concierge" },
+                    })
+                  );
+                }
+              }}
+              title="Trò chuyện & Tìm phim thông minh cùng Nana AI (Ctrl+K)"
+              className="inline-flex items-center gap-1 sm:gap-1.5 px-2 py-1.2 sm:px-2.5 sm:py-1.5 rounded-full text-xs font-bold bg-gradient-to-r from-purple-500/20 via-pink-500/20 to-rose-500/20 hover:from-purple-500/35 hover:via-pink-500/35 hover:to-rose-500/35 text-pink-300 hover:text-white border border-pink-500/35 hover:border-pink-400/60 transition-all cursor-pointer shadow-sm shadow-purple-950/40 active:scale-95 flex-shrink-0"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-pink-400 animate-pulse flex-shrink-0" />
+              <span className="hidden sm:inline">Chat AI</span>
+            </button>
+
+            {/* 2. NÚT BỐC QUẺ ĐỊNH MỆNH */}
+            <button
+              type="button"
+              onClick={() => {
+                if (typeof window !== "undefined") {
+                  window.dispatchEvent(
+                    new CustomEvent("open-nana-ai-studio", {
+                      detail: { tab: "roulette" },
+                    })
+                  );
+                }
+              }}
+              title="Bốc Quẻ Định Mệnh - Vòng quay chọn phim ngẫu nhiên theo tâm trạng"
+              className="inline-flex items-center gap-1 sm:gap-1.5 px-2 py-1.2 sm:px-2.5 sm:py-1.5 rounded-full text-xs font-bold bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-rose-500/20 hover:from-amber-500/35 hover:via-orange-500/35 hover:to-rose-500/35 text-amber-300 hover:text-white border border-amber-500/35 hover:border-amber-400/60 transition-all cursor-pointer shadow-sm shadow-amber-950/40 active:scale-95 flex-shrink-0"
+            >
+              <Dices className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+              <span className="hidden sm:inline">Bốc Quẻ</span>
+              <span className="hidden xl:inline text-[9.5px] px-1 py-0.2 rounded-full bg-amber-500/25 text-amber-300 border border-amber-500/40 font-bold">Phim</span>
+            </button>
+          </div>
 
           {/* ISOLATED SEARCH BAR COMPONENT */}
           <NavSearchBar
