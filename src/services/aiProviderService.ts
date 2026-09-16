@@ -43,11 +43,13 @@ function getGeminiApiKeys(customKey?: string): string[] {
   );
 }
 
-// Các model chính thức đang hoạt động ổn định trên Groq (Ưu tiên Llama 3.1 8B siêu tốc ~150ms)
+// Các model chính thức đang hoạt động ổn định trên Groq
 const GROQ_MODELS = [
+  "openai/gpt-oss-20b",
+  "qwen/qwen3.8-27b",
+  "openai/gpt-oss-120b",
   "llama-3.1-8b-instant",
   "llama-3.3-70b-versatile",
-  "deepseek-r1-distill-llama-70b",
 ];
 
 const CLOUDFLARE_MODELS = [
@@ -256,10 +258,10 @@ export async function generateFastAiChat(req: AiChatRequest): Promise<AiChatResp
     for (const key of groqKeys) {
       for (const model of GROQ_MODELS) {
         if (Date.now() - start >= maxTotalTimeout) break;
-        const perCallTimeout = Math.min(maxTotalTimeout - (Date.now() - start), 1800);
+        const perCallTimeout = Math.min(maxTotalTimeout - (Date.now() - start), 4500);
         const text = await callGroq(req, key, model, perCallTimeout);
         if (text && text.trim()) {
-          const providerName: AiChatResponse["provider"] = model.includes("70b")
+          const providerName: AiChatResponse["provider"] = model.includes("70b") || model.includes("120b")
             ? "Groq (Llama 3.3 70B)"
             : "Groq (Llama 3.1 8B)";
           return {
