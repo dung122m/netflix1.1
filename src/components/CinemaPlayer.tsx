@@ -117,6 +117,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [qualityLevels, setQualityLevels] = useState<Array<{ id: number; label: string; height: number }>>([]);
   const [currentQualityIndex, setCurrentQualityIndex] = useState<number>(-1);
+  const [knownDuration, setKnownDuration] = useState<number>(0);
 
   const [hudState, setHudState] = useState<{ icon: React.ReactNode; text: string } | null>(null);
   const hudTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -533,6 +534,30 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         }
       });
 
+      hls.on(Hls.Events.LEVEL_LOADED, (_event, data) => {
+        if (data?.details?.totalduration && data.details.totalduration > 0 && isFinite(data.details.totalduration)) {
+          const totalSecs = data.details.totalduration;
+          setKnownDuration(totalSecs);
+          if (videoRef.current) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (videoRef.current as any).__hlsDuration = totalSecs;
+            videoRef.current.dispatchEvent(new Event("durationchange"));
+          }
+        }
+      });
+
+      hls.on(Hls.Events.LEVEL_UPDATED, (_event, data) => {
+        if (data?.details?.totalduration && data.details.totalduration > 0 && isFinite(data.details.totalduration)) {
+          const totalSecs = data.details.totalduration;
+          setKnownDuration(totalSecs);
+          if (videoRef.current) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (videoRef.current as any).__hlsDuration = totalSecs;
+            videoRef.current.dispatchEvent(new Event("durationchange"));
+          }
+        }
+      });
+
       hls.on(Hls.Events.FRAG_BUFFERED, () => {
         if (!hasSeekedInitialRef.current && targetProgress > 0) {
           trySeekToTarget();
@@ -652,8 +677,10 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     };
     const handlePause = () => {
       setIsPlaying(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const currentEffectiveDuration = knownDuration || (video as any).__hlsDuration || (video.duration && isFinite(video.duration) ? video.duration : 0);
       if (movieSlug && activeEpisodeSlug && video.currentTime > 5) {
-        saveWatchProgress(movieSlug, video.currentTime, video.duration, activeEpisodeSlug);
+        saveWatchProgress(movieSlug, video.currentTime, currentEffectiveDuration, activeEpisodeSlug);
       }
       if (user?.uid && movieSlug && video.currentTime > 5) {
         updateActivePlaybackSession(user.uid, {
@@ -662,7 +689,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           episodeName: activeEpisodeName,
           episodeSlug: activeEpisodeSlug,
           currentTime: video.currentTime,
-          duration: video.duration || 0,
+          duration: currentEffectiveDuration,
           posterUrl,
         });
       }
@@ -681,19 +708,23 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       const now = Date.now();
       if (now - lastProgressSaveRef.current > 3000) {
         lastProgressSaveRef.current = now;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const currentEffectiveDuration = knownDuration || (video as any).__hlsDuration || (video.duration && isFinite(video.duration) ? video.duration : 0);
         if (movieSlug && activeEpisodeSlug && video.currentTime > 0) {
-          saveWatchProgress(movieSlug, video.currentTime, video.duration, activeEpisodeSlug);
+          saveWatchProgress(movieSlug, video.currentTime, currentEffectiveDuration, activeEpisodeSlug);
         }
       }
       if (user?.uid && now - lastHandoffSyncRef.current > 8000 && movieSlug && video.currentTime > 5) {
         lastHandoffSyncRef.current = now;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const currentEffectiveDuration = knownDuration || (video as any).__hlsDuration || (video.duration && isFinite(video.duration) ? video.duration : 0);
         updateActivePlaybackSession(user.uid, {
           movieSlug,
           movieTitle: title,
           episodeName: activeEpisodeName,
           episodeSlug: activeEpisodeSlug,
           currentTime: video.currentTime,
-          duration: video.duration || 0,
+          duration: currentEffectiveDuration,
           posterUrl,
         });
       }
@@ -730,6 +761,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     activeEpisodeName,
     posterUrl,
     targetProgress,
+    knownDuration,
   ]);
 
   // Mobile sticky detection
@@ -965,6 +997,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 currentQualityIndex={currentQualityIndex}
                 isFullscreen={isFullscreen}
                 isNativeVideo={isNativeVideo}
+                knownDuration={knownDuration}
                 embedSrc={embedSrc}
                 videoRef={videoRef}
                 onTogglePlayPause={togglePlayPause}

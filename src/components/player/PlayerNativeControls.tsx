@@ -34,6 +34,7 @@ interface PlayerNativeControlsProps {
   currentQualityIndex: number;
   isFullscreen: boolean;
   isNativeVideo: boolean;
+  knownDuration?: number;
   embedSrc?: string;
   videoRef: React.RefObject<HTMLVideoElement | null>;
   onTogglePlayPause: () => void;
@@ -59,6 +60,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
     currentQualityIndex,
     isFullscreen,
     isNativeVideo,
+    knownDuration,
     embedSrc,
     videoRef,
     onTogglePlayPause,
@@ -86,6 +88,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
         <PlayerScrubBar
           videoRef={videoRef}
           isNativeVideo={isNativeVideo}
+          knownDuration={knownDuration}
           onSeekFeedback={onSeekFeedback}
         />
 

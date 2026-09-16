@@ -5,11 +5,12 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 interface PlayerScrubBarProps {
   videoRef: React.RefObject<HTMLVideoElement | null>;
   isNativeVideo: boolean;
+  knownDuration?: number;
   onSeekFeedback?: (text: string) => void;
 }
 
 const formatTime = (secs: number) => {
-  if (isNaN(secs) || secs < 0) return "00:00";
+  if (isNaN(secs) || secs < 0 || !isFinite(secs)) return "00:00";
   const h = Math.floor(secs / 3600);
   const m = Math.floor((secs % 3600) / 60);
   const s = Math.floor(secs % 60);
@@ -22,55 +23,94 @@ const formatTime = (secs: number) => {
 export const PlayerScrubBar: React.FC<PlayerScrubBarProps> = ({
   videoRef,
   isNativeVideo,
+  knownDuration,
   onSeekFeedback,
 }) => {
   const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
+  const [duration, setDuration] = useState<number>(() => knownDuration || 0);
   const [buffered, setBuffered] = useState(0);
   const [isScrubbing, setIsScrubbing] = useState(false);
   const [hoverTime, setHoverTime] = useState<number | null>(null);
   const [hoverPos, setHoverPos] = useState<number>(0);
 
   const barRef = useRef<HTMLDivElement>(null);
+  const durationRef = useRef<number>(duration);
+
+  // Đồng bộ durationRef
+  useEffect(() => {
+    durationRef.current = duration;
+  }, [duration]);
+
+  // Cập nhật khi knownDuration thay đổi
+  useEffect(() => {
+    if (knownDuration && knownDuration > 0 && isFinite(knownDuration)) {
+      setDuration((prev) => (Math.abs(prev - knownDuration) > 1 ? knownDuration : prev));
+    }
+  }, [knownDuration]);
 
   // Lắng nghe trực tiếp video element mà không re-render cha
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !isNativeVideo) return;
 
-    const handleTimeUpdate = () => {
-      if (!isScrubbing) {
-        setCurrentTime(video.currentTime);
+    const getRealDuration = (v: HTMLVideoElement): number => {
+      // 1. Ưu tiên thời lượng chuẩn xác được tính từ M3U8 Playlist (Hls.js LEVEL_LOADED)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const hlsDur = (v as any).__hlsDuration;
+      if (typeof hlsDur === "number" && hlsDur > 0 && isFinite(hlsDur)) {
+        return hlsDur;
       }
-      if (video.duration && !isNaN(video.duration) && video.duration !== duration) {
-        setDuration(video.duration);
+      if (knownDuration && knownDuration > 0 && isFinite(knownDuration)) {
+        return knownDuration;
+      }
+      if (v.duration && !isNaN(v.duration) && isFinite(v.duration) && v.duration > 0) {
+        return v.duration;
+      }
+      return 0;
+    };
+
+    const updateDur = () => {
+      const realDur = getRealDuration(video);
+      if (realDur > 0 && Math.abs(realDur - durationRef.current) > 0.5) {
+        setDuration(realDur);
       }
     };
 
+    const handleTimeUpdate = () => {
+      if (!isScrubbing) {
+        setCurrentTime(video.currentTime || 0);
+      }
+      updateDur();
+    };
+
     const handleProgress = () => {
-      if (video.buffered.length > 0 && video.duration) {
+      const realDur = getRealDuration(video);
+      if (video.buffered.length > 0 && realDur > 0) {
         setBuffered(video.buffered.end(video.buffered.length - 1));
       }
     };
 
     const handleLoadedMetadata = () => {
-      if (video.duration && !isNaN(video.duration)) {
-        setDuration(video.duration);
-      }
+      updateDur();
     };
+
+    // Kiểm tra ngay khi mount
+    updateDur();
 
     video.addEventListener("timeupdate", handleTimeUpdate, { passive: true });
     video.addEventListener("progress", handleProgress, { passive: true });
     video.addEventListener("loadedmetadata", handleLoadedMetadata, { passive: true });
     video.addEventListener("durationchange", handleLoadedMetadata, { passive: true });
+    video.addEventListener("canplay", handleLoadedMetadata, { passive: true });
 
     return () => {
       video.removeEventListener("timeupdate", handleTimeUpdate);
       video.removeEventListener("progress", handleProgress);
       video.removeEventListener("loadedmetadata", handleLoadedMetadata);
       video.removeEventListener("durationchange", handleLoadedMetadata);
+      video.removeEventListener("canplay", handleLoadedMetadata);
     };
-  }, [videoRef, isNativeVideo, isScrubbing, duration]);
+  }, [videoRef, isNativeVideo, isScrubbing, knownDuration]);
 
   const seekToPosition = useCallback(
     (clientX: number) => {
