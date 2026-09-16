@@ -560,6 +560,7 @@ export interface MatchOptions {
   expectedActorSlug?: string;
   yearFrom?: number;
   yearTo?: number;
+  isLatest?: boolean;
   excludedCountries?: string[];
   excludedGenres?: string[];
 }
@@ -591,6 +592,14 @@ function findBestMatchMovie(items: any[], query: string, originalQuery?: string,
     if (options?.excludedGenres && options.excludedGenres.length > 0) {
       if (options.excludedGenres.some((ex) => matchesGenre(category, ex))) {
         continue;
+      }
+    }
+
+    // 2. Hard filter khi người dùng tìm phim mới nhất (2025-2026)
+    if (options?.isLatest) {
+      const curYear = new Date().getFullYear();
+      if (itemYear > 0 && itemYear < curYear - 1) {
+        continue; // Tuyệt đối không lấy phim cũ khi người dùng yêu cầu mới nhất
       }
     }
 
@@ -911,7 +920,10 @@ export async function POST(req: NextRequest) {
     // ========================================================================
     // BƯỚC 2: STRUCTURED EXTRACTION (AI TRÍCH XUẤT CẤU TRÚC JSON CHUẨN)
     // ========================================================================
+    const currentYear = new Date().getFullYear();
+
     const systemPrompt = `Bạn là Nana AI - Trợ Lý Điện Ảnh Thông Minh & Phân Tích Ý Định Tìm Kiếm Phim của Nanaflix.
+MỐC THỜI GIAN HIỆN TẠI: Năm ${currentYear}.
 
 NHIỆM VỤ:
 Phân tích yêu cầu tự nhiên của người dùng (kể cả câu dài phức tạp kết hợp thể loại + quốc gia + khoảng năm/thập niên + chi tiết cốt truyện) và trích xuất thành đối tượng JSON chuẩn xác.
@@ -919,33 +931,36 @@ Phân tích yêu cầu tự nhiên của người dùng (kể cả câu dài ph�
 CÁC TRƯỜNG BẮT BUỘC TRÍCH XUẤT:
 1. "genres": Mảng các thể loại chuẩn hóa về slug (ví dụ: ["hanh-dong"], ["kinh-di"], ["tinh-cam"], ["hoat-hinh"], ["vien-tuong"], ["co-trang"], ["tam-ly"], ["trinh-tham"], ["vo-thuat"]).
 2. "country": Quốc gia mục tiêu chuẩn hóa về slug ("au-my" cho Mỹ/Hollywood/Âu Mỹ, "thai-lan" cho Thái Lan, "han-quoc" cho Hàn Quốc, "hong-kong" cho Hồng Kông, "nhat-ban" cho Nhật Bản, "trung-quoc" cho Trung Quốc, "viet-nam" cho Việt Nam). Nếu không có, để "".
-3. "years": Khoảng thời gian chính xác { "from": number, "to": number }.
-   - Ví dụ "thập niên 90" -> { "from": 1990, "to": 1999 }
+3. "is_latest": boolean (true nếu người dùng tìm "mới nhất", "mới ra", "mới ra mắt", "vừa chiếu", "năm nay", "latest", "newest", "recently").
+4. "years": Khoảng thời gian chính xác { "from": number, "to": number }.
+   - Nếu người dùng tìm "mới nhất" / "năm nay" -> { "from": ${currentYear - 1}, "to": ${currentYear} }
+   - "thập niên 90" -> { "from": 1990, "to": 1999 }
    - "thập niên 80" -> { "from": 1980, "to": 1989 }
    - "thập niên 2000" -> { "from": 2000, "to": 2009 }
-   - "năm 2023" -> { "from": 2023, "to": 2023 }
+   - "năm ${currentYear}" -> { "from": ${currentYear}, "to": ${currentYear} }
    - Nếu không nói mốc thời gian -> { "from": 0, "to": 0 }
-4. "keyword": Từ khóa đặc thù cốt truyện hoặc bối cảnh (ví dụ: "cướp ngân hàng", "vòng lặp thời gian", "sóng thần", "đầu bếp", "đấu trí").
-5. "actor": Diễn viên nếu có (ví dụ: "Thành Long", "Châu Tinh Trì", "Tom Cruise"...).
-6. "director": Đạo diễn nếu có.
-7. "excluded_countries": Mảng quốc gia người dùng yêu cầu loại trừ (ví dụ: "không lấy phim Mỹ" -> ["au-my"]).
-8. "suggested_movies": Đề xuất 8-10 phim THỰC TẾ, KINH ĐIỂN khớp với quốc gia, thể loại, khoảng năm và cốt truyện.
+5. "keyword": Từ khóa đặc thù cốt truyện hoặc bối cảnh (ví dụ: "cướp ngân hàng", "vòng lặp thời gian", "sóng thần", "đầu bếp", "đấu trí").
+6. "actor": Diễn viên nếu có (ví dụ: "Thành Long", "Châu Tinh Trì", "Tom Cruise"...).
+7. "director": Đạo diễn nếu có.
+8. "excluded_countries": Mảng quốc gia người dùng yêu cầu loại trừ (ví dụ: "không lấy phim Mỹ" -> ["au-my"]).
+9. "suggested_movies": Đề xuất 8-10 phim THỰC TẾ, KINH ĐIỂN khớp với quốc gia, thể loại, khoảng năm và cốt truyện.
    - BẮT BUỘC VỀ TRƯỜNG "reason": Mỗi bộ phim BẮT BUỘC PHẢI CÓ 1 ĐOẠN TÓM TẮT ĐỘC BẢN (1-2 câu) về điểm nhấn cốt truyện hoặc nút thắt kịch tính của CHÍNH BỘ PHIM ĐÓ.
    - TUYỆT ĐỐI CẤM dùng câu rập khuôn chung chung như "Tác phẩm tiêu biểu cùng chủ đề...", "Phim có đánh giá cao...".
-9. KHÔNG BIAS TÊN: Tuyệt đối không tự động đưa anime "Nana" vào danh sách trừ khi người dùng đích danh tìm kiếm phim đó.
-10. "analysis": Lời chào tự nhiên, sành sỏi về điện ảnh giới thiệu ngắn gọn điểm hấp dẫn nhất của nhóm phim này (KHÔNG lặp lại nguyên văn câu hỏi người dùng).
+10. KHÔNG BIAS TÊN: Tuyệt đối không tự động đưa anime "Nana" vào danh sách trừ khi người dùng đích danh tìm kiếm phim đó.
+11. "analysis": Lời chào tự nhiên, sành sỏi về điện ảnh giới thiệu ngắn gọn điểm hấp dẫn nhất của nhóm phim này (KHÔNG lặp lại nguyên văn câu hỏi người dùng).
 
 BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT NGOÀI JSON):
 {
   "analysis": "Lời chào tự nhiên giới thiệu nhóm phim được chọn",
-  "mood": "Tên chủ đề ngắn gọn kèm Emoji (vd: 'Hành Động Cướp Ngân Hàng Mỹ Thập Niên 90 🏦💥')",
+  "mood": "Tên chủ đề ngắn gọn kèm Emoji (vd: 'Phim Chiếu Rạp Mới Nhất ${currentYear} 🎬✨')",
   "genres": ["hanh-dong"],
   "country": "au-my",
+  "is_latest": true,
   "years": {
-    "from": 1990,
-    "to": 1999
+    "from": ${currentYear - 1},
+    "to": ${currentYear}
   },
-  "keyword": "cướp ngân hàng",
+  "keyword": "",
   "actor": "",
   "director": "",
   "excluded_countries": [],
@@ -954,7 +969,7 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
     {
       "title": "Tên tiếng Việt",
       "original_title": "Tên gốc quốc tế / tiếng Anh",
-      "year": 1995,
+      "year": ${currentYear},
       "reason": "Mô tả ngắn gọn, cụ thể về nội dung, nhân vật hoặc nút thắt cốt truyện của chính phim này"
     }
   ]
@@ -966,6 +981,7 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
       genres?: string[];
       genre?: string;
       country?: string;
+      is_latest?: boolean;
       years?: { from?: number; to?: number };
       year_from?: number;
       year_to?: number;
@@ -993,7 +1009,7 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
     try {
       const aiRes = await generateFastAiChat({
         systemPrompt,
-        userPrompt: `Phân tích yêu cầu tìm phim: "${prompt}". Trả về JSON theo đúng định dạng.`,
+        userPrompt: `Phân tích yêu cầu tìm phim: "${prompt}". Mốc năm hiện tại là ${currentYear}. Trả về JSON theo đúng định dạng.`,
         temperature: 0.2,
         maxTokens: 1400,
         jsonMode: true,
@@ -1025,11 +1041,36 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
     const targetCountrySlug = resolveCountrySlug(rawCountry) || resolveCountrySlug(prompt);
     const targetActorSlug = resolveActorSlug(rawActor) || resolveActorSlug(prompt);
 
+    // Xử lý cờ "Phim mới nhất" (Latest / Newest)
+    const lowerPrompt = prompt.toLowerCase();
+    const isLatest =
+      Boolean(aiParsed?.is_latest) ||
+      lowerPrompt.includes("mới nhất") ||
+      lowerPrompt.includes("moi nhat") ||
+      lowerPrompt.includes("mới ra") ||
+      lowerPrompt.includes("moi ra") ||
+      lowerPrompt.includes("mới chiếu") ||
+      lowerPrompt.includes("moi chieu") ||
+      lowerPrompt.includes("vừa ra") ||
+      lowerPrompt.includes("vua ra") ||
+      lowerPrompt.includes("vừa chiếu") ||
+      lowerPrompt.includes("vua chieu") ||
+      lowerPrompt.includes("năm nay") ||
+      lowerPrompt.includes("nam nay") ||
+      lowerPrompt.includes("latest") ||
+      lowerPrompt.includes("newest") ||
+      lowerPrompt.includes("recently");
+
     // Xử lý khoảng năm
     let yearFrom = aiParsed?.years?.from || aiParsed?.year_from || 0;
     let yearTo = aiParsed?.years?.to || aiParsed?.year_to || 0;
-    const lowerPrompt = prompt.toLowerCase();
-    if (!yearFrom && !yearTo) {
+
+    if (isLatest) {
+      if (!yearFrom || yearFrom < currentYear - 1) {
+        yearFrom = currentYear - 1;
+        yearTo = currentYear;
+      }
+    } else if (!yearFrom && !yearTo) {
       if (lowerPrompt.includes("thap nien 90") || lowerPrompt.includes("thập niên 90") || lowerPrompt.includes("90s")) {
         yearFrom = 1990;
         yearTo = 1999;
@@ -1071,6 +1112,7 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
       expectedActorSlug: targetActorSlug || undefined,
       yearFrom: yearFrom || undefined,
       yearTo: yearTo || undefined,
+      isLatest: isLatest || undefined,
       excludedCountries: excludedCountrySlugs.length ? excludedCountrySlugs : undefined,
       excludedGenres: excludedGenreSlugs.length ? excludedGenreSlugs : undefined,
     };
@@ -1137,6 +1179,11 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
             }
           }
 
+          // Hard filter: Nếu người dùng tìm phim mới nhất, loại bỏ phim cũ (< currentYear - 1)
+          if (isLatest && itemYear > 0 && itemYear < currentYear - 1) {
+            continue;
+          }
+
           // Nếu lệch hoàn toàn quốc gia khi người dùng yêu cầu rõ ràng (ví dụ hỏi Mỹ mà ra Trung Quốc)
           if (targetCountrySlug && itemCountry && !matchesCountry(itemCountry, targetCountrySlug)) {
             // Cho phép nếu tiêu đề khớp 100% tên phim quốc tế (tránh lỗi database gán sai country tag)
@@ -1165,7 +1212,7 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
     }
 
     // 3. Pass 2: Truy vấn Phân Tầng Thông Minh (Pool Discovery & Relevance Scoring)
-    if (cards.length < 24 && (targetActorSlug || targetGenreSlug || targetCountrySlug || rawKeyword || rawDirector)) {
+    if (cards.length < 24 && (targetActorSlug || targetGenreSlug || targetCountrySlug || rawKeyword || rawDirector || isLatest)) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const queryTasks: Promise<any>[] = [];
 
@@ -1188,16 +1235,37 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
         }
       }
 
-      // Query 3: Theo Genre + Country (chỉ áp dụng khi không phải tìm thuần diễn viên)
-      if (!targetActorSlug && (targetGenreSlug || targetCountrySlug)) {
-        queryTasks.push(
-          movieApi.getMovies({
-            category: targetGenreSlug || undefined,
-            country: targetCountrySlug || undefined,
-            limit: 20,
-            sort: "rating",
-          })
-        );
+      // Query 3: Theo Genre + Country (hoặc truy vấn theo năm mới nhất 2025-2026)
+      if (!targetActorSlug && (targetGenreSlug || targetCountrySlug || isLatest)) {
+        if (isLatest) {
+          queryTasks.push(
+            movieApi.getMovies({
+              category: targetGenreSlug || undefined,
+              country: targetCountrySlug || undefined,
+              year: currentYear,
+              limit: 20,
+              sort: "modified",
+            })
+          );
+          queryTasks.push(
+            movieApi.getMovies({
+              category: targetGenreSlug || undefined,
+              country: targetCountrySlug || undefined,
+              year: currentYear - 1,
+              limit: 20,
+              sort: "modified",
+            })
+          );
+        } else {
+          queryTasks.push(
+            movieApi.getMovies({
+              category: targetGenreSlug || undefined,
+              country: targetCountrySlug || undefined,
+              limit: 20,
+              sort: "rating",
+            })
+          );
+        }
       }
 
       try {
@@ -1230,6 +1298,13 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
 
           if (excludedCountrySlugs.some((ex) => matchesCountry(itemCountry, ex))) continue;
           if (excludedGenreSlugs.some((ex) => matchesGenre(itemCategory, ex))) continue;
+
+          // Hard Filter: Phim mới nhất bắt buộc phải từ currentYear - 1 (2025-2026)
+          if (isLatest) {
+            if (itemYear > 0 && itemYear < currentYear - 1) {
+              continue; // Bỏ qua phim cũ hơn 2 năm, không nhận vơ là mới nhất
+            }
+          }
 
           let score = 0;
 
@@ -1276,8 +1351,14 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
             }
           }
 
-          // Điểm khớp khoảng năm
-          if (itemYear > 0 && yearFrom && yearTo) {
+          // Điểm khớp khoảng năm hoặc phim mới nhất
+          if (isLatest) {
+            if (itemYear >= currentYear) {
+              score += 60;
+            } else if (itemYear === currentYear - 1) {
+              score += 45;
+            }
+          } else if (itemYear > 0 && yearFrom && yearTo) {
             if (itemYear >= yearFrom && itemYear <= yearTo) {
               score += 30;
             } else if (Math.abs(itemYear - yearFrom) <= 3 || Math.abs(itemYear - yearTo) <= 3) {
@@ -1292,8 +1373,15 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
           }
         }
 
-        // Sắp xếp theo điểm giảm dần và đưa vào cards
-        scoredCandidates.sort((a, b) => b.score - a.score);
+        // Sắp xếp: Ưu tiên năm mới nhất (release_year DESC) nếu người dùng tìm mới nhất
+        scoredCandidates.sort((a, b) => {
+          if (isLatest) {
+            const yA = extractMovieYear(a.item);
+            const yB = extractMovieYear(b.item);
+            if (yB !== yA) return yB - yA;
+          }
+          return b.score - a.score;
+        });
 
         for (const sc of scoredCandidates) {
           if (cards.length >= 24) break;
@@ -1325,18 +1413,29 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
     let finalMood = "";
 
     if (cards.length === 0) {
-      const yearDesc = (yearFrom || yearTo)
-        ? (yearFrom === yearTo ? `năm ${yearFrom}` : `thập niên ${yearFrom}s (${yearFrom} - ${yearTo})`)
-        : "";
-      const topicDesc = [
-        targetGenreSlug ? "hành động/giật gân" : "",
-        targetCountrySlug === "au-my" ? "Mỹ/Hollywood" : targetCountrySlug,
-        yearDesc,
-        rawKeyword ? `chủ đề "${rawKeyword}"` : "",
-      ].filter(Boolean).join(" ");
+      if (isLatest) {
+        const topicDesc = [
+          targetGenreSlug ? "thể loại này" : "",
+          targetCountrySlug === "au-my" ? "Mỹ/Hollywood" : (targetCountrySlug || ""),
+          rawKeyword ? `chủ đề "${rawKeyword}"` : "",
+        ].filter(Boolean).join(" ");
 
-      finalAnalysis = `Chào bạn! Nana AI đã phân tích yêu cầu "${prompt}" và tra cứu toàn bộ cơ sở dữ liệu. Hiện tại, kho phim của Nanaflix chưa có sẵn các bộ phim đáp ứng đồng thời tất cả các điều kiện khắt khe này (${topicDesc || "theo yêu cầu chi tiết của bạn"}).\n\nĐội ngũ Nanaflix đang liên tục cập nhật thêm nhiều siêu phẩm điện ảnh kinh điển. Bạn có thể thử mở rộng mốc thời gian hoặc tìm kiếm theo tựa đề phim cụ thể nhé! ✨🍿`;
-      finalMood = "Chưa Có Phim Phù Hợp 🎬";
+        finalAnalysis = `Chào bạn! Nana AI đã tra cứu toàn bộ cơ sở dữ liệu các tác phẩm mới nhất phát hành trong giai đoạn ${currentYear - 1} - ${currentYear}. Hiện tại kho phim của Nanaflix chưa có bản cập nhật mới nhất cho danh mục ${topicDesc || "theo yêu cầu của bạn"}.\n\nĐội ngũ Nanaflix đang liên tục cập nhật thêm nhiều phim mới ra rạp mỗi ngày. Bạn có thể thử tìm kiếm theo tên phim cụ thể hoặc khám phá các tác phẩm kinh điển đạt điểm đánh giá cao nhé! ✨🍿`;
+        finalMood = `Chưa Có Phim Mới ${currentYear} 🎬`;
+      } else {
+        const yearDesc = (yearFrom || yearTo)
+          ? (yearFrom === yearTo ? `năm ${yearFrom}` : `thập niên ${yearFrom}s (${yearFrom} - ${yearTo})`)
+          : "";
+        const topicDesc = [
+          targetGenreSlug ? "hành động/giật gân" : "",
+          targetCountrySlug === "au-my" ? "Mỹ/Hollywood" : targetCountrySlug,
+          yearDesc,
+          rawKeyword ? `chủ đề "${rawKeyword}"` : "",
+        ].filter(Boolean).join(" ");
+
+        finalAnalysis = `Chào bạn! Nana AI đã phân tích yêu cầu "${prompt}" và tra cứu toàn bộ cơ sở dữ liệu. Hiện tại, kho phim của Nanaflix chưa có sẵn các bộ phim đáp ứng đồng thời tất cả các điều kiện khắt khe này (${topicDesc || "theo yêu cầu chi tiết của bạn"}).\n\nĐội ngũ Nanaflix đang liên tục cập nhật thêm nhiều siêu phẩm điện ảnh kinh điển. Bạn có thể thử mở rộng mốc thời gian hoặc tìm kiếm theo tựa đề phim cụ thể nhé! ✨🍿`;
+        finalMood = "Chưa Có Phim Phù Hợp 🎬";
+      }
     } else {
       finalAnalysis =
         aiParsed?.analysis?.trim() ||
