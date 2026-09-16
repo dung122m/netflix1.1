@@ -24,6 +24,7 @@ const nextConfig: NextConfig = {
       { protocol: "http", hostname: "**" },
     ],
     formats: ["image/avif", "image/webp"],
+    qualities: [75, 80, 82, 85, 90],
     minimumCacheTTL: 60 * 60 * 24 * 7, // 7 days cache on edge
   },
   async headers() {

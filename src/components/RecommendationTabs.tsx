@@ -368,10 +368,11 @@ const RecommendedMovieCard = React.memo(function RecommendedMovieCard({
             src={thumbUrl}
             alt={title}
             fill
-            sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 319px"
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1440px) 33vw, 25vw"
             className="object-cover transition-transform duration-500 group-hover:scale-105"
             decoding="async"
             loading="lazy"
+            quality={85}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 

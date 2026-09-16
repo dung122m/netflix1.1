@@ -275,9 +275,10 @@ export function CommunityTopTrending() {
                         alt={movie.movieTitle}
                         fill
                         priority={index < 3}
-                        sizes="(max-width: 640px) 140px, (max-width: 768px) 175px, 190px"
+                        sizes="(max-width: 640px) 180px, (max-width: 768px) 240px, 280px"
                         className="object-cover group-hover:scale-105 transition-transform duration-500"
                         loading={index < 3 ? "eager" : "lazy"}
+                        quality={85}
                         onError={(e) => {
                           const target = e.currentTarget as HTMLImageElement;
                           if (target && !target.src.includes("/default-poster.jpg")) {

@@ -277,9 +277,10 @@ export function ForYouPersonalizedRow() {
                         src={movie.poster_url || movie.thumb_url || "/default-poster.jpg"}
                         alt={movie.title || movie.name}
                         fill
-                        sizes="(max-width: 640px) 150px, (max-width: 768px) 190px, 210px"
+                        sizes="(max-width: 640px) 180px, (max-width: 1024px) 240px, 300px"
                         className="object-cover group-hover:scale-105 transition-transform duration-500"
                         loading="lazy"
+                        quality={85}
                         onError={(e) => {
                           const target = e.currentTarget as HTMLImageElement;
                           if (target && !target.src.includes("/default-poster.jpg")) {

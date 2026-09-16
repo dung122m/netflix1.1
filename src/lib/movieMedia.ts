@@ -31,17 +31,17 @@ export function sanitizeImageUrl(url: string): string {
     clean = `https://image.tmdb.org/t/p/w500/${vsmovMatch[1]}`;
   }
 
-  // Tối ưu ảnh TMDB original / w1280 sang w500 để tải nhanh gấp nhiều lần, tốn ít băng thông
+  // Tối ưu ảnh TMDB: Dùng w780 (chuẩn HD cho màn hình Retina 2x & màn hình lớn), giữ nguyên độ nét mà nén chỉ ~45KB
   if (clean.includes("image.tmdb.org/t/p/original/")) {
-    clean = clean.replace("/t/p/original/", "/t/p/w500/");
+    clean = clean.replace("/t/p/original/", "/t/p/w780/");
   } else if (clean.includes("image.tmdb.org/t/p/w1280/")) {
-    clean = clean.replace("/t/p/w1280/", "/t/p/w500/");
+    clean = clean.replace("/t/p/w1280/", "/t/p/w780/");
   }
 
   // Tối ưu ảnh IMDb: Amazon CloudFront CDN cho phép resize tự động bằng URL slug
-  // Chuyển từ ảnh gốc 1000px-2000px (_UX1000_) sang _UX320_ (khớp chuẩn 319px grid card), nén từ 300KB xuống ~15KB
+  // Dùng _UX720_ chuẩn HD sắc sảo từng nét chữ trên cả màn hình Retina 2x/4K, nén chỉ ~35KB
   if (clean.includes("media-amazon.com/images/M/")) {
-    clean = clean.replace(/_V1_.*(\.(?:jpg|jpeg|png|webp))$/i, "_V1_QL80_UX320_$1");
+    clean = clean.replace(/_V1_.*(\.(?:jpg|jpeg|png|webp))$/i, "_V1_QL85_UX720_$1");
   }
 
   return clean;
@@ -130,13 +130,13 @@ export function pickBestMovieThumb(movie: MovieLike, fallback = "/default-hero.s
 
 /**
  * Tối ưu ảnh cho Thẻ phim 16:9 trong danh sách (CuratedMovieSection / MediaCard).
- * Dùng TMDb w500 (~35KB) thay vì w1280 (1.5MB - 2.5MB), tăng tốc độ tải gấp 30 lần!
+ * Dùng TMDb w780 (~45KB) cho độ sắc nét Retina 2x/4K, tải siêu nhanh và không bị mờ.
  */
 export function toOptimizedCardBackdropUrl(url: string): string {
   if (!url || typeof url !== "string") return "";
   let clean = sanitizeImageUrl(url);
   if (clean.includes("image.tmdb.org/t/p/")) {
-    clean = clean.replace(/\/t\/p\/(w1280|original|w780)\//, "/t/p/w500/");
+    clean = clean.replace(/\/t\/p\/(w1280|original)\//, "/t/p/w780/");
   }
   return clean;
 }
