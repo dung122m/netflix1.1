@@ -120,6 +120,8 @@ const getPagination = (current: number, total: number) => {
 function cleanNormalizedForMatch(str: string): string {
   return (str || "")
     .toLowerCase()
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "d")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9\s]/g, " ")

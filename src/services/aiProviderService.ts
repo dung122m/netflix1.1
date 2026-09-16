@@ -47,6 +47,7 @@ function getGeminiApiKeys(customKey?: string): string[] {
 // 3. groq/compound-mini: 250 req/ngày
 // 4. openai/gpt-oss-120b: Giới hạn RPM thấp, để cuối cùng làm dự phòng
 const GROQ_MODELS = [
+  "openai/gpt-oss-20b",
   "qwen/qwen3.8-27b",
   "allam-2-7b",
   "groq/compound-mini",
