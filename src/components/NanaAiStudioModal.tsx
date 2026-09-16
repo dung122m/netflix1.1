@@ -49,17 +49,18 @@ interface AiMovieCard {
 
 // Hàm lấy đoạn mô tả ngắn (highlight) động từ dữ liệu phim thực tế
 function getMovieHighlight(movie: AiMovieCard) {
-  // Ưu tiên lấy trường reason/overview/description sẵn có của phim, nếu không có thì dùng câu mặc định
-  const text =
+  let text =
     movie.reason ||
     movie.overview ||
     movie.description ||
     movie.content ||
     "Tác phẩm điện ảnh đặc sắc đang chờ bạn khám phá.";
 
-  // Cắt ngắn chuỗi (truncate) khoảng 80-100 ký tự để không bị tràn khung card phim
-  if (text.length > 90) {
-    return text.substring(0, 90) + "...";
+  text = text.replace(/\s+/g, " ").trim();
+  if (text.length > 100) {
+    const truncated = text.substring(0, 95);
+    const lastSpace = truncated.lastIndexOf(" ");
+    text = (lastSpace > 50 ? truncated.substring(0, lastSpace) : truncated) + "...";
   }
   return text;
 }
@@ -551,49 +552,52 @@ export const NanaAiStudioModal: React.FC = () => {
                       >
                         <p className="leading-relaxed whitespace-pre-wrap">{m.text}</p>
 
-                        {/* HIGH-END MOVIE RECOMMENDATION CARDS */}
+                        {/* HIGH-END MOVIE RECOMMENDATION CARDS (TOP 3-4 PHIM XUẤT SẮC NHẤT) */}
                         {m.movies && m.movies.length > 0 && (
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2 border-t border-white/10">
-                            {m.movies.map((mov, movIdx) => (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 mt-1 border-t border-white/10">
+                            {m.movies.slice(0, 4).map((mov, movIdx) => (
                               <Link
                                 key={`${mov.slug || "movie"}-${movIdx}`}
                                 href={`/movies/${mov.slug}`}
                                 onClick={() => setIsOpen(false)}
-                                className="p-2.5 rounded-2xl bg-black/70 hover:bg-black/95 border border-white/15 hover:border-pink-500/60 transition-all flex gap-3 group cursor-pointer shadow-md hover:shadow-pink-950/40 hover:scale-[1.01]"
+                                className="p-2.5 sm:p-3 rounded-2xl bg-zinc-950/85 hover:bg-zinc-900 border border-white/10 hover:border-pink-500/50 transition-all flex gap-3 group cursor-pointer shadow-lg hover:shadow-pink-950/30 hover:scale-[1.01]"
                               >
-                                <div className="relative w-14 sm:w-16 aspect-[2/3] rounded-xl overflow-hidden bg-zinc-950 flex-none border border-white/10 shadow-lg">
+                                <div className="relative w-16 sm:w-20 aspect-[2/3] rounded-xl overflow-hidden bg-zinc-900 flex-none border border-white/10 shadow-md">
                                   <Image
                                     src={mov.poster || "/default-poster.jpg"}
                                     alt={mov.title || "Phim"}
                                     fill
-                                    className="object-cover group-hover:scale-105 transition-transform"
-                                    sizes="70px"
+                                    className="object-cover group-hover:scale-105 transition-transform duration-300"
+                                    sizes="(max-width: 640px) 70px, 90px"
                                   />
                                 </div>
                                 <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
-                                  <div className="space-y-1">
-                                    <h5 className="text-xs font-bold text-white truncate group-hover:text-pink-300 transition-colors">
+                                  <div className="space-y-1.5">
+                                    <h5
+                                      className="text-xs sm:text-sm font-bold text-white truncate group-hover:text-pink-300 transition-colors"
+                                      title={mov.title}
+                                    >
                                       {mov.title}
                                     </h5>
                                     <div className="flex items-center gap-1.5 text-[10px] text-gray-400">
-                                      {mov.year && <span className="text-gray-300">{mov.year}</span>}
+                                      {mov.year && <span className="text-gray-300 font-medium">{mov.year}</span>}
                                       {mov.category && (
                                         <span className="text-amber-400 font-semibold truncate max-w-[90px]">
                                           {mov.category}
                                         </span>
                                       )}
                                       {mov.quality && (
-                                        <span className="border border-white/20 px-1 py-0.2 rounded text-[9px] text-gray-300">
+                                        <span className="border border-white/20 px-1 py-0.5 rounded text-[9px] text-gray-300">
                                           {mov.quality}
                                         </span>
                                       )}
                                     </div>
-                                    <p className="text-[10.5px] text-pink-200/90 line-clamp-2 leading-tight bg-pink-500/10 p-1.5 rounded-lg border border-pink-500/20">
+                                    <div className="text-[10.5px] sm:text-[11px] text-pink-200/90 leading-snug bg-pink-500/10 px-2.5 py-1.5 rounded-xl border border-pink-500/20 line-clamp-2">
                                       💡 {getMovieHighlight(mov)}
-                                    </p>
+                                    </div>
                                   </div>
 
-                                  <div className="pt-1.5 flex items-center gap-1 text-[11px] font-bold text-netflix-red group-hover:text-pink-400 transition-colors">
+                                  <div className="pt-2 flex items-center gap-1.5 text-[11px] font-bold text-netflix-red group-hover:text-pink-400 transition-colors">
                                     <Play className="w-3 h-3 fill-current" />
                                     <span>Xem chi tiết phim</span>
                                   </div>

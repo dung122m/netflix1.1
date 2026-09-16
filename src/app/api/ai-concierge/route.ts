@@ -950,11 +950,11 @@ CÁC TRƯỜNG BẮT BUỘC TRÍCH XUẤT:
 6. "actor": Diễn viên nếu có (ví dụ: "Thành Long", "Châu Tinh Trì", "Tom Cruise"...).
 7. "director": Đạo diễn nếu có.
 8. "excluded_countries": Mảng quốc gia người dùng yêu cầu loại trừ (ví dụ: "không lấy phim Mỹ" -> ["au-my"]).
-9. "suggested_movies": Đề xuất 8-10 phim THỰC TẾ, KINH ĐIỂN khớp với quốc gia, thể loại, khoảng năm và cốt truyện.
-   - BẮT BUỘC VỀ TRƯỜNG "reason": Mỗi bộ phim BẮT BUỘC PHẢI CÓ 1 ĐOẠN TÓM TẮT ĐỘC BẢN (1-2 câu) về điểm nhấn cốt truyện hoặc nút thắt kịch tính của CHÍNH BỘ PHIM ĐÓ.
+9. "suggested_movies": Đề xuất 4 bộ phim THỰC TẾ, KINH ĐIỂN VÀ XUẤT SẮC NHẤT khớp với quốc gia, thể loại, khoảng năm và cốt truyện.
+   - BẮT BUỘC VỀ TRƯỜNG "reason": Mỗi bộ phim BẮT BUỘC PHẢI CÓ 1 ĐOẠN TÓM TẮT ĐỘC BẢN (1-2 câu ngắn gọn, súc tích) về điểm nhấn cốt truyện hoặc nút thắt kịch tính của CHÍNH BỘ PHIM ĐÓ.
    - TUYỆT ĐỐI CẤM dùng câu rập khuôn chung chung như "Tác phẩm tiêu biểu cùng chủ đề...", "Phim có đánh giá cao...".
 10. KHÔNG BIAS TÊN: Tuyệt đối không tự động đưa anime "Nana" vào danh sách trừ khi người dùng đích danh tìm kiếm phim đó.
-11. "analysis": Lời chào tự nhiên, sành sỏi về điện ảnh giới thiệu ngắn gọn điểm hấp dẫn nhất của nhóm phim này (KHÔNG lặp lại nguyên văn câu hỏi người dùng).
+11. "analysis": Lời chào tự nhiên, sành sỏi về điện ảnh giới thiệu ngắn gọn điểm hấp dẫn nhất của nhóm 3-4 phim được tuyển chọn này (KHÔNG lặp lại nguyên văn câu hỏi người dùng).
 
 BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT NGOÀI JSON):
 {
@@ -1390,7 +1390,7 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
         });
 
         for (const sc of scoredCandidates) {
-          if (cards.length >= 24) break;
+          if (cards.length >= 4) break;
           const it = sc.item;
           if (!seenSlugs.has(it.slug)) {
             seenSlugs.add(it.slug);
@@ -1459,11 +1459,11 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
                   actors: toSafeActors(it),
                   reason: getMovieHighlight(it),
                 });
-                if (cards.length >= 10) break;
+                if (cards.length >= 4) break;
               }
             }
           }
-          if (cards.length >= 10) break;
+          if (cards.length >= 4) break;
         }
       } catch (err) {
         console.warn("Fallback query error:", err);
@@ -1474,7 +1474,7 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
     let finalMood = "";
 
     if (isFallbackRelaxed && cards.length > 0) {
-      finalAnalysis = `Nana AI chưa tìm thấy tác phẩm khớp tuyệt đối 100% mọi điều kiện chi tiết, nhưng đã nới lỏng bộ lọc để tuyển chọn ngay các bộ phim có phong cách và chủ đề gần gũi nhất dưới đây để bạn thưởng thức nhé! ✨🍿`;
+      finalAnalysis = `Nana AI chưa tìm thấy tác phẩm khớp tuyệt đối 100% mọi điều kiện chi tiết, nhưng đã nới lỏng bộ lọc để tuyển chọn ngay 3-4 bộ phim có phong cách và chủ đề gần gũi nhất dưới đây để bạn thưởng thức nhé! ✨🍿`;
       finalMood = "Gợi Ý Tương Đồng Cho Bạn 🎬✨";
     } else if (cards.length === 0) {
       finalAnalysis = `Chào bạn! Hiện tại kho phim chưa có bản phát hành khớp hoàn toàn với yêu cầu này. Bạn có thể thử tìm kiếm theo tên phim cụ thể hoặc khám phá các thể loại thịnh hành trên thanh điều hướng nhé! ✨🍿`;
@@ -1489,7 +1489,7 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
     const finalPayload = {
       reply: finalAnalysis,
       mood: finalMood,
-      movies: cards.slice(0, 24),
+      movies: cards.slice(0, 4),
       provider: aiProviderName,
     };
 
