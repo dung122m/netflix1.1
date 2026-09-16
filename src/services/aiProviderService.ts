@@ -43,14 +43,18 @@ function getGeminiApiKeys(customKey?: string): string[] {
 
 // Các model chính thức đang hoạt động ổn định trên Groq
 const GROQ_MODELS = [
-  "openai/gpt-oss-20b",
   "qwen/qwen3.8-27b",
   "openai/gpt-oss-120b",
+  "groq/compound-mini",
+  "allam-2-7b",
 ];
 
 const CLOUDFLARE_MODELS = [
+  "@cf/meta/llama-3.2-3b-instruct",
   "@cf/meta/llama-3.1-8b-instruct",
-  "@cf/meta/llama-3-8b-instruct",
+  "@cf/meta/llama-3.2-1b-instruct",
+  "@cf/deepseek-ai/deepseek-r1-distill-qwen-32b",
+  "@cf/mistral/mistral-7b-instruct-v0.1",
 ];
 
 const GEMINI_MODELS = [
