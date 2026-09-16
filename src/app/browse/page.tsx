@@ -9,7 +9,7 @@ import { QuickGenreChips } from "@/components/QuickGenreChips";
 import { SortSelector } from "@/components/SortSelector";
 import { Film, ExternalLink, Sparkles } from "lucide-react";
 import { movieApi } from "@/services/movieApi";
-import { resolveActorMovies, fetchMoviesByTitles, GOLDEN_ACTOR_INDEX } from "@/services/aiActorService";
+import { resolveActorMovies, queryMoviesByActor, GOLDEN_ACTOR_INDEX } from "@/services/aiActorService";
 import { searchMoviesBySemantic } from "@/services/aiVectorService";
 import { BrowseAiSearchBanner } from "@/components/BrowseAiSearchBanner";
 import { CuratedMovieSection } from "@/components/CuratedMovieSection";
@@ -197,20 +197,20 @@ export default async function BrowsePage({
   async function fetchActorAndMoviesData(kw: string) {
     if (!kw || kw.trim().length < 2) return null;
     const actorRes = await resolveActorMovies(kw);
-    if (actorRes.isActor && actorRes.titles.length > 0) {
-      const actorAliases = [actorRes.actorName];
+    if (actorRes.isActor) {
+      const actorAliases = [actorRes.actorName, ...(actorRes.aliases || [])];
       const matchedPreset = GOLDEN_ACTOR_INDEX.find(
         (p) => cleanNormalizedForMatch(p.name) === cleanNormalizedForMatch(actorRes.actorName)
       );
       if (matchedPreset) {
         actorAliases.push(...matchedPreset.aliases);
       }
-      const actorMovies = await fetchMoviesByTitles(actorRes.titles, 24, {
-        actorName: actorRes.actorName,
+      const actorMovies = await queryMoviesByActor(
+        actorRes.actorName,
         actorAliases,
-        country: actorRes.country,
-        strictActorFilter: true,
-      });
+        actorRes.country,
+        60
+      );
       return { actorRes, actorMovies, actorAliases };
     }
     return null;
