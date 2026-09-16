@@ -41,22 +41,28 @@ function getGeminiApiKeys(customKey?: string): string[] {
   );
 }
 
-// Các model chính thức đang hoạt động ổn định trên Groq
+// Các model Groq sắp xếp theo thứ tự hạn mức cao nhất trước:
+// 1. allam-2-7b: 7.000 req/ngày (7K)
+// 2. qwen/qwen3.8-27b: 1.000 req/ngày (1K)
+// 3. openai/gpt-oss-120b: 1.000 req/ngày (1K)
+// 4. groq/compound-mini: 250 req/ngày
 const GROQ_MODELS = [
+  "allam-2-7b",
   "qwen/qwen3.8-27b",
   "openai/gpt-oss-120b",
   "groq/compound-mini",
-  "allam-2-7b",
 ];
 
+// Cloudflare Workers AI: 10.000 req/ngày hoàn toàn miễn phí
 const CLOUDFLARE_MODELS = [
   "@cf/meta/llama-3.2-3b-instruct",
   "@cf/meta/llama-3.1-8b-instruct",
   "@cf/meta/llama-3.2-1b-instruct",
-  "@cf/deepseek-ai/deepseek-r1-distill-qwen-32b",
   "@cf/mistral/mistral-7b-instruct-v0.1",
+  "@cf/deepseek-ai/deepseek-r1-distill-qwen-32b",
 ];
 
+// Google Gemini: 4 keys xoay vòng = 6.000 req/ngày
 const GEMINI_MODELS = [
   "gemini-3.6-flash",
   "gemini-2.5-flash-preview",
@@ -246,42 +252,19 @@ async function callGemini(
 }
 
 /**
- * Hàm gọi AI tối ưu 3 lớp (3-tier High Availability):
- * 1. Ưu tiên Groq Llama 3.1 8B / 3.3 70B (Siêu nhanh 150ms - 300ms)
- * 2. Fallback Cloudflare Workers AI (Edge toàn cầu)
- * 3. Fallback Google Gemini Flash
+ * Hàm gọi AI tối ưu theo thứ tự HẠN MỨC CAO NHẤT TRƯỚC (High Quota First):
+ * 1. Cloudflare Workers AI (10.000 requests/ngày miễn phí)
+ * 2. Google Gemini 3.6 Flash (4 keys xoay vòng = 6.000 requests/ngày)
+ * 3. Groq allam-2-7b (7.000 requests/ngày) & qwen3.8 / gpt-oss-120b
  */
 export async function generateFastAiChat(req: AiChatRequest): Promise<AiChatResponse | null> {
   const start = Date.now();
-  const maxTotalTimeout = req.timeoutMs || 4000;
+  const maxTotalTimeout = req.timeoutMs || 4500;
 
-  // 1. THỬ GROQ NẾU CÓ GROQ_API_KEY
-  const groqKeys = getGroqApiKeys();
-  if (groqKeys.length > 0) {
-    for (const key of groqKeys) {
-      for (const model of GROQ_MODELS) {
-        if (Date.now() - start >= maxTotalTimeout) break;
-        const perCallTimeout = Math.min(maxTotalTimeout - (Date.now() - start), 4500);
-        const text = await callGroq(req, key, model, perCallTimeout);
-        if (text && text.trim()) {
-          const providerName: AiChatResponse["provider"] = model.includes("70b") || model.includes("120b")
-            ? "Groq (Llama 3.3 70B)"
-            : "Groq (Llama 3.1 8B)";
-          return {
-            text: text.trim(),
-            provider: providerName,
-            model,
-            latencyMs: Date.now() - start,
-          };
-        }
-      }
-    }
-  }
-
-  // 2. DỰ PHÒNG CLOUDFLARE WORKERS AI (Nhanh và không bị rate limit)
+  // 1. ƯU TIÊN CLOUDFLARE WORKERS AI (HẠN MỨC LỚN NHẤT: 10.000 req/ngày, không giới hạn Token/phút)
   for (const cfModel of CLOUDFLARE_MODELS) {
     if (Date.now() - start >= maxTotalTimeout) break;
-    const perCallTimeout = Math.min(maxTotalTimeout - (Date.now() - start), 1800);
+    const perCallTimeout = Math.min(maxTotalTimeout - (Date.now() - start), 2000);
     const cfText = await callCloudflareAI(req, cfModel, perCallTimeout);
     if (typeof cfText === "string" && cfText.trim()) {
       return {
@@ -293,18 +276,41 @@ export async function generateFastAiChat(req: AiChatRequest): Promise<AiChatResp
     }
   }
 
-  // 3. DỰ PHÒNG GOOGLE GEMINI (CHỈ KHI CÓ KEY AI STUDIO HỢP LỆ)
+  // 2. ƯU TIÊN GOOGLE GEMINI 3.6 FLASH (6.000 req/ngày xoay vòng 4 API Keys)
   const geminiKeys = getGeminiApiKeys(req.customApiKey);
   if (geminiKeys.length > 0) {
     for (const key of geminiKeys) {
       for (const model of GEMINI_MODELS) {
         if (Date.now() - start >= maxTotalTimeout) break;
-        const perCallTimeout = Math.min(maxTotalTimeout - (Date.now() - start), 2000);
+        const perCallTimeout = Math.min(maxTotalTimeout - (Date.now() - start), 2500);
         const text = await callGemini(req, key, model, perCallTimeout);
         if (typeof text === "string" && text.trim()) {
           return {
             text: text.trim(),
             provider: "Google Gemini Flash",
+            model,
+            latencyMs: Date.now() - start,
+          };
+        }
+      }
+    }
+  }
+
+  // 3. GROQ ACCELERATOR (Ưu tiên model 7.000 req/ngày `allam-2-7b` rồi mới đến các model 1.000 req/ngày)
+  const groqKeys = getGroqApiKeys();
+  if (groqKeys.length > 0) {
+    for (const key of groqKeys) {
+      for (const model of GROQ_MODELS) {
+        if (Date.now() - start >= maxTotalTimeout) break;
+        const perCallTimeout = Math.min(maxTotalTimeout - (Date.now() - start), 3000);
+        const text = await callGroq(req, key, model, perCallTimeout);
+        if (text && text.trim()) {
+          const providerName: AiChatResponse["provider"] = model.includes("70b") || model.includes("120b")
+            ? "Groq (Llama 3.3 70B)"
+            : "Groq (Llama 3.1 8B)";
+          return {
+            text: text.trim(),
+            provider: providerName,
             model,
             latencyMs: Date.now() - start,
           };
