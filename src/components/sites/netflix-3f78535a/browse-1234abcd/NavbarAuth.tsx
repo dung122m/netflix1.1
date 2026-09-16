@@ -46,22 +46,20 @@ export const NavbarAuth: React.FC = () => {
     }
   };
 
-  const clearSearch = () => {
+  const clearSearch = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     if (inputRef.current) {
-      inputRef.current.value = ""; // Xoá chữ trong ô input
+      inputRef.current.value = "";
     }
     setHasText(false);
     inputRef.current?.focus();
-
-    // Nếu đang ở trang tìm kiếm, xoá chữ đi thì quay về trang chủ
-    if (searchParams.get("keyword")) {
-      router.push("/browse");
-    }
   };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Lấy giá trị trực tiếp từ DOM khi nhấn Enter
     const currentKeyword = inputRef.current?.value.trim();
 
     if (currentKeyword) {
@@ -95,14 +93,13 @@ export const NavbarAuth: React.FC = () => {
       <div className="flex items-center gap-5 text-white">
         <form
           onSubmit={handleSearchSubmit}
-          className={`flex items-center  transition-all duration-300 border ${isSearchOpen ? "border-white px-2 py-1" : "border-transparent"}`}
+          className={`flex items-center transition-all duration-300 border ${isSearchOpen ? "border-white px-2 py-1" : "border-transparent"}`}
         >
           <Search size={20} className="cursor-pointer" onClick={toggleSearch} />
           <input
             ref={inputRef}
             type="text"
             placeholder="Phim, diễn viên, thể loại..."
-            // Chỉ cập nhật state hasText để ẩn/hiện nút X, không can thiệp vào value của thẻ
             onChange={(e) => setHasText(e.target.value.length > 0)}
             className={`bg-transparent text-white text-sm outline-none transition-all duration-300 ${
               isSearchOpen
@@ -111,11 +108,14 @@ export const NavbarAuth: React.FC = () => {
             }`}
           />
           {isSearchOpen && hasSearchText && (
-            <X
-              size={18}
-              className="cursor-pointer text-gray-400 hover:text-white"
+            <button
+              type="button"
               onClick={clearSearch}
-            />
+              aria-label="Xóa nội dung tìm kiếm"
+              className="p-1 text-gray-400 hover:text-white transition ml-1 flex-shrink-0 cursor-pointer"
+            >
+              <X size={18} />
+            </button>
           )}
         </form>
 

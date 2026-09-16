@@ -175,7 +175,11 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
     }
   };
 
-  const clearSearch = () => {
+  const clearSearch = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     if (inputRef.current) inputRef.current.value = "";
     if (mobileInputRef.current) mobileInputRef.current.value = "";
     setHasText(false);
@@ -183,10 +187,6 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
     setShowDropdown(recentSearches.length > 0);
     inputRef.current?.focus();
     mobileInputRef.current?.focus();
-
-    if (searchParams.get("keyword")) {
-      router.push("/browse");
-    }
   };
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -485,11 +485,14 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
           />
 
           {isSearchOpen && hasSearchText && (
-            <X
-              size={15}
-              className="cursor-pointer text-gray-400 hover:text-white transition ml-1 flex-shrink-0"
+            <button
+              type="button"
               onClick={clearSearch}
-            />
+              aria-label="Xóa nội dung tìm kiếm"
+              className="p-1 text-gray-400 hover:text-white transition ml-1 flex-shrink-0 cursor-pointer rounded-full hover:bg-white/10"
+            >
+              <X size={15} />
+            </button>
           )}
         </form>
 
