@@ -836,6 +836,14 @@ const CACHE_7_DAYS = 7 * 24 * 60 * 60 * 1000;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ACTOR_FILM_CACHE = new Map<string, { items: any[]; expireAt: number }>();
 
+function setBoundedCache<K, V>(map: Map<K, V>, key: K, value: V, max = 500) {
+  if (map.size >= max) {
+    const oldestKey = map.keys().next().value;
+    if (oldestKey !== undefined) map.delete(oldestKey);
+  }
+  map.set(key, value);
+}
+
 /**
  * Chuẩn hoá chuỗi để so khớp không dấu
  */
@@ -968,7 +976,7 @@ BẮT BUỘC chỉ trả về DUY NHẤT một chuỗi JSON hợp lệ theo đ�
           const country = parsed.country || undefined;
           const titles = parsed.titles.filter((t: unknown): t is string => typeof t === "string" && t.trim().length > 0);
 
-          ACTOR_AI_CACHE.set(cleanRaw, {
+          setBoundedCache(ACTOR_AI_CACHE, cleanRaw, {
             actorName,
             country,
             titles,
@@ -984,7 +992,7 @@ BẮT BUỘC chỉ trả về DUY NHẤT một chuỗi JSON hợp lệ theo đ�
             source: "ai",
           };
         } else {
-          ACTOR_AI_CACHE.set(cleanRaw, {
+          setBoundedCache(ACTOR_AI_CACHE, cleanRaw, {
             actorName: "",
             titles: [],
             isActor: false,
@@ -1120,7 +1128,7 @@ export async function fetchMoviesByTitles(
   }
 
   if (results.length > 0) {
-    ACTOR_FILM_CACHE.set(cacheKey, {
+    setBoundedCache(ACTOR_FILM_CACHE, cacheKey, {
       items: results,
       expireAt: Date.now() + 24 * 60 * 60 * 1000,
     });

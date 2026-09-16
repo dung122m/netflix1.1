@@ -49,6 +49,8 @@ export function CommunityTopTrending() {
   const [timeframe, setTimeframe] = useState<"total" | "week">("total");
   const [isFading, setIsFading] = useState(false);
   const tabCacheRef = useRef<Partial<Record<"total" | "week", MovieViewStatItem[]>>>({});
+  const timeframeRef = useRef(timeframe);
+  timeframeRef.current = timeframe;
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
@@ -86,7 +88,8 @@ export function CommunityTopTrending() {
           } catch {}
         }
 
-        const initialList = (timeframe === "week" ? weekRes?.items : totalRes?.items) || totalRes?.items || weekRes?.items || [];
+        const currentTf = timeframeRef.current;
+        const initialList = (currentTf === "week" ? weekRes?.items : totalRes?.items) || totalRes?.items || weekRes?.items || [];
         if (initialList.length > 0) {
           setItems(initialList);
         }

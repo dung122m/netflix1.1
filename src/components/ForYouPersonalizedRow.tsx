@@ -29,11 +29,12 @@ interface ForYouMovieItem {
   matchReason?: string;
 }
 
+const CACHE_KEY_NAME = "nanaflix_foryou_cache_v3";
+const CACHE_TTL = 15 * 60 * 1000; // 15 phút
+
 export function ForYouPersonalizedRow() {
   const { user } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const CACHE_KEY_NAME = "nanaflix_foryou_cache_v3";
-  const CACHE_TTL = 15 * 60 * 1000; // 15 phút
 
   const [movies, setMovies] = useState<ForYouMovieItem[]>(() => {
     if (typeof window !== "undefined") {

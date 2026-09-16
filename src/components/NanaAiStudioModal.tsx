@@ -127,6 +127,8 @@ export const NanaAiStudioModal: React.FC = () => {
   const [rolledSlugs, setRolledSlugs] = useState<string[]>([]);
 
   // LISTEN TO GLOBAL DISPATCH EVENTS
+  const sendChatMessageRef = useRef<(textToSend?: string) => Promise<void>>(() => Promise.resolve());
+
   useEffect(() => {
     const handleOpenStudio = (e?: CustomEvent<{ tab?: StudioTab }>) => {
       setIsOpen(true);
@@ -139,7 +141,7 @@ export const NanaAiStudioModal: React.FC = () => {
       if (e?.detail?.prompt) {
         setChatInput(e.detail.prompt);
         if (e.detail.autoSearch) {
-          setTimeout(() => sendChatMessage(e.detail?.prompt), 100);
+          setTimeout(() => sendChatMessageRef.current(e.detail?.prompt), 100);
         }
       }
     };
@@ -149,7 +151,7 @@ export const NanaAiStudioModal: React.FC = () => {
       setActiveTab("concierge");
       if (e?.detail?.mood) {
         setChatInput(e.detail.mood);
-        setTimeout(() => sendChatMessage(e.detail?.mood), 100);
+        setTimeout(() => sendChatMessageRef.current(e.detail?.mood), 100);
       }
     };
 
@@ -237,18 +239,19 @@ export const NanaAiStudioModal: React.FC = () => {
         setChatMessages((prev) => [...prev, errMsg]);
       }
     } catch (err) {
-      console.warn("Lỗi chat Nana AI:", err);
-      const errMsg: ChatMessage = {
-        id: `bot-${Date.now()}`,
+      console.error("Lỗi gửi tin nhắn AI:", err);
+      const errorMsg: ChatMessage = {
+        id: `ai-${Date.now()}`,
         role: "assistant",
-        text: "Không thể kết nối đến máy chủ AI. Vui lòng kiểm tra lại kết nối mạng!",
+        text: "Xin lỗi bạn, Nana đang gặp chút trục trặc khi kết nối với máy chủ AI. Bạn hãy thử lại sau giây lát nhé!",
         time: new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
       };
-      setChatMessages((prev) => [...prev, errMsg]);
+      setChatMessages((prev) => [...prev, errorMsg]);
     } finally {
       setChatLoading(false);
     }
   };
+  sendChatMessageRef.current = sendChatMessage;
 
   // TAB 2 ACTIONS: ROULETTE SPIN (GUARANTEED NO REPETITIONS)
   const spinRoulette = async () => {

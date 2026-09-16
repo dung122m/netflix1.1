@@ -49,32 +49,7 @@ export const AiMoodMatcherModal: React.FC = () => {
   const [provider, setProvider] = useState<string | null>(null);
   const inputId = useId();
 
-  useEffect(() => {
-    const handleOpen = (e?: CustomEvent<{ mood?: string }>) => {
-      setIsOpen(true);
-      if (e?.detail?.mood) {
-        setInputMood(e.detail.mood);
-        handleMatch(e.detail.mood);
-      }
-    };
-
-    window.addEventListener("open-ai-mood-matcher" as unknown as keyof WindowEventMap, handleOpen as EventListener);
-    return () => {
-      window.removeEventListener("open-ai-mood-matcher" as unknown as keyof WindowEventMap, handleOpen as EventListener);
-    };
-  }, []);
-
-  // Đóng bằng phím ESC
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setIsOpen(false);
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen]);
-
-  const handleMatch = async (customText?: string) => {
+  const handleMatch = useCallback(async (customText?: string) => {
     const textToMatch = customText || inputMood;
     if (!textToMatch || textToMatch.trim().length < 2) return;
 
@@ -102,7 +77,32 @@ export const AiMoodMatcherModal: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [inputMood]);
+
+  useEffect(() => {
+    const handleOpen = (e?: CustomEvent<{ mood?: string }>) => {
+      setIsOpen(true);
+      if (e?.detail?.mood) {
+        setInputMood(e.detail.mood);
+        handleMatch(e.detail.mood);
+      }
+    };
+
+    window.addEventListener("open-ai-mood-matcher" as unknown as keyof WindowEventMap, handleOpen as EventListener);
+    return () => {
+      window.removeEventListener("open-ai-mood-matcher" as unknown as keyof WindowEventMap, handleOpen as EventListener);
+    };
+  }, [handleMatch]);
+
+  // Đóng bằng phím ESC
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsOpen(false);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 

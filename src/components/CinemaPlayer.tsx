@@ -254,7 +254,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     const currentMovieSlug = watchContext?.movieSlug || propMovieSlug;
     const savedProgress = currentMovieSlug && activeEpisodeSlug ? getWatchProgress(currentMovieSlug, activeEpisodeSlug) : 0;
     return savedProgress > 3 ? savedProgress : 0;
-  }, [initialTime, urlParamT, watchContext?.movieSlug, propMovieSlug, activeEpisodeSlug]);
+  }, [initialTime, urlParamT, watchContext?.movieSlug, propMovieSlug, activeEpisodeSlug, initialEpisodeSlug]);
 
   const hasSeekedInitialRef = useRef<boolean>(false);
   useEffect(() => {

@@ -18,6 +18,15 @@ function normalizeForMatch(str: string): string {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const SUGGEST_CACHE = new Map<string, { data: any; expireAt: number }>();
 const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+const MAX_SUGGEST_CACHE = 400;
+
+function setBoundedSuggestCache<K, V>(map: Map<K, V>, key: K, value: V, max = MAX_SUGGEST_CACHE) {
+  if (map.size >= max) {
+    const oldestKey = map.keys().next().value;
+    if (oldestKey !== undefined) map.delete(oldestKey);
+  }
+  map.set(key, value);
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -102,7 +111,7 @@ export async function GET(req: NextRequest) {
     }
 
     const responseData = { items };
-    SUGGEST_CACHE.set(cleanKey, { data: responseData, expireAt: Date.now() + CACHE_TTL });
+    setBoundedSuggestCache(SUGGEST_CACHE, cleanKey, { data: responseData, expireAt: Date.now() + CACHE_TTL });
 
     return NextResponse.json(responseData);
   } catch (error) {
