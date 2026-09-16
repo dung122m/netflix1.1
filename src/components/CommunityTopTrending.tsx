@@ -16,35 +16,8 @@ import { MovieViewStatItem } from "@/services/supabaseService";
 export function CommunityTopTrending() {
   const TRENDING_CACHE_KEY = "nanaflix_trending_community_cache";
 
-  const [items, setItems] = useState<MovieViewStatItem[]>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const raw = localStorage.getItem(TRENDING_CACHE_KEY);
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed?.total) && parsed.total.length > 0) {
-            return parsed.total;
-          }
-        }
-      } catch {}
-    }
-    return [];
-  });
-
-  const [loading, setLoading] = useState<boolean>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const raw = localStorage.getItem(TRENDING_CACHE_KEY);
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed?.total) && parsed.total.length > 0) {
-            return false;
-          }
-        }
-      } catch {}
-    }
-    return true;
-  });
+  const [items, setItems] = useState<MovieViewStatItem[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
 
   const [timeframe, setTimeframe] = useState<"total" | "week">("total");
   const [isFading, setIsFading] = useState(false);

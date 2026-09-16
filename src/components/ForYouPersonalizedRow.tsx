@@ -36,48 +36,9 @@ export function ForYouPersonalizedRow() {
   const { user } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
 
-  const [movies, setMovies] = useState<ForYouMovieItem[]>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const rawCached = localStorage.getItem(CACHE_KEY_NAME) || sessionStorage.getItem(CACHE_KEY_NAME);
-        if (rawCached) {
-          const cached = JSON.parse(rawCached);
-          if (Array.isArray(cached?.items) && cached.items.length >= 6) {
-            return cached.items;
-          }
-        }
-      } catch {}
-    }
-    return [];
-  });
-
-  const [contextText, setContextText] = useState<string>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const rawCached = localStorage.getItem(CACHE_KEY_NAME) || sessionStorage.getItem(CACHE_KEY_NAME);
-        if (rawCached) {
-          const cached = JSON.parse(rawCached);
-          if (cached?.context) return cached.context;
-        }
-      } catch {}
-    }
-    return "Tuyển chọn chuẩn gu cho bạn";
-  });
-
-  const [loading, setLoading] = useState<boolean>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const rawCached = localStorage.getItem(CACHE_KEY_NAME) || sessionStorage.getItem(CACHE_KEY_NAME);
-        if (rawCached) {
-          const cached = JSON.parse(rawCached);
-          if (Array.isArray(cached?.items) && cached.items.length >= 6) {
-            return false;
-          }
-        }
-      } catch {}
-    }
-    return true;
-  });
+  const [movies, setMovies] = useState<ForYouMovieItem[]>([]);
+  const [contextText, setContextText] = useState<string>("Tuyển chọn chuẩn gu cho bạn");
+  const [loading, setLoading] = useState<boolean>(true);
 
   const [refreshCount, setRefreshCount] = useState<number>(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
