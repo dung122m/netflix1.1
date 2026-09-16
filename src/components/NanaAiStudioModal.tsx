@@ -24,9 +24,7 @@ import {
   Heart,
   ChevronRight,
   Compass,
-  Film,
   Star,
-  Tv,
 } from "lucide-react";
 
 // ============================================================================
