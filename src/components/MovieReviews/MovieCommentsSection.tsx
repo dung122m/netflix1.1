@@ -26,7 +26,7 @@ import {
   calculateMovieRatingStats,
   reportCommentViolation,
 } from "@/services/commentService";
-import { checkContentModeration } from "@/lib/contentModeration";
+import { checkContentModeration, detectSpoiler } from "@/lib/contentModeration";
 import { subscribeUserProfile } from "@/services/userService";
 import { UserProfile } from "@/types/user";
 import { StarRating } from "./StarRating";
@@ -260,6 +260,14 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
       return;
     }
 
+    // Tự động nhận diện Spoiler nếu người dùng chưa tích chọn
+    const autoSpoiler = detectSpoiler(trimmed);
+    const finalIsSpoiler = isSpoiler || autoSpoiler;
+    if (autoSpoiler && !isSpoiler) {
+      setIsSpoiler(true);
+      toast.info("🛡️ Đã tự động bật cảnh báo Spoiler do bình luận chứa tình tiết/kết phim!", { duration: 4000 });
+    }
+
     setIsSubmitting(true);
 
     // Timeout 10s: tránh UI bị kẹt "Đang lưu..." vô hạn nếu kết nối máy chủ chậm
@@ -277,7 +285,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
             scopeEpisode === "episode" && currentEpisodeSlug ? currentEpisodeSlug : undefined,
           episodeName:
             scopeEpisode === "episode" && currentEpisodeName ? currentEpisodeName : undefined,
-          isSpoiler,
+          isSpoiler: finalIsSpoiler,
         };
 
         // 1. Optimistic update local state ngay lập tức
@@ -311,7 +319,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
             scopeEpisode === "episode" && currentEpisodeSlug ? currentEpisodeSlug : undefined,
           episodeName:
             scopeEpisode === "episode" && currentEpisodeName ? currentEpisodeName : undefined,
-          isSpoiler,
+          isSpoiler: finalIsSpoiler,
         });
         setComments((prev) => [
           {
@@ -328,7 +336,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
               scopeEpisode === "episode" && currentEpisodeSlug ? currentEpisodeSlug : undefined,
             episodeName:
               scopeEpisode === "episode" && currentEpisodeName ? currentEpisodeName : undefined,
-            isSpoiler,
+            isSpoiler: finalIsSpoiler,
             likes: 0,
             dislikes: 0,
             likedBy: [],
@@ -569,7 +577,13 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
             <div className="relative">
               <textarea
                 value={content}
-                onChange={(e) => setContent(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setContent(val);
+                  if (!isSpoiler && detectSpoiler(val)) {
+                    setIsSpoiler(true);
+                  }
+                }}
                 placeholder="Chia sẻ cảm nghĩ của bạn về bộ phim... (Vui lòng không tiết lộ trước nội dung 🤫)"
                 rows={3}
                 className="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-red-500/60 focus:ring-1 focus:ring-red-500/30 resize-y transition-all"

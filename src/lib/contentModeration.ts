@@ -222,3 +222,55 @@ export function checkUserRateLimit(userId: string, maxPostsInWindow = 4, windowS
   userPostTimestamps.set(userId, validTimestamps);
   return true;
 }
+
+// 4. Danh sách cụm từ nhận diện tự động tiết lộ nội dung (Auto Spoiler Detection)
+const SPOILER_PHRASES = [
+  // Cảnh báo trực tiếp
+  "spoiler", "spoil",
+  
+  // Cái kết & hồi kết
+  "cai ket", "cái kết",
+  "ket phim", "kết phim",
+  "ket thuc phim", "kết thúc phim",
+  "doan ket", "đoạn kết",
+  "hoi ket", "hồi kết",
+  "cuoi phim", "cuối phim",
+  "ket cuc", "kết cục",
+  "tap cuoi", "tập cuối",
+  "canh cuoi", "cảnh cuối",
+  "ket mo", "kết mở",
+  "ket hau", "kết hậu",
+  "after credit", "mid credit", "post credit",
+
+  // Cốt truyện & cú twist
+  "trum cuoi", "trùm cuối",
+  "hung thu", "hung thủ",
+  "thu pham", "thủ phạm",
+  "ke phan boi", "kẻ phản bội",
+  "plot twist", "cu twist", "cú twist",
+  "cai chet cua", "cái chết của",
+  "chet o cuoi", "chết ở cuối",
+  "thuc ra la", "thực ra là",
+  "thuc chat la", "thực chất là",
+  "hoa ra la", "hóa ra là",
+  "giai thich ket", "giải thích kết"
+];
+
+/**
+ * Tự động phát hiện xem bình luận có chứa chi tiết tiết lộ kết thúc hoặc cốt truyện (Spoiler) hay không
+ */
+export function detectSpoiler(content: string): boolean {
+  if (!content) return false;
+  const normalized = normalizeTextForModeration(content);
+  const normalizedNoAccents = removeVietnameseAccents(normalized);
+
+  for (const phrase of SPOILER_PHRASES) {
+    const phraseNoAcc = removeVietnameseAccents(phrase.toLowerCase());
+    if (normalized.includes(phrase) || normalizedNoAccents.includes(phraseNoAcc)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+

@@ -1,6 +1,6 @@
 import { MovieComment, MovieRatingStats, CommentReactionType } from "@/types/comment";
 import { UserNotification } from "@/types/notification";
-import { checkContentModeration } from "@/lib/contentModeration";
+import { checkContentModeration, detectSpoiler } from "@/lib/contentModeration";
 import { sanitizeSafeText } from "@/lib/security";
 import {
   postCommentSupabase,
@@ -656,7 +656,7 @@ export async function addMovieComment(
     likedBy: [],
     reactions: {},
     replyCount: 0,
-    isSpoiler: !!comment.isSpoiler,
+    isSpoiler: Boolean(comment.isSpoiler || detectSpoiler(comment.content)),
     isPinned: false,
     episodeSlug: comment.episodeSlug,
     episodeName: comment.episodeName,
@@ -744,12 +744,12 @@ export async function addReplyComment(params: {
     userAvatar: params.userAvatar,
     userEmail: params.userEmail,
     content: sanitizeSafeText(replyData.content, 2500),
+    isSpoiler: Boolean(params.isSpoiler || detectSpoiler(params.content)),
     parentId,
     parentOwnerId,
     replyToUserId,
     replyToUserName: replyToUserName ? sanitizeSafeText(replyToUserName, 100) : undefined,
     rating: 0,
-    isSpoiler: params.isSpoiler,
   });
 
   const fullReply: MovieComment = {
@@ -947,6 +947,10 @@ export async function updateMovieComment(
     );
   });
 
+  const finalIsSpoiler = data.isSpoiler !== undefined 
+    ? (data.isSpoiler || (data.content ? detectSpoiler(data.content) : false))
+    : (data.content ? detectSpoiler(data.content) : undefined);
+
   // 2. Ghi trực tiếp vào Supabase Database trước
   if (isSupabaseConfigured()) {
     try {
@@ -955,7 +959,7 @@ export async function updateMovieComment(
         content: data.content,
         episode_slug: data.episodeSlug || null,
         episode_name: data.episodeName || null,
-        is_spoiler: data.isSpoiler,
+        is_spoiler: finalIsSpoiler,
       });
     } catch {
       fetch("/api/comments", {

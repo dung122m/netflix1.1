@@ -29,7 +29,7 @@ import {
   togglePinComment,
 } from "@/services/commentService";
 import { isUserAdmin } from "@/lib/adminConfig";
-import { checkContentModeration } from "@/lib/contentModeration";
+import { checkContentModeration, detectSpoiler } from "@/lib/contentModeration";
 import { toast } from "@/components/Toast";
 import { showConfirmDialog } from "@/components/ui/ConfirmDialog";
 
@@ -305,6 +305,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
         userName: currentUserName,
         userAvatar: currentUserAvatar,
         content: trimmed,
+        isSpoiler: detectSpoiler(trimmed),
         rating: 0,
         likes: 0,
         likedBy: [],
