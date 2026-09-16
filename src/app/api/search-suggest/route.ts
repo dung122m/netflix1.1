@@ -6,6 +6,8 @@ import { pickBestMoviePoster, MovieLike } from "@/lib/movieMedia";
 function normalizeForMatch(str: string): string {
   return (str || "")
     .toLowerCase()
+    .replace(/đ/gi, "d")
+    .replace(/Đ/gi, "d")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^\w\s]/gi, " ")
