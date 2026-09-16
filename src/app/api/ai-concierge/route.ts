@@ -5,7 +5,7 @@ import { generateFastAiChat } from "@/services/aiProviderService";
 
 export const maxDuration = 15;
 
-interface SuggestionCard {
+export interface SuggestionCard {
   slug: string;
   title: string;
   poster: string;
@@ -16,26 +16,6 @@ interface SuggestionCard {
   country?: string;
   actors?: string[];
   reason?: string;
-}
-
-interface UserIntent {
-  category?: string;
-  country?: string;
-  countryName?: string;
-  excludedCountries?: string[];
-  actor?: string;
-  director?: string;
-  universe?: string;
-  timePeriod?: string;
-  isNsfw?: boolean;
-  isOffTopic?: boolean;
-  isHealingRural?: boolean;
-  isTimeLoop?: boolean;
-  isDisasterNonUs?: boolean;
-  isAnimeCrossover?: boolean;
-  moodLabel: string;
-  defaultAnalysis: string;
-  reasons: string[];
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -57,6 +37,24 @@ function toSafeActors(item: any): string[] {
     return item.actor.split(",").map((s: string) => s.trim()).filter(Boolean);
   }
   return [];
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function toSafeCountry(item: any): string {
+  if (Array.isArray(item?.country) && item.country.length > 0) {
+    return item.country[0]?.name || item.country[0]?.slug || "";
+  }
+  if (typeof item?.country === "string") return item.country;
+  return "";
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function toSafeCategory(item: any): string {
+  if (Array.isArray(item?.category) && item.category.length > 0) {
+    return item.category[0]?.name || item.category[0]?.slug || "Điện Ảnh";
+  }
+  if (typeof item?.category === "string") return item.category;
+  return "Điện Ảnh";
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -125,7 +123,7 @@ async function queryPhimApiDirect(keyword: string, originalKeyword?: string): Pr
   try {
     const res = await fetch(
       `https://phimapi.com/v1/api/tim-kiem?keyword=${encodeURIComponent(keyword.trim())}&limit=6`,
-      { signal: AbortSignal.timeout(2200), next: { revalidate: 3600 } }
+      { signal: AbortSignal.timeout(2400), next: { revalidate: 3600 } }
     );
     if (!res.ok) return null;
     const json = await res.json();
@@ -151,11 +149,12 @@ async function queryPhimApiDirect(keyword: string, originalKeyword?: string): Pr
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function searchSingleMovieFast(title: string, originalTitle: string): Promise<any> {
+async function searchSingleMovieFast(title: string, originalTitle?: string): Promise<any> {
   const cleanTitle = (title || "").replace(/\([^)]*\)/g, "").replace(/\[[^\]]*\]/g, "").trim();
   const cleanOriginal = (originalTitle || "").replace(/\([^)]*\)/g, "").replace(/\[[^\]]*\]/g, "").trim();
-  const key = `${cleanTitle}__${cleanOriginal}`.toLowerCase();
+  if (!cleanTitle && !cleanOriginal) return null;
 
+  const key = `${cleanTitle}__${cleanOriginal}`.toLowerCase();
   const cached = TITLE_LOOKUP_CACHE.get(key);
   if (cached && Date.now() < cached.expireAt) return cached.item;
 
@@ -173,7 +172,7 @@ async function searchSingleMovieFast(title: string, originalTitle: string): Prom
     try {
       const res1 = await Promise.race([
         movieApi.getMovies({ keyword: cleanTitle, page: 1, limit: 5 }),
-        new Promise<null>((resolve) => setTimeout(() => resolve(null), 2500)),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 2000)),
       ]);
       if (res1?.items && res1.items.length > 0) {
         foundItem = findBestMatchMovie(res1.items, cleanTitle, cleanOriginal);
@@ -196,231 +195,10 @@ async function searchSingleMovieFast(title: string, originalTitle: string): Prom
   if (foundItem) {
     TITLE_LOOKUP_CACHE.set(key, { item: foundItem, expireAt: Date.now() + 1000 * 60 * 60 * 24 });
   } else {
-    TITLE_LOOKUP_CACHE.set(key, { item: null, expireAt: Date.now() + 1000 * 30 });
+    TITLE_LOOKUP_CACHE.set(key, { item: null, expireAt: Date.now() + 1000 * 60 });
   }
 
   return foundItem;
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function toSafeCountry(item: any): string {
-  if (Array.isArray(item?.country) && item.country.length > 0) {
-    return item.country[0]?.slug || item.country[0]?.name || "";
-  }
-  if (typeof item?.country === "string") return item.country;
-  return "";
-}
-
-// BỘ PHÂN TÍCH Ý ĐỊNH ĐA CHIỀU & BỘ QUY TẮC NÂNG CAO (Anti-Bias, Negative Filter, Concepts)
-function parseUserIntent(prompt: string): UserIntent {
-  const p = prompt.toLowerCase();
-
-  // 1. KIỂM TRA EDGE CASE: NỘI DUNG 18+ / NHẠY CẢM
-  const isNsfw =
-    p.includes("18+") ||
-    p.includes("sex") ||
-    p.includes("khiêu dâm") ||
-    p.includes("khieu dam") ||
-    p.includes("hentai") ||
-    p.includes("jav") ||
-    p.includes("phim cấp 3") ||
-    p.includes("phim cap 3") ||
-    p.includes("phim heo") ||
-    p.includes("nude") ||
-    p.includes("người lớn") ||
-    p.includes("nguoi lon");
-
-  // 2. KIỂM TRA EDGE CASE: NGOÀI LỀ PHIM ẢNH
-  const isOffTopic =
-    (p.includes("nấu") || p.includes("cách làm") || p.includes("công thức") || p.includes("nấu phở") || p.includes("phở bò")) &&
-    !p.includes("phim") &&
-    !p.includes("xem") ||
-    p.includes("thời tiết") ||
-    p.includes("viết code") ||
-    p.includes("lập trình") ||
-    p.includes("chứng khoán") ||
-    p.includes("giải toán");
-
-  // 3. NEGATIVE CONSTRAINTS (LOẠI TRỪ KHẮT KHE)
-  const excludedCountries: string[] = [];
-  if (
-    (p.includes("không lấy") || p.includes("không phải") || p.includes("trừ") || p.includes("loại trừ") || p.includes("ko lấy")) &&
-    (p.includes("mỹ") || p.includes("hollywood") || p.includes("âu mỹ") || p.includes("us"))
-  ) {
-    excludedCountries.push("au-my", "us", "hollywood");
-  }
-
-  // 4. VIBE / CHỮA LÀNH ĐỒNG QUÊ / ZERO DRAMA
-  const isHealingRural =
-    (p.includes("chữa lành") || p.includes("chua lanh") || p.includes("đồng quê") || p.includes("dong que") || p.includes("chán nản") || p.includes("bình yên")) &&
-    (p.includes("nhẹ nhàng") || p.includes("không có drama") || p.includes("không drama") || p.includes("không cãi vã") || p.includes("chill"));
-
-  // 5. CONCEPT VÒNG LẶP THỜI GIAN (TIME LOOP)
-  const isTimeLoop =
-    p.includes("vòng lặp") ||
-    p.includes("vong lap") ||
-    p.includes("time loop") ||
-    p.includes("chết đi sống lại") ||
-    p.includes("chet di song lai") ||
-    p.includes("lặp lại một ngày") ||
-    p.includes("lặp lại ngày");
-
-  // 6. PHIM THẢM HỌA KHÔNG PHẢI MỸ
-  const isDisasterNonUs =
-    (p.includes("thảm họa") || p.includes("tham hoa") || p.includes("sóng thần") || p.includes("song than") || p.includes("động đất")) &&
-    excludedCountries.length > 0;
-
-  // 7. CROSSOVER STYLE (ANIME TRINH THÁM + VISUAL MAKOTO SHINKAI)
-  const isAnimeCrossover =
-    (p.includes("anime") || p.includes("hoạt hình")) &&
-    (p.includes("trinh thám") || p.includes("conan") || p.includes("hack não") || p.includes("bí ẩn")) &&
-    (p.includes("makoto shinkai") || p.includes("shinkai") || p.includes("đẹp lung linh") || p.includes("màu phim"));
-
-  // 8. VŨ TRỤ ĐIỆN ẢNH & TIMELINE
-  let universe = "";
-  if (p.includes("marvel") || p.includes("mcu") || p.includes("avengers") || p.includes("siêu anh hùng")) {
-    universe = "Marvel Cinematic Universe (MCU)";
-  } else if (p.includes("dc") || p.includes("batman") || p.includes("superman") || p.includes("justice league")) {
-    universe = "DC Extended Universe (DCEU)";
-  } else if (p.includes("harry potter") || p.includes("phù thủy") || p.includes("hogwarts")) {
-    universe = "Thế Giới Phù Thủy Harry Potter";
-  } else if (p.includes("chúa nhẫn") || p.includes("lord of the rings") || p.includes("hobbit")) {
-    universe = "Chúa Tể Những Chiếc Nhẫn (Lord of the Rings)";
-  } else if (p.includes("star wars") || p.includes("chiến tranh giữa các vì sao")) {
-    universe = "Vũ Trụ Star Wars";
-  }
-
-  // 9. ĐẠO DIỄN
-  let director = "";
-  const FAMOUS_DIRECTORS = [
-    { keywords: ["christopher nolan", "nolan"], name: "Christopher Nolan" },
-    { keywords: ["quentin tarantino", "tarantino"], name: "Quentin Tarantino" },
-    { keywords: ["denis villeneuve", "villeneuve"], name: "Denis Villeneuve" },
-    { keywords: ["james cameron", "cameron"], name: "James Cameron" },
-    { keywords: ["david fincher", "fincher"], name: "David Fincher" },
-    { keywords: ["bong joon-ho", "bong joon ho"], name: "Bong Joon-ho" },
-    { keywords: ["hayao miyazaki", "miyazaki", "ghibli"], name: "Hayao Miyazaki" },
-    { keywords: ["makoto shinkai", "shinkai"], name: "Makoto Shinkai" },
-    { keywords: ["châu tinh trì", "stephen chow"], name: "Châu Tinh Trì" },
-  ];
-  for (const d of FAMOUS_DIRECTORS) {
-    if (d.keywords.some((kw) => p.includes(kw))) {
-      director = d.name;
-      break;
-    }
-  }
-
-  // 10. DIỄN VIÊN
-  let actor = "";
-  const FAMOUS_ACTORS: Array<{
-    keywords: string[];
-    name: string;
-    country?: string;
-    countryName?: string;
-    category?: string;
-  }> = [
-    { keywords: ["thành long", "jackie chan"], name: "Thành Long", country: "hong-kong", countryName: "Hồng Kông 🇭🇰", category: "vo-thuat" },
-    { keywords: ["châu tinh trì", "stephen chow"], name: "Châu Tinh Trì", country: "hong-kong", countryName: "Hồng Kông 🇭🇰", category: "hai-huoc" },
-    { keywords: ["chân tử đan", "donnie yen"], name: "Chân Tử Đan", country: "trung-quoc", countryName: "Trung Quốc 🇨🇳", category: "vo-thuat" },
-    { keywords: ["lý liên kiệt", "jet li"], name: "Lý Liên Kiệt", country: "trung-quoc", countryName: "Trung Quốc 🇨🇳", category: "vo-thuat" },
-    { keywords: ["ngô kinh", "wu jing"], name: "Ngô Kinh", country: "trung-quoc", countryName: "Trung Quốc 🇨🇳", category: "hanh-dong" },
-    { keywords: ["tom cruise"], name: "Tom Cruise", country: "au-my", countryName: "Hollywood 🇺🇸", category: "hanh-dong" },
-    { keywords: ["leonardo dicaprio", "dicaprio"], name: "Leonardo DiCaprio", country: "au-my", countryName: "Hollywood 🇺🇸", category: "tam-ly" },
-    { keywords: ["keanu reeves", "john wick"], name: "Keanu Reeves", country: "au-my", countryName: "Hollywood 🇺🇸", category: "hanh-dong" },
-  ];
-
-  for (const act of FAMOUS_ACTORS) {
-    if (act.keywords.some((kw) => p.includes(kw))) {
-      actor = act.name;
-      break;
-    }
-  }
-
-  // 11. PHÂN LOẠI THỂ LOẠI & LỜI PHÂN TÍCH TỰ NHIÊN MẶC ĐỊNH
-  let category = "";
-  let moodLabel = "";
-  let defaultAnalysis = "";
-  let reasons: string[] = [];
-
-  if (isHealingRural) {
-    category = "tinh-cam";
-    moodLabel = "Đồng Quê Bình Yên & Chữa Lành Không Drama 🌾🏡";
-    defaultAnalysis =
-      "Chào bạn! Những ngày mệt mỏi thế này thì những thước phim êm đềm, hòa mình vào thiên nhiên và không hề có drama cãi vã là liều thuốc chữa lành tuyệt vời nhất. Cùng thả lỏng và tận hưởng những kiệt tác bình yên này nhé:";
-    reasons = [
-      "Bình yên, nhẹ nhàng đưa bạn về với thiên nhiên đồng quê và ẩm thực thuần khiết",
-      "Không hề có drama tranh đấu hay cãi vã, chỉ có sự bình thản và dịu êm",
-      "Xoa dịu tâm trạng mệt mỏi và nạp đầy năng lượng tích cực cho tâm hồn",
-    ];
-  } else if (isTimeLoop) {
-    category = "tam-ly";
-    moodLabel = "Vòng Lặp Thời Gian & Chết Đi Sống Lại (Time Loop) ⏳🌀";
-    defaultAnalysis =
-      "Chào bạn! Vòng lặp thời gian (Time Loop) là một trong những đề tài khoa học viễn tưởng - tâm lý lôi cuốn bậc nhất với những kịch bản 'chết đi sống lại' đầy nghẹt thở và kịch tính. Dưới đây là trọn bộ những siêu phẩm time loop đỉnh cao nhất:";
-    reasons = [
-      "Cơ chế vòng lặp thời gian lôi cuốn, gay cấn từng giây",
-      "Mỗi lần 'reset' là một nước đi chiến thuật và khám phá bí ẩn mới",
-      "Cú lật ngược tình thế ngoạn mục thoát khỏi vòng xoáy vô tận",
-    ];
-  } else if (isDisasterNonUs) {
-    category = "hanh-dong";
-    moodLabel = "Thảm Họa & Sóng Thần Châu Á & Quốc Tế (Non-US) 🌊🚨";
-    defaultAnalysis =
-      "Chào bạn! Tuân thủ đúng yêu cầu 'không lấy phim Mỹ/Hollywood', Nana đã tuyển chọn các kiệt tác thảm họa thiên nhiên và sóng thần xuất sắc của điện ảnh Hàn Quốc, Na Uy và Châu Á với những đại cảnh hùng tráng và tình người sâu sắc:";
-    reasons = [
-      "Khai thác thảm họa chân thực, chạm tới cảm xúc gia đình và tình người sâu sắc",
-      "Kỹ xảo điện ảnh chân thực, nghẹt thở từng phân cảnh",
-      "Đặc sắc văn hóa bản địa khác biệt hoàn toàn với công thức Hollywood",
-    ];
-  } else if (isAnimeCrossover) {
-    category = "hoat-hinh";
-    moodLabel = "Anime Trinh Thám Suy Luận Đồ Họa Tuyệt Mỹ 🎨🔍";
-    defaultAnalysis =
-      "Chào bạn! Sự giao thoa giữa cốt truyện trinh thám/bí ẩn hack não và mỹ thuật ánh sáng lung linh đạt chuẩn điện ảnh Makoto Shinkai sẽ mang lại cho bạn trải nghiệm thị giác và tư duy trọn vẹn nhất. Dưới đây là các kiệt tác anime xuất sắc:";
-    reasons = [
-      "Màu phim và hiệu ứng ánh sáng lung linh huyền ảo từng khung hình",
-      "Cốt truyện trinh thám suy luận tinh tế, bí ẩn đan xen tầng tầng lớp lớp",
-      "Âm nhạc lay động lòng người và trải nghiệm thị giác đỉnh chóp",
-    ];
-  } else {
-    category = "hanh-dong";
-    moodLabel = "Tác Phẩm Đặc Sắc Tuyển Chọn ⭐";
-    defaultAnalysis = "Chào bạn! Dưới đây là các tác phẩm điện ảnh xuất sắc được Nana AI tuyển chọn phù hợp nhất với sở thích của bạn:";
-    reasons = [
-      "Tác phẩm có điểm đánh giá xuất sắc và lượt xem kỷ lục",
-      "Cốt truyện lôi cuốn, giữ chân người xem từ đầu đến cuối",
-      "Dàn diễn viên chất lượng cùng kịch bản xuất sắc",
-    ];
-  }
-
-  return {
-    category,
-    excludedCountries,
-    actor,
-    director,
-    universe,
-    isNsfw,
-    isOffTopic,
-    isHealingRural,
-    isTimeLoop,
-    isDisasterNonUs,
-    isAnimeCrossover,
-    moodLabel,
-    defaultAnalysis,
-    reasons,
-  };
-}
-
-interface RawMovieItem {
-  slug?: string;
-  name?: string;
-  title?: string;
-  poster_url?: string;
-  thumb_url?: string;
-  year?: number | string;
-  quality?: string;
-  country?: Array<{ slug?: string; name?: string }>;
-  category?: Array<{ name?: string }>;
 }
 
 interface CacheEntry {
@@ -451,7 +229,7 @@ function checkRateLimit(ip: string): boolean {
     ipRequestMap.set(ip, { count: 1, expiresAt: now + 60_000 });
     return true;
   }
-  if (record.count >= 30) {
+  if (record.count >= 40) {
     return false;
   }
   record.count += 1;
@@ -526,7 +304,7 @@ export async function GET() {
   const hasKey = Boolean(process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.trim());
   return NextResponse.json({
     hasServerKey: hasKey,
-    activeModel: "Google Gemini 2.0 Flash / Groq Hybrid",
+    activeModel: "Google Gemini Flash & Groq Fast Engine",
     status: hasKey ? "ready" : "fallback_only",
     cacheSize: AI_RESPONSE_CACHE.size,
   });
@@ -559,63 +337,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const intent = parseUserIntent(prompt);
-
-    // ========================================================================
-    // TEST CASE AN TOÀN: 18+ / NHẠY CẢM
-    // ========================================================================
-    if (intent.isNsfw) {
-      const safeAnimeRes = await movieApi.getMovies({ category: "hoat-hinh", limit: 6, sort: "rating" });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const safeCards: SuggestionCard[] = (safeAnimeRes?.items || []).map((item: any) => ({
-        slug: item.slug,
-        title: item.name || item.title || "Anime Hay",
-        poster: toSafePoster(item),
-        year: item.year || 2024,
-        quality: item.quality || "HD",
-        category: "Hoạt Hình",
-        country: "Nhật Bản 🇯🇵",
-        actors: toSafeActors(item),
-        reason: "Tác phẩm anime hành động & phiêu lưu kỳ ảo cực kỳ ăn khách",
-      }));
-
-      return NextResponse.json({
-        reply:
-          "Chào bạn! Nanaflix là nền tảng giải trí thân thiện và an toàn, Nana không hỗ trợ tìm kiếm nội dung 18+ hoặc nhạy cảm nha. Tuy nhiên, nếu bạn yêu thích thể loại Hoạt Hình / Anime với cốt truyện kịch tính, đồ họa đỉnh cao và những trận chiến mãn nhãn, Nana đã chọn sẵn những siêu phẩm Anime tuyệt đỉnh dưới đây nè! ✨🍿",
-        mood: "Thế Giới Anime Tuyệt Đỉnh 🎨",
-        movies: safeCards,
-        provider: "Nana AI Guard",
-      });
-    }
-
-    // ========================================================================
-    // TEST CASE NGOÀI LỀ PHIM ẢNH (NẤU ĂN, THỜI TIẾT...)
-    // ========================================================================
-    if (intent.isOffTopic) {
-      const foodMovies = await movieApi.getMovies({ keyword: "ẩm thực", limit: 6 });
-      const fallbackList = foodMovies?.items?.length ? foodMovies.items : (await movieApi.getMovies({ limit: 6 }))?.items || [];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const safeCards: SuggestionCard[] = fallbackList.map((item: any) => ({
-        slug: item.slug,
-        title: item.name || item.title || "Phim Hay",
-        poster: toSafePoster(item),
-        year: item.year || 2024,
-        quality: item.quality || "HD",
-        category: "Ẩm Thực & Đời Sống",
-        country: toSafeCountry(item) || "Quốc Tế",
-        actors: toSafeActors(item),
-        reason: "Những thước phim ẩm thực ấm áp, mãn nhãn và chữa lành tâm hồn",
-      }));
-
-      return NextResponse.json({
-        reply:
-          "Chào bạn! Nana là trợ lý chuyên sâu về thế giới điện ảnh và phim ảnh của Nanaflix nên chưa hỗ trợ trả lời các chủ đề ngoài lề được nè! Nhưng nếu bạn có niềm đam mê bất tận với ẩm thực hoặc muốn tìm những bộ phim hấp dẫn để vừa xem vừa chill, hãy cùng Nana khám phá những tác phẩm đặc sắc dưới đây nhé! 🍲🎬",
-        mood: "Phim Hay & Ẩm Thực Đời Sống 🍜",
-        movies: safeCards,
-        provider: "Nana AI Guard",
-      });
-    }
-
     // KIỂM TRA BỘ NHỚ ĐỆM (CACHE HIT)
     const cacheKey = normalizeQuery(prompt);
     const cachedItem = AI_RESPONSE_CACHE.get(cacheKey);
@@ -630,281 +351,237 @@ export async function POST(req: NextRequest) {
     }
 
     // ========================================================================
-    // GỌI FAST AI ENGINE VỚI BỘ LUẬT CHỐNG BIAS TÊN VÀ NÂNG CAO TƯ DUY ĐIỆN ẢNH
+    // GENERAL PURPOSE AI CINEMA REASONING ENGINE (KHÔNG HARDCODE IF/ELSE)
     // ========================================================================
-    try {
-      const systemPrompt = `Bạn là Trợ lý Điện Ảnh Thông Minh (Cinema AI Concierge) của nền tảng xem phim Nanaflix.
-Bạn sở hữu kiến thức bách khoa toàn thư về điện ảnh thế giới: đạo diễn, diễn viên, năm phát hành, thể loại, bối cảnh kinh điển, cơ chế cốt truyện (time loop, body swap, slice-of-life) và mệnh lệnh loại trừ.
+    const systemPrompt = `Bạn là Nana AI - Chuyên Gia Tư Vấn Điện Ảnh Thông Minh & Thân Thiện của nền tảng xem phim Nanaflix.
+Bạn sở hữu kiến thức bách khoa toàn thư sâu rộng về điện ảnh thế giới (Hollywood, Châu Á, Châu Âu, Anime, phim độc lập, các dòng phim kinh điển từ quá khứ đến hiện đại).
 
-NHIỆM VỤ CỦA BẠN: Phân tích yêu cầu "${prompt}" và trả về JSON chuẩn xác nhất với 6 ĐẾN 8 BỘ PHIM PHÙ HỢP.
+NĂNG LỰC CỦA BẠN:
+- Hiểu sâu sắc mọi yêu cầu của người dùng: từ khóa mập mờ, tiếng lóng ("cuốn cuốn", "lú đầu", "hack não", "chữa lành", "chill"), cảm xúc trừu tượng, bối cảnh đặc thù (vòng lặp thời gian, hoán đổi thân xác, sinh tồn, zombie, thảm họa, du hành thời gian, trinh thám...), gộp nhiều tiêu chí (diễn viên + thời gian + chi tiết cốt truyện), và các mệnh lệnh loại trừ nghiêm ngặt ("không lấy phim Mỹ", "không có cảnh máu me"...).
+- Nếu người dùng hỏi ngoài lề (nấu ăn, thời tiết, lập trình...) hoặc nói chuyện phiếm: Hãy mở đầu duyên dáng, thân thiện và khéo léo kết nối với những bộ phim điện ảnh đặc sắc có liên quan (ví dụ: hỏi nấu ăn -> gợi ý phim ẩm thực/đầu bếp truyền cảm hứng; chào hỏi -> gợi ý phim thịnh hành nhất).
+- Nếu người dùng tìm nội dung 18+/nhạy cảm: Khéo léo giải thích Nanaflix là nền tảng giải trí thân thiện và chuyển hướng sang các siêu phẩm hoạt hình/anime hành động kỳ ảo chất lượng cao.
 
-🚫 QUY TẮC CHỐNG TỰ ÁM THỊ TÊN (ANTI-NAME BIAS - BẮT BUỘC):
-- Tên hệ thống của bạn là Nana AI. TUYỆT ĐỐI KHÔNG tự động gợi ý bộ anime/phim "Nana" (2006) hay bất kỳ phim nào chỉ vì tên nó trùng với bạn, TRỪ KHI người dùng hỏi đích danh về bộ phim "Nana" (Nana Osaki / Nana Komatsu).
-- Tuyệt đối không được bịa đặt nội dung của anime Nana thành phim vòng lặp thời gian hay thể loại khác.
+🚫 NGUYÊN TẮC QUAN TRỌNG:
+1. KHÔNG BIAS TÊN: Tên bạn là Nana AI, nhưng TUYỆT ĐỐI KHÔNG tự động đưa bộ anime "Nana (2006)" vào danh sách trừ khi người dùng chủ động tìm đích danh tác phẩm đó. Tuyệt đối không bịa đặt cốt truyện của phim Nana.
+2. KHÔNG LẶP CÂU HỎI: Mở đầu bằng lời chào tự nhiên, ấm áp, phân tích tinh tế về gu phim người dùng đang tìm. Không lặp lại nguyên văn cụm từ người dùng đã nhập.
+3. CHÍNH XÁC & ĐA DẠNG: Đề xuất đúng 6 ĐẾN 8 BỘ PHIM THỰC TẾ, CÓ THẬT, NỔI TIẾNG VÀ ĐƯỢC ĐÁNH GIÁ CAO. Cung cấp cả tên tiếng Việt chuẩn và tên gốc quốc tế để hệ thống dễ dàng truy xuất poster & video.
+4. TUÂN THỦ MỆNH LỆNH LOẠI TRỪ (Negative Constraints): Nếu người dùng yêu cầu loại trừ quốc gia hay thể loại nào (ví dụ "không lấy phim Mỹ", "trừ phim kinh dị"), bạn PHẢI tuân thủ 100% và liệt kê vào trường "excluded_countries" hoặc "excluded_genres".
 
-💬 NGUYÊN TẮC LỜI NÓI MỞ ĐẦU (ANALYSIS - BẮT BUỘC):
-- Mở đầu bằng lời chào tự nhiên, ấm áp, thông minh (Ví dụ: "Chào bạn! Vòng lặp thời gian...", "Chào bạn! Những ngày mệt mỏi thế này...").
-- TUYỆT ĐỐI KHÔNG lặp lại nguyên văn câu hỏi của người dùng (như "khớp với yêu cầu: ..."). Hãy dùng văn phong điện ảnh mượt mà, phân tích ngắn gọn điểm hay của nhóm phim được chọn.
-
-🎯 QUY TẮC BẮT BUỘC CHO TỪNG DẠNG TRUY VẤN:
-1. TRUY VẤN CƠ CHẾ CỐT TRUYỆN ĐẶC THÙ (Time Loop / Vòng lặp thời gian / Chết đi sống lại):
-   - BẮT BUỘC chọn đúng 6-8 kiệt tác vòng lặp thời gian kinh điển: "Cuộc Chiến Luân Hồi" (Edge of Tomorrow), "Ngày Chuột Chũi" (Groundhog Day), "Sinh Nhật Chết Chóc" (Happy Death Day), "Mắc Kẹt Ở Palm Springs" (Palm Springs), "Mật Mã Gốc" (Source Code), "Khởi Đầu" (Reset), "Tam Giác Quỷ" (Triangle).
-
-2. TRUY VẤN CẢM XÚC / VIBE (Chữa lành, đồng quê, không drama, không cãi vã):
-   - BẮT BUỘC chỉ chọn dòng Slice-of-Life / Healing nhẹ nhàng yên bình: "Khu Rừng Nhỏ" (Little Forest), "Điệu Cha-Cha-Cha Làng Biển" (Hometown Cha-Cha-Cha), "Nơi Đảo Xanh" (Our Blues), "Chuyến Đi Bí Mật Của Walter Mitty" (The Secret Life of Walter Mitty), "Hàng Xóm Của Tôi Là Totoro" (My Neighbor Totoro), "Chào Mừng Đến Samdal-ri" (Welcome to Samdal-ri), "Em Gái Bé Nhỏ" (Our Little Sister), "Quán Ăn Đêm" (Midnight Diner).
-   - TUYỆT ĐỐI KHÔNG chọn drama sướt mướt hay tranh đấu cãi vã.
-
-3. MỆNH LỆNH LOẠI TRỪ KHẮT KHE (Negative Constraints - Phim thảm họa nhưng KHÔNG lấy phim Mỹ/Hollywood):
-   - BẮT BUỘC TUÂN THỦ MỆNH LỆNH PHỦ ĐỊNH 100%. TUYỆT ĐỐI KHÔNG GỢI Ý phim Mỹ (như 2012, San Andreas, The Day After Tomorrow...).
-   - BẮT BUỘC chỉ chọn các phim thảm họa của Hàn Quốc, Na Uy, Trung Quốc, Nhật Bản: "Sóng Thần Ở Haeundae" (Haeundae / Tidal Wave - Hàn Quốc), "Lối Thoát Trên Không" (Exit - Hàn Quốc), "Thảm Họa Hạt Nhân Pandora" (Pandora - Hàn Quốc), "Thảm Họa Sóng Thần Na Uy" (The Wave / Bølgen), "Địa Chấn Đường Sơn" (Aftershock - Trung Quốc), "Đội Cứu Hộ Biển Sâu" (The Rescue - Trung Quốc), "Chuyến Tàu Sinh Tử" (Train to Busan - Hàn Quốc).
-
-4. GIAO THOA PHONG CÁCH (Anime trinh thám hack não kiểu Conan + đồ họa lung linh Makoto Shinkai):
-   - Gợi ý các tác phẩm anime bí ẩn xuất sắc có hình ảnh tuyệt mỹ: "Tên Cậu Là Gì?" (Your Name), "Băng Trộm Kem Đá" (Hyouka), "Thị Trấn Nơi Chỉ Mình Tôi Xóa Bỏ" (Erased), "Dược Sư Tự Sự" (The Apothecary Diaries), "Đứa Con Của Thời Tiết" (Weathering With You), "Thám Tử Lừng Danh Conan: Nàng Dâu Halloween" (Movie Conan đồ họa điện ảnh tuyệt mỹ).
-
-5. ĐỊNH DẠNG TÊN PHIM:
-   - "title": Tên tiếng Việt chuẩn phổ biến (ví dụ: "Cuộc Chiến Luân Hồi", "Khu Rừng Nhỏ", "Sóng Thần Ở Haeundae", "Tên Cậu Là Gì"). KHÔNG ghi năm hay dấu ngoặc vào title.
-   - "original_title": Tên gốc tiếng Anh/quốc tế (ví dụ: "Edge of Tomorrow", "Little Forest", "Haeundae", "Your Name").
-
-BẮT BUỘC TRẢ VỀ DUY NHẤT CHUỖI JSON ĐÚNG CẤU TRÚC SAU (KHÔNG KÈM VĂN BẢN NGOÀI JSON):
+BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM BẤT KỲ VĂN BẢN NGOÀI LỀ NÀO):
 {
-  "analysis": "Lời mở đầu tự nhiên, thân thiện và phân tích sâu sắc từ Nana về nhóm phim được chọn",
-  "mood": "Tên chủ đề ngắn gọn",
-  "genre_slug": "tam-ly",
-  "country_slug": "au-my",
+  "analysis": "Lời chào tự nhiên, sâu sắc, chia sẻ góc nhìn điện ảnh về chủ đề người dùng đang quan tâm (khoảng 2-3 câu truyền cảm hứng)",
+  "mood": "Tên chủ đề hoặc cảm xúc ngắn gọn kèm Emoji (ví dụ: 'Vòng Lặp Thời Gian Nghẹt Thở ⏳', 'Đồng Quê Chữa Lành Bình Yên 🌾', 'Thảm Họa Châu Á Hùng Tráng 🌊')",
+  "genre_slug": "Slug thể loại chính (vd: hanh-dong, tinh-cam, hoat-hinh, vien-tuong, kinh-di, hai-huoc, co-trang, tam-ly, tai-lieu, phieu-luu...)",
+  "country_slug": "Slug quốc gia chính nếu có (vd: au-my, han-quoc, trung-quoc, nhat-ban, viet-nam, thai-lan...)",
+  "excluded_countries": ["Danh sách mã quốc gia bị loại trừ nếu người dùng yêu cầu, vd: 'au-my', 'us' hoặc để rỗng []"],
+  "search_keywords": ["Từ khóa mở rộng để tìm thêm phim tương tự trong database"],
   "movies": [
     {
-      "title": "Tên tiếng Việt",
-      "original_title": "Tên gốc tiếng Anh",
-      "reason": "Lý do ngắn gọn nêu bật điểm đắt giá nhất của phim"
+      "title": "Tên tiếng Việt phổ biến",
+      "original_title": "Tên gốc quốc tế / tiếng Anh",
+      "year": 2022,
+      "country": "Hàn Quốc / Mỹ / Nhật Bản / ...",
+      "reason": "Giải thích ngắn gọn 1 câu nêu bật điểm sáng giá nhất của phim này khớp với yêu cầu"
     }
   ]
 }`;
 
+    let aiParsed: {
+      analysis?: string;
+      mood?: string;
+      genre_slug?: string;
+      country_slug?: string;
+      excluded_countries?: string[];
+      search_keywords?: string[];
+      movies?: Array<{
+        title: string;
+        original_title?: string;
+        year?: number;
+        country?: string;
+        reason?: string;
+      }>;
+    } | null = null;
+
+    let aiProviderName = "Nana AI Engine";
+
+    try {
       const aiRes = await generateFastAiChat({
         systemPrompt,
-        userPrompt: `Hãy phân tích và gợi ý 6-8 phim xuất sắc cho: "${prompt}". Trả về JSON duy nhất.`,
-        temperature: 0.2,
-        maxTokens: 1200,
+        userPrompt: `Yêu cầu của khán giả: "${prompt}". Hãy phân tích đa chiều và trả về JSON đề xuất 6-8 phim xuất sắc.`,
+        temperature: 0.3,
+        maxTokens: 1400,
         jsonMode: true,
         customApiKey: userApiKey,
-        timeoutMs: 9000,
+        timeoutMs: 9500,
       });
 
       if (aiRes && aiRes.text) {
-        const parsed = safeParseAiJson(aiRes.text);
-        if (parsed) {
-          type SuggestedItem = { title: string; original_title?: string; reason?: string };
-          let suggestedItems: SuggestedItem[] = [];
+        aiParsed = safeParseAiJson(aiRes.text);
+        if (aiRes.provider) aiProviderName = aiRes.provider;
+      }
+    } catch (aiErr) {
+      console.warn("AI LLM call failed or timed out:", aiErr);
+    }
 
-          if (Array.isArray(parsed.movies) && parsed.movies.length > 0) {
-            suggestedItems = parsed.movies.map((m: Record<string, string>) => ({
-              title: m.title || "",
-              original_title: m.original_title || "",
-              reason: m.reason || "",
-            }));
-          } else if (Array.isArray(parsed.movie_titles) && parsed.movie_titles.length > 0) {
-            suggestedItems = parsed.movie_titles.map((t: string, idx: number) => ({
-              title: t,
-              reason: parsed.reasons?.[idx] || "",
-            }));
-          }
+    // ========================================================================
+    // RESOLVE PHIM TỪ DATABASE VỚI ĐỘ CHÍNH XÁC CAO
+    // ========================================================================
+    const cards: SuggestionCard[] = [];
+    const seenSlugs = new Set<string>();
 
-          const genreSlug: string = parsed.genre_slug || "";
-          const countrySlug: string = parsed.country_slug || "";
-          const cards: SuggestionCard[] = [];
-          const seenSlugs = new Set<string>();
+    const excludedList: string[] = (aiParsed?.excluded_countries || []).map((c) => c.toLowerCase());
+    const lowerPrompt = prompt.toLowerCase();
+    if (
+      (lowerPrompt.includes("không lấy") || lowerPrompt.includes("trừ") || lowerPrompt.includes("loại trừ") || lowerPrompt.includes("ko lấy")) &&
+      (lowerPrompt.includes("mỹ") || lowerPrompt.includes("hollywood") || lowerPrompt.includes("âu mỹ") || lowerPrompt.includes("us"))
+    ) {
+      if (!excludedList.includes("au-my")) excludedList.push("au-my", "us", "hollywood", "mỹ");
+    }
 
-          // Lọc bỏ trường hợp bị hallucinate bộ anime "Nana" khi người dùng hỏi time loop hay chủ đề khác
-          if (!prompt.toLowerCase().includes("anime nana") && !prompt.toLowerCase().includes("osaki nana")) {
-            suggestedItems = suggestedItems.filter(
-              (it) => it.title.toLowerCase() !== "nana" && (it.original_title || "").toLowerCase() !== "nana"
-            );
-          }
+    const isExcluded = (countryStr: string) => {
+      if (!excludedList.length || !countryStr) return false;
+      const c = countryStr.toLowerCase();
+      return excludedList.some((ex) => c.includes(ex));
+    };
 
-          const searchTasks = suggestedItems.slice(0, 8).map(async (itemObj) => {
-            const cleanTitle = (itemObj.title || "").trim();
-            const cleanOriginal = (itemObj.original_title || "").trim();
-            const foundItem = await searchSingleMovieFast(cleanTitle, cleanOriginal);
+    if (aiParsed && Array.isArray(aiParsed.movies) && aiParsed.movies.length > 0) {
+      // 1. Lọc bỏ trường hợp bot bị dính anime "Nana" khi người dùng không hỏi
+      let suggestedList = aiParsed.movies;
+      if (!lowerPrompt.includes("anime nana") && !lowerPrompt.includes("nana osaki") && !lowerPrompt.includes("nana komatsu")) {
+        suggestedList = suggestedList.filter(
+          (m) => m.title.toLowerCase().trim() !== "nana" && (m.original_title || "").toLowerCase().trim() !== "nana"
+        );
+      }
 
-            return {
-              item: foundItem,
-              fallbackTitle: cleanTitle || cleanOriginal,
-              reason: itemObj.reason,
-            };
+      // 2. Tìm kiếm song song trong Database
+      const lookupPromises = suggestedList.map(async (m) => {
+        const found = await searchSingleMovieFast(m.title, m.original_title);
+        return {
+          suggested: m,
+          found,
+        };
+      });
+
+      const resolved = await Promise.all(lookupPromises);
+
+      for (const item of resolved) {
+        if (item.found && item.found.slug && !seenSlugs.has(item.found.slug)) {
+          const itemCountry = toSafeCountry(item.found);
+          if (isExcluded(itemCountry)) continue;
+
+          seenSlugs.add(item.found.slug);
+          cards.push({
+            slug: item.found.slug,
+            title: item.found.name || item.found.title || item.suggested.title,
+            poster: toSafePoster(item.found),
+            year: item.found.year || item.suggested.year || 2024,
+            quality: item.found.quality || "HD",
+            category: toSafeCategory(item.found),
+            country: itemCountry || item.suggested.country || "Quốc Tế",
+            actors: toSafeActors(item.found),
+            reason: item.suggested.reason || "Tác phẩm xuất sắc phù hợp hoàn hảo với yêu cầu của bạn",
           });
-
-          const searchResults = await Promise.all(searchTasks);
-
-          for (const r of searchResults) {
-            if (r.item && r.item.slug && !seenSlugs.has(r.item.slug)) {
-              const itemCountry = toSafeCountry(r.item);
-
-              // Lọc bỏ phim Mỹ nếu có yêu cầu loại trừ
-              if (intent.excludedCountries && intent.excludedCountries.length > 0) {
-                if (intent.excludedCountries.some((ex) => itemCountry.toLowerCase().includes(ex) || (r.item.country && JSON.stringify(r.item.country).toLowerCase().includes(ex)))) {
-                  continue;
-                }
-              }
-
-              seenSlugs.add(r.item.slug);
-              cards.push({
-                slug: r.item.slug,
-                title: r.item.name || r.item.title || r.fallbackTitle,
-                poster: toSafePoster(r.item),
-                year: r.item.year || 2024,
-                quality: r.item.quality || "HD",
-                category: r.item.category?.[0]?.name || genreSlug || "Đặc sắc",
-                country: itemCountry || countrySlug || "Quốc tế",
-                actors: toSafeActors(r.item),
-                reason: r.reason || "Tác phẩm tiêu biểu khớp chuẩn xác với yêu cầu của bạn",
-              });
-            }
-          }
-
-          // Tự động bổ sung nếu kho phim thiếu để đảm bảo luôn có ít nhất 6 phim cho người dùng
-          let missingNote = "";
-          if (cards.length < 5) {
-            if (suggestedItems.length > 0 && cards.length === 0) {
-              const requestedName = suggestedItems[0].title || prompt;
-              missingNote = `Chào bạn! Bộ phim "${requestedName}" hiện tại chưa có sẵn trong kho phim của Nanaflix. Tuy nhiên, Nana đã tuyển chọn ngay cho bạn các tác phẩm cùng thể loại và phong cách tương tự đang có sẵn để bạn thưởng thức ngay nè!\n\n`;
-            }
-
-            try {
-              const supplementRes = await movieApi.getMovies({
-                keyword: intent.actor || intent.director || undefined,
-                category: genreSlug || intent.category,
-                country: (intent.excludedCountries && intent.excludedCountries.length > 0) ? "han-quoc" : (countrySlug || undefined),
-                limit: 10,
-              });
-              if (supplementRes?.items?.length) {
-                for (const sItem of supplementRes.items) {
-                  if (cards.length >= 8) break;
-                  if (sItem.slug && !seenSlugs.has(sItem.slug)) {
-                    const sCountry = toSafeCountry(sItem);
-                    if (intent.excludedCountries && intent.excludedCountries.length > 0) {
-                      if (intent.excludedCountries.some((ex) => sCountry.toLowerCase().includes(ex))) {
-                        continue;
-                      }
-                    }
-
-                    seenSlugs.add(sItem.slug);
-                    cards.push({
-                      slug: sItem.slug,
-                      title: sItem.name || sItem.title || "Phim Hay",
-                      poster: toSafePoster(sItem),
-                      year: sItem.year || 2024,
-                      quality: sItem.quality || "HD",
-                      category: sItem.category?.[0]?.name || genreSlug || "Đặc sắc",
-                      country: sCountry || countrySlug || "Quốc tế",
-                      actors: toSafeActors(sItem),
-                      reason: "Tác phẩm đặc sắc cùng thể loại sẵn sàng thưởng thức",
-                    });
-                  }
-                }
-              }
-            } catch {}
-          }
-
-          if (cards.length > 0) {
-            const finalPayload = {
-              reply: missingNote
-                ? `${missingNote}${parsed.analysis || ""}`
-                : (parsed.analysis || "Chào bạn! Dưới đây là các tác phẩm xuất sắc nhất mà Nana AI đã tuyển chọn dành riêng cho bạn:"),
-              mood: parsed.mood || intent.moodLabel,
-              movies: cards.slice(0, 14),
-              provider: aiRes.provider || "Nana AI Intelligence",
-            };
-
-            if (AI_RESPONSE_CACHE.size >= MAX_CACHE_ENTRIES) {
-              const oldestKey = AI_RESPONSE_CACHE.keys().next().value;
-              if (oldestKey) AI_RESPONSE_CACHE.delete(oldestKey);
-            }
-            AI_RESPONSE_CACHE.set(cacheKey, { ...finalPayload, cachedAt: Date.now() });
-
-            return NextResponse.json(finalPayload);
-          }
         }
       }
-    } catch (aiError) {
-      console.warn("AI API fallback:", aiError);
     }
 
     // ========================================================================
-    // DỰ PHÒNG CHUẨN XÁC NẾU MẠNG AI QUÁ TẢI (0 TOKEN FALLBACK ENGINE)
+    // BỔ SUNG NĂNG ĐỘNG TỪ DATABASE NẾU CẦN ĐỂ ĐẢM BẢO LUÔN ĐỦ 6-8 PHIM
     // ========================================================================
-    let movieList: RawMovieItem[] = [];
+    if (cards.length < 6) {
+      const searchKeywords = [
+        ...(aiParsed?.search_keywords || []),
+        aiParsed?.genre_slug,
+        prompt.length < 30 ? prompt : undefined,
+      ].filter(Boolean) as string[];
 
-    // Danh sách phim fallback có sẵn cho từng concept đặc thù
-    if (intent.isTimeLoop) {
-      const timeLoopTitles = ["Cuộc Chiến Luân Hồi", "Mật Mã Gốc", "Sinh Nhật Chết Chóc", "Khởi Đầu", "Tam Giác Quỷ"];
-      for (const t of timeLoopTitles) {
-        const item = await searchSingleMovieFast(t, "");
-        if (item && item.slug) movieList.push(item);
-      }
-    } else if (intent.isHealingRural) {
-      const healingTitles = ["Khu Rừng Nhỏ", "Điệu Cha-Cha-Cha Làng Biển", "Nơi Đảo Xanh", "Chào Mừng Đến Samdal-ri", "Totoro"];
-      for (const t of healingTitles) {
-        const item = await searchSingleMovieFast(t, "");
-        if (item && item.slug) movieList.push(item);
-      }
-    } else if (intent.isDisasterNonUs) {
-      const disasterTitles = ["Sóng Thần Ở Haeundae", "Lối Thoát Trên Không", "Pandora", "Địa Chấn Đường Sơn", "Chuyến Tàu Sinh Tử"];
-      for (const t of disasterTitles) {
-        const item = await searchSingleMovieFast(t, "");
-        if (item && item.slug) movieList.push(item);
-      }
-    } else if (intent.isAnimeCrossover) {
-      const animeTitles = ["Tên Cậu Là Gì", "Hyouka", "Erased", "Dược Sư Tự Sự", "Nàng Dâu Halloween"];
-      for (const t of animeTitles) {
-        const item = await searchSingleMovieFast(t, "");
-        if (item && item.slug) movieList.push(item);
+      for (const kw of searchKeywords) {
+        if (cards.length >= 8) break;
+        try {
+          const res = await movieApi.getMovies({
+            keyword: kw,
+            category: aiParsed?.genre_slug,
+            country: excludedList.includes("au-my") ? "han-quoc" : aiParsed?.country_slug,
+            limit: 8,
+          });
+
+          if (res?.items && Array.isArray(res.items)) {
+            for (const it of res.items) {
+              if (cards.length >= 8) break;
+              if (it.slug && !seenSlugs.has(it.slug)) {
+                const itemCountry = toSafeCountry(it);
+                if (isExcluded(itemCountry)) continue;
+
+                seenSlugs.add(it.slug);
+                cards.push({
+                  slug: it.slug,
+                  title: it.name || it.title || "Phim Hay",
+                  poster: toSafePoster(it),
+                  year: it.year || 2024,
+                  quality: it.quality || "HD",
+                  category: toSafeCategory(it),
+                  country: itemCountry || "Châu Á",
+                  actors: toSafeActors(it),
+                  reason: "Tác phẩm đặc sắc cùng chủ đề hiện đang có sẵn trên nền tảng",
+                });
+              }
+            }
+          }
+        } catch {}
       }
     }
 
-    if (movieList.length === 0) {
-      const queryParams: Record<string, string | number> = {
-        sort: "rating",
-        page: 1,
-        limit: 14,
-      };
-      if (intent.category) queryParams.category = intent.category;
-      if (intent.excludedCountries && intent.excludedCountries.length > 0) {
-        queryParams.country = "han-quoc";
-      }
-
-      const res = await movieApi.getMovies(queryParams);
-      movieList = (res?.items || []) as RawMovieItem[];
+    // Trường hợp xấu nhất (AI hoàn toàn không phản hồi và DB chưa có kết quả): lấy danh sách phim đánh giá cao
+    if (cards.length === 0) {
+      try {
+        const defaultRes = await movieApi.getMovies({
+          sort: "rating",
+          limit: 8,
+          country: excludedList.includes("au-my") ? "han-quoc" : undefined,
+        });
+        if (defaultRes?.items) {
+          for (const it of defaultRes.items) {
+            if (it.slug && !seenSlugs.has(it.slug)) {
+              seenSlugs.add(it.slug);
+              cards.push({
+                slug: it.slug,
+                title: it.name || it.title || "Phim Hot",
+                poster: toSafePoster(it),
+                year: it.year || 2024,
+                quality: it.quality || "HD",
+                category: toSafeCategory(it),
+                country: toSafeCountry(it) || "Quốc Tế",
+                actors: toSafeActors(it),
+                reason: "Siêu phẩm điện ảnh thịnh hành nhận được nhiều đánh giá tích cực",
+              });
+            }
+          }
+        }
+      } catch {}
     }
 
-    if (movieList.length === 0) {
-      const fallbackRes = await movieApi.getMovies({ sort: "rating", page: 1, limit: 14 });
-      movieList = (fallbackRes?.items || []) as RawMovieItem[];
-    }
+    const finalAnalysis =
+      aiParsed?.analysis?.trim() ||
+      "Chào bạn! Nana AI đã phân tích yêu cầu của bạn và tuyển chọn danh sách các siêu phẩm điện ảnh xuất sắc, giàu cảm xúc và cuốn hút nhất để bạn thưởng thức ngay nè:";
 
-    const cards: SuggestionCard[] = movieList.slice(0, 12).map((item: RawMovieItem, idx: number) => ({
-      slug: item.slug || "",
-      title: item.name || item.title || "Phim Hay",
-      poster: toSafePoster(item),
-      year: item.year || 2024,
-      quality: item.quality || "HD",
-      category: item.category?.[0]?.name || "Đặc sắc",
-      country: toSafeCountry(item) || "Quốc tế",
-      actors: toSafeActors(item),
-      reason: intent.reasons[idx % intent.reasons.length] || "Tác phẩm có cốt truyện hấp dẫn và đánh giá cao",
-    }));
+    const finalMood = aiParsed?.mood || "Điện Ảnh Tuyển Chọn ⭐";
 
-    const fallbackPayload = {
-      reply: `${intent.defaultAnalysis}`,
-      mood: intent.moodLabel,
-      movies: cards,
-      provider: "Nana AI Engine",
+    const finalPayload = {
+      reply: finalAnalysis,
+      mood: finalMood,
+      movies: cards.slice(0, 12),
+      provider: aiProviderName,
     };
 
     if (cards.length > 0) {
-      AI_RESPONSE_CACHE.set(cacheKey, { ...fallbackPayload, cachedAt: Date.now() });
+      if (AI_RESPONSE_CACHE.size >= MAX_CACHE_ENTRIES) {
+        const oldestKey = AI_RESPONSE_CACHE.keys().next().value;
+        if (oldestKey) AI_RESPONSE_CACHE.delete(oldestKey);
+      }
+      AI_RESPONSE_CACHE.set(cacheKey, { ...finalPayload, cachedAt: Date.now() });
     }
 
-    return NextResponse.json(fallbackPayload);
+    return NextResponse.json(finalPayload);
   } catch (error) {
     console.error("Lỗi AI Concierge:", error);
     return NextResponse.json(
