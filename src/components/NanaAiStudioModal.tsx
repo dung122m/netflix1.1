@@ -116,7 +116,9 @@ export const NanaAiStudioModal: React.FC = () => {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatScrollContainerRef = useRef<HTMLDivElement>(null);
+  const chatMessagesRef = useRef<ChatMessage[]>([]);
+  chatMessagesRef.current = chatMessages;
 
   // TAB 2: ROULETTE STATE
   const [selectedMood, setSelectedMood] = useState("xa-stress");
@@ -186,7 +188,12 @@ export const NanaAiStudioModal: React.FC = () => {
   }, [isOpen]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (chatScrollContainerRef.current) {
+      chatScrollContainerRef.current.scrollTo({
+        top: chatScrollContainerRef.current.scrollHeight,
+        behavior: "smooth",
+      });
+    }
   }, [chatMessages, chatLoading]);
 
   // TAB 1 ACTIONS: SEND CHAT MESSAGE
@@ -211,7 +218,7 @@ export const NanaAiStudioModal: React.FC = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           prompt: text.trim(),
-          history: chatMessages.slice(-6).map((m) => ({
+          history: chatMessagesRef.current.slice(-6).map((m) => ({
             role: m.role,
             content: m.text,
           })),
@@ -289,7 +296,7 @@ export const NanaAiStudioModal: React.FC = () => {
   return (
     <div
       onClick={() => setIsOpen(false)}
-      className="fixed inset-0 z-[120] bg-black/85 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 overflow-hidden select-none"
+      className="fixed inset-0 z-[120] bg-black/85 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 overflow-hidden"
     >
       <div
         onClick={(e) => e.stopPropagation()}
@@ -359,7 +366,10 @@ export const NanaAiStudioModal: React.FC = () => {
           {activeTab === "concierge" && (
             <div className="flex flex-col h-full overflow-hidden">
               {/* MESSAGES SCROLL AREA */}
-              <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 space-y-4 pr-2">
+              <div
+                ref={chatScrollContainerRef}
+                className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 space-y-4 pr-2"
+              >
                 {chatMessages.length === 0 ? (
                   <div className="py-6 sm:py-8 text-center space-y-4">
                     <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-rose-500/20 to-purple-600/20 border border-rose-500/30 flex items-center justify-center text-rose-400 mx-auto shadow-xl">
@@ -409,9 +419,9 @@ export const NanaAiStudioModal: React.FC = () => {
                         {/* MOVIE CARDS IN CHAT */}
                         {m.movies && m.movies.length > 0 && (
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2 border-t border-white/10">
-                            {m.movies.map((mov) => (
+                            {m.movies.map((mov, movIdx) => (
                               <Link
-                                key={mov.slug}
+                                key={`${mov.slug || 'movie'}-${movIdx}`}
                                 href={`/movies/${mov.slug}`}
                                 onClick={() => setIsOpen(false)}
                                 className="p-2.5 rounded-xl bg-black/60 hover:bg-black/90 border border-white/10 hover:border-rose-500/50 transition flex gap-2.5 group cursor-pointer"
@@ -419,7 +429,7 @@ export const NanaAiStudioModal: React.FC = () => {
                                 <div className="relative w-14 aspect-[2/3] rounded-lg overflow-hidden bg-zinc-950 flex-none border border-white/10 shadow-sm">
                                   <Image
                                     src={mov.poster || "/default-poster.jpg"}
-                                    alt={mov.title}
+                                    alt={mov.title || "Phim"}
                                     fill
                                     className="object-cover group-hover:scale-105 transition-transform"
                                     sizes="60px"
@@ -450,7 +460,6 @@ export const NanaAiStudioModal: React.FC = () => {
                     <span>Nana AI đang suy nghĩ và tìm phim...</span>
                   </div>
                 )}
-                <div ref={messagesEndRef} />
               </div>
 
               {/* CHAT INPUT FORM (PINNED AT BOTTOM) */}
