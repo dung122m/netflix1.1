@@ -41,7 +41,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const mobileSearchRef = useRef<HTMLDivElement>(null);
 
-  const isSearchOpen = isSearchExpanded || hasText || Boolean(urlKeyword);
+  const isSearchOpen = isSearchExpanded;
   const hasSearchText = hasText;
   const hasDropdownContent = (!hasSearchText && recentSearches.length > 0) || (hasSearchText && suggestions.length > 0);
 
@@ -83,22 +83,31 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
     if (urlKeyword) setHasText(true);
   }, [urlKeyword]);
 
-  // Close dropdown on click outside
+  // Close dropdown and collapse search on click outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       const insideDesktopSearch = searchContainerRef.current?.contains(e.target as Node);
       const insideMobileSearch = mobileSearchRef.current?.contains(e.target as Node);
       if (!insideDesktopSearch && !insideMobileSearch) {
         setShowDropdown(false);
+        setIsSearchExpanded(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  }, [setIsSearchExpanded]);
 
-  // Global hotkey Ctrl+K or / to open search
+  // Global hotkey Ctrl+K, / to open search, and Escape to close
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isSearchExpanded) {
+        setShowDropdown(false);
+        setIsSearchExpanded(false);
+        inputRef.current?.blur();
+        mobileInputRef.current?.blur();
+        return;
+      }
+
       const target = e.target as HTMLElement;
       const isInput =
         target &&
@@ -121,7 +130,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [setIsSearchExpanded]);
+  }, [isSearchExpanded, setIsSearchExpanded]);
 
   const saveRecentSearch = (kw: string) => {
     const clean = kw.trim();
@@ -164,14 +173,14 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
   };
 
   const toggleSearch = () => {
-    if (!isSearchOpen) {
+    if (!isSearchExpanded) {
       setIsSearchExpanded(true);
       setShowDropdown(true);
       setTimeout(() => {
         inputRef.current?.focus();
         mobileInputRef.current?.focus();
       }, 100);
-    } else if (!hasSearchText) {
+    } else {
       setIsSearchExpanded(false);
       setShowDropdown(false);
     }
@@ -210,6 +219,15 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
   }, [debouncedFetchSuggestions, cancelDebouncedFetch]);
 
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      setShowDropdown(false);
+      setIsSearchExpanded(false);
+      inputRef.current?.blur();
+      mobileInputRef.current?.blur();
+      return;
+    }
+
     if (!showDropdown) return;
 
     if (e.key === "ArrowDown") {

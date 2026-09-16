@@ -189,9 +189,12 @@ export const NanaAiStudioModal: React.FC = () => {
 
   useEffect(() => {
     if (chatScrollContainerRef.current) {
-      chatScrollContainerRef.current.scrollTo({
-        top: chatScrollContainerRef.current.scrollHeight,
-        behavior: "smooth",
+      const container = chatScrollContainerRef.current;
+      requestAnimationFrame(() => {
+        container.scrollTo({
+          top: container.scrollHeight,
+          behavior: "smooth",
+        });
       });
     }
   }, [chatMessages, chatLoading]);
@@ -296,18 +299,21 @@ export const NanaAiStudioModal: React.FC = () => {
   return (
     <div
       onClick={() => setIsOpen(false)}
-      className="fixed inset-0 z-[120] bg-black/85 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 overflow-hidden"
+      className="fixed inset-0 z-[120] bg-black/85 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 overflow-hidden select-none"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-3xl h-[88vh] max-h-[750px] min-h-[480px] bg-zinc-950/95 rounded-3xl border border-rose-500/30 shadow-2xl shadow-rose-950/40 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
+        onScroll={(e) => {
+          e.currentTarget.scrollTop = 0;
+        }}
+        className="relative w-full max-w-3xl h-[88vh] max-h-[750px] min-h-[480px] bg-zinc-950 rounded-3xl border border-rose-500/30 shadow-2xl shadow-rose-950/40 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
       >
         {/* Glow ambient lights */}
         <div className="pointer-events-none absolute -top-24 -left-20 w-80 h-80 bg-rose-600/20 rounded-full blur-3xl" />
         <div className="pointer-events-none absolute -bottom-24 -right-20 w-80 h-80 bg-purple-600/20 rounded-full blur-3xl" />
 
         {/* HEADER BAR (PINNED) */}
-        <div className="relative z-10 flex items-center justify-between px-5 sm:px-6 py-3.5 border-b border-white/10 bg-zinc-900/95 backdrop-blur-md flex-none">
+        <div className="relative z-20 flex items-center justify-between px-5 sm:px-6 py-3.5 border-b border-white/10 bg-zinc-900/98 backdrop-blur-xl flex-none">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-rose-500 to-purple-600 flex items-center justify-center text-white shadow-md shadow-rose-600/30">
               <Sparkles className="w-4 h-4" />
@@ -332,14 +338,15 @@ export const NanaAiStudioModal: React.FC = () => {
         </div>
 
         {/* UNIFIED 2-TAB SWITCHER (PINNED) */}
-        <div className="relative z-10 flex items-center border-b border-white/10 bg-black/50 px-5 pt-2 gap-3 flex-none overflow-x-auto">
+        <div className="relative z-20 flex items-center border-b border-white/10 bg-black/80 backdrop-blur-md px-5 pt-2 gap-3 flex-none overflow-x-auto">
           <button
             type="button"
             onClick={() => setActiveTab("concierge")}
-            className={`pb-2.5 px-3.5 text-xs font-bold transition-all border-b-2 cursor-pointer flex items-center gap-2 whitespace-nowrap ${activeTab === "concierge"
+            className={`pb-2.5 px-3.5 text-xs font-bold transition-all border-b-2 cursor-pointer flex items-center gap-2 whitespace-nowrap ${
+              activeTab === "concierge"
                 ? "border-rose-500 text-rose-300 scale-100"
                 : "border-transparent text-gray-400 hover:text-gray-200"
-              }`}
+            }`}
           >
             <MessageSquare className="w-4 h-4 text-rose-400" />
             <span>Trò Chuyện & Tìm Phim</span>
@@ -348,10 +355,11 @@ export const NanaAiStudioModal: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveTab("roulette")}
-            className={`pb-2.5 px-3.5 text-xs font-bold transition-all border-b-2 cursor-pointer flex items-center gap-2 whitespace-nowrap ${activeTab === "roulette"
+            className={`pb-2.5 px-3.5 text-xs font-bold transition-all border-b-2 cursor-pointer flex items-center gap-2 whitespace-nowrap ${
+              activeTab === "roulette"
                 ? "border-amber-400 text-amber-300 scale-100"
                 : "border-transparent text-gray-400 hover:text-gray-200"
-              }`}
+            }`}
           >
             <Dices className="w-4 h-4 text-amber-400" />
             <span>Bốc Quẻ Định Mệnh</span>
@@ -364,11 +372,11 @@ export const NanaAiStudioModal: React.FC = () => {
           {/* TAB 1: CONCIERGE CHAT & SEARCH */}
           {/* ========================================================= */}
           {activeTab === "concierge" && (
-            <div className="flex flex-col h-full overflow-hidden">
+            <div className="flex flex-col h-full flex-1 min-h-0 overflow-hidden">
               {/* MESSAGES SCROLL AREA */}
               <div
                 ref={chatScrollContainerRef}
-                className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 space-y-4 pr-2"
+                className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-5 space-y-4 pr-2"
               >
                 {chatMessages.length === 0 ? (
                   <div className="py-6 sm:py-8 text-center space-y-4">
