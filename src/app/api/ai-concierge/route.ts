@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { movieApi } from "@/services/movieApi";
 import { sanitizeImageUrl } from "@/lib/movieMedia";
+import { cleanHtmlText } from "@/lib/cleanHtml";
 import { generateFastAiChat } from "@/services/aiProviderService";
 
 export const maxDuration = 15;
@@ -282,6 +283,67 @@ function toSafeCategory(item: any): string {
   }
   if (typeof item?.category === "string") return item.category;
   return "Điện Ảnh";
+}
+
+// ============================================================================
+// HÀM TRÍCH XUẤT MÔ TẢ ĐỘC BẢN CHO TỪNG BỘ PHIM (CHỐNG RẬP KHUÔN)
+// ============================================================================
+function isGenericBoilerplate(text?: string): boolean {
+  if (!text) return true;
+  const lower = text.toLowerCase();
+  return (
+    lower.includes("tác phẩm tiêu biểu") ||
+    lower.includes("tác phẩm đặc sắc") ||
+    lower.includes("siêu phẩm điện ảnh thịnh hành") ||
+    lower.includes("phù hợp hoàn hảo với yêu cầu") ||
+    lower.includes("sẵn sàng thưởng thức trên nền tảng") ||
+    lower.includes("khớp chuẩn xác với yêu cầu") ||
+    lower.includes("đạt điểm đánh giá cao") ||
+    lower.includes("có điểm đánh giá cao") ||
+    lower.includes("phim hay chất lượng cao")
+  );
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function extractUniqueMovieDescription(item: any, customReason?: string): string {
+  // 1. Ưu tiên lý do cụ thể do AI phân tích nếu hợp lệ và không rập khuôn
+  if (customReason && customReason.trim().length >= 15 && !isGenericBoilerplate(customReason)) {
+    return customReason.trim();
+  }
+
+  // 2. Trích xuất từ nội dung / tóm tắt thực tế của phim trong database
+  const rawContent =
+    item?.content ||
+    item?.description ||
+    item?.overview ||
+    item?.movie?.content ||
+    item?.movie?.description ||
+    "";
+
+  const clean = cleanHtmlText(rawContent).trim();
+  if (clean.length > 20) {
+    const sentences = clean.split(/(?<=[.?!])\s+/);
+    if (sentences[0] && sentences[0].length >= 30 && sentences[0].length <= 150) {
+      return sentences[0];
+    }
+    if (clean.length > 140) {
+      return clean.slice(0, 137).trim() + "...";
+    }
+    return clean;
+  }
+
+  // 3. Nếu DB chưa có content, tạo mô tả cụ thể theo đúng Tên, Diễn viên, Thể loại và Năm của phim đó
+  const title = item?.name || item?.title || "Bộ phim";
+  const orig = item?.origin_name ? ` (${item.origin_name})` : "";
+  const actors = toSafeActors(item);
+  const category = toSafeCategory(item);
+  const year = item?.year ? ` (${item.year})` : "";
+
+  if (actors.length > 0) {
+    return `${title}${orig}${year} gây ấn tượng với màn hóa thân của ${actors.slice(0, 2).join(", ")} trong câu chuyện ${category.toLowerCase()} kịch tính và lôi cuốn.`;
+  }
+
+  return `${title}${orig}${year} là tác phẩm ${category.toLowerCase()} hấp dẫn với những nút thắt cao trào và tình tiết đầy bất ngờ.`;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -647,6 +709,8 @@ CÁC TRƯỜNG BẮT BUỘC TRÍCH XUẤT:
 6. "director": Đạo diễn nếu có.
 7. "excluded_countries": Mảng quốc gia người dùng yêu cầu loại trừ (ví dụ: "không lấy phim Mỹ" -> ["au-my"]).
 8. "suggested_movies": Đề xuất 6-8 phim THỰC TẾ, KINH ĐIỂN khớp 100% với quốc gia, thể loại, khoảng năm và cốt truyện.
+   - BẮT BUỘC VỀ TRƯỜNG "reason": Mỗi bộ phim BẮT BUỘC PHẢI CÓ 1 ĐOẠN TÓM TẮT ĐỘC BẢN (1-2 câu) về điểm nhấn cốt truyện hoặc nút thắt kịch tính của CHÍNH BỘ PHIM ĐÓ.
+   - TUYỆT ĐỐI CẤM dùng câu rập khuôn chung chung như "Tác phẩm tiêu biểu cùng chủ đề...", "Phim có đánh giá cao...".
 9. KHÔNG BIAS TÊN: Tuyệt đối không tự động đưa anime "Nana" vào danh sách trừ khi người dùng đích danh tìm kiếm phim đó.
 10. "analysis": Lời chào tự nhiên, sành sỏi về điện ảnh giới thiệu ngắn gọn điểm hấp dẫn nhất của nhóm phim này (KHÔNG lặp lại nguyên văn câu hỏi người dùng).
 
@@ -670,7 +734,7 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
       "title": "Tên tiếng Việt",
       "original_title": "Tên gốc quốc tế / tiếng Anh",
       "year": 1995,
-      "reason": "Lý do ngắn gọn nêu bật điểm sáng giá nhất của phim này khớp với yêu cầu"
+      "reason": "Mô tả ngắn gọn, cụ thể về nội dung, nhân vật hoặc nút thắt cốt truyện của chính phim này"
     }
   ]
 }`;
@@ -809,7 +873,7 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
           candidateMovieList.push({
             title: viTitle,
             original_title: engTitle,
-            reason: `Tác phẩm kinh điển gắn liền với tên tuổi của ${rawActor || targetActorSlug}`,
+            reason: `Tác phẩm kinh điển gắn liền với tên tuổi và phong cách diễn xuất của ${rawActor || targetActorSlug}`,
           });
         }
       }
@@ -861,7 +925,7 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
             category: itemCategory,
             country: itemCountry || (targetCountrySlug ? "Âu Mỹ" : "Quốc Tế"),
             actors: toSafeActors(item.found),
-            reason: item.suggested.reason || "Tác phẩm xuất sắc phù hợp hoàn hảo với yêu cầu của bạn",
+            reason: extractUniqueMovieDescription(item.found, item.suggested.reason),
           });
         }
       }
@@ -922,9 +986,7 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
                   category: itemCategory,
                   country: itemCountry || "Quốc Tế",
                   actors: itemActors,
-                  reason: targetActorSlug
-                    ? `Tác phẩm tiêu biểu có sự tham gia của ngôi sao ${rawActor || kw}`
-                    : "Tác phẩm đặc sắc cùng thể loại sẵn sàng thưởng thức trên nền tảng",
+                  reason: extractUniqueMovieDescription(it),
                 });
               }
             }
