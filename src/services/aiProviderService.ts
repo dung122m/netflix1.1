@@ -1,5 +1,3 @@
-import { GoogleGenAI, ThinkingLevel } from "@google/genai";
-
 export interface AiChatRequest {
   systemPrompt?: string;
   userPrompt: string;
@@ -29,7 +27,7 @@ function getGroqApiKeys(): string[] {
 }
 
 /**
- * Lấy danh sách Gemini API Keys từ biến môi trường & custom key (chỉ giữ các key chuẩn bắt đầu bằng AIza)
+ * Lấy danh sách Gemini API Keys từ biến môi trường & custom key
  */
 function getGeminiApiKeys(customKey?: string): string[] {
   const envKey = process.env.GEMINI_API_KEY || "";
@@ -39,7 +37,7 @@ function getGeminiApiKeys(customKey?: string): string[] {
     .filter((k) => k.length > 5);
 
   return Array.from(
-    new Set([customKey?.trim(), ...list].filter((k): k is string => Boolean(k && k.length > 5 && k.startsWith("AIza"))))
+    new Set([customKey?.trim(), ...list].filter((k): k is string => Boolean(k && k.length > 5)))
   );
 }
 
@@ -48,8 +46,6 @@ const GROQ_MODELS = [
   "openai/gpt-oss-20b",
   "qwen/qwen3.8-27b",
   "openai/gpt-oss-120b",
-  "llama-3.1-8b-instant",
-  "llama-3.3-70b-versatile",
 ];
 
 const CLOUDFLARE_MODELS = [
@@ -58,9 +54,8 @@ const CLOUDFLARE_MODELS = [
 ];
 
 const GEMINI_MODELS = [
-  "gemini-2.0-flash",
-  "gemini-1.5-flash-latest",
-  "gemini-2.5-flash",
+  "gemini-3.6-flash",
+  "gemini-2.5-flash-preview",
 ];
 
 /**
@@ -145,7 +140,7 @@ async function callGroq(
 }
 
 /**
- * Gọi Cloudflare Workers AI LLM (10,000 Neurons/ngày Free, Serverless Edge)
+ * Gọi Cloudflare Workers AI (10,000 req/ngày hoàn toàn miễn phí)
  */
 async function callCloudflareAI(
   req: AiChatRequest,
@@ -201,7 +196,7 @@ async function callCloudflareAI(
 }
 
 /**
- * Gọi Google Gemini API (Nếu có key chuẩn)
+ * Gọi Google Gemini API (Hỗ trợ REST API & Gemini 3.6 Flash)
  */
 async function callGemini(
   req: AiChatRequest,
@@ -213,31 +208,35 @@ async function callGemini(
     ? `${req.systemPrompt}\n\nNgười dùng: ${req.userPrompt}`
     : req.userPrompt;
 
-  const ai = new GoogleGenAI({ apiKey, vertexai: false });
-  const is25 = model.includes("2.5") || model.includes("3.5");
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const res = await Promise.race([
-      ai.models.generateContent({
-        model,
-        contents: fullPrompt,
-        config: {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: fullPrompt }] }],
+        generationConfig: {
           ...(req.jsonMode ? { responseMimeType: "application/json" } : {}),
-          temperature: req.temperature ?? 0.35,
-          maxOutputTokens: req.maxTokens ?? 700,
-          ...(is25
-            ? { thinkingConfig: { thinkingBudget: 0 } }
-            : { thinkingConfig: { thinkingLevel: ThinkingLevel.LOW } }),
+          temperature: req.temperature ?? 0.3,
+          maxOutputTokens: req.maxTokens ?? 800,
         },
       }),
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error(`${model} timeout ${timeoutMs}ms`)), timeoutMs)
-      ),
-    ]);
+      signal: controller.signal,
+    });
 
-    const text = typeof res.text === "string" ? res.text : null;
-    return text;
+    clearTimeout(timeout);
+    if (!res.ok) {
+      return null;
+    }
+
+    const data = await res.json();
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    return typeof text === "string" ? text : null;
   } catch {
+    clearTimeout(timeout);
     return null;
   }
 }
