@@ -444,7 +444,11 @@ Trả về DUY NHẤT một chuỗi JSON hợp lệ theo định dạng sau:
         providerName = aiRes.provider;
         const cleaned = aiRes.text.replace(/```(?:json)?\s*/gi, "").replace(/\s*```/g, "").trim();
         const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-        parsed = JSON.parse(jsonMatch ? jsonMatch[0] : cleaned);
+        if (jsonMatch) {
+          try {
+            parsed = JSON.parse(jsonMatch[0]);
+          } catch {}
+        }
       }
     } catch (e) {
       console.warn("[actor-universe-graph] AI query warning:", e);

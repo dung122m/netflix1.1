@@ -273,8 +273,13 @@ export async function generateFastAiChat(req: AiChatRequest): Promise<AiChatResp
     const perCallTimeout = Math.min(maxTotalTimeout - (Date.now() - start), 2000);
     const cfText = await callCloudflareAI(req, cfModel, perCallTimeout);
     if (typeof cfText === "string" && cfText.trim()) {
+      const trimmed = cfText.trim();
+      // Nếu yêu cầu JSON mà model chỉ trả lời văn phong thường không có JSON, tự động chuyển sang Gemini/Groq
+      if (req.jsonMode && (!trimmed.includes("{") || !trimmed.includes("}"))) {
+        continue;
+      }
       return {
-        text: cfText.trim(),
+        text: trimmed,
         provider: "Cloudflare Workers AI",
         model: cfModel,
         latencyMs: Date.now() - start,
