@@ -314,6 +314,30 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     } catch {}
   }, []);
 
+  // Khóa hướng màn hình xoay ngang tự động trên thiết bị di động khi phóng to
+  const lockLandscape = useCallback(async () => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const ori = (screen?.orientation || (screen as any)?.mozOrientation || (screen as any)?.msOrientation) as any;
+      if (ori && typeof ori.lock === "function") {
+        await ori.lock("landscape").catch(() => {
+          return ori.lock("landscape-primary").catch(() => {});
+        });
+      }
+    } catch {}
+  }, []);
+
+  // Mở khóa xoay màn hình tự do khi thoát toàn màn hình
+  const unlockOrientation = useCallback(() => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const ori = (screen?.orientation || (screen as any)?.mozOrientation || (screen as any)?.msOrientation) as any;
+      if (ori && typeof ori.unlock === "function") {
+        ori.unlock();
+      }
+    } catch {}
+  }, []);
+
   const toggleFullscreen = useCallback(() => {
     const container = containerRef.current;
     const video = videoRef.current;
@@ -325,6 +349,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       try {
         webkitVideo.webkitEnterFullscreen();
         setIsFullscreen(true);
+        lockLandscape();
         showHud(<Maximize2 className="w-5 h-5 text-netflix-red" />, "Toàn màn hình (iOS)");
         return;
       } catch (e) {
@@ -339,21 +364,78 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     const fullscreenElement = doc.fullscreenElement || doc.webkitFullscreenElement || doc.mozFullScreenElement || doc.msFullscreenElement;
 
     if (!fullscreenElement) {
-      const requestFS = elem.requestFullscreen || elem.webkitRequestFullscreen || elem.mozRequestFullScreen || elem.msRequestFullscreen;
-      if (requestFS) {
-        requestFS.call(elem);
+      if (elem.requestFullscreen) {
+        elem.requestFullscreen({ navigationUI: "hide" } as FullscreenOptions).then(lockLandscape).catch(() => {
+          if (elem.requestFullscreen) {
+            elem.requestFullscreen().then(lockLandscape).catch(() => {});
+          }
+        });
         setIsFullscreen(true);
         showHud(<Maximize2 className="w-5 h-5 text-netflix-red" />, "Toàn màn hình");
+      } else {
+        const requestFS = elem.webkitRequestFullscreen || elem.mozRequestFullScreen || elem.msRequestFullscreen;
+        if (requestFS) {
+          requestFS.call(elem);
+          setIsFullscreen(true);
+          lockLandscape();
+          showHud(<Maximize2 className="w-5 h-5 text-netflix-red" />, "Toàn màn hình");
+        }
       }
     } else {
       const exitFS = doc.exitFullscreen || doc.webkitExitFullscreen || doc.mozCancelFullScreen || doc.msExitFullscreen;
       if (exitFS) {
         exitFS.call(doc).catch(() => {});
         setIsFullscreen(false);
+        unlockOrientation();
         showHud(<Minimize2 className="w-5 h-5 text-gray-300" />, "Thoát toàn màn hình");
       }
     }
-  }, [isNativeVideo, showHud]);
+  }, [isNativeVideo, lockLandscape, unlockOrientation, showHud]);
+
+  useEffect(() => {
+    const handleFsChange = () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const doc = document as any;
+      const isFs = Boolean(doc.fullscreenElement || doc.webkitFullscreenElement || doc.mozFullScreenElement || doc.msFullscreenElement);
+      setIsFullscreen(isFs);
+      if (isFs) {
+        lockLandscape();
+      } else {
+        unlockOrientation();
+      }
+    };
+
+    const video = videoRef.current;
+    const handleVideoBeginFs = () => {
+      setIsFullscreen(true);
+      lockLandscape();
+    };
+    const handleVideoEndFs = () => {
+      setIsFullscreen(false);
+      unlockOrientation();
+    };
+
+    document.addEventListener("fullscreenchange", handleFsChange);
+    document.addEventListener("webkitfullscreenchange", handleFsChange);
+    document.addEventListener("mozfullscreenchange", handleFsChange);
+    document.addEventListener("MSFullscreenChange", handleFsChange);
+
+    if (video) {
+      video.addEventListener("webkitbeginfullscreen", handleVideoBeginFs);
+      video.addEventListener("webkitendfullscreen", handleVideoEndFs);
+    }
+
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFsChange);
+      document.removeEventListener("webkitfullscreenchange", handleFsChange);
+      document.removeEventListener("mozfullscreenchange", handleFsChange);
+      document.removeEventListener("MSFullscreenChange", handleFsChange);
+      if (video) {
+        video.removeEventListener("webkitbeginfullscreen", handleVideoBeginFs);
+        video.removeEventListener("webkitendfullscreen", handleVideoEndFs);
+      }
+    };
+  }, [lockLandscape, unlockOrientation]);
 
   const togglePiP = useCallback(async () => {
     const video = videoRef.current;

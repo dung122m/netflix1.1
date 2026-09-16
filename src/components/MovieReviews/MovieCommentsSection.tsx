@@ -265,7 +265,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
     const finalIsSpoiler = isSpoiler || autoSpoiler;
     if (autoSpoiler && !isSpoiler) {
       setIsSpoiler(true);
-      toast.info("🛡️ Đã tự động bật cảnh báo Spoiler do bình luận chứa tình tiết/kết phim!", { duration: 4000 });
+      toast.info("🛡️ Đã tự động bật cảnh báo Spoiler do bình luận chứa tình tiết/kết phim!");
     }
 
     setIsSubmitting(true);

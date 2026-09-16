@@ -140,13 +140,13 @@ export function PublicUserProfileModal() {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-lg sm:max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl sm:rounded-3xl border border-white/15 bg-gradient-to-b from-zinc-900 via-zinc-950 to-black p-4 sm:p-6 shadow-2xl space-y-4 sm:space-y-5 scrollbar-thin"
+        className="relative w-full max-w-md sm:max-w-xl max-h-[90vh] overflow-y-auto rounded-3xl border border-white/15 bg-gradient-to-b from-zinc-900 via-zinc-950 to-black p-4 sm:p-6 shadow-2xl space-y-4 sm:space-y-5 scrollbar-thin my-auto"
       >
         {/* Glow hiệu ứng nền */}
         <div className="absolute -top-24 -left-24 w-48 h-48 bg-rose-600/15 rounded-full blur-3xl pointer-events-none" />
 
         {/* NÚT ĐÓNG & CHIA SẺ */}
-        <div className="absolute top-3.5 right-3.5 sm:top-4 sm:right-4 flex items-center gap-1.5 z-10">
+        <div className="absolute top-3.5 right-3.5 sm:top-4 sm:right-4 flex items-center gap-1.5 z-20">
           <button
             type="button"
             onClick={handleCopyProfile}
@@ -166,11 +166,11 @@ export function PublicUserProfileModal() {
         </div>
 
         {/* PROFILE HEADER BANNER */}
-        <div className="relative pt-1 pr-14 sm:pr-0">
-          <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-3.5 sm:gap-5">
+        <div className="relative pt-1 sm:pt-0">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-3.5 sm:gap-5 px-1 sm:px-0">
             {/* AVATAR TRÒN CÓ VIỀN CẤP ĐỘ VIP */}
-            <div className="relative flex-shrink-0">
-              <div className="w-18 h-18 sm:w-22 sm:h-22 rounded-full overflow-hidden bg-gradient-to-br from-indigo-600 via-purple-600 to-rose-600 p-0.5 shadow-xl ring-2 ring-white/20">
+            <div className="relative flex-shrink-0 mx-auto sm:mx-0">
+              <div className="w-20 h-20 sm:w-22 sm:h-22 rounded-full overflow-hidden bg-gradient-to-br from-indigo-600 via-purple-600 to-rose-600 p-0.5 shadow-xl ring-2 ring-white/20">
                 {avatarUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -197,9 +197,9 @@ export function PublicUserProfileModal() {
             </div>
 
             {/* THÔNG TIN TÊN & HUY HIỆU */}
-            <div className="flex-1 min-w-0 space-y-1.5 sm:space-y-2">
+            <div className="flex-1 min-w-0 space-y-1.5 sm:space-y-2 w-full">
               <div className="flex flex-wrap items-center justify-center sm:justify-start gap-1.5 sm:gap-2">
-                <h3 className="text-lg sm:text-2xl font-black text-white tracking-wide break-words">
+                <h3 className="text-lg sm:text-2xl font-black text-white tracking-wide break-words text-center sm:text-left">
                   {profile.displayName}
                 </h3>
                 {isAdmin ? (
@@ -217,11 +217,11 @@ export function PublicUserProfileModal() {
 
               {/* BIO / GIỚI THIỆU */}
               {profile.bio ? (
-                <p className="text-xs sm:text-sm text-zinc-300 italic max-w-md break-words leading-relaxed">
+                <p className="text-xs sm:text-sm text-zinc-300 italic max-w-md mx-auto sm:mx-0 break-words leading-relaxed text-center sm:text-left">
                   &quot;{profile.bio}&quot;
                 </p>
               ) : (
-                <p className="text-xs text-zinc-500">Thành viên chưa thêm lời giới thiệu.</p>
+                <p className="text-xs text-zinc-500 text-center sm:text-left">Thành viên chưa thêm lời giới thiệu.</p>
               )}
 
               {/* HUY HIỆU SỞ HỮU */}
@@ -248,7 +248,7 @@ export function PublicUserProfileModal() {
 
         {/* THỐNG KÊ NHANH (CARDS) */}
         <div className="grid grid-cols-3 gap-2 sm:gap-3">
-          <div className="p-2.5 sm:p-3 rounded-2xl bg-zinc-900/60 border border-white/10 text-center space-y-0.5">
+          <div className="p-2 sm:p-3 rounded-2xl bg-zinc-900/60 border border-white/10 text-center space-y-0.5 flex flex-col justify-center items-center overflow-hidden">
             <div className="flex items-center justify-center gap-1 text-amber-400">
               <Clock className="w-3.5 h-3.5 flex-shrink-0" />
               <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-zinc-400 whitespace-nowrap">
@@ -256,23 +256,23 @@ export function PublicUserProfileModal() {
               </span>
             </div>
             <div className="text-base sm:text-xl font-black text-white">{watchHours}h</div>
-            <div className="text-[10px] text-zinc-500 whitespace-nowrap">{watchMins.toLocaleString()} phút</div>
+            <div className="text-[10px] text-zinc-500 truncate max-w-full">{watchMins.toLocaleString()} phút</div>
           </div>
 
-          <div className="p-2.5 sm:p-3 rounded-2xl bg-zinc-900/60 border border-white/10 text-center space-y-0.5">
+          <div className="p-2 sm:p-3 rounded-2xl bg-zinc-900/60 border border-white/10 text-center space-y-0.5 flex flex-col justify-center items-center overflow-hidden">
             <div className="flex items-center justify-center gap-1 text-amber-400">
               <Flame className="w-3.5 h-3.5 flex-shrink-0 fill-amber-400" />
               <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-zinc-400 whitespace-nowrap">
                 Danh Hiệu
               </span>
             </div>
-            <div className="text-sm sm:text-base font-black text-white truncate px-1">
+            <div className="text-xs sm:text-base font-black text-white truncate max-w-full px-1">
               {levelInfo.levelName}
             </div>
-            <div className="text-[10px] text-zinc-500 whitespace-nowrap">{levelInfo.badgeIcon} Cấp VIP</div>
+            <div className="text-[10px] text-zinc-500 truncate max-w-full">{levelInfo.badgeIcon} Cấp VIP</div>
           </div>
 
-          <div className="p-2.5 sm:p-3 rounded-2xl bg-zinc-900/60 border border-white/10 text-center space-y-0.5">
+          <div className="p-2 sm:p-3 rounded-2xl bg-zinc-900/60 border border-white/10 text-center space-y-0.5 flex flex-col justify-center items-center overflow-hidden">
             <div className="flex items-center justify-center gap-1 text-rose-400">
               <Layers className="w-3.5 h-3.5 flex-shrink-0" />
               <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-zinc-400 whitespace-nowrap">
@@ -289,9 +289,9 @@ export function PublicUserProfileModal() {
           <button
             type="button"
             onClick={() => setActiveTab("overview")}
-            className={`flex-1 py-2 px-3 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap ${
+            className={`flex-1 py-2 px-2 sm:px-3 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap text-xs ${
               activeTab === "overview"
-                ? "bg-netflix-red text-white shadow-lg"
+                ? "bg-netflix-red text-white shadow-lg shadow-rose-950/40"
                 : "text-zinc-400 hover:text-white hover:bg-white/5"
             }`}
           >
@@ -301,9 +301,9 @@ export function PublicUserProfileModal() {
           <button
             type="button"
             onClick={() => setActiveTab("collections")}
-            className={`flex-1 py-2 px-3 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap ${
+            className={`flex-1 py-2 px-2 sm:px-3 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap text-xs ${
               activeTab === "collections"
-                ? "bg-netflix-red text-white shadow-lg"
+                ? "bg-netflix-red text-white shadow-lg shadow-rose-950/40"
                 : "text-zinc-400 hover:text-white hover:bg-white/5"
             }`}
           >

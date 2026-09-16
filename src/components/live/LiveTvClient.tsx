@@ -709,6 +709,30 @@ export function LiveTvClient({
     [triggerActionFeedback],
   );
 
+  // Khóa hướng màn hình xoay ngang tự động trên thiết bị di động khi phóng to
+  const lockLandscape = useCallback(async () => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const ori = (screen?.orientation || (screen as any)?.mozOrientation || (screen as any)?.msOrientation) as any;
+      if (ori && typeof ori.lock === "function") {
+        await ori.lock("landscape").catch(() => {
+          return ori.lock("landscape-primary").catch(() => {});
+        });
+      }
+    } catch {}
+  }, []);
+
+  // Mở khóa xoay màn hình tự do khi thoát toàn màn hình
+  const unlockOrientation = useCallback(() => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const ori = (screen?.orientation || (screen as any)?.mozOrientation || (screen as any)?.msOrientation) as any;
+      if (ori && typeof ori.unlock === "function") {
+        ori.unlock();
+      }
+    } catch {}
+  }, []);
+
   // Toàn màn hình hỗ trợ đa nền tảng (Desktop, Android, iOS Safari)
   const toggleFullscreen = useCallback(() => {
     const container = containerRef.current;
@@ -759,21 +783,31 @@ export function LiveTvClient({
         ).msExitFullscreen();
       }
       setIsFullscreen(false);
+      unlockOrientation();
     } else {
       // Bật toàn màn hình
       if (container && container.requestFullscreen) {
-        container.requestFullscreen().catch(() => {
-          // Fallback cho iOS Safari
-          if (
-            video &&
-            (video as unknown as { webkitEnterFullscreen?: () => void })
-              .webkitEnterFullscreen
-          ) {
-            (
-              video as unknown as { webkitEnterFullscreen: () => void }
-            ).webkitEnterFullscreen();
-          }
+        // Thử bật fullscreen với navigationUI ẩn để giảm thiểu thanh điều hướng trình duyệt
+        const p = container.requestFullscreen({ navigationUI: "hide" } as FullscreenOptions).catch(() => {
+          return container.requestFullscreen().catch(() => {
+            // Fallback cho iOS Safari
+            if (
+              video &&
+              (video as unknown as { webkitEnterFullscreen?: () => void })
+                .webkitEnterFullscreen
+            ) {
+              (
+                video as unknown as { webkitEnterFullscreen: () => void }
+              ).webkitEnterFullscreen();
+            }
+          });
         });
+
+        if (p && typeof p.then === "function") {
+          p.then(lockLandscape).catch(() => {});
+        } else {
+          lockLandscape();
+        }
       } else if (
         container &&
         (container as unknown as { webkitRequestFullscreen?: () => void })
@@ -782,6 +816,7 @@ export function LiveTvClient({
         (
           container as unknown as { webkitRequestFullscreen: () => void }
         ).webkitRequestFullscreen();
+        lockLandscape();
       } else if (
         container &&
         (container as unknown as { mozRequestFullScreen?: () => void })
@@ -790,6 +825,7 @@ export function LiveTvClient({
         (
           container as unknown as { mozRequestFullScreen: () => void }
         ).mozRequestFullScreen();
+        lockLandscape();
       } else if (
         container &&
         (container as unknown as { msRequestFullscreen?: () => void })
@@ -798,6 +834,7 @@ export function LiveTvClient({
         (
           container as unknown as { msRequestFullscreen: () => void }
         ).msRequestFullscreen();
+        lockLandscape();
       } else if (
         video &&
         (video as unknown as { webkitEnterFullscreen?: () => void })
@@ -810,7 +847,7 @@ export function LiveTvClient({
       }
       setIsFullscreen(true);
     }
-  }, [isFullscreen]);
+  }, [isFullscreen, lockLandscape, unlockOrientation]);
 
   const togglePip = useCallback(async () => {
     if (!videoRef.current) return;
@@ -837,11 +874,22 @@ export function LiveTvClient({
           .msFullscreenElement,
       );
       setIsFullscreen(isFs);
+      if (isFs) {
+        lockLandscape();
+      } else {
+        unlockOrientation();
+      }
     };
 
     const video = videoRef.current;
-    const handleVideoBeginFs = () => setIsFullscreen(true);
-    const handleVideoEndFs = () => setIsFullscreen(false);
+    const handleVideoBeginFs = () => {
+      setIsFullscreen(true);
+      lockLandscape();
+    };
+    const handleVideoEndFs = () => {
+      setIsFullscreen(false);
+      unlockOrientation();
+    };
 
     document.addEventListener("fullscreenchange", handleFsChange);
     document.addEventListener("webkitfullscreenchange", handleFsChange);
@@ -863,7 +911,7 @@ export function LiveTvClient({
         video.removeEventListener("webkitendfullscreen", handleVideoEndFs);
       }
     };
-  }, []);
+  }, [lockLandscape, unlockOrientation]);
 
   // Chuyển kênh bằng phím mũi tên Trái / Phải hoặc nút trên Player
   const handleSwitchChannel = useCallback(
@@ -1064,7 +1112,7 @@ export function LiveTvClient({
               setShowControls(false);
             }}
             onDoubleClick={toggleFullscreen}
-            className={`relative w-full aspect-video sm:max-h-[calc(100vh-210px)] sm:max-w-[calc((100vh-210px)*16/9)] mx-auto bg-black rounded-2xl sm:rounded-3xl overflow-hidden border border-white/15 shadow-2xl group select-none ring-1 ring-white/10 ${
+            className={`relative w-full aspect-video lg:max-h-[calc(100vh-210px)] lg:max-w-[calc((100vh-210px)*16/9)] mx-auto bg-black rounded-2xl sm:rounded-3xl overflow-hidden border border-white/15 shadow-2xl group select-none ring-1 ring-white/10 ${
               showControls ? "cursor-default" : "cursor-none"
             }`}
           >

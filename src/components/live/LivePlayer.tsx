@@ -703,6 +703,31 @@ function LivePlayerInner({
     [triggerActionFeedback],
   );
 
+
+  // Khóa hướng màn hình xoay ngang tự động trên thiết bị di động khi phóng to
+  const lockLandscape = useCallback(async () => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const ori = (screen?.orientation || (screen as any)?.mozOrientation || (screen as any)?.msOrientation) as any;
+      if (ori && typeof ori.lock === "function") {
+        await ori.lock("landscape").catch(() => {
+          return ori.lock("landscape-primary").catch(() => {});
+        });
+      }
+    } catch {}
+  }, []);
+
+  // Mở khóa xoay màn hình tự do khi thoát toàn màn hình
+  const unlockOrientation = useCallback(() => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const ori = (screen?.orientation || (screen as any)?.mozOrientation || (screen as any)?.msOrientation) as any;
+      if (ori && typeof ori.unlock === "function") {
+        ori.unlock();
+      }
+    } catch {}
+  }, []);
+
   // Toàn màn hình hỗ trợ đa nền tảng (Desktop, Android, iOS Safari)
   const toggleFullscreen = useCallback(() => {
     const container = containerRef.current;
@@ -753,29 +778,12 @@ function LivePlayerInner({
         ).msExitFullscreen();
       }
       setIsFullscreen(false);
-      // Mở khóa xoay màn hình khi thoát fullscreen
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const ori = (screen?.orientation || (screen as any)?.mozOrientation) as any;
-        if (ori && typeof ori.unlock === "function") ori.unlock();
-      } catch {}
+      unlockOrientation();
     } else {
-      // Helper: lock landscape sau khi fullscreen thành công
-      const lockLandscape = () => {
-        try {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const ori = (screen?.orientation || (screen as any)?.mozOrientation) as any;
-          if (ori && typeof ori.lock === "function") {
-            ori.lock("landscape").catch(() => {});
-          }
-        } catch {}
-      };
-
       // Bật toàn màn hình
       if (container && container.requestFullscreen) {
-        const p = container.requestFullscreen();
-        if (p && typeof p.then === "function") {
-          p.then(lockLandscape).catch(() => {
+        const p = container.requestFullscreen({ navigationUI: "hide" } as FullscreenOptions).catch(() => {
+          return container.requestFullscreen().catch(() => {
             // Fallback cho iOS Safari
             if (
               video &&
@@ -787,6 +795,10 @@ function LivePlayerInner({
               ).webkitEnterFullscreen();
             }
           });
+        });
+
+        if (p && typeof p.then === "function") {
+          p.then(lockLandscape).catch(() => {});
         } else {
           lockLandscape();
         }
@@ -829,7 +841,7 @@ function LivePlayerInner({
       }
       setIsFullscreen(true);
     }
-  }, [isFullscreen]);
+  }, [isFullscreen, lockLandscape, unlockOrientation]);
 
   // Picture in Picture (PiP)
   const togglePip = useCallback(async () => {
@@ -859,11 +871,22 @@ function LivePlayerInner({
           .msFullscreenElement,
       );
       setIsFullscreen(isFs);
+      if (isFs) {
+        lockLandscape();
+      } else {
+        unlockOrientation();
+      }
     };
 
     const video = videoRef.current;
-    const handleVideoBeginFs = () => setIsFullscreen(true);
-    const handleVideoEndFs = () => setIsFullscreen(false);
+    const handleVideoBeginFs = () => {
+      setIsFullscreen(true);
+      lockLandscape();
+    };
+    const handleVideoEndFs = () => {
+      setIsFullscreen(false);
+      unlockOrientation();
+    };
 
     document.addEventListener("fullscreenchange", handleFsChange);
     document.addEventListener("webkitfullscreenchange", handleFsChange);
@@ -885,7 +908,7 @@ function LivePlayerInner({
         video.removeEventListener("webkitendfullscreen", handleVideoEndFs);
       }
     };
-  }, []);
+  }, [lockLandscape, unlockOrientation]);
 
   // Chuyển sang máy chủ tiếp theo / trước đó
   const handleSwitchServer = useCallback(
@@ -1188,7 +1211,7 @@ function LivePlayerInner({
           setShowControls(false);
         }}
         onDoubleClick={toggleFullscreen}
-        className={`relative w-full aspect-video sm:max-h-[calc(100vh-210px)] sm:max-w-[calc((100vh-210px)*16/9)] mx-auto bg-black rounded-2xl sm:rounded-3xl overflow-hidden border border-white/15 shadow-2xl group select-none ring-1 ring-white/10 ${
+        className={`relative w-full aspect-video lg:max-h-[calc(100vh-210px)] lg:max-w-[calc((100vh-210px)*16/9)] mx-auto bg-black rounded-2xl sm:rounded-3xl overflow-hidden border border-white/15 shadow-2xl group select-none ring-1 ring-white/10 ${
           showControls ? "cursor-default" : "cursor-none"
         }`}
       >
