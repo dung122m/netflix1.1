@@ -167,6 +167,7 @@ export const NanaAiStudioModal: React.FC = () => {
   const [selectedCompanion, setSelectedCompanion] = useState("mot-minh");
   const [isSpinning, setIsSpinning] = useState(false);
   const [rouletteResult, setRouletteResult] = useState<RouletteResult | null>(null);
+  const [showCriteriaPicker, setShowCriteriaPicker] = useState(false);
   const [rolledSlugs, setRolledSlugs] = useState<string[]>([]);
 
   // LISTEN TO GLOBAL DISPATCH EVENTS
@@ -324,6 +325,7 @@ export const NanaAiStudioModal: React.FC = () => {
       const data = await res.json();
       if (data && (data.movie || data.success)) {
         setRouletteResult(data);
+        setShowCriteriaPicker(false);
         if (data.movie?.slug) {
           setRolledSlugs((prev) => [...prev, data.movie.slug]);
         }
@@ -642,183 +644,246 @@ export const NanaAiStudioModal: React.FC = () => {
           {/* GIAO DIỆN 2: DEDICATED BỐC QUẺ ĐỊNH MỆNH */}
           {/* ========================================================= */}
           {activeTab === "roulette" && (
-            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-5 animate-in fade-in duration-200">
-              {/* CRITERIA GRIDS */}
-              <div className="space-y-4">
-                {/* 1. MOOD */}
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-gray-200 flex items-center gap-1.5 uppercase tracking-wider">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                    <span>1. Chọn tâm trạng bạn muốn trải nghiệm:</span>
-                  </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    {ROULETTE_MOODS.map((m) => {
-                      const isSelected = selectedMood === m.id;
-                      return (
-                        <button
-                          key={m.id}
-                          type="button"
-                          onClick={() => setSelectedMood(m.id)}
-                          className={`p-2.5 rounded-2xl border text-left transition-all duration-150 flex items-center gap-2.5 cursor-pointer group shadow-sm ${
-                            isSelected
-                              ? "bg-gradient-to-br from-amber-500/25 to-orange-500/25 border-amber-400 text-white ring-2 ring-amber-400/40 shadow-lg shadow-amber-950/40 font-bold scale-[1.02]"
-                              : "bg-zinc-900/80 border-white/10 text-gray-300 hover:text-white hover:bg-zinc-800/80 hover:border-amber-500/30"
-                          }`}
-                        >
-                          <span className="text-xl p-1 rounded-xl bg-black/40 border border-white/10 group-hover:scale-110 transition-transform">
-                            {m.emoji}
-                          </span>
-                          <div className="min-w-0 flex-1">
-                            <div className="text-xs font-bold truncate group-hover:text-amber-300 transition-colors">
-                              {m.label}
-                            </div>
-                            <div className="text-[10px] text-gray-400 truncate">{m.desc}</div>
-                          </div>
-                        </button>
-                      );
-                    })}
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3.5 sm:p-5 flex flex-col animate-in fade-in duration-200">
+              {/* STATE 1: LOADING / SPINNING ANIMATION */}
+              {isSpinning ? (
+                <div className="flex-1 flex flex-col items-center justify-center py-10 space-y-4 text-center animate-in zoom-in-95 duration-200">
+                  <div className="relative w-20 h-20 rounded-3xl bg-gradient-to-br from-amber-400 via-orange-500 to-rose-600 flex items-center justify-center text-white shadow-2xl shadow-amber-500/40 ring-4 ring-amber-400/30 animate-pulse">
+                    <Dices className="w-10 h-10 animate-spin text-white" />
                   </div>
-                </div>
-
-                {/* 2. COUNTRY */}
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-gray-200 flex items-center gap-1.5 uppercase tracking-wider">
-                    <Globe2 className="w-3.5 h-3.5 text-sky-400" />
-                    <span>2. Quốc gia ưu tiên:</span>
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {ROULETTE_COUNTRIES.map((c) => {
-                      const isSelected = selectedCountry === c.id;
-                      return (
-                        <button
-                          key={c.id}
-                          type="button"
-                          onClick={() => setSelectedCountry(c.id)}
-                          className={`px-3.5 py-2 rounded-xl border text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-sm ${
-                            isSelected
-                              ? "bg-sky-500/25 border-sky-400 text-white ring-2 ring-sky-400/40 shadow-sky-950/40 scale-105"
-                              : "bg-zinc-900/80 border-white/10 text-gray-300 hover:text-white hover:bg-zinc-800"
-                          }`}
-                        >
-                          <span>{c.flag}</span>
-                          <span>{c.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* 3. COMPANION */}
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-gray-200 flex items-center gap-1.5 uppercase tracking-wider">
-                    <Users className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>3. Bạn đang xem cùng ai?</span>
-                  </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    {ROULETTE_COMPANIONS.map((cp) => {
-                      const isSelected = selectedCompanion === cp.id;
-                      return (
-                        <button
-                          key={cp.id}
-                          type="button"
-                          onClick={() => setSelectedCompanion(cp.id)}
-                          className={`p-2.5 rounded-2xl border text-left transition-all duration-150 flex items-center gap-2.5 cursor-pointer group shadow-sm ${
-                            isSelected
-                              ? "bg-emerald-500/25 border-emerald-400 text-white ring-2 ring-emerald-400/40 shadow-lg shadow-emerald-950/40 font-bold scale-[1.02]"
-                              : "bg-zinc-900/80 border-white/10 text-gray-300 hover:text-white hover:bg-zinc-800"
-                          }`}
-                        >
-                          <span className="text-xl p-1 rounded-xl bg-black/40 border border-white/10 group-hover:scale-110 transition-transform">
-                            {cp.icon}
-                          </span>
-                          <div className="min-w-0 flex-1">
-                            <div className="text-xs font-bold truncate group-hover:text-emerald-300 transition-colors">
-                              {cp.label}
-                            </div>
-                            <div className="text-[10px] text-gray-400 truncate">{cp.desc}</div>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-
-              {/* MEGA SPIN BUTTON */}
-              <div className="pt-2">
-                <button
-                  type="button"
-                  onClick={spinRoulette}
-                  disabled={isSpinning}
-                  className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-600 to-rose-600 text-white font-black text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-2xl shadow-amber-950/60 hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer disabled:opacity-50 ring-2 ring-amber-400/30"
-                >
-                  <Dices className={`w-5 h-5 ${isSpinning ? "animate-spin" : ""}`} />
-                  <span>{isSpinning ? "Đang Bốc Quẻ Số Phận..." : "Bốc Quẻ Suất Chiếu Định Mệnh 🎲"}</span>
-                </button>
-              </div>
-
-              {/* HIGH-END ROULETTE RESULT CARD */}
-              {rouletteResult && (
-                <div className="p-4 sm:p-5 rounded-3xl bg-zinc-900/95 border-2 border-amber-500/50 shadow-2xl shadow-amber-950/50 flex flex-col sm:flex-row gap-4 sm:gap-5 items-center animate-in zoom-in-95 duration-200">
-                  <div className="relative w-28 sm:w-32 aspect-[2/3] rounded-2xl overflow-hidden bg-zinc-950 border-2 border-amber-400/30 flex-none shadow-2xl">
-                    <Image
-                      src={rouletteResult.movie.poster || "/default-poster.jpg"}
-                      alt={rouletteResult.movie.title}
-                      fill
-                      className="object-cover"
-                      sizes="130px"
-                    />
-                    <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded-md bg-netflix-red text-white text-[9.5px] font-black uppercase shadow">
-                      {rouletteResult.movie.quality || "HD"}
-                    </div>
-                  </div>
-
-                  <div className="flex-1 min-w-0 space-y-2.5 text-center sm:text-left">
-                    <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                      <span className="text-[11px] font-black uppercase text-amber-300 px-2.5 py-0.8 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center gap-1">
-                        <Star className="w-3 h-3 fill-amber-300" />
-                        <span>{rouletteResult.matchScore}% Hợp Định Mệnh</span>
-                      </span>
-                      {rouletteResult.movie.category && (
-                        <span className="text-[11px] text-gray-300 px-2 py-0.5 rounded-full bg-white/10">
-                          {rouletteResult.movie.category}
-                        </span>
-                      )}
-                      {rouletteResult.movie.year && (
-                        <span className="text-[11px] text-gray-400">
-                          {rouletteResult.movie.year}
-                        </span>
-                      )}
-                    </div>
-
-                    <h4 className="text-base sm:text-xl font-black text-white leading-tight">
-                      {rouletteResult.movie.title}
-                    </h4>
-
-                    <p className="text-xs text-amber-200/95 italic bg-amber-500/15 p-3 rounded-2xl border border-amber-500/30 leading-relaxed">
-                      ✨ {rouletteResult.punchline}
+                  <div className="space-y-1">
+                    <h3 className="text-base sm:text-lg font-black text-white">Đang Khai Quẻ Số Mệnh...</h3>
+                    <p className="text-xs text-amber-300/80 animate-pulse">
+                      Đang tìm kiếm bộ phim hợp duyên nhất với tâm trạng của bạn...
                     </p>
+                  </div>
+                </div>
+              ) : rouletteResult && !showCriteriaPicker ? (
+                /* STATE 2: SPOTLIGHT RESULT SHOWCASE (FITS 100% IN MODAL WITHOUT SCROLLING) */
+                <div className="flex-1 flex flex-col justify-between py-1 space-y-3 animate-in zoom-in-95 duration-200">
+                  {/* COMPACT ACTIVE CRITERIA BAR */}
+                  <div className="flex items-center justify-between px-3 py-2 rounded-2xl bg-zinc-900/90 border border-amber-500/30 backdrop-blur-md shadow-md flex-none">
+                    <div className="flex items-center gap-2 overflow-x-auto text-xs min-w-0">
+                      <span className="text-amber-400 font-bold flex-none flex items-center gap-1">
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">Quẻ:</span>
+                      </span>
+                      <span className="px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-200 border border-amber-500/30 text-[11px] font-semibold whitespace-nowrap">
+                        {ROULETTE_MOODS.find((m) => m.id === selectedMood)?.emoji}{" "}
+                        {ROULETTE_MOODS.find((m) => m.id === selectedMood)?.label}
+                      </span>
+                      <span className="px-2 py-0.5 rounded-lg bg-sky-500/20 text-sky-200 border border-sky-500/30 text-[11px] font-semibold whitespace-nowrap">
+                        {ROULETTE_COUNTRIES.find((c) => c.id === selectedCountry)?.flag}{" "}
+                        {ROULETTE_COUNTRIES.find((c) => c.id === selectedCountry)?.label}
+                      </span>
+                      <span className="px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-200 border border-emerald-500/30 text-[11px] font-semibold whitespace-nowrap">
+                        {ROULETTE_COMPANIONS.find((cp) => cp.id === selectedCompanion)?.icon}{" "}
+                        {ROULETTE_COMPANIONS.find((cp) => cp.id === selectedCompanion)?.label}
+                      </span>
+                    </div>
 
-                    <div className="pt-2 flex flex-wrap items-center justify-center sm:justify-start gap-2.5">
-                      <Link
-                        href={`/movies/${rouletteResult.movie.slug}`}
-                        onClick={() => setIsOpen(false)}
-                        className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-netflix-red hover:bg-red-700 text-white font-black text-xs sm:text-sm transition shadow-xl shadow-red-950/40 cursor-pointer active:scale-95"
-                      >
-                        <Play className="w-4 h-4 fill-white" />
-                        <span>Xem Suất Chiếu Này Ngay</span>
-                      </Link>
+                    <button
+                      type="button"
+                      onClick={() => setShowCriteriaPicker(true)}
+                      className="ml-2 text-xs font-bold text-amber-300 hover:text-white px-2.5 py-1 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 transition cursor-pointer flex-none flex items-center gap-1 active:scale-95"
+                    >
+                      <span>Đổi gu</span>
+                    </button>
+                  </div>
 
+                  {/* SPOTLIGHT MOVIE CARD */}
+                  <div className="flex-1 min-h-0 p-3.5 sm:p-5 rounded-3xl bg-zinc-900/95 border-2 border-amber-500/40 shadow-2xl shadow-amber-950/40 flex flex-col sm:flex-row gap-3.5 sm:gap-5 items-center justify-center">
+                    {/* Poster */}
+                    <div className="relative w-28 sm:w-36 aspect-[2/3] rounded-2xl overflow-hidden bg-zinc-950 border-2 border-amber-400/40 flex-none shadow-2xl ring-2 ring-amber-400/20">
+                      <Image
+                        src={rouletteResult.movie.poster || "/default-poster.jpg"}
+                        alt={rouletteResult.movie.title}
+                        fill
+                        className="object-cover"
+                        sizes="160px"
+                        priority
+                      />
+                      <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-netflix-red text-white text-[10px] font-black uppercase shadow">
+                        {rouletteResult.movie.quality || "HD"}
+                      </div>
+                    </div>
+
+                    {/* Movie Info & Punchline */}
+                    <div className="flex-1 min-w-0 space-y-2 text-center sm:text-left flex flex-col justify-center">
+                      <div className="flex flex-wrap items-center justify-center sm:justify-start gap-1.5 sm:gap-2">
+                        <span className="text-[11px] font-black uppercase text-amber-300 px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center gap-1">
+                          <Star className="w-3 h-3 fill-amber-300" />
+                          <span>{rouletteResult.matchScore}% Hợp Định Mệnh</span>
+                        </span>
+                        {rouletteResult.movie.category && (
+                          <span className="text-[11px] text-gray-300 px-2 py-0.5 rounded-full bg-white/10 font-medium">
+                            {rouletteResult.movie.category}
+                          </span>
+                        )}
+                        {rouletteResult.movie.year && (
+                          <span className="text-[11px] text-gray-400">
+                            {rouletteResult.movie.year}
+                          </span>
+                        )}
+                      </div>
+
+                      <h4 className="text-base sm:text-2xl font-black text-white leading-tight">
+                        {rouletteResult.movie.title}
+                      </h4>
+
+                      <p className="text-xs sm:text-sm text-amber-200/95 italic bg-amber-500/15 p-2.5 sm:p-3 rounded-2xl border border-amber-500/30 leading-relaxed max-w-xl">
+                        ✨ {rouletteResult.punchline}
+                      </p>
+
+                      {/* Action Buttons */}
+                      <div className="pt-2 flex flex-wrap items-center justify-center sm:justify-start gap-2 sm:gap-2.5">
+                        <Link
+                          href={`/movies/${rouletteResult.movie.slug}`}
+                          onClick={() => setIsOpen(false)}
+                          className="inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl bg-netflix-red hover:bg-red-700 text-white font-black text-xs sm:text-sm transition shadow-xl shadow-red-950/50 cursor-pointer active:scale-95"
+                        >
+                          <Play className="w-4 h-4 fill-white" />
+                          <span>Xem Suất Chiếu Này Ngay</span>
+                        </Link>
+
+                        <button
+                          type="button"
+                          onClick={spinRoulette}
+                          disabled={isSpinning}
+                          className="inline-flex items-center gap-1.5 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-amber-500 via-orange-600 to-rose-600 hover:from-amber-400 hover:to-rose-500 text-white font-bold text-xs sm:text-sm transition shadow-lg shadow-amber-950/40 cursor-pointer active:scale-95 disabled:opacity-50"
+                        >
+                          <Dices className={`w-4 h-4 ${isSpinning ? "animate-spin" : ""}`} />
+                          <span>Bốc Quẻ Khác (Đổi Phim)</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* STATE 3: FULL CRITERIA PICKER */
+                <div className="space-y-4 animate-in fade-in duration-200">
+                  {rouletteResult && (
+                    <div className="flex items-center justify-between pb-1">
+                      <span className="text-xs font-bold text-gray-300">Tùy chỉnh lại tiêu chí chọn phim:</span>
                       <button
                         type="button"
-                        onClick={spinRoulette}
-                        disabled={isSpinning}
-                        className="inline-flex items-center gap-1.5 px-4 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-gray-200 hover:text-white font-bold text-xs transition border border-white/15 cursor-pointer disabled:opacity-50 active:scale-95"
+                        onClick={() => setShowCriteriaPicker(false)}
+                        className="text-xs text-amber-400 hover:text-white font-bold underline cursor-pointer"
                       >
-                        <RotateCcw className={`w-3.5 h-3.5 ${isSpinning ? "animate-spin" : ""}`} />
-                        <span>Bốc Quẻ Khác (Đổi Phim)</span>
+                        Quay lại kết quả trước
                       </button>
                     </div>
+                  )}
+
+                  {/* 1. MOOD */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-gray-200 flex items-center gap-1.5 uppercase tracking-wider">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                      <span>1. Chọn tâm trạng bạn muốn trải nghiệm:</span>
+                    </label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {ROULETTE_MOODS.map((m) => {
+                        const isSelected = selectedMood === m.id;
+                        return (
+                          <button
+                            key={m.id}
+                            type="button"
+                            onClick={() => setSelectedMood(m.id)}
+                            className={`p-2.5 rounded-2xl border text-left transition-all duration-150 flex items-center gap-2.5 cursor-pointer group shadow-sm ${
+                              isSelected
+                                ? "bg-gradient-to-br from-amber-500/25 to-orange-500/25 border-amber-400 text-white ring-2 ring-amber-400/40 shadow-lg shadow-amber-950/40 font-bold scale-[1.02]"
+                                : "bg-zinc-900/80 border-white/10 text-gray-300 hover:text-white hover:bg-zinc-800/80 hover:border-amber-500/30"
+                            }`}
+                          >
+                            <span className="text-xl p-1 rounded-xl bg-black/40 border border-white/10 group-hover:scale-110 transition-transform">
+                              {m.emoji}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <div className="text-xs font-bold truncate group-hover:text-amber-300 transition-colors">
+                                {m.label}
+                              </div>
+                              <div className="text-[10px] text-gray-400 truncate">{m.desc}</div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* 2. COUNTRY */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-gray-200 flex items-center gap-1.5 uppercase tracking-wider">
+                      <Globe2 className="w-3.5 h-3.5 text-sky-400" />
+                      <span>2. Quốc gia ưu tiên:</span>
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {ROULETTE_COUNTRIES.map((c) => {
+                        const isSelected = selectedCountry === c.id;
+                        return (
+                          <button
+                            key={c.id}
+                            type="button"
+                            onClick={() => setSelectedCountry(c.id)}
+                            className={`px-3.5 py-2 rounded-xl border text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-sm ${
+                              isSelected
+                                ? "bg-sky-500/25 border-sky-400 text-white ring-2 ring-sky-400/40 shadow-sky-950/40 scale-105"
+                                : "bg-zinc-900/80 border-white/10 text-gray-300 hover:text-white hover:bg-zinc-800"
+                            }`}
+                          >
+                            <span>{c.flag}</span>
+                            <span>{c.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* 3. COMPANION */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-gray-200 flex items-center gap-1.5 uppercase tracking-wider">
+                      <Users className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>3. Bạn đang xem cùng ai?</span>
+                    </label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {ROULETTE_COMPANIONS.map((cp) => {
+                        const isSelected = selectedCompanion === cp.id;
+                        return (
+                          <button
+                            key={cp.id}
+                            type="button"
+                            onClick={() => setSelectedCompanion(cp.id)}
+                            className={`p-2.5 rounded-2xl border text-left transition-all duration-150 flex items-center gap-2.5 cursor-pointer group shadow-sm ${
+                              isSelected
+                                ? "bg-emerald-500/25 border-emerald-400 text-white ring-2 ring-emerald-400/40 shadow-lg shadow-emerald-950/40 font-bold scale-[1.02]"
+                                : "bg-zinc-900/80 border-white/10 text-gray-300 hover:text-white hover:bg-zinc-800"
+                            }`}
+                          >
+                            <span className="text-xl p-1 rounded-xl bg-black/40 border border-white/10 group-hover:scale-110 transition-transform">
+                              {cp.icon}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <div className="text-xs font-bold truncate group-hover:text-emerald-300 transition-colors">
+                                {cp.label}
+                              </div>
+                              <div className="text-[10px] text-gray-400 truncate">{cp.desc}</div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* MEGA SPIN BUTTON */}
+                  <div className="pt-2">
+                    <button
+                      type="button"
+                      onClick={spinRoulette}
+                      disabled={isSpinning}
+                      className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-600 to-rose-600 text-white font-black text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-2xl shadow-amber-950/60 hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer disabled:opacity-50 ring-2 ring-amber-400/30"
+                    >
+                      <Dices className={`w-5 h-5 ${isSpinning ? "animate-spin" : ""}`} />
+                      <span>{isSpinning ? "Đang Bốc Quẻ Số Phận..." : "Bốc Quẻ Suất Chiếu Định Mệnh 🎲"}</span>
+                    </button>
                   </div>
                 </div>
               )}
