@@ -59,7 +59,7 @@ export const ACTOR_SLUG_MAP: Record<string, string[]> = {
   "iu": ["iu", "lee ji eun", "lee ji-eun"],
 };
 
-// Kho danh sách tác phẩm kinh điển của các siêu sao (để tối đa hóa kết quả tìm kiếm)
+// Kho danh sách tác phẩm kinh điển của các siêu sao
 export const ACTOR_TOP_TITLES: Record<string, string[]> = {
   "thanh-long": [
     "Câu Chuyện Cảnh Sát (Police Story)",
@@ -132,7 +132,7 @@ export const ACTOR_TOP_TITLES: Record<string, string[]> = {
 };
 
 // ============================================================================
-// BƯỚC 3: BẢNG ÁNH XẠ CHUẨN HÓA (SLUG MAPPERS - CODE DETERMINISTIC)
+// BẢNG ÁNH XẠ CHUẨN HÓA (SLUG MAPPERS - CODE DETERMINISTIC)
 // ============================================================================
 export const COUNTRY_SLUG_MAP: Record<string, string[]> = {
   "au-my": ["au-my", "us", "usa", "hollywood", "my", "mỹ", "hoa ky", "hoa kỳ", "au my", "âu mỹ", "anh", "uk", "phap", "pháp", "france", "duc", "đức", "germany", "y", "ý", "italy", "tay ban nha", "tây ban nha", "spain", "canada", "uc", "úc", "australia"],
@@ -315,7 +315,13 @@ function findBestMatchMovie(items: any[], query: string, originalQuery?: string,
     const itemYear = Number(it.year) || 0;
     const itemActors = toSafeActors(it);
 
-    // 1. Kiểm tra loại trừ
+    // 1. KIỂM TRA NĂM PHÁT HÀNH BẮT BUỘC (STRICT YEAR FILTER)
+    if (itemYear > 0) {
+      if (options?.yearFrom && itemYear < options.yearFrom) continue;
+      if (options?.yearTo && itemYear > options.yearTo) continue;
+    }
+
+    // 2. Kiểm tra loại trừ
     if (options?.excludedCountries && options.excludedCountries.length > 0) {
       if (options.excludedCountries.some((ex) => matchesCountry(country, ex))) {
         continue;
@@ -327,7 +333,7 @@ function findBestMatchMovie(items: any[], query: string, originalQuery?: string,
       }
     }
 
-    // 2. Kiểm tra quốc gia nghiêm ngặt
+    // 3. Kiểm tra quốc gia nghiêm ngặt
     if (options?.expectedCountry && country) {
       if (!matchesCountry(country, options.expectedCountry)) {
         continue;
@@ -358,21 +364,16 @@ function findBestMatchMovie(items: any[], query: string, originalQuery?: string,
 
     if (it.thumb_url || it.poster_url) score += 10;
 
-    // Điểm thưởng nếu có diễn viên mong muốn
     if (options?.expectedActorSlug && matchesActor(itemActors, options.expectedActorSlug)) {
       score += 30;
     }
 
-    // Điểm thưởng cho năm sản xuất
     if (itemYear > 0 && options?.yearFrom && options?.yearTo) {
       if (itemYear >= options.yearFrom && itemYear <= options.yearTo) {
         score += 25;
-      } else if (Math.abs(itemYear - options.yearFrom) <= 5 || Math.abs(itemYear - options.yearTo) <= 5) {
-        score += 10;
       }
     }
 
-    // Điểm thưởng cho thể loại
     if (options?.expectedGenre && matchesGenre(category, options.expectedGenre)) {
       score += 20;
     }
@@ -423,7 +424,7 @@ async function searchSingleMovieFast(title: string, originalTitle?: string, opti
   const cleanOriginal = (originalTitle || "").replace(/\([^)]*\)/g, "").replace(/\[[^\]]*\]/g, "").trim();
   if (!cleanTitle && !cleanOriginal) return null;
 
-  const key = `${cleanTitle}__${cleanOriginal}__${options?.expectedCountry || ""}__${options?.expectedGenre || ""}`.toLowerCase();
+  const key = `${cleanTitle}__${cleanOriginal}__${options?.expectedCountry || ""}__${options?.expectedGenre || ""}__${options?.yearFrom || ""}`.toLowerCase();
   const cached = TITLE_LOOKUP_CACHE.get(key);
   if (cached && Date.now() < cached.expireAt) return cached.item;
 
@@ -538,8 +539,8 @@ function safeParseAiJson(rawText: string): any {
       } catch {
         const analysisMatch = cleaned.match(/"analysis"\s*:\s*"((?:\\.|[^"\\])*)"/);
         const moodMatch = cleaned.match(/"mood"\s*:\s*"((?:\\.|[^"\\])*)"/);
-        const genreMatch = cleaned.match(/"genre"\s*:\s*"((?:\\.|[^"\\])*)"/) || cleaned.match(/"target_genre"\s*:\s*"((?:\\.|[^"\\])*)"/);
-        const countryMatch = cleaned.match(/"country"\s*:\s*"((?:\\.|[^"\\])*)"/) || cleaned.match(/"target_country"\s*:\s*"((?:\\.|[^"\\])*)"/);
+        const genreMatch = cleaned.match(/"genres?"\s*:\s*"((?:\\.|[^"\\])*)"/);
+        const countryMatch = cleaned.match(/"country"\s*:\s*"((?:\\.|[^"\\])*)"/);
         const actorMatch = cleaned.match(/"actor"\s*:\s*"((?:\\.|[^"\\])*)"/);
 
         const movies: Array<{ title: string; original_title?: string; reason?: string }> = [];
@@ -559,7 +560,7 @@ function safeParseAiJson(rawText: string): any {
           return {
             analysis: analysisMatch ? analysisMatch[1] : "",
             mood: moodMatch ? moodMatch[1] : "",
-            genre: genreMatch ? genreMatch[1] : "",
+            genres: genreMatch ? [genreMatch[1]] : [],
             country: countryMatch ? countryMatch[1] : "",
             actor: actorMatch ? actorMatch[1] : "",
             movies,
@@ -625,36 +626,42 @@ export async function POST(req: NextRequest) {
     }
 
     // ========================================================================
-    // BƯỚC 2: AI INTENT EXTRACTION (LLM AS STRUCTURED ANALYST & PARSER)
+    // BƯỚC 2: STRUCTURED EXTRACTION (AI TRÍCH XUẤT CẤU TRÚC JSON CHUẨN)
     // ========================================================================
     const systemPrompt = `Bạn là Nana AI - Trợ Lý Điện Ảnh Thông Minh & Phân Tích Ý Định Tìm Kiếm Phim của Nanaflix.
 
 NHIỆM VỤ:
-Phân tích yêu cầu tự nhiên của người dùng (kể cả câu dài nhiều tầng nghĩa kết hợp thể loại + quốc gia + thập niên + diễn viên/đạo diễn + chi tiết cốt truyện) và trích xuất JSON sạch chuẩn xác.
+Phân tích yêu cầu tự nhiên của người dùng (kể cả câu dài phức tạp kết hợp thể loại + quốc gia + khoảng năm/thập niên + chi tiết cốt truyện) và trích xuất thành đối tượng JSON chuẩn xác.
 
-QUY TẮC BÓC TÁCH THỰC THỂ:
-1. "actor": Trích xuất tên diễn viên nếu có (ví dụ: "Thành Long", "Châu Tinh Trì", "Chân Tử Đan", "Tom Cruise", "Keanu Reeves", "Trấn Thành"...).
-2. "genre": Trích xuất thể loại/chủ đề chính (ví dụ: "hanh-dong", "kinh-di", "hai-huoc", "tinh-cam", "hoat-hinh", "vien-tuong", "co-trang", "tam-ly", "trinh-tham", "vo-thuat", "chien-tranh", "tai-lieu", "phieu-luu").
-3. "country": Trích xuất quốc gia mục tiêu chuẩn hóa (ví dụ: "au-my", "thai-lan", "han-quoc", "hong-kong", "nhat-ban", "trung-quoc", "viet-nam").
-4. "year_from" & "year_to": Nếu người dùng nhắc đến thập niên (vd: "thập niên 90" -> year_from: 1990, year_to: 1999).
-5. "keyword": Trích xuất chi tiết cốt truyện hoặc bối cảnh đặc thù (ví dụ: "cướp ngân hàng", "vòng lặp thời gian", "sóng thần", "đầu bếp", "đấu trí").
-6. "director": Đạo diễn nếu có (ví dụ: "Christopher Nolan", "Quentin Tarantino"...).
-7. "excluded_countries": Danh sách các quốc gia người dùng yêu cầu LOẠI TRỪ.
-8. "excluded_genres": Danh sách các thể loại người dùng yêu cầu LOẠI TRỪ.
-9. "suggested_movies": Đề xuất 8-10 phim THỰC TẾ, NỔI TIẾNG KINH ĐIỂN khớp 100% với diễn viên, quốc gia, thể loại hoặc cốt truyện.
-10. KHÔNG BIAS TÊN: Tuyệt đối không tự động đưa anime "Nana" vào danh sách trừ khi người dùng đích danh tìm kiếm phim đó.
-11. "analysis": Lời chào tự nhiên, sành sỏi về điện ảnh giới thiệu ngắn gọn điểm hấp dẫn nhất của nhóm phim này (KHÔNG lặp lại nguyên văn câu hỏi người dùng).
+CÁC TRƯỜNG BẮT BUỘC TRÍCH XUẤT:
+1. "genres": Mảng các thể loại chuẩn hóa về slug (ví dụ: ["hanh-dong"], ["kinh-di"], ["tinh-cam"], ["hoat-hinh"], ["vien-tuong"], ["co-trang"], ["tam-ly"], ["trinh-tham"], ["vo-thuat"]).
+2. "country": Quốc gia mục tiêu chuẩn hóa về slug ("au-my" cho Mỹ/Hollywood/Âu Mỹ, "thai-lan" cho Thái Lan, "han-quoc" cho Hàn Quốc, "hong-kong" cho Hồng Kông, "nhat-ban" cho Nhật Bản, "trung-quoc" cho Trung Quốc, "viet-nam" cho Việt Nam). Nếu không có, để "".
+3. "years": Khoảng thời gian chính xác { "from": number, "to": number }.
+   - Ví dụ "thập niên 90" -> { "from": 1990, "to": 1999 }
+   - "thập niên 80" -> { "from": 1980, "to": 1989 }
+   - "thập niên 2000" -> { "from": 2000, "to": 2009 }
+   - "năm 2023" -> { "from": 2023, "to": 2023 }
+   - Nếu không nói mốc thời gian -> { "from": 0, "to": 0 }
+4. "keyword": Từ khóa đặc thù cốt truyện hoặc bối cảnh (ví dụ: "cướp ngân hàng", "vòng lặp thời gian", "sóng thần", "đầu bếp", "đấu trí").
+5. "actor": Diễn viên nếu có (ví dụ: "Thành Long", "Châu Tinh Trì", "Tom Cruise"...).
+6. "director": Đạo diễn nếu có.
+7. "excluded_countries": Mảng quốc gia người dùng yêu cầu loại trừ (ví dụ: "không lấy phim Mỹ" -> ["au-my"]).
+8. "suggested_movies": Đề xuất 6-8 phim THỰC TẾ, KINH ĐIỂN khớp 100% với quốc gia, thể loại, khoảng năm và cốt truyện.
+9. KHÔNG BIAS TÊN: Tuyệt đối không tự động đưa anime "Nana" vào danh sách trừ khi người dùng đích danh tìm kiếm phim đó.
+10. "analysis": Lời chào tự nhiên, sành sỏi về điện ảnh giới thiệu ngắn gọn điểm hấp dẫn nhất của nhóm phim này (KHÔNG lặp lại nguyên văn câu hỏi người dùng).
 
 BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT NGOÀI JSON):
 {
-  "analysis": "Lời chào tự nhiên, sâu sắc giới thiệu nhóm phim được chọn",
-  "mood": "Tên chủ đề ngắn gọn kèm Emoji (vd: 'Siêu Phẩm Điện Ảnh Thành Long 🥋')",
-  "actor": "thành long",
-  "genre": "vo-thuat",
-  "country": "hong-kong",
-  "year_from": 0,
-  "year_to": 0,
-  "keyword": "",
+  "analysis": "Lời chào tự nhiên giới thiệu nhóm phim được chọn",
+  "mood": "Tên chủ đề ngắn gọn kèm Emoji (vd: 'Hành Động Cướp Ngân Hàng Mỹ Thập Niên 90 🏦💥')",
+  "genres": ["hanh-dong"],
+  "country": "au-my",
+  "years": {
+    "from": 1990,
+    "to": 1999
+  },
+  "keyword": "cướp ngân hàng",
+  "actor": "",
   "director": "",
   "excluded_countries": [],
   "excluded_genres": [],
@@ -671,8 +678,10 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
     let aiParsed: {
       analysis?: string;
       mood?: string;
+      genres?: string[];
       genre?: string;
       country?: string;
+      years?: { from?: number; to?: number };
       year_from?: number;
       year_to?: number;
       keyword?: string;
@@ -716,22 +725,24 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
     }
 
     // ========================================================================
-    // BƯỚC 3: SLUG MAPPING & DATABASE DETERMINISTIC QUERYING
+    // BƯỚC 3: STRICT QUERYING & DETERMINISTIC DATABASE RESOLUTION
     // ========================================================================
     const rawActor = aiParsed?.actor || "";
-    const rawGenre = aiParsed?.genre || "";
     const rawCountry = aiParsed?.country || "";
     const rawDirector = aiParsed?.director || "";
     const rawKeyword = aiParsed?.keyword || "";
 
-    // 1. Dịch JSON của AI thành các slug chuẩn hóa
-    const targetActorSlug = resolveActorSlug(rawActor) || resolveActorSlug(prompt);
-    const targetGenreSlug = resolveGenreSlug(rawGenre) || resolveGenreSlug(prompt);
-    const targetCountrySlug = resolveCountrySlug(rawCountry) || resolveCountrySlug(prompt);
+    const rawGenreList = Array.isArray(aiParsed?.genres)
+      ? aiParsed.genres
+      : (aiParsed?.genre ? [aiParsed.genre] : []);
 
-    // Xử lý thập niên nếu prompt có
-    let yearFrom = aiParsed?.year_from || 0;
-    let yearTo = aiParsed?.year_to || 0;
+    const targetGenreSlug = rawGenreList.map(resolveGenreSlug).find(Boolean) || resolveGenreSlug(prompt);
+    const targetCountrySlug = resolveCountrySlug(rawCountry) || resolveCountrySlug(prompt);
+    const targetActorSlug = resolveActorSlug(rawActor) || resolveActorSlug(prompt);
+
+    // Xử lý khoảng năm nghiêm ngặt (Strict Year Range)
+    let yearFrom = aiParsed?.years?.from || aiParsed?.year_from || 0;
+    let yearTo = aiParsed?.years?.to || aiParsed?.year_to || 0;
     const lowerPrompt = prompt.toLowerCase();
     if (!yearFrom && !yearTo) {
       if (lowerPrompt.includes("thap nien 90") || lowerPrompt.includes("thập niên 90") || lowerPrompt.includes("90s")) {
@@ -743,8 +754,13 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
       } else if (lowerPrompt.includes("thap nien 2000") || lowerPrompt.includes("thập niên 2000") || lowerPrompt.includes("2000s")) {
         yearFrom = 2000;
         yearTo = 2009;
+      } else if (lowerPrompt.includes("thap nien 70") || lowerPrompt.includes("thập niên 70") || lowerPrompt.includes("70s")) {
+        yearFrom = 1970;
+        yearTo = 1979;
       }
     }
+
+    const hasStrictYearFilter = yearFrom > 0 || yearTo > 0;
 
     const excludedCountrySlugs: string[] = [];
     for (const rawEx of aiParsed?.excluded_countries || []) {
@@ -779,12 +795,11 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
     const cards: SuggestionCard[] = [];
     const seenSlugs = new Set<string>();
 
-    // 2. TỔNG HỢP DANH SÁCH ỨNG VIÊN ĐA NGUỒN (AI Suggestions + Filmography Top Titles)
+    // 1. TỔNG HỢP DANH SÁCH ỨNG VIÊN ĐA NGUỒN (AI Suggestions + Filmography Top Titles)
     const candidateMovieList: Array<{ title: string; original_title?: string; year?: number; reason?: string }> = [
       ...(aiParsed?.suggested_movies || aiParsed?.movies || []),
     ];
 
-    // Mở rộng kho phim nếu tìm theo diễn viên nổi tiếng (Thành Long, Châu Tinh Trì, Chân Tử Đan...)
     if (targetActorSlug && ACTOR_TOP_TITLES[targetActorSlug]) {
       for (const t of ACTOR_TOP_TITLES[targetActorSlug]) {
         const viTitle = t.replace(/\([^)]*\)/g, "").trim();
@@ -800,7 +815,7 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
       }
     }
 
-    // 3. Pass 1: Tra cứu song song toàn bộ danh sách ứng viên
+    // 2. Pass 1: Tra cứu song song toàn bộ danh sách ứng viên với bộ lọc năm & quốc gia khắt khe
     if (candidateMovieList.length > 0) {
       let filteredSuggestions = candidateMovieList;
       if (!lowerPrompt.includes("anime nana") && !lowerPrompt.includes("nana osaki") && !lowerPrompt.includes("nana komatsu")) {
@@ -823,17 +838,25 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
         if (item.found && item.found.slug && !seenSlugs.has(item.found.slug)) {
           const itemCountry = toSafeCountry(item.found);
           const itemCategory = toSafeCategory(item.found);
+          const itemYear = Number(item.found.year) || Number(item.suggested.year) || 0;
+
+          // ÉP ĐIỀU KIỆN LỌC NĂM (STRICT YEAR CHECK)
+          if (hasStrictYearFilter && itemYear > 0) {
+            if (yearFrom > 0 && itemYear < yearFrom) continue;
+            if (yearTo > 0 && itemYear > yearTo) continue;
+          }
 
           if (excludedCountrySlugs.some((ex) => matchesCountry(itemCountry, ex))) continue;
           if (excludedGenreSlugs.some((ex) => matchesGenre(itemCategory, ex))) continue;
           if (targetCountrySlug && !matchesCountry(itemCountry, targetCountrySlug)) continue;
+          if (targetGenreSlug && !matchesGenre(itemCategory, targetGenreSlug)) continue;
 
           seenSlugs.add(item.found.slug);
           cards.push({
             slug: item.found.slug,
             title: item.found.name || item.found.title || item.suggested.title,
             poster: toSafePoster(item.found),
-            year: item.found.year || item.suggested.year || 2024,
+            year: itemYear || 2024,
             quality: item.found.quality || "HD",
             category: itemCategory,
             country: itemCountry || (targetCountrySlug ? "Âu Mỹ" : "Quốc Tế"),
@@ -844,7 +867,7 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
       }
     }
 
-    // 4. Pass 2: Truy vấn Database theo Diễn Viên & Từ Khóa với các biến thể Alias
+    // 3. Pass 2: Truy vấn Database có chọn lọc (Chỉ áp dụng khi còn tìm thấy phim đúng chuẩn)
     if (cards.length < 16 && (targetActorSlug || targetGenreSlug || targetCountrySlug || rawKeyword || rawDirector)) {
       const searchKeywords = targetActorSlug
         ? getActorAliases(targetActorSlug)
@@ -857,6 +880,7 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
             keyword: kw,
             category: targetGenreSlug || undefined,
             country: targetCountrySlug || undefined,
+            year: (hasStrictYearFilter && yearFrom === yearTo) ? String(yearFrom) : undefined,
             limit: 20,
           });
 
@@ -867,12 +891,19 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
                 const itemCountry = toSafeCountry(it);
                 const itemCategory = toSafeCategory(it);
                 const itemActors = toSafeActors(it);
+                const itemYear = Number(it.year) || 0;
+
+                // ÉP ĐIỀU KIỆN LỌC NĂM CHÍNH XÁC (STRICT YEAR CHECK)
+                if (hasStrictYearFilter && itemYear > 0) {
+                  if (yearFrom > 0 && itemYear < yearFrom) continue;
+                  if (yearTo > 0 && itemYear > yearTo) continue;
+                }
 
                 if (excludedCountrySlugs.some((ex) => matchesCountry(itemCountry, ex))) continue;
                 if (excludedGenreSlugs.some((ex) => matchesGenre(itemCategory, ex))) continue;
                 if (targetCountrySlug && !matchesCountry(itemCountry, targetCountrySlug)) continue;
+                if (targetGenreSlug && !matchesGenre(itemCategory, targetGenreSlug)) continue;
 
-                // Nếu đang tìm theo diễn viên, kiểm tra xem có khớp tên diễn viên không
                 if (targetActorSlug) {
                   const hasActorMatch =
                     matchesActor(itemActors, targetActorSlug) ||
@@ -886,7 +917,7 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
                   slug: it.slug,
                   title: it.name || it.title || "Phim Hay",
                   poster: toSafePoster(it),
-                  year: it.year || 2024,
+                  year: itemYear || 2024,
                   quality: it.quality || "HD",
                   category: itemCategory,
                   country: itemCountry || "Quốc Tế",
@@ -902,56 +933,32 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
       }
     }
 
-    // 5. Pass 3: Nếu chưa đủ và không phải tìm theo diễn viên riêng biệt, bổ sung phim cùng thể loại/quốc gia
-    if (cards.length < 6 && !targetActorSlug && (targetGenreSlug || targetCountrySlug)) {
-      try {
-        const fallbackRes = await movieApi.getMovies({
-          category: targetGenreSlug || undefined,
-          country: targetCountrySlug || undefined,
-          sort: "rating",
-          limit: 10,
-        });
-        if (fallbackRes?.items) {
-          for (const it of fallbackRes.items) {
-            if (cards.length >= 8) break;
-            if (it.slug && !seenSlugs.has(it.slug)) {
-              const itemCountry = toSafeCountry(it);
-              const itemCategory = toSafeCategory(it);
-
-              if (excludedCountrySlugs.some((ex) => matchesCountry(itemCountry, ex))) continue;
-              if (excludedGenreSlugs.some((ex) => matchesGenre(itemCategory, ex))) continue;
-              if (targetCountrySlug && !matchesCountry(itemCountry, targetCountrySlug)) continue;
-              if (targetGenreSlug && !matchesGenre(itemCategory, targetGenreSlug)) continue;
-
-              seenSlugs.add(it.slug);
-              cards.push({
-                slug: it.slug,
-                title: it.name || it.title || "Phim Hay",
-                poster: toSafePoster(it),
-                year: it.year || 2024,
-                quality: it.quality || "HD",
-                category: itemCategory,
-                country: itemCountry || "Quốc Tế",
-                actors: toSafeActors(it),
-                reason: "Siêu phẩm điện ảnh thịnh hành nhận được nhiều đánh giá tích cực",
-              });
-            }
-          }
-        }
-      } catch {}
-    }
-
-    // 6. Xây dựng lời phản hồi
-    let finalAnalysis = aiParsed?.analysis?.trim() || "";
-    if (!finalAnalysis) {
-      finalAnalysis = `Chào bạn! Nana AI đã tuyển chọn trọn bộ các siêu phẩm điện ảnh đặc sắc nhất phù hợp với yêu cầu "${prompt}" để bạn thưởng thức ngay:`;
-    }
+    // ========================================================================
+    // BƯỚC 4: FALLBACK HANDLING (XỬ LÝ KHI KHÔNG CÓ PHIM)
+    // TUYỆT ĐỐI KHÔNG LẤY PHIM NGẪU NHIÊN / PHIM SAI TIÊU CHÍ ĐẮP VÀO
+    // ========================================================================
+    let finalAnalysis = "";
+    let finalMood = "";
 
     if (cards.length === 0) {
-      finalAnalysis = `Chào bạn! Hiện tại các tác phẩm đúng theo yêu cầu chi tiết "${prompt}" đang tiếp tục được cập nhật thêm vào kho phim Nanaflix. Bạn hãy thử tìm kiếm theo tên diễn viên hoặc thể loại khác nhé!`;
-    }
+      const yearDesc = hasStrictYearFilter
+        ? (yearFrom === yearTo ? `năm ${yearFrom}` : `thập niên ${yearFrom}s (${yearFrom} - ${yearTo})`)
+        : "";
+      const topicDesc = [
+        targetGenreSlug ? "hành động/giật gân" : "",
+        targetCountrySlug === "au-my" ? "Mỹ/Hollywood" : targetCountrySlug,
+        yearDesc,
+        rawKeyword ? `chủ đề "${rawKeyword}"` : "",
+      ].filter(Boolean).join(" ");
 
-    const finalMood = aiParsed?.mood || (targetActorSlug ? `Tuyển Tập ${rawActor || 'Diễn Viên'} ⭐` : "Điện Ảnh Tuyển Chọn ⭐");
+      finalAnalysis = `Chào bạn! Nana AI đã phân tích yêu cầu "${prompt}" và tra cứu toàn bộ cơ sở dữ liệu. Hiện tại, kho phim của Nanaflix chưa có sẵn các bộ phim đáp ứng đồng thời tất cả các điều kiện khắt khe này (${topicDesc || "theo yêu cầu chi tiết của bạn"}).\n\nĐội ngũ Nanaflix đang liên tục cập nhật thêm nhiều siêu phẩm điện ảnh kinh điển. Bạn có thể thử mở rộng mốc thời gian hoặc tìm kiếm theo tựa đề phim cụ thể nhé! ✨🍿`;
+      finalMood = "Chưa Có Phim Phù Hợp 🎬";
+    } else {
+      finalAnalysis =
+        aiParsed?.analysis?.trim() ||
+        `Chào bạn! Dưới đây là danh sách các siêu phẩm điện ảnh được Nana AI tuyển chọn phù hợp nhất với yêu cầu "${prompt}":`;
+      finalMood = aiParsed?.mood || "Điện Ảnh Tuyển Chọn ⭐";
+    }
 
     const finalPayload = {
       reply: finalAnalysis,
