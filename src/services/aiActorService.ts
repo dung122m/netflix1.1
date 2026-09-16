@@ -1,5 +1,6 @@
 import { movieApi } from "@/services/movieApi";
 import { generateFastAiChat } from "@/services/aiProviderService";
+import { getActorFilmographyFromTmdb, searchTmdbPerson } from "@/services/tmdbService";
 
 export interface ActorProfile {
   name: string;
@@ -984,6 +985,36 @@ export async function resolveActorMovies(keyword: string): Promise<{
     };
   }
 
+  // 1.25 TIER 2.5: Tra cứu trực tiếp TMDB Search Person (Chuẩn quốc tế, 100% chính xác, không sợ AI nghẽn tải)
+  try {
+    const tmdbPerson = await searchTmdbPerson(keyword);
+    if (
+      tmdbPerson &&
+      (tmdbPerson.known_for_department === "Acting" ||
+        tmdbPerson.known_for_department === "Directing" ||
+        tmdbPerson.popularity >= 1.2)
+    ) {
+      const actorName = tmdbPerson.name || keyword;
+      const aliases = Array.from(
+        new Set([actorName, keyword, tmdbPerson.original_name].filter(Boolean))
+      ) as string[];
+
+      setBoundedCache(ACTOR_AI_CACHE, cleanRaw, {
+        actorName,
+        aliases,
+        isActor: true,
+        expireAt: Date.now() + CACHE_7_DAYS,
+      });
+
+      return {
+        actorName,
+        aliases,
+        isActor: true,
+        source: "tmdb" as any,
+      };
+    }
+  } catch {}
+
   // 1.3 TIER 3: Phân tích trực tiếp qua Fast AI (Smart Provider Router)
   try {
     const promptText = `Bạn là Chuyên gia Bách khoa Toàn thư Điện ảnh thế giới (IMDb & TMDB Cast Directory Engine).
@@ -1230,6 +1261,33 @@ async function executeActorFilmQuery(
   cacheKey: string
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<any[]> {
+  // =========================================================================
+  // TMDB FILMOGRAPHY MATCHING ENGINE (ƯU TIÊN HÀNG ĐẦU):
+  // 1. Dùng TMDB làm nguồn chuẩn xác định toàn bộ filmography của diễn viên (movie_credits)
+  // 2. Lấy tmdb_id của từng phim
+  // 3. Đối chiếu TMDB ID với KKPhim và NguonC theo thứ tự ưu tiên:
+  //    TMDB ID → IMDB ID → Title + Year
+  // 4. Merge về format Movie chuẩn của dự án và hiển thị trên MovieGrid
+  // =========================================================================
+  try {
+    const tmdbMovies = await getActorFilmographyFromTmdb(
+      actorName,
+      synonymRes.canonicalName || actorName,
+      allVariants,
+      maxMovies
+    );
+    if (tmdbMovies && tmdbMovies.length > 0) {
+      ACTOR_FILM_CACHE.set(cacheKey, {
+        items: tmdbMovies,
+        expireAt: Date.now() + CACHE_7_DAYS,
+        staleUntil: Date.now() + CACHE_7_DAYS * 2,
+      });
+      return tmdbMovies;
+    }
+  } catch (tmdbErr) {
+    console.warn("[aiActorService] TMDB filmography matching failed, falling back to database query:", tmdbErr);
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const candidateItems: any[] = [];
   const seenSlugs = new Set<string>();
