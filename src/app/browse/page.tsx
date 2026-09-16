@@ -650,24 +650,8 @@ export default async function BrowsePage({
           <>
             <MovieGrid movies={movies} />
 
-            {/* NÚT XEM THÊM KHI CÒN TRANG TIẾP THEO */}
-            {currentPage < totalPages && (
-              <div className="flex justify-center mt-8 sm:mt-10">
-                <Link
-                  href={buildPaginationUrl(currentPage + 1)}
-                  prefetch={true}
-                  className="group inline-flex items-center gap-2.5 px-6 py-3 rounded-2xl bg-gradient-to-r from-red-600 via-red-700 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white font-bold text-xs sm:text-sm shadow-xl shadow-red-950/40 hover:shadow-red-700/30 transition active:scale-95"
-                >
-                  <span>Xem Thêm Tác Phẩm Tiếp Theo</span>
-                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-black/30 text-white/90 font-semibold">
-                    Trang {currentPage + 1} / {totalPages}
-                  </span>
-                  <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-                </Link>
-              </div>
-            )}
-
-            <div className="flex justify-center items-center gap-1.5 sm:gap-2 mt-6 sm:mt-10 flex-wrap">
+            {/* THANH PHÂN TRANG CHUẨN GỌN GÀNG */}
+            <div className="flex justify-center items-center gap-1.5 sm:gap-2 mt-8 sm:mt-12 flex-wrap">
               {/* NÚT TRƯỚC */}
               <Link
                 href={buildPaginationUrl(Math.max(1, currentPage - 1))}
