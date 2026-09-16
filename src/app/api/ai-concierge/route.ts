@@ -925,6 +925,7 @@ export async function POST(req: NextRequest) {
     // ========================================================================
     // BƯỚC 2: STRUCTURED EXTRACTION (AI TRÍCH XUẤT CẤU TRÚC JSON CHUẨN)
     // ========================================================================
+    const currentYear = new Date().getFullYear();
     const systemPrompt = `Bạn là Nana AI - Trợ Lý Điện Ảnh Thông Minh & Phân Tích Ý Định Tìm Kiếm Phim của Nanaflix.
 MỐC THỜI GIAN HIỆN TẠI: Năm ${currentYear}.
 
@@ -1247,18 +1248,18 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
             movieApi.getMovies({
               category: targetGenreSlug || undefined,
               country: targetCountrySlug || undefined,
-              year: currentYear,
+              year: String(currentYear),
               limit: 20,
-              sort: "modified",
+              sort: "latest",
             })
           );
           queryTasks.push(
             movieApi.getMovies({
               category: targetGenreSlug || undefined,
               country: targetCountrySlug || undefined,
-              year: currentYear - 1,
+              year: String(currentYear - 1),
               limit: 20,
-              sort: "modified",
+              sort: "latest",
             })
           );
         } else {
