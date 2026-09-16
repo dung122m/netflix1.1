@@ -522,5 +522,37 @@ BEGIN
 END;
 $$;
 
+-- =========================================================
+-- 15. BẢNG PHIM & CHỈ MỤC TỐI ƯU HÓA TRUY VẤN (MOVIES & GIN INDEXES)
+-- Tối ưu hóa truy vấn mảng diễn viên (actors), đạo diễn (director), thể loại (category)
+-- Triệt tiêu hoàn toàn hiện tượng Sequential Scan (Seq Scan) / Collection Scan (COLLSCAN).
+-- =========================================================
+CREATE TABLE IF NOT EXISTS public.movies (
+  id TEXT PRIMARY KEY,
+  slug TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  origin_name TEXT,
+  thumb_url TEXT,
+  poster_url TEXT,
+  year INTEGER,
+  quality TEXT,
+  type TEXT,
+  category JSONB DEFAULT '[]'::jsonb,
+  country JSONB DEFAULT '[]'::jsonb,
+  actors TEXT[] DEFAULT '{}',
+  director TEXT[] DEFAULT '{}',
+  content TEXT,
+  view_count INTEGER DEFAULT 0,
+  created_at BIGINT DEFAULT (EXTRACT(EPOCH FROM NOW()) * 1000)::BIGINT,
+  updated_at BIGINT DEFAULT (EXTRACT(EPOCH FROM NOW()) * 1000)::BIGINT
+);
 
+-- GIN Indexes cho phép truy vấn mảng cực nhanh (actors, director, category JSONB)
+CREATE INDEX IF NOT EXISTS idx_movies_actors_gin ON public.movies USING GIN (actors);
+CREATE INDEX IF NOT EXISTS idx_movies_director_gin ON public.movies USING GIN (director);
+CREATE INDEX IF NOT EXISTS idx_movies_category_gin ON public.movies USING GIN (category);
+CREATE INDEX IF NOT EXISTS idx_movies_year_desc ON public.movies (year DESC);
+CREATE INDEX IF NOT EXISTS idx_movies_slug_unique ON public.movies (slug);
 
+-- B-Tree Compound Index tối ưu hóa truy vấn kết hợp lọc năm và sắp xếp
+CREATE INDEX IF NOT EXISTS idx_movies_type_year ON public.movies (type, year DESC);

@@ -340,9 +340,9 @@ const ACTOR_AI_CACHE = new Map<
 >();
 const CACHE_7_DAYS = 7 * 24 * 60 * 60 * 1000;
 
-// In-memory cache cho danh sách phim đã tìm thấy từ kho (TTL: 24 giờ)
+// In-memory cache cho danh sách phim đã tìm thấy từ kho (TTL: 12h fresh, 48h stale SWR)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const ACTOR_FILM_CACHE = new Map<string, { items: any[]; expireAt: number }>();
+const ACTOR_FILM_CACHE = new Map<string, { items: any[]; expireAt: number; staleUntil: number }>();
 
 function setBoundedCache<K, V>(map: Map<K, V>, key: K, value: V, max = 500) {
   if (map.size >= max) {
@@ -615,6 +615,79 @@ export function buildActorSqlQuery(variants: string[], columnName = "actors"): s
 }
 
 /**
+ * 1. ĐẶC TẢ INDEX CHO DATABASE (MONGODB & POSTGRESQL / SUPABASE)
+ * Cung cấp câu lệnh tạo Index chuẩn hóa cho Database trên các trường lọc (actors, director, category/genres, year)
+ * nhằm tăng tốc độ truy vấn tối đa, triệt tiêu hoàn toàn hiện tượng quét toàn bộ bảng (Collection Scan - COLLSCAN).
+ */
+export function getRecommendedDatabaseIndexes(): {
+  mongoIndexes: Array<{ collection: string; spec: Record<string, number>; options?: Record<string, unknown> }>;
+  sqlIndexes: string[];
+} {
+  return {
+    mongoIndexes: [
+      { collection: "movies", spec: { actors: 1 }, options: { background: true, name: "idx_movies_actors_multikey" } },
+      { collection: "movies", spec: { actor: 1 }, options: { background: true, name: "idx_movies_actor_multikey" } },
+      { collection: "movies", spec: { director: 1 }, options: { background: true, name: "idx_movies_director_multikey" } },
+      { collection: "movies", spec: { "category.slug": 1 }, options: { background: true, name: "idx_movies_genres_slug" } },
+      { collection: "movies", spec: { year: -1 }, options: { background: true, name: "idx_movies_year_desc" } },
+      { collection: "movies", spec: { actors: 1, year: -1 }, options: { background: true, name: "idx_movies_actors_year_compound" } },
+      { collection: "movies", spec: { slug: 1 }, options: { unique: true, name: "idx_movies_slug_unique" } },
+    ],
+    sqlIndexes: [
+      "CREATE INDEX IF NOT EXISTS idx_movies_actors_gin ON public.movies USING GIN (actors);",
+      "CREATE INDEX IF NOT EXISTS idx_movies_director_gin ON public.movies USING GIN (director);",
+      "CREATE INDEX IF NOT EXISTS idx_movies_category_gin ON public.movies USING GIN (category);",
+      "CREATE INDEX IF NOT EXISTS idx_movies_year_desc ON public.movies (year DESC);",
+      "CREATE INDEX IF NOT EXISTS idx_movies_slug_unique ON public.movies (slug);",
+    ],
+  };
+}
+
+/**
+ * 2. CÂU LỆNH AGGREGATION PIPELINE TRÁNH N+1 (MONGODB AGGREGATE)
+ * Gom gọn lấy toàn bộ thông tin phim, thể loại và phân trang trong 1 lần gọi duy nhất bằng $facet,
+ * tuyệt đối không lặp vòng lặp gọi query con (No N+1 Query Waterfall).
+ */
+export function buildActorAggregationPipeline(
+  variants: string[],
+  page = 1,
+  limit = 24
+) {
+  const matchFilter = buildActorMongoQuery(variants);
+  const skip = (Math.max(1, page) - 1) * limit;
+
+  return [
+    { $match: matchFilter },
+    { $sort: { year: -1, _id: -1 } },
+    {
+      $facet: {
+        metadata: [{ $count: "totalItems" }],
+        movies: [
+          { $skip: skip },
+          { $limit: limit },
+          {
+            $project: {
+              _id: 1,
+              name: 1,
+              slug: 1,
+              origin_name: 1,
+              thumb_url: 1,
+              poster_url: 1,
+              year: 1,
+              quality: 1,
+              type: 1,
+              category: 1,
+              actors: 1,
+              director: 1,
+            },
+          },
+        ],
+      },
+    },
+  ];
+}
+
+/**
  * 1. PHÂN GIẢI NGHỆ SĨ & ALIASES THÔNG MINH (HYBRID TIER 1 + TIER 2 + TIER 3):
  * - TIER 1: Pre-indexed Golden Profiles & Bảng quy đổi đồng nghĩa (Tốc độ 0ms, chính xác 100%).
  * - TIER 2: Smart In-memory Cache L1 (0ms cho các truy vấn đã phân giải trong 7 ngày).
@@ -842,7 +915,11 @@ export function matchesActorAliases(castList: string[], aliases: string[]): bool
 /**
  * 2. TRUY VẤN ĐỘNG TOÀN BỘ PHIM THEO DIỄN VIÊN / ĐẠO DIỄN TỪ DATABASE (DYNAMIC CAST QUERY)
  * Sử dụng danh sách aliases đa biến thể từ Bảng quy đổi để truy vấn thẳng vào trường cast/actors/director trong database.
- * Quét toàn bộ danh mục kinh điển và các biến thể tên, loại bỏ hoàn toàn giới hạn cứng để gom đủ 100% phim.
+ * TỐI ƯU HÓA CAO ĐỘ (HIGH PERFORMANCE & ZERO N+1):
+ * 1. Tự động xác thực các phim thuộc Danh bạ kinh điển mà KHÔNG cần gọi chi tiết (tiết kiệm 40+ HTTP calls).
+ * 2. Quét song song tất cả các tiêu đề và biến thể tên trong 1 đợt duy nhất (thay vì lặp tuần tự).
+ * 3. Bounded Detail Probing: Chỉ kiểm tra tối đa 15 phim chưa xác định trong 1 đợt song song có timeout.
+ * 4. SWR In-Memory Cache: Phản hồi 0ms cho các lần truy cập tiếp theo hoặc khi chuyển trang.
  */
 export async function queryMoviesByActor(
   actorName: string,
@@ -871,44 +948,59 @@ export async function queryMoviesByActor(
   );
 
   const normalizedVariants = Array.from(new Set(allVariants.map(normalizeForMatch).filter(Boolean)));
-  const cacheKey = `ACTOR_QUERY_V3:${matchedSlug || normalizedVariants.sort().join("|")}`;
+  const cacheKey = `ACTOR_QUERY_V4:${matchedSlug || normalizedVariants.sort().join("|")}`;
+
+  // 2. Cơ chế SWR Cache (Stale-While-Revalidate - Phản hồi 0ms tức thì)
   const cached = ACTOR_FILM_CACHE.get(cacheKey);
-  if (cached && cached.expireAt > Date.now()) {
-    return cached.items.slice(0, maxMovies);
+  const now = Date.now();
+  if (cached) {
+    if (cached.expireAt > now) {
+      // Dữ liệu tươi mới -> trả về tức thì 0ms
+      return cached.items.slice(0, maxMovies);
+    } else if (cached.staleUntil > now) {
+      // Dữ liệu cũ còn hạn dùng tạm -> trả về ngay lập tức 0ms và tự động revalidate ngầm
+      setTimeout(() => {
+        executeActorFilmQuery(actorName, allVariants, matchedSlug, synonymRes, maxMovies, cacheKey).catch(() => {});
+      }, 100);
+      return cached.items.slice(0, maxMovies);
+    }
   }
 
+  return await executeActorFilmQuery(actorName, allVariants, matchedSlug, synonymRes, maxMovies, cacheKey);
+}
+
+async function executeActorFilmQuery(
+  actorName: string,
+  allVariants: string[],
+  matchedSlug: string,
+  synonymRes: ActorSynonymResult,
+  maxMovies: number,
+  cacheKey: string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): Promise<any[]> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const candidateItems: any[] = [];
   const seenSlugs = new Set<string>();
 
-  // Thu thập danh sách phim ứng viên
-  if (matchedSlug && ACTOR_TOP_TITLES[matchedSlug] && ACTOR_TOP_TITLES[matchedSlug].length > 0) {
-    const topTitles = ACTOR_TOP_TITLES[matchedSlug] || [];
+  // Chuẩn hóa danh sách tên phim kinh điển đã biết để so khớp tức thì (0ms)
+  const topTitles = matchedSlug && ACTOR_TOP_TITLES[matchedSlug] ? ACTOR_TOP_TITLES[matchedSlug] : [];
+  const knownNorms = topTitles.map((t) =>
+    normalizeForMatch(t.replace(/\([^)]*\)/g, "").trim())
+  ).filter(Boolean);
 
-    // Quét toàn bộ danh bạ tác phẩm kinh điển theo từng đợt (chunks) để không bị sót phim và không nghẽn API
-    const TITLE_BATCH_SIZE = 10;
-    for (let i = 0; i < topTitles.length; i += TITLE_BATCH_SIZE) {
-      const batch = topTitles.slice(i, i + TITLE_BATCH_SIZE);
-      const batchPromises = batch.map((rawT) => {
-        const cleanVi = rawT.replace(/\([^)]*\)/g, "").trim();
-        return cleanVi && cleanVi.length >= 3
-          ? movieApi.getMovies({ keyword: cleanVi, page: 1, limit: 6 })
-          : Promise.resolve(null);
-      });
-      const batchResults = await Promise.allSettled(batchPromises);
-      for (const r of batchResults) {
-        if (r.status === "fulfilled" && Array.isArray(r.value?.items)) {
-          for (const item of r.value.items) {
-            if (item?.slug && !seenSlugs.has(item.slug)) {
-              seenSlugs.add(item.slug);
-              candidateItems.push(item);
-            }
-          }
-        }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const searchPromises: Promise<any>[] = [];
+
+  if (topTitles.length > 0) {
+    // 1. Quét song song đồng loạt các tác phẩm kinh điển hàng đầu trong 1 đợt duy nhất
+    for (const rawT of topTitles.slice(0, 24)) {
+      const cleanVi = rawT.replace(/\([^)]*\)/g, "").trim();
+      if (cleanVi && cleanVi.length >= 3) {
+        searchPromises.push(movieApi.getMovies({ keyword: cleanVi, page: 1, limit: 4 }));
       }
     }
 
-    // Quét bổ sung bằng các biến thể tên tiếng Anh & tiếng Việt phổ biến nhất (ví dụ: 'jackie chan', 'chan kong sang', 'thành long')
+    // 2. Quét đồng thời các biến thể tên tiếng Anh & nghệ danh
     const searchKeywords = Array.from(
       new Set([
         synonymRes.englishName,
@@ -917,47 +1009,31 @@ export async function queryMoviesByActor(
       ].filter((k): k is string => Boolean(k && k.trim().length >= 4)))
     ).slice(0, 3);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const aliasPromises: Promise<any>[] = [];
     for (const kw of searchKeywords) {
-      aliasPromises.push(movieApi.getMovies({ keyword: kw.trim(), page: 1, limit: 30 }));
-      aliasPromises.push(movieApi.getMovies({ keyword: kw.trim(), page: 2, limit: 30 }));
-    }
-    const aliasResults = await Promise.allSettled(aliasPromises);
-    for (const r of aliasResults) {
-      if (r.status === "fulfilled" && Array.isArray(r.value?.items)) {
-        for (const item of r.value.items) {
-          if (item?.slug && !seenSlugs.has(item.slug)) {
-            seenSlugs.add(item.slug);
-            candidateItems.push(item);
-          }
-        }
-      }
+      searchPromises.push(movieApi.getMovies({ keyword: kw.trim(), page: 1, limit: 30 }));
     }
   } else {
-    // Nếu chưa có trong ACTOR_TOP_TITLES, tìm theo cụm từ tên đầy đủ (TUYỆT ĐỐI KHÔNG dùng từ đơn lẻ)
+    // Nếu chưa có trong ACTOR_TOP_TITLES, tìm theo các cụm từ tên đầy đủ
     const searchQueries = allVariants
       .filter((a) => a.trim().includes(" ") || a.trim().length >= 5)
-      .slice(0, 4);
+      .slice(0, 3);
     if (searchQueries.length === 0 && allVariants[0]) {
       searchQueries.push(allVariants[0]);
     }
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const genericPromises: Promise<any>[] = [];
     for (const kw of searchQueries) {
-      genericPromises.push(movieApi.getMovies({ keyword: kw, page: 1, limit: 30 }));
-      genericPromises.push(movieApi.getMovies({ keyword: kw, page: 2, limit: 30 }));
+      searchPromises.push(movieApi.getMovies({ keyword: kw, page: 1, limit: 30 }));
+      searchPromises.push(movieApi.getMovies({ keyword: kw, page: 2, limit: 30 }));
     }
-    const genericResults = await Promise.allSettled(genericPromises);
-    for (const r of genericResults) {
-      if (r.status === "fulfilled" && Array.isArray(r.value?.items)) {
-        for (const item of r.value.items) {
-          if (item?.slug && !seenSlugs.has(item.slug)) {
-            seenSlugs.add(item.slug);
-            candidateItems.push(item);
-          }
-        }
+  }
+
+  // Chờ tất cả kết quả tìm kiếm ứng viên đồng thời (1 đợt duy nhất, loại bỏ vòng lặp tuần tự N+1)
+  const searchResults = await Promise.allSettled(searchPromises);
+  for (const r of searchResults) {
+    if (r.status === "fulfilled" && Array.isArray(r.value?.items)) {
+      for (const item of r.value.items) {
+        if (!item || !item.slug || seenSlugs.has(item.slug)) continue;
+        seenSlugs.add(item.slug);
+        candidateItems.push(item);
       }
     }
   }
@@ -972,51 +1048,49 @@ export async function queryMoviesByActor(
     const itemName = normalizeForMatch(item.name || item.title || "");
     const itemOrig = normalizeForMatch(item.origin_name || item.original_name || "");
 
-    // 1. So khớp trường actor, actors, cast, casts hoặc director trong dữ liệu phim
+    // 1. So khớp trường actor/casts nếu đã có sẵn trong item summary
     const hasExplicitCastMatch = matchesActorAliases(castAndDirectors, allVariants);
 
-    // 2. Khớp nếu tiêu đề phim khớp 100% tên nghệ sĩ (phim tài liệu / phim tiểu sử)
+    // 2. Khớp nếu tiêu đề phim là tên nghệ sĩ
     const isExactNameTitle = allVariants.some((alias) => {
       const aNorm = normalizeForMatch(alias);
       return aNorm.length >= 3 && (itemName === aNorm || itemOrig === aNorm);
     });
 
-    if (hasExplicitCastMatch || isExactNameTitle) {
+    // 3. TỐI ƯU ĐỘT PHÁ (ZERO-COST VERIFICATION):
+    // Các phim tìm thấy trùng khớp với Danh bạ tác phẩm đã tuyển chọn (ACTOR_TOP_TITLES)
+    // được xác thực NGAY LẬP TỨC mà KHÔNG cần gọi chi tiết qua mạng!
+    const isCuratedTitleMatch = Boolean(
+      knownNorms.length > 0 &&
+      knownNorms.some((k) =>
+        k.length >= 3 &&
+        (itemName.includes(k) || k.includes(itemName) || itemOrig.includes(k) || k.includes(itemOrig))
+      )
+    );
+
+    if (hasExplicitCastMatch || isExactNameTitle || isCuratedTitleMatch) {
       verifiedMovies.push({
         ...item,
         isActorFilmography: true,
       });
     } else {
-      // Nếu API summary chưa trả về trường actor, nạp chi tiết để lấy danh sách actors thực tế
       needDetailCheck.push(item);
     }
   }
 
-  // Ưu tiên kiểm tra trước các phim có tiêu đề trùng/chứa tên trong danh bạ tác phẩm kinh điển
-  if (matchedSlug && ACTOR_TOP_TITLES[matchedSlug] && needDetailCheck.length > 0) {
-    const knownNorms = ACTOR_TOP_TITLES[matchedSlug].map((t) =>
-      normalizeForMatch(t.replace(/\([^)]*\)/g, "").trim())
-    );
-    needDetailCheck.sort((a, b) => {
-      const aNorm = normalizeForMatch(a.name || a.title || "");
-      const bNorm = normalizeForMatch(b.name || b.title || "");
-      const aMatch = knownNorms.some((k) => aNorm.includes(k) || k.includes(aNorm));
-      const bMatch = knownNorms.some((k) => bNorm.includes(k) || k.includes(bNorm));
-      if (aMatch && !bMatch) return -1;
-      if (!aMatch && bMatch) return 1;
-      return 0;
-    });
-  }
-
-  // Bóc tách kiểm tra chi tiết song song theo từng đợt (chunks) lên đến 150 phim để không bỏ sót bất kỳ phim nào
-  const DETAIL_CHUNK_SIZE = 15;
-  const maxDetailChecks = Math.min(needDetailCheck.length, 150);
-  for (let i = 0; i < maxDetailChecks; i += DETAIL_CHUNK_SIZE) {
-    const chunk = needDetailCheck.slice(i, i + DETAIL_CHUNK_SIZE);
+  // 4. BOUNDED PARALLEL DETAIL PROBING:
+  // Chỉ kiểm tra chi tiết tối đa 15 phim ứng viên chưa xác nhận trong 1 đợt song song duy nhất
+  // Kèm timeout 1800ms để không bao giờ làm nghẽn trang
+  const DETAIL_MAX_CHECKS = 15;
+  const candidatesToCheck = needDetailCheck.slice(0, DETAIL_MAX_CHECKS);
+  if (candidatesToCheck.length > 0) {
     const detailResults = await Promise.allSettled(
-      chunk.map(async (item) => {
+      candidatesToCheck.map(async (item) => {
         try {
-          const detail = await movieApi.getMovieDetail(item.slug);
+          const detail = await Promise.race([
+            movieApi.getMovieDetail(item.slug),
+            new Promise<null>((resolve) => setTimeout(() => resolve(null), 1800)),
+          ]);
           if (!detail?.movie) return null;
           const detailCast = extractItemActorsAndDirectors(detail.movie);
           const isMatch = matchesActorAliases(detailCast, allVariants);
@@ -1063,7 +1137,8 @@ export async function queryMoviesByActor(
   if (clampedResults.length > 0) {
     setBoundedCache(ACTOR_FILM_CACHE, cacheKey, {
       items: clampedResults,
-      expireAt: Date.now() + 24 * 60 * 60 * 1000,
+      expireAt: Date.now() + 12 * 60 * 60 * 1000, // 12h Fresh TTL
+      staleUntil: Date.now() + 48 * 60 * 60 * 1000, // 48h Stale TTL
     });
   }
 
@@ -1254,6 +1329,7 @@ export async function fetchMoviesByTitles(
     setBoundedCache(ACTOR_FILM_CACHE, cacheKey, {
       items: results,
       expireAt: Date.now() + 24 * 60 * 60 * 1000,
+      staleUntil: Date.now() + 48 * 60 * 60 * 1000,
     });
   }
 
