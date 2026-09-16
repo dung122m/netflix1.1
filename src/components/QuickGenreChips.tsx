@@ -118,6 +118,7 @@ const QuickGenreChipsInner: React.FC = () => {
   const currentCategory = searchParams.get("category") || "";
   const currentCountry = searchParams.get("country") || "";
   const currentKeyword = searchParams.get("keyword") || "";
+  const currentActor = searchParams.get("actor") || "";
   const currentYear = searchParams.get("year") || "";
   const currentSort = searchParams.get("sort") || "";
 
@@ -142,7 +143,7 @@ const QuickGenreChipsInner: React.FC = () => {
     Boolean(currentType),
     Boolean(currentCategory),
     Boolean(currentCountry),
-    Boolean(currentKeyword),
+    Boolean(currentKeyword || currentActor),
     Boolean(currentYear),
     Boolean(currentSort),
   ].filter(Boolean).length;
@@ -210,19 +211,26 @@ const QuickGenreChipsInner: React.FC = () => {
     });
   }, [getCountryUrl, router]);
 
-  const getActorUrl = useCallback((kw: string) => {
+  const getActorUrl = useCallback((actorName: string) => {
     const params = new URLSearchParams(searchParams.toString());
-    if (params.get("keyword")?.toLowerCase() === kw.toLowerCase()) {
-      params.delete("keyword");
+    const existing =
+      params.get("actor") ||
+      (params.get("keyword") && !params.get("category") ? params.get("keyword") : "");
+    if (existing?.toLowerCase().trim() === actorName.toLowerCase().trim()) {
+      params.delete("actor");
+      if (params.get("keyword")?.toLowerCase().trim() === actorName.toLowerCase().trim()) {
+        params.delete("keyword");
+      }
     } else {
-      params.set("keyword", kw);
+      params.set("actor", actorName);
+      params.delete("keyword");
     }
     params.delete("page");
     return `/browse?${params.toString()}`;
   }, [searchParams]);
 
-  const handleActorSelect = useCallback((kw: string) => {
-    const url = getActorUrl(kw);
+  const handleActorSelect = useCallback((actorName: string) => {
+    const url = getActorUrl(actorName);
     startTransition(() => {
       router.push(url, { scroll: false });
     });
@@ -467,14 +475,15 @@ const QuickGenreChipsInner: React.FC = () => {
       >
         {POPULAR_ACTORS.map((act) => {
           const isActive =
-            currentKeyword.toLowerCase().trim() === act.keyword.toLowerCase().trim();
+            (currentActor && currentActor.toLowerCase().trim() === act.name.toLowerCase().trim()) ||
+            (currentKeyword && currentKeyword.toLowerCase().trim() === act.name.toLowerCase().trim());
 
           return (
             <button
-              key={act.keyword}
+              key={act.name}
               type="button"
-              onMouseEnter={() => router.prefetch(getActorUrl(act.keyword))}
-              onClick={() => handleActorSelect(act.keyword)}
+              onMouseEnter={() => router.prefetch(getActorUrl(act.name))}
+              onClick={() => handleActorSelect(act.name)}
               className={`flex-none px-3.5 py-1.5 rounded-full text-xs transition-all duration-150 cursor-pointer ${
                 isActive
                   ? "bg-amber-500 text-black font-bold border border-amber-300 shadow-sm shadow-amber-950/50"
@@ -603,7 +612,23 @@ const QuickGenreChipsInner: React.FC = () => {
               </button>
             )}
 
-            {currentKeyword && (
+            {currentActor && (
+              <button
+                type="button"
+                onClick={() => {
+                  const p = new URLSearchParams(searchParams.toString());
+                  p.delete("actor");
+                  p.delete("page");
+                  router.push(`/browse?${p.toString()}`, { scroll: false });
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-200 font-semibold hover:bg-amber-500 hover:text-black transition cursor-pointer text-xs"
+              >
+                <span>Diễn viên: {currentActor}</span>
+                <X className="w-3 h-3" />
+              </button>
+            )}
+
+            {currentKeyword && !currentActor && (
               <button
                 type="button"
                 onClick={() => {
@@ -614,7 +639,7 @@ const QuickGenreChipsInner: React.FC = () => {
                 }}
                 className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-200 font-semibold hover:bg-amber-500 hover:text-black transition cursor-pointer text-xs"
               >
-                <span>Diễn viên: {currentKeyword}</span>
+                <span>Tìm kiếm: {currentKeyword}</span>
                 <X className="w-3 h-3" />
               </button>
             )}

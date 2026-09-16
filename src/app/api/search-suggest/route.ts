@@ -101,7 +101,7 @@ export async function GET(req: NextRequest) {
     // 3. Nếu khớp diễn viên, gắn thẻ đề xuất diễn viên lên đầu danh sách
     if (actorRes?.isActor && actorRes.actorName) {
       items.unshift({
-        slug: `browse?keyword=${encodeURIComponent(actorRes.actorName)}`,
+        slug: `browse?actor=${encodeURIComponent(actorRes.actorName)}`,
         title: `✨ Tuyển tập phim của ${actorRes.actorName}`,
         poster: "/default-hero.jpg",
         year: actorRes.country || "Tuyển Chọn",

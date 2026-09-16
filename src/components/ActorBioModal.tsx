@@ -183,7 +183,7 @@ export const ActorBioModal: React.FC = () => {
                 {/* ACTIONS */}
                 <div className="flex flex-col sm:flex-row items-center gap-2.5 pt-2">
                   <Link
-                    href={`/browse?keyword=${encodeURIComponent(actorName)}`}
+                    href={`/browse?actor=${encodeURIComponent(actorName)}`}
                     onClick={() => setIsOpen(false)}
                     className="w-full sm:flex-1 py-3 px-4 rounded-xl bg-netflix-red hover:bg-red-700 text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 transition shadow-lg active:scale-98 cursor-pointer"
                   >

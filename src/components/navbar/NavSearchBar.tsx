@@ -260,7 +260,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
         if (val) saveRecentSearch(val);
         setShowDropdown(false);
         setIsSearchExpanded(false);
-        router.push(`/movies/${selected.slug}`);
+        router.push(selected.slug.startsWith("browse?") ? `/${selected.slug}` : `/movies/${selected.slug}`);
       } else if (!hasSearchText && recentSearches.length > 0 && selectedSuggestionIndex >= 0 && selectedSuggestionIndex < recentSearches.length) {
         e.preventDefault();
         const selected = recentSearches[selectedSuggestionIndex];
@@ -393,7 +393,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
                     {suggestions.map((item, idx) => (
                       <Link
                         key={item.slug}
-                        href={`/movies/${item.slug}`}
+                        href={item.slug.startsWith("browse?") ? `/${item.slug}` : `/movies/${item.slug}`}
                         onClick={() => {
                           const val = mobileInputRef.current?.value || inputRef.current?.value;
                           if (val) saveRecentSearch(val);
@@ -566,7 +566,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
                   {suggestions.map((item, idx) => (
                     <Link
                       key={item.slug}
-                      href={`/movies/${item.slug}`}
+                      href={item.slug.startsWith("browse?") ? `/${item.slug}` : `/movies/${item.slug}`}
                       onClick={() => {
                         if (inputRef.current?.value) {
                           saveRecentSearch(inputRef.current.value);

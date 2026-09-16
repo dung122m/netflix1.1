@@ -78,7 +78,7 @@ export const ActorUniverseGraph: React.FC<Props> = ({
           Chưa tìm thấy bạn diễn đặc trưng trong cơ sở dữ liệu.
         </p>
         <Link
-          href={`/browse?keyword=${encodeURIComponent(actorName)}`}
+          href={`/browse?actor=${encodeURIComponent(actorName)}`}
           onClick={() => onCloseModal?.()}
           className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-xs font-bold transition cursor-pointer"
         >
