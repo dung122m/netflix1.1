@@ -925,10 +925,11 @@ export async function POST(req: NextRequest) {
     // ========================================================================
     // BƯỚC 2: STRUCTURED EXTRACTION (AI TRÍCH XUẤT CẤU TRÚC JSON CHUẨN)
     // ========================================================================
-    const currentYear = new Date().getFullYear();
-
     const systemPrompt = `Bạn là Nana AI - Trợ Lý Điện Ảnh Thông Minh & Phân Tích Ý Định Tìm Kiếm Phim của Nanaflix.
 MỐC THỜI GIAN HIỆN TẠI: Năm ${currentYear}.
+
+QUY TẮC ĐỘC LẬP TỪNG CÂU HỎI (STATELESS QUERY):
+Luôn phân tích câu hỏi hiện tại như một yêu cầu mới hoàn toàn độc lập. Tuyệt đối KHÔNG giữ lại hay ghép nối các điều kiện cũ (năm phát hành, quốc gia, thể loại, diễn viên) từ các câu trước đó, trừ khi người dùng nói rõ "tiếp tục" hoặc "thêm phim nữa".
 
 NHIỆM VỤ:
 Phân tích yêu cầu tự nhiên của người dùng (kể cả câu dài phức tạp kết hợp thể loại + quốc gia + khoảng năm/thập niên + chi tiết cốt truyện) và trích xuất thành đối tượng JSON chuẩn xác.
@@ -1410,36 +1411,73 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
     }
 
     // ========================================================================
-    // BƯỚC 4: FALLBACK HANDLING (XỬ LÝ KHI KHÔNG CÓ PHIM)
-    // TUYỆT ĐỐI KHÔNG LẤY PHIM NGẪU NHIÊN / PHIM SAI TIÊU CHÍ ĐẮP VÀO
+    // BƯỚC 4: RELAXED SMART FALLBACK (NỚI LỎNG BỘ LỌC - CẤM TỪ CHỐI CỰC ĐOAN)
+    // Tự động tìm các bộ phim có tính chất gần gũi nhất trong database & nhắn nhẹ nhàng
     // ========================================================================
+    let isFallbackRelaxed = false;
+
+    if (cards.length === 0) {
+      isFallbackRelaxed = true;
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const fallbackTasks: Promise<any>[] = [];
+
+        // 1. Tìm nới lỏng theo thể loại chính (đánh giá cao & xem nhiều)
+        if (targetGenreSlug) {
+          fallbackTasks.push(movieApi.getMovies({ category: targetGenreSlug, limit: 16, sort: "rating" }));
+          fallbackTasks.push(movieApi.getMovies({ category: targetGenreSlug, limit: 16, sort: "views" }));
+        }
+
+        // 2. Tìm nới lỏng theo từ khóa cốt truyện hoặc chủ đề
+        if (rawKeyword && rawKeyword.trim().length >= 2) {
+          fallbackTasks.push(movieApi.getMovies({ keyword: rawKeyword.trim(), limit: 16 }));
+        }
+
+        // 3. Tìm nới lỏng theo quốc gia mục tiêu nếu có
+        if (targetCountrySlug) {
+          fallbackTasks.push(movieApi.getMovies({ country: targetCountrySlug, limit: 16, sort: "rating" }));
+        }
+
+        // 4. Tuyển tập các siêu phẩm được đánh giá cao nhất toàn sàn
+        fallbackTasks.push(movieApi.getMovies({ sort: "rating", limit: 16 }));
+
+        const fallbackResults = await Promise.allSettled(fallbackTasks);
+        for (const res of fallbackResults) {
+          if (res.status === "fulfilled" && Array.isArray(res.value?.items)) {
+            for (const it of res.value.items) {
+              if (it && it.slug && !seenSlugs.has(it.slug)) {
+                seenSlugs.add(it.slug);
+                cards.push({
+                  slug: it.slug,
+                  title: it.name || it.title || "Phim Hay",
+                  poster: toSafePoster(it),
+                  year: extractMovieYear(it) || 2024,
+                  quality: it.quality || "HD",
+                  category: toSafeCategory(it),
+                  country: toSafeCountry(it) || "Quốc Tế",
+                  actors: toSafeActors(it),
+                  reason: getMovieHighlight(it),
+                });
+                if (cards.length >= 10) break;
+              }
+            }
+          }
+          if (cards.length >= 10) break;
+        }
+      } catch (err) {
+        console.warn("Fallback query error:", err);
+      }
+    }
+
     let finalAnalysis = "";
     let finalMood = "";
 
-    if (cards.length === 0) {
-      if (isLatest) {
-        const topicDesc = [
-          targetGenreSlug ? "thể loại này" : "",
-          targetCountrySlug === "au-my" ? "Mỹ/Hollywood" : (targetCountrySlug || ""),
-          rawKeyword ? `chủ đề "${rawKeyword}"` : "",
-        ].filter(Boolean).join(" ");
-
-        finalAnalysis = `Chào bạn! Nana AI đã tra cứu toàn bộ cơ sở dữ liệu các tác phẩm mới nhất phát hành trong giai đoạn ${currentYear - 1} - ${currentYear}. Hiện tại kho phim của Nanaflix chưa có bản cập nhật mới nhất cho danh mục ${topicDesc || "theo yêu cầu của bạn"}.\n\nĐội ngũ Nanaflix đang liên tục cập nhật thêm nhiều phim mới ra rạp mỗi ngày. Bạn có thể thử tìm kiếm theo tên phim cụ thể hoặc khám phá các tác phẩm kinh điển đạt điểm đánh giá cao nhé! ✨🍿`;
-        finalMood = `Chưa Có Phim Mới ${currentYear} 🎬`;
-      } else {
-        const yearDesc = (yearFrom || yearTo)
-          ? (yearFrom === yearTo ? `năm ${yearFrom}` : `thập niên ${yearFrom}s (${yearFrom} - ${yearTo})`)
-          : "";
-        const topicDesc = [
-          targetGenreSlug ? "hành động/giật gân" : "",
-          targetCountrySlug === "au-my" ? "Mỹ/Hollywood" : targetCountrySlug,
-          yearDesc,
-          rawKeyword ? `chủ đề "${rawKeyword}"` : "",
-        ].filter(Boolean).join(" ");
-
-        finalAnalysis = `Chào bạn! Nana AI đã phân tích yêu cầu "${prompt}" và tra cứu toàn bộ cơ sở dữ liệu. Hiện tại, kho phim của Nanaflix chưa có sẵn các bộ phim đáp ứng đồng thời tất cả các điều kiện khắt khe này (${topicDesc || "theo yêu cầu chi tiết của bạn"}).\n\nĐội ngũ Nanaflix đang liên tục cập nhật thêm nhiều siêu phẩm điện ảnh kinh điển. Bạn có thể thử mở rộng mốc thời gian hoặc tìm kiếm theo tựa đề phim cụ thể nhé! ✨🍿`;
-        finalMood = "Chưa Có Phim Phù Hợp 🎬";
-      }
+    if (isFallbackRelaxed && cards.length > 0) {
+      finalAnalysis = `Nana AI chưa tìm thấy tác phẩm khớp tuyệt đối 100% mọi điều kiện chi tiết, nhưng đã nới lỏng bộ lọc để tuyển chọn ngay các bộ phim có phong cách và chủ đề gần gũi nhất dưới đây để bạn thưởng thức nhé! ✨🍿`;
+      finalMood = "Gợi Ý Tương Đồng Cho Bạn 🎬✨";
+    } else if (cards.length === 0) {
+      finalAnalysis = `Chào bạn! Hiện tại kho phim chưa có bản phát hành khớp hoàn toàn với yêu cầu này. Bạn có thể thử tìm kiếm theo tên phim cụ thể hoặc khám phá các thể loại thịnh hành trên thanh điều hướng nhé! ✨🍿`;
+      finalMood = "Gợi Ý Cho Bạn 🎬";
     } else {
       finalAnalysis =
         aiParsed?.analysis?.trim() ||
