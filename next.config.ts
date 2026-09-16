@@ -16,13 +16,15 @@ const nextConfig: NextConfig = {
         : false,
   },
   images: {
-    unoptimized: true, // Free plan Vercel: không dùng quota image optimization
+    unoptimized: process.env.NEXT_IMAGE_UNOPTIMIZED === "true",
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 320, 384, 500, 640],
     remotePatterns: [
-      { protocol: "https", hostname: "**", port: "", pathname: "/**" },
-      { protocol: "http", hostname: "**", port: "", pathname: "/**" },
+      { protocol: "https", hostname: "**" },
+      { protocol: "http", hostname: "**" },
     ],
     formats: ["image/avif", "image/webp"],
-    qualities: [75, 80, 85, 88, 90, 95, 100], // Tắt warning về quality không cấu hình
+    minimumCacheTTL: 60 * 60 * 24 * 7, // 7 days cache on edge
   },
   async headers() {
     return [

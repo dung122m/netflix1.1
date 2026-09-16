@@ -39,9 +39,9 @@ export function sanitizeImageUrl(url: string): string {
   }
 
   // Tối ưu ảnh IMDb: Amazon CloudFront CDN cho phép resize tự động bằng URL slug
-  // Chuyển từ ảnh gốc 1000px-2000px (_UX1000_) sang _UX400_ nén từ 300KB xuống ~18KB mà nét căng
+  // Chuyển từ ảnh gốc 1000px-2000px (_UX1000_) sang _UX320_ (khớp chuẩn 319px grid card), nén từ 300KB xuống ~15KB
   if (clean.includes("media-amazon.com/images/M/")) {
-    clean = clean.replace(/_V1_.*(\.(?:jpg|jpeg|png|webp))$/i, "_V1_QL80_UX400_$1");
+    clean = clean.replace(/_V1_.*(\.(?:jpg|jpeg|png|webp))$/i, "_V1_QL80_UX320_$1");
   }
 
   return clean;

@@ -500,7 +500,7 @@ function MyListContent() {
         ) : (
           <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-zinc-900/45 to-zinc-950/45 p-3 sm:p-4 md:p-5">
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
-              {watchlist.map((item) => (
+              {watchlist.map((item, index) => (
                 <MediaCard
                   key={item.slug}
                   slug={item.slug}
@@ -511,6 +511,7 @@ function MyListContent() {
                   time={item.time}
                   country={item.country}
                   type_name={item.type_name}
+                  priority={index < 4}
                 />
               ))}
             </div>
