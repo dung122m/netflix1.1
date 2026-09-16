@@ -54,11 +54,18 @@ function getMovieHighlight(movie: AiMovieCard) {
     movie.overview ||
     movie.description ||
     movie.content ||
-    "Tác phẩm điện ảnh đặc sắc đang chờ bạn khám phá.";
+    "";
 
-  text = text.replace(/\s+/g, " ").trim();
-  if (text.length > 100) {
-    const truncated = text.substring(0, 95);
+  text = text.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
+  if (!text) {
+    if (movie.category) {
+      return `Tác phẩm ${movie.category.toLowerCase()} xuất sắc, kịch tính và đáng xem trên Nanaflix.`;
+    }
+    return "Tác phẩm điện ảnh chọn lọc chất lượng cao đáng xem trên Nanaflix.";
+  }
+
+  if (text.length > 95) {
+    const truncated = text.substring(0, 90);
     const lastSpace = truncated.lastIndexOf(" ");
     text = (lastSpace > 50 ? truncated.substring(0, lastSpace) : truncated) + "...";
   }
@@ -560,46 +567,62 @@ export const NanaAiStudioModal: React.FC = () => {
                                 key={`${mov.slug || "movie"}-${movIdx}`}
                                 href={`/movies/${mov.slug}`}
                                 onClick={() => setIsOpen(false)}
-                                className="p-2.5 sm:p-3 rounded-2xl bg-zinc-950/85 hover:bg-zinc-900 border border-white/10 hover:border-pink-500/50 transition-all flex gap-3 group cursor-pointer shadow-lg hover:shadow-pink-950/30 hover:scale-[1.01]"
+                                className="group relative flex gap-3 p-2.5 sm:p-3 rounded-2xl bg-zinc-950/80 hover:bg-zinc-900 border border-white/10 hover:border-pink-500/50 transition-all duration-300 shadow-lg hover:shadow-pink-950/25 hover:-translate-y-0.5 overflow-hidden"
                               >
-                                <div className="relative w-16 sm:w-20 aspect-[2/3] rounded-xl overflow-hidden bg-zinc-900 flex-none border border-white/10 shadow-md">
+                                {/* POSTER WITH PLAY OVERLAY */}
+                                <div className="relative w-20 sm:w-24 aspect-[2/3] rounded-xl overflow-hidden bg-zinc-900 flex-none border border-white/10 shadow-md">
                                   <Image
                                     src={mov.poster || "/default-poster.jpg"}
                                     alt={mov.title || "Phim"}
                                     fill
                                     className="object-cover group-hover:scale-105 transition-transform duration-300"
-                                    sizes="(max-width: 640px) 70px, 90px"
+                                    sizes="(max-width: 640px) 80px, 100px"
                                   />
+                                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                                    <div className="w-8 h-8 rounded-full bg-pink-500/90 text-white flex items-center justify-center shadow-lg shadow-pink-500/50 transform scale-75 group-hover:scale-100 transition-transform">
+                                      <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
+                                    </div>
+                                  </div>
                                 </div>
+
+                                {/* MOVIE DETAILS */}
                                 <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
-                                  <div className="space-y-1.5">
+                                  <div className="space-y-1">
                                     <h5
                                       className="text-xs sm:text-sm font-bold text-white truncate group-hover:text-pink-300 transition-colors"
                                       title={mov.title}
                                     >
                                       {mov.title}
                                     </h5>
-                                    <div className="flex items-center gap-1.5 text-[10px] text-gray-400">
-                                      {mov.year && <span className="text-gray-300 font-medium">{mov.year}</span>}
+                                    <div className="flex items-center gap-1.5 text-[10px] text-gray-400 flex-wrap">
+                                      {mov.year && <span className="text-zinc-300 font-semibold">{mov.year}</span>}
                                       {mov.category && (
-                                        <span className="text-amber-400 font-semibold truncate max-w-[90px]">
-                                          {mov.category}
-                                        </span>
+                                        <>
+                                          <span className="text-zinc-600">•</span>
+                                          <span className="text-pink-400 font-medium truncate max-w-[85px]">
+                                            {mov.category}
+                                          </span>
+                                        </>
                                       )}
                                       {mov.quality && (
-                                        <span className="border border-white/20 px-1 py-0.5 rounded text-[9px] text-gray-300">
+                                        <span className="border border-white/20 bg-white/5 px-1 py-0.2 rounded text-[9px] font-semibold text-zinc-300">
                                           {mov.quality}
                                         </span>
                                       )}
                                     </div>
-                                    <div className="text-[10.5px] sm:text-[11px] text-pink-200/90 leading-snug bg-pink-500/10 px-2.5 py-1.5 rounded-xl border border-pink-500/20 line-clamp-2">
-                                      💡 {getMovieHighlight(mov)}
+                                    <div className="mt-1.5 p-2 rounded-xl bg-pink-500/10 border border-pink-500/20 text-[10.5px] sm:text-[11px] text-pink-200/90 leading-snug line-clamp-2 overflow-hidden">
+                                      <span className="font-semibold text-pink-400 mr-1">✦</span>
+                                      {getMovieHighlight(mov)}
                                     </div>
                                   </div>
 
-                                  <div className="pt-2 flex items-center gap-1.5 text-[11px] font-bold text-netflix-red group-hover:text-pink-400 transition-colors">
-                                    <Play className="w-3 h-3 fill-current" />
-                                    <span>Xem chi tiết phim</span>
+                                  {/* SEPARATE BOTTOM ACTION ROW */}
+                                  <div className="pt-2 mt-2 border-t border-white/5 flex items-center justify-between text-[11px] font-bold text-pink-400 group-hover:text-pink-300 transition-colors">
+                                    <span className="flex items-center gap-1.5">
+                                      <Play className="w-3 h-3 fill-current text-netflix-red group-hover:text-pink-400 transition-colors" />
+                                      <span>Xem chi tiết phim</span>
+                                    </span>
+                                    <ChevronRight className="w-3.5 h-3.5 text-zinc-500 group-hover:text-pink-300 group-hover:translate-x-0.5 transition-all" />
                                   </div>
                                 </div>
                               </Link>

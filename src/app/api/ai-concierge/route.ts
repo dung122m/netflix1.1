@@ -785,12 +785,17 @@ function toSafeCategory(item: any): string {
 // ============================================================================
 // HÀM TRÍCH XUẤT MÔ TẢ ĐỘC BẢN ĐỘNG CHO TỪNG BỘ PHIM (100% DYNAMIC & SCALABLE)
 // ============================================================================
+// ============================================================================
+// HÀM TRÍCH XUẤT MÔ TẢ ĐỘC BẢN ĐỘNG CHO TỪNG BỘ PHIM (100% DYNAMIC & SCALABLE)
+// ============================================================================
 function isGenericBoilerplate(text?: string): boolean {
   if (!text) return true;
   const lower = text.toLowerCase().trim();
   return (
     lower.includes("tác phẩm tiêu biểu") ||
     lower.includes("tác phẩm đặc sắc") ||
+    lower.includes("đang chờ bạn khám phá") ||
+    lower.includes("tác phẩm điện ảnh đặc sắc") ||
     lower.includes("tác phẩm kinh điển gắn liền") ||
     lower.includes("gắn liền với tên tuổi") ||
     lower.includes("phong cách diễn xuất") ||
@@ -800,7 +805,8 @@ function isGenericBoilerplate(text?: string): boolean {
     lower.includes("khớp chuẩn xác với yêu cầu") ||
     lower.includes("đạt điểm đánh giá cao") ||
     lower.includes("có điểm đánh giá cao") ||
-    lower.includes("phim hay chất lượng cao")
+    lower.includes("phim hay chất lượng cao") ||
+    lower.includes("chất lượng cao đáng xem")
   );
 }
 
@@ -809,12 +815,10 @@ function isGenericBoilerplate(text?: string): boolean {
 // ============================================================================
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function getMovieHighlight(movie: any, customReason?: string): string {
-  if (!movie) return "Tác phẩm điện ảnh đặc sắc đang chờ bạn khám phá.";
-
   // 1. Ưu tiên customReason do AI sinh ra nếu hợp lệ và không phải câu rập khuôn
-  if (customReason && customReason.trim().length >= 15 && !isGenericBoilerplate(customReason)) {
+  if (customReason && customReason.trim().length >= 12 && !isGenericBoilerplate(customReason)) {
     const cleanReason = cleanHtmlText(customReason).trim();
-    if (cleanReason.length > 90) {
+    if (cleanReason.length > 95) {
       return cleanReason.substring(0, 90) + "...";
     }
     return cleanReason;
@@ -822,22 +826,32 @@ export function getMovieHighlight(movie: any, customReason?: string): string {
 
   // 2. Ưu tiên lấy trường overview/description/content sẵn có của phim từ database
   const rawText =
-    movie.overview ||
-    movie.description ||
-    movie.content ||
-    movie.movie?.overview ||
-    movie.movie?.description ||
-    movie.movie?.content ||
+    movie?.overview ||
+    movie?.description ||
+    movie?.content ||
+    movie?.movie?.overview ||
+    movie?.movie?.description ||
+    movie?.movie?.content ||
     "";
 
   const clean = cleanHtmlText(rawText).trim();
-  const text = clean || "Tác phẩm điện ảnh đặc sắc đang chờ bạn khám phá.";
-
-  // 3. Cắt ngắn chuỗi (truncate) khoảng 80-100 ký tự để không bị tràn khung card phim
-  if (text.length > 90) {
-    return text.substring(0, 90) + "...";
+  if (clean && clean.length >= 15 && !isGenericBoilerplate(clean)) {
+    if (clean.length > 95) {
+      return clean.substring(0, 90) + "...";
+    }
+    return clean;
   }
-  return text;
+
+  // 3. Nếu không có overview từ database, sinh nội dung động theo thể loại & năm
+  const cat = toSafeCategory(movie);
+  const yr = extractMovieYear(movie);
+  if (cat && yr) {
+    return `Tác phẩm ${cat.toLowerCase()} đặc sắc năm ${yr}, kịch tính và giàu cảm xúc.`;
+  }
+  if (cat) {
+    return `Tác phẩm ${cat.toLowerCase()} tuyển chọn với cốt truyện hấp dẫn và diễn xuất ấn tượng.`;
+  }
+  return "Tác phẩm điện ảnh chọn lọc chất lượng cao đáng xem trên Nanaflix.";
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1210,46 +1224,52 @@ export async function POST(req: NextRequest) {
     // BƯỚC 2: STRUCTURED EXTRACTION (AI TRÍCH XUẤT CẤU TRÚC JSON CHUẨN)
     // ========================================================================
     const currentYear = new Date().getFullYear();
-    const systemPrompt = `Bạn là Nana AI - Trợ Lý Điện Ảnh Thông Minh & Phân Tích Ý Định Tìm Kiếm Phim của Nanaflix.
+    const systemPrompt = `Bạn là Nana AI - Trợ Lý Điện Ảnh Thông Minh, Sành Sỏi & Thẩm Định Phim của Nanaflix.
 MỐC THỜI GIAN HIỆN TẠI: Năm ${currentYear}.
 
-QUY TẮC ĐỘC LẬP TỪNG CÂU HỎI (STATELESS QUERY):
-Luôn phân tích câu hỏi hiện tại như một yêu cầu mới hoàn toàn độc lập. Tuyệt đối KHÔNG giữ lại hay ghép nối các điều kiện cũ (năm phát hành, quốc gia, thể loại, diễn viên) từ các câu trước đó, trừ khi người dùng nói rõ "tiếp tục" hoặc "thêm phim nữa".
+QUY TẮC PHÂN TÍCH VÀ ĐẶC BIỆT TUÂN THỦ 4 NGUYÊN TẮC VÀNG SAU:
 
-NHIỆM VỤ:
-Phân tích yêu cầu tự nhiên của người dùng (kể cả câu dài phức tạp kết hợp thể loại + quốc gia + khoảng năm/thập niên + chi tiết cốt truyện) và trích xuất thành đối tượng JSON chuẩn xác.
+1. XỬ LÝ CÂU HỎI BẪY & ẢO GIÁC (ANTI-HALLUCINATION & TRAP DETECTION):
+- Nếu người dùng hỏi về một tác phẩm, phần phim, đạo diễn hoặc mốc thời gian HOÀN TOÀN KHÔNG CÓ THẬT (Ví dụ: "Inception phần 5 do đạo diễn Việt Nam làm năm 2028", "Titanic 2 của Christopher Nolan", "Avatar 8", "Iron Man 4 do Trấn Thành đóng chính"):
+  + BẮT BUỘC gán "is_trap": true.
+  + Trong "analysis": ĐÍNH CHÍNH LỊCH SỰ, THÔNG MINH, DÍ DỎM! Nêu rõ thông tin thực tế (tác phẩm đó chỉ có những phần nào, phát hành năm nào, đạo diễn/diễn viên thực sự là ai), và chỉ ra thông tin trên là không có thật (TUYỆT ĐỐI KHÔNG dùng câu "chưa ra mắt" khiến người dùng lầm tưởng phim đó tồn tại).
+  + TUYỆT ĐỐI KHÔNG tìm kiếm mù quáng để trả về các phim ngẫu nhiên không liên quan.
+  + BẮT BUỘC trong "suggested_movies": Đề xuất 4 bộ phim CÓ THẬT, KINH ĐIỂN CÙNG CHỦ ĐỀ HOẶC THỂ LOẠI TƯƠNG ĐƯƠNG (Ví dụ hỏi Inception 5 -> gợi ý Inception (2010), Interstellar (2014), Shutter Island (2010), Tenet (2020) hoặc Memento).
 
-CÁC TRƯỜNG BẮT BUỘC TRÍCH XUẤT:
-1. "genres": Mảng các thể loại chuẩn hóa về slug (ví dụ: ["hanh-dong"], ["kinh-di"], ["tinh-cam"], ["hoat-hinh"], ["vien-tuong"], ["co-trang"], ["tam-ly"], ["trinh-tham"], ["vo-thuat"]).
-2. "country": Quốc gia mục tiêu chuẩn hóa về slug ("au-my" cho Mỹ/Hollywood/Âu Mỹ, "thai-lan" cho Thái Lan, "han-quoc" cho Hàn Quốc, "hong-kong" cho Hồng Kông, "nhat-ban" cho Nhật Bản, "trung-quoc" cho Trung Quốc, "viet-nam" cho Việt Nam). Nếu không có, để "".
-3. "is_latest": boolean (true nếu người dùng tìm "mới nhất", "mới ra", "mới ra mắt", "vừa chiếu", "năm nay", "latest", "newest", "recently").
-4. "years": Khoảng thời gian chính xác { "from": number, "to": number }.
-   - Nếu người dùng tìm "mới nhất" / "năm nay" -> { "from": ${currentYear - 1}, "to": ${currentYear} }
-   - "thập niên 90" -> { "from": 1990, "to": 1999 }
-   - "thập niên 80" -> { "from": 1980, "to": 1989 }
-   - "thập niên 2000" -> { "from": 2000, "to": 2009 }
-   - "năm ${currentYear}" -> { "from": ${currentYear}, "to": ${currentYear} }
-   - Nếu không nói mốc thời gian -> { "from": 0, "to": 0 }
-5. "keyword": Từ khóa đặc thù cốt truyện hoặc bối cảnh (ví dụ: "cướp ngân hàng", "vòng lặp thời gian", "sóng thần", "đầu bếp", "đấu trí").
-6. "actor": Diễn viên nếu có (ví dụ: "Thành Long", "Châu Tinh Trì", "Tom Cruise"...).
-7. "director": Đạo diễn nếu có.
-8. "excluded_countries": Mảng quốc gia người dùng yêu cầu loại trừ (ví dụ: "không lấy phim Mỹ" -> ["au-my"]).
-9. "suggested_movies": Đề xuất 4 bộ phim THỰC TẾ, KINH ĐIỂN VÀ XUẤT SẮC NHẤT khớp với quốc gia, thể loại, khoảng năm và cốt truyện.
-   - BẮT BUỘC VỀ TRƯỜNG "reason": Mỗi bộ phim BẮT BUỘC PHẢI CÓ 1 ĐOẠN TÓM TẮT ĐỘC BẢN (1-2 câu ngắn gọn, súc tích) về điểm nhấn cốt truyện hoặc nút thắt kịch tính của CHÍNH BỘ PHIM ĐÓ.
-   - TUYỆT ĐỐI CẤM dùng câu rập khuôn chung chung như "Tác phẩm tiêu biểu cùng chủ đề...", "Phim có đánh giá cao...".
-10. KHÔNG BIAS TÊN: Tuyệt đối không tự động đưa anime "Nana" vào danh sách trừ khi người dùng đích danh tìm kiếm phim đó.
-11. "analysis": Lời chào tự nhiên, sành sỏi về điện ảnh giới thiệu ngắn gọn điểm hấp dẫn nhất của nhóm 3-4 phim được tuyển chọn này (KHÔNG lặp lại nguyên văn câu hỏi người dùng).
+2. PHÂN TÁCH NGỮ CẢNH NGOÀI LỀ (EDGE CASES & OFF-TOPIC):
+- Nếu người dùng hỏi các chủ đề ngoài điện ảnh (Ví dụ: bóng đá, tỷ số, thể thao, thời tiết, chính trị, chứng khoán, toán học, nấu ăn, đời sống...):
+  + BẮT BUỘC gán "is_off_topic": true.
+  + Trong "analysis": TỪ CHỐI KHÉO LÉO, DUYÊN DÁNG đúng vai trò trợ lý điện ảnh của Nanaflix, sau đó LẬP TỨC CHUYỂN HƯỚNG MƯỢT MÀ sang việc gợi ý các tác phẩm điện ảnh liên quan đến chủ đề đó hoặc tâm trạng giải trí (Ví dụ: hỏi bóng đá -> từ chối đoán tỷ số, nhưng lập tức gợi ý phim bóng đá/thể thao truyền cảm hứng hoặc phim xả stress sau trận đấu).
+  + BẮT BUỘC trong "suggested_movies": Đề xuất 4 bộ phim CÓ THẬT, NỔI TIẾNG phù hợp với sự chuyển hướng đó (Ví dụ hỏi bóng đá -> gợi ý Shaolin Soccer / Đội Bóng Thiếu Lâm, Ford v Ferrari, Pelé, Goal!, Hustle).
+
+3. XỬ LÝ LỖI CHÍNH TẢ & Ý ĐỊNH ẨN (TYPO & INTENT RECOGNITION):
+- Tự động hiểu và sửa các từ viết sai chính tả phổ biến (Ví dụ: "zoombie" -> zombie, "hành đọng" -> hành động, "hoat hinh" -> hoạt hình, "tình cãm" -> tình cảm...).
+- Thấu cảm và giải mã nhu cầu cảm xúc sâu sắc:
+  + Muốn sợ hãi / giật gân -> kinh dị rùng rợn, siêu nhiên ám ảnh.
+  + Muốn khóc / chữa lành -> tâm lý tình cảm sâu sắc, cảm động rơi nước mắt.
+  + Muốn cười / xả stress -> hài kịch dí dỏm, phiêu lưu sảng khoái.
+  + Muốn hack não -> trinh thám điều tra, vòng lặp thời gian, plot twist bất ngờ.
+
+4. QUY TẮC TRẢ VỀ PHIM VÀ TÊN PHIM (OUTPUT QUALITY):
+- "title": Tên tiếng Việt chuẩn xác, trang trọng, quen thuộc nhất ở Việt Nam (hoặc giữ tên gốc nếu là phim kinh điển nổi tiếng như "Inception", "Interstellar", "John Wick"). TUYỆT ĐỐI CẤM DỊCH MÁY MÓC BỊA ĐẶT KỲ LẠ (như dịch The Mongoose thành "Cầy Mangut").
+- "original_title": Tên gốc tiếng Anh / quốc tế chuẩn xác.
+- "year": Năm phát hành thực tế chính xác (số nguyên 4 chữ số).
+- "reason": 1-2 câu ngắn gọn, súc tích, hấp dẫn về điểm nhấn cốt truyện hoặc nút thắt kịch tính của CHÍNH BỘ PHIM ĐÓ. Tuyệt đối CẤM câu chung chung sáo rỗng.
+- "analysis": Lời mở đầu niềm nở, thông minh, gắn kết trực tiếp với yêu cầu của người dùng.
+- "mood": Tên chủ đề súc tích kèm emoji phù hợp.
 
 BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT NGOÀI JSON):
 {
-  "analysis": "Lời chào tự nhiên giới thiệu nhóm phim được chọn",
-  "mood": "Tên chủ đề ngắn gọn kèm Emoji (vd: 'Phim Chiếu Rạp Mới Nhất ${currentYear} 🎬✨')",
+  "is_trap": false,
+  "is_off_topic": false,
+  "analysis": "Lời mở đầu duyên dáng, sành sỏi gắn kết trực tiếp với người dùng...",
+  "mood": "Tên chủ đề ngắn gọn kèm Emoji (vd: 'Đấu Trí Hack Não 🧠✨')",
   "genres": ["hanh-dong"],
   "country": "au-my",
-  "is_latest": true,
+  "is_latest": false,
   "years": {
-    "from": ${currentYear - 1},
-    "to": ${currentYear}
+    "from": 2010,
+    "to": 2024
   },
   "keyword": "",
   "actor": "",
@@ -1258,15 +1278,17 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
   "excluded_genres": [],
   "suggested_movies": [
     {
-      "title": "Tên tiếng Việt",
-      "original_title": "Tên gốc quốc tế / tiếng Anh",
-      "year": ${currentYear},
-      "reason": "Mô tả ngắn gọn, cụ thể về nội dung, nhân vật hoặc nút thắt cốt truyện của chính phim này"
+      "title": "Tên tiếng Việt chuẩn",
+      "original_title": "Original English/International Title",
+      "year": 2010,
+      "reason": "Mô tả ngắn gọn, cụ thể về nội dung hoặc nút thắt cốt truyện của chính phim này"
     }
   ]
 }`;
 
     let aiParsed: {
+      is_trap?: boolean;
+      is_off_topic?: boolean;
       analysis?: string;
       mood?: string;
       genres?: string[];
@@ -1297,10 +1319,23 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
 
     let aiProviderName = "Nana AI Engine";
 
+    const typoNormalized = prompt
+      .replace(/\bzoombie[s]?\b/gi, "zombie")
+      .replace(/\bhành đọng\b/gi, "hành động")
+      .replace(/\bhanh dong\b/gi, "hành động")
+      .replace(/\btình cãm\b/gi, "tình cảm")
+      .replace(/\btinh cam\b/gi, "tình cảm")
+      .replace(/\bhoat hinh\b/gi, "hoạt hình")
+      .replace(/\bhai huoc\b/gi, "hài hước")
+      .replace(/\bkinh di\b/gi, "kinh dị")
+      .replace(/\bviễn tuởng\b/gi, "viễn tưởng")
+      .replace(/\bvien tuong\b/gi, "viễn tưởng")
+      .replace(/\btrinh tham\b/gi, "trinh thám");
+
     try {
       const aiRes = await generateFastAiChat({
         systemPrompt,
-        userPrompt: `Phân tích yêu cầu tìm phim: "${prompt}". Mốc năm hiện tại là ${currentYear}. Trả về JSON theo đúng định dạng.`,
+        userPrompt: `Phân tích yêu cầu tìm phim: "${prompt}" (Ý định chuẩn hóa: "${typoNormalized}"). Mốc năm hiện tại là ${currentYear}. Trả về duy nhất JSON theo đúng schema.`,
         temperature: 0.2,
         maxTokens: 1400,
         jsonMode: true,
@@ -1474,9 +1509,15 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
           }
 
           seenSlugs.add(item.found.slug);
+          const rawFoundName = item.found.name || item.found.title || "";
+          const isBizarre = rawFoundName.toLowerCase().includes("cầy mangut") || rawFoundName.toLowerCase().includes("cay mangut");
+          const safeTitle = isBizarre && (item.suggested.title || item.found.origin_name)
+            ? (item.suggested.title || item.found.origin_name)
+            : (rawFoundName || item.suggested.title);
+
           cards.push({
             slug: item.found.slug,
-            title: item.found.name || item.found.title || item.suggested.title,
+            title: safeTitle,
             poster: toSafePoster(item.found),
             year: itemYear || 2024,
             quality: item.found.quality || "HD",
@@ -1490,7 +1531,8 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
     }
 
     // 3. Pass 2: Truy vấn Phân Tầng Thông Minh (Pool Discovery & Relevance Scoring)
-    if (cards.length < 24 && (targetActorSlug || targetGenreSlug || targetCountrySlug || rawKeyword || rawDirector || isLatest)) {
+    const isTrapOrOffTopic = Boolean(aiParsed?.is_trap || aiParsed?.is_off_topic);
+    if (cards.length < 24 && !isTrapOrOffTopic && (targetActorSlug || targetGenreSlug || targetCountrySlug || rawKeyword || rawDirector || isLatest)) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const queryTasks: Promise<any>[] = [];
 
@@ -1746,11 +1788,19 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
     let finalMood = "";
 
     if (isFallbackRelaxed && cards.length > 0) {
-      finalAnalysis = `Nana AI chưa tìm thấy tác phẩm khớp tuyệt đối 100% mọi điều kiện chi tiết, nhưng đã nới lỏng bộ lọc để tuyển chọn ngay 3-4 bộ phim có phong cách và chủ đề gần gũi nhất dưới đây để bạn thưởng thức nhé! ✨🍿`;
-      finalMood = "Gợi Ý Tương Đồng Cho Bạn 🎬✨";
+      if (aiParsed?.analysis && (aiParsed.is_trap || aiParsed.is_off_topic)) {
+        finalAnalysis = aiParsed.analysis.trim();
+      } else {
+        finalAnalysis = `Nana AI chưa tìm thấy tác phẩm khớp tuyệt đối 100% mọi điều kiện chi tiết, nhưng đã nới lỏng bộ lọc để tuyển chọn ngay 3-4 bộ phim có phong cách và chủ đề gần gũi nhất dưới đây để bạn thưởng thức nhé! ✨🍿`;
+      }
+      finalMood = aiParsed?.mood || "Gợi Ý Tương Đồng Cho Bạn 🎬✨";
     } else if (cards.length === 0) {
-      finalAnalysis = `Chào bạn! Hiện tại kho phim chưa có bản phát hành khớp hoàn toàn với yêu cầu này. Bạn có thể thử tìm kiếm theo tên phim cụ thể hoặc khám phá các thể loại thịnh hành trên thanh điều hướng nhé! ✨🍿`;
-      finalMood = "Gợi Ý Cho Bạn 🎬";
+      if (aiParsed?.analysis && (aiParsed.is_trap || aiParsed.is_off_topic)) {
+        finalAnalysis = aiParsed.analysis.trim();
+      } else {
+        finalAnalysis = `Chào bạn! Hiện tại kho phim chưa có bản phát hành khớp hoàn toàn với yêu cầu này. Bạn có thể thử tìm kiếm theo tên phim cụ thể hoặc khám phá các thể loại thịnh hành trên thanh điều hướng nhé! ✨🍿`;
+      }
+      finalMood = aiParsed?.mood || "Gợi Ý Cho Bạn 🎬";
     } else {
       finalAnalysis =
         aiParsed?.analysis?.trim() ||
