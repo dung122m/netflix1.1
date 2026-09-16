@@ -1,15 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 import { movieApi } from "@/services/movieApi";
 import { sanitizeImageUrl } from "@/lib/movieMedia";
 import { searchMoviesBySemantic } from "@/services/aiVectorService";
+import { generateFastAiChat } from "@/services/aiProviderService";
 
 export const maxDuration = 15;
-
-// In-memory cache cho các kết hợp roulette
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const ROULETTE_CACHE = new Map<string, { data: any; cachedAt: number }>();
-const CACHE_TTL_MS = 1000 * 60 * 60 * 12; // 12 tiếng
 
 // Metadata phân loại chi tiết theo tâm trạng người dùng
 const MOOD_META: Record<
@@ -616,28 +611,6 @@ export async function POST(req: NextRequest) {
 
     const hasExclusions = excludeSlugs.length > 0 || excludeTitles.length > 0;
 
-    // Cache key chỉ dùng khi quay lần đầu không có exclusion
-    const cacheKey = `${mood}_${country}_${companion}_${duration}_${Math.floor(Date.now() / (1000 * 60 * 30))}`;
-    if (!hasExclusions) {
-      const cached = ROULETTE_CACHE.get(cacheKey);
-      if (cached && Date.now() - cached.cachedAt < CACHE_TTL_MS) {
-        return NextResponse.json({ ...cached.data, fromCache: true });
-      }
-    }
-
-    const envKeys = (process.env.GEMINI_API_KEY || "")
-      .split(",")
-      .map((k) => k.trim())
-      .filter((k) => k.length > 5);
-
-    const candidateKeys = Array.from(
-      new Set(
-        [...envKeys, userApiKey?.trim()].filter(
-          (k): k is string => Boolean(k && k.length > 5)
-        )
-      )
-    );
-
     const allExclusions = Array.from(
       new Set([...excludeTitles, ...excludeSlugs].map((s) => s.toLowerCase().trim()))
     );
@@ -684,8 +657,8 @@ export async function POST(req: NextRequest) {
       console.warn("[ai-roulette] Vector search phase skipped:", vErr);
     }
 
-    // 1. GỌI GEMINI NẾU CÓ KEY VỚI PROMPT TỐI ƯU ĐỘ CHÍNH XÁC CAO (NẾU CHƯA CÓ VECTOR MATCH)
-    if (!foundMovie && candidateKeys.length > 0) {
+    // 1. GỌI FAST AI HYBRID (GROQ LLAMA 3.3 70B -> FALLBACK GEMINI FLASH)
+    if (!foundMovie) {
       try {
         const countryConstraint =
           country !== "all"
@@ -725,49 +698,17 @@ Trả về DUY NHẤT một chuỗi JSON hợp lệ:
   }
 }`;
 
-        const MODELS = ["gemini-3.6-flash", "gemini-3.5-flash"];
-        let raceResult: string | null = null;
+        const aiRes = await generateFastAiChat({
+          userPrompt: promptText,
+          temperature: 0.35,
+          maxTokens: 500,
+          jsonMode: true,
+          customApiKey: userApiKey,
+          timeoutMs: 6000,
+        });
 
-        keyLoop: for (const currentKey of candidateKeys) {
-          try {
-            const ai = new GoogleGenAI({ apiKey: currentKey, vertexai: false });
-            for (const model of MODELS) {
-              try {
-                const is35 = model.includes("3.5");
-                const res = await Promise.race([
-                  ai.models.generateContent({
-                    model,
-                    contents: promptText,
-                    config: {
-                      responseMimeType: "application/json",
-                      temperature: 0.35,
-                      maxOutputTokens: 500,
-                      ...(is35
-                        ? { thinkingConfig: { thinkingBudget: 0 } }
-                        : { thinkingConfig: { thinkingLevel: ThinkingLevel.LOW } }),
-                    },
-                  }),
-                  new Promise<never>((_, reject) =>
-                    setTimeout(() => reject(new Error(`${model} roulette timeout`)), 4500)
-                  ),
-                ]);
-
-                const text = res.text?.trim();
-                if (text) {
-                  raceResult = text;
-                  break keyLoop;
-                }
-              } catch (mErr) {
-                console.warn(`[ai-roulette] ${model} failed:`, mErr instanceof Error ? mErr.message : mErr);
-              }
-            }
-          } catch (kErr) {
-            console.warn("[ai-roulette] Key failed, trying next key:", kErr instanceof Error ? kErr.message : kErr);
-          }
-        }
-
-        if (raceResult) {
-          let cleaned = raceResult.replace(/```(?:json)?\s*/gi, "").replace(/\s*```/g, "").trim();
+        if (aiRes && aiRes.text) {
+          let cleaned = aiRes.text.replace(/```(?:json)?\s*/gi, "").replace(/\s*```/g, "").trim();
           const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
           if (jsonMatch) cleaned = jsonMatch[0];
 
@@ -907,10 +848,6 @@ Trả về DUY NHẤT một chuỗi JSON hợp lệ:
       matchScore: Math.min(99, Math.max(92, finalMatchScore)),
       provider,
     };
-
-    if (!hasExclusions) {
-      ROULETTE_CACHE.set(cacheKey, { data: payload, cachedAt: Date.now() });
-    }
 
     return NextResponse.json(payload);
   } catch (error) {

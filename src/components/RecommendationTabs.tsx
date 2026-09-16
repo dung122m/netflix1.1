@@ -154,10 +154,10 @@ export function RecommendationTabs({
 
   return (
     <div className="space-y-6">
-      {/* 1. THANH TABS ĐỀ XUẤT THÔNG MINH */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/10 pb-4">
-        {/* Cụm Tabs */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none [&::-webkit-scrollbar]:hidden">
+      {/* 1. THANH TABS ĐỀ XUẤT THÔNG MINH (RESPONSIVE 1 HÀNG GỌN GÀNG TRÊN MOBILE) */}
+      <div className="flex items-center justify-between gap-2 border-b border-white/10 pb-3 sm:pb-4 w-full min-w-0">
+        {/* Cụm Tabs cuộn mượt */}
+        <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto py-0.5 scrollbar-none [&::-webkit-scrollbar]:hidden flex-1 min-w-0">
           {/* Tab 1: Phù hợp nhất */}
           <button
             type="button"
@@ -165,14 +165,14 @@ export function RecommendationTabs({
               setActiveTab("best");
               setVisibleLimit(12);
             }}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-2xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl sm:rounded-2xl text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm ${
               activeTab === "best"
                 ? "bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 text-white border-netflix-red shadow-lg shadow-red-950/60 scale-102"
                 : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
             }`}
           >
-            <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
-            <span>Đề Xuất Phù Hợp Nhất ({allMovies.length})</span>
+            <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-300 animate-pulse" />
+            <span>Đề Xuất Phù Hợp ({allMovies.length})</span>
           </button>
 
           {/* Tab 2: Cùng diễn viên (nếu có) */}
@@ -183,13 +183,13 @@ export function RecommendationTabs({
                 setActiveTab("actor");
                 setVisibleLimit(12);
               }}
-              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-2xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl sm:rounded-2xl text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm ${
                 activeTab === "actor"
                   ? "bg-purple-600 text-white border-purple-400 shadow-lg shadow-purple-950/60 scale-102"
                   : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
               }`}
             >
-              <Users className="w-3.5 h-3.5 text-purple-300" />
+              <Users className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-purple-300" />
               <span>Diễn viên: {actorName} ({validActorMovies.length})</span>
             </button>
           )}
@@ -202,13 +202,13 @@ export function RecommendationTabs({
                 setActiveTab("genre");
                 setVisibleLimit(12);
               }}
-              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-2xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl sm:rounded-2xl text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm ${
                 activeTab === "genre"
                   ? "bg-netflix-red text-white border-netflix-red shadow-lg shadow-red-950/60 scale-102"
                   : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
               }`}
             >
-              <Clapperboard className="w-3.5 h-3.5 text-rose-300" />
+              <Clapperboard className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-rose-300" />
               <span>Thể loại: {genreName} ({genreMovies.length})</span>
             </button>
           )}
@@ -221,13 +221,13 @@ export function RecommendationTabs({
                 setActiveTab("country");
                 setVisibleLimit(12);
               }}
-              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-2xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl sm:rounded-2xl text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm ${
                 activeTab === "country"
                   ? "bg-sky-600 text-white border-sky-400 shadow-lg shadow-sky-950/60 scale-102"
                   : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
               }`}
             >
-              <Globe2 className="w-3.5 h-3.5 text-sky-300" />
+              <Globe2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-sky-300" />
               <span>Quốc gia: {countryName} ({countryMovies.length})</span>
             </button>
           )}
@@ -240,32 +240,33 @@ export function RecommendationTabs({
                 setActiveTab("top");
                 setVisibleLimit(12);
               }}
-              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-2xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl sm:rounded-2xl text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm ${
                 activeTab === "top"
                   ? "bg-amber-600 text-white border-amber-400 shadow-lg shadow-amber-950/60 scale-102"
                   : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
               }`}
             >
-              <Star className="w-3.5 h-3.5 text-amber-300 fill-current" />
+              <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-300 fill-current" />
               <span>Đánh Giá Cao ({topRatedMovies.length})</span>
             </button>
           )}
         </div>
 
         {/* Nút Đổi Gợi Ý Ngẫu Nhiên (Shuffle) */}
-        <div className="flex items-center gap-2 flex-shrink-0 self-end md:self-auto">
+        <div className="flex items-center gap-2 flex-shrink-0">
           <button
             type="button"
             onClick={handleShuffle}
             title="Xáo trộn và đổi danh sách phim đề xuất mới"
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-gray-200 hover:text-white bg-zinc-900/90 hover:bg-zinc-800 border border-white/15 hover:border-white/30 transition shadow-sm cursor-pointer active:scale-95"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-[11px] sm:text-xs font-bold text-gray-200 hover:text-white bg-zinc-900/90 hover:bg-zinc-800 border border-white/15 hover:border-white/30 transition shadow-sm cursor-pointer active:scale-95 whitespace-nowrap"
           >
             <Shuffle
-              className={`w-3.5 h-3.5 text-amber-400 transition-transform ${
+              className={`w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-400 transition-transform ${
                 isShuffling ? "rotate-180 scale-110" : ""
               }`}
             />
-            <span>Đổi gợi ý ngẫu nhiên</span>
+            <span className="hidden sm:inline">Đổi gợi ý</span>
+            <span className="sm:hidden">Đổi</span>
           </button>
         </div>
       </div>

@@ -137,8 +137,8 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://phimimg.com" />
         <link rel="preconnect" href="https://img.phimapi.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://img.phimapi.com" />
-        <link rel="preconnect" href="https://vsmov.com" crossOrigin="anonymous" />
-        <link rel="dns-prefetch" href="https://vsmov.com" />
+        <link rel="preconnect" href="https://phim.nguonc.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://phim.nguonc.com" />
         <link rel="preconnect" href="https://img.gvapi.cc" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://img.gvapi.cc" />
         <link rel="preconnect" href="https://image.tmdb.org" crossOrigin="anonymous" />
@@ -154,7 +154,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://s1.phimapi.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://s1.phimapi.com" />
         <link rel="dns-prefetch" href="https://vip.opstream16.com" />
-        <link rel="dns-prefetch" href="https://hls.vsmov.com" />
+        <link rel="dns-prefetch" href="https://embed.streamc.xyz" />
 
         {/* Khởi tạo màu giao diện, chế độ sáng/tối và khử các attribute do browser extension tự tiêm vào (bts_skin_checked, etc.) */}
         <script

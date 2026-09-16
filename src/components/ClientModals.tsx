@@ -4,12 +4,8 @@
 // Dùng dynamic + ssr:false hợp lệ vì đây là Client Component
 import dynamic from "next/dynamic";
 
-const AiMovieConcierge = dynamic(
-  () => import("@/components/AiMovieConcierge").then((m) => m.AiMovieConcierge),
-  { ssr: false }
-);
-const AiMovieRoulette = dynamic(
-  () => import("@/components/AiMovieRoulette").then((m) => m.AiMovieRoulette),
+const NanaAiStudioModal = dynamic(
+  () => import("@/components/NanaAiStudioModal").then((m) => m.NanaAiStudioModal),
   { ssr: false }
 );
 const ActorBioModal = dynamic(
@@ -35,8 +31,7 @@ import { GlobalConfirmDialog } from "@/components/ui/ConfirmDialog";
 export const ClientModals = React.memo(function ClientModals() {
   return (
     <>
-      <AiMovieConcierge />
-      <AiMovieRoulette />
+      <NanaAiStudioModal />
       <ActorBioModal />
       <UserProfileModal />
       <PublicUserProfileModal />

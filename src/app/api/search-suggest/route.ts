@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { movieApi } from "@/services/movieApi";
-import { KNOWN_ACTORS_FILMOGRAPHY } from "@/services/aiActorService";
+import { resolveActorMovies } from "@/services/aiActorService";
 import { pickBestMoviePoster, MovieLike } from "@/lib/movieMedia";
 
 function normalizeForMatch(str: string): string {
@@ -24,13 +24,8 @@ export async function GET(req: NextRequest) {
 
     const normKw = normalizeForMatch(keyword);
 
-    // 1. Kiểm tra tức thì xem có khớp diễn viên trong từ điển không (< 0.1ms)
-    const matchedActor = KNOWN_ACTORS_FILMOGRAPHY.find((item) =>
-      item.aliases.some((alias) => {
-        const normAlias = normalizeForMatch(alias);
-        return normKw === normAlias || normKw.includes(normAlias) || normAlias.includes(normKw);
-      })
-    );
+    // 1. Phân giải diễn viên bằng AI + Cache thông minh (< 5ms khi có cache)
+    const actorRes = await resolveActorMovies(keyword).catch(() => null);
 
     interface SuggestMovieItem {
       slug?: string;
@@ -77,12 +72,12 @@ export async function GET(req: NextRequest) {
     }));
 
     // 3. Nếu khớp diễn viên, gắn thẻ đề xuất diễn viên lên đầu danh sách
-    if (matchedActor) {
+    if (actorRes?.isActor && actorRes.actorName) {
       items.unshift({
-        slug: `browse?keyword=${encodeURIComponent(matchedActor.name)}`,
-        title: `✨ Tuyển tập phim của ${matchedActor.name}`,
+        slug: `browse?keyword=${encodeURIComponent(actorRes.actorName)}`,
+        title: `✨ Tuyển tập phim của ${actorRes.actorName}`,
         poster: "/default-hero.jpg",
-        year: matchedActor.country || "Tuyển Chọn",
+        year: actorRes.country || "Tuyển Chọn",
         quality: "✨ AI Gợi Ý",
         category: "Diễn Viên",
       });

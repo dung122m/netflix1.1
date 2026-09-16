@@ -32,9 +32,52 @@ interface ForYouMovieItem {
 export function ForYouPersonalizedRow() {
   const { user } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [movies, setMovies] = useState<ForYouMovieItem[]>([]);
-  const [contextText, setContextText] = useState<string>("Tuyển chọn chuẩn gu cho bạn");
-  const [loading, setLoading] = useState<boolean>(true);
+  const CACHE_KEY_NAME = "nanaflix_foryou_cache_v3";
+  const CACHE_TTL = 15 * 60 * 1000; // 15 phút
+
+  const [movies, setMovies] = useState<ForYouMovieItem[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const rawCached = localStorage.getItem(CACHE_KEY_NAME) || sessionStorage.getItem(CACHE_KEY_NAME);
+        if (rawCached) {
+          const cached = JSON.parse(rawCached);
+          if (Array.isArray(cached?.items) && cached.items.length >= 6) {
+            return cached.items;
+          }
+        }
+      } catch {}
+    }
+    return [];
+  });
+
+  const [contextText, setContextText] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const rawCached = localStorage.getItem(CACHE_KEY_NAME) || sessionStorage.getItem(CACHE_KEY_NAME);
+        if (rawCached) {
+          const cached = JSON.parse(rawCached);
+          if (cached?.context) return cached.context;
+        }
+      } catch {}
+    }
+    return "Tuyển chọn chuẩn gu cho bạn";
+  });
+
+  const [loading, setLoading] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const rawCached = localStorage.getItem(CACHE_KEY_NAME) || sessionStorage.getItem(CACHE_KEY_NAME);
+        if (rawCached) {
+          const cached = JSON.parse(rawCached);
+          if (Array.isArray(cached?.items) && cached.items.length >= 6) {
+            return false;
+          }
+        }
+      } catch {}
+    }
+    return true;
+  });
+
   const [refreshCount, setRefreshCount] = useState<number>(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -62,9 +105,6 @@ export function ForYouPersonalizedRow() {
 
   // 2. Fetch danh sách phim đề xuất (hỗ trợ đổi mới luân phiên khi bấm Đổi Gợi Ý)
   const fetchRecommendations = useCallback(async (forceRefresh = false, nextSeed?: number) => {
-    const CACHE_KEY_NAME = "nanaflix_foryou_cache_v1";
-    const CACHE_TTL = 10 * 60 * 1000; // 10 phút
-
     const currentSeed = nextSeed !== undefined ? nextSeed : refreshCount;
     const history = getWatchHistory();
     const watchedTitles = history.map((h) => h.title).filter(Boolean).slice(0, 3);
@@ -72,12 +112,12 @@ export function ForYouPersonalizedRow() {
     const currentFingerprint = `${user?.uid || "guest"}_${genresKey}_${watchedSlugs.join(",")}_seed${currentSeed}`;
 
     if (!forceRefresh && inFlightRef.current) return;
-    if (!forceRefresh && lastFingerprintRef.current === currentFingerprint && moviesRef.current.length > 0) return;
+    if (!forceRefresh && lastFingerprintRef.current === currentFingerprint && moviesRef.current.length >= 8) return;
 
-    // Kiểm tra sessionStorage cache nếu không yêu cầu forceRefresh
+    // Kiểm tra cache local nếu không yêu cầu forceRefresh
     if (!forceRefresh && typeof window !== "undefined") {
       try {
-        const rawCached = sessionStorage.getItem(CACHE_KEY_NAME);
+        const rawCached = localStorage.getItem(CACHE_KEY_NAME) || sessionStorage.getItem(CACHE_KEY_NAME);
         if (rawCached) {
           const cached = JSON.parse(rawCached);
           if (
@@ -85,7 +125,7 @@ export function ForYouPersonalizedRow() {
             cached.fingerprint === currentFingerprint &&
             Date.now() - cached.timestamp < CACHE_TTL &&
             Array.isArray(cached.items) &&
-            cached.items.length > 0
+            cached.items.length >= 8
           ) {
             lastFingerprintRef.current = currentFingerprint;
             setMovies(cached.items);
@@ -99,7 +139,10 @@ export function ForYouPersonalizedRow() {
 
     inFlightRef.current = true;
     lastFingerprintRef.current = currentFingerprint;
-    setLoading(true);
+    // Chỉ bật skeleton loading nếu chưa có dữ liệu nào trước đó
+    if (moviesRef.current.length === 0) {
+      setLoading(true);
+    }
 
     try {
       const res = await fetch("/api/recommendations/for-you", {
@@ -121,18 +164,17 @@ export function ForYouPersonalizedRow() {
           if (data.context) {
             setContextText(data.context);
           }
-          // Lưu vào sessionStorage
+          // Lưu vào localStorage & sessionStorage
           if (typeof window !== "undefined") {
             try {
-              sessionStorage.setItem(
-                CACHE_KEY_NAME,
-                JSON.stringify({
-                  items: data.items,
-                  context: data.context || "Tuyển chọn chuẩn gu cho bạn",
-                  timestamp: Date.now(),
-                  fingerprint: currentFingerprint,
-                })
-              );
+              const cacheData = JSON.stringify({
+                items: data.items,
+                context: data.context || "Tuyển chọn chuẩn gu cho bạn",
+                timestamp: Date.now(),
+                fingerprint: currentFingerprint,
+              });
+              localStorage.setItem(CACHE_KEY_NAME, cacheData);
+              sessionStorage.setItem(CACHE_KEY_NAME, cacheData);
             } catch {}
           }
         }
@@ -203,51 +245,50 @@ export function ForYouPersonalizedRow() {
             type="button"
             onClick={handleRefreshClick}
             title="Làm mới danh sách gợi ý"
-            className="px-3 py-1.5 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-white/10 text-gray-300 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer active:scale-95"
+            className="px-3.5 py-1.5 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-white/10 text-gray-300 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer active:scale-95 shadow-md"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin text-netflix-red" : ""}`} />
             <span>Đổi Gợi Ý</span>
           </button>
-
-          {/* ARROWS */}
-          <div className="hidden sm:flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => handleScroll("left")}
-              disabled={!canScrollLeft}
-              aria-label="Cuộn trái"
-              className={`w-8 h-8 rounded-full flex items-center justify-center border transition ${
-                canScrollLeft
-                  ? "bg-zinc-800/90 border-white/15 text-white hover:bg-zinc-700 hover:scale-105 active:scale-95 cursor-pointer"
-                  : "bg-zinc-900/50 border-white/5 text-zinc-600 cursor-not-allowed"
-              }`}
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => handleScroll("right")}
-              disabled={!canScrollRight}
-              aria-label="Cuộn phải"
-              className={`w-8 h-8 rounded-full flex items-center justify-center border transition ${
-                canScrollRight
-                  ? "bg-zinc-800/90 border-white/15 text-white hover:bg-zinc-700 hover:scale-105 active:scale-95 cursor-pointer"
-                  : "bg-zinc-900/50 border-white/5 text-zinc-600 cursor-not-allowed"
-              }`}
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
         </div>
       </div>
 
-      {/* HORIZONTAL CAROUSEL */}
-      <div
-        ref={scrollContainerRef}
-        onScroll={checkScroll}
-        className="flex items-center gap-3.5 sm:gap-5 overflow-x-auto overflow-y-hidden pb-4 pt-2 scrollbar-none snap-x snap-mandatory"
-        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-      >
+      {/* KHUNG CAROUSEL CÓ NÚT ĐIỀU HƯỚNG TRÁI/PHẢI PHỦ MÉP CHUẨN NETFLIX */}
+      <div className="relative group/row">
+        {/* NÚT CUỘN TRÁI (HOVER NỔI MÉP TRÁI) */}
+        {canScrollLeft && (
+          <button
+            type="button"
+            onClick={() => handleScroll("left")}
+            aria-label="Cuộn sang trái"
+            className="hidden sm:flex absolute left-0 top-0 bottom-4 z-30 w-12 md:w-14 bg-gradient-to-r from-black/90 via-black/60 to-transparent hover:from-black text-white items-center justify-start pl-2 opacity-0 group-hover/row:opacity-100 transition-all duration-300 cursor-pointer rounded-r-xl group/btn"
+          >
+            <div className="w-9 h-9 rounded-full bg-black/60 border border-white/20 flex items-center justify-center backdrop-blur-md group-hover/btn:scale-110 group-hover/btn:bg-white/20 transition-all shadow-xl">
+              <ChevronLeft className="w-5 h-5 text-white" />
+            </div>
+          </button>
+        )}
+
+        {/* NÚT CUỘN PHẢI (HOVER NỔI MÉP PHẢI) */}
+        {canScrollRight && (
+          <button
+            type="button"
+            onClick={() => handleScroll("right")}
+            aria-label="Cuộn sang phải"
+            className="hidden sm:flex absolute right-0 top-0 bottom-4 z-30 w-12 md:w-14 bg-gradient-to-l from-black/90 via-black/60 to-transparent hover:from-black text-white items-center justify-end pr-2 opacity-0 group-hover/row:opacity-100 transition-all duration-300 cursor-pointer rounded-l-xl group/btn"
+          >
+            <div className="w-9 h-9 rounded-full bg-black/60 border border-white/20 flex items-center justify-center backdrop-blur-md group-hover/btn:scale-110 group-hover/btn:bg-white/20 transition-all shadow-xl">
+              <ChevronRight className="w-5 h-5 text-white" />
+            </div>
+          </button>
+        )}
+
+        {/* HORIZONTAL CAROUSEL */}
+        <div
+          ref={scrollContainerRef}
+          onScroll={checkScroll}
+          className="flex items-center gap-3.5 sm:gap-5 overflow-x-auto overflow-y-hidden pb-4 pt-2 scrollbar-none snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+        >
         {loading && movies.length === 0
           ? Array.from({ length: 6 }).map((_, idx) => (
               <div
@@ -331,6 +372,7 @@ export function ForYouPersonalizedRow() {
                 </div>
               );
             })}
+        </div>
       </div>
     </section>
   );

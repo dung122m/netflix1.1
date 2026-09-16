@@ -100,7 +100,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     return () => unsubscribe();
   }, []);
 
-  const signInWithGoogle = async (): Promise<{
+  const signInWithGoogle = useCallback(async (): Promise<{
     success: boolean;
     error?: string;
   }> => {
@@ -143,9 +143,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [isConfigured]);
 
-  const logout = async (): Promise<void> => {
+  const logout = useCallback(async (): Promise<void> => {
     if (!auth) return;
     try {
       await signOut(auth);
@@ -156,20 +156,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     } catch (err) {
       console.error("Lỗi đăng xuất:", err);
     }
-  };
+  }, []);
+
+  const authValue = React.useMemo(
+    () => ({
+      user,
+      loading,
+      isConfigured,
+      isSyncing,
+      signInWithGoogle,
+      logout,
+      syncNow,
+    }),
+    [user, loading, isConfigured, isSyncing, signInWithGoogle, logout, syncNow]
+  );
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        loading,
-        isConfigured,
-        isSyncing,
-        signInWithGoogle,
-        logout,
-        syncNow,
-      }}
-    >
+    <AuthContext.Provider value={authValue}>
       {children}
     </AuthContext.Provider>
   );

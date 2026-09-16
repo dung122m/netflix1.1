@@ -18,72 +18,147 @@ export interface SemanticMovieItem {
 const queryEmbeddingCache = new Map<string, { vector: number[]; timestamp: number }>();
 
 /**
- * Lấy Gemini API Key từ biến môi trường
+ * Lấy danh sách tất cả các Gemini API Key để tự động xoay vòng khi hết Quota (429)
  */
-function getGeminiApiKey(): string | null {
-  if (typeof process !== "undefined" && process.env?.GEMINI_API_KEY) {
-    const key = process.env.GEMINI_API_KEY.trim();
-    if (key) return key.split(",")[0].trim();
+function getCandidateGeminiApiKeys(customApiKey?: string): string[] {
+  const envKeys = (process.env?.GEMINI_API_KEY || "")
+    .split(",")
+    .map((k) => k.trim())
+    .filter((k) => k.length > 5);
+
+  return Array.from(
+    new Set(
+      [customApiKey?.trim(), ...envKeys].filter(
+        (k): k is string => Boolean(k && k.length > 5)
+      )
+    )
+  );
+}
+
+const EMBEDDING_MODELS = ["gemini-embedding-2", "gemini-embedding-001", "text-embedding-004"];
+
+/**
+ * Tạo Vector Embedding từ Cloudflare Workers AI (@cf/baai/bge-base-en-v1.5 - 768 dimensions)
+ * Miễn phí 10,000 Neurons/ngày, độ trễ Edge siêu tốc (~50ms)
+ */
+async function generateCloudflareEmbedding(text: string): Promise<number[] | null> {
+  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID?.trim();
+  const apiToken = process.env.CLOUDFLARE_API_TOKEN?.trim();
+  if (!accountId || !apiToken) return null;
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4000);
+
+    const res = await fetch(
+      `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/@cf/baai/bge-base-en-v1.5`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          text: [text.slice(0, 1000)],
+        }),
+        signal: controller.signal,
+      }
+    );
+
+    clearTimeout(timeout);
+    if (!res.ok) {
+      const errText = await res.text().catch(() => "");
+      console.warn(`[aiVectorService] Cloudflare Workers AI error (${res.status}):`, errText.slice(0, 120));
+      return null;
+    }
+
+    const data = await res.json();
+    // Cloudflare response structure: { result: { data: [[0.12, 0.34, ...]] }, success: true }
+    const vector = data?.result?.data?.[0];
+    if (Array.isArray(vector) && vector.length > 0) {
+      if (vector.length > 768) {
+        return vector.slice(0, 768);
+      }
+      return vector;
+    }
+  } catch (err) {
+    console.warn("[aiVectorService] Cloudflare Workers AI embedding skipped:", err instanceof Error ? err.message : err);
   }
+
   return null;
 }
 
-const EMBEDDING_MODELS = ["gemini-embedding-2", "gemini-embedding-001"];
-
 /**
- * Tạo Vector Embedding từ văn bản thông qua Google Gemini Embedding (gemini-embedding-2)
+ * Tạo Vector Embedding từ văn bản (Ưu tiên Cloudflare Workers AI -> Fallback sang Google Gemini)
  */
 export async function generateGeminiEmbedding(text: string, customApiKey?: string): Promise<number[] | null> {
   const cleanText = text?.trim();
   if (!cleanText) return null;
 
-  // 1. Kiểm tra cache
+  // 1. Kiểm tra cache (Lưu trữ 24 giờ để không gọi API trùng lặp)
   const cached = queryEmbeddingCache.get(cleanText.toLowerCase());
-  if (cached && Date.now() - cached.timestamp < 3600000) {
+  if (cached && Date.now() - cached.timestamp < 86400000) {
     return cached.vector;
   }
 
-  const apiKey = customApiKey || getGeminiApiKey();
-  if (!apiKey) {
+  // 2. Thử Cloudflare Workers AI trước (10,000 requests/ngày, không lo cạn quota)
+  const cfVector = await generateCloudflareEmbedding(cleanText);
+  if (cfVector && cfVector.length === 768) {
+    queryEmbeddingCache.set(cleanText.toLowerCase(), {
+      vector: cfVector,
+      timestamp: Date.now(),
+    });
+    return cfVector;
+  }
+
+  // 3. Fallback sang Google Gemini Embedding (Tự động xoay vòng nhiều Key)
+  const candidateKeys = getCandidateGeminiApiKeys(customApiKey);
+  if (candidateKeys.length === 0) {
     return null;
   }
 
-  try {
-    const ai = new GoogleGenAI({ apiKey, vertexai: false });
+  for (const apiKey of candidateKeys) {
+    try {
+      const ai = new GoogleGenAI({ apiKey, vertexai: false });
 
-    for (const model of EMBEDDING_MODELS) {
-      try {
-        const res = await Promise.race([
-          ai.models.embedContent({
-            model,
-            contents: cleanText.slice(0, 1000),
-            config: {
-              outputDimensionality: 768,
-            },
-          }),
-          new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error(`${model} timeout 5s`)), 5000)
-          ),
-        ]);
+      for (const model of EMBEDDING_MODELS) {
+        try {
+          const res = await Promise.race([
+            ai.models.embedContent({
+              model,
+              contents: cleanText.slice(0, 1000),
+              config: {
+                outputDimensionality: 768,
+              },
+            }),
+            new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error(`${model} timeout 5s`)), 5000)
+            ),
+          ]);
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        let values: number[] | undefined = res.embeddings?.[0]?.values || (res as any).embedding?.values;
-        if (Array.isArray(values) && values.length > 0) {
-          if (values.length > 768) {
-            values = values.slice(0, 768);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          let values: number[] | undefined = res.embeddings?.[0]?.values || (res as any).embedding?.values;
+          if (Array.isArray(values) && values.length > 0) {
+            if (values.length > 768) {
+              values = values.slice(0, 768);
+            }
+            queryEmbeddingCache.set(cleanText.toLowerCase(), {
+              vector: values,
+              timestamp: Date.now(),
+            });
+            return values;
           }
-          queryEmbeddingCache.set(cleanText.toLowerCase(), {
-            vector: values,
-            timestamp: Date.now(),
-          });
-          return values;
+        } catch (mErr) {
+          const errMsg = mErr instanceof Error ? mErr.message : String(mErr);
+          if (errMsg.includes("429") || errMsg.includes("RESOURCE_EXHAUSTED") || errMsg.includes("quota")) {
+            console.warn(`[aiVectorService] Key ${apiKey.slice(0, 10)}... đạt giới hạn Quota (${model}), chuyển sang Key dự phòng.`);
+            break; // Chuyển ngay sang API Key kế tiếp
+          }
         }
-      } catch (mErr) {
-        console.warn(`[aiVectorService] Embedding model ${model} skipped:`, mErr instanceof Error ? mErr.message : mErr);
       }
+    } catch {
+      // Tiếp tục sang key kế tiếp
     }
-  } catch (err) {
-    console.warn("[aiVectorService] Lỗi tạo vector embedding:", err instanceof Error ? err.message : err);
   }
 
   return null;

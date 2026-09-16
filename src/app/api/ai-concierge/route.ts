@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 import { movieApi } from "@/services/movieApi";
 import { sanitizeImageUrl } from "@/lib/movieMedia";
 import { searchMoviesBySemantic } from "@/services/aiVectorService";
+import { generateFastAiChat } from "@/services/aiProviderService";
 
 export const maxDuration = 15;
 
@@ -769,42 +769,64 @@ function safeParseAiJson(rawText: string): any {
   const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
   if (jsonMatch) cleaned = jsonMatch[0];
 
+  // 1. Thử parse trực tiếp
   try {
     return JSON.parse(cleaned);
-  } catch (e1) {
+  } catch {
+    // 2. Thử làm sạch dấu phẩy thừa và ký tự điều khiển
     try {
       const sanitized = cleaned
         .replace(/,\s*([\}\]])/g, "$1")
         .replace(/[\u0000-\u001F]+/g, " ");
       return JSON.parse(sanitized);
     } catch {
-      console.warn("[ai-concierge] standard JSON parse failed, falling back to regex extraction:", e1);
-      const analysisMatch = cleaned.match(/"analysis"\s*:\s*"((?:\\.|[^"\\])*)"/);
-      const moodMatch = cleaned.match(/"mood"\s*:\s*"((?:\\.|[^"\\])*)"/);
-      const genreMatch = cleaned.match(/"genre_slug"\s*:\s*"((?:\\.|[^"\\])*)"/);
-      const countryMatch = cleaned.match(/"country_slug"\s*:\s*"((?:\\.|[^"\\])*)"/);
+      // 3. Tự động đóng ngoặc nếu JSON bị cắt cụt do giới hạn token
+      try {
+        let repaired = cleaned;
+        const openBraces = (repaired.match(/\{/g) || []).length;
+        const closeBraces = (repaired.match(/\}/g) || []).length;
+        const openBrackets = (repaired.match(/\[/g) || []).length;
+        const closeBrackets = (repaired.match(/\]/g) || []).length;
 
-      const movies: Array<{ title: string; original_title?: string; reason?: string }> = [];
-      const movieRegex = /\{\s*"title"\s*:\s*"((?:\\.|[^"\\])*)"(?:[^{}]*?"original_title"\s*:\s*"((?:\\.|[^"\\])*)")?(?:[^{}]*?"reason"\s*:\s*"((?:\\.|[^"\\])*)")?\s*\}/g;
-      let m;
-      while ((m = movieRegex.exec(cleaned)) !== null) {
-        movies.push({
-          title: m[1] || "",
-          original_title: m[2] || "",
-          reason: m[3] || "",
-        });
-      }
+        if (repaired.lastIndexOf('"') !== -1 && (repaired.match(/"/g) || []).length % 2 !== 0) {
+          repaired += '"';
+        }
+        for (let i = 0; i < openBrackets - closeBrackets; i++) repaired += "]";
+        for (let i = 0; i < openBraces - closeBraces; i++) repaired += "}";
 
-      if (movies.length > 0 || analysisMatch) {
-        return {
-          analysis: analysisMatch ? analysisMatch[1] : "",
-          mood: moodMatch ? moodMatch[1] : "",
-          genre_slug: genreMatch ? genreMatch[1] : "",
-          country_slug: countryMatch ? countryMatch[1] : "",
-          movies,
-        };
+        return JSON.parse(repaired);
+      } catch {
+        // 4. Fallback: Dùng Regex trích xuất từng trường dữ liệu
+        const analysisMatch = cleaned.match(/"analysis"\s*:\s*"((?:\\.|[^"\\])*)"/);
+        const moodMatch = cleaned.match(/"mood"\s*:\s*"((?:\\.|[^"\\])*)"/);
+        const genreMatch = cleaned.match(/"genre_slug"\s*:\s*"((?:\\.|[^"\\])*)"/);
+        const countryMatch = cleaned.match(/"country_slug"\s*:\s*"((?:\\.|[^"\\])*)"/);
+
+        const movies: Array<{ title: string; original_title?: string; reason?: string }> = [];
+        const movieRegex = /"title"\s*:\s*"((?:\\.|[^"\\])*)"(?:[^{}]*?"original_title"\s*:\s*"((?:\\.|[^"\\])*)")?(?:[^{}]*?"reason"\s*:\s*"((?:\\.|[^"\\])*)")?/g;
+        let m;
+        while ((m = movieRegex.exec(cleaned)) !== null) {
+          if (m[1] && m[1].trim()) {
+            movies.push({
+              title: m[1].trim(),
+              original_title: m[2]?.trim() || "",
+              reason: m[3]?.trim() || "",
+            });
+          }
+        }
+
+        // Nếu regex tìm thấy movies hoặc phân tích
+        if (movies.length > 0 || analysisMatch) {
+          return {
+            analysis: analysisMatch ? analysisMatch[1] : "",
+            mood: moodMatch ? moodMatch[1] : "",
+            genre_slug: genreMatch ? genreMatch[1] : "",
+            country_slug: countryMatch ? countryMatch[1] : "",
+            movies,
+          };
+        }
+        return null;
       }
-      return null;
     }
   }
 }
@@ -892,51 +914,32 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Hỗ trợ danh sách nhiều Key phân tách bằng dấu phẩy để tự động xoay vòng khi hết Quota
-    const envKeys = (process.env.GEMINI_API_KEY || "")
-      .split(",")
-      .map((k) => k.trim())
-      .filter((k) => k.length > 5);
+    // 3. GỌI FAST AI HYBRID (GROQ LLAMA 3.3 70B -> FALLBACK GEMINI FLASH)
+    try {
+      const intentHints: string[] = [];
+      if (intent.actor) intentHints.push(`- BẮT BUỘC: Diễn viên chính phải là "${intent.actor}".`);
+      if (intent.country) intentHints.push(`- BẮT BUỘC: Phim phải thuộc quốc gia "${intent.countryName || intent.country}".`);
+      if (intent.category) intentHints.push(`- Thể loại trọng tâm: "${intent.category}".`);
+      const intentInstruction = intentHints.length > 0 ? `\nLƯU Ý ĐẶC BIỆT TỪ YÊU CẦU:\n${intentHints.join("\n")}\n` : "";
 
-    const candidateKeys = Array.from(
-      new Set(
-        [...envKeys, userApiKey?.trim()].filter(
-          (k): k is string => Boolean(k && k.length > 5)
-        )
-      )
-    );
-
-    // 3. NẾU CÓ GEMINI API KEY -> GỌI GEMINI VỚI CÁC MODEL CHUẨN CỦA GOOGLE
-    if (candidateKeys.length > 0) {
-      try {
-        const intentHints: string[] = [];
-        if (intent.actor) intentHints.push(`- BẮT BUỘC: Diễn viên chính phải là "${intent.actor}".`);
-        if (intent.country) intentHints.push(`- BẮT BUỘC: Phim phải thuộc quốc gia "${intent.countryName || intent.country}".`);
-        if (intent.category) intentHints.push(`- Thể loại trọng tâm: "${intent.category}".`);
-        const intentInstruction = intentHints.length > 0 ? `\nLƯU Ý ĐẶC BIỆT TỪ YÊU CẦU:\n${intentHints.join("\n")}\n` : "";
-
-        const systemPrompt = `Bạn là Trợ lý Nana (Nana Concierge) - chuyên gia gợi ý phim am hiểu điện ảnh của Nanaflix.
-Người dùng: "${prompt}".${intentInstruction}
+      const systemPrompt = `Bạn là Trợ lý Nana (Nana Concierge) - chuyên gia gợi ý phim am hiểu điện ảnh của Nanaflix.
+Người dùng yêu cầu: "${prompt}".${intentInstruction}
 HÃY GỢI Ý 6 ĐẾN 8 BỘ PHIM XUẤT SẮC, NỔI TIẾNG, CÓ THẬT VÀ PHỔ BIẾN TRÊN CÁC TRANG PHIM VIỆT NAM (PhimAPI, Ophim, Netflix).
 
 QUY TẮC BẮT BUỘC ĐỂ ĐẠT ĐỘ CHÍNH XÁC CAO NHẤT:
-1. ĐÚNG 100% YÊU CẦU:
-   - Nếu hỏi diễn viên: 100% phim phải do diễn viên đó đóng chính.
-   - Nếu hỏi quốc gia: 100% phim phải đúng quốc gia đó.
-   - Nếu hỏi thể loại/tâm trạng: chọn đúng tuyệt đối theo cảm xúc người dùng cần.
-2. TÊN PHIM CHUẨN ĐỂ TÌM KIẾM:
-   - "title": Tên tiếng Việt chính xác và phổ biến nhất (ví dụ: "Ký Sinh Trùng", "Hạ Cánh Nơi Anh", "Người Sắt", "Thần Thoại"). KHÔNG ghi năm hay ngoặc đơn phụ đề vào title.
-   - "original_title": Tên gốc chuẩn quốc tế (tiếng Anh/Hàn/Trung, ví dụ: "Parasite", "Crash Landing on You", "Iron Man", "The Myth").
-3. LÝ DO GỢI Ý:
-   - "reason": 1 câu ngắn gọn, súc tích (dưới 18 từ) chỉ ra điểm đặc sắc nhất.
+1. ĐÚNG CHÍNH XÁC VAI DIỄN & BỐI CẢNH:
+   - Nếu người dùng hỏi diễn viên kèm vai diễn/nghề nghiệp (ví dụ: làm thám tử, cảnh sát, sát thủ, luật sư, học sinh, v.v.), BẮT BUỘC chọn đúng các tác phẩm mà diễn viên đó đóng vai này (ví dụ: Châu Tinh Trì làm thám tử/điệp viên/cảnh sát -> "Đại Nội Mật Thám 008", "Quốc Sản 007", "Trường Học Uy Long", "Xẩm Xử Quan").
+2. "title": Tên tiếng Việt chính xác và phổ biến nhất (ví dụ: "Đại Nội Mật Thám", "Trường Học Uy Long", "Ký Sinh Trùng"). KHÔNG ghi năm hay ngoặc đơn phụ đề vào title.
+3. "original_title": Tên gốc chuẩn quốc tế (ví dụ: "Forbidden City Cop", "Fight Back to School", "From Beijing with Love").
+4. "reason": 1 câu ngắn gọn (dưới 15 từ) nêu điểm hấp dẫn nhất của phim.
 
-Trả về DUY NHẤT chuỗi JSON hợp lệ:
+BẮT BUỘC TRẢ VỀ DUY NHẤT CHUỖI JSON ĐÚNG CẤU TRÚC SAU (KHÔNG KÈM LỜI CHÀO HAY VĂN BẢN NGOÀI JSON):
 {
-  "analysis": "1-2 câu ấm áp xưng Nana chia sẻ lý do chọn nhóm phim này cho bạn",
-  "mood": "Tên chủ đề hoặc cảm xúc ngắn (ví dụ: Cười Xả Stress, Tình Yêu Lãng Mạn, Hồi Hộp Thót Tim)",
+  "analysis": "1-2 câu ấm áp xưng Nana chia sẻ lý do chọn đúng nhóm phim này cho bạn",
+  "mood": "Tên chủ đề hoặc cảm xúc ngắn (ví dụ: Thám Tử & Mật Thám Hài Hước, Cười Xả Stress)",
   "actor": "${intent.actor || ""}",
-  "genre_slug": "hanh-dong, tinh-cam, hai-huoc, kinh-di, tam-ly, vien-tuong, hoat-hinh, vo-thuat, co-trang",
-  "country_slug": "trung-quoc, han-quoc, au-my, nhat-ban, thai-lan, viet-nam, hong-kong, an-do",
+  "genre_slug": "hai-huoc",
+  "country_slug": "hong-kong",
   "movies": [
     {
       "title": "Tên tiếng Việt",
@@ -946,62 +949,19 @@ Trả về DUY NHẤT chuỗi JSON hợp lệ:
   ]
 }`;
 
-        const MODELS = [
-          "gemini-3.6-flash",
-          "gemini-3.5-flash",
-        ];
+      const aiRes = await generateFastAiChat({
+        systemPrompt,
+        userPrompt: `Hãy gợi ý danh sách phim theo yêu cầu: "${prompt}". Trả về JSON duy nhất.`,
+        temperature: 0.3,
+        maxTokens: 1000,
+        jsonMode: true,
+        customApiKey: userApiKey,
+        timeoutMs: 9000,
+      });
 
-        let geminiText: string | null = null;
-
-        // Tự động xoay vòng Key và thử tuần tự từng Model để tiết kiệm tối đa Quota Free Tier
-        keyLoop: for (const currentKey of candidateKeys) {
-          try {
-            const ai = new GoogleGenAI({ apiKey: currentKey, vertexai: false });
-            for (const model of MODELS) {
-              try {
-                const is35 = model.includes("3.5");
-                const res = await Promise.race([
-                  ai.models.generateContent({
-                    model,
-                    contents: systemPrompt,
-                    config: {
-                      responseMimeType: "application/json",
-                      temperature: 0.35,
-                      maxOutputTokens: 500,
-                      ...(is35
-                        ? { thinkingConfig: { thinkingBudget: 0 } }
-                        : { thinkingConfig: { thinkingLevel: ThinkingLevel.LOW } }),
-                    },
-                  }),
-                  new Promise<never>((_, reject) =>
-                    setTimeout(() => reject(new Error(`${model} timeout 10s`)), 10000)
-                  ),
-                ]);
-
-                const text = res.text?.trim();
-                if (text) {
-                  geminiText = text;
-                  break keyLoop;
-                }
-              } catch (modelErr) {
-                console.warn(
-                  `[ai-concierge] ${model} failed with key ${currentKey.slice(0, 10)}...:`,
-                  modelErr instanceof Error ? modelErr.message : modelErr
-                );
-              }
-            }
-          } catch (keyErr) {
-            console.warn(
-              "[ai-concierge] Key failed, trying fallback key:",
-              keyErr instanceof Error ? keyErr.message : keyErr
-            );
-          }
-        }
-
-        if (geminiText) {
-          const parsed = safeParseAiJson(geminiText);
-          if (!parsed) throw new Error("Could not parse Gemini JSON response");
-
+      if (aiRes && aiRes.text) {
+        const parsed = safeParseAiJson(aiRes.text);
+        if (parsed) {
           // Hỗ trợ cả 2 định dạng: mảng movies [{title, original_title, reason}] hoặc mảng movie_titles
           type SuggestedItem = { title: string; original_title?: string; reason?: string };
           let suggestedItems: SuggestedItem[] = [];
@@ -1097,7 +1057,7 @@ Trả về DUY NHẤT chuỗi JSON hợp lệ:
                 "Dưới đây là các tác phẩm được Nana AI tuyển chọn kỹ lưỡng dành riêng cho bạn:",
               mood: parsed.mood || "Gợi Ý Cho Bạn",
               movies: cards.slice(0, 14),
-              provider: "Nana AI",
+              provider: aiRes.provider || "Nana AI",
             };
 
             // Lưu vào bộ nhớ đệm để các truy vấn tương tự sau này tốn 0 token
@@ -1110,9 +1070,9 @@ Trả về DUY NHẤT chuỗi JSON hợp lệ:
             return NextResponse.json(finalPayload);
           }
         }
-      } catch (geminiError) {
-        console.warn("Gemini API error, falling back to Semantic Engine:", geminiError);
       }
+    } catch (geminiError) {
+      console.warn("AI API error, falling back to Semantic Engine:", geminiError);
     }
 
     // 2. NẾU KHÔNG CÓ GEMINI HOẶC GEMINI QUÁ TẢI (503) -> DÙNG NANAFLIX NEURAL ENGINE (0 TOKEN)

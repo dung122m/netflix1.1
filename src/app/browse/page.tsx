@@ -10,7 +10,7 @@ import { SortSelector } from "@/components/SortSelector";
 import { Film, ExternalLink, Sparkles } from "lucide-react";
 import { movieApi } from "@/services/movieApi";
 import { resolveActorMovies, fetchMoviesByTitles } from "@/services/aiActorService";
-import { searchMoviesBySemantic, enqueueAutoEmbedMovies } from "@/services/aiVectorService";
+import { searchMoviesBySemantic } from "@/services/aiVectorService";
 import { BrowseAiSearchBanner } from "@/components/BrowseAiSearchBanner";
 import { CuratedMovieSection } from "@/components/CuratedMovieSection";
 import { CommunityTopTrending } from "@/components/CommunityTopTrending";
@@ -356,11 +356,6 @@ export default async function BrowsePage({
     movies = scoredMovies;
   }
 
-  // Tự động nạp vector phim vào Supabase pgvector hoàn toàn tự động trong nền (0% cản trở UI)
-  if (movies.length > 0) {
-    enqueueAutoEmbedMovies(movies);
-  }
-
   const pages = getPagination(currentPage, totalPages);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -481,11 +476,13 @@ export default async function BrowsePage({
         {isPlainHomepage && <CommunityTopTrending />}
 
         {isPlainHomepage ? (
-          /* TAB TUYỂN CHỌN PHIM ĐA NĂNG TRÊN TRANG CHỦ (Tối ưu hiệu suất & 100% giữ nguyên hiệu ứng hover) */
-          <CuratedMovieSection
-            initialMovies={movies}
-            initialTotalItems={totalItems}
-          />
+          <>
+            {/* TAB TUYỂN CHỌN PHIM ĐA NĂNG TRÊN TRANG CHỦ (Tối ưu hiệu suất & 100% giữ nguyên hiệu ứng hover) */}
+            <CuratedMovieSection
+              initialMovies={movies}
+              initialTotalItems={totalItems}
+            />
+          </>
         ) : (
           <>
             <div className="mb-7 flex flex-wrap items-center justify-between gap-3">

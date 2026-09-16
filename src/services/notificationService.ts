@@ -271,8 +271,9 @@ export function subscribeUserNotifications(
   let channel: any = null;
   if (supabase) {
     try {
-      channel = supabase
-        .channel(`realtime_notifs_${userId}_${Date.now()}`)
+      const uniqueChannelName = `realtime_notifs_${userId}_${Math.random().toString(36).substring(2, 9)}_${Date.now()}`;
+      const newChannel = supabase.channel(uniqueChannelName);
+      newChannel
         .on(
           "postgres_changes",
           {
@@ -289,6 +290,7 @@ export function subscribeUserNotifications(
           }
         )
         .subscribe();
+      channel = newChannel;
     } catch (err) {
       console.warn("Lỗi đăng ký Realtime notifications:", err);
     }

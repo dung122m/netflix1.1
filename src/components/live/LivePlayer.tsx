@@ -95,7 +95,7 @@ interface LivePlayerProps {
   onSelectMatch?: (match: FootballMatch) => void;
 }
 
-export function LivePlayer({
+function LivePlayerInner({
   match,
   title,
   servers,
@@ -1351,21 +1351,21 @@ export function LivePlayer({
                         onClick={() => {
                           onSelectMatch?.(option);
                         }}
-                        className={`w-full rounded-2xl border p-2.5 sm:p-2 text-left transition flex items-center gap-3 cursor-pointer min-h-[56px] active:scale-[0.98] ${
+                        className={`w-full rounded-xl border p-2 text-left transition flex items-center gap-2.5 cursor-pointer min-h-[48px] active:scale-[0.98] ${
                           isCurrent
-                            ? "border-netflix-red/90 bg-red-500/20 text-white shadow-lg shadow-red-950/50 ring-1 ring-netflix-red/50"
-                            : "border-white/10 bg-white/[0.04] text-gray-200 hover:border-white/30 hover:bg-white/[0.1] active:bg-white/[0.15]"
+                            ? "border-netflix-red/90 bg-red-500/15 text-white shadow-md shadow-red-950/40 ring-1 ring-netflix-red/40"
+                            : "border-white/10 bg-white/[0.03] text-gray-200 hover:border-white/20 hover:bg-white/[0.08]"
                         }`}
                       >
                         {/* Thumbnail / Logo */}
-                        <div className="w-11 h-11 sm:w-10 sm:h-10 rounded-xl bg-zinc-900/90 border border-white/15 p-1 flex items-center justify-center flex-shrink-0 overflow-hidden shadow-inner">
+                        <div className="w-8 h-8 rounded-lg bg-zinc-900 border border-white/10 p-0.5 flex items-center justify-center flex-shrink-0 overflow-hidden">
                           <MatchRailLogo option={option} />
                         </div>
 
                         {/* Thông tin */}
                         <div className="min-w-0 flex-1">
-                          <div className="flex items-center justify-between gap-1.5">
-                            <span className="truncate text-xs sm:text-xs font-bold leading-tight">
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="truncate text-xs font-bold leading-tight">
                               {option.isEvent
                                 ? option.title
                                 : `${option.team1}${option.team2 ? ` vs ${option.team2}` : ""}`}
@@ -1373,25 +1373,25 @@ export function LivePlayer({
                             {isCurrent && <PlayingEqualizer />}
                           </div>
 
-                          <div className="flex items-center gap-1.5 mt-1 text-[11px] sm:text-[10px] text-gray-400">
+                          <div className="flex items-center gap-1.5 mt-0.5 text-[10px] text-gray-400">
                             {isOptionLive ? (
                               <span className="flex items-center gap-1 text-emerald-400 font-bold">
                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                                <span>TRỰC TIẾP</span>
+                                <span>LIVE</span>
                               </span>
                             ) : (
-                              <span className="text-sky-300 font-semibold font-mono">
+                              <span className="text-sky-300 font-medium">
                                 ⏰ {option.time}
                               </span>
                             )}
                             <span>•</span>
-                            <span className="truncate text-gray-300">
+                            <span className="truncate text-gray-400">
                               {option.group}
                             </span>
                             {option.blv && (
                               <>
                                 <span>•</span>
-                                <span className="text-rose-300 truncate font-semibold">
+                                <span className="text-rose-300 truncate">
                                   🎙️ {option.blv}
                                 </span>
                               </>
@@ -1757,23 +1757,19 @@ export function LivePlayer({
           </div>
         </div>
 
-        {/* DANH SÁCH MÁY CHỦ PHÁT SÓNG */}
-        <div className="space-y-2.5 w-full min-w-0">
-          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-400 font-bold">
+        {/* DANH SÁCH MÁY CHỦ PHÁT SÓNG (GỌN GÀNG, TỐI GIẢN) */}
+        <div className="space-y-2 w-full min-w-0">
+          <div className="flex flex-wrap items-center justify-between gap-1.5 text-xs text-gray-400 font-medium">
             <div className="flex items-center gap-2">
-              <span className="flex items-center gap-1.5 text-gray-200">
-                <span>📡 Chọn Máy Chủ Phát Sóng</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-white font-extrabold">
-                  {servers.length} nguồn
+              <span className="flex items-center gap-1.5 text-gray-300 font-bold text-xs">
+                <span>📡 Nguồn phát</span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-white/10 text-gray-300 font-bold">
+                  {servers.length}
                 </span>
               </span>
               {hasMoreServers && (
-                <span className="text-[11px] text-gray-500 font-normal hidden sm:inline">
-                  (
-                  {showAllServers
-                    ? `Đang hiện toàn bộ ${servers.length}`
-                    : `Đang hiện 8/${servers.length}`}
-                  )
+                <span className="text-[10px] text-gray-500 hidden sm:inline">
+                  ({showAllServers ? `Tất cả ${servers.length}` : `8/${servers.length}`})
                 </span>
               )}
             </div>
@@ -1782,23 +1778,23 @@ export function LivePlayer({
               <button
                 type="button"
                 onClick={() => setShowAllServers((prev) => !prev)}
-                className="flex items-center gap-1 text-xs font-extrabold text-netflix-red hover:text-red-400 transition cursor-pointer bg-white/5 hover:bg-white/10 px-2.5 py-1 rounded-lg border border-white/10"
+                className="flex items-center gap-1 text-[11px] font-bold text-netflix-red hover:text-red-400 transition cursor-pointer bg-white/5 hover:bg-white/10 px-2 py-0.5 rounded-md border border-white/10"
               >
                 <span>
                   {showAllServers
-                    ? "Thu gọn bớt"
-                    : `Xem thêm (+${servers.length - INITIAL_SERVER_LIMIT} nguồn)`}
+                    ? "Thu gọn"
+                    : `+${servers.length - INITIAL_SERVER_LIMIT} nguồn khác`}
                 </span>
                 {showAllServers ? (
-                  <ChevronUp className="w-3.5 h-3.5" />
+                  <ChevronUp className="w-3 h-3" />
                 ) : (
-                  <ChevronDown className="w-3.5 h-3.5" />
+                  <ChevronDown className="w-3 h-3" />
                 )}
               </button>
             )}
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 w-full min-w-0 pt-0.5">
+          <div className="flex flex-wrap items-center gap-1.5 w-full min-w-0 pt-0.5">
             {displayedServers.map((s, idx) => {
               const actualIdx = idx;
               const isSelected = selectedServerIndex === actualIdx;
@@ -1807,10 +1803,10 @@ export function LivePlayer({
                   key={actualIdx}
                   type="button"
                   onClick={() => setSelectedServerIndex(actualIdx)}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer border shadow-sm ${
+                  className={`px-2.5 py-1 rounded-lg text-[11px] sm:text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer border ${
                     isSelected
-                      ? "bg-netflix-red text-white border-netflix-red shadow-md shadow-red-950/60 scale-102"
-                      : "bg-black/60 text-gray-300 border-white/15 hover:border-white/30 hover:text-white hover:bg-zinc-800"
+                      ? "bg-netflix-red text-white border-netflix-red shadow-sm shadow-red-950/50 scale-102"
+                      : "bg-black/50 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
                   }`}
                 >
                   <span
@@ -1827,23 +1823,10 @@ export function LivePlayer({
               <button
                 type="button"
                 onClick={() => setShowAllServers(true)}
-                className="px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer bg-white/10 hover:bg-white/20 text-gray-200 hover:text-white border border-dashed border-white/30 hover:border-white/60 shadow-sm"
+                className="px-2.5 py-1 rounded-lg text-[11px] sm:text-xs font-medium transition-all flex items-center gap-1 cursor-pointer bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-dashed border-white/20"
               >
-                <span>
-                  + Xem thêm {servers.length - INITIAL_SERVER_LIMIT} nguồn khác
-                </span>
-                <ChevronDown className="w-3.5 h-3.5 text-netflix-red" />
-              </button>
-            )}
-
-            {hasMoreServers && showAllServers && (
-              <button
-                type="button"
-                onClick={() => setShowAllServers(false)}
-                className="px-3 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white border border-white/10"
-              >
-                <span>Thu gọn lại</span>
-                <ChevronUp className="w-3.5 h-3.5" />
+                <span>+{servers.length - INITIAL_SERVER_LIMIT} nguồn</span>
+                <ChevronDown className="w-3 h-3 text-netflix-red" />
               </button>
             )}
           </div>
@@ -1853,4 +1836,5 @@ export function LivePlayer({
   );
 }
 
+export const LivePlayer = React.memo(LivePlayerInner);
 export default LivePlayer;

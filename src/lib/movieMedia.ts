@@ -47,18 +47,22 @@ export function sanitizeImageUrl(url: string): string {
   return clean;
 }
 
-export function isVsmovSource(movie: MovieLike): boolean {
+export function isNguonCSource(movie: MovieLike): boolean {
   if (!movie) return false;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const raw = (movie as any)?.movie || movie;
   const p = String(raw.poster_url || raw.posterUrl || "");
   const t = String(raw.thumb_url || raw.thumbUrl || "");
   return (
+    p.includes("nguonc.com") ||
+    t.includes("nguonc.com") ||
     p.includes("vsmov.com") ||
     t.includes("vsmov.com") ||
     (raw._id !== undefined && typeof raw._id === "number")
   );
 }
+
+export const isVsmovSource = isNguonCSource;
 
 export function pickBestMoviePoster(movie: MovieLike, fallback = "/default-poster.svg"): string {
   if (!movie) return fallback;

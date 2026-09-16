@@ -22,7 +22,7 @@ const nextConfig: NextConfig = {
       { protocol: "http", hostname: "**", port: "", pathname: "/**" },
     ],
     formats: ["image/avif", "image/webp"],
-    qualities: [75, 88, 95], // Tắt warning về quality không cấu hình
+    qualities: [75, 80, 85, 88, 90, 95, 100], // Tắt warning về quality không cấu hình
   },
   async headers() {
     return [

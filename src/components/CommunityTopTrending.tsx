@@ -14,42 +14,124 @@ import {
 import { MovieViewStatItem } from "@/services/supabaseService";
 
 export function CommunityTopTrending() {
-  const [items, setItems] = useState<MovieViewStatItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const TRENDING_CACHE_KEY = "nanaflix_trending_community_cache";
+
+  const [items, setItems] = useState<MovieViewStatItem[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const raw = localStorage.getItem(TRENDING_CACHE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed?.total) && parsed.total.length > 0) {
+            return parsed.total;
+          }
+        }
+      } catch {}
+    }
+    return [];
+  });
+
+  const [loading, setLoading] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const raw = localStorage.getItem(TRENDING_CACHE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed?.total) && parsed.total.length > 0) {
+            return false;
+          }
+        }
+      } catch {}
+    }
+    return true;
+  });
+
   const [timeframe, setTimeframe] = useState<"total" | "week">("total");
+  const [isFading, setIsFading] = useState(false);
   const tabCacheRef = useRef<Partial<Record<"total" | "week", MovieViewStatItem[]>>>({});
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
 
-  const fetchTrending = async (tf: "total" | "week") => {
-    // Kiểm tra cache tab phía client
-    if (tabCacheRef.current[tf]) {
-      setItems(tabCacheRef.current[tf]!);
-      setLoading(false);
-      return;
+  // 1. Tải trước CẢ 2 tab song song ngay khi trang khởi động (Revalidate in background)
+  useEffect(() => {
+    let isMounted = true;
+    const preload = async () => {
+      try {
+        const [totalRes, weekRes] = await Promise.all([
+          fetch("/api/trending-community?timeframe=total&limit=10").then((r) => (r.ok ? r.json() : null)).catch(() => null),
+          fetch("/api/trending-community?timeframe=week&limit=10").then((r) => (r.ok ? r.json() : null)).catch(() => null),
+        ]);
+
+        if (!isMounted) return;
+
+        if (totalRes?.items?.length) {
+          tabCacheRef.current["total"] = totalRes.items;
+        }
+        if (weekRes?.items?.length) {
+          tabCacheRef.current["week"] = weekRes.items;
+        }
+
+        // Lưu vào localStorage để reload trang sau này hiển thị ngay 0ms
+        if (typeof window !== "undefined" && (totalRes?.items?.length || weekRes?.items?.length)) {
+          try {
+            localStorage.setItem(
+              TRENDING_CACHE_KEY,
+              JSON.stringify({
+                total: totalRes?.items || [],
+                week: weekRes?.items || [],
+                timestamp: Date.now(),
+              })
+            );
+          } catch {}
+        }
+
+        const initialList = (timeframe === "week" ? weekRes?.items : totalRes?.items) || totalRes?.items || weekRes?.items || [];
+        if (initialList.length > 0) {
+          setItems(initialList);
+        }
+      } catch (err) {
+        console.warn("Lỗi tải trước Top Trending:", err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    preload();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // 2. Chuyển đổi tab tức thì (0ms độ trễ)
+  const switchTab = (nextTf: "total" | "week") => {
+    if (nextTf === timeframe) return;
+    
+    setIsFading(true);
+    setTimeframe(nextTf);
+
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({ left: 0, behavior: "smooth" });
     }
 
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/trending-community?timeframe=${tf}&limit=10`);
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data.items) && data.items.length > 0) {
-          tabCacheRef.current[tf] = data.items;
-          setItems(data.items);
-        }
-      }
-    } catch (err) {
-      console.warn("Lỗi tải Top Trending cộng đồng:", err);
-    } finally {
-      setLoading(false);
+    const cached = tabCacheRef.current[nextTf];
+    if (cached && cached.length > 0) {
+      setItems(cached);
+      setTimeout(() => setIsFading(false), 100);
+    } else {
+      fetch(`/api/trending-community?timeframe=${nextTf}&limit=10`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (data?.items?.length) {
+            tabCacheRef.current[nextTf] = data.items;
+            setItems(data.items);
+          }
+        })
+        .finally(() => {
+          setIsFading(false);
+        });
     }
   };
-
-  useEffect(() => {
-    fetchTrending(timeframe);
-  }, [timeframe]);
 
   const checkScroll = () => {
     if (scrollContainerRef.current) {
@@ -96,22 +178,22 @@ export function CommunityTopTrending() {
           <div className="inline-flex p-1 rounded-xl bg-zinc-900/90 border border-white/10 text-xs font-semibold backdrop-blur-md">
             <button
               type="button"
-              onClick={() => setTimeframe("total")}
-              className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${
+              onClick={() => switchTab("total")}
+              className={`px-3 py-1.5 rounded-lg transition-all duration-200 cursor-pointer ${
                 timeframe === "total"
-                  ? "bg-netflix-red text-white font-bold shadow-md shadow-red-950/40"
-                  : "text-gray-400 hover:text-white hover:bg-white/5"
+                  ? "bg-netflix-red text-white font-bold shadow-md shadow-red-950/40 scale-100"
+                  : "text-gray-400 hover:text-white hover:bg-white/5 active:scale-95"
               }`}
             >
               🔥 Toàn Thời Gian
             </button>
             <button
               type="button"
-              onClick={() => setTimeframe("week")}
-              className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${
+              onClick={() => switchTab("week")}
+              className={`px-3 py-1.5 rounded-lg transition-all duration-200 cursor-pointer ${
                 timeframe === "week"
-                  ? "bg-netflix-red text-white font-bold shadow-md shadow-red-950/40"
-                  : "text-gray-400 hover:text-white hover:bg-white/5"
+                  ? "bg-netflix-red text-white font-bold shadow-md shadow-red-950/40 scale-100"
+                  : "text-gray-400 hover:text-white hover:bg-white/5 active:scale-95"
               }`}
             >
               ⚡ Trong Tuần
@@ -155,7 +237,12 @@ export function CommunityTopTrending() {
         ref={scrollContainerRef}
         onScroll={checkScroll}
         className="flex items-center gap-3 sm:gap-6 overflow-x-auto overflow-y-hidden pb-4 pt-2 scrollbar-none snap-x snap-mandatory"
-        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+        style={{
+          scrollbarWidth: "none",
+          msOverflowStyle: "none",
+          opacity: isFading ? 0.4 : 1,
+          transition: "opacity 0.15s cubic-bezier(0.4, 0, 0.2, 1)",
+        }}
       >
         {loading && items.length === 0
           ? Array.from({ length: 6 }).map((_, idx) => (
@@ -211,9 +298,10 @@ export function CommunityTopTrending() {
                         src={movie.poster || movie.thumb || "/default-poster.jpg"}
                         alt={movie.movieTitle}
                         fill
+                        priority={index < 3}
                         sizes="(max-width: 640px) 140px, (max-width: 768px) 175px, 190px"
                         className="object-cover group-hover:scale-105 transition-transform duration-500"
-                        loading={rank <= 4 ? "eager" : "lazy"}
+                        loading={index < 3 ? "eager" : "lazy"}
                         onError={(e) => {
                           const target = e.currentTarget as HTMLImageElement;
                           if (target && !target.src.includes("/default-poster.jpg")) {

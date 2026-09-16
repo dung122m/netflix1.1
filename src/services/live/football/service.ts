@@ -50,19 +50,9 @@ export function getFootballM3uSources(): {
 
   const defaultSources = [
     {
-      name: "TV360 & Thể Thao Quốc Tế / COLA TV",
+      name: "TV360 & COLA TV / Phòng BLV Bóng Đá",
       url: "https://raw.githubusercontent.com/vuminhthanh12/vuminhthanh12/refs/heads/main/vmttv",
       priority: 1,
-    },
-    {
-      name: "VTV / HTV / SCTV & Kênh Thể Thao Tổng Hợp (VMTTV)",
-      url: "https://dl.dropboxusercontent.com/s/o5vygit34v9ryly71gam4/coban66.m3u?rlkey=auyoon54hfubajt16nc7u7dbn&st=70gyvtcu&dl=0",
-      priority: 2,
-    },
-    {
-      name: "Kênh Thể Thao & Truyền Hình VietXiaomi",
-      url: "https://raw.githubusercontent.com/vietng228/m3u/refs/heads/main/new.m3u",
-      priority: 3,
     },
   ];
 
@@ -897,34 +887,7 @@ export const VERIFIED_SPORTS_STREAMS = {
 export const FPT_EVENT_POSTER = "https://images.fptplay53.net/media/home_event/OTT_ECS/2026/09/09/slide-thumb_1788937623612.jpg";
 
 export function getVerified247Channels(): FootballMatch[] {
-  const now = Date.now();
-  return [
-    {
-      id: "sport_htv_thethao_247",
-      time: "24/7",
-      timestamp: now,
-      title: "HTV Thể Thao HD (Trực Tiếp Thể Thao & Bóng Đá 24/7)",
-      team1: "HTV Thể Thao HD",
-      team2: "",
-      blv: "HTV Sports",
-      group: "Kênh Thể Thao VTV & HTV",
-      groups: ["Kênh Thể Thao VTV & HTV"],
-      tournament: "Kênh Thể Thao 24/7",
-      isEvent: true,
-      timeline: "live",
-      quality: "FHD 1080p",
-      servers: [
-        {
-          name: "HTV Thể Thao FHD (Master)",
-          url: VERIFIED_SPORTS_STREAMS.htvTheThao,
-          format: "hls",
-          isHls: true,
-          quality: "FHD",
-          sourceName: "HTV Thể Thao",
-        },
-      ],
-    },
-  ];
+  return [];
 }
 
 export async function getFptEventChannels(): Promise<FootballMatch[]> {
@@ -1143,22 +1106,47 @@ export const liveFootballService = {
 
           if (isMovieOrDrama) continue;
 
-          // 3. LOẠI TRỪ CÁC KÊNH TRUYỀN HÌNH TỔNG HỢP (HTV1..HTV9, THVL, VTV TỔNG HỢP, VTV5 TÂY NAM BỘ...)
-          if (
-            /HTV[1-9]\b|HTVC\s+(THUẦN|PHIM|GIA|DU|CA)|THVL[1-4]\b|VTV[1-4789]\b|VTV5\s+TÂY|VTV5\s+TN/i.test(
+          // 3. LOẠI BỎ TOÀN BỘ CÁC KÊNH TRUYỀN HÌNH TỔNG HỢP / ĐỊA PHƯƠNG / TUYẾN TÍNH (VTV, HTV, THVL, SCTV, VTC, BTV, Đài PTTH...)
+          const isTvStationChannel =
+            /^(VTV|HTV|THVL|SCTV|VTC|BTV|K\+|VOV|ANTV|QPVN|TTXVN|HANOI|ĐÀI\s*PT|TRUYỀN\s*HÌNH)/i.test(
+              rawTitle.trim(),
+            ) ||
+            /Đài\s*PTTH|Đài\s*Truyền\s*Hình|Phát\s*Thanh|Truyền\s*hình\s*tỉnh/i.test(
               rawTitle,
-            )
+            );
+
+          if (isTvStationChannel) {
+            // Chỉ giữ lại nếu tiêu đề là 1 trận đấu bóng đá thực sự (có "vs" giữa 2 đội) hoặc phòng BLV
+            const hasRealMatchVs = /\s+(?:vs|v)\s+/i.test(rawTitle);
+            const hasBlv = /BLV\s+/i.test(rawTitle);
+            if (!hasRealMatchVs && !hasBlv) {
+              continue;
+            }
+          }
+
+          if (
+            /HTV[1-9]\b|HTVC\s+(THUẦN|PHIM|GIA|DU|CA)|THVL[1-4]\b|VTV[1-9]\b|VTV\s*CẦN\s*THƠ/i.test(
+              rawTitle,
+            ) &&
+            !/\s+(?:vs|v)\s+/i.test(rawTitle) &&
+            !/BLV\s+/i.test(rawTitle)
           ) {
             continue;
           }
 
-          // 4. LOẠI BỎ TOÀN BỘ CÁC KÊNH THỂ THAO NƯỚC NGOÀI (FightBox, KHL, MMA-TV, QAZSPORT, Viju+, RedBull...)
+          // 4. LOẠI BỎ TOÀN BỘ CÁC KÊNH THỂ THAO NƯỚC NGOÀI
           const isForeignSportsChannel =
             upperGroup.includes("QUỐC TẾ") ||
             upperGroup.includes("INTERNATIONAL") ||
             upperGroup.includes("FOREIGN") ||
-            /FightBox|KHL\s*Prime|MMA-TV|QAZSPORT|Viju\+|Setanta|Trace\s*Sport|Fight\s*Network|Edge\s*Sport|Extreme\s*Sport|Motorvision|Speedway|Nova\s*Sport|Arena\s*Sport|Sky\s*Sport|TNT\s*Sport|Canal\+|DAZN|SuperSport|Astro|SPOTV|Optus|Fox\s*Sports|NBC\s*Sports|ESPN|TSN|Sportsnet|CBS\s*Sports|Premier\s*Sports|Fight\s*Box/i.test(
+            /[а-яА-ЯёЁ]/.test(rawTitle) || // Ký tự tiếng Nga / Cyrillic (Удар, Матч, Футбол...)
+            /[\u0E00-\u0E7F]/.test(rawTitle) || // Ký tự tiếng Thái (T Sports...)
+            /[\u4E00-\u9FFF\u3040-\u30FF\uAC00-\uD7AF]/.test(rawTitle) || // Trung / Hàn / Nhật
+            /(?:T\s*Sports|Fast\s*&?\s*Fun|FunBox|BoxHits|BoxMovie|Hollywood|Golf\s*Channel|Fight\s*Box|FightBox|Extreme\s*Sports?|KHL|MMA|Setanta|UFC|Trace\s*Sport|Match!|Eurosport|WWE|BoxNation|RED\s*BULL|Cricbuzz|Willow|TEN\s*Sports|Sony\s*Ten|Star\s*Sports|MUTV|Chelsea\s*TV|LFCTV|Real\s*Madrid|Barca|Sportivny|Futbol|Qazsport|Viju|Antik|Skygo|Astro|DAZN|BeIN|Fox\s*Sports?|NBC\s*Sports?|ESPN|TSN|Sportsnet|CBS\s*Sports?|Premier\s*Sports?)/i.test(
               rawTitle,
+            ) ||
+            /(?:cinerama\.uz|antik\.sk|thaimomo\.com|linkintel\.ru|uplink\.kz|tvs\.by|bonus-tv\.ru|skygo\.mn|amagi\.tv|proofix\.ru|smotrim\.ru|cdnvideo\.ru|klowdtv\.com|ukrainske\.tv|5\.188\.159\.128|oktv\.kz|tulixcdn\.com)/i.test(
+              url,
             );
 
           if (isForeignSportsChannel) continue;
@@ -1170,12 +1158,11 @@ export const liveFootballService = {
             upperGroup.includes("SỰ KIỆN FPT") ||
             upperGroup.includes("TV360") ||
             upperGroup.includes("VTVPRIME") ||
-            upperGroup.includes("THỂ THAO") ||
             upperTitle.includes("SỰ KIỆN") ||
             upperTitle.includes("EVENT ") ||
-            upperTitle.includes("VS") ||
+            /\s+(?:vs|v)\s+/i.test(rawTitle) ||
             upperTitle.includes("BLV ") ||
-            upperTitle.includes("THỂ THAO");
+            /360\s*C1/i.test(rawTitle);
 
           if (!isSportsOrEvent) continue;
 
@@ -1229,8 +1216,13 @@ export const liveFootballService = {
         // Loại bỏ mọi kênh ngoại quốc
         if (
           upperGroup.includes("QUỐC TẾ") ||
-          /FightBox|KHL\s*Prime|MMA-TV|QAZSPORT|Viju\+|Setanta|Trace\s*Sport|Fight\s*Network|Edge\s*Sport|Extreme\s*Sport/i.test(
+          /[а-яА-ЯёЁ]/.test(rawTitle) ||
+          /[\u0E00-\u0E7F]/.test(rawTitle) ||
+          /(?:T\s*Sports|Fast\s*&?\s*Fun|FunBox|BoxHits|BoxMovie|Golf\s*Channel|Fight\s*Box|FightBox|Extreme\s*Sports?|KHL|MMA|Setanta|Trace\s*Sport|Match!)/i.test(
             rawTitle,
+          ) ||
+          /(?:cinerama\.uz|antik\.sk|thaimomo\.com|linkintel\.ru|uplink\.kz|tvs\.by|bonus-tv\.ru|skygo\.mn|amagi\.tv)/i.test(
+            effectiveUrl,
           )
         ) {
           continue;
@@ -1245,7 +1237,7 @@ export const liveFootballService = {
           effectiveUrl.includes("fptplay53.net")
         ) {
           cleanGroup = "Sự Kiện FPT Play";
-        } else if (upperGroup.includes("TV360") || upperTitle.includes("TV360+")) {
+        } else if (upperGroup.includes("TV360") || upperTitle.includes("TV360+") || upperTitle.includes("360 C1")) {
           cleanGroup = "Sự Kiện TV360+";
         } else if (
           upperGroup.includes("COLA") ||
@@ -1254,14 +1246,8 @@ export const liveFootballService = {
           upperTitle.includes("BLV")
         ) {
           cleanGroup = "Phòng BLV Tiếng Việt";
-        } else if (
-          upperGroup.includes("HTV") ||
-          upperGroup.includes("VTV") ||
-          upperGroup.includes("THỂ THAO")
-        ) {
-          cleanGroup = "Kênh Thể Thao VTV & HTV";
         } else {
-          continue; // Bỏ các kênh không thuộc nhóm thể thao Việt Nam / BLV Tiếng Việt
+          cleanGroup = "Trận Cầu Trực Tiếp";
         }
 
         channelsSet.add(cleanGroup);
@@ -1297,8 +1283,6 @@ export const liveFootballService = {
         const blvMatch = rawTitle.match(/(BLV\s+[^()[\]]+)/i);
         if (blvMatch) {
           blv = blvMatch[1].trim();
-        } else if (cleanGroup === "Kênh Thể Thao VTV & HTV") {
-          blv = rawTitle.includes("HTV") ? "HTV Sports" : "VTV Sports";
         } else if (cleanGroup === "Sự Kiện TV360+") {
           blv = "TV360 Sports";
         } else if (cleanGroup === "Sự Kiện FPT Play") {
@@ -1315,10 +1299,21 @@ export const liveFootballService = {
           }
         }
 
-        // Kiểm tra linh hoạt: Trận đối đầu 2 đội (Team A vs Team B / Team A - Team B) hoặc Sự kiện / Phòng BLV / Kênh thể thao
+        // Kiểm tra linh hoạt: Trận đối đầu 2 đội (Team A vs Team B / Team A - Team B) hoặc Sự kiện / Phòng BLV
         let isEvent = true;
         let team1 = displayTitle;
         let team2 = "";
+
+        const isInvalidClubName = (name: string) => {
+          const n = name.trim().toLowerCase();
+          return (
+            /^(vtv|htv|thvl|sctv|vtc|btv|k\+|vov|antv|qpvn|ttxvn|hanoi|đài|kênh|fpt|tv360|truyền\s*hình|phát\s*thanh|tập|phần|sv\d+|sự\s*kiện|live|trực\s*tiếp|hd|fhd|4k|server)/i.test(
+              n,
+            ) ||
+            /đài\s*ptth|đài\s*truyền\s*hình|thành\s*phố|tỉnh/i.test(n) ||
+            n.length < 2
+          );
+        };
 
         const hasVs = /\s+(?:vs|v)\s+/i.test(rawTitle);
         const hasHyphen =
@@ -1337,7 +1332,12 @@ export const liveFootballService = {
               .replace(/\([^)]*\)/g, " ")
               .replace(/\[[^\]]*\]/g, " ")
               .trim();
-            if (t1 && t2 && t1.length >= 2 && t2.length >= 2) {
+            if (
+              t1 &&
+              t2 &&
+              !isInvalidClubName(t1) &&
+              !isInvalidClubName(t2)
+            ) {
               team1 = t1;
               team2 = t2;
               isEvent = false;
@@ -1357,10 +1357,8 @@ export const liveFootballService = {
             if (
               t1 &&
               t2 &&
-              t1.length >= 2 &&
-              t2.length >= 2 &&
-              !/^(Sự\s*kiện|Kênh|FPT|TV360|Live|Trực\s*tiếp)/i.test(t1) &&
-              !/^(Sự\s*kiện|Kênh|FPT|TV360|Live|Trực\s*tiếp|Tập|Phần|SV\d+)/i.test(t2)
+              !isInvalidClubName(t1) &&
+              !isInvalidClubName(t2)
             ) {
               team1 = t1;
               team2 = t2;

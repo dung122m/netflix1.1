@@ -26,12 +26,12 @@ interface EpisodeListProps {
   onSelectEpisode?: (slug: string) => void;
 }
 
-export const EpisodeList: React.FC<EpisodeListProps> = ({
+export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function EpisodeList({
   movieSlug,
   episodes: propEpisodes = [],
   activeEpisodeSlug: propActiveEpisodeSlug,
   onSelectEpisode,
-}) => {
+}) {
   const watchContext = useWatchController();
   const episodes = watchContext?.episodes ?? propEpisodes;
   const activeEpisodeSlug = watchContext?.activeEpisodeSlug ?? propActiveEpisodeSlug;
@@ -242,6 +242,6 @@ export const EpisodeList: React.FC<EpisodeListProps> = ({
       )}
     </div>
   );
-};
+});
 
 export default EpisodeList;

@@ -165,7 +165,7 @@ export function LiveFootballClient({
             );
             if (found) return found;
           }
-        } catch {}
+        } catch { }
       }
       return defaultMatch;
     },
@@ -372,7 +372,7 @@ export function LiveFootballClient({
       url.searchParams.set("tab", "football");
       url.searchParams.set("match", match.id);
       window.history.replaceState(null, "", url.toString());
-    } catch {}
+    } catch { }
 
     if (playerRef.current) {
       const topOffset =
@@ -474,20 +474,18 @@ export function LiveFootballClient({
             <button
               type="button"
               onClick={() => setTimelineFilter("all")}
-              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-                timelineFilter === "all"
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${timelineFilter === "all"
                   ? "bg-white text-black shadow-md font-extrabold scale-102"
                   : "text-gray-400 hover:text-white hover:bg-white/5"
-              }`}
+                }`}
             >
               <Flame className="w-3.5 h-3.5 text-amber-500" />
               <span>Tất cả trận đấu</span>
               <span
-                className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
-                  timelineFilter === "all"
+                className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${timelineFilter === "all"
                     ? "bg-black text-white"
                     : "bg-white/10 text-gray-300"
-                }`}
+                  }`}
               >
                 {timelineCounts.all}
               </span>
@@ -496,21 +494,19 @@ export function LiveFootballClient({
             <button
               type="button"
               onClick={() => setTimelineFilter("live")}
-              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-                timelineFilter === "live"
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${timelineFilter === "live"
                   ? "bg-netflix-red text-white shadow-lg shadow-red-950/60 scale-102"
                   : "text-gray-400 hover:text-rose-400 hover:bg-white/5"
-              }`}
+                }`}
             >
               <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
               <span>Đang đá (LIVE)</span>
               {timelineCounts.live > 0 && (
                 <span
-                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
-                    timelineFilter === "live"
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${timelineFilter === "live"
                       ? "bg-black/40 text-white"
                       : "bg-red-500/20 text-rose-300"
-                  }`}
+                    }`}
                 >
                   {timelineCounts.live}
                 </span>
@@ -520,20 +516,18 @@ export function LiveFootballClient({
             <button
               type="button"
               onClick={() => setTimelineFilter("upcoming")}
-              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-                timelineFilter === "upcoming"
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${timelineFilter === "upcoming"
                   ? "bg-sky-600 text-white shadow-md shadow-sky-950/60 scale-102"
                   : "text-gray-400 hover:text-white hover:bg-white/5"
-              }`}
+                }`}
             >
               <Clock className="w-3.5 h-3.5 text-sky-400" />
               <span>Sắp đá</span>
               <span
-                className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
-                  timelineFilter === "upcoming"
+                className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${timelineFilter === "upcoming"
                     ? "bg-black/40 text-white"
                     : "bg-white/10 text-gray-300"
-                }`}
+                  }`}
               >
                 {timelineCounts.upcoming}
               </span>
@@ -550,9 +544,8 @@ export function LiveFootballClient({
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition border shadow-sm cursor-pointer whitespace-nowrap bg-zinc-900/90 hover:bg-zinc-800 text-amber-300 border-amber-500/30 hover:border-amber-400"
             >
               <Bell
-                className={`w-3.5 h-3.5 text-amber-400 ${
-                  reminders.length > 0 ? "animate-bounce" : ""
-                }`}
+                className={`w-3.5 h-3.5 text-amber-400 ${reminders.length > 0 ? "animate-bounce" : ""
+                  }`}
               />
               <span>Lịch nhắc</span>
               {reminders.length > 0 && (
@@ -566,11 +559,10 @@ export function LiveFootballClient({
             <button
               type="button"
               onClick={() => setOnlyFhd((prev) => !prev)}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition border shadow-sm cursor-pointer whitespace-nowrap ${
-                onlyFhd
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition border shadow-sm cursor-pointer whitespace-nowrap ${onlyFhd
                   ? "bg-emerald-600 text-white border-emerald-400 shadow-emerald-950/50 scale-102"
                   : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/20 hover:text-white"
-              }`}
+                }`}
             >
               <span>⚡</span>
               <span>Chỉ FHD 1080p</span>
@@ -619,19 +611,17 @@ export function LiveFootballClient({
               <button
                 type="button"
                 onClick={() => setSelectedChannel("all")}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 border shadow-sm cursor-pointer ${
-                  selectedChannel === "all"
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 border shadow-sm cursor-pointer ${selectedChannel === "all"
                     ? "bg-zinc-200 text-black border-white shadow-md font-extrabold scale-102"
                     : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
-                }`}
+                  }`}
               >
                 <span>Tất cả nguồn</span>
                 <span
-                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
-                    selectedChannel === "all"
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${selectedChannel === "all"
                       ? "bg-black text-white"
                       : "bg-white/10 text-gray-300"
-                  }`}
+                    }`}
                 >
                   {liveMatches.length}
                 </span>
@@ -657,19 +647,17 @@ export function LiveFootballClient({
                     key={ch}
                     type="button"
                     onClick={() => setSelectedChannel(ch)}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 border shadow-sm cursor-pointer ${
-                      isSelected
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 border shadow-sm cursor-pointer ${isSelected
                         ? "bg-netflix-red text-white border-netflix-red shadow-lg shadow-red-950/50 scale-102"
                         : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
-                    }`}
+                      }`}
                   >
                     <span>{icon} {ch}</span>
                     <span
-                      className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
-                        isSelected
+                      className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${isSelected
                           ? "bg-black/40 text-white"
                           : "bg-white/10 text-gray-300"
-                      }`}
+                        }`}
                     >
                       {count}
                     </span>
@@ -695,11 +683,10 @@ export function LiveFootballClient({
             <button
               type="button"
               onClick={() => setSelectedTournament("all")}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all border cursor-pointer ${
-                selectedTournament === "all"
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all border cursor-pointer ${selectedTournament === "all"
                   ? "bg-white text-black border-white shadow-sm font-extrabold"
                   : "bg-zinc-900/80 text-gray-400 border-white/10 hover:border-white/20 hover:text-white"
-              }`}
+                }`}
             >
               Tất cả giải đấu
             </button>
@@ -725,19 +712,17 @@ export function LiveFootballClient({
                   key={t.name}
                   type="button"
                   onClick={() => setSelectedTournament(t.name)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all border cursor-pointer flex items-center gap-1.5 ${
-                    selectedTournament === t.name
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all border cursor-pointer flex items-center gap-1.5 ${selectedTournament === t.name
                       ? "bg-gradient-to-r from-amber-500 to-orange-600 text-white border-amber-400 shadow-md shadow-amber-950/50 font-extrabold scale-102"
                       : "bg-zinc-900/80 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
-                  }`}
+                    }`}
                 >
                   <span>{tourIcon} {t.name}</span>
                   <span
-                    className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
-                      selectedTournament === t.name
+                    className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${selectedTournament === t.name
                         ? "bg-black/40 text-white"
                         : "bg-white/10 text-gray-400"
-                    }`}
+                      }`}
                   >
                     {t.count}
                   </span>
