@@ -1,6 +1,6 @@
 import { movieApi } from "@/services/movieApi";
 import { generateFastAiChat } from "@/services/aiProviderService";
-import { isActorTopTitle, ACTOR_TOP_TITLES } from "@/app/api/ai-concierge/route";
+import { ACTOR_TOP_TITLES } from "@/app/api/ai-concierge/route";
 
 export interface ActorProfile {
   name: string;
@@ -642,10 +642,18 @@ export function matchesActorAliases(castList: string[], normalizedAliases: strin
     if (!normActor || normActor.length < 2) continue;
     for (const alias of normalizedAliases) {
       if (!alias || alias.length < 2) continue;
-      // Khớp chính xác tên diễn viên, hoặc tên diễn viên trong DB chứa trọn vẹn cụm từ bí danh
-      // (Ví dụ: "Jackie Chan (Thành Long)" chứa "thành long" hoặc "jackie chan")
-      if (normActor === alias || normActor.includes(alias)) {
-        return true;
+      const isMultiWord = alias.includes(" ");
+      if (isMultiWord) {
+        // Cụm từ đầy đủ (ví dụ: 'tran thanh', 'thanh long', 'jackie chan', 'duong mich')
+        if (normActor === alias || normActor.includes(alias)) {
+          return true;
+        }
+      } else {
+        // Từ đơn lẻ / nickname ngắn (ví dụ: 'xin', 'long', 'iu') bắt buộc phải khớp chính xác 100%
+        // Tuyệt đối không khớp bao hàm hay đuôi (tránh 'Kan Xin' dính vào 'xìn', 'Bạch Long' dính vào 'Long')
+        if (normActor === alias) {
+          return true;
+        }
       }
     }
   }
@@ -710,27 +718,28 @@ export async function queryMoviesByActor(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const queryPromises: Promise<any>[] = [];
 
-  // CHỈ DÙNG CỤM TỪ ĐẦY ĐỦ (Ví dụ: "Thành Long", "Jackie Chan") — TUYỆT ĐỐI KHÔNG dùng từ đơn lẻ như "Long" để tránh lấn sang title phim khác
-  const searchQueries = allAliases
-    .filter((a) => a.trim().includes(" ") || a.trim().length >= 5)
-    .slice(0, 4);
-  if (searchQueries.length === 0 && allAliases[0]) {
-    searchQueries.push(allAliases[0]);
-  }
-
-  for (const kw of searchQueries) {
-    queryPromises.push(movieApi.getMovies({ keyword: kw, page: 1, limit: 30 }));
-    queryPromises.push(movieApi.getMovies({ keyword: kw, page: 2, limit: 30 }));
-  }
-
-  // Bổ sung truy vấn các tác phẩm kinh điển từ ACTOR_TOP_TITLES (để khắc phục việc PhimAPI/NguonC chỉ đánh chỉ mục title)
-  if (matchedSlug && ACTOR_TOP_TITLES[matchedSlug]) {
+  // Nếu nghệ sĩ có danh bạ tác phẩm kinh điển trong ACTOR_TOP_TITLES, ưu tiên truy vấn thẳng danh sách tác phẩm này
+  // (Khắc phục triệt để việc PhimAPI/NguonC chỉ đánh chỉ mục theo tiêu đề phim, tránh rò rỉ từ khóa thô như 'Trấn' vào 'Trấn Duyên Bất Thần Sơn')
+  if (matchedSlug && ACTOR_TOP_TITLES[matchedSlug] && ACTOR_TOP_TITLES[matchedSlug].length > 0) {
     const topTitles = ACTOR_TOP_TITLES[matchedSlug] || [];
-    for (const rawT of topTitles.slice(0, 16)) {
+    for (const rawT of topTitles.slice(0, 18)) {
       const cleanVi = rawT.replace(/\([^)]*\)/g, "").trim();
       if (cleanVi && cleanVi.length >= 3) {
-        queryPromises.push(movieApi.getMovies({ keyword: cleanVi, page: 1, limit: 8 }));
+        queryPromises.push(movieApi.getMovies({ keyword: cleanVi, page: 1, limit: 4 }));
       }
+    }
+  } else {
+    // Nếu chưa có trong ACTOR_TOP_TITLES, tìm theo cụm từ tên đầy đủ (TUYỆT ĐỐI KHÔNG dùng từ đơn lẻ)
+    const searchQueries = allAliases
+      .filter((a) => a.trim().includes(" ") || a.trim().length >= 5)
+      .slice(0, 4);
+    if (searchQueries.length === 0 && allAliases[0]) {
+      searchQueries.push(allAliases[0]);
+    }
+
+    for (const kw of searchQueries) {
+      queryPromises.push(movieApi.getMovies({ keyword: kw, page: 1, limit: 30 }));
+      queryPromises.push(movieApi.getMovies({ keyword: kw, page: 2, limit: 30 }));
     }
   }
 
@@ -759,58 +768,26 @@ export async function queryMoviesByActor(
     const itemName = normalizeForMatch(item.name || item.title || "");
     const itemOrig = normalizeForMatch(item.origin_name || item.original_name || "");
 
-    const itemCountry = normalizeForMatch(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      Array.isArray(item.country) ? item.country.map((c: any) => c.name || c.slug || "").join(" ") : typeof item.country === "string" ? item.country : ""
-    );
-
-    // 1. Kiểm tra trường cast/actors hoặc director (khớp chính xác theo cụm từ diễn viên)
+    // 1. So khớp nghiêm ngặt trường actor, actors, cast, casts hoặc director trong dữ liệu phim
     const hasExplicitCastMatch = matchesActorAliases(castAndDirectors, normalizedAliases);
 
-    // 2. Khớp nếu tiêu đề phim nằm trong danh sách tác phẩm kinh điển đã được xác thực (ACTOR_TOP_TITLES)
-    const isKnownClassic = matchedSlug ? isActorTopTitle(item.name || "", item.origin_name || "", matchedSlug) : false;
-
-    // 3. Khớp nếu tiêu đề phim khớp 100% tên nghệ sĩ (phim tài liệu / phim tiểu sử)
+    // 2. Khớp nếu tiêu đề phim khớp 100% tên nghệ sĩ (phim tài liệu / phim tiểu sử)
     const isExactNameTitle = normalizedAliases.some((alias) => itemName === alias || itemOrig === alias);
 
-    // Strict Country Filter: Nếu tìm kiếm nghệ sĩ Việt Nam, loại trừ phim ngoại quốc nếu không có diễn viên/đạo diễn khớp
-    if (country) {
-      const normExpectedCountry = normalizeForMatch(country);
-      const isVietnamTarget = normExpectedCountry.includes("viet nam");
-      const isForeignMovie =
-        itemCountry.includes("au my") ||
-        itemCountry.includes("my") ||
-        itemCountry.includes("anh") ||
-        itemCountry.includes("phap");
-
-      if (isVietnamTarget && isForeignMovie && !hasExplicitCastMatch) {
-        continue; // Bỏ qua phim ngoại quốc khi tìm nghệ sĩ Việt (ví dụ: Bố Già Vùng Harlem)
-      }
-    }
-
-    if (hasExplicitCastMatch || isKnownClassic || isExactNameTitle) {
+    if (hasExplicitCastMatch || isExactNameTitle) {
       verifiedMovies.push({
         ...item,
         isActorFilmography: true,
       });
-    } else if (castAndDirectors.length === 0) {
-      // Nếu API tìm kiếm chưa nạp trường actor, đưa vào danh sách kiểm tra chi tiết, TUYỆT ĐỐI KHÔNG nhận bừa!
+    } else {
+      // Nếu API summary chưa trả về trường actor, bắt buộc nạp chi tiết để lấy danh sách actors thực tế
       needDetailCheck.push(item);
     }
   }
 
-  // Bóc tách kiểm tra chi tiết song song cho các phim chưa có trường actor trong summary list
+  // Bóc tách kiểm tra chi tiết song song cho các phim ứng viên để xác thực trường diễn viên (actors)
   if (needDetailCheck.length > 0) {
-    const prioritizedChecks = [...needDetailCheck].sort((a, b) => {
-      const ctryA = normalizeForMatch(Array.isArray(a.country) ? a.country.map((c: { name?: string; slug?: string }) => c.name || c.slug || "").join(" ") : typeof a.country === "string" ? a.country : "");
-      const ctryB = normalizeForMatch(Array.isArray(b.country) ? b.country.map((c: { name?: string; slug?: string }) => c.name || c.slug || "").join(" ") : typeof b.country === "string" ? b.country : "");
-      const normCountry = country ? normalizeForMatch(country) : "";
-      const matchA = normCountry && ctryA.includes(normCountry) ? 1 : 0;
-      const matchB = normCountry && ctryB.includes(normCountry) ? 1 : 0;
-      return matchB - matchA;
-    });
-
-    const detailTasks = prioritizedChecks.slice(0, 35).map(async (item) => {
+    const detailTasks = needDetailCheck.slice(0, 50).map(async (item) => {
       try {
         const detail = await movieApi.getMovieDetail(item.slug);
         if (!detail?.movie) return null;

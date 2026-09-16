@@ -229,14 +229,191 @@ export const ACTOR_TOP_TITLES: Record<string, string[]> = {
     "Biệt Đội Đánh Thuê (The Expendables)",
   ],
   "tran-thanh": [
-    "Bố Già (Dad, I'm Sorry)",
     "Nhà Bà Nữ (The House of No Man)",
-    "Mai",
-    "Cua Lại Vợ Bầu",
+    "Cua Lại Vợ Bầu (Win My Baby Back)",
+    "Đất Rừng Phương Nam (Song of the South)",
     "Trạng Quỳnh",
-    "Bệnh Viện Ma",
+    "Bệnh Viện Ma (Ghost Hospital)",
+    "Chờ Em Đến Ngày Mai (Until You)",
+    "Bố Già (Dad, I'm Sorry)",
+  ],
+  "duong-mich": [
+    "Tam Sinh Tam Thế Thập Lý Đào Hoa (Eternal Love)",
+    "Phù Dao Hoàng Hậu (Legend of Fuyao)",
+    "Hồ Yêu Tiểu Hồng Nương: Nguyệt Hồng Thiên (Fox Spirit Matchmaker)",
+    "Cáp Nhĩ Tân 1944 (Harbin 1944)",
+    "Định Luật 80/20 Của Tình Yêu (She and Her Perfect Husband)",
+    "Hộc Châu Phu Nhân (Novoland: Pearl Eclipse)",
+    "Tiên Kiếm Kỳ Hiệp 3 (Chinese Paladin 3)",
+    "Cung Tỏa Tâm Ngọc (Palace)",
+    "Bạo Phong Nhãn (Storm Eye)",
+    "Người Đàm Phán (Negotiator)",
+    "Ám Sát Tiểu Thuyết Gia (A Writer's Odyssey)",
+    "Tú Xuân Đao 2 (Brotherhood of Blades II)",
+    "Tôi Là Nhân Chứng (The Witness)",
+  ],
+  "trieu-le-dinh": [
+    "Dữ Phượng Hành (The Legend of Shen Li)",
+    "Sở Kiều Truyện (Princess Agents)",
+    "Minh Lan Truyện (The Story of Minglan)",
+    "Hoa Thiên Cốt (The Journey of Flower)",
+    "Gió Thổi Bán Hạ (Wild Bloom)",
+    "Hạnh Phúc Đến Vạn Gia (The Story of Xing Fu)",
+    "Hữu Phỉ (Legend of Fei)",
+    "Lục Trinh Truyền Kỳ (Legend of Lu Zhen)",
+  ],
+  "dich-le-nhiet-ba": [
+    "Tam Sinh Tam Thế Chẩm Thượng Thư (Eternal Love of Dream)",
+    "Ngự Giao Ký (The Blue Whisper)",
+    "Trường Ca Hành (The Long Ballad)",
+    "Em Là Niềm Kiêu Hãnh Của Anh (You Are My Glory)",
+    "An Lạc Truyện (The Legend of Anle)",
+    "Lệ Cơ Truyện (The King's Woman)",
+  ],
+  "tieu-chien": [
+    "Trần Tình Lệnh (The Untamed)",
+    "Đấu La Đại Lục (Douluo Continent)",
+    "Vùng Biển Trong Mơ (The Youth Memories)",
+    "Ngọc Cốt Dao (The Longest Promise)",
+    "Dư Sinh Xin Chỉ Giáo Nhiều Hơn (The Oath of Love)",
+    "Tru Tiên (Jade Dynasty)",
+  ],
+  "vuong-nhat-bac": [
+    "Trần Tình Lệnh (The Untamed)",
+    "Phong Khởi Lạc Dương (Luoyang)",
+    "Hữu Phỉ (Legend of Fei)",
+    "Vô Danh (Hidden Blade)",
+    "Băng Vũ Hỏa (Being a Hero)",
+    "Nhiệt Liệt (One and Only)",
+  ],
+  "huynh-hieu-minh": [
+    "Tân Bến Thượng Hải (Shanghai Bund)",
+    "Thần Điêu Đại Hiệp (The Return of the Condor Heroes)",
+    "Bên Tóc Mai Không Phải Hải Đường Hồng (Winter Begonia)",
+    "Đại Đường Huyền Trang (Xuanzang)",
+    "Phong Thanh (The Message)",
+  ],
+  "ngo-kinh": [
+    "Chiến Lang (Wolf Warrior)",
+    "Chiến Lang 2 (Wolf Warrior 2)",
+    "Lưu Lạc Địa Cầu (The Wandering Earth)",
+    "Hồ Trường Tân (The Battle at Lake Changjin)",
+    "Sát Phá Lang (SPL)",
+  ],
+  "luu-duc-hoa": [
+    "Vô Gian Đạo (Infernal Affairs)",
+    "Thập Diện Mai Phục (House of Flying Daggers)",
+    "Đại Loạn Hong Kong (Shock Wave)",
+    "Trùm Hương Cảng (Chasing the Dragon)",
+    "Chiến Dịch Bão Tuyết (Firestorm)",
+    "Lưu Lạc Địa Cầu 2 (The Wandering Earth II)",
+    "Thần Bài 1999 (The Conman)",
+  ],
+  "luong-trieu-vy": [
+    "Vô Gian Đạo (Infernal Affairs)",
+    "Tâm Trạng Khi Yêu (In the Mood for Love)",
+    "Sắc Giới (Lust, Caution)",
+    "Anh Hùng (Hero)",
+    "Shang-Chi và Huyền Thoại Thập Luân (Shang-Chi)",
+    "Đại Chiến Xích Bích (Red Cliff)",
+    "Nhất Đại Tông Sư (The Grandmaster)",
+  ],
+  "quach-phu-thanh": [
+    "Hàn Chiến (Cold War)",
+    "Hàn Chiến 2 (Cold War 2)",
+    "Vô Song (Project Gutenberg)",
+    "Phong Vân (The Storm Riders)",
+    "Thiên Vương Phá Án (Port of Call)",
+  ],
+  "co-thien-lac": [
+    "Cỗ Máy Thời Gian (A Step into the Past)",
+    "Thần Điêu Đại Hiệp (The Condor Heroes 95)",
+    "Đội Chống Tham Nhũng (Z Storm)",
+    "Minh Nhật Chiến Ký (Warriors of Future)",
+    "Sát Phá Lang 2 (SPL II)",
+  ],
+  "truong-gia-huy": [
+    "Đại Sự Kiện (Breaking News)",
+    "Thiết Quyền Vương (Unbeatable)",
+    "Kẻ Săn Đêm (Nightfall)",
+    "Tảo Độc (The White Storm)",
+  ],
+  "ta-dinh-phong": [
+    "Kẻ Săn Đêm (Raging Fire)",
+    "Nghịch Chiến (The Viral Factor)",
+    "Tiểu Ngư Nhi và Hoa Vô Khuyết (The Proud Twins)",
+    "Bản Lĩnh Đàn Ông (New Police Story)",
+    "Kẻ Chỉ Điểm (The Stool Pigeon)",
+  ],
+  "hong-kim-bao": [
+    "Diệp Vấn 2 (Ip Man 2)",
+    "Sát Phá Lang (SPL)",
+    "Rồng Bất Tử (Dragons Forever)",
+    "Kế Hoạch A (Project A)",
+    "Ngũ Phúc Tinh (Winners and Sinners)",
+  ],
+  "nguyen-biao": [
+    "Kế Hoạch A (Project A)",
+    "Quán Ăn Lưu Động (Wheels on Meals)",
+    "Rồng Bất Tử (Dragons Forever)",
+    "Thục Sơn Kiếm Hiệp (Zu Warriors)",
+  ],
+  "truong-giang": [
+    "49 Ngày",
+    "Siêu Sao Siêu Ngố",
+    "Lật Mặt (Face Off)",
+    "Taxi Em Tên Gì",
+    "30 Chưa Phải Tết",
+  ],
+  "ninh-duong-lan-ngoc": [
+    "Cua Lại Vợ Bầu",
+    "Gái Già Lắm Chiêu 2",
+    "Gái Già Lắm Chiêu 3",
+    "Cô Ba Sài Gòn",
+    "Tấm Cám: Chuyện Chưa Kể",
+    "Trúng Số",
+    "Cánh Đồng Bất Tận",
+  ],
+  "kieu-minh-tuan": [
+    "Em Chưa 18",
+    "Tiệc Trăng Máu",
+    "Chìa Khóa Trăm Tỷ",
+    "Nghề Siêu Dễ",
+    "Kẻ Ẩn Danh",
+    "Anh Trai Yêu Quái",
+  ],
+  "thu-trang": [
+    "Chị Mười Ba: Phần Kết Thập Tam Muội",
+    "Chị Mười Ba: 3 Ngày Sinh Tử",
+    "Tiệc Trăng Máu",
+    "Nghề Siêu Dễ",
+    "Con Nhót Mót Chồng",
+  ],
+  "hoai-linh": [
+    "Nhà Có 5 Nàng Tiên",
+    "Quý Tử Bất Đắc Dĩ",
+    "Năm Sau Con Lại Về",
+    "Tía Tui Là Cao Thủ",
+    "Dạ Cổ Hoài Lang",
+  ],
+  "viet-huong": [
+    "Nhà Có 5 Nàng Tiên",
+    "Chạy Đi Rồi Tính",
+    "Quý Tử Bất Đắc Dĩ",
+    "Ma Dai",
+    "Vu Quy Đại Náo",
+  ],
+  "tuan-tran": [
+    "Bố Già (Dad, I'm Sorry)",
     "Đất Rừng Phương Nam",
-    "Chờ Em Đến Ngày Mai",
+    "Mai (2024)",
+    "Móng Vuốt",
+  ],
+  "miu-le": [
+    "Em Là Bà Nội Của Anh",
+    "Cô Gái Đến Từ Hôm Qua",
+    "Bạn Gái Tôi Là Sếp",
+    "Chiếm Đoạt",
   ],
   "thai-hoa": [
     "Để Mai Tính",
@@ -309,6 +486,81 @@ export const ACTOR_TOP_TITLES: Record<string, string[]> = {
     "Cuộc Đàm Phán Sinh Tử (The Negotiation)",
     "Và Em Sẽ Đến (Be With You)",
     "Hải Tặc (The Pirates)",
+  ],
+  "kim-ji-won": [
+    "Nữ Hoàng Nước Mắt (Queen of Tears)",
+    "Hậu Duệ Mặt Trời (Descendants of the Sun)",
+    "Thanh Xuân Vật Vã (Fight for My Way)",
+    "Nhật Ký Tự Do Của Tôi (My Liberation Notes)",
+  ],
+  "song-kang": [
+    "Chàng Quỷ Của Tôi (My Demon)",
+    "Cảnh Báo Tình Yêu (Love Alarm)",
+    "Thế Giới Ma Quái (Sweet Home)",
+    "Dẫu Biết (Nevertheless)",
+  ],
+  "iu": [
+    "Khách Sạn Huyền Bí (Hotel Del Luna)",
+    "Người Tình Ánh Trăng (Moon Lovers)",
+    "Ông Chú Của Tôi (My Mister)",
+    "Người Môi Giới (Broker)",
+  ],
+  "robert-downey-jr": [
+    "Người Sắt (Iron Man)",
+    "Người Sắt 2 (Iron Man 2)",
+    "Người Sắt 3 (Iron Man 3)",
+    "Biệt Đội Siêu Anh Hùng (The Avengers)",
+    "Avengers: Hồi Kết (Avengers: Endgame)",
+    "Oppenheimer",
+    "Sherlock Holmes",
+  ],
+  "chris-evans": [
+    "Đội Trưởng Mỹ (Captain America)",
+    "Kẻ Đâm Lén (Knives Out)",
+    "Chuyến Tàu Băng Giá (Snowpiercer)",
+    "Biệt Đội Siêu Anh Hùng (The Avengers)",
+  ],
+  "chris-hemsworth": [
+    "Thor: Tận Thế Ragnarok (Thor: Ragnarok)",
+    "Biệt Đội Đánh Thuê (Extraction)",
+    "Hồi Sinh (Extraction 2)",
+    "Biệt Đội Siêu Anh Hùng (The Avengers)",
+  ],
+  "scarlett-johansson": [
+    "Góa Phụ Đen (Black Widow)",
+    "Lucy",
+    "Câu Chuyện Hôn Nhân (Marriage Story)",
+    "Kẻ Cắp Giấc Mơ (Inception)",
+  ],
+  "ryan-reynolds": [
+    "Deadpool",
+    "Deadpool 2",
+    "Deadpool & Wolverine",
+    "Giải Cứu Guy (Free Guy)",
+    "Thông Báo Đỏ (Red Notice)",
+  ],
+  "cillian-murphy": [
+    "Oppenheimer",
+    "Bóng Ma Anh Quốc (Peaky Blinders)",
+    "Kẻ Đánh Cắp Giấc Mơ (Inception)",
+  ],
+  "christian-bale": [
+    "Kỵ Sĩ Bóng Đêm (The Dark Knight)",
+    "Kỵ Sĩ Bóng Đêm Trỗi Dậy (The Dark Knight Rises)",
+    "Kẻ Trừng Phạt (American Psycho)",
+    "Ford v Ferrari",
+  ],
+  "brad-pitt": [
+    "Câu Lạc Bộ Chiến Đấu (Fight Club)",
+    "Chiến Tranh Thế Giới Z (World War Z)",
+    "Sát Thủ Đối Đầu (Bullet Train)",
+    "Ông Bà Smith (Mr. & Mrs. Smith)",
+  ],
+  "will-smith": [
+    "Điệp Viên Áo Đen (Men in Black)",
+    "Tôi Là Huyền Thoại (I Am Legend)",
+    "Mưu Cầu Hạnh Phúc (The Pursuit of Happyness)",
+    "Bad Boys",
   ],
 };
 
@@ -386,7 +638,9 @@ export function matchesActor(itemActors: string[], actorSlug: string): boolean {
   if (!actorSlug || !itemActors || itemActors.length === 0) return false;
   const aliases = getActorAliases(actorSlug).map(cleanNormalizedString);
   const cleanActors = itemActors.map(cleanNormalizedString);
-  return cleanActors.some((act) => aliases.some((alias) => act.includes(alias) || alias.includes(act)));
+  return cleanActors.some((act) =>
+    aliases.some((alias) => act === alias || (alias.split(" ").length >= 2 && act.includes(alias)))
+  );
 }
 
 export function isActorTopTitle(name: string, origName: string, actorSlug: string): boolean {
@@ -398,11 +652,29 @@ export function isActorTopTitle(name: string, origName: string, actorSlug: strin
     const viTitle = cleanNormalizedString(t.replace(/\([^)]*\)/g, ""));
     const matchEng = t.match(/\(([^)]+)\)/);
     const engTitle = matchEng ? cleanNormalizedString(matchEng[1]) : "";
-    if (viTitle && (cleanN === viTitle || cleanO === viTitle || (cleanN.length >= 6 && cleanN.includes(viTitle)) || (cleanO.length >= 6 && cleanO.includes(viTitle)))) {
+    // 1. So khớp chính xác 100% tên phim
+    if (viTitle && (cleanN === viTitle || cleanO === viTitle)) {
       return true;
     }
-    if (engTitle && (cleanN === engTitle || cleanO === engTitle || (cleanN.length >= 6 && cleanN.includes(engTitle)) || (cleanO.length >= 6 && cleanO.includes(engTitle)))) {
+    if (engTitle && (cleanN === engTitle || cleanO === engTitle)) {
       return true;
+    }
+    // 2. Chỉ cho phép khớp tiền tố nếu tựa phim dài (>= 5 ký tự) và có hậu tố rõ ràng (không khớp substring bừa bãi)
+    if (viTitle && viTitle.length >= 5) {
+      if (
+        cleanN.startsWith(viTitle + " ") || cleanN.startsWith(viTitle + ":") || cleanN.startsWith(viTitle + " -") ||
+        cleanO.startsWith(viTitle + " ") || cleanO.startsWith(viTitle + ":") || cleanO.startsWith(viTitle + " -")
+      ) {
+        return true;
+      }
+    }
+    if (engTitle && engTitle.length >= 5) {
+      if (
+        cleanN.startsWith(engTitle + " ") || cleanN.startsWith(engTitle + ":") || cleanN.startsWith(engTitle + " -") ||
+        cleanO.startsWith(engTitle + " ") || cleanO.startsWith(engTitle + ":") || cleanO.startsWith(engTitle + " -")
+      ) {
+        return true;
+      }
     }
   }
   return false;
