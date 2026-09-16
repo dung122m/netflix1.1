@@ -9,7 +9,7 @@ import { QuickGenreChips } from "@/components/QuickGenreChips";
 import { SortSelector } from "@/components/SortSelector";
 import { Film, ExternalLink, Sparkles } from "lucide-react";
 import { movieApi } from "@/services/movieApi";
-import { resolveActorMovies, fetchMoviesByTitles } from "@/services/aiActorService";
+import { resolveActorMovies, fetchMoviesByTitles, GOLDEN_ACTOR_INDEX } from "@/services/aiActorService";
 import { searchMoviesBySemantic } from "@/services/aiVectorService";
 import { BrowseAiSearchBanner } from "@/components/BrowseAiSearchBanner";
 import { CuratedMovieSection } from "@/components/CuratedMovieSection";
@@ -198,8 +198,20 @@ export default async function BrowsePage({
     if (!kw || kw.trim().length < 2) return null;
     const actorRes = await resolveActorMovies(kw);
     if (actorRes.isActor && actorRes.titles.length > 0) {
-      const actorMovies = await fetchMoviesByTitles(actorRes.titles, 16);
-      return { actorRes, actorMovies };
+      const actorAliases = [actorRes.actorName];
+      const matchedPreset = GOLDEN_ACTOR_INDEX.find(
+        (p) => cleanNormalizedForMatch(p.name) === cleanNormalizedForMatch(actorRes.actorName)
+      );
+      if (matchedPreset) {
+        actorAliases.push(...matchedPreset.aliases);
+      }
+      const actorMovies = await fetchMoviesByTitles(actorRes.titles, 24, {
+        actorName: actorRes.actorName,
+        actorAliases,
+        country: actorRes.country,
+        strictActorFilter: true,
+      });
+      return { actorRes, actorMovies, actorAliases };
     }
     return null;
   }
@@ -232,8 +244,11 @@ export default async function BrowsePage({
   totalPages = response?.pagination?.totalPages || 50;
   totalItems = response?.pagination?.totalItems || movies.length;
 
-  // Nếu có kết quả Vector Semantic Match xuất sắc, hòa trộn lên đầu kết quả
-  if (Array.isArray(semanticPicks) && semanticPicks.length > 0) {
+  // Nếu có kết quả Vector Semantic Match xuất sắc, hòa trộn lên đầu kết quả (chỉ khi không phải tìm theo nghệ sĩ)
+  const actorRes = actorData?.actorRes;
+  const actorMovies = actorData?.actorMovies || [];
+
+  if (!actorRes?.isActor && Array.isArray(semanticPicks) && semanticPicks.length > 0) {
     const seenSlugs = new Set<string>();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const combined: any[] = [];
@@ -265,11 +280,9 @@ export default async function BrowsePage({
     totalItems = Math.max(movies.length, response?.pagination?.totalItems || 0);
   }
 
-  // Nếu phát hiện tìm kiếm diễn viên, nạp ngay danh sách phim tiêu biểu của diễn viên
-  const actorRes = actorData?.actorRes;
-  const actorMovies = actorData?.actorMovies || [];
-
-  if (actorRes?.isActor && actorMovies.length > 0) {
+  // NẾU PHÁT HIỆN TÌM KIẾM THEO NGHỆ SĨ / DIỄN VIÊN / ĐẠO DIỄN:
+  // Khớp chính xác (Strict Filter) theo cast / director, tuyệt đối không full-text search lỏng lẻo
+  if (actorRes?.isActor) {
     detectedActor = {
       name: actorRes.actorName,
       country: actorRes.country,
@@ -277,6 +290,8 @@ export default async function BrowsePage({
     const seenSlugs = new Set<string>();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const combined: any[] = [];
+
+    // 1. Tuyển tập các phim chính thức được xác thực của nghệ sĩ
     for (const m of actorMovies) {
       if (m?.slug && !seenSlugs.has(m.slug)) {
         seenSlugs.add(m.slug);
@@ -287,14 +302,21 @@ export default async function BrowsePage({
       }
     }
 
-    // Chỉ bổ sung thêm phim từ kết quả tìm kiếm gốc nếu nghệ sĩ thực sự có tên trong dàn cast
-    const normActorName = cleanNormalizedForMatch(actorRes.actorName);
-    for (const m of movies) {
+    // 2. Kiểm tra chặt chẽ các phim khác trong DB: Chỉ nhận nếu trường actor hoặc director chứa tên nghệ sĩ
+    const allAliases = [actorRes.actorName, ...(actorData?.actorAliases || [])]
+      .map(cleanNormalizedForMatch)
+      .filter(Boolean);
+
+    for (const m of response?.items || []) {
       if (m?.slug && !seenSlugs.has(m.slug)) {
-        const castStr = cleanNormalizedForMatch(
-          Array.isArray(m.actor) ? m.actor.join(" ") : typeof m.actor === "string" ? m.actor : ""
-        );
-        if (normActorName && castStr && castStr.includes(normActorName)) {
+        const castAndDirector = [
+          ...(Array.isArray(m.actor) ? m.actor : typeof m.actor === "string" ? [m.actor] : []),
+          ...(Array.isArray(m.director) ? m.director : typeof m.director === "string" ? [m.director] : []),
+        ];
+        const castStr = cleanNormalizedForMatch(castAndDirector.join(" "));
+        const hasStrictMatch = allAliases.some((alias) => castStr.includes(alias));
+
+        if (hasStrictMatch) {
           seenSlugs.add(m.slug);
           combined.push({
             ...m,
@@ -303,8 +325,11 @@ export default async function BrowsePage({
         }
       }
     }
+
+    // Gán danh sách phim đã lọc nghiêm ngặt (nếu không có phim nào -> movies = [])
     movies = combined;
     totalItems = combined.length;
+    totalPages = Math.max(1, Math.ceil(totalItems / PAGE_LIMIT));
   }
 
   let hasContentMatches = false;
@@ -631,11 +656,36 @@ export default async function BrowsePage({
             <div className="max-w-xl mx-auto rounded-2xl border border-white/10 bg-zinc-900/80 p-6 md:p-8 text-center backdrop-blur-md shadow-2xl">
               <Film className="w-12 h-12 text-zinc-500 mx-auto mb-3" />
               <h3 className="text-lg md:text-xl font-bold text-white">
-                {keyword
+                {detectedActor
+                  ? `Chưa có dữ liệu tuyển tập cho ${detectedActor.name}`
+                  : keyword
                   ? `Chưa tìm thấy phim khớp với "${keyword}"`
                   : "Không tìm thấy dữ liệu phim."}
               </h3>
-              {keyword ? (
+              {detectedActor ? (
+                <>
+                  <p className="text-xs sm:text-sm text-gray-400 mt-2 leading-relaxed">
+                    Hiện tại kho phim của Nanaflix chưa có sẵn các tác phẩm do <strong>{detectedActor.name}</strong> đóng chính hoặc làm đạo diễn. Hệ thống đang liên tục cập nhật thêm nhiều phim mới mỗi ngày!
+                  </p>
+                  <div className="flex flex-wrap items-center justify-center gap-3 mt-5">
+                    <a
+                      href={`https://www.themoviedb.org/search/person?query=${encodeURIComponent(detectedActor.name)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#01b4e4] hover:bg-[#01b4e4]/80 text-white text-xs font-bold transition shadow-lg shadow-sky-950/40"
+                    >
+                      <span>Tra cứu &quot;{detectedActor.name}&quot; trên TMDb</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                    <Link
+                      href="/browse"
+                      className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-gray-200 hover:text-white text-xs font-semibold transition"
+                    >
+                      Khám phá tất cả phim
+                    </Link>
+                  </div>
+                </>
+              ) : keyword ? (
                 <>
                   <p className="text-xs sm:text-sm text-gray-400 mt-2 leading-relaxed">
                     Hệ thống nguồn phim tìm kiếm trực tiếp theo <strong>tiêu đề phim</strong>. Nếu đây là tên diễn viên hoặc đạo diễn, bạn có thể tra cứu hồ sơ và danh sách phim trên TMDb hoặc thưởng thức các phim đề xuất bên dưới:
@@ -670,7 +720,7 @@ export default async function BrowsePage({
               )}
             </div>
 
-            {fallbackMovies.length > 0 && (
+            {!detectedActor && fallbackMovies.length > 0 && (
               <div className="mt-12">
                 <div className="flex items-center gap-2 mb-5">
                   <span className="text-xl">🔥</span>

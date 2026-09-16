@@ -1017,15 +1017,23 @@ BẮT BUỘC chỉ trả về DUY NHẤT một chuỗi JSON hợp lệ theo đ�
  * 2. TÌM KIẾM VÀ SO KHỚP CHÍNH XÁC PHIM TỪ KHO PHIM API (CÓ BỘ NHỚ ĐỆM 1 GIỜ)
  * Hỗ trợ tìm cả tên tiếng Việt và tên tiếng Anh / Quốc tế trong ngoặc để tối đa hóa tỷ lệ tìm thấy
  */
+export interface FetchMoviesOptions {
+  actorName?: string;
+  actorAliases?: string[];
+  country?: string;
+  strictActorFilter?: boolean;
+}
+
 export async function fetchMoviesByTitles(
   titles: string[],
-  maxMovies = 16
+  maxMovies = 16,
+  options?: FetchMoviesOptions
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<any[]> {
   if (!titles || titles.length === 0) return [];
 
   const topTitles = titles.slice(0, 10);
-  const cacheKey = topTitles.join("|");
+  const cacheKey = `${options?.actorName || ""}|${topTitles.join("|")}`;
   const cached = ACTOR_FILM_CACHE.get(cacheKey);
   if (cached && cached.expireAt > Date.now()) {
     return cached.items.slice(0, maxMovies);
@@ -1034,6 +1042,10 @@ export async function fetchMoviesByTitles(
   const seenSlugs = new Set<string>();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const results: any[] = [];
+
+  const allAliases = [options?.actorName, ...(options?.actorAliases || [])]
+    .filter((s): s is string => typeof s === "string" && s.trim().length >= 2)
+    .map(normalizeForMatch);
 
   // Thực thi song song tìm kiếm tối đa 8-10 tựa phim với timeout an toàn 1.5s
   const tasks = topTitles.map(async (rawTitle) => {
@@ -1068,20 +1080,69 @@ export async function fetchMoviesByTitles(
 
           const normName = normalizeForMatch(item.name);
           const normOrig = normalizeForMatch(item.origin_name);
+          const itemCountry = normalizeForMatch(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            Array.isArray(item.country) ? item.country.map((c: any) => c.name || c.slug || "").join(" ") : typeof item.country === "string" ? item.country : ""
+          );
+
+          // Trích xuất toàn bộ diễn viên (cast) và đạo diễn (director)
+          const itemActorsAndDirectors: string[] = [];
+          if (Array.isArray(item.actor)) itemActorsAndDirectors.push(...item.actor);
+          else if (typeof item.actor === "string") itemActorsAndDirectors.push(item.actor);
+          if (Array.isArray(item.director)) itemActorsAndDirectors.push(...item.director);
+          else if (typeof item.director === "string") itemActorsAndDirectors.push(item.director);
+          const fullCastStr = normalizeForMatch(itemActorsAndDirectors.join(" "));
+
+          const hasActorOrDirector = allAliases.length > 0 && allAliases.some((alias) => fullCastStr.includes(alias));
+
+          // 1. STRICT COUNTRY FILTER: Nếu tìm kiếm nghệ sĩ Việt Nam (hoặc quốc gia khác), loại trừ phim từ các quốc gia không tương thích nếu nghệ sĩ không có trong dàn cast/director
+          if (options?.country) {
+            const normExpectedCountry = normalizeForMatch(options.country);
+            const isVietnamTarget = normExpectedCountry.includes("viet nam");
+            const isForeignMovie =
+              itemCountry.includes("au my") ||
+              itemCountry.includes("my") ||
+              itemCountry.includes("anh") ||
+              itemCountry.includes("phap") ||
+              itemCountry.includes("han quoc") ||
+              itemCountry.includes("trung quoc") ||
+              itemCountry.includes("nhat ban");
+
+            if (isVietnamTarget && isForeignMovie && !hasActorOrDirector) {
+              continue; // Bỏ qua ngay lập tức, loại bỏ "Bố Già Vùng Harlem" khi tìm Trấn Thành!
+            }
+          }
+
+          // 2. STRICT ACTOR/DIRECTOR CHECK: Nếu có danh sách diễn viên cụ thể mà strictActorFilter bật và không có nghệ sĩ
+          if (options?.strictActorFilter && itemActorsAndDirectors.length > 0 && !hasActorOrDirector) {
+            // Chỉ châm chước nếu tên phim khớp 100% tuyệt đối cả tên tiếng Việt lẫn tên gốc
+            const isExactTitleMatch = (cleanTargetVi && normName === cleanTargetVi) || (cleanTargetEng && (normOrig === cleanTargetEng || normName === cleanTargetEng));
+            if (!isExactTitleMatch) {
+              continue;
+            }
+          }
 
           let score = 0;
 
-          // Khớp tuyệt đối tên chính
-          if (cleanTargetVi && (normName === cleanTargetVi || normOrig === cleanTargetVi)) {
+          // Khớp tuyệt đối 100% tên chính
+          const isExactVi = cleanTargetVi && (normName === cleanTargetVi || normOrig === cleanTargetVi);
+          const isExactEng = cleanTargetEng && (normName === cleanTargetEng || normOrig === cleanTargetEng);
+
+          if (isExactVi) {
             score = 100;
-          } else if (cleanTargetEng && (normName === cleanTargetEng || normOrig === cleanTargetEng)) {
+          } else if (isExactEng) {
             score = 95;
           } else {
-            // Khớp bao hàm
+            // Khớp bao hàm: TUYỆT ĐỐI KHÔNG nhận phim nếu tựa phim ngắn (như "Bố Già", "Mai") nhưng kết quả tìm kiếm lại là chuỗi dài ("Bố Già Vùng Harlem")
+            const isShortTitle = cleanTargetVi.length < 8 || cleanTargetEng.length < 8;
+            if (isShortTitle && !hasActorOrDirector) {
+              continue; // Không cho phép match lỏng lẻo đối với tựa phim ngắn
+            }
+
             if (cleanTargetVi && (normName.includes(cleanTargetVi) || cleanTargetVi.includes(normName))) {
-              score = 70;
+              score = 60;
             } else if (cleanTargetEng && (normOrig.includes(cleanTargetEng) || cleanTargetEng.includes(normOrig))) {
-              score = 65;
+              score = 55;
             } else {
               // So khớp từ khóa
               const targetWords = (cleanTargetVi || cleanTargetEng).split(" ").filter((w) => w.length > 1);
@@ -1090,12 +1151,17 @@ export async function fetchMoviesByTitles(
                   (w) => normName.includes(w) || normOrig.includes(w)
                 );
                 const ratio = matchedWords.length / targetWords.length;
-                if (ratio >= 0.6) score = Math.round(ratio * 50);
+                if (ratio >= 0.7) score = Math.round(ratio * 40);
               }
             }
           }
 
-          if (score >= 35 && score > highestScore) {
+          // Ưu tiên cực lớn nếu nghệ sĩ có trong cast/director
+          if (hasActorOrDirector) {
+            score += 60;
+          }
+
+          if (score >= 50 && score > highestScore) {
             highestScore = score;
             bestItem = item;
           }

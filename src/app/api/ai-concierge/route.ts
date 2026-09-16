@@ -466,13 +466,18 @@ function toSafePoster(item: any): string {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function toSafeActors(item: any): string[] {
+  const result: string[] = [];
   if (Array.isArray(item?.actor)) {
-    return item.actor.map(String).map((s: string) => s.trim()).filter(Boolean);
+    result.push(...item.actor.map(String).map((s: string) => s.trim()).filter(Boolean));
+  } else if (typeof item?.actor === "string" && item.actor.trim()) {
+    result.push(...item.actor.split(",").map((s: string) => s.trim()).filter(Boolean));
   }
-  if (typeof item?.actor === "string" && item.actor.trim()) {
-    return item.actor.split(",").map((s: string) => s.trim()).filter(Boolean);
+  if (Array.isArray(item?.director)) {
+    result.push(...item.director.map(String).map((s: string) => s.trim()).filter(Boolean));
+  } else if (typeof item?.director === "string" && item.director.trim()) {
+    result.push(...item.director.split(",").map((s: string) => s.trim()).filter(Boolean));
   }
-  return [];
+  return Array.from(new Set(result));
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
