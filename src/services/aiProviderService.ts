@@ -196,8 +196,14 @@ async function callCloudflareAI(
     const data = await res.json();
     const result = data?.result;
     if (typeof result?.response === "string") return result.response;
+    if (typeof result?.response === "object" && result?.response !== null) {
+      return JSON.stringify(result.response);
+    }
     if (typeof result?.choices?.[0]?.message?.content === "string") return result.choices[0].message.content;
     if (typeof result === "string") return result;
+    if (typeof result === "object" && result !== null) {
+      return JSON.stringify(result);
+    }
     return null;
   } catch {
     clearTimeout(timeout);
