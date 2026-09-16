@@ -36,6 +36,26 @@ interface MatchedMovie {
   year?: number | string;
   quality?: string;
   whyWatch?: string;
+  overview?: string;
+  description?: string;
+  content?: string;
+}
+
+// Hàm lấy đoạn mô tả ngắn (highlight) động từ dữ liệu phim thực tế
+function getMovieHighlight(movie: MatchedMovie) {
+  // Ưu tiên lấy trường whyWatch/overview/description sẵn có của phim, nếu không có thì dùng câu mặc định
+  const text =
+    movie.whyWatch ||
+    movie.overview ||
+    movie.description ||
+    movie.content ||
+    "Tác phẩm điện ảnh đặc sắc đang chờ bạn khám phá.";
+
+  // Cắt ngắn chuỗi (truncate) khoảng 80-100 ký tự để không bị tràn khung card phim
+  if (text.length > 90) {
+    return text.substring(0, 90) + "...";
+  }
+  return text;
 }
 
 export const AiMoodMatcherModal: React.FC = () => {
@@ -322,11 +342,9 @@ export const AiMoodMatcherModal: React.FC = () => {
                             </p>
                           </div>
 
-                          {movie.whyWatch && (
-                            <div className="text-[11px] text-rose-200/90 bg-rose-500/10 p-2 rounded-xl border border-rose-500/20 leading-relaxed font-normal">
-                              💡 {movie.whyWatch}
-                            </div>
-                          )}
+                          <div className="text-[11px] text-rose-200/90 bg-rose-500/10 p-2 rounded-xl border border-rose-500/20 leading-relaxed font-normal">
+                            💡 {getMovieHighlight(movie)}
+                          </div>
                         </div>
                       </Link>
                     );

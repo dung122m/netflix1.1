@@ -42,6 +42,26 @@ interface AiMovieCard {
   country?: string;
   actors?: string[];
   reason?: string;
+  overview?: string;
+  description?: string;
+  content?: string;
+}
+
+// Hàm lấy đoạn mô tả ngắn (highlight) động từ dữ liệu phim thực tế
+function getMovieHighlight(movie: AiMovieCard) {
+  // Ưu tiên lấy trường reason/overview/description sẵn có của phim, nếu không có thì dùng câu mặc định
+  const text =
+    movie.reason ||
+    movie.overview ||
+    movie.description ||
+    movie.content ||
+    "Tác phẩm điện ảnh đặc sắc đang chờ bạn khám phá.";
+
+  // Cắt ngắn chuỗi (truncate) khoảng 80-100 ký tự để không bị tràn khung card phim
+  if (text.length > 90) {
+    return text.substring(0, 90) + "...";
+  }
+  return text;
 }
 
 interface ChatMessage {
@@ -572,11 +592,9 @@ export const NanaAiStudioModal: React.FC = () => {
                                         </span>
                                       )}
                                     </div>
-                                    {mov.reason && (
-                                      <p className="text-[10.5px] text-pink-200/90 line-clamp-2 leading-tight bg-pink-500/10 p-1.5 rounded-lg border border-pink-500/20">
-                                        💡 {mov.reason}
-                                      </p>
-                                    )}
+                                    <p className="text-[10.5px] text-pink-200/90 line-clamp-2 leading-tight bg-pink-500/10 p-1.5 rounded-lg border border-pink-500/20">
+                                      💡 {getMovieHighlight(mov)}
+                                    </p>
                                   </div>
 
                                   <div className="pt-1.5 flex items-center gap-1 text-[11px] font-bold text-netflix-red group-hover:text-pink-400 transition-colors">

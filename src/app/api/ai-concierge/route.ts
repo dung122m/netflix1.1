@@ -515,47 +515,40 @@ function isGenericBoilerplate(text?: string): boolean {
   );
 }
 
+// ============================================================================
+// HÀM LẤY ĐOẠN MÔ TẢ NGẮN (HIGHLIGHT) ĐỘNG TỪ DỮ LIỆU PHIM THỰC TẾ
+// ============================================================================
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function extractUniqueMovieDescription(item: any, customReason?: string): string {
-  // 1. Ưu tiên điểm nhấn độc bản do LLM sinh ra trực tiếp theo ngữ cảnh bộ phim
+export function getMovieHighlight(movie: any, customReason?: string): string {
+  if (!movie) return "Tác phẩm điện ảnh đặc sắc đang chờ bạn khám phá.";
+
+  // 1. Ưu tiên customReason do AI sinh ra nếu hợp lệ và không phải câu rập khuôn
   if (customReason && customReason.trim().length >= 15 && !isGenericBoilerplate(customReason)) {
-    return customReason.trim();
+    const cleanReason = cleanHtmlText(customReason).trim();
+    if (cleanReason.length > 90) {
+      return cleanReason.substring(0, 90) + "...";
+    }
+    return cleanReason;
   }
 
-  // 2. Trích xuất và cắt ngắn (truncate) từ trường overview/content/description sẵn có trong Database
-  const rawContent =
-    item?.content ||
-    item?.description ||
-    item?.overview ||
-    item?.movie?.content ||
-    item?.movie?.description ||
-    item?.movie?.overview ||
+  // 2. Ưu tiên lấy trường overview/description/content sẵn có của phim từ database
+  const rawText =
+    movie.overview ||
+    movie.description ||
+    movie.content ||
+    movie.movie?.overview ||
+    movie.movie?.description ||
+    movie.movie?.content ||
     "";
 
-  const clean = cleanHtmlText(rawContent).trim();
-  if (clean.length > 20) {
-    const sentences = clean.split(/(?<=[.?!])\s+/);
-    if (sentences[0] && sentences[0].length >= 30 && sentences[0].length <= 150) {
-      return sentences[0];
-    }
-    if (clean.length > 140) {
-      return clean.slice(0, 137).trim() + "...";
-    }
-    return clean;
+  const clean = cleanHtmlText(rawText).trim();
+  const text = clean || "Tác phẩm điện ảnh đặc sắc đang chờ bạn khám phá.";
+
+  // 3. Cắt ngắn chuỗi (truncate) khoảng 80-100 ký tự để không bị tràn khung card phim
+  if (text.length > 90) {
+    return text.substring(0, 90) + "...";
   }
-
-  // 3. Fallback động hoàn toàn theo dữ liệu thực tế (Title + Year + Actors + Category)
-  const title = item?.name || item?.title || "Bộ phim";
-  const orig = item?.origin_name ? ` (${item.origin_name})` : "";
-  const actors = toSafeActors(item);
-  const category = toSafeCategory(item);
-  const year = extractMovieYear(item) ? ` (${extractMovieYear(item)})` : "";
-
-  if (actors.length > 0) {
-    return `${title}${orig}${year} gây ấn tượng với màn hóa thân của ${actors.slice(0, 2).join(", ")} trong câu chuyện ${category.toLowerCase()} kịch tính.`;
-  }
-
-  return `${title}${orig}${year} là tác phẩm ${category.toLowerCase()} hấp dẫn với những nút thắt cao trào và tình tiết đầy bất ngờ.`;
+  return text;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1211,7 +1204,7 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
             category: itemCategory,
             country: itemCountry || (targetCountrySlug ? "Âu Mỹ" : "Quốc Tế"),
             actors: itemActors,
-            reason: extractUniqueMovieDescription(item.found, item.suggested.reason),
+            reason: getMovieHighlight(item.found, item.suggested.reason),
           });
         }
       }
@@ -1404,7 +1397,7 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
               category: toSafeCategory(it),
               country: toSafeCountry(it) || (targetCountrySlug ? "Âu Mỹ" : "Quốc Tế"),
               actors: toSafeActors(it),
-              reason: extractUniqueMovieDescription(it),
+              reason: getMovieHighlight(it),
             });
           }
         }
