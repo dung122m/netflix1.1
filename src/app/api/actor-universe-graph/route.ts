@@ -338,6 +338,49 @@ const ANDY_LAU_PRESET: ActorPreset = {
   ]
 };
 
+const TRINH_GIA_DINH_PRESET: ActorPreset = {
+  actorName: "Trịnh Gia Dĩnh (Kevin Cheng)",
+  era: "Thập niên 2000s - 2010s (Thời Kỳ Hoàng Kim TVB & Nam Thần Hoa Ngữ)",
+  universeTitle: "Vũ Trụ Thị Đế TVB & Nam Thần Phim Truyền Hình",
+  coStars: [
+    {
+      name: "Xa Thi Mạn",
+      relationType: "Cặp đôi màn ảnh TVB kinh điển",
+      chemistryScore: 99,
+      collaborationsCount: "3 siêu phẩm",
+      sharedMovies: ["Bằng Chứng Thép 2", "Cung Tâm Kế"]
+    },
+    {
+      name: "Hồ Hạnh Nhi",
+      relationType: "Luật sư & Bạn gái / Cặp đôi Tòa Án Lương Tâm",
+      chemistryScore: 98,
+      collaborationsCount: "2 phần phim",
+      sharedMovies: ["Tòa Án Lương Tâm 1, 2"]
+    },
+    {
+      name: "Lưu Thi Thi",
+      relationType: "Bát A Ca & Nhược Hy / Mối tình cung đình khắc cốt",
+      chemistryScore: 97,
+      collaborationsCount: "Siêu phẩm xuyên không",
+      sharedMovies: ["Bộ Bộ Kinh Tâm"]
+    },
+    {
+      name: "Quách Tấn An",
+      relationType: "Đối đầu tâm lý / Huynh đệ tương tàn kịch tính",
+      chemistryScore: 96,
+      collaborationsCount: "2 tác phẩm",
+      sharedMovies: ["Cảnh Sát Thủ Phạm"]
+    },
+    {
+      name: "Huỳnh Tông Trạch",
+      relationType: "Song hùng thiếu hiệp / Huynh đệ kiếm hiệp",
+      chemistryScore: 95,
+      collaborationsCount: "2 tác phẩm",
+      sharedMovies: ["Cường Kiếm"]
+    }
+  ]
+};
+
 const PRESET_ACTORS: Record<string, ActorPreset> = {
   "stephen chow": STEPHEN_CHOW_PRESET,
   "chau tinh tri": STEPHEN_CHOW_PRESET,
@@ -357,6 +400,9 @@ const PRESET_ACTORS: Record<string, ActorPreset> = {
   "chau nhuan phat": CHOW_YUN_FAT_PRESET,
   "andy lau": ANDY_LAU_PRESET,
   "luu duc hoa": ANDY_LAU_PRESET,
+  "trinh gia dinh": TRINH_GIA_DINH_PRESET,
+  "kevin cheng": TRINH_GIA_DINH_PRESET,
+  "trinh gia dinh kevin cheng": TRINH_GIA_DINH_PRESET,
 };
 
 function normalizeName(str: string): string {
@@ -390,7 +436,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ success: true, ...(cached.data as object), source: "cache" });
     }
 
-    // 2. Kiểm tra bộ dữ liệu Preset vàng (Lý Liên Kiệt, Châu Tinh Trì, Thành Long, Chân Tử Đan...)
+    // 2. Kiểm tra bộ dữ liệu Preset vàng
     for (const [key, preset] of Object.entries(PRESET_ACTORS)) {
       if (clean.includes(key) || normalized.includes(key) || key.includes(normalized)) {
         UNIVERSE_GRAPH_CACHE.set(clean, {
@@ -407,20 +453,20 @@ export async function GET(req: Request) {
 
     // 3. Gọi AI phân tích động cho các diễn viên khác
     const systemPrompt = `Bạn là Chuyên gia Bách khoa Toàn thư Vũ trụ Điện ảnh (Cinema Universe & Filmography Graph).
-Nhiệm vụ của bạn: Khi nhận được tên của một DIỄN VIÊN / NGHỆ SĨ, hãy phân tích toàn bộ sự nghiệp của họ và trích xuất ra MẠNG LƯỚI BẠN DIỄN ĂN Ý & CỘNG SỰ KINH ĐIỂN NHẤT (4 đến 6 bạn diễn tiêu biểu nhất).
+Nhiệm vụ của bạn: Khi nhận được tên của một DIỄN VIÊN / NGHỆ SĨ, hãy phân tích toàn bộ sự nghiệp của họ và trích xuất ra MẠNG LƯỚI BẠN DIỄN ĂN Ý & CỘNG SỰ KINH ĐIỂN NHẤT (3 đến 5 bạn diễn tiêu biểu có tên thật và các bộ phim thật họ cùng tham gia).
 
-Trả về DUY NHẤT một chuỗi JSON hợp lệ theo định dạng sau:
+BẮT BUỘC chỉ trả về DUY NHẤT một chuỗi JSON hợp lệ theo định dạng sau:
 {
-  "actorName": "Tên tiếng Việt chuẩn",
-  "era": "Thời kỳ hoàng kim (vd: Thập niên 90 - 2000s, Tân điện ảnh Hồng Kông, Hollywood thập niên 80...)",
-  "universeTitle": "Danh hiệu điện ảnh (vd: Vũ Trụ Hài Nhảm Châu Tinh Trì, Vũ Trụ Võ Thuật Thành Long, Vũ Trụ Siêu Anh Hùng...)",
+  "actorName": "${actorName}",
+  "era": "Thời kỳ hoàng kim / hoạt động tiêu biểu",
+  "universeTitle": "Danh hiệu điện ảnh / Vũ trụ nghệ thuật",
   "coStars": [
     {
-      "name": "Tên bạn diễn ăn ý (vd: Ngô Mạnh Đạt)",
-      "relationType": "Mối quan hệ màn ảnh (vd: Cặp bài trùng thế kỷ / Chú cháu giang hồ)",
-      "chemistryScore": 98,
-      "collaborationsCount": "Hơn 20 tác phẩm",
-      "sharedMovies": ["Đại Thoại Tây Du", "Đội Bóng Thiếu Lâm"]
+      "name": "Tên bạn diễn thật",
+      "relationType": "Mối quan hệ màn ảnh",
+      "chemistryScore": 96,
+      "collaborationsCount": "3 tác phẩm",
+      "sharedMovies": ["Tên phim thật 1", "Tên phim thật 2"]
     }
   ]
 }`;
@@ -454,36 +500,11 @@ Trả về DUY NHẤT một chuỗi JSON hợp lệ theo định dạng sau:
       console.warn("[actor-universe-graph] AI query warning:", e);
     }
 
-    // 4. Nếu AI bận, tự động dựng đồ thị bạn diễn thông minh
-    if (!parsed || !Array.isArray(parsed.coStars) || parsed.coStars.length === 0) {
-      parsed = {
-        actorName: actorName,
-        era: "Điện ảnh Đương đại & Kinh điển",
-        universeTitle: `Vũ Trụ Điện Ảnh & Mạng Lưới Nghệ Sĩ ${actorName}`,
-        coStars: [
-          {
-            name: "Cộng sự Diễn xuất Tiêu biểu",
-            relationType: "Bạn diễn đồng hành ăn ý trong các tác phẩm ghi dấu ấn",
-            chemistryScore: 95,
-            collaborationsCount: "Nhiều dự án tiêu biểu",
-            sharedMovies: ["Tác phẩm điện ảnh nổi bật", "Phim truyền hình ăn khách"]
-          },
-          {
-            name: "Đối trọng Màn ảnh",
-            relationType: "Đối thủ kịch tính mang lại cảm xúc cao trào cho khán giả",
-            chemistryScore: 92,
-            collaborationsCount: "Siêu phẩm hợp tác",
-            sharedMovies: ["Tác phẩm bom tấn"]
-          }
-        ]
-      };
-    }
-
     const resultData = {
-      actorName: parsed.actorName || actorName,
-      era: parsed.era || "Điện ảnh kinh điển",
-      universeTitle: parsed.universeTitle || `Vũ trụ điện ảnh ${actorName}`,
-      coStars: Array.isArray(parsed.coStars) ? parsed.coStars : [],
+      actorName: parsed?.actorName || actorName,
+      era: parsed?.era || "Điện ảnh Đương đại & Kinh điển",
+      universeTitle: parsed?.universeTitle || `Vũ Trụ Điện Ảnh ${actorName}`,
+      coStars: Array.isArray(parsed?.coStars) ? parsed.coStars : [],
       provider: providerName,
     };
 

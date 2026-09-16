@@ -73,8 +73,18 @@ export const ActorUniverseGraph: React.FC<Props> = ({
 
   if (!data || !data.coStars || data.coStars.length === 0) {
     return (
-      <div className="py-8 text-center text-xs text-gray-400">
-        Chưa có đủ dữ liệu mạng lưới bạn diễn cho nghệ sĩ này.
+      <div className="py-8 text-center space-y-3">
+        <p className="text-xs text-gray-400">
+          Chưa tìm thấy bạn diễn đặc trưng trong cơ sở dữ liệu.
+        </p>
+        <Link
+          href={`/browse?keyword=${encodeURIComponent(actorName)}`}
+          onClick={() => onCloseModal?.()}
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-xs font-bold transition cursor-pointer"
+        >
+          <Film className="w-3.5 h-3.5" />
+          <span>Tìm tất cả phim của {actorName} 🎬</span>
+        </Link>
       </div>
     );
   }
