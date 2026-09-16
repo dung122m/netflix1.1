@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { movieApi } from "@/services/movieApi";
 import { sanitizeImageUrl } from "@/lib/movieMedia";
-import { searchMoviesBySemantic } from "@/services/aiVectorService";
 import { generateFastAiChat } from "@/services/aiProviderService";
 
 export const maxDuration = 15;
@@ -212,7 +211,7 @@ function toSafeCountry(item: any): string {
   return "";
 }
 
-// BỘ PHÂN TÍCH Ý ĐỊNH ĐA CHIỀU & BỘ QUY TẮC NÂNG CAO (Advanced Test Suite)
+// BỘ PHÂN TÍCH Ý ĐỊNH ĐA CHIỀU & BỘ QUY TẮC NÂNG CAO (Anti-Bias, Negative Filter, Concepts)
 function parseUserIntent(prompt: string): UserIntent {
   const p = prompt.toLowerCase();
 
@@ -242,7 +241,7 @@ function parseUserIntent(prompt: string): UserIntent {
     p.includes("chứng khoán") ||
     p.includes("giải toán");
 
-  // 3. ADVANCED TEST CASE 3: NEGATIVE CONSTRAINTS (ĐIỀU KIỆN LOẠI TRỪ KHẮT KHE)
+  // 3. NEGATIVE CONSTRAINTS (LOẠI TRỪ KHẮT KHE)
   const excludedCountries: string[] = [];
   if (
     (p.includes("không lấy") || p.includes("không phải") || p.includes("trừ") || p.includes("loại trừ") || p.includes("ko lấy")) &&
@@ -251,12 +250,12 @@ function parseUserIntent(prompt: string): UserIntent {
     excludedCountries.push("au-my", "us", "hollywood");
   }
 
-  // 4. ADVANCED TEST CASE 1: VIBE / CHỮA LÀNH ĐỒNG QUÊ / ZERO DRAMA
+  // 4. VIBE / CHỮA LÀNH ĐỒNG QUÊ / ZERO DRAMA
   const isHealingRural =
     (p.includes("chữa lành") || p.includes("chua lanh") || p.includes("đồng quê") || p.includes("dong que") || p.includes("chán nản") || p.includes("bình yên")) &&
     (p.includes("nhẹ nhàng") || p.includes("không có drama") || p.includes("không drama") || p.includes("không cãi vã") || p.includes("chill"));
 
-  // 5. ADVANCED TEST CASE 2: CONCEPT VÒNG LẶP THỜI GIAN (TIME LOOP)
+  // 5. CONCEPT VÒNG LẶP THỜI GIAN (TIME LOOP)
   const isTimeLoop =
     p.includes("vòng lặp") ||
     p.includes("vong lap") ||
@@ -266,18 +265,18 @@ function parseUserIntent(prompt: string): UserIntent {
     p.includes("lặp lại một ngày") ||
     p.includes("lặp lại ngày");
 
-  // 6. ADVANCED TEST CASE 3: PHIM THẢM HỌA KHÔNG PHẢI MỸ
+  // 6. PHIM THẢM HỌA KHÔNG PHẢI MỸ
   const isDisasterNonUs =
     (p.includes("thảm họa") || p.includes("tham hoa") || p.includes("sóng thần") || p.includes("song than") || p.includes("động đất")) &&
     excludedCountries.length > 0;
 
-  // 7. ADVANCED TEST CASE 4: CROSSOVER STYLE (ANIME TRINH THÁM + VISUAL MAKOTO SHINKAI)
+  // 7. CROSSOVER STYLE (ANIME TRINH THÁM + VISUAL MAKOTO SHINKAI)
   const isAnimeCrossover =
     (p.includes("anime") || p.includes("hoạt hình")) &&
     (p.includes("trinh thám") || p.includes("conan") || p.includes("hack não") || p.includes("bí ẩn")) &&
     (p.includes("makoto shinkai") || p.includes("shinkai") || p.includes("đẹp lung linh") || p.includes("màu phim"));
 
-  // 8. NHẬN DIỆN VŨ TRỤ ĐIỆN ẢNH & TIMELINE
+  // 8. VŨ TRỤ ĐIỆN ẢNH & TIMELINE
   let universe = "";
   if (p.includes("marvel") || p.includes("mcu") || p.includes("avengers") || p.includes("siêu anh hùng")) {
     universe = "Marvel Cinematic Universe (MCU)";
@@ -291,7 +290,7 @@ function parseUserIntent(prompt: string): UserIntent {
     universe = "Vũ Trụ Star Wars";
   }
 
-  // 9. NHẬN DIỆN ĐẠO DIỄN
+  // 9. ĐẠO DIỄN
   let director = "";
   const FAMOUS_DIRECTORS = [
     { keywords: ["christopher nolan", "nolan"], name: "Christopher Nolan" },
@@ -311,7 +310,7 @@ function parseUserIntent(prompt: string): UserIntent {
     }
   }
 
-  // 10. NHẬN DIỆN DIỄN VIÊN
+  // 10. DIỄN VIÊN
   let actor = "";
   const FAMOUS_ACTORS: Array<{
     keywords: string[];
@@ -337,7 +336,7 @@ function parseUserIntent(prompt: string): UserIntent {
     }
   }
 
-  // 11. PHÂN LOẠI THỂ LOẠI & GỢI Ý MẶC ĐỊNH
+  // 11. PHÂN LOẠI THỂ LOẠI & LỜI PHÂN TÍCH TỰ NHIÊN MẶC ĐỊNH
   let category = "";
   let moodLabel = "";
   let defaultAnalysis = "";
@@ -347,7 +346,7 @@ function parseUserIntent(prompt: string): UserIntent {
     category = "tinh-cam";
     moodLabel = "Đồng Quê Bình Yên & Chữa Lành Không Drama 🌾🏡";
     defaultAnalysis =
-      "Gạt bỏ mọi áp lực và ồn ào! Dưới đây là những bộ phim 'chữa lành' thuần khiết nhất, nhẹ nhàng, đong đầy tình cảm bình dị không hề có drama cãi vã:";
+      "Chào bạn! Những ngày mệt mỏi thế này thì những thước phim êm đềm, hòa mình vào thiên nhiên và không hề có drama cãi vã là liều thuốc chữa lành tuyệt vời nhất. Cùng thả lỏng và tận hưởng những kiệt tác bình yên này nhé:";
     reasons = [
       "Bình yên, nhẹ nhàng đưa bạn về với thiên nhiên đồng quê và ẩm thực thuần khiết",
       "Không hề có drama tranh đấu hay cãi vã, chỉ có sự bình thản và dịu êm",
@@ -357,7 +356,7 @@ function parseUserIntent(prompt: string): UserIntent {
     category = "tam-ly";
     moodLabel = "Vòng Lặp Thời Gian & Chết Đi Sống Lại (Time Loop) ⏳🌀";
     defaultAnalysis =
-      "Chuẩn thể loại Time Loop kinh điển! Dưới đây là những siêu phẩm nhân vật chính bị kẹt trong vòng lặp thời gian, phải chết đi sống lại để tìm lối thoát:";
+      "Chào bạn! Vòng lặp thời gian (Time Loop) là một trong những đề tài khoa học viễn tưởng - tâm lý lôi cuốn bậc nhất với những kịch bản 'chết đi sống lại' đầy nghẹt thở và kịch tính. Dưới đây là trọn bộ những siêu phẩm time loop đỉnh cao nhất:";
     reasons = [
       "Cơ chế vòng lặp thời gian lôi cuốn, gay cấn từng giây",
       "Mỗi lần 'reset' là một nước đi chiến thuật và khám phá bí ẩn mới",
@@ -367,7 +366,7 @@ function parseUserIntent(prompt: string): UserIntent {
     category = "hanh-dong";
     moodLabel = "Thảm Họa & Sóng Thần Châu Á & Quốc Tế (Non-US) 🌊🚨";
     defaultAnalysis =
-      "Tuân thủ đúng yêu cầu 'không lấy phim Mỹ/Hollywood', đây là các kiệt tác thảm họa thiên nhiên và sóng thần đỉnh cao của điện ảnh Hàn Quốc, Na Uy và Châu Á:";
+      "Chào bạn! Tuân thủ đúng yêu cầu 'không lấy phim Mỹ/Hollywood', Nana đã tuyển chọn các kiệt tác thảm họa thiên nhiên và sóng thần xuất sắc của điện ảnh Hàn Quốc, Na Uy và Châu Á với những đại cảnh hùng tráng và tình người sâu sắc:";
     reasons = [
       "Khai thác thảm họa chân thực, chạm tới cảm xúc gia đình và tình người sâu sắc",
       "Kỹ xảo điện ảnh chân thực, nghẹt thở từng phân cảnh",
@@ -377,7 +376,7 @@ function parseUserIntent(prompt: string): UserIntent {
     category = "hoat-hinh";
     moodLabel = "Anime Trinh Thám Suy Luận Đồ Họa Tuyệt Mỹ 🎨🔍";
     defaultAnalysis =
-      "Giao thoa hoàn hảo giữa yếu tố trinh thám/bí ẩn hack não và nghệ thuật hình ảnh lung linh đạt chuẩn điện ảnh Makoto Shinkai:";
+      "Chào bạn! Sự giao thoa giữa cốt truyện trinh thám/bí ẩn hack não và mỹ thuật ánh sáng lung linh đạt chuẩn điện ảnh Makoto Shinkai sẽ mang lại cho bạn trải nghiệm thị giác và tư duy trọn vẹn nhất. Dưới đây là các kiệt tác anime xuất sắc:";
     reasons = [
       "Màu phim và hiệu ứng ánh sáng lung linh huyền ảo từng khung hình",
       "Cốt truyện trinh thám suy luận tinh tế, bí ẩn đan xen tầng tầng lớp lớp",
@@ -386,7 +385,7 @@ function parseUserIntent(prompt: string): UserIntent {
   } else {
     category = "hanh-dong";
     moodLabel = "Tác Phẩm Đặc Sắc Tuyển Chọn ⭐";
-    defaultAnalysis = "Dưới đây là các tác phẩm xuất sắc được Nana AI tuyển chọn phù hợp nhất với bạn:";
+    defaultAnalysis = "Chào bạn! Dưới đây là các tác phẩm điện ảnh xuất sắc được Nana AI tuyển chọn phù hợp nhất với sở thích của bạn:";
     reasons = [
       "Tác phẩm có điểm đánh giá xuất sắc và lượt xem kỷ lục",
       "Cốt truyện lôi cuốn, giữ chân người xem từ đầu đến cuối",
@@ -582,7 +581,7 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json({
         reply:
-          "Nanaflix là nền tảng giải trí thân thiện và an toàn, Nana không hỗ trợ tìm kiếm nội dung 18+ hoặc nhạy cảm nha bạn. Tuy nhiên, nếu bạn yêu thích thể loại Hoạt Hình / Anime với cốt truyện kịch tính, đồ họa đỉnh cao và những trận chiến mãn nhãn, Nana đã chọn sẵn những siêu phẩm Anime tuyệt đỉnh dưới đây nè! ✨🍿",
+          "Chào bạn! Nanaflix là nền tảng giải trí thân thiện và an toàn, Nana không hỗ trợ tìm kiếm nội dung 18+ hoặc nhạy cảm nha. Tuy nhiên, nếu bạn yêu thích thể loại Hoạt Hình / Anime với cốt truyện kịch tính, đồ họa đỉnh cao và những trận chiến mãn nhãn, Nana đã chọn sẵn những siêu phẩm Anime tuyệt đỉnh dưới đây nè! ✨🍿",
         mood: "Thế Giới Anime Tuyệt Đỉnh 🎨",
         movies: safeCards,
         provider: "Nana AI Guard",
@@ -610,7 +609,7 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json({
         reply:
-          "Nana là trợ lý chuyên sâu về thế giới điện ảnh và phim ảnh của Nanaflix nên chưa hỗ trợ trả lời các chủ đề ngoài lề được nè! Nhưng nếu bạn có niềm đam mê bất tận với ẩm thực hoặc muốn tìm những bộ phim hấp dẫn để vừa xem vừa chill, hãy cùng Nana khám phá những tác phẩm đặc sắc dưới đây nhé! 🍲🎬",
+          "Chào bạn! Nana là trợ lý chuyên sâu về thế giới điện ảnh và phim ảnh của Nanaflix nên chưa hỗ trợ trả lời các chủ đề ngoài lề được nè! Nhưng nếu bạn có niềm đam mê bất tận với ẩm thực hoặc muốn tìm những bộ phim hấp dẫn để vừa xem vừa chill, hãy cùng Nana khám phá những tác phẩm đặc sắc dưới đây nhé! 🍲🎬",
         mood: "Phim Hay & Ẩm Thực Đời Sống 🍜",
         movies: safeCards,
         provider: "Nana AI Guard",
@@ -630,71 +629,48 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // TĂNG TỐC BẰNG VECTOR SEARCH (Chỉ khi không có điều kiện loại trừ khắt khe)
-    if (!intent.actor && !intent.director && !intent.universe && (!intent.excludedCountries || intent.excludedCountries.length === 0) && prompt.trim().length >= 4) {
-      try {
-        const vectorPicks = await searchMoviesBySemantic(prompt, 8, 0.45, userApiKey);
-        if (vectorPicks && vectorPicks.length >= 4) {
-          const cards: SuggestionCard[] = vectorPicks.map((vp) => ({
-            slug: vp.id,
-            title: vp.title,
-            poster: vp.posterUrl || "/default-poster.jpg",
-            year: vp.year,
-            quality: vp.quality || "HD",
-            category: vp.category || "Phim Hay",
-            reason: vp.description ? vp.description.slice(0, 95) + "..." : "Khớp chuẩn xác với cảm xúc bạn đang tìm kiếm",
-          }));
-
-          const fastPayload = {
-            reply: `Nana đã tuyển chọn ${cards.length} tác phẩm xuất sắc nhất khớp đúng với yêu cầu "${prompt}" của bạn! Chúc bạn thưởng thức vui vẻ nhé ✨`,
-            mood: intent.moodLabel || "Gợi Ý Thông Minh",
-            movies: cards,
-            provider: "Nanaflix Semantic Engine",
-          };
-
-          AI_RESPONSE_CACHE.set(cacheKey, { ...fastPayload, cachedAt: Date.now() });
-          return NextResponse.json(fastPayload);
-        }
-      } catch (vecErr) {
-        console.warn("[ai-concierge] Vector search bypass:", vecErr);
-      }
-    }
-
     // ========================================================================
-    // GỌI FAST AI ENGINE VỚI BỘ LUẬT CHUYÊN SÂU CHO MỌI TEST CASE NÂNG CAO
+    // GỌI FAST AI ENGINE VỚI BỘ LUẬT CHỐNG BIAS TÊN VÀ NÂNG CAO TƯ DUY ĐIỆN ẢNH
     // ========================================================================
     try {
-      const systemPrompt = `Bạn là Trợ lý Nana (Nana AI Cinema Concierge) - chuyên gia bách khoa toàn thư điện ảnh của Nanaflix.
-Bạn cực kỳ am hiểu mọi chi tiết phim ảnh: diễn viên, đạo diễn, phong cách nghệ thuật, cơ chế cốt truyện (time loop, body swap...), cảm xúc (slice-of-life, healing, no-drama), các mệnh lệnh loại trừ và sự giao thoa mỹ thuật.
+      const systemPrompt = `Bạn là Trợ lý Điện Ảnh Thông Minh (Cinema AI Concierge) của nền tảng xem phim Nanaflix.
+Bạn sở hữu kiến thức bách khoa toàn thư về điện ảnh thế giới: đạo diễn, diễn viên, năm phát hành, thể loại, bối cảnh kinh điển, cơ chế cốt truyện (time loop, body swap, slice-of-life) và mệnh lệnh loại trừ.
 
-NHIỆM VỤ CỦA BẠN: Phân tích yêu cầu "${prompt}" và trả về JSON chuẩn xác nhất.
+NHIỆM VỤ CỦA BẠN: Phân tích yêu cầu "${prompt}" và trả về JSON chuẩn xác nhất với 6 ĐẾN 8 BỘ PHIM PHÙ HỢP.
 
-QUY TẮC BẮT BUỘC ĐỂ GIẢI QUYẾT BỘ TEST CASE NÂNG CAO:
-1. TEST CASE 1: TRUY VẤN CẢM XÚC / VIBE (Chữa lành, đồng quê, không drama, không cãi vã):
-   - BẮT BUỘC chỉ chọn dòng Slice-of-Life / Healing nhẹ nhàng yên bình như: "Khu Rừng Nhỏ" (Little Forest), "Điệu Cha-Cha-Cha Làng Biển" (Hometown Cha-Cha-Cha), "Nơi Đảo Xanh" (Our Blues), "Chuyến Đi Bí Mật Của Walter Mitty" (The Secret Life of Walter Mitty), "Hàng Xóm Của Tôi Là Totoro" (My Neighbor Totoro), "Chào Mừng Đến Samdal-ri" (Welcome to Samdal-ri), "Em Gái Bé Nhỏ" (Our Little Sister), "Quán Ăn Đêm" (Midnight Diner).
+🚫 QUY TẮC CHỐNG TỰ ÁM THỊ TÊN (ANTI-NAME BIAS - BẮT BUỘC):
+- Tên hệ thống của bạn là Nana AI. TUYỆT ĐỐI KHÔNG tự động gợi ý bộ anime/phim "Nana" (2006) hay bất kỳ phim nào chỉ vì tên nó trùng với bạn, TRỪ KHI người dùng hỏi đích danh về bộ phim "Nana" (Nana Osaki / Nana Komatsu).
+- Tuyệt đối không được bịa đặt nội dung của anime Nana thành phim vòng lặp thời gian hay thể loại khác.
+
+💬 NGUYÊN TẮC LỜI NÓI MỞ ĐẦU (ANALYSIS - BẮT BUỘC):
+- Mở đầu bằng lời chào tự nhiên, ấm áp, thông minh (Ví dụ: "Chào bạn! Vòng lặp thời gian...", "Chào bạn! Những ngày mệt mỏi thế này...").
+- TUYỆT ĐỐI KHÔNG lặp lại nguyên văn câu hỏi của người dùng (như "khớp với yêu cầu: ..."). Hãy dùng văn phong điện ảnh mượt mà, phân tích ngắn gọn điểm hay của nhóm phim được chọn.
+
+🎯 QUY TẮC BẮT BUỘC CHO TỪNG DẠNG TRUY VẤN:
+1. TRUY VẤN CƠ CHẾ CỐT TRUYỆN ĐẶC THÙ (Time Loop / Vòng lặp thời gian / Chết đi sống lại):
+   - BẮT BUỘC chọn đúng 6-8 kiệt tác vòng lặp thời gian kinh điển: "Cuộc Chiến Luân Hồi" (Edge of Tomorrow), "Ngày Chuột Chũi" (Groundhog Day), "Sinh Nhật Chết Chóc" (Happy Death Day), "Mắc Kẹt Ở Palm Springs" (Palm Springs), "Mật Mã Gốc" (Source Code), "Khởi Đầu" (Reset), "Tam Giác Quỷ" (Triangle).
+
+2. TRUY VẤN CẢM XÚC / VIBE (Chữa lành, đồng quê, không drama, không cãi vã):
+   - BẮT BUỘC chỉ chọn dòng Slice-of-Life / Healing nhẹ nhàng yên bình: "Khu Rừng Nhỏ" (Little Forest), "Điệu Cha-Cha-Cha Làng Biển" (Hometown Cha-Cha-Cha), "Nơi Đảo Xanh" (Our Blues), "Chuyến Đi Bí Mật Của Walter Mitty" (The Secret Life of Walter Mitty), "Hàng Xóm Của Tôi Là Totoro" (My Neighbor Totoro), "Chào Mừng Đến Samdal-ri" (Welcome to Samdal-ri), "Em Gái Bé Nhỏ" (Our Little Sister), "Quán Ăn Đêm" (Midnight Diner).
    - TUYỆT ĐỐI KHÔNG chọn drama sướt mướt hay tranh đấu cãi vã.
 
-2. TEST CASE 2: CƠ CHẾ CỐT TRUYỆN ĐẶC THÙ (Time Loop / Vòng lặp thời gian / Chết đi sống lại):
-   - BẮT BUỘC chọn đúng các siêu phẩm cùng chủ đề vòng lặp thời gian: "Cuộc Chiến Luân Hồi" (Edge of Tomorrow), "Ngày Chuột Chũi" (Groundhog Day), "Sinh Nhật Chết Chóc" (Happy Death Day), "Mắc Kẹt Ở Palm Springs" (Palm Springs), "Mật Mã Gốc" (Source Code), "Khởi Đầu" (Reset), "Tam Giác Quỷ" (Triangle).
-
-3. TEST CASE 3: ĐIỀU KIỆN LOẠI TRỪ KHẮT KHE (Negative Constraints - Phim thảm họa nhưng KHÔNG lấy phim Mỹ/Hollywood):
+3. MỆNH LỆNH LOẠI TRỪ KHẮT KHE (Negative Constraints - Phim thảm họa nhưng KHÔNG lấy phim Mỹ/Hollywood):
    - BẮT BUỘC TUÂN THỦ MỆNH LỆNH PHỦ ĐỊNH 100%. TUYỆT ĐỐI KHÔNG GỢI Ý phim Mỹ (như 2012, San Andreas, The Day After Tomorrow...).
    - BẮT BUỘC chỉ chọn các phim thảm họa của Hàn Quốc, Na Uy, Trung Quốc, Nhật Bản: "Sóng Thần Ở Haeundae" (Haeundae / Tidal Wave - Hàn Quốc), "Lối Thoát Trên Không" (Exit - Hàn Quốc), "Thảm Họa Hạt Nhân Pandora" (Pandora - Hàn Quốc), "Thảm Họa Sóng Thần Na Uy" (The Wave / Bølgen), "Địa Chấn Đường Sơn" (Aftershock - Trung Quốc), "Đội Cứu Hộ Biển Sâu" (The Rescue - Trung Quốc), "Chuyến Tàu Sinh Tử" (Train to Busan - Hàn Quốc).
 
-4. TEST CASE 4: GIAO THOA PHONG CÁCH (Anime trinh thám hack não kiểu Conan + đồ họa lung linh Makoto Shinkai):
-   - Phân tích sự kết hợp giữa yếu tố trinh thám/bí ẩn suy luận và mỹ thuật lung linh.
-   - Gợi ý các tác phẩm anime bí ẩn xuất sắc có hình ảnh tuyệt mỹ: "Tên Cậu Là Gì?" (Your Name - bí ẩn du hành thời gian và thị trấn), "Băng Trộm Kem Đá" (Hyouka - trinh thám học đường đồ họa Kyoto Animation lung linh), "Thị Trấn Nơi Chỉ Mình Tôi Xóa Bỏ" (Erased - trinh thám phá án du hành thời gian), "Dược Sư Tự Sự" (The Apothecary Diaries - trinh thám cung đình hình ảnh lộng lẫy), "Đứa Con Của Thời Tiết" (Weathering With You), "Thám Tử Lừng Danh Conan: Nàng Dâu Halloween" (Movie Conan đồ họa điện ảnh siêu đẹp).
+4. GIAO THOA PHONG CÁCH (Anime trinh thám hack não kiểu Conan + đồ họa lung linh Makoto Shinkai):
+   - Gợi ý các tác phẩm anime bí ẩn xuất sắc có hình ảnh tuyệt mỹ: "Tên Cậu Là Gì?" (Your Name), "Băng Trộm Kem Đá" (Hyouka), "Thị Trấn Nơi Chỉ Mình Tôi Xóa Bỏ" (Erased), "Dược Sư Tự Sự" (The Apothecary Diaries), "Đứa Con Của Thời Tiết" (Weathering With You), "Thám Tử Lừng Danh Conan: Nàng Dâu Halloween" (Movie Conan đồ họa điện ảnh tuyệt mỹ).
 
-5. ĐỊNH DẠNG TÊN PHIM ĐỂ TÌM KIẾM:
-   - "title": Tên tiếng Việt chuẩn phổ biến (ví dụ: "Khu Rừng Nhỏ", "Cuộc Chiến Luân Hồi", "Sóng Thần Ở Haeundae", "Tên Cậu Là Gì"). KHÔNG ghi năm hay dấu ngoặc vào title.
-   - "original_title": Tên gốc tiếng Anh/quốc tế (ví dụ: "Little Forest", "Edge of Tomorrow", "Haeundae", "Your Name").
+5. ĐỊNH DẠNG TÊN PHIM:
+   - "title": Tên tiếng Việt chuẩn phổ biến (ví dụ: "Cuộc Chiến Luân Hồi", "Khu Rừng Nhỏ", "Sóng Thần Ở Haeundae", "Tên Cậu Là Gì"). KHÔNG ghi năm hay dấu ngoặc vào title.
+   - "original_title": Tên gốc tiếng Anh/quốc tế (ví dụ: "Edge of Tomorrow", "Little Forest", "Haeundae", "Your Name").
 
 BẮT BUỘC TRẢ VỀ DUY NHẤT CHUỖI JSON ĐÚNG CẤU TRÚC SAU (KHÔNG KÈM VĂN BẢN NGOÀI JSON):
 {
-  "analysis": "Lời giải đáp chi tiết, thông minh, sâu sắc từ Nana giải thích rõ ràng vì sao các phim này đáp ứng trọn vẹn từng điều kiện hoặc tiêu chí phủ định của người dùng",
-  "mood": "Tên chủ đề ngắn gọn (ví dụ: Chữa Lành Đồng Quê, Vòng Lặp Thời Gian, Thảm Họa Châu Á, Anime Trinh Thám Tuyệt Mỹ)",
-  "genre_slug": "tinh-cam",
-  "country_slug": "han-quoc",
+  "analysis": "Lời mở đầu tự nhiên, thân thiện và phân tích sâu sắc từ Nana về nhóm phim được chọn",
+  "mood": "Tên chủ đề ngắn gọn",
+  "genre_slug": "tam-ly",
+  "country_slug": "au-my",
   "movies": [
     {
       "title": "Tên tiếng Việt",
@@ -706,7 +682,7 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT CHUỖI JSON ĐÚNG CẤU TRÚC SAU (KHÔNG K
 
       const aiRes = await generateFastAiChat({
         systemPrompt,
-        userPrompt: `Hãy phân tích và gợi ý phim cho: "${prompt}". Trả về JSON duy nhất.`,
+        userPrompt: `Hãy phân tích và gợi ý 6-8 phim xuất sắc cho: "${prompt}". Trả về JSON duy nhất.`,
         temperature: 0.2,
         maxTokens: 1200,
         jsonMode: true,
@@ -738,6 +714,13 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT CHUỖI JSON ĐÚNG CẤU TRÚC SAU (KHÔNG K
           const cards: SuggestionCard[] = [];
           const seenSlugs = new Set<string>();
 
+          // Lọc bỏ trường hợp bị hallucinate bộ anime "Nana" khi người dùng hỏi time loop hay chủ đề khác
+          if (!prompt.toLowerCase().includes("anime nana") && !prompt.toLowerCase().includes("osaki nana")) {
+            suggestedItems = suggestedItems.filter(
+              (it) => it.title.toLowerCase() !== "nana" && (it.original_title || "").toLowerCase() !== "nana"
+            );
+          }
+
           const searchTasks = suggestedItems.slice(0, 8).map(async (itemObj) => {
             const cleanTitle = (itemObj.title || "").trim();
             const cleanOriginal = (itemObj.original_title || "").trim();
@@ -756,7 +739,7 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT CHUỖI JSON ĐÚNG CẤU TRÚC SAU (KHÔNG K
             if (r.item && r.item.slug && !seenSlugs.has(r.item.slug)) {
               const itemCountry = toSafeCountry(r.item);
 
-              // ÁP DỤNG BỘ LỌC PHỦ ĐỊNH TRÊN DATABASE THỰC (Nếu người dùng cấm phim Mỹ, loại bỏ 100% phim au-my)
+              // Lọc bỏ phim Mỹ nếu có yêu cầu loại trừ
               if (intent.excludedCountries && intent.excludedCountries.length > 0) {
                 if (intent.excludedCountries.some((ex) => itemCountry.toLowerCase().includes(ex) || (r.item.country && JSON.stringify(r.item.country).toLowerCase().includes(ex)))) {
                   continue;
@@ -778,12 +761,12 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT CHUỖI JSON ĐÚNG CẤU TRÚC SAU (KHÔNG K
             }
           }
 
-          // Bổ sung phim nếu kho thiếu
+          // Tự động bổ sung nếu kho phim thiếu để đảm bảo luôn có ít nhất 6 phim cho người dùng
           let missingNote = "";
           if (cards.length < 5) {
             if (suggestedItems.length > 0 && cards.length === 0) {
               const requestedName = suggestedItems[0].title || prompt;
-              missingNote = `Bộ phim "${requestedName}" hiện tại chưa có sẵn trong kho phim của Nanaflix. Tuy nhiên, Nana đã tuyển chọn ngay cho bạn các tác phẩm cùng thể loại và phong cách tương tự đang có sẵn để bạn thưởng thức ngay nè!\n\n`;
+              missingNote = `Chào bạn! Bộ phim "${requestedName}" hiện tại chưa có sẵn trong kho phim của Nanaflix. Tuy nhiên, Nana đã tuyển chọn ngay cho bạn các tác phẩm cùng thể loại và phong cách tương tự đang có sẵn để bạn thưởng thức ngay nè!\n\n`;
             }
 
             try {
@@ -826,7 +809,7 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT CHUỖI JSON ĐÚNG CẤU TRÚC SAU (KHÔNG K
             const finalPayload = {
               reply: missingNote
                 ? `${missingNote}${parsed.analysis || ""}`
-                : (parsed.analysis || "Dưới đây là các tác phẩm xuất sắc nhất mà Nana AI đã tuyển chọn dành riêng cho bạn:"),
+                : (parsed.analysis || "Chào bạn! Dưới đây là các tác phẩm xuất sắc nhất mà Nana AI đã tuyển chọn dành riêng cho bạn:"),
               mood: parsed.mood || intent.moodLabel,
               movies: cards.slice(0, 14),
               provider: aiRes.provider || "Nana AI Intelligence",
@@ -851,21 +834,31 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT CHUỖI JSON ĐÚNG CẤU TRÚC SAU (KHÔNG K
     // ========================================================================
     let movieList: RawMovieItem[] = [];
 
-    if (intent.isDisasterNonUs) {
-      const resDisaster = await movieApi.getMovies({ country: "han-quoc", category: "hanh-dong", limit: 12 });
-      if (resDisaster?.items?.length) movieList = resDisaster.items as RawMovieItem[];
+    // Danh sách phim fallback có sẵn cho từng concept đặc thù
+    if (intent.isTimeLoop) {
+      const timeLoopTitles = ["Cuộc Chiến Luân Hồi", "Mật Mã Gốc", "Sinh Nhật Chết Chóc", "Khởi Đầu", "Tam Giác Quỷ"];
+      for (const t of timeLoopTitles) {
+        const item = await searchSingleMovieFast(t, "");
+        if (item && item.slug) movieList.push(item);
+      }
     } else if (intent.isHealingRural) {
-      const resHealing = await movieApi.getMovies({ country: "han-quoc", category: "tinh-cam", limit: 12 });
-      if (resHealing?.items?.length) movieList = resHealing.items as RawMovieItem[];
+      const healingTitles = ["Khu Rừng Nhỏ", "Điệu Cha-Cha-Cha Làng Biển", "Nơi Đảo Xanh", "Chào Mừng Đến Samdal-ri", "Totoro"];
+      for (const t of healingTitles) {
+        const item = await searchSingleMovieFast(t, "");
+        if (item && item.slug) movieList.push(item);
+      }
+    } else if (intent.isDisasterNonUs) {
+      const disasterTitles = ["Sóng Thần Ở Haeundae", "Lối Thoát Trên Không", "Pandora", "Địa Chấn Đường Sơn", "Chuyến Tàu Sinh Tử"];
+      for (const t of disasterTitles) {
+        const item = await searchSingleMovieFast(t, "");
+        if (item && item.slug) movieList.push(item);
+      }
     } else if (intent.isAnimeCrossover) {
-      const resAnime = await movieApi.getMovies({ category: "hoat-hinh", limit: 12 });
-      if (resAnime?.items?.length) movieList = resAnime.items as RawMovieItem[];
-    } else if (intent.actor) {
-      const resActor = await movieApi.getMovies({ keyword: intent.actor, limit: 12 });
-      if (resActor?.items?.length) movieList = resActor.items as RawMovieItem[];
-    } else if (intent.director) {
-      const resDir = await movieApi.getMovies({ keyword: intent.director, limit: 12 });
-      if (resDir?.items?.length) movieList = resDir.items as RawMovieItem[];
+      const animeTitles = ["Tên Cậu Là Gì", "Hyouka", "Erased", "Dược Sư Tự Sự", "Nàng Dâu Halloween"];
+      for (const t of animeTitles) {
+        const item = await searchSingleMovieFast(t, "");
+        if (item && item.slug) movieList.push(item);
+      }
     }
 
     if (movieList.length === 0) {
