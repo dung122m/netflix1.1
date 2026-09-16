@@ -496,12 +496,177 @@ function toSafeCategory(item: any): string {
 // ============================================================================
 // HÀM TRÍCH XUẤT MÔ TẢ ĐỘC BẢN CHO TỪNG BỘ PHIM (CHỐNG RẬP KHUÔN)
 // ============================================================================
+export const MOVIE_SPECIFIC_HIGHLIGHTS: Array<{ patterns: string[]; highlight: string }> = [
+  // Tom Cruise
+  {
+    patterns: ["top gun maverick", "phi cong sieu dang maverick"],
+    highlight: "Những màn không chiến phản lực F/A-18 nghẹt thở và phi vụ cảm tử đòi hỏi kỹ năng bay đỉnh cao của đại úy Pete 'Maverick' Mitchell.",
+  },
+  {
+    patterns: ["top gun", "phi cong sieu dang"],
+    highlight: "Khúc tráng ca của những phi công tiêm kích tài hoa tại trường huấn luyện Top Gun với các pha lượn cánh trên tầng không kinh điển.",
+  },
+  {
+    patterns: ["mission impossible dead reckoning", "nghiep bao"],
+    highlight: "Cuộc truy kích AI thực thể tối mật toàn cầu với phân cảnh Ethan Hunt phóng mô tô từ vách núi và đánh giáp lá cà trên nóc tàu cao tốc.",
+  },
+  {
+    patterns: ["mission impossible fallout", "sup do"],
+    highlight: "Màn rượt đuổi trực thăng nghẹt thở qua dãy núi hiểm trở và cú nhảy HALO mạo hiểm đỉnh cao của điệp viên Ethan Hunt.",
+  },
+  {
+    patterns: ["mission impossible rogue nation", "quoc gia bi an"],
+    highlight: "Cú bám thân máy bay phản lực Airbus A400M lúc cất cánh và màn đối đầu trí tuệ với tổ chức bóng ma Syndicate.",
+  },
+  {
+    patterns: ["mission impossible ghost protocol", "chien dich bong ma"],
+    highlight: "Pha leo tường kính nghẹt thở ở độ cao chót vót trên tòa tháp Burj Khalifa giữa cơn bão cát Dubai khốc liệt.",
+  },
+  {
+    patterns: ["mission impossible 3", "nhiem vu bat kha thi 3"],
+    highlight: "Cuộc giải cứu nghẹt thở trên cầu vượt và màn đối đầu cân não với tay buôn vũ khí máu lạnh Owen Davian.",
+  },
+  {
+    patterns: ["mission impossible 2", "nhiem vu bat kha thi 2"],
+    highlight: "Những pha đấu súng hai tay và màn rượt đuổi mô tô phân khối lớn mang đậm phong cách đạo diễn Ngô Vũ Sâm.",
+  },
+  {
+    patterns: ["mission impossible", "nhiem vu bat kha thi"],
+    highlight: "Pha đu dây đột nhập phòng máy chủ CIA kinh điển và các màn lừa bóng gián điệp đỉnh cao của điệp viên Ethan Hunt.",
+  },
+  {
+    patterns: ["edge of tomorrow", "cuoc chien luan hoi"],
+    highlight: "Vòng lặp thời gian nghẹt thở nơi chiến binh phải chết đi sống lại hàng trăm lần trên chiến trường để tìm điểm yếu tiêu diệt người ngoài hành tinh.",
+  },
+  {
+    patterns: ["oblivion", "bi mat trai dat diet vong"],
+    highlight: "Hành trình khám phá sự thật chấn động đằng sau Trái Đất hậu tận thế và danh tính thực sự của các trạm không gian.",
+  },
+  {
+    patterns: ["jack reacher"],
+    highlight: "Những màn đấu trí sắc bén cùng các đòn cận chiến thực dụng của cựu điều tra viên quân đội khi bóc trần âm mưu ám sát bí ẩn.",
+  },
+  {
+    patterns: ["minority report", "bao cao thieu so"],
+    highlight: "Thế giới tương lai nơi tội ác được dự đoán trước khi xảy ra, kéo theo cuộc đào tẩu nghẹt thở khi người thực thi lại bị gắn mác thủ phạm.",
+  },
+  {
+    patterns: ["war of the worlds", "dai chien the gioi"],
+    highlight: "Cuộc đào tẩu sinh tồn đẫm nước mắt của người cha đưa hai con chạy trốn khỏi sự tàn phá hủy diệt của cỗ máy người ngoài hành tinh Tripods.",
+  },
+  {
+    patterns: ["the last samurai", "vo si dao cuoi cung"],
+    highlight: "Màn giác ngộ văn hóa danh dự và tinh thần bất khuất của người sĩ quan phương Tây bên cạnh những kiếm sĩ Samurai huyền thoại.",
+  },
+  {
+    patterns: ["knight and day", "hiep si mu"],
+    highlight: "Những pha đấu súng hành động hài hước kết hợp rượt đuổi tốc độ cao vòng quanh thế giới của điệp viên siêu hạng.",
+  },
+  {
+    patterns: ["collateral", "sat thu goi cam"],
+    highlight: "Đêm định mệnh tại Los Angeles khi người tài xế taxi bị một sát thủ máu lạnh khống chế để thực hiện chuỗi hợp đồng ám sát liên hoàn.",
+  },
+  {
+    patterns: ["vanilla sky", "nguoi trong mong"],
+    highlight: "Mê cung giữa hiện thực và ảo ảnh tâm lý sau một tai nạn xe hơi làm đảo lộn toàn bộ cuộc đời người thừa kế giàu có.",
+  },
+  {
+    patterns: ["jerry maguire"],
+    highlight: "Hành trình khởi nghiệp lại từ con số không đầy cảm xúc của chuyên viên môi giới thể thao với câu nói bất hủ 'Show me the money'.",
+  },
+  // Keanu Reeves
+  {
+    patterns: ["john wick"],
+    highlight: "Nghệ thuật xả súng Gun-Fu mãn nhãn và thế giới ngầm đầy quy tắc nghiêm ngặt của sát thủ huyền thoại 'Ông Kẹ'.",
+  },
+  {
+    patterns: ["the matrix", "ma tran"],
+    highlight: "Kiệt tác cách mạng khoa học viễn tưởng với hiệu ứng Bullet-time kinh điển và cuộc chiến giải phóng nhân loại khỏi thế giới ảo.",
+  },
+  {
+    patterns: ["constantine", "ke cuu roi linh hon"],
+    highlight: "Hành trình trừ tà săn quỷ đen tối với những nghi thức ma thuật và ranh giới sinh tử giữa Thiên Đàng và Địa Ngục.",
+  },
+  {
+    patterns: ["speed", "toc do"],
+    highlight: "Cuộc chạy đua nghẹt thở trên chiếc xe buýt gắn bom kích nổ nếu tốc độ giảm xuống dưới 50 dặm/giờ giữa lòng thành phố.",
+  },
+  // Leonardo DiCaprio
+  {
+    patterns: ["titanic"],
+    highlight: "Thiên tình sử bất hủ vượt qua ranh giới giai cấp giữa Jack và Rose trên con tàu định mệnh vĩ đại nhất thế kỷ.",
+  },
+  {
+    patterns: ["inception", "ke danh cap giac mo"],
+    highlight: "Nghệ thuật thâm nhập các tầng giấc mơ đa tầng đầy hack não với những định luật vật lý bị bẻ cong ngoạn mục.",
+  },
+  {
+    patterns: ["the wolf of wall street", "soi gia pho wall"],
+    highlight: "Bức tranh trần trụi, hoang dã và điên cuồng về giới tài chính phố Wall cùng những phi vụ làm giàu chớp nhoáng đầy cạm bẫy.",
+  },
+  {
+    patterns: ["shutter island", "dao kinh hoang"],
+    highlight: "Nút thắt tâm lý kinh điển tại bệnh viện tâm thần biệt lập giữa biển khơi nơi ranh giới giữa điều tra viên và bệnh nhân bị xóa nhòa.",
+  },
+  {
+    patterns: ["the revenant", "nguoi ve tu coi chet"],
+    highlight: "Bản năng sinh tồn phi thường giữa mùa đông tuyết trắng khắc nghiệt và hành trình báo thù đẫm máu của người thợ săn.",
+  },
+  // Châu Tinh Trì
+  {
+    patterns: ["tuyet dinh kungfu", "kung fu hustle"],
+    highlight: "Bữa tiệc võ thuật đỉnh cao kết hợp phong cách hài vô lý đặc trưng và màn giác ngộ Như Lai Thần Chưởng thần thánh.",
+  },
+  {
+    patterns: ["doi bong thieu lam", "shaolin soccer"],
+    highlight: "Sự kết hợp bùng nổ giữa tuyệt kỹ công phu Thiếu Lâm và môn thể thao vua với những đường bóng siêu thực kinh điển.",
+  },
+  {
+    patterns: ["tay du ky", "nguyet quang bao hop", "tien ly ky duyen"],
+    highlight: "Chuyện tình bi hài vượt thời gian của Chí Tôn Bảo cùng nỗi giằng xé giữa tình yêu cá nhân và sứ mệnh thỉnh kinh.",
+  },
+  // Thành Long
+  {
+    patterns: ["cau chuyen canh sat", "police story"],
+    highlight: "Những pha hành động mạo hiểm nguy hiểm đến tính mạng không cần đóng thế cùng kỹ năng cận chiến sáng tạo với mọi đạo cụ.",
+  },
+  {
+    patterns: ["gio cao diem", "rush hour"],
+    highlight: "Màn tung hứng hài hước bất hủ giữa chàng cảnh sát Hồng Kông nghiêm túc và viên thanh tra cảnh sát Mỹ lẻo mép.",
+  },
+  {
+    patterns: ["tuy quyen", "drunken master"],
+    highlight: "Đỉnh cao võ thuật túy quyền với các thế đánh uyển chuyển như say nhưng chuẩn xác và biến hóa khôn lường.",
+  },
+  // Chân Tử Đan
+  {
+    patterns: ["diep van", "ip man"],
+    highlight: "Những bài quyền Vịnh Xuân quyền liên hoàn cước nhanh như chớp và tinh thần võ đạo kiên cường bảo vệ danh dự dân tộc.",
+  },
+  // Phim Thập niên 90 / Cướp ngân hàng
+  {
+    patterns: ["heat", "ky phung dich thu"],
+    highlight: "Cuộc đối đầu huyền thoại giữa tay trùm cướp nhà băng mưu trí và viên thanh tra mẫn cán với màn đấu súng đường phố chân thực nhất lịch sử.",
+  },
+  {
+    patterns: ["point break", "diem gay"],
+    highlight: "Màn thâm nhập ngầm vào băng cướp ngân hàng lướt sóng kỳ dị đeo mặt nạ cựu tổng thống Mỹ với những cú nhảy dù sinh tử.",
+  },
+  {
+    patterns: ["the town", "thi tran toi ac"],
+    highlight: "Những phi vụ đột kích kho tiền ngân hàng tinh vi tại Boston và sự giằng xé giữa tình yêu với con đường hoàn lương.",
+  },
+];
+
 function isGenericBoilerplate(text?: string): boolean {
   if (!text) return true;
   const lower = text.toLowerCase();
   return (
     lower.includes("tác phẩm tiêu biểu") ||
     lower.includes("tác phẩm đặc sắc") ||
+    lower.includes("tác phẩm kinh điển gắn liền") ||
+    lower.includes("gắn liền với tên tuổi") ||
+    lower.includes("phong cách diễn xuất") ||
     lower.includes("siêu phẩm điện ảnh thịnh hành") ||
     lower.includes("phù hợp hoàn hảo với yêu cầu") ||
     lower.includes("sẵn sàng thưởng thức trên nền tảng") ||
@@ -518,6 +683,17 @@ function extractUniqueMovieDescription(item: any, customReason?: string): string
     return customReason.trim();
   }
 
+  const rawName = cleanNormalizedString(item?.name || item?.title || "");
+  const rawOrig = cleanNormalizedString(item?.origin_name || "");
+
+  // 1. Kiểm tra từ điển Highlight độc bản của các siêu phẩm nổi tiếng
+  for (const h of MOVIE_SPECIFIC_HIGHLIGHTS) {
+    if (h.patterns.some((p) => rawName.includes(p) || (rawOrig && rawOrig.includes(p)))) {
+      return h.highlight;
+    }
+  }
+
+  // 2. Trích xuất từ tóm tắt cốt truyện trong Database nếu có
   const rawContent =
     item?.content ||
     item?.description ||
@@ -538,6 +714,7 @@ function extractUniqueMovieDescription(item: any, customReason?: string): string
     return clean;
   }
 
+  // 3. Tạo mô tả động cá nhân hóa theo diễn viên và thể loại
   const title = item?.name || item?.title || "Bộ phim";
   const orig = item?.origin_name ? ` (${item.origin_name})` : "";
   const actors = toSafeActors(item);
@@ -1134,7 +1311,6 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
           candidateMovieList.push({
             title: viTitle,
             original_title: engTitle,
-            reason: `Tác phẩm kinh điển gắn liền với tên tuổi và phong cách diễn xuất của ${rawActor || targetActorSlug}`,
           });
         }
       }
