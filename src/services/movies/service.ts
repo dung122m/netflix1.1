@@ -835,4 +835,11 @@ export const movieApi = {
   // 3. CHI TIẾT PHIM (ĐÃ ĐƯỢC CACHE REACT & MEMORY)
   // ==========================================
   getMovieDetail: cachedGetMovieDetail,
+
+  // ==========================================
+  // 4. TÌM KIẾM PHIM THEO TỪ KHÓA
+  // ==========================================
+  searchMovies: async (keyword: string, limit = 24) => {
+    return await movieApi.getMovies({ keyword, limit });
+  },
 };

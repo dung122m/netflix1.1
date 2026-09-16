@@ -956,12 +956,12 @@ export async function fetchMoviesByTitles(
       if (!cleanTargetVi && !cleanTargetEng) return null;
 
       // 1. Tìm theo tên tiếng Việt
-      let searchRes = cleanTargetVi.length >= 2 ? await movieApi.searchMovies(viTitle, 8) : null;
+      let searchRes = cleanTargetVi.length >= 2 ? await movieApi.getMovies({ keyword: viTitle, limit: 8 }) : null;
       let matchedItems = searchRes?.items || [];
 
       // 2. Nếu không ra kết quả và có tên tiếng Anh/gốc -> tìm bổ sung
       if (matchedItems.length === 0 && engTitle && cleanTargetEng.length >= 2) {
-        searchRes = await movieApi.searchMovies(engTitle, 8);
+        searchRes = await movieApi.getMovies({ keyword: engTitle, limit: 8 });
         matchedItems = searchRes?.items || [];
       }
 
