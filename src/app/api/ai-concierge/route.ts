@@ -1416,19 +1416,7 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
       ...(aiParsed?.suggested_movies || aiParsed?.movies || []),
     ];
 
-    if (targetActorSlug && ACTOR_TOP_TITLES[targetActorSlug]) {
-      for (const t of ACTOR_TOP_TITLES[targetActorSlug]) {
-        const viTitle = t.replace(/\([^)]*\)/g, "").trim();
-        const matchEng = t.match(/\(([^)]+)\)/);
-        const engTitle = matchEng ? matchEng[1].trim() : "";
-        if (!candidateMovieList.some((c) => cleanNormalizedString(c.title) === cleanNormalizedString(viTitle))) {
-          candidateMovieList.push({
-            title: viTitle,
-            original_title: engTitle,
-          });
-        }
-      }
-    }
+    // 100% Dynamic Movie Candidates từ AI trích xuất - Không dùng danh sách phim hardcode
 
     // 2. Pass 1: Tra cứu song song toàn bộ danh sách ứng viên (Title Match + Soft Scoring)
     if (candidateMovieList.length > 0) {
