@@ -9,7 +9,7 @@ import { QuickGenreChips } from "@/components/QuickGenreChips";
 import { SortSelector } from "@/components/SortSelector";
 import { Film, ExternalLink, Sparkles } from "lucide-react";
 import { movieApi } from "@/services/movieApi";
-import { resolveActorMovies, queryMoviesByActor, GOLDEN_ACTOR_INDEX } from "@/services/aiActorService";
+import { resolveActorMovies, queryMoviesByActor, getActorSynonyms, GOLDEN_ACTOR_INDEX } from "@/services/aiActorService";
 import { searchMoviesBySemantic } from "@/services/aiVectorService";
 import { BrowseAiSearchBanner } from "@/components/BrowseAiSearchBanner";
 import { CuratedMovieSection } from "@/components/CuratedMovieSection";
@@ -206,14 +206,27 @@ export default async function BrowsePage({
   // 1. TÁCH BIỆT RÕ RÀNG: TÌM KIẾM THEO DIỄN VIÊN VS TÌM KIẾM THEO TÊN PHIM
   // =========================================================================
   const targetActorQuery = actorParam || (keyword && keyword.trim().length >= 2 ? keyword.trim() : undefined);
-  const actorRes = targetActorQuery ? await resolveActorMovies(targetActorQuery) : null;
-  const isActorSearch = Boolean(actorParam || actorRes?.isActor);
+  const actorSynonyms = targetActorQuery ? getActorSynonyms(targetActorQuery) : null;
+  const actorRes = targetActorQuery
+    ? actorSynonyms?.isMatched
+      ? {
+          actorName: actorSynonyms.canonicalName,
+          country: actorSynonyms.country,
+          aliases: actorSynonyms.variants,
+          isActor: true,
+          source: "preset" as const,
+        }
+      : await resolveActorMovies(targetActorQuery)
+    : null;
 
-  if (isActorSearch && (actorRes?.isActor || actorParam)) {
-    const canonicalName = actorRes?.isActor ? actorRes.actorName : (actorParam || "");
+  const isActorSearch = Boolean(actorParam || actorRes?.isActor || actorSynonyms?.isMatched);
+
+  if (isActorSearch && (actorRes?.isActor || actorParam || actorSynonyms?.isMatched)) {
+    const canonicalName = actorRes?.isActor ? actorRes.actorName : (actorSynonyms?.canonicalName || actorParam || "");
     const actorAliases = Array.from(
       new Set([
         canonicalName,
+        ...(actorSynonyms?.variants || []),
         ...(actorRes?.aliases || []),
         ...(actorParam ? [actorParam] : []),
       ])
@@ -228,10 +241,11 @@ export default async function BrowsePage({
 
     detectedActor = {
       name: canonicalName,
-      country: actorRes?.country || matchedPreset?.country,
+      country: actorRes?.country || actorSynonyms?.country || matchedPreset?.country,
     };
 
-    // Truy vấn động toàn bộ phim của nghệ sĩ từ DB với bộ lọc diễn viên nghiêm ngặt
+    // Truy vấn động toàn bộ phim của nghệ sĩ từ DB với bộ lọc diễn viên đa biến thể
+    // (Bao gồm tên tiếng Việt có dấu, không dấu, và tên tiếng Anh gốc như 'Jackie Chan')
     // TUYỆT ĐỐI KHÔNG tìm kiếm lấn sang tiêu đề phim (tránh chữ 'Long' lọt vào phim khác)
     const actorMovies = await queryMoviesByActor(
       canonicalName,

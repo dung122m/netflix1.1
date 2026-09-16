@@ -377,9 +377,226 @@ function cleanActorQuery(query: string): string {
     .trim();
 }
 
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// Bảng ánh xạ slug và bí danh diễn viên quốc tế & Việt Nam (Mapping Table / Synonym Dictionary)
+export const ACTOR_SLUG_MAP: Record<string, string[]> = {
+  // Hồng Kông / Trung Quốc
+  "thanh-long": ["thành long", "thanh long", "jackie chan", "chan kong sang", "sing lung"],
+  "chau-tinh-tri": ["châu tinh trì", "chau tinh tri", "stephen chow", "chow sing chi", "tinh gia"],
+  "chan-tu-dan": ["chân tử đan", "chan tu dan", "donnie yen", "yen ji dan"],
+  "ly-lien-kiet": ["lý liên kiệt", "ly lien kiet", "jet li", "li lian jie"],
+  "ngo-kinh": ["ngô kinh", "ngo kinh", "wu jing"],
+  "luu-duc-hoa": ["lưu đức hoa", "luu duc hoa", "andy lau"],
+  "luong-trieu-vy": ["lương triều vỹ", "luong trieu vy", "tony leung", "tony leung chiu wai"],
+  "quach-phu-thanh": ["quách phú thành", "quach phu thanh", "aaron kwok"],
+  "co-thien-lac": ["cổ thiên lạc", "co thien lac", "louis koo"],
+  "truong-gia-huy": ["trương gia huy", "truong gia huy", "nick cheung"],
+  "ta-dinh-phong": ["tạ đình phong", "ta dinh phong", "nicholas tse"],
+  "hong-kim-bao": ["hồng kim bảo", "hong kim bao", "sammo hung"],
+  "nguyen-biao": ["nguyên tiêu", "nguyen biao", "yuen biao"],
+  "duong-mich": ["dương mịch", "duong mich", "yang mi"],
+  "trieu-le-dinh": ["triệu lệ dĩnh", "trieu le dinh", "zhao liying", "zanilia zhao"],
+  "dich-le-nhiet-ba": ["địch lệ nhiệt ba", "dich le nhiet ba", "dilraba dilmurat", "dilraba"],
+  "tieu-chien": ["tiêu chiến", "tieu chien", "xiao zhan", "sean xiao"],
+  "vuong-nhat-bac": ["vương nhất bác", "vuong nhat bac", "wang yibo"],
+  "huynh-hieu-minh": ["huỳnh hiểu minh", "huynh hieu minh", "huang xiaoming"],
+  "luu-diec-phi": ["lưu diệc phi", "luu diec phi", "crystal liu", "liu yifei"],
+  "bach-loc": ["bạch lộc", "bach loc", "bai lu"],
+  "la-van-hi": ["la vân hi", "la van hi", "leo luo", "luo yunxi"],
+  "duong-tu": ["dương tử", "duong tu", "yang zi", "andy yang"],
+  "nham-gia-luan": ["nhậm gia luân", "nham gia luan", "allen ren", "ren jialun"],
+  "trieu-lo-tu": ["triệu lộ tư", "trieu lo tu", "zhao lusi", "rosy zhao"],
+  "cuc-tinh-y": ["cúc tịnh y", "cuc tinh y", "ju jingyi"],
+  "vuong-hac-de": ["vương hạc đệ", "vuong hac de", "dylan wang", "wang hedi"],
+  "hua-khai": ["hứa khải", "hua khai", "xu kai"],
+  "ngo-loi": ["ngô lỗi", "ngo loi", "leo wu", "wu lei"],
+  "cung-tuan": ["cung tuấn", "cung tuan", "simon gong", "gong jun"],
+  "chau-tan": ["châu tấn", "chau tan", "zhou xun"],
+  "chuong-tu-di": ["chương tử di", "chuong tu di", "zhang ziyi"],
+  "cung-loi": ["củng lợi", "cung loi", "gong li"],
+  "thang-duy": ["thang duy", "tang wei"],
+  "pham-bang-bang": ["phạm băng băng", "pham bang bang", "fan bingbing"],
+  "ly-bang-bang": ["lý băng băng", "ly bang bang", "li bingbing"],
+
+  // Việt Nam
+  "tran-thanh": ["trấn thành", "tran thanh", "mc tran thanh", "xìn", "dao dien tran thanh"],
+  "truong-giang": ["trường giang", "truong giang", "mc truong giang", "mười khó", "muoi kho"],
+  "thai-hoa": ["thái hòa", "thai hoa", "ông hoàng phòng vé thái hòa"],
+  "ninh-duong-lan-ngoc": ["ninh dương lan ngọc", "ninh duong lan ngoc", "lan ngoc"],
+  "kieu-minh-tuan": ["kiều minh tuấn", "kieu minh tuan"],
+  "thu-trang": ["thu trang", "hoa hậu hài thu trang", "chị mười ba", "chi muoi ba"],
+  "ly-hai": ["lý hải", "ly hai", "đạo diễn lý hải", "lat mat"],
+  "hoai-linh": ["hoài linh", "hoai linh", "sáu bảnh", "sau sang"],
+  "viet-huong": ["việt hương", "viet huong"],
+  "tuan-tran": ["tuấn trần", "tuan tran"],
+  "miu-le": ["miu lê", "miu le"],
+
+  // Hollywood
+  "tom-cruise": ["tom cruise", "thomas cruise mapother", "ethan hunt"],
+  "keanu-reeves": ["keanu reeves", "keanu charles reeves", "john wick"],
+  "leonardo-dicaprio": ["leonardo dicaprio", "leo dicaprio"],
+  "dwayne-johnson": ["dwayne johnson", "the rock"],
+  "jason-statham": ["jason statham"],
+  "brad-pitt": ["brad pitt", "william bradley pitt"],
+  "will-smith": ["will smith"],
+  "robert-downey-jr": ["robert downey jr", "robert downey", "iron man"],
+  "chris-evans": ["chris evans", "captain america"],
+  "chris-hemsworth": ["chris hemsworth", "thor"],
+  "scarlett-johansson": ["scarlett johansson", "black widow"],
+  "ryan-reynolds": ["ryan reynolds", "deadpool"],
+  "cillian-murphy": ["cillian murphy"],
+  "christian-bale": ["christian bale", "batman"],
+
+  // Hàn Quốc
+  "song-joong-ki": ["song joong ki", "song joong-ki"],
+  "kim-soo-hyun": ["kim soo hyun", "kim soo-hyun"],
+  "hyun-bin": ["hyun bin", "hyeon bin"],
+  "lee-min-ho": ["lee min ho", "lee min-ho"],
+  "park-seo-joon": ["park seo joon", "park seo-jun"],
+  "son-ye-jin": ["son ye jin", "son ye-jin"],
+  "kim-ji-won": ["kim ji won", "kim ji-won", "hong hae in"],
+  "song-kang": ["song kang"],
+  "iu": ["iu", "lee ji eun", "lee ji-eun"],
+  "cha-eun-woo": ["cha eun woo", "cha eunwoo"],
+  "lee-jong-suk": ["lee jong suk", "lee jongsuk"],
+  "gong-yoo": ["gong yoo"],
+  "han-so-hee": ["han so hee", "han sohee"],
+  "song-hye-kyo": ["song hye kyo", "song hyekyo"],
+  "ma-dong-seok": ["ma dong seok", "ma dong-seok", "don lee"],
+};
+
+/**
+ * 1. BẢNG QUY ĐỔI ĐỒNG NGHĨA (MAPPING TABLE / SYNONYM DICTIONARY)
+ * Tra cứu mọi từ khóa (tiếng Việt có dấu, không dấu, tên tiếng Anh, nghệ danh, slug)
+ * và trích xuất TOÀN BỘ các biến thể tên của diễn viên đó để thực hiện truy vấn đa biến thể.
+ * Ví dụ: 'Thành Long' -> ['thành long', 'thanh long', 'jackie chan', 'chan kong sang', 'sing lung']
+ */
+export interface ActorSynonymResult {
+  isMatched: boolean;
+  slug: string;
+  canonicalName: string;
+  country?: string;
+  variants: string[]; // Toàn bộ biến thể tên (Việt có dấu, không dấu, Anh/gốc, nghệ danh)
+  englishName?: string;
+}
+
+export function getActorSynonyms(query: string): ActorSynonymResult {
+  if (!query || query.trim().length < 2) {
+    return { isMatched: false, slug: "", canonicalName: "", variants: [] };
+  }
+
+  const cleanRaw = query.trim().toLowerCase();
+  const normalizedQuery = normalizeForMatch(query);
+
+  // 1. Đối chiếu qua ACTOR_SLUG_MAP
+  for (const [slug, aliases] of Object.entries(ACTOR_SLUG_MAP)) {
+    const normSlug = normalizeForMatch(slug.replace(/-/g, " "));
+    const isSlugMatch = normalizedQuery === normSlug || cleanRaw === slug;
+    const isAliasMatch = aliases.some((a) => {
+      const normA = normalizeForMatch(a);
+      return normA === normalizedQuery || cleanRaw === a.toLowerCase();
+    });
+
+    if (isSlugMatch || isAliasMatch) {
+      const preset = GOLDEN_ACTOR_INDEX.find(
+        (p) =>
+          normalizeForMatch(p.name) === normalizedQuery ||
+          p.aliases.some((pa) => normalizeForMatch(pa) === normalizedQuery) ||
+          normalizeForMatch(p.name) === normSlug
+      );
+
+      const allVariants = Array.from(
+        new Set([
+          query.trim().toLowerCase(),
+          normalizedQuery,
+          slug.replace(/-/g, " "),
+          ...aliases,
+          ...(preset?.aliases || []),
+          preset?.name?.toLowerCase(),
+        ].filter((s): s is string => Boolean(s && s.trim().length >= 2)).map((s) => s.trim().toLowerCase()))
+      );
+
+      // Tìm tên tiếng Anh gốc (alias chữ Latinh không chứa dấu tiếng Việt và có dấu cách)
+      const englishName = aliases.find(
+        (a) => !/[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(a) && a.includes(" ")
+      ) || aliases[2];
+
+      const canonicalName = preset?.name || (aliases[0] ? aliases[0].replace(/\b\w/g, (l) => l.toUpperCase()) : query.trim());
+
+      return {
+        isMatched: true,
+        slug,
+        canonicalName,
+        country: preset?.country,
+        variants: allVariants,
+        englishName,
+      };
+    }
+  }
+
+  // 2. Đối chiếu qua GOLDEN_ACTOR_INDEX nếu chưa có trong ACTOR_SLUG_MAP
+  for (const preset of GOLDEN_ACTOR_INDEX) {
+    const normPName = normalizeForMatch(preset.name);
+    const isMatch = normPName === normalizedQuery || preset.aliases.some((a) => normalizeForMatch(a) === normalizedQuery || cleanRaw === a.toLowerCase());
+    if (isMatch) {
+      const allVariants = Array.from(
+        new Set([
+          query.trim().toLowerCase(),
+          normalizedQuery,
+          preset.name.toLowerCase(),
+          ...preset.aliases.map((a) => a.toLowerCase()),
+        ].filter(Boolean))
+      );
+      return {
+        isMatched: true,
+        slug: normalizeForMatch(preset.name).replace(/\s+/g, "-"),
+        canonicalName: preset.name,
+        country: preset.country,
+        variants: allVariants,
+      };
+    }
+  }
+
+  return {
+    isMatched: false,
+    slug: "",
+    canonicalName: query.trim(),
+    variants: [query.trim().toLowerCase(), normalizedQuery].filter(Boolean),
+  };
+}
+
+/**
+ * 2. TRUY VẤN ĐA BIẾN THỂ (MULTI-VALUE QUERY) CHO DATABASE (MONGODB / SQL)
+ * Cung cấp câu lệnh truy vấn mảng diễn viên chuẩn hóa cho MongoDB ($in / regex OR)
+ * và SQL (ILIKE / LOWER ANY) để bất kỳ biến thể nào (tiếng Việt có/không dấu, tên tiếng Anh gốc)
+ * cũng được so khớp chính xác với mảng actors trong Database.
+ */
+export function buildActorMongoQuery(variants: string[]) {
+  const regexList = variants.map((v) => new RegExp(`(^|\\b)${escapeRegex(v)}(\\b|$)`, "i"));
+  return {
+    $or: [
+      { actors: { $in: regexList } },
+      { actor: { $in: regexList } },
+      { casts: { $in: regexList } },
+      { cast: { $in: regexList } },
+      { director: { $in: regexList } },
+    ],
+  };
+}
+
+export function buildActorSqlQuery(variants: string[], columnName = "actors"): string {
+  const conditions = variants.map(
+    (v) => `LOWER(${columnName}::text) LIKE '%${v.toLowerCase().replace(/'/g, "''")}%'`
+  );
+  return `(${conditions.join(" OR ")})`;
+}
+
 /**
  * 1. PHÂN GIẢI NGHỆ SĨ & ALIASES THÔNG MINH (HYBRID TIER 1 + TIER 2 + TIER 3):
- * - TIER 1: Pre-indexed Golden Profiles cho các diễn viên/nghệ sĩ phổ biến (Tốc độ 0ms, chính xác 100%).
+ * - TIER 1: Pre-indexed Golden Profiles & Bảng quy đổi đồng nghĩa (Tốc độ 0ms, chính xác 100%).
  * - TIER 2: Smart In-memory Cache L1 (0ms cho các truy vấn đã phân giải trong 7 ngày).
  * - TIER 3: Fast AI Router (Qwen / Groq / Gemini) phân giải ĐỘNG mọi diễn viên/đạo diễn khác trên thế giới (~500ms).
  */
@@ -395,56 +612,20 @@ export async function resolveActorMovies(keyword: string): Promise<{
     return { actorName: "", aliases: [], isActor: false, source: "none" };
   }
 
-  const cleanRaw = keyword.trim().toLowerCase();
-  const normalizedQuery = cleanActorQuery(keyword);
-
-  // 1.1 Kiểm tra TIER 1: Danh bạ Pre-indexed Golden Profiles (0ms)
-  const matchedPreset = GOLDEN_ACTOR_INDEX.find((profile) => {
-    const normName = normalizeForMatch(profile.name);
-    if (normalizedQuery === normName || cleanRaw === profile.name.toLowerCase()) return true;
-    return profile.aliases.some((alias) => {
-      const normAlias = normalizeForMatch(alias);
-      return normalizedQuery === normAlias || cleanRaw === alias.toLowerCase();
-    });
-  });
-
-  if (matchedPreset) {
+  // 1.1 Tra cứu trực tiếp Bảng Quy Đổi Đồng Nghĩa (Mapping Table / Synonym Dictionary) (0ms)
+  const synonymRes = getActorSynonyms(keyword);
+  if (synonymRes.isMatched) {
     return {
-      actorName: matchedPreset.name,
-      country: matchedPreset.country,
-      aliases: matchedPreset.aliases,
+      actorName: synonymRes.canonicalName,
+      country: synonymRes.country,
+      aliases: synonymRes.variants,
       isActor: true,
       source: "preset",
     };
   }
 
-  // 1.1b Kiểm tra ACTOR_SLUG_MAP (0ms)
-  const normRaw = normalizeForMatch(cleanRaw);
-  for (const [slug, mapAliases] of Object.entries(ACTOR_SLUG_MAP)) {
-    const normSlug = normalizeForMatch(slug.replace(/-/g, " "));
-    const isSlugMatch = normalizedQuery === normSlug || cleanRaw === slug || normRaw === normSlug;
-    const isAliasMatch = mapAliases.some((a) => {
-      const normA = normalizeForMatch(a);
-      return normRaw === normA || normalizedQuery === normA || cleanRaw === a.toLowerCase();
-    });
-    if (isSlugMatch || isAliasMatch) {
-      const preset = GOLDEN_ACTOR_INDEX.find(
-        (p) =>
-          p.name.toLowerCase() === mapAliases[1]?.toLowerCase() ||
-          p.aliases.some((pa) => mapAliases.includes(pa.toLowerCase()))
-      );
-      const primaryName =
-        preset?.name ||
-        (mapAliases[1] ? mapAliases[1].replace(/\b\w/g, (l) => l.toUpperCase()) : mapAliases[0]);
-      return {
-        actorName: primaryName,
-        country: preset?.country,
-        aliases: mapAliases,
-        isActor: true,
-        source: "preset",
-      };
-    }
-  }
+  const cleanRaw = keyword.trim().toLowerCase();
+  const normalizedQuery = cleanActorQuery(keyword);
 
   // 1.2 Kiểm tra TIER 2: Cache L1 (0ms)
   const cached = ACTOR_AI_CACHE.get(cleanRaw) || ACTOR_AI_CACHE.get(normalizedQuery);
@@ -543,63 +724,6 @@ BẮT BUỘC chỉ trả về DUY NHẤT một chuỗi JSON hợp lệ theo đ�
   };
 }
 
-// Bảng ánh xạ slug và bí danh diễn viên quốc tế & Việt Nam (ACTOR_SLUG_MAP)
-export const ACTOR_SLUG_MAP: Record<string, string[]> = {
-  "thanh-long": ["thanh long", "thành long", "jackie chan", "chan kong sang", "sing lung"],
-  "chau-tinh-tri": ["chau tinh tri", "châu tinh trì", "stephen chow", "chow sing chi", "tinh gia"],
-  "chan-tu-dan": ["chan tu dan", "chân tử đan", "donnie yen", "yen ji dan"],
-  "ly-lien-kiet": ["ly lien kiet", "lý liên kiệt", "jet li", "li lian jie"],
-  "ngo-kinh": ["ngo kinh", "ngô kinh", "wu jing"],
-  "luu-duc-hoa": ["luu duc hoa", "lưu đức hoa", "andy lau"],
-  "luong-trieu-vy": ["luong trieu vy", "lương triều vỹ", "tony leung"],
-  "quach-phu-thanh": ["quach phu thanh", "quách phú thành", "aaron kwok"],
-  "co-thien-lac": ["co thien lac", "cổ thiên lạc", "louis koo"],
-  "truong-gia-huy": ["truong gia huy", "trương gia huy", "nick cheung"],
-  "ta-dinh-phong": ["ta dinh phong", "tạ đình phong", "nicholas tse"],
-  "hong-kim-bao": ["hong kim bao", "hồng kim bảo", "sammo hung"],
-  "nguyen-biao": ["nguyen biao", "nguyên tiêu", "yuen biao"],
-  "tran-thanh": ["tran thanh", "trấn thành", "mc tran thanh", "xìn", "dao dien tran thanh"],
-  "truong-giang": ["truong giang", "trường giang", "mc truong giang", "mười khó", "muoi kho"],
-  "thai-hoa": ["thai hoa", "thái hòa", "ong hoang phong ve thai hoa"],
-  "ninh-duong-lan-ngoc": ["ninh duong lan ngoc", "ninh dương lan ngọc", "lan ngoc"],
-  "kieu-minh-tuan": ["kieu minh tuan", "kiều minh tuấn"],
-  "thu-trang": ["thu trang", "hoa hau hai thu trang", "chi muoi ba"],
-  "ly-hai": ["ly hai", "lý hải", "dao dien ly hai", "lat mat"],
-  "hoai-linh": ["hoai linh", "hoài linh", "sau sang"],
-  "viet-huong": ["viet huong", "việt hương"],
-  "tuan-tran": ["tuan tran", "tuấn trần"],
-  "miu-le": ["miu le", "miu lê"],
-  "tom-cruise": ["tom cruise", "thomas cruise mapother", "ethan hunt"],
-  "keanu-reeves": ["keanu reeves", "keanu charles reeves", "john wick"],
-  "leonardo-dicaprio": ["leonardo dicaprio", "leo dicaprio"],
-  "dwayne-johnson": ["dwayne johnson", "the rock"],
-  "jason-statham": ["jason statham"],
-  "brad-pitt": ["brad pitt", "william bradley pitt"],
-  "will-smith": ["will smith"],
-  "robert-downey-jr": ["robert downey jr", "robert downey", "iron man"],
-  "chris-evans": ["chris evans", "captain america"],
-  "chris-hemsworth": ["chris hemsworth", "thor"],
-  "scarlett-johansson": ["scarlett johansson", "black widow"],
-  "ryan-reynolds": ["ryan reynolds", "deadpool"],
-  "cillian-murphy": ["cillian murphy"],
-  "christian-bale": ["christian bale", "batman"],
-  "song-joong-ki": ["song joong ki", "song joong-ki"],
-  "kim-soo-hyun": ["kim soo hyun", "kim soo-hyun"],
-  "hyun-bin": ["hyun bin", "hyeon bin"],
-  "lee-min-ho": ["lee min ho", "lee min-ho"],
-  "park-seo-joon": ["park seo joon", "park seo-jun"],
-  "son-ye-jin": ["son ye jin", "son ye-jin"],
-  "kim-ji-won": ["kim ji won", "kim ji-won", "hong hae in"],
-  "song-kang": ["song kang"],
-  "iu": ["iu", "lee ji eun", "lee ji-eun"],
-  "huynh-hieu-minh": ["huynh hieu minh", "huỳnh hiểu minh", "huang xiaoming"],
-  "trieu-le-dinh": ["trieu le dinh", "triệu lệ dĩnh", "zhao liying"],
-  "duong-mich": ["duong mich", "dương mịch", "yang mi"],
-  "dich-le-nhiet-ba": ["dich le nhiet ba", "địch lệ nhiệt ba", "dilraba dilmurat"],
-  "tieu-chien": ["tieu chien", "tiêu chiến", "xiao zhan"],
-  "vuong-nhat-bac": ["vuong nhat bac", "vương nhất bác", "wang yibo"],
-};
-
 /**
  * Trích xuất toàn bộ diễn viên, đạo diễn từ mọi biến thể tên trường trong Database (actor, actors, casts, cast, director, directors)
  */
@@ -632,7 +756,8 @@ export function extractItemActorsAndDirectors(item: any): string[] {
 }
 
 /**
- * So khớp nghiêm ngặt danh sách diễn viên của phim với danh sách bí danh của nghệ sĩ.
+ * So khớp nghiêm ngặt danh sách diễn viên của phim với danh sách bí danh đa biến thể của nghệ sĩ.
+ * Hỗ trợ khớp cả tên tiếng Việt có dấu, không dấu, và tên tiếng Anh gốc (như 'Jackie Chan').
  * TUYỆT ĐỐI KHÔNG dùng alias.includes(castName) để tránh từ ngắn như "Long" lấn vào "Thành Long".
  */
 export function matchesActorAliases(castList: string[], normalizedAliases: string[]): boolean {
@@ -644,7 +769,7 @@ export function matchesActorAliases(castList: string[], normalizedAliases: strin
       if (!alias || alias.length < 2) continue;
       const isMultiWord = alias.includes(" ");
       if (isMultiWord) {
-        // Cụm từ đầy đủ (ví dụ: 'tran thanh', 'thanh long', 'jackie chan', 'duong mich')
+        // Cụm từ đầy đủ (ví dụ: 'tran thanh', 'thanh long', 'jackie chan', 'duong mich', 'stephen chow')
         if (normActor === alias || normActor.includes(alias)) {
           return true;
         }
@@ -662,7 +787,7 @@ export function matchesActorAliases(castList: string[], normalizedAliases: strin
 
 /**
  * 2. TRUY VẤN ĐỘNG TOÀN BỘ PHIM THEO DIỄN VIÊN / ĐẠO DIỄN TỪ DATABASE (DYNAMIC CAST QUERY)
- * Sử dụng danh sách aliases để truy vấn thẳng vào trường cast/actors/director trong database.
+ * Sử dụng danh sách aliases đa biến thể từ Bảng quy đổi để truy vấn thẳng vào trường cast/actors/director trong database.
  * Trả về toàn bộ danh sách phim thực tế khớp trong database (không giới hạn cứng 6 phim).
  */
 export async function queryMoviesByActor(
@@ -674,30 +799,13 @@ export async function queryMoviesByActor(
 ): Promise<any[]> {
   if (!actorName && aliases.length === 0) return [];
 
-  // Tự động làm giàu danh sách bí danh từ ACTOR_SLUG_MAP & GOLDEN_ACTOR_INDEX
-  const normalizedKey = normalizeForMatch(actorName);
-  let matchedSlug = "";
+  // 1. Tra cứu trực tiếp Bảng quy đổi đồng nghĩa (Mapping Table) để lấy trọn bộ biến thể
+  const synonymRes = getActorSynonyms(actorName);
+  const matchedSlug = synonymRes.isMatched ? synonymRes.slug : "";
+  const extraAliases: string[] = synonymRes.isMatched ? [...synonymRes.variants] : [];
 
-  for (const [slug, mapAliases] of Object.entries(ACTOR_SLUG_MAP)) {
-    const normSlug = slug.replace(/-/g, " ");
-    const matchesThis =
-      normalizedKey === normSlug ||
-      normalizedKey === slug ||
-      mapAliases.some((a) => normalizeForMatch(a) === normalizedKey || normalizedKey.includes(normalizeForMatch(a)));
-    if (matchesThis) {
-      matchedSlug = slug;
-      break;
-    }
-  }
-
-  const extraAliases: string[] = matchedSlug ? (ACTOR_SLUG_MAP[matchedSlug] || []) : [];
-
-  for (const preset of GOLDEN_ACTOR_INDEX) {
-    const normPName = normalizeForMatch(preset.name);
-    if (normPName === normalizedKey || preset.aliases.some((a) => normalizeForMatch(a) === normalizedKey)) {
-      extraAliases.push(preset.name, ...preset.aliases);
-      if (!country && preset.country) country = preset.country;
-    }
+  if (synonymRes.country && !country) {
+    country = synonymRes.country;
   }
 
   const allAliases = Array.from(
@@ -727,6 +835,16 @@ export async function queryMoviesByActor(
       if (cleanVi && cleanVi.length >= 3) {
         queryPromises.push(movieApi.getMovies({ keyword: cleanVi, page: 1, limit: 4 }));
       }
+    }
+
+    // Tra cứu bổ sung bằng tên tiếng Anh gốc (ví dụ: 'jackie chan', 'stephen chow') nếu có trong danh bạ
+    // để lấy ngay các phim lưu tên diễn viên bằng tiếng Anh trong Database/API
+    const englishName = synonymRes.englishName || allAliases.find(
+      (a) => !/[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(a) && a.trim().includes(" ")
+    );
+    if (englishName && englishName.length >= 4) {
+      queryPromises.push(movieApi.getMovies({ keyword: englishName.trim(), page: 1, limit: 24 }));
+      queryPromises.push(movieApi.getMovies({ keyword: englishName.trim(), page: 2, limit: 24 }));
     }
   } else {
     // Nếu chưa có trong ACTOR_TOP_TITLES, tìm theo cụm từ tên đầy đủ (TUYỆT ĐỐI KHÔNG dùng từ đơn lẻ)
