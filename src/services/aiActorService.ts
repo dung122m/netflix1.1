@@ -64,25 +64,31 @@ export async function resolveActorMovies(keyword: string): Promise<{
     };
   }
 
-  // 1.2 Phân tích trực tiếp qua Fast AI (Groq Qwen 3.8 / Cloudflare / Gemini Flash)
+  // 1.2 Phân tích trực tiếp qua Fast AI (Qwen 3.8 / Gemini Flash)
   try {
-    const promptText = `Người dùng tìm kiếm: "${keyword}".
-Hãy phân tích xem từ khóa này có phải là TÊN DIỄN VIÊN / ĐẠO DIỄN ĐIỆN ẢNH (hoặc diễn viên kèm vai diễn / bối cảnh cụ thể) không?
+    const promptText = `Bạn là Chuyên gia Bách khoa Toàn thư Điện ảnh thế giới (Hollywood, Hoa Ngữ, TVB Hồng Kông, Hàn Quốc K-Drama, Việt Nam, Nhật Bản, Anime).
+Hãy phân tích từ khóa tìm kiếm: "${keyword}".
 
-Nếu ĐÚNG là diễn viên/đạo diễn điện ảnh:
-Hãy trích xuất 6 đến 10 tác phẩm xuất sắc, có thật và phổ biến nhất tại Việt Nam (PhimAPI/Netflix) của nghệ sĩ này.
-Nếu người dùng tìm kèm vai diễn/nghề nghiệp/thể loại (ví dụ: làm thám tử, cảnh sát, sát thủ, võ thuật...), CHỈ CHỌN các phim đúng vai diễn hoặc bối cảnh này!
+Nhiệm vụ:
+1. Xác định xem từ khóa có phải là TÊN DIỄN VIÊN / ĐẠO DIỄN / NGHỆ SĨ (hoặc tên diễn viên kèm vai diễn/thể loại) hay không.
+2. Nếu ĐÚNG:
+   - "actorName": Tên chuẩn tiếng Việt của nghệ sĩ (vd: Dương Mịch, Lý Liên Kiệt, Châu Tinh Trì, Thành Long, Tom Cruise, Son Ye-jin, Hyun Bin, Trấn Thành).
+   - "country": Xác định ĐÚNG QUỐC GIA / NỀN ĐIỆN ẢNH của nghệ sĩ (vd: Trung Quốc 🇨🇳, Hồng Kông 🇭🇰, Hollywood 🇺🇸, Hàn Quốc 🇰🇷, Việt Nam 🇻🇳, Nhật Bản 🇯🇵). TUYỆT ĐỐI KHÔNG gán nhầm diễn viên quốc tế thành Việt Nam!
+   - "titles": Liệt kê 8 đến 12 TÁC PHẨM ĐIỆN ẢNH / TRUYỀN HÌNH NỔI TIẾNG NHẤT CÓ THẬT của nghệ sĩ này bằng tên tiếng Việt phổ biến kèm tên gốc/tiếng Anh trong ngoặc đơn.
+     Ví dụ:
+     - Dương Mịch: ["Tam Sinh Tam Thế Thập Lý Đào Hoa (Eternal Love)", "Cung Tỏa Tâm Ngọc (Palace)", "Tiên Kiếm Kỳ Hiệp 3 (Chinese Paladin 3)", "Cổ Kiếm Kỳ Đàm (Swords of Legends)", "Phù Dao Hoàng Hậu (Legend of Fuyao)", "Hộc Châu Phu Nhân (Novoland: Pearl Eclipse)", "Hồ Yêu Tiểu Hồng Nương (Fox Spirit Matchmaker)"]
+     - Lý Liên Kiệt: ["Hoàng Phi Hồng (Once Upon a Time in China)", "Tinh Võ Anh Hùng (Fist of Legend)", "Phương Thế Ngọc (Fong Sai-yuk)", "Thiếu Lâm Tự (The Shaolin Temple)", "Anh Hùng (Hero)", "Vua Kung Fu (The Forbidden Kingdom)", "Vũ Khí Tối Thượng 4 (Lethal Weapon 4)", "Biệt Đội Đánh Thuê (The Expendables)"]
+     - Châu Tinh Trì: ["Tuyệt Đỉnh Kungfu (Kung Fu Hustle)", "Đội Bóng Thiếu Lâm (Shaolin Soccer)", "Đại Thoại Tây Du (A Chinese Odyssey)", "Thánh Bài (All for the Winner)", "Quan Xẩm Lốc Cốc (Hail the Judge)", "Trường Học Uy Long (Fight Back to School)"]
 
-Trả về DUY NHẤT một chuỗi JSON hợp lệ:
+BẮT BUỘC chỉ trả về DUY NHẤT một chuỗi JSON hợp lệ:
 {
   "isActor": true,
-  "actorName": "Tên tiếng Việt chuẩn của diễn viên (vd: Châu Tinh Trì, Tạ Đình Phong, Trường Giang, Tom Cruise)",
-  "country": "Quốc gia (vd: Hồng Kông 🇭🇰, Việt Nam 🇻🇳, Hàn Quốc 🇰🇷, Hollywood 🇺🇸)",
-  "titles": ["Tên phim 1 tiếng Việt", "Tên phim 2", "Tên phim 3", "Tên phim 4", "Tên phim 5", "Tên phim 6"]
+  "actorName": "Tên chuẩn nghệ sĩ",
+  "country": "Quốc gia chính xác kèm cờ",
+  "titles": ["Tên phim 1", "Tên phim 2", "Tên phim 3", "Tên phim 4", "Tên phim 5", "Tên phim 6", "Tên phim 7", "Tên phim 8"]
 }
 
-Nếu KHÔNG PHẢI là diễn viên/đạo diễn (mà là tên phim bình thường, thể loại, hoặc từ vô nghĩa):
-Trả về DUY NHẤT:
+Nếu KHÔNG PHẢI là diễn viên/nghệ sĩ:
 {
   "isActor": false
 }`;
@@ -91,44 +97,45 @@ Trả về DUY NHẤT:
       systemPrompt: "Bạn là chuyên gia bách khoa toàn thư điện ảnh. Trả về DUY NHẤT định dạng JSON.",
       userPrompt: promptText,
       temperature: 0.1,
-      maxTokens: 500,
+      maxTokens: 600,
       jsonMode: true,
-      timeoutMs: 4000,
+      timeoutMs: 6500,
     });
 
     if (aiRes && aiRes.text) {
       const cleaned = aiRes.text.replace(/```(?:json)?\s*/gi, "").replace(/\s*```/g, "").trim();
       const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-      const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : cleaned);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
 
-      if (parsed.isActor && Array.isArray(parsed.titles) && parsed.titles.length > 0) {
-        const actorName = parsed.actorName || keyword;
-        const country = parsed.country || undefined;
-        const titles = parsed.titles.filter((t: unknown): t is string => typeof t === "string" && t.trim().length > 0);
+        if (parsed.isActor && Array.isArray(parsed.titles) && parsed.titles.length > 0) {
+          const actorName = parsed.actorName || keyword;
+          const country = parsed.country || undefined;
+          const titles = parsed.titles.filter((t: unknown): t is string => typeof t === "string" && t.trim().length > 0);
 
-        ACTOR_AI_CACHE.set(clean, {
-          actorName,
-          country,
-          titles,
-          isActor: true,
-          expireAt: Date.now() + CACHE_7_DAYS,
-        });
+          ACTOR_AI_CACHE.set(clean, {
+            actorName,
+            country,
+            titles,
+            isActor: true,
+            expireAt: Date.now() + CACHE_7_DAYS,
+          });
 
-        return {
-          actorName,
-          country,
-          titles,
-          isActor: true,
-          source: "ai",
-        };
-      } else {
-        // Cache lại kết quả false trong 1 ngày để không gọi AI liên tục cho từ khóa không phải diễn viên
-        ACTOR_AI_CACHE.set(clean, {
-          actorName: "",
-          titles: [],
-          isActor: false,
-          expireAt: Date.now() + 24 * 60 * 60 * 1000,
-        });
+          return {
+            actorName,
+            country,
+            titles,
+            isActor: true,
+            source: "ai",
+          };
+        } else {
+          ACTOR_AI_CACHE.set(clean, {
+            actorName: "",
+            titles: [],
+            isActor: false,
+            expireAt: Date.now() + 24 * 60 * 60 * 1000,
+          });
+        }
       }
     }
   } catch (err) {
@@ -144,8 +151,8 @@ Trả về DUY NHẤT:
 }
 
 /**
- * 2. TÌM KIẾM VÀ SO KHỚP CHÍNH XÁC 1:1 PHIM TỪ KHO PHIM API (CÓ BỘ NHỚ ĐỆM 1 GIỜ)
- * Loại bỏ triệt để các phim lạc đề, chỉ giữ lại các phim khớp chính xác
+ * 2. TÌM KIẾM VÀ SO KHỚP CHÍNH XÁC PHIM TỪ KHO PHIM API (CÓ BỘ NHỚ ĐỆM 1 GIỜ)
+ * Hỗ trợ tìm cả tên tiếng Việt và tên tiếng Anh / Quốc tế trong ngoặc để tối đa hóa tỷ lệ tìm thấy
  */
 export async function fetchMoviesByTitles(
   titles: string[],
@@ -165,18 +172,36 @@ export async function fetchMoviesByTitles(
   const results: any[] = [];
 
   // Thực thi song song tìm kiếm từng tựa phim
-  const tasks = titles.slice(0, 12).map(async (t) => {
+  const tasks = titles.slice(0, 14).map(async (rawTitle) => {
     try {
-      const cleanTarget = normalizeForMatch(t.replace(/\([^)]*\)/g, ""));
-      if (!cleanTarget) return null;
+      const viTitle = rawTitle.replace(/\([^)]*\)/g, "").trim();
+      const matchEng = rawTitle.match(/\(([^)]+)\)/);
+      const engTitle = matchEng ? matchEng[1].trim() : "";
 
-      const res = await movieApi.getMovies({
-        keyword: t.replace(/\([^)]*\)/g, "").trim(),
+      const cleanTargetVi = normalizeForMatch(viTitle);
+      const cleanTargetEng = normalizeForMatch(engTitle);
+
+      if (!cleanTargetVi && !cleanTargetEng) return null;
+
+      // 1. Thử tìm bằng tên tiếng Việt trước
+      let res = await movieApi.getMovies({
+        keyword: viTitle,
         page: 1,
         limit: 5,
       });
 
-      const items = res?.items || [];
+      let items = res?.items || [];
+
+      // 2. Nếu không ra kết quả mà có tên tiếng Anh, thử tìm bằng tên tiếng Anh
+      if (items.length === 0 && engTitle) {
+        res = await movieApi.getMovies({
+          keyword: engTitle,
+          page: 1,
+          limit: 5,
+        });
+        items = res?.items || [];
+      }
+
       if (items.length === 0) return null;
 
       // Tìm bộ phim có tiêu đề khớp chính xác nhất với tên phim mục tiêu
@@ -189,27 +214,35 @@ export async function fetchMoviesByTitles(
         const slug = normalizeForMatch(it.slug || "");
 
         let score = 0;
-        if (name === cleanTarget || orig === cleanTarget || slug === cleanTarget.replace(/\s+/g, "-")) {
-          score += 100;
-        } else if (name.startsWith(cleanTarget) || orig.startsWith(cleanTarget)) {
-          score += 80;
-        } else if (name.includes(cleanTarget) || orig.includes(cleanTarget)) {
-          score += 60;
-        } else {
-          // So khớp từ khóa
-          const targetWords = cleanTarget.split(" ").filter((w) => w.length > 1);
-          const matchCount = targetWords.filter((w) => name.includes(w) || orig.includes(w) || slug.includes(w)).length;
-          const ratio = targetWords.length > 0 ? matchCount / targetWords.length : 0;
-          if (ratio >= 0.5) {
-            score += Math.round(ratio * 60);
-          } else {
-            score -= 20;
+
+        // So khớp với tên tiếng Việt
+        if (cleanTargetVi) {
+          if (name === cleanTargetVi || orig === cleanTargetVi || slug === cleanTargetVi.replace(/\s+/g, "-")) {
+            score = Math.max(score, 100);
+          } else if (name.startsWith(cleanTargetVi) || orig.startsWith(cleanTargetVi)) {
+            score = Math.max(score, 80);
+          } else if (name.includes(cleanTargetVi) || orig.includes(cleanTargetVi)) {
+            score = Math.max(score, 60);
           }
         }
 
-        // Độ dài lệch
-        const lenDiff = Math.abs(name.length - cleanTarget.length);
-        score -= Math.min(20, lenDiff * 0.8);
+        // So khớp với tên tiếng Anh / gốc
+        if (cleanTargetEng) {
+          if (orig === cleanTargetEng || name === cleanTargetEng || slug === cleanTargetEng.replace(/\s+/g, "-")) {
+            score = Math.max(score, 95);
+          } else if (orig.includes(cleanTargetEng) || name.includes(cleanTargetEng)) {
+            score = Math.max(score, 70);
+          }
+        }
+
+        if (score === 0 && cleanTargetVi) {
+          const targetWords = cleanTargetVi.split(" ").filter((w) => w.length > 1);
+          const matchCount = targetWords.filter((w) => name.includes(w) || orig.includes(w) || slug.includes(w)).length;
+          const ratio = targetWords.length > 0 ? matchCount / targetWords.length : 0;
+          if (ratio >= 0.6) {
+            score = Math.round(ratio * 55);
+          }
+        }
 
         if (score > bestScore) {
           bestScore = score;
@@ -217,8 +250,8 @@ export async function fetchMoviesByTitles(
         }
       }
 
-      // Chỉ trả về khi có độ khớp hợp lý (tránh fallback lấy bừa phim đầu tiên gây lạc đề)
-      if (bestItem && bestScore >= 25) {
+      // Chỉ lấy phim có độ khớp thực sự (>= 35 điểm) để tránh nhận nhầm phim không liên quan
+      if (bestItem && bestScore >= 35) {
         return bestItem;
       }
       return null;

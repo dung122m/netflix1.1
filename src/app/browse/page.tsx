@@ -269,14 +269,25 @@ export default async function BrowsePage({
           });
         }
       }
+
+      // Chỉ bổ sung thêm phim từ kết quả tìm kiếm gốc nếu nghệ sĩ thực sự có tên trong dàn cast
+      const normActorName = cleanNormalizedForMatch(actorRes.actorName);
       for (const m of movies) {
         if (m?.slug && !seenSlugs.has(m.slug)) {
-          seenSlugs.add(m.slug);
-          combined.push(m);
+          const castStr = cleanNormalizedForMatch(
+            Array.isArray(m.actor) ? m.actor.join(" ") : typeof m.actor === "string" ? m.actor : ""
+          );
+          if (normActorName && castStr && castStr.includes(normActorName)) {
+            seenSlugs.add(m.slug);
+            combined.push({
+              ...m,
+              isActorFilmography: true,
+            });
+          }
         }
       }
       movies = combined;
-      totalItems = Math.max(movies.length, response?.pagination?.totalItems || 0);
+      totalItems = combined.length;
     }
   }
 
