@@ -8,6 +8,7 @@ import {
   getTabSessionId,
 } from "@/services/handoffService";
 import { getWatchHistory, WatchHistoryItem } from "@/lib/watchHistory";
+import { toOptimizedPhimimgUrl } from "@/lib/movieMedia";
 import { Play, X, Sparkles, Smartphone, Laptop, Tablet } from "lucide-react";
 
 interface UnifiedSession {
@@ -43,9 +44,9 @@ export function ContinueWatchingWidget() {
   const [isHovered, setIsHovered] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
-  const [progressPercent, setProgressPercent] = useState(100);
+  const [isProgressActive, setIsProgressActive] = useState(false);
 
-  const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const countdownTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const tooltipTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const widgetRef = useRef<HTMLDivElement>(null);
 
@@ -180,38 +181,39 @@ export function ContinueWatchingWidget() {
     }
   }, [session, pathname]);
 
-  // 3. Tự động thu gọn từ Toast thành Bubble sau 3.5 giây đếm ngược
+  // 3. Tự động thu gọn từ Toast thành Bubble sau 3.5 giây đếm ngược qua CSS transition và single setTimeout
   useEffect(() => {
     if (viewState !== "toast") {
-      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+      setIsProgressActive(false);
+      if (countdownTimeoutRef.current) {
+        clearTimeout(countdownTimeoutRef.current);
+        countdownTimeoutRef.current = null;
+      }
       return;
     }
 
     if (isHovered) {
       // Khi rê chuột vào Toast: Tạm dừng đếm ngược
-      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+      setIsProgressActive(false);
+      if (countdownTimeoutRef.current) {
+        clearTimeout(countdownTimeoutRef.current);
+        countdownTimeoutRef.current = null;
+      }
       return;
     }
 
-    const DURATION = 3500; // 3.5 giây
-    const INTERVAL = 50;
-    let elapsed = 0;
+    // Kích hoạt CSS transition từ 100% -> 0%
+    setIsProgressActive(true);
 
-    const timer = setInterval(() => {
-      elapsed += INTERVAL;
-      const remaining = Math.max(0, 100 - (elapsed / DURATION) * 100);
-      setProgressPercent(remaining);
+    const timer = setTimeout(() => {
+      setViewState("bubble");
+    }, 3500);
 
-      if (elapsed >= DURATION) {
-        clearInterval(timer);
-        setViewState("bubble");
-      }
-    }, INTERVAL);
-
-    countdownIntervalRef.current = timer;
+    countdownTimeoutRef.current = timer;
 
     return () => {
-      clearInterval(timer);
+      clearTimeout(timer);
+      countdownTimeoutRef.current = null;
     };
   }, [viewState, isHovered]);
 
@@ -366,7 +368,7 @@ export function ContinueWatchingWidget() {
             <div className="relative w-10 h-13 sm:w-11 sm:h-14 rounded-lg overflow-hidden bg-zinc-900 flex-shrink-0 border border-white/15 shadow-md">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={session.posterUrl}
+                src={toOptimizedPhimimgUrl(session.posterUrl, 192)}
                 alt={session.movieTitle}
                 className="w-full h-full object-cover group-hover/card:scale-105 transition-transform"
                 onError={(e) => {
@@ -377,9 +379,9 @@ export function ContinueWatchingWidget() {
 
             {/* Chi tiết */}
             <div className="flex-1 min-w-0 pr-1">
-              <h4 className="text-xs sm:text-sm font-bold text-white truncate group-hover/card:text-rose-400 transition-colors">
+              <p className="text-xs sm:text-sm font-bold text-white truncate group-hover/card:text-rose-400 transition-colors">
                 {session.movieTitle}
-              </h4>
+              </p>
               <p className="text-[11px] text-gray-300 truncate mt-0.5">
                 {session.episodeName || "Tập phim"} •{" "}
                 <span className="font-mono text-rose-300 font-bold">
@@ -411,10 +413,13 @@ export function ContinueWatchingWidget() {
           </div>
 
           {/* Thanh đếm ngược thời gian tự thu gọn thành bubble */}
-          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white/10">
+          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white/10 overflow-hidden">
             <div
-              className="h-full bg-rose-500/70 transition-all ease-linear"
-              style={{ width: `${progressPercent}%` }}
+              className="h-full bg-rose-500/70"
+              style={{
+                width: isProgressActive ? "0%" : "100%",
+                transition: isProgressActive ? "width 3500ms linear" : "none",
+              }}
             />
           </div>
         </div>
@@ -446,7 +451,7 @@ export function ContinueWatchingWidget() {
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={session.posterUrl}
+                  src={toOptimizedPhimimgUrl(session.posterUrl, 192)}
                   alt={session.movieTitle}
                   className="w-full h-full object-cover group-hover/thumb:scale-105 transition-transform duration-300"
                   onError={(e) => {
@@ -469,13 +474,13 @@ export function ContinueWatchingWidget() {
                     </span>
                   )}
                 </div>
-                <h4
+                <p
                   onClick={handleResume}
                   className="text-xs sm:text-sm font-bold text-white truncate cursor-pointer hover:text-rose-400 transition-colors mt-0.5"
                   title={session.movieTitle}
                 >
                   {session.movieTitle}
-                </h4>
+                </p>
                 {session.episodeName && (
                   <p className="text-[10px] text-gray-400 truncate mt-0.5">
                     {session.episodeName}
@@ -555,7 +560,7 @@ export function ContinueWatchingWidget() {
             <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden bg-zinc-900 border border-white/10 flex items-center justify-center">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={session.posterUrl}
+                src={toOptimizedPhimimgUrl(session.posterUrl, 192)}
                 alt={session.movieTitle}
                 className="w-full h-full object-cover group-hover/btn:scale-110 transition-transform duration-300"
                 onError={(e) => {

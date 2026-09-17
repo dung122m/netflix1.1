@@ -24,6 +24,26 @@ const HISTORY_KEY = "nanaflix_watch_history";
 const EPISODES_PROGRESS_KEY = "nanaflix_episodes_progress";
 const MAX_HISTORY_ITEMS = 20;
 
+// Module-level in-memory cache tránh parse JSON lặp lại mỗi khi đọc lịch sử xem
+let memoryWatchHistory: WatchHistoryItem[] | null = null;
+
+function updateMemoryWatchHistory(list: WatchHistoryItem[]): void {
+  memoryWatchHistory = list;
+}
+
+function invalidateMemoryWatchHistory(): void {
+  memoryWatchHistory = null;
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", (e) => {
+    if (e.key === HISTORY_KEY) {
+      invalidateMemoryWatchHistory();
+      window.dispatchEvent(new CustomEvent("watch-history-updated"));
+    }
+  });
+}
+
 // Bản đồ lưu tiến trình chi tiết từng tập: { [movieSlug]: { [episodeSlug]: { progressSeconds, durationSeconds, updatedAt } } }
 export interface EpisodeProgressMap {
   [movieSlug: string]: {
@@ -82,12 +102,22 @@ export const getEpisodeProgress = (movieSlug: string, episodeSlug: string): numb
 
 export const getWatchHistory = (): WatchHistoryItem[] => {
   if (typeof window === "undefined") return [];
+  if (memoryWatchHistory !== null) {
+    return memoryWatchHistory;
+  }
   try {
     const raw = localStorage.getItem(HISTORY_KEY);
-    if (!raw) return [];
-    return JSON.parse(raw);
+    if (!raw) {
+      updateMemoryWatchHistory([]);
+      return [];
+    }
+    const parsed = JSON.parse(raw);
+    const list = Array.isArray(parsed) ? parsed : [];
+    updateMemoryWatchHistory(list);
+    return list;
   } catch (error) {
     console.error("Lỗi đọc lịch sử xem:", error);
+    updateMemoryWatchHistory([]);
     return [];
   }
 };
@@ -111,6 +141,7 @@ export const saveWatchHistory = (
     };
 
     const updated = [newItem, ...filtered].slice(0, MAX_HISTORY_ITEMS);
+    updateMemoryWatchHistory(updated);
     localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
     window.dispatchEvent(new CustomEvent("watch-history-updated"));
 
@@ -165,6 +196,7 @@ export const saveWatchProgress = (
         existing.episodeSlug = episodeSlug;
       }
       existing.updatedAt = Date.now();
+      updateMemoryWatchHistory([...list]);
       localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
     }
 
@@ -215,6 +247,7 @@ export const removeWatchHistoryItem = (slug: string): void => {
   try {
     const list = getWatchHistory();
     const updated = list.filter((i) => i.slug !== slug);
+    updateMemoryWatchHistory(updated);
     localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
     window.dispatchEvent(new CustomEvent("watch-history-updated"));
 
@@ -229,6 +262,7 @@ export const removeWatchHistoryItem = (slug: string): void => {
 export const clearLocalWatchHistoryOnly = (): void => {
   if (typeof window === "undefined") return;
   try {
+    updateMemoryWatchHistory([]);
     localStorage.removeItem(HISTORY_KEY);
     window.dispatchEvent(new CustomEvent("watch-history-updated"));
   } catch (error) {
@@ -239,6 +273,7 @@ export const clearLocalWatchHistoryOnly = (): void => {
 export const clearWatchHistory = (): void => {
   if (typeof window === "undefined") return;
   try {
+    updateMemoryWatchHistory([]);
     localStorage.removeItem(HISTORY_KEY);
     window.dispatchEvent(new CustomEvent("watch-history-updated"));
 

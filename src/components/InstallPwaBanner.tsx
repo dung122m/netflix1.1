@@ -1,7 +1,12 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { InstallPwaModal } from "./InstallPwaModal";
+import dynamic from "next/dynamic";
+
+const InstallPwaModal = dynamic(
+  () => import("./InstallPwaModal").then((mod) => mod.InstallPwaModal),
+  { ssr: false }
+);
 
 export const InstallPwaBanner: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
@@ -42,5 +47,7 @@ export const InstallPwaBanner: React.FC = () => {
     };
   }, []);
 
-  return <InstallPwaModal isOpen={showModal} onClose={() => setShowModal(false)} />;
+  return showModal ? (
+    <InstallPwaModal isOpen={showModal} onClose={() => setShowModal(false)} />
+  ) : null;
 };

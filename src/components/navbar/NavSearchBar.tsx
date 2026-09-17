@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Search, Loader2, X, History, ArrowLeft } from "lucide-react";
 import { useDebounce } from "@/hooks/useDebounce";
+import { toOptimizedPhimimgUrl } from "@/lib/movieMedia";
 
 export interface SearchSuggestion {
   slug: string;
@@ -459,7 +460,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
                       >
                         <div className="relative w-10 h-14 bg-zinc-800 rounded overflow-hidden flex-none border border-white/10">
                           <Image
-                            src={item.poster}
+                            src={toOptimizedPhimimgUrl(item.poster, 192)}
                             alt={item.title}
                             fill
                             unoptimized
@@ -652,7 +653,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
                     >
                       <div className="relative w-10 h-14 bg-zinc-800 rounded overflow-hidden flex-none border border-white/10">
                         <Image
-                          src={item.poster}
+                          src={toOptimizedPhimimgUrl(item.poster, 192)}
                           alt={item.title}
                           fill
                           unoptimized

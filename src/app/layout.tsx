@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Plus_Jakarta_Sans } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import SmoothScroll from "@/components/SmoothScroll";
 import { BackToTop } from "@/components/BackToTop";
@@ -14,12 +14,6 @@ import { NavigationProgressBar } from "@/components/NavigationProgressBar";
 
 const inter = Inter({
   variable: "--font-sans",
-  subsets: ["latin", "vietnamese"],
-  display: "swap",
-});
-
-const plusJakartaSans = Plus_Jakarta_Sans({
-  variable: "--font-heading",
   subsets: ["latin", "vietnamese"],
   display: "swap",
 });
@@ -109,7 +103,7 @@ export default function RootLayout({
     <html
       lang="vi"
       suppressHydrationWarning
-      className={`${inter.variable} ${plusJakartaSans.variable} font-sans antialiased bg-black text-white`}
+      className={`${inter.variable} font-sans antialiased bg-black text-white`}
     >
       <head>
         {/* PWA & Mobile Web App */}
@@ -128,30 +122,17 @@ export default function RootLayout({
           content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover"
         />
 
-        {/* DNS Prefetch & Preconnect cho image CDNs, Supabase & Gemini AI */}
-        <link rel="preconnect" href="https://hbrubnilyefrjtglhyap.supabase.co" crossOrigin="anonymous" />
-        <link rel="dns-prefetch" href="https://hbrubnilyefrjtglhyap.supabase.co" />
-        <link rel="preconnect" href="https://generativelanguage.googleapis.com" crossOrigin="anonymous" />
-        <link rel="dns-prefetch" href="https://generativelanguage.googleapis.com" />
-        <link rel="preconnect" href="https://phimimg.com" crossOrigin="anonymous" />
+        {/* Preconnect tối ưu duy nhất cho ảnh direct CDN phimimg (không có crossOrigin để khớp với thẻ <img>) */}
+        <link rel="preconnect" href="https://phimimg.com" />
         <link rel="dns-prefetch" href="https://phimimg.com" />
-        <link rel="preconnect" href="https://img.phimapi.com" crossOrigin="anonymous" />
-        <link rel="dns-prefetch" href="https://img.phimapi.com" />
-        <link rel="preconnect" href="https://phim.nguonc.com" crossOrigin="anonymous" />
-        <link rel="dns-prefetch" href="https://phim.nguonc.com" />
-        <link rel="preconnect" href="https://img.gvapi.cc" crossOrigin="anonymous" />
-        <link rel="dns-prefetch" href="https://img.gvapi.cc" />
-        <link rel="preconnect" href="https://image.tmdb.org" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://image.tmdb.org" />
-        <link rel="preconnect" href="https://m.media-amazon.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://img.phimapi.com" />
+        <link rel="dns-prefetch" href="https://phim.nguonc.com" />
+        <link rel="dns-prefetch" href="https://img.gvapi.cc" />
         <link rel="dns-prefetch" href="https://m.media-amazon.com" />
-        <link rel="preconnect" href="https://images-na.ssl-images-amazon.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://images-na.ssl-images-amazon.com" />
-        <link rel="preconnect" href="https://i.ytimg.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://i.ytimg.com" />
-        <link rel="preconnect" href="https://www.youtube-nocookie.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://www.youtube-nocookie.com" />
-        <link rel="preconnect" href="https://s1.phimapi.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://s1.phimapi.com" />
         <link rel="dns-prefetch" href="https://vip.opstream16.com" />
         <link rel="dns-prefetch" href="https://embed.streamc.xyz" />

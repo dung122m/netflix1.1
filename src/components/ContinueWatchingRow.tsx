@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Play, X, Clock, ChevronLeft, ChevronRight } from "lucide-react";
@@ -19,13 +19,22 @@ export function ContinueWatchingRow() {
   const [canScrollRight, setCanScrollRight] = useState(false);
 
   const rowRef = useRef<HTMLDivElement>(null);
+  const rafRef = useRef<number | null>(null);
 
-  const checkScroll = () => {
-    if (!rowRef.current) return;
-    const { scrollLeft, scrollWidth, clientWidth } = rowRef.current;
-    setCanScrollLeft(scrollLeft > 10);
-    setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 10);
-  };
+  const checkScroll = useCallback(() => {
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current);
+    }
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = null;
+      if (!rowRef.current) return;
+      const { scrollLeft, scrollWidth, clientWidth } = rowRef.current;
+      const nextLeft = scrollLeft > 10;
+      const nextRight = scrollLeft + clientWidth < scrollWidth - 10;
+      setCanScrollLeft((prev) => (prev !== nextLeft ? nextLeft : prev));
+      setCanScrollRight((prev) => (prev !== nextRight ? nextRight : prev));
+    });
+  }, []);
 
   useEffect(() => {
     setIsClient(true);
@@ -49,12 +58,15 @@ export function ContinueWatchingRow() {
     }
     window.addEventListener("resize", checkScroll);
     return () => {
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+      }
       if (currentRef) {
         currentRef.removeEventListener("scroll", checkScroll);
       }
       window.removeEventListener("resize", checkScroll);
     };
-  }, [items]);
+  }, [items, checkScroll]);
 
   if (!isClient || items.length === 0) {
     return null;
@@ -67,6 +79,7 @@ export function ContinueWatchingRow() {
       left: direction === "left" ? -scrollAmount : scrollAmount,
       behavior: "smooth",
     });
+    checkScroll();
   };
 
   const handleRemove = (e: React.MouseEvent, slug: string) => {
@@ -192,16 +205,16 @@ export function ContinueWatchingRow() {
 
                   {/* THÔNG TIN PHIM */}
                   <div className="p-3">
-                    <h3 className="text-white text-sm font-semibold truncate group-hover:text-netflix-red transition-colors">
+                    <h3 className="text-white text-sm font-semibold truncate group-hover:text-rose-400 transition-colors">
                       {item.title}
                     </h3>
-                    <div className="flex items-center justify-between text-xs text-gray-400 mt-1">
-                      <span className="text-netflix-red font-semibold flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-netflix-red animate-pulse" />
+                    <div className="flex items-center justify-between text-xs text-zinc-300 mt-1">
+                      <span className="text-rose-400 font-semibold flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
                         <span>{item.episodeName ? formatEpisodeName(item.episodeName) : "Đang xem dở"}</span>
                       </span>
                       {item.quality && (
-                        <span className="bg-zinc-800/90 border border-white/10 px-1.5 py-0.5 rounded text-[10px] text-gray-300 font-semibold">
+                        <span className="bg-zinc-800/90 border border-white/10 px-1.5 py-0.5 rounded text-[10px] text-zinc-200 font-semibold">
                           {item.quality}
                         </span>
                       )}

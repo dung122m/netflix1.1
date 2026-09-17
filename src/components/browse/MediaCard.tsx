@@ -607,31 +607,31 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           </span>
         </div>
 
-        {/* 3. LỚP PHỦ THÔNG TIN CHÂN CARD: HIỂN THỊ NĂM, THỜI LƯỢNG/TẬP, TIẾNG (ĐỒNG NHẤT, GỌN GÀNG) */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent flex flex-col justify-end p-3 sm:p-4">
+        {/* 3. LỚP PHỦ THÔNG TIN CHÂN CARD: HIỂN THỊ NĂM, THỜI LƯỢNG/TẬP, TIẾNG (ĐỒNG NHẤT, GỌN GÀNG, CONTRAST CAO) */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/75 to-transparent flex flex-col justify-end p-3 sm:p-4">
           {matchSnippet && (
             <div className="mb-1.5 flex items-center gap-1 text-[9px] text-amber-300 font-bold bg-amber-500/20 border border-amber-500/30 px-2 py-0.5 rounded-md backdrop-blur-md shadow-sm line-clamp-1">
               <span className="flex-none">💬 Khớp tóm tắt:</span>
               <span className="font-normal italic text-amber-200/90 truncate">{matchSnippet}</span>
             </div>
           )}
-          <h4 className="text-white font-black text-sm sm:text-base line-clamp-1 drop-shadow-md">
+          <p className="text-white font-black text-sm sm:text-base line-clamp-1 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
             {title}
-          </h4>
-          <div className="flex items-center gap-2 text-xs font-semibold text-gray-300 mt-1 flex-wrap">
+          </p>
+          <div className="flex items-center gap-2 text-xs font-semibold text-zinc-200 mt-1 flex-wrap">
             {displayYear && (
               <span>{displayYear}</span>
             )}
             {displayTime && (
               <>
-                {displayYear && <span className="text-white/30">•</span>}
-                <span className="truncate max-w-[120px]">{displayTime}</span>
+                {displayYear && <span className="text-white/40">•</span>}
+                <span className="truncate max-w-[120px] text-white font-medium">{displayTime}</span>
               </>
             )}
             {lang && (
               <>
-                {(displayYear || displayTime) && <span className="text-white/30">•</span>}
-                <span className="text-rose-400 font-bold">{lang}</span>
+                {(displayYear || displayTime) && <span className="text-white/40">•</span>}
+                <span className="text-rose-300 font-bold">{lang}</span>
               </>
             )}
           </div>
@@ -786,9 +786,9 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           {/* 2. Tiêu đề phim & Tên gốc */}
           <div>
             <Link href={`/movies/${slug}`} className="block group/title">
-              <h4 className="text-white font-extrabold text-xs sm:text-[13px] line-clamp-1 group-hover/title:text-netflix-red transition-colors">
+              <p className="text-white font-extrabold text-xs sm:text-[13px] line-clamp-1 group-hover/title:text-rose-400 transition-colors">
                 {title}
-              </h4>
+              </p>
             </Link>
             {displayOrigin && displayOrigin !== title && (
               <p className="text-[9.5px] text-gray-400 truncate italic">

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -15,7 +15,7 @@ import { MovieViewStatItem } from "@/services/supabaseService";
 import { pickBestMoviePoster, toOptimizedPhimimgUrl } from "@/lib/movieMedia";
 
 export function CommunityTopTrending() {
-  const TRENDING_CACHE_KEY = "nanaflix_trending_community_cache_v2";
+  const TRENDING_CACHE_KEY = "nanaflix_trending_community_cache_v3";
 
   const [items, setItems] = useState<MovieViewStatItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -178,13 +178,30 @@ export function CommunityTopTrending() {
     }
   };
 
-  const checkScroll = () => {
-    if (scrollContainerRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
-      setCanScrollLeft(scrollLeft > 20);
-      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 20);
+  const rafRef = useRef<number | null>(null);
+
+  const checkScroll = useCallback(() => {
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current);
     }
-  };
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = null;
+      if (!scrollContainerRef.current) return;
+      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
+      const nextLeft = scrollLeft > 20;
+      const nextRight = scrollLeft < scrollWidth - clientWidth - 20;
+      setCanScrollLeft((prev) => (prev !== nextLeft ? nextLeft : prev));
+      setCanScrollRight((prev) => (prev !== nextRight ? nextRight : prev));
+    });
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+      }
+    };
+  }, []);
 
   const handleScroll = (direction: "left" | "right") => {
     if (scrollContainerRef.current) {
@@ -193,11 +210,18 @@ export function CommunityTopTrending() {
         left: direction === "left" ? -scrollAmount : scrollAmount,
         behavior: "smooth",
       });
+      checkScroll();
     }
   };
 
   return (
-    <section className="relative my-8 sm:my-12 select-none">
+    <section
+      className="relative my-8 sm:my-12 select-none"
+      style={{
+        contentVisibility: "auto",
+        containIntrinsicSize: "auto 480px",
+      }}
+    >
       {/* HEADER SECTION */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-5 px-1">
         <div>

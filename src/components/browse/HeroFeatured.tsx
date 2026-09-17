@@ -431,22 +431,27 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
             <ChevronRight size={22} />
           </button>
 
-          {/* CHẤM CHỈ SỐ PHÂN TRANG (DOTS) */}
-          <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2">
+          {/* CHẤM CHỈ SỐ PHÂN TRANG (DOTS VỚI TOUCH TARGET CHUẨN 44x44PX) */}
+          <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-center">
             {slides.map((_, i) => (
               <button
                 key={i}
+                type="button"
                 aria-label={`Chuyển slide ${i + 1}`}
                 onClick={() => {
                   setDirection(i > index ? 1 : -1);
                   setIndex(i);
                 }}
-                className={`h-2 rounded-full transition-all duration-300 ${
-                  i === index
-                    ? "w-8 bg-netflix-red shadow-[0_0_10px_rgba(229,9,20,0.8)]"
-                    : "w-2 bg-white/40 hover:bg-white/80"
-                }`}
-              />
+                className="w-11 h-11 flex items-center justify-center cursor-pointer touch-manipulation focus:outline-none"
+              >
+                <span
+                  className={`h-2 rounded-full transition-all duration-300 block ${
+                    i === index
+                      ? "w-8 bg-netflix-red shadow-[0_0_10px_rgba(229,9,20,0.8)]"
+                      : "w-2 bg-white/40 hover:bg-white/80"
+                  }`}
+                />
+              </button>
             ))}
           </div>
 
