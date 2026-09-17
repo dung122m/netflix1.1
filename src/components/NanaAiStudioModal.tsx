@@ -398,7 +398,7 @@ export const NanaAiStudioModal: React.FC<NanaAiStudioModalProps> = ({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className={`relative w-full max-w-3xl h-[88dvh] max-h-[760px] sm:min-h-[480px] bg-zinc-950 rounded-2xl sm:rounded-3xl border shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 ${
+        className={`relative w-full max-w-xl sm:max-w-2xl h-[82dvh] max-h-[640px] sm:min-h-[460px] bg-zinc-950 rounded-2xl sm:rounded-3xl border shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 ${
           activeTab === "concierge"
             ? "border-pink-500/30 shadow-pink-950/40"
             : "border-amber-500/35 shadow-amber-950/40"
@@ -420,43 +420,43 @@ export const NanaAiStudioModal: React.FC<NanaAiStudioModalProps> = ({
         {/* ========================================================= */}
         {/* DEDICATED PINNED HEADER FOR EACH MODE (NO REDUNDANT TABS) */}
         {/* ========================================================= */}
-        <div className="relative z-30 flex items-center justify-between px-3 sm:px-6 py-2.5 sm:py-3.5 border-b border-white/10 bg-zinc-900/98 backdrop-blur-xl shrink-0 gap-2">
+        <div className="relative z-30 flex items-center justify-between px-3 sm:px-4 py-2 sm:py-2.5 border-b border-white/10 bg-zinc-900/98 backdrop-blur-xl shrink-0 gap-2">
           {activeTab === "concierge" ? (
-            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-              <div className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-br from-pink-500 via-rose-600 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-pink-600/30 shrink-0 ring-2 ring-pink-500/30">
-                <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-emerald-500 rounded-full border-2 border-zinc-900 animate-pulse" />
+            <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
+              <div className="relative w-7 h-7 sm:w-8.5 sm:h-8.5 rounded-xl bg-gradient-to-br from-pink-500 via-rose-600 to-purple-600 flex items-center justify-center text-white shadow-md shadow-pink-600/30 shrink-0 ring-1 ring-pink-500/30">
+                <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+                <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 sm:w-2.5 sm:h-2.5 bg-emerald-500 rounded-full border border-zinc-900 animate-pulse" />
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-                  <h2 className="text-xs sm:text-base font-black text-white truncate">
+                  <h2 className="text-xs sm:text-sm font-bold text-white truncate">
                     <span className="sm:hidden">Nana AI</span>
                     <span className="hidden sm:inline">Nana AI Trợ Lý Điện Ảnh</span>
                   </h2>
-                  <span className="hidden sm:inline-flex text-[9.5px] font-bold px-2 py-0.5 rounded-full bg-pink-500/20 text-pink-300 border border-pink-500/30 uppercase tracking-wider shrink-0">
+                  <span className="hidden sm:inline-flex text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-pink-500/20 text-pink-300 border border-pink-500/30 uppercase tracking-wider shrink-0">
                     Smart Chat
                   </span>
                 </div>
-                <p className="hidden sm:block text-[11px] text-gray-400 truncate">Hỏi đáp phim ảnh & nhận đề xuất kiệt tác theo gu chuẩn xác</p>
+                <p className="hidden sm:block text-[10.5px] text-gray-400 truncate">Hỏi đáp phim ảnh & nhận đề xuất kiệt tác theo gu chuẩn xác</p>
               </div>
             </div>
           ) : (
-            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-              <div className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-br from-amber-400 via-orange-500 to-rose-600 flex items-center justify-center text-white shadow-lg shadow-amber-500/30 shrink-0 ring-2 ring-amber-500/30">
-                <Dices className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-amber-400 rounded-full border-2 border-zinc-900 animate-ping" />
+            <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
+              <div className="relative w-7 h-7 sm:w-8.5 sm:h-8.5 rounded-xl bg-gradient-to-br from-amber-400 via-orange-500 to-rose-600 flex items-center justify-center text-white shadow-md shadow-amber-500/30 shrink-0 ring-1 ring-amber-500/30">
+                <Dices className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+                <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 sm:w-2.5 sm:h-2.5 bg-amber-400 rounded-full border border-zinc-900 animate-ping" />
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-                  <h2 className="text-xs sm:text-base font-black text-white truncate">
+                  <h2 className="text-xs sm:text-sm font-bold text-white truncate">
                     <span className="sm:hidden">Bốc Quẻ Phim</span>
                     <span className="hidden sm:inline">Bốc Quẻ Định Mệnh</span>
                   </h2>
-                  <span className="hidden sm:inline-flex text-[9.5px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase tracking-wider shrink-0">
+                  <span className="hidden sm:inline-flex text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase tracking-wider shrink-0">
                     Cinema Tarot
                   </span>
                 </div>
-                <p className="hidden sm:block text-[11px] text-gray-400 truncate">Vòng quay ngẫu nhiên chọn phim theo tâm trạng</p>
+                <p className="hidden sm:block text-[10.5px] text-gray-400 truncate">Vòng quay ngẫu nhiên chọn phim theo tâm trạng</p>
               </div>
             </div>
           )}
@@ -525,47 +525,47 @@ export const NanaAiStudioModal: React.FC<NanaAiStudioModalProps> = ({
                 className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3.5 sm:p-5 space-y-4 pr-2"
               >
                 {chatMessages.length === 0 ? (
-                  <div className="py-4 sm:py-6 text-center space-y-4 max-w-2xl mx-auto animate-in fade-in duration-200">
+                  <div className="py-2 sm:py-4 text-center space-y-3.5 max-w-xl mx-auto animate-in fade-in duration-200">
                     {/* Hero Bot Avatar */}
-                    <div className="relative w-16 h-16 rounded-3xl bg-gradient-to-br from-pink-500/20 via-purple-600/20 to-indigo-600/20 border border-pink-500/30 flex items-center justify-center text-pink-400 mx-auto shadow-2xl ring-4 ring-pink-500/10">
-                      <Sparkles className="w-8 h-8 text-pink-400 animate-pulse" />
+                    <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-pink-500/20 via-purple-600/20 to-indigo-600/20 border border-pink-500/30 flex items-center justify-center text-pink-400 mx-auto shadow-xl ring-2 ring-pink-500/10">
+                      <Sparkles className="w-6 h-6 sm:w-7 sm:h-7 text-pink-400 animate-pulse" />
                     </div>
 
-                    <div className="space-y-1.5">
-                      <h3 className="text-base sm:text-lg font-black text-white">
+                    <div className="space-y-1">
+                      <h3 className="text-sm sm:text-base font-black text-white">
                         Bạn đang tìm kiếm cảm xúc phim nào hôm nay?
                       </h3>
-                      <p className="text-xs text-gray-400 max-w-lg mx-auto">
-                        Hãy mô tả bất kỳ cốt truyện, diễn viên yêu thích, thể loại hoặc cảm xúc bạn muốn trải nghiệm, Nana AI sẽ tìm ra kiệt tác phù hợp nhất!
+                      <p className="text-[11.5px] sm:text-xs text-gray-400 max-w-md mx-auto">
+                        Mô tả cốt truyện, diễn viên, thể loại hoặc cảm xúc bạn muốn trải nghiệm, Nana AI sẽ tìm phim chuẩn gu!
                       </p>
                     </div>
 
                     {/* LUXURY INTERACTIVE QUICK PROMPT CARDS */}
-                    <div className="pt-2 text-left">
-                      <div className="text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-2.5 px-1 flex items-center gap-1.5">
-                        <Compass className="w-3.5 h-3.5 text-pink-400" />
+                    <div className="pt-1 text-left">
+                      <div className="text-[10.5px] font-bold uppercase tracking-wider text-gray-400 mb-2 px-1 flex items-center gap-1.5">
+                        <Compass className="w-3 h-3 text-pink-400" />
                         <span>Gợi ý chủ đề thịnh hành:</span>
                       </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {QUICK_CONCIERGE_PROMPTS.map((p, idx) => (
                           <button
                             key={idx}
                             type="button"
                             onClick={() => sendChatMessage(p.text)}
-                            className={`p-3 rounded-2xl border bg-gradient-to-br transition-all duration-200 cursor-pointer flex items-center gap-3 group text-left shadow-sm hover:scale-[1.01] hover:shadow-lg active:scale-[0.99] ${p.gradient}`}
+                            className={`p-2.5 rounded-xl border bg-gradient-to-br transition-all duration-200 cursor-pointer flex items-center gap-2.5 group text-left shadow-sm hover:scale-[1.01] hover:shadow-md active:scale-[0.99] ${p.gradient}`}
                           >
-                            <span className="text-2xl flex-none p-1 rounded-xl bg-black/40 border border-white/10 group-hover:scale-110 transition-transform">
+                            <span className="text-xl flex-none p-1 rounded-lg bg-black/40 border border-white/10 group-hover:scale-110 transition-transform">
                               {p.emoji}
                             </span>
                             <div className="flex-1 min-w-0">
                               <h4 className="text-xs font-bold text-white group-hover:text-pink-300 transition-colors truncate">
                                 {p.label}
                               </h4>
-                              <p className="text-[11px] text-gray-400 truncate">
+                              <p className="text-[10.5px] text-gray-400 truncate">
                                 {p.desc}
                               </p>
                             </div>
-                            <ChevronRight className="w-4 h-4 text-gray-500 group-hover:text-white group-hover:translate-x-0.5 transition flex-none" />
+                            <ChevronRight className="w-3.5 h-3.5 text-gray-500 group-hover:text-white group-hover:translate-x-0.5 transition flex-none" />
                           </button>
                         ))}
                       </div>
@@ -575,105 +575,108 @@ export const NanaAiStudioModal: React.FC<NanaAiStudioModalProps> = ({
                   chatMessages.map((m) => (
                     <div
                       key={m.id}
-                      className={`flex gap-2.5 sm:gap-3 ${m.role === "user" ? "justify-end" : "justify-start"} animate-in fade-in duration-150`}
+                      className={`flex gap-2 sm:gap-2.5 ${m.role === "user" ? "justify-end" : "justify-start"} animate-in fade-in duration-150`}
                     >
                       {m.role === "assistant" && (
-                        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center text-white flex-none mt-1 shadow-md shadow-pink-600/30">
-                          <Bot className="w-4 h-4 text-white" />
+                        <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center text-white flex-none mt-0.5 shadow-sm shadow-pink-600/30">
+                          <Bot className="w-3.5 h-3.5 text-white" />
                         </div>
                       )}
 
-                      <div
-                        className={`max-w-[88%] sm:max-w-[82%] p-3.5 sm:p-4 rounded-2xl text-xs sm:text-sm space-y-3 ${
-                          m.role === "user"
-                            ? "bg-gradient-to-r from-pink-600 via-rose-600 to-purple-600 text-white rounded-tr-sm shadow-xl shadow-pink-950/30 font-medium"
-                            : "bg-zinc-900/95 border border-white/15 text-gray-200 rounded-tl-sm shadow-xl backdrop-blur-md"
-                        }`}
-                      >
-                        <p className="leading-relaxed whitespace-pre-wrap select-text">{m.text}</p>
-
-                        {/* HIGH-END MOVIE RECOMMENDATION CARDS (TOP 3-4 PHIM XUẤT SẮC NHẤT) */}
-                        {m.movies && m.movies.length > 0 && (
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 mt-1 border-t border-white/10">
-                            {m.movies.slice(0, 4).map((mov, movIdx) => (
-                              <Link
-                                key={`${mov.slug || "movie"}-${movIdx}`}
-                                href={`/movies/${mov.slug}`}
-                                onClick={() => setIsOpen(false)}
-                                className="group relative flex gap-3 p-2.5 sm:p-3 rounded-2xl bg-zinc-950/80 hover:bg-zinc-900 border border-white/10 hover:border-pink-500/50 transition-all duration-300 shadow-lg hover:shadow-pink-950/25 hover:-translate-y-0.5 overflow-hidden"
-                              >
-                                {/* POSTER WITH PLAY OVERLAY */}
-                                <div className="relative w-20 sm:w-24 aspect-[2/3] rounded-xl overflow-hidden bg-zinc-900 flex-none border border-white/10 shadow-md">
-                                  <Image
-                                    src={mov.poster || "/default-poster.jpg"}
-                                    alt={mov.title || "Phim"}
-                                    fill
-                                    className="object-cover group-hover:scale-105 transition-transform duration-300"
-                                    sizes="(max-width: 640px) 80px, 100px"
-                                  />
-                                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                                    <div className="w-8 h-8 rounded-full bg-pink-500/90 text-white flex items-center justify-center shadow-lg shadow-pink-500/50 transform scale-75 group-hover:scale-100 transition-transform">
-                                      <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {/* MOVIE DETAILS */}
-                                <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
-                                  <div className="space-y-1">
-                                    <h5
-                                      className="text-xs sm:text-sm font-bold text-white truncate group-hover:text-pink-300 transition-colors"
-                                      title={mov.title}
-                                    >
-                                      {mov.title}
-                                    </h5>
-                                    <div className="flex items-center gap-1.5 text-[10px] text-gray-400 flex-wrap">
-                                      {mov.year && <span className="text-zinc-300 font-semibold">{mov.year}</span>}
-                                      {mov.category && (
-                                        <>
-                                          <span className="text-zinc-600">•</span>
-                                          <span className="text-pink-400 font-medium truncate max-w-[85px]">
-                                            {mov.category}
-                                          </span>
-                                        </>
-                                      )}
-                                      {mov.quality && (
-                                        <span className="border border-white/20 bg-white/5 px-1 py-0.2 rounded text-[9px] font-semibold text-zinc-300">
-                                          {mov.quality}
-                                        </span>
-                                      )}
-                                    </div>
-                                    <div className="mt-1.5 p-2 rounded-xl bg-pink-500/10 border border-pink-500/20 text-[10.5px] sm:text-[11px] text-pink-200/90 leading-snug line-clamp-2 overflow-hidden">
-                                      <span className="font-semibold text-pink-400 mr-1">✦</span>
-                                      {getMovieHighlight(mov)}
-                                    </div>
-                                  </div>
-
-                                  {/* SEPARATE BOTTOM ACTION ROW */}
-                                  <div className="pt-2 mt-2 border-t border-white/5 flex items-center justify-between text-[11px] font-bold text-pink-400 group-hover:text-pink-300 transition-colors">
-                                    <span className="flex items-center gap-1.5">
-                                      <Play className="w-3 h-3 fill-current text-netflix-red group-hover:text-pink-400 transition-colors" />
-                                      <span>Xem chi tiết phim</span>
-                                    </span>
-                                    <ChevronRight className="w-3.5 h-3.5 text-zinc-500 group-hover:text-pink-300 group-hover:translate-x-0.5 transition-all" />
-                                  </div>
-                                </div>
-                              </Link>
-                            ))}
+                      {m.role === "user" ? (
+                        <div className="max-w-[80%] sm:max-w-[70%] py-2 px-3.5 sm:py-2.5 sm:px-4 rounded-2xl rounded-tr-xs bg-gradient-to-r from-pink-600 via-rose-600 to-purple-600 text-white shadow-md shadow-pink-950/25 text-xs sm:text-[13px] font-medium leading-relaxed">
+                          <p className="whitespace-pre-wrap select-text">{m.text}</p>
+                          <div className="text-[9px] text-white/70 text-right mt-1 select-none">
+                            {m.time}
                           </div>
-                        )}
-
-                        <div className="text-[10px] text-gray-400 flex items-center justify-end gap-1 pt-1 opacity-70">
-                          <span>{m.time}</span>
                         </div>
-                      </div>
+                      ) : (
+                        <div className="max-w-[88%] sm:max-w-[82%] p-3 sm:p-3.5 rounded-2xl rounded-tl-xs bg-zinc-900/95 border border-white/15 text-gray-200 shadow-xl backdrop-blur-md text-xs sm:text-sm space-y-2.5">
+                          <p className="leading-relaxed whitespace-pre-wrap select-text">{m.text}</p>
+
+                          {/* HIGH-END MOVIE RECOMMENDATION CARDS (TOP 3-4 PHIM XUẤT SẮC NHẤT) */}
+                          {m.movies && m.movies.length > 0 && (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2.5 mt-1 border-t border-white/10">
+                              {m.movies.slice(0, 4).map((mov, movIdx) => (
+                                <Link
+                                  key={`${mov.slug || "movie"}-${movIdx}`}
+                                  href={`/movies/${mov.slug}`}
+                                  onClick={() => setIsOpen(false)}
+                                  className="group relative flex gap-2.5 p-2 sm:p-2.5 rounded-xl bg-zinc-950/80 hover:bg-zinc-900 border border-white/10 hover:border-pink-500/50 transition-all duration-300 shadow-md hover:shadow-pink-950/25 hover:-translate-y-0.5 overflow-hidden"
+                                >
+                                  {/* POSTER WITH PLAY OVERLAY */}
+                                  <div className="relative w-16 sm:w-20 aspect-[2/3] rounded-lg overflow-hidden bg-zinc-900 flex-none border border-white/10 shadow-sm">
+                                    <Image
+                                      src={mov.poster || "/default-poster.jpg"}
+                                      alt={mov.title || "Phim"}
+                                      fill
+                                      className="object-cover group-hover:scale-105 transition-transform duration-300"
+                                      sizes="(max-width: 640px) 64px, 80px"
+                                    />
+                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                                      <div className="w-7 h-7 rounded-full bg-pink-500/90 text-white flex items-center justify-center shadow-md shadow-pink-500/50 transform scale-75 group-hover:scale-100 transition-transform">
+                                        <Play className="w-3 h-3 fill-current ml-0.5" />
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* MOVIE DETAILS */}
+                                  <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
+                                    <div className="space-y-1">
+                                      <h5
+                                        className="text-xs sm:text-[13px] font-bold text-white truncate group-hover:text-pink-300 transition-colors"
+                                        title={mov.title}
+                                      >
+                                        {mov.title}
+                                      </h5>
+                                      <div className="flex items-center gap-1.5 text-[10px] text-gray-400 flex-wrap">
+                                        {mov.year && <span className="text-zinc-300 font-semibold">{mov.year}</span>}
+                                        {mov.category && (
+                                          <>
+                                            <span className="text-zinc-600">•</span>
+                                            <span className="text-pink-400 font-medium truncate max-w-[85px]">
+                                              {mov.category}
+                                            </span>
+                                          </>
+                                        )}
+                                        {mov.quality && (
+                                          <span className="border border-white/20 bg-white/5 px-1 py-0.2 rounded text-[9px] font-semibold text-zinc-300">
+                                            {mov.quality}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div className="mt-1 p-1.5 rounded-lg bg-pink-500/10 border border-pink-500/20 text-[10px] sm:text-[10.5px] text-pink-200/90 leading-snug line-clamp-2 overflow-hidden">
+                                        <span className="font-semibold text-pink-400 mr-1">✦</span>
+                                        {getMovieHighlight(mov)}
+                                      </div>
+                                    </div>
+
+                                    {/* SEPARATE BOTTOM ACTION ROW */}
+                                    <div className="pt-1.5 mt-1.5 border-t border-white/5 flex items-center justify-between text-[10.5px] font-bold text-pink-400 group-hover:text-pink-300 transition-colors">
+                                      <span className="flex items-center gap-1.5">
+                                        <Play className="w-2.5 h-2.5 fill-current text-netflix-red group-hover:text-pink-400 transition-colors" />
+                                        <span>Xem chi tiết</span>
+                                      </span>
+                                      <ChevronRight className="w-3 h-3 text-zinc-500 group-hover:text-pink-300 group-hover:translate-x-0.5 transition-all" />
+                                    </div>
+                                  </div>
+                                </Link>
+                              ))}
+                            </div>
+                          )}
+
+                          <div className="text-[9.5px] text-gray-400 flex items-center justify-end gap-1 pt-0.5 opacity-70 select-none">
+                            <span>{m.time}</span>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))
                 )}
 
                 {chatLoading && (
-                  <div className="flex items-center gap-2.5 text-xs text-pink-300 py-3 px-4 rounded-2xl bg-zinc-900/90 border border-pink-500/20 max-w-sm animate-pulse">
-                    <Loader2 className="w-4 h-4 animate-spin text-pink-400 flex-none" />
+                  <div className="flex items-center gap-2.5 text-xs text-pink-300 py-2.5 px-3.5 rounded-2xl bg-zinc-900/90 border border-pink-500/20 max-w-sm animate-pulse">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-pink-400 flex-none" />
                     <span>Nana AI đang suy nghĩ và lục tìm phim phù hợp...</span>
                   </div>
                 )}
@@ -685,26 +688,26 @@ export const NanaAiStudioModal: React.FC<NanaAiStudioModalProps> = ({
                   e.preventDefault();
                   sendChatMessage();
                 }}
-                className="flex-none p-3 sm:p-4 bg-zinc-900/98 border-t border-white/10 relative flex items-center gap-2"
+                className="flex-none p-2.5 sm:p-3 bg-zinc-900/98 border-t border-white/10 relative flex items-center gap-2"
               >
                 <div className="relative flex-1 flex items-center">
                   <input
                     type="text"
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
-                    placeholder="Hỏi bất kỳ điều gì: 'Phim trinh thám đấu trí', 'Phim Châu Tinh Trì làm cảnh sát'..."
-                    className="w-full pl-4 pr-11 py-3 sm:py-3.5 rounded-2xl bg-zinc-950 border border-white/15 focus:border-pink-500 focus:ring-2 focus:ring-pink-500/25 text-white placeholder-gray-500 text-xs sm:text-sm outline-none shadow-inner transition"
+                    placeholder="Hỏi bất kỳ điều gì: 'Phim trinh thám đấu trí', 'Phim hài Châu Tinh Trì'..."
+                    className="w-full pl-3.5 pr-10 py-2.5 rounded-xl bg-zinc-950 border border-white/15 focus:border-pink-500 focus:ring-1 focus:ring-pink-500/25 text-white placeholder-gray-500 text-xs sm:text-sm outline-none shadow-inner transition"
                   />
                   <button
                     type="submit"
                     disabled={chatLoading || !chatInput.trim()}
                     aria-label="Gửi tin nhắn"
-                    className="absolute right-2 p-2 sm:p-2.5 rounded-xl bg-gradient-to-r from-pink-600 via-rose-600 to-purple-600 text-white hover:from-pink-500 hover:to-purple-500 transition disabled:opacity-30 cursor-pointer shadow-md active:scale-95 flex items-center justify-center"
+                    className="absolute right-1.5 p-1.5 sm:p-2 rounded-lg bg-gradient-to-r from-pink-600 via-rose-600 to-purple-600 text-white hover:from-pink-500 hover:to-purple-500 transition disabled:opacity-30 cursor-pointer shadow-md active:scale-95 flex items-center justify-center"
                   >
                     {chatLoading ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
                     ) : (
-                      <Send className="w-4 h-4" />
+                      <Send className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     )}
                   </button>
                 </div>
