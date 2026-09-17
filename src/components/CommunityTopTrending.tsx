@@ -12,9 +12,10 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { MovieViewStatItem } from "@/services/supabaseService";
+import { pickBestMoviePoster, toOptimizedPhimimgUrl } from "@/lib/movieMedia";
 
 export function CommunityTopTrending() {
-  const TRENDING_CACHE_KEY = "nanaflix_trending_community_cache";
+  const TRENDING_CACHE_KEY = "nanaflix_trending_community_cache_v2";
 
   const [items, setItems] = useState<MovieViewStatItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -349,26 +350,46 @@ export function CommunityTopTrending() {
                       </span>
                     </div>
 
-                    {/* MOVIE POSTER CARD */}
+                    {/* MOVIE POSTER CARD (Tỷ lệ dọc 2:3 chuẩn Netflix, ưu tiên poster dọc) */}
                     <div className="relative z-10 w-[140px] sm:w-[175px] md:w-[190px] aspect-[2/3] rounded-2xl overflow-hidden bg-zinc-900 border border-white/10 shadow-[0_15px_35px_rgba(0,0,0,0.8)] group-hover:border-netflix-red/60 group-hover:shadow-[0_20px_45px_rgba(229,9,20,0.35)] transition-all duration-300">
-                      <Image
-                        src={movie.poster || movie.thumb || "/default-poster.jpg"}
-                        alt={movie.movieTitle}
-                        fill
-                        unoptimized
-                        priority={index < 3}
-                        sizes="(max-width: 640px) 180px, (max-width: 768px) 240px, 280px"
-                        className="object-cover group-hover:scale-105 transition-transform duration-500"
-                        loading={index < 3 ? "eager" : "lazy"}
-                        quality={85}
-                        onError={(e) => {
-                          const target = e.currentTarget as HTMLImageElement;
-                          if (target && !target.src.includes("/default-poster.jpg")) {
-                            target.srcset = "";
-                            target.src = "/default-poster.jpg";
-                          }
-                        }}
-                      />
+                      {(() => {
+                        const rawPoster = pickBestMoviePoster(
+                          {
+                            poster_url: movie.poster,
+                            thumb_url: movie.thumb,
+                            name: movie.movieTitle,
+                            slug: movie.movieSlug,
+                          },
+                          "/default-poster.jpg"
+                        );
+                        const posterSrc = toOptimizedPhimimgUrl(rawPoster, 480);
+
+                        return (
+                          <Image
+                            src={posterSrc}
+                            alt={movie.movieTitle}
+                            fill
+                            unoptimized
+                            priority={index < 3}
+                            sizes="(max-width: 640px) 180px, (max-width: 768px) 240px, 280px"
+                            className="object-cover group-hover:scale-105 transition-transform duration-500"
+                            loading={index < 3 ? "eager" : "lazy"}
+                            quality={85}
+                            onError={(e) => {
+                              const target = e.currentTarget as HTMLImageElement;
+                              if (target) {
+                                // Chỉ fallback sang thumb nếu thumb là file nhẹ (-thumb.webp)
+                                if (movie.thumb && typeof movie.thumb === "string" && movie.thumb.includes("-thumb.webp") && target.src !== movie.thumb) {
+                                  target.src = movie.thumb;
+                                } else if (!target.src.includes("/default-poster.jpg")) {
+                                  target.srcset = "";
+                                  target.src = "/default-poster.jpg";
+                                }
+                              }
+                            }}
+                          />
+                        );
+                      })()}
 
                       {/* TOP BADGE */}
                       <div className="absolute top-2 left-2 right-2 flex items-center justify-between pointer-events-none">

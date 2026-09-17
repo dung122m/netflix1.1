@@ -4,6 +4,8 @@ import Link from "next/link";
 import {
   buildMovieDescriptionFallback,
   pickBestMovieImage,
+  pickBestMoviePoster,
+  pickBestMovieThumb,
 } from "@/lib/movieMedia";
 import { cleanHtmlText } from "@/lib/cleanHtml";
 
@@ -373,7 +375,8 @@ export default async function MovieDetail({
       <TrackHistoryClient
         slug={movie.slug}
         title={title}
-        poster={pickBestMovieImage(movie, "/default-hero.jpg")}
+        poster={pickBestMoviePoster(movie, "/default-poster.jpg")}
+        thumb={pickBestMovieThumb(movie, "/default-hero.jpg")}
         episodeName={activeEpisode?.name}
         episodeSlug={activeEpisode?.slug}
         year={movie.year}
@@ -384,7 +387,8 @@ export default async function MovieDetail({
       <WatchController
         movieSlug={movie.slug}
         movieTitle={title}
-        posterUrl={pickBestMovieImage(movie, "/default-hero.jpg")}
+        posterUrl={pickBestMoviePoster(movie, "/default-poster.jpg")}
+        thumbUrl={pickBestMovieThumb(movie, "/default-hero.jpg")}
         year={movie.year}
         quality={movie.quality}
         category={movie.category?.[0]?.name}

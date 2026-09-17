@@ -9,6 +9,7 @@ export interface WatchHistoryItem {
   slug: string;
   title: string;
   poster: string;
+  thumb?: string;
   episodeName?: string;
   episodeSlug?: string;
   year?: number | string;
@@ -103,6 +104,7 @@ export const saveWatchHistory = (
 
     const newItem: WatchHistoryItem = {
       ...item,
+      thumb: item.thumb || existing?.thumb,
       progressSeconds: item.progressSeconds ?? existing?.progressSeconds,
       durationSeconds: item.durationSeconds ?? existing?.durationSeconds,
       updatedAt: Date.now(),

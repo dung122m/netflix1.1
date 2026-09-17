@@ -7,6 +7,7 @@ interface TrackHistoryClientProps {
   slug: string;
   title: string;
   poster: string;
+  thumb?: string;
   episodeName?: string;
   episodeSlug?: string;
   year?: number | string;
@@ -18,6 +19,7 @@ export default function TrackHistoryClient({
   slug,
   title,
   poster,
+  thumb,
   episodeName,
   episodeSlug,
   year,
@@ -30,6 +32,7 @@ export default function TrackHistoryClient({
         slug,
         title,
         poster,
+        thumb,
         episodeName,
         episodeSlug,
         year,
@@ -37,7 +40,7 @@ export default function TrackHistoryClient({
         category,
       });
     }
-  }, [slug, title, poster, episodeName, episodeSlug, year, quality, category]);
+  }, [slug, title, poster, thumb, episodeName, episodeSlug, year, quality, category]);
 
   return null;
 }

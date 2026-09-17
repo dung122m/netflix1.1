@@ -158,7 +158,10 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       }
       const raw = sanitizeImageUrl(u);
       if (raw && !list.includes(raw) && !raw.includes("/undefined") && !raw.includes("/null") && !raw.startsWith("/default-")) {
-        list.push(raw);
+        // Chỉ thêm raw nếu không phải ảnh phimimg nặng (để tránh rơi ngược về file 2MB khi proxy lỗi)
+        if (!raw.includes("/upload/vod/") && !raw.includes("-poster.webp")) {
+          list.push(raw);
+        }
       }
     };
     addUrl(imageUrl);

@@ -56,6 +56,7 @@ interface WatchControllerProps {
   movieSlug: string;
   movieTitle: string;
   posterUrl: string;
+  thumbUrl?: string;
   year?: number | string;
   quality?: string;
   category?: string;
@@ -70,10 +71,11 @@ export function WatchController({
   movieSlug,
   movieTitle,
   posterUrl,
+  thumbUrl,
   year,
   quality,
   category,
-  initialServers = [],
+  initialServers,
   initialServerIndex = 0,
   initialEpisodeSlug,
   isTrailerOnly = false,
@@ -191,6 +193,7 @@ export function WatchController({
           slug: movieSlug,
           title: movieTitle,
           poster: posterUrl,
+          thumb: thumbUrl,
           episodeName: targetEp.name,
           episodeSlug: targetEp.slug,
           year,
@@ -206,6 +209,7 @@ export function WatchController({
       movieSlug,
       movieTitle,
       posterUrl,
+      thumbUrl,
       year,
       quality,
       category,

@@ -9,7 +9,7 @@ import {
   removeWatchHistoryItem,
   WatchHistoryItem,
 } from "@/lib/watchHistory";
-import { sanitizeImageUrl } from "@/lib/movieMedia";
+import { pickBestMovieThumb, toOptimizedPhimimgUrl } from "@/lib/movieMedia";
 import { formatEpisodeName } from "@/lib/formatEpisode";
 
 export function ContinueWatchingRow() {
@@ -139,10 +139,13 @@ export function ContinueWatchingRow() {
                 className="group relative flex-none w-[180px] sm:w-[240px] md:w-[280px] bg-zinc-900 rounded-xl overflow-hidden border border-white/10 hover:border-white/30 transition-all duration-300 hover:scale-[1.03] shadow-md hover:shadow-xl"
               >
                 <Link href={href} className="block">
-                  {/* ẢNH THUMBNAIL */}
+                  {/* ẢNH THUMBNAIL (16:9, ưu tiên thumb ngang) */}
                   <div className="relative aspect-video w-full bg-zinc-800 overflow-hidden">
                     <Image
-                      src={sanitizeImageUrl(item.poster || "/default-hero.jpg")}
+                      src={toOptimizedPhimimgUrl(
+                        pickBestMovieThumb({ poster_url: item.poster, thumb_url: item.thumb }, "/default-hero.jpg"),
+                        640
+                      )}
                       alt={item.title}
                       fill
                       unoptimized
@@ -151,6 +154,13 @@ export function ContinueWatchingRow() {
                       decoding="async"
                       loading="lazy"
                       quality={85}
+                      onError={(e) => {
+                        const target = e.currentTarget as HTMLImageElement;
+                        if (target && !target.src.includes("/default-hero.jpg")) {
+                          target.srcset = "";
+                          target.src = "/default-hero.jpg";
+                        }
+                      }}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
 

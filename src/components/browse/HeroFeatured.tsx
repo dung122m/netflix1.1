@@ -21,8 +21,10 @@ import {
 import {
   buildMovieDescriptionFallback,
   pickBestMovieImage,
+  pickBestMoviePoster,
   pickHeroBackdropImage,
   toHighResBackdropUrl,
+  toOptimizedPhimimgUrl,
 } from "@/lib/movieMedia";
 import { cleanHtmlText } from "@/lib/cleanHtml";
 import { clientSynopsisCache } from "./MediaCard";
@@ -448,10 +450,11 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
             ))}
           </div>
 
-          {/* DOCK CHUYỂN NHANH POSTER THUMBNAIL Ở GÓC PHẢI DƯỚI */}
+          {/* DOCK CHUYỂN NHANH POSTER THUMBNAIL Ở GÓC PHẢI DƯỚI (Card dọc 44x64px, ưu tiên poster dọc) */}
           <div className="absolute bottom-6 right-8 z-20 hidden items-center gap-2.5 rounded-2xl border border-white/15 bg-black/60 p-2 backdrop-blur-2xl shadow-2xl lg:flex">
             {slides.slice(0, 5).map((movie, i) => {
-              const thumb = pickBestMovieImage(movie, "/default-poster.jpg");
+              const rawDockThumb = pickBestMoviePoster(movie, "/default-poster.jpg");
+              const dockThumb = toOptimizedPhimimgUrl(rawDockThumb, 192);
               const active = i === index;
               return (
                 <button
@@ -468,13 +471,19 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
                   aria-label={`Xem phim ${movie.name || movie.title || i + 1}`}
                 >
                   <Image
-                    src={thumb}
+                    src={dockThumb}
                     alt={movie.name || movie.title || "thumb"}
                     fill
                     unoptimized
-                    quality={88}
                     sizes="44px"
                     className="object-cover"
+                    onError={(e) => {
+                      const target = e.currentTarget as HTMLImageElement;
+                      if (target && !target.src.includes("/default-poster.jpg")) {
+                        target.srcset = "";
+                        target.src = "/default-poster.jpg";
+                      }
+                    }}
                   />
                 </button>
               );

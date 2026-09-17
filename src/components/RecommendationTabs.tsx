@@ -14,7 +14,7 @@ import {
   ChevronUp,
   Play,
 } from "lucide-react";
-import { pickBestMovieThumb } from "@/lib/movieMedia";
+import { pickBestMovieThumb, toOptimizedPhimimgUrl } from "@/lib/movieMedia";
 import { toast } from "./Toast";
 
 interface MovieItem {
@@ -351,7 +351,8 @@ const RecommendedMovieCard = React.memo(function RecommendedMovieCard({
   item: MovieItem;
   matchPercent: number;
 }) {
-  const thumbUrl = pickBestMovieThumb(item, "/default-hero.jpg");
+  const rawThumb = pickBestMovieThumb(item, "/default-hero.jpg");
+  const thumbUrl = toOptimizedPhimimgUrl(rawThumb, 640);
   const title = item.name || item.title || "Phim đề xuất";
   const categoryName = item.category?.[0]?.name;
   const year = item.year;
@@ -374,6 +375,13 @@ const RecommendedMovieCard = React.memo(function RecommendedMovieCard({
             decoding="async"
             loading="lazy"
             quality={85}
+            onError={(e) => {
+              const target = e.currentTarget as HTMLImageElement;
+              if (target && !target.src.includes("/default-hero.jpg")) {
+                target.srcset = "";
+                target.src = "/default-hero.jpg";
+              }
+            }}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 

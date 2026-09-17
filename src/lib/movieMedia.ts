@@ -70,7 +70,7 @@ export function pickBestMoviePoster(movie: MovieLike, fallback = "/default-poste
   if (!movie) return fallback;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rawMovie = (movie as any)?.movie || movie;
-  const isVsmov = isVsmovSource(movie);
+  const isVsmov = isNguonCSource(movie);
 
   // VSMOV đảo ngược trường: thumb_url là poster dọc (2:3), poster_url là backdrop ngang (16:9)
   const primary = isVsmov
@@ -88,13 +88,43 @@ export function pickBestMoviePoster(movie: MovieLike, fallback = "/default-poste
 
   if (candidates.length === 0) return fallback;
 
-  // Ưu tiên ảnh poster dọc
+  // 1. Ưu tiên tuyệt đối ảnh poster dọc rõ ràng (keyword poster, NguonC /Post/, hoặc TMDB w500/w300)
   for (const c of candidates) {
     const l = c.toLowerCase();
-    if (l.includes("poster_") || l.includes("/poster") || l.includes("-poster") || l.includes("/w500") || l.includes("/w300")) {
+    if (
+      l.includes("poster_") ||
+      l.includes("/poster") ||
+      l.includes("-poster") ||
+      l.includes("/w500") ||
+      l.includes("/w300") ||
+      l.includes("/post/") ||
+      l.includes("_ux")
+    ) {
       return c;
     }
   }
+
+  // 2. Nếu candidate có dạng -thumb.webp từ phimimg, tự động phái sinh sang -poster.webp (chuẩn tỷ lệ 2:3)
+  for (const c of candidates) {
+    if (c.includes("-thumb.webp")) {
+      return c.replace("-thumb.webp", "-poster.webp");
+    }
+  }
+
+  // 3. Loại trừ các candidate là thumbnail/backdrop ngang rõ ràng nếu còn candidate khác
+  for (const c of candidates) {
+    const l = c.toLowerCase();
+    const isExplicitThumb =
+      l.includes("thumb_") ||
+      l.includes("/thumb") ||
+      l.includes("-thumb") ||
+      l.includes("backdrop") ||
+      l.includes("banner");
+    if (!isExplicitThumb) {
+      return c;
+    }
+  }
+
   return candidates[0];
 }
 
@@ -102,7 +132,7 @@ export function pickBestMovieThumb(movie: MovieLike, fallback = "/default-hero.s
   if (!movie) return fallback;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rawMovie = (movie as any)?.movie || movie;
-  const isVsmov = isVsmovSource(movie);
+  const isVsmov = isNguonCSource(movie);
 
   // VSMOV đảo ngược trường: poster_url là backdrop ngang (16:9), thumb_url là poster dọc (2:3)
   const primary = isVsmov
@@ -120,19 +150,110 @@ export function pickBestMovieThumb(movie: MovieLike, fallback = "/default-hero.s
 
   if (candidates.length === 0) return fallback;
 
-  // Ưu tiên ảnh thumb ngang / backdrop
+  // 1. Ưu tiên tuyệt đối ảnh thumb ngang / backdrop (chứa keyword thumb, backdrop, banner, w780, w1280)
   for (const c of candidates) {
     const l = c.toLowerCase();
-    if (l.includes("thumb_") || l.includes("/thumb") || l.includes("-thumb") || l.includes("backdrop") || l.includes("w780") || l.includes("w1280") || l.includes("w500")) {
+    if (
+      l.includes("thumb_") ||
+      l.includes("/thumb") ||
+      l.includes("-thumb") ||
+      l.includes("backdrop") ||
+      l.includes("banner") ||
+      l.includes("w780") ||
+      l.includes("w1280") ||
+      l.includes("w500")
+    ) {
       return c;
     }
   }
+
+  // 2. Nếu candidate có dạng -poster.webp từ phimimg, tự động phái sinh sang -thumb.webp (chuẩn tỷ lệ 16:9 và nhẹ hơn 95%)
+  for (const c of candidates) {
+    if (c.includes("-poster.webp")) {
+      return c.replace("-poster.webp", "-thumb.webp");
+    }
+  }
+
+  // 3. Loại trừ các candidate là poster dọc rõ ràng nếu còn candidate khác
+  for (const c of candidates) {
+    const l = c.toLowerCase();
+    const isExplicitPoster =
+      l.includes("poster_") ||
+      l.includes("/poster") ||
+      l.includes("-poster");
+    if (!isExplicitPoster) {
+      return c;
+    }
+  }
+
   return candidates[0];
+}
+
+export const ALLOWED_PROXY_WIDTHS = [192, 320, 480, 640, 1280] as const;
+export type OptimizedProxyWidth = (typeof ALLOWED_PROXY_WIDTHS)[number];
+
+/**
+ * Tối ưu ảnh từ nguồn phimimg.com qua internal image proxy (/api/img-thumb).
+ * CHỈ rewrite các ảnh thực sự nặng chưa có biến thể nhỏ:
+ * 1. /upload/vod/ (JPEG gốc 1-3MB)
+ * 2. /uploads/movies/...-poster.webp (Poster dọc 2000x3000 ~900KB)
+ *
+ * KHÔNG rewrite:
+ * - ...-thumb.webp (ảnh thumb đã tối ưu sẵn ~25-46KB)
+ * - TMDB, IMDb, hoặc ảnh local (/default-...)
+ * - URL đã được bọc /api/img-thumb
+ */
+export function toOptimizedPhimimgUrl(
+  url: string,
+  width: OptimizedProxyWidth = 480
+): string {
+  if (!url || typeof url !== "string") return "";
+  const clean = sanitizeImageUrl(url);
+  if (!clean) return "";
+
+  // Bỏ qua ảnh local, ảnh TMDB/IMDb hoặc đã là URL proxy
+  if (
+    clean.startsWith("/api/img-thumb") ||
+    clean.startsWith("/default-") ||
+    clean.startsWith("/images/") ||
+    clean.includes("image.tmdb.org") ||
+    clean.includes("media-amazon.com")
+  ) {
+    return clean;
+  }
+
+  // KHÔNG proxy ảnh thumb vì phimimg đã tối ưu sẵn chỉ ~25-46KB
+  if (clean.includes("-thumb.webp")) {
+    return clean;
+  }
+
+  // Chỉ can thiệp vào domain phimimg.com
+  if (!clean.includes("phimimg.com")) {
+    return clean;
+  }
+
+  const isVodJpg = clean.includes("/upload/vod/");
+  const isPosterWebp = clean.includes("/uploads/movies/") && clean.endsWith("-poster.webp");
+
+  if (isVodJpg || isPosterWebp) {
+    let targetWidth: OptimizedProxyWidth = 480;
+    if (ALLOWED_PROXY_WIDTHS.includes(width)) {
+      targetWidth = width;
+    } else {
+      targetWidth = ALLOWED_PROXY_WIDTHS.reduce((prev, curr) =>
+        Math.abs(curr - width) < Math.abs(prev - width) ? curr : prev
+      );
+    }
+    return `/api/img-thumb?url=${encodeURIComponent(clean)}&w=${targetWidth}`;
+  }
+
+  return clean;
 }
 
 /**
  * Tối ưu ảnh cho Thẻ phim 16:9 trong danh sách (CuratedMovieSection / MediaCard).
  * Dùng TMDb w780 (~45KB) cho độ sắc nét Retina 2x/4K, tải siêu nhanh và không bị mờ.
+ * Với phimimg: ưu tiên chuyển -poster sang -thumb.webp (46KB); nếu là /upload/vod/ thì bọc qua /api/img-thumb (640px).
  */
 export function toOptimizedCardBackdropUrl(url: string): string {
   if (!url || typeof url !== "string") return "";
@@ -140,6 +261,12 @@ export function toOptimizedCardBackdropUrl(url: string): string {
   if (clean.includes("image.tmdb.org/t/p/")) {
     clean = clean.replace(/\/t\/p\/(w1280|original)\//, "/t/p/w780/");
   }
+  // Nếu là ảnh phimimg -poster.webp trong card 16:9, ưu tiên dùng luôn bản -thumb.webp gốc (46KB, không tốn tài nguyên proxy)
+  if (clean.includes("phimimg.com") && clean.includes("-poster.webp")) {
+    clean = clean.replace("-poster.webp", "-thumb.webp");
+  }
+  // Nếu là /upload/vod/ nặng 1-3MB, bọc qua proxy w=640
+  clean = toOptimizedPhimimgUrl(clean, 640);
   return clean;
 }
 
