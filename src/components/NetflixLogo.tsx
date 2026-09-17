@@ -30,22 +30,4 @@ export const NetflixLogo = (props: React.SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
-export const ChevronRightIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg
-    viewBox="0 0 24 24"
-    width="24"
-    height="24"
-    aria-hidden="true"
-    xmlns="http://www.w3.org/2000/svg"
-    fill="none"
-    role="img"
-    {...props}
-  >
-    <path
-      fill="currentColor"
-      fillRule="evenodd"
-      d="m15.586 12-7.293 7.293 1.414 1.414 8-8a1 1 0 0 0 0-1.414l-8-8-1.414 1.414z"
-      clipRule="evenodd"
-    ></path>
-  </svg>
-);
+export default NetflixLogo;

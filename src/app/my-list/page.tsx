@@ -32,7 +32,7 @@ import { Navbar } from "@/components/Navbar";
 import { useAuth } from "@/context/AuthContext";
 import { AuthModal } from "@/components/AuthModal";
 import { Footer } from "@/components/Footer";
-import { MediaCard } from "@/components/sites/netflix-3f78535a/browse-1234abcd/MediaCard";
+import { MediaCard } from "@/components/browse/MediaCard";
 import { getWatchlist, WatchlistItem } from "@/lib/watchlist";
 import {
   getWatchHistory,
@@ -561,6 +561,7 @@ function MyListContent() {
                           src={sanitizeImageUrl(item.poster || "/default-hero.jpg")}
                           alt={item.title}
                           fill
+                          unoptimized
                           sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
                           className="object-cover transition-transform duration-300 group-hover:scale-105"
                         />

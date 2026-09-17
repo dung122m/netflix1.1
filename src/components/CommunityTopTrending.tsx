@@ -274,6 +274,7 @@ export function CommunityTopTrending() {
                         src={movie.poster || movie.thumb || "/default-poster.jpg"}
                         alt={movie.movieTitle}
                         fill
+                        unoptimized
                         priority={index < 3}
                         sizes="(max-width: 640px) 180px, (max-width: 768px) 240px, 280px"
                         className="object-cover group-hover:scale-105 transition-transform duration-500"

@@ -485,6 +485,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                 src={comment.userAvatar}
                 alt={comment.userName}
                 fill
+                unoptimized
                 sizes={isReply ? "32px" : "40px"}
                 className="object-cover"
                 referrerPolicy="no-referrer"

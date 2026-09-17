@@ -7,7 +7,7 @@ import { Footer } from "@/components/Footer";
 import { ContinueWatchingRow } from "@/components/ContinueWatchingRow";
 import { QuickGenreChips } from "@/components/QuickGenreChips";
 import { SortSelector } from "@/components/SortSelector";
-import { Film, ExternalLink, Sparkles, ChevronRight } from "lucide-react";
+import { Film, ExternalLink, Sparkles } from "lucide-react";
 import { movieApi } from "@/services/movieApi";
 import { resolveActorMovies, queryMoviesByActor, getActorSynonyms, GOLDEN_ACTOR_INDEX } from "@/services/aiActorService";
 import { searchMoviesBySemantic } from "@/services/aiVectorService";
@@ -15,16 +15,15 @@ import { BrowseAiSearchBanner } from "@/components/BrowseAiSearchBanner";
 import { CuratedMovieSection } from "@/components/CuratedMovieSection";
 import { CommunityTopTrending } from "@/components/CommunityTopTrending";
 import { ForYouPersonalizedRow } from "@/components/ForYouPersonalizedRow";
+import { getTmdbBackdropUrl } from "@/services/tmdbService";
 
 const HeroFeatured = dynamic(() =>
-  import("@/components/sites/netflix-3f78535a/browse-1234abcd/HeroFeatured").then(
+  import("@/components/browse/HeroFeatured").then(
     (mod) => mod.HeroFeatured,
   ),
 );
 
-const SetTitleClient = dynamic(() =>
-  import("@/components/SetTitleClient").then((mod) => mod.default),
-);
+
 
 // ==========================================
 // METADATA
@@ -73,11 +72,14 @@ export async function generateMetadata({
   }
 
   const fullTitle = `Nanaflix - ${title}`;
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://netflix1-1.vercel.app";
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://netflix1-1.vercel.app").replace(/\/+$/, "");
 
   return {
     title: fullTitle,
     description,
+    alternates: {
+      canonical: `${siteUrl}/browse`,
+    },
     openGraph: {
       title: fullTitle,
       description,
@@ -534,9 +536,8 @@ export default async function BrowsePage({
 
     if (actorParam) {
       query.set("actor", actorParam);
-    } else if (detectedActor && keyword) {
-      query.set("actor", detectedActor.name);
-    } else if (keyword) {
+    }
+    if (keyword) {
       query.set("keyword", keyword);
     }
 
@@ -550,12 +551,46 @@ export default async function BrowsePage({
     return `?${query.toString()}`;
   };
 
+  // Bổ sung ảnh nền độ phân giải cao Full HD / 4K từ TMDb cho 8 slide Hero đầu trang chủ
+  let heroMovies = movies;
+  if (isPlainHomepage && movies.length > 0) {
+    const heroSlides = movies.slice(0, 8);
+    try {
+      const enrichedHeroSlides = await Promise.race([
+        Promise.all(
+          heroSlides.map(async (m) => {
+            if (m?.backdrop_url) return m;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const rawM = (m as any)?.movie || m;
+            const tmdbId = rawM?.tmdb?.id || m?.tmdb?.id;
+            const tmdbType = rawM?.tmdb?.type || m?.tmdb?.type || (rawM?.type === "series" ? "tv" : "movie");
+            if (tmdbId) {
+              try {
+                const hdBackdrop = await getTmdbBackdropUrl(tmdbId, tmdbType);
+                if (hdBackdrop) {
+                  return { ...m, backdrop_url: hdBackdrop };
+                }
+              } catch {
+                // Fallback nếu TMDb lỗi
+              }
+            }
+            return m;
+          })
+        ),
+        // Timeout 1.5s tối đa để đảm bảo SSR không bao giờ bị nghẽn
+        new Promise<typeof heroSlides>((resolve) => setTimeout(() => resolve(heroSlides), 1500)),
+      ]);
+      heroMovies = [...enrichedHeroSlides, ...movies.slice(8)];
+    } catch {
+      heroMovies = movies;
+    }
+  }
+
   return (
     <div className="page-cinema-container min-h-screen pb-20">
       <Navbar />
-      <SetTitleClient title={title} />
 
-      {isPlainHomepage && <HeroFeatured movies={movies} />}
+      {isPlainHomepage && <HeroFeatured movies={heroMovies} />}
 
       {/* TIẾP TỤC XEM: Hiển thị ngay trên trang chủ khi có lịch sử */}
       {isPlainHomepage && <ContinueWatchingRow />}

@@ -2,18 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { movieApi } from "@/services/movieApi";
 import { resolveActorMovies } from "@/services/aiActorService";
 import { pickBestMoviePoster, MovieLike } from "@/lib/movieMedia";
-
-function normalizeForMatch(str: string): string {
-  return (str || "")
-    .toLowerCase()
-    .replace(/đ/gi, "d")
-    .replace(/Đ/gi, "d")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^\w\s]/gi, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
+import { normalizeForMatch } from "@/lib/stringUtils";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const SUGGEST_CACHE = new Map<string, { data: any; expireAt: number }>();
@@ -33,7 +22,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const keyword = searchParams.get("keyword")?.trim() || "";
 
-    if (!keyword || keyword.length < 2) {
+    if (!keyword || keyword.length < 3) {
       return NextResponse.json({ items: [] });
     }
 

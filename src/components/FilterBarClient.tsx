@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 const FilterBar = dynamic(
   () =>
     import(
-      "@/components/sites/netflix-3f78535a/browse-1234abcd/FilterBar"
+      "@/components/browse/FilterBar"
     ).then((mod) => mod.FilterBar),
   {
     ssr: false,

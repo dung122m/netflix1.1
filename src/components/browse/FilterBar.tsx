@@ -180,7 +180,14 @@ export const FilterBar: React.FC = () => {
 
   const clearAllFilters = () => {
     setActiveDropdown(null);
-    router.push("?");
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("type");
+    params.delete("category");
+    params.delete("country");
+    params.delete("year");
+    params.delete("page");
+    const query = params.toString();
+    router.push(query ? `?${query}` : "?", { scroll: false });
   };
 
   return (

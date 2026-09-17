@@ -21,30 +21,66 @@ export interface WatchlistItem {
 
 const STORAGE_KEY = "nanaflix_watchlist_v1";
 
+// Bộ nhớ đệm in-memory tránh parse JSON lặp lại 60 lần khi mỗi MediaCard lắng nghe sự kiện watchlist-updated
+let memoryWatchlist: WatchlistItem[] | null = null;
+let memoryWatchlistSlugs: Set<string> | null = null;
+
+function updateMemoryCache(list: WatchlistItem[]): void {
+  memoryWatchlist = list;
+  memoryWatchlistSlugs = new Set(list.map((item) => item.slug));
+}
+
+function invalidateMemoryCache(): void {
+  memoryWatchlist = null;
+  memoryWatchlistSlugs = null;
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", (e) => {
+    if (e.key === STORAGE_KEY) {
+      invalidateMemoryCache();
+      window.dispatchEvent(new Event("watchlist-updated"));
+    }
+  });
+}
+
 export function getWatchlist(): WatchlistItem[] {
   if (typeof window === "undefined") return [];
+  if (memoryWatchlist !== null) {
+    return memoryWatchlist;
+  }
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    return JSON.parse(raw);
+    if (!raw) {
+      updateMemoryCache([]);
+      return [];
+    }
+    const parsed = JSON.parse(raw);
+    const list = Array.isArray(parsed) ? parsed : [];
+    updateMemoryCache(list);
+    return list;
   } catch {
+    updateMemoryCache([]);
     return [];
   }
 }
 
 export function isInWatchlist(slug: string): boolean {
-  if (!slug) return false;
-  const list = getWatchlist();
-  return list.some((item) => item.slug === slug);
+  if (!slug || typeof window === "undefined") return false;
+  if (memoryWatchlistSlugs === null) {
+    getWatchlist();
+  }
+  return memoryWatchlistSlugs?.has(slug) ?? false;
 }
 
 export function addToWatchlist(item: Omit<WatchlistItem, "addedAt">): void {
   if (typeof window === "undefined" || !item.slug) return;
   try {
     const list = getWatchlist();
-    if (list.some((i) => i.slug === item.slug)) return;
+    if (memoryWatchlistSlugs?.has(item.slug)) return;
     const itemWithAddedAt: WatchlistItem = { ...item, addedAt: Date.now() };
     const updated = [itemWithAddedAt, ...list];
+    updateMemoryCache(updated);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
     window.dispatchEvent(new Event("watchlist-updated"));
 
@@ -62,6 +98,7 @@ export function removeFromWatchlist(slug: string): void {
   try {
     const list = getWatchlist();
     const updated = list.filter((i) => i.slug !== slug);
+    updateMemoryCache(updated);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
     window.dispatchEvent(new Event("watchlist-updated"));
 
@@ -90,6 +127,7 @@ export function toggleWatchlist(item: Omit<WatchlistItem, "addedAt">): boolean {
 export function clearLocalWatchlistOnly(): void {
   if (typeof window === "undefined") return;
   try {
+    updateMemoryCache([]);
     localStorage.removeItem(STORAGE_KEY);
     window.dispatchEvent(new Event("watchlist-updated"));
   } catch (e) {

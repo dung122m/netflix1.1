@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { cleanHtmlText } from "@/lib/cleanHtml";
+import { kvCache } from "@/services/kvCacheService";
 
 const API_NGUONC = process.env.NEXT_PUBLIC_API_URL || "https://phim.nguonc.com/api";
 const API_PHIMAPI = process.env.NEXT_PUBLIC_API_URL_2 || "https://phimapi.com";
@@ -139,28 +140,33 @@ function normalizeNguonCMovieDetail(raw: any) {
   };
 }
 
-// Hàm nội bộ lấy chi tiết phim có in-memory cache SWR
+// Hàm nội bộ lấy chi tiết phim có multi-tier cache (L1 Memory SWR + L2 Cloudflare KV)
 const fetchMovieDetailInternal = async (
   slug: string,
   source?: "nguonc" | "ophim",
 ) => {
-  const cacheKey = `${slug}_${source || "any"}`;
+  const localKey = `${slug}_${source || "any"}`;
   const now = Date.now();
 
-  if (movieDetailMemoryCache.has(cacheKey)) {
-    const entry = movieDetailMemoryCache.get(cacheKey)!;
+  if (movieDetailMemoryCache.has(localKey)) {
+    const entry = movieDetailMemoryCache.get(localKey)!;
     if (entry.expireAt > now) {
       return entry.data;
     }
     // Trả về dữ liệu đệm ngay lập tức nếu chưa quá hạn stale (0ms)
     if (entry.staleUntil > now) {
       // Revalidate ngầm
-      revalidateMovieDetail(slug, source, cacheKey).catch(() => {});
+      revalidateMovieDetail(slug, source, localKey).catch(() => {});
       return entry.data;
     }
   }
 
-  return await fetchAndCacheMovieDetail(slug, source, cacheKey);
+  const kvKey = `movie:detail:${slug}:${source || "any"}`;
+  return await kvCache.fetchOrSet(
+    kvKey,
+    () => fetchAndCacheMovieDetail(slug, source, localKey),
+    7 * 24 * 60 * 60 // 7 ngày
+  );
 };
 
 async function revalidateMovieDetail(slug: string, source?: "nguonc" | "ophim", cacheKey?: string) {
@@ -777,7 +783,13 @@ export const movieApi = {
       }
     }
 
-    return await executeGetMovies(params, cacheKey);
+    const kvKey = `movie:list:${cacheKey}`;
+    const ttlSeconds = params.keyword ? 86400 : 7200; // 1 ngày cho search, 2 giờ cho list
+    return await kvCache.fetchOrSet(
+      kvKey,
+      () => executeGetMovies(params, cacheKey),
+      ttlSeconds
+    );
   },
 
   // ==========================================

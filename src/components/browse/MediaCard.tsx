@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { isInWatchlist, toggleWatchlist } from "@/lib/watchlist";
 import { extractMovieCountry, detectMovieTypeName, toOptimizedCardBackdropUrl, sanitizeImageUrl } from "@/lib/movieMedia";
-import { MediaTrailerModal } from "@/components/media/MediaTrailerModal";
+import { TrailerModal } from "@/components/TrailerModal";
 
 export interface MovieExtraInfo {
   actor?: string[];
@@ -175,6 +175,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   useEffect(() => {
     setImageAttemptIndex(0);
     setCurrentImgSrc(candidateImages[0] || (imageUrl ? toOptimizedCardBackdropUrl(imageUrl) : "/default-hero.jpg"));
+    setIsImgLoaded(false);
   }, [imageUrl, candidateImages]);
 
   const handleImageError = () => {
@@ -220,6 +221,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   const cardRef = useRef<HTMLDivElement>(null);
   const [edgeOrigin, setEdgeOrigin] = useState<"left" | "right" | "center">("center");
 
+  const hoverIntentTimerRef = useRef<NodeJS.Timeout | null>(null);
   const hoverTimerRef = useRef<NodeJS.Timeout | null>(null);
   const trailerTimerRef = useRef<NodeJS.Timeout | null>(null);
   const unmountTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -249,6 +251,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     window.addEventListener("watchlist-updated", handleSync);
     return () => {
       window.removeEventListener("watchlist-updated", handleSync);
+      if (hoverIntentTimerRef.current) clearTimeout(hoverIntentTimerRef.current);
       if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
       if (trailerTimerRef.current) clearTimeout(trailerTimerRef.current);
       if (unmountTimerRef.current) clearTimeout(unmountTimerRef.current);
@@ -270,129 +273,146 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   const displayYear = year || "";
   const displayTime = time || "";
 
-  // Hover Intent: Nạp thông tin diễn viên, tóm tắt và trailer
+  // Hover Intent: Chỉ kích hoạt mở rộng thẻ & tải dữ liệu sau 80ms người dùng thực sự dừng chuột
   const handleMouseEnter = () => {
+    // Trên thiết bị cảm ứng (hover: none), không chạy hover-intent, prefetch hay trailer logic không cần thiết
+    if (typeof window !== "undefined" && window.matchMedia?.("(hover: none)").matches) {
+      return;
+    }
+
     if (unmountTimerRef.current) {
       clearTimeout(unmountTimerRef.current);
       unmountTimerRef.current = null;
     }
-    setIsCardHovered(true);
-    if (slug) {
-      router.prefetch(`/movies/${slug}`);
-    }
-    if (cardRef.current) {
-      const rect = cardRef.current.getBoundingClientRect();
-      const distLeft = rect.left;
-      const distRight = window.innerWidth - rect.right;
-      const threshold = Math.max(90, rect.width * 0.4);
-
-      if (distLeft < threshold) {
-        setEdgeOrigin("left");
-      } else if (distRight < threshold) {
-        setEdgeOrigin("right");
-      } else {
-        setEdgeOrigin("center");
-      }
+    if (hoverIntentTimerRef.current) {
+      clearTimeout(hoverIntentTimerRef.current);
     }
 
-    // Kiểm tra cache
-    if (clientSynopsisCache.has(slug)) {
-      const cached = clientSynopsisCache.get(slug)!;
-      if (cached && cached !== synopsis) {
-        setSynopsis(cached);
+    hoverIntentTimerRef.current = setTimeout(() => {
+      hoverIntentTimerRef.current = null;
+      setIsCardHovered(true);
+      if (slug) {
+        router.prefetch(`/movies/${slug}`);
       }
-    }
-    if (clientExtraInfoCache.has(slug)) {
-      setExtraInfo(clientExtraInfoCache.get(slug)!);
-    }
-    if (clientTrailerCache.has(slug)) {
-      const cachedT = clientTrailerCache.get(slug)!;
-      if (cachedT && cachedT !== trailerUrl) {
-        setTrailerUrl(cachedT);
-      }
-    }
+      if (cardRef.current) {
+        const rect = cardRef.current.getBoundingClientRect();
+        const distLeft = rect.left;
+        const distRight = window.innerWidth - rect.right;
+        const threshold = Math.max(90, rect.width * 0.4);
 
-    // Tải thông tin chi tiết (Diễn viên, đạo diễn, nội dung, trailer) nếu chưa có
-    if ((!synopsis || !extraInfo.actor?.length) && slug) {
-      if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
-      hoverTimerRef.current = setTimeout(async () => {
-        setLoadingDetails(true);
-        try {
-          const data = await fetchMovieSynopsisShared(slug);
-          if (data?.content) {
-            clientSynopsisCache.set(slug, data.content);
-            setSynopsis(data.content);
-          } else if (description) {
-            setSynopsis(description);
-          }
-          if (data?.trailer_url) {
-            clientTrailerCache.set(slug, data.trailer_url);
-            setTrailerUrl(data.trailer_url);
-            setHasTrailerState(true);
-          }
-          if (data?.backdrop_url) {
-            setCurrentImgSrc((prev) => {
-              if (!prev || prev.includes("-poster") || prev.includes("/default-")) {
-                return data.backdrop_url;
-              }
-              return prev;
-            });
-          }
-          const info: MovieExtraInfo = {
-            actor: data?.actor || [],
-            director: data?.director || [],
-            country: data?.country || [],
-            category: data?.category || [],
-            origin_name: data?.origin_name || origin_name,
-            backdrop_url: data?.backdrop_url,
-          };
-          clientExtraInfoCache.set(slug, info);
-          setExtraInfo(info);
-        } catch {
-          if (description) setSynopsis(description);
-        } finally {
-          setLoadingDetails(false);
+        if (distLeft < threshold) {
+          setEdgeOrigin("left");
+        } else if (distRight < threshold) {
+          setEdgeOrigin("right");
+        } else {
+          setEdgeOrigin("center");
         }
-      }, 100);
-    }
+      }
 
-    // Bật trailer preview sau 700ms hover (sử dụng chung in-flight promise hoặc cache)
-    if (trailerTimerRef.current) clearTimeout(trailerTimerRef.current);
-    trailerTimerRef.current = setTimeout(async () => {
-      let tUrl = clientTrailerCache.get(slug);
-      if (tUrl === undefined) {
-        try {
-          const data = await fetchMovieSynopsisShared(slug);
-          tUrl = data?.trailer_url || "";
-          clientTrailerCache.set(slug, tUrl || "");
-          if (data?.content && !synopsis) {
-            clientSynopsisCache.set(slug, data.content);
-            setSynopsis(data.content);
-          }
-          if (data?.actor) {
+      // Kiểm tra cache
+      if (clientSynopsisCache.has(slug)) {
+        const cached = clientSynopsisCache.get(slug)!;
+        if (cached && cached !== synopsis) {
+          setSynopsis(cached);
+        }
+      }
+      if (clientExtraInfoCache.has(slug)) {
+        setExtraInfo(clientExtraInfoCache.get(slug)!);
+      }
+      if (clientTrailerCache.has(slug)) {
+        const cachedT = clientTrailerCache.get(slug)!;
+        if (cachedT && cachedT !== trailerUrl) {
+          setTrailerUrl(cachedT);
+        }
+      }
+
+      // Tải thông tin chi tiết (Diễn viên, đạo diễn, nội dung, trailer) nếu chưa có
+      if ((!synopsis || !extraInfo.actor?.length) && slug) {
+        if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+        hoverTimerRef.current = setTimeout(async () => {
+          setLoadingDetails(true);
+          try {
+            const data = await fetchMovieSynopsisShared(slug);
+            if (data?.content) {
+              clientSynopsisCache.set(slug, data.content);
+              setSynopsis(data.content);
+            } else if (description) {
+              setSynopsis(description);
+            }
+            if (data?.trailer_url) {
+              clientTrailerCache.set(slug, data.trailer_url);
+              setTrailerUrl(data.trailer_url);
+              setHasTrailerState(true);
+            }
+            if (data?.backdrop_url) {
+              setCurrentImgSrc((prev) => {
+                if (!prev || prev.includes("-poster") || prev.includes("/default-")) {
+                  return data.backdrop_url;
+                }
+                return prev;
+              });
+            }
             const info: MovieExtraInfo = {
               actor: data?.actor || [],
               director: data?.director || [],
               country: data?.country || [],
               category: data?.category || [],
               origin_name: data?.origin_name || origin_name,
+              backdrop_url: data?.backdrop_url,
             };
             clientExtraInfoCache.set(slug, info);
             setExtraInfo(info);
+          } catch {
+            if (description) setSynopsis(description);
+          } finally {
+            setLoadingDetails(false);
           }
-        } catch {
-          tUrl = "";
-        }
+        }, 450);
       }
 
-      if (tUrl) {
-        setTrailerUrl(tUrl);
-        setIsPlayingTrailer(true);
-      }
-    }, 700);
+      // Bật trailer preview sau 700ms hover (sử dụng chung in-flight promise hoặc cache)
+      if (trailerTimerRef.current) clearTimeout(trailerTimerRef.current);
+      trailerTimerRef.current = setTimeout(async () => {
+        let tUrl = clientTrailerCache.get(slug);
+        if (tUrl === undefined) {
+          try {
+            const data = await fetchMovieSynopsisShared(slug);
+            tUrl = data?.trailer_url || "";
+            clientTrailerCache.set(slug, tUrl || "");
+            if (data?.content && !synopsis) {
+              clientSynopsisCache.set(slug, data.content);
+              setSynopsis(data.content);
+            }
+            if (data?.actor) {
+              const info: MovieExtraInfo = {
+                actor: data?.actor || [],
+                director: data?.director || [],
+                country: data?.country || [],
+                category: data?.category || [],
+                origin_name: data?.origin_name || origin_name,
+              };
+              clientExtraInfoCache.set(slug, info);
+              setExtraInfo(info);
+            }
+          } catch {
+            tUrl = "";
+          }
+        }
+
+        if (tUrl) {
+          setTrailerUrl(tUrl);
+          setIsPlayingTrailer(true);
+        }
+      }, 700);
+    }, 80);
   };
 
   const handleMouseLeave = () => {
+    // Hủy ngay lập tức hover-intent nếu người dùng chỉ lướt chuột qua thẻ
+    if (hoverIntentTimerRef.current) {
+      clearTimeout(hoverIntentTimerRef.current);
+      hoverIntentTimerRef.current = null;
+    }
     if (hoverTimerRef.current) {
       clearTimeout(hoverTimerRef.current);
       hoverTimerRef.current = null;
@@ -521,15 +541,18 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       >
         {/* Placeholder gradient mượt mà chống giật hình ảnh */}
         {!isImgLoaded && (
-          <div className="absolute inset-0 bg-gradient-to-br from-zinc-800 to-zinc-950 z-0" />
+          <div className="absolute inset-0 bg-gradient-to-br from-zinc-800 to-zinc-950 z-0 animate-pulse" />
         )}
 
         <Image
           src={currentImgSrc}
           alt={title}
           fill
+          unoptimized
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1440px) 33vw, 25vw"
-          className="object-cover object-center group-hover:scale-105 transition-transform duration-300"
+          className={`object-cover object-center group-hover:scale-105 transition-all duration-300 ${
+            isImgLoaded ? "opacity-100" : "opacity-0"
+          }`}
           priority={priority}
           loading={priority ? "eager" : "lazy"}
           decoding="async"
@@ -629,6 +652,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
             src={currentImgSrc}
             alt={title}
             fill
+            unoptimized
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 450px"
             loading="lazy"
             decoding="async"
@@ -870,13 +894,15 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       </div>
 
       {/* ============================================================ */}
-      {/* 3. MODAL TRAILER MÀN ẢNH RỘNG */}
-      <MediaTrailerModal
-        isOpen={showTrailerModal}
-        onClose={() => setShowTrailerModal(false)}
-        title={title}
-        modalTrailerUrl={modalTrailerUrl}
-      />
+      {/* 3. MODAL TRAILER MÀN ẢNH RỘNG (chỉ mount khi được mở xem thực tế) */}
+      {showTrailerModal && (
+        <TrailerModal
+          isOpen={true}
+          onClose={() => setShowTrailerModal(false)}
+          title={title}
+          modalTrailerUrl={modalTrailerUrl}
+        />
+      )}
     </div>
   );
 };

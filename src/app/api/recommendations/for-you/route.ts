@@ -3,39 +3,37 @@ import { generateFastAiChat } from "@/services/aiProviderService";
 import { fetchMoviesByTitles } from "@/services/aiActorService";
 import { normalizeMovie } from "@/lib/movieMedia";
 import { movieApi } from "@/services/movieApi";
+import { kvCache } from "@/services/kvCacheService";
 
 export const maxDuration = 20;
 
 // Danh sách hạt giống các siêu phẩm điện ảnh kinh điển mọi thời đại (Fallback chất lượng cao)
 const MASTERPIECE_BLOCKBUSTERS = [
-  "Ký Sinh Trùng",
-  "Interstellar",
-  "Chuyến Tàu Sinh Tử",
-  "Diệp Vấn",
-  "Đại Thoại Tây Du",
-  "Đội Bóng Thiếu Lâm",
-  "Hạ Cánh Nơi Anh",
-  "Thanh Gươm Diệt Quỷ: Chuyến Tàu Vô Tận",
-  "Hoắc Nguyên Giáp",
-  "Khởi Nguồn Inception",
-  "Tuyệt Đỉnh Kungfu",
-  "Sát Phá Lang",
-  "Kỵ Sĩ Bóng Đêm",
-  "Kẻ Đánh Cắp Giấc Mơ",
-  "Vùng Đất Linh Hồn",
-  "Vua Sư Tử",
-  "Vũ Trụ Điện Ảnh Marvel",
-  "Avatar",
-  "Titanic",
-  "Bố Già",
-  "7 Tội Lỗi Chết Người",
-  "Cuộc Chiến Vô Cực",
-  "Thế Thân Avatar",
-  "Kẻ Huỷ Diệt",
-  "Ma Trận",
-  "Vực Thẳm Đen",
-  "Nhà Tù Shawshank",
-  "Võ Sĩ Giác Đấu",
+  "Ký Sinh Trùng (Parasite, 2019)",
+  "Hố Đen Tử Thần (Interstellar, 2014)",
+  "Chuyến Tàu Sinh Tử (Train to Busan, 2016)",
+  "Diệp Vấn (Ip Man, 2008)",
+  "Đại Thoại Tây Du (A Chinese Odyssey, 1995)",
+  "Đội Bóng Thiếu Lâm (Shaolin Soccer, 2001)",
+  "Hạ Cánh Nơi Anh (Crash Landing on You, 2019)",
+  "Thanh Gươm Diệt Quỷ: Chuyến Tàu Vô Tận (Demon Slayer: Mugen Train, 2020)",
+  "Hoắc Nguyên Giáp (Fearless, 2006)",
+  "Khởi Nguồn (Inception, 2010)",
+  "Tuyệt Đỉnh Kungfu (Kung Fu Hustle, 2004)",
+  "Sát Phá Lang (SPL: Kill Zone, 2005)",
+  "Kỵ Sĩ Bóng Đêm (The Dark Knight, 2008)",
+  "Kẻ Đánh Cắp Giấc Mơ (Inception, 2010)",
+  "Vùng Đất Linh Hồn (Spirited Away, 2001)",
+  "Vua Sư Tử (The Lion King, 1994)",
+  "Avatar (2009)",
+  "Titanic (1997)",
+  "Bố Già (The Godfather, 1972)",
+  "7 Tội Lỗi Chết Người (Se7en, 1995)",
+  "Cuộc Chiến Vô Cực (Avengers: Infinity War, 2018)",
+  "Kẻ Huỷ Diệt (The Terminator, 1984)",
+  "Ma Trận (The Matrix, 1999)",
+  "Nhà Tù Shawshank (The Shawshank Redemption, 1994)",
+  "Võ Sĩ Giác Đấu (Gladiator, 2000)",
 ];
 
 export async function POST(req: NextRequest) {
@@ -97,7 +95,101 @@ export async function POST(req: NextRequest) {
       matchContext = selected.ctx;
     }
 
-    // 1. DÙNG FAST AI ĐỂ CHỌN 16-24 SIÊU PHẨM CÙNG ĐẲNG CẤP
+    // =========================================================================
+    // KIỂM TRA CLOUDFLARE KV CACHE TOÀN CẦU (L1 RAM + L2 CLOUDFLARE KV)
+    // Không gọi lại AI và API ngoài nếu kết quả phù hợp đã có trong KV!
+    // =========================================================================
+    const topicHash = targetTopic.toLowerCase().replace(/[^a-z0-9]/g, "_").slice(0, 80);
+    const kvForYouKey = `foryou:topic:${topicHash}:${seed % 4}`;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const cachedPool = await kvCache.get<{ context: string; movies: any[] }>(kvForYouKey);
+    if (cachedPool && Array.isArray(cachedPool.movies) && cachedPool.movies.length > 0) {
+      // Lọc bỏ phim user đã xem mà không làm rò rỉ dữ liệu cá nhân giữa các user
+      const filtered = cachedPool.movies.filter(
+        (m) => m && m.slug && !watchedSet.has(m.slug.toLowerCase())
+      );
+      if (filtered.length >= 8) {
+        return NextResponse.json({
+          success: true,
+          context: cachedPool.context || matchContext,
+          items: filtered.slice(0, 18),
+          cached: true,
+        });
+      }
+    }
+
+    // =========================================================================
+    // 1. HYBRID STRATEGY: BỎ GỌI AI NẾU LÀ USER MỚI HOẶC CHỈ CÓ GENRE ĐƠN GIẢN
+    // Lấy trực tiếp từ kho phim theo thể loại/xu hướng và xoay vòng page theo seed
+    // =========================================================================
+    if (!hasRichHistory) {
+      const targetCategory = hasFavoriteGenres ? genres[seed % genres.length] : undefined;
+      const page = (seed % 5) + 1;
+
+      try {
+        const catalogRes = await movieApi.getMovies({
+          category: targetCategory,
+          page,
+          limit: 18,
+          sort: "views",
+        });
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const catalogMovies: any[] = [];
+        const seenSlugs = new Set<string>();
+
+        for (const raw of catalogRes?.items || []) {
+          const norm = normalizeMovie(raw);
+          if (!norm.slug || watchedSet.has(norm.slug.toLowerCase()) || seenSlugs.has(norm.slug.toLowerCase())) {
+            continue;
+          }
+          seenSlugs.add(norm.slug.toLowerCase());
+
+          const matchScore = Math.floor(Math.random() * 5) + 94; // 94% - 98%
+          const matchReason = hasFavoriteGenres
+            ? `Tuyển tập đỉnh cao thể loại ${(targetCategory || "").toUpperCase()} chuẩn gu bạn`
+            : `Siêu phẩm ăn khách phù hợp xu hướng điện ảnh`;
+
+          catalogMovies.push({
+            slug: norm.slug,
+            name: norm.title,
+            title: norm.title,
+            origin_name: norm.origin_name,
+            poster_url: norm.posterUrl || norm.imageUrl || "/default-poster.jpg",
+            thumb_url: norm.thumbUrl || norm.posterUrl || "/default-hero.jpg",
+            year: norm.year,
+            quality: norm.quality || "Full HD",
+            category: [{ name: norm.genre || (hasFavoriteGenres ? targetCategory : "Đề Xuất") }],
+            matchPercentage: matchScore,
+            matchReason,
+          });
+
+          if (catalogMovies.length >= 16) break;
+        }
+
+        if (catalogMovies.length > 0) {
+          kvCache.set(
+            kvForYouKey,
+            {
+              context: matchContext,
+              movies: catalogMovies,
+            },
+            6 * 3600
+          ).catch(() => {});
+
+          return NextResponse.json({
+            success: true,
+            context: matchContext,
+            items: catalogMovies,
+          });
+        }
+      } catch (catalogErr) {
+        console.warn("[for-you recommendations] Catalog fetch error, fallback to AI flow:", catalogErr);
+      }
+    }
+
+    // 2. DÙNG FAST AI ĐỐI VỚI NGƯỜI DÙNG CÓ GU PHỨC TẠP / LỊCH SỬ XEM
     let aiRecommendedTitles: Array<{ title: string; whyMatch: string; matchScore: number }> = [];
 
     try {
@@ -110,7 +202,7 @@ Trả về DUY NHẤT một chuỗi JSON hợp lệ theo định dạng:
 {
   "recommendations": [
     {
-      "title": "Tên phim tiếng Việt chuẩn phổ biến (vd: Diệp Vấn, Hoắc Nguyên Giáp, Sát Phá Lang, Kẻ Đánh Cắp Giấc Mơ, Kỵ Sĩ Bóng Đêm, Chuyến Tàu Sinh Tử)",
+      "title": "Tên phim tiếng Việt kèm tên gốc tiếng Anh và năm phát hành trong ngoặc đơn (vd: Kẻ Đánh Cắp Giấc Mơ (Inception, 2010), Kỵ Sĩ Bóng Đêm (The Dark Knight, 2008), Ký Sinh Trùng (Parasite, 2019), Chuyến Tàu Sinh Tử (Train to Busan, 2016), Diệp Vấn (Ip Man, 2008))",
       "whyMatch": "Lý do ngắn gọn vì sao bộ phim này đáng xem (1 câu ngắn)",
       "matchScore": 98
     }
@@ -177,9 +269,16 @@ Trả về DUY NHẤT một chuỗi JSON hợp lệ theo định dạng:
 
       const matchMeta = aiRecommendedTitles.find((r) => {
         const rt = (r.title || "").toLowerCase();
+        const viOnly = rt.replace(/\([^)]*\)/g, "").trim();
+        const matchParen = rt.match(/\(([^)]+)\)/);
+        const engOnly = (matchParen ? matchParen[1] : "").toLowerCase().replace(/\b\d{4}\b/g, "").replace(/,/g, "").trim();
         const nt = (norm.title || "").toLowerCase();
         const no = (norm.origin_name || "").toLowerCase();
-        return nt.includes(rt) || rt.includes(nt) || no.includes(rt) || rt.includes(no);
+
+        return (
+          (viOnly && (nt.includes(viOnly) || viOnly.includes(nt) || no.includes(viOnly) || viOnly.includes(no))) ||
+          (engOnly && (nt.includes(engOnly) || engOnly.includes(nt) || no.includes(engOnly) || engOnly.includes(no)))
+        );
       });
 
       const matchScore = matchMeta?.matchScore || (Math.floor(Math.random() * 5) + 92); // 92% - 98%
@@ -235,6 +334,18 @@ Trả về DUY NHẤT một chuỗi JSON hợp lệ theo định dạng:
       } catch (backfillErr) {
         console.warn("[for-you recommendations] Backfill error:", backfillErr);
       }
+    }
+
+    // Lưu vào Cloudflare KV với TTL 6 giờ
+    if (recommendedMovies.length > 0) {
+      kvCache.set(
+        kvForYouKey,
+        {
+          context: matchContext,
+          movies: recommendedMovies,
+        },
+        6 * 3600
+      ).catch(() => {});
     }
 
     return NextResponse.json({

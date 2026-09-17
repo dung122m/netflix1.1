@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import QRCode from "qrcode";
 import { Smartphone, X, Copy, Check, QrCode, Clock, Film, ExternalLink } from "lucide-react";
 import { getWatchProgress } from "@/lib/watchHistory";
 import { formatEpisodeName } from "@/lib/formatEpisode";
@@ -129,20 +128,24 @@ export function MobileQrModal({
     return `${origin}${pathname}${qs ? `?${qs}` : ""}`;
   }, [movieSlug, activeEpisodeSlug, exactProgressSeconds]);
 
-  // Tạo mã QR chất lượng cao nội bộ bằng thư viện qrcode
+  // Tạo mã QR chất lượng cao nội bộ (dynamic import thư viện qrcode khi modal mở để giảm initial bundle)
   useEffect(() => {
     if (!isModalOpen || !watchUrl) return;
 
     let isMounted = true;
-    QRCode.toDataURL(watchUrl, {
-      width: 320,
-      margin: 2,
-      color: {
-        dark: "#000000",
-        light: "#ffffff",
-      },
-      errorCorrectionLevel: "M",
-    })
+    import("qrcode")
+      .then((QRCodeModule) => {
+        const QRCode = QRCodeModule.default || QRCodeModule;
+        return QRCode.toDataURL(watchUrl, {
+          width: 320,
+          margin: 2,
+          color: {
+            dark: "#000000",
+            light: "#ffffff",
+          },
+          errorCorrectionLevel: "M",
+        });
+      })
       .then((url) => {
         if (isMounted) setQrCodeDataUrl(url);
       })
@@ -174,7 +177,7 @@ export function MobileQrModal({
           type="button"
           onClick={() => setInternalIsOpen(true)}
           title="Quét mã QR để xem tiếp trên thiết bị di động"
-          className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-zinc-900/80 px-3 py-1.5 text-xs sm:text-sm font-medium text-gray-300 hover:bg-white/10 hover:text-white transition-all cursor-pointer active:scale-95 flex-shrink-0"
+          className="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-zinc-900/80 px-3 py-1.5 text-xs sm:text-sm font-medium text-gray-300 hover:bg-white/10 hover:text-white transition-all cursor-pointer active:scale-95 flex-shrink-0"
         >
           <Smartphone className="h-4 w-4 text-sky-400 flex-shrink-0" />
           <span className="hidden sm:inline">Chuyển sang di động</span>

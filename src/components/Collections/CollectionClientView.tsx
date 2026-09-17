@@ -13,7 +13,7 @@ import {
   Loader2,
   Sparkles,
 } from "lucide-react";
-import { MediaCard } from "@/components/sites/netflix-3f78535a/browse-1234abcd/MediaCard";
+import { MediaCard } from "@/components/browse/MediaCard";
 import { getPublicCollection } from "@/services/collectionService";
 import { MovieCollection } from "@/types/collection";
 import { addToWatchlist } from "@/lib/watchlist";

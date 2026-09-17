@@ -37,7 +37,7 @@ export default function BrowseLoading() {
           {Array.from({ length: 12 }).map((_, i) => (
             <div
               key={i}
-              className="aspect-[2/3] rounded-2xl bg-zinc-900/80 border border-white/5 relative overflow-hidden"
+              className="aspect-video rounded-2xl bg-zinc-900/80 border border-white/5 relative overflow-hidden"
             >
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
               <div className="absolute bottom-3 left-3 right-3 space-y-2">

@@ -166,7 +166,7 @@ export const Footer: React.FC = () => {
               <li>
                 <button
                   type="button"
-                  onClick={() => window.dispatchEvent(new CustomEvent("open-random-movie-modal"))}
+                  onClick={() => window.dispatchEvent(new CustomEvent("open-ai-roulette"))}
                   className="hover:text-white transition flex items-center gap-2 cursor-pointer"
                 >
                   <Dices size={13} className="text-amber-400" />

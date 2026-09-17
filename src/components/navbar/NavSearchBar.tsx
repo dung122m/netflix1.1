@@ -19,11 +19,13 @@ export interface SearchSuggestion {
 interface NavSearchBarProps {
   isSearchExpanded: boolean;
   setIsSearchExpanded: React.Dispatch<React.SetStateAction<boolean>>;
+  onOpenMobileSearch?: () => void;
 }
 
 export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function NavSearchBar({
   isSearchExpanded,
   setIsSearchExpanded,
+  onOpenMobileSearch,
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -45,7 +47,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
   const hasSearchText = hasText;
   const hasDropdownContent = (!hasSearchText && recentSearches.length > 0) || (hasSearchText && suggestions.length > 0);
 
-  // Debounced search fetcher (300ms)
+  // Debounced search fetcher (500ms để giảm tải Cloudflare KV writes)
   const [debouncedFetchSuggestions, cancelDebouncedFetch] = useDebounce(
     async (val: string) => {
       try {
@@ -62,7 +64,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
         setIsSearching(false);
       }
     },
-    300
+    500
   );
 
   useEffect(() => {
@@ -80,8 +82,11 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
   useEffect(() => {
     if (inputRef.current) inputRef.current.value = urlKeyword;
     if (mobileInputRef.current) mobileInputRef.current.value = urlKeyword;
-    if (urlKeyword) setHasText(true);
-  }, [urlKeyword]);
+    setHasText(Boolean(urlKeyword));
+    if (urlKeyword && typeof window !== "undefined" && window.innerWidth >= 768) {
+      setIsSearchExpanded(true);
+    }
+  }, [urlKeyword, setIsSearchExpanded]);
 
   // Close dropdown and collapse search on click outside
   useEffect(() => {
@@ -120,17 +125,23 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
         (e.key === "/" && !isInput)
       ) {
         e.preventDefault();
+        onOpenMobileSearch?.();
         setIsSearchExpanded(true);
         setTimeout(() => {
-          inputRef.current?.focus();
-          inputRef.current?.select();
+          if (typeof window !== "undefined" && window.innerWidth < 768) {
+            mobileInputRef.current?.focus();
+            mobileInputRef.current?.select();
+          } else {
+            inputRef.current?.focus();
+            inputRef.current?.select();
+          }
         }, 50);
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isSearchExpanded, setIsSearchExpanded]);
+  }, [isSearchExpanded, setIsSearchExpanded, onOpenMobileSearch]);
 
   const saveRecentSearch = (kw: string) => {
     const clean = kw.trim();
@@ -167,18 +178,24 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
     if (mobileInputRef.current) mobileInputRef.current.value = kw;
     setHasText(true);
     setShowDropdown(false);
-    setIsSearchExpanded(false);
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+      setIsSearchExpanded(false);
+    }
     saveRecentSearch(kw);
     router.push(`/browse?keyword=${encodeURIComponent(kw)}`);
   };
 
   const toggleSearch = () => {
     if (!isSearchExpanded) {
+      onOpenMobileSearch?.();
       setIsSearchExpanded(true);
       setShowDropdown(true);
       setTimeout(() => {
-        inputRef.current?.focus();
-        mobileInputRef.current?.focus();
+        if (typeof window !== "undefined" && window.innerWidth < 768) {
+          mobileInputRef.current?.focus();
+        } else {
+          inputRef.current?.focus();
+        }
       }, 100);
     } else {
       setIsSearchExpanded(false);
@@ -198,8 +215,19 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
     setIsSearching(false);
     setShowDropdown(true);
     setSelectedSuggestionIndex(-1);
-    inputRef.current?.focus();
-    mobileInputRef.current?.focus();
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+      mobileInputRef.current?.focus();
+    } else {
+      inputRef.current?.focus();
+    }
+
+    if (urlKeyword) {
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("keyword");
+      params.delete("page");
+      const query = params.toString();
+      router.push(query ? `/browse?${query}` : "/browse");
+    }
   };
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -207,7 +235,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
     const hasVal = val.length > 0;
     setHasText(hasVal);
 
-    if (val.trim().length >= 2) {
+    if (val.trim().length >= 3) {
       setIsSearching(true);
       debouncedFetchSuggestions(val);
     } else {
@@ -272,12 +300,16 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setShowDropdown(false);
-    setIsSearchExpanded(false);
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+      setIsSearchExpanded(false);
+    }
     const currentKeyword = (inputRef.current?.value || mobileInputRef.current?.value || "").trim();
 
     if (currentKeyword) {
       saveRecentSearch(currentKeyword);
       router.push(`/browse?keyword=${encodeURIComponent(currentKeyword)}`);
+    } else {
+      router.push("/browse");
     }
   };
 
@@ -411,6 +443,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
                             src={item.poster}
                             alt={item.title}
                             fill
+                            unoptimized
                             sizes="40px"
                             className="object-cover group-hover:scale-105 transition-transform"
                           />
@@ -584,6 +617,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
                           src={item.poster}
                           alt={item.title}
                           fill
+                          unoptimized
                           sizes="40px"
                           className="object-cover group-hover:scale-105 transition-transform"
                         />

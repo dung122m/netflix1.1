@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { movieApi } from "@/services/movieApi";
 import { cleanHtmlText } from "@/lib/cleanHtml";
-
 import { pickHeroBackdropImage, pickBestMoviePoster, pickBestMovieThumb } from "@/lib/movieMedia";
+import { getTmdbBackdropUrl } from "@/services/tmdbService";
 
 export interface SynopsisDetailPayload {
   content: string;
@@ -20,8 +20,19 @@ export interface SynopsisDetailPayload {
   thumb_url?: string;
 }
 
-// Bộ nhớ đệm RAM trên server cho các yêu cầu tóm tắt và thông tin chi tiết phim
+// Bộ nhớ đệm RAM trên server cho các yêu cầu tóm tắt và thông tin chi tiết phim (giới hạn tối đa 500 mục)
 const serverSynopsisCache = new Map<string, SynopsisDetailPayload>();
+const MAX_SYNOPSIS_CACHE = 500;
+
+function setBoundedSynopsisCache(slug: string, payload: SynopsisDetailPayload) {
+  if (serverSynopsisCache.size >= MAX_SYNOPSIS_CACHE) {
+    const oldestKey = serverSynopsisCache.keys().next().value;
+    if (oldestKey !== undefined) {
+      serverSynopsisCache.delete(oldestKey);
+    }
+  }
+  serverSynopsisCache.set(slug, payload);
+}
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -89,7 +100,17 @@ export async function GET(request: NextRequest) {
       ? movie.country.map((c: { name?: string }) => c.name || "").filter(Boolean)
       : [];
 
-    const backdropUrl = movie ? pickHeroBackdropImage(movie) : "";
+    let backdropUrl = "";
+    if (movie?.tmdb?.id) {
+      try {
+        backdropUrl = (await getTmdbBackdropUrl(movie.tmdb.id, movie.tmdb.type)) || "";
+      } catch {
+        // Fallback
+      }
+    }
+    if (!backdropUrl && movie) {
+      backdropUrl = pickHeroBackdropImage(movie);
+    }
     const posterUrl = movie ? pickBestMoviePoster(movie) : "";
     const thumbUrl = movie ? pickBestMovieThumb(movie) : "";
 
@@ -109,8 +130,8 @@ export async function GET(request: NextRequest) {
       thumb_url: thumbUrl,
     };
 
-    // Lưu vào RAM cache
-    serverSynopsisCache.set(slug, payload);
+    // Lưu vào RAM cache (bounded FIFO)
+    setBoundedSynopsisCache(slug, payload);
 
     return NextResponse.json(
       { slug, ...payload },

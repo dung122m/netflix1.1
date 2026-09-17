@@ -2,10 +2,76 @@ import { NextRequest, NextResponse } from "next/server";
 import { movieApi } from "@/services/movieApi";
 import { upsertMovieEmbedding } from "@/services/aiVectorService";
 import { supabase } from "@/lib/supabase";
+import { isUserAdmin } from "@/lib/adminConfig";
 
 export const maxDuration = 60;
 
+/**
+ * Xác thực quyền Quản trị viên (Admin) cho các thao tác nạp vector nhạy cảm:
+ * - Cách 1: Header `x-admin-secret` hoặc `Authorization: Bearer <ADMIN_SYNC_SECRET>` khớp với biến môi trường server-side
+ * - Cách 2: Header `Authorization: Bearer <Firebase_ID_Token>` từ tài khoản Quản trị viên đã đăng nhập
+ */
+async function verifyAdminAuth(req: NextRequest): Promise<{ authorized: boolean; error?: string; status: number }> {
+  const secretHeader = req.headers.get("x-admin-secret")?.trim();
+  const authHeader = req.headers.get("authorization")?.trim();
+  const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.slice(7).trim() : null;
+
+  // 1. Kiểm tra Admin Secret server-side
+  const envSecret = process.env.ADMIN_SYNC_SECRET?.trim();
+  if (envSecret && (secretHeader === envSecret || bearerToken === envSecret)) {
+    return { authorized: true, status: 200 };
+  }
+
+  // 2. Kiểm tra Firebase ID Token từ người dùng đăng nhập tài khoản Admin
+  if (bearerToken && bearerToken !== envSecret) {
+    const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY || process.env.FIREBASE_API_KEY;
+    if (apiKey) {
+      try {
+        const verifyRes = await fetch(
+          `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${apiKey}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ idToken: bearerToken }),
+            signal: AbortSignal.timeout(6000),
+          }
+        );
+
+        if (verifyRes.ok) {
+          const verifyData = await verifyRes.json();
+          const email = verifyData.users?.[0]?.email;
+          if (email && isUserAdmin(email)) {
+            return { authorized: true, status: 200 };
+          }
+          return {
+            authorized: false,
+            error: "Tài khoản không có quyền Quản trị viên (Admin)",
+            status: 403,
+          };
+        }
+      } catch (err) {
+        console.warn("[sync-embeddings] Lỗi xác thực token Firebase:", err);
+      }
+    }
+  }
+
+  return {
+    authorized: false,
+    error: "Yêu cầu quyền Quản trị viên hợp lệ (Unauthorized)",
+    status: 401,
+  };
+}
+
 export async function GET(req: NextRequest) {
+  // Xác thực quyền Admin trước khi thực hiện bất kỳ thao tác nào
+  const authResult = await verifyAdminAuth(req);
+  if (!authResult.authorized) {
+    return NextResponse.json(
+      { success: false, error: authResult.error || "Unauthorized" },
+      { status: authResult.status || 401 }
+    );
+  }
+
   const { searchParams } = new URL(req.url);
   const limit = Math.min(Number(searchParams.get("limit")) || 30, 100);
 

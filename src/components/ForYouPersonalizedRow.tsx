@@ -277,6 +277,7 @@ export function ForYouPersonalizedRow() {
                         src={movie.poster_url || movie.thumb_url || "/default-poster.jpg"}
                         alt={movie.title || movie.name}
                         fill
+                        unoptimized
                         sizes="(max-width: 640px) 180px, (max-width: 1024px) 240px, 300px"
                         className="object-cover group-hover:scale-105 transition-transform duration-500"
                         loading="lazy"

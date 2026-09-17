@@ -25,8 +25,10 @@ export function sanitizeImageUrl(url: string): string {
   // Sửa lỗi url có 2 dấu gạch chéo // sau tên miền (gây redirect chậm)
   clean = clean.replace(/(https?:\/\/)([^/]+)\/\/+/g, "$1$2/");
 
-  // Tối ưu ảnh VSMOV: Chỉ chuyển sang TMDb CDN nếu filename là mã hash TMDb hợp lệ (chuỗi alphanumeric 22-35 ký tự, KHÔNG chứa dấu gạch nối hoặc từ ngữ tùy chỉnh)
-  const vsmovMatch = clean.match(/https?:\/\/vsmov\.com\/storage\/images\/([a-zA-Z0-9]{22,35}\.(?:jpg|jpeg|png|webp))$/i);
+  // Tối ưu ảnh VSMOV / NguonC: Chỉ chuyển sang TMDb CDN nếu filename là mã hash TMDb hợp lệ (chuỗi alphanumeric 22-35 ký tự, KHÔNG chứa dấu gạch nối hoặc từ ngữ tùy chỉnh)
+  const vsmovMatch = clean.match(
+    /https?:\/\/(?:vsmov\.com\/storage\/images|phim\.nguonc\.com\/public\/images\/Film)\/([a-zA-Z0-9]{22,35}\.(?:jpg|jpeg|png|webp))$/i
+  );
   if (vsmovMatch && !vsmovMatch[1].includes("-") && !vsmovMatch[1].includes("_")) {
     clean = `https://image.tmdb.org/t/p/w500/${vsmovMatch[1]}`;
   }
@@ -142,15 +144,43 @@ export function toOptimizedCardBackdropUrl(url: string): string {
 }
 
 /**
- * Dành riêng cho Banner Hero cỡ lớn toàn màn hình trên đầu trang
+ * Dành riêng cho Banner Hero cỡ lớn toàn màn hình trên đầu trang.
+ * Ưu tiên độ phân giải gốc cực cao (original / w1280) cho màn hình lớn & Retina 2x/4K.
  */
 export function toHighResBackdropUrl(url: string): string {
   if (!url || typeof url !== "string") return "";
-  let clean = sanitizeImageUrl(url);
-  // Nếu là ảnh từ TMDb (hoặc VSMOV đã chuyển sang TMDb CDN), nâng cấp lên w1280 (HD) sắc nét chuẩn màn hình lớn
-  if (clean.includes("image.tmdb.org/t/p/")) {
-    clean = clean.replace(/\/t\/p\/(w500|w780|w300)\//, "/t/p/w1280/");
+  let clean = url.trim();
+  if (
+    !clean ||
+    clean === "null" ||
+    clean === "undefined" ||
+    clean.endsWith("/null") ||
+    clean.endsWith("/undefined")
+  ) {
+    return "";
   }
+
+  // 1. Nhận diện trực tiếp mã hash TMDb từ VSMOV hoặc NguonC -> Chuyển thẳng sang TMDb original Full HD/4K
+  const tmdbHashMatch = clean.match(
+    /https?:\/\/(?:vsmov\.com\/storage\/images|phim\.nguonc\.com\/public\/images\/Film)\/([a-zA-Z0-9]{22,35}\.(?:jpg|jpeg|png|webp))$/i
+  );
+  if (tmdbHashMatch && !tmdbHashMatch[1].includes("-") && !tmdbHashMatch[1].includes("_")) {
+    return `https://image.tmdb.org/t/p/original/${tmdbHashMatch[1]}`;
+  }
+
+  // 2. Nhận diện đường dẫn tương đối TMDb (vd: /jUiZOFbC9MjQV3gzi9nn7AsQ4Ea.jpg)
+  if (/^\/[a-zA-Z0-9_-]+\.(?:jpg|jpeg|png|webp)$/i.test(clean)) {
+    return `https://image.tmdb.org/t/p/original${clean}`;
+  }
+
+  // 3. Chuẩn hóa qua sanitizeImageUrl
+  clean = sanitizeImageUrl(url);
+
+  // 4. Nếu là ảnh TMDb, nâng cấp lên original (Full HD / 4K) cho Banner Hero toàn màn hình
+  if (clean.includes("image.tmdb.org/t/p/")) {
+    clean = clean.replace(/\/t\/p\/(w500|w780|w300|w1280)\//, "/t/p/original/");
+  }
+
   return clean;
 }
 
@@ -158,9 +188,9 @@ export function pickHeroBackdropImage(movie: MovieLike, fallback = "/default-her
   if (!movie) return fallback;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rawMovie = (movie as any)?.movie || movie;
-  const isVsmov = isVsmovSource(movie);
+  const isVsmov = isNguonCSource(movie);
 
-  // VSMOV đảo ngược: poster_url là backdrop 16:9, thumb_url là poster dọc 2:3
+  // VSMOV / NguonC đảo ngược: poster_url là backdrop 16:9, thumb_url là poster dọc 2:3
   const primary = isVsmov
     ? rawMovie.poster_url || rawMovie.posterUrl || movie.poster_url || movie.posterUrl
     : rawMovie.thumb_url || rawMovie.thumbUrl || movie.thumb_url || movie.thumbUrl;
@@ -169,11 +199,24 @@ export function pickHeroBackdropImage(movie: MovieLike, fallback = "/default-her
     ? rawMovie.thumb_url || rawMovie.thumbUrl || movie.thumb_url || movie.thumbUrl
     : rawMovie.poster_url || rawMovie.posterUrl || movie.poster_url || movie.posterUrl;
 
-  const candidates = [
+  // Thu thập các trường backdrop chuyên dụng độ phân giải cao
+  const backdropFields = [
     rawMovie.backdrop_url,
     rawMovie.backdropUrl,
     movie.backdrop_url,
     movie.backdropUrl,
+    rawMovie.banner_url,
+    rawMovie.bannerUrl,
+    movie.banner_url,
+    movie.bannerUrl,
+    rawMovie.backdrop_path,
+    movie.backdrop_path,
+    rawMovie.backdropPath,
+    movie.backdropPath,
+  ];
+
+  const candidates = [
+    ...backdropFields,
     primary,
     secondary,
     movie.imageUrl,
@@ -185,18 +228,34 @@ export function pickHeroBackdropImage(movie: MovieLike, fallback = "/default-her
 
   if (candidates.length === 0) return fallback;
 
-  // 1. Tuyệt đối ưu tiên ảnh ngang (backdrop / thumb / w1280) không chứa từ khóa poster dọc
+  // 1. Ưu tiên tuyệt đối ảnh backdrop chuyên dụng hoặc ảnh TMDb chất lượng cao (original / w1280 / banner / backdrop)
   for (const c of candidates) {
     const l = c.toLowerCase();
     const isExplicitPoster = l.includes("-poster.") || l.includes("_poster.") || l.includes("/poster/") || l.includes("poster_");
     if (!isExplicitPoster) {
-      if (l.includes("thumb_") || l.includes("/thumb") || l.includes("-thumb") || l.includes("backdrop") || l.includes("w1280") || l.includes("w780")) {
+      if (
+        l.includes("image.tmdb.org/t/p/original") ||
+        l.includes("image.tmdb.org/t/p/w1280") ||
+        l.includes("backdrop") ||
+        l.includes("banner")
+      ) {
         return c;
       }
     }
   }
 
-  // 2. Nếu không có thumb chuyên dụng, chọn bất kỳ ứng viên nào không phải là poster dọc
+  // 2. Ưu tiên ảnh ngang (thumb_ / /thumb / -thumb / w780 / w500) không phải poster dọc
+  for (const c of candidates) {
+    const l = c.toLowerCase();
+    const isExplicitPoster = l.includes("-poster.") || l.includes("_poster.") || l.includes("/poster/") || l.includes("poster_");
+    if (!isExplicitPoster) {
+      if (l.includes("thumb_") || l.includes("/thumb") || l.includes("-thumb") || l.includes("w780") || l.includes("w500")) {
+        return c;
+      }
+    }
+  }
+
+  // 3. Fallback: Bất kỳ ứng viên nào không phải là poster dọc
   for (const c of candidates) {
     const l = c.toLowerCase();
     if (!l.includes("-poster.") && !l.includes("_poster.") && !l.includes("/poster/") && !l.includes("poster_")) {
@@ -424,6 +483,9 @@ export function detectMovieTypeName(m: any): string {
   return "Phim lẻ";
 }
 
+// Cache ổn định tham chiếu array diễn viên / đạo diễn theo từng movie object
+const movieArrayCache = new WeakMap<object, { actor?: string[]; director?: string[] }>();
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function normalizeMovie(m: any): NormalizedMovie {
   const title = m?.name || m?.title || "Phim";
@@ -473,22 +535,33 @@ export function normalizeMovie(m: any): NormalizedMovie {
       ? Number(ratingRaw).toFixed(1)
       : "N/A";
 
-  // Bóc tách diễn viên nếu có trong raw object
+  // Bóc tách diễn viên & đạo diễn (tái sử dụng tham chiếu array ổn định nếu cùng movie object)
+  const isObject = typeof m === "object" && m !== null;
+  const cachedArrays = isObject ? movieArrayCache.get(m) : undefined;
   let actor: string[] | undefined;
-  if (Array.isArray(m?.actor)) {
-    actor = m.actor.map(String).map((s: string) => s.trim()).filter(Boolean);
-  } else if (typeof m?.actor === "string" && m.actor) {
-    actor = m.actor.split(",").map((s: string) => s.trim()).filter(Boolean);
-  } else if (Array.isArray(m?.casts)) {
-    actor = m.casts.map(String).map((s: string) => s.trim()).filter(Boolean);
-  }
-
-  // Bóc tách đạo diễn
   let director: string[] | undefined;
-  if (Array.isArray(m?.director)) {
-    director = m.director.map(String).map((s: string) => s.trim()).filter(Boolean);
-  } else if (typeof m?.director === "string" && m.director) {
-    director = m.director.split(",").map((s: string) => s.trim()).filter(Boolean);
+
+  if (cachedArrays) {
+    actor = cachedArrays.actor;
+    director = cachedArrays.director;
+  } else {
+    if (Array.isArray(m?.actor)) {
+      actor = m.actor.map(String).map((s: string) => s.trim()).filter(Boolean);
+    } else if (typeof m?.actor === "string" && m.actor) {
+      actor = m.actor.split(",").map((s: string) => s.trim()).filter(Boolean);
+    } else if (Array.isArray(m?.casts)) {
+      actor = m.casts.map(String).map((s: string) => s.trim()).filter(Boolean);
+    }
+
+    if (Array.isArray(m?.director)) {
+      director = m.director.map(String).map((s: string) => s.trim()).filter(Boolean);
+    } else if (typeof m?.director === "string" && m.director) {
+      director = m.director.split(",").map((s: string) => s.trim()).filter(Boolean);
+    }
+
+    if (isObject) {
+      movieArrayCache.set(m, { actor, director });
+    }
   }
 
   const country = extractMovieCountry(m);

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useTransition } from "react";
-import { MediaCard } from "./sites/netflix-3f78535a/browse-1234abcd/MediaCard";
+import { MediaCard } from "@/components/browse/MediaCard";
 import { normalizeMovie } from "@/lib/movieMedia";
 
 interface MovieGridProps {
@@ -44,17 +44,23 @@ const MovieGridInner = ({ movies }: MovieGridProps) => {
     return () => observer.disconnect();
   }, [visibleCount, movies.length]);
 
-  const displayedMovies = movies.slice(0, visibleCount);
+  // Memoize danh sách phim đã chuẩn hóa để giữ nguyên tham chiếu props của MediaCard qua các đợt tăng batch
+  const normalizedMovies = React.useMemo(() => {
+    return movies.map((m) => {
+      const norm = normalizeMovie(m);
+      const bestThumb = norm.thumbUrl || norm.imageUrl;
+      return { norm, bestThumb };
+    });
+  }, [movies]);
+
+  const displayedMovies = normalizedMovies.slice(0, visibleCount);
   const hasMore = visibleCount < movies.length;
 
   return (
     <div className="movie-grid-container rounded-2xl sm:rounded-3xl border border-white/10 p-2.5 sm:p-5 md:p-6 shadow-2xl space-y-6">
       {/* LƯỚI PHIM CHÍNH: 1 cột trên mobile (rộng rãi, rõ nét), 2 cột sm, 3 cột md, 4 cột trên PC (lg/xl) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4 sm:gap-5 md:gap-6">
-        {displayedMovies.map((m, index) => {
-          const norm = normalizeMovie(m);
-          const bestThumb = norm.thumbUrl || norm.imageUrl;
-
+        {displayedMovies.map(({ norm, bestThumb }, index) => {
           return (
             <MediaCard
               key={norm.slug || index}

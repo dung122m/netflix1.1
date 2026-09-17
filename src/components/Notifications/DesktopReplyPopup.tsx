@@ -159,6 +159,7 @@ export const DesktopReplyPopup: React.FC = () => {
                 src={activeNotification.replierAvatar || activeNotification.image || "/default-poster.jpg"}
                 alt={activeNotification.replierName || activeNotification.title}
                 fill
+                unoptimized
                 sizes="40px"
                 className="object-cover"
                 referrerPolicy="no-referrer"

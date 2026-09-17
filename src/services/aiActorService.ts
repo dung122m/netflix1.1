@@ -1,6 +1,8 @@
 import { movieApi } from "@/services/movieApi";
 import { generateFastAiChat } from "@/services/aiProviderService";
 import { getActorFilmographyFromTmdb, searchTmdbPerson } from "@/services/tmdbService";
+import { kvCache } from "@/services/kvCacheService";
+import { normalizeForMatch } from "@/lib/stringUtils";
 
 export interface ActorProfile {
   name: string;
@@ -352,20 +354,7 @@ function setBoundedCache<K, V>(map: Map<K, V>, key: K, value: V, max = 500) {
   map.set(key, value);
 }
 
-/**
- * Chuẩn hoá chuỗi để so khớp không dấu
- */
-export function normalizeForMatch(str: string): string {
-  return (str || "")
-    .toLowerCase()
-    .replace(/đ/g, "d")
-    .replace(/Đ/g, "d")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^\w\s]/gi, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
+export { normalizeForMatch };
 
 function cleanActorQuery(query: string): string {
   return (query || "")
@@ -952,7 +941,7 @@ export async function resolveActorMovies(keyword: string): Promise<{
   aliases: string[];
   titles?: string[];
   isActor: boolean;
-  source: "preset" | "ai" | "cache" | "none";
+  source: "preset" | "ai" | "cache" | "none" | "tmdb";
 }> {
   if (!keyword || keyword.trim().length < 2) {
     return { actorName: "", aliases: [], isActor: false, source: "none" };
@@ -1010,7 +999,7 @@ export async function resolveActorMovies(keyword: string): Promise<{
         actorName,
         aliases,
         isActor: true,
-        source: "tmdb" as any,
+        source: "tmdb",
       };
     }
   } catch {}
@@ -1249,7 +1238,12 @@ export async function queryMoviesByActor(
     }
   }
 
-  return await executeActorFilmQuery(actorName, allVariants, matchedSlug, synonymRes, maxMovies, cacheKey);
+  const kvKey = `actor:filmography:${matchedSlug || actorName}:${maxMovies}`;
+  return await kvCache.fetchOrSet(
+    kvKey,
+    () => executeActorFilmQuery(actorName, allVariants, matchedSlug, synonymRes, maxMovies, cacheKey),
+    14 * 86400 // 14 ngày
+  );
 }
 
 async function executeActorFilmQuery(
@@ -1428,10 +1422,93 @@ async function executeActorFilmQuery(
   return clampedResults;
 }
 
-/**
- * 3. TÌM KIẾM VÀ SO KHỚP CHÍNH XÁC PHIM TỪ KHO PHIM API (CÓ BỘ NHỚ ĐỆM 1 GIỜ)
- * Hỗ trợ tìm cả tên tiếng Việt và tên tiếng Anh / Quốc tế trong ngoặc để tối đa hóa tỷ lệ tìm thấy
- */
+async function runTitlesWithConcurrencyLimit<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T, index: number) => Promise<R>
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let currentIndex = 0;
+
+  async function worker() {
+    while (true) {
+      const idx = currentIndex++;
+      if (idx >= items.length) break;
+      try {
+        results[idx] = await fn(items[idx], idx);
+      } catch {
+        // Safe skip on error
+      }
+    }
+  }
+
+  const workers = Array.from({ length: Math.min(limit, items.length) }, () => worker());
+  await Promise.all(workers);
+  return results;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function searchPhimApiForTitle(keyword: string): Promise<any[]> {
+  try {
+    const res = await fetch(
+      `https://phimapi.com/v1/api/tim-kiem?keyword=${encodeURIComponent(keyword)}&limit=6`,
+      { signal: AbortSignal.timeout(2400), next: { revalidate: 3600 } }
+    );
+    if (!res.ok) return [];
+    const json = await res.json();
+    const imageDomain =
+      json.data?.APP_DOMAIN_CDN_IMAGE ||
+      json.data?.APP_DOMAIN_FRONTEND ||
+      "https://phimimg.com/";
+    const cdnClean = imageDomain.replace(/\/+$/, "");
+    const items = json.data?.items || json.items || [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return items.map((item: any) => {
+      const rawThumb = typeof item.thumb_url === "string" ? item.thumb_url.trim() : "";
+      const rawPoster = typeof item.poster_url === "string" ? item.poster_url.trim() : "";
+      const formatImg = (path: string) => {
+        if (!path) return "";
+        if (path.startsWith("http://") || path.startsWith("https://")) return path;
+        return `${cdnClean}/${path.replace(/^\/+/, "")}`;
+      };
+      const formattedThumb = formatImg(rawThumb);
+      const formattedPoster = formatImg(rawPoster);
+      return {
+        ...item,
+        thumb_url: formattedThumb || formattedPoster,
+        poster_url: formattedPoster || formattedThumb,
+      };
+    });
+  } catch {
+    return [];
+  }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function searchNguonCForTitle(keyword: string): Promise<any[]> {
+  try {
+    const res = await fetch(
+      `https://phim.nguonc.com/api/films/search?keyword=${encodeURIComponent(keyword)}&page=1`,
+      { signal: AbortSignal.timeout(2400), next: { revalidate: 3600 } }
+    );
+    if (!res.ok) return [];
+    const json = await res.json();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rawItems: any[] = json.items || json.data?.items || [];
+    return rawItems.map((item) => ({
+      ...item,
+      origin_name: item.original_name || item.name,
+      poster_url: item.poster_url || item.thumb_url || "",
+      thumb_url: item.thumb_url || item.poster_url || "",
+      quality: item.quality || "HD",
+      lang: item.language || "Vietsub",
+      year: Number(item.year) || undefined,
+    }));
+  } catch {
+    return [];
+  }
+}
+
 export interface FetchMoviesOptions {
   actorName?: string;
   actorAliases?: string[];
@@ -1447,50 +1524,47 @@ export async function fetchMoviesByTitles(
 ): Promise<any[]> {
   if (!titles || titles.length === 0) return [];
 
-  const topTitles = titles.slice(0, 10);
+  const topTitles = titles.slice(0, 14);
   const cacheKey = `${options?.actorName || ""}|${topTitles.join("|")}`;
   const cached = ACTOR_FILM_CACHE.get(cacheKey);
   if (cached && cached.expireAt > Date.now()) {
     return cached.items.slice(0, maxMovies);
   }
 
-  const seenSlugs = new Set<string>();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const results: any[] = [];
+  const kvKey = `movie:by_titles:${cacheKey}`;
+  return await kvCache.fetchOrSet(
+    kvKey,
+    async () => {
+      const seenSlugs = new Set<string>();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const results: any[] = [];
 
   const allAliases = [options?.actorName, ...(options?.actorAliases || [])]
     .filter((s): s is string => typeof s === "string" && s.trim().length >= 2)
     .map(normalizeForMatch);
 
-  // Thực thi song song tìm kiếm tối đa 8-10 tựa phim với timeout an toàn 1.5s
-  const tasks = topTitles.map(async (rawTitle) => {
+  // Thực thi tìm kiếm có kiểm soát concurrency (tối đa 6 worker đồng thời)
+  // Ưu tiên gọi PhimAPI trước, chỉ fallback sang NguonC khi PhimAPI không khớp
+  const resolvedItems = await runTitlesWithConcurrencyLimit(topTitles, 6, async (rawTitle) => {
     try {
       const viTitle = rawTitle.replace(/\([^)]*\)/g, "").trim();
       const matchEng = rawTitle.match(/\(([^)]+)\)/);
-      const engTitle = matchEng ? matchEng[1].trim() : "";
+      const engPart = matchEng ? matchEng[1].trim() : "";
+      const matchYear = rawTitle.match(/\b(19\d\d|20\d\d)\b/);
+      const targetYear = matchYear ? parseInt(matchYear[1], 10) : undefined;
+      const engTitle = engPart.replace(/\b(19\d\d|20\d\d)\b/g, "").replace(/,/g, "").trim();
 
       const cleanTargetVi = normalizeForMatch(viTitle);
       const cleanTargetEng = normalizeForMatch(engTitle);
 
       if (!cleanTargetVi && !cleanTargetEng) return null;
 
-      // Tìm kiếm với timeout 1.5s
-      const searchPromise = (async () => {
-        let searchRes = cleanTargetVi.length >= 2 ? await movieApi.getMovies({ keyword: viTitle, limit: 6 }) : null;
-        let matchedItems = searchRes?.items || [];
-
-        if (matchedItems.length === 0 && engTitle && cleanTargetEng.length >= 2) {
-          searchRes = await movieApi.getMovies({ keyword: engTitle, limit: 6 });
-          matchedItems = searchRes?.items || [];
-        }
-
-        if (matchedItems.length === 0) return null;
-
-        // Tính điểm so khớp chính xác
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const evaluateCandidates = (candidates: any[]): any | null => {
         let bestItem = null;
         let highestScore = -1;
 
-        for (const item of matchedItems) {
+        for (const item of candidates) {
           if (!item || !item.slug || seenSlugs.has(item.slug)) continue;
 
           const normName = normalizeForMatch(item.name);
@@ -1524,13 +1598,12 @@ export async function fetchMoviesByTitles(
               itemCountry.includes("nhat ban");
 
             if (isVietnamTarget && isForeignMovie && !hasActorOrDirector) {
-              continue; // Bỏ qua ngay lập tức, loại bỏ "Bố Già Vùng Harlem" khi tìm Trấn Thành!
+              continue; // Bỏ qua ngay lập tức
             }
           }
 
           // 2. STRICT ACTOR/DIRECTOR CHECK: Nếu có danh sách diễn viên cụ thể mà strictActorFilter bật và không có nghệ sĩ
           if (options?.strictActorFilter && itemActorsAndDirectors.length > 0 && !hasActorOrDirector) {
-            // Chỉ châm chước nếu tên phim khớp 100% tuyệt đối cả tên tiếng Việt lẫn tên gốc
             const isExactTitleMatch = (cleanTargetVi && normName === cleanTargetVi) || (cleanTargetEng && (normOrig === cleanTargetEng || normName === cleanTargetEng));
             if (!isExactTitleMatch) {
               continue;
@@ -1548,10 +1621,10 @@ export async function fetchMoviesByTitles(
           } else if (isExactEng) {
             score = 95;
           } else {
-            // Khớp bao hàm: TUYỆT ĐỐI KHÔNG nhận phim nếu tựa phim ngắn (như "Bố Già", "Mai") nhưng kết quả tìm kiếm lại là chuỗi dài ("Bố Già Vùng Harlem")
+            // Khớp bao hàm
             const isShortTitle = cleanTargetVi.length < 8 || cleanTargetEng.length < 8;
             if (isShortTitle && !hasActorOrDirector) {
-              continue; // Không cho phép match lỏng lẻo đối với tựa phim ngắn
+              continue;
             }
 
             if (cleanTargetVi && (normName.includes(cleanTargetVi) || cleanTargetVi.includes(normName))) {
@@ -1576,6 +1649,20 @@ export async function fetchMoviesByTitles(
             score += 60;
           }
 
+          // Điểm thưởng / phạt năm phát hành
+          if (targetYear && item.year) {
+            const itemY = parseInt(String(item.year), 10);
+            if (!isNaN(itemY)) {
+              if (itemY === targetYear) {
+                score += 15;
+              } else if (Math.abs(itemY - targetYear) <= 1) {
+                score += 5;
+              } else if (Math.abs(itemY - targetYear) > 3) {
+                score -= 20;
+              }
+            }
+          }
+
           if (score >= 50 && score > highestScore) {
             highestScore = score;
             bestItem = item;
@@ -1583,38 +1670,50 @@ export async function fetchMoviesByTitles(
         }
 
         return bestItem;
-      })();
+      };
 
-      return await Promise.race([
-        searchPromise,
-        new Promise<null>((resolve) => setTimeout(() => resolve(null), 1600)),
-      ]);
+      // 2.1 Ưu tiên tìm kiếm PhimAPI trước
+      let phimApiItems = cleanTargetVi.length >= 2 ? await searchPhimApiForTitle(viTitle) : [];
+      if (phimApiItems.length === 0 && engTitle && cleanTargetEng.length >= 2) {
+        phimApiItems = await searchPhimApiForTitle(engTitle);
+      }
+
+      const matched = evaluateCandidates(phimApiItems);
+      if (matched) {
+        return matched; // Đã match trên PhimAPI, KHÔNG gọi NguonC
+      }
+
+      // 2.2 CHỈ FALLBACK SANG NGUONC khi PhimAPI không tìm thấy hoặc không khớp
+      let nguonCItems = cleanTargetVi.length >= 2 ? await searchNguonCForTitle(viTitle) : [];
+      if (nguonCItems.length === 0 && engTitle && cleanTargetEng.length >= 2) {
+        nguonCItems = await searchNguonCForTitle(engTitle);
+      }
+
+      return evaluateCandidates(nguonCItems);
     } catch (err) {
       console.warn(`[aiActorService] Error searching title "${rawTitle}":`, err);
       return null;
     }
   });
 
-  const resolved = await Promise.allSettled(tasks);
-
-  for (const outcome of resolved) {
-    if (outcome.status === "fulfilled" && outcome.value) {
-      const item = outcome.value;
-      if (item && item.slug && !seenSlugs.has(item.slug)) {
-        seenSlugs.add(item.slug);
-        results.push(item);
-        if (results.length >= maxMovies) break;
-      }
+  for (const item of resolvedItems) {
+    if (item && item.slug && !seenSlugs.has(item.slug)) {
+      seenSlugs.add(item.slug);
+      results.push(item);
+      if (results.length >= maxMovies) break;
     }
   }
 
-  if (results.length > 0) {
-    setBoundedCache(ACTOR_FILM_CACHE, cacheKey, {
-      items: results,
-      expireAt: Date.now() + 24 * 60 * 60 * 1000,
-      staleUntil: Date.now() + 48 * 60 * 60 * 1000,
-    });
-  }
+      if (results.length > 0) {
+        setBoundedCache(ACTOR_FILM_CACHE, cacheKey, {
+          items: results,
+          expireAt: Date.now() + 24 * 60 * 60 * 1000,
+          staleUntil: Date.now() + 48 * 60 * 60 * 1000,
+        });
+      }
 
-  return results;
+      return results;
+    },
+    7 * 86400 // 7 ngày trên Cloudflare KV
+  );
 }

@@ -17,7 +17,7 @@ import {
   Bookmark,
   X,
 } from "lucide-react";
-import { NetflixLogo } from "./sites/netflix-3f78535a/vn-d838105b/icons";
+import { NetflixLogo } from "@/components/NetflixLogo";
 import { ThemeSwitcher } from "./ThemeSwitcher";
 import { NavSearchBar } from "./navbar/NavSearchBar";
 import { NavNotifications } from "./navbar/NavNotifications";
@@ -86,20 +86,6 @@ const NavbarInner: React.FC = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Prefetch main navigation routes
-  useEffect(() => {
-    const mainTabs = [
-      "/browse",
-      "/browse?type=phim-bo",
-      "/browse?type=phim-le",
-      "/browse?type=phim-chieu-rap",
-      "/browse?type=hoat-hinh",
-      "/live",
-      "/my-list",
-    ];
-    mainTabs.forEach((tab) => router.prefetch(tab));
-  }, [router]);
-
   // Close mobile menu on navigation
   useEffect(() => {
     setIsMobileMenuOpen(false);
@@ -128,7 +114,13 @@ const NavbarInner: React.FC = () => {
       <div className="flex items-center justify-between px-3 sm:px-6 lg:px-8 max-w-[1700px] mx-auto gap-2 sm:gap-4">
         {/* LOGO & DESKTOP NAV */}
         <div className="flex items-center gap-3 sm:gap-6 lg:gap-7 flex-shrink-0 min-w-0">
-          <Link href="/browse" className="flex items-center gap-1.5 sm:gap-2 group flex-shrink-0">
+          <Link
+            href="/browse"
+            prefetch={false}
+            onMouseEnter={() => router.prefetch("/browse")}
+            onFocus={() => router.prefetch("/browse")}
+            className="flex items-center gap-1.5 sm:gap-2 group flex-shrink-0"
+          >
             <NetflixLogo className="w-5 sm:w-6 h-auto transition-transform group-hover:scale-105" />
             <span className="text-netflix-red font-black tracking-tighter text-lg sm:text-xl inline-block">
               NANAFLIX
@@ -143,7 +135,9 @@ const NavbarInner: React.FC = () => {
                 <Link
                   key={link.name}
                   href={link.href}
-                  prefetch={true}
+                  prefetch={false}
+                  onMouseEnter={() => router.prefetch(link.href)}
+                  onFocus={() => router.prefetch(link.href)}
                   className={`transition-all relative py-1 flex items-center gap-1.5 whitespace-nowrap flex-shrink-0 ${
                     link.hideOnLg ? "hidden 2xl:flex" : ""
                   } ${
@@ -184,7 +178,7 @@ const NavbarInner: React.FC = () => {
                   );
                 }
               }}
-              title="Trò chuyện & Tìm phim thông minh cùng Nana AI (Ctrl+K)"
+              title="Trò chuyện & Tìm phim thông minh cùng Nana AI"
               className="inline-flex items-center gap-1 sm:gap-1.5 px-2 py-1.2 sm:px-2.5 sm:py-1.5 rounded-full text-xs font-bold bg-gradient-to-r from-purple-500/20 via-pink-500/20 to-rose-500/20 hover:from-purple-500/35 hover:via-pink-500/35 hover:to-rose-500/35 text-pink-300 hover:text-white border border-pink-500/35 hover:border-pink-400/60 transition-all cursor-pointer shadow-sm shadow-purple-950/40 active:scale-95 flex-shrink-0"
             >
               <Sparkles className="w-3.5 h-3.5 text-pink-400 animate-pulse flex-shrink-0" />
@@ -216,6 +210,7 @@ const NavbarInner: React.FC = () => {
           <NavSearchBar
             isSearchExpanded={isSearchExpanded}
             setIsSearchExpanded={setIsSearchExpanded}
+            onOpenMobileSearch={() => setIsMobileMenuOpen(false)}
           />
 
           {/* ISOLATED NOTIFICATION CENTER */}

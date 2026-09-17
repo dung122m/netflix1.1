@@ -61,7 +61,7 @@ export const SortSelector: React.FC = () => {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-60 rounded-2xl bg-zinc-950 border border-white/15 shadow-2xl p-2 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150 z-50">
+        <div className="absolute left-0 sm:left-auto sm:right-0 mt-2 w-60 rounded-2xl bg-zinc-950 border border-white/15 shadow-2xl p-2 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150 z-50">
           <div className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-400 px-2.5 py-1 uppercase tracking-wider border-b border-white/10 mb-1">
             <ArrowUpDown className="w-3 h-3 text-netflix-red" />
             <span>Tiêu chí sắp xếp</span>

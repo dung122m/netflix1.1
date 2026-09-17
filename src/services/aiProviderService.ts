@@ -58,7 +58,6 @@ const GROQ_MODELS = [
 const CLOUDFLARE_MODELS = [
   "@cf/meta/llama-3.2-3b-instruct",
   "@cf/meta/llama-3.1-8b-instruct",
-  "@cf/meta/llama-3.2-1b-instruct",
   "@cf/mistral/mistral-7b-instruct-v0.1",
   "@cf/deepseek-ai/deepseek-r1-distill-qwen-32b",
 ];
@@ -281,7 +280,7 @@ export async function generateFastAiChat(req: AiChatRequest): Promise<AiChatResp
         const jsonGroqModels = ["qwen/qwen3.8-27b", "groq/compound-mini", "allam-2-7b", "openai/gpt-oss-120b"];
         for (const model of jsonGroqModels) {
           if (Date.now() - start >= maxTotalTimeout) break;
-          const perCallTimeout = Math.min(maxTotalTimeout - (Date.now() - start), 3500);
+          const perCallTimeout = Math.min(maxTotalTimeout - (Date.now() - start), 3200);
           const text = await callGroq(req, key, model, perCallTimeout);
           if (text && text.trim()) {
             const providerName: AiChatResponse["provider"] = model.includes("70b") || model.includes("120b")
@@ -304,7 +303,7 @@ export async function generateFastAiChat(req: AiChatRequest): Promise<AiChatResp
       for (const key of geminiKeys) {
         for (const model of GEMINI_MODELS) {
           if (Date.now() - start >= maxTotalTimeout) break;
-          const perCallTimeout = Math.min(maxTotalTimeout - (Date.now() - start), 4000);
+          const perCallTimeout = Math.min(maxTotalTimeout - (Date.now() - start), 2500);
           const text = await callGemini(req, key, model, perCallTimeout);
           if (typeof text === "string" && text.trim()) {
             return {

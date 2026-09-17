@@ -113,19 +113,31 @@ export function WatchController({
     const handlePopState = () => {
       try {
         const urlParams = new URLSearchParams(window.location.search);
-        const epParam = urlParams.get("ep");
-        if (epParam && episodes.length > 0) {
-          const found = findEpisodeMatch(episodes, epParam);
-          if (found?.slug) {
-            setActiveEpisodeSlug(found.slug);
+        const serverParam = urlParams.get("server");
+        let targetServerIndex = initialServerIndex || 0;
+        if (serverParam !== null) {
+          const parsed = parseInt(serverParam, 10);
+          if (!isNaN(parsed) && parsed >= 0 && parsed < initialServers.length) {
+            targetServerIndex = parsed;
           }
+        }
+        setCurrentServerIndex(targetServerIndex);
+
+        const targetServer = initialServers[targetServerIndex] || initialServers[0];
+        const targetEpisodes = targetServer?.server_data || [];
+        const epParam = urlParams.get("ep");
+        if (epParam && targetEpisodes.length > 0) {
+          const found = findEpisodeMatch(targetEpisodes, epParam);
+          setActiveEpisodeSlug(found?.slug || targetEpisodes[0]?.slug || "");
+        } else if (targetEpisodes.length > 0) {
+          setActiveEpisodeSlug(targetEpisodes[0]?.slug || "");
         }
       } catch {}
     };
 
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, [episodes]);
+  }, [initialServers, initialServerIndex]);
 
   const activeEpisode = useMemo(() => {
     return episodes.find((ep) => ep.slug === activeEpisodeSlug) || episodes[0];

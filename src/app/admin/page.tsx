@@ -603,7 +603,10 @@ export default function AdminDashboardPage() {
     setIsSyncingEmbeddings(true);
     toast.info("Đang nạp 30 phim vào cơ sở dữ liệu Vector pgvector...");
     try {
-      const res = await fetch("/api/admin/sync-embeddings?limit=30");
+      const idToken = await user?.getIdToken().catch(() => null);
+      const res = await fetch("/api/admin/sync-embeddings?limit=30", {
+        headers: idToken ? { Authorization: `Bearer ${idToken}` } : {},
+      });
       const data = await res.json();
       if (data.success) {
         toast.success(data.message || `Đã nạp thành công ${data.syncedCount}/${data.totalRequested} vector phim!`);

@@ -102,7 +102,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const [isLightsOff, setIsLightsOff] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(1);
   const [isBuffering, setIsBuffering] = useState(false);
   const [useIframeFallback, setUseIframeFallback] = useState(false);
@@ -231,11 +231,18 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   }, [m3u8Link, embedSrc, videoLink]);
 
   const [initialEpisodeSlug] = useState<string | undefined>(() => activeEpisodeSlug);
+  const [initialTimeUsed, setInitialTimeUsed] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (activeEpisodeSlug && initialEpisodeSlug && activeEpisodeSlug !== initialEpisodeSlug) {
+      setInitialTimeUsed(true);
+    }
+  }, [activeEpisodeSlug, initialEpisodeSlug]);
 
   const urlParamT = searchParams?.get("t");
   const targetProgress = useMemo(() => {
     const isInitialEpisode = !initialEpisodeSlug || activeEpisodeSlug === initialEpisodeSlug;
-    if (isInitialEpisode) {
+    if (isInitialEpisode && !initialTimeUsed) {
       if (typeof initialTime === "number" && initialTime > 0) return initialTime;
       if (urlParamT) {
         const parsed = parseFloat(urlParamT);
@@ -255,12 +262,12 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     const currentMovieSlug = watchContext?.movieSlug || propMovieSlug;
     const savedProgress = currentMovieSlug && activeEpisodeSlug ? getWatchProgress(currentMovieSlug, activeEpisodeSlug) : 0;
     return savedProgress > 3 ? savedProgress : 0;
-  }, [initialTime, urlParamT, watchContext?.movieSlug, propMovieSlug, activeEpisodeSlug, initialEpisodeSlug]);
+  }, [initialTime, urlParamT, watchContext?.movieSlug, propMovieSlug, activeEpisodeSlug, initialEpisodeSlug, initialTimeUsed]);
 
   const hasSeekedInitialRef = useRef<boolean>(false);
   useEffect(() => {
     hasSeekedInitialRef.current = false;
-  }, [activeEpisodeSlug, resolvedM3u8, targetProgress]);
+  }, [activeEpisodeSlug, resolvedM3u8]);
 
   const activeSrc = useMemo(() => {
     let src = videoLink ? embedSrc : trailerEmbedSrc;
@@ -550,7 +557,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       const secs = (Math.floor(targetProgress) % 60).toString().padStart(2, "0");
       showHud(
         <RotateCcw className="w-5 h-5 text-netflix-red" />,
-        (initialTime || urlParamT)
+        (!initialTimeUsed && (initialTime || urlParamT))
           ? `Bắt đầu xem từ mốc: ${mins}:${secs}`
           : `Tiếp tục xem từ ${mins}:${secs}`
       );
@@ -667,6 +674,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       });
 
       let retryCount = 0;
+      let mediaRetryCount = 0;
       hls.on(Hls.Events.ERROR, (_event, data) => {
         if (data.fatal) {
           switch (data.type) {
@@ -675,11 +683,18 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
               if (retryCount <= 2) {
                 hls.startLoad();
               } else {
-                hls.recoverMediaError();
+                hls.destroy();
+                setUseIframeFallback(true);
               }
               break;
             case Hls.ErrorTypes.MEDIA_ERROR:
-              hls.recoverMediaError();
+              mediaRetryCount += 1;
+              if (mediaRetryCount <= 1) {
+                hls.recoverMediaError();
+              } else {
+                hls.destroy();
+                setUseIframeFallback(true);
+              }
               break;
             default:
               hls.destroy();
@@ -705,7 +720,12 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
             video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
           });
       };
+      const onNativeError = () => {
+        setIsBuffering(false);
+        setUseIframeFallback(true);
+      };
       video.addEventListener("loadedmetadata", onLoaded);
+      video.addEventListener("error", onNativeError);
 
       [100, 300, 600, 1200, 2000].forEach((ms) => {
         seekTimeouts.push(
@@ -719,6 +739,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
 
       return () => {
         video.removeEventListener("loadedmetadata", onLoaded);
+        video.removeEventListener("error", onNativeError);
         seekTimeouts.forEach((t) => clearTimeout(t));
       };
     }
@@ -742,6 +763,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     targetProgress,
     initialTime,
     urlParamT,
+    initialTimeUsed,
     showHud,
   ]);
 
@@ -959,7 +981,11 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
-  const isMobileStickyActive = isMobile && isScrolledPast && Boolean(activeSrc || m3u8Link);
+  const isMobileStickyActive =
+    isMobile &&
+    isScrolledPast &&
+    isPlaying &&
+    Boolean(activeSrc || m3u8Link);
 
   return (
     <>
@@ -989,7 +1015,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         onMouseMove={resetControlsTimeout}
         className={`w-full mx-auto transition-all duration-300 bg-black ${
           isMobileStickyActive
-            ? "fixed top-0 left-0 right-0 z-50 shadow-2xl border-b border-white/25 md:relative md:top-auto"
+            ? "fixed top-[56px] left-0 right-0 z-40 shadow-2xl border-b border-white/25 md:relative md:top-auto"
             : "relative z-30"
         } ${isTheaterMode ? "max-w-none px-0 sm:px-0" : "max-w-7xl"} ${
           isLightsOff ? "z-50" : ""
@@ -1157,6 +1183,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 src={posterUrl}
                 alt={title}
                 fill
+                unoptimized
                 quality={80}
                 className="object-cover opacity-35"
                 sizes="100vw"

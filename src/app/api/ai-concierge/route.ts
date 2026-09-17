@@ -1,1172 +1,74 @@
 import { NextRequest, NextResponse } from "next/server";
 import { movieApi } from "@/services/movieApi";
-import { sanitizeImageUrl } from "@/lib/movieMedia";
-import { cleanHtmlText } from "@/lib/cleanHtml";
-import { generateFastAiChat } from "@/services/aiProviderService";
+import { kvCache } from "@/services/kvCacheService";
+import { SuggestionCard, MatchOptions, ConciergeApiResponse, CacheEntry } from "./types";
+import {
+  CACHE_TTL_MS,
+  MAX_CACHE_ENTRIES,
+  RATE_LIMIT_WINDOW_MS,
+  RATE_LIMIT_MAX_REQUESTS,
+} from "./constants";
+import {
+  cleanNormalizedString,
+  normalizeQuery,
+  extractMovieYear,
+  resolveActorSlug,
+  getActorAliases,
+  matchesActor,
+  resolveCountrySlug,
+  resolveGenreSlug,
+  matchesCountry,
+  matchesGenre,
+} from "./taxonomy";
+import {
+  toSafePoster,
+  toSafeActors,
+  toSafeCountry,
+  toSafeCategory,
+  getMovieHighlight,
+} from "./movieFormatter";
+import { searchSingleMovieFast } from "./movieSearch";
+import { analyzeUserPrompt } from "./aiAnalyzer";
 
 export const maxDuration = 15;
 
-export interface SuggestionCard {
-  slug: string;
-  title: string;
-  poster: string;
-  year?: string | number;
-  quality?: string;
-  rating?: string | number;
-  category?: string;
-  country?: string;
-  actors?: string[];
-  reason?: string;
-}
-
-// ============================================================================
-// LAYER 1: BẢNG ÁNH XẠ DIỄN VIÊN THÔNG MINH (ACTOR SLUG MAP)
-// ============================================================================
-export const ACTOR_SLUG_MAP: Record<string, string[]> = {
-  "thanh-long": ["thanh long", "thành long", "jackie chan", "chan kong sang", "sing lung"],
-  "chau-tinh-tri": ["chau tinh tri", "châu tinh trì", "stephen chow", "chow sing chi", "tinh gia"],
-  "chan-tu-dan": ["chan tu dan", "chân tử đan", "donnie yen", "yen ji dan"],
-  "ly-lien-kiet": ["ly lien kiet", "lý liên kiệt", "jet li", "li lian jie"],
-  "ngo-kinh": ["ngo kinh", "ngô kinh", "wu jing"],
-  "luu-duc-hoa": ["luu duc hoa", "lưu đức hoa", "andy lau"],
-  "luong-trieu-vy": ["luong trieu vy", "lương triều vỹ", "tony leung"],
-  "quach-phu-thanh": ["quach phu thanh", "quách phú thành", "aaron kwok"],
-  "co-thien-lac": ["co thien lac", "cổ thiên lạc", "louis koo"],
-  "truong-gia-huy": ["truong gia huy", "trương gia huy", "nick cheung"],
-  "ta-dinh-phong": ["ta dinh phong", "tạ đình phong", "nicholas tse"],
-  "hong-kim-bao": ["hong kim bao", "hồng kim bảo", "sammo hung"],
-  "nguyen-biao": ["nguyen biao", "nguyên tiêu", "yuen biao"],
-  "tran-thanh": ["tran thanh", "trấn thành", "mc tran thanh"],
-  "truong-giang": ["truong giang", "trường giang", "mc truong giang"],
-  "thai-hoa": ["thai hoa", "thái hòa"],
-  "ninh-duong-lan-ngoc": ["ninh duong lan ngoc", "ninh dương lan ngọc"],
-  "kieu-minh-tuan": ["kieu minh tuan", "kiều minh tuấn"],
-  "thu-trang": ["thu trang"],
-  "ly-hai": ["ly hai", "lý hải"],
-  "hoai-linh": ["hoai linh", "hoài linh"],
-  "tom-cruise": ["tom cruise", "thomas cruise mapother"],
-  "keanu-reeves": ["keanu reeves", "keanu charles reeves"],
-  "leonardo-dicaprio": ["leonardo dicaprio", "leo dicaprio"],
-  "dwayne-johnson": ["dwayne johnson", "the rock"],
-  "jason-statham": ["jason statham"],
-  "brad-pitt": ["brad pitt", "william bradley pitt"],
-  "will-smith": ["will smith"],
-  "robert-downey-jr": ["robert downey jr", "robert downey"],
-  "chris-evans": ["chris evans"],
-  "chris-hemsworth": ["chris hemsworth"],
-  "scarlett-johansson": ["scarlett johansson"],
-  "ryan-reynolds": ["ryan reynolds"],
-  "cillian-murphy": ["cillian murphy"],
-  "christian-bale": ["christian bale"],
-  "song-joong-ki": ["song joong ki", "song joong-ki"],
-  "kim-soo-hyun": ["kim soo hyun", "kim soo-hyun"],
-  "hyun-bin": ["hyun bin"],
-  "lee-min-ho": ["lee min ho", "lee min-ho"],
-  "park-seo-joon": ["park seo joon", "park seo-jun"],
-  "son-ye-jin": ["son ye jin", "son ye-jin"],
-  "kim-ji-won": ["kim ji won", "kim ji-won"],
-  "song-kang": ["song kang"],
-  "iu": ["iu", "lee ji eun", "lee ji-eun"],
-  "huynh-hieu-minh": ["huynh hieu minh", "huỳnh hiểu minh", "huang xiaoming"],
-  "trieu-le-dinh": ["trieu le dinh", "triệu lệ dĩnh", "zhao liying"],
-  "duong-mich": ["duong mich", "dương mịch", "yang mi"],
-  "dich-le-nhiet-ba": ["dich le nhiet ba", "địch lệ nhiệt ba", "dilraba dilmurat"],
-  "tieu-chien": ["tieu chien", "tiêu chiến", "xiao zhan"],
-  "vuong-nhat-bac": ["vuong nhat bac", "vương nhất bác", "wang yibo"],
-};
-
-// Kho danh sách tác phẩm kinh điển của các siêu sao (Filmography Ground Truth)
-export const ACTOR_TOP_TITLES: Record<string, string[]> = {
-  "tom-cruise": [
-    "Phi Công Siêu Đẳng Maverick (Top Gun: Maverick)",
-    "Phi Công Siêu Đẳng (Top Gun)",
-    "Nhiệm Vụ Bất Khả Thi: Nghiệp Báo Phần 1 (Mission: Impossible - Dead Reckoning Part One)",
-    "Nhiệm Vụ Bất Khả Thi: Sụp Đổ (Mission: Impossible - Fallout)",
-    "Nhiệm Vụ Bất Khả Thi: Quốc Gia Bí Ẩn (Mission: Impossible - Rogue Nation)",
-    "Nhiệm Vụ Bất Khả Thi: Chiến Dịch Bóng Ma (Mission: Impossible - Ghost Protocol)",
-    "Nhiệm Vụ Bất Khả Thi 3 (Mission: Impossible III)",
-    "Nhiệm Vụ Bất Khả Thi 2 (Mission: Impossible II)",
-    "Nhiệm Vụ Bất Khả Thi (Mission: Impossible)",
-    "Cuộc Chiến Luân Hồi (Edge of Tomorrow)",
-    "Bí Mật Trái Đất Diệt Vong (Oblivion)",
-    "Phát Súng Cuối Cùng (Jack Reacher)",
-    "Jack Reacher: Không Quay Đầu (Jack Reacher: Never Go Back)",
-    "Báo Cáo Thiểu Số (Minority Report)",
-    "Đại Chiến Thế Giới (War of the Worlds)",
-    "Võ Sĩ Đạo Cuối Cùng (The Last Samurai)",
-    "Hiệp Sĩ Mù (Knight and Day)",
-    "Xác Ướp (The Mummy)",
-    "Điệp Vụ Valkyrie (Valkyrie)",
-    "Sát Thủ Gợi Cảm (Collateral)",
-    "Người Trong Mộng (Vanilla Sky)",
-    "Jerry Maguire",
-  ],
-  "keanu-reeves": [
-    "Sát Thủ John Wick 4 (John Wick: Chapter 4)",
-    "Sát Thủ John Wick 3: Chuẩn Bị Chiến Tranh (John Wick: Chapter 3 - Parabellum)",
-    "Sát Thủ John Wick 2 (John Wick: Chapter 2)",
-    "Sát Thủ John Wick (John Wick)",
-    "Ma Trận: Hồi Sinh (The Matrix Resurrections)",
-    "Ma Trận (The Matrix)",
-    "Ma Trận: Tái Nạp (The Matrix Reloaded)",
-    "Ma Trận: Cuộc Cách Mạng (The Matrix Revolutions)",
-    "Kẻ Cứu Rỗi Linh Hồn (Constantine)",
-    "Tốc Độ (Speed)",
-    "47 Ronin",
-    "Điểm Gãy (Point Break)",
-    "Luật Sư Của Quỷ (The Devil's Advocate)",
-    "Kẻ Bắn Tỉa (Street Kings)",
-  ],
-  "leonardo-dicaprio": [
-    "Titanic",
-    "Kẻ Đánh Cắp Giấc Mơ (Inception)",
-    "Sói Già Phố Wall (The Wolf of Wall Street)",
-    "Đảo Kinh Hoàng (Shutter Island)",
-    "Người Về Từ Cõi Chết (The Revenant)",
-    "Hãy Bắt Tôi Nếu Có Thể (Catch Me If You Can)",
-    "Điệp Vụ Boston (The Departed)",
-    "Kim Cương Máu (Blood Diamond)",
-    "Hành Trình Django (Django Unchained)",
-    "Chuyện Ngày Xưa Ở Hollywood (Once Upon a Time in Hollywood)",
-    "Đại Gia Gatsby (The Great Gatsby)",
-  ],
-  "dwayne-johnson": [
-    "Quá Nhanh Quá Nguy Hiểm: Hobbs & Shaw (Fast & Furious: Hobbs & Shaw)",
-    "Quá Nhanh Quá Nguy Hiểm 8 (The Fate of the Furious)",
-    "Quá Nhanh Quá Nguy Hiểm 7 (Furious 7)",
-    "Quá Nhanh Quá Nguy Hiểm 6 (Fast & Furious 6)",
-    "Quá Nhanh Quá Nguy Hiểm 5 (Fast Five)",
-    "Jumanji: Trò Chơi Kỳ Ảo (Jumanji: Welcome to the Jungle)",
-    "Jumanji: Vòng Đua Sinh Tử (Jumanji: The Next Level)",
-    "Black Adam",
-    "Thông Báo Đỏ (Red Notice)",
-    "Siêu Thú Cuồng Nộ (Rampage)",
-    "Khe Nứt San Andreas (San Andreas)",
-    "Tòa Tháp Chọc Trời (Skyscraper)",
-    "Điệp Viên Không Hoàn Hảo (Central Intelligence)",
-  ],
-  "jason-statham": [
-    "Mật Vụ Ong (The Beekeeper)",
-    "Cơn Thịnh Nộ Của Kẻ Báo Thù (Wrath of Man)",
-    "Cá Mập Siêu Bạo Chúa (The Meg)",
-    "Cá Mập Siêu Bạo Chúa 2 (Meg 2: The Trench)",
-    "Người Vận Chuyển (The Transporter)",
-    "Người Vận Chuyển 2 (The Transporter 2)",
-    "Người Vận Chuyển 3 (The Transporter 3)",
-    "Sát Thủ Thợ Máy (The Mechanic)",
-    "Sát Thủ Thợ Máy: Sự Tái Xuất (Mechanic: Resurrection)",
-    "Kẻ Lập Dị (Crank)",
-    "Kẻ Lập Dị 2 (Crank: High Voltage)",
-    "Biệt Đội Đánh Thuê (The Expendables)",
-    "Quá Nhanh Quá Nguy Hiểm: Hobbs & Shaw (Fast & Furious: Hobbs & Shaw)",
-  ],
-  "thanh-long": [
-    "Kế Hoạch Gấu Trúc (Panda Plan)",
-    "Kế Hoạch Gấu Trúc 2: Bộ tộc kỳ diệu (Panda Plan 2)",
-    "Long Mã Tinh Thần (Ride On)",
-    "Kung Fu Yoga",
-    "Quả Tim Thép (Bleeding Steel)",
-    "Cấp Tiên Phong (Vanguard)",
-    "Kẻ Ngoại Tộc (The Foreigner)",
-    "Câu Chuyện Cảnh Sát (Police Story)",
-    "Câu Chuyện Cảnh Sát 2 (Police Story 2)",
-    "Câu Chuyện Cảnh Sát 3: Siêu Cảnh Sát (Police Story 3: Super Cop)",
-    "Câu Chuyện Cảnh Sát 4: Nhiệm Vụ Đơn Giản (First Strike)",
-    "Tân Câu Chuyện Cảnh Sát (New Police Story)",
-    "Giờ Cao Điểm (Rush Hour)",
-    "Giờ Cao Điểm 2 (Rush Hour 2)",
-    "Giờ Cao Điểm 3 (Rush Hour 3)",
-    "Túy Quyền (Drunken Master)",
-    "Túy Quyền 2 (Drunken Master II)",
-    "Kế Hoạch A (Project A)",
-    "Kế Hoạch A 2 (Project A 2)",
-    "Áo Giáp Thượng Đế (Armour of God)",
-    "Áo Giáp Thượng Đế 2: Kế Hoạch Phi Ưng (Operation Condor)",
-    "Kế Hoạch Baby (Rob-B-Hood)",
-    "Thần Thoại (The Myth)",
-    "Thần Thoại 2 / Truyền Thuyết (A Legend)",
-    "12 Con Giáp (CZ12 / Chinese Zodiac)",
-    "Thợ Săn Thành Phố (City Hunter)",
-    "Quán Ăn Lưu Động (Wheels on Meals)",
-    "Chàng Trai Tốt Bụng (Mr. Nice Guy)",
-    "Tôi Là Ai? (Who Am I?)",
-    "Tẩu Thoát Ngoạn Mục (Skiptrace)",
-    "Tiểu Quyền Quái Chiêu (The Fearless Hyena)",
-    "Tiểu Quyền Quái Chiêu 2 (Fearless Hyena Part II)",
-    "Long Tranh Hổ Đấu (Enter the Dragon)",
-    "Đại Náo Shinjuku (Shinjuku Incident)",
-    "Ngũ Phúc Tinh (Winners and Sinners)",
-    "Náo Loạn Phố Bronx (Rumble in the Bronx)",
-    "Hiệp Khách Thượng Hải (Shanghai Knights)",
-    "Trưa Thượng Hải (Shanghai Noon)",
-    "Siêu Nhí Karate (The Karate Kid)",
-    "Vua Kung Fu (The Forbidden Kingdom)",
-    "Bão Cát Cuồng Nộ (Hidden Strike)",
-  ],
-  "chau-tinh-tri": [
-    "Tuyệt Đỉnh Kungfu (Kung Fu Hustle)",
-    "Đội Bóng Thiếu Lâm (Shaolin Soccer)",
-    "Tây Du Ký: Nguyệt Quang Bảo Hợp (A Chinese Odyssey Part 1)",
-    "Tây Du Ký: Tiên Lý Kỳ Duyên (A Chinese Odyssey Part 2)",
-    "Vua Hài Kịch (King of Comedy)",
-    "Thần Ăn (The God of Cookery)",
-    "Quan Xẩm Lốc Cốc (Hail the Judge)",
-    "Đường Bá Hổ Điểm Thu Hương (Flirting Scholar)",
-    "Thánh Bài (All for the Winner)",
-    "Thánh Bài 2 (God of Gamblers II)",
-    "Trường Học Uy Long (Fight Back to School)",
-    "Trường Học Uy Long 2 (Fight Back to School 2)",
-    "Quốc Sản 007 (From Beijing with Love)",
-    "Mỹ Nhân Ngư (The Mermaid)",
-    "Gia Hữu Hỷ Sự (All's Well, Ends Well)",
-  ],
-  "chan-tu-dan": [
-    "Diệp Vấn (Ip Man)",
-    "Diệp Vấn 2 (Ip Man 2)",
-    "Diệp Vấn 3 (Ip Man 3)",
-    "Diệp Vấn 4: Hồi Cuối (Ip Man 4: The Finale)",
-    "Sát Phá Lang (SPL: Kill Zone)",
-    "Đảo Hỏa Tuyến (Flash Point)",
-    "Trùm Hương Cảng (Chasing the Dragon)",
-    "Huyền Thoại Trần Chân (Legend of the Fist)",
-    "Kẻ Săn Đêm (Raging Fire)",
-    "Hiệp Sĩ Mù (Blind War)",
-  ],
-  "ly-lien-kiet": [
-    "Hoàng Phi Hồng (Once Upon a Time in China)",
-    "Hoàng Phi Hồng 2 (Once Upon a Time in China II)",
-    "Hoàng Phi Hồng 3 (Once Upon a Time in China III)",
-    "Tinh Võ Anh Hùng (Fist of Legend)",
-    "Phương Thế Ngọc (Fong Sai-yuk)",
-    "Nụ Hôn Của Rồng (Kiss of the Dragon)",
-    "Đấu Quyết (Fearless / Hoắc Nguyên Giáp)",
-    "Anh Hùng (Hero)",
-    "Vua Kung Fu (The Forbidden Kingdom)",
-    "Biệt Đội Đánh Thuê (The Expendables)",
-  ],
-  "tran-thanh": [
-    "Nhà Bà Nữ (The House of No Man)",
-    "Cua Lại Vợ Bầu (Win My Baby Back)",
-    "Đất Rừng Phương Nam (Song of the South)",
-    "Trạng Quỳnh",
-    "Bệnh Viện Ma (Ghost Hospital)",
-    "Chờ Em Đến Ngày Mai (Until You)",
-    "Bố Già (Dad, I'm Sorry)",
-  ],
-  "duong-mich": [
-    "Tam Sinh Tam Thế Thập Lý Đào Hoa (Eternal Love)",
-    "Phù Dao Hoàng Hậu (Legend of Fuyao)",
-    "Hồ Yêu Tiểu Hồng Nương: Nguyệt Hồng Thiên (Fox Spirit Matchmaker)",
-    "Cáp Nhĩ Tân 1944 (Harbin 1944)",
-    "Định Luật 80/20 Của Tình Yêu (She and Her Perfect Husband)",
-    "Hộc Châu Phu Nhân (Novoland: Pearl Eclipse)",
-    "Tiên Kiếm Kỳ Hiệp 3 (Chinese Paladin 3)",
-    "Cung Tỏa Tâm Ngọc (Palace)",
-    "Bạo Phong Nhãn (Storm Eye)",
-    "Người Đàm Phán (Negotiator)",
-    "Ám Sát Tiểu Thuyết Gia (A Writer's Odyssey)",
-    "Tú Xuân Đao 2 (Brotherhood of Blades II)",
-    "Tôi Là Nhân Chứng (The Witness)",
-  ],
-  "trieu-le-dinh": [
-    "Dữ Phượng Hành (The Legend of Shen Li)",
-    "Sở Kiều Truyện (Princess Agents)",
-    "Minh Lan Truyện (The Story of Minglan)",
-    "Hoa Thiên Cốt (The Journey of Flower)",
-    "Gió Thổi Bán Hạ (Wild Bloom)",
-    "Hạnh Phúc Đến Vạn Gia (The Story of Xing Fu)",
-    "Hữu Phỉ (Legend of Fei)",
-    "Lục Trinh Truyền Kỳ (Legend of Lu Zhen)",
-  ],
-  "dich-le-nhiet-ba": [
-    "Tam Sinh Tam Thế Chẩm Thượng Thư (Eternal Love of Dream)",
-    "Ngự Giao Ký (The Blue Whisper)",
-    "Trường Ca Hành (The Long Ballad)",
-    "Em Là Niềm Kiêu Hãnh Của Anh (You Are My Glory)",
-    "An Lạc Truyện (The Legend of Anle)",
-    "Lệ Cơ Truyện (The King's Woman)",
-  ],
-  "tieu-chien": [
-    "Trần Tình Lệnh (The Untamed)",
-    "Đấu La Đại Lục (Douluo Continent)",
-    "Vùng Biển Trong Mơ (The Youth Memories)",
-    "Ngọc Cốt Dao (The Longest Promise)",
-    "Dư Sinh Xin Chỉ Giáo Nhiều Hơn (The Oath of Love)",
-    "Tru Tiên (Jade Dynasty)",
-  ],
-  "vuong-nhat-bac": [
-    "Trần Tình Lệnh (The Untamed)",
-    "Phong Khởi Lạc Dương (Luoyang)",
-    "Hữu Phỉ (Legend of Fei)",
-    "Vô Danh (Hidden Blade)",
-    "Băng Vũ Hỏa (Being a Hero)",
-    "Nhiệt Liệt (One and Only)",
-  ],
-  "huynh-hieu-minh": [
-    "Tân Bến Thượng Hải (Shanghai Bund)",
-    "Thần Điêu Đại Hiệp (The Return of the Condor Heroes)",
-    "Bên Tóc Mai Không Phải Hải Đường Hồng (Winter Begonia)",
-    "Đại Đường Huyền Trang (Xuanzang)",
-    "Phong Thanh (The Message)",
-  ],
-  "ngo-kinh": [
-    "Chiến Lang (Wolf Warrior)",
-    "Chiến Lang 2 (Wolf Warrior 2)",
-    "Lưu Lạc Địa Cầu (The Wandering Earth)",
-    "Hồ Trường Tân (The Battle at Lake Changjin)",
-    "Sát Phá Lang (SPL)",
-  ],
-  "luu-duc-hoa": [
-    "Vô Gian Đạo (Infernal Affairs)",
-    "Thập Diện Mai Phục (House of Flying Daggers)",
-    "Đại Loạn Hong Kong (Shock Wave)",
-    "Trùm Hương Cảng (Chasing the Dragon)",
-    "Chiến Dịch Bão Tuyết (Firestorm)",
-    "Lưu Lạc Địa Cầu 2 (The Wandering Earth II)",
-    "Thần Bài 1999 (The Conman)",
-  ],
-  "luong-trieu-vy": [
-    "Vô Gian Đạo (Infernal Affairs)",
-    "Tâm Trạng Khi Yêu (In the Mood for Love)",
-    "Sắc Giới (Lust, Caution)",
-    "Anh Hùng (Hero)",
-    "Shang-Chi và Huyền Thoại Thập Luân (Shang-Chi)",
-    "Đại Chiến Xích Bích (Red Cliff)",
-    "Nhất Đại Tông Sư (The Grandmaster)",
-  ],
-  "quach-phu-thanh": [
-    "Hàn Chiến (Cold War)",
-    "Hàn Chiến 2 (Cold War 2)",
-    "Vô Song (Project Gutenberg)",
-    "Phong Vân (The Storm Riders)",
-    "Thiên Vương Phá Án (Port of Call)",
-  ],
-  "co-thien-lac": [
-    "Cỗ Máy Thời Gian (A Step into the Past)",
-    "Thần Điêu Đại Hiệp (The Condor Heroes 95)",
-    "Đội Chống Tham Nhũng (Z Storm)",
-    "Minh Nhật Chiến Ký (Warriors of Future)",
-    "Sát Phá Lang 2 (SPL II)",
-  ],
-  "truong-gia-huy": [
-    "Đại Sự Kiện (Breaking News)",
-    "Thiết Quyền Vương (Unbeatable)",
-    "Kẻ Săn Đêm (Nightfall)",
-    "Tảo Độc (The White Storm)",
-  ],
-  "ta-dinh-phong": [
-    "Kẻ Săn Đêm (Raging Fire)",
-    "Nghịch Chiến (The Viral Factor)",
-    "Tiểu Ngư Nhi và Hoa Vô Khuyết (The Proud Twins)",
-    "Bản Lĩnh Đàn Ông (New Police Story)",
-    "Kẻ Chỉ Điểm (The Stool Pigeon)",
-  ],
-  "hong-kim-bao": [
-    "Diệp Vấn 2 (Ip Man 2)",
-    "Sát Phá Lang (SPL)",
-    "Rồng Bất Tử (Dragons Forever)",
-    "Kế Hoạch A (Project A)",
-    "Ngũ Phúc Tinh (Winners and Sinners)",
-  ],
-  "nguyen-biao": [
-    "Kế Hoạch A (Project A)",
-    "Quán Ăn Lưu Động (Wheels on Meals)",
-    "Rồng Bất Tử (Dragons Forever)",
-    "Thục Sơn Kiếm Hiệp (Zu Warriors)",
-  ],
-  "truong-giang": [
-    "49 Ngày",
-    "Siêu Sao Siêu Ngố",
-    "Lật Mặt (Face Off)",
-    "Taxi Em Tên Gì",
-    "30 Chưa Phải Tết",
-  ],
-  "ninh-duong-lan-ngoc": [
-    "Cua Lại Vợ Bầu",
-    "Gái Già Lắm Chiêu 2",
-    "Gái Già Lắm Chiêu 3",
-    "Cô Ba Sài Gòn",
-    "Tấm Cám: Chuyện Chưa Kể",
-    "Trúng Số",
-    "Cánh Đồng Bất Tận",
-  ],
-  "kieu-minh-tuan": [
-    "Em Chưa 18",
-    "Tiệc Trăng Máu",
-    "Chìa Khóa Trăm Tỷ",
-    "Nghề Siêu Dễ",
-    "Kẻ Ẩn Danh",
-    "Anh Trai Yêu Quái",
-  ],
-  "thu-trang": [
-    "Chị Mười Ba: Phần Kết Thập Tam Muội",
-    "Chị Mười Ba: 3 Ngày Sinh Tử",
-    "Tiệc Trăng Máu",
-    "Nghề Siêu Dễ",
-    "Con Nhót Mót Chồng",
-  ],
-  "hoai-linh": [
-    "Nhà Có 5 Nàng Tiên",
-    "Quý Tử Bất Đắc Dĩ",
-    "Năm Sau Con Lại Về",
-    "Tía Tui Là Cao Thủ",
-    "Dạ Cổ Hoài Lang",
-  ],
-  "viet-huong": [
-    "Nhà Có 5 Nàng Tiên",
-    "Chạy Đi Rồi Tính",
-    "Quý Tử Bất Đắc Dĩ",
-    "Ma Dai",
-    "Vu Quy Đại Náo",
-  ],
-  "tuan-tran": [
-    "Bố Già (Dad, I'm Sorry)",
-    "Đất Rừng Phương Nam",
-    "Mai (2024)",
-    "Móng Vuốt",
-  ],
-  "miu-le": [
-    "Em Là Bà Nội Của Anh",
-    "Cô Gái Đến Từ Hôm Qua",
-    "Bạn Gái Tôi Là Sếp",
-    "Chiếm Đoạt",
-  ],
-  "thai-hoa": [
-    "Để Mai Tính",
-    "Để Mai Tính 2",
-    "Tèo Em",
-    "Cưới Ngay Kẻo Lỡ",
-    "Quả Tim Máu",
-    "Tiệc Trăng Máu",
-    "Chàng Vợ Của Em",
-    "Con Nhót Mót Chồng",
-    "Cái Giá Của Hạnh Phúc",
-  ],
-  "ly-hai": [
-    "Lật Mặt (Face Off)",
-    "Lật Mặt 2: Phim Trường",
-    "Lật Mặt 3: Ba Chàng Khuyết",
-    "Lật Mặt 4: Nhà Có Khách",
-    "Lật Mặt 5: 48H",
-    "Lật Mặt 6: Tấm Vé Định Mệnh",
-    "Lật Mặt 7: Một Điều Ước",
-  ],
-  "song-joong-ki": [
-    "Hậu Duệ Mặt Trời (Descendants of the Sun)",
-    "Vincenzo",
-    "Cậu Út Nhà Tài Phiệt (Reborn Rich)",
-    "Tàu Quét Rác Không Gian (Space Sweepers)",
-    "Đảo Địa Ngục (The Battleship Island)",
-    "Tên Tôi Là Loh Kiwan (My Name is Loh Kiwan)",
-    "Chàng Trai Tốt Bụng (The Innocent Man)",
-    "Cậu Bé Người Sói (A Werewolf Boy)",
-  ],
-  "hyun-bin": [
-    "Hạ Cánh Nơi Anh (Crash Landing on You)",
-    "Khu Vườn Bí Mật (Secret Garden)",
-    "Đặc Vụ Xuyên Quốc Gia (Confidential Assignment)",
-    "Đặc Vụ Xuyên Quốc Gia 2 (Confidential Assignment 2: International)",
-    "Đàm Phán (The Point Men)",
-    "Cuộc Đàm Phán Sinh Tử (The Negotiation)",
-    "Ký Ức Alhambra (Memories of the Alhambra)",
-  ],
-  "kim-soo-hyun": [
-    "Nữ Hoàng Nước Mắt (Queen of Tears)",
-    "Vì Sao Đưa Anh Tới (My Love from the Star)",
-    "Mặt Trăng Ôm Mặt Trời (Moon Embracing the Sun)",
-    "Điên Thì Có Sao (It's Okay to Not Be Okay)",
-    "Đội Siêu Trộm (The Thieves)",
-    "Ẩn Thân (Secretly, Greatly)",
-  ],
-  "lee-min-ho": [
-    "Vườn Sao Băng (Boys Over Flowers)",
-    "Thợ Săn Thành Phố (City Hunter)",
-    "Người Thừa Kế (The Heirs)",
-    "Huyền Thoại Biển Xanh (The Legend of the Blue Sea)",
-    "Quân Vương Bất Diệt (The King: Eternal Monarch)",
-    "Bụi Đời Gangnam (Gangnam Blues)",
-    "Pachinko",
-  ],
-  "park-seo-joon": [
-    "Tầng Lớp Itaewon (Itaewon Class)",
-    "Thư Ký Kim Sao Thế (What's Wrong with Secretary Kim)",
-    "Cảnh Sát Tập Sự (Midnight Runners)",
-    "Bàn Tay Diệt Quỷ (The Divine Fury)",
-    "Đội Bóng Dream (Dream)",
-    "Sinh Vật Gyeongseong (Gyeongseong Creature)",
-  ],
-  "son-ye-jin": [
-    "Hạ Cánh Nơi Anh (Crash Landing on You)",
-    "Chị Đẹp Mua Cơm Ngon Cho Tôi (Something in the Rain)",
-    "Cổ Điển (The Classic)",
-    "Cuộc Đàm Phán Sinh Tử (The Negotiation)",
-    "Và Em Sẽ Đến (Be With You)",
-    "Hải Tặc (The Pirates)",
-  ],
-  "kim-ji-won": [
-    "Nữ Hoàng Nước Mắt (Queen of Tears)",
-    "Hậu Duệ Mặt Trời (Descendants of the Sun)",
-    "Thanh Xuân Vật Vã (Fight for My Way)",
-    "Nhật Ký Tự Do Của Tôi (My Liberation Notes)",
-  ],
-  "song-kang": [
-    "Chàng Quỷ Của Tôi (My Demon)",
-    "Cảnh Báo Tình Yêu (Love Alarm)",
-    "Thế Giới Ma Quái (Sweet Home)",
-    "Dẫu Biết (Nevertheless)",
-  ],
-  "iu": [
-    "Khách Sạn Huyền Bí (Hotel Del Luna)",
-    "Người Tình Ánh Trăng (Moon Lovers)",
-    "Ông Chú Của Tôi (My Mister)",
-    "Người Môi Giới (Broker)",
-  ],
-  "robert-downey-jr": [
-    "Người Sắt (Iron Man)",
-    "Người Sắt 2 (Iron Man 2)",
-    "Người Sắt 3 (Iron Man 3)",
-    "Biệt Đội Siêu Anh Hùng (The Avengers)",
-    "Avengers: Hồi Kết (Avengers: Endgame)",
-    "Oppenheimer",
-    "Sherlock Holmes",
-  ],
-  "chris-evans": [
-    "Đội Trưởng Mỹ (Captain America)",
-    "Kẻ Đâm Lén (Knives Out)",
-    "Chuyến Tàu Băng Giá (Snowpiercer)",
-    "Biệt Đội Siêu Anh Hùng (The Avengers)",
-  ],
-  "chris-hemsworth": [
-    "Thor: Tận Thế Ragnarok (Thor: Ragnarok)",
-    "Biệt Đội Đánh Thuê (Extraction)",
-    "Hồi Sinh (Extraction 2)",
-    "Biệt Đội Siêu Anh Hùng (The Avengers)",
-  ],
-  "scarlett-johansson": [
-    "Góa Phụ Đen (Black Widow)",
-    "Lucy",
-    "Câu Chuyện Hôn Nhân (Marriage Story)",
-    "Kẻ Cắp Giấc Mơ (Inception)",
-  ],
-  "ryan-reynolds": [
-    "Deadpool",
-    "Deadpool 2",
-    "Deadpool & Wolverine",
-    "Giải Cứu Guy (Free Guy)",
-    "Thông Báo Đỏ (Red Notice)",
-  ],
-  "cillian-murphy": [
-    "Oppenheimer",
-    "Bóng Ma Anh Quốc (Peaky Blinders)",
-    "Kẻ Đánh Cắp Giấc Mơ (Inception)",
-  ],
-  "christian-bale": [
-    "Kỵ Sĩ Bóng Đêm (The Dark Knight)",
-    "Kỵ Sĩ Bóng Đêm Trỗi Dậy (The Dark Knight Rises)",
-    "Kẻ Trừng Phạt (American Psycho)",
-    "Ford v Ferrari",
-  ],
-  "brad-pitt": [
-    "Câu Lạc Bộ Chiến Đấu (Fight Club)",
-    "Chiến Tranh Thế Giới Z (World War Z)",
-    "Sát Thủ Đối Đầu (Bullet Train)",
-    "Ông Bà Smith (Mr. & Mrs. Smith)",
-  ],
-  "will-smith": [
-    "Điệp Viên Áo Đen (Men in Black)",
-    "Tôi Là Huyền Thoại (I Am Legend)",
-    "Mưu Cầu Hạnh Phúc (The Pursuit of Happyness)",
-    "Bad Boys",
-  ],
+// Re-export types & helpers cho tương thích ngược
+export type { SuggestionCard, MatchOptions, ConciergeApiResponse };
+export {
+  extractMovieYear,
+  resolveActorSlug,
+  getActorAliases,
+  matchesActor,
+  resolveCountrySlug,
+  resolveGenreSlug,
+  matchesCountry,
+  matchesGenre,
+  getMovieHighlight,
 };
 
 // ============================================================================
-// BẢNG ÁNH XẠ CHUẨN HÓA (SLUG MAPPERS - CODE DETERMINISTIC)
+// RATE LIMITING VÀ RESPONSE CACHING
 // ============================================================================
-export const COUNTRY_SLUG_MAP: Record<string, string[]> = {
-  "au-my": ["au-my", "us", "usa", "hollywood", "my", "mỹ", "hoa ky", "hoa kỳ", "au my", "âu mỹ", "anh", "uk", "phap", "pháp", "france", "duc", "đức", "germany", "y", "ý", "italy", "tay ban nha", "tây ban nha", "spain", "canada", "uc", "úc", "australia"],
-  "thai-lan": ["thai-lan", "thailand", "thai lan", "thái lan", "thai", "xiem"],
-  "han-quoc": ["han-quoc", "korea", "han quoc", "hàn quốc", "south korea", "han", "hàn"],
-  "trung-quoc": ["trung-quoc", "china", "trung quoc", "trung quốc", "chinese", "hoa ngu", "hoa ngữ", "dai luc", "đại lục"],
-  "hong-kong": ["hong-kong", "hong kong", "hongkong", "hồng kông", "hk", "tvb"],
-  "nhat-ban": ["nhat-ban", "japan", "nhat ban", "nhật bản", "japanese", "anime", "nhat", "nhật"],
-  "viet-nam": ["viet-nam", "vietnam", "viet nam", "việt nam", "vn"],
-  "dai-loan": ["dai-loan", "taiwan", "dai loan", "đài loan"],
-  "an-do": ["an-do", "india", "an do", "ấn độ", "bollywood"],
-};
-
-export const GENRE_SLUG_MAP: Record<string, string[]> = {
-  "hanh-dong": ["hanh-dong", "hanh dong", "hành động", "hanh dong giat gan", "hành động giật gân", "giat gan", "giật gân", "action", "thriller", "ban sung", "bắn súng", "truy duoi", "truy đuổi", "cuop", "cướp", "cuop ngan hang", "cướp ngân hàng", "heist", "toi pham", "tội phạm", "hinh su", "hình sự"],
-  "kinh-di": ["kinh-di", "kinh di", "kinh dị", "horror", "ma", "ma quai", "ma quái", "rung ron", "rùng rợn", "am anh", "ám ảnh", "quy", "quỷ", "tam linh", "tâm linh"],
-  "hai-huoc": ["hai-huoc", "hai huoc", "hài hước", "hai", "hài", "comedy", "vui nhon", "vui nhộn", "cuoi", "cười"],
-  "tinh-cam": ["tinh-cam", "tinh cam", "tình cảm", "lang man", "lãng mạn", "romance", "tinh yeu", "tình yêu", "ngon tinh", "ngôn tình", "chua lanh", "chữa lành", "dong que", "đồng quê", "slice of life"],
-  "hoat-hinh": ["hoat-hinh", "hoat hinh", "hoạt hình", "anime", "animation", "manga"],
-  "vien-tuong": ["vien-tuong", "vien tuong", "viễn tưởng", "khoa hoc vien tuong", "khoa học viễn tưởng", "sci-fi", "scifi", "time loop", "vong lap", "vòng lặp", "du hanh", "du hành"],
-  "co-trang": ["co-trang", "co trang", "cổ trang", "kiem hiep", "kiếm hiệp", "tien hiep", "tiên hiệp", "cung dau", "cung đấu"],
-  "tam-ly": ["tam-ly", "tam ly", "tâm lý", "drama", "chinh kich", "chính kịch", "gia dinh", "gia đình"],
-  "trinh-tham": ["trinh-tham", "trinh tham", "trinh thám", "bi an", "bí ẩn", "mystery", "pha an", "phá án", "hack nao", "hack não", "dau tri", "đấu trí", "investigation"],
-  "vo-thuat": ["vo-thuat", "vo thuat", "võ thuật", "kungfu", "martial arts", "danh nhau", "đánh nhau"],
-  "chien-tranh": ["chien-tranh", "chien tranh", "chiến tranh", "war", "quan su", "quân sự"],
-  "tai-lieu": ["tai-lieu", "tai lieu", "tài liệu", "documentary"],
-  "phieu-luu": ["phieu-luu", "phieu luu", "phiêu lưu", "adventure", "kham pha", "khám phá", "sinh ton", "sinh tồn"],
-};
-
-function cleanNormalizedString(s: string): string {
-  return (s || "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9\s]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-// Trích xuất năm an toàn (xử lý cả '1995', '1995-12-01', 1995)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function extractMovieYear(item: any): number {
-  if (!item) return 0;
-  const raw = item.year || item.movie?.year || item.release_date || item.publish_date || item.created_at || "";
-  const match = String(raw).match(/\b(19\d{2}|20\d{2})\b/);
-  return match ? parseInt(match[1], 10) : 0;
-}
-
-export function resolveActorSlug(rawActor?: string): string {
-  if (!rawActor) return "";
-  const clean = cleanNormalizedString(rawActor);
-  for (const [slug, aliases] of Object.entries(ACTOR_SLUG_MAP)) {
-    if (aliases.some((a) => clean === cleanNormalizedString(a))) {
-      return slug;
-    }
-  }
-  for (const [slug, aliases] of Object.entries(ACTOR_SLUG_MAP)) {
-    if (aliases.some((a) => clean.includes(cleanNormalizedString(a)) || cleanNormalizedString(a).includes(clean))) {
-      return slug;
-    }
-  }
-  return "";
-}
-
-export function getActorAliases(actorSlug: string): string[] {
-  return ACTOR_SLUG_MAP[actorSlug] || [actorSlug.replace(/-/g, " ")];
-}
-
-export function matchesActor(itemActors: string[], actorSlug: string): boolean {
-  if (!actorSlug || !itemActors || itemActors.length === 0) return false;
-  const aliases = getActorAliases(actorSlug).map(cleanNormalizedString);
-  const cleanActors = itemActors.map(cleanNormalizedString);
-  return cleanActors.some((act) =>
-    aliases.some((alias) => act === alias || (alias.split(" ").length >= 2 && act.includes(alias)))
-  );
-}
-
-export function isActorTopTitle(name: string, origName: string, actorSlug: string): boolean {
-  const topList = ACTOR_TOP_TITLES[actorSlug];
-  if (!topList || topList.length === 0) return false;
-  const cleanN = cleanNormalizedString(name);
-  const cleanO = cleanNormalizedString(origName);
-  for (const t of topList) {
-    const viTitle = cleanNormalizedString(t.replace(/\([^)]*\)/g, ""));
-    const matchEng = t.match(/\(([^)]+)\)/);
-    const engTitle = matchEng ? cleanNormalizedString(matchEng[1]) : "";
-    // 1. So khớp chính xác 100% tên phim
-    if (viTitle && (cleanN === viTitle || cleanO === viTitle)) {
-      return true;
-    }
-    if (engTitle && (cleanN === engTitle || cleanO === engTitle)) {
-      return true;
-    }
-    // 2. Chỉ cho phép các phần tiếp theo chính thức được đánh số (Phần 2, Part 2, v.v.),
-    // TUYỆT ĐỐI CẤM khớp prefix tự do để không nhận nhầm 'Bố Già Vùng Harlem' khi tìm 'Bố Già'
-    const sequelSuffixes = [" 2", " 3", " 4", " 5", " ii", " iii", " iv", " v", ": phan 2", ": phan 3", " phan 2", " phan 3", ": part 2", ": part 3", " part 2", " part 3"];
-    if (viTitle) {
-      if (sequelSuffixes.some((s) => cleanN === viTitle + s || cleanO === viTitle + s)) {
-        return true;
-      }
-    }
-    if (engTitle) {
-      if (sequelSuffixes.some((s) => cleanN === engTitle + s || cleanO === engTitle + s)) {
-        return true;
-      }
-    }
-  }
-  return false;
-}
-
-export function resolveCountrySlug(rawCountry?: string): string {
-  if (!rawCountry) return "";
-  const clean = cleanNormalizedString(rawCountry);
-  for (const [slug, aliases] of Object.entries(COUNTRY_SLUG_MAP)) {
-    if (aliases.some((a) => clean === cleanNormalizedString(a))) {
-      return slug;
-    }
-  }
-  for (const [slug, aliases] of Object.entries(COUNTRY_SLUG_MAP)) {
-    if (aliases.some((a) => clean.includes(cleanNormalizedString(a)) || cleanNormalizedString(a).includes(clean))) {
-      return slug;
-    }
-  }
-  return "";
-}
-
-export function resolveGenreSlug(rawGenre?: string): string {
-  if (!rawGenre) return "";
-  const clean = cleanNormalizedString(rawGenre);
-  for (const [slug, aliases] of Object.entries(GENRE_SLUG_MAP)) {
-    if (aliases.some((a) => clean === cleanNormalizedString(a))) {
-      return slug;
-    }
-  }
-  for (const [slug, aliases] of Object.entries(GENRE_SLUG_MAP)) {
-    if (aliases.some((a) => clean.includes(cleanNormalizedString(a)) || cleanNormalizedString(a).includes(clean))) {
-      return slug;
-    }
-  }
-  return "";
-}
-
-export function matchesCountry(itemCountryStr: string, targetCountrySlug: string): boolean {
-  if (!targetCountrySlug || !itemCountryStr) return true;
-  const cleanItem = cleanNormalizedString(itemCountryStr);
-  const targetAliases = COUNTRY_SLUG_MAP[targetCountrySlug] || [targetCountrySlug];
-  return targetAliases.some((alias) => cleanItem.includes(cleanNormalizedString(alias)));
-}
-
-export function matchesGenre(itemCategoryStr: string, targetGenreSlug: string): boolean {
-  if (!targetGenreSlug || !itemCategoryStr) return true;
-  const cleanItem = cleanNormalizedString(itemCategoryStr);
-  const targetAliases = GENRE_SLUG_MAP[targetGenreSlug] || [targetGenreSlug];
-  return targetAliases.some((alias) => cleanItem.includes(cleanNormalizedString(alias)));
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function toSafePoster(item: any): string {
-  if (!item) return "/default-poster.svg";
-  const poster = sanitizeImageUrl(item.poster_url || item.posterUrl || "");
-  if (poster) return poster;
-  const thumb = sanitizeImageUrl(item.thumb_url || item.thumbUrl || "");
-  if (thumb) return thumb;
-  return "/default-poster.svg";
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function toSafeActors(item: any): string[] {
-  const result: string[] = [];
-  if (Array.isArray(item?.actor)) {
-    result.push(...item.actor.map(String).map((s: string) => s.trim()).filter(Boolean));
-  } else if (typeof item?.actor === "string" && item.actor.trim()) {
-    result.push(...item.actor.split(",").map((s: string) => s.trim()).filter(Boolean));
-  }
-  if (Array.isArray(item?.director)) {
-    result.push(...item.director.map(String).map((s: string) => s.trim()).filter(Boolean));
-  } else if (typeof item?.director === "string" && item.director.trim()) {
-    result.push(...item.director.split(",").map((s: string) => s.trim()).filter(Boolean));
-  }
-  return Array.from(new Set(result));
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function toSafeCountry(item: any): string {
-  if (Array.isArray(item?.country) && item.country.length > 0) {
-    return item.country[0]?.name || item.country[0]?.slug || "";
-  }
-  if (typeof item?.country === "string") return item.country;
-  return "";
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function toSafeCategory(item: any): string {
-  if (Array.isArray(item?.category) && item.category.length > 0) {
-    return item.category[0]?.name || item.category[0]?.slug || "Điện Ảnh";
-  }
-  if (typeof item?.category === "string") return item.category;
-  return "Điện Ảnh";
-}
-
-// ============================================================================
-// HÀM TRÍCH XUẤT MÔ TẢ ĐỘC BẢN ĐỘNG CHO TỪNG BỘ PHIM (100% DYNAMIC & SCALABLE)
-// ============================================================================
-// ============================================================================
-// HÀM TRÍCH XUẤT MÔ TẢ ĐỘC BẢN ĐỘNG CHO TỪNG BỘ PHIM (100% DYNAMIC & SCALABLE)
-// ============================================================================
-function isGenericBoilerplate(text?: string): boolean {
-  if (!text) return true;
-  const lower = text.toLowerCase().trim();
-  return (
-    lower.includes("tác phẩm tiêu biểu") ||
-    lower.includes("tác phẩm đặc sắc") ||
-    lower.includes("đang chờ bạn khám phá") ||
-    lower.includes("tác phẩm điện ảnh đặc sắc") ||
-    lower.includes("tác phẩm kinh điển gắn liền") ||
-    lower.includes("gắn liền với tên tuổi") ||
-    lower.includes("phong cách diễn xuất") ||
-    lower.includes("siêu phẩm điện ảnh thịnh hành") ||
-    lower.includes("phù hợp hoàn hảo với yêu cầu") ||
-    lower.includes("sẵn sàng thưởng thức trên nền tảng") ||
-    lower.includes("khớp chuẩn xác với yêu cầu") ||
-    lower.includes("đạt điểm đánh giá cao") ||
-    lower.includes("có điểm đánh giá cao") ||
-    lower.includes("phim hay chất lượng cao") ||
-    lower.includes("chất lượng cao đáng xem")
-  );
-}
-
-// ============================================================================
-// HÀM LẤY ĐOẠN MÔ TẢ NGẮN (HIGHLIGHT) ĐỘNG TỪ DỮ LIỆU PHIM THỰC TẾ
-// ============================================================================
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function getMovieHighlight(movie: any, customReason?: string): string {
-  // 1. Ưu tiên customReason do AI sinh ra nếu hợp lệ và không phải câu rập khuôn
-  if (customReason && customReason.trim().length >= 12 && !isGenericBoilerplate(customReason)) {
-    const cleanReason = cleanHtmlText(customReason).trim();
-    if (cleanReason.length > 95) {
-      return cleanReason.substring(0, 90) + "...";
-    }
-    return cleanReason;
-  }
-
-  // 2. Ưu tiên lấy trường overview/description/content sẵn có của phim từ database
-  const rawText =
-    movie?.overview ||
-    movie?.description ||
-    movie?.content ||
-    movie?.movie?.overview ||
-    movie?.movie?.description ||
-    movie?.movie?.content ||
-    "";
-
-  const clean = cleanHtmlText(rawText).trim();
-  if (clean && clean.length >= 15 && !isGenericBoilerplate(clean)) {
-    if (clean.length > 95) {
-      return clean.substring(0, 90) + "...";
-    }
-    return clean;
-  }
-
-  // 3. Nếu không có overview từ database, sinh nội dung động theo thể loại & năm
-  const cat = toSafeCategory(movie);
-  const yr = extractMovieYear(movie);
-  if (cat && yr) {
-    return `Tác phẩm ${cat.toLowerCase()} đặc sắc năm ${yr}, kịch tính và giàu cảm xúc.`;
-  }
-  if (cat) {
-    return `Tác phẩm ${cat.toLowerCase()} tuyển chọn với cốt truyện hấp dẫn và diễn xuất ấn tượng.`;
-  }
-  return "Tác phẩm điện ảnh chọn lọc chất lượng cao đáng xem trên Nanaflix.";
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const TITLE_LOOKUP_CACHE = new Map<string, { item: any; expireAt: number }>();
-
-export interface MatchOptions {
-  expectedCountry?: string;
-  expectedGenre?: string;
-  expectedActorSlug?: string;
-  yearFrom?: number;
-  yearTo?: number;
-  isLatest?: boolean;
-  excludedCountries?: string[];
-  excludedGenres?: string[];
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function findBestMatchMovie(items: any[], query: string, originalQuery?: string, options?: MatchOptions): any {
-  if (!items || items.length === 0) return null;
-  const cleanQ = cleanNormalizedString(query || "");
-  const cleanOq = cleanNormalizedString(originalQuery || "");
-
-  let bestItem = null;
-  let bestScore = -999;
-
-  for (const it of items) {
-    const name = cleanNormalizedString(it.name || it.title || "");
-    const orig = cleanNormalizedString(it.origin_name || "");
-    const slug = cleanNormalizedString(it.slug || "");
-    const country = toSafeCountry(it);
-    const category = toSafeCategory(it);
-    const itemYear = extractMovieYear(it);
-    const itemActors = toSafeActors(it);
-
-    // 1. Kiểm tra loại trừ quốc gia/thể loại bị cấm (Hard negative constraint)
-    if (options?.excludedCountries && options.excludedCountries.length > 0) {
-      if (options.excludedCountries.some((ex) => matchesCountry(country, ex))) {
-        continue;
-      }
-    }
-    if (options?.excludedGenres && options.excludedGenres.length > 0) {
-      if (options.excludedGenres.some((ex) => matchesGenre(category, ex))) {
-        continue;
-      }
-    }
-
-    // 2. Hard filter khi người dùng tìm phim mới nhất (2025-2026)
-    if (options?.isLatest) {
-      const curYear = new Date().getFullYear();
-      if (itemYear > 0 && itemYear < curYear - 1) {
-        continue; // Tuyệt đối không lấy phim cũ khi người dùng yêu cầu mới nhất
-      }
-    }
-
-    let score = 0;
-
-    // So khớp tiêu đề (Title Match)
-    if (name === cleanQ || (cleanOq && (name === cleanOq || orig === cleanOq))) {
-      score += 100;
-    } else if (slug === cleanQ.replace(/\s+/g, "-") || (cleanOq && slug === cleanOq.replace(/\s+/g, "-"))) {
-      score += 90;
-    } else if (name.startsWith(cleanQ) || (cleanOq && (name.startsWith(cleanOq) || orig.startsWith(cleanOq)))) {
-      score += 75;
-    } else if (name.includes(cleanQ) || (cleanOq && (name.includes(cleanOq) || orig.includes(cleanOq)))) {
-      score += 55;
-    } else {
-      const qWords = (cleanOq || cleanQ).split(" ").filter((w) => w.length > 1);
-      if (qWords.length > 1) {
-        const matchWords = qWords.filter((w) => name.includes(w) || (orig && orig.includes(w)));
-        const ratio = matchWords.length / qWords.length;
-        if (ratio >= 0.5) score += Math.round(ratio * 50);
-      }
-    }
-
-    const lenDiff = Math.abs(name.length - cleanQ.length);
-    score -= Math.min(20, lenDiff * 1.2);
-
-    if (it.thumb_url || it.poster_url) score += 10;
-
-    // SCORING: Điểm thưởng & Phạt mềm thay vì Hard AND Drop
-    if (options?.expectedCountry) {
-      if (matchesCountry(country, options.expectedCountry)) {
-        score += 30;
-      } else if (country && !matchesCountry(country, options.expectedCountry)) {
-        score -= 25; // Phạt vừa phải nếu lệch quốc gia
-      }
-    }
-
-    if (options?.expectedGenre) {
-      if (matchesGenre(category, options.expectedGenre)) {
-        score += 20;
-      }
-    }
-
-    // Kiểm tra loại trừ diễn viên nếu expectedActorSlug được chỉ định (Field Separation)
-    if (options?.expectedActorSlug) {
-      const hasActor = matchesActor(itemActors, options.expectedActorSlug);
-      const isKnownFilm = isActorTopTitle(name, orig, options.expectedActorSlug);
-      if (hasActor) {
-        score += 50;
-      } else if (isKnownFilm) {
-        score += 40;
-      } else if (itemActors.length > 0) {
-        // Có danh sách diễn viên cụ thể nhưng không chứa diễn viên cần tìm -> Loại bỏ ngay để tránh nhầm lẫn title
-        continue;
-      } else {
-        score -= 30;
-      }
-    }
-
-    // Kiểm tra năm theo khoảng
-    if (itemYear > 0 && options?.yearFrom && options?.yearTo) {
-      if (itemYear >= options.yearFrom && itemYear <= options.yearTo) {
-        score += 30;
-      } else if (Math.abs(itemYear - options.yearFrom) <= 3 || Math.abs(itemYear - options.yearTo) <= 3) {
-        score += 10; // Gần đúng thập niên
-      } else {
-        score -= 25; // Lệch xa thập niên thì trừ điểm
-      }
-    }
-
-    if (score > bestScore) {
-      bestScore = score;
-      bestItem = it;
-    }
-  }
-
-  return bestScore >= 40 ? bestItem : null;
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function queryPhimApiDirect(keyword: string, originalKeyword?: string, options?: MatchOptions): Promise<any> {
-  if (!keyword?.trim()) return null;
-  try {
-    const res = await fetch(
-      `https://phimapi.com/v1/api/tim-kiem?keyword=${encodeURIComponent(keyword.trim())}&limit=8`,
-      { signal: AbortSignal.timeout(2400), next: { revalidate: 3600 } }
-    );
-    if (!res.ok) return null;
-    const json = await res.json();
-    const items = json?.data?.items || [];
-    if (items.length > 0) {
-      const best = findBestMatchMovie(items, keyword, originalKeyword, options);
-      if (!best) return null;
-
-      const imageDomain = (json.data?.APP_DOMAIN_CDN_IMAGE || "https://phimimg.com/").replace(/\/+$/, "");
-      const formatImg = (p?: string) => {
-        if (!p) return "";
-        if (p.startsWith("http://") || p.startsWith("https://")) return p;
-        return `${imageDomain}/${p.replace(/^\/+/, "")}`;
-      };
-      return {
-        ...best,
-        thumb_url: formatImg(best.thumb_url) || formatImg(best.poster_url),
-        poster_url: formatImg(best.poster_url) || formatImg(best.thumb_url),
-      };
-    }
-  } catch {}
-  return null;
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function searchSingleMovieFast(title: string, originalTitle?: string, options?: MatchOptions): Promise<any> {
-  const cleanTitle = (title || "").replace(/\([^)]*\)/g, "").replace(/\[[^\]]*\]/g, "").trim();
-  const cleanOriginal = (originalTitle || "").replace(/\([^)]*\)/g, "").replace(/\[[^\]]*\]/g, "").trim();
-  if (!cleanTitle && !cleanOriginal) return null;
-
-  const key = `${cleanTitle}__${cleanOriginal}__${options?.expectedCountry || ""}__${options?.expectedGenre || ""}__${options?.yearFrom || ""}`.toLowerCase();
-  const cached = TITLE_LOOKUP_CACHE.get(key);
-  if (cached && Date.now() < cached.expireAt) return cached.item;
-
-  let foundItem = null;
-
-  if (cleanTitle) {
-    foundItem = await queryPhimApiDirect(cleanTitle, cleanOriginal, options);
-  }
-
-  if (!foundItem && cleanOriginal && cleanOriginal !== cleanTitle) {
-    foundItem = await queryPhimApiDirect(cleanOriginal, cleanTitle, options);
-  }
-
-  if (!foundItem && cleanTitle) {
-    try {
-      const res1 = await Promise.race([
-        movieApi.getMovies({ keyword: cleanTitle, page: 1, limit: 6 }),
-        new Promise<null>((resolve) => setTimeout(() => resolve(null), 2000)),
-      ]);
-      if (res1?.items && res1.items.length > 0) {
-        foundItem = findBestMatchMovie(res1.items, cleanTitle, cleanOriginal, options);
-      }
-    } catch {}
-  }
-
-  if (!foundItem && cleanOriginal && cleanOriginal !== cleanTitle) {
-    try {
-      const res2 = await Promise.race([
-        movieApi.getMovies({ keyword: cleanOriginal, page: 1, limit: 6 }),
-        new Promise<null>((resolve) => setTimeout(() => resolve(null), 2000)),
-      ]);
-      if (res2?.items && res2.items.length > 0) {
-        foundItem = findBestMatchMovie(res2.items, cleanOriginal, cleanTitle, options);
-      }
-    } catch {}
-  }
-
-  if (foundItem) {
-    TITLE_LOOKUP_CACHE.set(key, { item: foundItem, expireAt: Date.now() + 1000 * 60 * 60 * 24 });
-  } else {
-    TITLE_LOOKUP_CACHE.set(key, { item: null, expireAt: Date.now() + 1000 * 60 });
-  }
-
-  return foundItem;
-}
-
-interface CacheEntry {
-  reply: string;
-  mood: string;
-  movies: SuggestionCard[];
-  provider: string;
-  cachedAt: number;
-}
-
 const AI_RESPONSE_CACHE = new Map<string, CacheEntry>();
-const CACHE_TTL_MS = 2 * 60 * 60 * 1000;
-const MAX_CACHE_ENTRIES = 300;
-
-function normalizeQuery(text: string): string {
-  return text
-    .toLowerCase()
-    .trim()
-    .replace(/[.,/#!$%^&*;:{}=\-_`~()?"'<>]/g, "")
-    .replace(/\s+/g, " ");
-}
-
 const ipRequestMap = new Map<string, { count: number; expiresAt: number }>();
+
 function checkRateLimit(ip: string): boolean {
   const now = Date.now();
   const record = ipRequestMap.get(ip);
   if (!record || record.expiresAt < now) {
-    ipRequestMap.set(ip, { count: 1, expiresAt: now + 60_000 });
+    ipRequestMap.set(ip, { count: 1, expiresAt: now + RATE_LIMIT_WINDOW_MS });
     return true;
   }
-  if (record.count >= 40) {
+  if (record.count >= RATE_LIMIT_MAX_REQUESTS) {
     return false;
   }
   record.count += 1;
   return true;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function safeParseAiJson(rawText: string): any {
-  if (!rawText) return null;
-  let cleaned = rawText.replace(/```(?:json)?\s*/gi, "").replace(/\s*```/g, "").trim();
-  const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-  if (jsonMatch) cleaned = jsonMatch[0];
-
-  try {
-    return JSON.parse(cleaned);
-  } catch {
-    try {
-      const sanitized = cleaned
-        .replace(/,\s*([\}\]])/g, "$1")
-        .replace(/[\u0000-\u001F]+/g, " ");
-      return JSON.parse(sanitized);
-    } catch {
-      try {
-        let repaired = cleaned;
-        const openBraces = (repaired.match(/\{/g) || []).length;
-        const closeBraces = (repaired.match(/\}/g) || []).length;
-        const openBrackets = (repaired.match(/\[/g) || []).length;
-        const closeBrackets = (repaired.match(/\]/g) || []).length;
-
-        if (repaired.lastIndexOf('"') !== -1 && (repaired.match(/"/g) || []).length % 2 !== 0) {
-          repaired += '"';
-        }
-        for (let i = 0; i < openBrackets - closeBrackets; i++) repaired += "]";
-        for (let i = 0; i < openBraces - closeBraces; i++) repaired += "}";
-
-        return JSON.parse(repaired);
-      } catch {
-        const analysisMatch = cleaned.match(/"analysis"\s*:\s*"((?:\\.|[^"\\])*)"/);
-        const moodMatch = cleaned.match(/"mood"\s*:\s*"((?:\\.|[^"\\])*)"/);
-        const genreMatch = cleaned.match(/"genres?"\s*:\s*"((?:\\.|[^"\\])*)"/);
-        const countryMatch = cleaned.match(/"country"\s*:\s*"((?:\\.|[^"\\])*)"/);
-        const actorMatch = cleaned.match(/"actor"\s*:\s*"((?:\\.|[^"\\])*)"/);
-
-        const movies: Array<{ title: string; original_title?: string; reason?: string }> = [];
-        const movieRegex = /"title"\s*:\s*"((?:\\.|[^"\\])*)"(?:[^{}]*?"original_title"\s*:\s*"((?:\\.|[^"\\])*)")?(?:[^{}]*?"reason"\s*:\s*"((?:\\.|[^"\\])*)")?/g;
-        let m;
-        while ((m = movieRegex.exec(cleaned)) !== null) {
-          if (m[1] && m[1].trim()) {
-            movies.push({
-              title: m[1].trim(),
-              original_title: m[2]?.trim() || "",
-              reason: m[3]?.trim() || "",
-            });
-          }
-        }
-
-        if (movies.length > 0 || analysisMatch) {
-          return {
-            analysis: analysisMatch ? analysisMatch[1] : "",
-            mood: moodMatch ? moodMatch[1] : "",
-            genres: genreMatch ? [genreMatch[1]] : [],
-            country: countryMatch ? countryMatch[1] : "",
-            actor: actorMatch ? actorMatch[1] : "",
-            movies,
-          };
-        }
-        return null;
-      }
-    }
-  }
-}
-
+// ============================================================================
+// GET: HEALTH CHECK & STATUS
+// ============================================================================
 export async function GET() {
   const hasKey = Boolean(process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.trim());
   return NextResponse.json({
@@ -1178,7 +80,7 @@ export async function GET() {
 }
 
 // ============================================================================
-// BƯỚC 1: USER INPUT & POST CONTROLLER
+// POST: CONTROLLER CHÍNH
 // ============================================================================
 export async function POST(req: NextRequest) {
   try {
@@ -1207,7 +109,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Kiểm tra cache hit
+    // 1. Kiểm tra cache hit (L1 Memory Map & L2 Cloudflare KV)
     const cacheKey = normalizeQuery(prompt);
     const cachedItem = AI_RESPONSE_CACHE.get(cacheKey);
     if (cachedItem && Date.now() - cachedItem.cachedAt < CACHE_TTL_MS) {
@@ -1220,140 +122,21 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // ========================================================================
-    // BƯỚC 2: STRUCTURED EXTRACTION (AI TRÍCH XUẤT CẤU TRÚC JSON CHUẨN)
-    // ========================================================================
-    const currentYear = new Date().getFullYear();
-    const systemPrompt = `Bạn là Nana AI - Trợ Lý Điện Ảnh Thông Minh, Sành Sỏi & Thẩm Định Phim của Nanaflix.
-MỐC THỜI GIAN HIỆN TẠI: Năm ${currentYear}.
-
-QUY TẮC PHÂN TÍCH VÀ ĐẶC BIỆT TUÂN THỦ 4 NGUYÊN TẮC VÀNG SAU:
-
-1. XỬ LÝ CÂU HỎI BẪY & ẢO GIÁC (ANTI-HALLUCINATION & TRAP DETECTION):
-- Nếu người dùng hỏi về một tác phẩm, phần phim, đạo diễn hoặc mốc thời gian HOÀN TOÀN KHÔNG CÓ THẬT (Ví dụ: "Inception phần 5 do đạo diễn Việt Nam làm năm 2028", "Titanic 2 của Christopher Nolan", "Avatar 8", "Iron Man 4 do Trấn Thành đóng chính"):
-  + BẮT BUỘC gán "is_trap": true.
-  + Trong "analysis": ĐÍNH CHÍNH LỊCH SỰ, THÔNG MINH, DÍ DỎM! Nêu rõ thông tin thực tế (tác phẩm đó chỉ có những phần nào, phát hành năm nào, đạo diễn/diễn viên thực sự là ai), và chỉ ra thông tin trên là không có thật (TUYỆT ĐỐI KHÔNG dùng câu "chưa ra mắt" khiến người dùng lầm tưởng phim đó tồn tại).
-  + TUYỆT ĐỐI KHÔNG tìm kiếm mù quáng để trả về các phim ngẫu nhiên không liên quan.
-  + BẮT BUỘC trong "suggested_movies": Đề xuất 4 bộ phim CÓ THẬT, KINH ĐIỂN CÙNG CHỦ ĐỀ HOẶC THỂ LOẠI TƯƠNG ĐƯƠNG (Ví dụ hỏi Inception 5 -> gợi ý Inception (2010), Interstellar (2014), Shutter Island (2010), Tenet (2020) hoặc Memento).
-
-2. PHÂN TÁCH NGỮ CẢNH NGOÀI LỀ (EDGE CASES & OFF-TOPIC):
-- Nếu người dùng hỏi các chủ đề ngoài điện ảnh (Ví dụ: bóng đá, tỷ số, thể thao, thời tiết, chính trị, chứng khoán, toán học, nấu ăn, đời sống...):
-  + BẮT BUỘC gán "is_off_topic": true.
-  + Trong "analysis": TỪ CHỐI KHÉO LÉO, DUYÊN DÁNG đúng vai trò trợ lý điện ảnh của Nanaflix, sau đó LẬP TỨC CHUYỂN HƯỚNG MƯỢT MÀ sang việc gợi ý các tác phẩm điện ảnh liên quan đến chủ đề đó hoặc tâm trạng giải trí (Ví dụ: hỏi bóng đá -> từ chối đoán tỷ số, nhưng lập tức gợi ý phim bóng đá/thể thao truyền cảm hứng hoặc phim xả stress sau trận đấu).
-  + BẮT BUỘC trong "suggested_movies": Đề xuất 4 bộ phim CÓ THẬT, NỔI TIẾNG phù hợp với sự chuyển hướng đó (Ví dụ hỏi bóng đá -> gợi ý Shaolin Soccer / Đội Bóng Thiếu Lâm, Ford v Ferrari, Pelé, Goal!, Hustle).
-
-3. XỬ LÝ LỖI CHÍNH TẢ & Ý ĐỊNH ẨN (TYPO & INTENT RECOGNITION):
-- Tự động hiểu và sửa các từ viết sai chính tả phổ biến (Ví dụ: "zoombie" -> zombie, "hành đọng" -> hành động, "hoat hinh" -> hoạt hình, "tình cãm" -> tình cảm...).
-- Thấu cảm và giải mã nhu cầu cảm xúc sâu sắc:
-  + Muốn sợ hãi / giật gân -> kinh dị rùng rợn, siêu nhiên ám ảnh.
-  + Muốn khóc / chữa lành -> tâm lý tình cảm sâu sắc, cảm động rơi nước mắt.
-  + Muốn cười / xả stress -> hài kịch dí dỏm, phiêu lưu sảng khoái.
-  + Muốn hack não -> trinh thám điều tra, vòng lặp thời gian, plot twist bất ngờ.
-
-4. QUY TẮC TRẢ VỀ PHIM VÀ TÊN PHIM (OUTPUT QUALITY):
-- "title": Tên tiếng Việt chuẩn xác, trang trọng, quen thuộc nhất ở Việt Nam (hoặc giữ tên gốc nếu là phim kinh điển nổi tiếng như "Inception", "Interstellar", "John Wick"). TUYỆT ĐỐI CẤM DỊCH MÁY MÓC BỊA ĐẶT KỲ LẠ (như dịch The Mongoose thành "Cầy Mangut").
-- "original_title": Tên gốc tiếng Anh / quốc tế chuẩn xác.
-- "year": Năm phát hành thực tế chính xác (số nguyên 4 chữ số).
-- "reason": 1-2 câu ngắn gọn, súc tích, hấp dẫn về điểm nhấn cốt truyện hoặc nút thắt kịch tính của CHÍNH BỘ PHIM ĐÓ. Tuyệt đối CẤM câu chung chung sáo rỗng.
-- "analysis": Lời mở đầu niềm nở, thông minh, gắn kết trực tiếp với yêu cầu của người dùng.
-- "mood": Tên chủ đề súc tích kèm emoji phù hợp.
-
-BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT NGOÀI JSON):
-{
-  "is_trap": false,
-  "is_off_topic": false,
-  "analysis": "Lời mở đầu duyên dáng, sành sỏi gắn kết trực tiếp với người dùng...",
-  "mood": "Tên chủ đề ngắn gọn kèm Emoji (vd: 'Đấu Trí Hack Não 🧠✨')",
-  "genres": ["hanh-dong"],
-  "country": "au-my",
-  "is_latest": false,
-  "years": {
-    "from": 2010,
-    "to": 2024
-  },
-  "keyword": "",
-  "actor": "",
-  "director": "",
-  "excluded_countries": [],
-  "excluded_genres": [],
-  "suggested_movies": [
-    {
-      "title": "Tên tiếng Việt chuẩn",
-      "original_title": "Original English/International Title",
-      "year": 2010,
-      "reason": "Mô tả ngắn gọn, cụ thể về nội dung hoặc nút thắt cốt truyện của chính phim này"
-    }
-  ]
-}`;
-
-    let aiParsed: {
-      is_trap?: boolean;
-      is_off_topic?: boolean;
-      analysis?: string;
-      mood?: string;
-      genres?: string[];
-      genre?: string;
-      country?: string;
-      is_latest?: boolean;
-      years?: { from?: number; to?: number };
-      year_from?: number;
-      year_to?: number;
-      keyword?: string;
-      actor?: string;
-      director?: string;
-      excluded_countries?: string[];
-      excluded_genres?: string[];
-      suggested_movies?: Array<{
-        title: string;
-        original_title?: string;
-        year?: number;
-        reason?: string;
-      }>;
-      movies?: Array<{
-        title: string;
-        original_title?: string;
-        year?: number;
-        reason?: string;
-      }>;
-    } | null = null;
-
-    let aiProviderName = "Nana AI Engine";
-
-    const typoNormalized = prompt
-      .replace(/\bzoombie[s]?\b/gi, "zombie")
-      .replace(/\bhành đọng\b/gi, "hành động")
-      .replace(/\bhanh dong\b/gi, "hành động")
-      .replace(/\btình cãm\b/gi, "tình cảm")
-      .replace(/\btinh cam\b/gi, "tình cảm")
-      .replace(/\bhoat hinh\b/gi, "hoạt hình")
-      .replace(/\bhai huoc\b/gi, "hài hước")
-      .replace(/\bkinh di\b/gi, "kinh dị")
-      .replace(/\bviễn tuởng\b/gi, "viễn tưởng")
-      .replace(/\bvien tuong\b/gi, "viễn tưởng")
-      .replace(/\btrinh tham\b/gi, "trinh thám");
-
-    try {
-      const aiRes = await generateFastAiChat({
-        systemPrompt,
-        userPrompt: `Phân tích yêu cầu tìm phim: "${prompt}" (Ý định chuẩn hóa: "${typoNormalized}"). Mốc năm hiện tại là ${currentYear}. Trả về duy nhất JSON theo đúng schema.`,
-        temperature: 0.2,
-        maxTokens: 1400,
-        jsonMode: true,
-        customApiKey: userApiKey,
-        timeoutMs: 9500,
+    const kvCached = await kvCache.get<ConciergeApiResponse>(`ai:concierge:${cacheKey}`);
+    if (kvCached && kvCached.movies && kvCached.movies.length > 0) {
+      AI_RESPONSE_CACHE.set(cacheKey, { ...kvCached, cachedAt: Date.now() });
+      return NextResponse.json({
+        ...kvCached,
+        cached: true,
       });
-
-      if (aiRes && aiRes.text) {
-        aiParsed = safeParseAiJson(aiRes.text);
-        if (aiRes.provider) aiProviderName = aiRes.provider;
-      }
-    } catch (aiErr) {
-      console.warn("AI LLM call failed or timed out:", aiErr);
     }
 
-    // ========================================================================
-    // BƯỚC 3: RELAXED SCORING & DETERMINISTIC DATABASE RESOLUTION
-    // ========================================================================
+    const currentYear = new Date().getFullYear();
+
+    // 2. Phân tích ngữ nghĩa & trích xuất ý định bằng AI
+    const { parsed: aiParsed, provider: aiProviderName } = await analyzeUserPrompt(prompt, userApiKey);
+
+    // 3. Chuẩn hóa bộ lọc (Slugs & Constraints)
     const rawActor = aiParsed?.actor || "";
     const rawCountry = aiParsed?.country || "";
     const rawDirector = aiParsed?.director || "";
@@ -1367,7 +150,6 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
     const targetCountrySlug = resolveCountrySlug(rawCountry) || resolveCountrySlug(prompt);
     const targetActorSlug = resolveActorSlug(rawActor) || resolveActorSlug(prompt);
 
-    // Xử lý cờ "Phim mới nhất" (Latest / Newest)
     const lowerPrompt = prompt.toLowerCase();
     const isLatest =
       Boolean(aiParsed?.is_latest) ||
@@ -1379,15 +161,12 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
       lowerPrompt.includes("moi chieu") ||
       lowerPrompt.includes("vừa ra") ||
       lowerPrompt.includes("vua ra") ||
-      lowerPrompt.includes("vừa chiếu") ||
-      lowerPrompt.includes("vua chieu") ||
       lowerPrompt.includes("năm nay") ||
       lowerPrompt.includes("nam nay") ||
       lowerPrompt.includes("latest") ||
       lowerPrompt.includes("newest") ||
       lowerPrompt.includes("recently");
 
-    // Xử lý khoảng năm
     let yearFrom = aiParsed?.years?.from || aiParsed?.year_from || 0;
     let yearTo = aiParsed?.years?.to || aiParsed?.year_to || 0;
 
@@ -1446,14 +225,11 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
     const cards: SuggestionCard[] = [];
     const seenSlugs = new Set<string>();
 
-    // 1. TỔNG HỢP DANH SÁCH ỨNG VIÊN ĐA NGUỒN (AI Suggestions + Filmography Top Titles)
-    const candidateMovieList: Array<{ title: string; original_title?: string; year?: number; reason?: string }> = [
+    // 4. Pass 1: Tra cứu song song toàn bộ gợi ý do AI đề xuất
+    const candidateMovieList = [
       ...(aiParsed?.suggested_movies || aiParsed?.movies || []),
     ];
 
-    // 100% Dynamic Movie Candidates từ AI trích xuất - Không dùng danh sách phim hardcode
-
-    // 2. Pass 1: Tra cứu song song toàn bộ danh sách ứng viên (Title Match + Soft Scoring)
     if (candidateMovieList.length > 0) {
       let filteredSuggestions = candidateMovieList;
       if (!lowerPrompt.includes("anime nana") && !lowerPrompt.includes("nana osaki") && !lowerPrompt.includes("nana komatsu")) {
@@ -1479,27 +255,28 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
           const itemYear = extractMovieYear(item.found) || extractMovieYear(item.suggested) || 0;
           const itemActors = toSafeActors(item.found);
 
-          // Loại trừ hard negative
           if (excludedCountrySlugs.some((ex) => matchesCountry(itemCountry, ex))) continue;
           if (excludedGenreSlugs.some((ex) => matchesGenre(itemCategory, ex))) continue;
 
-          // Kiểm tra khớp diễn viên chặt chẽ nếu người dùng tìm theo diễn viên (Field Separation)
+          // Kiểm tra diễn viên nếu có
           if (targetActorSlug) {
             const hasActor = matchesActor(itemActors, targetActorSlug);
-            const isKnownFilm = isActorTopTitle(item.found.name || "", item.found.origin_name || "", targetActorSlug);
-            if (!hasActor && !isKnownFilm && itemActors.length > 0) {
-              continue;
+            if (!hasActor && itemActors.length > 0) {
+              // Nếu mảng diễn viên có sẵn nhưng không khớp, chỉ cho phép nếu tiêu đề khớp chính xác 100%
+              const cleanTitle = cleanNormalizedString(item.suggested.title);
+              const cleanOrig = cleanNormalizedString(item.suggested.original_title || "");
+              const foundName = cleanNormalizedString(item.found.name || "");
+              const foundOrig = cleanNormalizedString(item.found.origin_name || "");
+              const isExactTitle = (cleanTitle && foundName === cleanTitle) || (cleanOrig && (foundOrig === cleanOrig || foundName === cleanOrig));
+              if (!isExactTitle) continue;
             }
           }
 
-          // Hard filter: Nếu người dùng tìm phim mới nhất, loại bỏ phim cũ (< currentYear - 1)
           if (isLatest && itemYear > 0 && itemYear < currentYear - 1) {
             continue;
           }
 
-          // Nếu lệch hoàn toàn quốc gia khi người dùng yêu cầu rõ ràng (ví dụ hỏi Mỹ mà ra Trung Quốc)
           if (targetCountrySlug && itemCountry && !matchesCountry(itemCountry, targetCountrySlug)) {
-            // Cho phép nếu tiêu đề khớp 100% tên phim quốc tế (tránh lỗi database gán sai country tag)
             const cleanTitle = cleanNormalizedString(item.suggested.title);
             const cleanOrig = cleanNormalizedString(item.suggested.original_title || "");
             const foundName = cleanNormalizedString(item.found.name || "");
@@ -1530,13 +307,12 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
       }
     }
 
-    // 3. Pass 2: Truy vấn Phân Tầng Thông Minh (Pool Discovery & Relevance Scoring)
+    // 5. Pass 2: Khám phá thêm từ Database nếu chưa đủ 4 phim
     const isTrapOrOffTopic = Boolean(aiParsed?.is_trap || aiParsed?.is_off_topic);
-    if (cards.length < 24 && !isTrapOrOffTopic && (targetActorSlug || targetGenreSlug || targetCountrySlug || rawKeyword || rawDirector || isLatest)) {
+    if (cards.length < 4 && !isTrapOrOffTopic && (targetActorSlug || targetGenreSlug || targetCountrySlug || rawKeyword || rawDirector || isLatest)) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const queryTasks: Promise<any>[] = [];
 
-      // Query 1: Theo Actor aliases nếu có (tìm theo đúng tên diễn viên, không dùng từ khóa gây nhiễu)
       if (targetActorSlug) {
         const aliases = getActorAliases(targetActorSlug);
         const mainName = aliases[0] || targetActorSlug.replace(/-/g, " ");
@@ -1546,16 +322,10 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
         }
       }
 
-      // Query 2: Theo Keyword cốt truyện (chỉ áp dụng khi không phải tìm thuần diễn viên)
       if (!targetActorSlug && rawKeyword && rawKeyword.trim().length >= 2) {
         queryTasks.push(movieApi.getMovies({ keyword: rawKeyword.trim(), limit: 16 }));
-        const firstWord = rawKeyword.split(" ")[0];
-        if (firstWord && firstWord !== rawKeyword && firstWord.length >= 3) {
-          queryTasks.push(movieApi.getMovies({ keyword: firstWord, limit: 12 }));
-        }
       }
 
-      // Query 3: Theo Genre + Country (hoặc truy vấn theo năm mới nhất 2025-2026)
       if (!targetActorSlug && (targetGenreSlug || targetCountrySlug || isLatest)) {
         if (isLatest) {
           queryTasks.push(
@@ -1563,15 +333,6 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
               category: targetGenreSlug || undefined,
               country: targetCountrySlug || undefined,
               year: String(currentYear),
-              limit: 20,
-              sort: "latest",
-            })
-          );
-          queryTasks.push(
-            movieApi.getMovies({
-              category: targetGenreSlug || undefined,
-              country: targetCountrySlug || undefined,
-              year: String(currentYear - 1),
               limit: 20,
               sort: "latest",
             })
@@ -1603,7 +364,6 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
           }
         }
 
-        // TÍNH ĐIỂM PHÙ HỢP (RELEVANCE SCORING) CHO TOÀN BỘ POOL
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const scoredCandidates: Array<{ item: any; score: number }> = [];
 
@@ -1619,73 +379,42 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
           if (excludedCountrySlugs.some((ex) => matchesCountry(itemCountry, ex))) continue;
           if (excludedGenreSlugs.some((ex) => matchesGenre(itemCategory, ex))) continue;
 
-          // Hard Filter: Phim mới nhất bắt buộc phải từ currentYear - 1 (2025-2026)
-          if (isLatest) {
-            if (itemYear > 0 && itemYear < currentYear - 1) {
-              continue; // Bỏ qua phim cũ hơn 2 năm, không nhận vơ là mới nhất
-            }
+          if (isLatest && itemYear > 0 && itemYear < currentYear - 1) {
+            continue;
           }
 
           let score = 0;
 
-          // Điểm khớp quốc gia
           if (targetCountrySlug) {
-            if (matchesCountry(itemCountry, targetCountrySlug)) {
-              score += 35;
-            } else if (itemCountry) {
-              score -= 30; // Trừ điểm nếu lệch hẳn quốc gia
-            }
+            if (matchesCountry(itemCountry, targetCountrySlug)) score += 35;
+            else if (itemCountry) score -= 30;
           }
 
-          // Điểm khớp thể loại
           if (targetGenreSlug) {
-            if (matchesGenre(itemCategory, targetGenreSlug)) {
-              score += 25;
-            }
+            if (matchesGenre(itemCategory, targetGenreSlug)) score += 25;
           }
 
-          // Điểm khớp diễn viên (Field Separation)
           if (targetActorSlug) {
             const hasActor = matchesActor(itemActors, targetActorSlug);
-            const isKnownFilm = isActorTopTitle(itemName, itemOrig, targetActorSlug);
             if (hasActor) {
               score += 70;
-            } else if (isKnownFilm) {
-              score += 60;
             } else if (itemActors.length > 0) {
-              // Có danh sách diễn viên cụ thể nhưng không có diễn viên đang tìm -> Loại bỏ
               continue;
             } else {
               score -= 40;
             }
           }
 
-          // Điểm khớp từ khóa cốt truyện
           if (rawKeyword) {
             const cleanKw = cleanNormalizedString(rawKeyword);
-            const kwWords = cleanKw.split(" ").filter((w) => w.length > 1);
             if (itemName.includes(cleanKw) || itemOrig.includes(cleanKw) || itemDesc.includes(cleanKw)) {
               score += 40;
-            } else if (kwWords.some((w) => itemName.includes(w) || itemDesc.includes(w))) {
-              score += 20;
             }
           }
 
-          // Điểm khớp khoảng năm hoặc phim mới nhất
           if (isLatest) {
-            if (itemYear >= currentYear) {
-              score += 60;
-            } else if (itemYear === currentYear - 1) {
-              score += 45;
-            }
-          } else if (itemYear > 0 && yearFrom && yearTo) {
-            if (itemYear >= yearFrom && itemYear <= yearTo) {
-              score += 30;
-            } else if (Math.abs(itemYear - yearFrom) <= 3 || Math.abs(itemYear - yearTo) <= 3) {
-              score += 10;
-            } else {
-              score -= 35; // Lệch năm nhiều thì trừ điểm
-            }
+            if (itemYear >= currentYear) score += 60;
+            else if (itemYear === currentYear - 1) score += 45;
           }
 
           if (score >= 30) {
@@ -1693,15 +422,7 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
           }
         }
 
-        // Sắp xếp: Ưu tiên năm mới nhất (release_year DESC) nếu người dùng tìm mới nhất
-        scoredCandidates.sort((a, b) => {
-          if (isLatest) {
-            const yA = extractMovieYear(a.item);
-            const yB = extractMovieYear(b.item);
-            if (yB !== yA) return yB - yA;
-          }
-          return b.score - a.score;
-        });
+        scoredCandidates.sort((a, b) => b.score - a.score);
 
         for (const sc of scoredCandidates) {
           if (cards.length >= 4) break;
@@ -1722,38 +443,25 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
             });
           }
         }
-      } catch {}
+      } catch (err) {
+        console.warn("[ai-concierge] Error in Pass 2 discovery:", err);
+      }
     }
 
-    // ========================================================================
-    // BƯỚC 4: RELAXED SMART FALLBACK (NỚI LỎNG BỘ LỌC - CẤM TỪ CHỐI CỰC ĐOAN)
-    // Tự động tìm các bộ phim có tính chất gần gũi nhất trong database & nhắn nhẹ nhàng
-    // ========================================================================
+    // 6. Pass 3: Fallback nới lỏng nếu không có phim nào khớp
     let isFallbackRelaxed = false;
-
     if (cards.length === 0) {
       isFallbackRelaxed = true;
       try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const fallbackTasks: Promise<any>[] = [];
 
-        // 1. Tìm nới lỏng theo thể loại chính (đánh giá cao & xem nhiều)
         if (targetGenreSlug) {
           fallbackTasks.push(movieApi.getMovies({ category: targetGenreSlug, limit: 16, sort: "rating" }));
-          fallbackTasks.push(movieApi.getMovies({ category: targetGenreSlug, limit: 16, sort: "views" }));
         }
-
-        // 2. Tìm nới lỏng theo từ khóa cốt truyện hoặc chủ đề
-        if (rawKeyword && rawKeyword.trim().length >= 2) {
-          fallbackTasks.push(movieApi.getMovies({ keyword: rawKeyword.trim(), limit: 16 }));
-        }
-
-        // 3. Tìm nới lỏng theo quốc gia mục tiêu nếu có
         if (targetCountrySlug) {
           fallbackTasks.push(movieApi.getMovies({ country: targetCountrySlug, limit: 16, sort: "rating" }));
         }
-
-        // 4. Tuyển tập các siêu phẩm được đánh giá cao nhất toàn sàn
         fallbackTasks.push(movieApi.getMovies({ sort: "rating", limit: 16 }));
 
         const fallbackResults = await Promise.allSettled(fallbackTasks);
@@ -1780,10 +488,11 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
           if (cards.length >= 4) break;
         }
       } catch (err) {
-        console.warn("Fallback query error:", err);
+        console.warn("[ai-concierge] Fallback query error:", err);
       }
     }
 
+    // 7. Tạo câu phản hồi và tiêu đề tâm trạng (Final Payload)
     let finalAnalysis = "";
     let finalMood = "";
 
@@ -1791,14 +500,14 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
       if (aiParsed?.analysis && (aiParsed.is_trap || aiParsed.is_off_topic)) {
         finalAnalysis = aiParsed.analysis.trim();
       } else {
-        finalAnalysis = `Nana AI chưa tìm thấy tác phẩm khớp tuyệt đối 100% mọi điều kiện chi tiết, nhưng đã nới lỏng bộ lọc để tuyển chọn ngay 3-4 bộ phim có phong cách và chủ đề gần gũi nhất dưới đây để bạn thưởng thức nhé! ✨🍿`;
+        finalAnalysis = "Nana AI chưa tìm thấy tác phẩm khớp tuyệt đối 100% mọi điều kiện chi tiết, nhưng đã nới lỏng bộ lọc để tuyển chọn ngay 3-4 bộ phim có phong cách và chủ đề gần gũi nhất dưới đây để bạn thưởng thức nhé! ✨🍿";
       }
       finalMood = aiParsed?.mood || "Gợi Ý Tương Đồng Cho Bạn 🎬✨";
     } else if (cards.length === 0) {
       if (aiParsed?.analysis && (aiParsed.is_trap || aiParsed.is_off_topic)) {
         finalAnalysis = aiParsed.analysis.trim();
       } else {
-        finalAnalysis = `Chào bạn! Hiện tại kho phim chưa có bản phát hành khớp hoàn toàn với yêu cầu này. Bạn có thể thử tìm kiếm theo tên phim cụ thể hoặc khám phá các thể loại thịnh hành trên thanh điều hướng nhé! ✨🍿`;
+        finalAnalysis = "Chào bạn! Hiện tại kho phim chưa có bản phát hành khớp hoàn toàn với yêu cầu này. Bạn có thể thử tìm kiếm theo tên phim cụ thể hoặc khám phá các thể loại thịnh hành trên thanh điều hướng nhé! ✨🍿";
       }
       finalMood = aiParsed?.mood || "Gợi Ý Cho Bạn 🎬";
     } else {
@@ -1808,7 +517,7 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
       finalMood = aiParsed?.mood || "Điện Ảnh Tuyển Chọn ⭐";
     }
 
-    const finalPayload = {
+    const finalPayload: ConciergeApiResponse = {
       reply: finalAnalysis,
       mood: finalMood,
       movies: cards.slice(0, 4),
@@ -1821,6 +530,11 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
         if (oldestKey) AI_RESPONSE_CACHE.delete(oldestKey);
       }
       AI_RESPONSE_CACHE.set(cacheKey, { ...finalPayload, cachedAt: Date.now() });
+
+      // Lưu vào Cloudflare KV với TTL 3 ngày (259200s)
+      kvCache.set(`ai:concierge:${cacheKey}`, finalPayload, 3 * 86400).catch((err) => {
+        console.warn("[AI Concierge] Lỗi ghi KV cache:", err);
+      });
     }
 
     return NextResponse.json(finalPayload);

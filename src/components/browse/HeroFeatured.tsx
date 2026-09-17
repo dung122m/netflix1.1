@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -38,6 +38,12 @@ type HeroMovie = {
   thumb_url?: string;
   poster_url?: string;
   imageUrl?: string;
+  backdrop_url?: string;
+  backdropUrl?: string;
+  banner_url?: string;
+  bannerUrl?: string;
+  backdrop_path?: string;
+  backdropPath?: string;
   year?: string | number;
   status?: string;
   episode_current?: string;
@@ -49,7 +55,8 @@ type HeroMovie = {
   country?: Array<{ name?: string }>;
   director?: string[];
   trailer_url?: string;
-  tmdb?: { vote_average?: string | number; vote_count?: number };
+  tmdb?: { id?: string | number; type?: string; vote_average?: string | number; vote_count?: number };
+  [key: string]: unknown;
 };
 
 export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
@@ -61,18 +68,31 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
   const [paused, setPaused] = useState(false);
   const reduceMotion = useReducedMotion();
 
+  const currentSlug = slides[index]?.slug;
+  const [heroSynopsis, setHeroSynopsis] = useState<string>("");
+  const [heroBackdropMap, setHeroBackdropMap] = useState<Record<string, string>>({});
+  const [failedHeroImages, setFailedHeroImages] = useState<Record<string, boolean>>({});
+
   useEffect(() => {
     setIndex(0);
   }, [slides.length]);
 
+  const heroRef = useRef<HTMLElement>(null);
   const [isHeroVisible, setIsHeroVisible] = useState(true);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsHeroVisible(window.scrollY < 700);
-    };
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
+    const el = heroRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsHeroVisible(entry.isIntersecting);
+      },
+      { threshold: 0 }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
   }, []);
 
   // Chỉ tải trước ảnh của slide tiếp theo để không nghẽn băng thông
@@ -81,11 +101,13 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
     const nextIndex = (index + 1) % slides.length;
     const nextMovie = slides[nextIndex];
     if (nextMovie) {
-      const nextUrl = pickHeroBackdropImage(nextMovie, "/default-hero.jpg");
+      const nextUrl =
+        (nextMovie.slug && heroBackdropMap[nextMovie.slug]) ||
+        pickHeroBackdropImage(nextMovie, "/default-hero.jpg");
       const img = new window.Image();
       img.src = nextUrl;
     }
-  }, [index, slides]);
+  }, [index, slides, heroBackdropMap]);
 
   useEffect(() => {
     if (slides.length <= 1 || paused || !isHeroVisible) return;
@@ -95,10 +117,6 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
     }, AUTO_SLIDE_MS);
     return () => clearInterval(id);
   }, [slides.length, paused, isHeroVisible]);
-
-  const currentSlug = slides[index]?.slug;
-  const [heroSynopsis, setHeroSynopsis] = useState<string>("");
-  const [heroBackdropMap, setHeroBackdropMap] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!currentSlug) return;
@@ -196,10 +214,16 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
         }),
       };
 
-  const heroImageSrc = (currentSlug && heroBackdropMap[currentSlug]) || pickHeroBackdropImage(featuredMovie, "/default-hero.jpg");
+  const fallbackHeroImage = pickHeroBackdropImage(featuredMovie, "/default-hero.jpg");
+  const lowResFallback = pickBestMovieImage(featuredMovie, "/default-hero.jpg");
+  const heroImageSrc =
+    (currentSlug && failedHeroImages[currentSlug])
+      ? lowResFallback
+      : (currentSlug && heroBackdropMap[currentSlug]) || fallbackHeroImage;
 
   return (
     <section
+      ref={heroRef}
       className="hero-cinema-section keep-dark-cinema relative h-[58vh] sm:h-[75vh] md:h-[82vh] min-h-[460px] sm:min-h-[540px] max-h-[850px] w-full overflow-hidden bg-black select-none"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
@@ -230,10 +254,15 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
               alt={title}
               fill
               priority
-              quality={100}
+              quality={90}
               unoptimized
               sizes="100vw"
               className="object-cover object-[center_25%]"
+              onError={() => {
+                if (currentSlug && !failedHeroImages[currentSlug]) {
+                  setFailedHeroImages((prev) => ({ ...prev, [currentSlug]: true }));
+                }
+              }}
             />
           </motion.div>
         </AnimatePresence>
@@ -427,6 +456,7 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
                     src={thumb}
                     alt={movie.name || movie.title || "thumb"}
                     fill
+                    unoptimized
                     quality={88}
                     sizes="44px"
                     className="object-cover"

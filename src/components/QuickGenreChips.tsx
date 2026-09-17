@@ -257,11 +257,17 @@ const QuickGenreChipsInner: React.FC = () => {
   }, [getYearUrl, router]);
 
   const handleClearAll = useCallback(() => {
-    const params = new URLSearchParams();
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("type");
+    params.delete("category");
+    params.delete("country");
+    params.delete("year");
+    params.delete("page");
+    const query = params.toString();
     startTransition(() => {
-      router.push(`/browse?${params.toString()}`, { scroll: false });
+      router.push(query ? `/browse?${query}` : "/browse", { scroll: false });
     });
-  }, [router]);
+  }, [searchParams, router]);
 
   // Tên hiển thị các bộ lọc đang chọn
   const activeTypeName =

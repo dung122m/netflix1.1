@@ -128,6 +128,11 @@ export function ContinueWatchingRow() {
               ? `/movies/${item.slug}?ep=${item.episodeSlug}`
               : `/movies/${item.slug}`;
 
+            const progressPercent =
+              item.durationSeconds && item.durationSeconds > 0 && typeof item.progressSeconds === "number"
+                ? Math.min(100, Math.max(0, Math.round((item.progressSeconds / item.durationSeconds) * 100)))
+                : 0;
+
             return (
               <div
                 key={item.slug}
@@ -140,6 +145,7 @@ export function ContinueWatchingRow() {
                       src={sanitizeImageUrl(item.poster || "/default-hero.jpg")}
                       alt={item.title}
                       fill
+                      unoptimized
                       sizes="(max-width: 768px) 240px, (max-width: 1024px) 300px, 360px"
                       className="object-cover transition-transform duration-300 group-hover:scale-105"
                       decoding="async"
@@ -155,9 +161,12 @@ export function ContinueWatchingRow() {
                       </div>
                     </div>
 
-                    {/* THANH TIẾN ĐỘ GIẢ LẬP ĐANG XEM DỞ */}
+                    {/* THANH TIẾN ĐỘ THỰC TẾ ĐANG XEM DỞ */}
                     <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-zinc-800">
-                      <div className="h-full bg-gradient-to-r from-netflix-red to-rose-500 rounded-r-full shadow-sm shadow-red-500/50 w-[65%]" />
+                      <div
+                        className="h-full bg-gradient-to-r from-netflix-red to-rose-500 rounded-r-full shadow-sm shadow-red-500/50"
+                        style={{ width: `${progressPercent}%` }}
+                      />
                     </div>
 
                     {/* NÚT XOÁ KHỎI TIẾP TỤC XEM */}

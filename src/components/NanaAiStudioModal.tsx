@@ -364,7 +364,7 @@ export const NanaAiStudioModal: React.FC = () => {
   return (
     <div
       onClick={() => setIsOpen(false)}
-      className="fixed inset-0 z-[120] bg-black/85 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 overflow-hidden select-none"
+      className="fixed inset-0 z-[120] bg-black/85 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 overflow-hidden"
     >
       <div
         onClick={(e) => e.stopPropagation()}
@@ -557,7 +557,7 @@ export const NanaAiStudioModal: React.FC = () => {
                             : "bg-zinc-900/95 border border-white/15 text-gray-200 rounded-tl-sm shadow-xl backdrop-blur-md"
                         }`}
                       >
-                        <p className="leading-relaxed whitespace-pre-wrap">{m.text}</p>
+                        <p className="leading-relaxed whitespace-pre-wrap select-text">{m.text}</p>
 
                         {/* HIGH-END MOVIE RECOMMENDATION CARDS (TOP 3-4 PHIM XUẤT SẮC NHẤT) */}
                         {m.movies && m.movies.length > 0 && (
