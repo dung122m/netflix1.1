@@ -30,10 +30,29 @@ export interface PublicProfileDetail {
   badges?: string[];
 }
 
-export function PublicUserProfileModal() {
-  const [isOpen, setIsOpen] = useState(false);
-  const [targetUserId, setTargetUserId] = useState<string | null>(null);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+export interface PublicUserProfileModalProps {
+  initialDetail?: PublicProfileDetail;
+}
+
+export function PublicUserProfileModal({ initialDetail }: PublicUserProfileModalProps = {}) {
+  const [isOpen, setIsOpen] = useState(Boolean(initialDetail?.userId));
+  const [targetUserId, setTargetUserId] = useState<string | null>(initialDetail?.userId || null);
+  const [profile, setProfile] = useState<UserProfile | null>(() => {
+    if (!initialDetail?.userId) return null;
+    return {
+      uid: initialDetail.userId,
+      email: "",
+      displayName: initialDetail.userName || "Thành viên Nanaflix",
+      photoURL: initialDetail.userAvatar || "",
+      customAvatar: initialDetail.userAvatar || "",
+      badges: initialDetail.badges || ["🍿 Mọt Phim Đêm"],
+      role: "member",
+      watchTimeMinutes: 0,
+      favoriteGenres: [],
+      createdAt: Date.now(),
+      lastLoginAt: Date.now(),
+    };
+  });
   const [collections, setCollections] = useState<MovieCollection[]>([]);
   const [, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<"overview" | "collections">("overview");

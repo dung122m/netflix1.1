@@ -6,8 +6,12 @@ import { Trophy, X, Crown, Flame, Loader2, Sparkles } from "lucide-react";
 import { getTopWatchLeaderboard, getWatchLevelInfo } from "@/services/userService";
 import { UserProfile } from "@/types/user";
 
-function LeaderboardModalInner() {
-  const [isOpen, setIsOpen] = useState(false);
+export interface LeaderboardModalProps {
+  initialOpen?: boolean;
+}
+
+function LeaderboardModalInner({ initialOpen = false }: LeaderboardModalProps) {
+  const [isOpen, setIsOpen] = useState(initialOpen);
   const [leaderboard, setLeaderboard] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);

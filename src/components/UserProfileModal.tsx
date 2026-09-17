@@ -75,9 +75,17 @@ export const AVAILABLE_BADGES = [
   { id: "top-fan", label: "👑 Top Fan Nanaflix", minMinutesReq: 12000, reqText: "200h+ xem (Thánh Phim)" },
 ];
 
-function UserProfileModalInner() {
+export interface UserProfileModalProps {
+  initialOpen?: boolean;
+  initialTab?: "profile" | "comments";
+}
+
+function UserProfileModalInner({
+  initialOpen = false,
+  initialTab = "profile",
+}: UserProfileModalProps) {
   const { user } = useAuth();
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(initialOpen);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [mounted, setMounted] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -96,9 +104,13 @@ function UserProfileModalInner() {
   const [badgeHint, setBadgeHint] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [useCustomUrl, setUseCustomUrl] = useState(false);
-  const [activeTab, setActiveTab] = useState<"profile" | "comments">("profile");
+  const [activeTab, setActiveTab] = useState<"profile" | "comments">(initialTab);
   const [userComments, setUserComments] = useState<MovieComment[]>([]);
   const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (initialTab) setActiveTab(initialTab);
+  }, [initialTab]);
 
   // Lắng nghe sự kiện mở modal từ mọi nơi trong ứng dụng
   useEffect(() => {

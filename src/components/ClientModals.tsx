@@ -3,6 +3,11 @@
 import React, { useState, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import { GlobalConfirmDialog } from "@/components/ui/ConfirmDialog";
+import type { NanaAiStudioModalProps, StudioTab } from "@/components/NanaAiStudioModal";
+import type { ActorBioModalProps } from "@/components/ActorBioModal";
+import type { UserProfileModalProps } from "@/components/UserProfileModal";
+import type { PublicUserProfileModalProps, PublicProfileDetail } from "@/components/PublicUserProfileModal";
+import type { LeaderboardModalProps } from "@/components/LeaderboardModal";
 
 // Dynamic import các modal nặng với ssr: false (chỉ tải chunk khi modal thực sự được yêu cầu mở)
 const NanaAiStudioModal = dynamic(
@@ -39,55 +44,62 @@ export const ClientModals = React.memo(function ClientModals() {
   const mountedPublicProfileRef = useRef(false);
   const mountedLeaderboardRef = useRef(false);
 
+  const [studioProps, setStudioProps] = useState<NanaAiStudioModalProps>({ initialOpen: false });
+  const [actorBioProps, setActorBioProps] = useState<ActorBioModalProps>({});
+  const [userProfileProps, setUserProfileProps] = useState<UserProfileModalProps>({});
+  const [publicProfileProps, setPublicProfileProps] = useState<PublicUserProfileModalProps>({});
+  const [leaderboardProps, setLeaderboardProps] = useState<LeaderboardModalProps>({});
+
   useEffect(() => {
     // 1. Nana AI Studio (Studio, Concierge, Mood Matcher, Roulette)
     const handleStudioTrigger = (e: Event) => {
       if (mountedStudioRef.current) return;
       mountedStudioRef.current = true;
+      const customEvent = e as CustomEvent<{ tab?: StudioTab; prompt?: string; mood?: string; autoSearch?: boolean }>;
+      const tab: StudioTab = customEvent.detail?.tab === "roulette" || e.type === "open-ai-roulette" ? "roulette" : "concierge";
+      setStudioProps({
+        initialOpen: true,
+        initialTab: tab,
+        initialPrompt: customEvent.detail?.prompt,
+        initialMood: customEvent.detail?.mood,
+        initialAutoSearch: customEvent.detail?.autoSearch,
+      });
       setMountStudio(true);
-      setTimeout(() => {
-        window.dispatchEvent(new CustomEvent(e.type, { detail: (e as CustomEvent).detail }));
-      }, 50);
     };
 
     // 2. Actor Bio Modal
     const handleActorBioTrigger = (e: Event) => {
       if (mountedActorBioRef.current) return;
       mountedActorBioRef.current = true;
+      const customEvent = e as CustomEvent<{ name: string }>;
+      setActorBioProps({ initialActorName: customEvent.detail?.name });
       setMountActorBio(true);
-      setTimeout(() => {
-        window.dispatchEvent(new CustomEvent(e.type, { detail: (e as CustomEvent).detail }));
-      }, 50);
     };
 
     // 3. User Profile Modal
     const handleUserProfileTrigger = (e: Event) => {
       if (mountedUserProfileRef.current) return;
       mountedUserProfileRef.current = true;
+      const customEvent = e as CustomEvent<{ tab?: "profile" | "comments" }>;
+      setUserProfileProps({ initialOpen: true, initialTab: customEvent.detail?.tab || "profile" });
       setMountUserProfile(true);
-      setTimeout(() => {
-        window.dispatchEvent(new CustomEvent(e.type, { detail: (e as CustomEvent).detail }));
-      }, 50);
     };
 
     // 4. Public User Profile Modal
     const handlePublicProfileTrigger = (e: Event) => {
       if (mountedPublicProfileRef.current) return;
       mountedPublicProfileRef.current = true;
+      const customEvent = e as CustomEvent<PublicProfileDetail>;
+      setPublicProfileProps({ initialDetail: customEvent.detail });
       setMountPublicProfile(true);
-      setTimeout(() => {
-        window.dispatchEvent(new CustomEvent(e.type, { detail: (e as CustomEvent).detail }));
-      }, 50);
     };
 
     // 5. Leaderboard Modal
-    const handleLeaderboardTrigger = (e: Event) => {
+    const handleLeaderboardTrigger = () => {
       if (mountedLeaderboardRef.current) return;
       mountedLeaderboardRef.current = true;
+      setLeaderboardProps({ initialOpen: true });
       setMountLeaderboard(true);
-      setTimeout(() => {
-        window.dispatchEvent(new CustomEvent(e.type, { detail: (e as CustomEvent).detail }));
-      }, 50);
     };
 
     window.addEventListener("open-nana-ai-studio", handleStudioTrigger);
@@ -117,11 +129,11 @@ export const ClientModals = React.memo(function ClientModals() {
 
   return (
     <>
-      {mountStudio && <NanaAiStudioModal />}
-      {mountActorBio && <ActorBioModal />}
-      {mountUserProfile && <UserProfileModal />}
-      {mountPublicProfile && <PublicUserProfileModal />}
-      {mountLeaderboard && <LeaderboardModal />}
+      {mountStudio && <NanaAiStudioModal {...studioProps} />}
+      {mountActorBio && <ActorBioModal {...actorBioProps} />}
+      {mountUserProfile && <UserProfileModal {...userProfileProps} />}
+      {mountPublicProfile && <PublicUserProfileModal {...publicProfileProps} />}
+      {mountLeaderboard && <LeaderboardModal {...leaderboardProps} />}
       <GlobalConfirmDialog />
     </>
   );

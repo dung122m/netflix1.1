@@ -175,9 +175,23 @@ const ROULETTE_COMPANIONS = [
   { id: "ban-be", label: "Hội Bạn Thân", icon: "🍻", desc: "Sôi động, quẩy vui" },
 ];
 
-export const NanaAiStudioModal: React.FC = () => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<StudioTab>("concierge");
+export interface NanaAiStudioModalProps {
+  initialOpen?: boolean;
+  initialTab?: StudioTab;
+  initialPrompt?: string;
+  initialMood?: string;
+  initialAutoSearch?: boolean;
+}
+
+export const NanaAiStudioModal: React.FC<NanaAiStudioModalProps> = ({
+  initialOpen = false,
+  initialTab = "concierge",
+  initialPrompt,
+  initialMood,
+  initialAutoSearch = false,
+}) => {
+  const [isOpen, setIsOpen] = useState(initialOpen);
+  const [activeTab, setActiveTab] = useState<StudioTab>(initialTab);
 
   // TAB 1: CONCIERGE CHAT STATE
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
@@ -254,6 +268,22 @@ export const NanaAiStudioModal: React.FC = () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [isOpen]);
+
+  useEffect(() => {
+    if (initialOpen) {
+      setIsOpen(true);
+      if (initialTab) setActiveTab(initialTab);
+      if (initialPrompt) {
+        setChatInput(initialPrompt);
+        if (initialAutoSearch) {
+          setTimeout(() => sendChatMessageRef.current(initialPrompt), 100);
+        }
+      } else if (initialMood) {
+        setChatInput(initialMood);
+        setTimeout(() => sendChatMessageRef.current(initialMood), 100);
+      }
+    }
+  }, [initialOpen, initialTab, initialPrompt, initialMood, initialAutoSearch]);
 
   useEffect(() => {
     if (chatScrollContainerRef.current) {

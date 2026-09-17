@@ -425,6 +425,7 @@ export default function AdminDashboardPage() {
     if (!confirmed) return;
     try {
       const count = await purgeAllFlaggedComments(comments);
+      setComments((prev) => prev.filter((c) => !c.isFlagged));
       toast.success(`Đã xóa vĩnh viễn ${count} bình luận vi phạm!`);
     } catch (e) {
       console.error("Lỗi xóa cmt gắn cờ:", e);
@@ -459,6 +460,7 @@ export default function AdminDashboardPage() {
 
     try {
       await deleteMovieComment(comment.id);
+      setComments((prev) => prev.filter((c) => c.id !== comment.id));
       toast.success("Đã xóa bình luận thành công khỏi hệ thống!");
     } catch (err) {
       console.error("Lỗi xóa bình luận:", err);
@@ -480,6 +482,10 @@ export default function AdminDashboardPage() {
 
     try {
       const deletedCount = await deleteAllUserComments(member.uid);
+      setComments((prev) => prev.filter((c) => c.userId !== member.uid));
+      setRawUsers((prev) =>
+        prev.map((u) => (u.uid === member.uid ? { ...u, commentsCount: 0 } : u))
+      );
       toast.success(`Đã xóa thành công ${deletedCount} bình luận của ${member.displayName}!`);
     } catch (err) {
       console.error("Lỗi xóa bình luận user:", err);
@@ -502,6 +508,7 @@ export default function AdminDashboardPage() {
     try {
       const success = await deletePublicCollectionAdmin(collectionItem.id);
       if (success) {
+        setCollections((prev) => prev.filter((col) => col.id !== collectionItem.id));
         toast.success("Đã gỡ bộ sưu tập công khai thành công!");
       } else {
         toast.error("Không thể gỡ bộ sưu tập!");

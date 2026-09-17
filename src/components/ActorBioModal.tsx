@@ -6,9 +6,13 @@ import Link from "next/link";
 import { User, X, Sparkles, ExternalLink, Film, Loader2, BookOpen } from "lucide-react";
 import { ActorProfile } from "@/services/wikipediaService";
 
-export const ActorBioModal: React.FC = () => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [actorName, setActorName] = useState<string>("");
+export interface ActorBioModalProps {
+  initialActorName?: string;
+}
+
+export const ActorBioModal: React.FC<ActorBioModalProps> = ({ initialActorName }) => {
+  const [isOpen, setIsOpen] = useState(Boolean(initialActorName));
+  const [actorName, setActorName] = useState<string>(initialActorName || "");
   const [loading, setLoading] = useState(false);
   const [profile, setProfile] = useState<ActorProfile | null>(null);
 
@@ -54,10 +58,13 @@ export const ActorBioModal: React.FC = () => {
     };
 
     window.addEventListener("open-actor-bio" as unknown as keyof WindowEventMap, handleOpen as EventListener);
+    if (initialActorName) {
+      loadActor(initialActorName);
+    }
     return () => {
       window.removeEventListener("open-actor-bio" as unknown as keyof WindowEventMap, handleOpen as EventListener);
     };
-  }, []);
+  }, [initialActorName]);
 
   // Đóng bằng phím ESC
   useEffect(() => {

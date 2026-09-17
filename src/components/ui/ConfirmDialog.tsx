@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Trash2, AlertTriangle, HelpCircle, X } from "lucide-react";
 
 export type ConfirmVariant = "danger" | "warning" | "info";
@@ -19,6 +19,10 @@ interface DialogState extends ConfirmOptions {
 }
 
 const CONFIRM_EVENT_NAME = "nanaflix-show-confirm-dialog";
+
+type ConfirmDetail = ConfirmOptions & { resolve: (confirmed: boolean) => void };
+let globalConfirmHandler: ((detail: ConfirmDetail) => void) | null = null;
+const pendingConfirmQueue: ConfirmDetail[] = [];
 
 /**
  * Hàm gọi hộp thoại xác nhận tuỳ biến thay thế hoàn toàn window.confirm()
@@ -40,12 +44,15 @@ export function showConfirmDialog(options: ConfirmOptions | string): Promise<boo
     typeof options === "string" ? { message: options } : options;
 
   return new Promise<boolean>((resolve) => {
+    const detail: ConfirmDetail = { ...opts, resolve };
+    if (globalConfirmHandler) {
+      globalConfirmHandler(detail);
+    } else {
+      pendingConfirmQueue.push(detail);
+    }
     window.dispatchEvent(
       new CustomEvent(CONFIRM_EVENT_NAME, {
-        detail: {
-          ...opts,
-          resolve,
-        },
+        detail,
       })
     );
   });
@@ -60,34 +67,49 @@ export const GlobalConfirmDialog: React.FC = () => {
     message: "",
   });
 
-  const handleClose = useCallback(
-    (confirmed: boolean) => {
-      if (dialog.resolve) {
-        dialog.resolve(confirmed);
-      }
-      setDialog((prev) => ({ ...prev, isOpen: false, resolve: undefined }));
-    },
-    [dialog]
-  );
+  const resolveRef = useRef<((confirmed: boolean) => void) | undefined>(undefined);
+
+  const handleClose = useCallback((confirmed: boolean) => {
+    if (resolveRef.current) {
+      const res = resolveRef.current;
+      resolveRef.current = undefined;
+      res(confirmed);
+    }
+    setDialog((prev) => ({ ...prev, isOpen: false }));
+  }, []);
 
   useEffect(() => {
+    const handleDetail = (detail: ConfirmDetail) => {
+      resolveRef.current = detail.resolve;
+      setDialog({
+        isOpen: true,
+        title: detail.title,
+        message: detail.message,
+        confirmText: detail.confirmText || "Xác nhận",
+        cancelText: detail.cancelText || "Hủy bỏ",
+        variant: detail.variant || "danger",
+      });
+    };
+
+    globalConfirmHandler = handleDetail;
+
+    while (pendingConfirmQueue.length > 0) {
+      const queued = pendingConfirmQueue.shift();
+      if (queued) handleDetail(queued);
+    }
+
     const handleEvent = (e: Event) => {
-      const customEvent = e as CustomEvent<ConfirmOptions & { resolve: (val: boolean) => void }>;
+      const customEvent = e as CustomEvent<ConfirmDetail>;
       if (customEvent.detail) {
-        setDialog({
-          isOpen: true,
-          title: customEvent.detail.title,
-          message: customEvent.detail.message,
-          confirmText: customEvent.detail.confirmText || "Xác nhận",
-          cancelText: customEvent.detail.cancelText || "Hủy bỏ",
-          variant: customEvent.detail.variant || "danger",
-          resolve: customEvent.detail.resolve,
-        });
+        handleDetail(customEvent.detail);
       }
     };
 
     window.addEventListener(CONFIRM_EVENT_NAME, handleEvent);
-    return () => window.removeEventListener(CONFIRM_EVENT_NAME, handleEvent);
+    return () => {
+      globalConfirmHandler = null;
+      window.removeEventListener(CONFIRM_EVENT_NAME, handleEvent);
+    };
   }, []);
 
   useEffect(() => {
