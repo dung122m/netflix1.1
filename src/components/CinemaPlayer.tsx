@@ -1228,6 +1228,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           prevEpisode={prevEpisode}
           nextEpisode={nextEpisode}
           onSwitchEpisode={switchEpisode}
+          isSticky={isMobileStickyActive}
         />
       </div>
 

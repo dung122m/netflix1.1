@@ -104,11 +104,11 @@ export function ReportIssueModal({
 
       {isOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in duration-200"
+          className="fixed inset-0 z-[90] flex items-center justify-center bg-black/85 backdrop-blur-md p-3 sm:p-4 overflow-y-auto overscroll-contain animate-in fade-in duration-200"
           onClick={() => setIsOpen(false)}
         >
           <div
-            className="relative w-full max-w-md rounded-3xl border border-white/20 bg-zinc-950 p-6 sm:p-7 shadow-[0_25px_70px_rgba(0,0,0,0.95)] text-left overflow-hidden animate-in zoom-in-95 duration-200"
+            className="relative w-full max-w-md max-h-[90dvh] overflow-y-auto my-auto rounded-3xl border border-white/20 bg-zinc-950 p-5 sm:p-7 shadow-[0_25px_70px_rgba(0,0,0,0.95)] text-left animate-in zoom-in-95 duration-200 scrollbar-thin"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Ambient Glow */}

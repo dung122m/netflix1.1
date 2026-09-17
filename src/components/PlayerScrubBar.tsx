@@ -125,25 +125,36 @@ export const PlayerScrubBar: React.FC<PlayerScrubBarProps> = ({
     [duration, onSeekFeedback, videoRef]
   );
 
-  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0 && e.pointerType === "mouse") return;
     setIsScrubbing(true);
     seekToPosition(e.clientX);
 
-    const handleMouseMove = (moveEvent: MouseEvent) => {
+    const target = e.currentTarget;
+    try {
+      target.setPointerCapture(e.pointerId);
+    } catch {}
+
+    const handlePointerMove = (moveEvent: PointerEvent) => {
       seekToPosition(moveEvent.clientX);
     };
 
-    const handleMouseUp = () => {
+    const handlePointerUp = (upEvent: PointerEvent) => {
       setIsScrubbing(false);
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
+      try {
+        target.releasePointerCapture(upEvent.pointerId);
+      } catch {}
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+      window.removeEventListener("pointercancel", handlePointerUp);
     };
 
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleMouseUp);
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+    window.addEventListener("pointercancel", handlePointerUp);
   };
 
-  const handleMouseMoveHover = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handlePointerMoveHover = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!barRef.current || !duration) return;
     const rect = barRef.current.getBoundingClientRect();
     const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
@@ -160,37 +171,39 @@ export const PlayerScrubBar: React.FC<PlayerScrubBarProps> = ({
 
   return (
     <div className="w-full select-none mb-2">
-      {/* THANH TIẾN TRÌNH */}
+      {/* THANH TIẾN TRÌNH: VÙNG CHẠM TOUCH 38PX CHUẨN MOBILE, GIỮ NGUYÊN GIAO DIỆN THANH 6PX */}
       <div
         ref={barRef}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMoveHover}
-        onMouseLeave={handleMouseLeave}
-        className="w-full h-1.5 hover:h-2.5 bg-white/20 rounded-full cursor-pointer relative transition-all group/bar"
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMoveHover}
+        onPointerLeave={handleMouseLeave}
+        className="w-full py-4 -my-4 cursor-pointer relative group/bar touch-none flex items-center"
       >
-        {/* Buffered bar */}
-        <div
-          className="absolute top-0 left-0 bottom-0 bg-white/30 rounded-full transition-all duration-150 pointer-events-none"
-          style={{ width: `${bufferedPercent}%` }}
-        />
-
-        {/* Played bar */}
-        <div
-          className="absolute top-0 left-0 bottom-0 bg-netflix-red rounded-full flex items-center justify-end pointer-events-none"
-          style={{ width: `${playedPercent}%` }}
-        >
-          <div className="w-3.5 h-3.5 rounded-full bg-white shadow-md scale-0 group-hover/bar:scale-100 transition-transform" />
-        </div>
-
-        {/* Hover preview tooltip */}
-        {hoverTime !== null && (
+        <div className="w-full h-1.5 group-hover/bar:h-2.5 bg-white/20 rounded-full relative transition-all pointer-events-none">
+          {/* Buffered bar */}
           <div
-            className="absolute -top-7 -translate-x-1/2 px-1.5 py-0.5 rounded bg-black/90 text-[10px] font-mono font-bold text-white border border-white/20 shadow-md pointer-events-none"
-            style={{ left: `${hoverPos}px` }}
+            className="absolute top-0 left-0 bottom-0 bg-white/30 rounded-full transition-all duration-150"
+            style={{ width: `${bufferedPercent}%` }}
+          />
+
+          {/* Played bar */}
+          <div
+            className="absolute top-0 left-0 bottom-0 bg-netflix-red rounded-full flex items-center justify-end"
+            style={{ width: `${playedPercent}%` }}
           >
-            {formatTime(hoverTime)}
+            <div className="w-3.5 h-3.5 rounded-full bg-white shadow-md scale-0 group-hover/bar:scale-100 transition-transform" />
           </div>
-        )}
+
+          {/* Hover preview tooltip */}
+          {hoverTime !== null && (
+            <div
+              className="absolute -top-7 -translate-x-1/2 px-1.5 py-0.5 rounded bg-black/90 text-[10px] font-mono font-bold text-white border border-white/20 shadow-md"
+              style={{ left: `${hoverPos}px` }}
+            >
+              {formatTime(hoverTime)}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* HIỂN THỊ THỜI GIAN HIỆN TẠI VÀ TỔNG THỜI LƯỢNG */}

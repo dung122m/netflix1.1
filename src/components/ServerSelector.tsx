@@ -21,7 +21,7 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
   if (servers.length <= 1) return null;
 
   return (
-    <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1 scrollbar-none touch-pan-y overscroll-x-contain">
+    <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1 scrollbar-none touch-pan-x overscroll-x-contain">
       <span className="text-xs text-gray-400 font-medium flex-none flex items-center gap-1">
         <Server className="w-3.5 h-3.5 text-netflix-red" />
         <span>Nguồn phát:</span>

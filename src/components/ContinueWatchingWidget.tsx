@@ -267,14 +267,18 @@ export function ContinueWatchingWidget() {
 
   // Đóng card khi click ra ngoài vùng widget
   useEffect(() => {
-    const handleOutsideClick = (e: MouseEvent) => {
+    const handleOutsideClick = (e: MouseEvent | TouchEvent) => {
       if (widgetRef.current && !widgetRef.current.contains(e.target as Node)) {
         setIsPinned(false);
         setShowTooltip(false);
       }
     };
     document.addEventListener("mousedown", handleOutsideClick);
-    return () => document.removeEventListener("mousedown", handleOutsideClick);
+    document.addEventListener("touchstart", handleOutsideClick, { passive: true });
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+      document.removeEventListener("touchstart", handleOutsideClick);
+    };
   }, []);
 
   if (!session || viewState === "hidden") return null;
@@ -431,8 +435,8 @@ export function ContinueWatchingWidget() {
             <div
               onMouseEnter={handleMouseEnterBubble}
               onMouseLeave={handleMouseLeaveBubble}
-              className="hidden sm:flex absolute right-full mr-3.5 top-1/2 -translate-y-1/2 items-center gap-3 p-2.5 sm:p-3 rounded-2xl bg-zinc-950/95 border border-white/20 shadow-[0_20px_50px_rgba(0,0,0,0.95)] backdrop-blur-2xl text-white animate-in fade-in slide-in-from-right-3 duration-200 z-50 min-w-[290px] max-w-[340px]
-              before:content-[''] before:absolute before:-right-5 before:top-0 before:bottom-0 before:w-6 before:pointer-events-auto"
+              className="flex absolute right-0 sm:right-full bottom-full sm:bottom-auto mb-3 sm:mb-0 sm:mr-3.5 sm:top-1/2 sm:-translate-y-1/2 items-center gap-3 p-2.5 sm:p-3 rounded-2xl bg-zinc-950/95 border border-white/20 shadow-[0_20px_50px_rgba(0,0,0,0.95)] backdrop-blur-2xl text-white animate-in fade-in slide-in-from-bottom-2 sm:slide-in-from-right-3 duration-200 z-50 w-[calc(100vw-32px)] sm:w-auto min-w-[280px] max-w-[340px]
+              before:content-[''] before:absolute sm:before:-right-5 sm:before:top-0 sm:before:bottom-0 sm:before:w-6 sm:before:pointer-events-auto"
             >
               {/* Poster nhỏ bên trái, bấm để phát ngay */}
               <div

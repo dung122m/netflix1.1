@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { movieApi } from "@/services/movieApi";
+import { movieApi, DEFAULT_GENRES, DEFAULT_COUNTRIES } from "@/services/movieApi";
 import {
   Layers,
   Sparkles,
@@ -34,28 +34,20 @@ export const FilterBar: React.FC = () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     countries: any[];
     years: string[];
-  }>({
-    genres: [],
-    countries: [],
-    years: [],
+  }>(() => {
+    const currentYear = new Date().getFullYear();
+    return {
+      genres: DEFAULT_GENRES,
+      countries: DEFAULT_COUNTRIES,
+      years: Array.from({ length: 50 }, (_, index) => String(currentYear - index)),
+    };
   });
 
   const [activeDropdown, setActiveDropdown] = useState<FilterType | null>(null);
 
-  // =========================================================
-  // LOAD FILTERS
-  // =========================================================
+  // Đồng bộ nhanh từ static cache của movieApi (0ms, không gọi API ngoài)
   useEffect(() => {
-    const loadFilters = async () => {
-      try {
-        const data = await movieApi.getFilters();
-        setFilters(data);
-      } catch (error) {
-        console.error("❌ Lỗi tải bộ lọc:", error);
-      }
-    };
-
-    loadFilters();
+    movieApi.getFilters().then(setFilters).catch(() => {});
   }, []);
 
   // =========================================================

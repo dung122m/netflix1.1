@@ -9,13 +9,20 @@ import { QuickGenreChips } from "@/components/QuickGenreChips";
 import { SortSelector } from "@/components/SortSelector";
 import { Film, ExternalLink, Sparkles } from "lucide-react";
 import { movieApi } from "@/services/movieApi";
-import { resolveActorMovies, queryMoviesByActor, getActorSynonyms, GOLDEN_ACTOR_INDEX } from "@/services/aiActorService";
+import {
+  resolveActorMovies,
+  queryMoviesByActor,
+  getActorSynonyms,
+  GOLDEN_ACTOR_INDEX,
+  hasExplicitActorPrefix,
+  isAmbiguousShortActorKeyword,
+  cleanActorQuery,
+} from "@/services/aiActorService";
 import { searchMoviesBySemantic } from "@/services/aiVectorService";
 import { BrowseAiSearchBanner } from "@/components/BrowseAiSearchBanner";
 import { CuratedMovieSection } from "@/components/CuratedMovieSection";
 import { CommunityTopTrending } from "@/components/CommunityTopTrending";
 import { ForYouPersonalizedRow } from "@/components/ForYouPersonalizedRow";
-import { getTmdbBackdropUrl } from "@/services/tmdbService";
 
 const HeroFeatured = dynamic(() =>
   import("@/components/browse/HeroFeatured").then(
@@ -207,7 +214,17 @@ export default async function BrowsePage({
   // =========================================================================
   // 1. TÁCH BIỆT RÕ RÀNG: TÌM KIẾM THEO DIỄN VIÊN VS TÌM KIẾM THEO TÊN PHIM
   // =========================================================================
-  const targetActorQuery = actorParam || (keyword && keyword.trim().length >= 2 ? keyword.trim() : undefined);
+  // CHỈ kích hoạt tìm kiếm diễn viên khi:
+  // (1) Có tham số actorParam (người dùng click vào gợi ý diễn viên hoặc tag diễn viên)
+  // (2) Hoặc từ khóa có tiền tố chỉ định rõ ràng (ví dụ: "diễn viên Trấn Thành", "phim của Mai", "đạo diễn...")
+  // TUYỆT ĐỐI KHÔNG tự động chuyển keyword thông thường ("Mai", "An", "Anh", "Avatar") thành tìm diễn viên
+  const hasExplicitActor = Boolean(actorParam) || (Boolean(keyword) && hasExplicitActorPrefix(keyword!));
+  const targetActorQuery = actorParam
+    ? actorParam.trim()
+    : hasExplicitActor && keyword
+    ? cleanActorQuery(keyword)
+    : undefined;
+
   const actorSynonyms = targetActorQuery ? getActorSynonyms(targetActorQuery) : null;
   const actorRes = targetActorQuery
     ? actorSynonyms?.isMatched
@@ -221,7 +238,10 @@ export default async function BrowsePage({
       : await resolveActorMovies(targetActorQuery)
     : null;
 
-  const isActorSearch = Boolean(actorParam || actorRes?.isActor || actorSynonyms?.isMatched);
+  const isActorSearch = Boolean(
+    actorParam ||
+    (hasExplicitActor && (actorRes?.isActor || actorSynonyms?.isMatched))
+  );
 
   if (isActorSearch && (actorRes?.isActor || actorParam || actorSynonyms?.isMatched)) {
     const canonicalName = actorRes?.isActor ? actorRes.actorName : (actorSynonyms?.canonicalName || actorParam || "");
@@ -457,6 +477,33 @@ export default async function BrowsePage({
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let fallbackMovies: any[] = [];
+  if (
+    movies.length === 0 &&
+    keyword &&
+    !actorParam &&
+    !isAmbiguousShortActorKeyword(keyword)
+  ) {
+    const fallbackSynonyms = getActorSynonyms(keyword);
+    if (fallbackSynonyms.isMatched) {
+      const actorMovies = await queryMoviesByActor(
+        fallbackSynonyms.canonicalName,
+        fallbackSynonyms.variants,
+        fallbackSynonyms.country,
+        PAGE_LIMIT
+      );
+      if (actorMovies.length > 0) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        movies = actorMovies.map((m: any) => ({ ...m, isActorFilmography: true }));
+        totalItems = actorMovies.length;
+        totalPages = Math.max(1, Math.ceil(totalItems / PAGE_LIMIT));
+        detectedActor = {
+          name: fallbackSynonyms.canonicalName,
+          country: fallbackSynonyms.country,
+        };
+      }
+    }
+  }
+
   if (movies.length === 0 && (keyword || actorParam)) {
     const fallbackRes = await movieApi.getMovies({ limit: 16, sort: "views" });
     fallbackMovies = fallbackRes?.items || [];
@@ -551,40 +598,8 @@ export default async function BrowsePage({
     return `?${query.toString()}`;
   };
 
-  // Bổ sung ảnh nền độ phân giải cao Full HD / 4K từ TMDb cho 8 slide Hero đầu trang chủ
-  let heroMovies = movies;
-  if (isPlainHomepage && movies.length > 0) {
-    const heroSlides = movies.slice(0, 8);
-    try {
-      const enrichedHeroSlides = await Promise.race([
-        Promise.all(
-          heroSlides.map(async (m) => {
-            if (m?.backdrop_url) return m;
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const rawM = (m as any)?.movie || m;
-            const tmdbId = rawM?.tmdb?.id || m?.tmdb?.id;
-            const tmdbType = rawM?.tmdb?.type || m?.tmdb?.type || (rawM?.type === "series" ? "tv" : "movie");
-            if (tmdbId) {
-              try {
-                const hdBackdrop = await getTmdbBackdropUrl(tmdbId, tmdbType);
-                if (hdBackdrop) {
-                  return { ...m, backdrop_url: hdBackdrop };
-                }
-              } catch {
-                // Fallback nếu TMDb lỗi
-              }
-            }
-            return m;
-          })
-        ),
-        // Timeout 1.5s tối đa để đảm bảo SSR không bao giờ bị nghẽn
-        new Promise<typeof heroSlides>((resolve) => setTimeout(() => resolve(heroSlides), 1500)),
-      ]);
-      heroMovies = [...enrichedHeroSlides, ...movies.slice(8)];
-    } catch {
-      heroMovies = movies;
-    }
-  }
+  // Trả về trực tiếp danh sách phim cho Hero; Hero render ngay bằng thumb_url gốc và nâng cấp TMDB ngầm sau khi mount
+  const heroMovies = movies;
 
   return (
     <div className="page-cinema-container min-h-screen pb-20">
@@ -613,7 +628,7 @@ export default async function BrowsePage({
         <QuickGenreChips />
 
         {/* HÀNG PHIM DÀNH RIÊNG CHO BẠN (AI PERSONALIZED RECOMMENDATIONS) */}
-        {isPlainHomepage && <ForYouPersonalizedRow />}
+        {isPlainHomepage && <ForYouPersonalizedRow fallbackMovies={movies} />}
 
         {/* BẢNG XẾP HẠNG TOP 10 TRENDING DỰA TRÊN LƯỢT XEM THỰC TẾ CỦA CỘNG ĐỒNG */}
         {isPlainHomepage && <CommunityTopTrending />}

@@ -102,7 +102,7 @@ export async function getTmdbBackdropUrl(
           data = await fetchTmdbEndpoint(`/${altType}/${cleanId}`);
         }
         if (data?.backdrop_path) {
-          return `https://image.tmdb.org/t/p/original${data.backdrop_path}`;
+          return `https://image.tmdb.org/t/p/w1280${data.backdrop_path}`;
         }
         return null;
       } catch (err) {

@@ -37,6 +37,7 @@ export interface MovieFilterParams {
   type?: string;
   slug?: string;
   sort?: "latest" | "rating" | "views" | "year";
+  skipKvCache?: boolean;
 }
 
 // Bảng ánh xạ slug thể loại sang NguonC
@@ -705,7 +706,7 @@ function warmUpTopCategories() {
   }, 200);
 }
 
-const DEFAULT_GENRES = [
+export const DEFAULT_GENRES = [
   { name: "Hành Động", slug: "hanh-dong" },
   { name: "Tình Cảm", slug: "tinh-cam" },
   { name: "Cổ Trang", slug: "co-trang" },
@@ -728,7 +729,7 @@ const DEFAULT_GENRES = [
   { name: "Thần Thoại", slug: "than-thoai" },
 ];
 
-const DEFAULT_COUNTRIES = [
+export const DEFAULT_COUNTRIES = [
   { name: "Việt Nam", slug: "viet-nam" },
   { name: "Trung Quốc", slug: "trung-quoc" },
   { name: "Hàn Quốc", slug: "han-quoc" },
@@ -783,6 +784,11 @@ export const movieApi = {
       }
     }
 
+    // Nếu yêu cầu bỏ qua KV (như search suggestions limit: 8), chỉ thực thi fetcher & cache vào RAM
+    if (params.skipKvCache) {
+      return await executeGetMovies(params, cacheKey);
+    }
+
     const kvKey = `movie:list:${cacheKey}`;
     const ttlSeconds = params.keyword ? 86400 : 7200; // 1 ngày cho search, 2 giờ cho list
     return await kvCache.fetchOrSet(
@@ -793,7 +799,7 @@ export const movieApi = {
   },
 
   // ==========================================
-  // 2. LẤY FILTER (VỚI IN-MEMORY CACHE & FALLBACK AN TOÀN)
+  // 2. LẤY FILTER (DÙNG STATIC DATA NHANH 0MS, KHÔNG PHỤ THUỘC API NGOÀI)
   // ==========================================
   getFilters: async () => {
     if (cachedFilters) {
@@ -805,42 +811,14 @@ export const movieApi = {
       String(currentYear - index),
     );
 
-    try {
-      // Ưu tiên PhimAPI (hỗ trợ CORS trên trình duyệt) với fallback an toàn
-      const [theLoaiRes, quocGiaRes] = await Promise.allSettled([
-        fetch(`${API_PHIMAPI}/v1/api/the-loai`, {
-          signal: AbortSignal.timeout(4000),
-        }).then((r) => (r.ok ? r.json() : null)),
-        fetch(`${API_PHIMAPI}/v1/api/quoc-gia`, {
-          signal: AbortSignal.timeout(4000),
-        }).then((r) => (r.ok ? r.json() : null)),
-      ]);
+    const result = {
+      genres: DEFAULT_GENRES,
+      countries: DEFAULT_COUNTRIES,
+      years,
+    };
 
-      const theLoaiData = theLoaiRes.status === "fulfilled" ? theLoaiRes.value : null;
-      const quocGiaData = quocGiaRes.status === "fulfilled" ? quocGiaRes.value : null;
-
-      const genres =
-        theLoaiData?.data?.items || theLoaiData?.items || DEFAULT_GENRES;
-      const countries =
-        quocGiaData?.data?.items || quocGiaData?.items || DEFAULT_COUNTRIES;
-
-      const result = {
-        genres: genres.length > 0 ? genres : DEFAULT_GENRES,
-        countries: countries.length > 0 ? countries : DEFAULT_COUNTRIES,
-        years,
-      };
-
-      cachedFilters = result;
-      return result;
-    } catch {
-      const fallbackResult = {
-        genres: DEFAULT_GENRES,
-        countries: DEFAULT_COUNTRIES,
-        years,
-      };
-      cachedFilters = fallbackResult;
-      return fallbackResult;
-    }
+    cachedFilters = result;
+    return result;
   },
 
   // ==========================================

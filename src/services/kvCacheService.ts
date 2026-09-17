@@ -169,6 +169,14 @@ export const kvCache = {
       expireAt: now + Math.min(safeTtl * 1000, 30 * 60 * 1000), // L1 giữ tối đa 30 phút để giải phóng RAM
     });
 
+    // Trích xuất thông tin hàm gọi (caller/source) phục vụ audit KV write
+    const callerSource =
+      new Error().stack
+        ?.split("\n")
+        .slice(2, 5)
+        .map((s) => s.trim().replace(/^at\s+/, ""))
+        .join(" -> ") || "unknown";
+
     // 2. Ghi bất đồng bộ vào L2 Cloudflare KV (Fire-and-forget, không block luồng trả về)
     const { accountId, apiToken } = getCloudflareCredentials();
     resolveNamespaceId().then((namespaceId) => {
@@ -176,6 +184,10 @@ export const kvCache = {
 
       const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/storage/kv/namespaces/${namespaceId}/values/${encodeURIComponent(key)}?expiration_ttl=${safeTtl}`;
       const payload = typeof value === "string" ? value : JSON.stringify(value);
+
+      console.info(
+        `[KV_WRITE] [${new Date().toISOString()}] key="${key}" ttl=${safeTtl}s source="${callerSource}"`
+      );
 
       fetch(url, {
         method: "PUT",

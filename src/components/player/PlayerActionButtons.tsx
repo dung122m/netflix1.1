@@ -32,6 +32,7 @@ interface PlayerActionButtonsProps {
   prevEpisode: EpisodeItem | null;
   nextEpisode: EpisodeItem | null;
   onSwitchEpisode?: (slug: string) => void;
+  isSticky?: boolean;
 }
 
 export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = React.memo(
@@ -47,10 +48,21 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = React.mem
     prevEpisode,
     nextEpisode,
     onSwitchEpisode,
+    isSticky = false,
   }) {
+    const hasEpisodes = Boolean(prevEpisode || nextEpisode);
+
     return (
-      <div className="flex flex-wrap items-center justify-between gap-2 py-2.5 px-1 text-xs text-gray-300">
-        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+      <div
+        className={`${
+          isSticky
+            ? hasEpisodes
+              ? "flex items-center justify-between gap-1.5 py-1 px-2 border-t border-white/10 bg-zinc-950/95 text-xs text-gray-300 md:py-2.5 md:px-1 md:gap-2 md:flex-wrap md:bg-transparent md:border-t-0"
+              : "hidden md:flex flex-wrap items-center justify-between gap-2 py-2.5 px-1 text-xs text-gray-300"
+            : "flex flex-wrap items-center justify-between gap-2 py-2.5 px-1 text-xs text-gray-300"
+        }`}
+      >
+        <div className={isSticky ? "hidden md:flex flex-wrap items-center gap-1.5 sm:gap-2" : "flex flex-wrap items-center gap-1.5 sm:gap-2"}>
           {/* 1. Nút Rạp phim */}
           <button
             type="button"
@@ -147,7 +159,7 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = React.mem
         </div>
 
         {/* CỤM NÚT ĐIỀU HƯỚNG TẬP: TRƯỚC / SAU */}
-        <div className="flex items-center gap-1.5 ml-auto sm:ml-0">
+        <div className={`flex items-center gap-1.5 ${isSticky ? "w-full justify-between md:w-auto md:justify-start ml-auto md:ml-0" : "ml-auto sm:ml-0"}`}>
           {prevEpisode && (
             <Link
               href={`?ep=${prevEpisode.slug}`}
@@ -159,7 +171,9 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = React.mem
                 }
               }}
               title={`Tập trước: ${prevEpisode.name} (Phím P)`}
-              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-zinc-900/90 hover:bg-zinc-800 text-gray-300 hover:text-white transition font-medium border border-white/10 text-xs"
+              className={`inline-flex items-center gap-1 rounded-lg bg-zinc-900/90 hover:bg-zinc-800 text-gray-300 hover:text-white transition font-medium border border-white/10 text-xs ${
+                isSticky ? "px-2 py-1 text-[11px] md:px-2.5 md:py-1.5 md:text-xs" : "px-2.5 py-1.5"
+              }`}
             >
               <SkipBack className="w-3.5 h-3.5" />
               <span>Tập trước</span>
@@ -177,7 +191,9 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = React.mem
                 }
               }}
               title={`Tập tiếp theo: ${nextEpisode.name} (Phím N)`}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-netflix-red text-white transition font-semibold border border-white/10 shadow-md text-xs"
+              className={`inline-flex items-center gap-1.5 rounded-lg bg-zinc-800 hover:bg-netflix-red text-white transition font-semibold border border-white/10 shadow-md text-xs ${
+                isSticky ? "px-2.5 py-1 text-[11px] md:px-3 md:py-1.5 md:text-xs" : "px-3 py-1.5"
+              }`}
             >
               <span>Tập tiếp</span>
               <span className="hidden md:inline"> ({nextEpisode.name}) [N]</span>

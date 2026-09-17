@@ -159,7 +159,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
 
       {/* DẢI TABS PHÂN NHÓM TẬP (Khi có trên 25 tập và không trong chế độ tìm kiếm) */}
       {!searchQuery.trim() && chunks.length > 1 && (
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none touch-pan-y overscroll-x-contain">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none touch-pan-x overscroll-x-contain">
           {chunks.map((chunk) => {
             const isSelected = activeChunk === chunk.index;
             return (

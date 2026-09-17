@@ -15,7 +15,7 @@ import { subscribeUserProfile } from "@/services/userService";
 import { UserProfile } from "@/types/user";
 import { getWatchHistory } from "@/lib/watchHistory";
 
-interface ForYouMovieItem {
+export interface ForYouMovieItem {
   slug: string;
   name: string;
   title: string;
@@ -29,16 +29,187 @@ interface ForYouMovieItem {
   matchReason?: string;
 }
 
+export interface ForYouPersonalizedRowProps {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  fallbackMovies?: any[];
+}
+
 const CACHE_KEY_NAME = "nanaflix_foryou_cache_v3";
 const CACHE_TTL = 15 * 60 * 1000; // 15 phút
 
-export function ForYouPersonalizedRow() {
+// Danh sách fallback catalog siêu phẩm luôn sẵn sàng 0ms không cần API ngoài
+const DEFAULT_CATALOG_FALLBACK: ForYouMovieItem[] = [
+  {
+    slug: "avatar",
+    name: "Avatar",
+    title: "Avatar",
+    origin_name: "Avatar",
+    poster_url: "https://phimimg.com/upload/vod/20231201-1/b9bfbda8d01150cce89aee8ecf16751c.jpg",
+    thumb_url: "https://phimimg.com/upload/vod/20231201-1/b9bfbda8d01150cce89aee8ecf16751c.jpg",
+    year: 2009,
+    quality: "4K UHD",
+    category: [{ name: "Viễn Tưởng" }],
+    matchPercentage: 98,
+    matchReason: "Siêu phẩm điện ảnh kinh điển được yêu thích nhất",
+  },
+  {
+    slug: "interstellar",
+    name: "Hố Đen Tử Thần",
+    title: "Hố Đen Tử Thần",
+    origin_name: "Interstellar",
+    poster_url: "https://phimimg.com/upload/vod/20231201-1/cbb61be4949efbb532551a141cf5e1e6.jpg",
+    thumb_url: "https://phimimg.com/upload/vod/20231201-1/cbb61be4949efbb532551a141cf5e1e6.jpg",
+    year: 2014,
+    quality: "4K UHD",
+    category: [{ name: "Khoa Học" }],
+    matchPercentage: 99,
+    matchReason: "Kiệt tác du hành không gian đỉnh cao mọi thời đại",
+  },
+  {
+    slug: "parasite",
+    name: "Ký Sinh Trùng",
+    title: "Ký Sinh Trùng",
+    origin_name: "Parasite",
+    poster_url: "https://phimimg.com/upload/vod/20231201-1/e5a40b9918fb5ff61d90f23d8c1cfaeb.jpg",
+    thumb_url: "https://phimimg.com/upload/vod/20231201-1/e5a40b9918fb5ff61d90f23d8c1cfaeb.jpg",
+    year: 2019,
+    quality: "Full HD",
+    category: [{ name: "Tâm Lý" }],
+    matchPercentage: 97,
+    matchReason: "Tác phẩm đoạt 4 giải Oscar danh giá",
+  },
+  {
+    slug: "train-to-busan",
+    name: "Chuyến Tàu Sinh Tử",
+    title: "Chuyến Tàu Sinh Tử",
+    origin_name: "Train to Busan",
+    poster_url: "https://phimimg.com/upload/vod/20231201-1/5e929f452818c644ef061db9395f13b1.jpg",
+    thumb_url: "https://phimimg.com/upload/vod/20231201-1/5e929f452818c644ef061db9395f13b1.jpg",
+    year: 2016,
+    quality: "Full HD",
+    category: [{ name: "Kinh Dị" }],
+    matchPercentage: 96,
+    matchReason: "Bom tấn sinh tồn zombie đỉnh cao châu Á",
+  },
+  {
+    slug: "diep-van",
+    name: "Diệp Vấn",
+    title: "Diệp Vấn",
+    origin_name: "Ip Man",
+    poster_url: "https://phimimg.com/upload/vod/20231201-1/6a0a0cfb2e697faef6a26084041b65e9.jpg",
+    thumb_url: "https://phimimg.com/upload/vod/20231201-1/6a0a0cfb2e697faef6a26084041b65e9.jpg",
+    year: 2008,
+    quality: "Full HD",
+    category: [{ name: "Võ Thuật" }],
+    matchPercentage: 98,
+    matchReason: "Đỉnh cao võ thuật Vịnh Xuân Quyền huyền thoại",
+  },
+  {
+    slug: "the-dark-knight",
+    name: "Kỵ Sĩ Bóng Đêm",
+    title: "Kỵ Sĩ Bóng Đêm",
+    origin_name: "The Dark Knight",
+    poster_url: "https://phimimg.com/upload/vod/20231201-1/7e15bf9273c52a0a2df3d8544d673523.jpg",
+    thumb_url: "https://phimimg.com/upload/vod/20231201-1/7e15bf9273c52a0a2df3d8544d673523.jpg",
+    year: 2008,
+    quality: "4K UHD",
+    category: [{ name: "Hành Động" }],
+    matchPercentage: 99,
+    matchReason: "Siêu phẩm siêu anh hùng vĩ đại nhất lịch sử",
+  },
+  {
+    slug: "spirited-away",
+    name: "Vùng Đất Linh Hồn",
+    title: "Vùng Đất Linh Hồn",
+    origin_name: "Spirited Away",
+    poster_url: "https://phimimg.com/upload/vod/20231201-1/8d689626e2a2292f7c65c2ca16ad909e.jpg",
+    thumb_url: "https://phimimg.com/upload/vod/20231201-1/8d689626e2a2292f7c65c2ca16ad909e.jpg",
+    year: 2001,
+    quality: "Full HD",
+    category: [{ name: "Hoạt Hình" }],
+    matchPercentage: 97,
+    matchReason: "Kiệt tác hoạt hình Ghibli đoạt giải Oscar",
+  },
+  {
+    slug: "kung-fu-hustle",
+    name: "Tuyệt Đỉnh Kungfu",
+    title: "Tuyệt Đỉnh Kungfu",
+    origin_name: "Kung Fu Hustle",
+    poster_url: "https://phimimg.com/upload/vod/20231201-1/2fba9ad1be84e5659779df52c15f4039.jpg",
+    thumb_url: "https://phimimg.com/upload/vod/20231201-1/2fba9ad1be84e5659779df52c15f4039.jpg",
+    year: 2004,
+    quality: "Full HD",
+    category: [{ name: "Hài Hước" }],
+    matchPercentage: 96,
+    matchReason: "Tuyệt tác hài hành động kinh điển Châu Tinh Trì",
+  },
+];
+
+// Chuyển đổi dữ liệu catalog sẵn có thành định dạng For You
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapToForYouItems(rawItems: any[]): ForYouMovieItem[] {
+  if (!Array.isArray(rawItems)) return [];
+  return rawItems
+    .filter((m) => m && m.slug)
+    .map((m) => {
+      const title = m.title || m.name || "Phim Hay";
+      return {
+        slug: m.slug,
+        name: title,
+        title: title,
+        origin_name: m.origin_name || "",
+        poster_url: m.poster_url || m.posterUrl || m.thumb_url || m.thumbUrl || "/default-poster.jpg",
+        thumb_url: m.thumb_url || m.thumbUrl || m.poster_url || "/default-hero.jpg",
+        year: m.year,
+        quality: m.quality || "Full HD",
+        category: Array.isArray(m.category)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ? m.category.map((c: any) => ({ name: typeof c === "string" ? c : c?.name || "Đề Xuất" }))
+          : typeof m.category === "string"
+          ? [{ name: m.category }]
+          : [{ name: "Đề Xuất" }],
+        matchPercentage: m.matchPercentage || (Math.floor(Math.random() * 5) + 94),
+        matchReason: m.matchReason || "Siêu phẩm thịnh hành được đánh giá cao nhất",
+      };
+    });
+}
+
+// Lấy cache cũ trong localStorage/sessionStorage bất kể thời gian (Stale Cache)
+function getStaleCachedData(): { items: ForYouMovieItem[]; context?: string; fingerprint?: string; timestamp?: number } | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(CACHE_KEY_NAME) || sessionStorage.getItem(CACHE_KEY_NAME);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed && Array.isArray(parsed.items) && parsed.items.length >= 8) {
+      return {
+        items: parsed.items,
+        context: parsed.context,
+        fingerprint: parsed.fingerprint,
+        timestamp: parsed.timestamp,
+      };
+    }
+  } catch {}
+  return null;
+}
+
+export function ForYouPersonalizedRow({ fallbackMovies }: ForYouPersonalizedRowProps = {}) {
   const { user } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
 
-  const [movies, setMovies] = useState<ForYouMovieItem[]>([]);
+  // Nguồn fallback ưu tiên 2: Catalog từ prop có sẵn
+  const catalogFallback = useMemo(() => {
+    const mapped = mapToForYouItems(fallbackMovies || []);
+    return mapped.length >= 8 ? mapped : DEFAULT_CATALOG_FALLBACK;
+  }, [fallbackMovies]);
+
+  // Khởi tạo ngay lập tức không để trống: ưu tiên catalog fallback hoặc default
+  const [movies, setMovies] = useState<ForYouMovieItem[]>(() => {
+    return catalogFallback.slice(0, 16);
+  });
   const [contextText, setContextText] = useState<string>("Tuyển chọn chuẩn gu cho bạn");
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [isUpdating, setIsUpdating] = useState<boolean>(false);
 
   const [refreshCount, setRefreshCount] = useState<number>(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -57,7 +228,7 @@ export function ForYouPersonalizedRow() {
     return () => unsub();
   }, [user?.uid]);
 
-  const moviesRef = useRef<ForYouMovieItem[]>([]);
+  const moviesRef = useRef<ForYouMovieItem[]>(movies);
   moviesRef.current = movies;
   const inFlightRef = useRef(false);
   const lastFingerprintRef = useRef("");
@@ -65,7 +236,18 @@ export function ForYouPersonalizedRow() {
   const favoriteGenres = useMemo(() => profile?.favoriteGenres || [], [profile?.favoriteGenres]);
   const genresKey = useMemo(() => favoriteGenres.slice().sort().join(","), [favoriteGenres]);
 
-  // 2. Fetch danh sách phim đề xuất (hỗ trợ đổi mới luân phiên khi bấm Đổi Gợi Ý)
+  // Nạp Stale cache từ localStorage ngay khi client mount nếu có
+  useEffect(() => {
+    const stale = getStaleCachedData();
+    if (stale && stale.items.length >= 8) {
+      setMovies(stale.items);
+      if (stale.context) {
+        setContextText(stale.context);
+      }
+    }
+  }, []);
+
+  // 2. Fetch danh sách phim đề xuất chạy ở background (SWR pattern)
   const fetchRecommendations = useCallback(async (forceRefresh = false, nextSeed?: number) => {
     const currentSeed = nextSeed !== undefined ? nextSeed : refreshCount;
     const history = getWatchHistory();
@@ -76,7 +258,7 @@ export function ForYouPersonalizedRow() {
     if (!forceRefresh && inFlightRef.current) return;
     if (!forceRefresh && lastFingerprintRef.current === currentFingerprint && moviesRef.current.length >= 8) return;
 
-    // Kiểm tra cache local nếu không yêu cầu forceRefresh
+    // Kiểm tra cache local còn tươi (Fresh Cache Hit)
     if (!forceRefresh && typeof window !== "undefined") {
       try {
         const rawCached = localStorage.getItem(CACHE_KEY_NAME) || sessionStorage.getItem(CACHE_KEY_NAME);
@@ -93,6 +275,7 @@ export function ForYouPersonalizedRow() {
             setMovies(cached.items);
             if (cached.context) setContextText(cached.context);
             setLoading(false);
+            setIsUpdating(false);
             return;
           }
         }
@@ -101,9 +284,12 @@ export function ForYouPersonalizedRow() {
 
     inFlightRef.current = true;
     lastFingerprintRef.current = currentFingerprint;
-    // Chỉ bật skeleton loading nếu chưa có dữ liệu nào trước đó
+
+    // Nếu đã có phim fallback/stale, giữ nguyên hiển thị và chỉ bật trạng thái updating ngầm
     if (moviesRef.current.length === 0) {
       setLoading(true);
+    } else {
+      setIsUpdating(true);
     }
 
     try {
@@ -121,7 +307,8 @@ export function ForYouPersonalizedRow() {
 
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data.items) && data.items.length > 0) {
+        if (Array.isArray(data.items) && data.items.length >= 8) {
+          // Cập nhật mượt mà dữ liệu mới
           setMovies(data.items);
           if (data.context) {
             setContextText(data.context);
@@ -142,9 +329,11 @@ export function ForYouPersonalizedRow() {
         }
       }
     } catch (err) {
-      console.warn("Lỗi tải phim đề xuất cho bạn:", err);
+      // Khi API lỗi, giữ nguyên fallback hiện tại, không làm mất section
+      console.warn("Lỗi tải phim đề xuất cho bạn, tiếp tục dùng fallback:", err);
     } finally {
       setLoading(false);
+      setIsUpdating(false);
       inFlightRef.current = false;
     }
   }, [genresKey, user?.uid, refreshCount, favoriteGenres]);
@@ -206,11 +395,12 @@ export function ForYouPersonalizedRow() {
           <button
             type="button"
             onClick={handleRefreshClick}
+            disabled={isUpdating}
             title="Làm mới danh sách gợi ý"
-            className="px-3.5 py-1.5 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-white/10 text-gray-300 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer active:scale-95 shadow-md"
+            className="px-3.5 py-1.5 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-white/10 text-gray-300 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer active:scale-95 shadow-md disabled:opacity-75"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin text-netflix-red" : ""}`} />
-            <span>Đổi Gợi Ý</span>
+            <RefreshCw className={`w-3.5 h-3.5 ${loading || isUpdating ? "animate-spin text-netflix-red" : ""}`} />
+            <span>{isUpdating ? "Đang Cập Nhật..." : "Đổi Gợi Ý"}</span>
           </button>
         </div>
       </div>
@@ -249,7 +439,9 @@ export function ForYouPersonalizedRow() {
         <div
           ref={scrollContainerRef}
           onScroll={checkScroll}
-          className="flex items-center gap-3.5 sm:gap-5 overflow-x-auto overflow-y-hidden pb-4 pt-2 scrollbar-none snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+          className={`flex items-center gap-3.5 sm:gap-5 overflow-x-auto overflow-y-hidden pb-4 pt-2 scrollbar-none snap-x snap-mandatory scroll-smooth transition-opacity duration-500 ${
+            isUpdating ? "opacity-75" : "opacity-100"
+          } [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]`}
         >
         {loading && movies.length === 0
           ? Array.from({ length: 6 }).map((_, idx) => (

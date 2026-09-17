@@ -187,8 +187,8 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
             }}
             className="flex items-center gap-2.5 p-2.5 rounded-xl bg-gradient-to-r from-purple-500/15 via-pink-500/15 to-rose-500/15 border border-purple-500/30 hover:border-pink-500/40 text-white transition text-left active:scale-[0.98] cursor-pointer shadow-sm shadow-purple-950/30"
           >
-            <div className="w-8 h-8 rounded-lg bg-pink-500/20 text-pink-300 flex items-center justify-center shrink-0 border border-pink-500/30">
-              <Sparkles size={16} className="text-pink-300 animate-pulse" />
+            <div className="w-9 h-9 rounded-xl bg-pink-500/20 text-pink-300 flex items-center justify-center shrink-0 border border-pink-500/30 shadow-inner">
+              <Sparkles size={18} className="text-pink-300 animate-pulse" />
             </div>
             <div className="min-w-0 flex-1">
               <div className="text-xs font-bold text-pink-300 truncate">Chat Tìm Phim</div>
@@ -211,8 +211,8 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
             }}
             className="flex items-center gap-2.5 p-2.5 rounded-xl bg-gradient-to-r from-amber-500/15 via-orange-500/15 to-rose-500/15 border border-amber-500/30 hover:border-orange-500/40 text-white transition text-left active:scale-[0.98] cursor-pointer shadow-sm shadow-amber-950/30"
           >
-            <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-300 flex items-center justify-center shrink-0 border border-amber-500/30">
-              <Dices size={16} className="text-amber-300" />
+            <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center shrink-0 border border-amber-500/30 shadow-inner">
+              <Dices size={18} className="text-amber-300" />
             </div>
             <div className="min-w-0 flex-1">
               <div className="text-xs font-bold text-amber-300 truncate">Bốc Quẻ Phim</div>

@@ -364,14 +364,11 @@ export const NanaAiStudioModal: React.FC = () => {
   return (
     <div
       onClick={() => setIsOpen(false)}
-      className="fixed inset-0 z-[120] bg-black/85 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 overflow-hidden"
+      className="fixed inset-0 z-[120] bg-black/85 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 overflow-y-auto overscroll-contain"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        onScroll={(e) => {
-          e.currentTarget.scrollTop = 0;
-        }}
-        className={`relative w-full max-w-3xl h-[88vh] max-h-[760px] min-h-[480px] bg-zinc-950 rounded-3xl border shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 ${
+        className={`relative w-full max-w-3xl h-[88dvh] max-h-[760px] sm:min-h-[480px] bg-zinc-950 rounded-2xl sm:rounded-3xl border shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 ${
           activeTab === "concierge"
             ? "border-pink-500/30 shadow-pink-950/40"
             : "border-amber-500/35 shadow-amber-950/40"
@@ -393,50 +390,56 @@ export const NanaAiStudioModal: React.FC = () => {
         {/* ========================================================= */}
         {/* DEDICATED PINNED HEADER FOR EACH MODE (NO REDUNDANT TABS) */}
         {/* ========================================================= */}
-        <div className="relative z-20 flex items-center justify-between px-4 sm:px-6 py-3 sm:py-3.5 border-b border-white/10 bg-zinc-900/98 backdrop-blur-xl flex-none">
+        <div className="relative z-30 flex items-center justify-between px-3 sm:px-6 py-2.5 sm:py-3.5 border-b border-white/10 bg-zinc-900/98 backdrop-blur-xl shrink-0 gap-2">
           {activeTab === "concierge" ? (
-            <div className="flex items-center gap-3">
-              <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-br from-pink-500 via-rose-600 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-pink-600/30 flex-none ring-2 ring-pink-500/30">
-                <Bot className="w-5 h-5 text-white" />
-                <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-zinc-900 animate-pulse" />
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+              <div className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-br from-pink-500 via-rose-600 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-pink-600/30 shrink-0 ring-2 ring-pink-500/30">
+                <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-emerald-500 rounded-full border-2 border-zinc-900 animate-pulse" />
               </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <h2 className="text-sm sm:text-base font-black text-white truncate">Nana AI Trợ Lý Điện Ảnh</h2>
-                  <span className="hidden sm:inline-flex text-[9.5px] font-bold px-2 py-0.5 rounded-full bg-pink-500/20 text-pink-300 border border-pink-500/30 uppercase tracking-wider">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                  <h2 className="text-xs sm:text-base font-black text-white truncate">
+                    <span className="sm:hidden">Nana AI</span>
+                    <span className="hidden sm:inline">Nana AI Trợ Lý Điện Ảnh</span>
+                  </h2>
+                  <span className="hidden sm:inline-flex text-[9.5px] font-bold px-2 py-0.5 rounded-full bg-pink-500/20 text-pink-300 border border-pink-500/30 uppercase tracking-wider shrink-0">
                     Smart Chat
                   </span>
                 </div>
-                <p className="text-[11px] text-gray-400 truncate">Hỏi đáp phim ảnh & nhận đề xuất kiệt tác theo gu chuẩn xác</p>
+                <p className="hidden sm:block text-[11px] text-gray-400 truncate">Hỏi đáp phim ảnh & nhận đề xuất kiệt tác theo gu chuẩn xác</p>
               </div>
             </div>
           ) : (
-            <div className="flex items-center gap-3">
-              <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-br from-amber-400 via-orange-500 to-rose-600 flex items-center justify-center text-white shadow-lg shadow-amber-500/30 flex-none ring-2 ring-amber-500/30">
-                <Dices className="w-5 h-5 text-white" />
-                <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-amber-400 rounded-full border-2 border-zinc-900 animate-ping" />
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+              <div className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-br from-amber-400 via-orange-500 to-rose-600 flex items-center justify-center text-white shadow-lg shadow-amber-500/30 shrink-0 ring-2 ring-amber-500/30">
+                <Dices className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-amber-400 rounded-full border-2 border-zinc-900 animate-ping" />
               </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <h2 className="text-sm sm:text-base font-black text-white truncate">Bốc Quẻ Suất Chiếu Định Mệnh</h2>
-                  <span className="hidden sm:inline-flex text-[9.5px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase tracking-wider">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                  <h2 className="text-xs sm:text-base font-black text-white truncate">
+                    <span className="sm:hidden">Bốc Quẻ Phim</span>
+                    <span className="hidden sm:inline">Bốc Quẻ Định Mệnh</span>
+                  </h2>
+                  <span className="hidden sm:inline-flex text-[9.5px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase tracking-wider shrink-0">
                     Cinema Tarot
                   </span>
                 </div>
-                <p className="text-[11px] text-gray-400 truncate">Vòng quay ngẫu nhiên chọn phim phù hợp với tâm trạng & bạn đồng hành</p>
+                <p className="hidden sm:block text-[11px] text-gray-400 truncate">Vòng quay ngẫu nhiên chọn phim theo tâm trạng</p>
               </div>
             </div>
           )}
 
-          {/* RIGHT ACTION PILLS */}
-          <div className="flex items-center gap-1.5 sm:gap-2 flex-none">
+          {/* RIGHT ACTION PILLS: Đảm bảo không bao giờ bị co rúm hay che khuất trên mobile */}
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 z-30">
             {/* Quick Switch Button */}
             {activeTab === "concierge" ? (
               <button
                 type="button"
                 onClick={() => setActiveTab("roulette")}
                 title="Chuyển sang chế độ Bốc Quẻ Định Mệnh"
-                className="hidden xs:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 transition cursor-pointer active:scale-95"
+                className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 transition cursor-pointer active:scale-95"
               >
                 <Dices className="w-3.5 h-3.5 text-amber-400" />
                 <span>Bốc Quẻ</span>
@@ -446,7 +449,7 @@ export const NanaAiStudioModal: React.FC = () => {
                 type="button"
                 onClick={() => setActiveTab("concierge")}
                 title="Chuyển sang chế độ Trò Chuyện & Tìm Phim"
-                className="hidden xs:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-pink-500/15 hover:bg-pink-500/25 text-pink-300 border border-pink-500/30 transition cursor-pointer active:scale-95"
+                className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-pink-500/15 hover:bg-pink-500/25 text-pink-300 border border-pink-500/30 transition cursor-pointer active:scale-95"
               >
                 <Sparkles className="w-3.5 h-3.5 text-pink-400" />
                 <span>Chat AI</span>
@@ -459,20 +462,20 @@ export const NanaAiStudioModal: React.FC = () => {
                 type="button"
                 onClick={() => setChatMessages([])}
                 title="Làm mới đoạn hội thoại"
-                className="p-1.5 sm:p-2 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition cursor-pointer"
+                className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition cursor-pointer shrink-0"
               >
                 <RotateCcw className="w-4 h-4" />
               </button>
             )}
 
-            {/* Close Button */}
+            {/* Close Button: Luôn hiển thị rõ ràng, cố định kích thước và dễ bấm trên mobile */}
             <button
               type="button"
               onClick={() => setIsOpen(false)}
               aria-label="Đóng cửa sổ"
-              className="p-1.5 sm:p-2 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition cursor-pointer"
+              className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 active:bg-white/30 text-gray-200 hover:text-white transition cursor-pointer shrink-0 active:scale-95 border border-white/15 shadow-sm"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
             </button>
           </div>
         </div>

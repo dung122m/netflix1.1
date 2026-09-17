@@ -22,6 +22,7 @@ import {
   buildMovieDescriptionFallback,
   pickBestMovieImage,
   pickHeroBackdropImage,
+  toHighResBackdropUrl,
 } from "@/lib/movieMedia";
 import { cleanHtmlText } from "@/lib/cleanHtml";
 import { clientSynopsisCache } from "./MediaCard";
@@ -67,11 +68,22 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
   const [direction, setDirection] = useState(1);
   const [paused, setPaused] = useState(false);
   const reduceMotion = useReducedMotion();
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth <= 768 : false
+  );
 
   const currentSlug = slides[index]?.slug;
   const [heroSynopsis, setHeroSynopsis] = useState<string>("");
   const [heroBackdropMap, setHeroBackdropMap] = useState<Record<string, string>>({});
   const [failedHeroImages, setFailedHeroImages] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const handleResize = () => setIsMobile(window.innerWidth <= 768);
+      window.addEventListener("resize", handleResize, { passive: true });
+      return () => window.removeEventListener("resize", handleResize);
+    }
+  }, []);
 
   useEffect(() => {
     setIndex(0);
@@ -101,13 +113,14 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
     const nextIndex = (index + 1) % slides.length;
     const nextMovie = slides[nextIndex];
     if (nextMovie) {
+      const nextTargetWidth = isMobile ? "w780" : "w1280";
       const nextUrl =
         (nextMovie.slug && heroBackdropMap[nextMovie.slug]) ||
-        pickHeroBackdropImage(nextMovie, "/default-hero.jpg");
+        pickHeroBackdropImage(nextMovie, "/default-hero.jpg", nextTargetWidth);
       const img = new window.Image();
-      img.src = nextUrl;
+      img.src = toHighResBackdropUrl(nextUrl, nextTargetWidth);
     }
-  }, [index, slides, heroBackdropMap]);
+  }, [index, slides, heroBackdropMap, isMobile]);
 
   useEffect(() => {
     if (slides.length <= 1 || paused || !isHeroVisible) return;
@@ -214,12 +227,14 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
         }),
       };
 
-  const fallbackHeroImage = pickHeroBackdropImage(featuredMovie, "/default-hero.jpg");
+  const targetWidth = isMobile ? "w780" : "w1280";
+  const fallbackHeroImage = pickHeroBackdropImage(featuredMovie, "/default-hero.jpg", targetWidth);
   const lowResFallback = pickBestMovieImage(featuredMovie, "/default-hero.jpg");
+  const rawBackdrop = (currentSlug && heroBackdropMap[currentSlug]) || fallbackHeroImage;
   const heroImageSrc =
     (currentSlug && failedHeroImages[currentSlug])
       ? lowResFallback
-      : (currentSlug && heroBackdropMap[currentSlug]) || fallbackHeroImage;
+      : toHighResBackdropUrl(rawBackdrop, targetWidth);
 
   return (
     <section
@@ -235,7 +250,7 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
             key={index}
             custom={direction}
             variants={slideVariants}
-            initial="enter"
+            initial={index === 0 ? false : "enter"}
             animate="center"
             exit="exit"
             transition={{
@@ -253,8 +268,8 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
               src={heroImageSrc}
               alt={title}
               fill
-              priority
-              quality={90}
+              priority={index === 0}
+              quality={85}
               unoptimized
               sizes="100vw"
               className="object-cover object-[center_25%]"
@@ -281,7 +296,7 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
       {/* 3. NỘI DUNG CHÍNH (TYPOGRAPHY, BADGES & CTA BUTTONS) */}
       <motion.div
         key={`content-${index}`}
-        initial={{ opacity: 0, y: 22 }}
+        initial={index === 0 ? false : { opacity: 0, y: 22 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, ease: "easeOut" }}
         className="relative z-10 flex h-full items-end"

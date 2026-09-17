@@ -28,63 +28,86 @@ export function CommunityTopTrending() {
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
 
-  // 1. Tải trước CẢ 2 tab song song ngay khi trang khởi động (Revalidate in background)
+  // 1. Đọc cache localStorage ngay khi mount (0ms) và tải ngầm chỉ tab "total"
   useEffect(() => {
     let isMounted = true;
-    const preload = async () => {
-      try {
-        const [totalRes, weekRes] = await Promise.all([
-          fetch("/api/trending-community?timeframe=total&limit=10").then((r) => (r.ok ? r.json() : null)).catch(() => null),
-          fetch("/api/trending-community?timeframe=week&limit=10").then((r) => (r.ok ? r.json() : null)).catch(() => null),
-        ]);
 
+    // Đọc cache localStorage ngay khi mount nếu dữ liệu còn hợp lệ
+    try {
+      const raw = localStorage.getItem(TRENDING_CACHE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        // Hợp lệ trong 24 giờ
+        const isValid = parsed.timestamp && Date.now() - parsed.timestamp < 24 * 60 * 60 * 1000;
+        if (isValid) {
+          if (Array.isArray(parsed.total) && parsed.total.length > 0) {
+            tabCacheRef.current["total"] = parsed.total;
+          }
+          if (Array.isArray(parsed.week) && parsed.week.length > 0) {
+            tabCacheRef.current["week"] = parsed.week;
+          }
+
+          const currentTf = timeframeRef.current;
+          const cachedForCurrent = tabCacheRef.current[currentTf];
+          if (cachedForCurrent && cachedForCurrent.length > 0) {
+            setItems(cachedForCurrent);
+            setLoading(false);
+          }
+        }
+      }
+    } catch {
+      // Bỏ qua nếu localStorage lỗi
+    }
+
+    // Chỉ fetch BXH "total" khi mới vào trang (chạy ngầm revalidate)
+    const fetchTotal = async () => {
+      try {
+        const res = await fetch("/api/trending-community?timeframe=total&limit=10");
+        if (!res.ok) throw new Error("Fetch failed");
+        const data = await res.json();
         if (!isMounted) return;
 
-        if (totalRes?.items?.length) {
-          tabCacheRef.current["total"] = totalRes.items;
-        }
-        if (weekRes?.items?.length) {
-          tabCacheRef.current["week"] = weekRes.items;
-        }
+        if (Array.isArray(data?.items) && data.items.length > 0) {
+          tabCacheRef.current["total"] = data.items;
+          // Chỉ update UI nếu user vẫn đang ở tab total
+          if (timeframeRef.current === "total") {
+            setItems(data.items);
+          }
 
-        // Lưu vào localStorage để reload trang sau này hiển thị ngay 0ms
-        if (typeof window !== "undefined" && (totalRes?.items?.length || weekRes?.items?.length)) {
+          // Cập nhật localStorage mà không làm mất tab week
           try {
+            const raw = localStorage.getItem(TRENDING_CACHE_KEY);
+            const currentCache = raw ? JSON.parse(raw) : {};
             localStorage.setItem(
               TRENDING_CACHE_KEY,
               JSON.stringify({
-                total: totalRes?.items || [],
-                week: weekRes?.items || [],
+                ...currentCache,
+                total: data.items,
                 timestamp: Date.now(),
               })
             );
           } catch {}
         }
-
-        const currentTf = timeframeRef.current;
-        const initialList = (currentTf === "week" ? weekRes?.items : totalRes?.items) || totalRes?.items || weekRes?.items || [];
-        if (initialList.length > 0) {
-          setItems(initialList);
-        }
       } catch (err) {
-        console.warn("Lỗi tải trước Top Trending:", err);
+        console.warn("Lỗi tải BXH total:", err);
       } finally {
         if (isMounted) setLoading(false);
       }
     };
 
-    preload();
+    fetchTotal();
     return () => {
       isMounted = false;
     };
   }, []);
 
-  // 2. Chuyển đổi tab tức thì (0ms độ trễ)
+  // 2. Chuyển đổi tab: fetch on-demand nếu tab chưa có dữ liệu
   const switchTab = (nextTf: "total" | "week") => {
     if (nextTf === timeframe) return;
-    
+
     setIsFading(true);
     setTimeframe(nextTf);
+    timeframeRef.current = nextTf;
 
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollTo({ left: 0, behavior: "smooth" });
@@ -94,17 +117,62 @@ export function CommunityTopTrending() {
     if (cached && cached.length > 0) {
       setItems(cached);
       setTimeout(() => setIsFading(false), 100);
-    } else {
+
+      // Revalidate ngầm nếu có cache cũ
       fetch(`/api/trending-community?timeframe=${nextTf}&limit=10`)
-        .then((r) => r.json())
+        .then((r) => (r.ok ? r.json() : null))
         .then((data) => {
-          if (data?.items?.length) {
+          if (data?.items) {
             tabCacheRef.current[nextTf] = data.items;
-            setItems(data.items);
+            if (timeframeRef.current === nextTf) {
+              setItems(data.items);
+            }
+            try {
+              const raw = localStorage.getItem(TRENDING_CACHE_KEY);
+              const currentCache = raw ? JSON.parse(raw) : {};
+              localStorage.setItem(
+                TRENDING_CACHE_KEY,
+                JSON.stringify({
+                  ...currentCache,
+                  [nextTf]: data.items,
+                  timestamp: Date.now(),
+                })
+              );
+            } catch {}
           }
+        })
+        .catch(() => {});
+    } else {
+      // Chưa có cache cho tab này: fetch mới
+      setLoading(true);
+      fetch(`/api/trending-community?timeframe=${nextTf}&limit=10`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => {
+          if (data?.items) {
+            tabCacheRef.current[nextTf] = data.items;
+            if (timeframeRef.current === nextTf) {
+              setItems(data.items);
+            }
+            try {
+              const raw = localStorage.getItem(TRENDING_CACHE_KEY);
+              const currentCache = raw ? JSON.parse(raw) : {};
+              localStorage.setItem(
+                TRENDING_CACHE_KEY,
+                JSON.stringify({
+                  ...currentCache,
+                  [nextTf]: data.items,
+                  timestamp: Date.now(),
+                })
+              );
+            } catch {}
+          }
+        })
+        .catch((err) => {
+          console.warn(`Lỗi tải BXH ${nextTf}:`, err);
         })
         .finally(() => {
           setIsFading(false);
+          setLoading(false);
         });
     }
   };
@@ -220,14 +288,27 @@ export function CommunityTopTrending() {
           transition: "opacity 0.15s cubic-bezier(0.4, 0, 0.2, 1)",
         }}
       >
-        {loading && items.length === 0
-          ? Array.from({ length: 6 }).map((_, idx) => (
-              <div
-                key={idx}
-                className="flex-none w-[220px] sm:w-[260px] h-[320px] sm:h-[360px] rounded-2xl bg-zinc-900/80 animate-pulse border border-white/5"
-              />
-            ))
-          : items.map((movie, index) => {
+        {loading && items.length === 0 ? (
+          Array.from({ length: 6 }).map((_, idx) => (
+            <div
+              key={idx}
+              className="flex-none w-[220px] sm:w-[260px] h-[320px] sm:h-[360px] rounded-2xl bg-zinc-900/80 animate-pulse border border-white/5"
+            />
+          ))
+        ) : items.length === 0 ? (
+          <div className="w-full py-12 flex flex-col items-center justify-center text-center px-4">
+            <Flame className="w-8 h-8 text-zinc-600 mb-2" />
+            <p className="text-sm font-medium text-zinc-400">
+              {timeframe === "week"
+                ? "Chưa có lượt xem nào trong 7 ngày gần nhất."
+                : "Chưa có dữ liệu lượt xem trên hệ thống."}
+            </p>
+            <p className="text-xs text-zinc-600 mt-1">
+              Khám phá và xem phim để cùng đưa phim lên bảng xếp hạng nhé!
+            </p>
+          </div>
+        ) : (
+          items.map((movie, index) => {
               const rank = index + 1;
               const views = timeframe === "week" ? movie.viewsWeek : movie.viewsTotal;
 
@@ -334,7 +415,7 @@ export function CommunityTopTrending() {
                   </Link>
                 </div>
               );
-            })}
+            }))}
       </div>
     </section>
   );

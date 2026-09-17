@@ -356,7 +356,46 @@ function setBoundedCache<K, V>(map: Map<K, V>, key: K, value: V, max = 500) {
 
 export { normalizeForMatch };
 
-function cleanActorQuery(query: string): string {
+/**
+ * Kiểm tra xem từ khóa có tiền tố chỉ định rõ ràng là tìm kiếm DIỄN VIÊN / ĐẠO DIỄN hay không.
+ */
+export function hasExplicitActorPrefix(query: string): boolean {
+  const q = (query || "").trim();
+  return /^(?:diễn\s+viên|dien\s+vien|đạo\s+diễn|dao\s+dien|phim\s+của|phim\s+cua|tuyển\s+tập\s+(?:phim\s+)?(?:của\s+)?|tuyen\s+tap\s+(?:phim\s+)?(?:cua\s+)?|actor\s*:\s*)/i.test(q);
+}
+
+// Tập hợp các từ khóa ngắn/từ đơn thông dụng dễ trùng tên phim hoặc từ thông dụng tiếng Việt
+const COMMON_AMBIGUOUS_SHORT_WORDS = new Set([
+  "mai", "an", "anh", "em", "nam", "hoa", "tam", "binh", "long", "ha",
+  "linh", "dung", "phuc", "dat", "duc", "thao", "trang", "huong", "ngoc",
+  "minh", "khoa", "thang", "quan", "hung", "son", "tuan", "hai", "vu",
+  "bao", "cuong", "phong", "hieu", "huy", "giang", "thanh", "thuy", "yen",
+  "thu", "quyen", "tien", "trieu", "viet", "khanh", "kien", "phuong",
+  "nga", "loan", "diep", "sen", "truc", "dao", "cuc", "nhi", "lan",
+  "bac", "trung", "do", "den", "xanh", "vang", "nha", "pho",
+  "me", "cha", "con", "vo", "chong", "ba", "ong", "co", "chu"
+]);
+
+/**
+ * Kiểm tra xem từ khóa có phải là từ ngắn/từ đơn mơ hồ (dễ là tên phim) mà không có tiền tố diễn viên rõ ràng hay không.
+ */
+export function isAmbiguousShortActorKeyword(query: string): boolean {
+  const trimmed = (query || "").trim();
+  if (!trimmed) return true;
+  // Nếu có tiền tố rõ ràng như "diễn viên Mai", "phim của Mai" -> không bị coi là ambiguous
+  if (hasExplicitActorPrefix(trimmed)) return false;
+
+  const cleanNorm = normalizeForMatch(trimmed).toLowerCase();
+  if (COMMON_AMBIGUOUS_SHORT_WORDS.has(cleanNorm)) return true;
+
+  // Từ đơn (chỉ có 1 từ) và độ dài <= 4 ký tự (ví dụ: Mai, An, Anh, Ha, Nam...)
+  const words = trimmed.split(/\s+/).filter(Boolean);
+  if (words.length < 2 && trimmed.length <= 4) return true;
+
+  return false;
+}
+
+export function cleanActorQuery(query: string): string {
   return (query || "")
     .toLowerCase()
     .replace(/đ/g, "d")
@@ -364,10 +403,10 @@ function cleanActorQuery(query: string): string {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/^phim\s+cua\s+/gi, "")
-    .replace(/^phim\s+/gi, "")
+    .replace(/^tuyen\s+tap\s+(?:phim\s+)?(?:cua\s+)?/gi, "")
     .replace(/^dien\s+vien\s+/gi, "")
-    .replace(/^xem\s+phim\s+/gi, "")
-    .replace(/^tuyen\s+tap\s+phim\s+(?:cua\s+)?/gi, "")
+    .replace(/^dao\s+dien\s+/gi, "")
+    .replace(/^actor\s*:\s*/gi, "")
     .replace(/\s+dong$/gi, "")
     .replace(/\s+dien\s+xuat$/gi, "")
     .replace(/[^\w\s]/gi, " ")
@@ -947,6 +986,11 @@ export async function resolveActorMovies(keyword: string): Promise<{
     return { actorName: "", aliases: [], isActor: false, source: "none" };
   }
 
+  // 1.0 Kiểm tra an toàn: Nếu là từ khóa ngắn/từ đơn mơ hồ (như "Mai", "An", "Anh"...) mà không có tiền tố diễn viên rõ ràng -> TUYỆT ĐỐI KHÔNG nhận dạng là diễn viên
+  if (isAmbiguousShortActorKeyword(keyword)) {
+    return { actorName: "", aliases: [], isActor: false, source: "none" };
+  }
+
   // 1.1 Tra cứu trực tiếp Bảng Quy Đổi Đồng Nghĩa (Mapping Table / Synonym Dictionary) (0ms)
   const synonymRes = getActorSynonyms(keyword);
   if (synonymRes.isMatched) {
@@ -976,12 +1020,13 @@ export async function resolveActorMovies(keyword: string): Promise<{
 
   // 1.25 TIER 2.5: Tra cứu trực tiếp TMDB Search Person (Chuẩn quốc tế, 100% chính xác, không sợ AI nghẽn tải)
   try {
+    const words = keyword.trim().split(/\s+/).filter(Boolean);
     const tmdbPerson = await searchTmdbPerson(keyword);
     if (
       tmdbPerson &&
       (tmdbPerson.known_for_department === "Acting" ||
-        tmdbPerson.known_for_department === "Directing" ||
-        tmdbPerson.popularity >= 1.2)
+        tmdbPerson.known_for_department === "Directing") &&
+      (words.length >= 2 ? tmdbPerson.popularity >= 2.5 : tmdbPerson.popularity >= 15.0)
     ) {
       const actorName = tmdbPerson.name || keyword;
       const aliases = Array.from(
@@ -1019,8 +1064,12 @@ Nếu ĐÚNG là diễn viên/nghệ sĩ/đạo diễn:
 - "country": Quốc gia / nền điện ảnh chính xác kèm cờ (vd: "Việt Nam 🇻🇳", "Hàn Quốc 🇰🇷", "Hồng Kông 🇭🇰", "Trung Quốc 🇨🇳", "Hollywood 🇺🇸", "Anh Quốc 🇬🇧", "Thái Lan 🇹🇭", "Nhật Bản 🇯🇵").
 - "aliases": Mảng các bí danh, tên gọi khác, tên tiếng Việt, nghệ danh phổ biến của nghệ sĩ.
 
-Nếu KHÔNG PHẢI là diễn viên/nghệ sĩ (ví dụ là tên một bộ phim cụ thể như "Titanic", "Inception", một thể loại như "phim ma", hoặc từ vô nghĩa):
+Nếu KHÔNG PHẢI là diễn viên/nghệ sĩ (ví dụ là tên một bộ phim cụ thể như "Titanic", "Inception", "Mai", "Avatar", một thể loại như "phim ma", hoặc từ ngắn/từ đơn thông dụng):
 - "isActor": false
+
+QUY TẮC BẮT BUỘC:
+- Các từ khóa ngắn hoặc từ đơn (như "Mai", "An", "Anh", "Hoa", "Nam", "Avatar", "Titanic") có thể là tên phim hoặc từ thông dụng, tuyệt đối TRẢ VỀ isActor: false.
+- Chỉ trả về isActor: true khi từ khóa là tên đầy đủ, nghệ danh rõ ràng của diễn viên/đạo diễn nổi tiếng (ví dụ: 'Trấn Thành', 'Thành Long', 'Châu Tinh Trì', 'Tom Cruise').
 
 BẮT BUỘC chỉ trả về DUY NHẤT một chuỗi JSON hợp lệ theo định dạng:
 {

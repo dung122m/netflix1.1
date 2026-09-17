@@ -1518,51 +1518,31 @@ export async function recordMovieViewSupabase(movie: {
   year?: number;
   quality?: string;
   category?: string;
+  userId?: string;
 }): Promise<void> {
   if (!supabase || !movie.slug) return;
   const now = Date.now();
+  const uid = movie.userId || "guest";
+  const id = `${uid}_${movie.slug}`;
 
   try {
-    // 1. Thử gọi RPC atomic increment nếu có
-    const { error: rpcError } = await supabase.rpc("increment_movie_view", {
-      p_slug: movie.slug,
-      p_title: movie.title || "",
-      p_poster: movie.poster || "",
-      p_thumb: movie.thumb || "",
-      p_year: movie.year || null,
-      p_quality: movie.quality || null,
-      p_category: movie.category || null,
-    });
-
-    if (!rpcError) return;
-
-    // 2. Fallback upsert trực tiếp qua REST API
-    const { data: existing } = await supabase
-      .from("movie_views_stats")
-      .select("views_total, views_week")
-      .eq("movie_slug", movie.slug)
-      .maybeSingle();
-
-    const currentTotal = Number(existing?.views_total) || 0;
-    const currentWeek = Number(existing?.views_week) || 0;
-
-    await supabase.from("movie_views_stats").upsert(
+    await supabase.from("watch_history").upsert(
       {
-        movie_slug: movie.slug,
-        movie_title: movie.title || "Phim",
-        poster: movie.poster || "/default-poster.jpg",
-        thumb: movie.thumb || movie.poster || "/default-hero.jpg",
+        id,
+        user_id: uid,
+        slug: movie.slug,
+        title: movie.title || "Phim",
+        poster: movie.poster || movie.thumb || "/default-poster.jpg",
         year: movie.year || null,
         quality: movie.quality || "HD",
         category: movie.category || "Phim Hay",
-        views_total: currentTotal + 1,
-        views_week: currentWeek + 1,
-        last_viewed_at: now,
+        updated_at: now,
+        synced_at: now,
       },
-      { onConflict: "movie_slug" }
+      { onConflict: "id" }
     );
   } catch (err) {
-    console.warn("Lỗi ghi nhận lượt xem phim vào Supabase:", err);
+    console.warn("Lỗi ghi nhận lượt xem vào Supabase watch_history:", err);
   }
 }
 
@@ -1572,28 +1552,65 @@ export async function getTopTrendingCommunitySupabase(
 ): Promise<MovieViewStatItem[]> {
   if (!supabase) return [];
   try {
-    const orderColumn = timeframe === "week" ? "views_week" : "views_total";
     const { data, error } = await supabase
-      .from("movie_views_stats")
-      .select("*")
-      .order(orderColumn, { ascending: false })
-      .limit(limit);
+      .from("watch_history")
+      .select("slug, title, poster, year, quality, category, updated_at, synced_at");
 
     if (error || !data || data.length === 0) return [];
 
-    return data.map((d) => ({
-      movieSlug: d.movie_slug,
-      movieTitle: d.movie_title || "",
-      poster: d.poster || "/default-poster.jpg",
-      thumb: d.thumb || d.poster || "/default-hero.jpg",
-      year: Number(d.year) || undefined,
-      quality: d.quality || undefined,
-      category: d.category || undefined,
-      viewsTotal: Number(d.views_total) || 1,
-      viewsWeek: Number(d.views_week) || 1,
-      lastViewedAt: Number(d.last_viewed_at) || Date.now(),
-    }));
-  } catch {
+    const now = Date.now();
+    const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
+
+    const movieMap = new Map<string, MovieViewStatItem>();
+
+    for (const row of data) {
+      if (!row.slug) continue;
+      const slug = row.slug.toLowerCase();
+      const updatedAt = Number(row.updated_at) || Number(row.synced_at) || 0;
+      const isWeek = updatedAt >= sevenDaysAgo;
+
+      if (timeframe === "week" && !isWeek) {
+        continue;
+      }
+
+      const existing = movieMap.get(slug);
+      if (!existing) {
+        movieMap.set(slug, {
+          movieSlug: row.slug,
+          movieTitle: row.title || row.slug,
+          poster: row.poster || "/default-poster.jpg",
+          thumb: row.poster || "/default-hero.jpg",
+          year: Number(row.year) || undefined,
+          quality: row.quality || "HD",
+          category: row.category || "Phim Hay",
+          viewsTotal: 1,
+          viewsWeek: isWeek ? 1 : 0,
+          lastViewedAt: updatedAt,
+        });
+      } else {
+        existing.viewsTotal += 1;
+        if (isWeek) existing.viewsWeek += 1;
+        if (updatedAt > existing.lastViewedAt) {
+          existing.lastViewedAt = updatedAt;
+        }
+      }
+    }
+
+    const items = Array.from(movieMap.values());
+
+    // Sắp xếp: Ưu tiên số lượt xem nhiều nhất, nếu bằng nhau ưu tiên phim xem gần đây nhất
+    items.sort((a, b) => {
+      const viewA = timeframe === "week" ? a.viewsWeek : a.viewsTotal;
+      const viewB = timeframe === "week" ? b.viewsWeek : b.viewsTotal;
+      if (viewB !== viewA) {
+        return viewB - viewA;
+      }
+      return b.lastViewedAt - a.lastViewedAt;
+    });
+
+    return items.slice(0, limit);
+  } catch (err) {
+    console.warn("Lỗi tính top trending từ watch_history:", err);
     return [];
   }
 }

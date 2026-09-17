@@ -364,7 +364,7 @@ export default async function MovieDetail({
   };
 
   return (
-    <div className="page-cinema-container min-h-screen pb-12">
+    <div className="page-cinema-container min-h-screen pb-[calc(5rem+env(safe-area-inset-bottom,0px))] lg:pb-12">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

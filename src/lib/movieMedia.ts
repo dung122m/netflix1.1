@@ -147,7 +147,7 @@ export function toOptimizedCardBackdropUrl(url: string): string {
  * Dành riêng cho Banner Hero cỡ lớn toàn màn hình trên đầu trang.
  * Ưu tiên độ phân giải gốc cực cao (original / w1280) cho màn hình lớn & Retina 2x/4K.
  */
-export function toHighResBackdropUrl(url: string): string {
+export function toHighResBackdropUrl(url: string, targetWidth: "w780" | "w1280" = "w1280"): string {
   if (!url || typeof url !== "string") return "";
   let clean = url.trim();
   if (
@@ -160,31 +160,35 @@ export function toHighResBackdropUrl(url: string): string {
     return "";
   }
 
-  // 1. Nhận diện trực tiếp mã hash TMDb từ VSMOV hoặc NguonC -> Chuyển thẳng sang TMDb original Full HD/4K
+  // 1. Nhận diện trực tiếp mã hash TMDb từ VSMOV hoặc NguonC -> Chuyển sang TMDb targetWidth (mặc định w1280, mobile w780)
   const tmdbHashMatch = clean.match(
     /https?:\/\/(?:vsmov\.com\/storage\/images|phim\.nguonc\.com\/public\/images\/Film)\/([a-zA-Z0-9]{22,35}\.(?:jpg|jpeg|png|webp))$/i
   );
   if (tmdbHashMatch && !tmdbHashMatch[1].includes("-") && !tmdbHashMatch[1].includes("_")) {
-    return `https://image.tmdb.org/t/p/original/${tmdbHashMatch[1]}`;
+    return `https://image.tmdb.org/t/p/${targetWidth}/${tmdbHashMatch[1]}`;
   }
 
   // 2. Nhận diện đường dẫn tương đối TMDb (vd: /jUiZOFbC9MjQV3gzi9nn7AsQ4Ea.jpg)
   if (/^\/[a-zA-Z0-9_-]+\.(?:jpg|jpeg|png|webp)$/i.test(clean)) {
-    return `https://image.tmdb.org/t/p/original${clean}`;
+    return `https://image.tmdb.org/t/p/${targetWidth}${clean}`;
   }
 
   // 3. Chuẩn hóa qua sanitizeImageUrl
   clean = sanitizeImageUrl(url);
 
-  // 4. Nếu là ảnh TMDb, nâng cấp lên original (Full HD / 4K) cho Banner Hero toàn màn hình
+  // 4. Nếu là ảnh TMDb, chuyển về targetWidth (w1280 cho desktop, w780 cho mobile) thay vì original để tránh làm nghẽn LCP
   if (clean.includes("image.tmdb.org/t/p/")) {
-    clean = clean.replace(/\/t\/p\/(w500|w780|w300|w1280)\//, "/t/p/original/");
+    clean = clean.replace(/\/t\/p\/(w\d+|original)\//, `/t/p/${targetWidth}/`);
   }
 
   return clean;
 }
 
-export function pickHeroBackdropImage(movie: MovieLike, fallback = "/default-hero.jpg"): string {
+export function pickHeroBackdropImage(
+  movie: MovieLike,
+  fallback = "/default-hero.jpg",
+  targetWidth: "w780" | "w1280" = "w1280"
+): string {
   if (!movie) return fallback;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rawMovie = (movie as any)?.movie || movie;
@@ -223,19 +227,19 @@ export function pickHeroBackdropImage(movie: MovieLike, fallback = "/default-her
     rawMovie.imageUrl,
   ]
     .filter((value): value is string => typeof value === "string" && value.length > 0)
-    .map(toHighResBackdropUrl)
+    .map((u) => toHighResBackdropUrl(u, targetWidth))
     .filter((url) => Boolean(url) && !url.endsWith("/null") && !url.endsWith("/undefined"));
 
   if (candidates.length === 0) return fallback;
 
-  // 1. Ưu tiên tuyệt đối ảnh backdrop chuyên dụng hoặc ảnh TMDb chất lượng cao (original / w1280 / banner / backdrop)
+  // 1. Ưu tiên tuyệt đối ảnh backdrop chuyên dụng hoặc ảnh TMDb chất lượng cao (w1280 / w780 / banner / backdrop)
   for (const c of candidates) {
     const l = c.toLowerCase();
     const isExplicitPoster = l.includes("-poster.") || l.includes("_poster.") || l.includes("/poster/") || l.includes("poster_");
     if (!isExplicitPoster) {
       if (
-        l.includes("image.tmdb.org/t/p/original") ||
         l.includes("image.tmdb.org/t/p/w1280") ||
+        l.includes("image.tmdb.org/t/p/w780") ||
         l.includes("backdrop") ||
         l.includes("banner")
       ) {

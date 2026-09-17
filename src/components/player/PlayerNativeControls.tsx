@@ -264,12 +264,12 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
               <PictureInPicture className="w-4 h-4" />
             </button>
 
-            {/* QR Code */}
+            {/* QR Code (Ẩn trên thiết bị di động, chỉ hiển thị từ tablet/desktop) */}
             <button
               type="button"
               onClick={onOpenQr}
               title="Xem tiếp trên điện thoại (Quét mã QR đúng số phút)"
-              className="p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer flex items-center gap-1 group/qr"
+              className="hidden sm:flex items-center gap-1 p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer group/qr"
             >
               <QrCode className="w-4 h-4 text-sky-400 group-hover/qr:scale-110 transition-transform" />
               <span className="hidden xl:inline text-[11px] font-semibold text-gray-300">
