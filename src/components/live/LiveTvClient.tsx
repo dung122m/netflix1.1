@@ -61,6 +61,7 @@ function getCategoryEmoji(category: string): string {
   if (category.includes("Quốc Tế")) return "🌍";
   if (category.includes("Thiếu Nhi")) return "🎈";
   if (category.includes("Âm Nhạc")) return "🎵";
+  if (category.includes("Bóng Đá") || category.includes("Thể Thao")) return "⚽";
   return "📺";
 }
 

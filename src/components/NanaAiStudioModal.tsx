@@ -398,7 +398,7 @@ export const NanaAiStudioModal: React.FC<NanaAiStudioModalProps> = ({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className={`relative w-full max-w-xl sm:max-w-2xl h-[82dvh] max-h-[640px] sm:min-h-[460px] bg-zinc-950 rounded-2xl sm:rounded-3xl border shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 ${
+        className={`relative w-full max-w-3xl h-[88dvh] max-h-[760px] sm:min-h-[500px] bg-zinc-950 rounded-2xl sm:rounded-3xl border shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 ${
           activeTab === "concierge"
             ? "border-pink-500/30 shadow-pink-950/40"
             : "border-amber-500/35 shadow-amber-950/40"
@@ -584,9 +584,9 @@ export const NanaAiStudioModal: React.FC<NanaAiStudioModalProps> = ({
                       )}
 
                       {m.role === "user" ? (
-                        <div className="max-w-[80%] sm:max-w-[70%] py-2 px-3.5 sm:py-2.5 sm:px-4 rounded-2xl rounded-tr-xs bg-gradient-to-r from-pink-600 via-rose-600 to-purple-600 text-white shadow-md shadow-pink-950/25 text-xs sm:text-[13px] font-medium leading-relaxed">
-                          <p className="whitespace-pre-wrap select-text">{m.text}</p>
-                          <div className="text-[9px] text-white/70 text-right mt-1 select-none">
+                        <div className="w-fit max-w-[80%] sm:max-w-[70%] py-1.5 px-3 sm:py-2 sm:px-3.5 rounded-2xl rounded-tr-xs bg-gradient-to-r from-pink-600 via-rose-600 to-purple-600 text-white shadow-md shadow-pink-950/25 text-xs sm:text-[13px] font-medium leading-relaxed">
+                          <p className="whitespace-pre-wrap select-text break-words">{m.text}</p>
+                          <div className="text-[9px] text-white/70 text-right mt-0.5 select-none">
                             {m.time}
                           </div>
                         </div>
@@ -688,26 +688,26 @@ export const NanaAiStudioModal: React.FC<NanaAiStudioModalProps> = ({
                   e.preventDefault();
                   sendChatMessage();
                 }}
-                className="flex-none p-2.5 sm:p-3 bg-zinc-900/98 border-t border-white/10 relative flex items-center gap-2"
+                className="flex-none px-3 py-2 sm:px-4 sm:py-2.5 bg-zinc-900/98 border-t border-white/10 relative flex items-center justify-center"
               >
-                <div className="relative flex-1 flex items-center">
+                <div className="relative w-full max-w-2xl flex items-center">
                   <input
                     type="text"
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
                     placeholder="Hỏi bất kỳ điều gì: 'Phim trinh thám đấu trí', 'Phim hài Châu Tinh Trì'..."
-                    className="w-full pl-3.5 pr-10 py-2.5 rounded-xl bg-zinc-950 border border-white/15 focus:border-pink-500 focus:ring-1 focus:ring-pink-500/25 text-white placeholder-gray-500 text-xs sm:text-sm outline-none shadow-inner transition"
+                    className="w-full pl-3.5 pr-10 py-2 sm:py-2.5 rounded-full bg-zinc-950 border border-white/15 focus:border-pink-500 focus:ring-1 focus:ring-pink-500/25 text-white placeholder-gray-500 text-xs sm:text-sm outline-none shadow-inner transition"
                   />
                   <button
                     type="submit"
                     disabled={chatLoading || !chatInput.trim()}
                     aria-label="Gửi tin nhắn"
-                    className="absolute right-1.5 p-1.5 sm:p-2 rounded-lg bg-gradient-to-r from-pink-600 via-rose-600 to-purple-600 text-white hover:from-pink-500 hover:to-purple-500 transition disabled:opacity-30 cursor-pointer shadow-md active:scale-95 flex items-center justify-center"
+                    className="absolute right-1 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-r from-pink-600 via-rose-600 to-purple-600 text-white hover:from-pink-500 hover:to-purple-500 transition disabled:opacity-30 cursor-pointer shadow-md active:scale-95 flex items-center justify-center shrink-0"
                   >
                     {chatLoading ? (
-                      <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
                     ) : (
-                      <Send className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      <Send className="w-3.5 h-3.5" />
                     )}
                   </button>
                 </div>

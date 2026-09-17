@@ -611,10 +611,11 @@ export const liveTvService = {
         }
       }
 
-      // Sắp xếp thứ tự danh mục logic: Kênh VTV -> HTV -> SCTV -> VTVcab -> Vĩnh Long -> Tin Tức -> Phim -> Địa Phương -> Quốc Tế
+      // Sắp xếp thứ tự danh mục logic: Kênh VTV -> HTV -> Kênh Thể Thao -> SCTV -> VTVcab...
       const PREFERRED_ORDER = [
         "Kênh VTV",
         "Kênh HTV & HTVC",
+        "Kênh Thể Thao",
         "Kênh SCTV",
         "Kênh VTVcab",
         "Truyền Hình Vĩnh Long",

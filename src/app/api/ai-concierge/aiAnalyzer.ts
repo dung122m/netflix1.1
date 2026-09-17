@@ -1,6 +1,6 @@
 import { generateFastAiChat } from "@/services/aiProviderService";
 import { AiParsedResult } from "./types";
-import { normalizeTypos } from "./taxonomy";
+import { normalizeTypos, resolveCharacter } from "./taxonomy";
 
 /**
  * Xử lý bóc tách chuỗi JSON trả về từ AI với 3 tầng tự động sửa lỗi
@@ -41,6 +41,7 @@ export function safeParseAiJson(rawText: string): any {
         const genreMatch = cleaned.match(/"genres?"\s*:\s*"((?:\\.|[^"\\])*)"/);
         const countryMatch = cleaned.match(/"country"\s*:\s*"((?:\\.|[^"\\])*)"/);
         const actorMatch = cleaned.match(/"actor"\s*:\s*"((?:\\.|[^"\\])*)"/);
+        const characterMatch = cleaned.match(/"character"\s*:\s*"((?:\\.|[^"\\])*)"/);
 
         const movies: Array<{ title: string; original_title?: string; reason?: string }> = [];
         const movieRegex = /"title"\s*:\s*"((?:\\.|[^"\\])*)"(?:[^{}]*?"original_title"\s*:\s*"((?:\\.|[^"\\])*)")?(?:[^{}]*?"reason"\s*:\s*"((?:\\.|[^"\\])*)")?/g;
@@ -62,6 +63,7 @@ export function safeParseAiJson(rawText: string): any {
             genres: genreMatch ? [genreMatch[1]] : [],
             country: countryMatch ? countryMatch[1] : "",
             actor: actorMatch ? actorMatch[1] : "",
+            character: characterMatch ? characterMatch[1] : "",
             movies,
           };
         }
@@ -81,20 +83,22 @@ MỐC THỜI GIAN HIỆN TẠI: Năm ${currentYear}.
 QUY TẮC PHÂN TÍCH VÀ ĐẶC BIỆT TUÂN THỦ 4 NGUYÊN TẮC VÀNG SAU:
 
 1. XỬ LÝ CÂU HỎI BẪY & ẢO GIÁC (ANTI-HALLUCINATION & TRAP DETECTION):
-- Nếu người dùng hỏi về một tác phẩm, phần phim, đạo diễn hoặc mốc thời gian HOÀN TOÀN KHÔNG CÓ THẬT (Ví dụ: "Inception phần 5 do đạo diễn Việt Nam làm năm 2028", "Titanic 2 của Christopher Nolan", "Avatar 8", "Iron Man 4 do Trấn Thành đóng chính"):
-  + BẮT BUỘC gán "is_trap": true.
-  + Trong "analysis": ĐÍNH CHÍNH LỊCH SỰ, THÔNG MINH, DÍ DỎM! Nêu rõ thông tin thực tế (tác phẩm đó chỉ có những phần nào, phát hành năm nào, đạo diễn/diễn viên thực sự là ai), và chỉ ra thông tin trên là không có thật (TUYỆT ĐỐI KHÔNG dùng câu "chưa ra mắt" khiến người dùng lầm tưởng phim đó tồn tại).
-  + TUYỆT ĐỐI KHÔNG tìm kiếm mù quáng để trả về các phim ngẫu nhiên không liên quan.
-  + BẮT BUỘC trong "suggested_movies": Đề xuất 4 bộ phim CÓ THẬT, KINH ĐIỂN CÙNG CHỦ ĐỀ HOẶC THỂ LOẠI TƯƠNG ĐƯƠNG (Ví dụ hỏi Inception 5 -> gợi ý Inception (2010), Interstellar (2014), Shutter Island (2010), Tenet (2020) hoặc Memento).
+- CHỈ gán "is_trap": true khi người dùng hỏi về một tác phẩm, phần phim HOÀN TOÀN KHÔNG CÓ THẬT mang tính bịa đặt (Ví dụ: "Inception phần 5 do Trấn Thành làm năm 2028", "Titanic 2 của Christopher Nolan", "Avatar 8").
+- TUYỆT ĐỐI KHÔNG coi các lỗi chính tả hoặc nhầm lẫn dấu tiếng Việt (ví dụ: "Trẩn Chân" thay vì "Trần Chân", "Tôn Ngộ Ko" thay vì "Tôn Ngộ Không") là câu hỏi bẫy (is_trap). Hãy tự động sửa lỗi và trả về "is_trap": false.
+- Trong "analysis" khi có trap thật sự: ĐÍNH CHÍNH LỊCH SỰ, THÔNG MINH, DÍ DỎM! Nêu rõ thông tin thực tế và đề xuất 4 phim kinh điển liên quan có thật.
 
 2. PHÂN TÁCH NGỮ CẢNH NGOÀI LỀ (EDGE CASES & OFF-TOPIC):
 - Nếu người dùng hỏi các chủ đề ngoài điện ảnh (Ví dụ: bóng đá, tỷ số, thể thao, thời tiết, chính trị, chứng khoán, toán học, nấu ăn, đời sống...):
   + BẮT BUỘC gán "is_off_topic": true.
-  + Trong "analysis": TỪ CHỐI KHÉO LÉO, DUYÊN DÁNG đúng vai trò trợ lý điện ảnh của Nanaflix, sau đó LẬP TỨC CHUYỂN HƯỚNG MƯỢT MÀ sang việc gợi ý các tác phẩm điện ảnh liên quan đến chủ đề đó hoặc tâm trạng giải trí (Ví dụ: hỏi bóng đá -> từ chối đoán tỷ số, nhưng lập tức gợi ý phim bóng đá/thể thao truyền cảm hứng hoặc phim xả stress sau trận đấu).
-  + BẮT BUỘC trong "suggested_movies": Đề xuất 4 bộ phim CÓ THẬT, NỔI TIẾNG phù hợp với sự chuyển hướng đó (Ví dụ hỏi bóng đá -> gợi ý Shaolin Soccer / Đội Bóng Thiếu Lâm, Ford v Ferrari, Pelé, Goal!, Hustle).
+  + Trong "analysis": TỪ CHỐI KHÉO LÉO, DUYÊN DÁNG đúng vai trò trợ lý điện ảnh của Nanaflix, sau đó LẬP TỨC CHUYỂN HƯỚNG MƯỢT MÀ sang việc gợi ý các tác phẩm điện ảnh liên quan đến chủ đề đó.
+  + BẮT BUỘC trong "suggested_movies": Đề xuất 4 bộ phim CÓ THẬT, NỔI TIẾNG phù hợp với sự chuyển hướng đó.
 
-3. XỬ LÝ LỖI CHÍNH TẢ & Ý ĐỊNH ẨN (TYPO & INTENT RECOGNITION):
-- Tự động hiểu và sửa các từ viết sai chính tả phổ biến (Ví dụ: "zoombie" -> zombie, "hành đọng" -> hành động, "hoat hinh" -> hoạt hình, "tình cãm" -> tình cảm...).
+3. XỬ LÝ NHÂN VẬT VS DIỄN VIÊN & LỖI CHÍNH TẢ (CHARACTER VS ACTOR):
+- PHÂN BIỆT RÕ RÀNG NHÂN VẬT ("character") VÀ DIỄN VIÊN ("actor"):
+  + "character": Tên nhân vật trong phim (Ví dụ: "Trần Chân", "Chen Zhen", "Iron Man", "Tony Stark", "Tôn Ngộ Không", "Diệp Vấn", "Spider-Man", "Batman", "John Wick"...).
+  + "actor": Tên diễn viên ngoài đời thực (Ví dụ: "Chân Tử Đan", "Lý Tiểu Long", "Robert Downey Jr.", "Thành Long"...).
+  + TUYỆT ĐỐI KHÔNG nhầm lẫn nhân vật vào trường "actor". Nếu người dùng hỏi "phim có nhân vật X", "phim về X", hãy điền X vào trường "character".
+  + Tự động sửa lỗi chính tả tên nhân vật: "Trẩn Chân" -> điền "character": "Trần Chân", "Chen Zhen" -> "character": "Trần Chân".
 - Thấu cảm và giải mã nhu cầu cảm xúc sâu sắc:
   + Muốn sợ hãi / giật gân -> kinh dị rùng rợn, siêu nhiên ám ảnh.
   + Muốn khóc / chữa lành -> tâm lý tình cảm sâu sắc, cảm động rơi nước mắt.
@@ -102,10 +106,10 @@ QUY TẮC PHÂN TÍCH VÀ ĐẶC BIỆT TUÂN THỦ 4 NGUYÊN TẮC VÀNG SAU:
   + Muốn hack não -> trinh thám điều tra, vòng lặp thời gian, plot twist bất ngờ.
 
 4. QUY TẮC TRẢ VỀ PHIM VÀ TÊN PHIM (OUTPUT QUALITY):
-- "title": Tên tiếng Việt chuẩn xác, trang trọng, quen thuộc nhất ở Việt Nam (hoặc giữ tên gốc nếu là phim kinh điển nổi tiếng như "Inception", "Interstellar", "John Wick"). TUYỆT ĐỐI CẤM DỊCH MÁY MÓC BỊA ĐẶT KỲ LẠ (như dịch The Mongoose thành "Cầy Mangut").
+- "title": Tên tiếng Việt chuẩn xác, trang trọng, quen thuộc nhất ở Việt Nam. TUYỆT ĐỐI CẤM DỊCH MÁY MÓC BỊA ĐẶT KỲ LẠ.
 - "original_title": Tên gốc tiếng Anh / quốc tế chuẩn xác.
 - "year": Năm phát hành thực tế chính xác (số nguyên 4 chữ số).
-- "reason": 1-2 câu ngắn gọn, súc tích, hấp dẫn về điểm nhấn cốt truyện hoặc nút thắt kịch tính của CHÍNH BỘ PHIM ĐÓ. Tuyệt đối CẤM câu chung chung sáo rỗng.
+- "reason": 1-2 câu ngắn gọn, súc tích, hấp dẫn về điểm nhấn cốt truyện hoặc nút thắt kịch tính của CHÍNH BỘ PHIM ĐÓ.
 - "analysis": Lời mở đầu niềm nở, thông minh, gắn kết trực tiếp với yêu cầu của người dùng.
 - "mood": Tên chủ đề súc tích kèm emoji phù hợp.
 
@@ -125,6 +129,7 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
   "keyword": "",
   "actor": "",
   "director": "",
+  "character": "",
   "excluded_countries": [],
   "excluded_genres": [],
   "suggested_movies": [
@@ -135,7 +140,8 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG KÈM TEXT 
       "reason": "Mô tả ngắn gọn, cụ thể về nội dung hoặc nút thắt cốt truyện của chính phim này"
     }
   ]
-}`;
+}
+`;
 }
 
 /**
@@ -148,6 +154,10 @@ export async function analyzeUserPrompt(
   const currentYear = new Date().getFullYear();
   const systemPrompt = buildSystemPrompt(currentYear);
   const typoNormalized = normalizeTypos(prompt);
+  const detectedChar = resolveCharacter(prompt);
+  const charHint = detectedChar
+    ? `, Phát hiện ý định tìm kiếm nhân vật: "${detectedChar.name}" (${detectedChar.slug})`
+    : "";
 
   let parsed: AiParsedResult | null = null;
   let provider = "Nana AI Engine";
@@ -155,7 +165,7 @@ export async function analyzeUserPrompt(
   try {
     const aiRes = await generateFastAiChat({
       systemPrompt,
-      userPrompt: `Phân tích yêu cầu tìm phim: "${prompt}" (Ý định chuẩn hóa: "${typoNormalized}"). Mốc năm hiện tại là ${currentYear}. Trả về duy nhất JSON theo đúng schema.`,
+      userPrompt: `Phân tích yêu cầu tìm phim: "${prompt}" (Ý định chuẩn hóa: "${typoNormalized}"${charHint}). Mốc năm hiện tại là ${currentYear}. Trả về duy nhất JSON theo đúng schema.`,
       temperature: 0.2,
       maxTokens: 1400,
       jsonMode: true,
@@ -166,6 +176,17 @@ export async function analyzeUserPrompt(
     if (aiRes && aiRes.text) {
       parsed = safeParseAiJson(aiRes.text);
       if (aiRes.provider) provider = aiRes.provider;
+
+      // Bảo vệ: Nếu regex đã xác định rõ ràng là nhân vật có thật trong từ điển
+      // thì TUYỆT ĐỐI KHÔNG để LLM gắn cờ is_trap sai lầm do lỗi chính tả
+      if (parsed && detectedChar) {
+        if (!parsed.character) {
+          parsed.character = detectedChar.name;
+        }
+        if (parsed.is_trap) {
+          parsed.is_trap = false;
+        }
+      }
     }
   } catch (aiErr) {
     console.warn("[aiAnalyzer] AI LLM call failed or timed out:", aiErr);

@@ -20,6 +20,7 @@ export interface MatchOptions {
   isLatest?: boolean;
   excludedCountries?: string[];
   excludedGenres?: string[];
+  expectedCharacter?: string;
 }
 
 export interface CandidateMovie {
@@ -27,6 +28,13 @@ export interface CandidateMovie {
   original_title?: string;
   year?: number;
   reason?: string;
+}
+
+export interface CharacterProfile {
+  name: string;
+  aliases: string[];
+  searchKeywords: string[];
+  defaultTitles?: string[];
 }
 
 export interface AiParsedResult {
@@ -44,6 +52,7 @@ export interface AiParsedResult {
   keyword?: string;
   actor?: string;
   director?: string;
+  character?: string;
   excluded_countries?: string[];
   excluded_genres?: string[];
   suggested_movies?: CandidateMovie[];
