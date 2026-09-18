@@ -381,7 +381,9 @@ export default async function MovieDetail({
         episodeSlug={activeEpisode?.slug}
         year={movie.year}
         quality={movie.quality}
-        category={movie.category?.[0]?.name}
+        category={movie.category?.map((c: { name?: string }) => c.name).filter(Boolean).join(", ") || movie.category?.[0]?.name}
+        country={movie.country?.[0]?.name}
+        type={movie.type}
       />
 
       <WatchController
@@ -391,7 +393,9 @@ export default async function MovieDetail({
         thumbUrl={pickBestMovieThumb(movie, "/default-hero.jpg")}
         year={movie.year}
         quality={movie.quality}
-        category={movie.category?.[0]?.name}
+        category={movie.category?.map((c: { name?: string }) => c.name).filter(Boolean).join(", ") || movie.category?.[0]?.name}
+        country={movie.country?.[0]?.name}
+        type={movie.type}
         initialServers={episodeServers}
         initialServerIndex={currentServerIndex}
         initialEpisodeSlug={activeEpisode?.slug || serverData[0]?.slug}

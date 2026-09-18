@@ -36,7 +36,7 @@ export interface ForYouPersonalizedRowProps {
   fallbackMovies?: any[];
 }
 
-const CACHE_KEY_NAME = "nanaflix_foryou_cache_v4";
+const CACHE_KEY_NAME = "nanaflix_foryou_cache_v5";
 const CACHE_TTL = 15 * 60 * 1000; // 15 phút
 
 // Danh sách fallback catalog siêu phẩm luôn sẵn sàng 0ms không cần API ngoài
@@ -264,6 +264,8 @@ export function ForYouPersonalizedRow({ fallbackMovies }: ForYouPersonalizedRowP
       category: h.category,
       country: h.country,
       type: h.type,
+      episodeName: h.episodeName,
+      episodeSlug: h.episodeSlug,
       progressSeconds: h.progressSeconds,
       durationSeconds: h.durationSeconds,
       updatedAt: h.updatedAt,

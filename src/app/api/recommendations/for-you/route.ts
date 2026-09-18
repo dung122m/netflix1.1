@@ -58,10 +58,15 @@ interface WatchHistoryInputItem {
   category?: string;
   country?: string;
   type?: string;
+  episodeName?: string;
+  episodeSlug?: string;
   progressSeconds?: number;
   durationSeconds?: number;
   updatedAt?: number;
 }
+
+export type MovieFormat = "live_action" | "animation" | "unknown";
+export type FormatPreference = "live_action_preferred" | "animation_preferred" | "mixed";
 
 interface ScoredEntity {
   slug: string;
@@ -73,6 +78,9 @@ interface UserTasteProfile {
   genres: ScoredEntity[];
   countries: ScoredEntity[];
   types: ScoredEntity[];
+  formatPreference: FormatPreference;
+  liveActionScore: number;
+  animationScore: number;
   historySlugs: Set<string>;
   isGuest: boolean;
 }
@@ -151,9 +159,20 @@ function extractCountriesFromText(text: string): Array<{ slug: string; name: str
   if (clean.includes("viet nam") || clean.includes("vietnam")) add("viet-nam");
   if (clean.includes("thai lan") || clean.includes("thailand")) add("thai-lan");
   if (clean.includes("dai loan") || clean.includes("taiwan")) add("dai-loan");
-  if (clean.includes("an do") || clean.includes("india") || clean.includes("bollywood")) add("an-do");
-  if (words.has("anh") || words.has("uk") || clean.includes("nuoc anh") || clean.includes("vuong quoc anh")) add("anh");
-  if (words.has("phap") || clean.includes("nuoc phap")) add("phap");
+  if (/(?:^|\s)an do(?:\s|$)/.test(clean) || clean.includes("india") || clean.includes("bollywood")) add("an-do");
+  // Tuyệt đối không dùng words.has("anh") vì "anh" rất phổ biến trong tiếng Việt (Anh Hùng, Điện Ảnh, Tinh Võ...)
+  if (
+    clean === "anh" ||
+    clean.includes("nuoc anh") ||
+    clean.includes("vuong quoc anh") ||
+    clean.includes("united kingdom") ||
+    clean.includes("great britain") ||
+    clean.includes("england") ||
+    words.has("uk")
+  ) {
+    add("anh");
+  }
+  if (clean === "phap" || clean.includes("nuoc phap") || clean.includes("phim phap") || clean.includes("france")) add("phap");
 
   return found;
 }
@@ -177,6 +196,117 @@ function extractTypeFromText(text: string): { slug: string; name: string } | nul
   return null;
 }
 
+// Phân loại định dạng phim (Live-action vs Hoạt hình/Anime) độc lập với Thể loại (Genre)
+function detectMovieFormat(item: {
+  type?: string;
+  category?: unknown;
+  categories?: unknown[];
+  title?: string;
+  slug?: string;
+  type_name?: string;
+  raw?: Record<string, unknown>;
+  episodeName?: string;
+  episodeSlug?: string;
+  durationSeconds?: number;
+}): MovieFormat {
+  const rawType = typeof item.raw?.type === "string" ? item.raw.type : "";
+  const typeStr = cleanText(item.type || item.type_name || rawType || "").replace(/[-_]/g, " ");
+  if (typeStr === "hoathinh" || typeStr === "hoat hinh" || typeStr === "anime") {
+    return "animation";
+  }
+  if (
+    typeStr === "phim le" ||
+    typeStr === "phim bo" ||
+    typeStr === "tv shows" ||
+    typeStr === "tv show" ||
+    typeStr === "single" ||
+    typeStr === "series" ||
+    typeStr === "phim rap"
+  ) {
+    return "live_action";
+  }
+
+  // Fallback kiểm tra category và title
+  const catNames: string[] = [];
+  if (typeof item.category === "string") catNames.push(item.category);
+  else if (Array.isArray(item.category)) {
+    for (const c of item.category) {
+      if (typeof c === "string") {
+        catNames.push(c);
+      } else if (c && typeof c === "object") {
+        const obj = c as { name?: string; slug?: string };
+        catNames.push(obj.name || obj.slug || "");
+      }
+    }
+  }
+  if (Array.isArray(item.categories)) {
+    for (const c of item.categories) {
+      if (typeof c === "string") {
+        catNames.push(c);
+      } else if (c && typeof c === "object") {
+        const obj = c as { name?: string; slug?: string };
+        catNames.push(obj.name || obj.slug || "");
+      }
+    }
+  }
+  if (Array.isArray(item.raw?.category)) {
+    for (const c of item.raw.category) {
+      if (typeof c === "string") {
+        catNames.push(c);
+      } else if (c && typeof c === "object") {
+        const obj = c as { name?: string; slug?: string };
+        catNames.push(obj.name || obj.slug || "");
+      }
+    }
+  }
+
+  const catText = cleanText(catNames.join(" "));
+  const titleText = cleanText(`${item.title || ""} ${item.slug || ""}`);
+
+  if (
+    catText.includes("hoat hinh") ||
+    catText.includes("anime") ||
+    catText.includes("manga") ||
+    titleText.includes("hoat hinh") ||
+    titleText.includes("anime")
+  ) {
+    return "animation";
+  }
+
+  if (
+    catText.includes("phim bo") ||
+    catText.includes("phim le") ||
+    catText.includes("truyen hinh") ||
+    catText.includes("tv shows") ||
+    catText.includes("chieu rap")
+  ) {
+    return "live_action";
+  }
+
+  // Tín hiệu bổ sung cho các mục lịch sử xem cũ chưa kịp lưu trường type:
+  // Nếu không chứa từ khóa hoạt hình / anime:
+  // 1. Có tập phim (episodeName / episodeSlug) hoặc thời lượng >= 30 phút (tập phim người đóng thường dài 40-90 phút)
+  const durationSec = typeof item.durationSeconds === "number" ? item.durationSeconds : 0;
+  if (durationSec >= 1800 || item.episodeName || item.episodeSlug) {
+    return "live_action";
+  }
+
+  // 2. Có các danh mục đặc trưng của phim người đóng
+  if (
+    catText.includes("chinh kich") ||
+    catText.includes("tam ly") ||
+    catText.includes("hinh su") ||
+    catText.includes("vo thuat") ||
+    catText.includes("co trang") ||
+    catText.includes("chien tranh") ||
+    catText.includes("tai lieu")
+  ) {
+    return "live_action";
+  }
+
+  return "unknown";
+}
+
 // Xây dựng UserTasteProfile đa chiều từ lịch sử xem và hồ sơ người dùng
 function buildUserTasteProfile(
   historyItems: WatchHistoryInputItem[],
@@ -189,6 +319,9 @@ function buildUserTasteProfile(
 
   const historySlugsSet = new Set<string>();
 
+  let liveActionScore = 0;
+  let animationScore = 0;
+
   // 1. Phân tích từng mục lịch sử xem (có tính Watch Depth & Recency Decay)
   const now = Date.now();
   for (const item of historyItems) {
@@ -196,21 +329,24 @@ function buildUserTasteProfile(
       historySlugsSet.add(item.slug.toLowerCase().trim());
     }
 
-    // TÍNH WATCH DEPTH
+    // TÍNH WATCH DEPTH (Khống chế chặt các lượt click xem dở vài giây)
     let engagementWeight = 1.0;
     if (item.durationSeconds && item.durationSeconds > 0 && item.progressSeconds !== undefined) {
       const ratio = item.progressSeconds / item.durationSeconds;
       if (ratio >= 0.8) {
-        engagementWeight = 2.0; // Xem trọn vẹn: tín hiệu rất mạnh
+        engagementWeight = 2.0; // >= 80% -> weight 2.0
       } else if (ratio >= 0.5) {
-        engagementWeight = 1.25; // Xem trên nửa phim
+        engagementWeight = 1.25; // >= 50% -> weight 1.25
       } else if (ratio >= 0.1) {
-        engagementWeight = 0.5; // Bỏ dở sớm
+        engagementWeight = 1.0; // 10–49% -> weight 1.0
       } else {
-        engagementWeight = 0.3;
+        engagementWeight = 0.25; // < 10% -> weight 0.25 (short click không làm lệch format)
       }
-    } else if (item.progressSeconds && item.progressSeconds > 600) {
-      engagementWeight = 1.25; // Đã xem hơn 10 phút
+    } else if (item.progressSeconds !== undefined) {
+      if (item.progressSeconds >= 3600) engagementWeight = 2.0;
+      else if (item.progressSeconds >= 1800) engagementWeight = 1.25;
+      else if (item.progressSeconds >= 300) engagementWeight = 1.0;
+      else engagementWeight = 0.25;
     }
 
     // TÍNH RECENCY DECAY
@@ -222,6 +358,14 @@ function buildUserTasteProfile(
 
     const finalItemWeight = engagementWeight * recentWeight;
 
+    // TÍNH FORMAT TỪ LỊCH SỬ XEM
+    const itemFormat = detectMovieFormat(item);
+    if (itemFormat === "live_action") {
+      liveActionScore += finalItemWeight;
+    } else if (itemFormat === "animation") {
+      animationScore += finalItemWeight;
+    }
+
     // Trích xuất tín hiệu thể loại
     const combinedText = `${item.category || ""} ${item.title || ""} ${item.slug || ""}`;
     const detectedGenres = extractGenresFromText(combinedText);
@@ -231,8 +375,22 @@ function buildUserTasteProfile(
       genreScoreMap.set(g.slug, cur);
     }
 
-    // Trích xuất tín hiệu quốc gia
-    const detectedCountries = extractCountriesFromText(`${item.country || ""} ${combinedText}`);
+    // Trích xuất tín hiệu quốc gia (ưu tiên metadata country chính thức từ catalog)
+    const detectedCountries: Array<{ slug: string; name: string }> = [];
+    if (item.country) {
+      const fromMeta = extractCountriesFromText(item.country);
+      for (const c of fromMeta) {
+        if (!detectedCountries.some((existing) => existing.slug === c.slug)) {
+          detectedCountries.push(c);
+        }
+      }
+    }
+    const fromText = extractCountriesFromText(combinedText);
+    for (const c of fromText) {
+      if (!detectedCountries.some((existing) => existing.slug === c.slug)) {
+        detectedCountries.push(c);
+      }
+    }
     for (const c of detectedCountries) {
       const cur = countryScoreMap.get(c.slug) || { name: c.name, score: 0 };
       cur.score += finalItemWeight * 1.2;
@@ -240,7 +398,8 @@ function buildUserTasteProfile(
     }
 
     // Trích xuất tín hiệu loại phim
-    const detectedType = extractTypeFromText(`${item.type || ""} ${combinedText}`);
+    const typeSource = `${item.type || ""} ${item.episodeName || ""} ${item.episodeSlug || ""} ${combinedText}`;
+    const detectedType = extractTypeFromText(typeSource);
     if (detectedType) {
       const cur = typeScoreMap.get(detectedType.slug) || { name: detectedType.name, score: 0 };
       cur.score += finalItemWeight * 1.0;
@@ -283,12 +442,29 @@ function buildUserTasteProfile(
   const topCountries = normalizeList(countryScoreMap, 2);
   const topTypes = normalizeList(typeScoreMap, 2);
 
+  // 4. XÁC ĐỊNH FORMAT PREFERENCE CỦA NGƯỜI DÙNG
+  const totalFormatWeight = liveActionScore + animationScore;
+  let formatPreference: FormatPreference = "mixed";
+  if (totalFormatWeight >= 0.5) {
+    const animationRatio = animationScore / totalFormatWeight;
+    if (animationRatio < 0.25) {
+      formatPreference = "live_action_preferred";
+    } else if (animationRatio >= 0.45) {
+      formatPreference = "animation_preferred";
+    } else {
+      formatPreference = "mixed";
+    }
+  }
+
   const isGuest = topGenres.length === 0 && historySlugsSet.size === 0;
 
   return {
     genres: topGenres,
     countries: topCountries,
     types: topTypes,
+    formatPreference,
+    liveActionScore: Math.round(liveActionScore * 100) / 100,
+    animationScore: Math.round(animationScore * 100) / 100,
     historySlugs: historySlugsSet,
     isGuest,
   };
@@ -350,6 +526,7 @@ export async function POST(req: NextRequest) {
       ...profile.genres.map((g) => g.slug),
       ...profile.countries.map((c) => c.slug),
       ...profile.types.map((t) => t.slug),
+      profile.formatPreference,
     ];
     const tasteHash = tasteKeyParts.length > 0 ? tasteKeyParts.join("-") : `guest-${seed % 5}`;
     const pageOffset = (seed % 4) + 1;
@@ -638,43 +815,120 @@ export async function POST(req: NextRequest) {
       }
       score += recencyScore;
 
-      // 6. MATCH PERCENTAGE MỚI: clamp(round(70 + (score / 100) * 28), 72, 98)
-      const matchPercentage = Math.min(98, Math.max(72, Math.round(70 + (score / 100) * 28)));
+      // 6. FORMAT ADJUSTMENT (-25 -> +15)
+      const candidateFormat = detectMovieFormat({
+        type: norm.raw?.type || norm.type,
+        type_name: norm.type_name,
+        category: norm.raw?.category,
+        categories: norm.categories,
+        title: norm.title,
+        slug: norm.slug,
+        raw: norm.raw,
+      });
 
-      // 7. TẠO MATCH REASON CHÂN THỰC
+      let formatAdjustment = 0;
+      if (profile.formatPreference === "live_action_preferred") {
+        if (candidateFormat === "animation") {
+          formatAdjustment = -25;
+        } else if (candidateFormat === "live_action") {
+          formatAdjustment = 5;
+        }
+      } else if (profile.formatPreference === "animation_preferred") {
+        if (candidateFormat === "animation") {
+          formatAdjustment = 15;
+        } else if (candidateFormat === "live_action") {
+          formatAdjustment = -5;
+        }
+      }
+      score += formatAdjustment;
+
+      // 7. MATCH PERCENTAGE PHẢN ÁNH ĐIỂM TỔNG & FORMAT: clamp(round(70 + (score / 100) * 28), 72, 98)
+      const matchPercentage = Math.min(
+        98,
+        Math.max(72, Math.round(70 + (Math.max(0, score) / 100) * 28))
+      );
+
+      // 8. TẠO MATCH REASON CHÂN THỰC (ĐÚNG TÍN HIỆU THỰC TẾ, KHÔNG TỰ BỊA "BẠN THÍCH HOẠT HÌNH")
       let matchReason = "Siêu phẩm thịnh hành được đánh giá cao";
       if (!profile.isGuest) {
-        if (matchedTopGenre && matchedCountryName && matchedTypeName) {
-          matchReason = `Phù hợp với gu ${topGenre.name}, phim ${matchedCountryName} và ${matchedTypeName} của bạn`;
-        } else if (matchedTopGenre && matchedCountryName) {
-          matchReason = `Phù hợp với gu phim ${matchedCountryName} và ${topGenre.name} của bạn`;
-        } else if (matchedTopGenre && (matchedSecondGenre || matchedThirdGenre)) {
-          const secondName = matchedSecondGenre ? secondGenre?.name : thirdGenre?.name;
-          matchReason = `Kết hợp giữa ${topGenre.name} & ${secondName} đúng sở thích`;
-        } else if (matchedTopGenre) {
-          matchReason = `Cùng thể loại ${topGenre.name} mà bạn thường xem`;
-        } else if (matchedSecondGenre && matchedCountryName) {
-          matchReason = `Mang màu sắc ${matchedCountryName} và thể loại ${secondGenre?.name} mà bạn cũng hay xem`;
-        } else if (matchedSecondGenre) {
-          matchReason = `Thuộc thể loại ${secondGenre?.name} mà bạn thỉnh thoảng xem`;
-        } else if (matchedThirdGenre) {
-          matchReason = `Thuộc thể loại ${thirdGenre?.name} trong sở thích của bạn`;
-        } else if (matchedCountryName) {
-          matchReason = `Tác phẩm phim ${matchedCountryName} nổi bật được quan tâm gần đây`;
+        if (profile.formatPreference === "live_action_preferred" && candidateFormat === "live_action") {
+          if (matchedTopGenre && matchedCountryName) {
+            matchReason = `Phù hợp với gu ${topGenre.name}, phim ${matchedCountryName} và ưu tiên phim người đóng của bạn`;
+          } else if (matchedTopGenre) {
+            matchReason = `Khớp gu ${topGenre.name} và ưu tiên phim người đóng của bạn`;
+          } else if (matchedSecondGenre) {
+            matchReason = `Phim người đóng thể loại ${secondGenre.name} phù hợp với bạn`;
+          } else if (matchedCountryName) {
+            matchReason = `Phim ${matchedCountryName} người đóng thịnh hành dành cho bạn`;
+          } else {
+            matchReason = "Phim người đóng thịnh hành phù hợp với bạn";
+          }
+        } else if (candidateFormat === "animation") {
+          if (profile.formatPreference === "animation_preferred") {
+            if (matchedTopGenre) {
+              matchReason = `Hoạt hình/Anime thể loại ${topGenre.name} chuẩn gu của bạn`;
+            } else {
+              matchReason = "Khớp dòng hoạt hình/anime bạn yêu thích";
+            }
+          } else if (profile.formatPreference === "live_action_preferred") {
+            if (matchedTopGenre) {
+              matchReason = `Tác phẩm hoạt hình thể loại ${topGenre.name} có thể bạn muốn đổi gió`;
+            } else {
+              matchReason = "Tác phẩm hoạt hình thịnh hành";
+            }
+          } else {
+            // Mixed
+            if (matchedTopGenre) {
+              matchReason = `Hoạt hình/Anime ${topGenre.name} dựa trên lịch sử xem của bạn`;
+            } else {
+              matchReason = "Khớp dòng hoạt hình/anime bạn từng xem";
+            }
+          }
         } else {
-          matchReason = "Bộ phim thịnh hành có thể bạn sẽ quan tâm";
+          // Live action or unknown with mixed preference
+          if (matchedTopGenre && matchedCountryName && matchedTypeName) {
+            matchReason = `Phù hợp với gu ${topGenre.name}, phim ${matchedCountryName} và ${matchedTypeName} của bạn`;
+          } else if (matchedTopGenre && matchedCountryName) {
+            matchReason = `Phù hợp với gu phim ${matchedCountryName} và ${topGenre.name} của bạn`;
+          } else if (matchedTopGenre && (matchedSecondGenre || matchedThirdGenre)) {
+            const secondName = matchedSecondGenre ? secondGenre?.name : thirdGenre?.name;
+            matchReason = `Kết hợp giữa ${topGenre.name} & ${secondName} đúng sở thích`;
+          } else if (matchedTopGenre) {
+            matchReason = `Cùng thể loại ${topGenre.name} mà bạn thường xem`;
+          } else if (matchedSecondGenre && matchedCountryName) {
+            matchReason = `Mang màu sắc ${matchedCountryName} và thể loại ${secondGenre?.name} mà bạn cũng hay xem`;
+          } else if (matchedSecondGenre) {
+            matchReason = `Thuộc thể loại ${secondGenre?.name} mà bạn thỉnh thoảng xem`;
+          } else if (matchedThirdGenre) {
+            matchReason = `Thuộc thể loại ${thirdGenre?.name} trong sở thích của bạn`;
+          } else if (matchedCountryName) {
+            matchReason = `Tác phẩm phim ${matchedCountryName} nổi bật được quan tâm gần đây`;
+          } else {
+            matchReason = "Bộ phim thịnh hành có thể bạn sẽ quan tâm";
+          }
         }
       }
 
-      // Xác định thể loại hiển thị ưu tiên
+      // 9. GENRE HIỂN THỊ TRÊN CARD (GIỮ NGUYÊN METADATA THẬT CỦA CANDIDATE)
+      // Tuyệt đối KHÔNG dùng displayGenreName = topGenre.name để ghi đè thể loại gốc
       let displayGenreName = norm.genre || "Đề Xuất";
-      if (matchedTopGenre && topGenre) displayGenreName = topGenre.name;
-      else if (matchedSecondGenre && secondGenre) displayGenreName = secondGenre.name;
-      else if (matchedThirdGenre && thirdGenre) displayGenreName = thirdGenre.name;
+      if (candidateFormat === "animation") {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const hasHoatHinhCat = norm.categories?.some((c: any) =>
+          c.name?.toLowerCase().includes("hoạt hình")
+        );
+        if (hasHoatHinhCat || norm.type_name === "Hoạt hình") {
+          displayGenreName = "Hoạt Hình";
+        }
+      }
 
       return {
         norm,
         score,
+        genreScore,
+        countryScore,
+        candidateFormat,
+        formatAdjustment,
         matchPercentage,
         matchReason,
         displayGenreName,
@@ -684,6 +938,34 @@ export async function POST(req: NextRequest) {
     // Sắp xếp ứng viên theo điểm số giảm dần
     scoredCandidates.sort((a, b) => b.score - a.score);
 
+    // LOGGING DEV (Chỉ log server-side trong development để audit)
+    if (process.env.NODE_ENV !== "production") {
+      console.log("[for-you recommendations] Taste Profile:", {
+        topGenres: profile.genres.map((g) => `${g.name} (${g.score})`),
+        topCountries: profile.countries.map((c) => `${c.name} (${c.score})`),
+        topTypes: profile.types.map((t) => `${t.name} (${t.score})`),
+        formatPreference: profile.formatPreference,
+        liveActionScore: profile.liveActionScore,
+        animationScore: profile.animationScore,
+      });
+
+      if (scoredCandidates.length > 0) {
+        console.log(
+          "[for-you recommendations] Candidates sample:",
+          scoredCandidates.slice(0, 8).map((c) => ({
+            title: c.norm.title,
+            format: c.candidateFormat,
+            genreScore: c.genreScore,
+            countryScore: c.countryScore,
+            formatAdj: c.formatAdjustment,
+            finalScore: c.score,
+            matchPercentage: c.matchPercentage,
+            displayGenre: c.displayGenreName,
+          }))
+        );
+      }
+    }
+
     // 6. DIVERSITY RE-RANKING (CHỐNG LẶP THỂ LOẠI / QUỐC GIA LIÊN TIẾP)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const selectedFinalMovies: any[] = [];
@@ -691,14 +973,14 @@ export async function POST(req: NextRequest) {
     let lastGenre = "";
 
     while (remainingCandidates.length > 0 && selectedFinalMovies.length < 16) {
-      // Tìm ứng viên có điểm cao nhất nhưng không trùng lặp liên tiếp thể loại
+      // Tìm ứng viên có điểm cao nhất nhưng không trùng lặp liên tiếp thể loại hiển thị
       let pickIdx = remainingCandidates.findIndex(
-        (c) => (c.norm.genre || "") !== lastGenre
+        (c) => (c.displayGenreName || c.norm.genre || "") !== lastGenre
       );
       if (pickIdx === -1) pickIdx = 0;
 
       const [picked] = remainingCandidates.splice(pickIdx, 1);
-      lastGenre = picked.norm.genre || "";
+      lastGenre = picked.displayGenreName || picked.norm.genre || "";
 
       selectedFinalMovies.push({
         slug: picked.norm.slug,

@@ -60,6 +60,8 @@ interface WatchControllerProps {
   year?: number | string;
   quality?: string;
   category?: string;
+  country?: string;
+  type?: string;
   initialServers: EpisodeServer[];
   initialServerIndex?: number;
   initialEpisodeSlug?: string;
@@ -75,6 +77,8 @@ export function WatchController({
   year,
   quality,
   category,
+  country,
+  type,
   initialServers,
   initialServerIndex = 0,
   initialEpisodeSlug,
@@ -199,6 +203,8 @@ export function WatchController({
           year,
           quality,
           category,
+          country,
+          type,
         });
       }
     },
@@ -213,6 +219,8 @@ export function WatchController({
       year,
       quality,
       category,
+      country,
+      type,
       updateUrlQuietly,
     ]
   );

@@ -13,6 +13,8 @@ interface TrackHistoryClientProps {
   year?: number | string;
   quality?: string;
   category?: string;
+  country?: string;
+  type?: string;
 }
 
 export default function TrackHistoryClient({
@@ -25,6 +27,8 @@ export default function TrackHistoryClient({
   year,
   quality,
   category,
+  country,
+  type,
 }: TrackHistoryClientProps) {
   useEffect(() => {
     if (slug) {
@@ -38,9 +42,11 @@ export default function TrackHistoryClient({
         year,
         quality,
         category,
+        country,
+        type,
       });
     }
-  }, [slug, title, poster, thumb, episodeName, episodeSlug, year, quality, category]);
+  }, [slug, title, poster, thumb, episodeName, episodeSlug, year, quality, category, country, type]);
 
   return null;
 }
