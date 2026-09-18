@@ -129,6 +129,15 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const lastProgressSaveRef = useRef<number>(0);
+  const pendingKeyboardSeekRef = useRef<{
+    targetTime: number;
+    totalDelta: number;
+    timer: NodeJS.Timeout | null;
+  }>({
+    targetTime: 0,
+    totalDelta: 0,
+    timer: null,
+  });
 
   const [isMobile, setIsMobile] = useState(false);
   const [isScrolledPast, setIsScrolledPast] = useState(false);
@@ -574,8 +583,8 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         lowLatencyMode: false,
         capLevelToPlayerSize: true,
         maxBufferSize: 60 * 1000 * 1000,
-        maxBufferLength: 25,
-        maxMaxBufferLength: 50,
+        maxBufferLength: 60,
+        maxMaxBufferLength: 90,
         backBufferLength: 60,
         startPosition: targetProgress > 0 ? targetProgress : -1,
         startLevel: -1,
@@ -661,17 +670,16 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       video.addEventListener("loadeddata", onLoadedData);
       video.addEventListener("playing", onPlaying);
 
-      [100, 300, 600, 1000, 1800, 3000].forEach((ms) => {
-        seekTimeouts.push(
-          setTimeout(() => {
-            if (!hasSeekedInitialRef.current && targetProgress > 0 && videoRef.current) {
-              if (videoRef.current.currentTime < 4 || Math.abs(videoRef.current.currentTime - targetProgress) > 2) {
-                trySeekToTarget();
-              }
+      // Fallback seek duy nhất sau khi player đã sẵn sàng nếu startPosition chưa khớp
+      seekTimeouts.push(
+        setTimeout(() => {
+          if (!hasSeekedInitialRef.current && targetProgress > 0 && videoRef.current) {
+            if (videoRef.current.currentTime < 4 || Math.abs(videoRef.current.currentTime - targetProgress) > 2) {
+              trySeekToTarget();
             }
-          }, ms)
-        );
-      });
+          }
+        }, 1500)
+      );
 
       let retryCount = 0;
       let mediaRetryCount = 0;
@@ -727,15 +735,14 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       video.addEventListener("loadedmetadata", onLoaded);
       video.addEventListener("error", onNativeError);
 
-      [100, 300, 600, 1200, 2000].forEach((ms) => {
-        seekTimeouts.push(
-          setTimeout(() => {
-            if (!hasSeekedInitialRef.current && targetProgress > 0 && videoRef.current) {
-              trySeekToTarget();
-            }
-          }, ms)
-        );
-      });
+      // Fallback seek duy nhất cho Native Safari
+      seekTimeouts.push(
+        setTimeout(() => {
+          if (!hasSeekedInitialRef.current && targetProgress > 0 && videoRef.current) {
+            trySeekToTarget();
+          }
+        }, 1000)
+      );
 
       return () => {
         video.removeEventListener("loadedmetadata", onLoaded);
@@ -891,6 +898,8 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
 
   // Global Keyboard shortcuts
   useEffect(() => {
+    const pendingSeek = pendingKeyboardSeekRef.current;
+
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
       const isInput =
@@ -911,19 +920,41 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         toggleFullscreen();
         return;
       }
-      if (e.key === "ArrowRight") {
+      if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
         e.preventDefault();
         if (isNativeVideo && videoRef.current) {
-          videoRef.current.currentTime = (videoRef.current.currentTime || 0) + 10;
-          showHud(<SkipForward className="w-5 h-5 text-netflix-red fill-current" />, "Tua tới +10s");
-        }
-        return;
-      }
-      if (e.key === "ArrowLeft") {
-        e.preventDefault();
-        if (isNativeVideo && videoRef.current) {
-          videoRef.current.currentTime = Math.max(0, videoRef.current.currentTime - 10);
-          showHud(<SkipBack className="w-5 h-5 text-netflix-red fill-current" />, "Tua lùi -10s");
+          const delta = e.key === "ArrowRight" ? 10 : -10;
+          const v = videoRef.current;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const effectiveDuration = knownDuration || (v as any).__hlsDuration || (v.duration && isFinite(v.duration) ? v.duration : 0);
+
+          const baseTime = pendingKeyboardSeekRef.current.timer !== null
+            ? pendingKeyboardSeekRef.current.targetTime
+            : (v.currentTime || 0);
+
+          const newTarget = Math.max(0, effectiveDuration > 0 ? Math.min(effectiveDuration, baseTime + delta) : baseTime + delta);
+          const newTotalDelta = (pendingKeyboardSeekRef.current.timer !== null ? pendingKeyboardSeekRef.current.totalDelta : 0) + delta;
+
+          pendingKeyboardSeekRef.current.targetTime = newTarget;
+          pendingKeyboardSeekRef.current.totalDelta = newTotalDelta;
+
+          if (newTotalDelta > 0) {
+            showHud(<SkipForward className="w-5 h-5 text-netflix-red fill-current" />, `Tua tới +${newTotalDelta}s`);
+          } else {
+            showHud(<SkipBack className="w-5 h-5 text-netflix-red fill-current" />, `Tua lùi ${newTotalDelta}s`);
+          }
+
+          if (pendingKeyboardSeekRef.current.timer) {
+            clearTimeout(pendingKeyboardSeekRef.current.timer);
+          }
+
+          pendingKeyboardSeekRef.current.timer = setTimeout(() => {
+            if (videoRef.current) {
+              videoRef.current.currentTime = pendingKeyboardSeekRef.current.targetTime;
+            }
+            pendingKeyboardSeekRef.current.timer = null;
+            pendingKeyboardSeekRef.current.totalDelta = 0;
+          }, 250);
         }
         return;
       }
@@ -966,7 +997,12 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     };
 
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    return () => {
+      if (pendingSeek.timer) {
+        clearTimeout(pendingSeek.timer);
+      }
+      window.removeEventListener("keydown", handleKeyDown);
+    };
   }, [
     isNativeVideo,
     prevEpisode,
@@ -975,6 +1011,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     togglePlayPause,
     toggleFullscreen,
     showHud,
+    knownDuration,
   ]);
 
   const scrollToPlayer = useCallback(() => {

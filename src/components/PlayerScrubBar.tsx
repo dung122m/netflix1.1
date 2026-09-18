@@ -35,6 +35,8 @@ export const PlayerScrubBar: React.FC<PlayerScrubBarProps> = ({
 
   const barRef = useRef<HTMLDivElement>(null);
   const durationRef = useRef<number>(duration);
+  const isScrubbingRef = useRef<boolean>(false);
+  const scrubTargetTimeRef = useRef<number | null>(null);
 
   // Đồng bộ durationRef
   useEffect(() => {
@@ -77,7 +79,7 @@ export const PlayerScrubBar: React.FC<PlayerScrubBarProps> = ({
     };
 
     const handleTimeUpdate = () => {
-      if (!isScrubbing) {
+      if (!isScrubbingRef.current) {
         setCurrentTime(video.currentTime || 0);
       }
       updateDur();
@@ -110,25 +112,25 @@ export const PlayerScrubBar: React.FC<PlayerScrubBarProps> = ({
       video.removeEventListener("durationchange", handleLoadedMetadata);
       video.removeEventListener("canplay", handleLoadedMetadata);
     };
-  }, [videoRef, isNativeVideo, isScrubbing, knownDuration]);
+  }, [videoRef, isNativeVideo, knownDuration]);
 
-  const seekToPosition = useCallback(
-    (clientX: number) => {
-      if (!barRef.current || !videoRef.current || !duration) return;
-      const rect = barRef.current.getBoundingClientRect();
-      const pos = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-      const targetTime = pos * duration;
-      videoRef.current.currentTime = targetTime;
-      setCurrentTime(targetTime);
-      onSeekFeedback?.(formatTime(targetTime));
-    },
-    [duration, onSeekFeedback, videoRef]
-  );
+  const getTimeAtClientX = useCallback((clientX: number) => {
+    if (!barRef.current || !durationRef.current) return 0;
+    const rect = barRef.current.getBoundingClientRect();
+    if (rect.width <= 0) return 0;
+    const pos = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    return pos * durationRef.current;
+  }, []);
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0 && e.pointerType === "mouse") return;
+    isScrubbingRef.current = true;
     setIsScrubbing(true);
-    seekToPosition(e.clientX);
+
+    const targetTime = getTimeAtClientX(e.clientX);
+    scrubTargetTimeRef.current = targetTime;
+    setCurrentTime(targetTime);
+    onSeekFeedback?.(formatTime(targetTime));
 
     const target = e.currentTarget;
     try {
@@ -136,14 +138,28 @@ export const PlayerScrubBar: React.FC<PlayerScrubBarProps> = ({
     } catch {}
 
     const handlePointerMove = (moveEvent: PointerEvent) => {
-      seekToPosition(moveEvent.clientX);
+      if (!isScrubbingRef.current) return;
+      const nextTime = getTimeAtClientX(moveEvent.clientX);
+      scrubTargetTimeRef.current = nextTime;
+      setCurrentTime(nextTime);
+      onSeekFeedback?.(formatTime(nextTime));
     };
 
     const handlePointerUp = (upEvent: PointerEvent) => {
+      isScrubbingRef.current = false;
       setIsScrubbing(false);
+
+      if (scrubTargetTimeRef.current !== null && videoRef.current) {
+        const finalTime = scrubTargetTimeRef.current;
+        videoRef.current.currentTime = finalTime;
+        setCurrentTime(finalTime);
+        scrubTargetTimeRef.current = null;
+      }
+
       try {
         target.releasePointerCapture(upEvent.pointerId);
       } catch {}
+
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("pointerup", handlePointerUp);
       window.removeEventListener("pointercancel", handlePointerUp);
@@ -191,7 +207,11 @@ export const PlayerScrubBar: React.FC<PlayerScrubBarProps> = ({
             className="absolute top-0 left-0 bottom-0 bg-netflix-red rounded-full flex items-center justify-end"
             style={{ width: `${playedPercent}%` }}
           >
-            <div className="w-3.5 h-3.5 rounded-full bg-white shadow-md scale-0 group-hover/bar:scale-100 transition-transform" />
+            <div
+              className={`w-3.5 h-3.5 rounded-full bg-white shadow-md transition-transform ${
+                isScrubbing ? "scale-100" : "scale-0 group-hover/bar:scale-100"
+              }`}
+            />
           </div>
 
           {/* Hover preview tooltip */}

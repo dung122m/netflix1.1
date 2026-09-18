@@ -200,6 +200,12 @@ export function LiveTvClient({
     text?: string;
   } | null>(null);
 
+  // Trạng thái đồng bộ Live Edge
+  const [isAtLiveEdge, setIsAtLiveEdge] = useState<boolean>(true);
+  const [liveLatency, setLiveLatency] = useState<number>(0);
+  const pendingSeekTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const pendingSeekDeltaRef = useRef<number>(0);
+
   useEffect(() => {
     if (showChannelRail && activeTvChannelRef.current) {
       activeTvChannelRef.current.scrollIntoView({
@@ -407,17 +413,21 @@ export function LiveTvClient({
     }, 3500);
   }, [isPlaying]);
 
-  // Đồng bộ trạng thái tab (khi chuyển tab Bóng Đá <-> TV)
+  // Xử lý khi tab thay đổi (isActive true/false) hoặc minimize tab - Cleanup triệt để tránh rò rỉ RAM
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
     if (!isActive) {
       video.pause();
+      video.removeAttribute("src");
+      video.load();
       setIsPlaying(false);
       if (hlsRef.current) {
-        hlsRef.current.stopLoad();
+        hlsRef.current.destroy();
+        hlsRef.current = null;
       }
+      lastLoadedUrlRef.current = "";
       if (
         typeof document !== "undefined" &&
         document.pictureInPictureElement === video
@@ -425,23 +435,43 @@ export function LiveTvClient({
         document.exitPictureInPicture().catch(() => {});
         setIsPip(false);
       }
-    } else {
-      if (hlsRef.current) {
-        hlsRef.current.startLoad();
-      }
-      if (!userPausedRef.current) {
-        video
-          .play()
-          .then(() => setIsPlaying(true))
-          .catch(() => {});
-      }
     }
   }, [isActive]);
 
-  // Khởi tạo luồng phát HLS với Proxy + Auto-Fallback + Low Latency Engine
+  // Bắt sự kiện timeupdate để phát hiện độ trễ so với Live Edge
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || !selectedChannel?.url) return;
+    if (!video) return;
+
+    const handleTimeUpdate = () => {
+      const hls = hlsRef.current;
+      if (
+        hls &&
+        hls.liveSyncPosition &&
+        Number.isFinite(hls.liveSyncPosition)
+      ) {
+        const drift = Math.max(
+          0,
+          Math.round(hls.liveSyncPosition - video.currentTime),
+        );
+        setLiveLatency(drift);
+        setIsAtLiveEdge(drift <= 15);
+      } else {
+        setIsAtLiveEdge(true);
+        setLiveLatency(0);
+      }
+    };
+
+    video.addEventListener("timeupdate", handleTimeUpdate);
+    return () => {
+      video.removeEventListener("timeupdate", handleTimeUpdate);
+    };
+  }, []);
+
+  // Khởi tạo luồng phát HLS với Proxy + Auto-Fallback + Low Latency Engine + Auto ABR
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !selectedChannel?.url || !isActive) return;
 
     const primaryUrl = getStreamUrl(selectedChannel.url);
 
@@ -474,19 +504,23 @@ export function LiveTvClient({
         const hls = new Hls({
           enableWorker: true,
           lowLatencyMode: true,
-          maxBufferLength: 30,
-          maxMaxBufferLength: 60,
-          maxBufferSize: 60 * 1000 * 1000,
           liveSyncDurationCount: 3,
-          liveMaxLatencyDurationCount: 8,
-          backBufferLength: 30,
+          liveMaxLatencyDurationCount: 6,
+          backBufferLength: 20,
+          maxBufferLength: 15,
+          maxMaxBufferLength: 30,
+          maxBufferSize: 30 * 1000 * 1000,
+          abrEwmaDefaultEstimate: 5_000_000,
+          capLevelToPlayerSize: false,
+          startLevel: -1,
           manifestLoadingTimeOut: 10000,
           levelLoadingTimeOut: 10000,
           fragLoadingTimeOut: 10000,
-          fragLoadingMaxRetry: 4,
-          levelLoadingMaxRetry: 4,
-          manifestLoadingMaxRetry: 4,
-          capLevelToPlayerSize: false,
+          fragLoadingMaxRetry: 6,
+          levelLoadingMaxRetry: 6,
+          manifestLoadingMaxRetry: 6,
+          fragLoadingMaxRetryTimeout: 1000,
+          levelLoadingMaxRetryTimeout: 1000,
           xhrSetup: (xhr) => {
             xhr.withCredentials = false;
           },
@@ -511,22 +545,12 @@ export function LiveTvClient({
           );
         }, 12000);
 
-        hls.on(Hls.Events.MANIFEST_PARSED, (_, data) => {
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
           if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
-          if (data.levels && data.levels.length > 0) {
-            let highestIdx = 0;
-            let maxScore = 0;
-            data.levels.forEach((lvl, idx) => {
-              const score = (lvl.height || 0) * 1000000 + (lvl.bitrate || 0);
-              if (score > maxScore) {
-                maxScore = score;
-                highestIdx = idx;
-              }
-            });
-            hls.currentLevel = highestIdx;
-            hls.loadLevel = highestIdx;
-            hls.nextLevel = highestIdx;
-          }
+          // Cho phép hls.js tự chọn chất lượng ABR thích ứng, không khóa cứng level cao nhất
+          hls.currentLevel = -1;
+          hls.loadLevel = -1;
+          hls.nextLevel = -1;
           setIsLoading(false);
           setHasError(false);
           video.volume = volumeRef.current || 0.9;
@@ -555,10 +579,30 @@ export function LiveTvClient({
         });
 
         let hasTriedProxy = sourceUrl.includes("/api/live-tv/proxy");
+        let networkRetryCount = 0;
 
         hls.on(Hls.Events.ERROR, (_, data) => {
           if (data.fatal) {
             if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+              // Nếu tụt xa khỏi sliding window dẫn đến lỗi segment, thử recover về live edge trước khi coi là chết stream
+              if (
+                videoRef.current &&
+                hls.liveSyncPosition &&
+                Number.isFinite(hls.liveSyncPosition) &&
+                hls.liveSyncPosition - videoRef.current.currentTime > 15
+              ) {
+                videoRef.current.currentTime = hls.liveSyncPosition;
+                setIsAtLiveEdge(true);
+                hls.startLoad();
+                return;
+              }
+
+              networkRetryCount += 1;
+              if (networkRetryCount <= 2) {
+                hls.startLoad();
+                return;
+              }
+
               if (!hasTriedProxy && sourceUrl.startsWith("https://")) {
                 hasTriedProxy = true;
                 startHls(`/api/live-tv/proxy?url=${encodeURIComponent(sourceUrl)}`);
@@ -635,10 +679,32 @@ export function LiveTvClient({
         hlsRef.current.destroy();
         hlsRef.current = null;
       }
+      if (video) {
+        video.pause();
+        video.removeAttribute("src");
+        video.load();
+      }
     };
   }, [selectedChannel, isActive]);
 
-  // Điều khiển Play / Pause
+  // Hành động nhảy về Live Edge (một lần click)
+  const goToLiveEdge = useCallback(() => {
+    const video = videoRef.current;
+    const hls = hlsRef.current;
+    if (!video) return;
+
+    if (hls && hls.liveSyncPosition && Number.isFinite(hls.liveSyncPosition)) {
+      video.currentTime = hls.liveSyncPosition;
+      setIsAtLiveEdge(true);
+      setLiveLatency(0);
+      triggerActionFeedback("seek", "VỀ LIVE");
+      if (video.paused && !userPausedRef.current) {
+        video.play().catch(() => {});
+      }
+    }
+  }, [triggerActionFeedback]);
+
+  // Điều khiển Play / Pause có kiểm tra Live Edge khi Resume
   const togglePlay = useCallback(() => {
     if (!videoRef.current) return;
     if (isPlaying) {
@@ -649,6 +715,20 @@ export function LiveTvClient({
       triggerActionFeedback("pause");
     } else {
       userPausedRef.current = false;
+      // Nếu user pause lâu (>20s) và stream bị tụt, tự bắt lại liveSyncPosition trước khi play
+      if (videoRef.current) {
+        const hls = hlsRef.current;
+        if (
+          hls &&
+          hls.liveSyncPosition &&
+          Number.isFinite(hls.liveSyncPosition) &&
+          hls.liveSyncPosition - videoRef.current.currentTime > 20
+        ) {
+          videoRef.current.currentTime = hls.liveSyncPosition;
+          setIsAtLiveEdge(true);
+          setLiveLatency(0);
+        }
+      }
       videoRef.current
         .play()
         .then(() => setIsPlaying(true))
@@ -940,21 +1020,33 @@ export function LiveTvClient({
     [filteredChannels, channels, selectedChannel, handleSelectChannel],
   );
 
-  // Tua thời gian (Seek ±5s)
+  // Tua thời gian (Seek ±5s có gom nhóm 250ms tránh spam request lên CDN)
   const handleSeek = useCallback(
     (seconds: number) => {
       const video = videoRef.current;
       if (!video) return;
-      try {
-        const newTime = Math.max(0, video.currentTime + seconds);
-        video.currentTime = newTime;
-        triggerActionFeedback(
-          "seek",
-          seconds > 0 ? `+${seconds}s ⏩` : `${seconds}s ⏪`,
-        );
-      } catch (err) {
-        console.warn("Seek error:", err);
+
+      pendingSeekDeltaRef.current += seconds;
+      const totalDelta = pendingSeekDeltaRef.current;
+      triggerActionFeedback(
+        "seek",
+        totalDelta > 0 ? `+${totalDelta}s ⏩` : `${totalDelta}s ⏪`,
+      );
+
+      if (pendingSeekTimerRef.current) {
+        clearTimeout(pendingSeekTimerRef.current);
       }
+
+      pendingSeekTimerRef.current = setTimeout(() => {
+        const delta = pendingSeekDeltaRef.current;
+        pendingSeekDeltaRef.current = 0;
+        try {
+          const newTime = Math.max(0, video.currentTime + delta);
+          video.currentTime = newTime;
+        } catch (err) {
+          console.warn("Seek error:", err);
+        }
+      }, 250);
     },
     [triggerActionFeedback],
   );
@@ -1392,6 +1484,26 @@ export function LiveTvClient({
                   )}
                 </button>
 
+                {/* NÚT VỀ LIVE EDGE (KHI BỊ TRỄ > 15S) HOẶC HUY HIỆU LIVE */}
+                {!isAtLiveEdge && liveLatency > 15 ? (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      goToLiveEdge();
+                    }}
+                    title="Bấm để nhảy về thời điểm phát sóng trực tiếp"
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[11px] font-bold transition hover:scale-105 active:scale-95 cursor-pointer flex-shrink-0"
+                  >
+                    <RotateCcw className="w-3 h-3 animate-spin" style={{ animationDuration: "3s" }} />
+                    <span>VỀ LIVE (-{liveLatency}s)</span>
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-netflix-red/20 border border-netflix-red/40 text-netflix-red text-[11px] font-black flex-shrink-0">
+                    <span className="w-1.5 h-1.5 rounded-full bg-netflix-red animate-ping" />
+                    <span>TRỰC TIẾP</span>
+                  </div>
+                )}
 
                 {/* CỤM VOLUME TRÊN MOBILE (Chỉ hiện nút Mute) */}
                 <button

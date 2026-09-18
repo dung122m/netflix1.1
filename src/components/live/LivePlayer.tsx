@@ -27,6 +27,7 @@ import {
   Search,
   X,
   List,
+  RotateCcw,
 } from "lucide-react";
 import { FootballMatch, StreamServer } from "@/services/liveFootballService";
 import { useMatchReminders } from "@/hooks/useMatchReminders";
@@ -144,6 +145,12 @@ function LivePlayerInner({
     icon: "play" | "pause" | "volume" | "mute" | "server" | "match" | "seek";
     text?: string;
   } | null>(null);
+
+  // Trạng thái đồng bộ Live Edge
+  const [isAtLiveEdge, setIsAtLiveEdge] = useState<boolean>(true);
+  const [liveLatency, setLiveLatency] = useState<number>(0);
+  const pendingSeekTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const pendingSeekDeltaRef = useRef<number>(0);
 
   // Trạng thái drawer danh sách kênh & trận đấu (như bên Truyền hình)
   const [internalMatchRail, setInternalMatchRail] = useState(false);
@@ -346,17 +353,21 @@ function LivePlayerInner({
     }, 3500);
   }, [isPlaying]);
 
-  // Xử lý khi tab thay đổi (isActive true/false) hoặc minimize tab
+  // Xử lý khi tab thay đổi (isActive true/false) hoặc minimize tab - Cleanup triệt để tránh rò rỉ RAM
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
     if (!isActive) {
       video.pause();
+      video.removeAttribute("src");
+      video.load();
       setIsPlaying(false);
       if (hlsRef.current) {
-        hlsRef.current.stopLoad();
+        hlsRef.current.destroy();
+        hlsRef.current = null;
       }
+      lastLoadedUrlRef.current = "";
       if (
         typeof document !== "undefined" &&
         document.pictureInPictureElement === video
@@ -364,23 +375,35 @@ function LivePlayerInner({
         document.exitPictureInPicture().catch(() => {});
         setIsPip(false);
       }
-    } else {
-      if (hlsRef.current) {
-        hlsRef.current.startLoad();
-      }
-      if (!userPausedRef.current) {
-        video
-          .play()
-          .then(() => setIsPlaying(true))
-          .catch(() => {});
-      }
     }
   }, [isActive]);
 
-  // Khởi tạo luồng phát HLS tối ưu độ trễ thấp (Ultra Low Latency) + Auto Recovery
+  // Phát hiện nếu nguồn chỉ hỗ trợ iframe/embed
+  const isIframe = useMemo(() => {
+    if (!currentServer?.url) return false;
+    const lower = currentServer.url.toLowerCase();
+    return (
+      lower.includes("/embed/") ||
+      lower.includes("youtube.com/embed") ||
+      lower.includes("youtu.be/") ||
+      lower.includes("player.") ||
+      lower.includes("iframe") ||
+      lower.endsWith(".html") ||
+      lower.endsWith(".htm")
+    );
+  }, [currentServer?.url]);
+
+  // Khởi tạo luồng phát HLS tối ưu độ trễ thấp (Ultra Low Latency) + Auto ABR + Auto Recovery
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || !currentServer) return;
+    if (!video || !currentServer || !isActive) return;
+
+    if (isIframe) {
+      setIsLoading(false);
+      setHasError(false);
+      setIsPlaying(true);
+      return;
+    }
 
     if (activeUrl === lastLoadedUrlRef.current && hlsRef.current) {
       return;
@@ -425,21 +448,20 @@ function LivePlayerInner({
       const hls = new Hls({
         enableWorker: true,
         lowLatencyMode: true,
-        // Đồng bộ live sát hơn: 2 segment thay vì 3 → giảm trễ còn ~4s
-        liveSyncDurationCount: 2,
-        liveMaxLatencyDurationCount: 5,
-        // Giảm back buffer tiết kiệm RAM điện thoại (không cần tua lại live)
-        backBufferLength: 8,
-        maxBufferLength: 20,
-        maxMaxBufferLength: 40,
+        // Cấu hình tối ưu Live: an toàn, không giật lag
+        liveSyncDurationCount: 3,
+        liveMaxLatencyDurationCount: 6,
+        backBufferLength: 20,
+        maxBufferLength: 15,
+        maxMaxBufferLength: 30,
         maxBufferSize: 30 * 1000 * 1000,
-        // Ước tính băng thông cao ngay từ đầu → tránh startup ở 480p/720p
-        abrEwmaDefaultEstimate: 12_000_000,
+        // Bắt đầu với ước tính băng thông chuẩn 5Mbps, bật Auto ABR
+        abrEwmaDefaultEstimate: 5_000_000,
         capLevelToPlayerSize: false,
         startLevel: -1,
         // Timeout nhanh hơn cho live stream
-        manifestLoadingTimeOut: 8000,
-        levelLoadingTimeOut: 8000,
+        manifestLoadingTimeOut: 10000,
+        levelLoadingTimeOut: 10000,
         fragLoadingTimeOut: 10000,
         fragLoadingMaxRetry: 6,
         levelLoadingMaxRetry: 6,
@@ -472,23 +494,12 @@ function LivePlayerInner({
         );
       }, 12000);
 
-      hls.on(Hls.Events.MANIFEST_PARSED, (_, data) => {
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
         if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
-        if (data.levels && data.levels.length > 0) {
-          let highestIdx = 0;
-          let maxScore = 0;
-          data.levels.forEach((lvl, idx) => {
-            const score = (lvl.height || 0) * 1000000 + (lvl.bitrate || 0);
-            if (score > maxScore) {
-              maxScore = score;
-              highestIdx = idx;
-            }
-          });
-          hls.currentLevel = highestIdx;
-          hls.loadLevel = highestIdx;
-          hls.nextLevel = highestIdx;
-          hls.startLevel = highestIdx;
-        }
+        // Bật chế độ ABR tự động thay vì khóa cứng highestIdx, giúp video tự hạ bitrate khi mạng chập chờn
+        hls.currentLevel = -1;
+        hls.loadLevel = -1;
+        hls.nextLevel = -1;
         setIsLoading(false);
         const curVol = volumeRef.current || 0.9;
         video.volume = curVol;
@@ -521,8 +532,21 @@ function LivePlayerInner({
         if (data.fatal) {
           switch (data.type) {
             case Hls.ErrorTypes.NETWORK_ERROR:
+              // Nếu tụt xa khỏi sliding window dẫn đến lỗi segment, thử recover về live edge trước khi coi là chết stream
+              if (
+                videoRef.current &&
+                hls.liveSyncPosition &&
+                Number.isFinite(hls.liveSyncPosition) &&
+                hls.liveSyncPosition - videoRef.current.currentTime > 15
+              ) {
+                videoRef.current.currentTime = hls.liveSyncPosition;
+                setIsAtLiveEdge(true);
+                hls.startLoad();
+                return;
+              }
+
               retryCountRef.current += 1;
-              if (retryCountRef.current <= 2) {
+              if (retryCountRef.current <= 3) {
                 hls.startLoad();
               } else if (
                 !hasTriedProxy &&
@@ -621,10 +645,30 @@ function LivePlayerInner({
         hlsRef.current.destroy();
         hlsRef.current = null;
       }
+      if (video) {
+        video.pause();
+        video.removeAttribute("src");
+        video.load();
+      }
     };
-  }, [selectedServerIndex, currentServer, activeUrl, isActive, servers]);
+  }, [selectedServerIndex, currentServer, activeUrl, isActive, servers, isIframe]);
 
-  // Điều khiển Play / Pause
+  // Bắt Live Edge tức thì
+  const goToLiveEdge = useCallback(() => {
+    const video = videoRef.current;
+    const hls = hlsRef.current;
+    if (!video) return;
+    const livePos = hls?.liveSyncPosition;
+    if (livePos && Number.isFinite(livePos) && livePos > 0) {
+      video.currentTime = livePos;
+    } else if (video.duration && Number.isFinite(video.duration) && video.duration > 0) {
+      video.currentTime = Math.max(0, video.duration - 1);
+    }
+    setIsAtLiveEdge(true);
+    triggerActionFeedback("seek", "🔴 VỀ LIVE");
+  }, [triggerActionFeedback]);
+
+  // Điều khiển Play / Pause - Tự động bắt Live Edge nếu pause quá lâu (>20s)
   const togglePlay = useCallback(() => {
     if (!videoRef.current) return;
     if (isPlaying) {
@@ -635,7 +679,22 @@ function LivePlayerInner({
       triggerActionFeedback("pause");
     } else {
       userPausedRef.current = false;
-      videoRef.current
+      const video = videoRef.current;
+      const hls = hlsRef.current;
+      const livePos = hls?.liveSyncPosition;
+
+      // Nếu tụt quá xa live edge (>20s) và liveSyncPosition hợp lệ → đưa về live edge rồi mới play
+      if (
+        livePos &&
+        Number.isFinite(livePos) &&
+        livePos > 0 &&
+        livePos - video.currentTime > 20
+      ) {
+        video.currentTime = livePos;
+        setIsAtLiveEdge(true);
+      }
+
+      video
         .play()
         .then(() => setIsPlaying(true))
         .catch(() => {});
@@ -954,21 +1013,40 @@ function LivePlayerInner({
     [matchOptions, match, onSelectMatch, handleSwitchServer, triggerActionFeedback],
   );
 
-  // Tua thời gian (Seek ±5s)
+  // Tua thời gian (Seek ±5s) - có debounce chống spam request CDN
   const handleSeek = useCallback(
     (seconds: number) => {
       const video = videoRef.current;
       if (!video) return;
-      try {
-        const newTime = Math.max(0, video.currentTime + seconds);
-        video.currentTime = newTime;
-        triggerActionFeedback(
-          "seek",
-          seconds > 0 ? `+${seconds}s ⏩` : `${seconds}s ⏪`,
-        );
-      } catch (err) {
-        console.warn("Seek error:", err);
+
+      pendingSeekDeltaRef.current += seconds;
+      const delta = pendingSeekDeltaRef.current;
+      triggerActionFeedback(
+        "seek",
+        delta > 0 ? `+${delta}s ⏩` : `${delta}s ⏪`,
+      );
+
+      if (pendingSeekTimerRef.current) {
+        clearTimeout(pendingSeekTimerRef.current);
       }
+
+      pendingSeekTimerRef.current = setTimeout(() => {
+        if (videoRef.current) {
+          const finalDelta = pendingSeekDeltaRef.current;
+          const hls = hlsRef.current;
+          const livePos = hls?.liveSyncPosition || videoRef.current.duration || 0;
+          const current = videoRef.current.currentTime || 0;
+          const target = Math.max(
+            0,
+            livePos > 0
+              ? Math.min(livePos, current + finalDelta)
+              : current + finalDelta,
+          );
+          videoRef.current.currentTime = target;
+        }
+        pendingSeekTimerRef.current = null;
+        pendingSeekDeltaRef.current = 0;
+      }, 250);
     },
     [triggerActionFeedback],
   );
@@ -1215,35 +1293,84 @@ function LivePlayerInner({
           showControls ? "cursor-default" : "cursor-none"
         }`}
       >
-        <video
-          ref={videoRef}
-          className="w-full h-full object-contain pointer-events-none bg-black transform-gpu will-change-transform"
-          playsInline
-          onPlay={() => setIsPlaying(true)}
-          onPause={() => setIsPlaying(false)}
-          onVolumeChange={(e) => {
-            const v = e.currentTarget;
-            const isActuallyMuted = v.muted || v.volume === 0;
-            setIsMuted(isActuallyMuted);
-            if (!isActuallyMuted) {
-              setVolume(v.volume);
-              try {
-                localStorage.setItem("nanaflix_live_volume", String(v.volume));
-              } catch {}
-            }
-          }}
-        />
+        {isIframe ? (
+          <iframe
+            src={currentServer?.url}
+            title={title}
+            className="w-full h-full object-contain bg-black border-0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+            allowFullScreen
+          />
+        ) : (
+          <video
+            ref={videoRef}
+            className="w-full h-full object-contain pointer-events-none bg-black transform-gpu will-change-transform"
+            playsInline
+            onPlay={() => setIsPlaying(true)}
+            onPause={() => setIsPlaying(false)}
+            onTimeUpdate={(e) => {
+              const v = e.currentTarget;
+              const hls = hlsRef.current;
+              const livePos = hls?.liveSyncPosition;
+              if (livePos && Number.isFinite(livePos) && livePos > 0) {
+                const lag = livePos - v.currentTime;
+                setLiveLatency(Math.max(0, Math.round(lag)));
+                setIsAtLiveEdge(lag <= 15);
+              } else if (v.duration && Number.isFinite(v.duration) && v.duration > 0) {
+                const lag = v.duration - v.currentTime;
+                setLiveLatency(Math.max(0, Math.round(lag)));
+                setIsAtLiveEdge(lag <= 15);
+              } else {
+                setIsAtLiveEdge(true);
+              }
+            }}
+            onVolumeChange={(e) => {
+              const v = e.currentTarget;
+              const isActuallyMuted = v.muted || v.volume === 0;
+              setIsMuted(isActuallyMuted);
+              if (!isActuallyMuted) {
+                setVolume(v.volume);
+                try {
+                  localStorage.setItem("nanaflix_live_volume", String(v.volume));
+                } catch {}
+              }
+            }}
+          />
+        )}
 
-        {/* HUY HIỆU SIGNAL & LIVE TRÊN TRÁI (TỰ ĐỘNG ẨN KHI KHÔNG TƯƠNG TÁC) */}
+        {/* HUY HIỆU SIGNAL & LIVE TRÊN TRÁI: BẤM ĐỂ QUAY VỀ LIVE EDGE */}
         <div
-          className={`absolute top-3 left-3 sm:top-4 sm:left-4 flex items-center gap-2 z-20 pointer-events-none transition-opacity duration-300 ${
-            showControls ? "opacity-100" : "opacity-0"
+          className={`absolute top-3 left-3 sm:top-4 sm:left-4 flex items-center gap-2 z-20 transition-opacity duration-300 ${
+            showControls ? "opacity-100" : "opacity-0 pointer-events-none"
           }`}
         >
-          <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-netflix-red/90 text-white text-[11px] sm:text-xs font-black shadow-lg animate-pulse backdrop-blur-md">
-            <Radio className="w-3.5 h-3.5" />
-            <span>TRỰC TIẾP</span>
-          </span>
+          {isAtLiveEdge ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                goToLiveEdge();
+              }}
+              title="Đang ở mốc phát trực tiếp (Bấm để đồng bộ)"
+              className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-netflix-red/90 text-white text-[11px] sm:text-xs font-black shadow-lg backdrop-blur-md transition hover:scale-105 active:scale-95 cursor-pointer"
+            >
+              <Radio className="w-3.5 h-3.5 animate-pulse" />
+              <span>TRỰC TIẾP</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                goToLiveEdge();
+              }}
+              title={`Đang trễ ~${liveLatency}s so với trực tiếp. Bấm để quay về Live Edge`}
+              className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/90 hover:bg-amber-500 text-black text-[11px] sm:text-xs font-black shadow-lg backdrop-blur-md transition hover:scale-105 active:scale-95 cursor-pointer animate-pulse"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>VỀ LIVE (-{liveLatency}s)</span>
+            </button>
+          )}
           <span className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/75 backdrop-blur-md border border-white/20 text-emerald-400 text-[11px] font-bold">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
             <span>Ultra Low Latency • Tốc độ cao</span>
