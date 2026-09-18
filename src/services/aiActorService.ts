@@ -1320,12 +1320,18 @@ async function executeActorFilmQuery(
       maxMovies
     );
     if (tmdbMovies && tmdbMovies.length > 0) {
+      const enrichedMovies = tmdbMovies.map((m) => ({
+        ...m,
+        actor: Array.isArray(m.actor) && m.actor.length > 0
+          ? m.actor
+          : [synonymRes.canonicalName || actorName],
+      }));
       ACTOR_FILM_CACHE.set(cacheKey, {
-        items: tmdbMovies,
+        items: enrichedMovies,
         expireAt: Date.now() + CACHE_7_DAYS,
         staleUntil: Date.now() + CACHE_7_DAYS * 2,
       });
-      return tmdbMovies;
+      return enrichedMovies;
     }
   } catch (tmdbErr) {
     console.warn("[aiActorService] TMDB filmography matching failed, falling back to database query:", tmdbErr);

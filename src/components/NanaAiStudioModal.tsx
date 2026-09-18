@@ -23,9 +23,16 @@ import {
   Users,
   Heart,
   ChevronRight,
+  ChevronDown,
   Compass,
   Star,
+  Clock,
 } from "lucide-react";
+import {
+  loadAiChatHistory,
+  saveAiChatHistory,
+  clearAiChatHistory,
+} from "@/services/aiChatHistory";
 
 // ============================================================================
 // TYPES
@@ -92,6 +99,7 @@ interface RouletteResult {
     category?: string;
     country?: string;
     episodeCurrent?: string;
+    duration?: string;
   };
   punchline: string;
   badges: string[];
@@ -175,6 +183,19 @@ const ROULETTE_COMPANIONS = [
   { id: "ban-be", label: "Hội Bạn Thân", icon: "🍻", desc: "Sôi động, quẩy vui" },
 ];
 
+const ROULETTE_DURATIONS = [
+  { id: "all", label: "Không quan trọng", icon: "🌙", desc: "Mọi độ dài" },
+  { id: "duoi-90", label: "Dưới 90 phút", icon: "⚡", desc: "Nhanh gọn, súc tích" },
+  { id: "90-120", label: "90–120 phút", icon: "🍿", desc: "Chuẩn điện ảnh" },
+  { id: "120-150", label: "120–150 phút", icon: "🎬", desc: "Sâu sắc, trọn vẹn" },
+];
+
+const ROULETTE_SURPRISES = [
+  { id: "an-toan", label: "An toàn", icon: "🛡️", desc: "Phim nổi tiếng, rating cao" },
+  { id: "can-bang", label: "Cân bằng", icon: "⚖️", desc: "Hài hòa giữa quen & lạ" },
+  { id: "lieu", label: "Liều một phen", icon: "🎰", desc: "Ưu tiên hidden gems độc lạ" },
+];
+
 export interface NanaAiStudioModalProps {
   initialOpen?: boolean;
   initialTab?: StudioTab;
@@ -197,16 +218,47 @@ export const NanaAiStudioModal: React.FC<NanaAiStudioModalProps> = ({
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
+  const [visibleMovieCounts, setVisibleMovieCounts] = useState<Record<string, number>>({});
   const chatScrollContainerRef = useRef<HTMLDivElement>(null);
   const chatMessagesRef = useRef<ChatMessage[]>([]);
   chatMessagesRef.current = chatMessages;
+  const isHistoryLoadedRef = useRef(false);
+
+  // Khôi phục lịch sử chat 24h từ localStorage khi khởi tạo
+  useEffect(() => {
+    const saved = loadAiChatHistory();
+    if (saved && saved.length > 0) {
+      setChatMessages(saved);
+    }
+    isHistoryLoadedRef.current = true;
+  }, []);
+
+  // Tự động lưu lịch sử chat vào localStorage mỗi khi conversation thay đổi
+  useEffect(() => {
+    if (!isHistoryLoadedRef.current) return;
+    if (chatMessages.length > 0) {
+      saveAiChatHistory(chatMessages);
+    }
+  }, [chatMessages]);
 
   // TAB 2: ROULETTE STATE
   const [selectedMood, setSelectedMood] = useState("xa-stress");
   const [selectedCountry, setSelectedCountry] = useState("all");
   const [selectedCompanion, setSelectedCompanion] = useState("mot-minh");
+  const [selectedDuration, setSelectedDuration] = useState("all");
+  const [selectedSurprise, setSelectedSurprise] = useState("can-bang");
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
+  const [randomFortuneCard, setRandomFortuneCard] = useState<{
+    mood: string;
+    country: string;
+    companion: string;
+    duration: string;
+    surprise: string;
+  } | null>(null);
+  const [isRollingFortune, setIsRollingFortune] = useState(false);
   const [isSpinning, setIsSpinning] = useState(false);
   const [rouletteResult, setRouletteResult] = useState<RouletteResult | null>(null);
+  const [rouletteError, setRouletteError] = useState<string | null>(null);
   const [showCriteriaPicker, setShowCriteriaPicker] = useState(false);
   const [rolledSlugs, setRolledSlugs] = useState<string[]>([]);
 
@@ -313,12 +365,34 @@ export const NanaAiStudioModal: React.FC<NanaAiStudioModalProps> = ({
     setChatInput("");
     setChatLoading(true);
 
+    // Trích xuất ngữ cảnh hội thoại gọn gàng (tối đa 6 tin nhắn gần nhất) để giữ prompt nhẹ và nhanh
+    const historyContext = chatMessagesRef.current.slice(-6).map((m) => {
+      let content = m.text || "";
+      if (m.role === "assistant" && m.movies && m.movies.length > 0) {
+        const topTitles = m.movies.slice(0, 4).map((mov) => mov.title).filter(Boolean).join(", ");
+        if (topTitles) {
+          content = `${content} [Đã gợi ý: ${topTitles}]`;
+        }
+      }
+      return {
+        role: m.role,
+        content: content.slice(0, 250),
+      };
+    });
+
+    // Thu thập danh sách slug phim đã từng xuất hiện trong cuộc trò chuyện để tránh gợi ý trùng lặp
+    const alreadyShownSlugs = chatMessagesRef.current
+      .flatMap((m) => (m.movies ? m.movies.map((mov) => mov.slug) : []))
+      .filter(Boolean);
+
     try {
       const res = await fetch("/api/ai-concierge", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           prompt: text.trim(),
+          history: historyContext,
+          excludeSlugs: alreadyShownSlugs.slice(-40),
         }),
       });
 
@@ -357,36 +431,90 @@ export const NanaAiStudioModal: React.FC<NanaAiStudioModalProps> = ({
   };
   sendChatMessageRef.current = sendChatMessage;
 
-  // TAB 2: ROULETTE SPIN
-  const spinRoulette = async () => {
+  // TAB 2: ROULETTE SPIN & RANDOM QUẺ
+  const spinRoulette = async (overrideCriteria?: {
+    mood?: string;
+    country?: string;
+    companion?: string;
+    duration?: string;
+    surprise?: string;
+  }) => {
     if (isSpinning) return;
     setIsSpinning(true);
+    setRouletteError(null);
+
+    const moodToUse = overrideCriteria?.mood ?? selectedMood;
+    const countryToUse = overrideCriteria?.country ?? selectedCountry;
+    const companionToUse = overrideCriteria?.companion ?? selectedCompanion;
+    const durationToUse = overrideCriteria?.duration ?? selectedDuration;
+    const surpriseToUse = overrideCriteria?.surprise ?? selectedSurprise;
 
     try {
       const res = await fetch("/api/ai-roulette", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          mood: selectedMood,
-          country: selectedCountry,
-          companion: selectedCompanion,
+          mood: moodToUse,
+          country: countryToUse,
+          companion: companionToUse,
+          duration: durationToUse,
+          surprise: surpriseToUse,
           excludeSlugs: rolledSlugs,
         }),
       });
 
-      const data = await res.json();
-      if (data && (data.movie || data.success)) {
+      const data = await res.json().catch(() => null);
+
+      if (res.ok && data && (data.movie || data.success)) {
         setRouletteResult(data);
+        setRouletteError(null);
         setShowCriteriaPicker(false);
+        setRandomFortuneCard(null);
         if (data.movie?.slug) {
           setRolledSlugs((prev) => [...prev, data.movie.slug]);
         }
+      } else {
+        const errorMsg =
+          data?.error ||
+          "🎴 Chưa tìm thấy suất chiếu phù hợp với quẻ này. Bạn hãy thử bốc lại hoặc đổi tiêu chí nhé!";
+        setRouletteError(errorMsg);
+        setShowCriteriaPicker(true);
       }
     } catch (err) {
       console.warn("Lỗi quay bốc quẻ:", err);
+      setRouletteError("Tạm thời không thể kết nối tới máy chủ, vui lòng thử lại sau giây lát.");
+      setShowCriteriaPicker(true);
     } finally {
       setIsSpinning(false);
     }
+  };
+
+  const handleRandomFortune = () => {
+    setIsRollingFortune(true);
+    // Chọn ngẫu nhiên từ các tùy chọn hợp lệ hiện có
+    const randomMood = ROULETTE_MOODS[Math.floor(Math.random() * ROULETTE_MOODS.length)].id;
+    const randomCountry = ROULETTE_COUNTRIES[Math.floor(Math.random() * ROULETTE_COUNTRIES.length)].id;
+    const randomCompanion = ROULETTE_COMPANIONS[Math.floor(Math.random() * ROULETTE_COMPANIONS.length)].id;
+    const randomDuration = ROULETTE_DURATIONS[Math.floor(Math.random() * ROULETTE_DURATIONS.length)].id;
+    const randomSurprise = ROULETTE_SURPRISES[Math.floor(Math.random() * ROULETTE_SURPRISES.length)].id;
+
+    setSelectedMood(randomMood);
+    setSelectedCountry(randomCountry);
+    setSelectedCompanion(randomCompanion);
+    setSelectedDuration(randomDuration);
+    setSelectedSurprise(randomSurprise);
+
+    setRandomFortuneCard({
+      mood: randomMood,
+      country: randomCountry,
+      companion: randomCompanion,
+      duration: randomDuration,
+      surprise: randomSurprise,
+    });
+
+    setTimeout(() => {
+      setIsRollingFortune(false);
+    }, 250);
   };
 
   if (!isOpen) return null;
@@ -490,7 +618,10 @@ export const NanaAiStudioModal: React.FC<NanaAiStudioModalProps> = ({
             {activeTab === "concierge" && chatMessages.length > 0 && (
               <button
                 type="button"
-                onClick={() => setChatMessages([])}
+                onClick={() => {
+                  clearAiChatHistory();
+                  setChatMessages([]);
+                }}
                 title="Làm mới đoạn hội thoại"
                 className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition cursor-pointer shrink-0"
               >
@@ -594,76 +725,107 @@ export const NanaAiStudioModal: React.FC<NanaAiStudioModalProps> = ({
                         <div className="max-w-[88%] sm:max-w-[82%] p-3 sm:p-3.5 rounded-2xl rounded-tl-xs bg-zinc-900/95 border border-white/15 text-gray-200 shadow-xl backdrop-blur-md text-xs sm:text-sm space-y-2.5">
                           <p className="leading-relaxed whitespace-pre-wrap select-text">{m.text}</p>
 
-                          {/* HIGH-END MOVIE RECOMMENDATION CARDS (TOP 3-4 PHIM XUẤT SẮC NHẤT) */}
-                          {m.movies && m.movies.length > 0 && (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2.5 mt-1 border-t border-white/10">
-                              {m.movies.slice(0, 4).map((mov, movIdx) => (
-                                <Link
-                                  key={`${mov.slug || "movie"}-${movIdx}`}
-                                  href={`/movies/${mov.slug}`}
-                                  onClick={() => setIsOpen(false)}
-                                  className="group relative flex gap-2.5 p-2 sm:p-2.5 rounded-xl bg-zinc-950/80 hover:bg-zinc-900 border border-white/10 hover:border-pink-500/50 transition-all duration-300 shadow-md hover:shadow-pink-950/25 hover:-translate-y-0.5 overflow-hidden"
-                                >
-                                  {/* POSTER WITH PLAY OVERLAY */}
-                                  <div className="relative w-16 sm:w-20 aspect-[2/3] rounded-lg overflow-hidden bg-zinc-900 flex-none border border-white/10 shadow-sm">
-                                    <Image
-                                      src={mov.poster || "/default-poster.jpg"}
-                                      alt={mov.title || "Phim"}
-                                      fill
-                                      className="object-cover group-hover:scale-105 transition-transform duration-300"
-                                      sizes="(max-width: 640px) 64px, 80px"
-                                    />
-                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                                      <div className="w-7 h-7 rounded-full bg-pink-500/90 text-white flex items-center justify-center shadow-md shadow-pink-500/50 transform scale-75 group-hover:scale-100 transition-transform">
-                                        <Play className="w-3 h-3 fill-current ml-0.5" />
-                                      </div>
-                                    </div>
-                                  </div>
+                          {/* HIGH-END MOVIE RECOMMENDATION CARDS (BAN ĐẦU 4 PHIM + NÚT XEM THÊM) */}
+                          {m.movies && m.movies.length > 0 && (() => {
+                            const visibleCount = visibleMovieCounts[m.id] || 4;
+                            const displayedMovies = m.movies.slice(0, visibleCount);
+                            const hasMore = m.movies.length > visibleCount;
 
-                                  {/* MOVIE DETAILS */}
-                                  <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
-                                    <div className="space-y-1">
-                                      <h5
-                                        className="text-xs sm:text-[13px] font-bold text-white truncate group-hover:text-pink-300 transition-colors"
-                                        title={mov.title}
-                                      >
-                                        {mov.title}
-                                      </h5>
-                                      <div className="flex items-center gap-1.5 text-[10px] text-gray-400 flex-wrap">
-                                        {mov.year && <span className="text-zinc-300 font-semibold">{mov.year}</span>}
-                                        {mov.category && (
-                                          <>
-                                            <span className="text-zinc-600">•</span>
-                                            <span className="text-pink-400 font-medium truncate max-w-[85px]">
-                                              {mov.category}
-                                            </span>
-                                          </>
-                                        )}
-                                        {mov.quality && (
-                                          <span className="border border-white/20 bg-white/5 px-1 py-0.2 rounded text-[9px] font-semibold text-zinc-300">
-                                            {mov.quality}
+                            return (
+                              <div className="space-y-2.5 pt-2.5 mt-1 border-t border-white/10">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                  {displayedMovies.map((mov, movIdx) => (
+                                    <Link
+                                      key={`${mov.slug || "movie"}-${movIdx}`}
+                                      href={`/movies/${mov.slug}`}
+                                      onClick={() => setIsOpen(false)}
+                                      className="group relative flex gap-2.5 p-2 sm:p-2.5 rounded-xl bg-zinc-950/80 hover:bg-zinc-900 border border-white/10 hover:border-pink-500/50 transition-all duration-300 shadow-md hover:shadow-pink-950/25 hover:-translate-y-0.5 overflow-hidden"
+                                    >
+                                      {/* POSTER WITH PLAY OVERLAY */}
+                                      <div className="relative w-16 sm:w-20 aspect-[2/3] rounded-lg overflow-hidden bg-zinc-900 flex-none border border-white/10 shadow-sm">
+                                        <Image
+                                          src={mov.poster || "/default-poster.jpg"}
+                                          alt={mov.title || "Phim"}
+                                          fill
+                                          className="object-cover group-hover:scale-105 transition-transform duration-300"
+                                          sizes="(max-width: 640px) 64px, 80px"
+                                        />
+                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                                          <div className="w-7 h-7 rounded-full bg-pink-500/90 text-white flex items-center justify-center shadow-md shadow-pink-500/50 transform scale-75 group-hover:scale-100 transition-transform">
+                                            <Play className="w-3 h-3 fill-current ml-0.5" />
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      {/* MOVIE DETAILS */}
+                                      <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
+                                        <div className="space-y-1">
+                                          <h5
+                                            className="text-xs sm:text-[13px] font-bold text-white truncate group-hover:text-pink-300 transition-colors"
+                                            title={mov.title}
+                                          >
+                                            {mov.title}
+                                          </h5>
+                                          <div className="flex items-center gap-1.5 text-[10px] text-gray-400 flex-wrap">
+                                            {mov.year && <span className="text-zinc-300 font-semibold">{mov.year}</span>}
+                                            {mov.category && (
+                                              <>
+                                                <span className="text-zinc-600">•</span>
+                                                <span className="text-pink-400 font-medium truncate max-w-[85px]">
+                                                  {mov.category}
+                                                </span>
+                                              </>
+                                            )}
+                                            {mov.quality && (
+                                              <span className="border border-white/20 bg-white/5 px-1 py-0.2 rounded text-[9px] font-semibold text-zinc-300">
+                                                {mov.quality}
+                                              </span>
+                                            )}
+                                          </div>
+                                          <div className="mt-1 p-1.5 rounded-lg bg-pink-500/10 border border-pink-500/20 text-[10px] sm:text-[10.5px] text-pink-200/90 leading-snug line-clamp-2 overflow-hidden">
+                                            <span className="font-semibold text-pink-400 mr-1">✦</span>
+                                            {getMovieHighlight(mov)}
+                                          </div>
+                                        </div>
+
+                                        {/* SEPARATE BOTTOM ACTION ROW */}
+                                        <div className="pt-1.5 mt-1.5 border-t border-white/5 flex items-center justify-between text-[10.5px] font-bold text-pink-400 group-hover:text-pink-300 transition-colors">
+                                          <span className="flex items-center gap-1.5">
+                                            <Play className="w-2.5 h-2.5 fill-current text-netflix-red group-hover:text-pink-400 transition-colors" />
+                                            <span>Xem chi tiết</span>
                                           </span>
-                                        )}
-                                      </div>
-                                      <div className="mt-1 p-1.5 rounded-lg bg-pink-500/10 border border-pink-500/20 text-[10px] sm:text-[10.5px] text-pink-200/90 leading-snug line-clamp-2 overflow-hidden">
-                                        <span className="font-semibold text-pink-400 mr-1">✦</span>
-                                        {getMovieHighlight(mov)}
-                                      </div>
-                                    </div>
-
-                                    {/* SEPARATE BOTTOM ACTION ROW */}
-                                    <div className="pt-1.5 mt-1.5 border-t border-white/5 flex items-center justify-between text-[10.5px] font-bold text-pink-400 group-hover:text-pink-300 transition-colors">
-                                      <span className="flex items-center gap-1.5">
-                                        <Play className="w-2.5 h-2.5 fill-current text-netflix-red group-hover:text-pink-400 transition-colors" />
-                                        <span>Xem chi tiết</span>
-                                      </span>
                                       <ChevronRight className="w-3 h-3 text-zinc-500 group-hover:text-pink-300 group-hover:translate-x-0.5 transition-all" />
                                     </div>
                                   </div>
                                 </Link>
                               ))}
                             </div>
-                          )}
+
+                            {/* NÚT XEM THÊM HOẶC THÔNG BÁO ĐÃ HIỂN THỊ HẾT */}
+                            {hasMore ? (
+                              <div className="pt-1 flex justify-center">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setVisibleMovieCounts((prev) => ({
+                                      ...prev,
+                                      [m.id]: visibleCount + 4,
+                                    }))
+                                  }
+                                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white/10 hover:bg-pink-500/20 active:bg-pink-500/30 text-pink-300 hover:text-pink-200 border border-pink-500/30 hover:border-pink-500/50 transition-all shadow-sm cursor-pointer active:scale-95"
+                                >
+                                  <span>Xem thêm ({m.movies.length - visibleCount} phim còn lại)</span>
+                                  <ChevronDown className="w-3.5 h-3.5 text-pink-400" />
+                                </button>
+                              </div>
+                            ) : m.movies.length > 4 ? (
+                              <div className="pt-1 text-center text-[10px] text-gray-500 italic select-none">
+                                Đã hiển thị hết {m.movies.length} phim
+                              </div>
+                            ) : null}
+                          </div>
+                        );
+                      })()}
 
                           <div className="text-[9.5px] text-gray-400 flex items-center justify-end gap-1 pt-0.5 opacity-70 select-none">
                             <span>{m.time}</span>
@@ -738,7 +900,7 @@ export const NanaAiStudioModal: React.FC<NanaAiStudioModalProps> = ({
                 <div className="flex-1 flex flex-col justify-between py-1 space-y-3 animate-in zoom-in-95 duration-200">
                   {/* COMPACT ACTIVE CRITERIA BAR */}
                   <div className="flex items-center justify-between px-3 py-2 rounded-2xl bg-zinc-900/90 border border-amber-500/30 backdrop-blur-md shadow-md flex-none">
-                    <div className="flex items-center gap-2 overflow-x-auto text-xs min-w-0">
+                    <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto text-xs min-w-0 scrollbar-none">
                       <span className="text-amber-400 font-bold flex-none flex items-center gap-1">
                         <Sparkles className="w-3.5 h-3.5" />
                         <span className="hidden sm:inline">Quẻ:</span>
@@ -754,6 +916,16 @@ export const NanaAiStudioModal: React.FC<NanaAiStudioModalProps> = ({
                       <span className="px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-200 border border-emerald-500/30 text-[11px] font-semibold whitespace-nowrap">
                         {ROULETTE_COMPANIONS.find((cp) => cp.id === selectedCompanion)?.icon}{" "}
                         {ROULETTE_COMPANIONS.find((cp) => cp.id === selectedCompanion)?.label}
+                      </span>
+                      {selectedDuration !== "all" && (
+                        <span className="px-2 py-0.5 rounded-lg bg-purple-500/20 text-purple-200 border border-purple-500/30 text-[11px] font-semibold whitespace-nowrap">
+                          {ROULETTE_DURATIONS.find((d) => d.id === selectedDuration)?.icon}{" "}
+                          {ROULETTE_DURATIONS.find((d) => d.id === selectedDuration)?.label}
+                        </span>
+                      )}
+                      <span className="px-2 py-0.5 rounded-lg bg-rose-500/20 text-rose-200 border border-rose-500/30 text-[11px] font-semibold whitespace-nowrap">
+                        {ROULETTE_SURPRISES.find((s) => s.id === selectedSurprise)?.icon}{" "}
+                        {ROULETTE_SURPRISES.find((s) => s.id === selectedSurprise)?.label}
                       </span>
                     </div>
 
@@ -795,6 +967,11 @@ export const NanaAiStudioModal: React.FC<NanaAiStudioModalProps> = ({
                             {rouletteResult.movie.category}
                           </span>
                         )}
+                        {rouletteResult.movie.duration && (
+                          <span className="text-[11px] text-purple-300 px-2 py-0.5 rounded-full bg-purple-500/20 border border-purple-500/30 font-semibold">
+                            ⏱️ {rouletteResult.movie.duration}
+                          </span>
+                        )}
                         {rouletteResult.movie.year && (
                           <span className="text-[11px] text-gray-400">
                             {rouletteResult.movie.year}
@@ -823,7 +1000,7 @@ export const NanaAiStudioModal: React.FC<NanaAiStudioModalProps> = ({
 
                         <button
                           type="button"
-                          onClick={spinRoulette}
+                          onClick={() => spinRoulette()}
                           disabled={isSpinning}
                           className="inline-flex items-center gap-1.5 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-amber-500 via-orange-600 to-rose-600 hover:from-amber-400 hover:to-rose-500 text-white font-bold text-xs sm:text-sm transition shadow-lg shadow-amber-950/40 cursor-pointer active:scale-95 disabled:opacity-50"
                         >
@@ -837,12 +1014,136 @@ export const NanaAiStudioModal: React.FC<NanaAiStudioModalProps> = ({
               ) : (
                 /* STATE 3: FULL CRITERIA PICKER */
                 <div className="space-y-4 animate-in fade-in duration-200">
-                  {rouletteResult && (
-                    <div className="flex items-center justify-between pb-1">
-                      <span className="text-xs font-bold text-gray-300">Tùy chỉnh lại tiêu chí chọn phim:</span>
+                  {/* Thông báo nếu không tìm thấy phim theo bộ lọc */}
+                  {rouletteError && (
+                    <div className="p-3.5 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-200 text-xs flex items-center justify-between gap-2.5 animate-in fade-in">
+                      <div className="flex items-center gap-2">
+                        <span className="text-base">🎴</span>
+                        <span className="font-semibold">{rouletteError}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 flex-none">
+                        <button
+                          type="button"
+                          onClick={() => spinRoulette()}
+                          disabled={isSpinning}
+                          className="text-white text-xs font-bold px-2.5 py-1 rounded-lg bg-amber-500/30 hover:bg-amber-500/50 border border-amber-400/40 transition cursor-pointer"
+                        >
+                          🎲 Bốc lại
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setRouletteError(null)}
+                          className="text-gray-400 hover:text-white text-xs font-bold px-2 py-1 rounded-lg bg-white/10 transition cursor-pointer"
+                        >
+                          Đóng
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* QUẺ HÔM NAY PREVIEW CARD KHI DÙNG 'BỐC QUẺ NGẪU NHIÊN' */}
+                  {randomFortuneCard ? (
+                    <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-br from-amber-500/20 via-orange-500/15 to-purple-500/20 border-2 border-amber-400/50 shadow-2xl backdrop-blur-md space-y-3.5 animate-in zoom-in-95 duration-200">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-2xl animate-bounce">🎴</span>
+                          <div>
+                            <h4 className="text-sm sm:text-base font-black text-amber-300 uppercase tracking-wider">
+                              QUẺ HÔM NAY CỦA BẠN
+                            </h4>
+                            <p className="text-[11px] text-amber-200/80">
+                              Định mệnh vừa kết duyên 5 yếu tố độc nhất cho bạn
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleRandomFortune}
+                          disabled={isRollingFortune || isSpinning}
+                          className="text-xs font-bold text-amber-300 hover:text-white px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 transition cursor-pointer flex items-center gap-1.5 active:scale-95 disabled:opacity-50"
+                        >
+                          <Dices className={`w-3.5 h-3.5 ${isRollingFortune ? "animate-spin" : ""}`} />
+                          <span>Bốc quẻ khác</span>
+                        </button>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        <span className="px-3 py-1.5 rounded-xl bg-amber-500/25 text-amber-200 border border-amber-400/40 text-xs font-bold flex items-center gap-1.5 shadow-sm">
+                          <span>{ROULETTE_MOODS.find((m) => m.id === randomFortuneCard.mood)?.emoji}</span>
+                          <span>{ROULETTE_MOODS.find((m) => m.id === randomFortuneCard.mood)?.label}</span>
+                        </span>
+                        <span className="px-3 py-1.5 rounded-xl bg-sky-500/25 text-sky-200 border border-sky-400/40 text-xs font-bold flex items-center gap-1.5 shadow-sm">
+                          <span>{ROULETTE_COUNTRIES.find((c) => c.id === randomFortuneCard.country)?.flag}</span>
+                          <span>{ROULETTE_COUNTRIES.find((c) => c.id === randomFortuneCard.country)?.label}</span>
+                        </span>
+                        <span className="px-3 py-1.5 rounded-xl bg-emerald-500/25 text-emerald-200 border border-emerald-400/40 text-xs font-bold flex items-center gap-1.5 shadow-sm">
+                          <span>{ROULETTE_COMPANIONS.find((cp) => cp.id === randomFortuneCard.companion)?.icon}</span>
+                          <span>{ROULETTE_COMPANIONS.find((cp) => cp.id === randomFortuneCard.companion)?.label}</span>
+                        </span>
+                        <span className="px-3 py-1.5 rounded-xl bg-purple-500/25 text-purple-200 border border-purple-400/40 text-xs font-bold flex items-center gap-1.5 shadow-sm">
+                          <span>{ROULETTE_DURATIONS.find((d) => d.id === randomFortuneCard.duration)?.icon}</span>
+                          <span>{ROULETTE_DURATIONS.find((d) => d.id === randomFortuneCard.duration)?.label}</span>
+                        </span>
+                        <span className="px-3 py-1.5 rounded-xl bg-rose-500/25 text-rose-200 border border-rose-400/40 text-xs font-bold flex items-center gap-1.5 shadow-sm">
+                          <span>{ROULETTE_SURPRISES.find((s) => s.id === randomFortuneCard.surprise)?.icon}</span>
+                          <span>{ROULETTE_SURPRISES.find((s) => s.id === randomFortuneCard.surprise)?.label}</span>
+                        </span>
+                      </div>
+
+                      <div className="pt-2 flex flex-wrap items-center gap-2.5">
+                        <button
+                          type="button"
+                          onClick={() => spinRoulette()}
+                          disabled={isSpinning}
+                          className="flex-1 min-w-[200px] py-3 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-600 to-rose-600 hover:from-amber-400 hover:to-rose-500 text-white font-black text-sm flex items-center justify-center gap-2 shadow-xl shadow-amber-950/50 active:scale-[0.99] transition cursor-pointer disabled:opacity-50 ring-2 ring-amber-400/40"
+                        >
+                          <Sparkles className="w-4 h-4" />
+                          <span>{isSpinning ? "Đang Khai Quẻ..." : "🔮 BỐC PHIM THEO QUẺ NÀY"}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setRandomFortuneCard(null)}
+                          className="px-4 py-3 rounded-2xl bg-zinc-900/90 hover:bg-zinc-800 text-gray-300 hover:text-white font-semibold text-xs border border-white/10 transition cursor-pointer flex items-center gap-1.5"
+                        >
+                          <span>⚙️ Tự chỉnh tiêu chí</span>
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    /* BANNER BỐC QUẺ NGẪU NHIÊN KHI CHƯA MỞ CARD */
+                    <div className="flex items-center justify-between p-3 sm:p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-orange-500/15 to-purple-500/15 border border-amber-500/30 backdrop-blur-md">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="text-2xl flex-none">🎴</span>
+                        <div className="min-w-0">
+                          <div className="text-xs sm:text-sm font-black text-amber-300 truncate">
+                            Bạn phân vân chưa biết xem gì hôm nay?
+                          </div>
+                          <div className="text-[11px] text-gray-400 truncate">
+                            Để số mệnh tự kết duyên tổ hợp 5 tiêu chí hoàn hảo
+                          </div>
+                        </div>
+                      </div>
                       <button
                         type="button"
-                        onClick={() => setShowCriteriaPicker(false)}
+                        onClick={handleRandomFortune}
+                        disabled={isRollingFortune || isSpinning}
+                        className="ml-2 px-3.5 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-black text-xs flex items-center gap-1.5 shadow-md shadow-amber-950/50 transition cursor-pointer active:scale-95 flex-none disabled:opacity-50"
+                      >
+                        <Dices className={`w-3.5 h-3.5 ${isRollingFortune ? "animate-spin" : ""}`} />
+                        <span>Bốc quẻ ngẫu nhiên</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {rouletteResult && (
+                    <div className="flex items-center justify-between pb-1">
+                      <span className="text-xs font-bold text-gray-300">Hoặc tùy chỉnh tiêu chí theo ý muốn:</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRouletteError(null);
+                          setShowCriteriaPicker(false);
+                        }}
                         className="text-xs text-amber-400 hover:text-white font-bold underline cursor-pointer"
                       >
                         Quay lại kết quả trước
@@ -854,7 +1155,7 @@ export const NanaAiStudioModal: React.FC<NanaAiStudioModalProps> = ({
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-gray-200 flex items-center gap-1.5 uppercase tracking-wider">
                       <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                      <span>1. Chọn tâm trạng bạn muốn trải nghiệm:</span>
+                      <span>1. 🔥 Bạn muốn cảm giác gì?</span>
                     </label>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       {ROULETTE_MOODS.map((m) => {
@@ -889,7 +1190,7 @@ export const NanaAiStudioModal: React.FC<NanaAiStudioModalProps> = ({
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-gray-200 flex items-center gap-1.5 uppercase tracking-wider">
                       <Globe2 className="w-3.5 h-3.5 text-sky-400" />
-                      <span>2. Quốc gia ưu tiên:</span>
+                      <span>2. 🌏 Bạn muốn xem phim ở đâu?</span>
                     </label>
                     <div className="flex flex-wrap gap-2">
                       {ROULETTE_COUNTRIES.map((c) => {
@@ -917,7 +1218,7 @@ export const NanaAiStudioModal: React.FC<NanaAiStudioModalProps> = ({
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-gray-200 flex items-center gap-1.5 uppercase tracking-wider">
                       <Users className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>3. Bạn đang xem cùng ai?</span>
+                      <span>3. 👥 Xem cùng ai?</span>
                     </label>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       {ROULETTE_COMPANIONS.map((cp) => {
@@ -948,11 +1249,106 @@ export const NanaAiStudioModal: React.FC<NanaAiStudioModalProps> = ({
                     </div>
                   </div>
 
+                  {/* 4. TÙY CHỌN THÊM (THỜI LƯỢNG & ĐỘ BẤT NGỜ) */}
+                  <div className="border border-white/10 rounded-2xl bg-zinc-900/60 overflow-hidden shadow-md">
+                    <button
+                      type="button"
+                      onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
+                      className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-zinc-800/50 transition cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2 text-xs font-bold text-gray-200 uppercase tracking-wider">
+                        <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                        <span>✨ Tùy chọn thêm (Thời lượng & Độ bất ngờ)</span>
+                        {(selectedDuration !== "all" || selectedSurprise !== "can-bang") && (
+                          <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-amber-300 font-semibold">
+                        <span>{showAdvancedOptions ? "Thu gọn" : "Mở rộng"}</span>
+                        <ChevronDown
+                          className={`w-4 h-4 transition-transform duration-200 ${
+                            showAdvancedOptions ? "rotate-180" : ""
+                          }`}
+                        />
+                      </div>
+                    </button>
+
+                    {showAdvancedOptions && (
+                      <div className="p-3.5 sm:p-4 pt-2 border-t border-white/5 space-y-4 animate-in fade-in duration-150">
+                        {/* ⏱️ THỜI LƯỢNG */}
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-purple-300 flex items-center gap-1.5 uppercase tracking-wider">
+                            <Clock className="w-3.5 h-3.5 text-purple-400" />
+                            <span>⏱️ Thời lượng:</span>
+                          </label>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            {ROULETTE_DURATIONS.map((d) => {
+                              const isSelected = selectedDuration === d.id;
+                              return (
+                                <button
+                                  key={d.id}
+                                  type="button"
+                                  onClick={() => setSelectedDuration(d.id)}
+                                  className={`p-2.5 rounded-2xl border text-left transition-all duration-150 flex items-center gap-2 cursor-pointer shadow-sm ${
+                                    isSelected
+                                      ? "bg-purple-500/25 border-purple-400 text-white ring-2 ring-purple-400/40 shadow-lg shadow-purple-950/40 font-bold scale-[1.02]"
+                                      : "bg-zinc-900/80 border-white/10 text-gray-300 hover:text-white hover:bg-zinc-800"
+                                  }`}
+                                >
+                                  <span className="text-lg p-1 rounded-xl bg-black/40 border border-white/10">
+                                    {d.icon}
+                                  </span>
+                                  <div className="min-w-0 flex-1">
+                                    <div className="text-xs font-bold truncate">{d.label}</div>
+                                    <div className="text-[10px] text-gray-400 truncate">{d.desc}</div>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* 🎲 ĐỘ BẤT NGỜ */}
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-rose-300 flex items-center gap-1.5 uppercase tracking-wider">
+                            <Dices className="w-3.5 h-3.5 text-rose-400" />
+                            <span>🎲 Độ bất ngờ:</span>
+                          </label>
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                            {ROULETTE_SURPRISES.map((s) => {
+                              const isSelected = selectedSurprise === s.id;
+                              return (
+                                <button
+                                  key={s.id}
+                                  type="button"
+                                  onClick={() => setSelectedSurprise(s.id)}
+                                  className={`p-2.5 rounded-2xl border text-left transition-all duration-150 flex items-center gap-2 cursor-pointer shadow-sm ${
+                                    isSelected
+                                      ? "bg-rose-500/25 border-rose-400 text-white ring-2 ring-rose-400/40 shadow-lg shadow-rose-950/40 font-bold scale-[1.02]"
+                                      : "bg-zinc-900/80 border-white/10 text-gray-300 hover:text-white hover:bg-zinc-800"
+                                  }`}
+                                >
+                                  <span className="text-lg p-1 rounded-xl bg-black/40 border border-white/10">
+                                    {s.icon}
+                                  </span>
+                                  <div className="min-w-0 flex-1">
+                                    <div className="text-xs font-bold truncate">{s.label}</div>
+                                    <div className="text-[10px] text-gray-400 truncate">{s.desc}</div>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                   {/* MEGA SPIN BUTTON */}
                   <div className="pt-2">
                     <button
                       type="button"
-                      onClick={spinRoulette}
+                      onClick={() => spinRoulette()}
                       disabled={isSpinning}
                       className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-600 to-rose-600 text-white font-black text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-2xl shadow-amber-950/60 hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer disabled:opacity-50 ring-2 ring-amber-400/30"
                     >

@@ -117,6 +117,23 @@ export function detectCharacterIntent(query?: string): boolean {
 }
 
 /**
+ * Kiểm tra xem từ/cụm từ có xuất hiện trong chuỗi với ranh giới từ (word boundary) hay không
+ */
+export function hasWordMatch(text: string, word: string): boolean {
+  if (!text || !word) return false;
+  const cleanT = cleanNormalizedString(text);
+  const cleanW = cleanNormalizedString(word);
+  if (cleanT === cleanW) return true;
+  // Với từ ngắn <= 4 ký tự (như anh, my, y, uc, duc): Bắt buộc phải là từ độc lập
+  if (cleanW.length <= 4) {
+    const escaped = cleanW.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regex = new RegExp(`(?:^|\\s)${escaped}(?:$|\\s)`, "i");
+    return regex.test(cleanT);
+  }
+  return cleanT.includes(cleanW);
+}
+
+/**
  * Tìm kiếm và chuẩn hóa nhân vật từ query hoặc tên thô
  */
 export function resolveCharacter(
@@ -154,8 +171,7 @@ export function resolveCharacter(
           const cleanAlias = cleanNormalizedString(alias);
           if (
             extractedClean === cleanAlias ||
-            extractedClean.includes(cleanAlias) ||
-            cleanAlias.includes(extractedClean)
+            hasWordMatch(extractedClean, cleanAlias)
           ) {
             return { slug, ...profile };
           }
@@ -177,7 +193,7 @@ export function resolveCharacter(
     for (const [slug, profile] of Object.entries(CHARACTER_SLUG_MAP)) {
       for (const alias of profile.aliases) {
         const cleanAlias = cleanNormalizedString(alias);
-        if (cleanAlias.length >= 4 && cleanQ.includes(cleanAlias)) {
+        if (cleanAlias.length >= 4 && hasWordMatch(cleanQ, cleanAlias)) {
           return { slug, ...profile };
         }
       }
@@ -294,7 +310,7 @@ export function resolveCountrySlug(rawCountry?: string): string {
     }
   }
   for (const [slug, aliases] of Object.entries(COUNTRY_SLUG_MAP)) {
-    if (aliases.some((a) => clean.includes(cleanNormalizedString(a)) || cleanNormalizedString(a).includes(clean))) {
+    if (aliases.some((a) => hasWordMatch(clean, cleanNormalizedString(a)))) {
       return slug;
     }
   }
@@ -313,7 +329,7 @@ export function resolveGenreSlug(rawGenre?: string): string {
     }
   }
   for (const [slug, aliases] of Object.entries(GENRE_SLUG_MAP)) {
-    if (aliases.some((a) => clean.includes(cleanNormalizedString(a)) || cleanNormalizedString(a).includes(clean))) {
+    if (aliases.some((a) => hasWordMatch(clean, cleanNormalizedString(a)))) {
       return slug;
     }
   }

@@ -133,23 +133,36 @@ export function findBestMatchMovie(items: any[], query: string, originalQuery?: 
   return bestScore >= 40 ? bestItem : null;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const PHIMAPI_DIRECT_CACHE = new Map<string, { item: any; expireAt: number }>();
+
 /**
- * Tra cứu trực tiếp trên PhimAPI (phimapi.com) với timeout ngắn
+ * Tra cứu trực tiếp trên PhimAPI (phimapi.com) với timeout ngắn và RAM cache
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function queryPhimApiDirect(keyword: string, originalKeyword?: string, options?: MatchOptions): Promise<any> {
   if (!keyword?.trim()) return null;
+  const cacheKey = `${keyword.trim()}__${originalKeyword?.trim() || ""}__${options?.expectedCountry || ""}__${options?.expectedGenre || ""}`.toLowerCase();
+  const cached = PHIMAPI_DIRECT_CACHE.get(cacheKey);
+  if (cached && Date.now() < cached.expireAt) return cached.item;
+
   try {
     const res = await fetch(
       `https://phimapi.com/v1/api/tim-kiem?keyword=${encodeURIComponent(keyword.trim())}&limit=8`,
-      { signal: AbortSignal.timeout(2400), next: { revalidate: 3600 } }
+      { signal: AbortSignal.timeout(1800), next: { revalidate: 3600 } }
     );
-    if (!res.ok) return null;
+    if (!res.ok) {
+      PHIMAPI_DIRECT_CACHE.set(cacheKey, { item: null, expireAt: Date.now() + 1000 * 60 * 10 });
+      return null;
+    }
     const json = await res.json();
     const items = json?.data?.items || [];
     if (items.length > 0) {
       const best = findBestMatchMovie(items, keyword, originalKeyword, options);
-      if (!best) return null;
+      if (!best) {
+        PHIMAPI_DIRECT_CACHE.set(cacheKey, { item: null, expireAt: Date.now() + 1000 * 60 * 10 });
+        return null;
+      }
 
       const imageDomain = (json.data?.APP_DOMAIN_CDN_IMAGE || "https://phimimg.com/").replace(/\/+$/, "");
       const formatImg = (p?: string) => {
@@ -157,13 +170,17 @@ export async function queryPhimApiDirect(keyword: string, originalKeyword?: stri
         if (p.startsWith("http://") || p.startsWith("https://")) return p;
         return `${imageDomain}/${p.replace(/^\/+/, "")}`;
       };
-      return {
+      const formatted = {
         ...best,
         thumb_url: formatImg(best.thumb_url) || formatImg(best.poster_url),
         poster_url: formatImg(best.poster_url) || formatImg(best.thumb_url),
       };
+      PHIMAPI_DIRECT_CACHE.set(cacheKey, { item: formatted, expireAt: Date.now() + 1000 * 60 * 60 * 2 });
+      return formatted;
     }
   } catch {}
+
+  PHIMAPI_DIRECT_CACHE.set(cacheKey, { item: null, expireAt: Date.now() + 1000 * 60 * 5 });
   return null;
 }
 
@@ -182,34 +199,51 @@ export async function searchSingleMovieFast(title: string, originalTitle?: strin
 
   let foundItem = null;
 
+  // 1. Tìm trên PhimAPI với tiêu đề tiếng Việt
   if (cleanTitle) {
     foundItem = await queryPhimApiDirect(cleanTitle, cleanOriginal, options);
   }
 
+  // 2. Nếu chưa thấy, thử tiếp tên gốc tiếng Anh/Quốc tế
   if (!foundItem && cleanOriginal && cleanOriginal !== cleanTitle) {
     foundItem = await queryPhimApiDirect(cleanOriginal, cleanTitle, options);
   }
 
-  if (!foundItem && cleanTitle) {
+  // 3. Nếu PhimAPI không có, fallback tìm kiếm trong catalog nội bộ (chạy song song tiêu đề và tên gốc với timeout ngắn 1.2s)
+  if (!foundItem && (cleanTitle || cleanOriginal)) {
     try {
-      const res1 = await Promise.race([
-        movieApi.getMovies({ keyword: cleanTitle, page: 1, limit: 6 }),
-        new Promise<null>((resolve) => setTimeout(() => resolve(null), 2000)),
-      ]);
-      if (res1?.items && res1.items.length > 0) {
-        foundItem = findBestMatchMovie(res1.items, cleanTitle, cleanOriginal, options);
+      const fallbackTasks = [];
+      if (cleanTitle) {
+        fallbackTasks.push(
+          Promise.race([
+            movieApi.getMovies({ keyword: cleanTitle, page: 1, limit: 6 }),
+            new Promise<null>((resolve) => setTimeout(() => resolve(null), 1200)),
+          ]).catch(() => null)
+        );
       }
-    } catch {}
-  }
+      if (cleanOriginal && cleanOriginal !== cleanTitle) {
+        fallbackTasks.push(
+          Promise.race([
+            movieApi.getMovies({ keyword: cleanOriginal, page: 1, limit: 6 }),
+            new Promise<null>((resolve) => setTimeout(() => resolve(null), 1200)),
+          ]).catch(() => null)
+        );
+      }
 
-  if (!foundItem && cleanOriginal && cleanOriginal !== cleanTitle) {
-    try {
-      const res2 = await Promise.race([
-        movieApi.getMovies({ keyword: cleanOriginal, page: 1, limit: 6 }),
-        new Promise<null>((resolve) => setTimeout(() => resolve(null), 2000)),
-      ]);
-      if (res2?.items && res2.items.length > 0) {
-        foundItem = findBestMatchMovie(res2.items, cleanOriginal, cleanTitle, options);
+      const settled = await Promise.allSettled(fallbackTasks);
+      for (const res of settled) {
+        if (res.status === "fulfilled" && res.value?.items && res.value.items.length > 0) {
+          const match = findBestMatchMovie(
+            res.value.items,
+            cleanTitle || cleanOriginal,
+            cleanOriginal,
+            options
+          );
+          if (match) {
+            foundItem = match;
+            break;
+          }
+        }
       }
     } catch {}
   }
@@ -217,7 +251,7 @@ export async function searchSingleMovieFast(title: string, originalTitle?: strin
   if (foundItem) {
     TITLE_LOOKUP_CACHE.set(key, { item: foundItem, expireAt: Date.now() + 1000 * 60 * 60 * 24 });
   } else {
-    TITLE_LOOKUP_CACHE.set(key, { item: null, expireAt: Date.now() + 1000 * 60 });
+    TITLE_LOOKUP_CACHE.set(key, { item: null, expireAt: Date.now() + 1000 * 60 * 10 });
   }
 
   return foundItem;

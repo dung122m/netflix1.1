@@ -37,7 +37,23 @@ export interface CharacterProfile {
   defaultTitles?: string[];
 }
 
+export type SearchIntent =
+  | "movie_title"
+  | "actor"
+  | "character"
+  | "genre"
+  | "country"
+  | "year"
+  | "theme"
+  | "mood"
+  | "mixed"
+  | "unknown";
+
 export interface AiParsedResult {
+  intent?: SearchIntent;
+  keywords?: string[];
+  semanticQuery?: string;
+  concepts?: string[];
   is_trap?: boolean;
   is_off_topic?: boolean;
   analysis?: string;
@@ -67,6 +83,11 @@ export interface CacheEntry {
   cachedAt: number;
 }
 
+export interface ChatMessageContext {
+  role: "user" | "assistant";
+  content: string;
+}
+
 export interface ConciergeApiResponse {
   reply: string;
   mood: string;
@@ -74,3 +95,4 @@ export interface ConciergeApiResponse {
   provider: string;
   cached?: boolean;
 }
+

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { movieApi } from "@/services/movieApi";
 import { kvCache } from "@/services/kvCacheService";
-import { SuggestionCard, MatchOptions, ConciergeApiResponse, CacheEntry } from "./types";
+import { SuggestionCard, MatchOptions, ConciergeApiResponse, CacheEntry, SearchIntent } from "./types";
 import {
   CACHE_TTL_MS,
   MAX_CACHE_ENTRIES,
@@ -31,6 +31,10 @@ import {
 } from "./movieFormatter";
 import { searchSingleMovieFast } from "./movieSearch";
 import { analyzeUserPrompt } from "./aiAnalyzer";
+import { searchMoviesBySemantic } from "@/services/aiVectorService";
+import { isRelevantToQuery, extractContentKeywords, isGibberishQuery, isVagueQuery } from "./relevanceGate";
+import { resolveConcepts } from "./conceptRegistry";
+import { queryMoviesByActor } from "@/services/aiActorService";
 
 export const maxDuration = 15;
 
@@ -100,9 +104,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const t0_req = performance.now();
+    let t_ai_ms = 0;
+    let t_search_ms = 0;
+
     const body = await req.json();
     const prompt: string = body.prompt?.trim() || "";
     const userApiKey: string = body.apiKey?.trim() || "";
+    const excludeSlugs: string[] = Array.isArray(body.excludeSlugs) ? body.excludeSlugs : [];
+    const rawHistory = Array.isArray(body.history) ? body.history : [];
+    const conversationHistory = rawHistory.slice(-6).map((h: { role?: string; content?: string; text?: string }) => ({
+      role: (h.role === "assistant" ? "assistant" : "user") as "user" | "assistant",
+      content: (h.content || h.text || "").trim(),
+    })).filter((h: { content: string }) => Boolean(h.content));
 
     if (!prompt) {
       return NextResponse.json(
@@ -112,7 +126,14 @@ export async function POST(req: NextRequest) {
     }
 
     // 1. Kiểm tra cache hit (L1 Memory Map & L2 Cloudflare KV)
-    const cacheKey = normalizeQuery(prompt);
+    // Nếu có lịch sử đối thoại thì thêm dấu ấn ngữ cảnh vào cache key để không trả nhầm cache câu hỏi độc lập
+    const lastContextSnippet = conversationHistory.length > 0
+      ? conversationHistory.slice(-2).map((h: { content: string }) => normalizeQuery(h.content).slice(0, 30)).join("_")
+      : "";
+    const cacheKey = lastContextSnippet
+      ? `${normalizeQuery(prompt)}__ctx_${lastContextSnippet}`
+      : normalizeQuery(prompt);
+
     if (body.clearCache) {
       AI_RESPONSE_CACHE.clear();
       await kvCache.delete(`ai:concierge:${cacheKey}`);
@@ -139,8 +160,10 @@ export async function POST(req: NextRequest) {
 
     const currentYear = new Date().getFullYear();
 
-    // 2. Phân tích ngữ nghĩa & trích xuất ý định bằng AI
-    const { parsed: aiParsed, provider: aiProviderName } = await analyzeUserPrompt(prompt, userApiKey);
+    // 2. Phân tích ngữ nghĩa & trích xuất ý định bằng AI (Kèm ngữ cảnh cuộc hội thoại)
+    const t_ai_start = performance.now();
+    const { parsed: aiParsed, provider: aiProviderName } = await analyzeUserPrompt(prompt, userApiKey, conversationHistory);
+    t_ai_ms = Math.round(performance.now() - t_ai_start);
 
     // 3. Chuẩn hóa bộ lọc (Slugs & Constraints)
     const promptCharMatch =
@@ -161,7 +184,6 @@ export async function POST(req: NextRequest) {
 
     const rawActor = aiParsed?.actor || "";
     const rawCountry = aiParsed?.country || "";
-    const rawDirector = aiParsed?.director || "";
     const rawKeyword = aiParsed?.keyword || "";
 
     const rawGenreList = Array.isArray(aiParsed?.genres)
@@ -182,6 +204,98 @@ export async function POST(req: NextRequest) {
       : resolveActorSlug(rawActor, prompt) || resolveActorSlug(prompt);
 
     const lowerPrompt = prompt.toLowerCase();
+    const cleanPrompt = cleanNormalizedString(prompt);
+
+    // 2.5. Xác định Search Intent (Phân biệt movie_title, actor, character, genre, country, theme, mood, mixed, unknown)
+    const activeConcepts = resolveConcepts(prompt, aiParsed?.concepts);
+    let searchIntent: SearchIntent = (aiParsed?.intent as SearchIntent) || "unknown";
+
+    if (isGibberishQuery(prompt)) {
+      searchIntent = "unknown";
+    } else if (activeConcepts.length > 0) {
+      searchIntent = "theme";
+    } else if (hasCharacterIntent && (detectedChar || rawCharacter)) {
+      searchIntent = "character";
+    } else if (targetActorSlug) {
+      searchIntent = "actor";
+    }
+
+    if (searchIntent === "unknown" || searchIntent === "genre" || searchIntent === "mood") {
+      const isThemeCue = [
+        "dau bep",
+        "nau an",
+        "nau banh",
+        "lam banh",
+        "nuong banh",
+        "am thuc",
+        "mon an",
+        "nha hang",
+        "chef",
+        "cook",
+        "bakery",
+        "bac si",
+        "y khoa",
+        "benh vien",
+        "truong hoc",
+        "hoc duong",
+        "thanh xuan",
+        "hoc sinh",
+        "giao vien",
+        "thay co",
+        "lop hoc",
+        "giang duong",
+        "sinh ton",
+        "dao hoang",
+        "du hanh",
+        "thoi gian",
+        "vong lap",
+        "cuop ngan hang",
+        "vu tru",
+        "sat thu",
+        "nguoi may",
+        "robot",
+        "zombie",
+        "xac song",
+        "quai vat",
+      ].some((cue) => cleanPrompt.includes(cue));
+
+      if (isThemeCue) {
+        searchIntent = "theme";
+      } else if (isGibberishQuery(prompt)) {
+        searchIntent = "unknown";
+      } else if (targetGenreSlug && targetCountrySlug) {
+        searchIntent = "mixed";
+      } else if (targetGenreSlug) {
+        searchIntent = "genre";
+      } else if (targetCountrySlug) {
+        searchIntent = "country";
+      } else if (lowerPrompt.includes("chua lanh") || lowerPrompt.includes("chữa lành") || lowerPrompt.includes("xa stress")) {
+        searchIntent = "mood";
+      } else if (!isGibberishQuery(prompt)) {
+        const isQuestion = /(?:phim\s+(?:gì|gi|nào|nao)|tại\s+sao|như\s+thế\s+nào)/i.test(lowerPrompt);
+        if (!isQuestion && prompt.trim().split(/\s+/).length <= 4) {
+          searchIntent = "movie_title";
+        }
+      }
+    }
+
+    // Nhận diện năm phát hành cụ thể (ví dụ: "phim năm 2024", "phim 2023")
+    const explicitYearMatch = prompt.match(/(?:năm|nam)\s*(\d{4})/i) || prompt.match(/\b(19\d{2}|20\d{2})\b/);
+    const targetExplicitYear = explicitYearMatch ? parseInt(explicitYearMatch[1], 10) : 0;
+    if (targetExplicitYear >= 1900 && targetExplicitYear <= currentYear + 2) {
+      if (searchIntent === "unknown" || (searchIntent === "movie_title" && prompt.trim().split(/\s+/).length <= 3)) {
+        searchIntent = "year";
+      }
+    }
+
+    // Bảo vệ: Nếu là chủ đề (theme), tựa phim (movie_title), năm (year) hoặc unknown nhưng người dùng không hề yêu cầu phim hành động,
+    // xóa bỏ genre "hanh-dong" ảo giác do LLM tự điền
+    const userExplicitAction = lowerPrompt.includes("hành động") || lowerPrompt.includes("hanh dong") || lowerPrompt.includes("action");
+    let effectiveGenreSlug = targetGenreSlug;
+    if ((searchIntent === "theme" || searchIntent === "movie_title" || searchIntent === "year" || searchIntent === "unknown") && !userExplicitAction) {
+      effectiveGenreSlug = "";
+    }
+
     const isLatest =
       Boolean(aiParsed?.is_latest) ||
       lowerPrompt.includes("mới nhất") ||
@@ -201,7 +315,10 @@ export async function POST(req: NextRequest) {
     let yearFrom = aiParsed?.years?.from || aiParsed?.year_from || 0;
     let yearTo = aiParsed?.years?.to || aiParsed?.year_to || 0;
 
-    if (isLatest) {
+    if (targetExplicitYear >= 1900 && targetExplicitYear <= currentYear + 2) {
+      yearFrom = targetExplicitYear;
+      yearTo = targetExplicitYear;
+    } else if (isLatest) {
       if (!yearFrom || yearFrom < currentYear - 1) {
         yearFrom = currentYear - 1;
         yearTo = currentYear;
@@ -268,7 +385,7 @@ export async function POST(req: NextRequest) {
 
     const matchOptions: MatchOptions = {
       expectedCountry: targetCountrySlug || undefined,
-      expectedGenre: targetGenreSlug || undefined,
+      expectedGenre: effectiveGenreSlug || undefined,
       expectedActorSlug: targetActorSlug || undefined,
       expectedCharacter: rawCharacter || undefined,
       yearFrom: yearFrom || undefined,
@@ -283,7 +400,7 @@ export async function POST(req: NextRequest) {
     };
 
     const cards: SuggestionCard[] = [];
-    const seenSlugs = new Set<string>();
+    const seenSlugs = new Set<string>(excludeSlugs);
 
     // 3.5. ƯU TIÊN SỐ 1: TÌM KIẾM DỮ LIỆU THẬT TRONG CATALOG CHO NHÂN VẬT (CHARACTER SEARCH)
     if (hasCharacterIntent && (detectedChar || rawCharacter)) {
@@ -360,8 +477,15 @@ export async function POST(req: NextRequest) {
         scoredCharMovies.sort((a, b) => b.score - a.score);
 
         for (const sc of scoredCharMovies) {
-          if (cards.length >= 4) break;
+          if (cards.length >= 16) break;
           const it = sc.item;
+          const relCheck = isRelevantToQuery(it, "character", {
+            originalQuery: prompt,
+            expectedCharacter: rawCharacter,
+            detectedChar,
+          });
+          if (!relCheck.relevant) continue;
+
           if (!seenSlugs.has(it.slug)) {
             seenSlugs.add(it.slug);
             const itemYear = extractMovieYear(it);
@@ -384,12 +508,33 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 4. Pass 1: Tra cứu song song toàn bộ gợi ý do AI đề xuất
-    const candidateMovieList = [
-      ...(aiParsed?.suggested_movies || aiParsed?.movies || []),
-    ];
+    // 4. Pass 1 (AI Movie Suggestions Lookup) & Pass 2 (Database Catalog Search) CHẠY SONG SONG (PARALLEL)
+    const t_search_start = performance.now();
 
-    if (candidateMovieList.length > 0 && cards.length < 4) {
+    const isTrapOrOffTopic = Boolean(
+      (aiParsed?.is_trap && !hasCharacterIntent) ||
+      aiParsed?.is_off_topic ||
+      isGibberishQuery(prompt) ||
+      isVagueQuery(prompt)
+    );
+
+    // Task A: Tra cứu nhanh các gợi ý do AI đề xuất (Tối đa 8 phim)
+    const runPass1Lookup = async () => {
+      if (isTrapOrOffTopic || searchIntent === "unknown") return [];
+
+      let candidateMovieList = [
+        ...(aiParsed?.suggested_movies || aiParsed?.movies || []),
+      ];
+
+      // Nếu là tìm tựa phim cụ thể: luôn bổ sung chính prompt vào danh sách tìm kiếm
+      if (searchIntent === "movie_title") {
+        candidateMovieList = [
+          { title: prompt.trim(), original_title: prompt.trim(), reason: "" },
+          ...candidateMovieList,
+        ];
+      }
+
+      if (candidateMovieList.length === 0) return [];
       let filteredSuggestions = candidateMovieList;
       if (
         !lowerPrompt.includes("anime nana") &&
@@ -403,7 +548,16 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      const lookupPromises = filteredSuggestions.slice(0, 35).map(async (m) => {
+      // Loại bỏ trùng lặp tiêu đề trước khi tra cứu
+      const seenTitles = new Set<string>();
+      const dedupedSuggestions = filteredSuggestions.filter((m) => {
+        const k = (m.title || "").toLowerCase().trim();
+        if (!k || seenTitles.has(k)) return false;
+        seenTitles.add(k);
+        return true;
+      });
+
+      const lookupPromises = dedupedSuggestions.slice(0, 10).map(async (m) => {
         const found = await searchSingleMovieFast(
           m.title,
           m.original_title,
@@ -415,81 +569,226 @@ export async function POST(req: NextRequest) {
         };
       });
 
-      const resolved = await Promise.all(lookupPromises);
+      return Promise.all(lookupPromises);
+    };
 
-      for (const item of resolved) {
-        if (cards.length >= 4) break;
-        if (item.found && item.found.slug && !seenSlugs.has(item.found.slug)) {
-          const itemCountry = toSafeCountry(item.found);
-          const itemCategory = toSafeCategory(item.found);
-          const itemYear =
-            extractMovieYear(item.found) ||
-            extractMovieYear(item.suggested) ||
-            0;
-          const itemActors = toSafeActors(item.found);
+    // Task B: Truy vấn sẵn catalog từ Database và Vector Search để sẵn sàng bổ sung ứng viên
+    const runPass2Catalog = async () => {
+      if (isTrapOrOffTopic || searchIntent === "unknown") return [];
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const queryTasks: Promise<any>[] = [];
+
+      // 1. ƯU TIÊN CHỦ ĐỀ (THEME QUERY): Tìm kiếm ngữ nghĩa bằng Supabase Vector Search & Decomposed Keywords
+      if (searchIntent === "theme") {
+        const conceptDiscoveryKeywords = activeConcepts.flatMap((c) => c.discoveryKeywords);
+        const vectorQuery =
+          aiParsed?.semanticQuery ||
+          (conceptDiscoveryKeywords.length > 0
+            ? `${prompt} ${conceptDiscoveryKeywords.join(" ")}`
+            : prompt);
+
+        queryTasks.push(
+          searchMoviesBySemantic(vectorQuery, 12, 0.45)
+            .then((vectorItems) => {
+              return {
+                items: vectorItems.map((v) => ({
+                  slug: v.id,
+                  name: v.title,
+                  origin_name: v.originalName,
+                  poster_url: v.posterUrl,
+                  thumb_url: v.thumbUrl,
+                  year: v.year,
+                  quality: v.quality,
+                  category: v.category ? [{ name: v.category, slug: v.category }] : [],
+                  content: v.description,
+                  description: v.description,
+                })),
+              };
+            })
+            .catch(() => null)
+        );
+
+        const combinedKeywords = Array.from(
+          new Set([
+            ...conceptDiscoveryKeywords,
+            ...(aiParsed?.keywords || []),
+            ...extractContentKeywords(prompt),
+          ])
+        ).filter((kw) => {
+          if (!kw || kw.length < 3) return false;
+          const cleanKw = cleanNormalizedString(kw);
+          if (cleanKw.length < 3) return false;
+          return true;
+        });
+
+        for (const kw of combinedKeywords.slice(0, 5)) {
+          queryTasks.push(
+            movieApi.getMovies({ keyword: kw.trim(), limit: 12 }).catch(() => null)
+          );
+        }
+      }
+
+      if (hasCharacterIntent && rawCharacter) {
+        queryTasks.push(
+          movieApi.getMovies({ keyword: rawCharacter, limit: 16 }).catch(() => null)
+        );
+      }
+
+      if (targetActorSlug) {
+        const aliases = getActorAliases(targetActorSlug);
+        const mainName = aliases[0] || targetActorSlug.replace(/-/g, " ");
+        queryTasks.push(
+          queryMoviesByActor(mainName, aliases, undefined, 20)
+            .then((movies) => ({ items: movies }))
+            .catch(() => null)
+        );
+        queryTasks.push(movieApi.getMovies({ keyword: mainName, limit: 20 }).catch(() => null));
+        if (aliases[1]) {
+          queryTasks.push(
+            movieApi.getMovies({ keyword: aliases[1], limit: 20 }).catch(() => null)
+          );
+        }
+      }
+
+      if (searchIntent === "movie_title") {
+        queryTasks.push(
+          movieApi.getMovies({ keyword: prompt.trim(), limit: 16 }).catch(() => null)
+        );
+      }
+
+      if (
+        searchIntent !== "theme" &&
+        searchIntent !== "movie_title" &&
+        !targetActorSlug &&
+        !hasCharacterIntent &&
+        rawKeyword &&
+        rawKeyword.trim().length >= 2
+      ) {
+        queryTasks.push(
+          movieApi.getMovies({ keyword: rawKeyword.trim(), limit: 16 }).catch(() => null)
+        );
+      }
+
+      if (
+        searchIntent !== "theme" &&
+        searchIntent !== "movie_title" &&
+        !targetActorSlug &&
+        !hasCharacterIntent &&
+        (effectiveGenreSlug || targetCountrySlug || isLatest || targetExplicitYear > 0)
+      ) {
+        if (targetExplicitYear > 0) {
+          queryTasks.push(
+            movieApi.getMovies({
+              category: effectiveGenreSlug || undefined,
+              country: targetCountrySlug || undefined,
+              year: String(targetExplicitYear),
+              limit: 20,
+              sort: "latest",
+            }).catch(() => null)
+          );
+        } else if (isLatest) {
+          queryTasks.push(
+            movieApi.getMovies({
+              category: effectiveGenreSlug || undefined,
+              country: targetCountrySlug || undefined,
+              year: String(currentYear),
+              limit: 20,
+              sort: "latest",
+            }).catch(() => null)
+          );
+        } else {
+          queryTasks.push(
+            movieApi.getMovies({
+              category: effectiveGenreSlug || undefined,
+              country: targetCountrySlug || undefined,
+              limit: 20,
+              sort: "rating",
+            }).catch(() => null)
+          );
+        }
+      }
+
+      try {
+        const poolResults = await Promise.allSettled(queryTasks);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const candidatePool: any[] = [];
+        for (const res of poolResults) {
           if (
-            excludedCountrySlugs.some((ex) => matchesCountry(itemCountry, ex))
-          )
-            continue;
-          if (
-            excludedGenreSlugs.some((ex) => matchesGenre(itemCategory, ex))
-          )
-            continue;
-
-          // Nếu người dùng tìm kiếm nhân vật cụ thể: chỉ nhận phim từ AI nếu có liên quan tới nhân vật
-          if (hasCharacterIntent && rawCharacter) {
-            const charAliases =
-              detectedChar?.aliases?.map(cleanNormalizedString) || [
-                cleanNormalizedString(rawCharacter),
-              ];
-            const name = cleanNormalizedString(item.found.name || "");
-            const orig = cleanNormalizedString(item.found.origin_name || "");
-            const desc = cleanNormalizedString(
-              item.found.content || item.found.description || ""
-            );
-            const sugTitle = cleanNormalizedString(item.suggested.title || "");
-            const isRelevant = charAliases.some(
-              (a) =>
-                name.includes(a) ||
-                orig.includes(a) ||
-                desc.includes(a) ||
-                sugTitle.includes(a)
-            );
-            if (!isRelevant) {
-              continue;
-            }
-          }
-
-          // Kiểm tra diễn viên nếu có (chỉ áp dụng cho tìm diễn viên thực tế)
-          if (targetActorSlug) {
-            const hasActor = matchesActor(itemActors, targetActorSlug);
-            if (!hasActor && itemActors.length > 0) {
-              const cleanTitle = cleanNormalizedString(item.suggested.title);
-              const cleanOrig = cleanNormalizedString(
-                item.suggested.original_title || ""
-              );
-              const foundName = cleanNormalizedString(item.found.name || "");
-              const foundOrig = cleanNormalizedString(
-                item.found.origin_name || ""
-              );
-              const isExactTitle =
-                (cleanTitle && foundName === cleanTitle) ||
-                (cleanOrig &&
-                  (foundOrig === cleanOrig || foundName === cleanOrig));
-              if (!isExactTitle) continue;
-            }
-          }
-
-          if (isLatest && itemYear > 0 && itemYear < currentYear - 1) {
-            continue;
-          }
-
-          if (
-            targetCountrySlug &&
-            itemCountry &&
-            !matchesCountry(itemCountry, targetCountrySlug)
+            res.status === "fulfilled" &&
+            res.value?.items &&
+            Array.isArray(res.value.items)
           ) {
+            for (const it of res.value.items) {
+              if (it && it.slug) {
+                candidatePool.push(it);
+              }
+            }
+          }
+        }
+        return candidatePool;
+      } catch {
+        return [];
+      }
+    };
+
+    // Khởi chạy song song Pass 1 và Pass 2 để triệt tiêu độ trễ tuần tự
+    const [pass1Resolved, pass2CandidatePool] = await Promise.all([
+      runPass1Lookup(),
+      runPass2Catalog(),
+    ]);
+
+    t_search_ms = Math.round(performance.now() - t_search_start);
+
+    // Bước 4.1: Điền các phim tuyển chọn từ AI vào cards trước (Ưu tiên hàng đầu)
+    for (const item of pass1Resolved) {
+      if (cards.length >= 16) break;
+      if (item.found && item.found.slug && !seenSlugs.has(item.found.slug)) {
+        const itemCountry = toSafeCountry(item.found);
+        const itemCategory = toSafeCategory(item.found);
+        const itemYear =
+          extractMovieYear(item.found) ||
+          extractMovieYear(item.suggested) ||
+          0;
+        const itemActors = toSafeActors(item.found);
+
+        if (
+          excludedCountrySlugs.some((ex) => matchesCountry(itemCountry, ex))
+        )
+          continue;
+        if (
+          excludedGenreSlugs.some((ex) => matchesGenre(itemCategory, ex))
+        )
+          continue;
+
+        // Nếu người dùng tìm kiếm nhân vật cụ thể: chỉ nhận phim từ AI nếu có liên quan tới nhân vật
+        if (hasCharacterIntent && rawCharacter) {
+          const charAliases =
+            detectedChar?.aliases?.map(cleanNormalizedString) || [
+              cleanNormalizedString(rawCharacter),
+            ];
+          const name = cleanNormalizedString(item.found.name || "");
+          const orig = cleanNormalizedString(item.found.origin_name || "");
+          const desc = cleanNormalizedString(
+            item.found.content || item.found.description || ""
+          );
+          const sugTitle = cleanNormalizedString(item.suggested.title || "");
+          const isRelevant = charAliases.some(
+            (a) =>
+              name.includes(a) ||
+              orig.includes(a) ||
+              desc.includes(a) ||
+              sugTitle.includes(a)
+          );
+          if (!isRelevant) {
+            continue;
+          }
+        }
+
+        // Kiểm tra diễn viên nếu có (chỉ áp dụng cho tìm diễn viên thực tế)
+        if (targetActorSlug) {
+          const hasActor = matchesActor(itemActors, targetActorSlug);
+          if (!hasActor && itemActors.length > 0) {
             const cleanTitle = cleanNormalizedString(item.suggested.title);
             const cleanOrig = cleanNormalizedString(
               item.suggested.original_title || ""
@@ -504,251 +803,216 @@ export async function POST(req: NextRequest) {
                 (foundOrig === cleanOrig || foundName === cleanOrig));
             if (!isExactTitle) continue;
           }
+        }
 
-          seenSlugs.add(item.found.slug);
-          const rawFoundName = item.found.name || item.found.title || "";
-          const isBizarre =
-            rawFoundName.toLowerCase().includes("cầy mangut") ||
-            rawFoundName.toLowerCase().includes("cay mangut");
-          const safeTitle =
-            isBizarre && (item.suggested.title || item.found.origin_name)
-              ? item.suggested.title || item.found.origin_name
-              : rawFoundName || item.suggested.title;
+        if (isLatest && itemYear > 0 && itemYear < currentYear - 1) {
+          continue;
+        }
 
+        if (
+          targetCountrySlug &&
+          itemCountry &&
+          !matchesCountry(itemCountry, targetCountrySlug)
+        ) {
+          const cleanTitle = cleanNormalizedString(item.suggested.title);
+          const cleanOrig = cleanNormalizedString(
+            item.suggested.original_title || ""
+          );
+          const foundName = cleanNormalizedString(item.found.name || "");
+          const foundOrig = cleanNormalizedString(
+            item.found.origin_name || ""
+          );
+          const isExactTitle =
+            (cleanTitle && foundName === cleanTitle) ||
+            (cleanOrig &&
+              (foundOrig === cleanOrig || foundName === cleanOrig));
+          if (!isExactTitle) continue;
+        }
+
+        // CỔNG KIỂM DUYỆT RELEVANCE NGHIÊM NGẶT CHO PASS 1 (AI SUGGESTIONS)
+        const relCheck = isRelevantToQuery(item.found, searchIntent, {
+          originalQuery: prompt,
+          keywords: aiParsed?.keywords,
+          semanticQuery: aiParsed?.semanticQuery,
+          concepts: aiParsed?.concepts || activeConcepts.map((c) => c.id),
+          expectedActorSlug: targetActorSlug,
+          expectedCharacter: rawCharacter,
+          targetGenreSlug: effectiveGenreSlug || undefined,
+          targetCountrySlug: targetCountrySlug || undefined,
+          targetYear: targetExplicitYear > 0 ? targetExplicitYear : undefined,
+          detectedChar,
+        });
+        if (!relCheck.relevant) {
+          continue;
+        }
+
+        seenSlugs.add(item.found.slug);
+        const rawFoundName = item.found.name || item.found.title || "";
+        const isBizarre =
+          rawFoundName.toLowerCase().includes("cầy mangut") ||
+          rawFoundName.toLowerCase().includes("cay mangut");
+        const safeTitle =
+          isBizarre && (item.suggested.title || item.found.origin_name)
+            ? item.suggested.title || item.found.origin_name
+            : rawFoundName || item.suggested.title;
+
+        cards.push({
+          slug: item.found.slug,
+          title: safeTitle,
+          poster: toSafePoster(item.found),
+          year: itemYear || 2024,
+          quality: item.found.quality || "HD",
+          category: itemCategory,
+          country: itemCountry || (targetCountrySlug ? "Âu Mỹ" : "Quốc Tế"),
+          actors: itemActors,
+          reason: getMovieHighlight(item.found, item.suggested.reason),
+        });
+      }
+    }
+
+    // Bước 4.2: Nếu sau Pass 1 chưa đủ 16 phim, bổ sung ngay từ Catalog Database & Vector Search
+    if (cards.length < 16 && pass2CandidatePool.length > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const scoredCandidates: Array<{ item: any; score: number }> = [];
+
+      for (const it of pass2CandidatePool) {
+        if (!it?.slug || seenSlugs.has(it.slug)) continue;
+
+        const itemCountry = toSafeCountry(it);
+        const itemCategory = toSafeCategory(it);
+        const itemActors = toSafeActors(it);
+        const itemYear = extractMovieYear(it);
+        const itemName = cleanNormalizedString(it.name || "");
+        const itemOrig = cleanNormalizedString(it.origin_name || "");
+        const itemDesc = cleanNormalizedString(
+          it.content || it.description || ""
+        );
+
+        if (
+          excludedCountrySlugs.some((ex) => matchesCountry(itemCountry, ex))
+        )
+          continue;
+        if (
+          excludedGenreSlugs.some((ex) => matchesGenre(itemCategory, ex))
+        )
+          continue;
+
+        if (isLatest && itemYear > 0 && itemYear < currentYear - 1) {
+          continue;
+        }
+
+        // CỔNG KIỂM DUYỆT RELEVANCE NGHIÊM NGẶT CHO PASS 2 (CATALOG & VECTOR)
+        const relCheck = isRelevantToQuery(it, searchIntent, {
+          originalQuery: prompt,
+          keywords: aiParsed?.keywords,
+          semanticQuery: aiParsed?.semanticQuery,
+          concepts: aiParsed?.concepts || activeConcepts.map((c) => c.id),
+          expectedActorSlug: targetActorSlug,
+          expectedCharacter: rawCharacter,
+          targetGenreSlug: effectiveGenreSlug || undefined,
+          targetCountrySlug: targetCountrySlug || undefined,
+          targetYear: targetExplicitYear > 0 ? targetExplicitYear : undefined,
+          detectedChar,
+        });
+        if (!relCheck.relevant) {
+          continue;
+        }
+
+        let score = relCheck.score || 0;
+
+        if (hasCharacterIntent && rawCharacter) {
+          const charAliases =
+            detectedChar?.aliases?.map(cleanNormalizedString) || [
+              cleanNormalizedString(rawCharacter),
+            ];
+          if (
+            charAliases.some(
+              (a) =>
+                itemName.includes(a) ||
+                itemOrig.includes(a) ||
+                it.slug.includes(a.replace(/\s+/g, "-"))
+            )
+          ) {
+            score += 80;
+          } else if (
+            charAliases.some((a) => a.length >= 4 && itemDesc.includes(a))
+          ) {
+            score += 50;
+          }
+        }
+
+        if (targetCountrySlug) {
+          if (matchesCountry(itemCountry, targetCountrySlug)) score += 35;
+          else if (itemCountry) score -= 30;
+        }
+
+        if (effectiveGenreSlug) {
+          if (matchesGenre(itemCategory, effectiveGenreSlug)) score += 25;
+        }
+
+        if (targetActorSlug) {
+          const hasActor = matchesActor(itemActors, targetActorSlug);
+          if (hasActor) {
+            score += 70;
+          } else if (itemActors.length > 0) {
+            continue;
+          } else {
+            score -= 40;
+          }
+        }
+
+        if (rawKeyword && !hasCharacterIntent) {
+          const cleanKw = cleanNormalizedString(rawKeyword);
+          if (
+            itemName.includes(cleanKw) ||
+            itemOrig.includes(cleanKw) ||
+            itemDesc.includes(cleanKw)
+          ) {
+            score += 40;
+          }
+        }
+
+        if (isLatest) {
+          if (itemYear >= currentYear) score += 60;
+          else if (itemYear === currentYear - 1) score += 45;
+        }
+
+        scoredCandidates.push({ item: it, score });
+      }
+
+      scoredCandidates.sort((a, b) => b.score - a.score);
+
+      for (const sc of scoredCandidates) {
+        if (cards.length >= 16) break;
+        const it = sc.item;
+        if (!seenSlugs.has(it.slug)) {
+          seenSlugs.add(it.slug);
+          const itemYear = extractMovieYear(it);
           cards.push({
-            slug: item.found.slug,
-            title: safeTitle,
-            poster: toSafePoster(item.found),
+            slug: it.slug,
+            title: it.name || it.title || "Phim Hay",
+            poster: toSafePoster(it),
             year: itemYear || 2024,
-            quality: item.found.quality || "HD",
-            category: itemCategory,
-            country: itemCountry || (targetCountrySlug ? "Âu Mỹ" : "Quốc Tế"),
-            actors: itemActors,
-            reason: getMovieHighlight(item.found, item.suggested.reason),
+            quality: it.quality || "HD",
+            category: toSafeCategory(it),
+            country:
+              toSafeCountry(it) || (targetCountrySlug ? "Âu Mỹ" : "Quốc Tế"),
+            actors: toSafeActors(it),
+            reason: getMovieHighlight(it),
           });
         }
       }
     }
 
-    // 5. Pass 2: Khám phá thêm từ Database nếu chưa đủ 4 phim
-    const isTrapOrOffTopic = Boolean(
-      (aiParsed?.is_trap && !hasCharacterIntent) || aiParsed?.is_off_topic
-    );
-    if (
-      cards.length < 4 &&
-      !isTrapOrOffTopic &&
-      (targetActorSlug ||
-        targetGenreSlug ||
-        targetCountrySlug ||
-        rawKeyword ||
-        rawDirector ||
-        isLatest ||
-        (hasCharacterIntent && rawCharacter))
-    ) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const queryTasks: Promise<any>[] = [];
-
-      if (hasCharacterIntent && rawCharacter) {
-        queryTasks.push(
-          movieApi.getMovies({ keyword: rawCharacter, limit: 16 })
-        );
-      }
-
-      if (targetActorSlug) {
-        const aliases = getActorAliases(targetActorSlug);
-        const mainName = aliases[0] || targetActorSlug.replace(/-/g, " ");
-        queryTasks.push(movieApi.getMovies({ keyword: mainName, limit: 20 }));
-        if (aliases[1]) {
-          queryTasks.push(
-            movieApi.getMovies({ keyword: aliases[1], limit: 20 })
-          );
-        }
-      }
-
-      if (
-        !targetActorSlug &&
-        !hasCharacterIntent &&
-        rawKeyword &&
-        rawKeyword.trim().length >= 2
-      ) {
-        queryTasks.push(
-          movieApi.getMovies({ keyword: rawKeyword.trim(), limit: 16 })
-        );
-      }
-
-      if (
-        !targetActorSlug &&
-        !hasCharacterIntent &&
-        (targetGenreSlug || targetCountrySlug || isLatest)
-      ) {
-        if (isLatest) {
-          queryTasks.push(
-            movieApi.getMovies({
-              category: targetGenreSlug || undefined,
-              country: targetCountrySlug || undefined,
-              year: String(currentYear),
-              limit: 20,
-              sort: "latest",
-            })
-          );
-        } else {
-          queryTasks.push(
-            movieApi.getMovies({
-              category: targetGenreSlug || undefined,
-              country: targetCountrySlug || undefined,
-              limit: 20,
-              sort: "rating",
-            })
-          );
-        }
-      }
-
-      try {
-        const poolResults = await Promise.allSettled(queryTasks);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const candidatePool: any[] = [];
-
-        for (const res of poolResults) {
-          if (
-            res.status === "fulfilled" &&
-            res.value?.items &&
-            Array.isArray(res.value.items)
-          ) {
-            for (const it of res.value.items) {
-              if (it && it.slug && !seenSlugs.has(it.slug)) {
-                candidatePool.push(it);
-              }
-            }
-          }
-        }
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const scoredCandidates: Array<{ item: any; score: number }> = [];
-
-        for (const it of candidatePool) {
-          const itemCountry = toSafeCountry(it);
-          const itemCategory = toSafeCategory(it);
-          const itemActors = toSafeActors(it);
-          const itemYear = extractMovieYear(it);
-          const itemName = cleanNormalizedString(it.name || "");
-          const itemOrig = cleanNormalizedString(it.origin_name || "");
-          const itemDesc = cleanNormalizedString(
-            it.content || it.description || ""
-          );
-
-          if (
-            excludedCountrySlugs.some((ex) => matchesCountry(itemCountry, ex))
-          )
-            continue;
-          if (
-            excludedGenreSlugs.some((ex) => matchesGenre(itemCategory, ex))
-          )
-            continue;
-
-          if (isLatest && itemYear > 0 && itemYear < currentYear - 1) {
-            continue;
-          }
-
-          let score = 0;
-
-          if (hasCharacterIntent && rawCharacter) {
-            const charAliases =
-              detectedChar?.aliases?.map(cleanNormalizedString) || [
-                cleanNormalizedString(rawCharacter),
-              ];
-            if (
-              charAliases.some(
-                (a) =>
-                  itemName.includes(a) ||
-                  itemOrig.includes(a) ||
-                  it.slug.includes(a.replace(/\s+/g, "-"))
-              )
-            ) {
-              score += 80;
-            } else if (
-              charAliases.some((a) => a.length >= 4 && itemDesc.includes(a))
-            ) {
-              score += 50;
-            } else {
-              // Bỏ qua phim không liên quan nhân vật
-              continue;
-            }
-          }
-
-          if (targetCountrySlug) {
-            if (matchesCountry(itemCountry, targetCountrySlug)) score += 35;
-            else if (itemCountry) score -= 30;
-          }
-
-          if (targetGenreSlug) {
-            if (matchesGenre(itemCategory, targetGenreSlug)) score += 25;
-          }
-
-          if (targetActorSlug) {
-            const hasActor = matchesActor(itemActors, targetActorSlug);
-            if (hasActor) {
-              score += 70;
-            } else if (itemActors.length > 0) {
-              continue;
-            } else {
-              score -= 40;
-            }
-          }
-
-          if (rawKeyword && !hasCharacterIntent) {
-            const cleanKw = cleanNormalizedString(rawKeyword);
-            if (
-              itemName.includes(cleanKw) ||
-              itemOrig.includes(cleanKw) ||
-              itemDesc.includes(cleanKw)
-            ) {
-              score += 40;
-            }
-          }
-
-          if (isLatest) {
-            if (itemYear >= currentYear) score += 60;
-            else if (itemYear === currentYear - 1) score += 45;
-          }
-
-          if (score >= 30) {
-            scoredCandidates.push({ item: it, score });
-          }
-        }
-
-        scoredCandidates.sort((a, b) => b.score - a.score);
-
-        for (const sc of scoredCandidates) {
-          if (cards.length >= 4) break;
-          const it = sc.item;
-          if (!seenSlugs.has(it.slug)) {
-            seenSlugs.add(it.slug);
-            const itemYear = extractMovieYear(it);
-            cards.push({
-              slug: it.slug,
-              title: it.name || it.title || "Phim Hay",
-              poster: toSafePoster(it),
-              year: itemYear || 2024,
-              quality: it.quality || "HD",
-              category: toSafeCategory(it),
-              country:
-                toSafeCountry(it) || (targetCountrySlug ? "Âu Mỹ" : "Quốc Tế"),
-              actors: toSafeActors(it),
-              reason: getMovieHighlight(it),
-            });
-          }
-        }
-      } catch (err) {
-        console.warn("[ai-concierge] Error in Pass 2 discovery:", err);
-      }
-    }
-
-    // 6. Pass 3: Fallback nới lỏng nếu không có phim nào khớp
-    // TUYỆT ĐỐI KHÔNG fallback sang phim ngẫu nhiên nếu người dùng tìm kiếm nhân vật cụ thể!
+    // 6. Pass 3: Fallback nới lỏng CHỈ CHO TRUY VẤN THỂ LOẠI / QUỐC GIA CỤ THỂ
+    // TUYỆT ĐỐI KHÔNG fallback cho theme, actor, character, movie_title, unknown!
+    // TUYỆT ĐỐI KHÔNG lấy Top Rating toàn kho ({ sort: "rating", limit: 20 })!
     let isFallbackRelaxed = false;
     if (
       cards.length === 0 &&
+      (searchIntent === "genre" || searchIntent === "country" || searchIntent === "mixed") &&
       !hasCharacterIntent &&
+      !targetActorSlug &&
       !aiParsed?.is_trap &&
       !aiParsed?.is_off_topic
     ) {
@@ -757,10 +1021,10 @@ export async function POST(req: NextRequest) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const fallbackTasks: Promise<any>[] = [];
 
-        if (targetGenreSlug) {
+        if (effectiveGenreSlug) {
           fallbackTasks.push(
             movieApi.getMovies({
-              category: targetGenreSlug,
+              category: effectiveGenreSlug,
               limit: 16,
               sort: "rating",
             })
@@ -775,13 +1039,20 @@ export async function POST(req: NextRequest) {
             })
           );
         }
-        fallbackTasks.push(movieApi.getMovies({ sort: "rating", limit: 16 }));
 
         const fallbackResults = await Promise.allSettled(fallbackTasks);
         for (const res of fallbackResults) {
           if (res.status === "fulfilled" && Array.isArray(res.value?.items)) {
             for (const it of res.value.items) {
               if (it && it.slug && !seenSlugs.has(it.slug)) {
+                // Kiểm tra relevance ngay cả trong fallback
+                const rel = isRelevantToQuery(it, searchIntent, {
+                  originalQuery: prompt,
+                  targetGenreSlug: effectiveGenreSlug || undefined,
+                  targetCountrySlug: targetCountrySlug || undefined,
+                });
+                if (!rel.relevant) continue;
+
                 seenSlugs.add(it.slug);
                 cards.push({
                   slug: it.slug,
@@ -794,11 +1065,11 @@ export async function POST(req: NextRequest) {
                   actors: toSafeActors(it),
                   reason: getMovieHighlight(it),
                 });
-                if (cards.length >= 4) break;
+                if (cards.length >= 16) break;
               }
             }
           }
-          if (cards.length >= 4) break;
+          if (cards.length >= 16) break;
         }
       } catch (err) {
         console.warn("[ai-concierge] Fallback query error:", err);
@@ -835,17 +1106,16 @@ export async function POST(req: NextRequest) {
         finalAnalysis = aiParsed.analysis.trim();
       } else {
         finalAnalysis =
-          "Nana AI chưa tìm thấy tác phẩm khớp tuyệt đối 100% mọi điều kiện chi tiết, nhưng đã nới lỏng bộ lọc để tuyển chọn ngay 3-4 bộ phim có phong cách và chủ đề gần gũi nhất dưới đây để bạn thưởng thức nhé! ✨🍿";
+          "Nana AI chưa tìm thấy tác phẩm khớp tuyệt đối 100% mọi điều kiện chi tiết, nhưng đã nới lỏng bộ lọc để tuyển chọn ngay các bộ phim có phong cách và chủ đề gần gũi nhất dưới đây để bạn thưởng thức nhé! ✨🍿";
       }
       finalMood = aiParsed?.mood || "Gợi Ý Tương Đồng Cho Bạn 🎬✨";
     } else if (cards.length === 0) {
       if (aiParsed?.analysis && (aiParsed.is_trap || aiParsed.is_off_topic)) {
         finalAnalysis = aiParsed.analysis.trim();
       } else {
-        finalAnalysis =
-          "Chào bạn! Hiện tại kho phim chưa có bản phát hành khớp hoàn toàn với yêu cầu này. Bạn có thể thử tìm kiếm theo tên phim cụ thể hoặc khám phá các thể loại thịnh hành trên thanh điều hướng nhé! ✨🍿";
+        finalAnalysis = `😅 Nana chưa tìm thấy phim đủ phù hợp với yêu cầu "${prompt}".\n\nBạn có thể thử:\n• đổi từ khóa ngắn gọn hơn\n• nói cụ thể hơn\n• bỏ bớt một điều kiện`;
       }
-      finalMood = aiParsed?.mood || "Gợi Ý Cho Bạn 🎬";
+      finalMood = aiParsed?.mood || "Chưa Tìm Thấy Phim 🎬";
     } else {
       finalAnalysis =
         aiParsed?.analysis?.trim() ||
@@ -853,11 +1123,17 @@ export async function POST(req: NextRequest) {
       finalMood = aiParsed?.mood || "Điện Ảnh Tuyển Chọn ⭐";
     }
 
-    const finalPayload: ConciergeApiResponse = {
+    const totalMs = Math.round(performance.now() - t0_req);
+    if (process.env.NODE_ENV !== "production") {
+      console.log(`[AI Concierge Timing] Total: ${totalMs}ms | AI: ${t_ai_ms}ms | Search: ${t_search_ms}ms | Cards: ${cards.length}`);
+    }
+
+    const finalPayload: ConciergeApiResponse & { timing?: { totalMs: number; aiMs: number; searchMs: number } } = {
       reply: finalAnalysis,
       mood: finalMood,
-      movies: cards.slice(0, 4),
+      movies: cards.slice(0, 16),
       provider: aiProviderName,
+      ...(process.env.NODE_ENV !== "production" ? { timing: { totalMs, aiMs: t_ai_ms, searchMs: t_search_ms } } : {}),
     };
 
     if (cards.length > 0) {

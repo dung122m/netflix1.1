@@ -20,6 +20,11 @@ export function toSafeActors(item: any): string[] {
   } else if (typeof item?.actor === "string" && item.actor.trim()) {
     result.push(...item.actor.split(",").map((s: string) => s.trim()).filter(Boolean));
   }
+  if (Array.isArray(item?.actors)) {
+    result.push(...item.actors.map(String).map((s: string) => s.trim()).filter(Boolean));
+  } else if (typeof item?.actors === "string" && item.actors.trim()) {
+    result.push(...item.actors.split(",").map((s: string) => s.trim()).filter(Boolean));
+  }
   if (Array.isArray(item?.director)) {
     result.push(...item.director.map(String).map((s: string) => s.trim()).filter(Boolean));
   } else if (typeof item?.director === "string" && item.director.trim()) {
@@ -55,13 +60,16 @@ export function isGenericBoilerplate(text?: string): boolean {
   return (
     lower.includes("tác phẩm tiêu biểu") ||
     lower.includes("tác phẩm đặc sắc") ||
+    lower.includes("tác phẩm hành động đặc sắc") ||
+    lower.includes("một bộ phim kịch tính") ||
+    lower.includes("phù hợp với yêu cầu") ||
+    lower.includes("phù hợp hoàn hảo với yêu cầu") ||
     lower.includes("đang chờ bạn khám phá") ||
     lower.includes("tác phẩm điện ảnh đặc sắc") ||
     lower.includes("tác phẩm kinh điển gắn liền") ||
     lower.includes("gắn liền với tên tuổi") ||
     lower.includes("phong cách diễn xuất") ||
     lower.includes("siêu phẩm điện ảnh thịnh hành") ||
-    lower.includes("phù hợp hoàn hảo với yêu cầu") ||
     lower.includes("sẵn sàng thưởng thức trên nền tảng") ||
     lower.includes("khớp chuẩn xác với yêu cầu") ||
     lower.includes("đạt điểm đánh giá cao") ||
@@ -103,14 +111,15 @@ export function getMovieHighlight(movie: any, customReason?: string): string {
     return clean;
   }
 
-  // 3. Nếu không có overview từ database, sinh nội dung động theo thể loại & năm
+  // 3. Nếu không có overview từ database, hiển thị thông tin thực tế của phim mà không bịa đặt cảm xúc
   const cat = toSafeCategory(movie);
   const yr = extractMovieYear(movie);
-  if (cat && yr) {
-    return `Tác phẩm ${cat.toLowerCase()} đặc sắc năm ${yr}, kịch tính và giàu cảm xúc.`;
+  const orig = movie?.origin_name ? ` (${movie.origin_name})` : "";
+  if (yr && cat) {
+    return `${movie?.name || movie?.title || "Tác phẩm"}${orig} - Thể loại ${cat.toLowerCase()}, phát hành năm ${yr}.`;
   }
   if (cat) {
-    return `Tác phẩm ${cat.toLowerCase()} tuyển chọn với cốt truyện hấp dẫn và diễn xuất ấn tượng.`;
+    return `${movie?.name || movie?.title || "Tác phẩm"}${orig} - Thể loại ${cat.toLowerCase()}.`;
   }
-  return "Tác phẩm điện ảnh chọn lọc chất lượng cao đáng xem trên Nanaflix.";
+  return "Tác phẩm điện ảnh có sẵn trên Nanaflix.";
 }

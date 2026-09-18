@@ -56,7 +56,7 @@ const MOOD_META: Record<
   "vien-tuong": {
     label: "Viễn Tưởng",
     desc: "Khoa học viễn tưởng, không gian vũ trụ, thế giới tương lai hoặc kỳ ảo siêu nhiên",
-    categorySlug: "khoa-hoc-vien-tuong",
+    categorySlug: "vien-tuong",
     defaultPunchline: "Hành trình vượt không gian và thời gian mở ra chân trời kỳ vĩ ngoài sức tưởng tượng!",
     defaultBadges: ["Viễn Tưởng", "Vũ Trụ", "Kỳ Ảo"],
   },
@@ -431,10 +431,397 @@ function cleanNormalizedString(s: string): string {
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
     .replace(/[^a-z0-9\s]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
+
+interface ItemMeta {
+  id?: string;
+  name?: string;
+  slug?: string;
+  [key: string]: unknown;
+}
+
+interface RouletteMovieCandidate {
+  slug?: string;
+  name?: string;
+  title?: string;
+  time?: string | number;
+  duration?: string | number;
+  runtime?: string | number;
+  durationMinutes?: number;
+  category?: string | (string | ItemMeta)[];
+  country?: string | (string | ItemMeta)[];
+  [key: string]: unknown;
+}
+
+/**
+ * Trích xuất thời lượng phim thực tế (tính bằng phút) từ metadata.
+ * Dựa trên field thực tế: time, duration, runtime, durationMinutes.
+ * Tuyệt đối không tự suy đoán từ title hoặc fabricate dữ liệu.
+ * Phim bộ / tập nhiều phần ("45 phút/tập") trả về null để tránh nhận diện sai thành phim ngắn.
+ */
+export function getMovieDurationMinutes(movie: RouletteMovieCandidate | null | undefined): number | null {
+  if (!movie || typeof movie !== "object") return null;
+
+  // Real fields in metadata: time, duration, runtime, durationMinutes, duration_minutes
+  const raw =
+    movie.time ??
+    movie.duration ??
+    movie.runtime ??
+    movie.durationMinutes ??
+    movie.duration_minutes;
+
+  if (raw === undefined || raw === null || raw === "") return null;
+
+  if (typeof raw === "number") {
+    return Number.isFinite(raw) && raw > 0 ? Math.round(raw) : null;
+  }
+
+  if (typeof raw !== "string") return null;
+
+  const str = raw.trim().toLowerCase();
+  if (!str) return null;
+
+  // Episodic indicators: nếu có "/tập" thì đây là thời lượng 1 tập của phim bộ, không phải tổng thời lượng
+  if (str.includes("/tập") || str.includes("/tap") || str.includes("/ tập")) {
+    return null;
+  }
+
+  // Định dạng: "1h 30m", "1h30m", "1h 30p", "1h", "2 hours 15 mins"
+  const hourMinMatch = str.match(/(\d+)\s*(?:h|giờ|gio|hours?)(?:\s*(\d+)\s*(?:m|p|phút|phut|mins?|minutes?))?/i);
+  if (hourMinMatch) {
+    const hours = parseInt(hourMinMatch[1], 10);
+    const mins = hourMinMatch[2] ? parseInt(hourMinMatch[2], 10) : 0;
+    if (!isNaN(hours)) {
+      return hours * 60 + (isNaN(mins) ? 0 : mins);
+    }
+  }
+
+  // Định dạng: "85 phút", "120 phut", "90 min", "105m"
+  const minMatch = str.match(/(\d+)\s*(?:phút|phut|min|mins|minutes|p|m)\b/i) || str.match(/^(\d+)\s*(?:phút|phut|min|mins|minutes|p)$/i);
+  if (minMatch) {
+    const mins = parseInt(minMatch[1], 10);
+    if (!isNaN(mins) && mins > 0) return mins;
+  }
+
+  // Chuỗi số nguyên thuần túy: "105"
+  if (/^\d+$/.test(str)) {
+    const mins = parseInt(str, 10);
+    if (!isNaN(mins) && mins > 0) return mins;
+  }
+
+  return null;
+}
+
+/**
+ * Kiểm tra xem số phút thực tế có thuộc khoảng thời lượng đã chọn hay không.
+ * Xử lý biên rõ ràng:
+ * 89  → <90
+ * 90  → 90–120
+ * 120 → 90–120
+ * 121 → 120–150
+ * 150 → 120–150
+ * 151 → ngoài các nhóm trên
+ */
+export function matchesDurationRange(
+  minutes: number | null,
+  targetDuration?: string
+): boolean {
+  if (
+    !targetDuration ||
+    targetDuration === "all" ||
+    targetDuration === "bat-ky" ||
+    targetDuration === "phim-le" ||
+    targetDuration === "chieu-rap" ||
+    targetDuration === "phim-bo"
+  ) {
+    return true; // all = không filter
+  }
+
+  if (minutes === null || minutes === undefined) {
+    // Nếu user chọn một range cụ thể thì movie thiếu duration không được coi là match
+    return false;
+  }
+
+  const norm = cleanNormalizedString(targetDuration).replace(/\s+/g, "-");
+  if (
+    norm === "duoi-90" ||
+    norm === "90" ||
+    norm === "under-90" ||
+    targetDuration === "<90" ||
+    targetDuration === "< 90"
+  ) {
+    return minutes < 90;
+  }
+
+  if (
+    norm === "90-120" ||
+    targetDuration === "90–120" ||
+    targetDuration === "90-120"
+  ) {
+    return minutes >= 90 && minutes <= 120;
+  }
+
+  if (
+    norm === "120-150" ||
+    targetDuration === "120–150" ||
+    targetDuration === "120-150"
+  ) {
+    return minutes >= 121 && minutes <= 150;
+  }
+
+  return false;
+}
+
+export function calculateCandidateRawPopularity(movie: RouletteMovieCandidate | null | undefined): number {
+  if (!movie || typeof movie !== "object") return 0;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rawMovie = movie as any;
+  const tmdbVotes = Number(rawMovie.tmdb?.vote_count || 0);
+  const imdbVotes = Number(rawMovie.imdb?.vote_count || 0);
+  const views = Number(rawMovie.view || rawMovie.views || 0);
+  return tmdbVotes * 15 + imdbVotes * 10 + views;
+}
+
+export function calculateCandidateQualityScore(movie: RouletteMovieCandidate | null | undefined): number {
+  if (!movie || typeof movie !== "object") return 60;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rawMovie = movie as any;
+  const tmdbVote = Number(rawMovie.tmdb?.vote_average || 0);
+  const imdbVote = Number(rawMovie.imdb?.vote_average || 0);
+  const generalRating = Number(rawMovie.rating || 0);
+  const rating10 = Math.max(tmdbVote, imdbVote, generalRating);
+  return rating10 > 0 ? Math.min(100, rating10 * 10) : 60;
+}
+
+/**
+ * TÍNH ĐIỂM ĐỘ BẤT NGỜ (SURPRISE SCORE):
+ * Điều chỉnh độ ưu tiên giữa các ứng viên HỢP LỆ đã vượt qua matchesCriteria().
+ * Hỗ trợ nhận percentile tương đối (0..100) khi xếp hạng theo pool,
+ * hoặc tự ước tính nếu gọi độc lập cho 1 phim đơn lẻ.
+ *
+ * 🛡️ An toàn (an-toan): Ưu tiên rating cao, độ phổ biến cao.
+ * ⚖️ Cân bằng (can-bang): Cân bằng giữa rating, độ phổ biến và tính khám phá.
+ * 🎰 Liều một phen (lieu): Ưu tiên hidden gems, phim ít phổ biến trong pool, giảm áp đảo của blockbusters.
+ */
+export function scoreSurprise(
+  movie: RouletteMovieCandidate | null | undefined,
+  surpriseMode: string = "can-bang",
+  candidatePercentile?: number
+): number {
+  if (!movie) return 0;
+
+  const qualityScore = calculateCandidateQualityScore(movie);
+  const normMode = cleanNormalizedString(surpriseMode).replace(/\s+/g, "-");
+
+  // Tính percentile: nếu được truyền vào từ pool xếp hạng thì dùng trực tiếp,
+  // nếu không thì tính xấp xỉ log10 0..100
+  let percentile = candidatePercentile;
+  if (percentile === undefined || percentile === null || isNaN(percentile)) {
+    const rawPop = calculateCandidateRawPopularity(movie);
+    percentile = Math.min(100, Math.log10(Math.max(1, rawPop)) * 20);
+  }
+  percentile = Math.max(0, Math.min(100, percentile));
+
+  const discoveryScore = 100 - percentile;
+
+  if (normMode === "an-toan" || normMode === "safe") {
+    // Ưu tiên tác phẩm nổi tiếng và điểm chất lượng cao, jitter nhỏ (±2)
+    const jitter = (Math.random() - 0.5) * 4;
+    return qualityScore * 0.45 + percentile * 0.55 + jitter;
+  }
+
+  if (normMode === "lieu" || normMode === "risky" || normMode === "lieu-mot-phen") {
+    // 🎰 LIỀU MỘT PHEN: Ưu tiên hidden gems (discovery cao), giảm áp đảo của blockbusters
+    // Nhưng vẫn giữ trọng số chất lượng (quality) để phim rác không thể thắng chỉ vì ít người xem
+    const jitter = (Math.random() - 0.5) * 8;
+    return qualityScore * 0.40 + discoveryScore * 0.70 - percentile * 0.20 + jitter;
+  }
+
+  // Mặc định: "can-bang" / "balanced"
+  // Kết hợp hài hòa giữa chất lượng, độ phổ biến và tính khám phá tầm trung, jitter ±3
+  const midRangeBonus = Math.max(0, 100 - Math.abs(50 - percentile) * 1.6);
+  const jitter = (Math.random() - 0.5) * 6;
+  return qualityScore * 0.45 + midRangeBonus * 0.25 + percentile * 0.20 + jitter;
+}
+
+export interface ScoredCandidateItem {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  movie: any;
+  punchline?: string;
+  badges?: string[];
+  matchScore?: number;
+  relevanceScore?: number;
+  surpriseScore?: number;
+  finalScore?: number;
+  provider?: string;
+}
+
+/**
+ * Xếp hạng tập ứng viên hợp lệ theo Percentile Độ Bất Ngờ trong candidate pool.
+ * Đảm bảo:
+ * 1. An toàn: Ưu tiên top percentile phổ biến.
+ * 2. Cân bằng: Ưu tiên tầm trung & cân bằng khám phá.
+ * 3. Liều một phen: Dành cơ hội thật sự cho hidden gems (percentile thấp) mà không làm mất tính liên quan/chất lượng.
+ */
+export function rankCandidatesBySurprise(
+  candidates: ScoredCandidateItem[],
+  surpriseMode: string = "can-bang"
+): ScoredCandidateItem[] {
+  if (!candidates || candidates.length === 0) return [];
+  if (candidates.length === 1) {
+    const single = candidates[0];
+    const score = scoreSurprise(single.movie, surpriseMode, 50);
+    return [{ ...single, surpriseScore: score, finalScore: score }];
+  }
+
+  // 1. Tính raw popularity cho từng candidate
+  const withRawPop = candidates.map((cand, originalIndex) => ({
+    cand,
+    rawPop: calculateCandidateRawPopularity(cand.movie),
+    originalIndex,
+  }));
+
+  // 2. Sắp xếp tăng dần theo rawPop để tính percentile thứ hạng (0 = ít phổ biến nhất, 100 = phổ biến nhất)
+  withRawPop.sort((a, b) => {
+    if (a.rawPop !== b.rawPop) return a.rawPop - b.rawPop;
+    return a.originalIndex - b.originalIndex;
+  });
+
+  const n = withRawPop.length;
+  const scoredList: ScoredCandidateItem[] = withRawPop.map((item, index) => {
+    // Percentile từ 0 (ít phổ biến nhất trong pool) đến 100 (phổ biến nhất trong pool)
+    const percentile = (index / (n - 1)) * 100;
+    const surScore = scoreSurprise(item.cand.movie, surpriseMode, percentile);
+    const relevance = item.cand.relevanceScore ?? item.cand.matchScore ?? 90;
+    // Điểm tổng hợp cuối cùng: kết hợp độ liên quan và surprise score
+    const finalScore = relevance * 0.35 + surScore;
+
+    return {
+      ...item.cand,
+      surpriseScore: surScore,
+      finalScore,
+    };
+  });
+
+  // 3. Sắp xếp giảm dần theo điểm tổng hợp
+  scoredList.sort((a, b) => (b.finalScore || 0) - (a.finalScore || 0));
+
+  return scoredList;
+}
+
+/**
+ * CỔNG KIỂM DUYỆT CHUẨN XÁC (SAFETY GATE):
+ * Kiểm tra xem movie có thỏa mãn đồng thời category, country, duration và exclusion hay không.
+ * Hỗ trợ multi-category và multi-country với .some().
+ * Category AND Country AND Duration AND Exclusion.
+ * Tuyệt đối không dùng tên phim để suy đoán.
+ */
+export function matchesCriteria(
+  movie: RouletteMovieCandidate | null | undefined,
+  targetCategorySlug?: string,
+  targetCountrySlug?: string,
+  targetDuration?: string,
+  excludeSlugs?: string[]
+): boolean {
+  if (!movie) return false;
+
+  // 0. Kiểm tra Exclusion
+  if (excludeSlugs && excludeSlugs.length > 0) {
+    const slug = cleanNormalizedString(movie.slug || "");
+    const title = cleanNormalizedString(movie.name || movie.title || "");
+    const isExcluded = excludeSlugs.some((ex) => {
+      const cleanEx = cleanNormalizedString(ex);
+      return cleanEx && (cleanEx === slug || cleanEx === title);
+    });
+    if (isExcluded) return false;
+  }
+
+  // 1. Kiểm tra Category
+  if (targetCategorySlug && targetCategorySlug !== "all") {
+    const rawCategories: (string | ItemMeta)[] = Array.isArray(movie.category)
+      ? movie.category
+      : typeof movie.category === "string" && movie.category.trim()
+      ? [{ name: movie.category, slug: cleanNormalizedString(movie.category).replace(/\s+/g, "-") }]
+      : [];
+
+    if (rawCategories.length === 0) return false;
+
+    const normTarget = cleanNormalizedString(targetCategorySlug);
+    const hasCategoryMatch = rawCategories.some((c) => {
+      if (!c) return false;
+      const cSlug = cleanNormalizedString(typeof c === "string" ? c : c.slug || "");
+      const cName = cleanNormalizedString(typeof c === "string" ? c : c.name || "");
+      if (cSlug === normTarget || cName === normTarget) return true;
+      if (cSlug.replace(/\s+/g, "-") === normTarget.replace(/\s+/g, "-")) return true;
+      return false;
+    });
+
+    if (!hasCategoryMatch) return false;
+  }
+
+  // 2. Kiểm tra Country
+  if (targetCountrySlug && targetCountrySlug !== "all") {
+    const rawCountries: (string | ItemMeta)[] = Array.isArray(movie.country)
+      ? movie.country
+      : typeof movie.country === "string" && movie.country.trim()
+      ? [{ name: movie.country, slug: cleanNormalizedString(movie.country).replace(/\s+/g, "-") }]
+      : [];
+
+    if (rawCountries.length === 0) return false;
+
+    const normTargetCountry = cleanNormalizedString(targetCountrySlug);
+    const hasCountryMatch = rawCountries.some((c) => {
+      if (!c) return false;
+      const cSlug = cleanNormalizedString(typeof c === "string" ? c : c.slug || "");
+      const cName = cleanNormalizedString(typeof c === "string" ? c : c.name || "");
+
+      if (cSlug === normTargetCountry || cName === normTargetCountry) return true;
+      if (cSlug.replace(/\s+/g, "-") === normTargetCountry.replace(/\s+/g, "-")) return true;
+
+      // Hỗ trợ cụm khu vực tương đương chuẩn hóa
+      if (normTargetCountry.includes("au my")) {
+        if (
+          cSlug === "au-my" ||
+          cSlug === "my" ||
+          cName.includes("au my") ||
+          /\b(my|hoa ky)\b/.test(cName)
+        ) {
+          return true;
+        }
+      }
+      if (normTargetCountry.includes("trung quoc")) {
+        if (
+          cSlug === "trung-quoc" ||
+          cSlug === "hong-kong" ||
+          cSlug === "dai-loan" ||
+          cName.includes("trung quoc") ||
+          cName.includes("hong kong") ||
+          cName.includes("dai loan")
+        ) {
+          return true;
+        }
+      }
+      return false;
+    });
+
+    if (!hasCountryMatch) return false;
+  }
+
+  // 3. Kiểm tra Thời lượng (Duration)
+  if (targetDuration && targetDuration !== "all") {
+    const mins = getMovieDurationMinutes(movie);
+    if (!matchesDurationRange(mins, targetDuration)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function findBestMatchMovie(items: any[], query: string, originalQuery?: string): any {
@@ -599,7 +986,8 @@ export async function POST(req: NextRequest) {
     const mood: string = body.mood || "xa-stress";
     const country: string = body.country || "all";
     const companion: string = body.companion || "mot-minh";
-    const duration: string = body.duration || "phim-le";
+    const duration: string = body.duration || "all";
+    const surprise: string = body.surprise || "can-bang";
     const excludeSlugs: string[] = Array.isArray(body.excludeSlugs) ? body.excludeSlugs : [];
     const excludeTitles: string[] = Array.isArray(body.excludeTitles) ? body.excludeTitles : [];
     const userApiKey: string = body.apiKey || "";
@@ -607,7 +995,17 @@ export async function POST(req: NextRequest) {
     const moodMeta = MOOD_META[mood] || MOOD_META["xa-stress"];
     const countryMeta = COUNTRY_META[country] || COUNTRY_META["all"];
     const companionDesc = COMPANION_META[companion] || COMPANION_META["mot-minh"];
-    const durationMeta = DURATION_META[duration] || DURATION_META["phim-le"];
+
+    let durationDesc = "Bất kỳ thời lượng nào";
+    if (duration === "duoi-90" || duration === "<90" || duration === "under-90") {
+      durationDesc = "Phim ngắn gọn dưới 90 phút";
+    } else if (duration === "90-120") {
+      durationDesc = "Thời lượng tiêu chuẩn 90 đến 120 phút";
+    } else if (duration === "120-150") {
+      durationDesc = "Phim dài 120 đến 150 phút";
+    } else if (DURATION_META[duration]?.desc) {
+      durationDesc = DURATION_META[duration].desc;
+    }
 
     const hasExclusions = excludeSlugs.length > 0 || excludeTitles.length > 0;
 
@@ -628,55 +1026,142 @@ export async function POST(req: NextRequest) {
     let finalMatchScore = 98;
     let provider = "Nana AI";
 
-    // 0. TĂNG TỐC BẰNG SUPABASE PGVECTOR (< 100ms)
+    const targetCategorySlug = moodMeta.categorySlug;
+    const targetCountrySlug = country !== "all" ? (countryMeta.slug || country) : undefined;
+
+    // BỘ THU THẬP ỨNG VIÊN ĐA NGUỒN (UNIFIED CANDIDATE POOL):
+    // Thay vì early-exit ngắt sớm ở từng stage khiến 'Liều' chỉ nhận 1-2 phim nổi tiếng,
+    // ta gom ứng viên hợp lệ từ Catalog (đa page), AI, Curated Vault và Vector Search.
+    // Toàn bộ candidate ĐỀU BẮT BUỘC vượt qua matchesCriteria()!
+    const candidateMap = new Map<string, ScoredCandidateItem>();
+
+    const addCandidateToPool = (
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      movieItem: any,
+      options: {
+        punchline?: string;
+        badges?: string[];
+        relevanceScore?: number;
+        provider?: string;
+      } = {}
+    ) => {
+      if (!movieItem || !movieItem.slug) return;
+      const slug = cleanNormalizedString(movieItem.slug);
+      if (isExcluded(slug) || isExcluded(movieItem.name) || isExcluded(movieItem.title)) return;
+      if (candidateMap.has(slug)) return;
+
+      // CỔNG KIỂM DUYỆT BẮT BUỘC: Category AND Country AND Duration AND Exclusion
+      if (!matchesCriteria(movieItem, targetCategorySlug, targetCountrySlug, duration, allExclusions)) {
+        return;
+      }
+
+      candidateMap.set(slug, {
+        movie: movieItem,
+        punchline: options.punchline,
+        badges: options.badges,
+        relevanceScore: options.relevanceScore ?? 92,
+        provider: options.provider || "Catalog Engine",
+      });
+    };
+
+    // 1. TRUY VẤN CATALOG ĐA TẦNG (CATALOG ENGINE RETRIEVAL)
+    // Tùy theo chế độ bất ngờ, lấy số trang phù hợp:
+    // - "lieu": lấy song song page 1, 2, 3 (đến 72+ ứng viên) để gom cả top hot, tầm trung và hidden gems ít người biết.
+    // - "can-bang": lấy page 1, 2 (đến 48 ứng viên).
+    // - "an-toan": lấy page 1 (36 ứng viên hot nhất).
+    const pagesToFetch = surprise === "lieu" ? [1, 2, 3] : surprise === "can-bang" ? [1, 2] : [1];
     try {
-      const vectorSearchTerm = `${moodMeta.label} ${moodMeta.desc} ${companionDesc} ${country !== "all" ? countryMeta.label : ""}`.trim();
-      const vectorPicks = await searchMoviesBySemantic(vectorSearchTerm, 6, 0.42, userApiKey);
-      const validVectorPick = vectorPicks.find(
-        (vp) => vp.id && !isExcluded(vp.id) && !isExcluded(vp.title)
+      const catalogResponses = await Promise.all(
+        pagesToFetch.map((p) =>
+          movieApi.getMovies({
+            category: targetCategorySlug,
+            country: targetCountrySlug,
+            type: duration === "phim-bo" ? "phim-bo" : "phim-le",
+            page: p,
+            limit: 24,
+          }).catch((err) => {
+            console.warn(`[ai-roulette] Catalog page ${p} fetch failed:`, err);
+            return null;
+          })
+        )
       );
 
-      if (validVectorPick) {
-        foundMovie = {
-          slug: validVectorPick.id,
-          name: validVectorPick.title,
-          origin_name: validVectorPick.originalName,
-          poster_url: validVectorPick.posterUrl,
-          thumb_url: validVectorPick.thumbUrl || validVectorPick.posterUrl,
-          year: validVectorPick.year,
-          quality: validVectorPick.quality || "FHD",
-          category: [{ name: validVectorPick.category || moodMeta.label, slug: moodMeta.categorySlug }],
-          content: validVectorPick.description,
-        };
-        finalPunchline = moodMeta.defaultPunchline;
-        finalBadges = moodMeta.defaultBadges;
-        finalMatchScore = Math.min(99, Math.round(88 + (validVectorPick.similarity || 0.5) * 15));
-        provider = "Supabase Vector Engine";
+      for (const catRes of catalogResponses) {
+        if (catRes?.items?.length) {
+          for (const item of catRes.items) {
+            const catName = item.category?.[0]?.name || moodMeta.label;
+            addCandidateToPool(item, {
+              punchline: `Tuyệt phẩm ${catName} chuẩn gu định mệnh: bùng nổ cảm xúc và trọn vẹn từng phút giây!`,
+              badges: [catName, item.country?.[0]?.name || "Đặc Sắc", "Bốc Quẻ Chuẩn"],
+              relevanceScore: 92,
+              provider: "Catalog Engine",
+            });
+          }
+        }
+      }
+    } catch (catErr) {
+      console.warn("[ai-roulette] Catalog engine phase error:", catErr);
+    }
+
+    // 2. BỔ SUNG TỪ SUPABASE PGVECTOR (NẾU CÓ)
+    try {
+      const vectorSearchTerm = `${moodMeta.label} ${moodMeta.desc} ${companionDesc} ${country !== "all" ? countryMeta.label : ""}`.trim();
+      const vectorPicks = await searchMoviesBySemantic(vectorSearchTerm, 8, 0.42, userApiKey);
+
+      for (const vp of vectorPicks) {
+        if (!vp.id || isExcluded(vp.id) || isExcluded(vp.title)) continue;
+        const candidateDetail = await searchSingleMovieFast(vp.title, vp.originalName || "");
+        if (candidateDetail && candidateDetail.slug) {
+          addCandidateToPool(candidateDetail, {
+            punchline: moodMeta.defaultPunchline,
+            badges: moodMeta.defaultBadges,
+            relevanceScore: Math.min(99, Math.round(88 + (vp.similarity || 0.5) * 15)),
+            provider: "Supabase Vector Engine",
+          });
+        }
       }
     } catch (vErr) {
       console.warn("[ai-roulette] Vector search phase skipped:", vErr);
     }
 
-    // 1. GỌI FAST AI HYBRID (GROQ LLAMA 3.3 70B -> FALLBACK GEMINI FLASH)
-    if (!foundMovie) {
+    // 3. BỔ SUNG TỪ FAST AI HYBRID (CHỈ GỌI KHI CẦN THÊM HOẶC PHÙ HỢP SURPRISE)
+    // Nếu candidate pool hiện tại còn mỏng (< 8 phim) hoặc user cần gợi ý thông minh
+    if (candidateMap.size < 12) {
       try {
         const countryConstraint =
           country !== "all"
             ? `\n- QUY TẮC BẮT BUỘC: Bộ phim BẮT BUỘC phải thuộc quốc gia "${countryMeta.label}". TUYỆT ĐỐI KHÔNG chọn phim của nước khác!`
             : "";
 
+        const durationConstraint =
+          duration !== "all"
+            ? `\n- QUY TẮC THỜI LƯỢNG: Ưu tiên phim có thời lượng ${durationDesc}.`
+            : "";
+
+        const surpriseConstraint =
+          surprise === "an-toan"
+            ? "\n- GU CHỌN: Ưu tiên các kiệt tác cực kỳ nổi tiếng, kinh điển, điểm IMDb/TMDB cao nhất."
+            : surprise === "lieu"
+            ? "\n- GU CHỌN: Ưu tiên tác phẩm độc lạ, hidden gem, indie, cult classic, ít phổ biến đại trà nhưng có kịch bản cuốn hút đặc sắc."
+            : "\n- GU CHỌN: Cân bằng giữa phim phổ biến và tác phẩm giàu tính khám phá.";
+
         const excludePrompt = hasExclusions
           ? `\n- TUYỆT ĐỐI KHÔNG CHỌN bất kỳ phim nào trong danh sách đã xem sau: [${allExclusions.slice(-15).join(", ")}].`
           : "";
 
+        const promptRequirements =
+          surprise === "lieu"
+            ? `1. Phim PHẢI CÓ THẬT trên các trang xem phim tại Việt Nam (PhimAPI, Ophim), ưu tiên các tác phẩm ẩn mình (hidden gems), độc đáo, ít người biết nhưng chất lượng kịch bản xuất sắc.`
+            : `1. Phim PHẢI CÓ THẬT, CỰC KỲ NỔI TIẾNG, CÓ ĐIỂM ĐÁNH GIÁ CAO trên các trang xem phim tại Việt Nam (PhimAPI, Ophim, Netflix).`;
+
         const promptText = `Bạn là Trợ lý Nana của Nanaflix đang bốc quẻ 'Suất Chiếu Định Mệnh' cho người dùng:
 - Tâm trạng: "${moodMeta.label} - ${moodMeta.desc}"
 - Người xem cùng: "${companionDesc}"
-- Thời lượng/Định dạng: "${durationMeta.desc}"${countryConstraint}${excludePrompt}
+- Thời lượng yêu cầu: "${durationDesc}"${countryConstraint}${durationConstraint}${surpriseConstraint}${excludePrompt}
 
 HÃY CHỌN 2 ỨNG VIÊN PHIM ĐẶC SẮC (ỨNG VIÊN 1 VÀ ỨNG VIÊN DỰ PHÒNG), ĐẢM BẢO:
-1. Phim PHẢI CÓ THẬT, CỰC KỲ NỔI TIẾNG, CÓ ĐIỂM ĐÁNH GIÁ CAO trên các trang xem phim tại Việt Nam (PhimAPI, Ophim, Netflix).
-2. TUÂN THỦ 100% định dạng (phim lẻ vs phim bộ) và quốc gia được yêu cầu.
+${promptRequirements}
+2. TUÂN THỦ 100% định dạng và quốc gia được yêu cầu.
 3. Tên phim: "title" là tên tiếng Việt chuẩn nhất (KHÔNG ghi năm hay hậu tố vào title, ví dụ: "Vây Hãm: Kẻ Trừng Phạt", "Ký Sinh Trùng", "Hạ Cánh Nơi Anh").
 4. "punchline": 1 câu giật gân, cuốn hút hoặc hài hước (dưới 25 từ) lý giải vì sao bộ phim này là định mệnh dành cho người dùng lúc này.
 
@@ -700,11 +1185,11 @@ Trả về DUY NHẤT một chuỗi JSON hợp lệ:
 
         const aiRes = await generateFastAiChat({
           userPrompt: promptText,
-          temperature: 0.35,
+          temperature: surprise === "lieu" ? 0.6 : 0.35,
           maxTokens: 500,
           jsonMode: true,
           customApiKey: userApiKey,
-          timeoutMs: 6000,
+          timeoutMs: 5000,
         });
 
         if (aiRes && aiRes.text) {
@@ -722,7 +1207,7 @@ Trả về DUY NHẤT một chuỗi JSON hợp lệ:
             const candidates = [
               parsed.primary,
               parsed.secondary,
-              parsed.title ? parsed : null, // hỗ trợ định dạng đơn cũ
+              parsed.title ? parsed : null,
             ].filter(Boolean);
 
             for (const cand of candidates) {
@@ -732,104 +1217,111 @@ Trả về DUY NHẤT một chuỗi JSON hợp lệ:
               if (isExcluded(candTitle) || isExcluded(candOrig)) continue;
 
               const matched = await searchSingleMovieFast(candTitle, candOrig);
-              if (matched && matched.slug && !isExcluded(matched.slug)) {
-                foundMovie = matched;
-                finalPunchline = cand.punchline || moodMeta.defaultPunchline;
-                finalBadges = Array.isArray(cand.badges) ? cand.badges.slice(0, 3) : moodMeta.defaultBadges;
-                finalMatchScore = typeof cand.matchScore === "number" ? cand.matchScore : 98;
-                break;
+              if (matched && matched.slug) {
+                addCandidateToPool(matched, {
+                  punchline: cand.punchline || moodMeta.defaultPunchline,
+                  badges: Array.isArray(cand.badges) ? cand.badges.slice(0, 3) : moodMeta.defaultBadges,
+                  relevanceScore: typeof cand.matchScore === "number" ? cand.matchScore : 97,
+                  provider: "Nana AI",
+                });
               }
             }
           }
         }
       } catch (geminiErr) {
-        console.warn("[ai-roulette] Gemini fallback:", geminiErr instanceof Error ? geminiErr.message : geminiErr);
+        console.warn("[ai-roulette] AI candidates phase skipped:", geminiErr instanceof Error ? geminiErr.message : geminiErr);
       }
     }
 
-    // 2. NẾU GEMINI CHƯA RA HOẶC PHIM KHÔNG TỒN TẠI TRÊN KHO -> DÙNG KHO OFFLINE TUYỂN CHỌN
-    if (!foundMovie) {
-      let pool = CURATED_OFFLINE_PICKS[mood] || CURATED_OFFLINE_PICKS["xa-stress"];
-
+    // 4. BỔ SUNG TỪ KHO OFFLINE TUYỂN CHỌN (CURATED VAULT)
+    if (candidateMap.size < 6) {
+      let pool = CURATED_OFFLINE_PICKS[mood] || [];
       if (country !== "all") {
         const countryLabel = countryMeta.label;
-        const filtered = pool.filter((p) => p.country && countryLabel.includes(p.country));
-        if (filtered.length > 0) pool = filtered;
+        pool = pool.filter((p) => p.country && countryLabel.includes(p.country));
       }
 
-      let available = pool.filter(
+      const available = pool.filter(
         (p) => !isExcluded(p.title) && !isExcluded(p.originalTitle)
       );
 
-      if (available.length === 0) {
-        const allPool = Object.values(CURATED_OFFLINE_PICKS).flat();
-        available = allPool.filter(
-          (p) => !isExcluded(p.title) && !isExcluded(p.originalTitle)
-        );
-      }
-
-      if (available.length === 0) available = pool;
-
-      // Xáo trộn để quay ngẫu nhiên
-      const shuffled = [...available].sort(() => Math.random() - 0.5);
-
-      for (const pick of shuffled) {
+      for (const pick of available) {
         const matched = await searchSingleMovieFast(pick.title, pick.originalTitle);
-        if (matched && matched.slug && !isExcluded(matched.slug)) {
-          foundMovie = matched;
-          finalPunchline = pick.punchline || moodMeta.defaultPunchline;
-          finalBadges = pick.badges || moodMeta.defaultBadges;
-          finalMatchScore = 96;
-          break;
+        if (matched && matched.slug) {
+          addCandidateToPool(matched, {
+            punchline: pick.punchline || moodMeta.defaultPunchline,
+            badges: pick.badges || moodMeta.defaultBadges,
+            relevanceScore: 95,
+            provider: "Curated Vault",
+          });
         }
       }
     }
 
-    // 3. NẾU VẪN CHƯA CÓ -> TRUY VẤN TRỰC TIẾP CATALOG THEO THỂ LOẠI / QUỐC GIA / ĐỊNH DẠNG
-    if (!foundMovie) {
-      try {
-        const catRes = await movieApi.getMovies({
-          category: moodMeta.categorySlug,
-          country: countryMeta.slug,
-          type: durationMeta.typeSlug,
-          limit: 12,
-        });
+    // 5. CỔNG AN TOÀN & XẾP HẠNG BẤT NGỜ (PERCENTILE RANKING)
+    const validCandidates = Array.from(candidateMap.values());
 
-        if (catRes?.items?.length) {
-          const valid = catRes.items.filter(
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (it: any) => it.slug && !isExcluded(it.slug) && !isExcluded(it.name)
-          );
-          if (valid.length > 0) {
-            foundMovie = valid[Math.floor(Math.random() * valid.length)];
-            const catName = foundMovie.category?.[0]?.name || moodMeta.label;
-            finalPunchline = `Tuyệt phẩm ${catName} chuẩn gu được định mệnh chọn cho bạn: bùng nổ cảm xúc và trọn vẹn từng khoảnh khắc!`;
-            finalBadges = [catName, foundMovie.country?.[0]?.name || "Đặc Sắc", "Bốc Quẻ Chuẩn"];
-            finalMatchScore = 94;
-          }
-        }
-      } catch {}
-    }
-
-    // 4. NẾU VẪN TRẮNG TAY (HIẾM GẶP) -> LẤY PHIM HOT TỪ TOÀN KHO
-    if (!foundMovie) {
-      try {
-        const hotRes = await movieApi.getMovies({ page: 1, limit: 12 });
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const fallbackList = (hotRes?.items || []).filter((it: any) => it.slug && !isExcluded(it.slug));
-        foundMovie = fallbackList[0] || hotRes?.items?.[0];
-        finalPunchline = moodMeta.defaultPunchline;
-        finalBadges = moodMeta.defaultBadges;
-        finalMatchScore = 92;
-      } catch {}
-    }
-
-    if (!foundMovie || !foundMovie.slug) {
+    // Nếu sau tất cả các nguồn vẫn không có ứng viên nào thỏa mãn:
+    // Tuyệt đối không fallback sang phim hot ngẫu nhiên sai tiêu chí!
+    if (validCandidates.length === 0) {
       return NextResponse.json(
-        { error: "Tạm thời không thể bốc quẻ, vui lòng thử lại sau giây lát!" },
-        { status: 503 }
+        {
+          notFound: true,
+          error: "🎴 Chưa tìm thấy suất chiếu phù hợp với quẻ này.",
+        },
+        { status: 404 }
       );
     }
+
+    // Áp dụng thuật toán xếp hạng Percentile theo chế độ bất ngờ
+    const rankedCandidates = rankCandidatesBySurprise(validCandidates, surprise);
+    const selectedWinner = rankedCandidates[0];
+
+    foundMovie = selectedWinner.movie;
+    finalPunchline = selectedWinner.punchline || moodMeta.defaultPunchline;
+    finalBadges = selectedWinner.badges && selectedWinner.badges.length > 0 ? selectedWinner.badges : moodMeta.defaultBadges;
+    finalMatchScore = selectedWinner.matchScore || selectedWinner.relevanceScore || 96;
+    provider = selectedWinner.provider || "Catalog Engine";
+
+    // CỔNG AN TOÀN CUỐI CÙNG (FINAL SAFETY GATE):
+    if (
+      !foundMovie ||
+      !foundMovie.slug ||
+      !matchesCriteria(foundMovie, targetCategorySlug, targetCountrySlug, duration, allExclusions)
+    ) {
+      return NextResponse.json(
+        {
+          notFound: true,
+          error: "🎴 Chưa tìm thấy suất chiếu phù hợp với quẻ này.",
+        },
+        { status: 404 }
+      );
+    }
+
+    const firstValidCatName =
+      (Array.isArray(foundMovie.category)
+        ? foundMovie.category.find((c: ItemMeta | string) => {
+            const cSlug = cleanNormalizedString(typeof c === "string" ? c : c?.slug || c?.name || "");
+            return cSlug === cleanNormalizedString(targetCategorySlug);
+          })
+        : null
+      )?.name ||
+      (Array.isArray(foundMovie.category) ? foundMovie.category[0]?.name : null) ||
+      moodMeta.label;
+
+    const firstValidCountryName =
+      (Array.isArray(foundMovie.country)
+        ? foundMovie.country.find((c: ItemMeta | string) => {
+            const cSlug = cleanNormalizedString(typeof c === "string" ? c : c?.slug || c?.name || "");
+            return cSlug === cleanNormalizedString(targetCountrySlug || "");
+          })
+        : null
+      )?.name ||
+      (Array.isArray(foundMovie.country) ? foundMovie.country[0]?.name : null) ||
+      countryMeta.label;
+
+    const movieMins = getMovieDurationMinutes(foundMovie);
+    const formattedDuration = movieMins ? `${movieMins} phút` : (typeof foundMovie.time === "string" ? foundMovie.time : undefined);
 
     const payload = {
       movie: {
@@ -839,9 +1331,10 @@ Trả về DUY NHẤT một chuỗi JSON hợp lệ:
         poster: toSafePoster(foundMovie),
         year: foundMovie.year || 2024,
         quality: foundMovie.quality || "FHD",
-        category: foundMovie.category?.[0]?.name || moodMeta.label,
-        country: foundMovie.country?.[0]?.name || countryMeta.label,
+        category: firstValidCatName,
+        country: firstValidCountryName,
         episodeCurrent: foundMovie.episode_current || "Trọn bộ",
+        duration: formattedDuration,
       },
       punchline: finalPunchline || moodMeta.defaultPunchline,
       badges: finalBadges.length > 0 ? finalBadges : moodMeta.defaultBadges,
@@ -858,3 +1351,4 @@ Trả về DUY NHẤT một chuỗi JSON hợp lệ:
     );
   }
 }
+
