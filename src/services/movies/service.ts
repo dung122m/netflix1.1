@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { cleanHtmlText } from "@/lib/cleanHtml";
-import { kvCache } from "@/services/kvCacheService";
+import { cacheService } from "@/lib/cache";
 
 const API_NGUONC = process.env.NEXT_PUBLIC_API_URL || "https://phim.nguonc.com/api";
 const API_PHIMAPI = process.env.NEXT_PUBLIC_API_URL_2 || "https://phimapi.com";
@@ -163,7 +163,7 @@ const fetchMovieDetailInternal = async (
   }
 
   const kvKey = `movie:detail:${slug}:${source || "any"}`;
-  return await kvCache.fetchOrSet(
+  return await cacheService.fetchOrSet(
     kvKey,
     () => fetchAndCacheMovieDetail(slug, source, localKey),
     7 * 24 * 60 * 60 // 7 ngày
@@ -791,7 +791,7 @@ export const movieApi = {
 
     const kvKey = `movie:list:${cacheKey}`;
     const ttlSeconds = params.keyword ? 86400 : 7200; // 1 ngày cho search, 2 giờ cho list
-    return await kvCache.fetchOrSet(
+    return await cacheService.fetchOrSet(
       kvKey,
       () => executeGetMovies(params, cacheKey),
       ttlSeconds

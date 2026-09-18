@@ -98,14 +98,15 @@ QUY TẮC PHÂN TÍCH VÀ ĐẶC BIỆT TUÂN THỦ CÁC NGUYÊN TẮC VÀNG SAU
 - "mixed": Kết hợp nhiều yếu tố (Ví dụ: "phim hành động Hàn Quốc", "phim hài đầu bếp Hong Kong", "phim tình cảm Âu Mỹ").
 - "unknown": Câu hỏi vô nghĩa, chuỗi ký tự ngẫu nhiên hoặc không thể xác định (Ví dụ: "ABCXYZ123456", "asdfghjk").
 
-2. QUY TẮC ĐẶC BIỆT CHO TRUY VẤN CHỦ ĐỀ & KHÁI NIỆM NGỮ NGHĨA (THEME & SEMANTIC CONCEPT QUERY):
-- Khi người dùng hỏi về chủ đề hoặc mô tả cốt truyện, hình mẫu kinh điển trong phim (ví dụ: "thầy trò đi lấy kinh", "đầu bếp nấu bánh", "nhóm người tìm kho báu", "người ngoài hành tinh", "cô gái xuyên không", "sinh tồn trên đảo hoang"...):
+2. QUY TẮC ĐẶC BIỆT CHO TRUY VẤN CHỦ ĐỀ, NGHỀ NGHIỆP & KHÁI NIỆM NGỮ NGHĨA (THEME & PROFESSION QUERY):
+- Khi người dùng hỏi về bất kỳ chủ đề, nghề nghiệp, công việc, vai trò hoặc đề tài trong phim (ví dụ: "phim về ca sĩ", "phim về bác sĩ", "phim về giáo viên", "phim về luật sư", "phim về cảnh sát", "phim về đầu bếp", "phim về phi công", "phim về nhà báo", "phim về vận động viên", "thầy trò đi lấy kinh", "người ngoài hành tinh", "săn kho báu", "xuyên không", "sinh tồn", "zombie"...):
   + BẮT BUỘC gán "intent": "theme".
   + TUYỆT ĐỐI KHÔNG coi chủ đề phim là ngoài lề ("is_off_topic" phải là false)!
-  + TUYỆT ĐỐI KHÔNG tự tiện gán các thể loại không liên quan (Ví dụ: cấm gán "hanh-dong", "kinh-di" cho phim thầy trò đi lấy kinh hoặc đầu bếp nấu bánh). Trường "genres" để mảng rỗng [] nếu người dùng không yêu cầu thể loại cụ thể.
-  + BẮT BUỘC điền trường "keywords": mảng 3 đến 5 từ khóa cốt lõi của chủ đề (Ví dụ: ["thầy trò", "lấy kinh", "thỉnh kinh", "Tây Du Ký"]).
-  + BẮT BUỘC điền trường "semanticQuery": câu truy vấn ngữ nghĩa tóm lược chủ đề (Ví dụ: "nhóm thầy trò đi thỉnh kinh Tây Du Ký Đường Tăng Tôn Ngộ Không").
-  + BẮT BUỘC điền trường "concepts": mảng mã khái niệm chuẩn hóa (Ví dụ: ["journey_to_west", "pilgrimage"], ["culinary_cooking"], ["treasure_hunt"], ["alien_extraterrestrial"], ["time_travel"], ["zombie_apocalypse"]).
+  + TUYỆT ĐỐI KHÔNG nhầm từ khóa nghề nghiệp/chủ đề thành tên diễn viên hay tên nhân vật!
+  + TUYỆT ĐỐI KHÔNG tự tiện gán các thể loại không liên quan. Trường "genres" để mảng rỗng [] nếu người dùng không yêu cầu thể loại cụ thể.
+  + BẮT BUỘC điền trường "keywords": mảng 3 đến 5 từ khóa cốt lõi và mở rộng liên quan mật thiết đến chủ đề/nghề nghiệp đó (Ví dụ: 'ca sĩ' -> ["ca sĩ", "ca hát", "âm nhạc", "sân khấu", "ban nhạc"]; 'luật sư' -> ["luật sư", "pháp luật", "tòa án", "tranh tụng", "xử án"]; 'bác sĩ' -> ["bác sĩ", "y khoa", "bệnh viện", "y tế"]; 'cảnh sát' -> ["cảnh sát", "hình sự", "điều tra", "phá án", "thanh tra"]).
+  + BẮT BUỘC điền trường "semanticQuery": câu truy vấn ngữ nghĩa tóm lược chủ đề (Ví dụ: "phim về ca sĩ và cuộc sống âm nhạc biểu diễn", "phim về luật sư tranh tụng và công lý tòa án").
+  + BẮT BUỘC điền trường "concepts": mảng mã khái niệm tiếng Anh chuẩn hóa (Ví dụ: ["journey_to_west"], ["culinary_cooking"], ["treasure_hunt"], ["alien_extraterrestrial"], ["time_travel"], ["zombie_apocalypse"], ["singer_music"], ["legal_lawyer"], ["medical_doctor"], ["police_cop"]).
 
 3. XỬ LÝ CÂU HỎI BẪY & ẢO GIÁC (ANTI-HALLUCINATION & TRAP DETECTION):
 - CHỈ gán "is_trap": true khi người dùng hỏi về một tác phẩm, phần phim HOÀN TOÀN KHÔNG CÓ THẬT mang tính bịa đặt (Ví dụ: "Inception phần 5 do Trấn Thành làm năm 2028", "Titanic 2 của Christopher Nolan", "Avatar 8").
@@ -113,12 +114,12 @@ QUY TẮC PHÂN TÍCH VÀ ĐẶC BIỆT TUÂN THỦ CÁC NGUYÊN TẮC VÀNG SAU
 
 4. PHÂN TÁCH CÂU HỎI NGOÀI LỀ THẬT SỰ (OFF-TOPIC):
 - CHỈ gán "is_off_topic": true khi người dùng hỏi các việc HOÀN TOÀN KHÔNG LIÊN QUAN ĐẾN PHIM ẢNH (Ví dụ: hỏi dự báo thời tiết hôm nay, nhờ viết code Python, hỏi giá vàng, hỏi tỷ số bóng đá trực tiếp, hỏi công thức hóa học).
-- Tuyệt đối không nhầm các chủ đề phim (ẩm thực, nấu ăn, thể thao, trường học, kinh doanh) thành off-topic.
+- Tuyệt đối không nhầm các chủ đề phim (ẩm thực, nấu ăn, ca sĩ, âm nhạc, luật sư, cảnh sát, thể thao, trường học, kinh doanh) thành off-topic.
 
 5. PHÂN BIỆT NHÂN VẬT VS DIỄN VIÊN (CHARACTER VS ACTOR):
-- "character": Nhân vật trong phim (Trần Chân, Iron Man, Tôn Ngộ Không, Diệp Vấn...).
+- "character": Nhân vật hư cấu cụ thể trong phim (Trần Chân, Iron Man, Tôn Ngộ Không, Diệp Vấn...).
 - "actor": Tên diễn viên ngoài đời thực (Trấn Thành, Chân Tử Đan, Lý Tiểu Long, Tom Cruise...).
-- TUYỆT ĐỐI KHÔNG nhầm từ khóa chủ đề (như "đầu bếp", "bác sĩ", "nấu bánh") thành tên diễn viên hay tên nhân vật!
+- TUYỆT ĐỐI KHÔNG nhầm từ khóa chủ đề hay danh xưng nghề nghiệp (như "đầu bếp", "bác sĩ", "ca sĩ", "luật sư", "cảnh sát") thành tên diễn viên hay tên nhân vật!
 
 6. QUY TẮC TRẢ VỀ PHIM VÀ TÊN PHIM (OUTPUT QUALITY):
 - "title": Tên tiếng Việt quen thuộc, chính xác ở Việt Nam.
@@ -237,6 +238,48 @@ export async function analyzeUserPrompt(
     }
   } catch (aiErr) {
     console.warn("[aiAnalyzer] AI LLM call failed or timed out:", aiErr);
+  }
+
+  // Heuristic Fallback cứu cánh nếu LLM thất bại hoàn toàn nhưng có tín hiệu chủ đề rõ ràng
+  if (!parsed) {
+    const detectedConcepts = resolveConcepts(prompt);
+    const themePatternMatch = prompt.match(
+      /(?:phim\s+(?:về|ve)|chủ\s+đề|chu\s+de|nói\s+về|noi\s+ve|kể\s+về|ke\s+ve|xoay\s+quanh|đề\s+tài|de\s+tai)\s+(.+)/i
+    );
+
+    if (detectedConcepts.length > 0) {
+      const conceptIds = detectedConcepts.map((c) => c.id);
+      parsed = {
+        intent: "theme",
+        keywords: detectedConcepts.flatMap((c) => c.discoveryKeywords),
+        semanticQuery: detectedConcepts.map((c) => c.canonicalName).join(" "),
+        concepts: conceptIds,
+        is_trap: false,
+        is_off_topic: false,
+        analysis: `Dưới đây là các tác phẩm điện ảnh tiêu biểu về ${detectedConcepts[0]?.canonicalName} dành cho bạn:`,
+        mood: `${detectedConcepts[0]?.canonicalName} 🎬`,
+        genres: [],
+        country: "",
+        is_latest: false,
+        suggested_movies: [],
+      };
+    } else if (themePatternMatch) {
+      const rawTheme = themePatternMatch[1].trim();
+      parsed = {
+        intent: "theme",
+        keywords: [rawTheme],
+        semanticQuery: prompt,
+        concepts: [],
+        is_trap: false,
+        is_off_topic: false,
+        analysis: `Dưới đây là các tác phẩm điện ảnh xuất sắc về chủ đề "${rawTheme}" dành cho bạn:`,
+        mood: `Chủ Đề & Điện Ảnh 🎬`,
+        genres: [],
+        country: "",
+        is_latest: false,
+        suggested_movies: [],
+      };
+    }
   }
 
   return { parsed, provider };

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { normalizeMovie } from "@/lib/movieMedia";
 import { movieApi } from "@/services/movieApi";
-import { kvCache } from "@/services/kvCacheService";
+import { cacheService } from "@/lib/cache";
 
 export const maxDuration = 20;
 
@@ -522,19 +522,24 @@ export async function POST(req: NextRequest) {
     ]);
 
     // 2. XÂY DỰNG TASTE FINGERPRINT & KIỂM TRA KV CACHE
-    const tasteKeyParts = [
-      ...profile.genres.map((g) => g.slug),
-      ...profile.countries.map((c) => c.slug),
-      ...profile.types.map((t) => t.slug),
-      profile.formatPreference,
-    ];
-    const tasteHash = tasteKeyParts.length > 0 ? tasteKeyParts.join("-") : `guest-${seed % 5}`;
+    // Phân định rõ ràng giữa guest (theo theme seed) và user có profile (theo các chiều gu chuẩn hóa)
+    // để đảm bảo không bị collision giữa các profile khác nhau.
+    let tasteHash: string;
+    if (profile.isGuest) {
+      tasteHash = `guest-${seed % GUEST_THEMES.length}`;
+    } else {
+      const gPart = profile.genres.map((g) => g.slug).join(",");
+      const cPart = profile.countries.map((c) => c.slug).join(",");
+      const tPart = profile.types.map((t) => t.slug).join(",");
+      tasteHash = `g:${gPart}|c:${cPart}|t:${tPart}|f:${profile.formatPreference}`;
+    }
+
     const pageOffset = (seed % 4) + 1;
     const kvForYouKey = `foryou:taste:${tasteHash}:p${pageOffset}`;
 
-    // Thử lấy từ Cloudflare KV Cache
+    // Thử lấy từ Cache
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const cachedPool = await kvCache.get<{ context: string; movies: any[] }>(kvForYouKey);
+    const cachedPool = await cacheService.get<{ context: string; movies: any[] }>(kvForYouKey);
     if (cachedPool && Array.isArray(cachedPool.movies) && cachedPool.movies.length >= 10) {
       const filtered = cachedPool.movies.filter(
         (m) => m && m.slug && !watchedSet.has(m.slug.toLowerCase().trim())
@@ -1043,9 +1048,9 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 8. LƯU VÀO CLOUDFLARE KV CACHE VỚI TTL 2 GIỜ (7200s)
+    // 8. LƯU VÀO CACHE VỚI TTL 2 GIỜ (7200s)
     if (selectedFinalMovies.length >= 8) {
-      kvCache.set(
+      cacheService.set(
         kvForYouKey,
         {
           context: matchContext,

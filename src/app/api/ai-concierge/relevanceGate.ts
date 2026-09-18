@@ -35,7 +35,7 @@ export interface RelevanceResult {
 }
 
 // Danh sách các từ dừng phổ biến trong câu hỏi phim tiếng Việt
-const VIETNAMESE_STOP_WORDS = new Set([
+export const VIETNAMESE_STOP_WORDS = new Set([
   "phim",
   "nhung",
   "những",
@@ -85,7 +85,7 @@ const VIETNAMESE_STOP_WORDS = new Set([
 ]);
 
 // Danh sách các từ đơn quá ngắn hoặc quá chung chung, không được coi là từ khóa chủ đề độc lập
-const GENERIC_SINGLE_WORDS = new Set([
+export const GENERIC_SINGLE_WORDS = new Set([
   "nha",
   "nhà",
   "hang",
@@ -183,6 +183,11 @@ export function extractContentKeywords(query: string): string[] {
   const clean = cleanNormalizedString(query || "");
   if (!clean) return [];
 
+  // Tách bỏ các tiền tố phổ biến như "phim ve", "phim chu de", "phim noi ve", v.v.
+  const coreSubject = clean
+    .replace(/^(?:phim\s+)?(?:ve|chu de|noi ve|ke ve|xoay quanh|de tai)\s+/i, "")
+    .trim();
+
   const words = clean.split(/\s+/).filter(Boolean);
   const meaningfulWords = words.filter(
     (w) =>
@@ -193,6 +198,10 @@ export function extractContentKeywords(query: string): string[] {
 
   const keywords: string[] = [];
 
+  if (coreSubject && coreSubject.length >= 2 && !GENERIC_PHRASES.has(coreSubject) && !VIETNAMESE_STOP_WORDS.has(coreSubject)) {
+    keywords.push(coreSubject);
+  }
+
   // 1. Thêm cụm 2 từ liền kề có nghĩa
   for (let i = 0; i < words.length - 1; i++) {
     const w1 = words[i];
@@ -200,8 +209,8 @@ export function extractContentKeywords(query: string): string[] {
     const isW1Generic = VIETNAMESE_STOP_WORDS.has(w1) || GENERIC_SINGLE_WORDS.has(w1);
     const isW2Generic = VIETNAMESE_STOP_WORDS.has(w2) || GENERIC_SINGLE_WORDS.has(w2);
 
-    // Không cho phép bigram cấu tạo từ 2 từ dừng hoặc 2 từ generic vô nghĩa
-    if (isW1Generic && isW2Generic) {
+    // Không cho phép bigram cấu tạo từ 2 từ generic, hoặc bắt đầu bằng từ dừng như 've', 'phim', 'tim'
+    if (VIETNAMESE_STOP_WORDS.has(w1) || (isW1Generic && isW2Generic)) {
       continue;
     }
 
@@ -410,21 +419,79 @@ export function isRelevantToQuery(
       };
     }
 
-    // B. Xử lý các chủ đề linh hoạt khác (ad-hoc themes: bác sĩ, trường học, cướp ngân hàng...)
+    // B. Xử lý các chủ đề linh hoạt khác (ad-hoc themes: ca sĩ, bác sĩ, giáo viên, luật sư, cảnh sát, đầu bếp, phi công, nhà báo...)
+    const cleanSubject = cleanQ
+      .replace(/^(?:phim\s+)?(?:ve|chu de|noi ve|ke ve|xoay quanh|de tai)\s+/i, "")
+      .trim();
+
     const rawTerms = [
       ...(options?.keywords || []),
+      cleanSubject,
       ...extractContentKeywords(rawQuery),
     ];
-    const themeTerms: string[] = rawTerms
-      .map(cleanNormalizedString)
-      .filter((t) => {
-        if (!t || t.length < 3) return false;
-        if (VIETNAMESE_STOP_WORDS.has(t) || GENERIC_SINGLE_WORDS.has(t)) return false;
-        return true;
-      });
+    const themeTerms: string[] = Array.from(
+      new Set(
+        rawTerms
+          .map(cleanNormalizedString)
+          .filter((t) => {
+            if (!t || t.length < 2) return false;
+            if (VIETNAMESE_STOP_WORDS.has(t) || GENERIC_SINGLE_WORDS.has(t)) return false;
+            if (GENERIC_PHRASES.has(t)) return false;
+            return true;
+          })
+      )
+    );
 
     if (themeTerms.length === 0) {
       return { relevant: false, score: 0, reason: "Truy vấn không chứa từ khóa chủ đề hợp lệ" };
+    }
+
+    // Kiểm tra đa điều kiện nếu câu hỏi có cấu trúc: [chủ đề A] + [ngữ cảnh/địa điểm B] (ví dụ: "phim về ca sĩ trên sao Hỏa")
+    const compoundParts = cleanSubject
+      .split(/\s+(?:tren|o|tai|trong|va)\s+/)
+      .map((s) => s.trim())
+      .filter((s) => s.length >= 3 && !VIETNAMESE_STOP_WORDS.has(s) && !GENERIC_SINGLE_WORDS.has(s));
+
+    if (compoundParts.length >= 2) {
+      for (const part of compoundParts) {
+        const partSlug = part.replace(/\s+/g, "-");
+        const hasPartInTitle =
+          part.length <= 4
+            ? hasWordMatch(name, part) || hasWordMatch(orig, part) || slug === partSlug || slug.includes(partSlug)
+            : name.includes(part) || orig.includes(part) || slug.includes(partSlug);
+        const hasPartInDesc =
+          part.length <= 4
+            ? hasWordMatch(desc, part)
+            : desc.includes(part);
+
+        if (!hasPartInTitle && !hasPartInDesc) {
+          return {
+            relevant: false,
+            score: 0,
+            reason: `Phim không thỏa mãn điều kiện '${part}' trong yêu cầu kết hợp`,
+          };
+        }
+      }
+    }
+
+    // Bổ trợ thể loại phù hợp với ngữ cảnh chủ đề
+    const cleanCategory = cleanNormalizedString(category || "");
+    let categoryBonus = 0;
+    if (
+      themeTerms.some((t) => t.includes("ca si") || t.includes("am nhac") || t.includes("ca hat") || t.includes("nhac")) &&
+      (cleanCategory.includes("am nhac") || cleanCategory.includes("phim nhac"))
+    ) {
+      categoryBonus += 25;
+    } else if (
+      themeTerms.some((t) => t.includes("canh sat") || t.includes("hinh su") || t.includes("dieu tra")) &&
+      (cleanCategory.includes("hinh su") || cleanCategory.includes("hanh dong") || cleanCategory.includes("trinh tham"))
+    ) {
+      categoryBonus += 25;
+    } else if (
+      themeTerms.some((t) => t.includes("luat su") || t.includes("phap luat") || t.includes("toa an")) &&
+      (cleanCategory.includes("chinh kich") || cleanCategory.includes("tam ly") || cleanCategory.includes("hinh su"))
+    ) {
+      categoryBonus += 20;
     }
 
     let matchCount = 0;
@@ -432,7 +499,7 @@ export function isRelevantToQuery(
     let hasDescMatch = false;
 
     for (const term of themeTerms) {
-      if (!term || term.length < 3) continue;
+      if (!term || term.length < 2) continue;
       const termSlug = term.replace(/\s+/g, "-");
 
       if (term.length <= 4) {
@@ -461,7 +528,11 @@ export function isRelevantToQuery(
     }
 
     if (hasTitleMatch || (hasDescMatch && matchCount >= 1)) {
-      return { relevant: true, score: 50 + matchCount * 10, reason: "Phù hợp chủ đề tìm kiếm" };
+      return {
+        relevant: true,
+        score: 50 + matchCount * 10 + categoryBonus,
+        reason: "Phù hợp chủ đề tìm kiếm",
+      };
     }
 
     return { relevant: false, score: 0, reason: "Không có bằng chứng phù hợp chủ đề" };

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { movieApi } from "@/services/movieApi";
-import { kvCache } from "@/services/kvCacheService";
+import { cacheService } from "@/lib/cache";
 import { SuggestionCard, MatchOptions, ConciergeApiResponse, CacheEntry, SearchIntent } from "./types";
 import {
   CACHE_TTL_MS,
@@ -32,7 +32,14 @@ import {
 import { searchSingleMovieFast } from "./movieSearch";
 import { analyzeUserPrompt } from "./aiAnalyzer";
 import { searchMoviesBySemantic } from "@/services/aiVectorService";
-import { isRelevantToQuery, extractContentKeywords, isGibberishQuery, isVagueQuery } from "./relevanceGate";
+import {
+  isRelevantToQuery,
+  extractContentKeywords,
+  isGibberishQuery,
+  isVagueQuery,
+  VIETNAMESE_STOP_WORDS,
+  GENERIC_SINGLE_WORDS,
+} from "./relevanceGate";
 import { resolveConcepts } from "./conceptRegistry";
 import { queryMoviesByActor } from "@/services/aiActorService";
 
@@ -85,6 +92,14 @@ export async function GET() {
   });
 }
 
+function normalizeExcludeSlugs(slugs: unknown[]): string[] {
+  if (!Array.isArray(slugs) || slugs.length === 0) return [];
+  const normalized = slugs
+    .map((s) => (typeof s === "string" ? s.trim().toLowerCase() : ""))
+    .filter(Boolean);
+  return Array.from(new Set(normalized)).sort();
+}
+
 // ============================================================================
 // POST: CONTROLLER CHÍNH
 // ============================================================================
@@ -111,7 +126,9 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const prompt: string = body.prompt?.trim() || "";
     const userApiKey: string = body.apiKey?.trim() || "";
-    const excludeSlugs: string[] = Array.isArray(body.excludeSlugs) ? body.excludeSlugs : [];
+
+    const rawExcludeSlugs = Array.isArray(body.excludeSlugs) ? body.excludeSlugs : [];
+    const excludeSlugs = normalizeExcludeSlugs(rawExcludeSlugs);
     const rawHistory = Array.isArray(body.history) ? body.history : [];
     const conversationHistory = rawHistory.slice(-6).map((h: { role?: string; content?: string; text?: string }) => ({
       role: (h.role === "assistant" ? "assistant" : "user") as "user" | "assistant",
@@ -130,13 +147,17 @@ export async function POST(req: NextRequest) {
     const lastContextSnippet = conversationHistory.length > 0
       ? conversationHistory.slice(-2).map((h: { content: string }) => normalizeQuery(h.content).slice(0, 30)).join("_")
       : "";
-    const cacheKey = lastContextSnippet
+    const excludeSnippet = excludeSlugs.length > 0
+      ? `__ex_${excludeSlugs.join(",")}`
+      : "";
+    const baseKey = lastContextSnippet
       ? `${normalizeQuery(prompt)}__ctx_${lastContextSnippet}`
       : normalizeQuery(prompt);
+    const cacheKey = `${baseKey}${excludeSnippet}`;
 
     if (body.clearCache) {
       AI_RESPONSE_CACHE.clear();
-      await kvCache.delete(`ai:concierge:${cacheKey}`);
+      await cacheService.delete(`ai:concierge:${cacheKey}`);
     }
     const cachedItem = AI_RESPONSE_CACHE.get(cacheKey);
     if (cachedItem && Date.now() - cachedItem.cachedAt < CACHE_TTL_MS) {
@@ -149,11 +170,11 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const kvCached = await kvCache.get<ConciergeApiResponse>(`ai:concierge:${cacheKey}`);
-    if (kvCached && kvCached.movies && kvCached.movies.length > 0) {
-      AI_RESPONSE_CACHE.set(cacheKey, { ...kvCached, cachedAt: Date.now() });
+    const cacheRes = await cacheService.get<ConciergeApiResponse>(`ai:concierge:${cacheKey}`);
+    if (cacheRes && cacheRes.movies && cacheRes.movies.length > 0) {
+      AI_RESPONSE_CACHE.set(cacheKey, { ...cacheRes, cachedAt: Date.now() });
       return NextResponse.json({
-        ...kvCached,
+        ...cacheRes,
         cached: true,
       });
     }
@@ -210,6 +231,10 @@ export async function POST(req: NextRequest) {
     const activeConcepts = resolveConcepts(prompt, aiParsed?.concepts);
     let searchIntent: SearchIntent = (aiParsed?.intent as SearchIntent) || "unknown";
 
+    const genericThemeMatch = cleanPrompt.match(
+      /^(?:phim\s+)?(?:ve|chu de|noi ve|ke ve|xoay quanh|de tai)\s+(.+)$/i
+    );
+
     if (isGibberishQuery(prompt)) {
       searchIntent = "unknown";
     } else if (activeConcepts.length > 0) {
@@ -218,6 +243,13 @@ export async function POST(req: NextRequest) {
       searchIntent = "character";
     } else if (targetActorSlug) {
       searchIntent = "actor";
+    } else if (genericThemeMatch) {
+      const subject = genericThemeMatch[1].trim();
+      const pureGenre = resolveGenreSlug(subject);
+      const isExplicitProfession = /(?:ca\s*si|bac\s*si|giao\s*vien|luat\s*su|canh\s*sat|dau\s*bep|phi\s*cong|nha\s*bao|van\s*dong\s*vien|dien\s*vien|hoc\s*sinh|thay\s*giao)/i.test(subject);
+      if (!pureGenre || isExplicitProfession) {
+        searchIntent = "theme";
+      }
     }
 
     if (searchIntent === "unknown" || searchIntent === "genre" || searchIntent === "mood") {
@@ -259,7 +291,7 @@ export async function POST(req: NextRequest) {
         "quai vat",
       ].some((cue) => cleanPrompt.includes(cue));
 
-      if (isThemeCue) {
+      if (isThemeCue || genericThemeMatch) {
         searchIntent = "theme";
       } else if (isGibberishQuery(prompt)) {
         searchIntent = "unknown";
@@ -271,7 +303,7 @@ export async function POST(req: NextRequest) {
         searchIntent = "country";
       } else if (lowerPrompt.includes("chua lanh") || lowerPrompt.includes("chữa lành") || lowerPrompt.includes("xa stress")) {
         searchIntent = "mood";
-      } else if (!isGibberishQuery(prompt)) {
+      } else if (!isGibberishQuery(prompt) && !genericThemeMatch) {
         const isQuestion = /(?:phim\s+(?:gì|gi|nào|nao)|tại\s+sao|như\s+thế\s+nào)/i.test(lowerPrompt);
         if (!isQuestion && prompt.trim().split(/\s+/).length <= 4) {
           searchIntent = "movie_title";
@@ -609,20 +641,26 @@ export async function POST(req: NextRequest) {
             .catch(() => null)
         );
 
+        const coreSubject = cleanPrompt
+          .replace(/^(?:phim\s+)?(?:ve|chu de|noi ve|ke ve|xoay quanh|de tai)\s+/i, "")
+          .trim();
+
         const combinedKeywords = Array.from(
           new Set([
             ...conceptDiscoveryKeywords,
             ...(aiParsed?.keywords || []),
+            coreSubject,
             ...extractContentKeywords(prompt),
           ])
         ).filter((kw) => {
-          if (!kw || kw.length < 3) return false;
+          if (!kw || kw.length < 2) return false;
           const cleanKw = cleanNormalizedString(kw);
-          if (cleanKw.length < 3) return false;
+          if (cleanKw.length < 2) return false;
+          if (VIETNAMESE_STOP_WORDS.has(cleanKw) || GENERIC_SINGLE_WORDS.has(cleanKw)) return false;
           return true;
         });
 
-        for (const kw of combinedKeywords.slice(0, 5)) {
+        for (const kw of combinedKeywords.slice(0, 6)) {
           queryTasks.push(
             movieApi.getMovies({ keyword: kw.trim(), limit: 12 }).catch(() => null)
           );
@@ -1143,9 +1181,9 @@ export async function POST(req: NextRequest) {
       }
       AI_RESPONSE_CACHE.set(cacheKey, { ...finalPayload, cachedAt: Date.now() });
 
-      // Lưu vào Cloudflare KV với TTL 3 ngày (259200s)
-      kvCache.set(`ai:concierge:${cacheKey}`, finalPayload, 3 * 86400).catch((err) => {
-        console.warn("[AI Concierge] Lỗi ghi KV cache:", err);
+      // Lưu vào Cache với TTL 3 ngày (259200s)
+      cacheService.set(`ai:concierge:${cacheKey}`, finalPayload, 3 * 86400).catch((err) => {
+        console.warn("[AI Concierge] Lỗi ghi cache:", err);
       });
     }
 

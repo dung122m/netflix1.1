@@ -108,8 +108,7 @@ export function detectCharacterIntent(query?: string): boolean {
     /(?:có|co)\s+(?:nhân\s+vật|nhan\s+vat)/i.test(lower) ||
     /(?:nhân\s+vật|nhan\s+vat)\s+(?:tên\s+là|tên|trong\s+phim)/i.test(lower) ||
     /(?:vai\s+diễn|vai\s+dien|đóng\s+vai|dong\s+vai)/i.test(lower) ||
-    /(?:xuất\s+hiện|xuat\s+hien)\s+(?:trong\s+)?phim/i.test(lower) ||
-    /(?:phim\s+về|phim\s+ve)\s+/i.test(lower)
+    /(?:xuất\s+hiện|xuat\s+hien)\s+(?:trong\s+)?phim/i.test(lower)
   ) {
     return true;
   }

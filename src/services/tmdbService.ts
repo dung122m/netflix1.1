@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import dns from "dns";
 import https from "https";
-import { kvCache } from "@/services/kvCacheService";
+import { cacheService } from "@/lib/cache";
 import { normalizeForMatch as cleanStringForMatch } from "@/lib/stringUtils";
 
 // =========================================================================
@@ -91,7 +91,7 @@ export async function getTmdbBackdropUrl(
   }
 
   const kvKey = `tmdb:backdrop:${cleanType}:${cleanId}`;
-  const backdropUrl = await kvCache.fetchOrSet(
+  const backdropUrl = await cacheService.fetchOrSet(
     kvKey,
     async () => {
       try {
@@ -256,7 +256,7 @@ export async function searchTmdbPerson(
   }
 
   const kvKey = `tmdb:person:${cleanStringForMatch(trimmed)}_${cleanStringForMatch(canonicalName)}`;
-  return await kvCache.fetchOrSet(
+  return await cacheService.fetchOrSet(
     kvKey,
     async () => {
       // Thu thập các từ khóa tên để tra cứu trên TMDB
@@ -352,7 +352,7 @@ export async function getTmdbPersonMovieCredits(personId: number): Promise<TmdbM
   }
 
   const kvKey = `tmdb:credits:${personId}`;
-  return await kvCache.fetchOrSet(
+  return await cacheService.fetchOrSet(
     kvKey,
     async () => {
       // Gọi TMDB movie_credits với ngôn ngữ vi-VN để có cả tên Việt lẫn tên gốc
@@ -471,7 +471,7 @@ async function runWithConcurrencyLimit<T, R>(
  */
 export async function matchTmdbMoviesWithSources(
   credits: TmdbMovieCredit[],
-  maxCheckCount = 28,
+  maxCheckCount = 80,
   concurrency = 8
 ): Promise<any[]> {
   if (!credits || credits.length === 0) return [];
@@ -516,50 +516,48 @@ export async function matchTmdbMoviesWithSources(
       const isLatinOriginal =
         credit.original_title && /^[A-Za-z0-9\s\-':,.]+$/.test(credit.original_title);
 
-      const primarySearchKw = isLatinOriginal
-        ? credit.original_title.replace(/[:\-']/g, " ").replace(/\s+/g, " ").trim()
-        : credit.title.replace(/[:\-']/g, " ").replace(/\s+/g, " ").trim();
+      const cleanOrigTitle = credit.original_title ? credit.original_title.replace(/[:\-']/g, " ").replace(/\s+/g, " ").trim() : "";
+      const cleanViTitle = credit.title ? credit.title.replace(/[:\-']/g, " ").replace(/\s+/g, " ").trim() : "";
 
-      if (!primarySearchKw || primarySearchKw.length < 2) {
+      const primarySearchKw = isLatinOriginal ? cleanOrigTitle : (cleanViTitle || cleanOrigTitle);
+      const secondarySearchKw = isLatinOriginal ? cleanViTitle : cleanOrigTitle;
+
+      if ((!primarySearchKw || primarySearchKw.length < 2) && (!secondarySearchKw || secondarySearchKw.length < 2)) {
         TMDB_SINGLE_MOVIE_MATCH_CACHE.set(credit.id, { movie: null, expireAt: now + 12 * 3600 * 1000 });
         return;
       }
 
       try {
-        // 2.1 Gọi trước PhimAPI (KKPhim)
-        const phimApiRes = await fetch(
-          `https://phimapi.com/v1/api/tim-kiem?keyword=${encodeURIComponent(primarySearchKw)}&limit=6`,
-          { signal: AbortSignal.timeout(2200), next: { revalidate: 3600 } }
-        )
-          .then((r) => (r.ok ? r.json() : null))
-          .catch(() => null);
+        const trySearchAndMatch = async (searchKw: string): Promise<{ candidate: any; matchType: "tmdb_id" | "imdb_id" | "title_year" } | null> => {
+          if (!searchKw || searchKw.length < 2) return null;
 
-        const phimApiItems: any[] = phimApiRes?.data?.items || [];
-        let matchedCandidate: any = null;
-        let matchType: "tmdb_id" | "imdb_id" | "title_year" | null = null;
+          // 2.1 Gọi trước PhimAPI (KKPhim)
+          const phimApiRes = await fetch(
+            `https://phimapi.com/v1/api/tim-kiem?keyword=${encodeURIComponent(searchKw)}&limit=6`,
+            { signal: AbortSignal.timeout(2200), next: { revalidate: 3600 } }
+          )
+            .then((r) => (r.ok ? r.json() : null))
+            .catch(() => null);
 
-        // 2.2 Ưu tiên cao nhất: Khớp tuyệt đối qua TMDB ID trên PhimAPI
-        for (const item of phimApiItems) {
-          if (item?.tmdb?.id && String(item.tmdb.id) === tmdbIdStr) {
-            matchedCandidate = item;
-            matchType = "tmdb_id";
-            break;
-          }
-        }
+          const phimApiItems: any[] = phimApiRes?.data?.items || [];
 
-        // 2.3 Ưu tiên thứ hai: Khớp qua IMDB ID trên PhimAPI
-        if (!matchedCandidate && credit.imdb_id) {
+          // 2.2 Ưu tiên cao nhất: Khớp tuyệt đối qua TMDB ID trên PhimAPI
           for (const item of phimApiItems) {
-            if (item?.imdb?.id && String(item.imdb.id) === credit.imdb_id) {
-              matchedCandidate = item;
-              matchType = "imdb_id";
-              break;
+            if (item?.tmdb?.id && String(item.tmdb.id) === tmdbIdStr) {
+              return { candidate: item, matchType: "tmdb_id" };
             }
           }
-        }
 
-        // 2.4 Ưu tiên thứ ba: Khớp qua Title + Year trên PhimAPI
-        if (!matchedCandidate) {
+          // 2.3 Ưu tiên thứ hai: Khớp qua IMDB ID trên PhimAPI
+          if (credit.imdb_id) {
+            for (const item of phimApiItems) {
+              if (item?.imdb?.id && String(item.imdb.id) === credit.imdb_id) {
+                return { candidate: item, matchType: "imdb_id" };
+              }
+            }
+          }
+
+          // 2.4 Ưu tiên thứ ba: Khớp qua Title + Year trên PhimAPI
           for (const item of phimApiItems) {
             const cOrig = cleanStringForMatch(item.origin_name);
             const cName = cleanStringForMatch(item.name);
@@ -574,17 +572,13 @@ export async function matchTmdbMoviesWithSources(
               !cYear || !tmdbYear || Math.abs(cYear - tmdbYear) <= 1;
 
             if (isTitleMatch && isYearMatch) {
-              matchedCandidate = item;
-              matchType = "title_year";
-              break;
+              return { candidate: item, matchType: "title_year" };
             }
           }
-        }
 
-        // 2.5 CHỈ FALLBACK SANG NGUONC khi PhimAPI hoàn toàn không khớp
-        if (!matchedCandidate) {
+          // 2.5 CHỈ FALLBACK SANG NGUONC khi PhimAPI hoàn toàn không khớp
           const nguonCRes = await fetch(
-            `https://phim.nguonc.com/api/films/search?keyword=${encodeURIComponent(primarySearchKw)}`,
+            `https://phim.nguonc.com/api/films/search?keyword=${encodeURIComponent(searchKw)}`,
             { signal: AbortSignal.timeout(2200), next: { revalidate: 3600 } }
           )
             .then((r) => (r.ok ? r.json() : null))
@@ -605,7 +599,7 @@ export async function matchTmdbMoviesWithSources(
                 !ncYear || !tmdbYear || Math.abs(ncYear - tmdbYear) <= 1;
 
               if (isTitleMatch && isYearMatch) {
-                matchedCandidate = {
+                const formattedNc = {
                   ...nc,
                   origin_name: nc.original_name || nc.name,
                   poster_url: nc.poster_url || nc.thumb_url,
@@ -613,12 +607,24 @@ export async function matchTmdbMoviesWithSources(
                   quality: nc.quality || "HD",
                   lang: nc.language || "Vietsub",
                 };
-                matchType = "title_year";
-                break;
+                return { candidate: formattedNc, matchType: "title_year" };
               }
             }
           }
+
+          return null;
+        };
+
+        // Thử tên đang dùng hiện tại trước
+        let matchResult = await trySearchAndMatch(primarySearchKw);
+
+        // Nếu không match được, thử tiếp với tên còn lại (original_title hoặc title)
+        if (!matchResult && secondarySearchKw && secondarySearchKw !== primarySearchKw) {
+          matchResult = await trySearchAndMatch(secondarySearchKw);
         }
+
+        const matchedCandidate = matchResult?.candidate || null;
+        const matchType = matchResult?.matchType || null;
 
         // 1.5 Format về định dạng Movie chuẩn
         if (matchedCandidate && matchedCandidate.slug) {
@@ -700,7 +706,7 @@ export async function getActorFilmographyFromTmdb(
   const cleanKey = cleanStringForMatch(actorQuery) || cleanStringForMatch(canonicalName);
   if (!cleanKey) return [];
 
-  const cacheKey = `TMDB_ACTOR_FLOW_V2:${cleanKey}`;
+  const cacheKey = `TMDB_ACTOR_FLOW_V3:${cleanKey}`;
   const now = Date.now();
   const cached = TMDB_ACTOR_MOVIES_CACHE.get(cacheKey);
 
@@ -717,8 +723,8 @@ export async function getActorFilmographyFromTmdb(
     }
   }
 
-  const kvKey = `tmdb:actor_flow:${cleanKey}:${maxMovies}`;
-  return await kvCache.fetchOrSet(
+  const kvKey = `tmdb:actor_flow_v3:${cleanKey}:${maxMovies}`;
+  return await cacheService.fetchOrSet(
     kvKey,
     () => executeTmdbActorFlow(actorQuery, canonicalName, aliases, cacheKey, maxMovies, concurrency),
     14 * 86400 // 14 ngày
@@ -753,9 +759,10 @@ async function executeTmdbActorFlow(
       return [];
     }
 
-    // 3. Đối chiếu TMDB ID với KKPhim và NguonC (Top 26 phim tiêu biểu nhất)
+    // 3. Đối chiếu TMDB ID với KKPhim và NguonC (Giới hạn động theo maxMovies, tối đa 80 phim)
     const tMatchStart = performance.now();
-    const matchedMovies = await matchTmdbMoviesWithSources(credits, 26, concurrency);
+    const checkLimit = Math.min(maxMovies, 80);
+    const matchedMovies = await matchTmdbMoviesWithSources(credits, checkLimit, concurrency);
     const tMatchEnd = performance.now();
 
     const tTotalEnd = performance.now();

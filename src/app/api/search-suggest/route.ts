@@ -3,36 +3,33 @@ import { movieApi } from "@/services/movieApi";
 import { resolveActorMovies, isAmbiguousShortActorKeyword, hasExplicitActorPrefix } from "@/services/aiActorService";
 import { pickBestMoviePoster, MovieLike } from "@/lib/movieMedia";
 import { normalizeForMatch } from "@/lib/stringUtils";
+import { cacheService } from "@/lib/cache";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const SUGGEST_CACHE = new Map<string, { data: any; expireAt: number }>();
-const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
-const MAX_SUGGEST_CACHE = 400;
-
-function setBoundedSuggestCache<K, V>(map: Map<K, V>, key: K, value: V, max = MAX_SUGGEST_CACHE) {
-  if (map.size >= max) {
-    const oldestKey = map.keys().next().value;
-    if (oldestKey !== undefined) map.delete(oldestKey);
-  }
-  map.set(key, value);
-}
+// TTL cho Search Suggest: 1 giờ (3600s), theo convention của Nanaflix
+const SUGGEST_CACHE_TTL_SECONDS = 3600;
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const keyword = searchParams.get("keyword")?.trim() || "";
 
+    // Không tạo cache riêng cho search < 2 ký tự
     if (!keyword || keyword.length < 2) {
       return NextResponse.json({ items: [] });
     }
 
-    const cleanKey = keyword.toLowerCase();
-    const cached = SUGGEST_CACHE.get(cleanKey);
-    if (cached && cached.expireAt > Date.now()) {
-      return NextResponse.json(cached.data);
+    const normKw = normalizeForMatch(keyword);
+    if (!normKw || normKw.length < 2) {
+      return NextResponse.json({ items: [] });
     }
 
-    const normKw = normalizeForMatch(keyword);
+    // 1. Kiểm tra L1 In-memory & L2 Upstash Redis qua cacheService
+    const cacheKey = `search:suggest:${normKw}`;
+    const cached = await cacheService.get<{ items: unknown[] }>(cacheKey);
+    if (cached && Array.isArray(cached.items)) {
+      return NextResponse.json(cached);
+    }
+
     // Chỉ truy vấn actor khi người dùng gõ tiền tố rõ ràng (vd: "diễn viên ...", "đạo diễn ...", "phim của ...", "actor: ...")
     const shouldCheckActor = hasExplicitActorPrefix(keyword);
 
@@ -115,7 +112,10 @@ export async function GET(req: NextRequest) {
     }
 
     const responseData = { items };
-    setBoundedSuggestCache(SUGGEST_CACHE, cleanKey, { data: responseData, expireAt: Date.now() + CACHE_TTL });
+    // 2. Lưu vào L1 Memory & L2 Redis (TTL 1 giờ), không cache khi có lỗi
+    await cacheService.set(cacheKey, responseData, SUGGEST_CACHE_TTL_SECONDS).catch((err) => {
+      console.warn("[search-suggest] Lỗi ghi cache Redis:", err);
+    });
 
     return NextResponse.json(responseData);
   } catch (error) {
