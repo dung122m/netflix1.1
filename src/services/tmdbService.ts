@@ -472,8 +472,7 @@ async function runWithConcurrencyLimit<T, R>(
 export async function matchTmdbMoviesWithSources(
   credits: TmdbMovieCredit[],
   maxCheckCount = 28,
-  concurrency = 8,
-  kvConcurrency = 8
+  concurrency = 8
 ): Promise<any[]> {
   if (!credits || credits.length === 0) return [];
 
@@ -488,49 +487,18 @@ export async function matchTmdbMoviesWithSources(
 
   const now = Date.now();
 
-  // BƯỚC 1: KIỂM TRA BỘ NHỚ ĐỆM TỪNG PHIM (L1 RAM 0ms + L2 KV ĐỒNG THỜI CÓ GIỚI HẠN)
-  // 1.1 Kiểm tra nhanh L1 Memory Cache (0ms)
-  const kvPendingCredits: { credit: TmdbMovieCredit; index: number }[] = [];
-  const creditCacheResults = new Array<{ movie: any | null; isCached: boolean }>(candidateCredits.length);
-
-  for (let i = 0; i < candidateCredits.length; i++) {
-    const credit = candidateCredits[i];
+  // BƯỚC 1: KIỂM TRA BỘ NHỚ ĐỆM TỪNG PHIM TRONG RAM (0MS)
+  // Chỉ dùng in-memory cache TMDB_SINGLE_MOVIE_MATCH_CACHE, TUYỆT ĐỐI không đọc/ghi Cloudflare KV cho từng credit
+  for (const credit of candidateCredits) {
     const memEntry = TMDB_SINGLE_MOVIE_MATCH_CACHE.get(credit.id);
     if (memEntry && memEntry.expireAt > now) {
-      creditCacheResults[i] = { movie: memEntry.movie, isCached: true };
-    } else {
-      creditCacheResults[i] = { movie: null, isCached: false };
-      kvPendingCredits.push({ credit, index: i });
-    }
-  }
-
-  // 1.2 Đọc L2 Cloudflare KV cho các phim chưa có trong RAM với concurrency có giới hạn
-  if (kvPendingCredits.length > 0) {
-    await runWithConcurrencyLimit(kvPendingCredits, kvConcurrency, async ({ credit, index }) => {
-      const kvMatched = await kvCache.get<any>(`tmdb:single:${credit.id}`);
-      if (kvMatched !== null) {
-        const movie = kvMatched.empty ? null : kvMatched;
-        TMDB_SINGLE_MOVIE_MATCH_CACHE.set(credit.id, {
-          movie,
-          expireAt: now + 7 * 86400 * 1000,
-        });
-        creditCacheResults[index] = { movie, isCached: true };
-      }
-    });
-  }
-
-  // 1.3 Duyệt theo đúng thứ tự ban đầu của candidateCredits
-  for (let i = 0; i < candidateCredits.length; i++) {
-    const credit = candidateCredits[i];
-    const cached = creditCacheResults[i];
-    if (cached && cached.isCached) {
-      if (cached.movie) {
-        if (!seenSlugs.has(cached.movie.slug)) {
-          seenSlugs.add(cached.movie.slug);
-          matchedMovies.push(cached.movie);
+      if (memEntry.movie) {
+        if (!seenSlugs.has(memEntry.movie.slug)) {
+          seenSlugs.add(memEntry.movie.slug);
+          matchedMovies.push(memEntry.movie);
         }
       }
-      // Nếu cached.movie === null: đã kiểm tra trước đó và phim không có trên cả 2 nguồn -> BỎ QUA 0MS!
+      // Nếu memEntry.movie === null: đã kiểm tra trước đó và phim không có trên cả 2 nguồn -> BỎ QUA 0MS!
       continue;
     }
 
@@ -686,23 +654,21 @@ export async function matchTmdbMoviesWithSources(
             matchBy: matchType,
           };
 
-          // Lưu cache phim thành công (7 ngày)
+          // Lưu cache phim thành công vào RAM (TTL 60 phút)
           TMDB_SINGLE_MOVIE_MATCH_CACHE.set(credit.id, {
             movie: formattedMovie,
-            expireAt: now + 7 * 24 * 3600 * 1000,
+            expireAt: now + 60 * 60 * 1000,
           });
-          kvCache.set(`tmdb:single:${credit.id}`, formattedMovie, 7 * 86400).catch(() => {});
 
           if (!seenSlugs.has(formattedMovie.slug)) {
             seenSlugs.add(formattedMovie.slug);
             matchedMovies.push(formattedMovie);
           }
         } else {
-          // Lưu cache phim không tìm thấy nguồn vào RAM (12h) để lần sau bỏ qua ngay lập tức (0ms)
-          // Không ghi dữ liệu rỗng { empty: true } lên Cloudflare KV để tránh lãng phí hạn ngạch KV write
+          // Lưu cache phim không tìm thấy nguồn vào RAM (TTL 60 phút) để lần sau bỏ qua ngay lập tức (0ms)
           TMDB_SINGLE_MOVIE_MATCH_CACHE.set(credit.id, {
             movie: null,
-            expireAt: now + 12 * 3600 * 1000,
+            expireAt: now + 60 * 60 * 1000,
           });
         }
       } catch {

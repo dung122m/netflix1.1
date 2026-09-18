@@ -701,7 +701,7 @@ function warmUpTopCategories() {
   ];
   setTimeout(() => {
     commonTabs.forEach((tab) => {
-      movieApi.getMovies({ type: tab.type, limit: 24 }).catch(() => {});
+      movieApi.getMovies({ ...tab, limit: 24, skipKvCache: true }).catch(() => {});
     });
   }, 200);
 }

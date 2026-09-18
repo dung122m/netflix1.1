@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateFastAiChat } from "@/services/aiProviderService";
-import { fetchMoviesByTitles } from "@/services/aiActorService";
 import { normalizeMovie } from "@/lib/movieMedia";
 import { movieApi } from "@/services/movieApi";
 import { kvCache } from "@/services/kvCacheService";
@@ -31,533 +29,758 @@ const CATEGORY_MAP: Record<string, { slug: string; name: string }> = {
   "than-thoai": { slug: "than-thoai", name: "Thần Thoại" },
 };
 
-interface TargetCatalogQuery {
+// Bảng ánh xạ quốc gia chuẩn
+const COUNTRY_MAP: Record<string, { slug: string; name: string }> = {
+  "han-quoc": { slug: "han-quoc", name: "Hàn Quốc" },
+  "trung-quoc": { slug: "trung-quoc", name: "Trung Quốc" },
+  "au-my": { slug: "au-my", name: "Âu Mỹ" },
+  "nhat-ban": { slug: "nhat-ban", name: "Nhật Bản" },
+  "viet-nam": { slug: "viet-nam", name: "Việt Nam" },
+  "thai-lan": { slug: "thai-lan", name: "Thái Lan" },
+  "hong-kong": { slug: "hong-kong", name: "Hồng Kông" },
+  "dai-loan": { slug: "dai-loan", name: "Đài Loan" },
+  "an-do": { slug: "an-do", name: "Ấn Độ" },
+  "anh": { slug: "anh", name: "Anh" },
+  "phap": { slug: "phap", name: "Pháp" },
+};
+
+// Bảng ánh xạ loại phim chuẩn
+const TYPE_MAP: Record<string, { slug: string; name: string }> = {
+  "phim-le": { slug: "phim-le", name: "Phim Lẻ" },
+  "phim-bo": { slug: "phim-bo", name: "Phim Bộ" },
+  "hoat-hinh": { slug: "hoat-hinh", name: "Hoạt Hình" },
+  "tv-shows": { slug: "tv-shows", name: "TV Shows" },
+};
+
+interface WatchHistoryInputItem {
+  slug: string;
+  title?: string;
   category?: string;
+  country?: string;
   type?: string;
-  displayName: string;
+  progressSeconds?: number;
+  durationSeconds?: number;
+  updatedAt?: number;
 }
 
-// Chuyển đổi tên thể loại (kèm emoji hoặc không dấu) sang slug chuẩn của catalog
-function resolveTargetFromGenre(raw: string): TargetCatalogQuery | null {
-  if (!raw || typeof raw !== "string") return null;
-  const clean = raw
+interface ScoredEntity {
+  slug: string;
+  name: string;
+  score: number;
+}
+
+interface UserTasteProfile {
+  genres: ScoredEntity[];
+  countries: ScoredEntity[];
+  types: ScoredEntity[];
+  historySlugs: Set<string>;
+  isGuest: boolean;
+}
+
+// Hàm làm sạch chuỗi và chuẩn hoá tiếng Việt không dấu
+function cleanText(raw: string): string {
+  if (!raw || typeof raw !== "string") return "";
+  return raw
     .toLowerCase()
     .replace(/[^\p{L}\p{N}\s-]/gu, "")
     .trim()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/đ/g, "d");
+}
 
-  if (clean.includes("chieu rap") || clean.includes("phim le")) {
-    return { type: "phim-le", displayName: "Phim Lẻ Chiếu Rạp" };
+// Bóc tách danh sách thể loại từ chuỗi bất kỳ (category, title, slug)
+function extractGenresFromText(text: string): Array<{ slug: string; name: string }> {
+  if (!text) return [];
+  const clean = cleanText(text);
+  const found: Array<{ slug: string; name: string }> = [];
+  const seen = new Set<string>();
+
+  const add = (slug: string) => {
+    if (CATEGORY_MAP[slug] && !seen.has(slug)) {
+      seen.add(slug);
+      found.push(CATEGORY_MAP[slug]);
+    }
+  };
+
+  if (clean.includes("hanh dong") || clean.includes("action") || clean.includes("sat thu") || clean.includes("john wick")) add("hanh-dong");
+  if (clean.includes("vo thuat") || clean.includes("kungfu") || clean.includes("kung fu") || clean.includes("diep van") || clean.includes("kiem hiep")) add("vo-thuat");
+  if (clean.includes("hinh su") || clean.includes("trinh tham") || clean.includes("crime") || clean.includes("pha an") || clean.includes("toi pham") || clean.includes("canh sat")) add("hinh-su");
+  if (clean.includes("kinh di") || clean.includes("horror") || clean.includes("ma qui") || clean.includes("quy") || clean.includes("zombie")) add("kinh-di");
+  if (clean.includes("vien tuong") || clean.includes("sci fi") || clean.includes("gia tuong") || clean.includes("vu tru")) add("vien-tuong");
+  if (clean.includes("tinh cam") || clean.includes("lang man") || clean.includes("romance") || clean.includes("hen ho")) add("tinh-cam");
+  if (clean.includes("hai huoc") || clean.includes("comedy") || clean.includes("phim hai")) add("hai-huoc");
+  if (clean.includes("tam ly") || clean.includes("drama") || clean.includes("xa hoi")) add("tam-ly");
+  if (clean.includes("hoat hinh") || clean.includes("anime") || clean.includes("manga")) add("hoat-hinh");
+  if (clean.includes("co trang") || clean.includes("hoang cung") || clean.includes("da su")) add("co-trang");
+  if (clean.includes("phieu luu") || clean.includes("adventure") || clean.includes("tham hiem")) add("phieu-luu");
+  if (clean.includes("chien tranh") || clean.includes("war")) add("chien-tranh");
+  if (clean.includes("bi an") || clean.includes("mystery") || clean.includes("ly ky")) add("bi-an");
+  if (clean.includes("hoc duong") || clean.includes("school") || clean.includes("thanh xuan")) add("hoc-duong");
+  if (clean.includes("gia dinh") || clean.includes("family")) add("gia-dinh");
+
+  // Kiểm tra trực tiếp theo slug danh mục chuẩn
+  const words = clean.split(/\s+/);
+  for (const w of words) {
+    if (CATEGORY_MAP[w]) add(w);
   }
-  if (clean.includes("phim bo") || clean.includes("series")) {
-    return { type: "phim-bo", displayName: "Phim Bộ Đặc Sắc" };
+
+  return found;
+}
+
+// Bóc tách quốc gia từ chuỗi (country, category, title, slug)
+function extractCountriesFromText(text: string): Array<{ slug: string; name: string }> {
+  if (!text) return [];
+  const clean = cleanText(text);
+  const words = new Set(clean.split(/\s+/));
+  const found: Array<{ slug: string; name: string }> = [];
+  const seen = new Set<string>();
+
+  const add = (slug: string) => {
+    if (COUNTRY_MAP[slug] && !seen.has(slug)) {
+      seen.add(slug);
+      found.push(COUNTRY_MAP[slug]);
+    }
+  };
+
+  if (clean.includes("han quoc") || clean.includes("korea") || clean.includes("k-drama") || clean.includes("kdrama")) add("han-quoc");
+  if (clean.includes("trung quoc") || clean.includes("china") || clean.includes("hoa ngu") || clean.includes("c-drama")) add("trung-quoc");
+  if (clean.includes("nhat ban") || clean.includes("japan")) add("nhat-ban");
+  if (clean.includes("au my") || clean.includes("hollywood") || clean.includes("marvel") || words.has("my") || words.has("us") || clean.includes("hoa ky")) add("au-my");
+  if (clean.includes("hong kong") || clean.includes("tvb")) add("hong-kong");
+  if (clean.includes("viet nam") || clean.includes("vietnam")) add("viet-nam");
+  if (clean.includes("thai lan") || clean.includes("thailand")) add("thai-lan");
+  if (clean.includes("dai loan") || clean.includes("taiwan")) add("dai-loan");
+  if (clean.includes("an do") || clean.includes("india") || clean.includes("bollywood")) add("an-do");
+  if (words.has("anh") || words.has("uk") || clean.includes("nuoc anh") || clean.includes("vuong quoc anh")) add("anh");
+  if (words.has("phap") || clean.includes("nuoc phap")) add("phap");
+
+  return found;
+}
+
+// Bóc tách loại phim (phim lẻ / phim bộ / hoạt hình / tv-shows)
+function extractTypeFromText(text: string): { slug: string; name: string } | null {
+  if (!text) return null;
+  const clean = cleanText(text);
+  if (clean.includes("phim bo") || clean.includes("series") || clean.includes("tap ") || clean.includes("season")) {
+    return TYPE_MAP["phim-bo"];
+  }
+  if (clean.includes("phim le") || clean.includes("chieu rap") || clean.includes("movie")) {
+    return TYPE_MAP["phim-le"];
+  }
+  if (clean.includes("hoat hinh") || clean.includes("anime")) {
+    return TYPE_MAP["hoat-hinh"];
   }
   if (clean.includes("tv show") || clean.includes("truyen hinh")) {
-    return { type: "tv-shows", displayName: "TV Shows Thịnh Hành" };
+    return TYPE_MAP["tv-shows"];
   }
-
-  if (clean.includes("hanh dong") || clean.includes("action")) {
-    return { category: "hanh-dong", displayName: "Hành Động" };
-  }
-  if (clean.includes("hoat hinh") || clean.includes("anime") || clean.includes("manga")) {
-    return { category: "hoat-hinh", displayName: "Hoạt Hình / Anime" };
-  }
-  if (clean.includes("tinh cam") || clean.includes("lang man") || clean.includes("romance")) {
-    return { category: "tinh-cam", displayName: "Tình Cảm Lãng Mạn" };
-  }
-  if (clean.includes("kinh di") || clean.includes("horror") || clean.includes("ma qui") || clean.includes("quy")) {
-    return { category: "kinh-di", displayName: "Kinh Dị Kịch Tính" };
-  }
-  if (clean.includes("vien tuong") || clean.includes("sci fi") || clean.includes("gia tuong")) {
-    return { category: "vien-tuong", displayName: "Khoa Học Viễn Tưởng" };
-  }
-  if (clean.includes("vo thuat") || clean.includes("kungfu") || clean.includes("kiem hiep")) {
-    return { category: "vo-thuat", displayName: "Võ Thuật & Kiếm Hiệp" };
-  }
-  if (clean.includes("hai huoc") || clean.includes("comedy") || clean.includes("phim hai")) {
-    return { category: "hai-huoc", displayName: "Hài Hước Giải Trí" };
-  }
-  if (clean.includes("co trang") || clean.includes("hoang cung")) {
-    return { category: "co-trang", displayName: "Cổ Trang Dã Sử" };
-  }
-  if (clean.includes("hinh su") || clean.includes("trinh tham") || clean.includes("crime") || clean.includes("pha an")) {
-    return { category: "hinh-su", displayName: "Trinh Thám & Hình Sự" };
-  }
-  if (clean.includes("tam ly") || clean.includes("drama")) {
-    return { category: "tam-ly", displayName: "Tâm Lý Xã Hội" };
-  }
-  if (clean.includes("phieu luu") || clean.includes("adventure")) {
-    return { category: "phieu-luu", displayName: "Phiêu Lưu Thám Hiểm" };
-  }
-  if (clean.includes("chien tranh") || clean.includes("war")) {
-    return { category: "chien-tranh", displayName: "Chiến Tranh Khốc Liệt" };
-  }
-  if (clean.includes("tai lieu") || clean.includes("documentary")) {
-    return { category: "tai-lieu", displayName: "Phim Tài Liệu" };
-  }
-  if (clean.includes("bi an") || clean.includes("mystery")) {
-    return { category: "bi-an", displayName: "Bí Ẩn Ly Kỳ" };
-  }
-  if (clean.includes("hoc duong") || clean.includes("school")) {
-    return { category: "hoc-duong", displayName: "Học Đường Tuổi Trẻ" };
-  }
-  if (clean.includes("gia dinh") || clean.includes("family")) {
-    return { category: "gia-dinh", displayName: "Gia Đình Ấm Áp" };
-  }
-  if (clean.includes("am nhac") || clean.includes("music")) {
-    return { category: "am-nhac", displayName: "Âm Nhạc" };
-  }
-  if (clean.includes("the thao") || clean.includes("sport")) {
-    return { category: "the-thao", displayName: "Thể Thao Kịch Tính" };
-  }
-  if (clean.includes("khoa hoc") || clean.includes("science")) {
-    return { category: "khoa-hoc", displayName: "Khoa Học Khám Phá" };
-  }
-  if (clean.includes("than thoai") || clean.includes("mythology")) {
-    return { category: "than-thoai", displayName: "Thần Thoại Huyền Bí" };
-  }
-
-  const slug = clean.replace(/\s+/g, "-");
-  if (CATEGORY_MAP[slug]) {
-    return { category: slug, displayName: CATEGORY_MAP[slug].name };
-  }
-
   return null;
 }
 
-// Suy luận thể loại trực tiếp từ lịch sử xem (titles & slugs) không cần gọi AI
-function inferTargetFromHistory(titles: string[], slugs: string[]): TargetCatalogQuery | null {
-  const combined = [...titles, ...slugs].join(" ").toLowerCase();
+// Xây dựng UserTasteProfile đa chiều từ lịch sử xem và hồ sơ người dùng
+function buildUserTasteProfile(
+  historyItems: WatchHistoryInputItem[],
+  favoriteGenres: string[] = [],
+  watchedSlugs: string[] = []
+): UserTasteProfile {
+  const genreScoreMap = new Map<string, { name: string; score: number }>();
+  const countryScoreMap = new Map<string, { name: string; score: number }>();
+  const typeScoreMap = new Map<string, { name: string; score: number }>();
 
-  if (/anime|hoat[- ]?hinh|manga|conan|doraemon|naruto|one piece|dragon ball|pokemon|ghibli|jujutsu|kimetsu|demon slayer|shin|attack on titan|spy x family/i.test(combined)) {
-    return { category: "hoat-hinh", displayName: "Hoạt Hình / Anime" };
-  }
-  if (/vo[- ]?thuat|kung[- ]?fu|diep van|diệp vấn|chan tu dan|chân tử đan|ly lien kiet|lý liên kiệt|thanh long|thành long|ngo kinh|ngô kinh|sat pha lang|sát phá lang|thai cuc/i.test(combined)) {
-    return { category: "vo-thuat", displayName: "Võ Thuật Đỉnh Cao" };
-  }
-  if (/hanh[- ]?dong|action|john wick|fast|sat thu|sát thủ|dac nhiem|đặc nhiệm|biet doi|biệt đội|ke huy diet|kẻ huỷ diệt|mission impossible|die hard|avengers|gladiator/i.test(combined)) {
-    return { category: "hanh-dong", displayName: "Hành Động Kịch Tính" };
-  }
-  if (/vien[- ]?tuong|sci[- ]?fi|interstellar|inception|matrix|avatar|star wars|du hanh|vũ trụ|nguoi nhen|người nhện|iron man|batman/i.test(combined)) {
-    return { category: "vien-tuong", displayName: "Khoa Học Viễn Tưởng" };
-  }
-  if (/kinh[- ]?di|horror|ma |qui |quỷ|ac mong|ác mộng|conjuring|insidious|annabelle|zombie|xac song|xác sống|train to busan|chuyen tau sinh tu|halloween/i.test(combined)) {
-    return { category: "kinh-di", displayName: "Kinh Dị Rùng Rợn" };
-  }
-  if (/co[- ]?trang|hoang cung|tam quoc|tam quốc|kiem hiep|kiếm hiệp|tay du|tây du|than dieu|anh hung xa dieu/i.test(combined)) {
-    return { category: "co-trang", displayName: "Cổ Trang & Kiếm Hiệp" };
-  }
-  if (/hai[- ]?huoc|phim hai|comedy|chau tinh tri|châu tinh trì|doi bong thieu lam|tuyet dinh kungfu|mr bean/i.test(combined)) {
-    return { category: "hai-huoc", displayName: "Hài Hước Giải Trí" };
-  }
-  if (/tinh[- ]?cam|romance|ha canh noi anh|hạ cánh nơi anh|nang tho|nàng thơ|thanh xuan|ngot ngao|hen ho/i.test(combined)) {
-    return { category: "tinh-cam", displayName: "Tình Cảm Lãng Mạn" };
-  }
-  if (/hinh[- ]?su|trinh[- ]?tham|pha an|phá án|toi pham|tội phạm|canh sat|cảnh sát|se7en|tham tu|thám tử|sherlock/i.test(combined)) {
-    return { category: "hinh-su", displayName: "Trinh Thám & Hình Sự" };
-  }
-  if (/tam[- ]?ly|drama|parasite|ky sinh trung|ký sinh trùng|shawshank|bo gia|bố già|godfather|green book|forrest gump|titanic/i.test(combined)) {
-    return { category: "tam-ly", displayName: "Tâm Lý Xã Hội" };
-  }
-  if (/chien[- ]?tranh|war|saving private ryan|1917|dunkirk/i.test(combined)) {
-    return { category: "chien-tranh", displayName: "Chiến Tranh Khốc Liệt" };
-  }
+  const historySlugsSet = new Set<string>();
 
-  return null;
-}
-
-// In-memory cache cho kết quả phân tích AI (tránh gọi LLM lặp lại cho cùng nhóm phim)
-const AI_PREF_CACHE = new Map<string, TargetCatalogQuery>();
-
-// AI chỉ phân tích gu phim thành 1 category/topic ngắn (dưới 80 tokens, không sinh danh sách phim)
-async function analyzePreferencesWithAi(watchedTitles: string[]): Promise<TargetCatalogQuery | null> {
-  if (!watchedTitles || watchedTitles.length === 0) return null;
-
-  const cacheKey = watchedTitles.slice(0, 5).sort().join("|").toLowerCase();
-  const memoryHit = AI_PREF_CACHE.get(cacheKey);
-  if (memoryHit) return memoryHit;
-
-  try {
-    const systemPrompt = `Bạn là hệ thống phân loại gu điện ảnh Nanaflix.
-Dựa vào phim người dùng đã xem, hãy chọn DUY NHẤT 1 thể loại phù hợp nhất từ danh sách:
-[hanh-dong, tinh-cam, co-trang, tam-ly, hai-huoc, hoat-hinh, kinh-di, vien-tuong, vo-thuat, phieu-luu, hinh-su]
-Chỉ trả về DUY NHẤT một chuỗi JSON theo định dạng:
-{ "category": "slug_the_loai", "displayName": "Tên thể loại" }`;
-
-    const userPrompt = `Lịch sử xem: ${watchedTitles.slice(0, 5).join(", ")}`;
-    const aiRes = await generateFastAiChat({
-      systemPrompt,
-      userPrompt,
-      temperature: 0.2,
-      maxTokens: 80,
-      jsonMode: true,
-      timeoutMs: 2500,
-    });
-
-    if (aiRes && aiRes.text) {
-      const cleaned = aiRes.text.replace(/```(?:json)?\s*/gi, "").replace(/\s*```/g, "").trim();
-      const parsed = JSON.parse(cleaned);
-      if (parsed.category && CATEGORY_MAP[parsed.category]) {
-        const result: TargetCatalogQuery = {
-          category: parsed.category,
-          displayName: parsed.displayName || CATEGORY_MAP[parsed.category].name,
-        };
-        AI_PREF_CACHE.set(cacheKey, result);
-        return result;
-      }
+  // 1. Phân tích từng mục lịch sử xem (có tính Watch Depth & Recency Decay)
+  const now = Date.now();
+  for (const item of historyItems) {
+    if (item.slug) {
+      historySlugsSet.add(item.slug.toLowerCase().trim());
     }
-  } catch (err) {
-    console.warn("[for-you recommendations] AI preference classification fallback:", err);
+
+    // TÍNH WATCH DEPTH
+    let engagementWeight = 1.0;
+    if (item.durationSeconds && item.durationSeconds > 0 && item.progressSeconds !== undefined) {
+      const ratio = item.progressSeconds / item.durationSeconds;
+      if (ratio >= 0.8) {
+        engagementWeight = 2.0; // Xem trọn vẹn: tín hiệu rất mạnh
+      } else if (ratio >= 0.5) {
+        engagementWeight = 1.25; // Xem trên nửa phim
+      } else if (ratio >= 0.1) {
+        engagementWeight = 0.5; // Bỏ dở sớm
+      } else {
+        engagementWeight = 0.3;
+      }
+    } else if (item.progressSeconds && item.progressSeconds > 600) {
+      engagementWeight = 1.25; // Đã xem hơn 10 phút
+    }
+
+    // TÍNH RECENCY DECAY
+    const daysSinceWatch = Math.max(
+      0,
+      (now - (item.updatedAt || now)) / (1000 * 60 * 60 * 24)
+    );
+    const recentWeight = 1 / (1 + daysSinceWatch * 0.15);
+
+    const finalItemWeight = engagementWeight * recentWeight;
+
+    // Trích xuất tín hiệu thể loại
+    const combinedText = `${item.category || ""} ${item.title || ""} ${item.slug || ""}`;
+    const detectedGenres = extractGenresFromText(combinedText);
+    for (const g of detectedGenres) {
+      const cur = genreScoreMap.get(g.slug) || { name: g.name, score: 0 };
+      cur.score += finalItemWeight * 1.5;
+      genreScoreMap.set(g.slug, cur);
+    }
+
+    // Trích xuất tín hiệu quốc gia
+    const detectedCountries = extractCountriesFromText(`${item.country || ""} ${combinedText}`);
+    for (const c of detectedCountries) {
+      const cur = countryScoreMap.get(c.slug) || { name: c.name, score: 0 };
+      cur.score += finalItemWeight * 1.2;
+      countryScoreMap.set(c.slug, cur);
+    }
+
+    // Trích xuất tín hiệu loại phim
+    const detectedType = extractTypeFromText(`${item.type || ""} ${combinedText}`);
+    if (detectedType) {
+      const cur = typeScoreMap.get(detectedType.slug) || { name: detectedType.name, score: 0 };
+      cur.score += finalItemWeight * 1.0;
+      typeScoreMap.set(detectedType.slug, cur);
+    }
   }
-  return null;
+
+  // Bổ sung các slug từ watchedSlugs nếu chưa có
+  for (const s of watchedSlugs) {
+    if (s) historySlugsSet.add(s.toLowerCase().trim());
+  }
+
+  // 2. Bổ sung các thể loại yêu thích đã chọn trong Profile người dùng
+  for (const fav of favoriteGenres) {
+    const extracted = extractGenresFromText(fav);
+    for (const g of extracted) {
+      const cur = genreScoreMap.get(g.slug) || { name: g.name, score: 0 };
+      cur.score += 2.0; // Trọng số cao cho sở thích người dùng chủ động chọn
+      genreScoreMap.set(g.slug, cur);
+    }
+  }
+
+  // 3. Chuẩn hoá điểm số và trích xuất TOP sở thích
+  const normalizeList = (map: Map<string, { name: string; score: number }>, topN: number): ScoredEntity[] => {
+    const arr = Array.from(map.entries()).map(([slug, val]) => ({
+      slug,
+      name: val.name,
+      score: val.score,
+    }));
+    arr.sort((a, b) => b.score - a.score);
+    if (arr.length === 0) return [];
+    const maxScore = arr[0].score || 1;
+    return arr.slice(0, topN).map((item) => ({
+      ...item,
+      score: Math.round((item.score / maxScore) * 100) / 100, // Thang điểm 0..1
+    }));
+  };
+
+  const topGenres = normalizeList(genreScoreMap, 3);
+  const topCountries = normalizeList(countryScoreMap, 2);
+  const topTypes = normalizeList(typeScoreMap, 2);
+
+  const isGuest = topGenres.length === 0 && historySlugsSet.size === 0;
+
+  return {
+    genres: topGenres,
+    countries: topCountries,
+    types: topTypes,
+    historySlugs: historySlugsSet,
+    isGuest,
+  };
 }
 
-// Danh sách hạt giống các siêu phẩm điện ảnh kinh điển (dùng riêng cho fallback cũ)
-const MASTERPIECE_BLOCKBUSTERS = [
-  "Ký Sinh Trùng (Parasite, 2019)",
-  "Hố Đen Tử Thần (Interstellar, 2014)",
-  "Chuyến Tàu Sinh Tử (Train to Busan, 2016)",
-  "Diệp Vấn (Ip Man, 2008)",
-  "Đại Thoại Tây Du (A Chinese Odyssey, 1995)",
-  "Đội Bóng Thiếu Lâm (Shaolin Soccer, 2001)",
-  "Hạ Cánh Nơi Anh (Crash Landing on You, 2019)",
-  "Thanh Gươm Diệt Quỷ: Chuyến Tàu Vô Tận (Demon Slayer: Mugen Train, 2020)",
-  "Hoắc Nguyên Giáp (Fearless, 2006)",
-  "Khởi Nguồn (Inception, 2010)",
-  "Tuyệt Đỉnh Kungfu (Kung Fu Hustle, 2004)",
-  "Sát Phá Lang (SPL: Kill Zone, 2005)",
-  "Kỵ Sĩ Bóng Đêm (The Dark Knight, 2008)",
-  "Vùng Đất Linh Hồn (Spirited Away, 2001)",
-  "Avatar (2009)",
-  "Titanic (1997)",
-  "Bố Già (The Godfather, 1972)",
-  "Cuộc Chiến Vô Cực (Avengers: Infinity War, 2018)",
-  "Ma Trận (The Matrix, 1999)",
-  "Võ Sĩ Giác Đấu (Gladiator, 2000)",
+// Danh sách hạt giống siêu phẩm cho người dùng mới
+const GUEST_THEMES = [
+  {
+    genres: ["hanh-dong", "vo-thuat"],
+    country: "au-my",
+    name: "Siêu Phẩm Chiếu Rạp & Hành Động Kịch Tính",
+  },
+  {
+    genres: ["vien-tuong", "bi-an"],
+    country: "au-my",
+    name: "Khoa Học Viễn Tưởng & Bí Ẩn Kinh Điển",
+  },
+  {
+    genres: ["tinh-cam", "tam-ly"],
+    country: "han-quoc",
+    name: "Tình Cảm Lãng Mạn & Tâm Lý Sâu Sắc",
+  },
+  {
+    genres: ["hoat-hinh", "hai-huoc"],
+    country: "nhat-ban",
+    name: "Hoạt Hình, Anime & Giải Trí Đỉnh Cao",
+  },
+  {
+    genres: ["hinh-su", "tam-ly"],
+    country: "han-quoc",
+    name: "Trinh Thám Hình Sự & Phá Án Ly Kỳ",
+  },
 ];
-
-// Fallback cũ: Chỉ gọi khi flow catalog trực tiếp không đủ phim hoặc lỗi
-async function executeLegacyAiTitlesFallback({
-  targetTopic,
-  matchContext,
-  isBroadCurated,
-  watchedSet,
-  kvForYouKey,
-}: {
-  targetTopic: string;
-  matchContext: string;
-  isBroadCurated: boolean;
-  watchedSet: Set<string>;
-  kvForYouKey: string;
-}) {
-  let aiRecommendedTitles: Array<{ title: string; whyMatch: string; matchScore: number }> = [];
-
-  try {
-    const systemPrompt = `Bạn là Chuyên gia Tuyển chọn Điện ảnh Đẳng cấp Quốc tế (Master Cinema Curator) của Nanaflix.
-Nhiệm vụ của bạn: Khi nhận được yêu cầu tuyển chọn, hãy đề xuất 16 đến 20 tác phẩm điện ảnh/truyền hình THỰC SỰ XUẤT SẮC, NỔI TIẾNG, ĐƯỢC KHÁN GIẢ ĐÁNH GIÁ CỰC CAO (IMDb cao, phim chiếu rạp kinh điển, siêu phẩm ăn khách) thuộc nhiều quốc gia (Việt Nam, Hàn Quốc, Hollywood, Hồng Kông...).
-Tránh việc chỉ tập trung vào duy nhất 1 quốc gia hay 1 đạo diễn, hãy tạo danh sách phong phú, hấp dẫn.
-Trả về DUY NHẤT một chuỗi JSON hợp lệ theo định dạng:
-{
-  "recommendations": [
-    {
-      "title": "Tên phim tiếng Việt kèm tên gốc tiếng Anh và năm phát hành trong ngoặc đơn (vd: Kẻ Đánh Cắp Giấc Mơ (Inception, 2010), Diệp Vấn (Ip Man, 2008))",
-      "whyMatch": "Lý do ngắn gọn vì sao bộ phim này đáng xem (1 câu ngắn)",
-      "matchScore": 98
-    }
-  ]
-}`;
-
-    const userPrompt = isBroadCurated
-      ? `Hãy tuyển chọn 16-20 bộ phim xuất sắc và ăn khách nhất cho chủ đề: "${targetTopic}".`
-      : `Người dùng quan tâm: "${targetTopic}". Hãy chọn ra 16-20 tác phẩm điện ảnh xuất sắc, đa dạng và hấp dẫn nhất.`;
-
-    const aiRes = await generateFastAiChat({
-      systemPrompt,
-      userPrompt,
-      temperature: 0.35,
-      maxTokens: 1000,
-      jsonMode: true,
-      timeoutMs: 5000,
-    });
-
-    if (aiRes && aiRes.text) {
-      const cleaned = aiRes.text.replace(/```(?:json)?\s*/gi, "").replace(/\s*```/g, "").trim();
-      const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-      const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : cleaned);
-      if (Array.isArray(parsed.recommendations)) {
-        aiRecommendedTitles = parsed.recommendations;
-      }
-    }
-  } catch (err) {
-    console.warn("[for-you recommendations] Legacy AI generation fallback err:", err);
-  }
-
-  if (aiRecommendedTitles.length < 12) {
-    const existingTitles = new Set(aiRecommendedTitles.map((r) => r.title.toLowerCase()));
-    for (const t of MASTERPIECE_BLOCKBUSTERS) {
-      if (!existingTitles.has(t.toLowerCase())) {
-        aiRecommendedTitles.push({
-          title: t,
-          whyMatch: "Siêu phẩm điện ảnh kinh điển được yêu thích nhất",
-          matchScore: Math.floor(Math.random() * 5) + 94,
-        });
-        existingTitles.add(t.toLowerCase());
-      }
-      if (aiRecommendedTitles.length >= 20) break;
-    }
-  }
-
-  const titlesToFetch = aiRecommendedTitles.map((r) => r.title).filter(Boolean);
-  const resolvedRawMovies = await fetchMoviesByTitles(titlesToFetch, 20);
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const recommendedMovies: any[] = [];
-  const seenSlugs = new Set<string>();
-
-  for (const raw of resolvedRawMovies) {
-    const norm = normalizeMovie(raw);
-    if (!norm.slug || watchedSet.has(norm.slug.toLowerCase()) || seenSlugs.has(norm.slug.toLowerCase())) {
-      continue;
-    }
-    seenSlugs.add(norm.slug.toLowerCase());
-
-    const matchMeta = aiRecommendedTitles.find((r) => {
-      const rt = (r.title || "").toLowerCase();
-      const viOnly = rt.replace(/\([^)]*\)/g, "").trim();
-      const matchParen = rt.match(/\(([^)]+)\)/);
-      const engOnly = (matchParen ? matchParen[1] : "").toLowerCase().replace(/\b\d{4}\b/g, "").replace(/,/g, "").trim();
-      const nt = (norm.title || "").toLowerCase();
-      const no = (norm.origin_name || "").toLowerCase();
-
-      return (
-        (viOnly && (nt.includes(viOnly) || viOnly.includes(nt) || no.includes(viOnly) || viOnly.includes(no))) ||
-        (engOnly && (nt.includes(engOnly) || engOnly.includes(nt) || no.includes(engOnly) || engOnly.includes(no)))
-      );
-    });
-
-    recommendedMovies.push({
-      slug: norm.slug,
-      name: norm.title,
-      title: norm.title,
-      origin_name: norm.origin_name,
-      poster_url: norm.posterUrl || norm.imageUrl || "/default-poster.jpg",
-      thumb_url: norm.thumbUrl || norm.posterUrl || "/default-hero.jpg",
-      year: norm.year,
-      quality: norm.quality || "Full HD",
-      category: [{ name: norm.genre || "Siêu Phẩm" }],
-      matchPercentage: matchMeta?.matchScore || (Math.floor(Math.random() * 5) + 92),
-      matchReason: matchMeta?.whyMatch || `Cùng đẳng cấp với ${targetTopic}`,
-    });
-
-    if (recommendedMovies.length >= 16) break;
-  }
-
-  if (recommendedMovies.length > 0) {
-    kvCache.set(
-      kvForYouKey,
-      { context: matchContext, movies: recommendedMovies },
-      6 * 3600
-    ).catch(() => {});
-  }
-
-  return NextResponse.json({
-    success: true,
-    context: matchContext,
-    items: recommendedMovies,
-  });
-}
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const {
       genres = [],
-      watchedTitles = [],
+      historyItems = [],
       watchedSlugs = [],
       refreshSeed = 0,
       currentSlugs = [],
     } = body || {};
 
-    const watchedSet = new Set<string>([
-      ...watchedSlugs.map((s: string) => s.toLowerCase()),
-      ...((currentSlugs as string[]) || []).map((s: string) => s.toLowerCase()),
-    ]);
-
-    const hasRichHistory = Array.isArray(watchedTitles) && watchedTitles.length >= 3;
-    const hasFavoriteGenres = Array.isArray(genres) && genres.length > 0;
     const seed = Number(refreshSeed) || 0;
 
-    let targetQuery: TargetCatalogQuery | null = null;
-    let matchContext = "Tuyển tập siêu phẩm thịnh hành được đánh giá cao nhất";
-    let isBroadCurated = false;
+    // 1. TẠO USER TASTE PROFILE ĐA CHIỀU
+    const profile = buildUserTasteProfile(historyItems, genres, watchedSlugs);
 
-    // =========================================================================
-    // 1. XÁC ĐỊNH GENRE / CATEGORY / TOPIC TỪ LỊCH SỬ XEM & HỒ SƠ
-    // Không cho AI sinh danh sách titles, chỉ chọn category chuẩn để query catalog
-    // =========================================================================
-    if (hasRichHistory) {
-      const seedMod = seed % 3;
-      if (seedMod === 0) {
-        // Ưu tiên 1: Tự động suy luận thể loại trực tiếp từ lịch sử xem
-        targetQuery = inferTargetFromHistory(watchedTitles, watchedSlugs);
-        if (!targetQuery && hasFavoriteGenres) {
-          targetQuery = resolveTargetFromGenre(genres[seed % genres.length]);
-        }
-        if (!targetQuery) {
-          targetQuery = await analyzePreferencesWithAi(watchedTitles);
-        }
-        matchContext = targetQuery
-          ? `Tuyển tập ${targetQuery.displayName} chuẩn gu dựa trên lịch sử xem của bạn`
-          : "Dựa trên các thể loại bạn quan tâm & lịch sử xem gần đây";
-      } else if (seedMod === 1 && hasFavoriteGenres) {
-        // Ưu tiên 2: Thể loại yêu thích đã chọn trong profile
-        targetQuery = resolveTargetFromGenre(genres[seed % genres.length]);
-        if (!targetQuery) {
-          targetQuery = inferTargetFromHistory(watchedTitles, watchedSlugs);
-        }
-        matchContext = targetQuery
-          ? `Tuyển tập đỉnh cao ${targetQuery.displayName} dành riêng cho bạn`
-          : "Tuyển tập đỉnh cao theo sở thích của bạn";
-      } else {
-        // Ưu tiên 3: Phong cách tương đồng tác phẩm gần nhất
-        targetQuery = inferTargetFromHistory(watchedTitles, watchedSlugs);
-        if (!targetQuery) {
-          targetQuery = await analyzePreferencesWithAi(watchedTitles);
-        }
-        if (!targetQuery && hasFavoriteGenres) {
-          targetQuery = resolveTargetFromGenre(genres[seed % genres.length]);
-        }
-        matchContext = targetQuery
-          ? `Khám phá các kiệt tác ${targetQuery.displayName} cùng phong cách bạn quan tâm`
-          : "Khám phá các kiệt tác điện ảnh cùng phong cách bạn quan tâm";
-      }
-    } else if (hasFavoriteGenres) {
-      targetQuery = resolveTargetFromGenre(genres[seed % genres.length]);
-      matchContext = targetQuery
-        ? `Tuyển tập đỉnh cao ${targetQuery.displayName} theo sở thích của bạn`
-        : "Tuyển chọn chuẩn gu cho bạn";
-    } else {
-      isBroadCurated = true;
-      const guestThemes: TargetCatalogQuery[] = [
-        { type: "phim-le", displayName: "Siêu phẩm chiếu rạp & kiệt tác điện ảnh quốc tế" },
-        { category: "hanh-dong", displayName: "Hành động & Võ thuật đỉnh cao kịch tính" },
-        { category: "hinh-su", displayName: "Trinh thám hình sự & Bí ẩn ly kỳ" },
-        { category: "vien-tuong", displayName: "Khoa học viễn tưởng & Hack não kinh điển" },
-        { category: "hoat-hinh", displayName: "Hoạt hình, Anime & Chữa lành tâm hồn" },
-      ];
-      targetQuery = guestThemes[seed % guestThemes.length];
-      matchContext = targetQuery.displayName;
-    }
+    // Tập hợp 100% slug phim cần loại bỏ (toàn bộ lịch sử + phim đang hiện)
+    const watchedSet = new Set<string>([
+      ...Array.from(profile.historySlugs),
+      ...((currentSlugs as string[]) || []).map((s: string) => s.toLowerCase().trim()),
+    ]);
 
-    // =========================================================================
-    // 2. KIỂM TRA CLOUDFLARE KV CACHE
-    // =========================================================================
-    const topicKey = targetQuery?.category || targetQuery?.type || "trending";
-    const page = (seed % 5) + 1;
-    const kvForYouKey = `foryou:catalog:${topicKey}:p${page}`;
+    // 2. XÂY DỰNG TASTE FINGERPRINT & KIỂM TRA KV CACHE
+    const tasteKeyParts = [
+      ...profile.genres.map((g) => g.slug),
+      ...profile.countries.map((c) => c.slug),
+      ...profile.types.map((t) => t.slug),
+    ];
+    const tasteHash = tasteKeyParts.length > 0 ? tasteKeyParts.join("-") : `guest-${seed % 5}`;
+    const pageOffset = (seed % 4) + 1;
+    const kvForYouKey = `foryou:taste:${tasteHash}:p${pageOffset}`;
 
+    // Thử lấy từ Cloudflare KV Cache
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const cachedPool = await kvCache.get<{ context: string; movies: any[] }>(kvForYouKey);
-    if (cachedPool && Array.isArray(cachedPool.movies) && cachedPool.movies.length > 0) {
+    if (cachedPool && Array.isArray(cachedPool.movies) && cachedPool.movies.length >= 10) {
       const filtered = cachedPool.movies.filter(
-        (m) => m && m.slug && !watchedSet.has(m.slug.toLowerCase())
+        (m) => m && m.slug && !watchedSet.has(m.slug.toLowerCase().trim())
       );
       if (filtered.length >= 8) {
         return NextResponse.json({
           success: true,
-          context: cachedPool.context || matchContext,
+          context: cachedPool.context,
           items: filtered.slice(0, 16),
           cached: true,
         });
       }
     }
 
-    // =========================================================================
-    // 3. QUERY TRỰC TIẾP TỪ CATALOG MOVIEAPI HIỆN CÓ
-    // Chỉ 1 request tới PhimAPI/NguonC thay vì 14-28 request tìm từng tên phim
-    // =========================================================================
-    try {
-      const catalogRes = await movieApi.getMovies({
-        category: targetQuery?.category,
-        type: targetQuery?.type,
-        page,
-        limit: 20,
-        sort: "views",
-      });
+    // 3. MULTI-SIGNAL CANDIDATE RETRIEVAL (2-3 TRUY VẤN SONG SONG TỪ CATALOG)
+    const topGenre = profile.genres[0];
+    const secondGenre = profile.genres[1];
+    const thirdGenre = profile.genres[2];
+    const topCountry = profile.countries[0];
+    const prefType = profile.types[0];
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const catalogMovies: any[] = [];
-      const seenSlugs = new Set<string>();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const queryPromises: Promise<any>[] = [];
 
-      for (const raw of catalogRes?.items || []) {
-        const norm = normalizeMovie(raw);
-        if (!norm.slug || watchedSet.has(norm.slug.toLowerCase()) || seenSlugs.has(norm.slug.toLowerCase())) {
-          continue;
-        }
-        seenSlugs.add(norm.slug.toLowerCase());
+    if (!profile.isGuest && topGenre) {
+      // Query 1: Top Genre theo lượt xem cao nhất
+      queryPromises.push(
+        movieApi.getMovies({
+          category: topGenre.slug,
+          limit: 24,
+          page: pageOffset,
+          sort: "views",
+        })
+      );
 
-        const matchScore = Math.floor(Math.random() * 5) + 94; // 94% - 98%
-        const displayCategory = targetQuery?.displayName || norm.genre || "Đề Xuất";
-        const matchReason = hasRichHistory
-          ? `Chuẩn gu ${displayCategory} dựa trên phim bạn đã xem`
-          : hasFavoriteGenres
-          ? `Tuyển tập đỉnh cao ${displayCategory} chuẩn sở thích của bạn`
-          : `Siêu phẩm ăn khách phù hợp xu hướng điện ảnh`;
-
-        catalogMovies.push({
-          slug: norm.slug,
-          name: norm.title,
-          title: norm.title,
-          origin_name: norm.origin_name,
-          poster_url: norm.posterUrl || norm.imageUrl || "/default-poster.jpg",
-          thumb_url: norm.thumbUrl || norm.posterUrl || "/default-hero.jpg",
-          year: norm.year,
-          quality: norm.quality || "Full HD",
-          category: [{ name: norm.genre || displayCategory }],
-          matchPercentage: matchScore,
-          matchReason,
-        });
-
-        if (catalogMovies.length >= 16) break;
+      // Query 2: Thể loại thứ hai HOẶC Quốc gia yêu thích
+      if (secondGenre) {
+        queryPromises.push(
+          movieApi.getMovies({
+            category: secondGenre.slug,
+            limit: 24,
+            page: pageOffset,
+            sort: "views",
+          })
+        );
+      } else if (topCountry) {
+        queryPromises.push(
+          movieApi.getMovies({
+            country: topCountry.slug,
+            limit: 24,
+            page: pageOffset,
+            sort: "views",
+          })
+        );
+      } else {
+        queryPromises.push(
+          movieApi.getMovies({
+            category: topGenre.slug,
+            limit: 24,
+            page: pageOffset + 1,
+            sort: "rating",
+          })
+        );
       }
 
-      if (catalogMovies.length >= 8) {
-        kvCache.set(
-          kvForYouKey,
-          {
-            context: matchContext,
-            movies: catalogMovies,
-          },
-          6 * 3600
-        ).catch(() => {});
-
-        return NextResponse.json({
-          success: true,
-          context: matchContext,
-          items: catalogMovies,
-          cached: false,
-        });
+      // Query 3: Thể loại thứ ba HOẶC Định dạng yêu thích (phim lẻ / phim bộ) HOẶC Phim mới phát hành
+      if (thirdGenre) {
+        queryPromises.push(
+          movieApi.getMovies({
+            category: thirdGenre.slug,
+            limit: 20,
+            page: (seed % 2) + 1,
+            sort: "views",
+          })
+        );
+      } else if (prefType) {
+        queryPromises.push(
+          movieApi.getMovies({
+            type: prefType.slug,
+            limit: 20,
+            page: (seed % 3) + 1,
+            sort: "latest",
+          })
+        );
+      } else {
+        queryPromises.push(
+          movieApi.getMovies({
+            limit: 20,
+            page: (seed % 3) + 1,
+            sort: "views",
+          })
+        );
       }
-    } catch (catalogErr) {
-      console.warn("[for-you recommendations] Catalog query error, trying fallback:", catalogErr);
+    } else {
+      // Người dùng mới / Guest: Lấy theo bộ chủ đề chất lượng xoay vòng theo seed
+      const guestTheme = GUEST_THEMES[seed % GUEST_THEMES.length];
+      queryPromises.push(
+        movieApi.getMovies({
+          category: guestTheme.genres[0],
+          limit: 24,
+          page: pageOffset,
+          sort: "views",
+        })
+      );
+      queryPromises.push(
+        movieApi.getMovies({
+          category: guestTheme.genres[1] || "hanh-dong",
+          limit: 24,
+          page: pageOffset,
+          sort: "rating",
+        })
+      );
+      queryPromises.push(
+        movieApi.getMovies({
+          country: guestTheme.country,
+          limit: 20,
+          page: (seed % 2) + 1,
+          sort: "views",
+        })
+      );
     }
 
-    // =========================================================================
-    // 4. FALLBACK: NẾU CATALOG KHÔNG ĐỦ KẾT QUẢ, DÙNG LOGIC RECOMMENDATION CŨ
-    // Giữ nguyên tính năng, không làm mất chức năng của người dùng
-    // =========================================================================
-    return await executeLegacyAiTitlesFallback({
-      targetTopic: targetQuery?.displayName || "Siêu phẩm điện ảnh xuất sắc",
-      matchContext,
-      isBroadCurated,
-      watchedSet,
-      kvForYouKey,
+    // Thực thi song song và chống sập nếu 1 query lỗi
+    const settledResults = await Promise.allSettled(queryPromises);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const candidateRawPool: any[] = [];
+    for (const res of settledResults) {
+      if (res.status === "fulfilled" && res.value?.items && Array.isArray(res.value.items)) {
+        candidateRawPool.push(...res.value.items);
+      }
+    }
+
+    // 4. LỌC PHIM ĐÃ XEM VÀ KHỬ TRÙNG LẶP
+    const seenSlugs = new Set<string>();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const candidateNormalized: any[] = [];
+
+    for (const raw of candidateRawPool) {
+      const norm = normalizeMovie(raw);
+      if (!norm.slug) continue;
+      const cleanSlug = norm.slug.toLowerCase().trim();
+
+      // BẮT BUỘC: Loại bỏ triệt để 100% phim đã có trong lịch sử xem
+      if (watchedSet.has(cleanSlug) || seenSlugs.has(cleanSlug)) {
+        continue;
+      }
+      seenSlugs.add(cleanSlug);
+      candidateNormalized.push(norm);
+    }
+
+    // 5. CHẤM ĐIỂM CÁ NHÂN HOÁ (RULE-BASED DETERMINISTIC SCORING)
+    const scoredCandidates = candidateNormalized.map((norm) => {
+      let score = 0;
+      const matchedAspects: string[] = [];
+
+      // Bóc tách toàn bộ thể loại của phim từ categories, raw category, genre, title, slug
+      const rawCatNames = [
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ...(norm.categories?.map((c: any) => c.name) || []),
+        ...(Array.isArray(norm.raw?.category)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ? norm.raw.category.map((c: any) => (typeof c === "string" ? c : c?.name || ""))
+          : []),
+        norm.genre || "",
+      ].filter(Boolean);
+
+      const candidateGenreSlugs = new Set<string>();
+      for (const catName of rawCatNames) {
+        const extracted = extractGenresFromText(catName);
+        for (const g of extracted) {
+          candidateGenreSlugs.add(g.slug);
+        }
+      }
+      const titleExtracted = extractGenresFromText(`${norm.title} ${norm.slug}`);
+      for (const g of titleExtracted) {
+        candidateGenreSlugs.add(g.slug);
+      }
+
+      // 1. GENRE MATCHING (Không double-count, chỉ lấy mức cao nhất + multi-genre bonus nhỏ)
+      let genreScore = 0;
+      let matchedTopGenre = false;
+      let matchedSecondGenre = false;
+      let matchedThirdGenre = false;
+
+      if (topGenre && candidateGenreSlugs.has(topGenre.slug)) {
+        genreScore = 50;
+        matchedTopGenre = true;
+        matchedAspects.push(topGenre.name);
+      } else if (secondGenre && candidateGenreSlugs.has(secondGenre.slug)) {
+        genreScore = 20;
+        matchedSecondGenre = true;
+        matchedAspects.push(secondGenre.name);
+      } else if (thirdGenre && candidateGenreSlugs.has(thirdGenre.slug)) {
+        genreScore = 10;
+        matchedThirdGenre = true;
+        matchedAspects.push(thirdGenre.name);
+      }
+
+      // Multi-genre intersection bonus: Tối đa +5 nếu vừa match Top 1 vừa match thêm Top 2 hoặc Top 3
+      if (
+        matchedTopGenre &&
+        ((secondGenre && candidateGenreSlugs.has(secondGenre.slug)) ||
+          (thirdGenre && candidateGenreSlugs.has(thirdGenre.slug)))
+      ) {
+        genreScore += 5;
+      }
+      score += genreScore;
+
+      // 2. COUNTRY MATCHING (Top: +20, Second: +10)
+      let countryScore = 0;
+      const rawCountryNames = [
+        norm.country || "",
+        ...(Array.isArray(norm.raw?.country)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ? norm.raw.country.map((c: any) => (typeof c === "string" ? c : c?.name || ""))
+          : []),
+      ].filter(Boolean);
+
+      const candidateCountrySlugs = new Set<string>();
+      for (const cName of rawCountryNames) {
+        const extracted = extractCountriesFromText(cName);
+        for (const c of extracted) {
+          candidateCountrySlugs.add(c.slug);
+        }
+      }
+
+      let matchedCountryName = "";
+      if (topCountry && candidateCountrySlugs.has(topCountry.slug)) {
+        countryScore = 20;
+        matchedCountryName = topCountry.name;
+        matchedAspects.push(`phim ${topCountry.name}`);
+      } else if (profile.countries[1] && candidateCountrySlugs.has(profile.countries[1].slug)) {
+        countryScore = 10;
+        matchedCountryName = profile.countries[1].name;
+      }
+      score += countryScore;
+
+      // 3. PREFERRED TYPE (Phim bộ / Phim lẻ: +10)
+      let typeScore = 0;
+      let matchedTypeName = "";
+      if (prefType) {
+        const isPhimBo =
+          norm.type_name === "Phim bộ" || (norm.time && String(norm.time).toLowerCase().includes("tập"));
+        const isPhimLe = norm.type_name === "Phim lẻ" || norm.type_name === "Phim rạp";
+        const isHoatHinh = norm.type_name === "Hoạt hình" || candidateGenreSlugs.has("hoat-hinh");
+
+        const typeMatched =
+          (prefType.slug === "phim-bo" && isPhimBo) ||
+          (prefType.slug === "phim-le" && isPhimLe) ||
+          (prefType.slug === "hoat-hinh" && isHoatHinh) ||
+          (prefType.slug === "tv-shows" && norm.type_name === "TV Shows");
+
+        if (typeMatched) {
+          typeScore = 10;
+          matchedTypeName = prefType.name;
+          matchedAspects.push(prefType.name);
+        }
+      }
+      score += typeScore;
+
+      // 4. RATING (0..8 điểm, clamp, 0 nếu không có rating)
+      let ratingScore = 0;
+      const numScore = Number(norm.score);
+      if (!isNaN(numScore) && numScore > 0) {
+        ratingScore = Math.min(8, Math.max(0, Math.round(numScore * 0.8 * 10) / 10));
+      }
+      score += ratingScore;
+
+      // 5. RECENCY (2026: +5, 2025: +4, 2024: +3, 2023: +1, older: 0)
+      let recencyScore = 0;
+      const yr = Number(norm.year);
+      if (!isNaN(yr) && yr > 0) {
+        if (yr >= 2026) recencyScore = 5;
+        else if (yr === 2025) recencyScore = 4;
+        else if (yr === 2024) recencyScore = 3;
+        else if (yr === 2023) recencyScore = 1;
+      }
+      score += recencyScore;
+
+      // 6. MATCH PERCENTAGE MỚI: clamp(round(70 + (score / 100) * 28), 72, 98)
+      const matchPercentage = Math.min(98, Math.max(72, Math.round(70 + (score / 100) * 28)));
+
+      // 7. TẠO MATCH REASON CHÂN THỰC
+      let matchReason = "Siêu phẩm thịnh hành được đánh giá cao";
+      if (!profile.isGuest) {
+        if (matchedTopGenre && matchedCountryName && matchedTypeName) {
+          matchReason = `Phù hợp với gu ${topGenre.name}, phim ${matchedCountryName} và ${matchedTypeName} của bạn`;
+        } else if (matchedTopGenre && matchedCountryName) {
+          matchReason = `Phù hợp với gu phim ${matchedCountryName} và ${topGenre.name} của bạn`;
+        } else if (matchedTopGenre && (matchedSecondGenre || matchedThirdGenre)) {
+          const secondName = matchedSecondGenre ? secondGenre?.name : thirdGenre?.name;
+          matchReason = `Kết hợp giữa ${topGenre.name} & ${secondName} đúng sở thích`;
+        } else if (matchedTopGenre) {
+          matchReason = `Cùng thể loại ${topGenre.name} mà bạn thường xem`;
+        } else if (matchedSecondGenre && matchedCountryName) {
+          matchReason = `Mang màu sắc ${matchedCountryName} và thể loại ${secondGenre?.name} mà bạn cũng hay xem`;
+        } else if (matchedSecondGenre) {
+          matchReason = `Thuộc thể loại ${secondGenre?.name} mà bạn thỉnh thoảng xem`;
+        } else if (matchedThirdGenre) {
+          matchReason = `Thuộc thể loại ${thirdGenre?.name} trong sở thích của bạn`;
+        } else if (matchedCountryName) {
+          matchReason = `Tác phẩm phim ${matchedCountryName} nổi bật được quan tâm gần đây`;
+        } else {
+          matchReason = "Bộ phim thịnh hành có thể bạn sẽ quan tâm";
+        }
+      }
+
+      // Xác định thể loại hiển thị ưu tiên
+      let displayGenreName = norm.genre || "Đề Xuất";
+      if (matchedTopGenre && topGenre) displayGenreName = topGenre.name;
+      else if (matchedSecondGenre && secondGenre) displayGenreName = secondGenre.name;
+      else if (matchedThirdGenre && thirdGenre) displayGenreName = thirdGenre.name;
+
+      return {
+        norm,
+        score,
+        matchPercentage,
+        matchReason,
+        displayGenreName,
+      };
+    });
+
+    // Sắp xếp ứng viên theo điểm số giảm dần
+    scoredCandidates.sort((a, b) => b.score - a.score);
+
+    // 6. DIVERSITY RE-RANKING (CHỐNG LẶP THỂ LOẠI / QUỐC GIA LIÊN TIẾP)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const selectedFinalMovies: any[] = [];
+    const remainingCandidates = [...scoredCandidates];
+    let lastGenre = "";
+
+    while (remainingCandidates.length > 0 && selectedFinalMovies.length < 16) {
+      // Tìm ứng viên có điểm cao nhất nhưng không trùng lặp liên tiếp thể loại
+      let pickIdx = remainingCandidates.findIndex(
+        (c) => (c.norm.genre || "") !== lastGenre
+      );
+      if (pickIdx === -1) pickIdx = 0;
+
+      const [picked] = remainingCandidates.splice(pickIdx, 1);
+      lastGenre = picked.norm.genre || "";
+
+      selectedFinalMovies.push({
+        slug: picked.norm.slug,
+        name: picked.norm.title,
+        title: picked.norm.title,
+        origin_name: picked.norm.origin_name,
+        poster_url: picked.norm.posterUrl || picked.norm.imageUrl || "/default-poster.jpg",
+        thumb_url: picked.norm.thumbUrl || picked.norm.posterUrl || "/default-hero.jpg",
+        year: picked.norm.year,
+        quality: picked.norm.quality || "Full HD",
+        category: [{ name: picked.displayGenreName }],
+        matchPercentage: picked.matchPercentage,
+        matchReason: picked.matchReason,
+      });
+    }
+
+    // 7. BACKFILL BẢO VỆ CAROUSEL LUÔN ĐẦY ĐỦ >= 12 PHIM NẾU THIẾU
+    if (selectedFinalMovies.length < 12) {
+      try {
+        const fallbackRes = await movieApi.getMovies({
+          page: 1,
+          limit: 20,
+          sort: "views",
+        });
+        for (const raw of fallbackRes?.items || []) {
+          const norm = normalizeMovie(raw);
+          if (!norm.slug || watchedSet.has(norm.slug.toLowerCase().trim()) || seenSlugs.has(norm.slug.toLowerCase().trim())) {
+            continue;
+          }
+          seenSlugs.add(norm.slug.toLowerCase().trim());
+          selectedFinalMovies.push({
+            slug: norm.slug,
+            name: norm.title,
+            title: norm.title,
+            origin_name: norm.origin_name,
+            poster_url: norm.posterUrl || norm.imageUrl || "/default-poster.jpg",
+            thumb_url: norm.thumbUrl || norm.posterUrl || "/default-hero.jpg",
+            year: norm.year,
+            quality: norm.quality || "Full HD",
+            category: [{ name: norm.genre || "Đề Xuất" }],
+            matchPercentage: 88,
+            matchReason: "Siêu phẩm thịnh hành được yêu thích nhất",
+          });
+          if (selectedFinalMovies.length >= 16) break;
+        }
+      } catch (backfillErr) {
+        console.warn("[for-you recommendations] Backfill error:", backfillErr);
+      }
+    }
+
+    // TẠO CONTEXT HIỂN THỊ CHÂN THỰC
+    let matchContext = "Tuyển tập siêu phẩm thịnh hành được đánh giá cao nhất";
+    if (!profile.isGuest) {
+      if (topCountry && topGenre) {
+        matchContext = `Tuyển tập phim ${topCountry.name} & ${topGenre.name} chuẩn gu của bạn`;
+      } else if (topGenre && secondGenre) {
+        matchContext = `Tuyển tập ${topGenre.name} & ${secondGenre.name} tuyển chọn riêng cho bạn`;
+      } else if (topGenre) {
+        matchContext = `Tuyển tập đỉnh cao ${topGenre.name} dựa trên lịch sử xem`;
+      }
+    }
+
+    // 8. LƯU VÀO CLOUDFLARE KV CACHE VỚI TTL 2 GIỜ (7200s)
+    if (selectedFinalMovies.length >= 8) {
+      kvCache.set(
+        kvForYouKey,
+        {
+          context: matchContext,
+          movies: selectedFinalMovies,
+        },
+        7200
+      ).catch(() => {});
+    }
+
+    return NextResponse.json({
+      success: true,
+      context: matchContext,
+      items: selectedFinalMovies,
+      cached: false,
     });
   } catch (err) {
     console.error("[for-you recommendations] Error:", err);
     return NextResponse.json({ success: false, items: [] }, { status: 500 });
   }
 }
-

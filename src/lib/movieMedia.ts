@@ -456,6 +456,7 @@ export interface NormalizedMovie {
   time?: string;
   quality: string;
   genre: string;
+  categories?: Array<{ name: string; slug?: string }>;
   description: string;
   score: string;
   isTrailerOnly: boolean;
@@ -633,8 +634,24 @@ export function normalizeMovie(m: any): NormalizedMovie {
   const year = m?.year ? String(m.year) : "";
   const quality = m?.quality || "FHD";
   const time = m?.time || m?.episode_current || undefined;
+  const rawCats = Array.isArray(m?.category)
+    ? m.category
+    : Array.isArray(m?.movie?.category)
+    ? m.movie.category
+    : Array.isArray(m?.categories)
+    ? m.categories
+    : [];
+  const categories: Array<{ name: string; slug?: string }> = rawCats
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .map((c: any) => ({
+      name: typeof c === "string" ? c.trim() : String(c?.name || "").trim(),
+      slug: typeof c === "object" && c?.slug ? String(c.slug).trim() : undefined,
+    }))
+    .filter((c: { name: string }) => Boolean(c.name));
+
   const genre =
     m?.category?.[0]?.name ||
+    categories[0]?.name ||
     (Array.isArray(m?.genre) ? m.genre.join(", ") : m?.genre) ||
     "";
   const isTrailerOnly =
@@ -730,6 +747,7 @@ export function normalizeMovie(m: any): NormalizedMovie {
     time,
     quality,
     genre,
+    categories,
     description,
     score,
     isTrailerOnly,

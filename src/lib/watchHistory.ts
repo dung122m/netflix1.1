@@ -15,6 +15,8 @@ export interface WatchHistoryItem {
   year?: number | string;
   quality?: string;
   category?: string;
+  country?: string;
+  type?: string;
   updatedAt: number;
   progressSeconds?: number;
   durationSeconds?: number;

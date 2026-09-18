@@ -93,6 +93,7 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
 
   const heroRef = useRef<HTMLElement>(null);
   const [isHeroVisible, setIsHeroVisible] = useState(true);
+  const isUserActionRef = useRef(false);
 
   useEffect(() => {
     const el = heroRef.current;
@@ -127,6 +128,7 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
   useEffect(() => {
     if (slides.length <= 1 || paused || !isHeroVisible) return;
     const id = setInterval(() => {
+      isUserActionRef.current = false;
       setDirection(1);
       setIndex((prev) => (prev + 1) % slides.length);
     }, AUTO_SLIDE_MS);
@@ -135,22 +137,44 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
 
   useEffect(() => {
     if (!currentSlug) return;
+
+    // 1. Nếu client cache đã có dữ liệu trước đó, hiển thị ngay lập tức 0ms
     if (clientSynopsisCache.has(currentSlug)) {
       setHeroSynopsis(clientSynopsisCache.get(currentSlug)!);
+      return;
     }
-    fetch(`/api/synopsis?slug=${encodeURIComponent(currentSlug)}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data?.content) {
-          clientSynopsisCache.set(currentSlug, data.content);
-          setHeroSynopsis(data.content);
-        }
-        if (data?.backdrop_url) {
-          setHeroBackdropMap((prev) => ({ ...prev, [currentSlug]: data.backdrop_url }));
-        }
-      })
-      .catch(() => {});
-  }, [currentSlug]);
+
+    // Reset lại synopsis hiển thị để tránh hiện nhầm nội dung của phim trước
+    setHeroSynopsis("");
+
+    // 2. KHÔNG fetch synopsis nếu slide vừa tự động chuyển mà người dùng không tương tác/dừng lại
+    if (!paused && !isUserActionRef.current) {
+      return;
+    }
+
+    // 3. Debounce 2 giây: Nếu user bấm chuyển slide liên tục hoặc lướt qua nhanh, huỷ bỏ request cũ
+    let isCancelled = false;
+    const timer = setTimeout(() => {
+      fetch(`/api/synopsis?slug=${encodeURIComponent(currentSlug)}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (isCancelled) return;
+          if (data?.content) {
+            clientSynopsisCache.set(currentSlug, data.content);
+            setHeroSynopsis(data.content);
+          }
+          if (data?.backdrop_url) {
+            setHeroBackdropMap((prev) => ({ ...prev, [currentSlug]: data.backdrop_url }));
+          }
+        })
+        .catch(() => {});
+    }, 2000);
+
+    return () => {
+      isCancelled = true;
+      clearTimeout(timer);
+    };
+  }, [currentSlug, paused]);
 
   if (slides.length === 0) return null;
 
@@ -191,11 +215,13 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
       : null;
 
   const goPrev = () => {
+    isUserActionRef.current = true;
     setDirection(-1);
     setIndex((prev) => (prev - 1 + slides.length) % slides.length);
   };
 
   const goNext = () => {
+    isUserActionRef.current = true;
     setDirection(1);
     setIndex((prev) => (prev + 1) % slides.length);
   };
@@ -205,8 +231,14 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
     info: PanInfo,
   ) => {
     const threshold = 85;
-    if (info.offset.x <= -threshold) goNext();
-    if (info.offset.x >= threshold) goPrev();
+    if (info.offset.x <= -threshold) {
+      isUserActionRef.current = true;
+      goNext();
+    }
+    if (info.offset.x >= threshold) {
+      isUserActionRef.current = true;
+      goPrev();
+    }
   };
 
   const slideVariants = reduceMotion
@@ -439,6 +471,7 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
                 type="button"
                 aria-label={`Chuyển slide ${i + 1}`}
                 onClick={() => {
+                  isUserActionRef.current = true;
                   setDirection(i > index ? 1 : -1);
                   setIndex(i);
                 }}

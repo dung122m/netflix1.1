@@ -36,7 +36,7 @@ export interface ForYouPersonalizedRowProps {
   fallbackMovies?: any[];
 }
 
-const CACHE_KEY_NAME = "nanaflix_foryou_cache_v3";
+const CACHE_KEY_NAME = "nanaflix_foryou_cache_v4";
 const CACHE_TTL = 15 * 60 * 1000; // 15 phút
 
 // Danh sách fallback catalog siêu phẩm luôn sẵn sàng 0ms không cần API ngoài
@@ -177,13 +177,16 @@ function mapToForYouItems(rawItems: any[]): ForYouMovieItem[] {
 }
 
 // Lấy cache cũ trong localStorage/sessionStorage bất kể thời gian (Stale Cache)
-function getStaleCachedData(): { items: ForYouMovieItem[]; context?: string; fingerprint?: string; timestamp?: number } | null {
+function getStaleCachedData(expectedUid?: string): { items: ForYouMovieItem[]; context?: string; fingerprint?: string; timestamp?: number } | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = localStorage.getItem(CACHE_KEY_NAME) || sessionStorage.getItem(CACHE_KEY_NAME);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (parsed && Array.isArray(parsed.items) && parsed.items.length >= 8) {
+      if (expectedUid && parsed.uid && parsed.uid !== expectedUid) {
+        return null;
+      }
       return {
         items: parsed.items,
         context: parsed.context,
@@ -240,22 +243,39 @@ export function ForYouPersonalizedRow({ fallbackMovies }: ForYouPersonalizedRowP
 
   // Nạp Stale cache từ localStorage ngay khi client mount nếu có
   useEffect(() => {
-    const stale = getStaleCachedData();
+    const stale = getStaleCachedData(user?.uid);
     if (stale && stale.items.length >= 8) {
       setMovies(stale.items);
       if (stale.context) {
         setContextText(stale.context);
       }
     }
-  }, []);
+  }, [user?.uid]);
 
   // 2. Fetch danh sách phim đề xuất chạy ở background (SWR pattern)
   const fetchRecommendations = useCallback(async (forceRefresh = false, nextSeed?: number) => {
     const currentSeed = nextSeed !== undefined ? nextSeed : refreshCount;
     const history = getWatchHistory();
-    const watchedTitles = history.map((h) => h.title).filter(Boolean).slice(0, 3);
-    const watchedSlugs = history.map((h) => h.slug).filter(Boolean).slice(0, 5);
-    const currentFingerprint = `${user?.uid || "guest"}_${genresKey}_${watchedSlugs.join(",")}_seed${currentSeed}`;
+    
+    // Thu thập đầy đủ tín hiệu lịch sử xem (tối đa 20 phim gần nhất)
+    const historyItems = history.slice(0, 20).map((h) => ({
+      slug: h.slug,
+      title: h.title,
+      category: h.category,
+      country: h.country,
+      type: h.type,
+      progressSeconds: h.progressSeconds,
+      durationSeconds: h.durationSeconds,
+      updatedAt: h.updatedAt,
+    }));
+
+    const watchedTitles = history.map((h) => h.title).filter(Boolean).slice(0, 20);
+    const watchedSlugs = history.map((h) => h.slug).filter(Boolean);
+    const historyHash = historyItems
+      .slice(0, 6)
+      .map((h) => `${h.slug}:${Math.round((h.progressSeconds || 0) / 60)}`)
+      .join("|");
+    const currentFingerprint = `${user?.uid || "guest"}_${genresKey}_${historyHash}_seed${currentSeed}`;
 
     if (!forceRefresh && inFlightRef.current) return;
     if (!forceRefresh && lastFingerprintRef.current === currentFingerprint && moviesRef.current.length >= 8) return;
@@ -300,6 +320,7 @@ export function ForYouPersonalizedRow({ fallbackMovies }: ForYouPersonalizedRowP
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           genres: favoriteGenres,
+          historyItems,
           watchedTitles,
           watchedSlugs,
           refreshSeed: currentSeed,
@@ -323,6 +344,7 @@ export function ForYouPersonalizedRow({ fallbackMovies }: ForYouPersonalizedRowP
                 context: data.context || "Tuyển chọn chuẩn gu cho bạn",
                 timestamp: Date.now(),
                 fingerprint: currentFingerprint,
+                uid: user?.uid || null,
               });
               localStorage.setItem(CACHE_KEY_NAME, cacheData);
               sessionStorage.setItem(CACHE_KEY_NAME, cacheData);
