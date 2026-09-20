@@ -200,11 +200,15 @@ export function LiveTvClient({
     text?: string;
   } | null>(null);
 
-  // Trạng thái đồng bộ Live Edge
+  // Trạng thái đồng bộ Live Edge & Tua thời gian (Seek)
   const [isAtLiveEdge, setIsAtLiveEdge] = useState<boolean>(true);
   const [liveLatency, setLiveLatency] = useState<number>(0);
-  const pendingSeekTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const pendingSeekDeltaRef = useRef<number>(0);
+  const lastTargetTimeRef = useRef<number | null>(null);
+  const seekThrottleTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastSeekTimestampRef = useRef<number>(0);
+  const accumulatedSeekDeltaRef = useRef<number>(0);
+  const seekDeltaResetTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const targetClearTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (showChannelRail && activeTvChannelRef.current) {
@@ -455,7 +459,7 @@ export function LiveTvClient({
           Math.round(hls.liveSyncPosition - video.currentTime),
         );
         setLiveLatency(drift);
-        setIsAtLiveEdge(drift <= 15);
+        setIsAtLiveEdge(drift <= 4);
       } else {
         setIsAtLiveEdge(true);
         setLiveLatency(0);
@@ -505,10 +509,9 @@ export function LiveTvClient({
           enableWorker: true,
           lowLatencyMode: true,
           liveSyncDurationCount: 3,
-          liveMaxLatencyDurationCount: 6,
-          backBufferLength: 20,
-          maxBufferLength: 15,
-          maxMaxBufferLength: 30,
+          backBufferLength: 40,
+          maxBufferLength: 25,
+          maxMaxBufferLength: 45,
           maxBufferSize: 30 * 1000 * 1000,
           abrEwmaDefaultEstimate: 5_000_000,
           capLevelToPlayerSize: false,
@@ -584,15 +587,27 @@ export function LiveTvClient({
         hls.on(Hls.Events.ERROR, (_, data) => {
           if (data.fatal) {
             if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-              // Nếu tụt xa khỏi sliding window dẫn đến lỗi segment, thử recover về live edge trước khi coi là chết stream
+              // Chỉ tự động recover về live edge khi vị trí phát thực sự rơi ra ngoài seekable window hoặc trễ quá sâu (>38s)
+              const isOutsideSeekable =
+                videoRef.current &&
+                videoRef.current.seekable &&
+                videoRef.current.seekable.length > 0 &&
+                videoRef.current.currentTime < videoRef.current.seekable.start(0);
+              const isCriticallyBehind =
+                videoRef.current &&
+                hls.liveSyncPosition &&
+                Number.isFinite(hls.liveSyncPosition) &&
+                hls.liveSyncPosition - videoRef.current.currentTime > 38;
+
               if (
                 videoRef.current &&
                 hls.liveSyncPosition &&
                 Number.isFinite(hls.liveSyncPosition) &&
-                hls.liveSyncPosition - videoRef.current.currentTime > 15
+                (isOutsideSeekable || isCriticallyBehind)
               ) {
                 videoRef.current.currentTime = hls.liveSyncPosition;
                 setIsAtLiveEdge(true);
+                setLiveLatency(0);
                 hls.startLoad();
                 return;
               }
@@ -693,18 +708,27 @@ export function LiveTvClient({
     const hls = hlsRef.current;
     if (!video) return;
 
+    lastTargetTimeRef.current = null;
     if (hls && hls.liveSyncPosition && Number.isFinite(hls.liveSyncPosition)) {
       video.currentTime = hls.liveSyncPosition;
       setIsAtLiveEdge(true);
       setLiveLatency(0);
-      triggerActionFeedback("seek", "VỀ LIVE");
+      triggerActionFeedback("seek", "🔴 VỀ LIVE");
+      if (video.paused && !userPausedRef.current) {
+        video.play().catch(() => {});
+      }
+    } else if (video.seekable && video.seekable.length > 0) {
+      video.currentTime = Math.max(0, video.seekable.end(video.seekable.length - 1) - 1);
+      setIsAtLiveEdge(true);
+      setLiveLatency(0);
+      triggerActionFeedback("seek", "🔴 VỀ LIVE");
       if (video.paused && !userPausedRef.current) {
         video.play().catch(() => {});
       }
     }
   }, [triggerActionFeedback]);
 
-  // Điều khiển Play / Pause có kiểm tra Live Edge khi Resume
+  // Điều khiển Play / Pause - Chỉ bắt Live Edge khi unpause nếu stream đã rơi ra ngoài seekable window
   const togglePlay = useCallback(() => {
     if (!videoRef.current) return;
     if (isPlaying) {
@@ -715,21 +739,33 @@ export function LiveTvClient({
       triggerActionFeedback("pause");
     } else {
       userPausedRef.current = false;
-      // Nếu user pause lâu (>20s) và stream bị tụt, tự bắt lại liveSyncPosition trước khi play
-      if (videoRef.current) {
-        const hls = hlsRef.current;
-        if (
-          hls &&
-          hls.liveSyncPosition &&
-          Number.isFinite(hls.liveSyncPosition) &&
-          hls.liveSyncPosition - videoRef.current.currentTime > 20
-        ) {
-          videoRef.current.currentTime = hls.liveSyncPosition;
-          setIsAtLiveEdge(true);
-          setLiveLatency(0);
-        }
+      const video = videoRef.current;
+      const hls = hlsRef.current;
+      const livePos = hls?.liveSyncPosition;
+
+      // Chỉ đưa về live edge khi unpause nếu vị trí hiện tại đã trôi ra ngoài seekable window hoặc trễ quá 38s
+      const isOutsideSeekable =
+        video.seekable &&
+        video.seekable.length > 0 &&
+        video.currentTime < video.seekable.start(0);
+      const isCriticallyBehind =
+        livePos &&
+        Number.isFinite(livePos) &&
+        livePos > 0 &&
+        livePos - video.currentTime > 38;
+
+      if (
+        (isOutsideSeekable || isCriticallyBehind) &&
+        livePos &&
+        Number.isFinite(livePos) &&
+        livePos > 0
+      ) {
+        video.currentTime = livePos;
+        setIsAtLiveEdge(true);
+        setLiveLatency(0);
       }
-      videoRef.current
+
+      video
         .play()
         .then(() => setIsPlaying(true))
         .catch(() => {});
@@ -994,7 +1030,7 @@ export function LiveTvClient({
     };
   }, [lockLandscape, unlockOrientation]);
 
-  // Chuyển kênh bằng phím mũi tên Trái / Phải hoặc nút trên Player
+  // Chuyển kênh bằng phím N/P, PageDown/PageUp hoặc nút trên Player
   const handleSwitchChannel = useCallback(
     (direction: "next" | "prev") => {
       const activeList =
@@ -1015,84 +1051,171 @@ export function LiveTvClient({
             : (currentIdx - 1 + activeList.length) % activeList.length;
       }
 
-      handleSelectChannel(activeList[targetIdx]);
+      const nextCh = activeList[targetIdx];
+      handleSelectChannel(nextCh);
+      triggerActionFeedback("channel", nextCh.name);
     },
-    [filteredChannels, channels, selectedChannel, handleSelectChannel],
+    [filteredChannels, channels, selectedChannel, handleSelectChannel, triggerActionFeedback],
   );
 
-  // Tua thời gian (Seek ±5s có gom nhóm 250ms tránh spam request lên CDN)
+  // Tua thời gian (Seek ±10s) - Phản hồi tức thì (0ms), gom nhóm nếu nhấn liên tục và clamp chuẩn theo seekable window
   const handleSeek = useCallback(
     (seconds: number) => {
       const video = videoRef.current;
       if (!video) return;
 
-      pendingSeekDeltaRef.current += seconds;
-      const totalDelta = pendingSeekDeltaRef.current;
+      // 1. Tích lũy delta để hiển thị visual feedback overlay (+10s, +20s, -20s...)
+      if (seekDeltaResetTimerRef.current) {
+        clearTimeout(seekDeltaResetTimerRef.current);
+      }
+      accumulatedSeekDeltaRef.current += seconds;
+      const totalDelta = accumulatedSeekDeltaRef.current;
       triggerActionFeedback(
         "seek",
         totalDelta > 0 ? `+${totalDelta}s ⏩` : `${totalDelta}s ⏪`,
       );
+      seekDeltaResetTimerRef.current = setTimeout(() => {
+        accumulatedSeekDeltaRef.current = 0;
+      }, 800);
 
-      if (pendingSeekTimerRef.current) {
-        clearTimeout(pendingSeekTimerRef.current);
+      // 2. Xác định giới hạn tua an toàn dựa trên video.seekable (không dùng duration/Infinity)
+      const seekable = video.seekable;
+      const hls = hlsRef.current;
+      const livePos = hls?.liveSyncPosition;
+
+      let minSeek = 0;
+      let maxSeek = video.currentTime;
+
+      if (seekable && seekable.length > 0) {
+        minSeek = seekable.start(0);
+        maxSeek = seekable.end(seekable.length - 1);
+      } else if (livePos && Number.isFinite(livePos) && livePos > 0) {
+        maxSeek = livePos;
+        minSeek = Math.max(0, livePos - 40);
       }
 
-      pendingSeekTimerRef.current = setTimeout(() => {
-        const delta = pendingSeekDeltaRef.current;
-        pendingSeekDeltaRef.current = 0;
-        try {
-          const newTime = Math.max(0, video.currentTime + delta);
-          video.currentTime = newTime;
-        } catch (err) {
-          console.warn("Seek error:", err);
+      // Giới hạn maxSeek không vượt quá Live Edge để tránh đụng đầu live chưa có segment
+      if (livePos && Number.isFinite(livePos) && livePos > 0) {
+        maxSeek = Math.min(maxSeek, livePos);
+      }
+
+      // 3. Tính toán target từ mốc hiện tại hoặc mốc đang dồn dập seek
+      const baseTime =
+        lastTargetTimeRef.current !== null
+          ? lastTargetTimeRef.current
+          : video.currentTime || 0;
+
+      let target = baseTime + seconds;
+      if (target < minSeek) {
+        target = minSeek;
+      } else if (target > maxSeek) {
+        target = maxSeek;
+      }
+
+      lastTargetTimeRef.current = target;
+
+      // 4. Cơ chế thực thi seek: Ngay lập tức cho 1 lần bấm, hoãn nhẹ nếu spam phím siêu nhanh (<120ms)
+      const now = performance.now();
+      const isRapid = now - lastSeekTimestampRef.current < 120;
+      lastSeekTimestampRef.current = now;
+
+      const commitSeek = () => {
+        if (videoRef.current) {
+          try {
+            videoRef.current.currentTime = target;
+          } catch {}
         }
-      }, 250);
+        if (seekThrottleTimerRef.current) {
+          clearTimeout(seekThrottleTimerRef.current);
+          seekThrottleTimerRef.current = null;
+        }
+      };
+
+      if (!isRapid) {
+        // Lần bấm đầu tiên hoặc bấm cách quãng: seek NGAY LẬP TỨC (0ms delay)
+        commitSeek();
+      } else {
+        // Bấm dồn dập liên tiếp: hoãn nhẹ 80ms để tránh spam decoder trình duyệt
+        if (seekThrottleTimerRef.current) {
+          clearTimeout(seekThrottleTimerRef.current);
+        }
+        seekThrottleTimerRef.current = setTimeout(commitSeek, 80);
+      }
+
+      // Đặt timer giải phóng target reference sau khi ngừng bấm 450ms
+      if (targetClearTimerRef.current) {
+        clearTimeout(targetClearTimerRef.current);
+      }
+      targetClearTimerRef.current = setTimeout(() => {
+        lastTargetTimeRef.current = null;
+      }, 450);
     },
     [triggerActionFeedback],
   );
 
-  // Keyboard Shortcuts (chỉ kích hoạt khi Tab Truyền hình đang active)
+  // Phím tắt bàn phím dùng chung cho Live TV Player
   useEffect(() => {
     if (!isActive) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
       if (
-        ["input", "textarea"].includes(
-          (e.target as HTMLElement)?.tagName?.toLowerCase(),
-        )
+        target &&
+        (["input", "textarea", "select"].includes(target.tagName.toLowerCase()) ||
+          target.isContentEditable ||
+          target.getAttribute("role") === "textbox" ||
+          target.getAttribute("role") === "searchbox")
       ) {
         return;
       }
+
       if (e.code === "Space") {
         e.preventDefault();
         togglePlay();
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        handleSeek(-10);
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        handleSeek(10);
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        handleVolumeChange(volume + 0.1);
+      } else if (e.key === "ArrowDown") {
+        e.preventDefault();
+        handleVolumeChange(volume - 0.1);
       } else if (e.key === "m" || e.key === "M") {
         e.preventDefault();
         toggleMute();
+      } else if (e.key === "n" || e.key === "N" || e.key === "PageDown") {
+        e.preventDefault();
+        handleSwitchChannel("next");
+      } else if (e.key === "p" || e.key === "P" || e.key === "PageUp") {
+        e.preventDefault();
+        handleSwitchChannel("prev");
+      } else if (e.key === "l" || e.key === "L") {
+        e.preventDefault();
+        goToLiveEdge();
       } else if (e.key === "f" || e.key === "F") {
         e.preventDefault();
         toggleFullscreen();
-      } else if (e.key === "p" || e.key === "P") {
+      } else if (e.key === "i" || e.key === "I") {
         e.preventDefault();
         togglePip();
-      } else if (e.key === "ArrowUp") {
+      } else if (e.key === "c" || e.key === "C") {
         e.preventDefault();
-        handleSwitchChannel("prev");
-      } else if (e.key === "ArrowDown") {
-        e.preventDefault();
-        handleSwitchChannel("next");
-      } else if (e.key === "ArrowRight") {
-        e.preventDefault();
-        handleSeek(5);
-      } else if (e.key === "ArrowLeft") {
-        e.preventDefault();
-        handleSeek(-5);
+        setShowChannelRail((visible) => !visible);
       } else if (e.key === "[" || e.key === "-") {
         e.preventDefault();
         handleVolumeChange(volume - 0.1);
       } else if (e.key === "]" || e.key === "=" || e.key === "+") {
         e.preventDefault();
         handleVolumeChange(volume + 0.1);
+      } else if (e.key === "Escape") {
+        if (showChannelRail) {
+          e.preventDefault();
+          setShowChannelRail(false);
+        }
       }
     };
 
@@ -1100,14 +1223,15 @@ export function LiveTvClient({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [
     isActive,
-    isPlaying,
     togglePlay,
     toggleMute,
     toggleFullscreen,
     togglePip,
+    goToLiveEdge,
     handleVolumeChange,
     handleSwitchChannel,
     handleSeek,
+    showChannelRail,
     volume,
   ]);
 
@@ -1560,7 +1684,7 @@ export function LiveTvClient({
                     e.stopPropagation();
                     setShowChannelRail((visible) => !visible);
                   }}
-                  title="Mở danh sách kênh"
+                  title="Mở danh sách kênh (Phím C)"
                   className={`flex items-center gap-1 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-full border text-[11px] sm:text-xs font-bold transition backdrop-blur-md cursor-pointer ${
                     showChannelRail
                       ? "bg-gradient-to-r from-sky-600 to-blue-600 text-white border-sky-400 shadow-md shadow-sky-950/60 scale-102"
@@ -1573,14 +1697,14 @@ export function LiveTvClient({
                 </button>
 
                 <span className="hidden lg:inline text-[11px] text-gray-400 bg-black/50 px-2.5 py-1 rounded-full border border-white/10 font-mono">
-                  Space: Dừng/Phát • ← / →: Đổi Kênh • F: Fullscreen
+                  Space: Dừng/Phát • ← / →: Tua 10s • ↑ / ↓: Âm lượng • N / P: Đổi Kênh • L: Về Live • F: Fullscreen • I: PiP
                 </span>
 
                 {/* Nút Picture in Picture */}
                 <button
                   type="button"
                   onClick={togglePip}
-                  title="Xem thu nhỏ góc màn hình (PiP - Phím P)"
+                  title="Xem thu nhỏ góc màn hình (PiP - Phím I)"
                   className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition backdrop-blur-md cursor-pointer border border-white/10 flex-shrink-0 ${
                     isPip
                       ? "bg-netflix-red text-white"

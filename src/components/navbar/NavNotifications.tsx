@@ -313,7 +313,7 @@ export const NavNotifications: React.FC = React.memo(function NavNotifications()
                         ? item.commentId
                           ? `/movies/${item.movieSlug}?highlightComment=${item.commentId}#comment-${item.commentId}`
                           : `/movies/${item.movieSlug}#comments`
-                        : "/browse");
+                        : "/");
                     router.push(targetLink);
                   }}
                   className={`flex items-start gap-3 p-3 rounded-2xl transition border cursor-pointer group ${

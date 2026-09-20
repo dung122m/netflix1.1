@@ -161,7 +161,7 @@ const QuickGenreChipsInner: React.FC = () => {
       params.set("type", slug);
     }
     params.delete("page");
-    return `/browse?${params.toString()}`;
+    return params.toString() ? `/?${params.toString()}` : "/";
   }, [searchParams]);
 
   const handleTypeSelect = useCallback((slug: string) => {
@@ -181,7 +181,7 @@ const QuickGenreChipsInner: React.FC = () => {
       params.set("category", slug);
     }
     params.delete("page");
-    return `/browse?${params.toString()}`;
+    return params.toString() ? `/?${params.toString()}` : "/";
   }, [searchParams]);
 
   const handleCategorySelect = useCallback((slug: string) => {
@@ -201,7 +201,7 @@ const QuickGenreChipsInner: React.FC = () => {
       params.set("country", slug);
     }
     params.delete("page");
-    return `/browse?${params.toString()}`;
+    return params.toString() ? `/?${params.toString()}` : "/";
   }, [searchParams]);
 
   const handleCountrySelect = useCallback((slug: string) => {
@@ -226,7 +226,7 @@ const QuickGenreChipsInner: React.FC = () => {
       params.delete("keyword");
     }
     params.delete("page");
-    return `/browse?${params.toString()}`;
+    return params.toString() ? `/?${params.toString()}` : "/";
   }, [searchParams]);
 
   const handleActorSelect = useCallback((actorName: string) => {
@@ -246,7 +246,7 @@ const QuickGenreChipsInner: React.FC = () => {
       params.set("year", year);
     }
     params.delete("page");
-    return `/browse?${params.toString()}`;
+    return params.toString() ? `/?${params.toString()}` : "/";
   }, [searchParams]);
 
   const handleYearSelect = useCallback((year: string) => {
@@ -265,7 +265,7 @@ const QuickGenreChipsInner: React.FC = () => {
     params.delete("page");
     const query = params.toString();
     startTransition(() => {
-      router.push(query ? `/browse?${query}` : "/browse", { scroll: false });
+      router.push(query ? `/?${query}` : "/", { scroll: false });
     });
   }, [searchParams, router]);
 
@@ -625,7 +625,8 @@ const QuickGenreChipsInner: React.FC = () => {
                   const p = new URLSearchParams(searchParams.toString());
                   p.delete("actor");
                   p.delete("page");
-                  router.push(`/browse?${p.toString()}`, { scroll: false });
+                  const q = p.toString();
+                  router.push(q ? `/?${q}` : "/", { scroll: false });
                 }}
                 className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-200 font-semibold hover:bg-amber-500 hover:text-black transition cursor-pointer text-xs"
               >
@@ -641,7 +642,8 @@ const QuickGenreChipsInner: React.FC = () => {
                   const p = new URLSearchParams(searchParams.toString());
                   p.delete("keyword");
                   p.delete("page");
-                  router.push(`/browse?${p.toString()}`, { scroll: false });
+                  const q = p.toString();
+                  router.push(q ? `/?${q}` : "/", { scroll: false });
                 }}
                 className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-200 font-semibold hover:bg-amber-500 hover:text-black transition cursor-pointer text-xs"
               >

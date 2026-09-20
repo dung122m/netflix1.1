@@ -62,7 +62,7 @@ export function BottomNav() {
       <div className="grid grid-cols-5 h-14 items-center px-1">
         {/* 1. TRANG CHỦ */}
         <Link
-          href="/browse"
+          href="/"
           className={`flex flex-col items-center justify-center h-full transition-all duration-200 active:scale-95 cursor-pointer ${
             isHome ? "text-netflix-red font-bold" : "text-zinc-400 hover:text-zinc-200 font-medium"
           }`}

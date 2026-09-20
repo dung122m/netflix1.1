@@ -39,7 +39,7 @@ const CURATED_TABS: CuratedTabConfig[] = [
     tag: "🔥 XEM NHIỀU NHẤT",
     subtitle: "Các siêu phẩm điện ảnh & phim bộ đang được quan tâm nhất hôm nay",
     fetchParams: { sort: "views", limit: 16 },
-    viewAllHref: "/browse?sort=views",
+    viewAllHref: "/?sort=views",
   },
   {
     id: "rating",
@@ -48,7 +48,7 @@ const CURATED_TABS: CuratedTabConfig[] = [
     tag: "⭐ IMDB & REVIEW CAO",
     subtitle: "Tuyển tập những tác phẩm nghệ thuật đạt điểm đánh giá xuất sắc",
     fetchParams: { sort: "rating", limit: 16 },
-    viewAllHref: "/browse?sort=rating",
+    viewAllHref: "/?sort=rating",
   },
   {
     id: "theaters",
@@ -57,7 +57,7 @@ const CURATED_TABS: CuratedTabConfig[] = [
     tag: "🎬 BOM TẤN RẠP",
     subtitle: "Phim chiếu rạp chất lượng cao, hình ảnh & âm thanh sống động",
     fetchParams: { type: "phim-chieu-rap", limit: 16 },
-    viewAllHref: "/browse?type=phim-chieu-rap",
+    viewAllHref: "/?type=phim-chieu-rap",
   },
   {
     id: "latest",
@@ -66,7 +66,7 @@ const CURATED_TABS: CuratedTabConfig[] = [
     tag: "🆕 TẬP MỚI LÊN SÓNG",
     subtitle: "Phim mới phát hành và các tập mới nhất vừa được đưa lên hệ thống",
     fetchParams: { sort: "latest", limit: 16 },
-    viewAllHref: "/browse?sort=latest",
+    viewAllHref: "/?sort=latest",
   },
 ];
 
@@ -213,7 +213,7 @@ export const CuratedMovieSection: React.FC<CuratedMovieSectionProps> = ({
 
       {/* LƯỚI PHIM VỚI 100% HIỆU ỨNG HOVER */}
       {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4 sm:gap-5 md:gap-6 p-2.5 sm:p-5 md:p-6 rounded-2xl sm:rounded-3xl border border-white/10 bg-zinc-950/50">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 md:gap-6 p-2.5 sm:p-5 md:p-6 rounded-2xl sm:rounded-3xl border border-white/10 bg-zinc-950/50">
           {Array.from({ length: 8 }).map((_, idx) => (
             <div
               key={idx}

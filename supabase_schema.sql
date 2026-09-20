@@ -556,3 +556,58 @@ CREATE INDEX IF NOT EXISTS idx_movies_slug_unique ON public.movies (slug);
 
 -- B-Tree Compound Index tối ưu hóa truy vấn kết hợp lọc năm và sắp xếp
 CREATE INDEX IF NOT EXISTS idx_movies_type_year ON public.movies (type, year DESC);
+
+-- =========================================================
+-- 16. BẢNG PHÂN TÍCH SỐ LIỆU TỐI GIẢN (ANALYTICS_EVENTS)
+-- Ghi nhận lượt xem (movie_view), bắt đầu xem (watch_start),
+-- tiến độ (watch_progress), xem xong (watch_end) và tìm kiếm (search).
+-- Hỗ trợ người dùng đăng nhập & khách vãng lai (anonymous guest).
+-- =========================================================
+CREATE TABLE IF NOT EXISTS public.analytics_events (
+  id TEXT PRIMARY KEY,
+  event_type TEXT NOT NULL, -- 'movie_view', 'watch_start', 'watch_progress', 'watch_end', 'search'
+  movie_slug TEXT,
+  movie_title TEXT,
+  episode_slug TEXT,
+  episode_name TEXT,
+  user_id TEXT,
+  anonymous_id TEXT NOT NULL,
+  device_type TEXT DEFAULT 'desktop', -- 'desktop', 'mobile', 'tablet'
+  os TEXT DEFAULT 'Other',
+  browser TEXT DEFAULT 'Other',
+  screen_res TEXT DEFAULT '1920x1080',
+  duration_seconds INTEGER DEFAULT 0,
+  progress_seconds INTEGER DEFAULT 0,
+  keyword TEXT,
+  created_at BIGINT DEFAULT (EXTRACT(EPOCH FROM NOW()) * 1000)::BIGINT
+);
+
+CREATE INDEX IF NOT EXISTS idx_analytics_created_at ON public.analytics_events(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_analytics_event_type ON public.analytics_events(event_type);
+CREATE INDEX IF NOT EXISTS idx_analytics_movie_slug ON public.analytics_events(movie_slug);
+CREATE INDEX IF NOT EXISTS idx_analytics_user_id ON public.analytics_events(user_id);
+CREATE INDEX IF NOT EXISTS idx_analytics_anonymous_id ON public.analytics_events(anonymous_id);
+
+-- RLS Cấp quyền truy cập
+ALTER TABLE public.analytics_events ENABLE ROW LEVEL SECURITY;
+
+-- 1. Cho phép Guest / User gửi sự kiện analytics mới (INSERT)
+DROP POLICY IF EXISTS "Public Insert Analytics" ON public.analytics_events;
+CREATE POLICY "Public Insert Analytics" ON public.analytics_events FOR INSERT WITH CHECK (true);
+
+-- 2. Xóa bỏ hoàn toàn quyền đọc công khai (Không cho phép Guest / User thường SELECT)
+DROP POLICY IF EXISTS "Public Read Analytics" ON public.analytics_events;
+
+-- 3. Chỉ cho phép Service Role và Quản Trị Viên (Admin) được quyền SELECT đọc số liệu analytics
+DROP POLICY IF EXISTS "Admin Read Analytics" ON public.analytics_events;
+CREATE POLICY "Admin Read Analytics" ON public.analytics_events FOR SELECT 
+USING (
+  auth.role() = 'service_role' OR
+  EXISTS (
+    SELECT 1 FROM public.profiles 
+    WHERE profiles.id = auth.uid() 
+      AND profiles.role = 'admin'
+  )
+);
+
+

@@ -33,12 +33,12 @@ const AuthModal = dynamic(
 );
 
 const NAV_LINKS = [
-  { name: "Trang chủ", href: "/browse", type: null, icon: Home, isLive: false },
-  { name: "Phim bộ", href: "/browse?type=phim-bo", type: "phim-bo", icon: Tv, isLive: false },
-  { name: "Phim lẻ", href: "/browse?type=phim-le", type: "phim-le", icon: Film, isLive: false },
-  { name: "Chiếu rạp", href: "/browse?type=phim-chieu-rap", type: "phim-chieu-rap", icon: Clapperboard, isLive: false },
-  { name: "Hoạt hình", href: "/browse?type=hoat-hinh", type: "hoat-hinh", icon: Sparkles, isLive: false },
-  { name: "TV Shows", href: "/browse?type=tv-shows", type: "tv-shows", icon: Radio, isLive: false, hideOnLg: true },
+  { name: "Trang chủ", href: "/", type: null, icon: Home, isLive: false },
+  { name: "Phim bộ", href: "/?type=phim-bo", type: "phim-bo", icon: Tv, isLive: false },
+  { name: "Phim lẻ", href: "/?type=phim-le", type: "phim-le", icon: Film, isLive: false },
+  { name: "Chiếu rạp", href: "/?type=phim-chieu-rap", type: "phim-chieu-rap", icon: Clapperboard, isLive: false },
+  { name: "Hoạt hình", href: "/?type=hoat-hinh", type: "hoat-hinh", icon: Sparkles, isLive: false },
+  { name: "TV Shows", href: "/?type=tv-shows", type: "tv-shows", icon: Radio, isLive: false, hideOnLg: true },
   { name: "Trực tiếp", href: "/live", type: "live", icon: Flame, isLive: true },
   { name: "Danh sách", href: "/my-list", type: "my-list", icon: Bookmark, isLive: false },
 ];
@@ -95,7 +95,7 @@ const NavbarInner: React.FC = () => {
     (type: string | null) => {
       if (type === "live") return pathname === "/live";
       if (type === "my-list") return pathname === "/my-list";
-      if (pathname !== "/browse") return false;
+      if (pathname !== "/" && pathname !== "/browse") return false;
       if (urlKeyword) return false;
       if (type === null) return !currentType;
       return currentType === type;
@@ -115,10 +115,10 @@ const NavbarInner: React.FC = () => {
         {/* LOGO & DESKTOP NAV */}
         <div className="flex items-center gap-3 sm:gap-6 lg:gap-7 flex-shrink-0 min-w-0">
           <Link
-            href="/browse"
+            href="/"
             prefetch={false}
-            onMouseEnter={() => router.prefetch("/browse")}
-            onFocus={() => router.prefetch("/browse")}
+            onMouseEnter={() => router.prefetch("/")}
+            onFocus={() => router.prefetch("/")}
             className="flex items-center gap-1.5 sm:gap-2 group flex-shrink-0"
           >
             <NetflixLogo className="w-5 sm:w-6 h-auto transition-transform group-hover:scale-105" />

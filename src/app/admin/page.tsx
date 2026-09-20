@@ -21,7 +21,6 @@ import {
   ArrowUpDown,
   Home,
   Sparkles,
-  Info,
   Copy,
   Flag,
   AlertOctagon,
@@ -70,6 +69,7 @@ import { AdminReportsTab } from "./components/AdminReportsTab";
 import { AdminCollectionsTab } from "./components/AdminCollectionsTab";
 import { AdminMemberDetailModal } from "./components/AdminMemberDetailModal";
 import { AdminCleanResultModal } from "./components/AdminCleanResultModal";
+import { AdminAnalyticsTab } from "./components/AdminAnalyticsTab";
 
 type SortOption = "newest" | "oldest" | "highest_rating" | "lowest_rating" | "most_liked";
 
@@ -705,7 +705,7 @@ export default function AdminDashboardPage() {
             )}
 
             <Link
-              href="/browse"
+              href="/"
               className="w-full py-3 px-4 rounded-xl bg-transparent hover:bg-white/5 text-gray-400 hover:text-white font-semibold text-xs transition flex items-center justify-center gap-2"
             >
               <Home size={14} />
@@ -768,7 +768,7 @@ export default function AdminDashboardPage() {
               <span>{isSyncingEmbeddings ? "Đang nạp vector..." : "⚡ Nạp Vector Phim AI"}</span>
             </button>
             <Link
-              href="/browse"
+              href="/"
               className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold transition border border-white/10"
             >
               <Home size={14} />
@@ -1618,79 +1618,11 @@ export default function AdminDashboardPage() {
 
         {/* TAB 4: ANALYTICS & INSIGHTS */}
         {activeTab === "analytics" && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Rating Distribution Chart */}
-              <div className="p-6 rounded-2xl bg-zinc-900/60 border border-white/10 backdrop-blur-sm space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                    <Star size={16} className="text-amber-400 fill-amber-400" />
-                    <span>Phân Bổ Điểm Số Đánh Giá Toàn Hệ Thống</span>
-                  </h3>
-                  <span className="text-xs text-amber-400 font-bold">
-                    {metrics.avgScore} / 5.0 ⭐
-                  </span>
-                </div>
-
-                <div className="space-y-2.5 pt-2">
-                  {[5, 4, 3, 2, 1].map((s) => {
-                    const count = metrics.starDistribution[s as 1 | 2 | 3 | 4 | 5] || 0;
-                    const percent =
-                      metrics.totalRatingReviews > 0
-                        ? Math.round((count / metrics.totalRatingReviews) * 100)
-                        : 0;
-
-                    return (
-                      <div key={s} className="flex items-center gap-3 text-xs">
-                        <span className="w-12 text-gray-400 font-bold">{s} sao:</span>
-                        <div className="flex-1 h-3 rounded-full bg-black/60 overflow-hidden border border-white/5">
-                          <div
-                            className={`h-full rounded-full transition-all duration-500 ${
-                              s >= 4 ? "bg-amber-400" : s === 3 ? "bg-blue-400" : "bg-red-400"
-                            }`}
-                            style={{ width: `${percent}%` }}
-                          />
-                        </div>
-                        <span className="w-14 text-right text-gray-300 font-mono">
-                          {count} ({percent}%)
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* System Diagnostics */}
-              <div className="p-6 rounded-2xl bg-zinc-900/60 border border-white/10 backdrop-blur-sm space-y-4">
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <Info size={16} className="text-blue-400" />
-                  <span>Trạng Thái Hệ Thống & Phân Quyền</span>
-                </h3>
-
-                <div className="space-y-3 text-xs">
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-black/40 border border-white/5">
-                    <span className="text-gray-400">Tài khoản Quản trị viên:</span>
-                    <span className="font-mono font-bold text-white">{user.email}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-black/40 border border-white/5">
-                    <span className="text-gray-400">Cơ sở dữ liệu Supabase:</span>
-                    <span className="text-emerald-400 font-bold flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                      Hoạt động bình thường
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-black/40 border border-white/5">
-                    <span className="text-gray-400">Bảo mật RLS (Row Level Security):</span>
-                    <span className="text-gray-200 font-mono">Đã kích hoạt & bảo vệ</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-black/40 border border-white/5">
-                    <span className="text-gray-400">Tổng thành viên ghi nhận:</span>
-                    <span className="text-gray-200 font-mono font-bold">{allMembers.length} người</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <AdminAnalyticsTab
+            metrics={metrics}
+            adminEmail={user.email}
+            totalMembersCount={allMembers.length}
+          />
         )}
 
         {/* TAB 5: ERROR & ISSUE REPORTS */}

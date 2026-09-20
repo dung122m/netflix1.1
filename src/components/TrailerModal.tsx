@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { Film, X } from "lucide-react";
+import { extractYoutubeId } from "@/lib/trailerHelper";
 
 export interface TrailerModalProps {
   title: string;
@@ -10,14 +11,6 @@ export interface TrailerModalProps {
   /** Chế độ Controlled: điều khiển đóng mở từ component cha */
   isOpen?: boolean;
   onClose?: () => void;
-}
-
-function extractYoutubeId(url?: string | null): string | null {
-  if (!url) return null;
-  const match = url.match(
-    /(?:youtu\.be\/|youtube(?:-nocookie)?\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/
-  );
-  return match ? match[1] : null;
 }
 
 function getYoutubeEmbedUrl(url: string): string | null {

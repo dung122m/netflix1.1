@@ -11,6 +11,8 @@ import {
   Calendar,
   Globe2,
   Sparkles,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import {
   AnimatePresence,
@@ -29,8 +31,17 @@ import {
 import { cleanHtmlText } from "@/lib/cleanHtml";
 import { clientSynopsisCache } from "./MediaCard";
 import TrailerModal from "@/components/TrailerModal";
+import {
+  extractYoutubeId,
+  getYoutubeTrailerEmbedUrl,
+  isDesktopWithHover,
+  isYoutubeErrorMessage,
+  isYoutubePlayingMessage,
+  isYoutubeEndedMessage,
+} from "@/lib/trailerHelper";
 
-const AUTO_SLIDE_MS = 5500;
+const AUTO_SLIDE_NORMAL_MS = 6000;
+const AUTO_SLIDE_TRAILER_MS = 18000;
 
 type HeroMovie = {
   slug?: string;
@@ -79,9 +90,27 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
   const [heroBackdropMap, setHeroBackdropMap] = useState<Record<string, string>>({});
   const [failedHeroImages, setFailedHeroImages] = useState<Record<string, boolean>>({});
 
+  // Trailer States (Desktop only, lazy-load 2s, fault-tolerant)
+  const [isDesktop, setIsDesktop] = useState(() =>
+    typeof window !== "undefined" ? isDesktopWithHover() : false
+  );
+  const [activeTrailerId, setActiveTrailerId] = useState<string | null>(null);
+  const [isTrailerReady, setIsTrailerReady] = useState(false);
+  const [isHeroMuted, setIsHeroMuted] = useState(true);
+  const [failedTrailerMap, setFailedTrailerMap] = useState<Record<string, boolean>>({});
+  const trailerUrlMapRef = useRef<Record<string, string>>({});
+  const failedTrailerMapRef = useRef<Record<string, boolean>>({});
+  const trailerTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const trailerReadyTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const heroIframeRef = useRef<HTMLIFrameElement>(null);
+
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const handleResize = () => setIsMobile(window.innerWidth <= 768);
+      const handleResize = () => {
+        setIsMobile(window.innerWidth <= 768);
+        setIsDesktop(isDesktopWithHover());
+      };
+      handleResize();
       window.addEventListener("resize", handleResize, { passive: true });
       return () => window.removeEventListener("resize", handleResize);
     }
@@ -125,34 +154,39 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
     }
   }, [index, slides, heroBackdropMap, isMobile]);
 
+  // Auto-slide: Tự động chuyển slide; trailer không chặn auto-slide
+  // Banner có trailer: preview 15–20s (18s: 2s xuất hiện + ~16s trailer) rồi tự chuyển
+  // Banner không có trailer / trailer lỗi / mobile: chuyển bình thường sau 6s
   useEffect(() => {
     if (slides.length <= 1 || paused || !isHeroVisible) return;
-    const id = setInterval(() => {
+
+    const isTrailerSlide = isDesktop && Boolean(currentSlug && !failedTrailerMap[currentSlug]);
+    const slideDuration = isTrailerSlide ? AUTO_SLIDE_TRAILER_MS : AUTO_SLIDE_NORMAL_MS;
+
+    const id = setTimeout(() => {
       isUserActionRef.current = false;
       setDirection(1);
       setIndex((prev) => (prev + 1) % slides.length);
-    }, AUTO_SLIDE_MS);
-    return () => clearInterval(id);
-  }, [slides.length, paused, isHeroVisible]);
+    }, slideDuration);
 
+    return () => clearTimeout(id);
+  }, [index, slides.length, paused, isHeroVisible, isDesktop, currentSlug, failedTrailerMap]);
+
+  // Fetch synopsis tóm tắt nội dung khi slide dừng
   useEffect(() => {
     if (!currentSlug) return;
 
-    // 1. Nếu client cache đã có dữ liệu trước đó, hiển thị ngay lập tức 0ms
     if (clientSynopsisCache.has(currentSlug)) {
       setHeroSynopsis(clientSynopsisCache.get(currentSlug)!);
       return;
     }
 
-    // Reset lại synopsis hiển thị để tránh hiện nhầm nội dung của phim trước
     setHeroSynopsis("");
 
-    // 2. KHÔNG fetch synopsis nếu slide vừa tự động chuyển mà người dùng không tương tác/dừng lại
     if (!paused && !isUserActionRef.current) {
       return;
     }
 
-    // 3. Debounce 2 giây: Nếu user bấm chuyển slide liên tục hoặc lướt qua nhanh, huỷ bỏ request cũ
     let isCancelled = false;
     const timer = setTimeout(() => {
       fetch(`/api/synopsis?slug=${encodeURIComponent(currentSlug)}`)
@@ -166,6 +200,9 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
           if (data?.backdrop_url) {
             setHeroBackdropMap((prev) => ({ ...prev, [currentSlug]: data.backdrop_url }));
           }
+          if (data?.trailer_url) {
+            trailerUrlMapRef.current[currentSlug] = data.trailer_url;
+          }
         })
         .catch(() => {});
     }, 2000);
@@ -175,6 +212,147 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
       clearTimeout(timer);
     };
   }, [currentSlug, paused]);
+
+  // QUẢN LÝ TRAILER NỀN: Desktop only, trễ 2s sau khi slide ổn định, cleanup khi đổi slide
+  useEffect(() => {
+    if (trailerTimerRef.current) {
+      clearTimeout(trailerTimerRef.current);
+      trailerTimerRef.current = null;
+    }
+    if (trailerReadyTimerRef.current) {
+      clearTimeout(trailerReadyTimerRef.current);
+      trailerReadyTimerRef.current = null;
+    }
+    setActiveTrailerId(null);
+    setIsTrailerReady(false);
+
+    // Mobile / Touch hoặc Hero ra ngoài viewport -> Tuyệt đối không mount trailer
+    if (!isDesktop || !isHeroVisible || !currentSlug) {
+      return;
+    }
+
+    if (failedTrailerMapRef.current[currentSlug]) {
+      return;
+    }
+
+    trailerTimerRef.current = setTimeout(async () => {
+      if (failedTrailerMapRef.current[currentSlug]) return;
+
+      const featured = slides[index];
+      let rawTrailer = featured?.trailer_url || trailerUrlMapRef.current[currentSlug];
+
+      if (!rawTrailer) {
+        try {
+          const res = await fetch(`/api/synopsis?slug=${encodeURIComponent(currentSlug)}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data?.trailer_url) {
+              rawTrailer = data.trailer_url;
+              trailerUrlMapRef.current[currentSlug] = data.trailer_url;
+            }
+          }
+        } catch {}
+      }
+
+      if (rawTrailer) {
+        const ytId = extractYoutubeId(rawTrailer);
+        if (ytId && !failedTrailerMapRef.current[currentSlug]) {
+          setActiveTrailerId(ytId);
+          setIsTrailerReady(false);
+        }
+      }
+    }, 2000);
+
+    return () => {
+      if (trailerTimerRef.current) {
+        clearTimeout(trailerTimerRef.current);
+        trailerTimerRef.current = null;
+      }
+      if (trailerReadyTimerRef.current) {
+        clearTimeout(trailerReadyTimerRef.current);
+        trailerReadyTimerRef.current = null;
+      }
+    };
+  }, [index, currentSlug, isDesktop, isHeroVisible, slides]);
+
+  // Lắng nghe thông báo từ YouTube iframe: fade-in khi video sẵn sàng hoặc fallback khi có lỗi
+  useEffect(() => {
+    if (!activeTrailerId) return;
+
+    const handleMessage = (e: MessageEvent) => {
+      // 1. Video thực sự PLAYING -> hủy timer chờ và fade-in trailer ngay lập tức
+      if (isYoutubePlayingMessage(e.data)) {
+        if (trailerReadyTimerRef.current) {
+          clearTimeout(trailerReadyTimerRef.current);
+          trailerReadyTimerRef.current = null;
+        }
+        setIsTrailerReady(true);
+        return;
+      }
+
+      // 2. Video gặp lỗi YouTube (100, 101, 150, 2, 5) -> Fallback poster ngay lập tức, không retry
+      if (isYoutubeErrorMessage(e.data)) {
+        if (trailerReadyTimerRef.current) {
+          clearTimeout(trailerReadyTimerRef.current);
+          trailerReadyTimerRef.current = null;
+        }
+        if (currentSlug) {
+          failedTrailerMapRef.current[currentSlug] = true;
+          setFailedTrailerMap((prev) => ({ ...prev, [currentSlug]: true }));
+        }
+        setActiveTrailerId(null);
+        setIsTrailerReady(false);
+        return;
+      }
+
+      // 3. Video phát hết (State 0 - ENDED) -> Tự động phát lại (loop) bằng API
+      if (isYoutubeEndedMessage(e.data)) {
+        try {
+          heroIframeRef.current?.contentWindow?.postMessage(
+            JSON.stringify({ event: "command", func: "seekTo", args: [0, true] }),
+            "*"
+          );
+          heroIframeRef.current?.contentWindow?.postMessage(
+            JSON.stringify({ event: "command", func: "playVideo", args: "" }),
+            "*"
+          );
+        } catch {}
+      }
+    };
+
+    window.addEventListener("message", handleMessage);
+    return () => {
+      window.removeEventListener("message", handleMessage);
+      if (trailerReadyTimerRef.current) {
+        clearTimeout(trailerReadyTimerRef.current);
+        trailerReadyTimerRef.current = null;
+      }
+    };
+  }, [activeTrailerId, currentSlug]);
+
+  const activeTrailerEmbedUrl = useMemo(() => {
+    if (!activeTrailerId) return null;
+    return getYoutubeTrailerEmbedUrl(activeTrailerId, {
+      muted: true,
+      controls: false,
+      loop: true,
+    });
+  }, [activeTrailerId]);
+
+  const handleToggleHeroMute = () => {
+    const nextMuted = !isHeroMuted;
+    setIsHeroMuted(nextMuted);
+    try {
+      heroIframeRef.current?.contentWindow?.postMessage(
+        JSON.stringify({
+          event: "command",
+          func: nextMuted ? "mute" : "unMute",
+          args: "",
+        }),
+        "*"
+      );
+    } catch {}
+  };
 
   if (slides.length === 0) return null;
 
@@ -317,6 +495,35 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
         </AnimatePresence>
       </div>
 
+      {/* 1.1 TRAILER CHẠY NỀN TRÊN DESKTOP (LAZY-LOAD SAU 2S, TỰ ĐỘNG PHÁT MUTED, FADE-IN PHÍA TRÊN POSTER) */}
+      {isDesktop && activeTrailerEmbedUrl && !failedTrailerMap[currentSlug || ""] && (
+        <div
+          className={`absolute inset-0 z-0 overflow-hidden pointer-events-none transition-opacity duration-1000 ${
+            isTrailerReady ? "opacity-100" : "opacity-0"
+          }`}
+        >
+          <iframe
+            ref={heroIframeRef}
+            src={activeTrailerEmbedUrl}
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[130%] h-[130%] max-w-none border-0 object-cover pointer-events-none select-none"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            title={`Trailer ${title}`}
+            onLoad={() => {
+              try {
+                heroIframeRef.current?.contentWindow?.postMessage(
+                  JSON.stringify({ event: "listening" }),
+                  "*"
+                );
+              } catch {}
+              if (trailerReadyTimerRef.current) clearTimeout(trailerReadyTimerRef.current);
+              trailerReadyTimerRef.current = setTimeout(() => {
+                setIsTrailerReady(true);
+              }, 600);
+            }}
+          />
+        </div>
+      )}
+
       {/* 2. CÁC LỚP MÀNG GRADIENT ĐIỆN ẢNH SẮC NÉT (CINEMATIC FULL-BLEED GRADIENTS) */}
       {/* Gradient mờ bên trái che chữ, giữ bên phải ảnh sắc nét */}
       <div className="absolute inset-y-0 left-0 w-full sm:w-[60%] bg-gradient-to-r from-black/95 via-black/55 to-transparent pointer-events-none z-[1]" />
@@ -433,7 +640,13 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
                       transition={
                         paused
                           ? { duration: 0 }
-                          : { duration: AUTO_SLIDE_MS / 1000, ease: "linear" }
+                          : {
+                              duration:
+                                (isDesktop && currentSlug && !failedTrailerMap[currentSlug]
+                                  ? AUTO_SLIDE_TRAILER_MS
+                                  : AUTO_SLIDE_NORMAL_MS) / 1000,
+                              ease: "linear",
+                            }
                       }
                       className="h-full rounded-full bg-netflix-red shadow-[0_0_10px_rgba(229,9,20,0.8)]"
                     />
@@ -527,6 +740,28 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
               );
             })}
           </div>
+
+          {/* NÚT BẬT/TẮT TIẾNG TRAILER HERO TRÊN DESKTOP */}
+          {isDesktop && activeTrailerEmbedUrl && isTrailerReady && (
+            <button
+              type="button"
+              onClick={handleToggleHeroMute}
+              aria-label={isHeroMuted ? "Bật âm thanh trailer" : "Tắt âm thanh trailer"}
+              className="absolute bottom-28 right-8 z-20 hidden lg:flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-white/20 bg-black/75 hover:bg-black text-white text-xs font-bold backdrop-blur-xl transition-all shadow-2xl hover:scale-105 active:scale-95 cursor-pointer"
+            >
+              {isHeroMuted ? (
+                <>
+                  <VolumeX size={15} className="text-gray-300" />
+                  <span>Bật tiếng</span>
+                </>
+              ) : (
+                <>
+                  <Volume2 size={15} className="text-netflix-red animate-pulse" />
+                  <span>Tắt tiếng</span>
+                </>
+              )}
+            </button>
+          )}
         </>
       )}
     </section>

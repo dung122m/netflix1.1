@@ -145,7 +145,7 @@ export function PublicUserProfileModal({ initialDetail }: PublicUserProfileModal
 
   const handleCopyProfile = () => {
     if (typeof window !== "undefined") {
-      navigator.clipboard.writeText(`${window.location.origin}/browse?member=${profile.uid}`);
+      navigator.clipboard.writeText(`${window.location.origin}/?member=${profile.uid}`);
       setCopiedLink(true);
       toast.success("Đã sao chép liên kết trang cá nhân!");
       setTimeout(() => setCopiedLink(false), 2500);

@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { saveWatchHistory } from "@/lib/watchHistory";
+import { useAuth } from "@/context/AuthContext";
+import { trackMovieView } from "@/lib/analyticsClient";
 
 interface TrackHistoryClientProps {
   slug: string;
@@ -30,6 +32,9 @@ export default function TrackHistoryClient({
   country,
   type,
 }: TrackHistoryClientProps) {
+  const { user } = useAuth();
+  const hasTrackedViewRef = useRef<string | null>(null);
+
   useEffect(() => {
     if (slug) {
       saveWatchHistory({
@@ -45,8 +50,19 @@ export default function TrackHistoryClient({
         country,
         type,
       });
+
+      // Track movie view for analytics (server handles 30-min deduplication)
+      if (hasTrackedViewRef.current !== slug) {
+        hasTrackedViewRef.current = slug;
+        trackMovieView({
+          movieSlug: slug,
+          movieTitle: title,
+          userId: user?.uid,
+        });
+      }
     }
-  }, [slug, title, poster, thumb, episodeName, episodeSlug, year, quality, category, country, type]);
+  }, [slug, title, poster, thumb, episodeName, episodeSlug, year, quality, category, country, type, user?.uid]);
 
   return null;
 }
+

@@ -274,7 +274,7 @@ export function RecommendationTabs({
       {/* 2. LƯỚI PHIM GỢI Ý ĐẸP MẮT THEO PHONG CÁCH TIẾP TỤC XEM (16:9 GỌN GÀNG, KHÔNG RỐI MẮT) */}
       {displayedMovies.length > 0 ? (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4 sm:gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
             {displayedMovies.map((item, index) => {
               // Điểm tương đồng giả lập thông minh (98% -> 85%) theo thứ tự tuyển chọn
               const matchPercent = Math.max(85, 98 - (index % 12));

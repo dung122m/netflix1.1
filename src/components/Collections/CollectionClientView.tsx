@@ -96,7 +96,7 @@ export function CollectionClientView({
       {/* BREADCRUMB */}
       <div className="flex items-center gap-2.5 text-xs text-gray-400 mb-4">
         <Link
-          href="/browse"
+          href="/"
           className="hover:text-white transition flex items-center gap-1"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
@@ -129,7 +129,7 @@ export function CollectionClientView({
             Bộ sưu tập này có thể đã bị xóa hoặc người tạo đã chuyển sang chế độ riêng tư.
           </p>
           <Link
-            href="/browse"
+            href="/"
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-netflix-red hover:bg-rose-700 text-white text-xs font-bold transition shadow-lg"
           >
             Khám phá phim khác
@@ -264,7 +264,7 @@ export function CollectionClientView({
             </div>
           ) : (
             <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-zinc-900/40 to-zinc-950/40 p-3 sm:p-4 md:p-5">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4 md:gap-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5">
                 {collection.movies.map((item, index) => (
                   <MediaCard
                     key={item.slug}

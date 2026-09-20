@@ -146,7 +146,7 @@ export default async function MovieDetail({
                 <span>Về Trang Chủ</span>
               </Link>
               <Link
-                href="/browse"
+                href="/"
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-white font-bold text-xs transition active:scale-95 cursor-pointer"
               >
                 <Compass className="w-4 h-4" />
@@ -410,14 +410,14 @@ export default async function MovieDetail({
 
           {/* BREADCRUMB */}
           <div className="max-w-7xl mx-auto py-1.5 px-3 sm:px-4 flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-gray-400 overflow-hidden">
-            <Link href="/browse" className="hover:text-white transition">
+            <Link href="/" className="hover:text-white transition">
               Trang chủ
             </Link>
             <span className="text-gray-600">/</span>
             {primaryGenreSlug && (
               <>
                 <Link
-                  href={`/browse?category=${primaryGenreSlug}`}
+                  href={`/?category=${primaryGenreSlug}`}
                   className="hover:text-white transition"
                 >
                   {movie.category?.[0]?.name || "Thể loại"}
@@ -681,8 +681,8 @@ export default async function MovieDetail({
                             key={cat.slug || idx}
                             href={
                               cat.slug
-                                ? `/browse?category=${cat.slug}`
-                                : `/browse?keyword=${encodeURIComponent(cat.name)}`
+                                ? `/?category=${cat.slug}`
+                                : `/?keyword=${encodeURIComponent(cat.name)}`
                             }
                             className="inline-flex items-center px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/15 text-gray-200 hover:text-white text-xs transition border border-white/10 hover:border-white/25"
                           >
@@ -705,8 +705,8 @@ export default async function MovieDetail({
                             key={cnt.slug || idx}
                             href={
                               cnt.slug
-                                ? `/browse?country=${cnt.slug}`
-                                : `/browse?keyword=${encodeURIComponent(cnt.name)}`
+                                ? `/?country=${cnt.slug}`
+                                : `/?keyword=${encodeURIComponent(cnt.name)}`
                             }
                             className="inline-flex items-center px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/15 text-gray-200 hover:text-white text-xs transition border border-white/10 hover:border-white/25"
                           >
@@ -874,7 +874,7 @@ function RecommendationSkeleton() {
         <div className="h-9 w-28 bg-zinc-900 rounded-full" />
         <div className="h-9 w-28 bg-zinc-900 rounded-full" />
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4 sm:gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
         {Array.from({ length: 8 }).map((_, i) => (
           <div key={i} className="aspect-video bg-zinc-900/80 rounded-2xl border border-white/5" />
         ))}

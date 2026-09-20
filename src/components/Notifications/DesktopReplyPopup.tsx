@@ -109,7 +109,7 @@ export const DesktopReplyPopup: React.FC = () => {
         ? activeNotification.commentId
           ? `/movies/${activeNotification.movieSlug}?highlightComment=${activeNotification.commentId}#comment-${activeNotification.commentId}`
           : `/movies/${activeNotification.movieSlug}#comments`
-        : "/browse");
+        : "/");
     handleDismiss();
     router.push(targetLink);
   }, [activeNotification, user, handleDismiss, router]);

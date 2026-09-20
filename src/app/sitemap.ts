@@ -5,20 +5,19 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   const routes = [
     "",
-    "/browse",
-    "/browse?type=phim-bo",
-    "/browse?type=phim-le",
-    "/browse?type=phim-chieu-rap",
-    "/browse?type=hoat-hinh",
-    "/browse?type=tv-shows",
-    "/browse?type=phim-thuyet-minh",
-    "/browse?type=phim-long-tieng",
+    "/?type=phim-bo",
+    "/?type=phim-le",
+    "/?type=phim-chieu-rap",
+    "/?type=hoat-hinh",
+    "/?type=tv-shows",
+    "/?type=phim-thuyet-minh",
+    "/?type=phim-long-tieng",
     "/live",
   ].map((route) => ({
     url: `${siteUrl}${route}`,
     lastModified: new Date(),
     changeFrequency: "daily" as const,
-    priority: route === "" || route === "/browse" ? 1.0 : 0.8,
+    priority: route === "" ? 1.0 : 0.8,
   }));
 
   return routes;

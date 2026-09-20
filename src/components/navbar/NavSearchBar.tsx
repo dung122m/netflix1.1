@@ -7,6 +7,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Search, Loader2, X, History, ArrowLeft } from "lucide-react";
 import { useDebounce } from "@/hooks/useDebounce";
 import { toOptimizedPhimimgUrl } from "@/lib/movieMedia";
+import { useAuth } from "@/context/AuthContext";
+import { trackSearchKeyword } from "@/lib/analyticsClient";
 
 export interface SearchSuggestion {
   slug: string;
@@ -31,6 +33,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
   const router = useRouter();
   const searchParams = useSearchParams();
   const urlKeyword = searchParams.get("keyword") || "";
+  const { user } = useAuth();
 
   const [hasText, setHasText] = useState(false);
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
@@ -183,7 +186,8 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
       setIsSearchExpanded(false);
     }
     saveRecentSearch(kw);
-    router.push(`/browse?keyword=${encodeURIComponent(kw)}`);
+    trackSearchKeyword(kw, user?.uid);
+    router.push(`/?keyword=${encodeURIComponent(kw)}`);
   };
 
   const toggleSearch = () => {
@@ -227,7 +231,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
       params.delete("keyword");
       params.delete("page");
       const query = params.toString();
-      router.push(query ? `/browse?${query}` : "/browse");
+      router.push(query ? `/?${query}` : "/");
     }
   };
 
@@ -286,10 +290,19 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
         e.preventDefault();
         const selected = suggestions[selectedSuggestionIndex];
         const val = inputRef.current?.value || mobileInputRef.current?.value;
-        if (val) saveRecentSearch(val);
+        if (val) {
+          saveRecentSearch(val);
+          trackSearchKeyword(val, user?.uid);
+        }
         setShowDropdown(false);
         setIsSearchExpanded(false);
-        router.push(selected.slug.startsWith("browse?") ? `/${selected.slug}` : `/movies/${selected.slug}`);
+        router.push(
+          selected.slug.startsWith("browse?")
+            ? `/?${selected.slug.slice(7)}`
+            : selected.slug.startsWith("?")
+            ? `/${selected.slug}`
+            : `/movies/${selected.slug}`
+        );
       } else if (!hasSearchText && recentSearches.length > 0 && selectedSuggestionIndex >= 0 && selectedSuggestionIndex < recentSearches.length) {
         e.preventDefault();
         const selected = recentSearches[selectedSuggestionIndex];
@@ -308,9 +321,10 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
 
     if (currentKeyword) {
       saveRecentSearch(currentKeyword);
-      router.push(`/browse?keyword=${encodeURIComponent(currentKeyword)}`);
+      trackSearchKeyword(currentKeyword, user?.uid);
+      router.push(`/?keyword=${encodeURIComponent(currentKeyword)}`);
     } else {
-      router.push("/browse");
+      router.push("/");
     }
   };
 
@@ -445,7 +459,13 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
                     {suggestions.map((item, idx) => (
                       <Link
                         key={item.slug}
-                        href={item.slug.startsWith("browse?") ? `/${item.slug}` : `/movies/${item.slug}`}
+                        href={
+                          item.slug.startsWith("browse?")
+                            ? `/?${item.slug.slice(7)}`
+                            : item.slug.startsWith("?")
+                            ? `/${item.slug}`
+                            : `/movies/${item.slug}`
+                        }
                         onClick={() => {
                           const val = mobileInputRef.current?.value || inputRef.current?.value;
                           if (val) saveRecentSearch(val);
@@ -638,7 +658,13 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
                   {suggestions.map((item, idx) => (
                     <Link
                       key={item.slug}
-                      href={item.slug.startsWith("browse?") ? `/${item.slug}` : `/movies/${item.slug}`}
+                      href={
+                        item.slug.startsWith("browse?")
+                          ? `/?${item.slug.slice(7)}`
+                          : item.slug.startsWith("?")
+                          ? `/${item.slug}`
+                          : `/movies/${item.slug}`
+                      }
                       onClick={() => {
                         if (inputRef.current?.value) {
                           saveRecentSearch(inputRef.current.value);

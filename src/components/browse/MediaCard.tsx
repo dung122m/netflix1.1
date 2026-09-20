@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -20,6 +20,14 @@ import {
 import { isInWatchlist, toggleWatchlist } from "@/lib/watchlist";
 import { extractMovieCountry, detectMovieTypeName, toOptimizedCardBackdropUrl, sanitizeImageUrl } from "@/lib/movieMedia";
 import { TrailerModal } from "@/components/TrailerModal";
+import {
+  extractYoutubeId,
+  getYoutubeTrailerEmbedUrl,
+  isDesktopWithHover,
+  isYoutubeErrorMessage,
+  isYoutubePlayingMessage,
+  isYoutubeEndedMessage,
+} from "@/lib/trailerHelper";
 
 export interface MovieExtraInfo {
   actor?: string[];
@@ -65,21 +73,7 @@ export async function fetchMovieSynopsisShared(slug: string): Promise<any> {
   return promise;
 }
 
-export function extractYoutubeId(url?: string | null): string | null {
-  if (!url) return null;
-  const match = url.match(
-    /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/
-  );
-  return match ? match[1] : null;
-}
-
-function getYoutubeEmbedUrl(url?: string | null, muted = true): string | null {
-  const videoId = extractYoutubeId(url);
-  if (!videoId) return null;
-  return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=${
-    muted ? 1 : 0
-  }&controls=0&modestbranding=1&rel=0&loop=1&playlist=${videoId}&disablekb=1&fs=0&iv_load_policy=3&playsinline=1`;
-}
+export { extractYoutubeId };
 
 function getYoutubeModalUrl(url?: string | null): string | null {
   const videoId = extractYoutubeId(url);
@@ -145,7 +139,6 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   const router = useRouter();
   const [inList, setInList] = useState(false);
   const [liked, setLiked] = useState(false);
-  const [isImgLoaded, setIsImgLoaded] = useState(false);
 
   // Danh sách các link ảnh dự phòng theo thứ tự ưu tiên (chuẩn HD sắc nét)
   const candidateImages = React.useMemo(() => {
@@ -178,7 +171,6 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   useEffect(() => {
     setImageAttemptIndex(0);
     setCurrentImgSrc(candidateImages[0] || (imageUrl ? toOptimizedCardBackdropUrl(imageUrl) : "/default-hero.jpg"));
-    setIsImgLoaded(false);
   }, [imageUrl, candidateImages]);
 
   const handleImageError = () => {
@@ -193,13 +185,15 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     // 2. Nếu tất cả đều lỗi, chuyển về ảnh bìa mặc định rõ nét
     if (currentImgSrc !== "/default-hero.jpg") {
       setCurrentImgSrc("/default-hero.jpg");
-      setIsImgLoaded(true);
     }
   };
 
-  // Trailer Video & Modal States
+  // Trailer Video & Modal States (Desktop with hover only, lazy-load 1.1s, fault-tolerant)
   const [isPlayingTrailer, setIsPlayingTrailer] = useState(false);
+  const [isTrailerReady, setIsTrailerReady] = useState(false);
+  const [trailerFailed, setTrailerFailed] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
+  const cardIframeRef = useRef<HTMLIFrameElement>(null);
   const [trailerUrl, setTrailerUrl] = useState<string>(
     () => initialTrailerUrl || clientTrailerCache.get(slug) || ""
   );
@@ -227,6 +221,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   const hoverIntentTimerRef = useRef<NodeJS.Timeout | null>(null);
   const hoverTimerRef = useRef<NodeJS.Timeout | null>(null);
   const trailerTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const trailerReadyTimerRef = useRef<NodeJS.Timeout | null>(null);
   const unmountTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Khởi tạo tóm tắt
@@ -257,6 +252,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       if (hoverIntentTimerRef.current) clearTimeout(hoverIntentTimerRef.current);
       if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
       if (trailerTimerRef.current) clearTimeout(trailerTimerRef.current);
+      if (trailerReadyTimerRef.current) clearTimeout(trailerReadyTimerRef.current);
       if (unmountTimerRef.current) clearTimeout(unmountTimerRef.current);
     };
   }, [slug]);
@@ -273,13 +269,65 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [showTrailerModal]);
 
+  // Lắng nghe thông báo từ YouTube iframe: fade-in khi video sẵn sàng hoặc fallback khi có lỗi
+  useEffect(() => {
+    if (!isPlayingTrailer) return;
+
+    const handleMessage = (e: MessageEvent) => {
+      // 1. Video thực sự PLAYING -> hủy timer chờ và kích hoạt fade-in trailer
+      if (isYoutubePlayingMessage(e.data)) {
+        if (trailerReadyTimerRef.current) {
+          clearTimeout(trailerReadyTimerRef.current);
+          trailerReadyTimerRef.current = null;
+        }
+        setIsTrailerReady(true);
+        return;
+      }
+
+      // 2. Video gặp lỗi (100, 101, 150, 2, 5) -> Fallback poster ngay lập tức, không retry
+      if (isYoutubeErrorMessage(e.data)) {
+        if (trailerReadyTimerRef.current) {
+          clearTimeout(trailerReadyTimerRef.current);
+          trailerReadyTimerRef.current = null;
+        }
+        setTrailerFailed(true);
+        setIsPlayingTrailer(false);
+        setIsTrailerReady(false);
+        return;
+      }
+
+      // 3. Video phát hết -> Loop tự động bằng API
+      if (isYoutubeEndedMessage(e.data)) {
+        try {
+          cardIframeRef.current?.contentWindow?.postMessage(
+            JSON.stringify({ event: "command", func: "seekTo", args: [0, true] }),
+            "*"
+          );
+          cardIframeRef.current?.contentWindow?.postMessage(
+            JSON.stringify({ event: "command", func: "playVideo", args: "" }),
+            "*"
+          );
+        } catch {}
+      }
+    };
+
+    window.addEventListener("message", handleMessage);
+    return () => {
+      window.removeEventListener("message", handleMessage);
+      if (trailerReadyTimerRef.current) {
+        clearTimeout(trailerReadyTimerRef.current);
+        trailerReadyTimerRef.current = null;
+      }
+    };
+  }, [isPlayingTrailer]);
+
   const displayYear = year || "";
   const displayTime = time || "";
 
   // Hover Intent: Chỉ kích hoạt mở rộng thẻ & tải dữ liệu sau 80ms người dùng thực sự dừng chuột
   const handleMouseEnter = () => {
-    // Trên thiết bị cảm ứng (hover: none), không chạy hover-intent, prefetch hay trailer logic không cần thiết
-    if (typeof window !== "undefined" && window.matchMedia?.("(hover: none)").matches) {
+    // Chỉ kích hoạt trên thiết bị desktop có hover chuột (loại bỏ hoàn toàn mobile/touch)
+    if (!isDesktopWithHover()) {
       return;
     }
 
@@ -373,9 +421,11 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         }, 450);
       }
 
-      // Bật trailer preview sau 700ms hover (sử dụng chung in-flight promise hoặc cache)
+      // Bật trailer preview sau 1.1s hover ổn định (tránh kích hoạt khi rê chuột nhanh hoặc scroll)
       if (trailerTimerRef.current) clearTimeout(trailerTimerRef.current);
       trailerTimerRef.current = setTimeout(async () => {
+        if (trailerFailed) return;
+
         let tUrl = clientTrailerCache.get(slug);
         if (tUrl === undefined) {
           try {
@@ -403,10 +453,14 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         }
 
         if (tUrl) {
-          setTrailerUrl(tUrl);
-          setIsPlayingTrailer(true);
+          const ytId = extractYoutubeId(tUrl);
+          if (ytId) {
+            setTrailerUrl(tUrl);
+            setIsTrailerReady(false);
+            setIsPlayingTrailer(true);
+          }
         }
-      }, 700);
+      }, 1100);
     }, 80);
   };
 
@@ -424,7 +478,14 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       clearTimeout(trailerTimerRef.current);
       trailerTimerRef.current = null;
     }
+    if (trailerReadyTimerRef.current) {
+      clearTimeout(trailerReadyTimerRef.current);
+      trailerReadyTimerRef.current = null;
+    }
+
+    // Cleanup trailer iframe ngay lập tức khi rời chuột
     setIsPlayingTrailer(false);
+    setIsTrailerReady(false);
 
     // Giữ nội dung hiển thị trong suốt 280ms thời gian fade-out của card, tránh chớp nháy
     if (unmountTimerRef.current) clearTimeout(unmountTimerRef.current);
@@ -456,9 +517,14 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     setLiked((prev) => !prev);
   };
 
-  const embedTrailerUrl = trailerUrl
-    ? getYoutubeEmbedUrl(trailerUrl, isMuted)
-    : null;
+  const embedTrailerUrl = useMemo(() => {
+    if (!isPlayingTrailer || !trailerUrl || trailerFailed) return null;
+    return getYoutubeTrailerEmbedUrl(trailerUrl, {
+      muted: isMuted,
+      controls: false,
+      loop: true,
+    });
+  }, [isPlayingTrailer, trailerUrl, trailerFailed, isMuted]);
 
   const modalTrailerUrl = trailerUrl
     ? getYoutubeModalUrl(trailerUrl)
@@ -542,25 +608,17 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         href={`/movies/${slug}`}
         className="block w-full h-full rounded-2xl overflow-hidden bg-zinc-950 border border-white/[0.12] relative transition-all duration-300 shadow-md group-hover:border-white/40 group-hover:shadow-[0_16px_40px_rgba(0,0,0,0.85)]"
       >
-        {/* Placeholder gradient mượt mà chống giật hình ảnh */}
-        {!isImgLoaded && (
-          <div className="absolute inset-0 bg-gradient-to-br from-zinc-800 to-zinc-950 z-0 animate-pulse" />
-        )}
-
         <Image
           src={currentImgSrc}
           alt={title}
           fill
           unoptimized
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1440px) 33vw, 25vw"
-          className={`object-cover object-center group-hover:scale-105 transition-all duration-300 ${
-            isImgLoaded ? "opacity-100" : "opacity-0"
-          }`}
+          className="object-cover object-center group-hover:scale-105 transition-all duration-300"
           priority={priority}
           loading={priority ? "eager" : "lazy"}
           decoding="async"
           quality={85}
-          onLoad={() => setIsImgLoaded(true)}
           onError={handleImageError}
         />
 
@@ -660,32 +718,58 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
             loading="lazy"
             decoding="async"
             quality={85}
-            className={`object-cover object-center transition-opacity duration-300 ${
-              isPlayingTrailer && embedTrailerUrl ? "opacity-0" : "opacity-100"
-            }`}
+            className="object-cover object-center"
             onError={handleImageError}
           />
 
-          {/* Video Trailer Preview tự động chạy */}
-          {isPlayingTrailer && embedTrailerUrl && (
-            <div className="absolute inset-0 z-0 bg-black overflow-hidden pointer-events-none animate-in fade-in duration-300">
+          {/* Video Trailer Preview tự động chạy - Poster luôn nằm dưới, trailer fade-in khi sẵn sàng */}
+          {isPlayingTrailer && embedTrailerUrl && !trailerFailed && (
+            <div
+              className={`absolute inset-0 z-0 bg-black overflow-hidden pointer-events-none transition-opacity duration-500 flex items-center justify-center ${
+                isTrailerReady ? "opacity-100" : "opacity-0"
+              }`}
+            >
               <iframe
+                ref={cardIframeRef}
                 src={embedTrailerUrl}
-                className="w-[160%] h-[160%] -ml-[30%] -mt-[30%] border-0 object-cover pointer-events-none select-none"
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%] max-w-none border-0 pointer-events-none select-none"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 title={`Preview ${title}`}
+                onLoad={() => {
+                  try {
+                    cardIframeRef.current?.contentWindow?.postMessage(
+                      JSON.stringify({ event: "listening" }),
+                      "*"
+                    );
+                  } catch {}
+                  if (trailerReadyTimerRef.current) clearTimeout(trailerReadyTimerRef.current);
+                  trailerReadyTimerRef.current = setTimeout(() => {
+                    setIsTrailerReady(true);
+                  }, 500);
+                }}
               />
             </div>
           )}
 
           {/* Nút bật/tắt tiếng trailer preview */}
-          {isPlayingTrailer && embedTrailerUrl && (
+          {isPlayingTrailer && embedTrailerUrl && isTrailerReady && !trailerFailed && (
             <button
               type="button"
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                setIsMuted((prev) => !prev);
+                const nextMuted = !isMuted;
+                setIsMuted(nextMuted);
+                try {
+                  cardIframeRef.current?.contentWindow?.postMessage(
+                    JSON.stringify({
+                      event: "command",
+                      func: nextMuted ? "mute" : "unMute",
+                      args: "",
+                    }),
+                    "*"
+                  );
+                } catch {}
               }}
               title={isMuted ? "Bật âm thanh" : "Tắt âm thanh"}
               className="absolute bottom-2 right-2 pointer-events-auto p-1 rounded-full bg-black/80 hover:bg-black text-white border border-white/20 transition z-30 shadow-lg cursor-pointer hover:scale-110"
@@ -699,7 +783,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           )}
 
           {/* Huy hiệu Loại phim hoặc Điểm số */}
-          {rating && rating !== "N/A" && Number(rating) > 0 && !isPlayingTrailer ? (
+          {rating && rating !== "N/A" && Number(rating) > 0 && !(isPlayingTrailer && isTrailerReady && !trailerFailed) ? (
             <div className="absolute top-2 left-2 z-10 flex items-center gap-1 bg-black/85 border border-amber-500/50 px-1.5 py-0.5 rounded text-[10px] font-extrabold text-amber-400 backdrop-blur-md shadow-md">
               <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
               <span>{typeof rating === "number" ? rating.toFixed(1) : rating}</span>

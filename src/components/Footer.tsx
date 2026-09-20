@@ -90,31 +90,31 @@ export const Footer: React.FC = () => {
             </h4>
             <ul className="space-y-2.5 text-xs text-gray-400">
               <li>
-                <Link href="/browse" className="hover:text-white transition flex items-center gap-2">
+                <Link href="/" className="hover:text-white transition flex items-center gap-2">
                   <Home size={13} className="text-gray-500" />
                   <span>Trang chủ Nanaflix</span>
                 </Link>
               </li>
               <li>
-                <Link href="/browse?type=phim-bo" className="hover:text-white transition flex items-center gap-2">
+                <Link href="/?type=phim-bo" className="hover:text-white transition flex items-center gap-2">
                   <Tv size={13} className="text-gray-500" />
                   <span>Phim bộ dài tập</span>
                 </Link>
               </li>
               <li>
-                <Link href="/browse?type=phim-le" className="hover:text-white transition flex items-center gap-2">
+                <Link href="/?type=phim-le" className="hover:text-white transition flex items-center gap-2">
                   <Film size={13} className="text-gray-500" />
                   <span>Phim lẻ đặc sắc</span>
                 </Link>
               </li>
               <li>
-                <Link href="/browse?type=phim-chieu-rap" className="hover:text-white transition flex items-center gap-2">
+                <Link href="/?type=phim-chieu-rap" className="hover:text-white transition flex items-center gap-2">
                   <Clapperboard size={13} className="text-gray-500" />
                   <span>Bom tấn chiếu rạp</span>
                 </Link>
               </li>
               <li>
-                <Link href="/browse?type=hoat-hinh" className="hover:text-white transition flex items-center gap-2">
+                <Link href="/?type=hoat-hinh" className="hover:text-white transition flex items-center gap-2">
                   <Sparkles size={13} className="text-gray-500" />
                   <span>Anime & Hoạt hình</span>
                 </Link>
@@ -142,7 +142,7 @@ export const Footer: React.FC = () => {
                 </Link>
               </li>
               <li>
-                <Link href="/browse?type=tv-shows" className="hover:text-white transition flex items-center gap-2">
+                <Link href="/?type=tv-shows" className="hover:text-white transition flex items-center gap-2">
                   <Radio size={13} className="text-gray-500" />
                   <span>Game Show & Truyền hình</span>
                 </Link>

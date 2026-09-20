@@ -33,7 +33,7 @@ export default function BrowseLoading() {
         </div>
 
         {/* MOVIE GRID SKELETON (12 CARDS) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4 sm:gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
           {Array.from({ length: 12 }).map((_, i) => (
             <div
               key={i}

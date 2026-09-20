@@ -236,7 +236,7 @@ function MyListContent() {
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6 border-b border-white/10 pb-5">
         <div>
           <div className="flex items-center gap-2.5 text-xs text-gray-400 mb-2">
-            <Link href="/browse" className="hover:text-white transition flex items-center gap-1">
+            <Link href="/" className="hover:text-white transition flex items-center gap-1">
               <ArrowLeft className="h-3.5 w-3.5" />
               Trang chủ
             </Link>
@@ -469,7 +469,7 @@ function MyListContent() {
 
       {/* NỘI DUNG THEO TAB */}
       {!mounted ? (
-        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
           {Array.from({ length: 4 }).map((_, i) => (
             <div
               key={i}
@@ -491,7 +491,7 @@ function MyListContent() {
               Khi lướt phim trên Nanaflix, hãy bấm vào nút dấu cộng (<span className="text-white font-bold">+</span>) trên các bộ phim bạn thích để lưu vào danh sách xem sau.
             </p>
             <Link
-              href="/browse"
+              href="/"
               className="inline-flex items-center gap-2 rounded-lg bg-netflix-red px-6 py-3 text-sm sm:text-base font-bold text-white transition hover:bg-red-700 shadow-lg"
             >
               Khám phá phim ngay
@@ -499,7 +499,7 @@ function MyListContent() {
           </div>
         ) : (
           <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-zinc-900/45 to-zinc-950/45 p-3 sm:p-4 md:p-5">
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
               {watchlist.map((item, index) => (
                 <MediaCard
                   key={item.slug}
@@ -531,7 +531,7 @@ function MyListContent() {
               Các bộ phim và tập phim bạn thưởng thức sẽ tự động xuất hiện tại đây để bạn có thể dễ dàng xem tiếp bất cứ lúc nào.
             </p>
             <Link
-              href="/browse"
+              href="/"
               className="inline-flex items-center gap-2 rounded-lg bg-netflix-red px-6 py-3 text-sm sm:text-base font-bold text-white transition hover:bg-red-700 shadow-lg"
             >
               Xem phim ngay
@@ -539,7 +539,7 @@ function MyListContent() {
           </div>
         ) : (
           <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-zinc-900/45 to-zinc-950/45 p-3 sm:p-4 md:p-5">
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
               {history.map((item) => {
                 const href = item.episodeSlug
                   ? `/movies/${item.slug}?ep=${item.episodeSlug}`
@@ -674,7 +674,7 @@ function MyListContent() {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {collections.map((col) => {
               const previewPosters = (col.movies || []).slice(0, 4);
               return (
@@ -804,7 +804,7 @@ function MyListContent() {
               Mỗi đánh giá và nhận xét của bạn giúp cộng đồng Nanaflix tìm được bộ phim hay nhất!
             </p>
             <Link
-              href="/browse"
+              href="/"
               className="inline-flex items-center gap-2 rounded-lg bg-netflix-red px-6 py-3 text-sm sm:text-base font-bold text-white transition hover:bg-red-700 shadow-lg"
             >
               Xem phim & Đánh giá ngay

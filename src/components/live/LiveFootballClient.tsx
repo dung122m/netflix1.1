@@ -765,7 +765,8 @@ export function LiveFootballClient({
       {/* DANH SÁCH CÁC TRẬN ĐẤU */}
       {displayedMatches.length > 0 ? (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4">
+          {/* LƯỚI TRẬN ĐẤU: 1 cột trên mobile (<640px), 2 cột trên phablet/sm và iPad (md: 768-1023px) để thẻ trận to rõ, 3 cột trên laptop/lg, 4 cột trên PC/xl */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-4">
             {displayedMatches.map((match) => (
               <MatchCard
                 key={match.id}

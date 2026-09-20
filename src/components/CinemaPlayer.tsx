@@ -28,6 +28,7 @@ import { incrementUserWatchTime } from "@/services/userService";
 import { PlayerNativeControls } from "./player/PlayerNativeControls";
 import { PlayerActionButtons } from "./player/PlayerActionButtons";
 import { PlayerShortcutModal } from "./player/PlayerShortcutModal";
+import { trackWatchStart, trackWatchProgress, trackWatchEnd } from "@/lib/analyticsClient";
 
 const SleepTimerModal = dynamic(
   () => import("./SleepTimerModal").then((mod) => mod.SleepTimerModal),
@@ -129,6 +130,8 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const lastProgressSaveRef = useRef<number>(0);
+  const hasTrackedWatchStartRef = useRef<string | null>(null);
+  const lastAnalyticsProgressRef = useRef<number>(0);
   const pendingKeyboardSeekRef = useRef<{
     targetTime: number;
     totalDelta: number;
@@ -785,6 +788,17 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     const handlePlaying = () => {
       setIsBuffering(false);
       setIsPlaying(true);
+      const epKey = `${movieSlug || "movie"}:${activeEpisodeSlug || "ep"}`;
+      if (movieSlug && hasTrackedWatchStartRef.current !== epKey) {
+        hasTrackedWatchStartRef.current = epKey;
+        trackWatchStart({
+          movieSlug,
+          movieTitle: title,
+          episodeSlug: activeEpisodeSlug,
+          episodeName: activeEpisodeName,
+          userId: user?.uid,
+        });
+      }
     };
     const handlePause = () => {
       setIsPlaying(false);
@@ -802,6 +816,17 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           currentTime: video.currentTime,
           duration: currentEffectiveDuration,
           posterUrl,
+        });
+      }
+      if (movieSlug && video.currentTime > 5) {
+        trackWatchProgress({
+          movieSlug,
+          movieTitle: title,
+          episodeSlug: activeEpisodeSlug,
+          episodeName: activeEpisodeName,
+          userId: user?.uid,
+          progressSeconds: video.currentTime,
+          durationSeconds: currentEffectiveDuration,
         });
       }
     };
@@ -839,10 +864,38 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           posterUrl,
         });
       }
+      // Throttled watch progress analytics (every 45-60s)
+      if (movieSlug && now - lastAnalyticsProgressRef.current > 45000 && video.currentTime > 5) {
+        lastAnalyticsProgressRef.current = now;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const currentEffectiveDuration = knownDuration || (video as any).__hlsDuration || (video.duration && isFinite(video.duration) ? video.duration : 0);
+        trackWatchProgress({
+          movieSlug,
+          movieTitle: title,
+          episodeSlug: activeEpisodeSlug,
+          episodeName: activeEpisodeName,
+          userId: user?.uid,
+          progressSeconds: video.currentTime,
+          durationSeconds: currentEffectiveDuration,
+        });
+      }
     };
 
     const handleEnded = () => {
       setIsPlaying(false);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const currentEffectiveDuration = knownDuration || (video as any).__hlsDuration || (video.duration && isFinite(video.duration) ? video.duration : 0);
+      if (movieSlug) {
+        trackWatchEnd({
+          movieSlug,
+          movieTitle: title,
+          episodeSlug: activeEpisodeSlug,
+          episodeName: activeEpisodeName,
+          userId: user?.uid,
+          progressSeconds: video.currentTime,
+          durationSeconds: currentEffectiveDuration,
+        });
+      }
       if (nextEpisode?.slug && switchEpisode) {
         switchEpisode(nextEpisode.slug);
       }
