@@ -34,7 +34,7 @@ export const EpisodeCountBadge: React.FC<{ initialCount?: number; isTrailerOnly?
   const count = watchContext?.episodes?.length ?? initialCount;
 
   return (
-    <span className="text-xs px-2.5 py-1 rounded-full bg-white/10 text-gray-300 font-medium transition-all">
+    <span className="text-xs px-3 py-1 rounded-full bg-zinc-800/90 border border-white/10 text-gray-300 font-bold shadow-sm backdrop-blur-md transition-all">
       {isTrailerOnly || count === 0 ? "Trailer" : `${count} tập`}
     </span>
   );

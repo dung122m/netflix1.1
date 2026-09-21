@@ -32,7 +32,7 @@ export default function TrackHistoryClient({
   country,
   type,
 }: TrackHistoryClientProps) {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const hasTrackedViewRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -51,8 +51,8 @@ export default function TrackHistoryClient({
         type,
       });
 
-      // Track movie view for analytics (server handles 30-min deduplication)
-      if (hasTrackedViewRef.current !== slug) {
+      // Track movie view for analytics once Firebase auth hydration completes
+      if (!loading && hasTrackedViewRef.current !== slug) {
         hasTrackedViewRef.current = slug;
         trackMovieView({
           movieSlug: slug,
@@ -61,7 +61,7 @@ export default function TrackHistoryClient({
         });
       }
     }
-  }, [slug, title, poster, thumb, episodeName, episodeSlug, year, quality, category, country, type, user?.uid]);
+  }, [slug, title, poster, thumb, episodeName, episodeSlug, year, quality, category, country, type, user?.uid, loading]);
 
   return null;
 }

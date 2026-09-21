@@ -83,6 +83,7 @@ export interface AnalyticsDashboardStats {
   topSearches: Array<{ keyword: string; count: number }>;
   liveWatching: LiveWatchingSession[];
   hourlyWatchActivity: HourlyWatchStat[];
+  todayVisitorsCount: number;
 }
 
 let redisInstance: Redis | null = null;
@@ -129,6 +130,23 @@ export async function recordAnalyticsEvent(payload: AnalyticsEventPayload): Prom
       await cacheService.set(dedupKey, now, 1800);
     } catch {
       // In case of cache error, proceed gracefully
+    }
+  }
+
+  // 2. Check Deduplication for site_visit (30-minute window per viewerKey)
+  if (payload.eventType === "site_visit") {
+    const visitDedupKey = `visit_dedup:${viewerKey}`;
+    try {
+      const redis = getRedis();
+      if (redis) {
+        const existing = await redis.get(visitDedupKey);
+        if (existing) {
+          return { success: true, deduped: true };
+        }
+        await redis.set(visitDedupKey, now, { ex: 1800 });
+      }
+    } catch {
+      // Fail gracefully
     }
   }
 
@@ -396,6 +414,9 @@ export async function getAnalyticsDashboardStats(
   const browserCounts = new Map<string, number>();
   const searchMap = new Map<string, number>();
 
+  // Unique device identity tracking: authenticated uses userId, guest uses anonymousId
+  const seenDeviceIdentities = new Set<string>();
+
   // Active visitors tracking (seen in last 30 minutes)
   const activeThreshold = now - 30 * 60 * 1000;
   const activeGuestSet = new Set<string>();
@@ -416,19 +437,25 @@ export async function getAnalyticsDashboardStats(
       activeGuestSet.add(ev.anonymousId);
     }
 
-    // Devices & platforms
+    // Devices & platforms (Unique Device Identity aggregation in timeframe)
     const devType = (ev.deviceType || "desktop") as "desktop" | "mobile" | "tablet";
-    if (deviceCounts[devType] !== undefined) {
-      deviceCounts[devType]++;
-    } else {
-      deviceCounts.desktop++;
-    }
-
     const osName = ev.os || "Other";
-    osCounts.set(osName, (osCounts.get(osName) || 0) + 1);
-
     const browserName = ev.browser || "Other";
-    browserCounts.set(browserName, (browserCounts.get(browserName) || 0) + 1);
+    const identityPrefix = ev.userId ? `user:${ev.userId}` : `guest:${ev.anonymousId}`;
+    const deviceIdentityKey = `${identityPrefix}:${devType}:${osName}:${browserName}`;
+
+    if (!seenDeviceIdentities.has(deviceIdentityKey)) {
+      seenDeviceIdentities.add(deviceIdentityKey);
+
+      if (deviceCounts[devType] !== undefined) {
+        deviceCounts[devType]++;
+      } else {
+        deviceCounts.desktop++;
+      }
+
+      osCounts.set(osName, (osCounts.get(osName) || 0) + 1);
+      browserCounts.set(browserName, (browserCounts.get(browserName) || 0) + 1);
+    }
 
     // Movie views
     if (ev.eventType === "movie_view" && ev.movieSlug) {
@@ -471,6 +498,15 @@ export async function getAnalyticsDashboardStats(
     }
   }
 
+  // Count unique visitors today (unique viewerKeys with site_visit events within today boundary)
+  const todayStartMs = getStartOfTodayVietnam(now);
+  const todayVisitorSet = new Set<string>();
+  for (const ev of rawEvents) {
+    if (ev.eventType === "site_visit" && ev.createdAt >= todayStartMs) {
+      todayVisitorSet.add(ev.userId || ev.anonymousId);
+    }
+  }
+
   // 3. Sort and structure results
   const topMoviesByViews = Array.from(movieViewsMap.entries())
     .map(([slug, data]) => ({
@@ -504,13 +540,13 @@ export async function getAnalyticsDashboardStats(
     .sort((a, b) => b.totalSeconds - a.totalSeconds)
     .slice(0, 10);
 
-  const totalPlatformHits = filteredEvents.length || 1;
+  const totalUniqueDevices = seenDeviceIdentities.size || 1;
 
   const osList = Array.from(osCounts.entries())
     .map(([name, count]) => ({
       name,
       count,
-      percentage: Math.round((count / totalPlatformHits) * 100),
+      percentage: Math.round((count / totalUniqueDevices) * 100),
     }))
     .sort((a, b) => b.count - a.count);
 
@@ -518,7 +554,7 @@ export async function getAnalyticsDashboardStats(
     .map(([name, count]) => ({
       name,
       count,
-      percentage: Math.round((count / totalPlatformHits) * 100),
+      percentage: Math.round((count / totalUniqueDevices) * 100),
     }))
     .sort((a, b) => b.count - a.count);
 
@@ -677,5 +713,6 @@ export async function getAnalyticsDashboardStats(
     topSearches,
     liveWatching,
     hourlyWatchActivity,
+    todayVisitorsCount: todayVisitorSet.size,
   };
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import {
   Eye,
@@ -20,6 +20,7 @@ import {
   Info,
   Film,
   BarChart2,
+  MapPin,
 } from "lucide-react";
 import { AnalyticsDashboardStats } from "@/services/analyticsService";
 import { toast } from "@/components/Toast";
@@ -45,6 +46,11 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
   const [stats, setStats] = useState<AnalyticsDashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const filteredRecentActivity = useMemo(() => {
+    const allowedTypes = new Set(["site_visit", "movie_view", "watch_start", "watch_end", "search"]);
+    return (stats?.recentActivity || []).filter((ev) => allowedTypes.has(ev.eventType));
+  }, [stats?.recentActivity]);
 
   const fetchStats = useCallback(async (tf: "today" | "7d" | "30d" | "all", showToast = false) => {
     try {
@@ -94,12 +100,12 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
 
   const getEventBadge = (type: string) => {
     switch (type) {
+      case "site_visit":
+        return <span className="px-2 py-0.5 rounded-full bg-violet-500/20 border border-violet-500/30 text-violet-300 text-[10px] font-bold">Truy cập website</span>;
       case "movie_view":
         return <span className="px-2 py-0.5 rounded-full bg-blue-500/20 border border-blue-500/30 text-blue-300 text-[10px] font-bold">Mở trang phim</span>;
       case "watch_start":
         return <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold">Bắt đầu xem</span>;
-      case "watch_progress":
-        return <span className="px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-300 text-[10px] font-bold">Đang xem</span>;
       case "watch_end":
         return <span className="px-2 py-0.5 rounded-full bg-purple-500/20 border border-purple-500/30 text-purple-300 text-[10px] font-bold">Xem xong tập</span>;
       case "search":
@@ -150,7 +156,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
       </div>
 
       {/* OVERVIEW STATS CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         {/* Total Views */}
         <div className="p-5 rounded-2xl bg-zinc-900/60 border border-white/10 hover:border-white/20 transition backdrop-blur-sm relative overflow-hidden group">
           <div className="flex items-center justify-between text-gray-400 mb-2">
@@ -224,6 +230,23 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
           </div>
           <p className="text-[11px] text-gray-400 mt-1">
             Khách vãng lai hoạt động gần đây
+          </p>
+        </div>
+
+        {/* Today Visitors */}
+        <div className="p-5 rounded-2xl bg-zinc-900/60 border border-white/10 hover:border-white/20 transition backdrop-blur-sm relative overflow-hidden group">
+          <div className="flex items-center justify-between text-gray-400 mb-2">
+            <span className="text-xs font-medium">Lượt Truy Cập Hôm Nay</span>
+            <div className="p-2 rounded-xl bg-violet-500/10 text-violet-400">
+              <MapPin size={18} />
+            </div>
+          </div>
+          <div className="text-3xl font-black text-violet-400 flex items-baseline gap-2 group-hover:scale-105 transition-transform origin-left">
+            <span>{loading ? "..." : stats?.todayVisitorsCount ?? 0}</span>
+            <span className="text-xs font-normal text-gray-400">khách</span>
+          </div>
+          <p className="text-[11px] text-gray-400 mt-1">
+            Unique visitors hôm nay (site_visit)
           </p>
         </div>
       </div>
@@ -719,16 +742,16 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
             <Activity size={16} className="text-amber-400" />
             <span>Nhật Ký Hoạt Động Gần Đây (Live Recent Activity Feed)</span>
           </h3>
-          <span className="text-xs text-gray-400">30 sự kiện mới nhất</span>
+          <span className="text-xs text-gray-400">{filteredRecentActivity.length} sự kiện gần nhất</span>
         </div>
 
-        {!stats?.recentActivity || stats.recentActivity.length === 0 ? (
+        {filteredRecentActivity.length === 0 ? (
           <div className="p-10 text-center rounded-xl bg-black/40 border border-white/5 text-gray-400 text-xs">
             Chưa có sự kiện nào gần đây. Hãy mở xem phim hoặc tìm kiếm để thử nghiệm!
           </div>
         ) : (
           <div className="divide-y divide-white/5 overflow-x-auto">
-            {stats.recentActivity.map((ev) => (
+            {filteredRecentActivity.map((ev) => (
               <div
                 key={ev.id}
                 className="py-3 px-2 flex items-center justify-between gap-4 text-xs hover:bg-white/[0.02] transition rounded-lg"
@@ -737,7 +760,9 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
                   <div className="flex-shrink-0">{getEventBadge(ev.eventType)}</div>
                   <div className="truncate">
                     <span className="font-bold text-white">
-                      {ev.movieTitle || ev.keyword || ev.movieSlug || "Nanaflix"}
+                      {ev.eventType === "site_visit"
+                        ? "Nanaflix"
+                        : ev.movieTitle || ev.keyword || ev.movieSlug || "Nanaflix"}
                     </span>
                     {ev.episodeName && (
                       <span className="text-gray-400 ml-1.5">({ev.episodeName})</span>

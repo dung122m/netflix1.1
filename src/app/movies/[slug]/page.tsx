@@ -1,5 +1,5 @@
 import React, { Suspense } from "react";
-import { movieApi } from "@/services/movieApi";
+import { movieApi, DEFAULT_GENRES, DEFAULT_COUNTRIES } from "@/services/movieApi";
 import Link from "next/link";
 import {
   buildMovieDescriptionFallback,
@@ -40,6 +40,7 @@ import { TrailerModal } from "@/components/TrailerModal";
 import { MovieCommentsSection } from "@/components/MovieReviews/MovieCommentsSection";
 import { FollowSeriesButton } from "@/components/FollowSeriesButton";
 import { ReportIssueModal } from "@/components/ReportIssueModal";
+import { matchesActorAlias } from "@/lib/actorAlias";
 
 
 export async function generateMetadata({
@@ -329,8 +330,6 @@ export default async function MovieDetail({
     || (activeEpisode as Record<string, string | undefined>)?.file;
 
   const primaryGenreSlug = movie.category?.[0]?.slug;
-  const primaryCountrySlug = movie.country?.[0]?.slug;
-  const primaryActor = actorList.length > 0 ? actorList[0] : undefined;
 
   // JSON-LD Structured Data for Google Search Rich Results (SEO)
   const isSeries = movie.type === "series" || (episodes && episodes.length > 1);
@@ -752,7 +751,8 @@ export default async function MovieDetail({
           <div className="lg:col-span-4">
             <div className="rounded-3xl border border-white/15 bg-gradient-to-b from-zinc-900/80 via-zinc-950/85 to-black/90 p-4 sm:p-5 md:p-6 h-fit max-lg:max-h-none max-lg:overflow-visible lg:max-h-[680px] lg:overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-zinc-700 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-zinc-500 lg:pr-2 shadow-2xl backdrop-blur-xl">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-bold flex items-center gap-2">
+                <h3 className="text-xl font-bold flex items-center gap-2.5 text-white">
+                  <Film className="w-5 h-5 text-red-500 shrink-0" />
                   <span>Danh sách tập</span>
                 </h3>
                 <EpisodeCountBadge initialCount={serverData.length} isTrailerOnly={isTrailerOnly} />
@@ -800,11 +800,13 @@ export default async function MovieDetail({
           <AsyncRecommendations
             currentMovieSlug={movie.slug}
             currentMovieTitle={title}
-            primaryGenreSlug={primaryGenreSlug}
-            primaryCountrySlug={primaryCountrySlug}
-            primaryActor={primaryActor}
-            genreName={movie.category?.[0]?.name}
-            countryName={movie.country?.[0]?.name}
+            categories={categoryList}
+            countries={countryList}
+            primaryActor={actorList.length > 0 ? actorList[0] : undefined}
+            primaryDirector={directorList.length > 0 ? directorList[0] : undefined}
+            year={movie.year}
+            type={movie.type}
+            contentText={movie.content || ""}
           />
         </Suspense>
       </div>
@@ -818,50 +820,292 @@ export default async function MovieDetail({
 async function AsyncRecommendations({
   currentMovieSlug,
   currentMovieTitle,
-  primaryGenreSlug,
-  primaryCountrySlug,
-  genreName,
-  countryName,
+  categories = [],
+  countries = [],
+  primaryActor,
+  primaryDirector,
+  year,
+  type,
+  contentText = "",
 }: {
   currentMovieSlug: string;
   currentMovieTitle: string;
-  primaryGenreSlug?: string;
-  primaryCountrySlug?: string;
+  categories?: Array<{ name: string; slug?: string }>;
+  countries?: Array<{ name: string; slug?: string }>;
   primaryActor?: string;
-  genreName?: string;
-  countryName?: string;
+  primaryDirector?: string;
+  year?: number | string;
+  type?: string;
+  contentText?: string;
 }) {
-  const [byGenre, byCountry] = await Promise.all([
-    primaryGenreSlug
-      ? movieApi.getMovies({ category: primaryGenreSlug, page: 1, limit: 16 })
+  // 1. Lấy danh sách thể loại & quốc gia hợp lệ để truy vấn song song
+  const targetCategories = categories
+    .filter((c) => Boolean(c?.name || c?.slug))
+    .map((c) => ({
+      name: c.name,
+      slug:
+        c.slug ||
+        DEFAULT_GENRES.find((g) => g.name.toLowerCase() === c.name.toLowerCase())?.slug ||
+        "",
+    }))
+    .filter((c) => Boolean(c.slug))
+    .slice(0, 3); // Lấy tối đa 3 thể loại đặc trưng để query
+
+  const targetCountries = countries
+    .filter((c) => Boolean(c?.name || c?.slug))
+    .map((c) => ({
+      name: c.name,
+      slug:
+        c.slug ||
+        DEFAULT_COUNTRIES.find((d) => d.name.toLowerCase() === c.name.toLowerCase())?.slug ||
+        "",
+    }))
+    .filter((c) => Boolean(c.slug))
+    .slice(0, 2); // Lấy tối đa 2 quốc gia để query
+
+  // 2. Phát hiện tín hiệu võ thuật từ nội dung phim nguồn (KHÔNG dùng genre hanh-dong làm tiêu chí)
+  const plainContent = contentText.replace(/<[^>]+>/g, " ");
+  const srcHasMartialArts = /v\u00f5 thu\u1eadt|kung fu|martial|quy\u1ec1n|ki\u1ebfm hi\u1ec7p/i.test(plainContent);
+
+  // 3. Truy vấn song song các nguồn phim: thể loại, quốc gia, diễn viên, và tùy chọn võ thuật
+  const [genreResults, countryResults, actorResult, martialArtsResult] = await Promise.all([
+    Promise.all(
+      targetCategories.map((c) =>
+        movieApi.getMovies({ category: c.slug, page: 1, limit: 16 }).catch(() => null)
+      )
+    ),
+    Promise.all(
+      targetCountries.map((c) =>
+        movieApi.getMovies({ country: c.slug, page: 1, limit: 16 }).catch(() => null)
+      )
+    ),
+    primaryActor
+      ? movieApi
+          .getMovies({ keyword: primaryActor, page: 1, limit: 12, skipKvCache: true })
+          .catch(() => null)
       : Promise.resolve(null),
-    primaryCountrySlug
-      ? movieApi.getMovies({ country: primaryCountrySlug, page: 1, limit: 16 })
+    // Chỉ thêm pool võ thuật khi phim nguồn thực sự có tín hiệu võ thuật trong nội dung
+    srcHasMartialArts
+      ? movieApi.getMovies({ category: "vo-thuat", page: 1, limit: 16 }).catch(() => null)
       : Promise.resolve(null),
   ]);
 
+  // 4. Khử trùng lặp và loại bỏ phim hiện tại
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const recommendationPool: any[] = [];
-  if (byGenre?.items) recommendationPool.push(...byGenre.items);
-  if (byCountry?.items) recommendationPool.push(...byCountry.items);
+  const dedupedMap = new Map<string, any>();
+
+  for (const res of genreResults) {
+    for (const item of res?.items || []) {
+      if (item?.slug && item.slug !== currentMovieSlug && !dedupedMap.has(item.slug)) {
+        dedupedMap.set(item.slug, item);
+      }
+    }
+  }
+
+  for (const res of countryResults) {
+    for (const item of res?.items || []) {
+      if (item?.slug && item.slug !== currentMovieSlug && !dedupedMap.has(item.slug)) {
+        dedupedMap.set(item.slug, item);
+      }
+    }
+  }
+
+  for (const item of actorResult?.items || []) {
+    if (item?.slug && item.slug !== currentMovieSlug && !dedupedMap.has(item.slug)) {
+      dedupedMap.set(item.slug, item);
+    }
+  }
+
+  // Pool võ thuật bổ sung (chỉ active khi srcHasMartialArts = true)
+  for (const item of martialArtsResult?.items || []) {
+    if (item?.slug && item.slug !== currentMovieSlug && !dedupedMap.has(item.slug)) {
+      dedupedMap.set(item.slug, item);
+    }
+  }
+
+  // 5. Chuẩn bị các Set phục vụ chấm điểm tương đồng thực tế
+  const targetGenreSlugs = new Set(
+    categories.map((c) => (c.slug || "").toLowerCase().trim()).filter(Boolean)
+  );
+  const targetGenreNames = new Set(
+    categories.map((c) => (c.name || "").toLowerCase().trim()).filter(Boolean)
+  );
+
+  const targetCountrySlugs = new Set(
+    countries.map((c) => (c.slug || "").toLowerCase().trim()).filter(Boolean)
+  );
+  const targetCountryNames = new Set(
+    countries.map((c) => (c.name || "").toLowerCase().trim()).filter(Boolean)
+  );
+
+  const normDirector = primaryDirector ? primaryDirector.toLowerCase().trim() : "";
+  const currentYearNum = typeof year === "number" ? year : parseInt(String(year || "0"), 10);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const deduped = new Map<string, any>();
-  for (const item of recommendationPool) {
-    if (!item?.slug || item.slug === currentMovieSlug) continue;
-    if (!deduped.has(item.slug)) deduped.set(item.slug, item);
+  const scoredItems: any[] = [];
+
+  for (const item of dedupedMap.values()) {
+    let score = 0;
+
+    // +8 nếu có cùng diễn viên chính (tín hiệu mạnh nhất — so khớp alias EN/VN/ZH)
+    let hasActorMatch = false;
+    if (primaryActor) {
+      const itemActors: string[] = Array.isArray(item.actor)
+        ? item.actor.map((a: unknown) => String(a))
+        : typeof item.actor === "string"
+        ? item.actor.split(",").map((s: string) => s.trim())
+        : [];
+      if (matchesActorAlias(primaryActor, itemActors, item.name, item.origin_name)) {
+        hasActorMatch = true;
+        score += 8;
+      }
+    }
+
+    // +5 nếu cùng đạo diễn
+    if (normDirector) {
+      const itemDirectors = Array.isArray(item.director)
+        ? item.director.map((d: unknown) => String(d).toLowerCase().trim())
+        : typeof item.director === "string"
+        ? item.director.toLowerCase().split(",").map((s: string) => s.trim())
+        : [];
+      if (itemDirectors.some((d: string) => d.includes(normDirector) || normDirector.includes(d))) {
+        score += 5;
+      }
+    }
+
+    // +5/+2 nếu ứng viên có thể loại võ thuật (vo-thuat)
+    // +5: phim nguồn có tín hiệu võ thuật trong nội dung (xác nhận cùng thể loại)
+    // +2: phim nguồn không có tín hiệu võ thuật rõ ràng (tín hiệu yếu)
+    const itemHasVoThuat = Array.isArray(item.category)
+      ? item.category.some((g: { slug?: string }) => (g?.slug || "") === "vo-thuat")
+      : false;
+    if (itemHasVoThuat) {
+      score += srcHasMartialArts ? 5 : 2;
+    }
+
+    // +3 cho mỗi thể loại trùng (tối đa 3 thể loại = +9 tối đa)
+    // Giảm từ +4 xuống +3 để hạn chế ảnh hưởng của các thể loại phổ biến như Chính Kịch, Tâm Lý
+    let matchedGenreCount = 0;
+    const itemCategories = Array.isArray(item.category)
+      ? item.category
+      : typeof item.genre === "string"
+      ? item.genre.split(",").map((g: string) => ({ name: g.trim() }))
+      : [];
+    const seenGenres = new Set<string>();
+    for (const g of itemCategories) {
+      if (matchedGenreCount >= 3) break; // giới hạn tối đa 3 thể loại
+      const gSlug = (g?.slug || "").toLowerCase().trim();
+      const gName = (g?.name || "").toLowerCase().trim();
+      const key = gSlug || gName;
+      if (!key || seenGenres.has(key)) continue;
+      if (
+        (gSlug && targetGenreSlugs.has(gSlug)) ||
+        (gName && targetGenreNames.has(gName))
+      ) {
+        seenGenres.add(key);
+        matchedGenreCount++;
+      }
+    }
+    score += matchedGenreCount * 3;
+
+    // +3 nếu cùng quốc gia (giảm từ +5 vì quốc gia là tín hiệu yếu hơn diễn viên/đạo diễn)
+    let hasCountryMatch = false;
+    const itemCountries = Array.isArray(item.country)
+      ? item.country
+      : typeof item.country === "string"
+      ? [{ name: item.country }]
+      : [];
+    for (const c of itemCountries) {
+      const cSlug = (c?.slug || "").toLowerCase().trim();
+      const cName = (c?.name || "").toLowerCase().trim();
+      if (
+        (cSlug && targetCountrySlugs.has(cSlug)) ||
+        (cName && targetCountryNames.has(cName))
+      ) {
+        hasCountryMatch = true;
+        break;
+      }
+    }
+    if (hasCountryMatch) {
+      score += 3;
+    }
+
+    // +1 nếu cùng type (phim lẻ / phim bộ)
+    if (type && item.type) {
+      const normTypeA = type === "movie" || type === "single" ? "single" : type;
+      const normTypeB = item.type === "movie" || item.type === "single" ? "single" : item.type;
+      if (normTypeA === normTypeB) {
+        score += 1;
+      }
+    }
+
+    // +1 nếu năm gần nhau (chênh lệch <= 5 năm)
+    if (currentYearNum && currentYearNum > 1900 && item.year) {
+      const itemYearNum =
+        typeof item.year === "number" ? item.year : parseInt(String(item.year), 10);
+      if (itemYearNum && !isNaN(itemYearNum) && Math.abs(itemYearNum - currentYearNum) <= 5) {
+        score += 1;
+      }
+    }
+
+    // 6. Chuẩn hóa % Khớp theo thang điểm mở rộng (max ~32)
+    // Không còn bão hòa tại score>=18 = 98% như trước
+    let matchPercent = 50;
+    if (score <= 2) matchPercent = 50;
+    else if (score <= 5) matchPercent = 58;
+    else if (score <= 8) matchPercent = 64;
+    else if (score <= 11) matchPercent = 70;
+    else if (score <= 13) matchPercent = 74;
+    else if (score <= 15) matchPercent = 78;
+    else if (score <= 17) matchPercent = 82;
+    else if (score <= 19) matchPercent = 85;
+    else if (score <= 21) matchPercent = 88;
+    else if (score <= 23) matchPercent = 91;
+    else if (score <= 25) matchPercent = 93;
+    else if (score <= 27) matchPercent = 95;
+    else if (score <= 29) matchPercent = 97;
+    else matchPercent = 99;
+
+    scoredItems.push({
+      ...item,
+      recScore: score,
+      matchPercent,
+      _hasCountryMatch: hasCountryMatch,
+      _hasGenreMatch: matchedGenreCount > 0,
+      _hasActorMatch: hasActorMatch,
+    });
   }
-  const recommendedMovies = Array.from(deduped.values()).slice(0, 24);
+
+  // 6. Sắp xếp theo score giảm dần (ưu tiên điểm tương đồng cao nhất)
+  scoredItems.sort((a, b) => {
+    if (b.recScore !== a.recScore) {
+      return b.recScore - a.recScore;
+    }
+    const rateA = Number(a.imdb?.vote_average) || Number(a.tmdb?.vote_average) || 0;
+    const rateB = Number(b.imdb?.vote_average) || Number(b.tmdb?.vote_average) || 0;
+    if (rateB !== rateA) return rateB - rateA;
+    return Number(b.year || 0) - Number(a.year || 0);
+  });
+
+  // 7. Lấy tối đa 24 phim sau khi sort
+  const allMovies = scoredItems.slice(0, 24);
+  const genreMovies = scoredItems.filter((it) => it._hasGenreMatch).slice(0, 24);
+  const countryMovies = scoredItems.filter((it) => it._hasCountryMatch).slice(0, 24);
+  const actorMovies = scoredItems.filter((it) => it._hasActorMatch).slice(0, 24);
+
+  const mainGenreName = categories[0]?.name || "Thể loại";
+  const mainCountryName = countries[0]?.name || "Quốc gia";
 
   return (
     <RecommendationTabs
       currentMovieTitle={currentMovieTitle}
-      genreName={genreName}
-      countryName={countryName}
-      genreMovies={byGenre?.items || []}
-      countryMovies={byCountry?.items || []}
-      actorMovies={[]}
-      allMovies={recommendedMovies}
+      genreName={mainGenreName}
+      countryName={mainCountryName}
+      actorName={primaryActor}
+      genreMovies={genreMovies.length > 0 ? genreMovies : allMovies}
+      countryMovies={countryMovies.length > 0 ? countryMovies : allMovies}
+      actorMovies={actorMovies}
+      allMovies={allMovies}
     />
   );
 }

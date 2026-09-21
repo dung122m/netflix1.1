@@ -13,6 +13,7 @@ export interface DeviceInfo {
 }
 
 export type AnalyticsEventType =
+  | "site_visit"
   | "movie_view"
   | "watch_start"
   | "watch_progress"
@@ -145,35 +146,32 @@ export async function trackAnalyticsEvent(
     const deviceInfo = payload.deviceInfo || getMinimalDeviceInfo();
     const timestamp = payload.timestamp || Date.now();
 
+    let activeUserId = payload.userId;
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (auth) {
+      if (!auth.currentUser && typeof auth.authStateReady === "function") {
+        await auth.authStateReady().catch(() => {});
+      }
+      if (auth.currentUser) {
+        activeUserId = activeUserId || auth.currentUser.uid;
+        const idToken = await auth.currentUser.getIdToken().catch(() => null);
+        if (idToken) {
+          headers["Authorization"] = `Bearer ${idToken}`;
+        }
+      }
+    }
+
     const fullPayload: AnalyticsEventPayload = {
       ...payload,
+      userId: activeUserId,
       anonymousId,
       deviceInfo,
       timestamp,
     };
 
     const bodyString = JSON.stringify(fullPayload);
-
-    // Prefer navigator.sendBeacon for unload / background events, fallback to fetch keepalive
-    if (
-      (payload.eventType === "watch_end" || payload.eventType === "watch_progress") &&
-      typeof navigator !== "undefined" &&
-      typeof navigator.sendBeacon === "function"
-    ) {
-      const blob = new Blob([bodyString], { type: "application/json" });
-      const sent = navigator.sendBeacon("/api/analytics/track", blob);
-      if (sent) return;
-    }
-
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-    };
-    if (auth?.currentUser) {
-      const idToken = await auth.currentUser.getIdToken().catch(() => null);
-      if (idToken) {
-        headers["Authorization"] = `Bearer ${idToken}`;
-      }
-    }
 
     await fetch("/api/analytics/track", {
       method: "POST",
@@ -268,6 +266,19 @@ export function trackWatchEnd(watch: {
     progressSeconds: Math.round(watch.progressSeconds),
     durationSeconds: Math.round(watch.durationSeconds || 0),
   });
+}
+
+/**
+ * Track site visit — once per browser tab session (sessionStorage guard).
+ * Call this from GlobalVisitorTracker only.
+ */
+export const SITE_VISIT_SESSION_KEY = "nanaflix_session_visited";
+
+export function trackSiteVisit(): void {
+  if (typeof window === "undefined" || typeof sessionStorage === "undefined") return;
+  if (sessionStorage.getItem(SITE_VISIT_SESSION_KEY)) return;
+  sessionStorage.setItem(SITE_VISIT_SESSION_KEY, "1");
+  trackAnalyticsEvent({ eventType: "site_visit" });
 }
 
 /**

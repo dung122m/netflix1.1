@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { FootballMatch, StreamServer } from "@/services/liveFootballService";
 import { useMatchReminders } from "@/hooks/useMatchReminders";
+import { LiveShortcutPopover } from "./LiveShortcutPopover";
 
 // Logo hiển thị trong drawer danh sách kênh & trận đấu
 function MatchRailLogo({ option }: { option: FootballMatch }) {
@@ -2126,9 +2127,8 @@ function LivePlayerInner({
                 </button>
               )}
 
-              <span className="hidden lg:inline text-[11px] text-gray-400 bg-black/50 px-2.5 py-1 rounded-full border border-white/10 font-mono">
-                Space: Dừng/Phát • ← / →: Tua 10s • ↑ / ↓: Âm lượng • N / P: Đổi Trận • L: Về Live • F: Toàn Màn Hình • I: PiP
-              </span>
+              {/* Hướng dẫn phím tắt dạng popover overlay góc dưới phải */}
+              <LiveShortcutPopover mode="football" />
 
               {/* Nút Picture in Picture - Chỉ hiện trên tablet/desktop */}
               <button

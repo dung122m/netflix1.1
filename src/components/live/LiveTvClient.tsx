@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import { LiveTvData, TvChannel } from "@/services/liveTvService";
 import { useSearchParams } from "next/navigation";
+import { LiveShortcutPopover } from "./LiveShortcutPopover";
 
 interface LiveTvClientProps {
   initialData: LiveTvData;
@@ -1696,9 +1697,8 @@ export function LiveTvClient({
                   <span className="sm:hidden">Kênh</span>
                 </button>
 
-                <span className="hidden lg:inline text-[11px] text-gray-400 bg-black/50 px-2.5 py-1 rounded-full border border-white/10 font-mono">
-                  Space: Dừng/Phát • ← / →: Tua 10s • ↑ / ↓: Âm lượng • N / P: Đổi Kênh • L: Về Live • F: Fullscreen • I: PiP
-                </span>
+                {/* Hướng dẫn phím tắt dạng popover overlay góc dưới phải */}
+                <LiveShortcutPopover mode="tv" />
 
                 {/* Nút Picture in Picture */}
                 <button

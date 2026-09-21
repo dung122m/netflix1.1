@@ -24,6 +24,8 @@ interface MovieItem {
   year?: number | string;
   quality?: string;
   score?: number | string;
+  matchPercent?: number;
+  recScore?: number;
   category?: Array<{ name: string; slug?: string }>;
   country?: Array<{ name: string; slug?: string }>;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -276,8 +278,11 @@ export function RecommendationTabs({
         <div className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
             {displayedMovies.map((item, index) => {
-              // Điểm tương đồng giả lập thông minh (98% -> 85%) theo thứ tự tuyển chọn
-              const matchPercent = Math.max(85, 98 - (index % 12));
+              // Điểm tương đồng thực tế từ recommendation score
+              const matchPercent =
+                typeof item.matchPercent === "number"
+                  ? item.matchPercent
+                  : Math.max(65, 95 - (index % 10));
 
               return (
                 <RecommendedMovieCard

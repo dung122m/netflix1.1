@@ -11,6 +11,7 @@ import { DesktopReplyPopup } from "@/components/Notifications/DesktopReplyPopup"
 import { BottomNav } from "@/components/BottomNav";
 import { AuthProvider } from "@/context/AuthContext";
 import { NavigationProgressBar } from "@/components/NavigationProgressBar";
+import { GlobalVisitorTracker } from "@/components/GlobalVisitorTracker";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -190,6 +191,9 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <AuthProvider>
+          {/* Global site visit tracker — fires once per browser tab session */}
+          <GlobalVisitorTracker />
+
           {/* Thanh chỉ báo tải trang toàn cục mượt mà (Top Progress Bar) */}
           <NavigationProgressBar />
 

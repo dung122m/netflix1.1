@@ -46,6 +46,21 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
   const mobileInputRef = useRef<HTMLInputElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const mobileSearchRef = useRef<HTMLDivElement>(null);
+  const lastTrackedKeywordRef = useRef<{ kw: string; timestamp: number }>({ kw: "", timestamp: 0 });
+
+  const trackSearchOnce = useCallback((kw: string) => {
+    const clean = kw.trim();
+    if (!clean || clean.length < 2) return;
+    const now = Date.now();
+    if (
+      lastTrackedKeywordRef.current.kw.toLowerCase() === clean.toLowerCase() &&
+      now - lastTrackedKeywordRef.current.timestamp < 3000
+    ) {
+      return; // Deduplicate within 3 seconds for the same keyword
+    }
+    lastTrackedKeywordRef.current = { kw: clean, timestamp: now };
+    trackSearchKeyword(clean, user?.uid);
+  }, [user?.uid]);
 
   const isSearchOpen = isSearchExpanded;
   const hasSearchText = hasText;
@@ -186,7 +201,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
       setIsSearchExpanded(false);
     }
     saveRecentSearch(kw);
-    trackSearchKeyword(kw, user?.uid);
+    trackSearchOnce(kw);
     router.push(`/?keyword=${encodeURIComponent(kw)}`);
   };
 
@@ -289,10 +304,10 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
       if (suggestions.length > 0 && selectedSuggestionIndex >= 0 && selectedSuggestionIndex < suggestions.length) {
         e.preventDefault();
         const selected = suggestions[selectedSuggestionIndex];
-        const val = inputRef.current?.value || mobileInputRef.current?.value;
+        const val = (inputRef.current?.value || mobileInputRef.current?.value || "").trim();
         if (val) {
           saveRecentSearch(val);
-          trackSearchKeyword(val, user?.uid);
+          trackSearchOnce(val);
         }
         setShowDropdown(false);
         setIsSearchExpanded(false);
@@ -321,7 +336,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
 
     if (currentKeyword) {
       saveRecentSearch(currentKeyword);
-      trackSearchKeyword(currentKeyword, user?.uid);
+      trackSearchOnce(currentKeyword);
       router.push(`/?keyword=${encodeURIComponent(currentKeyword)}`);
     } else {
       router.push("/");
@@ -467,8 +482,11 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
                             : `/movies/${item.slug}`
                         }
                         onClick={() => {
-                          const val = mobileInputRef.current?.value || inputRef.current?.value;
-                          if (val) saveRecentSearch(val);
+                          const val = (mobileInputRef.current?.value || inputRef.current?.value || "").trim();
+                          if (val) {
+                            trackSearchOnce(val);
+                            saveRecentSearch(val);
+                          }
                           setShowDropdown(false);
                           setIsSearchExpanded(false);
                         }}
@@ -666,8 +684,10 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
                           : `/movies/${item.slug}`
                       }
                       onClick={() => {
-                        if (inputRef.current?.value) {
-                          saveRecentSearch(inputRef.current.value);
+                        const val = (inputRef.current?.value || mobileInputRef.current?.value || "").trim();
+                        if (val) {
+                          trackSearchOnce(val);
+                          saveRecentSearch(val);
                         }
                         setShowDropdown(false);
                       }}
