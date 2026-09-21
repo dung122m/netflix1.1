@@ -785,7 +785,7 @@ export default async function HomePage({
       )}
 
       <div
-        className={`px-4 md:px-8 ${keyword || actorParam ? "pt-24 sm:pt-28" : !keyword && !actorParam && !isPlainHomepage ? "pt-6" : "pt-8"
+        className={`px-4 md:px-8 relative z-10 ${keyword || actorParam ? "pt-24 sm:pt-28" : !keyword && !actorParam && !isPlainHomepage ? "pt-6" : "pt-8"
           }`}
       >
         {/* DẢI THẺ LỌC NHANH THỂ LOẠI & QUỐC GIA (Hiển thị cả khi đang tìm kiếm để người dùng lọc theo quốc gia của diễn viên) */}

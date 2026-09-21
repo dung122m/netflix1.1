@@ -357,7 +357,7 @@ const RecommendedMovieCard = React.memo(function RecommendedMovieCard({
   matchPercent: number;
 }) {
   const rawThumb = pickBestMovieThumb(item, "/default-hero.jpg");
-  const thumbUrl = toOptimizedPhimimgUrl(rawThumb, 640);
+  const thumbUrl = toOptimizedPhimimgUrl(rawThumb, 480);
   const title = item.name || item.title || "Phim đề xuất";
   const categoryName = item.category?.[0]?.name;
   const year = item.year;
@@ -369,7 +369,7 @@ const RecommendedMovieCard = React.memo(function RecommendedMovieCard({
     <div className="group relative bg-zinc-900 rounded-2xl overflow-hidden border border-white/10 hover:border-white/25 transition-all duration-300 hover:scale-[1.02] shadow-md hover:shadow-2xl flex flex-col">
       <Link href={`/movies/${item.slug}`} className="block h-full flex flex-col">
         {/* 1. ẢNH THUMBNAIL (aspect-video 16:9 chuẩn như Tiếp tục xem) */}
-        <div className="relative aspect-video w-full bg-zinc-950 overflow-hidden">
+        <div className="relative aspect-video w-full bg-zinc-900 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950 overflow-hidden">
           <Image
             src={thumbUrl}
             alt={title}

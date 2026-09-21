@@ -498,7 +498,7 @@ function MyListContent() {
             </Link>
           </div>
         ) : (
-          <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-zinc-900/45 to-zinc-950/45 p-3 sm:p-4 md:p-5">
+          <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-zinc-900/45 to-zinc-950/45 p-3 sm:p-4 md:p-5 overflow-visible">
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
               {watchlist.map((item, index) => (
                 <MediaCard
@@ -556,15 +556,18 @@ function MyListContent() {
                     className="group relative rounded-xl bg-zinc-900 border border-white/10 overflow-hidden hover:border-white/30 transition-all duration-300 hover:scale-[1.02] shadow-lg flex flex-col"
                   >
                     <Link href={href} className="block flex-1 flex flex-col">
-                      <div className="relative aspect-video w-full bg-zinc-800 overflow-hidden">
+                      <div className="relative aspect-video w-full bg-zinc-900 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950 overflow-hidden">
                         <Image
                           src={toOptimizedPhimimgUrl(
                             pickBestMovieThumb({ poster_url: item.poster, thumb_url: item.thumb }, "/default-hero.jpg"),
-                            640
+                            480
                           )}
                           alt={item.title}
                           fill
                           unoptimized
+                          loading="lazy"
+                          decoding="async"
+                          quality={85}
                           sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
                           className="object-cover transition-transform duration-300 group-hover:scale-105"
                           onError={(e) => {

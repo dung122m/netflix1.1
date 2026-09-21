@@ -88,9 +88,14 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
   );
 
   const currentSlug = slides[index]?.slug;
+  const [isHeroImageLoaded, setIsHeroImageLoaded] = useState(false);
   const [heroSynopsis, setHeroSynopsis] = useState<string>("");
   const [heroBackdropMap, setHeroBackdropMap] = useState<Record<string, string>>({});
   const [failedHeroImages, setFailedHeroImages] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    setIsHeroImageLoaded(false);
+  }, [index, currentSlug]);
 
   // Trailer States (Desktop only, lazy-load 2s, fault-tolerant)
   const [isDesktop, setIsDesktop] = useState(() =>
@@ -522,6 +527,9 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
             onDragEnd={onDragEnd}
             className="absolute inset-0 will-change-transform"
           >
+            {!isHeroImageLoaded && (
+              <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-zinc-950 to-black animate-pulse pointer-events-none" />
+            )}
             <Image
               src={heroImageSrc}
               alt={title}
@@ -530,8 +538,12 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
               quality={85}
               unoptimized
               sizes="100vw"
-              className="object-cover object-[center_25%]"
+              className={`object-cover object-[center_25%] transition-opacity duration-500 ${
+                isHeroImageLoaded ? "opacity-100" : "opacity-0"
+              }`}
+              onLoad={() => setIsHeroImageLoaded(true)}
               onError={() => {
+                setIsHeroImageLoaded(false);
                 if (currentSlug && !failedHeroImages[currentSlug]) {
                   setFailedHeroImages((prev) => ({ ...prev, [currentSlug]: true }));
                 }

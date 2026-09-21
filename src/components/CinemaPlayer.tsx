@@ -146,36 +146,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const [isScrolledPast, setIsScrolledPast] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
-  const stateRef = useRef({
-    isPlaying,
-    isMuted,
-    volume,
-    isTheaterMode,
-    isLightsOff,
-    showShortcutModal,
-    showSleepTimerModal,
-  });
-
-  useEffect(() => {
-    stateRef.current = {
-      isPlaying,
-      isMuted,
-      volume,
-      isTheaterMode,
-      isLightsOff,
-      showShortcutModal,
-      showSleepTimerModal,
-    };
-  }, [
-    isPlaying,
-    isMuted,
-    volume,
-    isTheaterMode,
-    isLightsOff,
-    showShortcutModal,
-    showSleepTimerModal,
-  ]);
-
   const showHud = useCallback((icon: React.ReactNode, text: string) => {
     if (hudTimerRef.current) clearTimeout(hudTimerRef.current);
     setHudState({ icon, text });
@@ -196,7 +166,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     setShowControls(true);
     if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
     controlsTimerRef.current = setTimeout(() => {
-      if (stateRef.current.isPlaying) {
+      if (!videoRef.current || !videoRef.current.paused) {
         setShowControls(false);
       }
     }, 3200);
@@ -242,14 +212,8 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     return m3u8Link || "";
   }, [m3u8Link, embedSrc, videoLink]);
 
-  const [initialEpisodeSlug] = useState<string | undefined>(() => activeEpisodeSlug);
+  const [initialEpisodeSlug] = useState<string | undefined>(activeEpisodeSlug);
   const [initialTimeUsed, setInitialTimeUsed] = useState<boolean>(false);
-
-  useEffect(() => {
-    if (activeEpisodeSlug && initialEpisodeSlug && activeEpisodeSlug !== initialEpisodeSlug) {
-      setInitialTimeUsed(true);
-    }
-  }, [activeEpisodeSlug, initialEpisodeSlug]);
 
   const urlParamT = searchParams?.get("t");
   const targetProgress = useMemo(() => {
@@ -279,7 +243,11 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const hasSeekedInitialRef = useRef<boolean>(false);
   useEffect(() => {
     hasSeekedInitialRef.current = false;
-  }, [activeEpisodeSlug, resolvedM3u8]);
+    setUseIframeFallback(false);
+    if (activeEpisodeSlug && initialEpisodeSlug && activeEpisodeSlug !== initialEpisodeSlug) {
+      setInitialTimeUsed(true);
+    }
+  }, [activeEpisodeSlug, resolvedM3u8, initialEpisodeSlug]);
 
   const activeSrc = useMemo(() => {
     let src = videoLink ? embedSrc : trailerEmbedSrc;
@@ -293,11 +261,14 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     return src;
   }, [videoLink, embedSrc, trailerEmbedSrc, targetProgress]);
 
-  useEffect(() => {
-    setUseIframeFallback(false);
-  }, [activeEpisodeSlug, resolvedM3u8]);
-
   const isNativeVideo = Boolean(resolvedM3u8 && !useIframeFallback);
+
+  const getEffectiveDuration = useCallback(() => {
+    const v = videoRef.current;
+    if (!v) return 0;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return knownDuration || (v as any).__hlsDuration || (v.duration && isFinite(v.duration) ? v.duration : 0);
+  }, [knownDuration]);
 
   // Watch time heartbeat
   useEffect(() => {
@@ -554,13 +525,11 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
 
     const trySeekToTarget = () => {
       if (targetProgress <= 0 || hasSeekedInitialRef.current) return;
+      hasSeekedInitialRef.current = true;
       const v = videoRef.current;
       if (!v) return;
       try {
         v.currentTime = targetProgress;
-        if (Math.abs(v.currentTime - targetProgress) <= 2.5) {
-          hasSeekedInitialRef.current = true;
-        }
       } catch {}
     };
 
@@ -619,7 +588,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           playPromise
             .then(() => {
               setIsPlaying(true);
-              trySeekToTarget();
             })
             .catch(() => {
               video.muted = true;
@@ -628,14 +596,13 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 .play()
                 .then(() => {
                   setIsPlaying(true);
-                  trySeekToTarget();
                 })
                 .catch(() => setIsPlaying(false));
             });
         }
       });
 
-      hls.on(Hls.Events.LEVEL_LOADED, (_event, data) => {
+      const updateHlsDuration = (_event: unknown, data: { details?: { totalduration?: number } }) => {
         if (data?.details?.totalduration && data.details.totalduration > 0 && isFinite(data.details.totalduration)) {
           const totalSecs = data.details.totalduration;
           setKnownDuration(totalSecs);
@@ -645,44 +612,27 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
             videoRef.current.dispatchEvent(new Event("durationchange"));
           }
         }
-      });
+      };
 
-      hls.on(Hls.Events.LEVEL_UPDATED, (_event, data) => {
-        if (data?.details?.totalduration && data.details.totalduration > 0 && isFinite(data.details.totalduration)) {
-          const totalSecs = data.details.totalduration;
-          setKnownDuration(totalSecs);
-          if (videoRef.current) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (videoRef.current as any).__hlsDuration = totalSecs;
-            videoRef.current.dispatchEvent(new Event("durationchange"));
-          }
-        }
-      });
-
-      hls.on(Hls.Events.FRAG_BUFFERED, () => {
-        if (!hasSeekedInitialRef.current && targetProgress > 0) {
-          trySeekToTarget();
-        }
-      });
+      hls.on(Hls.Events.LEVEL_LOADED, updateHlsDuration);
+      hls.on(Hls.Events.LEVEL_UPDATED, updateHlsDuration);
 
       const onCanPlay = () => trySeekToTarget();
-      const onLoadedData = () => trySeekToTarget();
-      const onPlaying = () => trySeekToTarget();
-
-      video.addEventListener("canplay", onCanPlay);
-      video.addEventListener("loadeddata", onLoadedData);
-      video.addEventListener("playing", onPlaying);
+      video.addEventListener("canplay", onCanPlay, { once: true });
 
       // Fallback seek duy nhất sau khi player đã sẵn sàng nếu startPosition chưa khớp
       seekTimeouts.push(
         setTimeout(() => {
           if (!hasSeekedInitialRef.current && targetProgress > 0 && videoRef.current) {
-            if (videoRef.current.currentTime < 4 || Math.abs(videoRef.current.currentTime - targetProgress) > 2) {
-              trySeekToTarget();
-            }
+            trySeekToTarget();
           }
-        }, 1500)
+        }, 1200)
       );
+
+      const fallbackToIframe = () => {
+        hls.destroy();
+        setUseIframeFallback(true);
+      };
 
       let retryCount = 0;
       let mediaRetryCount = 0;
@@ -694,8 +644,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
               if (retryCount <= 2) {
                 hls.startLoad();
               } else {
-                hls.destroy();
-                setUseIframeFallback(true);
+                fallbackToIframe();
               }
               break;
             case Hls.ErrorTypes.MEDIA_ERROR:
@@ -703,14 +652,12 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
               if (mediaRetryCount <= 1) {
                 hls.recoverMediaError();
               } else {
-                hls.destroy();
-                setUseIframeFallback(true);
+                fallbackToIframe();
               }
               break;
             default:
-              hls.destroy();
-              setUseIframeFallback(true);
-              break;
+              fallbackToIframe();
+            break;
           }
         }
       });
@@ -723,7 +670,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           .play()
           .then(() => {
             setIsPlaying(true);
-            trySeekToTarget();
           })
           .catch(() => {
             video.muted = true;
@@ -802,8 +748,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     };
     const handlePause = () => {
       setIsPlaying(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const currentEffectiveDuration = knownDuration || (video as any).__hlsDuration || (video.duration && isFinite(video.duration) ? video.duration : 0);
+      const currentEffectiveDuration = getEffectiveDuration();
       if (movieSlug && activeEpisodeSlug && video.currentTime > 5) {
         saveWatchProgress(movieSlug, video.currentTime, currentEffectiveDuration, activeEpisodeSlug);
       }
@@ -832,28 +777,17 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     };
 
     const handleTimeUpdateThrottled = () => {
-      if (!hasSeekedInitialRef.current && targetProgress > 0 && video.currentTime < 4 && targetProgress >= 5) {
-        try {
-          video.currentTime = targetProgress;
-          hasSeekedInitialRef.current = true;
-        } catch {}
-      } else if (!hasSeekedInitialRef.current && targetProgress > 0 && Math.abs(video.currentTime - targetProgress) <= 3) {
-        hasSeekedInitialRef.current = true;
-      }
-
       const now = Date.now();
       if (now - lastProgressSaveRef.current > 3000) {
         lastProgressSaveRef.current = now;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const currentEffectiveDuration = knownDuration || (video as any).__hlsDuration || (video.duration && isFinite(video.duration) ? video.duration : 0);
+        const currentEffectiveDuration = getEffectiveDuration();
         if (movieSlug && activeEpisodeSlug && video.currentTime > 0) {
           saveWatchProgress(movieSlug, video.currentTime, currentEffectiveDuration, activeEpisodeSlug);
         }
       }
       if (user?.uid && now - lastHandoffSyncRef.current > 8000 && movieSlug && video.currentTime > 5) {
         lastHandoffSyncRef.current = now;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const currentEffectiveDuration = knownDuration || (video as any).__hlsDuration || (video.duration && isFinite(video.duration) ? video.duration : 0);
+        const currentEffectiveDuration = getEffectiveDuration();
         updateActivePlaybackSession(user.uid, {
           movieSlug,
           movieTitle: title,
@@ -867,8 +801,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       // Throttled watch progress analytics (every 45-60s)
       if (movieSlug && now - lastAnalyticsProgressRef.current > 45000 && video.currentTime > 5) {
         lastAnalyticsProgressRef.current = now;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const currentEffectiveDuration = knownDuration || (video as any).__hlsDuration || (video.duration && isFinite(video.duration) ? video.duration : 0);
+        const currentEffectiveDuration = getEffectiveDuration();
         trackWatchProgress({
           movieSlug,
           movieTitle: title,
@@ -883,8 +816,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
 
     const handleEnded = () => {
       setIsPlaying(false);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const currentEffectiveDuration = knownDuration || (video as any).__hlsDuration || (video.duration && isFinite(video.duration) ? video.duration : 0);
+      const currentEffectiveDuration = getEffectiveDuration();
       if (movieSlug) {
         trackWatchEnd({
           movieSlug,
@@ -925,7 +857,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     activeEpisodeName,
     posterUrl,
     targetProgress,
-    knownDuration,
+    getEffectiveDuration,
   ]);
 
   // Mobile sticky detection
@@ -978,8 +910,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         if (isNativeVideo && videoRef.current) {
           const delta = e.key === "ArrowRight" ? 10 : -10;
           const v = videoRef.current;
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const effectiveDuration = knownDuration || (v as any).__hlsDuration || (v.duration && isFinite(v.duration) ? v.duration : 0);
+          const effectiveDuration = getEffectiveDuration();
 
           const baseTime = pendingKeyboardSeekRef.current.timer !== null
             ? pendingKeyboardSeekRef.current.targetTime
@@ -1064,7 +995,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     togglePlayPause,
     toggleFullscreen,
     showHud,
-    knownDuration,
+    getEffectiveDuration,
   ]);
 
   const scrollToPlayer = useCallback(() => {

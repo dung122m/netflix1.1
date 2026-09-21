@@ -49,16 +49,35 @@ export type SearchIntent =
   | "mixed"
   | "unknown";
 
-export interface AiParsedResult {
-  intent?: SearchIntent;
-  keywords?: string[];
-  semanticQuery?: string;
+export interface NormalizedSearchIntent {
+  intent: SearchIntent;
+  keywords: string[];
+  genres: string[];
+  countries: string[];
+  people: Array<{ name: string; role?: "actor" | "director" }>;
+  franchises: string[];
+  themes: string[];
+  year?: number | null;
+  yearRange?: { from?: number; to?: number } | null;
+  type?: "single" | "series" | "anime" | null;
+  exclude?: {
+    countries?: string[];
+    genres?: string[];
+    titles?: string[];
+    keywords?: string[];
+  };
+  sortPreference?: "latest" | "rating" | "popular" | null;
   concepts?: string[];
   is_trap?: boolean;
   is_off_topic?: boolean;
+  semanticQuery?: string;
   analysis?: string;
   mood?: string;
-  genres?: string[];
+  suggested_movies?: CandidateMovie[];
+}
+
+export interface AiParsedResult extends Partial<NormalizedSearchIntent> {
+  // Legacy aliases for backward compatibility across modules
   genre?: string;
   country?: string;
   is_latest?: boolean;
@@ -71,7 +90,6 @@ export interface AiParsedResult {
   character?: string;
   excluded_countries?: string[];
   excluded_genres?: string[];
-  suggested_movies?: CandidateMovie[];
   movies?: CandidateMovie[];
 }
 

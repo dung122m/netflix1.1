@@ -265,8 +265,8 @@ export function toOptimizedCardBackdropUrl(url: string): string {
   if (clean.includes("phimimg.com") && clean.includes("-poster.webp")) {
     clean = clean.replace("-poster.webp", "-thumb.webp");
   }
-  // Nếu là /upload/vod/ nặng 1-3MB, bọc qua proxy w=640
-  clean = toOptimizedPhimimgUrl(clean, 640);
+  // Nếu là /upload/vod/ nặng 1-3MB, bọc qua proxy w=480 (độ nét chuẩn Retina và nhẹ hơn w=640 ~40%)
+  clean = toOptimizedPhimimgUrl(clean, 480);
   return clean;
 }
 

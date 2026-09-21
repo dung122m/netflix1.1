@@ -27,7 +27,7 @@ import {
 
 export const Footer: React.FC = () => {
   return (
-    <footer className="relative bg-gradient-to-b from-transparent via-zinc-950/90 to-black text-gray-400 pt-10 sm:pt-16 pb-8 sm:pb-12 px-4 sm:px-8 md:px-16 mt-12 sm:mt-20 border-t border-white/10 overflow-hidden cv-auto-footer">
+    <footer className="relative z-0 bg-gradient-to-b from-transparent via-zinc-950/90 to-black text-gray-400 pt-10 sm:pt-16 pb-8 sm:pb-12 px-4 sm:px-8 md:px-16 mt-12 sm:mt-20 border-t border-white/10 overflow-hidden cv-auto-footer">
       {/* Hiệu ứng hào quang rực rỡ phía trên footer */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 max-w-4xl h-px bg-gradient-to-r from-transparent via-netflix-red/60 to-transparent" />
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 max-w-2xl h-16 bg-netflix-red/10 blur-3xl pointer-events-none" />

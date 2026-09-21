@@ -151,10 +151,6 @@ export const CuratedMovieSection: React.FC<CuratedMovieSectionProps> = ({
     <section
       className="mt-8 mb-12"
       aria-label="Tuyển chọn phim Nanaflix"
-      style={{
-        contentVisibility: "auto",
-        containIntrinsicSize: "auto 600px",
-      }}
     >
       {/* HEADER & TABS BAR */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-6">

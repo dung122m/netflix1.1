@@ -25,7 +25,14 @@ export interface RelevanceCheckOptions {
   targetGenreSlug?: string;
   targetCountrySlug?: string;
   targetYear?: number;
+  yearFrom?: number;
+  yearTo?: number;
   detectedChar?: CharacterProfile | null;
+  excludedTitles?: string[];
+  excludedCountries?: string[];
+  excludedGenres?: string[];
+  franchises?: string[];
+  themes?: string[];
 }
 
 export interface RelevanceResult {
@@ -313,6 +320,36 @@ export function isRelevantToQuery(
   const country = toSafeCountry(movie);
   const actors = toSafeActors(movie);
   const desc = cleanNormalizedString(movie.content || movie.description || movie.overview || "");
+
+  // 1.1 KIỂM TRA LOẠI TRỪ TIÊU ĐỀ, QUỐC GIA, THỂ LOẠI (HARD NEGATIVE CONSTRAINTS)
+  if (options?.excludedTitles && options.excludedTitles.length > 0) {
+    const isExcludedTitle = options.excludedTitles.some((ex) => {
+      const cleanEx = cleanNormalizedString(ex);
+      return (
+        cleanEx &&
+        (name === cleanEx ||
+          orig === cleanEx ||
+          slug === cleanEx.replace(/\s+/g, "-") ||
+          hasWordMatch(name, cleanEx) ||
+          hasWordMatch(orig, cleanEx))
+      );
+    });
+    if (isExcludedTitle) {
+      return { relevant: false, score: 0, reason: "Phim thuộc danh sách loại trừ của người dùng" };
+    }
+  }
+
+  if (options?.excludedCountries && options.excludedCountries.length > 0) {
+    if (options.excludedCountries.some((ex) => matchesCountry(country, ex))) {
+      return { relevant: false, score: 0, reason: "Quốc gia thuộc danh sách loại trừ" };
+    }
+  }
+
+  if (options?.excludedGenres && options.excludedGenres.length > 0) {
+    if (options.excludedGenres.some((ex) => matchesGenre(category, ex))) {
+      return { relevant: false, score: 0, reason: "Thể loại thuộc danh sách loại trừ" };
+    }
+  }
 
   // 2. INTENT = MOVIE_TITLE (Tìm tựa phim cụ thể)
   if (parsedIntent === "movie_title") {

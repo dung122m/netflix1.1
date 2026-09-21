@@ -74,9 +74,50 @@ export const CHARACTER_SLUG_MAP: Record<string, CharacterProfile> = {
   },
   "superman": {
     name: "Superman",
-    aliases: ["superman", "clark kent", "siêu nhân", "sieu nhan", "người đàn ông thép"],
+    aliases: ["superman", "clark kent", "người đàn ông thép", "nguoi dan ong thep", "man of steel", "super man"],
     searchKeywords: ["superman", "man of steel", "nguoi dan ong thep"],
     defaultTitles: ["Người Đàn Ông Thép", "Superman"],
+  },
+  "kamen-rider": {
+    name: "Kamen Rider",
+    aliases: [
+      "kamen rider",
+      "kamenrider",
+      "siêu nhân dế",
+      "sieu nhan de",
+      "hiệp sĩ mặt nạ",
+      "hiep si mat na",
+      "masked rider",
+    ],
+    searchKeywords: ["kamen rider", "masked rider", "hiep si mat na"],
+    defaultTitles: ["Kamen Rider", "Shin Kamen Rider", "Kamen Rider Geats", "Kamen Rider Build"],
+  },
+  "ultraman": {
+    name: "Ultraman",
+    aliases: [
+      "ultraman",
+      "siêu nhân điện quang",
+      "sieu nhan dien quang",
+      "ultra series",
+      "shin ultraman",
+    ],
+    searchKeywords: ["ultraman", "sieu nhan dien quang", "shin ultraman"],
+    defaultTitles: ["Ultraman", "Shin Ultraman", "Ultraman Trigger", "Ultraman Blazar"],
+  },
+  "super-sentai": {
+    name: "Super Sentai",
+    aliases: [
+      "super sentai",
+      "supersentai",
+      "5 anh em siêu nhân",
+      "5 anh em sieu nhan",
+      "siêu nhân gao",
+      "sieu nhan gao",
+      "gaoranger",
+      "power rangers",
+    ],
+    searchKeywords: ["super sentai", "sentai", "gaoranger", "power rangers"],
+    defaultTitles: ["Gaoranger", "Super Sentai", "Power Rangers"],
   },
   "john-wick": {
     name: "John Wick",
@@ -217,7 +258,7 @@ export function normalizeQuery(text: string): string {
  * Sửa các lỗi chính tả phổ biến trong tiếng Việt trước khi gửi AI
  */
 export function normalizeTypos(prompt: string): string {
-  let res = prompt
+  const res = prompt
     .replace(/\bzoombie[s]?\b/gi, "zombie")
     .replace(/\bhành đọng\b/gi, "hành động")
     .replace(/\bhanh dong\b/gi, "hành động")
@@ -228,18 +269,11 @@ export function normalizeTypos(prompt: string): string {
     .replace(/\bkinh di\b/gi, "kinh dị")
     .replace(/\bviễn tuởng\b/gi, "viễn tưởng")
     .replace(/\bvien tuong\b/gi, "viễn tưởng")
-    .replace(/\btrinh tham\b/gi, "trinh thám");
+    .replace(/\btrinh tham\b/gi, "trinh thám")
+    .replace(/\btrẩn chân\b/gi, "Trần Chân")
+    .replace(/\bton ngo ko\b/gi, "Tôn Ngộ Không")
+    .replace(/\btôn ngộ ko\b/gi, "Tôn Ngộ Không");
 
-  // Tự động sửa typo tên nhân vật phổ biến: "Trẩn Chân" -> "Trần Chân"
-  const char = resolveCharacter(prompt);
-  if (char) {
-    for (const alias of char.aliases) {
-      if (alias !== char.name) {
-        const regex = new RegExp(`\\b${alias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "gi");
-        res = res.replace(regex, char.name);
-      }
-    }
-  }
   return res;
 }
 

@@ -214,9 +214,10 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     };
   });
 
-  // Hướng neo lề thông minh chống tràn mép màn hình
+  // Hướng neo lề thông minh chống tràn mép màn hình (trái/phải/giữa)
   const cardRef = useRef<HTMLDivElement>(null);
   const [edgeOrigin, setEdgeOrigin] = useState<"left" | "right" | "center">("center");
+  const [verticalShift, setVerticalShift] = useState(0);
 
   const hoverIntentTimerRef = useRef<NodeJS.Timeout | null>(null);
   const hoverTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -239,7 +240,6 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     }
     return "";
   });
-  const [loadingDetails, setLoadingDetails] = useState(false);
   const [isCardHovered, setIsCardHovered] = useState(false);
 
   // Đồng bộ Watchlist
@@ -358,6 +358,17 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         } else {
           setEdgeOrigin("center");
         }
+
+        // Tự động tính toán nâng toàn bộ thẻ hover lên khi ở gần đáy màn hình để thẻ luôn nổi trọn vẹn
+        const estimatedHeight = 440;
+        const spaceBelow = window.innerHeight - rect.top;
+        if (spaceBelow < estimatedHeight + 20) {
+          const needed = (estimatedHeight + 20) - spaceBelow;
+          const maxAllowed = Math.max(0, rect.top - 75);
+          setVerticalShift(-Math.min(needed, maxAllowed));
+        } else {
+          setVerticalShift(0);
+        }
       }
 
       // Kiểm tra cache
@@ -381,7 +392,6 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       if ((!synopsis || !extraInfo.actor?.length) && slug) {
         if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
         hoverTimerRef.current = setTimeout(async () => {
-          setLoadingDetails(true);
           try {
             const data = await fetchMovieSynopsisShared(slug);
             if (data?.content) {
@@ -415,8 +425,6 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
             setExtraInfo(info);
           } catch {
             if (description) setSynopsis(description);
-          } finally {
-            setLoadingDetails(false);
           }
         }, 450);
       }
@@ -491,6 +499,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     if (unmountTimerRef.current) clearTimeout(unmountTimerRef.current);
     unmountTimerRef.current = setTimeout(() => {
       setIsCardHovered(false);
+      setVerticalShift(0);
       unmountTimerRef.current = null;
     }, 280);
   };
@@ -608,6 +617,9 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         href={`/movies/${slug}`}
         className="block w-full h-full rounded-2xl overflow-hidden bg-zinc-950 border border-white/[0.12] relative transition-all duration-300 shadow-md group-hover:border-white/40 group-hover:shadow-[0_16px_40px_rgba(0,0,0,0.85)]"
       >
+        {/* Placeholder nền tối phía dưới ảnh */}
+        <div className="absolute inset-0 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950 pointer-events-none" />
+
         <Image
           src={currentImgSrc}
           alt={title}
@@ -697,10 +709,11 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       </Link>
 
       {/* ============================================================ */}
-      {/* 2. EXPANDED HOVER CARD (Giao diện tinh gọn, vừa vặn, chuẩn Netflix) */}
+      {/* 2. EXPANDED HOVER CARD (Giao diện nổi thông minh, vừa vặn, chuẩn Netflix) */}
       {/* ============================================================ */}
       <div
-        className={`hidden sm:block absolute top-0 left-0 w-full opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-hover:scale-[1.08] md:group-hover:scale-[1.10] group-hover:z-50 transition-all duration-250 ease-out delay-0 group-hover:delay-150 ${originClass} rounded-2xl overflow-hidden keep-dark-cinema bg-zinc-950/95 backdrop-blur-2xl border border-white/30 shadow-[0_24px_60px_-10px_rgba(0,0,0,0.98),0_0_20px_rgba(229,9,20,0.15)] will-change-transform`}
+        style={verticalShift ? { transform: `translateY(${verticalShift}px)` } : undefined}
+        className={`hidden sm:block absolute top-0 left-0 w-full opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-hover:scale-[1.08] md:group-hover:scale-[1.10] group-hover:z-50 transition-all duration-200 ease-out delay-0 group-hover:delay-100 ${originClass} rounded-2xl overflow-hidden keep-dark-cinema bg-zinc-950/98 backdrop-blur-2xl border border-white/30 shadow-[0_24px_60px_-10px_rgba(0,0,0,0.98),0_0_20px_rgba(229,9,20,0.15)] will-change-transform`}
       >
         {isCardHovered && (
           <>
@@ -801,43 +814,43 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           </div>
         </Link>
 
-        {/* PHẦN DƯỚI: KHU VỰC THÔNG TIN (HỢP LÝ, GỌN GÀNG, KHÔNG RÁC THÔNG TIN) */}
-        <div className="p-2.5 sm:p-3 bg-zinc-900 text-white space-y-1.5">
+        {/* PHẦN DƯỚI: KHU VỰC THÔNG TIN (HỢP LÝ, GỌN GÀNG, ĐẦY ĐỦ NỘI DUNG & NỔI LÊN TRÊN) */}
+        <div className="p-3 bg-zinc-950/95 text-white space-y-2">
           {/* 1. Hàng nút bấm hành động */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <Link
                 href={`/movies/${slug}`}
-                className="h-7.5 w-7.5 rounded-full bg-white text-black flex items-center justify-center hover:bg-gray-200 transition-transform hover:scale-110 active:scale-95 shadow-lg cursor-pointer"
+                className="h-8 w-8 rounded-full bg-white text-black flex items-center justify-center hover:bg-gray-200 transition-transform hover:scale-110 active:scale-95 shadow-lg cursor-pointer"
                 title="Xem phim ngay"
               >
-                <Play className="h-3.5 w-3.5 fill-current ml-0.5" />
+                <Play className="h-4 w-4 fill-current ml-0.5" />
               </Link>
 
               <button
                 type="button"
                 onClick={handleToggleList}
                 title={inList ? "Đã thêm vào danh sách" : "Thêm vào danh sách"}
-                className={`h-7.5 w-7.5 rounded-full border flex items-center justify-center transition-all hover:scale-110 active:scale-95 cursor-pointer ${
+                className={`h-8 w-8 rounded-full border flex items-center justify-center transition-all hover:scale-110 active:scale-95 cursor-pointer ${
                   inList
                     ? "bg-white text-black border-white"
                     : "border-white/40 bg-zinc-800/80 text-white hover:border-white hover:bg-white/10"
                 }`}
               >
-                {inList ? <Check className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+                {inList ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
               </button>
 
               <button
                 type="button"
                 onClick={handleToggleLike}
                 title={liked ? "Đã thích" : "Thích"}
-                className={`h-7.5 w-7.5 rounded-full border flex items-center justify-center transition-all hover:scale-110 active:scale-95 cursor-pointer ${
+                className={`h-8 w-8 rounded-full border flex items-center justify-center transition-all hover:scale-110 active:scale-95 cursor-pointer ${
                   liked
                     ? "bg-netflix-red text-white border-netflix-red"
                     : "border-white/40 bg-zinc-800/80 text-white hover:border-white hover:bg-white/10"
                 }`}
               >
-                <ThumbsUp className={`h-3 w-3 ${liked ? "fill-current" : ""}`} />
+                <ThumbsUp className={`h-3.5 w-3.5 ${liked ? "fill-current" : ""}`} />
               </button>
 
               {(trailerUrl || hasTrailerState || isTrailerOnly) && (
@@ -850,7 +863,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
                     setShowTrailerModal(true);
                   }}
                   title="Xem Trailer chính thức"
-                  className="h-7.5 px-2 rounded-full border border-red-500/50 bg-red-600/20 text-red-300 hover:bg-netflix-red hover:text-white flex items-center gap-1 transition-all hover:scale-105 active:scale-95 cursor-pointer text-[11px] font-bold shadow-sm"
+                  className="h-8 px-2.5 rounded-full border border-red-500/50 bg-red-600/20 text-red-300 hover:bg-netflix-red hover:text-white flex items-center gap-1 transition-all hover:scale-105 active:scale-95 cursor-pointer text-[11px] font-bold shadow-sm"
                 >
                   <Film className="h-3 w-3 text-current" />
                   <span>Trailer</span>
@@ -860,52 +873,52 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
 
             <Link
               href={`/movies/${slug}`}
-              title="Thông tin chi tiết"
-              className="h-7.5 w-7.5 rounded-full border border-white/40 bg-zinc-800/80 text-white hover:border-white flex items-center justify-center transition-transform hover:scale-110 active:scale-95 cursor-pointer"
+              title="Xem trang chi tiết"
+              className="h-8 w-8 rounded-full border border-white/40 bg-zinc-800/80 text-white hover:border-white flex items-center justify-center transition-transform hover:scale-110 active:scale-95 cursor-pointer"
             >
-              <ChevronRight className="h-3.5 w-3.5" />
+              <ChevronRight className="h-4 w-4" />
             </Link>
           </div>
 
-          {/* 2. Tiêu đề phim & Tên gốc */}
+          {/* 2. Tiêu đề phim */}
           <div>
             <Link href={`/movies/${slug}`} className="block group/title">
-              <p className="text-white font-extrabold text-xs sm:text-[13px] line-clamp-1 group-hover/title:text-rose-400 transition-colors">
+              <p className="text-white font-extrabold text-sm line-clamp-1 group-hover/title:text-rose-400 transition-colors">
                 {title}
               </p>
             </Link>
             {displayOrigin && displayOrigin !== title && (
-              <p className="text-[9.5px] text-gray-400 truncate italic">
+              <p className="text-[10px] text-gray-400 truncate italic">
                 {displayOrigin}
               </p>
             )}
           </div>
 
-          {/* 3. Hàng chỉ số & Thông tin kỹ thuật (Phim bộ/lẻ, Quốc gia, Năm, Thời lượng, Ngôn ngữ) */}
-          <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-semibold">
-            <span className="bg-white/10 border border-white/15 text-white font-bold px-1.5 py-0.2 rounded text-[9px]">
-              {displayType}
-            </span>
-            {displayCountry && (
-              <span className="bg-amber-500/15 border border-amber-500/30 text-amber-300 font-bold px-1.5 py-0.2 rounded text-[9px]">
-                {displayCountry}
+          {/* 3. Hàng chỉ số & Thông tin kỹ thuật */}
+          <div className="flex flex-wrap items-center gap-1.5 text-[10.5px] font-semibold">
+            {rating && rating !== "N/A" && Number(rating) > 0 && (
+              <span className="text-emerald-400 font-extrabold flex items-center gap-0.5">
+                <Star className="w-3 h-3 fill-amber-400 text-amber-400 inline" />
+                {typeof rating === "number" ? rating.toFixed(1) : rating}
               </span>
             )}
-            {chieurap && (
-              <span className="bg-gradient-to-r from-amber-500 to-orange-600 text-white font-extrabold px-1.5 py-0.2 rounded text-[8.5px] uppercase tracking-wide shadow-sm">
-                🎬 Rạp
-              </span>
+            <span className="text-gray-300">{displayType}</span>
+            {displayYear && (
+              <>
+                <span className="text-white/30">•</span>
+                <span className="text-gray-300">{displayYear}</span>
+              </>
             )}
-            {sub_docquyen && (
-              <span className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-extrabold px-1.5 py-0.2 rounded text-[8.5px] uppercase tracking-wide shadow-sm">
-                💎 Độc Quyền
-              </span>
-            )}
-            {displayYear && <span className="text-gray-300">{displayYear}</span>}
             {displayTime && (
               <>
                 <span className="text-white/30">•</span>
                 <span className="text-gray-300">{displayTime}</span>
+              </>
+            )}
+            {displayCountry && (
+              <>
+                <span className="text-white/30">•</span>
+                <span className="text-amber-300/90 font-medium">{displayCountry}</span>
               </>
             )}
             {lang && (
@@ -915,10 +928,10 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
             )}
           </div>
 
-          {/* 4. THÔNG TIN DIỄN VIÊN / ĐẠO DIỄN (CHỈ HIỆN KHI CÓ DỮ LIỆU) */}
+          {/* 4. Diễn viên hoặc Đạo diễn */}
           {displayActors && (
             <div className="pt-1 text-[10px] border-t border-white/10 flex items-start gap-1 text-gray-300 leading-tight">
-              <Users className="w-2.5 h-2.5 text-rose-400 flex-none mt-0.5" />
+              <Users className="w-3 h-3 text-rose-400 flex-none mt-0.5" />
               <span className="line-clamp-1 text-gray-300">
                 <strong className="text-gray-400 font-medium">Diễn viên:</strong>{" "}
                 {displayActors.join(", ")}
@@ -928,7 +941,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
 
           {displayDirectors && !displayActors && (
             <div className="pt-1 text-[10px] border-t border-white/10 flex items-start gap-1 text-gray-300 leading-tight">
-              <Clapperboard className="w-2.5 h-2.5 text-amber-400 flex-none mt-0.5" />
+              <Clapperboard className="w-3 h-3 text-amber-400 flex-none mt-0.5" />
               <span className="line-clamp-1 text-gray-300">
                 <strong className="text-gray-400 font-medium">Đạo diễn:</strong>{" "}
                 {displayDirectors.join(", ")}
@@ -936,42 +949,31 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
             </div>
           )}
 
-          {/* 5. Tóm tắt cốt truyện (Hiển thị 5 dòng mô tả đầy đủ, chi tiết) */}
+          {/* 5. Tóm tắt cốt truyện */}
           {matchSnippet ? (
-            <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/25 my-1 text-left">
-              <p className="text-[9.5px] font-bold text-amber-300 flex items-center gap-1 mb-0.5">
-                <span>💬 Khớp trong tóm tắt nội dung phim:</span>
-              </p>
-              <p className="text-[10.5px] text-amber-100/90 italic leading-relaxed line-clamp-4">
+            <div className="p-1.5 rounded-lg bg-amber-500/10 border border-amber-500/25 text-left">
+              <p className="text-[10px] text-amber-100/90 italic line-clamp-3 leading-relaxed">
                 &ldquo;{matchSnippet}&rdquo;
               </p>
             </div>
           ) : synopsis ? (
-            <p className="text-[10.5px] text-zinc-300 line-clamp-5 leading-relaxed pt-1 border-t border-white/10">
+            <p className="text-[10.5px] text-zinc-300 line-clamp-3 leading-relaxed pt-1 border-t border-white/10">
               {synopsis}
             </p>
-          ) : loadingDetails ? (
-            <div className="w-full space-y-1.5 pt-1 animate-pulse">
-              <div className="h-1.5 bg-white/20 rounded w-full"></div>
-              <div className="h-1.5 bg-white/15 rounded w-5/6"></div>
-              <div className="h-1.5 bg-white/10 rounded w-4/5"></div>
-            </div>
           ) : description ? (
-            <p className="text-[10.5px] text-zinc-300 line-clamp-5 leading-relaxed pt-1 border-t border-white/10">
+            <p className="text-[10.5px] text-zinc-300 line-clamp-3 leading-relaxed pt-1 border-t border-white/10">
               {description}
             </p>
           ) : null}
 
-          {/* 6. Thẻ thể loại chi tiết */}
+          {/* 6. Thể loại phim dạng danh sách tinh tế */}
           {cleanGenres.length > 0 && (
-            <div className="flex flex-wrap items-center gap-1 pt-1 border-t border-white/10">
+            <div className="flex items-center gap-1.5 text-[10.5px] text-zinc-300 font-medium pt-0.5 flex-wrap">
               {cleanGenres.map((g, i) => (
-                <span
-                  key={i}
-                  className="bg-white/10 hover:bg-white/20 border border-white/10 px-1.5 py-0.2 rounded text-[9px] text-gray-300 font-medium transition-colors"
-                >
-                  {g}
-                </span>
+                <React.Fragment key={i}>
+                  {i > 0 && <span className="text-white/30 text-[9px]">•</span>}
+                  <span className="hover:text-white transition-colors">{g}</span>
+                </React.Fragment>
               ))}
             </div>
           )}

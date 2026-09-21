@@ -153,11 +153,11 @@ export function ContinueWatchingRow() {
               >
                 <Link href={href} className="block">
                   {/* ẢNH THUMBNAIL (16:9, ưu tiên thumb ngang) */}
-                  <div className="relative aspect-video w-full bg-zinc-800 overflow-hidden">
+                  <div className="relative aspect-video w-full bg-zinc-900 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950 overflow-hidden">
                     <Image
                       src={toOptimizedPhimimgUrl(
                         pickBestMovieThumb({ poster_url: item.poster, thumb_url: item.thumb }, "/default-hero.jpg"),
-                        640
+                        480
                       )}
                       alt={item.title}
                       fill

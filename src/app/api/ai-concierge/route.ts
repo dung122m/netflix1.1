@@ -187,25 +187,68 @@ export async function POST(req: NextRequest) {
     t_ai_ms = Math.round(performance.now() - t_ai_start);
 
     // 3. Chuẩn hóa bộ lọc (Slugs & Constraints)
+    const excludedTitles: string[] = [
+      ...(aiParsed?.exclude?.titles || []),
+    ].map((t) => t.trim().toLowerCase()).filter(Boolean);
+
+    // Heuristic: "phim giống X nhưng không phải X" / "không lấy phim X"
+    const excludePatternMatch = prompt.match(/(?:nhưng\s+không\s+phải|nhung\s+khong\s+phai|không\s+lấy|khong\s+lay|trừ|loại\s+trừ)\s+([^\.,\?!]+)/i);
+    if (excludePatternMatch && excludePatternMatch[1]) {
+      const rawEx = excludePatternMatch[1].trim().toLowerCase();
+      if (rawEx && !excludedTitles.includes(rawEx)) {
+        excludedTitles.push(rawEx);
+      }
+    }
+
     const promptCharMatch =
       prompt.match(/(?:phim\s+)?(?:có|co)\s+(?:nhân\s+vật|nhan\s+vat)\s+([^\.,\?!]+)/i) ||
       prompt.match(/(?:nhân\s+vật|nhan\s+vat)\s+(?:tên\s+là|tên)\s+([^\.,\?!]+)/i);
     const rawPromptChar = promptCharMatch ? promptCharMatch[1].trim() : "";
 
-    const detectedChar =
-      resolveCharacter(prompt) ||
-      (aiParsed?.character ? resolveCharacter(aiParsed.character) : null) ||
-      (rawPromptChar ? resolveCharacter(rawPromptChar) : null);
+    const detectedConcepts = resolveConcepts(prompt, aiParsed?.concepts);
+    const isTokusatsuConcept = detectedConcepts.some((c) => c.id === "japanese_tokusatsu");
+
+    let detectedChar = isTokusatsuConcept
+      ? null
+      : resolveCharacter(prompt) ||
+        (aiParsed?.character ? resolveCharacter(aiParsed.character) : null) ||
+        (rawPromptChar ? resolveCharacter(rawPromptChar) : null);
+
+    // Nếu nhân vật nằm trong danh sách loại trừ (ví dụ: "phim giống John Wick nhưng không phải John Wick")
+    // thì hủy bỏ character intent
+    if (detectedChar) {
+      const charNameLower = detectedChar.name.toLowerCase();
+      const isExcluded = excludedTitles.some((ex) => {
+        const cleanEx = cleanNormalizedString(ex);
+        return (
+          charNameLower.includes(cleanEx) ||
+          cleanEx.includes(charNameLower) ||
+          detectedChar?.aliases?.some((a) => cleanNormalizedString(a) === cleanEx)
+        );
+      });
+      if (isExcluded) {
+        detectedChar = null;
+      }
+    }
+
     const rawCharacter = detectedChar
       ? detectedChar.name
       : (aiParsed?.character?.trim() || rawPromptChar);
     const hasCharacterIntent = Boolean(
-      detectedChar || (detectCharacterIntent(prompt) && rawCharacter)
+      detectedChar || (detectCharacterIntent(prompt) && rawCharacter && !excludedTitles.some((ex) => rawCharacter.toLowerCase().includes(ex)))
     );
 
-    const rawActor = aiParsed?.actor || "";
-    const rawCountry = aiParsed?.country || "";
-    const rawKeyword = aiParsed?.keyword || "";
+    const parsedActor =
+      aiParsed?.people?.find((p) => p.role === "actor" || !p.role)?.name ||
+      aiParsed?.actor ||
+      "";
+    const rawCountryList = Array.isArray(aiParsed?.countries)
+      ? aiParsed.countries
+      : aiParsed?.country
+      ? [aiParsed.country]
+      : [];
+    const rawKeyword =
+      aiParsed?.keywords?.[0] || aiParsed?.keyword || "";
 
     const rawGenreList = Array.isArray(aiParsed?.genres)
       ? aiParsed.genres
@@ -217,18 +260,19 @@ export async function POST(req: NextRequest) {
       rawGenreList.map(resolveGenreSlug).find(Boolean) ||
       resolveGenreSlug(prompt);
     const targetCountrySlug =
-      resolveCountrySlug(rawCountry) || resolveCountrySlug(prompt);
+      rawCountryList.map(resolveCountrySlug).find(Boolean) ||
+      resolveCountrySlug(prompt);
 
     // TUYỆT ĐỐI KHÔNG gán tên nhân vật vào targetActorSlug khi người dùng đang tìm kiếm nhân vật!
     const targetActorSlug = hasCharacterIntent
       ? ""
-      : resolveActorSlug(rawActor, prompt) || resolveActorSlug(prompt);
+      : resolveActorSlug(parsedActor, prompt) || resolveActorSlug(prompt);
 
     const lowerPrompt = prompt.toLowerCase();
     const cleanPrompt = cleanNormalizedString(prompt);
 
     // 2.5. Xác định Search Intent (Phân biệt movie_title, actor, character, genre, country, theme, mood, mixed, unknown)
-    const activeConcepts = resolveConcepts(prompt, aiParsed?.concepts);
+    const activeConcepts = detectedConcepts;
     let searchIntent: SearchIntent = (aiParsed?.intent as SearchIntent) || "unknown";
 
     const genericThemeMatch = cleanPrompt.match(
@@ -289,13 +333,16 @@ export async function POST(req: NextRequest) {
         "zombie",
         "xac song",
         "quai vat",
+        "sieu nhan",
+        "tokusatsu",
+        "bien hinh",
       ].some((cue) => cleanPrompt.includes(cue));
 
       if (isThemeCue || genericThemeMatch) {
         searchIntent = "theme";
       } else if (isGibberishQuery(prompt)) {
         searchIntent = "unknown";
-      } else if (targetGenreSlug && targetCountrySlug) {
+      } else if ((targetGenreSlug && targetCountrySlug) || (targetActorSlug && (targetGenreSlug || targetCountrySlug))) {
         searchIntent = "mixed";
       } else if (targetGenreSlug) {
         searchIntent = "genre";
@@ -311,10 +358,13 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Nhận diện năm phát hành cụ thể (ví dụ: "phim năm 2024", "phim 2023")
+    // Nhận diện năm phát hành cụ thể (ví dụ: "phim năm 2024", "phim 2023", "sau 2018", "sau 2020")
+    const afterYearMatch = prompt.match(/(?:sau|tu|từ)\s*(\d{4})/i);
     const explicitYearMatch = prompt.match(/(?:năm|nam)\s*(\d{4})/i) || prompt.match(/\b(19\d{2}|20\d{2})\b/);
     const targetExplicitYear = explicitYearMatch ? parseInt(explicitYearMatch[1], 10) : 0;
-    if (targetExplicitYear >= 1900 && targetExplicitYear <= currentYear + 2) {
+    const targetAfterYear = afterYearMatch ? parseInt(afterYearMatch[1], 10) : 0;
+
+    if (targetExplicitYear >= 1900 && targetExplicitYear <= currentYear + 2 && !targetAfterYear) {
       if (searchIntent === "unknown" || (searchIntent === "movie_title" && prompt.trim().split(/\s+/).length <= 3)) {
         searchIntent = "year";
       }
@@ -322,7 +372,7 @@ export async function POST(req: NextRequest) {
 
     // Bảo vệ: Nếu là chủ đề (theme), tựa phim (movie_title), năm (year) hoặc unknown nhưng người dùng không hề yêu cầu phim hành động,
     // xóa bỏ genre "hanh-dong" ảo giác do LLM tự điền
-    const userExplicitAction = lowerPrompt.includes("hành động") || lowerPrompt.includes("hanh dong") || lowerPrompt.includes("action");
+    const userExplicitAction = lowerPrompt.includes("hành động") || lowerPrompt.includes("hanh dong") || lowerPrompt.includes("action") || isTokusatsuConcept;
     let effectiveGenreSlug = targetGenreSlug;
     if ((searchIntent === "theme" || searchIntent === "movie_title" || searchIntent === "year" || searchIntent === "unknown") && !userExplicitAction) {
       effectiveGenreSlug = "";
@@ -344,12 +394,18 @@ export async function POST(req: NextRequest) {
       lowerPrompt.includes("newest") ||
       lowerPrompt.includes("recently");
 
-    let yearFrom = aiParsed?.years?.from || aiParsed?.year_from || 0;
-    let yearTo = aiParsed?.years?.to || aiParsed?.year_to || 0;
+    let yearFrom = aiParsed?.yearRange?.from || aiParsed?.years?.from || aiParsed?.year_from || 0;
+    let yearTo = aiParsed?.yearRange?.to || aiParsed?.years?.to || aiParsed?.year_to || 0;
 
-    if (targetExplicitYear >= 1900 && targetExplicitYear <= currentYear + 2) {
+    if (targetAfterYear >= 1900) {
+      yearFrom = targetAfterYear;
+      yearTo = currentYear;
+    } else if (targetExplicitYear >= 1900 && targetExplicitYear <= currentYear + 2) {
       yearFrom = targetExplicitYear;
       yearTo = targetExplicitYear;
+    } else if (aiParsed?.year && typeof aiParsed.year === "number" && !yearFrom && !yearTo) {
+      yearFrom = aiParsed.year;
+      yearTo = aiParsed.year;
     } else if (isLatest) {
       if (!yearFrom || yearFrom < currentYear - 1) {
         yearFrom = currentYear - 1;
@@ -388,7 +444,11 @@ export async function POST(req: NextRequest) {
     }
 
     const excludedCountrySlugs: string[] = [];
-    for (const rawEx of aiParsed?.excluded_countries || []) {
+    const rawExCountries = [
+      ...(aiParsed?.exclude?.countries || []),
+      ...(aiParsed?.excluded_countries || []),
+    ];
+    for (const rawEx of rawExCountries) {
       const s = resolveCountrySlug(rawEx);
       if (s && !excludedCountrySlugs.includes(s)) excludedCountrySlugs.push(s);
       else if (rawEx && !excludedCountrySlugs.includes(rawEx.toLowerCase()))
@@ -410,7 +470,11 @@ export async function POST(req: NextRequest) {
     }
 
     const excludedGenreSlugs: string[] = [];
-    for (const rawEx of aiParsed?.excluded_genres || []) {
+    const rawExGenres = [
+      ...(aiParsed?.exclude?.genres || []),
+      ...(aiParsed?.excluded_genres || []),
+    ];
+    for (const rawEx of rawExGenres) {
       const s = resolveGenreSlug(rawEx);
       if (s && !excludedGenreSlugs.includes(s)) excludedGenreSlugs.push(s);
     }
@@ -434,8 +498,23 @@ export async function POST(req: NextRequest) {
     const cards: SuggestionCard[] = [];
     const seenSlugs = new Set<string>(excludeSlugs);
 
-    // 3.5. ƯU TIÊN SỐ 1: TÌM KIẾM DỮ LIỆU THẬT TRONG CATALOG CHO NHÂN VẬT (CHARACTER SEARCH)
-    if (hasCharacterIntent && (detectedChar || rawCharacter)) {
+    // 4. Khởi chạy SONG SONG (CONCURRENT) cả 3 nhánh tìm kiếm:
+    // - Nhánh 1: Character / Person Lookup (nếu có character intent)
+    // - Nhánh 2: Pass 1 (AI Movie Suggestions Lookup)
+    // - Nhánh 3: Pass 2 (Database Catalog & Vector Search)
+    const t_search_start = performance.now();
+
+    const isTrapOrOffTopic = Boolean(
+      (aiParsed?.is_trap && !hasCharacterIntent) ||
+      aiParsed?.is_off_topic ||
+      isGibberishQuery(prompt) ||
+      isVagueQuery(prompt)
+    );
+
+    // Task 0: Tìm kiếm dữ liệu thật trong catalog cho nhân vật (Character Search)
+    const runCharacterSearch = async (): Promise<SuggestionCard[]> => {
+      if (!hasCharacterIntent || (!detectedChar && !rawCharacter) || isTrapOrOffTopic) return [];
+
       const charKeywords = detectedChar?.searchKeywords?.length
         ? detectedChar.searchKeywords
         : [rawCharacter, cleanNormalizedString(rawCharacter)].filter(Boolean);
@@ -448,10 +527,12 @@ export async function POST(req: NextRequest) {
         const charResults = await Promise.allSettled(charSearchTasks);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const charPool: any[] = [];
+        const localSeen = new Set<string>();
         for (const res of charResults) {
           if (res.status === "fulfilled" && Array.isArray(res.value?.items)) {
             for (const it of res.value.items) {
-              if (it && it.slug && !seenSlugs.has(it.slug)) {
+              if (it && it.slug && !localSeen.has(it.slug)) {
+                localSeen.add(it.slug);
                 charPool.push(it);
               }
             }
@@ -508,8 +589,9 @@ export async function POST(req: NextRequest) {
 
         scoredCharMovies.sort((a, b) => b.score - a.score);
 
+        const foundCards: SuggestionCard[] = [];
         for (const sc of scoredCharMovies) {
-          if (cards.length >= 16) break;
+          if (foundCards.length >= 16) break;
           const it = sc.item;
           const relCheck = isRelevantToQuery(it, "character", {
             originalQuery: prompt,
@@ -518,37 +600,26 @@ export async function POST(req: NextRequest) {
           });
           if (!relCheck.relevant) continue;
 
-          if (!seenSlugs.has(it.slug)) {
-            seenSlugs.add(it.slug);
-            const itemYear = extractMovieYear(it);
-            cards.push({
-              slug: it.slug,
-              title: it.name || it.title || "Phim Hay",
-              poster: toSafePoster(it),
-              year: itemYear || 2024,
-              quality: it.quality || "HD",
-              category: toSafeCategory(it),
-              country:
-                toSafeCountry(it) || (targetCountrySlug ? "Âu Mỹ" : "Quốc Tế"),
-              actors: toSafeActors(it),
-              reason: getMovieHighlight(it),
-            });
-          }
+          const itemYear = extractMovieYear(it);
+          foundCards.push({
+            slug: it.slug,
+            title: it.name || it.title || "Phim Hay",
+            poster: toSafePoster(it),
+            year: itemYear || 2024,
+            quality: it.quality || "HD",
+            category: toSafeCategory(it),
+            country:
+              toSafeCountry(it) || (targetCountrySlug ? "Âu Mỹ" : "Quốc Tế"),
+            actors: toSafeActors(it),
+            reason: getMovieHighlight(it),
+          });
         }
+        return foundCards;
       } catch (charErr) {
         console.warn("[ai-concierge] Error in character catalog search:", charErr);
+        return [];
       }
-    }
-
-    // 4. Pass 1 (AI Movie Suggestions Lookup) & Pass 2 (Database Catalog Search) CHẠY SONG SONG (PARALLEL)
-    const t_search_start = performance.now();
-
-    const isTrapOrOffTopic = Boolean(
-      (aiParsed?.is_trap && !hasCharacterIntent) ||
-      aiParsed?.is_off_topic ||
-      isGibberishQuery(prompt) ||
-      isVagueQuery(prompt)
-    );
+    };
 
     // Task A: Tra cứu nhanh các gợi ý do AI đề xuất (Tối đa 8 phim)
     const runPass1Lookup = async () => {
@@ -770,13 +841,23 @@ export async function POST(req: NextRequest) {
       }
     };
 
-    // Khởi chạy song song Pass 1 và Pass 2 để triệt tiêu độ trễ tuần tự
-    const [pass1Resolved, pass2CandidatePool] = await Promise.all([
+    // Khởi chạy song song cả 3 nhánh tìm kiếm
+    const [characterCards, pass1Resolved, pass2CandidatePool] = await Promise.all([
+      runCharacterSearch(),
       runPass1Lookup(),
       runPass2Catalog(),
     ]);
 
     t_search_ms = Math.round(performance.now() - t_search_start);
+
+    // Bước 4.0: Thêm kết quả từ Character Search (nếu có)
+    for (const c of characterCards) {
+      if (cards.length >= 16) break;
+      if (!seenSlugs.has(c.slug)) {
+        seenSlugs.add(c.slug);
+        cards.push(c);
+      }
+    }
 
     // Bước 4.1: Điền các phim tuyển chọn từ AI vào cards trước (Ưu tiên hàng đầu)
     for (const item of pass1Resolved) {
@@ -878,7 +959,14 @@ export async function POST(req: NextRequest) {
           targetGenreSlug: effectiveGenreSlug || undefined,
           targetCountrySlug: targetCountrySlug || undefined,
           targetYear: targetExplicitYear > 0 ? targetExplicitYear : undefined,
+          yearFrom: yearFrom || undefined,
+          yearTo: yearTo || undefined,
           detectedChar,
+          excludedTitles,
+          excludedCountries: excludedCountrySlugs,
+          excludedGenres: excludedGenreSlugs,
+          franchises: aiParsed?.franchises,
+          themes: aiParsed?.themes,
         });
         if (!relCheck.relevant) {
           continue;
@@ -950,7 +1038,14 @@ export async function POST(req: NextRequest) {
           targetGenreSlug: effectiveGenreSlug || undefined,
           targetCountrySlug: targetCountrySlug || undefined,
           targetYear: targetExplicitYear > 0 ? targetExplicitYear : undefined,
+          yearFrom: yearFrom || undefined,
+          yearTo: yearTo || undefined,
           detectedChar,
+          excludedTitles,
+          excludedCountries: excludedCountrySlugs,
+          excludedGenres: excludedGenreSlugs,
+          franchises: aiParsed?.franchises,
+          themes: aiParsed?.themes,
         });
         if (!relCheck.relevant) {
           continue;

@@ -490,7 +490,7 @@ export function ForYouPersonalizedRow({ fallbackMovies }: ForYouPersonalizedRowP
                     className="block relative rounded-2xl overflow-hidden bg-zinc-900 border border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.7)] group-hover:border-purple-500/60 group-hover:shadow-[0_15px_40px_rgba(168,85,247,0.3)] transition-all duration-300 group-hover:scale-[1.03]"
                   >
                     {/* POSTER IMAGE (Chuẩn tỷ lệ 2:3, ưu tiên poster dọc) */}
-                    <div className="relative aspect-[2/3] w-full overflow-hidden bg-zinc-950">
+                    <div className="relative aspect-[2/3] w-full overflow-hidden bg-zinc-900 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950">
                       <Image
                         src={toOptimizedPhimimgUrl(pickBestMoviePoster(movie, "/default-poster.jpg"), 480)}
                         alt={movie.title || movie.name}
