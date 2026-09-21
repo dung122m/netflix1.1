@@ -18,6 +18,7 @@ import {
   getUserProfileSupabase,
 } from "./supabaseService";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import { auth } from "@/lib/firebase";
 
 // In-memory cache lưu danh sách bình luận theo movieSlug để hiển thị ngay 0ms không bị chớp hay mất
 const movieCommentsMemoryCache: Record<string, MovieComment[]> = {};
@@ -889,10 +890,15 @@ export async function setCommentReaction(
     try {
       await setCommentReactionSupabase(commentId, userId, reactionType);
     } catch {
-      fetch("/api/comments", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ commentId, userId, reactionType, action: "reaction" }),
+      auth?.currentUser?.getIdToken().then((idToken) => {
+        fetch("/api/comments", {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
+          },
+          body: JSON.stringify({ commentId, userId, reactionType, action: "reaction" }),
+        }).catch(() => {});
       }).catch(() => {});
     }
   }
@@ -962,10 +968,15 @@ export async function updateMovieComment(
         is_spoiler: finalIsSpoiler,
       });
     } catch {
-      fetch("/api/comments", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ commentId, ...data }),
+      auth?.currentUser?.getIdToken().then((idToken) => {
+        fetch("/api/comments", {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
+          },
+          body: JSON.stringify({ commentId, ...data }),
+        }).catch(() => {});
       }).catch(() => {});
     }
   }
@@ -1009,7 +1020,12 @@ export async function deleteMovieComment(commentId: string): Promise<void> {
     try {
       await deleteCommentSupabase(commentId);
     } catch {
-      fetch(`/api/comments?commentId=${encodeURIComponent(commentId)}`, { method: "DELETE" }).catch(() => {});
+      auth?.currentUser?.getIdToken().then((idToken) => {
+        fetch(`/api/comments?commentId=${encodeURIComponent(commentId)}`, {
+          method: "DELETE",
+          headers: idToken ? { Authorization: `Bearer ${idToken}` } : {},
+        }).catch(() => {});
+      }).catch(() => {});
     }
   }
 }
@@ -1035,9 +1051,13 @@ export async function togglePinComment(
 
   // 2. Cập nhật Supabase qua API server để tránh bị AdBlocker chặn và đảm bảo an toàn RLS
   try {
+    const idToken = await auth?.currentUser?.getIdToken().catch(() => null);
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (idToken) headers["Authorization"] = `Bearer ${idToken}`;
+
     const res = await fetch("/api/comments", {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify({ commentId, isPinned: newPinnedState, action: "pin" }),
     });
     if (!res.ok && isSupabaseConfigured()) {

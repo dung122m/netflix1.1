@@ -11,6 +11,8 @@ import {
   ShieldCheck,
   Trash2,
   X,
+  Clock,
+  Film,
 } from "lucide-react";
 import { MemberWithStats } from "@/types/user";
 import { MovieComment } from "@/types/comment";
@@ -76,6 +78,21 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
                       👑 Admin
                     </span>
                   )}
+                  {selectedMember.isWatchingNow ? (
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                      🟢 Đang xem phim
+                    </span>
+                  ) : selectedMember.isOnline ? (
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                      Trực tuyến
+                    </span>
+                  ) : (
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-800 text-gray-400 border border-white/5">
+                      Ngoại tuyến
+                    </span>
+                  )}
                   {selectedMember.isCommentRestricted && (
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/20 text-red-300 font-bold border border-red-500/30 flex items-center gap-1">
                       <Ban size={10} />
@@ -115,6 +132,55 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
                 <X size={18} />
               </button>
             </div>
+          </div>
+
+          {/* Quick Member Overview Bar */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-3 rounded-2xl bg-white/[0.03] border border-white/5 text-xs flex-shrink-0">
+            <div className="flex items-center gap-2">
+              <Clock size={14} className="text-emerald-400 flex-shrink-0" />
+              <div>
+                <span className="text-[10px] text-gray-400 block">Tổng cày phim</span>
+                <span className="font-bold text-white">
+                  {selectedMember.watchTimeMinutes
+                    ? selectedMember.watchTimeMinutes >= 60
+                      ? `${Math.floor(selectedMember.watchTimeMinutes / 60)}h ${selectedMember.watchTimeMinutes % 60}m`
+                      : `${selectedMember.watchTimeMinutes} phút`
+                    : "0 phút"}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <MessageSquare size={14} className="text-blue-400 flex-shrink-0" />
+              <div>
+                <span className="text-[10px] text-gray-400 block">Lần cuối hoạt động</span>
+                <span className="font-semibold text-gray-300">
+                  {formatDate(selectedMember.lastActiveAt || selectedMember.lastLoginAt)}
+                </span>
+              </div>
+            </div>
+
+            {selectedMember.isWatchingNow && selectedMember.currentWatching ? (
+              <div className="flex items-center gap-2 col-span-2 sm:col-span-1">
+                <Film size={14} className="text-amber-400 flex-shrink-0" />
+                <div className="min-w-0">
+                  <span className="text-[10px] text-gray-400 block">Đang xem</span>
+                  <span className="font-bold text-amber-300 truncate block">
+                    {selectedMember.currentWatching.movieTitle} ({selectedMember.currentWatching.progressPercent}%)
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 col-span-2 sm:col-span-1">
+                <Bookmark size={14} className="text-purple-400 flex-shrink-0" />
+                <div>
+                  <span className="text-[10px] text-gray-400 block">Tham gia ngày</span>
+                  <span className="font-semibold text-gray-300">
+                    {formatDate(selectedMember.createdAt)}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Modal Tabs */}

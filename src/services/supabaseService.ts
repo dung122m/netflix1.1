@@ -1484,6 +1484,34 @@ export async function getDeviceHandoffSupabase(userId: string): Promise<DeviceHa
   }
 }
 
+export async function getAllDeviceHandoffsSupabase(): Promise<DeviceHandoffItem[]> {
+  if (!supabase) return [];
+  try {
+    const { data, error } = await supabase
+      .from("device_handoff")
+      .select("*")
+      .order("updated_at", { ascending: false })
+      .limit(100);
+
+    if (error || !data) return [];
+    return data.map((d) => ({
+      id: d.id,
+      userId: d.user_id,
+      movieSlug: d.movie_slug,
+      movieTitle: d.movie_title,
+      poster: d.poster,
+      episodeSlug: d.episode_slug,
+      episodeName: d.episode_name,
+      progressSeconds: d.progress_seconds || 0,
+      durationSeconds: d.duration_seconds || 0,
+      deviceName: d.device_name,
+      updatedAt: Number(d.updated_at) || Date.now(),
+    }));
+  } catch {
+    return [];
+  }
+}
+
 export async function clearDeviceHandoffSupabase(userId: string): Promise<void> {
   if (!supabase || !userId) return;
   try {

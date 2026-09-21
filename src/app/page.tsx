@@ -79,7 +79,7 @@ export async function generateMetadata({
   }
 
   const fullTitle = `Nanaflix - ${title}`;
-  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://netflix1-1.vercel.app").replace(/\/+$/, "");
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://nanaflix.vercel.app").replace(/\/+$/, "");
 
   return {
     title: fullTitle,
@@ -222,19 +222,19 @@ export default async function HomePage({
   const targetActorQuery = actorParam
     ? actorParam.trim()
     : hasExplicitActor && keyword
-    ? cleanActorQuery(keyword)
-    : undefined;
+      ? cleanActorQuery(keyword)
+      : undefined;
 
   const actorSynonyms = targetActorQuery ? getActorSynonyms(targetActorQuery) : null;
   const actorRes = targetActorQuery
     ? actorSynonyms?.isMatched
       ? {
-          actorName: actorSynonyms.canonicalName,
-          country: actorSynonyms.country,
-          aliases: actorSynonyms.variants,
-          isActor: true,
-          source: "preset" as const,
-        }
+        actorName: actorSynonyms.canonicalName,
+        country: actorSynonyms.country,
+        aliases: actorSynonyms.variants,
+        isActor: true,
+        source: "preset" as const,
+      }
       : await resolveActorMovies(targetActorQuery)
     : null;
 
@@ -375,10 +375,10 @@ export default async function HomePage({
       }),
       keyword && currentPage === 1 && keyword.trim().length >= 3
         ? Promise.race([
-            searchMoviesBySemantic(keyword, 16, 0.42),
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            new Promise<any[]>((resolve) => setTimeout(() => resolve([]), 800)),
-          ]).catch(() => [])
+          searchMoviesBySemantic(keyword, 16, 0.42),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          new Promise<any[]>((resolve) => setTimeout(() => resolve([]), 800)),
+        ]).catch(() => [])
         : Promise.resolve([]),
     ]);
 
@@ -666,180 +666,180 @@ export default async function HomePage({
 
 
 
-        {detectedActor && (
-          <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-red-950/80 via-zinc-900 to-zinc-900 border border-red-500/30 flex items-center justify-between gap-3 shadow-xl animate-in fade-in duration-300">
-            <div className="flex items-center gap-3.5">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-red-600 to-purple-600 text-white flex items-center justify-center flex-none shadow-md border border-white/20">
-                <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-amber-300" />
-              </div>
-              <div>
-                <h4 className="text-sm sm:text-base font-black text-white flex items-center gap-2 flex-wrap">
-                  <span>Tuyển Tập Tác Phẩm Của {detectedActor.name}</span>
-                  {detectedActor.country && (
-                    <span className="text-xs text-rose-300 font-bold px-2.5 py-0.5 rounded-full bg-white/10 border border-white/10">
-                      {detectedActor.country}
-                    </span>
-                  )}
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-gradient-to-r from-red-600/30 to-purple-600/30 text-rose-300 font-bold border border-red-500/40">
-                    ✨ Nana AI Nhận Diện
-                  </span>
-                </h4>
-                <p className="text-xs text-gray-300 mt-0.5">
-                  Tự động tổng hợp các tác phẩm tiêu biểu & xuất sắc nhất của {detectedActor.name}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {keyword && !detectedActor && (
-          <BrowseAiSearchBanner keyword={keyword} hasContentMatches={hasContentMatches} />
-        )}
-
-        {movies.length > 0 ? (
-          <>
-            <MovieGrid movies={movies} />
-
-            {/* THANH PHÂN TRANG CHUẨN GỌN GÀNG */}
-            <div className="flex justify-center items-center gap-1.5 sm:gap-2 mt-8 sm:mt-12 flex-wrap">
-              {/* NÚT TRƯỚC */}
-              <Link
-                href={buildPaginationUrl(Math.max(1, currentPage - 1))}
-                prefetch={true}
-                className={`px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm rounded-xl font-semibold transition touch-target flex items-center ${currentPage === 1
-                    ? "bg-zinc-900 text-zinc-600 pointer-events-none"
-                    : "bg-zinc-800 text-white hover:bg-zinc-700 active:scale-95"
-                  }`}
-              >
-                « Trước
-              </Link>
-
-              {/* SỐ TRANG — ẩn trên mobile, chỉ hiện từ sm */}
-              <div className="hidden sm:flex items-center gap-1.5">
-                {pages.map((p, index) => {
-                  if (p === "...") {
-                    return (
-                      <span key={index} className="px-1.5 sm:px-2 text-xs sm:text-sm text-gray-500">
-                        ...
+            {detectedActor && (
+              <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-red-950/80 via-zinc-900 to-zinc-900 border border-red-500/30 flex items-center justify-between gap-3 shadow-xl animate-in fade-in duration-300">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-red-600 to-purple-600 text-white flex items-center justify-center flex-none shadow-md border border-white/20">
+                    <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-amber-300" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm sm:text-base font-black text-white flex items-center gap-2 flex-wrap">
+                      <span>Tuyển Tập Tác Phẩm Của {detectedActor.name}</span>
+                      {detectedActor.country && (
+                        <span className="text-xs text-rose-300 font-bold px-2.5 py-0.5 rounded-full bg-white/10 border border-white/10">
+                          {detectedActor.country}
+                        </span>
+                      )}
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-gradient-to-r from-red-600/30 to-purple-600/30 text-rose-300 font-bold border border-red-500/40">
+                        ✨ Nana AI Nhận Diện
                       </span>
-                    );
-                  }
-                  return (
-                    <Link
-                      key={index}
-                      href={buildPaginationUrl(p as number)}
-                      prefetch={true}
-                      className={`w-8 h-8 sm:w-10 sm:h-10 text-xs sm:text-sm flex items-center justify-center rounded-lg font-semibold transition-colors ${currentPage === p
-                          ? "bg-netflix-red text-white shadow-sm"
-                          : "bg-zinc-800 text-gray-300 hover:bg-zinc-700 hover:text-white"
-                        }`}
-                    >
-                      {p}
-                    </Link>
-                  );
-                })}
-              </div>
-
-              {/* TRANG HIỆN TẠI — chỉ hiện trên mobile */}
-              <span className="sm:hidden px-3 py-2 text-xs font-bold text-white bg-netflix-red rounded-xl">
-                {currentPage} / {totalPages}
-              </span>
-
-              {/* NÚT TIẾP */}
-              <Link
-                href={buildPaginationUrl(currentPage + 1)}
-                prefetch={true}
-                className={`px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm rounded-xl font-semibold transition touch-target flex items-center ${currentPage >= totalPages
-                    ? "bg-zinc-900 text-zinc-600 pointer-events-none"
-                    : "bg-zinc-800 text-white hover:bg-zinc-700 active:scale-95"
-                  }`}
-              >
-                Tiếp »
-              </Link>
-            </div>
-          </>
-        ) : (
-          <div className="py-12 space-y-10">
-            <div className="max-w-xl mx-auto rounded-2xl border border-white/10 bg-zinc-900/80 p-6 md:p-8 text-center backdrop-blur-md shadow-2xl">
-              <Film className="w-12 h-12 text-zinc-500 mx-auto mb-3" />
-              <h3 className="text-lg md:text-xl font-bold text-white">
-                {detectedActor
-                  ? `Chưa có dữ liệu tuyển tập cho ${detectedActor.name}`
-                  : keyword
-                  ? `Chưa tìm thấy phim khớp với "${keyword}"`
-                  : "Không tìm thấy dữ liệu phim."}
-              </h3>
-              {detectedActor ? (
-                <>
-                  <p className="text-xs sm:text-sm text-gray-400 mt-2 leading-relaxed">
-                    Hiện tại kho phim của Nanaflix chưa có sẵn các tác phẩm do <strong>{detectedActor.name}</strong> đóng chính hoặc làm đạo diễn. Hệ thống đang liên tục cập nhật thêm nhiều phim mới mỗi ngày!
-                  </p>
-                  <div className="flex flex-wrap items-center justify-center gap-3 mt-5">
-                    <a
-                      href={`https://www.themoviedb.org/search/person?query=${encodeURIComponent(detectedActor.name)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#01b4e4] hover:bg-[#01b4e4]/80 text-white text-xs font-bold transition shadow-lg shadow-sky-950/40"
-                    >
-                      <span>Tra cứu &quot;{detectedActor.name}&quot; trên TMDb</span>
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </a>
-                    <Link
-                      href="/"
-                      className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-gray-200 hover:text-white text-xs font-semibold transition"
-                    >
-                      Khám phá tất cả phim
-                    </Link>
+                    </h4>
+                    <p className="text-xs text-gray-300 mt-0.5">
+                      Tự động tổng hợp các tác phẩm tiêu biểu & xuất sắc nhất của {detectedActor.name}
+                    </p>
                   </div>
-                </>
-              ) : keyword ? (
-                <>
-                  <p className="text-xs sm:text-sm text-gray-400 mt-2 leading-relaxed">
-                    Hệ thống nguồn phim tìm kiếm trực tiếp theo <strong>tiêu đề phim</strong>. Nếu đây là tên diễn viên hoặc đạo diễn, bạn có thể tra cứu hồ sơ và danh sách phim trên TMDb hoặc thưởng thức các phim đề xuất bên dưới:
-                  </p>
-                  <div className="flex flex-wrap items-center justify-center gap-3 mt-5">
-                    <a
-                      href={`https://www.themoviedb.org/search?query=${encodeURIComponent(keyword)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#01b4e4] hover:bg-[#01b4e4]/80 text-white text-xs font-bold transition shadow-lg shadow-sky-950/40"
-                    >
-                      <span>Tra cứu &quot;{keyword}&quot; trên TMDb</span>
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </a>
-                    <Link
-                      href="/"
-                      className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-gray-200 hover:text-white text-xs font-semibold transition"
-                    >
-                      Khám phá tất cả phim
-                    </Link>
-                  </div>
-                </>
-              ) : (
-                <div className="mt-5">
-                  <Link
-                    href="/"
-                    className="px-4 py-2 rounded-xl bg-netflix-red hover:bg-red-700 text-white text-xs font-semibold transition"
-                  >
-                    Về trang chủ
-                  </Link>
                 </div>
-              )}
-            </div>
-
-            {!detectedActor && fallbackMovies.length > 0 && (
-              <div className="mt-12">
-                <div className="flex items-center gap-2 mb-5">
-                  <span className="text-xl">🔥</span>
-                  <h3 className="text-xl md:text-2xl font-extrabold text-white">
-                    Phim Thịnh Hành Nana Gợi Ý Cho Bạn
-                  </h3>
-                </div>
-                <MovieGrid movies={fallbackMovies} />
               </div>
             )}
-          </div>
-        )}
+
+            {keyword && !detectedActor && (
+              <BrowseAiSearchBanner keyword={keyword} hasContentMatches={hasContentMatches} />
+            )}
+
+            {movies.length > 0 ? (
+              <>
+                <MovieGrid movies={movies} />
+
+                {/* THANH PHÂN TRANG CHUẨN GỌN GÀNG */}
+                <div className="flex justify-center items-center gap-1.5 sm:gap-2 mt-8 sm:mt-12 flex-wrap">
+                  {/* NÚT TRƯỚC */}
+                  <Link
+                    href={buildPaginationUrl(Math.max(1, currentPage - 1))}
+                    prefetch={true}
+                    className={`px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm rounded-xl font-semibold transition touch-target flex items-center ${currentPage === 1
+                      ? "bg-zinc-900 text-zinc-600 pointer-events-none"
+                      : "bg-zinc-800 text-white hover:bg-zinc-700 active:scale-95"
+                      }`}
+                  >
+                    « Trước
+                  </Link>
+
+                  {/* SỐ TRANG — ẩn trên mobile, chỉ hiện từ sm */}
+                  <div className="hidden sm:flex items-center gap-1.5">
+                    {pages.map((p, index) => {
+                      if (p === "...") {
+                        return (
+                          <span key={index} className="px-1.5 sm:px-2 text-xs sm:text-sm text-gray-500">
+                            ...
+                          </span>
+                        );
+                      }
+                      return (
+                        <Link
+                          key={index}
+                          href={buildPaginationUrl(p as number)}
+                          prefetch={true}
+                          className={`w-8 h-8 sm:w-10 sm:h-10 text-xs sm:text-sm flex items-center justify-center rounded-lg font-semibold transition-colors ${currentPage === p
+                            ? "bg-netflix-red text-white shadow-sm"
+                            : "bg-zinc-800 text-gray-300 hover:bg-zinc-700 hover:text-white"
+                            }`}
+                        >
+                          {p}
+                        </Link>
+                      );
+                    })}
+                  </div>
+
+                  {/* TRANG HIỆN TẠI — chỉ hiện trên mobile */}
+                  <span className="sm:hidden px-3 py-2 text-xs font-bold text-white bg-netflix-red rounded-xl">
+                    {currentPage} / {totalPages}
+                  </span>
+
+                  {/* NÚT TIẾP */}
+                  <Link
+                    href={buildPaginationUrl(currentPage + 1)}
+                    prefetch={true}
+                    className={`px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm rounded-xl font-semibold transition touch-target flex items-center ${currentPage >= totalPages
+                      ? "bg-zinc-900 text-zinc-600 pointer-events-none"
+                      : "bg-zinc-800 text-white hover:bg-zinc-700 active:scale-95"
+                      }`}
+                  >
+                    Tiếp »
+                  </Link>
+                </div>
+              </>
+            ) : (
+              <div className="py-12 space-y-10">
+                <div className="max-w-xl mx-auto rounded-2xl border border-white/10 bg-zinc-900/80 p-6 md:p-8 text-center backdrop-blur-md shadow-2xl">
+                  <Film className="w-12 h-12 text-zinc-500 mx-auto mb-3" />
+                  <h3 className="text-lg md:text-xl font-bold text-white">
+                    {detectedActor
+                      ? `Chưa có dữ liệu tuyển tập cho ${detectedActor.name}`
+                      : keyword
+                        ? `Chưa tìm thấy phim khớp với "${keyword}"`
+                        : "Không tìm thấy dữ liệu phim."}
+                  </h3>
+                  {detectedActor ? (
+                    <>
+                      <p className="text-xs sm:text-sm text-gray-400 mt-2 leading-relaxed">
+                        Hiện tại kho phim của Nanaflix chưa có sẵn các tác phẩm do <strong>{detectedActor.name}</strong> đóng chính hoặc làm đạo diễn. Hệ thống đang liên tục cập nhật thêm nhiều phim mới mỗi ngày!
+                      </p>
+                      <div className="flex flex-wrap items-center justify-center gap-3 mt-5">
+                        <a
+                          href={`https://www.themoviedb.org/search/person?query=${encodeURIComponent(detectedActor.name)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#01b4e4] hover:bg-[#01b4e4]/80 text-white text-xs font-bold transition shadow-lg shadow-sky-950/40"
+                        >
+                          <span>Tra cứu &quot;{detectedActor.name}&quot; trên TMDb</span>
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                        <Link
+                          href="/"
+                          className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-gray-200 hover:text-white text-xs font-semibold transition"
+                        >
+                          Khám phá tất cả phim
+                        </Link>
+                      </div>
+                    </>
+                  ) : keyword ? (
+                    <>
+                      <p className="text-xs sm:text-sm text-gray-400 mt-2 leading-relaxed">
+                        Hệ thống nguồn phim tìm kiếm trực tiếp theo <strong>tiêu đề phim</strong>. Nếu đây là tên diễn viên hoặc đạo diễn, bạn có thể tra cứu hồ sơ và danh sách phim trên TMDb hoặc thưởng thức các phim đề xuất bên dưới:
+                      </p>
+                      <div className="flex flex-wrap items-center justify-center gap-3 mt-5">
+                        <a
+                          href={`https://www.themoviedb.org/search?query=${encodeURIComponent(keyword)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#01b4e4] hover:bg-[#01b4e4]/80 text-white text-xs font-bold transition shadow-lg shadow-sky-950/40"
+                        >
+                          <span>Tra cứu &quot;{keyword}&quot; trên TMDb</span>
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                        <Link
+                          href="/"
+                          className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-gray-200 hover:text-white text-xs font-semibold transition"
+                        >
+                          Khám phá tất cả phim
+                        </Link>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="mt-5">
+                      <Link
+                        href="/"
+                        className="px-4 py-2 rounded-xl bg-netflix-red hover:bg-red-700 text-white text-xs font-semibold transition"
+                      >
+                        Về trang chủ
+                      </Link>
+                    </div>
+                  )}
+                </div>
+
+                {!detectedActor && fallbackMovies.length > 0 && (
+                  <div className="mt-12">
+                    <div className="flex items-center gap-2 mb-5">
+                      <span className="text-xl">🔥</span>
+                      <h3 className="text-xl md:text-2xl font-extrabold text-white">
+                        Phim Thịnh Hành Nana Gợi Ý Cho Bạn
+                      </h3>
+                    </div>
+                    <MovieGrid movies={fallbackMovies} />
+                  </div>
+                )}
+              </div>
+            )}
           </>
         )}
       </div>

@@ -19,8 +19,12 @@ import {
   deleteAllUserCommentsSupabase,
   getWatchHistorySupabase,
   getWatchlistSupabase,
+  getAllDeviceHandoffsSupabase,
+  type DeviceHandoffItem,
 } from "./supabaseService";
 import { isSupabaseConfigured } from "@/lib/supabase";
+
+export { getAllDeviceHandoffsSupabase, type DeviceHandoffItem };
 
 const PROFILE_CACHE_PREFIX = "nanaflix_user_profile_";
 

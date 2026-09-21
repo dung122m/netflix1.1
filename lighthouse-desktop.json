@@ -1,9 +1,9 @@
 {
   "lighthouseVersion": "12.8.2",
-  "requestedUrl": "https://netflix1-1.vercel.app/browse",
-  "mainDocumentUrl": "https://netflix1-1.vercel.app/browse",
-  "finalDisplayedUrl": "https://netflix1-1.vercel.app/browse",
-  "finalUrl": "https://netflix1-1.vercel.app/browse",
+  "requestedUrl": "https://nanaflix.vercel.app/browse",
+  "mainDocumentUrl": "https://nanaflix.vercel.app/browse",
+  "finalDisplayedUrl": "https://nanaflix.vercel.app/browse",
+  "finalUrl": "https://nanaflix.vercel.app/browse",
   "fetchTime": "2026-09-17T09:39:42.863Z",
   "gatherMode": "navigation",
   "runWarnings": [],
@@ -281,7 +281,7 @@
         ],
         "items": [
           {
-            "url": "https://netflix1-1.vercel.app/browse",
+            "url": "https://nanaflix.vercel.app/browse",
             "responseTime": 55.12700000000001
           }
         ],
@@ -347,7 +347,7 @@
         "chains": {
           "09E46DC3F0516157A389F6E235A5AA72": {
             "request": {
-              "url": "https://netflix1-1.vercel.app/browse",
+              "url": "https://nanaflix.vercel.app/browse",
               "startTime": 34789.792215,
               "endTime": 34790.833429,
               "responseReceivedTime": 34790.351713000004,
@@ -356,7 +356,7 @@
             "children": {
               "5184.11": {
                 "request": {
-                  "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/17ilrdi8dgwlz.css",
+                  "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/17ilrdi8dgwlz.css",
                   "startTime": 34790.550307,
                   "endTime": 34790.607615,
                   "responseReceivedTime": 34790.607198,
@@ -365,7 +365,7 @@
                 "children": {
                   "5184.87": {
                     "request": {
-                      "url": "https://netflix1-1.vercel.app/_next/static/immutable/media/1bffadaabf893a1e-s.0szrwpqb9mkwe.woff2",
+                      "url": "https://nanaflix.vercel.app/_next/static/immutable/media/1bffadaabf893a1e-s.0szrwpqb9mkwe.woff2",
                       "startTime": 34790.772251,
                       "endTime": 34790.865778,
                       "responseReceivedTime": 34790.833794,
@@ -376,7 +376,7 @@
               },
               "5184.12": {
                 "request": {
-                  "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/3z-xc7wokqu6x.css",
+                  "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/3z-xc7wokqu6x.css",
                   "startTime": 34790.550961,
                   "endTime": 34790.618148,
                   "responseReceivedTime": 34790.61649,
@@ -385,7 +385,7 @@
               },
               "5184.57": {
                 "request": {
-                  "url": "https://netflix1-1.vercel.app/manifest.json",
+                  "url": "https://nanaflix.vercel.app/manifest.json",
                   "startTime": 34790.625127,
                   "endTime": 34790.814302,
                   "responseReceivedTime": 34790.814003,
@@ -652,19 +652,19 @@
         ],
         "items": [
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/0wkh_qvig5ymc.js",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/0wkh_qvig5ymc.js",
             "total": 747.4300000000558,
             "scripting": 106.87100000000089,
             "scriptParseCompile": 2.537
           },
           {
-            "url": "https://netflix1-1.vercel.app/browse",
+            "url": "https://nanaflix.vercel.app/browse",
             "total": 624.8470000000002,
             "scripting": 11.215999999999992,
             "scriptParseCompile": 2.5709999999999997
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/3_-vx2duc8jqh.js",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/3_-vx2duc8jqh.js",
             "total": 284.4709999999973,
             "scripting": 215.87199999999717,
             "scriptParseCompile": 3.843
@@ -830,7 +830,7 @@
         ],
         "items": [
           {
-            "url": "https://netflix1-1.vercel.app/browse",
+            "url": "https://nanaflix.vercel.app/browse",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 0,
@@ -847,7 +847,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/media/2bbe8d2671613f1f-s.p.1way2z9fj6cig.woff2",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/media/2bbe8d2671613f1f-s.p.1way2z9fj6cig.woff2",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 565.3879999890924,
@@ -865,7 +865,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/media/83afe278b6a6bb3c-s.p.45535valc9rzk.woff2",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/media/83afe278b6a6bb3c-s.p.45535valc9rzk.woff2",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 565.668999992311,
@@ -883,7 +883,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/media/e629b5bc06499d58-s.p.1y3v-klcv8xov.woff2",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/media/e629b5bc06499d58-s.p.1y3v-klcv8xov.woff2",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 565.7280000001192,
@@ -901,7 +901,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/media/fba5a26ea33df6a3-s.p.08ssgmy_tb90r.woff2",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/media/fba5a26ea33df6a3-s.p.08ssgmy_tb90r.woff2",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 565.7999999970198,
@@ -937,7 +937,7 @@
             "entity": "phimimg.com"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fuploads%2Fmovies%2F20260817%2Fphat-sung-cuoi-cung-phan-4-thumb.webp&w=500&q=85",
+            "url": "https://nanaflix.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fuploads%2Fmovies%2F20260817%2Fphat-sung-cuoi-cung-phan-4-thumb.webp&w=500&q=85",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 754.8069999963045,
@@ -955,7 +955,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fuploads%2Fmovies%2F20260815%2Fcuoc-goi-khan-cap-9-1-1-phan-9-thumb.webp&w=500&q=85",
+            "url": "https://nanaflix.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fuploads%2Fmovies%2F20260815%2Fcuoc-goi-khan-cap-9-1-1-phan-9-thumb.webp&w=500&q=85",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 754.9270000010729,
@@ -973,7 +973,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fuploads%2Fmovies%2F20260917%2Fky-sinh-thu-thumb.webp&w=500&q=85",
+            "url": "https://nanaflix.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fuploads%2Fmovies%2F20260917%2Fky-sinh-thu-thumb.webp&w=500&q=85",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 754.9919999986887,
@@ -991,7 +991,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fuploads%2Fmovies%2F20260917%2Fchuyen-tinh-thanh-xuan-bi-hai-cua-toi-qua-nhien-la-sai-lam-thumb.webp&w=500&q=85",
+            "url": "https://nanaflix.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fuploads%2Fmovies%2F20260917%2Fchuyen-tinh-thanh-xuan-bi-hai-cua-toi-qua-nhien-la-sai-lam-thumb.webp&w=500&q=85",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 755.0449999943376,
@@ -1009,7 +1009,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/17ilrdi8dgwlz.css",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/17ilrdi8dgwlz.css",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 755.1019999906421,
@@ -1026,7 +1026,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/3z-xc7wokqu6x.css",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/3z-xc7wokqu6x.css",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 755.1659999936819,
@@ -1043,7 +1043,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/36s0t0o8ux5as.js",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/36s0t0o8ux5as.js",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 755.2299999892712,
@@ -1061,7 +1061,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/0ws7t_wz4dvp7.js",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/0ws7t_wz4dvp7.js",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 755.2979999929667,
@@ -1078,7 +1078,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/3_-vx2duc8jqh.js",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/3_-vx2duc8jqh.js",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 755.3509999960661,
@@ -1095,7 +1095,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/2crjy3l59yyv2.js",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/2crjy3l59yyv2.js",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 755.4229999929667,
@@ -1112,7 +1112,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/turbopack-11sw9_nzj19rd.js",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/turbopack-11sw9_nzj19rd.js",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 755.4679999947548,
@@ -1129,7 +1129,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/1wcd9-_thfplc.js",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/1wcd9-_thfplc.js",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 755.5139999911189,
@@ -1146,7 +1146,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/3rkr2c5-cye-h.js",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/3rkr2c5-cye-h.js",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 755.5629999935627,
@@ -1163,7 +1163,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/1g7uobryskoe1.js",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/1g7uobryskoe1.js",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 755.6069999933243,
@@ -1180,7 +1180,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/2pmamfwrltp9s.js",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/2pmamfwrltp9s.js",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 755.6609999909997,
@@ -1197,7 +1197,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/3jhk0k-bpxdqm.js",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/3jhk0k-bpxdqm.js",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 755.7089999914169,
@@ -1214,7 +1214,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/1b3ldr9bqwmh4.js",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/1b3ldr9bqwmh4.js",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 755.7519999966025,
@@ -1231,7 +1231,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/06ef9y0yesuuj.js",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/06ef9y0yesuuj.js",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 755.7999999970198,
@@ -1248,7 +1248,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/0ab_id0vgb4ij.js",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/0ab_id0vgb4ij.js",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 755.8489999994636,
@@ -1265,7 +1265,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/0wkh_qvig5ymc.js",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/0wkh_qvig5ymc.js",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 755.8949999958277,
@@ -1282,7 +1282,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/0ue0m7vr59d42.js",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/0ue0m7vr59d42.js",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 755.9380000010133,
@@ -1299,7 +1299,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/453bh8ge0e3x-.js",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/453bh8ge0e3x-.js",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 756,
@@ -1316,7 +1316,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/manifest.json",
+            "url": "https://nanaflix.vercel.app/manifest.json",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 759.2719999924302,
@@ -1333,7 +1333,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/media/1bffadaabf893a1e-s.0szrwpqb9mkwe.woff2",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/media/1bffadaabf893a1e-s.0szrwpqb9mkwe.woff2",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 864.9799999967217,
@@ -1350,7 +1350,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fuploads%2Fmovies%2F20260817%2Fphat-sung-cuoi-cung-phan-4-thumb.webp&w=48&q=90",
+            "url": "https://nanaflix.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fuploads%2Fmovies%2F20260817%2Fphat-sung-cuoi-cung-phan-4-thumb.webp&w=48&q=90",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 977.0149999931455,
@@ -1367,7 +1367,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fuploads%2Fmovies%2F20260815%2Fcuoc-goi-khan-cap-9-1-1-phan-9-thumb.webp&w=48&q=90",
+            "url": "https://nanaflix.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fuploads%2Fmovies%2F20260815%2Fcuoc-goi-khan-cap-9-1-1-phan-9-thumb.webp&w=48&q=90",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 977.1199999898672,
@@ -1384,7 +1384,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fuploads%2Fmovies%2F20260917%2Fky-sinh-thu-thumb.webp&w=48&q=90",
+            "url": "https://nanaflix.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fuploads%2Fmovies%2F20260917%2Fky-sinh-thu-thumb.webp&w=48&q=90",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 977.195000000298,
@@ -1401,7 +1401,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fuploads%2Fmovies%2F20260917%2Fchuyen-tinh-thanh-xuan-bi-hai-cua-toi-qua-nhien-la-sai-lam-thumb.webp&w=48&q=90",
+            "url": "https://nanaflix.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fuploads%2Fmovies%2F20260917%2Fchuyen-tinh-thanh-xuan-bi-hai-cua-toi-qua-nhien-la-sai-lam-thumb.webp&w=48&q=90",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 977.234999999404,
@@ -1418,7 +1418,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fuploads%2Fmovies%2F20260910%2Fde-che-dai-han-phan-2-thumb.webp&w=48&q=90",
+            "url": "https://nanaflix.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fuploads%2Fmovies%2F20260910%2Fde-che-dai-han-phan-2-thumb.webp&w=48&q=90",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 977.3549999892712,
@@ -1435,7 +1435,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fuploads%2Fmovies%2F20260910%2Fde-che-dai-han-phan-2-thumb.webp&w=500&q=85",
+            "url": "https://nanaflix.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fuploads%2Fmovies%2F20260910%2Fde-che-dai-han-phan-2-thumb.webp&w=500&q=85",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 977.4149999991059,
@@ -1452,7 +1452,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fuploads%2Fmovies%2F20260917%2Fdieu-con-dang-do-thumb.webp&w=500&q=85",
+            "url": "https://nanaflix.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fuploads%2Fmovies%2F20260917%2Fdieu-con-dang-do-thumb.webp&w=500&q=85",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 977.4959999993443,
@@ -1469,7 +1469,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fupload%2Fvod%2F20260420-1%2Fa00de874909fb1bfb7f7749f926081a3.jpg&w=500&q=85",
+            "url": "https://nanaflix.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fupload%2Fvod%2F20260420-1%2Fa00de874909fb1bfb7f7749f926081a3.jpg&w=500&q=85",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 977.5529999956489,
@@ -1486,7 +1486,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fuploads%2Fmovies%2F20260917%2Fcam-do-noi-cong-so-thumb.webp&w=500&q=85",
+            "url": "https://nanaflix.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fuploads%2Fmovies%2F20260917%2Fcam-do-noi-cong-so-thumb.webp&w=500&q=85",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 977.598999992013,
@@ -1503,7 +1503,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/3ck7j4gwou3il.js",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/3ck7j4gwou3il.js",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 1127.512999996543,
@@ -1520,7 +1520,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/25h5maghi4iwt.js",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/25h5maghi4iwt.js",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 1128.9879999905825,
@@ -1537,7 +1537,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/228xrpp482ppx.js",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/228xrpp482ppx.js",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 1129.8009999915957,
@@ -1554,7 +1554,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/07ly1gm3muqlq.js",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/07ly1gm3muqlq.js",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 1130.6479999944568,
@@ -1571,7 +1571,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/0v2bmy583pzfb.js",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/0v2bmy583pzfb.js",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 1131.3309999927878,
@@ -1588,7 +1588,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/favicon.ico",
+            "url": "https://nanaflix.vercel.app/favicon.ico",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 1134.4359999969602,
@@ -1605,7 +1605,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/icon-192.png",
+            "url": "https://nanaflix.vercel.app/icon-192.png",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 1135.9599999934435,
@@ -1622,7 +1622,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/api/synopsis?slug=phat-sung-cuoi-cung-phan-4",
+            "url": "https://nanaflix.vercel.app/api/synopsis?slug=phat-sung-cuoi-cung-phan-4",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 1188.5209999904037,
@@ -1639,7 +1639,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/api/recommendations/for-you",
+            "url": "https://nanaflix.vercel.app/api/recommendations/for-you",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 1189.8569999933243,
@@ -1656,7 +1656,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/api/trending-community?timeframe=total&limit=10",
+            "url": "https://nanaflix.vercel.app/api/trending-community?timeframe=total&limit=10",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 1190.7950000017881,
@@ -1673,7 +1673,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/api/trending-community?timeframe=week&limit=10",
+            "url": "https://nanaflix.vercel.app/api/trending-community?timeframe=week&limit=10",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 1191.6919999942183,
@@ -1707,7 +1707,7 @@
             "entity": "phimimg.com"
           },
           {
-            "url": "https://netflix1-1.vercel.app/my-list?_rsc=jrqPsPni7ljHh19F",
+            "url": "https://nanaflix.vercel.app/my-list?_rsc=jrqPsPni7ljHh19F",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 1211.2679999992251,
@@ -1724,7 +1724,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/live?_rsc=jrqPsPni7ljHh19F",
+            "url": "https://nanaflix.vercel.app/live?_rsc=jrqPsPni7ljHh19F",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 1211.5019999966025,
@@ -1741,7 +1741,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/browse?type=hoat-hinh&_rsc=IYUEdB2sD-x4fzsa",
+            "url": "https://nanaflix.vercel.app/browse?type=hoat-hinh&_rsc=IYUEdB2sD-x4fzsa",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 1211.722999997437,
@@ -1758,7 +1758,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/browse?type=phim-chieu-rap&_rsc=IYUEdB2sD-x4fzsa",
+            "url": "https://nanaflix.vercel.app/browse?type=phim-chieu-rap&_rsc=IYUEdB2sD-x4fzsa",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 1211.9679999947548,
@@ -1775,7 +1775,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/0qqf2u35wdy77.js",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/0qqf2u35wdy77.js",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 1220.5209999904037,
@@ -1792,7 +1792,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/0hn64qg95gewr.js",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/0hn64qg95gewr.js",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 1221.2569999918342,
@@ -1809,7 +1809,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/my-list?_rsc=H9-Fpy1mkyqlrrfU",
+            "url": "https://nanaflix.vercel.app/my-list?_rsc=H9-Fpy1mkyqlrrfU",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 1273.055999994278,
@@ -1826,7 +1826,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/my-list?_rsc=5bNZd8yucBif0J1v",
+            "url": "https://nanaflix.vercel.app/my-list?_rsc=5bNZd8yucBif0J1v",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 1334.5879999920726,
@@ -1843,7 +1843,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/44r_a-5fcury2.js",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/44r_a-5fcury2.js",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 1395.7439999952912,
@@ -1860,7 +1860,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/37wje0vbua5pp.js",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/37wje0vbua5pp.js",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 1396.0969999954104,
@@ -1877,7 +1877,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/39p793uch7506.js",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/39p793uch7506.js",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 1396.5119999945164,
@@ -1894,7 +1894,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/browse?type=phim-le&_rsc=IYUEdB2sD-x4fzsa",
+            "url": "https://nanaflix.vercel.app/browse?type=phim-le&_rsc=IYUEdB2sD-x4fzsa",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 1397.7459999918938,
@@ -1911,7 +1911,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/movies/phat-sung-cuoi-cung-phan-4?_rsc=jrqPsPni7ljHh19F",
+            "url": "https://nanaflix.vercel.app/movies/phat-sung-cuoi-cung-phan-4?_rsc=jrqPsPni7ljHh19F",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 1496.7309999987483,
@@ -1928,7 +1928,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/browse?type=phim-bo&_rsc=lGY223CzqpO-4dkN",
+            "url": "https://nanaflix.vercel.app/browse?type=phim-bo&_rsc=lGY223CzqpO-4dkN",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 1516.4989999979734,
@@ -1979,7 +1979,7 @@
             "entity": "phimapi.com"
           },
           {
-            "url": "https://netflix1-1.vercel.app/browse?type=phim-le&_rsc=lGY223CzqpO-4dkN",
+            "url": "https://nanaflix.vercel.app/browse?type=phim-le&_rsc=lGY223CzqpO-4dkN",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 1562.9829999953508,
@@ -1996,7 +1996,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/browse?type=phim-chieu-rap&_rsc=lGY223CzqpO-4dkN",
+            "url": "https://nanaflix.vercel.app/browse?type=phim-chieu-rap&_rsc=lGY223CzqpO-4dkN",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 1722.5219999924302,
@@ -2013,7 +2013,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/movies/phat-sung-cuoi-cung-phan-4?_rsc=cHWLafpoSkGyshv5",
+            "url": "https://nanaflix.vercel.app/movies/phat-sung-cuoi-cung-phan-4?_rsc=cHWLafpoSkGyshv5",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 1783.8889999985695,
@@ -2030,7 +2030,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/browse?type=hoat-hinh&_rsc=lGY223CzqpO-4dkN",
+            "url": "https://nanaflix.vercel.app/browse?type=hoat-hinh&_rsc=lGY223CzqpO-4dkN",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 1811.0089999958873,
@@ -2047,7 +2047,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/live?_rsc=Y8SyIeOVHZ_pZMpf",
+            "url": "https://nanaflix.vercel.app/live?_rsc=Y8SyIeOVHZ_pZMpf",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 1850.6349999904633,
@@ -2064,7 +2064,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/1w0pzocxbo2ew.js",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/1w0pzocxbo2ew.js",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 2063.9219999983907,
@@ -2081,7 +2081,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/0-hcdi2b-qffq.js",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/0-hcdi2b-qffq.js",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 2170.8989999964833,
@@ -2098,7 +2098,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/3zavjewbuwgey.js",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/3zavjewbuwgey.js",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 2171.2540000006557,
@@ -2115,7 +2115,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/32_3u92bxnpe9.js",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/32_3u92bxnpe9.js",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 2171.615999996662,
@@ -2132,7 +2132,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/api/notifications",
+            "url": "https://nanaflix.vercel.app/api/notifications",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 2409.8839999958873,
@@ -2149,7 +2149,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fupload%2Fvod%2F20250223-1%2F43b06a10df87b9f14097b5f5212510a8.jpg&w=320&q=85",
+            "url": "https://nanaflix.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fupload%2Fvod%2F20250223-1%2F43b06a10df87b9f14097b5f5212510a8.jpg&w=320&q=85",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 2626.073999993503,
@@ -2167,7 +2167,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fupload%2Fvod%2F20250302-1%2F4cee31c3afd0fbfd11ed4f14b1bfd816.jpg&w=320&q=85",
+            "url": "https://nanaflix.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fupload%2Fvod%2F20250302-1%2F4cee31c3afd0fbfd11ed4f14b1bfd816.jpg&w=320&q=85",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 2626.945999994874,
@@ -2185,7 +2185,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fupload%2Fvod%2F20230930-1%2Fce7f187328a4da4b11aa28e628496b4a.jpg&w=320&q=85",
+            "url": "https://nanaflix.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fupload%2Fvod%2F20230930-1%2Fce7f187328a4da4b11aa28e628496b4a.jpg&w=320&q=85",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 2627.9529999941587,
@@ -2203,7 +2203,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fupload%2Fvod%2F20251201-1%2F7559ddf77de1f487623f4aed300373c6.jpg&w=320&q=85",
+            "url": "https://nanaflix.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fupload%2Fvod%2F20251201-1%2F7559ddf77de1f487623f4aed300373c6.jpg&w=320&q=85",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 2647.5149999931455,
@@ -2220,7 +2220,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fuploads%2Fmovies%2F20260713%2Fdoi-bong-thieu-lam-poster.webp&w=320&q=85",
+            "url": "https://nanaflix.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fuploads%2Fmovies%2F20260713%2Fdoi-bong-thieu-lam-poster.webp&w=320&q=85",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 2647.6219999939203,
@@ -2237,7 +2237,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fupload%2Fvod%2F20240312-1%2F05197bbc8d624a3e0ae6c9fcdb7c6ee8.jpg&w=320&q=85",
+            "url": "https://nanaflix.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fupload%2Fvod%2F20240312-1%2F05197bbc8d624a3e0ae6c9fcdb7c6ee8.jpg&w=320&q=85",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 2647.683999992907,
@@ -2254,7 +2254,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fuploads%2Fmovies%2F20260723%2Fhoac-nguyen-giap-poster.webp&w=320&q=85",
+            "url": "https://nanaflix.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fuploads%2Fmovies%2F20260723%2Fhoac-nguyen-giap-poster.webp&w=320&q=85",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 2647.732999995351,
@@ -2271,7 +2271,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fupload%2Fvod%2F20240104-1%2F2cae46be24f514793c9e873f6de0fc32.jpg&w=320&q=85",
+            "url": "https://nanaflix.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fupload%2Fvod%2F20240104-1%2F2cae46be24f514793c9e873f6de0fc32.jpg&w=320&q=85",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 4854.328999996185,
@@ -2288,7 +2288,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fupload%2Fvod%2F20231018-1%2Fd0ccc81540ff2c85cecbf73dda05728f.jpg&w=320&q=85",
+            "url": "https://nanaflix.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fupload%2Fvod%2F20231018-1%2Fd0ccc81540ff2c85cecbf73dda05728f.jpg&w=320&q=85",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 4854.482999995351,
@@ -2305,7 +2305,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fupload%2Fvod%2F20231014-1%2F39aa8b76c6b10330bd685897500a6026.jpg&w=320&q=85",
+            "url": "https://nanaflix.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fupload%2Fvod%2F20231014-1%2F39aa8b76c6b10330bd685897500a6026.jpg&w=320&q=85",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 4854.573999993503,
@@ -2322,7 +2322,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fupload%2Fvod%2F20231117-1%2F66f7c951fe0f494017fbd245f4eb61a6.jpg&w=320&q=85",
+            "url": "https://nanaflix.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fupload%2Fvod%2F20231117-1%2F66f7c951fe0f494017fbd245f4eb61a6.jpg&w=320&q=85",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 4854.651000000536,
@@ -2339,7 +2339,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fupload%2Fvod%2F20260410-1%2F3566656647a560cf62a64bdd6a3c2a5d.jpg&w=320&q=85",
+            "url": "https://nanaflix.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fupload%2Fvod%2F20260410-1%2F3566656647a560cf62a64bdd6a3c2a5d.jpg&w=320&q=85",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 4854.730999998748,
@@ -2356,7 +2356,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fupload%2Fvod%2F20231019-1%2Fbebb7b1cf9f75cbcd81fe2333dfc3eb1.jpg&w=320&q=85",
+            "url": "https://nanaflix.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fupload%2Fvod%2F20231019-1%2Fbebb7b1cf9f75cbcd81fe2333dfc3eb1.jpg&w=320&q=85",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 4854.826999992132,
@@ -2373,7 +2373,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fupload%2Fvod%2F20231212-1%2F0944b2a5a2d6c69489f5d686691c5d4b.jpg&w=320&q=85",
+            "url": "https://nanaflix.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fupload%2Fvod%2F20231212-1%2F0944b2a5a2d6c69489f5d686691c5d4b.jpg&w=320&q=85",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 4854.917999997735,
@@ -2390,7 +2390,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fupload%2Fvod%2F20231014-1%2Fb0d4f8f3e7c9a85e80dfcd8a9a9a379c.jpg&w=320&q=85",
+            "url": "https://nanaflix.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fupload%2Fvod%2F20231014-1%2Fb0d4f8f3e7c9a85e80dfcd8a9a9a379c.jpg&w=320&q=85",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 4854.993999995291,
@@ -2407,7 +2407,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fuploads%2Fmovies%2F20260815%2Fcuoc-goi-khan-cap-9-1-1-phan-9-poster.webp&w=320&q=85",
+            "url": "https://nanaflix.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fuploads%2Fmovies%2F20260815%2Fcuoc-goi-khan-cap-9-1-1-phan-9-poster.webp&w=320&q=85",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 4855.072999998927,
@@ -2424,7 +2424,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fupload%2Fvod%2F20260420-1%2F0a4c1589001cf10c879d5b8c4f7e75d6.jpg&w=320&q=85",
+            "url": "https://nanaflix.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fupload%2Fvod%2F20260420-1%2F0a4c1589001cf10c879d5b8c4f7e75d6.jpg&w=320&q=85",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 4855.196999996901,
@@ -2441,7 +2441,7 @@
             "entity": "vercel.app"
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fupload%2Fvod%2F20260309-1%2Fb3ee2c9f0dd9562984edab329201dbe7.jpg&w=320&q=85",
+            "url": "https://nanaflix.vercel.app/_next/image?url=https%3A%2F%2Fphimimg.com%2Fupload%2Fvod%2F20260309-1%2Fb3ee2c9f0dd9562984edab329201dbe7.jpg&w=320&q=85",
             "sessionTargetType": "page",
             "protocol": "h2",
             "rendererStartTime": 4855.277999989688,
@@ -2464,197 +2464,197 @@
           "initiators": [
             {
               "type": "parser",
-              "url": "https://netflix1-1.vercel.app/browse",
+              "url": "https://nanaflix.vercel.app/browse",
               "lineNumber": 0,
               "columnNumber": 2042
             },
             {
               "type": "parser",
-              "url": "https://netflix1-1.vercel.app/browse",
+              "url": "https://nanaflix.vercel.app/browse",
               "lineNumber": 0,
               "columnNumber": 3751
             },
             {
               "type": "parser",
-              "url": "https://netflix1-1.vercel.app/browse",
+              "url": "https://nanaflix.vercel.app/browse",
               "lineNumber": 0,
               "columnNumber": 5251
             },
             {
               "type": "parser",
-              "url": "https://netflix1-1.vercel.app/browse",
+              "url": "https://nanaflix.vercel.app/browse",
               "lineNumber": 0,
               "columnNumber": 7268
             },
             {
               "type": "parser",
-              "url": "https://netflix1-1.vercel.app/browse",
+              "url": "https://nanaflix.vercel.app/browse",
               "lineNumber": 0,
               "columnNumber": 7371
             },
             {
               "type": "parser",
-              "url": "https://netflix1-1.vercel.app/browse",
+              "url": "https://nanaflix.vercel.app/browse",
               "lineNumber": 0,
               "columnNumber": 7474
             },
             {
               "type": "parser",
-              "url": "https://netflix1-1.vercel.app/browse",
+              "url": "https://nanaflix.vercel.app/browse",
               "lineNumber": 0,
               "columnNumber": 7582
             },
             {
               "type": "parser",
-              "url": "https://netflix1-1.vercel.app/browse",
+              "url": "https://nanaflix.vercel.app/browse",
               "lineNumber": 0,
               "columnNumber": 7653
             },
             {
               "type": "parser",
-              "url": "https://netflix1-1.vercel.app/browse",
+              "url": "https://nanaflix.vercel.app/browse",
               "lineNumber": 0,
               "columnNumber": 7733
             },
             {
               "type": "parser",
-              "url": "https://netflix1-1.vercel.app/browse",
+              "url": "https://nanaflix.vercel.app/browse",
               "lineNumber": 0,
               "columnNumber": 7813
             },
             {
               "type": "parser",
-              "url": "https://netflix1-1.vercel.app/browse",
+              "url": "https://nanaflix.vercel.app/browse",
               "lineNumber": 0,
               "columnNumber": 7903
             },
             {
               "type": "parser",
-              "url": "https://netflix1-1.vercel.app/browse",
+              "url": "https://nanaflix.vercel.app/browse",
               "lineNumber": 0,
               "columnNumber": 7998
             },
             {
               "type": "parser",
-              "url": "https://netflix1-1.vercel.app/browse",
+              "url": "https://nanaflix.vercel.app/browse",
               "lineNumber": 0,
               "columnNumber": 8093
             },
             {
               "type": "parser",
-              "url": "https://netflix1-1.vercel.app/browse",
+              "url": "https://nanaflix.vercel.app/browse",
               "lineNumber": 0,
               "columnNumber": 8188
             },
             {
               "type": "parser",
-              "url": "https://netflix1-1.vercel.app/browse",
+              "url": "https://nanaflix.vercel.app/browse",
               "lineNumber": 0,
               "columnNumber": 8283
             },
             {
               "type": "parser",
-              "url": "https://netflix1-1.vercel.app/browse",
+              "url": "https://nanaflix.vercel.app/browse",
               "lineNumber": 0,
               "columnNumber": 8378
             },
             {
               "type": "parser",
-              "url": "https://netflix1-1.vercel.app/browse",
+              "url": "https://nanaflix.vercel.app/browse",
               "lineNumber": 0,
               "columnNumber": 8473
             },
             {
               "type": "parser",
-              "url": "https://netflix1-1.vercel.app/browse",
+              "url": "https://nanaflix.vercel.app/browse",
               "lineNumber": 0,
               "columnNumber": 8568
             },
             {
               "type": "parser",
-              "url": "https://netflix1-1.vercel.app/browse",
+              "url": "https://nanaflix.vercel.app/browse",
               "lineNumber": 0,
               "columnNumber": 8663
             },
             {
               "type": "parser",
-              "url": "https://netflix1-1.vercel.app/browse",
+              "url": "https://nanaflix.vercel.app/browse",
               "lineNumber": 0,
               "columnNumber": 8758
             },
             {
               "type": "parser",
-              "url": "https://netflix1-1.vercel.app/browse",
+              "url": "https://nanaflix.vercel.app/browse",
               "lineNumber": 0,
               "columnNumber": 8853
             },
             {
               "type": "parser",
-              "url": "https://netflix1-1.vercel.app/browse",
+              "url": "https://nanaflix.vercel.app/browse",
               "lineNumber": 0,
               "columnNumber": 8948
             },
             {
               "type": "parser",
-              "url": "https://netflix1-1.vercel.app/browse",
+              "url": "https://nanaflix.vercel.app/browse",
               "lineNumber": 38,
               "columnNumber": 21
             },
             {
               "type": "parser",
-              "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/17ilrdi8dgwlz.css"
+              "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/17ilrdi8dgwlz.css"
             },
             {
               "type": "parser",
-              "url": "https://netflix1-1.vercel.app/browse",
+              "url": "https://nanaflix.vercel.app/browse",
               "lineNumber": 39,
               "columnNumber": 145053
             },
             {
               "type": "parser",
-              "url": "https://netflix1-1.vercel.app/browse",
+              "url": "https://nanaflix.vercel.app/browse",
               "lineNumber": 39,
               "columnNumber": 145053
             },
             {
               "type": "parser",
-              "url": "https://netflix1-1.vercel.app/browse",
+              "url": "https://nanaflix.vercel.app/browse",
               "lineNumber": 39,
               "columnNumber": 145053
             },
             {
               "type": "parser",
-              "url": "https://netflix1-1.vercel.app/browse",
+              "url": "https://nanaflix.vercel.app/browse",
               "lineNumber": 39,
               "columnNumber": 145053
             },
             {
               "type": "parser",
-              "url": "https://netflix1-1.vercel.app/browse",
+              "url": "https://nanaflix.vercel.app/browse",
               "lineNumber": 39,
               "columnNumber": 145053
             },
             {
               "type": "parser",
-              "url": "https://netflix1-1.vercel.app/browse",
+              "url": "https://nanaflix.vercel.app/browse",
               "lineNumber": 39,
               "columnNumber": 145053
             },
             {
               "type": "parser",
-              "url": "https://netflix1-1.vercel.app/browse",
+              "url": "https://nanaflix.vercel.app/browse",
               "lineNumber": 39,
               "columnNumber": 145053
             },
             {
               "type": "parser",
-              "url": "https://netflix1-1.vercel.app/browse",
+              "url": "https://nanaflix.vercel.app/browse",
               "lineNumber": 39,
               "columnNumber": 145053
             },
             {
               "type": "parser",
-              "url": "https://netflix1-1.vercel.app/browse",
+              "url": "https://nanaflix.vercel.app/browse",
               "lineNumber": 39,
               "columnNumber": 145053
             }
@@ -2692,7 +2692,7 @@
             "rtt": 47.31
           },
           {
-            "origin": "https://netflix1-1.vercel.app",
+            "origin": "https://nanaflix.vercel.app",
             "rtt": 26.753
           },
           {
@@ -2735,7 +2735,7 @@
             "serverResponseTime": 62.5275
           },
           {
-            "origin": "https://netflix1-1.vercel.app",
+            "origin": "https://nanaflix.vercel.app",
             "serverResponseTime": 51.849000000000004
           },
           {
@@ -3372,7 +3372,7 @@
         ],
         "items": [
           {
-            "url": "https://netflix1-1.vercel.app/browse",
+            "url": "https://nanaflix.vercel.app/browse",
             "duration": 70,
             "startTime": 399.861
           }
@@ -3386,7 +3386,7 @@
         "debugData": {
           "type": "debugdata",
           "urls": [
-            "https://netflix1-1.vercel.app/browse"
+            "https://nanaflix.vercel.app/browse"
           ],
           "tasks": [
             {
@@ -3481,7 +3481,7 @@
         ],
         "items": [
           {
-            "scriptUrl": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/3zavjewbuwgey.js",
+            "scriptUrl": "https://nanaflix.vercel.app/_next/static/immutable/chunks/3zavjewbuwgey.js",
             "subItems": {
               "type": "subitems",
               "items": [
@@ -3522,7 +3522,7 @@
               "initiatorType": "fallbackToMain"
             },
             {
-              "url": "https://netflix1-1.vercel.app/browse",
+              "url": "https://nanaflix.vercel.app/browse",
               "initiatorType": "other"
             }
           ],
@@ -3725,7 +3725,7 @@
         "type": "treemap-data",
         "nodes": [
           {
-            "name": "https://netflix1-1.vercel.app/browse",
+            "name": "https://nanaflix.vercel.app/browse",
             "resourceBytes": 77302,
             "encodedBytes": 9484,
             "unusedBytes": 352,
@@ -3768,181 +3768,181 @@
             ]
           },
           {
-            "name": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/36s0t0o8ux5as.js",
+            "name": "https://nanaflix.vercel.app/_next/static/immutable/chunks/36s0t0o8ux5as.js",
             "resourceBytes": 12885,
             "encodedBytes": 0,
             "unusedBytes": 3033
           },
           {
-            "name": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/1wcd9-_thfplc.js",
+            "name": "https://nanaflix.vercel.app/_next/static/immutable/chunks/1wcd9-_thfplc.js",
             "resourceBytes": 14930,
             "encodedBytes": 0,
             "unusedBytes": 5151
           },
           {
-            "name": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/0ws7t_wz4dvp7.js",
+            "name": "https://nanaflix.vercel.app/_next/static/immutable/chunks/0ws7t_wz4dvp7.js",
             "resourceBytes": 31346,
             "encodedBytes": 8728,
             "unusedBytes": 11269
           },
           {
-            "name": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/3jhk0k-bpxdqm.js",
+            "name": "https://nanaflix.vercel.app/_next/static/immutable/chunks/3jhk0k-bpxdqm.js",
             "resourceBytes": 39611,
             "encodedBytes": 0,
             "unusedBytes": 5376
           },
           {
-            "name": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/turbopack-11sw9_nzj19rd.js",
+            "name": "https://nanaflix.vercel.app/_next/static/immutable/chunks/turbopack-11sw9_nzj19rd.js",
             "resourceBytes": 9692,
             "encodedBytes": 0,
             "unusedBytes": 3287
           },
           {
-            "name": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/0ab_id0vgb4ij.js",
+            "name": "https://nanaflix.vercel.app/_next/static/immutable/chunks/0ab_id0vgb4ij.js",
             "resourceBytes": 32709,
             "encodedBytes": 0,
             "unusedBytes": 3437
           },
           {
-            "name": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/0ue0m7vr59d42.js",
+            "name": "https://nanaflix.vercel.app/_next/static/immutable/chunks/0ue0m7vr59d42.js",
             "resourceBytes": 75911,
             "encodedBytes": 18570,
             "unusedBytes": 16896
           },
           {
-            "name": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/06ef9y0yesuuj.js",
+            "name": "https://nanaflix.vercel.app/_next/static/immutable/chunks/06ef9y0yesuuj.js",
             "resourceBytes": 21153,
             "encodedBytes": 8128,
             "unusedBytes": 12898
           },
           {
-            "name": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/3rkr2c5-cye-h.js",
+            "name": "https://nanaflix.vercel.app/_next/static/immutable/chunks/3rkr2c5-cye-h.js",
             "resourceBytes": 30670,
             "encodedBytes": 10867,
             "unusedBytes": 16601
           },
           {
-            "name": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/1g7uobryskoe1.js",
+            "name": "https://nanaflix.vercel.app/_next/static/immutable/chunks/1g7uobryskoe1.js",
             "resourceBytes": 26422,
             "encodedBytes": 9994,
             "unusedBytes": 7459
           },
           {
-            "name": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/2crjy3l59yyv2.js",
+            "name": "https://nanaflix.vercel.app/_next/static/immutable/chunks/2crjy3l59yyv2.js",
             "resourceBytes": 154587,
             "encodedBytes": 43079,
             "unusedBytes": 50095
           },
           {
-            "name": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/453bh8ge0e3x-.js",
+            "name": "https://nanaflix.vercel.app/_next/static/immutable/chunks/453bh8ge0e3x-.js",
             "resourceBytes": 55338,
             "encodedBytes": 14137,
             "unusedBytes": 11705
           },
           {
-            "name": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/0wkh_qvig5ymc.js",
+            "name": "https://nanaflix.vercel.app/_next/static/immutable/chunks/0wkh_qvig5ymc.js",
             "resourceBytes": 133863,
             "encodedBytes": 45839,
             "unusedBytes": 58225
           },
           {
-            "name": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/2pmamfwrltp9s.js",
+            "name": "https://nanaflix.vercel.app/_next/static/immutable/chunks/2pmamfwrltp9s.js",
             "resourceBytes": 118631,
             "encodedBytes": 35745,
             "unusedBytes": 77320
           },
           {
-            "name": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/3_-vx2duc8jqh.js",
+            "name": "https://nanaflix.vercel.app/_next/static/immutable/chunks/3_-vx2duc8jqh.js",
             "resourceBytes": 229305,
             "encodedBytes": 73076,
             "unusedBytes": 67488
           },
           {
-            "name": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/1b3ldr9bqwmh4.js",
+            "name": "https://nanaflix.vercel.app/_next/static/immutable/chunks/1b3ldr9bqwmh4.js",
             "resourceBytes": 253497,
             "encodedBytes": 65923,
             "unusedBytes": 214749
           },
           {
-            "name": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/3ck7j4gwou3il.js",
+            "name": "https://nanaflix.vercel.app/_next/static/immutable/chunks/3ck7j4gwou3il.js",
             "resourceBytes": 35246,
             "encodedBytes": 0,
             "unusedBytes": 13050
           },
           {
-            "name": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/25h5maghi4iwt.js",
+            "name": "https://nanaflix.vercel.app/_next/static/immutable/chunks/25h5maghi4iwt.js",
             "resourceBytes": 13745,
             "encodedBytes": 0,
             "unusedBytes": 7800
           },
           {
-            "name": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/07ly1gm3muqlq.js",
+            "name": "https://nanaflix.vercel.app/_next/static/immutable/chunks/07ly1gm3muqlq.js",
             "resourceBytes": 19120,
             "encodedBytes": 0,
             "unusedBytes": 7703
           },
           {
-            "name": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/0v2bmy583pzfb.js",
+            "name": "https://nanaflix.vercel.app/_next/static/immutable/chunks/0v2bmy583pzfb.js",
             "resourceBytes": 6896,
             "encodedBytes": 0,
             "unusedBytes": 3066
           },
           {
-            "name": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/228xrpp482ppx.js",
+            "name": "https://nanaflix.vercel.app/_next/static/immutable/chunks/228xrpp482ppx.js",
             "resourceBytes": 42648,
             "encodedBytes": 0,
             "unusedBytes": 24720
           },
           {
-            "name": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/0qqf2u35wdy77.js",
+            "name": "https://nanaflix.vercel.app/_next/static/immutable/chunks/0qqf2u35wdy77.js",
             "resourceBytes": 6661,
             "encodedBytes": 0,
             "unusedBytes": 269
           },
           {
-            "name": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/0hn64qg95gewr.js",
+            "name": "https://nanaflix.vercel.app/_next/static/immutable/chunks/0hn64qg95gewr.js",
             "resourceBytes": 7497,
             "encodedBytes": 0,
             "unusedBytes": 1589
           },
           {
-            "name": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/39p793uch7506.js",
+            "name": "https://nanaflix.vercel.app/_next/static/immutable/chunks/39p793uch7506.js",
             "resourceBytes": 4169,
             "encodedBytes": 0,
             "unusedBytes": 3950
           },
           {
-            "name": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/44r_a-5fcury2.js",
+            "name": "https://nanaflix.vercel.app/_next/static/immutable/chunks/44r_a-5fcury2.js",
             "resourceBytes": 225,
             "encodedBytes": 0,
             "unusedBytes": 104
           },
           {
-            "name": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/37wje0vbua5pp.js",
+            "name": "https://nanaflix.vercel.app/_next/static/immutable/chunks/37wje0vbua5pp.js",
             "resourceBytes": 68415,
             "encodedBytes": 20073,
             "unusedBytes": 66219
           },
           {
-            "name": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/1w0pzocxbo2ew.js",
+            "name": "https://nanaflix.vercel.app/_next/static/immutable/chunks/1w0pzocxbo2ew.js",
             "resourceBytes": 700,
             "encodedBytes": -700,
             "unusedBytes": 579
           },
           {
-            "name": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/32_3u92bxnpe9.js",
+            "name": "https://nanaflix.vercel.app/_next/static/immutable/chunks/32_3u92bxnpe9.js",
             "resourceBytes": 119106,
             "encodedBytes": 1,
             "unusedBytes": 118985
           },
           {
-            "name": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/0-hcdi2b-qffq.js",
+            "name": "https://nanaflix.vercel.app/_next/static/immutable/chunks/0-hcdi2b-qffq.js",
             "resourceBytes": 5995,
             "encodedBytes": 1,
             "unusedBytes": 5729
           },
           {
-            "name": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/3zavjewbuwgey.js",
+            "name": "https://nanaflix.vercel.app/_next/static/immutable/chunks/3zavjewbuwgey.js",
             "resourceBytes": 576273,
             "encodedBytes": 1,
             "unusedBytes": 576140
@@ -5456,39 +5456,39 @@
             "totalBytes": 179818
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/media/1bffadaabf893a1e-s.0szrwpqb9mkwe.woff2",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/media/1bffadaabf893a1e-s.0szrwpqb9mkwe.woff2",
             "totalBytes": 85635
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/3_-vx2duc8jqh.js",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/3_-vx2duc8jqh.js",
             "totalBytes": 73282
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/1b3ldr9bqwmh4.js",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/1b3ldr9bqwmh4.js",
             "totalBytes": 66114
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/media/83afe278b6a6bb3c-s.p.45535valc9rzk.woff2",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/media/83afe278b6a6bb3c-s.p.45535valc9rzk.woff2",
             "totalBytes": 48720
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/0wkh_qvig5ymc.js",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/0wkh_qvig5ymc.js",
             "totalBytes": 46095
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/2crjy3l59yyv2.js",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/2crjy3l59yyv2.js",
             "totalBytes": 43256
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/2pmamfwrltp9s.js",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/2pmamfwrltp9s.js",
             "totalBytes": 36095
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/3z-xc7wokqu6x.css",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/3z-xc7wokqu6x.css",
             "totalBytes": 33217
           },
           {
-            "url": "https://netflix1-1.vercel.app/browse",
+            "url": "https://nanaflix.vercel.app/browse",
             "totalBytes": 31793
           }
         ],
@@ -5565,7 +5565,7 @@
         ],
         "items": [
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/3z-xc7wokqu6x.css",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/3z-xc7wokqu6x.css",
             "totalBytes": 33217,
             "wastedMs": 67
           }
@@ -5715,19 +5715,19 @@
         ],
         "items": [
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/1b3ldr9bqwmh4.js",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/1b3ldr9bqwmh4.js",
             "totalBytes": 65878,
             "wastedBytes": 55808,
             "wastedPercent": 84.71461200724268
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/2pmamfwrltp9s.js",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/2pmamfwrltp9s.js",
             "totalBytes": 35715,
             "wastedBytes": 23278,
             "wastedPercent": 65.17689305493505
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/3_-vx2duc8jqh.js",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/3_-vx2duc8jqh.js",
             "totalBytes": 73076,
             "wastedBytes": 21507,
             "wastedPercent": 29.43154314123111
@@ -5984,7 +5984,7 @@
         ],
         "items": [
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/3_-vx2duc8jqh.js",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/3_-vx2duc8jqh.js",
             "wastedBytes": 13954,
             "subItems": {
               "type": "subitems",
@@ -5993,7 +5993,7 @@
                   "signal": "Array.prototype.at",
                   "location": {
                     "type": "source-location",
-                    "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/3_-vx2duc8jqh.js",
+                    "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/3_-vx2duc8jqh.js",
                     "urlProvider": "network",
                     "line": 0,
                     "column": 1116
@@ -6003,7 +6003,7 @@
                   "signal": "Array.prototype.flat",
                   "location": {
                     "type": "source-location",
-                    "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/3_-vx2duc8jqh.js",
+                    "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/3_-vx2duc8jqh.js",
                     "urlProvider": "network",
                     "line": 0,
                     "column": 504
@@ -6013,7 +6013,7 @@
                   "signal": "Array.prototype.flatMap",
                   "location": {
                     "type": "source-location",
-                    "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/3_-vx2duc8jqh.js",
+                    "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/3_-vx2duc8jqh.js",
                     "urlProvider": "network",
                     "line": 0,
                     "column": 617
@@ -6023,7 +6023,7 @@
                   "signal": "Object.fromEntries",
                   "location": {
                     "type": "source-location",
-                    "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/3_-vx2duc8jqh.js",
+                    "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/3_-vx2duc8jqh.js",
                     "urlProvider": "network",
                     "line": 0,
                     "column": 993
@@ -6033,7 +6033,7 @@
                   "signal": "Object.hasOwn",
                   "location": {
                     "type": "source-location",
-                    "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/3_-vx2duc8jqh.js",
+                    "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/3_-vx2duc8jqh.js",
                     "urlProvider": "network",
                     "line": 0,
                     "column": 1251
@@ -6043,7 +6043,7 @@
                   "signal": "String.prototype.trimEnd",
                   "location": {
                     "type": "source-location",
-                    "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/3_-vx2duc8jqh.js",
+                    "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/3_-vx2duc8jqh.js",
                     "urlProvider": "network",
                     "line": 0,
                     "column": 246
@@ -6053,7 +6053,7 @@
                   "signal": "String.prototype.trimStart",
                   "location": {
                     "type": "source-location",
-                    "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/3_-vx2duc8jqh.js",
+                    "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/3_-vx2duc8jqh.js",
                     "urlProvider": "network",
                     "line": 0,
                     "column": 161
@@ -6504,7 +6504,7 @@
               "type": "subitems",
               "items": [
                 {
-                  "frameUrl": "https://netflix1-1.vercel.app/browse"
+                  "frameUrl": "https://nanaflix.vercel.app/browse"
                 }
               ]
             },
@@ -6517,7 +6517,7 @@
               "type": "subitems",
               "items": [
                 {
-                  "frameUrl": "https://netflix1-1.vercel.app/browse"
+                  "frameUrl": "https://nanaflix.vercel.app/browse"
                 }
               ]
             },
@@ -7110,7 +7110,7 @@
         ],
         "items": [
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/3_-vx2duc8jqh.js",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/3_-vx2duc8jqh.js",
             "wastedBytes": 13993,
             "subItems": {
               "type": "subitems",
@@ -7119,7 +7119,7 @@
                   "signal": "Array.prototype.at",
                   "location": {
                     "type": "source-location",
-                    "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/3_-vx2duc8jqh.js",
+                    "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/3_-vx2duc8jqh.js",
                     "urlProvider": "network",
                     "line": 0,
                     "column": 1116
@@ -7129,7 +7129,7 @@
                   "signal": "Array.prototype.flat",
                   "location": {
                     "type": "source-location",
-                    "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/3_-vx2duc8jqh.js",
+                    "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/3_-vx2duc8jqh.js",
                     "urlProvider": "network",
                     "line": 0,
                     "column": 504
@@ -7139,7 +7139,7 @@
                   "signal": "Array.prototype.flatMap",
                   "location": {
                     "type": "source-location",
-                    "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/3_-vx2duc8jqh.js",
+                    "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/3_-vx2duc8jqh.js",
                     "urlProvider": "network",
                     "line": 0,
                     "column": 617
@@ -7149,7 +7149,7 @@
                   "signal": "Object.fromEntries",
                   "location": {
                     "type": "source-location",
-                    "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/3_-vx2duc8jqh.js",
+                    "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/3_-vx2duc8jqh.js",
                     "urlProvider": "network",
                     "line": 0,
                     "column": 993
@@ -7159,7 +7159,7 @@
                   "signal": "Object.hasOwn",
                   "location": {
                     "type": "source-location",
-                    "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/3_-vx2duc8jqh.js",
+                    "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/3_-vx2duc8jqh.js",
                     "urlProvider": "network",
                     "line": 0,
                     "column": 1251
@@ -7169,7 +7169,7 @@
                   "signal": "String.prototype.trimEnd",
                   "location": {
                     "type": "source-location",
-                    "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/3_-vx2duc8jqh.js",
+                    "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/3_-vx2duc8jqh.js",
                     "urlProvider": "network",
                     "line": 0,
                     "column": 246
@@ -7179,7 +7179,7 @@
                   "signal": "String.prototype.trimStart",
                   "location": {
                     "type": "source-location",
-                    "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/3_-vx2duc8jqh.js",
+                    "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/3_-vx2duc8jqh.js",
                     "urlProvider": "network",
                     "line": 0,
                     "column": 161
@@ -7245,19 +7245,19 @@
               "type": "network-tree",
               "chains": {
                 "09E46DC3F0516157A389F6E235A5AA72": {
-                  "url": "https://netflix1-1.vercel.app/browse",
+                  "url": "https://nanaflix.vercel.app/browse",
                   "navStartToEndTime": 1046,
                   "transferSize": 31793,
                   "isLongest": true,
                   "children": {
                     "5184.11": {
-                      "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/17ilrdi8dgwlz.css",
+                      "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/17ilrdi8dgwlz.css",
                       "navStartToEndTime": 817,
                       "transferSize": 1271,
                       "isLongest": true,
                       "children": {
                         "5184.87": {
-                          "url": "https://netflix1-1.vercel.app/_next/static/immutable/media/1bffadaabf893a1e-s.0szrwpqb9mkwe.woff2",
+                          "url": "https://nanaflix.vercel.app/_next/static/immutable/media/1bffadaabf893a1e-s.0szrwpqb9mkwe.woff2",
                           "navStartToEndTime": 1094,
                           "transferSize": 85635,
                           "isLongest": true,
@@ -7266,13 +7266,13 @@
                       }
                     },
                     "5184.57": {
-                      "url": "https://netflix1-1.vercel.app/manifest.json",
+                      "url": "https://nanaflix.vercel.app/manifest.json",
                       "navStartToEndTime": 1038,
                       "transferSize": 1033,
                       "children": {}
                     },
                     "5184.12": {
-                      "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/3z-xc7wokqu6x.css",
+                      "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/3z-xc7wokqu6x.css",
                       "navStartToEndTime": 832,
                       "transferSize": 33217,
                       "children": {}
@@ -7679,12 +7679,12 @@
         ],
         "items": [
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/3z-xc7wokqu6x.css",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/3z-xc7wokqu6x.css",
             "totalBytes": 33217,
             "wastedMs": 67
           },
           {
-            "url": "https://netflix1-1.vercel.app/_next/static/immutable/chunks/17ilrdi8dgwlz.css",
+            "url": "https://nanaflix.vercel.app/_next/static/immutable/chunks/17ilrdi8dgwlz.css",
             "totalBytes": 1271
           }
         ]
@@ -8898,7 +8898,7 @@
     {
       "name": "vercel.app",
       "origins": [
-        "https://netflix1-1.vercel.app"
+        "https://nanaflix.vercel.app"
       ],
       "isFirstParty": true,
       "isUnrecognized": true

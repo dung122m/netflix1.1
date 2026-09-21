@@ -30,9 +30,33 @@ export interface VisitorInfo {
   deviceType: string;
   os: string;
   browser: string;
-  screenRes: string;
+  screenRes?: string;
   firstSeen: number;
   lastSeen: number;
+}
+
+export interface LiveWatchingSession {
+  userId: string;
+  userName: string;
+  userAvatar?: string;
+  userEmail?: string;
+  movieSlug: string;
+  movieTitle: string;
+  poster?: string;
+  episodeSlug?: string;
+  episodeName?: string;
+  progressSeconds: number;
+  durationSeconds: number;
+  progressPercent: number;
+  deviceName?: string;
+  updatedAt: number;
+  isLive: boolean; // Updated within 5 minutes
+}
+
+export interface HourlyWatchStat {
+  hour: number;
+  label: string;
+  count: number;
 }
 
 export interface AnalyticsDashboardStats {
@@ -57,6 +81,8 @@ export interface AnalyticsDashboardStats {
   browserList: Array<{ name: string; count: number; percentage: number }>;
   recentActivity: StoredAnalyticsEvent[];
   topSearches: Array<{ keyword: string; count: number }>;
+  liveWatching: LiveWatchingSession[];
+  hourlyWatchActivity: HourlyWatchStat[];
 }
 
 let redisInstance: Redis | null = null;
@@ -118,7 +144,7 @@ export async function recordAnalyticsEvent(payload: AnalyticsEventPayload): Prom
     deviceType: payload.deviceInfo?.deviceType || "desktop",
     os: payload.deviceInfo?.os || "Other",
     browser: payload.deviceInfo?.browser || "Other",
-    screenRes: payload.deviceInfo?.screenRes || "1920x1080",
+    screenRes: payload.deviceInfo?.screenRes || undefined,
     durationSeconds: payload.durationSeconds || 0,
     progressSeconds: payload.progressSeconds || 0,
     keyword: payload.keyword?.trim(),
@@ -145,7 +171,7 @@ export async function recordAnalyticsEvent(payload: AnalyticsEventPayload): Prom
         deviceType: eventRecord.deviceType || "desktop",
         os: eventRecord.os || "Other",
         browser: eventRecord.browser || "Other",
-        screenRes: eventRecord.screenRes || "1920x1080",
+        screenRes: eventRecord.screenRes || undefined,
         firstSeen: existingVisitor?.firstSeen || now,
         lastSeen: now,
       };
@@ -194,7 +220,7 @@ export async function recordAnalyticsEvent(payload: AnalyticsEventPayload): Prom
       deviceType: eventRecord.deviceType || "desktop",
       os: eventRecord.os || "Other",
       browser: eventRecord.browser || "Other",
-      screenRes: eventRecord.screenRes || "1920x1080",
+      screenRes: eventRecord.screenRes || undefined,
       firstSeen: existingMem?.firstSeen || now,
       lastSeen: now,
     });
@@ -215,7 +241,7 @@ export async function recordAnalyticsEvent(payload: AnalyticsEventPayload): Prom
         device_type: eventRecord.deviceType,
         os: eventRecord.os,
         browser: eventRecord.browser,
-        screen_res: eventRecord.screenRes,
+        screen_res: null, // Discontinued screen_res for new events
         duration_seconds: eventRecord.durationSeconds || 0,
         progress_seconds: eventRecord.progressSeconds || 0,
         keyword: eventRecord.keyword || null,
@@ -292,7 +318,7 @@ export async function getAnalyticsDashboardStats(
   // Try querying Supabase if table exists
   if (supabase) {
     try {
-      let query = supabase.from("analytics_events").select("*").order("created_at", { ascending: false }).limit(300);
+      let query = supabase.from("analytics_events").select("*").order("created_at", { ascending: false }).limit(1000);
       if (cutoffTimestamp > 0) {
         query = query.gte("created_at", cutoffTimestamp);
       }
@@ -480,6 +506,112 @@ export async function getAnalyticsDashboardStats(
     .sort((a, b) => b.count - a.count)
     .slice(0, 10);
 
+  // 3. Hourly Watch Activity (0-23h) - only watching events
+  const watchEventTypes = new Set(["watch_start", "watch_progress", "watch_end", "movie_view"]);
+  const hourlyBuckets = new Array(24).fill(0);
+
+  for (const ev of filteredEvents) {
+    if (watchEventTypes.has(ev.eventType)) {
+      const h = new Date(ev.createdAt).getHours();
+      if (h >= 0 && h < 24) {
+        hourlyBuckets[h]++;
+      }
+    }
+  }
+
+  const hourlyWatchActivity: HourlyWatchStat[] = hourlyBuckets.map((count, hour) => ({
+    hour,
+    label: `${hour.toString().padStart(2, "0")}:00`,
+    count,
+  }));
+
+  // 4. Live Watching sessions from device_handoff + profiles
+  let liveWatching: LiveWatchingSession[] = [];
+  if (supabase) {
+    try {
+      const { data: handoffs, error: handoffErr } = await supabase
+        .from("device_handoff")
+        .select("*")
+        .order("updated_at", { ascending: false })
+        .limit(30);
+
+      if (!handoffErr && handoffs && handoffs.length > 0) {
+        const userIds = Array.from(new Set(handoffs.map((h) => h.user_id).filter(Boolean)));
+        const profileMap = new Map<string, { name: string; avatar?: string; email?: string }>();
+
+        if (userIds.length > 0) {
+          const { data: profiles } = await supabase
+            .from("profiles")
+            .select("id, display_name, photo_url, custom_avatar, email")
+            .in("id", userIds);
+
+          if (profiles) {
+            profiles.forEach((p) => {
+              profileMap.set(p.id, {
+                name: p.display_name || "Thành viên",
+                avatar: p.custom_avatar || p.photo_url || undefined,
+                email: p.email || undefined,
+              });
+            });
+          }
+        }
+
+        const fiveMinutesAgo = now - 5 * 60 * 1000;
+        liveWatching = handoffs.map((h) => {
+          const prof = profileMap.get(h.user_id);
+          const rawDur = Number(h.duration_seconds);
+          const dur = (!isNaN(rawDur) && rawDur > 0) ? Math.floor(rawDur) : 0;
+
+          const rawProg = Number(h.progress_seconds);
+          let prog = (!isNaN(rawProg) && rawProg > 0) ? Math.floor(rawProg) : 0;
+          if (dur > 0) {
+            prog = Math.min(prog, dur);
+          }
+          prog = Math.max(0, prog);
+
+          const percent = dur > 0 ? Math.min(100, Math.max(0, Math.round((prog / dur) * 100))) : 0;
+
+          const rawUpAt = typeof h.updated_at === "string" ? new Date(h.updated_at).getTime() : Number(h.updated_at);
+          const isValidUpAt = !isNaN(rawUpAt) && rawUpAt > 0 && rawUpAt <= (now + 60000);
+          const upAt = isValidUpAt ? rawUpAt : 0;
+          const isLive = upAt > 0 && upAt >= fiveMinutesAgo;
+
+          const movieTitle = (typeof h.movie_title === "string" && h.movie_title.trim())
+            ? h.movie_title.trim()
+            : (h.movie_slug || "Phim chưa đặt tên");
+
+          const episodeName = (typeof h.episode_name === "string" && h.episode_name.trim())
+            ? h.episode_name.trim()
+            : (h.episode_slug ? `Tập: ${h.episode_slug}` : undefined);
+
+          const deviceName = (typeof h.device_name === "string" && h.device_name.trim())
+            ? h.device_name.trim()
+            : "Thiết bị";
+
+          return {
+            userId: h.user_id,
+            userName: prof?.name || "Thành viên",
+            userAvatar: prof?.avatar,
+            userEmail: prof?.email,
+            movieSlug: h.movie_slug || "unknown",
+            movieTitle,
+            poster: h.poster || undefined,
+            episodeSlug: h.episode_slug || undefined,
+            episodeName,
+            progressSeconds: prog,
+            durationSeconds: dur,
+            progressPercent: percent,
+            deviceName,
+            updatedAt: upAt,
+            isLive,
+          };
+        });
+      }
+    } catch (err) {
+      console.warn("[Analytics] Error fetching live watching from handoff:", err);
+    }
+  }
+
   // If filtered events are empty (e.g. fresh system), also query Redis totals if timeframe === 'all'
   let finalTotalViews = totalViews;
   let finalUniqueTotal = uniqueAll.size;
@@ -522,5 +654,7 @@ export async function getAnalyticsDashboardStats(
     browserList,
     recentActivity: filteredEvents.slice(0, 30),
     topSearches,
+    liveWatching,
+    hourlyWatchActivity,
   };
 }

@@ -664,7 +664,7 @@ export const NanaAiStudioModal: React.FC<NanaAiStudioModalProps> = ({
 
                     <div className="space-y-1">
                       <h3 className="text-sm sm:text-base font-black text-white">
-                        Bạn đang tìm kiếm cảm xúc phim nào hôm nay?
+                        Chào bạn! Nana có thể gợi ý bộ phim nào cho bạn hôm nay?
                       </h3>
                       <p className="text-[11.5px] sm:text-xs text-gray-400 max-w-md mx-auto">
                         Mô tả cốt truyện, diễn viên, thể loại hoặc cảm xúc bạn muốn trải nghiệm, Nana AI sẽ tìm phim chuẩn gu!

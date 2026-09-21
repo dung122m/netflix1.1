@@ -20,7 +20,7 @@ export default function Loading() {
         </div>
 
         <p className="text-xs sm:text-sm font-bold text-gray-400 tracking-wider uppercase animate-pulse">
-          Đang nạp phim...
+          Nana đang chuẩn bị phòng chiếu...
         </p>
       </div>
     </div>

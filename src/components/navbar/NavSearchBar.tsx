@@ -560,7 +560,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
           <input
             ref={inputRef}
             type="text"
-            placeholder="Tìm phim..."
+            placeholder="Tìm phim trên Nanaflix..."
             onChange={handleInputChange}
             onKeyDown={handleInputKeyDown}
             onFocus={() => {

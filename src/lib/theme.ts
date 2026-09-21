@@ -12,7 +12,7 @@ export interface ThemeOption {
 export const THEMES: ThemeOption[] = [
   {
     id: "netflix-red",
-    name: "Đỏ Netflix",
+    name: "Đỏ Nanaflix",
     subtitle: "Kinh điển • Rực rỡ",
     color: "#E50914",
     oklch: "oklch(0.55 0.23 25)",

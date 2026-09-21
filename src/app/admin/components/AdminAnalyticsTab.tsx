@@ -18,6 +18,8 @@ import {
   Compass,
   Star,
   Info,
+  Film,
+  BarChart2,
 } from "lucide-react";
 import { AnalyticsDashboardStats } from "@/services/analyticsService";
 import { toast } from "@/components/Toast";
@@ -226,6 +228,153 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
         </div>
       </div>
 
+      {/* SECTION: ĐANG XEM (LIVE WATCHING) */}
+      <div className="p-6 rounded-2xl bg-zinc-900/60 border border-white/10 backdrop-blur-sm space-y-4">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400">
+              <Film size={18} />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <span>Đang Xem (Live Watching)</span>
+                {stats?.liveWatching && stats.liveWatching.filter((s) => s.isLive).length > 0 && (
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                    {stats.liveWatching.filter((s) => s.isLive).length} trực tiếp
+                  </span>
+                )}
+              </h3>
+              <p className="text-[11px] text-gray-400">
+                Phiên phát phim thời gian thực từ dữ liệu tiếp tục xem đa thiết bị
+              </p>
+            </div>
+          </div>
+          <span className="text-xs text-gray-400">
+            {stats?.liveWatching?.length || 0} phiên ghi nhận
+          </span>
+        </div>
+
+        {!stats?.liveWatching || stats.liveWatching.length === 0 ? (
+          <div className="p-8 text-center rounded-xl bg-black/40 border border-white/5 text-gray-400 text-xs">
+            Hiện chưa có thành viên nào đang phát phim.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {stats.liveWatching.map((session) => (
+              <div
+                key={`${session.userId}-${session.movieSlug}`}
+                className="p-4 rounded-xl bg-black/40 border border-white/5 hover:border-white/15 transition space-y-3 flex flex-col justify-between"
+              >
+                {/* User & Status Header */}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-xl bg-netflix-red flex items-center justify-center text-xs font-bold text-white uppercase overflow-hidden border border-white/10 flex-shrink-0">
+                      {session.userAvatar ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={session.userAvatar}
+                          alt={session.userName}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span>{(session.userName || "U")[0]}</span>
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-xs font-bold text-white truncate">
+                        {session.userName}
+                      </div>
+                      <div className="text-[10px] text-gray-500 truncate">
+                        {session.userEmail || session.userId.slice(0, 10)}
+                      </div>
+                    </div>
+                  </div>
+
+                  {session.isLive ? (
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold flex items-center gap-1.5 flex-shrink-0">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                      🟢 Đang xem
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded-full bg-zinc-800 text-gray-400 border border-white/10 text-[10px] font-medium flex items-center gap-1 flex-shrink-0">
+                      <Clock size={10} />
+                      Tạm dừng
+                    </span>
+                  )}
+                </div>
+
+                {/* Movie & Progress */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <Link
+                      href={`/movies/${session.movieSlug}`}
+                      target="_blank"
+                      className="text-xs font-bold text-white hover:text-netflix-red truncate transition"
+                    >
+                      {session.movieTitle}
+                    </Link>
+                    {session.episodeName && (
+                      <span className="text-[11px] text-gray-400 flex-shrink-0">
+                        {session.episodeName}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Progress bar */}
+                  <div className="h-1.5 rounded-full bg-zinc-800 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full ${
+                        session.isLive
+                          ? "bg-gradient-to-r from-emerald-500 to-teal-400"
+                          : "bg-gradient-to-r from-netflix-red to-amber-500"
+                      }`}
+                      style={{ width: `${Math.min(100, Math.max(0, session.progressPercent))}%` }}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between text-[10px] text-gray-400 font-mono">
+                    <span>
+                      {session.durationSeconds > 0 ? (
+                        <>
+                          {formatDuration(session.progressSeconds)} / {formatDuration(session.durationSeconds)}
+                        </>
+                      ) : (
+                        <>Đã xem: {formatDuration(session.progressSeconds)}</>
+                      )}
+                    </span>
+                    <span className="font-bold text-white">{session.progressPercent}%</span>
+                  </div>
+                </div>
+
+                {/* Device & Timestamp Footer */}
+                <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[10px] text-gray-500">
+                  <span className="flex items-center gap-1">
+                    {session.deviceName?.toLowerCase().includes("điện thoại") ||
+                    session.deviceName?.toLowerCase().includes("mobile") ? (
+                      <Smartphone size={12} className="text-emerald-400" />
+                    ) : session.deviceName?.toLowerCase().includes("tablet") ||
+                      session.deviceName?.toLowerCase().includes("ipad") ? (
+                      <Tablet size={12} className="text-purple-400" />
+                    ) : (
+                      <Monitor size={12} className="text-blue-400" />
+                    )}
+                    <span>{session.deviceName || "Thiết bị"}</span>
+                  </span>
+                  <span>
+                    {session.isLive
+                      ? "Vừa xong"
+                      : session.updatedAt > 0
+                      ? `Tạm dừng lúc ${formatTime(session.updatedAt)}`
+                      : "Chưa rõ thời gian"}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* ROW: TOP MOVIES & WATCHING */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Top Movies by Views */}
@@ -337,6 +486,104 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
             </div>
           )}
         </div>
+      </div>
+
+      {/* 24-HOUR PEAK WATCHING HOURS */}
+      <div className="p-6 rounded-2xl bg-zinc-900/60 border border-white/10 backdrop-blur-sm space-y-4">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+              <BarChart2 size={16} className="text-amber-400" />
+              <span>Hoạt Động Xem Theo Giờ (24 Giờ)</span>
+            </h3>
+            <p className="text-[11px] text-gray-400 mt-0.5">
+              Phân bố số lượt sự kiện phát video theo từng khung giờ trong ngày (Chỉ tính các sự kiện mở phim và phát video)
+            </p>
+          </div>
+
+          {(() => {
+            const list = stats?.hourlyWatchActivity || [];
+            const peak = list.reduce((prev, curr) => (curr.count > prev.count ? curr : prev), {
+              hour: 0,
+              label: "00:00",
+              count: 0,
+            });
+            const total = list.reduce((acc, curr) => acc + curr.count, 0);
+
+            if (total > 0 && peak.count > 0) {
+              const nextHour = (peak.hour + 1).toString().padStart(2, "0") + ":00";
+              return (
+                <div className="px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-semibold flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                  <span>
+                    Khung giờ cao điểm: <strong>{peak.label} – {nextHour}</strong> ({peak.count} lượt hoạt động)
+                  </span>
+                </div>
+              );
+            }
+            return (
+              <span className="text-xs text-gray-500">Chưa đủ dữ liệu trong khoảng thời gian này</span>
+            );
+          })()}
+        </div>
+
+        {(() => {
+          const list = stats?.hourlyWatchActivity || [];
+          const maxCount = Math.max(1, ...list.map((h) => h.count));
+          const total = list.reduce((acc, curr) => acc + curr.count, 0);
+          const peakCount = Math.max(...list.map((h) => h.count));
+
+          return (
+            <div className="space-y-2 pt-2">
+              {/* Bars container */}
+              <div className="h-32 flex items-end gap-1 sm:gap-1.5 pt-4 pb-1 border-b border-white/10">
+                {list.map((h) => {
+                  const heightPercent = total === 0 ? 4 : Math.max(4, Math.round((h.count / maxCount) * 100));
+                  const isPeak = h.count > 0 && h.count === peakCount;
+                  const percentageOfTotal = total > 0 ? Math.round((h.count / total) * 100) : 0;
+
+                  return (
+                    <div
+                      key={h.hour}
+                      className="flex-1 flex flex-col justify-end items-center h-full relative group cursor-pointer"
+                    >
+                      {/* Floating tooltip */}
+                      <div className="absolute -top-10 z-20 hidden group-hover:flex flex-col items-center pointer-events-none transition-all">
+                        <div className="px-2 py-1 rounded-lg bg-zinc-950 border border-white/20 text-white text-[10px] font-mono shadow-xl whitespace-nowrap">
+                          {h.label}: <strong>{h.count}</strong> lượt hoạt động ({percentageOfTotal}%)
+                        </div>
+                        <div className="w-1.5 h-1.5 bg-zinc-950 border-r border-b border-white/20 rotate-45 -mt-1" />
+                      </div>
+
+                      {/* The Bar */}
+                      <div
+                        className={`w-full rounded-t-md transition-all duration-300 group-hover:brightness-125 ${
+                          h.count === 0
+                            ? "bg-white/5"
+                            : isPeak
+                            ? "bg-gradient-to-t from-netflix-red to-amber-400 shadow-md shadow-amber-950/40"
+                            : "bg-gradient-to-t from-blue-600 to-cyan-400"
+                        }`}
+                        style={{ height: `${heightPercent}%` }}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Hour X-Axis Labels */}
+              <div className="flex justify-between text-[10px] text-gray-500 font-mono px-0.5">
+                <span>00:00</span>
+                <span className="hidden sm:inline">04:00</span>
+                <span>08:00</span>
+                <span className="hidden sm:inline">12:00</span>
+                <span>16:00</span>
+                <span className="hidden sm:inline">20:00</span>
+                <span>23:00</span>
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* ROW: DEVICES & SEARCHES */}

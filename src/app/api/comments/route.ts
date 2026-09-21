@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkContentModeration } from "@/lib/contentModeration";
 import { sanitizeSafeText } from "@/lib/security";
+import { verifyServerAuth } from "@/lib/serverAuth";
 import {
   getMovieCommentsSupabase,
   getAllCommentsSupabase,
@@ -10,8 +11,10 @@ import {
   togglePinCommentSupabase,
   updateCommentSupabase,
   deleteCommentSupabase,
+  getUserProfileSupabase,
+  createNotificationSupabase,
 } from "@/services/supabaseService";
-import { isSupabaseConfigured } from "@/lib/supabase";
+import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { MovieComment } from "@/types/comment";
 
 export const dynamic = "force-dynamic";
@@ -80,17 +83,19 @@ export async function GET(req: NextRequest) {
 /**
  * POST /api/comments
  * Gửi bình luận an toàn vào Supabase
+ * Xác thực danh tính qua Firebase Auth, không tin tưởng userId/userName/userAvatar từ client.
  */
 export async function POST(req: NextRequest) {
   try {
+    const auth = await verifyServerAuth(req);
+    if (!auth.isAuthenticated || !auth.userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await req.json();
     const {
       movieSlug,
       movieTitle,
-      userId,
-      userName,
-      userAvatar,
-      userEmail,
       rating = 5,
       content,
       isSpoiler = false,
@@ -102,7 +107,11 @@ export async function POST(req: NextRequest) {
       replyToUserName,
     } = body;
 
-    if (!movieSlug || !userId || !content) {
+    // Tuyệt đối không tin tưởng body.userId, body.userName hay body.userAvatar từ client
+    const userId = auth.userId;
+    const userEmail = auth.email || "";
+
+    if (!movieSlug || !content) {
       return NextResponse.json({ error: "Thiếu thông tin bắt buộc!" }, { status: 400 });
     }
 
@@ -111,15 +120,34 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: modCheck.reason || "Nội dung vi phạm tiêu chuẩn cộng đồng!" }, { status: 400 });
     }
 
+    let userName = auth.displayName || (auth.email ? auth.email.split("@")[0] : "") || "Thành viên Nanaflix";
+    let userAvatar = auth.photoUrl || "";
+
+    if (isSupabaseConfigured()) {
+      try {
+        const profile = await getUserProfileSupabase(userId);
+        if (profile?.isCommentRestricted) {
+          return NextResponse.json(
+            { error: "Tài khoản của bạn tạm thời bị khóa tính năng bình luận do vi phạm tiêu chuẩn cộng đồng!" },
+            { status: 403 }
+          );
+        }
+        if (profile?.displayName) userName = profile.displayName;
+        if (profile?.photoURL) userAvatar = profile.photoURL;
+      } catch {
+        // Sử dụng tên/avatar từ Firebase token
+      }
+    }
+
     let commentId = "";
 
     if (isSupabaseConfigured()) {
       try {
         commentId = await postCommentSupabase({
           movieSlug,
-          movieTitle,
+          movieTitle: movieTitle || "",
           userId,
-          userName: sanitizeSafeText(userName || "Thành viên Nanaflix", 100),
+          userName: sanitizeSafeText(userName, 100),
           userAvatar,
           userEmail,
           rating: Number(rating) || 0,
@@ -130,8 +158,30 @@ export async function POST(req: NextRequest) {
           parentId,
           parentOwnerId,
           replyToUserId,
-          replyToUserName: sanitizeSafeText(replyToUserName || "", 100),
+          replyToUserName: replyToUserName ? sanitizeSafeText(replyToUserName, 100) : undefined,
         });
+
+        // Tạo thông báo phản hồi hợp lệ ở phía server
+        const targetUserId = replyToUserId || (parentOwnerId && parentOwnerId !== userId ? parentOwnerId : null);
+        if (targetUserId && targetUserId !== userId) {
+          const isDirect = Boolean(replyToUserId);
+          await createNotificationSupabase({
+            id: `notif_reply_${commentId}_${targetUserId}`,
+            userId: targetUserId,
+            type: "comment_reply",
+            title: isDirect
+              ? `${userName} đã trả lời bình luận của bạn`
+              : `${userName} đã bình luận trong bài đánh giá của bạn`,
+            message: content.length > 80 ? content.slice(0, 80) + "..." : content,
+            link: `/movies/${movieSlug}?highlightComment=${commentId}#comment-${commentId}`,
+            movieSlug,
+            commentId,
+            replierName: userName,
+            replierAvatar: userAvatar,
+            isRead: false,
+            createdAt: Date.now(),
+          }).catch(() => {});
+        }
       } catch (supaErr) {
         console.warn("Lỗi lưu Supabase trong API POST:", supaErr);
       }
@@ -150,7 +200,7 @@ export async function POST(req: NextRequest) {
 
 /**
  * PATCH /api/comments
- * Ghim/bỏ ghim, thả reaction, báo cáo/gỡ báo cáo bình luận trên Supabase
+ * Ghim/bỏ ghim (chỉ Admin), thả reaction, báo cáo/gỡ báo cáo bình luận trên Supabase
  */
 export async function PATCH(req: NextRequest) {
   try {
@@ -160,19 +210,63 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Thiếu commentId!" }, { status: 400 });
     }
 
-    if (isSupabaseConfigured()) {
-      if (action === "reaction" && userId) {
-        const { setCommentReactionSupabase } = await import("@/services/supabaseService");
-        await setCommentReactionSupabase(commentId, userId, reactionType || null);
-      } else if (action === "flag" && reason) {
-        const { flagCommentSupabase } = await import("@/services/supabaseService");
-        await flagCommentSupabase(commentId, reason);
-      } else if (action === "unflag") {
-        const { unflagCommentSupabase } = await import("@/services/supabaseService");
-        await unflagCommentSupabase(commentId);
-      } else if (isPinned !== undefined || action === "pin") {
+    // 1. GHIM / BỎ GHIM BÌNH LUẬN: Dành riêng cho Quản trị viên (Admin-only)
+    if (isPinned !== undefined || action === "pin") {
+      const auth = await verifyServerAuth(req);
+      if (!auth.isAuthenticated) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      if (!auth.isAdmin) {
+        return NextResponse.json(
+          { error: "Forbidden: Chỉ quản trị viên mới có quyền ghim bình luận!" },
+          { status: 403 }
+        );
+      }
+
+      if (isSupabaseConfigured()) {
         await togglePinCommentSupabase(commentId, Boolean(isPinned));
       }
+      return NextResponse.json({ success: true });
+    }
+
+    // 2. GỠ ĐÁNH DẤU VI PHẠM (unflag): Dành riêng cho Quản trị viên
+    if (action === "unflag") {
+      const auth = await verifyServerAuth(req);
+      if (!auth.isAuthenticated) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      if (!auth.isAdmin) {
+        return NextResponse.json(
+          { error: "Forbidden: Chỉ quản trị viên mới có quyền gỡ cờ bình luận!" },
+          { status: 403 }
+        );
+      }
+
+      if (isSupabaseConfigured()) {
+        const { unflagCommentSupabase } = await import("@/services/supabaseService");
+        await unflagCommentSupabase(commentId);
+      }
+      return NextResponse.json({ success: true });
+    }
+
+    // 3. THẢ CẢM XÚC (reaction)
+    if (action === "reaction") {
+      const auth = await verifyServerAuth(req);
+      const effectiveUserId = auth.isAuthenticated && auth.userId ? auth.userId : userId;
+      if (isSupabaseConfigured() && effectiveUserId) {
+        const { setCommentReactionSupabase } = await import("@/services/supabaseService");
+        await setCommentReactionSupabase(commentId, effectiveUserId, reactionType || null);
+      }
+      return NextResponse.json({ success: true });
+    }
+
+    // 4. BÁO CÁO VI PHẠM (flag)
+    if (action === "flag" && reason) {
+      if (isSupabaseConfigured()) {
+        const { flagCommentSupabase } = await import("@/services/supabaseService");
+        await flagCommentSupabase(commentId, reason);
+      }
+      return NextResponse.json({ success: true });
     }
 
     return NextResponse.json({ success: true });
@@ -184,24 +278,63 @@ export async function PATCH(req: NextRequest) {
 
 /**
  * PUT /api/comments
- * Cập nhật bình luận trên Supabase
+ * Cập nhật bình luận trên Supabase (Yêu cầu đăng nhập; chỉ tác giả hoặc Admin mới được sửa)
  */
 export async function PUT(req: NextRequest) {
   try {
-    const { commentId, rating, content, isSpoiler, episodeSlug, episodeName } = await req.json();
+    const auth = await verifyServerAuth(req);
+    if (!auth.isAuthenticated || !auth.userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await req.json();
+    const { commentId, rating, content, isSpoiler, episodeSlug, episodeName } = body;
     if (!commentId) {
       return NextResponse.json({ error: "Thiếu commentId!" }, { status: 400 });
     }
 
-    if (isSupabaseConfigured()) {
-      await updateCommentSupabase(commentId, {
-        rating: rating !== undefined ? Number(rating) : undefined,
-        content: content !== undefined ? sanitizeSafeText(content, 2500) : undefined,
-        is_spoiler: isSpoiler !== undefined ? Boolean(isSpoiler) : undefined,
-        episode_slug: episodeSlug !== undefined ? episodeSlug : undefined,
-        episode_name: episodeName !== undefined ? episodeName : undefined,
-      });
+    if (!isSupabaseConfigured() || !supabase) {
+      return NextResponse.json({ error: "Supabase chưa được cấu hình" }, { status: 500 });
     }
+
+    // Kiểm tra quyền sở hữu bình luận từ cơ sở dữ liệu (không tin tưởng client)
+    const { data: existingComment, error: fetchErr } = await supabase
+      .from("movie_comments")
+      .select("user_id")
+      .eq("id", commentId)
+      .maybeSingle();
+
+    if (fetchErr || !existingComment) {
+      return NextResponse.json({ error: "Không tìm thấy bình luận" }, { status: 404 });
+    }
+
+    const isOwner = existingComment.user_id === auth.userId;
+    const isAdmin = Boolean(auth.isAdmin);
+
+    if (!isOwner && !isAdmin) {
+      return NextResponse.json(
+        { error: "Forbidden: Bạn không có quyền chỉnh sửa bình luận này" },
+        { status: 403 }
+      );
+    }
+
+    if (content !== undefined) {
+      const modCheck = checkContentModeration(content);
+      if (!modCheck.isAllowed) {
+        return NextResponse.json(
+          { error: modCheck.reason || "Nội dung vi phạm tiêu chuẩn cộng đồng!" },
+          { status: 400 }
+        );
+      }
+    }
+
+    await updateCommentSupabase(commentId, {
+      rating: rating !== undefined ? Number(rating) : undefined,
+      content: content !== undefined ? sanitizeSafeText(content, 2500) : undefined,
+      is_spoiler: isSpoiler !== undefined ? Boolean(isSpoiler) : undefined,
+      episode_slug: episodeSlug !== undefined ? episodeSlug : undefined,
+      episode_name: episodeName !== undefined ? episodeName : undefined,
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -212,19 +345,47 @@ export async function PUT(req: NextRequest) {
 
 /**
  * DELETE /api/comments?commentId=xxx
- * Xóa bình luận khỏi Supabase
+ * Xóa bình luận khỏi Supabase (Yêu cầu đăng nhập; chỉ tác giả hoặc Admin mới được xóa)
  */
 export async function DELETE(req: NextRequest) {
   try {
+    const auth = await verifyServerAuth(req);
+    if (!auth.isAuthenticated || !auth.userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { searchParams } = new URL(req.url);
     const commentId = searchParams.get("commentId");
     if (!commentId) {
       return NextResponse.json({ error: "Thiếu commentId!" }, { status: 400 });
     }
 
-    if (isSupabaseConfigured()) {
-      await deleteCommentSupabase(commentId);
+    if (!isSupabaseConfigured() || !supabase) {
+      return NextResponse.json({ error: "Supabase chưa được cấu hình" }, { status: 500 });
     }
+
+    // Kiểm tra quyền sở hữu bình luận từ cơ sở dữ liệu (không tin tưởng client)
+    const { data: existingComment, error: fetchErr } = await supabase
+      .from("movie_comments")
+      .select("user_id")
+      .eq("id", commentId)
+      .maybeSingle();
+
+    if (fetchErr || !existingComment) {
+      return NextResponse.json({ error: "Không tìm thấy bình luận" }, { status: 404 });
+    }
+
+    const isOwner = existingComment.user_id === auth.userId;
+    const isAdmin = Boolean(auth.isAdmin);
+
+    if (!isOwner && !isAdmin) {
+      return NextResponse.json(
+        { error: "Forbidden: Bạn không có quyền xóa bình luận này" },
+        { status: 403 }
+      );
+    }
+
+    await deleteCommentSupabase(commentId);
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 import {
   ShieldCheck,
@@ -57,6 +57,7 @@ import {
   getUserCloudWatchlist,
   deleteAllUserComments,
   setUserCommentRestriction,
+  type DeviceHandoffItem,
 } from "@/services/userService";
 import {
   ErrorReportItem,
@@ -84,6 +85,7 @@ export default function AdminDashboardPage() {
   const [comments, setComments] = useState<MovieComment[]>([]);
   const [collections, setCollections] = useState<MovieCollection[]>([]);
   const [rawUsers, setRawUsers] = useState<UserProfile[]>([]);
+  const [deviceHandoffs, setDeviceHandoffs] = useState<DeviceHandoffItem[]>([]);
   const [errorReports, setErrorReports] = useState<ErrorReportItem[]>([]);
   const [reportFilter, setReportFilter] = useState<"all" | "pending" | "resolved" | "ignored">("all");
   const [reportSearchQuery, setReportSearchQuery] = useState("");
@@ -99,7 +101,7 @@ export default function AdminDashboardPage() {
   // Filter & Search states for members
   const [memberSearchQuery, setMemberSearchQuery] = useState("");
   const [memberFilter, setMemberFilter] = useState<"all" | "admin" | "has_comments">("all");
-  const [memberSortBy, setMemberSortBy] = useState<"recent" | "comments" | "name">("recent");
+  const [memberSortBy, setMemberSortBy] = useState<"recent" | "watch_time" | "comments" | "name">("recent");
 
   // Member detail modal
   const [selectedMember, setSelectedMember] = useState<MemberWithStats | null>(null);
@@ -116,6 +118,47 @@ export default function AdminDashboardPage() {
   const [cleanResultModal, setCleanResultModal] = useState<AutoCleanResult | null>(null);
   const [isManualRefreshing, setIsManualRefreshing] = useState(false);
 
+  const fetchAuthorizedHandoffs = useCallback(async () => {
+    try {
+      const idToken = await user?.getIdToken().catch(() => null);
+      if (!idToken) return;
+      const res = await fetch("/api/analytics/stats?timeframe=today", {
+        headers: { Authorization: `Bearer ${idToken}` },
+      });
+      const json = await res.json();
+      if (json.success && Array.isArray(json.data?.liveWatching)) {
+        setDeviceHandoffs(
+          json.data.liveWatching.map((s: {
+            userId: string;
+            movieSlug: string;
+            movieTitle: string;
+            poster?: string;
+            episodeSlug?: string;
+            episodeName?: string;
+            progressSeconds: number;
+            durationSeconds: number;
+            deviceName: string;
+            updatedAt: number;
+          }) => ({
+            id: s.userId,
+            userId: s.userId,
+            movieSlug: s.movieSlug,
+            movieTitle: s.movieTitle,
+            poster: s.poster,
+            episodeSlug: s.episodeSlug,
+            episodeName: s.episodeName,
+            progressSeconds: s.progressSeconds,
+            durationSeconds: s.durationSeconds,
+            deviceName: s.deviceName,
+            updatedAt: s.updatedAt,
+          }))
+        );
+      }
+    } catch (err) {
+      console.warn("Lỗi tải authorized handoffs:", err);
+    }
+  }, [user]);
+
   const handleManualRefresh = async () => {
     setIsManualRefreshing(true);
     try {
@@ -126,6 +169,7 @@ export default function AdminDashboardPage() {
       } else {
         toast.info("Dữ liệu bình luận đã là mới nhất.");
       }
+      fetchAuthorizedHandoffs().catch(() => {});
     } catch {
       toast.error("Không thể làm mới danh sách bình luận!");
     } finally {
@@ -175,6 +219,8 @@ export default function AdminDashboardPage() {
       }
     );
 
+    fetchAuthorizedHandoffs().catch(() => {});
+
     const unsubReports = subscribeErrorReportsSupabase((items) => {
       setErrorReports(items);
     });
@@ -185,13 +231,13 @@ export default function AdminDashboardPage() {
       unsubUsers();
       unsubReports();
     };
-  }, [isAdmin]);
+  }, [isAdmin, fetchAuthorizedHandoffs]);
 
-  // Derived: Merge rawUsers with any unique commenters
+  // Derived: Merge rawUsers with any unique commenters and device_handoffs
   const allMembers = useMemo<MemberWithStats[]>(() => {
     const memberMap = new Map<string, MemberWithStats>();
 
-    // 1. Thêm các user đã đăng ký profile trong Firestore
+    // 1. Thêm các user đã đăng ký profile trong Supabase
     rawUsers.forEach((u) => {
       memberMap.set(u.uid, {
         ...u,
@@ -224,7 +270,12 @@ export default function AdminDashboardPage() {
       }
     });
 
-    // 3. Tính toán số liệu tương tác cho từng thành viên
+    // 3. Map device_handoffs for real-time live watching & last active
+    const handoffMap = new Map<string, DeviceHandoffItem>();
+    deviceHandoffs.forEach((h) => handoffMap.set(h.userId, h));
+    const fiveMinsAgo = Date.now() - 5 * 60 * 1000;
+
+    // 4. Tính toán số liệu tương tác cho từng thành viên
     const result: MemberWithStats[] = [];
     memberMap.forEach((m) => {
       const userComms = userCommentsMap.get(m.uid) || [];
@@ -240,16 +291,50 @@ export default function AdminDashboardPage() {
           : 0;
       const spoilers = userComms.filter((c) => c.isSpoiler).length;
 
+      const handoff = handoffMap.get(m.uid);
+      const handoffUpdated = Number(handoff?.updatedAt) || 0;
+      const validHandoffUpdated =
+        handoffUpdated > 0 && handoffUpdated <= Date.now() + 60000 ? handoffUpdated : 0;
+      const lastLogin = Number(m.lastLoginAt) || 0;
+      const validLastLogin =
+        lastLogin > 0 && lastLogin <= Date.now() + 60000 ? lastLogin : 0;
+      const lastActiveAt = Math.max(validLastLogin, validHandoffUpdated, m.createdAt || 0);
+
+      const isWatchingNow = Boolean(handoff && validHandoffUpdated > 0 && validHandoffUpdated >= fiveMinsAgo);
+      const isOnline = lastActiveAt >= fiveMinsAgo;
+
+      const rawDur = Number(handoff?.durationSeconds);
+      const dur = !isNaN(rawDur) && rawDur > 0 ? Math.floor(rawDur) : 0;
+      const rawProg = Number(handoff?.progressSeconds) || 0;
+      const prog = dur > 0 ? Math.min(Math.max(0, rawProg), dur) : Math.max(0, rawProg);
+      const percent = dur > 0 ? Math.min(100, Math.max(0, Math.round((prog / dur) * 100))) : 0;
+
       result.push({
         ...m,
         commentsCount: userComms.length,
         avgRatingGiven: avg,
         spoilerCount: spoilers,
+        lastActiveAt,
+        isOnline,
+        isWatchingNow,
+        currentWatching:
+          isWatchingNow && handoff
+            ? {
+                movieSlug: handoff.movieSlug || "unknown",
+                movieTitle: handoff.movieTitle || handoff.movieSlug || "Phim",
+                episodeName: handoff.episodeName || undefined,
+                progressSeconds: prog,
+                durationSeconds: dur,
+                progressPercent: percent,
+                deviceName: handoff.deviceName || "Thiết bị",
+                updatedAt: validHandoffUpdated,
+              }
+            : undefined,
       });
     });
 
     return result;
-  }, [rawUsers, comments]);
+  }, [rawUsers, comments, deviceHandoffs]);
 
   // Filtered members
   const filteredMembers = useMemo(() => {
@@ -269,7 +354,8 @@ export default function AdminDashboardPage() {
         return true;
       })
       .sort((a, b) => {
-        if (memberSortBy === "recent") return (b.lastLoginAt || 0) - (a.lastLoginAt || 0);
+        if (memberSortBy === "recent") return (b.lastActiveAt || b.lastLoginAt || 0) - (a.lastActiveAt || a.lastLoginAt || 0);
+        if (memberSortBy === "watch_time") return (b.watchTimeMinutes || 0) - (a.watchTimeMinutes || 0);
         if (memberSortBy === "comments") return b.commentsCount - a.commentsCount;
         if (memberSortBy === "name") return (a.displayName || "").localeCompare(b.displayName || "");
         return 0;
@@ -641,6 +727,17 @@ export default function AdminDashboardPage() {
     if (!ts) return "Chưa rõ";
     const d = new Date(ts);
     return `${d.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })} • ${d.toLocaleDateString("vi-VN")}`;
+  };
+
+  // Format watch minutes helper
+  const formatWatchMinutes = (minutes?: number) => {
+    if (!minutes || minutes <= 0) return "0 phút";
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    if (hours > 0) {
+      return `${hours}h ${mins}m`;
+    }
+    return `${mins}m`;
   };
 
   // 1. Loading Auth State
@@ -1432,10 +1529,11 @@ export default function AdminDashboardPage() {
                   <ArrowUpDown size={12} className="text-gray-400" />
                   <select
                     value={memberSortBy}
-                    onChange={(e) => setMemberSortBy(e.target.value as "recent" | "comments" | "name")}
+                    onChange={(e) => setMemberSortBy(e.target.value as "recent" | "watch_time" | "comments" | "name")}
                     className="bg-transparent text-gray-300 text-xs focus:outline-none cursor-pointer"
                   >
                     <option value="recent" className="bg-zinc-900 text-white">Hoạt động mới nhất</option>
+                    <option value="watch_time" className="bg-zinc-900 text-white">Cày phim nhiều nhất</option>
                     <option value="comments" className="bg-zinc-900 text-white">Nhiều bình luận nhất</option>
                     <option value="name" className="bg-zinc-900 text-white">Tên (A-Z)</option>
                   </select>
@@ -1495,6 +1593,25 @@ export default function AdminDashboardPage() {
                                   👑 Admin
                                 </span>
                               )}
+                              {m.isWatchingNow ? (
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold flex items-center gap-1">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                                  🟢 Đang xem
+                                </span>
+                              ) : m.isOnline ? (
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold flex items-center gap-1">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                                  Trực tuyến
+                                </span>
+                              ) : m.lastActiveAt && Date.now() - m.lastActiveAt <= 15 * 60 * 1000 ? (
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 font-medium">
+                                  Vừa online
+                                </span>
+                              ) : (
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-800 border border-white/5 text-gray-400">
+                                  Ngoại tuyến
+                                </span>
+                              )}
                             </div>
                             <p className="text-xs text-gray-400 truncate mt-0.5">
                               {m.email || "Chưa có email"}
@@ -1530,7 +1647,7 @@ export default function AdminDashboardPage() {
                         )}
 
                         {/* Member stats chips */}
-                        <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="grid grid-cols-3 gap-2 text-xs">
                           <div className="p-2 rounded-xl bg-white/[0.03] border border-white/5">
                             <span className="text-[10px] text-gray-400 block">Bình luận</span>
                             <span className="font-bold text-white flex items-center gap-1 mt-0.5">
@@ -1540,18 +1657,48 @@ export default function AdminDashboardPage() {
                           </div>
 
                           <div className="p-2 rounded-xl bg-white/[0.03] border border-white/5">
-                            <span className="text-[10px] text-gray-400 block">Điểm trung bình</span>
+                            <span className="text-[10px] text-gray-400 block">Đánh giá</span>
                             <span className="font-bold text-amber-400 flex items-center gap-1 mt-0.5">
                               <Star size={13} className="fill-amber-400" />
                               <span>{m.avgRatingGiven > 0 ? `${m.avgRatingGiven}★` : "Chưa chấm"}</span>
                             </span>
                           </div>
+
+                          <div className="p-2 rounded-xl bg-white/[0.03] border border-white/5">
+                            <span className="text-[10px] text-gray-400 block">Cày phim</span>
+                            <span className="font-bold text-emerald-400 flex items-center gap-1 mt-0.5">
+                              <Clock size={13} className="text-emerald-400" />
+                              <span>{formatWatchMinutes(m.watchTimeMinutes)}</span>
+                            </span>
+                          </div>
                         </div>
+
+                        {/* Live Watching Preview if active */}
+                        {m.isWatchingNow && m.currentWatching && (
+                          <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-gray-300 space-y-1 mt-2.5">
+                            <div className="flex items-center justify-between text-[11px]">
+                              <span className="text-emerald-300 font-semibold truncate flex items-center gap-1">
+                                <Film size={12} className="text-emerald-400 flex-shrink-0" />
+                                <span className="truncate">{m.currentWatching.movieTitle}</span>
+                                {m.currentWatching.episodeName && (
+                                  <span className="text-gray-400">({m.currentWatching.episodeName})</span>
+                                )}
+                              </span>
+                              <span className="text-emerald-400 font-mono text-[10px] font-bold flex-shrink-0">
+                                {m.currentWatching.progressPercent}%
+                              </span>
+                            </div>
+                            <div className="text-[10px] text-gray-400 flex items-center justify-between">
+                              <span>{m.currentWatching.deviceName || "Thiết bị"}</span>
+                              <span className="font-mono text-emerald-400/80">Đang phát trực tiếp</span>
+                            </div>
+                          </div>
+                        )}
 
                         <div className="flex items-center justify-between mt-2.5 text-[10px] text-gray-500 flex-wrap gap-1">
                           <span className="flex items-center gap-1">
                             <Clock size={11} />
-                            <span>Lần hoạt động: {formatDate(m.lastLoginAt)}</span>
+                            <span>Lần cuối: {formatDate(m.lastActiveAt || m.lastLoginAt)}</span>
                           </span>
                           {m.violationsCount && m.violationsCount > 0 ? (
                             <span className="text-red-400 font-semibold flex items-center gap-1">

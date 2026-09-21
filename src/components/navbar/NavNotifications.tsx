@@ -102,7 +102,7 @@ export const NavNotifications: React.FC = React.memo(function NavNotifications()
 
     setLoadingNotifications(true);
     try {
-      const res = await fetch("/api/notifications");
+      const res = await fetch("/api/notifications?type=system");
       if (res.ok) {
         const data = await res.json();
         const items: DynamicNotification[] = Array.isArray(data.items) ? [...data.items] : [];

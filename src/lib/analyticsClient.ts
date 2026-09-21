@@ -9,7 +9,7 @@ export interface DeviceInfo {
   deviceType: "desktop" | "mobile" | "tablet";
   os: string;
   browser: string;
-  screenRes: string;
+  screenRes?: string;
 }
 
 export type AnalyticsEventType =
@@ -87,14 +87,11 @@ export function getMinimalDeviceInfo(): DeviceInfo {
       deviceType: "desktop",
       os: "Unknown",
       browser: "Other",
-      screenRes: "1920x1080",
     };
   }
 
   const ua = navigator.userAgent || "";
-  const width = window.screen?.width || window.innerWidth || 0;
-  const height = window.screen?.height || window.innerHeight || 0;
-  const screenRes = `${width}x${height}`;
+  const width = window.innerWidth || 0;
 
   // 1. Device Type
   let deviceType: "desktop" | "mobile" | "tablet" = "desktop";
@@ -128,7 +125,6 @@ export function getMinimalDeviceInfo(): DeviceInfo {
     deviceType,
     os,
     browser,
-    screenRes,
   };
 }
 

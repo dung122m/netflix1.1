@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { sanitizeSafeText } from "@/lib/security";
+import { verifyServerAuth } from "@/lib/serverAuth";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -8,15 +9,15 @@ export const fetchCache = "force-no-store";
 
 /**
  * GET /api/notifications
- * - Không có userId: Trả về danh sách thông báo hệ thống / phim mới cập nhật / sự kiện hot
- * - Có userId: Lấy danh sách thông báo cá nhân từ Supabase
+ * - ?type=system: Trả về danh sách thông báo hệ thống / phim mới cập nhật / sự kiện hot (Công khai)
+ * - Mặc định: Yêu cầu xác thực Firebase auth, lấy thông báo của chính người dùng đã đăng nhập (KHÔNG tin tưởng ?userId=)
  */
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const userId = searchParams.get("userId");
+  const type = searchParams.get("type");
 
-  // 1. Trường hợp không có userId: Trả về thông báo hệ thống & phim mới cập nhật
-  if (!userId) {
+  // 1. Trường hợp lấy thông báo hệ thống & phim mới cập nhật (Công khai)
+  if (type === "system") {
     try {
       const upstreamRes = await fetch("https://phimapi.com/danh-sach/phim-moi-cap-nhat?page=1", {
         next: { revalidate: 300 }, // Cache 5 phút
@@ -84,7 +85,12 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // 2. Trường hợp có userId: Lấy thông báo cá nhân từ Supabase
+  // 2. Trường hợp lấy thông báo cá nhân: BẮT BUỘC xác thực Firebase auth, tuyệt đối KHÔNG tin tưởng ?userId=
+  const auth = await verifyServerAuth(req);
+  if (!auth.isAuthenticated || !auth.userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     if (!supabase) {
       return NextResponse.json({ success: true, items: [] });
@@ -93,7 +99,7 @@ export async function GET(req: NextRequest) {
     const { data, error } = await supabase
       .from("notifications")
       .select("*")
-      .eq("user_id", userId)
+      .eq("user_id", auth.userId)
       .order("created_at", { ascending: false })
       .limit(30);
 
@@ -115,7 +121,16 @@ export async function GET(req: NextRequest) {
       createdAt: Number(d.created_at) || Date.now(),
     }));
 
-    return NextResponse.json({ success: true, items });
+    return NextResponse.json(
+      { success: true, items },
+      {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+          "CDN-Cache-Control": "no-store",
+          "Vercel-CDN-Cache-Control": "no-store",
+        },
+      }
+    );
   } catch (error) {
     console.error("Lỗi API get notifications:", error);
     return NextResponse.json({ success: true, items: [] });
@@ -124,33 +139,35 @@ export async function GET(req: NextRequest) {
 
 /**
  * PATCH /api/notifications
- * Đánh dấu thông báo là đã đọc
+ * Đánh dấu thông báo là đã đọc (Yêu cầu xác thực, chỉ được phép sửa thông báo của chính mình)
  */
 export async function PATCH(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { userId, notifId, all } = body;
-
-    if (!userId) {
-      return NextResponse.json({ error: "Thiếu userId" }, { status: 400 });
+    const auth = await verifyServerAuth(req);
+    if (!auth.isAuthenticated || !auth.userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const body = await req.json();
+    const { notifId, all } = body;
 
     if (!supabase) {
       return NextResponse.json({ error: "Supabase chưa được cấu hình" }, { status: 500 });
     }
 
+    // Chỉ cập nhật thông báo thuộc về auth.userId đã xác thực
     if (all) {
       await supabase
         .from("notifications")
         .update({ is_read: true })
-        .eq("user_id", userId);
+        .eq("user_id", auth.userId);
 
       return NextResponse.json({ success: true, allRead: true });
     } else if (notifId) {
       await supabase
         .from("notifications")
         .update({ is_read: true })
-        .eq("user_id", userId)
+        .eq("user_id", auth.userId)
         .eq("id", notifId);
 
       return NextResponse.json({ success: true, notifId, isRead: true });
@@ -165,15 +182,28 @@ export async function PATCH(req: NextRequest) {
 
 /**
  * POST /api/notifications
- * Tạo thông báo mới cho người dùng
+ * Tạo thông báo mới cho người dùng (Bảo vệ: Chỉ Admin hoặc Server-side Secret mới có thể tạo thông báo cho user khác)
  */
 export async function POST(req: NextRequest) {
   try {
+    const auth = await verifyServerAuth(req);
+    if (!auth.isAuthenticated) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await req.json();
     const { userId, notifId, type, title, message, link, movieSlug, commentId, replierName, replierAvatar } = body;
 
     if (!userId || !title) {
       return NextResponse.json({ error: "Thiếu thông tin thông báo!" }, { status: 400 });
+    }
+
+    // Không cho phép guest hoặc user thông thường tự ý chèn thông báo vào inbox của người khác
+    if (!auth.isAdmin && userId !== auth.userId) {
+      return NextResponse.json(
+        { error: "Forbidden: Bạn không có quyền gửi thông báo cho người dùng khác" },
+        { status: 403 }
+      );
     }
 
     if (!supabase) {

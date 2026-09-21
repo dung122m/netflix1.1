@@ -1283,12 +1283,12 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 <p className="text-white text-lg md:text-2xl font-semibold">
                   {isTrailerOnly
                     ? "Phim đang ở trạng thái trailer/sắp chiếu"
-                    : "Video chưa được cập nhật"}
+                    : "Nguồn phát đang được Nanaflix cập nhật"}
                 </p>
                 <p className="text-gray-300 mt-2 text-sm md:text-base">
                   {isTrailerOnly
                     ? "Hiện chưa có tập phát chính thức. Vui lòng quay lại sau."
-                    : "Nguồn phát hiện chưa sẵn sàng."}
+                    : "Bạn vui lòng quay lại sau ít phút nhé!"}
                 </p>
               </div>
             </div>

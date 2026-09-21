@@ -6,6 +6,8 @@ export interface ServerAuthResult {
   isAdmin: boolean;
   userId?: string;
   email?: string;
+  displayName?: string;
+  photoUrl?: string;
 }
 
 interface CachedToken {
@@ -29,6 +31,8 @@ export async function verifyServerAuth(req: NextRequest): Promise<ServerAuthResu
       isAdmin: true,
       userId: "admin_system",
       email: "admin@system",
+      displayName: "Admin System",
+      photoUrl: "",
     };
   }
 
@@ -59,6 +63,8 @@ export async function verifyServerAuth(req: NextRequest): Promise<ServerAuthResu
           if (user) {
             const userId = user.localId;
             const email = user.email || "";
+            const displayName = user.displayName || "";
+            const photoUrl = user.photoUrl || "";
             const isAdmin = Boolean(email && isUserAdmin(email));
 
             const result: ServerAuthResult = {
@@ -66,6 +72,8 @@ export async function verifyServerAuth(req: NextRequest): Promise<ServerAuthResu
               isAdmin,
               userId,
               email,
+              displayName,
+              photoUrl,
             };
 
             // Cache token result for 5 minutes

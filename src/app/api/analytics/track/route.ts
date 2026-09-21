@@ -47,7 +47,13 @@ export async function POST(req: NextRequest) {
       episodeName: typeof body.episodeName === "string" ? body.episodeName.slice(0, 100) : undefined,
       userId: verifiedUserId, // Only set if token is verified by server
       anonymousId: finalAnonymousId, // Strictly from verified cookie
-      deviceInfo: body.deviceInfo,
+      deviceInfo: body.deviceInfo
+        ? {
+            deviceType: body.deviceInfo.deviceType || "desktop",
+            os: body.deviceInfo.os || "Other",
+            browser: body.deviceInfo.browser || "Other",
+          }
+        : undefined,
       durationSeconds: typeof body.durationSeconds === "number" ? Math.max(0, Math.min(body.durationSeconds, 86400)) : 0,
       progressSeconds: typeof body.progressSeconds === "number" ? Math.max(0, Math.min(body.progressSeconds, 86400)) : 0,
       keyword: typeof body.keyword === "string" ? body.keyword.slice(0, 100) : undefined,

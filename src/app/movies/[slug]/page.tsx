@@ -47,7 +47,7 @@ export async function generateMetadata({
 }: {
   params: Promise<{ slug: string }>;
 }) {
-  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://netflix1-1.vercel.app").replace(/\/+$/, "");
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://nanaflix.vercel.app").replace(/\/+$/, "");
   try {
     const { slug } = await params;
     const data = await movieApi.getMovieDetail(slug);
@@ -339,7 +339,7 @@ export default async function MovieDetail({
     "@type": isSeries ? "TVSeries" : "Movie",
     name: title,
     alternateName: movie.origin_name || undefined,
-    image: pickBestMovieImage(movie, "https://netflix1-1.vercel.app/default-poster.jpg"),
+    image: pickBestMovieImage(movie, "https://nanaflix.vercel.app/default-poster.jpg"),
     description:
       cleanHtmlText(movie.content || movie.description) ||
       `Xem phim ${title} chất lượng cao Full HD, Vietsub trên Nanaflix.`,

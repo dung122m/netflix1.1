@@ -25,4 +25,17 @@ export interface MemberWithStats extends UserProfile {
   avgRatingGiven: number;
   spoilerCount: number;
   flaggedCount?: number;
+  lastActiveAt?: number;
+  isOnline?: boolean;
+  isWatchingNow?: boolean;
+  currentWatching?: {
+    movieSlug: string;
+    movieTitle: string;
+    episodeName?: string;
+    progressSeconds: number;
+    durationSeconds: number;
+    progressPercent: number;
+    deviceName?: string;
+    updatedAt: number;
+  };
 }
