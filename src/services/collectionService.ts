@@ -1,13 +1,25 @@
 import { MovieCollection, CollectionMovieItem } from "@/types/collection";
 import {
   getUserCollectionsSupabase,
-  saveCollectionSupabase,
-  deleteCollectionSupabase,
   getPublicCollectionsSupabase,
 } from "./supabaseService";
 import { isSupabaseConfigured } from "@/lib/supabase";
+import { auth } from "@/lib/firebase";
 
 const LOCAL_COLLECTIONS_KEY_PREFIX = "nanaflix_collections_";
+
+async function getAuthHeaders(): Promise<HeadersInit> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  try {
+    const token = await auth?.currentUser?.getIdToken();
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+  } catch {}
+  return headers;
+}
 
 /**
  * Lấy danh sách bộ sưu tập từ LocalStorage
@@ -43,11 +55,65 @@ export function saveLocalCollections(userId: string, items: MovieCollection[]): 
 }
 
 /**
- * Lấy danh sách bộ sưu tập của người dùng (Supabase PostgreSQL + LocalStorage Cache)
+ * Lưu bộ sưu tập qua Server API
+ */
+async function syncCollectionToServer(collection: MovieCollection): Promise<void> {
+  try {
+    const headers = await getAuthHeaders();
+    if (!headers["Authorization" as keyof typeof headers]) return;
+
+    await fetch("/api/user/collections", {
+      method: "POST",
+      headers,
+      body: JSON.stringify(collection),
+    });
+  } catch (err) {
+    console.warn("Lỗi lưu collection qua API:", err);
+  }
+}
+
+/**
+ * Xóa bộ sưu tập qua Server API
+ */
+async function deleteCollectionFromServer(collectionId: string): Promise<boolean> {
+  try {
+    const headers = await getAuthHeaders();
+    if (!headers["Authorization" as keyof typeof headers]) return false;
+
+    const res = await fetch(`/api/user/collections?id=${encodeURIComponent(collectionId)}`, {
+      method: "DELETE",
+      headers,
+    });
+    return res.ok;
+  } catch (err) {
+    console.warn("Lỗi xóa collection qua API:", err);
+    return false;
+  }
+}
+
+/**
+ * Lấy danh sách bộ sưu tập của người dùng (Server API + Supabase PostgreSQL + LocalStorage Cache)
  */
 export async function getUserCollections(userId: string): Promise<MovieCollection[]> {
   if (!userId) return [];
   const localList = getLocalCollections(userId);
+
+  try {
+    const headers = await getAuthHeaders();
+    if (headers["Authorization" as keyof typeof headers]) {
+      const res = await fetch("/api/user/collections", {
+        method: "GET",
+        headers,
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.items)) {
+          saveLocalCollections(userId, data.items);
+          return data.items;
+        }
+      }
+    }
+  } catch {}
 
   if (isSupabaseConfigured()) {
     try {
@@ -78,17 +144,15 @@ export function subscribeUserCollections(
   const initialLocal = getLocalCollections(userId);
   callback(initialLocal);
 
-  // 2. Fetch mới nhất từ Supabase
-  if (isSupabaseConfigured()) {
-    getUserCollectionsSupabase(userId)
-      .then((items) => {
-        if (items.length > 0) {
-          saveLocalCollections(userId, items);
-          callback(items);
-        }
-      })
-      .catch(() => {});
-  }
+  // 2. Fetch mới nhất từ Server API / Supabase
+  getUserCollections(userId)
+    .then((items) => {
+      if (items.length > 0) {
+        saveLocalCollections(userId, items);
+        callback(items);
+      }
+    })
+    .catch(() => {});
 
   // 3. Lắng nghe cập nhật local từ cùng tab hoặc các tab khác
   const handleLocalUpdate = (e: Event) => {
@@ -120,7 +184,7 @@ export function subscribeUserCollections(
 }
 
 /**
- * Tạo bộ sưu tập mới (Lưu ngay vào LocalStorage và đồng bộ lên Supabase)
+ * Tạo bộ sưu tập mới (Lưu ngay vào LocalStorage và đồng bộ qua Server API)
  */
 export async function createCollection(
   userId: string,
@@ -154,12 +218,10 @@ export async function createCollection(
     const updatedLocal = [collectionData, ...currentLocal.filter((c) => c.id !== collectionData.id)];
     saveLocalCollections(userId, updatedLocal);
 
-    // 2. Lưu lên Supabase
-    if (isSupabaseConfigured()) {
-      saveCollectionSupabase(collectionData).catch((err) => {
-        console.warn("Lỗi lưu Supabase collection:", err);
-      });
-    }
+    // 2. Lưu qua Server API
+    syncCollectionToServer(collectionData).catch((err) => {
+      console.warn("Lỗi lưu API collection:", err);
+    });
 
     return collectionData;
   } catch (err) {
@@ -183,10 +245,8 @@ export async function deleteCollection(
     const updatedLocal = currentLocal.filter((c) => c.id !== collectionId);
     saveLocalCollections(userId, updatedLocal);
 
-    // 2. Xóa khỏi Supabase
-    if (isSupabaseConfigured()) {
-      deleteCollectionSupabase(collectionId).catch(() => {});
-    }
+    // 2. Xóa qua Server API
+    deleteCollectionFromServer(collectionId).catch(() => {});
 
     return true;
   } catch (err) {
@@ -233,10 +293,8 @@ export async function addMovieToCollection(
         currentLocal.map((c) => (c.id === collectionId ? targetCol! : c))
       );
 
-      // 2. Cập nhật Supabase
-      if (isSupabaseConfigured()) {
-        saveCollectionSupabase(targetCol).catch(() => {});
-      }
+      // 2. Cập nhật Server API
+      syncCollectionToServer(targetCol).catch(() => {});
     }
 
     return true;
@@ -274,10 +332,8 @@ export async function removeMovieFromCollection(
         currentLocal.map((c) => (c.id === collectionId ? updatedCol : c))
       );
 
-      // 2. Cập nhật Supabase
-      if (isSupabaseConfigured()) {
-        saveCollectionSupabase(updatedCol).catch(() => {});
-      }
+      // 2. Cập nhật Server API
+      syncCollectionToServer(updatedCol).catch(() => {});
     }
 
     return true;
@@ -314,10 +370,8 @@ export async function toggleCollectionPrivacy(
         currentLocal.map((c) => (c.id === collectionId ? updatedCol : c))
       );
 
-      // 2. Cập nhật Supabase
-      if (isSupabaseConfigured()) {
-        saveCollectionSupabase(updatedCol).catch(() => {});
-      }
+      // 2. Cập nhật Server API
+      syncCollectionToServer(updatedCol).catch(() => {});
     }
 
     return true;
@@ -420,10 +474,7 @@ export function subscribeAllPublicCollections(
 export async function deletePublicCollectionAdmin(collectionId: string): Promise<boolean> {
   if (!collectionId) return false;
   try {
-    if (isSupabaseConfigured()) {
-      await deleteCollectionSupabase(collectionId);
-    }
-    return true;
+    return await deleteCollectionFromServer(collectionId);
   } catch (err) {
     console.error("Lỗi xóa public_collection:", err);
     return false;

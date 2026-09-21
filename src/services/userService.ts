@@ -74,7 +74,7 @@ function calculateLocalHistoryWatchMinutes(): number {
 }
 
 /**
- * Ghi nhận hoặc cập nhật hồ sơ người dùng vào Supabase khi đăng nhập
+ * Ghi nhận hoặc cập nhật hồ sơ người dùng vào Supabase qua Server API khi đăng nhập
  */
 export async function recordUserProfile(user: BaseAuthUser): Promise<void> {
   if (!user || !user.uid) return;
@@ -148,12 +148,29 @@ export async function recordUserProfile(user: BaseAuthUser): Promise<void> {
     // Lưu vào Local cache
     setCachedUserProfile(user.uid, profileData as Partial<UserProfile>);
 
-    // Lưu vào Supabase Database
-    if (isSupabaseConfigured()) {
-      await upsertUserProfileSupabase(profileData);
+    // Lưu qua Server API có xác thực Firebase Token
+    try {
+      const { auth } = await import("@/lib/firebase");
+      const token = await auth?.currentUser?.getIdToken();
+      if (token) {
+        await fetch("/api/user/profile", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(profileData),
+        });
+      } else if (isSupabaseConfigured()) {
+        await upsertUserProfileSupabase(profileData);
+      }
+    } catch {
+      if (isSupabaseConfigured()) {
+        await upsertUserProfileSupabase(profileData);
+      }
     }
   } catch (err) {
-    console.warn("Lỗi lưu thông tin người dùng vào Supabase:", err);
+    console.warn("Lỗi lưu thông tin người dùng:", err);
   }
 }
 
@@ -408,9 +425,28 @@ export async function updateUserProfile(
   // 1. Cập nhật ngay lập tức vào Local cache (Optimistic UI 0ms)
   setCachedUserProfile(userId, payload);
 
-  // 2. Lưu trực tiếp vào Supabase Database
-  if (isSupabaseConfigured()) {
-    try {
+  // 2. Lưu qua Server API có xác thực
+  try {
+    const { auth } = await import("@/lib/firebase");
+    const token = await auth?.currentUser?.getIdToken();
+    if (token) {
+      await fetch("/api/user/profile", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          displayName: payload.displayName,
+          photoURL: payload.photoURL,
+          customAvatar: payload.customAvatar,
+          bio: payload.bio,
+          favoriteGenres: payload.favoriteGenres,
+          badges: payload.badges,
+          watchTimeMinutes: payload.watchTimeMinutes,
+        }),
+      });
+    } else if (isSupabaseConfigured()) {
       await updateUserProfileSupabase(userId, {
         displayName: payload.displayName,
         photoURL: payload.photoURL,
@@ -420,9 +456,9 @@ export async function updateUserProfile(
         badges: payload.badges,
         watchTimeMinutes: payload.watchTimeMinutes,
       });
-    } catch (e) {
-      console.warn("Lỗi lưu user profile vào Supabase:", e);
     }
+  } catch (e) {
+    console.warn("Lỗi lưu user profile qua API:", e);
   }
 
   // 3. Bắn event toàn cục để Navbar & UI tự động cập nhật
@@ -459,17 +495,30 @@ export async function incrementUserWatchTime(userId: string, minutes: number = 1
     };
     setCachedUserProfile(userId, updatedProfile);
 
-    // 2. Cập nhật vào Supabase Database có Debounce (2 phút) để tránh spam request liên tục
-    if (isSupabaseConfigured()) {
-      if (watchTimeSaveTimers.has(userId)) {
-        clearTimeout(watchTimeSaveTimers.get(userId));
-      }
-      const timer = setTimeout(() => {
-        watchTimeSaveTimers.delete(userId);
-        updateUserProfileSupabase(userId, { watchTimeMinutes: newMins }).catch(() => {});
-      }, 120000);
-      watchTimeSaveTimers.set(userId, timer);
+    // 2. Cập nhật vào Supabase qua API có Debounce (2 phút) để tránh spam request liên tục
+    if (watchTimeSaveTimers.has(userId)) {
+      clearTimeout(watchTimeSaveTimers.get(userId));
     }
+    const timer = setTimeout(async () => {
+      watchTimeSaveTimers.delete(userId);
+      try {
+        const { auth } = await import("@/lib/firebase");
+        const token = await auth?.currentUser?.getIdToken();
+        if (token) {
+          await fetch("/api/user/profile", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ watchTimeMinutes: newMins }),
+          });
+        } else if (isSupabaseConfigured()) {
+          updateUserProfileSupabase(userId, { watchTimeMinutes: newMins }).catch(() => {});
+        }
+      } catch {}
+    }, 120000);
+    watchTimeSaveTimers.set(userId, timer);
 
     // 3. Phát sự kiện đồng bộ toàn bộ UI (ProfileModal, Header, Leaderboard, Level Badge)
     if (typeof window !== "undefined") {

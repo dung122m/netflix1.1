@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { sanitizeSafeText } from "@/lib/security";
 import { verifyServerAuth } from "@/lib/serverAuth";
 
@@ -92,6 +92,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    const supabase = getSupabaseAdmin();
     if (!supabase) {
       return NextResponse.json({ success: true, items: [] });
     }
@@ -151,6 +152,7 @@ export async function PATCH(req: NextRequest) {
     const body = await req.json();
     const { notifId, all } = body;
 
+    const supabase = getSupabaseAdmin();
     if (!supabase) {
       return NextResponse.json({ error: "Supabase chưa được cấu hình" }, { status: 500 });
     }
@@ -206,6 +208,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const supabase = getSupabaseAdmin();
     if (!supabase) {
       return NextResponse.json({ error: "Supabase chưa được cấu hình" }, { status: 500 });
     }
@@ -235,6 +238,42 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, id: docId });
   } catch (error) {
     console.error("Lỗi API post notification:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}
+
+/**
+ * DELETE /api/notifications
+ * Xóa thông báo của chính người dùng
+ */
+export async function DELETE(req: NextRequest) {
+  try {
+    const auth = await verifyServerAuth(req);
+    if (!auth.isAuthenticated || !auth.userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const notifId = searchParams.get("notifId");
+
+    const supabase = getSupabaseAdmin();
+    if (!supabase) {
+      return NextResponse.json({ error: "Supabase chưa được cấu hình" }, { status: 500 });
+    }
+
+    if (notifId) {
+      await supabase
+        .from("notifications")
+        .delete()
+        .eq("user_id", auth.userId)
+        .eq("id", notifId);
+
+      return NextResponse.json({ success: true, deleted: notifId });
+    }
+
+    return NextResponse.json({ error: "Thiếu notifId" }, { status: 400 });
+  } catch (error) {
+    console.error("Lỗi API DELETE notifications:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

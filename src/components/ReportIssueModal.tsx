@@ -4,8 +4,6 @@ import React, { useState, useEffect } from "react";
 import { Flag, X, CheckCircle2, AlertTriangle } from "lucide-react";
 import { formatEpisodeName } from "@/lib/formatEpisode";
 import { useAuth } from "@/context/AuthContext";
-import { createErrorReportSupabase } from "@/services/supabaseService";
-
 import { toast } from "@/components/Toast";
 
 interface ReportIssueModalProps {
@@ -49,19 +47,25 @@ export function ReportIssueModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // 1. Lưu vào Supabase
       const slug = movieSlug || movieTitle.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-      await createErrorReportSupabase({
-        movieSlug: slug,
-        movieTitle,
-        episodeName: episodeName || "Tập 1",
-        episodeSlug: episodeSlug || "tap-1",
-        serverName: serverName || "Server VIP",
-        issueType: selectedIssueId,
-        description: customNote.trim() || undefined,
-        userId: user?.uid,
-        userName: user?.displayName || (user?.email ? user.email.split("@")[0] : "Khán giả"),
-        userEmail: user?.email || undefined,
+      const idToken = await user?.getIdToken().catch(() => null);
+
+      // 1. Gửi qua Server API (/api/reports)
+      await fetch("/api/reports", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
+        },
+        body: JSON.stringify({
+          movieSlug: slug,
+          movieTitle,
+          episodeName: episodeName || "Tập 1",
+          episodeSlug: episodeSlug || "tap-1",
+          serverName: serverName || "Server VIP",
+          issueType: selectedIssueId,
+          description: customNote.trim() || undefined,
+        }),
       });
 
       // 2. Lưu local fallback

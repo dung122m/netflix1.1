@@ -3,11 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Bell, BellRing, Loader2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import {
-  followSeriesSupabase,
-  unfollowSeriesSupabase,
-  isSeriesFollowedSupabase,
-} from "@/services/supabaseService";
+import { isSeriesFollowedSupabase } from "@/services/supabaseService";
 import { toast } from "@/components/Toast";
 
 interface FollowSeriesButtonProps {
@@ -60,12 +56,29 @@ export function FollowSeriesButton({
 
     setLoading(true);
     try {
+      const idToken = await user.getIdToken();
       if (isFollowed) {
-        await unfollowSeriesSupabase(user.uid, movieSlug);
+        await fetch(`/api/user/series?slug=${encodeURIComponent(movieSlug)}`, {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${idToken}`,
+          },
+        });
         setIsFollowed(false);
         toast.info(`Đã tắt nhận thông báo tập mới cho phim: ${movieTitle}`);
       } else {
-        await followSeriesSupabase(user.uid, movieSlug, movieTitle, posterUrl);
+        await fetch("/api/user/series", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${idToken}`,
+          },
+          body: JSON.stringify({
+            slug: movieSlug,
+            title: movieTitle,
+            poster: posterUrl,
+          }),
+        });
         setIsFollowed(true);
         toast.success(`Đã bật theo dõi! Bạn sẽ nhận được thông báo khi có tập mới 🔔`);
       }

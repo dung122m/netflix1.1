@@ -83,20 +83,58 @@ export async function updateActivePlaybackSession(
       } catch {}
     }
 
-    // Đồng bộ lên Supabase realtime
-    saveDeviceHandoffSupabase({
-      id: userId,
-      userId,
-      movieSlug: data.movieSlug,
-      movieTitle: data.movieTitle,
-      poster: data.posterUrl,
-      episodeName: data.episodeName,
-      episodeSlug: data.episodeSlug,
-      progressSeconds: Math.floor(data.currentTime),
-      durationSeconds: Math.floor(data.duration || 0),
-      deviceName: detectDeviceType(),
-      updatedAt: Date.now(),
-    }).catch(() => {});
+    // Đồng bộ lên Supabase qua Server API
+    try {
+      const { auth } = await import("@/lib/firebase");
+      const token = await auth?.currentUser?.getIdToken();
+      if (token) {
+        await fetch("/api/user/handoff", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            movieSlug: data.movieSlug,
+            movieTitle: data.movieTitle,
+            poster: data.posterUrl,
+            episodeName: data.episodeName,
+            episodeSlug: data.episodeSlug,
+            progressSeconds: Math.floor(data.currentTime),
+            durationSeconds: Math.floor(data.duration || 0),
+            deviceName: detectDeviceType(),
+          }),
+        });
+      } else {
+        saveDeviceHandoffSupabase({
+          id: userId,
+          userId,
+          movieSlug: data.movieSlug,
+          movieTitle: data.movieTitle,
+          poster: data.posterUrl,
+          episodeName: data.episodeName,
+          episodeSlug: data.episodeSlug,
+          progressSeconds: Math.floor(data.currentTime),
+          durationSeconds: Math.floor(data.duration || 0),
+          deviceName: detectDeviceType(),
+          updatedAt: Date.now(),
+        }).catch(() => {});
+      }
+    } catch {
+      saveDeviceHandoffSupabase({
+        id: userId,
+        userId,
+        movieSlug: data.movieSlug,
+        movieTitle: data.movieTitle,
+        poster: data.posterUrl,
+        episodeName: data.episodeName,
+        episodeSlug: data.episodeSlug,
+        progressSeconds: Math.floor(data.currentTime),
+        durationSeconds: Math.floor(data.duration || 0),
+        deviceName: detectDeviceType(),
+        updatedAt: Date.now(),
+      }).catch(() => {});
+    }
   } catch (err) {
     console.warn("Lỗi đồng bộ phiên phát đa thiết bị:", err);
   }

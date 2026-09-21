@@ -336,9 +336,26 @@ export async function markNotificationAsRead(
     );
   }
 
-  // 2. Cập nhật Supabase
-  if (isSupabaseConfigured()) {
-    markNotificationAsReadSupabase(userId, notificationId).catch(() => {});
+  // 2. Cập nhật Server API
+  try {
+    const { auth } = await import("@/lib/firebase");
+    const idToken = await auth?.currentUser?.getIdToken().catch(() => null);
+    if (idToken) {
+      await fetch("/api/notifications", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({ notifId: notificationId }),
+      });
+    } else if (isSupabaseConfigured()) {
+      markNotificationAsReadSupabase(userId, notificationId).catch(() => {});
+    }
+  } catch {
+    if (isSupabaseConfigured()) {
+      markNotificationAsReadSupabase(userId, notificationId).catch(() => {});
+    }
   }
 }
 
@@ -366,9 +383,26 @@ export async function markAllNotificationsAsRead(
     );
   }
 
-  // 2. Cập nhật Supabase
-  if (isSupabaseConfigured()) {
-    markAllNotificationsAsReadSupabase(userId).catch(() => {});
+  // 2. Cập nhật Server API
+  try {
+    const { auth } = await import("@/lib/firebase");
+    const idToken = await auth?.currentUser?.getIdToken().catch(() => null);
+    if (idToken) {
+      await fetch("/api/notifications", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({ all: true }),
+      });
+    } else if (isSupabaseConfigured()) {
+      markAllNotificationsAsReadSupabase(userId).catch(() => {});
+    }
+  } catch {
+    if (isSupabaseConfigured()) {
+      markAllNotificationsAsReadSupabase(userId).catch(() => {});
+    }
   }
 }
 
@@ -393,9 +427,24 @@ export async function deleteNotification(
     );
   }
 
-  // 2. Cập nhật Supabase
-  if (isSupabaseConfigured()) {
-    deleteNotificationSupabase(userId, notificationId).catch(() => {});
+  // 2. Cập nhật Server API
+  try {
+    const { auth } = await import("@/lib/firebase");
+    const idToken = await auth?.currentUser?.getIdToken().catch(() => null);
+    if (idToken) {
+      await fetch(`/api/notifications?notifId=${encodeURIComponent(notificationId)}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${idToken}`,
+        },
+      });
+    } else if (isSupabaseConfigured()) {
+      deleteNotificationSupabase(userId, notificationId).catch(() => {});
+    }
+  } catch {
+    if (isSupabaseConfigured()) {
+      deleteNotificationSupabase(userId, notificationId).catch(() => {});
+    }
   }
 }
 

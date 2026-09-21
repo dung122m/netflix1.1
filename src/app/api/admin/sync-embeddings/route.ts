@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { movieApi } from "@/services/movieApi";
 import { upsertMovieEmbedding } from "@/services/aiVectorService";
-import { supabase } from "@/lib/supabase";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { isUserAdmin } from "@/lib/adminConfig";
 
 export const maxDuration = 60;
@@ -75,7 +75,8 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const limit = Math.min(Number(searchParams.get("limit")) || 30, 100);
 
-  if (!supabase) {
+  const supabaseAdmin = getSupabaseAdmin();
+  if (!supabaseAdmin) {
     return NextResponse.json({ success: false, error: "Supabase chưa được cấu hình" }, { status: 400 });
   }
 
@@ -90,7 +91,7 @@ export async function GET(req: NextRequest) {
 
     // 2. Kiểm tra những phim đã tồn tại vector trong database để bỏ qua ngay (tiết kiệm quota AI & 0ms)
     const slugs = items.map((i: { slug?: string }) => i.slug).filter(Boolean) as string[];
-    const { data: existingRows } = await supabase
+    const { data: existingRows } = await supabaseAdmin
       .from("movie_embeddings")
       .select("id")
       .in("id", slugs);

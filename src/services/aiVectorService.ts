@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import { supabase } from "@/lib/supabase";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 export interface SemanticMovieItem {
   id: string; // slug
@@ -177,13 +177,14 @@ export async function searchMoviesBySemantic(
 
   // 1. Tạo vector cho câu tìm kiếm của người dùng
   const queryVector = await generateGeminiEmbedding(queryText, customApiKey);
-  if (!queryVector || !supabase) {
+  const adminClient = getSupabaseAdmin();
+  if (!queryVector || !adminClient) {
     return [];
   }
 
   try {
     // 2. Gọi hàm SQL RPC match_movies_vector trong PostgreSQL
-    const { data, error } = await supabase.rpc("match_movies_vector", {
+    const { data, error } = await adminClient.rpc("match_movies_vector", {
       query_embedding: queryVector,
       match_threshold: threshold,
       match_count: limit,
@@ -231,7 +232,8 @@ export async function upsertMovieEmbedding(
   },
   customApiKey?: string
 ): Promise<boolean> {
-  if (!movie.slug || !movie.title || !supabase) return false;
+  const adminClient = getSupabaseAdmin();
+  if (!movie.slug || !movie.title || !adminClient) return false;
 
   try {
     // Tạo văn bản ngữ cảnh phong phú để embedding
@@ -262,7 +264,7 @@ export async function upsertMovieEmbedding(
       updated_at: Date.now(),
     };
 
-    const { error } = await supabase.from("movie_embeddings").upsert(payload, { onConflict: "id" });
+    const { error } = await adminClient.from("movie_embeddings").upsert(payload, { onConflict: "id" });
     if (error) {
       console.warn("[aiVectorService] Lỗi upsert movie embedding:", error.message);
       return false;
@@ -284,7 +286,8 @@ let isWarmupRunning = false;
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function enqueueAutoEmbedMovies(movies: any[]): void {
-  if (!movies || !movies.length || !supabase) return;
+  const adminClient = getSupabaseAdmin();
+  if (!movies || !movies.length || !adminClient) return;
 
   // Chạy background không await để không làm chậm tải trang
   setTimeout(async () => {
@@ -315,11 +318,12 @@ export function enqueueAutoEmbedMovies(movies: any[]): void {
  * Tự động kích hoạt nạp kho Vector lần đầu nếu Database chưa có
  */
 export async function triggerAutoWarmupIfNeeded(): Promise<void> {
-  if (isWarmupRunning || !supabase) return;
+  const adminClient = getSupabaseAdmin();
+  if (isWarmupRunning || !adminClient) return;
   isWarmupRunning = true;
 
   try {
-    const { count } = await supabase
+    const { count } = await adminClient
       .from("movie_embeddings")
       .select("*", { count: "exact", head: true });
 

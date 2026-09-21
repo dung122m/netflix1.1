@@ -62,8 +62,6 @@ import {
 import {
   ErrorReportItem,
   subscribeErrorReportsSupabase,
-  updateErrorReportStatusSupabase,
-  deleteErrorReportSupabase,
 } from "@/services/supabaseService";
 import { StarRating } from "@/components/MovieReviews/StarRating";
 import { AdminReportsTab } from "./components/AdminReportsTab";
@@ -624,11 +622,20 @@ export default function AdminDashboardPage() {
     });
   }, [errorReports, reportFilter, reportSearchQuery]);
 
-  // Handler: Update error report status
+  // Handler: Update error report status via API
   const handleUpdateReportStatus = async (reportId: string, status: "pending" | "resolved" | "ignored") => {
     try {
-      const ok = await updateErrorReportStatusSupabase(reportId, status);
-      if (ok) {
+      const idToken = await user?.getIdToken().catch(() => null);
+      const res = await fetch("/api/reports", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
+        },
+        body: JSON.stringify({ id: reportId, status }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (res.ok && json.success) {
         setErrorReports((prev) =>
           prev.map((r) => (r.id === reportId ? { ...r, status } : r))
         );
@@ -648,7 +655,7 @@ export default function AdminDashboardPage() {
     }
   };
 
-  // Handler: Delete error report
+  // Handler: Delete error report via API
   const handleDeleteReport = async (reportId: string) => {
     const confirmed = await showConfirmDialog({
       title: "Xóa báo cáo sự cố",
@@ -659,8 +666,15 @@ export default function AdminDashboardPage() {
     });
     if (!confirmed) return;
     try {
-      const ok = await deleteErrorReportSupabase(reportId);
-      if (ok) {
+      const idToken = await user?.getIdToken().catch(() => null);
+      const res = await fetch(`/api/reports?id=${encodeURIComponent(reportId)}`, {
+        method: "DELETE",
+        headers: {
+          ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
+        },
+      });
+      const json = await res.json().catch(() => ({}));
+      if (res.ok && json.success) {
         setErrorReports((prev) => prev.filter((r) => r.id !== reportId));
         toast.success("Đã xóa báo cáo sự cố thành công!");
       } else {

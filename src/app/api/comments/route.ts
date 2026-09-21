@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { checkContentModeration } from "@/lib/contentModeration";
 import { sanitizeSafeText } from "@/lib/security";
 import { verifyServerAuth } from "@/lib/serverAuth";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import {
   getMovieCommentsSupabase,
   getAllCommentsSupabase,
@@ -14,7 +15,7 @@ import {
   getUserProfileSupabase,
   createNotificationSupabase,
 } from "@/services/supabaseService";
-import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import { isSupabaseConfigured } from "@/lib/supabase";
 import { MovieComment } from "@/types/comment";
 
 export const dynamic = "force-dynamic";
@@ -293,12 +294,13 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: "Thiếu commentId!" }, { status: 400 });
     }
 
-    if (!isSupabaseConfigured() || !supabase) {
+    const supabaseAdmin = getSupabaseAdmin();
+    if (!supabaseAdmin) {
       return NextResponse.json({ error: "Supabase chưa được cấu hình" }, { status: 500 });
     }
 
     // Kiểm tra quyền sở hữu bình luận từ cơ sở dữ liệu (không tin tưởng client)
-    const { data: existingComment, error: fetchErr } = await supabase
+    const { data: existingComment, error: fetchErr } = await supabaseAdmin
       .from("movie_comments")
       .select("user_id")
       .eq("id", commentId)
@@ -360,12 +362,13 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: "Thiếu commentId!" }, { status: 400 });
     }
 
-    if (!isSupabaseConfigured() || !supabase) {
+    const supabaseAdmin = getSupabaseAdmin();
+    if (!supabaseAdmin) {
       return NextResponse.json({ error: "Supabase chưa được cấu hình" }, { status: 500 });
     }
 
     // Kiểm tra quyền sở hữu bình luận từ cơ sở dữ liệu (không tin tưởng client)
-    const { data: existingComment, error: fetchErr } = await supabase
+    const { data: existingComment, error: fetchErr } = await supabaseAdmin
       .from("movie_comments")
       .select("user_id")
       .eq("id", commentId)

@@ -632,6 +632,12 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
 
   // 5. Sắp xếp
   if (params.sort === "rating") {
+    // Chỉ chọn phim có số lượng bình chọn (tmdb.vote_count) >= 50 để đảm bảo chất lượng đánh giá
+    allUniqueItems = allUniqueItems.filter((item) => {
+      const voteCount = Number(item.tmdb?.vote_count || 0);
+      return voteCount >= 50;
+    });
+
     allUniqueItems.sort((a, b) => {
       const rateA = Number(a.tmdb?.vote_average || a.imdb?.vote_average || 0);
       const rateB = Number(b.tmdb?.vote_average || b.imdb?.vote_average || 0);

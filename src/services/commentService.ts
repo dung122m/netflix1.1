@@ -1,5 +1,4 @@
 import { MovieComment, MovieRatingStats, CommentReactionType } from "@/types/comment";
-import { UserNotification } from "@/types/notification";
 import { checkContentModeration, detectSpoiler } from "@/lib/contentModeration";
 import { sanitizeSafeText } from "@/lib/security";
 import {
@@ -8,13 +7,9 @@ import {
   getCommentRepliesSupabase,
   getUserCommentsSupabase,
   getAllCommentsSupabase,
-  updateCommentSupabase,
-  deleteCommentSupabase,
   togglePinCommentSupabase,
-  setCommentReactionSupabase,
   flagCommentSupabase,
   unflagCommentSupabase,
-  createNotificationSupabase,
   getUserProfileSupabase,
 } from "./supabaseService";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
@@ -665,8 +660,40 @@ export async function addMovieComment(
     updatedAt: now,
   };
 
-  // 3. Ghi trực tiếp vào Supabase Database (0ms Optimistic Update)
-  const createdId = await postCommentSupabase(newComment as unknown as Omit<MovieComment, "id" | "createdAt" | "updatedAt">);
+  // 3. Ghi vào cơ sở dữ liệu qua Server API (/api/comments)
+  let createdId = `cmt_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+  try {
+    const idToken = await auth?.currentUser?.getIdToken().catch(() => null);
+    const res = await fetch("/api/comments", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
+      },
+      body: JSON.stringify({
+        movieSlug: newComment.movieSlug,
+        movieTitle: newComment.movieTitle,
+        rating: newComment.rating,
+        content: newComment.content,
+        isSpoiler: newComment.isSpoiler,
+        episodeSlug: newComment.episodeSlug,
+        episodeName: newComment.episodeName,
+      }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.id) createdId = data.id;
+    } else if (isSupabaseConfigured()) {
+      createdId = await postCommentSupabase(newComment as unknown as Omit<MovieComment, "id" | "createdAt" | "updatedAt">);
+    }
+  } catch {
+    if (isSupabaseConfigured()) {
+      try {
+        createdId = await postCommentSupabase(newComment as unknown as Omit<MovieComment, "id" | "createdAt" | "updatedAt">);
+      } catch {}
+    }
+  }
+
   const fullComment: MovieComment = { id: createdId, ...newComment } as MovieComment;
 
   const curList = movieCommentsMemoryCache[comment.movieSlug] || [];
@@ -698,23 +725,7 @@ export async function addReplyComment(params: {
   content: string;
   isSpoiler?: boolean;
 }): Promise<string> {
-  if (!isSupabaseConfigured()) {
-    throw new Error("Chưa kết nối được cơ sở dữ liệu Supabase!");
-  }
-
-  // 1. Kiểm tra hạn chế tài khoản
-  try {
-    const profile = await getUserProfileSupabase(params.userId);
-    if (profile?.isCommentRestricted) {
-      throw new Error("Tài khoản của bạn tạm thời bị khóa tính năng bình luận do vi phạm tiêu chuẩn cộng đồng nhiều lần!");
-    }
-  } catch (err: unknown) {
-    if (err instanceof Error && err.message.includes("bị khóa tính năng")) {
-      throw err;
-    }
-  }
-
-  // 2. Kiểm duyệt nội dung phản hồi
+  // 1. Kiểm duyệt nội dung phản hồi
   const modCheck = checkContentModeration(params.content);
   if (!modCheck.isAllowed) {
     reportCommentViolation({
@@ -736,22 +747,69 @@ export async function addReplyComment(params: {
 
   const { parentId, parentOwnerId, replyToUserId, replyToUserName, ...replyData } = params;
 
-  // 3. Ghi trực tiếp vào Supabase
-  const createdId = await postCommentSupabase({
-    movieSlug: params.movieSlug,
-    movieTitle: params.movieTitle,
-    userId: params.userId,
-    userName: params.userName,
-    userAvatar: params.userAvatar,
-    userEmail: params.userEmail,
-    content: sanitizeSafeText(replyData.content, 2500),
-    isSpoiler: Boolean(params.isSpoiler || detectSpoiler(params.content)),
-    parentId,
-    parentOwnerId,
-    replyToUserId,
-    replyToUserName: replyToUserName ? sanitizeSafeText(replyToUserName, 100) : undefined,
-    rating: 0,
-  });
+  // 2. Ghi qua Server API
+  let createdId = `cmt_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+  try {
+    const idToken = await auth?.currentUser?.getIdToken().catch(() => null);
+    const res = await fetch("/api/comments", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
+      },
+      body: JSON.stringify({
+        movieSlug: params.movieSlug,
+        movieTitle: params.movieTitle,
+        rating: 0,
+        content: sanitizeSafeText(replyData.content, 2500),
+        isSpoiler: Boolean(params.isSpoiler || detectSpoiler(params.content)),
+        parentId,
+        parentOwnerId,
+        replyToUserId,
+        replyToUserName: replyToUserName ? sanitizeSafeText(replyToUserName, 100) : undefined,
+      }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.id) createdId = data.id;
+    } else if (isSupabaseConfigured()) {
+      createdId = await postCommentSupabase({
+        movieSlug: params.movieSlug,
+        movieTitle: params.movieTitle,
+        userId: params.userId,
+        userName: params.userName,
+        userAvatar: params.userAvatar,
+        userEmail: params.userEmail,
+        content: sanitizeSafeText(replyData.content, 2500),
+        isSpoiler: Boolean(params.isSpoiler || detectSpoiler(params.content)),
+        parentId,
+        parentOwnerId,
+        replyToUserId,
+        replyToUserName: replyToUserName ? sanitizeSafeText(replyToUserName, 100) : undefined,
+        rating: 0,
+      });
+    }
+  } catch {
+    if (isSupabaseConfigured()) {
+      try {
+        createdId = await postCommentSupabase({
+          movieSlug: params.movieSlug,
+          movieTitle: params.movieTitle,
+          userId: params.userId,
+          userName: params.userName,
+          userAvatar: params.userAvatar,
+          userEmail: params.userEmail,
+          content: sanitizeSafeText(replyData.content, 2500),
+          isSpoiler: Boolean(params.isSpoiler || detectSpoiler(params.content)),
+          parentId,
+          parentOwnerId,
+          replyToUserId,
+          replyToUserName: replyToUserName ? sanitizeSafeText(replyToUserName, 100) : undefined,
+          rating: 0,
+        });
+      } catch {}
+    }
+  }
 
   const fullReply: MovieComment = {
     id: createdId,
@@ -778,29 +836,6 @@ export async function addReplyComment(params: {
 
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent("comments-updated", { detail: { movieSlug: params.movieSlug, parentId, reply: fullReply } }));
-  }
-
-  // 4. Gửi thông báo cho người nhận
-  const targetUserId = replyToUserId || (parentOwnerId && parentOwnerId !== params.userId ? parentOwnerId : null);
-  if (targetUserId && targetUserId !== params.userId) {
-    const isDirect = Boolean(replyToUserId);
-    const notifData: UserNotification & { userId: string } = {
-      id: `notif_reply_${createdId}_${targetUserId}`,
-      userId: targetUserId,
-      type: "comment_reply",
-      title: isDirect
-        ? `${params.userName} đã trả lời bình luận của bạn`
-        : `${params.userName} đã bình luận trong bài đánh giá của bạn`,
-      message: params.content.length > 80 ? params.content.slice(0, 80) + "..." : params.content,
-      link: `/movies/${params.movieSlug}?highlightComment=${createdId}#comment-${createdId}`,
-      movieSlug: params.movieSlug,
-      commentId: createdId,
-      replierName: params.userName,
-      replierAvatar: params.userAvatar,
-      isRead: false,
-      createdAt: Date.now(),
-    };
-    createNotificationSupabase(notifData).catch(() => {});
   }
 
   return createdId;
@@ -885,22 +920,19 @@ export async function setCommentReaction(
     window.dispatchEvent(new CustomEvent("comments-updated", { detail: { commentId } }));
   }
 
-  // 3. Cập nhật Supabase trực tiếp & fallback qua API route
-  if (isSupabaseConfigured()) {
-    try {
-      await setCommentReactionSupabase(commentId, userId, reactionType);
-    } catch {
-      auth?.currentUser?.getIdToken().then((idToken) => {
-        fetch("/api/comments", {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
-          },
-          body: JSON.stringify({ commentId, userId, reactionType, action: "reaction" }),
-        }).catch(() => {});
-      }).catch(() => {});
-    }
+  // 3. Cập nhật qua Server API
+  try {
+    const idToken = await auth?.currentUser?.getIdToken().catch(() => null);
+    await fetch("/api/comments", {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
+      },
+      body: JSON.stringify({ commentId, userId, reactionType, action: "reaction" }),
+    });
+  } catch (err) {
+    console.warn("Lỗi gửi reaction qua API:", err);
   }
 }
 
@@ -957,31 +989,29 @@ export async function updateMovieComment(
     ? (data.isSpoiler || (data.content ? detectSpoiler(data.content) : false))
     : (data.content ? detectSpoiler(data.content) : undefined);
 
-  // 2. Ghi trực tiếp vào Supabase Database trước
-  if (isSupabaseConfigured()) {
-    try {
-      await updateCommentSupabase(commentId, {
+  // 2. Ghi qua Server API
+  try {
+    const idToken = await auth?.currentUser?.getIdToken().catch(() => null);
+    await fetch("/api/comments", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
+      },
+      body: JSON.stringify({
+        commentId,
         rating: data.rating,
         content: data.content,
-        episode_slug: data.episodeSlug || null,
-        episode_name: data.episodeName || null,
-        is_spoiler: finalIsSpoiler,
-      });
-    } catch {
-      auth?.currentUser?.getIdToken().then((idToken) => {
-        fetch("/api/comments", {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
-          },
-          body: JSON.stringify({ commentId, ...data }),
-        }).catch(() => {});
-      }).catch(() => {});
-    }
+        episodeSlug: data.episodeSlug,
+        episodeName: data.episodeName,
+        isSpoiler: finalIsSpoiler,
+      }),
+    });
+  } catch (err) {
+    console.warn("Lỗi update comment qua API:", err);
   }
 
-  // 3. Sau khi Supabase ghi xong, phát event để đồng bộ toàn bộ tab/component
+  // 3. Sau khi ghi xong, phát event để đồng bộ toàn bộ tab/component
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent("comments-updated", { detail: { commentId, movieSlug: affectedMovieSlug } }));
   }
@@ -1015,18 +1045,15 @@ export async function deleteMovieComment(commentId: string): Promise<void> {
     window.dispatchEvent(new CustomEvent("comments-updated", { detail: { commentId, movieSlug: affectedMovieSlug, deleted: true } }));
   }
 
-  // 2. Xóa trên Supabase
-  if (isSupabaseConfigured()) {
-    try {
-      await deleteCommentSupabase(commentId);
-    } catch {
-      auth?.currentUser?.getIdToken().then((idToken) => {
-        fetch(`/api/comments?commentId=${encodeURIComponent(commentId)}`, {
-          method: "DELETE",
-          headers: idToken ? { Authorization: `Bearer ${idToken}` } : {},
-        }).catch(() => {});
-      }).catch(() => {});
-    }
+  // 2. Xóa qua Server API
+  try {
+    const idToken = await auth?.currentUser?.getIdToken().catch(() => null);
+    await fetch(`/api/comments?commentId=${encodeURIComponent(commentId)}`, {
+      method: "DELETE",
+      headers: idToken ? { Authorization: `Bearer ${idToken}` } : {},
+    });
+  } catch (err) {
+    console.warn("Lỗi delete comment qua API:", err);
   }
 }
 
