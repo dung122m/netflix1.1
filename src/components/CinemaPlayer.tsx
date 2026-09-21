@@ -57,7 +57,7 @@ interface CinemaPlayerProps {
   activeEpisodeSlug?: string;
   isTrailerOnly: boolean;
   posterUrl: string;
-  episodes: EpisodeItem[];
+  episodes?: EpisodeItem[];
   initialTime?: number;
 }
 
@@ -82,7 +82,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
 
   const title = watchContext?.movieTitle || propTitle;
   const isTrailerOnly = watchContext?.isTrailerOnly ?? propIsTrailerOnly;
-  const episodes = watchContext?.episodes || propEpisodes;
+  const episodes = watchContext?.episodes || propEpisodes || [];
   const activeEpisodeSlug = watchContext?.activeEpisodeSlug || propActiveEpisodeSlug;
   const activeEpisode = watchContext?.activeEpisode || episodes.find((e) => e.slug === activeEpisodeSlug) || episodes[0];
   const activeEpisodeName = activeEpisode?.name || propActiveEpisodeName;

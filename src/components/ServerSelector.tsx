@@ -5,8 +5,14 @@ import Link from "next/link";
 import { Server, Zap } from "lucide-react";
 import { useWatchController, EpisodeServer } from "./WatchController";
 
+export interface ServerSelectorItem {
+  server_name?: string;
+  count?: number;
+  server_data?: unknown[];
+}
+
 interface ServerSelectorProps {
-  servers: EpisodeServer[];
+  servers?: ServerSelectorItem[] | EpisodeServer[];
   initialServerIndex?: number;
 }
 
@@ -28,7 +34,7 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
       </span>
       {servers.map((s, sIdx) => {
         const isSelected = sIdx === currentServerIndex;
-        const count = s.server_data?.length;
+        const count = "count" in s && s.count !== undefined ? s.count : s.server_data?.length;
         return (
           <Link
             key={s.server_name || sIdx}

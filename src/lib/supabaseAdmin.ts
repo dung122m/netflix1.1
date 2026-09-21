@@ -55,11 +55,4 @@ export function getSupabaseAdmin(): SupabaseClient | null {
   }
 }
 
-export const supabaseAdmin: SupabaseClient | null = (() => {
-  try {
-    return getSupabaseAdmin();
-  } catch {
-    return null;
-  }
-})();
 

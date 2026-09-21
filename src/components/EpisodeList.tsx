@@ -21,7 +21,7 @@ interface EpisodeItem {
 
 interface EpisodeListProps {
   movieSlug: string;
-  episodes: EpisodeItem[];
+  episodes?: EpisodeItem[];
   activeEpisodeSlug?: string;
   onSelectEpisode?: (slug: string) => void;
 }

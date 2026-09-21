@@ -609,7 +609,7 @@ export function normalizeMovie(m: any): NormalizedMovie {
   if (!thumbUrl) thumbUrl = "/default-hero.svg";
   if (!posterUrl) posterUrl = "/default-poster.svg";
 
-  const imageUrl = posterUrl;
+  const imageUrl = thumbUrl || posterUrl;
   const year = m?.year ? String(m.year) : "";
   const quality = m?.quality || "FHD";
   const time = m?.time || m?.episode_current || undefined;

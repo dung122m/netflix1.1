@@ -157,8 +157,8 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         }
       }
     };
-    addUrl(imageUrl);
     addUrl(thumbUrl);
+    addUrl(imageUrl);
     addUrl(posterUrl);
     return list;
   }, [imageUrl, thumbUrl, posterUrl]);
@@ -426,7 +426,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           } catch {
             if (description) setSynopsis(description);
           }
-        }, 450);
+        }, 650);
       }
 
       // Bật trailer preview sau 1.1s hover ổn định (tránh kích hoạt khi rê chuột nhanh hoặc scroll)
@@ -469,7 +469,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           }
         }
       }, 1100);
-    }, 80);
+    }, 150);
   };
 
   const handleMouseLeave = () => {
@@ -494,6 +494,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     // Cleanup trailer iframe ngay lập tức khi rời chuột
     setIsPlayingTrailer(false);
     setIsTrailerReady(false);
+    setIsMuted(true);
 
     // Giữ nội dung hiển thị trong suốt 280ms thời gian fade-out của card, tránh chớp nháy
     if (unmountTimerRef.current) clearTimeout(unmountTimerRef.current);
@@ -529,11 +530,11 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   const embedTrailerUrl = useMemo(() => {
     if (!isPlayingTrailer || !trailerUrl || trailerFailed) return null;
     return getYoutubeTrailerEmbedUrl(trailerUrl, {
-      muted: isMuted,
+      muted: true,
       controls: false,
       loop: true,
     });
-  }, [isPlayingTrailer, trailerUrl, trailerFailed, isMuted]);
+  }, [isPlayingTrailer, trailerUrl, trailerFailed]);
 
   const modalTrailerUrl = trailerUrl
     ? getYoutubeModalUrl(trailerUrl)
@@ -718,101 +719,103 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         {isCardHovered && (
           <>
             {/* PHẦN TRÊN: VIDEO TRAILER HOẶC POSTER */}
-            <Link
-              href={`/movies/${slug}`}
-              className="block relative aspect-video w-full overflow-hidden bg-black cursor-pointer group/video"
-            >
-          <Image
-            src={currentImgSrc}
-            alt={title}
-            fill
-            unoptimized
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 450px"
-            loading="lazy"
-            decoding="async"
-            quality={85}
-            className="object-cover object-center"
-            onError={handleImageError}
-          />
+            <div className="relative aspect-video w-full overflow-hidden bg-black group/video">
+              <Link
+                href={`/movies/${slug}`}
+                className="block relative w-full h-full cursor-pointer"
+              >
+                <Image
+                  src={currentImgSrc}
+                  alt={title}
+                  fill
+                  unoptimized
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 450px"
+                  loading="lazy"
+                  decoding="async"
+                  quality={85}
+                  className="object-cover object-center"
+                  onError={handleImageError}
+                />
 
-          {/* Video Trailer Preview tự động chạy - Poster luôn nằm dưới, trailer fade-in khi sẵn sàng */}
-          {isPlayingTrailer && embedTrailerUrl && !trailerFailed && (
-            <div
-              className={`absolute inset-0 z-0 bg-black overflow-hidden pointer-events-none transition-opacity duration-500 flex items-center justify-center ${
-                isTrailerReady ? "opacity-100" : "opacity-0"
-              }`}
-            >
-              <iframe
-                ref={cardIframeRef}
-                src={embedTrailerUrl}
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%] max-w-none border-0 pointer-events-none select-none"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                title={`Preview ${title}`}
-                onLoad={() => {
-                  try {
-                    cardIframeRef.current?.contentWindow?.postMessage(
-                      JSON.stringify({ event: "listening" }),
-                      "*"
-                    );
-                  } catch {}
-                  if (trailerReadyTimerRef.current) clearTimeout(trailerReadyTimerRef.current);
-                  trailerReadyTimerRef.current = setTimeout(() => {
-                    setIsTrailerReady(true);
-                  }, 500);
-                }}
-              />
-            </div>
-          )}
+                {/* Video Trailer Preview tự động chạy - Poster luôn nằm dưới, trailer fade-in khi sẵn sàng */}
+                {isPlayingTrailer && embedTrailerUrl && !trailerFailed && (
+                  <div
+                    className={`absolute inset-0 z-0 bg-black overflow-hidden pointer-events-none transition-opacity duration-500 flex items-center justify-center ${
+                      isTrailerReady ? "opacity-100" : "opacity-0"
+                    }`}
+                  >
+                    <iframe
+                      ref={cardIframeRef}
+                      src={embedTrailerUrl}
+                      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%] max-w-none border-0 pointer-events-none select-none"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      title={`Preview ${title}`}
+                      onLoad={() => {
+                        try {
+                          cardIframeRef.current?.contentWindow?.postMessage(
+                            JSON.stringify({ event: "listening" }),
+                            "*"
+                          );
+                        } catch {}
+                        if (trailerReadyTimerRef.current) clearTimeout(trailerReadyTimerRef.current);
+                        trailerReadyTimerRef.current = setTimeout(() => {
+                          setIsTrailerReady(true);
+                        }, 500);
+                      }}
+                    />
+                  </div>
+                )}
 
-          {/* Nút bật/tắt tiếng trailer preview */}
-          {isPlayingTrailer && embedTrailerUrl && isTrailerReady && !trailerFailed && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                const nextMuted = !isMuted;
-                setIsMuted(nextMuted);
-                try {
-                  cardIframeRef.current?.contentWindow?.postMessage(
-                    JSON.stringify({
-                      event: "command",
-                      func: nextMuted ? "mute" : "unMute",
-                      args: "",
-                    }),
-                    "*"
-                  );
-                } catch {}
-              }}
-              title={isMuted ? "Bật âm thanh" : "Tắt âm thanh"}
-              className="absolute bottom-2 right-2 pointer-events-auto p-1 rounded-full bg-black/80 hover:bg-black text-white border border-white/20 transition z-30 shadow-lg cursor-pointer hover:scale-110"
-            >
-              {isMuted ? (
-                <VolumeX className="w-3 h-3" />
-              ) : (
-                <Volume2 className="w-3 h-3 text-netflix-red" />
+                {/* Huy hiệu Loại phim hoặc Điểm số */}
+                {rating && rating !== "N/A" && Number(rating) > 0 && !(isPlayingTrailer && isTrailerReady && !trailerFailed) ? (
+                  <div className="absolute top-2 left-2 z-10 flex items-center gap-1 bg-black/85 border border-amber-500/50 px-1.5 py-0.5 rounded text-[10px] font-extrabold text-amber-400 backdrop-blur-md shadow-md">
+                    <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
+                    <span>{typeof rating === "number" ? rating.toFixed(1) : rating}</span>
+                  </div>
+                ) : (
+                  <div className="absolute top-2 left-2 z-10 flex items-center gap-1 bg-zinc-900/90 text-white border border-white/20 px-1.5 py-0.5 rounded text-[9.5px] font-bold backdrop-blur-md shadow-md">
+                    <span>{displayType}</span>
+                  </div>
+                )}
+
+                <div className="absolute top-2 right-2 z-10">
+                  <span className="bg-black/75 border border-white/20 text-white/90 text-[9px] font-bold px-1.5 py-0.5 rounded backdrop-blur-sm">
+                    {quality || "FHD"}
+                  </span>
+                </div>
+              </Link>
+
+              {/* Nút bật/tắt tiếng trailer preview (Sibling của Link, nằm trên cùng với z-30) */}
+              {isPlayingTrailer && embedTrailerUrl && isTrailerReady && !trailerFailed && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const nextMuted = !isMuted;
+                    setIsMuted(nextMuted);
+                    try {
+                      cardIframeRef.current?.contentWindow?.postMessage(
+                        JSON.stringify({
+                          event: "command",
+                          func: nextMuted ? "mute" : "unMute",
+                          args: "",
+                        }),
+                        "*"
+                      );
+                    } catch {}
+                  }}
+                  title={isMuted ? "Bật âm thanh" : "Tắt âm thanh"}
+                  className="absolute bottom-2 right-2 pointer-events-auto p-1 rounded-full bg-black/80 hover:bg-black text-white border border-white/20 transition z-30 shadow-lg cursor-pointer hover:scale-110"
+                >
+                  {isMuted ? (
+                    <VolumeX className="w-3 h-3" />
+                  ) : (
+                    <Volume2 className="w-3 h-3 text-netflix-red" />
+                  )}
+                </button>
               )}
-            </button>
-          )}
-
-          {/* Huy hiệu Loại phim hoặc Điểm số */}
-          {rating && rating !== "N/A" && Number(rating) > 0 && !(isPlayingTrailer && isTrailerReady && !trailerFailed) ? (
-            <div className="absolute top-2 left-2 z-10 flex items-center gap-1 bg-black/85 border border-amber-500/50 px-1.5 py-0.5 rounded text-[10px] font-extrabold text-amber-400 backdrop-blur-md shadow-md">
-              <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
-              <span>{typeof rating === "number" ? rating.toFixed(1) : rating}</span>
             </div>
-          ) : (
-            <div className="absolute top-2 left-2 z-10 flex items-center gap-1 bg-zinc-900/90 text-white border border-white/20 px-1.5 py-0.5 rounded text-[9.5px] font-bold backdrop-blur-md shadow-md">
-              <span>{displayType}</span>
-            </div>
-          )}
-
-          <div className="absolute top-2 right-2 z-10">
-            <span className="bg-black/75 border border-white/20 text-white/90 text-[9px] font-bold px-1.5 py-0.5 rounded backdrop-blur-sm">
-              {quality || "FHD"}
-            </span>
-          </div>
-        </Link>
 
         {/* PHẦN DƯỚI: KHU VỰC THÔNG TIN (HỢP LÝ, GỌN GÀNG, ĐẦY ĐỦ NỘI DUNG & NỔI LÊN TRÊN) */}
         <div className="p-3 bg-zinc-950/95 text-white space-y-2">

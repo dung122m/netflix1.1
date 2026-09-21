@@ -423,9 +423,12 @@ async function fetchSourceData(baseUrl: string, params: MovieFilterParams, isSea
       }
     }
 
+    const isNguonCSearch = baseUrl === API_NGUONC && isSearch;
+    const timeoutMs = isNguonCSearch ? 600 : 4500;
+
     const res = await fetch(fullUrl, {
       next: { revalidate: 300 }, // 5 phút Next.js cache
-      signal: AbortSignal.timeout(4500), // Timeout 4.5s tránh giữ kết nối
+      signal: AbortSignal.timeout(timeoutMs), // 600ms cho NguonC search (fast path PhimAPI), 4.5s cho danh sách
     });
 
     if (!res.ok) return null;

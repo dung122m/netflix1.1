@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { recordMovieViewSupabase } from "@/services/supabaseService";
+import { recordMovieViewSupabase } from "@/services/communityWatchService";
 
 export const maxDuration = 10;
 

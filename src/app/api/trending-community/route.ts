@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getTopTrendingCommunitySupabase } from "@/services/supabaseService";
+import { getTopTrendingCommunitySupabase } from "@/services/communityWatchService";
 
 export const revalidate = 300; // Cache 5 phút
 export const maxDuration = 10;
