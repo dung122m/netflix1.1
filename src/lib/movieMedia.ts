@@ -205,10 +205,11 @@ export type OptimizedProxyWidth = (typeof ALLOWED_PROXY_WIDTHS)[number];
  */
 export function toOptimizedPhimimgUrl(
   url: string,
-  width: OptimizedProxyWidth = 480
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  ..._rest: unknown[]
 ): string {
   if (!url || typeof url !== "string") return "";
-  const clean = sanitizeImageUrl(url);
+  let clean = sanitizeImageUrl(url);
   if (!clean) return "";
 
   // Bỏ qua ảnh local, ảnh TMDB/IMDb hoặc đã là URL proxy
@@ -222,29 +223,9 @@ export function toOptimizedPhimimgUrl(
     return clean;
   }
 
-  // KHÔNG proxy ảnh thumb vì phimimg đã tối ưu sẵn chỉ ~25-46KB
-  if (clean.includes("-thumb.webp")) {
-    return clean;
-  }
-
-  // Chỉ can thiệp vào domain phimimg.com
-  if (!clean.includes("phimimg.com")) {
-    return clean;
-  }
-
-  const isVodJpg = clean.includes("/upload/vod/");
-  const isPosterWebp = clean.includes("/uploads/movies/") && clean.endsWith("-poster.webp");
-
-  if (isVodJpg || isPosterWebp) {
-    let targetWidth: OptimizedProxyWidth = 480;
-    if (ALLOWED_PROXY_WIDTHS.includes(width)) {
-      targetWidth = width;
-    } else {
-      targetWidth = ALLOWED_PROXY_WIDTHS.reduce((prev, curr) =>
-        Math.abs(curr - width) < Math.abs(prev - width) ? curr : prev
-      );
-    }
-    return `/api/img-thumb?url=${encodeURIComponent(clean)}&w=${targetWidth}`;
+  // Tự động chuyển -poster.webp của phimimg sang biến thể -thumb.webp siêu nhẹ (~25-45KB) tải trực tiếp qua CDN
+  if (clean.includes("phimimg.com") && clean.includes("-poster.webp")) {
+    clean = clean.replace("-poster.webp", "-thumb.webp");
   }
 
   return clean;
@@ -253,7 +234,7 @@ export function toOptimizedPhimimgUrl(
 /**
  * Tối ưu ảnh cho Thẻ phim 16:9 trong danh sách (CuratedMovieSection / MediaCard).
  * Dùng TMDb w780 (~45KB) cho độ sắc nét Retina 2x/4K, tải siêu nhanh và không bị mờ.
- * Với phimimg: ưu tiên chuyển -poster sang -thumb.webp (46KB); nếu là /upload/vod/ thì bọc qua /api/img-thumb (640px).
+ * Với phimimg: tự động chuyển -poster.webp sang -thumb.webp gốc (~25-46KB) tải trực tiếp qua HTTP/2 CDN.
  */
 export function toOptimizedCardBackdropUrl(url: string): string {
   if (!url || typeof url !== "string") return "";
@@ -261,12 +242,10 @@ export function toOptimizedCardBackdropUrl(url: string): string {
   if (clean.includes("image.tmdb.org/t/p/")) {
     clean = clean.replace(/\/t\/p\/(w1280|original)\//, "/t/p/w780/");
   }
-  // Nếu là ảnh phimimg -poster.webp trong card 16:9, ưu tiên dùng luôn bản -thumb.webp gốc (46KB, không tốn tài nguyên proxy)
+  // Nếu là ảnh phimimg -poster.webp trong card 16:9, dùng luôn bản -thumb.webp gốc nhẹ ~25-46KB
   if (clean.includes("phimimg.com") && clean.includes("-poster.webp")) {
     clean = clean.replace("-poster.webp", "-thumb.webp");
   }
-  // Nếu là /upload/vod/ nặng 1-3MB, bọc qua proxy w=480 (độ nét chuẩn Retina và nhẹ hơn w=640 ~40%)
-  clean = toOptimizedPhimimgUrl(clean, 480);
   return clean;
 }
 

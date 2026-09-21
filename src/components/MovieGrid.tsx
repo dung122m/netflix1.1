@@ -88,7 +88,7 @@ const MovieGridInner = ({ movies }: MovieGridProps) => {
               isTrailerOnly={norm.isTrailerOnly}
               matchSnippet={norm.matchSnippet}
               matchType={norm.matchType}
-              priority={index < 4}
+              priority={index < 8}
             />
           );
         })}

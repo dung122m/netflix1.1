@@ -511,7 +511,7 @@ function MyListContent() {
                   time={item.time}
                   country={item.country}
                   type_name={item.type_name}
-                  priority={index < 4}
+                  priority={index < 8}
                 />
               ))}
             </div>
