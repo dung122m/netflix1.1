@@ -77,9 +77,13 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
   }, [user]);
 
   useEffect(() => {
+    // Skip fetch until Firebase auth has resolved to a real user.
+    // Without this guard the effect fires once with user=null (→ 401, wasted request)
+    // and then again after auth hydration, causing a duplicate request on every mount.
+    if (!user) return;
     setLoading(true);
     fetchStats(timeframe);
-  }, [timeframe, fetchStats]);
+  }, [timeframe, fetchStats, user]);
 
   // Format seconds to hours and minutes
   const formatDuration = (seconds: number) => {

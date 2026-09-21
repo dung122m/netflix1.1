@@ -320,33 +320,81 @@ export async function getAnalyticsDashboardStats(
   let rawEvents: StoredAnalyticsEvent[] = [];
   const titleMap = new Map<string, string>();
 
-  // 1. Retrieve raw events
-  if (redis) {
-    try {
-      const listData = await redis.lrange<string | StoredAnalyticsEvent>("analytics:events", 0, 500);
-      if (listData && Array.isArray(listData)) {
-        rawEvents = listData
-          .map((item) => {
-            if (typeof item === "string") {
-              try {
-                return JSON.parse(item) as StoredAnalyticsEvent;
-              } catch {
-                return null;
-              }
-            }
-            return item as StoredAnalyticsEvent;
-          })
-          .filter((evt): evt is StoredAnalyticsEvent => Boolean(evt));
-      }
+  // 1. Fan-out: fetch Redis events, Redis title cache, Supabase analytics_events, and
+  //    Supabase device_handoff all in parallel — none of these depend on each other.
+  const analyticsEventsColumns = [
+    "id", "event_type", "movie_slug", "movie_title", "episode_slug", "episode_name",
+    "user_id", "anonymous_id", "device_type", "os", "browser",
+    "duration_seconds", "progress_seconds", "keyword", "created_at",
+  ].join(",");
 
-      // Pre-load movie title cache
-      const storedTitles = await redis.hgetall<Record<string, string>>("analytics:movie_titles");
-      if (storedTitles) {
-        Object.entries(storedTitles).forEach(([k, v]) => titleMap.set(k, v));
-      }
-    } catch (e) {
-      console.warn("[Analytics] Redis query error:", e);
-    }
+  const [redisListData, redisTitleData, supabaseEventsResult, supabaseHandoffResult] =
+    await Promise.all([
+      // B1: Redis recent events list
+      redis
+        ? redis.lrange<string | StoredAnalyticsEvent>("analytics:events", 0, 500).catch((e) => {
+            console.warn("[Analytics] Redis lrange error:", e);
+            return null;
+          })
+        : Promise.resolve(null),
+
+      // B2: Redis movie title map
+      redis
+        ? redis.hgetall<Record<string, string>>("analytics:movie_titles").catch(() => null)
+        : Promise.resolve(null),
+
+      // C: Supabase analytics_events (explicit columns only — no screen_res, no extras)
+      (async () => {
+        if (!supabase) return { data: null, error: null };
+        try {
+          let q = supabase
+            .from("analytics_events")
+            .select(analyticsEventsColumns)
+            .order("created_at", { ascending: false })
+            .limit(1000);
+          if (cutoffTimestamp > 0) {
+            q = q.gte("created_at", cutoffTimestamp);
+          }
+          return await q;
+        } catch {
+          return { data: null, error: new Error("supabase fetch failed") };
+        }
+      })(),
+
+      // D: Supabase device_handoff (independent of analytics_events)
+      (async () => {
+        if (!supabase) return { data: null, error: null };
+        try {
+          return await supabase
+            .from("device_handoff")
+            .select("*")
+            .order("updated_at", { ascending: false })
+            .limit(30);
+        } catch {
+          return { data: null, error: new Error("handoff fetch failed") };
+        }
+      })(),
+    ]);
+
+  // Process B1: Redis events
+  if (redisListData && Array.isArray(redisListData)) {
+    rawEvents = redisListData
+      .map((item) => {
+        if (typeof item === "string") {
+          try {
+            return JSON.parse(item) as StoredAnalyticsEvent;
+          } catch {
+            return null;
+          }
+        }
+        return item as StoredAnalyticsEvent;
+      })
+      .filter((evt): evt is StoredAnalyticsEvent => Boolean(evt));
+  }
+
+  // Process B2: Redis title map
+  if (redisTitleData) {
+    Object.entries(redisTitleData as Record<string, string>).forEach(([k, v]) => titleMap.set(k, v));
   }
 
   // Fallback or augment with memory buffer
@@ -354,46 +402,35 @@ export async function getAnalyticsDashboardStats(
     rawEvents = [...memoryEventsBuffer];
   }
 
-  // Try querying Supabase if table exists
-  if (supabase) {
-    try {
-      let query = supabase.from("analytics_events").select("*").order("created_at", { ascending: false }).limit(1000);
-      if (cutoffTimestamp > 0) {
-        query = query.gte("created_at", cutoffTimestamp);
-      }
-      const { data, error } = await query;
-      if (!error && data && data.length > 0) {
-        // Merge Supabase events
-        const dbEvents: StoredAnalyticsEvent[] = data.map((d) => ({
-          id: d.id,
-          eventType: d.event_type,
-          movieSlug: d.movie_slug,
-          movieTitle: d.movie_title,
-          episodeSlug: d.episode_slug,
-          episodeName: d.episode_name,
-          userId: d.user_id,
-          anonymousId: d.anonymous_id,
-          deviceType: d.device_type,
-          os: d.os,
-          browser: d.browser,
-          screenRes: d.screen_res,
-          durationSeconds: d.duration_seconds,
-          progressSeconds: d.progress_seconds,
-          keyword: d.keyword,
-          createdAt: Number(d.created_at),
-        }));
+  // Process C: Supabase analytics_events — merge into rawEvents
+  const { data: eventsData, error: eventsError } = supabaseEventsResult ?? { data: null, error: null };
+  if (!eventsError && eventsData && eventsData.length > 0) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const dbEvents: StoredAnalyticsEvent[] = (eventsData as any[]).map((d) => ({
+      id: d.id,
+      eventType: d.event_type,
+      movieSlug: d.movie_slug,
+      movieTitle: d.movie_title,
+      episodeSlug: d.episode_slug,
+      episodeName: d.episode_name,
+      userId: d.user_id,
+      anonymousId: d.anonymous_id,
+      deviceType: d.device_type,
+      os: d.os,
+      browser: d.browser,
+      screenRes: undefined, // no longer fetched from DB; field kept for type compat
+      durationSeconds: d.duration_seconds,
+      progressSeconds: d.progress_seconds,
+      keyword: d.keyword,
+      createdAt: Number(d.created_at),
+    }));
 
-        // Combine unique events
-        const existingIds = new Set(rawEvents.map((e) => e.id));
-        for (const ev of dbEvents) {
-          if (!existingIds.has(ev.id)) {
-            rawEvents.push(ev);
-            existingIds.add(ev.id);
-          }
-        }
+    const existingIds = new Set(rawEvents.map((e) => e.id));
+    for (const ev of dbEvents) {
+      if (!existingIds.has(ev.id)) {
+        rawEvents.push(ev);
+        existingIds.add(ev.id);
       }
-    } catch {
-      // Ignore Supabase errors
     }
   }
 
@@ -582,91 +619,90 @@ export async function getAnalyticsDashboardStats(
     count,
   }));
 
-  // 4. Live Watching sessions from device_handoff + profiles
+  // 4. Live Watching sessions — built from the device_handoff result already fetched in
+  //    parallel above (supabaseHandoffResult). Profiles query runs here because it has a
+  //    real data dependency on the returned handoff user IDs.
   let liveWatching: LiveWatchingSession[] = [];
-  if (supabase) {
-    try {
-      const { data: handoffs, error: handoffErr } = await supabase
-        .from("device_handoff")
-        .select("*")
-        .order("updated_at", { ascending: false })
-        .limit(30);
+  try {
+    const { data: handoffs, error: handoffErr } = supabaseHandoffResult ?? { data: null, error: null };
 
-      if (!handoffErr && handoffs && handoffs.length > 0) {
-        const userIds = Array.from(new Set(handoffs.map((h) => h.user_id).filter(Boolean)));
-        const profileMap = new Map<string, { name: string; avatar?: string; email?: string }>();
+    if (!handoffErr && handoffs && handoffs.length > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const handoffRows = handoffs as any[];
+      const userIds = Array.from(new Set(handoffRows.map((h) => h.user_id).filter(Boolean)));
+      const profileMap = new Map<string, { name: string; avatar?: string; email?: string }>();
 
-        if (userIds.length > 0) {
-          const { data: profiles } = await supabase
-            .from("profiles")
-            .select("id, display_name, photo_url, custom_avatar, email")
-            .in("id", userIds);
+      // Profiles query is sequential here by necessity: we need handoff user IDs first
+      if (userIds.length > 0 && supabase) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, display_name, photo_url, custom_avatar, email")
+          .in("id", userIds);
 
-          if (profiles) {
-            profiles.forEach((p) => {
-              profileMap.set(p.id, {
-                name: p.display_name || "Thành viên",
-                avatar: p.custom_avatar || p.photo_url || undefined,
-                email: p.email || undefined,
-              });
+        if (profiles) {
+          profiles.forEach((p) => {
+            profileMap.set(p.id, {
+              name: p.display_name || "Thành viên",
+              avatar: p.custom_avatar || p.photo_url || undefined,
+              email: p.email || undefined,
             });
-          }
+          });
         }
-
-        const fiveMinutesAgo = now - 5 * 60 * 1000;
-        liveWatching = handoffs.map((h) => {
-          const prof = profileMap.get(h.user_id);
-          const rawDur = Number(h.duration_seconds);
-          const dur = (!isNaN(rawDur) && rawDur > 0) ? Math.floor(rawDur) : 0;
-
-          const rawProg = Number(h.progress_seconds);
-          let prog = (!isNaN(rawProg) && rawProg > 0) ? Math.floor(rawProg) : 0;
-          if (dur > 0) {
-            prog = Math.min(prog, dur);
-          }
-          prog = Math.max(0, prog);
-
-          const percent = dur > 0 ? Math.min(100, Math.max(0, Math.round((prog / dur) * 100))) : 0;
-
-          const rawUpAt = typeof h.updated_at === "string" ? new Date(h.updated_at).getTime() : Number(h.updated_at);
-          const isValidUpAt = !isNaN(rawUpAt) && rawUpAt > 0 && rawUpAt <= (now + 60000);
-          const upAt = isValidUpAt ? rawUpAt : 0;
-          const isLive = upAt > 0 && upAt >= fiveMinutesAgo;
-
-          const movieTitle = (typeof h.movie_title === "string" && h.movie_title.trim())
-            ? h.movie_title.trim()
-            : (h.movie_slug || "Phim chưa đặt tên");
-
-          const episodeName = (typeof h.episode_name === "string" && h.episode_name.trim())
-            ? h.episode_name.trim()
-            : (h.episode_slug ? `Tập: ${h.episode_slug}` : undefined);
-
-          const deviceName = (typeof h.device_name === "string" && h.device_name.trim())
-            ? h.device_name.trim()
-            : "Thiết bị";
-
-          return {
-            userId: h.user_id,
-            userName: prof?.name || "Thành viên",
-            userAvatar: prof?.avatar,
-            userEmail: prof?.email,
-            movieSlug: h.movie_slug || "unknown",
-            movieTitle,
-            poster: h.poster || undefined,
-            episodeSlug: h.episode_slug || undefined,
-            episodeName,
-            progressSeconds: prog,
-            durationSeconds: dur,
-            progressPercent: percent,
-            deviceName,
-            updatedAt: upAt,
-            isLive,
-          };
-        });
       }
-    } catch (err) {
-      console.warn("[Analytics] Error fetching live watching from handoff:", err);
+
+      const fiveMinutesAgo = now - 5 * 60 * 1000;
+      liveWatching = handoffRows.map((h) => {
+        const prof = profileMap.get(h.user_id);
+        const rawDur = Number(h.duration_seconds);
+        const dur = (!isNaN(rawDur) && rawDur > 0) ? Math.floor(rawDur) : 0;
+
+        const rawProg = Number(h.progress_seconds);
+        let prog = (!isNaN(rawProg) && rawProg > 0) ? Math.floor(rawProg) : 0;
+        if (dur > 0) {
+          prog = Math.min(prog, dur);
+        }
+        prog = Math.max(0, prog);
+
+        const percent = dur > 0 ? Math.min(100, Math.max(0, Math.round((prog / dur) * 100))) : 0;
+
+        const rawUpAt = typeof h.updated_at === "string" ? new Date(h.updated_at).getTime() : Number(h.updated_at);
+        const isValidUpAt = !isNaN(rawUpAt) && rawUpAt > 0 && rawUpAt <= (now + 60000);
+        const upAt = isValidUpAt ? rawUpAt : 0;
+        const isLive = upAt > 0 && upAt >= fiveMinutesAgo;
+
+        const movieTitle = (typeof h.movie_title === "string" && h.movie_title.trim())
+          ? h.movie_title.trim()
+          : (h.movie_slug || "Phim chưa đặt tên");
+
+        const episodeName = (typeof h.episode_name === "string" && h.episode_name.trim())
+          ? h.episode_name.trim()
+          : (h.episode_slug ? `Tập: ${h.episode_slug}` : undefined);
+
+        const deviceName = (typeof h.device_name === "string" && h.device_name.trim())
+          ? h.device_name.trim()
+          : "Thiết bị";
+
+        return {
+          userId: h.user_id,
+          userName: prof?.name || "Thành viên",
+          userAvatar: prof?.avatar,
+          userEmail: prof?.email,
+          movieSlug: h.movie_slug || "unknown",
+          movieTitle,
+          poster: h.poster || undefined,
+          episodeSlug: h.episode_slug || undefined,
+          episodeName,
+          progressSeconds: prog,
+          durationSeconds: dur,
+          progressPercent: percent,
+          deviceName,
+          updatedAt: upAt,
+          isLive,
+        };
+      });
     }
+  } catch (err) {
+    console.warn("[Analytics] Error processing live watching from handoff:", err);
   }
 
   // If filtered events are empty (e.g. fresh system), also query Redis totals if timeframe === 'all'
