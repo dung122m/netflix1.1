@@ -575,7 +575,7 @@ CREATE TABLE IF NOT EXISTS public.analytics_events (
   device_type TEXT DEFAULT 'desktop', -- 'desktop', 'mobile', 'tablet'
   os TEXT DEFAULT 'Other',
   browser TEXT DEFAULT 'Other',
-  screen_res TEXT DEFAULT '1920x1080',
+  screen_res TEXT DEFAULT NULL,
   duration_seconds INTEGER DEFAULT 0,
   progress_seconds INTEGER DEFAULT 0,
   keyword TEXT,
@@ -597,17 +597,5 @@ CREATE POLICY "Public Insert Analytics" ON public.analytics_events FOR INSERT WI
 
 -- 2. Xóa bỏ hoàn toàn quyền đọc công khai (Không cho phép Guest / User thường SELECT)
 DROP POLICY IF EXISTS "Public Read Analytics" ON public.analytics_events;
-
--- 3. Chỉ cho phép Service Role và Quản Trị Viên (Admin) được quyền SELECT đọc số liệu analytics
-DROP POLICY IF EXISTS "Admin Read Analytics" ON public.analytics_events;
-CREATE POLICY "Admin Read Analytics" ON public.analytics_events FOR SELECT 
-USING (
-  auth.role() = 'service_role' OR
-  EXISTS (
-    SELECT 1 FROM public.profiles 
-    WHERE profiles.id = auth.uid() 
-      AND profiles.role = 'admin'
-  )
-);
 
 

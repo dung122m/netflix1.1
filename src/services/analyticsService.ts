@@ -255,6 +255,29 @@ export async function recordAnalyticsEvent(payload: AnalyticsEventPayload): Prom
   return { success: true, deduped: false };
 }
 
+// Timezone offset for Vietnam (Asia/Ho_Chi_Minh, UTC+7 in milliseconds)
+const VIETNAM_TIMEZONE_OFFSET_MS = 7 * 60 * 60 * 1000;
+
+/**
+ * Calculate the epoch timestamp for 00:00:00.000 Asia/Ho_Chi_Minh (UTC+7) of the current day.
+ * Fully deterministic and independent of server runtime timezone (e.g. Vercel UTC vs Local).
+ */
+export function getStartOfTodayVietnam(nowMs: number = Date.now()): number {
+  const vnDate = new Date(nowMs + VIETNAM_TIMEZONE_OFFSET_MS);
+  const vnYear = vnDate.getUTCFullYear();
+  const vnMonth = vnDate.getUTCMonth();
+  const vnDay = vnDate.getUTCDate();
+  return Date.UTC(vnYear, vnMonth, vnDay, 0, 0, 0, 0) - VIETNAM_TIMEZONE_OFFSET_MS;
+}
+
+/**
+ * Get hour (0-23) in Asia/Ho_Chi_Minh (UTC+7)
+ */
+export function getHourVietnam(timestampMs: number): number {
+  const vnDate = new Date(timestampMs + VIETNAM_TIMEZONE_OFFSET_MS);
+  return vnDate.getUTCHours();
+}
+
 /**
  * Fetch and aggregate analytics dashboard statistics
  */
@@ -265,10 +288,8 @@ export async function getAnalyticsDashboardStats(
   let cutoffTimestamp = 0;
 
   if (timeframe === "today") {
-    // Start of current day (local time approx)
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    cutoffTimestamp = today.getTime();
+    // Start of current day in Vietnam time (Asia/Ho_Chi_Minh, UTC+7)
+    cutoffTimestamp = getStartOfTodayVietnam(now);
   } else if (timeframe === "7d") {
     cutoffTimestamp = now - 7 * 86400 * 1000;
   } else if (timeframe === "30d") {
@@ -512,7 +533,7 @@ export async function getAnalyticsDashboardStats(
 
   for (const ev of filteredEvents) {
     if (watchEventTypes.has(ev.eventType)) {
-      const h = new Date(ev.createdAt).getHours();
+      const h = getHourVietnam(ev.createdAt);
       if (h >= 0 && h < 24) {
         hourlyBuckets[h]++;
       }
