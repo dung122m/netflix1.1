@@ -34,10 +34,12 @@ import TrailerModal from "@/components/TrailerModal";
 import {
   extractYoutubeId,
   getYoutubeTrailerEmbedUrl,
+  hasMinimum1080Quality,
   isDesktopWithHover,
   isYoutubeErrorMessage,
   isYoutubePlayingMessage,
   isYoutubeEndedMessage,
+  isYoutubeQualityInfoMessage,
 } from "@/lib/trailerHelper";
 
 const AUTO_SLIDE_NORMAL_MS = 6000;
@@ -103,6 +105,10 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
   const trailerTimerRef = useRef<NodeJS.Timeout | null>(null);
   const trailerReadyTimerRef = useRef<NodeJS.Timeout | null>(null);
   const heroIframeRef = useRef<HTMLIFrameElement>(null);
+  // Theo dõi trạng thái kiểm tra chất lượng: null = chưa check, true = đủ 1080p, false = không đủ
+  const qualityCheckedRef = useRef<Record<string, boolean | null>>({});
+  // Ghi lại thời điểm slide bắt đầu để tính thời gian còn lại khi fallback
+  const slideStartTimeRef = useRef<number>(Date.now());
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -119,6 +125,12 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
   useEffect(() => {
     setIndex(0);
   }, [slides.length]);
+
+  // Ghi lại thời điểm mỗi slide bắt đầu để tính remaining time khi fallback
+  useEffect(() => {
+    slideStartTimeRef.current = Date.now();
+  }, [index]);
+
 
   const heroRef = useRef<HTMLElement>(null);
   const [isHeroVisible, setIsHeroVisible] = useState(true);
@@ -156,12 +168,21 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
 
   // Auto-slide: Tự động chuyển slide; trailer không chặn auto-slide
   // Banner có trailer: preview 15–20s (18s: 2s xuất hiện + ~16s trailer) rồi tự chuyển
-  // Banner không có trailer / trailer lỗi / mobile: chuyển bình thường sau 6s
+  // Banner không có trailer / trailer lỗi / chất lượng thấp / mobile: chuyển bình thường sau 6s
   useEffect(() => {
     if (slides.length <= 1 || paused || !isHeroVisible) return;
 
     const isTrailerSlide = isDesktop && Boolean(currentSlug && !failedTrailerMap[currentSlug]);
-    const slideDuration = isTrailerSlide ? AUTO_SLIDE_TRAILER_MS : AUTO_SLIDE_NORMAL_MS;
+
+    let slideDuration: number;
+    if (isTrailerSlide) {
+      slideDuration = AUTO_SLIDE_TRAILER_MS;
+    } else {
+      // Fallback (không có trailer hoặc chất lượng thấp): tính thời gian còn lại
+      // Dùng slideStartTimeRef để trừ đi thời gian đã chạy, giữ đúng mốc 6s từ đầu slide
+      const elapsed = Date.now() - slideStartTimeRef.current;
+      slideDuration = Math.max(500, AUTO_SLIDE_NORMAL_MS - elapsed);
+    }
 
     const id = setTimeout(() => {
       isUserActionRef.current = false;
@@ -171,6 +192,7 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
 
     return () => clearTimeout(id);
   }, [index, slides.length, paused, isHeroVisible, isDesktop, currentSlug, failedTrailerMap]);
+
 
   // Fetch synopsis tóm tắt nội dung khi slide dừng
   useEffect(() => {
@@ -225,6 +247,10 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
     }
     setActiveTrailerId(null);
     setIsTrailerReady(false);
+    // Reset quality check state cho slide mới (luôn check lại mỗi lần slide thay đổi)
+    if (currentSlug) {
+      qualityCheckedRef.current[currentSlug] = null;
+    }
 
     // Mobile / Touch hoặc Hero ra ngoài viewport -> Tuyệt đối không mount trailer
     if (!isDesktop || !isHeroVisible || !currentSlug) {
@@ -280,6 +306,26 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
     if (!activeTrailerId) return;
 
     const handleMessage = (e: MessageEvent) => {
+      // 0. Kiểm tra chất lượng video: chỉ cho phép phát nếu có hd1080 trở lên
+      //    YouTube gửi availableQualityLevels qua infoDelivery trước khi video PLAYING
+      const qualityLevels = isYoutubeQualityInfoMessage(e.data);
+      if (qualityLevels && currentSlug && qualityCheckedRef.current[currentSlug] === null) {
+        const isHD = hasMinimum1080Quality(qualityLevels);
+        qualityCheckedRef.current[currentSlug] = isHD;
+        if (!isHD) {
+          // Chất lượng không đạt 1080p → fallback poster ngay lập tức, đánh dấu failed
+          if (trailerReadyTimerRef.current) {
+            clearTimeout(trailerReadyTimerRef.current);
+            trailerReadyTimerRef.current = null;
+          }
+          failedTrailerMapRef.current[currentSlug] = true;
+          setFailedTrailerMap((prev) => ({ ...prev, [currentSlug]: true }));
+          setActiveTrailerId(null);
+          setIsTrailerReady(false);
+          return;
+        }
+      }
+
       // 1. Video thực sự PLAYING -> hủy timer chờ và fade-in trailer ngay lập tức
       if (isYoutubePlayingMessage(e.data)) {
         if (trailerReadyTimerRef.current) {

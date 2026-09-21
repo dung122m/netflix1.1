@@ -163,7 +163,171 @@ function extractDescriptionSnippet(content: string, kw: string): string | undefi
 }
 
 // ==========================================
-// HOME PAGE (CHÍNH THỨC /)
+// FEATURED BANNER SCORING
+// Chọn lọc phim nổi bật cho banner, không phải đơn thuần mới nhất.
+// Hoạt động hoàn toàn trên dữ liệu đã fetch, không gọi thêm API.
+// ==========================================
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyMovie = Record<string, any>;
+
+interface FeaturedCacheEntry {
+  movies: AnyMovie[];
+  expireAt: number;
+}
+const featuredBannerCache: { current: FeaturedCacheEntry | null } = { current: null };
+const FEATURED_CACHE_TTL_MS = 20 * 60 * 1000; // 20 phút
+
+function getFeaturedMoviesWithCache(movies: AnyMovie[]): AnyMovie[] {
+  const now = Date.now();
+  if (featuredBannerCache.current && featuredBannerCache.current.expireAt > now) {
+    return featuredBannerCache.current.movies;
+  }
+  const heroMovies = selectFeaturedMovies(movies, 7);
+  featuredBannerCache.current = { movies: heroMovies, expireAt: now + FEATURED_CACHE_TTL_MS };
+  return heroMovies;
+}
+
+/**
+ * Tính Featured Score (0–100) cho một phim dựa trên dữ liệu có sẵn.
+ * Chỉ dùng field đã có trong movie list API, không gọi thêm request.
+ */
+function computeFeaturedScore(movie: AnyMovie): number {
+  let score = 0;
+  const currentYear = new Date().getFullYear();
+
+  // 1. TMDB Rating — tiêu chí cốt lõi, chiếm trọng số lớn nhất
+  //    Chỉ tính khi có dữ liệu (PhimAPI). Không có data → trung lập (0), không phạt.
+  const rating = Number(movie.tmdb?.vote_average || movie.imdb?.vote_average || 0);
+  if (rating > 0) {
+    if (rating >= 8.5)      score += 35;
+    else if (rating >= 7.5) score += 25;
+    else if (rating >= 6.5) score += 12;
+    else if (rating >= 5.5) score += 0;   // trung bình, không thưởng
+    else                    score -= 15;  // < 5.5: phạt nhưng không loại hẳn
+  }
+
+  // 2. Popularity — TMDB vote_count hoặc NguonC view count
+  const voteCount = Number(movie.tmdb?.vote_count || 0);
+  const viewCount = Number(movie.view || 0);
+  const popularity = Math.max(voteCount, viewCount);
+  if (popularity >= 5000)      score += 18;
+  else if (popularity >= 2000) score += 14;
+  else if (popularity >= 500)  score += 10;
+  else if (popularity >= 100)  score += 5;
+
+  // 3. Chất lượng video
+  const quality = String(movie.quality || "").toUpperCase();
+  if (quality.includes("4K") || quality.includes("2160") || quality.includes("FULLHD") || quality === "FHD") {
+    score += 12;
+  } else if (quality.includes("1080") || quality === "HD") {
+    score += 6;
+  }
+
+  // 4. Độ mới — chỉ thưởng phim mới, không phạt phim cũ
+  const movieYear = Number(movie.year || 0);
+  if (movieYear === currentYear)          score += 5;
+  else if (movieYear === currentYear - 1) score += 3;
+  // Phim cũ hơn: 0 — không phạt, để rating/popularity quyết định
+
+  // 5. Trailer — bonus trải nghiệm nhẹ, không được phép đẩy phim kém lên trước phim nổi bật
+  if (movie.trailer_url && typeof movie.trailer_url === "string" && movie.trailer_url.trim()) {
+    score += 3;
+  }
+
+  // Poster không cộng điểm — được xử lý như điều kiện đủ tư cách (pre-filter), không phải tiêu chí chất lượng
+
+  return score;
+}
+
+
+/**
+ * Chọn k phịm nổi bật từ pool phím đã có với diversity nhẹ.
+ * - Lọc bỏ phim có TMDB rating được biết mà < 5.5 (không phúc cho banner)
+ * - Sort theo featured score giảm dần
+ * - Tối đa 2 phim / năm
+ * - Tối đa 2 phim / quốc gia đầu tiên
+ * - Trộn nhẹ giữa top-2 cố định và phần còn lại
+ */
+function selectFeaturedMovies(pool: AnyMovie[], count: number = 7): AnyMovie[] {
+  if (!pool || pool.length === 0) return [];
+
+  // Tiền lọc 1: loại phim thiếu poster/thumb — không có ảnh thì không hiển thị được trên banner
+  //   Chỉ dùng field đã có trong dữ liệu, không gọi API.
+  const withPoster = pool.filter((m) =>
+    (m.poster_url && m.poster_url !== "null" && m.poster_url !== "undefined") ||
+    (m.thumb_url  && m.thumb_url  !== "null" && m.thumb_url  !== "undefined")
+  );
+  // Nếu quá ít phim có ảnh, dùng lại pool gốc để đảm bảo đủ slide
+  const afterPoster = withPoster.length >= count ? withPoster : pool;
+
+  // Tiền lọc 2: loại phim có TMDB rating biết rõ mà < 5.5
+  //   Phim không có TMDB data (NguonC) → giữ lại, không loại
+  const eligible = afterPoster.filter((m) => {
+    const r = Number(m.tmdb?.vote_average || m.imdb?.vote_average || 0);
+    return r === 0 || r >= 5.5;
+  });
+
+  // Nếu sau lọc quá ít, dùng lại afterPoster để đảm bảo đủ slide
+  const candidates = eligible.length >= count ? eligible : afterPoster;
+
+  // Gắn score và sort
+  const scored = candidates
+    .map((m) => ({ movie: m, score: computeFeaturedScore(m) }))
+    .sort((a, b) => b.score - a.score);
+
+  // Diversity selection
+  const yearCount: Record<string, number> = {};
+  const countryCount: Record<string, number> = {};
+  const selected: AnyMovie[] = [];
+  const overflow: AnyMovie[] = []; // Dự phòng nếu không đủ count
+
+  for (const { movie } of scored) {
+    const year = String(movie.year || "unknown");
+    // Lấy quốc gia đầu tiên (nếu có)
+    const primaryCountry = Array.isArray(movie.country) && movie.country.length > 0
+      ? String(movie.country[0]?.slug || movie.country[0]?.name || "unknown")
+      : String(movie.country || "unknown");
+
+    const yearOk    = (yearCount[year] || 0) < 2;
+    const countryOk = (countryCount[primaryCountry] || 0) < 2;
+
+    if (yearOk && countryOk) {
+      selected.push(movie);
+      yearCount[year] = (yearCount[year] || 0) + 1;
+      countryCount[primaryCountry] = (countryCount[primaryCountry] || 0) + 1;
+    } else {
+      overflow.push(movie);
+    }
+
+    if (selected.length >= count) break;
+  }
+
+  // Bổ sung nếu chưa đủ count (relaxed — bỏ qua diversity)
+  if (selected.length < count) {
+    for (const movie of overflow) {
+      selected.push(movie);
+      if (selected.length >= count) break;
+    }
+  }
+
+  // Trộn nhẹ: giữ top-2 cố định, shuffle phần 3-cuối để banner phần thẩm khác mỗi session
+  if (selected.length > 2) {
+    const pinned = selected.slice(0, 2);
+    const rest   = selected.slice(2);
+    // Fisher-Yates nhẹ với seed nhất quán trong cùng request (giờ hiện tại // 20phút)
+    const seed = Math.floor(Date.now() / FEATURED_CACHE_TTL_MS);
+    for (let i = rest.length - 1; i > 0; i--) {
+      // LCG pseudo-random, đủ ngẫu nhiên trong 1 cache window mà stable qua F5
+      const j = Math.abs(seed * (i + 1) * 2654435761) % (i + 1);
+      [rest[i], rest[j]] = [rest[j], rest[i]];
+    }
+    return [...pinned, ...rest];
+  }
+
+  return selected;
+}
+
 // ==========================================
 export default async function HomePage({
   searchParams,
@@ -598,8 +762,8 @@ export default async function HomePage({
     return `?${query.toString()}`;
   };
 
-  // Trả về trực tiếp danh sách phim cho Hero; Hero render ngay bằng thumb_url gốc và nâng cấp TMDB ngầm sau khi mount
-  const heroMovies = movies;
+  // Chọn lọc phim Featured cho banner: score-based + diversity, cache 20 phút
+  const heroMovies = isPlainHomepage ? getFeaturedMoviesWithCache(movies) : movies;
 
   return (
     <div className="page-cinema-container min-h-screen pb-20">

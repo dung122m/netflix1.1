@@ -124,6 +124,45 @@ export function isYoutubePlayingMessage(data: unknown): boolean {
 }
 
 /**
+ * Các mức chất lượng YouTube được coi là đủ HD (≥ 1080p) để phát trailer banner.
+ * YouTube trả về chuỗi như "hd1080", "hd1440", "hd2160".
+ */
+export const YOUTUBE_HD_QUALITIES = new Set(["hd1080", "hd1440", "hd2160", "highres"]);
+
+/**
+ * Kiểm tra xem postMessage có chứa thông tin availableQualityLevels từ YouTube không.
+ * YouTube gửi packet infoDelivery chứa mảng availableQualityLevels khi video bắt đầu load.
+ */
+export function isYoutubeQualityInfoMessage(data: unknown): string[] | null {
+  if (!data) return null;
+  try {
+    const parsed = typeof data === "string" ? JSON.parse(data) : data;
+    if (
+      parsed &&
+      typeof parsed === "object" &&
+      parsed.event === "infoDelivery" &&
+      parsed.info &&
+      typeof parsed.info === "object" &&
+      Array.isArray(parsed.info.availableQualityLevels) &&
+      parsed.info.availableQualityLevels.length > 0
+    ) {
+      return parsed.info.availableQualityLevels as string[];
+    }
+  } catch {
+    // Không phải JSON hợp lệ, bỏ qua
+  }
+  return null;
+}
+
+/**
+ * Kiểm tra xem danh sách chất lượng có bao gồm ít nhất hd1080 (1080p) trở lên không.
+ * Trả về true nếu đủ chất lượng để phát trailer trên banner.
+ */
+export function hasMinimum1080Quality(qualityLevels: string[]): boolean {
+  return qualityLevels.some((q) => YOUTUBE_HD_QUALITIES.has(q));
+}
+
+/**
  * Kiểm tra xem video YouTube đã kết thúc (state === 0 - ENDED) hay chưa để tự động loop lại
  */
 export function isYoutubeEndedMessage(data: unknown): boolean {

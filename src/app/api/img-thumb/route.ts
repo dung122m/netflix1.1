@@ -9,6 +9,38 @@ const ALLOWED_WIDTHS = new Set([192, 320, 480, 640, 1280]);
 // Giới hạn kích thước ảnh tải về tối đa 15MB để tránh OOM / DoS
 const MAX_BYTES = 15 * 1024 * 1024;
 
+// ==========================================
+// IN-MEMORY IMAGE CACHE (không cần Redis/KV)
+// Key = "url|width", Value = processed webp Buffer
+// Max 200 entries, TTL 30 phút — tránh fetch + sharp mỗi request
+// ==========================================
+interface ImgCacheEntry {
+  buf: Buffer;
+  expireAt: number;
+}
+const imgCache = new Map<string, ImgCacheEntry>();
+const IMG_CACHE_TTL_MS = 30 * 60 * 1000; // 30 phút
+const IMG_CACHE_MAX    = 200;
+
+function imgCacheGet(key: string): Buffer | null {
+  const entry = imgCache.get(key);
+  if (!entry) return null;
+  if (entry.expireAt < Date.now()) {
+    imgCache.delete(key);
+    return null;
+  }
+  return entry.buf;
+}
+
+function imgCacheSet(key: string, buf: Buffer) {
+  // Evict oldest khi quá giới hạn
+  if (imgCache.size >= IMG_CACHE_MAX) {
+    const firstKey = imgCache.keys().next().value;
+    if (firstKey !== undefined) imgCache.delete(firstKey);
+  }
+  imgCache.set(key, { buf, expireAt: Date.now() + IMG_CACHE_TTL_MS });
+}
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = req.nextUrl;
@@ -75,9 +107,23 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Tải ảnh từ upstream với timeout 8s
+    // ── Cache hit: trả về ngay, không fetch/resize ──
+    const cacheKey = `${rawUrl}|${width}`;
+    const cached = imgCacheGet(cacheKey);
+    if (cached) {
+      return new NextResponse(new Uint8Array(cached), {
+        status: 200,
+        headers: {
+          "Content-Type": "image/webp",
+          "Cache-Control": "public, max-age=31536000, immutable",
+          "X-Cache": "HIT",
+        },
+      });
+    }
+
+    // Tải ảnh từ upstream với timeout 4s (giảm từ 8s để fail-fast)
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
 
     let upstreamRes: Response;
     try {
@@ -163,11 +209,15 @@ export async function GET(req: NextRequest) {
       })
       .toBuffer();
 
+    // ── Cache miss: lưu kết quả vào memory cache ──
+    imgCacheSet(cacheKey, outputBuffer);
+
     return new NextResponse(new Uint8Array(outputBuffer), {
       status: 200,
       headers: {
         "Content-Type": "image/webp",
         "Cache-Control": "public, max-age=31536000, immutable",
+        "X-Cache": "MISS",
       },
     });
   } catch (error) {
