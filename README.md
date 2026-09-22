@@ -1,222 +1,289 @@
+# Nanaflix
+
+> A modern full-stack movie streaming and multimedia discovery platform built with Next.js 16, React 19, and a multi-tier caching architecture.
+
+[![Next.js](https://img.shields.io/badge/Next.js-16.3-black?style=flat-square&logo=next.js&logoColor=white)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-19.2-20232A?style=flat-square&logo=react&logoColor=61DAFB)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-38B2AC?style=flat-square&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+[![Deployment](https://img.shields.io/badge/Deployed_on-Vercel-black?style=flat-square&logo=vercel&logoColor=white)](https://nanaflix.vercel.app)
+
+**[Live Demo](https://nanaflix.vercel.app)** • **[GitHub Repository](https://github.com/dung122m/netflix1.1)**
+
+---
+
 <div align="center">
-
-<img src="docs/screenshots/banner.png" alt="Nanaflix Hero Banner" width="100%" style="border-radius: 16px; box-shadow: 0 20px 50px rgba(0,0,0,0.8);" />
-
-<br /><br />
-
-# 🎬 NANAFLIX - NEXT-GEN STREAMING PLATFORM
-
-### *The Ultimate AI-Powered Cinema Experience, Live Sports & IPTV Streaming Web Application*
-
-[![Next.js 16](https://img.shields.io/badge/Next.js-16.0-black?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
-[![React 19](https://img.shields.io/badge/React-19.0-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
-[![Google Gemini AI](https://img.shields.io/badge/Google_Gemini-AI_Powered-EA4335?style=for-the-badge&logo=google&logoColor=white)](https://ai.google.dev/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
-[![Vercel Ready](https://img.shields.io/badge/Vercel-Deployed-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://vercel.com/)
-
-<br />
-
-[✨ Features](#-key-features) • [📸 Screenshots](#-visual-showcase) • [🛠️ Tech Stack](#️-tech-stack--architecture) • [🚀 Quick Start](#-quick-start--installation) • [⌨️ Shortcuts](#️-keyboard-shortcuts)
-
+  <img src="docs/screenshots/banner.png" alt="Nanaflix Platform Preview" width="100%" style="border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1);" />
 </div>
 
 ---
 
-## 🌟 Overview
+## About
 
-**NANAFLIX** is a state-of-the-art, high-performance multimedia streaming web application crafted with **Next.js 16 (App Router)** and **React 19**. 
+**Nanaflix** is a full-stack media streaming web application designed to deliver a smooth cinema experience on modern browsers. Built with **Next.js 16 (App Router)** and **React 19**, the project addresses common challenges in media streaming applications: aggressive upstream API rate limits, unpredictable image payloads, responsive media playback, and persistent user synchronization.
 
-Designed with modern dark-cinema aesthetics and glassmorphism UI, NANAFLIX integrates **Google Gemini AI** for intelligent movie recommendations, **Web Speech API** for hands-free voice control, a **Dual API Aggregator** combining 40,000+ movies & TV shows, and an **Ultra Low Latency HLS Engine** for live sports football and 100+ national/international IPTV channels.
-
----
-
-## ✨ Key Features
-
-### 🤖 1. AI Movie Concierge (Google Gemini AI)
-- **Nana AI Assistant**: Natural language conversational agent powered by Gemini 1.5 Flash. Ask for recommendations by mood, plot twists, actor names, or genre combinations.
-- **Nana AI Roulette**: Spin the wheel to get instant, smart movie suggestions when you're undecided.
-- **Smart Synopses & Themes**: AI-generated movie highlights, themes, and key takeaways.
-
-### 🎙️ 2. Intelligent Voice Control (Web Speech API)
-- Real-time Vietnamese voice recognition with native Speech-to-Text & Text-to-Speech feedback.
-- Hands-free navigation with commands such as:
-  - *"Search for action movies"*
-  - *"Open Squid Game"*
-  - *"Watch live football"*
-  - *"Switch to VTV3"*
-
-### 🍿 3. Dual Source Aggregator (40,000+ Titles)
-- Unified catalog streaming from **KKPhim** and **VSMOV** APIs.
-- **Smart Deduplication**: Automatically merges duplicate movie titles across providers and prioritizes the highest resolution stream.
-- **Multi-Dimensional Filter**: Seamlessly filter by Movie Type (Single Movies, TV Series, Anime, TV Shows), Genre, Country, Year, and Sorting criteria.
-
-### ⚽ 4. Live Football with Vietnamese Commentary
-- Comprehensive schedule covering Premier League, UEFA Champions League, La Liga, Serie A, Bundesliga, V-League, MLS, Saudi Pro League, and more.
-- Native commentary feeds from popular broadcasters (Xôi Lạc, Cola TV, Gà Vàng, S8 TV, Cà Khịa TV...).
-- Timeline tabs: Real-time Live matches (`LIVE`), Upcoming fixtures (`Next 2h`), and Full calendar.
-- **Match Reminder Modal**: Schedule reminders and never miss kick-off.
-
-### 📺 5. Live IPTV Streaming (100+ Channels in FHD)
-- Wide channel selection: **National TV (VTV1 - VTV9), Regional (HTV, THVL), Sports Channels, and International (Red Bull TV, NASA TV, NHK World)**.
-- Official vector SVG channel badges with active neon equalizer animations.
-- **Quick Access Row**: 1-click channel switcher for popular favorites.
-
-### 🎭 6. Viewport-Fitted Cinema Player
-- **Zero-Scroll Viewport Design**: The entire video player, scoreboard/header, and bottom controls fit 100% within the visible screen height on any device.
-- **Theater Mode & Lights Off**: Dim ambient background lighting for an immersive theater experience.
-- **Sleep Timer**: Automatically pause playback after 15, 30, 45, 60 minutes or at the end of the episode.
-- **Picture-in-Picture (PiP)** & Floating Mini Player when scrolling down.
-- **Continue Watching**: Persistent local watch history and progress tracking.
+The application aggregates multiple movie catalogs into a unified interface, featuring multi-dimensional filtering, fast search indexing, an adaptive HLS video player, personalized recommendation logic, and an AI-assisted movie concierge.
 
 ---
 
-## 📸 Visual Showcase
+## Key Features
 
-<div align="center">
+### 🎬 Movie Discovery & Filtering
+- **Multi-Source Aggregation**: Combines movie sources (KKPhim & NguonC/VSMOV) with server-side title deduplication and quality prioritization.
+- **Multi-Dimensional Filter**: Instant filtering across Movie Types (Movies, TV Series, Anime, TV Shows), Genres, Countries, Release Years, and Sort orders.
+- **Search & Auto-Suggest**: Debounced keyword search with real-time query suggestions and actor profile lookups.
 
-### 🎬 Cinema Player with Viewport Fitting
-<img src="docs/screenshots/cinema-player.png" alt="Cinema Player" width="95%" style="border-radius: 12px; margin-bottom: 20px;" />
+### ⚡ Streaming Player Experience
+- **Adaptive HLS Engine**: Powered by `hls.js` with automatic quality switching, buffer stall recovery, and stream error handling.
+- **Cinema Controls**: Theater Mode, Lights Off mode, Sleep Timer (15–60m), Picture-in-Picture (PiP), and keyboard shortcuts (`Space`, `F`, `T`, `L`, `P`, `N`).
+- **Continue Watching**: Automatic timestamp persistence and watch progress tracking stored locally and synchronized with the cloud.
 
-### 🌐 Dual Catalog & Multi-Filter System
-<img src="docs/screenshots/browse-catalog.png" alt="Browse Catalog" width="95%" style="border-radius: 12px; margin-bottom: 20px;" />
+### 🌐 Live Sports & IPTV
+- **Live Football Hub**: Live match schedules, fixture timelines (`Live`, `Next 2h`, `All`), and multi-server commentary feeds.
+- **IPTV Channels**: National and regional live television streaming with custom SVG channel badges and status indicators.
 
-### 🎙️ AI Voice Controller & Smart Assistant
-<img src="docs/screenshots/ai-voice.png" alt="AI Voice Controller" width="95%" style="border-radius: 12px;" />
+### 👤 Personalization & Cloud Sync
+- **User Library**: Watchlist, custom collections, watch history, and episode reminder notifications.
+- **Hybrid Data Layer**: Local-first storage with optional cloud backup via Supabase and Firebase authentication.
+- **Community Features**: Episode reviews, rating aggregations, and community engagement metrics.
 
-</div>
-
----
-
-## 🛠️ Tech Stack & Architecture
-
-| Layer | Technologies & Tools |
-| :--- | :--- |
-| **Framework** | [Next.js 16 (App Router)](https://nextjs.org/) + [React 19](https://react.dev/) |
-| **Language** | [TypeScript 5](https://www.typescriptlang.org/) (Strict Mode) |
-| **Styling & Theme** | [Tailwind CSS v4](https://tailwindcss.com/) + CSS Variables + Glassmorphism + Ambient Glow |
-| **Icons & Motion** | [Lucide React](https://lucide.dev/) + Framer Motion |
-| **Generative AI** | [Google Gemini 1.5 Flash API](https://ai.google.dev/) (`@google/genai`) |
-| **Voice Processing** | Web Speech API (SpeechRecognition + Web SpeechSynthesis Native TTS) |
-| **Media Player** | [HLS.js](https://github.com/video-dev/hls.js) (Ultra Low Latency + Auto-Recovery Engine) + Stream Proxy |
-| **Data APIs** | KKPhim API, VSMOV API, Vietnam IPTV M3U, Live Sports Stream M3U |
-| **Deployment** | [Vercel](https://vercel.com/) |
+### 🤖 AI-Assisted Discovery
+- **Nana AI Concierge**: Conversational recommendation assistant powered by Google Gemini API to suggest titles by mood, plot elements, or actors.
+- **AI Roulette**: Instant randomized recommendations with contextual rationale when users are undecided.
 
 ---
 
-## 🚀 Quick Start & Installation
+## Engineering Highlights
+
+### 1. Multi-Tier Caching Architecture
+To handle thousands of catalog queries without exceeding upstream rate limits or causing serverless cold-start bottlenecks, Nanaflix implements a layered caching strategy:
+
+```text
+Incoming Request
+      │
+      ▼
+┌──────────────┐     HIT (0ms)
+│ L1 In-Memory ├─────────────────► Return Response
+└──────┬───────┘
+       │ MISS
+       ▼
+┌──────────────┐     HIT (~15ms)
+│ L2 Upstash   ├─────────────────► Populate L1 ──► Return Response
+│ Redis (REST) │
+└──────┬───────┘
+       │ MISS
+       ▼
+┌──────────────┐
+│ Single-Flight│ ───► Batches concurrent requests to prevent cache stampedes
+│    Mutex     │
+└──────┬───────┘
+       │
+       ▼
+ Upstream APIs (KKPhim / NguonC)
+```
+
+- **L1 Memory Cache**: Node.js in-process LRU cache with sub-millisecond lookups for hot routes.
+- **L2 Serverless Redis**: Upstash REST-based Redis client for persistent shared cache across edge/serverless instances.
+- **Single-Flight Request Mutex**: Concurrent cache misses for the same movie key join a single in-flight Promise, eliminating redundant upstream requests.
+
+### 2. Context-Aware Image Optimization Pipeline
+Upstream media providers serve raw poster images varying from uncompressed 4K JPEGs to low-res thumbnails. Nanaflix normalizes all image traffic through a dedicated optimization pipeline:
+
+```text
+Raw Image URL
+      │
+      ▼
+┌─────────────────────────────────┐
+│ Context-Aware Sizing Logic      │ ──► Search: 192px | Card: 320px | Hero: 1280px
+└──────────────┬──────────────────┘
+               ▼
+┌─────────────────────────────────┐
+│ /api/img-thumb (Node.js/Sharp)  │ ──► WebP Conversion + In-Memory Image Buffer Cache
+└──────────────┬──────────────────┘
+               ▼
+ Optimized Stream to Browser (~15–35KB vs original 1–3MB)
+```
+
+- **Hostname Allowlisting**: Strict origin checks to prevent proxy abuse and SSRF vulnerabilities.
+- **In-Memory Image Cache**: 30-minute memory buffer for processed thumbnails to avoid redundant Sharp transformation cycles.
+
+### 3. System Security & Anti-Exploit Guard
+- **Anti-SSRF URL Guard**: Blocks requests targeting private IP subnets (`127.0.0.0/8`, `10.0.0.0/8`, `192.168.0.0/16`, link-local metadata) and non-standard ports.
+- **Sliding Window Rate Limiter**: IP-based rate limiting on sensitive API routes (`/api/comments`, `/api/ai-concierge`, `/api/reports`) to mitigate spam and automated abuse.
+- **Input Sanitization & Anti-XSS**: Multi-pass string sanitizer that neutralizes script injections, event handlers, and malicious URI schemes before database ingestion.
+- **Row-Level Security (RLS)**: Fine-grained Supabase database access policies ensuring users can only read and mutate their own profile, history, and collection data.
+
+---
+
+## Architecture
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+│                       Client Layer                          │
+│        React 19 Server & Client Components (Tailwind CSS)   │
+└──────────────────────────────┬──────────────────────────────┘
+                               │ HTTP / JSON
+                               ▼
+┌─────────────────────────────────────────────────────────────┐
+│                 Next.js 16 App Router                       │
+│  ┌───────────────────────┐       ┌────────────────────────┐ │
+│  │   Pages & Layouts     │       │     API Route Handlers │ │
+│  └───────────┬───────────┘       └───────────┬────────────┘ │
+└──────────────┼───────────────────────────────┼──────────────┘
+               │                               │
+       ┌───────┴───────────────┐       ┌───────┴──────────────┐
+       ▼                       ▼       ▼                      ▼
+┌───────────────┐     ┌─────────────────┐     ┌────────────────┐
+│ Multi-Tier    │     │ External Movie  │     │ Supabase DB    │
+│ Cache Service │     │ Aggregator APIs │     │ PostgreSQL     │
+│ (L1 + Redis)  │     │ (KKPhim/NguonC) │     │ (Auth + RLS)   │
+└───────────────┘     └─────────────────┘     └────────────────┘
+                               ▲                      ▲
+                               │                      │
+                      ┌────────┴────────┐    ┌────────┴────────┐
+                      │ Google Gemini   │    │ Upstash Redis   │
+                      │ Generative AI   │    │ Cache Cluster   │
+                      └─────────────────┘    └─────────────────┘
+```
+
+---
+
+## Tech Stack
+
+| Layer | Technology | Purpose |
+| :--- | :--- | :--- |
+| **Framework** | Next.js 16 (App Router) | Server-side rendering, streaming SSR, and API route handlers |
+| **Frontend** | React 19, TypeScript 5 | Component architecture, strict type safety |
+| **Styling** | Tailwind CSS v4, Lucide Icons | Dark aesthetic, CSS variables, responsive design |
+| **State & Motion** | Framer Motion, Context API | UI transitions and global player state management |
+| **Caching** | In-Memory Map + Upstash Redis | Multi-tier L1/L2 caching with single-flight mutex |
+| **Database & Auth** | Supabase (PostgreSQL) | User profile storage, watchlist, history, and RLS policies |
+| **Media Engine** | HLS.js | Adaptive bitrate HLS streaming with auto-recovery |
+| **Image Processing** | Sharp + Next.js Image Optimization | Server-side WebP compression and context resizing |
+| **AI Integration** | Google Gemini API (`@google/genai`) | Movie concierge and conversational discovery |
+| **Deployment** | Vercel | Production edge and serverless hosting |
+
+---
+
+## Performance Principles
+
+- **Predictable Server Payloads**: Critical catalog data is fetched and rendered server-side with SWR headers to minimize client JavaScript overhead.
+- **Lazy Hydration for Secondary Tabs**: Discovery carousels and ranking tabs load on demand when visible in the viewport.
+- **Zero-Layout-Shift Media**: Aspect-ratio-constrained poster and thumbnail containers eliminate Cumulative Layout Shift (CLS).
+- **Lightweight SVG Visuals**: Custom inline vector graphics used for channel logos and indicators instead of heavy external bitmap images.
+
+---
+
+## Project Structure
+
+```text
+src/
+├── app/                  # Next.js App Router (pages, layouts, and API routes)
+│   ├── api/              # Backend endpoints (AI concierge, image proxy, live sports, search)
+│   ├── browse/           # Catalog explorer with multi-parameter filter
+│   ├── live/             # Live football and IPTV streaming interfaces
+│   ├── movies/[slug]/    # Movie detail view and cinema playback page
+│   └── my-list/          # User library (Watchlist, History, Collections)
+├── components/           # Reusable UI components (Player, Navbar, Modals, Cards)
+│   ├── live/             # Live streaming specific components and scoreboards
+│   └── ui/               # Base design system primitives (Dialog, Toast, Button)
+├── services/             # Core business logic and external API integrations
+│   ├── movies/           # Catalog aggregation, normalization, and deduplication
+│   └── aiProviderService # Gemini AI integration and prompt engineering
+└── lib/                  # Shared utilities, security guards, cache layers, and DB clients
+    ├── cache/            # Multi-tier L1 memory and L2 Redis cache engine
+    ├── movieMedia.ts     # Context-aware image URL resolution and sizing
+    └── security.ts       # Anti-SSRF, rate limiter, and text sanitizers
+```
+
+---
+
+## Visual Showcase
+
+| Cinema Player (Viewport-Fitted) | Catalog & Multi-Filter |
+| :---: | :---: |
+| ![Cinema Player](docs/screenshots/cinema-player.png) | ![Browse Catalog](docs/screenshots/browse-catalog.png) |
+
+| AI Assistant & Concierge | Live Football & IPTV |
+| :---: | :---: |
+| ![AI Assistant](docs/screenshots/ai-voice.png) | ![Banner](docs/screenshots/banner.png) |
+
+---
+
+## Local Development
 
 ### 1. Prerequisites
-- [Node.js](https://nodejs.org/) version **18.18+** or **20+**
-- Package manager: `npm`, `pnpm`, or `yarn`
+- **Node.js** `>= 20.0.0`
+- Package manager: `npm` or `pnpm`
 
-### 2. Clone Repository & Install Dependencies
+### 2. Installation
+
 ```bash
-# Clone the repository
+# Clone repository
 git clone https://github.com/dung122m/netflix1.1.git
-
-# Navigate to project directory
 cd netflix1.1
 
 # Install dependencies
 npm install
 ```
 
-### 3. Environment Variables Configuration
-Create a `.env.local` file in the project root:
+### 3. Environment Setup
+Create a `.env.local` file based on `.env.example`:
 
 ```env
-# Google Gemini AI API Key (Get a free key at https://aistudio.google.com/)
-GEMINI_API_KEY=your_gemini_api_key_here
+# Upstream Movie APIs
+NEXT_PUBLIC_API_URL=https://phim.nguonc.com/api
+NEXT_PUBLIC_API_URL_2=https://phimapi.com
 
-# (Optional) Application Base URL
-NEXT_PUBLIC_APP_URL=http://localhost:3000
+# AI Integration (Optional)
+GEMINI_API_KEY=your_gemini_api_key
+
+# Upstash Redis Cache (Optional - falls back to In-Memory L1)
+UPSTASH_REDIS_REST_URL=https://your-database.upstash.io
+UPSTASH_REDIS_REST_TOKEN=your_upstash_rest_token
+
+# Supabase (Optional - for Cloud Sync & Auth)
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
 ### 4. Run Development Server
+
 ```bash
 npm run dev
 ```
-Open your browser and navigate to: **`http://localhost:3000`**
 
-### 5. Code Quality & Production Build
+Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+### 5. Validation
+
 ```bash
-# Run TypeScript typecheck
-npm run typecheck
-
-# Run ESLint validation
-npm run lint
-
-# Build production bundle
-npm run build
+npm run typecheck    # TypeScript compiler check
+npm run lint         # ESLint validation
+npm run build        # Production Next.js build
 ```
 
 ---
 
-## ⌨️ Keyboard Shortcuts
+## Why I Built This
 
-### 🎬 Cinema Movie Player:
-| Shortcut | Action |
-| :---: | :--- |
-| `Space` | Play / Pause video |
-| `F` | Toggle Fullscreen |
-| `T` | Toggle Theater Mode |
-| `L` | Toggle Lights Off mode |
-| `P` | Previous episode |
-| `N` | Next episode |
-| `?` | Open keyboard shortcuts modal |
-| `Esc` | Exit Theater mode / Turn lights on |
+Nanaflix was created to explore the technical complexities of modern streaming platforms beyond standard tutorial applications. Building this project involved solving concrete engineering challenges:
 
-### ⚽ Live Football & 📺 Live TV:
-| Shortcut | Action |
-| :---: | :--- |
-| `Space` | Play / Pause live stream |
-| `M` | Mute / Unmute audio |
-| `F` | Toggle Fullscreen |
-| `P` | Picture-in-Picture (PiP) |
-| `↑` / `↓` | Volume Up / Down (10% step) |
-| `←` / `→` | **Switch Stream Server** *(Football)* or **Channel Surfing** *(Live TV)* |
+1. **Handling Untrusted Upstream Data**: Transforming disparate API responses with inconsistent schemas into a unified, type-safe data model.
+2. **Mitigating API Bottlenecks**: Designing a robust multi-tier caching system with request deduplication to prevent rate limiting.
+3. **Optimizing Real-World Media Delivery**: Building an image pipeline with WebP conversion and context-aware sizing to reduce payload weights by over 80%.
+4. **Delivering a Focused Cinema UX**: Implementing custom playback controls, keyboard navigation, ambient dimming, and zero-viewport-overflow player layouts.
 
 ---
 
-## 📁 Project Structure
+## Author
 
-```plaintext
-netflix1.1/
-├── src/
-│   ├── app/                    # Next.js App Router Pages & API Routes
-│   │   ├── api/                # Backend API Routes (Gemini AI, Voice, Live Proxy, Match)
-│   │   ├── browse/             # Browse & Advanced Multi-Filter Catalog
-│   │   ├── live/               # Live Sports (Football) & IPTV Live Channels
-│   │   ├── movies/[slug]/      # Movie Detail & Cinema Player page
-│   │   ├── my-list/            # Watchlist & Continue Watching history
-│   │   ├── globals.css         # CSS Tokens, Theme System & Animations
-│   │   └── page.tsx            # Main Homepage
-│   ├── components/             # Reusable UI Components
-│   │   ├── live/               # LivePlayer, LiveFootballClient, LiveTvClient, MatchCard
-│   │   ├── CinemaPlayer.tsx    # Responsive Cinema Video Player
-│   │   ├── VoiceController.tsx # AI Voice Command Controller
-│   │   ├── AiConcierge.tsx     # Gemini AI Concierge Chatbot
-│   │   └── Navbar.tsx          # Netflix-Style Navigation Header
-│   ├── services/               # API Clients & Data Services
-│   │   ├── kkphimService.ts    # KKPhim API Service
-│   │   ├── vsmovService.ts     # VSMOV API Service
-│   │   ├── liveFootballService.ts # Live Sports M3U Parser & Dedup
-│   │   └── liveTvService.ts    # Live TV Channels & Official SVG Logos
-│   └── hooks/                  # Custom React Hooks
-├── public/                     # Static Assets, SVGs, Favicons
-├── docs/screenshots/           # Screenshots & Preview Banners
-├── README.md                   # Project Documentation
-└── package.json
-```
+**Dung Tran**  
+*Full-Stack Developer*  
+GitHub: [@dung122m](https://github.com/dung122m)
 
 ---
 
-## 📄 License
+## License
 
-This project is licensed under the **[MIT License](LICENSE)**.
-
-<div align="center">
-  <sub>Built with passion for cinema and modern web technologies by <strong>NANAFLIX Team</strong> ❤️</sub>
-</div>
+This project is licensed under the [MIT License](LICENSE).

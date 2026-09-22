@@ -653,7 +653,7 @@ export default async function MovieDetail({
           </div>
 
           {/* KHỐI 2: DANH SÁCH TẬP PHIM & NGUỒN PHÁT (Mobile: Order 2 hiển thị ngay sau Info chính, Desktop: Cột phải 4 phần kéo dài 2 hàng) */}
-          <div className="lg:col-span-4 order-2 lg:order-none lg:row-span-2">
+          <div className="lg:col-span-4 order-2 lg:row-span-2">
             <div className="rounded-2xl sm:rounded-3xl border border-white/15 bg-gradient-to-b from-zinc-900/80 via-zinc-950/85 to-black/90 p-4 sm:p-5 md:p-6 h-fit overflow-visible max-h-none lg:max-h-[680px] lg:overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-zinc-700 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-zinc-500 lg:pr-2 shadow-2xl backdrop-blur-xl">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-bold flex items-center gap-2.5 text-white">
@@ -677,7 +677,7 @@ export default async function MovieDetail({
           </div>
 
           {/* KHỐI 3: TÓM TẮT CỐT TRUYỆN, DIỄN VIÊN & THÔNG TIN CHI TIẾT (Mobile: Order 3 sau EpisodeList, Desktop: Hàng 2 Cột trái 8 phần) */}
-          <div className="lg:col-span-8 order-3 lg:order-none rounded-2xl sm:rounded-3xl border border-white/15 bg-gradient-to-b from-zinc-900/80 via-zinc-950/85 to-black/90 p-4 sm:p-6 md:p-8 backdrop-blur-xl shadow-2xl space-y-4 sm:space-y-5">
+          <div className="lg:col-span-8 order-3 rounded-2xl sm:rounded-3xl border border-white/15 bg-gradient-to-b from-zinc-900/80 via-zinc-950/85 to-black/90 p-4 sm:p-6 md:p-8 backdrop-blur-xl shadow-2xl space-y-4 sm:space-y-5">
             <MovieSynopsis
               synopsis={description}
               originName={movie.origin_name}
