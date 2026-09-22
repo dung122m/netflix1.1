@@ -57,9 +57,9 @@ const MovieGridInner = ({ movies }: MovieGridProps) => {
   }, [normalizedMovies, visibleCount]);
 
   return (
-    <div className="movie-grid-container rounded-2xl sm:rounded-3xl border border-white/10 p-2.5 sm:p-5 md:p-6 shadow-2xl space-y-6 overflow-visible">
-      {/* LƯỚI PHIM CHÍNH: 1 cột trên mobile, 2 cột trên sm và iPad (md: 768-1023px) để thẻ phim to rõ chuẩn Netflix, 3 cột trên laptop/lg, 4 cột trên PC (xl) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 md:gap-6">
+    <div className="movie-grid-container rounded-2xl sm:rounded-3xl border border-white/10 p-2 sm:p-5 md:p-6 shadow-2xl space-y-6 overflow-visible">
+      {/* LƯỚI PHIM CHÍNH: 2 cột trên mobile (<640px), 2 cột trên sm và iPad (md: 768-1023px), 3 cột trên laptop/lg, 4 cột trên PC (xl) */}
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-5 md:gap-6">
         {visibleMovies.map(({ norm, bestThumb }, index) => {
           return (
             <MediaCard

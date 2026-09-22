@@ -182,6 +182,21 @@ export const FilterBar: React.FC = () => {
     router.push(query ? `?${query}` : "?", { scroll: false });
   };
 
+  const getDropdownAnchorClasses = () => {
+    switch (activeDropdown) {
+      case "type":
+        return "left-0 right-auto";
+      case "the-loai":
+        return "left-0 sm:left-24 lg:left-32 right-auto";
+      case "quoc-gia":
+        return "left-0 sm:left-48 lg:left-64 right-auto";
+      case "year":
+        return "left-0 sm:left-auto sm:right-0";
+      default:
+        return "left-0 right-auto";
+    }
+  };
+
   return (
     <div className="relative z-40">
       {/* FILTER BUTTONS: Cuộn ngang mượt mà trên mobile, wrap trên PC */}
@@ -284,10 +299,16 @@ export const FilterBar: React.FC = () => {
             onClick={() => setActiveDropdown(null)}
           />
 
-          {/* DROPDOWN BOX: Tự co giãn theo màn hình điện thoại, chống tràn mép */}
-          <div className="absolute top-full left-0 mt-2.5 w-[calc(100vw-2rem)] sm:w-full max-w-4xl bg-zinc-950 border border-zinc-700 rounded-2xl p-3.5 sm:p-5 shadow-2xl z-50">
+          {/* DROPDOWN BOX: Neo đúng bên dưới nút đang mở trên PC, co giãn chống tràn trên Mobile */}
+          <div
+            className={`absolute top-full mt-2.5 ${getDropdownAnchorClasses()} w-[calc(100vw-2rem)] sm:w-auto min-w-[280px] sm:min-w-[360px] max-w-[calc(100vw-2rem)] sm:max-w-2xl md:max-w-3xl bg-zinc-950/98 border border-zinc-700/80 rounded-2xl p-3.5 sm:p-5 shadow-2xl z-50 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150`}
+          >
             <div
-              className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2 sm:gap-2.5 max-h-72 sm:max-h-80 overflow-y-auto overscroll-contain pr-1 sm:pr-2 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:bg-zinc-700 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent"
+              className={`grid ${
+                activeDropdown === "year"
+                  ? "grid-cols-3 sm:grid-cols-5 md:grid-cols-8"
+                  : "grid-cols-2 sm:grid-cols-3 md:grid-cols-5"
+              } gap-2 sm:gap-2.5 max-h-72 sm:max-h-80 overflow-y-auto overscroll-contain pr-1 sm:pr-2 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:bg-zinc-700 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent`}
               onWheel={(e) => {
                 e.stopPropagation();
               }}
