@@ -3,6 +3,7 @@ import { movieApi } from "@/services/movieApi";
 import { sanitizeImageUrl } from "@/lib/movieMedia";
 import { searchMoviesBySemantic } from "@/services/aiVectorService";
 import { generateFastAiChat } from "@/services/aiProviderService";
+import { checkRateLimit, getClientIp } from "@/lib/security";
 
 export const maxDuration = 15;
 
@@ -905,8 +906,21 @@ async function queryPhimApiDirect(keyword: string, originalKeyword?: string): Pr
   return null;
 }
 
+// In-memory cache với dung lượng giới hạn tối đa 500 entries và cơ chế dọn dẹp FIFO/LRU chống tràn RAM
+const MAX_ROULETTE_CACHE_SIZE = 500;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ROULETTE_TITLE_CACHE = new Map<string, { item: any; expireAt: number }>();
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function setRouletteTitleCache(key: string, item: any, ttlMs: number) {
+  if (ROULETTE_TITLE_CACHE.size >= MAX_ROULETTE_CACHE_SIZE) {
+    const oldestKey = ROULETTE_TITLE_CACHE.keys().next().value;
+    if (oldestKey !== undefined) {
+      ROULETTE_TITLE_CACHE.delete(oldestKey);
+    }
+  }
+  ROULETTE_TITLE_CACHE.set(key, { item, expireAt: Date.now() + ttlMs });
+}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function searchSingleMovieFast(title: string, originalTitle: string): Promise<any> {
@@ -962,9 +976,9 @@ async function searchSingleMovieFast(title: string, originalTitle: string): Prom
   }
 
   if (foundItem) {
-    ROULETTE_TITLE_CACHE.set(key, { item: foundItem, expireAt: Date.now() + 1000 * 60 * 60 * 24 });
+    setRouletteTitleCache(key, foundItem, 1000 * 60 * 60 * 24);
   } else {
-    ROULETTE_TITLE_CACHE.set(key, { item: null, expireAt: Date.now() + 1000 * 30 });
+    setRouletteTitleCache(key, null, 1000 * 30);
   }
 
   return foundItem;
@@ -982,6 +996,21 @@ function toSafePoster(item: any): string {
 
 export async function POST(req: NextRequest) {
   try {
+    // 1. Giới hạn tần suất theo IP (15 requests / 60s) - bảo vệ quota AI & tránh spam
+    const clientIp = getClientIp(req);
+    const rateLimit = checkRateLimit(`ai_roulette_${clientIp}`, 15, 60);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        {
+          error: "Bạn đang quay quẻ quá nhanh. Vui lòng chờ 30 giây rồi thử lại để bảo vệ hệ thống.",
+        },
+        {
+          status: 429,
+          headers: { "Retry-After": String(rateLimit.resetSeconds) },
+        }
+      );
+    }
+
     const body = await req.json().catch(() => ({}));
     const mood: string = body.mood || "xa-stress";
     const country: string = body.country || "all";

@@ -1681,10 +1681,13 @@ function LivePlayerInner({
                 e.stopPropagation();
                 goToLiveEdge();
               }}
-              title="Đang ở mốc phát trực tiếp (Bấm để đồng bộ)"
-              className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-netflix-red/90 text-white text-[11px] sm:text-xs font-black shadow-lg backdrop-blur-md transition hover:scale-105 active:scale-95 cursor-pointer"
+              title="Đang phát trực tiếp (Bấm để đồng bộ)"
+              className="group flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full bg-gradient-to-r from-red-600 via-rose-600 to-red-600 text-white text-[10px] sm:text-[11px] font-black uppercase tracking-wider shadow-[0_2px_12px_rgba(229,9,20,0.5)] border border-red-400/40 backdrop-blur-md transition hover:scale-105 active:scale-95 cursor-pointer select-none"
             >
-              <Radio className="w-3.5 h-3.5 animate-pulse" />
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
+              </span>
               <span>TRỰC TIẾP</span>
             </button>
           ) : (
@@ -1699,18 +1702,14 @@ function LivePlayerInner({
                   ? `Đang trễ ~${liveLatency}s so với trực tiếp. Bấm để quay về Live Edge`
                   : "Bấm để quay về Live Edge"
               }
-              className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/90 hover:bg-amber-500 text-black text-[11px] sm:text-xs font-black shadow-lg backdrop-blur-md transition hover:scale-105 active:scale-95 cursor-pointer animate-pulse"
+              className="group flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black text-[10px] sm:text-[11px] font-black uppercase tracking-wider shadow-[0_2px_12px_rgba(245,158,11,0.5)] border border-amber-300/60 backdrop-blur-md transition hover:scale-105 active:scale-95 cursor-pointer animate-pulse select-none"
             >
-              <RotateCcw className="w-3.5 h-3.5" />
+              <RotateCcw className="w-3 h-3 group-hover:-rotate-90 transition-transform duration-300" />
               <span>
                 {liveLatency > 0 ? `VỀ LIVE (-${liveLatency}s)` : "VỀ LIVE"}
               </span>
             </button>
           )}
-          <span className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/75 backdrop-blur-md border border-white/20 text-emerald-400 text-[11px] font-bold">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-            <span>Ultra Low Latency • Tốc độ cao</span>
-          </span>
         </div>
 
         {matchOptions.length > 0 && (

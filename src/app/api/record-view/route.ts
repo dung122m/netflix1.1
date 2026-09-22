@@ -1,26 +1,46 @@
 import { NextRequest, NextResponse } from "next/server";
 import { recordMovieViewSupabase } from "@/services/communityWatchService";
+import { checkRateLimit, getClientIp } from "@/lib/security";
+import { verifyServerAuth } from "@/lib/serverAuth";
 
 export const maxDuration = 10;
 
 export async function POST(req: NextRequest) {
   try {
+    // 1. Giới hạn tần suất theo IP (30 requests / 60s) - ngăn chặn bot spam ghi dữ liệu
+    const clientIp = getClientIp(req);
+    const rateLimit = checkRateLimit(`record_view_${clientIp}`, 30, 60);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: "Too many record view requests. Please try again later." },
+        {
+          status: 429,
+          headers: { "Retry-After": String(rateLimit.resetSeconds) },
+        }
+      );
+    }
+
     const body = await req.json();
     const { slug, title, poster, thumb, year, quality, category } = body || {};
 
-    if (!slug) {
+    if (!slug || typeof slug !== "string") {
       return NextResponse.json({ success: false, error: "Thiếu slug phim" }, { status: 400 });
     }
 
+    // 2. Xác thực danh tính phía Server: tuyệt đối không cho phép client tùy ý giả mạo userId
+    const auth = await verifyServerAuth(req);
+    const verifiedUserId = auth.isAuthenticated && auth.userId ? auth.userId : "guest";
+
     // Ghi nhận lượt xem vào Supabase
     await recordMovieViewSupabase({
-      slug,
+      slug: slug.trim(),
       title: title || slug,
       poster,
       thumb,
       year: Number(year) || undefined,
       quality,
       category,
+      userId: verifiedUserId,
     });
 
     return NextResponse.json({ success: true });
@@ -29,3 +49,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, error: "Internal error" }, { status: 500 });
   }
 }
+

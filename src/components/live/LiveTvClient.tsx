@@ -1356,20 +1356,48 @@ export function LiveTvClient({
               }}
             />
 
-            {/* HUY HIỆU SIGNAL GÓC TRÊN TRÁI (TỰ ĐỘNG ẨN KHI KHÔNG TƯƠNG TÁC) */}
+            {/* HUY HIỆU SIGNAL & LIVE TRÊN TRÁI: BẤM ĐỂ QUAY VỀ LIVE EDGE */}
             <div
-              className={`absolute top-3 left-3 sm:top-4 sm:left-4 flex items-center gap-2 z-20 pointer-events-none transition-opacity duration-300 ${
-                showControls ? "opacity-100" : "opacity-0"
+              className={`absolute top-3 left-3 sm:top-4 sm:left-4 flex items-center gap-2 z-20 transition-opacity duration-300 ${
+                showControls ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
               }`}
             >
-              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-netflix-red/90 text-white text-[11px] sm:text-xs font-black shadow-lg animate-pulse backdrop-blur-md">
-                <Radio className="w-3.5 h-3.5" />
-                <span>NANA TV LIVE</span>
-              </span>
-              <span className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/75 backdrop-blur-md border border-white/20 text-emerald-400 text-[11px] font-bold">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                <span>Độ trễ thấp • Mượt mà</span>
-              </span>
+              {isAtLiveEdge ? (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    goToLiveEdge();
+                  }}
+                  title="Đang phát trực tiếp (Bấm để đồng bộ)"
+                  className="group flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full bg-gradient-to-r from-red-600 via-rose-600 to-red-600 text-white text-[10px] sm:text-[11px] font-black uppercase tracking-wider shadow-[0_2px_12px_rgba(229,9,20,0.5)] border border-red-400/40 backdrop-blur-md transition hover:scale-105 active:scale-95 cursor-pointer select-none"
+                >
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
+                  </span>
+                  <span>TRỰC TIẾP</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    goToLiveEdge();
+                  }}
+                  title={
+                    liveLatency > 0
+                      ? `Đang trễ ~${liveLatency}s so với trực tiếp. Bấm để quay về Live Edge`
+                      : "Bấm để quay về Live Edge"
+                  }
+                  className="group flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black text-[10px] sm:text-[11px] font-black uppercase tracking-wider shadow-[0_2px_12px_rgba(245,158,11,0.5)] border border-amber-300/60 backdrop-blur-md transition hover:scale-105 active:scale-95 cursor-pointer animate-pulse select-none"
+                >
+                  <RotateCcw className="w-3 h-3 group-hover:-rotate-90 transition-transform duration-300" />
+                  <span>
+                    {liveLatency > 0 ? `VỀ LIVE (-${liveLatency}s)` : "VỀ LIVE"}
+                  </span>
+                </button>
+              )}
             </div>
 
             {/* BACKDROP KHI MỞ DRAWER KÊNH TRÊN MOBILE */}
@@ -1595,40 +1623,20 @@ export function LiveTvClient({
                   : "opacity-0 pointer-events-none"
               }`}
             >
-              {/* CỤM TRÁI: PLAY/PAUSE + ĐỔI KÊNH + ÂM LƯỢNG */}
+              {/* CỤM TRÁI: PLAY/PAUSE + ÂM LƯỢNG */}
               <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0 flex-shrink">
                 <button
                   type="button"
                   onClick={togglePlay}
-                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/20 hover:bg-white/30 flex-shrink-0 flex items-center justify-center text-white transition backdrop-blur-md cursor-pointer hover:scale-105 active:scale-95"
+                  title={isPlaying ? "Tạm dừng (Space)" : "Phát (Space)"}
+                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/20 hover:bg-white/30 flex-shrink-0 flex items-center justify-center text-white transition backdrop-blur-md cursor-pointer hover:scale-105 active:scale-95"
                 >
                   {isPlaying ? (
-                    <Pause className="w-4 h-4 fill-current" />
+                    <Pause className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current" />
                   ) : (
-                    <Play className="w-4 h-4 fill-current ml-0.5" />
+                    <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current ml-0.5" />
                   )}
                 </button>
-
-                {/* NÚT VỀ LIVE EDGE (KHI BỊ TRỄ > 15S) HOẶC HUY HIỆU LIVE */}
-                {!isAtLiveEdge && liveLatency > 15 ? (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      goToLiveEdge();
-                    }}
-                    title="Bấm để nhảy về thời điểm phát sóng trực tiếp"
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[11px] font-bold transition hover:scale-105 active:scale-95 cursor-pointer flex-shrink-0"
-                  >
-                    <RotateCcw className="w-3 h-3 animate-spin" style={{ animationDuration: "3s" }} />
-                    <span>VỀ LIVE (-{liveLatency}s)</span>
-                  </button>
-                ) : (
-                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-netflix-red/20 border border-netflix-red/40 text-netflix-red text-[11px] font-black flex-shrink-0">
-                    <span className="w-1.5 h-1.5 rounded-full bg-netflix-red animate-ping" />
-                    <span>TRỰC TIẾP</span>
-                  </div>
-                )}
 
                 {/* CỤM VOLUME TRÊN MOBILE (Chỉ hiện nút Mute) */}
                 <button

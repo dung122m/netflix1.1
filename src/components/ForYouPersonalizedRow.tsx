@@ -7,7 +7,6 @@ import {
   Sparkles,
   ChevronLeft,
   ChevronRight,
-  Play,
   RefreshCw,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -483,11 +482,11 @@ export function ForYouPersonalizedRow({ fallbackMovies }: ForYouPersonalizedRowP
               return (
                 <div
                   key={movie.slug}
-                  className="flex-none w-[150px] sm:w-[190px] md:w-[210px] snap-start group select-none"
+                  className="flex-none w-[145px] sm:w-[180px] md:w-[200px] snap-start group select-none"
                 >
                   <Link
                     href={`/movies/${movie.slug}`}
-                    className="block relative rounded-2xl overflow-hidden bg-zinc-900 border border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.7)] group-hover:border-purple-500/60 group-hover:shadow-[0_15px_40px_rgba(168,85,247,0.3)] transition-all duration-300 group-hover:scale-[1.03]"
+                    className="block relative rounded-2xl overflow-hidden bg-zinc-900 border border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.7)] group-hover:border-pink-500/50 group-hover:shadow-[0_12px_32px_rgba(236,72,153,0.25)] transition-all duration-300 group-hover:scale-[1.03]"
                   >
                     {/* POSTER IMAGE (Chuẩn tỷ lệ 2:3, ưu tiên poster dọc) */}
                     <div className="relative aspect-[2/3] w-full overflow-hidden bg-zinc-900 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950">
@@ -503,7 +502,6 @@ export function ForYouPersonalizedRow({ fallbackMovies }: ForYouPersonalizedRowP
                         onError={(e) => {
                           const target = e.currentTarget as HTMLImageElement;
                           if (target) {
-                            // Chỉ fallback sang thumb_url nếu là file nhẹ (-thumb.webp)
                             if (movie.thumb_url && typeof movie.thumb_url === "string" && movie.thumb_url.includes("-thumb.webp") && target.src !== movie.thumb_url) {
                               target.src = movie.thumb_url;
                             } else if (!target.src.includes("/default-poster.jpg")) {
@@ -514,44 +512,30 @@ export function ForYouPersonalizedRow({ fallbackMovies }: ForYouPersonalizedRowP
                         }}
                       />
 
-                      {/* AI MATCH BADGE */}
-                      <div className="absolute top-2 left-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-emerald-500/40 text-emerald-400 text-[10px] font-black shadow-lg">
-                        <Sparkles className="w-3 h-3 text-emerald-400" />
+                      {/* AI MATCH BADGE GÓC TRÊN TRÁI */}
+                      <div className="absolute top-2 left-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-emerald-500/40 text-[#46d369] text-[9px] sm:text-[10px] font-black shadow-lg">
+                        <Sparkles className="w-2.5 h-2.5 text-[#46d369]" />
                         <span>{matchScore}% HỢP GU</span>
                       </div>
 
-                      {/* QUALITY TAG */}
+                      {/* QUALITY TAG GÓC TRÊN PHẢI */}
                       {movie.quality && (
                         <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-black/70 backdrop-blur-md text-amber-300 text-[9px] font-bold border border-white/10">
                           {movie.quality}
                         </div>
                       )}
 
-                      {/* HOVER OVERLAY */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-r from-red-600 to-purple-600 text-white flex items-center justify-center mx-auto mb-2 shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
-                          <Play className="w-4 h-4 fill-white ml-0.5" />
-                        </div>
-                        <p className="text-white text-xs font-bold line-clamp-1 text-center">
+                      {/* BOTTOM INFO BAR (CHUẨN NETFLIX THOÁNG ĐÃNG) */}
+                      <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/95 via-black/55 to-transparent p-2.5 sm:p-3 pt-8 sm:pt-10">
+                        <p className="text-white text-xs sm:text-[13px] font-bold line-clamp-1 group-hover:text-pink-300 transition-colors drop-shadow">
                           {movie.title || movie.name}
                         </p>
-                        {movie.matchReason && (
-                          <p className="text-[10px] text-purple-300 text-center line-clamp-1 mt-0.5 font-medium">
-                            {movie.matchReason}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* BOTTOM INFO BAR */}
-                      <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/95 via-black/70 to-transparent p-2.5 pt-6 group-hover:opacity-0 transition-opacity duration-200">
-                        <p className="text-white text-xs font-bold line-clamp-1 drop-shadow">
-                          {movie.title || movie.name}
-                        </p>
-                        <div className="flex items-center justify-between text-[10px] text-gray-400 mt-1">
-                          {categoryName && (
-                            <span className="text-gray-300 line-clamp-1">{categoryName}</span>
-                          )}
+                        <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-zinc-400 mt-0.5 font-medium">
                           {movie.year && <span>{movie.year}</span>}
+                          {movie.year && categoryName && <span className="text-zinc-600">•</span>}
+                          {categoryName && (
+                            <span className="text-zinc-300 truncate">{categoryName}</span>
+                          )}
                         </div>
                       </div>
                     </div>

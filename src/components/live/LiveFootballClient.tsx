@@ -733,16 +733,16 @@ export function LiveFootballClient({
         )}
 
         {/* TIÊU ĐỀ KHU VỰC VÀ SỐ LƯỢNG TRẬN */}
-        <div className="flex items-center justify-between text-xs text-gray-400 pt-2">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-white text-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-gray-400 pt-2">
+          <div className="flex items-center gap-2 flex-wrap min-w-0">
+            <span className="font-bold text-white text-sm whitespace-nowrap">
               {timelineFilter === "live"
                 ? "🔴 Trận đấu đang phát trực tiếp"
                 : timelineFilter === "upcoming"
                   ? "⏰ Lịch thi đấu sắp diễn ra"
                   : "🔥 Toàn bộ lịch thi đấu & trực tiếp"}
             </span>
-            <span className="px-2 py-0.5 rounded-full bg-white/10 text-gray-300 font-semibold">
+            <span className="px-2 py-0.5 rounded-full bg-white/10 text-gray-300 font-semibold whitespace-nowrap text-[11px] sm:text-xs">
               Hiển thị{" "}
               {Math.min(displayedMatches.length, filteredMatches.length)} /{" "}
               {filteredMatches.length} trận
@@ -753,7 +753,7 @@ export function LiveFootballClient({
             <button
               type="button"
               onClick={handleResetFilters}
-              className="flex items-center gap-1 text-rose-400 hover:text-rose-300 transition cursor-pointer font-semibold"
+              className="self-start sm:self-auto flex items-center gap-1 text-rose-400 hover:text-rose-300 transition cursor-pointer font-semibold whitespace-nowrap text-xs active:scale-95"
             >
               <RotateCcw className="w-3 h-3" />
               <span>Đặt lại bộ lọc</span>
