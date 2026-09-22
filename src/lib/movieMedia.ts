@@ -393,9 +393,19 @@ export function buildMovieDescriptionFallback(movie: {
 }) {
   const parts: string[] = [];
   if (movie.origin_name) parts.push(`Tên gốc: ${movie.origin_name}.`);
+
+  const cleanTime = movie.time
+    ? String(movie.time).trim().replace(/phút\/tập\s*phút/gi, "phút/tập").replace(/phút\s*phút/gi, "phút")
+    : null;
+  const formattedTime = cleanTime
+    ? cleanTime.toLowerCase().includes("phút") || cleanTime.toLowerCase().includes("h")
+      ? cleanTime
+      : `${cleanTime} phút`
+    : null;
+
   const meta = [
     movie.year ? `${movie.year}` : null,
-    movie.time ? `${movie.time} phút` : null,
+    formattedTime,
     movie.lang || null,
     movie.quality || null,
   ]

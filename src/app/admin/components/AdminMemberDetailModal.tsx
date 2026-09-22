@@ -51,12 +51,12 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
     if (!selectedMember) return null;
 
     return (
-      <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-        <div className="max-w-2xl w-full bg-zinc-950 border border-white/15 rounded-3xl p-6 shadow-2xl space-y-5 max-h-[90vh] flex flex-col overflow-hidden">
+      <div className="fixed inset-0 z-[150] flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+        <div className="max-w-2xl w-full bg-zinc-950 border border-white/15 rounded-3xl p-4 sm:p-6 shadow-2xl space-y-4 sm:space-y-5 max-h-[92vh] flex flex-col overflow-hidden">
           {/* Header */}
-          <div className="flex items-start justify-between gap-4 pb-4 border-b border-white/10 flex-shrink-0">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-12 h-12 rounded-2xl bg-netflix-red flex items-center justify-center text-base font-bold text-white uppercase overflow-hidden relative border border-white/15 flex-shrink-0">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 pb-3 sm:pb-4 border-b border-white/10 flex-shrink-0">
+            <div className="flex items-start justify-between sm:justify-start gap-3 min-w-0 w-full sm:w-auto">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-netflix-red flex items-center justify-center text-sm sm:text-base font-bold text-white uppercase overflow-hidden relative border border-white/15 flex-shrink-0 shadow-md">
                 {selectedMember.photoURL ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -68,53 +68,62 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
                   <span>{(selectedMember.displayName || "U")[0]}</span>
                 )}
               </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h2 className="text-base font-bold text-white truncate">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <h2 className="text-sm sm:text-base font-bold text-white truncate max-w-[160px] sm:max-w-none">
                     {selectedMember.displayName}
                   </h2>
                   {selectedMember.role === "admin" && (
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">
+                    <span className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.2 rounded-full bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30 flex-shrink-0">
                       👑 Admin
                     </span>
                   )}
                   {selectedMember.isWatchingNow ? (
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30 flex items-center gap-1">
+                    <span className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30 flex items-center gap-1 flex-shrink-0">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                      🟢 Đang xem phim
+                      Đang xem
                     </span>
                   ) : selectedMember.isOnline ? (
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30 flex items-center gap-1">
+                    <span className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30 flex items-center gap-1 flex-shrink-0">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                      Trực tuyến
+                      Online
                     </span>
                   ) : (
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-800 text-gray-400 border border-white/5">
+                    <span className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full bg-zinc-800 text-gray-400 border border-white/5 flex-shrink-0">
                       Ngoại tuyến
                     </span>
                   )}
                   {selectedMember.isCommentRestricted && (
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/20 text-red-300 font-bold border border-red-500/30 flex items-center gap-1">
+                    <span className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full bg-red-500/20 text-red-300 font-bold border border-red-500/30 flex items-center gap-1 flex-shrink-0">
                       <Ban size={10} />
-                      <span>Bị khóa bình luận</span>
+                      <span>Bị khóa cmt</span>
                     </span>
                   )}
                   {selectedMember.violationsCount && selectedMember.violationsCount > 0 ? (
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/30">
+                    <span className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/30 flex-shrink-0">
                       ⚠️ {selectedMember.violationsCount} vi phạm
                     </span>
                   ) : null}
                 </div>
-                <p className="text-xs text-gray-400 truncate">{selectedMember.email || "Chưa có email"}</p>
-                <p className="text-[11px] text-gray-500 font-mono mt-0.5">UID: {selectedMember.uid}</p>
+                <p className="text-[11px] sm:text-xs text-gray-400 truncate mt-0.5">{selectedMember.email || "Chưa có email"}</p>
+                <p className="text-[10px] sm:text-[11px] text-gray-500 font-mono mt-0.5 truncate max-w-[200px] sm:max-w-none">UID: {selectedMember.uid}</p>
               </div>
+
+              {/* Close Button on Mobile */}
+              <button
+                type="button"
+                onClick={onClose}
+                className="p-1.5 sm:hidden rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition cursor-pointer flex-shrink-0"
+              >
+                <X size={16} />
+              </button>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
               <button
                 type="button"
                 onClick={() => onToggleCommentBan(selectedMember)}
-                className={`px-3 py-1.5 rounded-xl border text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
+                className={`flex-1 sm:flex-none px-3 py-1.5 rounded-xl border text-xs font-semibold transition cursor-pointer flex items-center justify-center gap-1.5 ${
                   selectedMember.isCommentRestricted
                     ? "bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border-emerald-500/30"
                     : "bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border-amber-500/30"
@@ -124,10 +133,11 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
                 <span>{selectedMember.isCommentRestricted ? "Mở khóa bình luận" : "Khóa quyền bình luận"}</span>
               </button>
 
+              {/* Close Button on Desktop */}
               <button
                 type="button"
                 onClick={onClose}
-                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition cursor-pointer"
+                className="hidden sm:flex p-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition cursor-pointer"
               >
                 <X size={18} />
               </button>
@@ -135,12 +145,12 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
           </div>
 
           {/* Quick Member Overview Bar */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-3 rounded-2xl bg-white/[0.03] border border-white/5 text-xs flex-shrink-0">
-            <div className="flex items-center gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-3 rounded-2xl bg-white/[0.03] border border-white/5 text-xs flex-shrink-0">
+            <div className="flex items-center gap-2 min-w-0">
               <Clock size={14} className="text-emerald-400 flex-shrink-0" />
-              <div>
+              <div className="min-w-0">
                 <span className="text-[10px] text-gray-400 block">Tổng cày phim</span>
-                <span className="font-bold text-white">
+                <span className="font-bold text-white truncate block">
                   {selectedMember.watchTimeMinutes
                     ? selectedMember.watchTimeMinutes >= 60
                       ? `${Math.floor(selectedMember.watchTimeMinutes / 60)}h ${selectedMember.watchTimeMinutes % 60}m`
@@ -150,18 +160,18 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 min-w-0">
               <MessageSquare size={14} className="text-blue-400 flex-shrink-0" />
-              <div>
+              <div className="min-w-0">
                 <span className="text-[10px] text-gray-400 block">Lần cuối hoạt động</span>
-                <span className="font-semibold text-gray-300">
+                <span className="font-semibold text-gray-300 truncate block">
                   {formatDate(selectedMember.lastActiveAt || selectedMember.lastLoginAt)}
                 </span>
               </div>
             </div>
 
             {selectedMember.isWatchingNow && selectedMember.currentWatching ? (
-              <div className="flex items-center gap-2 col-span-2 sm:col-span-1">
+              <div className="flex items-center gap-2 min-w-0">
                 <Film size={14} className="text-amber-400 flex-shrink-0" />
                 <div className="min-w-0">
                   <span className="text-[10px] text-gray-400 block">Đang xem</span>
@@ -171,11 +181,11 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
                 </div>
               </div>
             ) : (
-              <div className="flex items-center gap-2 col-span-2 sm:col-span-1">
+              <div className="flex items-center gap-2 min-w-0">
                 <Bookmark size={14} className="text-purple-400 flex-shrink-0" />
-                <div>
+                <div className="min-w-0">
                   <span className="text-[10px] text-gray-400 block">Tham gia ngày</span>
-                  <span className="font-semibold text-gray-300">
+                  <span className="font-semibold text-gray-300 truncate block">
                     {formatDate(selectedMember.createdAt)}
                   </span>
                 </div>
@@ -184,11 +194,11 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
           </div>
 
           {/* Modal Tabs */}
-          <div className="flex items-center gap-2 border-b border-white/10 pb-2 flex-shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 border-b border-white/10 pb-2 flex-shrink-0 overflow-x-auto no-scrollbar scrollbar-none">
             <button
               type="button"
               onClick={() => setMemberDetailTab("comments")}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 flex-shrink-0 ${
                 memberDetailTab === "comments"
                   ? "bg-netflix-red text-white"
                   : "text-gray-400 hover:text-white"
@@ -201,27 +211,27 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
             <button
               type="button"
               onClick={() => setMemberDetailTab("history")}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 flex-shrink-0 ${
                 memberDetailTab === "history"
                   ? "bg-netflix-red text-white"
                   : "text-gray-400 hover:text-white"
               }`}
             >
               <History size={13} />
-              <span>Lịch sử xem ({memberHistory.length})</span>
+              <span>Lịch sử ({memberHistory.length})</span>
             </button>
 
             <button
               type="button"
               onClick={() => setMemberDetailTab("watchlist")}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 flex-shrink-0 ${
                 memberDetailTab === "watchlist"
                   ? "bg-netflix-red text-white"
                   : "text-gray-400 hover:text-white"
               }`}
             >
               <Bookmark size={13} />
-              <span>Phim đã lưu ({memberWatchlist.length})</span>
+              <span>Đã lưu ({memberWatchlist.length})</span>
             </button>
           </div>
 

@@ -8,8 +8,6 @@ import {
   Info,
   Play,
   Star,
-  Calendar,
-  Globe2,
   Sparkles,
   Volume2,
   VolumeX,
@@ -415,25 +413,47 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
   const descriptionRaw =
     featuredMovie?.content || featuredMovie?.description || "";
   const descriptionClean = cleanHtmlText(descriptionRaw);
-  const description =
-    heroSynopsis ||
-    descriptionClean ||
-    buildMovieDescriptionFallback({
-      origin_name: featuredMovie?.origin_name,
-      year: featuredMovie?.year,
-      time: featuredMovie?.time,
-      lang: featuredMovie?.lang,
-      quality: featuredMovie?.quality,
-      category: featuredMovie?.category,
-      country: featuredMovie?.country,
-      director: featuredMovie?.director,
-    }) ||
-    "";
+
+  const originName = featuredMovie?.origin_name?.trim();
+  const hasDistinctOriginName = Boolean(
+    originName &&
+    originName.toLowerCase() !== title.toLowerCase() &&
+    !originName.toLowerCase().includes("đang cập nhật")
+  );
+
+  const genresList = useMemo(() => {
+    if (!featuredMovie?.category || !Array.isArray(featuredMovie.category)) return [];
+    return featuredMovie.category
+      .map((c) => (typeof c === "string" ? c : c?.name))
+      .filter((name): name is string => Boolean(name && !name.toLowerCase().includes("cập nhật")));
+  }, [featuredMovie?.category]);
+
+  const rawEpisode = featuredMovie?.episode_current?.trim() || "";
+  const isEpisodeUseful = Boolean(
+    rawEpisode &&
+    !["full", "trailer", "hd", "fhd", "4k", "cam", "sd", "đang cập nhật", "updating"].includes(rawEpisode.toLowerCase())
+  );
+
+  const cleanDuration = useMemo(() => {
+    if (!featuredMovie?.time) return null;
+    const raw = String(featuredMovie.time).trim().replace(/phút\/tập\s*phút/gi, "phút/tập").replace(/phút\s*phút/gi, "phút");
+    if (!raw || raw.toLowerCase().includes("đang cập nhật")) return null;
+    if (raw.toLowerCase().includes("phút") || raw.toLowerCase().includes("h")) return raw;
+    return `${raw} phút`;
+  }, [featuredMovie?.time]);
+
+  // Clean Synopsis: only display if it is genuine story description
+  const hasRealSynopsis = Boolean(
+    (heroSynopsis && !heroSynopsis.startsWith("Tên gốc:") && heroSynopsis.trim().length > 10) ||
+    (descriptionClean && !descriptionClean.startsWith("Tên gốc:") && descriptionClean.trim().length > 10)
+  );
+  const displaySynopsis = hasRealSynopsis ? (heroSynopsis || descriptionClean) : "";
 
   const heroCountry = featuredMovie?.country?.[0]?.name;
   const isSeries = Boolean(
     (featuredMovie?.episode_current && String(featuredMovie.episode_current).toLowerCase().includes("tập")) ||
-    (featuredMovie?.time && String(featuredMovie.time).toLowerCase().includes("tập"))
+    (featuredMovie?.time && String(featuredMovie.time).toLowerCase().includes("tập")) ||
+    (genresList.some((g) => g.toLowerCase().includes("phim bộ")))
   );
   const heroType = isSeries ? "Phim Bộ" : "Phim Lẻ";
 
@@ -602,49 +622,21 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
       >
         <div className="w-full px-4 sm:px-8 md:px-14 pb-12 sm:pb-16 md:pb-20">
           <div className="mx-auto max-w-7xl">
-            <div className="max-w-3xl space-y-4 sm:space-y-5">
-              {/* BADGES METADATA */}
-              <div className="flex flex-wrap items-center gap-2 text-xs md:text-sm">
-                <span className="rounded-full border border-netflix-red/50 bg-gradient-to-r from-netflix-red/35 via-rose-600/25 to-transparent text-white px-3.5 py-1 font-black text-[11px] sm:text-xs flex items-center gap-1.5 shadow-[0_0_18px_rgba(229,9,20,0.45)]">
-                  <Sparkles size={13} className="text-netflix-red fill-netflix-red animate-pulse" />
-                  <span>Nana Tuyển Chọn • {heroType}</span>
+            <div className="max-w-3xl space-y-3.5 sm:space-y-4">
+              {/* 3.1 TOP BADGE TINH GIẢN */}
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-netflix-red/40 bg-netflix-red/20 px-3 py-0.5 text-[11px] sm:text-xs font-bold text-white shadow-sm backdrop-blur-md">
+                  <Sparkles size={12} className="text-netflix-red fill-netflix-red" />
+                  <span>NANA TUYỂN CHỌN</span>
                 </span>
-
-                {voteText && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-500/15 backdrop-blur-md px-3 py-1 text-[11px] sm:text-xs font-black text-amber-300 shadow-sm">
-                    <Star size={12} className="fill-amber-400 text-amber-400" />
-                    <span>{voteText}</span>
-                  </span>
-                )}
-
-                {featuredMovie?.year && (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-black/60 backdrop-blur-md px-3 py-1 text-[11px] sm:text-xs text-gray-200 font-bold">
-                    <Calendar size={12} className="text-emerald-400" />
-                    <span>{featuredMovie.year}</span>
-                  </span>
-                )}
-
-                {featuredMovie?.quality && (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-white/15 backdrop-blur-md px-2.5 py-1 text-[11px] sm:text-xs font-black text-white shadow-sm uppercase tracking-wider">
-                    <span>{featuredMovie.quality}</span>
-                  </span>
-                )}
-
-                {heroCountry && (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-black/60 backdrop-blur-md px-3 py-1 text-[11px] sm:text-xs font-semibold text-gray-300">
-                    <Globe2 size={12} className="text-sky-400" />
-                    <span>{heroCountry}</span>
-                  </span>
-                )}
-
-                {featuredMovie?.lang && (
-                  <span className="inline-flex items-center rounded-full border border-rose-500/20 bg-rose-500/10 backdrop-blur-md px-3 py-1 text-[11px] sm:text-xs text-rose-300 font-semibold">
-                    <span>{featuredMovie.lang}</span>
+                {heroType && (
+                  <span className="text-[11px] sm:text-xs font-semibold text-zinc-400">
+                    • {heroType}
                   </span>
                 )}
               </div>
 
-              {/* TIÊU ĐỀ PHIM ĐỈNH CAO */}
+              {/* 3.2 TIÊU ĐỀ PHIM */}
               <h1
                 style={{ color: "#ffffff" }}
                 className="hero-cinema-title text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black leading-[1.08] text-white line-clamp-2 tracking-tight drop-shadow-[0_4px_24px_rgba(0,0,0,0.95)]"
@@ -652,15 +644,76 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
                 {title}
               </h1>
 
-              {/* TÓM TẮT NỘI DUNG */}
-              <p
-                style={{ color: "#e2e8f0" }}
-                className="hero-cinema-desc max-w-2xl text-xs sm:text-sm md:text-base leading-relaxed text-zinc-300 line-clamp-2 sm:line-clamp-3 drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]"
-              >
-                {description}
-              </p>
+              {/* 3.3 HÀNG THÔNG TIN TINH GỌN (1 DÒNG DUY NHẤT CHUẨN NETFLIX) */}
+              <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs sm:text-sm font-medium text-zinc-300">
+                {voteText && (
+                  <span className="inline-flex items-center gap-1 text-amber-400 font-bold">
+                    <Star size={13} className="fill-amber-400 text-amber-400" />
+                    <span>{voteText}</span>
+                  </span>
+                )}
 
-              {/* CỤM NÚT HÀNH ĐỘNG (CTA) */}
+                {featuredMovie?.year && (
+                  <>
+                    <span className="text-zinc-600">•</span>
+                    <span className="text-zinc-200">{featuredMovie.year}</span>
+                  </>
+                )}
+
+                {isEpisodeUseful ? (
+                  <>
+                    <span className="text-zinc-600">•</span>
+                    <span className="text-emerald-400 font-semibold">{rawEpisode}</span>
+                  </>
+                ) : cleanDuration ? (
+                  <>
+                    <span className="text-zinc-600">•</span>
+                    <span className="text-zinc-300">{cleanDuration}</span>
+                  </>
+                ) : null}
+
+                {featuredMovie?.quality && (
+                  <>
+                    <span className="text-zinc-600">•</span>
+                    <span className="px-1.5 py-0.2 rounded border border-white/20 bg-white/10 text-[10px] font-bold text-white uppercase tracking-wider">
+                      {featuredMovie.quality}
+                    </span>
+                  </>
+                )}
+
+                {featuredMovie?.lang && (
+                  <>
+                    <span className="text-zinc-600">•</span>
+                    <span className="text-rose-300/90">{featuredMovie.lang}</span>
+                  </>
+                )}
+
+                {heroCountry && (
+                  <>
+                    <span className="text-zinc-600">•</span>
+                    <span className="text-zinc-300">{heroCountry}</span>
+                  </>
+                )}
+              </div>
+
+              {/* 3.4 THỂ LOẠI (TỐI ĐA 3 THỂ LOẠI CHÍNH, NỐI BẰNG DẤU CHẤM) */}
+              {genresList.length > 0 && (
+                <p className="text-xs sm:text-sm text-zinc-400 font-medium line-clamp-1">
+                  {genresList.slice(0, 4).join("  •  ")}
+                </p>
+              )}
+
+              {/* 3.5 TÓM TẮT NỘI DUNG (NGẮN GỌN 2 DÒNG) */}
+              {displaySynopsis ? (
+                <p
+                  style={{ color: "#d1d5db" }}
+                  className="hero-cinema-desc max-w-2xl text-xs sm:text-sm md:text-base leading-relaxed text-zinc-300 line-clamp-2 drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]"
+                >
+                  {displaySynopsis}
+                </p>
+              ) : null}
+
+              {/* 3.5 CỤM NÚT HÀNH ĐỘNG (CTA) */}
               <div className="flex flex-wrap items-center gap-3 pt-2">
                 {featuredMovie?.slug && (
                   <Link
@@ -687,7 +740,7 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
                 )}
               </div>
 
-              {/* THANH TIẾN TRÌNH AUTO-SLIDE */}
+              {/* 3.6 THANH TIẾN TRÌNH AUTO-SLIDE */}
               {slides.length > 1 && (
                 <div className="pt-3 max-w-sm">
                   <div className="h-1 w-full overflow-hidden rounded-full bg-white/15">

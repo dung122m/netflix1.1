@@ -740,50 +740,54 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
       </div>
 
       {/* RECENT ACTIVITY FEED */}
-      <div className="p-6 rounded-2xl bg-zinc-900/60 border border-white/10 backdrop-blur-sm space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-bold text-white flex items-center gap-2">
-            <Activity size={16} className="text-amber-400" />
-            <span>Nhật Ký Hoạt Động Gần Đây (Live Recent Activity Feed)</span>
+      <div className="p-4 sm:p-6 rounded-2xl bg-zinc-900/60 border border-white/10 backdrop-blur-sm space-y-4">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <h3 className="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
+            <Activity size={16} className="text-amber-400 flex-shrink-0" />
+            <span>Nhật Ký Hoạt Động Gần Đây</span>
           </h3>
-          <span className="text-xs text-gray-400">{filteredRecentActivity.length} sự kiện gần nhất</span>
+          <span className="text-[11px] sm:text-xs text-gray-400">{filteredRecentActivity.length} sự kiện</span>
         </div>
 
         {filteredRecentActivity.length === 0 ? (
-          <div className="p-10 text-center rounded-xl bg-black/40 border border-white/5 text-gray-400 text-xs">
+          <div className="p-8 sm:p-10 text-center rounded-xl bg-black/40 border border-white/5 text-gray-400 text-xs">
             Chưa có sự kiện nào gần đây. Hãy mở xem phim hoặc tìm kiếm để thử nghiệm!
           </div>
         ) : (
-          <div className="divide-y divide-white/5 overflow-x-auto">
+          <div className="divide-y divide-white/5 overflow-hidden">
             {filteredRecentActivity.map((ev) => (
               <div
                 key={ev.id}
-                className="py-3 px-2 flex items-center justify-between gap-4 text-xs hover:bg-white/[0.02] transition rounded-lg"
+                className="py-3 px-1 sm:px-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 text-xs hover:bg-white/[0.02] transition rounded-lg"
               >
-                <div className="flex items-center gap-3 min-w-0">
+                <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
                   <div className="flex-shrink-0">{getEventBadge(ev.eventType)}</div>
-                  <div className="truncate">
-                    <span className="font-bold text-white">
+                  <div className="truncate min-w-0">
+                    <span className="font-bold text-white text-xs truncate">
                       {ev.eventType === "site_visit"
                         ? "Nanaflix"
                         : ev.movieTitle || ev.keyword || ev.movieSlug || "Nanaflix"}
                     </span>
                     {ev.episodeName && (
-                      <span className="text-gray-400 ml-1.5">({ev.episodeName})</span>
+                      <span className="text-gray-400 ml-1.5 text-[11px]">({ev.episodeName})</span>
                     )}
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 text-[11px] text-gray-400 flex-shrink-0">
+                <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-[11px] text-gray-400 flex-wrap sm:flex-nowrap sm:flex-shrink-0 pl-1 sm:pl-0">
                   {ev.userId ? (
-                    <span className="text-emerald-400 font-semibold">User: {ev.userId.slice(0, 8)}...</span>
+                    <span className="text-emerald-400 font-semibold truncate max-w-[120px] sm:max-w-none">
+                      User: {ev.userId.slice(0, 8)}...
+                    </span>
                   ) : (
-                    <span className="text-gray-400 font-mono">Guest ({ev.anonymousId?.slice(5, 11)})</span>
+                    <span className="text-gray-400 font-mono">
+                      Guest ({ev.anonymousId?.slice(5, 11)})
+                    </span>
                   )}
                   <span>•</span>
-                  <span>{ev.deviceType} / {ev.os}</span>
+                  <span className="truncate">{ev.deviceType} / {ev.os}</span>
                   <span>•</span>
-                  <span className="text-gray-500 font-mono">{formatTime(ev.createdAt)}</span>
+                  <span className="text-gray-500 font-mono flex-shrink-0">{formatTime(ev.createdAt)}</span>
                 </div>
               </div>
             ))}

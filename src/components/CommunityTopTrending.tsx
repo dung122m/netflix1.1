@@ -8,7 +8,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Play,
-  Eye,
   TrendingUp,
 } from "lucide-react";
 import { MovieViewStatItem } from "@/services/supabaseService";
@@ -238,7 +237,7 @@ export function CommunityTopTrending() {
             <Flame className="w-6 h-6 text-netflix-red animate-bounce" />
           </h2>
           <p className="text-xs sm:text-sm text-gray-400 mt-0.5">
-            Xếp hạng theo số lượt xem và bình chọn thực tế từ khán giả trên hệ thống
+            Bảng xếp hạng phim thịnh hành được cộng đồng khán giả yêu thích nhất
           </p>
         </div>
 
@@ -335,7 +334,6 @@ export function CommunityTopTrending() {
         ) : (
           items.map((movie, index) => {
               const rank = index + 1;
-              const views = timeframe === "week" ? movie.viewsWeek : movie.viewsTotal;
 
               return (
                 <div
@@ -430,30 +428,32 @@ export function CommunityTopTrending() {
                       </div>
 
                       {/* HOVER OVERLAY PLAY BUTTON */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-2.5 sm:p-3">
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-2.5 sm:p-3">
                         <div className="w-10 h-10 rounded-full bg-netflix-red text-white flex items-center justify-center mx-auto mb-2 shadow-lg shadow-red-950/60 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
                           <Play className="w-4 h-4 fill-white ml-0.5" />
                         </div>
                         <p className="text-white text-xs font-bold line-clamp-1 text-center">
                           {movie.movieTitle}
                         </p>
-                        <div className="flex items-center justify-center gap-1.5 text-[10px] text-gray-300 mt-1">
-                          <Eye className="w-3 h-3 text-amber-400" />
-                          <span>{views.toLocaleString("vi-VN")} lượt xem</span>
+                        <div className="flex items-center justify-center gap-1.5 text-[10px] text-zinc-300 mt-1 font-medium">
+                          {movie.year && <span>{movie.year}</span>}
+                          {movie.year && movie.category && <span className="text-zinc-500">•</span>}
+                          {movie.category && <span>{movie.category}</span>}
                         </div>
                       </div>
 
-                      {/* FOOTER VIEW COUNT BADGE (ALWAYS VISIBLE) */}
-                      <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/95 via-black/70 to-transparent p-2 pt-6 group-hover:opacity-0 transition-opacity duration-200">
+                      {/* FOOTER INFO BADGE (ALWAYS VISIBLE) */}
+                      <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/95 via-black/75 to-transparent p-2 pt-6 group-hover:opacity-0 transition-opacity duration-200">
                         <p className="text-white text-[11px] sm:text-xs font-bold line-clamp-1 drop-shadow">
                           {movie.movieTitle}
                         </p>
-                        <div className="flex items-center justify-between text-[10px] text-gray-400 mt-0.5">
-                          <span className="flex items-center gap-1 text-amber-400 font-semibold">
-                            <Eye className="w-3 h-3" />
-                            {views.toLocaleString("vi-VN")}
-                          </span>
-                          {movie.year && <span>{movie.year}</span>}
+                        <div className="flex items-center justify-between text-[10px] text-zinc-400 mt-0.5 font-medium">
+                          <span>{movie.year || "Phim Hot"}</span>
+                          {movie.category ? (
+                            <span className="text-zinc-400 truncate max-w-[85px] text-right">{movie.category}</span>
+                          ) : movie.quality ? (
+                            <span className="text-amber-400/90 font-semibold">{movie.quality}</span>
+                          ) : null}
                         </div>
                       </div>
                     </div>
