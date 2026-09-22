@@ -1705,7 +1705,7 @@ export function LiveTvClient({
                   type="button"
                   onClick={togglePip}
                   title="Xem thu nhỏ góc màn hình (PiP - Phím I)"
-                  className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition backdrop-blur-md cursor-pointer border border-white/10 flex-shrink-0 ${
+                  className={`hidden sm:flex w-8 h-8 sm:w-10 sm:h-10 rounded-full items-center justify-center transition backdrop-blur-md cursor-pointer border border-white/10 flex-shrink-0 ${
                     isPip
                       ? "bg-netflix-red text-white"
                       : "bg-white/20 hover:bg-white/30 text-white"
@@ -1719,12 +1719,12 @@ export function LiveTvClient({
                   type="button"
                   onClick={toggleFullscreen}
                   title={isFullscreen ? "Thu nhỏ (F)" : "Toàn màn hình (F)"}
-                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-netflix-red sm:bg-white/20 hover:bg-red-700 sm:hover:bg-white/30 flex items-center justify-center text-white transition backdrop-blur-md cursor-pointer flex-shrink-0 shadow-lg border border-white/20 active:scale-95"
+                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-netflix-red sm:bg-white/20 hover:bg-red-700 sm:hover:bg-white/30 flex items-center justify-center text-white transition backdrop-blur-md cursor-pointer flex-shrink-0 shadow-lg border border-white/20 active:scale-95"
                 >
                   {isFullscreen ? (
-                    <Minimize className="w-4 h-4" />
+                    <Minimize className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   ) : (
-                    <Maximize className="w-4 h-4" />
+                    <Maximize className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   )}
                 </button>
               </div>

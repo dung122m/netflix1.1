@@ -49,7 +49,7 @@ export function LiveShortcutPopover({ mode = "football" }: LiveShortcutPopoverPr
   const railLabel = mode === "football" ? "Danh sách trận đấu" : "Danh sách kênh";
 
   return (
-    <div className="relative inline-flex items-center">
+    <div className="relative hidden sm:inline-flex items-center">
       {/* Nút trigger nhỏ gọn */}
       <button
         ref={buttonRef}

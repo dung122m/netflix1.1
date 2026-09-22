@@ -2013,20 +2013,20 @@ function LivePlayerInner({
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="bg-gradient-to-t from-black/95 via-black/80 to-transparent p-3 sm:p-4 pt-8 flex items-center justify-between gap-2 sm:gap-4 select-none"
+            className="bg-gradient-to-t from-black/95 via-black/80 to-transparent p-2 sm:p-4 pt-6 sm:pt-8 flex items-center justify-between gap-1.5 sm:gap-4 select-none"
           >
             {/* CỤM TRÁI: PLAY/PAUSE + ĐỔI TRẬN NHANH + ÂM LƯỢNG */}
-            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-shrink">
+            <div className="flex items-center gap-1 sm:gap-3 min-w-0 flex-shrink">
               <button
                 type="button"
                 onClick={togglePlay}
                 title={isPlaying ? "Tạm dừng (Space)" : "Phát (Space)"}
-                className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-white/20 hover:bg-white/30 flex-shrink-0 flex items-center justify-center text-white transition hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md"
+                className="w-8 h-8 sm:w-11 sm:h-11 rounded-full bg-white/20 hover:bg-white/30 flex-shrink-0 flex items-center justify-center text-white transition hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md"
               >
                 {isPlaying ? (
-                  <Pause className="w-4 h-4 sm:w-5 sm:h-5 fill-current" />
+                  <Pause className="w-3.5 h-3.5 sm:w-5 sm:h-5 fill-current" />
                 ) : (
-                  <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current ml-0.5" />
+                  <Play className="w-3.5 h-3.5 sm:w-5 sm:h-5 fill-current ml-0.5" />
                 )}
               </button>
 
@@ -2040,7 +2040,7 @@ function LivePlayerInner({
                 >
                   <ChevronLeft className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                 </button>
-                <span className="text-[9px] sm:text-[10px] font-mono font-bold px-1.5 sm:px-2 text-amber-300 whitespace-nowrap">
+                <span className="text-[9px] sm:text-[10px] font-mono font-bold px-1 sm:px-2 text-amber-300 whitespace-nowrap">
                   {matchOptions && matchOptions.length > 1
                     ? "Đổi trận"
                     : `SV ${selectedServerIndex + 1}/${servers.length}`}
@@ -2060,10 +2060,10 @@ function LivePlayerInner({
                 type="button"
                 onClick={toggleMute}
                 title={isMuted ? "Bật âm thanh (M)" : "Tắt âm thanh (M)"}
-                className="sm:hidden w-8 h-8 rounded-full bg-black/60 border border-white/20 flex items-center justify-center text-white hover:text-rose-400 transition cursor-pointer flex-shrink-0"
+                className="sm:hidden w-7 h-7 rounded-full bg-black/60 border border-white/20 flex items-center justify-center text-white hover:text-rose-400 transition cursor-pointer flex-shrink-0"
               >
                 <VolumeIcon
-                  className={`w-4 h-4 ${
+                  className={`w-3.5 h-3.5 ${
                     isMuted || volume === 0 ? "text-rose-400" : "text-white"
                   }`}
                 />
@@ -2105,7 +2105,7 @@ function LivePlayerInner({
             </div>
 
             {/* CỤM PHẢI: NÚT KÊNH + PHÍM TẮT GỢI Ý + PIP + TOÀN MÀN HÌNH */}
-            <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+            <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
               {/* Nút Mở Danh sách Kênh / Trận đấu */}
               {matchOptions && matchOptions.length > 0 && (
                 <button
@@ -2115,7 +2115,7 @@ function LivePlayerInner({
                     toggleRail();
                   }}
                   title="Mở danh sách kênh & trận đấu (Phím C)"
-                  className={`flex items-center gap-1 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-full border text-[11px] sm:text-xs font-bold transition backdrop-blur-md cursor-pointer ${
+                  className={`flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-2 rounded-full border text-[10px] sm:text-xs font-bold transition backdrop-blur-md cursor-pointer ${
                     isRailVisible
                       ? "bg-gradient-to-r from-red-600 to-rose-600 text-white border-red-400 shadow-md shadow-red-950/60 scale-102"
                       : "bg-white/15 hover:bg-white/25 text-gray-200 hover:text-white border-white/20"
@@ -2149,12 +2149,12 @@ function LivePlayerInner({
                 type="button"
                 onClick={toggleFullscreen}
                 title={isFullscreen ? "Thu nhỏ (F)" : "Toàn màn hình (F)"}
-                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-netflix-red hover:bg-red-700 flex items-center justify-center text-white transition hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md flex-shrink-0 shadow-lg border border-white/20"
+                className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-netflix-red hover:bg-red-700 flex items-center justify-center text-white transition hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md flex-shrink-0 shadow-lg border border-white/20"
               >
                 {isFullscreen ? (
-                  <Minimize className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <Minimize className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
                 ) : (
-                  <Maximize className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <Maximize className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
                 )}
               </button>
             </div>

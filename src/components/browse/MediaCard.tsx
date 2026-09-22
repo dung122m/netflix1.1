@@ -157,9 +157,10 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         }
       }
     };
-    addUrl(thumbUrl);
-    addUrl(imageUrl);
+    // Ưu tiên posterUrl cho tỷ lệ poster đứng 2:3 trên mobile, sau đó đến imageUrl, thumbUrl
     addUrl(posterUrl);
+    addUrl(imageUrl);
+    addUrl(thumbUrl);
     return list;
   }, [imageUrl, thumbUrl, posterUrl]);
 
@@ -607,12 +608,12 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   return (
     <div
       ref={cardRef}
-      className="relative aspect-video w-full group select-none hover:z-50"
+      className="relative aspect-[2/3] sm:aspect-video w-full group select-none hover:z-50"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
       {/* ============================================================ */}
-      {/* 1. BASE CARD (Trạng thái tĩnh chuẩn 16:9 - To rõ, đẹp mắt) */}
+      {/* 1. BASE CARD (Trạng thái tĩnh: Chuẩn Poster đứng 2:3 trên Mobile & 16:9 trên Desktop) */}
       {/* ============================================================ */}
       <Link
         href={`/movies/${slug}`}
@@ -626,7 +627,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           alt={title}
           fill
           unoptimized
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1440px) 33vw, 25vw"
+          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 50vw, (max-width: 1440px) 33vw, 25vw"
           className="object-cover object-center group-hover:scale-105 transition-all duration-300"
           priority={priority}
           loading={priority ? "eager" : "lazy"}
@@ -636,67 +637,67 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         />
 
         {/* 1. GÓC TRÊN TRÁI: DÀNH CHO LOẠI PHIM (PHIM BỘ, PHIM LẺ, PHIM RẠP, HOẠT HÌNH) */}
-        <div className="absolute top-2.5 left-2.5 z-10 flex items-center gap-1.5">
+        <div className="absolute top-2 left-2 sm:top-2.5 sm:left-2.5 z-10 flex items-center gap-1 sm:gap-1.5">
           {chieurap ? (
-            <div className="flex items-center gap-1 bg-gradient-to-r from-amber-600 to-orange-500 text-white font-black px-2 py-0.5 rounded-lg text-[10px] uppercase tracking-wider backdrop-blur-md shadow-md border border-amber-400/40">
+            <div className="flex items-center gap-0.5 sm:gap-1 bg-gradient-to-r from-amber-600 to-orange-500 text-white font-black px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg text-[9px] sm:text-[10px] uppercase tracking-wider backdrop-blur-md shadow-md border border-amber-400/40">
               <span>🎬 Phim Rạp</span>
             </div>
           ) : sub_docquyen ? (
-            <div className="flex items-center gap-1 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black px-2 py-0.5 rounded-lg text-[10px] uppercase tracking-wider backdrop-blur-md shadow-md border border-purple-400/40">
+            <div className="flex items-center gap-0.5 sm:gap-1 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg text-[9px] sm:text-[10px] uppercase tracking-wider backdrop-blur-md shadow-md border border-purple-400/40">
               <span>💎 Độc Quyền</span>
             </div>
           ) : displayType === "Phim bộ" ? (
-            <div className="flex items-center gap-1 bg-blue-600/90 text-white font-black px-2 py-0.5 rounded-lg text-[10px] uppercase tracking-wider backdrop-blur-md shadow-md border border-blue-400/40">
+            <div className="flex items-center gap-0.5 sm:gap-1 bg-blue-600/90 text-white font-black px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg text-[9px] sm:text-[10px] uppercase tracking-wider backdrop-blur-md shadow-md border border-blue-400/40">
               <span>📺 Phim Bộ</span>
             </div>
           ) : displayType === "Hoạt hình" ? (
-            <div className="flex items-center gap-1 bg-pink-600/90 text-white font-black px-2 py-0.5 rounded-lg text-[10px] uppercase tracking-wider backdrop-blur-md shadow-md border border-pink-400/40">
+            <div className="flex items-center gap-0.5 sm:gap-1 bg-pink-600/90 text-white font-black px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg text-[9px] sm:text-[10px] uppercase tracking-wider backdrop-blur-md shadow-md border border-pink-400/40">
               <span>✨ Hoạt Hình</span>
             </div>
           ) : displayType === "TV Shows" ? (
-            <div className="flex items-center gap-1 bg-emerald-600/90 text-white font-black px-2 py-0.5 rounded-lg text-[10px] uppercase tracking-wider backdrop-blur-md shadow-md border border-emerald-400/40">
+            <div className="flex items-center gap-0.5 sm:gap-1 bg-emerald-600/90 text-white font-black px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg text-[9px] sm:text-[10px] uppercase tracking-wider backdrop-blur-md shadow-md border border-emerald-400/40">
               <span>🎙️ TV Shows</span>
             </div>
           ) : (
-            <div className="flex items-center gap-1 bg-zinc-900/85 text-gray-200 font-bold px-2 py-0.5 rounded-lg text-[10px] uppercase tracking-wider backdrop-blur-md shadow-md border border-white/20">
+            <div className="flex items-center gap-0.5 sm:gap-1 bg-zinc-900/85 text-gray-200 font-bold px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg text-[9px] sm:text-[10px] uppercase tracking-wider backdrop-blur-md shadow-md border border-white/20">
               <span>🎬 Phim Lẻ</span>
             </div>
           )}
         </div>
 
         {/* 2. GÓC TRÊN PHẢI: LUÔN CỐ ĐỊNH CHO ĐIỂM SAO VÀNG VÀ CHẤT LƯỢNG (FHD) */}
-        <div className="absolute top-2.5 right-2.5 z-10 flex items-center gap-1.5">
+        <div className="absolute top-2 right-2 sm:top-2.5 sm:right-2.5 z-10 flex items-center gap-1 sm:gap-1.5">
           {rating && rating !== "N/A" && Number(rating) > 0 && (
-            <div className="flex items-center gap-1 bg-black/85 border border-amber-500/40 px-2 py-0.5 rounded-lg text-[10.5px] sm:text-[11px] font-extrabold text-amber-400 backdrop-blur-md shadow-md">
-              <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+            <div className="flex items-center gap-0.5 sm:gap-1 bg-black/85 border border-amber-500/40 px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg text-[9.5px] sm:text-[11px] font-extrabold text-amber-400 backdrop-blur-md shadow-md">
+              <Star className="w-2.5 h-2.5 sm:w-3 sm:h-3 fill-amber-400 text-amber-400" />
               <span>{typeof rating === "number" ? rating.toFixed(1) : rating}</span>
             </div>
           )}
 
-          <span className="bg-black/80 border border-white/20 text-white font-bold text-[10px] px-2 py-0.5 rounded-lg backdrop-blur-md shadow-sm">
+          <span className="bg-black/80 border border-white/20 text-white font-bold text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg backdrop-blur-md shadow-sm">
             {quality || "FHD"}
           </span>
         </div>
 
         {/* 3. LỚP PHỦ THÔNG TIN CHÂN CARD: HIỂN THỊ NĂM, THỜI LƯỢNG/TẬP, TIẾNG (ĐỒNG NHẤT, GỌN GÀNG, CONTRAST CAO) */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/75 to-transparent flex flex-col justify-end p-3 sm:p-4">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/45 sm:via-black/75 to-transparent flex flex-col justify-end p-2.5 sm:p-4">
           {matchSnippet && (
-            <div className="mb-1.5 flex items-center gap-1 text-[9px] text-amber-300 font-bold bg-amber-500/20 border border-amber-500/30 px-2 py-0.5 rounded-md backdrop-blur-md shadow-sm line-clamp-1">
+            <div className="mb-1 flex items-center gap-1 text-[8.5px] sm:text-[9px] text-amber-300 font-bold bg-amber-500/20 border border-amber-500/30 px-1.5 sm:px-2 py-0.5 rounded-md backdrop-blur-md shadow-sm line-clamp-1">
               <span className="flex-none">💬 Khớp tóm tắt:</span>
               <span className="font-normal italic text-amber-200/90 truncate">{matchSnippet}</span>
             </div>
           )}
-          <p className="text-white font-black text-sm sm:text-base line-clamp-1 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
+          <p className="text-white font-black text-xs sm:text-base line-clamp-2 sm:line-clamp-1 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] leading-snug sm:leading-tight">
             {title}
           </p>
-          <div className="flex items-center gap-2 text-xs font-semibold text-zinc-200 mt-1 flex-wrap">
+          <div className="flex items-center gap-1 sm:gap-2 text-[10px] sm:text-xs font-semibold text-zinc-300 mt-0.5 sm:mt-1 flex-wrap">
             {displayYear && (
               <span>{displayYear}</span>
             )}
             {displayTime && (
               <>
                 {displayYear && <span className="text-white/40">•</span>}
-                <span className="truncate max-w-[120px] text-white font-medium">{displayTime}</span>
+                <span className="truncate max-w-[90px] sm:max-w-[120px] text-white font-medium">{displayTime}</span>
               </>
             )}
             {lang && (

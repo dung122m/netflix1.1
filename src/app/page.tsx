@@ -23,6 +23,7 @@ import { BrowseAiSearchBanner } from "@/components/BrowseAiSearchBanner";
 import { CuratedMovieSection } from "@/components/CuratedMovieSection";
 import { CommunityTopTrending } from "@/components/CommunityTopTrending";
 import { ForYouPersonalizedRow } from "@/components/ForYouPersonalizedRow";
+import { PaginationControl } from "@/components/PaginationControl";
 
 const HeroFeatured = dynamic(() =>
   import("@/components/browse/HeroFeatured").then(
@@ -742,26 +743,6 @@ export default async function HomePage({
     title = "Kết quả lọc";
   }
 
-  const buildPaginationUrl = (newPage: number) => {
-    const query = new URLSearchParams();
-
-    if (actorParam) {
-      query.set("actor", actorParam);
-    }
-    if (keyword) {
-      query.set("keyword", keyword);
-    }
-
-    if (category) query.set("category", category);
-    if (country) query.set("country", country);
-    if (year) query.set("year", year);
-    if (type) query.set("type", type);
-    if (sort) query.set("sort", sort);
-    query.set("page", newPage.toString());
-
-    return `?${query.toString()}`;
-  };
-
   // Chọn lọc phim Featured cho banner: score-based + diversity, cache 20 phút
   const heroMovies = isPlainHomepage ? getFeaturedMoviesWithCache(movies) : movies;
 
@@ -865,62 +846,11 @@ export default async function HomePage({
                 <MovieGrid movies={movies} />
 
                 {/* THANH PHÂN TRANG CHUẨN GỌN GÀNG */}
-                <div className="flex justify-center items-center gap-1.5 sm:gap-2 mt-8 sm:mt-12 flex-wrap">
-                  {/* NÚT TRƯỚC */}
-                  <Link
-                    href={buildPaginationUrl(Math.max(1, currentPage - 1))}
-                    prefetch={true}
-                    className={`px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm rounded-xl font-semibold transition touch-target flex items-center ${currentPage === 1
-                      ? "bg-zinc-900 text-zinc-600 pointer-events-none"
-                      : "bg-zinc-800 text-white hover:bg-zinc-700 active:scale-95"
-                      }`}
-                  >
-                    « Trước
-                  </Link>
-
-                  {/* SỐ TRANG — ẩn trên mobile, chỉ hiện từ sm */}
-                  <div className="hidden sm:flex items-center gap-1.5">
-                    {pages.map((p, index) => {
-                      if (p === "...") {
-                        return (
-                          <span key={index} className="px-1.5 sm:px-2 text-xs sm:text-sm text-gray-500">
-                            ...
-                          </span>
-                        );
-                      }
-                      return (
-                        <Link
-                          key={index}
-                          href={buildPaginationUrl(p as number)}
-                          prefetch={true}
-                          className={`w-8 h-8 sm:w-10 sm:h-10 text-xs sm:text-sm flex items-center justify-center rounded-lg font-semibold transition-colors ${currentPage === p
-                            ? "bg-netflix-red text-white shadow-sm"
-                            : "bg-zinc-800 text-gray-300 hover:bg-zinc-700 hover:text-white"
-                            }`}
-                        >
-                          {p}
-                        </Link>
-                      );
-                    })}
-                  </div>
-
-                  {/* TRANG HIỆN TẠI — chỉ hiện trên mobile */}
-                  <span className="sm:hidden px-3 py-2 text-xs font-bold text-white bg-netflix-red rounded-xl">
-                    {currentPage} / {totalPages}
-                  </span>
-
-                  {/* NÚT TIẾP */}
-                  <Link
-                    href={buildPaginationUrl(currentPage + 1)}
-                    prefetch={true}
-                    className={`px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm rounded-xl font-semibold transition touch-target flex items-center ${currentPage >= totalPages
-                      ? "bg-zinc-900 text-zinc-600 pointer-events-none"
-                      : "bg-zinc-800 text-white hover:bg-zinc-700 active:scale-95"
-                      }`}
-                  >
-                    Tiếp »
-                  </Link>
-                </div>
+                <PaginationControl
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  pages={pages}
+                />
               </>
             ) : (
               <div className="py-12 space-y-10">
