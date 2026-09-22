@@ -508,6 +508,7 @@ export async function POST(req: NextRequest) {
       watchedSlugs = [],
       refreshSeed = 0,
       currentSlugs = [],
+      followedActors = [],
     } = body || {};
 
     const seed = Number(refreshSeed) || 0;
@@ -525,13 +526,14 @@ export async function POST(req: NextRequest) {
     // Phân định rõ ràng giữa guest (theo theme seed) và user có profile (theo các chiều gu chuẩn hóa)
     // để đảm bảo không bị collision giữa các profile khác nhau.
     let tasteHash: string;
-    if (profile.isGuest) {
+    if (profile.isGuest && followedActors.length === 0) {
       tasteHash = `guest-${seed % GUEST_THEMES.length}`;
     } else {
       const gPart = profile.genres.map((g) => g.slug).join(",");
       const cPart = profile.countries.map((c) => c.slug).join(",");
       const tPart = profile.types.map((t) => t.slug).join(",");
-      tasteHash = `g:${gPart}|c:${cPart}|t:${tPart}|f:${profile.formatPreference}`;
+      const aPart = (followedActors as string[]).slice(0, 5).sort().join(",");
+      tasteHash = `g:${gPart}|c:${cPart}|t:${tPart}|f:${profile.formatPreference}|a:${aPart}`;
     }
 
     const pageOffset = (seed % 4) + 1;
@@ -845,17 +847,40 @@ export async function POST(req: NextRequest) {
           formatAdjustment = -5;
         }
       }
-      score += formatAdjustment;
+      // 7. FOLLOWED ACTOR BOOST (+18 điểm nếu có sự tham gia của diễn viên yêu thích)
+      let actorBonus = 0;
+      let matchedActorName = "";
+      if (Array.isArray(followedActors) && followedActors.length > 0) {
+        const normActors = Array.isArray(norm.actors)
+          ? (norm.actors as string[]).map((a) => cleanText(String(a)))
+          : [];
+        const rawContent = cleanText(String(norm.content || norm.description || ""));
+        for (const followed of followedActors as string[]) {
+          const cleanFollowed = cleanText(String(followed));
+          if (!cleanFollowed || cleanFollowed.length < 2) continue;
+          if (
+            normActors.some((a) => a.includes(cleanFollowed) || cleanFollowed.includes(a)) ||
+            rawContent.includes(cleanFollowed)
+          ) {
+            actorBonus = 18;
+            matchedActorName = String(followed);
+            break;
+          }
+        }
+      }
+      score += actorBonus;
 
-      // 7. MATCH PERCENTAGE PHẢN ÁNH ĐIỂM TỔNG & FORMAT: clamp(round(70 + (score / 100) * 28), 72, 98)
+      // 8. MATCH PERCENTAGE PHẢN ÁNH ĐIỂM TỔNG & FORMAT: clamp(round(70 + (score / 100) * 28), 72, 98)
       const matchPercentage = Math.min(
         98,
         Math.max(72, Math.round(70 + (Math.max(0, score) / 100) * 28))
       );
 
-      // 8. TẠO MATCH REASON CHÂN THỰC (ĐÚNG TÍN HIỆU THỰC TẾ, KHÔNG TỰ BỊA "BẠN THÍCH HOẠT HÌNH")
+      // 9. TẠO MATCH REASON CHÂN THỰC (ĐÚNG TÍN HIỆU THỰC TẾ, KHÔNG TỰ BỊA "BẠN THÍCH HOẠT HÌNH")
       let matchReason = "Siêu phẩm thịnh hành được đánh giá cao";
-      if (!profile.isGuest) {
+      if (matchedActorName) {
+        matchReason = `Có sự tham gia của diễn viên yêu thích ${matchedActorName}`;
+      } else if (!profile.isGuest) {
         if (profile.formatPreference === "live_action_preferred" && candidateFormat === "live_action") {
           if (matchedTopGenre && matchedCountryName) {
             matchReason = `Phù hợp với gu ${topGenre.name}, phim ${matchedCountryName} và ưu tiên phim người đóng của bạn`;

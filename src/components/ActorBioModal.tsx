@@ -3,18 +3,74 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { User, X, Sparkles, ExternalLink, Film, Loader2, BookOpen } from "lucide-react";
+import { User, X, Sparkles, ExternalLink, Film, Loader2, BookOpen, Check } from "lucide-react";
 import { ActorProfile } from "@/services/wikipediaService";
+import { useAuth } from "@/context/AuthContext";
+import { toast } from "@/components/Toast";
+import {
+  isFollowingActorSync,
+  toggleFollowActor,
+  subscribeFollowedActors,
+} from "@/services/actorFollowService";
 
 export interface ActorBioModalProps {
   initialActorName?: string;
 }
 
 export const ActorBioModal: React.FC<ActorBioModalProps> = ({ initialActorName }) => {
+  const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(Boolean(initialActorName));
   const [actorName, setActorName] = useState<string>(initialActorName || "");
   const [loading, setLoading] = useState(false);
   const [profile, setProfile] = useState<ActorProfile | null>(null);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [isFollowLoading, setIsFollowLoading] = useState(false);
+
+  // Cập nhật trạng thái follow khi actorName hoặc user thay đổi
+  useEffect(() => {
+    if (!user?.uid || !actorName) {
+      setIsFollowing(false);
+      return;
+    }
+    setIsFollowing(isFollowingActorSync(user.uid, actorName));
+    const unsub = subscribeFollowedActors(user.uid, (items) => {
+      const target = actorName.toLowerCase().trim();
+      const match = items.some(
+        (it) => it.actorName.toLowerCase().trim() === target || it.actorId.toLowerCase().trim() === target
+      );
+      setIsFollowing(match);
+    });
+    return () => unsub();
+  }, [user?.uid, actorName]);
+
+  const handleToggleFollow = async () => {
+    if (!user) {
+      toast.info("Vui lòng đăng nhập để theo dõi nghệ sĩ yêu thích!");
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("open-auth-modal"));
+      }
+      return;
+    }
+
+    try {
+      setIsFollowLoading(true);
+      const newStatus = await toggleFollowActor(user.uid, {
+        actorId: actorName.toLowerCase().replace(/\s+/g, "-"),
+        actorName,
+        actorAvatar: profile?.thumbnail,
+      });
+      setIsFollowing(newStatus);
+      if (newStatus) {
+        toast.success(`Đã theo dõi diễn viên ${actorName}`);
+      } else {
+        toast.info(`Đã bỏ theo dõi diễn viên ${actorName}`);
+      }
+    } catch {
+      toast.error("Không thể cập nhật theo dõi, vui lòng thử lại sau");
+    } finally {
+      setIsFollowLoading(false);
+    }
+  };
 
   const loadActor = (name: string) => {
     setActorName(name);
@@ -155,6 +211,29 @@ export const ActorBioModal: React.FC<ActorBioModalProps> = ({ initialActorName }
 
               {/* ACTIONS */}
               <div className="flex flex-col sm:flex-row items-center gap-2.5 pt-2">
+                <button
+                  type="button"
+                  disabled={isFollowLoading}
+                  onClick={handleToggleFollow}
+                  className={`w-full sm:w-auto py-3 px-4 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition cursor-pointer border active:scale-95 ${
+                    isFollowing
+                      ? "bg-emerald-500/20 hover:bg-rose-500/20 border-emerald-500/40 hover:border-rose-500/40 text-emerald-300 hover:text-rose-300"
+                      : "bg-amber-500/20 hover:bg-amber-500/30 border-amber-500/40 text-amber-300 hover:text-amber-200"
+                  }`}
+                >
+                  {isFollowing ? (
+                    <>
+                      <Check className="w-4 h-4 text-emerald-400" />
+                      <span>Đang theo dõi</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4 text-amber-400" />
+                      <span>+ Theo dõi diễn viên</span>
+                    </>
+                  )}
+                </button>
+
                 <Link
                   href={`/?actor=${encodeURIComponent(actorName)}`}
                   onClick={() => setIsOpen(false)}

@@ -80,7 +80,7 @@ export const ClientModals = React.memo(function ClientModals() {
     const handleUserProfileTrigger = (e: Event) => {
       if (mountedUserProfileRef.current) return;
       mountedUserProfileRef.current = true;
-      const customEvent = e as CustomEvent<{ tab?: "profile" | "comments" }>;
+      const customEvent = e as CustomEvent<{ tab?: "profile" | "player_settings" | "followed_actors" | "comments" }>;
       setUserProfileProps({ initialOpen: true, initialTab: customEvent.detail?.tab || "profile" });
       setMountUserProfile(true);
     };

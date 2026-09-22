@@ -53,6 +53,7 @@ export async function GET(req: NextRequest) {
       bio: data.bio,
       favoriteGenres: data.favorite_genres || [],
       badges: data.badges || [],
+      playerSettings: data.player_settings || {},
       watchTimeMinutes: data.watch_time_minutes || 0,
       role: data.role || "member",
       isCommentRestricted: Boolean(data.is_comment_restricted),
@@ -108,6 +109,13 @@ export async function POST(req: NextRequest) {
         ? sanitizeSafeText(body.displayName, 100)
         : existing?.display_name || auth.displayName || "Thành viên Nanaflix";
 
+    const mergedPlayerSettings =
+      body.playerSettings !== undefined
+        ? body.playerSettings
+        : body.player_settings !== undefined
+        ? body.player_settings
+        : existing?.player_settings || {};
+
     const payload = {
       id: userId,
       email: userEmail,
@@ -117,6 +125,7 @@ export async function POST(req: NextRequest) {
       bio: body.bio !== undefined ? sanitizeSafeText(body.bio, 500) : existing?.bio || null,
       favorite_genres: body.favoriteGenres || body.favorite_genres || existing?.favorite_genres || [],
       badges: body.badges || existing?.badges || [],
+      player_settings: mergedPlayerSettings,
       watch_time_minutes:
         typeof body.watchTimeMinutes === "number"
           ? Math.max(0, body.watchTimeMinutes)

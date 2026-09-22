@@ -24,7 +24,7 @@ import { getWatchProgress, saveWatchProgress } from "@/lib/watchHistory";
 import { formatEpisodeName } from "@/lib/formatEpisode";
 import { useAuth } from "@/context/AuthContext";
 import { updateActivePlaybackSession } from "@/services/handoffService";
-import { incrementUserWatchTime } from "@/services/userService";
+import { incrementUserWatchTime, getPlayerSettings, PlayerSettings } from "@/services/userService";
 import { PlayerNativeControls } from "./player/PlayerNativeControls";
 import { PlayerActionButtons } from "./player/PlayerActionButtons";
 import { PlayerShortcutModal } from "./player/PlayerShortcutModal";
@@ -99,6 +99,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const switchEpisode = watchContext?.switchEpisode;
 
   // Player UI states
+  const [playerSettings, setPlayerSettings] = useState<PlayerSettings>(() => getPlayerSettings(user?.uid));
   const [isTheaterMode, setIsTheaterMode] = useState(false);
   const [isLightsOff, setIsLightsOff] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -119,6 +120,32 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const [qualityLevels, setQualityLevels] = useState<Array<{ id: number; label: string; height: number }>>([]);
   const [currentQualityIndex, setCurrentQualityIndex] = useState<number>(-1);
   const [knownDuration, setKnownDuration] = useState<number>(0);
+
+  useEffect(() => {
+    const current = getPlayerSettings(user?.uid);
+    setPlayerSettings(current);
+    if (current.defaultTheaterMode && typeof window !== "undefined" && window.innerWidth >= 1024) {
+      setIsTheaterMode(true);
+    }
+    if (current.defaultLightsOff) {
+      setIsLightsOff(true);
+    }
+    if (current.playbackSpeed && current.playbackSpeed !== 1) {
+      setPlaybackSpeed(current.playbackSpeed);
+    }
+
+    const handleUpdate = (e: Event) => {
+      const customEv = e as CustomEvent<{ settings?: PlayerSettings }>;
+      if (customEv.detail?.settings) {
+        setPlayerSettings(customEv.detail.settings);
+      } else {
+        setPlayerSettings(getPlayerSettings(user?.uid));
+      }
+    };
+
+    window.addEventListener("player-settings-updated", handleUpdate);
+    return () => window.removeEventListener("player-settings-updated", handleUpdate);
+  }, [user?.uid]);
 
   const [hudState, setHudState] = useState<{ icon: React.ReactNode; text: string } | null>(null);
   const hudTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -828,7 +855,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           durationSeconds: currentEffectiveDuration,
         });
       }
-      if (nextEpisode?.slug && switchEpisode) {
+      if (playerSettings.autoNextEpisode !== false && nextEpisode?.slug && switchEpisode) {
         switchEpisode(nextEpisode.slug);
       }
     };
@@ -858,6 +885,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     posterUrl,
     targetProgress,
     getEffectiveDuration,
+    playerSettings.autoNextEpisode,
   ]);
 
   // Mobile sticky detection

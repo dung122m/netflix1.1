@@ -6,7 +6,6 @@ import Link from "next/link";
 import {
   X,
   User,
-  Sparkles,
   Check,
   Camera,
   Upload,
@@ -21,17 +20,39 @@ import {
   ExternalLink,
   Clock,
   ThumbsUp,
+  Settings,
+  Heart,
+  Film,
+  Bookmark,
+  FolderHeart,
+  Play,
+  UserMinus,
+  Sliders,
+  Tv,
+  Moon,
+  Zap,
+  Subtitles,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import {
   subscribeUserProfile,
   updateUserProfile,
   getWatchLevelInfo,
+  getPlayerSettings,
+  updatePlayerSettings,
+  DEFAULT_PLAYER_SETTINGS,
 } from "@/services/userService";
 import { subscribeUserComments, deleteMovieComment } from "@/services/commentService";
+import {
+  subscribeFollowedActors,
+  toggleFollowActor,
+} from "@/services/actorFollowService";
+import { getWatchlist } from "@/lib/watchlist";
+import { getWatchHistory } from "@/lib/watchHistory";
+import { getLocalCollections, subscribeUserCollections } from "@/services/collectionService";
 import { uploadAvatarSupabase } from "@/services/supabaseService";
 import { MovieComment } from "@/types/comment";
-import { UserProfile } from "@/types/user";
+import { UserProfile, PlayerSettings, FollowedActorItem } from "@/types/user";
 import { toast } from "@/components/Toast";
 import { showConfirmDialog } from "@/components/ui/ConfirmDialog";
 
@@ -75,9 +96,11 @@ export const AVAILABLE_BADGES = [
   { id: "top-fan", label: "👑 Top Fan Nanaflix", minMinutesReq: 12000, reqText: "200h+ xem (Thánh Phim)" },
 ];
 
+export type DashboardTab = "profile" | "player_settings" | "followed_actors" | "comments";
+
 export interface UserProfileModalProps {
   initialOpen?: boolean;
-  initialTab?: "profile" | "comments";
+  initialTab?: DashboardTab;
 }
 
 function UserProfileModalInner({
@@ -94,7 +117,7 @@ function UserProfileModalInner({
     setMounted(true);
   }, []);
 
-  // Form states
+  // Form states - Profile
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
   const [selectedAvatar, setSelectedAvatar] = useState("");
@@ -104,9 +127,22 @@ function UserProfileModalInner({
   const [badgeHint, setBadgeHint] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [useCustomUrl, setUseCustomUrl] = useState(false);
-  const [activeTab, setActiveTab] = useState<"profile" | "comments">(initialTab);
+
+  // Tab & Sub-features
+  const [activeTab, setActiveTab] = useState<DashboardTab>(initialTab);
   const [userComments, setUserComments] = useState<MovieComment[]>([]);
+  const [followedActors, setFollowedActors] = useState<FollowedActorItem[]>([]);
   const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
+  const [unfollowingActorId, setUnfollowingActorId] = useState<string | null>(null);
+
+  // Player Settings State
+  const [playerSettings, setPlayerSettingsState] = useState<PlayerSettings>(DEFAULT_PLAYER_SETTINGS);
+  const [isSavingPlayerSettings, setIsSavingPlayerSettings] = useState(false);
+
+  // Quick Stats States
+  const [watchlistCount, setWatchlistCount] = useState(0);
+  const [watchHistoryCount, setWatchHistoryCount] = useState(0);
+  const [collectionsCount, setCollectionsCount] = useState(0);
 
   useEffect(() => {
     if (initialTab) setActiveTab(initialTab);
@@ -116,9 +152,9 @@ function UserProfileModalInner({
   useEffect(() => {
     const handleOpen = (e: Event) => {
       setIsOpen(true);
-      const customEv = e as CustomEvent;
-      if (customEv?.detail?.tab === "comments") {
-        setActiveTab("comments");
+      const customEv = e as CustomEvent<{ tab?: DashboardTab }>;
+      if (customEv?.detail?.tab) {
+        setActiveTab(customEv.detail.tab);
       }
     };
     window.addEventListener("open-user-profile-modal", handleOpen as EventListener);
@@ -128,6 +164,24 @@ function UserProfileModalInner({
       window.removeEventListener("open-user-profile", handleOpen as EventListener);
     };
   }, []);
+
+  // Đọc dữ liệu thống kê nhanh
+  const refreshStats = React.useCallback(() => {
+    try {
+      setWatchlistCount(getWatchlist().length);
+      setWatchHistoryCount(getWatchHistory().length);
+      if (user?.uid) {
+        setCollectionsCount(getLocalCollections(user.uid).length);
+      }
+    } catch {}
+  }, [user?.uid]);
+
+  useEffect(() => {
+    if (isOpen) {
+      refreshStats();
+      setPlayerSettingsState(getPlayerSettings(user?.uid));
+    }
+  }, [isOpen, user?.uid, refreshStats]);
 
   // Đồng bộ lại form khi mở modal
   useEffect(() => {
@@ -146,6 +200,9 @@ function UserProfileModalInner({
       if (profile.badges && profile.badges.length > 0) {
         setUserBadges(profile.badges);
       }
+      if (profile.playerSettings) {
+        setPlayerSettingsState(profile.playerSettings);
+      }
     }
   }, [isOpen, profile, user]);
 
@@ -154,6 +211,24 @@ function UserProfileModalInner({
     if (!user?.uid || !isOpen) return;
     const unsub = subscribeUserComments(user.uid, (items) => {
       setUserComments(items);
+    });
+    return () => unsub();
+  }, [user?.uid, isOpen]);
+
+  // Lắng nghe danh sách diễn viên theo dõi theo thời gian thực
+  useEffect(() => {
+    if (!user?.uid || !isOpen) return;
+    const unsub = subscribeFollowedActors(user.uid, (items) => {
+      setFollowedActors(items);
+    });
+    return () => unsub();
+  }, [user?.uid, isOpen]);
+
+  // Lắng nghe bộ sưu tập
+  useEffect(() => {
+    if (!user?.uid || !isOpen) return;
+    const unsub = subscribeUserCollections(user.uid, (items) => {
+      setCollectionsCount(items.length);
     });
     return () => unsub();
   }, [user?.uid, isOpen]);
@@ -178,6 +253,34 @@ function UserProfileModalInner({
       toast.error("Không thể xóa bình luận lúc này!");
     } finally {
       setDeletingCommentId(null);
+    }
+  };
+
+  const handleUnfollowActor = async (actorId: string, actorName: string) => {
+    if (!user?.uid) return;
+    setUnfollowingActorId(actorId);
+    try {
+      await toggleFollowActor(user.uid, { actorId, actorName });
+      toast.info(`Đã bỏ theo dõi diễn viên ${actorName}`);
+    } catch (err) {
+      console.error("Lỗi bỏ follow:", err);
+      toast.error("Không thể bỏ theo dõi lúc này!");
+    } finally {
+      setUnfollowingActorId(null);
+    }
+  };
+
+  const handleOpenActorBio = (actor: FollowedActorItem) => {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("open-actor-bio", {
+          detail: {
+            actorName: actor.actorName,
+            actorPhoto: actor.actorPhoto || actor.actorAvatar,
+            knownFor: actor.knownFor,
+          },
+        })
+      );
     }
   };
 
@@ -210,8 +313,7 @@ function UserProfileModalInner({
         setDisplayName(data.displayName || user.displayName || "");
         setBio(data.bio || "");
         setFavoriteGenres(data.favoriteGenres || []);
-        
-        // Lọc danh hiệu thực sự đã mở khóa theo thời gian cày phim
+
         const userWatchMins = data.watchTimeMinutes || 0;
         const savedBadges = data.badges || [];
         const unlockedBadges = savedBadges.filter((badgeLabel) => {
@@ -232,6 +334,10 @@ function UserProfileModalInner({
           setCustomAvatarUrl(currentAvatar);
           setUseCustomUrl(true);
         }
+
+        if (data.playerSettings) {
+          setPlayerSettingsState(data.playerSettings);
+        }
       }
     });
     return () => unsub();
@@ -243,7 +349,7 @@ function UserProfileModalInner({
   const levelInfo = getWatchLevelInfo(watchMins);
   const watchHours = (watchMins / 60).toFixed(1);
 
-  // Hàm nén ảnh từ máy xuống 200x200px JPEG nhẹ (~15KB) để lưu mượt mà vào cơ sở dữ liệu
+  // Nén ảnh từ máy xuống 200x200px JPEG nhẹ (~15KB)
   const compressImage = (file: File, maxSize: number = 200, quality: number = 0.85): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -286,7 +392,7 @@ function UserProfileModalInner({
     });
   };
 
-  // Xử lý tải ảnh đại diện từ máy (Supabase Storage upload -> Fallback Base64 Data URL)
+  // Xử lý tải ảnh đại diện từ máy
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -297,10 +403,7 @@ function UserProfileModalInner({
     }
 
     try {
-      // 1. Nén ảnh chất lượng cao 200px
       const compressedDataUrl = await compressImage(file, 200, 0.85);
-
-      // 2. Thử tải lên Supabase Storage nếu đã đăng nhập
       let finalUrl = compressedDataUrl;
       if (user?.uid) {
         try {
@@ -308,9 +411,7 @@ function UserProfileModalInner({
           if (cloudUrl) {
             finalUrl = cloudUrl;
           }
-        } catch {
-          // Fallback to local compressedDataUrl
-        }
+        } catch {}
       }
 
       setCustomAvatarUrl(finalUrl);
@@ -356,7 +457,7 @@ function UserProfileModalInner({
     }
   };
 
-  const handleSave = async (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user?.uid) return;
 
@@ -378,7 +479,6 @@ function UserProfileModalInner({
         badges: userBadges,
       });
       toast.success("Đã cập nhật hồ sơ cá nhân thành công! 🎉");
-      setIsOpen(false);
     } catch (err) {
       console.error("Lỗi cập nhật profile:", err);
       toast.error("Không thể cập nhật hồ sơ. Vui lòng thử lại!");
@@ -387,14 +487,30 @@ function UserProfileModalInner({
     }
   };
 
+  const handleSavePlayerSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user?.uid) return;
+
+    setIsSavingPlayerSettings(true);
+    try {
+      await updatePlayerSettings(user.uid, playerSettings);
+      toast.success("Đã lưu & đồng bộ thiết lập trình phát Cloud thành công! 🍿");
+    } catch (err) {
+      console.error("Lỗi cập nhật player settings:", err);
+      toast.error("Không thể lưu cài đặt lúc này. Vui lòng thử lại!");
+    } finally {
+      setIsSavingPlayerSettings(false);
+    }
+  };
+
   return createPortal(
     <div
       onClick={() => setIsOpen(false)}
-      className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200"
+      className="fixed inset-0 z-[99999] flex items-center justify-center p-2.5 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl sm:rounded-3xl border border-white/15 bg-gradient-to-b from-zinc-900 via-zinc-950 to-black p-4 sm:p-6 shadow-2xl space-y-4 sm:space-y-6 scrollbar-thin"
+        className="relative w-full max-w-3xl max-h-[92vh] overflow-y-auto rounded-2xl sm:rounded-3xl border border-white/15 bg-gradient-to-b from-zinc-900 via-zinc-950 to-black p-4 sm:p-6 shadow-2xl space-y-4 sm:space-y-5 scrollbar-thin text-white"
       >
         {/* NÚT ĐÓNG */}
         <button
@@ -405,76 +521,178 @@ function UserProfileModalInner({
           <X className="w-4 h-4" />
         </button>
 
-        {/* HEADER */}
-        <div className="flex items-center justify-between border-b border-white/10 pb-3 sm:pb-4 pr-10 sm:pr-0">
-          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-netflix-red/20 border border-netflix-red/40 flex items-center justify-center text-rose-400 shadow-inner flex-shrink-0">
-              <User className="w-5 h-5 sm:w-6 sm:h-6" />
+        {/* PROFILE HEADER & SUMMARY */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-white/10 pb-3 sm:pb-4 pr-8 sm:pr-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="relative flex-shrink-0">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl overflow-hidden border border-rose-500/40 bg-zinc-800 shadow-md">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={selectedAvatar || user.photoURL || "https://api.dicebear.com/7.x/bottts/svg?seed=Nanaflix1"}
+                  alt="Avatar"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <span className="absolute -bottom-1 -right-1 text-xs">{levelInfo.badgeIcon}</span>
             </div>
+
             <div className="min-w-0">
-              <h3 className="text-lg sm:text-xl font-black text-white flex items-center gap-1.5 truncate">
-                <span>Hồ Sơ Cá Nhân VIP</span>
-                <Sparkles className="w-4 h-4 text-amber-400 flex-shrink-0" />
-              </h3>
-              <p className="text-[11px] sm:text-xs text-gray-400 truncate">
-                Tùy chỉnh ảnh đại diện, danh hiệu và cấp độ cày phim.
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-base sm:text-lg font-black text-white truncate">
+                  {displayName || user.displayName || "Thành viên Nanaflix"}
+                </h3>
+                <span className="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 text-[10px] font-bold">
+                  {levelInfo.levelName}
+                </span>
+              </div>
+              <p className="text-[11px] text-gray-400 truncate mt-0.5">
+                {user.email} • {bio || "Mê phim điện ảnh & phim bộ chất lượng cao 🍿"}
               </p>
             </div>
           </div>
 
-          {/* Nút xem Bảng Xếp Hạng */}
+          {/* Quick Action: Bảng xếp hạng */}
           <button
             type="button"
             onClick={() => {
               window.dispatchEvent(new CustomEvent("open-leaderboard-modal"));
             }}
-            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/15 border border-amber-500/40 text-amber-300 hover:bg-amber-500 hover:text-black text-xs font-bold transition cursor-pointer flex-shrink-0 whitespace-nowrap"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/15 border border-amber-500/40 text-amber-300 hover:bg-amber-500 hover:text-black text-xs font-bold transition cursor-pointer flex-shrink-0 self-end sm:self-center"
           >
             <Trophy className="w-3.5 h-3.5" />
             <span>Bảng Xếp Hạng</span>
           </button>
         </div>
 
-        {/* TAB CHUYỂN ĐỔI: HỒ SƠ & LỊCH SỬ BÌNH LUẬN */}
-        <div className="flex items-center gap-1.5 bg-white/5 p-1 rounded-2xl border border-white/10 text-xs font-bold">
+        {/* QUICK STATS BAR */}
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+          <div className="p-2 sm:p-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-center flex flex-col items-center justify-center">
+            <Film className="w-3.5 h-3.5 text-rose-400 mb-1" />
+            <span className="text-xs sm:text-sm font-black text-white">{watchHistoryCount}</span>
+            <span className="text-[10px] text-gray-400">Phim đã xem</span>
+          </div>
+
+          <div className="p-2 sm:p-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-center flex flex-col items-center justify-center">
+            <Flame className="w-3.5 h-3.5 text-amber-400 mb-1" />
+            <span className="text-xs sm:text-sm font-black text-amber-300">{watchHours}h</span>
+            <span className="text-[10px] text-gray-400">Thời gian cày</span>
+          </div>
+
+          <Link
+            href="/my-list?tab=watchlist"
+            onClick={() => setIsOpen(false)}
+            className="p-2 sm:p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-center flex flex-col items-center justify-center transition group"
+          >
+            <Bookmark className="w-3.5 h-3.5 text-amber-400 mb-1 group-hover:scale-110 transition" />
+            <span className="text-xs sm:text-sm font-black text-white">{watchlistCount}</span>
+            <span className="text-[10px] text-gray-400">Phim đã lưu</span>
+          </Link>
+
+          <Link
+            href="/my-list?tab=collections"
+            onClick={() => setIsOpen(false)}
+            className="p-2 sm:p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-center flex flex-col items-center justify-center transition group"
+          >
+            <FolderHeart className="w-3.5 h-3.5 text-sky-400 mb-1 group-hover:scale-110 transition" />
+            <span className="text-xs sm:text-sm font-black text-white">{collectionsCount}</span>
+            <span className="text-[10px] text-gray-400">Bộ sưu tập</span>
+          </Link>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("followed_actors")}
+            className={`p-2 sm:p-2.5 rounded-xl border text-center flex flex-col items-center justify-center transition cursor-pointer ${
+              activeTab === "followed_actors"
+                ? "bg-rose-500/15 border-rose-500/40 text-rose-300"
+                : "bg-white/[0.04] hover:bg-white/[0.08] border-white/10 text-white"
+            }`}
+          >
+            <Heart className="w-3.5 h-3.5 text-rose-400 mb-1" />
+            <span className="text-xs sm:text-sm font-black">{followedActors.length}</span>
+            <span className="text-[10px] text-gray-400">Diễn viên</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("comments")}
+            className={`p-2 sm:p-2.5 rounded-xl border text-center flex flex-col items-center justify-center transition cursor-pointer ${
+              activeTab === "comments"
+                ? "bg-rose-500/15 border-rose-500/40 text-rose-300"
+                : "bg-white/[0.04] hover:bg-white/[0.08] border-white/10 text-white"
+            }`}
+          >
+            <MessageSquare className="w-3.5 h-3.5 text-emerald-400 mb-1" />
+            <span className="text-xs sm:text-sm font-black">{userComments.length}</span>
+            <span className="text-[10px] text-gray-400">Đánh giá</span>
+          </button>
+        </div>
+
+        {/* TAB CHUYỂN ĐỔI DASHBOARD (4 TABS) */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 bg-white/5 p-1 rounded-2xl border border-white/10 text-xs font-bold">
           <button
             type="button"
             onClick={() => setActiveTab("profile")}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl transition cursor-pointer whitespace-nowrap ${
+            className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl transition cursor-pointer whitespace-nowrap ${
               activeTab === "profile"
                 ? "bg-netflix-red text-white shadow-md shadow-rose-950/50"
                 : "text-gray-400 hover:text-white hover:bg-white/5"
             }`}
           >
             <User className="w-3.5 h-3.5 flex-shrink-0" />
-            <span>Hồ Sơ VIP</span>
+            <span>Hồ Sơ & Danh Hiệu</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("player_settings")}
+            className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl transition cursor-pointer whitespace-nowrap ${
+              activeTab === "player_settings"
+                ? "bg-netflix-red text-white shadow-md shadow-rose-950/50"
+                : "text-gray-400 hover:text-white hover:bg-white/5"
+            }`}
+          >
+            <Settings className="w-3.5 h-3.5 flex-shrink-0" />
+            <span>Cài Đặt Phát Lại</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("followed_actors")}
+            className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl transition cursor-pointer whitespace-nowrap ${
+              activeTab === "followed_actors"
+                ? "bg-netflix-red text-white shadow-md shadow-rose-950/50"
+                : "text-gray-400 hover:text-white hover:bg-white/5"
+            }`}
+          >
+            <Heart className="w-3.5 h-3.5 flex-shrink-0" />
+            <span>Diễn Viên ({followedActors.length})</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab("comments")}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl transition cursor-pointer whitespace-nowrap ${
+            className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl transition cursor-pointer whitespace-nowrap ${
               activeTab === "comments"
                 ? "bg-netflix-red text-white shadow-md shadow-rose-950/50"
                 : "text-gray-400 hover:text-white hover:bg-white/5"
             }`}
           >
             <MessageSquare className="w-3.5 h-3.5 flex-shrink-0" />
-            <span>Lịch Sử Đánh Giá ({userComments.length})</span>
+            <span>Đánh Giá ({userComments.length})</span>
           </button>
         </div>
 
-        {/* TAB 1: HỒ SƠ CÁ NHÂN */}
+        {/* TAB 1: HỒ SƠ CÁ NHÂN & DANH HIỆU */}
         {activeTab === "profile" && (
-          <>
-            {/* CẤP ĐỘ CÀY PHIM (WATCH LEVEL CARD) */}
+          <div className="space-y-4">
+            {/* WATCH LEVEL CARD */}
             <div className="p-3.5 sm:p-4 rounded-2xl border border-white/10 bg-white/5 space-y-2">
               <div className="flex items-center justify-between text-xs sm:text-sm gap-2 flex-wrap">
                 <div className="flex items-center gap-1.5 sm:gap-2">
                   <span className="text-base sm:text-lg">{levelInfo.badgeIcon}</span>
                   <span className="font-extrabold text-white">{levelInfo.levelName}</span>
-                  <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] sm:text-[10.5px] font-bold whitespace-nowrap">
-                    Level VIP
+                  <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-bold whitespace-nowrap">
+                    Cấp Độ VIP
                   </span>
                 </div>
                 <div className="flex items-center gap-1 text-[11px] sm:text-xs text-amber-400 font-bold whitespace-nowrap">
@@ -483,7 +701,6 @@ function UserProfileModalInner({
                 </div>
               </div>
 
-              {/* Thanh Tiến Độ Lên Cấp */}
               {levelInfo.nextMinMinutes && (
                 <div className="space-y-1 pt-1">
                   <div className="flex justify-between text-[11px] text-gray-400">
@@ -507,15 +724,13 @@ function UserProfileModalInner({
               )}
             </div>
 
-            <form onSubmit={handleSave} className="space-y-5">
-              {/* 1. CHỌN KHO AVATAR VIP & TẢI ẢNH CÁ NHÂN */}
-              <div className="space-y-3">
+            <form onSubmit={handleSaveProfile} className="space-y-4 sm:space-y-5">
+              {/* 1. KHO AVATAR VIP */}
+              <div className="space-y-2.5">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-gray-300 uppercase tracking-wider block">
                     1. Kho Avatar VIP & Tải ảnh riêng
                   </label>
-
-                  {/* NÚT TẢI ẢNH TỪ MÁY */}
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
@@ -533,8 +748,7 @@ function UserProfileModalInner({
                   />
                 </div>
 
-                {/* PRESET AVATARS GRID */}
-                <div className="grid grid-cols-4 sm:grid-cols-6 gap-2.5">
+                <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
                   {PRESET_AVATARS.map((av) => {
                     const isSelected = !useCustomUrl && selectedAvatar === av.url;
                     return (
@@ -568,7 +782,6 @@ function UserProfileModalInner({
                   })}
                 </div>
 
-                {/* OPTION NHẬP URL AVATAR TỰ CHỌN */}
                 <div className="flex items-center gap-2 pt-1">
                   <button
                     type="button"
@@ -589,7 +802,7 @@ function UserProfileModalInner({
                         setCustomAvatarUrl(e.target.value);
                         setSelectedAvatar(e.target.value);
                       }}
-                      placeholder="Dán đường dẫn URL ảnh của bạn (https://...)"
+                      placeholder="Dán link ảnh URL của bạn (https://...)"
                       className="flex-1 px-3.5 py-2 rounded-xl bg-zinc-900 border border-white/15 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-netflix-red transition"
                     />
                     {customAvatarUrl && (
@@ -610,8 +823,8 @@ function UserProfileModalInner({
               </div>
 
               {/* 2. TÊN HIỂN THỊ & TIỂU SỬ */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div className="space-y-1">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-bold text-gray-300 uppercase tracking-wider">
                       2. Tên hiển thị
@@ -624,14 +837,14 @@ function UserProfileModalInner({
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
                     placeholder="Nhập tên hiển thị..."
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-white/15 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-netflix-red transition font-semibold"
+                    className="w-full px-3.5 py-2 rounded-xl bg-zinc-900 border border-white/15 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-netflix-red transition font-semibold"
                   />
                 </div>
 
-                <div className="space-y-1.5">
+                <div className="space-y-1">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-bold text-gray-300 uppercase tracking-wider">
-                      3. Tiểu sử (Bio Slogan)
+                      3. Tiểu sử (Slogan)
                     </label>
                     <span className="text-[11px] text-gray-500">{bio.length}/150</span>
                   </div>
@@ -640,13 +853,13 @@ function UserProfileModalInner({
                     maxLength={150}
                     value={bio}
                     onChange={(e) => setBio(e.target.value)}
-                    placeholder="Mê phim Marvel, cuồng cày phim bộ ban đêm 🍿..."
+                    placeholder="Mê phim Marvel, cày phim bộ ban đêm 🍿..."
                     className="w-full px-3.5 py-2 rounded-xl bg-zinc-900 border border-white/15 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-netflix-red transition resize-none leading-relaxed"
                   />
                 </div>
               </div>
 
-              {/* 4. BỘ DANH HIỆU SỞ HỮU (BADGES) */}
+              {/* 4. DANH HIỆU (BADGES) */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-gray-300 uppercase tracking-wider block">
@@ -656,7 +869,7 @@ function UserProfileModalInner({
                     Đã mở: {AVAILABLE_BADGES.filter((b) => watchMins >= b.minMinutesReq).length}/{AVAILABLE_BADGES.length}
                   </span>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1.5">
                   {AVAILABLE_BADGES.map((b) => {
                     const isUnlocked = watchMins >= b.minMinutesReq;
                     const active = isUnlocked && userBadges.includes(b.label);
@@ -685,14 +898,14 @@ function UserProfileModalInner({
                   })}
                 </div>
                 {badgeHint && (
-                  <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-[11.5px] text-amber-300 font-semibold flex items-center gap-2 animate-in fade-in duration-150">
+                  <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-[11.5px] text-amber-300 font-semibold flex items-center gap-2">
                     <Lock className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
                     <span>{badgeHint}</span>
                   </div>
                 )}
               </div>
 
-              {/* 5. SỞ THÍCH THỂ LOẠI */}
+              {/* 5. THỂ LOẠI YÊU THÍCH */}
               <div className="space-y-2">
                 <label className="text-xs font-bold text-gray-300 uppercase tracking-wider block">
                   5. Thể loại phim yêu thích (Tối đa 5)
@@ -718,14 +931,14 @@ function UserProfileModalInner({
                 </div>
               </div>
 
-              {/* NÚT LƯU THAY ĐỔI */}
+              {/* NÚT LƯU PROFILE */}
               <div className="pt-3 border-t border-white/10 flex items-center justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setIsOpen(false)}
                   className="px-4 py-2 rounded-xl text-xs font-bold text-gray-400 hover:text-white hover:bg-white/5 transition cursor-pointer"
                 >
-                  Hủy
+                  Đóng
                 </button>
                 <button
                   type="submit"
@@ -746,10 +959,288 @@ function UserProfileModalInner({
                 </button>
               </div>
             </form>
-          </>
+          </div>
         )}
 
-        {/* TAB 2: LỊCH SỬ BÌNH LUẬN */}
+        {/* TAB 2: CÀI ĐẶT TRÌNH PHÁT CLOUD */}
+        {activeTab === "player_settings" && (
+          <form onSubmit={handleSavePlayerSettings} className="space-y-4 py-1">
+            <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 space-y-1">
+              <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                <Sliders className="w-4 h-4 text-rose-400" />
+                <span>Đồng bộ tùy chọn trình phát Cloud</span>
+              </h4>
+              <p className="text-xs text-gray-400 leading-relaxed">
+                Tất cả các tùy chọn xem phim dưới đây sẽ được lưu trữ trên tài khoản Supabase của bạn và tự động đồng bộ tức thì khi bạn đăng nhập trên PC, Laptop hoặc Điện thoại.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              {/* TỰ ĐỘNG CHUYỂN TẬP */}
+              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-zinc-900/60 border border-white/10 hover:border-white/20 transition">
+                <div className="space-y-0.5 pr-3">
+                  <div className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
+                    <Play className="w-3.5 h-3.5 text-rose-400" />
+                    <span>Tự động phát tập tiếp theo</span>
+                  </div>
+                  <p className="text-[11px] text-gray-400">
+                    Khi xem xong một tập phim bộ, CinemaPlayer sẽ tự động chuyển sang tập kế tiếp.
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={playerSettings.autoNextEpisode}
+                    onChange={(e) =>
+                      setPlayerSettingsState({ ...playerSettings, autoNextEpisode: e.target.checked })
+                    }
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-netflix-red"></div>
+                </label>
+              </div>
+
+              {/* MẶC ĐỊNH MỞ RẠP PHIM (THEATER MODE) */}
+              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-zinc-900/60 border border-white/10 hover:border-white/20 transition">
+                <div className="space-y-0.5 pr-3">
+                  <div className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
+                    <Tv className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Mặc định mở Giao diện Rạp Chiếu Phim (Theater Mode)</span>
+                  </div>
+                  <p className="text-[11px] text-gray-400">
+                    Mở rộng khung phát phim toàn chiều rộng màn hình để trải nghiệm điện ảnh chân thực.
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={playerSettings.defaultTheaterMode}
+                    onChange={(e) =>
+                      setPlayerSettingsState({ ...playerSettings, defaultTheaterMode: e.target.checked })
+                    }
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                </label>
+              </div>
+
+              {/* MẶC ĐỊNH TẮT ĐÈN (LIGHTS OFF) */}
+              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-zinc-900/60 border border-white/10 hover:border-white/20 transition">
+                <div className="space-y-0.5 pr-3">
+                  <div className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
+                    <Moon className="w-3.5 h-3.5 text-sky-400" />
+                    <span>Mặc định bật chế độ Tối Màn Hình (Lights Off)</span>
+                  </div>
+                  <p className="text-[11px] text-gray-400">
+                    Làm tối toàn bộ giao diện xung quanh màn hình phát để bạn tập trung trọn vẹn vào phim.
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={playerSettings.defaultLightsOff}
+                    onChange={(e) =>
+                      setPlayerSettingsState({ ...playerSettings, defaultLightsOff: e.target.checked })
+                    }
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-500"></div>
+                </label>
+              </div>
+
+              {/* TỰ ĐỘNG BẬT PHỤ ĐỀ */}
+              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-zinc-900/60 border border-white/10 hover:border-white/20 transition">
+                <div className="space-y-0.5 pr-3">
+                  <div className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
+                    <Subtitles className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Tự động hiển thị phụ đề (Auto Subtitle)</span>
+                  </div>
+                  <p className="text-[11px] text-gray-400">
+                    Tự động ưu tiên bật track phụ đề Tiếng Việt khi nguồn video có sẵn bản sub.
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={playerSettings.autoSubtitle}
+                    onChange={(e) =>
+                      setPlayerSettingsState({ ...playerSettings, autoSubtitle: e.target.checked })
+                    }
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                </label>
+              </div>
+
+              {/* TỐC ĐỘ PHÁT MẶC ĐỊNH */}
+              <div className="p-3.5 rounded-2xl bg-zinc-900/60 border border-white/10 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
+                    <Zap className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Tốc độ phát mặc định</span>
+                  </label>
+                  <span className="text-xs font-black text-amber-400">
+                    {playerSettings.playbackSpeed}x
+                  </span>
+                </div>
+                <div className="grid grid-cols-5 gap-2">
+                  {[0.75, 1, 1.25, 1.5, 2].map((speed) => (
+                    <button
+                      key={speed}
+                      type="button"
+                      onClick={() =>
+                        setPlayerSettingsState({ ...playerSettings, playbackSpeed: speed })
+                      }
+                      className={`py-2 rounded-xl text-xs font-black transition cursor-pointer border ${
+                        playerSettings.playbackSpeed === speed
+                          ? "bg-amber-500 text-black border-amber-400 shadow-md shadow-amber-950/40"
+                          : "bg-white/5 text-gray-300 border-white/10 hover:border-white/25 hover:text-white"
+                      }`}
+                    >
+                      {speed === 1 ? "1.0x (Chuẩn)" : `${speed}x`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* NÚT LƯU PLAYBACK SETTINGS */}
+            <div className="pt-3 border-t border-white/10 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setPlayerSettingsState(getPlayerSettings(user?.uid))}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-gray-400 hover:text-white hover:bg-white/5 transition cursor-pointer"
+              >
+                Đặt lại
+              </button>
+              <button
+                type="submit"
+                disabled={isSavingPlayerSettings}
+                className="px-5 py-2.5 rounded-xl bg-netflix-red hover:bg-rose-700 text-white text-xs font-black shadow-lg shadow-rose-950/60 transition flex items-center gap-2 cursor-pointer disabled:opacity-50 active:scale-95"
+              >
+                {isSavingPlayerSettings ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Đang đồng bộ...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    <span>Lưu Cài Đặt Cloud</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* TAB 3: DIỄN VIÊN ĐÃ THEO DÕI */}
+        {activeTab === "followed_actors" && (
+          <div className="space-y-4 py-1">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                  <Heart className="w-4 h-4 text-rose-400 fill-rose-400" />
+                  <span>Diễn viên yêu thích của bạn ({followedActors.length})</span>
+                </h4>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Theo dõi diễn viên giúp gợi ý đề xuất phim &quot;Dành Riêng Cho Bạn&quot; chuẩn xác hơn.
+                </p>
+              </div>
+            </div>
+
+            {followedActors.length === 0 ? (
+              <div className="py-12 px-4 text-center border border-dashed border-white/10 rounded-2xl bg-white/[0.02] space-y-3">
+                <Heart className="w-10 h-10 text-rose-500/40 mx-auto" />
+                <div>
+                  <h4 className="text-base font-bold text-white mb-1">
+                    Bạn chưa theo dõi diễn viên nào
+                  </h4>
+                  <p className="text-xs text-gray-400 max-w-sm mx-auto">
+                    Hãy bấm vào tên diễn viên trong chi tiết phim hoặc tìm kiếm để xem tiểu sử và bấm theo dõi nhé!
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[55vh] overflow-y-auto pr-1 scrollbar-thin">
+                {followedActors.map((actor) => {
+                  const avatar = actor.actorPhoto || actor.actorAvatar;
+                  return (
+                    <div
+                      key={actor.actorId}
+                      className="p-3.5 rounded-2xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] transition flex items-center justify-between gap-3 group"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-12 h-12 rounded-2xl bg-zinc-800 border border-white/10 overflow-hidden flex-shrink-0 shadow-md">
+                          {avatar ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={avatar}
+                              alt={actor.actorName}
+                              className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                              onError={(e) => {
+                                e.currentTarget.style.display = "none";
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-rose-400 font-black text-sm bg-rose-500/10">
+                              {actor.actorName.slice(0, 2).toUpperCase()}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="min-w-0">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenActorBio(actor)}
+                            className="text-sm font-bold text-white hover:text-rose-400 transition text-left block truncate cursor-pointer"
+                          >
+                            {actor.actorName}
+                          </button>
+                          {actor.knownFor && (
+                            <p className="text-[11px] text-gray-400 truncate">
+                              {actor.knownFor}
+                            </p>
+                          )}
+                          <span className="text-[10px] text-gray-500 block mt-0.5">
+                            Đã theo dõi {new Date(actor.createdAt).toLocaleDateString("vi-VN")}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenActorBio(actor)}
+                          title="Xem tiểu sử & danh sách phim"
+                          className="p-2 rounded-xl bg-white/5 hover:bg-white/15 text-gray-300 hover:text-white transition cursor-pointer"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={unfollowingActorId === actor.actorId}
+                          onClick={() => handleUnfollowActor(actor.actorId, actor.actorName)}
+                          title="Bỏ theo dõi"
+                          className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 transition cursor-pointer disabled:opacity-50"
+                        >
+                          {unfollowingActorId === actor.actorId ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <UserMinus className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB 4: LỊCH SỬ BÌNH LUẬN & ĐÁNH GIÁ */}
         {activeTab === "comments" && (
           <div className="space-y-4 py-1">
             {userComments.length === 0 ? (

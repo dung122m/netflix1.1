@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   bio TEXT,
   favorite_genres JSONB DEFAULT '[]'::jsonb,
   badges JSONB DEFAULT '[]'::jsonb,
+  player_settings JSONB DEFAULT '{}'::jsonb,
   watch_time_minutes INTEGER DEFAULT 0,
   role TEXT DEFAULT 'member',
   is_comment_restricted BOOLEAN DEFAULT FALSE,
@@ -211,6 +212,20 @@ CREATE TABLE IF NOT EXISTS public.device_handoff (
 
 CREATE INDEX IF NOT EXISTS idx_device_handoff_user_updated ON public.device_handoff(user_id, updated_at DESC);
 
+-- 11. BẢNG THEO DÕI NGHỆ SĨ & DIỄN VIÊN (FOLLOWED_ACTORS)
+CREATE TABLE IF NOT EXISTS public.followed_actors (
+  id TEXT PRIMARY KEY, -- userId_actorId
+  user_id TEXT NOT NULL,
+  actor_id TEXT NOT NULL,
+  actor_name TEXT NOT NULL,
+  actor_avatar TEXT,
+  created_at BIGINT DEFAULT (EXTRACT(EPOCH FROM NOW()) * 1000)::BIGINT
+);
+
+CREATE INDEX IF NOT EXISTS idx_followed_actors_user ON public.followed_actors(user_id);
+CREATE INDEX IF NOT EXISTS idx_followed_actors_actor ON public.followed_actors(actor_id);
+CREATE INDEX IF NOT EXISTS idx_followed_actors_user_created ON public.followed_actors(user_id, created_at DESC);
+
 -- =========================================================
 -- ROW LEVEL SECURITY POLICIES (CẤP QUYỀN TRUY CẬP)
 -- =========================================================
@@ -224,6 +239,7 @@ ALTER TABLE public.error_reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.followed_series ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.match_reminders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.device_handoff ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.followed_actors ENABLE ROW LEVEL SECURITY;
 
 -- Profiles
 DROP POLICY IF EXISTS "Public Read Profiles" ON public.profiles;

@@ -43,6 +43,7 @@ ALTER TABLE IF EXISTS public.error_reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.followed_series ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.match_reminders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.device_handoff ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.followed_actors ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.movie_comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.analytics_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.movie_embeddings ENABLE ROW LEVEL SECURITY;
@@ -197,8 +198,9 @@ FROM public.profiles;
 --   6. public.followed_series -> 100% private, truy cập qua /api/user/series
 --   7. public.match_reminders -> 100% private, truy cập qua /api/user/reminders
 --   8. public.device_handoff  -> 100% private, truy cập qua /api/user/handoff
---   9. public.analytics_events-> 100% private, ghi nhận qua Next.js Server API
---  10. public.movie_embeddings-> 100% private, tìm kiếm & nạp vector qua Server API
+--   9. public.followed_actors -> 100% private, truy cập qua /api/user/actors
+--  10. public.analytics_events-> 100% private, ghi nhận qua Next.js Server API
+--  11. public.movie_embeddings-> 100% private, tìm kiếm & nạp vector qua Server API
 --
 -- Khi RLS được bật và không có SELECT/INSERT/UPDATE/DELETE policy nào khớp,
 -- PostgreSQL sẽ mặc định trả về 0 rows hoặc từ chối mọi thao tác của anon client.

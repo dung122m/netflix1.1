@@ -14,6 +14,7 @@ import { subscribeUserProfile } from "@/services/userService";
 import { UserProfile } from "@/types/user";
 import { getWatchHistory } from "@/lib/watchHistory";
 import { pickBestMoviePoster, toOptimizedPhimimgUrl } from "@/lib/movieMedia";
+import { getLocalFollowedActors } from "@/services/actorFollowService";
 
 export interface ForYouMovieItem {
   slug: string;
@@ -283,11 +284,15 @@ export function ForYouPersonalizedRow({ fallbackMovies }: ForYouPersonalizedRowP
 
     const watchedTitles = history.map((h) => h.title).filter(Boolean).slice(0, 20);
     const watchedSlugs = history.map((h) => h.slug).filter(Boolean);
+    const followedActors = user?.uid
+      ? getLocalFollowedActors(user.uid).map((a) => a.actorName).filter(Boolean)
+      : [];
+    const actorsKey = followedActors.slice(0, 5).sort().join(",");
     const historyHash = historyItems
       .slice(0, 6)
       .map((h) => `${h.slug}:${Math.round((h.progressSeconds || 0) / 60)}`)
       .join("|");
-    const currentFingerprint = `${user?.uid || "guest"}_${genresKey}_${historyHash}_seed${currentSeed}`;
+    const currentFingerprint = `${user?.uid || "guest"}_${genresKey}_${actorsKey}_${historyHash}_seed${currentSeed}`;
 
     if (!forceRefresh && inFlightRef.current) return;
     if (!forceRefresh && lastFingerprintRef.current === currentFingerprint && moviesRef.current.length >= 8) return;
@@ -335,6 +340,7 @@ export function ForYouPersonalizedRow({ fallbackMovies }: ForYouPersonalizedRowP
           historyItems,
           watchedTitles,
           watchedSlugs,
+          followedActors,
           refreshSeed: currentSeed,
           currentSlugs: moviesRef.current.map((m) => m.slug),
         }),

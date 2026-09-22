@@ -4,11 +4,93 @@ export interface BaseAuthUser {
   displayName?: string | null;
   photoURL?: string | null;
 }
-import { UserProfile } from "@/types/user";
+import { UserProfile, PlayerSettings } from "@/types/user";
 import { WatchHistoryItem } from "@/lib/watchHistory";
 import { WatchlistItem } from "@/lib/watchlist";
 import { isUserAdmin } from "@/lib/adminConfig";
 import { sanitizeSafeText } from "@/lib/security";
+
+export type { PlayerSettings };
+
+export const DEFAULT_PLAYER_SETTINGS: PlayerSettings = {
+  autoNextEpisode: true,
+  defaultTheaterMode: false,
+  defaultLightsOff: false,
+  preferredQuality: "auto",
+  playbackSpeed: 1,
+};
+
+const PLAYER_SETTINGS_STORAGE_KEY = "nanaflix_player_settings";
+
+/**
+ * Lấy cài đặt trình phát video (kết hợp LocalStorage và Cloud Profile)
+ */
+export function getPlayerSettings(userId?: string): PlayerSettings {
+  if (typeof window === "undefined") return DEFAULT_PLAYER_SETTINGS;
+  try {
+    if (userId) {
+      const profile = getCachedUserProfile(userId);
+      if (profile?.playerSettings && Object.keys(profile.playerSettings).length > 0) {
+        return { ...DEFAULT_PLAYER_SETTINGS, ...profile.playerSettings };
+      }
+    }
+    const raw = localStorage.getItem(PLAYER_SETTINGS_STORAGE_KEY);
+    if (raw) {
+      return { ...DEFAULT_PLAYER_SETTINGS, ...JSON.parse(raw) };
+    }
+  } catch {}
+  return DEFAULT_PLAYER_SETTINGS;
+}
+
+/**
+ * Cập nhật cài đặt trình phát video (Optimistic 0ms + Cloud Sync)
+ */
+export async function updatePlayerSettings(
+  userId: string | undefined,
+  settings: Partial<PlayerSettings>
+): Promise<PlayerSettings> {
+  const current = getPlayerSettings(userId);
+  const updated: PlayerSettings = { ...current, ...settings };
+
+  if (typeof window !== "undefined") {
+    try {
+      localStorage.setItem(PLAYER_SETTINGS_STORAGE_KEY, JSON.stringify(updated));
+    } catch {}
+  }
+
+  if (userId) {
+    const currentProfile = getCachedUserProfile(userId);
+    if (currentProfile) {
+      setCachedUserProfile(userId, {
+        ...currentProfile,
+        playerSettings: updated,
+      });
+    }
+
+    try {
+      const { auth } = await import("@/lib/firebase");
+      const token = await auth?.currentUser?.getIdToken();
+      if (token) {
+        fetch("/api/user/profile", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ playerSettings: updated }),
+        }).catch(() => {});
+      }
+    } catch {}
+  }
+
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent("player-settings-updated", { detail: { settings: updated } })
+    );
+  }
+
+  return updated;
+}
 import {
   upsertUserProfileSupabase,
   getUserProfileSupabase,
@@ -130,6 +212,9 @@ export async function recordUserProfile(user: BaseAuthUser): Promise<void> {
       localHistoryMins
     );
 
+    const localPlayerSettings = getPlayerSettings();
+    const mergedPlayerSettings = remoteProfile?.playerSettings || cached?.playerSettings || localPlayerSettings;
+
     const profileData: Partial<UserProfile> & { uid: string } = {
       uid: user.uid,
       email: user.email || "",
@@ -139,11 +224,22 @@ export async function recordUserProfile(user: BaseAuthUser): Promise<void> {
       bio: mergedBio || undefined,
       favoriteGenres: mergedFavoriteGenres,
       badges: mergedBadges,
+      playerSettings: mergedPlayerSettings,
       lastLoginAt: now,
       role: isAdmin ? "admin" : (remoteProfile?.role || "member"),
       createdAt: remoteProfile?.createdAt || cached?.createdAt || now,
       watchTimeMinutes: currentWatchMins,
     };
+
+    // Đồng bộ vào localStorage để CinemaPlayer đọc được tức thì
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem(PLAYER_SETTINGS_STORAGE_KEY, JSON.stringify(mergedPlayerSettings));
+        window.dispatchEvent(
+          new CustomEvent("player-settings-updated", { detail: { settings: mergedPlayerSettings } })
+        );
+      } catch {}
+    }
 
     // Lưu vào Local cache
     setCachedUserProfile(user.uid, profileData as Partial<UserProfile>);
@@ -387,6 +483,7 @@ export async function updateUserProfile(
     customAvatar?: string;
     badges?: string[];
     watchTimeMinutes?: number;
+    playerSettings?: PlayerSettings;
   }
 ): Promise<void> {
   if (!userId) return;
@@ -421,6 +518,9 @@ export async function updateUserProfile(
   if (data.watchTimeMinutes !== undefined) {
     payload.watchTimeMinutes = data.watchTimeMinutes;
   }
+  if (data.playerSettings !== undefined) {
+    payload.playerSettings = data.playerSettings;
+  }
 
   // 1. Cập nhật ngay lập tức vào Local cache (Optimistic UI 0ms)
   setCachedUserProfile(userId, payload);
@@ -444,6 +544,7 @@ export async function updateUserProfile(
           favoriteGenres: payload.favoriteGenres,
           badges: payload.badges,
           watchTimeMinutes: payload.watchTimeMinutes,
+          playerSettings: payload.playerSettings,
         }),
       });
     } else if (isSupabaseConfigured()) {

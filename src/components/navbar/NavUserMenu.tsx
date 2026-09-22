@@ -11,6 +11,8 @@ import {
   MessageSquare,
   Smartphone,
   LogOut,
+  Heart,
+  Sliders,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { isUserAdmin } from "@/lib/adminConfig";
@@ -142,13 +144,41 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
             onClick={() => {
               setShowUserDropdown(false);
               if (typeof window !== "undefined") {
-                window.dispatchEvent(new CustomEvent("open-user-profile-modal"));
+                window.dispatchEvent(new CustomEvent("open-user-profile-modal", { detail: { tab: "profile" } }));
               }
             }}
             className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-rose-300 hover:text-white hover:bg-white/10 transition cursor-pointer text-left font-bold"
           >
             <User size={14} className="text-rose-400" />
-            <span>🧑 Hồ sơ cá nhân</span>
+            <span>🧑 Hồ sơ & Dashboard VIP</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setShowUserDropdown(false);
+              if (typeof window !== "undefined") {
+                window.dispatchEvent(new CustomEvent("open-user-profile-modal", { detail: { tab: "player_settings" } }));
+              }
+            }}
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-gray-300 hover:text-white hover:bg-white/10 transition cursor-pointer text-left font-medium"
+          >
+            <Sliders size={14} className="text-amber-400" />
+            <span>⚙️ Cài đặt phát lại Cloud</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setShowUserDropdown(false);
+              if (typeof window !== "undefined") {
+                window.dispatchEvent(new CustomEvent("open-user-profile-modal", { detail: { tab: "followed_actors" } }));
+              }
+            }}
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-gray-300 hover:text-white hover:bg-white/10 transition cursor-pointer text-left font-medium"
+          >
+            <Heart size={14} className="text-rose-400" />
+            <span>⭐ Diễn viên yêu thích</span>
           </button>
 
           <Link
@@ -172,9 +202,9 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
           <Link
             href="/my-list?tab=comments"
             onClick={() => setShowUserDropdown(false)}
-            className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-rose-300 hover:text-white hover:bg-white/10 transition font-bold"
+            className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-gray-300 hover:text-white hover:bg-white/10 transition"
           >
-            <MessageSquare size={14} className="text-rose-400" />
+            <MessageSquare size={14} className="text-emerald-400" />
             <span>Lịch sử bình luận</span>
           </Link>
 
