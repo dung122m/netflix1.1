@@ -30,8 +30,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(cached);
     }
 
-    // Chỉ truy vấn actor khi người dùng gõ tiền tố rõ ràng (vd: "diễn viên ...", "đạo diễn ...", "phim của ...", "actor: ...")
-    const shouldCheckActor = hasExplicitActorPrefix(keyword);
+    // Kiểm tra actor resolution cho từ khóa không mơ hồ (>= 2 từ hoặc có tiền tố rõ ràng)
+    const shouldCheckActor =
+      hasExplicitActorPrefix(keyword) ||
+      (!isAmbiguousShortActorKeyword(keyword) && keyword.trim().split(/\s+/).length >= 2);
 
     // Chạy song song tìm kiếm phim và phân giải diễn viên với timeout cực ngắn
     // skipKvCache: true đảm bảo các truy vấn gợi ý dở dang (limit 8) không ghi rác lên Cloudflare KV
@@ -46,7 +48,7 @@ export async function GET(req: NextRequest) {
         ? Promise.race([
             resolveActorMovies(keyword),
             new Promise<{ isActor: boolean; actorName: string; titles: string[]; country?: string; source: "none" }>((resolve) =>
-              setTimeout(() => resolve({ isActor: false, actorName: "", titles: [], source: "none" }), 500)
+              setTimeout(() => resolve({ isActor: false, actorName: "", titles: [], source: "none" }), 800)
             ),
           ]).catch(() => null)
         : Promise.resolve(null),

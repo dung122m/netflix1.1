@@ -270,50 +270,76 @@ export async function searchTmdbPerson(
       const targetNamesNormalized = queriesToTry.map(cleanStringForMatch).filter(Boolean);
 
       for (const q of queriesToTry.slice(0, 3)) {
-        const data = await fetchTmdbEndpoint(
+        // 1. Thử gọi vi-VN trước để lấy tên tiếng Việt của diễn viên châu Á (ví dụ: Trần Khôn, Bạch Vũ, Lý Hiện)
+        let data = await fetchTmdbEndpoint(
           `/search/person?query=${encodeURIComponent(q)}&language=vi-VN&include_adult=false`
         );
 
-        const results = (data?.results || []) as any[];
-        if (results.length === 0) continue;
+        let results = (data?.results || []) as any[];
 
-        for (const p of results) {
-          if (!p || !p.id) continue;
-          const pName = cleanStringForMatch(p.name);
-          const pOrig = cleanStringForMatch(p.original_name);
+        const evaluateCandidates = (items: any[]) => {
+          for (const p of items) {
+            if (!p || !p.id) continue;
+            const pName = cleanStringForMatch(p.name);
+            const pOrig = cleanStringForMatch(p.original_name);
+            const pNameWords = pName.split(" ").filter(Boolean);
+            const pOrigWords = pOrig.split(" ").filter(Boolean);
 
-          let score = 0;
+            let score = 0;
 
-          // Khớp chính xác tên
-          if (targetNamesNormalized.includes(pName) || targetNamesNormalized.includes(pOrig)) {
-            score += 100;
-          } else if (
-            targetNamesNormalized.some((t) => pName.includes(t) || t.includes(pName))
-          ) {
-            score += 30;
+            // 1. Khớp chính xác tên tuyệt đối sau khi chuẩn hóa
+            if (targetNamesNormalized.includes(pName) || targetNamesNormalized.includes(pOrig)) {
+              score += 100;
+            } else if (
+              targetNamesNormalized.some((t) => {
+                const tWords = t.split(" ").filter(Boolean);
+                return (
+                  (tWords.length >= 2 && pNameWords.length === tWords.length && tWords.every((w) => pNameWords.includes(w))) ||
+                  (tWords.length >= 2 && pOrigWords.length === tWords.length && tWords.every((w) => pOrigWords.includes(w)))
+                );
+              })
+            ) {
+              // 2. Khớp tập hợp từ (ví dụ đảo thứ tự họ tên: "Lam Tan" vs "Tan Lam")
+              score += 90;
+            } else if (
+              targetNamesNormalized.some((t) => t.length >= 6 && (pName.includes(t) || pOrig.includes(t)))
+            ) {
+              score += 30;
+            }
+
+            // Khớp ban diễn xuất hoặc đạo diễn
+            if (p.known_for_department === "Acting") score += 25;
+            else if (p.known_for_department === "Directing") score += 20;
+
+            // Độ nổi tiếng chỉ dùng làm tie-breaker phụ, không dùng để loại bỏ diễn viên
+            score += Math.min(10, Number(p.popularity || 0));
+
+            // Có ảnh profile
+            if (p.profile_path) score += 5;
+
+            if (score > highestScore && score >= 115) {
+              highestScore = score;
+              bestPerson = {
+                id: p.id,
+                name: p.name,
+                original_name: p.original_name,
+                profile_path: p.profile_path ? `${TMDB_IMAGE_BASE}${p.profile_path}` : null,
+                popularity: p.popularity,
+                known_for_department: p.known_for_department,
+              };
+            }
           }
+        };
 
-          // Khớp ban diễn xuất hoặc đạo diễn
-          if (p.known_for_department === "Acting") score += 25;
-          else if (p.known_for_department === "Directing") score += 20;
+        evaluateCandidates(results);
 
-          // Cộng điểm nổi tiếng (popularity)
-          score += Number(p.popularity || 0);
-
-          // Có ảnh profile
-          if (p.profile_path) score += 10;
-
-          if (score > highestScore) {
-            highestScore = score;
-            bestPerson = {
-              id: p.id,
-              name: p.name,
-              original_name: p.original_name,
-              profile_path: p.profile_path ? `${TMDB_IMAGE_BASE}${p.profile_path}` : null,
-              popularity: p.popularity,
-              known_for_department: p.known_for_department,
-            };
-          }
+        // 2. Nếu chưa tìm được người khớp, thử gọi không chỉ định ngôn ngữ (lấy tên Romanized/tiếng Anh như Kang Ha-neul)
+        if (!bestPerson) {
+          data = await fetchTmdbEndpoint(
+            `/search/person?query=${encodeURIComponent(q)}&include_adult=false`
+          );
+          results = (data?.results || []) as any[];
+          evaluateCandidates(results);
         }
 
         if (bestPerson && highestScore >= 120) {

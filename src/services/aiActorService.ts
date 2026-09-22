@@ -1005,6 +1005,12 @@ export async function resolveActorMovies(keyword: string): Promise<{
 
   const cleanRaw = keyword.trim().toLowerCase();
   const normalizedQuery = cleanActorQuery(keyword);
+  const words = keyword.trim().split(/\s+/).filter(Boolean);
+
+  // 1.15 Từ đơn (1 từ) không có trong preset và không có tiền tố diễn viên rõ ràng -> Ưu tiên tuyệt đối tìm kiếm phim (tránh "Titanic", "Avatar", "Inception"...)
+  if (words.length < 2 && !hasExplicitActorPrefix(keyword)) {
+    return { actorName: "", aliases: [], isActor: false, source: "none" };
+  }
 
   // 1.2 Kiểm tra TIER 2: Cache L1 (0ms)
   const cached = ACTOR_AI_CACHE.get(cleanRaw) || ACTOR_AI_CACHE.get(normalizedQuery);
@@ -1018,34 +1024,50 @@ export async function resolveActorMovies(keyword: string): Promise<{
     };
   }
 
-  // 1.25 TIER 2.5: Tra cứu trực tiếp TMDB Search Person (Chuẩn quốc tế, 100% chính xác, không sợ AI nghẽn tải)
+  // 1.25 TIER 2.5: Tra cứu trực tiếp TMDB Search Person (Chuẩn quốc tế, 100% chính xác, không phụ thuộc vào ngưỡng popularity)
   try {
-    const words = keyword.trim().split(/\s+/).filter(Boolean);
     const tmdbPerson = await searchTmdbPerson(keyword);
     if (
       tmdbPerson &&
       (tmdbPerson.known_for_department === "Acting" ||
-        tmdbPerson.known_for_department === "Directing") &&
-      (words.length >= 2 ? tmdbPerson.popularity >= 2.5 : tmdbPerson.popularity >= 15.0)
+        tmdbPerson.known_for_department === "Directing")
     ) {
-      const actorName = tmdbPerson.name || keyword;
-      const aliases = Array.from(
-        new Set([actorName, keyword, tmdbPerson.original_name].filter(Boolean))
-      ) as string[];
+      const cleanQNorm = normalizeForMatch(keyword);
+      const personNameNorm = normalizeForMatch(tmdbPerson.name);
+      const personOrigNorm = normalizeForMatch(tmdbPerson.original_name);
 
-      setBoundedCache(ACTOR_AI_CACHE, cleanRaw, {
-        actorName,
-        aliases,
-        isActor: true,
-        expireAt: Date.now() + CACHE_7_DAYS,
-      });
+      const qWords = cleanQNorm.split(" ").filter(Boolean);
+      const pNameWords = personNameNorm.split(" ").filter(Boolean);
+      const pOrigWords = personOrigNorm.split(" ").filter(Boolean);
 
-      return {
-        actorName,
-        aliases,
-        isActor: true,
-        source: "tmdb",
-      };
+      // 1. Khớp chính xác tuyệt đối tên (sau khi khử dấu)
+      const isExactMatch = personNameNorm === cleanQNorm || personOrigNorm === cleanQNorm;
+
+      // 2. Khớp cùng tập hợp từ (ví dụ đảo thứ tự họ tên: "Lam Tan" <-> "Tan Lam" / "Tần Lam")
+      const isWordSetMatch =
+        (qWords.length >= 2 && pNameWords.length === qWords.length && qWords.every((w) => pNameWords.includes(w))) ||
+        (qWords.length >= 2 && pOrigWords.length === qWords.length && qWords.every((w) => pOrigWords.includes(w)));
+
+      if (isExactMatch || isWordSetMatch) {
+        const actorName = tmdbPerson.name || keyword;
+        const aliases = Array.from(
+          new Set([actorName, keyword, tmdbPerson.original_name].filter(Boolean))
+        ) as string[];
+
+        setBoundedCache(ACTOR_AI_CACHE, cleanRaw, {
+          actorName,
+          aliases,
+          isActor: true,
+          expireAt: Date.now() + CACHE_7_DAYS,
+        });
+
+        return {
+          actorName,
+          aliases,
+          isActor: true,
+          source: "tmdb",
+        };
+      }
     }
   } catch {}
 

@@ -21,6 +21,7 @@ export interface RelevanceCheckOptions {
   semanticQuery?: string;
   concepts?: string[];
   expectedActorSlug?: string;
+  expectedActorName?: string;
   expectedCharacter?: string;
   targetGenreSlug?: string;
   targetCountrySlug?: string;
@@ -393,7 +394,7 @@ export function isRelevantToQuery(
   }
 
   // 3. INTENT = ACTOR (Tìm theo diễn viên)
-  if (parsedIntent === "actor" || options?.expectedActorSlug) {
+  if (parsedIntent === "actor" || options?.expectedActorSlug || options?.expectedActorName) {
     const actorSlug = options?.expectedActorSlug;
     if (actorSlug) {
       const hasActor = matchesActor(actors, actorSlug);
@@ -406,6 +407,26 @@ export function isRelevantToQuery(
         return { relevant: true, score: 70, reason: "Diễn viên có trong tóm tắt hoặc tựa đề phim" };
       }
       return { relevant: false, score: 0, reason: "Không có diễn viên yêu cầu" };
+    } else if (options?.expectedActorName) {
+      const targetActorClean = cleanNormalizedString(options.expectedActorName);
+      if (targetActorClean && targetActorClean.length >= 2) {
+        const actorListStr = Array.isArray(actors) ? actors.join(" ") : String(actors || "");
+        const cleanActorList = cleanNormalizedString(actorListStr);
+        if (
+          cleanActorList.includes(targetActorClean) ||
+          (Array.isArray(actors) &&
+            actors.some((a) => {
+              const cleanA = cleanNormalizedString(a);
+              return cleanA === targetActorClean || cleanA.includes(targetActorClean) || targetActorClean.includes(cleanA);
+            }))
+        ) {
+          return { relevant: true, score: 95, reason: "Có diễn viên yêu cầu" };
+        }
+        if (desc.includes(targetActorClean) || name.includes(targetActorClean) || orig.includes(targetActorClean)) {
+          return { relevant: true, score: 70, reason: "Diễn viên có trong tóm tắt hoặc tựa đề phim" };
+        }
+        return { relevant: false, score: 0, reason: "Không có diễn viên yêu cầu" };
+      }
     }
   }
 

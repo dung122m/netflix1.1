@@ -379,16 +379,23 @@ export default async function HomePage({
   // =========================================================================
   // 1. TÁCH BIỆT RÕ RÀNG: TÌM KIẾM THEO DIỄN VIÊN VS TÌM KIẾM THEO TÊN PHIM
   // =========================================================================
-  // CHỈ kích hoạt tìm kiếm diễn viên khi:
+  // Tự động nhận diện diễn viên khi:
   // (1) Có tham số actorParam (người dùng click vào gợi ý diễn viên hoặc tag diễn viên)
   // (2) Hoặc từ khóa có tiền tố chỉ định rõ ràng (ví dụ: "diễn viên Trấn Thành", "phim của Mai", "đạo diễn...")
-  // TUYỆT ĐỐI KHÔNG tự động chuyển keyword thông thường ("Mai", "An", "Anh", "Avatar") thành tìm diễn viên
+  // (3) Hoặc từ khóa tự nhiên (không mơ hồ) resolve được actor chính xác từ Golden Index / TMDB
+  // TUYỆT ĐỐI KHÔNG tự động chuyển keyword ngắn/mơ hồ ("Mai", "An", "Anh", "Long"...) thành tìm diễn viên
   const hasExplicitActor = Boolean(actorParam) || (Boolean(keyword) && hasExplicitActorPrefix(keyword!));
+  const isCandidateActorQuery =
+    Boolean(actorParam) ||
+    (Boolean(keyword) && !isAmbiguousShortActorKeyword(keyword!) && keyword!.trim().length >= 2);
+
   const targetActorQuery = actorParam
     ? actorParam.trim()
     : hasExplicitActor && keyword
       ? cleanActorQuery(keyword)
-      : undefined;
+      : isCandidateActorQuery && keyword
+        ? cleanActorQuery(keyword)
+        : undefined;
 
   const actorSynonyms = targetActorQuery ? getActorSynonyms(targetActorQuery) : null;
   const actorRes = targetActorQuery
@@ -405,7 +412,8 @@ export default async function HomePage({
 
   const isActorSearch = Boolean(
     actorParam ||
-    (hasExplicitActor && (actorRes?.isActor || actorSynonyms?.isMatched))
+    (hasExplicitActor && (actorRes?.isActor || actorSynonyms?.isMatched)) ||
+    (actorRes?.isActor && (actorRes.source === "preset" || actorRes.source === "tmdb" || actorRes.source === "cache"))
   );
 
   if (isActorSearch && (actorRes?.isActor || actorParam || actorSynonyms?.isMatched)) {

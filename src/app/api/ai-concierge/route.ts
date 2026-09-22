@@ -41,7 +41,7 @@ import {
   GENERIC_SINGLE_WORDS,
 } from "./relevanceGate";
 import { resolveConcepts } from "./conceptRegistry";
-import { queryMoviesByActor } from "@/services/aiActorService";
+import { queryMoviesByActor, isAmbiguousShortActorKeyword } from "@/services/aiActorService";
 
 export const maxDuration = 15;
 
@@ -268,6 +268,12 @@ export async function POST(req: NextRequest) {
       ? ""
       : resolveActorSlug(parsedActor, prompt) || resolveActorSlug(prompt);
 
+    const rawActorName = !hasCharacterIntent ? parsedActor.trim() : "";
+    const isAmbiguousActor = rawActorName ? isAmbiguousShortActorKeyword(rawActorName) : false;
+    const effectiveActorName = targetActorSlug
+      ? (getActorAliases(targetActorSlug)[0] || targetActorSlug.replace(/-/g, " "))
+      : (!isAmbiguousActor && rawActorName ? rawActorName : "");
+
     const lowerPrompt = prompt.toLowerCase();
     const cleanPrompt = cleanNormalizedString(prompt);
 
@@ -279,13 +285,22 @@ export async function POST(req: NextRequest) {
       /^(?:phim\s+)?(?:ve|chu de|noi ve|ke ve|xoay quanh|de tai)\s+(.+)$/i
     );
 
+    const hasExplicitActorCue =
+      /(?:phim\s+(?:cua|của|co|có|do)|dong\s+phim|đóng\s+phim|dien\s+vien|diễn\s+viên|dong\s+chinh|đóng\s+chính|tham\s+gia)/i.test(prompt);
+
     if (isGibberishQuery(prompt)) {
       searchIntent = "unknown";
     } else if (activeConcepts.length > 0) {
       searchIntent = "theme";
     } else if (hasCharacterIntent && (detectedChar || rawCharacter)) {
       searchIntent = "character";
-    } else if (targetActorSlug) {
+    } else if (
+      targetActorSlug ||
+      (effectiveActorName &&
+        (aiParsed?.intent === "actor" ||
+          hasExplicitActorCue ||
+          (aiParsed?.people && aiParsed.people.length > 0)))
+    ) {
       searchIntent = "actor";
     } else if (genericThemeMatch) {
       const subject = genericThemeMatch[1].trim();
@@ -342,7 +357,11 @@ export async function POST(req: NextRequest) {
         searchIntent = "theme";
       } else if (isGibberishQuery(prompt)) {
         searchIntent = "unknown";
-      } else if ((targetGenreSlug && targetCountrySlug) || (targetActorSlug && (targetGenreSlug || targetCountrySlug))) {
+      } else if (
+        (targetGenreSlug && targetCountrySlug) ||
+        ((targetActorSlug || effectiveActorName) &&
+          (targetGenreSlug || targetCountrySlug))
+      ) {
         searchIntent = "mixed";
       } else if (targetGenreSlug) {
         searchIntent = "genre";
@@ -744,11 +763,13 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      if (targetActorSlug) {
-        const aliases = getActorAliases(targetActorSlug);
-        const mainName = aliases[0] || targetActorSlug.replace(/-/g, " ");
+      if (targetActorSlug || effectiveActorName) {
+        const mainName = targetActorSlug
+          ? (getActorAliases(targetActorSlug)[0] || targetActorSlug.replace(/-/g, " "))
+          : effectiveActorName;
+        const aliases = targetActorSlug ? getActorAliases(targetActorSlug) : [mainName];
         queryTasks.push(
-          queryMoviesByActor(mainName, aliases, undefined, 20)
+          queryMoviesByActor(mainName, aliases, targetCountrySlug || undefined, 20)
             .then((movies) => ({ items: movies }))
             .catch(() => null)
         );
@@ -770,6 +791,7 @@ export async function POST(req: NextRequest) {
         searchIntent !== "theme" &&
         searchIntent !== "movie_title" &&
         !targetActorSlug &&
+        !effectiveActorName &&
         !hasCharacterIntent &&
         rawKeyword &&
         rawKeyword.trim().length >= 2
@@ -783,6 +805,7 @@ export async function POST(req: NextRequest) {
         searchIntent !== "theme" &&
         searchIntent !== "movie_title" &&
         !targetActorSlug &&
+        !effectiveActorName &&
         !hasCharacterIntent &&
         (effectiveGenreSlug || targetCountrySlug || isLatest || targetExplicitYear > 0)
       ) {
@@ -955,6 +978,7 @@ export async function POST(req: NextRequest) {
           semanticQuery: aiParsed?.semanticQuery,
           concepts: aiParsed?.concepts || activeConcepts.map((c) => c.id),
           expectedActorSlug: targetActorSlug,
+          expectedActorName: effectiveActorName || undefined,
           expectedCharacter: rawCharacter,
           targetGenreSlug: effectiveGenreSlug || undefined,
           targetCountrySlug: targetCountrySlug || undefined,
@@ -1034,6 +1058,7 @@ export async function POST(req: NextRequest) {
           semanticQuery: aiParsed?.semanticQuery,
           concepts: aiParsed?.concepts || activeConcepts.map((c) => c.id),
           expectedActorSlug: targetActorSlug,
+          expectedActorName: effectiveActorName || undefined,
           expectedCharacter: rawCharacter,
           targetGenreSlug: effectiveGenreSlug || undefined,
           targetCountrySlug: targetCountrySlug || undefined,
@@ -1087,6 +1112,29 @@ export async function POST(req: NextRequest) {
           const hasActor = matchesActor(itemActors, targetActorSlug);
           if (hasActor) {
             score += 70;
+          } else if (itemActors.length > 0) {
+            continue;
+          } else {
+            score -= 40;
+          }
+        } else if (effectiveActorName) {
+          const cleanTarget = cleanNormalizedString(effectiveActorName);
+          const hasActor = itemActors.some((a) => {
+            const cleanA = cleanNormalizedString(a);
+            return (
+              cleanA === cleanTarget ||
+              cleanA.includes(cleanTarget) ||
+              cleanTarget.includes(cleanA)
+            );
+          });
+          if (hasActor) {
+            score += 70;
+          } else if (
+            itemDesc.includes(cleanTarget) ||
+            itemName.includes(cleanTarget) ||
+            itemOrig.includes(cleanTarget)
+          ) {
+            score += 40;
           } else if (itemActors.length > 0) {
             continue;
           } else {
@@ -1183,6 +1231,8 @@ export async function POST(req: NextRequest) {
                   originalQuery: prompt,
                   targetGenreSlug: effectiveGenreSlug || undefined,
                   targetCountrySlug: targetCountrySlug || undefined,
+                  expectedActorSlug: targetActorSlug || undefined,
+                  expectedActorName: effectiveActorName || undefined,
                 });
                 if (!rel.relevant) continue;
 
