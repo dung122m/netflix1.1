@@ -146,6 +146,17 @@ const DEFAULT_CATALOG_FALLBACK: ForYouMovieItem[] = [
   },
 ];
 
+// Hàm tính điểm hợp gu ổn định (deterministic) dựa trên slug để tránh lệch SSR/Hydration
+function getDeterministicMatchPercentage(key: string): number {
+  if (!key) return 96;
+  let hash = 0;
+  for (let i = 0; i < key.length; i++) {
+    hash = (hash << 5) - hash + key.charCodeAt(i);
+    hash |= 0;
+  }
+  return 94 + (Math.abs(hash) % 5); // 94% - 98%
+}
+
 // Chuyển đổi dữ liệu catalog sẵn có thành định dạng For You
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapToForYouItems(rawItems: any[]): ForYouMovieItem[] {
@@ -169,7 +180,7 @@ function mapToForYouItems(rawItems: any[]): ForYouMovieItem[] {
           : typeof m.category === "string"
           ? [{ name: m.category }]
           : [{ name: "Đề Xuất" }],
-        matchPercentage: m.matchPercentage || (Math.floor(Math.random() * 5) + 94),
+        matchPercentage: m.matchPercentage || getDeterministicMatchPercentage(m.slug || title),
         matchReason: m.matchReason || "Siêu phẩm thịnh hành được đánh giá cao nhất",
       };
     });

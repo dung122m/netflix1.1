@@ -40,7 +40,7 @@ import {
 } from "@/lib/trailerHelper";
 
 const AUTO_SLIDE_NORMAL_MS = 6000;
-const AUTO_SLIDE_TRAILER_MS = 18000;
+const AUTO_SLIDE_TRAILER_MS = 26000;
 
 type HeroMovie = {
   slug?: string;
@@ -80,9 +80,7 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
   const [direction, setDirection] = useState(1);
   const [paused, setPaused] = useState(false);
   const reduceMotion = useReducedMotion();
-  const [isMobile, setIsMobile] = useState(() =>
-    typeof window !== "undefined" ? window.innerWidth <= 768 : false
-  );
+  const [isMobile, setIsMobile] = useState(false);
 
   const currentSlug = slides[index]?.slug;
   const [isHeroImageLoaded, setIsHeroImageLoaded] = useState(false);
@@ -95,9 +93,7 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
   }, [index, currentSlug]);
 
   // Trailer States (Desktop only, lazy-load 2s, fault-tolerant)
-  const [isDesktop, setIsDesktop] = useState(() =>
-    typeof window !== "undefined" ? isDesktopWithHover() : false
-  );
+  const [isDesktop, setIsDesktop] = useState(false);
   const [activeTrailerId, setActiveTrailerId] = useState<string | null>(null);
   const [isTrailerReady, setIsTrailerReady] = useState(false);
   const [isHeroMuted, setIsHeroMuted] = useState(true);
@@ -282,12 +278,14 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
         } catch {}
       }
 
-      if (rawTrailer) {
-        const ytId = extractYoutubeId(rawTrailer);
-        if (ytId && !failedTrailerMapRef.current[currentSlug]) {
-          setActiveTrailerId(ytId);
-          setIsTrailerReady(false);
-        }
+      const ytId = rawTrailer ? extractYoutubeId(rawTrailer) : null;
+      if (ytId && !failedTrailerMapRef.current[currentSlug]) {
+        setActiveTrailerId(ytId);
+        setIsTrailerReady(false);
+      } else {
+        // Phim không có trailer hoặc YouTube ID không hợp lệ / trailer lỗi -> đánh dấu ngay lập tức
+        failedTrailerMapRef.current[currentSlug] = true;
+        setFailedTrailerMap((prev) => ({ ...prev, [currentSlug]: true }));
       }
     }, 2000);
 
@@ -736,7 +734,7 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
                 <div className="pt-3 max-w-sm">
                   <div className="h-1 w-full overflow-hidden rounded-full bg-white/15">
                     <motion.div
-                      key={`progress-${index}-${paused ? "pause" : "play"}`}
+                      key={`progress-${index}-${paused ? "pause" : "play"}-${isDesktop && currentSlug && !failedTrailerMap[currentSlug] ? "trailer" : "normal"}`}
                       initial={{ width: "0%" }}
                       animate={{ width: paused ? "0%" : "100%" }}
                       transition={

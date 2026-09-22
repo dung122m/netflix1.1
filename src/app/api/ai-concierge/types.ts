@@ -15,6 +15,8 @@ export interface MatchOptions {
   expectedCountry?: string;
   expectedGenre?: string;
   expectedActorSlug?: string;
+  expectedActorName?: string;
+  expectedTypeSlug?: string;
   yearFrom?: number;
   yearTo?: number;
   isLatest?: boolean;
@@ -59,7 +61,8 @@ export interface NormalizedSearchIntent {
   themes: string[];
   year?: number | null;
   yearRange?: { from?: number; to?: number } | null;
-  type?: "single" | "series" | "anime" | null;
+  type?: "single" | "series" | "anime" | "tvshows" | "phim-le" | "phim-bo" | "hoat-hinh" | "tv-shows" | "phim-chieu-rap" | string | null;
+  clearFields?: Array<"year" | "country" | "genre" | "type" | "actor" | "character">;
   exclude?: {
     countries?: string[];
     genres?: string[];

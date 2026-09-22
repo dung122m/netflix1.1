@@ -17,6 +17,7 @@ import {
   matchesActor,
   resolveCountrySlug,
   resolveGenreSlug,
+  resolveTypeSlug,
   matchesCountry,
   matchesGenre,
   resolveCharacter,
@@ -27,6 +28,7 @@ import {
   toSafeActors,
   toSafeCountry,
   toSafeCategory,
+  toSafeCategories,
   getMovieHighlight,
 } from "./movieFormatter";
 import { searchSingleMovieFast } from "./movieSearch";
@@ -262,20 +264,58 @@ export async function POST(req: NextRequest) {
     const targetCountrySlug =
       rawCountryList.map(resolveCountrySlug).find(Boolean) ||
       resolveCountrySlug(prompt);
+    let targetTypeSlug = resolveTypeSlug(aiParsed?.type || undefined, prompt);
 
     // TUYỆT ĐỐI KHÔNG gán tên nhân vật vào targetActorSlug khi người dùng đang tìm kiếm nhân vật!
-    const targetActorSlug = hasCharacterIntent
+    let targetActorSlug = hasCharacterIntent
       ? ""
       : resolveActorSlug(parsedActor, prompt) || resolveActorSlug(prompt);
 
     const rawActorName = !hasCharacterIntent ? parsedActor.trim() : "";
     const isAmbiguousActor = rawActorName ? isAmbiguousShortActorKeyword(rawActorName) : false;
-    const effectiveActorName = targetActorSlug
+    let effectiveActorName = targetActorSlug
       ? (getActorAliases(targetActorSlug)[0] || targetActorSlug.replace(/-/g, " "))
       : (!isAmbiguousActor && rawActorName ? rawActorName : "");
 
     const lowerPrompt = prompt.toLowerCase();
     const cleanPrompt = cleanNormalizedString(prompt);
+    const cleanPromptLower = cleanPrompt.toLowerCase();
+
+    // 2.3. Xử lý Lệnh Xóa / Hủy Bỏ Bộ Lọc Trong Hội Thoại (Explicit Clear Commands / Context Filter Reset)
+    const aiClearFields = aiParsed?.clearFields || [];
+    const clearYearRequested =
+      aiClearFields.includes("year") ||
+      /(?:bo|xoa|bo qua|khong gioi han|tat ca|moi)\s+(?:dieu kien\s+)?(?:nam|thoi gian)/i.test(cleanPromptLower) ||
+      /(?:bo|xoa)\s+nam/i.test(cleanPromptLower) ||
+      /(?:khong|chua)\s+(?:can|gioi han)\s+nam/i.test(cleanPromptLower);
+
+    const clearCountryRequested =
+      aiClearFields.includes("country") ||
+      /(?:bo|xoa|khong gioi han|tat ca|moi)\s+(?:dieu kien\s+)?(?:quoc gia|nuoc)/i.test(cleanPromptLower) ||
+      /(?:bo|xoa)\s+quoc gia/i.test(cleanPromptLower);
+
+    const clearGenreRequested =
+      aiClearFields.includes("genre") ||
+      /(?:bo|xoa|khong gioi han)\s+(?:dieu kien\s+)?(?:the loai|loai phim)/i.test(cleanPromptLower) ||
+      /(?:bo|xoa)\s+the loai/i.test(cleanPromptLower);
+
+    const clearTypeRequested =
+      aiClearFields.includes("type") ||
+      /(?:bo|xoa)\s+(?:dieu kien\s+)?(?:dinh dang|phim bo|phim le)/i.test(cleanPromptLower);
+
+    const clearActorRequested =
+      aiClearFields.includes("actor") ||
+      /(?:bo|xoa)\s+(?:dieu kien\s+)?(?:dien vien|nguoi nay)/i.test(cleanPromptLower);
+
+    const effectiveCountrySlug = clearCountryRequested ? "" : targetCountrySlug;
+    let effectiveGenreSlug = clearGenreRequested ? "" : targetGenreSlug;
+    if (clearActorRequested) {
+      targetActorSlug = "";
+      effectiveActorName = "";
+    }
+    if (clearTypeRequested) {
+      targetTypeSlug = "";
+    }
 
     // 2.5. Xác định Search Intent (Phân biệt movie_title, actor, character, genre, country, theme, mood, mixed, unknown)
     const activeConcepts = detectedConcepts;
@@ -358,14 +398,14 @@ export async function POST(req: NextRequest) {
       } else if (isGibberishQuery(prompt)) {
         searchIntent = "unknown";
       } else if (
-        (targetGenreSlug && targetCountrySlug) ||
+        (targetGenreSlug && effectiveCountrySlug) ||
         ((targetActorSlug || effectiveActorName) &&
-          (targetGenreSlug || targetCountrySlug))
+          (targetGenreSlug || effectiveCountrySlug))
       ) {
         searchIntent = "mixed";
       } else if (targetGenreSlug) {
         searchIntent = "genre";
-      } else if (targetCountrySlug) {
+      } else if (effectiveCountrySlug) {
         searchIntent = "country";
       } else if (lowerPrompt.includes("chua lanh") || lowerPrompt.includes("chữa lành") || lowerPrompt.includes("xa stress")) {
         searchIntent = "mood";
@@ -380,10 +420,19 @@ export async function POST(req: NextRequest) {
     // Nhận diện năm phát hành cụ thể (ví dụ: "phim năm 2024", "phim 2023", "sau 2018", "sau 2020")
     const afterYearMatch = prompt.match(/(?:sau|tu|từ)\s*(\d{4})/i);
     const explicitYearMatch = prompt.match(/(?:năm|nam)\s*(\d{4})/i) || prompt.match(/\b(19\d{2}|20\d{2})\b/);
-    const targetExplicitYear = explicitYearMatch ? parseInt(explicitYearMatch[1], 10) : 0;
-    const targetAfterYear = afterYearMatch ? parseInt(afterYearMatch[1], 10) : 0;
+    let targetExplicitYear = explicitYearMatch ? parseInt(explicitYearMatch[1], 10) : 0;
+    let targetAfterYear = afterYearMatch ? parseInt(afterYearMatch[1], 10) : 0;
 
-    if (targetExplicitYear >= 1900 && targetExplicitYear <= currentYear + 2 && !targetAfterYear) {
+    if (clearYearRequested) {
+      targetExplicitYear = 0;
+      targetAfterYear = 0;
+      if (searchIntent === "year") {
+        if (targetGenreSlug && effectiveCountrySlug) searchIntent = "mixed";
+        else if (targetGenreSlug) searchIntent = "genre";
+        else if (effectiveCountrySlug) searchIntent = "country";
+        else searchIntent = "unknown";
+      }
+    } else if (targetExplicitYear >= 1900 && targetExplicitYear <= currentYear + 2 && !targetAfterYear) {
       if (searchIntent === "unknown" || (searchIntent === "movie_title" && prompt.trim().split(/\s+/).length <= 3)) {
         searchIntent = "year";
       }
@@ -392,43 +441,45 @@ export async function POST(req: NextRequest) {
     // Bảo vệ: Nếu là chủ đề (theme), tựa phim (movie_title), năm (year) hoặc unknown nhưng người dùng không hề yêu cầu phim hành động,
     // xóa bỏ genre "hanh-dong" ảo giác do LLM tự điền
     const userExplicitAction = lowerPrompt.includes("hành động") || lowerPrompt.includes("hanh dong") || lowerPrompt.includes("action") || isTokusatsuConcept;
-    let effectiveGenreSlug = targetGenreSlug;
     if ((searchIntent === "theme" || searchIntent === "movie_title" || searchIntent === "year" || searchIntent === "unknown") && !userExplicitAction) {
       effectiveGenreSlug = "";
     }
 
-    const isLatest =
-      Boolean(aiParsed?.is_latest) ||
-      lowerPrompt.includes("mới nhất") ||
-      lowerPrompt.includes("moi nhat") ||
-      lowerPrompt.includes("mới ra") ||
-      lowerPrompt.includes("moi ra") ||
-      lowerPrompt.includes("mới chiếu") ||
-      lowerPrompt.includes("moi chieu") ||
-      lowerPrompt.includes("vừa ra") ||
-      lowerPrompt.includes("vua ra") ||
-      lowerPrompt.includes("năm nay") ||
-      lowerPrompt.includes("nam nay") ||
-      lowerPrompt.includes("latest") ||
-      lowerPrompt.includes("newest") ||
-      lowerPrompt.includes("recently");
+    const isLatest = clearYearRequested
+      ? false
+      : Boolean(aiParsed?.is_latest) ||
+        lowerPrompt.includes("mới nhất") ||
+        lowerPrompt.includes("moi nhat") ||
+        lowerPrompt.includes("mới ra") ||
+        lowerPrompt.includes("moi ra") ||
+        lowerPrompt.includes("mới chiếu") ||
+        lowerPrompt.includes("moi chieu") ||
+        lowerPrompt.includes("vừa ra") ||
+        lowerPrompt.includes("vua ra") ||
+        lowerPrompt.includes("năm nay") ||
+        lowerPrompt.includes("nam nay") ||
+        lowerPrompt.includes("latest") ||
+        lowerPrompt.includes("newest") ||
+        lowerPrompt.includes("recently");
 
-    let yearFrom = aiParsed?.yearRange?.from || aiParsed?.years?.from || aiParsed?.year_from || 0;
-    let yearTo = aiParsed?.yearRange?.to || aiParsed?.years?.to || aiParsed?.year_to || 0;
+    let yearFrom = clearYearRequested ? 0 : aiParsed?.yearRange?.from || aiParsed?.years?.from || aiParsed?.year_from || 0;
+    let yearTo = clearYearRequested ? 0 : aiParsed?.yearRange?.to || aiParsed?.years?.to || aiParsed?.year_to || 0;
 
-    if (targetAfterYear >= 1900) {
-      yearFrom = targetAfterYear;
-      yearTo = currentYear;
-    } else if (targetExplicitYear >= 1900 && targetExplicitYear <= currentYear + 2) {
-      yearFrom = targetExplicitYear;
-      yearTo = targetExplicitYear;
-    } else if (aiParsed?.year && typeof aiParsed.year === "number" && !yearFrom && !yearTo) {
-      yearFrom = aiParsed.year;
-      yearTo = aiParsed.year;
-    } else if (isLatest) {
-      if (!yearFrom || yearFrom < currentYear - 1) {
-        yearFrom = currentYear - 1;
+    if (!clearYearRequested) {
+      if (targetAfterYear >= 1900) {
+        yearFrom = targetAfterYear;
         yearTo = currentYear;
+      } else if (targetExplicitYear >= 1900 && targetExplicitYear <= currentYear + 2) {
+        yearFrom = targetExplicitYear;
+        yearTo = targetExplicitYear;
+      } else if (aiParsed?.year && typeof aiParsed.year === "number" && !yearFrom && !yearTo) {
+        yearFrom = aiParsed.year;
+        yearTo = aiParsed.year;
+      } else if (isLatest) {
+        if (!yearFrom || yearFrom < currentYear - 1) {
+          yearFrom = currentYear - 1;
+          yearTo = currentYear;
+        }
       }
     } else if (!yearFrom && !yearTo) {
       if (
@@ -499,10 +550,12 @@ export async function POST(req: NextRequest) {
     }
 
     const matchOptions: MatchOptions = {
-      expectedCountry: targetCountrySlug || undefined,
+      expectedCountry: effectiveCountrySlug || undefined,
       expectedGenre: effectiveGenreSlug || undefined,
       expectedActorSlug: targetActorSlug || undefined,
+      expectedActorName: effectiveActorName || undefined,
       expectedCharacter: rawCharacter || undefined,
+      expectedTypeSlug: targetTypeSlug || undefined,
       yearFrom: yearFrom || undefined,
       yearTo: yearTo || undefined,
       isLatest: isLatest || undefined,
@@ -807,13 +860,14 @@ export async function POST(req: NextRequest) {
         !targetActorSlug &&
         !effectiveActorName &&
         !hasCharacterIntent &&
-        (effectiveGenreSlug || targetCountrySlug || isLatest || targetExplicitYear > 0)
+        (effectiveGenreSlug || effectiveCountrySlug || targetTypeSlug || isLatest || targetExplicitYear > 0)
       ) {
         if (targetExplicitYear > 0) {
           queryTasks.push(
             movieApi.getMovies({
+              type: targetTypeSlug || undefined,
               category: effectiveGenreSlug || undefined,
-              country: targetCountrySlug || undefined,
+              country: effectiveCountrySlug || undefined,
               year: String(targetExplicitYear),
               limit: 20,
               sort: "latest",
@@ -822,8 +876,9 @@ export async function POST(req: NextRequest) {
         } else if (isLatest) {
           queryTasks.push(
             movieApi.getMovies({
+              type: targetTypeSlug || undefined,
               category: effectiveGenreSlug || undefined,
-              country: targetCountrySlug || undefined,
+              country: effectiveCountrySlug || undefined,
               year: String(currentYear),
               limit: 20,
               sort: "latest",
@@ -832,8 +887,9 @@ export async function POST(req: NextRequest) {
         } else {
           queryTasks.push(
             movieApi.getMovies({
+              type: targetTypeSlug || undefined,
               category: effectiveGenreSlug || undefined,
-              country: targetCountrySlug || undefined,
+              country: effectiveCountrySlug || undefined,
               limit: 20,
               sort: "rating",
             }).catch(() => null)
@@ -952,9 +1008,9 @@ export async function POST(req: NextRequest) {
         }
 
         if (
-          targetCountrySlug &&
+          effectiveCountrySlug &&
           itemCountry &&
-          !matchesCountry(itemCountry, targetCountrySlug)
+          !matchesCountry(itemCountry, effectiveCountrySlug)
         ) {
           const cleanTitle = cleanNormalizedString(item.suggested.title);
           const cleanOrig = cleanNormalizedString(
@@ -981,7 +1037,8 @@ export async function POST(req: NextRequest) {
           expectedActorName: effectiveActorName || undefined,
           expectedCharacter: rawCharacter,
           targetGenreSlug: effectiveGenreSlug || undefined,
-          targetCountrySlug: targetCountrySlug || undefined,
+          targetCountrySlug: effectiveCountrySlug || undefined,
+          targetTypeSlug: targetTypeSlug || undefined,
           targetYear: targetExplicitYear > 0 ? targetExplicitYear : undefined,
           yearFrom: yearFrom || undefined,
           yearTo: yearTo || undefined,
@@ -1013,7 +1070,7 @@ export async function POST(req: NextRequest) {
           year: itemYear || 2024,
           quality: item.found.quality || "HD",
           category: itemCategory,
-          country: itemCountry || (targetCountrySlug ? "Âu Mỹ" : "Quốc Tế"),
+          country: itemCountry || (effectiveCountrySlug ? "Âu Mỹ" : "Quốc Tế"),
           actors: itemActors,
           reason: getMovieHighlight(item.found, item.suggested.reason),
         });
@@ -1030,6 +1087,8 @@ export async function POST(req: NextRequest) {
 
         const itemCountry = toSafeCountry(it);
         const itemCategory = toSafeCategory(it);
+        const itemCategories = toSafeCategories(it);
+        const itemCategoryStr = itemCategories.length > 0 ? itemCategories.join(" ") : itemCategory;
         const itemActors = toSafeActors(it);
         const itemYear = extractMovieYear(it);
         const itemName = cleanNormalizedString(it.name || "");
@@ -1043,7 +1102,11 @@ export async function POST(req: NextRequest) {
         )
           continue;
         if (
-          excludedGenreSlugs.some((ex) => matchesGenre(itemCategory, ex))
+          excludedGenreSlugs.some(
+            (ex) =>
+              itemCategories.some((c) => matchesGenre(c, ex)) ||
+              matchesGenre(itemCategoryStr, ex)
+          )
         )
           continue;
 
@@ -1061,7 +1124,8 @@ export async function POST(req: NextRequest) {
           expectedActorName: effectiveActorName || undefined,
           expectedCharacter: rawCharacter,
           targetGenreSlug: effectiveGenreSlug || undefined,
-          targetCountrySlug: targetCountrySlug || undefined,
+          targetCountrySlug: effectiveCountrySlug || undefined,
+          targetTypeSlug: targetTypeSlug || undefined,
           targetYear: targetExplicitYear > 0 ? targetExplicitYear : undefined,
           yearFrom: yearFrom || undefined,
           yearTo: yearTo || undefined,
@@ -1105,7 +1169,11 @@ export async function POST(req: NextRequest) {
         }
 
         if (effectiveGenreSlug) {
-          if (matchesGenre(itemCategory, effectiveGenreSlug)) score += 25;
+          if (
+            itemCategories.some((c) => matchesGenre(c, effectiveGenreSlug)) ||
+            matchesGenre(itemCategoryStr, effectiveGenreSlug)
+          )
+            score += 25;
         }
 
         if (targetActorSlug) {

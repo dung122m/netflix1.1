@@ -157,12 +157,12 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         }
       }
     };
-    // Ưu tiên posterUrl cho tỷ lệ poster đứng 2:3 trên mobile, sau đó đến imageUrl, thumbUrl
-    addUrl(posterUrl);
-    addUrl(imageUrl);
+    // Với card landscape 16:9, ưu tiên thumbUrl / imageUrl trước posterUrl
     addUrl(thumbUrl);
+    addUrl(imageUrl);
+    addUrl(posterUrl);
     return list;
-  }, [imageUrl, thumbUrl, posterUrl]);
+  }, [thumbUrl, imageUrl, posterUrl]);
 
   const [imageAttemptIndex, setImageAttemptIndex] = useState(0);
   const [currentImgSrc, setCurrentImgSrc] = useState(

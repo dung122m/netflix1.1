@@ -31,8 +31,7 @@ export const GENRE_SLUG_MAP: Record<string, string[]> = {
   "hanh-dong": [
     "hanh-dong", "hanh dong", "hành động", "hanh dong giat gan", "hành động giật gân",
     "giat gan", "giật gân", "action", "thriller", "ban sung", "bắn súng", "truy duoi",
-    "truy đuổi", "cuop", "cướp", "cuop ngan hang", "cướp ngân hàng", "heist",
-    "toi pham", "tội phạm", "hinh su", "hình sự"
+    "truy đuổi", "cuop", "cướp", "cuop ngan hang", "cướp ngân hàng", "heist"
   ],
   "kinh-di": [
     "kinh-di", "kinh di", "kinh dị", "horror", "ma", "ma quai", "ma quái",
@@ -49,13 +48,14 @@ export const GENRE_SLUG_MAP: Record<string, string[]> = {
     "vien-tuong", "vien tuong", "viễn tưởng", "khoa hoc vien tuong", "khoa học viễn tưởng",
     "sci-fi", "scifi", "time loop", "vong lap", "vòng lặp", "du hanh", "du hành"
   ],
-  "co-trang": ["co-trang", "co trang", "cổ trang", "kiem hiep", "kiếm hiệp", "tien hiep", "tiên hiệp", "cung dau", "cung đấu"],
+  "co-trang": ["co-trang", "co trang", "cổ trang", "tien hiep", "tiên hiệp", "cung dau", "cung đấu", "trieu dai", "triều đại"],
   "tam-ly": ["tam-ly", "tam ly", "tâm lý", "drama", "chinh kich", "chính kịch", "gia dinh", "gia đình"],
-  "trinh-tham": [
-    "trinh-tham", "trinh tham", "trinh thám", "bi an", "bí ẩn", "mystery",
-    "pha an", "phá án", "hack nao", "hack não", "dau tri", "đấu trí", "investigation"
+  "hinh-su": [
+    "hinh-su", "hinh su", "hình sự", "trinh-tham", "trinh tham", "trinh thám", "pha an", "phá án",
+    "toi pham", "tội phạm", "crime", "canh sat", "cảnh sát", "investigation", "tham tu", "thám tử"
   ],
-  "vo-thuat": ["vo-thuat", "vo thuat", "võ thuật", "kungfu", "martial arts", "danh nhau", "đánh nhau"],
+  "bi-an": ["bi-an", "bi an", "bí ẩn", "mystery", "hack nao", "hack não", "dau tri", "đấu trí"],
+  "vo-thuat": ["vo-thuat", "vo thuat", "võ thuật", "kungfu", "kung fu", "martial arts", "danh nhau", "đánh nhau"],
   "chien-tranh": ["chien-tranh", "chien tranh", "chiến tranh", "war", "quan su", "quân sự"],
   "tai-lieu": ["tai-lieu", "tai lieu", "tài liệu", "documentary"],
   "phieu-luu": ["phieu-luu", "phieu luu", "phiêu lưu", "adventure", "kham pha", "khám phá", "sinh ton", "sinh tồn"],

@@ -1,6 +1,6 @@
 import { generateFastAiChat } from "@/services/aiProviderService";
-import { AiParsedResult } from "./types";
-import { normalizeTypos, resolveCharacter } from "./taxonomy";
+import { AiParsedResult, SearchIntent } from "./types";
+import { normalizeTypos, resolveCharacter, resolveGenreSlug, resolveCountrySlug, resolveTypeSlug, cleanNormalizedString } from "./taxonomy";
 import { resolveConcepts } from "./conceptRegistry";
 
 /**
@@ -167,28 +167,38 @@ NGUYÊN TẮC PHÂN BIỆT VÀ KHỬ NHẬP NHẰNG (DISAMBIGUATION RULES):
      -> countries: ["Nhật Bản"]
      -> concepts: ["japanese_tokusatsu"]
 
-2. Phân tích đa ràng buộc (Multi-constraint Handling):
-   - Khi người dùng kết hợp nhiều điều kiện (thể loại + quốc gia + diễn viên + thời gian), BẮT BUỘC trích xuất ĐẦY ĐỦ các trường, KHÔNG được bỏ sót:
-     Ví dụ: "phim hành động Hàn Quốc có Lee Byung-hun sau 2018"
-     -> genres: ["Hành động"]
+2. Phân tích đa ràng buộc (Multi-constraint Handling) & Định dạng phim:
+   - Khi người dùng kết hợp nhiều điều kiện (thể loại + quốc gia + diễn viên + thời gian + định dạng), BẮT BUỘC trích xuất ĐẦY ĐỦ các trường, KHÔNG được bỏ sót:
+     Ví dụ: "phim bộ Hàn Quốc trinh thám năm 2023"
+     -> type: "series" (hoặc "phim-bo")
+     -> genres: ["Hình sự"]
      -> countries: ["Hàn Quốc"]
-     -> people: [{"name": "Lee Byung-hun", "role": "actor"}]
-     -> yearRange: {"from": 2018, "to": ${currentYear}}
-     Ví dụ: "phim hài Trung Quốc có Châu Tinh Trì"
-     -> genres: ["Hài"]
+     -> themes: ["trinh thám", "phá án", "điều tra"]
+     -> year: 2023
+     Ví dụ: "phim lẻ kinh dị Mỹ"
+     -> type: "single" (hoặc "phim-le")
+     -> genres: ["Kinh dị"]
+     -> countries: ["Âu Mỹ"]
+     Ví dụ: "phim kiếm hiệp Trung Quốc"
+     -> genres: ["Cổ trang", "Võ thuật"]
      -> countries: ["Trung Quốc"]
-     -> people: [{"name": "Châu Tinh Trì", "role": "actor"}]
-     Ví dụ: "phim võ thuật Hồng Kông"
-     -> genres: ["Võ thuật", "Hành động"]
-     -> countries: ["Hồng Kông"]
-     -> themes: ["võ thuật Hồng Kông", "kung fu"]
+     -> concepts: ["kiem_hiep"]
+     -> themes: ["kiếm hiệp", "võ lâm giang hồ"]
+     Ví dụ: "phim hoa ngữ"
+     -> countries: ["Trung Quốc"]
+     Ví dụ: "phim trinh thám phá án"
+     -> genres: ["Hình sự"]
+     -> themes: ["trinh thám", "phá án", "điều tra tội phạm"]
 
-3. Ràng buộc loại trừ (Negative Constraints / Exclusions):
+3. Ràng buộc loại trừ & Lệnh xóa bộ lọc trong hội thoại (Exclusions & Clear Filters):
    - Khi người dùng yêu cầu loại trừ hoặc tìm phim tương tự mà không phải phim gốc:
      Ví dụ: "phim giống John Wick nhưng không phải John Wick"
      -> themes: ["sát thủ", "hành động bắn súng", "gun-fu", "trả thù"]
      -> exclude: {"titles": ["John Wick", "Sát Thủ John Wick"]}
      -> suggested_movies: các phim như Nobody, Atomic Blonde, Bullet Train, Taken... KHÔNG ĐƯỢC đề xuất John Wick.
+   - Khi người dùng yêu cầu HỦY/XÓA điều kiện lọc từ các lượt chat trước (Ví dụ: "bỏ điều kiện năm đi", "bỏ năm", "không giới hạn năm nữa", "bỏ quốc gia", "bỏ thể loại", "cho mình xem tất cả các năm"):
+     -> "clearFields": ["year"] (hoặc ["country"], ["genre"], ["type"], ["actor"])
+     -> Giữ nguyên các bộ lọc còn lại từ ngữ cảnh trước đó (Ví dụ: nếu trước đó là phim kinh dị Thái Lan năm 2020, người dùng bảo "bỏ năm" thì genres: ["Kinh dị"], countries: ["Thái Lan"], year: null, clearFields: ["year"]).
 
 4. Phân loại Search Intent (Trường "intent"):
    - "movie_title": Tìm tựa phim cụ thể (Ví dụ: "Inception", "Avatar", "Titanic", "Mắt Biếc").
@@ -196,8 +206,8 @@ NGUYÊN TẮC PHÂN BIỆT VÀ KHỬ NHẬP NHẰNG (DISAMBIGUATION RULES):
    - "character": Tìm theo nhân vật cụ thể (Ví dụ: "phim về Tôn Ngộ Không", "phim Spider-Man", "phim Batman").
    - "genre": Tìm theo thể loại (Ví dụ: "phim kinh dị", "phim anime", "phim hài").
    - "country": Tìm theo quốc gia (Ví dụ: "phim Hàn Quốc", "phim Thái Lan").
-   - "theme": Tìm theo chủ đề, bối cảnh, nghề nghiệp hoặc khái niệm (Ví dụ: "siêu nhân nhật bản", "phim cảnh sát phá án", "phim về đầu bếp", "thầy trò đi lấy kinh", "xuyên không", "sinh tồn đảo hoang", "người ngoài hành tinh", "bác sĩ y khoa", "luật sư tòa án").
-   - "mixed": Kết hợp nhiều yếu tố (Ví dụ: "phim hành động Hàn Quốc sau 2020", "phim hài Trung Quốc Châu Tinh Trì").
+   - "theme": Tìm theo chủ đề, bối cảnh, nghề nghiệp hoặc khái niệm (Ví dụ: "siêu nhân nhật bản", "phim cảnh sát phá án", "phim về đầu bếp", "thầy trò đi lấy kinh", "xuyên không", "sinh tồn đảo hoang", "người ngoài hành tinh", "bác sĩ y khoa", "luật sư tòa án", "kiếm hiệp giang hồ", "tổng tài bá đạo", "trả thù").
+   - "mixed": Kết hợp nhiều yếu tố (Ví dụ: "phim hành động Hàn Quốc sau 2020", "phim hài Trung Quốc Châu Tinh Trì", "phim bộ trinh thám Hàn Quốc 2023").
    - "mood": Tìm theo tâm trạng cảm xúc (Ví dụ: "phim chữa lành tâm hồn", "phim xả stress").
    - "unknown": Vô nghĩa hoặc không xác định (Ví dụ: "asdfghjk", "123456").
 
@@ -224,6 +234,7 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON THEO SCHEMA SAU (K
   "year": null,
   "yearRange": null,
   "type": null,
+  "clearFields": [],
   "exclude": {
     "countries": [],
     "genres": [],
@@ -342,10 +353,69 @@ export async function analyzeUserPrompt(
 
   // Heuristic Fallback cứu cánh nếu LLM thất bại hoàn toàn
   if (!parsed) {
+    const cleanPromptLower = cleanNormalizedString(prompt).toLowerCase();
     const detectedConcepts = resolveConcepts(prompt);
     const themePatternMatch = prompt.match(
       /(?:phim\s+(?:về|ve)|chủ\s+đề|chu\s+de|nói\s+về|noi\s+ve|kể\s+về|ke\s+ve|xoay\s+quanh|đề\s+tài|de\s+tai)\s+(.+)/i
     );
+
+    // Kế thừa ngữ cảnh từ conversation history
+    const inheritedGenres: string[] = [];
+    const inheritedCountries: string[] = [];
+    let inheritedType: string | null = null;
+    let inheritedYear: number | null = null;
+
+    if (conversationHistory && conversationHistory.length > 0) {
+      for (const msg of conversationHistory) {
+        if (msg.role === "user") {
+          const g = resolveGenreSlug(msg.content);
+          if (g && !inheritedGenres.includes(g)) inheritedGenres.push(g);
+          const c = resolveCountrySlug(msg.content);
+          if (c && !inheritedCountries.includes(c)) inheritedCountries.push(c);
+          const t = resolveTypeSlug(undefined, msg.content);
+          if (t) inheritedType = t;
+          const ym = msg.content.match(/\b(19\d{2}|20\d{2})\b/);
+          if (ym) inheritedYear = parseInt(ym[1], 10);
+        }
+      }
+    }
+
+    const currentGenre = resolveGenreSlug(prompt);
+    const currentCountry = resolveCountrySlug(prompt);
+    const currentType = resolveTypeSlug(undefined, prompt);
+    const explicitYearMatch = prompt.match(/(?:năm|nam)\s*(\d{4})/i) || prompt.match(/\b(19\d{2}|20\d{2})\b/);
+    const currentYear = explicitYearMatch ? parseInt(explicitYearMatch[1], 10) : null;
+
+    const clearYearRequested =
+      /(?:bo|xoa|bo qua|khong gioi han|tat ca|moi)\s+(?:dieu kien\s+)?(?:nam|thoi gian)/i.test(cleanPromptLower) ||
+      /(?:bo|xoa)\s+nam/i.test(cleanPromptLower) ||
+      /(?:khong|chua)\s+(?:can|gioi han)\s+nam/i.test(cleanPromptLower);
+
+    const clearCountryRequested =
+      /(?:bo|xoa|khong gioi han|tat ca|moi)\s+(?:dieu kien\s+)?(?:quoc gia|nuoc)/i.test(cleanPromptLower) ||
+      /(?:bo|xoa)\s+quoc gia/i.test(cleanPromptLower);
+
+    const clearGenreRequested =
+      /(?:bo|xoa|khong gioi han)\s+(?:dieu kien\s+)?(?:the loai|loai phim)/i.test(cleanPromptLower) ||
+      /(?:bo|xoa)\s+the loai/i.test(cleanPromptLower);
+
+    const clearFields: Array<"year" | "country" | "genre" | "type" | "actor" | "character"> = [];
+    if (clearYearRequested) clearFields.push("year");
+    if (clearCountryRequested) clearFields.push("country");
+    if (clearGenreRequested) clearFields.push("genre");
+
+    const effectiveGenres = clearGenreRequested
+      ? []
+      : currentGenre
+      ? [currentGenre]
+      : inheritedGenres;
+    const effectiveCountries = clearCountryRequested
+      ? []
+      : currentCountry
+      ? [currentCountry]
+      : inheritedCountries;
+    const effectiveType = currentType || inheritedType || null;
+    const effectiveYear = clearYearRequested ? null : currentYear || inheritedYear || null;
 
     if (detectedConcepts.length > 0) {
       const conceptIds = detectedConcepts.map((c) => c.id);
@@ -355,11 +425,14 @@ export async function analyzeUserPrompt(
         keywords: detectedConcepts.flatMap((c) => c.discoveryKeywords),
         semanticQuery: detectedConcepts.map((c) => c.canonicalName).join(" "),
         concepts: conceptIds,
-        genres: isTokusatsu ? ["Hành động", "Viễn tưởng"] : [],
-        countries: isTokusatsu ? ["Nhật Bản"] : [],
+        genres: isTokusatsu ? ["Hành động", "Viễn tưởng"] : effectiveGenres,
+        countries: isTokusatsu ? ["Nhật Bản"] : effectiveCountries,
         people: [],
         franchises: isTokusatsu ? ["Super Sentai", "Kamen Rider", "Ultraman"] : [],
         themes: [detectedConcepts[0]?.canonicalName || "Chủ đề"],
+        year: effectiveYear,
+        type: effectiveType,
+        clearFields,
         is_trap: false,
         is_off_topic: false,
         analysis: `Dưới đây là các tác phẩm điện ảnh tiêu biểu về ${detectedConcepts[0]?.canonicalName} dành cho bạn:`,
@@ -373,15 +446,44 @@ export async function analyzeUserPrompt(
         keywords: [rawTheme],
         semanticQuery: prompt,
         concepts: [],
-        genres: [],
-        countries: [],
+        genres: effectiveGenres,
+        countries: effectiveCountries,
         people: [],
         franchises: [],
         themes: [rawTheme],
+        year: effectiveYear,
+        type: effectiveType,
+        clearFields,
         is_trap: false,
         is_off_topic: false,
         analysis: `Dưới đây là các tác phẩm điện ảnh xuất sắc về chủ đề "${rawTheme}" dành cho bạn:`,
         mood: `Chủ Đề & Điện Ảnh 🎬`,
+        suggested_movies: [],
+      };
+    } else if (effectiveGenres.length > 0 || effectiveCountries.length > 0 || effectiveType || effectiveYear) {
+      let derivedIntent: SearchIntent = "genre";
+      if (effectiveGenres.length > 0 && effectiveCountries.length > 0) derivedIntent = "mixed";
+      else if (effectiveGenres.length > 0) derivedIntent = "genre";
+      else if (effectiveCountries.length > 0) derivedIntent = "country";
+      else if (effectiveYear) derivedIntent = "year";
+
+      parsed = {
+        intent: derivedIntent,
+        keywords: [],
+        semanticQuery: prompt,
+        concepts: [],
+        genres: effectiveGenres,
+        countries: effectiveCountries,
+        people: [],
+        franchises: [],
+        themes: [],
+        year: effectiveYear,
+        type: effectiveType,
+        clearFields,
+        is_trap: false,
+        is_off_topic: false,
+        analysis: `Dưới đây là danh sách phim phù hợp nhất với yêu cầu của bạn:`,
+        mood: `Điện Ảnh Tuyển Chọn 🎬`,
         suggested_movies: [],
       };
     }

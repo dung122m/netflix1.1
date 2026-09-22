@@ -21,6 +21,7 @@ import {
 import { searchMoviesBySemantic } from "@/services/aiVectorService";
 import { BrowseAiSearchBanner } from "@/components/BrowseAiSearchBanner";
 import { CuratedMovieSection } from "@/components/CuratedMovieSection";
+import { TmdbTopTrending } from "@/components/TmdbTopTrending";
 import { CommunityTopTrending } from "@/components/CommunityTopTrending";
 import { ForYouPersonalizedRow } from "@/components/ForYouPersonalizedRow";
 import { PaginationControl } from "@/components/PaginationControl";
@@ -782,6 +783,9 @@ export default async function HomePage({
 
         {/* HÀNG PHIM DÀNH RIÊNG CHO BẠN (AI PERSONALIZED RECOMMENDATIONS) */}
         {isPlainHomepage && <ForYouPersonalizedRow fallbackMovies={movies} />}
+
+        {/* BẢNG XẾP HẠNG PHIM THỊNH HÀNH TRONG TUẦN (TMDB TRENDING MATCHED CATALOG) */}
+        {isPlainHomepage && <TmdbTopTrending />}
 
         {/* BẢNG XẾP HẠNG TOP 10 TRENDING DỰA TRÊN LƯỢT XEM THỰC TẾ CỦA CỘNG ĐỒNG */}
         {isPlainHomepage && <CommunityTopTrending />}

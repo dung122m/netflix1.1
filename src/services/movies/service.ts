@@ -291,7 +291,7 @@ async function fetchAndCacheMovieDetail(slug: string, source?: "nguonc" | "ophim
 const cachedGetMovieDetail = cache(fetchMovieDetailInternal);
 
 // Hàm kiểm tra chính xác loại phim (Khử hoàn toàn việc lẫn lộn phim lẻ / phim bộ / hoạt hình / tv-shows)
-function isMovieOfType(item: Record<string, unknown>, type: string): boolean {
+export function isMovieOfType(item: Record<string, unknown>, type: string): boolean {
   if (!type) return true;
   const rawType = String(item.type || "").toLowerCase().trim();
   const timeStr = String(item.time || "").toLowerCase();
@@ -635,11 +635,14 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
 
   // 5. Sắp xếp
   if (params.sort === "rating") {
-    // Chỉ chọn phim có số lượng bình chọn (tmdb.vote_count) >= 50 để đảm bảo chất lượng đánh giá
-    allUniqueItems = allUniqueItems.filter((item) => {
+    // Ưu tiên phim có lượt đánh giá nếu có dữ liệu TMDB
+    const ratedItems = allUniqueItems.filter((item) => {
       const voteCount = Number(item.tmdb?.vote_count || 0);
       return voteCount >= 50;
     });
+    if (ratedItems.length >= 5) {
+      allUniqueItems = ratedItems;
+    }
 
     allUniqueItems.sort((a, b) => {
       const rateA = Number(a.tmdb?.vote_average || a.imdb?.vote_average || 0);

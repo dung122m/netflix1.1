@@ -370,6 +370,61 @@ export function resolveGenreSlug(rawGenre?: string): string {
 }
 
 /**
+ * Chuẩn hóa loại phim / định dạng phim (Movie Type / Format)
+ * Ánh xạ chuẩn sang các định dạng catalog hỗ trợ: phim-bo, phim-le, hoat-hinh, tv-shows, phim-chieu-rap
+ */
+export function resolveTypeSlug(rawType?: string, prompt?: string): string {
+  const combined = `${rawType || ""} ${prompt || ""}`.toLowerCase();
+
+  // 1. TV Shows
+  if (
+    /(?:tv\s*shows?|truyen\s+hinh\s+thuc\s+te|truyền\s+hình\s+thực\s+tế|\bshow\b)/i.test(combined) ||
+    rawType === "tvshows" ||
+    rawType === "tv-shows"
+  ) {
+    return "tv-shows";
+  }
+
+  // 2. Hoạt hình & Anime
+  if (
+    /(?:hoat\s+hinh|hoạt\s+hình|anime|animation|manga)/i.test(combined) ||
+    rawType === "anime" ||
+    rawType === "hoat-hinh" ||
+    rawType === "hoathinh"
+  ) {
+    return "hoat-hinh";
+  }
+
+  // 3. Chiếu rạp
+  if (
+    /(?:chieu\s+rap|chiếu\s+rạp|dien\s+anh\s+chieu\s+rap)/i.test(combined) ||
+    rawType === "phim-chieu-rap"
+  ) {
+    return "phim-chieu-rap";
+  }
+
+  // 4. Phim bộ
+  if (
+    /(?:phim\s+bo|phim\s+bộ|\bseries\b|\bdrama\b|truyen\s+hinh|truyền\s+hình|nhieu\s+tap|nhiều\s+tập)/i.test(combined) ||
+    rawType === "series" ||
+    rawType === "phim-bo"
+  ) {
+    return "phim-bo";
+  }
+
+  // 5. Phim lẻ
+  if (
+    /(?:phim\s+le|phim\s+lẻ|dien\s+anh|điện\s+ảnh|\bmovie\b|\bsingle\b)/i.test(combined) ||
+    rawType === "single" ||
+    rawType === "phim-le"
+  ) {
+    return "phim-le";
+  }
+
+  return "";
+}
+
+/**
  * Kiểm tra chuỗi quốc gia của phim có khớp với slug mục tiêu không
  */
 export function matchesCountry(itemCountryStr: string, targetCountrySlug: string): boolean {

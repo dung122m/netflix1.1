@@ -12,8 +12,9 @@ import {
   resolveActorSlug,
   resolveCharacter,
 } from "./taxonomy";
-import { toSafeActors, toSafeCategory, toSafeCountry } from "./movieFormatter";
+import { toSafeActors, toSafeCategory, toSafeCategories, toSafeCountry, toSafeCountries } from "./movieFormatter";
 import { resolveConcepts, evaluateConceptEvidence } from "./conceptRegistry";
+import { isMovieOfType } from "@/services/movies/service";
 
 export interface RelevanceCheckOptions {
   originalQuery: string;
@@ -25,6 +26,7 @@ export interface RelevanceCheckOptions {
   expectedCharacter?: string;
   targetGenreSlug?: string;
   targetCountrySlug?: string;
+  targetTypeSlug?: string;
   targetYear?: number;
   yearFrom?: number;
   yearTo?: number;
@@ -318,7 +320,11 @@ export function isRelevantToQuery(
   const orig = cleanNormalizedString(movie.origin_name || "");
   const slug = cleanNormalizedString(movie.slug || "");
   const category = toSafeCategory(movie);
+  const categories = toSafeCategories(movie);
+  const categoryStr = categories.length > 0 ? categories.join(" ") : category;
   const country = toSafeCountry(movie);
+  const countries = toSafeCountries(movie);
+  const countryStr = countries.length > 0 ? countries.join(" ") : country;
   const actors = toSafeActors(movie);
   const desc = cleanNormalizedString(movie.content || movie.description || movie.overview || "");
 
@@ -341,14 +347,35 @@ export function isRelevantToQuery(
   }
 
   if (options?.excludedCountries && options.excludedCountries.length > 0) {
-    if (options.excludedCountries.some((ex) => matchesCountry(country, ex))) {
+    if (
+      options.excludedCountries.some(
+        (ex) =>
+          countries.some((c) => matchesCountry(c, ex)) ||
+          matchesCountry(countryStr, ex) ||
+          matchesCountry(country, ex)
+      )
+    ) {
       return { relevant: false, score: 0, reason: "Quốc gia thuộc danh sách loại trừ" };
     }
   }
 
   if (options?.excludedGenres && options.excludedGenres.length > 0) {
-    if (options.excludedGenres.some((ex) => matchesGenre(category, ex))) {
+    if (
+      options.excludedGenres.some(
+        (ex) =>
+          categories.some((c) => matchesGenre(c, ex)) ||
+          matchesGenre(categoryStr, ex)
+      )
+    ) {
       return { relevant: false, score: 0, reason: "Thể loại thuộc danh sách loại trừ" };
+    }
+  }
+
+  // 1.2 KIỂM TRA ĐỊNH DẠNG PHIM (TYPE FILTER: PHIM BỘ / PHIM LẺ / HOẠT HÌNH / TV SHOWS)
+  if (options?.targetTypeSlug) {
+    const isTypeMatch = isMovieOfType(movie, options.targetTypeSlug);
+    if (!isTypeMatch) {
+      return { relevant: false, score: 0, reason: `Không khớp định dạng phim yêu cầu (${options.targetTypeSlug})` };
     }
   }
 
@@ -601,10 +628,15 @@ export function isRelevantToQuery(
   let countryOk = true;
 
   if (options?.targetGenreSlug) {
-    genreOk = matchesGenre(category, options.targetGenreSlug);
+    genreOk =
+      categories.some((c) => matchesGenre(c, options.targetGenreSlug!)) ||
+      matchesGenre(categoryStr, options.targetGenreSlug);
   }
   if (options?.targetCountrySlug) {
-    countryOk = matchesCountry(country, options.targetCountrySlug);
+    countryOk =
+      countries.some((c) => matchesCountry(c, options.targetCountrySlug!)) ||
+      matchesCountry(countryStr, options.targetCountrySlug) ||
+      matchesCountry(country, options.targetCountrySlug);
   }
 
   if (options?.targetGenreSlug && options?.targetCountrySlug) {

@@ -39,6 +39,7 @@ export interface TmdbMovieCredit {
   department?: string;
   job?: string;
   imdb_id?: string;
+  media_type?: string;
 }
 
 // =========================================================================
@@ -58,6 +59,9 @@ const TMDB_CREDITS_CACHE = new Map<number, CacheEntry<TmdbMovieCredit[]>>();
 
 // 3. Cache danh sách phim đã merge của diễn viên (2h tươi, 24h stale)
 const TMDB_ACTOR_MOVIES_CACHE = new Map<string, CacheEntry<any[]>>();
+
+// 3.1. Cache danh sách phim thịnh hành TMDB Trending (3h tươi, 12h stale)
+const TMDB_TRENDING_MOVIES_CACHE = new Map<string, CacheEntry<any[]>>();
 
 // 4. CACHE ĐỐI CHIẾU TỪNG PHIM THEO TMDB ID (QUAN TRỌNG NHẤT: TRÁNH RE-CHECK PHIM ĐÃ TỪNG MATCH)
 // Lưu trữ: tmdb_id -> Movie (nếu tìm thấy) hoặc null (nếu không có nguồn phát)
@@ -148,7 +152,7 @@ async function resolveTmdbIp(): Promise<string> {
  * 1. Thử fetch chuẩn của Node/Next.js có next.revalidate.
  * 2. Nếu gặp lỗi DNS ENOTFOUND do nhà mạng chặn, tự động fallback sang DNS Google 8.8.8.8 + https agent.
  */
-async function fetchTmdbEndpoint(endpointPath: string): Promise<any> {
+async function fetchTmdbEndpoint(endpointPath: string, revalidateSeconds = 3600): Promise<any> {
   const sep = endpointPath.includes("?") ? "&" : "?";
   const authQuery = TMDB_API_KEY ? `api_key=${TMDB_API_KEY}` : "";
   const fullRelativePath = `${endpointPath}${sep}${authQuery}`;
@@ -167,7 +171,7 @@ async function fetchTmdbEndpoint(endpointPath: string): Promise<any> {
     const res = await fetch(fullUrl, {
       headers,
       signal: AbortSignal.timeout(4000),
-      next: { revalidate: 86400 }, // Cache 24h trên Next.js Data Cache
+      next: { revalidate: revalidateSeconds },
     });
     if (res.ok) {
       return await res.json();
@@ -381,8 +385,8 @@ export async function getTmdbPersonMovieCredits(personId: number): Promise<TmdbM
   return await cacheService.fetchOrSet(
     kvKey,
     async () => {
-      // Gọi TMDB movie_credits với ngôn ngữ vi-VN để có cả tên Việt lẫn tên gốc
-      const data = await fetchTmdbEndpoint(`/person/${personId}/movie_credits?language=vi-VN`);
+      // Gọi TMDB combined_credits với ngôn ngữ vi-VN để có cả phim lẻ, phim bộ lẫn tên Việt và tên gốc
+      const data = await fetchTmdbEndpoint(`/person/${personId}/combined_credits?language=vi-VN`);
 
       const rawCast = Array.isArray(data?.cast) ? data.cast : [];
       const rawCrew = Array.isArray(data?.crew) ? data.crew : [];
@@ -398,9 +402,10 @@ export async function getTmdbPersonMovieCredits(personId: number): Promise<TmdbM
   for (const m of combined) {
     if (!m || !m.id || uniqueMap.has(m.id)) continue;
 
+    const releaseDate = m.release_date || m.first_air_date || "";
     // LỌC BỎ PHIM CHƯA PHÁT HÀNH TRONG TƯƠNG LAI XA
-    if (m.release_date) {
-      const year = parseInt(m.release_date.slice(0, 4), 10);
+    if (releaseDate) {
+      const year = parseInt(releaseDate.slice(0, 4), 10);
       if (year > currentYear + 1) continue;
     }
 
@@ -419,9 +424,9 @@ export async function getTmdbPersonMovieCredits(personId: number): Promise<TmdbM
 
     uniqueMap.set(m.id, {
       id: m.id,
-      title: m.title || m.original_title || "",
-      original_title: m.original_title || m.title || "",
-      release_date: m.release_date || "",
+      title: m.title || m.name || m.original_name || m.original_title || "",
+      original_title: m.original_title || m.original_name || m.title || m.name || "",
+      release_date: releaseDate,
       vote_average: Number(m.vote_average || 0),
       vote_count: Number(m.vote_count || 0),
       popularity: Number(m.popularity || 0),
@@ -431,6 +436,7 @@ export async function getTmdbPersonMovieCredits(personId: number): Promise<TmdbM
       character: m.character || "",
       department: m.department || "",
       job: m.job || "",
+      media_type: m.media_type || (m.first_air_date ? "tv" : "movie"),
     });
   }
 
@@ -673,6 +679,9 @@ export async function matchTmdbMoviesWithSources(
             thumb_url: thumbImg,
             year: matchedCandidate.year || tmdbYear,
             time: matchedCandidate.time || "",
+            type: matchedCandidate.type || (credit.media_type === "tv" ? "series" : (credit.media_type === "movie" ? "single" : "")),
+            episode_current: matchedCandidate.episode_current || (credit.media_type === "tv" ? "Tập mới" : ""),
+            episode_total: matchedCandidate.episode_total || matchedCandidate.total_episodes || "",
             quality: matchedCandidate.quality || "HD",
             lang: matchedCandidate.lang || matchedCandidate.language || "Vietsub",
             category: matchedCandidate.category || [],
@@ -810,3 +819,109 @@ async function executeTmdbActorFlow(
     return [];
   }
 }
+
+export type TmdbRankType = "week" | "month" | "top_rated";
+
+/**
+ * 10. LẤY DANH SÁCH BẢNG XẾP HẠNG TMDB (WEEK / MONTH / TOP_RATED) ĐÃ ĐỐI CHIẾU CATALOG NANAFLIX
+ * - week: TMDB /trending/movie/week (Thịnh hành trong tuần)
+ * - month: TMDB /movie/popular (Nổi bật trong tháng)
+ * - top_rated: TMDB /movie/top_rated (Top phim hay nhất mọi thời đại, vote_count >= 300)
+ * - Đối chiếu PhimAPI & NguonC qua matchTmdbMoviesWithSources()
+ * - SWR Cache In-Memory: Phản hồi 0ms
+ */
+export async function getTmdbRankedMovies(
+  type: TmdbRankType = "week",
+  limit = 10,
+  concurrency = 8
+): Promise<any[]> {
+  const cacheKey = `TMDB_RANKED_${type}_V2`;
+  const now = Date.now();
+  const cached = TMDB_TRENDING_MOVIES_CACHE.get(cacheKey);
+
+  if (cached) {
+    if (cached.expireAt > now) {
+      return cached.data.slice(0, limit);
+    }
+    if (cached.staleUntil > now) {
+      setTimeout(() => {
+        executeTmdbRankingQuery(type, cacheKey, limit, concurrency).catch(() => {});
+      }, 100);
+      return cached.data.slice(0, limit);
+    }
+  }
+
+  const kvKey = `tmdb:ranked_movies:${type}:${limit}`;
+  return await cacheService.fetchOrSet(
+    kvKey,
+    () => executeTmdbRankingQuery(type, cacheKey, limit, concurrency),
+    4 * 3600 // 4 giờ trên Cloudflare KV
+  );
+}
+
+// Backward-compatible alias
+export async function getTmdbTrendingMovies(
+  timeWindow: "day" | "week" = "week",
+  limit = 10,
+  concurrency = 8
+): Promise<any[]> {
+  return getTmdbRankedMovies(timeWindow === "day" ? "week" : "week", limit, concurrency);
+}
+
+async function executeTmdbRankingQuery(
+  type: TmdbRankType,
+  cacheKey: string,
+  limit: number,
+  concurrency: number
+): Promise<any[]> {
+  try {
+    let endpoint = `/trending/movie/week?language=vi-VN`;
+    let revalidateTime = 3600; // 1 giờ cho trending tuần
+
+    if (type === "month") {
+      endpoint = `/movie/popular?language=vi-VN`;
+      revalidateTime = 7200; // 2 giờ cho popular tháng
+    } else if (type === "top_rated") {
+      endpoint = `/movie/top_rated?language=vi-VN`;
+      revalidateTime = 86400; // 24 giờ cho top rated
+    }
+
+    const data = await fetchTmdbEndpoint(endpoint, revalidateTime);
+    let rawResults = Array.isArray(data?.results) ? data.results : [];
+    if (rawResults.length === 0) return [];
+
+    // Đối với top_rated: lọc bỏ phim có quá ít lượt vote để đảm bảo danh sách uy tín
+    if (type === "top_rated") {
+      rawResults = rawResults.filter((m: any) => Number(m.vote_count || 0) >= 300);
+    }
+
+    const credits: TmdbMovieCredit[] = rawResults.map((m: any) => ({
+      id: m.id,
+      title: m.title || m.name || "",
+      original_title: m.original_title || m.original_name || "",
+      release_date: m.release_date || m.first_air_date || "",
+      vote_average: Number(m.vote_average || 0),
+      vote_count: Number(m.vote_count || 0),
+      popularity: Number(m.popularity || 0),
+      poster_path: m.poster_path || null,
+      backdrop_path: m.backdrop_path || null,
+      overview: m.overview || "",
+      media_type: m.media_type || "movie",
+    }));
+
+    const matchedMovies = await matchTmdbMoviesWithSources(credits, 25, concurrency);
+
+    const now = Date.now();
+    TMDB_TRENDING_MOVIES_CACHE.set(cacheKey, {
+      data: matchedMovies,
+      expireAt: now + (type === "top_rated" ? 6 * 3600 * 1000 : 2 * 3600 * 1000), // 2h-6h tươi
+      staleUntil: now + (type === "top_rated" ? 48 * 3600 * 1000 : 12 * 3600 * 1000), // 12h-48h stale
+    });
+
+    return matchedMovies.slice(0, limit);
+  } catch (err) {
+    console.warn(`[TMDB Ranking Query: ${type}] Error fetching ranking:`, err);
+    return [];
+  }
+}
+

@@ -12,9 +12,10 @@ import {
 import { MovieViewStatItem } from "@/services/supabaseService";
 import { pickBestMoviePoster, toOptimizedPhimimgUrl } from "@/lib/movieMedia";
 
-export function CommunityTopTrending() {
-  const TRENDING_CACHE_KEY = "nanaflix_trending_community_cache_v3";
+const TRENDING_CACHE_KEY = "nanaflix_trending_community_cache_v3";
+const FRESH_REVALIDATE_TTL = 5 * 60 * 1000; // 5 phút: Nếu cache dưới 5 phút, không cần revalidate ngầm
 
+export function CommunityTopTrending() {
   const [items, setItems] = useState<MovieViewStatItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -27,9 +28,10 @@ export function CommunityTopTrending() {
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
 
-  // 1. Đọc cache localStorage ngay khi mount (0ms) và tải ngầm chỉ tab "total"
+  // 1. Đọc cache localStorage ngay khi mount (0ms) và tải ngầm chỉ tab "total" nếu cache đã quá 5 phút
   useEffect(() => {
     let isMounted = true;
+    let shouldRevalidateTotal = true;
 
     // Đọc cache localStorage ngay khi mount nếu dữ liệu còn hợp lệ
     try {
@@ -52,11 +54,18 @@ export function CommunityTopTrending() {
             setItems(cachedForCurrent);
             setLoading(false);
           }
+
+          // Nếu cache total còn dưới 5 phút, không cần revalidate ngầm
+          if (Date.now() - parsed.timestamp < FRESH_REVALIDATE_TTL && Array.isArray(parsed.total) && parsed.total.length > 0) {
+            shouldRevalidateTotal = false;
+          }
         }
       }
     } catch {
       // Bỏ qua nếu localStorage lỗi
     }
+
+    if (!shouldRevalidateTotal) return;
 
     // Chỉ fetch BXH "total" khi mới vào trang (chạy ngầm revalidate)
     const fetchTotal = async () => {
@@ -109,13 +118,27 @@ export function CommunityTopTrending() {
     timeframeRef.current = nextTf;
 
     if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTo({ left: 0, behavior: "smooth" });
+      scrollContainerRef.current.scrollLeft = 0;
     }
 
     const cached = tabCacheRef.current[nextTf];
     if (cached && cached.length > 0) {
       setItems(cached);
       setTimeout(() => setIsFading(false), 100);
+
+      // Nếu cache tab còn dưới 5 phút, không cần gửi request revalidate ngầm
+      let isFresh = false;
+      try {
+        const raw = localStorage.getItem(TRENDING_CACHE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed.timestamp && Date.now() - parsed.timestamp < FRESH_REVALIDATE_TTL && parsed[nextTf]) {
+            isFresh = true;
+          }
+        }
+      } catch {}
+
+      if (isFresh) return;
 
       // Revalidate ngầm nếu có cache cũ
       fetch(`/api/trending-community?timeframe=${nextTf}&limit=10`)
@@ -193,6 +216,14 @@ export function CommunityTopTrending() {
     });
   }, []);
 
+  // Đảm bảo scroll luôn reset về 0 (Top 1) khi đổi tab hoặc đổi danh sách phim
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollLeft = 0;
+    }
+    checkScroll();
+  }, [timeframe, items, checkScroll]);
+
   useEffect(() => {
     return () => {
       if (rafRef.current !== null) {
@@ -232,7 +263,7 @@ export function CommunityTopTrending() {
             </span>
           </div>
           <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-white tracking-tight flex items-center gap-2">
-            <span>Top 10 Phim Được Xem Nhiều Nhất</span>
+            <span>👀 Xem Nhiều Nhất</span>
             <Flame className="w-6 h-6 text-netflix-red animate-bounce" />
           </h2>
           <p className="text-xs sm:text-sm text-gray-400 mt-0.5">
