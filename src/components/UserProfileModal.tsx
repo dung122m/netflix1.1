@@ -173,7 +173,7 @@ function UserProfileModalInner({
       if (user?.uid) {
         setCollectionsCount(getLocalCollections(user.uid).length);
       }
-    } catch {}
+    } catch { }
   }, [user?.uid]);
 
   useEffect(() => {
@@ -411,7 +411,7 @@ function UserProfileModalInner({
           if (cloudUrl) {
             finalUrl = cloudUrl;
           }
-        } catch {}
+        } catch { }
       }
 
       setCustomAvatarUrl(finalUrl);
@@ -601,11 +601,10 @@ function UserProfileModalInner({
           <button
             type="button"
             onClick={() => setActiveTab("followed_actors")}
-            className={`p-2 sm:p-2.5 rounded-xl border text-center flex flex-col items-center justify-center transition cursor-pointer ${
-              activeTab === "followed_actors"
-                ? "bg-rose-500/15 border-rose-500/40 text-rose-300"
-                : "bg-white/[0.04] hover:bg-white/[0.08] border-white/10 text-white"
-            }`}
+            className={`p-2 sm:p-2.5 rounded-xl border text-center flex flex-col items-center justify-center transition cursor-pointer ${activeTab === "followed_actors"
+              ? "bg-rose-500/15 border-rose-500/40 text-rose-300"
+              : "bg-white/[0.04] hover:bg-white/[0.08] border-white/10 text-white"
+              }`}
           >
             <Heart className="w-3.5 h-3.5 text-rose-400 mb-1" />
             <span className="text-xs sm:text-sm font-black">{followedActors.length}</span>
@@ -615,11 +614,10 @@ function UserProfileModalInner({
           <button
             type="button"
             onClick={() => setActiveTab("comments")}
-            className={`p-2 sm:p-2.5 rounded-xl border text-center flex flex-col items-center justify-center transition cursor-pointer ${
-              activeTab === "comments"
-                ? "bg-rose-500/15 border-rose-500/40 text-rose-300"
-                : "bg-white/[0.04] hover:bg-white/[0.08] border-white/10 text-white"
-            }`}
+            className={`p-2 sm:p-2.5 rounded-xl border text-center flex flex-col items-center justify-center transition cursor-pointer ${activeTab === "comments"
+              ? "bg-rose-500/15 border-rose-500/40 text-rose-300"
+              : "bg-white/[0.04] hover:bg-white/[0.08] border-white/10 text-white"
+              }`}
           >
             <MessageSquare className="w-3.5 h-3.5 text-emerald-400 mb-1" />
             <span className="text-xs sm:text-sm font-black">{userComments.length}</span>
@@ -632,11 +630,10 @@ function UserProfileModalInner({
           <button
             type="button"
             onClick={() => setActiveTab("profile")}
-            className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl transition cursor-pointer whitespace-nowrap ${
-              activeTab === "profile"
-                ? "bg-netflix-red text-white shadow-md shadow-rose-950/50"
-                : "text-gray-400 hover:text-white hover:bg-white/5"
-            }`}
+            className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl transition cursor-pointer whitespace-nowrap ${activeTab === "profile"
+              ? "bg-netflix-red text-white shadow-md shadow-rose-950/50"
+              : "text-gray-400 hover:text-white hover:bg-white/5"
+              }`}
           >
             <User className="w-3.5 h-3.5 flex-shrink-0" />
             <span>Hồ Sơ & Danh Hiệu</span>
@@ -645,11 +642,10 @@ function UserProfileModalInner({
           <button
             type="button"
             onClick={() => setActiveTab("player_settings")}
-            className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl transition cursor-pointer whitespace-nowrap ${
-              activeTab === "player_settings"
-                ? "bg-netflix-red text-white shadow-md shadow-rose-950/50"
-                : "text-gray-400 hover:text-white hover:bg-white/5"
-            }`}
+            className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl transition cursor-pointer whitespace-nowrap ${activeTab === "player_settings"
+              ? "bg-netflix-red text-white shadow-md shadow-rose-950/50"
+              : "text-gray-400 hover:text-white hover:bg-white/5"
+              }`}
           >
             <Settings className="w-3.5 h-3.5 flex-shrink-0" />
             <span>Cài Đặt Phát Lại</span>
@@ -658,11 +654,10 @@ function UserProfileModalInner({
           <button
             type="button"
             onClick={() => setActiveTab("followed_actors")}
-            className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl transition cursor-pointer whitespace-nowrap ${
-              activeTab === "followed_actors"
-                ? "bg-netflix-red text-white shadow-md shadow-rose-950/50"
-                : "text-gray-400 hover:text-white hover:bg-white/5"
-            }`}
+            className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl transition cursor-pointer whitespace-nowrap ${activeTab === "followed_actors"
+              ? "bg-netflix-red text-white shadow-md shadow-rose-950/50"
+              : "text-gray-400 hover:text-white hover:bg-white/5"
+              }`}
           >
             <Heart className="w-3.5 h-3.5 flex-shrink-0" />
             <span>Diễn Viên ({followedActors.length})</span>
@@ -671,11 +666,10 @@ function UserProfileModalInner({
           <button
             type="button"
             onClick={() => setActiveTab("comments")}
-            className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl transition cursor-pointer whitespace-nowrap ${
-              activeTab === "comments"
-                ? "bg-netflix-red text-white shadow-md shadow-rose-950/50"
-                : "text-gray-400 hover:text-white hover:bg-white/5"
-            }`}
+            className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl transition cursor-pointer whitespace-nowrap ${activeTab === "comments"
+              ? "bg-netflix-red text-white shadow-md shadow-rose-950/50"
+              : "text-gray-400 hover:text-white hover:bg-white/5"
+              }`}
           >
             <MessageSquare className="w-3.5 h-3.5 flex-shrink-0" />
             <span>Đánh Giá ({userComments.length})</span>
@@ -692,7 +686,7 @@ function UserProfileModalInner({
                   <span className="text-base sm:text-lg">{levelInfo.badgeIcon}</span>
                   <span className="font-extrabold text-white">{levelInfo.levelName}</span>
                   <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-bold whitespace-nowrap">
-                    Cấp Độ VIP
+                    Cấp Độ
                   </span>
                 </div>
                 <div className="flex items-center gap-1 text-[11px] sm:text-xs text-amber-400 font-bold whitespace-nowrap">
@@ -729,7 +723,7 @@ function UserProfileModalInner({
               <div className="space-y-2.5">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-gray-300 uppercase tracking-wider block">
-                    1. Kho Avatar VIP & Tải ảnh riêng
+                    1. Kho Avatar & Tải ảnh riêng
                   </label>
                   <button
                     type="button"
@@ -760,11 +754,10 @@ function UserProfileModalInner({
                           setUseCustomUrl(false);
                         }}
                         title={av.name}
-                        className={`relative aspect-square rounded-2xl border overflow-hidden p-1 transition-all cursor-pointer ${
-                          isSelected
-                            ? "border-netflix-red bg-netflix-red/20 ring-2 ring-netflix-red scale-105"
-                            : "border-white/10 bg-white/5 hover:border-white/30 hover:bg-white/10"
-                        }`}
+                        className={`relative aspect-square rounded-2xl border overflow-hidden p-1 transition-all cursor-pointer ${isSelected
+                          ? "border-netflix-red bg-netflix-red/20 ring-2 ring-netflix-red scale-105"
+                          : "border-white/10 bg-white/5 hover:border-white/30 hover:bg-white/10"
+                          }`}
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
@@ -880,13 +873,12 @@ function UserProfileModalInner({
                         type="button"
                         onClick={() => toggleBadge(b)}
                         title={isUnlocked ? b.label : `Đang khóa - Cần ${b.reqText}`}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border flex items-center gap-1.5 ${
-                          !isUnlocked
-                            ? "bg-zinc-900/40 text-gray-500 border-white/5 opacity-55 hover:opacity-80"
-                            : active
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border flex items-center gap-1.5 ${!isUnlocked
+                          ? "bg-zinc-900/40 text-gray-500 border-white/5 opacity-55 hover:opacity-80"
+                          : active
                             ? "bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-md shadow-amber-950/40 scale-102"
                             : "bg-zinc-900 text-gray-300 border-white/10 hover:border-white/25 hover:text-white"
-                        }`}
+                          }`}
                       >
                         {!isUnlocked ? (
                           <Lock className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
@@ -918,11 +910,10 @@ function UserProfileModalInner({
                         key={genre}
                         type="button"
                         onClick={() => toggleGenre(genre)}
-                        className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
-                          active
-                            ? "bg-netflix-red text-white shadow-md border border-rose-500 font-bold"
-                            : "bg-zinc-900 text-gray-400 hover:text-white border border-white/10 hover:border-white/25"
-                        }`}
+                        className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${active
+                          ? "bg-netflix-red text-white shadow-md border border-rose-500 font-bold"
+                          : "bg-zinc-900 text-gray-400 hover:text-white border border-white/10 hover:border-white/25"
+                          }`}
                       >
                         {genre}
                       </button>
@@ -1091,11 +1082,10 @@ function UserProfileModalInner({
                       onClick={() =>
                         setPlayerSettingsState({ ...playerSettings, playbackSpeed: speed })
                       }
-                      className={`py-2 rounded-xl text-xs font-black transition cursor-pointer border ${
-                        playerSettings.playbackSpeed === speed
-                          ? "bg-amber-500 text-black border-amber-400 shadow-md shadow-amber-950/40"
-                          : "bg-white/5 text-gray-300 border-white/10 hover:border-white/25 hover:text-white"
-                      }`}
+                      className={`py-2 rounded-xl text-xs font-black transition cursor-pointer border ${playerSettings.playbackSpeed === speed
+                        ? "bg-amber-500 text-black border-amber-400 shadow-md shadow-amber-950/40"
+                        : "bg-white/5 text-gray-300 border-white/10 hover:border-white/25 hover:text-white"
+                        }`}
                     >
                       {speed === 1 ? "1.0x (Chuẩn)" : `${speed}x`}
                     </button>

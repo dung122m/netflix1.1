@@ -129,7 +129,7 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
                     className="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-bold text-amber-300 bg-amber-500/15 border border-amber-500/30 hover:bg-amber-500/25 transition active:scale-95 shadow-sm"
                   >
                     <ShieldCheck size={13} className="text-amber-400 shrink-0" />
-                    <span className="truncate">Admin VIP</span>
+                    <span className="truncate">Admin</span>
                   </Link>
                 )}
                 <button
@@ -138,9 +138,8 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
                     onClose();
                     await logout();
                   }}
-                  className={`flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-red-400 bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 transition active:scale-95 cursor-pointer shadow-sm ${
-                    !isUserAdmin(user?.email) ? "col-span-2" : ""
-                  }`}
+                  className={`flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-red-400 bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 transition active:scale-95 cursor-pointer shadow-sm ${!isUserAdmin(user?.email) ? "col-span-2" : ""
+                    }`}
                 >
                   <LogOut size={13} className="shrink-0" />
                   <span>Đăng xuất</span>
@@ -289,11 +288,10 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
                 href={link.href}
                 prefetch={true}
                 onClick={onClose}
-                className={`text-xs font-medium py-2 px-2.5 transition-all flex items-center gap-2 rounded-xl ${
-                  active
+                className={`text-xs font-medium py-2 px-2.5 transition-all flex items-center gap-2 rounded-xl ${active
                     ? "text-white font-bold bg-netflix-red/30 border border-netflix-red/40 shadow-sm"
                     : "text-gray-300 hover:text-white bg-white/[0.03] hover:bg-white/10 border border-white/5"
-                }`}
+                  }`}
               >
                 <IconComp
                   size={14}
@@ -301,8 +299,8 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
                     active
                       ? "text-netflix-red"
                       : link.isLive
-                      ? "text-rose-400 animate-pulse"
-                      : "text-gray-400"
+                        ? "text-rose-400 animate-pulse"
+                        : "text-gray-400"
                   }
                 />
                 <span className="truncate">{link.name}</span>

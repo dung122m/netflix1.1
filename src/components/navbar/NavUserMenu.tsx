@@ -150,7 +150,7 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
             className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-rose-300 hover:text-white hover:bg-white/10 transition cursor-pointer text-left font-bold"
           >
             <User size={14} className="text-rose-400" />
-            <span>🧑 Hồ sơ & Dashboard VIP</span>
+            <span>🧑 Hồ sơ & Dashboard</span>
           </button>
 
           <button

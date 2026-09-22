@@ -288,7 +288,7 @@ export function PublicUserProfileModal({ initialDetail }: PublicUserProfileModal
             <div className="text-xs sm:text-base font-black text-white truncate max-w-full px-1">
               {levelInfo.levelName}
             </div>
-            <div className="text-[10px] text-zinc-500 truncate max-w-full">{levelInfo.badgeIcon} Cấp VIP</div>
+            <div className="text-[10px] text-zinc-500 truncate max-w-full">{levelInfo.badgeIcon} Cấp </div>
           </div>
 
           <div className="p-2 sm:p-3 rounded-2xl bg-zinc-900/60 border border-white/10 text-center space-y-0.5 flex flex-col justify-center items-center overflow-hidden">
@@ -308,11 +308,10 @@ export function PublicUserProfileModal({ initialDetail }: PublicUserProfileModal
           <button
             type="button"
             onClick={() => setActiveTab("overview")}
-            className={`flex-1 py-2 px-2 sm:px-3 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap text-xs ${
-              activeTab === "overview"
-                ? "bg-netflix-red text-white shadow-lg shadow-rose-950/40"
-                : "text-zinc-400 hover:text-white hover:bg-white/5"
-            }`}
+            className={`flex-1 py-2 px-2 sm:px-3 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap text-xs ${activeTab === "overview"
+              ? "bg-netflix-red text-white shadow-lg shadow-rose-950/40"
+              : "text-zinc-400 hover:text-white hover:bg-white/5"
+              }`}
           >
             <Sparkles className="w-3.5 h-3.5 flex-shrink-0" />
             <span>Tổng Quan</span>
@@ -320,11 +319,10 @@ export function PublicUserProfileModal({ initialDetail }: PublicUserProfileModal
           <button
             type="button"
             onClick={() => setActiveTab("collections")}
-            className={`flex-1 py-2 px-2 sm:px-3 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap text-xs ${
-              activeTab === "collections"
-                ? "bg-netflix-red text-white shadow-lg shadow-rose-950/40"
-                : "text-zinc-400 hover:text-white hover:bg-white/5"
-            }`}
+            className={`flex-1 py-2 px-2 sm:px-3 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap text-xs ${activeTab === "collections"
+              ? "bg-netflix-red text-white shadow-lg shadow-rose-950/40"
+              : "text-zinc-400 hover:text-white hover:bg-white/5"
+              }`}
           >
             <Layers className="w-3.5 h-3.5 flex-shrink-0" />
             <span>Bộ Sưu Tập ({collections.length})</span>
