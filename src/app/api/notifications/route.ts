@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { sanitizeSafeText } from "@/lib/security";
 import { verifyServerAuth } from "@/lib/serverAuth";
+import { movieApi } from "@/services/movieApi";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -27,15 +28,34 @@ export async function GET(req: NextRequest) {
 
       if (upstreamRes.ok) {
         const data = await upstreamRes.json();
-        const movies = Array.isArray(data.items) ? data.items.slice(0, 5) : [];
+        const movies = Array.isArray(data.items) ? data.items.slice(0, 8) : [];
+        const now = Date.now();
 
-        movies.forEach((m: { name?: string; slug?: string; poster_url?: string; thumb_url?: string; episode_current?: string; year?: number }) => {
+        // Nạp song song thông tin chi tiết (actors) qua cache getMovieDetail sẵn có (L1 Memory + L2 Cache)
+        const movieDetails = await Promise.allSettled(
+          movies.map((m: { slug?: string }) => (m.slug ? movieApi.getMovieDetail(m.slug) : null))
+        );
+
+        movies.forEach((m: { name?: string; slug?: string; poster_url?: string; thumb_url?: string; episode_current?: string; year?: number; modified?: { time?: string } }, idx: number) => {
           if (m.slug && m.name) {
             const posterImg = m.poster_url?.startsWith("http")
               ? m.poster_url
               : m.thumb_url?.startsWith("http")
                 ? m.thumb_url
                 : `https://phimimg.com/${m.poster_url || m.thumb_url}`;
+
+            const itemCreatedAt = m.modified?.time
+              ? new Date(m.modified.time).getTime() || (now - (idx + 1) * 1800000)
+              : now - (idx + 1) * 1800000;
+
+            let movieActors: string[] = [];
+            const detailRes = movieDetails[idx];
+            if (detailRes && detailRes.status === "fulfilled" && detailRes.value?.movie?.actor) {
+              const rawActors = detailRes.value.movie.actor;
+              if (Array.isArray(rawActors)) {
+                movieActors = rawActors.filter((a): a is string => typeof a === "string" && Boolean(a.trim()));
+              }
+            }
 
             dynamicItems.push({
               id: `sys_movie_${m.slug}`,
@@ -47,6 +67,8 @@ export async function GET(req: NextRequest) {
               image: posterImg,
               badge: "TẬP MỚI",
               badgeColor: "bg-netflix-red text-white",
+              createdAt: itemCreatedAt,
+              actors: movieActors,
             });
           }
         });
@@ -62,6 +84,7 @@ export async function GET(req: NextRequest) {
         link: "/live",
         badge: "LIVE 🔴",
         badgeColor: "bg-red-600 text-white animate-pulse",
+        createdAt: Date.now(),
       });
 
       return NextResponse.json({ success: true, items: dynamicItems });
@@ -79,6 +102,7 @@ export async function GET(req: NextRequest) {
             link: "/browse",
             badge: "HOT",
             badgeColor: "bg-netflix-red text-white",
+            createdAt: Date.now() - 3600000,
           },
         ],
       });
@@ -102,7 +126,7 @@ export async function GET(req: NextRequest) {
       .select("*")
       .eq("user_id", auth.userId)
       .order("created_at", { ascending: false })
-      .limit(30);
+      .limit(50);
 
     if (error || !data) {
       return NextResponse.json({ success: true, items: [] });
@@ -110,14 +134,15 @@ export async function GET(req: NextRequest) {
 
     const items = data.map((d) => ({
       id: d.id,
-      type: d.type,
+      type: d.type || "system",
       title: d.title,
       message: d.message || "",
-      link: d.link,
-      movieSlug: d.movie_slug,
-      commentId: d.comment_id,
-      replierName: d.replier_name,
-      replierAvatar: d.replier_avatar,
+      link: d.link || "",
+      image: d.replier_avatar || undefined,
+      movieSlug: d.movie_slug || undefined,
+      commentId: d.comment_id || undefined,
+      replierName: d.replier_name || undefined,
+      replierAvatar: d.replier_avatar || undefined,
       isRead: Boolean(d.is_read),
       createdAt: Number(d.created_at) || Date.now(),
     }));

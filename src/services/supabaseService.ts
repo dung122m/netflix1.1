@@ -815,19 +815,20 @@ export async function getUserNotificationsSupabase(userId: string): Promise<User
       .select("*")
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
-      .limit(30);
+      .limit(50);
 
     if (!data) return [];
     const rawList: UserNotification[] = data.map((d) => ({
       id: d.id,
-      type: d.type as UserNotification["type"],
+      type: (d.type || "system") as UserNotification["type"],
       title: d.title,
       message: d.message || "",
-      link: d.link,
-      movieSlug: d.movie_slug,
-      commentId: d.comment_id,
-      replierName: d.replier_name,
-      replierAvatar: d.replier_avatar,
+      link: d.link || "",
+      image: d.replier_avatar || undefined,
+      movieSlug: d.movie_slug || undefined,
+      commentId: d.comment_id || undefined,
+      replierName: d.replier_name || undefined,
+      replierAvatar: d.replier_avatar || undefined,
       isRead: Boolean(d.is_read),
       createdAt: Number(d.created_at) || Date.now(),
     }));
@@ -837,10 +838,14 @@ export async function getUserNotificationsSupabase(userId: string): Promise<User
     const deduped: UserNotification[] = [];
 
     for (const item of rawList) {
-      const semanticKey = item.commentId
+      const semanticKey = item.commentId && item.type === "comment_reply"
         ? `cmt_${item.commentId}`
-        : item.type === "new_episode"
-        ? `ep_${item.movieSlug}_${item.title}`
+        : item.commentId && item.type === "comment_reaction"
+        ? `react_${item.commentId}`
+        : item.movieSlug && item.type === "actor_movie" && item.actorId
+        ? `actor_${item.movieSlug}_${item.actorId}`
+        : item.type === "new_episode" || item.type === "watchlist_episode" || item.type === "continue_watching_episode"
+        ? `${item.type}_${item.movieSlug}_${item.title}`
         : `${item.type}_${item.title}_${item.message}_${Math.floor((item.createdAt || 0) / 120000)}`;
 
       if (seenIds.has(item.id) || seenKeys.has(semanticKey)) {
@@ -870,7 +875,7 @@ export async function createNotificationSupabase(notif: UserNotification & { use
       movie_slug: notif.movieSlug || null,
       comment_id: notif.commentId || null,
       replier_name: notif.replierName || null,
-      replier_avatar: notif.replierAvatar || null,
+      replier_avatar: notif.replierAvatar || notif.image || null,
       is_read: Boolean(notif.isRead),
       created_at: notif.createdAt || Date.now(),
     };

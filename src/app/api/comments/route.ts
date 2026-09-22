@@ -255,8 +255,76 @@ export async function PATCH(req: NextRequest) {
       const auth = await verifyServerAuth(req);
       const effectiveUserId = auth.isAuthenticated && auth.userId ? auth.userId : userId;
       if (isSupabaseConfigured() && effectiveUserId) {
-        const { setCommentReactionSupabase } = await import("@/services/supabaseService");
+        const { setCommentReactionSupabase, createNotificationSupabase, getUserProfileSupabase } = await import("@/services/supabaseService");
         await setCommentReactionSupabase(commentId, effectiveUserId, reactionType || null);
+
+        // Tạo thông báo reaction an toàn (chỉ khi thêm reaction và người thả khác chủ bình luận)
+        if (reactionType && commentId) {
+          try {
+            const supabaseAdmin = getSupabaseAdmin();
+            if (supabaseAdmin) {
+              const { data: cmt } = await supabaseAdmin
+                .from("movie_comments")
+                .select("user_id, user_name, movie_slug, content, liked_by")
+                .eq("id", commentId)
+                .maybeSingle();
+
+              if (cmt && cmt.user_id && cmt.user_id !== effectiveUserId) {
+                let reactorName = auth.displayName || "Một thành viên";
+                let reactorAvatar = auth.photoUrl || "";
+                try {
+                  const profile = await getUserProfileSupabase(effectiveUserId);
+                  if (profile?.displayName) reactorName = profile.displayName;
+                  if (profile?.photoURL) reactorAvatar = profile.photoURL;
+                } catch {}
+
+                const emojiMap: Record<string, string> = {
+                  heart: "❤️",
+                  love: "❤️",
+                  like: "👍",
+                  laugh: "😂",
+                  haha: "😂",
+                  wow: "😮",
+                  sad: "😢",
+                  angry: "😡",
+                };
+                const emoji = emojiMap[reactionType] || "❤️";
+
+                // Tính số người khác đã reaction
+                let otherCount = 0;
+                if (cmt.liked_by && typeof cmt.liked_by === "object") {
+                  const keys = Object.keys(cmt.liked_by).filter((uid) => uid !== effectiveUserId && uid !== cmt.user_id);
+                  otherCount = keys.length;
+                }
+
+                const notifTitle = otherCount > 0
+                  ? `${emoji} ${reactorName} và ${otherCount} người khác đã phản ứng với bình luận của bạn`
+                  : `${emoji} ${reactorName} đã thích bình luận của bạn`;
+
+                const msgSnippet = (cmt.content || "").length > 80
+                  ? (cmt.content || "").slice(0, 80) + "..."
+                  : cmt.content || "";
+
+                await createNotificationSupabase({
+                  id: `react_${commentId}_${cmt.user_id}`,
+                  userId: cmt.user_id,
+                  type: "comment_reaction",
+                  title: notifTitle,
+                  message: msgSnippet,
+                  link: `/movies/${cmt.movie_slug}?highlightComment=${commentId}#comment-${commentId}`,
+                  movieSlug: cmt.movie_slug,
+                  commentId,
+                  replierName: reactorName,
+                  replierAvatar: reactorAvatar,
+                  isRead: false,
+                  createdAt: Date.now(),
+                }).catch(() => {});
+              }
+            }
+          } catch (notifErr) {
+            console.warn("Lỗi tạo thông báo reaction:", notifErr);
+          }
+        }
       }
       return NextResponse.json({ success: true });
     }

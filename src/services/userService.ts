@@ -596,6 +596,15 @@ export async function incrementUserWatchTime(userId: string, minutes: number = 1
     };
     setCachedUserProfile(userId, updatedProfile);
 
+    // Kiểm tra mốc thăng cấp & mở khóa danh hiệu mới
+    const prevLevel = getWatchLevelInfo(prevMins);
+    const newLevel = getWatchLevelInfo(newMins);
+    if (newLevel.minMinutes > prevLevel.minMinutes) {
+      import("@/services/notificationService").then(({ notifyAchievementMilestone }) => {
+        notifyAchievementMilestone(userId, newLevel).catch(() => {});
+      }).catch(() => {});
+    }
+
     // 2. Cập nhật vào Supabase qua API có Debounce (2 phút) để tránh spam request liên tục
     if (watchTimeSaveTimers.has(userId)) {
       clearTimeout(watchTimeSaveTimers.get(userId));

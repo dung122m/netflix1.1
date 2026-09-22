@@ -73,13 +73,22 @@ export const DesktopReplyPopup: React.FC = () => {
       }
 
       // Tìm thông báo chưa đọc mới nhất chưa từng hiện popup
-      const newReply = notifications.find(
-        (n) => !n.isRead && !seenIdsRef.current.has(n.id) && (n.type === "comment_reply" || n.type === "new_episode")
+      const newNotif = notifications.find(
+        (n) =>
+          !n.isRead &&
+          !seenIdsRef.current.has(n.id) &&
+          (n.type === "comment_reply" ||
+            n.type === "comment_reaction" ||
+            n.type === "actor_movie" ||
+            n.type === "new_episode" ||
+            n.type === "watchlist_episode" ||
+            n.type === "continue_watching_episode" ||
+            n.type === "achievement_level")
       );
 
-      if (newReply) {
-        seenIdsRef.current.add(newReply.id);
-        setActiveNotification(newReply);
+      if (newNotif) {
+        seenIdsRef.current.add(newNotif.id);
+        setActiveNotification(newNotif);
         setProgress(100);
         playNotificationChime();
       }
@@ -142,6 +151,19 @@ export const DesktopReplyPopup: React.FC = () => {
   if (!activeNotification) return null;
 
   const isReplyType = activeNotification.type === "comment_reply";
+  const isReactionType = activeNotification.type === "comment_reaction";
+  const isActorType = activeNotification.type === "actor_movie";
+  const isAchievementType = activeNotification.type === "achievement_level";
+
+  const getBadgeTitle = () => {
+    if (isReplyType) return "Phản hồi mới";
+    if (isReactionType) return "Cảm xúc mới";
+    if (isActorType) return "Diễn viên bạn theo dõi";
+    if (isAchievementType) return "Thành tựu mới";
+    if (activeNotification.type === "watchlist_episode") return "Phim đã lưu";
+    if (activeNotification.type === "continue_watching_episode") return "Đang xem";
+    return "Thông báo mới";
+  };
 
   return (
     <div
@@ -164,14 +186,32 @@ export const DesktopReplyPopup: React.FC = () => {
                 className="object-cover"
                 referrerPolicy="no-referrer"
               />
+            ) : isAchievementType ? (
+              <span className="text-base">{activeNotification.badgeIcon || "🏆"}</span>
             ) : (
               (activeNotification.replierName || activeNotification.title || "U").charAt(0).toUpperCase()
             )}
 
             {/* Small icon badge at corner */}
-            <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-blue-600 border border-zinc-950 flex items-center justify-center text-white">
+            <div
+              className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border border-zinc-950 flex items-center justify-center text-white ${
+                isReplyType
+                  ? "bg-blue-600"
+                  : isReactionType
+                  ? "bg-rose-600"
+                  : isActorType
+                  ? "bg-amber-600"
+                  : isAchievementType
+                  ? "bg-yellow-600"
+                  : "bg-netflix-red"
+              }`}
+            >
               {isReplyType ? (
                 <MessageSquare className="w-2.5 h-2.5" />
+              ) : isReactionType ? (
+                <span className="text-[7px]">❤️</span>
+              ) : isActorType ? (
+                <span className="text-[7px]">⭐</span>
               ) : (
                 <Bell className="w-2.5 h-2.5 text-amber-300" />
               )}
@@ -180,9 +220,21 @@ export const DesktopReplyPopup: React.FC = () => {
 
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-400 flex items-center gap-1">
+              <span
+                className={`text-[10px] font-extrabold uppercase tracking-wider flex items-center gap-1 ${
+                  isReplyType
+                    ? "text-blue-400"
+                    : isReactionType
+                    ? "text-rose-400"
+                    : isActorType
+                    ? "text-amber-400"
+                    : isAchievementType
+                    ? "text-yellow-400"
+                    : "text-emerald-400"
+                }`}
+              >
                 <Sparkles className="w-2.5 h-2.5" />
-                {isReplyType ? "Phản hồi mới" : "Thông báo mới"}
+                {getBadgeTitle()}
               </span>
               <span className="text-[10px] text-zinc-500">· Vừa xong</span>
             </div>

@@ -163,11 +163,17 @@ export function mergeNotifications(
   for (const item of combined) {
     if (!item || !item.id) continue;
 
-    // Khóa trùng lặp theo ID và theo nội dung bình luận
-    const semanticKey = item.commentId
+    // Khóa trùng lặp theo ID và theo nội dung từng loại thông báo
+    const semanticKey = item.commentId && item.type === "comment_reply"
       ? `cmt_${item.commentId}`
-      : item.type === "new_episode"
-      ? `ep_${item.movieSlug}_${item.title}`
+      : item.commentId && item.type === "comment_reaction"
+      ? `react_${item.commentId}`
+      : item.movieSlug && item.type === "actor_movie" && item.actorId
+      ? `actor_${item.movieSlug}_${item.actorId}`
+      : item.type === "new_episode" || item.type === "watchlist_episode" || item.type === "continue_watching_episode"
+      ? `${item.type}_${item.movieSlug}_${item.title}_${item.episodeName || ""}`
+      : item.type === "achievement_level"
+      ? `achieve_${item.id}`
       : `${item.type}_${item.title}_${item.message}_${Math.floor((item.createdAt || 0) / 120000)}`;
 
     if (seenExactIds.has(item.id) || seenSemanticKeys.has(semanticKey)) {
@@ -512,3 +518,234 @@ export async function checkAndNotifyNewEpisode(
     return false;
   }
 }
+
+/**
+ * Kiểm tra và tạo thông báo nếu phim mới có diễn viên mà người dùng đang theo dõi
+ */
+export async function checkAndNotifyFollowedActors(
+  userId: string,
+  movies: Array<{
+    slug: string;
+    name: string;
+    poster?: string;
+    actors?: string[];
+  }>
+): Promise<void> {
+  if (!userId || !Array.isArray(movies) || movies.length === 0) return;
+  try {
+    const { getLocalFollowedActors } = await import("@/services/actorFollowService");
+    const { matchesActorAlias } = await import("@/lib/actorAlias");
+    const followedActors = getLocalFollowedActors(userId);
+    if (followedActors.length === 0) return;
+
+    const existingNotifs = getLocalNotifications(userId);
+    const newNotifs: UserNotification[] = [];
+
+    for (const movie of movies) {
+      if (!movie.slug || !movie.name) continue;
+      const movieActors = Array.isArray(movie.actors) ? movie.actors : [];
+      for (const followed of followedActors) {
+        const isMatch = matchesActorAlias(
+          followed.actorName,
+          movieActors,
+          movie.name
+        );
+
+        if (isMatch) {
+          const cleanId = followed.actorId || followed.actorName.toLowerCase().replace(/\s+/g, "-");
+          const notifId = `actor_${userId}_${movie.slug}_${cleanId}`;
+          // Kiểm tra xem đã từng tạo chưa
+          const alreadyExists = existingNotifs.some((n) => n.id === notifId);
+          if (!alreadyExists && !newNotifs.some((n) => n.id === notifId)) {
+            const notif: UserNotification = {
+              id: notifId,
+              type: "actor_movie",
+              title: `⭐ ${followed.actorName} xuất hiện trong phim mới`,
+              message: `Phim "${movie.name}" vừa được thêm vào Nanaflix. Bấm xem ngay!`,
+              link: `/movies/${movie.slug}`,
+              image: movie.poster || "/default-hero.jpg",
+              movieSlug: movie.slug,
+              actorName: followed.actorName,
+              actorId: cleanId,
+              isRead: false,
+              createdAt: Date.now(),
+            };
+            newNotifs.push(notif);
+            if (isSupabaseConfigured()) {
+              createNotificationSupabase({ ...notif, userId }).catch(() => {});
+            }
+          }
+        }
+      }
+    }
+
+    if (newNotifs.length > 0) {
+      const merged = mergeNotifications(existingNotifs, newNotifs, userId);
+      saveLocalNotifications(userId, merged);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("nanaflix-notifications-updated", {
+            detail: { userId, items: merged },
+          })
+        );
+      }
+    }
+  } catch (err) {
+    console.warn("Lỗi kiểm tra thông báo diễn viên follow:", err);
+  }
+}
+
+/**
+ * Kiểm tra và tạo thông báo nếu phim trong Watchlist (My List) có tập mới
+ */
+export async function checkAndNotifyWatchlistEpisode(
+  userId: string,
+  item: {
+    slug: string;
+    title: string;
+    poster?: string;
+    latestEpisodeName: string;
+    currentEpisodes: number;
+  }
+): Promise<boolean> {
+  if (!userId || !item.slug) return false;
+  try {
+    const notifId = `wl_ep_${userId}_${item.slug}_${item.currentEpisodes}`;
+    const existingNotifs = getLocalNotifications(userId);
+    if (existingNotifs.some((n) => n.id === notifId)) return false;
+
+    const notif: UserNotification = {
+      id: notifId,
+      type: "watchlist_episode",
+      title: `🎬 Phim bạn đã lưu có tập mới`,
+      message: `"${item.title}" — ${item.latestEpisodeName} đã được cập nhật.`,
+      link: `/movies/${item.slug}`,
+      movieSlug: item.slug,
+      episodeName: item.latestEpisodeName,
+      image: item.poster,
+      isRead: false,
+      createdAt: Date.now(),
+    };
+
+    if (isSupabaseConfigured()) {
+      await createNotificationSupabase({ ...notif, userId });
+    }
+
+    const merged = mergeNotifications(existingNotifs, [notif], userId);
+    saveLocalNotifications(userId, merged);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("nanaflix-notifications-updated", {
+          detail: { userId, items: merged },
+        })
+      );
+    }
+    return true;
+  } catch (err) {
+    console.warn("Lỗi thông báo tập mới My List:", err);
+    return false;
+  }
+}
+
+/**
+ * Kiểm tra và tạo thông báo nếu series đang xem trong Watch History có tập mới
+ */
+export async function checkAndNotifyContinueWatchingEpisode(
+  userId: string,
+  item: {
+    slug: string;
+    title: string;
+    poster?: string;
+    latestEpisodeName: string;
+    latestEpisodeSlug?: string;
+    episodeCount: number;
+  }
+): Promise<boolean> {
+  if (!userId || !item.slug) return false;
+  try {
+    const notifId = `cw_ep_${userId}_${item.slug}_${item.episodeCount}`;
+    const existingNotifs = getLocalNotifications(userId);
+    if (existingNotifs.some((n) => n.id === notifId)) return false;
+
+    const notif: UserNotification = {
+      id: notifId,
+      type: "continue_watching_episode",
+      title: `▶️ Series bạn đang xem có tập mới`,
+      message: `"${item.title}" — ${item.latestEpisodeName} đã sẵn sàng.`,
+      link: item.latestEpisodeSlug ? `/movies/${item.slug}?ep=${item.latestEpisodeSlug}` : `/movies/${item.slug}`,
+      movieSlug: item.slug,
+      episodeName: item.latestEpisodeName,
+      image: item.poster,
+      isRead: false,
+      createdAt: Date.now(),
+    };
+
+    if (isSupabaseConfigured()) {
+      await createNotificationSupabase({ ...notif, userId });
+    }
+
+    const merged = mergeNotifications(existingNotifs, [notif], userId);
+    saveLocalNotifications(userId, merged);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("nanaflix-notifications-updated", {
+          detail: { userId, items: merged },
+        })
+      );
+    }
+    return true;
+  } catch (err) {
+    console.warn("Lỗi thông báo series đang xem có tập mới:", err);
+    return false;
+  }
+}
+
+/**
+ * Tạo thông báo khi người dùng vượt mốc cấp độ cày phim / mở khóa danh hiệu mới
+ */
+export async function notifyAchievementMilestone(
+  userId: string,
+  level: {
+    levelName: string;
+    badgeIcon: string;
+    minMinutes: number;
+  }
+): Promise<boolean> {
+  if (!userId || !level.levelName || level.minMinutes <= 0) return false;
+  try {
+    const notifId = `achieve_${userId}_${level.minMinutes}`;
+    const existingNotifs = getLocalNotifications(userId);
+    if (existingNotifs.some((n) => n.id === notifId)) return false;
+
+    const hours = Math.round(level.minMinutes / 60);
+    const notif: UserNotification = {
+      id: notifId,
+      type: "achievement_level",
+      title: `🏆 Bạn đã lên cấp ${level.levelName}!`,
+      message: `Bạn vừa mở khóa một huy hiệu mới ${level.badgeIcon} khi đạt mốc ${hours} giờ xem phim.`,
+      link: `/profile`,
+      badgeIcon: level.badgeIcon,
+      isRead: false,
+      createdAt: Date.now(),
+    };
+
+    if (isSupabaseConfigured()) {
+      await createNotificationSupabase({ ...notif, userId });
+    }
+
+    const merged = mergeNotifications(existingNotifs, [notif], userId);
+    saveLocalNotifications(userId, merged);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("nanaflix-notifications-updated", {
+          detail: { userId, items: merged },
+        })
+      );
+    }
+    return true;
+  } catch (err) {
+    console.warn("Lỗi tạo thông báo achievement:", err);
+    return false;
+  }
+}
+
