@@ -9,6 +9,7 @@ import { QuickGenreChips } from "@/components/QuickGenreChips";
 import { SortSelector } from "@/components/SortSelector";
 import { Film, ExternalLink, Sparkles } from "lucide-react";
 import { movieApi } from "@/services/movieApi";
+import { getTmdbRankedMovies } from "@/services/tmdbService";
 import {
   resolveActorMovies,
   queryMoviesByActor,
@@ -376,6 +377,8 @@ export default async function HomePage({
   let totalItems = 0;
   let detectedActor: { name: string; country?: string } | null = null;
   let hasContentMatches = false;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let trendingWeekRaw: any[] = [];
 
   // =========================================================================
   // 1. TÁCH BIỆT RÕ RÀNG: TÌM KIẾM THEO DIỄN VIÊN VS TÌM KIẾM THEO TÊN PHIM
@@ -536,7 +539,7 @@ export default async function HomePage({
     }));
   } else {
     // 2. TÌM KIẾM THƯỜNG THEO TIÊU ĐỀ PHIM HOẶC DUYỆT THEO DANH MỤC
-    const [response, semanticPicks] = await Promise.all([
+    const [response, semanticPicks, weekTrending] = await Promise.all([
       movieApi.getMovies({
         category,
         country,
@@ -554,7 +557,10 @@ export default async function HomePage({
           new Promise<any[]>((resolve) => setTimeout(() => resolve([]), 800)),
         ]).catch(() => [])
         : Promise.resolve([]),
+      // Lấy BXH Thịnh Hành Tuần song song (L1 RAM / L2 KV cache, 0ms warm) để dùng cho Hero banner
+      isPlainHomepage ? getTmdbRankedMovies("week", 8).catch(() => []) : Promise.resolve([]),
     ]);
+    trendingWeekRaw = weekTrending;
 
     movies = response?.items || [];
     totalPages = response?.pagination?.totalPages || 1;
@@ -752,8 +758,24 @@ export default async function HomePage({
     title = "Kết quả lọc";
   }
 
-  // Chọn lọc phim Featured cho banner: score-based + diversity, cache 20 phút
-  const heroMovies = isPlainHomepage ? getFeaturedMoviesWithCache(movies) : movies;
+  // Chọn lọc phim Featured cho banner:
+  // Ưu tiên dùng BXH Thịnh Hành Tuần (TMDB trending week) nếu có đủ phim hợp lệ,
+  // fallback về score-based selection từ movie list thông thường nếu không đủ.
+  const validTrendingMovies = isPlainHomepage
+    ? trendingWeekRaw.filter(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (m: any) =>
+          m?.slug &&
+          m?.name &&
+          ((m.thumb_url && m.thumb_url !== "null" && m.thumb_url !== "undefined") ||
+            (m.poster_url && m.poster_url !== "null" && m.poster_url !== "undefined"))
+      )
+    : [];
+  const heroMovies = isPlainHomepage
+    ? validTrendingMovies.length >= 3
+      ? validTrendingMovies.slice(0, 8)
+      : getFeaturedMoviesWithCache(movies)
+    : movies;
 
   return (
     <div className="page-cinema-container min-h-screen pb-20">
