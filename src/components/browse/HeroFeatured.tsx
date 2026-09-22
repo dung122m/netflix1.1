@@ -19,7 +19,6 @@ import {
   useReducedMotion,
 } from "framer-motion";
 import {
-  buildMovieDescriptionFallback,
   pickBestMovieImage,
   pickBestMoviePoster,
   pickHeroBackdropImage,
@@ -414,19 +413,11 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
     featuredMovie?.content || featuredMovie?.description || "";
   const descriptionClean = cleanHtmlText(descriptionRaw);
 
-  const originName = featuredMovie?.origin_name?.trim();
-  const hasDistinctOriginName = Boolean(
-    originName &&
-    originName.toLowerCase() !== title.toLowerCase() &&
-    !originName.toLowerCase().includes("đang cập nhật")
-  );
-
-  const genresList = useMemo(() => {
-    if (!featuredMovie?.category || !Array.isArray(featuredMovie.category)) return [];
-    return featuredMovie.category
-      .map((c) => (typeof c === "string" ? c : c?.name))
-      .filter((name): name is string => Boolean(name && !name.toLowerCase().includes("cập nhật")));
-  }, [featuredMovie?.category]);
+  const genresList = Array.isArray(featuredMovie?.category)
+    ? featuredMovie.category
+        .map((c) => (typeof c === "string" ? c : c?.name))
+        .filter((name): name is string => Boolean(name && !name.toLowerCase().includes("cập nhật")))
+    : [];
 
   const rawEpisode = featuredMovie?.episode_current?.trim() || "";
   const isEpisodeUseful = Boolean(
@@ -434,13 +425,13 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
     !["full", "trailer", "hd", "fhd", "4k", "cam", "sd", "đang cập nhật", "updating"].includes(rawEpisode.toLowerCase())
   );
 
-  const cleanDuration = useMemo(() => {
+  const cleanDuration = (() => {
     if (!featuredMovie?.time) return null;
     const raw = String(featuredMovie.time).trim().replace(/phút\/tập\s*phút/gi, "phút/tập").replace(/phút\s*phút/gi, "phút");
     if (!raw || raw.toLowerCase().includes("đang cập nhật")) return null;
     if (raw.toLowerCase().includes("phút") || raw.toLowerCase().includes("h")) return raw;
     return `${raw} phút`;
-  }, [featuredMovie?.time]);
+  })();
 
   // Clean Synopsis: only display if it is genuine story description
   const hasRealSynopsis = Boolean(

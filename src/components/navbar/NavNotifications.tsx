@@ -109,19 +109,27 @@ export const NavNotifications: React.FC = React.memo(function NavNotifications()
 
         // Check local storage for continue watching
         try {
-          const historyRaw = localStorage.getItem("nanaflix_history");
+          const historyRaw = localStorage.getItem("nanaflix_watch_history");
           if (historyRaw) {
             const hist = JSON.parse(historyRaw);
             if (Array.isArray(hist) && hist.length > 0) {
               const last = hist[0];
-              if (last?.slug && last?.name) {
+              const movieTitle = last?.title || last?.name;
+              if (last?.slug && movieTitle) {
+                const epSlug = last.episodeSlug;
+                const targetLink = epSlug ? `/movies/${last.slug}?ep=${epSlug}` : `/movies/${last.slug}`;
+                const notifId = `continue-${last.slug}`;
+                const existingIdx = items.findIndex((i) => i.id === notifId);
+                if (existingIdx >= 0) {
+                  items.splice(existingIdx, 1);
+                }
                 items.unshift({
-                  id: `continue-${last.slug}`,
+                  id: notifId,
                   type: "movie",
                   title: "Tiếp Tục Xem Phim",
-                  message: `${last.name}${last.episodeName ? ` (${last.episodeName})` : ""} đang chờ bạn. Bấm để xem tiếp ngay!`,
+                  message: `${movieTitle}${last.episodeName ? ` (${last.episodeName})` : ""} đang chờ bạn. Bấm để xem tiếp ngay!`,
                   time: "Gần đây",
-                  link: last.currentEpisodeUrl || `/movies/${last.slug}`,
+                  link: last.currentEpisodeUrl || targetLink,
                   image: last.poster || last.thumb || "/default-hero.jpg",
                   badge: "XEM TIẾP",
                   badgeColor: "bg-emerald-600 text-white",

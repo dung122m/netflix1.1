@@ -105,6 +105,8 @@ export function ContinueWatchingWidget() {
     }
   }, [pathname]);
 
+  const lastHandoffKeyRef = useRef<string>("");
+
   // Lắng nghe Handoff từ Supabase/BroadcastChannel
   useEffect(() => {
     if (!user?.uid) {
@@ -117,6 +119,10 @@ export function ContinueWatchingWidget() {
         const isRecent = Date.now() - handoff.updatedAt < 15 * 60 * 1000;
         const hasWatchedEnough = handoff.currentTime > 10;
         if (isRecent && hasWatchedEnough) {
+          const handoffKey = `${handoff.movieSlug}_${handoff.episodeSlug || "tap-1"}`;
+          const isNewHandoffSession = lastHandoffKeyRef.current !== handoffKey;
+          lastHandoffKeyRef.current = handoffKey;
+
           setSession({
             type: "handoff",
             movieSlug: handoff.movieSlug,
@@ -129,6 +135,17 @@ export function ContinueWatchingWidget() {
             deviceType: handoff.deviceType,
             updatedAt: handoff.updatedAt,
           });
+
+          // Chỉ bung Toast nếu thực sự có một session/phim mới từ thiết bị/tab khác chưa từng hiện trong phiên
+          if (isNewHandoffSession) {
+            try {
+              const toastKey = `nanaflix_toast_handoff_${handoffKey}`;
+              if (!sessionStorage.getItem(toastKey)) {
+                sessionStorage.setItem(toastKey, "true");
+                setViewState("toast");
+              }
+            } catch {}
+          }
           return;
         }
       }
@@ -146,7 +163,7 @@ export function ContinueWatchingWidget() {
     return () => window.removeEventListener("watch-history-updated", handleHistoryUpdate);
   }, [syncSessionData]);
 
-  // 2. Quyết định mở Toast hay Bubble
+  // 2. Quyết định mở Toast hay Bubble cho session
   useEffect(() => {
     if (!session) {
       setViewState("hidden");
@@ -165,6 +182,13 @@ export function ContinueWatchingWidget() {
       return;
     }
 
+    try {
+      if (sessionStorage.getItem(STORAGE_DISMISSED_KEY) === "true") {
+        setViewState("hidden");
+        return;
+      }
+    } catch {}
+
     // Kiểm tra xem trong session này đã từng hiện Toast mở rộng chưa
     try {
       const hasShown = sessionStorage.getItem(HAS_SHOWN_TOAST_KEY);
@@ -173,8 +197,8 @@ export function ContinueWatchingWidget() {
         sessionStorage.setItem(HAS_SHOWN_TOAST_KEY, "true");
         setViewState("toast");
       } else {
-        // Các lần chuyển trang tiếp theo -> Giữ nguyên trạng thái Bubble gọn gàng, KHÔNG bung to làm phiền
-        setViewState("bubble");
+        // Các lần chuyển trang/tab tiếp theo -> Giữ nguyên trạng thái Bubble gọn gàng, KHÔNG bung to làm phiền
+        setViewState((prev) => (prev === "toast" ? "toast" : "bubble"));
       }
     } catch {
       setViewState("bubble");
@@ -579,14 +603,17 @@ export function ContinueWatchingWidget() {
             </span>
           </button>
 
-          {/* Nút X nhỏ bên ngoài để tắt hẳn bubble trên mobile */}
+          {/* Nút X trên mobile với vùng click thực tế 40x40px (touch target rộng, visual compact) */}
           <button
             type="button"
             onClick={handleDismiss}
-            className="sm:hidden absolute -top-1.5 -left-1.5 w-5 h-5 rounded-full bg-zinc-900 border border-white/20 text-gray-300 flex items-center justify-center shadow-md z-10 active:scale-90"
+            aria-label="Đóng widget xem tiếp"
+            className="sm:hidden absolute -top-2.5 -left-2.5 w-10 h-10 flex items-center justify-center z-10 cursor-pointer active:scale-90 touch-manipulation"
             title="Đóng"
           >
-            <X className="w-3 h-3" />
+            <span className="w-5 h-5 rounded-full bg-zinc-900 border border-white/20 text-gray-300 flex items-center justify-center shadow-md">
+              <X className="w-3 h-3" />
+            </span>
           </button>
         </div>
       )}
