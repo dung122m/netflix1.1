@@ -598,8 +598,6 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
       <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-black via-black/45 to-transparent pointer-events-none z-[1]" />
       {/* Gradient mép trên thanh header */}
       <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/70 to-transparent pointer-events-none z-[1]" />
-      {/* Ambient glow đỏ tinh tế */}
-      <div className="absolute -left-20 bottom-1/4 w-[450px] h-[450px] bg-rose-600/10 rounded-full blur-[130px] pointer-events-none z-[1]" />
 
       {/* 3. NỘI DUNG CHÍNH (TYPOGRAPHY, BADGES & CTA BUTTONS) */}
       <motion.div

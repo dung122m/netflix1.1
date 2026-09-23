@@ -9,9 +9,10 @@ interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   customTitle?: string;
+  customSubtitle?: string;
 }
 
-export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, customTitle }) => {
+export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, customTitle, customSubtitle }) => {
   const { user, isConfigured, signInWithGoogle, logout } = useAuth();
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -137,7 +138,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, customTit
                 {customTitle || "Đăng Nhập Nanaflix"}
               </h3>
               <p className="text-xs text-gray-400 max-w-xs mx-auto leading-relaxed">
-                Đồng bộ tiến trình xem dở và bộ sưu tập phim của bạn trên mọi thiết bị
+                {customSubtitle || "Đồng bộ tiến trình xem dở và bộ sưu tập phim của bạn trên mọi thiết bị"}
               </p>
             </div>
 

@@ -715,7 +715,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       {/* ============================================================ */}
       <div
         style={verticalShift ? { transform: `translateY(${verticalShift}px)` } : undefined}
-        className={`hidden sm:block absolute top-0 left-0 w-full opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-hover:scale-[1.08] md:group-hover:scale-[1.10] group-hover:z-50 transition-all duration-200 ease-out delay-0 group-hover:delay-100 ${originClass} rounded-2xl overflow-hidden keep-dark-cinema bg-zinc-950/98 backdrop-blur-2xl border border-white/30 shadow-[0_24px_60px_-10px_rgba(0,0,0,0.98),0_0_20px_rgba(229,9,20,0.15)] will-change-transform`}
+        className={`hidden sm:block absolute top-0 left-0 w-full opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-hover:scale-[1.08] md:group-hover:scale-[1.10] group-hover:z-50 transition-all duration-200 ease-out delay-0 group-hover:delay-100 ${originClass} rounded-2xl overflow-hidden keep-dark-cinema bg-zinc-950/98 backdrop-blur-2xl border border-white/30 shadow-[0_24px_60px_-10px_rgba(0,0,0,0.98),0_0_20px_rgba(229,9,20,0.15)]`}
       >
         {isCardHovered && (
           <>
