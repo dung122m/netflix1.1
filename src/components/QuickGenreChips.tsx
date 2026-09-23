@@ -308,9 +308,11 @@ const QuickGenreChipsInner: React.FC = () => {
             <button
               key={t.slug || "all-type"}
               type="button"
+              data-tv-filter-chip="true"
+              data-selected={isActive ? "true" : undefined}
               onMouseEnter={() => router.prefetch(getTypeUrl(t.slug))}
               onClick={() => handleTypeSelect(t.slug)}
-              className={`flex-none px-3.5 py-1.5 rounded-full text-xs transition-all duration-150 cursor-pointer ${
+              className={`flex-none px-3.5 py-1.5 rounded-full text-xs transition-all duration-150 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${
                 isActive
                   ? "bg-netflix-red text-white font-bold border border-rose-500 shadow-sm shadow-red-950/50"
                   : "bg-zinc-900/90 hover:bg-zinc-800 text-gray-300 hover:text-white border border-white/10 hover:border-white/20 font-medium"
@@ -358,12 +360,13 @@ const QuickGenreChipsInner: React.FC = () => {
       >
         <button
           type="button"
+          data-tv-filter-chip="true"
           onClick={() => {
             if (typeof window !== "undefined") {
               window.dispatchEvent(new CustomEvent("open-ai-roulette"));
             }
           }}
-          className="flex-none px-3.5 py-1.5 rounded-full text-xs font-bold transition-all duration-200 cursor-pointer bg-gradient-to-r from-netflix-red to-rose-700 text-white shadow-sm shadow-red-950/50 hover:bg-rose-600 border border-rose-500/50 flex items-center gap-1.5"
+          className="flex-none px-3.5 py-1.5 rounded-full text-xs font-bold transition-all duration-200 cursor-pointer bg-gradient-to-r from-netflix-red to-rose-700 text-white shadow-sm shadow-red-950/50 hover:bg-rose-600 border border-rose-500/50 flex items-center gap-1.5 outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105"
         >
           <Dices className="w-3.5 h-3.5 text-amber-300" />
           <span>Suất Chiếu Định Mệnh</span>
@@ -376,9 +379,11 @@ const QuickGenreChipsInner: React.FC = () => {
             <button
               key={g.slug || "all-genre"}
               type="button"
+              data-tv-filter-chip="true"
+              data-selected={isActive ? "true" : undefined}
               onMouseEnter={() => router.prefetch(getCategoryUrl(g.slug))}
               onClick={() => handleCategorySelect(g.slug)}
-              className={`flex-none px-3.5 py-1.5 rounded-full text-xs transition-all duration-150 cursor-pointer ${
+              className={`flex-none px-3.5 py-1.5 rounded-full text-xs transition-all duration-150 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${
                 isActive
                   ? "bg-netflix-red text-white font-bold border border-rose-500 shadow-sm shadow-red-950/50"
                   : "bg-zinc-900/90 hover:bg-zinc-800 text-gray-300 hover:text-white border border-white/10 hover:border-white/20 font-medium"
@@ -431,9 +436,11 @@ const QuickGenreChipsInner: React.FC = () => {
             <button
               key={c.slug || "all-country"}
               type="button"
+              data-tv-filter-chip="true"
+              data-selected={isActive ? "true" : undefined}
               onMouseEnter={() => router.prefetch(getCountryUrl(c.slug))}
               onClick={() => handleCountrySelect(c.slug)}
-              className={`flex-none px-3.5 py-1.5 rounded-full text-xs transition-all duration-150 cursor-pointer ${
+              className={`flex-none px-3.5 py-1.5 rounded-full text-xs transition-all duration-150 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${
                 isActive
                   ? "bg-sky-600 text-white font-bold border border-sky-400 shadow-sm shadow-sky-950/50"
                   : "bg-zinc-900/90 hover:bg-zinc-800 text-gray-300 hover:text-white border border-white/10 hover:border-white/20 font-medium"
@@ -488,9 +495,11 @@ const QuickGenreChipsInner: React.FC = () => {
             <button
               key={act.name}
               type="button"
+              data-tv-filter-chip="true"
+              data-selected={isActive ? "true" : undefined}
               onMouseEnter={() => router.prefetch(getActorUrl(act.name))}
               onClick={() => handleActorSelect(act.name)}
-              className={`flex-none px-3.5 py-1.5 rounded-full text-xs transition-all duration-150 cursor-pointer ${
+              className={`flex-none px-3.5 py-1.5 rounded-full text-xs transition-all duration-150 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${
                 isActive
                   ? "bg-amber-500 text-black font-bold border border-amber-300 shadow-sm shadow-amber-950/50"
                   : "bg-zinc-900/90 hover:bg-zinc-800 text-gray-300 hover:text-white border border-white/10 hover:border-white/20 font-medium"
@@ -543,9 +552,11 @@ const QuickGenreChipsInner: React.FC = () => {
             <button
               key={y.year || "all-year"}
               type="button"
+              data-tv-filter-chip="true"
+              data-selected={isActive ? "true" : undefined}
               onMouseEnter={() => router.prefetch(getYearUrl(y.year))}
               onClick={() => handleYearSelect(y.year)}
-              className={`flex-none px-3.5 py-1.5 rounded-full text-xs transition-all duration-150 cursor-pointer ${
+              className={`flex-none px-3.5 py-1.5 rounded-full text-xs transition-all duration-150 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${
                 isActive
                   ? "bg-emerald-600 text-white font-bold border border-emerald-400 shadow-sm shadow-emerald-950/50"
                   : "bg-zinc-900/90 hover:bg-zinc-800 text-gray-300 hover:text-white border border-white/10 hover:border-white/20 font-medium"
@@ -588,8 +599,9 @@ const QuickGenreChipsInner: React.FC = () => {
             {currentType && (
               <button
                 type="button"
+                data-tv-filter-chip="true"
                 onClick={() => handleTypeSelect("")}
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-netflix-red/15 border border-netflix-red/30 text-rose-200 font-semibold hover:bg-netflix-red hover:text-white transition cursor-pointer text-xs"
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-netflix-red/15 border border-netflix-red/30 text-rose-200 font-semibold hover:bg-netflix-red hover:text-white transition cursor-pointer text-xs outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105"
               >
                 <span>{activeTypeName}</span>
                 <X className="w-3 h-3" />
@@ -599,8 +611,9 @@ const QuickGenreChipsInner: React.FC = () => {
             {currentCategory && (
               <button
                 type="button"
+                data-tv-filter-chip="true"
                 onClick={() => handleCategorySelect("")}
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-netflix-red/15 border border-netflix-red/30 text-rose-200 font-semibold hover:bg-netflix-red hover:text-white transition cursor-pointer text-xs"
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-netflix-red/15 border border-netflix-red/30 text-rose-200 font-semibold hover:bg-netflix-red hover:text-white transition cursor-pointer text-xs outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105"
               >
                 <span>{activeCategoryName}</span>
                 <X className="w-3 h-3" />
@@ -610,8 +623,9 @@ const QuickGenreChipsInner: React.FC = () => {
             {currentCountry && (
               <button
                 type="button"
+                data-tv-filter-chip="true"
                 onClick={() => handleCountrySelect("")}
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-500/15 border border-sky-500/30 text-sky-200 font-semibold hover:bg-sky-500 hover:text-white transition cursor-pointer text-xs"
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-500/15 border border-sky-500/30 text-sky-200 font-semibold hover:bg-sky-500 hover:text-white transition cursor-pointer text-xs outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105"
               >
                 <span>{activeCountryName}</span>
                 <X className="w-3 h-3" />
@@ -621,6 +635,7 @@ const QuickGenreChipsInner: React.FC = () => {
             {currentActor && (
               <button
                 type="button"
+                data-tv-filter-chip="true"
                 onClick={() => {
                   const p = new URLSearchParams(searchParams.toString());
                   p.delete("actor");
@@ -628,7 +643,7 @@ const QuickGenreChipsInner: React.FC = () => {
                   const q = p.toString();
                   router.push(q ? `/?${q}` : "/", { scroll: false });
                 }}
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-200 font-semibold hover:bg-amber-500 hover:text-black transition cursor-pointer text-xs"
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-200 font-semibold hover:bg-amber-500 hover:text-black transition cursor-pointer text-xs outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105"
               >
                 <span>Diễn viên: {currentActor}</span>
                 <X className="w-3 h-3" />
@@ -638,6 +653,7 @@ const QuickGenreChipsInner: React.FC = () => {
             {currentKeyword && !currentActor && (
               <button
                 type="button"
+                data-tv-filter-chip="true"
                 onClick={() => {
                   const p = new URLSearchParams(searchParams.toString());
                   p.delete("keyword");
@@ -645,7 +661,7 @@ const QuickGenreChipsInner: React.FC = () => {
                   const q = p.toString();
                   router.push(q ? `/?${q}` : "/", { scroll: false });
                 }}
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-200 font-semibold hover:bg-amber-500 hover:text-black transition cursor-pointer text-xs"
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-200 font-semibold hover:bg-amber-500 hover:text-black transition cursor-pointer text-xs outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105"
               >
                 <span>Tìm kiếm: {currentKeyword}</span>
                 <X className="w-3 h-3" />
@@ -655,8 +671,9 @@ const QuickGenreChipsInner: React.FC = () => {
             {currentYear && (
               <button
                 type="button"
+                data-tv-filter-chip="true"
                 onClick={() => handleYearSelect("")}
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-200 font-semibold hover:bg-emerald-500 hover:text-black transition cursor-pointer text-xs"
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-200 font-semibold hover:bg-emerald-500 hover:text-black transition cursor-pointer text-xs outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105"
               >
                 <span>Năm: {currentYear}</span>
                 <X className="w-3 h-3" />
@@ -666,8 +683,9 @@ const QuickGenreChipsInner: React.FC = () => {
 
           <button
             type="button"
+            data-tv-filter-chip="true"
             onClick={handleClearAll}
-            className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold text-gray-400 hover:text-white hover:bg-white/10 transition ml-auto cursor-pointer border border-white/10"
+            className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold text-gray-400 hover:text-white hover:bg-white/10 transition ml-auto cursor-pointer border border-white/10 outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105"
           >
             <RotateCcw className="w-3 h-3 text-netflix-red" />
             <span>Đặt lại</span>

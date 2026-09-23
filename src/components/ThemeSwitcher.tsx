@@ -154,10 +154,11 @@ export const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({
       {/* TRIGGER BUTTON */}
       <button
         type="button"
+        data-tv-nav="true"
         onClick={() => setIsOpen(!isOpen)}
         title="Đổi màu sắc & chế độ sáng/tối"
         aria-label="Đổi màu giao diện"
-        className="relative flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-zinc-900/90 border border-white/15 hover:border-white/30 text-gray-300 hover:text-white transition cursor-pointer active:scale-95 shadow-sm group"
+        className="relative flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-zinc-900/90 border border-white/15 hover:border-white/30 text-gray-300 hover:text-white transition cursor-pointer active:scale-95 shadow-sm group outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black"
       >
         <Palette className="w-4 h-4 transition-transform group-hover:rotate-45 duration-300" />
 

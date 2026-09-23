@@ -1170,6 +1170,33 @@ export function LiveTvClient({
         return;
       }
 
+      // Chỉ xử lý shortcut khi focus thực sự nằm trong vùng Live TV Player
+      const active = document.activeElement as HTMLElement | null;
+      const isPlayerContainer = Boolean(
+        (containerRef.current && active && containerRef.current.contains(active)) ||
+        (playerRef.current && active && playerRef.current.contains(active))
+      );
+
+      // Nếu focus đang ở ngoài player (Navbar, ChannelCard, MatchCard, Filter, Pagination...) -> LiveTV hoàn toàn nhường quyền
+      const isExternalFocused = Boolean(
+        active &&
+          (active.hasAttribute("data-tv-card") ||
+            active.hasAttribute("data-tv-nav") ||
+            active.hasAttribute("data-tv-hero") ||
+            active.hasAttribute("data-tv-filter") ||
+            active.hasAttribute("data-tv-filter-chip") ||
+            active.hasAttribute("data-tv-live") ||
+            active.hasAttribute("data-tv-recommendation") ||
+            active.hasAttribute("data-tv-pagination") ||
+            active.closest("nav") ||
+            active.closest(".nanaflix-navbar") ||
+            active.closest("footer"))
+      );
+
+      if (!isPlayerContainer && isExternalFocused) {
+        return;
+      }
+
       if (e.code === "Space") {
         e.preventDefault();
         togglePlay();
@@ -1773,8 +1800,9 @@ export function LiveTvClient({
                 <button
                   key={ch.id}
                   type="button"
+                  data-tv-live="true"
                   onClick={() => handleSelectChannel(ch)}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all flex-none cursor-pointer ${
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all flex-none cursor-pointer focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:outline-none ${
                     isSelected
                       ? "bg-netflix-red text-white border-netflix-red shadow-lg shadow-red-950/60 scale-102 font-bold"
                       : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
@@ -1830,8 +1858,9 @@ export function LiveTvClient({
             {/* LỌC NHANH FHD */}
             <button
               type="button"
+              data-tv-live="true"
               onClick={() => setOnlyFhd((prev) => !prev)}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition border shadow-sm cursor-pointer whitespace-nowrap ${
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition border shadow-sm cursor-pointer whitespace-nowrap focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:outline-none ${
                 onlyFhd
                   ? "bg-emerald-600 text-white border-emerald-400 shadow-emerald-950/50 scale-102"
                   : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/20 hover:text-white"
@@ -1910,8 +1939,9 @@ export function LiveTvClient({
           >
             <button
               type="button"
+              data-tv-live="true"
               onClick={() => setSelectedCategory("all")}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 border shadow-sm cursor-pointer ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 border shadow-sm cursor-pointer focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:outline-none ${
                 selectedCategory === "all"
                   ? "bg-white text-black border-white shadow-md font-extrabold scale-102"
                   : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
@@ -1937,8 +1967,9 @@ export function LiveTvClient({
                 <button
                   key={cat}
                   type="button"
+                  data-tv-live="true"
                   onClick={() => setSelectedCategory(cat)}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 border shadow-sm cursor-pointer ${
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 border shadow-sm cursor-pointer focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:outline-none ${
                     isSelected
                       ? "bg-sky-600 text-white border-sky-500 shadow-lg shadow-sky-950/50 scale-102"
                       : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
@@ -1982,8 +2013,16 @@ export function LiveTvClient({
                 return (
                   <div
                     key={ch.id}
+                    tabIndex={0}
+                    data-tv-card="true"
                     onClick={() => handleSelectChannel(ch)}
-                    className={`live-channel-card group relative rounded-xl sm:rounded-2xl border p-2 sm:p-3.5 cursor-pointer transition-all duration-300 flex flex-col items-center justify-between text-center ${
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleSelectChannel(ch);
+                      }
+                    }}
+                    className={`live-channel-card group relative rounded-xl sm:rounded-2xl border p-2 sm:p-3.5 cursor-pointer transition-all duration-300 flex flex-col items-center justify-between text-center focus-visible:scale-105 focus-visible:ring-4 focus-visible:ring-sky-400 focus-visible:outline-none ${
                       isSelected
                         ? "live-channel-active ring-2 ring-sky-500/60 scale-102"
                         : "hover:shadow-lg hover:-translate-y-0.5"
@@ -2031,11 +2070,19 @@ export function LiveTvClient({
                 return (
                   <div
                     key={ch.id}
+                    tabIndex={0}
+                    data-tv-card="true"
                     onClick={() => handleSelectChannel(ch)}
-                    className={`group rounded-xl border p-2 sm:p-2.5 cursor-pointer transition-all flex items-center justify-between gap-2.5 sm:gap-3 ${
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleSelectChannel(ch);
+                      }
+                    }}
+                    className={`group rounded-xl border p-2 sm:p-2.5 cursor-pointer transition-all flex items-center justify-between gap-2.5 sm:gap-3 live-channel-card focus-visible:scale-102 focus-visible:ring-4 focus-visible:ring-sky-400 focus-visible:outline-none ${
                       isSelected
                         ? "live-channel-active ring-1 ring-sky-500/60"
-                        : "live-channel-card hover:border-white/25"
+                        : "hover:border-white/25"
                     }`}
                   >
                     <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
@@ -2075,10 +2122,11 @@ export function LiveTvClient({
             <div className="flex flex-col items-center justify-center pt-4 pb-2 space-y-2">
               <button
                 type="button"
+                data-tv-live="true"
                 onClick={() =>
                   setVisibleCount((prev) => prev + INITIAL_PAGE_SIZE)
                 }
-                className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-zinc-900 hover:bg-zinc-800 text-white font-black text-xs sm:text-sm border border-white/20 hover:border-white/40 shadow-xl transition-all hover:scale-102 active:scale-98 cursor-pointer"
+                className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-zinc-900 hover:bg-zinc-800 text-white font-black text-xs sm:text-sm border border-white/20 hover:border-white/40 shadow-xl transition-all hover:scale-102 active:scale-98 cursor-pointer focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:outline-none"
               >
                 <span>Xem thêm các kênh khác</span>
                 <span className="px-2 py-0.5 rounded-full bg-white/15 text-[11px] text-gray-200">

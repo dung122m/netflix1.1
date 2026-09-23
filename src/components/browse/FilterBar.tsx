@@ -76,6 +76,16 @@ export const FilterBar: React.FC = () => {
     params.delete("page");
     router.push(`?${params.toString()}`, { scroll: false });
     setActiveDropdown(null);
+
+    // Trả focus về trigger sau khi chọn filter
+    setTimeout(() => {
+      const trigger = document.querySelector<HTMLElement>(
+        `[data-tv-filter="true"][data-filter-type="${filterType}"]`
+      );
+      if (trigger) {
+        trigger.focus({ preventScroll: true });
+      }
+    }, 50);
   };
 
   // =========================================================
@@ -89,7 +99,64 @@ export const FilterBar: React.FC = () => {
     params.delete("page");
     router.push(`?${params.toString()}`, { scroll: false });
     setActiveDropdown(null);
+
+    // Trả focus về trigger sau khi xóa filter
+    setTimeout(() => {
+      const trigger = document.querySelector<HTMLElement>(
+        `[data-tv-filter="true"][data-filter-type="${filterType}"]`
+      );
+      if (trigger) {
+        trigger.focus({ preventScroll: true });
+      }
+    }, 50);
   };
+
+  // =========================================================
+  // TỰ ĐỘNG FOCUS CHIP KHI MỞ DROPDOWN & XỬ LÝ PHÍM ESCAPE/BACKSPACE
+  // =========================================================
+  useEffect(() => {
+    if (activeDropdown) {
+      const timer = setTimeout(() => {
+        const selectedChip = document.querySelector<HTMLElement>(
+          '[data-tv-filter-chip="true"][data-selected="true"]'
+        );
+        const firstChip = document.querySelector<HTMLElement>(
+          '[data-tv-filter-chip="true"]'
+        );
+        const target = selectedChip || firstChip;
+        if (target) {
+          target.focus({ preventScroll: true });
+          target.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
+      }, 20);
+      return () => clearTimeout(timer);
+    }
+  }, [activeDropdown]);
+
+  useEffect(() => {
+    if (!activeDropdown) return;
+
+    const handleDropdownKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" || e.key === "Backspace") {
+        e.preventDefault();
+        e.stopPropagation();
+        const currentDropdown = activeDropdown;
+        setActiveDropdown(null);
+
+        setTimeout(() => {
+          const trigger = document.querySelector<HTMLElement>(
+            `[data-tv-filter="true"][data-filter-type="${currentDropdown}"]`
+          );
+          if (trigger) {
+            trigger.focus({ preventScroll: true });
+          }
+        }, 40);
+      }
+    };
+
+    window.addEventListener("keydown", handleDropdownKeyDown);
+    return () => window.removeEventListener("keydown", handleDropdownKeyDown);
+  }, [activeDropdown]);
 
   const isSelected = (filterType: FilterType, value: string) => {
     const key = getParamKey(filterType);
@@ -132,8 +199,10 @@ export const FilterBar: React.FC = () => {
     return (
       <button
         type="button"
+        data-tv-filter-chip="true"
+        data-selected={selected ? "true" : undefined}
         onClick={() => handleFilterChange(type, value)}
-        className={`px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-center truncate border ${
+        className={`px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-center truncate border outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 cursor-pointer ${
           selected
             ? "bg-white text-black border-white font-semibold shadow-md"
             : "bg-zinc-800 text-gray-300 border-zinc-800 hover:bg-zinc-700 hover:text-white"
@@ -151,8 +220,10 @@ export const FilterBar: React.FC = () => {
     return (
       <button
         type="button"
+        data-tv-filter-chip="true"
+        data-selected={isAllSelected ? "true" : undefined}
         onClick={() => handleClearFilter(type)}
-        className={`px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-center truncate border ${
+        className={`px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-center truncate border outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 cursor-pointer ${
           isAllSelected
             ? "bg-white text-black border-white font-semibold shadow-md"
             : "bg-zinc-800 text-gray-300 border-zinc-800 hover:bg-zinc-700 hover:text-white"
@@ -204,10 +275,13 @@ export const FilterBar: React.FC = () => {
         {/* LOẠI PHIM */}
         <button
           type="button"
+          data-tv-filter="true"
+          data-filter-type="type"
+          aria-expanded={activeDropdown === "type"}
           onClick={() =>
             setActiveDropdown(activeDropdown === "type" ? null : "type")
           }
-          className={`flex-shrink-0 whitespace-nowrap flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl border font-semibold transition text-xs sm:text-sm shadow-sm cursor-pointer ${
+          className={`flex-shrink-0 whitespace-nowrap flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl border font-semibold transition text-xs sm:text-sm shadow-sm cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${
             activeDropdown === "type" || hasSelectedFilter("type")
               ? "bg-zinc-800 text-white border-purple-500/60 shadow-purple-950/40"
               : "bg-zinc-950/80 text-gray-300 border-zinc-800 hover:border-zinc-600 hover:text-white"
@@ -223,10 +297,13 @@ export const FilterBar: React.FC = () => {
         {/* THỂ LOẠI */}
         <button
           type="button"
+          data-tv-filter="true"
+          data-filter-type="the-loai"
+          aria-expanded={activeDropdown === "the-loai"}
           onClick={() =>
             setActiveDropdown(activeDropdown === "the-loai" ? null : "the-loai")
           }
-          className={`flex-shrink-0 whitespace-nowrap flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl border font-semibold transition text-xs sm:text-sm shadow-sm cursor-pointer ${
+          className={`flex-shrink-0 whitespace-nowrap flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl border font-semibold transition text-xs sm:text-sm shadow-sm cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${
             activeDropdown === "the-loai" || hasSelectedFilter("the-loai")
               ? "bg-zinc-800 text-white border-rose-500/60 shadow-red-950/40"
               : "bg-zinc-950/80 text-gray-300 border-zinc-800 hover:border-zinc-600 hover:text-white"
@@ -242,10 +319,13 @@ export const FilterBar: React.FC = () => {
         {/* QUỐC GIA */}
         <button
           type="button"
+          data-tv-filter="true"
+          data-filter-type="quoc-gia"
+          aria-expanded={activeDropdown === "quoc-gia"}
           onClick={() =>
             setActiveDropdown(activeDropdown === "quoc-gia" ? null : "quoc-gia")
           }
-          className={`flex-shrink-0 whitespace-nowrap flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl border font-semibold transition text-xs sm:text-sm shadow-sm cursor-pointer ${
+          className={`flex-shrink-0 whitespace-nowrap flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl border font-semibold transition text-xs sm:text-sm shadow-sm cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${
             activeDropdown === "quoc-gia" || hasSelectedFilter("quoc-gia")
               ? "bg-zinc-800 text-white border-sky-500/60 shadow-sky-950/40"
               : "bg-zinc-950/80 text-gray-300 border-zinc-800 hover:border-zinc-600 hover:text-white"
@@ -261,10 +341,13 @@ export const FilterBar: React.FC = () => {
         {/* NĂM */}
         <button
           type="button"
+          data-tv-filter="true"
+          data-filter-type="year"
+          aria-expanded={activeDropdown === "year"}
           onClick={() =>
             setActiveDropdown(activeDropdown === "year" ? null : "year")
           }
-          className={`flex-shrink-0 whitespace-nowrap flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl border font-semibold transition text-xs sm:text-sm shadow-sm cursor-pointer ${
+          className={`flex-shrink-0 whitespace-nowrap flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl border font-semibold transition text-xs sm:text-sm shadow-sm cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${
             activeDropdown === "year" || hasSelectedFilter("year")
               ? "bg-zinc-800 text-white border-emerald-500/60 shadow-emerald-950/40"
               : "bg-zinc-950/80 text-gray-300 border-zinc-800 hover:border-zinc-600 hover:text-white"
@@ -281,8 +364,10 @@ export const FilterBar: React.FC = () => {
         {hasFilters && (
           <button
             type="button"
+            data-tv-filter="true"
+            data-filter-type="clear"
             onClick={clearAllFilters}
-            className="flex-shrink-0 whitespace-nowrap flex items-center gap-1 text-gray-400 hover:text-rose-400 px-3 py-2 text-xs sm:text-sm transition cursor-pointer hover:bg-white/5 rounded-xl border border-dashed border-zinc-700/80 hover:border-rose-500/40"
+            className="flex-shrink-0 whitespace-nowrap flex items-center gap-1 text-gray-400 hover:text-rose-400 px-3 py-2 text-xs sm:text-sm transition cursor-pointer hover:bg-white/5 rounded-xl border border-dashed border-zinc-700/80 hover:border-rose-500/40 outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105"
           >
             <RotateCcw className="w-3 h-3 text-rose-400" />
             <span>Xoá bộ lọc</span>

@@ -62,9 +62,17 @@ function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
 
   return (
     <div
+      data-tv-card="true"
+      tabIndex={0}
       onClick={() => onSelect(match)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onSelect(match);
+        }
+      }}
       style={{ contentVisibility: "auto", containIntrinsicSize: "0 90px" }}
-      className={`group relative rounded-xl sm:rounded-2xl border p-2.5 sm:p-3 cursor-pointer transition-all duration-200 flex flex-col justify-between overflow-hidden transform-gpu will-change-transform ${
+      className={`group relative rounded-xl sm:rounded-2xl border p-2.5 sm:p-3 cursor-pointer transition-all duration-200 flex flex-col justify-between overflow-hidden transform-gpu will-change-transform outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-[1.03] ${
         isSelected
           ? "football-match-active bg-zinc-900 border-netflix-red shadow-lg shadow-red-950/50 ring-1 ring-netflix-red/50"
           : "football-match-card bg-zinc-900/80 border-white/10 hover:border-white/25 hover:bg-zinc-850/90 hover:shadow-md hover:shadow-black/60"

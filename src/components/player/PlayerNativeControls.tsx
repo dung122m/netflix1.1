@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   Play,
   Pause,
@@ -77,6 +77,34 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
     const [showSpeedMenu, setShowSpeedMenu] = useState(false);
     const [showQualityMenu, setShowQualityMenu] = useState(false);
 
+    const speedBtnRef = useRef<HTMLButtonElement>(null);
+    const qualityBtnRef = useRef<HTMLButtonElement>(null);
+
+    // Xử lý phím Escape / Backspace để đóng menu popup và trả focus chuẩn xác về nút trigger
+    useEffect(() => {
+      if (!showSpeedMenu && !showQualityMenu) return;
+
+      const handlePopupKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Escape" || e.key === "Backspace") {
+          e.preventDefault();
+          e.stopPropagation();
+          if (showSpeedMenu) {
+            setShowSpeedMenu(false);
+            speedBtnRef.current?.focus();
+          }
+          if (showQualityMenu) {
+            setShowQualityMenu(false);
+            qualityBtnRef.current?.focus();
+          }
+        }
+      };
+
+      window.addEventListener("keydown", handlePopupKeyDown, { capture: true });
+      return () => {
+        window.removeEventListener("keydown", handlePopupKeyDown, { capture: true });
+      };
+    }, [showSpeedMenu, showQualityMenu]);
+
     return (
       <div
         onClick={(e) => e.stopPropagation()}
@@ -98,9 +126,11 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
             {/* Play / Pause */}
             <button
               type="button"
+              data-player-control="true"
+              data-control-section="main-controls"
               onClick={onTogglePlayPause}
               title={isPlaying ? "Tạm dừng (Space)" : "Phát (Space)"}
-              className="p-2 rounded-full hover:bg-white/20 text-white transition cursor-pointer"
+              className="p-2 rounded-full hover:bg-white/20 text-white transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-110 focus-visible:bg-white/25"
             >
               {isPlaying ? (
                 <Pause className="w-5 h-5 fill-white" />
@@ -112,6 +142,8 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
             {/* Tua lùi 10s */}
             <button
               type="button"
+              data-player-control="true"
+              data-control-section="main-controls"
               onClick={() => {
                 if (videoRef.current) {
                   videoRef.current.currentTime = Math.max(0, videoRef.current.currentTime - 10);
@@ -119,7 +151,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
                 onSeekFeedback("Tua lùi -10s");
               }}
               title="Tua lùi 10 giây (←)"
-              className="p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer"
+              className="p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-110 focus-visible:bg-white/25"
             >
               <SkipBack className="w-4 h-4 fill-current" />
             </button>
@@ -127,6 +159,8 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
             {/* Tua tới 10s */}
             <button
               type="button"
+              data-player-control="true"
+              data-control-section="main-controls"
               onClick={() => {
                 if (videoRef.current) {
                   videoRef.current.currentTime = (videoRef.current.currentTime || 0) + 10;
@@ -134,7 +168,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
                 onSeekFeedback("Tua tới +10s");
               }}
               title="Tua tới 10 giây (→)"
-              className="p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer"
+              className="p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-110 focus-visible:bg-white/25"
             >
               <SkipForward className="w-4 h-4 fill-current" />
             </button>
@@ -143,9 +177,11 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
             <div className="flex items-center gap-1.5 group/vol">
               <button
                 type="button"
+                data-player-control="true"
+                data-control-section="main-controls"
                 onClick={onToggleMute}
                 title="Tắt/Bật tiếng (M)"
-                className="p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer"
+                className="p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-110 focus-visible:bg-white/25"
               >
                 {isMuted || volume === 0 ? (
                   <VolumeX className="w-4 h-4 text-rose-400" />
@@ -162,7 +198,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
                 step="0.05"
                 value={isMuted ? 0 : volume}
                 onChange={(e) => onVolumeChange(parseFloat(e.target.value))}
-                className="w-16 sm:w-20 accent-netflix-red h-1.5 bg-white/20 rounded-full cursor-pointer hidden sm:inline-block"
+                className="w-16 sm:w-20 accent-netflix-red h-1.5 bg-white/20 rounded-full cursor-pointer hidden sm:inline-block outline-none focus-visible:ring-2 focus-visible:ring-netflix-red"
               />
             </div>
           </div>
@@ -172,27 +208,32 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
             {/* TỐC ĐỘ PHÁT */}
             <div className="relative">
               <button
+                ref={speedBtnRef}
                 type="button"
+                data-player-control="true"
+                data-control-section="main-controls"
                 onClick={() => {
                   setShowSpeedMenu(!showSpeedMenu);
                   setShowQualityMenu(false);
                 }}
                 title="Tốc độ phát"
-                className="px-2 py-1 rounded-md hover:bg-white/20 text-gray-200 hover:text-white text-xs font-semibold transition cursor-pointer flex items-center gap-1"
+                className="px-2 py-1 rounded-md hover:bg-white/20 text-gray-200 hover:text-white text-xs font-semibold transition cursor-pointer flex items-center gap-1 outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:bg-white/25"
               >
                 <span>{playbackSpeed}x</span>
               </button>
               {showSpeedMenu && (
-                <div className="absolute bottom-full right-0 mb-2 py-1.5 w-24 bg-zinc-900/95 border border-white/15 rounded-xl shadow-2xl backdrop-blur-md z-50 text-xs flex flex-col">
+                <div data-player-menu="true" className="absolute bottom-full right-0 mb-2 py-1.5 w-24 bg-zinc-900/95 border border-white/15 rounded-xl shadow-2xl backdrop-blur-md z-50 text-xs flex flex-col">
                   {[0.5, 0.75, 1, 1.25, 1.5, 2].map((spd) => (
                     <button
                       key={spd}
                       type="button"
+                      data-player-menu-item="true"
+                      tabIndex={0}
                       onClick={() => {
                         onSpeedChange(spd);
                         setShowSpeedMenu(false);
                       }}
-                      className={`px-3 py-1.5 text-left hover:bg-white/15 transition cursor-pointer flex items-center justify-between ${
+                      className={`px-3 py-1.5 text-left hover:bg-white/15 transition cursor-pointer flex items-center justify-between outline-none focus-visible:bg-white/20 focus-visible:text-white ${
                         playbackSpeed === spd ? "text-netflix-red font-bold" : "text-gray-300"
                       }`}
                     >
@@ -208,25 +249,30 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
             {qualityLevels.length > 0 && (
               <div className="relative">
                 <button
+                  ref={qualityBtnRef}
                   type="button"
+                  data-player-control="true"
+                  data-control-section="main-controls"
                   onClick={() => {
                     setShowQualityMenu(!showQualityMenu);
                     setShowSpeedMenu(false);
                   }}
                   title="Chất lượng video"
-                  className="p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer flex items-center"
+                  className="p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer flex items-center outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-110 focus-visible:bg-white/25"
                 >
                   <Settings className="w-4 h-4" />
                 </button>
                 {showQualityMenu && (
-                  <div className="absolute bottom-full right-0 mb-2 py-1.5 w-28 bg-zinc-900/95 border border-white/15 rounded-xl shadow-2xl backdrop-blur-md z-50 text-xs flex flex-col">
+                  <div data-player-menu="true" className="absolute bottom-full right-0 mb-2 py-1.5 w-28 bg-zinc-900/95 border border-white/15 rounded-xl shadow-2xl backdrop-blur-md z-50 text-xs flex flex-col">
                     <button
                       type="button"
+                      data-player-menu-item="true"
+                      tabIndex={0}
                       onClick={() => {
                         onQualityChange(-1);
                         setShowQualityMenu(false);
                       }}
-                      className={`px-3 py-1.5 text-left hover:bg-white/15 transition cursor-pointer flex items-center justify-between ${
+                      className={`px-3 py-1.5 text-left hover:bg-white/15 transition cursor-pointer flex items-center justify-between outline-none focus-visible:bg-white/20 focus-visible:text-white ${
                         currentQualityIndex === -1 ? "text-netflix-red font-bold" : "text-gray-300"
                       }`}
                     >
@@ -237,11 +283,13 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
                       <button
                         key={lvl.id}
                         type="button"
+                        data-player-menu-item="true"
+                        tabIndex={0}
                         onClick={() => {
                           onQualityChange(lvl.id);
                           setShowQualityMenu(false);
                         }}
-                        className={`px-3 py-1.5 text-left hover:bg-white/15 transition cursor-pointer flex items-center justify-between ${
+                        className={`px-3 py-1.5 text-left hover:bg-white/15 transition cursor-pointer flex items-center justify-between outline-none focus-visible:bg-white/20 focus-visible:text-white ${
                           currentQualityIndex === lvl.id ? "text-netflix-red font-bold" : "text-gray-300"
                         }`}
                       >
@@ -257,9 +305,11 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
             {/* PiP */}
             <button
               type="button"
+              data-player-control="true"
+              data-control-section="main-controls"
               onClick={onTogglePiP}
               title="Cửa sổ nổi (Picture-in-Picture)"
-              className="hidden sm:inline-flex p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer"
+              className="hidden sm:inline-flex p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-110 focus-visible:bg-white/25"
             >
               <PictureInPicture className="w-4 h-4" />
             </button>
@@ -267,9 +317,11 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
             {/* QR Code (Ẩn trên thiết bị di động, chỉ hiển thị từ tablet/desktop) */}
             <button
               type="button"
+              data-player-control="true"
+              data-control-section="main-controls"
               onClick={onOpenQr}
               title="Xem tiếp trên điện thoại (Quét mã QR đúng số phút)"
-              className="hidden sm:flex items-center gap-1 p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer group/qr"
+              className="hidden sm:flex items-center gap-1 p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer group/qr outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:bg-white/25"
             >
               <QrCode className="w-4 h-4 text-sky-400 group-hover/qr:scale-110 transition-transform" />
               <span className="hidden xl:inline text-[11px] font-semibold text-gray-300">
@@ -281,9 +333,11 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
             {embedSrc && (
               <button
                 type="button"
+                data-player-control="true"
+                data-control-section="main-controls"
                 onClick={onUseIframeFallback}
                 title="Đổi sang trình phát Iframe dự phòng"
-                className="hidden md:inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-white/10 hover:bg-white/20 text-gray-300 text-[11px] font-medium transition cursor-pointer"
+                className="hidden md:inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-white/10 hover:bg-white/20 text-gray-300 text-[11px] font-medium transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:bg-white/25"
               >
                 <Tv className="w-3 h-3" />
                 <span>Nguồn Iframe</span>
@@ -293,9 +347,11 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
             {/* Fullscreen */}
             <button
               type="button"
+              data-player-control="true"
+              data-control-section="main-controls"
               onClick={onToggleFullscreen}
               title="Toàn màn hình (F)"
-              className="p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer"
+              className="p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-110 focus-visible:bg-white/25"
             >
               {isFullscreen ? (
                 <Minimize2 className="w-4 h-4" />

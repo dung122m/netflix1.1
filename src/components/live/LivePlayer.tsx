@@ -1388,6 +1388,34 @@ function LivePlayerInner({
         return;
       }
 
+      // Chỉ xử lý shortcut khi focus thực sự nằm trong vùng Live Player (hoặc đang tương tác với player)
+      const active = document.activeElement as HTMLElement | null;
+      const isPlayerContainer = Boolean(
+        containerRef.current &&
+          active &&
+          containerRef.current.contains(active)
+      );
+
+      // Nếu focus đang ở ngoài player (Navbar, MatchCard, ChannelCard, Filter, Pagination...) -> LivePlayer hoàn toàn nhường quyền
+      const isExternalFocused = Boolean(
+        active &&
+          (active.hasAttribute("data-tv-card") ||
+            active.hasAttribute("data-tv-nav") ||
+            active.hasAttribute("data-tv-hero") ||
+            active.hasAttribute("data-tv-filter") ||
+            active.hasAttribute("data-tv-filter-chip") ||
+            active.hasAttribute("data-tv-live") ||
+            active.hasAttribute("data-tv-recommendation") ||
+            active.hasAttribute("data-tv-pagination") ||
+            active.closest("nav") ||
+            active.closest(".nanaflix-navbar") ||
+            active.closest("footer"))
+      );
+
+      if (!isPlayerContainer && isExternalFocused) {
+        return;
+      }
+
       if (e.code === "Space") {
         e.preventDefault();
         togglePlay();

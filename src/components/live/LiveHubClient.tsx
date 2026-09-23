@@ -87,8 +87,9 @@ export function LiveHubClient({ footballData, tvData }: LiveHubClientProps) {
           {/* TAB BÓNG ĐÁ */}
           <button
             type="button"
+            data-tv-live="true"
             onClick={() => handleTabChange("football")}
-            className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold transition-all cursor-pointer ${
+            className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold transition-all cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${
               activeTab === "football"
                 ? "bg-gradient-to-r from-netflix-red to-red-600 text-white shadow-xl shadow-red-950/70 scale-[1.02]"
                 : "text-gray-400 hover:text-white hover:bg-white/5"
@@ -110,8 +111,9 @@ export function LiveHubClient({ footballData, tvData }: LiveHubClientProps) {
           {/* TAB TRUYỀN HÌNH */}
           <button
             type="button"
+            data-tv-live="true"
             onClick={() => handleTabChange("tv")}
-            className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold transition-all cursor-pointer ${
+            className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold transition-all cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${
               activeTab === "tv"
                 ? "bg-gradient-to-r from-sky-600 to-blue-600 text-white shadow-xl shadow-sky-950/70 scale-[1.02]"
                 : "text-gray-400 hover:text-white hover:bg-white/5"

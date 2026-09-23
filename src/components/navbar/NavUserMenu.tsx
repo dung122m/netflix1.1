@@ -43,8 +43,10 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
     return () => unsubProfile();
   }, [user?.uid]);
 
-  // Click outside to close
+  // Click outside and Escape key to close
   useEffect(() => {
+    if (!showUserDropdown) return;
+
     const handleClickOutside = (e: MouseEvent) => {
       if (
         userDropdownRef.current &&
@@ -53,9 +55,24 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
         setShowUserDropdown(false);
       }
     };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" || e.key === "Backspace") {
+        e.preventDefault();
+        e.stopPropagation();
+        setShowUserDropdown(false);
+        const trigger = userDropdownRef.current?.querySelector<HTMLElement>('button[data-tv-nav="true"]');
+        trigger?.focus();
+      }
+    };
+
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [showUserDropdown]);
 
   const effectiveAvatar = userProfile?.customAvatar || userProfile?.photoURL || user?.photoURL || "";
   const effectiveDisplayName = userProfile?.displayName || user?.displayName || "Thành viên Nanaflix";
@@ -64,8 +81,9 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
     return (
       <button
         type="button"
+        data-tv-nav="true"
         onClick={onOpenAuthModal}
-        className="hidden sm:inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white hover:bg-gray-100 active:scale-95 text-gray-950 text-xs font-bold transition shadow-md shadow-white/10 cursor-pointer flex-shrink-0"
+        className="hidden sm:inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white hover:bg-gray-100 active:scale-95 text-gray-950 text-xs font-bold transition shadow-md shadow-white/10 cursor-pointer flex-shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black"
       >
         <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24">
           <path
@@ -94,8 +112,9 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
     <div ref={userDropdownRef} className="relative hidden sm:block flex-shrink-0">
       <button
         type="button"
+        data-tv-nav="true"
         onClick={() => setShowUserDropdown(!showUserDropdown)}
-        className="flex items-center gap-1.5 p-1 pr-2 rounded-full bg-zinc-800/80 hover:bg-zinc-700/80 border border-white/20 transition cursor-pointer"
+        className="flex items-center gap-1.5 p-1 pr-2 rounded-full bg-zinc-800/80 hover:bg-zinc-700/80 border border-white/20 transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black"
         title={effectiveDisplayName || user.email || "Tài khoản"}
       >
         <div className="w-7 h-7 rounded-full bg-netflix-red flex items-center justify-center text-xs font-bold text-white uppercase overflow-hidden relative flex-shrink-0">

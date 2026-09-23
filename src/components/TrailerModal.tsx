@@ -11,6 +11,8 @@ export interface TrailerModalProps {
   /** Chế độ Controlled: điều khiển đóng mở từ component cha */
   isOpen?: boolean;
   onClose?: () => void;
+  triggerClassName?: string;
+  dataTvHero?: boolean;
 }
 
 function getYoutubeEmbedUrl(url: string): string | null {
@@ -29,6 +31,8 @@ export const TrailerModal: React.FC<TrailerModalProps> = React.memo(
     modalTrailerUrl,
     isOpen: controlledIsOpen,
     onClose,
+    triggerClassName,
+    dataTvHero,
   }) {
     const [internalIsOpen, setInternalIsOpen] = useState(false);
     const isControlled = typeof controlledIsOpen === "boolean";
@@ -64,7 +68,11 @@ export const TrailerModal: React.FC<TrailerModalProps> = React.memo(
           <button
             type="button"
             onClick={() => setInternalIsOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-netflix-red hover:bg-red-700 text-white px-3.5 py-1.5 text-xs sm:text-sm font-semibold shadow transition-all active:scale-95 cursor-pointer flex-shrink-0"
+            data-tv-hero={dataTvHero ? "true" : undefined}
+            className={
+              triggerClassName ||
+              "inline-flex items-center gap-1.5 rounded-lg bg-netflix-red hover:bg-red-700 text-white px-3.5 py-1.5 text-xs sm:text-sm font-semibold shadow transition-all active:scale-95 cursor-pointer flex-shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+            }
           >
             <Film className="w-3.5 h-3.5 text-white flex-shrink-0" />
             <span>Xem Trailer</span>

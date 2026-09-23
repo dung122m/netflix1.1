@@ -682,8 +682,9 @@ export function LiveFootballClient({
           <div className="hidden sm:flex items-center gap-1.5 overflow-x-auto py-1 scroll-smooth scrollbar-none [&::-webkit-scrollbar]:hidden">
             <button
               type="button"
+              data-tv-live="true"
               onClick={() => setSelectedTournament("all")}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all border cursor-pointer ${selectedTournament === "all"
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all border cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${selectedTournament === "all"
                   ? "bg-white text-black border-white shadow-sm font-extrabold"
                   : "bg-zinc-900/80 text-gray-400 border-white/10 hover:border-white/20 hover:text-white"
                 }`}
@@ -711,8 +712,9 @@ export function LiveFootballClient({
                 <button
                   key={t.name}
                   type="button"
+                  data-tv-live="true"
                   onClick={() => setSelectedTournament(t.name)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all border cursor-pointer flex items-center gap-1.5 ${selectedTournament === t.name
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all border cursor-pointer flex items-center gap-1.5 outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${selectedTournament === t.name
                       ? "bg-gradient-to-r from-amber-500 to-orange-600 text-white border-amber-400 shadow-md shadow-amber-950/50 font-extrabold scale-102"
                       : "bg-zinc-900/80 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
                     }`}
@@ -752,8 +754,9 @@ export function LiveFootballClient({
           {hasActiveFilters && (
             <button
               type="button"
+              data-tv-live="true"
               onClick={handleResetFilters}
-              className="self-start sm:self-auto flex items-center gap-1 text-rose-400 hover:text-rose-300 transition cursor-pointer font-semibold whitespace-nowrap text-xs active:scale-95"
+              className="self-start sm:self-auto flex items-center gap-1 text-rose-400 hover:text-rose-300 transition cursor-pointer font-semibold whitespace-nowrap text-xs active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
             >
               <RotateCcw className="w-3 h-3" />
               <span>Đặt lại bộ lọc</span>
@@ -782,10 +785,11 @@ export function LiveFootballClient({
             <div className="flex flex-col items-center justify-center pt-4 pb-2 space-y-2">
               <button
                 type="button"
+                data-tv-live="true"
                 onClick={() =>
                   setVisibleCount((prev) => prev + INITIAL_PAGE_SIZE)
                 }
-                className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-zinc-900 hover:bg-zinc-800 text-white font-black text-xs sm:text-sm border border-white/20 hover:border-white/40 shadow-xl transition-all hover:scale-102 active:scale-98 cursor-pointer"
+                className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-zinc-900 hover:bg-zinc-800 text-white font-black text-xs sm:text-sm border border-white/20 hover:border-white/40 shadow-xl transition-all hover:scale-102 active:scale-98 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black"
               >
                 <span>Xem thêm các trận khác</span>
                 <span className="px-2 py-0.5 rounded-full bg-white/15 text-[11px] text-gray-200">

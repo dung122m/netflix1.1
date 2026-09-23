@@ -66,8 +66,10 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = React.mem
           {/* 1. Nút Rạp phim */}
           <button
             type="button"
+            data-player-control="true"
+            data-control-section="action-buttons"
             onClick={onToggleTheaterMode}
-            className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg border transition cursor-pointer text-xs ${
+            className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg border transition cursor-pointer text-xs outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-1 focus-visible:ring-offset-zinc-950 focus-visible:scale-105 ${
               isTheaterMode
                 ? "bg-netflix-red/90 text-white border-netflix-red font-medium"
                 : "bg-zinc-900/80 hover:bg-zinc-800 text-gray-300 hover:text-white border-white/10"
@@ -91,8 +93,10 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = React.mem
           {/* 2. Nút Tắt đèn */}
           <button
             type="button"
+            data-player-control="true"
+            data-control-section="action-buttons"
             onClick={onToggleLightsOff}
-            className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg border transition cursor-pointer text-xs ${
+            className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg border transition cursor-pointer text-xs outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-1 focus-visible:ring-offset-zinc-950 focus-visible:scale-105 ${
               isLightsOff
                 ? "bg-yellow-500/20 text-yellow-300 border-yellow-500/40 font-medium"
                 : "bg-zinc-900/80 hover:bg-zinc-800 text-gray-300 hover:text-white border-white/10"
@@ -116,9 +120,11 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = React.mem
           {/* 3. Nút Toàn màn hình */}
           <button
             type="button"
+            data-player-control="true"
+            data-control-section="action-buttons"
             onClick={onToggleFullscreen}
             title="Phóng to toàn màn hình (Phím F)"
-            className="hidden sm:inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-zinc-900/80 hover:bg-zinc-800 text-gray-300 hover:text-white border border-white/10 transition cursor-pointer text-xs"
+            className="hidden sm:inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-zinc-900/80 hover:bg-zinc-800 text-gray-300 hover:text-white border border-white/10 transition cursor-pointer text-xs outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-1 focus-visible:ring-offset-zinc-950 focus-visible:scale-105"
           >
             {isFullscreen ? (
               <>
@@ -138,9 +144,11 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = React.mem
           {/* 4. Nút Hẹn giờ tắt */}
           <button
             type="button"
+            data-player-control="true"
+            data-control-section="action-buttons"
             onClick={onOpenSleepTimer}
             title="Hẹn giờ tự động tắt phim"
-            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-zinc-900/80 hover:bg-zinc-800 text-amber-400/90 hover:text-amber-300 border border-amber-500/20 hover:border-amber-500/40 transition cursor-pointer text-xs"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-zinc-900/80 hover:bg-zinc-800 text-amber-400/90 hover:text-amber-300 border border-amber-500/20 hover:border-amber-500/40 transition cursor-pointer text-xs outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-1 focus-visible:ring-offset-zinc-950 focus-visible:scale-105"
           >
             <Clock className="w-3.5 h-3.5" />
             <span>Hẹn giờ tắt</span>
@@ -149,9 +157,11 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = React.mem
           {/* 5. Nút Danh sách Phím tắt */}
           <button
             type="button"
+            data-player-control="true"
+            data-control-section="action-buttons"
             onClick={onOpenShortcuts}
             title="Xem danh sách phím tắt (?)"
-            className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-zinc-900/80 hover:bg-zinc-800 text-gray-400 hover:text-white border border-white/10 transition cursor-pointer text-xs"
+            className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-zinc-900/80 hover:bg-zinc-800 text-gray-400 hover:text-white border border-white/10 transition cursor-pointer text-xs outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-1 focus-visible:ring-offset-zinc-950 focus-visible:scale-105"
           >
             <Keyboard className="w-3.5 h-3.5" />
             <span>Phím tắt</span>
@@ -164,6 +174,8 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = React.mem
             <Link
               href={`?ep=${prevEpisode.slug}`}
               scroll={false}
+              data-player-control="true"
+              data-control-section="action-buttons"
               onClick={(e) => {
                 if (onSwitchEpisode && prevEpisode.slug) {
                   e.preventDefault();
@@ -171,7 +183,7 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = React.mem
                 }
               }}
               title={`Tập trước: ${prevEpisode.name} (Phím P)`}
-              className={`inline-flex items-center gap-1 rounded-lg bg-zinc-900/90 hover:bg-zinc-800 text-gray-300 hover:text-white transition font-medium border border-white/10 text-xs ${
+              className={`inline-flex items-center gap-1 rounded-lg bg-zinc-900/90 hover:bg-zinc-800 text-gray-300 hover:text-white transition font-medium border border-white/10 text-xs outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-1 focus-visible:ring-offset-zinc-950 focus-visible:scale-105 ${
                 isSticky ? "px-2 py-1 text-[11px] md:px-2.5 md:py-1.5 md:text-xs" : "px-2.5 py-1.5"
               }`}
             >
@@ -184,6 +196,8 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = React.mem
             <Link
               href={`?ep=${nextEpisode.slug}`}
               scroll={false}
+              data-player-control="true"
+              data-control-section="action-buttons"
               onClick={(e) => {
                 if (onSwitchEpisode && nextEpisode.slug) {
                   e.preventDefault();
@@ -191,7 +205,7 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = React.mem
                 }
               }}
               title={`Tập tiếp theo: ${nextEpisode.name} (Phím N)`}
-              className={`inline-flex items-center gap-1.5 rounded-lg bg-zinc-800 hover:bg-netflix-red text-white transition font-semibold border border-white/10 shadow-md text-xs ${
+              className={`inline-flex items-center gap-1.5 rounded-lg bg-zinc-800 hover:bg-netflix-red text-white transition font-semibold border border-white/10 shadow-md text-xs outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-1 focus-visible:ring-offset-zinc-950 focus-visible:scale-105 ${
                 isSticky ? "px-2.5 py-1 text-[11px] md:px-3 md:py-1.5 md:text-xs" : "px-3 py-1.5"
               }`}
             >

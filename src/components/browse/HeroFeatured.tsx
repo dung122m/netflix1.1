@@ -735,7 +735,8 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
                 {featuredMovie?.slug && (
                   <Link
                     href={`/movies/${featuredMovie.slug}`}
-                    className="inline-flex items-center gap-2.5 rounded-2xl bg-gradient-to-r from-netflix-red to-red-600 hover:from-red-600 hover:to-rose-600 text-white px-7 sm:px-9 py-3.5 sm:py-4 text-xs sm:text-sm md:text-base font-black transition-all duration-300 hover:scale-105 active:scale-95 shadow-[0_10px_30px_-5px_rgba(229,9,20,0.7)] hover:shadow-[0_15px_35px_-5px_rgba(229,9,20,0.9)] cursor-pointer"
+                    data-tv-hero="true"
+                    className="inline-flex items-center gap-2.5 rounded-2xl bg-gradient-to-r from-netflix-red to-red-600 hover:from-red-600 hover:to-rose-600 text-white px-7 sm:px-9 py-3.5 sm:py-4 text-xs sm:text-sm md:text-base font-black transition-all duration-300 hover:scale-105 active:scale-95 shadow-[0_10px_30px_-5px_rgba(229,9,20,0.7)] hover:shadow-[0_15px_35px_-5px_rgba(229,9,20,0.9)] cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105"
                   >
                     <Play size={19} fill="white" className="ml-0.5" />
                     <span>{isTrailerOnly ? "Xem trailer" : "Xem ngay"}</span>
@@ -743,13 +744,18 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
                 )}
 
                 {featuredMovie?.trailer_url && (
-                  <TrailerModal trailerUrl={featuredMovie.trailer_url} title={title} />
+                  <TrailerModal
+                    trailerUrl={featuredMovie.trailer_url}
+                    title={title}
+                    dataTvHero={true}
+                  />
                 )}
 
                 {featuredMovie?.slug && (
                   <Link
                     href={`/movies/${featuredMovie.slug}`}
-                    className="inline-flex items-center gap-2 rounded-2xl border border-white/20 bg-white/10 hover:bg-white/20 px-6 sm:px-8 py-3.5 sm:py-4 text-xs sm:text-sm md:text-base font-bold text-white backdrop-blur-xl transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer shadow-lg hover:border-white/35"
+                    data-tv-hero="true"
+                    className="inline-flex items-center gap-2 rounded-2xl border border-white/20 bg-white/10 hover:bg-white/20 px-6 sm:px-8 py-3.5 sm:py-4 text-xs sm:text-sm md:text-base font-bold text-white backdrop-blur-xl transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer shadow-lg hover:border-white/35 outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105"
                   >
                     <Info size={19} />
                     <span>Chi tiết phim</span>

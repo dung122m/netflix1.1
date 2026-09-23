@@ -608,7 +608,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   return (
     <div
       ref={cardRef}
-      className={`relative aspect-[2/3] sm:aspect-video w-full select-none ${
+      className={`relative aspect-[2/3] sm:aspect-video w-full select-none focus-within:z-40 ${
         isCardHovered ? "z-50" : "z-0"
       }`}
       onMouseEnter={handleMouseEnter}
@@ -619,7 +619,10 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       {/* ============================================================ */}
       <Link
         href={`/movies/${slug}`}
-        className={`block w-full h-full rounded-2xl overflow-hidden bg-zinc-950 border relative transition-all duration-300 shadow-md ${
+        data-tv-card="true"
+        data-slug={slug}
+        tabIndex={0}
+        className={`block w-full h-full rounded-2xl overflow-hidden bg-zinc-950 border relative transition-all duration-200 shadow-md outline-none focus-visible:ring-4 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-[1.05] focus-visible:shadow-[0_0_35px_rgba(229,9,20,0.6)] focus-visible:border-white/90 focus-visible:z-40 ${
           isCardHovered
             ? "border-white/40 shadow-[0_16px_40px_rgba(0,0,0,0.85)]"
             : "border-white/[0.12]"

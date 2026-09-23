@@ -567,10 +567,11 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
         >
           <button
             type={isSearchOpen && hasSearchText ? "submit" : "button"}
+            data-tv-nav="true"
             onClick={isSearchOpen && hasSearchText ? undefined : toggleSearch}
             aria-label={isSearchOpen && hasSearchText ? "Tìm kiếm phim" : "Mở thanh tìm kiếm"}
             title={isSearchOpen && hasSearchText ? "Tìm kiếm ngay" : "Tìm kiếm (Ctrl+K)"}
-            className="text-gray-300 hover:text-white transition flex-shrink-0 cursor-pointer p-0.5"
+            className="text-gray-300 hover:text-white transition flex-shrink-0 cursor-pointer p-1 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black"
           >
             <Search size={17} />
           </button>

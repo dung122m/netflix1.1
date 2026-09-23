@@ -163,11 +163,12 @@ export function RecommendationTabs({
           {/* Tab 1: Phù hợp nhất */}
           <button
             type="button"
+            data-tv-recommendation="true"
             onClick={() => {
               setActiveTab("best");
               setVisibleLimit(12);
             }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl sm:rounded-2xl text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl sm:rounded-2xl text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${
               activeTab === "best"
                 ? "bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 text-white border-netflix-red shadow-lg shadow-red-950/60 scale-102"
                 : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
@@ -181,11 +182,12 @@ export function RecommendationTabs({
           {actorName && validActorMovies.length > 0 && (
             <button
               type="button"
+              data-tv-recommendation="true"
               onClick={() => {
                 setActiveTab("actor");
                 setVisibleLimit(12);
               }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl sm:rounded-2xl text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl sm:rounded-2xl text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${
                 activeTab === "actor"
                   ? "bg-purple-600 text-white border-purple-400 shadow-lg shadow-purple-950/60 scale-102"
                   : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
@@ -200,11 +202,12 @@ export function RecommendationTabs({
           {genreName && genreMovies.length > 0 && (
             <button
               type="button"
+              data-tv-recommendation="true"
               onClick={() => {
                 setActiveTab("genre");
                 setVisibleLimit(12);
               }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl sm:rounded-2xl text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl sm:rounded-2xl text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${
                 activeTab === "genre"
                   ? "bg-netflix-red text-white border-netflix-red shadow-lg shadow-red-950/60 scale-102"
                   : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
@@ -219,11 +222,12 @@ export function RecommendationTabs({
           {countryName && countryMovies.length > 0 && (
             <button
               type="button"
+              data-tv-recommendation="true"
               onClick={() => {
                 setActiveTab("country");
                 setVisibleLimit(12);
               }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl sm:rounded-2xl text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl sm:rounded-2xl text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${
                 activeTab === "country"
                   ? "bg-sky-600 text-white border-sky-400 shadow-lg shadow-sky-950/60 scale-102"
                   : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
@@ -238,11 +242,12 @@ export function RecommendationTabs({
           {topRatedMovies.length > 0 && (
             <button
               type="button"
+              data-tv-recommendation="true"
               onClick={() => {
                 setActiveTab("top");
                 setVisibleLimit(12);
               }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl sm:rounded-2xl text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl sm:rounded-2xl text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${
                 activeTab === "top"
                   ? "bg-amber-600 text-white border-amber-400 shadow-lg shadow-amber-950/60 scale-102"
                   : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
@@ -258,9 +263,10 @@ export function RecommendationTabs({
         <div className="flex items-center gap-2 flex-shrink-0">
           <button
             type="button"
+            data-tv-recommendation="true"
             onClick={handleShuffle}
             title="Xáo trộn và đổi danh sách phim đề xuất mới"
-            className="flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-[11px] sm:text-xs font-bold text-gray-200 hover:text-white bg-zinc-900/90 hover:bg-zinc-800 border border-white/15 hover:border-white/30 transition shadow-sm cursor-pointer active:scale-95 whitespace-nowrap"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-[11px] sm:text-xs font-bold text-gray-200 hover:text-white bg-zinc-900/90 hover:bg-zinc-800 border border-white/15 hover:border-white/30 transition shadow-sm cursor-pointer active:scale-95 whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105"
           >
             <Shuffle
               className={`w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-400 transition-transform ${
@@ -367,7 +373,12 @@ const RecommendedMovieCard = React.memo(function RecommendedMovieCard({
 
   return (
     <div className="group relative bg-zinc-900 rounded-2xl overflow-hidden border border-white/10 hover:border-white/25 transition-all duration-300 hover:scale-[1.02] shadow-md hover:shadow-2xl flex flex-col">
-      <Link href={`/movies/${item.slug}`} className="block h-full flex flex-col">
+      <Link
+        href={`/movies/${item.slug}`}
+        data-tv-card="true"
+        tabIndex={0}
+        className="block h-full flex flex-col outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 focus-visible:scale-[1.03] transition-transform rounded-2xl"
+      >
         {/* 1. ẢNH THUMBNAIL (aspect-video 16:9 chuẩn như Tiếp tục xem) */}
         <div className="relative aspect-video w-full bg-zinc-900 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950 overflow-hidden">
           <Image

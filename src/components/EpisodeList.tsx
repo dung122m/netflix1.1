@@ -253,6 +253,9 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
                 key={tapSlug}
                 href={`?ep=${tapSlug}`}
                 scroll={false}
+                data-tv-episode="true"
+                data-episode-slug={tap.slug}
+                tabIndex={0}
                 title={tapName}
                 onClick={(e) => {
                   if (switchEpisode && tap.slug) {
@@ -260,7 +263,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
                     switchEpisode(tap.slug);
                   }
                 }}
-                className={`relative flex items-center justify-center text-center transition-all duration-200 group rounded-xl sm:rounded-2xl cursor-pointer select-none ${
+                className={`relative flex items-center justify-center text-center transition-all duration-200 group rounded-xl sm:rounded-2xl cursor-pointer select-none outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 focus-visible:scale-[1.04] focus-visible:z-20 ${
                   episodes.length === 1
                     ? "py-3 px-4 text-xs sm:text-sm"
                     : isFewEpisodes

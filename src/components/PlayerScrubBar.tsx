@@ -190,10 +190,20 @@ export const PlayerScrubBar: React.FC<PlayerScrubBarProps> = ({
       {/* THANH TIẾN TRÌNH: VÙNG CHẠM TOUCH 38PX CHUẨN MOBILE, GIỮ NGUYÊN GIAO DIỆN THANH 6PX */}
       <div
         ref={barRef}
+        tabIndex={0}
+        role="slider"
+        aria-label="Thanh tiến trình phim"
+        aria-valuemin={0}
+        aria-valuemax={Math.round(duration) || 100}
+        aria-valuenow={Math.round(currentTime)}
+        aria-valuetext={`${formatTime(currentTime)} / ${formatTime(duration)}`}
+        data-player-control="true"
+        data-control-id="scrub-bar"
+        data-control-section="scrub-bar"
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMoveHover}
         onPointerLeave={handleMouseLeave}
-        className="w-full py-4 -my-4 cursor-pointer relative group/bar touch-none flex items-center"
+        className="w-full py-4 -my-4 cursor-pointer relative group/bar touch-none flex items-center outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded-lg transition-all"
       >
         <div className="w-full h-1.5 group-hover/bar:h-2.5 bg-white/20 rounded-full relative transition-all pointer-events-none">
           {/* Buffered bar */}
