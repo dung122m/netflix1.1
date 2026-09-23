@@ -116,15 +116,31 @@ export async function getTopWatchLeaderboardSupabase(limit: number = 10): Promis
 export async function getAllProfilesSupabase(): Promise<{ profiles: UserProfile[]; totalCount: number }> {
   if (!supabase) return { profiles: [], totalCount: 0 };
   try {
-    const { data, error, count } = await supabase
-      .from("profiles")
-      .select("*", { count: "exact" })
-      .order("last_login_at", { ascending: false })
-      .limit(300);
+    // Run data fetch and exact count in parallel.
+    // Data query uses the original proven-working form (no count option).
+    // Count query uses HEAD-only request (lightweight, fault-tolerant).
+    const countPromise = Promise.resolve(
+      supabase
+        .from("profiles")
+        .select("*", { count: "exact", head: true })
+    )
+      .then((r) => r.count)
+      .catch(() => null as number | null);
 
+    const [dataResult, countResult] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("*")
+        .order("last_login_at", { ascending: false })
+        .limit(300),
+      countPromise,
+    ]);
+
+    const { data, error } = dataResult;
     if (error || !data) return { profiles: [], totalCount: 0 };
 
-    const profiles = data.map((d) => ({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const profiles = (data as any[]).map((d) => ({
       uid: d.id,
       email: d.email || "",
       displayName: d.display_name || "Thành viên",
@@ -142,7 +158,12 @@ export async function getAllProfilesSupabase(): Promise<{ profiles: UserProfile[
       lastLoginAt: d.last_login_at,
     }));
 
-    return { profiles, totalCount: count ?? profiles.length };
+    // Use exact count if available, otherwise fall back to fetched data length
+    const totalCount = (typeof countResult === "number" && countResult >= 0)
+      ? countResult
+      : profiles.length;
+
+    return { profiles, totalCount };
   } catch {
     return { profiles: [], totalCount: 0 };
   }
