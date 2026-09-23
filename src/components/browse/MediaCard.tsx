@@ -325,7 +325,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   const displayYear = year || "";
   const displayTime = time || "";
 
-  // Hover Intent: Chỉ kích hoạt mở rộng thẻ & tải dữ liệu sau 80ms người dùng thực sự dừng chuột
+  // Hover Intent: Chỉ kích hoạt mở rộng thẻ & tải dữ liệu sau 200ms người dùng thực sự dừng chuột
   const handleMouseEnter = () => {
     // Chỉ kích hoạt trên thiết bị desktop có hover chuột (loại bỏ hoàn toàn mobile/touch)
     if (!isDesktopWithHover()) {
@@ -470,11 +470,11 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           }
         }
       }, 1100);
-    }, 150);
+    }, 200);
   };
 
   const handleMouseLeave = () => {
-    // Hủy ngay lập tức hover-intent nếu người dùng chỉ lướt chuột qua thẻ
+    // Hủy ngay lập tức hover-intent nếu người dùng chỉ lướt chuột qua thẻ (<200ms)
     if (hoverIntentTimerRef.current) {
       clearTimeout(hoverIntentTimerRef.current);
       hoverIntentTimerRef.current = null;
@@ -497,13 +497,13 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     setIsTrailerReady(false);
     setIsMuted(true);
 
-    // Giữ nội dung hiển thị trong suốt 280ms thời gian fade-out của card, tránh chớp nháy
-    if (unmountTimerRef.current) clearTimeout(unmountTimerRef.current);
-    unmountTimerRef.current = setTimeout(() => {
-      setIsCardHovered(false);
-      setVerticalShift(0);
+    // Đóng hover ngay lập tức, không delay
+    if (unmountTimerRef.current) {
+      clearTimeout(unmountTimerRef.current);
       unmountTimerRef.current = null;
-    }, 280);
+    }
+    setIsCardHovered(false);
+    setVerticalShift(0);
   };
 
   const handleToggleList = (e: React.MouseEvent) => {
@@ -608,7 +608,9 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   return (
     <div
       ref={cardRef}
-      className="relative aspect-[2/3] sm:aspect-video w-full group select-none hover:z-50"
+      className={`relative aspect-[2/3] sm:aspect-video w-full select-none ${
+        isCardHovered ? "z-50" : "z-0"
+      }`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
@@ -617,7 +619,11 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       {/* ============================================================ */}
       <Link
         href={`/movies/${slug}`}
-        className="block w-full h-full rounded-2xl overflow-hidden bg-zinc-950 border border-white/[0.12] relative transition-all duration-300 shadow-md group-hover:border-white/40 group-hover:shadow-[0_16px_40px_rgba(0,0,0,0.85)]"
+        className={`block w-full h-full rounded-2xl overflow-hidden bg-zinc-950 border relative transition-all duration-300 shadow-md ${
+          isCardHovered
+            ? "border-white/40 shadow-[0_16px_40px_rgba(0,0,0,0.85)]"
+            : "border-white/[0.12]"
+        }`}
       >
         {/* Placeholder nền tối phía dưới ảnh */}
         <div className="absolute inset-0 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950 pointer-events-none" />
@@ -628,7 +634,9 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           fill
           unoptimized
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 16vw"
-          className="object-cover object-center group-hover:scale-105 transition-all duration-300"
+          className={`object-cover object-center transition-all duration-300 ${
+            isCardHovered ? "scale-105" : "scale-100"
+          }`}
           priority={priority}
           loading={priority ? "eager" : "lazy"}
           decoding="async"
@@ -715,7 +723,11 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       {/* ============================================================ */}
       <div
         style={verticalShift ? { transform: `translateY(${verticalShift}px)` } : undefined}
-        className={`hidden sm:block absolute top-0 left-0 w-full opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-hover:scale-[1.08] md:group-hover:scale-[1.10] group-hover:z-50 transition-all duration-200 ease-out delay-0 group-hover:delay-100 ${originClass} rounded-2xl overflow-hidden keep-dark-cinema bg-zinc-950/98 backdrop-blur-2xl border border-white/30 shadow-[0_24px_60px_-10px_rgba(0,0,0,0.98),0_0_20px_rgba(229,9,20,0.15)]`}
+        className={`hidden sm:block absolute top-0 left-0 w-full ${
+          isCardHovered
+            ? "opacity-100 pointer-events-auto scale-[1.08] md:scale-[1.10] z-50"
+            : "opacity-0 pointer-events-none scale-100 z-0"
+        } transition-all duration-200 ease-out ${originClass} rounded-2xl overflow-hidden keep-dark-cinema bg-zinc-950/98 backdrop-blur-2xl border border-white/30 shadow-[0_24px_60px_-10px_rgba(0,0,0,0.98),0_0_20px_rgba(229,9,20,0.15)]`}
       >
         {isCardHovered && (
           <>

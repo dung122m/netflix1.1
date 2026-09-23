@@ -58,6 +58,10 @@ export function isDesktopWithHover(): boolean {
     if (window.matchMedia("(hover: none) and (pointer: coarse)").matches) {
       return false;
     }
+    // Chỉ kích hoạt khi thiết bị hỗ trợ hover và con trỏ fine (chuột/trackpad desktop)
+    if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+      return false;
+    }
     return true;
   } catch {
     return typeof window !== "undefined" && window.innerWidth >= 768;
