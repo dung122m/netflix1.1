@@ -13,12 +13,13 @@ import {
   LogOut,
   Heart,
   Sliders,
-  Info,
+  Sparkles,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { isUserAdmin } from "@/lib/adminConfig";
 import { subscribeUserProfile } from "@/services/userService";
 import { UserProfile } from "@/types/user";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 
 interface NavUserMenuProps {
   onOpenAuthModal: () => void;
@@ -57,12 +58,8 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" || e.key === "Backspace") {
-        e.preventDefault();
-        e.stopPropagation();
+      if (e.key === "Escape") {
         setShowUserDropdown(false);
-        const trigger = userDropdownRef.current?.querySelector<HTMLElement>('button[data-tv-nav="true"]');
-        trigger?.focus();
       }
     };
 
@@ -81,7 +78,6 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
     return (
       <button
         type="button"
-        data-tv-nav="true"
         onClick={onOpenAuthModal}
         className="hidden sm:inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white hover:bg-gray-100 active:scale-95 text-gray-950 text-xs font-bold transition shadow-md shadow-white/10 cursor-pointer flex-shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black"
       >
@@ -112,39 +108,28 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
     <div ref={userDropdownRef} className="relative hidden sm:block flex-shrink-0">
       <button
         type="button"
-        data-tv-nav="true"
         onClick={() => setShowUserDropdown(!showUserDropdown)}
         className="flex items-center gap-1.5 p-1 pr-2 rounded-full bg-zinc-800/80 hover:bg-zinc-700/80 border border-white/20 transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black"
         title={effectiveDisplayName || user.email || "Tài khoản"}
       >
-        <div className="w-7 h-7 rounded-full bg-netflix-red flex items-center justify-center text-xs font-bold text-white uppercase overflow-hidden relative flex-shrink-0">
-          <span>{(effectiveDisplayName || user.email || "U")[0]}</span>
-          {effectiveAvatar && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={effectiveAvatar}
-              alt={effectiveDisplayName || "Avatar"}
-              referrerPolicy="no-referrer"
-              onError={(e) => {
-                e.currentTarget.style.display = "none";
-              }}
-              className="absolute inset-0 w-full h-full object-cover"
-            />
-          )}
-        </div>
+        <UserAvatar
+          src={effectiveAvatar || undefined}
+          name={effectiveDisplayName || user.email}
+          sizeClassName="w-7 h-7 text-xs font-bold"
+        />
         <ChevronDown size={13} className="text-gray-400" />
       </button>
 
       {showUserDropdown && (
-        <div className="absolute right-0 mt-2 w-60 bg-zinc-950/95 border border-white/15 rounded-2xl shadow-2xl p-2 z-[100] backdrop-blur-md animate-in fade-in zoom-in-95 duration-150">
-          <div className="px-3 py-2.5 border-b border-white/10 mb-1">
+        <div className="absolute right-0 mt-2 w-56 bg-zinc-950/95 border border-white/15 rounded-2xl shadow-2xl p-1.5 z-[100] backdrop-blur-md animate-in fade-in zoom-in-95 duration-150 space-y-0.5">
+          <div className="px-2.5 py-2 border-b border-white/10 mb-1">
             <p className="text-xs font-bold text-white truncate">
               {effectiveDisplayName}
             </p>
             <p className="text-[11px] text-gray-400 truncate mt-0.5">{user.email}</p>
             <div className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] text-emerald-400 font-medium">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Đang đồng bộ Cloud</span>
+              <span>Cloud Sync</span>
             </div>
           </div>
 
@@ -152,10 +137,10 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
             <Link
               href="/admin"
               onClick={() => setShowUserDropdown(false)}
-              className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-amber-400 bg-amber-500/15 border border-amber-500/30 hover:bg-amber-500/25 hover:text-amber-300 transition my-1 shadow-sm"
+              className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs font-bold text-amber-400 bg-amber-500/15 border border-amber-500/30 hover:bg-amber-500/25 hover:text-amber-300 transition my-0.5 shadow-sm"
             >
-              <ShieldCheck size={15} className="text-amber-400" />
-              <span>👑 Bảng Quản Trị (Admin)</span>
+              <ShieldCheck size={14} className="text-amber-400" />
+              <span>👑 Admin Panel</span>
             </Link>
           )}
 
@@ -167,11 +152,20 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
                 window.dispatchEvent(new CustomEvent("open-user-profile-modal", { detail: { tab: "profile" } }));
               }
             }}
-            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-rose-300 hover:text-white hover:bg-white/10 transition cursor-pointer text-left font-bold"
+            className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs text-rose-300 hover:text-white hover:bg-white/10 transition cursor-pointer text-left font-bold"
           >
             <User size={14} className="text-rose-400" />
             <span>🧑 Hồ sơ & Dashboard</span>
           </button>
+
+          <Link
+            href="/stats"
+            onClick={() => setShowUserDropdown(false)}
+            className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs text-amber-300 hover:text-white hover:bg-white/10 transition font-bold"
+          >
+            <Sparkles size={14} className="text-amber-400" />
+            <span>📊 Thống kê & Wrapped</span>
+          </Link>
 
           <button
             type="button"
@@ -181,7 +175,7 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
                 window.dispatchEvent(new CustomEvent("open-user-profile-modal", { detail: { tab: "player_settings" } }));
               }
             }}
-            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-gray-300 hover:text-white hover:bg-white/10 transition cursor-pointer text-left font-medium"
+            className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs text-gray-300 hover:text-white hover:bg-white/10 transition cursor-pointer text-left font-medium"
           >
             <Sliders size={14} className="text-amber-400" />
             <span>⚙️ Cài đặt phát lại Cloud</span>
@@ -195,7 +189,7 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
                 window.dispatchEvent(new CustomEvent("open-user-profile-modal", { detail: { tab: "followed_actors" } }));
               }
             }}
-            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-gray-300 hover:text-white hover:bg-white/10 transition cursor-pointer text-left font-medium"
+            className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs text-gray-300 hover:text-white hover:bg-white/10 transition cursor-pointer text-left font-medium"
           >
             <Heart size={14} className="text-rose-400" />
             <span>⭐ Diễn viên yêu thích</span>
@@ -204,7 +198,7 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
           <Link
             href="/my-list?tab=history"
             onClick={() => setShowUserDropdown(false)}
-            className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-gray-300 hover:text-white hover:bg-white/10 transition"
+            className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs text-gray-300 hover:text-white hover:bg-white/10 transition"
           >
             <History size={14} className="text-netflix-red" />
             <span>Lịch sử xem phim</span>
@@ -213,7 +207,7 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
           <Link
             href="/my-list?tab=watchlist"
             onClick={() => setShowUserDropdown(false)}
-            className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-gray-300 hover:text-white hover:bg-white/10 transition"
+            className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs text-gray-300 hover:text-white hover:bg-white/10 transition"
           >
             <Bookmark size={14} className="text-amber-400" />
             <span>Phim đã lưu</span>
@@ -222,19 +216,10 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
           <Link
             href="/my-list?tab=comments"
             onClick={() => setShowUserDropdown(false)}
-            className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-gray-300 hover:text-white hover:bg-white/10 transition"
+            className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs text-gray-300 hover:text-white hover:bg-white/10 transition"
           >
             <MessageSquare size={14} className="text-emerald-400" />
             <span>Lịch sử bình luận</span>
-          </Link>
-
-          <Link
-            href="/about"
-            onClick={() => setShowUserDropdown(false)}
-            className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-gray-300 hover:text-white hover:bg-white/10 transition"
-          >
-            <Info size={14} className="text-cyan-400" />
-            <span>Giới thiệu Nanaflix</span>
           </Link>
 
           <button
@@ -245,10 +230,10 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
                 window.dispatchEvent(new CustomEvent("open-pwa-install"));
               }
             }}
-            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-emerald-400 hover:text-emerald-300 hover:bg-white/10 transition cursor-pointer text-left"
+            className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs text-emerald-400 hover:text-emerald-300 hover:bg-white/10 transition cursor-pointer text-left"
           >
             <Smartphone size={14} />
-            <span>Cài đặt Ứng dụng App</span>
+            <span>PWA App</span>
           </button>
 
           <div className="border-t border-white/10 mt-1 pt-1">
@@ -258,7 +243,7 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
                 setShowUserDropdown(false);
                 await logout();
               }}
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 transition cursor-pointer text-left"
+              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 transition cursor-pointer text-left font-medium"
             >
               <LogOut size={14} />
               <span>Đăng xuất</span>

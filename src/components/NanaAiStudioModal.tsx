@@ -839,7 +839,7 @@ export const NanaAiStudioModal: React.FC<NanaAiStudioModalProps> = ({
                 {chatLoading && (
                   <div className="flex items-center gap-2.5 text-xs text-pink-300 py-2.5 px-3.5 rounded-2xl bg-zinc-900/90 border border-pink-500/20 max-w-sm animate-pulse">
                     <Loader2 className="w-3.5 h-3.5 animate-spin text-pink-400 flex-none" />
-                    <span>Nana AI đang suy nghĩ và lục tìm phim phù hợp...</span>
+                    <span>Nana AI đang tìm kiếm phim phù hợp cho bạn...</span>
                   </div>
                 )}
               </div>
@@ -857,7 +857,7 @@ export const NanaAiStudioModal: React.FC<NanaAiStudioModalProps> = ({
                     type="text"
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
-                    placeholder="Hỏi bất kỳ điều gì: 'Phim trinh thám đấu trí', 'Phim hài Châu Tinh Trì'..."
+                    placeholder="Nhập tâm trạng, diễn viên hoặc nội dung bạn muốn xem..."
                     className="w-full pl-3.5 pr-10 py-2 sm:py-2.5 rounded-full bg-zinc-950 border border-white/15 focus:border-pink-500 focus:ring-1 focus:ring-pink-500/25 text-white placeholder-gray-500 text-xs sm:text-sm outline-none shadow-inner transition"
                   />
                   <button

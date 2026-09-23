@@ -12,7 +12,6 @@ import { BottomNav } from "@/components/BottomNav";
 import { AuthProvider } from "@/context/AuthContext";
 import { NavigationProgressBar } from "@/components/NavigationProgressBar";
 import { GlobalVisitorTracker } from "@/components/GlobalVisitorTracker";
-import { TvNavigationHandler } from "@/components/tv/TvNavigationHandler";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -224,9 +223,6 @@ export default function RootLayout({
 
           {/* Seamless Unified Continue Watching & Cross-Device Handoff */}
           <ContinueWatchingWidget />
-
-          {/* Nanaflix TV-friendly Spatial Navigation (Phase 1) */}
-          <TvNavigationHandler />
         </AuthProvider>
       </body>
     </html>

@@ -31,6 +31,7 @@ import {
 import { Navbar } from "@/components/Navbar";
 import { useAuth } from "@/context/AuthContext";
 import { AuthModal } from "@/components/AuthModal";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import { Footer } from "@/components/Footer";
 import { MediaCard } from "@/components/browse/MediaCard";
 import { getWatchlist, WatchlistItem } from "@/lib/watchlist";
@@ -47,6 +48,7 @@ import {
   subscribeUserCollections,
   deleteCollection,
   toggleCollectionPrivacy,
+  getSmartCollectionsList,
 } from "@/services/collectionService";
 import { subscribeUserComments, deleteMovieComment } from "@/services/commentService";
 import { MovieCollection } from "@/types/collection";
@@ -335,18 +337,13 @@ function MyListContent() {
       <div className="mb-6 p-4 rounded-2xl bg-white/[0.03] border border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         {user ? (
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-netflix-red text-white flex items-center justify-center text-xs font-bold uppercase overflow-hidden relative flex-shrink-0 border border-white/20">
-              <span>{(user.displayName || user.email || "U")[0]}</span>
-              {user.photoURL && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={user.photoURL}
-                  alt="Avatar"
-                  referrerPolicy="no-referrer"
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
-              )}
-            </div>
+            <UserAvatar
+              src={user.photoURL || undefined}
+              name={user.displayName || user.email}
+              seed={user.uid || user.displayName || user.email}
+              sizeClassName="w-8 h-8 text-xs font-bold"
+              className="border border-white/20"
+            />
             <div>
               <p className="text-xs font-bold text-white flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -635,164 +632,216 @@ function MyListContent() {
           </div>
         )
       ) : activeTab === "collections" ? (
-        /* TAB 3: CUSTOM COLLECTIONS */
-        !user ? (
-          <div className="flex flex-col items-center justify-center py-20 px-4 text-center max-w-lg mx-auto">
-            <div className="h-20 w-20 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-center mb-5 text-gray-400">
-              <FolderHeart className="h-9 w-9 text-netflix-red" />
+        /* TAB 3: CUSTOM COLLECTIONS & SMART COLLECTIONS */
+        <div className="space-y-10">
+          {!user ? (
+            <div className="flex flex-col items-center justify-center py-12 px-4 text-center max-w-lg mx-auto bg-zinc-900/30 rounded-2xl border border-white/5">
+              <div className="h-16 w-16 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-center mb-4 text-gray-400">
+                <FolderHeart className="h-8 w-8 text-netflix-red" />
+              </div>
+              <h2 className="text-lg sm:text-xl font-bold mb-2">
+                Bộ sưu tập phim cá nhân
+              </h2>
+              <p className="text-gray-400 text-xs sm:text-sm leading-relaxed mb-5">
+                Đăng nhập tài khoản Google để tạo playlist phim theo gu riêng, gom nhóm các tác phẩm yêu thích và chia sẻ liên kết công khai.
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowAuthModal(true)}
+                className="inline-flex items-center gap-2 rounded-xl bg-netflix-red px-5 py-2.5 text-xs sm:text-sm font-bold text-white transition hover:bg-red-700 shadow-lg cursor-pointer active:scale-95"
+              >
+                <LogIn className="w-4 h-4" />
+                <span>Đăng nhập ngay</span>
+              </button>
             </div>
-            <h2 className="text-xl sm:text-2xl font-bold mb-2">
-              Bộ sưu tập phim cá nhân
-            </h2>
-            <p className="text-gray-400 text-sm leading-relaxed mb-6">
-              Đăng nhập tài khoản Google để tạo playlist phim theo gu riêng, gom nhóm các tác phẩm yêu thích và chia sẻ liên kết công khai.
-            </p>
-            <button
-              type="button"
-              onClick={() => setShowAuthModal(true)}
-              className="inline-flex items-center gap-2 rounded-xl bg-netflix-red px-6 py-3 text-sm font-bold text-white transition hover:bg-red-700 shadow-lg cursor-pointer"
-            >
-              <LogIn className="w-4 h-4" />
-              <span>Đăng nhập ngay</span>
-            </button>
-          </div>
-        ) : collections.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 px-4 text-center max-w-lg mx-auto">
-            <div className="h-20 w-20 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-center mb-5 text-gray-400">
-              <FolderPlus className="h-9 w-9 text-gray-500" />
+          ) : collections.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 px-4 text-center max-w-lg mx-auto bg-zinc-900/30 rounded-2xl border border-white/5">
+              <div className="h-16 w-16 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-center mb-4 text-gray-400">
+                <FolderPlus className="h-8 w-8 text-gray-500" />
+              </div>
+              <h2 className="text-lg sm:text-xl font-bold mb-2">
+                Bạn chưa có bộ sưu tập riêng
+              </h2>
+              <p className="text-gray-400 text-xs sm:text-sm leading-relaxed mb-5">
+                Bắt đầu tạo bộ sưu tập đầu tiên (ví dụ: &quot;Anime cày đêm&quot;, &quot;Phim kinh dị đỉnh cao&quot;) và thêm các phim yêu thích vào danh sách.
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowCreateCollectionModal(true)}
+                className="inline-flex items-center gap-2 rounded-xl bg-netflix-red px-5 py-2.5 text-xs sm:text-sm font-bold text-white transition hover:bg-red-700 shadow-lg cursor-pointer active:scale-95"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Tạo bộ sưu tập đầu tiên</span>
+              </button>
             </div>
-            <h2 className="text-xl sm:text-2xl font-bold mb-2">
-              Bạn chưa có bộ sưu tập nào
-            </h2>
-            <p className="text-gray-400 text-sm leading-relaxed mb-6">
-              Bắt đầu tạo bộ sưu tập đầu tiên (ví dụ: &quot;Anime cày đêm&quot;, &quot;Phim kinh dị đỉnh cao&quot;) và thêm các phim yêu thích vào danh sách.
-            </p>
-            <button
-              type="button"
-              onClick={() => setShowCreateCollectionModal(true)}
-              className="inline-flex items-center gap-2 rounded-xl bg-netflix-red px-6 py-3 text-sm font-bold text-white transition hover:bg-red-700 shadow-lg cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Tạo bộ sưu tập đầu tiên</span>
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-            {collections.map((col) => {
-              const previewPosters = (col.movies || []).slice(0, 4);
-              return (
-                <div
-                  key={col.id}
-                  className="group relative rounded-2xl bg-zinc-950 border border-white/10 hover:border-white/25 overflow-hidden transition-all duration-300 hover:shadow-2xl hover:scale-[1.01] flex flex-col justify-between"
-                >
-                  <Link href={`/collection/${col.id}`} className="block p-4 pb-2">
-                    {/* KHỐI ẢNH BÌA MOSAIC 4 POSTER HOẶC 1 POSTER */}
-                    <div className="relative aspect-[16/9] w-full rounded-xl bg-zinc-900 overflow-hidden border border-white/10 mb-3.5">
-                      {previewPosters.length >= 4 ? (
-                        <div className="grid grid-cols-2 h-full w-full gap-0.5">
-                          {previewPosters.map((m, idx) => (
-                            <div key={idx} className="relative h-full w-full bg-zinc-800 overflow-hidden">
+          ) : (
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                  <FolderHeart className="w-4 h-4 text-netflix-red" />
+                  <span>Bộ sưu tập của bạn ({collections.length})</span>
+                </h2>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                {collections.map((col) => {
+                  const previewPosters = (col.movies || []).slice(0, 4);
+                  return (
+                    <div
+                      key={col.id}
+                      className="group relative rounded-2xl bg-zinc-950 border border-white/10 hover:border-white/25 overflow-hidden transition-all duration-300 hover:shadow-2xl hover:scale-[1.01] flex flex-col justify-between"
+                    >
+                      <Link href={`/collection/${col.id}`} className="block p-4 pb-2">
+                        {/* KHỐI ẢNH BÌA MOSAIC 4 POSTER HOẶC 1 POSTER */}
+                        <div className="relative aspect-[16/9] w-full rounded-xl bg-zinc-900 overflow-hidden border border-white/10 mb-3.5">
+                          {previewPosters.length >= 4 ? (
+                            <div className="grid grid-cols-2 h-full w-full gap-0.5">
+                              {previewPosters.map((m, idx) => (
+                                <div key={idx} className="relative h-full w-full bg-zinc-800 overflow-hidden">
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img
+                                    src={m.poster || "/default-poster.jpg"}
+                                    alt={m.title}
+                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          ) : previewPosters.length > 0 ? (
+                            <div className="relative h-full w-full bg-zinc-800">
                               {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img
-                                src={m.poster || "/default-poster.jpg"}
-                                alt={m.title}
+                                src={previewPosters[0].poster || "/default-poster.jpg"}
+                                alt={col.name}
                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                               />
                             </div>
-                          ))}
-                        </div>
-                      ) : previewPosters.length > 0 ? (
-                        <div className="relative h-full w-full bg-zinc-800">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={previewPosters[0].poster || "/default-poster.jpg"}
-                            alt={col.name}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                          />
-                        </div>
-                      ) : (
-                        <div className="flex flex-col items-center justify-center h-full text-gray-500">
-                          <Film className="w-8 h-8 mb-1 opacity-50" />
-                          <span className="text-[11px]">Chưa có phim</span>
-                        </div>
-                      )}
+                          ) : (
+                            <div className="flex flex-col items-center justify-center h-full text-gray-500">
+                              <Film className="w-8 h-8 mb-1 opacity-50" />
+                              <span className="text-[11px]">Chưa có phim</span>
+                            </div>
+                          )}
 
-                      {/* BADGE CÔNG KHAI / RIÊNG TƯ */}
-                      <div className="absolute top-2.5 left-2.5">
-                        {col.isPublic ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/90 text-white text-[10px] font-bold backdrop-blur-md shadow-md">
-                            <Globe className="w-3 h-3" /> Công khai
+                          {/* BADGE CÔNG KHAI / RIÊNG TƯ */}
+                          <div className="absolute top-2.5 left-2.5">
+                            {col.isPublic ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/90 text-white text-[10px] font-bold backdrop-blur-md shadow-md">
+                                <Globe className="w-3 h-3" /> Công khai
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-zinc-900/90 border border-white/20 text-gray-300 text-[10px] font-bold backdrop-blur-md shadow-md">
+                                <Lock className="w-3 h-3" /> Riêng tư
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <h3 className="text-white font-bold text-base truncate group-hover:text-netflix-red transition-colors">
+                          {col.name}
+                        </h3>
+                        <p className="text-xs text-gray-400 line-clamp-1 mt-1">
+                          {col.description || `${col.movies?.length || 0} bộ phim được chọn lọc`}
+                        </p>
+                        <div className="text-[11px] text-rose-300 font-semibold mt-2">
+                          {col.movies?.length || 0} bộ phim
+                        </div>
+                      </Link>
+
+                      {/* CÁC NÚT TÁC VỤ DƯỚI CARD */}
+                      <div className="p-3 pt-2 border-t border-white/10 flex items-center justify-between gap-1 text-xs">
+                        <button
+                          type="button"
+                          onClick={() => handleShareCollection(col.id)}
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition flex items-center gap-1.5 cursor-pointer"
+                          title="Sao chép liên kết chia sẻ"
+                        >
+                          {copiedId === col.id ? (
+                            <>
+                              <Check className="w-3.5 h-3.5 text-emerald-400" />
+                              <span className="text-[11px] text-emerald-400">Đã chép</span>
+                            </>
+                          ) : (
+                            <>
+                              <Share2 className="w-3.5 h-3.5" />
+                              <span className="text-[11px]">Chia sẻ</span>
+                            </>
+                          )}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleTogglePrivacy(col)}
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition flex items-center gap-1 cursor-pointer"
+                          title={col.isPublic ? "Chuyển sang riêng tư" : "Chuyển sang công khai"}
+                        >
+                          {col.isPublic ? (
+                            <Globe className="w-3.5 h-3.5 text-emerald-400" />
+                          ) : (
+                            <Lock className="w-3.5 h-3.5 text-amber-400" />
+                          )}
+                          <span className="text-[11px]">
+                            {col.isPublic ? "Công khai" : "Riêng tư"}
                           </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-zinc-900/90 border border-white/20 text-gray-300 text-[10px] font-bold backdrop-blur-md shadow-md">
-                            <Lock className="w-3 h-3" /> Riêng tư
-                          </span>
-                        )}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteCollection(col)}
+                          className="p-1.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition cursor-pointer"
+                          title="Xóa bộ sưu tập"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
-                    <h3 className="text-white font-bold text-base truncate group-hover:text-netflix-red transition-colors">
-                      {col.name}
-                    </h3>
-                    <p className="text-xs text-gray-400 line-clamp-1 mt-1">
-                      {col.description || `${col.movies?.length || 0} bộ phim được chọn lọc`}
-                    </p>
-                    <div className="text-[11px] text-rose-300 font-semibold mt-2">
-                      {col.movies?.length || 0} bộ phim
-                    </div>
-                  </Link>
-
-                  {/* CÁC NÚT TÁC VỤ DƯỚI CARD */}
-                  <div className="p-3 pt-2 border-t border-white/10 flex items-center justify-between gap-1 text-xs">
-                    <button
-                      type="button"
-                      onClick={() => handleShareCollection(col.id)}
-                      className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition flex items-center gap-1.5 cursor-pointer"
-                      title="Sao chép liên kết chia sẻ"
-                    >
-                      {copiedId === col.id ? (
-                        <>
-                          <Check className="w-3.5 h-3.5 text-emerald-400" />
-                          <span className="text-[11px] text-emerald-400">Đã chép</span>
-                        </>
-                      ) : (
-                        <>
-                          <Share2 className="w-3.5 h-3.5" />
-                          <span className="text-[11px]">Chia sẻ</span>
-                        </>
-                      )}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleTogglePrivacy(col)}
-                      className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition flex items-center gap-1 cursor-pointer"
-                      title={col.isPublic ? "Chuyển sang riêng tư" : "Chuyển sang công khai"}
-                    >
-                      {col.isPublic ? (
-                        <Globe className="w-3.5 h-3.5 text-emerald-400" />
-                      ) : (
-                        <Lock className="w-3.5 h-3.5 text-amber-400" />
-                      )}
-                      <span className="text-[11px]">
-                        {col.isPublic ? "Công khai" : "Riêng tư"}
+          {/* TUYỂN TẬP THÔNG MINH (SMART COLLECTIONS) */}
+          <div className="pt-6 border-t border-white/10">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-5">
+              <div>
+                <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+                  <span>✨ Tuyển Tập Đề Xuất (Smart Collections)</span>
+                </h2>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Bộ sưu tập tự động phân loại theo chủ đề hấp dẫn từ kho phim Nanaflix
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {getSmartCollectionsList().map((smart) => (
+                <Link
+                  key={smart.id}
+                  href={`/collection/${smart.id}`}
+                  className="group p-4 rounded-2xl bg-zinc-900/60 border border-white/10 hover:border-red-500/40 hover:bg-zinc-800/80 transition-all duration-300 hover:scale-[1.02] flex flex-col justify-between shadow-lg"
+                >
+                  <div>
+                    <div className="flex items-center justify-between gap-2 mb-2.5">
+                      <span className="text-2xl">{smart.emoji}</span>
+                      <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-netflix-red/20 text-red-300 border border-netflix-red/30">
+                        {smart.badge}
                       </span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteCollection(col)}
-                      className="p-1.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition cursor-pointer"
-                      title="Xóa bộ sưu tập"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    </div>
+                    <h3 className="text-white font-bold text-sm group-hover:text-netflix-red transition-colors line-clamp-1">
+                      {smart.name}
+                    </h3>
+                    <p className="text-xs text-gray-400 line-clamp-2 mt-1.5 leading-relaxed">
+                      {smart.description}
+                    </p>
                   </div>
-                </div>
-              );
-            })}
+                  <div className="mt-4 pt-2.5 border-t border-white/5 flex items-center justify-between text-[11px] text-zinc-400 font-medium">
+                    <span>Khám phá danh sách</span>
+                    <span className="text-netflix-red group-hover:translate-x-1 transition-transform">→</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
           </div>
-        )
+        </div>
       ) : activeTab === "comments" ? (
         /* TAB 4: LỊCH SỬ BÌNH LUẬN */
         userComments.length === 0 ? (

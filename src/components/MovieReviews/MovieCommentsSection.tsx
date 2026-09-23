@@ -28,6 +28,7 @@ import {
 } from "@/services/commentService";
 import { checkContentModeration, detectSpoiler } from "@/lib/contentModeration";
 import { subscribeUserProfile } from "@/services/userService";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import { UserProfile } from "@/types/user";
 import { StarRating } from "./StarRating";
 import { CommentItem } from "./CommentItem";
@@ -327,8 +328,8 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
             movieSlug,
             movieTitle: movieTitle || undefined,
             userId: user.uid,
-            userName: user.displayName || "Thành viên Nanaflix",
-            userAvatar: user.photoURL || undefined,
+            userName: effectiveDisplayName,
+            userAvatar: effectiveAvatar || undefined,
             userEmail: user.email || undefined,
             rating,
             content: trimmed,
@@ -514,22 +515,11 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
             {/* User Header & Star Selector */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
               <div className="flex items-center gap-2.5">
-                <div className="relative w-8 h-8 rounded-full overflow-hidden bg-gradient-to-tr from-red-600 to-amber-500 flex items-center justify-center font-bold text-white text-xs shrink-0">
-                  {effectiveAvatar ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={effectiveAvatar}
-                      alt={effectiveDisplayName}
-                      className="absolute inset-0 w-full h-full object-cover"
-                      referrerPolicy="no-referrer"
-                      onError={(e) => {
-                        e.currentTarget.style.display = "none";
-                      }}
-                    />
-                  ) : (
-                    (effectiveDisplayName || "U").charAt(0).toUpperCase()
-                  )}
-                </div>
+                <UserAvatar
+                  src={effectiveAvatar || undefined}
+                  name={effectiveDisplayName}
+                  sizeClassName="w-8 h-8 text-xs font-bold"
+                />
                 <div>
                   <span className="text-sm font-semibold text-zinc-200 block leading-tight">
                     {effectiveDisplayName}

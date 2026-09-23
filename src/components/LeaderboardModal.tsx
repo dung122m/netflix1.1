@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { Trophy, X, Crown, Flame, Loader2, Sparkles } from "lucide-react";
 import { getTopWatchLeaderboard, getWatchLevelInfo } from "@/services/userService";
 import { UserProfile } from "@/types/user";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 
 export interface LeaderboardModalProps {
   initialOpen?: boolean;
@@ -145,22 +146,13 @@ function LeaderboardModalInner({ initialOpen = false }: LeaderboardModalProps) {
                   </div>
 
                   {/* Avatar */}
-                  <div className="relative w-10 h-10 rounded-full border border-white/20 overflow-hidden bg-zinc-800 flex items-center justify-center flex-shrink-0">
-                    <span className="text-sm font-bold text-white uppercase">
-                      {(userItem.displayName || "U")[0]}
-                    </span>
-                    {(userItem.customAvatar || userItem.photoURL) && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={userItem.customAvatar || userItem.photoURL}
-                        alt={userItem.displayName}
-                        className="absolute inset-0 w-full h-full object-cover"
-                        onError={(e) => {
-                          e.currentTarget.style.display = "none";
-                        }}
-                      />
-                    )}
-                  </div>
+                  <UserAvatar
+                    src={userItem.customAvatar || userItem.photoURL || undefined}
+                    name={userItem.displayName}
+                    seed={userItem.uid || userItem.displayName}
+                    sizeClassName="w-10 h-10 text-sm font-bold"
+                    className="border border-white/20"
+                  />
 
                   {/* Tên & Cấp độ */}
                   <div className="flex-1 min-w-0">

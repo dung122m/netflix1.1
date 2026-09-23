@@ -65,6 +65,18 @@ interface WatchHistoryInputItem {
   updatedAt?: number;
 }
 
+export interface ReactionInputItem {
+  slug: string;
+  reaction: "like" | "dislike";
+  title?: string;
+  category?: string;
+  genre?: string;
+  country?: string;
+  type?: string;
+  type_name?: string;
+  year?: number | string;
+}
+
 export type MovieFormat = "live_action" | "animation" | "unknown";
 export type FormatPreference = "live_action_preferred" | "animation_preferred" | "mixed";
 
@@ -307,11 +319,12 @@ function detectMovieFormat(item: {
   return "unknown";
 }
 
-// Xây dựng UserTasteProfile đa chiều từ lịch sử xem và hồ sơ người dùng
+// Xây dựng UserTasteProfile đa chiều từ lịch sử xem, sở thích và phản hồi Like/Dislike
 function buildUserTasteProfile(
   historyItems: WatchHistoryInputItem[],
   favoriteGenres: string[] = [],
-  watchedSlugs: string[] = []
+  watchedSlugs: string[] = [],
+  reactions: ReactionInputItem[] = []
 ): UserTasteProfile {
   const genreScoreMap = new Map<string, { name: string; score: number }>();
   const countryScoreMap = new Map<string, { name: string; score: number }>();
@@ -422,6 +435,65 @@ function buildUserTasteProfile(
     }
   }
 
+  // 2.5 Bổ sung tín hiệu phản hồi Like (tăng nhẹ preference) & Dislike (giảm nhẹ preference + loại bỏ)
+  for (const r of reactions) {
+    if (!r || !r.slug) continue;
+    const cleanSlug = r.slug.toLowerCase().trim();
+    const combinedText = `${r.genre || ""} ${r.category || ""} ${r.title || ""} ${r.slug}`;
+    const detectedGenres = extractGenresFromText(combinedText);
+    const detectedCountries = extractCountriesFromText(`${r.country || ""} ${combinedText}`);
+    const detectedType = extractTypeFromText(`${r.type_name || ""} ${r.type || ""} ${combinedText}`);
+    const itemFormat = detectMovieFormat({
+      type: r.type || r.type_name,
+      type_name: r.type_name,
+      category: r.category || r.genre,
+      title: r.title,
+      slug: r.slug,
+    });
+
+    if (r.reaction === "like") {
+      // LIKE: Tăng nhẹ thể loại (+1.2), quốc gia (+0.8), loại phim (+0.6), format (+0.8)
+      // Không để một lượt like áp đảo watch history (vốn có weight 2.0 * 1.5 = 3.0)
+      for (const g of detectedGenres) {
+        const cur = genreScoreMap.get(g.slug) || { name: g.name, score: 0 };
+        cur.score += 1.2;
+        genreScoreMap.set(g.slug, cur);
+      }
+      for (const c of detectedCountries) {
+        const cur = countryScoreMap.get(c.slug) || { name: c.name, score: 0 };
+        cur.score += 0.8;
+        countryScoreMap.set(c.slug, cur);
+      }
+      if (detectedType) {
+        const cur = typeScoreMap.get(detectedType.slug) || { name: detectedType.name, score: 0 };
+        cur.score += 0.6;
+        typeScoreMap.set(detectedType.slug, cur);
+      }
+      if (itemFormat === "live_action") liveActionScore += 0.8;
+      else if (itemFormat === "animation") animationScore += 0.8;
+    } else if (r.reaction === "dislike") {
+      // DISLIKE: Bắt buộc loại bỏ khỏi đề xuất
+      historySlugsSet.add(cleanSlug);
+      // Giảm nhẹ điểm các thể loại và quốc gia tương ứng (không để âm)
+      for (const g of detectedGenres) {
+        const cur = genreScoreMap.get(g.slug);
+        if (cur) {
+          cur.score = Math.max(0, cur.score - 0.6);
+          genreScoreMap.set(g.slug, cur);
+        }
+      }
+      for (const c of detectedCountries) {
+        const cur = countryScoreMap.get(c.slug);
+        if (cur) {
+          cur.score = Math.max(0, cur.score - 0.4);
+          countryScoreMap.set(c.slug, cur);
+        }
+      }
+      if (itemFormat === "live_action") liveActionScore = Math.max(0, liveActionScore - 0.5);
+      else if (itemFormat === "animation") animationScore = Math.max(0, animationScore - 0.5);
+    }
+  }
+
   // 3. Chuẩn hoá điểm số và trích xuất TOP sở thích
   const normalizeList = (map: Map<string, { name: string; score: number }>, topN: number): ScoredEntity[] => {
     const arr = Array.from(map.entries()).map(([slug, val]) => ({
@@ -509,31 +581,71 @@ export async function POST(req: NextRequest) {
       refreshSeed = 0,
       currentSlugs = [],
       followedActors = [],
+      reactions = {},
+      reactionItems = [],
+      likedSlugs = [],
+      dislikedSlugs = [],
     } = body || {};
 
     const seed = Number(refreshSeed) || 0;
 
-    // 1. TẠO USER TASTE PROFILE ĐA CHIỀU
-    const profile = buildUserTasteProfile(historyItems, genres, watchedSlugs);
+    // Chuẩn hóa danh sách reactions đầu vào từ Record hoặc Array
+    const allReactionItems: ReactionInputItem[] = Array.isArray(reactionItems)
+      ? [...reactionItems]
+      : [];
 
-    // Tập hợp 100% slug phim cần loại bỏ (toàn bộ lịch sử + phim đang hiện)
+    if (reactions && typeof reactions === "object" && !Array.isArray(reactions)) {
+      for (const [slug, reactVal] of Object.entries(reactions)) {
+        if (reactVal === "like" || reactVal === "dislike") {
+          if (!allReactionItems.some((r) => r.slug === slug)) {
+            allReactionItems.push({ slug, reaction: reactVal });
+          }
+        }
+      }
+    }
+
+    // Thêm các slug từ mảng likedSlugs / dislikedSlugs
+    if (Array.isArray(likedSlugs)) {
+      for (const s of likedSlugs) {
+        if (s && !allReactionItems.some((r) => r.slug === s)) {
+          allReactionItems.push({ slug: s, reaction: "like" });
+        }
+      }
+    }
+    if (Array.isArray(dislikedSlugs)) {
+      for (const s of dislikedSlugs) {
+        if (s && !allReactionItems.some((r) => r.slug === s)) {
+          allReactionItems.push({ slug: s, reaction: "dislike" });
+        }
+      }
+    }
+
+    // 1. TẠO USER TASTE PROFILE ĐA CHIỀU (Tích hợp lịch sử + Profile + Reactions)
+    const profile = buildUserTasteProfile(historyItems, genres, watchedSlugs, allReactionItems);
+
+    // Tập hợp 100% slug phim cần loại bỏ (lịch sử + phim đang hiện + phim bị dislike)
+    const extraDislikedSlugs = allReactionItems
+      .filter((r) => r.reaction === "dislike")
+      .map((r) => r.slug.toLowerCase().trim());
+
     const watchedSet = new Set<string>([
       ...Array.from(profile.historySlugs),
+      ...extraDislikedSlugs,
       ...((currentSlugs as string[]) || []).map((s: string) => s.toLowerCase().trim()),
     ]);
 
     // 2. XÂY DỰNG TASTE FINGERPRINT & KIỂM TRA KV CACHE
-    // Phân định rõ ràng giữa guest (theo theme seed) và user có profile (theo các chiều gu chuẩn hóa)
-    // để đảm bảo không bị collision giữa các profile khác nhau.
     let tasteHash: string;
-    if (profile.isGuest && followedActors.length === 0) {
+    if (profile.isGuest && followedActors.length === 0 && allReactionItems.length === 0) {
       tasteHash = `guest-${seed % GUEST_THEMES.length}`;
     } else {
       const gPart = profile.genres.map((g) => g.slug).join(",");
       const cPart = profile.countries.map((c) => c.slug).join(",");
       const tPart = profile.types.map((t) => t.slug).join(",");
       const aPart = (followedActors as string[]).slice(0, 5).sort().join(",");
-      tasteHash = `g:${gPart}|c:${cPart}|t:${tPart}|f:${profile.formatPreference}|a:${aPart}`;
+      const lPart = allReactionItems.filter((r) => r.reaction === "like").map((r) => r.slug).slice(0, 5).sort().join(",");
+      const dPart = allReactionItems.filter((r) => r.reaction === "dislike").map((r) => r.slug).slice(0, 5).sort().join(",");
+      tasteHash = `g:${gPart}|c:${cPart}|t:${tPart}|f:${profile.formatPreference}|a:${aPart}|l:${lPart}|d:${dPart}`;
     }
 
     const pageOffset = (seed % 4) + 1;

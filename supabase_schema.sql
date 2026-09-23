@@ -614,4 +614,39 @@ CREATE POLICY "Public Insert Analytics" ON public.analytics_events FOR INSERT WI
 -- 2. Xóa bỏ hoàn toàn quyền đọc công khai (Không cho phép Guest / User thường SELECT)
 DROP POLICY IF EXISTS "Public Read Analytics" ON public.analytics_events;
 
+-- =========================================================
+-- 13. BẢNG PHẢN HỒI THÍCH / KHÔNG THÍCH PHIM (USER_REACTIONS)
+-- =========================================================
+CREATE TABLE IF NOT EXISTS public.user_reactions (
+  id TEXT PRIMARY KEY, -- userId_slug
+  user_id TEXT NOT NULL,
+  slug TEXT NOT NULL,
+  reaction TEXT NOT NULL CHECK (reaction IN ('like', 'dislike')),
+  title TEXT,
+  poster TEXT,
+  genre TEXT,
+  country TEXT,
+  type_name TEXT,
+  year INTEGER,
+  created_at BIGINT DEFAULT (EXTRACT(EPOCH FROM NOW()) * 1000)::BIGINT,
+  updated_at BIGINT DEFAULT (EXTRACT(EPOCH FROM NOW()) * 1000)::BIGINT
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_reactions_user ON public.user_reactions(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_reactions_slug ON public.user_reactions(slug);
+CREATE INDEX IF NOT EXISTS idx_user_reactions_user_slug ON public.user_reactions(user_id, slug);
+CREATE INDEX IF NOT EXISTS idx_user_reactions_user_updated ON public.user_reactions(user_id, updated_at DESC);
+
+ALTER TABLE public.user_reactions ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public Read Reactions" ON public.user_reactions;
+CREATE POLICY "Public Read Reactions" ON public.user_reactions FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Public Insert Reactions" ON public.user_reactions;
+CREATE POLICY "Public Insert Reactions" ON public.user_reactions FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "Public Update Reactions" ON public.user_reactions;
+CREATE POLICY "Public Update Reactions" ON public.user_reactions FOR UPDATE USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "Public Delete Reactions" ON public.user_reactions;
+CREATE POLICY "Public Delete Reactions" ON public.user_reactions FOR DELETE USING (true);
+
+
 

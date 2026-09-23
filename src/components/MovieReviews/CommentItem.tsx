@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import Image from "next/image";
 import {
   Trash2,
   AlertTriangle,
@@ -16,6 +15,7 @@ import {
   Reply,
   Sparkles,
   Pin,
+  ShieldCheck,
 } from "lucide-react";
 import { MovieComment, CommentReactionType } from "@/types/comment";
 import { StarRating } from "./StarRating";
@@ -32,6 +32,7 @@ import { isUserAdmin } from "@/lib/adminConfig";
 import { checkContentModeration, detectSpoiler } from "@/lib/contentModeration";
 import { toast } from "@/components/Toast";
 import { showConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 
 interface CommentItemProps {
   comment: MovieComment;
@@ -106,11 +107,6 @@ export const CommentItem: React.FC<CommentItemProps> = ({
   targetReplyId,
 }) => {
   const [showSpoiler, setShowSpoiler] = useState(false);
-  const [avatarError, setAvatarError] = useState(false);
-
-  useEffect(() => {
-    setAvatarError(false);
-  }, [comment.userAvatar]);
 
   // --- Highlight & Scroll state ---
   const isTarget = Boolean(highlightCommentId && comment.id === highlightCommentId);
@@ -132,6 +128,15 @@ export const CommentItem: React.FC<CommentItemProps> = ({
   const replyInputRef = useRef<HTMLTextAreaElement>(null);
 
   const isAuthor = Boolean(currentUserId && currentUserId === comment.userId);
+  const isCommentAuthorAdmin = Boolean(
+    (comment.userEmail && isUserAdmin(comment.userEmail)) ||
+    (isAuthor && isUserAdmin(currentUserEmail)) ||
+    comment.userBadges?.some(
+      (b) =>
+        b.toLowerCase().includes("admin") ||
+        b.toLowerCase().includes("quản trị")
+    )
+  );
 
   const handleOpenProfile = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -476,24 +481,15 @@ export const CommentItem: React.FC<CommentItemProps> = ({
             type="button"
             onClick={handleOpenProfile}
             title={isAuthor ? "Xem & chỉnh sửa hồ sơ của bạn" : `Xem trang cá nhân của ${comment.userName}`}
-            className={`relative ${
-              isReply ? "w-7 h-7 sm:w-8 sm:h-8 text-xs" : "w-8 h-8 sm:w-10 sm:h-10 text-sm"
-            } rounded-full overflow-hidden bg-gradient-to-br from-red-600 to-amber-600 flex items-center justify-center font-bold text-white shrink-0 border border-white/10 shadow-sm cursor-pointer hover:ring-2 hover:ring-amber-400/60 hover:scale-105 transition-all`}
+            className="cursor-pointer hover:ring-2 hover:ring-amber-400/60 hover:scale-105 transition-all rounded-full shrink-0"
           >
-            {comment.userAvatar && !avatarError ? (
-              <Image
-                src={comment.userAvatar}
-                alt={comment.userName}
-                fill
-                unoptimized
-                sizes={isReply ? "32px" : "40px"}
-                className="object-cover"
-                referrerPolicy="no-referrer"
-                onError={() => setAvatarError(true)}
-              />
-            ) : (
-              (comment.userName || "U").charAt(0).toUpperCase()
-            )}
+            <UserAvatar
+              src={comment.userAvatar || undefined}
+              name={comment.userName}
+              seed={comment.userId || comment.userName}
+              sizeClassName={isReply ? "w-7 h-7 sm:w-8 sm:h-8 text-xs" : "w-8 h-8 sm:w-10 sm:h-10 text-sm"}
+              className="border border-white/10 shadow-sm"
+            />
           </button>
 
           <div className="min-w-0 flex-1">
@@ -502,12 +498,20 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                 type="button"
                 onClick={handleOpenProfile}
                 title={isAuthor ? "Xem & chỉnh sửa hồ sơ của bạn" : `Xem trang cá nhân của ${comment.userName}`}
-                className={`font-semibold text-zinc-100 hover:text-amber-300 hover:underline transition cursor-pointer text-left truncate ${
+                className={`inline-flex items-center font-semibold text-zinc-100 hover:text-amber-300 hover:underline transition cursor-pointer text-left truncate leading-tight ${
                   isReply ? "text-xs sm:text-sm" : "text-xs sm:text-sm md:text-base"
                 }`}
               >
                 {comment.userName}
               </button>
+
+              {/* HUY HIỆU QUẢN TRỊ VIÊN (ADMIN) */}
+              {isCommentAuthorAdmin && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-gradient-to-r from-rose-600/30 via-red-500/25 to-amber-500/30 text-rose-300 border border-rose-500/50 shadow-sm shadow-rose-950/50 whitespace-nowrap shrink-0 leading-none animate-in fade-in">
+                  <ShieldCheck className="w-3 h-3 text-rose-400 shrink-0" />
+                  <span className="leading-none">Admin</span>
+                </span>
+              )}
 
               {/* BỘ DANH HIỆU VIP SỞ HỮU HIỂN THỊ TRÊN BÌNH LUẬN */}
               {(() => {
@@ -519,37 +523,37 @@ export const CommentItem: React.FC<CommentItemProps> = ({
                 return badgesToRender.slice(0, 2).map((badgeLabel, bIdx) => (
                   <span
                     key={bIdx}
-                    className={`inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[9.5px] sm:text-[11px] font-black bg-gradient-to-r from-amber-500/20 to-rose-500/20 text-amber-300 border border-amber-500/40 shadow-sm shadow-amber-950/40 animate-in fade-in ${
+                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-gradient-to-r from-amber-500/20 to-rose-500/20 text-amber-300 border border-amber-500/40 shadow-sm shadow-amber-950/40 whitespace-nowrap shrink-0 leading-none animate-in fade-in ${
                       bIdx >= 1 ? "hidden sm:inline-flex" : ""
                     }`}
                   >
-                    <span>{badgeLabel}</span>
+                    <span className="leading-none">{badgeLabel}</span>
                   </span>
                 ));
               })()}
 
               {isAuthor && !isReply && (
-                <span className="px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">
-                  Đánh giá của bạn
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 whitespace-nowrap shrink-0 leading-none">
+                  <span className="leading-none">Đánh giá của bạn</span>
                 </span>
               )}
 
               {isAuthor && isReply && (
-                <span className="px-1.5 py-0.2 rounded-full text-[9px] sm:text-[10px] font-semibold bg-blue-500/15 text-blue-300 border border-blue-500/30">
-                  Bạn
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-semibold bg-blue-500/15 text-blue-300 border border-blue-500/30 whitespace-nowrap shrink-0 leading-none">
+                  <span className="leading-none">Bạn</span>
                 </span>
               )}
 
               {comment.episodeName && (
-                <span className="px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-medium bg-red-500/10 text-red-400 border border-red-500/20">
-                  {comment.episodeName}
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-medium bg-red-500/10 text-red-400 border border-red-500/20 whitespace-nowrap shrink-0 leading-none">
+                  <span className="leading-none">{comment.episodeName}</span>
                 </span>
               )}
 
               {comment.isSpoiler && (
-                <span className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                  <AlertTriangle className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                  Spoil
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20 whitespace-nowrap shrink-0 leading-none">
+                  <AlertTriangle className="w-3 h-3 text-amber-400 shrink-0" />
+                  <span className="leading-none">Spoil</span>
                 </span>
               )}
             </div>
@@ -714,19 +718,13 @@ export const CommentItem: React.FC<CommentItemProps> = ({
             )}
 
             <div className="flex gap-2 sm:gap-2.5 items-start">
-              <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gradient-to-br from-red-600 to-amber-600 flex items-center justify-center font-bold text-white text-[10px] sm:text-xs shrink-0 overflow-hidden relative border border-white/10 mt-0.5">
-                {currentUserAvatar ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={currentUserAvatar}
-                    alt="Avatar"
-                    className="absolute inset-0 w-full h-full object-cover"
-                    referrerPolicy="no-referrer"
-                  />
-                ) : (
-                  (currentUserName || "U").charAt(0).toUpperCase()
-                )}
-              </div>
+              <UserAvatar
+                src={currentUserAvatar || undefined}
+                name={currentUserName}
+                seed={currentUserId || currentUserName}
+                sizeClassName="w-6 h-6 sm:w-7 sm:h-7 text-[10px] sm:text-xs"
+                className="border border-white/10 mt-0.5"
+              />
 
               <div className="flex-1 min-w-0">
                 <textarea

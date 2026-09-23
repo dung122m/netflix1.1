@@ -5,6 +5,8 @@ import {
 } from "./supabaseService";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { auth } from "@/lib/firebase";
+import { movieApi } from "./movieApi";
+import { normalizeMovie } from "@/lib/movieMedia";
 
 const LOCAL_COLLECTIONS_KEY_PREFIX = "nanaflix_collections_";
 
@@ -381,8 +383,98 @@ export async function toggleCollectionPrivacy(
   }
 }
 
+export interface SmartCollectionConfig {
+  id: string;
+  name: string;
+  description: string;
+  emoji: string;
+  badge: string;
+  query: {
+    category?: string;
+    country?: string;
+    type?: string;
+    sort?: "views" | "rating" | "latest";
+    limit?: number;
+    page?: number;
+  };
+}
+
+export const SMART_COLLECTIONS: SmartCollectionConfig[] = [
+  {
+    id: "weekend-picks",
+    name: "🔥 Xem Cuối Tuần",
+    description: "Tuyển chọn các siêu phẩm giải trí và bom tấn điện ảnh hấp dẫn nhất cho những ngày nghỉ trọn vẹn.",
+    emoji: "🔥",
+    badge: "Cuối Tuần",
+    query: { sort: "views", limit: 24, page: 1 },
+  },
+  {
+    id: "martial-arts-legends",
+    name: "🥋 Võ Thuật & Hành Động",
+    description: "Những pha hành động nghẹt thở, kungfu kinh điển và các màn đọ sức đỉnh cao của điện ảnh châu Á và thế giới.",
+    emoji: "🥋",
+    badge: "Hành Động",
+    query: { category: "vo-thuat", sort: "views", limit: 24, page: 1 },
+  },
+  {
+    id: "deep-drama",
+    name: "🎭 Tâm Lý Đáng Xem",
+    description: "Những tác phẩm chính kịch sâu sắc, chạm đến tầng sâu cảm xúc và suy ngẫm của người xem.",
+    emoji: "🎭",
+    badge: "Tâm Lý",
+    query: { category: "tam-ly", sort: "rating", limit: 24, page: 1 },
+  },
+  {
+    id: "k-drama-wave",
+    name: "🇰🇷 Làn Sóng K-Drama",
+    description: "Những bộ phim truyền hình Hàn Quốc đình đám với dàn diễn viên xuất sắc và kịch bản cuốn hút.",
+    emoji: "🇰🇷",
+    badge: "K-Drama",
+    query: { country: "han-quoc", type: "phim-bo", sort: "views", limit: 24, page: 1 },
+  },
+  {
+    id: "most-watched",
+    name: "⭐ Phim Được Xem Nhiều Nhất",
+    description: "Bảng xếp hạng những bộ phim được cộng đồng người xem Nanaflix đón nhận và theo dõi nhiều nhất.",
+    emoji: "⭐",
+    badge: "Top Views",
+    query: { sort: "views", limit: 24, page: 1 },
+  },
+  {
+    id: "cinema-blockbusters",
+    name: "🎬 Phim Điện Ảnh Nổi Bật",
+    description: "Tuyển tập những siêu phẩm chiếu rạp chất lượng cao với kỹ xảo và âm thanh đỉnh cao.",
+    emoji: "🎬",
+    badge: "Chiếu Rạp",
+    query: { type: "phim-le", sort: "rating", limit: 24, page: 1 },
+  },
+  {
+    id: "sci-fi-mysteries",
+    name: "🔮 Khoa Học & Viễn Tưởng",
+    description: "Khám phá những chiều không gian bí ẩn, tương lai công nghệ và những giả thuyết khoa học kỳ vĩ.",
+    emoji: "🔮",
+    badge: "Viễn Tưởng",
+    query: { category: "vien-tuong", sort: "views", limit: 24, page: 1 },
+  },
+  {
+    id: "anime-hits",
+    name: "🌸 Anime & Hoạt Hình Hot",
+    description: "Thế giới anime Nhật Bản và phim hoạt hình đặc sắc với hình ảnh tuyệt mỹ và cốt truyện lay động.",
+    emoji: "🌸",
+    badge: "Anime",
+    query: { type: "hoat-hinh", sort: "views", limit: 24, page: 1 },
+  },
+];
+
 /**
- * Lấy bộ sưu tập công khai theo ID để bất kỳ ai có link đều xem được
+ * Lấy danh sách tóm tắt tất cả các Tuyển tập thông minh (Smart Collections)
+ */
+export function getSmartCollectionsList(): SmartCollectionConfig[] {
+  return SMART_COLLECTIONS;
+}
+
+/**
+ * Lấy bộ sưu tập công khai theo ID để bất kỳ ai có link đều xem được (Bao gồm Smart Collections)
  */
 export async function getPublicCollection(
   collectionId: string,
@@ -390,7 +482,43 @@ export async function getPublicCollection(
 ): Promise<MovieCollection | null> {
   if (!collectionId) return null;
 
-  // 1. Thử đọc từ Supabase public collections
+  // 1. Kiểm tra nếu là Tuyển tập thông minh (Smart Collection) được định nghĩa sẵn
+  const smartConfig = SMART_COLLECTIONS.find((s) => s.id === collectionId);
+  if (smartConfig) {
+    try {
+      const res = await movieApi.getMovies(smartConfig.query);
+      const rawItems = res?.items || [];
+      const movies: CollectionMovieItem[] = rawItems.map((raw: Parameters<typeof normalizeMovie>[0]) => {
+        const norm = normalizeMovie(raw);
+        return {
+          slug: norm.slug,
+          title: norm.title,
+          poster: norm.posterUrl || norm.imageUrl || norm.thumbUrl || "/default-poster.jpg",
+          year: norm.year,
+          quality: norm.quality || "FHD",
+          category: norm.genre || norm.categories?.[0]?.name || "Tuyển tập",
+          addedAt: Date.now(),
+        };
+      });
+
+      return {
+        id: smartConfig.id,
+        userId: "nanaflix_system",
+        creatorName: "Nanaflix Editorial",
+        creatorPhoto: "/icon.svg",
+        name: smartConfig.name,
+        description: smartConfig.description,
+        isPublic: true,
+        movies,
+        createdAt: 1704067200000,
+        updatedAt: Date.now(),
+      };
+    } catch (err) {
+      console.warn("Lỗi tải Smart Collection:", err);
+    }
+  }
+
+  // 2. Thử đọc từ Supabase public collections
   if (isSupabaseConfigured()) {
     try {
       const supaCollections = await getPublicCollectionsSupabase();
@@ -399,7 +527,7 @@ export async function getPublicCollection(
     } catch {}
   }
 
-  // 2. Fallback: Nếu người dùng đang mở bộ sưu tập của chính mình trên trình duyệt này
+  // 3. Fallback: Nếu người dùng đang mở bộ sưu tập của chính mình trên trình duyệt này
   if (typeof window !== "undefined") {
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);

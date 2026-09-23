@@ -1,6 +1,7 @@
 import { auth } from "@/lib/firebase";
 import {
   getWatchHistory,
+  setWatchHistoryFromSync,
   WatchHistoryItem,
 } from "./watchHistory";
 import {
@@ -8,7 +9,6 @@ import {
   WatchlistItem,
 } from "./watchlist";
 
-const HISTORY_STORAGE_KEY = "nanaflix_watch_history";
 const WATCHLIST_STORAGE_KEY = "nanaflix_watchlist_v1";
 const MAX_ITEMS = 30;
 
@@ -51,10 +51,7 @@ export async function syncWatchHistoryWithCloud(
     if (res.ok) {
       const json = await res.json();
       if (json.success && Array.isArray(json.items) && json.items.length > 0) {
-        localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(json.items.slice(0, MAX_ITEMS)));
-        if (typeof window !== "undefined") {
-          window.dispatchEvent(new CustomEvent("watch-history-updated"));
-        }
+        setWatchHistoryFromSync(json.items);
         return json.items;
       }
     }
@@ -99,7 +96,7 @@ export function saveWatchItemToCloudDebounced(
       await fetch("/api/user/history", {
         method: "POST",
         headers,
-        body: JSON.stringify({ items: [item] }),
+        body: JSON.stringify({ items: [{ ...item, updatedAt: item.updatedAt || Date.now() }] }),
       });
     } catch (err) {
       console.warn("Lỗi saveWatchItemToCloudDebounced:", err);
@@ -263,3 +260,8 @@ export async function clearAllWatchlistFromCloud(
     console.warn("Lỗi clearAllWatchlistFromCloud:", err);
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ĐỒNG BỘ PHẢN HỒI THÍCH / KHÔNG THÍCH (REACTIONS) VỚI SERVER API
+// ─────────────────────────────────────────────────────────────────────────────
+export { syncReactionsWithCloud } from "./movieReactions";

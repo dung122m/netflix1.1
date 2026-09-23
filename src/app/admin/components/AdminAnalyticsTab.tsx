@@ -23,6 +23,7 @@ import {
   MapPin,
 } from "lucide-react";
 import { AnalyticsDashboardStats } from "@/services/analyticsService";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import { toast } from "@/components/Toast";
 import { useAuth } from "@/context/AuthContext";
 
@@ -296,18 +297,14 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
                 {/* User & Status Header */}
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-8 h-8 rounded-xl bg-netflix-red flex items-center justify-center text-xs font-bold text-white uppercase overflow-hidden border border-white/10 flex-shrink-0">
-                      {session.userAvatar ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={session.userAvatar}
-                          alt={session.userName}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <span>{(session.userName || "U")[0]}</span>
-                      )}
-                    </div>
+                    <UserAvatar
+                      src={session.userAvatar || undefined}
+                      name={session.userName}
+                      seed={session.userId || session.userName}
+                      sizeClassName="w-8 h-8 text-xs font-bold"
+                      rounded="xl"
+                      className="border border-white/10"
+                    />
                     <div className="min-w-0">
                       <div className="text-xs font-bold text-white truncate">
                         {session.userName}

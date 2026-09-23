@@ -77,7 +77,6 @@ export const PaginationControl: React.FC<PaginationControlProps> = ({
       <Link
         href={buildPageUrl(Math.max(1, currentPage - 1))}
         prefetch={true}
-        {...(currentPage > 1 ? { "data-tv-pagination": "true" } : {})}
         tabIndex={currentPage <= 1 ? -1 : 0}
         className={`px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm rounded-xl font-semibold transition touch-target min-h-[40px] flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${
           currentPage <= 1
@@ -106,7 +105,6 @@ export const PaginationControl: React.FC<PaginationControlProps> = ({
               key={index}
               href={buildPageUrl(p as number)}
               prefetch={true}
-              data-tv-pagination="true"
               className={`w-9 h-9 sm:w-10 sm:h-10 text-xs sm:text-sm flex items-center justify-center rounded-lg font-semibold transition-all outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-110 ${
                 currentPage === p
                   ? "bg-netflix-red text-white shadow-sm"
@@ -125,11 +123,10 @@ export const PaginationControl: React.FC<PaginationControlProps> = ({
       <div className="sm:hidden relative" ref={popoverRef}>
         <button
           type="button"
-          data-tv-pagination="true"
           onClick={() => setIsJumpOpen((prev) => !prev)}
           className="px-3.5 py-2 min-h-[40px] text-xs font-bold text-white bg-netflix-red rounded-xl shadow-md active:scale-95 hover:bg-red-700 transition-all flex items-center justify-center gap-1 touch-target border border-red-500/30 outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105"
-          aria-label="Chọn nhanh trang"
-          title="Chạm để chuyển tới trang bất kỳ"
+          aria-label="Đi tới trang"
+          title="Đi tới trang"
         >
           <span>{currentPage} / {totalPages}</span>
         </button>
@@ -170,7 +167,7 @@ export const PaginationControl: React.FC<PaginationControlProps> = ({
                 type="submit"
                 className="flex-none bg-netflix-red hover:bg-red-700 text-white font-bold text-xs px-3.5 py-2.5 rounded-xl transition flex items-center justify-center gap-1 shadow-md active:scale-95"
               >
-                <span>Đi</span>
+                <span>Đến</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </form>
@@ -184,14 +181,13 @@ export const PaginationControl: React.FC<PaginationControlProps> = ({
       <Link
         href={buildPageUrl(currentPage + 1)}
         prefetch={true}
-        {...(currentPage < totalPages ? { "data-tv-pagination": "true" } : {})}
         tabIndex={currentPage >= totalPages ? -1 : 0}
         className={`px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm rounded-xl font-semibold transition touch-target min-h-[40px] flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${
           currentPage >= totalPages
             ? "bg-zinc-900 text-zinc-600 pointer-events-none cursor-not-allowed opacity-50"
             : "bg-zinc-800 text-white hover:bg-zinc-700 active:scale-95"
         }`}
-        aria-label="Trang sau"
+        aria-label="Trang tiếp"
       >
         Tiếp »
       </Link>

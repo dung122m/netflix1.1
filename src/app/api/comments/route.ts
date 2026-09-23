@@ -4,7 +4,7 @@ import { sanitizeSafeText } from "@/lib/security";
 import { verifyServerAuth } from "@/lib/serverAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { parseReactionsAndLikedBy } from "@/services/supabaseService";
-import { MovieComment, CommentReactionType } from "@/types/comment";
+import { MovieComment } from "@/types/comment";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;

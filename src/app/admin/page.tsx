@@ -63,6 +63,7 @@ import {
   ErrorReportItem,
   subscribeErrorReportsSupabase,
 } from "@/services/supabaseService";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import { StarRating } from "@/components/MovieReviews/StarRating";
 import { AdminReportsTab } from "./components/AdminReportsTab";
 import { AdminCollectionsTab } from "./components/AdminCollectionsTab";
@@ -1275,21 +1276,13 @@ export default function AdminDashboardPage() {
                       {/* Left: User & Content */}
                       <div className="flex-1 min-w-0 space-y-2.5">
                         <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap">
-                          <div className="w-8 h-8 rounded-full bg-netflix-red flex items-center justify-center text-xs font-bold text-white uppercase overflow-hidden relative border border-white/15 flex-shrink-0">
-                            {item.userAvatar ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img
-                                src={item.userAvatar}
-                                alt={item.userName}
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  e.currentTarget.style.display = "none";
-                                }}
-                              />
-                            ) : (
-                              <span>{item.userName ? item.userName[0] : "U"}</span>
-                            )}
-                          </div>
+                          <UserAvatar
+                            src={item.userAvatar || undefined}
+                            name={item.userName}
+                            seed={item.userId || item.userName}
+                            sizeClassName="w-8 h-8 text-xs font-bold"
+                            className="border border-white/15"
+                          />
 
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
@@ -1561,21 +1554,14 @@ export default function AdminDashboardPage() {
                       <div>
                         {/* Member Header */}
                         <div className="flex items-start gap-2.5 sm:gap-3 mb-2.5 sm:mb-3">
-                          <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-netflix-red flex items-center justify-center text-sm font-bold text-white uppercase overflow-hidden relative border border-white/15 flex-shrink-0 shadow-md">
-                            {m.photoURL ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img
-                                src={m.photoURL}
-                                alt={m.displayName}
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  e.currentTarget.style.display = "none";
-                                }}
-                              />
-                            ) : (
-                              <span>{(m.displayName || "U")[0]}</span>
-                            )}
-                          </div>
+                          <UserAvatar
+                            src={m.photoURL || undefined}
+                            name={m.displayName}
+                            seed={m.uid || m.displayName}
+                            sizeClassName="w-10 h-10 sm:w-11 sm:h-11 text-sm font-bold"
+                            rounded="2xl"
+                            className="border border-white/15 shadow-md"
+                          />
 
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1.5 flex-wrap">

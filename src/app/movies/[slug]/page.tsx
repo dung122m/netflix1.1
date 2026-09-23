@@ -40,6 +40,7 @@ import { TrailerModal } from "@/components/TrailerModal";
 import { MovieCommentsSection } from "@/components/MovieReviews/MovieCommentsSection";
 import { FollowSeriesButton } from "@/components/FollowSeriesButton";
 import { ReportIssueModal } from "@/components/ReportIssueModal";
+import { LikeDislikeButtons } from "@/components/LikeDislikeButtons";
 
 
 export async function generateMetadata({
@@ -561,6 +562,21 @@ export default async function MovieDetail({
                     quality: movie.quality,
                     category: movie.category?.[0]?.name,
                   }}
+                />
+
+                {/* Nút Thích / Không thích */}
+                <LikeDislikeButtons
+                  slug={movie.slug}
+                  movieMeta={{
+                    title,
+                    poster: pickBestMovieImage(movie, "/default-poster.jpg"),
+                    genre: movie.category?.[0]?.name,
+                    category: movie.category?.[0]?.name,
+                    country: movie.country?.[0]?.name,
+                    type_name: movie.type,
+                    year: movie.year,
+                  }}
+                  variant="detail"
                 />
 
                 {/* Nút Thêm vào Bộ sưu tập */}

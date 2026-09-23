@@ -154,7 +154,6 @@ export const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({
       {/* TRIGGER BUTTON */}
       <button
         type="button"
-        data-tv-nav="true"
         onClick={() => setIsOpen(!isOpen)}
         title="Đổi màu sắc & chế độ sáng/tối"
         aria-label="Đổi màu giao diện"

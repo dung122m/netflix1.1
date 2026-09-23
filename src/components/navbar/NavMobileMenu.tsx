@@ -14,11 +14,13 @@ import {
   Bell,
   ChevronRight,
   Info,
+  BarChart2,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { isUserAdmin } from "@/lib/adminConfig";
 import { subscribeUserProfile } from "@/services/userService";
 import { UserProfile } from "@/types/user";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import { ThemeSwitcher } from "../ThemeSwitcher";
 
 interface NavLinkItem {
@@ -67,7 +69,7 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
   if (!isOpen) return null;
 
   const effectiveAvatar = userProfile?.customAvatar || userProfile?.photoURL || user?.photoURL || "";
-  const effectiveDisplayName = userProfile?.displayName || user?.displayName || "Thành viên Nanaflix";
+  const effectiveDisplayName = userProfile?.displayName || user?.displayName || "Hồ sơ";
 
   return (
     <div className="lg:hidden border-t border-white/10 bg-black/98 backdrop-blur-2xl px-3.5 py-3 animate-in slide-in-from-top duration-200 max-h-[85vh] overflow-y-auto shadow-2xl safe-area-bottom overscroll-contain">
@@ -77,21 +79,12 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
           {user ? (
             <div className="space-y-2.5">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-netflix-red flex items-center justify-center text-sm font-bold text-white uppercase overflow-hidden relative flex-shrink-0 border-2 border-white/20 shadow-lg">
-                  <span>{(effectiveDisplayName || user.email || "U")[0]}</span>
-                  {effectiveAvatar && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={effectiveAvatar}
-                      alt="Avatar"
-                      referrerPolicy="no-referrer"
-                      onError={(e) => {
-                        e.currentTarget.style.display = "none";
-                      }}
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
-                  )}
-                </div>
+                <UserAvatar
+                  src={effectiveAvatar || undefined}
+                  name={effectiveDisplayName || user.email}
+                  sizeClassName="w-10 h-10 text-sm font-bold"
+                  className="border-2 border-white/20 shadow-lg"
+                />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold text-white truncate">
                     {effectiveDisplayName}
@@ -113,7 +106,7 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
                   className="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-zinc-200 bg-white/5 hover:bg-white/10 border border-white/10 transition active:scale-95 cursor-pointer shadow-sm"
                 >
                   <User size={13} className="text-red-400 shrink-0" />
-                  <span className="truncate">Hồ sơ cá nhân</span>
+                  <span className="truncate">Hồ sơ</span>
                 </button>
                 <Link
                   href="/my-list?tab=comments"
@@ -149,7 +142,7 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
             </div>
           ) : (
             <div>
-              <p className="text-xs text-gray-400 mb-2">Đăng nhập để lưu danh sách & đồng bộ thiết bị</p>
+              <p className="text-xs text-gray-400 mb-2">Đăng nhập để lưu tiến trình & đồng bộ xem phim</p>
               <button
                 type="button"
                 onClick={() => {
@@ -170,7 +163,7 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
           )}
         </div>
 
-        {/* QUICK FEATURE APPS 2x2 GRID (ĐẦY ĐỦ 4 TÍNH NĂNG NỔI BẬT) */}
+        {/* QUICK FEATURE APPS 2x2 GRID */}
         <div className="grid grid-cols-2 gap-2 my-0.5">
           {/* CARD 1: CHAT TÌM PHIM AI */}
           <button
@@ -191,8 +184,8 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
               <Sparkles size={18} className="text-pink-300 animate-pulse" />
             </div>
             <div className="min-w-0 flex-1">
-              <div className="text-xs font-bold text-pink-300 truncate">Chat Tìm Phim</div>
-              <div className="text-[10px] text-zinc-400 truncate">Trợ lý AI Nana</div>
+              <div className="text-xs font-bold text-pink-300 truncate">Hỏi Nana</div>
+              <div className="text-[10px] text-zinc-400 truncate">Trợ lý AI</div>
             </div>
           </button>
 
@@ -215,8 +208,8 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
               <Dices size={18} className="text-amber-300" />
             </div>
             <div className="min-w-0 flex-1">
-              <div className="text-xs font-bold text-amber-300 truncate">Bốc Quẻ Phim</div>
-              <div className="text-[10px] text-zinc-400 truncate">Vòng quay định mệnh</div>
+              <div className="text-xs font-bold text-amber-300 truncate">Bốc quẻ</div>
+              <div className="text-[10px] text-zinc-400 truncate">Vòng quay phim</div>
             </div>
           </button>
 
@@ -235,8 +228,8 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
               <Smartphone size={16} />
             </div>
             <div className="min-w-0 flex-1">
-              <div className="text-xs font-bold text-emerald-300 truncate">Cài App PWA</div>
-              <div className="text-[10px] text-zinc-400 truncate">Điện thoại / PC</div>
+              <div className="text-xs font-bold text-emerald-300 truncate">Cài đặt App</div>
+              <div className="text-[10px] text-zinc-400 truncate">Mobile & PC</div>
             </div>
           </button>
 
@@ -251,10 +244,23 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
             </div>
             <div className="min-w-0 flex-1">
               <div className="text-xs font-bold text-zinc-200 truncate">Lịch sử xem</div>
-              <div className="text-[10px] text-zinc-400 truncate">Phim vừa xem</div>
+              <div className="text-[10px] text-zinc-400 truncate">Phim đã xem gần đây</div>
             </div>
           </Link>
         </div>
+
+        {/* THỐNG KÊ & WRAPPED */}
+        <Link
+          href="/stats"
+          onClick={onClose}
+          className="w-full text-xs font-semibold py-2 px-3 text-amber-300 hover:text-white flex items-center justify-between rounded-xl bg-gradient-to-r from-amber-500/10 via-rose-500/10 to-purple-500/10 hover:bg-white/10 border border-amber-500/20 transition text-left cursor-pointer shadow-sm"
+        >
+          <div className="flex items-center gap-2.5">
+            <BarChart2 size={14} className="text-amber-400" />
+            <span className="font-bold">📊 Thống kê & Nanaflix Wrapped</span>
+          </div>
+          <ChevronRight size={14} className="text-amber-400" />
+        </Link>
 
         {/* THÔNG BÁO */}
         <button
@@ -315,7 +321,7 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
           })}
         </div>
 
-        {/* ABOUT NANAFLIX & THEME SWITCHER */}
+        {/* THEME & ABOUT NANAFLIX */}
         <div className="border-t border-white/10 pt-2 mt-1 flex flex-col gap-2">
           <Link
             href="/about"
@@ -324,7 +330,7 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
           >
             <div className="flex items-center gap-2.5">
               <Info size={14} className="text-cyan-400" />
-              <span>Giới thiệu về Nanaflix (About)</span>
+              <span>Giới thiệu Nanaflix</span>
             </div>
             <ChevronRight size={14} className="text-gray-500" />
           </Link>

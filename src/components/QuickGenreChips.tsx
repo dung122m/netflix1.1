@@ -301,24 +301,23 @@ const QuickGenreChipsInner: React.FC = () => {
         ref={typeRowRef}
         className="flex-1 flex items-center gap-1.5 overflow-x-auto py-2 px-1 -mx-1 scrollbar-none [&::-webkit-scrollbar]:hidden touch-pan-x scroll-smooth"
       >
-        {POPULAR_TYPES.map((t) => {
-          const isActive = t.slug === "" ? !currentType : currentType === t.slug;
+        {POPULAR_TYPES.map((typeItem) => {
+          const isActive = typeItem.slug === "" ? !currentType : currentType === typeItem.slug;
 
           return (
             <button
-              key={t.slug || "all-type"}
+              key={typeItem.slug || "all-type"}
               type="button"
-              data-tv-filter-chip="true"
               data-selected={isActive ? "true" : undefined}
-              onMouseEnter={() => router.prefetch(getTypeUrl(t.slug))}
-              onClick={() => handleTypeSelect(t.slug)}
+              onMouseEnter={() => router.prefetch(getTypeUrl(typeItem.slug))}
+              onClick={() => handleTypeSelect(typeItem.slug)}
               className={`flex-none px-3.5 py-1.5 rounded-full text-xs transition-all duration-150 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${
                 isActive
                   ? "bg-netflix-red text-white font-bold border border-rose-500 shadow-sm shadow-red-950/50"
                   : "bg-zinc-900/90 hover:bg-zinc-800 text-gray-300 hover:text-white border border-white/10 hover:border-white/20 font-medium"
               }`}
             >
-              {t.name}
+              {typeItem.name}
             </button>
           );
         })}
@@ -360,7 +359,6 @@ const QuickGenreChipsInner: React.FC = () => {
       >
         <button
           type="button"
-          data-tv-filter-chip="true"
           onClick={() => {
             if (typeof window !== "undefined") {
               window.dispatchEvent(new CustomEvent("open-ai-roulette"));
@@ -369,7 +367,7 @@ const QuickGenreChipsInner: React.FC = () => {
           className="flex-none px-3.5 py-1.5 rounded-full text-xs font-bold transition-all duration-200 cursor-pointer bg-gradient-to-r from-netflix-red to-rose-700 text-white shadow-sm shadow-red-950/50 hover:bg-rose-600 border border-rose-500/50 flex items-center gap-1.5 outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105"
         >
           <Dices className="w-3.5 h-3.5 text-amber-300" />
-          <span>Suất Chiếu Định Mệnh</span>
+          <span>Bốc quẻ phim</span>
         </button>
 
         {POPULAR_GENRES.map((g) => {
@@ -379,7 +377,6 @@ const QuickGenreChipsInner: React.FC = () => {
             <button
               key={g.slug || "all-genre"}
               type="button"
-              data-tv-filter-chip="true"
               data-selected={isActive ? "true" : undefined}
               onMouseEnter={() => router.prefetch(getCategoryUrl(g.slug))}
               onClick={() => handleCategorySelect(g.slug)}
@@ -436,7 +433,6 @@ const QuickGenreChipsInner: React.FC = () => {
             <button
               key={c.slug || "all-country"}
               type="button"
-              data-tv-filter-chip="true"
               data-selected={isActive ? "true" : undefined}
               onMouseEnter={() => router.prefetch(getCountryUrl(c.slug))}
               onClick={() => handleCountrySelect(c.slug)}
@@ -495,7 +491,6 @@ const QuickGenreChipsInner: React.FC = () => {
             <button
               key={act.name}
               type="button"
-              data-tv-filter-chip="true"
               data-selected={isActive ? "true" : undefined}
               onMouseEnter={() => router.prefetch(getActorUrl(act.name))}
               onClick={() => handleActorSelect(act.name)}
@@ -528,7 +523,7 @@ const QuickGenreChipsInner: React.FC = () => {
     <div className="relative group/row flex items-center gap-2">
       <div className="hidden md:flex flex-none items-center gap-1.5 text-xs text-gray-400 pl-1 pr-2 font-semibold w-24 sm:w-28">
         <Calendar className="w-3.5 h-3.5 text-emerald-400" />
-        <span>Năm chiếu:</span>
+        <span>Năm phát hành:</span>
       </div>
 
       <button
@@ -552,7 +547,6 @@ const QuickGenreChipsInner: React.FC = () => {
             <button
               key={y.year || "all-year"}
               type="button"
-              data-tv-filter-chip="true"
               data-selected={isActive ? "true" : undefined}
               onMouseEnter={() => router.prefetch(getYearUrl(y.year))}
               onClick={() => handleYearSelect(y.year)}
@@ -599,7 +593,6 @@ const QuickGenreChipsInner: React.FC = () => {
             {currentType && (
               <button
                 type="button"
-                data-tv-filter-chip="true"
                 onClick={() => handleTypeSelect("")}
                 className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-netflix-red/15 border border-netflix-red/30 text-rose-200 font-semibold hover:bg-netflix-red hover:text-white transition cursor-pointer text-xs outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105"
               >
@@ -611,7 +604,6 @@ const QuickGenreChipsInner: React.FC = () => {
             {currentCategory && (
               <button
                 type="button"
-                data-tv-filter-chip="true"
                 onClick={() => handleCategorySelect("")}
                 className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-netflix-red/15 border border-netflix-red/30 text-rose-200 font-semibold hover:bg-netflix-red hover:text-white transition cursor-pointer text-xs outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105"
               >
@@ -623,7 +615,6 @@ const QuickGenreChipsInner: React.FC = () => {
             {currentCountry && (
               <button
                 type="button"
-                data-tv-filter-chip="true"
                 onClick={() => handleCountrySelect("")}
                 className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-500/15 border border-sky-500/30 text-sky-200 font-semibold hover:bg-sky-500 hover:text-white transition cursor-pointer text-xs outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105"
               >
@@ -635,7 +626,6 @@ const QuickGenreChipsInner: React.FC = () => {
             {currentActor && (
               <button
                 type="button"
-                data-tv-filter-chip="true"
                 onClick={() => {
                   const p = new URLSearchParams(searchParams.toString());
                   p.delete("actor");
@@ -653,7 +643,6 @@ const QuickGenreChipsInner: React.FC = () => {
             {currentKeyword && !currentActor && (
               <button
                 type="button"
-                data-tv-filter-chip="true"
                 onClick={() => {
                   const p = new URLSearchParams(searchParams.toString());
                   p.delete("keyword");
@@ -671,7 +660,6 @@ const QuickGenreChipsInner: React.FC = () => {
             {currentYear && (
               <button
                 type="button"
-                data-tv-filter-chip="true"
                 onClick={() => handleYearSelect("")}
                 className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-200 font-semibold hover:bg-emerald-500 hover:text-black transition cursor-pointer text-xs outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105"
               >
@@ -683,12 +671,11 @@ const QuickGenreChipsInner: React.FC = () => {
 
           <button
             type="button"
-            data-tv-filter-chip="true"
             onClick={handleClearAll}
             className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold text-gray-400 hover:text-white hover:bg-white/10 transition ml-auto cursor-pointer border border-white/10 outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105"
           >
             <RotateCcw className="w-3 h-3 text-netflix-red" />
-            <span>Đặt lại</span>
+            <span>Xóa bộ lọc</span>
           </button>
         </div>
       )}

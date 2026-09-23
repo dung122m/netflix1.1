@@ -19,6 +19,7 @@ import { MovieComment } from "@/types/comment";
 import { WatchHistoryItem } from "@/lib/watchHistory";
 import { WatchlistItem } from "@/lib/watchlist";
 import { StarRating } from "@/components/MovieReviews/StarRating";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 
 interface AdminMemberDetailModalProps {
   selectedMember: MemberWithStats | null;
@@ -56,18 +57,14 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 pb-3 sm:pb-4 border-b border-white/10 flex-shrink-0">
             <div className="flex items-start justify-between sm:justify-start gap-3 min-w-0 w-full sm:w-auto">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-netflix-red flex items-center justify-center text-sm sm:text-base font-bold text-white uppercase overflow-hidden relative border border-white/15 flex-shrink-0 shadow-md">
-                {selectedMember.photoURL ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={selectedMember.photoURL}
-                    alt={selectedMember.displayName}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <span>{(selectedMember.displayName || "U")[0]}</span>
-                )}
-              </div>
+              <UserAvatar
+                src={selectedMember.photoURL || undefined}
+                name={selectedMember.displayName}
+                seed={selectedMember.uid || selectedMember.displayName}
+                sizeClassName="w-10 h-10 sm:w-12 sm:h-12 text-sm sm:text-base font-bold"
+                rounded="2xl"
+                className="border border-white/15 shadow-md"
+              />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <h2 className="text-sm sm:text-base font-bold text-white truncate max-w-[160px] sm:max-w-none">

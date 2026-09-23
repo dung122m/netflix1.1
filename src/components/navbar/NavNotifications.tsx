@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Bell,
@@ -25,6 +24,7 @@ import {
   checkAndNotifyFollowedActors,
 } from "@/services/notificationService";
 import { UserNotification, NotificationType } from "@/types/notification";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 
 export interface DynamicNotification {
   id: string;
@@ -485,7 +485,6 @@ export const NavNotifications: React.FC = React.memo(function NavNotifications()
                   const isWatchlist = item.type === "watchlist_episode";
 
                   const itemAvatar = isReply || isReaction ? (item.replierAvatar || item.image) : item.image;
-                  const initialLetter = (item.replierName || item.title || "U").trim().charAt(0).toUpperCase();
 
                   return (
                     <div
@@ -531,23 +530,12 @@ export const NavNotifications: React.FC = React.memo(function NavNotifications()
                       {/* AVATAR / POSTER */}
                       <div className="relative flex-shrink-0">
                         {isReply || isReaction ? (
-                          <div className="relative w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-indigo-600 via-blue-600 to-purple-600 flex items-center justify-center shadow-md ring-1 ring-white/15">
-                            {itemAvatar ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img
-                                src={itemAvatar}
-                                alt={item.replierName || item.title}
-                                className="w-full h-full object-cover rounded-full"
-                                referrerPolicy="no-referrer"
-                                onError={(e) => {
-                                  (e.target as HTMLElement).style.display = "none";
-                                }}
-                              />
-                            ) : null}
-                            {!itemAvatar && (
-                              <span className="text-white font-black text-sm select-none">{initialLetter}</span>
-                            )}
-                          </div>
+                          <UserAvatar
+                            src={itemAvatar || undefined}
+                            name={item.replierName || item.title}
+                            sizeClassName="w-10 h-10 text-sm font-black"
+                            className="shadow-md ring-1 ring-white/15"
+                          />
                         ) : isAchievement ? (
                           <div className="relative w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500 via-yellow-500 to-amber-600 flex items-center justify-center shadow-md border border-amber-400/30 text-lg">
                             {item.badgeIcon || "🏆"}

@@ -959,57 +959,8 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
 
       if (isInput) return;
 
-      const active = document.activeElement as HTMLElement | null;
-      const isPlayerContainer = Boolean(
-        containerRef.current &&
-        active &&
-        (containerRef.current === active || containerRef.current.contains(active))
-      );
-
-      const isEpisodeFocused = Boolean(active && active.hasAttribute("data-tv-episode"));
-      const isPlayerControlFocused = Boolean(active && active.hasAttribute("data-player-control"));
-      const isMenuFocused = Boolean(
-        containerRef.current?.querySelector('[data-player-menu-item="true"]') &&
-        active?.hasAttribute("data-player-menu-item")
-      );
-      const isActionButtonFocused = Boolean(active && active.getAttribute("data-control-section") === "action-buttons");
-      const isMainControlFocused = Boolean(active && active.getAttribute("data-control-section") === "main-controls");
-      const isScrubBarFocused = Boolean(active && active.getAttribute("data-control-id") === "scrub-bar");
-
-      const isPlayerFocused = Boolean(isPlayerContainer || isEpisodeFocused || isPlayerControlFocused || isMenuFocused || isFullscreen);
-
-      // Nếu focus đang ở ngoài player (ví dụ trên Navbar, MediaCard, Comment...) -> CinemaPlayer hoàn toàn nhường quyền cho TvNavigationHandler
-      const isExternalFocused = Boolean(
-        active &&
-          (active.hasAttribute("data-tv-card") ||
-            active.hasAttribute("data-tv-nav") ||
-            active.hasAttribute("data-tv-hero") ||
-            active.hasAttribute("data-tv-filter") ||
-            active.hasAttribute("data-tv-filter-chip") ||
-            active.hasAttribute("data-tv-recommendation") ||
-            active.hasAttribute("data-tv-live") ||
-            active.hasAttribute("data-tv-pagination") ||
-            active.closest("nav") ||
-            active.closest(".nanaflix-navbar") ||
-            active.closest("footer"))
-      );
-      if (isExternalFocused) return;
-
-      // Phân biệt Direct Playback Mode vs Control Navigation
-      const isSpecificControlFocused = Boolean(
-        isScrubBarFocused ||
-        isMainControlFocused ||
-        isActionButtonFocused ||
-        isEpisodeFocused ||
-        isMenuFocused
-      );
-      const isDirectPlaybackMode = isPlayerFocused && !isSpecificControlFocused;
-
-      // ============================================================
-      // 1. PHÍM ESCAPE & BACKSPACE: ĐÓNG MODAL / THOÁT FOCUS
-      // ============================================================
-      if (e.key === "Escape" || e.key === "Backspace") {
-        // A. Đóng modals trình phát
+      // 1. Phím Escape: Đóng modal / Tắt đèn / Thoát toàn màn hình
+      if (e.key === "Escape") {
         if (showShortcutModal || showSleepTimerModal || showQrModal) {
           e.preventDefault();
           setShowShortcutModal(false);
@@ -1018,79 +969,31 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           return;
         }
 
-        // B. Bật đèn lại nếu đang tắt
         if (isLightsOff) {
           e.preventDefault();
           setIsLightsOff(false);
           return;
         }
 
-        // C. Thoát toàn màn hình nếu đang fullscreen
         if (isFullscreen) {
           e.preventDefault();
           toggleFullscreen();
           return;
         }
-
-        // D. Thoát focus sub-control và trở về Direct Playback Mode
-        if (isSpecificControlFocused && active) {
-          e.preventDefault();
-          containerRef.current?.focus();
-          if (isPlaying) {
-            setShowControls(false);
-          }
-          return;
-        }
-
-        // E. Đóng overlay controls nếu đang mở khi đang phát
-        if (showControls && isPlaying) {
-          e.preventDefault();
-          setShowControls(false);
-          return;
-        }
-
-        // Ngăn trình duyệt tự ý history.back() khi người dùng đang ở trong ngữ cảnh player
-        if (e.key === "Backspace" && isPlayerFocused) {
-          e.preventDefault();
-          return;
-        }
       }
 
-      // ============================================================
-      // 2. PHÍM SPACE / ENTER / K: PHÁT / TẠM DỪNG (DIRECT PLAYBACK)
-      // ============================================================
-      if (
-        e.code === "Space" ||
-        e.key === " " ||
-        e.key === "Enter" ||
-        e.key === "k" ||
-        e.key === "K"
-      ) {
-        // Khi ở Direct Playback Mode (focus tại player container / video, không focus nút con cụ thể)
-        if (isDirectPlaybackMode) {
-          e.preventDefault();
-          e.stopPropagation();
-          togglePlayPause();
-          return;
-        }
-
-        // Nếu focus đang ở control con cụ thể:
-        // - Với phím Enter / Space trên button: để native button tự kích hoạt onClick
+      // 2. Phím Space / K: Phát / Tạm dừng
+      if (e.code === "Space" || e.key === " " || e.key === "k" || e.key === "K") {
+        const active = document.activeElement as HTMLElement | null;
         if (active && (active.tagName === "BUTTON" || active.tagName === "A")) {
           return;
         }
-
-        // Fallback cho Space/k
-        if (e.code === "Space" || e.key === " " || e.key === "k" || e.key === "K") {
-          e.preventDefault();
-          togglePlayPause();
-          return;
-        }
+        e.preventDefault();
+        togglePlayPause();
+        return;
       }
 
-      // ============================================================
-      // 3. CÁC PHÍM TẮT CHỨC NĂNG (F, M, T, L, P, N, ?)
-      // ============================================================
+      // 3. Phím tắt chức năng (F, M, T, L, P, N, ?)
       if (e.key === "f" || e.key === "F") {
         e.preventDefault();
         toggleFullscreen();
@@ -1134,92 +1037,65 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         return;
       }
 
-      // ============================================================
-      // 4. DIRECT PLAYBACK MODE: D-PAD TUA VIDEO (← / →) & ÂM LƯỢNG (↑ / ↓)
-      // Chuẩn YouTube TV: Không yêu cầu focus vào ScrubBar hay volume button
-      // ============================================================
-      if (isDirectPlaybackMode) {
-        if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
-          e.preventDefault();
-          e.stopPropagation();
-          if (isNativeVideo && videoRef.current) {
-            const delta = e.key === "ArrowRight" ? 10 : -10;
-            const v = videoRef.current;
-            const effectiveDuration = getEffectiveDuration();
+      // 4. Phím Tua video (← / →)
+      if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+        const active = document.activeElement as HTMLElement | null;
+        if (active && active.tagName === "INPUT" && active.getAttribute("type") === "range") {
+          return;
+        }
+        e.preventDefault();
+        if (isNativeVideo && videoRef.current) {
+          const delta = e.key === "ArrowRight" ? 10 : -10;
+          const v = videoRef.current;
+          const effectiveDuration = getEffectiveDuration();
 
-            const baseTime =
-              pendingKeyboardSeekRef.current.timer !== null
-                ? pendingKeyboardSeekRef.current.targetTime
-                : v.currentTime || 0;
+          const baseTime =
+            pendingKeyboardSeekRef.current.timer !== null
+              ? pendingKeyboardSeekRef.current.targetTime
+              : v.currentTime || 0;
 
-            const newTarget = Math.max(
-              0,
-              effectiveDuration > 0 ? Math.min(effectiveDuration, baseTime + delta) : baseTime + delta
-            );
-            const newTotalDelta =
-              (pendingKeyboardSeekRef.current.timer !== null
-                ? pendingKeyboardSeekRef.current.totalDelta
-                : 0) + delta;
+          const newTarget = Math.max(
+            0,
+            effectiveDuration > 0 ? Math.min(effectiveDuration, baseTime + delta) : baseTime + delta
+          );
+          const newTotalDelta =
+            (pendingKeyboardSeekRef.current.timer !== null
+              ? pendingKeyboardSeekRef.current.totalDelta
+              : 0) + delta;
 
-            pendingKeyboardSeekRef.current.targetTime = newTarget;
-            pendingKeyboardSeekRef.current.totalDelta = newTotalDelta;
+          pendingKeyboardSeekRef.current.targetTime = newTarget;
+          pendingKeyboardSeekRef.current.totalDelta = newTotalDelta;
 
-            if (newTotalDelta > 0) {
-              showHud(<SkipForward className="w-5 h-5 text-netflix-red fill-current" />, `Tua tới +${newTotalDelta}s`);
-            } else {
-              showHud(<SkipBack className="w-5 h-5 text-netflix-red fill-current" />, `Tua lùi ${newTotalDelta}s`);
-            }
-
-            if (pendingKeyboardSeekRef.current.timer) {
-              clearTimeout(pendingKeyboardSeekRef.current.timer);
-            }
-
-            pendingKeyboardSeekRef.current.timer = setTimeout(() => {
-              if (videoRef.current) {
-                videoRef.current.currentTime = pendingKeyboardSeekRef.current.targetTime;
-              }
-              pendingKeyboardSeekRef.current.timer = null;
-              pendingKeyboardSeekRef.current.totalDelta = 0;
-            }, 250);
+          if (newTotalDelta > 0) {
+            showHud(<SkipForward className="w-5 h-5 text-netflix-red fill-current" />, `Tua tới +${newTotalDelta}s`);
+          } else {
+            showHud(<SkipBack className="w-5 h-5 text-netflix-red fill-current" />, `Tua lùi ${newTotalDelta}s`);
           }
-          resetControlsTimeout();
-          return;
-        }
 
-        if (e.key === "ArrowUp") {
-          e.preventDefault();
-          e.stopPropagation();
-          handleVolumeDelta(0.05);
-          resetControlsTimeout();
-          return;
-        }
+          if (pendingKeyboardSeekRef.current.timer) {
+            clearTimeout(pendingKeyboardSeekRef.current.timer);
+          }
 
-        if (e.key === "ArrowDown") {
-          e.preventDefault();
-          e.stopPropagation();
-          handleVolumeDelta(-0.05);
-          resetControlsTimeout();
-          return;
+          pendingKeyboardSeekRef.current.timer = setTimeout(() => {
+            if (videoRef.current) {
+              videoRef.current.currentTime = pendingKeyboardSeekRef.current.targetTime;
+            }
+            pendingKeyboardSeekRef.current.timer = null;
+            pendingKeyboardSeekRef.current.totalDelta = 0;
+          }, 250);
         }
+        resetControlsTimeout();
+        return;
       }
 
-      // ============================================================
-      // 5. CONTROL NAVIGATION MODE (TV FOCUS NAVIGATION 4 TẦNG)
-      // Khi người dùng chủ động focus vào một sub-control (ScrubBar, Main Controls, Action Buttons, EpisodeList)
-      // ============================================================
-      if (
-        e.key === "ArrowLeft" ||
-        e.key === "ArrowRight" ||
-        e.key === "ArrowUp" ||
-        e.key === "ArrowDown"
-      ) {
-        // Helper: Focus và cuộn mượt episode vào viewport
-        const focusEpisodeItem = (el: HTMLElement) => {
-          el.focus({ preventScroll: true });
-          el.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
-        };
+      // 5. Phím Tăng/Giảm âm lượng (↑ / ↓)
+      if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+        const active = document.activeElement as HTMLElement | null;
+        if (active && active.tagName === "INPUT" && active.getAttribute("type") === "range") {
+          return;
+        }
 
-        // A. Menu popup (Tốc độ / Chất lượng) đang mở
+        // Điều hướng menu item nếu menu đang mở
         const menuItems = containerRef.current
           ? Array.from(containerRef.current.querySelectorAll<HTMLElement>('[data-player-menu-item="true"]'))
           : [];
@@ -1239,299 +1115,10 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           }
         }
 
-        // B. TẦNG 3: Focus đang ở EpisodeList (Danh sách tập phim)
-        if (isEpisodeFocused && active) {
-          const allEpisodes = Array.from(
-            document.querySelectorAll<HTMLElement>('[data-tv-episode="true"]')
-          ).filter((el) => el.offsetParent !== null);
-
-          const currentEpIdx = allEpisodes.findIndex((el) => el === active);
-
-          if (e.key === "ArrowRight" && currentEpIdx < allEpisodes.length - 1) {
-            e.preventDefault();
-            focusEpisodeItem(allEpisodes[currentEpIdx + 1]);
-            return;
-          }
-          if (e.key === "ArrowLeft" && currentEpIdx > 0) {
-            e.preventDefault();
-            focusEpisodeItem(allEpisodes[currentEpIdx - 1]);
-            return;
-          }
-          if (e.key === "ArrowDown") {
-            e.preventDefault();
-            const currentRect = active.getBoundingClientRect();
-            const below = allEpisodes.filter((el) => el.getBoundingClientRect().top >= currentRect.bottom - 5);
-            if (below.length > 0) {
-              const currentX = currentRect.left + currentRect.width / 2;
-              below.sort((a, b) => {
-                const ra = a.getBoundingClientRect();
-                const rb = b.getBoundingClientRect();
-                return Math.abs(ra.left + ra.width / 2 - currentX) - Math.abs(rb.left + rb.width / 2 - currentX);
-              });
-              focusEpisodeItem(below[0]);
-            } else {
-              // Hàng cuối cùng của EpisodeList -> Boundary exit xuống Content bên dưới
-              const recControls = Array.from(
-                document.querySelectorAll<HTMLElement>('[data-tv-recommendation="true"]')
-              ).filter((el) => el.offsetParent !== null);
-              if (recControls.length > 0) {
-                recControls[0].focus({ preventScroll: true });
-                recControls[0].scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
-              } else {
-                const cards = Array.from(
-                  document.querySelectorAll<HTMLElement>('[data-tv-card="true"]')
-                ).filter((el) => el.offsetParent !== null);
-                if (cards.length > 0) {
-                  cards[0].focus({ preventScroll: true });
-                  cards[0].scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
-                }
-              }
-            }
-            return;
-          }
-          if (e.key === "ArrowUp") {
-            e.preventDefault();
-            const currentRect = active.getBoundingClientRect();
-            const above = allEpisodes.filter((el) => el.getBoundingClientRect().bottom <= currentRect.top + 5);
-            if (above.length > 0) {
-              const currentX = currentRect.left + currentRect.width / 2;
-              above.sort((a, b) => {
-                const ra = a.getBoundingClientRect();
-                const rb = b.getBoundingClientRect();
-                return Math.abs(ra.left + ra.width / 2 - currentX) - Math.abs(rb.left + rb.width / 2 - currentX);
-              });
-              focusEpisodeItem(above[0]);
-            } else {
-              // Hàng trên cùng của EpisodeList -> Chuyển lên TẦNG 2 (PlayerActionButtons)
-              const actionBtns = Array.from(
-                document.querySelectorAll<HTMLElement>('[data-control-section="action-buttons"]')
-              ).filter((el) => el.offsetParent !== null);
-
-              if (actionBtns.length > 0) {
-                actionBtns[0]?.focus();
-              } else {
-                // Nếu không có action buttons -> Chuyển lên TẦNG 1 (Main Controls)
-                const playBtn = containerRef.current?.querySelector<HTMLElement>(
-                  '[data-control-section="main-controls"]'
-                );
-                playBtn?.focus();
-                setShowControls(true);
-                resetControlsTimeout();
-              }
-            }
-            return;
-          }
-        }
-
-        // C. TẦNG 2: Focus đang ở PlayerActionButtons (Rạp phim, Tắt đèn, Hẹn giờ, Phím tắt, Tập trước/sau...)
-        if (isActionButtonFocused) {
-          const allActionBtns = Array.from(
-            document.querySelectorAll<HTMLElement>('[data-control-section="action-buttons"]')
-          ).filter((el) => el.offsetParent !== null);
-
-          const currentIdx = allActionBtns.findIndex((el) => el === active);
-
-          if (e.key === "ArrowRight") {
-            e.preventDefault();
-            const nextIdx = currentIdx < allActionBtns.length - 1 ? currentIdx + 1 : 0;
-            allActionBtns[nextIdx]?.focus();
-            return;
-          }
-          if (e.key === "ArrowLeft") {
-            e.preventDefault();
-            const prevIdx = currentIdx > 0 ? currentIdx - 1 : allActionBtns.length - 1;
-            allActionBtns[prevIdx]?.focus();
-            return;
-          }
-          if (e.key === "ArrowUp") {
-            e.preventDefault();
-            // Chuyển lên TẦNG 1 (Main Controls)
-            const mainCtrls = Array.from(
-              containerRef.current?.querySelectorAll<HTMLElement>('[data-control-section="main-controls"]') || []
-            ).filter((el) => el.offsetParent !== null);
-
-            if (mainCtrls.length > 0) {
-              mainCtrls[0]?.focus();
-              setShowControls(true);
-              resetControlsTimeout();
-            }
-            return;
-          }
-          if (e.key === "ArrowDown") {
-            e.preventDefault();
-            // Chuyển xuống TẦNG 3 (EpisodeList)
-            const targetEp =
-              (activeEpisodeSlug && document.querySelector<HTMLElement>(`[data-tv-episode="true"][data-episode-slug="${activeEpisodeSlug}"]`)) ||
-              document.querySelector<HTMLElement>('[data-tv-episode="true"]');
-            if (targetEp) {
-              focusEpisodeItem(targetEp);
-            } else {
-              const recControls = Array.from(
-                document.querySelectorAll<HTMLElement>('[data-tv-recommendation="true"]')
-              ).filter((el) => el.offsetParent !== null);
-              if (recControls.length > 0) {
-                recControls[0].focus({ preventScroll: true });
-                recControls[0].scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
-              } else {
-                const cards = Array.from(
-                  document.querySelectorAll<HTMLElement>('[data-tv-card="true"]')
-                ).filter((el) => el.offsetParent !== null);
-                if (cards.length > 0) {
-                  cards[0].focus({ preventScroll: true });
-                  cards[0].scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
-                }
-              }
-            }
-            return;
-          }
-        }
-
-        // D. TẦNG 1: Focus đang ở Main Controls (Play, Tua, Vol, Tốc độ, Chất lượng, PiP, Fullscreen...)
-        if (isMainControlFocused) {
-          const mainCtrls = Array.from(
-            containerRef.current?.querySelectorAll<HTMLElement>('[data-control-section="main-controls"]') || []
-          ).filter((el) => el.offsetParent !== null);
-
-          const currentIdx = mainCtrls.findIndex((el) => el === active);
-
-          if (e.key === "ArrowRight") {
-            e.preventDefault();
-            const nextIdx = currentIdx < mainCtrls.length - 1 ? currentIdx + 1 : 0;
-            mainCtrls[nextIdx]?.focus();
-            resetControlsTimeout();
-            return;
-          }
-          if (e.key === "ArrowLeft") {
-            e.preventDefault();
-            const prevIdx = currentIdx > 0 ? currentIdx - 1 : mainCtrls.length - 1;
-            mainCtrls[prevIdx]?.focus();
-            resetControlsTimeout();
-            return;
-          }
-          if (e.key === "ArrowUp") {
-            e.preventDefault();
-            // Chuyển lên TẦNG 0 (Scrub Bar) hoặc Header/Navbar
-            const scrubBar = containerRef.current?.querySelector<HTMLElement>('[data-control-id="scrub-bar"]');
-            if (scrubBar) {
-              scrubBar.focus();
-              resetControlsTimeout();
-            } else {
-              const navItem =
-                document.querySelector<HTMLElement>('nav a[data-tv-nav="true"].light-nav-active') ||
-                document.querySelector<HTMLElement>('[data-tv-nav="true"]');
-              if (navItem) {
-                navItem.focus();
-                window.scrollTo({ top: 0, behavior: "smooth" });
-                if (isPlaying) {
-                  setShowControls(false);
-                }
-              }
-            }
-            return;
-          }
-          if (e.key === "ArrowDown") {
-            e.preventDefault();
-            // Chuyển xuống TẦNG 2 (PlayerActionButtons)
-            const actionBtns = Array.from(
-              document.querySelectorAll<HTMLElement>('[data-control-section="action-buttons"]')
-            ).filter((el) => el.offsetParent !== null);
-
-            if (actionBtns.length > 0) {
-              actionBtns[0]?.focus();
-            } else {
-              const targetEp =
-                (activeEpisodeSlug && document.querySelector<HTMLElement>(`[data-tv-episode="true"][data-episode-slug="${activeEpisodeSlug}"]`)) ||
-                document.querySelector<HTMLElement>('[data-tv-episode="true"]');
-              if (targetEp) {
-                focusEpisodeItem(targetEp);
-              } else {
-                const cards = Array.from(
-                  document.querySelectorAll<HTMLElement>('[data-tv-card="true"]')
-                ).filter((el) => el.offsetParent !== null);
-                if (cards.length > 0) {
-                  cards[0].focus({ preventScroll: true });
-                  cards[0].scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
-                }
-              }
-            }
-            return;
-          }
-        }
-
-        // E. TẦNG 0: Focus đang ở Scrub Bar (Thanh tiến trình)
-        if (isScrubBarFocused) {
-          if (e.key === "ArrowDown") {
-            e.preventDefault();
-            // Chuyển xuống TẦNG 1 (Main Controls)
-            const playBtn = containerRef.current?.querySelector<HTMLElement>('[data-control-section="main-controls"]');
-            if (playBtn) {
-              playBtn.focus();
-              resetControlsTimeout();
-            }
-            return;
-          }
-          if (e.key === "ArrowUp") {
-            e.preventDefault();
-            // Boundary exit: Chuyển lên Header / Navbar
-            const navItem =
-              document.querySelector<HTMLElement>('nav a[data-tv-nav="true"].light-nav-active') ||
-              document.querySelector<HTMLElement>('[data-tv-nav="true"]');
-            if (navItem) {
-              navItem.focus();
-              window.scrollTo({ top: 0, behavior: "smooth" });
-              if (isPlaying) {
-                setShowControls(false);
-              }
-            }
-            return;
-          }
-          // ArrowLeft / ArrowRight trên scrub bar tua video
-          if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
-            e.preventDefault();
-            if (isNativeVideo && videoRef.current) {
-              const delta = e.key === "ArrowRight" ? 10 : -10;
-              const v = videoRef.current;
-              const effectiveDuration = getEffectiveDuration();
-
-              const baseTime =
-                pendingKeyboardSeekRef.current.timer !== null
-                  ? pendingKeyboardSeekRef.current.targetTime
-                  : v.currentTime || 0;
-
-              const newTarget = Math.max(
-                0,
-                effectiveDuration > 0 ? Math.min(effectiveDuration, baseTime + delta) : baseTime + delta
-              );
-              const newTotalDelta =
-                (pendingKeyboardSeekRef.current.timer !== null
-                  ? pendingKeyboardSeekRef.current.totalDelta
-                  : 0) + delta;
-
-              pendingKeyboardSeekRef.current.targetTime = newTarget;
-              pendingKeyboardSeekRef.current.totalDelta = newTotalDelta;
-
-              if (newTotalDelta > 0) {
-                showHud(<SkipForward className="w-5 h-5 text-netflix-red fill-current" />, `Tua tới +${newTotalDelta}s`);
-              } else {
-                showHud(<SkipBack className="w-5 h-5 text-netflix-red fill-current" />, `Tua lùi ${newTotalDelta}s`);
-              }
-
-              if (pendingKeyboardSeekRef.current.timer) {
-                clearTimeout(pendingKeyboardSeekRef.current.timer);
-              }
-
-              pendingKeyboardSeekRef.current.timer = setTimeout(() => {
-                if (videoRef.current) {
-                  videoRef.current.currentTime = pendingKeyboardSeekRef.current.targetTime;
-                }
-                pendingKeyboardSeekRef.current.timer = null;
-                pendingKeyboardSeekRef.current.totalDelta = 0;
-              }, 250);
-            }
-            resetControlsTimeout();
-            return;
-          }
-        }
+        e.preventDefault();
+        handleVolumeDelta(e.key === "ArrowUp" ? 0.05 : -0.05);
+        resetControlsTimeout();
+        return;
       }
     };
 
@@ -1546,7 +1133,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     isNativeVideo,
     prevEpisode,
     nextEpisode,
-    activeEpisodeSlug,
     switchEpisode,
     togglePlayPause,
     toggleFullscreen,
@@ -1557,9 +1143,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     showSleepTimerModal,
     showQrModal,
     isLightsOff,
-    isPlaying,
     isFullscreen,
-    showControls,
     resetControlsTimeout,
   ]);
 
@@ -1599,7 +1183,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       {/* KHUNG PHÁT VIDEO CHÍNH */}
       <div
         ref={containerRef}
-        data-cinema-player="true"
         tabIndex={0}
         onMouseMove={resetControlsTimeout}
         className={`w-full mx-auto transition-all duration-300 bg-black outline-none focus:outline-none focus-visible:outline-none ${

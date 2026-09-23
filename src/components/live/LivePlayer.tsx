@@ -1396,27 +1396,15 @@ function LivePlayerInner({
           containerRef.current.contains(active)
       );
 
-      // Nếu focus đang ở ngoài player (Navbar, MatchCard, ChannelCard, Filter, Pagination...) -> LivePlayer hoàn toàn nhường quyền
-      const isExternalFocused = Boolean(
-        active &&
-          (active.hasAttribute("data-tv-card") ||
-            active.hasAttribute("data-tv-nav") ||
-            active.hasAttribute("data-tv-hero") ||
-            active.hasAttribute("data-tv-filter") ||
-            active.hasAttribute("data-tv-filter-chip") ||
-            active.hasAttribute("data-tv-live") ||
-            active.hasAttribute("data-tv-recommendation") ||
-            active.hasAttribute("data-tv-pagination") ||
-            active.closest("nav") ||
-            active.closest(".nanaflix-navbar") ||
-            active.closest("footer"))
-      );
-
-      if (!isPlayerContainer && isExternalFocused) {
+      // Nếu focus đang ở ngoài player trên các input, form, textarea... -> nhường quyền
+      if (!isPlayerContainer && active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA")) {
         return;
       }
 
-      if (e.code === "Space") {
+      if (e.code === "Space" || e.key === "Enter") {
+        if (active && (active.tagName === "BUTTON" || active.tagName === "INPUT")) {
+          return;
+        }
         e.preventDefault();
         togglePlay();
       } else if (e.key === "ArrowLeft") {
@@ -1426,11 +1414,15 @@ function LivePlayerInner({
         e.preventDefault();
         handleSeek(10);
       } else if (e.key === "ArrowUp") {
-        e.preventDefault();
-        handleVolumeChange(volume + 0.1);
+        if (isFullscreen) {
+          e.preventDefault();
+          handleVolumeChange(volume + 0.1);
+        }
       } else if (e.key === "ArrowDown") {
-        e.preventDefault();
-        handleVolumeChange(volume - 0.1);
+        if (isFullscreen) {
+          e.preventDefault();
+          handleVolumeChange(volume - 0.1);
+        }
       } else if (e.key === "m" || e.key === "M") {
         e.preventDefault();
         toggleMute();
@@ -1482,6 +1474,7 @@ function LivePlayerInner({
     closeRail,
     isRailVisible,
     volume,
+    isFullscreen,
   ]);
 
   const handleCopyStream = () => {
@@ -1644,7 +1637,12 @@ function LivePlayerInner({
       </div>
       <div
         ref={containerRef}
+        tabIndex={0}
         onMouseMove={resetControlsTimeout}
+        onFocus={() => {
+          setShowControls(true);
+          resetControlsTimeout();
+        }}
         onClick={() => {
           // Trên màn hình cảm ứng & web: Nếu controls đang ẩn -> chạm để HIỆN lại controls, KHÔNG pause video!
           if (!showControls) {
@@ -1656,7 +1654,7 @@ function LivePlayerInner({
           setShowControls(false);
         }}
         onDoubleClick={toggleFullscreen}
-        className={`relative w-full aspect-video lg:max-h-[calc(100vh-210px)] lg:max-w-[calc((100vh-210px)*16/9)] mx-auto bg-black rounded-2xl sm:rounded-3xl overflow-hidden border border-white/15 shadow-2xl group select-none ring-1 ring-white/10 ${
+        className={`relative w-full aspect-video lg:max-h-[calc(100vh-210px)] lg:max-w-[calc((100vh-210px)*16/9)] mx-auto bg-black rounded-2xl sm:rounded-3xl overflow-hidden border border-white/15 shadow-2xl group select-none ring-1 ring-white/10 outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
           showControls ? "cursor-default" : "cursor-none"
         }`}
       >

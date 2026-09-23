@@ -60,26 +60,21 @@ export function LiveHubClient({ footballData, tvData }: LiveHubClientProps) {
             </span>
             <span className="flex items-center gap-1 text-[11px] text-emerald-400 font-bold bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
               <Zap className="w-2.5 h-2.5 fill-emerald-400" />
-              <span>Tín hiệu vệ tinh • Full HD</span>
+              <span>Full HD 1080p</span>
             </span>
             {liveFootballCount > 0 && (
               <span className="flex items-center gap-1 text-[11px] text-rose-400 font-bold bg-red-500/10 px-2.5 py-0.5 rounded-full border border-red-500/20">
                 <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
-                <span>{liveFootballCount} trận đang diễn ra</span>
+                <span>{liveFootballCount} trận đang đá</span>
               </span>
             )}
           </div>
 
           <h1 className="text-2xl md:text-4xl font-black text-white tracking-tight">
             {activeTab === "football"
-              ? "Trực Tiếp Bóng Đá & Thể Thao"
-              : "Truyền Hình Trực Tuyến Đa Kênh"}
+              ? "Trực Tiếp Bóng Đá HD"
+              : "Truyền Hình Trực Tuyến Live TV"}
           </h1>
-          <p className="text-xs sm:text-sm text-gray-400 mt-1 max-w-2xl leading-relaxed">
-            {activeTab === "football"
-              ? "Thưởng thức các trận cầu đỉnh cao kèm Bình luận viên Tiếng Việt. Đường truyền tốc độ cao, độ trễ cực thấp."
-              : "Trực tiếp hơn 100+ kênh truyền hình VTV, HTV, THVL, Thể thao & Quốc tế với chuẩn phát sóng FHD 1080p."}
-          </p>
         </div>
 
         {/* CỤM NÚT CHUYỂN TAB */}
@@ -87,7 +82,6 @@ export function LiveHubClient({ footballData, tvData }: LiveHubClientProps) {
           {/* TAB BÓNG ĐÁ */}
           <button
             type="button"
-            data-tv-live="true"
             onClick={() => handleTabChange("football")}
             className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold transition-all cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${
               activeTab === "football"
@@ -111,7 +105,6 @@ export function LiveHubClient({ footballData, tvData }: LiveHubClientProps) {
           {/* TAB TRUYỀN HÌNH */}
           <button
             type="button"
-            data-tv-live="true"
             onClick={() => handleTabChange("tv")}
             className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold transition-all cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${
               activeTab === "tv"

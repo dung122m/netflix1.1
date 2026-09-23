@@ -12,7 +12,6 @@ export interface TrailerModalProps {
   isOpen?: boolean;
   onClose?: () => void;
   triggerClassName?: string;
-  dataTvHero?: boolean;
 }
 
 function getYoutubeEmbedUrl(url: string): string | null {
@@ -32,7 +31,6 @@ export const TrailerModal: React.FC<TrailerModalProps> = React.memo(
     isOpen: controlledIsOpen,
     onClose,
     triggerClassName,
-    dataTvHero,
   }) {
     const [internalIsOpen, setInternalIsOpen] = useState(false);
     const isControlled = typeof controlledIsOpen === "boolean";
@@ -68,7 +66,6 @@ export const TrailerModal: React.FC<TrailerModalProps> = React.memo(
           <button
             type="button"
             onClick={() => setInternalIsOpen(true)}
-            data-tv-hero={dataTvHero ? "true" : undefined}
             className={
               triggerClassName ||
               "inline-flex items-center gap-1.5 rounded-lg bg-netflix-red hover:bg-red-700 text-white px-3.5 py-1.5 text-xs sm:text-sm font-semibold shadow transition-all active:scale-95 cursor-pointer flex-shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black"

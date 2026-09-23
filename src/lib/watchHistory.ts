@@ -29,12 +29,27 @@ const MAX_HISTORY_ITEMS = 20;
 // Module-level in-memory cache tránh parse JSON lặp lại mỗi khi đọc lịch sử xem
 let memoryWatchHistory: WatchHistoryItem[] | null = null;
 
-function updateMemoryWatchHistory(list: WatchHistoryItem[]): void {
-  memoryWatchHistory = list;
+export function sortWatchHistory(items: WatchHistoryItem[]): WatchHistoryItem[] {
+  if (!Array.isArray(items)) return [];
+  return [...items].sort((a, b) => (Number(b.updatedAt) || 0) - (Number(a.updatedAt) || 0));
 }
 
-function invalidateMemoryWatchHistory(): void {
+function updateMemoryWatchHistory(list: WatchHistoryItem[]): void {
+  memoryWatchHistory = sortWatchHistory(list);
+}
+
+export function invalidateMemoryWatchHistory(): void {
   memoryWatchHistory = null;
+}
+
+export function setWatchHistoryFromSync(items: WatchHistoryItem[]): void {
+  if (typeof window === "undefined") return;
+  const sorted = sortWatchHistory(items).slice(0, MAX_HISTORY_ITEMS);
+  updateMemoryWatchHistory(sorted);
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(sorted));
+  } catch {}
+  window.dispatchEvent(new CustomEvent("watch-history-updated"));
 }
 
 if (typeof window !== "undefined") {
@@ -114,7 +129,7 @@ export const getWatchHistory = (): WatchHistoryItem[] => {
       return [];
     }
     const parsed = JSON.parse(raw);
-    const list = Array.isArray(parsed) ? parsed : [];
+    const list = Array.isArray(parsed) ? sortWatchHistory(parsed) : [];
     updateMemoryWatchHistory(list);
     return list;
   } catch (error) {
@@ -125,21 +140,22 @@ export const getWatchHistory = (): WatchHistoryItem[] => {
 };
 
 export const saveWatchHistory = (
-  item: Omit<WatchHistoryItem, "updatedAt">,
+  item: Omit<WatchHistoryItem, "updatedAt"> & { updatedAt?: number },
 ): void => {
   if (typeof window === "undefined" || !item.slug) return;
   try {
     const list = getWatchHistory();
-    // Loại bỏ mục cũ nếu có để đưa lên đầu danh sách, nhưng giữ lại progressSeconds nếu chưa truyền mới
+    // Loại bỏ mục cũ nếu có để đưa lên đầu danh sách, nhưng giữ lại progressSeconds/thumb nếu chưa truyền mới
     const existing = list.find((i) => i.slug === item.slug);
     const filtered = list.filter((i) => i.slug !== item.slug);
 
     const newItem: WatchHistoryItem = {
+      ...existing,
       ...item,
       thumb: item.thumb || existing?.thumb,
       progressSeconds: item.progressSeconds ?? existing?.progressSeconds,
       durationSeconds: item.durationSeconds ?? existing?.durationSeconds,
-      updatedAt: Date.now(),
+      updatedAt: item.updatedAt || Date.now(),
     };
 
     const updated = [newItem, ...filtered].slice(0, MAX_HISTORY_ITEMS);
@@ -189,6 +205,9 @@ export const saveWatchProgress = (
   try {
     const list = getWatchHistory();
     const existing = list.find((i) => i.slug === slug);
+    const now = Date.now();
+    let targetItem: WatchHistoryItem;
+
     if (existing) {
       existing.progressSeconds = Math.floor(progressSeconds);
       if (durationSeconds && durationSeconds > 0) {
@@ -197,26 +216,42 @@ export const saveWatchProgress = (
       if (episodeSlug) {
         existing.episodeSlug = episodeSlug;
       }
-      existing.updatedAt = Date.now();
-      updateMemoryWatchHistory([...list]);
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
+      existing.updatedAt = now;
+      targetItem = existing;
+    } else {
+      targetItem = {
+        slug,
+        title: slug,
+        poster: "/default-poster.jpg",
+        episodeSlug,
+        progressSeconds: Math.floor(progressSeconds),
+        durationSeconds: durationSeconds && durationSeconds > 0 ? Math.floor(durationSeconds) : undefined,
+        updatedAt: now,
+      };
     }
+
+    // Đưa phim vừa xem lên đầu danh sách
+    const filtered = list.filter((i) => i.slug !== slug);
+    const updated = [targetItem, ...filtered].slice(0, MAX_HISTORY_ITEMS);
+    updateMemoryWatchHistory(updated);
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
 
     // Luôn lưu tiến trình riêng biệt cho tập đó (độc lập với các tập khác)
     if (episodeSlug) {
       saveEpisodeProgress(slug, episodeSlug, progressSeconds, durationSeconds);
     }
 
-    // Phát sự kiện realtime cho toàn bộ trang (nút QR xem trên điện thoại, đồng bộ...)
+    // Phát sự kiện realtime cho toàn bộ trang
     window.dispatchEvent(
       new CustomEvent("watch-progress-updated", {
         detail: { slug, episodeSlug, progressSeconds: Math.floor(progressSeconds) },
       })
     );
+    window.dispatchEvent(new CustomEvent("watch-history-updated"));
 
     // Tự động đồng bộ số phút lên Cloud nếu đã đăng nhập Google
-    if (auth?.currentUser && existing) {
-      saveWatchItemToCloudDebounced(auth.currentUser.uid, existing, 4000);
+    if (auth?.currentUser) {
+      saveWatchItemToCloudDebounced(auth.currentUser.uid, targetItem, 4000);
     }
   } catch (error) {
     console.error("Lỗi lưu tiến trình xem:", error);

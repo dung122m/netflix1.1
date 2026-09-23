@@ -8,7 +8,6 @@ import {
   Play,
   Plus,
   Check,
-  ThumbsUp,
   ChevronRight,
   Star,
   Volume2,
@@ -18,6 +17,7 @@ import {
   Clapperboard,
 } from "lucide-react";
 import { isInWatchlist, toggleWatchlist } from "@/lib/watchlist";
+import { LikeDislikeButtons } from "@/components/LikeDislikeButtons";
 import { extractMovieCountry, detectMovieTypeName, toOptimizedCardBackdropUrl, sanitizeImageUrl } from "@/lib/movieMedia";
 import { TrailerModal } from "@/components/TrailerModal";
 import {
@@ -138,7 +138,6 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
 }) => {
   const router = useRouter();
   const [inList, setInList] = useState(false);
-  const [liked, setLiked] = useState(false);
 
   // Danh sách các link ảnh dự phòng theo thứ tự ưu tiên (chuẩn HD sắc nét)
   const candidateImages = React.useMemo(() => {
@@ -522,12 +521,6 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     setInList(nextState);
   };
 
-  const handleToggleLike = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setLiked((prev) => !prev);
-  };
-
   const embedTrailerUrl = useMemo(() => {
     if (!isPlayingTrailer || !trailerUrl || trailerFailed) return null;
     return getYoutubeTrailerEmbedUrl(trailerUrl, {
@@ -619,8 +612,6 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       {/* ============================================================ */}
       <Link
         href={`/movies/${slug}`}
-        data-tv-card="true"
-        data-slug={slug}
         tabIndex={0}
         className={`block w-full h-full rounded-2xl overflow-hidden bg-zinc-950 border relative transition-all duration-200 shadow-md outline-none focus-visible:ring-4 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-[1.05] focus-visible:shadow-[0_0_35px_rgba(229,9,20,0.6)] focus-visible:border-white/90 focus-visible:z-40 ${
           isCardHovered
@@ -859,18 +850,18 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
                 {inList ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
               </button>
 
-              <button
-                type="button"
-                onClick={handleToggleLike}
-                title={liked ? "Đã thích" : "Thích"}
-                className={`h-8 w-8 rounded-full border flex items-center justify-center transition-all hover:scale-110 active:scale-95 cursor-pointer ${
-                  liked
-                    ? "bg-netflix-red text-white border-netflix-red"
-                    : "border-white/40 bg-zinc-800/80 text-white hover:border-white hover:bg-white/10"
-                }`}
-              >
-                <ThumbsUp className={`h-3.5 w-3.5 ${liked ? "fill-current" : ""}`} />
-              </button>
+              <LikeDislikeButtons
+                slug={slug}
+                movieMeta={{
+                  title,
+                  poster: imageUrl || posterUrl,
+                  genre,
+                  country: displayCountry,
+                  type_name: displayType,
+                  year: displayYear,
+                }}
+                variant="card"
+              />
 
               {(trailerUrl || hasTrailerState || isTrailerOnly) && (
                 <button

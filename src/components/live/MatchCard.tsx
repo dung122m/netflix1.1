@@ -62,7 +62,6 @@ function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
 
   return (
     <div
-      data-tv-card="true"
       tabIndex={0}
       onClick={() => onSelect(match)}
       onKeyDown={(e) => {

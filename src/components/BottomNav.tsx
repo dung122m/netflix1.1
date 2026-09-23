@@ -7,6 +7,7 @@ import { Home, Tv, Sparkles, Bookmark, User } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { subscribeUserProfile } from "@/services/userService";
 import { UserProfile } from "@/types/user";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 
 export function BottomNav() {
   const pathname = usePathname();
@@ -90,7 +91,7 @@ export function BottomNav() {
               <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500" />
             </span>
           </div>
-          <span className="text-[10px] mt-0.5 tracking-tight">Live TV</span>
+          <span className="text-[10px] mt-0.5 tracking-tight">Trực tiếp</span>
         </Link>
 
         {/* 3. NANA AI (Nút trung tâm nổi bật) */}
@@ -98,13 +99,13 @@ export function BottomNav() {
           type="button"
           onClick={handleOpenAi}
           className="flex flex-col items-center justify-center h-full transition-all duration-200 active:scale-90 cursor-pointer group"
-          aria-label="Mở Trợ lý AI Nana"
+          aria-label="Hỏi Nana AI"
         >
           <div className="w-9 h-9 -mt-3 rounded-full bg-gradient-to-tr from-purple-600 via-pink-600 to-amber-500 flex items-center justify-center text-white shadow-[0_0_16px_rgba(168,85,247,0.5)] group-hover:scale-105 transition-transform border-2 border-zinc-950">
             <Sparkles size={18} className="animate-pulse" />
           </div>
           <span className="text-[10px] font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-amber-300 tracking-tight">
-            Nana AI
+            Hỏi Nana
           </span>
         </button>
 
@@ -129,26 +130,20 @@ export function BottomNav() {
           type="button"
           onClick={handleOpenProfile}
           className="flex flex-col items-center justify-center h-full text-zinc-400 hover:text-zinc-200 font-medium transition-all duration-200 active:scale-95 cursor-pointer"
-          aria-label="Tài khoản cá nhân"
+          aria-label="Tài khoản"
         >
           {user ? (
-            <div className="w-5 h-5 rounded-full overflow-hidden border border-white/30 relative flex items-center justify-center bg-netflix-red text-[10px] font-bold text-white uppercase">
-              <span>{(effectiveDisplayName || user.email || "U")[0]}</span>
-              {effectiveAvatar && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={effectiveAvatar}
-                  alt={effectiveDisplayName || "Avatar"}
-                  referrerPolicy="no-referrer"
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
-              )}
-            </div>
+            <UserAvatar
+              src={effectiveAvatar || undefined}
+              name={effectiveDisplayName || user.email}
+              sizeClassName="w-5 h-5 text-[10px]"
+              className="border border-white/30"
+            />
           ) : (
             <User size={19} />
           )}
           <span className="text-[10px] mt-0.5 tracking-tight truncate max-w-[56px]">
-            {user ? (effectiveDisplayName ? effectiveDisplayName.split(" ").pop() : "Cá nhân") : "Cá nhân"}
+            {user ? (effectiveDisplayName ? effectiveDisplayName.split(" ").pop() : "Tài khoản") : "Tài khoản"}
           </span>
         </button>
       </div>

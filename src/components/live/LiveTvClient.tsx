@@ -1177,27 +1177,15 @@ export function LiveTvClient({
         (playerRef.current && active && playerRef.current.contains(active))
       );
 
-      // Nếu focus đang ở ngoài player (Navbar, ChannelCard, MatchCard, Filter, Pagination...) -> LiveTV hoàn toàn nhường quyền
-      const isExternalFocused = Boolean(
-        active &&
-          (active.hasAttribute("data-tv-card") ||
-            active.hasAttribute("data-tv-nav") ||
-            active.hasAttribute("data-tv-hero") ||
-            active.hasAttribute("data-tv-filter") ||
-            active.hasAttribute("data-tv-filter-chip") ||
-            active.hasAttribute("data-tv-live") ||
-            active.hasAttribute("data-tv-recommendation") ||
-            active.hasAttribute("data-tv-pagination") ||
-            active.closest("nav") ||
-            active.closest(".nanaflix-navbar") ||
-            active.closest("footer"))
-      );
-
-      if (!isPlayerContainer && isExternalFocused) {
+      // Nếu focus đang ở ngoài player trên các input, form, button... -> nhường quyền
+      if (!isPlayerContainer && active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA")) {
         return;
       }
 
-      if (e.code === "Space") {
+      if (e.code === "Space" || e.key === "Enter") {
+        if (active && (active.tagName === "BUTTON" || active.tagName === "INPUT")) {
+          return;
+        }
         e.preventDefault();
         togglePlay();
       } else if (e.key === "ArrowLeft") {
@@ -1207,11 +1195,15 @@ export function LiveTvClient({
         e.preventDefault();
         handleSeek(10);
       } else if (e.key === "ArrowUp") {
-        e.preventDefault();
-        handleVolumeChange(volume + 0.1);
+        if (isFullscreen) {
+          e.preventDefault();
+          handleVolumeChange(volume + 0.1);
+        }
       } else if (e.key === "ArrowDown") {
-        e.preventDefault();
-        handleVolumeChange(volume - 0.1);
+        if (isFullscreen) {
+          e.preventDefault();
+          handleVolumeChange(volume - 0.1);
+        }
       } else if (e.key === "m" || e.key === "M") {
         e.preventDefault();
         toggleMute();
@@ -1261,6 +1253,7 @@ export function LiveTvClient({
     handleSeek,
     showChannelRail,
     volume,
+    isFullscreen,
   ]);
 
   const handleCopy = () => {
@@ -1345,7 +1338,12 @@ export function LiveTvClient({
           {/* KHUNG PHÁT VIDEO PLAYER */}
           <div
             ref={containerRef}
+            tabIndex={0}
             onMouseMove={resetControlsTimeout}
+            onFocus={() => {
+              setShowControls(true);
+              resetControlsTimeout();
+            }}
             onClick={() => {
               // Trên màn hình cảm ứng & web: Nếu controls đang ẩn -> chạm để HIỆN lại controls, KHÔNG pause video!
               if (!showControls) {
@@ -1357,7 +1355,7 @@ export function LiveTvClient({
               setShowControls(false);
             }}
             onDoubleClick={toggleFullscreen}
-            className={`relative w-full aspect-video lg:max-h-[calc(100vh-210px)] lg:max-w-[calc((100vh-210px)*16/9)] mx-auto bg-black rounded-2xl sm:rounded-3xl overflow-hidden border border-white/15 shadow-2xl group select-none ring-1 ring-white/10 ${
+            className={`relative w-full aspect-video lg:max-h-[calc(100vh-210px)] lg:max-w-[calc((100vh-210px)*16/9)] mx-auto bg-black rounded-2xl sm:rounded-3xl overflow-hidden border border-white/15 shadow-2xl group select-none ring-1 ring-white/10 outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
               showControls ? "cursor-default" : "cursor-none"
             }`}
           >
@@ -1800,7 +1798,6 @@ export function LiveTvClient({
                 <button
                   key={ch.id}
                   type="button"
-                  data-tv-live="true"
                   onClick={() => handleSelectChannel(ch)}
                   className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all flex-none cursor-pointer focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:outline-none ${
                     isSelected
@@ -1858,7 +1855,6 @@ export function LiveTvClient({
             {/* LỌC NHANH FHD */}
             <button
               type="button"
-              data-tv-live="true"
               onClick={() => setOnlyFhd((prev) => !prev)}
               className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition border shadow-sm cursor-pointer whitespace-nowrap focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:outline-none ${
                 onlyFhd
@@ -1939,7 +1935,6 @@ export function LiveTvClient({
           >
             <button
               type="button"
-              data-tv-live="true"
               onClick={() => setSelectedCategory("all")}
               className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 border shadow-sm cursor-pointer focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:outline-none ${
                 selectedCategory === "all"
@@ -1967,7 +1962,6 @@ export function LiveTvClient({
                 <button
                   key={cat}
                   type="button"
-                  data-tv-live="true"
                   onClick={() => setSelectedCategory(cat)}
                   className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 border shadow-sm cursor-pointer focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:outline-none ${
                     isSelected
@@ -2014,7 +2008,6 @@ export function LiveTvClient({
                   <div
                     key={ch.id}
                     tabIndex={0}
-                    data-tv-card="true"
                     onClick={() => handleSelectChannel(ch)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ") {
@@ -2071,7 +2064,6 @@ export function LiveTvClient({
                   <div
                     key={ch.id}
                     tabIndex={0}
-                    data-tv-card="true"
                     onClick={() => handleSelectChannel(ch)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ") {
@@ -2122,7 +2114,6 @@ export function LiveTvClient({
             <div className="flex flex-col items-center justify-center pt-4 pb-2 space-y-2">
               <button
                 type="button"
-                data-tv-live="true"
                 onClick={() =>
                   setVisibleCount((prev) => prev + INITIAL_PAGE_SIZE)
                 }

@@ -148,7 +148,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
                 if (videoRef.current) {
                   videoRef.current.currentTime = Math.max(0, videoRef.current.currentTime - 10);
                 }
-                onSeekFeedback("Tua lùi -10s");
+                onSeekFeedback("-10s");
               }}
               title="Tua lùi 10 giây (←)"
               className="p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-110 focus-visible:bg-white/25"
@@ -165,7 +165,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
                 if (videoRef.current) {
                   videoRef.current.currentTime = (videoRef.current.currentTime || 0) + 10;
                 }
-                onSeekFeedback("Tua tới +10s");
+                onSeekFeedback("+10s");
               }}
               title="Tua tới 10 giây (→)"
               className="p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-110 focus-visible:bg-white/25"
@@ -180,7 +180,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
                 data-player-control="true"
                 data-control-section="main-controls"
                 onClick={onToggleMute}
-                title="Tắt/Bật tiếng (M)"
+                title={isMuted ? "Bật tiếng (M)" : "Tắt tiếng (M)"}
                 className="p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-110 focus-visible:bg-white/25"
               >
                 {isMuted || volume === 0 ? (
@@ -308,7 +308,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
               data-player-control="true"
               data-control-section="main-controls"
               onClick={onTogglePiP}
-              title="Cửa sổ nổi (Picture-in-Picture)"
+              title="Hình trong hình (PiP)"
               className="hidden sm:inline-flex p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-110 focus-visible:bg-white/25"
             >
               <PictureInPicture className="w-4 h-4" />
@@ -320,12 +320,12 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
               data-player-control="true"
               data-control-section="main-controls"
               onClick={onOpenQr}
-              title="Xem tiếp trên điện thoại (Quét mã QR đúng số phút)"
+              title="QR Mobile Handoff"
               className="hidden sm:flex items-center gap-1 p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer group/qr outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:bg-white/25"
             >
               <QrCode className="w-4 h-4 text-sky-400 group-hover/qr:scale-110 transition-transform" />
               <span className="hidden xl:inline text-[11px] font-semibold text-gray-300">
-                Điện thoại
+                Mobile
               </span>
             </button>
 
@@ -336,11 +336,11 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
                 data-player-control="true"
                 data-control-section="main-controls"
                 onClick={onUseIframeFallback}
-                title="Đổi sang trình phát Iframe dự phòng"
+                title="Đổi nguồn phát"
                 className="hidden md:inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-white/10 hover:bg-white/20 text-gray-300 text-[11px] font-medium transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:bg-white/25"
               >
                 <Tv className="w-3 h-3" />
-                <span>Nguồn Iframe</span>
+                <span>Iframe</span>
               </button>
             )}
 
@@ -350,7 +350,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
               data-player-control="true"
               data-control-section="main-controls"
               onClick={onToggleFullscreen}
-              title="Toàn màn hình (F)"
+              title={isFullscreen ? "Thoát toàn màn hình (F)" : "Toàn màn hình (F)"}
               className="p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-110 focus-visible:bg-white/25"
             >
               {isFullscreen ? (

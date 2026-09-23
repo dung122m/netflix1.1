@@ -18,6 +18,7 @@ import { getPublicCollection } from "@/services/collectionService";
 import { MovieCollection } from "@/types/collection";
 import { addToWatchlist } from "@/lib/watchlist";
 import { toast } from "@/components/Toast";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 
 interface CollectionClientViewProps {
   id: string;
@@ -189,18 +190,13 @@ export function CollectionClientView({
                     title={`Xem trang cá nhân của ${collection.creatorName || "thành viên"}`}
                     className="flex items-center gap-2 hover:text-amber-300 hover:underline transition cursor-pointer"
                   >
-                    <div className="w-6 h-6 rounded-full bg-netflix-red text-white flex items-center justify-center font-bold text-[10px] uppercase overflow-hidden ring-1 ring-white/20">
-                      {collection.creatorPhoto ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={collection.creatorPhoto}
-                          alt="Avatar"
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <span>{collection.creatorName?.[0] || "U"}</span>
-                      )}
-                    </div>
+                    <UserAvatar
+                      src={collection.creatorPhoto || undefined}
+                      name={collection.creatorName}
+                      seed={collection.userId || collection.creatorName}
+                      sizeClassName="w-6 h-6 text-[10px] font-bold"
+                      className="ring-1 ring-white/20"
+                    />
                     <span className="text-gray-200 hover:text-amber-300 font-semibold">
                       {collection.creatorName}
                     </span>

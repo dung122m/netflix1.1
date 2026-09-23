@@ -1,6 +1,6 @@
 import { Redis } from "@upstash/redis";
 import { supabase } from "@/lib/supabase";
-import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { getSupabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabaseAdmin";
 import { cacheService } from "@/lib/cache";
 import { AnalyticsEventPayload } from "@/lib/analyticsClient";
 
@@ -226,9 +226,24 @@ export async function recordAnalyticsEvent(payload: AnalyticsEventPayload): Prom
         }
         await redis.sadd(`analytics:unique:movie:${movieSlug}`, viewerKey);
       } else if (payload.eventType === "watch_progress" || payload.eventType === "watch_end") {
-        const watchSec = payload.durationSeconds || payload.progressSeconds || 30;
-        await redis.incrby("analytics:watch_time_sec", Math.max(0, watchSec));
         if (movieSlug) {
+          const currentProg = Math.max(0, payload.progressSeconds || 0);
+          const maxDuration = payload.durationSeconds && payload.durationSeconds > 0 ? payload.durationSeconds : Infinity;
+          const effectiveProg = Math.min(currentProg, maxDuration);
+
+          if (effectiveProg > 0) {
+            const sessionProgKey = `analytics:prog:${viewerKey}:${movieSlug}:${payload.episodeSlug || "full"}`;
+            const prevProg = (await redis.get<number>(sessionProgKey)) || 0;
+
+            if (effectiveProg > prevProg) {
+              const delta = Math.round(effectiveProg - prevProg);
+              // Cap single delta to max 300s to prevent giant manual seeks from blowing up total watch time
+              if (delta > 0 && delta <= 300) {
+                await redis.incrby("analytics:watch_time_sec", delta);
+              }
+              await redis.set(sessionProgKey, effectiveProg, { ex: 7 * 86400 });
+            }
+          }
           await redis.zincrby("analytics:watching:movies", 1, movieSlug);
         }
       } else if (payload.eventType === "search" && payload.keyword) {
@@ -377,7 +392,7 @@ export async function getAnalyticsDashboardStats(
 
       // D: Supabase device_handoff (independent of analytics_events)
       (async () => {
-        const client = getSupabaseAdmin() || supabase;
+        const client = isSupabaseAdminConfigured() ? getSupabaseAdmin() : supabase;
         if (!client) return { data: null, error: null };
         try {
           return await client
@@ -454,13 +469,26 @@ export async function getAnalyticsDashboardStats(
 
   // 2. Aggregate metrics
   let totalViews = 0;
-  let totalWatchTimeSeconds = 0;
   const uniqueAll = new Set<string>();
   const uniqueUsers = new Set<string>();
   const uniqueGuests = new Set<string>();
 
   const movieViewsMap = new Map<string, { title: string; views: number; uniqueViewers: Set<string> }>();
-  const movieWatchingMap = new Map<string, { title: string; episodeName?: string; count: number; seconds: number }>();
+  
+  // Session-based progress tracking: Map<sessionKey, SessionProgress>
+  // sessionKey = `${viewerKey}:${movieSlug}:${episodeSlug || 'full'}`
+  interface SessionProgress {
+    viewerKey: string;
+    movieSlug: string;
+    movieTitle: string;
+    episodeName?: string;
+    episodeSlug?: string;
+    maxProgress: number;
+    duration: number;
+    eventCount: number;
+  }
+  const sessionProgressMap = new Map<string, SessionProgress>();
+
   const deviceCounts = { desktop: 0, mobile: 0, tablet: 0 };
   const osCounts = new Map<string, number>();
   const browserCounts = new Map<string, number>();
@@ -523,24 +551,38 @@ export async function getAnalyticsDashboardStats(
       movieViewsMap.set(ev.movieSlug, existing);
     }
 
-    // Watch events
-    if (ev.eventType === "watch_progress" || ev.eventType === "watch_end" || ev.eventType === "watch_start") {
-      const sec = ev.durationSeconds || ev.progressSeconds || 30;
-      totalWatchTimeSeconds += sec;
+    // Watch events: group by unique session (viewer + movie + episode)
+    if (
+      (ev.eventType === "watch_progress" || ev.eventType === "watch_end" || ev.eventType === "watch_start") &&
+      ev.movieSlug
+    ) {
+      const sessionKey = `${viewerKey}:${ev.movieSlug}:${ev.episodeSlug || "full"}`;
+      const title = ev.movieTitle || titleMap.get(ev.movieSlug) || ev.movieSlug;
+      const existing = sessionProgressMap.get(sessionKey) || {
+        viewerKey,
+        movieSlug: ev.movieSlug,
+        movieTitle: title,
+        episodeName: ev.episodeName,
+        episodeSlug: ev.episodeSlug,
+        maxProgress: 0,
+        duration: 0,
+        eventCount: 0,
+      };
 
-      if (ev.movieSlug) {
-        const title = ev.movieTitle || titleMap.get(ev.movieSlug) || ev.movieSlug;
-        const watchKey = `${ev.movieSlug}:${ev.episodeSlug || "full"}`;
-        const existing = movieWatchingMap.get(watchKey) || {
-          title,
-          episodeName: ev.episodeName,
-          count: 0,
-          seconds: 0,
-        };
-        existing.count++;
-        existing.seconds += sec;
-        movieWatchingMap.set(watchKey, existing);
+      existing.eventCount++;
+      if (ev.progressSeconds && ev.progressSeconds > 0) {
+        existing.maxProgress = Math.max(existing.maxProgress, ev.progressSeconds);
       }
+      if (ev.durationSeconds && ev.durationSeconds > 0) {
+        existing.duration = Math.max(existing.duration, ev.durationSeconds);
+      }
+      if (ev.movieTitle) {
+        existing.movieTitle = ev.movieTitle;
+      }
+      if (ev.episodeName) {
+        existing.episodeName = ev.episodeName;
+      }
+      sessionProgressMap.set(sessionKey, existing);
     }
 
     // Search events
@@ -548,6 +590,36 @@ export async function getAnalyticsDashboardStats(
       const kw = ev.keyword.trim();
       searchMap.set(kw, (searchMap.get(kw) || 0) + 1);
     }
+  }
+
+  // Calculate actual totalWatchTimeSeconds and topWatching from sessionProgressMap
+  let totalWatchTimeSeconds = 0;
+  const movieWatchingMap = new Map<string, { title: string; episodeName?: string; count: number; seconds: number }>();
+
+  for (const session of sessionProgressMap.values()) {
+    let sessionSec = session.maxProgress;
+    // Cap session watch time by video duration if valid
+    if (session.duration > 0 && sessionSec > session.duration) {
+      sessionSec = session.duration;
+    }
+    // Fallback: If only watch_start occurred (progress is 0), count minimal 30s
+    if (sessionSec === 0 && session.eventCount > 0) {
+      sessionSec = 30;
+    }
+
+    totalWatchTimeSeconds += sessionSec;
+
+    // Aggregate into topWatching (grouped by movie:episode)
+    const watchKey = `${session.movieSlug}:${session.episodeSlug || "full"}`;
+    const existingWatch = movieWatchingMap.get(watchKey) || {
+      title: session.movieTitle,
+      episodeName: session.episodeName,
+      count: 0,
+      seconds: 0,
+    };
+    existingWatch.count += 1;
+    existingWatch.seconds += sessionSec;
+    movieWatchingMap.set(watchKey, existingWatch);
   }
 
   // Count unique visitors today (unique viewerKeys with site_visit events within today boundary)
@@ -648,7 +720,7 @@ export async function getAnalyticsDashboardStats(
       const profileMap = new Map<string, { name: string; avatar?: string; email?: string }>();
 
       // Profiles query is sequential here by necessity: we need handoff user IDs first
-      const adminClient = getSupabaseAdmin() || supabase;
+      const adminClient = isSupabaseAdminConfigured() ? getSupabaseAdmin() : supabase;
       if (userIds.length > 0 && adminClient) {
         const { data: profiles } = await adminClient
           .from("profiles")
@@ -726,23 +798,26 @@ export async function getAnalyticsDashboardStats(
   let finalUniqueTotal = uniqueAll.size;
   let finalUniqueUsers = uniqueUsers.size;
   let finalUniqueGuests = uniqueGuests.size;
-  let finalWatchSec = totalWatchTimeSeconds;
+  const finalWatchSec = totalWatchTimeSeconds;
 
   if (timeframe === "all" && redis) {
     try {
-      const [redisViews, redisWatchSec, redisUniqTotal, redisUniqUsers, redisUniqGuests] = await Promise.all([
+      const [redisViews, redisUniqTotal, redisUniqUsers, redisUniqGuests] = await Promise.all([
         redis.get<number>("analytics:views:total"),
-        redis.get<number>("analytics:watch_time_sec"),
         redis.scard("analytics:unique:total"),
         redis.scard("analytics:unique:users"),
         redis.scard("analytics:unique:guests"),
       ]);
       if (redisViews && redisViews > finalTotalViews) finalTotalViews = redisViews;
-      if (redisWatchSec && redisWatchSec > finalWatchSec) finalWatchSec = redisWatchSec;
       if (redisUniqTotal && redisUniqTotal > finalUniqueTotal) finalUniqueTotal = redisUniqTotal;
       if (redisUniqUsers && redisUniqUsers > finalUniqueUsers) finalUniqueUsers = redisUniqUsers;
       if (redisUniqGuests && redisUniqGuests > finalUniqueGuests) finalUniqueGuests = redisUniqGuests;
-    } catch {}
+
+      // Rebuild and synchronize Redis analytics:watch_time_sec with accurate analytics_events total
+      await redis.set("analytics:watch_time_sec", finalWatchSec);
+    } catch (redisSyncErr) {
+      console.warn("[Analytics] Redis sync error:", redisSyncErr);
+    }
   }
 
   return {
@@ -766,5 +841,32 @@ export async function getAnalyticsDashboardStats(
     liveWatching,
     hourlyWatchActivity,
     todayVisitorsCount: todayVisitorSet.size,
+  };
+}
+
+/**
+ * Rebuild and synchronize Redis `analytics:watch_time_sec` counter from valid Supabase `analytics_events`.
+ * Resets the corrupt value (e.g. 71h 28m) and restores exact session-based total watch time.
+ */
+export async function rebuildWatchTimeCounter(): Promise<{ previousSeconds: number; newSeconds: number }> {
+  const redis = getRedis();
+  let prevSec = 0;
+  if (redis) {
+    try {
+      prevSec = (await redis.get<number>("analytics:watch_time_sec")) || 0;
+    } catch {}
+  }
+
+  const stats = await getAnalyticsDashboardStats("all");
+
+  if (redis) {
+    try {
+      await redis.set("analytics:watch_time_sec", stats.totalWatchTimeSeconds);
+    } catch {}
+  }
+
+  return {
+    previousSeconds: prevSec,
+    newSeconds: stats.totalWatchTimeSeconds,
   };
 }

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { X, CheckCircle2, Film, Loader2, AlertCircle, LogOut } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -77,31 +78,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, customTit
         {user ? (
           /* TRẠNG THÁI ĐÃ ĐĂNG NHẬP */
           <div className="text-center space-y-5 py-2">
-            <div className="relative mx-auto w-20 h-20 rounded-full ring-2 ring-netflix-red/50 overflow-hidden shadow-xl bg-zinc-900 flex items-center justify-center">
-              <span className="text-2xl font-bold text-white uppercase">
-                {(user.displayName || user.email || "U")[0]}
-              </span>
-              {user.photoURL && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={user.photoURL}
-                  alt={user.displayName || "Avatar"}
-                  referrerPolicy="no-referrer"
-                  onError={(e) => {
-                    e.currentTarget.style.display = "none";
-                  }}
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
-              )}
-            </div>
+            <UserAvatar
+              src={user.photoURL || undefined}
+              name={user.displayName || user.email}
+              seed={user.uid || user.displayName || user.email}
+              sizeClassName="w-20 h-20 text-2xl font-black"
+              className="mx-auto ring-2 ring-netflix-red/50 shadow-xl"
+            />
 
             <div>
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold mb-2">
                 <CheckCircle2 size={13} />
-                <span>Đã đăng nhập</span>
+                <span>Cloud Synced</span>
               </div>
               <h3 className="text-xl font-bold text-white">
-                {user.displayName || "Thành viên Nanaflix"}
+                {user.displayName || "Nanaflix User"}
               </h3>
               <p className="text-xs text-gray-400 mt-0.5">{user.email}</p>
             </div>
@@ -112,7 +103,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, customTit
                 onClick={onClose}
                 className="flex-1 py-2.5 px-4 rounded-xl bg-netflix-red hover:bg-rose-700 text-white text-xs font-bold transition cursor-pointer shadow-md shadow-red-950/50"
               >
-                Tiếp tục xem
+                Tiếp tục xem phim
               </button>
               <button
                 type="button"
@@ -128,17 +119,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, customTit
             </div>
           </div>
         ) : (
-          /* TRẠNG THÁI CHƯA ĐĂNG NHẬP (MINIMAL, PHONG CÁCH NETFLIX CHUẨN) */
+          /* TRẠNG THÁI CHƯA ĐĂNG NHẬP */
           <div className="space-y-6">
             <div className="text-center space-y-2 pt-2">
               <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-netflix-red/10 text-netflix-red border border-netflix-red/20 mb-1">
                 <Film className="w-6 h-6" />
               </div>
               <h3 className="text-2xl font-black text-white tracking-tight">
-                {customTitle || "Đăng Nhập Nanaflix"}
+                {customTitle || "Đăng nhập Nanaflix"}
               </h3>
               <p className="text-xs text-gray-400 max-w-xs mx-auto leading-relaxed">
-                {customSubtitle || "Đồng bộ tiến trình xem dở và bộ sưu tập phim của bạn trên mọi thiết bị"}
+                {customSubtitle || "Đăng nhập để đồng bộ lịch sử xem phim và danh sách yêu thích trên mọi thiết bị."}
               </p>
             </div>
 
@@ -155,10 +146,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, customTit
               <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs space-y-1.5">
                 <div className="flex items-center gap-2 font-bold text-amber-300">
                   <AlertCircle size={15} />
-                  <span>Chưa thêm khóa Firebase API</span>
+                  <span>Firebase API Missing</span>
                 </div>
                 <p className="text-[11px] text-amber-200/80 leading-relaxed">
-                  Cấu hình khóa Firebase trong file <code className="bg-black/40 px-1 py-0.5 rounded font-mono text-white">.env.local</code> để kết nối Google Login thật.
+                  Configure Firebase keys in <code className="bg-black/40 px-1 py-0.5 rounded font-mono text-white">.env.local</code>.
                 </p>
               </div>
             )}
@@ -173,7 +164,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, customTit
               {loading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin text-gray-800" />
-                  <span>Đang kết nối Google...</span>
+                  <span>Google...</span>
                 </>
               ) : (
                 <>
@@ -195,7 +186,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, customTit
                       d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
                     />
                   </svg>
-                  <span>Tiếp tục với Google</span>
+                  <span>Đăng nhập với Google</span>
                 </>
               )}
             </button>

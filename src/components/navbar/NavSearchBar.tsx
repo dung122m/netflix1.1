@@ -567,7 +567,6 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
         >
           <button
             type={isSearchOpen && hasSearchText ? "submit" : "button"}
-            data-tv-nav="true"
             onClick={isSearchOpen && hasSearchText ? undefined : toggleSearch}
             aria-label={isSearchOpen && hasSearchText ? "Tìm kiếm phim" : "Mở thanh tìm kiếm"}
             title={isSearchOpen && hasSearchText ? "Tìm kiếm ngay" : "Tìm kiếm (Ctrl+K)"}

@@ -682,7 +682,6 @@ export function LiveFootballClient({
           <div className="hidden sm:flex items-center gap-1.5 overflow-x-auto py-1 scroll-smooth scrollbar-none [&::-webkit-scrollbar]:hidden">
             <button
               type="button"
-              data-tv-live="true"
               onClick={() => setSelectedTournament("all")}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all border cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${selectedTournament === "all"
                   ? "bg-white text-black border-white shadow-sm font-extrabold"
@@ -712,7 +711,6 @@ export function LiveFootballClient({
                 <button
                   key={t.name}
                   type="button"
-                  data-tv-live="true"
                   onClick={() => setSelectedTournament(t.name)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all border cursor-pointer flex items-center gap-1.5 outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${selectedTournament === t.name
                       ? "bg-gradient-to-r from-amber-500 to-orange-600 text-white border-amber-400 shadow-md shadow-amber-950/50 font-extrabold scale-102"
@@ -754,7 +752,6 @@ export function LiveFootballClient({
           {hasActiveFilters && (
             <button
               type="button"
-              data-tv-live="true"
               onClick={handleResetFilters}
               className="self-start sm:self-auto flex items-center gap-1 text-rose-400 hover:text-rose-300 transition cursor-pointer font-semibold whitespace-nowrap text-xs active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
             >
@@ -785,7 +782,6 @@ export function LiveFootballClient({
             <div className="flex flex-col items-center justify-center pt-4 pb-2 space-y-2">
               <button
                 type="button"
-                data-tv-live="true"
                 onClick={() =>
                   setVisibleCount((prev) => prev + INITIAL_PAGE_SIZE)
                 }

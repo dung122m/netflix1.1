@@ -21,6 +21,7 @@ import { getWatchLevelInfo } from "@/services/userService";
 import { UserProfile } from "@/types/user";
 import { MovieCollection } from "@/types/collection";
 import { toast } from "@/components/Toast";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import Link from "next/link";
 
 export interface PublicProfileDetail {
@@ -140,7 +141,6 @@ export function PublicUserProfileModal({ initialDetail }: PublicUserProfileModal
   const levelInfo = getWatchLevelInfo(watchMins);
   const watchHours = (watchMins / 60).toFixed(1);
   const avatarUrl = profile.customAvatar || profile.photoURL || "";
-  const initialLetter = (profile.displayName || "U").trim().charAt(0).toUpperCase();
   const isAdmin = profile.role === "admin";
 
   const handleCopyProfile = () => {
@@ -190,22 +190,12 @@ export function PublicUserProfileModal({ initialDetail }: PublicUserProfileModal
             {/* AVATAR TRÒN CÓ VIỀN CẤP ĐỘ VIP */}
             <div className="relative flex-shrink-0 mx-auto sm:mx-0">
               <div className="w-20 h-20 sm:w-22 sm:h-22 rounded-full overflow-hidden bg-gradient-to-br from-indigo-600 via-purple-600 to-rose-600 p-0.5 shadow-xl ring-2 ring-white/20">
-                {avatarUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={avatarUrl}
-                    alt={profile.displayName}
-                    className="w-full h-full object-cover rounded-full bg-zinc-900"
-                    referrerPolicy="no-referrer"
-                    onError={(e) => {
-                      (e.target as HTMLElement).style.display = "none";
-                    }}
-                  />
-                ) : (
-                  <div className="w-full h-full rounded-full bg-zinc-900 flex items-center justify-center text-white font-black text-2xl sm:text-3xl select-none">
-                    {initialLetter}
-                  </div>
-                )}
+                <UserAvatar
+                  src={avatarUrl || undefined}
+                  name={profile.displayName}
+                  seed={profile.uid || profile.displayName}
+                  sizeClassName="w-full h-full text-2xl sm:text-3xl font-black"
+                />
               </div>
               <div
                 className={`absolute -bottom-1 -right-1 px-2 py-0.5 rounded-full text-[10px] font-black border flex items-center gap-1 shadow-lg bg-zinc-950 ${levelInfo.colorClass}`}

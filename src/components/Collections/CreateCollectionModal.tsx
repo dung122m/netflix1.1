@@ -7,6 +7,9 @@ import { createCollection } from "@/services/collectionService";
 import { MovieCollection } from "@/types/collection";
 import { toast } from "@/components/Toast";
 
+import { subscribeUserProfile } from "@/services/userService";
+import { UserProfile } from "@/types/user";
+
 interface CreateCollectionModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -19,10 +22,22 @@ export const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
   onSuccess,
 }) => {
   const { user } = useAuth();
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [isPublic, setIsPublic] = useState(true);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!user?.uid) {
+      setUserProfile(null);
+      return;
+    }
+    const unsub = subscribeUserProfile(user.uid, (p) => {
+      if (p) setUserProfile(p);
+    });
+    return () => unsub();
+  }, [user?.uid]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -50,10 +65,13 @@ export const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
 
     setLoading(true);
     try {
+      const creatorName = userProfile?.displayName || user.displayName || user.email || "Thành viên Nanaflix";
+      const creatorPhoto = userProfile?.customAvatar || userProfile?.photoURL || user.photoURL || undefined;
+
       const created = await createCollection(
         user.uid,
-        user.displayName || user.email || "Thành viên Nanaflix",
-        user.photoURL || undefined,
+        creatorName,
+        creatorPhoto,
         trimmedName,
         description,
         isPublic

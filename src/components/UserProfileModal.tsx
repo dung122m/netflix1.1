@@ -55,22 +55,10 @@ import { MovieComment } from "@/types/comment";
 import { UserProfile, PlayerSettings, FollowedActorItem } from "@/types/user";
 import { toast } from "@/components/Toast";
 import { showConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { PRESET_AVATARS } from "@/lib/avatarHelper";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 
-// Danh sách Avatar đẹp chuẩn VIP Cinema & Anime Style
-export const PRESET_AVATARS = [
-  { id: "netflix-red", name: "🍿 Bắp Rạp", url: "https://api.dicebear.com/7.x/bottts/svg?seed=Nanaflix1" },
-  { id: "gold-star", name: "🌟 Sao Vàng", url: "https://api.dicebear.com/7.x/bottts/svg?seed=Nanaflix2" },
-  { id: "cyber-gamer", name: "🎮 Cyberpunk", url: "https://api.dicebear.com/7.x/bottts/svg?seed=Nanaflix3" },
-  { id: "anime-magic", name: "✨ Anime", url: "https://api.dicebear.com/7.x/bottts/svg?seed=Nanaflix4" },
-  { id: "director-film", name: "🎬 Đạo Diễn", url: "https://api.dicebear.com/7.x/bottts/svg?seed=Nanaflix5" },
-  { id: "retro-headphones", name: "🎧 Chill Music", url: "https://api.dicebear.com/7.x/bottts/svg?seed=Nanaflix6" },
-  { id: "fire-flame", name: "🔥 Siêu Cấp", url: "https://api.dicebear.com/7.x/bottts/svg?seed=Nanaflix7" },
-  { id: "king-crown", name: "👑 Vương Miện", url: "https://api.dicebear.com/7.x/bottts/svg?seed=Nanaflix8" },
-  { id: "ghost-vampire", name: "👻 Cương Thi", url: "https://api.dicebear.com/7.x/bottts/svg?seed=Nanaflix9" },
-  { id: "rabbit-cosmic", name: "🐰 Thỏ Vũ Trụ", url: "https://api.dicebear.com/7.x/bottts/svg?seed=Nanaflix10" },
-  { id: "dragon-hero", name: "🐉 Rồng Đỏ", url: "https://api.dicebear.com/7.x/bottts/svg?seed=Nanaflix11" },
-  { id: "cat-cinema", name: "🐱 Mèo Cinema", url: "https://api.dicebear.com/7.x/bottts/svg?seed=Nanaflix12" },
-];
+export { PRESET_AVATARS };
 
 const GENRE_OPTIONS = [
   "💥 Hành Động",
@@ -525,14 +513,13 @@ function UserProfileModalInner({
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-white/10 pb-3 sm:pb-4 pr-8 sm:pr-0">
           <div className="flex items-center gap-3 min-w-0">
             <div className="relative flex-shrink-0">
-              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl overflow-hidden border border-rose-500/40 bg-zinc-800 shadow-md">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={selectedAvatar || user.photoURL || "https://api.dicebear.com/7.x/bottts/svg?seed=Nanaflix1"}
-                  alt="Avatar"
-                  className="w-full h-full object-cover"
-                />
-              </div>
+              <UserAvatar
+                src={selectedAvatar || user.photoURL || undefined}
+                name={displayName || user.displayName || user.email}
+                sizeClassName="w-12 h-12 sm:w-14 sm:h-14 text-lg sm:text-xl font-black"
+                rounded="2xl"
+                className="border border-rose-500/40 shadow-md"
+              />
               <span className="absolute -bottom-1 -right-1 text-xs">{levelInfo.badgeIcon}</span>
             </div>
 
@@ -759,14 +746,14 @@ function UserProfileModalInner({
                           : "border-white/10 bg-white/5 hover:border-white/30 hover:bg-white/10"
                           }`}
                       >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
+                        <UserAvatar
                           src={av.url}
-                          alt={av.name}
-                          className="w-full h-full object-cover rounded-xl"
+                          name={av.name}
+                          rounded="xl"
+                          sizeClassName="w-full h-full text-xs"
                         />
                         {isSelected && (
-                          <div className="absolute inset-0 bg-netflix-red/40 flex items-center justify-center">
+                          <div className="absolute inset-0 bg-netflix-red/40 flex items-center justify-center rounded-2xl">
                             <Check className="w-5 h-5 text-white font-black stroke-[3]" />
                           </div>
                         )}
@@ -800,14 +787,10 @@ function UserProfileModalInner({
                     />
                     {customAvatarUrl && (
                       <div className="w-9 h-9 rounded-full border border-white/20 overflow-hidden flex-shrink-0">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
+                        <UserAvatar
                           src={customAvatarUrl}
-                          alt="Preview"
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            e.currentTarget.style.display = "none";
-                          }}
+                          name={displayName || "Custom"}
+                          sizeClassName="w-full h-full text-xs"
                         />
                       </div>
                     )}

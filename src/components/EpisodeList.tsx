@@ -6,7 +6,7 @@ import { Check, Search, X } from "lucide-react";
 import {
   getWatchedEpisodes,
   markEpisodeAsWatched,
-} from "@/lib/episodeTracker";
+ } from "@/lib/episodeTracker";
 import { getShortEpisodeLabel } from "@/lib/formatEpisode";
 import { useWatchController } from "./WatchController";
 
@@ -185,7 +185,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
   if (!episodes || episodes.length === 0) {
     return (
       <div className="rounded-2xl border border-white/10 bg-zinc-950/60 p-4 text-center text-sm text-gray-400">
-        Chưa có tập phim khả dụng.
+        Chưa có danh sách tập phim
       </div>
     );
   }
@@ -200,7 +200,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Tìm nhanh tập (vd: 12)..."
+            placeholder="Tìm nhanh số tập..."
             className="w-full pl-9 pr-8 py-2 rounded-xl bg-zinc-900/90 border border-white/10 text-xs text-white placeholder-gray-400 focus:outline-none focus:border-red-500/60 transition"
           />
           {searchQuery && (
@@ -253,8 +253,6 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
                 key={tapSlug}
                 href={`?ep=${tapSlug}`}
                 scroll={false}
-                data-tv-episode="true"
-                data-episode-slug={tap.slug}
                 tabIndex={0}
                 title={tapName}
                 onClick={(e) => {
@@ -314,7 +312,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
         </div>
       ) : (
         <div className="text-center py-6 text-xs text-gray-400">
-          Không tìm thấy tập phim nào khớp với &quot;{searchQuery}&quot;.
+          Không tìm thấy tập phim phù hợp
         </div>
       )}
     </div>

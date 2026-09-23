@@ -148,7 +148,7 @@ export function RecommendationTabs({
   const handleShuffle = () => {
     setIsShuffling(true);
     setShuffleSeed((prev) => prev + Date.now() % 100 + 1);
-    toast.info("Đã làm mới danh sách gợi ý phim!");
+    toast.info("Đã đổi danh sách phim đề xuất!");
     setTimeout(() => {
       setIsShuffling(false);
     }, 450);
@@ -163,7 +163,6 @@ export function RecommendationTabs({
           {/* Tab 1: Phù hợp nhất */}
           <button
             type="button"
-            data-tv-recommendation="true"
             onClick={() => {
               setActiveTab("best");
               setVisibleLimit(12);
@@ -175,14 +174,13 @@ export function RecommendationTabs({
             }`}
           >
             <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-300 animate-pulse" />
-            <span>Đề Xuất Phù Hợp ({allMovies.length})</span>
+            <span>Phim Tương Tự ({allMovies.length})</span>
           </button>
 
           {/* Tab 2: Cùng diễn viên (nếu có) */}
           {actorName && validActorMovies.length > 0 && (
             <button
               type="button"
-              data-tv-recommendation="true"
               onClick={() => {
                 setActiveTab("actor");
                 setVisibleLimit(12);
@@ -202,7 +200,6 @@ export function RecommendationTabs({
           {genreName && genreMovies.length > 0 && (
             <button
               type="button"
-              data-tv-recommendation="true"
               onClick={() => {
                 setActiveTab("genre");
                 setVisibleLimit(12);
@@ -222,7 +219,6 @@ export function RecommendationTabs({
           {countryName && countryMovies.length > 0 && (
             <button
               type="button"
-              data-tv-recommendation="true"
               onClick={() => {
                 setActiveTab("country");
                 setVisibleLimit(12);
@@ -242,7 +238,6 @@ export function RecommendationTabs({
           {topRatedMovies.length > 0 && (
             <button
               type="button"
-              data-tv-recommendation="true"
               onClick={() => {
                 setActiveTab("top");
                 setVisibleLimit(12);
@@ -254,7 +249,7 @@ export function RecommendationTabs({
               }`}
             >
               <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-300 fill-current" />
-              <span>Đánh Giá Cao ({topRatedMovies.length})</span>
+              <span>Đánh giá cao ({topRatedMovies.length})</span>
             </button>
           )}
         </div>
@@ -263,9 +258,8 @@ export function RecommendationTabs({
         <div className="flex items-center gap-2 flex-shrink-0">
           <button
             type="button"
-            data-tv-recommendation="true"
             onClick={handleShuffle}
-            title="Xáo trộn và đổi danh sách phim đề xuất mới"
+            title="Đổi phim khác"
             className="flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-[11px] sm:text-xs font-bold text-gray-200 hover:text-white bg-zinc-900/90 hover:bg-zinc-800 border border-white/15 hover:border-white/30 transition shadow-sm cursor-pointer active:scale-95 whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105"
           >
             <Shuffle
@@ -273,8 +267,8 @@ export function RecommendationTabs({
                 isShuffling ? "rotate-180 scale-110" : ""
               }`}
             />
-            <span className="hidden sm:inline">Đổi gợi ý</span>
-            <span className="sm:hidden">Đổi</span>
+            <span className="hidden sm:inline">Đổi phim khác</span>
+            <span className="sm:hidden">Đổi phim</span>
           </button>
         </div>
       </div>
@@ -313,7 +307,7 @@ export function RecommendationTabs({
                 onClick={() => setVisibleLimit((prev) => prev + 12)}
                 className="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-xs sm:text-sm border border-white/15 hover:border-white/30 shadow-lg transition-all hover:scale-102 active:scale-98 cursor-pointer"
               >
-                <span>Xem thêm các phim tương tự khác</span>
+                <span>Xem thêm gợi ý</span>
                 <span className="px-2 py-0.5 rounded-full bg-white/15 text-[11px] text-gray-300">
                   +{Math.min(12, currentTabMovies.length - visibleLimit)}
                 </span>
@@ -330,7 +324,7 @@ export function RecommendationTabs({
                 onClick={() => setVisibleLimit(12)}
                 className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-white transition font-medium cursor-pointer"
               >
-                <span>Thu gọn lại</span>
+                <span>Thu gọn</span>
                 <ChevronUp className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -338,13 +332,13 @@ export function RecommendationTabs({
         </div>
       ) : (
         <div className="rounded-2xl border border-white/10 bg-zinc-900/50 p-8 text-center text-sm text-gray-400 space-y-3">
-          <p>Chưa có phim phù hợp trong mục này.</p>
+          <p>Chưa có danh sách phim đề xuất phù hợp.</p>
           <button
             type="button"
             onClick={() => setActiveTab("best")}
             className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-bold text-white transition cursor-pointer"
           >
-            Quay lại Đề Xuất Phù Hợp Nhất
+            Xem gợi ý chung
           </button>
         </div>
       )}
@@ -364,7 +358,7 @@ const RecommendedMovieCard = React.memo(function RecommendedMovieCard({
 }) {
   const rawThumb = pickBestMovieThumb(item, "/default-hero.jpg");
   const thumbUrl = toOptimizedPhimimgUrl(rawThumb, 480);
-  const title = item.name || item.title || "Phim đề xuất";
+  const title = item.name || item.title || "Phim";
   const categoryName = item.category?.[0]?.name;
   const year = item.year;
   const time = item.time;
@@ -375,7 +369,6 @@ const RecommendedMovieCard = React.memo(function RecommendedMovieCard({
     <div className="group relative bg-zinc-900 rounded-2xl overflow-hidden border border-white/10 hover:border-white/25 transition-all duration-300 hover:scale-[1.02] shadow-md hover:shadow-2xl flex flex-col">
       <Link
         href={`/movies/${item.slug}`}
-        data-tv-card="true"
         tabIndex={0}
         className="block h-full flex flex-col outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 focus-visible:scale-[1.03] transition-transform rounded-2xl"
       >
@@ -405,7 +398,7 @@ const RecommendedMovieCard = React.memo(function RecommendedMovieCard({
           <div className="absolute top-2 left-2 z-10 pointer-events-none">
             <span className="px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wide bg-black/80 backdrop-blur-md text-amber-300 border border-amber-500/30 flex items-center gap-1 shadow-md">
               <Sparkles className="w-2.5 h-2.5 text-amber-400 fill-current" />
-              <span>{matchPercent}% Khớp</span>
+              <span>{matchPercent}% Trùng khớp</span>
             </span>
           </div>
 

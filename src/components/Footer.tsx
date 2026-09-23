@@ -21,7 +21,6 @@ import {
   Cast,
   CheckCircle2,
   LifeBuoy,
-  HeartHandshake,
   Cpu,
 } from "lucide-react";
 
@@ -43,7 +42,7 @@ export const Footer: React.FC = () => {
             </div>
             <div className="min-w-0">
               <h4 className="text-white text-xs sm:text-sm font-bold truncate">4K Ultra HD</h4>
-              <p className="text-[11px] text-gray-400 truncate">Hình ảnh sắc nét chuẩn rạp</p>
+              <p className="text-[11px] text-gray-400 truncate">Cinema Quality Video</p>
             </div>
           </div>
 
@@ -52,8 +51,8 @@ export const Footer: React.FC = () => {
               <Sparkles className="w-4 h-4" />
             </div>
             <div className="min-w-0">
-              <h4 className="text-white text-xs sm:text-sm font-bold truncate">Âm Thanh Dolby</h4>
-              <p className="text-[11px] text-gray-400 truncate">Trải nghiệm sống động</p>
+              <h4 className="text-white text-xs sm:text-sm font-bold truncate">Dolby Audio</h4>
+              <p className="text-[11px] text-gray-400 truncate">Surround Sound</p>
             </div>
           </div>
 
@@ -62,8 +61,8 @@ export const Footer: React.FC = () => {
               <Shield className="w-4 h-4" />
             </div>
             <div className="min-w-0">
-              <h4 className="text-white text-xs sm:text-sm font-bold truncate">0% Quảng Cáo Rác</h4>
-              <p className="text-[11px] text-gray-400 truncate">Xem liền mạch, mượt mà</p>
+              <h4 className="text-white text-xs sm:text-sm font-bold truncate">No Ads</h4>
+              <p className="text-[11px] text-gray-400 truncate">Seamless Streaming</p>
             </div>
           </div>
 
@@ -73,7 +72,7 @@ export const Footer: React.FC = () => {
             </div>
             <div className="min-w-0">
               <h4 className="text-white text-xs sm:text-sm font-bold truncate">CDN 10Gbps</h4>
-              <p className="text-[11px] text-gray-400 truncate">Tải tức thì, không giật lag</p>
+              <p className="text-[11px] text-gray-400 truncate">Fast & Buffer-Free</p>
             </div>
           </div>
         </div>
@@ -86,7 +85,7 @@ export const Footer: React.FC = () => {
           <div className="space-y-4">
             <h4 className="text-white font-black text-sm tracking-wider uppercase flex items-center gap-2">
               <Film className="w-4 h-4 text-netflix-red" />
-              Điện Ảnh & Series
+              Phim Lẻ & Phim Bộ
             </h4>
             <ul className="space-y-2.5 text-xs text-gray-400">
               <li>
@@ -98,7 +97,7 @@ export const Footer: React.FC = () => {
               <li>
                 <Link href="/?type=phim-bo" className="hover:text-white transition flex items-center gap-2">
                   <Tv size={13} className="text-gray-500" />
-                  <span>Phim bộ dài tập</span>
+                  <span>Phim bộ mới</span>
                 </Link>
               </li>
               <li>
@@ -110,13 +109,13 @@ export const Footer: React.FC = () => {
               <li>
                 <Link href="/?type=phim-chieu-rap" className="hover:text-white transition flex items-center gap-2">
                   <Clapperboard size={13} className="text-gray-500" />
-                  <span>Bom tấn chiếu rạp</span>
+                  <span>Phim chiếu rạp</span>
                 </Link>
               </li>
               <li>
                 <Link href="/?type=hoat-hinh" className="hover:text-white transition flex items-center gap-2">
                   <Sparkles size={13} className="text-gray-500" />
-                  <span>Anime & Hoạt hình</span>
+                  <span>Hoạt hình & Anime</span>
                 </Link>
               </li>
             </ul>
@@ -126,31 +125,31 @@ export const Footer: React.FC = () => {
           <div className="space-y-4">
             <h4 className="text-white font-black text-sm tracking-wider uppercase flex items-center gap-2">
               <Flame className="w-4 h-4 text-netflix-red" />
-              Trực Tiếp & TV
+              Trực tiếp & TV
             </h4>
             <ul className="space-y-2.5 text-xs text-gray-400">
               <li>
                 <Link href="/live?tab=football" className="hover:text-white transition flex items-center gap-2">
                   <Flame size={13} className="text-netflix-red animate-pulse" />
-                  <span>Trực tiếp bóng đá HD</span>
+                  <span>Bóng đá trực tiếp HD</span>
                 </Link>
               </li>
               <li>
                 <Link href="/live?tab=tv" className="hover:text-white transition flex items-center gap-2">
                   <Tv size={13} className="text-gray-500" />
-                  <span>Truyền hình VTV, HTV</span>
+                  <span>Truyền hình Live TV</span>
                 </Link>
               </li>
               <li>
                 <Link href="/?type=tv-shows" className="hover:text-white transition flex items-center gap-2">
                   <Radio size={13} className="text-gray-500" />
-                  <span>Game Show & Truyền hình</span>
+                  <span>Gameshow & TV Shows</span>
                 </Link>
               </li>
               <li>
                 <Link href="/my-list" className="hover:text-white transition flex items-center gap-2">
                   <Bookmark size={13} className="text-gray-500" />
-                  <span>Danh sách yêu thích</span>
+                  <span>Danh sách phim của tôi</span>
                 </Link>
               </li>
             </ul>
@@ -160,7 +159,7 @@ export const Footer: React.FC = () => {
           <div className="space-y-4">
             <h4 className="text-white font-black text-sm tracking-wider uppercase flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-amber-400" />
-              Tiện Ích Cao Cấp
+              Hỏi Nana & AI
             </h4>
             <ul className="space-y-2.5 text-xs text-gray-400">
               <li>
@@ -170,7 +169,7 @@ export const Footer: React.FC = () => {
                   className="hover:text-white transition flex items-center gap-2 cursor-pointer"
                 >
                   <Dices size={13} className="text-amber-400" />
-                  <span>Vòng quay &quot;Hôm nay xem gì?&quot;</span>
+                  <span>Bốc quẻ phim ngẫu nhiên</span>
                 </button>
               </li>
               <li>
@@ -180,20 +179,16 @@ export const Footer: React.FC = () => {
                   className="hover:text-white transition flex items-center gap-2 cursor-pointer text-emerald-400 hover:text-emerald-300 font-medium"
                 >
                   <Smartphone size={13} />
-                  <span>Cài đặt Ứng dụng App (PWA)</span>
+                  <span>Cài đặt ứng dụng (PWA)</span>
                 </button>
               </li>
               <li className="flex items-center gap-2 text-gray-400">
                 <CheckCircle2 size={13} className="text-emerald-400" />
-                <span>Trailer tự động & Thuyết minh</span>
+                <span>Xem trailer tự động</span>
               </li>
               <li className="flex items-center gap-2 text-gray-400">
                 <CheckCircle2 size={13} className="text-emerald-400" />
-                <span>Tìm kiếm nhanh (Ctrl + K)</span>
-              </li>
-              <li className="flex items-center gap-2 text-gray-400">
-                <CheckCircle2 size={13} className="text-emerald-400" />
-                <span>Ghi nhớ kênh và trận đấu</span>
+                <span>Tìm kiếm thông minh (Ctrl + K)</span>
               </li>
             </ul>
           </div>
@@ -202,30 +197,26 @@ export const Footer: React.FC = () => {
           <div className="space-y-4">
             <h4 className="text-white font-black text-sm tracking-wider uppercase flex items-center gap-2">
               <Shield className="w-4 h-4 text-emerald-400" />
-              Hỗ Trợ & Dự Án
+              Giới thiệu Nanaflix
             </h4>
             <ul className="space-y-2.5 text-xs text-gray-400">
               <li>
                 <Link href="/about" className="hover:text-white transition flex items-center gap-2 text-zinc-300 hover:text-red-400 font-medium">
                   <Sparkles size={13} className="text-netflix-red" />
-                  <span>Giới thiệu về Nanaflix</span>
+                  <span>Giới thiệu Nanaflix</span>
                 </Link>
               </li>
               <li className="flex items-center gap-2">
                 <LifeBuoy size={13} className="text-gray-500" />
-                <span>Hỗ trợ kỹ thuật 24/7</span>
+                <span>Hỗ trợ 24/7</span>
               </li>
               <li className="flex items-center gap-2">
                 <Shield size={13} className="text-gray-500" />
                 <span>Bảo mật & Quyền riêng tư</span>
               </li>
-              <li className="flex items-center gap-2">
-                <HeartHandshake size={13} className="text-gray-500" />
-                <span>Tuyên bố miễn trừ trách nhiệm</span>
-              </li>
               <li className="flex items-center gap-2 text-gray-500">
                 <HelpCircle size={13} className="text-gray-600" />
-                <span>Phiên bản v2.5 Cinematic Pro</span>
+                <span>v2.5 Cinematic Pro</span>
               </li>
             </ul>
           </div>
