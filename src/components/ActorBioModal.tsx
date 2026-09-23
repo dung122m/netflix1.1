@@ -141,10 +141,13 @@ export const ActorBioModal: React.FC<ActorBioModalProps> = ({ initialActorName }
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-xl bg-zinc-950 rounded-3xl border border-white/20 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 my-auto"
+        className="relative w-full max-w-xl md:max-w-2xl bg-zinc-950/95 backdrop-blur-xl rounded-3xl border border-white/15 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 my-auto"
       >
+        {/* TOP ACCENT GRADIENT */}
+        <div className="h-1 w-full bg-gradient-to-r from-amber-500 via-rose-500 to-netflix-red" />
+
         {/* HEADER BAR */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/10 bg-zinc-900/90">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/10 bg-zinc-900/80">
           <div className="flex items-center gap-2 text-rose-400">
             <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
             <span className="text-xs font-black uppercase tracking-wider text-white">
@@ -155,13 +158,14 @@ export const ActorBioModal: React.FC<ActorBioModalProps> = ({ initialActorName }
             type="button"
             onClick={() => setIsOpen(false)}
             className="p-1.5 rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition cursor-pointer"
+            aria-label="Đóng"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* CONTENT BODY */}
-        <div className="p-5 sm:p-6 space-y-5 max-h-[78vh] overflow-y-auto">
+        <div className="p-5 sm:p-6 space-y-5 max-h-[80vh] overflow-y-auto custom-scrollbar">
           {loading ? (
             <div className="py-12 flex flex-col items-center justify-center gap-3 text-gray-400">
               <Loader2 className="w-8 h-8 animate-spin text-netflix-red" />
@@ -170,8 +174,8 @@ export const ActorBioModal: React.FC<ActorBioModalProps> = ({ initialActorName }
           ) : (
             <>
               {/* ACTOR HEADER WITH PHOTO */}
-              <div className="flex items-center gap-4">
-                <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden bg-zinc-900 border border-white/20 flex-none shadow-xl">
+              <div className="flex items-start sm:items-center gap-4">
+                <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden bg-zinc-900 border border-white/20 flex-none shadow-xl ring-1 ring-white/10">
                   {profile?.thumbnail ? (
                     <Image
                       src={profile.thumbnail}
@@ -179,7 +183,7 @@ export const ActorBioModal: React.FC<ActorBioModalProps> = ({ initialActorName }
                       fill
                       unoptimized
                       className="object-cover object-top"
-                      sizes="100px"
+                      sizes="120px"
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-gray-500 bg-gradient-to-br from-zinc-800 to-zinc-950">
@@ -188,16 +192,16 @@ export const ActorBioModal: React.FC<ActorBioModalProps> = ({ initialActorName }
                   )}
                 </div>
 
-                <div className="min-w-0 space-y-1">
-                  <h3 className="text-xl sm:text-2xl font-black text-white truncate">
+                <div className="min-w-0 flex-1 space-y-1">
+                  <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight truncate">
                     {profile?.title || actorName}
                   </h3>
                   {profile?.description && (
-                    <p className="text-xs text-rose-300 font-semibold line-clamp-2">
+                    <p className="text-xs sm:text-sm text-rose-300 font-semibold line-clamp-2">
                       {profile.description}
                     </p>
                   )}
-                  <div className="flex items-center gap-1.5 text-[11px] text-gray-400 pt-0.5">
+                  <div className="flex items-center gap-1.5 text-[11px] sm:text-xs text-zinc-400 pt-0.5">
                     <BookOpen className="w-3.5 h-3.5 text-amber-400 flex-none" />
                     <span>Nguồn dữ liệu bách khoa toàn thư Wikipedia</span>
                   </div>
@@ -205,17 +209,17 @@ export const ActorBioModal: React.FC<ActorBioModalProps> = ({ initialActorName }
               </div>
 
               {/* BIO EXTRACT */}
-              <div className="p-4 rounded-2xl bg-zinc-900/70 border border-white/10 text-xs sm:text-sm text-gray-200 leading-relaxed max-h-56 overflow-y-auto">
-                <p>{profile?.extract || "Chưa có thêm mô tả chi tiết."}</p>
+              <div className="p-4 sm:p-5 rounded-2xl bg-zinc-900/70 border border-white/10 text-xs sm:text-sm text-zinc-200 leading-relaxed max-h-56 sm:max-h-60 overflow-y-auto pr-3 custom-scrollbar">
+                <p className="whitespace-pre-line">{profile?.extract || "Chưa có thêm mô tả chi tiết."}</p>
               </div>
 
               {/* ACTIONS */}
-              <div className="flex flex-col sm:flex-row items-center gap-2.5 pt-2">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 pt-1">
                 <button
                   type="button"
                   disabled={isFollowLoading}
                   onClick={handleToggleFollow}
-                  className={`w-full sm:w-auto py-3 px-4 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition cursor-pointer border active:scale-95 ${
+                  className={`h-11 px-4 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition cursor-pointer border active:scale-95 whitespace-nowrap flex-none sm:w-auto ${
                     isFollowing
                       ? "bg-emerald-500/20 hover:bg-rose-500/20 border-emerald-500/40 hover:border-rose-500/40 text-emerald-300 hover:text-rose-300"
                       : "bg-amber-500/20 hover:bg-amber-500/30 border-amber-500/40 text-amber-300 hover:text-amber-200"
@@ -237,10 +241,10 @@ export const ActorBioModal: React.FC<ActorBioModalProps> = ({ initialActorName }
                 <Link
                   href={`/?actor=${encodeURIComponent(actorName)}`}
                   onClick={() => setIsOpen(false)}
-                  className="w-full sm:flex-1 py-3 px-4 rounded-xl bg-netflix-red hover:bg-red-700 text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 transition shadow-lg active:scale-98 cursor-pointer"
+                  className="h-11 px-4 rounded-xl bg-netflix-red hover:bg-red-700 text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 transition shadow-lg shadow-red-950/40 active:scale-98 cursor-pointer flex-1 min-w-0 whitespace-nowrap"
                 >
-                  <Film className="w-4 h-4" />
-                  <span>Xem phim của {actorName}</span>
+                  <Film className="w-4 h-4 flex-none" />
+                  <span className="truncate">Xem phim của {actorName}</span>
                 </Link>
 
                 {profile?.wikiUrl && (
@@ -248,7 +252,7 @@ export const ActorBioModal: React.FC<ActorBioModalProps> = ({ initialActorName }
                     href={profile.wikiUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-full sm:w-auto py-3 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-gray-200 hover:text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition border border-white/15 cursor-pointer"
+                    className="h-11 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-gray-200 hover:text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition border border-white/15 cursor-pointer whitespace-nowrap flex-none sm:w-auto"
                   >
                     <span>Wikipedia</span>
                     <ExternalLink className="w-3.5 h-3.5" />
@@ -261,6 +265,7 @@ export const ActorBioModal: React.FC<ActorBioModalProps> = ({ initialActorName }
       </div>
     </div>
   );
+
 };
 
 export default ActorBioModal;
