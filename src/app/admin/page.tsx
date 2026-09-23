@@ -168,7 +168,7 @@ export default function AdminDashboardPage() {
       } else {
         toast.info("Dữ liệu bình luận đã là mới nhất.");
       }
-      fetchAuthorizedHandoffs().catch(() => {});
+      fetchAuthorizedHandoffs().catch(() => { });
     } catch {
       toast.error("Không thể làm mới danh sách bình luận!");
     } finally {
@@ -211,6 +211,10 @@ export default function AdminDashboardPage() {
 
     const unsubUsers = subscribeAllUsers(
       (items, dbTotalCount) => {
+        console.log("[AdminMembers] admin callback", {
+          usersLength: items.length,
+          totalCount: dbTotalCount,
+        });
         setRawUsers(items);
         setTotalMemberCount(dbTotalCount);
       },
@@ -219,7 +223,7 @@ export default function AdminDashboardPage() {
       }
     );
 
-    fetchAuthorizedHandoffs().catch(() => {});
+    fetchAuthorizedHandoffs().catch(() => { });
 
     const unsubReports = subscribeErrorReportsSupabase((items) => {
       setErrorReports(items);
@@ -268,11 +272,11 @@ export default function AdminDashboardPage() {
       const avg =
         ratedComms.length > 0
           ? Number(
-              (
-                ratedComms.reduce((acc, curr) => acc + curr.rating, 0) /
-                ratedComms.length
-              ).toFixed(1)
-            )
+            (
+              ratedComms.reduce((acc, curr) => acc + curr.rating, 0) /
+              ratedComms.length
+            ).toFixed(1)
+          )
           : 0;
       const spoilers = userComms.filter((c) => c.isSpoiler).length;
 
@@ -305,15 +309,15 @@ export default function AdminDashboardPage() {
         currentWatching:
           isWatchingNow && handoff
             ? {
-                movieSlug: handoff.movieSlug || "unknown",
-                movieTitle: handoff.movieTitle || handoff.movieSlug || "Phim",
-                episodeName: handoff.episodeName || undefined,
-                progressSeconds: prog,
-                durationSeconds: dur,
-                progressPercent: percent,
-                deviceName: handoff.deviceName || "Thiết bị",
-                updatedAt: validHandoffUpdated,
-              }
+              movieSlug: handoff.movieSlug || "unknown",
+              movieTitle: handoff.movieTitle || handoff.movieSlug || "Phim",
+              episodeName: handoff.episodeName || undefined,
+              progressSeconds: prog,
+              durationSeconds: dur,
+              progressPercent: percent,
+              deviceName: handoff.deviceName || "Thiết bị",
+              updatedAt: validHandoffUpdated,
+            }
             : undefined,
       });
     });
@@ -355,11 +359,11 @@ export default function AdminDashboardPage() {
     const avgScore =
       totalRatingReviews > 0
         ? Number(
-            (
-              ratedComments.reduce((acc, curr) => acc + curr.rating, 0) /
-              totalRatingReviews
-            ).toFixed(1)
-          )
+          (
+            ratedComments.reduce((acc, curr) => acc + curr.rating, 0) /
+            totalRatingReviews
+          ).toFixed(1)
+        )
         : 0;
 
     const uniqueUsers = totalMemberCount;
@@ -630,8 +634,8 @@ export default function AdminDashboardPage() {
           status === "resolved"
             ? "Đã đánh dấu báo cáo đã xử lý / sửa xong!"
             : status === "ignored"
-            ? "Đã đánh dấu bỏ qua báo cáo."
-            : "Đã chuyển về trạng thái chờ xử lý."
+              ? "Đã đánh dấu bỏ qua báo cáo."
+              : "Đã chuyển về trạng thái chờ xử lý."
         );
       } else {
         toast.error("Không thể cập nhật trạng thái báo cáo!");
@@ -970,11 +974,10 @@ export default function AdminDashboardPage() {
           <button
             type="button"
             onClick={() => setActiveTab("comments")}
-            className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-bold transition cursor-pointer flex-shrink-0 ${
-              activeTab === "comments"
+            className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-bold transition cursor-pointer flex-shrink-0 ${activeTab === "comments"
                 ? "bg-netflix-red text-white shadow-lg shadow-red-950/60"
                 : "bg-white/5 text-gray-400 hover:text-white hover:bg-white/10"
-            }`}
+              }`}
           >
             <MessageSquare size={14} />
             <span>Bình Luận</span>
@@ -991,11 +994,10 @@ export default function AdminDashboardPage() {
           <button
             type="button"
             onClick={() => setActiveTab("members")}
-            className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-bold transition cursor-pointer flex-shrink-0 ${
-              activeTab === "members"
+            className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-bold transition cursor-pointer flex-shrink-0 ${activeTab === "members"
                 ? "bg-netflix-red text-white shadow-lg shadow-red-950/60"
                 : "bg-white/5 text-gray-400 hover:text-white hover:bg-white/10"
-            }`}
+              }`}
           >
             <Users size={14} />
             <span>Thành Viên</span>
@@ -1007,11 +1009,10 @@ export default function AdminDashboardPage() {
           <button
             type="button"
             onClick={() => setActiveTab("collections")}
-            className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-bold transition cursor-pointer flex-shrink-0 ${
-              activeTab === "collections"
+            className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-bold transition cursor-pointer flex-shrink-0 ${activeTab === "collections"
                 ? "bg-netflix-red text-white shadow-lg shadow-red-950/60"
                 : "bg-white/5 text-gray-400 hover:text-white hover:bg-white/10"
-            }`}
+              }`}
           >
             <FolderHeart size={14} />
             <span>Bộ Sưu Tập</span>
@@ -1023,11 +1024,10 @@ export default function AdminDashboardPage() {
           <button
             type="button"
             onClick={() => setActiveTab("analytics")}
-            className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-bold transition cursor-pointer flex-shrink-0 ${
-              activeTab === "analytics"
+            className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-bold transition cursor-pointer flex-shrink-0 ${activeTab === "analytics"
                 ? "bg-netflix-red text-white shadow-lg shadow-red-950/60"
                 : "bg-white/5 text-gray-400 hover:text-white hover:bg-white/10"
-            }`}
+              }`}
           >
             <Sparkles size={14} />
             <span>Phân Tích</span>
@@ -1036,11 +1036,10 @@ export default function AdminDashboardPage() {
           <button
             type="button"
             onClick={() => setActiveTab("reports")}
-            className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-bold transition cursor-pointer flex-shrink-0 ${
-              activeTab === "reports"
+            className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-bold transition cursor-pointer flex-shrink-0 ${activeTab === "reports"
                 ? "bg-netflix-red text-white shadow-lg shadow-red-950/60"
                 : "bg-white/5 text-gray-400 hover:text-white hover:bg-white/10"
-            }`}
+              }`}
           >
             <AlertOctagon size={14} />
             <span>Báo Lỗi Phim</span>
@@ -1133,20 +1132,18 @@ export default function AdminDashboardPage() {
                   <button
                     type="button"
                     onClick={() => setFlaggedFilter("all")}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
-                      flaggedFilter === "all" ? "bg-white/15 text-white" : "text-gray-400 hover:text-white"
-                    }`}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${flaggedFilter === "all" ? "bg-white/15 text-white" : "text-gray-400 hover:text-white"
+                      }`}
                   >
                     Tất cả
                   </button>
                   <button
                     type="button"
                     onClick={() => setFlaggedFilter("flagged")}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1 ${
-                      flaggedFilter === "flagged"
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1 ${flaggedFilter === "flagged"
                         ? "bg-red-500/25 text-red-400 border border-red-500/40 font-bold shadow-sm"
                         : "text-gray-400 hover:text-white"
-                    }`}
+                      }`}
                   >
                     <Flag size={11} className={metrics.flaggedCount > 0 ? "text-red-400" : ""} />
                     <span>Vi phạm</span>
@@ -1169,11 +1166,10 @@ export default function AdminDashboardPage() {
                       key={star}
                       type="button"
                       onClick={() => setStarFilter(star)}
-                      className={`px-2 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
-                        starFilter === star
+                      className={`px-2 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${starFilter === star
                           ? "bg-amber-500 text-black font-bold shadow-sm"
                           : "text-gray-400 hover:text-white"
-                      }`}
+                        }`}
                     >
                       {star === "all" ? "Tất cả" : `${star}★`}
                     </button>
@@ -1185,20 +1181,18 @@ export default function AdminDashboardPage() {
                   <button
                     type="button"
                     onClick={() => setSpoilerFilter("all")}
-                    className={`px-2 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
-                      spoilerFilter === "all" ? "bg-white/15 text-white" : "text-gray-400 hover:text-white"
-                    }`}
+                    className={`px-2 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${spoilerFilter === "all" ? "bg-white/15 text-white" : "text-gray-400 hover:text-white"
+                      }`}
                   >
                     Tất cả
                   </button>
                   <button
                     type="button"
                     onClick={() => setSpoilerFilter("spoiler")}
-                    className={`px-2 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1 ${
-                      spoilerFilter === "spoiler"
+                    className={`px-2 py-1 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1 ${spoilerFilter === "spoiler"
                         ? "bg-rose-500/20 text-rose-400 border border-rose-500/30 font-bold"
                         : "text-gray-400 hover:text-white"
-                    }`}
+                      }`}
                   >
                     <AlertTriangle size={11} />
                     <span>Spoil</span>
@@ -1206,9 +1200,8 @@ export default function AdminDashboardPage() {
                   <button
                     type="button"
                     onClick={() => setSpoilerFilter("no_spoiler")}
-                    className={`px-2 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
-                      spoilerFilter === "no_spoiler" ? "bg-white/15 text-white" : "text-gray-400 hover:text-white"
-                    }`}
+                    className={`px-2 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${spoilerFilter === "no_spoiler" ? "bg-white/15 text-white" : "text-gray-400 hover:text-white"
+                      }`}
                   >
                     Không Spoil
                   </button>
@@ -1274,11 +1267,10 @@ export default function AdminDashboardPage() {
                   return (
                     <div
                       key={item.id}
-                      className={`p-3.5 sm:p-5 rounded-2xl transition backdrop-blur-sm flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4 group ${
-                        item.isFlagged
+                      className={`p-3.5 sm:p-5 rounded-2xl transition backdrop-blur-sm flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4 group ${item.isFlagged
                           ? "bg-red-950/20 border-2 border-red-500/40 shadow-lg shadow-red-950/30 hover:border-red-500/60"
                           : "bg-zinc-900/60 border border-white/10 hover:border-white/20"
-                      }`}
+                        }`}
                     >
                       {/* Left: User & Content */}
                       <div className="flex-1 min-w-0 space-y-2.5">
@@ -1439,11 +1431,10 @@ export default function AdminDashboardPage() {
                           <button
                             type="button"
                             onClick={() => handleToggleUserCommentBan(itemUser)}
-                            className={`px-3 py-2 sm:py-1.5 rounded-xl border transition cursor-pointer text-xs font-semibold flex items-center justify-center gap-1.5 shadow-sm active:scale-95 ${
-                              isUserRestricted
+                            className={`px-3 py-2 sm:py-1.5 rounded-xl border transition cursor-pointer text-xs font-semibold flex items-center justify-center gap-1.5 shadow-sm active:scale-95 ${isUserRestricted
                                 ? "bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border-emerald-500/30"
                                 : "bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border-amber-500/30"
-                            }`}
+                              }`}
                             title={isUserRestricted ? "Mở lại quyền bình luận" : "Khóa quyền bình luận thành viên"}
                           >
                             {isUserRestricted ? <ShieldCheck size={13} /> : <Ban size={13} />}
@@ -1454,9 +1445,8 @@ export default function AdminDashboardPage() {
                         <button
                           type="button"
                           onClick={() => handleDeleteComment(item)}
-                          className={`px-3 py-2 sm:py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/20 transition cursor-pointer text-xs font-medium flex items-center justify-center gap-1.5 shadow-sm active:scale-95 ${
-                            !item.isFlagged && !itemUser ? "col-span-2 sm:col-span-1" : ""
-                          }`}
+                          className={`px-3 py-2 sm:py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/20 transition cursor-pointer text-xs font-medium flex items-center justify-center gap-1.5 shadow-sm active:scale-95 ${!item.isFlagged && !itemUser ? "col-span-2 sm:col-span-1" : ""
+                            }`}
                         >
                           <Trash2 size={13} />
                           <span>Xóa bỏ</span>
@@ -1501,31 +1491,28 @@ export default function AdminDashboardPage() {
                   <button
                     type="button"
                     onClick={() => setMemberFilter("all")}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
-                      memberFilter === "all" ? "bg-white/15 text-white" : "text-gray-400 hover:text-white"
-                    }`}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${memberFilter === "all" ? "bg-white/15 text-white" : "text-gray-400 hover:text-white"
+                      }`}
                   >
                     Tất cả ({totalMemberCount})
                   </button>
                   <button
                     type="button"
                     onClick={() => setMemberFilter("admin")}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
-                      memberFilter === "admin"
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${memberFilter === "admin"
                         ? "bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold"
                         : "text-gray-400 hover:text-white"
-                    }`}
+                      }`}
                   >
                     👑 Admin
                   </button>
                   <button
                     type="button"
                     onClick={() => setMemberFilter("has_comments")}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
-                      memberFilter === "has_comments"
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${memberFilter === "has_comments"
                         ? "bg-blue-500/20 text-blue-300 border border-blue-500/30 font-bold"
                         : "text-gray-400 hover:text-white"
-                    }`}
+                      }`}
                   >
                     Đã bình luận
                   </button>
@@ -1730,11 +1717,10 @@ export default function AdminDashboardPage() {
                         <button
                           type="button"
                           onClick={() => handleToggleUserCommentBan(m)}
-                          className={`p-2 rounded-xl border transition cursor-pointer flex items-center justify-center flex-shrink-0 ${
-                            m.isCommentRestricted
+                          className={`p-2 rounded-xl border transition cursor-pointer flex items-center justify-center flex-shrink-0 ${m.isCommentRestricted
                               ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/25"
                               : "bg-amber-500/10 text-amber-300 border-amber-500/20 hover:bg-amber-500/20"
-                          }`}
+                            }`}
                           title={m.isCommentRestricted ? "Mở khóa quyền bình luận" : "Khóa quyền bình luận thành viên"}
                         >
                           {m.isCommentRestricted ? <ShieldCheck size={14} /> : <Ban size={14} />}

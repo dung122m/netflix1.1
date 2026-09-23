@@ -116,9 +116,12 @@ export async function getTopWatchLeaderboardSupabase(limit: number = 10): Promis
 export async function getAllProfilesSupabase(): Promise<{ profiles: UserProfile[]; totalCount: number }> {
   if (!supabase) return { profiles: [], totalCount: 0 };
   try {
-    // Run data fetch and exact count in parallel.
-    // Data query uses the original proven-working form (no count option).
-    // Count query uses HEAD-only request (lightweight, fault-tolerant).
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .order("last_login_at", { ascending: false })
+      .limit(300);
+
     const countPromise = Promise.resolve(
       supabase
         .from("profiles")
@@ -127,46 +130,66 @@ export async function getAllProfilesSupabase(): Promise<{ profiles: UserProfile[
       .then((r) => r.count)
       .catch(() => null as number | null);
 
-    const [dataResult, countResult] = await Promise.all([
-      supabase
-        .from("profiles")
-        .select("*")
-        .order("last_login_at", { ascending: false })
-        .limit(300),
-      countPromise,
-    ]);
+    const countResult = await countPromise;
 
-    const { data, error } = dataResult;
-    if (error || !data) return { profiles: [], totalCount: 0 };
+    console.log("[AdminMembers] Supabase result", {
+      dataLength: data?.length,
+      count: countResult,
+      error,
+    });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const profiles = (data as any[]).map((d) => ({
-      uid: d.id,
-      email: d.email || "",
-      displayName: d.display_name || "Thành viên",
-      photoURL: d.photo_url || d.custom_avatar || "",
-      customAvatar: d.custom_avatar,
-      bio: d.bio,
-      favoriteGenres: d.favorite_genres || [],
-      badges: d.badges || [],
-      watchTimeMinutes: d.watch_time_minutes || 0,
-      role: (d.role as "admin" | "member") || "member",
-      isCommentRestricted: Boolean(d.is_comment_restricted),
-      violationsCount: d.violations_count || 0,
-      lastViolationReason: d.last_violation_reason,
-      createdAt: d.created_at,
-      lastLoginAt: d.last_login_at,
-    }));
+    if (!error && data) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const profiles = (data as any[]).map((d) => ({
+        uid: d.id,
+        email: d.email || "",
+        displayName: d.display_name || "Thành viên",
+        photoURL: d.photo_url || d.custom_avatar || "",
+        customAvatar: d.custom_avatar,
+        bio: d.bio,
+        favoriteGenres: d.favorite_genres || [],
+        badges: d.badges || [],
+        watchTimeMinutes: d.watch_time_minutes || 0,
+        role: (d.role as "admin" | "member") || "member",
+        isCommentRestricted: Boolean(d.is_comment_restricted),
+        violationsCount: d.violations_count || 0,
+        lastViolationReason: d.last_violation_reason,
+        createdAt: d.created_at,
+        lastLoginAt: d.last_login_at,
+      }));
 
-    // Use exact count if available, otherwise fall back to fetched data length
-    const totalCount = (typeof countResult === "number" && countResult >= 0)
-      ? countResult
-      : profiles.length;
+      const totalCount = (typeof countResult === "number" && countResult >= 0)
+        ? countResult
+        : profiles.length;
 
-    return { profiles, totalCount };
-  } catch {
-    return { profiles: [], totalCount: 0 };
+      return { profiles, totalCount };
+    }
+
+    // Fallback: When direct client-side Supabase anon query is denied by RLS (e.g. 42501 permission denied), fetch via server API endpoint
+    try {
+      const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
+      const res = await fetch(`${baseUrl}/api/user/profile?all=true`, { cache: "no-store" });
+      if (res.ok) {
+        const apiRes = await res.json();
+        if (apiRes.success && Array.isArray(apiRes.profiles)) {
+          console.log("[AdminMembers] API Fallback result", {
+            dataLength: apiRes.profiles.length,
+            count: apiRes.totalCount,
+          });
+          return {
+            profiles: apiRes.profiles,
+            totalCount: typeof apiRes.totalCount === "number" ? apiRes.totalCount : apiRes.profiles.length,
+          };
+        }
+      }
+    } catch (apiErr) {
+      console.warn("[AdminMembers] API Fallback failed:", apiErr);
+    }
+  } catch (err) {
+    console.error("[AdminMembers] Exception in getAllProfilesSupabase:", err);
   }
+
+  return { profiles: [], totalCount: 0 };
 }
 
 export async function updateUserProfileSupabase(

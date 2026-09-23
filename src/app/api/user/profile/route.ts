@@ -18,6 +18,49 @@ export async function GET(req: NextRequest) {
   }
 
   const { searchParams } = new URL(req.url);
+
+  if (searchParams.get("all") === "true") {
+    try {
+      const { data, count, error } = await supabase
+        .from("profiles")
+        .select("*", { count: "exact" })
+        .order("last_login_at", { ascending: false })
+        .limit(300);
+
+      if (error) {
+        return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const profiles = (data as any[] || []).map((d) => ({
+        uid: d.id,
+        email: d.email || "",
+        displayName: d.display_name || "Thành viên",
+        photoURL: d.photo_url || d.custom_avatar || "",
+        customAvatar: d.custom_avatar,
+        bio: d.bio,
+        favoriteGenres: d.favorite_genres || [],
+        badges: d.badges || [],
+        watchTimeMinutes: d.watch_time_minutes || 0,
+        role: (d.role as "admin" | "member") || "member",
+        isCommentRestricted: Boolean(d.is_comment_restricted),
+        violationsCount: d.violations_count || 0,
+        lastViolationReason: d.last_violation_reason,
+        createdAt: d.created_at,
+        lastLoginAt: d.last_login_at,
+      }));
+
+      return NextResponse.json({
+        success: true,
+        profiles,
+        totalCount: typeof count === "number" ? count : profiles.length,
+      });
+    } catch (err) {
+      console.error("[Profile API GET ALL] Error:", err);
+      return NextResponse.json({ success: false, error: "Internal error" }, { status: 500 });
+    }
+  }
+
   const targetUserId = searchParams.get("userId");
 
   let uid = targetUserId;

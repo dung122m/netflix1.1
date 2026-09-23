@@ -286,6 +286,10 @@ export function subscribeAllUsers(
     if (isSupabaseConfigured()) {
       try {
         const result = await getAllProfilesSupabase();
+        console.log("[AdminMembers] subscribeAllUsers", {
+          profilesLength: result.profiles.length,
+          totalCount: result.totalCount,
+        });
         if (!isUnsubscribed) {
           onUpdate(result.profiles, result.totalCount);
         }
