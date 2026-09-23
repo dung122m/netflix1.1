@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getTmdbRankedMovies, TmdbRankType } from "@/services/tmdbService";
 
-export const revalidate = 3600; // Cache 1 giờ trên CDN
+export const revalidate = 21600; // Cache 6 giờ trên CDN
 export const maxDuration = 10;
 
-// In-memory cache trên server (30 phút)
+// In-memory cache trên server (6 giờ)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const SERVER_CACHE = new Map<string, { data: any; expireAt: number }>();
-const CACHE_TTL = 30 * 60 * 1000;
+const CACHE_TTL = 6 * 60 * 60 * 1000;
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
       SERVER_CACHE.set(cacheKey, { data: responseData, expireAt: Date.now() + CACHE_TTL });
       return NextResponse.json(responseData, {
         headers: {
-          "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
+          "Cache-Control": "public, s-maxage=21600, stale-while-revalidate=43200",
         },
       });
     }

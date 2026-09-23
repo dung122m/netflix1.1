@@ -20,12 +20,17 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    const { searchParams } = new URL(req.url);
+    const targetUserId = (auth.isAdmin && searchParams.get("userId"))
+      ? searchParams.get("userId")!
+      : auth.userId;
+
     const { data, error } = await supabase
       .from("watch_history")
       .select("*")
-      .eq("user_id", auth.userId)
+      .eq("user_id", targetUserId)
       .order("updated_at", { ascending: false })
-      .limit(50);
+      .limit(100);
 
     if (error) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });

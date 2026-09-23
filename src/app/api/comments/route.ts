@@ -12,8 +12,6 @@ import {
   togglePinCommentSupabase,
   updateCommentSupabase,
   deleteCommentSupabase,
-  getUserProfileSupabase,
-  createNotificationSupabase,
 } from "@/services/supabaseService";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { MovieComment } from "@/types/comment";
@@ -124,17 +122,23 @@ export async function POST(req: NextRequest) {
     let userName = auth.displayName || (auth.email ? auth.email.split("@")[0] : "") || "Thành viên Nanaflix";
     let userAvatar = auth.photoUrl || "";
 
-    if (isSupabaseConfigured()) {
+    const supabaseAdmin = getSupabaseAdmin();
+    if (supabaseAdmin) {
       try {
-        const profile = await getUserProfileSupabase(userId);
-        if (profile?.isCommentRestricted) {
+        const { data: profile } = await supabaseAdmin
+          .from("profiles")
+          .select("is_comment_restricted, display_name, photo_url, custom_avatar")
+          .eq("id", userId)
+          .maybeSingle();
+
+        if (profile?.is_comment_restricted) {
           return NextResponse.json(
             { error: "Tài khoản của bạn tạm thời bị khóa tính năng bình luận do vi phạm tiêu chuẩn cộng đồng!" },
             { status: 403 }
           );
         }
-        if (profile?.displayName) userName = profile.displayName;
-        if (profile?.photoURL) userAvatar = profile.photoURL;
+        if (profile?.display_name) userName = profile.display_name;
+        if (profile?.custom_avatar || profile?.photo_url) userAvatar = profile.custom_avatar || profile.photo_url;
       } catch {
         // Sử dụng tên/avatar từ Firebase token
       }
@@ -162,26 +166,28 @@ export async function POST(req: NextRequest) {
           replyToUserName: replyToUserName ? sanitizeSafeText(replyToUserName, 100) : undefined,
         });
 
-        // Tạo thông báo phản hồi hợp lệ ở phía server
+        // Tạo thông báo phản hồi hợp lệ ở phía server qua supabaseAdmin
         const targetUserId = replyToUserId || (parentOwnerId && parentOwnerId !== userId ? parentOwnerId : null);
-        if (targetUserId && targetUserId !== userId) {
+        if (targetUserId && targetUserId !== userId && supabaseAdmin) {
           const isDirect = Boolean(replyToUserId);
-          await createNotificationSupabase({
-            id: `notif_reply_${commentId}_${targetUserId}`,
-            userId: targetUserId,
-            type: "comment_reply",
-            title: isDirect
-              ? `${userName} đã trả lời bình luận của bạn`
-              : `${userName} đã bình luận trong bài đánh giá của bạn`,
-            message: content.length > 80 ? content.slice(0, 80) + "..." : content,
-            link: `/movies/${movieSlug}?highlightComment=${commentId}#comment-${commentId}`,
-            movieSlug,
-            commentId,
-            replierName: userName,
-            replierAvatar: userAvatar,
-            isRead: false,
-            createdAt: Date.now(),
-          }).catch(() => {});
+          try {
+            await supabaseAdmin.from("notifications").upsert({
+              id: `notif_reply_${commentId}_${targetUserId}`,
+              user_id: targetUserId,
+              type: "comment_reply",
+              title: isDirect
+                ? `${userName} đã trả lời bình luận của bạn`
+                : `${userName} đã bình luận trong bài đánh giá của bạn`,
+              message: content.length > 80 ? content.slice(0, 80) + "..." : content,
+              link: `/movies/${movieSlug}?highlightComment=${commentId}#comment-${commentId}`,
+              movie_slug: movieSlug,
+              comment_id: commentId,
+              replier_name: userName,
+              replier_avatar: userAvatar,
+              is_read: false,
+              created_at: Date.now(),
+            }, { onConflict: "id" });
+          } catch {}
         }
       } catch (supaErr) {
         console.warn("Lỗi lưu Supabase trong API POST:", supaErr);
@@ -255,7 +261,7 @@ export async function PATCH(req: NextRequest) {
       const auth = await verifyServerAuth(req);
       const effectiveUserId = auth.isAuthenticated && auth.userId ? auth.userId : userId;
       if (isSupabaseConfigured() && effectiveUserId) {
-        const { setCommentReactionSupabase, createNotificationSupabase, getUserProfileSupabase } = await import("@/services/supabaseService");
+        const { setCommentReactionSupabase } = await import("@/services/supabaseService");
         await setCommentReactionSupabase(commentId, effectiveUserId, reactionType || null);
 
         // Tạo thông báo reaction an toàn (chỉ khi thêm reaction và người thả khác chủ bình luận)
@@ -273,9 +279,14 @@ export async function PATCH(req: NextRequest) {
                 let reactorName = auth.displayName || "Một thành viên";
                 let reactorAvatar = auth.photoUrl || "";
                 try {
-                  const profile = await getUserProfileSupabase(effectiveUserId);
-                  if (profile?.displayName) reactorName = profile.displayName;
-                  if (profile?.photoURL) reactorAvatar = profile.photoURL;
+                  const { data: profile } = await supabaseAdmin
+                    .from("profiles")
+                    .select("display_name, photo_url, custom_avatar")
+                    .eq("id", effectiveUserId)
+                    .maybeSingle();
+
+                  if (profile?.display_name) reactorName = profile.display_name;
+                  if (profile?.custom_avatar || profile?.photo_url) reactorAvatar = profile.custom_avatar || profile.photo_url;
                 } catch {}
 
                 const emojiMap: Record<string, string> = {
@@ -305,20 +316,22 @@ export async function PATCH(req: NextRequest) {
                   ? (cmt.content || "").slice(0, 80) + "..."
                   : cmt.content || "";
 
-                await createNotificationSupabase({
-                  id: `react_${commentId}_${cmt.user_id}`,
-                  userId: cmt.user_id,
-                  type: "comment_reaction",
-                  title: notifTitle,
-                  message: msgSnippet,
-                  link: `/movies/${cmt.movie_slug}?highlightComment=${commentId}#comment-${commentId}`,
-                  movieSlug: cmt.movie_slug,
-                  commentId,
-                  replierName: reactorName,
-                  replierAvatar: reactorAvatar,
-                  isRead: false,
-                  createdAt: Date.now(),
-                }).catch(() => {});
+                try {
+                  await supabaseAdmin.from("notifications").upsert({
+                    id: `react_${commentId}_${cmt.user_id}`,
+                    user_id: cmt.user_id,
+                    type: "comment_reaction",
+                    title: notifTitle,
+                    message: msgSnippet,
+                    link: `/movies/${cmt.movie_slug}?highlightComment=${commentId}#comment-${commentId}`,
+                    movie_slug: cmt.movie_slug,
+                    comment_id: commentId,
+                    replier_name: reactorName,
+                    replier_avatar: reactorAvatar,
+                    is_read: false,
+                    created_at: Date.now(),
+                  }, { onConflict: "id" });
+                } catch {}
               }
             }
           } catch (notifErr) {

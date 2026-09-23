@@ -1,5 +1,6 @@
 import { Redis } from "@upstash/redis";
 import { supabase } from "@/lib/supabase";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { cacheService } from "@/lib/cache";
 import { AnalyticsEventPayload } from "@/lib/analyticsClient";
 
@@ -105,6 +106,15 @@ function getRedis(): Redis | null {
 const memoryEventsBuffer: StoredAnalyticsEvent[] = [];
 const memoryVisitorsMap = new Map<string, VisitorInfo>();
 
+const ALLOWED_CORE_EVENT_TYPES = new Set<string>([
+  "site_visit",
+  "movie_view",
+  "watch_start",
+  "watch_progress",
+  "watch_end",
+  "search",
+]);
+
 /**
  * Record an analytics event with 30-min movie_view deduplication
  */
@@ -112,6 +122,10 @@ export async function recordAnalyticsEvent(payload: AnalyticsEventPayload): Prom
   success: boolean;
   deduped?: boolean;
 }> {
+  if (!ALLOWED_CORE_EVENT_TYPES.has(payload.eventType)) {
+    return { success: true, deduped: false };
+  }
+
   const now = payload.timestamp || Date.now();
   const anonymousId = payload.anonymousId || "anon_unknown";
   const userId = payload.userId?.trim() || undefined;
@@ -363,9 +377,10 @@ export async function getAnalyticsDashboardStats(
 
       // D: Supabase device_handoff (independent of analytics_events)
       (async () => {
-        if (!supabase) return { data: null, error: null };
+        const client = getSupabaseAdmin() || supabase;
+        if (!client) return { data: null, error: null };
         try {
-          return await supabase
+          return await client
             .from("device_handoff")
             .select("*")
             .order("updated_at", { ascending: false })
@@ -633,8 +648,9 @@ export async function getAnalyticsDashboardStats(
       const profileMap = new Map<string, { name: string; avatar?: string; email?: string }>();
 
       // Profiles query is sequential here by necessity: we need handoff user IDs first
-      if (userIds.length > 0 && supabase) {
-        const { data: profiles } = await supabase
+      const adminClient = getSupabaseAdmin() || supabase;
+      if (userIds.length > 0 && adminClient) {
+        const { data: profiles } = await adminClient
           .from("profiles")
           .select("id, display_name, photo_url, custom_avatar, email")
           .in("id", userIds);

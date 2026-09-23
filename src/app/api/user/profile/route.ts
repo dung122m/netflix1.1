@@ -61,6 +61,41 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  if (searchParams.get("leaderboard") === "true") {
+    try {
+      const rawLimit = Number(searchParams.get("limit")) || 10;
+      const limit = Math.min(Math.max(1, rawLimit), 50);
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, display_name, photo_url, custom_avatar, badges, watch_time_minutes")
+        .order("watch_time_minutes", { ascending: false })
+        .limit(limit);
+
+      if (error) {
+        return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const leaderboard = (data as any[] || []).map((d) => ({
+        uid: d.id,
+        displayName: d.display_name || "Thành viên",
+        photoURL: d.photo_url || d.custom_avatar || "",
+        customAvatar: d.custom_avatar,
+        badges: d.badges || [],
+        watchTimeMinutes: d.watch_time_minutes || 0,
+      }));
+
+      return NextResponse.json({
+        success: true,
+        leaderboard,
+      });
+    } catch (err) {
+      console.error("[Profile API GET Leaderboard] Error:", err);
+      return NextResponse.json({ success: false, error: "Internal error" }, { status: 500 });
+    }
+  }
+
   const targetUserId = searchParams.get("userId");
 
   let uid = targetUserId;
@@ -192,3 +227,53 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, error: "Internal error" }, { status: 500 });
   }
 }
+
+/**
+ * PATCH /api/user/profile
+ * Cập nhật một số trường hồ sơ (Khóa bình luận cho Admin, hoặc cập nhật thông tin cá nhân)
+ */
+export async function PATCH(req: NextRequest) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) {
+    return NextResponse.json({ success: false, error: "Database not configured" }, { status: 500 });
+  }
+
+  const auth = await verifyServerAuth(req);
+  if (!auth.isAuthenticated || !auth.userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const body = await req.json();
+    const targetUserId = (auth.isAdmin && body.userId) ? body.userId : auth.userId;
+    const now = Date.now();
+
+    const updates: Record<string, unknown> = {
+      updated_at: now,
+    };
+
+    if (auth.isAdmin && body.isCommentRestricted !== undefined) {
+      updates.is_comment_restricted = Boolean(body.isCommentRestricted);
+      if (body.reason) updates.last_violation_reason = sanitizeSafeText(body.reason, 200);
+    }
+
+    if (body.displayName !== undefined) updates.display_name = sanitizeSafeText(body.displayName, 100);
+    if (body.photoURL !== undefined) updates.photo_url = body.photoURL;
+    if (body.customAvatar !== undefined) updates.custom_avatar = body.customAvatar;
+    if (body.bio !== undefined) updates.bio = sanitizeSafeText(body.bio, 500);
+    if (body.favoriteGenres !== undefined) updates.favorite_genres = body.favoriteGenres;
+    if (body.badges !== undefined) updates.badges = body.badges;
+    if (body.watchTimeMinutes !== undefined) updates.watch_time_minutes = Math.max(0, Number(body.watchTimeMinutes) || 0);
+
+    const { error } = await supabase.from("profiles").update(updates).eq("id", targetUserId);
+    if (error) {
+      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, updates });
+  } catch (err) {
+    console.error("[Profile API PATCH] Error:", err);
+    return NextResponse.json({ success: false, error: "Internal error" }, { status: 500 });
+  }
+}
+

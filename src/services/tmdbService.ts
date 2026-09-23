@@ -855,7 +855,7 @@ export async function getTmdbRankedMovies(
   return await cacheService.fetchOrSet(
     kvKey,
     () => executeTmdbRankingQuery(type, cacheKey, limit, concurrency),
-    4 * 3600 // 4 giờ trên Cloudflare KV
+    12 * 3600 // 12 giờ trên Cloudflare KV / Redis
   );
 }
 
@@ -876,11 +876,11 @@ async function executeTmdbRankingQuery(
 ): Promise<any[]> {
   try {
     let endpoint = `/trending/movie/week?language=vi-VN`;
-    let revalidateTime = 3600; // 1 giờ cho trending tuần
+    let revalidateTime = 21600; // 6 giờ cho trending tuần
 
     if (type === "month") {
       endpoint = `/movie/popular?language=vi-VN`;
-      revalidateTime = 7200; // 2 giờ cho popular tháng
+      revalidateTime = 21600; // 6 giờ cho popular tháng
     } else if (type === "top_rated") {
       endpoint = `/movie/top_rated?language=vi-VN`;
       revalidateTime = 86400; // 24 giờ cho top rated
@@ -914,8 +914,8 @@ async function executeTmdbRankingQuery(
     const now = Date.now();
     TMDB_TRENDING_MOVIES_CACHE.set(cacheKey, {
       data: matchedMovies,
-      expireAt: now + (type === "top_rated" ? 6 * 3600 * 1000 : 2 * 3600 * 1000), // 2h-6h tươi
-      staleUntil: now + (type === "top_rated" ? 48 * 3600 * 1000 : 12 * 3600 * 1000), // 12h-48h stale
+      expireAt: now + 6 * 3600 * 1000, // 6h tươi
+      staleUntil: now + 24 * 3600 * 1000, // 24h stale
     });
 
     return matchedMovies.slice(0, limit);

@@ -342,10 +342,32 @@ export async function setUserCommentRestriction(
 }
 
 /**
- * Lấy lịch sử xem phim của 1 người dùng cụ thể từ Supabase
+ * Lấy lịch sử xem phim của 1 người dùng cụ thể từ Supabase qua Server API
  */
 export async function getUserCloudWatchHistory(userId: string): Promise<WatchHistoryItem[]> {
   if (!userId) return [];
+
+  try {
+    const { auth } = await import("@/lib/firebase");
+    const token = await auth?.currentUser?.getIdToken();
+    if (token) {
+      const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
+      const res = await fetch(`${baseUrl}/api/user/history?userId=${encodeURIComponent(userId)}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        cache: "no-store",
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.items)) {
+          return data.items;
+        }
+      }
+    }
+  } catch (err) {
+    console.warn("Lỗi lấy lịch sử xem qua API:", err);
+  }
 
   if (isSupabaseConfigured()) {
     try {
@@ -357,10 +379,32 @@ export async function getUserCloudWatchHistory(userId: string): Promise<WatchHis
 }
 
 /**
- * Lấy danh sách phim yêu thích (Watchlist) của 1 người dùng từ Supabase
+ * Lấy danh sách phim yêu thích (Watchlist) của 1 người dùng từ Supabase qua Server API
  */
 export async function getUserCloudWatchlist(userId: string): Promise<WatchlistItem[]> {
   if (!userId) return [];
+
+  try {
+    const { auth } = await import("@/lib/firebase");
+    const token = await auth?.currentUser?.getIdToken();
+    if (token) {
+      const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
+      const res = await fetch(`${baseUrl}/api/user/watchlist?userId=${encodeURIComponent(userId)}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        cache: "no-store",
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.items)) {
+          return data.items;
+        }
+      }
+    }
+  } catch (err) {
+    console.warn("Lỗi lấy danh sách yêu thích qua API:", err);
+  }
 
   if (isSupabaseConfigured()) {
     try {

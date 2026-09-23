@@ -20,10 +20,15 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    const { searchParams } = new URL(req.url);
+    const targetUserId = (auth.isAdmin && searchParams.get("userId"))
+      ? searchParams.get("userId")!
+      : auth.userId;
+
     const { data, error } = await supabase
       .from("watchlist")
       .select("*")
-      .eq("user_id", auth.userId)
+      .eq("user_id", targetUserId)
       .order("added_at", { ascending: false });
 
     if (error) {

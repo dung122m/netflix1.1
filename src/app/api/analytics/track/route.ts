@@ -5,6 +5,16 @@ import { verifyServerAuth } from "@/lib/serverAuth";
 
 export const maxDuration = 10;
 
+// Các event cốt lõi phục vụ Admin Dashboard (lượt truy cập, xem phim, thời gian xem, tìm kiếm)
+const CORE_ANALYTICS_EVENT_TYPES = new Set<string>([
+  "site_visit",
+  "movie_view",
+  "watch_start",
+  "watch_progress",
+  "watch_end",
+  "search",
+]);
+
 export async function POST(req: NextRequest) {
   try {
     let body: Partial<AnalyticsEventPayload> = {};
@@ -19,6 +29,11 @@ export async function POST(req: NextRequest) {
 
     if (!body || !body.eventType) {
       return NextResponse.json({ success: false, error: "Missing eventType" }, { status: 400 });
+    }
+
+    // Bỏ qua các event vi mô/UI interaction không dùng để tiết kiệm quota DB & Redis
+    if (!CORE_ANALYTICS_EVENT_TYPES.has(body.eventType)) {
+      return NextResponse.json({ success: true, ignored: true });
     }
 
     // 1. Server-controlled Timestamp (Do not trust client timestamp)

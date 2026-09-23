@@ -4,6 +4,7 @@ import { sanitizeImageUrl } from "@/lib/movieMedia";
 import { searchMoviesBySemantic } from "@/services/aiVectorService";
 import { generateFastAiChat } from "@/services/aiProviderService";
 import { checkRateLimit, getClientIp } from "@/lib/security";
+import { cacheService } from "@/lib/cache";
 
 export const maxDuration = 15;
 
@@ -1048,6 +1049,22 @@ export async function POST(req: NextRequest) {
       return allExclusions.includes(clean);
     };
 
+    // 2. Kiểm tra Cache tầng CacheService (1-2 giờ) cho cùng bộ tiêu chí
+    const recentExclusionTag = allExclusions.slice(-5).sort().join(",");
+    const rouletteCacheKey = `ai:roulette:${mood}:${country}:${companion}:${duration}:${surprise}:${recentExclusionTag}`;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const cachedResult = await cacheService.get<any>(rouletteCacheKey);
+      if (cachedResult && cachedResult.movie?.slug && !isExcluded(cachedResult.movie.slug)) {
+        return NextResponse.json({
+          ...cachedResult,
+          cached: true,
+        });
+      }
+    } catch {
+      // Cache miss hoặc kết nối cache lỗi: tiếp tục xử lý bình thường
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let foundMovie: any = null;
     let finalPunchline = "";
@@ -1153,9 +1170,9 @@ export async function POST(req: NextRequest) {
       console.warn("[ai-roulette] Vector search phase skipped:", vErr);
     }
 
-    // 3. BỔ SUNG TỪ FAST AI HYBRID (CHỈ GỌI KHI CẦN THÊM HOẶC PHÙ HỢP SURPRISE)
-    // Nếu candidate pool hiện tại còn mỏng (< 8 phim) hoặc user cần gợi ý thông minh
-    if (candidateMap.size < 12) {
+    // 3. BỔ SUNG TỪ FAST AI HYBRID (CHỈ GỌI KHI CẦN THÊM HOẶC THIẾU ỨNG VIÊN)
+    // Nếu candidate pool hiện tại còn mỏng (< 6 phim) thì mới gọi AI để tiết kiệm quota
+    if (candidateMap.size < 6) {
       try {
         const countryConstraint =
           country !== "all"
@@ -1370,6 +1387,9 @@ Trả về DUY NHẤT một chuỗi JSON hợp lệ:
       matchScore: Math.min(99, Math.max(92, finalMatchScore)),
       provider,
     };
+
+    // Lưu cache 1 giờ để giảm thiểu lượt gọi LLM lặp lại
+    cacheService.set(rouletteCacheKey, payload, 3600).catch(() => {});
 
     return NextResponse.json(payload);
   } catch (error) {

@@ -41,7 +41,7 @@ export interface TmdbTrendingMovieItem {
 type TmdbTab = "week" | "month" | "top_rated";
 
 const TMDB_RANKING_CACHE_KEY = "nanaflix_tmdb_ranking_cache_v2";
-const FRESH_REVALIDATE_TTL = 5 * 60 * 1000; // 5 phút: Nếu cache dưới 5 phút, không cần revalidate ngầm
+const FRESH_REVALIDATE_TTL = 6 * 60 * 60 * 1000; // 6 giờ: Tránh fetch TMDB lặp lại khi tải trang chủ
 
 const TAB_CONFIG: Record<
   TmdbTab,
