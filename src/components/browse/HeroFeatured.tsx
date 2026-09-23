@@ -108,7 +108,10 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
   // Ghi lại thời điểm slide bắt đầu để tính thời gian còn lại khi fallback
   const slideStartTimeRef = useRef<number>(Date.now());
 
+  const [isMounted, setIsMounted] = useState(false);
+
   useEffect(() => {
+    setIsMounted(true);
     if (typeof window !== "undefined") {
       const handleResize = () => {
         setIsMobile(window.innerWidth <= 768);
@@ -517,25 +520,8 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
     >
       {/* 1. HÌNH NỀN HERO BANNER TOÀN MÀN HÌNH VỚI HIỆU ỨNG CHUYỂN SLIDE MƯỢT MÀ */}
       <div className="absolute inset-0">
-        <AnimatePresence initial={false} custom={direction} mode="wait">
-          <motion.div
-            key={index}
-            custom={direction}
-            variants={slideVariants}
-            initial={index === 0 ? false : "enter"}
-            animate="center"
-            exit="exit"
-            transition={{
-              x: { type: "spring", stiffness: 115, damping: 22, mass: 0.75 },
-              opacity: { duration: 0.45, ease: "easeOut" },
-              scale: { duration: 0.75, ease: "easeOut" },
-            }}
-            drag={slides.length > 1 ? "x" : false}
-            dragElastic={0.08}
-            dragConstraints={{ left: 0, right: 0 }}
-            onDragEnd={onDragEnd}
-            className="absolute inset-0 will-change-transform"
-          >
+        {!isMounted ? (
+          <div className="absolute inset-0">
             {!isHeroImageLoaded && (
               <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-zinc-950 to-black animate-pulse pointer-events-none" />
             )}
@@ -558,8 +544,52 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
                 }
               }}
             />
-          </motion.div>
-        </AnimatePresence>
+          </div>
+        ) : (
+          <AnimatePresence initial={false} custom={direction} mode="wait">
+            <motion.div
+              key={index}
+              custom={direction}
+              variants={slideVariants}
+              initial={index === 0 ? false : "enter"}
+              animate="center"
+              exit="exit"
+              transition={{
+                x: { type: "spring", stiffness: 115, damping: 22, mass: 0.75 },
+                opacity: { duration: 0.45, ease: "easeOut" },
+                scale: { duration: 0.75, ease: "easeOut" },
+              }}
+              drag={slides.length > 1 ? "x" : false}
+              dragElastic={0.08}
+              dragConstraints={{ left: 0, right: 0 }}
+              onDragEnd={onDragEnd}
+              className="absolute inset-0 will-change-transform"
+            >
+              {!isHeroImageLoaded && (
+                <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-zinc-950 to-black animate-pulse pointer-events-none" />
+              )}
+              <Image
+                src={heroImageSrc}
+                alt={title}
+                fill
+                priority={index === 0}
+                quality={85}
+                unoptimized
+                sizes="100vw"
+                className={`object-cover object-[center_25%] transition-opacity duration-500 ${
+                  isHeroImageLoaded ? "opacity-100" : "opacity-0"
+                }`}
+                onLoad={() => setIsHeroImageLoaded(true)}
+                onError={() => {
+                  setIsHeroImageLoaded(false);
+                  if (currentSlug && !failedHeroImages[currentSlug]) {
+                    setFailedHeroImages((prev) => ({ ...prev, [currentSlug]: true }));
+                  }
+                }}
+              />
+            </motion.div>
+          </AnimatePresence>
+        )}
       </div>
 
       {/* 1.1 TRAILER CHẠY NỀN TRÊN DESKTOP (LAZY-LOAD SAU 2S, TỰ ĐỘNG PHÁT MUTED, FADE-IN PHÍA TRÊN POSTER) */}

@@ -639,27 +639,27 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         {/* 1. GÓC TRÊN TRÁI: DÀNH CHO LOẠI PHIM (PHIM BỘ, PHIM LẺ, PHIM RẠP, HOẠT HÌNH) */}
         <div className="absolute top-2 left-2 sm:top-2.5 sm:left-2.5 z-10 flex items-center gap-1 sm:gap-1.5">
           {chieurap ? (
-            <div className="flex items-center gap-0.5 sm:gap-1 bg-gradient-to-r from-amber-600 to-orange-500 text-white font-black px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg text-[9px] sm:text-[10px] uppercase tracking-wider backdrop-blur-md shadow-md border border-amber-400/40">
+            <div className="flex items-center gap-0.5 sm:gap-1 bg-gradient-to-r from-amber-600 to-orange-500 text-white font-black px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg text-[9px] sm:text-[10px] uppercase tracking-wider shadow-md border border-amber-400/40">
               <span>🎬 Phim Rạp</span>
             </div>
           ) : sub_docquyen ? (
-            <div className="flex items-center gap-0.5 sm:gap-1 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg text-[9px] sm:text-[10px] uppercase tracking-wider backdrop-blur-md shadow-md border border-purple-400/40">
+            <div className="flex items-center gap-0.5 sm:gap-1 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg text-[9px] sm:text-[10px] uppercase tracking-wider shadow-md border border-purple-400/40">
               <span>💎 Độc Quyền</span>
             </div>
           ) : displayType === "Phim bộ" ? (
-            <div className="flex items-center gap-0.5 sm:gap-1 bg-blue-600/90 text-white font-black px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg text-[9px] sm:text-[10px] uppercase tracking-wider backdrop-blur-md shadow-md border border-blue-400/40">
+            <div className="flex items-center gap-0.5 sm:gap-1 bg-blue-600/90 text-white font-black px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg text-[9px] sm:text-[10px] uppercase tracking-wider shadow-md border border-blue-400/40">
               <span>📺 Phim Bộ</span>
             </div>
           ) : displayType === "Hoạt hình" ? (
-            <div className="flex items-center gap-0.5 sm:gap-1 bg-pink-600/90 text-white font-black px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg text-[9px] sm:text-[10px] uppercase tracking-wider backdrop-blur-md shadow-md border border-pink-400/40">
+            <div className="flex items-center gap-0.5 sm:gap-1 bg-pink-600/90 text-white font-black px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg text-[9px] sm:text-[10px] uppercase tracking-wider shadow-md border border-pink-400/40">
               <span>✨ Hoạt Hình</span>
             </div>
           ) : displayType === "TV Shows" ? (
-            <div className="flex items-center gap-0.5 sm:gap-1 bg-emerald-600/90 text-white font-black px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg text-[9px] sm:text-[10px] uppercase tracking-wider backdrop-blur-md shadow-md border border-emerald-400/40">
+            <div className="flex items-center gap-0.5 sm:gap-1 bg-emerald-600/90 text-white font-black px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg text-[9px] sm:text-[10px] uppercase tracking-wider shadow-md border border-emerald-400/40">
               <span>🎙️ TV Shows</span>
             </div>
           ) : (
-            <div className="flex items-center gap-0.5 sm:gap-1 bg-zinc-900/85 text-gray-200 font-bold px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg text-[9px] sm:text-[10px] uppercase tracking-wider backdrop-blur-md shadow-md border border-white/20">
+            <div className="flex items-center gap-0.5 sm:gap-1 bg-zinc-900/95 text-gray-200 font-bold px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg text-[9px] sm:text-[10px] uppercase tracking-wider shadow-md border border-white/20">
               <span>🎬 Phim Lẻ</span>
             </div>
           )}
@@ -668,13 +668,13 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         {/* 2. GÓC TRÊN PHẢI: LUÔN CỐ ĐỊNH CHO ĐIỂM SAO VÀNG VÀ CHẤT LƯỢNG (FHD) */}
         <div className="absolute top-2 right-2 sm:top-2.5 sm:right-2.5 z-10 flex items-center gap-1 sm:gap-1.5">
           {rating && rating !== "N/A" && Number(rating) > 0 && (
-            <div className="flex items-center gap-0.5 sm:gap-1 bg-black/85 border border-amber-500/40 px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg text-[9.5px] sm:text-[11px] font-extrabold text-amber-400 backdrop-blur-md shadow-md">
+            <div className="flex items-center gap-0.5 sm:gap-1 bg-black/90 border border-amber-500/40 px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg text-[9.5px] sm:text-[11px] font-extrabold text-amber-400 shadow-md">
               <Star className="w-2.5 h-2.5 sm:w-3 sm:h-3 fill-amber-400 text-amber-400" />
               <span>{typeof rating === "number" ? rating.toFixed(1) : rating}</span>
             </div>
           )}
 
-          <span className="bg-black/80 border border-white/20 text-white font-bold text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg backdrop-blur-md shadow-sm">
+          <span className="bg-black/90 border border-white/20 text-white font-bold text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg shadow-sm">
             {quality || "FHD"}
           </span>
         </div>
@@ -682,7 +682,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         {/* 3. LỚP PHỦ THÔNG TIN CHÂN CARD: HIỂN THỊ NĂM, THỜI LƯỢNG/TẬP, TIẾNG (ĐỒNG NHẤT, GỌN GÀNG, CONTRAST CAO) */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/45 sm:via-black/75 to-transparent flex flex-col justify-end p-2.5 sm:p-4">
           {matchSnippet && (
-            <div className="mb-1 flex items-center gap-1 text-[8.5px] sm:text-[9px] text-amber-300 font-bold bg-amber-500/20 border border-amber-500/30 px-1.5 sm:px-2 py-0.5 rounded-md backdrop-blur-md shadow-sm line-clamp-1">
+            <div className="mb-1 flex items-center gap-1 text-[8.5px] sm:text-[9px] text-amber-300 font-bold bg-amber-950/90 border border-amber-500/30 px-1.5 sm:px-2 py-0.5 rounded-md shadow-sm line-clamp-1">
               <span className="flex-none">💬 Khớp tóm tắt:</span>
               <span className="font-normal italic text-amber-200/90 truncate">{matchSnippet}</span>
             </div>
