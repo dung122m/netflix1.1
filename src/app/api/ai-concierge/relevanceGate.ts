@@ -623,9 +623,10 @@ export function isRelevantToQuery(
     return { relevant: false, score: 0, reason: "Không có bằng chứng phù hợp chủ đề" };
   }
 
-  // 6. INTENT = GENRE + COUNTRY (hoặc mixed)
+  // 6. MULTI-CONSTRAINT VALIDATION (GENRE + COUNTRY + YEAR + FORMAT)
   let genreOk = true;
   let countryOk = true;
+  let yearOk = true;
 
   if (options?.targetGenreSlug) {
     genreOk =
@@ -638,34 +639,35 @@ export function isRelevantToQuery(
       matchesCountry(countryStr, options.targetCountrySlug) ||
       matchesCountry(country, options.targetCountrySlug);
   }
-
-  if (options?.targetGenreSlug && options?.targetCountrySlug) {
-    if (!genreOk || !countryOk) {
-      return { relevant: false, score: 0, reason: "Không khớp thể loại hoặc quốc gia" };
-    }
-    return { relevant: true, score: 85, reason: "Khớp chuẩn cả thể loại và quốc gia" };
-  }
-
-  if (options?.targetGenreSlug) {
-    if (!genreOk) return { relevant: false, score: 0, reason: "Không khớp thể loại" };
-    return { relevant: true, score: 85, reason: "Khớp thể loại yêu cầu" };
-  }
-
-  if (options?.targetCountrySlug) {
-    if (!countryOk) return { relevant: false, score: 0, reason: "Không khớp quốc gia" };
-    return { relevant: true, score: 85, reason: "Khớp quốc gia yêu cầu" };
-  }
-
-  // 6.5. INTENT = YEAR (Tìm kiếm theo năm phát hành)
-  if (options?.targetYear || parsedIntent === "year") {
+  if (options?.targetYear) {
     const movieYear = extractMovieYear(movie);
-    const targetY = options?.targetYear;
-    if (targetY && movieYear > 0) {
-      if (movieYear === targetY) {
-        return { relevant: true, score: 85, reason: `Phát hành đúng năm ${targetY}` };
-      }
-      return { relevant: false, score: 0, reason: `Không khớp năm phát hành (yêu cầu ${targetY})` };
+    if (movieYear > 0 && movieYear !== options.targetYear) {
+      yearOk = false;
     }
+  } else if (options?.yearFrom && options?.yearTo) {
+    const movieYear = extractMovieYear(movie);
+    if (movieYear > 0 && (movieYear < options.yearFrom || movieYear > options.yearTo)) {
+      yearOk = false;
+    }
+  }
+
+  // Nếu người dùng có các ràng buộc rõ ràng (Genre, Country, Year), BẮT BUỘC phải thỏa mãn đồng thời
+  if (options?.targetGenreSlug && !genreOk) {
+    return { relevant: false, score: 0, reason: `Không khớp thể loại yêu cầu (${options.targetGenreSlug})` };
+  }
+  if (options?.targetCountrySlug && !countryOk) {
+    return { relevant: false, score: 0, reason: `Không khớp quốc gia yêu cầu (${options.targetCountrySlug})` };
+  }
+  if ((options?.targetYear || (options?.yearFrom && options?.yearTo)) && !yearOk) {
+    return { relevant: false, score: 0, reason: `Không khớp năm phát hành yêu cầu` };
+  }
+
+  if (options?.targetGenreSlug || options?.targetCountrySlug || options?.targetYear) {
+    let matchScore = 75;
+    if (options.targetGenreSlug && genreOk) matchScore += 10;
+    if (options.targetCountrySlug && countryOk) matchScore += 10;
+    if (options.targetYear && yearOk) matchScore += 10;
+    return { relevant: true, score: matchScore, reason: "Thỏa mãn đầy đủ các ràng buộc tìm kiếm" };
   }
 
   // 7. MẶC ĐỊNH / MOOD

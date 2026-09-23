@@ -202,9 +202,15 @@ export const Footer: React.FC = () => {
           <div className="space-y-4">
             <h4 className="text-white font-black text-sm tracking-wider uppercase flex items-center gap-2">
               <Shield className="w-4 h-4 text-emerald-400" />
-              Hỗ Trợ & Bảo Vệ
+              Hỗ Trợ & Dự Án
             </h4>
             <ul className="space-y-2.5 text-xs text-gray-400">
+              <li>
+                <Link href="/about" className="hover:text-white transition flex items-center gap-2 text-zinc-300 hover:text-red-400 font-medium">
+                  <Sparkles size={13} className="text-netflix-red" />
+                  <span>Giới thiệu về Nanaflix</span>
+                </Link>
+              </li>
               <li className="flex items-center gap-2">
                 <LifeBuoy size={13} className="text-gray-500" />
                 <span>Hỗ trợ kỹ thuật 24/7</span>
@@ -256,33 +262,39 @@ export const Footer: React.FC = () => {
         </div>
 
         {/* ============================================================ */}
-        {/* 4. BRANDING & POWERED BY NANA */}
+        {/* 4. BRANDING & CREATED BY DŨNG TRẦN */}
         {/* ============================================================ */}
         <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row items-center gap-3 text-center sm:text-left">
             <span className="text-netflix-red font-black text-2xl tracking-tighter">NANAFLIX</span>
-            <span className="text-xs text-gray-500 border-l border-white/15 pl-3">
+            <span className="text-xs text-gray-500 sm:border-l sm:border-white/15 sm:pl-3">
               Nền tảng xem phim & trực tiếp thể thao điện ảnh đỉnh cao
             </span>
           </div>
 
-          <div className="flex items-center gap-3 group">
+          <Link
+            href="/about"
+            className="flex items-center gap-3.5 px-4 py-2.5 rounded-2xl bg-zinc-900/60 hover:bg-zinc-900 border border-white/10 hover:border-netflix-red/50 transition-all duration-300 group cursor-pointer shadow-sm"
+          >
             <Image
               src="/images/nana-footer.jpg"
-              alt="Nana"
+              alt="Dũng Trần"
               width={44}
               height={44}
-              className="w-10 h-10 rounded-full object-cover border border-zinc-700 group-hover:border-netflix-red group-hover:scale-105 transition-all duration-300 shadow-md"
+              className="w-10 h-10 rounded-full object-cover border-2 border-zinc-700 group-hover:border-netflix-red group-hover:scale-105 transition-all duration-300 shadow-md"
             />
-            <div className="flex flex-col">
-              <span className="text-sm font-extrabold text-zinc-300 group-hover:text-white transition-colors">
-                Powered By Nana
+            <div className="flex flex-col text-left">
+              <span className="text-xs text-gray-300 font-medium">
+                Created & Developed by{" "}
+                <strong className="text-white font-bold group-hover:text-netflix-red transition-colors">
+                  Dũng Trần
+                </strong>
               </span>
               <span className="text-[11px] text-zinc-500">
-                © {new Date().getFullYear()} Nanaflix. All rights reserved.
+                Powered By Nana • © {new Date().getFullYear()} Nanaflix
               </span>
             </div>
-          </div>
+          </Link>
         </div>
       </div>
     </footer>

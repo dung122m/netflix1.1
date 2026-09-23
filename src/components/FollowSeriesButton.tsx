@@ -74,8 +74,8 @@ export function FollowSeriesButton({
             Authorization: `Bearer ${idToken}`,
           },
           body: JSON.stringify({
-            slug: movieSlug,
-            title: movieTitle,
+            movieSlug,
+            movieTitle,
             poster: posterUrl,
           }),
         });

@@ -847,6 +847,8 @@ export async function POST(req: NextRequest) {
           formatAdjustment = -5;
         }
       }
+      score += formatAdjustment;
+
       // 7. FOLLOWED ACTOR BOOST (+18 điểm nếu có sự tham gia của diễn viên yêu thích)
       let actorBonus = 0;
       let matchedActorName = "";

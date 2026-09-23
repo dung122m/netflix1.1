@@ -97,10 +97,10 @@ export async function GET(req: NextRequest) {
   }
 
   const targetUserId = searchParams.get("userId");
+  const auth = await verifyServerAuth(req);
 
   let uid = targetUserId;
   if (!uid) {
-    const auth = await verifyServerAuth(req);
     if (!auth.isAuthenticated || !auth.userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -122,20 +122,22 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: true, profile: null });
     }
 
+    const isSelfOrAdmin = auth.isAuthenticated && (auth.isAdmin || auth.userId === uid);
+
     const profile = {
       uid: data.id,
-      email: data.email,
-      displayName: data.display_name,
-      photoURL: data.photo_url,
+      email: isSelfOrAdmin ? (data.email || "") : "",
+      displayName: data.display_name || "Thành viên",
+      photoURL: data.photo_url || data.custom_avatar || "",
       customAvatar: data.custom_avatar,
       bio: data.bio,
       favoriteGenres: data.favorite_genres || [],
       badges: data.badges || [],
-      playerSettings: data.player_settings || {},
+      playerSettings: isSelfOrAdmin ? (data.player_settings || {}) : {},
       watchTimeMinutes: data.watch_time_minutes || 0,
       role: data.role || "member",
-      isCommentRestricted: Boolean(data.is_comment_restricted),
-      violationsCount: data.violations_count || 0,
+      isCommentRestricted: isSelfOrAdmin ? Boolean(data.is_comment_restricted) : false,
+      violationsCount: isSelfOrAdmin ? (data.violations_count || 0) : 0,
       createdAt: Number(data.created_at) || Date.now(),
       lastLoginAt: Number(data.last_login_at) || Date.now(),
       updatedAt: Number(data.updated_at) || Date.now(),

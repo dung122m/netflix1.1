@@ -13,6 +13,7 @@ import {
   History,
   Bell,
   ChevronRight,
+  Info,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { isUserAdmin } from "@/lib/adminConfig";
@@ -314,8 +315,19 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
           })}
         </div>
 
-        {/* THEME SWITCHER */}
-        <div className="border-t border-white/10 pt-2 mt-1">
+        {/* ABOUT NANAFLIX & THEME SWITCHER */}
+        <div className="border-t border-white/10 pt-2 mt-1 flex flex-col gap-2">
+          <Link
+            href="/about"
+            onClick={onClose}
+            className="text-xs font-semibold py-2 px-3 text-zinc-300 hover:text-white flex items-center justify-between rounded-xl bg-white/[0.03] hover:bg-white/10 border border-white/5 transition"
+          >
+            <div className="flex items-center gap-2.5">
+              <Info size={14} className="text-cyan-400" />
+              <span>Giới thiệu về Nanaflix (About)</span>
+            </div>
+            <ChevronRight size={14} className="text-gray-500" />
+          </Link>
           <ThemeSwitcher isMobileInline={true} />
         </div>
       </div>

@@ -31,32 +31,37 @@ export const GENRE_SLUG_MAP: Record<string, string[]> = {
   "hanh-dong": [
     "hanh-dong", "hanh dong", "hành động", "hanh dong giat gan", "hành động giật gân",
     "giat gan", "giật gân", "action", "thriller", "ban sung", "bắn súng", "truy duoi",
-    "truy đuổi", "cuop", "cướp", "cuop ngan hang", "cướp ngân hàng", "heist"
+    "truy đuổi", "cuop", "cướp", "cuop ngan hang", "cướp ngân hàng", "heist", "dac nhiem", "đặc nhiệm"
   ],
   "kinh-di": [
     "kinh-di", "kinh di", "kinh dị", "horror", "ma", "ma quai", "ma quái",
-    "rung ron", "rùng rợn", "am anh", "ám ảnh", "quy", "quỷ", "tam linh", "tâm linh"
+    "rung ron", "rùng rợn", "am anh", "ám ảnh", "quy", "quỷ", "tam linh", "tâm linh",
+    "phim ma", "kinh hoang", "kinh hoàng", "slasher", "ac quy", "ác quỷ"
   ],
-  "hai-huoc": ["hai-huoc", "hai huoc", "hài hước", "hai", "hài", "comedy", "vui nhon", "vui nhộn", "cuoi", "cười"],
+  "hai-huoc": ["hai-huoc", "hai huoc", "hài hước", "hai", "hài", "comedy", "vui nhon", "vui nhộn", "cuoi", "cười", "gay cuoi", "gây cười", "hai kich", "hài kịch"],
   "tinh-cam": [
     "tinh-cam", "tinh cam", "tình cảm", "lang man", "lãng mạn", "romance",
     "tinh yeu", "tình yêu", "ngon tinh", "ngôn tình", "chua lanh", "chữa lành",
-    "dong que", "đồng quê", "slice of life"
+    "dong que", "đồng quê", "slice of life", "yeu duong", "yêu đương", "hen ho", "hẹn hò", "tình duyên", "tinh duyen"
   ],
-  "hoat-hinh": ["hoat-hinh", "hoat hinh", "hoạt hình", "anime", "animation", "manga"],
+  "hoat-hinh": ["hoat-hinh", "hoat hinh", "hoạt hình", "anime", "animation", "manga", "hoat hoa", "hoạt họa", "phim hoat hinh"],
   "vien-tuong": [
     "vien-tuong", "vien tuong", "viễn tưởng", "khoa hoc vien tuong", "khoa học viễn tưởng",
-    "sci-fi", "scifi", "time loop", "vong lap", "vòng lặp", "du hanh", "du hành"
+    "sci-fi", "scifi", "time loop", "vong lap", "vòng lặp", "du hanh", "du hành", "khong gian", "vũ trụ", "vu tru", "alien", "người ngoài hành tinh"
   ],
-  "co-trang": ["co-trang", "co trang", "cổ trang", "tien hiep", "tiên hiệp", "cung dau", "cung đấu", "trieu dai", "triều đại"],
-  "tam-ly": ["tam-ly", "tam ly", "tâm lý", "drama", "chinh kich", "chính kịch", "gia dinh", "gia đình"],
+  "co-trang": ["co-trang", "co trang", "cổ trang", "tien hiep", "tiên hiệp", "cung dau", "cung đấu", "trieu dai", "triều đại", "kiem hiep", "kiếm hiệp", "vo lam", "võ lâm", "huyen huyen", "huyền huyễn"],
+  "tam-ly": ["tam-ly", "tam ly", "tâm lý", "drama", "chinh kich", "chính kịch", "gia dinh", "gia đình", "doi song", "đời sống", "xa hoi", "xã hội"],
   "hinh-su": [
     "hinh-su", "hinh su", "hình sự", "trinh-tham", "trinh tham", "trinh thám", "pha an", "phá án",
     "toi pham", "tội phạm", "crime", "canh sat", "cảnh sát", "investigation", "tham tu", "thám tử"
   ],
   "bi-an": ["bi-an", "bi an", "bí ẩn", "mystery", "hack nao", "hack não", "dau tri", "đấu trí"],
-  "vo-thuat": ["vo-thuat", "vo thuat", "võ thuật", "kungfu", "kung fu", "martial arts", "danh nhau", "đánh nhau"],
-  "chien-tranh": ["chien-tranh", "chien tranh", "chiến tranh", "war", "quan su", "quân sự"],
+  "vo-thuat": [
+    "vo-thuat", "vo thuat", "võ thuật", "kungfu", "kung fu", "martial arts", "wushu",
+    "danh vo", "đánh võ", "vo thuat co truyen", "võ thuật cổ truyền", "vo dai", "võ đài",
+    "tinh vo", "tinh võ", "quyen thuat", "quyền thuật", "karate", "taekwondo", "judo", "mma", "boxing", "thai cuc quyen", "thái cực quyền"
+  ],
+  "chien-tranh": ["chien-tranh", "chien tranh", "chiến tranh", "war", "quan su", "quân sự", "lich su", "lịch sử"],
   "tai-lieu": ["tai-lieu", "tai lieu", "tài liệu", "documentary"],
   "phieu-luu": ["phieu-luu", "phieu luu", "phiêu lưu", "adventure", "kham pha", "khám phá", "sinh ton", "sinh tồn"],
 };

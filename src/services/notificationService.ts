@@ -5,6 +5,7 @@ import {
   markAllNotificationsAsReadSupabase,
   createNotificationSupabase,
   deleteNotificationSupabase,
+  getUserFollowedSeriesSupabase,
 } from "./supabaseService";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
@@ -102,13 +103,34 @@ export async function getFollowedSeriesList(
     const raw = localStorage.getItem(`${FOLLOWED_SERIES_PREFIX}${userId}`);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
+      if (Array.isArray(parsed) && parsed.length > 0) {
         return parsed.sort((a, b) => (b.followedAt || 0) - (a.followedAt || 0));
       }
     }
   } catch (err) {
-    console.warn("Lỗi lấy danh sách phim theo dõi:", err);
+    console.warn("Lỗi lấy danh sách phim theo dõi từ local:", err);
   }
+
+  // Tải từ Server API / Supabase
+  try {
+    const cloudItems = await getUserFollowedSeriesSupabase(userId);
+    if (cloudItems && cloudItems.length > 0) {
+      const mapped: FollowedSeries[] = cloudItems.map((c) => ({
+        slug: c.movieSlug,
+        title: c.movieTitle,
+        poster: c.poster || "/default-poster.jpg",
+        currentEpisodeCount: 0,
+        lastNotifiedEpisode: c.lastNotifiedEpisode,
+        followedAt: c.createdAt,
+      }));
+      localStorage.setItem(
+        `${FOLLOWED_SERIES_PREFIX}${userId}`,
+        JSON.stringify(mapped),
+      );
+      return mapped.sort((a, b) => (b.followedAt || 0) - (a.followedAt || 0));
+    }
+  } catch {}
+
   return [];
 }
 

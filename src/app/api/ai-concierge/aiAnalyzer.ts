@@ -135,105 +135,73 @@ export function buildSystemPrompt(currentYear: number): string {
 MỐC THỜI GIAN HIỆN TẠI: Năm ${currentYear}.
 
 NHIỆM VỤ CỐT LÕI:
-Phân tích yêu cầu tìm phim của người dùng theo NGỮ NGHĨA TỔNG QUÁT (Semantic Understanding) và trích xuất cấu trúc Normalized Search Intent.
-TUYỆT ĐỐI KHÔNG dịch từng từ ngữ một cách máy móc (literal translation) mà phải hiểu trọn vẹn ngữ cảnh.
+Chuyển đổi câu hỏi tự nhiên của người dùng thành cấu trúc Normalized Search Intent dựa trên catalog & bộ lọc chuẩn của Nanaflix:
+1. "genres": Danh sách thể loại chuẩn từ catalog:
+   - "Võ thuật" (kungfu, võ thuật, võ đạo, quyền cước, wushu, đánh võ)
+   - "Kinh dị" (kinh dị, phim ma, quỷ, rùng rợn, tâm linh, ám ảnh)
+   - "Hài hước" (hài hước, hài, gây cười, vui nhộn, hài kịch)
+   - "Tình cảm" (tình cảm, lãng mạn, tình yêu, yêu đương, ngôn tình, chữa lành)
+   - "Hoạt hình" (hoạt hình, anime, manga, hoạt họa)
+   - "Hành động" (hành động, bắn súng, rượt đuổi, đặc nhiệm, cướp)
+   - "Cổ trang" (cổ trang, cung đấu, triều đại, kiếm hiệp, tiên hiệp)
+   - "Tâm lý" (tâm lý, chính kịch, gia đình, xã hội, đời sống)
+   - "Hình sự" (hình sự, trinh thám, phá án, cảnh sát, điều tra, tội phạm)
+   - "Viễn tưởng" (viễn tưởng, khoa học viễn tưởng, sci-fi, du hành thời gian, vũ trụ)
+   - "Phiêu lưu" (phiêu lưu, thám hiểm, khám phá, sinh tồn)
+   - "Chiến tranh" (chiến tranh, quân sự, lịch sử)
+   - "Tài liệu" (tài liệu, khoa học, documentary)
+   - "Bí ẩn" (bí ẩn, bí mật, hack não, đấu trí)
 
-NGUYÊN TẮC PHÂN BIỆT VÀ KHỬ NHẬP NHẰNG (DISAMBIGUATION RULES):
-1. Siêu nhân Nhật Bản vs Superman:
-   - "phim về siêu nhân nhật bản", "anh hùng biến hình nhật", "tokusatsu", "phim kiểu Kamen Rider", "5 anh em siêu nhân", "siêu nhân Gao", "quái vật Nhật":
-     -> countries: ["Nhật Bản"] (Japan)
-     -> themes: ["Japanese tokusatsu", "anh hùng biến hình"]
-     -> franchises: ["Super Sentai", "Kamen Rider", "Ultraman", "Power Rangers"]
-     -> concepts: ["japanese_tokusatsu"]
-     -> TUYỆT ĐỐI KHÔNG hiểu thành "Superman" hay phim siêu anh hùng Âu Mỹ!
-   - "Superman", "Người đàn ông thép", "Clark Kent":
-     -> franchises: ["Superman"]
-     -> character: "Superman"
-     -> countries: ["Âu Mỹ"]
-   - "Người Nhện" / "Spider-Man":
-     -> franchises: ["Spider-Man"]
-     -> character: "Spider-Man"
-     -> countries: ["Âu Mỹ"]
-   - "Batman" / "Người Dơi":
-     -> franchises: ["Batman"]
-     -> character: "Batman"
-     -> countries: ["Âu Mỹ"]
-   - "Kamen Rider" / "Hiệp sĩ mặt nạ":
-     -> franchises: ["Kamen Rider"]
-     -> countries: ["Nhật Bản"]
-     -> concepts: ["japanese_tokusatsu"]
-   - "Ultraman" / "Siêu nhân điện quang":
-     -> franchises: ["Ultraman"]
-     -> countries: ["Nhật Bản"]
-     -> concepts: ["japanese_tokusatsu"]
+2. "countries": Danh sách quốc gia chuẩn:
+   - "Hàn Quốc" (korea, hàn, hàn quốc, k-drama)
+   - "Trung Quốc" (china, trung quốc, hoa ngữ, đại lục, c-drama)
+   - "Nhật Bản" (japan, nhật, nhật bản, anime, j-drama)
+   - "Âu Mỹ" (hollywood, mỹ, us, anh, uk, pháp, đức, ý, âu mỹ, phương tây)
+   - "Hồng Kông" (hồng kông, hong kong, tvb)
+   - "Thái Lan" (thái lan, thai)
+   - "Việt Nam" (việt nam, phim việt)
+   - "Đài Loan" (đài loan, taiwan)
+   - "Ấn Độ" (ấn độ, bollywood)
 
-2. Phân tích đa ràng buộc (Multi-constraint Handling) & Định dạng phim:
-   - Khi người dùng kết hợp nhiều điều kiện (thể loại + quốc gia + diễn viên + thời gian + định dạng), BẮT BUỘC trích xuất ĐẦY ĐỦ các trường, KHÔNG được bỏ sót:
-     Ví dụ: "phim bộ Hàn Quốc trinh thám năm 2023"
-     -> type: "series" (hoặc "phim-bo")
-     -> genres: ["Hình sự"]
-     -> countries: ["Hàn Quốc"]
-     -> themes: ["trinh thám", "phá án", "điều tra"]
-     -> year: 2023
-     Ví dụ: "phim lẻ kinh dị Mỹ"
-     -> type: "single" (hoặc "phim-le")
-     -> genres: ["Kinh dị"]
-     -> countries: ["Âu Mỹ"]
-     Ví dụ: "phim kiếm hiệp Trung Quốc"
-     -> genres: ["Cổ trang", "Võ thuật"]
-     -> countries: ["Trung Quốc"]
-     -> concepts: ["kiem_hiep"]
-     -> themes: ["kiếm hiệp", "võ lâm giang hồ"]
-     Ví dụ: "phim hoa ngữ"
-     -> countries: ["Trung Quốc"]
-     Ví dụ: "phim trinh thám phá án"
-     -> genres: ["Hình sự"]
-     -> themes: ["trinh thám", "phá án", "điều tra tội phạm"]
+3. "type": Định dạng phim chuẩn:
+   - "phim-le": Phim lẻ / Điện ảnh / Chiếu rạp (single movie, không phải phim bộ dài tập hay anime dài tập).
+   - "phim-bo": Phim bộ / Series nhiều tập / Drama truyền hình.
+   - "hoat-hinh": Phim hoạt hình / Anime.
+   - "tv-shows": TV Shows / Chương trình truyền hình thực tế / Gameshow.
+   - "phim-chieu-rap": Phim điện ảnh chiếu rạp.
 
-3. Ràng buộc loại trừ & Lệnh xóa bộ lọc trong hội thoại (Exclusions & Clear Filters):
-   - Khi người dùng yêu cầu loại trừ hoặc tìm phim tương tự mà không phải phim gốc:
-     Ví dụ: "phim giống John Wick nhưng không phải John Wick"
-     -> themes: ["sát thủ", "hành động bắn súng", "gun-fu", "trả thù"]
-     -> exclude: {"titles": ["John Wick", "Sát Thủ John Wick"]}
-     -> suggested_movies: các phim như Nobody, Atomic Blonde, Bullet Train, Taken... KHÔNG ĐƯỢC đề xuất John Wick.
-   - Khi người dùng yêu cầu HỦY/XÓA điều kiện lọc từ các lượt chat trước (Ví dụ: "bỏ điều kiện năm đi", "bỏ năm", "không giới hạn năm nữa", "bỏ quốc gia", "bỏ thể loại", "cho mình xem tất cả các năm"):
-     -> "clearFields": ["year"] (hoặc ["country"], ["genre"], ["type"], ["actor"])
-     -> Giữ nguyên các bộ lọc còn lại từ ngữ cảnh trước đó (Ví dụ: nếu trước đó là phim kinh dị Thái Lan năm 2020, người dùng bảo "bỏ năm" thì genres: ["Kinh dị"], countries: ["Thái Lan"], year: null, clearFields: ["year"]).
+4. "year" & "yearRange": Năm cụ thể (số nguyên 4 chữ số, ví dụ 2024, 2023) hoặc khoảng năm { "from": 2020, "to": 2024 }.
 
-4. Phân loại Search Intent (Trường "intent"):
-   - "movie_title": Tìm tựa phim cụ thể (Ví dụ: "Inception", "Avatar", "Titanic", "Mắt Biếc").
-   - "actor": Tìm theo diễn viên (Ví dụ: "phim của Trấn Thành", "phim Thành Long", "phim Châu Tinh Trì").
-   - "character": Tìm theo nhân vật cụ thể (Ví dụ: "phim về Tôn Ngộ Không", "phim Spider-Man", "phim Batman").
-   - "genre": Tìm theo thể loại (Ví dụ: "phim kinh dị", "phim anime", "phim hài").
-   - "country": Tìm theo quốc gia (Ví dụ: "phim Hàn Quốc", "phim Thái Lan").
-   - "theme": Tìm theo chủ đề, bối cảnh, nghề nghiệp hoặc khái niệm (Ví dụ: "siêu nhân nhật bản", "phim cảnh sát phá án", "phim về đầu bếp", "thầy trò đi lấy kinh", "xuyên không", "sinh tồn đảo hoang", "người ngoài hành tinh", "bác sĩ y khoa", "luật sư tòa án", "kiếm hiệp giang hồ", "tổng tài bá đạo", "trả thù").
-   - "mixed": Kết hợp nhiều yếu tố (Ví dụ: "phim hành động Hàn Quốc sau 2020", "phim hài Trung Quốc Châu Tinh Trì", "phim bộ trinh thám Hàn Quốc 2023").
-   - "mood": Tìm theo tâm trạng cảm xúc (Ví dụ: "phim chữa lành tâm hồn", "phim xả stress").
-   - "unknown": Vô nghĩa hoặc không xác định (Ví dụ: "asdfghjk", "123456").
+5. "people": Danh sách diễn viên / đạo diễn: [{ "name": "Thành Long", "role": "actor" }].
 
-5. Chống ảo giác & Câu hỏi bẫy / Ngoài lề:
-   - "is_trap": true CHỈ KHI người dùng hỏi về tác phẩm bịa đặt hoàn toàn không có thật (Ví dụ: "Inception 5 của Trấn Thành năm 2030").
-   - "is_off_topic": true CHỈ KHI hỏi việc không liên quan đến phim ảnh (thời tiết, code Python, giá vàng). Các chủ đề nghề nghiệp/bối cảnh trong phim KHÔNG PHẢI off-topic!
+6. "intent": Phân loại chính:
+   - "genre": Tìm theo thể loại (ví dụ: "phim võ thuật chiếu rạp", "phim kinh dị", "phim hài 2024").
+   - "country": Tìm theo quốc gia (ví dụ: "phim Hàn Quốc", "phim Thái Lan").
+   - "actor": Tìm theo diễn viên (ví dụ: "phim của Thành Long", "phim Trấn Thành", "phim Châu Tinh Trì").
+   - "character": Tìm theo nhân vật cụ thể (ví dụ: "phim về Tôn Ngộ Không", "phim Batman", "phim Diệp Vấn").
+   - "movie_title": Tìm đích danh tựa phim cụ thể.
+   - "year": Tìm theo năm phát hành.
+   - "theme": Tìm theo chủ đề, nghề nghiệp, khái niệm cốt truyện (ví dụ: "siêu nhân nhật bản", "bác sĩ y khoa", "đầu bếp", "xuyên không").
+   - "mood": Tìm theo cảm xúc (ví dụ: "phim chữa lành", "phim xả stress").
+   - "mixed": Kết hợp nhiều điều kiện (ví dụ: "phim tình cảm Hàn Quốc", "phim lẻ Hàn Quốc kinh dị 2023", "phim Trung Quốc cổ trang").
 
-6. Cấu trúc danh sách phim đề xuất ("suggested_movies"):
-   - Đề xuất từ 6 đến 8 tác phẩm điện ảnh xuất sắc, có thật, tiêu biểu nhất cho yêu cầu.
-   - "title": Tên tiếng Việt chuẩn tại Việt Nam.
-   - "original_title": Tên gốc tiếng Anh / Quốc tế chính xác.
-   - "year": Năm phát hành (số nguyên 4 chữ số).
-   - "reason": 1-2 câu giải thích tại sao phim khớp với yêu cầu của người dùng.
+7. ĐẶC BIỆT VỀ "suggested_movies":
+   - Đề xuất 6-8 tác phẩm điện ảnh xuất sắc, có thật, KHỚP CHÍNH XÁC với TOÀN BỘ ràng buộc của người dùng.
+   - VÍ DỤ: Nếu người dùng tìm "phim võ thuật chiếu rạp" (genre = Võ thuật, type = phim-le):
+     -> BẮT BUỘC đề xuất các phim điện ảnh võ thuật võ hiệp kinh điển (Diệp Vấn / Ip Man, Tuyệt Đỉnh Kungfu / Kung Fu Hustle, Sát Phá Lang / SPL, Tinh Võ Môn / Fist of Legend, Ong Bak, The Raid: Redemption, Ngọa Hổ Tàng Long, Thập Diện Mai Phục...).
+     -> TUYỆT ĐỐI KHÔNG đề xuất anime dài tập hoặc phim siêu anh hùng Âu Mỹ thuần bắn súng/khoa học viễn tưởng (như Naruto, Dragon Ball, Avengers, Spider-Man)!
 
 BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON THEO SCHEMA SAU (KHÔNG KÈM TEXT NGOÀI JSON):
 {
-  "intent": "theme",
-  "keywords": ["siêu nhân nhật bản", "tokusatsu", "kamen rider", "super sentai", "biến hình"],
-  "genres": ["Hành động", "Viễn tưởng"],
-  "countries": ["Nhật Bản"],
-  "people": [],
-  "franchises": ["Super Sentai", "Kamen Rider", "Ultraman"],
-  "themes": ["Japanese tokusatsu", "anh hùng biến hình"],
+  "intent": "genre",
+  "genres": ["Võ thuật"],
+  "countries": [],
+  "type": "phim-le",
   "year": null,
   "yearRange": null,
-  "type": null,
+  "people": [],
+  "keywords": ["võ thuật", "chiếu rạp"],
+  "themes": ["võ thuật", "kungfu"],
   "clearFields": [],
   "exclude": {
     "countries": [],
@@ -242,23 +210,24 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON THEO SCHEMA SAU (K
     "keywords": []
   },
   "sortPreference": null,
-  "concepts": ["japanese_tokusatsu"],
+  "concepts": [],
   "is_trap": false,
   "is_off_topic": false,
-  "semanticQuery": "phim siêu nhân tokusatsu Nhật Bản anh hùng biến hình Kamen Rider Super Sentai",
+  "semanticQuery": "phim võ thuật kung fu điện ảnh chiếu rạp",
   "analysis": "Lời chào mở đầu niềm nở, hiểu đúng ý định người dùng và sành sỏi về điện ảnh...",
-  "mood": "Siêu Nhân Tokusatsu 🇯🇵⚡",
+  "mood": "Võ Thuật Đỉnh Cao 🥋💥",
   "suggested_movies": [
     {
-      "title": "Tên tiếng Việt",
-      "original_title": "Original Title",
-      "year": 2023,
-      "reason": "Lý do tác phẩm này phù hợp"
+      "title": "Diệp Vấn",
+      "original_title": "Ip Man",
+      "year": 2008,
+      "reason": "Tuyệt phẩm võ thuật Vịnh Xuân Quyền đỉnh cao của điện ảnh võ thuật"
     }
   ]
 }
 `;
 }
+
 
 /**
  * Gọi AI để phân tích câu hỏi người dùng và trả về cấu trúc trích xuất chuẩn.

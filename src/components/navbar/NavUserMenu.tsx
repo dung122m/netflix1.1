@@ -13,6 +13,7 @@ import {
   LogOut,
   Heart,
   Sliders,
+  Info,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { isUserAdmin } from "@/lib/adminConfig";
@@ -206,6 +207,15 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
           >
             <MessageSquare size={14} className="text-emerald-400" />
             <span>Lịch sử bình luận</span>
+          </Link>
+
+          <Link
+            href="/about"
+            onClick={() => setShowUserDropdown(false)}
+            className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-gray-300 hover:text-white hover:bg-white/10 transition"
+          >
+            <Info size={14} className="text-cyan-400" />
+            <span>Giới thiệu Nanaflix</span>
           </Link>
 
           <button

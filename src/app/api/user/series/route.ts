@@ -62,7 +62,10 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { movieSlug, movieTitle, poster, lastNotifiedEpisode } = body;
+    const movieSlug = body.movieSlug || body.slug;
+    const movieTitle = body.movieTitle || body.title || movieSlug;
+    const poster = body.poster || body.posterUrl || null;
+    const lastNotifiedEpisode = body.lastNotifiedEpisode || body.last_notified_episode || null;
 
     if (!movieSlug) {
       return NextResponse.json({ error: "Missing movieSlug" }, { status: 400 });
@@ -73,9 +76,9 @@ export async function POST(req: NextRequest) {
       id,
       user_id: auth.userId,
       movie_slug: movieSlug,
-      movie_title: movieTitle || movieSlug,
-      poster: poster || null,
-      last_notified_episode: lastNotifiedEpisode || null,
+      movie_title: movieTitle,
+      poster: poster,
+      last_notified_episode: lastNotifiedEpisode,
       created_at: Date.now(),
     };
 
@@ -108,7 +111,7 @@ export async function DELETE(req: NextRequest) {
 
   try {
     const { searchParams } = new URL(req.url);
-    const slug = searchParams.get("slug");
+    const slug = searchParams.get("slug") || searchParams.get("movieSlug");
     if (!slug) {
       return NextResponse.json({ error: "Missing slug parameter" }, { status: 400 });
     }

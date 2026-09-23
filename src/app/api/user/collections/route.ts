@@ -42,6 +42,52 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: true, item: data });
     }
 
+    if (searchParams.get("public") === "true") {
+      const { data, error } = await supabase
+        .from("collections")
+        .select("*")
+        .eq("is_public", true)
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      if (error) {
+        return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+      }
+
+      return NextResponse.json({ success: true, items: data || [] });
+    }
+
+    if (searchParams.get("all") === "true") {
+      if (!auth.isAuthenticated || !auth.isAdmin) {
+        return NextResponse.json({ error: "Forbidden: Yêu cầu quyền Quản trị viên" }, { status: 403 });
+      }
+      const { data, error } = await supabase
+        .from("collections")
+        .select("*")
+        .order("updated_at", { ascending: false });
+
+      if (error) {
+        return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+      }
+
+      return NextResponse.json({ success: true, items: data || [] });
+    }
+
+    const targetUserId = searchParams.get("userId");
+    if (targetUserId) {
+      const isSelfOrAdmin = auth.isAuthenticated && (auth.isAdmin || auth.userId === targetUserId);
+      let query = supabase.from("collections").select("*").eq("user_id", targetUserId);
+      if (!isSelfOrAdmin) {
+        query = query.eq("is_public", true);
+      }
+      query = query.order("updated_at", { ascending: false });
+      const { data, error } = await query;
+      if (error) {
+        return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+      }
+      return NextResponse.json({ success: true, items: data || [] });
+    }
+
     // Lấy danh sách bộ sưu tập của chính user
     if (!auth.isAuthenticated || !auth.userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

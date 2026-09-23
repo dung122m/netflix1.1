@@ -361,7 +361,12 @@ export function isMovieOfType(item: Record<string, unknown>, type: string): bool
 // Hàm tải nguồn phim nhanh có giới hạn timeout an toàn
 async function fetchSourceData(baseUrl: string, params: MovieFilterParams, isSearch: boolean) {
   try {
-    const isMultiFilter = Boolean(params.type && (params.category || params.country || params.year));
+    const activeFiltersCount =
+      (params.type ? 1 : 0) +
+      (params.category ? 1 : 0) +
+      (params.country ? 1 : 0) +
+      (params.year ? 1 : 0);
+    const isMultiFilter = activeFiltersCount > 1;
     const page = params.page || 1;
 
     const urlParams = new URLSearchParams();
@@ -395,9 +400,15 @@ async function fetchSourceData(baseUrl: string, params: MovieFilterParams, isSea
         fullUrl = `${baseUrl}/v1/api/danh-sach/phim-moi-cap-nhat?${urlParams.toString()}`;
       }
     } else {
-      // NguonC REST API Endpoints
+      // NguonC REST API Endpoints: Ưu tiên bộ lọc có phạm vi hẹp nhất (country > category > year > type)
       if (isSearch && params.keyword) {
         fullUrl = `${baseUrl}/films/search?keyword=${encodeURIComponent(params.keyword.trim())}&page=${page}`;
+      } else if (params.country) {
+        fullUrl = `${baseUrl}/films/quoc-gia/${params.country}?page=${page}`;
+      } else if (params.category) {
+        fullUrl = `${baseUrl}/films/the-loai/${getNguonCGenreSlug(params.category)}?page=${page}`;
+      } else if (params.year) {
+        fullUrl = `${baseUrl}/films/nam-phat-hanh/${params.year}?page=${page}`;
       } else if (params.type) {
         if (params.type === "hoat-hinh") {
           fullUrl = `${baseUrl}/films/the-loai/hoat-hinh?page=${page}`;
@@ -412,12 +423,6 @@ async function fetchSourceData(baseUrl: string, params: MovieFilterParams, isSea
         } else {
           fullUrl = `${baseUrl}/films/danh-sach/${params.type}?page=${page}`;
         }
-      } else if (params.category) {
-        fullUrl = `${baseUrl}/films/the-loai/${getNguonCGenreSlug(params.category)}?page=${page}`;
-      } else if (params.country) {
-        fullUrl = `${baseUrl}/films/quoc-gia/${params.country}?page=${page}`;
-      } else if (params.year) {
-        fullUrl = `${baseUrl}/films/nam-phat-hanh/${params.year}?page=${page}`;
       } else {
         fullUrl = `${baseUrl}/films/phim-moi-cap-nhat?page=${page}`;
       }
@@ -589,18 +594,15 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
 
   // 1. Lọc theo Loại Phim (Phim lẻ / Phim bộ / Hoạt hình / Chiếu rạp / TV Shows)
   if (params.type) {
-    const filteredByType = allUniqueItems.filter((item) =>
+    allUniqueItems = allUniqueItems.filter((item) =>
       isMovieOfType(item, params.type!)
     );
-    if (filteredByType.length > 0) {
-      allUniqueItems = filteredByType;
-    }
   }
 
   // 2. Lọc theo Quốc Gia
   if (params.country) {
     const targetCountry = params.country.toLowerCase().trim();
-    const filtered = allUniqueItems.filter((item) => {
+    allUniqueItems = allUniqueItems.filter((item) => {
       const ctryArray = Array.isArray(item.country)
         ? item.country.map((c: { slug?: string; name?: string }) =>
             `${c.slug || ""} ${c.name || ""}`.toLowerCase()
@@ -608,13 +610,12 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
         : [String(item.country || "").toLowerCase()];
       return ctryArray.some((cStr: string) => cStr.includes(targetCountry));
     });
-    if (filtered.length > 0) allUniqueItems = filtered;
   }
 
   // 3. Lọc theo Thể Loại
   if (params.category) {
     const targetCat = params.category.toLowerCase().trim();
-    const filtered = allUniqueItems.filter((item) => {
+    allUniqueItems = allUniqueItems.filter((item) => {
       const catArray = Array.isArray(item.category)
         ? item.category.map((c: { slug?: string; name?: string }) =>
             `${c.slug || ""} ${c.name || ""}`.toLowerCase()
@@ -622,15 +623,13 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
         : [String(item.category || "").toLowerCase()];
       return catArray.some((cStr: string) => cStr.includes(targetCat));
     });
-    if (filtered.length > 0) allUniqueItems = filtered;
   }
 
   // 4. Lọc theo Năm
   if (params.year) {
-    const filtered = allUniqueItems.filter((item) =>
+    allUniqueItems = allUniqueItems.filter((item) =>
       String(item.year || "").includes(String(params.year))
     );
-    if (filtered.length > 0) allUniqueItems = filtered;
   }
 
   // 5. Sắp xếp
@@ -666,19 +665,38 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
   const finalItems = allUniqueItems.slice(0, limit);
 
   // ============================================================
-  // TÍNH TỔNG SỐ PHIM VÀ TRANG
+  // TÍNH TỔNG SỐ PHIM VÀ TRANG (CHUẨN HÓA THEO PHẠM VI BỘ LỌC)
   // ============================================================
   const countApi1 = resPhimApi?.totalItems || 0;
   const countApi2 = resNguonC?.totalItems   || 0;
 
-  // ~25% phim từ NguonC là độc quyền bổ sung cho PhimAPI
-  const OVERLAP_RATIO = 0.75;
-  const uniqueFromNguonC = Math.round(countApi2 * (1 - OVERLAP_RATIO));
-  const totalItemsCount = (countApi1 || 0) + (countApi2 > 0 ? uniqueFromNguonC : 0) || allUniqueItems.length;
+  const activeFiltersCount =
+    (params.type ? 1 : 0) +
+    (params.category ? 1 : 0) +
+    (params.country ? 1 : 0) +
+    (params.year ? 1 : 0);
 
-  const realPages1 = resPhimApi?.totalPages || 0;
-  const realPages2 = resNguonC?.totalPages   || 0;
-  const maxTotalPages = Math.max(realPages1, realPages2) || 1;
+  let totalItemsCount: number;
+  let maxTotalPages: number;
+
+  if (activeFiltersCount > 1) {
+    // KHI CÓ NHIỀU BỘ LỌC KẾT HỢP (COMPOUND FILTERS):
+    // PhimAPI đã tính toán chính xác phép giao ở database upstream -> Sử dụng countApi1 chuẩn xác.
+    // NguonC chỉ lọc được 1 chiều (upstream scope rộng hơn) -> Tuyệt đối không dùng countApi2 để tránh phóng đại.
+    totalItemsCount = countApi1 > 0 ? countApi1 : allUniqueItems.length;
+    maxTotalPages =
+      resPhimApi?.totalPages || Math.max(1, Math.ceil(totalItemsCount / limit));
+  } else {
+    // KHI LÀ BỘ LỌC ĐƠN LẺ HOẶC TÌM KIẾM KEYWORD HOẶC MẶC ĐỊNH:
+    // Cả 2 nguồn cùng lọc đúng 1 phạm vi -> Áp dụng công thức cộng bù độc quyền NguonC (~25%)
+    const OVERLAP_RATIO = 0.75;
+    const uniqueFromNguonC = Math.round(countApi2 * (1 - OVERLAP_RATIO));
+    totalItemsCount = (countApi1 || 0) + (countApi2 > 0 ? uniqueFromNguonC : 0) || allUniqueItems.length;
+
+    const realPages1 = resPhimApi?.totalPages || 0;
+    const realPages2 = resNguonC?.totalPages   || 0;
+    maxTotalPages = Math.max(realPages1, realPages2) || 1;
+  }
 
   const payload = {
     status: true,
@@ -772,6 +790,7 @@ export const movieApi = {
     }
 
     const cacheKey = JSON.stringify({
+      v: 2,
       category: params.category || "",
       country: params.country || "",
       year: params.year || "",

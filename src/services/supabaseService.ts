@@ -44,7 +44,7 @@ export async function upsertUserProfileSupabase(profile: Partial<UserProfile> & 
 const profileMemoryCache = new Map<string, { data: UserProfile; expiry: number }>();
 
 export async function getUserProfileSupabase(userId: string): Promise<UserProfile | null> {
-  if (!supabase || !userId) return null;
+  if (!userId) return null;
 
   const now = Date.now();
   const cached = profileMemoryCache.get(userId);
@@ -53,31 +53,35 @@ export async function getUserProfileSupabase(userId: string): Promise<UserProfil
   }
 
   try {
-    const { data, error } = await supabase
-      .from("public_profiles")
-      .select("*")
-      .eq("id", userId)
-      .maybeSingle();
+    const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
+    const res = await fetch(`${baseUrl}/api/user/profile?userId=${encodeURIComponent(userId)}`, {
+      cache: "no-store",
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && data.profile) {
+        const d = data.profile;
+        const profile: UserProfile = {
+          uid: d.uid,
+          email: d.email || "",
+          displayName: d.displayName || "Thành viên",
+          photoURL: d.photoURL || d.customAvatar || "",
+          customAvatar: d.customAvatar,
+          bio: d.bio,
+          favoriteGenres: d.favoriteGenres || [],
+          badges: d.badges || [],
+          watchTimeMinutes: Number(d.watchTimeMinutes) || 0,
+          role: d.role || "member",
+          isCommentRestricted: Boolean(d.isCommentRestricted),
+          createdAt: Number(d.createdAt) || Date.now(),
+          lastLoginAt: Number(d.lastLoginAt) || Date.now(),
+        };
 
-    if (error || !data) return null;
-
-    const profile: UserProfile = {
-      uid: data.id,
-      email: "",
-      displayName: data.display_name || "Thành viên",
-      photoURL: data.photo_url || data.custom_avatar || "",
-      customAvatar: data.custom_avatar,
-      bio: data.bio,
-      favoriteGenres: [],
-      badges: data.badges || [],
-      watchTimeMinutes: Number(data.watch_time_minutes) || 0,
-      role: "member",
-      createdAt: Number(data.created_at) || Date.now(),
-      lastLoginAt: Number(data.last_login_at) || Date.now(),
-    };
-
-    profileMemoryCache.set(userId, { data: profile, expiry: now + 30000 });
-    return profile;
+        profileMemoryCache.set(userId, { data: profile, expiry: now + 30000 });
+        return profile;
+      }
+    }
+    return null;
   } catch {
     return null;
   }
@@ -202,11 +206,19 @@ export async function setUserCommentRestrictionSupabase(
 }
 
 export async function deleteAllUserCommentsSupabase(userId: string): Promise<void> {
-  if (!supabase || !userId) return;
+  if (!userId) return;
   try {
-    await supabase.from("movie_comments").delete().eq("user_id", userId);
+    const { auth } = await import("@/lib/firebase");
+    const token = await auth?.currentUser?.getIdToken();
+    if (token) {
+      const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
+      await fetch(`${baseUrl}/api/comments?userId=${encodeURIComponent(userId)}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    }
   } catch (err) {
-    console.warn("Lỗi xóa comments của user trên Supabase:", err);
+    console.warn("Lỗi xóa comments của user qua API:", err);
   }
 }
 
@@ -254,141 +266,60 @@ export function parseReactionsAndLikedBy(likedByRaw: unknown): {
 }
 
 export async function getMovieCommentsSupabase(movieSlug: string): Promise<MovieComment[]> {
-  if (!supabase || !movieSlug) return [];
+  if (!movieSlug) return [];
   try {
-    const { data, error } = await supabase
-      .from("movie_comments")
-      .select("*")
-      .eq("movie_slug", movieSlug)
-      .order("created_at", { ascending: false });
-
-    if (error || !data) return [];
-
-    return data.map((d) => {
-      const { likedBy, reactions } = parseReactionsAndLikedBy(d.liked_by);
-      return {
-        id: d.id,
-        movieSlug: d.movie_slug,
-        movieTitle: d.movie_title || "",
-        userId: d.user_id,
-        userName: d.user_name || "Thành viên",
-        userAvatar: d.user_avatar || "",
-        userEmail: d.user_email,
-        rating: d.rating || 5,
-        content: d.content || "",
-        episodeSlug: d.episode_slug,
-        episodeName: d.episode_name,
-        parentId: d.parent_id,
-        parentOwnerId: d.parent_owner_id,
-        replyToUserId: d.reply_to_user_id,
-        replyToUserName: d.reply_to_user_name,
-        isSpoiler: Boolean(d.is_spoiler),
-        likes: Math.max(d.likes || 0, likedBy.length),
-        likedBy,
-        reactions,
-        isFlagged: Boolean(d.is_flagged),
-        flagReason: d.flag_reason,
-        isApproved: d.is_approved !== false,
-        isPinned: Boolean(d.is_pinned),
-        createdAt: Number(d.created_at) || Date.now(),
-        updatedAt: Number(d.updated_at) || Date.now(),
-      };
+    const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
+    const res = await fetch(`${baseUrl}/api/comments?movieSlug=${encodeURIComponent(movieSlug)}`, {
+      cache: "no-store",
     });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && Array.isArray(data.items)) {
+        return data.items;
+      }
+    }
   } catch {
     return [];
   }
+  return [];
 }
 
 export async function getUserCommentsSupabase(userId: string): Promise<MovieComment[]> {
-  if (!supabase || !userId) return [];
+  if (!userId) return [];
   try {
-    const { data, error } = await supabase
-      .from("movie_comments")
-      .select("*")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(100);
-
-    if (error || !data) return [];
-    return data.map((d) => {
-      const { likedBy, reactions } = parseReactionsAndLikedBy(d.liked_by);
-      return {
-        id: d.id,
-        movieSlug: d.movie_slug,
-        movieTitle: d.movie_title || "",
-        userId: d.user_id,
-        userName: d.user_name || "Thành viên",
-        userAvatar: d.user_avatar || "",
-        userEmail: d.user_email,
-        rating: d.rating || 5,
-        content: d.content || "",
-        episodeSlug: d.episode_slug,
-        episodeName: d.episode_name,
-        parentId: d.parent_id,
-        parentOwnerId: d.parent_owner_id,
-        replyToUserId: d.reply_to_user_id,
-        replyToUserName: d.reply_to_user_name,
-        isSpoiler: Boolean(d.is_spoiler),
-        likes: Math.max(d.likes || 0, likedBy.length),
-        likedBy,
-        reactions,
-        isFlagged: Boolean(d.is_flagged),
-        flagReason: d.flag_reason,
-        isApproved: d.is_approved !== false,
-        isPinned: Boolean(d.is_pinned),
-        createdAt: Number(d.created_at) || Date.now(),
-        updatedAt: Number(d.updated_at) || Date.now(),
-      };
+    const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
+    const res = await fetch(`${baseUrl}/api/comments?userId=${encodeURIComponent(userId)}`, {
+      cache: "no-store",
     });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && Array.isArray(data.items)) {
+        return data.items;
+      }
+    }
   } catch {
     return [];
   }
+  return [];
 }
 
 export async function getCommentRepliesSupabase(parentId: string): Promise<MovieComment[]> {
-  if (!supabase || !parentId) return [];
+  if (!parentId) return [];
   try {
-    const { data, error } = await supabase
-      .from("movie_comments")
-      .select("*")
-      .eq("parent_id", parentId)
-      .order("created_at", { ascending: true })
-      .limit(50);
-
-    if (error || !data) return [];
-    return data.map((d) => {
-      const { likedBy, reactions } = parseReactionsAndLikedBy(d.liked_by);
-      return {
-        id: d.id,
-        movieSlug: d.movie_slug,
-        movieTitle: d.movie_title || "",
-        userId: d.user_id,
-        userName: d.user_name || "Thành viên",
-        userAvatar: d.user_avatar || "",
-        userEmail: d.user_email,
-        rating: d.rating || 0,
-        content: d.content || "",
-        episodeSlug: d.episode_slug,
-        episodeName: d.episode_name,
-        parentId: d.parent_id,
-        parentOwnerId: d.parent_owner_id,
-        replyToUserId: d.reply_to_user_id,
-        replyToUserName: d.reply_to_user_name,
-        isSpoiler: Boolean(d.is_spoiler),
-        likes: Math.max(d.likes || 0, likedBy.length),
-        likedBy,
-        reactions,
-        isFlagged: Boolean(d.is_flagged),
-        flagReason: d.flag_reason,
-        isApproved: d.is_approved !== false,
-        isPinned: Boolean(d.is_pinned),
-        createdAt: Number(d.created_at) || Date.now(),
-        updatedAt: Number(d.updated_at) || Date.now(),
-      };
+    const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
+    const res = await fetch(`${baseUrl}/api/comments?parentId=${encodeURIComponent(parentId)}`, {
+      cache: "no-store",
     });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && Array.isArray(data.items)) {
+        return data.items;
+      }
+    }
   } catch {
     return [];
   }
+  return [];
 }
 
 export async function postCommentSupabase(
@@ -397,42 +328,38 @@ export async function postCommentSupabase(
     likedBy?: string[];
   }
 ): Promise<string> {
-  if (!supabase) throw new Error("Supabase chưa được cấu hình");
-
   const id = `cmt_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-  const now = Date.now();
-
-  const payload = {
-    id,
-    movie_slug: comment.movieSlug,
-    movie_title: comment.movieTitle || "",
-    user_id: comment.userId,
-    user_name: comment.userName || "Thành viên",
-    user_avatar: comment.userAvatar || "",
-    user_email: comment.userEmail || "",
-    rating: comment.rating || 5,
-    content: comment.content,
-    episode_slug: comment.episodeSlug || null,
-    episode_name: comment.episodeName || null,
-    parent_id: comment.parentId || null,
-    parent_owner_id: comment.parentOwnerId || null,
-    reply_to_user_id: comment.replyToUserId || null,
-    reply_to_user_name: comment.replyToUserName || null,
-    is_spoiler: Boolean(comment.isSpoiler),
-    likes: 0,
-    liked_by: [],
-    is_flagged: false,
-    is_approved: true,
-    is_pinned: false,
-    created_at: now,
-    updated_at: now,
-  };
-
-  const { error } = await supabase.from("movie_comments").insert(payload);
-  if (error) {
-    throw new Error(error.message);
+  try {
+    const { auth } = await import("@/lib/firebase");
+    const token = await auth?.currentUser?.getIdToken().catch(() => null);
+    const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
+    const res = await fetch(`${baseUrl}/api/comments`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({
+        movieSlug: comment.movieSlug,
+        movieTitle: comment.movieTitle || "",
+        rating: comment.rating || 5,
+        content: comment.content,
+        isSpoiler: Boolean(comment.isSpoiler),
+        episodeSlug: comment.episodeSlug,
+        episodeName: comment.episodeName,
+        parentId: comment.parentId,
+        parentOwnerId: comment.parentOwnerId,
+        replyToUserId: comment.replyToUserId,
+        replyToUserName: comment.replyToUserName,
+      }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.id) return data.id;
+    }
+  } catch (err) {
+    console.warn("Lỗi postComment qua API:", err);
   }
-
   return id;
 }
 
@@ -446,81 +373,69 @@ export async function updateCommentSupabase(
     is_spoiler: boolean;
   }>
 ): Promise<void> {
-  if (!supabase || !commentId) return;
+  if (!commentId) return;
   try {
-    const payload: Record<string, unknown> = {
-      updated_at: Date.now(),
-    };
-    if (data.rating !== undefined) payload.rating = data.rating;
-    if (data.content !== undefined) payload.content = data.content;
-    if (data.episode_slug !== undefined) payload.episode_slug = data.episode_slug;
-    if (data.episode_name !== undefined) payload.episode_name = data.episode_name;
-    if (data.is_spoiler !== undefined) payload.is_spoiler = data.is_spoiler;
-
-    await supabase.from("movie_comments").update(payload).eq("id", commentId);
+    const { auth } = await import("@/lib/firebase");
+    const token = await auth?.currentUser?.getIdToken();
+    if (token) {
+      const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
+      await fetch(`${baseUrl}/api/comments`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          commentId,
+          rating: data.rating,
+          content: data.content,
+          isSpoiler: data.is_spoiler,
+          episodeSlug: data.episode_slug,
+          episodeName: data.episode_name,
+        }),
+      });
+    }
   } catch (err) {
-    console.warn("Lỗi update comment Supabase:", err);
+    console.warn("Lỗi update comment qua API:", err);
   }
 }
 
 export async function getAllCommentsSupabase(): Promise<MovieComment[]> {
-  if (!supabase) return [];
   try {
-    const { data, error } = await supabase
-      .from("movie_comments")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (error || !data) return [];
-
-    return data.map((d) => {
-      const { likedBy, reactions } = parseReactionsAndLikedBy(d.liked_by);
-      return {
-        id: d.id,
-        movieSlug: d.movie_slug,
-        movieTitle: d.movie_title || "",
-        userId: d.user_id,
-        userName: d.user_name || "Thành viên",
-        userAvatar: d.user_avatar || "",
-        userEmail: d.user_email,
-        rating: d.rating || 5,
-        content: d.content || "",
-        episodeSlug: d.episode_slug,
-        episodeName: d.episode_name,
-        parentId: d.parent_id,
-        parentOwnerId: d.parent_owner_id,
-        replyToUserId: d.reply_to_user_id,
-        replyToUserName: d.reply_to_user_name,
-        isSpoiler: Boolean(d.is_spoiler),
-        likes: Math.max(d.likes || 0, likedBy.length),
-        likedBy,
-        reactions,
-        isFlagged: Boolean(d.is_flagged),
-        flagReason: d.flag_reason,
-        isApproved: d.is_approved !== false,
-        isPinned: Boolean(d.is_pinned),
-        createdAt: Number(d.created_at) || Date.now(),
-        updatedAt: Number(d.updated_at) || Date.now(),
-      };
+    const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
+    const res = await fetch(`${baseUrl}/api/comments?all=true`, {
+      cache: "no-store",
     });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && Array.isArray(data.items)) {
+        return data.items;
+      }
+    }
   } catch {
     return [];
   }
+  return [];
 }
 
 export async function togglePinCommentSupabase(commentId: string, isPinned: boolean): Promise<void> {
-  if (!supabase || !commentId) return;
+  if (!commentId) return;
   try {
-    const { error } = await supabase
-      .from("movie_comments")
-      .update({ is_pinned: isPinned, updated_at: Date.now() })
-      .eq("id", commentId);
-
-    if (error) {
-      console.warn("Lỗi togglePinComment Supabase:", error.message || error);
+    const { auth } = await import("@/lib/firebase");
+    const token = await auth?.currentUser?.getIdToken();
+    if (token) {
+      const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
+      await fetch(`${baseUrl}/api/comments`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ commentId, isPinned, action: "pin" }),
+      });
     }
   } catch (err) {
-    console.warn("Lỗi ngoại lệ togglePinComment Supabase:", err);
+    console.warn("Lỗi togglePinComment qua API:", err);
   }
 }
 
@@ -529,88 +444,73 @@ export async function setCommentReactionSupabase(
   userId: string,
   reactionType: string | null
 ): Promise<void> {
-  if (!supabase || !commentId || !userId) return;
+  if (!commentId || !userId) return;
   try {
-    const { data, error: selectErr } = await supabase
-      .from("movie_comments")
-      .select("likes, liked_by")
-      .eq("id", commentId)
-      .maybeSingle();
-
-    if (selectErr) {
-      console.error("Lỗi lấy reaction Supabase:", selectErr.message || selectErr);
-      return;
-    }
-    if (!data) return;
-
-    const { reactions } = parseReactionsAndLikedBy(data.liked_by);
-    const updatedReactions: Record<string, string> = { ...reactions };
-
-    if (reactionType) {
-      updatedReactions[userId] = reactionType;
-    } else {
-      delete updatedReactions[userId];
-    }
-
-    const newLikedBy = Object.keys(updatedReactions);
-    const newLikes = newLikedBy.length;
-
-    const { error: updateErr } = await supabase
-      .from("movie_comments")
-      .update({
-        likes: newLikes,
-        liked_by: updatedReactions,
-        updated_at: Date.now(),
-      })
-      .eq("id", commentId);
-
-    if (updateErr) {
-      console.error("Lỗi cập nhật reaction vào Supabase:", updateErr.message || updateErr);
-    }
+    const { auth } = await import("@/lib/firebase");
+    const token = await auth?.currentUser?.getIdToken();
+    const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
+    await fetch(`${baseUrl}/api/comments`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ commentId, userId, reactionType, action: "reaction" }),
+    });
   } catch (err) {
-    console.error("Lỗi ngoại lệ setCommentReaction Supabase:", err);
+    console.warn("Lỗi setCommentReaction qua API:", err);
   }
 }
 
 export async function deleteCommentSupabase(commentId: string): Promise<void> {
-  if (!supabase || !commentId) return;
+  if (!commentId) return;
   try {
-    const { error } = await supabase.from("movie_comments").delete().eq("id", commentId);
-    if (error) {
-      console.error("Lỗi deleteComment Supabase:", error.message || error);
+    const { auth } = await import("@/lib/firebase");
+    const token = await auth?.currentUser?.getIdToken();
+    if (token) {
+      const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
+      await fetch(`${baseUrl}/api/comments?commentId=${encodeURIComponent(commentId)}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
     }
   } catch (err) {
-    console.error("Lỗi ngoại lệ deleteComment Supabase:", err);
+    console.warn("Lỗi deleteComment qua API:", err);
   }
 }
 
 export async function flagCommentSupabase(commentId: string, reason: string): Promise<void> {
-  if (!supabase || !commentId) return;
+  if (!commentId) return;
   try {
-    const { error } = await supabase
-      .from("movie_comments")
-      .update({ is_flagged: true, flag_reason: reason, updated_at: Date.now() })
-      .eq("id", commentId);
-    if (error) {
-      console.error("Lỗi flagComment Supabase:", error.message || error);
-    }
+    const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
+    await fetch(`${baseUrl}/api/comments`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ commentId, reason, action: "flag" }),
+    });
   } catch (err) {
-    console.error("Lỗi flagComment Supabase:", err);
+    console.warn("Lỗi flagComment qua API:", err);
   }
 }
 
 export async function unflagCommentSupabase(commentId: string): Promise<void> {
-  if (!supabase || !commentId) return;
+  if (!commentId) return;
   try {
-    const { error } = await supabase
-      .from("movie_comments")
-      .update({ is_flagged: false, flag_reason: null, updated_at: Date.now() })
-      .eq("id", commentId);
-    if (error) {
-      console.error("Lỗi unflagComment Supabase:", error.message || error);
+    const { auth } = await import("@/lib/firebase");
+    const token = await auth?.currentUser?.getIdToken();
+    if (token) {
+      const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
+      await fetch(`${baseUrl}/api/comments`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ commentId, action: "unflag" }),
+      });
     }
   } catch (err) {
-    console.error("Lỗi unflagComment Supabase:", err);
+    console.warn("Lỗi unflagComment qua API:", err);
   }
 }
 
@@ -713,87 +613,103 @@ export async function getWatchlistSupabase(userId: string): Promise<WatchlistIte
 // ============================================================================
 
 export async function getUserCollectionsSupabase(userId: string): Promise<MovieCollection[]> {
-  if (!supabase || !userId) return [];
+  if (!userId) return [];
   try {
-    const { data } = await supabase
-      .from("collections")
-      .select("*")
-      .eq("user_id", userId)
-      .order("updated_at", { ascending: false });
-
-    if (!data) return [];
-    return data.map((d) => ({
-      id: d.id,
-      userId: d.user_id,
-      creatorName: d.user_name || "Thành viên Nanaflix",
-      creatorPhoto: d.user_avatar || undefined,
-      name: d.name,
-      description: d.description || "",
-      isPublic: Boolean(d.is_public),
-      movies: Array.isArray(d.movies) ? d.movies : [],
-      createdAt: Number(d.created_at) || Date.now(),
-      updatedAt: Number(d.updated_at) || Date.now(),
-    }));
-  } catch {
-    return [];
+    const { auth } = await import("@/lib/firebase");
+    const token = await auth?.currentUser?.getIdToken();
+    const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
+    const res = await fetch(`${baseUrl}/api/user/collections?userId=${encodeURIComponent(userId)}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      cache: "no-store",
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && Array.isArray(data.items)) {
+        return (data.items as Array<Record<string, unknown>>).map((d) => ({
+          id: String(d.id),
+          userId: String(d.user_id || d.userId || ""),
+          creatorName: String(d.user_name || d.creatorName || "Thành viên Nanaflix"),
+          creatorPhoto: d.user_avatar ? String(d.user_avatar) : (d.creatorPhoto ? String(d.creatorPhoto) : undefined),
+          name: String(d.name || ""),
+          description: String(d.description || ""),
+          isPublic: Boolean(d.is_public ?? d.isPublic ?? true),
+          movies: Array.isArray(d.movies) ? (d.movies as MovieCollection["movies"]) : [],
+          createdAt: Number(d.created_at || d.createdAt) || Date.now(),
+          updatedAt: Number(d.updated_at || d.updatedAt) || Date.now(),
+        }));
+      }
+    }
+  } catch (err) {
+    console.warn("Lỗi lấy collections qua API:", err);
   }
+  return [];
 }
 
 export async function saveCollectionSupabase(col: MovieCollection): Promise<void> {
-  if (!supabase || !col.id || !col.userId) return;
+  if (!col.id || !col.userId) return;
   try {
-    const payload = {
-      id: col.id,
-      user_id: col.userId,
-      user_name: col.creatorName || "Thành viên Nanaflix",
-      user_avatar: col.creatorPhoto || null,
-      name: col.name,
-      description: col.description || null,
-      is_public: Boolean(col.isPublic),
-      movies: col.movies || [],
-      created_at: col.createdAt || Date.now(),
-      updated_at: col.updatedAt || Date.now(),
-    };
-    await supabase.from("collections").upsert(payload, { onConflict: "id" });
+    const { auth } = await import("@/lib/firebase");
+    const token = await auth?.currentUser?.getIdToken();
+    if (token) {
+      const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
+      await fetch(`${baseUrl}/api/user/collections`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(col),
+      });
+    }
   } catch (err) {
-    console.warn("Lỗi lưu collection lên Supabase:", err);
+    console.warn("Lỗi lưu collection qua API:", err);
   }
 }
 
 export async function deleteCollectionSupabase(id: string): Promise<void> {
-  if (!supabase || !id) return;
+  if (!id) return;
   try {
-    await supabase.from("collections").delete().eq("id", id);
+    const { auth } = await import("@/lib/firebase");
+    const token = await auth?.currentUser?.getIdToken();
+    if (token) {
+      const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
+      await fetch(`${baseUrl}/api/user/collections?id=${encodeURIComponent(id)}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    }
   } catch (err) {
-    console.warn("Lỗi xóa collection trên Supabase:", err);
+    console.warn("Lỗi xóa collection qua API:", err);
   }
 }
 
 export async function getPublicCollectionsSupabase(): Promise<MovieCollection[]> {
-  if (!supabase) return [];
   try {
-    const { data } = await supabase
-      .from("collections")
-      .select("*")
-      .eq("is_public", true)
-      .order("created_at", { ascending: false });
-
-    if (!data) return [];
-    return data.map((d) => ({
-      id: d.id,
-      userId: d.user_id,
-      creatorName: d.user_name || "Thành viên Nanaflix",
-      creatorPhoto: d.user_avatar || undefined,
-      name: d.name,
-      description: d.description || "",
-      isPublic: Boolean(d.is_public),
-      movies: Array.isArray(d.movies) ? d.movies : [],
-      createdAt: Number(d.created_at) || Date.now(),
-      updatedAt: Number(d.updated_at) || Date.now(),
-    }));
+    const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
+    const res = await fetch(`${baseUrl}/api/user/collections?public=true`, {
+      cache: "no-store",
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && Array.isArray(data.items)) {
+        return (data.items as Array<Record<string, unknown>>).map((d) => ({
+          id: String(d.id),
+          userId: String(d.user_id || d.userId || ""),
+          creatorName: String(d.user_name || d.creatorName || "Thành viên Nanaflix"),
+          creatorPhoto: d.user_avatar ? String(d.user_avatar) : (d.creatorPhoto ? String(d.creatorPhoto) : undefined),
+          name: String(d.name || ""),
+          description: String(d.description || ""),
+          isPublic: Boolean(d.is_public ?? d.isPublic ?? true),
+          movies: Array.isArray(d.movies) ? (d.movies as MovieCollection["movies"]) : [],
+          createdAt: Number(d.created_at || d.createdAt) || Date.now(),
+          updatedAt: Number(d.updated_at || d.updatedAt) || Date.now(),
+        }));
+      }
+    }
   } catch {
     return [];
   }
+  return [];
 }
 
 export async function getUserNotificationsSupabase(userId: string): Promise<UserNotification[]> {
