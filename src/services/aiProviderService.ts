@@ -10,7 +10,13 @@ export interface AiChatRequest {
 
 export interface AiChatResponse {
   text: string;
-  provider: "Groq (Llama 3.1 8B)" | "Groq (Llama 3.3 70B)" | "Cloudflare Workers AI" | "Google Gemini Flash" | "Nana AI Fallback";
+  provider:
+    | "Groq (Llama 3.1 8B)"
+    | "Groq (Llama 3.3 70B)"
+    | "Mistral AI"
+    | "Cloudflare Workers AI"
+    | "Google Gemini Flash"
+    | "Nana AI Fallback";
   model: string;
   latencyMs: number;
 }
@@ -24,6 +30,14 @@ function getGroqApiKeys(): string[] {
     .split(",")
     .map((k) => k.trim())
     .filter((k) => k.length > 5);
+}
+
+/**
+ * Lấy Mistral API Key từ biến môi trường
+ */
+function getMistralApiKey(): string | null {
+  const envKey = process.env.MISTRAL_API_KEY?.trim() || "";
+  return envKey.length > 5 ? envKey : null;
 }
 
 /**
@@ -46,15 +60,20 @@ const GROQ_MODELS = [
   "qwen/qwen3.8-27b",
 ];
 
-// Cloudflare Workers AI: 10.000 req/ngày miễn phí (Fallback 1)
+// Model Mistral AI: Nhẹ, nhanh, hỗ trợ JSON mode chuẩn, phù hợp làm Fallback 1 cho AI Concierge
+const MISTRAL_MODELS = [
+  "open-mistral-nemo",
+];
+
+// Cloudflare Workers AI: 10.000 req/ngày miễn phí (Fallback 2)
 const CLOUDFLARE_MODELS = [
   "@cf/meta/llama-3.1-8b-instruct",
 ];
 
-// Google Gemini: Hỗ trợ khi user cung cấp custom key hoặc key còn quota
+// Google Gemini: Hỗ trợ key hệ thống & custom key (Fallback 3)
 const GEMINI_MODELS = [
-  "gemini-2.0-flash",
-  "gemini-1.5-flash",
+  "gemini-flash-lite-latest",
+  "gemini-flash-latest",
 ];
 
 /**
@@ -116,6 +135,71 @@ async function callGroq(
     return typeof content === "string" ? content : null;
   } catch {
     clearTimeout(timeout);
+    return null;
+  }
+}
+
+/**
+ * Gọi Mistral API (Fallback 1 khi Groq gặp sự cố hoặc bị 429 rate limit)
+ */
+async function callMistral(
+  req: AiChatRequest,
+  apiKey: string,
+  model: string,
+  timeoutMs: number
+): Promise<string | null> {
+  const systemContent = req.systemPrompt || "";
+  const userContent = req.userPrompt;
+
+  const messages = [];
+  if (systemContent) {
+    messages.push({
+      role: "system",
+      content: req.jsonMode
+        ? `${systemContent}\nIMPORTANT: You must respond in valid JSON format.`
+        : systemContent,
+    });
+  }
+  messages.push({
+    role: "user",
+    content:
+      req.jsonMode && !systemContent
+        ? `${userContent}\nIMPORTANT: You must respond in valid JSON format.`
+        : userContent,
+  });
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const res = await fetch("https://api.mistral.ai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model,
+        messages,
+        temperature: req.temperature ?? 0.2,
+        max_tokens: req.maxTokens ?? 800,
+        ...(req.jsonMode ? { response_format: { type: "json_object" } } : {}),
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeout);
+    if (!res.ok) {
+      console.warn(`[Mistral AI] Request failed with HTTP status: ${res.status}`);
+      return null;
+    }
+
+    const data = await res.json();
+    const content = data?.choices?.[0]?.message?.content;
+    return typeof content === "string" ? content : null;
+  } catch (err) {
+    clearTimeout(timeout);
+    console.warn(`[Mistral AI] Request error: ${err instanceof Error ? err.message : "timeout"}`);
     return null;
   }
 }
@@ -242,7 +326,7 @@ async function callGemini(
 /**
  * Hàm gọi AI tối ưu theo kiến trúc Lean Fallback Chain:
  * 1. Primary: Groq (qwen/qwen3.8-27b - 400ms-800ms)
- * 2. Fallback 1: Groq (allam-2-7b - 250ms)
+ * 2. Fallback 1: Mistral AI (mistral-small-latest / open-mistral-nemo - 500ms-900ms)
  * 3. Fallback 2: Cloudflare Workers AI (@cf/meta/llama-3.1-8b-instruct - 700ms)
  * 4. Fallback 3 (nếu có custom key): Google Gemini Flash
  */
@@ -268,9 +352,32 @@ export async function generateFastAiChat(req: AiChatRequest): Promise<AiChatResp
         };
       }
     }
+    console.warn("[AI Provider] Groq failed or timed out. Falling back to Mistral AI.");
   }
 
-  // 2. Fallback: Cloudflare Workers AI
+  // 2. Fallback 1: Mistral AI (chỉ kích hoạt khi Groq thất bại hoặc không có key)
+  const mistralKey = getMistralApiKey();
+  if (mistralKey && Date.now() - start < maxTotalTimeout) {
+    for (const model of MISTRAL_MODELS) {
+      if (Date.now() - start >= maxTotalTimeout) break;
+      const perCallTimeout = Math.min(maxTotalTimeout - (Date.now() - start), 1800);
+      const mistralText = await callMistral(req, mistralKey, model, perCallTimeout);
+      if (mistralText && mistralText.trim()) {
+        const trimmed = mistralText.trim();
+        if (!req.jsonMode || (trimmed.includes("{") && trimmed.includes("}"))) {
+          return {
+            text: trimmed,
+            provider: "Mistral AI",
+            model,
+            latencyMs: Date.now() - start,
+          };
+        }
+      }
+    }
+    console.warn("[AI Provider] Mistral fallback failed, checking downstream providers...");
+  }
+
+  // 3. Fallback 2: Cloudflare Workers AI
   if (Date.now() - start < maxTotalTimeout) {
     for (const cfModel of CLOUDFLARE_MODELS) {
       if (Date.now() - start >= maxTotalTimeout) break;
@@ -290,8 +397,8 @@ export async function generateFastAiChat(req: AiChatRequest): Promise<AiChatResp
     }
   }
 
-  // 3. Dự phòng cho Custom API Key (Gemini) nếu người dùng cung cấp
-  if (req.customApiKey && Date.now() - start < maxTotalTimeout) {
+  // 4. Fallback 3: Google Gemini Flash (sử dụng Key hệ thống hoặc Custom Key)
+  if (Date.now() - start < maxTotalTimeout) {
     const geminiKeys = getGeminiApiKeys(req.customApiKey);
     if (geminiKeys.length > 0) {
       for (const key of geminiKeys) {
