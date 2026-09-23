@@ -247,10 +247,10 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
           </div>
           <div className="text-3xl font-black text-violet-400 flex items-baseline gap-2 group-hover:scale-105 transition-transform origin-left">
             <span>{loading ? "..." : stats?.todayVisitorsCount ?? 0}</span>
-            <span className="text-xs font-normal text-gray-400">khách</span>
+            <span className="text-xs font-normal text-gray-400">lượt truy cập độc nhất</span>
           </div>
           <p className="text-[11px] text-gray-400 mt-1">
-            Unique visitors hôm nay (site_visit)
+            Unique visitors hôm nay — User + Guest (site_visit)
           </p>
         </div>
       </div>

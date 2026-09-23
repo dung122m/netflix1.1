@@ -83,6 +83,7 @@ export default function AdminDashboardPage() {
   const [comments, setComments] = useState<MovieComment[]>([]);
   const [collections, setCollections] = useState<MovieCollection[]>([]);
   const [rawUsers, setRawUsers] = useState<UserProfile[]>([]);
+  const [totalMemberCount, setTotalMemberCount] = useState(0);
   const [deviceHandoffs, setDeviceHandoffs] = useState<DeviceHandoffItem[]>([]);
   const [errorReports, setErrorReports] = useState<ErrorReportItem[]>([]);
   const [reportFilter, setReportFilter] = useState<"all" | "pending" | "resolved" | "ignored">("all");
@@ -209,8 +210,9 @@ export default function AdminDashboardPage() {
     );
 
     const unsubUsers = subscribeAllUsers(
-      (items) => {
+      (items, dbTotalCount) => {
         setRawUsers(items);
+        setTotalMemberCount(dbTotalCount);
       },
       (err) => {
         console.warn("Lỗi realtime users:", err);
@@ -231,11 +233,11 @@ export default function AdminDashboardPage() {
     };
   }, [isAdmin, fetchAuthorizedHandoffs]);
 
-  // Derived: Merge rawUsers with any unique commenters and device_handoffs
+  // Derived: Enrich rawUsers (registered profiles only) with comment stats and device_handoffs
   const allMembers = useMemo<MemberWithStats[]>(() => {
     const memberMap = new Map<string, MemberWithStats>();
 
-    // 1. Thêm các user đã đăng ký profile trong Supabase
+    // 1. Chỉ lấy các user đã đăng ký profile trong Supabase (Registered Members)
     rawUsers.forEach((u) => {
       memberMap.set(u.uid, {
         ...u,
@@ -245,27 +247,12 @@ export default function AdminDashboardPage() {
       });
     });
 
-    // 2. Thêm và tính toán thống kê từ danh sách comments
+    // 2. Tính toán thống kê bình luận cho các thành viên đã đăng ký (không tạo member giả từ orphan comments)
     const userCommentsMap = new Map<string, MovieComment[]>();
     comments.forEach((c) => {
       const list = userCommentsMap.get(c.userId) || [];
       list.push(c);
       userCommentsMap.set(c.userId, list);
-
-      if (!memberMap.has(c.userId)) {
-        memberMap.set(c.userId, {
-          uid: c.userId,
-          email: c.userEmail || "",
-          displayName: c.userName || "Thành viên Nanaflix",
-          photoURL: c.userAvatar,
-          createdAt: c.createdAt || Date.now(),
-          lastLoginAt: c.createdAt || Date.now(),
-          role: isUserAdmin(c.userEmail) ? "admin" : "member",
-          commentsCount: 0,
-          avgRatingGiven: 0,
-          spoilerCount: 0,
-        });
-      }
     });
 
     // 3. Map device_handoffs for real-time live watching & last active
@@ -375,7 +362,7 @@ export default function AdminDashboardPage() {
           )
         : 0;
 
-    const uniqueUsers = allMembers.length;
+    const uniqueUsers = totalMemberCount;
     const uniqueMovies = new Set(comments.map((c) => c.movieSlug)).size;
     const spoilerCount = comments.filter((c) => c.isSpoiler).length;
     const flaggedCount = comments.filter((c) => c.isFlagged).length;
@@ -399,7 +386,7 @@ export default function AdminDashboardPage() {
       totalPublicCols,
       starDistribution,
     };
-  }, [comments, collections, allMembers]);
+  }, [comments, collections, totalMemberCount]);
 
   // Filtered comments
   const filteredComments = useMemo(() => {
@@ -1013,7 +1000,7 @@ export default function AdminDashboardPage() {
             <Users size={14} />
             <span>Thành Viên</span>
             <span className="px-1.5 py-0.2 rounded-full bg-black/40 text-[10px] font-mono">
-              {allMembers.length}
+              {totalMemberCount}
             </span>
           </button>
 
@@ -1518,7 +1505,7 @@ export default function AdminDashboardPage() {
                       memberFilter === "all" ? "bg-white/15 text-white" : "text-gray-400 hover:text-white"
                     }`}
                   >
-                    Tất cả ({allMembers.length})
+                    Tất cả ({totalMemberCount})
                   </button>
                   <button
                     type="button"
@@ -1564,7 +1551,7 @@ export default function AdminDashboardPage() {
             {/* COUNT HEADER */}
             <div className="flex items-center justify-between text-xs text-gray-400 px-1">
               <span>
-                Hiển thị <strong className="text-white">{filteredMembers.length}</strong> / {allMembers.length} thành viên
+                Hiển thị <strong className="text-white">{filteredMembers.length}</strong> / {totalMemberCount} thành viên
               </span>
             </div>
 
@@ -1788,7 +1775,7 @@ export default function AdminDashboardPage() {
           <AdminAnalyticsTab
             metrics={metrics}
             adminEmail={user.email}
-            totalMembersCount={allMembers.length}
+            totalMembersCount={totalMemberCount}
           />
         )}
 

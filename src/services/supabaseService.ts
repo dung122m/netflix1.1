@@ -113,18 +113,18 @@ export async function getTopWatchLeaderboardSupabase(limit: number = 10): Promis
   }
 }
 
-export async function getAllProfilesSupabase(): Promise<UserProfile[]> {
-  if (!supabase) return [];
+export async function getAllProfilesSupabase(): Promise<{ profiles: UserProfile[]; totalCount: number }> {
+  if (!supabase) return { profiles: [], totalCount: 0 };
   try {
-    const { data, error } = await supabase
+    const { data, error, count } = await supabase
       .from("profiles")
-      .select("*")
+      .select("*", { count: "exact" })
       .order("last_login_at", { ascending: false })
       .limit(300);
 
-    if (error || !data) return [];
+    if (error || !data) return { profiles: [], totalCount: 0 };
 
-    return data.map((d) => ({
+    const profiles = data.map((d) => ({
       uid: d.id,
       email: d.email || "",
       displayName: d.display_name || "Thành viên",
@@ -141,8 +141,10 @@ export async function getAllProfilesSupabase(): Promise<UserProfile[]> {
       createdAt: d.created_at,
       lastLoginAt: d.last_login_at,
     }));
+
+    return { profiles, totalCount: count ?? profiles.length };
   } catch {
-    return [];
+    return { profiles: [], totalCount: 0 };
   }
 }
 

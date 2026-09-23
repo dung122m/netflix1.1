@@ -274,7 +274,7 @@ export async function recordUserProfile(user: BaseAuthUser): Promise<void> {
  * Lắng nghe danh sách tất cả thành viên theo thời gian thực (Dành cho Quản trị viên)
  */
 export function subscribeAllUsers(
-  onUpdate: (users: UserProfile[]) => void,
+  onUpdate: (users: UserProfile[], totalCount: number) => void,
   onError?: (err: Error) => void,
   _maxLimit: number = 300
 ): () => void {
@@ -285,9 +285,9 @@ export function subscribeAllUsers(
     if (isUnsubscribed) return;
     if (isSupabaseConfigured()) {
       try {
-        const items = await getAllProfilesSupabase();
+        const result = await getAllProfilesSupabase();
         if (!isUnsubscribed) {
-          onUpdate(items);
+          onUpdate(result.profiles, result.totalCount);
         }
       } catch (err) {
         if (onError && err instanceof Error) onError(err);
