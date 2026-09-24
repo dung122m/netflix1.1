@@ -45,6 +45,7 @@ interface PlayerNativeControlsProps {
   onTogglePiP: () => void;
   onUseIframeFallback: () => void;
   onToggleFullscreen: () => void;
+  onUserInteraction?: () => void;
 }
 
 export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.memo(
@@ -70,6 +71,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
     onTogglePiP,
     onUseIframeFallback,
     onToggleFullscreen,
+    onUserInteraction,
   }) {
     const [showSpeedMenu, setShowSpeedMenu] = useState(false);
     const [showQualityMenu, setShowQualityMenu] = useState(false);
@@ -104,10 +106,21 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
 
     return (
       <div
-        onClick={(e) => e.stopPropagation()}
-        className={`absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 via-black/70 to-transparent pt-10 pb-3 px-3 sm:px-5 transition-opacity duration-300 z-30 ${
-          showControls || !isPlaying ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        onClick={(e) => {
+          e.stopPropagation();
+          onUserInteraction?.();
+        }}
+        onMouseMove={onUserInteraction}
+        onPointerMove={onUserInteraction}
+        onTouchStart={onUserInteraction}
+        className={`cinema-player-controls absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 via-black/70 to-transparent pt-10 pb-3 px-3 sm:px-5 transition-opacity duration-300 z-50 ${
+          showControls || !isPlaying || showSpeedMenu || showQualityMenu ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         }`}
+        style={{
+          paddingBottom: isFullscreen ? "max(0.75rem, env(safe-area-inset-bottom, 0.75rem))" : undefined,
+          paddingLeft: isFullscreen ? "max(0.75rem, env(safe-area-inset-left, 0.75rem))" : undefined,
+          paddingRight: isFullscreen ? "max(0.75rem, env(safe-area-inset-right, 0.75rem))" : undefined,
+        }}
       >
         {/* THANH TIẾN TRÌNH CÁCH LY RE-RENDER */}
         <PlayerScrubBar

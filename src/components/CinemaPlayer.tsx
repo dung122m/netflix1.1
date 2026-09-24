@@ -141,6 +141,23 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const centerIconTimerRef = useRef<NodeJS.Timeout | null>(null);
   const controlsTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  useEffect(() => {
+    return () => {
+      if (controlsTimerRef.current) {
+        clearTimeout(controlsTimerRef.current);
+        controlsTimerRef.current = null;
+      }
+      if (hudTimerRef.current) {
+        clearTimeout(hudTimerRef.current);
+        hudTimerRef.current = null;
+      }
+      if (centerIconTimerRef.current) {
+        clearTimeout(centerIconTimerRef.current);
+        centerIconTimerRef.current = null;
+      }
+    };
+  }, []);
+
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -180,18 +197,20 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
 
   const resetControlsTimeout = useCallback(() => {
     setShowControls(true);
-    if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
-    controlsTimerRef.current = setTimeout(() => {
-      // Nếu có bất kỳ control nào bên trong player đang được focus, giữ hiển thị controls
-      const active = document.activeElement;
-      if (active && containerRef.current && containerRef.current.contains(active)) {
-        return;
-      }
-      if (!videoRef.current || !videoRef.current.paused) {
-        setShowControls(false);
-      }
-    }, 3200);
-  }, []);
+    if (controlsTimerRef.current) {
+      clearTimeout(controlsTimerRef.current);
+      controlsTimerRef.current = null;
+    }
+    const isPaused = videoRef.current ? videoRef.current.paused : !isPlaying;
+    if (!isPaused) {
+      controlsTimerRef.current = setTimeout(() => {
+        const isStillPaused = videoRef.current ? videoRef.current.paused : !isPlaying;
+        if (!isStillPaused) {
+          setShowControls(false);
+        }
+      }, 3000);
+    }
+  }, [isPlaying]);
 
   const trailerEmbedSrc = useMemo(() => {
     if (videoLink || !trailerUrl) return null;
@@ -355,53 +374,67 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     if (!container) return;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const webkitVideo = video as any;
-    if (webkitVideo && typeof webkitVideo.webkitEnterFullscreen === "function" && isNativeVideo) {
-      try {
-        webkitVideo.webkitEnterFullscreen();
-        setIsFullscreen(true);
-        lockLandscape();
-        showHud(<Maximize2 className="w-5 h-5 text-netflix-red" />, "Toàn màn hình (iOS)");
-        return;
-      } catch (e) {
-        console.warn("iOS fullscreen fallback:", e);
-      }
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const doc = document as any;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const elem = container as any;
-    const fullscreenElement = doc.fullscreenElement || doc.webkitFullscreenElement || doc.mozFullScreenElement || doc.msFullscreenElement;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const webkitVideo = video as any;
 
-    if (!fullscreenElement) {
+    const fullscreenElement =
+      doc.fullscreenElement ||
+      doc.webkitFullscreenElement ||
+      doc.mozFullScreenElement ||
+      doc.msFullscreenElement;
+
+    const isCurrentlyFs = Boolean(fullscreenElement || isFullscreen || webkitVideo?.webkitDisplayingFullscreen);
+
+    if (isCurrentlyFs) {
+      const exitFS = doc.exitFullscreen || doc.webkitExitFullscreen || doc.mozCancelFullScreen || doc.msExitFullscreen;
+      if (exitFS && fullscreenElement) {
+        exitFS.call(doc).catch(() => {});
+      } else if (webkitVideo && typeof webkitVideo.webkitExitFullscreen === "function" && webkitVideo.webkitDisplayingFullscreen) {
+        try {
+          webkitVideo.webkitExitFullscreen();
+        } catch {}
+      }
+      setIsFullscreen(false);
+      unlockOrientation();
+      showHud(<Minimize2 className="w-5 h-5 text-gray-300" />, "Thoát toàn màn hình");
+    } else {
       if (elem.requestFullscreen) {
-        elem.requestFullscreen({ navigationUI: "hide" } as FullscreenOptions).then(lockLandscape).catch(() => {
-          if (elem.requestFullscreen) {
-            elem.requestFullscreen().then(lockLandscape).catch(() => {});
-          }
-        });
+        elem
+          .requestFullscreen({ navigationUI: "hide" } as FullscreenOptions)
+          .then(lockLandscape)
+          .catch(() => {
+            if (elem.requestFullscreen) {
+              elem.requestFullscreen().then(lockLandscape).catch(() => {});
+            }
+          });
         setIsFullscreen(true);
         showHud(<Maximize2 className="w-5 h-5 text-netflix-red" />, "Toàn màn hình");
-      } else {
-        const requestFS = elem.webkitRequestFullscreen || elem.mozRequestFullScreen || elem.msRequestFullscreen;
-        if (requestFS) {
-          requestFS.call(elem);
+      } else if (elem.webkitRequestFullscreen) {
+        elem.webkitRequestFullscreen();
+        setIsFullscreen(true);
+        lockLandscape();
+        showHud(<Maximize2 className="w-5 h-5 text-netflix-red" />, "Toàn màn hình");
+      } else if (webkitVideo && typeof webkitVideo.webkitEnterFullscreen === "function" && isNativeVideo) {
+        try {
+          webkitVideo.webkitEnterFullscreen();
+          setIsFullscreen(true);
+          lockLandscape();
+          showHud(<Maximize2 className="w-5 h-5 text-netflix-red" />, "Toàn màn hình (iOS)");
+        } catch {
           setIsFullscreen(true);
           lockLandscape();
           showHud(<Maximize2 className="w-5 h-5 text-netflix-red" />, "Toàn màn hình");
         }
-      }
-    } else {
-      const exitFS = doc.exitFullscreen || doc.webkitExitFullscreen || doc.mozCancelFullScreen || doc.msExitFullscreen;
-      if (exitFS) {
-        exitFS.call(doc).catch(() => {});
-        setIsFullscreen(false);
-        unlockOrientation();
-        showHud(<Minimize2 className="w-5 h-5 text-gray-300" />, "Thoát toàn màn hình");
+      } else {
+        setIsFullscreen(true);
+        lockLandscape();
+        showHud(<Maximize2 className="w-5 h-5 text-netflix-red" />, "Toàn màn hình");
       }
     }
-  }, [isNativeVideo, lockLandscape, unlockOrientation, showHud]);
+  }, [isNativeVideo, isFullscreen, lockLandscape, unlockOrientation, showHud]);
 
   useEffect(() => {
     const handleFsChange = () => {
@@ -476,11 +509,17 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         setIsPlaying(true);
         triggerCenterAnimation("play");
         showHud(<Play className="w-5 h-5 text-emerald-400 fill-current" />, "Đang phát");
+        resetControlsTimeout();
       } else {
         v.pause();
         setIsPlaying(false);
         triggerCenterAnimation("pause");
         showHud(<Pause className="w-5 h-5 text-amber-400 fill-current" />, "Tạm dừng");
+        setShowControls(true);
+        if (controlsTimerRef.current) {
+          clearTimeout(controlsTimerRef.current);
+          controlsTimerRef.current = null;
+        }
       }
     } else {
       setIsPlaying((prev) => {
@@ -490,16 +529,21 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           sendPlayerCommand("play");
           triggerCenterAnimation("play");
           showHud(<Play className="w-5 h-5 text-emerald-400 fill-current" />, "Đang phát");
+          resetControlsTimeout();
         } else {
           sendPlayerCommand("pauseVideo");
           sendPlayerCommand("pause");
           triggerCenterAnimation("pause");
           showHud(<Pause className="w-5 h-5 text-amber-400 fill-current" />, "Tạm dừng");
+          setShowControls(true);
+          if (controlsTimerRef.current) {
+            clearTimeout(controlsTimerRef.current);
+            controlsTimerRef.current = null;
+          }
         }
         return next;
       });
     }
-    resetControlsTimeout();
   }, [isNativeVideo, isMuted, sendPlayerCommand, showHud, triggerCenterAnimation, resetControlsTimeout]);
 
   const handleQualityChange = useCallback((levelIndex: number) => {
@@ -783,6 +827,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     const handlePlaying = () => {
       setIsBuffering(false);
       setIsPlaying(true);
+      resetControlsTimeout();
       const epKey = `${movieSlug || "movie"}:${activeEpisodeSlug || "ep"}`;
       if (movieSlug && hasTrackedWatchStartRef.current !== epKey) {
         hasTrackedWatchStartRef.current = epKey;
@@ -797,6 +842,11 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     };
     const handlePause = () => {
       setIsPlaying(false);
+      setShowControls(true);
+      if (controlsTimerRef.current) {
+        clearTimeout(controlsTimerRef.current);
+        controlsTimerRef.current = null;
+      }
       const currentEffectiveDuration = getEffectiveDuration();
       if (movieSlug && activeEpisodeSlug && video.currentTime > 5) {
         saveWatchProgress(movieSlug, video.currentTime, currentEffectiveDuration, activeEpisodeSlug);
@@ -865,6 +915,11 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
 
     const handleEnded = () => {
       setIsPlaying(false);
+      setShowControls(true);
+      if (controlsTimerRef.current) {
+        clearTimeout(controlsTimerRef.current);
+        controlsTimerRef.current = null;
+      }
       const currentEffectiveDuration = getEffectiveDuration();
       if (movieSlug) {
         trackWatchEnd({
@@ -949,6 +1004,9 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       if (e.ctrlKey || e.metaKey || e.altKey) {
         return;
       }
+
+      // Reset controls timeout on any player shortcut key
+      resetControlsTimeout();
 
       // 1. Phím Escape: Đóng modal / Tắt đèn / Thoát toàn màn hình
       if (e.key === "Escape") {
@@ -1172,12 +1230,17 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         ref={containerRef}
         tabIndex={0}
         onMouseMove={resetControlsTimeout}
+        onPointerMove={resetControlsTimeout}
+        onTouchStart={resetControlsTimeout}
+        onTouchMove={resetControlsTimeout}
         className={`w-full mx-auto transition-all duration-300 bg-black outline-none focus:outline-none focus-visible:outline-none ${
-          isMobileStickyActive
+          isFullscreen
+            ? "fixed inset-0 z-50 w-full h-full max-w-none p-0 m-0 bg-black flex flex-col justify-center overflow-hidden"
+            : isMobileStickyActive
             ? "fixed top-[56px] left-0 right-0 z-40 shadow-2xl border-b border-white/25 md:relative md:top-auto"
             : "relative z-30"
-        } ${isTheaterMode ? "max-w-none px-0 sm:px-0" : "max-w-7xl"} ${
-          isLightsOff ? "z-50" : ""
+        } ${isTheaterMode && !isFullscreen ? "max-w-none px-0 sm:px-0" : isFullscreen ? "" : "max-w-7xl"} ${
+          isLightsOff && !isFullscreen ? "z-50" : ""
         }`}
       >
         {isMobileStickyActive && (
@@ -1202,12 +1265,14 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         <div className="ambient-cinema-glow opacity-80" aria-hidden="true" />
 
         <div
-          className={`w-full aspect-video bg-zinc-950 relative overflow-hidden transition-all duration-300 z-10 mx-auto shadow-2xl select-none group ${
-            isMobileStickyActive
-              ? "rounded-none max-h-[38vh]"
+          className={`cinema-video-wrapper w-full bg-zinc-950 relative overflow-hidden transition-all duration-300 z-10 mx-auto select-none group ${
+            isFullscreen
+              ? "w-full h-full max-h-screen rounded-none border-none shadow-none aspect-auto"
+              : isMobileStickyActive
+              ? "aspect-video rounded-none max-h-[38vh] shadow-2xl"
               : isTheaterMode
-              ? "rounded-none border-y border-white/20 shadow-[0_30px_90px_rgba(0,0,0,0.85)] sm:max-h-[calc(100vh-90px)]"
-              : "rounded-none sm:rounded-2xl md:rounded-3xl border-b sm:border border-white/15 shadow-[0_25px_70px_rgba(0,0,0,0.55)]"
+              ? "aspect-video rounded-none border-y border-white/20 shadow-[0_30px_90px_rgba(0,0,0,0.85)] sm:max-h-[calc(100vh-90px)]"
+              : "aspect-video rounded-none sm:rounded-2xl md:rounded-3xl border-b sm:border border-white/15 shadow-[0_25px_70px_rgba(0,0,0,0.55)]"
           }`}
         >
           {isNativeVideo ? (
@@ -1224,6 +1289,10 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 togglePlayPause();
               }}
               onDoubleClick={toggleFullscreen}
+              onMouseMove={resetControlsTimeout}
+              onPointerMove={resetControlsTimeout}
+              onTouchStart={resetControlsTimeout}
+              onTouchMove={resetControlsTimeout}
             >
               <video
                 ref={videoRef}
@@ -1269,6 +1338,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 videoRef={videoRef}
                 onTogglePlayPause={togglePlayPause}
                 onSeekFeedback={(txt) => {
+                  resetControlsTimeout();
                   showHud(<SkipForward className="w-5 h-5 text-netflix-red fill-current" />, `Đến ${txt}`);
                 }}
                 onToggleMute={() => {
@@ -1276,6 +1346,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                     videoRef.current.muted = !videoRef.current.muted;
                     setIsMuted(videoRef.current.muted);
                   }
+                  resetControlsTimeout();
                 }}
                 onVolumeChange={(newVol) => {
                   setVolume(newVol);
@@ -1284,12 +1355,20 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                     videoRef.current.muted = newVol === 0;
                     setIsMuted(newVol === 0);
                   }
+                  resetControlsTimeout();
                 }}
-                onSpeedChange={handleSpeedChange}
-                onQualityChange={handleQualityChange}
+                onSpeedChange={(spd) => {
+                  handleSpeedChange(spd);
+                  resetControlsTimeout();
+                }}
+                onQualityChange={(lvl) => {
+                  handleQualityChange(lvl);
+                  resetControlsTimeout();
+                }}
                 onTogglePiP={togglePiP}
                 onUseIframeFallback={() => setUseIframeFallback(true)}
                 onToggleFullscreen={toggleFullscreen}
+                onUserInteraction={resetControlsTimeout}
               />
             </div>
           ) : activeSrc ? (
@@ -1366,20 +1445,62 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         </div>
 
         {/* ISOLATED ACTION BUTTONS BAR */}
-        <PlayerActionButtons
-          isTheaterMode={isTheaterMode}
-          onToggleTheaterMode={() => setIsTheaterMode(!isTheaterMode)}
-          isLightsOff={isLightsOff}
-          onToggleLightsOff={() => setIsLightsOff(!isLightsOff)}
-          isFullscreen={isFullscreen}
-          onToggleFullscreen={toggleFullscreen}
-          onOpenShortcuts={() => setShowShortcutModal(true)}
-          prevEpisode={prevEpisode}
-          nextEpisode={nextEpisode}
-          onSwitchEpisode={switchEpisode}
-          isSticky={isMobileStickyActive}
-        />
+        {!isFullscreen && (
+          <div className="cinema-action-buttons">
+            <PlayerActionButtons
+              isTheaterMode={isTheaterMode}
+              onToggleTheaterMode={() => setIsTheaterMode(!isTheaterMode)}
+              isLightsOff={isLightsOff}
+              onToggleLightsOff={() => setIsLightsOff(!isLightsOff)}
+              isFullscreen={isFullscreen}
+              onToggleFullscreen={toggleFullscreen}
+              onOpenShortcuts={() => setShowShortcutModal(true)}
+              prevEpisode={prevEpisode}
+              nextEpisode={nextEpisode}
+              onSwitchEpisode={switchEpisode}
+              isSticky={isMobileStickyActive}
+            />
+          </div>
+        )}
       </div>
+
+      <style>{`
+        :fullscreen,
+        :-webkit-full-screen {
+          width: 100vw !important;
+          height: 100vh !important;
+          max-width: 100vw !important;
+          max-height: 100vh !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          background: #000000 !important;
+          overflow: hidden !important;
+        }
+        :fullscreen .cinema-video-wrapper,
+        :-webkit-full-screen .cinema-video-wrapper {
+          width: 100% !important;
+          height: 100% !important;
+          max-height: 100vh !important;
+          aspect-ratio: auto !important;
+          border-radius: 0 !important;
+          border: none !important;
+          box-shadow: none !important;
+        }
+        :fullscreen .cinema-player-controls,
+        :-webkit-full-screen .cinema-player-controls {
+          position: absolute !important;
+          inset-inline: 0 !important;
+          bottom: 0 !important;
+          z-index: 50 !important;
+          padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0.75rem)) !important;
+          padding-left: max(0.75rem, env(safe-area-inset-left, 0.75rem)) !important;
+          padding-right: max(0.75rem, env(safe-area-inset-right, 0.75rem)) !important;
+        }
+        :fullscreen .cinema-action-buttons,
+        :-webkit-full-screen .cinema-action-buttons {
+          display: none !important;
+        }
+      `}</style>
 
       {/* MODALS */}
       <PlayerShortcutModal
