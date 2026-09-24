@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Image from "next/image";
-import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import Hls from "hls.js";
 import {
@@ -32,15 +31,6 @@ import { PlayerNativeControls } from "./player/PlayerNativeControls";
 import { PlayerActionButtons } from "./player/PlayerActionButtons";
 import { PlayerShortcutModal } from "./player/PlayerShortcutModal";
 import { trackWatchStart, trackWatchProgress, trackWatchEnd } from "@/lib/analyticsClient";
-
-const SleepTimerModal = dynamic(
-  () => import("./SleepTimerModal").then((mod) => mod.SleepTimerModal),
-  { ssr: false }
-);
-const MobileQrModal = dynamic(
-  () => import("./MobileQrModal").then((mod) => mod.MobileQrModal),
-  { ssr: false }
-);
 
 interface EpisodeItem {
   name?: string;
@@ -113,10 +103,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const [useIframeFallback, setUseIframeFallback] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [showShortcutModal, setShowShortcutModal] = useState(false);
-  const [showSleepTimerModal, setShowSleepTimerModal] = useState(false);
-  const [showQrModal, setShowQrModal] = useState(false);
-  const [qrTime, setQrTime] = useState(0);
-  const [qrDuration, setQrDuration] = useState(0);
   const [bigCenterIcon, setBigCenterIcon] = useState<"play" | "pause" | null>(null);
 
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
@@ -959,13 +945,16 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
 
       if (isInput) return;
 
+      // Bỏ qua nếu người dùng đang dùng tổ hợp phím hệ thống (Ctrl + C, Cmd + C, Ctrl + V, Alt + ...)
+      if (e.ctrlKey || e.metaKey || e.altKey) {
+        return;
+      }
+
       // 1. Phím Escape: Đóng modal / Tắt đèn / Thoát toàn màn hình
       if (e.key === "Escape") {
-        if (showShortcutModal || showSleepTimerModal || showQrModal) {
+        if (showShortcutModal) {
           e.preventDefault();
           setShowShortcutModal(false);
-          setShowSleepTimerModal(false);
-          setShowQrModal(false);
           return;
         }
 
@@ -1140,8 +1129,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     showHud,
     getEffectiveDuration,
     showShortcutModal,
-    showSleepTimerModal,
-    showQrModal,
     isLightsOff,
     isFullscreen,
     resetControlsTimeout,
@@ -1301,15 +1288,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 onSpeedChange={handleSpeedChange}
                 onQualityChange={handleQualityChange}
                 onTogglePiP={togglePiP}
-                onOpenQr={() => {
-                  setQrTime(videoRef.current?.currentTime || 0);
-                  setQrDuration(videoRef.current?.duration || 0);
-                  setShowQrModal(true);
-                  if (videoRef.current && isPlaying) {
-                    videoRef.current.pause();
-                    setIsPlaying(false);
-                  }
-                }}
                 onUseIframeFallback={() => setUseIframeFallback(true)}
                 onToggleFullscreen={toggleFullscreen}
               />
@@ -1395,7 +1373,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           onToggleLightsOff={() => setIsLightsOff(!isLightsOff)}
           isFullscreen={isFullscreen}
           onToggleFullscreen={toggleFullscreen}
-          onOpenSleepTimer={() => setShowSleepTimerModal(true)}
           onOpenShortcuts={() => setShowShortcutModal(true)}
           prevEpisode={prevEpisode}
           nextEpisode={nextEpisode}
@@ -1409,28 +1386,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         isOpen={showShortcutModal}
         onClose={() => setShowShortcutModal(false)}
       />
-
-      {showSleepTimerModal && (
-        <SleepTimerModal
-          isOpen={showSleepTimerModal}
-          onClose={() => setShowSleepTimerModal(false)}
-          hideTrigger={true}
-        />
-      )}
-
-      {showQrModal && (
-        <MobileQrModal
-          isOpen={showQrModal}
-          onClose={() => setShowQrModal(false)}
-          triggerButton={false}
-          title={title}
-          movieSlug={watchContext?.movieSlug}
-          activeEpisodeSlug={activeEpisodeSlug}
-          activeEpisodeName={activeEpisodeName}
-          currentTime={qrTime}
-          duration={qrDuration}
-        />
-      )}
     </>
   );
 };

@@ -320,69 +320,69 @@ export function TmdbTopTrending() {
       }}
     >
       {/* HEADER SECTION */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-5 px-1">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 sm:gap-4 mb-4 sm:mb-5 px-1">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 mb-1.5">
             <span
-              className={`flex items-center justify-center w-7 h-7 rounded-lg bg-gradient-to-tr ${currentConfig.gradientClass} text-white shadow-lg`}
+              className={`flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-gradient-to-tr ${currentConfig.gradientClass} text-white shadow-lg shrink-0`}
             >
-              <IconComponent className="w-4 h-4 text-white" />
+              <IconComponent className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
             </span>
             <span
-              className={`text-[11px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full border flex items-center gap-1 ${currentConfig.badgeClass}`}
+              className={`text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wider px-2 sm:px-2.5 py-0.5 rounded-full border flex items-center gap-1 truncate ${currentConfig.badgeClass}`}
             >
-              <Globe className="w-3 h-3" />
-              {currentConfig.badge}
+              <Globe className="w-3 h-3 shrink-0" />
+              <span className="truncate">{currentConfig.badge}</span>
             </span>
           </div>
-          <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-white tracking-tight flex items-center gap-2">
+          <h2 className="text-lg sm:text-2xl md:text-3xl font-black text-white tracking-tight flex items-center gap-2">
             <span>{currentConfig.title}</span>
-            {activeTab === "week" && <Flame className="w-6 h-6 text-netflix-red animate-bounce" />}
-            {activeTab === "month" && <Zap className="w-6 h-6 text-amber-400 animate-pulse" />}
-            {activeTab === "top_rated" && <Crown className="w-6 h-6 text-yellow-400" />}
+            {activeTab === "week" && <Flame className="w-5 h-5 sm:w-6 sm:h-6 text-netflix-red animate-bounce shrink-0" />}
+            {activeTab === "month" && <Zap className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400 animate-pulse shrink-0" />}
+            {activeTab === "top_rated" && <Crown className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-400 shrink-0" />}
           </h2>
-          <p className="text-xs sm:text-sm text-gray-400 mt-0.5">
+          <p className="text-xs sm:text-sm text-gray-400 mt-0.5 line-clamp-2">
             {currentConfig.subtitle}
           </p>
         </div>
 
         {/* 3 TABS & CAROUSEL CONTROLS */}
-        <div className="flex items-center justify-between sm:justify-end gap-3">
-          <div className="inline-flex p-1 rounded-xl bg-zinc-900/90 border border-white/10 text-xs font-semibold backdrop-blur-md">
+        <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
+          <div className="flex items-center gap-1 p-1 rounded-xl bg-zinc-900/90 border border-white/10 text-xs font-semibold backdrop-blur-md overflow-x-auto no-scrollbar max-w-full w-full sm:w-auto justify-between sm:justify-start">
             <button
               type="button"
               onClick={() => switchTab("week")}
-              className={`px-3 py-1.5 rounded-lg transition-all duration-200 cursor-pointer flex items-center gap-1.5 ${
+              className={`px-2.5 sm:px-3 py-1.5 rounded-lg transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap flex-1 sm:flex-initial text-[11px] sm:text-xs ${
                 activeTab === "week"
                   ? "bg-netflix-red text-white font-bold shadow-md shadow-red-950/40 scale-100"
                   : "text-gray-400 hover:text-white hover:bg-white/5 active:scale-95"
               }`}
             >
-              <Flame className="w-3.5 h-3.5" />
+              <Flame className="w-3.5 h-3.5 shrink-0" />
               <span>Thịnh Hành Tuần</span>
             </button>
             <button
               type="button"
               onClick={() => switchTab("month")}
-              className={`px-3 py-1.5 rounded-lg transition-all duration-200 cursor-pointer flex items-center gap-1.5 ${
+              className={`px-2.5 sm:px-3 py-1.5 rounded-lg transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap flex-1 sm:flex-initial text-[11px] sm:text-xs ${
                 activeTab === "month"
                   ? "bg-netflix-red text-white font-bold shadow-md shadow-red-950/40 scale-100"
                   : "text-gray-400 hover:text-white hover:bg-white/5 active:scale-95"
               }`}
             >
-              <Zap className="w-3.5 h-3.5" />
+              <Zap className="w-3.5 h-3.5 shrink-0" />
               <span>Nổi Bật Tháng</span>
             </button>
             <button
               type="button"
               onClick={() => switchTab("top_rated")}
-              className={`px-3 py-1.5 rounded-lg transition-all duration-200 cursor-pointer flex items-center gap-1.5 ${
+              className={`px-2.5 sm:px-3 py-1.5 rounded-lg transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap flex-1 sm:flex-initial text-[11px] sm:text-xs ${
                 activeTab === "top_rated"
                   ? "bg-netflix-red text-white font-bold shadow-md shadow-red-950/40 scale-100"
                   : "text-gray-400 hover:text-white hover:bg-white/5 active:scale-95"
               }`}
             >
-              <Crown className="w-3.5 h-3.5" />
+              <Crown className="w-3.5 h-3.5 shrink-0" />
               <span>Mọi Thời Đại</span>
             </button>
           </div>
@@ -434,7 +434,7 @@ export function TmdbTopTrending() {
           Array.from({ length: 6 }).map((_, idx) => (
             <div
               key={idx}
-              className="flex-none w-[220px] sm:w-[260px] h-[320px] sm:h-[360px] rounded-2xl bg-zinc-900/80 animate-pulse border border-white/5"
+              className="flex-none w-[130px] sm:w-[160px] md:w-[185px] aspect-[2/3] rounded-2xl bg-zinc-900/80 animate-pulse border border-white/5"
             />
           ))
         ) : items.length === 0 ? (
@@ -462,48 +462,10 @@ export function TmdbTopTrending() {
               >
                 <Link
                   href={`/movies/${movieSlug}`}
-                  className="flex items-end relative block cursor-pointer group-hover:scale-[1.02] transition-transform duration-300 ease-out"
+                  className="relative block cursor-pointer group-hover:scale-[1.03] transition-transform duration-300 ease-out"
                 >
-                  {/* NETFLIX-STYLE GIANT 3D NUMBER */}
-                  <div className="relative -mr-5 sm:-mr-8 z-0 pointer-events-none select-none">
-                    <span
-                      className="text-[90px] sm:text-[130px] md:text-[150px] font-black leading-none tracking-tighter"
-                      style={{
-                        WebkitTextStroke:
-                          rank <= 3
-                            ? activeTab === "top_rated"
-                              ? "2px rgba(234, 179, 8, 0.9)"
-                              : "2px rgba(239, 68, 68, 0.9)"
-                            : "2px rgba(255, 255, 255, 0.25)",
-                        color:
-                          rank === 1
-                            ? "transparent"
-                            : rank === 2
-                            ? "transparent"
-                            : rank === 3
-                            ? "transparent"
-                            : "rgba(0, 0, 0, 0.6)",
-                        backgroundImage:
-                          rank === 1
-                            ? "linear-gradient(180deg, #f59e0b 0%, #dc2626 100%)"
-                            : rank === 2
-                            ? "linear-gradient(180deg, #e2e8f0 0%, #64748b 100%)"
-                            : rank === 3
-                            ? "linear-gradient(180deg, #d97706 0%, #78350f 100%)"
-                            : undefined,
-                        WebkitBackgroundClip: rank <= 3 ? "text" : undefined,
-                        filter:
-                          rank <= 3
-                            ? "drop-shadow(0 10px 15px rgba(220, 38, 38, 0.4))"
-                            : undefined,
-                      }}
-                    >
-                      {rank}
-                    </span>
-                  </div>
-
-                  {/* MOVIE POSTER CARD (Tỷ lệ dọc 2:3 chuẩn Netflix) */}
-                  <div className="relative z-10 w-[140px] sm:w-[175px] md:w-[190px] aspect-[2/3] rounded-2xl overflow-hidden bg-zinc-900 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950 border border-white/10 shadow-[0_15px_35px_rgba(0,0,0,0.8)] group-hover:border-netflix-red/60 group-hover:shadow-[0_20px_45px_rgba(229,9,20,0.35)] transition-all duration-300">
+                  {/* MOVIE POSTER CARD (Tỷ lệ dọc 2:3 chuẩn Netflix với Rank Badge) */}
+                  <div className="relative z-10 w-[130px] sm:w-[160px] md:w-[185px] aspect-[2/3] rounded-2xl overflow-hidden bg-zinc-900 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950 border border-white/10 shadow-[0_12px_28px_rgba(0,0,0,0.8)] group-hover:border-netflix-red/60 group-hover:shadow-[0_16px_36px_rgba(229,9,20,0.35)] transition-all duration-300">
                     {(() => {
                       const rawPoster = pickBestMoviePoster(
                         {
@@ -523,7 +485,7 @@ export function TmdbTopTrending() {
                           fill
                           unoptimized
                           priority={index < 3}
-                          sizes="(max-width: 640px) 180px, (max-width: 768px) 240px, 280px"
+                          sizes="(max-width: 640px) 160px, (max-width: 768px) 200px, 240px"
                           className="object-cover group-hover:scale-105 transition-transform duration-500"
                           loading={index < 3 ? "eager" : "lazy"}
                           quality={85}
@@ -547,13 +509,21 @@ export function TmdbTopTrending() {
                       );
                     })()}
 
-                    {/* TOP BADGE */}
-                    <div className="absolute top-2 left-2 right-2 flex items-center justify-between pointer-events-none">
-                      {rank <= 3 && (
-                        <span className="px-2 py-0.5 rounded-md bg-gradient-to-r from-red-600 to-rose-600 text-white text-[9px] sm:text-[10px] font-black uppercase tracking-wider shadow-md border border-red-400/30">
-                          TOP {rank}
-                        </span>
-                      )}
+                    {/* TOP RANK BADGE & QUALITY */}
+                    <div className="absolute top-2 left-2 right-2 flex items-center justify-between pointer-events-none z-10">
+                      <span
+                        className={`px-1.5 sm:px-2 py-0.5 rounded-md text-[9px] sm:text-[10px] font-black uppercase tracking-wider shadow-md border ${
+                          rank === 1
+                            ? "bg-gradient-to-r from-amber-500 to-yellow-400 text-black border-amber-300"
+                            : rank === 2
+                            ? "bg-gradient-to-r from-slate-200 to-slate-400 text-black border-slate-200"
+                            : rank === 3
+                            ? "bg-gradient-to-r from-amber-700 to-amber-500 text-white border-amber-400/40"
+                            : "bg-black/75 backdrop-blur-md text-white/90 border-white/20"
+                        }`}
+                      >
+                        #{rank}
+                      </span>
                       {movie.quality && (
                         <span className="ml-auto px-1.5 py-0.5 rounded bg-black/70 backdrop-blur-md text-amber-300 text-[9px] font-bold border border-white/10">
                           {movie.quality}

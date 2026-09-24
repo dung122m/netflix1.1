@@ -38,6 +38,17 @@ export function LiveHubClient({ footballData, tvData }: LiveHubClientProps) {
       try {
         const url = new URL(window.location.href);
         url.searchParams.set("tab", tab);
+        if (tab === "football") {
+          url.searchParams.delete("channel");
+        } else if (tab === "tv") {
+          const savedTvChannelId =
+            typeof window !== "undefined"
+              ? localStorage.getItem("nanaflix_live_channel_id")
+              : null;
+          if (savedTvChannelId) {
+            url.searchParams.set("channel", savedTvChannelId);
+          }
+        }
         window.history.replaceState(null, "", url.toString());
       } catch {}
     },

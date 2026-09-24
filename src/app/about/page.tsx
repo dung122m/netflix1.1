@@ -56,7 +56,7 @@ const KEY_FEATURES = [
     title: "Đề Xuất Chuẩn Gu Cá Nhân",
     tagline: "✨ Thuật toán Taste Profile",
     description:
-      "Hệ thống phân tích thói quen xem phim đa chiều, tính điểm tương đồng theo thể loại, quốc gia, định dạng phim và diễn viên yêu thích.",
+      "Hệ thống phân tích thói quen xem phim đa chiều, tính điểm tương đồng theo thể loại, quốc gia và định dạng phim.",
     accent: "from-amber-500/20 to-yellow-500/10",
     border: "border-amber-500/20 hover:border-amber-500/40",
     iconColor: "text-amber-400",
@@ -246,7 +246,7 @@ export default function AboutPage() {
               </div>
               <div className="flex items-center gap-2.5 text-sm text-gray-200">
                 <CheckCircle2 size={16} className="text-netflix-red shrink-0" />
-                <span>Theo dõi diễn viên yêu thích & nhận thông báo phim mới</span>
+                <span>Tìm kiếm nâng cao & khám phá nội dung đa dạng</span>
               </div>
             </div>
           </div>

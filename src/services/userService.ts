@@ -95,7 +95,6 @@ import {
   upsertUserProfileSupabase,
   getUserProfileSupabase,
   getAllProfilesSupabase,
-  getTopWatchLeaderboardSupabase,
   updateUserProfileSupabase,
   setUserCommentRestrictionSupabase,
   deleteAllUserCommentsSupabase,
@@ -644,15 +643,6 @@ export async function incrementUserWatchTime(userId: string, minutes: number = 1
     };
     setCachedUserProfile(userId, updatedProfile);
 
-    // Kiểm tra mốc thăng cấp & mở khóa danh hiệu mới
-    const prevLevel = getWatchLevelInfo(prevMins);
-    const newLevel = getWatchLevelInfo(newMins);
-    if (newLevel.minMinutes > prevLevel.minMinutes) {
-      import("@/services/notificationService").then(({ notifyAchievementMilestone }) => {
-        notifyAchievementMilestone(userId, newLevel).catch(() => {});
-      }).catch(() => {});
-    }
-
     // 2. Cập nhật vào Supabase qua API có Debounce (2 phút) để tránh spam request liên tục
     if (watchTimeSaveTimers.has(userId)) {
       clearTimeout(watchTimeSaveTimers.get(userId));
@@ -678,7 +668,7 @@ export async function incrementUserWatchTime(userId: string, minutes: number = 1
     }, 120000);
     watchTimeSaveTimers.set(userId, timer);
 
-    // 3. Phát sự kiện đồng bộ toàn bộ UI (ProfileModal, Header, Leaderboard, Level Badge)
+    // 3. Phát sự kiện đồng bộ toàn bộ UI (ProfileModal, Header, Level Badge)
     if (typeof window !== "undefined") {
       window.dispatchEvent(
         new CustomEvent("user-profile-updated", {
@@ -763,18 +753,4 @@ export function getWatchLevelInfo(totalMinutes: number = 0): WatchLevelInfo {
     nextMinMinutes: 60,
     badges: ["🍿 Mọt Phim Đêm"],
   };
-}
-
-/**
- * Lấy danh sách Top Fan Cày Phim từ Supabase (Leaderboard) được tối ưu hóa Index
- */
-export async function getTopWatchLeaderboard(maxLimit: number = 10): Promise<UserProfile[]> {
-  if (isSupabaseConfigured()) {
-    try {
-      return await getTopWatchLeaderboardSupabase(maxLimit);
-    } catch (err) {
-      console.warn("Lỗi đọc Bảng Xếp Hạng Leaderboard:", err);
-    }
-  }
-  return [];
 }

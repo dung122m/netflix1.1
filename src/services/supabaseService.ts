@@ -42,6 +42,8 @@ export async function upsertUserProfileSupabase(profile: Partial<UserProfile> & 
 
 // In-memory micro-cache for user profiles (TTL 30s) to eliminate duplicate DB reads on comment threads
 const profileMemoryCache = new Map<string, { data: UserProfile; expiry: number }>();
+// In-flight Promise deduplication by userId
+const inFlightProfilePromises = new Map<string, Promise<UserProfile | null>>();
 
 export async function getUserProfileSupabase(userId: string): Promise<UserProfile | null> {
   if (!userId) return null;
@@ -52,66 +54,51 @@ export async function getUserProfileSupabase(userId: string): Promise<UserProfil
     return cached.data;
   }
 
-  try {
-    const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
-    const res = await fetch(`${baseUrl}/api/user/profile?userId=${encodeURIComponent(userId)}`, {
-      cache: "no-store",
-    });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.success && data.profile) {
-        const d = data.profile;
-        const profile: UserProfile = {
-          uid: d.uid,
-          email: d.email || "",
-          displayName: d.displayName || "Thành viên",
-          photoURL: d.photoURL || d.customAvatar || "",
-          customAvatar: d.customAvatar,
-          bio: d.bio,
-          favoriteGenres: d.favoriteGenres || [],
-          badges: d.badges || [],
-          watchTimeMinutes: Number(d.watchTimeMinutes) || 0,
-          role: d.role || "member",
-          isCommentRestricted: Boolean(d.isCommentRestricted),
-          createdAt: Number(d.createdAt) || Date.now(),
-          lastLoginAt: Number(d.lastLoginAt) || Date.now(),
-        };
-
-        profileMemoryCache.set(userId, { data: profile, expiry: now + 30000 });
-        return profile;
-      }
-    }
-    return null;
-  } catch {
-    return null;
+  const existingPromise = inFlightProfilePromises.get(userId);
+  if (existingPromise) {
+    return existingPromise;
   }
-}
 
-export async function getTopWatchLeaderboardSupabase(limit: number = 10): Promise<UserProfile[]> {
-  try {
-    const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
-    const res = await fetch(`${baseUrl}/api/user/profile?leaderboard=true&limit=${limit}`, { cache: "no-store" });
-    if (res.ok) {
-      const apiRes = await res.json();
-      if (apiRes.success && Array.isArray(apiRes.leaderboard)) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return apiRes.leaderboard.map((d: any) => ({
-          uid: d.uid,
-          email: "",
-          displayName: d.displayName || "Thành viên",
-          photoURL: d.photoURL || d.customAvatar || "",
-          customAvatar: d.customAvatar,
-          badges: d.badges || [],
-          watchTimeMinutes: d.watchTimeMinutes || 0,
-          role: "member",
-        }));
+  const fetchPromise = (async () => {
+    try {
+      const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
+      const res = await fetch(`${baseUrl}/api/user/profile?userId=${encodeURIComponent(userId)}`, {
+        cache: "no-store",
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.profile) {
+          const d = data.profile;
+          const profile: UserProfile = {
+            uid: d.uid,
+            email: d.email || "",
+            displayName: d.displayName || "Thành viên",
+            photoURL: d.photoURL || d.customAvatar || "",
+            customAvatar: d.customAvatar,
+            bio: d.bio,
+            favoriteGenres: d.favoriteGenres || [],
+            badges: d.badges || [],
+            watchTimeMinutes: Number(d.watchTimeMinutes) || 0,
+            role: d.role || "member",
+            isCommentRestricted: Boolean(d.isCommentRestricted),
+            createdAt: Number(d.createdAt) || Date.now(),
+            lastLoginAt: Number(d.lastLoginAt) || Date.now(),
+          };
+
+          profileMemoryCache.set(userId, { data: profile, expiry: Date.now() + 30000 });
+          return profile;
+        }
       }
+      return null;
+    } catch {
+      return null;
     }
-    return [];
-  } catch (err) {
-    console.warn("[Leaderboard] Error fetching top watch leaderboard:", err);
-    return [];
-  }
+  })().finally(() => {
+    inFlightProfilePromises.delete(userId);
+  });
+
+  inFlightProfilePromises.set(userId, fetchPromise);
+  return fetchPromise;
 }
 
 export async function getAllProfilesSupabase(): Promise<{ profiles: UserProfile[]; totalCount: number }> {
@@ -265,23 +252,39 @@ export function parseReactionsAndLikedBy(likedByRaw: unknown): {
   return { likedBy, reactions };
 }
 
+// In-flight Promise deduplication by movieSlug
+const inFlightMovieCommentsPromises = new Map<string, Promise<MovieComment[]>>();
+
 export async function getMovieCommentsSupabase(movieSlug: string): Promise<MovieComment[]> {
   if (!movieSlug) return [];
-  try {
-    const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
-    const res = await fetch(`${baseUrl}/api/comments?movieSlug=${encodeURIComponent(movieSlug)}`, {
-      cache: "no-store",
-    });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.success && Array.isArray(data.items)) {
-        return data.items;
-      }
-    }
-  } catch {
-    return [];
+
+  const existingPromise = inFlightMovieCommentsPromises.get(movieSlug);
+  if (existingPromise) {
+    return existingPromise;
   }
-  return [];
+
+  const fetchPromise = (async () => {
+    try {
+      const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
+      const res = await fetch(`${baseUrl}/api/comments?movieSlug=${encodeURIComponent(movieSlug)}`, {
+        cache: "no-store",
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.items)) {
+          return data.items;
+        }
+      }
+    } catch {
+      return [];
+    }
+    return [];
+  })().finally(() => {
+    inFlightMovieCommentsPromises.delete(movieSlug);
+  });
+
+  inFlightMovieCommentsPromises.set(movieSlug, fetchPromise);
+  return fetchPromise;
 }
 
 export async function getUserCommentsSupabase(userId: string): Promise<MovieComment[]> {
@@ -1031,371 +1034,7 @@ export async function searchCollectionsFtsSupabase(searchTerm: string): Promise<
   }
 }
 
-// ============================================================================
-// 7. BÁO CÁO LỖI PHIM (ERROR_REPORTS)
-// ============================================================================
 
-export interface ErrorReportItem {
-  id: string;
-  movieSlug: string;
-  movieTitle: string;
-  episodeName?: string;
-  episodeSlug?: string;
-  serverName?: string;
-  issueType: string;
-  description?: string;
-  userId?: string;
-  userName?: string;
-  userEmail?: string;
-  status: "pending" | "resolved" | "ignored";
-  adminNote?: string;
-  createdAt: number;
-  updatedAt: number;
-}
-
-export async function createErrorReportSupabase(
-  report: Omit<ErrorReportItem, "id" | "createdAt" | "updatedAt" | "status">
-): Promise<string> {
-  const id = `err_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-  try {
-    const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken().catch(() => null);
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
-    if (token) headers["Authorization"] = `Bearer ${token}`;
-
-    const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
-    const res = await fetch(`${baseUrl}/api/reports`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        movieSlug: report.movieSlug,
-        movieTitle: report.movieTitle,
-        episodeName: report.episodeName,
-        episodeSlug: report.episodeSlug,
-        serverName: report.serverName,
-        issueType: report.issueType,
-        description: report.description,
-        userName: report.userName,
-        userEmail: report.userEmail,
-      }),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.id) return data.id;
-    }
-  } catch (err) {
-    console.warn("Lỗi gửi error report qua API:", err);
-  }
-  return id;
-}
-
-export async function getErrorReportsSupabase(statusFilter?: string): Promise<ErrorReportItem[]> {
-  try {
-    const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken();
-    if (!token) return [];
-    const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
-    const statusParam = statusFilter && statusFilter !== "all" ? `?status=${encodeURIComponent(statusFilter)}` : "";
-    const res = await fetch(`${baseUrl}/api/reports${statusParam}`, {
-      headers: { Authorization: `Bearer ${token}` },
-      cache: "no-store",
-    });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.success && Array.isArray(data.items)) {
-        return data.items.map((d: Record<string, unknown>) => ({
-          id: String(d.id),
-          movieSlug: String(d.movie_slug || ""),
-          movieTitle: String(d.movie_title || ""),
-          episodeName: d.episode_name ? String(d.episode_name) : undefined,
-          episodeSlug: d.episode_slug ? String(d.episode_slug) : undefined,
-          serverName: d.server_name ? String(d.server_name) : undefined,
-          issueType: String(d.issue_type || ""),
-          description: d.description ? String(d.description) : undefined,
-          userId: d.user_id ? String(d.user_id) : undefined,
-          userName: d.user_name ? String(d.user_name) : undefined,
-          userEmail: d.user_email ? String(d.user_email) : undefined,
-          status: (d.status as ErrorReportItem["status"]) || "pending",
-          adminNote: d.admin_note ? String(d.admin_note) : undefined,
-          createdAt: Number(d.created_at) || Date.now(),
-          updatedAt: Number(d.updated_at) || Date.now(),
-        }));
-      }
-    }
-  } catch (err) {
-    console.warn("Lỗi lấy error reports qua API:", err);
-  }
-  return [];
-}
-
-export async function updateErrorReportStatusSupabase(
-  id: string,
-  status: "pending" | "resolved" | "ignored",
-  adminNote?: string
-): Promise<boolean> {
-  if (!id) return false;
-  try {
-    const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken();
-    if (!token) return false;
-    const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
-    const res = await fetch(`${baseUrl}/api/reports`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ id, status, adminNote }),
-    });
-    return res.ok;
-  } catch (err) {
-    console.warn("Lỗi cập nhật trạng thái báo cáo lỗi qua API:", err);
-    return false;
-  }
-}
-
-export async function deleteErrorReportSupabase(id: string): Promise<boolean> {
-  if (!id) return false;
-  try {
-    const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken();
-    if (!token) return false;
-    const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
-    const res = await fetch(`${baseUrl}/api/reports?id=${encodeURIComponent(id)}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    return res.ok;
-  } catch (err) {
-    console.warn("Lỗi xóa báo cáo lỗi qua API:", err);
-    return false;
-  }
-}
-
-export function subscribeErrorReportsSupabase(
-  onUpdate: (reports: ErrorReportItem[]) => void
-): () => void {
-  let isUnsubscribed = false;
-  const fetchReports = () => {
-    if (isUnsubscribed) return;
-    getErrorReportsSupabase().then((items) => {
-      if (!isUnsubscribed) onUpdate(items);
-    });
-  };
-
-  fetchReports();
-
-  const handleVisibility = () => {
-    if (!isUnsubscribed && typeof document !== "undefined" && !document.hidden) {
-      fetchReports();
-    }
-  };
-
-  if (typeof window !== "undefined") {
-    document.addEventListener("visibilitychange", handleVisibility);
-  }
-
-  const interval = setInterval(() => {
-    if (!isUnsubscribed && typeof document !== "undefined" && !document.hidden) {
-      fetchReports();
-    }
-  }, 45000);
-
-  return () => {
-    isUnsubscribed = true;
-    clearInterval(interval);
-    if (typeof window !== "undefined") {
-      document.removeEventListener("visibilitychange", handleVisibility);
-    }
-  };
-}
-
-// ============================================================================
-// 8. THEO DÕI PHIM BỘ (FOLLOWED_SERIES)
-// ============================================================================
-
-export interface FollowedSeriesItem {
-  id: string; // userId_movieSlug
-  userId: string;
-  movieSlug: string;
-  movieTitle: string;
-  poster?: string;
-  lastNotifiedEpisode?: string;
-  createdAt: number;
-}
-
-export async function followSeriesSupabase(
-  userId: string,
-  movieSlug: string,
-  movieTitle: string,
-  poster?: string
-): Promise<void> {
-  if (!userId || !movieSlug) return;
-  try {
-    const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken();
-    if (!token) return;
-    const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
-    await fetch(`${baseUrl}/api/user/series`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ movieSlug, movieTitle, poster }),
-    });
-  } catch (err) {
-    console.warn("Lỗi follow series qua API:", err);
-  }
-}
-
-export async function unfollowSeriesSupabase(userId: string, movieSlug: string): Promise<void> {
-  if (!userId || !movieSlug) return;
-  try {
-    const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken();
-    if (!token) return;
-    const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
-    await fetch(`${baseUrl}/api/user/series?slug=${encodeURIComponent(movieSlug)}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
-    });
-  } catch (err) {
-    console.warn("Lỗi unfollow series qua API:", err);
-  }
-}
-
-export async function isSeriesFollowedSupabase(userId: string, movieSlug: string): Promise<boolean> {
-  if (!userId || !movieSlug) return false;
-  try {
-    const list = await getUserFollowedSeriesSupabase(userId);
-    return list.some((item) => item.movieSlug === movieSlug);
-  } catch {
-    return false;
-  }
-}
-
-export async function getUserFollowedSeriesSupabase(userId: string): Promise<FollowedSeriesItem[]> {
-  if (!userId) return [];
-  try {
-    const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken();
-    if (!token) return [];
-    const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
-    const res = await fetch(`${baseUrl}/api/user/series`, {
-      headers: { Authorization: `Bearer ${token}` },
-      cache: "no-store",
-    });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.success && Array.isArray(data.items)) {
-        return data.items.map((row: Record<string, unknown>) => ({
-          id: `${userId}_${row.movieSlug}`,
-          userId,
-          movieSlug: String(row.movieSlug || ""),
-          movieTitle: String(row.movieTitle || ""),
-          poster: row.poster ? String(row.poster) : undefined,
-          lastNotifiedEpisode: row.lastNotifiedEpisode ? String(row.lastNotifiedEpisode) : undefined,
-          createdAt: Number(row.createdAt) || Date.now(),
-        }));
-      }
-    }
-  } catch (err) {
-    console.warn("Lỗi lấy danh sách followed series qua API:", err);
-  }
-  return [];
-}
-
-// ============================================================================
-// 9. NHẮC LỊCH THỂ THAO & BÓNG ĐÁ (MATCH_REMINDERS)
-// ============================================================================
-
-export interface MatchReminderItem {
-  id: string; // userId_matchId
-  userId: string;
-  matchId: string;
-  homeTeam: string;
-  awayTeam: string;
-  matchTime: number;
-  tournament?: string;
-  isNotified?: boolean;
-  createdAt: number;
-}
-
-export async function saveMatchReminderSupabase(item: MatchReminderItem): Promise<void> {
-  if (!item.userId || !item.matchId) return;
-  try {
-    const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken();
-    if (!token) return;
-    const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
-    await fetch(`${baseUrl}/api/user/reminders`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        matchId: item.matchId,
-        homeTeam: item.homeTeam,
-        awayTeam: item.awayTeam,
-        matchTime: item.matchTime,
-        tournament: item.tournament,
-      }),
-    });
-  } catch (err) {
-    console.warn("Lỗi lưu match reminder qua API:", err);
-  }
-}
-
-export async function getMatchRemindersSupabase(userId: string): Promise<MatchReminderItem[]> {
-  if (!userId) return [];
-  try {
-    const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken();
-    if (!token) return [];
-    const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
-    const res = await fetch(`${baseUrl}/api/user/reminders`, {
-      headers: { Authorization: `Bearer ${token}` },
-      cache: "no-store",
-    });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.success && Array.isArray(data.items)) {
-        return data.items.map((row: Record<string, unknown>) => ({
-          id: `${userId}_${row.matchId}`,
-          userId,
-          matchId: String(row.matchId || ""),
-          homeTeam: String(row.homeTeam || ""),
-          awayTeam: String(row.awayTeam || ""),
-          matchTime: Number(row.matchTime) || 0,
-          tournament: row.tournament ? String(row.tournament) : undefined,
-          isNotified: Boolean(row.isNotified),
-          createdAt: Number(row.createdAt) || Date.now(),
-        }));
-      }
-    }
-  } catch (err) {
-    console.warn("Lỗi lấy match reminders qua API:", err);
-  }
-  return [];
-}
-
-export async function removeMatchReminderSupabase(userId: string, matchId: string): Promise<void> {
-  if (!userId || !matchId) return;
-  try {
-    const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken();
-    if (!token) return;
-    const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
-    await fetch(`${baseUrl}/api/user/reminders?matchId=${encodeURIComponent(matchId)}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
-    });
-  } catch (err) {
-    console.warn("Lỗi xóa match reminder qua API:", err);
-  }
-}
 
 // ============================================================================
 // 10. TIẾP TỤC XEM ĐA THIẾT BỊ (DEVICE_HANDOFF)

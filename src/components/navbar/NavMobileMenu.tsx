@@ -14,7 +14,6 @@ import {
   Bell,
   ChevronRight,
   Info,
-  BarChart2,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { isUserAdmin } from "@/lib/adminConfig";
@@ -248,19 +247,6 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
             </div>
           </Link>
         </div>
-
-        {/* THỐNG KÊ & WRAPPED */}
-        <Link
-          href="/stats"
-          onClick={onClose}
-          className="w-full text-xs font-semibold py-2 px-3 text-amber-300 hover:text-white flex items-center justify-between rounded-xl bg-gradient-to-r from-amber-500/10 via-rose-500/10 to-purple-500/10 hover:bg-white/10 border border-amber-500/20 transition text-left cursor-pointer shadow-sm"
-        >
-          <div className="flex items-center gap-2.5">
-            <BarChart2 size={14} className="text-amber-400" />
-            <span className="font-bold">📊 Thống kê & Nanaflix Wrapped</span>
-          </div>
-          <ChevronRight size={14} className="text-amber-400" />
-        </Link>
 
         {/* THÔNG BÁO */}
         <button

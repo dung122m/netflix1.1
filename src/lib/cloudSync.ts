@@ -261,7 +261,4 @@ export async function clearAllWatchlistFromCloud(
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ĐỒNG BỘ PHẢN HỒI THÍCH / KHÔNG THÍCH (REACTIONS) VỚI SERVER API
-// ─────────────────────────────────────────────────────────────────────────────
-export { syncReactionsWithCloud } from "./movieReactions";
+

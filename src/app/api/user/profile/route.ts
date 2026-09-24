@@ -61,40 +61,6 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  if (searchParams.get("leaderboard") === "true") {
-    try {
-      const rawLimit = Number(searchParams.get("limit")) || 10;
-      const limit = Math.min(Math.max(1, rawLimit), 50);
-
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, display_name, photo_url, custom_avatar, badges, watch_time_minutes")
-        .order("watch_time_minutes", { ascending: false })
-        .limit(limit);
-
-      if (error) {
-        return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-      }
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const leaderboard = (data as any[] || []).map((d) => ({
-        uid: d.id,
-        displayName: d.display_name || "Thành viên",
-        photoURL: d.photo_url || d.custom_avatar || "",
-        customAvatar: d.custom_avatar,
-        badges: d.badges || [],
-        watchTimeMinutes: d.watch_time_minutes || 0,
-      }));
-
-      return NextResponse.json({
-        success: true,
-        leaderboard,
-      });
-    } catch (err) {
-      console.error("[Profile API GET Leaderboard] Error:", err);
-      return NextResponse.json({ success: false, error: "Internal error" }, { status: 500 });
-    }
-  }
 
   const targetUserId = searchParams.get("userId");
   const auth = await verifyServerAuth(req);

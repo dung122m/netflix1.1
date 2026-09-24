@@ -202,7 +202,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
     }
     saveRecentSearch(kw);
     trackSearchOnce(kw);
-    router.push(`/?keyword=${encodeURIComponent(kw)}`);
+    router.push(`/browse?keyword=${encodeURIComponent(kw)}`);
   };
 
   const toggleSearch = () => {
@@ -246,7 +246,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
       params.delete("keyword");
       params.delete("page");
       const query = params.toString();
-      router.push(query ? `/?${query}` : "/");
+      router.push(query ? `/browse?${query}` : "/browse");
     }
   };
 
@@ -313,9 +313,9 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
         setIsSearchExpanded(false);
         router.push(
           selected.slug.startsWith("browse?")
-            ? `/?${selected.slug.slice(7)}`
+            ? `/browse?${selected.slug.slice(7)}`
             : selected.slug.startsWith("?")
-            ? `/${selected.slug}`
+            ? `/browse${selected.slug}`
             : `/movies/${selected.slug}`
         );
       } else if (!hasSearchText && recentSearches.length > 0 && selectedSuggestionIndex >= 0 && selectedSuggestionIndex < recentSearches.length) {
@@ -337,9 +337,9 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
     if (currentKeyword) {
       saveRecentSearch(currentKeyword);
       trackSearchOnce(currentKeyword);
-      router.push(`/?keyword=${encodeURIComponent(currentKeyword)}`);
+      router.push(`/browse?keyword=${encodeURIComponent(currentKeyword)}`);
     } else {
-      router.push("/");
+      router.push("/browse");
     }
   };
 
@@ -476,9 +476,9 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
                         key={item.slug}
                         href={
                           item.slug.startsWith("browse?")
-                            ? `/?${item.slug.slice(7)}`
+                            ? `/browse?${item.slug.slice(7)}`
                             : item.slug.startsWith("?")
-                            ? `/${item.slug}`
+                            ? `/browse${item.slug}`
                             : `/movies/${item.slug}`
                         }
                         onClick={() => {
@@ -678,9 +678,9 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
                       key={item.slug}
                       href={
                         item.slug.startsWith("browse?")
-                          ? `/?${item.slug.slice(7)}`
+                          ? `/browse?${item.slug.slice(7)}`
                           : item.slug.startsWith("?")
-                          ? `/${item.slug}`
+                          ? `/browse${item.slug}`
                           : `/movies/${item.slug}`
                       }
                       onClick={() => {

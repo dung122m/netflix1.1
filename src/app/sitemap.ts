@@ -5,13 +5,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   const routes = [
     "",
-    "/?type=phim-bo",
-    "/?type=phim-le",
-    "/?type=phim-chieu-rap",
-    "/?type=hoat-hinh",
-    "/?type=tv-shows",
-    "/?type=phim-thuyet-minh",
-    "/?type=phim-long-tieng",
+    "/browse",
+    "/browse?type=phim-bo",
+    "/browse?type=phim-le",
+    "/browse?type=phim-chieu-rap",
+    "/browse?type=hoat-hinh",
+    "/browse?type=tv-shows",
+    "/browse?type=phim-thuyet-minh",
+    "/browse?type=phim-long-tieng",
     "/live",
   ].map((route) => ({
     url: `${siteUrl}${route}`,

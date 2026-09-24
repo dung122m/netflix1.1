@@ -18,7 +18,6 @@ import {
   Tv,
   ChevronDown,
   ChevronUp,
-  Bell,
   Sparkles,
   PictureInPicture2,
   Zap,
@@ -30,7 +29,6 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { FootballMatch, StreamServer } from "@/services/liveFootballService";
-import { useMatchReminders } from "@/hooks/useMatchReminders";
 import { LiveShortcutPopover } from "./LiveShortcutPopover";
 
 // Logo hiển thị trong drawer danh sách kênh & trận đấu
@@ -63,6 +61,21 @@ function MatchRailLogo({ option }: { option: FootballMatch }) {
   }
 
   return <Radio className="w-4 h-4 text-rose-400" />;
+}
+
+function getTeamInitials(teamName: string): string {
+  if (!teamName) return "⚽";
+  const clean = teamName
+    .replace(/^CLB\s+/i, "")
+    .replace(/^FC\s+/i, "")
+    .replace(/^SSC\s+/i, "")
+    .replace(/^U\d+\s+/i, "")
+    .trim();
+  const words = clean.split(/\s+/).filter(Boolean);
+  if (words.length >= 2) {
+    return (words[0][0] + words[1][0]).toUpperCase();
+  }
+  return clean.slice(0, 2).toUpperCase();
 }
 
 // Equalizer hoạt ảnh cho kênh đang phát sóng
@@ -239,9 +252,6 @@ function LivePlayerInner({
   onCloseMatchRail,
   onSelectMatch,
 }: LivePlayerProps) {
-  const { isReminded, addReminder, removeReminder } = useMatchReminders();
-  const matchId = match?.id;
-  const isCurrentlyReminded = matchId ? isReminded(matchId) : false;
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const hlsRef = useRef<Hls | null>(null);
@@ -251,7 +261,12 @@ function LivePlayerInner({
   const lastLoadedUrlRef = useRef<string>("");
   const retryCountRef = useRef<number>(0);
   const fallbackCountRef = useRef<number>(0);
-  const loadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const watchdogTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const attemptIdRef = useRef<number>(0);
+  const failedServersRef = useRef<Set<number>>(new Set());
+  const failedUrlsRef = useRef<Set<string>>(new Set());
+  const isStoppedRef = useRef<boolean>(false);
+  const [retryNonce, setRetryNonce] = useState<number>(0);
 
   const [selectedServerIndex, setSelectedServerIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -262,6 +277,8 @@ function LivePlayerInner({
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [useProxyFallback, setUseProxyFallback] = useState<boolean>(false);
+  const useProxyFallbackRef = useRef<boolean>(false);
   const [copied, setCopied] = useState(false);
   const [showControls, setShowControls] = useState(false);
   const [showAllServers, setShowAllServers] = useState(false);
@@ -269,6 +286,19 @@ function LivePlayerInner({
     icon: "play" | "pause" | "volume" | "mute" | "server" | "match" | "seek";
     text?: string;
   } | null>(null);
+
+  // Xác định trận đấu có đang trước giờ bóng lăn (kickoff) hay không
+  const isPreKickoff = useMemo(() => {
+    const ts = match?.timestamp;
+    const hasValidTimestamp =
+      typeof ts === "number" &&
+      ts > 0 &&
+      ts !== Number.MAX_SAFE_INTEGER;
+    if (hasValidTimestamp) {
+      return Date.now() < ts;
+    }
+    return match?.timeline === "upcoming";
+  }, [match?.timestamp, match?.timeline]);
 
   // Trạng thái đồng bộ Live Edge & Tua thời gian (Seek)
   const [isAtLiveEdge, setIsAtLiveEdge] = useState<boolean>(true);
@@ -316,13 +346,25 @@ function LivePlayerInner({
 
   // Reset trạng thái server & player khi chuyển sang trận đấu khác
   useEffect(() => {
+    isStoppedRef.current = false;
+    failedServersRef.current.clear();
+    failedUrlsRef.current.clear();
     setSelectedServerIndex(0);
+    useProxyFallbackRef.current = false;
+    setUseProxyFallback(false);
     fallbackCountRef.current = 0;
     userPausedRef.current = false;
     setHasError(false);
     setErrorMessage("");
     setIsLoading(true);
+    setRetryNonce((prev) => prev + 1);
   }, [match?.id]);
+
+  // Reset proxy fallback khi chuyển đổi server (chỉ thử proxy khi server hiện tại gặp lỗi)
+  useEffect(() => {
+    useProxyFallbackRef.current = false;
+    setUseProxyFallback(false);
+  }, [selectedServerIndex]);
 
   const liveOptionsCount = useMemo(() => {
     return matchOptions.filter((m) => m.timeline === "live").length;
@@ -390,6 +432,24 @@ function LivePlayerInner({
     [],
   );
 
+  // Thử lại từ đầu tất cả máy chủ khi gặp lỗi hoặc người dùng bấm Thử lại
+  const handleRetry = useCallback(() => {
+    isStoppedRef.current = false;
+    failedServersRef.current.clear();
+    failedUrlsRef.current.clear();
+    fallbackCountRef.current = 0;
+    useProxyFallbackRef.current = false;
+    setUseProxyFallback(false);
+    lastLoadedUrlRef.current = "";
+    userPausedRef.current = false;
+    setHasError(false);
+    setErrorMessage("");
+    setIsLoading(true);
+    setSelectedServerIndex(0);
+    setRetryNonce((prev) => prev + 1);
+    triggerActionFeedback("server", "Đang thử kết nối lại...");
+  }, [triggerActionFeedback]);
+
   // Khôi phục mức âm lượng đã lưu từ localStorage
   useEffect(() => {
     try {
@@ -452,8 +512,11 @@ function LivePlayerInner({
 
     const finalIsHls = isHls || finalUrl.includes(".m3u8");
     if (finalIsHls) {
-      // Ưu tiên phát trực tiếp từ trình duyệt cho các link HTTPS
+      // Ưu tiên phát trực tiếp từ trình duyệt cho các link HTTPS; chỉ qua Proxy khi gặp lỗi network/CORS
       if (finalUrl.startsWith("https://")) {
+        if (useProxyFallback) {
+          return `/api/live-football/proxy?url=${encodeURIComponent(finalUrl)}`;
+        }
         return finalUrl;
       }
       // Link HTTP thuần cần qua Proxy để không bị chặn Mixed Content trên trang HTTPS
@@ -521,10 +584,155 @@ function LivePlayerInner({
     );
   }, [currentServer?.url]);
 
-  // Khởi tạo luồng phát HLS tối ưu độ trễ thấp (Ultra Low Latency) + Auto ABR + Auto Recovery
+  // Xử lý chuyển máy chủ dự phòng tự động khi luồng phát hiện tại gặp sự cố / không phản hồi
+  const executeServerFallback = useCallback(
+    (customReason?: string) => {
+      if (isStoppedRef.current) return;
+
+      if (watchdogTimerRef.current) {
+        clearTimeout(watchdogTimerRef.current);
+        watchdogTimerRef.current = null;
+      }
+      attemptIdRef.current++;
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+      if (videoRef.current) {
+        videoRef.current.pause();
+        videoRef.current.removeAttribute("src");
+        videoRef.current.load();
+      }
+      lastLoadedUrlRef.current = "";
+
+      const currentUrl = currentServer?.url || "";
+      const isHttpsDirect =
+        currentUrl.startsWith("https://") ||
+        (currentUrl.startsWith("http://") &&
+          /fptplay|akamaized|cloudfront|vtv|cdn|vietnam/i.test(currentUrl));
+
+      const isPreKickoffNow = Boolean(
+        (match?.timestamp &&
+          match.timestamp > 0 &&
+          match.timestamp !== Number.MAX_SAFE_INTEGER &&
+          Date.now() < match.timestamp) ||
+        match?.timeline === "upcoming"
+      );
+
+      // 1. TRẬN CHƯA KICKOFF:
+      // Tuyệt đối không gọi /api/live-football/proxy để tránh spam 403 khi chưa có tín hiệu phát.
+      // Mỗi server/URL chỉ được thử trực tiếp tối đa 1 lần.
+      if (isPreKickoffNow) {
+        failedServersRef.current.add(selectedServerIndex);
+        if (currentUrl) failedUrlsRef.current.add(currentUrl);
+        useProxyFallbackRef.current = false;
+        setUseProxyFallback(false);
+
+        // Tìm server tiếp theo chưa thử
+        let nextIndex = servers.findIndex(
+          (s, idx) =>
+            idx > selectedServerIndex &&
+            !failedServersRef.current.has(idx) &&
+            (!s.url || !failedUrlsRef.current.has(s.url)),
+        );
+        if (nextIndex === -1) {
+          nextIndex = servers.findIndex(
+            (s, idx) =>
+              !failedServersRef.current.has(idx) &&
+              (!s.url || !failedUrlsRef.current.has(s.url)),
+          );
+        }
+
+        if (nextIndex !== -1) {
+          fallbackCountRef.current += 1;
+          const toastText = `Máy chủ #${selectedServerIndex + 1} chưa có tín hiệu, đang thử máy chủ #${nextIndex + 1}...`;
+          triggerActionFeedback("server", toastText);
+          setIsLoading(true);
+          setHasError(false);
+          setErrorMessage("");
+          setSelectedServerIndex(nextIndex);
+          return;
+        }
+
+        // Tất cả server đều thất bại trước giờ bóng lăn -> DỪNG HOÀN TOÀN, không lặp lại
+        isStoppedRef.current = true;
+        setIsLoading(false);
+        setHasError(true);
+        setErrorMessage("Chưa có tín hiệu phát");
+        return;
+      }
+
+      // 2. KHI TRẬN ĐÃ KICKOFF (HOẶC LIVE):
+      // Giữ nguyên cơ chế: nếu HTTPS trực tiếp gặp sự cố kết nối/CORS/watchdog và chưa thử qua Proxy -> thử Proxy trước
+      if (isHttpsDirect && !useProxyFallbackRef.current) {
+        useProxyFallbackRef.current = true;
+        setUseProxyFallback(true);
+        const toastText = `Máy chủ #${selectedServerIndex + 1} ${customReason || "kết nối trực tiếp thất bại"}, đang thử qua cổng dự phòng (Proxy)...`;
+        triggerActionFeedback("server", toastText);
+        setIsLoading(true);
+        setHasError(false);
+        setErrorMessage("");
+        return;
+      }
+
+      // Đã thử qua Proxy hoặc là link HTTP mà vẫn thất bại -> Đánh dấu server & URL đã fail
+      failedServersRef.current.add(selectedServerIndex);
+      if (currentUrl) failedUrlsRef.current.add(currentUrl);
+      useProxyFallbackRef.current = false;
+      setUseProxyFallback(false);
+
+      // Tìm server tiếp theo chưa thử
+      let nextIndex = servers.findIndex(
+        (s, idx) =>
+          idx > selectedServerIndex &&
+          !failedServersRef.current.has(idx) &&
+          (!s.url || !failedUrlsRef.current.has(s.url)),
+      );
+      if (nextIndex === -1) {
+        nextIndex = servers.findIndex(
+          (s, idx) =>
+            !failedServersRef.current.has(idx) &&
+            (!s.url || !failedUrlsRef.current.has(s.url)),
+        );
+      }
+
+      if (nextIndex !== -1) {
+        fallbackCountRef.current += 1;
+        const toastText = `Máy chủ #${selectedServerIndex + 1} ${customReason || "không phản hồi"}, đang chuyển sang máy chủ #${nextIndex + 1}...`;
+        triggerActionFeedback("server", toastText);
+        setIsLoading(true);
+        setHasError(false);
+        setErrorMessage("");
+        setSelectedServerIndex(nextIndex);
+        return;
+      }
+
+      // Tất cả máy chủ đều không phản hồi (hoặc chỉ có 1 server và đã fail) -> DỪNG HOÀN TOÀN
+      isStoppedRef.current = true;
+      setIsLoading(false);
+      setHasError(true);
+      setErrorMessage(
+        "Tất cả máy chủ phát đều không phản hồi hoặc tín hiệu chưa sẵn sàng. Hãy thử lại sau hoặc chọn trận khác.",
+      );
+    },
+    [
+      servers,
+      selectedServerIndex,
+      currentServer?.url,
+      match?.timestamp,
+      match?.timeline,
+      triggerActionFeedback,
+    ],
+  );
+
+  // Khởi tạo luồng phát HLS tối ưu độ trễ thấp (Ultra Low Latency) + Auto ABR + Watchdog bảo vệ không bị treo
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !currentServer || !isActive) return;
+
+    if (isStoppedRef.current) {
+      return;
+    }
 
     if (isIframe) {
       setIsLoading(false);
@@ -554,16 +762,21 @@ function LivePlayerInner({
       currentServer.isHls || effectiveUrl.includes(".m3u8");
 
     if (!isEffectiveHls && currentServer.format === "flv") {
+      failedServersRef.current.add(selectedServerIndex);
+      if (currentServer.url) failedUrlsRef.current.add(currentServer.url);
+
       const nextHlsIdx = servers.findIndex(
         (s, idx) =>
-          idx !== selectedServerIndex &&
+          !failedServersRef.current.has(idx) &&
           (s.isHls || toPlayableHlsUrl(s.url).includes(".m3u8")),
       );
       if (nextHlsIdx !== -1) {
+        fallbackCountRef.current += 1;
         setSelectedServerIndex(nextHlsIdx);
         return;
       }
 
+      isStoppedRef.current = true;
       setIsLoading(false);
       setHasError(true);
       setErrorMessage(
@@ -572,29 +785,75 @@ function LivePlayerInner({
       return;
     }
 
+    // Khởi động Playback Watchdog: Tối đa 8 giây nếu không phát được hình ảnh thật sẽ tự động chuyển server
+    const currentAttemptId = ++attemptIdRef.current;
+    if (watchdogTimerRef.current) {
+      clearTimeout(watchdogTimerRef.current);
+      watchdogTimerRef.current = null;
+    }
+
+    watchdogTimerRef.current = setTimeout(() => {
+      if (currentAttemptId !== attemptIdRef.current) return;
+      if (isStoppedRef.current) return;
+      const v = videoRef.current;
+      const isActuallyPlaying =
+        v && !v.paused && (v.currentTime > 0.05 || v.readyState >= 3);
+      if (isActuallyPlaying) {
+        if (watchdogTimerRef.current) {
+          clearTimeout(watchdogTimerRef.current);
+          watchdogTimerRef.current = null;
+        }
+        setIsLoading(false);
+        return;
+      }
+
+      executeServerFallback("không phản hồi");
+    }, 8000);
+
+    // Xác nhận luồng phát thực sự chạy mượt mà (chỉ gỡ watchdog khi video đã chạy thật)
+    const onPlaybackConfirmed = () => {
+      if (watchdogTimerRef.current) {
+        clearTimeout(watchdogTimerRef.current);
+        watchdogTimerRef.current = null;
+      }
+      setIsLoading(false);
+      setHasError(false);
+      setIsPlaying(true);
+    };
+
+    const onTimeUpdateCheck = () => {
+      const v = videoRef.current;
+      if (v && v.currentTime > 0.05) {
+        onPlaybackConfirmed();
+      }
+    };
+
+    video.addEventListener("playing", onPlaybackConfirmed);
+    video.addEventListener("timeupdate", onTimeUpdateCheck);
+
     let cleanupDiagnosticListeners = () => {};
+    let onNativeLoadedMetadata: (() => void) | null = null;
+    let onNativeError: (() => void) | null = null;
 
     if (Hls.isSupported()) {
       const hls = new Hls({
         enableWorker: true,
         lowLatencyMode: true,
-        // Cấu hình tối ưu Live: đồng bộ 3 segment, tăng buffer chống giật lag / underrun
         liveSyncDurationCount: 3,
         backBufferLength: 40,
         maxBufferLength: 25,
         maxMaxBufferLength: 45,
         maxBufferSize: 30 * 1000 * 1000,
-        // Bắt đầu với ước tính băng thông chuẩn 5Mbps, bật Auto ABR
         abrEwmaDefaultEstimate: 5_000_000,
         capLevelToPlayerSize: false,
         startLevel: -1,
-        // Timeout nhanh hơn cho live stream
-        manifestLoadingTimeOut: 10000,
-        levelLoadingTimeOut: 10000,
-        fragLoadingTimeOut: 10000,
-        fragLoadingMaxRetry: 6,
-        levelLoadingMaxRetry: 6,
-        manifestLoadingMaxRetry: 6,
+        // Cấu hình timeout & retry nhanh để không bắt người dùng chờ lâu khi server chết
+        manifestLoadingTimeOut: 4000,
+        levelLoadingTimeOut: 4000,
+        fragLoadingTimeOut: 4500,
+        fragLoadingMaxRetry: 2,
+        levelLoadingMaxRetry: 2,
+        manifestLoadingMaxRetry: 2,
         fragLoadingMaxRetryTimeout: 1000,
         levelLoadingMaxRetryTimeout: 1000,
       });
@@ -602,34 +861,12 @@ function LivePlayerInner({
       hlsRef.current = hls;
       hls.loadSource(activeUrl);
       hls.attachMedia(video);
-      loadTimeoutRef.current = setTimeout(() => {
-        if (hlsRef.current !== hls) return;
-        if (fallbackCountRef.current < servers.length - 1) {
-          const nextServerIndex = servers.findIndex(
-            (_, index) => index > selectedServerIndex,
-          );
-          if (nextServerIndex !== -1) {
-            fallbackCountRef.current += 1;
-            setSelectedServerIndex(nextServerIndex);
-            return;
-          }
-        }
-        hls.destroy();
-        hlsRef.current = null;
-        setIsLoading(false);
-        setHasError(true);
-        setErrorMessage(
-          "Nguồn chưa phát hoặc không phản hồi sau 12 giây. Hãy thử đổi máy chủ khác.",
-        );
-      }, 12000);
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
-        // Bật chế độ ABR tự động thay vì khóa cứng highestIdx, giúp video tự hạ bitrate khi mạng chập chờn
+        // Lưu ý: KHÔNG hủy watchdog ở đây vì manifest parsed chưa đảm bảo video segment có thể tải được
         hls.currentLevel = -1;
         hls.loadLevel = -1;
         hls.nextLevel = -1;
-        setIsLoading(false);
         const curVol = volumeRef.current || 0.9;
         video.volume = curVol;
         video.muted = userMutedRef.current;
@@ -657,7 +894,6 @@ function LivePlayerInner({
 
       // ============================================================
       // DIAGNOSTIC-ONLY: Tự động ghi nhận tối đa 20 lần stall/ngắt hình ngắn
-      // Không thay đổi HLS config, ABR, buffer, retry, seek, hay playback logic
       // ============================================================
       let pendingStallSnapshot: {
         startTime: number;
@@ -714,7 +950,7 @@ function LivePlayerInner({
         };
       };
 
-      const onPlaying = () => {
+      const onPlayingDiagnostic = () => {
         if (pendingStallSnapshot) {
           const durationMs = Math.round(
             performance.now() - pendingStallSnapshot.startTime,
@@ -745,30 +981,24 @@ function LivePlayerInner({
               if (window.__liveStalls.length > 20) {
                 window.__liveStalls.shift();
               }
-
-              console.log(
-                `[LiveStall #${record.id}] ⏱️ ${durationMs}ms tại ${snap.currentTime}s | Buffer: ${snap.forwardBufferSec}s | Trễ live: ${snap.liveLatencySec}s | Bitrate: ${snap.bitrate} | (gõ window.__liveStalls)`,
-              );
             }
           }
         }
       };
 
       video.addEventListener("waiting", onWaiting);
-      video.addEventListener("playing", onPlaying);
+      video.addEventListener("playing", onPlayingDiagnostic);
       cleanupDiagnosticListeners = () => {
         video.removeEventListener("waiting", onWaiting);
-        video.removeEventListener("playing", onPlaying);
+        video.removeEventListener("playing", onPlayingDiagnostic);
         pendingStallSnapshot = null;
       };
 
-      let hasTriedProxy = activeUrl.includes("/api/live-football/proxy");
-
       hls.on(Hls.Events.ERROR, (_, data) => {
+        if (isStoppedRef.current) return;
         if (data.fatal) {
           switch (data.type) {
             case Hls.ErrorTypes.NETWORK_ERROR:
-              // Chỉ tự động recover về live edge khi vị trí phát thực sự rơi ra ngoài seekable window hoặc trễ quá sâu (>38s)
               const isOutsideSeekable =
                 videoRef.current &&
                 videoRef.current.seekable &&
@@ -793,70 +1023,25 @@ function LivePlayerInner({
                 return;
               }
 
-              retryCountRef.current += 1;
-              if (retryCountRef.current <= 3) {
-                hls.startLoad();
-              } else if (
-                !hasTriedProxy &&
-                activeUrl.startsWith("https://") &&
-                !/fptplay(?:53)?\.net/i.test(activeUrl)
-              ) {
-                hasTriedProxy = true;
-                hls.loadSource(`/api/live-football/proxy?url=${encodeURIComponent(activeUrl)}`);
-                hls.startLoad();
-              } else if (fallbackCountRef.current < servers.length - 1) {
-                const nextServerIndex = servers.findIndex(
-                  (_, index) => index > selectedServerIndex,
-                );
-                if (nextServerIndex !== -1) {
-                  fallbackCountRef.current += 1;
-                  setSelectedServerIndex(nextServerIndex);
-                  return;
-                }
-                setIsLoading(false);
-                setHasError(true);
-                setErrorMessage(
-                  "Không còn máy chủ phát khả dụng cho trận này. Hãy thử lại sau.",
-                );
-              } else {
-                setIsLoading(false);
-                setHasError(true);
-                setErrorMessage(
-                  "Tín hiệu gián đoạn hoặc trận đấu chưa bắt đầu. Hãy thử chuyển sang máy chủ khác.",
-                );
-              }
+              executeServerFallback("bị gián đoạn kết nối");
               break;
             case Hls.ErrorTypes.MEDIA_ERROR:
               hls.recoverMediaError();
               break;
             default:
-              if (fallbackCountRef.current < servers.length - 1) {
-                const nextServerIndex = servers.findIndex(
-                  (_, index) => index > selectedServerIndex,
-                );
-                if (nextServerIndex !== -1) {
-                  fallbackCountRef.current += 1;
-                  setSelectedServerIndex(nextServerIndex);
-                  return;
-                }
-              }
-              setIsLoading(false);
-              setHasError(true);
-              setErrorMessage(
-                "Tín hiệu luồng phát tạm thời gián đoạn. Hãy thử đổi máy chủ khác để tiếp tục xem.",
-              );
+              executeServerFallback("gặp sự cố luồng phát");
               break;
           }
         }
       });
     } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+      // Hỗ trợ Native HLS (Safari/iOS) với cùng cơ chế Watchdog
       video.src = activeUrl;
       const curVol = volumeRef.current || 0.9;
       video.volume = curVol;
       video.muted = isMutedRef.current;
 
-      video.addEventListener("loadedmetadata", () => {
-        setIsLoading(false);
+      onNativeLoadedMetadata = () => {
         if (isActive && !userPausedRef.current) {
           video
             .play()
@@ -874,25 +1059,34 @@ function LivePlayerInner({
                 .catch(() => {});
             });
         }
-      });
-      video.addEventListener("error", () => {
-        setIsLoading(false);
-        setHasError(true);
-        setErrorMessage(
-          "Không thể tải luồng phát trên trình duyệt này. Vui lòng đổi sang máy chủ khác.",
-        );
-      });
+      };
+
+      onNativeError = () => {
+        if (isStoppedRef.current) return;
+        executeServerFallback("không thể phát trên thiết bị này");
+      };
+
+      video.addEventListener("loadedmetadata", onNativeLoadedMetadata);
+      video.addEventListener("error", onNativeError);
     }
 
     return () => {
       cleanupDiagnosticListeners();
-      if (loadTimeoutRef.current) {
-        clearTimeout(loadTimeoutRef.current);
-        loadTimeoutRef.current = null;
+      if (watchdogTimerRef.current) {
+        clearTimeout(watchdogTimerRef.current);
+        watchdogTimerRef.current = null;
       }
       if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;
+      }
+      video.removeEventListener("playing", onPlaybackConfirmed);
+      video.removeEventListener("timeupdate", onTimeUpdateCheck);
+      if (onNativeLoadedMetadata) {
+        video.removeEventListener("loadedmetadata", onNativeLoadedMetadata);
+      }
+      if (onNativeError) {
+        video.removeEventListener("error", onNativeError);
       }
       if (video) {
         video.pause();
@@ -900,7 +1094,16 @@ function LivePlayerInner({
         video.load();
       }
     };
-  }, [selectedServerIndex, currentServer, activeUrl, isActive, servers, isIframe]);
+  }, [
+    selectedServerIndex,
+    currentServer,
+    activeUrl,
+    isActive,
+    servers,
+    isIframe,
+    executeServerFallback,
+    retryNonce,
+  ]);
 
   // Bắt Live Edge tức thì
   const goToLiveEdge = useCallback(() => {
@@ -1237,11 +1440,24 @@ function LivePlayerInner({
   const handleSwitchServer = useCallback(
     (direction: "next" | "prev") => {
       if (servers.length <= 1) return;
+      fallbackCountRef.current = 0;
       const targetIdx =
         direction === "next"
           ? (selectedServerIndex + 1) % servers.length
           : (selectedServerIndex - 1 + servers.length) % servers.length;
+      isStoppedRef.current = false;
+      failedServersRef.current.delete(targetIdx);
+      if (servers[targetIdx]?.url) {
+        failedUrlsRef.current.delete(servers[targetIdx].url);
+      }
+      useProxyFallbackRef.current = false;
+      setUseProxyFallback(false);
+      lastLoadedUrlRef.current = "";
+      setHasError(false);
+      setErrorMessage("");
+      setIsLoading(true);
       setSelectedServerIndex(targetIdx);
+      setRetryNonce((prev) => prev + 1);
       triggerActionFeedback(
         "server",
         `Máy chủ #${targetIdx + 1}: ${servers[targetIdx]?.name || ""}`,
@@ -1388,6 +1604,11 @@ function LivePlayerInner({
         return;
       }
 
+      // Bỏ qua nếu người dùng đang dùng tổ hợp phím hệ thống (Ctrl + C copy, Cmd + C, Ctrl + V, Alt + ...)
+      if (e.ctrlKey || e.metaKey || e.altKey) {
+        return;
+      }
+
       // Chỉ xử lý shortcut khi focus thực sự nằm trong vùng Live Player (hoặc đang tương tác với player)
       const active = document.activeElement as HTMLElement | null;
       const isPlayerContainer = Boolean(
@@ -1501,7 +1722,7 @@ function LivePlayerInner({
         <div className="pointer-events-none absolute -top-24 right-1/4 w-96 h-96 bg-sky-600/15 rounded-full blur-3xl" />
 
         <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-4">
-          {isEvent ? (
+          {isEvent || !team1 || !team2 || team1.trim().toLowerCase() === team2.trim().toLowerCase() ? (
             <div className="flex-1 w-full flex flex-col items-center justify-center text-center py-1">
               <div className="flex items-center gap-2">
                 <span className="text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] text-rose-400 bg-rose-500/15 border border-rose-500/30 px-2.5 py-0.5 rounded-full">
@@ -1622,8 +1843,16 @@ function LivePlayerInner({
               </span>
             )}
             {blv && (
-              <span className="px-2.5 py-0.5 rounded-full bg-netflix-red/20 border border-netflix-red/40 text-rose-300 text-[11px] font-extrabold shadow-sm">
-                🎙️ BLV {blv}
+              <span
+                className="px-2.5 py-0.5 rounded-full bg-netflix-red/20 border border-netflix-red/40 text-rose-300 text-[11px] font-extrabold shadow-sm max-w-[200px] sm:max-w-xs truncate"
+                title={`BLV: ${blv}`}
+              >
+                🎙️ {(() => {
+                  const raw = blv.replace(/^(?:blv|bình luận viên)\s+/i, "");
+                  const parts = raw.split(",").map((p) => p.trim()).filter(Boolean);
+                  if (parts.length <= 2) return `BLV ${parts.join(", ")}`;
+                  return `BLV ${parts.slice(0, 2).join(", ")} (+${parts.length - 2})`;
+                })()}
               </span>
             )}
             <div className="flex items-center gap-1">
@@ -1991,26 +2220,25 @@ function LivePlayerInner({
               <AlertCircle className="w-7 h-7 sm:w-8 sm:h-8" />
             </div>
             <h4 className="text-base sm:text-lg font-bold text-white mb-1">
-              Chưa nhận được tín hiệu hình ảnh
+              {errorMessage === "Chưa có tín hiệu phát" || isPreKickoff
+                ? "Chưa có tín hiệu phát"
+                : "Chưa nhận được tín hiệu hình ảnh"}
             </h4>
             <p className="text-xs sm:text-sm text-gray-400 max-w-md mb-5 leading-relaxed">
-              {errorMessage ||
-                "Luồng phát bóng đá thường mở trước giờ bóng lăn 15-30 phút. Hãy bấm thử lại hoặc chuyển sang máy chủ khác."}
+              {errorMessage && errorMessage !== "Chưa có tín hiệu phát"
+                ? errorMessage
+                : isPreKickoff
+                ? "Trận đấu chưa bắt đầu hoặc luồng phát pre-match chưa mở. Vui lòng bấm Thử lại sát giờ thi đấu."
+                : "Luồng phát bóng đá thường mở trước giờ bóng lăn 15-30 phút. Hãy bấm thử lại hoặc chuyển sang máy chủ khác."}
             </p>
             <div className="flex flex-wrap gap-2.5 justify-center">
               <button
                 type="button"
-                onClick={() => {
-                  setHasError(false);
-                  setIsLoading(true);
-                  const idx = selectedServerIndex;
-                  setSelectedServerIndex(-1);
-                  setTimeout(() => setSelectedServerIndex(idx), 50);
-                }}
+                onClick={handleRetry}
                 className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-semibold text-white transition border border-white/10 cursor-pointer"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
-                <span>Thử tải lại</span>
+                <span>Thử lại</span>
               </button>
 
               {servers.length > 1 && (
@@ -2203,54 +2431,82 @@ function LivePlayerInner({
                 </span>
               )}
               {blv && (
-                <span className="text-rose-400 font-bold flex items-center gap-1 bg-netflix-red/15 px-2 py-0.5 rounded-md border border-netflix-red/30 text-[11px] sm:text-xs max-w-xs sm:max-w-md truncate">
-                  <span>🎙️ BLV</span>
-                  <span className="truncate">{blv}</span>
+                <span
+                  className="text-rose-400 font-bold flex items-center gap-1 bg-netflix-red/15 px-2 py-0.5 rounded-md border border-netflix-red/30 text-[11px] sm:text-xs max-w-[220px] sm:max-w-md truncate"
+                  title={`BLV: ${blv}`}
+                >
+                  <span className="shrink-0">🎙️</span>
+                  <span className="truncate">
+                    {(() => {
+                      const raw = blv.replace(/^(?:blv|bình luận viên)\s+/i, "");
+                      const parts = raw.split(",").map((p) => p.trim()).filter(Boolean);
+                      if (parts.length <= 2) return `BLV ${parts.join(", ")}`;
+                      return `BLV ${parts.slice(0, 2).join(", ")} (+${parts.length - 2})`;
+                    })()}
+                  </span>
                 </span>
               )}
             </div>
-            <h2
-              className="text-base sm:text-xl font-black text-white leading-snug break-words keep-white"
-              style={{ color: "#ffffff" }}
-            >
-              {title}
-            </h2>
+            {!isEvent && team1 && team2 && team1.trim().toLowerCase() !== team2.trim().toLowerCase() ? (
+              <div className="flex flex-wrap items-center gap-2.5 sm:gap-4 my-1 pt-0.5">
+                {/* Đội Nhà */}
+                <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-zinc-800/90 border border-white/15 p-1 flex items-center justify-center shrink-0 overflow-hidden shadow-md">
+                    {homeLogo && !homeLogo.includes("tinhlagi.pro/logo.jpg") ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img
+                        src={homeLogo}
+                        alt={team1}
+                        className="w-full h-full object-contain filter drop-shadow-sm"
+                        loading="lazy"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <div className="w-full h-full rounded-lg bg-gradient-to-br from-rose-500/25 to-red-950/50 flex items-center justify-center text-[9.5px] sm:text-[10.5px] font-black text-rose-300 font-mono">
+                        {getTeamInitials(team1)}
+                      </div>
+                    )}
+                  </div>
+                  <span className="text-sm sm:text-lg font-black text-white truncate max-w-[140px] sm:max-w-xs">{team1}</span>
+                </div>
+
+                {/* VS Badge */}
+                <span className="shrink-0 px-2 py-0.5 rounded-full bg-netflix-red/20 border border-netflix-red/40 text-[9px] sm:text-[10px] font-black text-netflix-red font-mono tracking-wider">
+                  VS
+                </span>
+
+                {/* Đội Khách */}
+                <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                  <span className="text-sm sm:text-lg font-black text-white truncate max-w-[140px] sm:max-w-xs">{team2}</span>
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-zinc-800/90 border border-white/15 p-1 flex items-center justify-center shrink-0 overflow-hidden shadow-md">
+                    {awayLogo && !awayLogo.includes("tinhlagi.pro/logo.jpg") ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img
+                        src={awayLogo}
+                        alt={team2}
+                        className="w-full h-full object-contain filter drop-shadow-sm"
+                        loading="lazy"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <div className="w-full h-full rounded-lg bg-gradient-to-br from-sky-500/25 to-blue-950/50 flex items-center justify-center text-[9.5px] sm:text-[10.5px] font-black text-sky-300 font-mono">
+                        {getTeamInitials(team2)}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <h2
+                className="text-base sm:text-xl font-black text-white leading-snug break-words keep-white"
+                style={{ color: "#ffffff" }}
+              >
+                {title}
+              </h2>
+            )}
           </div>
 
           <div className="flex items-center gap-2 flex-shrink-0 self-start sm:self-center">
-            {match && (
-              <button
-                type="button"
-                onClick={() => {
-                  if (isCurrentlyReminded) {
-                    removeReminder(match.id);
-                  } else {
-                    addReminder(match);
-                  }
-                }}
-                title={
-                  isCurrentlyReminded
-                    ? "Đã hẹn thông báo (Bấm để hủy)"
-                    : "Nhận thông báo khi trận đấu bắt đầu"
-                }
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-extrabold transition cursor-pointer border shadow-sm ${
-                  isCurrentlyReminded
-                    ? "bg-amber-500/25 text-amber-300 border-amber-500/50 shadow-amber-950/40"
-                    : "bg-white/10 hover:bg-white/20 text-gray-200 hover:text-white border-white/10"
-                }`}
-              >
-                <Bell
-                  className={`w-3.5 h-3.5 ${
-                    isCurrentlyReminded
-                      ? "fill-amber-400 text-amber-400 animate-bounce"
-                      : ""
-                  }`}
-                />
-                <span className="hidden sm:inline">
-                  {isCurrentlyReminded ? "Đã hẹn nhắc" : "Nhắc tôi"}
-                </span>
-              </button>
-            )}
 
             <button
               type="button"
@@ -2267,13 +2523,13 @@ function LivePlayerInner({
           </div>
         </div>
 
-        {/* DANH SÁCH MÁY CHỦ PHÁT SÓNG (GỌN GÀNG, TỐI GIẢN) */}
-        <div className="space-y-2 w-full min-w-0">
-          <div className="flex flex-wrap items-center justify-between gap-1.5 text-xs text-gray-400 font-medium">
+        {/* DANH SÁCH MÁY CHỦ PHÁT SÓNG (GỌN GÀNG, TỐI GIẢN & RESPONSIVE GRID) */}
+        <div className="space-y-2.5 w-full min-w-0">
+          <div className="flex items-center justify-between gap-1.5 text-xs text-gray-400 font-medium">
             <div className="flex items-center gap-2">
               <span className="flex items-center gap-1.5 text-gray-300 font-bold text-xs">
                 <span>📡 Nguồn phát</span>
-                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-white/10 text-gray-300 font-bold">
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-gray-300 font-bold">
                   {servers.length}
                 </span>
               </span>
@@ -2288,7 +2544,7 @@ function LivePlayerInner({
               <button
                 type="button"
                 onClick={() => setShowAllServers((prev) => !prev)}
-                className="flex items-center gap-1 text-[11px] font-bold text-netflix-red hover:text-red-400 transition cursor-pointer bg-white/5 hover:bg-white/10 px-2 py-0.5 rounded-md border border-white/10"
+                className="flex items-center gap-1 text-[11px] font-bold text-netflix-red hover:text-red-400 transition cursor-pointer bg-white/5 hover:bg-white/10 px-2.5 py-1 rounded-md border border-white/10"
               >
                 <span>
                   {showAllServers
@@ -2304,7 +2560,7 @@ function LivePlayerInner({
             )}
           </div>
 
-          <div className="flex flex-wrap items-center gap-1.5 w-full min-w-0 pt-0.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5 sm:gap-2 w-full min-w-0 pt-0.5 max-h-72 overflow-y-auto">
             {displayedServers.map((s, idx) => {
               const actualIdx = idx;
               const isSelected = selectedServerIndex === actualIdx;
@@ -2312,19 +2568,36 @@ function LivePlayerInner({
                 <button
                   key={actualIdx}
                   type="button"
-                  onClick={() => setSelectedServerIndex(actualIdx)}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] sm:text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer border ${
+                  onClick={() => {
+                    fallbackCountRef.current = 0;
+                    isStoppedRef.current = false;
+                    failedServersRef.current.delete(actualIdx);
+                    if (s.url) {
+                      failedUrlsRef.current.delete(s.url);
+                    }
+                    useProxyFallbackRef.current = false;
+                    setUseProxyFallback(false);
+                    lastLoadedUrlRef.current = "";
+                    setHasError(false);
+                    setErrorMessage("");
+                    setIsLoading(true);
+                    setSelectedServerIndex(actualIdx);
+                    setRetryNonce((prev) => prev + 1);
+                  }}
+                  className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-between gap-2 cursor-pointer border text-left min-w-0 ${
                     isSelected
-                      ? "bg-netflix-red text-white border-netflix-red shadow-sm shadow-red-950/50 scale-102"
-                      : "bg-black/50 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
+                      ? "bg-netflix-red text-white border-netflix-red shadow-md shadow-red-950/50 scale-[1.01]"
+                      : "bg-black/60 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800/90"
                   }`}
                 >
-                  <span
-                    className={`w-1.5 h-1.5 rounded-full ${
-                      isSelected ? "bg-white animate-ping" : "bg-emerald-400"
-                    }`}
-                  />
-                  <span>{s.name}</span>
+                  <div className="flex items-center gap-2 min-w-0 flex-1 truncate">
+                    <span
+                      className={`w-2 h-2 rounded-full shrink-0 ${
+                        isSelected ? "bg-white animate-ping" : "bg-emerald-400"
+                      }`}
+                    />
+                    <span className="truncate">{s.name}</span>
+                  </div>
                 </button>
               );
             })}
@@ -2333,10 +2606,10 @@ function LivePlayerInner({
               <button
                 type="button"
                 onClick={() => setShowAllServers(true)}
-                className="px-2.5 py-1 rounded-lg text-[11px] sm:text-xs font-medium transition-all flex items-center gap-1 cursor-pointer bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-dashed border-white/20"
+                className="px-3 py-2 rounded-xl text-xs font-medium transition-all flex items-center justify-center gap-1 cursor-pointer bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-dashed border-white/20 sm:col-span-2 lg:col-span-3"
               >
-                <span>+{servers.length - INITIAL_SERVER_LIMIT} nguồn</span>
-                <ChevronDown className="w-3 h-3 text-netflix-red" />
+                <span>+{servers.length - INITIAL_SERVER_LIMIT} nguồn khác</span>
+                <ChevronDown className="w-3.5 h-3.5 text-netflix-red" />
               </button>
             )}
           </div>

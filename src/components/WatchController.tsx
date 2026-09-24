@@ -62,6 +62,7 @@ interface WatchControllerProps {
   category?: string;
   country?: string;
   type?: string;
+  actor?: string[];
   initialServers: EpisodeServer[];
   initialServerIndex?: number;
   initialEpisodeSlug?: string;
@@ -79,6 +80,7 @@ export function WatchController({
   category,
   country,
   type,
+  actor,
   initialServers,
   initialServerIndex = 0,
   initialEpisodeSlug,
@@ -205,6 +207,7 @@ export function WatchController({
           category,
           country,
           type,
+          actor,
         });
       }
     },
@@ -221,6 +224,7 @@ export function WatchController({
       category,
       country,
       type,
+      actor,
       updateUrlQuietly,
     ]
   );

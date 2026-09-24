@@ -95,25 +95,25 @@ export const Footer: React.FC = () => {
                 </Link>
               </li>
               <li>
-                <Link href="/?type=phim-bo" className="hover:text-white transition flex items-center gap-2">
+                <Link href="/browse?type=phim-bo" className="hover:text-white transition flex items-center gap-2">
                   <Tv size={13} className="text-gray-500" />
                   <span>Phim bộ mới</span>
                 </Link>
               </li>
               <li>
-                <Link href="/?type=phim-le" className="hover:text-white transition flex items-center gap-2">
+                <Link href="/browse?type=phim-le" className="hover:text-white transition flex items-center gap-2">
                   <Film size={13} className="text-gray-500" />
                   <span>Phim lẻ đặc sắc</span>
                 </Link>
               </li>
               <li>
-                <Link href="/?type=phim-chieu-rap" className="hover:text-white transition flex items-center gap-2">
+                <Link href="/browse?type=phim-chieu-rap" className="hover:text-white transition flex items-center gap-2">
                   <Clapperboard size={13} className="text-gray-500" />
                   <span>Phim chiếu rạp</span>
                 </Link>
               </li>
               <li>
-                <Link href="/?type=hoat-hinh" className="hover:text-white transition flex items-center gap-2">
+                <Link href="/browse?type=hoat-hinh" className="hover:text-white transition flex items-center gap-2">
                   <Sparkles size={13} className="text-gray-500" />
                   <span>Hoạt hình & Anime</span>
                 </Link>
@@ -141,7 +141,7 @@ export const Footer: React.FC = () => {
                 </Link>
               </li>
               <li>
-                <Link href="/?type=tv-shows" className="hover:text-white transition flex items-center gap-2">
+                <Link href="/browse?type=tv-shows" className="hover:text-white transition flex items-center gap-2">
                   <Radio size={13} className="text-gray-500" />
                   <span>Gameshow & TV Shows</span>
                 </Link>

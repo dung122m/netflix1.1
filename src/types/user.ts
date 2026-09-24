@@ -7,15 +7,6 @@ export interface PlayerSettings {
   playbackSpeed?: number;        // Tốc độ phát mặc định (1, 1.25, 1.5...)
 }
 
-export interface FollowedActorItem {
-  actorId: string;
-  actorName: string;
-  actorAvatar?: string;
-  actorPhoto?: string;
-  knownFor?: string;
-  createdAt: number;
-}
-
 export interface UserProfile {
   uid: string;
   email: string;

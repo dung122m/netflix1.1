@@ -14,8 +14,6 @@ import { subscribeUserProfile } from "@/services/userService";
 import { UserProfile } from "@/types/user";
 import { getWatchHistory } from "@/lib/watchHistory";
 import { pickBestMoviePoster, toOptimizedPhimimgUrl } from "@/lib/movieMedia";
-import { getLocalFollowedActors } from "@/services/actorFollowService";
-import { getMovieReactions, getAllReactionItems } from "@/lib/movieReactions";
 
 export interface ForYouMovieItem {
   slug: string;
@@ -264,21 +262,7 @@ export function ForYouPersonalizedRow({ fallbackMovies }: ForYouPersonalizedRowP
     }
   }, [user?.uid]);
 
-  // Lắng nghe sự kiện Like / Dislike trên toàn app để loại bỏ tức thì phim bị dislike
-  useEffect(() => {
-    const handleReactionUpdate = (e: Event) => {
-      const customEvent = e as CustomEvent<{ slug?: string; reaction?: string }>;
-      if (customEvent.detail && customEvent.detail.slug && customEvent.detail.reaction === "dislike") {
-        setMovies((prev) => prev.filter((m) => m.slug !== customEvent.detail.slug));
-      }
-    };
-    window.addEventListener("movie-reaction-updated", handleReactionUpdate);
-    return () => {
-      window.removeEventListener("movie-reaction-updated", handleReactionUpdate);
-    };
-  }, []);
-
-  // 2. Fetch danh sách phim đề xuất chạy ở background (SWR pattern)
+    // 2. Fetch danh sách phim đề xuất chạy ở background (SWR pattern)
   const fetchRecommendations = useCallback(async (forceRefresh = false, nextSeed?: number) => {
     const currentSeed = nextSeed !== undefined ? nextSeed : refreshCount;
     const history = getWatchHistory();
@@ -299,21 +283,11 @@ export function ForYouPersonalizedRow({ fallbackMovies }: ForYouPersonalizedRowP
 
     const watchedTitles = history.map((h) => h.title).filter(Boolean).slice(0, 20);
     const watchedSlugs = history.map((h) => h.slug).filter(Boolean);
-    const followedActors = user?.uid
-      ? getLocalFollowedActors(user.uid).map((a) => a.actorName).filter(Boolean)
-      : [];
-    const reactions = getMovieReactions();
-    const reactionItems = getAllReactionItems();
-    const reactionsHash = Object.entries(reactions)
-      .slice(0, 10)
-      .map(([s, r]) => `${s}:${r}`)
-      .join("|");
-    const actorsKey = followedActors.slice(0, 5).sort().join(",");
     const historyHash = historyItems
       .slice(0, 6)
       .map((h) => `${h.slug}:${Math.round((h.progressSeconds || 0) / 60)}`)
       .join("|");
-    const currentFingerprint = `${user?.uid || "guest"}_${genresKey}_${actorsKey}_${reactionsHash}_${historyHash}_seed${currentSeed}`;
+    const currentFingerprint = `${user?.uid || "guest"}_${genresKey}_${historyHash}_seed${currentSeed}`;
 
     if (!forceRefresh && inFlightRef.current) return;
     if (!forceRefresh && lastFingerprintRef.current === currentFingerprint && moviesRef.current.length >= 8) return;
@@ -361,9 +335,6 @@ export function ForYouPersonalizedRow({ fallbackMovies }: ForYouPersonalizedRowP
           historyItems,
           watchedTitles,
           watchedSlugs,
-          followedActors,
-          reactions,
-          reactionItems,
           refreshSeed: currentSeed,
           currentSlugs: moviesRef.current.map((m) => m.slug),
         }),

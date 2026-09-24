@@ -32,7 +32,10 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "check": "npm run lint && npm run typecheck && npm run build"
+    "test": "npx tsx --env-file=.env.local --test src/services/live/football/matchStatus.test.ts src/services/movies/service.test.ts",
+    "test:movies": "npx tsx --env-file=.env.local --test src/services/movies/service.test.ts",
+    "test:live": "npx tsx --env-file=.env.local --test src/services/live/football/matchStatus.test.ts",
+    "check": "npm run lint && npm run typecheck && npm run test && npm run build"
   },
   "dependencies": {
     "@google/genai": "^2.21.0",

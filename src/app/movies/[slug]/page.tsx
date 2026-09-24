@@ -1,4 +1,4 @@
-import React, { Suspense } from "react";
+import React from "react";
 import { movieApi } from "@/services/movieApi";
 import Link from "next/link";
 import {
@@ -20,7 +20,6 @@ import {
 } from "lucide-react";
 import { MovieSynopsis } from "@/components/MovieSynopsis";
 import { ShareButton } from "@/components/ShareButton";
-import { MovieRecommendationsClient, RecommendationSkeleton } from "@/components/MovieRecommendationsClient";
 import { Navbar } from "@/components/Navbar";
 import { ActorChipClient } from "@/components/ActorChipClient";
 import { Footer } from "@/components/Footer";
@@ -35,12 +34,8 @@ import { AddToCollectionButton } from "@/components/Collections/AddToCollectionB
 import { ActiveEpisodeBadge, EpisodeCountBadge } from "@/components/ActiveEpisodeBadge";
 import { findEpisodeMatch } from "@/lib/formatEpisode";
 
-import { MobileQrModal } from "@/components/MobileQrModal";
-import { TrailerModal } from "@/components/TrailerModal";
 import { MovieCommentsSection } from "@/components/MovieReviews/MovieCommentsSection";
-import { FollowSeriesButton } from "@/components/FollowSeriesButton";
-import { ReportIssueModal } from "@/components/ReportIssueModal";
-import { LikeDislikeButtons } from "@/components/LikeDislikeButtons";
+import { TrailerModal } from "@/components/TrailerModal";
 
 
 export async function generateMetadata({
@@ -400,9 +395,10 @@ export default async function MovieDetail({
         episodeSlug={activeEpisode?.slug}
         year={movie.year}
         quality={movie.quality}
-        category={movie.category?.map((c: { name?: string }) => c.name).filter(Boolean).join(", ") || movie.category?.[0]?.name}
-        country={movie.country?.[0]?.name}
+        category={categoryList.map((c) => c.name).filter(Boolean).join(", ") || (movie.category?.[0]?.name ?? "")}
+        country={countryList.map((c) => c.name).filter(Boolean).join(", ") || (movie.country?.[0]?.name ?? "")}
         type={movie.type}
+        actor={actorList.slice(0, 10)}
       />
 
       <WatchController
@@ -412,9 +408,10 @@ export default async function MovieDetail({
         thumbUrl={pickBestMovieThumb(movie, "/default-hero.jpg")}
         year={movie.year}
         quality={movie.quality}
-        category={movie.category?.map((c: { name?: string }) => c.name).filter(Boolean).join(", ") || movie.category?.[0]?.name}
-        country={movie.country?.[0]?.name}
+        category={categoryList.map((c) => c.name).filter(Boolean).join(", ") || (movie.category?.[0]?.name ?? "")}
+        country={countryList.map((c) => c.name).filter(Boolean).join(", ") || (movie.country?.[0]?.name ?? "")}
         type={movie.type}
+        actor={actorList.slice(0, 10)}
         initialServers={episodeServers}
         initialServerIndex={currentServerIndex}
         initialEpisodeSlug={activeEpisode?.slug || serverData[0]?.slug}
@@ -564,21 +561,6 @@ export default async function MovieDetail({
                   }}
                 />
 
-                {/* Nút Thích / Không thích */}
-                <LikeDislikeButtons
-                  slug={movie.slug}
-                  movieMeta={{
-                    title,
-                    poster: pickBestMovieImage(movie, "/default-poster.jpg"),
-                    genre: movie.category?.[0]?.name,
-                    category: movie.category?.[0]?.name,
-                    country: movie.country?.[0]?.name,
-                    type_name: movie.type,
-                    year: movie.year,
-                  }}
-                  variant="detail"
-                />
-
                 {/* Nút Thêm vào Bộ sưu tập */}
                 <AddToCollectionButton
                   movie={{
@@ -591,34 +573,11 @@ export default async function MovieDetail({
                   }}
                 />
 
-                {/* Nút Theo dõi phim bộ / cập nhật tập mới */}
-                <FollowSeriesButton
-                  movieSlug={movie.slug}
-                  movieTitle={title}
-                  posterUrl={pickBestMovieImage(movie, "/default-poster.jpg")}
-                  isSeries={isSeries}
-                />
-
-                {/* Nút Báo lỗi */}
-                <ReportIssueModal
-                  movieTitle={title}
-                  movieSlug={movie.slug}
-                  episodeName={activeEpisode?.name}
-                  episodeSlug={activeEpisode?.slug}
-                  serverName={currentServer?.server_name}
-                />
-
                 {/* Divider đẩy cụm chia sẻ sang phải trên desktop */}
                 <div className="h-6 w-px bg-white/10 mx-0.5 flex-shrink-0 ml-auto hidden sm:block" />
 
-                {/* Cụm tiện ích: Chia sẻ, Xem trên điện thoại */}
+                {/* Cụm tiện ích: Chia sẻ */}
                 <ShareButton title={title} />
-                <MobileQrModal
-                  title={title}
-                  movieSlug={slug}
-                  activeEpisodeSlug={activeEpisode?.slug}
-                  activeEpisodeName={activeEpisode?.name}
-                />
               </div>
             </div>
 
@@ -739,8 +698,8 @@ export default async function MovieDetail({
                           key={cat.slug || idx}
                           href={
                             cat.slug
-                              ? `/?category=${cat.slug}`
-                              : `/?keyword=${encodeURIComponent(cat.name)}`
+                              ? `/browse?category=${cat.slug}`
+                              : `/browse?keyword=${encodeURIComponent(cat.name)}`
                           }
                           className="inline-flex items-center px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/15 text-gray-200 hover:text-white text-xs transition border border-white/10 hover:border-white/25"
                         >
@@ -763,8 +722,8 @@ export default async function MovieDetail({
                           key={cnt.slug || idx}
                           href={
                             cnt.slug
-                              ? `/?country=${cnt.slug}`
-                              : `/?keyword=${encodeURIComponent(cnt.name)}`
+                              ? `/browse?country=${cnt.slug}`
+                              : `/browse?keyword=${encodeURIComponent(cnt.name)}`
                           }
                           className="inline-flex items-center px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/15 text-gray-200 hover:text-white text-xs transition border border-white/10 hover:border-white/25"
                         >
@@ -816,33 +775,6 @@ export default async function MovieDetail({
           currentEpisodeSlug={activeEpisode?.slug}
           currentEpisodeName={activeEpisode?.name}
         />
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 md:px-8 mt-10">
-        <div className="flex items-end justify-between gap-4 mb-5">
-          <div>
-            <h2 className="text-2xl md:text-3xl font-extrabold flex items-center gap-2">
-              <span>Nana Gợi Ý Cho Bạn</span>
-            </h2>
-            <p className="text-sm text-gray-400 mt-1">
-              Nana đã chọn lọc những bộ phim cùng thể loại và quốc gia phù hợp nhất với gu xem của bạn.
-            </p>
-          </div>
-        </div>
-
-        <Suspense fallback={<RecommendationSkeleton />}>
-          <MovieRecommendationsClient
-            currentMovieSlug={movie.slug}
-            currentMovieTitle={title}
-            categories={categoryList}
-            countries={countryList}
-            primaryActor={actorList.length > 0 ? actorList[0] : undefined}
-            primaryDirector={directorList.length > 0 ? directorList[0] : undefined}
-            year={movie.year}
-            type={movie.type}
-            contentText={movie.content || ""}
-          />
-        </Suspense>
       </div>
 
       <Footer />

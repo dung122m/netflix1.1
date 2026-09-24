@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { MessageSquare, X, ArrowRight, Bell, Sparkles } from "lucide-react";
+import { MessageSquare, X, ArrowRight, Sparkles } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { subscribeUserNotifications, markNotificationAsRead } from "@/services/notificationService";
 import { UserNotification } from "@/types/notification";
@@ -57,7 +57,7 @@ export const DesktopReplyPopup: React.FC = () => {
   const initialLoadDoneRef = useRef(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Lắng nghe realtime thông báo của user
+  // Lắng nghe realtime thông báo của user (Chỉ hiện popup cho Comment và Like)
   useEffect(() => {
     if (!user?.uid) {
       setActiveNotification(null);
@@ -72,18 +72,12 @@ export const DesktopReplyPopup: React.FC = () => {
         return;
       }
 
-      // Tìm thông báo chưa đọc mới nhất chưa từng hiện popup
+      // Tìm thông báo chưa đọc mới nhất (chỉ comment_reply hoặc comment_reaction)
       const newNotif = notifications.find(
         (n) =>
           !n.isRead &&
           !seenIdsRef.current.has(n.id) &&
-          (n.type === "comment_reply" ||
-            n.type === "comment_reaction" ||
-            n.type === "actor_movie" ||
-            n.type === "new_episode" ||
-            n.type === "watchlist_episode" ||
-            n.type === "continue_watching_episode" ||
-            n.type === "achievement_level")
+          (n.type === "comment_reply" || n.type === "comment_reaction")
       );
 
       if (newNotif) {
@@ -152,16 +146,10 @@ export const DesktopReplyPopup: React.FC = () => {
 
   const isReplyType = activeNotification.type === "comment_reply";
   const isReactionType = activeNotification.type === "comment_reaction";
-  const isActorType = activeNotification.type === "actor_movie";
-  const isAchievementType = activeNotification.type === "achievement_level";
 
   const getBadgeTitle = () => {
     if (isReplyType) return "Phản hồi mới";
     if (isReactionType) return "Cảm xúc mới";
-    if (isActorType) return "Diễn viên bạn theo dõi";
-    if (isAchievementType) return "Thành tựu mới";
-    if (activeNotification.type === "watchlist_episode") return "Phim đã lưu";
-    if (activeNotification.type === "continue_watching_episode") return "Đang xem";
     return "Thông báo mới";
   };
 
@@ -174,7 +162,7 @@ export const DesktopReplyPopup: React.FC = () => {
       {/* HEADER: AVATAR, TITLE & CLOSE BUTTON */}
       <div className="flex items-start justify-between gap-2.5">
         <div className="flex items-center gap-2.5 min-w-0 flex-1">
-          {/* Avatar with reply badge */}
+          {/* Avatar with reply/reaction badge */}
           <div className="relative w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-red-600 to-amber-600 flex items-center justify-center font-bold text-white text-sm shrink-0 border border-white/10 shadow-md">
             {activeNotification.replierAvatar || activeNotification.image ? (
               <Image
@@ -186,8 +174,6 @@ export const DesktopReplyPopup: React.FC = () => {
                 className="object-cover"
                 referrerPolicy="no-referrer"
               />
-            ) : isAchievementType ? (
-              <span className="text-base">{activeNotification.badgeIcon || "🏆"}</span>
             ) : (
               (activeNotification.replierName || activeNotification.title || "U").charAt(0).toUpperCase()
             )}
@@ -199,21 +185,13 @@ export const DesktopReplyPopup: React.FC = () => {
                   ? "bg-blue-600"
                   : isReactionType
                   ? "bg-rose-600"
-                  : isActorType
-                  ? "bg-amber-600"
-                  : isAchievementType
-                  ? "bg-yellow-600"
                   : "bg-netflix-red"
               }`}
             >
               {isReplyType ? (
                 <MessageSquare className="w-2.5 h-2.5" />
-              ) : isReactionType ? (
-                <span className="text-[7px]">❤️</span>
-              ) : isActorType ? (
-                <span className="text-[7px]">⭐</span>
               ) : (
-                <Bell className="w-2.5 h-2.5 text-amber-300" />
+                <span className="text-[7px]">❤️</span>
               )}
             </div>
           </div>
@@ -224,13 +202,7 @@ export const DesktopReplyPopup: React.FC = () => {
                 className={`text-[10px] font-extrabold uppercase tracking-wider flex items-center gap-1 ${
                   isReplyType
                     ? "text-blue-400"
-                    : isReactionType
-                    ? "text-rose-400"
-                    : isActorType
-                    ? "text-amber-400"
-                    : isAchievementType
-                    ? "text-yellow-400"
-                    : "text-emerald-400"
+                    : "text-rose-400"
                 }`}
               >
                 <Sparkles className="w-2.5 h-2.5" />

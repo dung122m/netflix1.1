@@ -7,7 +7,6 @@ import {
   Minimize2,
   Moon,
   Sun,
-  Clock,
   Keyboard,
   SkipBack,
   SkipForward,
@@ -27,7 +26,6 @@ interface PlayerActionButtonsProps {
   onToggleLightsOff: () => void;
   isFullscreen: boolean;
   onToggleFullscreen: () => void;
-  onOpenSleepTimer: () => void;
   onOpenShortcuts: () => void;
   prevEpisode: EpisodeItem | null;
   nextEpisode: EpisodeItem | null;
@@ -43,7 +41,6 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = React.mem
     onToggleLightsOff,
     isFullscreen,
     onToggleFullscreen,
-    onOpenSleepTimer,
     onOpenShortcuts,
     prevEpisode,
     nextEpisode,
@@ -141,20 +138,7 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = React.mem
             )}
           </button>
 
-          {/* 4. Nút Hẹn giờ tắt */}
-          <button
-            type="button"
-            data-player-control="true"
-            data-control-section="action-buttons"
-            onClick={onOpenSleepTimer}
-            title="Hẹn giờ tự động tắt phim"
-            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-zinc-900/80 hover:bg-zinc-800 text-amber-400/90 hover:text-amber-300 border border-amber-500/20 hover:border-amber-500/40 transition cursor-pointer text-xs outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-1 focus-visible:ring-offset-zinc-950 focus-visible:scale-105"
-          >
-            <Clock className="w-3.5 h-3.5" />
-            <span>Hẹn giờ tắt</span>
-          </button>
-
-          {/* 5. Nút Danh sách Phím tắt */}
+          {/* 4. Nút Danh sách Phím tắt */}
           <button
             type="button"
             data-player-control="true"

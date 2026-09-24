@@ -9,6 +9,7 @@ import {
   Globe2,
   Calendar,
   RotateCcw,
+  SlidersHorizontal,
 } from "lucide-react";
 
 type FilterType = "the-loai" | "quoc-gia" | "year" | "type";
@@ -44,6 +45,7 @@ export const FilterBar: React.FC = () => {
   });
 
   const [activeDropdown, setActiveDropdown] = useState<FilterType | null>(null);
+  const [isMobileExpanded, setIsMobileExpanded] = useState(false);
 
   // Đồng bộ nhanh từ static cache của movieApi (0ms, không gọi API ngoài)
   useEffect(() => {
@@ -74,7 +76,8 @@ export const FilterBar: React.FC = () => {
     }
 
     params.delete("page");
-    router.push(`?${params.toString()}`, { scroll: false });
+    const query = params.toString();
+    router.push(query ? `/browse?${query}` : "/browse", { scroll: false });
     setActiveDropdown(null);
   };
 
@@ -87,7 +90,8 @@ export const FilterBar: React.FC = () => {
 
     params.delete(key);
     params.delete("page");
-    router.push(`?${params.toString()}`, { scroll: false });
+    const query = params.toString();
+    router.push(query ? `/browse?${query}` : "/browse", { scroll: false });
     setActiveDropdown(null);
   };
 
@@ -179,7 +183,7 @@ export const FilterBar: React.FC = () => {
     params.delete("year");
     params.delete("page");
     const query = params.toString();
-    router.push(query ? `?${query}` : "?", { scroll: false });
+    router.push(query ? `/browse?${query}` : "/browse", { scroll: false });
   };
 
   const getDropdownAnchorClasses = () => {
@@ -197,10 +201,57 @@ export const FilterBar: React.FC = () => {
     }
   };
 
+  const activeFilterCount = [
+    searchParams.get("type"),
+    searchParams.get("category"),
+    searchParams.get("country"),
+    searchParams.get("year"),
+  ].filter(Boolean).length;
+
   return (
     <div className="relative z-40">
-      {/* FILTER BUTTONS: Cuộn ngang mượt mà trên mobile, wrap trên PC */}
-      <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pb-2 pt-1 touch-pan-x overscroll-x-contain sm:flex-wrap sm:overflow-visible w-full">
+      {/* MOBILE ACCORDION TOGGLE: Thu gọn thanh filter dày trên mobile 390px, ưu tiên QuickGenreChips */}
+      <div className="sm:hidden flex items-center justify-between pb-2">
+        <button
+          type="button"
+          onClick={() => setIsMobileExpanded((prev) => !prev)}
+          aria-expanded={isMobileExpanded || hasFilters}
+          className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-semibold transition active:scale-95 cursor-pointer shadow-sm ${
+            hasFilters || isMobileExpanded
+              ? "bg-zinc-800 text-white border-white/20"
+              : "bg-zinc-900/90 text-gray-300 border-white/10 hover:text-white"
+          }`}
+        >
+          <SlidersHorizontal className="w-3.5 h-3.5 text-netflix-red" />
+          <span>Bộ lọc chi tiết</span>
+          {activeFilterCount > 0 && (
+            <span className="w-4 h-4 rounded-full bg-netflix-red text-[10px] font-bold text-white flex items-center justify-center">
+              {activeFilterCount}
+            </span>
+          )}
+          <span className="text-[9px] text-gray-500 ml-0.5">
+            {isMobileExpanded || hasFilters ? "▲" : "▼"}
+          </span>
+        </button>
+
+        {hasFilters && (
+          <button
+            type="button"
+            onClick={clearAllFilters}
+            className="text-xs text-rose-400 hover:text-rose-300 flex items-center gap-1 font-medium px-2 py-1"
+          >
+            <RotateCcw className="w-3 h-3" />
+            <span>Đặt lại</span>
+          </button>
+        )}
+      </div>
+
+      {/* FILTER BUTTONS: Cuộn ngang mượt mà trên mobile khi mở, wrap trên PC */}
+      <div
+        className={`${
+          isMobileExpanded || hasFilters ? "flex" : "hidden sm:flex"
+        } items-center gap-2 sm:gap-3 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pb-2 pt-1 touch-pan-x overscroll-x-contain sm:flex-wrap sm:overflow-visible w-full`}
+      >
         {/* LOẠI PHIM */}
         <button
           type="button"

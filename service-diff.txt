@@ -1,0 +1,1055 @@
+diff --git a/src/services/movies/service.ts b/src/services/movies/service.ts
+index 2accd9b..b897d97 100644
+--- a/src/services/movies/service.ts
++++ b/src/services/movies/service.ts
+@@ -38,6 +38,7 @@ export interface MovieFilterParams {
+   slug?: string;
+   sort?: "latest" | "rating" | "views" | "year";
+   skipKvCache?: boolean;
++  waitForFullSync?: boolean;
+ }
+ 
+ // Bﬂ¶˙ng +Ình xﬂ¶Ì slug thﬂ+‚ loﬂ¶Ìi sang NguonC
+@@ -350,7 +351,13 @@ export function isMovieOfType(item: Record<string, unknown>, type: string): bool
+       // Hoﬂ¶Ìt h+ºnh & Anime
+       return isHoatHinh;
+     case "phim-chieu-rap":
+-      return isChieuRap;
++      if (item.chieurap !== undefined || item.chieu_rap !== undefined) {
++        return Boolean(item.chieurap || item.chieu_rap);
++      }
++      if (Array.isArray(item.category) && item.category.length > 0) {
++        return isChieuRap;
++      }
++      return true;
+     case "tv-shows":
+       return isTvShows;
+     default:
+@@ -359,7 +366,12 @@ export function isMovieOfType(item: Record<string, unknown>, type: string): bool
+ }
+ 
+ // H+·m tﬂ¶˙i nguﬂ+Ùn phim nhanh c+¶ giﬂ+¯i hﬂ¶Ìn timeout an to+·n
+-async function fetchSourceData(baseUrl: string, params: MovieFilterParams, isSearch: boolean) {
++async function fetchSourceData(
++  baseUrl: string,
++  params: MovieFilterParams,
++  isSearch: boolean,
++  pageOverride?: number
++) {
+   try {
+     const activeFiltersCount =
+       (params.type ? 1 : 0) +
+@@ -367,11 +379,11 @@ async function fetchSourceData(baseUrl: string, params: MovieFilterParams, isSea
+       (params.country ? 1 : 0) +
+       (params.year ? 1 : 0);
+     const isMultiFilter = activeFiltersCount > 1;
+-    const page = params.page || 1;
++    const page = pageOverride || params.page || 1;
+ 
+     const urlParams = new URLSearchParams();
+     urlParams.set("page", String(page));
+-    const fetchLimit = isMultiFilter ? 48 : (params.limit || 24);
++    const fetchLimit = isMultiFilter ? 48 : (params.limit && params.limit <= 48 ? params.limit : 24);
+     urlParams.set("limit", String(fetchLimit));
+ 
+     if (params.category) urlParams.set("category", params.category);
+@@ -429,11 +441,11 @@ async function fetchSourceData(baseUrl: string, params: MovieFilterParams, isSea
+     }
+ 
+     const isNguonCSearch = baseUrl === API_NGUONC && isSearch;
+-    const timeoutMs = isNguonCSearch ? 600 : 1000;
++    const timeoutMs = isNguonCSearch ? 1500 : 6000;
+ 
+     const res = await fetch(fullUrl, {
+       next: { revalidate: 300 }, // 5 ph+¶t Next.js cache
+-      signal: AbortSignal.timeout(timeoutMs), // 600ms cho NguonC search (fast path PhimAPI), 1.0s cho danh s+Ìch
++      signal: AbortSignal.timeout(timeoutMs),
+     });
+ 
+     if (!res.ok) return null;
+@@ -526,6 +538,35 @@ async function fetchSourceData(baseUrl: string, params: MovieFilterParams, isSea
+       const nguoncPoster = item.thumb_url;
+       const cleanPoster = nguoncPoster || item.poster_url || "";
+       const cleanThumb = nguoncBackdrop || item.thumb_url || "";
++
++      // Hydrate metadata known from request endpoint
++      const categories: { id?: string; name: string; slug: string }[] = [];
++      const countries: { id?: string; name: string; slug: string }[] = [];
++      let itemType: string | undefined = undefined;
++      let chieurap: boolean | undefined = undefined;
++
++      if (params.category) {
++        categories.push({ id: params.category, name: params.category, slug: params.category });
++      }
++      if (params.country) {
++        countries.push({ id: params.country, name: params.country, slug: params.country });
++      }
++      if (params.type === "phim-chieu-rap") {
++        chieurap = true;
++        itemType = "phim-chieu-rap";
++      } else if (params.type === "hoat-hinh") {
++        itemType = "hoat-hinh";
++        if (!categories.some((c) => c.slug === "hoat-hinh")) {
++          categories.push({ id: "hoat-hinh", name: "Hoﬂ¶Ìt H+ºnh", slug: "hoat-hinh" });
++        }
++      } else if (params.type === "phim-bo") {
++        itemType = "series";
++      } else if (params.type === "phim-le") {
++        itemType = "single";
++      } else if (params.type === "tv-shows") {
++        itemType = "tv-shows";
++      }
++
+       return {
+         ...item,
+         name: item.name,
+@@ -538,6 +579,10 @@ async function fetchSourceData(baseUrl: string, params: MovieFilterParams, isSea
+         episode_current: item.current_episode || "",
+         year: Number(item.year) || undefined,
+         time: item.time || "",
++        ...(categories.length > 0 ? { category: categories } : {}),
++        ...(countries.length > 0 ? { country: countries } : {}),
++        ...(itemType ? { type: itemType } : {}),
++        ...(chieurap !== undefined ? { chieurap } : {}),
+       };
+     });
+ 
+@@ -548,7 +593,7 @@ async function fetchSourceData(baseUrl: string, params: MovieFilterParams, isSea
+ 
+     const totalPages =
+       json.paginate?.total_page ||
+-      Math.ceil(totalItems / (json.paginate?.items_per_page || 10)) ||
++      Math.ceil(totalItems / 10) ||
+       1;
+ 
+     return {
+@@ -561,48 +606,113 @@ async function fetchSourceData(baseUrl: string, params: MovieFilterParams, isSea
+   }
+ }
+ 
+-async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
+-  const isSearch = Boolean(params.keyword?.trim());
+-  const limit = params.limit || 24;
++export interface DatasetCacheEntry {
++  // eslint-disable-next-line @typescript-eslint/no-explicit-any
++  items: any[];
++  totalItems: number;
++  totalPages: number;
++  expireAt: number;
++  staleUntil: number;
++  phimApiFetched: number;
++  nguonCFetched: number;
++  mergedBeforeDedup: number;
++  uniqueAfterDedup: number;
++  afterFilter: number;
++  isFullSync?: boolean;
++}
+ 
+-  // ============================================================
+-  // CHIﬂ¶•N L„ªﬂ+ÛC MERGE -…ﬂ+∆NG Bﬂ+ˇ:
+-  // - Fetch page N tﬂ+Ω cﬂ¶˙ 2 nguﬂ+Ùn (PhimAPI + NguonC) song song
+-  // - Gﬂ+÷p danh s+Ìch phim ‘Â∆ khﬂ+° tr+¶ng theo slug
+-  // - „ªu ti+¨n PhimAPI (hﬂ+˘ trﬂ+˙ m3u8 direct) v+· bﬂ+Ú sung phim -Êﬂ+÷c quyﬂ+¸n tﬂ+Ω NguonC
+-  // ============================================================
+-  const [resPhimApi, resNguonC] = await Promise.all([
+-    fetchSourceData(API_PHIMAPI, params, isSearch),
+-    fetchSourceData(API_NGUONC,   params, isSearch),
+-  ]);
+-
+-  // Gﬂ+÷p: PhimAPI tr„¶ﬂ+¯c ‘Â∆ NguonC sau
+-  const allItems = [
+-    ...(resPhimApi?.items || []),
+-    ...(resNguonC?.items  || []),
+-  ];
++const filterDatasetMemoryCache = new Map<string, DatasetCacheEntry>();
++const inFlightIngestionMap = new Map<string, Promise<DatasetCacheEntry>>();
+ 
+-  // Khﬂ+° tr+¶ng lﬂ¶¿p theo slug ‘«ˆ giﬂ+ª phﬂ¶∫n tﬂ+° -Êﬂ¶∫u ti+¨n gﬂ¶¿p
+-  const uniqueItemsMap = new Map();
+-  allItems.forEach((item) => {
+-    if (item?.slug && !uniqueItemsMap.has(item.slug)) {
+-      uniqueItemsMap.set(item.slug, item);
+-    }
++function sleep(ms: number) {
++  return new Promise((resolve) => setTimeout(resolve, ms));
++}
++
++function getDatasetFilterKey(params: MovieFilterParams): string {
++  return JSON.stringify({
++    category: params.category || "",
++    country: params.country || "",
++    year: params.year || "",
++    type: params.type || "",
++    keyword: params.keyword?.trim() || "",
++    sort: params.sort || "latest",
+   });
++}
+ 
+-  let allUniqueItems = Array.from(uniqueItemsMap.values());
++function getBrowseDatasetRedisKey(filterKey: string): string {
++  const safe = filterKey
++    .replace(/[^a-zA-Z0-9_-]/g, "_")
++    .replace(/_+/g, "_")
++    .slice(0, 160);
++  return `browse:dataset:${safe}`;
++}
++
++// Chuﬂ¶Æn h+¶a item gﬂ+Ïn g+·ng -Êﬂ+‚ tﬂ+Êi „¶u dung l„¶ﬂ+˙ng RAM v+· Redis
++// eslint-disable-next-line @typescript-eslint/no-explicit-any
++function toCompactBrowseMovie(item: any) {
++  if (!item) return null;
++  return {
++    slug: item.slug || "",
++    name: item.name || "",
++    origin_name: item.origin_name || item.original_name || "",
++    thumb_url: item.thumb_url || "",
++    poster_url: item.poster_url || "",
++    year: item.year || "",
++    type: item.type || "",
++    quality: item.quality || "",
++    time: item.time || "",
++    episode_current: item.episode_current || item.current_episode || "",
++    episode_total: item.episode_total || "",
++    chieurap: item.chieurap !== undefined ? item.chieurap : undefined,
++    view: Number(item.view || 0),
++    tmdb: item.tmdb
++      ? {
++          vote_average: Number(item.tmdb.vote_average || 0),
++          vote_count: Number(item.tmdb.vote_count || 0),
++        }
++      : undefined,
++    imdb: item.imdb
++      ? {
++          vote_average: Number(item.imdb.vote_average || 0),
++          vote_count: Number(item.imdb.vote_count || 0),
++        }
++      : undefined,
++    category: Array.isArray(item.category)
++      // eslint-disable-next-line @typescript-eslint/no-explicit-any
++      ? item.category.map((c: any) => ({
++          id: c?.id || c?.slug,
++          slug: c?.slug || c?.id,
++          name: c?.name || c?.slug || "",
++        }))
++      : undefined,
++    country: Array.isArray(item.country)
++      // eslint-disable-next-line @typescript-eslint/no-explicit-any
++      ? item.country.map((c: any) => ({
++          id: c?.id || c?.slug,
++          slug: c?.slug || c?.id,
++          name: c?.name || c?.slug || "",
++        }))
++      : undefined,
++  };
++}
++
++// eslint-disable-next-line @typescript-eslint/no-explicit-any
++function filterAndSortDataset(items: any[], params: MovieFilterParams): any[] {
++  let filtered = [...items];
+ 
+   // 1. Lﬂ+Ïc theo Loﬂ¶Ìi Phim (Phim lﬂ¶+ / Phim bﬂ+÷ / Hoﬂ¶Ìt h+ºnh / Chiﬂ¶+u rﬂ¶Ìp / TV Shows)
+   if (params.type) {
+-    allUniqueItems = allUniqueItems.filter((item) =>
+-      isMovieOfType(item, params.type!)
+-    );
++    filtered = filtered.filter((item) => isMovieOfType(item, params.type!));
+   }
+ 
+   // 2. Lﬂ+Ïc theo Quﬂ+Êc Gia
+   if (params.country) {
+     const targetCountry = params.country.toLowerCase().trim();
+-    allUniqueItems = allUniqueItems.filter((item) => {
++    filtered = filtered.filter((item) => {
++      // Schema NguonC thiﬂ¶+u metadata quﬂ+Êc gia -> kh+¶ng giﬂ¶˙ -Êﬂ+Ônh thiﬂ¶+u metadata ngh-Æa l+· kh+¶ng match
++      if (!item.country || (Array.isArray(item.country) && item.country.length === 0)) {
++        return true;
++      }
+       const ctryArray = Array.isArray(item.country)
+         ? item.country.map((c: { slug?: string; name?: string }) =>
+             `${c.slug || ""} ${c.name || ""}`.toLowerCase()
+@@ -615,7 +725,11 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
+   // 3. Lﬂ+Ïc theo Thﬂ+‚ Loﬂ¶Ìi
+   if (params.category) {
+     const targetCat = params.category.toLowerCase().trim();
+-    allUniqueItems = allUniqueItems.filter((item) => {
++    filtered = filtered.filter((item) => {
++      // Schema NguonC thiﬂ¶+u metadata thﬂ+‚ loﬂ¶Ìi -> kh+¶ng giﬂ¶˙ -Êﬂ+Ônh thiﬂ¶+u metadata ngh-Æa l+· kh+¶ng match
++      if (!item.category || (Array.isArray(item.category) && item.category.length === 0)) {
++        return true;
++      }
+       const catArray = Array.isArray(item.category)
+         ? item.category.map((c: { slug?: string; name?: string }) =>
+             `${c.slug || ""} ${c.name || ""}`.toLowerCase()
+@@ -627,92 +741,666 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
+ 
+   // 4. Lﬂ+Ïc theo N-‚m
+   if (params.year) {
+-    allUniqueItems = allUniqueItems.filter((item) =>
+-      String(item.year || "").includes(String(params.year))
+-    );
++    filtered = filtered.filter((item) => {
++      if (item.year === undefined || item.year === null || item.year === "") {
++        return true;
++      }
++      return String(item.year || "").includes(String(params.year));
++    });
+   }
+ 
+   // 5. Sﬂ¶ªp xﬂ¶+p
+   if (params.sort === "rating") {
+-    // „ªu ti+¨n phim c+¶ l„¶ﬂ+˙t -Ê+Ình gi+Ì nﬂ¶+u c+¶ dﬂ+ª liﬂ+Áu TMDB
+-    const ratedItems = allUniqueItems.filter((item) => {
++    const ratedItems = filtered.filter((item) => {
+       const voteCount = Number(item.tmdb?.vote_count || 0);
+       return voteCount >= 50;
+     });
+     if (ratedItems.length >= 5) {
+-      allUniqueItems = ratedItems;
++      filtered = ratedItems;
+     }
+ 
+-    allUniqueItems.sort((a, b) => {
++    filtered.sort((a, b) => {
+       const rateA = Number(a.tmdb?.vote_average || a.imdb?.vote_average || 0);
+       const rateB = Number(b.tmdb?.vote_average || b.imdb?.vote_average || 0);
+       return rateB - rateA;
+     });
+   } else if (params.sort === "views") {
+-    allUniqueItems.sort((a, b) => {
++    filtered.sort((a, b) => {
+       const countA = Number(a.tmdb?.vote_count || a.view || 0);
+       const countB = Number(b.tmdb?.vote_count || b.view || 0);
+       return countB - countA;
+     });
+   } else if (params.sort === "year") {
+-    allUniqueItems.sort((a, b) => {
++    filtered.sort((a, b) => {
+       const yearA = Number(a.year || 0);
+       const yearB = Number(b.year || 0);
+       return yearB - yearA;
+     });
+   }
+ 
+-  const finalItems = allUniqueItems.slice(0, limit);
+-
+-  // ============================================================
+-  // T+ÏNH Tﬂ+ˆNG Sﬂ+… PHIM V+« TRANG (CHUﬂ¶øN H+ÙA THEO PHﬂ¶·M VI Bﬂ+ˇ Lﬂ+ÓC)
+-  // ============================================================
+-  const countApi1 = resPhimApi?.totalItems || 0;
+-  const countApi2 = resNguonC?.totalItems   || 0;
+-
+-  const activeFiltersCount =
+-    (params.type ? 1 : 0) +
+-    (params.category ? 1 : 0) +
+-    (params.country ? 1 : 0) +
+-    (params.year ? 1 : 0);
+-
+-  let totalItemsCount: number;
+-  let maxTotalPages: number;
+-
+-  if (activeFiltersCount > 1) {
+-    // KHI C+Ù NHIﬂ+«U Bﬂ+ˇ Lﬂ+ÓC Kﬂ¶•T Hﬂ+ÛP (COMPOUND FILTERS):
+-    // PhimAPI -Ê+˙ t+°nh to+Ìn ch+°nh x+Ìc ph+Æp giao ﬂ+É database upstream -> Sﬂ+° dﬂ+—ng countApi1 chuﬂ¶Æn x+Ìc.
+-    // NguonC chﬂ+Î lﬂ+Ïc -Ê„¶ﬂ+˙c 1 chiﬂ+¸u (upstream scope rﬂ+÷ng h„Ìn) -> Tuyﬂ+Át -Êﬂ+Êi kh+¶ng d+¶ng countApi2 -Êﬂ+‚ tr+Ình ph+¶ng -Êﬂ¶Ìi.
+-    totalItemsCount = countApi1 > 0 ? countApi1 : allUniqueItems.length;
+-    maxTotalPages =
+-      resPhimApi?.totalPages || Math.max(1, Math.ceil(totalItemsCount / limit));
++  return filtered;
++}
++
++// Bounded Concurrency Batch Fetching cho background indexing
++async function batchFetchPages(
++  baseUrl: string,
++  params: MovieFilterParams,
++  isSearch: boolean,
++  pages: number[],
++  concurrency: number = 16,
++  delayMs: number = 20
++  // eslint-disable-next-line @typescript-eslint/no-explicit-any
++): Promise<any[]> {
++  // eslint-disable-next-line @typescript-eslint/no-explicit-any
++  const allItems: any[] = [];
++  let consecutiveEmptyBatches = 0;
++
++  for (let i = 0; i < pages.length; i += concurrency) {
++    const chunk = pages.slice(i, i + concurrency);
++    const results = await Promise.all(
++      chunk.map(async (p) => {
++        let res = await fetchSourceData(baseUrl, params, isSearch, p);
++        if (!res || !res.items || res.items.length === 0) {
++          // Retry 1 lﬂ¶∫n nﬂ¶+u gﬂ¶¿p sﬂ+¶ cﬂ+Ê mﬂ¶Ìng ngﬂ¶ªt qu+˙ng
++          await sleep(60);
++          res = await fetchSourceData(baseUrl, params, isSearch, p);
++        }
++        return res;
++      })
++    );
++
++    let batchCount = 0;
++    for (const r of results) {
++      if (r?.items && r.items.length > 0) {
++        allItems.push(...r.items);
++        batchCount += r.items.length;
++      }
++    }
++
++    if (batchCount === 0) {
++      consecutiveEmptyBatches++;
++      if (consecutiveEmptyBatches >= 3) {
++        break;
++      }
++    } else {
++      consecutiveEmptyBatches = 0;
++    }
++
++    if (delayMs > 0 && i + concurrency < pages.length) {
++      await sleep(delayMs);
++    }
++  }
++
++  return allItems;
++}
++
++export interface BrowseDatasetMeta {
++  version: number;
++  totalItems: number;
++  totalPages: number;
++  chunkSize: number;
++  chunkCount: number;
++  updatedAt: number;
++  expireAt: number;
++  staleUntil: number;
++  phimApiFetched?: number;
++  nguonCFetched?: number;
++  mergedBeforeDedup?: number;
++  uniqueAfterDedup?: number;
++  afterFilter?: number;
++  isFullSync?: boolean;
++}
++
++const datasetMetaMemoryCache = new Map<string, BrowseDatasetMeta>();
++
++// L„¶u dataset d„¶ﬂ+¯i dﬂ¶Ìng nhiﬂ+¸u chunks nhﬂ+≈ (mﬂ+˘i chunk ~1-1.5 MB, an to+·n tuyﬂ+Át -Êﬂ+Êi d„¶ﬂ+¯i trﬂ¶∫n 10 MB cﬂ+∫a Upstash)
++export async function saveDatasetInChunks(
++  filterKey: string,
++  // eslint-disable-next-line @typescript-eslint/no-explicit-any
++  items: any[],
++  diagnostics?: Partial<BrowseDatasetMeta>
++): Promise<BrowseDatasetMeta> {
++  const filterKeySafe = getBrowseDatasetRedisKey(filterKey);
++  const version = Date.now();
++  const ttlSeconds = 86400; // 24 hours
++  const now = Date.now();
++
++  // X+Ìc -Êﬂ+Ônh chunkSize tﬂ+Êi „¶u: mﬂ¶¿c -Êﬂ+Ônh 2400 items (~1.2 MB, -Ê+¶ng bﬂ¶¶ng 100 trang 24 items)
++  let chunkSize = 2400;
++  if (items.length > 0) {
++    const sample = items.slice(0, Math.min(2400, items.length));
++    const sampleBytes = Buffer.byteLength(JSON.stringify(sample), "utf8");
++    if (sampleBytes > 2.0 * 1024 * 1024) {
++      chunkSize = 1200; // Fallback xuﬂ+Êng 1200 items (~1 MB, 50 trang 24 items)
++    }
++  }
++
++  // eslint-disable-next-line @typescript-eslint/no-explicit-any
++  const chunks: any[][] = [];
++  for (let i = 0; i < items.length; i += chunkSize) {
++    chunks.push(items.slice(i, i + chunkSize));
++  }
++  if (chunks.length === 0) chunks.push([]);
++
++  // B„¶ﬂ+¯c 1: Ghi to+·n bﬂ+÷ c+Ìc chunk tr„¶ﬂ+¯c
++  for (let i = 0; i < chunks.length; i++) {
++    const chunkKey = `${filterKeySafe}:v:${version}:chunk:${i}`;
++    await cacheService.set(chunkKey, chunks[i], ttlSeconds).catch((err) => {
++      console.warn(`[CHUNK WRITE ERROR] key="${chunkKey}":`, err);
++    });
++  }
++
++  // B„¶ﬂ+¯c 2: Tﬂ¶Ìo v+· ghi meta SAU C+÷NG
++  const meta: BrowseDatasetMeta = {
++    version,
++    totalItems: items.length,
++    totalPages: Math.max(1, Math.ceil(items.length / 24)),
++    chunkSize,
++    chunkCount: chunks.length,
++    updatedAt: now,
++    expireAt: now + ttlSeconds * 1000,
++    staleUntil: now + 2 * ttlSeconds * 1000,
++    phimApiFetched: diagnostics?.phimApiFetched || 0,
++    nguonCFetched: diagnostics?.nguonCFetched || 0,
++    mergedBeforeDedup: diagnostics?.mergedBeforeDedup || 0,
++    uniqueAfterDedup: diagnostics?.uniqueAfterDedup || items.length,
++    afterFilter: diagnostics?.afterFilter || items.length,
++    isFullSync: diagnostics?.isFullSync ?? true,
++  };
++
++  const metaKey = `${filterKeySafe}:v:${version}:meta`;
++  await cacheService.set(metaKey, meta, ttlSeconds).catch((err) => {
++    console.warn(`[META WRITE ERROR] key="${metaKey}":`, err);
++  });
++
++  // B„¶ﬂ+¯c 3: Lﬂ¶—y active pointer c+Æ -Êﬂ+‚ dﬂ+Ïn dﬂ¶¶p sau, sau -Ê+¶ ghi active pointer mﬂ+¯i
++  const activeKey = `${filterKeySafe}:active`;
++  const prevActive = await cacheService.get<{ activeVersion: number }>(activeKey).catch(() => null);
++
++  await cacheService.set(activeKey, { activeVersion: version, updatedAt: now }, ttlSeconds).catch((err) => {
++    console.warn(`[ACTIVE POINTER WRITE ERROR] key="${activeKey}":`, err);
++  });
++
++  // L„¶u meta v+·o RAM L1
++  datasetMetaMemoryCache.set(filterKey, meta);
++
++  // B„¶ﬂ+¯c 4: Sau khi snapshot mﬂ+¯i -Ê+˙ usable v+· active, dﬂ+Ïn dﬂ¶¶p version c+Æ ngﬂ¶∫m (non-blocking)
++  if (prevActive && prevActive.activeVersion && prevActive.activeVersion !== version) {
++    cleanupOldDatasetVersion(filterKeySafe, prevActive.activeVersion).catch(() => {});
++  }
++
++  // X+¶a key legacy single-string c+Æ nﬂ¶+u c+¶n tﬂ+Ùn tﬂ¶Ìi
++  cacheService.delete(filterKeySafe).catch(() => {});
++
++  return meta;
++}
++
++// H+·m dﬂ+Ïn dﬂ¶¶p c+Ìc chunk cﬂ+∫a version c+Æ
++async function cleanupOldDatasetVersion(filterKeySafe: string, oldVersion: number): Promise<void> {
++  try {
++    const oldMetaKey = `${filterKeySafe}:v:${oldVersion}:meta`;
++    const oldMeta = await cacheService.get<BrowseDatasetMeta>(oldMetaKey).catch(() => null);
++    if (oldMeta && oldMeta.chunkCount) {
++      for (let i = 0; i < oldMeta.chunkCount; i++) {
++        await cacheService.delete(`${filterKeySafe}:v:${oldVersion}:chunk:${i}`).catch(() => {});
++      }
++    }
++    await cacheService.delete(oldMetaKey).catch(() => {});
++  } catch (err) {
++    console.warn(`[CLEANUP OLD VERSION ERROR] v:${oldVersion}:`, err);
++  }
++}
++
++// -…ﬂ+Ïc ch+°nh x+Ìc page tﬂ+Ω Redis chunks m+· TUYﬂ+ÂT -…ﬂ+…I KH+ˆNG GET TO+«N Bﬂ+ˇ DATASET
++export async function getBrowsePageFromStorage(
++  filterKey: string,
++  params: MovieFilterParams,
++  limit: number = 24,
++  page: number = 1
++): Promise<{
++  // eslint-disable-next-line @typescript-eslint/no-explicit-any
++  items: any[];
++  totalItems: number;
++  totalPages: number;
++  meta: BrowseDatasetMeta;
++} | null> {
++  const filterKeySafe = getBrowseDatasetRedisKey(filterKey);
++  const now = Date.now();
++
++  // 1. Kiﬂ+‚m tra L1 Memory Meta
++  let meta = datasetMetaMemoryCache.get(filterKey);
++  if (!meta || meta.staleUntil <= now) {
++    // 2. -…ﬂ+Ïc pointer active version tﬂ+Ω Redis
++    const activeKey = `${filterKeySafe}:active`;
++    const active = await cacheService
++      .get<{ activeVersion: number; updatedAt: number }>(activeKey)
++      .catch(() => null);
++
++    if (active?.activeVersion) {
++      const metaKey = `${filterKeySafe}:v:${active.activeVersion}:meta`;
++      const redisMeta = await cacheService.get<BrowseDatasetMeta>(metaKey).catch(() => null);
++      if (redisMeta && redisMeta.chunkCount > 0) {
++        meta = redisMeta;
++        datasetMetaMemoryCache.set(filterKey, meta);
++      }
++    }
++  }
++
++  // 3. Fallback -Êﬂ+Ïc legacy single-string key nﬂ¶+u hﬂ+Á thﬂ+Êng -Êang migrate
++  if (!meta) {
++    const legacy = await cacheService.get<DatasetCacheEntry>(filterKeySafe).catch(() => null);
++    if (legacy && legacy.items && legacy.items.length > 0) {
++      // Async l„¶u sang chunks v+· dﬂ+Ïn dﬂ¶¶p legacy
++      saveDatasetInChunks(filterKey, legacy.items, legacy).catch(() => {});
++
++      const startIndex = (page - 1) * limit;
++      const pageItems = legacy.items.slice(startIndex, startIndex + limit);
++      return {
++        items: pageItems,
++        totalItems: legacy.totalItems,
++        totalPages: legacy.totalPages,
++        meta: {
++          version: 0,
++          totalItems: legacy.totalItems,
++          totalPages: legacy.totalPages,
++          chunkSize: legacy.items.length,
++          chunkCount: 1,
++          updatedAt: Date.now(),
++          expireAt: legacy.expireAt,
++          staleUntil: legacy.staleUntil,
++          phimApiFetched: legacy.phimApiFetched,
++          nguonCFetched: legacy.nguonCFetched,
++          mergedBeforeDedup: legacy.mergedBeforeDedup,
++          uniqueAfterDedup: legacy.uniqueAfterDedup,
++          afterFilter: legacy.afterFilter,
++          isFullSync: legacy.isFullSync,
++        },
++      };
++    }
++    return null; // Cache miss
++  }
++
++  // 4. C+¶ meta hﬂ+˙p lﬂ+Á -> t+°nh to+Ìn chunk chﬂ+Æa page n+·y
++  const totalItems = meta.totalItems;
++  const totalPages = Math.max(1, Math.ceil(totalItems / limit));
++  const startIndex = (page - 1) * limit;
++
++  if (startIndex >= totalItems) {
++    return {
++      items: [],
++      totalItems,
++      totalPages,
++      meta,
++    };
++  }
++
++  const endIndex = Math.min(startIndex + limit, totalItems);
++  const startChunkIndex = Math.floor(startIndex / meta.chunkSize);
++  const endChunkIndex = Math.floor((endIndex - 1) / meta.chunkSize);
++
++  // eslint-disable-next-line @typescript-eslint/no-explicit-any
++  let pageItems: any[] = [];
++
++  if (startChunkIndex === endChunkIndex) {
++    // 99.9% tr„¶ﬂ+ÿng hﬂ+˙p: page nﬂ¶¶m gﬂ+Ïn trong 1 chunk -> CHﬂ+Í GET -…+‹NG 1 CHUNK N+«Y (~1 MB)!
++    const chunkKey = `${filterKeySafe}:v:${meta.version}:chunk:${startChunkIndex}`;
++    // eslint-disable-next-line @typescript-eslint/no-explicit-any
++    const chunk = await cacheService.get<any[]>(chunkKey).catch(() => null);
++    const chunkOffset = startIndex - startChunkIndex * meta.chunkSize;
++    pageItems = (chunk || []).slice(chunkOffset, chunkOffset + limit);
++  } else {
++    // Tr„¶ﬂ+ÿng hﬂ+˙p page vﬂ¶ªt ngang qua 2 chunk (khi limit t+¶y +¢ nh„¶ limit=100)
++    const chunkKey1 = `${filterKeySafe}:v:${meta.version}:chunk:${startChunkIndex}`;
++    const chunkKey2 = `${filterKeySafe}:v:${meta.version}:chunk:${endChunkIndex}`;
++    const [c1, c2] = await Promise.all([
++      // eslint-disable-next-line @typescript-eslint/no-explicit-any
++      cacheService.get<any[]>(chunkKey1).catch(() => null),
++      // eslint-disable-next-line @typescript-eslint/no-explicit-any
++      cacheService.get<any[]>(chunkKey2).catch(() => null),
++    ]);
++    const offset1 = startIndex - startChunkIndex * meta.chunkSize;
++    const itemsFromC1 = (c1 || []).slice(offset1);
++    const remainingNeeded = limit - itemsFromC1.length;
++    const itemsFromC2 = (c2 || []).slice(0, remainingNeeded);
++    pageItems = [...itemsFromC1, ...itemsFromC2];
++  }
++
++  return {
++    items: pageItems,
++    totalItems,
++    totalPages,
++    meta,
++  };
++}
++
++// Background Task: Qu+Æt to+·n bﬂ+÷ dataset, hﬂ+˙p nhﬂ¶—t, khﬂ+° tr+¶ng lﬂ¶¿p v+· l„¶u v+·o Redis
++export async function runBackgroundDatasetIngestion(
++  params: MovieFilterParams,
++  filterKey: string
++): Promise<DatasetCacheEntry> {
++  const isSearch = Boolean(params.keyword?.trim());
++
++  console.log(`[INGESTION START] Filter key="${filterKey}"`);
++  const t0 = Date.now();
++
++  try {
++    const [resP1, resN1] = await Promise.all([
++      fetchSourceData(API_PHIMAPI, params, isSearch, 1),
++      fetchSourceData(API_NGUONC, params, isSearch, 1),
++    ]);
++
++    const totalPhimApiPages = isSearch
++      ? Math.min(resP1?.totalPages || 0, 5)
++      : resP1?.totalPages || 0;
++    const totalNguonCPages = isSearch
++      ? Math.min(resN1?.totalPages || 0, 8)
++      : resN1?.totalPages || 0;
++
++    const initialPhimApiItems = resP1?.items || [];
++    const initialNguonCItems = resN1?.items || [];
++
++    const pPages = Array.from(
++      { length: Math.max(0, totalPhimApiPages - 1) },
++      (_, i) => i + 2
++    );
++    const nPages = Array.from(
++      { length: Math.max(0, totalNguonCPages - 1) },
++      (_, i) => i + 2
++    );
++
++    // Fetch to+·n bﬂ+÷ c+Ìc trang c+¶n lﬂ¶Ìi vﬂ+¯i concurrency giﬂ+¯i hﬂ¶Ìn an to+·n
++    const [morePhimApi, moreNguonC] = await Promise.all([
++      batchFetchPages(API_PHIMAPI, params, isSearch, pPages, 16, 20),
++      batchFetchPages(API_NGUONC, params, isSearch, nPages, 16, 20),
++    ]);
++
++    const allPhimApiItems = [...initialPhimApiItems, ...morePhimApi];
++    const allNguonCItems = [...initialNguonCItems, ...moreNguonC];
++
++    // Interleave 2 nguﬂ+Ùn theo tﬂ+Î lﬂ+Á 2:1
++    // eslint-disable-next-line @typescript-eslint/no-explicit-any
++    const interleaved: any[] = [];
++    let pi = 0;
++    let ni = 0;
++    while (pi < allPhimApiItems.length || ni < allNguonCItems.length) {
++      for (let k = 0; k < 2 && pi < allPhimApiItems.length; k++) {
++        interleaved.push(allPhimApiItems[pi++]);
++      }
++      if (ni < allNguonCItems.length) {
++        interleaved.push(allNguonCItems[ni++]);
++      }
++    }
++
++    // Dedup theo slug (slug l+· identity duy nhﬂ¶—t)
++    // eslint-disable-next-line @typescript-eslint/no-explicit-any
++    const uniqueItemsMap = new Map<string, any>();
++    interleaved.forEach((item) => {
++      if (item?.slug && !uniqueItemsMap.has(item.slug)) {
++        uniqueItemsMap.set(item.slug, toCompactBrowseMovie(item));
++      }
++    });
++
++    // Lﬂ+Ïc v+· sﬂ¶ªp xﬂ¶+p dataset
++    const filteredAndSortedItems = filterAndSortDataset(
++      Array.from(uniqueItemsMap.values()),
++      params
++    );
++
++    // 1. L„¶u v+·o L2 Upstash Redis d„¶ﬂ+¯i dﬂ¶Ìng CHUNKS (mﬂ+˘i chunk ~1-1.5 MB, an to+·n tuyﬂ+Át -Êﬂ+Êi)
++    const meta = await saveDatasetInChunks(filterKey, filteredAndSortedItems, {
++      phimApiFetched: allPhimApiItems.length,
++      nguonCFetched: allNguonCItems.length,
++      mergedBeforeDedup: interleaved.length,
++      uniqueAfterDedup: uniqueItemsMap.size,
++      afterFilter: filteredAndSortedItems.length,
++      isFullSync: true,
++    });
++
++    const dataset: DatasetCacheEntry = {
++      items: filteredAndSortedItems,
++      totalItems: meta.totalItems,
++      totalPages: meta.totalPages,
++      expireAt: meta.expireAt,
++      staleUntil: meta.staleUntil,
++      phimApiFetched: meta.phimApiFetched || 0,
++      nguonCFetched: meta.nguonCFetched || 0,
++      mergedBeforeDedup: meta.mergedBeforeDedup || 0,
++      uniqueAfterDedup: meta.uniqueAfterDedup || 0,
++      afterFilter: meta.afterFilter || 0,
++      isFullSync: true,
++    };
++
++    // 2. L„¶u v+·o L1 RAM
++    filterDatasetMemoryCache.set(filterKey, dataset);
++
++    console.log(
++      `[BROWSE INGESTION COMPLETE] Filter="${filterKey}" in ${Date.now() - t0}ms: ` +
++        `PhimAPI=${meta.phimApiFetched}, NguonC=${meta.nguonCFetched}, ` +
++        `Merged=${meta.mergedBeforeDedup}, Unique=${meta.uniqueAfterDedup}, ` +
++        `AfterFilter=${meta.afterFilter}, TotalPages=${meta.totalPages}, ` +
++        `Chunks=${meta.chunkCount} (chunkSize=${meta.chunkSize})`
++    );
++
++    return dataset;
++  } catch (error) {
++    console.error(`[INGESTION ERROR] Filter key="${filterKey}":`, error);
++    const existing = filterDatasetMemoryCache.get(filterKey);
++    if (existing) return existing;
++    throw error;
++  }
++}
++
++// H+·m k+°ch hoﬂ¶Ìt hoﬂ¶¿c chﬂ+ÿ -Êﬂ+Ùng bﬂ+÷ ho+·n to+·n dataset (d+·nh cho pre-warm & regression tests)
++export async function syncFullBrowseDataset(params: MovieFilterParams): Promise<DatasetCacheEntry> {
++  const filterKey = getDatasetFilterKey(params);
++  let ingestionPromise = inFlightIngestionMap.get(filterKey);
++  if (!ingestionPromise) {
++    ingestionPromise = runBackgroundDatasetIngestion(params, filterKey).finally(() => {
++      inFlightIngestionMap.delete(filterKey);
++    });
++    inFlightIngestionMap.set(filterKey, ingestionPromise);
++  }
++  return await ingestionPromise;
++}
++
++async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
++  const isSearch = Boolean(params.keyword?.trim());
++  const limit = params.limit || 24;
++  const page = params.page || 1;
++  const filterKey = getDatasetFilterKey(params);
++  const now = Date.now();
++
++  // 1. Kiﬂ+‚m tra L1 In-Memory Cache (Full Dataset)
++  let dataset = filterDatasetMemoryCache.get(filterKey);
++  if (dataset && dataset.staleUntil > now) {
++    const startIndex = (page - 1) * limit;
++    const finalItems = dataset.items.slice(startIndex, startIndex + limit);
++    const totalItems = dataset.totalItems;
++    const totalPages = dataset.totalPages;
++
++    console.log(`[BROWSE DATASET]
++PhimAPI fetched: ${dataset.phimApiFetched}
++NguonC fetched: ${dataset.nguonCFetched}
++Merged: ${dataset.mergedBeforeDedup}
++Unique: ${dataset.uniqueAfterDedup}
++After filter: ${dataset.afterFilter}
++Returned page items: ${finalItems.length}
++TotalItems: ${totalItems}
++TotalPages: ${totalPages}`);
++
++    if (process.env.NODE_ENV !== "production") {
++      console.debug("[BROWSE META]", { page, totalItems, totalPages });
++    }
++
++    const payload = {
++      status: true,
++      items: finalItems,
++      pagination: {
++        currentPage: page,
++        totalPages,
++        totalItems,
++      },
++    };
++
++    moviesMemoryCache.set(cacheKey, {
++      data: payload,
++      expireAt: now + 300 * 1000,
++      staleUntil: now + 1800 * 1000,
++    });
++
++    return payload;
++  }
++
++  // 2. Kiﬂ+‚m tra Chunked Storage tﬂ+Ω Redis (CHﬂ+Í GET CHUNK Cﬂ¶™N THIﬂ¶•T, KH+ˆNG GET TO+«N Bﬂ+ˇ DATASET)
++  const chunkedResult = await getBrowsePageFromStorage(filterKey, params, limit, page);
++  if (chunkedResult) {
++    const finalItems = chunkedResult.items;
++    const totalItems = chunkedResult.totalItems;
++    const totalPages = chunkedResult.totalPages;
++
++    console.log(`[BROWSE DATASET]
++PhimAPI fetched: ${chunkedResult.meta.phimApiFetched ?? "cached"}
++NguonC fetched: ${chunkedResult.meta.nguonCFetched ?? "cached"}
++Merged: ${chunkedResult.meta.mergedBeforeDedup ?? "cached"}
++Unique: ${chunkedResult.meta.uniqueAfterDedup ?? totalItems}
++After filter: ${chunkedResult.meta.afterFilter ?? totalItems}
++Returned page items: ${finalItems.length}
++TotalItems: ${totalItems}
++TotalPages: ${totalPages}`);
++
++    if (process.env.NODE_ENV !== "production") {
++      console.debug("[BROWSE META]", { page, totalItems, totalPages });
++    }
++
++    const payload = {
++      status: true,
++      items: finalItems,
++      pagination: {
++        currentPage: page,
++        totalPages,
++        totalItems,
++      },
++    };
++
++    moviesMemoryCache.set(cacheKey, {
++      data: payload,
++      expireAt: now + 300 * 1000,
++      staleUntil: now + 1800 * 1000,
++    });
++
++    return payload;
++  }
++
++  // 3. Cache Miss:
++  if (params.waitForFullSync) {
++    // Chﬂ+Î k+°ch hoﬂ¶Ìt v+· chﬂ+ÿ Full Ingestion khi caller y+¨u cﬂ¶∫u r+¡ r+·ng (Cron sync / test runner)
++    let ingestionPromise = inFlightIngestionMap.get(filterKey);
++    if (!ingestionPromise) {
++      ingestionPromise = runBackgroundDatasetIngestion(params, filterKey).finally(() => {
++        inFlightIngestionMap.delete(filterKey);
++      });
++      inFlightIngestionMap.set(filterKey, ingestionPromise);
++    }
++    dataset = await ingestionPromise;
+   } else {
+-    // KHI L+« Bﬂ+ˇ Lﬂ+ÓC -…„·N Lﬂ¶¶ HOﬂ¶¬C T+ÓM KIﬂ¶•M KEYWORD HOﬂ¶¬C Mﬂ¶¬C -…ﬂ+ËNH:
+-    // Cﬂ¶˙ 2 nguﬂ+Ùn c+¶ng lﬂ+Ïc -Ê+¶ng 1 phﬂ¶Ìm vi -> +¸p dﬂ+—ng c+¶ng thﬂ+Æc cﬂ+÷ng b+¶ -Êﬂ+÷c quyﬂ+¸n NguonC (~25%)
+-    const OVERLAP_RATIO = 0.75;
+-    const uniqueFromNguonC = Math.round(countApi2 * (1 - OVERLAP_RATIO));
+-    totalItemsCount = (countApi1 || 0) + (countApi2 > 0 ? uniqueFromNguonC : 0) || allUniqueItems.length;
+-
+-    const realPages1 = resPhimApi?.totalPages || 0;
+-    const realPages2 = resNguonC?.totalPages   || 0;
+-    maxTotalPages = Math.max(realPages1, realPages2) || 1;
++    // HTTP user request: KH+ˆNG tﬂ+¶ -Êﬂ+÷ng detached-crawl h+·ng tr-‚m upstream pages!
++    // X+Ûy dﬂ+¶ng fast initial fallback batch trong ~400ms -Êﬂ+‚ trﬂ¶˙ ngay cho user, tr+Ình trﬂ¶ªng trang UI
++    const [resP1, resN1] = await Promise.all([
++      fetchSourceData(API_PHIMAPI, params, isSearch, 1),
++      fetchSourceData(API_NGUONC, params, isSearch, 1),
++    ]);
++
++    const totalP = resP1?.totalPages || 0;
++    const totalN = resN1?.totalPages || 0;
++    const batchP = isSearch ? 2 : Math.min(totalP, 10);
++    const batchN = isSearch ? 3 : Math.min(totalN, 24);
++
++    const pPages = Array.from({ length: Math.max(0, batchP - 1) }, (_, i) => i + 2);
++    const nPages = Array.from({ length: Math.max(0, batchN - 1) }, (_, i) => i + 2);
++
++    const [moreP, moreN] = await Promise.all([
++      batchFetchPages(API_PHIMAPI, params, isSearch, pPages, 8, 20),
++      batchFetchPages(API_NGUONC, params, isSearch, nPages, 8, 20),
++    ]);
++
++    const allP = [...(resP1?.items || []), ...moreP];
++    const allN = [...(resN1?.items || []), ...moreN];
++
++    // eslint-disable-next-line @typescript-eslint/no-explicit-any
++    const fallbackInterleaved: any[] = [];
++    let fpi = 0;
++    let fni = 0;
++    while (fpi < allP.length || fni < allN.length) {
++      for (let k = 0; k < 2 && fpi < allP.length; k++) {
++        fallbackInterleaved.push(allP[fpi++]);
++      }
++      if (fni < allN.length) {
++        fallbackInterleaved.push(allN[fni++]);
++      }
++    }
++
++    // eslint-disable-next-line @typescript-eslint/no-explicit-any
++    const fallbackMap = new Map<string, any>();
++    fallbackInterleaved.forEach((item) => {
++      if (item?.slug && !fallbackMap.has(item.slug)) {
++        fallbackMap.set(item.slug, toCompactBrowseMovie(item));
++      }
++    });
++
++    const fallbackFiltered = filterAndSortDataset(Array.from(fallbackMap.values()), params);
++    dataset = {
++      items: fallbackFiltered,
++      totalItems: fallbackFiltered.length,
++      totalPages: Math.max(1, Math.ceil(fallbackFiltered.length / limit)),
++      expireAt: now + 300 * 1000,
++      staleUntil: now + 1800 * 1000,
++      phimApiFetched: allP.length,
++      nguonCFetched: allN.length,
++      mergedBeforeDedup: fallbackInterleaved.length,
++      uniqueAfterDedup: fallbackMap.size,
++      afterFilter: fallbackFiltered.length,
++      isFullSync: false,
++    };
++    filterDatasetMemoryCache.set(filterKey, dataset);
++  }
++
++  // 4. Metadata Bﬂ¶ÒT BIﬂ¶•N lﬂ¶—y tﬂ+Ω dataset -Ê+˙ t+°nh to+Ìn
++  const totalItems = dataset.totalItems;
++  const totalPages = dataset.totalPages;
++
++  // 5. Slice theo page tﬂ+Ω dataset cﬂ+Ê -Êﬂ+Ônh
++  const startIndex = (page - 1) * limit;
++  const finalItems = dataset.items.slice(startIndex, startIndex + limit);
++
++  console.log(`[BROWSE DATASET]
++PhimAPI fetched: ${dataset.phimApiFetched}
++NguonC fetched: ${dataset.nguonCFetched}
++Merged: ${dataset.mergedBeforeDedup}
++Unique: ${dataset.uniqueAfterDedup}
++After filter: ${dataset.afterFilter}
++Returned page items: ${finalItems.length}
++TotalItems: ${totalItems}
++TotalPages: ${totalPages}`);
++
++  // Debug log (chﬂ+Î trong DEV)
++  if (process.env.NODE_ENV !== "production") {
++    console.debug("[BROWSE META]", { page, totalItems, totalPages });
+   }
+ 
+   const payload = {
+     status: true,
+     items: finalItems,
+     pagination: {
+-      currentPage: params.page || 1,
+-      totalPages: maxTotalPages,
+-      totalItems: totalItemsCount,
++      currentPage: page,
++      totalPages,
++      totalItems,
+     },
+   };
+ 
+-  const now = Date.now();
+   moviesMemoryCache.set(cacheKey, {
+     data: payload,
+-    expireAt: now + 300 * 1000,    // 5 ph+¶t t„¶„Ìi
+-    staleUntil: now + 1800 * 1000, // Cho ph+Æp d+¶ng stale -Êﬂ¶+n 30 ph+¶t trong nﬂ+¸n
++    expireAt: now + 300 * 1000,
++    staleUntil: now + 1800 * 1000,
+   });
+ 
+   return payload;
+@@ -722,18 +1410,32 @@ let hasWarmedUp = false;
+ function warmUpTopCategories() {
+   if (hasWarmedUp) return;
+   hasWarmedUp = true;
+-  const commonTabs = [
++  // Tr+Ình spam background requests khi -Êang chﬂ¶Ìy test runner
++  const isTest =
++    process.env.NODE_ENV === "test" ||
++    process.argv.some((a) => a.includes("--test") || a.includes(".test.ts"));
++  if (isTest) return;
++
++  const commonFilters: MovieFilterParams[] = [
++    { country: "thai-lan" },
++    { category: "hai-huoc" },
+     { type: "phim-bo" },
+     { type: "phim-le" },
+-    { type: "phim-chieu-rap" },
+     { type: "hoat-hinh" },
+-    { year: "2026" },
++    { type: "phim-chieu-rap" },
+   ];
+-  setTimeout(() => {
+-    commonTabs.forEach((tab) => {
+-      movieApi.getMovies({ ...tab, limit: 24, skipKvCache: true }).catch(() => {});
+-    });
+-  }, 200);
++  setTimeout(async () => {
++    for (const filter of commonFilters) {
++      try {
++        await syncFullBrowseDataset(filter);
++        await sleep(500);
++      } catch (err) {
++        if (process.env.NODE_ENV !== "production") {
++          console.warn("[WARMUP BACKGROUND ERROR]", err);
++        }
++      }
++    }
++  }, 2000);
+ }
+ 
+ export const DEFAULT_GENRES = [
+@@ -780,6 +1482,7 @@ export const DEFAULT_COUNTRIES = [
+ ];
+ 
+ export const movieApi = {
++  syncFullBrowseDataset,
+   // ==========================================
+   // 1. Lﬂ¶ÒY DANH S+¸CH PHIM (STALE-WHILE-REVALIDATE 0MS)
+   // ==========================================
+@@ -790,7 +1493,7 @@ export const movieApi = {
+     }
+ 
+     const cacheKey = JSON.stringify({
+-      v: 2,
++      v: 3,
+       category: params.category || "",
+       country: params.country || "",
+       year: params.year || "",

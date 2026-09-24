@@ -17,7 +17,6 @@ import {
   Clapperboard,
 } from "lucide-react";
 import { isInWatchlist, toggleWatchlist } from "@/lib/watchlist";
-import { LikeDislikeButtons } from "@/components/LikeDislikeButtons";
 import { extractMovieCountry, detectMovieTypeName, toOptimizedCardBackdropUrl, sanitizeImageUrl } from "@/lib/movieMedia";
 import { TrailerModal } from "@/components/TrailerModal";
 import {
@@ -849,19 +848,6 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
               >
                 {inList ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
               </button>
-
-              <LikeDislikeButtons
-                slug={slug}
-                movieMeta={{
-                  title,
-                  poster: imageUrl || posterUrl,
-                  genre,
-                  country: displayCountry,
-                  type_name: displayType,
-                  year: displayYear,
-                }}
-                variant="card"
-              />
 
               {(trailerUrl || hasTrailerState || isTrailerOnly) && (
                 <button

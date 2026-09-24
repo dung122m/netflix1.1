@@ -5,7 +5,6 @@ import Link from "next/link";
 import {
   ChevronLeft,
   ChevronRight,
-  Info,
   Play,
   Star,
   Sparkles,
@@ -747,16 +746,6 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
                     trailerUrl={featuredMovie.trailer_url}
                     title={title}
                   />
-                )}
-
-                {featuredMovie?.slug && (
-                  <Link
-                    href={`/movies/${featuredMovie.slug}`}
-                    className="inline-flex items-center gap-2 rounded-2xl border border-white/20 bg-white/10 hover:bg-white/20 px-6 sm:px-8 py-3.5 sm:py-4 text-xs sm:text-sm md:text-base font-bold text-white backdrop-blur-xl transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer shadow-lg hover:border-white/35 outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105"
-                  >
-                    <Info size={19} />
-                    <span>Chi Tiết</span>
-                  </Link>
                 )}
               </div>
 

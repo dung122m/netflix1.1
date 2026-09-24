@@ -17,7 +17,6 @@ import { auth, googleProvider, isFirebaseConfigured } from "@/lib/firebase";
 import {
   syncWatchHistoryWithCloud,
   syncWatchlistWithCloud,
-  syncReactionsWithCloud,
 } from "@/lib/cloudSync";
 import { clearLocalWatchHistoryOnly } from "@/lib/watchHistory";
 import { clearLocalWatchlistOnly } from "@/lib/watchlist";
@@ -59,7 +58,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         Promise.all([
           syncWatchHistoryWithCloud(user.uid),
           syncWatchlistWithCloud(user.uid),
-          syncReactionsWithCloud(user.uid),
         ]),
         new Promise((resolve) => setTimeout(resolve, 3000)),
       ]);
@@ -87,7 +85,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             Promise.all([
               syncWatchHistoryWithCloud(currentUser.uid),
               syncWatchlistWithCloud(currentUser.uid),
-              syncReactionsWithCloud(currentUser.uid),
               recordUserProfile(currentUser),
             ]),
             new Promise((resolve) => setTimeout(resolve, 3000)),
@@ -123,7 +120,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         await Promise.all([
           syncWatchHistoryWithCloud(res.user.uid),
           syncWatchlistWithCloud(res.user.uid),
-          syncReactionsWithCloud(res.user.uid),
           recordUserProfile(res.user),
         ]);
         return { success: true };

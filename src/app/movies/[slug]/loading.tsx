@@ -1,5 +1,4 @@
 import React from "react";
-import { MediaCardSkeleton } from "@/components/MediaCardSkeleton";
 
 export default function MovieDetailLoading() {
   return (
@@ -32,15 +31,6 @@ export default function MovieDetailLoading() {
         </div>
       </div>
 
-      {/* Recommendations Skeleton */}
-      <div className="max-w-7xl mx-auto mt-12 space-y-4">
-        <div className="h-8 w-44 bg-zinc-800 rounded animate-pulse" />
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <MediaCardSkeleton key={i} />
-          ))}
-        </div>
-      </div>
     </div>
   );
 }

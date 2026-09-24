@@ -59,13 +59,8 @@ import {
   setUserCommentRestriction,
   type DeviceHandoffItem,
 } from "@/services/userService";
-import {
-  ErrorReportItem,
-  subscribeErrorReportsSupabase,
-} from "@/services/supabaseService";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { StarRating } from "@/components/MovieReviews/StarRating";
-import { AdminReportsTab } from "./components/AdminReportsTab";
 import { AdminCollectionsTab } from "./components/AdminCollectionsTab";
 import { AdminMemberDetailModal } from "./components/AdminMemberDetailModal";
 import { AdminCleanResultModal } from "./components/AdminCleanResultModal";
@@ -77,8 +72,8 @@ export default function AdminDashboardPage() {
   const { user, loading: authLoading } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
 
-  // Tab navigation: comments | members | collections | analytics | reports
-  const [activeTab, setActiveTab] = useState<"comments" | "members" | "collections" | "analytics" | "reports">("comments");
+  // Tab navigation: comments | members | collections | analytics
+  const [activeTab, setActiveTab] = useState<"comments" | "members" | "collections" | "analytics">("comments");
 
   // Data states
   const [comments, setComments] = useState<MovieComment[]>([]);
@@ -86,9 +81,6 @@ export default function AdminDashboardPage() {
   const [rawUsers, setRawUsers] = useState<UserProfile[]>([]);
   const [totalMemberCount, setTotalMemberCount] = useState(0);
   const [deviceHandoffs, setDeviceHandoffs] = useState<DeviceHandoffItem[]>([]);
-  const [errorReports, setErrorReports] = useState<ErrorReportItem[]>([]);
-  const [reportFilter, setReportFilter] = useState<"all" | "pending" | "resolved" | "ignored">("all");
-  const [reportSearchQuery, setReportSearchQuery] = useState("");
   const [loadingData, setLoadingData] = useState(true);
 
   // Filter & Search states for comments
@@ -226,15 +218,10 @@ export default function AdminDashboardPage() {
 
     fetchAuthorizedHandoffs().catch(() => { });
 
-    const unsubReports = subscribeErrorReportsSupabase((items) => {
-      setErrorReports(items);
-    });
-
     return () => {
       unsubComments();
       unsubCollections();
       unsubUsers();
-      unsubReports();
     };
   }, [isAdmin, fetchAuthorizedHandoffs]);
 
@@ -595,88 +582,7 @@ export default function AdminDashboardPage() {
     }
   };
 
-  // Filtered error reports
-  const filteredErrorReports = useMemo(() => {
-    return errorReports.filter((rep) => {
-      if (reportFilter !== "all" && rep.status !== reportFilter) return false;
-      if (reportSearchQuery.trim()) {
-        const q = reportSearchQuery.toLowerCase().trim();
-        const matchSlug = rep.movieSlug?.toLowerCase().includes(q);
-        const matchTitle = rep.movieTitle?.toLowerCase().includes(q);
-        const matchUser = rep.userName?.toLowerCase().includes(q);
-        const matchEmail = rep.userEmail?.toLowerCase().includes(q);
-        const matchDesc = rep.description?.toLowerCase().includes(q);
-        if (!matchSlug && !matchTitle && !matchUser && !matchEmail && !matchDesc) {
-          return false;
-        }
-      }
-      return true;
-    });
-  }, [errorReports, reportFilter, reportSearchQuery]);
 
-  // Handler: Update error report status via API
-  const handleUpdateReportStatus = async (reportId: string, status: "pending" | "resolved" | "ignored") => {
-    try {
-      const idToken = await user?.getIdToken().catch(() => null);
-      const res = await fetch("/api/reports", {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
-        },
-        body: JSON.stringify({ id: reportId, status }),
-      });
-      const json = await res.json().catch(() => ({}));
-      if (res.ok && json.success) {
-        setErrorReports((prev) =>
-          prev.map((r) => (r.id === reportId ? { ...r, status } : r))
-        );
-        toast.success(
-          status === "resolved"
-            ? "Đã đánh dấu báo cáo đã xử lý / sửa xong!"
-            : status === "ignored"
-              ? "Đã đánh dấu bỏ qua báo cáo."
-              : "Đã chuyển về trạng thái chờ xử lý."
-        );
-      } else {
-        toast.error("Không thể cập nhật trạng thái báo cáo!");
-      }
-    } catch (e) {
-      console.error(e);
-      toast.error("Lỗi cập nhật trạng thái báo cáo!");
-    }
-  };
-
-  // Handler: Delete error report via API
-  const handleDeleteReport = async (reportId: string) => {
-    const confirmed = await showConfirmDialog({
-      title: "Xóa báo cáo sự cố",
-      message: "Bạn có chắc muốn xóa vĩnh viễn báo cáo sự cố này?",
-      confirmText: "Xóa báo cáo",
-      cancelText: "Hủy",
-      variant: "danger",
-    });
-    if (!confirmed) return;
-    try {
-      const idToken = await user?.getIdToken().catch(() => null);
-      const res = await fetch(`/api/reports?id=${encodeURIComponent(reportId)}`, {
-        method: "DELETE",
-        headers: {
-          ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
-        },
-      });
-      const json = await res.json().catch(() => ({}));
-      if (res.ok && json.success) {
-        setErrorReports((prev) => prev.filter((r) => r.id !== reportId));
-        toast.success("Đã xóa báo cáo sự cố thành công!");
-      } else {
-        toast.error("Không thể xóa báo cáo!");
-      }
-    } catch (e) {
-      console.error(e);
-      toast.error("Lỗi xóa báo cáo sự cố!");
-    }
-  };
 
   // Open member details modal
   const handleOpenMemberDetails = async (member: MemberWithStats) => {
@@ -1032,26 +938,6 @@ export default function AdminDashboardPage() {
           >
             <Sparkles size={14} />
             <span>Phân Tích</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab("reports")}
-            className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-bold transition cursor-pointer flex-shrink-0 ${activeTab === "reports"
-                ? "bg-netflix-red text-white shadow-lg shadow-red-950/60"
-                : "bg-white/5 text-gray-400 hover:text-white hover:bg-white/10"
-              }`}
-          >
-            <AlertOctagon size={14} />
-            <span>Báo Lỗi Phim</span>
-            <span className="px-1.5 py-0.2 rounded-full bg-black/40 text-[10px] font-mono">
-              {errorReports.length}
-            </span>
-            {errorReports.filter((r) => r.status === "pending").length > 0 && (
-              <span className="px-1.5 py-0.2 rounded-full bg-red-600 text-white text-[9px] font-bold animate-pulse">
-                {errorReports.filter((r) => r.status === "pending").length}
-              </span>
-            )}
           </button>
         </div>
 
@@ -1748,21 +1634,6 @@ export default function AdminDashboardPage() {
             metrics={metrics}
             adminEmail={user.email}
             totalMembersCount={totalMemberCount}
-          />
-        )}
-
-        {/* TAB 5: ERROR & ISSUE REPORTS */}
-        {activeTab === "reports" && (
-          <AdminReportsTab
-            errorReports={errorReports}
-            filteredErrorReports={filteredErrorReports}
-            reportFilter={reportFilter}
-            setReportFilter={setReportFilter}
-            reportSearchQuery={reportSearchQuery}
-            setReportSearchQuery={setReportSearchQuery}
-            onUpdateReportStatus={handleUpdateReportStatus}
-            onDeleteReport={handleDeleteReport}
-            formatDate={formatDate}
           />
         )}
 

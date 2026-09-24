@@ -11,9 +11,7 @@ import {
   MessageSquare,
   Smartphone,
   LogOut,
-  Heart,
   Sliders,
-  Sparkles,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { isUserAdmin } from "@/lib/adminConfig";
@@ -158,15 +156,6 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
             <span>🧑 Hồ sơ & Dashboard</span>
           </button>
 
-          <Link
-            href="/stats"
-            onClick={() => setShowUserDropdown(false)}
-            className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs text-amber-300 hover:text-white hover:bg-white/10 transition font-bold"
-          >
-            <Sparkles size={14} className="text-amber-400" />
-            <span>📊 Thống kê & Wrapped</span>
-          </Link>
-
           <button
             type="button"
             onClick={() => {
@@ -179,20 +168,6 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
           >
             <Sliders size={14} className="text-amber-400" />
             <span>⚙️ Cài đặt phát lại Cloud</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              setShowUserDropdown(false);
-              if (typeof window !== "undefined") {
-                window.dispatchEvent(new CustomEvent("open-user-profile-modal", { detail: { tab: "followed_actors" } }));
-              }
-            }}
-            className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs text-gray-300 hover:text-white hover:bg-white/10 transition cursor-pointer text-left font-medium"
-          >
-            <Heart size={14} className="text-rose-400" />
-            <span>⭐ Diễn viên yêu thích</span>
           </button>
 
           <Link

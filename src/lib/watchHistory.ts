@@ -17,6 +17,7 @@ export interface WatchHistoryItem {
   category?: string;
   country?: string;
   type?: string;
+  actor?: string[];
   updatedAt: number;
   progressSeconds?: number;
   durationSeconds?: number;
@@ -153,6 +154,10 @@ export const saveWatchHistory = (
       ...existing,
       ...item,
       thumb: item.thumb || existing?.thumb,
+      actor: item.actor || existing?.actor,
+      country: item.country || existing?.country,
+      category: item.category || existing?.category,
+      type: item.type || existing?.type,
       progressSeconds: item.progressSeconds ?? existing?.progressSeconds,
       durationSeconds: item.durationSeconds ?? existing?.durationSeconds,
       updatedAt: item.updatedAt || Date.now(),

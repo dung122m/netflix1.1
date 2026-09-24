@@ -11,7 +11,6 @@ import {
   VolumeX,
   Settings,
   PictureInPicture,
-  QrCode,
   Tv,
   Maximize2,
   Minimize2,
@@ -44,7 +43,6 @@ interface PlayerNativeControlsProps {
   onSpeedChange: (speed: number) => void;
   onQualityChange: (levelIndex: number) => void;
   onTogglePiP: () => void;
-  onOpenQr: () => void;
   onUseIframeFallback: () => void;
   onToggleFullscreen: () => void;
 }
@@ -70,7 +68,6 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
     onSpeedChange,
     onQualityChange,
     onTogglePiP,
-    onOpenQr,
     onUseIframeFallback,
     onToggleFullscreen,
   }) {
@@ -312,21 +309,6 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
               className="hidden sm:inline-flex p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-110 focus-visible:bg-white/25"
             >
               <PictureInPicture className="w-4 h-4" />
-            </button>
-
-            {/* QR Code (Ẩn trên thiết bị di động, chỉ hiển thị từ tablet/desktop) */}
-            <button
-              type="button"
-              data-player-control="true"
-              data-control-section="main-controls"
-              onClick={onOpenQr}
-              title="QR Mobile Handoff"
-              className="hidden sm:flex items-center gap-1 p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer group/qr outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:bg-white/25"
-            >
-              <QrCode className="w-4 h-4 text-sky-400 group-hover/qr:scale-110 transition-transform" />
-              <span className="hidden xl:inline text-[11px] font-semibold text-gray-300">
-                Mobile
-              </span>
             </button>
 
             {/* Iframe Fallback Toggle */}

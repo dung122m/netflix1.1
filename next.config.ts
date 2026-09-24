@@ -28,13 +28,7 @@ const nextConfig: NextConfig = {
     minimumCacheTTL: 60 * 60 * 24 * 7, // 7 days cache on edge
   },
   async redirects() {
-    return [
-      {
-        source: "/browse",
-        destination: "/",
-        permanent: true,
-      },
-    ];
+    return [];
   },
   async headers() {
     return [

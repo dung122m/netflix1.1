@@ -223,6 +223,11 @@ export function toOptimizedPhimimgUrl(
   }
 
   if (clean.includes("phimimg.com")) {
+    // 0. Ảnh đã là thumbnail WebP tối ưu sẵn của phimimg.com (~25-45KB): Dùng trực tiếp từ CDN
+    if (clean.includes("-thumb.webp")) {
+      return clean;
+    }
+
     const w = typeof targetWidth === "number" && targetWidth <= 192
       ? 192
       : typeof targetWidth === "number" && targetWidth <= 320
@@ -243,9 +248,10 @@ export function toOptimizedPhimimgUrl(
       return `/api/img-thumb?url=${encodeURIComponent(clean)}&w=${w}`;
     }
 
-    // 3. Với landscape / card lớn: chuyển -poster sang -thumb trước rồi nén qua proxy
+    // 3. Với landscape / card lớn: chuyển -poster sang -thumb trước và dùng trực tiếp
     if (clean.includes("-poster.webp")) {
       clean = clean.replace("-poster.webp", "-thumb.webp");
+      return clean;
     }
     return `/api/img-thumb?url=${encodeURIComponent(clean)}&w=${w}`;
   }
@@ -256,7 +262,7 @@ export function toOptimizedPhimimgUrl(
 /**
  * Tối ưu ảnh cho Thẻ phim 16:9 trong danh sách (CuratedMovieSection / MediaCard).
  * - TMDb: Dùng TMDb w780 (~45KB) cho độ sắc nét Retina 2x/4K, tải siêu nhanh và không bị mờ.
- * - Phimimg: Chuyển -poster.webp sang -thumb.webp, sau đó route qua proxy 480w để nén tất cả các ảnh 1080p/2K/4K/-thumb.webp về ~15-30KB.
+ * - Phimimg: Chuyển -poster.webp sang -thumb.webp và dùng trực tiếp từ CDN; chỉ proxy các ảnh cũ /upload/vod/ nặng 1-3MB.
  */
 export function toOptimizedCardBackdropUrl(url: string, targetWidth: number = 320): string {
   if (!url || typeof url !== "string") return "";
@@ -282,8 +288,12 @@ export function toOptimizedCardBackdropUrl(url: string, targetWidth: number = 32
     if (clean.includes("-poster.webp")) {
       clean = clean.replace("-poster.webp", "-thumb.webp");
     }
+    // 2. Nếu đã là -thumb.webp: Dùng trực tiếp an toàn từ CDN, không qua proxy
+    if (clean.includes("-thumb.webp")) {
+      return clean;
+    }
     const w = targetWidth <= 192 ? 192 : targetWidth <= 320 ? 320 : targetWidth <= 480 ? 480 : 640;
-    // 2. Route qua proxy 320w (hoặc w theo tham số) để nén cả /upload/vod/ và các ảnh -thumb.webp có kích thước lớn về ~10-18KB
+    // 3. Chỉ route qua proxy khi là ảnh cũ /upload/vod/ nặng 1-3MB chưa có WebP thumbnail
     return `/api/img-thumb?url=${encodeURIComponent(clean)}&w=${w}`;
   }
 

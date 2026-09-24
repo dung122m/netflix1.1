@@ -39,7 +39,7 @@ const CURATED_TABS: CuratedTabConfig[] = [
     tag: "🔥 XEM NHIỀU NHẤT",
     subtitle: "Các siêu phẩm điện ảnh & phim bộ đang được quan tâm nhất hôm nay",
     fetchParams: { sort: "views", limit: 16 },
-    viewAllHref: "/?sort=views",
+    viewAllHref: "/browse?sort=views",
   },
   {
     id: "rating",
@@ -48,7 +48,7 @@ const CURATED_TABS: CuratedTabConfig[] = [
     tag: "⭐ IMDB & REVIEW CAO",
     subtitle: "Tuyển tập những tác phẩm nghệ thuật đạt điểm đánh giá xuất sắc",
     fetchParams: { sort: "rating", limit: 16 },
-    viewAllHref: "/?sort=rating",
+    viewAllHref: "/browse?sort=rating",
   },
   {
     id: "theaters",
@@ -57,7 +57,7 @@ const CURATED_TABS: CuratedTabConfig[] = [
     tag: "🎬 BOM TẤN RẠP",
     subtitle: "Phim chiếu rạp chất lượng cao, hình ảnh & âm thanh sống động",
     fetchParams: { type: "phim-chieu-rap", limit: 16 },
-    viewAllHref: "/?type=phim-chieu-rap",
+    viewAllHref: "/browse?type=phim-chieu-rap",
   },
   {
     id: "latest",
@@ -66,7 +66,7 @@ const CURATED_TABS: CuratedTabConfig[] = [
     tag: "🆕 TẬP MỚI LÊN SÓNG",
     subtitle: "Phim mới phát hành và các tập mới nhất vừa được đưa lên hệ thống",
     fetchParams: { sort: "latest", limit: 16 },
-    viewAllHref: "/?sort=latest",
+    viewAllHref: "/browse?sort=latest",
   },
 ];
 

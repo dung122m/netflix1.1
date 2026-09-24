@@ -25,8 +25,11 @@ export interface FootballMatch {
   groups: string[];
   quality: "FHD 1080p" | "HD 720p" | "HD";
   tournament?: string;
+  sport?: "football" | "basketball" | "volleyball" | "tennis" | "badminton" | "f1" | "motorsport" | "boxing" | "esports" | "billiards" | "other";
+  gender?: "men" | "women";
   isEvent?: boolean;
-  timeline?: "live" | "today" | "upcoming";
+  sourceStatus?: SourceMatchStatus;
+  timeline?: "live" | "today" | "upcoming" | "finished";
   servers: StreamServer[];
 }
 
@@ -50,9 +53,19 @@ export function getFootballM3uSources(): {
 
   const defaultSources = [
     {
-      name: "TV360 & COLA TV / Phòng BLV Bóng Đá",
-      url: "https://raw.githubusercontent.com/vuminhthanh12/vuminhthanh12/refs/heads/main/vmttv",
+      name: "THTT Live Sports (ttthethao6)",
+      url: "https://thtt.pages.dev/tttt.m3u",
       priority: 1,
+    },
+    {
+      name: "TV360 & COLA TV / Phòng BLV Bóng Đá (vmt47)",
+      url: "https://raw.githubusercontent.com/vuminhthanh12/vuminhthanh12/refs/heads/main/vmttv",
+      priority: 2,
+    },
+    {
+      name: "THTT Live Sports Dự Phòng (ttthethao7)",
+      url: "https://thtt27.github.io/tttt/tttt.m3u",
+      priority: 3,
     },
   ];
 
@@ -67,23 +80,33 @@ export function getFootballM3uSources(): {
 
 export function parseMatchTimeToTimestamp(timeStr: string): number {
   if (!timeStr) return Number.MAX_SAFE_INTEGER;
-  // Format: "HH:mm DD/MM" or "HH:mm"
-  const match = timeStr
-    .trim()
-    .match(/^(\d{1,2}):(\d{2})(?:\s+(\d{1,2})\/(\d{1,2}))?/);
+  const clean = timeStr.trim();
+  // Format: "HH:mm DD/MM", "HHhMM DD/MM", "HH:mm", "HHhMM"
+  const match = clean.match(
+    /^(\d{1,2})[:hH](\d{2})(?:\s*[-/]?\s*(\d{1,2})[-/](\d{1,2}))?/,
+  );
   if (!match) return Number.MAX_SAFE_INTEGER;
 
   const hours = parseInt(match[1], 10);
   const minutes = parseInt(match[2], 10);
+  if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+    return Number.MAX_SAFE_INTEGER;
+  }
 
   // Lấy ngày tháng hiện tại theo múi giờ Việt Nam (UTC+7)
-  const vnNowStr = new Date().toLocaleString("en-US", {
+  const now = new Date();
+  const vnFormatter = new Intl.DateTimeFormat("en-US", {
     timeZone: "Asia/Ho_Chi_Minh",
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
   });
-  const vnNow = new Date(vnNowStr);
-  const currentYear = vnNow.getFullYear();
-  let day = vnNow.getDate();
-  let month = vnNow.getMonth();
+  const parts = vnFormatter.formatToParts(now);
+  const getPart = (type: string) =>
+    parseInt(parts.find((p) => p.type === type)?.value || "0", 10);
+  const currentYear = getPart("year");
+  let day = getPart("day");
+  let month = getPart("month") - 1; // 0-indexed
 
   if (match[3] && match[4]) {
     day = parseInt(match[3], 10);
@@ -96,36 +119,155 @@ export function parseMatchTimeToTimestamp(timeStr: string): number {
   return isNaN(parsed) ? Number.MAX_SAFE_INTEGER : parsed;
 }
 
-export function getMatchTimeline(
-  timestamp: number,
-): "live" | "today" | "upcoming" {
-  if (timestamp === Number.MAX_SAFE_INTEGER) return "today";
-  const now = Date.now();
-  // Trận đấu bắt đầu từ 2h30p trước đến 10p sau hiện tại tính là đang diễn ra
-  if (timestamp >= now - 150 * 60 * 1000 && timestamp <= now + 10 * 60 * 1000) {
+export type SourceMatchStatus = "live" | "finished" | "upcoming" | "unknown";
+
+export function isMatchToday(timestamp: number, now: number = Date.now()): boolean {
+  const vnFormatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+  });
+  const nowParts = vnFormatter.formatToParts(new Date(now));
+  const matchParts = vnFormatter.formatToParts(new Date(timestamp));
+
+  const getVal = (parts: Intl.DateTimeFormatPart[], type: string) =>
+    parts.find((p) => p.type === type)?.value;
+
+  return (
+    getVal(nowParts, "year") === getVal(matchParts, "year") &&
+    getVal(nowParts, "month") === getVal(matchParts, "month") &&
+    getVal(nowParts, "day") === getVal(matchParts, "day")
+  );
+}
+
+export function parseSourceStatus(
+  rawTitle: string,
+  extinfLine?: string,
+): SourceMatchStatus {
+  if (extinfLine) {
+    const statusMatch = extinfLine.match(
+      /(?:status|tvg-status|match-status)="([^"]+)"/i,
+    );
+    if (statusMatch) {
+      const val = statusMatch[1].trim().toUpperCase();
+      if (val === "LIVE" || val === "IN_PROGRESS" || val === "PLAYING") {
+        return "live";
+      }
+      if (
+        val === "FINISHED" ||
+        val === "ENDED" ||
+        val === "FT" ||
+        val === "FULL_TIME"
+      ) {
+        return "finished";
+      }
+      if (
+        val === "SCHEDULED" ||
+        val === "UPCOMING" ||
+        val === "NOT_STARTED"
+      ) {
+        return "upcoming";
+      }
+    }
+  }
+
+  const upper = (rawTitle || "").toUpperCase();
+  if (
+    /\[(?:FT|FULL\s*TIME|FINISHED|ENDED|HẾT\s*GIỜ|KẾT\s*THÚC|ĐÃ\s*XONG|ĐÃ\s*KẾT\s*THÚC)\]/i.test(
+      upper,
+    ) ||
+    /\b(?:FT|FULL\s*TIME)\b/.test(upper)
+  ) {
+    return "finished";
+  }
+
+  if (
+    /\[(?:LIVE|TRỰC\s*TIẾP|ĐANG\s*PHÁT|ĐANG\s*ĐÁ|IN_PROGRESS)\]/i.test(upper) ||
+    rawTitle.includes("🟢")
+  ) {
     return "live";
   }
 
-  // So sánh ngày theo múi giờ Việt Nam (UTC+7)
-  const vnNowStr = new Date().toLocaleString("en-US", {
-    timeZone: "Asia/Ho_Chi_Minh",
-  });
-  const vnNow = new Date(vnNowStr);
-  const matchDate = new Date(
-    new Date(timestamp).toLocaleString("en-US", {
-      timeZone: "Asia/Ho_Chi_Minh",
-    }),
-  );
-
   if (
-    vnNow.getFullYear() === matchDate.getFullYear() &&
-    vnNow.getMonth() === matchDate.getMonth() &&
-    vnNow.getDate() === matchDate.getDate()
+    /\[(?:UPCOMING|SCHEDULED|SẮP\s*ĐÁ|SẮP\s*DIỄN\s*RA|CHƯA\s*ĐÁ)\]/i.test(
+      upper,
+    ) ||
+    rawTitle.includes("🟡")
   ) {
-    return "today";
+    return "upcoming";
   }
 
-  return "upcoming";
+  return "unknown";
+}
+
+export function mergeSourceStatus(
+  currentStatus: SourceMatchStatus = "unknown",
+  newStatus: SourceMatchStatus = "unknown",
+): SourceMatchStatus {
+  if (currentStatus === "live" || newStatus === "live") return "live";
+  if (currentStatus === "finished" && newStatus === "finished") return "finished";
+  if (currentStatus === "upcoming" || newStatus === "upcoming") return "upcoming";
+  if (currentStatus === "finished" || newStatus === "finished") return "finished";
+  return "unknown";
+}
+
+export const MAX_MATCH_DURATION_MS = 140 * 60 * 1000; // 140 phút
+
+export function getMatchTimeline(
+  timestamp?: number | null,
+  sourceStatusOrLiveMarker: SourceMatchStatus | boolean = "unknown",
+  streamHealth: "alive" | "dead" | "unknown" = "unknown",
+  now: number = Date.now(),
+): "live" | "upcoming" | "finished" {
+  let normalizedStatus: SourceMatchStatus = "unknown";
+  if (typeof sourceStatusOrLiveMarker === "boolean") {
+    normalizedStatus = sourceStatusOrLiveMarker ? "live" : "unknown";
+  } else if (sourceStatusOrLiveMarker) {
+    normalizedStatus = sourceStatusOrLiveMarker;
+  }
+
+  const hasValidTimestamp =
+    timestamp !== undefined &&
+    timestamp !== null &&
+    timestamp > 0 &&
+    timestamp !== Number.MAX_SAFE_INTEGER;
+
+  // 1. Explicit FINISHED source status hoặc stream DEAD: Luôn là finished (Ẩn)
+  if (normalizedStatus === "finished" || streamHealth === "dead") {
+    return "finished";
+  }
+
+  // 2. HARD DURATION GUARD: Sau 140 phút kể từ kickoff bắt buộc là FINISHED
+  // Phải kiểm tra TRƯỚC bất kỳ rule nào có thể ép live (kể cả [LIVE], 🟢, HTTP 200 alive)
+  if (hasValidTimestamp && now > timestamp + MAX_MATCH_DURATION_MS) {
+    return "finished";
+  }
+
+  // 3. XỬ LÝ TRẬN CÓ KICKOFF TIMESTAMP HỢP LỆ
+  if (hasValidTimestamp) {
+    // 3A. TRẬN CHƯA KICKOFF (now < timestamp)
+    if (now < timestamp) {
+      // Upcoming chỉ là trận chưa kickoff và nằm trong cửa sổ 60 phút
+      if (timestamp <= now + 60 * 60 * 1000) {
+        return "upcoming";
+      }
+      // Bắt đầu hơn 60 phút tới -> không hiển thị trong SẮP PHÁT (finished/hidden)
+      return "finished";
+    }
+
+    // 3B. TRẬN TRONG KHUNG 140 PHÚT (kickoff <= now <= kickoff + 140 phút)
+    // Miễn là streamHealth !== "dead", trả về "live"
+    // KHÔNG yêu cầu [LIVE]/🟢 trong sourceStatus (unknown không được tự động biến trận vừa kickoff thành finished)
+    return "live";
+  }
+
+  // 4. XỬ LÝ TRẬN KHÔNG CÓ KICKOFF TIMESTAMP (Giữ nguyên behavior an toàn)
+  if (normalizedStatus === "live") {
+    return "live";
+  }
+
+  return "finished";
 }
 
 function normalizeText(str: string): string {
@@ -138,9 +280,21 @@ function normalizeText(str: string): string {
     .trim();
 }
 
+// Danh sách các từ định danh phụ trợ (phổ biến trong tên các CLB bóng đá trên thế giới)
+const AUXILIARY_CLUB_WORDS = new Set([
+  "clb", "fc", "ssc", "vfb", "ac", "as", "rc", "sc", "sl", "afc", "ogc", "fk", "sk", "cf", "cd", "ca",
+  "csd", "deportes", "deportivo", "deportiva", "dep", "municipal", "muni", "club", "clube", "societa",
+  "asociacion", "asoc", "agrupacion", "ud", "sd", "ad", "sv", "tsv", "fsv", "spvg", "vfl", "ksv", "bsc",
+  "united", "utd", "city", "town", "athletic", "albion", "rovers", "wanderers", "county", "sports",
+  "u19", "u20", "u21", "u23", "b", "reserves", "women", "nu"
+]);
+
 function normalizeClubKey(name: string): string {
-  let str = (name || "")
+  if (!name) return "";
+
+  const clean = name
     .toLowerCase()
+    .replace(/[đĐ]/g, "d")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/\[[^\]]*\]/g, " ")
@@ -149,22 +303,15 @@ function normalizeClubKey(name: string): string {
     .replace(/\s+/g, " ")
     .trim();
 
-  // Loại bỏ các tiền tố CLB lặp lại (CLB, FC, S.S.C, SSC, VfB, AC, AS, RC, AFC, FK, RB...)
-  str = str
-    .replace(
-      /^(clb|fc|s\s*s\s*c|ssc|vfb|v\s*f\s*b|ac|as|rc|sc|sl|afc|ogc|fk|sk|cf|cd|rb)\s+/i,
-      "",
-    )
-    .replace(
-      /^(clb|fc|s\s*s\s*c|ssc|vfb|v\s*f\s*b|ac|as|rc|sc|sl|afc|ogc|fk|sk|cf|cd|rb)\s+/i,
-      "",
-    )
-    .replace(/\s+(clb|fc|fk|sc|cf|united|utd|city|town)$/i, "")
-    .replace(/\s+(clb|fc|fk|sc|cf|united|utd|city|town)$/i, "")
-    .replace(/[^a-z0-9]/g, "")
-    .trim();
+  const words = clean.split(/\s+/).filter(Boolean);
+  const coreWords = words.filter((w) => !AUXILIARY_CLUB_WORDS.has(w));
+  const significant = coreWords.length > 0 ? coreWords.join("") : words.join("");
 
   const aliasMap: Record<string, string> = {
+    lao: "laos",
+    laos: "laos",
+    brunei: "bruneidarussalam",
+    bruneidarussalam: "bruneidarussalam",
     parissaintgermain: "psg",
     parissg: "psg",
     paris: "psg",
@@ -204,16 +351,21 @@ function normalizeClubKey(name: string): string {
     mc: "mancity",
     mci: "mancity",
     manutd: "manutd",
+    manchesterunited: "manutd",
     mu: "manutd",
     mun: "manutd",
     manchester: "manutd",
     spurs: "tottenham",
     tot: "tottenham",
+    tottenham: "tottenham",
     liv: "liverpool",
     lfc: "liverpool",
+    liverpool: "liverpool",
     che: "chelsea",
     cfc: "chelsea",
+    chelsea: "chelsea",
     ars: "arsenal",
+    arsenal: "arsenal",
     bvb: "dortmund",
     dortmund: "dortmund",
     bayern: "bayernmunich",
@@ -245,9 +397,202 @@ function normalizeClubKey(name: string): string {
     intermiami: "intermiami",
     nyredbulls: "newyorkredbulls",
     lafc: "losangelesfc",
+
+    // National Teams & International Fixture Aliases
+    china: "china",
+    trungquoc: "china",
+    southkorea: "southkorea",
+    hanquoc: "southkorea",
+    korea: "southkorea",
+    republicofkorea: "southkorea",
+    korearepublic: "southkorea",
+    rok: "southkorea",
+    japan: "japan",
+    nhatban: "japan",
+    vietnam: "vietnam",
+    thailand: "thailand",
+    thailan: "thailand",
+    england: "england",
+    anh: "england",
+    france: "france",
+    phap: "france",
+    germany: "germany",
+    duc: "germany",
+    spain: "spain",
+    taybannha: "spain",
+    espana: "spain",
+    portugal: "portugal",
+    bodaonha: "portugal",
+    boaonha: "portugal",
+    netherlands: "netherlands",
+    halan: "netherlands",
+    holland: "netherlands",
+    belgium: "belgium",
+    bi: "belgium",
+    brazil: "brazil",
+    brasil: "brazil",
+    argentina: "argentina",
+    usa: "usa",
+    states: "usa",
+    unitedstates: "usa",
+    my: "usa",
+    hoaky: "usa",
+    uae: "uae",
+    arabemirates: "uae",
+    unitedarabemirates: "uae",
+    saudiarabia: "saudiarabia",
+    arapxeut: "saudiarabia",
+    arapsaudi: "saudiarabia",
+    northkorea: "northkorea",
+    trieutien: "northkorea",
+    bactrieutien: "northkorea",
+    dprk: "northkorea",
+    dprkorea: "northkorea",
+    ireland: "ireland",
+    republicofireland: "ireland",
   };
 
-  return aliasMap[str] || str;
+  return aliasMap[significant] || significant;
+}
+
+function extractTeamTokens(name: string): string[] {
+  if (!name) return [];
+  const clean = name
+    .toLowerCase()
+    .replace(/[đĐ]/g, "d")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const rawTokens = clean.split(/\s+/).filter(Boolean);
+  const significant = rawTokens.filter(
+    (w) => w.length >= 3 && !AUXILIARY_CLUB_WORDS.has(w),
+  );
+  return significant.length > 0 ? significant : rawTokens;
+}
+
+function calculateStringSimilarity(s1: string, s2: string): number {
+  if (!s1 || !s2) return 0;
+  if (s1 === s2) return 1;
+  const longer = s1.length >= s2.length ? s1 : s2;
+  const shorter = s1.length < s2.length ? s1 : s2;
+  if (longer.length < 3) return 0;
+  if (longer.includes(shorter) && shorter.length >= 4) return 0.9;
+
+  const getBigrams = (str: string) => {
+    const s = new Set<string>();
+    for (let i = 0; i < str.length - 1; i++) {
+      s.add(str.slice(i, i + 2));
+    }
+    return s;
+  };
+  const b1 = getBigrams(s1);
+  const b2 = getBigrams(s2);
+  let intersection = 0;
+  for (const item of b1) {
+    if (b2.has(item)) intersection++;
+  }
+  return (2.0 * intersection) / (b1.size + b2.size || 1);
+}
+
+function isSingleTeamMatching(nameA: string, nameB: string): boolean {
+  if (!nameA || !nameB) return false;
+  const keyA = normalizeClubKey(nameA);
+  const keyB = normalizeClubKey(nameB);
+
+  // 1. Exact normalized key match (hoặc alias match)
+  if (keyA && keyB && keyA === keyB) return true;
+
+  // 2. Token overlap: Có chung từ khóa định danh cốt lõi (ví dụ ['iquique'])
+  const tokensA = extractTeamTokens(nameA);
+  const tokensB = extractTeamTokens(nameB);
+  if (tokensA.length > 0 && tokensB.length > 0) {
+    const sharedTokens = tokensA.filter((t) => tokensB.includes(t));
+    if (sharedTokens.some((t) => t.length >= 4)) {
+      return true;
+    }
+  }
+
+  // 3. Chuỗi con dài & độ tương đồng fuzzy cao với guard chặt chẽ
+  if (keyA.length >= 5 && keyB.length >= 5) {
+    if (keyA.includes(keyB) || keyB.includes(keyA)) return true;
+    if (calculateStringSimilarity(keyA, keyB) >= 0.85) return true;
+  }
+
+  return false;
+}
+
+function areMatchFixturesMatching(
+  m1: {
+    team1: string;
+    team2: string;
+    time: string;
+    timestamp: number;
+    isLiveMarker: boolean;
+    isEvent?: boolean;
+  },
+  m2: {
+    team1: string;
+    team2: string;
+    time: string;
+    timestamp: number;
+    isLiveMarker: boolean;
+    isEvent?: boolean;
+  },
+): boolean {
+  if (m1.isEvent || m2.isEvent) return false;
+  if (!m1.team1 || !m1.team2 || !m2.team1 || !m2.team2) return false;
+
+  // 1. Kiểm tra cặp 2 đội (Thuận chiều hoặc Đảo chiều)
+  const isDirectMatch =
+    isSingleTeamMatching(m1.team1, m2.team1) &&
+    isSingleTeamMatching(m1.team2, m2.team2);
+
+  const isSwappedMatch =
+    isSingleTeamMatching(m1.team1, m2.team2) &&
+    isSingleTeamMatching(m1.team2, m2.team1);
+
+  if (!isDirectMatch && !isSwappedMatch) {
+    return false;
+  }
+
+  // 2. Time Guard: Phải cùng khung giờ thi đấu
+  const isBothLive =
+    m1.isLiveMarker ||
+    m2.isLiveMarker ||
+    m1.time === "Trực tiếp" ||
+    m2.time === "Trực tiếp";
+
+  const hasValidTimestamps =
+    m1.timestamp !== Number.MAX_SAFE_INTEGER &&
+    m2.timestamp !== Number.MAX_SAFE_INTEGER &&
+    m1.timestamp > 0 &&
+    m2.timestamp > 0;
+
+  if (hasValidTimestamps) {
+    const diffMs = Math.abs(m1.timestamp - m2.timestamp);
+    // Khác giờ quá 45 phút -> Không phải cùng trận
+    if (diffMs > 45 * 60 * 1000) {
+      return false;
+    }
+    return true;
+  }
+
+  if (isBothLive) return true;
+
+  if (m1.time && m2.time) {
+    if (m1.time === m2.time) return true;
+    if (m1.time !== "24/7" && m2.time !== "24/7") {
+      const cleanTime1 = m1.time.replace(/[^0-9]/g, "");
+      const cleanTime2 = m2.time.replace(/[^0-9]/g, "");
+      if (cleanTime1 && cleanTime2 && cleanTime1 === cleanTime2) {
+        return true;
+      }
+    }
+  }
+
+  return false;
 }
 
 // Bảng nhận diện câu lạc bộ theo giải đấu
@@ -719,17 +1064,87 @@ function detectTournament(title: string, team1: string, team2: string): string {
   const normT1 = normalizeText(team1);
   const normT2 = normalizeText(team2);
 
-  // 1. Kiểm tra từ khóa tường minh trên tiêu đề
+  // 1. Kiểm tra các bộ môn thể thao khác
+  if (
+    normTitle.includes("🏀") ||
+    normTitle.includes("wnba") ||
+    normTitle.includes("nba") ||
+    normTitle.includes("vba") ||
+    normTitle.includes("basketball") ||
+    normTitle.includes("bong ro") ||
+    normTitle.includes("wildcats") ||
+    normTitle.includes("36ers") ||
+    normTitle.includes("liberty") ||
+    normTitle.includes("dream") ||
+    normT1.includes("heat") ||
+    normT2.includes("heat") ||
+    normT1.includes("buffalo") ||
+    normT2.includes("buffalo") ||
+    normT1.includes("dolphins") ||
+    normT2.includes("dolphins")
+  ) {
+    if (
+      normTitle.includes("vba") ||
+      normT1.includes("heat") ||
+      normT2.includes("heat") ||
+      normT1.includes("buffalo") ||
+      normT2.includes("buffalo") ||
+      normT1.includes("dolphins") ||
+      normT2.includes("dolphins")
+    ) {
+      return "🏀 🇻🇳 Giải Bóng Rổ VBA";
+    }
+    if (normTitle.includes("nba") || normTitle.includes("wnba")) {
+      return "🏀 🇺🇸 Giải Bóng Rổ NBA";
+    }
+    return "🏀 Bóng Rổ Trực Tiếp";
+  }
+  if (normTitle.includes("🏐") || normTitle.includes("volleyball") || normTitle.includes("bong chuyen")) {
+    return "🏐 Bóng Chuyền Trực Tiếp";
+  }
+  if (normTitle.includes("🎾") || normTitle.includes("🥎") || normTitle.includes("tennis") || normTitle.includes("quan vot")) {
+    return "🎾 Tennis Trực Tiếp";
+  }
+  if (
+    normTitle.includes("🏎") ||
+    normTitle.includes("🏎️") ||
+    normTitle.includes("🏁") ||
+    normTitle.includes("f1") ||
+    normTitle.includes("formula 1") ||
+    normTitle.includes("motogp") ||
+    normTitle.includes("dua xe")
+  ) {
+    return "🏎️ F1 / Đua Xe Trực Tiếp";
+  }
+  if (normTitle.includes("🥊") || normTitle.includes("boxing") || normTitle.includes("quyen anh") || normTitle.includes("ufc") || normTitle.includes("mma")) {
+    return "🥊 Quyền Anh Trực Tiếp";
+  }
+  if (normTitle.includes("🎱") || normTitle.includes("billiards") || normTitle.includes("bida") || normTitle.includes("snooker") || normTitle.includes("pool")) {
+    return "🎱 Bida / Billiards Trực Tiếp";
+  }
+  if (normTitle.includes("🎮") || normTitle.includes("esports") || normTitle.includes("esport") || normTitle.includes("lck") || normTitle.includes("lpl") || normTitle.includes("vcs")) {
+    return "🎮 Esports Trực Tiếp";
+  }
+  if (normTitle.includes("🏸") || normTitle.includes("badminton") || normTitle.includes("cau long")) {
+    return "🏸 Cầu Lông Trực Tiếp";
+  }
+  if (
+    normTitle.includes("asiad") ||
+    normTitle.includes("asian games") ||
+    normTitle.includes("sea games")
+  ) {
+    return "🏅 Asian Games / ASIAD";
+  }
+
+  // 2. Kiểm tra cúp & giải đấu Châu Âu
   if (
     normTitle.includes("champions league") ||
     normTitle.includes("cup c1") ||
     normTitle.includes("cúp c1") ||
-    normTitle.includes("cup 1") ||
-    normTitle.includes("uefa cl") ||
     normTitle.includes("ucl") ||
     /\bc1\b/.test(normTitle)
   ) {
-    return "Cúp C1";
+    return "🏆 Cúp C1 Châu Âu";
   }
   if (
     normTitle.includes("europa league") ||
@@ -738,7 +1153,7 @@ function detectTournament(title: string, team1: string, team2: string): string {
     normTitle.includes("uel") ||
     /\bc2\b/.test(normTitle)
   ) {
-    return "Cúp C2";
+    return "🏆 Cúp C2 Europa League";
   }
   if (
     normTitle.includes("conference league") ||
@@ -747,86 +1162,85 @@ function detectTournament(title: string, team1: string, team2: string): string {
     normTitle.includes("uecl") ||
     /\bc3\b/.test(normTitle)
   ) {
-    return "Cúp C3";
-  }
-  if (
-    normTitle.includes("giao huu") ||
-    normTitle.includes("giao hữu") ||
-    normTitle.includes("friendly") ||
-    normTitle.includes("club friendly")
-  ) {
-    return "Giao Hữu";
-  }
-  if (
-    normTitle.includes("fa cup") ||
-    normTitle.includes("cup fa") ||
-    normTitle.includes("cúp fa")
-  ) {
-    return "Cúp FA";
-  }
-  if (
-    normTitle.includes("carabao") ||
-    normTitle.includes("league cup") ||
-    normTitle.includes("cup lien doan") ||
-    normTitle.includes("cúp liên đoàn")
-  ) {
-    return "Carabao Cup";
-  }
-  if (
-    normTitle.includes("copa del rey") ||
-    normTitle.includes("cup nha vua") ||
-    normTitle.includes("cúp nhà vua")
-  ) {
-    return "Copa del Rey";
-  }
-  if (
-    normTitle.includes("coppa italia") ||
-    normTitle.includes("cup y") ||
-    normTitle.includes("cúp ý")
-  ) {
-    return "Coppa Italia";
-  }
-  if (normTitle.includes("dfb pokal") || normTitle.includes("dfb-pokal")) {
-    return "DFB-Pokal";
+    return "🏆 Cúp C3";
   }
   if (
     normTitle.includes("premier league") ||
     normTitle.includes("ngoai hang anh") ||
     normTitle.includes("epl")
   ) {
-    return "Ngoại Hạng Anh";
+    return "🏴󠁧󠁢󠁥󠁮󠁧󠁿 Ngoại Hạng Anh";
   }
   if (normTitle.includes("la liga") || normTitle.includes("laliga")) {
-    return "La Liga";
+    return "🇪🇸 La Liga";
   }
   if (normTitle.includes("serie a") || normTitle.includes("seriea")) {
-    return "Serie A";
+    return "🇮🇹 Serie A";
   }
   if (normTitle.includes("bundesliga")) {
-    return "Bundesliga";
+    return "🇩🇪 Bundesliga";
   }
   if (normTitle.includes("ligue 1") || normTitle.includes("ligue1")) {
-    return "Ligue 1";
+    return "🇫🇷 Ligue 1";
   }
-  if (normTitle.includes("mls") || normTitle.includes("major league soccer")) {
-    return "MLS";
+  if (
+    normTitle.includes("mls") ||
+    normTitle.includes("major league soccer") ||
+    normTitle.includes("sounders") ||
+    normTitle.includes("salt lake")
+  ) {
+    return "🇺🇸 MLS (Mỹ)";
   }
   if (
     normTitle.includes("saudi pro league") ||
     normTitle.includes("saudi league") ||
     normTitle.includes("spl")
   ) {
-    return "Saudi League";
+    return "🇸🇦 Saudi League";
   }
   if (
     normTitle.includes("v league") ||
     normTitle.includes("vleague") ||
     normTitle.includes("v league 1")
   ) {
-    return "V-League";
+    return "🇻🇳 V-League";
   }
 
-  // 2. Nhận diện giải đấu của từng câu lạc bộ
+  // 3. Đội tuyển Quốc gia & Giao hữu Quốc tế
+  const nationalKeywords = [
+    "laos", "brunei", "japan", "uruguay", "china", "maldives", "myanmar", "timor", "namibia", "congo",
+    "uae", "yemen", "libya", "botswana", "mauritania", "central african", "equatorial guinea", "andorra",
+    "malta", "vietnam", "thailand", "indonesia", "malaysia", "singapore", "philippines", "aruba", "antigua",
+    "brazil", "argentina", "france", "germany", "england", "spain", "portugal", "italy", "netherlands",
+    "belgium", "croatia", "korea", "australia"
+  ];
+  if (
+    nationalKeywords.some((n) => normT1.includes(n)) ||
+    nationalKeywords.some((n) => normT2.includes(n)) ||
+    normTitle.includes("giao huu") ||
+    normTitle.includes("giao hữu") ||
+    normTitle.includes("friendly")
+  ) {
+    return "🌍 Giao Hữu & ĐTQG";
+  }
+
+  // 4. Giải Nam Mỹ / Châu Mỹ
+  const southAmericaKeywords = [
+    "cali", "iquique", "antofagasta", "calera", "catolica", "aguilas", "doradas", "boca", "river",
+    "flamengo", "palmeiras", "colo", "nacional", "millonarios", "junior", "santa fe", "medellin", "copa"
+  ];
+  if (
+    southAmericaKeywords.some((n) => normT1.includes(n)) ||
+    southAmericaKeywords.some((n) => normT2.includes(n)) ||
+    normTitle.includes("chile") ||
+    normTitle.includes("colombia") ||
+    normTitle.includes("argentina") ||
+    normTitle.includes("brazil")
+  ) {
+    return "🌎 Giải Nam Mỹ (Copa / VĐQG)";
+  }
+
+  // 5. Nhận diện giải đấu của từng câu lạc bộ
   const getLeagueOfTeam = (team: string): string => {
     if (!team) return "";
     if (matchTeamInList(team, MLS_TEAMS)) return "mls";
@@ -845,14 +1259,14 @@ function detectTournament(title: string, team1: string, team2: string): string {
   const l2 = getLeagueOfTeam(normT2);
 
   // Cùng giải quốc nội:
-  if (l1 === "epl" && l2 === "epl") return "Ngoại Hạng Anh";
-  if (l1 === "laliga" && l2 === "laliga") return "La Liga";
-  if (l1 === "seriea" && l2 === "seriea") return "Serie A";
-  if (l1 === "bundesliga" && l2 === "bundesliga") return "Bundesliga";
-  if (l1 === "ligue1" && l2 === "ligue1") return "Ligue 1";
-  if (l1 === "saudi" && l2 === "saudi") return "Saudi League";
-  if (l1 === "mls" && l2 === "mls") return "MLS";
-  if (l1 === "vleague" && l2 === "vleague") return "V-League";
+  if (l1 === "epl" && l2 === "epl") return "🏴󠁧󠁢󠁥󠁮󠁧󠁿 Ngoại Hạng Anh";
+  if (l1 === "laliga" && l2 === "laliga") return "🇪🇸 La Liga";
+  if (l1 === "seriea" && l2 === "seriea") return "🇮🇹 Serie A";
+  if (l1 === "bundesliga" && l2 === "bundesliga") return "🇩🇪 Bundesliga";
+  if (l1 === "ligue1" && l2 === "ligue1") return "🇫🇷 Ligue 1";
+  if (l1 === "saudi" && l2 === "saudi") return "🇸🇦 Saudi League";
+  if (l1 === "mls" && l2 === "mls") return "🇺🇸 MLS (Mỹ)";
+  if (l1 === "vleague" && l2 === "vleague") return "🇻🇳 V-League";
 
   // Khác giải (2 đội bóng Châu Âu gặp nhau mà tiêu đề chưa ghi rõ C1/C2/C3) -> Cúp Châu Âu:
   const euroLeagues = [
@@ -864,16 +1278,364 @@ function detectTournament(title: string, team1: string, team2: string): string {
     "other_europe",
   ];
   if (euroLeagues.includes(l1) && euroLeagues.includes(l2) && l1 !== l2) {
-    return "Cúp Châu Âu";
+    return "🏆 Cúp Châu Âu";
   }
 
-  // Đội thuộc giải đấu đặc thù:
-  if (l1 === "other_europe" || l2 === "other_europe") return "Cúp Châu Âu";
-  if (l1 === "mls" || l2 === "mls") return "MLS";
-  if (l1 === "saudi" || l2 === "saudi") return "Saudi League";
-  if (l1 === "vleague" || l2 === "vleague") return "V-League";
+  if (l1 === "other_europe" || l2 === "other_europe") return "🏆 Cúp Châu Âu";
+  if (l1 === "mls" || l2 === "mls") return "🇺🇸 MLS (Mỹ)";
+  if (l1 === "saudi" || l2 === "saudi") return "🇸🇦 Saudi League";
+  if (l1 === "vleague" || l2 === "vleague") return "🇻🇳 V-League";
 
   return "";
+}
+
+export function getSportLabel(
+  sport?: "football" | "basketball" | "volleyball" | "tennis" | "badminton" | "f1" | "motorsport" | "boxing" | "esports" | "billiards" | "other",
+  rawTournament?: string,
+): string {
+  if (sport === "basketball") {
+    if (rawTournament && !/^(?:bóng rổ|basketball|bong ro)$/i.test(rawTournament.trim())) {
+      return rawTournament.startsWith("🏀") ? rawTournament : `🏀 ${rawTournament}`;
+    }
+    return "🏀 Bóng Rổ Trực Tiếp";
+  }
+  if (sport === "tennis") {
+    if (rawTournament && !/^(?:tennis|quần vợt|quan vot)$/i.test(rawTournament.trim())) {
+      const clean = rawTournament.replace(/Quần Vợt/gi, "Tennis");
+      return clean.startsWith("🎾") ? clean : `🎾 ${clean}`;
+    }
+    return "🎾 Tennis Trực Tiếp";
+  }
+  if (sport === "f1" || sport === "motorsport") {
+    if (rawTournament && !/^(?:f1|đua xe|dua xe|motorsport)$/i.test(rawTournament.trim())) {
+      return rawTournament.startsWith("🏎") ? rawTournament : `🏎️ ${rawTournament}`;
+    }
+    return "🏎️ F1 / Đua Xe Trực Tiếp";
+  }
+  if (sport === "boxing") {
+    if (rawTournament && !/^(?:boxing|quyền anh|quyen anh)$/i.test(rawTournament.trim())) {
+      return rawTournament.startsWith("🥊") ? rawTournament : `🥊 ${rawTournament}`;
+    }
+    return "🥊 Quyền Anh Trực Tiếp";
+  }
+  if (sport === "esports") {
+    if (rawTournament && !/^(?:esports|esport)$/i.test(rawTournament.trim())) {
+      return rawTournament.startsWith("🎮") ? rawTournament : `🎮 ${rawTournament}`;
+    }
+    return "🎮 Esports Trực Tiếp";
+  }
+  if (sport === "billiards") {
+    if (rawTournament && !/^(?:billiards|bida|billiard|pool|snooker)$/i.test(rawTournament.trim())) {
+      return rawTournament.startsWith("🎱") ? rawTournament : `🎱 ${rawTournament}`;
+    }
+    return "🎱 Bida / Billiards Trực Tiếp";
+  }
+  if (sport === "volleyball") {
+    if (rawTournament && !/^(?:volleyball|bóng chuyền|bong chuyen)$/i.test(rawTournament.trim())) {
+      return rawTournament.startsWith("🏐") ? rawTournament : `🏐 ${rawTournament}`;
+    }
+    return "🏐 Bóng Chuyền Trực Tiếp";
+  }
+  if (sport === "badminton") {
+    if (rawTournament && !/^(?:badminton|cầu lông|cau long)$/i.test(rawTournament.trim())) {
+      return rawTournament.startsWith("🏸") ? rawTournament : `🏸 ${rawTournament}`;
+    }
+    return "🏸 Cầu Lông Trực Tiếp";
+  }
+  if (sport === "football") {
+    if (rawTournament && rawTournament.trim() && rawTournament !== "⚽ Bóng Đá Trực Tiếp" && rawTournament !== "⚽ Trực Tiếp Thể Thao") {
+      return rawTournament;
+    }
+    return "⚽ Bóng Đá Trực Tiếp";
+  }
+
+  // Khi sport là other hoặc chưa xác định: KHÔNG tự đoán là football
+  if (rawTournament && rawTournament.trim() && rawTournament !== "⚽ Bóng Đá Trực Tiếp" && rawTournament !== "⚽ Trực Tiếp Thể Thao") {
+    return rawTournament;
+  }
+  return "🏆 Trực Tiếp Thể Thao";
+}
+
+// Danh sách các từ khóa giải đấu / sự kiện / thể thao không được coi là tên CLB bóng đá
+export const TOURNAMENT_NON_TEAM_KEYWORDS = [
+  "asiad", "asian games", "olympic", "sea games", "paragames",
+  "world cup", "euro", "copa america", "aff cup", "asian cup", "gold cup", "nations league",
+  "v-league", "vleague", "premier league", "ngoai hang anh", "champions league", "cup c1", "cup c2", "cup c3",
+  "cup quoc gia", "europa league", "conference league", "la liga", "serie a", "bundesliga", "ligue 1",
+  "fa cup", "carabao cup", "copa del rey", "coppa italia", "dfb pokal", "coupe de france",
+  "sieu cup", "super cup", "u23 chau a", "u23", "u21", "u20", "u19", "u17", "vleague 1", "vleague 2",
+  "hang nhat", "hang nhi", "giao huu", "friendly", "friendlies", "club friendly", "nba", "wnba", "pba", "fiba", "vtv cup"
+];
+
+export const BROADCASTER_NON_TEAM_KEYWORDS = [
+  "vtv", "htv", "thvl", "sctv", "vtc", "btv", "k+", "kplus", "vov", "antv", "qpvn", "ttxvn",
+  "hanoitv", "hanoi tv", "dai ha noi", "truyen hinh ha noi",
+  "fpt play", "fpt", "tv360", "xoi lac", "xoilac", "vua san co", "vuasanco", "cola tv", "colatv", "cola",
+  "khan dai", "khandaitv", "gio vang", "giovang", "chuoi chien", "chuoichien", "sut bong", "sutbong",
+  "pha lang", "phalang", "ga vang", "gavang", "bia om", "biaom", "s8 tv", "s8tv", "s8", "sao ke", "saoke",
+  "phao hoa", "phaohoa", "vebo", "thapcam", "tiengruoi", "mitom", "rakhoi", "cakhia", "90phut", "thuckheya",
+  "on sports", "on football", "beinsports", "espn", "kenh", "dai", "truyen hinh", "phat thanh"
+];
+
+export const GENERIC_SPORT_NON_TEAM_KEYWORDS = [
+  "bong da", "football", "soccer", "bong ro", "basketball", "bong chuyen", "volleyball",
+  "quan vot", "tennis", "cau long", "badminton", "bong ban", "table tennis", "bida", "billiards",
+  "boxing", "mma", "ufc", "dua xe", "f1", "esports", "game", "su kien", "event", "live", "truc tiep",
+  "re-live", "full match", "highlight", "ban ket", "chung ket", "tu ket", "vong loai", "playoff", "tieng viet",
+  "ngay thi dau", "ngay", "luong", "stream", "session", "matchday", "round", "vong", "bang"
+];
+
+export function isValidFootballTeamName(name: string): boolean {
+  if (!name) return false;
+  const raw = name.trim();
+  const norm = normalizeText(raw);
+  if (norm.length < 2) return false;
+
+  // 1. Phải có ít nhất một chữ cái (không chỉ là số hoặc ký hiệu) và không phải từ nối "vs" / "v"
+  if (!/[a-z]/.test(norm)) return false;
+  if (norm === "vs" || norm === "v" || norm === "x") return false;
+
+  // 2. Kênh truyền hình nhà đài (VTV1-9, HTV1-9, THVL1-4, SCTV, VTC, K+, ON Sports...)
+  if (/^(?:vtv|htv|thvl|sctv|vtc|btv|kplus|k\+)\s*\d*/i.test(norm)) return false;
+  if (/^k\s+(?:sport|action|cine|life|kids|\d)\b/i.test(norm) || /^k\+/i.test(raw)) return false;
+  if (/^(?:htvc|vov|antv|qpvn|ttxvn|hanoitv|hanoi tv|thhn)\b/i.test(norm)) return false;
+  if (/^on\s+(?:sports|football|golf|volleyball)\b/i.test(norm)) return false;
+
+  // 3. Sub-channel / Table / Court / Server / Room codes (e.g. A1, A2, Bàn 1, Server 2, Sân 3, Phòng BLV)
+  if (/^[a-z]\d{1,2}$/.test(norm)) return false;
+  if (/^(?:ban|table|san|court|phong|room|kenh|channel|ch|link|server|sv|stream|cam|feed|track|bang|group|vong|round|tap|phan|tran|match|luong|session|matchday|ngay)\b/i.test(norm)) return false;
+  if (/^(?:sv|hd|fhd|4k)\s*\d*$/i.test(norm)) return false;
+  if (/^ngay\s*thi\s*dau/i.test(norm)) return false;
+
+  // 4. Commentator string / Room BLV
+  if (/\b(?:blv|binh luan vien)\b/i.test(norm)) return false;
+
+  // 5. Broadcaster string (exact or broadcaster prefix)
+  for (const b of BROADCASTER_NON_TEAM_KEYWORDS) {
+    if (norm === b || norm === `kenh ${b}` || norm === `dai ${b}`) {
+      return false;
+    }
+    if (norm.startsWith(b + " ") || (norm.startsWith(b) && norm.length <= b.length + 3)) {
+      return false;
+    }
+  }
+
+  // 6. Generic sport / event terms (exact match or generic event prefixes)
+  for (const g of GENERIC_SPORT_NON_TEAM_KEYWORDS) {
+    if (norm === g) {
+      return false;
+    }
+  }
+  if (/^(?:truc tiep|re live|highlight|full match|ban ket|chung ket|tu ket|vong loai|ngay thi dau|session)\b/i.test(norm)) {
+    return false;
+  }
+
+  // 7. Tournament exact match or standalone tournament name (e.g. "ASIAD 2026", "V-League", "World Cup")
+  const normWithoutNumbers = norm.replace(/\s*\d+.*$/, "").trim();
+  for (const t of TOURNAMENT_NON_TEAM_KEYWORDS) {
+    if (norm === t || normWithoutNumbers === t) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+export function isGenericTvChannel(
+  rawTitle: string,
+  group: string = "",
+): boolean {
+  const normTitle = normalizeText(rawTitle);
+  const normGroup = normalizeText(group);
+
+  // 1. Trận đấu có cặp đấu rõ ràng (vs / v) -> Không phải kênh truyền hình chung
+  const hasMatchIndicator =
+    /\s+(?:vs|v|\bv\b)\s+/i.test(rawTitle) ||
+    /\[(?:vs|v)\]/i.test(rawTitle);
+
+  if (hasMatchIndicator) {
+    return false;
+  }
+
+  // 2. Kênh phát phòng BLV hoặc bình luận thể thao trực tiếp -> Không phải kênh truyền hình chung
+  if (
+    /\b(?:blv|binh luan vien)\b/i.test(rawTitle) ||
+    /\b(?:blv|binh luan vien)\b/i.test(group) ||
+    /\((?:alan|tom|captain|giang a|batman|pocari|nguoi nan|dec|leo|ti|te)\)/i.test(rawTitle)
+  ) {
+    return false;
+  }
+
+  // 3. Tên kênh truyền hình nhà đài quốc gia / truyền hình cáp 24/7
+  const isTvStationPattern =
+    /^(?:vtv|htv|thvl|sctv|vtc|btv|kplus|k)\s*\d*/i.test(normTitle) ||
+    /^(?:htvc|vov|antv|qpvn|ttxvn|hanoitv|hanoi tv|thhn)\b/i.test(normTitle) ||
+    /^k\s+(?:sport|action|cine|life|kids|\d)\b/i.test(normTitle) ||
+    /^k\+/i.test(rawTitle.trim()) ||
+    /^on\s+(?:sports|football|golf|volleyball|plus|cine)\b/i.test(normTitle) ||
+    /^(?:hbo|cinemax|axn|discovery|cartoon network|disney|fox|cnn|bbc)\b/i.test(normTitle);
+
+  if (isTvStationPattern) {
+    return true;
+  }
+
+  // 4. Danh mục / Nhóm kênh truyền hình 24/7
+  const isTvGroup =
+    /^(?:kenh\s+vtv|kenh\s+htv|kenh\s+sctv|kenh\s+vtvcab|truyen\s+hinh|thiet\s+yeu|tin\s+tuc|phim\s+truyen|giai\s+tri|thieu\s+nhi|ca\s+nhac|dia\s+phuong|quoc\s+te|iptv|24\s*7\s*tv)/i.test(
+      normGroup,
+    );
+
+  if (isTvGroup) {
+    return true;
+  }
+
+  // 5. Kênh số / Kênh kỹ thuật đơn lẻ không gắn với sự kiện thể thao (ví dụ "Kênh 1 HD", "Server 2 FHD", "Channel 5")
+  if (/^(?:kenh|channel|dai|server|sv|stream|feed|ban|table|san|court)\s*\d+\s*(?:hd|fhd|4k|sd)?$/i.test(normTitle)) {
+    return true;
+  }
+
+  return false;
+}
+
+export function extractSportAndGender(
+  rawTitle: string,
+  group?: string,
+): {
+  sport: "football" | "basketball" | "volleyball" | "tennis" | "badminton" | "f1" | "motorsport" | "boxing" | "esports" | "billiards" | "other";
+  gender?: "men" | "women";
+} {
+  const fullText = `${rawTitle || ""} ${group || ""}`;
+  const norm = fullText.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+  let sport: "football" | "basketball" | "volleyball" | "tennis" | "badminton" | "f1" | "motorsport" | "boxing" | "esports" | "billiards" | "other" = "other";
+
+  if (
+    fullText.includes("🏀") ||
+    /(?:^|\s|[([_:\-/])(?:wnba|nba|kbl|cba|vba|pba|basketball|bong ro|fiba|36ers|wildcats|shanghai sharks|seoul knights|goyang sono|rytas vilnius|dai loan|philippines)(?:$|\s|[)\]_:\-/])/i.test(norm)
+  ) {
+    sport = "basketball";
+  } else if (
+    fullText.includes("🏐") ||
+    /(?:^|\s|[([_:\-/])(?:volleyball|bong chuyen|vtv cup)(?:$|\s|[)\]_:\-/])/i.test(norm)
+  ) {
+    sport = "volleyball";
+  } else if (
+    fullText.includes("🎾") ||
+    fullText.includes("🥎") ||
+    /(?:^|\s|[([_:\-/])(?:tennis|quan vot|atp|wta|itf|roland garros|wimbledon|us open|australian open|ostapenko|wang xinyu|joanna garland|preston|talia gibson|morvayova)(?:$|\s|[)\]_:\-/])/i.test(norm)
+  ) {
+    sport = "tennis";
+  } else if (
+    fullText.includes("🏎") ||
+    fullText.includes("🏎️") ||
+    fullText.includes("🏁") ||
+    /(?:^|\s|[([_:\-/])(?:f1|formula 1|formula1|motogp|moto gp|dua xe|nascar|indycar)(?:$|\s|[)\]_:\-/])/i.test(norm)
+  ) {
+    sport = "f1";
+  } else if (
+    fullText.includes("🥊") ||
+    /(?:^|\s|[([_:\-/])(?:boxing|quyen anh|ufc|mma|one championship)(?:$|\s|[)\]_:\-/])/i.test(norm)
+  ) {
+    sport = "boxing";
+  } else if (
+    fullText.includes("🎱") ||
+    /(?:^|\s|[([_:\-/])(?:billiards|billiard|bida|snooker|pool|jayson shaw|vanboening|vanboning|efren reyes)(?:$|\s|[)\]_:\-/])/i.test(norm)
+  ) {
+    sport = "billiards";
+  } else if (
+    fullText.includes("🎮") ||
+    /(?:^|\s|[([_:\-/])(?:esports|esport|lck|lpl|vcs|dota|csgo|cs2|valorant|lien minh|lien quan|pubg)(?:$|\s|[)\]_:\-/])/i.test(norm)
+  ) {
+    sport = "esports";
+  } else if (
+    fullText.includes("🏸") ||
+    /(?:^|\s|[([_:\-/])(?:badminton|cau long|bwf)(?:$|\s|[)\]_:\-/])/i.test(norm)
+  ) {
+    sport = "badminton";
+  } else if (
+    fullText.includes("⚽") ||
+    /(?:^|\s|[([_:\-/])(?:football|soccer|bong da|vleague|premier league|ngoai hang anh|laliga|serie a|bundesliga|ligue 1|cúp c1|cup c1|cúp c2|cup c2|uecl|cup c3|champions league|europa league)(?:$|\s|[)\]_:\-/])/i.test(norm)
+  ) {
+    sport = "football";
+  } else {
+    // Kiểm tra tên các câu lạc bộ bóng đá đã biết
+    if (
+      matchTeamInList(rawTitle, EPL_TEAMS) ||
+      matchTeamInList(rawTitle, LALIGA_TEAMS) ||
+      matchTeamInList(rawTitle, SERIE_A_TEAMS) ||
+      matchTeamInList(rawTitle, BUNDESLIGA_TEAMS) ||
+      matchTeamInList(rawTitle, LIGUE_1_TEAMS) ||
+      matchTeamInList(rawTitle, OTHER_EUROPE_TEAMS) ||
+      matchTeamInList(rawTitle, MLS_TEAMS) ||
+      matchTeamInList(rawTitle, SAUDI_TEAMS) ||
+      matchTeamInList(rawTitle, VLEAGUE_TEAMS)
+    ) {
+      sport = "football";
+    } else {
+      sport = "other";
+    }
+  }
+
+  let gender: "men" | "women" | undefined = undefined;
+  if (
+    /(?:^|\s|[([_])(?:nu|women|woman|female|w)(?:$|\s|[)\]_])/i.test(norm) ||
+    /(?:^|\s|[([_])(?:nữ)(?:$|\s|[)\]_])/i.test(fullText)
+  ) {
+    gender = "women";
+  } else if (
+    /(?:^|\s|[([_])(?:nam|men|male|m)(?:$|\s|[)\]_])/i.test(norm) ||
+    /(?:^|\s|[([_])(?:nam)(?:$|\s|[)\]_])/i.test(fullText)
+  ) {
+    gender = "men";
+  }
+
+  return { sport, gender };
+}
+
+export function cleanCandidateTeamName(name: string): string {
+  if (!name) return "";
+  let clean = name.trim();
+
+  // 1. Strip square brackets [flv], [hls], [HD], etc.
+  clean = clean.replace(/\[[^\]]*\]/g, " ");
+
+  // 2. Strip trailing commentator / tag in parenthesis (e.g. "(ALAN)", "(TOM)", "(NGƯỜI NẶN)", "(BLV POCARI)")
+  clean = clean.replace(/\([^)]+\)\s*$/g, " ");
+
+  // 3. Strip commentator / resolution / tags in parenthesis inside
+  clean = clean.replace(/\((?:blv\s+[^)]+|hd\s+[^)]+|fhd|hd|4k|nu|nữ|women|men|nam|w|m|[^)]*tv[^)]*)\)/gi, " ");
+
+  // 4. Strip trailing channel suffix (e.g. " - K+ SPORT 1", " - Server 1", " - FHD")
+  clean = clean.replace(/\s+-\s+(?:k\+|vtv\d*|htv\d*|sctv\d*|vtc\d*|server\s*\d*|sv\s*\d*|fhd|hd|4k|link\s*\d*|kenh\s*\d*|ch\s*\d*|fpt|tv360).*$/i, "").trim();
+
+  // 5. Strip trailing resolution / quality tags (e.g. "Chelsea FHD", "Arsenal 1080p")
+  clean = clean.replace(/\s+(?:fhd|hd|4k|1080p|720p|sd)$/i, "").trim();
+
+  // 6. Strip all sport and status emojis
+  clean = clean.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}⚽🏀🎾🏐🏸🏒🥊⚾🎮🎱🏓🏊🚴🏆🏅🏎🏁🔴🟢⚪🟡🟠]/gu, " ");
+
+  // 7. Strip leading/trailing timestamps, dates and time-like prefixes
+  // e.g. "00 24/09", "09:00 24/09", "09:00", "09h00", "24/09", "24-09", "00h", "08:30"
+  clean = clean
+    .replace(/^\s*(?:(?:[012]?\d[:hH]\d{2}|\d{1,2})\s*)?(?:\d{1,2}[-/.]\d{1,2}(?:[-/.]\d{2,4})?)?\s*/, "")
+    .replace(/^\s*(?:[012]?\d[:hH]\d{2})\s*/, "")
+    .replace(/\s*(?:(?:[012]?\d[:hH]\d{2}|\d{1,2})\s*)?(?:\d{1,2}[-/.]\d{1,2}(?:[-/.]\d{2,4})?)\s*$/, "")
+    .trim();
+
+  // 8. Strip leading and trailing gender markers: "Nữ", "Nam", "Women", "Men"
+  clean = clean.replace(/^(?:nữ|nu|nam|women|woman|men)\s+/i, "");
+  clean = clean.replace(/\s+(?:nữ|nu|nam|women|woman|men|man)$/i, "");
+  clean = clean.replace(/\s+[wWsS]$/, "");
+
+  // 9. Strip any remaining surrounding symbols/punctuation
+  clean = clean.replace(/^[\s\-_|/:\.,;=~+*#@!?^$()\[\]{}'"]+|[\s\-_|/:\.,;=~+*#@!?^$()\[\]{}'"]+$/g, "").trim();
+
+  // 10. Repeat gender strip if symbols were removed around it
+  clean = clean.replace(/^(?:nữ|nu|nam|women|woman|men)\s+/i, "");
+  clean = clean.replace(/\s+(?:nữ|nu|nam|women|woman|men|man)$/i, "");
+  clean = clean.replace(/\s+[wWsS]$/, "");
+
+  return clean.replace(/\s+/g, " ").trim();
 }
 
 // Danh sách các kênh thể thao phát sóng HLS chính thức 100% hoạt động
@@ -898,29 +1660,51 @@ export async function getFptEventChannels(): Promise<FootballMatch[]> {
 // Cache kết quả kiểm tra luồng stream (TTL 5 phút cho luồng sống, 60s cho luồng chết)
 const urlHealthCache = new Map<string, { isLive: boolean; expireAt: number }>();
 
+export type StreamHealthStatus = "alive" | "dead" | "unknown";
+
+export function getStreamHealthStatus(url: string): StreamHealthStatus {
+  if (!url || isBlockedStreamUrl(url)) return "dead";
+
+  const key = url.trim();
+  if (
+    process.env.VERCEL === "1" &&
+    (/fptplay(?:53)?\.net/i.test(key) || /tv360\.vn/i.test(key))
+  ) {
+    return "alive";
+  }
+
+  const cached = urlHealthCache.get(key);
+  if (cached && cached.expireAt > Date.now()) {
+    return cached.isLive ? "alive" : "dead";
+  }
+  return "unknown";
+}
+
 export async function isStreamPlayable(
   url: string,
-  timeoutMs: number = 1500,
+  timeoutMs: number = 1200,
 ): Promise<boolean> {
   if (!url || isBlockedStreamUrl(url)) return false;
+
+  const key = url.trim();
 
   // Trên Vercel hoặc server nước ngoài, CDN FPT/TV360 chặn IP datacenter qua Geo-IP.
   // Trình duyệt client tại Việt Nam sẽ phát trực tiếp bình thường.
   if (
     process.env.VERCEL === "1" &&
-    (/fptplay(?:53)?\.net/i.test(url) || /tv360\.vn/i.test(url))
+    (/fptplay(?:53)?\.net/i.test(key) || /tv360\.vn/i.test(key))
   ) {
     return true;
   }
 
   const now = Date.now();
-  const cached = urlHealthCache.get(url);
+  const cached = urlHealthCache.get(key);
   if (cached && cached.expireAt > now) {
     return cached.isLive;
   }
 
   try {
-    let checkUrl = url;
+    let checkUrl = key;
     if (checkUrl.includes("lauthaitv.cc") && checkUrl.includes(".flv")) {
       checkUrl = checkUrl
         .replace("flv.lauthaitv.cc", "hls.lauthaitv.cc")
@@ -936,15 +1720,634 @@ export async function isStreamPlayable(
       signal: AbortSignal.timeout(timeoutMs),
     });
     const isLive = res.ok;
-    urlHealthCache.set(url, {
+    urlHealthCache.set(key, {
       isLive,
-      expireAt: now + (isLive ? 600 * 1000 : 60 * 1000), // Sống: cache 10 phút (giảm request), chết: cache 60s
+      expireAt: now + (isLive ? 5 * 60 * 1000 : 60 * 1000), // Sống: cache 5 phút, chết: cache 60s
     });
     return isLive;
   } catch {
-    urlHealthCache.set(url, { isLive: false, expireAt: now + 45 * 1000 });
+    urlHealthCache.set(key, { isLive: false, expireAt: now + 60 * 1000 });
     return false;
   }
+}
+
+let isBackgroundHealthRunning = false;
+
+function getPriorityStreamUrls(matches: FootballMatch[]): string[] {
+  const priorityUrls: string[] = [];
+  const now = Date.now();
+
+  // 1. Trận đang LIVE
+  const liveMatches = matches.filter((m) => m.timeline === "live");
+  for (const m of liveMatches) {
+    for (const s of m.servers) {
+      if (s.url && !isBlockedStreamUrl(s.url)) {
+        priorityUrls.push(s.url);
+      }
+    }
+  }
+
+  // 2. Trận sắp diễn ra trong 60 phút
+  const soonMatches = matches.filter(
+    (m) =>
+      m.timeline === "today" &&
+      m.timestamp > now &&
+      m.timestamp <= now + 60 * 60 * 1000,
+  );
+  for (const m of soonMatches) {
+    for (const s of m.servers) {
+      if (s.url && !isBlockedStreamUrl(s.url)) {
+        priorityUrls.push(s.url);
+      }
+    }
+  }
+
+  // 3. Các trận khác
+  const otherMatches = matches.filter(
+    (m) =>
+      m.timeline !== "live" &&
+      !(m.timestamp > now && m.timestamp <= now + 60 * 60 * 1000),
+  );
+  for (const m of otherMatches) {
+    for (const s of m.servers) {
+      if (s.url && !isBlockedStreamUrl(s.url)) {
+        priorityUrls.push(s.url);
+      }
+    }
+  }
+
+  return Array.from(new Set(priorityUrls));
+}
+
+export async function scheduleBackgroundHealthChecks(
+  urls: string[],
+  concurrency = 8,
+  maxBatch = 32,
+): Promise<void> {
+  if (isBackgroundHealthRunning || !urls || urls.length === 0) return;
+
+  const unknownUrls = urls.filter(
+    (url) => getStreamHealthStatus(url) === "unknown",
+  );
+  if (unknownUrls.length === 0) return;
+
+  const batch = unknownUrls.slice(0, maxBatch);
+  isBackgroundHealthRunning = true;
+
+  try {
+    let cursor = 0;
+    const worker = async () => {
+      while (cursor < batch.length) {
+        const idx = cursor++;
+        const targetUrl = batch[idx];
+        if (!targetUrl) continue;
+        try {
+          await isStreamPlayable(targetUrl, 1200);
+        } catch {
+          // Error isolated to single stream
+        }
+      }
+    };
+
+    const workerCount = Math.min(concurrency, batch.length);
+    const workers = Array.from({ length: workerCount }, () => worker());
+    await Promise.allSettled(workers);
+  } finally {
+    isBackgroundHealthRunning = false;
+  }
+}
+
+export interface RawStreamItem {
+  rawTitle: string;
+  group: string;
+  rawLogo: string;
+  url: string;
+  effectiveUrl: string;
+  extinfLine?: string;
+}
+
+export function normalizeAndMergeStreams(
+  rawStreams: RawStreamItem[],
+  now: number = Date.now(),
+): { channels: string[]; matches: FootballMatch[] } {
+  const channelsSet = new Set<string>();
+  interface NormalizedStream {
+    rawTitle: string;
+    displayTitle: string;
+    cleanGroup: string;
+    effectiveUrl: string;
+    rawLogo: string;
+    isHls: boolean;
+    format: "hls" | "flv" | "other";
+    isFhd: boolean;
+    serverQuality: "FHD" | "HD";
+    isLiveMarker: boolean;
+    sourceStatus: SourceMatchStatus;
+    time: string;
+    timestamp: number;
+    blv: string;
+    team1: string;
+    team2: string;
+    sport: "football" | "basketball" | "volleyball" | "tennis" | "badminton" | "f1" | "motorsport" | "boxing" | "esports" | "billiards" | "other";
+    gender?: "men" | "women";
+    isEvent: boolean;
+    tournament: string;
+    normT1: string;
+    normT2: string;
+  }
+
+  const normalizedList: NormalizedStream[] = [];
+
+  for (const item of rawStreams) {
+    const { group, rawTitle, rawLogo, effectiveUrl } = item;
+    const upperGroup = group.toUpperCase();
+    const upperTitle = rawTitle.toUpperCase();
+
+    const isHls =
+      effectiveUrl.includes(".m3u8") ||
+      rawTitle.toLowerCase().includes("[hls");
+    const isFlv =
+      !isHls &&
+      (effectiveUrl.includes(".flv") || rawTitle.toLowerCase().includes("[flv"));
+    const format: "hls" | "flv" | "other" = isHls
+      ? "hls"
+      : isFlv
+        ? "flv"
+        : "other";
+
+    if (!isHls && !isFlv) continue;
+
+    const isFhd =
+      upperTitle.includes("FHD") ||
+      upperTitle.includes("1080P") ||
+      effectiveUrl.toUpperCase().includes("1080P") ||
+      effectiveUrl.toUpperCase().includes("_1080P");
+    const serverQuality: "FHD" | "HD" = isFhd ? "FHD" : "HD";
+
+    let cleanGroup = "Trực Tiếp Thể Thao";
+    if (
+      upperGroup.includes("FPT PLAY") ||
+      upperGroup.includes("SỰ KIỆN FPT") ||
+      upperTitle.includes("SỰ KIỆN FPT") ||
+      effectiveUrl.includes("fptplay.net") ||
+      effectiveUrl.includes("fptplay53.net")
+    ) {
+      cleanGroup = "FPT Play";
+    } else if (upperGroup.includes("TV360") || upperTitle.includes("TV360+") || upperTitle.includes("360 C1")) {
+      cleanGroup = "TV360";
+    } else if (upperGroup.includes("XÔI LẠC")) {
+      cleanGroup = "Xôi Lạc TV";
+    } else if (upperGroup.includes("VUA SÂN CỎ")) {
+      cleanGroup = "Vua Sân Cỏ TV";
+    } else if (upperGroup.includes("COLA")) {
+      cleanGroup = "Cola TV";
+    } else if (upperGroup.includes("KHÁN ĐÀI")) {
+      cleanGroup = "Khán Đài TV";
+    } else if (upperGroup.includes("GIỜ VÀNG")) {
+      cleanGroup = "Giờ Vàng TV";
+    } else if (upperGroup.includes("CHUỐI CHIÊN")) {
+      cleanGroup = "Chuối Chiên TV";
+    } else if (upperGroup.includes("SÚT BÓNG")) {
+      cleanGroup = "Sút Bóng TV";
+    } else if (upperGroup.includes("PHÁ LÀNG")) {
+      cleanGroup = "Phá Làng TV";
+    } else if (upperGroup.includes("GÀ VÀNG")) {
+      cleanGroup = "Gà Vàng TV";
+    } else if (upperGroup.includes("BIA ÔM")) {
+      cleanGroup = "Bia Ôm TV";
+    } else if (upperGroup.includes("S8")) {
+      cleanGroup = "S8 TV";
+    } else if (upperGroup.includes("SAO KÊ")) {
+      cleanGroup = "Sao Kê TV";
+    } else if (upperGroup.includes("PHÁO HOA")) {
+      cleanGroup = "Pháo Hoa TV";
+    } else if (group && !group.includes("Updated") && !group.includes("Changed")) {
+      cleanGroup = group.replace(/^[🔴🟢🟡⚪🟠\s]+/, "").trim();
+    }
+
+    channelsSet.add(cleanGroup);
+
+    const { sport, gender } = extractSportAndGender(rawTitle, group);
+
+    let cleanedTitle = rawTitle.replace(/\[[^\]]*\]/g, " ").trim();
+    const sourceStatus = parseSourceStatus(rawTitle, item.extinfLine);
+    const isLiveMarker = sourceStatus === "live" || /\[(?:LIVE|TRỰC\s*TIẾP|ĐANG\s*PHÁT|ĐANG\s*ĐÁ|IN_PROGRESS)\]/i.test(rawTitle);
+    const timeMatch = cleanedTitle.match(
+      /(?:🟢\s*)?([012]?\d[:hH]\d{2}(?:\s*[-/.]?\s*\d{1,2}[-/.]\d{1,2})?|\b\d{1,2}[-/.]\d{1,2}\b)/,
+    );
+    const time = timeMatch
+      ? timeMatch[1]
+      : isLiveMarker
+        ? "Trực tiếp"
+        : "24/7";
+    const timestamp =
+      time !== "Trực tiếp" && time !== "24/7"
+        ? parseMatchTimeToTimestamp(time)
+        : isLiveMarker
+          ? now
+          : Number.MAX_SAFE_INTEGER;
+
+    cleanedTitle = cleanedTitle
+      .replace(/^[🟢🔴⚪\s]+/, "")
+      .replace(/^\s*(?:(?:[012]?\d[:hH]\d{2}|\d{1,2})\s*)?(?:\d{1,2}[-/.]\d{1,2}(?:[-/.]\d{2,4})?)?\s*/, "")
+      .replace(/^[⚽🏀🎾🏐🏸🏒🥊🏎🏁🎱🎮\s]+/, "")
+      .trim();
+
+    let blv = "";
+    const blvParenthesisMatch = cleanedTitle.match(/\(([^)]+)\)\s*$/);
+    if (blvParenthesisMatch) {
+      blv = blvParenthesisMatch[1].trim();
+      cleanedTitle = cleanedTitle.replace(/\(([^)]+)\)\s*$/, "").trim();
+    } else {
+      const blvInlineMatch = rawTitle.match(/(?:BLV|Bình luận viên)\s+([^()[\]]+)/i);
+      if (blvInlineMatch) {
+        blv = blvInlineMatch[1].trim();
+      }
+    }
+
+    if (blv) {
+      blv = blv.replace(/^(?:blv|bình luận viên)\s+/i, "").trim();
+    }
+
+    if (!blv) {
+      if (cleanGroup === "TV360") blv = "TV360";
+      else if (cleanGroup === "FPT Play") blv = "FPT Play";
+    }
+
+    let prefixTournament = "";
+    if (cleanedTitle.includes("|")) {
+      const pipeParts = cleanedTitle.split("|").map((p) => p.trim());
+      for (const part of pipeParts) {
+        if (/\s+(?:vs|v|\bv\b)\s+/i.test(part) || /\s+-\s+/.test(part)) {
+          cleanedTitle = part;
+        } else if (!prefixTournament && part.length > 2) {
+          prefixTournament = part;
+        }
+      }
+    }
+
+    if (cleanedTitle.includes(":")) {
+      const colonParts = cleanedTitle.split(":");
+      if (
+        colonParts.length === 2 &&
+        (/\s+(?:vs|v|\bv\b)\s+/i.test(colonParts[1]) || /\s+-\s+/.test(colonParts[1]))
+      ) {
+        prefixTournament = colonParts[0].trim();
+        cleanedTitle = colonParts[1].trim();
+      }
+    }
+
+    let team1 = "";
+    let team2 = "";
+
+    const hasVs = /\s+(?:vs|v|\bv\b)\s+/i.test(cleanedTitle);
+    const hasHyphen =
+      /\s+-\s+/.test(cleanedTitle) &&
+      !upperTitle.includes("COLA") &&
+      !upperTitle.includes("PHÁO HOA");
+
+    if (hasVs) {
+      const vsMatch = cleanedTitle.match(/(.+?)\s+(?:vs|v|\bv\b)\s+(.+)/i);
+      if (vsMatch) {
+        const rawT1 = cleanCandidateTeamName(vsMatch[1]);
+        const rawT2 = cleanCandidateTeamName(vsMatch[2]);
+        if (isValidFootballTeamName(rawT1) && isValidFootballTeamName(rawT2)) {
+          const k1 = normalizeClubKey(rawT1);
+          const k2 = normalizeClubKey(rawT2);
+          if (k1 && k2 && k1 !== k2) {
+            team1 = rawT1;
+            team2 = rawT2;
+          }
+        }
+      }
+    } else if (hasHyphen) {
+      const hyphenMatch = cleanedTitle.match(/(.+?)\s+-\s+(.+)/);
+      if (hyphenMatch) {
+        const rawT1 = cleanCandidateTeamName(hyphenMatch[1]);
+        const rawT2 = cleanCandidateTeamName(hyphenMatch[2]);
+        if (isValidFootballTeamName(rawT1) && isValidFootballTeamName(rawT2)) {
+          const k1 = normalizeClubKey(rawT1);
+          const k2 = normalizeClubKey(rawT2);
+          if (k1 && k2 && k1 !== k2) {
+            team1 = rawT1;
+            team2 = rawT2;
+          }
+        }
+      }
+    }
+
+    if (isGenericTvChannel(rawTitle, group)) {
+      continue;
+    }
+
+    let displayTitle = "";
+    let isEvent = true;
+
+    if (team1 && team2) {
+      isEvent = false;
+      displayTitle = `${team1} vs ${team2}`;
+    } else {
+      isEvent = true;
+      team1 = "";
+      team2 = "";
+      displayTitle = cleanedTitle || rawTitle;
+
+      const vsDupMatch = displayTitle.match(/(.+?)\s+(?:vs|v|\bv\b)\s+(.+)/i);
+      if (vsDupMatch) {
+        const left = vsDupMatch[1].trim();
+        const right = vsDupMatch[2].trim();
+        if (
+          left.toLowerCase() === right.toLowerCase() ||
+          normalizeText(left) === normalizeText(right)
+        ) {
+          displayTitle = left;
+        }
+      }
+    }
+
+    const rawDetectedTourn = prefixTournament || detectTournament(rawTitle, team1, team2);
+    const tournament = getSportLabel(sport, rawDetectedTourn);
+
+    const normT1 = !isEvent && team1 ? normalizeClubKey(team1) : "";
+    const normT2 = !isEvent && team2 ? normalizeClubKey(team2) : "";
+
+    normalizedList.push({
+      rawTitle,
+      displayTitle,
+      cleanGroup,
+      effectiveUrl,
+      rawLogo,
+      isHls,
+      format,
+      isFhd,
+      serverQuality,
+      isLiveMarker,
+      sourceStatus,
+      time,
+      timestamp,
+      blv,
+      team1,
+      team2,
+      sport,
+      gender,
+      isEvent,
+      tournament,
+      normT1,
+      normT2,
+    });
+  }
+
+  const mergedMatches: FootballMatch[] = [];
+
+  for (const item of normalizedList) {
+    let foundMatch: FootballMatch | null = null;
+
+    // 1. Exact canonical URL match: Chỉ merge nếu cùng fixture hoặc event tương thích
+    for (const existing of mergedMatches) {
+      if (existing.servers.some((s) => s.url === item.effectiveUrl)) {
+        // Nếu cả existing và item đều có fixture metadata, bắt buộc phải là cùng fixture mới được merge
+        if (
+          !item.isEvent &&
+          item.team1 &&
+          item.team2 &&
+          !existing.isEvent &&
+          existing.team1 &&
+          existing.team2
+        ) {
+          const isMatched = areMatchFixturesMatching(
+            {
+              team1: item.team1,
+              team2: item.team2,
+              time: item.time,
+              timestamp: item.timestamp,
+              isLiveMarker: item.isLiveMarker,
+              isEvent: false,
+            },
+            {
+              team1: existing.team1,
+              team2: existing.team2,
+              time: existing.time,
+              timestamp: existing.timestamp,
+              isLiveMarker: existing.sourceStatus === "live",
+              isEvent: false,
+            },
+          );
+          if (isMatched) {
+            foundMatch = existing;
+            break;
+          }
+          // Khác trận đấu hoặc khác giờ dù cùng URL => KHÔNG merge
+          continue;
+        }
+
+        // Không cho phép stream event không rõ fixture merge vào match fixture đã xác định (hoặc ngược lại)
+        if (!item.isEvent !== !existing.isEvent) {
+          continue;
+        }
+
+        // Nếu cả hai đều là generic event, chỉ merge khi có cùng tên/thời gian tương thích
+        if (item.isEvent && existing.isEvent) {
+          const normItemTitle = normalizeText(item.displayTitle);
+          const normExTitle = normalizeText(existing.title);
+          if (normItemTitle && normExTitle && normItemTitle === normExTitle) {
+            foundMatch = existing;
+            break;
+          }
+          continue;
+        }
+      }
+    }
+
+    // 2. Fixture match: team1 vs team2
+    if (!foundMatch && !item.isEvent && item.team1 && item.team2) {
+      for (const existing of mergedMatches) {
+        if (existing.isEvent) continue;
+
+        const isMatched = areMatchFixturesMatching(
+          {
+            team1: item.team1,
+            team2: item.team2,
+            time: item.time,
+            timestamp: item.timestamp,
+            isLiveMarker: item.isLiveMarker,
+            isEvent: false,
+          },
+          {
+            team1: existing.team1,
+            team2: existing.team2,
+            time: existing.time,
+            timestamp: existing.timestamp,
+            isLiveMarker: existing.sourceStatus === "live",
+            isEvent: false,
+          },
+        );
+
+        if (isMatched) {
+          foundMatch = existing;
+          break;
+        }
+      }
+    }
+
+    // 3. Event / Stream title match
+    if (!foundMatch && item.isEvent) {
+      const normItemTitle = normalizeText(item.displayTitle);
+      for (const existing of mergedMatches) {
+        if (!existing.isEvent) continue;
+        const normExTitle = normalizeText(existing.title);
+
+        if (normItemTitle && normExTitle && normItemTitle === normExTitle) {
+          const isBothLive =
+            item.isLiveMarker ||
+            existing.sourceStatus === "live" ||
+            item.time === "Trực tiếp" ||
+            existing.time === "Trực tiếp";
+
+          const hasValidTimestamps =
+            item.timestamp !== Number.MAX_SAFE_INTEGER &&
+            existing.timestamp !== Number.MAX_SAFE_INTEGER &&
+            item.timestamp > 0 &&
+            existing.timestamp > 0;
+
+          if (hasValidTimestamps) {
+            const diffMs = Math.abs(item.timestamp - existing.timestamp);
+            if (diffMs <= 45 * 60 * 1000) {
+              foundMatch = existing;
+              break;
+            }
+          } else if (isBothLive || item.time === existing.time || !item.time || !existing.time) {
+            foundMatch = existing;
+            break;
+          }
+        }
+      }
+    }
+
+    const serverLabel = item.blv
+      ? `${item.cleanGroup} (${item.blv})`
+      : `${item.cleanGroup}`;
+
+    const newServer: StreamServer = {
+      name: `${serverLabel} #${(foundMatch?.servers.length || 0) + 1}${item.isFhd ? " [FHD]" : ""}`,
+      url: item.effectiveUrl,
+      format: item.format,
+      isHls: item.isHls,
+      quality: item.serverQuality,
+      sourceName: item.cleanGroup,
+    };
+
+    if (foundMatch) {
+      if (!foundMatch.servers.some((s) => s.url === item.effectiveUrl)) {
+        foundMatch.servers.push(newServer);
+      }
+
+      if (!foundMatch.groups.includes(item.cleanGroup)) {
+        foundMatch.groups.push(item.cleanGroup);
+      }
+
+      if (item.isFhd) {
+        foundMatch.quality = "FHD 1080p";
+      }
+
+
+
+      if ((!foundMatch.sport || foundMatch.sport === "other") && item.sport && item.sport !== "other") {
+        foundMatch.sport = item.sport;
+        foundMatch.tournament = getSportLabel(item.sport, foundMatch.tournament);
+      }
+      if (!foundMatch.gender && item.gender) {
+        foundMatch.gender = item.gender;
+      }
+
+      if (item.blv) {
+        const existingBlvs = foundMatch.blv
+          ? foundMatch.blv.split(",").map((b) => b.trim()).filter(Boolean)
+          : [];
+        const normalizedItemBlv = item.blv.toLowerCase();
+        const alreadyExists = existingBlvs.some(
+          (b) => b.toLowerCase() === normalizedItemBlv,
+        );
+        if (!alreadyExists) {
+          existingBlvs.push(item.blv);
+          foundMatch.blv = existingBlvs.join(", ");
+        }
+      }
+
+      if (
+        foundMatch.timestamp === Number.MAX_SAFE_INTEGER &&
+        item.timestamp !== Number.MAX_SAFE_INTEGER
+      ) {
+        foundMatch.timestamp = item.timestamp;
+        foundMatch.time = item.time;
+      }
+
+      foundMatch.sourceStatus = mergeSourceStatus(
+        foundMatch.sourceStatus,
+        item.sourceStatus,
+      );
+
+      foundMatch.timeline = getMatchTimeline(
+        foundMatch.timestamp,
+        foundMatch.sourceStatus,
+        "unknown",
+        now,
+      );
+
+      if (!foundMatch.homeLogo && item.rawLogo && !item.rawLogo.includes("tinhlagi.pro/logo.jpg")) {
+        foundMatch.homeLogo = item.rawLogo;
+      }
+    } else {
+      const matchTitle = item.isEvent
+        ? item.displayTitle
+        : `${item.team1} vs ${item.team2}`;
+
+      const matchId = !item.isEvent && item.normT1 && item.normT2
+        ? `${item.time}_${[item.normT1, item.normT2].sort().join("_")}`
+        : `${item.cleanGroup}_${item.displayTitle}`.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+      const timeline = getMatchTimeline(
+        item.timestamp,
+        item.sourceStatus,
+        "unknown",
+        now,
+      );
+
+      let effectiveLogo = item.rawLogo;
+      if (!effectiveLogo && item.cleanGroup === "FPT Play") {
+        effectiveLogo = FPT_EVENT_POSTER;
+      }
+
+      const effectiveHomeLogo =
+        !item.isEvent && effectiveLogo && !effectiveLogo.includes("tinhlagi.pro/logo.jpg")
+          ? effectiveLogo
+          : "";
+
+      mergedMatches.push({
+        id: matchId,
+        time: item.time,
+        timestamp: item.timestamp,
+        title: matchTitle,
+        team1: item.team1,
+        team2: item.team2,
+        blv: item.blv,
+        logo: effectiveLogo,
+        homeLogo: effectiveHomeLogo,
+        awayLogo: "",
+        group: item.cleanGroup,
+        groups: [item.cleanGroup],
+        tournament: item.tournament,
+        sport: item.sport,
+        gender: item.gender,
+        isEvent: item.isEvent,
+        sourceStatus: item.sourceStatus,
+        timeline,
+        quality: item.isFhd ? "FHD 1080p" : "HD 720p",
+        servers: [newServer],
+      });
+    }
+  }
+
+  return { channels: Array.from(channelsSet), matches: mergedMatches };
 }
 
 // Bộ nhớ đệm Server SWR (Stale-While-Revalidate)
@@ -992,25 +2395,9 @@ export const liveFootballService = {
   fetchAndCacheMatches: async (): Promise<LiveFootballData> => {
     const now = Date.now();
     try {
-      const matchMap = new Map<string, FootballMatch>();
       const channelsSet = new Set<string>();
 
-      // 1. NẠP CÁC KÊNH THỂ THAO 24/7 CHÍNH THỨC & CÁC KÊNH SỰ KIỆN FPT PLAY
-      const verifiedChannels = getVerified247Channels();
-      for (const m of verifiedChannels) {
-        matchMap.set(m.id, m);
-        channelsSet.add(m.group);
-        m.groups.forEach((g) => channelsSet.add(g));
-      }
-
-      const fptEvents = await getFptEventChannels();
-      for (const m of fptEvents) {
-        matchMap.set(m.id, m);
-        channelsSet.add(m.group);
-        m.groups.forEach((g) => channelsSet.add(g));
-      }
-
-      // QUÉT TẤT CẢ NGUỒN M3U THỰC TẾ (CHỈ LẤY TRẬN ĐẤU & PHÒNG BLV)
+      // 1. LẤY TOÀN BỘ NGUỒN PHÁT TỪ TẤT CẢ DANH SÁCH PLAYLIST M3U
       const sources = getFootballM3uSources();
       const fetchPromises = sources.map(async (source) => {
         try {
@@ -1032,15 +2419,17 @@ export const liveFootballService = {
 
       const m3uTexts = await Promise.allSettled(fetchPromises);
 
-      interface RawCandidate {
-        line: string;
+      interface RawStreamItem {
         rawTitle: string;
         group: string;
         rawLogo: string;
         url: string;
+        effectiveUrl: string;
+        extinfLine?: string;
       }
-      const candidates: RawCandidate[] = [];
+      const rawStreams: RawStreamItem[] = [];
 
+      // 2. PARSE TỪNG DÒNG STREAM TỪ MỌI NGUỒN (KHÔNG ƯU TIÊN / KHÔNG BỎ SÓT NGUỒN NÀO)
       for (const res of m3uTexts) {
         if (res.status !== "fulfilled" || !res.value) continue;
         const text = res.value;
@@ -1069,7 +2458,7 @@ export const liveFootballService = {
           const logoMatch = line.match(/tvg-logo="([^"]+)"/i);
           const rawLogo = logoMatch ? logoMatch[1].trim() : "";
 
-          // Trích xuất Tên trận / phòng BLV
+          // Trích xuất tiêu đề
           const commaIdx = line.lastIndexOf(",");
           const rawTitle =
             commaIdx !== -1
@@ -1077,9 +2466,8 @@ export const liveFootballService = {
               : "Trực Tiếp Bóng Đá";
 
           const upperGroup = group.toUpperCase();
-          const upperTitle = rawTitle.toUpperCase();
 
-          // 1. LOẠI BỎ TOÀN BỘ CÁC KÊNH TRUYỀN HÌNH TỔNG HỢP / ĐỊA PHƯƠNG / GIẢI TRÍ / KÊNH TV 24/7
+          // Loại bỏ các kênh truyền hình tổng hợp / tin tức / mua sắm / phim lẻ không liên quan đến thể thao
           if (
             upperGroup.includes("TINHLAGI.PRO") ||
             upperGroup.includes("RADIO") ||
@@ -1092,88 +2480,47 @@ export const liveFootballService = {
             upperGroup.includes("ĐẶC SẮC") ||
             upperGroup.includes("THIẾT YẾU") ||
             upperGroup.includes("ĐỊA PHƯƠNG") ||
-            upperGroup.includes("TRONG NƯỚC")
+            upperGroup.includes("TRONG NƯỚC") ||
+            upperGroup.includes("HÀN QUỐC") ||
+            upperGroup.includes("TRUNG QUỐC") ||
+            upperGroup.includes("LIVE EVENTS")
           ) {
             continue;
           }
 
-          // 2. LOẠI BỎ PHIM / HÀI / TẬP PHIM / WEB DRAMA / SHOW
+          // Loại bỏ phim lẻ / phim bộ / kịch
           const isMovieOrDrama =
-            /Tập\s*\d+|Tập\s*Cuối|Phần\s*\d+|Thuyết\s*Minh|Lồng\s*Tiếng|Vietsub|Chiếu\s*Rạp|Phim\s*(Bộ|Lẻ|Truyện|Ngắn)|Hài\s*Kịch|Hùng\s*Long|Cuốc\s*Xe|Bố\s*Già|Lật\s*Mặt|Nhà\s*Bà|Mai\s*\(|Web\s*Drama|Gái\s*Già|Trailer/i.test(
+            /Tập\s*\d+|Tập\s*Cuối|Phần\s*\d+|Thuyết\s*Minh|Lồng\s*Tiếng|Vietsub|Chiếu\s*Rạp|Phim\s*(Bộ|Lẻ|Truyện|Ngắn)|Hài\s*Kịch|Web\s*Drama|Trailer/i.test(
               rawTitle,
             ) ||
             /Tập\s*\d+|Tập\s*Cuối|Phần\s*\d+|Phim/i.test(group);
 
           if (isMovieOrDrama) continue;
 
-          // 3. LOẠI BỎ TOÀN BỘ CÁC KÊNH TRUYỀN HÌNH TỔNG HỢP / ĐỊA PHƯƠNG / TUYẾN TÍNH (VTV, HTV, THVL, SCTV, VTC, BTV, Đài PTTH...)
+          // Loại bỏ kênh truyền hình nhà đài nếu không có dấu hiệu trận đấu hoặc phòng BLV
           const isTvStationChannel =
-            /^(VTV|HTV|THVL|SCTV|VTC|BTV|K\+|VOV|ANTV|QPVN|TTXVN|HANOI|ĐÀI\s*PT|TRUYỀN\s*HÌNH)/i.test(
+            /^(HTV[1-9]\b|HTVC\s+(THUẦN|PHIM|GIA|DU|CA)|THVL[1-4]\b|VTV[1-9]\b|VTV\s*CẦN\s*THƠ|VOV|ANTV|QPVN|TTXVN|HANOI)/i.test(
               rawTitle.trim(),
-            ) ||
-            /Đài\s*PTTH|Đài\s*Truyền\s*Hình|Phát\s*Thanh|Truyền\s*hình\s*tỉnh/i.test(
-              rawTitle,
             );
-
-          if (isTvStationChannel) {
-            // Chỉ giữ lại nếu tiêu đề là 1 trận đấu bóng đá thực sự (có "vs" giữa 2 đội) hoặc phòng BLV
-            const hasRealMatchVs = /\s+(?:vs|v)\s+/i.test(rawTitle);
-            const hasBlv = /BLV\s+/i.test(rawTitle);
-            if (!hasRealMatchVs && !hasBlv) {
-              continue;
-            }
-          }
-
           if (
-            /HTV[1-9]\b|HTVC\s+(THUẦN|PHIM|GIA|DU|CA)|THVL[1-4]\b|VTV[1-9]\b|VTV\s*CẦN\s*THƠ/i.test(
-              rawTitle,
-            ) &&
+            isTvStationChannel &&
             !/\s+(?:vs|v)\s+/i.test(rawTitle) &&
             !/BLV\s+/i.test(rawTitle)
           ) {
             continue;
           }
 
-          // 4. LOẠI BỎ TOÀN BỘ CÁC KÊNH THỂ THAO NƯỚC NGOÀI
-          const isForeignSportsChannel =
+          // Loại bỏ kênh tiếng nước ngoài không phụ đề/thuyết minh
+          const isForeignChannel =
             upperGroup.includes("QUỐC TẾ") ||
-            upperGroup.includes("INTERNATIONAL") ||
-            upperGroup.includes("FOREIGN") ||
-            /[а-яА-ЯёЁ]/.test(rawTitle) || // Ký tự tiếng Nga / Cyrillic (Удар, Матч, Футбол...)
-            /[\u0E00-\u0E7F]/.test(rawTitle) || // Ký tự tiếng Thái (T Sports...)
-            /[\u4E00-\u9FFF\u3040-\u30FF\uAC00-\uD7AF]/.test(rawTitle) || // Trung / Hàn / Nhật
-            /(?:T\s*Sports|Fast\s*&?\s*Fun|FunBox|BoxHits|BoxMovie|Hollywood|Golf\s*Channel|Fight\s*Box|FightBox|Extreme\s*Sports?|KHL|MMA|Setanta|UFC|Trace\s*Sport|Match!|Eurosport|WWE|BoxNation|RED\s*BULL|Cricbuzz|Willow|TEN\s*Sports|Sony\s*Ten|Star\s*Sports|MUTV|Chelsea\s*TV|LFCTV|Real\s*Madrid|Barca|Sportivny|Futbol|Qazsport|Viju|Antik|Skygo|Astro|DAZN|BeIN|Fox\s*Sports?|NBC\s*Sports?|ESPN|TSN|Sportsnet|CBS\s*Sports?|Premier\s*Sports?)/i.test(
-              rawTitle,
-            ) ||
-            /(?:cinerama\.uz|antik\.sk|thaimomo\.com|linkintel\.ru|uplink\.kz|tvs\.by|bonus-tv\.ru|skygo\.mn|amagi\.tv|proofix\.ru|smotrim\.ru|cdnvideo\.ru|klowdtv\.com|ukrainske\.tv|5\.188\.159\.128|oktv\.kz|tulixcdn\.com)/i.test(
+            /[а-яА-ЯёЁ]/.test(rawTitle) ||
+            /[\u0E00-\u0E7F]/.test(rawTitle) ||
+            /(?:cinerama\.uz|antik\.sk|thaimomo\.com|linkintel\.ru|uplink\.kz|tvs\.by|bonus-tv\.ru|skygo\.mn|amagi\.tv|proofix\.ru|smotrim\.ru|cdnvideo\.ru|klowdtv\.com|ukrainske\.tv|oktv\.kz|tulixcdn\.com)/i.test(
               url,
             );
+          if (isForeignChannel) continue;
 
-          if (isForeignSportsChannel) continue;
-
-          const isSportsOrEvent =
-            upperGroup.includes("COLA TV") ||
-            upperGroup.includes("PHÁO HOA TV") ||
-            upperGroup.includes("FPT PLAY") ||
-            upperGroup.includes("SỰ KIỆN FPT") ||
-            upperGroup.includes("TV360") ||
-            upperGroup.includes("VTVPRIME") ||
-            upperTitle.includes("SỰ KIỆN") ||
-            upperTitle.includes("EVENT ") ||
-            /\s+(?:vs|v)\s+/i.test(rawTitle) ||
-            upperTitle.includes("BLV ") ||
-            /360\s*C1/i.test(rawTitle);
-
-          if (!isSportsOrEvent) continue;
-
-          candidates.push({ line, rawTitle, group, rawLogo, url });
-        }
-      }
-
-      // 3. KIỂM TRA SỨC KHỎE TẤT CẢ LUỒNG STREAM ĐỒNG THỜI
-      const healthResults = await Promise.allSettled(
-        candidates.map(async (c) => {
-          let effectiveUrl = c.url;
+          let effectiveUrl = url;
           if (effectiveUrl.includes("lauthaitv.cc") && effectiveUrl.includes(".flv")) {
             effectiveUrl = effectiveUrl
               .replace("flv.lauthaitv.cc", "hls.lauthaitv.cc")
@@ -1182,404 +2529,84 @@ export const liveFootballService = {
             effectiveUrl = effectiveUrl.replace(/\.flv(\?.*)?$/i, ".m3u8$1");
           }
 
-          // Kiểm tra luồng thuộc CDN nội địa / có rào cản Geo-blocking
-          const isDomesticOrGeoFenced =
-            /fptplay(?:53)?\.net/i.test(effectiveUrl) ||
-            /tv360\.vn/i.test(effectiveUrl) ||
-            /fpt\s*play|sự\s*kiện\s*fpt/i.test(c.group) ||
-            /fpt\s*play|sự\s*kiện\s*fpt/i.test(c.rawTitle);
-
-          // QUAN TRỌNG: Trên Vercel hoặc server ngoài Việt Nam, FPT/TV360 chặn IP datacenter gây ra lỗi 403 hoặc timeout.
-          // Hơn nữa các kênh sự kiện ở trạng thái chờ trước giờ bóng lăn sẽ trả về 404 cho tới khi phát sóng.
-          // Trình duyệt của người dùng tại Việt Nam sẽ phát trực tiếp HTTPS HLS bình thường.
-          // Không drop các luồng nội địa này khi server ping thất bại.
-          if (isDomesticOrGeoFenced) {
-            return { ...c, effectiveUrl };
-          }
-
-          const isAlive = await isStreamPlayable(effectiveUrl, 1800);
-          if (!isAlive) throw new Error("Stream offline");
-          return { ...c, effectiveUrl };
-        }),
-      );
-
-      const activeCandidates = healthResults
-        .filter((r): r is PromiseFulfilledResult<RawCandidate & { effectiveUrl: string }> => r.status === "fulfilled")
-        .map((r) => r.value);
-
-      // 4. CHUYỂN ĐỔI CHÍNH XÁC NGUỒN PHÁT THÀNH TRẬN ĐẤU / KÊNH PHÁT
-      for (const item of activeCandidates) {
-        const { group, rawTitle, rawLogo, effectiveUrl } = item;
-        const upperGroup = group.toUpperCase();
-        const upperTitle = rawTitle.toUpperCase();
-
-        // Loại bỏ mọi kênh ngoại quốc
-        if (
-          upperGroup.includes("QUỐC TẾ") ||
-          /[а-яА-ЯёЁ]/.test(rawTitle) ||
-          /[\u0E00-\u0E7F]/.test(rawTitle) ||
-          /(?:T\s*Sports|Fast\s*&?\s*Fun|FunBox|BoxHits|BoxMovie|Golf\s*Channel|Fight\s*Box|FightBox|Extreme\s*Sports?|KHL|MMA|Setanta|Trace\s*Sport|Match!)/i.test(
+          rawStreams.push({
             rawTitle,
-          ) ||
-          /(?:cinerama\.uz|antik\.sk|thaimomo\.com|linkintel\.ru|uplink\.kz|tvs\.by|bonus-tv\.ru|skygo\.mn|amagi\.tv)/i.test(
+            group,
+            rawLogo,
+            url,
             effectiveUrl,
-          )
-        ) {
+            extinfLine: line,
+          });
+        }
+      }
+
+      // 3. NORMALIZE VÀ GỘP CÁC STREAM TRÙNG TRẬN (DEDUP CHÍNH XÁC THEO IDENTITY)
+      const { channels, matches: mergedMatches } = normalizeAndMergeStreams(rawStreams, now);
+      for (const ch of channels) {
+        channelsSet.add(ch);
+      }
+
+      // 5. LỌC VÀ SẮP XẾP CÁC MÁY CHỦ THEO HEALTH CACHE (0ms, KHÔNG BLOCK CRITICAL PATH)
+      const availableMatches: FootballMatch[] = [];
+
+      for (const m of mergedMatches) {
+        // Lọc bỏ các server đã xác nhận DEAD (chỉ loại bỏ khi cache dead còn hiệu lực hoặc URL bị blacklist)
+        // Giữ lại server ALIVE và UNKNOWN (để match vẫn hiển thị khi cold-start)
+        const workingServers = m.servers.filter((s) => {
+          const status = getStreamHealthStatus(s.url);
+          return status !== "dead";
+        });
+
+        if (workingServers.length === 0) {
+          // Toàn bộ stream của trận đều đã xác nhận DEAD -> ẩn trận khỏi giao diện
           continue;
         }
 
-        let cleanGroup = "Phòng BLV Tiếng Việt";
-        if (
-          upperGroup.includes("FPT PLAY") ||
-          upperGroup.includes("SỰ KIỆN FPT") ||
-          upperTitle.includes("SỰ KIỆN FPT") ||
-          effectiveUrl.includes("fptplay.net") ||
-          effectiveUrl.includes("fptplay53.net")
-        ) {
-          cleanGroup = "Sự Kiện FPT Play";
-        } else if (upperGroup.includes("TV360") || upperTitle.includes("TV360+") || upperTitle.includes("360 C1")) {
-          cleanGroup = "Sự Kiện TV360+";
-        } else if (
-          upperGroup.includes("COLA") ||
-          upperGroup.includes("PHÁO HOA") ||
-          upperGroup.includes("BLV") ||
-          upperTitle.includes("BLV")
-        ) {
-          cleanGroup = "Phòng BLV Tiếng Việt";
-        } else {
-          cleanGroup = "Trận Cầu Trực Tiếp";
-        }
-
-        channelsSet.add(cleanGroup);
-
-        const isHls =
-          effectiveUrl.includes(".m3u8") ||
-          rawTitle.toLowerCase().includes("[hls");
-        const isFlv =
-          !isHls &&
-          (effectiveUrl.includes(".flv") || rawTitle.toLowerCase().includes("[flv"));
-        const format: "hls" | "flv" | "other" = isHls
-          ? "hls"
-          : isFlv
-            ? "flv"
-            : "other";
-
-        if (!isHls && !isFlv) continue;
-
-        const isFhd =
-          upperTitle.includes("FHD") ||
-          upperTitle.includes("1080P") ||
-          effectiveUrl.toUpperCase().includes("1080P") ||
-          effectiveUrl.toUpperCase().includes("_1080P");
-        const serverQuality: "FHD" | "HD" = isFhd ? "FHD" : "HD";
-
-        const timeMatch = rawTitle.match(
-          /(?:^|\s)(\d{1,2}:\d{2}(?:\s+\d{1,2}\/\d{1,2})?)/,
+        const hasAlive = workingServers.some(
+          (s) => getStreamHealthStatus(s.url) === "alive",
         );
-        const time = timeMatch ? timeMatch[1] : "Trực tiếp";
+        const streamHealth: StreamHealthStatus = hasAlive ? "alive" : "unknown";
+        m.timeline = getMatchTimeline(
+          m.timestamp,
+          m.sourceStatus,
+          streamHealth,
+          now,
+        );
 
-        // Tách tên BLV thật
-        let blv = "";
-        const blvMatch = rawTitle.match(/(BLV\s+[^()[\]]+)/i);
-        if (blvMatch) {
-          blv = blvMatch[1].trim();
-        } else if (cleanGroup === "Sự Kiện TV360+") {
-          blv = "TV360 Sports";
-        } else if (cleanGroup === "Sự Kiện FPT Play") {
-          blv = "FPT Play";
+        if (m.timeline === "finished") {
+          // Ẩn trận đã kết thúc
+          continue;
         }
 
-        // Định dạng tiêu đề hiển thị thật
-        let displayTitle = rawTitle;
-        if (cleanGroup === "Phòng BLV Tiếng Việt") {
-          if (upperGroup.includes("COLA") && !displayTitle.toUpperCase().includes("COLA")) {
-            displayTitle = `COLA TV - ${displayTitle}`;
-          } else if (upperGroup.includes("PHÁO HOA") && !displayTitle.toUpperCase().includes("PHÁO HOA")) {
-            displayTitle = `PHÁO HOA TV - ${displayTitle}`;
-          }
-        }
+        // Sắp xếp ưu tiên:
+        // 1. Luồng HLS lên trước
+        // 2. Server đã xác nhận ALIVE lên trước UNKNOWN
+        workingServers.sort((a, b) => {
+          if (a.isHls && !b.isHls) return -1;
+          if (!a.isHls && b.isHls) return 1;
+          const aStatus = getStreamHealthStatus(a.url);
+          const bStatus = getStreamHealthStatus(b.url);
+          if (aStatus === "alive" && bStatus !== "alive") return -1;
+          if (aStatus !== "alive" && bStatus === "alive") return 1;
+          return 0;
+        });
 
-        // Kiểm tra linh hoạt: Trận đối đầu 2 đội (Team A vs Team B / Team A - Team B) hoặc Sự kiện / Phòng BLV
-        let isEvent = true;
-        let team1 = displayTitle;
-        let team2 = "";
+        // Đánh số lại thứ tự máy chủ hiển thị sạch đẹp
+        workingServers.forEach((s, idx) => {
+          s.name = s.name.replace(/#\d+/, `#${idx + 1}`);
+        });
 
-        const isInvalidClubName = (name: string) => {
-          const n = name.trim().toLowerCase();
-          return (
-            /^(vtv|htv|thvl|sctv|vtc|btv|k\+|vov|antv|qpvn|ttxvn|hanoi|đài|kênh|fpt|tv360|truyền\s*hình|phát\s*thanh|tập|phần|sv\d+|sự\s*kiện|live|trực\s*tiếp|hd|fhd|4k|server)/i.test(
-              n,
-            ) ||
-            /đài\s*ptth|đài\s*truyền\s*hình|thành\s*phố|tỉnh/i.test(n) ||
-            n.length < 2
-          );
-        };
-
-        const hasVs = /\s+(?:vs|v)\s+/i.test(rawTitle);
-        const hasHyphen =
-          /\s+-\s+/.test(rawTitle) &&
-          !upperTitle.includes("COLA") &&
-          !upperTitle.includes("PHÁO HOA");
-
-        if (hasVs) {
-          const vsMatch = rawTitle.match(/(.+?)\s+(?:vs|v)\s+(.+)/i);
-          if (vsMatch) {
-            const t1 = vsMatch[1]
-              .replace(/\([^)]*\)/g, " ")
-              .replace(/\[[^\]]*\]/g, " ")
-              .trim();
-            const t2 = vsMatch[2]
-              .replace(/\([^)]*\)/g, " ")
-              .replace(/\[[^\]]*\]/g, " ")
-              .trim();
-            if (
-              t1 &&
-              t2 &&
-              !isInvalidClubName(t1) &&
-              !isInvalidClubName(t2)
-            ) {
-              team1 = t1;
-              team2 = t2;
-              isEvent = false;
-            }
-          }
-        } else if (hasHyphen) {
-          const hyphenMatch = rawTitle.match(/(.+?)\s+-\s+(.+)/);
-          if (hyphenMatch) {
-            const t1 = hyphenMatch[1]
-              .replace(/\([^)]*\)/g, " ")
-              .replace(/\[[^\]]*\]/g, " ")
-              .trim();
-            const t2 = hyphenMatch[2]
-              .replace(/\([^)]*\)/g, " ")
-              .replace(/\[[^\]]*\]/g, " ")
-              .trim();
-            if (
-              t1 &&
-              t2 &&
-              !isInvalidClubName(t1) &&
-              !isInvalidClubName(t2)
-            ) {
-              team1 = t1;
-              team2 = t2;
-              isEvent = false;
-            }
-          }
-        }
-
-        let tournament = detectTournament(rawTitle, team1, team2);
-        if (!tournament) {
-          if (cleanGroup === "Phòng BLV Tiếng Việt") tournament = "Phòng BLV Tiếng Việt";
-          else if (cleanGroup === "Sự Kiện FPT Play") tournament = "Sự Kiện FPT Play";
-          else if (cleanGroup === "Sự Kiện TV360+") tournament = "Sự Kiện TV360+";
-          else if (cleanGroup === "Thể Thao Quốc Tế") tournament = "Thể Thao Quốc Tế";
-          else tournament = "Kênh Thể Thao 24/7";
-        }
-
-        const normT1 = normalizeClubKey(team1);
-        const normT2 = normalizeClubKey(team2);
-        const sortedClubKey = [normT1, normT2].sort().join("_");
-
-        let matchKey =
-          !isEvent && normT1 && normT2 && time !== "Trực tiếp"
-            ? `${time}_${sortedClubKey}`
-            : `${cleanGroup}_${displayTitle}`
-                .toLowerCase()
-                .replace(/[^a-z0-9]/g, "");
-
-        if (cleanGroup === "Sự Kiện FPT Play") {
-          const evMatch =
-            displayTitle.match(/event\s*(\d+)/i) ||
-            effectiveUrl.match(/event-(\d+)/i);
-          if (evMatch) {
-            const evNum = parseInt(evMatch[1], 10);
-            matchKey = `skinfptplayevent${evNum}`;
-          }
-        }
-
-        let serverLabel = cleanGroup;
-        if (blv) serverLabel += ` (${blv})`;
-        if (isFhd) serverLabel += " [FHD]";
-        else if (format === "hls") serverLabel += " [HLS]";
-
-        const timestamp =
-          time !== "Trực tiếp" ? parseMatchTimeToTimestamp(time) : now;
-
-        let effectiveLogo = rawLogo;
-        if (!effectiveLogo && cleanGroup === "Sự Kiện FPT Play") {
-          effectiveLogo = FPT_EVENT_POSTER;
-        }
-
-        const initialServers: StreamServer[] = [
-          {
-            name: serverLabel,
-            url: effectiveUrl,
-            format,
-            isHls,
-            quality: serverQuality,
-            sourceName: cleanGroup,
-          },
-        ];
-
-        if (cleanGroup === "Sự Kiện FPT Play" && effectiveUrl.includes("vips-livecdn.fptplay.net")) {
-          const backupUrl = effectiveUrl.replace("vips-livecdn.fptplay.net", "live.fptplay53.net");
-          initialServers.push({
-            name: `${serverLabel} (Backup)`,
-            url: backupUrl,
-            format,
-            isHls,
-            quality: serverQuality,
-            sourceName: cleanGroup,
-          });
-        }
-
-        if (!matchMap.has(matchKey)) {
-          matchMap.set(matchKey, {
-            id: matchKey,
-            time,
-            timestamp,
-            title: displayTitle,
-            team1,
-            team2,
-            blv,
-            logo: effectiveLogo,
-            group: cleanGroup,
-            groups: [cleanGroup],
-            tournament,
-            isEvent,
-            timeline: "live",
-            quality: isFhd ? "FHD 1080p" : "HD 720p",
-            servers: initialServers,
-          });
-        } else {
-          const existing = matchMap.get(matchKey)!;
-          if (!existing.groups.includes(cleanGroup)) {
-            existing.groups.push(cleanGroup);
-          }
-          if (isFhd) existing.quality = "FHD 1080p";
-          if (blv && !existing.blv?.includes(blv)) {
-            existing.blv = existing.blv ? `${existing.blv}, ${blv}` : blv;
-          }
-          // Bổ sung poster / tên trận thực tế từ M3U nếu có
-          if (
-            effectiveLogo &&
-            effectiveLogo !== FPT_EVENT_POSTER &&
-            (!existing.logo || existing.logo === FPT_EVENT_POSTER)
-          ) {
-            existing.logo = effectiveLogo;
-          }
-          if (
-            displayTitle &&
-            !displayTitle.toLowerCase().startsWith("sự kiện fpt play - kênh") &&
-            displayTitle.toLowerCase() !== "event"
-          ) {
-            existing.title = displayTitle;
-            if (!isEvent && team1 && team2) {
-              existing.team1 = team1;
-              existing.team2 = team2;
-              existing.isEvent = false;
-            }
-          }
-          const alreadyExists = existing.servers.some((s) => s.url === effectiveUrl);
-          if (!alreadyExists) {
-            existing.servers.push({
-              name: `${serverLabel} #${existing.servers.length + 1}`,
-              url: effectiveUrl,
-              format,
-              isHls,
-              quality: serverQuality,
-              sourceName: cleanGroup,
-            });
-          }
-        }
+        m.servers = workingServers;
+        m.quality = workingServers.some((s) => s.quality === "FHD") ? "FHD 1080p" : "HD 720p";
+        availableMatches.push(m);
       }
 
-      // PASS 2: GỘP CÁC NGUỒN CÙNG PHÁT 1 TRẬN HOẶC 1 SỰ KIỆN
-      const uniqueMatches: FootballMatch[] = [];
-      const mergedSet = new Set<string>();
-      const allRawMatches = Array.from(matchMap.values());
-
-      for (let i = 0; i < allRawMatches.length; i++) {
-        const m1 = allRawMatches[i];
-        if (mergedSet.has(m1.id)) continue;
-
-        for (let j = i + 1; j < allRawMatches.length; j++) {
-          const m2 = allRawMatches[j];
-          if (mergedSet.has(m2.id)) continue;
-
-          if (!m1.isEvent && !m2.isEvent) {
-            const sameTime =
-              m1.time === m2.time ||
-              (m1.timestamp !== Number.MAX_SAFE_INTEGER &&
-                m2.timestamp !== Number.MAX_SAFE_INTEGER &&
-                Math.abs(m1.timestamp - m2.timestamp) < 15 * 60 * 1000);
-
-            if (sameTime) {
-              const k1_t1 = normalizeClubKey(m1.team1);
-              const k1_t2 = normalizeClubKey(m1.team2);
-              const k2_t1 = normalizeClubKey(m2.team1);
-              const k2_t2 = normalizeClubKey(m2.team2);
-
-              const hasValidTeams = Boolean(
-                k1_t1 && k1_t2 && k2_t1 && k2_t2 && k1_t1 !== k1_t2,
-              );
-              const isSameClubs =
-                hasValidTeams &&
-                ((k1_t1 === k2_t1 && k1_t2 === k2_t2) ||
-                  (k1_t1 === k2_t2 && k1_t2 === k2_t1));
-
-              if (isSameClubs) {
-                mergedSet.add(m2.id);
-                m2.groups.forEach((g) => {
-                  if (!m1.groups.includes(g)) m1.groups.push(g);
-                });
-                if (m2.quality.includes("FHD")) m1.quality = "FHD 1080p";
-                if (!m1.homeLogo && m2.homeLogo) m1.homeLogo = m2.homeLogo;
-                if (!m1.awayLogo && m2.awayLogo) m1.awayLogo = m2.awayLogo;
-                if (m2.blv && !m1.blv?.includes(m2.blv)) {
-                  m1.blv = m1.blv ? `${m1.blv}, ${m2.blv}` : m2.blv;
-                }
-                for (const s of m2.servers) {
-                  if (!m1.servers.some((existS) => existS.url === s.url)) {
-                    m1.servers.push(s);
-                  }
-                }
-              }
-            }
-          } else if (m1.isEvent && m2.isEvent) {
-            const key1 = m1.title.toLowerCase().replace(/[^a-z0-9]/g, "");
-            const key2 = m2.title.toLowerCase().replace(/[^a-z0-9]/g, "");
-            if (key1 === key2 && key1.length > 3) {
-              mergedSet.add(m2.id);
-              m2.groups.forEach((g) => {
-                if (!m1.groups.includes(g)) m1.groups.push(g);
-              });
-              if (m2.quality.includes("FHD")) m1.quality = "FHD 1080p";
-              for (const s of m2.servers) {
-                if (!m1.servers.some((existS) => existS.url === s.url)) {
-                  m1.servers.push(s);
-                }
-              }
-            }
-          }
-        }
-        uniqueMatches.push(m1);
-      }
-
-      // Ưu tiên server HLS
-      for (const m of uniqueMatches) {
-        const hlsServers = m.servers.filter((s) => s.isHls);
-        if (hlsServers.length > 0) {
-          m.servers = hlsServers;
-        }
-      }
-
-      // Sắp xếp danh sách trận đấu theo thứ tự thời gian
-      const sortedMatches = uniqueMatches.sort(
+      // Sắp xếp các trận theo thứ tự thời gian
+      const sortedMatches = availableMatches.sort(
         (a, b) => a.timestamp - b.timestamp,
       );
 
-      // Tự động bổ sung Logo HD cho cả Đội Nhà & Đội Khách nếu có
+      // Tự động bổ sung Logo HD cho Đội Nhà & Đội Khách
       await enrichMatchLogos(
         sortedMatches.filter(
           (match) =>
@@ -1596,8 +2623,13 @@ export const liveFootballService = {
       memoryCache = {
         data: result,
         expireAt: now + 5 * 60 * 1000,
-        staleUntil: now + 24 * 60 * 60 * 1000,
+        staleUntil: now + 10 * 60 * 1000,
       };
+
+      // Kích hoạt revalidate ngầm theo thứ tự ưu tiên (LIVE -> UPCOMING <= 60m -> Khác)
+      // Tuyệt đối không await để không làm chậm response
+      const priorityUrls = getPriorityStreamUrls(sortedMatches);
+      scheduleBackgroundHealthChecks(priorityUrls, 8, 32).catch(() => {});
 
       return result;
     } catch (err) {

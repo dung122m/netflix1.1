@@ -141,7 +141,7 @@ export function LiveTvClient({
     );
   }, [channels]);
 
-  const [selectedChannel, setSelectedChannel] = useState<TvChannel | null>(
+  const [selectedTvChannel, setSelectedTvChannel] = useState<TvChannel | null>(
     () => {
       if (typeof window !== "undefined") {
         try {
@@ -218,7 +218,7 @@ export function LiveTvClient({
         block: "nearest",
       });
     }
-  }, [showChannelRail, selectedChannel?.id]);
+  }, [showChannelRail, selectedTvChannel?.id]);
 
   const volumeRef = useRef(volume);
   const isMutedRef = useRef(isMuted);
@@ -324,12 +324,12 @@ export function LiveTvClient({
           c.name.toLowerCase().includes(target.toLowerCase()),
       );
       if (found) {
-        setSelectedChannel(found);
+        setSelectedTvChannel(found);
         return;
       }
     }
 
-    setSelectedChannel((prev) => prev || defaultChannel);
+    setSelectedTvChannel((prev) => prev || defaultChannel);
   }, [channels, searchParams, defaultChannel]);
 
   // Reset phân trang khi đổi bộ lọc
@@ -367,7 +367,7 @@ export function LiveTvClient({
         setIsMuted(false);
         isMutedRef.current = false;
       }
-      setSelectedChannel(channel);
+      setSelectedTvChannel(channel);
       if (!keepRailOpen) {
         setShowChannelRail(false);
       }
@@ -377,6 +377,11 @@ export function LiveTvClient({
         const url = new URL(window.location.href);
         url.searchParams.set("tab", "tv");
         url.searchParams.set("channel", channel.id);
+        // Dọn sạch các query params riêng của bóng đá
+        url.searchParams.delete("match");
+        url.searchParams.delete("tournament");
+        url.searchParams.delete("group");
+        url.searchParams.delete("fhd");
         window.history.replaceState(null, "", url.toString());
       } catch {}
 
@@ -476,9 +481,9 @@ export function LiveTvClient({
   // Khởi tạo luồng phát HLS với Proxy + Auto-Fallback + Low Latency Engine + Auto ABR
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || !selectedChannel?.url || !isActive) return;
+    if (!video || !selectedTvChannel?.url || !isActive) return;
 
-    const primaryUrl = getStreamUrl(selectedChannel.url);
+    const primaryUrl = getStreamUrl(selectedTvChannel.url);
 
     if (primaryUrl === lastLoadedUrlRef.current && hlsRef.current) {
       return;
@@ -489,7 +494,7 @@ export function LiveTvClient({
     setHasError(false);
     setErrorMessage("");
 
-    const channelWithFallback = selectedChannel as TvChannel & {
+    const channelWithFallback = selectedTvChannel as TvChannel & {
       fallback_url?: string;
       fallbackUrl?: string;
     };
@@ -701,7 +706,7 @@ export function LiveTvClient({
         video.load();
       }
     };
-  }, [selectedChannel, isActive]);
+  }, [selectedTvChannel, isActive]);
 
   // Hành động nhảy về Live Edge (một lần click)
   const goToLiveEdge = useCallback(() => {
@@ -1036,12 +1041,12 @@ export function LiveTvClient({
     (direction: "next" | "prev") => {
       const activeList =
         filteredChannels.length > 0 ? filteredChannels : channels;
-      if (activeList.length <= 1 || !selectedChannel) return;
+      if (activeList.length <= 1 || !selectedTvChannel) return;
 
       const currentIdx = activeList.findIndex(
         (c) =>
-          c.id === selectedChannel.id ||
-          c.name.toLowerCase() === selectedChannel.name.toLowerCase(),
+          c.id === selectedTvChannel.id ||
+          c.name.toLowerCase() === selectedTvChannel.name.toLowerCase(),
       );
 
       let targetIdx = 0;
@@ -1056,7 +1061,7 @@ export function LiveTvClient({
       handleSelectChannel(nextCh);
       triggerActionFeedback("channel", nextCh.name);
     },
-    [filteredChannels, channels, selectedChannel, handleSelectChannel, triggerActionFeedback],
+    [filteredChannels, channels, selectedTvChannel, handleSelectChannel, triggerActionFeedback],
   );
 
   // Tua thời gian (Seek ±10s) - Phản hồi tức thì (0ms), gom nhóm nếu nhấn liên tục và clamp chuẩn theo seekable window
@@ -1170,6 +1175,11 @@ export function LiveTvClient({
         return;
       }
 
+      // Bỏ qua nếu người dùng đang dùng tổ hợp phím hệ thống (Ctrl + C copy, Cmd + C, Ctrl + V, Alt + ...)
+      if (e.ctrlKey || e.metaKey || e.altKey) {
+        return;
+      }
+
       // Chỉ xử lý shortcut khi focus thực sự nằm trong vùng Live TV Player
       const active = document.activeElement as HTMLElement | null;
       const isPlayerContainer = Boolean(
@@ -1257,8 +1267,8 @@ export function LiveTvClient({
   ]);
 
   const handleCopy = () => {
-    if (selectedChannel && typeof navigator !== "undefined") {
-      navigator.clipboard.writeText(selectedChannel.url);
+    if (selectedTvChannel && typeof navigator !== "undefined") {
+      navigator.clipboard.writeText(selectedTvChannel.url);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
@@ -1279,7 +1289,7 @@ export function LiveTvClient({
   return (
     <div className="space-y-6">
       {/* 1. KHUNG TRÌNH PHÁT TRUYỀN HÌNH TRỰC TIẾP */}
-      {selectedChannel ? (
+      {selectedTvChannel ? (
         <div ref={playerRef} className="scroll-mt-24 space-y-4">
           {/* HEADER KÊNH ĐANG PHÁT */}
           <div className="keep-dark-cinema relative rounded-2xl sm:rounded-3xl border border-white/15 bg-gradient-to-b from-zinc-900/95 via-zinc-950/98 to-black p-3 sm:p-4 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-3 backdrop-blur-xl">
@@ -1287,8 +1297,8 @@ export function LiveTvClient({
               {/* LOGO KÊNH */}
               <div className="w-16 h-11 sm:w-20 sm:h-13 rounded-xl bg-zinc-900/90 border-2 border-white/20 p-1.5 flex items-center justify-center shadow-xl flex-shrink-0 overflow-hidden">
                 <TvChannelLogo
-                  logo={selectedChannel.logo}
-                  name={selectedChannel.name}
+                  logo={selectedTvChannel.logo}
+                  name={selectedTvChannel.name}
                 />
               </div>
 
@@ -1299,11 +1309,11 @@ export function LiveTvClient({
                     <span>TRỰC TIẾP</span>
                   </span>
                   <span className="px-2 py-0.5 rounded-full bg-white/10 border border-white/15 text-gray-300 text-[10px] font-bold">
-                    {selectedChannel.category}
+                    {selectedTvChannel.category}
                   </span>
                   <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-[9.5px] font-black uppercase">
                     <Zap className="w-2.5 h-2.5 fill-emerald-400" />
-                    <span>{selectedChannel.quality}</span>
+                    <span>{selectedTvChannel.quality}</span>
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -1311,7 +1321,7 @@ export function LiveTvClient({
                     className="text-base sm:text-xl font-black text-white keep-white"
                     style={{ color: "#ffffff" }}
                   >
-                    {selectedChannel.name}
+                    {selectedTvChannel.name}
                   </h2>
                   {isPlaying && <PlayingEqualizer />}
                 </div>
@@ -1457,7 +1467,7 @@ export function LiveTvClient({
                     </p>
                   </div>
                   <p className="mt-0.5 truncate text-xs sm:text-xs font-bold text-white">
-                    Đang xem: {selectedChannel.name}
+                    Đang xem: {selectedTvChannel.name}
                   </p>
                 </div>
                 <button
@@ -1499,7 +1509,7 @@ export function LiveTvClient({
                   </div>
                 ) : (
                   filteredChannels.map((channel) => {
-                    const active = selectedChannel.id === channel.id;
+                    const active = selectedTvChannel.id === channel.id;
                     return (
                       <button
                         key={channel.id}
@@ -1599,7 +1609,7 @@ export function LiveTvClient({
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm z-20 pointer-events-none">
                 <div className="w-12 h-12 rounded-full border-4 border-netflix-red border-t-transparent animate-spin mb-3 shadow-lg" />
                 <p className="text-xs sm:text-sm font-bold text-gray-200">
-                  Đang kết nối tín hiệu truyền hình {selectedChannel.name}...
+                  Đang kết nối tín hiệu truyền hình {selectedTvChannel.name}...
                 </p>
               </div>
             )}
@@ -1626,9 +1636,9 @@ export function LiveTvClient({
                     onClick={() => {
                       setHasError(false);
                       setIsLoading(true);
-                      const ch = selectedChannel;
-                      setSelectedChannel(null);
-                      setTimeout(() => setSelectedChannel(ch), 50);
+                      const ch = selectedTvChannel;
+                      setSelectedTvChannel(null);
+                      setTimeout(() => setSelectedTvChannel(ch), 50);
                     }}
                     className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-semibold text-white transition border border-white/10 cursor-pointer"
                   >
@@ -1793,7 +1803,7 @@ export function LiveTvClient({
             className="flex items-center gap-2 overflow-x-auto py-1 px-3 scrollbar-none [&::-webkit-scrollbar]:hidden scroll-smooth"
           >
             {popularChannels.map((ch) => {
-              const isSelected = selectedChannel?.id === ch.id;
+              const isSelected = selectedTvChannel?.id === ch.id;
               return (
                 <button
                   key={ch.id}
@@ -2003,7 +2013,7 @@ export function LiveTvClient({
             /* VIEW MODE: LƯỚI THẺ HIỆN ĐẠI (TỐI ƯU 2 CỘT GỌN GÀNG TRÊN ĐIỆN THOẠI) */
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-2 sm:gap-3.5">
               {displayedChannels.map((ch) => {
-                const isSelected = selectedChannel?.id === ch.id;
+                const isSelected = selectedTvChannel?.id === ch.id;
                 return (
                   <div
                     key={ch.id}
@@ -2059,7 +2069,7 @@ export function LiveTvClient({
             /* VIEW MODE: DANH SÁCH GỌN (COMPACT LIST) */
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-2.5">
               {displayedChannels.map((ch) => {
-                const isSelected = selectedChannel?.id === ch.id;
+                const isSelected = selectedTvChannel?.id === ch.id;
                 return (
                   <div
                     key={ch.id}

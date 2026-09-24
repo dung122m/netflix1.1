@@ -161,7 +161,7 @@ const QuickGenreChipsInner: React.FC = () => {
       params.set("type", slug);
     }
     params.delete("page");
-    return params.toString() ? `/?${params.toString()}` : "/";
+    return params.toString() ? `/browse?${params.toString()}` : "/browse";
   }, [searchParams]);
 
   const handleTypeSelect = useCallback((slug: string) => {
@@ -181,7 +181,7 @@ const QuickGenreChipsInner: React.FC = () => {
       params.set("category", slug);
     }
     params.delete("page");
-    return params.toString() ? `/?${params.toString()}` : "/";
+    return params.toString() ? `/browse?${params.toString()}` : "/browse";
   }, [searchParams]);
 
   const handleCategorySelect = useCallback((slug: string) => {
@@ -201,7 +201,7 @@ const QuickGenreChipsInner: React.FC = () => {
       params.set("country", slug);
     }
     params.delete("page");
-    return params.toString() ? `/?${params.toString()}` : "/";
+    return params.toString() ? `/browse?${params.toString()}` : "/browse";
   }, [searchParams]);
 
   const handleCountrySelect = useCallback((slug: string) => {
@@ -226,7 +226,7 @@ const QuickGenreChipsInner: React.FC = () => {
       params.delete("keyword");
     }
     params.delete("page");
-    return params.toString() ? `/?${params.toString()}` : "/";
+    return params.toString() ? `/browse?${params.toString()}` : "/browse";
   }, [searchParams]);
 
   const handleActorSelect = useCallback((actorName: string) => {
@@ -246,7 +246,7 @@ const QuickGenreChipsInner: React.FC = () => {
       params.set("year", year);
     }
     params.delete("page");
-    return params.toString() ? `/?${params.toString()}` : "/";
+    return params.toString() ? `/browse?${params.toString()}` : "/browse";
   }, [searchParams]);
 
   const handleYearSelect = useCallback((year: string) => {
@@ -265,7 +265,7 @@ const QuickGenreChipsInner: React.FC = () => {
     params.delete("page");
     const query = params.toString();
     startTransition(() => {
-      router.push(query ? `/?${query}` : "/", { scroll: false });
+      router.push(query ? `/browse?${query}` : "/browse", { scroll: false });
     });
   }, [searchParams, router]);
 

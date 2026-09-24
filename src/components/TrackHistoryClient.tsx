@@ -17,6 +17,7 @@ interface TrackHistoryClientProps {
   category?: string;
   country?: string;
   type?: string;
+  actor?: string[];
 }
 
 export default function TrackHistoryClient({
@@ -31,9 +32,11 @@ export default function TrackHistoryClient({
   category,
   country,
   type,
+  actor,
 }: TrackHistoryClientProps) {
   const { user, loading } = useAuth();
   const hasTrackedViewRef = useRef<string | null>(null);
+  const actorKey = Array.isArray(actor) ? actor.join(",") : "";
 
   useEffect(() => {
     if (slug) {
@@ -49,6 +52,7 @@ export default function TrackHistoryClient({
         category,
         country,
         type,
+        actor,
       });
 
       // Track movie view for analytics once Firebase auth hydration completes
@@ -61,7 +65,8 @@ export default function TrackHistoryClient({
         });
       }
     }
-  }, [slug, title, poster, thumb, episodeName, episodeSlug, year, quality, category, country, type, user?.uid, loading]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug, title, poster, thumb, episodeName, episodeSlug, year, quality, category, country, type, actorKey, user?.uid, loading]);
 
   return null;
 }

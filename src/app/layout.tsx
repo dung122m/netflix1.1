@@ -6,7 +6,6 @@ import { BackToTop } from "@/components/BackToTop";
 import { ToastContainer } from "@/components/Toast";
 import { ClientModals } from "@/components/ClientModals";
 import { InstallPwaBanner } from "@/components/InstallPwaBanner";
-import { ContinueWatchingWidget } from "@/components/ContinueWatchingWidget";
 import { DesktopReplyPopup } from "@/components/Notifications/DesktopReplyPopup";
 import { BottomNav } from "@/components/BottomNav";
 import { AuthProvider } from "@/context/AuthContext";
@@ -220,9 +219,6 @@ export default function RootLayout({
 
           {/* PWA Smart Install Banner & Modal */}
           <InstallPwaBanner />
-
-          {/* Seamless Unified Continue Watching & Cross-Device Handoff */}
-          <ContinueWatchingWidget />
         </AuthProvider>
       </body>
     </html>

@@ -34,11 +34,11 @@ const AuthModal = dynamic(
 
 const NAV_LINKS = [
   { name: "Trang chủ", href: "/", type: null, icon: Home, isLive: false },
-  { name: "Phim bộ", href: "/?type=phim-bo", type: "phim-bo", icon: Tv, isLive: false },
-  { name: "Phim lẻ", href: "/?type=phim-le", type: "phim-le", icon: Film, isLive: false },
-  { name: "Chiếu rạp", href: "/?type=phim-chieu-rap", type: "phim-chieu-rap", icon: Clapperboard, isLive: false },
-  { name: "Hoạt hình", href: "/?type=hoat-hinh", type: "hoat-hinh", icon: Sparkles, isLive: false },
-  { name: "TV Shows", href: "/?type=tv-shows", type: "tv-shows", icon: Radio, isLive: false, hideOnLg: true },
+  { name: "Phim bộ", href: "/browse?type=phim-bo", type: "phim-bo", icon: Tv, isLive: false },
+  { name: "Phim lẻ", href: "/browse?type=phim-le", type: "phim-le", icon: Film, isLive: false },
+  { name: "Chiếu rạp", href: "/browse?type=phim-chieu-rap", type: "phim-chieu-rap", icon: Clapperboard, isLive: false },
+  { name: "Hoạt hình", href: "/browse?type=hoat-hinh", type: "hoat-hinh", icon: Sparkles, isLive: false },
+  { name: "TV Shows", href: "/browse?type=tv-shows", type: "tv-shows", icon: Radio, isLive: false, hideOnLg: true },
   { name: "Trực tiếp", href: "/live", type: "live", icon: Flame, isLive: true },
   { name: "Danh sách của tôi", href: "/my-list", type: "my-list", icon: Bookmark, isLive: false },
 ];
@@ -97,8 +97,8 @@ const NavbarInner: React.FC = () => {
       if (type === "my-list") return pathname === "/my-list";
       if (pathname !== "/" && pathname !== "/browse") return false;
       if (urlKeyword) return false;
-      if (type === null) return !currentType;
-      return currentType === type;
+      if (type === null) return pathname === "/" && !currentType;
+      return pathname === "/browse" && currentType === type;
     },
     [pathname, currentType, urlKeyword]
   );

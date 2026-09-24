@@ -192,7 +192,19 @@ const STATIC_CLUB_LOGOS: Record<string, string> = {
   indonesia: "https://r2.thesportsdb.com/images/media/team/badge/yptxvv1431696756.png",
   iran: "https://r2.thesportsdb.com/images/media/team/badge/yptxvv1431696756.png",
   qatar: "https://r2.thesportsdb.com/images/media/team/badge/yptxvv1431696756.png",
+
+  // --- WNBA / NBA (BÓNG RỔ) ---
+  seattlestorm: "https://r2.thesportsdb.com/images/media/team/badge/p3h1cf1621593502.png",
+  dallaswings: "https://r2.thesportsdb.com/images/media/team/badge/y145v91580047913.png",
 };
+
+const AUXILIARY_LOGO_WORDS = new Set([
+  "clb", "fc", "ssc", "vfb", "ac", "as", "rc", "sc", "sl", "afc", "ogc", "fk", "sk", "cf", "cd", "ca",
+  "csd", "deportes", "deportivo", "deportiva", "dep", "municipal", "muni", "club", "clube", "societa",
+  "asociacion", "asoc", "agrupacion", "ud", "sd", "ad", "sv", "tsv", "fsv", "spvg", "vfl", "ksv", "bsc",
+  "united", "utd", "city", "town", "athletic", "albion", "rovers", "wanderers", "county", "sports",
+  "u19", "u20", "u21", "u23", "b", "reserves", "women", "nu"
+]);
 
 export function normalizeTeamKey(name: string): string {
   return (name || "")
@@ -201,12 +213,57 @@ export function normalizeTeamKey(name: string): string {
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/\[[^\]]*\]/g, " ")
     .replace(/\([^)]*\)/g, " ")
-    .replace(/^(clb|fc|s\s*s\s*c|ssc|vfb|v\s*f\s*b|ac|as|rc|sc|sl|afc|ogc|fk|sk|cf|cd|rb)\s+/i, "")
-    .replace(/^(clb|fc|s\s*s\s*c|ssc|vfb|v\s*f\s*b|ac|as|rc|sc|sl|afc|ogc|fk|sk|cf|cd|rb)\s+/i, "")
+    .replace(/^(clb|fc|s\s*s\s*c|ssc|vfb|v\s*f\s*b|ac|as|rc|sc|sl|afc|ogc|fk|sk|cf|cd|rb|csd|deportes|municipal)\s+/i, "")
+    .replace(/^(clb|fc|s\s*s\s*c|ssc|vfb|v\s*f\s*b|ac|as|rc|sc|sl|afc|ogc|fk|sk|cf|cd|rb|csd|deportes|municipal)\s+/i, "")
     .replace(/\s+(clb|fc|fk|sc|cf|united|utd|city|town)$/i, "")
     .replace(/\s+(clb|fc|fk|sc|cf|united|utd|city|town)$/i, "")
     .replace(/[^a-z0-9]/g, "")
     .trim();
+}
+
+function extractCoreTokens(name: string): string[] {
+  if (!name) return [];
+  const clean = name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const rawTokens = clean.split(/\s+/).filter(Boolean);
+  const significant = rawTokens.filter(
+    (w) => w.length >= 3 && !AUXILIARY_LOGO_WORDS.has(w),
+  );
+  return significant.length > 0 ? significant : rawTokens;
+}
+
+function isTeamIdentityMatch(
+  queriedTeam: string,
+  apiTeam: { strTeam?: string; strTeamShort?: string; strAlternate?: string },
+): boolean {
+  if (!queriedTeam || !apiTeam || !apiTeam.strTeam) return false;
+
+  const qKey = normalizeTeamKey(queriedTeam);
+  const teamKey = normalizeTeamKey(apiTeam.strTeam);
+  const altKey = apiTeam.strAlternate ? normalizeTeamKey(apiTeam.strAlternate) : "";
+  const shortKey = apiTeam.strTeamShort ? normalizeTeamKey(apiTeam.strTeamShort) : "";
+
+  // 1. Direct exact normalized key match or alias match
+  if (qKey && (qKey === teamKey || (altKey && qKey === altKey) || (shortKey && qKey === shortKey))) {
+    return true;
+  }
+
+  // 2. Core significant token overlap (e.g. "Deportes Iquique" vs "Iquique")
+  const qTokens = extractCoreTokens(queriedTeam);
+  const apiTokens = extractCoreTokens(apiTeam.strTeam);
+  if (qTokens.length > 0 && apiTokens.length > 0) {
+    const shared = qTokens.filter((t) => apiTokens.includes(t));
+    if (shared.some((t) => t.length >= 4)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 /**
@@ -231,6 +288,9 @@ export async function resolveTeamLogo(teamName: string): Promise<string> {
     .replace(/^AC\s+/i, "")
     .replace(/^AS\s+/i, "")
     .replace(/^RC\s+/i, "")
+    .replace(/^CSD\s+/i, "")
+    .replace(/^Deportes\s+/i, "")
+    .replace(/^Municipal\s+/i, "")
     .replace(/\[[^\]]*\]/g, " ")
     .replace(/\([^)]*\)/g, " ")
     .replace(/\s+(FC|CLB|FK|SC|CF|United|Utd|City|Town)$/i, "")
@@ -256,15 +316,19 @@ export async function resolveTeamLogo(teamName: string): Promise<string> {
               "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
             Accept: "application/json",
           },
-          signal: AbortSignal.timeout(2800),
+          signal: AbortSignal.timeout(1800),
         }
       );
       if (res.ok) {
         const data = await res.json();
-        const badge = data.teams?.[0]?.strBadge;
-        if (badge) {
-          LOGO_CACHE.set(key, badge);
-          return badge;
+        if (Array.isArray(data.teams)) {
+          // Xác thực danh tính team trước khi lấy strBadge
+          for (const t of data.teams) {
+            if (t?.strBadge && isTeamIdentityMatch(teamName, t)) {
+              LOGO_CACHE.set(key, t.strBadge);
+              return t.strBadge;
+            }
+          }
         }
       }
     } catch {
@@ -272,7 +336,7 @@ export async function resolveTeamLogo(teamName: string): Promise<string> {
     }
   }
 
-  // Nếu không tìm thấy, lưu chuỗi rỗng vào cache để không query lại
+  // Nếu không tìm thấy hoặc không khớp danh tính, lưu chuỗi rỗng vào cache để không gán nhầm
   LOGO_CACHE.set(key, "");
   return "";
 }
@@ -285,15 +349,15 @@ export async function enrichMatchLogos<T extends { team1: string; team2: string;
 ): Promise<T[]> {
   // 1. Phục hồi 0ms từ static dictionary trước
   for (const m of matches) {
-    if (!m.homeLogo || m.homeLogo.includes("tinhlagi.pro/logo.jpg")) {
+    if (m.team1 && (!m.homeLogo || m.homeLogo.includes("tinhlagi.pro/logo.jpg"))) {
       const key = normalizeTeamKey(m.team1);
-      if (STATIC_CLUB_LOGOS[key]) m.homeLogo = STATIC_CLUB_LOGOS[key];
-      else if (LOGO_CACHE.has(key)) m.homeLogo = LOGO_CACHE.get(key) || "";
+      if (key && STATIC_CLUB_LOGOS[key]) m.homeLogo = STATIC_CLUB_LOGOS[key];
+      else if (key && LOGO_CACHE.has(key)) m.homeLogo = LOGO_CACHE.get(key) || "";
     }
-    if (!m.awayLogo || m.awayLogo.includes("tinhlagi.pro/logo.jpg")) {
+    if (m.team2 && (!m.awayLogo || m.awayLogo.includes("tinhlagi.pro/logo.jpg"))) {
       const key = normalizeTeamKey(m.team2);
-      if (STATIC_CLUB_LOGOS[key]) m.awayLogo = STATIC_CLUB_LOGOS[key];
-      else if (LOGO_CACHE.has(key)) m.awayLogo = LOGO_CACHE.get(key) || "";
+      if (key && STATIC_CLUB_LOGOS[key]) m.awayLogo = STATIC_CLUB_LOGOS[key];
+      else if (key && LOGO_CACHE.has(key)) m.awayLogo = LOGO_CACHE.get(key) || "";
     }
   }
 
@@ -301,22 +365,22 @@ export async function enrichMatchLogos<T extends { team1: string; team2: string;
   const pending = matches
     .filter(
       (m) =>
-        (!m.homeLogo || m.homeLogo.includes("tinhlagi.pro/logo.jpg")) ||
-        (!m.awayLogo || m.awayLogo.includes("tinhlagi.pro/logo.jpg"))
+        (m.team1 && (!m.homeLogo || m.homeLogo.includes("tinhlagi.pro/logo.jpg"))) ||
+        (m.team2 && (!m.awayLogo || m.awayLogo.includes("tinhlagi.pro/logo.jpg")))
     )
     .slice(0, 8);
 
   if (pending.length > 0) {
     await Promise.allSettled(
       pending.map(async (m) => {
-        const needHome = !m.homeLogo || m.homeLogo.includes("tinhlagi.pro/logo.jpg");
-        const needAway = !m.awayLogo || m.awayLogo.includes("tinhlagi.pro/logo.jpg");
+        const needHome = Boolean(m.team1) && (!m.homeLogo || m.homeLogo.includes("tinhlagi.pro/logo.jpg"));
+        const needAway = Boolean(m.team2) && (!m.awayLogo || m.awayLogo.includes("tinhlagi.pro/logo.jpg"));
 
-        if (needHome) {
+        if (needHome && m.team1) {
           const logo = await resolveTeamLogo(m.team1);
           if (logo) m.homeLogo = logo;
         }
-        if (needAway) {
+        if (needAway && m.team2) {
           const logo = await resolveTeamLogo(m.team2);
           if (logo) m.awayLogo = logo;
         }

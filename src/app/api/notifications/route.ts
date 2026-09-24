@@ -2,114 +2,26 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { sanitizeSafeText } from "@/lib/security";
 import { verifyServerAuth } from "@/lib/serverAuth";
-import { movieApi } from "@/services/movieApi";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 export const fetchCache = "force-no-store";
 
+const ALLOWED_NOTIFICATION_TYPES = ["comment_reply", "comment_reaction"] as const;
+
 /**
  * GET /api/notifications
- * - ?type=system: Trả về danh sách thông báo hệ thống / phim mới cập nhật / sự kiện hot (Công khai)
- * - Mặc định: Yêu cầu xác thực Firebase auth, lấy thông báo của chính người dùng đã đăng nhập (KHÔNG tin tưởng ?userId=)
+ * - Yêu cầu xác thực Firebase auth, chỉ lấy thông báo Bình luận (comment_reply) và Cảm xúc (comment_reaction)
  */
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const type = searchParams.get("type");
 
-  // 1. Trường hợp lấy thông báo hệ thống & phim mới cập nhật (Công khai)
+  // Loại bỏ hoàn toàn thông báo system / movie recommendation ngoài luồng
   if (type === "system") {
-    try {
-      const upstreamRes = await fetch("https://phimapi.com/danh-sach/phim-moi-cap-nhat?page=1", {
-        next: { revalidate: 300 }, // Cache 5 phút
-      });
-
-      const dynamicItems: Array<Record<string, unknown>> = [];
-
-      if (upstreamRes.ok) {
-        const data = await upstreamRes.json();
-        const movies = Array.isArray(data.items) ? data.items.slice(0, 8) : [];
-        const now = Date.now();
-
-        // Nạp song song thông tin chi tiết (actors) qua cache getMovieDetail sẵn có (L1 Memory + L2 Cache)
-        const movieDetails = await Promise.allSettled(
-          movies.map((m: { slug?: string }) => (m.slug ? movieApi.getMovieDetail(m.slug) : null))
-        );
-
-        movies.forEach((m: { name?: string; slug?: string; poster_url?: string; thumb_url?: string; episode_current?: string; year?: number; modified?: { time?: string } }, idx: number) => {
-          if (m.slug && m.name) {
-            const posterImg = m.poster_url?.startsWith("http")
-              ? m.poster_url
-              : m.thumb_url?.startsWith("http")
-                ? m.thumb_url
-                : `https://phimimg.com/${m.poster_url || m.thumb_url}`;
-
-            const itemCreatedAt = m.modified?.time
-              ? new Date(m.modified.time).getTime() || (now - (idx + 1) * 1800000)
-              : now - (idx + 1) * 1800000;
-
-            let movieActors: string[] = [];
-            const detailRes = movieDetails[idx];
-            if (detailRes && detailRes.status === "fulfilled" && detailRes.value?.movie?.actor) {
-              const rawActors = detailRes.value.movie.actor;
-              if (Array.isArray(rawActors)) {
-                movieActors = rawActors.filter((a): a is string => typeof a === "string" && Boolean(a.trim()));
-              }
-            }
-
-            dynamicItems.push({
-              id: `sys_movie_${m.slug}`,
-              type: "movie",
-              title: m.name,
-              message: `Đã cập nhật ${m.episode_current || "bản HD Vietsub"}. Bấm xem ngay hôm nay!`,
-              time: "Hôm nay",
-              link: `/movies/${m.slug}`,
-              image: posterImg,
-              badge: "TẬP MỚI",
-              badgeColor: "bg-netflix-red text-white",
-              createdAt: itemCreatedAt,
-              actors: movieActors,
-            });
-          }
-        });
-      }
-
-      // Thông báo trực tiếp bóng đá / sự kiện hot
-      dynamicItems.unshift({
-        id: "sys_live_hot",
-        type: "live",
-        title: "Trực Tiếp Bóng Đá & Sự Kiện Thể Thao",
-        message: "Xem trực tiếp các trận cầu đỉnh cao Ngoại Hạng Anh, C1 chất lượng Full HD không giật lag!",
-        time: "Trực tiếp",
-        link: "/live",
-        badge: "LIVE 🔴",
-        badgeColor: "bg-red-600 text-white animate-pulse",
-        createdAt: Date.now(),
-      });
-
-      return NextResponse.json({ success: true, items: dynamicItems });
-    } catch (err) {
-      console.error("Lỗi lấy thông báo hệ thống:", err);
-      return NextResponse.json({
-        success: true,
-        items: [
-          {
-            id: "sys_welcome",
-            type: "system",
-            title: "Chào mừng bạn đến với Nanaflix!",
-            message: "Hàng ngàn bộ phim bom tấn và phim bộ chất lượng 4K đang chờ bạn khám phá.",
-            time: "Hôm nay",
-            link: "/browse",
-            badge: "HOT",
-            badgeColor: "bg-netflix-red text-white",
-            createdAt: Date.now() - 3600000,
-          },
-        ],
-      });
-    }
+    return NextResponse.json({ success: true, items: [] });
   }
 
-  // 2. Trường hợp lấy thông báo cá nhân: BẮT BUỘC xác thực Firebase auth, tuyệt đối KHÔNG tin tưởng ?userId=
   const auth = await verifyServerAuth(req);
   if (!auth.isAuthenticated || !auth.userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -121,10 +33,12 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: true, items: [] });
     }
 
+    // Chỉ truy vấn đúng 2 loại thông báo: Comment (comment_reply) và Like (comment_reaction)
     const { data, error } = await supabase
       .from("notifications")
-      .select("*")
+      .select("id, user_id, type, title, message, link, movie_slug, comment_id, replier_name, replier_avatar, is_read, created_at")
       .eq("user_id", auth.userId)
+      .in("type", ALLOWED_NOTIFICATION_TYPES)
       .order("created_at", { ascending: false })
       .limit(50);
 
@@ -134,7 +48,7 @@ export async function GET(req: NextRequest) {
 
     const items = data.map((d) => ({
       id: d.id,
-      type: d.type || "system",
+      type: d.type as "comment_reply" | "comment_reaction",
       title: d.title,
       message: d.message || "",
       link: d.link || "",
@@ -187,7 +101,8 @@ export async function PATCH(req: NextRequest) {
       await supabase
         .from("notifications")
         .update({ is_read: true })
-        .eq("user_id", auth.userId);
+        .eq("user_id", auth.userId)
+        .in("type", ALLOWED_NOTIFICATION_TYPES);
 
       return NextResponse.json({ success: true, allRead: true });
     } else if (notifId) {
@@ -209,7 +124,7 @@ export async function PATCH(req: NextRequest) {
 
 /**
  * POST /api/notifications
- * Tạo thông báo mới cho người dùng (Bảo vệ: Chỉ Admin hoặc Server-side Secret mới có thể tạo thông báo cho user khác)
+ * Tạo thông báo mới cho người dùng (Chỉ cho phép comment_reply và comment_reaction)
  */
 export async function POST(req: NextRequest) {
   try {
@@ -223,6 +138,12 @@ export async function POST(req: NextRequest) {
 
     if (!userId || !title) {
       return NextResponse.json({ error: "Thiếu thông tin thông báo!" }, { status: 400 });
+    }
+
+    const finalType = type || "comment_reply";
+    // Chỉ cho phép tạo thông báo comment_reply và comment_reaction
+    if (!ALLOWED_NOTIFICATION_TYPES.includes(finalType)) {
+      return NextResponse.json({ error: "Loại thông báo không được hỗ trợ" }, { status: 400 });
     }
 
     // Không cho phép guest hoặc user thông thường tự ý chèn thông báo vào inbox của người khác
@@ -242,7 +163,7 @@ export async function POST(req: NextRequest) {
     const payload = {
       id: docId,
       user_id: userId,
-      type: type || "comment_reply",
+      type: finalType,
       title: sanitizeSafeText(title, 150),
       message: sanitizeSafeText(message || "", 500),
       link: link || null,

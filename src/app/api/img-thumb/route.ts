@@ -12,15 +12,15 @@ const MAX_BYTES = 15 * 1024 * 1024;
 // ==========================================
 // IN-MEMORY IMAGE CACHE (không cần Redis/KV)
 // Key = "url|width", Value = processed webp Buffer
-// Max 200 entries, TTL 30 phút — tránh fetch + sharp mỗi request
+// Max 500 entries, TTL 60 phút — tránh fetch + sharp mỗi request
 // ==========================================
 interface ImgCacheEntry {
   buf: Buffer;
   expireAt: number;
 }
 const imgCache = new Map<string, ImgCacheEntry>();
-const IMG_CACHE_TTL_MS = 30 * 60 * 1000; // 30 phút
-const IMG_CACHE_MAX    = 200;
+const IMG_CACHE_TTL_MS = 60 * 60 * 1000; // 60 phút
+const IMG_CACHE_MAX = 500;
 
 function imgCacheGet(key: string): Buffer | null {
   const entry = imgCache.get(key);
@@ -42,115 +42,108 @@ function imgCacheSet(key: string, buf: Buffer) {
 }
 
 export async function GET(req: NextRequest) {
+  const t0 = Date.now();
+  const { searchParams } = req.nextUrl;
+  const rawUrl = searchParams.get("url");
+  const rawW = searchParams.get("w");
+
+  if (!rawUrl) {
+    return new NextResponse("Missing url parameter", {
+      status: 400,
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    });
+  }
+
+  if (!rawW) {
+    return new NextResponse("Missing w parameter", {
+      status: 400,
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    });
+  }
+
+  const width = parseInt(rawW, 10);
+  if (isNaN(width) || !ALLOWED_WIDTHS.has(width)) {
+    return new NextResponse(
+      "Invalid width parameter. Allowed values: 192, 320, 480, 640, 1280",
+      {
+        status: 400,
+        headers: { "Content-Type": "text/plain; charset=utf-8" },
+      }
+    );
+  }
+
+  let targetUrl: URL;
   try {
-    const { searchParams } = req.nextUrl;
-    const rawUrl = searchParams.get("url");
-    const rawW = searchParams.get("w");
+    targetUrl = new URL(rawUrl);
+  } catch {
+    return new NextResponse("Invalid URL format", {
+      status: 400,
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    });
+  }
 
-    if (!rawUrl) {
-      return new NextResponse("Missing url parameter", {
-        status: 400,
-        headers: { "Content-Type": "text/plain; charset=utf-8" },
-      });
-    }
+  // Bảo mật: Chỉ cho phép giao thức HTTPS
+  if (targetUrl.protocol !== "https:") {
+    return new NextResponse("Only HTTPS protocol is allowed", {
+      status: 400,
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    });
+  }
 
-    if (!rawW) {
-      return new NextResponse("Missing w parameter", {
-        status: 400,
-        headers: { "Content-Type": "text/plain; charset=utf-8" },
-      });
-    }
+  // Bảo mật: Strict allowlist hostname, chỉ chấp nhận chính xác phimimg.com
+  const hostname = targetUrl.hostname.toLowerCase();
+  if (hostname !== "phimimg.com") {
+    return new NextResponse("Hostname not allowed. Only phimimg.com is supported", {
+      status: 403,
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    });
+  }
 
-    const width = parseInt(rawW, 10);
-    if (isNaN(width) || !ALLOWED_WIDTHS.has(width)) {
-      return new NextResponse(
-        "Invalid width parameter. Allowed values: 192, 320, 480, 640, 1280",
-        {
-          status: 400,
-          headers: { "Content-Type": "text/plain; charset=utf-8" },
-        }
-      );
-    }
+  // Bảo mật: Port chuẩn 443 hoặc rỗng
+  if (targetUrl.port && targetUrl.port !== "443") {
+    return new NextResponse("Invalid port", {
+      status: 400,
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    });
+  }
 
-    let targetUrl: URL;
-    try {
-      targetUrl = new URL(rawUrl);
-    } catch {
-      return new NextResponse("Invalid URL format", {
-        status: 400,
-        headers: { "Content-Type": "text/plain; charset=utf-8" },
-      });
-    }
+  // ── Cache hit: trả về ngay, không fetch/resize (0ms) ──
+  const cacheKey = `${rawUrl}|${width}`;
+  const cached = imgCacheGet(cacheKey);
+  if (cached) {
+    return new NextResponse(new Uint8Array(cached), {
+      status: 200,
+      headers: {
+        "Content-Type": "image/webp",
+        "Cache-Control": "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400",
+        "X-Cache": "HIT",
+        "Server-Timing": "cache;dur=0",
+      },
+    });
+  }
 
-    // Bảo mật: Chỉ cho phép giao thức HTTPS
-    if (targetUrl.protocol !== "https:") {
-      return new NextResponse("Only HTTPS protocol is allowed", {
-        status: 400,
-        headers: { "Content-Type": "text/plain; charset=utf-8" },
-      });
-    }
+  // Tải ảnh từ upstream với timeout CỨNG 3.5s bao phủ toàn bộ quá trình fetch + body download
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 3500);
 
-    // Bảo mật: Strict allowlist hostname, chỉ chấp nhận chính xác phimimg.com
-    const hostname = targetUrl.hostname.toLowerCase();
-    if (hostname !== "phimimg.com") {
-      return new NextResponse("Hostname not allowed. Only phimimg.com is supported", {
-        status: 403,
-        headers: { "Content-Type": "text/plain; charset=utf-8" },
-      });
-    }
+  let upstreamRes: Response;
+  let arrayBuffer: ArrayBuffer;
+  let tFetch = 0;
 
-    // Bảo mật: Port chuẩn 443 hoặc rỗng
-    if (targetUrl.port && targetUrl.port !== "443") {
-      return new NextResponse("Invalid port", {
-        status: 400,
-        headers: { "Content-Type": "text/plain; charset=utf-8" },
-      });
-    }
-
-    // ── Cache hit: trả về ngay, không fetch/resize ──
-    const cacheKey = `${rawUrl}|${width}`;
-    const cached = imgCacheGet(cacheKey);
-    if (cached) {
-      return new NextResponse(new Uint8Array(cached), {
-        status: 200,
-        headers: {
-          "Content-Type": "image/webp",
-          "Cache-Control": "public, max-age=31536000, immutable",
-          "X-Cache": "HIT",
-        },
-      });
-    }
-
-    // Tải ảnh từ upstream với timeout 4s (giảm từ 8s để fail-fast)
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000);
-
-    let upstreamRes: Response;
-    try {
-      upstreamRes = await fetch(targetUrl.toString(), {
-        signal: controller.signal,
-        headers: {
-          "User-Agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-          Accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
-        },
-      });
-    } catch (err: unknown) {
-      clearTimeout(timeoutId);
-      const isAbort = (err as Error)?.name === "AbortError";
-      return new NextResponse(isAbort ? "Upstream timeout" : "Failed to fetch upstream image", {
-        status: 504,
-        headers: { "Content-Type": "text/plain; charset=utf-8" },
-      });
-    } finally {
-      clearTimeout(timeoutId);
-    }
+  try {
+    upstreamRes = await fetch(targetUrl.toString(), {
+      signal: controller.signal,
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        Accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+      },
+    });
 
     if (!upstreamRes.ok) {
-      return new NextResponse(`Upstream returned HTTP ${upstreamRes.status}`, {
-        status: upstreamRes.status,
-        headers: { "Content-Type": "text/plain; charset=utf-8" },
-      });
+      clearTimeout(timeoutId);
+      // Graceful fallback: Redirect trực tiếp sang URL gốc để browser tự tải
+      return NextResponse.redirect(rawUrl, { status: 307 });
     }
 
     // Kiểm tra redirect bảo mật: Hostname cuối cùng vẫn phải là phimimg.com
@@ -158,12 +151,14 @@ export async function GET(req: NextRequest) {
       try {
         const finalUrl = new URL(upstreamRes.url);
         if (finalUrl.hostname.toLowerCase() !== "phimimg.com") {
+          clearTimeout(timeoutId);
           return new NextResponse("Redirect to disallowed host rejected", {
             status: 403,
             headers: { "Content-Type": "text/plain; charset=utf-8" },
           });
         }
       } catch {
+        clearTimeout(timeoutId);
         return new NextResponse("Invalid redirect URL", {
           status: 400,
           headers: { "Content-Type": "text/plain; charset=utf-8" },
@@ -174,30 +169,35 @@ export async function GET(req: NextRequest) {
     // Kiểm tra Content-Type phải là ảnh
     const contentType = upstreamRes.headers.get("content-type") || "";
     if (!contentType.toLowerCase().startsWith("image/")) {
-      return new NextResponse("Upstream resource is not an image", {
-        status: 400,
-        headers: { "Content-Type": "text/plain; charset=utf-8" },
-      });
+      clearTimeout(timeoutId);
+      return NextResponse.redirect(rawUrl, { status: 307 });
     }
 
     // Kiểm tra kích thước header Content-Length
     const contentLength = upstreamRes.headers.get("content-length");
     if (contentLength && parseInt(contentLength, 10) > MAX_BYTES) {
-      return new NextResponse("Image exceeds 15MB limit", {
-        status: 413,
-        headers: { "Content-Type": "text/plain; charset=utf-8" },
-      });
+      clearTimeout(timeoutId);
+      return NextResponse.redirect(rawUrl, { status: 307 });
     }
 
-    const arrayBuffer = await upstreamRes.arrayBuffer();
+    // Download body với timeout vẫn đang được kích hoạt
+    arrayBuffer = await upstreamRes.arrayBuffer();
+    tFetch = Date.now() - t0;
+    clearTimeout(timeoutId);
+
     if (arrayBuffer.byteLength > MAX_BYTES) {
-      return new NextResponse("Image exceeds 15MB limit", {
-        status: 413,
-        headers: { "Content-Type": "text/plain; charset=utf-8" },
-      });
+      return NextResponse.redirect(rawUrl, { status: 307 });
     }
+  } catch (err: unknown) {
+    clearTimeout(timeoutId);
+    console.warn(`[api/img-thumb] Upstream fetch timeout/fail (${Date.now() - t0}ms) for ${rawUrl}:`, (err as Error)?.message || err);
+    // Graceful fallback: Redirect trực tiếp sang ảnh gốc, không bao giờ để serverless bị treo 20-30s
+    return NextResponse.redirect(rawUrl, { status: 307 });
+  }
 
-    // Xử lý nén & resize bằng sharp: giữ aspect ratio, withoutEnlargement, output webp q80
+  // Xử lý nén & resize bằng Sharp (effort: 2 để xử lý siêu tốc ~10ms, tiết kiệm CPU)
+  try {
+    const tSharpStart = Date.now();
     const outputBuffer = await sharp(Buffer.from(arrayBuffer))
       .resize({
         width,
@@ -205,9 +205,11 @@ export async function GET(req: NextRequest) {
       })
       .webp({
         quality: 80,
-        effort: 4,
+        effort: 2,
       })
       .toBuffer();
+    const tSharp = Date.now() - tSharpStart;
+    const tTotal = Date.now() - t0;
 
     // ── Cache miss: lưu kết quả vào memory cache ──
     imgCacheSet(cacheKey, outputBuffer);
@@ -216,15 +218,16 @@ export async function GET(req: NextRequest) {
       status: 200,
       headers: {
         "Content-Type": "image/webp",
-        "Cache-Control": "public, max-age=31536000, immutable",
+        "Cache-Control": "public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400",
         "X-Cache": "MISS",
+        "Server-Timing": `fetch;dur=${tFetch}, sharp;dur=${tSharp}, total;dur=${tTotal}`,
+        "X-Response-Time": `${tTotal}ms`,
       },
     });
-  } catch (error) {
-    console.error("[api/img-thumb] Error processing image:", error);
-    return new NextResponse("Internal Server Error processing image", {
-      status: 500,
-      headers: { "Content-Type": "text/plain; charset=utf-8" },
-    });
+  } catch (sharpError) {
+    console.warn(`[api/img-thumb] Sharp error for ${rawUrl}:`, sharpError);
+    // Graceful fallback: Redirect sang ảnh gốc
+    return NextResponse.redirect(rawUrl, { status: 307 });
   }
 }
+

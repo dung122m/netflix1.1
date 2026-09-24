@@ -7,7 +7,6 @@ import type { NanaAiStudioModalProps, StudioTab } from "@/components/NanaAiStudi
 import type { ActorBioModalProps } from "@/components/ActorBioModal";
 import type { UserProfileModalProps } from "@/components/UserProfileModal";
 import type { PublicUserProfileModalProps, PublicProfileDetail } from "@/components/PublicUserProfileModal";
-import type { LeaderboardModalProps } from "@/components/LeaderboardModal";
 import { AuthModal } from "@/components/AuthModal";
 
 // Dynamic import các modal nặng với ssr: false (chỉ tải chunk khi modal thực sự được yêu cầu mở)
@@ -23,10 +22,6 @@ const UserProfileModal = dynamic(
   () => import("@/components/UserProfileModal").then((m) => m.UserProfileModal),
   { ssr: false }
 );
-const LeaderboardModal = dynamic(
-  () => import("@/components/LeaderboardModal").then((m) => m.LeaderboardModal),
-  { ssr: false }
-);
 const PublicUserProfileModal = dynamic(
   () => import("@/components/PublicUserProfileModal").then((m) => m.PublicUserProfileModal),
   { ssr: false }
@@ -37,20 +32,17 @@ export const ClientModals = React.memo(function ClientModals() {
   const [mountActorBio, setMountActorBio] = useState(false);
   const [mountUserProfile, setMountUserProfile] = useState(false);
   const [mountPublicProfile, setMountPublicProfile] = useState(false);
-  const [mountLeaderboard, setMountLeaderboard] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
 
   const mountedStudioRef = useRef(false);
   const mountedActorBioRef = useRef(false);
   const mountedUserProfileRef = useRef(false);
   const mountedPublicProfileRef = useRef(false);
-  const mountedLeaderboardRef = useRef(false);
 
   const [studioProps, setStudioProps] = useState<NanaAiStudioModalProps>({ initialOpen: false });
   const [actorBioProps, setActorBioProps] = useState<ActorBioModalProps>({});
   const [userProfileProps, setUserProfileProps] = useState<UserProfileModalProps>({});
   const [publicProfileProps, setPublicProfileProps] = useState<PublicUserProfileModalProps>({});
-  const [leaderboardProps, setLeaderboardProps] = useState<LeaderboardModalProps>({});
 
   useEffect(() => {
     // 1. Nana AI Studio (Studio, Concierge, Mood Matcher, Roulette)
@@ -82,7 +74,7 @@ export const ClientModals = React.memo(function ClientModals() {
     const handleUserProfileTrigger = (e: Event) => {
       if (mountedUserProfileRef.current) return;
       mountedUserProfileRef.current = true;
-      const customEvent = e as CustomEvent<{ tab?: "profile" | "player_settings" | "followed_actors" | "comments" }>;
+      const customEvent = e as CustomEvent<{ tab?: "profile" | "player_settings" | "comments" }>;
       setUserProfileProps({ initialOpen: true, initialTab: customEvent.detail?.tab || "profile" });
       setMountUserProfile(true);
     };
@@ -96,15 +88,7 @@ export const ClientModals = React.memo(function ClientModals() {
       setMountPublicProfile(true);
     };
 
-    // 5. Leaderboard Modal
-    const handleLeaderboardTrigger = () => {
-      if (mountedLeaderboardRef.current) return;
-      mountedLeaderboardRef.current = true;
-      setLeaderboardProps({ initialOpen: true });
-      setMountLeaderboard(true);
-    };
-
-    // 6. Auth Modal (guest login prompt từ BottomNav và các component khác)
+    // 5. Auth Modal (guest login prompt từ BottomNav và các component khác)
     const handleAuthModalTrigger = () => {
       setShowAuthModal(true);
     };
@@ -118,7 +102,6 @@ export const ClientModals = React.memo(function ClientModals() {
     window.addEventListener("open-user-profile-modal", handleUserProfileTrigger);
     window.addEventListener("open-user-profile", handleUserProfileTrigger);
     window.addEventListener("open-public-profile", handlePublicProfileTrigger);
-    window.addEventListener("open-leaderboard-modal", handleLeaderboardTrigger);
     window.addEventListener("open-auth-modal", handleAuthModalTrigger);
 
     return () => {
@@ -131,7 +114,6 @@ export const ClientModals = React.memo(function ClientModals() {
       window.removeEventListener("open-user-profile-modal", handleUserProfileTrigger);
       window.removeEventListener("open-user-profile", handleUserProfileTrigger);
       window.removeEventListener("open-public-profile", handlePublicProfileTrigger);
-      window.removeEventListener("open-leaderboard-modal", handleLeaderboardTrigger);
       window.removeEventListener("open-auth-modal", handleAuthModalTrigger);
     };
   }, []);
@@ -142,7 +124,6 @@ export const ClientModals = React.memo(function ClientModals() {
       {mountActorBio && <ActorBioModal {...actorBioProps} />}
       {mountUserProfile && <UserProfileModal {...userProfileProps} />}
       {mountPublicProfile && <PublicUserProfileModal {...publicProfileProps} />}
-      {mountLeaderboard && <LeaderboardModal {...leaderboardProps} />}
       <AuthModal
         isOpen={showAuthModal}
         onClose={() => setShowAuthModal(false)}
