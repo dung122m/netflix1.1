@@ -1321,7 +1321,7 @@ describe("Nanaflix Live TV - FHD Badges, Broken Source Hiding & Smart Fallback",
   });
 
   it("9. parseServerDisplayLabel: Extracts commentator name or clean source label without technical clutter", () => {
-    // BLV in parentheses
+    // BLV in parentheses without sourceName
     assert.equal(
       parseServerDisplayLabel({ name: "XoiLac 1 (BLV Lê Hoàn) [FHD]" } as StreamServer, 0),
       "BLV Lê Hoàn",
@@ -1329,6 +1329,49 @@ describe("Nanaflix Live TV - FHD Badges, Broken Source Hiding & Smart Fallback",
     assert.equal(
       parseServerDisplayLabel({ name: "Tiếng Việt (BLV Quang Huy)" } as StreamServer, 1),
       "BLV Quang Huy",
+    );
+    // BLV with source platform (Kiểu 1: BLV ... · Nền tảng)
+    assert.equal(
+      parseServerDisplayLabel(
+        { name: "Xôi Lạc Z TV (ASTRA) #1 [HD]", sourceName: "Xôi Lạc Z TV" } as StreamServer,
+        0,
+      ),
+      "BLV ASTRA · Xôi Lạc",
+    );
+    assert.equal(
+      parseServerDisplayLabel(
+        { name: "Xôi Lạc Z TV (HD ASTRA) #2 [FHD]", sourceName: "Xôi Lạc Z TV" } as StreamServer,
+        1,
+      ),
+      "BLV ASTRA · Xôi Lạc",
+    );
+    assert.equal(
+      parseServerDisplayLabel(
+        { name: "Cola TV (BLV GIÀ LÀNG) #3 [HD]", sourceName: "Cola TV" } as StreamServer,
+        2,
+      ),
+      "BLV GIÀ LÀNG · Cola TV",
+    );
+    assert.equal(
+      parseServerDisplayLabel(
+        { name: "Gà Vàng 33 TV (Gà Siêu Ngố) #4 [HD]", sourceName: "Gà Vàng 33 TV" } as StreamServer,
+        3,
+      ),
+      "BLV Gà Siêu Ngố · Gà Vàng",
+    );
+    assert.equal(
+      parseServerDisplayLabel(
+        { name: "Sút Bóng TV (BLV FIREMAN) #5 [HD]", sourceName: "Sút Bóng TV" } as StreamServer,
+        4,
+      ),
+      "BLV FIREMAN · Sút Bóng TV",
+    );
+    assert.equal(
+      parseServerDisplayLabel(
+        { name: "Phá Làng TV (Nhà đài) #6 [HD]", sourceName: "Phá Làng TV" } as StreamServer,
+        5,
+      ),
+      "BLV Nhà đài · Phá Làng TV",
     );
     // Inline BLV
     assert.equal(

@@ -32,7 +32,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "npx tsx --env-file=.env.local --test src/services/live/football/matchStatus.test.ts src/services/movies/service.test.ts",
+    "test": "npx tsx --env-file=.env.local --test src/services/live/football/matchStatus.test.ts src/services/movies/service.test.ts src/services/notificationService.test.ts",
     "test:movies": "npx tsx --env-file=.env.local --test src/services/movies/service.test.ts",
     "test:live": "npx tsx --env-file=.env.local --test src/services/live/football/matchStatus.test.ts",
     "check": "npm run lint && npm run typecheck && npm run test && npm run build"

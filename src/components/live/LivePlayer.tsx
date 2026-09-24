@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { createPortal } from "react-dom";
 import Hls from "hls.js";
 import {
   Play,
@@ -314,7 +315,27 @@ export function toCanonicalSourceUrl(url?: string | null): string {
 }
 
 /**
- * Trích xuất tên BLV hoặc tên nguồn thân thiện, loại bỏ thông số kỹ thuật rườm rà
+ * Làm sạch tên nền tảng/nhóm nguồn để hiển thị gọn gàng, hiện đại (ví dụ: Xôi Lạc, Gà Vàng, Cola TV...)
+ */
+export function cleanPlatformName(name?: string): string {
+  if (!name) return "";
+  const trimmed = name.replace(/^[🔴🟢🟡⚪🟠📡\s]+/, "").trim();
+  if (
+    /^(?:other|live football|bóng đá|thể thao|livetv|sports)$/i.test(trimmed)
+  ) {
+    return "";
+  }
+  let clean = trimmed
+    .replace(/^(?:xoilac|xôi\s*lạc)(?:\s*z)?(?:\s*tv)?$/i, "Xôi Lạc")
+    .replace(/^(?:gà\s*vàng|gavang)(?:\s*\d+h?)?(?:\s*tv)?$/i, "Gà Vàng")
+    .replace(/\s*Z\s*TV$/i, "")
+    .replace(/\s*\d+h?\s*TV$/i, "");
+
+  return clean.trim();
+}
+
+/**
+ * Trích xuất tên BLV hoặc tên nguồn thân thiện kèm tên nền tảng theo Kiểu 1 (BLV ... · Nền tảng)
  */
 export function parseServerDisplayLabel(
   server?: StreamServer,
@@ -322,20 +343,30 @@ export function parseServerDisplayLabel(
 ): string {
   if (!server) return `Nguồn ${index + 1}`;
 
-  // 1. Tên BLV trong ngoặc: "(BLV Lê Hoàn)", "(Bình luận viên Batman)"
+  const platform = cleanPlatformName(server.sourceName);
+
+  const formatWithPlatform = (blv: string): string => {
+    if (!platform) return blv;
+    if (blv.toLowerCase().includes(platform.toLowerCase())) return blv;
+    return `${blv} · ${platform}`;
+  };
+
+  // 1. Tên BLV trong ngoặc: "(BLV Lê Hoàn)", "(Bình luận viên Batman)", "(HD ASTRA)"
   const matchParen = server.name.match(
     /\((?:blv\s+|bình luận viên\s+)?([^)]+)\)/i,
   );
   if (matchParen && matchParen[1]) {
     const candidate = matchParen[1]
       .replace(/^(?:blv|bình luận viên)\s+/i, "")
+      .replace(/^(?:hd|fhd|4k|sd)\s+/i, "")
+      .replace(/\s+(?:hd|fhd|4k|sd)$/i, "")
       .trim();
     if (
       candidate &&
       !/^\d+$/.test(candidate) &&
       !/^(?:fhd|hd|4k|sd|hls|flv)$/i.test(candidate)
     ) {
-      return `BLV ${candidate}`;
+      return formatWithPlatform(`BLV ${candidate}`);
     }
   }
 
@@ -344,13 +375,16 @@ export function parseServerDisplayLabel(
     /(?:blv|bình luận viên)\s+([^\s#\[\]()]+(?:\s+[^\s#\[\]()]+)?)/i,
   );
   if (matchInline && matchInline[1]) {
-    return `BLV ${matchInline[1].trim()}`;
+    const candidate = matchInline[1]
+      .replace(/^(?:hd|fhd|4k|sd)\s+/i, "")
+      .replace(/\s+(?:hd|fhd|4k|sd)$/i, "")
+      .trim();
+    return formatWithPlatform(`BLV ${candidate}`);
   }
 
   // 3. Tên nhóm nguồn sạch (ví dụ: FPT Play, K+ SPORT, Xoilac)
-  const sourceName = server.sourceName?.trim();
-  if (sourceName && sourceName !== "Other" && sourceName !== "LIVE FOOTBALL") {
-    return `${sourceName} · Nguồn ${index + 1}`;
+  if (platform) {
+    return `${platform} · Nguồn ${index + 1}`;
   }
 
   // 4. Loại bỏ các nhãn kỹ thuật [FHD], [HD], #1, Server 1...
@@ -572,6 +606,20 @@ function LivePlayerInner({
   const [railFilter, setRailFilter] = useState<"all" | "live" | "fpt">("all");
   const activeOptionRef = useRef<HTMLButtonElement | null>(null);
   const drawerListRef = useRef<HTMLDivElement | null>(null);
+
+  const [isMounted, setIsMounted] = useState(false);
+  const [isMobileScreen, setIsMobileScreen] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+    const updateSize = () => setIsMobileScreen(window.innerWidth < 640);
+    updateSize();
+    window.addEventListener("resize", updateSize, { passive: true });
+    return () => window.removeEventListener("resize", updateSize);
+  }, []);
+
+  const useMobilePortal =
+    isMounted && isMobileScreen && !isFullscreen && typeof document !== "undefined";
 
   const isRailVisible =
     showMatchRail !== undefined ? showMatchRail : internalMatchRail;
@@ -2119,6 +2167,197 @@ function LivePlayerInner({
   const VolumeIcon =
     isMuted || volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
 
+  const sourceDrawerMarkup =
+    servers && servers.length > 0 ? (
+      <>
+        {/* BACKDROP KHI MỞ DRAWER CHỌN NGUỒN PHÁT TRÊN MOBILE & DESKTOP */}
+        <div
+          className={`${
+            useMobilePortal
+              ? "fixed inset-0 z-[9998] bg-black/80"
+              : "fixed inset-0 sm:absolute sm:inset-0 z-40 bg-black/75 sm:bg-black/40"
+          } backdrop-blur-sm transition-all duration-300 ${
+            isRailVisible
+              ? "opacity-100 pointer-events-auto visible"
+              : "opacity-0 pointer-events-none invisible"
+          }`}
+          onClick={(e) => {
+            e.stopPropagation();
+            closeRail();
+          }}
+        />
+
+        {/* DRAWER / BOTTOM SHEET CHỌN NGUỒN PHÁT CỦA TRẬN ĐANG XEM (TỐI ƯU CẢM ỨNG MOBILE) */}
+        <aside
+          className={`${
+            useMobilePortal
+              ? "fixed inset-x-0 bottom-0 z-[9999] w-full max-h-[85vh] rounded-t-3xl border-t border-white/20 bg-zinc-950/98 p-4 pb-6 shadow-2xl backdrop-blur-2xl"
+              : "fixed inset-x-0 bottom-0 sm:absolute sm:inset-y-0 sm:right-0 sm:left-auto z-50 w-full sm:w-[360px] max-h-[85vh] sm:max-h-full rounded-t-3xl sm:rounded-none border-t sm:border-t-0 sm:border-l border-white/20 bg-zinc-950/98 sm:bg-zinc-950/95 p-4 shadow-2xl backdrop-blur-2xl"
+          } transition-all duration-300 flex flex-col ${
+            isRailVisible
+              ? "translate-y-0 sm:translate-x-0 opacity-100 pointer-events-auto visible"
+              : "translate-y-full sm:translate-y-0 sm:translate-x-full opacity-0 pointer-events-none invisible"
+          }`}
+          onClick={(event) => event.stopPropagation()}
+        >
+          {/* THANH VUỐT KÉO GỢI Ý TRÊN MOBILE */}
+          <div className="w-12 h-1.5 bg-white/30 rounded-full mx-auto mb-3 sm:hidden flex-shrink-0" />
+
+          <div className="mb-3 flex items-center justify-between border-b border-white/10 pb-3 flex-shrink-0">
+            <div className="min-w-0 pr-2">
+              <div className="flex items-center gap-1.5">
+                <Mic className="w-4 h-4 text-amber-400 shrink-0" />
+                <p className="text-[11px] sm:text-xs font-black uppercase tracking-wider text-amber-400">
+                  Nguồn phát trực tiếp
+                </p>
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/10 text-gray-300 font-bold">
+                  {sortedAvailableServers.length}
+                </span>
+              </div>
+              <p className="mt-1 truncate text-xs font-bold text-white">
+                {title}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                closeRail();
+              }}
+              className="rounded-full p-2 text-white hover:bg-white/20 active:scale-95 bg-white/10 transition flex-shrink-0 cursor-pointer min-w-[38px] min-h-[38px] flex items-center justify-center border border-white/15 shadow-sm"
+              title="Đóng danh sách nguồn phát"
+              aria-label="Đóng"
+            >
+              <X className="h-4 w-4 text-white" />
+            </button>
+          </div>
+
+          {/* DANH SÁCH NGUỒN PHÁT (TOUCH-FRIENDLY, FHD > HD, TRUNCATE BLV DÀI) */}
+          <div
+            ref={drawerListRef}
+            className="flex-1 overflow-y-auto space-y-1.5 pr-0.5 scrollbar-thin overscroll-contain"
+          >
+            {sortedAvailableServers.length === 0 ? (
+              <div className="py-12 px-4 text-center rounded-2xl bg-red-950/20 border border-red-900/30 text-gray-300 text-xs flex flex-col items-center justify-center gap-3">
+                <AlertCircle className="w-6 h-6 text-red-400" />
+                <span>Tất cả nguồn phát đang gặp sự cố hoặc gián đoạn tín hiệu.</span>
+                <button
+                  type="button"
+                  onClick={handleRetry}
+                  className="px-4 py-2 rounded-xl bg-netflix-red hover:bg-red-700 text-white font-bold transition flex items-center gap-2 cursor-pointer text-xs"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Thử kết nối lại</span>
+                </button>
+              </div>
+            ) : (
+              sortedAvailableServers.map((s, idx) => {
+                const isSelected =
+                  toCanonicalSourceUrl(currentServer?.url) ===
+                  toCanonicalSourceUrl(s.url);
+                const quality = getSourceQuality(s);
+                const displayLabel = parseServerDisplayLabel(s, idx);
+
+                return (
+                  <button
+                    key={`${toCanonicalSourceUrl(s.url) || "srv"}-${idx}`}
+                    type="button"
+                    onClick={() => {
+                      const origIdx = servers.findIndex(
+                        (srv) =>
+                          toCanonicalSourceUrl(srv.url) ===
+                          toCanonicalSourceUrl(s.url),
+                      );
+                      const targetIdx = origIdx !== -1 ? origIdx : 0;
+                      fallbackCountRef.current = 0;
+                      isStoppedRef.current = false;
+                      useProxyFallbackRef.current = false;
+                      setUseProxyFallback(false);
+                      lastLoadedUrlRef.current = "";
+                      setHasError(false);
+                      setErrorMessage("");
+                      setIsLoading(true);
+                      setSelectedServerIndex(targetIdx);
+                      triggerActionFeedback(
+                        "server",
+                        `${quality ? `[${quality}] ` : ""}${displayLabel}`,
+                      );
+                      closeRail();
+                    }}
+                    ref={isSelected ? activeOptionRef : undefined}
+                    className={`w-full rounded-xl border p-3 text-left transition flex items-center gap-2.5 cursor-pointer min-h-[48px] active:scale-[0.99] touch-manipulation ${
+                      isSelected
+                        ? "border-netflix-red/90 bg-red-500/15 text-white shadow-md shadow-red-950/40 ring-1 ring-netflix-red/40"
+                        : "border-white/10 bg-white/[0.04] text-gray-200 hover:border-white/20 hover:bg-white/[0.08]"
+                    }`}
+                  >
+                    {/* Biểu tượng Check nếu đang chọn */}
+                    <div className="w-5 h-5 flex items-center justify-center shrink-0">
+                      {isSelected ? (
+                        <Check className="w-4 h-4 text-emerald-400 font-bold" />
+                      ) : (
+                        <span className="w-2 h-2 rounded-full bg-white/20" />
+                      )}
+                    </div>
+
+                    {/* Badge chất lượng FHD / HD */}
+                    <div className="shrink-0 flex items-center">
+                      {quality === "FHD" ? (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-black tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                          <span>🟡</span>
+                          <span>FHD</span>
+                        </span>
+                      ) : quality === "HD" ? (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-black tracking-wider bg-sky-500/20 text-sky-300 border border-sky-500/40">
+                          <span>🔵</span>
+                          <span>HD</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider bg-white/10 text-gray-300 border border-white/15">
+                          <span>⚪</span>
+                          <span>SD</span>
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Dấu phân cách */}
+                    <span className="text-gray-500 text-xs shrink-0">·</span>
+
+                    {/* Tên BLV / Tên nguồn đã làm sạch */}
+                    <span className="truncate text-xs sm:text-sm font-semibold text-gray-100 flex-1 min-w-0">
+                      {displayLabel}
+                    </span>
+
+                    {/* Icon sóng động nếu đang phát */}
+                    {isSelected && isPlaying && !isLoading && !hasError && (
+                      <div className="shrink-0">
+                        <PlayingEqualizer />
+                      </div>
+                    )}
+                  </button>
+                );
+              })
+            )}
+          </div>
+
+          {/* NÚT ĐÓNG TO RÕ Ở CUỐI DRAWER DÀNH RIÊNG CHO MOBILE */}
+          <div className="pt-2.5 mt-2 border-t border-white/10 flex-shrink-0 sm:hidden">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                closeRail();
+              }}
+              className="w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/15 active:scale-[0.99] text-white font-bold text-xs transition border border-white/10 flex items-center justify-center gap-1.5 cursor-pointer touch-manipulation shadow-md"
+            >
+              <X className="w-3.5 h-3.5" />
+              <span>Đóng danh sách</span>
+            </button>
+          </div>
+        </aside>
+      </>
+    ) : null;
+
   return (
     <div className="space-y-4">
       {/* 1. SCOREBOARD HEADER SÂN CỎ ĐỈNH CAO: AMBIENT GLOW & HUY HIỆU CLB SẮC NÉT */}
@@ -2373,168 +2612,7 @@ function LivePlayerInner({
           )}
         </div>
 
-        {servers && servers.length > 0 && (
-          <>
-            {/* BACKDROP KHI MỞ DRAWER CHỌN NGUỒN PHÁT TRÊN MOBILE & DESKTOP */}
-            <div
-              className={`fixed inset-0 sm:absolute sm:inset-0 bg-black/75 sm:bg-black/40 backdrop-blur-sm z-40 transition-all duration-300 ${
-                isRailVisible
-                  ? "opacity-100 pointer-events-auto visible"
-                  : "opacity-0 pointer-events-none invisible"
-              }`}
-              onClick={(e) => {
-                e.stopPropagation();
-                closeRail();
-              }}
-            />
-
-            {/* DRAWER / BOTTOM SHEET CHỌN NGUỒN PHÁT CỦA TRẬN ĐANG XEM (TỐI ƯU CẢM ỨNG MOBILE) */}
-            <aside
-              className={`fixed inset-x-0 bottom-0 sm:absolute sm:inset-y-0 sm:right-0 sm:left-auto z-50 w-full sm:w-[360px] max-h-[85vh] sm:max-h-full rounded-t-3xl sm:rounded-none border-t sm:border-t-0 sm:border-l border-white/20 bg-zinc-950/98 sm:bg-zinc-950/95 p-4 shadow-2xl backdrop-blur-2xl transition-all duration-300 flex flex-col ${
-                isRailVisible
-                  ? "translate-y-0 sm:translate-x-0 opacity-100 pointer-events-auto visible"
-                  : "translate-y-full sm:translate-y-0 sm:translate-x-full opacity-0 pointer-events-none invisible"
-              }`}
-              onClick={(event) => event.stopPropagation()}
-            >
-              {/* THANH VUỐT KÉO GỢI Ý TRÊN MOBILE */}
-              <div className="w-12 h-1.5 bg-white/30 rounded-full mx-auto mb-3 sm:hidden flex-shrink-0" />
-
-              <div className="mb-3 flex items-center justify-between border-b border-white/10 pb-3 flex-shrink-0">
-                <div className="min-w-0 pr-2">
-                  <div className="flex items-center gap-1.5">
-                    <Mic className="w-4 h-4 text-amber-400 shrink-0" />
-                    <p className="text-[11px] sm:text-xs font-black uppercase tracking-wider text-amber-400">
-                      Nguồn phát trực tiếp
-                    </p>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/10 text-gray-300 font-bold">
-                      {sortedAvailableServers.length}
-                    </span>
-                  </div>
-                  <p className="mt-1 truncate text-xs font-bold text-white">
-                    {title}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={closeRail}
-                  className="rounded-full p-2 text-gray-400 hover:bg-white/10 hover:text-white bg-white/5 transition flex-shrink-0 cursor-pointer min-w-[36px] min-h-[36px] flex items-center justify-center"
-                  title="Đóng danh sách nguồn phát"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-
-              {/* DANH SÁCH NGUỒN PHÁT (TOUCH-FRIENDLY, FHD > HD, TRUNCATE BLV DÀI) */}
-              <div
-                ref={drawerListRef}
-                className="flex-1 overflow-y-auto space-y-1.5 pr-0.5 scrollbar-thin"
-              >
-                {sortedAvailableServers.length === 0 ? (
-                  <div className="py-12 px-4 text-center rounded-2xl bg-red-950/20 border border-red-900/30 text-gray-300 text-xs flex flex-col items-center justify-center gap-3">
-                    <AlertCircle className="w-6 h-6 text-red-400" />
-                    <span>Tất cả nguồn phát đang gặp sự cố hoặc gián đoạn tín hiệu.</span>
-                    <button
-                      type="button"
-                      onClick={handleRetry}
-                      className="px-4 py-2 rounded-xl bg-netflix-red hover:bg-red-700 text-white font-bold transition flex items-center gap-2 cursor-pointer text-xs"
-                    >
-                      <RotateCcw className="w-3.5 h-3.5" />
-                      <span>Thử kết nối lại</span>
-                    </button>
-                  </div>
-                ) : (
-                  sortedAvailableServers.map((s, idx) => {
-                    const isSelected =
-                      toCanonicalSourceUrl(currentServer?.url) ===
-                      toCanonicalSourceUrl(s.url);
-                    const quality = getSourceQuality(s);
-                    const displayLabel = parseServerDisplayLabel(s, idx);
-
-                    return (
-                      <button
-                        key={`${toCanonicalSourceUrl(s.url) || "srv"}-${idx}`}
-                        type="button"
-                        onClick={() => {
-                          const origIdx = servers.findIndex(
-                            (srv) =>
-                              toCanonicalSourceUrl(srv.url) ===
-                              toCanonicalSourceUrl(s.url),
-                          );
-                          const targetIdx = origIdx !== -1 ? origIdx : 0;
-                          fallbackCountRef.current = 0;
-                          isStoppedRef.current = false;
-                          useProxyFallbackRef.current = false;
-                          setUseProxyFallback(false);
-                          lastLoadedUrlRef.current = "";
-                          setHasError(false);
-                          setErrorMessage("");
-                          setIsLoading(true);
-                          setSelectedServerIndex(targetIdx);
-                          triggerActionFeedback(
-                            "server",
-                            `${quality ? `[${quality}] ` : ""}${displayLabel}`,
-                          );
-                          closeRail();
-                        }}
-                        ref={isSelected ? activeOptionRef : undefined}
-                        className={`w-full rounded-xl border p-3 text-left transition flex items-center gap-2.5 cursor-pointer min-h-[48px] active:scale-[0.99] touch-manipulation ${
-                          isSelected
-                            ? "border-netflix-red/90 bg-red-500/15 text-white shadow-md shadow-red-950/40 ring-1 ring-netflix-red/40"
-                            : "border-white/10 bg-white/[0.04] text-gray-200 hover:border-white/20 hover:bg-white/[0.08]"
-                        }`}
-                      >
-                        {/* Biểu tượng Check nếu đang chọn */}
-                        <div className="w-5 h-5 flex items-center justify-center shrink-0">
-                          {isSelected ? (
-                            <Check className="w-4 h-4 text-emerald-400 font-bold" />
-                          ) : (
-                            <span className="w-2 h-2 rounded-full bg-white/20" />
-                          )}
-                        </div>
-
-                        {/* Badge chất lượng FHD / HD */}
-                        <div className="shrink-0 flex items-center">
-                          {quality === "FHD" ? (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-black tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                              <span>🟡</span>
-                              <span>FHD</span>
-                            </span>
-                          ) : quality === "HD" ? (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-black tracking-wider bg-sky-500/20 text-sky-300 border border-sky-500/40">
-                              <span>🔵</span>
-                              <span>HD</span>
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider bg-white/10 text-gray-300 border border-white/15">
-                              <span>⚪</span>
-                              <span>SD</span>
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Dấu phân cách */}
-                        <span className="text-gray-500 text-xs shrink-0">·</span>
-
-                        {/* Tên BLV / Tên nguồn đã làm sạch */}
-                        <span className="truncate text-xs sm:text-sm font-semibold text-gray-100 flex-1 min-w-0">
-                          {displayLabel}
-                        </span>
-
-                        {/* Icon sóng động nếu đang phát */}
-                        {isSelected && isPlaying && !isLoading && !hasError && (
-                          <div className="shrink-0">
-                            <PlayingEqualizer />
-                          </div>
-                        )}
-                      </button>
-                    );
-                  })
-                )}
-              </div>
-            </aside>
-          </>
-        )}
+        {!useMobilePortal && sourceDrawerMarkup}
 
         {/* NÚT BẬT ÂM THANH NỔI BẬT KHI ĐANG MUTE Ở GÓC TRÊN PHẢI (ẨN KHI KHÔNG TƯƠNG TÁC) */}
         {isPlaying && isMuted && !isLoading && !hasError && (
@@ -2655,53 +2733,54 @@ function LivePlayerInner({
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="bg-gradient-to-t from-black/95 via-black/80 to-transparent p-2 sm:p-4 pt-6 sm:pt-8 flex items-center justify-between gap-1.5 sm:gap-4 select-none"
+            className="bg-gradient-to-t from-black/95 via-black/80 to-transparent p-1.5 sm:p-4 pt-4 sm:pt-8 flex items-center justify-between gap-1 sm:gap-4 select-none"
           >
             {/* CỤM TRÁI: PLAY/PAUSE + ĐỔI TRẬN NHANH + ÂM LƯỢNG */}
-            <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0 flex-shrink">
+            <div className="flex items-center gap-1 sm:gap-2.5 min-w-0 shrink-0">
               <button
                 type="button"
                 onClick={togglePlay}
                 title={isPlaying ? "Tạm dừng (Space)" : "Phát (Space)"}
-                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/20 hover:bg-white/30 flex-shrink-0 flex items-center justify-center text-white transition hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md border border-white/20"
+                className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/20 hover:bg-white/30 shrink-0 flex items-center justify-center text-white transition hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md border border-white/20"
               >
                 {isPlaying ? (
-                  <Pause className="w-4 h-4 sm:w-5 sm:h-5 fill-current" />
+                  <Pause className="w-3.5 h-3.5 sm:w-5 sm:h-5 fill-current" />
                 ) : (
-                  <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current ml-0.5" />
+                  <Play className="w-3.5 h-3.5 sm:w-5 sm:h-5 fill-current ml-0.5" />
                 )}
               </button>
 
               {/* NÚT ĐỔI NGUỒN PHÁT TRƯỚC / SAU TRÊN THANH CONTROL */}
-              <div className="h-9 sm:h-10 flex items-center bg-black/60 rounded-full border border-white/20 px-1 backdrop-blur-md flex-shrink-0">
+              <div className="h-8 sm:h-10 flex items-center bg-black/60 rounded-full border border-white/20 px-0.5 sm:px-1 backdrop-blur-md shrink-0">
                 <button
                   type="button"
                   onClick={() => handleSwitchServer("prev")}
                   disabled={availableServers.length <= 1}
                   title="Nguồn phát trước (Phím P hoặc PageUp)"
-                  className={`w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-full transition ${
+                  className={`w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center rounded-full transition ${
                     availableServers.length <= 1
                       ? "text-gray-500 cursor-not-allowed opacity-50"
                       : "text-gray-300 hover:text-white hover:bg-white/10 cursor-pointer"
                   }`}
                 >
-                  <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4" />
                 </button>
-                <span className="text-[11px] sm:text-xs font-semibold px-1.5 sm:px-2 text-amber-300 whitespace-nowrap select-none">
-                  {`Nguồn ${currentAvailableIdx !== -1 ? currentAvailableIdx + 1 : 1}/${availableServers.length || 1}`}
+                <span className="text-[10px] sm:text-xs font-semibold px-1 sm:px-2 text-amber-300 whitespace-nowrap select-none">
+                  <span className="hidden sm:inline">Nguồn </span>
+                  {`${currentAvailableIdx !== -1 ? currentAvailableIdx + 1 : 1}/${availableServers.length || 1}`}
                 </span>
                 <button
                   type="button"
                   onClick={() => handleSwitchServer("next")}
                   disabled={availableServers.length <= 1}
                   title="Nguồn phát kế tiếp (Phím N hoặc PageDown)"
-                  className={`w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-full transition ${
+                  className={`w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center rounded-full transition ${
                     availableServers.length <= 1
                       ? "text-gray-500 cursor-not-allowed opacity-50"
                       : "text-gray-300 hover:text-white hover:bg-white/10 cursor-pointer"
                   }`}
                 >
-                  <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4" />
                 </button>
               </div>
 
@@ -2710,17 +2789,17 @@ function LivePlayerInner({
                 type="button"
                 onClick={toggleMute}
                 title={isMuted ? "Bật âm thanh (M)" : "Tắt âm thanh (M)"}
-                className="w-9 h-9 sm:hidden rounded-full bg-black/60 border border-white/20 flex items-center justify-center text-white hover:text-rose-400 transition cursor-pointer flex-shrink-0 backdrop-blur-md"
+                className="w-8 h-8 sm:hidden rounded-full bg-black/60 border border-white/20 flex items-center justify-center text-white hover:text-rose-400 transition cursor-pointer shrink-0 backdrop-blur-md"
               >
                 <VolumeIcon
-                  className={`w-4 h-4 ${
+                  className={`w-3.5 h-3.5 ${
                     isMuted || volume === 0 ? "text-rose-400" : "text-white"
                   }`}
                 />
               </button>
 
               {/* CỤM VOLUME TRÊN TABLET & DESKTOP (Hiện đầy đủ Slider + % text) */}
-              <div className="h-9 sm:h-10 hidden sm:flex items-center gap-2 bg-black/60 px-3 rounded-full border border-white/20 backdrop-blur-md flex-shrink-0">
+              <div className="h-9 sm:h-10 hidden sm:flex items-center gap-2 bg-black/60 px-3 rounded-full border border-white/20 backdrop-blur-md shrink-0">
                 <button
                   type="button"
                   onClick={toggleMute}
@@ -2755,7 +2834,7 @@ function LivePlayerInner({
             </div>
 
             {/* CỤM PHẢI: NÚT KÊNH + PHÍM TẮT GỢI Ý + PIP + TOÀN MÀN HÌNH */}
-            <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+            <div className="flex items-center gap-1 sm:gap-2 shrink-0">
               {/* Nút Chọn Nguồn Phát của trận đang xem */}
               {servers && servers.length > 0 && (
                 <button
@@ -2765,18 +2844,18 @@ function LivePlayerInner({
                     toggleRail();
                   }}
                   title="Chọn nguồn phát của trận đang xem (Phím C)"
-                  className={`h-9 sm:h-10 flex items-center gap-1.5 px-3 sm:px-3.5 rounded-full border text-[11px] sm:text-xs font-semibold transition backdrop-blur-md cursor-pointer touch-manipulation flex-shrink-0 ${
+                  className={`h-8 sm:h-10 flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 rounded-full border text-[10px] sm:text-xs font-semibold transition backdrop-blur-md cursor-pointer touch-manipulation shrink-0 ${
                     isRailVisible
                       ? "bg-gradient-to-r from-red-600 to-rose-600 text-white border-red-400 shadow-md shadow-red-950/60"
                       : "bg-black/60 hover:bg-white/20 text-gray-200 hover:text-white border-white/20"
                   }`}
                 >
-                  <Mic className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400 shrink-0" />
+                  <Mic className="w-3 h-3 sm:w-4 sm:h-4 text-amber-400 shrink-0" />
                   <span>Nguồn</span>
                   {isRailVisible ? (
-                    <ChevronUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-300 shrink-0" />
+                    <ChevronUp className="w-3 h-3 sm:w-4 sm:h-4 text-gray-300 shrink-0" />
                   ) : (
-                    <ChevronDown className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-300 shrink-0" />
+                    <ChevronDown className="w-3 h-3 sm:w-4 sm:h-4 text-gray-300 shrink-0" />
                   )}
                 </button>
               )}
@@ -2789,7 +2868,7 @@ function LivePlayerInner({
                 type="button"
                 onClick={togglePip}
                 title="Xem thu nhỏ góc màn hình (PiP - Phím I)"
-                className={`w-9 h-9 sm:w-10 sm:h-10 hidden sm:flex rounded-full items-center justify-center transition hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md border border-white/20 flex-shrink-0 ${
+                className={`w-9 h-9 sm:w-10 sm:h-10 hidden sm:flex rounded-full items-center justify-center transition hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md border border-white/20 shrink-0 ${
                   isPip
                     ? "bg-netflix-red text-white"
                     : "bg-black/60 hover:bg-white/20 text-white"
@@ -2803,18 +2882,23 @@ function LivePlayerInner({
                 type="button"
                 onClick={toggleFullscreen}
                 title={isFullscreen ? "Thu nhỏ (F)" : "Toàn màn hình (F)"}
-                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-netflix-red hover:bg-red-700 flex items-center justify-center text-white transition hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md flex-shrink-0 shadow-lg shadow-red-950/60 border border-white/20"
+                className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-netflix-red hover:bg-red-700 flex items-center justify-center text-white transition hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md shrink-0 shadow-lg shadow-red-950/60 border border-white/20"
               >
                 {isFullscreen ? (
-                  <Minimize className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <Minimize className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
                 ) : (
-                  <Maximize className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <Maximize className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
                 )}
               </button>
             </div>
           </div>
         </div>
       </div>
+
+      {/* PORTAL BOTTOM SHEET CHO MOBILE: KHÔNG BỊ CLIPPED BỞI CONTAINER */}
+      {useMobilePortal &&
+        typeof document !== "undefined" &&
+        createPortal(sourceDrawerMarkup, document.body)}
 
       {/* 3. THANH THÔNG TIN TRẬN ĐẤU & CHỌN MÁY CHỦ SẮC NÉT */}
       <div className="keep-dark-cinema rounded-2xl sm:rounded-3xl border border-white/10 bg-zinc-900/95 p-3.5 sm:p-5 shadow-xl space-y-3 sm:space-y-4 w-full min-w-0">

@@ -109,8 +109,139 @@ export function mergeNotifications(
   return result.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 }
 
+interface NotificationSingleton {
+  userId: string;
+  listeners: Set<(notifications: UserNotification[]) => void>;
+  cachedData: UserNotification[] | null;
+  inFlightPromise: Promise<UserNotification[]> | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  realtimeChannel: any | null;
+  cleanupTimer: NodeJS.Timeout | null;
+}
+
+let activeSingleton: NotificationSingleton | null = null;
+
+const CLEANUP_GRACE_PERIOD_MS = 1000;
+
+function broadcastUpdate(userId: string, incoming: UserNotification[]) {
+  if (!activeSingleton || activeSingleton.userId !== userId) return;
+
+  const current = activeSingleton.cachedData || getLocalNotifications(userId);
+  const merged = mergeNotifications(current, incoming, userId);
+  activeSingleton.cachedData = merged;
+  saveLocalNotifications(userId, merged);
+
+  for (const listener of activeSingleton.listeners) {
+    try {
+      listener(merged);
+    } catch (e) {
+      console.error("Lỗi notification listener:", e);
+    }
+  }
+}
+
+function fetchSingletonNotifications(userId: string): Promise<UserNotification[]> {
+  if (!activeSingleton || activeSingleton.userId !== userId) {
+    return Promise.resolve([]);
+  }
+
+  // Chia sẻ promise đang bay nếu có subscriber khác hoặc request trước đó đang chạy
+  if (activeSingleton.inFlightPromise) {
+    return activeSingleton.inFlightPromise;
+  }
+
+  if (!isSupabaseConfigured()) {
+    return Promise.resolve([]);
+  }
+
+  const promise = getUserNotificationsSupabase(userId)
+    .then((items) => {
+      if (!activeSingleton || activeSingleton.userId !== userId) {
+        return [];
+      }
+      activeSingleton.inFlightPromise = null;
+      if (Array.isArray(items) && items.length > 0) {
+        broadcastUpdate(userId, items);
+      }
+      return items || [];
+    })
+    .catch((err) => {
+      if (activeSingleton && activeSingleton.userId === userId) {
+        activeSingleton.inFlightPromise = null;
+      }
+      console.warn("Lỗi nạp thông báo người dùng:", err);
+      return [];
+    });
+
+  activeSingleton.inFlightPromise = promise;
+  return promise;
+}
+
+function setupSingletonRealtime(userId: string) {
+  if (!supabase || !activeSingleton || activeSingleton.userId !== userId) return;
+
+  try {
+    const channelName = `realtime_notifs_${userId}`;
+    const newChannel = supabase.channel(channelName);
+    newChannel
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${userId}`,
+        },
+        () => {
+          if (activeSingleton && activeSingleton.userId === userId) {
+            fetchSingletonNotifications(userId);
+          }
+        },
+      )
+      .subscribe();
+    activeSingleton.realtimeChannel = newChannel;
+  } catch (err) {
+    console.warn("Lỗi đăng ký Realtime notifications:", err);
+  }
+}
+
+function teardownSingleton(singleton: NotificationSingleton) {
+  if (singleton.cleanupTimer) {
+    clearTimeout(singleton.cleanupTimer);
+    singleton.cleanupTimer = null;
+  }
+  if (singleton.realtimeChannel && supabase) {
+    try {
+      supabase.removeChannel(singleton.realtimeChannel);
+    } catch {}
+    singleton.realtimeChannel = null;
+  }
+  singleton.listeners.clear();
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("nanaflix-notifications-updated", (e: Event) => {
+    const customEvt = e as CustomEvent<{ userId: string; items: UserNotification[] }>;
+    if (
+      customEvt.detail &&
+      activeSingleton &&
+      activeSingleton.userId === customEvt.detail.userId
+    ) {
+      activeSingleton.cachedData = customEvt.detail.items;
+      for (const listener of activeSingleton.listeners) {
+        try {
+          listener(customEvt.detail.items);
+        } catch {}
+      }
+    }
+  });
+}
+
 /**
- * Lắng nghe thông báo thời gian thực từ Supabase + Local Storage Cache + Custom Event
+ * Lắng nghe thông báo thời gian thực từ Supabase theo mô hình Shared Service-Level Singleton
+ * - Đúng 1 initial GET /api/notifications cho mỗi user
+ * - Đúng 1 Supabase Realtime channel cho mỗi user
+ * - Mọi subscriber (Navbar, NavNotifications, DesktopReplyPopup) dùng chung state và event
  */
 export function subscribeUserNotifications(
   userId: string,
@@ -121,115 +252,82 @@ export function subscribeUserNotifications(
     return () => {};
   }
 
-  let isUnsubscribed = false;
-
-  // 1. Phục hồi ngay lập tức thông báo từ LocalStorage (0ms)
-  const cached = getLocalNotifications(userId);
-  if (cached.length > 0) {
-    callback(cached);
+  // 1. Nếu đổi user (logout / switch account), dọn dẹp ngay lập tức singleton của user cũ
+  if (activeSingleton && activeSingleton.userId !== userId) {
+    teardownSingleton(activeSingleton);
+    activeSingleton = null;
   }
 
-  const dispatchUpdate = (incoming: UserNotification[]) => {
-    if (isUnsubscribed) return;
-    const merged = mergeNotifications(
-      getLocalNotifications(userId),
-      incoming,
+  // 2. Nếu singleton của user đã tồn tại (subscriber thứ 2, 3...)
+  if (activeSingleton && activeSingleton.userId === userId) {
+    // Hủy bộ hẹn giờ cleanup nếu có component vừa unmount trước đó (chống Strict Mode flutter)
+    if (activeSingleton.cleanupTimer) {
+      clearTimeout(activeSingleton.cleanupTimer);
+      activeSingleton.cleanupTimer = null;
+    }
+
+    activeSingleton.listeners.add(callback);
+
+    // Gửi ngay dữ liệu RAM nếu đã nạp
+    if (activeSingleton.cachedData) {
+      callback(activeSingleton.cachedData);
+    } else {
+      // Nếu RAM chưa có dữ liệu, trả tạm LocalStorage cache (0ms) trong lúc đợi inFlightPromise
+      const local = getLocalNotifications(userId);
+      if (local.length > 0) {
+        callback(local);
+      }
+    }
+  } else {
+    // 3. Subscriber đầu tiên của user: khởi tạo Singleton Manager
+    const local = getLocalNotifications(userId);
+    activeSingleton = {
       userId,
-    );
-    saveLocalNotifications(userId, merged);
-    callback(merged);
-  };
+      listeners: new Set([callback]),
+      cachedData: local.length > 0 ? local : null,
+      inFlightPromise: null,
+      realtimeChannel: null,
+      cleanupTimer: null,
+    };
 
-  // 2. Lắng nghe CustomEvent khi có cập nhật từ component khác
-  const handleLocalEvent = (e: Event) => {
-    const customEvt = e as CustomEvent<{ userId: string; items: UserNotification[] }>;
-    if (customEvt.detail && customEvt.detail.userId === userId && !isUnsubscribed) {
-      callback(customEvt.detail.items);
+    // Phục hồi ngay dữ liệu từ LocalStorage (0ms)
+    if (local.length > 0) {
+      callback(local);
     }
-  };
 
-  if (typeof window !== "undefined") {
-    window.addEventListener("nanaflix-notifications-updated", handleLocalEvent);
+    // Khởi tạo DUY NHẤT 1 Realtime channel
+    setupSingletonRealtime(userId);
+
+    // Khởi tạo DUY NHẤT 1 initial fetch
+    fetchSingletonNotifications(userId);
   }
 
-  // 3. Nạp danh sách thông báo từ Supabase lúc khởi tạo
-  let lastNotificationFetch = Date.now();
-  const fetchSupabaseNotifications = () => {
-    if (isSupabaseConfigured()) {
-      getUserNotificationsSupabase(userId)
-        .then((items) => {
-          if (items && items.length > 0 && !isUnsubscribed) {
-            dispatchUpdate(items);
-          }
-        })
-        .catch(() => {});
-    }
-  };
-
-  fetchSupabaseNotifications();
-
-  const handleVisibilityOrFocus = () => {
-    if (isUnsubscribed) return;
-    if (typeof document !== "undefined" && !document.hidden) {
-      if (Date.now() - lastNotificationFetch > 25000) {
-        lastNotificationFetch = Date.now();
-        fetchSupabaseNotifications();
-      }
-    }
-  };
-
-  // Polling dự phòng nhẹ (chỉ mỗi 5 phút và khi tab active) đề phòng trường hợp mất kết nối WebSocket
-  const pollInterval = setInterval(() => {
-    if (!isUnsubscribed && typeof document !== "undefined" && !document.hidden) {
-      if (Date.now() - lastNotificationFetch > 180000) {
-        lastNotificationFetch = Date.now();
-        fetchSupabaseNotifications();
-      }
-    }
-  }, 300000);
-
-  // 4. Lắng nghe thông báo mới tức thời qua Supabase Realtime WebSocket (< 50ms)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let channel: any = null;
-  if (supabase) {
-    try {
-      const uniqueChannelName = `realtime_notifs_${userId}_${Math.random().toString(36).substring(2, 9)}_${Date.now()}`;
-      const newChannel = supabase.channel(uniqueChannelName);
-      newChannel
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "notifications",
-            filter: `user_id=eq.${userId}`,
-          },
-          () => {
-            if (!isUnsubscribed) {
-              lastNotificationFetch = Date.now();
-              fetchSupabaseNotifications();
-            }
-          }
-        )
-        .subscribe();
-      channel = newChannel;
-    } catch (err) {
-      console.warn("Lỗi đăng ký Realtime notifications:", err);
-    }
-  }
-
+  // Trả về hàm cleanup cho subscriber này
   return () => {
-    isUnsubscribed = true;
-    clearInterval(pollInterval);
-    if (channel && supabase) {
-      try {
-        supabase.removeChannel(channel);
-      } catch {}
+    if (!activeSingleton || activeSingleton.userId !== userId) return;
+
+    activeSingleton.listeners.delete(callback);
+
+    // Nếu vẫn còn component khác đang lắng nghe, giữ nguyên kết nối Realtime
+    if (activeSingleton.listeners.size > 0) {
+      return;
     }
-    if (typeof window !== "undefined") {
-      window.removeEventListener("nanaflix-notifications-updated", handleLocalEvent);
-      document.removeEventListener("visibilitychange", handleVisibilityOrFocus);
-      window.removeEventListener("focus", handleVisibilityOrFocus);
+
+    // Không còn listener nào: hẹn giờ dọn dẹp sau grace period (1000ms)
+    // để tránh ngắt kết nối giả khi React Strict Mode remount hoặc chuyển route
+    if (activeSingleton.cleanupTimer) {
+      clearTimeout(activeSingleton.cleanupTimer);
+    }
+
+    activeSingleton.cleanupTimer = setTimeout(() => {
+      if (!activeSingleton || activeSingleton.userId !== userId) return;
+      if (activeSingleton.listeners.size > 0) return; // Đã có subscriber mới gia nhập
+
+      teardownSingleton(activeSingleton);
+      activeSingleton = null;
+    }, CLEANUP_GRACE_PERIOD_MS);
+    if (typeof (activeSingleton.cleanupTimer as any)?.unref === "function") {
+      (activeSingleton.cleanupTimer as any).unref();
     }
   };
 }
