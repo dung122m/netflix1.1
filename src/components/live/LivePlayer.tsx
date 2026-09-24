@@ -27,6 +27,7 @@ import {
   X,
   List,
   RotateCcw,
+  Mic,
 } from "lucide-react";
 import { FootballMatch, StreamServer } from "@/services/liveFootballService";
 import { LiveShortcutPopover } from "./LiveShortcutPopover";
@@ -233,6 +234,223 @@ interface LivePlayerProps {
   onSelectMatch?: (match: FootballMatch) => void;
 }
 
+/**
+ * Xác định chất lượng nguồn phát từ metadata của StreamServer:
+ * - 1080p, 1080, FHD, Full HD -> "FHD"
+ * - 720p, 720, HD -> "HD"
+ * - Không xác định -> null (không tự gán)
+ */
+export function getSourceQuality(
+  server?: Partial<StreamServer>,
+): "FHD" | "HD" | null {
+  if (!server) return null;
+
+  // 1. Kiểm tra trường quality từ metadata nếu có
+  const quality = (server.quality || "").toString().trim().toUpperCase();
+  if (
+    quality === "FHD" ||
+    quality === "1080P" ||
+    quality === "1080" ||
+    quality === "FULL HD"
+  ) {
+    return "FHD";
+  }
+  if (quality === "HD" || quality === "720P" || quality === "720") {
+    return "HD";
+  }
+
+  // 2. Kiểm tra tên máy chủ hoặc resolution
+  const rawText = `${server.name || ""} ${
+    (server as Record<string, unknown>).resolution || ""
+  }`.toLowerCase();
+
+  if (
+    /\b(1080p|1080|fhd|full\s*hd)\b/i.test(rawText) ||
+    /\[fhd\]/i.test(rawText) ||
+    /fhd/i.test(server.name || "")
+  ) {
+    return "FHD";
+  }
+
+  if (
+    /\b(720p|720|hd)\b/i.test(rawText) ||
+    /\[hd\]/i.test(rawText) ||
+    /\bhd\b/i.test(server.name || "")
+  ) {
+    return "HD";
+  }
+
+  return null;
+}
+
+/**
+ * Điểm ưu tiên chất lượng nguồn phát:
+ * FHD (2) > HD (1) > Không xác định (0)
+ */
+export function getQualityPriorityScore(
+  server?: Partial<StreamServer>,
+): number {
+  const q = getSourceQuality(server);
+  if (q === "FHD") return 2;
+  if (q === "HD") return 1;
+  return 0;
+}
+
+/**
+ * Chuẩn hóa URL nguồn phát về dạng canonical để không bị lệch giữa direct URL và proxy URL
+ */
+export function toCanonicalSourceUrl(url?: string | null): string {
+  if (!url) return "";
+  let clean = url.trim();
+  if (clean.includes("/api/live-football/proxy?url=")) {
+    try {
+      const match = clean.match(/url=([^&]+)/);
+      if (match) {
+        clean = decodeURIComponent(match[1]).trim();
+      }
+    } catch {}
+  }
+  return clean;
+}
+
+/**
+ * Trích xuất tên BLV hoặc tên nguồn thân thiện, loại bỏ thông số kỹ thuật rườm rà
+ */
+export function parseServerDisplayLabel(
+  server?: StreamServer,
+  index: number = 0,
+): string {
+  if (!server) return `Nguồn ${index + 1}`;
+
+  // 1. Tên BLV trong ngoặc: "(BLV Lê Hoàn)", "(Bình luận viên Batman)"
+  const matchParen = server.name.match(
+    /\((?:blv\s+|bình luận viên\s+)?([^)]+)\)/i,
+  );
+  if (matchParen && matchParen[1]) {
+    const candidate = matchParen[1]
+      .replace(/^(?:blv|bình luận viên)\s+/i, "")
+      .trim();
+    if (
+      candidate &&
+      !/^\d+$/.test(candidate) &&
+      !/^(?:fhd|hd|4k|sd|hls|flv)$/i.test(candidate)
+    ) {
+      return `BLV ${candidate}`;
+    }
+  }
+
+  // 2. Tên BLV dạng "BLV ..." hoặc "Bình luận viên ..."
+  const matchInline = server.name.match(
+    /(?:blv|bình luận viên)\s+([^\s#\[\]()]+(?:\s+[^\s#\[\]()]+)?)/i,
+  );
+  if (matchInline && matchInline[1]) {
+    return `BLV ${matchInline[1].trim()}`;
+  }
+
+  // 3. Tên nhóm nguồn sạch (ví dụ: FPT Play, K+ SPORT, Xoilac)
+  const sourceName = server.sourceName?.trim();
+  if (sourceName && sourceName !== "Other" && sourceName !== "LIVE FOOTBALL") {
+    return `${sourceName} · Nguồn ${index + 1}`;
+  }
+
+  // 4. Loại bỏ các nhãn kỹ thuật [FHD], [HD], #1, Server 1...
+  const cleaned = server.name
+    .replace(/\s*\[(?:FHD|HD|4K|SD|HLS|FLV)\]/gi, "")
+    .replace(/#\d+/g, "")
+    .trim();
+
+  if (
+    !cleaned ||
+    /^(?:server|máy chủ|nguồn|link|stream)(?:\s*(?:#?\d+))?$/i.test(cleaned) ||
+    /^\d+$/.test(cleaned)
+  ) {
+    return `Nguồn ${index + 1}`;
+  }
+
+  const stripped = cleaned
+    .replace(/^(?:server|máy chủ|nguồn)\s*(?:#?\d+)?\s*[-:·]?\s*/i, "")
+    .trim();
+  if (stripped && stripped.length > 2 && !/^\d+$/.test(stripped)) {
+    return stripped;
+  }
+
+  if (cleaned.length > 2 && !/^\d+$/.test(cleaned)) {
+    return cleaned;
+  }
+
+  return `Nguồn ${index + 1}`;
+}
+
+/**
+ * Tìm máy chủ khởi tạo tối ưu theo thứ tự ưu tiên:
+ * FHD / 1080p -> HD / 720p -> Không xác định
+ */
+export function findBestInitialServerIndex(
+  serverList: StreamServer[],
+  failedSet: Set<string> = new Set(),
+): number {
+  if (!serverList || serverList.length === 0) return 0;
+  let bestIdx = 0;
+  let bestScore = -1;
+  for (let i = 0; i < serverList.length; i++) {
+    const s = serverList[i];
+    const canonical = toCanonicalSourceUrl(s?.url);
+    if (canonical && failedSet.has(canonical)) continue;
+    const score = getQualityPriorityScore(s);
+    if (score > bestScore) {
+      bestScore = score;
+      bestIdx = i;
+      if (score === 2) {
+        break; // FHD là chất lượng cao nhất, chọn ngay máy chủ đầu tiên đạt FHD
+      }
+    }
+  }
+  return bestIdx;
+}
+
+/**
+ * Tìm máy chủ dự phòng tiếp theo:
+ * Ưu tiên:
+ * 1. Không nằm trong danh sách failed (đối chiếu bằng canonical URL)
+ * 2. Điểm chất lượng cao hơn (FHD > HD > Khác)
+ * 3. Duyệt xoay vòng tự nhiên sau currentIndex để tránh nhảy hỗn loạn
+ * Nếu không còn nguồn nào -> trả về -1
+ */
+export function findNextFallbackServerIndex(
+  serverList: StreamServer[],
+  failedSet: Set<string>,
+  currentIndex: number,
+): number {
+  if (!serverList || serverList.length === 0) return -1;
+
+  const available: { index: number; score: number }[] = [];
+  serverList.forEach((s, idx) => {
+    const canonical = toCanonicalSourceUrl(s?.url);
+    if (!canonical || !failedSet.has(canonical)) {
+      available.push({
+        index: idx,
+        score: getQualityPriorityScore(s),
+      });
+    }
+  });
+
+  if (available.length === 0) return -1;
+
+  available.sort((a, b) => {
+    if (b.score !== a.score) {
+      return b.score - a.score;
+    }
+    const aAfter = a.index > currentIndex ? 1 : 0;
+    const bAfter = b.index > currentIndex ? 1 : 0;
+    if (bAfter !== aAfter) {
+      return bAfter - aAfter;
+    }
+    return a.index - b.index;
+  });
+
+  return available[0].index;
+}
+
 function LivePlayerInner({
   match,
   title,
@@ -264,11 +482,49 @@ function LivePlayerInner({
   const watchdogTimerRef = useRef<NodeJS.Timeout | null>(null);
   const attemptIdRef = useRef<number>(0);
   const failedServersRef = useRef<Set<number>>(new Set());
-  const failedUrlsRef = useRef<Set<string>>(new Set());
+  const [failedSourcesByMatch, setFailedSourcesByMatch] = useState<
+    Record<string, Set<string>>
+  >({});
+  const failedSourcesByMatchRef = useRef<Record<string, Set<string>>>({});
+  const prevMatchIdRef = useRef<string | undefined>(match?.id);
+
+  const activeMatchId = match?.id || "default";
+
+  const currentMatchFailedUrls = useMemo(() => {
+    return failedSourcesByMatch[activeMatchId] || new Set<string>();
+  }, [failedSourcesByMatch, activeMatchId]);
+
+  const markSourceFailed = useCallback(
+    (rawUrl?: string | null, serverIndex?: number) => {
+      if (serverIndex !== undefined && serverIndex >= 0) {
+        failedServersRef.current.add(serverIndex);
+      }
+      const canonical = toCanonicalSourceUrl(rawUrl);
+      if (!canonical) return;
+
+      const currentSet =
+        failedSourcesByMatchRef.current[activeMatchId] || new Set<string>();
+      if (currentSet.has(canonical)) return;
+
+      const nextSet = new Set(currentSet);
+      nextSet.add(canonical);
+      failedSourcesByMatchRef.current[activeMatchId] = nextSet;
+
+      setFailedSourcesByMatch((prev) => ({
+        ...prev,
+        [activeMatchId]: nextSet,
+      }));
+    },
+    [activeMatchId],
+  );
+  const serversRef = useRef(servers);
+  serversRef.current = servers;
   const isStoppedRef = useRef<boolean>(false);
   const [retryNonce, setRetryNonce] = useState<number>(0);
 
-  const [selectedServerIndex, setSelectedServerIndex] = useState(0);
+  const [selectedServerIndex, setSelectedServerIndex] = useState(() => {
+    return findBestInitialServerIndex(servers);
+  });
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [volume, setVolume] = useState<number>(0.9);
@@ -315,6 +571,7 @@ function LivePlayerInner({
   const [railSearch, setRailSearch] = useState("");
   const [railFilter, setRailFilter] = useState<"all" | "live" | "fpt">("all");
   const activeOptionRef = useRef<HTMLButtonElement | null>(null);
+  const drawerListRef = useRef<HTMLDivElement | null>(null);
 
   const isRailVisible =
     showMatchRail !== undefined ? showMatchRail : internalMatchRail;
@@ -335,29 +592,62 @@ function LivePlayerInner({
     }
   }, [onCloseMatchRail]);
 
+  // Cuộn mượt CHỈ bên trong danh sách drawer, tuyệt đối không gọi element.scrollIntoView() gây giật/dịch ngang trang
   useEffect(() => {
-    if (isRailVisible && activeOptionRef.current) {
-      activeOptionRef.current.scrollIntoView({
-        behavior: "smooth",
-        block: "nearest",
-      });
-    }
+    if (!isRailVisible) return;
+    const rafId = requestAnimationFrame(() => {
+      const container = drawerListRef.current;
+      const activeEl = activeOptionRef.current;
+      if (!container || !activeEl) return;
+
+      const itemTop = activeEl.offsetTop - container.offsetTop;
+      const itemHeight = activeEl.clientHeight;
+      const containerHeight = container.clientHeight;
+      const currentScrollTop = container.scrollTop;
+
+      if (
+        itemTop < currentScrollTop ||
+        itemTop + itemHeight > currentScrollTop + containerHeight
+      ) {
+        container.scrollTo({
+          top: Math.max(0, itemTop - containerHeight / 2 + itemHeight / 2),
+          behavior: "smooth",
+        });
+      }
+    });
+
+    return () => cancelAnimationFrame(rafId);
   }, [isRailVisible, match?.id]);
 
   // Reset trạng thái server & player khi chuyển sang trận đấu khác
   useEffect(() => {
-    isStoppedRef.current = false;
-    failedServersRef.current.clear();
-    failedUrlsRef.current.clear();
-    setSelectedServerIndex(0);
-    useProxyFallbackRef.current = false;
-    setUseProxyFallback(false);
-    fallbackCountRef.current = 0;
-    userPausedRef.current = false;
-    setHasError(false);
-    setErrorMessage("");
-    setIsLoading(true);
-    setRetryNonce((prev) => prev + 1);
+    if (prevMatchIdRef.current !== match?.id) {
+      prevMatchIdRef.current = match?.id;
+      const newMatchId = match?.id || "default";
+
+      // Reset failed-source state của trận mới
+      failedServersRef.current.clear();
+      delete failedSourcesByMatchRef.current[newMatchId];
+      setFailedSourcesByMatch((prev) => {
+        const next = { ...prev };
+        delete next[newMatchId];
+        return next;
+      });
+
+      isStoppedRef.current = false;
+      useProxyFallbackRef.current = false;
+      setUseProxyFallback(false);
+      fallbackCountRef.current = 0;
+      userPausedRef.current = false;
+      setHasError(false);
+      setErrorMessage("");
+      setIsLoading(true);
+
+      // Tự chọn source tốt nhất của trận mới theo FHD > HD > unknown
+      const initialBestIdx = findBestInitialServerIndex(serversRef.current);
+      setSelectedServerIndex(initialBestIdx);
+      setRetryNonce((prev) => prev + 1);
+    }
   }, [match?.id]);
 
   // Reset proxy fallback khi chuyển đổi server (chỉ thử proxy khi server hiện tại gặp lỗi)
@@ -395,24 +685,65 @@ function LivePlayerInner({
     return list;
   }, [matchOptions, railFilter, railSearch]);
 
+  // Danh sách các máy chủ còn hoạt động (nguồn lỗi bị ẩn hoàn toàn theo match.id)
+  const availableServers = useMemo(() => {
+    return servers.filter((s) => {
+      if (!s.url) return false;
+      const canonical = toCanonicalSourceUrl(s.url);
+      return !currentMatchFailedUrls.has(canonical);
+    });
+  }, [servers, currentMatchFailedUrls]);
+
+  // Sắp xếp nguồn theo thứ tự ưu tiên FHD > HD > SD cho menu chọn nguồn
+  const sortedAvailableServers = useMemo(() => {
+    return [...availableServers].sort((a, b) => {
+      return getQualityPriorityScore(b) - getQualityPriorityScore(a);
+    });
+  }, [availableServers]);
+
+  // Máy chủ hiện tại đang phát (ưu tiên máy chủ được chọn nếu còn sống, hoặc fallback sang nguồn tốt nhất)
+  const currentServer = useMemo<StreamServer | null>(() => {
+    const chosen = servers[selectedServerIndex];
+    if (
+      chosen &&
+      chosen.url &&
+      !currentMatchFailedUrls.has(toCanonicalSourceUrl(chosen.url))
+    ) {
+      return chosen;
+    }
+    if (availableServers.length > 0) {
+      const sorted = [...availableServers].sort(
+        (a, b) => getQualityPriorityScore(b) - getQualityPriorityScore(a),
+      );
+      return sorted[0];
+    }
+    return null;
+  }, [servers, selectedServerIndex, currentMatchFailedUrls, availableServers]);
+
   const INITIAL_SERVER_LIMIT = 8;
-  const hasMoreServers = servers.length > INITIAL_SERVER_LIMIT;
+  const hasMoreServers = availableServers.length > INITIAL_SERVER_LIMIT;
+
+  const currentAvailableIdx = useMemo(() => {
+    return availableServers.findIndex(
+      (s) =>
+        toCanonicalSourceUrl(s.url) === toCanonicalSourceUrl(currentServer?.url),
+    );
+  }, [availableServers, currentServer?.url]);
 
   useEffect(() => {
-    if (selectedServerIndex >= INITIAL_SERVER_LIMIT) {
+    if (currentAvailableIdx >= INITIAL_SERVER_LIMIT) {
       setShowAllServers(true);
     }
-  }, [selectedServerIndex]);
+  }, [currentAvailableIdx]);
 
   const displayedServers =
     showAllServers || !hasMoreServers
-      ? servers
-      : servers.slice(0, INITIAL_SERVER_LIMIT);
+      ? availableServers
+      : availableServers.slice(0, INITIAL_SERVER_LIMIT);
 
   const [homeImgError, setHomeImgError] = useState(false);
   const [awayImgError, setAwayImgError] = useState(false);
 
-  const currentServer = servers[selectedServerIndex] || servers[0];
   const volumeRef = useRef(volume);
   const isMutedRef = useRef(isMuted);
   const userMutedRef = useRef<boolean>(false);
@@ -436,7 +767,7 @@ function LivePlayerInner({
   const handleRetry = useCallback(() => {
     isStoppedRef.current = false;
     failedServersRef.current.clear();
-    failedUrlsRef.current.clear();
+    // retryNonce và handleRetry KHÔNG reset failed state - source đã failed phải tiếp tục bị ẩn
     fallbackCountRef.current = 0;
     useProxyFallbackRef.current = false;
     setUseProxyFallback(false);
@@ -445,10 +776,11 @@ function LivePlayerInner({
     setHasError(false);
     setErrorMessage("");
     setIsLoading(true);
-    setSelectedServerIndex(0);
+    const bestIdx = findBestInitialServerIndex(servers, currentMatchFailedUrls);
+    setSelectedServerIndex(bestIdx);
     setRetryNonce((prev) => prev + 1);
     triggerActionFeedback("server", "Đang thử kết nối lại...");
-  }, [triggerActionFeedback]);
+  }, [servers, currentMatchFailedUrls, triggerActionFeedback]);
 
   // Khôi phục mức âm lượng đã lưu từ localStorage
   useEffect(() => {
@@ -471,6 +803,44 @@ function LivePlayerInner({
       setVolume(0.9);
       volumeRef.current = 0.9;
     }
+  }, []);
+
+  // Chặn và triệt tiêu các lỗi Unhandled Rejection do browser extensions tự tiêm vào (e.g. Coco, Media Downloader, M_ID)
+  useEffect(() => {
+    const isExtensionError = (err: any, reason: any) => {
+      const str = `${err?.stack || err?.message || ""} ${reason?.stack || reason?.message || reason || ""}`;
+      return (
+        str.includes("chrome-extension://") ||
+        str.includes("moz-extension://") ||
+        str.includes("safari-extension://") ||
+        str.includes("M_ID")
+      );
+    };
+
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      if (isExtensionError(event.reason, event.reason)) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
+    };
+
+    const handleError = (event: ErrorEvent) => {
+      if (
+        isExtensionError(event.error, event.message) ||
+        (event.filename && event.filename.includes("-extension://"))
+      ) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
+    };
+
+    window.addEventListener("unhandledrejection", handleUnhandledRejection, true);
+    window.addEventListener("error", handleError, true);
+
+    return () => {
+      window.removeEventListener("unhandledrejection", handleUnhandledRejection, true);
+      window.removeEventListener("error", handleError, true);
+    };
   }, []);
 
   // Đồng bộ volume & muted sang video element mà KHÔNG khởi động lại HLS
@@ -619,29 +989,29 @@ function LivePlayerInner({
         match?.timeline === "upcoming"
       );
 
+      const isNotFoundOrForbidden =
+        customReason?.includes("404") ||
+        customReason?.includes("403") ||
+        customReason?.includes("không tồn tại");
+
       // 1. TRẬN CHƯA KICKOFF:
-      // Tuyệt đối không gọi /api/live-football/proxy để tránh spam 403 khi chưa có tín hiệu phát.
+      // Tuyệt đối không gọi proxy để tránh spam khi chưa có tín hiệu phát.
       // Mỗi server/URL chỉ được thử trực tiếp tối đa 1 lần.
       if (isPreKickoffNow) {
         failedServersRef.current.add(selectedServerIndex);
-        if (currentUrl) failedUrlsRef.current.add(currentUrl);
+        if (currentUrl) {
+          markSourceFailed(currentUrl, selectedServerIndex);
+        }
         useProxyFallbackRef.current = false;
         setUseProxyFallback(false);
 
-        // Tìm server tiếp theo chưa thử
-        let nextIndex = servers.findIndex(
-          (s, idx) =>
-            idx > selectedServerIndex &&
-            !failedServersRef.current.has(idx) &&
-            (!s.url || !failedUrlsRef.current.has(s.url)),
+        const currentFailed =
+          failedSourcesByMatchRef.current[activeMatchId] || new Set<string>();
+        const nextIndex = findNextFallbackServerIndex(
+          servers,
+          currentFailed,
+          selectedServerIndex,
         );
-        if (nextIndex === -1) {
-          nextIndex = servers.findIndex(
-            (s, idx) =>
-              !failedServersRef.current.has(idx) &&
-              (!s.url || !failedUrlsRef.current.has(s.url)),
-          );
-        }
 
         if (nextIndex !== -1) {
           fallbackCountRef.current += 1;
@@ -663,8 +1033,8 @@ function LivePlayerInner({
       }
 
       // 2. KHI TRẬN ĐÃ KICKOFF (HOẶC LIVE):
-      // Giữ nguyên cơ chế: nếu HTTPS trực tiếp gặp sự cố kết nối/CORS/watchdog và chưa thử qua Proxy -> thử Proxy trước
-      if (isHttpsDirect && !useProxyFallbackRef.current) {
+      // Nếu HTTPS trực tiếp gặp sự cố kết nối/CORS và chưa thử qua Proxy (và không phải 404/403) -> thử Proxy trước
+      if (isHttpsDirect && !useProxyFallbackRef.current && !isNotFoundOrForbidden) {
         useProxyFallbackRef.current = true;
         setUseProxyFallback(true);
         const toastText = `Máy chủ #${selectedServerIndex + 1} ${customReason || "kết nối trực tiếp thất bại"}, đang thử qua cổng dự phòng (Proxy)...`;
@@ -675,30 +1045,28 @@ function LivePlayerInner({
         return;
       }
 
-      // Đã thử qua Proxy hoặc là link HTTP mà vẫn thất bại -> Đánh dấu server & URL đã fail
+      // Đã thử qua Proxy hoặc link gặp lỗi thực sự -> Đánh dấu server & URL đã fail (tự động ẩn khỏi danh sách)
       failedServersRef.current.add(selectedServerIndex);
-      if (currentUrl) failedUrlsRef.current.add(currentUrl);
+      if (currentUrl) {
+        markSourceFailed(currentUrl, selectedServerIndex);
+      }
       useProxyFallbackRef.current = false;
       setUseProxyFallback(false);
 
-      // Tìm server tiếp theo chưa thử
-      let nextIndex = servers.findIndex(
-        (s, idx) =>
-          idx > selectedServerIndex &&
-          !failedServersRef.current.has(idx) &&
-          (!s.url || !failedUrlsRef.current.has(s.url)),
+      // Tìm máy chủ tiếp theo có chất lượng cao nhất chưa failed (FHD -> HD -> Khác)
+      const currentFailed =
+        failedSourcesByMatchRef.current[activeMatchId] || new Set<string>();
+      const nextIndex = findNextFallbackServerIndex(
+        servers,
+        currentFailed,
+        selectedServerIndex,
       );
-      if (nextIndex === -1) {
-        nextIndex = servers.findIndex(
-          (s, idx) =>
-            !failedServersRef.current.has(idx) &&
-            (!s.url || !failedUrlsRef.current.has(s.url)),
-        );
-      }
 
       if (nextIndex !== -1) {
         fallbackCountRef.current += 1;
-        const toastText = `Máy chủ #${selectedServerIndex + 1} ${customReason || "không phản hồi"}, đang chuyển sang máy chủ #${nextIndex + 1}...`;
+        const nextQuality = getSourceQuality(servers[nextIndex]);
+        const qualityTag = nextQuality ? ` [${nextQuality}]` : "";
+        const toastText = `Máy chủ #${selectedServerIndex + 1} ${customReason || "không phản hồi"}, đang chuyển sang máy chủ #${nextIndex + 1}${qualityTag}...`;
         triggerActionFeedback("server", toastText);
         setIsLoading(true);
         setHasError(false);
@@ -707,13 +1075,11 @@ function LivePlayerInner({
         return;
       }
 
-      // Tất cả máy chủ đều không phản hồi (hoặc chỉ có 1 server và đã fail) -> DỪNG HOÀN TOÀN
+      // Tất cả máy chủ đều không phản hồi -> DỪNG HOÀN TOÀN, không lặp lại
       isStoppedRef.current = true;
       setIsLoading(false);
       setHasError(true);
-      setErrorMessage(
-        "Tất cả máy chủ phát đều không phản hồi hoặc tín hiệu chưa sẵn sàng. Hãy thử lại sau hoặc chọn trận khác.",
-      );
+      setErrorMessage("Không có nguồn phát khả dụng");
     },
     [
       servers,
@@ -722,6 +1088,8 @@ function LivePlayerInner({
       match?.timestamp,
       match?.timeline,
       triggerActionFeedback,
+      markSourceFailed,
+      activeMatchId,
     ],
   );
 
@@ -763,7 +1131,9 @@ function LivePlayerInner({
 
     if (!isEffectiveHls && currentServer.format === "flv") {
       failedServersRef.current.add(selectedServerIndex);
-      if (currentServer.url) failedUrlsRef.current.add(currentServer.url);
+      if (currentServer.url) {
+        markSourceFailed(currentServer.url, selectedServerIndex);
+      }
 
       const nextHlsIdx = servers.findIndex(
         (s, idx) =>
@@ -808,7 +1178,7 @@ function LivePlayerInner({
       }
 
       executeServerFallback("không phản hồi");
-    }, 8000);
+    }, 12000);
 
     // Xác nhận luồng phát thực sự chạy mượt mà (chỉ gỡ watchdog khi video đã chạy thật)
     const onPlaybackConfirmed = () => {
@@ -996,6 +1366,27 @@ function LivePlayerInner({
 
       hls.on(Hls.Events.ERROR, (_, data) => {
         if (isStoppedRef.current) return;
+
+        // Bắt lỗi HTTP 404, 403, 5xx từ response mạng
+        const httpStatus = data.response?.code;
+        if (
+          typeof httpStatus === "number" &&
+          (httpStatus === 404 || httpStatus === 403 || httpStatus >= 500)
+        ) {
+          executeServerFallback(`lỗi HTTP ${httpStatus}`);
+          return;
+        }
+
+        // Bắt lỗi manifest không tồn tại hoặc parse lỗi nghiêm trọng
+        if (
+          data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR ||
+          data.details === Hls.ErrorDetails.MANIFEST_LOAD_TIMEOUT ||
+          data.details === Hls.ErrorDetails.MANIFEST_PARSING_ERROR
+        ) {
+          executeServerFallback("không tải được luồng phát (m3u8)");
+          return;
+        }
+
         if (data.fatal) {
           switch (data.type) {
             case Hls.ErrorTypes.NETWORK_ERROR:
@@ -1439,17 +1830,29 @@ function LivePlayerInner({
   // Chuyển sang máy chủ tiếp theo / trước đó
   const handleSwitchServer = useCallback(
     (direction: "next" | "prev") => {
-      if (servers.length <= 1) return;
+      if (availableServers.length <= 1) return;
       fallbackCountRef.current = 0;
-      const targetIdx =
-        direction === "next"
-          ? (selectedServerIndex + 1) % servers.length
-          : (selectedServerIndex - 1 + servers.length) % servers.length;
-      isStoppedRef.current = false;
-      failedServersRef.current.delete(targetIdx);
-      if (servers[targetIdx]?.url) {
-        failedUrlsRef.current.delete(servers[targetIdx].url);
+      const currentIdx = availableServers.findIndex(
+        (s) => toCanonicalSourceUrl(s.url) === toCanonicalSourceUrl(currentServer?.url),
+      );
+      let targetAvailableIdx = 0;
+      if (currentIdx !== -1) {
+        targetAvailableIdx =
+          direction === "next"
+            ? (currentIdx + 1) % availableServers.length
+            : (currentIdx - 1 + availableServers.length) % availableServers.length;
+      } else {
+        targetAvailableIdx = direction === "next" ? 0 : availableServers.length - 1;
       }
+      const targetServer = availableServers[targetAvailableIdx];
+      if (!targetServer) return;
+
+      const targetIdx = servers.findIndex(
+        (s) => toCanonicalSourceUrl(s.url) === toCanonicalSourceUrl(targetServer.url),
+      );
+      if (targetIdx === -1) return;
+
+      isStoppedRef.current = false;
       useProxyFallbackRef.current = false;
       setUseProxyFallback(false);
       lastLoadedUrlRef.current = "";
@@ -1458,12 +1861,15 @@ function LivePlayerInner({
       setIsLoading(true);
       setSelectedServerIndex(targetIdx);
       setRetryNonce((prev) => prev + 1);
+      const q = getSourceQuality(targetServer);
+      const qBadge = q ? ` [${q}]` : "";
+      const displayLabel = parseServerDisplayLabel(targetServer, targetIdx);
       triggerActionFeedback(
         "server",
-        `Máy chủ #${targetIdx + 1}: ${servers[targetIdx]?.name || ""}`,
+        `${displayLabel}${qBadge}`,
       );
     },
-    [servers, selectedServerIndex, triggerActionFeedback],
+    [availableServers, currentServer?.url, servers, triggerActionFeedback],
   );
 
   // Chuyển sang trận đấu / sự kiện thể thao tiếp theo hoặc trước đó
@@ -1649,10 +2055,10 @@ function LivePlayerInner({
         toggleMute();
       } else if (e.key === "n" || e.key === "N" || e.key === "PageDown") {
         e.preventDefault();
-        handleSwitchMatch("next");
+        handleSwitchServer("next");
       } else if (e.key === "p" || e.key === "P" || e.key === "PageUp") {
         e.preventDefault();
-        handleSwitchMatch("prev");
+        handleSwitchServer("prev");
       } else if (e.key === "l" || e.key === "L") {
         e.preventDefault();
         goToLiveEdge();
@@ -1689,7 +2095,7 @@ function LivePlayerInner({
     togglePip,
     goToLiveEdge,
     handleVolumeChange,
-    handleSwitchMatch,
+    handleSwitchServer,
     handleSeek,
     toggleRail,
     closeRail,
@@ -1883,7 +2289,7 @@ function LivePlayerInner({
           setShowControls(false);
         }}
         onDoubleClick={toggleFullscreen}
-        className={`relative w-full aspect-video lg:max-h-[calc(100vh-210px)] lg:max-w-[calc((100vh-210px)*16/9)] mx-auto bg-black rounded-2xl sm:rounded-3xl overflow-hidden border border-white/15 shadow-2xl group select-none ring-1 ring-white/10 outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
+        className={`relative w-full aspect-video lg:max-h-[calc(100vh-210px)] lg:max-w-[calc((100vh-210px)*16/9)] mx-auto bg-black rounded-2xl sm:rounded-3xl overflow-hidden border border-white/15 shadow-2xl group select-none ring-1 ring-white/10 outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black contain-paint isolate ${
           showControls ? "cursor-default" : "cursor-none"
         }`}
       >
@@ -1967,177 +2373,160 @@ function LivePlayerInner({
           )}
         </div>
 
-        {matchOptions.length > 0 && (
+        {servers && servers.length > 0 && (
           <>
-            {/* BACKDROP KHI MỞ DRAWER TRÊN MOBILE & DESKTOP */}
-            {isRailVisible && (
-              <div
-                className="fixed inset-0 sm:absolute sm:inset-0 bg-black/75 sm:bg-black/40 backdrop-blur-sm z-40 transition-opacity"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  closeRail();
-                }}
-              />
-            )}
-
-            {/* DRAWER / BOTTOM SHEET DANH SÁCH KÊNH & TRẬN ĐẤU (TỐI ƯU CẢM ỨNG MOBILE) */}
-            <aside
-              className={`fixed inset-x-0 bottom-0 sm:absolute sm:inset-y-0 sm:right-0 sm:left-auto z-50 w-full sm:w-[380px] max-h-[85vh] sm:max-h-full rounded-t-3xl sm:rounded-none border-t sm:border-t-0 sm:border-l border-white/20 bg-zinc-950/98 sm:bg-zinc-950/95 p-3.5 sm:p-4 shadow-2xl backdrop-blur-2xl transition-transform duration-300 flex flex-col ${
+            {/* BACKDROP KHI MỞ DRAWER CHỌN NGUỒN PHÁT TRÊN MOBILE & DESKTOP */}
+            <div
+              className={`fixed inset-0 sm:absolute sm:inset-0 bg-black/75 sm:bg-black/40 backdrop-blur-sm z-40 transition-all duration-300 ${
                 isRailVisible
-                  ? "translate-y-0 sm:translate-x-0 pointer-events-auto"
-                  : "translate-y-full sm:translate-y-0 sm:translate-x-full pointer-events-none"
+                  ? "opacity-100 pointer-events-auto visible"
+                  : "opacity-0 pointer-events-none invisible"
+              }`}
+              onClick={(e) => {
+                e.stopPropagation();
+                closeRail();
+              }}
+            />
+
+            {/* DRAWER / BOTTOM SHEET CHỌN NGUỒN PHÁT CỦA TRẬN ĐANG XEM (TỐI ƯU CẢM ỨNG MOBILE) */}
+            <aside
+              className={`fixed inset-x-0 bottom-0 sm:absolute sm:inset-y-0 sm:right-0 sm:left-auto z-50 w-full sm:w-[360px] max-h-[85vh] sm:max-h-full rounded-t-3xl sm:rounded-none border-t sm:border-t-0 sm:border-l border-white/20 bg-zinc-950/98 sm:bg-zinc-950/95 p-4 shadow-2xl backdrop-blur-2xl transition-all duration-300 flex flex-col ${
+                isRailVisible
+                  ? "translate-y-0 sm:translate-x-0 opacity-100 pointer-events-auto visible"
+                  : "translate-y-full sm:translate-y-0 sm:translate-x-full opacity-0 pointer-events-none invisible"
               }`}
               onClick={(event) => event.stopPropagation()}
             >
               {/* THANH VUỐT KÉO GỢI Ý TRÊN MOBILE */}
-              <div className="w-12 h-1.5 bg-white/30 rounded-full mx-auto mb-2 sm:hidden flex-shrink-0" />
+              <div className="w-12 h-1.5 bg-white/30 rounded-full mx-auto mb-3 sm:hidden flex-shrink-0" />
 
-              <div className="mb-2.5 flex items-center justify-between border-b border-white/10 pb-2.5 flex-shrink-0">
+              <div className="mb-3 flex items-center justify-between border-b border-white/10 pb-3 flex-shrink-0">
                 <div className="min-w-0 pr-2">
                   <div className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
-                    <p className="text-[11px] sm:text-[10px] font-black uppercase tracking-[0.18em] text-rose-400">
-                      Kênh & Trận trực tiếp
+                    <Mic className="w-4 h-4 text-amber-400 shrink-0" />
+                    <p className="text-[11px] sm:text-xs font-black uppercase tracking-wider text-amber-400">
+                      Nguồn phát trực tiếp
                     </p>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/10 text-gray-300 font-bold">
+                      {sortedAvailableServers.length}
+                    </span>
                   </div>
-                  <p className="mt-0.5 truncate text-xs sm:text-xs font-bold text-white">
-                    Đang xem: {title}
+                  <p className="mt-1 truncate text-xs font-bold text-white">
+                    {title}
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={closeRail}
-                  className="rounded-full p-2 text-gray-400 hover:bg-white/10 hover:text-white bg-white/5 transition flex-shrink-0 cursor-pointer"
-                  title="Đóng danh sách"
+                  className="rounded-full p-2 text-gray-400 hover:bg-white/10 hover:text-white bg-white/5 transition flex-shrink-0 cursor-pointer min-w-[36px] min-h-[36px] flex items-center justify-center"
+                  title="Đóng danh sách nguồn phát"
                 >
                   <X className="h-4 w-4" />
                 </button>
               </div>
 
-              {/* Ô TÌM KIẾM TRONG DRAWER */}
-              <div className="relative mb-2.5 flex-shrink-0">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  value={railSearch}
-                  onChange={(e) => setRailSearch(e.target.value)}
-                  placeholder="Tìm kênh, giải đấu, đội, BLV..."
-                  className="w-full pl-9 pr-8 py-2 sm:py-1.5 rounded-xl bg-white/10 border border-white/15 text-xs text-white placeholder-gray-400 focus:outline-none focus:border-netflix-red transition"
-                />
-                {railSearch && (
-                  <button
-                    type="button"
-                    onClick={() => setRailSearch("")}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white p-1 cursor-pointer"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
-
-              {/* TABS BỘ LỌC TRONG DRAWER */}
-              <div className="flex items-center gap-1.5 mb-2.5 overflow-x-auto scrollbar-none flex-shrink-0 pb-1">
-                <button
-                  type="button"
-                  onClick={() => setRailFilter("all")}
-                  className={`px-3 py-1.5 rounded-xl text-[11px] sm:text-[10px] font-bold whitespace-nowrap transition cursor-pointer ${
-                    railFilter === "all"
-                      ? "bg-white text-black font-extrabold shadow-sm"
-                      : "bg-white/10 text-gray-300 hover:bg-white/20"
-                  }`}
-                >
-                  Tất cả ({matchOptions.length})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRailFilter("live")}
-                  className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-[11px] sm:text-[10px] font-bold whitespace-nowrap transition cursor-pointer ${
-                    railFilter === "live"
-                      ? "bg-netflix-red text-white font-extrabold shadow-md shadow-red-950/60"
-                      : "bg-white/10 text-rose-300 hover:bg-white/20"
-                  }`}
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
-                  <span>Đang đá ({liveOptionsCount})</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRailFilter("fpt")}
-                  className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-[11px] sm:text-[10px] font-bold whitespace-nowrap transition cursor-pointer ${
-                    railFilter === "fpt"
-                      ? "bg-orange-600 text-white font-extrabold"
-                      : "bg-white/10 text-orange-300 hover:bg-white/20"
-                  }`}
-                >
-                  <span>⚡ FPT Play</span>
-                </button>
-              </div>
-
-              {/* DANH SÁCH CUỘN TRẬN ĐẤU & KÊNH (TOUCH-FRIENDLY CHO MOBILE) */}
-              <div className="flex-1 overflow-y-auto space-y-2 pr-0.5 scrollbar-thin">
-                {filteredRailOptions.length === 0 ? (
-                  <div className="py-12 text-center text-xs text-gray-400">
-                    Không tìm thấy trận hoặc kênh phù hợp.
+              {/* DANH SÁCH NGUỒN PHÁT (TOUCH-FRIENDLY, FHD > HD, TRUNCATE BLV DÀI) */}
+              <div
+                ref={drawerListRef}
+                className="flex-1 overflow-y-auto space-y-1.5 pr-0.5 scrollbar-thin"
+              >
+                {sortedAvailableServers.length === 0 ? (
+                  <div className="py-12 px-4 text-center rounded-2xl bg-red-950/20 border border-red-900/30 text-gray-300 text-xs flex flex-col items-center justify-center gap-3">
+                    <AlertCircle className="w-6 h-6 text-red-400" />
+                    <span>Tất cả nguồn phát đang gặp sự cố hoặc gián đoạn tín hiệu.</span>
+                    <button
+                      type="button"
+                      onClick={handleRetry}
+                      className="px-4 py-2 rounded-xl bg-netflix-red hover:bg-red-700 text-white font-bold transition flex items-center gap-2 cursor-pointer text-xs"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span>Thử kết nối lại</span>
+                    </button>
                   </div>
                 ) : (
-                  filteredRailOptions.map((option) => {
-                    const isCurrent = option.id === match?.id;
-                    const isOptionLive = option.timeline === "live";
+                  sortedAvailableServers.map((s, idx) => {
+                    const isSelected =
+                      toCanonicalSourceUrl(currentServer?.url) ===
+                      toCanonicalSourceUrl(s.url);
+                    const quality = getSourceQuality(s);
+                    const displayLabel = parseServerDisplayLabel(s, idx);
+
                     return (
                       <button
-                        key={option.id}
-                        ref={isCurrent ? activeOptionRef : undefined}
+                        key={`${toCanonicalSourceUrl(s.url) || "srv"}-${idx}`}
                         type="button"
                         onClick={() => {
-                          onSelectMatch?.(option);
+                          const origIdx = servers.findIndex(
+                            (srv) =>
+                              toCanonicalSourceUrl(srv.url) ===
+                              toCanonicalSourceUrl(s.url),
+                          );
+                          const targetIdx = origIdx !== -1 ? origIdx : 0;
+                          fallbackCountRef.current = 0;
+                          isStoppedRef.current = false;
+                          useProxyFallbackRef.current = false;
+                          setUseProxyFallback(false);
+                          lastLoadedUrlRef.current = "";
+                          setHasError(false);
+                          setErrorMessage("");
+                          setIsLoading(true);
+                          setSelectedServerIndex(targetIdx);
+                          triggerActionFeedback(
+                            "server",
+                            `${quality ? `[${quality}] ` : ""}${displayLabel}`,
+                          );
+                          closeRail();
                         }}
-                        className={`w-full rounded-xl border p-2 text-left transition flex items-center gap-2.5 cursor-pointer min-h-[48px] active:scale-[0.98] ${
-                          isCurrent
+                        ref={isSelected ? activeOptionRef : undefined}
+                        className={`w-full rounded-xl border p-3 text-left transition flex items-center gap-2.5 cursor-pointer min-h-[48px] active:scale-[0.99] touch-manipulation ${
+                          isSelected
                             ? "border-netflix-red/90 bg-red-500/15 text-white shadow-md shadow-red-950/40 ring-1 ring-netflix-red/40"
-                            : "border-white/10 bg-white/[0.03] text-gray-200 hover:border-white/20 hover:bg-white/[0.08]"
+                            : "border-white/10 bg-white/[0.04] text-gray-200 hover:border-white/20 hover:bg-white/[0.08]"
                         }`}
                       >
-                        {/* Thumbnail / Logo */}
-                        <div className="w-8 h-8 rounded-lg bg-zinc-900 border border-white/10 p-0.5 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                          <MatchRailLogo option={option} />
+                        {/* Biểu tượng Check nếu đang chọn */}
+                        <div className="w-5 h-5 flex items-center justify-center shrink-0">
+                          {isSelected ? (
+                            <Check className="w-4 h-4 text-emerald-400 font-bold" />
+                          ) : (
+                            <span className="w-2 h-2 rounded-full bg-white/20" />
+                          )}
                         </div>
 
-                        {/* Thông tin */}
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center justify-between gap-1">
-                            <span className="truncate text-xs font-bold leading-tight">
-                              {option.isEvent
-                                ? option.title
-                                : `${option.team1}${option.team2 ? ` vs ${option.team2}` : ""}`}
+                        {/* Badge chất lượng FHD / HD */}
+                        <div className="shrink-0 flex items-center">
+                          {quality === "FHD" ? (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-black tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                              <span>🟡</span>
+                              <span>FHD</span>
                             </span>
-                            {isCurrent && <PlayingEqualizer />}
-                          </div>
-
-                          <div className="flex items-center gap-1.5 mt-0.5 text-[10px] text-gray-400">
-                            {isOptionLive ? (
-                              <span className="flex items-center gap-1 text-emerald-400 font-bold">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                                <span>LIVE</span>
-                              </span>
-                            ) : (
-                              <span className="text-sky-300 font-medium">
-                                ⏰ {option.time}
-                              </span>
-                            )}
-                            <span>•</span>
-                            <span className="truncate text-gray-400">
-                              {option.group}
+                          ) : quality === "HD" ? (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-black tracking-wider bg-sky-500/20 text-sky-300 border border-sky-500/40">
+                              <span>🔵</span>
+                              <span>HD</span>
                             </span>
-                            {option.blv && (
-                              <>
-                                <span>•</span>
-                                <span className="text-rose-300 truncate">
-                                  🎙️ {option.blv}
-                                </span>
-                              </>
-                            )}
-                          </div>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider bg-white/10 text-gray-300 border border-white/15">
+                              <span>⚪</span>
+                              <span>SD</span>
+                            </span>
+                          )}
                         </div>
+
+                        {/* Dấu phân cách */}
+                        <span className="text-gray-500 text-xs shrink-0">·</span>
+
+                        {/* Tên BLV / Tên nguồn đã làm sạch */}
+                        <span className="truncate text-xs sm:text-sm font-semibold text-gray-100 flex-1 min-w-0">
+                          {displayLabel}
+                        </span>
+
+                        {/* Icon sóng động nếu đang phát */}
+                        {isSelected && isPlaying && !isLoading && !hasError && (
+                          <div className="shrink-0">
+                            <PlayingEqualizer />
+                          </div>
+                        )}
                       </button>
                     );
                   })
@@ -2269,42 +2658,50 @@ function LivePlayerInner({
             className="bg-gradient-to-t from-black/95 via-black/80 to-transparent p-2 sm:p-4 pt-6 sm:pt-8 flex items-center justify-between gap-1.5 sm:gap-4 select-none"
           >
             {/* CỤM TRÁI: PLAY/PAUSE + ĐỔI TRẬN NHANH + ÂM LƯỢNG */}
-            <div className="flex items-center gap-1 sm:gap-3 min-w-0 flex-shrink">
+            <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0 flex-shrink">
               <button
                 type="button"
                 onClick={togglePlay}
                 title={isPlaying ? "Tạm dừng (Space)" : "Phát (Space)"}
-                className="w-8 h-8 sm:w-11 sm:h-11 rounded-full bg-white/20 hover:bg-white/30 flex-shrink-0 flex items-center justify-center text-white transition hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md"
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/20 hover:bg-white/30 flex-shrink-0 flex items-center justify-center text-white transition hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md border border-white/20"
               >
                 {isPlaying ? (
-                  <Pause className="w-3.5 h-3.5 sm:w-5 sm:h-5 fill-current" />
+                  <Pause className="w-4 h-4 sm:w-5 sm:h-5 fill-current" />
                 ) : (
-                  <Play className="w-3.5 h-3.5 sm:w-5 sm:h-5 fill-current ml-0.5" />
+                  <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current ml-0.5" />
                 )}
               </button>
 
-              {/* NÚT ĐỔI TRẬN / ĐỔI KÊNH NHANH TRÊN THANH CONTROL */}
-              <div className="flex items-center bg-black/60 rounded-full border border-white/15 p-0.5 backdrop-blur-md flex-shrink-0">
+              {/* NÚT ĐỔI NGUỒN PHÁT TRƯỚC / SAU TRÊN THANH CONTROL */}
+              <div className="h-9 sm:h-10 flex items-center bg-black/60 rounded-full border border-white/20 px-1 backdrop-blur-md flex-shrink-0">
                 <button
                   type="button"
-                  onClick={() => handleSwitchMatch("prev")}
-                  title="Trận trước (Phím P hoặc PageUp)"
-                  className="p-1 sm:p-1.5 text-gray-300 hover:text-white hover:bg-white/10 rounded-full transition cursor-pointer"
+                  onClick={() => handleSwitchServer("prev")}
+                  disabled={availableServers.length <= 1}
+                  title="Nguồn phát trước (Phím P hoặc PageUp)"
+                  className={`w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-full transition ${
+                    availableServers.length <= 1
+                      ? "text-gray-500 cursor-not-allowed opacity-50"
+                      : "text-gray-300 hover:text-white hover:bg-white/10 cursor-pointer"
+                  }`}
                 >
-                  <ChevronLeft className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                  <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </button>
-                <span className="text-[9px] sm:text-[10px] font-mono font-bold px-1 sm:px-2 text-amber-300 whitespace-nowrap">
-                  {matchOptions && matchOptions.length > 1
-                    ? "Đổi trận"
-                    : `SV ${selectedServerIndex + 1}/${servers.length}`}
+                <span className="text-[11px] sm:text-xs font-semibold px-1.5 sm:px-2 text-amber-300 whitespace-nowrap select-none">
+                  {`Nguồn ${currentAvailableIdx !== -1 ? currentAvailableIdx + 1 : 1}/${availableServers.length || 1}`}
                 </span>
                 <button
                   type="button"
-                  onClick={() => handleSwitchMatch("next")}
-                  title="Trận kế tiếp (Phím N hoặc PageDown)"
-                  className="p-1 sm:p-1.5 text-gray-300 hover:text-white hover:bg-white/10 rounded-full transition cursor-pointer"
+                  onClick={() => handleSwitchServer("next")}
+                  disabled={availableServers.length <= 1}
+                  title="Nguồn phát kế tiếp (Phím N hoặc PageDown)"
+                  className={`w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-full transition ${
+                    availableServers.length <= 1
+                      ? "text-gray-500 cursor-not-allowed opacity-50"
+                      : "text-gray-300 hover:text-white hover:bg-white/10 cursor-pointer"
+                  }`}
                 >
-                  <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                  <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </button>
               </div>
 
@@ -2313,25 +2710,25 @@ function LivePlayerInner({
                 type="button"
                 onClick={toggleMute}
                 title={isMuted ? "Bật âm thanh (M)" : "Tắt âm thanh (M)"}
-                className="sm:hidden w-7 h-7 rounded-full bg-black/60 border border-white/20 flex items-center justify-center text-white hover:text-rose-400 transition cursor-pointer flex-shrink-0"
+                className="w-9 h-9 sm:hidden rounded-full bg-black/60 border border-white/20 flex items-center justify-center text-white hover:text-rose-400 transition cursor-pointer flex-shrink-0 backdrop-blur-md"
               >
                 <VolumeIcon
-                  className={`w-3.5 h-3.5 ${
+                  className={`w-4 h-4 ${
                     isMuted || volume === 0 ? "text-rose-400" : "text-white"
                   }`}
                 />
               </button>
 
               {/* CỤM VOLUME TRÊN TABLET & DESKTOP (Hiện đầy đủ Slider + % text) */}
-              <div className="hidden sm:flex items-center gap-2 bg-black/60 px-3 py-1.5 rounded-full border border-white/20 backdrop-blur-md">
+              <div className="h-9 sm:h-10 hidden sm:flex items-center gap-2 bg-black/60 px-3 rounded-full border border-white/20 backdrop-blur-md flex-shrink-0">
                 <button
                   type="button"
                   onClick={toggleMute}
                   title={isMuted ? "Bật âm thanh (M)" : "Tắt âm thanh (M)"}
-                  className="text-white hover:text-rose-400 transition cursor-pointer p-0.5"
+                  className="text-white hover:text-rose-400 transition cursor-pointer p-0.5 flex items-center justify-center"
                 >
                   <VolumeIcon
-                    className={`w-4 h-4 sm:w-5 sm:h-5 ${
+                    className={`w-4 h-4 sm:w-4.5 sm:h-4.5 ${
                       isMuted || volume === 0 ? "text-rose-400" : "text-white"
                     }`}
                   />
@@ -2350,7 +2747,7 @@ function LivePlayerInner({
 
                 <span
                   onClick={toggleMute}
-                  className="text-[10px] sm:text-[11px] font-mono font-bold text-gray-200 cursor-pointer hover:text-white select-none whitespace-nowrap min-w-[36px]"
+                  className="text-[11px] sm:text-xs font-mono font-bold text-gray-200 cursor-pointer hover:text-white select-none whitespace-nowrap min-w-[36px]"
                 >
                   {isMuted ? "Tắt tiếng" : `${Math.round(volume * 100)}%`}
                 </span>
@@ -2358,25 +2755,29 @@ function LivePlayerInner({
             </div>
 
             {/* CỤM PHẢI: NÚT KÊNH + PHÍM TẮT GỢI Ý + PIP + TOÀN MÀN HÌNH */}
-            <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-              {/* Nút Mở Danh sách Kênh / Trận đấu */}
-              {matchOptions && matchOptions.length > 0 && (
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+              {/* Nút Chọn Nguồn Phát của trận đang xem */}
+              {servers && servers.length > 0 && (
                 <button
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     toggleRail();
                   }}
-                  title="Mở danh sách kênh & trận đấu (Phím C)"
-                  className={`flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-2 rounded-full border text-[10px] sm:text-xs font-bold transition backdrop-blur-md cursor-pointer ${
+                  title="Chọn nguồn phát của trận đang xem (Phím C)"
+                  className={`h-9 sm:h-10 flex items-center gap-1.5 px-3 sm:px-3.5 rounded-full border text-[11px] sm:text-xs font-semibold transition backdrop-blur-md cursor-pointer touch-manipulation flex-shrink-0 ${
                     isRailVisible
-                      ? "bg-gradient-to-r from-red-600 to-rose-600 text-white border-red-400 shadow-md shadow-red-950/60 scale-102"
-                      : "bg-white/15 hover:bg-white/25 text-gray-200 hover:text-white border-white/20"
+                      ? "bg-gradient-to-r from-red-600 to-rose-600 text-white border-red-400 shadow-md shadow-red-950/60"
+                      : "bg-black/60 hover:bg-white/20 text-gray-200 hover:text-white border-white/20"
                   }`}
                 >
-                  <List className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-300" />
-                  <span className="hidden sm:inline">Danh sách kênh</span>
-                  <span className="sm:hidden">Kênh</span>
+                  <Mic className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400 shrink-0" />
+                  <span>Nguồn</span>
+                  {isRailVisible ? (
+                    <ChevronUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-300 shrink-0" />
+                  ) : (
+                    <ChevronDown className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-300 shrink-0" />
+                  )}
                 </button>
               )}
 
@@ -2388,13 +2789,13 @@ function LivePlayerInner({
                 type="button"
                 onClick={togglePip}
                 title="Xem thu nhỏ góc màn hình (PiP - Phím I)"
-                className={`hidden sm:flex w-8 h-8 sm:w-10 sm:h-10 rounded-full items-center justify-center transition hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md border border-white/10 flex-shrink-0 ${
+                className={`w-9 h-9 sm:w-10 sm:h-10 hidden sm:flex rounded-full items-center justify-center transition hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md border border-white/20 flex-shrink-0 ${
                   isPip
                     ? "bg-netflix-red text-white"
-                    : "bg-white/20 hover:bg-white/30 text-white"
+                    : "bg-black/60 hover:bg-white/20 text-white"
                 }`}
               >
-                <PictureInPicture2 className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5" />
+                <PictureInPicture2 className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
               </button>
 
               {/* Nút Toàn màn hình */}
@@ -2402,12 +2803,12 @@ function LivePlayerInner({
                 type="button"
                 onClick={toggleFullscreen}
                 title={isFullscreen ? "Thu nhỏ (F)" : "Toàn màn hình (F)"}
-                className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-netflix-red hover:bg-red-700 flex items-center justify-center text-white transition hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md flex-shrink-0 shadow-lg border border-white/20"
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-netflix-red hover:bg-red-700 flex items-center justify-center text-white transition hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md flex-shrink-0 shadow-lg shadow-red-950/60 border border-white/20"
               >
                 {isFullscreen ? (
-                  <Minimize className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
+                  <Minimize className="w-4 h-4 sm:w-5 sm:h-5" />
                 ) : (
-                  <Maximize className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
+                  <Maximize className="w-4 h-4 sm:w-5 sm:h-5" />
                 )}
               </button>
             </div>
@@ -2530,12 +2931,12 @@ function LivePlayerInner({
               <span className="flex items-center gap-1.5 text-gray-300 font-bold text-xs">
                 <span>📡 Nguồn phát</span>
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-gray-300 font-bold">
-                  {servers.length}
+                  {availableServers.length}
                 </span>
               </span>
               {hasMoreServers && (
                 <span className="text-[10px] text-gray-500 hidden sm:inline">
-                  ({showAllServers ? `Tất cả ${servers.length}` : `8/${servers.length}`})
+                  ({showAllServers ? `Tất cả ${availableServers.length}` : `8/${availableServers.length}`})
                 </span>
               )}
             </div>
@@ -2549,7 +2950,7 @@ function LivePlayerInner({
                 <span>
                   {showAllServers
                     ? "Thu gọn"
-                    : `+${servers.length - INITIAL_SERVER_LIMIT} nguồn khác`}
+                    : `+${availableServers.length - INITIAL_SERVER_LIMIT} nguồn khác`}
                 </span>
                 {showAllServers ? (
                   <ChevronUp className="w-3 h-3" />
@@ -2561,46 +2962,73 @@ function LivePlayerInner({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5 sm:gap-2 w-full min-w-0 pt-0.5 max-h-72 overflow-y-auto">
-            {displayedServers.map((s, idx) => {
-              const actualIdx = idx;
-              const isSelected = selectedServerIndex === actualIdx;
-              return (
-                <button
-                  key={actualIdx}
-                  type="button"
-                  onClick={() => {
-                    fallbackCountRef.current = 0;
-                    isStoppedRef.current = false;
-                    failedServersRef.current.delete(actualIdx);
-                    if (s.url) {
-                      failedUrlsRef.current.delete(s.url);
-                    }
-                    useProxyFallbackRef.current = false;
-                    setUseProxyFallback(false);
-                    lastLoadedUrlRef.current = "";
-                    setHasError(false);
-                    setErrorMessage("");
-                    setIsLoading(true);
-                    setSelectedServerIndex(actualIdx);
-                    setRetryNonce((prev) => prev + 1);
-                  }}
-                  className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-between gap-2 cursor-pointer border text-left min-w-0 ${
-                    isSelected
-                      ? "bg-netflix-red text-white border-netflix-red shadow-md shadow-red-950/50 scale-[1.01]"
-                      : "bg-black/60 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800/90"
-                  }`}
-                >
-                  <div className="flex items-center gap-2 min-w-0 flex-1 truncate">
-                    <span
-                      className={`w-2 h-2 rounded-full shrink-0 ${
-                        isSelected ? "bg-white animate-ping" : "bg-emerald-400"
-                      }`}
-                    />
-                    <span className="truncate">{s.name}</span>
-                  </div>
-                </button>
-              );
-            })}
+            {availableServers.length === 0 ? (
+              <div className="col-span-full py-4 px-3 text-center rounded-xl bg-red-950/20 border border-red-900/30 text-gray-400 text-xs flex flex-col items-center justify-center gap-2">
+                <AlertCircle className="w-5 h-5 text-red-500" />
+                <span>Không có nguồn phát khả dụng</span>
+              </div>
+            ) : (
+              displayedServers.map((s, idx) => {
+                const isSelected = currentServer?.url === s.url;
+                const qualityBadge = getSourceQuality(s);
+                const cleanName = parseServerDisplayLabel(s, idx);
+
+                return (
+                  <button
+                    key={`${toCanonicalSourceUrl(s.url) || "sv"}-${idx}`}
+                    type="button"
+                    onClick={() => {
+                      fallbackCountRef.current = 0;
+                      isStoppedRef.current = false;
+                      const origIdx = servers.findIndex(
+                        (srv) =>
+                          toCanonicalSourceUrl(srv.url) ===
+                          toCanonicalSourceUrl(s.url),
+                      );
+                      const targetIdx = origIdx !== -1 ? origIdx : 0;
+                      useProxyFallbackRef.current = false;
+                      setUseProxyFallback(false);
+                      lastLoadedUrlRef.current = "";
+                      setHasError(false);
+                      setErrorMessage("");
+                      setIsLoading(true);
+                      setSelectedServerIndex(targetIdx);
+                      setRetryNonce((prev) => prev + 1);
+                    }}
+                    className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-between gap-2 cursor-pointer border text-left min-w-0 ${
+                      isSelected
+                        ? "bg-netflix-red text-white border-netflix-red shadow-md shadow-red-950/50 scale-[1.01]"
+                        : "bg-black/60 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800/90"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 min-w-0 flex-1 truncate">
+                      <span
+                        className={`w-2 h-2 rounded-full shrink-0 ${
+                          isSelected ? "bg-white animate-ping" : "bg-emerald-400"
+                        }`}
+                      />
+                      <span className="truncate">{cleanName}</span>
+                    </div>
+
+                    {qualityBadge && (
+                      <span
+                        className={`shrink-0 px-1.5 py-0.5 text-[9px] font-black rounded tracking-wider border ${
+                          qualityBadge === "FHD"
+                            ? isSelected
+                              ? "bg-white/20 text-white border-white/30"
+                              : "bg-amber-500/15 text-amber-300 border-amber-500/30"
+                            : isSelected
+                            ? "bg-white/20 text-white border-white/30"
+                            : "bg-sky-500/15 text-sky-300 border-sky-500/30"
+                        }`}
+                      >
+                        {qualityBadge}
+                      </span>
+                    )}
+                  </button>
+                );
+              })
+            )}
 
             {hasMoreServers && !showAllServers && (
               <button
@@ -2608,7 +3036,7 @@ function LivePlayerInner({
                 onClick={() => setShowAllServers(true)}
                 className="px-3 py-2 rounded-xl text-xs font-medium transition-all flex items-center justify-center gap-1 cursor-pointer bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-dashed border-white/20 sm:col-span-2 lg:col-span-3"
               >
-                <span>+{servers.length - INITIAL_SERVER_LIMIT} nguồn khác</span>
+                <span>+{availableServers.length - INITIAL_SERVER_LIMIT} nguồn khác</span>
                 <ChevronDown className="w-3.5 h-3.5 text-netflix-red" />
               </button>
             )}

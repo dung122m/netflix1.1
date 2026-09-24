@@ -59,14 +59,14 @@ export function LiveShortcutPopover({ mode = "football" }: LiveShortcutPopoverPr
           setIsOpen((prev) => !prev);
         }}
         title="Xem hướng dẫn phím tắt (Hotkeys)"
-        className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-full border text-[11px] font-medium transition backdrop-blur-md cursor-pointer select-none ${
+        className={`h-9 sm:h-10 flex items-center gap-1.5 px-2.5 sm:px-3 rounded-full border text-[11px] sm:text-xs font-semibold transition backdrop-blur-md cursor-pointer select-none flex-shrink-0 ${
           isOpen
             ? "bg-white/25 text-white border-white/40 shadow-lg shadow-black/40"
-            : "bg-black/40 hover:bg-white/20 text-gray-300 hover:text-white border-white/15"
+            : "bg-black/60 hover:bg-white/20 text-gray-200 hover:text-white border-white/20"
         }`}
       >
-        <Keyboard className="w-3.5 h-3.5 text-gray-300" />
-        <span className="text-[10px] sm:text-[11px] font-medium">Phím tắt</span>
+        <Keyboard className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-300 shrink-0" />
+        <span>Phím tắt</span>
       </button>
 
       {/* Popover / Panel nhỏ gọn overlay ở góc dưới phải player */}

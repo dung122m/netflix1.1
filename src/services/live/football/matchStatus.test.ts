@@ -9,6 +9,8 @@ import {
   extractSportAndGender,
   getSportLabel,
   normalizeAndMergeStreams,
+  cleanCandidateTeamName,
+  extractHailabLogos,
 } from "./service";
 import { getTeamAsset, TOTAL_MAPPED_TEAMS } from "@/data/live/teamAssets";
 
@@ -1032,5 +1034,391 @@ describe("Nanaflix Live Match Status & Timeline System", () => {
     assert.equal(stopped, true, "Must be stopped");
     assert.equal(failedServers.has(0), true, "Server 0 must be in failedServers");
   });
+
+  // 41. Hailab: extractHailabLogos trích xuất chính xác homeLogo và awayLogo từ query URL
+  it("41. Hailab: extractHailabLogos extracts homeLogo and awayLogo from match poster query URL", () => {
+    const posterUrl =
+      "http://livesport.hailab.cloud/match_poster.php?home=https%3A%2F%2Fimg.gvapi.cc%2Ffootball%2Fteam%2F15fa1fad1fc582dd65403f6f950b1e21.png%21w80&away=https%3A%2F%2Fimg.gvapi.cc%2Ffootball%2Fteam%2Ff7eb745a5f9b3016b083019da91b5f74.png%21w80&competition=https%3A%2F%2Fimg.gvapi.cc%2Ffootball%2Fcompetition%2F245bff452fbdc34d417164e361097ae7.png%21w80&v=light-v2";
+    const logos = extractHailabLogos(posterUrl);
+    assert.equal(logos.homeLogo, "https://img.gvapi.cc/football/team/15fa1fad1fc582dd65403f6f950b1e21.png!w80");
+    assert.equal(logos.awayLogo, "https://img.gvapi.cc/football/team/f7eb745a5f9b3016b083019da91b5f74.png!w80");
+  });
+
+  // 42. Hailab: cleanCandidateTeamName loại bỏ tiền tố ĐTQG, ĐT, CLB
+  it("42. Hailab: cleanCandidateTeamName cleans ĐTQG, ĐT, CLB prefixes cleanly", () => {
+    assert.equal(cleanCandidateTeamName("ĐTQG Hà Lan"), "Hà Lan");
+    assert.equal(cleanCandidateTeamName("ĐT Đan Mạch"), "Đan Mạch");
+    assert.equal(cleanCandidateTeamName("CLB Greece"), "Greece");
+    assert.equal(cleanCandidateTeamName("ĐTQG Kosovo"), "Kosovo");
+  });
+
+  // 43. Hailab: Hailab streams merge chính xác với M3U streams cùng fixture và giữ server từ cả 2 nguồn
+  it("43. Hailab: Streams from Hailab merge with M3U fixture and retain both servers", () => {
+    const rawStreams = [
+      {
+        rawTitle: "20:00 24/09 ⚽ Netherlands vs Germany",
+        group: "THTT Live Sports",
+        rawLogo: "https://example.com/netherlands.png",
+        url: "https://m3u-server.m3u8",
+        effectiveUrl: "https://m3u-server.m3u8",
+      },
+      {
+        rawTitle: "🟢 20:00 24/09 ⚽ ĐTQG Hà Lan vs Đức (BLV 7UP)",
+        group: "Live Sports (Hailab)",
+        rawLogo: "https://img.gvapi.cc/netherlands.png",
+        awayLogo: "https://img.gvapi.cc/germany.png",
+        tournament: "Giải vô địch bóng đá các quốc gia châu Âu",
+        url: "https://live05.meung.app/live/78905744_tsc.m3u8",
+        effectiveUrl: "https://live05.meung.app/live/78905744_tsc.m3u8",
+      },
+    ];
+
+    const { matches } = normalizeAndMergeStreams(rawStreams, baseNow);
+    assert.equal(matches.length, 1, "Must merge Netherlands vs Germany and ĐTQG Hà Lan vs Đức into 1 fixture");
+    assert.equal(matches[0].servers.length, 2, "Must aggregate servers from both M3U and Hailab");
+    assert.equal(matches[0].groups.includes("Live Sports (Hailab)"), true, "Must include Hailab in groups");
+    assert.equal(matches[0].blv?.includes("7UP"), true, "Must retain BLV from Hailab");
+  });
+
+  // 44. Strict Timeline Filtering: Tuân thủ quy tắc lọc trận đang đá và sắp đá <= 60m
+  it("44. Strict Match Timeline Filtering rule applied on matches", () => {
+    // Trận 1: Đang đá (kickoff 40 phút trước) -> LIVE
+    const playingKickoff = baseNow - 40 * 60 * 1000;
+    const tl1 = getMatchTimeline(playingKickoff, "live", "unknown", baseNow);
+    assert.equal(tl1, "live", "Match within 140m window must be LIVE");
+
+    // Trận 2: Sắp đá trong 30 phút tới -> UPCOMING
+    const soonKickoff = baseNow + 30 * 60 * 1000;
+    const tl2 = getMatchTimeline(soonKickoff, "upcoming", "unknown", baseNow);
+    assert.equal(tl2, "upcoming", "Match within 60m future must be UPCOMING");
+
+    // Trận 3: Trận đá hơn 60 phút tới (ví dụ 90m tới) -> FINISHED (ẩn)
+    const farFutureKickoff = baseNow + 90 * 60 * 1000;
+    const tl3 = getMatchTimeline(farFutureKickoff, "upcoming", "unknown", baseNow);
+    assert.equal(tl3, "finished", "Match >60m in future must be FINISHED (hidden)");
+
+    // Trận 4: Trận đã kết thúc quá 140 phút (ví dụ 160m trước) -> FINISHED (ẩn)
+    const endedKickoff = baseNow - 160 * 60 * 1000;
+    const tl4 = getMatchTimeline(endedKickoff, "live", "alive", baseNow);
+    assert.equal(tl4, "finished", "Match >140m in past must be FINISHED (hidden)");
+  });
+
+  // 45. Deduplication: Serbia vs Greece & Ivory Coast vs Ghana merge into 1 card, preserving all sources & BLVs
+  it("45. Deduplication: Serbia vs Greece & Ivory Coast vs Ghana merge into 1 card, preserving all sources & BLVs", () => {
+    const rawStreams = [
+      // Serbia vs Greece streams (different sources, different languages, different BLVs, multi-sources)
+      {
+        rawTitle: "01:45 25/09 ⚽ Serbia vs Greece (BLV Batman) [FHD]",
+        group: "Source Group A",
+        rawLogo: "https://example.com/serbia.png",
+        url: "https://stream-serbia-greece-1.m3u8",
+        effectiveUrl: "https://stream-serbia-greece-1.m3u8",
+      },
+      {
+        rawTitle: "01:45 25/09 ⚽ Serbia vs Hy Lạp (BLV Robin) [HD]",
+        group: "Source Group B",
+        rawLogo: "https://example.com/serbia.png",
+        url: "https://stream-serbia-greece-2.m3u8",
+        effectiveUrl: "https://stream-serbia-greece-2.m3u8",
+      },
+      {
+        rawTitle: "01:45 25/09 ⚽ ĐTQG Serbia vs ĐTQG Hy Lạp - Server 3",
+        group: "Source Group C",
+        rawLogo: "",
+        url: "https://stream-serbia-greece-3.m3u8",
+        effectiveUrl: "https://stream-serbia-greece-3.m3u8",
+      },
+
+      // Ivory Coast vs Ghana streams (different sources, English/Vietnamese, different BLVs)
+      {
+        rawTitle: "02:00 25/09 ⚽ Ivory Coast vs Ghana (BLV Superman)",
+        group: "Source Group A",
+        rawLogo: "https://example.com/ivorycoast.png",
+        url: "https://stream-ci-ghana-1.m3u8",
+        effectiveUrl: "https://stream-ci-ghana-1.m3u8",
+      },
+      {
+        rawTitle: "02:00 25/09 ⚽ Bờ Biển Ngà vs Ghana (BLV Flash)",
+        group: "Source Group D",
+        rawLogo: "https://example.com/ivorycoast.png",
+        url: "https://stream-ci-ghana-2.m3u8",
+        effectiveUrl: "https://stream-ci-ghana-2.m3u8",
+      },
+
+      // Different match with different kickoff time (must NOT merge)
+      {
+        rawTitle: "03:30 25/09 ⚽ Serbia vs Greece",
+        group: "Source Group A",
+        rawLogo: "https://example.com/serbia.png",
+        url: "https://stream-serbia-greece-future.m3u8",
+        effectiveUrl: "https://stream-serbia-greece-future.m3u8",
+      },
+    ];
+
+    const { matches } = normalizeAndMergeStreams(rawStreams, baseNow);
+
+    // Verify 1: Exactly 3 matches created (Serbia vs Greece 01:45, Ivory Coast vs Ghana 02:00, Serbia vs Greece 03:30)
+    assert.equal(matches.length, 3, "Must produce exactly 3 matches, no duplicate cards for same match");
+
+    // Verify 2: Serbia vs Greece 01:45 is ONE card with all 3 servers retained
+    const serbia0145 = matches.find((m) => m.time.includes("01:45") && /serbia/i.test(m.title));
+    assert.ok(serbia0145, "Serbia vs Greece 01:45 must exist as 1 card");
+    assert.equal(serbia0145.servers.length, 3, "All 3 servers from different source groups must be merged");
+    assert.equal(serbia0145.groups.length, 3, "All 3 source groups must be retained in groups array");
+    assert.ok(serbia0145.blv?.includes("Batman"), "BLV Batman must be preserved");
+    assert.ok(serbia0145.blv?.includes("Robin"), "BLV Robin must be preserved");
+    assert.equal(serbia0145.quality, "FHD 1080p", "FHD quality must be preserved if any source has FHD");
+
+    // Verify 3: Ivory Coast vs Ghana 02:00 is ONE card with both servers retained
+    const ivory0200 = matches.find((m) => m.time.includes("02:00"));
+    assert.ok(ivory0200, "Ivory Coast vs Ghana 02:00 must exist as 1 card");
+    assert.equal(ivory0200.servers.length, 2, "Both servers from English and Vietnamese sources must be merged");
+    assert.ok(ivory0200.blv?.includes("Superman"), "BLV Superman must be preserved");
+    assert.ok(ivory0200.blv?.includes("Flash"), "BLV Flash must be preserved");
+
+    // Verify 4: Match with different kickoff time (03:30) remains separate
+    const serbia0330 = matches.find((m) => m.time.includes("03:30"));
+    assert.ok(serbia0330, "Serbia vs Greece 03:30 must remain a separate match");
+    assert.notEqual(serbia0145.id, serbia0330.id, "Different kickoff times must have distinct match IDs");
+  });
 });
+
+import {
+  getSourceQuality,
+  getQualityPriorityScore,
+  findBestInitialServerIndex,
+  findNextFallbackServerIndex,
+  toCanonicalSourceUrl,
+  parseServerDisplayLabel,
+} from "@/components/live/LivePlayer";
+import { StreamServer } from "./service";
+
+describe("Nanaflix Live TV - FHD Badges, Broken Source Hiding & Smart Fallback", () => {
+  it("1. Quality Detection Mapping (FHD / HD / Null)", () => {
+    // 1080p, 1080, FHD, Full HD -> "FHD"
+    assert.equal(getSourceQuality({ quality: "FHD" as const }), "FHD");
+    assert.equal(getSourceQuality({ name: "Server #1 [FHD]" }), "FHD");
+    assert.equal(getSourceQuality({ name: "Kênh FPT 1080p 50fps" }), "FHD");
+    assert.equal(getSourceQuality({ name: "Live Sport 1080" }), "FHD");
+    assert.equal(getSourceQuality({ name: "VTV5 Full HD" }), "FHD");
+
+    // 720p, 720, HD -> "HD"
+    assert.equal(getSourceQuality({ quality: "HD" as const }), "HD");
+    assert.equal(getSourceQuality({ name: "Server #2 [HD]" }), "HD");
+    assert.equal(getSourceQuality({ name: "Kênh 720p" }), "HD");
+    assert.equal(getSourceQuality({ name: "Stream 720" }), "HD");
+    assert.equal(getSourceQuality({ name: "HTV Thể Thao HD" }), "HD");
+
+    // Undetermined quality -> null (không tự gán)
+    assert.equal(getSourceQuality({ name: "Server dự phòng #3", url: "https://cdn.example.com/live.m3u8" }), null);
+    assert.equal(getSourceQuality(undefined), null);
+  });
+
+  it("2. Quality Prioritization Score (FHD > HD > Undetermined)", () => {
+    assert.equal(getQualityPriorityScore({ quality: "FHD" as const }), 2);
+    assert.equal(getQualityPriorityScore({ name: "VTV 1080p" }), 2);
+    assert.equal(getQualityPriorityScore({ quality: "HD" as const }), 1);
+    assert.equal(getQualityPriorityScore({ name: "VTV 720p" }), 1);
+    assert.equal(getQualityPriorityScore({ name: "Server Unknown" }), 0);
+  });
+
+  it("3. Case 1: Ưu tiên chọn nguồn FHD làm nguồn mặc định", () => {
+    const servers: StreamServer[] = [
+      { name: "Server A [HD]", url: "https://example.com/a.m3u8", format: "hls", isHls: true, quality: "HD" },
+      { name: "Server B [FHD]", url: "https://example.com/b.m3u8", format: "hls", isHls: true, quality: "FHD" },
+      { name: "Server C", url: "https://example.com/c.m3u8", format: "hls", isHls: true, quality: "HD" },
+    ];
+
+    const bestIdx = findBestInitialServerIndex(servers);
+    assert.equal(bestIdx, 1, "Must pick Server B [FHD] as initial server even if it is not at index 0");
+  });
+
+  it("4. Case 2: FHD A lỗi -> A bị ẩn, tự động fallback sang FHD B", () => {
+    const servers: StreamServer[] = [
+      { name: "Server A [FHD]", url: "https://example.com/a.m3u8", format: "hls", isHls: true, quality: "FHD" },
+      { name: "Server B [FHD]", url: "https://example.com/b.m3u8", format: "hls", isHls: true, quality: "FHD" },
+      { name: "Server C [HD]", url: "https://example.com/c.m3u8", format: "hls", isHls: true, quality: "HD" },
+    ];
+
+    const failedSet = new Set<string>();
+    // FHD A fails
+    failedSet.add(servers[0].url);
+
+    // Filter available servers for UI (Section 5: Source lỗi phải được ẩn)
+    const available = servers.filter((s) => !failedSet.has(s.url));
+    assert.equal(available.length, 2, "Failed server A must be removed from available list");
+    assert.equal(available.some((s) => s.url === servers[0].url), false, "Server A must not exist in available list");
+
+    // Auto fallback to next best server
+    const nextIdx = findNextFallbackServerIndex(servers, failedSet, 0);
+    assert.equal(nextIdx, 1, "Must automatically fallback to FHD B");
+  });
+
+  it("5. Case 3: FHD A & FHD B đều lỗi -> A & B bị ẩn, tự động fallback sang HD C", () => {
+    const servers: StreamServer[] = [
+      { name: "Server A [FHD]", url: "https://example.com/a.m3u8", format: "hls", isHls: true, quality: "FHD" },
+      { name: "Server B [FHD]", url: "https://example.com/b.m3u8", format: "hls", isHls: true, quality: "FHD" },
+      { name: "Server C [HD]", url: "https://example.com/c.m3u8", format: "hls", isHls: true, quality: "HD" },
+    ];
+
+    const failedSet = new Set<string>();
+    failedSet.add(servers[0].url);
+    failedSet.add(servers[1].url);
+
+    const available = servers.filter((s) => !failedSet.has(s.url));
+    assert.equal(available.length, 1, "Only HD C should remain available");
+    assert.equal(available[0].name, "Server C [HD]");
+
+    const nextIdx = findNextFallbackServerIndex(servers, failedSet, 1);
+    assert.equal(nextIdx, 2, "Must automatically fallback to HD C");
+  });
+
+  it("6. Case 4: Tất cả server đều lỗi -> Không loop vô tận, trả về -1 (Không có nguồn phát khả dụng)", () => {
+    const servers: StreamServer[] = [
+      { name: "Server A [FHD]", url: "https://example.com/a.m3u8", format: "hls", isHls: true, quality: "FHD" },
+      { name: "Server B [FHD]", url: "https://example.com/b.m3u8", format: "hls", isHls: true, quality: "FHD" },
+      { name: "Server C [HD]", url: "https://example.com/c.m3u8", format: "hls", isHls: true, quality: "HD" },
+    ];
+
+    const failedSet = new Set<string>([
+      servers[0].url,
+      servers[1].url,
+      servers[2].url,
+    ]);
+
+    const available = servers.filter((s) => !failedSet.has(s.url));
+    assert.equal(available.length, 0, "No available servers left");
+
+    const nextIdx = findNextFallbackServerIndex(servers, failedSet, 2);
+    assert.equal(nextIdx, -1, "Must return -1 indicating no available server and preventing infinite loops");
+  });
+
+  it("7. Case 5: Reset failed source khi chuyển trận", () => {
+    // Trận 1 có server lỗi
+    const match1FailedSet = new Set<string>(["https://example.com/match1_stream.m3u8"]);
+    assert.equal(match1FailedSet.has("https://example.com/match1_stream.m3u8"), true);
+
+    // Chuyển sang trận 2: Reset set failed
+    const match2FailedSet = new Set<string>();
+    assert.equal(match2FailedSet.size, 0, "New match must start with fresh empty failed set");
+
+    const match2Servers: StreamServer[] = [
+      { name: "Match 2 Server [FHD]", url: "https://example.com/match2_fhd.m3u8", format: "hls", isHls: true, quality: "FHD" },
+      { name: "Match 2 Server [HD]", url: "https://example.com/match2_hd.m3u8", format: "hls", isHls: true, quality: "HD" },
+    ];
+    const initialIdx = findBestInitialServerIndex(match2Servers, match2FailedSet);
+    assert.equal(initialIdx, 0, "New match starts with top quality server index");
+  });
+
+  it("8. toCanonicalSourceUrl: Unwraps proxy URLs to direct URLs cleanly", () => {
+    const directUrl = "https://cdn.example.com/hls/live.m3u8";
+    const proxyUrl = `/api/live-football/proxy?url=${encodeURIComponent(directUrl)}`;
+
+    assert.equal(toCanonicalSourceUrl(directUrl), directUrl);
+    assert.equal(toCanonicalSourceUrl(proxyUrl), directUrl, "Proxy URL must unwrap to direct URL");
+    assert.equal(toCanonicalSourceUrl(""), "");
+    assert.equal(toCanonicalSourceUrl(null), "");
+  });
+
+  it("9. parseServerDisplayLabel: Extracts commentator name or clean source label without technical clutter", () => {
+    // BLV in parentheses
+    assert.equal(
+      parseServerDisplayLabel({ name: "XoiLac 1 (BLV Lê Hoàn) [FHD]" } as StreamServer, 0),
+      "BLV Lê Hoàn",
+    );
+    assert.equal(
+      parseServerDisplayLabel({ name: "Tiếng Việt (BLV Quang Huy)" } as StreamServer, 1),
+      "BLV Quang Huy",
+    );
+    // Inline BLV
+    assert.equal(
+      parseServerDisplayLabel({ name: "FHD - BLV Chuối" } as StreamServer, 2),
+      "BLV Chuối",
+    );
+    // Source group name when no commentator
+    assert.equal(
+      parseServerDisplayLabel(
+        { name: "FPT Play 1 [FHD]", sourceName: "FPT Play" } as StreamServer,
+        0,
+      ),
+      "FPT Play · Nguồn 1",
+    );
+    // Technical fallback
+    assert.equal(
+      parseServerDisplayLabel({ name: "Server #1 [HD]" } as StreamServer, 0),
+      "Nguồn 1",
+    );
+  });
+
+  it("10. failedSourcesByMatch: Failed sources are keyed by match.id, persistent across server re-renders, and isolated", () => {
+    const failedSourcesByMatch: Record<string, Set<string>> = {};
+
+    const matchAId = "arsenal-chelsea-1600";
+    const matchBId = "liverpool-mancity-1830";
+
+    const serverA1 = "https://cdn.example.com/matchA_fhd.m3u8";
+    const serverA2 = "https://cdn.example.com/matchA_hd.m3u8";
+    const serverB1 = "https://cdn.example.com/matchB_fhd.m3u8";
+
+    // Mark serverA1 failed in Match A
+    failedSourcesByMatch[matchAId] = new Set([toCanonicalSourceUrl(serverA1)]);
+
+    // Match A's available servers filters out serverA1
+    const matchAServers1: StreamServer[] = [
+      { name: "Server 1 [FHD]", url: serverA1, format: "hls", isHls: true, quality: "FHD" },
+      { name: "Server 2 [HD]", url: serverA2, format: "hls", isHls: true, quality: "HD" },
+    ];
+
+    const availableMatchA1 = matchAServers1.filter(
+      (s) => !failedSourcesByMatch[matchAId]?.has(toCanonicalSourceUrl(s.url)),
+    );
+    assert.equal(availableMatchA1.length, 1);
+    assert.equal(availableMatchA1[0].url, serverA2);
+
+    // Simulate server refresh/re-fetch or array reference change in Match A
+    const matchAServers2: StreamServer[] = [
+      { name: "Server 1 [FHD] (Refetched)", url: serverA1, format: "hls", isHls: true, quality: "FHD" },
+      { name: "Server 2 [HD] (Refetched)", url: serverA2, format: "hls", isHls: true, quality: "HD" },
+    ];
+    const availableMatchA2 = matchAServers2.filter(
+      (s) => !failedSourcesByMatch[matchAId]?.has(toCanonicalSourceUrl(s.url)),
+    );
+    assert.equal(
+      availableMatchA2.length,
+      1,
+      "Failed source must stay hidden even when servers array reference is regenerated",
+    );
+
+    // Switch to Match B: Match B has its own independent failed set
+    const matchBFailed = failedSourcesByMatch[matchBId] || new Set();
+    const matchBServers: StreamServer[] = [
+      { name: "Server 1 [FHD]", url: serverB1, format: "hls", isHls: true, quality: "FHD" },
+    ];
+    const availableMatchB = matchBServers.filter(
+      (s) => !matchBFailed.has(toCanonicalSourceUrl(s.url)),
+    );
+    assert.equal(availableMatchB.length, 1, "Match B must have all sources available");
+
+    // Switching back to Match B and resetting its failed state
+    delete failedSourcesByMatch[matchBId];
+    assert.equal(Boolean(failedSourcesByMatch[matchBId]), false);
+  });
+
+  it("11. Canonical matching prevents proxy vs direct URL mismatch when marking failed", () => {
+    const directUrl = "https://example.com/live.m3u8";
+    const proxyUrl = `/api/live-football/proxy?url=${encodeURIComponent(directUrl)}`;
+
+    const failedSet = new Set<string>();
+    // Marked failed using proxy URL
+    failedSet.add(toCanonicalSourceUrl(proxyUrl));
+
+    // Queried using direct URL
+    assert.equal(
+      failedSet.has(toCanonicalSourceUrl(directUrl)),
+      true,
+      "Direct URL must be recognized as failed even if marked via proxy URL",
+    );
+  });
+});
+
 

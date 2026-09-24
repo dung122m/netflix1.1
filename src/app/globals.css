@@ -134,6 +134,7 @@
     @apply font-sans;
     scroll-padding-top: 5rem;
     overflow-x: hidden;
+    scrollbar-gutter: stable;
   }
 }
 

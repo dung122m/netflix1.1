@@ -180,6 +180,31 @@ export default function RootLayout({
                     observer.observe(document.documentElement, { attributes: true, subtree: true, attributeFilter: extAttrs });
                   }
                 } catch(e) {}
+
+                // Ngăn chặn các lỗi Unhandled Rejection do browser extensions tự tiêm vào (e.g. Coco, Media Downloader, M_ID)
+                try {
+                  var isExtErr = function(err, reason) {
+                    var str = '' + (err && (err.stack || err.message) || '') + ' ' + (reason && (reason.stack || reason.message) || reason || '');
+                    return str.indexOf('chrome-extension://') !== -1 ||
+                           str.indexOf('moz-extension://') !== -1 ||
+                           str.indexOf('safari-extension://') !== -1 ||
+                           str.indexOf('M_ID') !== -1;
+                  };
+
+                  window.addEventListener('unhandledrejection', function(event) {
+                    if (isExtErr(event.reason, event.reason)) {
+                      event.preventDefault();
+                      event.stopImmediatePropagation();
+                    }
+                  }, true);
+
+                  window.addEventListener('error', function(event) {
+                    if (isExtErr(event.error, event.message) || (event.filename && event.filename.indexOf('-extension://') !== -1)) {
+                      event.preventDefault();
+                      event.stopImmediatePropagation();
+                    }
+                  }, true);
+                } catch(e) {}
               })();
             `,
           }}

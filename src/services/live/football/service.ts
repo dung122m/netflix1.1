@@ -1,5 +1,6 @@
 import { enrichMatchLogos } from "@/services/live/football-logo/service";
 import { isBlockedStreamUrl } from "@/services/live/shared/streamHealth";
+import { getTeamAsset, normalizeTeamKey } from "@/data/live/teamAssets";
 
 export interface StreamServer {
   name: string;
@@ -286,10 +287,234 @@ const AUXILIARY_CLUB_WORDS = new Set([
   "csd", "deportes", "deportivo", "deportiva", "dep", "municipal", "muni", "club", "clube", "societa",
   "asociacion", "asoc", "agrupacion", "ud", "sd", "ad", "sv", "tsv", "fsv", "spvg", "vfl", "ksv", "bsc",
   "united", "utd", "city", "town", "athletic", "albion", "rovers", "wanderers", "county", "sports",
-  "u19", "u20", "u21", "u23", "b", "reserves", "women", "nu"
+  "u19", "u20", "u21", "u23", "b", "reserves", "women", "nu", "dtqg", "dt"
 ]);
 
-function normalizeClubKey(name: string): string {
+const CLUB_ALIAS_MAP: Record<string, string> = {
+  lao: "laos",
+  laos: "laos",
+  brunei: "bruneidarussalam",
+  bruneidarussalam: "bruneidarussalam",
+  parissaintgermain: "psg",
+  parissg: "psg",
+  paris: "psg",
+  psg: "psg",
+  aldiraiyah: "aldraih",
+  aldraih: "aldraih",
+  alderih: "aldraih",
+  aldraihfc: "aldraih",
+  alfateh: "alfateh",
+  alfatehsc: "alfateh",
+  italy: "italy",
+  italia: "italy",
+  ynu: "italy",
+  y: "italy",
+  australia: "australia",
+  ucnu: "australia",
+  uc: "australia",
+  celtic: "celtic",
+  celticfc: "celtic",
+  saintjohnstone: "stjohnstone",
+  stjohnstone: "stjohnstone",
+  westbrom: "westbrom",
+  westbromwichalbion: "westbrom",
+  wba: "westbrom",
+  atlmadrid: "atleticomadrid",
+  atleticomadrid: "atleticomadrid",
+  atleticodemadrid: "atleticomadrid",
+  atletico: "atleticomadrid",
+  atm: "atleticomadrid",
+  atleti: "atleticomadrid",
+  barca: "barcelona",
+  barcelona: "barcelona",
+  real: "realmadrid",
+  realmadrid: "realmadrid",
+  rma: "realmadrid",
+  mancity: "mancity",
+  mc: "mancity",
+  mci: "mancity",
+  manutd: "manutd",
+  manchesterunited: "manutd",
+  mu: "manutd",
+  mun: "manutd",
+  manchester: "manutd",
+  spurs: "tottenham",
+  tot: "tottenham",
+  tottenham: "tottenham",
+  liv: "liverpool",
+  lfc: "liverpool",
+  liverpool: "liverpool",
+  che: "chelsea",
+  cfc: "chelsea",
+  chelsea: "chelsea",
+  ars: "arsenal",
+  arsenal: "arsenal",
+  bvb: "dortmund",
+  dortmund: "dortmund",
+  bayern: "bayernmunich",
+  bayernmunich: "bayernmunich",
+  inter: "intermilan",
+  intermilan: "intermilan",
+  milan: "milan",
+  acmilan: "milan",
+  juve: "juventus",
+  juventus: "juventus",
+  napoli: "napoli",
+  sscnapoli: "napoli",
+  stuttgart: "stuttgart",
+  vfbstuttgart: "stuttgart",
+  viking: "viking",
+  vikingfk: "viking",
+  sporting: "sportingcp",
+  sportingcp: "sportingcp",
+  scp: "sportingcp",
+  feyenoord: "feyenoord",
+  feyenoordrotterdam: "feyenoord",
+  leeds: "leeds",
+  leedsunited: "leeds",
+  slovan: "slovanbratislava",
+  slovanbratislava: "slovanbratislava",
+  galatasaray: "galatasaray",
+  abhadraih: "abha",
+  alshabab: "alshabab",
+  intermiami: "intermiami",
+  nyredbulls: "newyorkredbulls",
+  lafc: "losangelesfc",
+
+  // National Teams & International Fixture Aliases
+  china: "china",
+  trungquoc: "china",
+  southkorea: "southkorea",
+  hanquoc: "southkorea",
+  korea: "southkorea",
+  republicofkorea: "southkorea",
+  korearepublic: "southkorea",
+  rok: "southkorea",
+  japan: "japan",
+  nhatban: "japan",
+  vietnam: "vietnam",
+  thailand: "thailand",
+  thailan: "thailand",
+  england: "england",
+  anh: "england",
+  france: "france",
+  phap: "france",
+  germany: "germany",
+  duc: "germany",
+  spain: "spain",
+  taybannha: "spain",
+  espana: "spain",
+  portugal: "portugal",
+  bodaonha: "portugal",
+  boaonha: "portugal",
+  netherlands: "netherlands",
+  halan: "netherlands",
+  holland: "netherlands",
+  belgium: "belgium",
+  bi: "belgium",
+  brazil: "brazil",
+  brasil: "brazil",
+  argentina: "argentina",
+  usa: "usa",
+  states: "usa",
+  unitedstates: "usa",
+  my: "usa",
+  hoaky: "usa",
+  uae: "uae",
+  arabemirates: "uae",
+  unitedarabemirates: "uae",
+  saudiarabia: "saudiarabia",
+  arapxeut: "saudiarabia",
+  arapsaudi: "saudiarabia",
+  northkorea: "northkorea",
+  trieutien: "northkorea",
+  bactrieutien: "northkorea",
+  dprk: "northkorea",
+  dprkorea: "northkorea",
+  ireland: "ireland",
+  republicofireland: "ireland",
+  danmach: "denmark",
+  denmark: "denmark",
+  ao: "austria",
+  austria: "austria",
+  xuvales: "wales",
+  wales: "wales",
+  hylap: "greece",
+  hyap: "greece",
+  greece: "greece",
+  nauy: "norway",
+  norway: "norway",
+  malta: "malta",
+  andorra: "andorra",
+  bahrain: "bahrain",
+  qatar: "qatar",
+  yemen: "yemen",
+  lithuania: "lithuania",
+  liechtenstein: "liechtenstein",
+  serbia: "serbia",
+  israel: "israel",
+  kosovo: "kosovo",
+
+  // Ivory Coast / Bờ Biển Ngà & Ghana
+  bobiennga: "ivorycoast",
+  ivorycoast: "ivorycoast",
+  cotedivoire: "ivorycoast",
+  theelephants: "ivorycoast",
+  ghana: "ghana",
+
+  // Additional African / European / American teams
+  cameroon: "cameroon",
+  camerun: "cameroon",
+  nigeria: "nigeria",
+  senegal: "senegal",
+  maroc: "morocco",
+  morocco: "morocco",
+  aicap: "egypt",
+  egypt: "egypt",
+  namphi: "southafrica",
+  southafrica: "southafrica",
+  algeria: "algeria",
+  tunisia: "tunisia",
+  mali: "mali",
+  burkinafaso: "burkinafaso",
+  guinea: "guinea",
+  zambia: "zambia",
+  uganda: "uganda",
+  congo: "congo",
+  chdccongo: "drcongo",
+  drcongo: "drcongo",
+  thuysi: "switzerland",
+  switzerland: "switzerland",
+  thuydien: "sweden",
+  sweden: "sweden",
+  balan: "poland",
+  poland: "poland",
+  thonhiky: "turkey",
+  turkey: "turkey",
+  sec: "czechia",
+  czechia: "czechia",
+  czechrepublic: "czechia",
+  hungary: "hungary",
+  ukraina: "ukraine",
+  ukraine: "ukraine",
+  scotland: "scotland",
+  bacireland: "northernireland",
+  northernireland: "northernireland",
+  slovakia: "slovakia",
+  slovenia: "slovenia",
+  romania: "romania",
+  croatia: "croatia",
+  uruguay: "uruguay",
+  colombia: "colombia",
+  chile: "chile",
+  peru: "peru",
+  ecuador: "ecuador",
+  paraguay: "paraguay",
+  venezuela: "venezuela",
+  bolivia: "bolivia",
+};
+
+export function normalizeClubKey(name: string): string {
   if (!name) return "";
 
   const clean = name
@@ -307,152 +532,21 @@ function normalizeClubKey(name: string): string {
   const coreWords = words.filter((w) => !AUXILIARY_CLUB_WORDS.has(w));
   const significant = coreWords.length > 0 ? coreWords.join("") : words.join("");
 
-  const aliasMap: Record<string, string> = {
-    lao: "laos",
-    laos: "laos",
-    brunei: "bruneidarussalam",
-    bruneidarussalam: "bruneidarussalam",
-    parissaintgermain: "psg",
-    parissg: "psg",
-    paris: "psg",
-    psg: "psg",
-    aldiraiyah: "aldraih",
-    aldraih: "aldraih",
-    alderih: "aldraih",
-    aldraihfc: "aldraih",
-    alfateh: "alfateh",
-    alfatehsc: "alfateh",
-    italy: "italy",
-    italia: "italy",
-    ynu: "italy",
-    y: "italy",
-    australia: "australia",
-    ucnu: "australia",
-    uc: "australia",
-    celtic: "celtic",
-    celticfc: "celtic",
-    saintjohnstone: "stjohnstone",
-    stjohnstone: "stjohnstone",
-    westbrom: "westbrom",
-    westbromwichalbion: "westbrom",
-    wba: "westbrom",
-    atlmadrid: "atleticomadrid",
-    atleticomadrid: "atleticomadrid",
-    atleticodemadrid: "atleticomadrid",
-    atletico: "atleticomadrid",
-    atm: "atleticomadrid",
-    atleti: "atleticomadrid",
-    barca: "barcelona",
-    barcelona: "barcelona",
-    real: "realmadrid",
-    realmadrid: "realmadrid",
-    rma: "realmadrid",
-    mancity: "mancity",
-    mc: "mancity",
-    mci: "mancity",
-    manutd: "manutd",
-    manchesterunited: "manutd",
-    mu: "manutd",
-    mun: "manutd",
-    manchester: "manutd",
-    spurs: "tottenham",
-    tot: "tottenham",
-    tottenham: "tottenham",
-    liv: "liverpool",
-    lfc: "liverpool",
-    liverpool: "liverpool",
-    che: "chelsea",
-    cfc: "chelsea",
-    chelsea: "chelsea",
-    ars: "arsenal",
-    arsenal: "arsenal",
-    bvb: "dortmund",
-    dortmund: "dortmund",
-    bayern: "bayernmunich",
-    bayernmunich: "bayernmunich",
-    inter: "intermilan",
-    intermilan: "intermilan",
-    milan: "milan",
-    acmilan: "milan",
-    juve: "juventus",
-    juventus: "juventus",
-    napoli: "napoli",
-    sscnapoli: "napoli",
-    stuttgart: "stuttgart",
-    vfbstuttgart: "stuttgart",
-    viking: "viking",
-    vikingfk: "viking",
-    sporting: "sportingcp",
-    sportingcp: "sportingcp",
-    scp: "sportingcp",
-    feyenoord: "feyenoord",
-    feyenoordrotterdam: "feyenoord",
-    leeds: "leeds",
-    leedsunited: "leeds",
-    slovan: "slovanbratislava",
-    slovanbratislava: "slovanbratislava",
-    galatasaray: "galatasaray",
-    abhadraih: "abha",
-    alshabab: "alshabab",
-    intermiami: "intermiami",
-    nyredbulls: "newyorkredbulls",
-    lafc: "losangelesfc",
+  if (CLUB_ALIAS_MAP[significant]) {
+    return CLUB_ALIAS_MAP[significant];
+  }
 
-    // National Teams & International Fixture Aliases
-    china: "china",
-    trungquoc: "china",
-    southkorea: "southkorea",
-    hanquoc: "southkorea",
-    korea: "southkorea",
-    republicofkorea: "southkorea",
-    korearepublic: "southkorea",
-    rok: "southkorea",
-    japan: "japan",
-    nhatban: "japan",
-    vietnam: "vietnam",
-    thailand: "thailand",
-    thailan: "thailand",
-    england: "england",
-    anh: "england",
-    france: "france",
-    phap: "france",
-    germany: "germany",
-    duc: "germany",
-    spain: "spain",
-    taybannha: "spain",
-    espana: "spain",
-    portugal: "portugal",
-    bodaonha: "portugal",
-    boaonha: "portugal",
-    netherlands: "netherlands",
-    halan: "netherlands",
-    holland: "netherlands",
-    belgium: "belgium",
-    bi: "belgium",
-    brazil: "brazil",
-    brasil: "brazil",
-    argentina: "argentina",
-    usa: "usa",
-    states: "usa",
-    unitedstates: "usa",
-    my: "usa",
-    hoaky: "usa",
-    uae: "uae",
-    arabemirates: "uae",
-    unitedarabemirates: "uae",
-    saudiarabia: "saudiarabia",
-    arapxeut: "saudiarabia",
-    arapsaudi: "saudiarabia",
-    northkorea: "northkorea",
-    trieutien: "northkorea",
-    bactrieutien: "northkorea",
-    dprk: "northkorea",
-    dprkorea: "northkorea",
-    ireland: "ireland",
-    republicofireland: "ireland",
-  };
+  // Canonical TeamAsset lookup (>210 ĐTQG + CLB hàng đầu thế giới)
+  const asset = getTeamAsset(name);
+  if (asset && asset.name) {
+    const assetClean = normalizeTeamKey(asset.name);
+    if (CLUB_ALIAS_MAP[assetClean]) {
+      return CLUB_ALIAS_MAP[assetClean];
+    }
+    return assetClean;
+  }
 
-  return aliasMap[significant] || significant;
+  return significant;
 }
 
 function extractTeamTokens(name: string): string[] {
@@ -496,7 +590,7 @@ function calculateStringSimilarity(s1: string, s2: string): number {
   return (2.0 * intersection) / (b1.size + b2.size || 1);
 }
 
-function isSingleTeamMatching(nameA: string, nameB: string): boolean {
+export function isSingleTeamMatching(nameA: string, nameB: string): boolean {
   if (!nameA || !nameB) return false;
   const keyA = normalizeClubKey(nameA);
   const keyB = normalizeClubKey(nameB);
@@ -504,7 +598,14 @@ function isSingleTeamMatching(nameA: string, nameB: string): boolean {
   // 1. Exact normalized key match (hoặc alias match)
   if (keyA && keyB && keyA === keyB) return true;
 
-  // 2. Token overlap: Có chung từ khóa định danh cốt lõi (ví dụ ['iquique'])
+  // 2. Canonical Team Asset match (hỗ trợ toàn bộ >210 ĐTQG và CLB chuẩn hóa song ngữ Anh - Việt)
+  const assetA = getTeamAsset(nameA);
+  const assetB = getTeamAsset(nameB);
+  if (assetA && assetB && assetA.name && assetA.name === assetB.name) {
+    return true;
+  }
+
+  // 3. Token overlap: Có chung từ khóa định danh cốt lõi (ví dụ ['iquique'])
   const tokensA = extractTeamTokens(nameA);
   const tokensB = extractTeamTokens(nameB);
   if (tokensA.length > 0 && tokensB.length > 0) {
@@ -514,7 +615,7 @@ function isSingleTeamMatching(nameA: string, nameB: string): boolean {
     }
   }
 
-  // 3. Chuỗi con dài & độ tương đồng fuzzy cao với guard chặt chẽ
+  // 4. Chuỗi con dài & độ tương đồng fuzzy cao với guard chặt chẽ
   if (keyA.length >= 5 && keyB.length >= 5) {
     if (keyA.includes(keyB) || keyB.includes(keyA)) return true;
     if (calculateStringSimilarity(keyA, keyB) >= 0.85) return true;
@@ -523,7 +624,7 @@ function isSingleTeamMatching(nameA: string, nameB: string): boolean {
   return false;
 }
 
-function areMatchFixturesMatching(
+export function areMatchFixturesMatching(
   m1: {
     team1: string;
     team2: string;
@@ -1605,6 +1706,9 @@ export function cleanCandidateTeamName(name: string): string {
   // 3. Strip commentator / resolution / tags in parenthesis inside
   clean = clean.replace(/\((?:blv\s+[^)]+|hd\s+[^)]+|fhd|hd|4k|nu|nữ|women|men|nam|w|m|[^)]*tv[^)]*)\)/gi, " ");
 
+  // 3B. Strip unparenthesized trailing BLV / commentator
+  clean = clean.replace(/\s+(?:-\s+)?(?:blv|bình luận viên)\s+.*$/i, "").trim();
+
   // 4. Strip trailing channel suffix (e.g. " - K+ SPORT 1", " - Server 1", " - FHD")
   clean = clean.replace(/\s+-\s+(?:k\+|vtv\d*|htv\d*|sctv\d*|vtc\d*|server\s*\d*|sv\s*\d*|fhd|hd|4k|link\s*\d*|kenh\s*\d*|ch\s*\d*|fpt|tv360).*$/i, "").trim();
 
@@ -1627,13 +1731,19 @@ export function cleanCandidateTeamName(name: string): string {
   clean = clean.replace(/\s+(?:nữ|nu|nam|women|woman|men|man)$/i, "");
   clean = clean.replace(/\s+[wWsS]$/, "");
 
+  // 8B. Strip team prefix markers: "ĐTQG", "ĐT", "CLB"
+  clean = clean.replace(/^(?:đtqg|dtqg|đt|dt|clb)\s+/i, "");
+  clean = clean.replace(/\s+(?:clb)$/i, "");
+
   // 9. Strip any remaining surrounding symbols/punctuation
   clean = clean.replace(/^[\s\-_|/:\.,;=~+*#@!?^$()\[\]{}'"]+|[\s\-_|/:\.,;=~+*#@!?^$()\[\]{}'"]+$/g, "").trim();
 
-  // 10. Repeat gender strip if symbols were removed around it
+  // 10. Repeat gender & prefix strip if symbols were removed around it
   clean = clean.replace(/^(?:nữ|nu|nam|women|woman|men)\s+/i, "");
   clean = clean.replace(/\s+(?:nữ|nu|nam|women|woman|men|man)$/i, "");
   clean = clean.replace(/\s+[wWsS]$/, "");
+  clean = clean.replace(/^(?:đtqg|dtqg|đt|dt|clb)\s+/i, "");
+  clean = clean.replace(/\s+(?:clb)$/i, "");
 
   return clean.replace(/\s+/g, " ").trim();
 }
@@ -1824,6 +1934,8 @@ export interface RawStreamItem {
   url: string;
   effectiveUrl: string;
   extinfLine?: string;
+  awayLogo?: string;
+  tournament?: string;
 }
 
 export function normalizeAndMergeStreams(
@@ -1837,6 +1949,7 @@ export function normalizeAndMergeStreams(
     cleanGroup: string;
     effectiveUrl: string;
     rawLogo: string;
+    awayLogo?: string;
     isHls: boolean;
     format: "hls" | "flv" | "other";
     isFhd: boolean;
@@ -1921,6 +2034,8 @@ export function normalizeAndMergeStreams(
       cleanGroup = "Sao Kê TV";
     } else if (upperGroup.includes("PHÁO HOA")) {
       cleanGroup = "Pháo Hoa TV";
+    } else if (upperGroup.includes("HAILAB")) {
+      cleanGroup = "Live Sports (Hailab)";
     } else if (group && !group.includes("Updated") && !group.includes("Changed")) {
       cleanGroup = group.replace(/^[🔴🟢🟡⚪🟠\s]+/, "").trim();
     }
@@ -1959,9 +2074,10 @@ export function normalizeAndMergeStreams(
       blv = blvParenthesisMatch[1].trim();
       cleanedTitle = cleanedTitle.replace(/\(([^)]+)\)\s*$/, "").trim();
     } else {
-      const blvInlineMatch = rawTitle.match(/(?:BLV|Bình luận viên)\s+([^()[\]]+)/i);
+      const blvInlineMatch = rawTitle.match(/(?:BLV|Bình luận viên)\s+([^()[\]\-]+)/i);
       if (blvInlineMatch) {
         blv = blvInlineMatch[1].trim();
+        cleanedTitle = cleanedTitle.replace(/\s+(?:-\s+)?(?:blv|bình luận viên)\s+.*$/i, "").trim();
       }
     }
 
@@ -2065,7 +2181,7 @@ export function normalizeAndMergeStreams(
       }
     }
 
-    const rawDetectedTourn = prefixTournament || detectTournament(rawTitle, team1, team2);
+    const rawDetectedTourn = item.tournament || prefixTournament || detectTournament(rawTitle, team1, team2);
     const tournament = getSportLabel(sport, rawDetectedTourn);
 
     const normT1 = !isEvent && team1 ? normalizeClubKey(team1) : "";
@@ -2077,6 +2193,7 @@ export function normalizeAndMergeStreams(
       cleanGroup,
       effectiveUrl,
       rawLogo,
+      awayLogo: item.awayLogo,
       isHls,
       format,
       isFhd,
@@ -2160,8 +2277,18 @@ export function normalizeAndMergeStreams(
 
     // 2. Fixture match: team1 vs team2
     if (!foundMatch && !item.isEvent && item.team1 && item.team2) {
+      const itemMatchId = item.normT1 && item.normT2
+        ? `${item.time}_${[item.normT1, item.normT2].sort().join("_")}`
+        : "";
+
       for (const existing of mergedMatches) {
         if (existing.isEvent) continue;
+
+        // 2A. Direct stable canonical match ID match
+        if (itemMatchId && existing.id === itemMatchId) {
+          foundMatch = existing;
+          break;
+        }
 
         const isMatched = areMatchFixturesMatching(
           {
@@ -2296,6 +2423,9 @@ export function normalizeAndMergeStreams(
       if (!foundMatch.homeLogo && item.rawLogo && !item.rawLogo.includes("tinhlagi.pro/logo.jpg")) {
         foundMatch.homeLogo = item.rawLogo;
       }
+      if (!foundMatch.awayLogo && item.awayLogo && !item.awayLogo.includes("tinhlagi.pro/logo.jpg")) {
+        foundMatch.awayLogo = item.awayLogo;
+      }
     } else {
       const matchTitle = item.isEvent
         ? item.displayTitle
@@ -2332,7 +2462,7 @@ export function normalizeAndMergeStreams(
         blv: item.blv,
         logo: effectiveLogo,
         homeLogo: effectiveHomeLogo,
-        awayLogo: "",
+        awayLogo: item.awayLogo || "",
         group: item.cleanGroup,
         groups: [item.cleanGroup],
         tournament: item.tournament,
@@ -2348,6 +2478,215 @@ export function normalizeAndMergeStreams(
   }
 
   return { channels: Array.from(channelsSet), matches: mergedMatches };
+}
+
+interface HailabChannel {
+  id: string;
+  name: string;
+  title?: string;
+  description?: string;
+  label?: { text?: string };
+  image?: { url?: string };
+  url?: string;
+}
+
+interface HailabGroup {
+  id: string;
+  name: string;
+  channels: HailabChannel[];
+}
+
+interface HailabResponse {
+  groups?: HailabGroup[];
+}
+
+interface HailabStream {
+  name?: string;
+  url?: string;
+  format?: string;
+}
+
+interface HailabContent {
+  name?: string;
+  streams?: HailabStream[];
+}
+
+interface HailabSource {
+  name?: string;
+  contents?: HailabContent[];
+}
+
+interface HailabDetailResponse {
+  sources?: HailabSource[];
+}
+
+export function extractHailabLogos(posterUrl?: string): { homeLogo?: string; awayLogo?: string } {
+  if (!posterUrl) return {};
+  try {
+    const url = new URL(posterUrl, "https://livesport.hailab.cloud");
+    const home = url.searchParams.get("home");
+    const away = url.searchParams.get("away");
+    return {
+      homeLogo: home ? decodeURIComponent(home) : undefined,
+      awayLogo: away ? decodeURIComponent(away) : undefined,
+    };
+  } catch {
+    return {};
+  }
+}
+
+export async function fetchHailabStreams(now: number = Date.now()): Promise<RawStreamItem[]> {
+  try {
+    const res = await fetch("https://livesport.hailab.cloud", {
+      next: { revalidate: 120 },
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        Accept: "application/json",
+      },
+      signal: AbortSignal.timeout(4000),
+    });
+    if (!res.ok) return [];
+    const data = (await res.json()) as HailabResponse;
+    if (!data.groups || !Array.isArray(data.groups)) return [];
+
+    const uniqueChannels: HailabChannel[] = [];
+    for (const g of data.groups) {
+      if (!g.channels || !Array.isArray(g.channels)) continue;
+      for (const ch of g.channels) {
+        if (!uniqueChannels.some((c) => c.id === ch.id)) {
+          uniqueChannels.push(ch);
+        }
+      }
+    }
+
+    const candidateChannels: {
+      channel: HailabChannel;
+      timeStr: string;
+      timestamp: number;
+      sourceStatus: SourceMatchStatus;
+      timeline: "live" | "upcoming" | "finished";
+    }[] = [];
+
+    for (const ch of uniqueChannels) {
+      if (!ch.name || !ch.name.includes("|")) continue;
+      const parts = ch.name.split("|");
+      const timeStr = parts[0].trim();
+      const timestamp = parseMatchTimeToTimestamp(timeStr);
+
+      let sourceStatus: SourceMatchStatus = "unknown";
+      const statusText = `${ch.label?.text || ""} ${ch.description || ""}`.toLowerCase();
+      if (statusText.includes("đang diễn ra") || statusText.includes("in_progress")) {
+        sourceStatus = "live";
+      } else if (statusText.includes("đã kết thúc") || statusText.includes("finished")) {
+        sourceStatus = "finished";
+      } else if (
+        statusText.includes("sắp diễn ra") ||
+        statusText.includes("chưa diễn ra") ||
+        statusText.includes("upcoming")
+      ) {
+        sourceStatus = "upcoming";
+      }
+
+      // QUY TẮC LỌC TRẬN ĐANG ĐÁ / SẮP ĐÁ <= 60 PHÚT
+      // 1. Kickoff <= now <= kickoff + 140 phút -> live
+      // 2. now < kickoff <= now + 60 phút -> upcoming
+      // 3. Kickoff > now + 60 phút hoặc > 140 phút quá khứ -> finished (loại bỏ)
+      const timeline = getMatchTimeline(timestamp, sourceStatus, "unknown", now);
+      if (timeline === "finished") {
+        continue;
+      }
+
+      candidateChannels.push({
+        channel: ch,
+        timeStr,
+        timestamp,
+        sourceStatus,
+        timeline,
+      });
+    }
+
+    // Chỉ fetch chi tiết stream cho các trận candidate hợp lệ theo bộ lọc
+    const detailPromises = candidateChannels.map(async (candidate) => {
+      try {
+        const detailRes = await fetch(
+          `https://livesport.hailab.cloud/iptv_channel_contents.php?id=${encodeURIComponent(candidate.channel.id)}`,
+          {
+            next: { revalidate: 120 },
+            headers: {
+              "User-Agent":
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+              Accept: "application/json",
+            },
+            signal: AbortSignal.timeout(4000),
+          },
+        );
+        if (!detailRes.ok) return null;
+        const detailData = (await detailRes.json()) as HailabDetailResponse;
+        return { candidate, detailData };
+      } catch {
+        return null;
+      }
+    });
+
+    const detailResults = await Promise.allSettled(detailPromises);
+    const streams: RawStreamItem[] = [];
+
+    for (const result of detailResults) {
+      if (result.status !== "fulfilled" || !result.value) continue;
+      const { candidate, detailData } = result.value;
+      const ch = candidate.channel;
+
+      const logos = extractHailabLogos(ch.image?.url);
+      const homeLogo = logos.homeLogo || ch.image?.url || "";
+      const awayLogo = logos.awayLogo || "";
+
+      let sport = "football";
+      const descLower = (ch.description || "").toLowerCase();
+      if (descLower.includes("bóng rổ") || descLower.includes("basketball")) sport = "basketball";
+      else if (descLower.includes("tennis") || descLower.includes("quần vợt")) sport = "tennis";
+
+      const sportEmoji = sport === "basketball" ? "🏀 " : sport === "tennis" ? "🎾 " : "⚽ ";
+      const isLive = candidate.timeline === "live" || candidate.sourceStatus === "live";
+      const statusMarker = isLive ? "🟢 " : "";
+
+      const nameParts = ch.name.split("|");
+      const teamsPart = nameParts.slice(1).join("|").trim();
+
+      let tournament = "";
+      const tournMatch = ch.description?.match(/(?:Giải|Tournament):\s*([^|]+)/i);
+      if (tournMatch) {
+        tournament = tournMatch[1].trim();
+      }
+
+      for (const s of detailData.sources || []) {
+        for (const c of s.contents || []) {
+          for (const st of c.streams || []) {
+            if (st.url && !isBlockedStreamUrl(st.url)) {
+              const blvName = st.name?.trim() || "";
+              const blvTag = blvName ? ` (${blvName})` : "";
+              const rawTitle = `${statusMarker}${candidate.timeStr} ${sportEmoji}${teamsPart}${blvTag}`;
+              streams.push({
+                rawTitle,
+                group: "Live Sports (Hailab)",
+                rawLogo: homeLogo,
+                awayLogo,
+                tournament,
+                url: st.url,
+                effectiveUrl: st.url,
+                extinfLine: `#EXTINF:-1 tvg-logo="${homeLogo}" group-title="Live Sports (Hailab)" status="${isLive ? "LIVE" : "UPCOMING"}",${rawTitle}`,
+              });
+            }
+          }
+        }
+      }
+    }
+
+    return streams;
+  } catch (err) {
+    console.error("❌ Error fetching Hailab live streams:", err);
+    return [];
+  }
 }
 
 // Bộ nhớ đệm Server SWR (Stale-While-Revalidate)
@@ -2397,9 +2736,9 @@ export const liveFootballService = {
     try {
       const channelsSet = new Set<string>();
 
-      // 1. LẤY TOÀN BỘ NGUỒN PHÁT TỪ TẤT CẢ DANH SÁCH PLAYLIST M3U
+      // 1. LẤY TOÀN BỘ NGUỒN PHÁT TỪ TẤT CẢ DANH SÁCH PLAYLIST M3U VÀ LIVE SPORTS (HAILAB) ĐỒNG THỜI
       const sources = getFootballM3uSources();
-      const fetchPromises = sources.map(async (source) => {
+      const m3uFetchPromises = sources.map(async (source) => {
         try {
           const res = await fetch(source.url, {
             next: { revalidate: 120 },
@@ -2417,19 +2756,15 @@ export const liveFootballService = {
         }
       });
 
-      const m3uTexts = await Promise.allSettled(fetchPromises);
+      const [m3uSettled, hailabSettled] = await Promise.allSettled([
+        Promise.allSettled(m3uFetchPromises),
+        fetchHailabStreams(now),
+      ]);
 
-      interface RawStreamItem {
-        rawTitle: string;
-        group: string;
-        rawLogo: string;
-        url: string;
-        effectiveUrl: string;
-        extinfLine?: string;
-      }
       const rawStreams: RawStreamItem[] = [];
 
-      // 2. PARSE TỪNG DÒNG STREAM TỪ MỌI NGUỒN (KHÔNG ƯU TIÊN / KHÔNG BỎ SÓT NGUỒN NÀO)
+      // 2A. PARSE TỪNG DÒNG STREAM TỪ CÁC NGUỒN PLAYLIST M3U
+      const m3uTexts = m3uSettled.status === "fulfilled" ? m3uSettled.value : [];
       for (const res of m3uTexts) {
         if (res.status !== "fulfilled" || !res.value) continue;
         const text = res.value;
@@ -2537,6 +2872,13 @@ export const liveFootballService = {
             effectiveUrl,
             extinfLine: line,
           });
+        }
+      }
+
+      // 2B. GỘP CÁC STREAM TỪ NGUỒN HAILAB ĐÃ QUA LỌC CANDIDATE
+      if (hailabSettled.status === "fulfilled" && Array.isArray(hailabSettled.value)) {
+        for (const st of hailabSettled.value) {
+          rawStreams.push(st);
         }
       }
 
