@@ -186,29 +186,46 @@ function mapToForYouItems(rawItems: any[]): ForYouMovieItem[] {
     });
 }
 
-// Lấy cache cũ trong localStorage/sessionStorage bất kể thời gian (Stale Cache)
-function getStaleCachedData(expectedUid?: string): { items: ForYouMovieItem[]; context?: string; fingerprint?: string; timestamp?: number } | null {
+interface CachedPayload {
+  items: ForYouMovieItem[];
+  context?: string;
+  fingerprint?: string;
+  timestamp: number;
+  uid?: string | null;
+}
+
+let memoryCachedData: CachedPayload | null = null;
+
+// Lấy cache từ memory hoặc localStorage một lần duy nhất (0ms, tránh parse lặp lại)
+function getCachedData(expectedUid?: string): CachedPayload | null {
   if (typeof window === "undefined") return null;
+  if (memoryCachedData) {
+    if (!expectedUid || !memoryCachedData.uid || memoryCachedData.uid === expectedUid) {
+      return memoryCachedData;
+    }
+  }
   try {
-    const raw = localStorage.getItem(CACHE_KEY_NAME) || sessionStorage.getItem(CACHE_KEY_NAME);
+    const raw = localStorage.getItem(CACHE_KEY_NAME);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (parsed && Array.isArray(parsed.items) && parsed.items.length >= 8) {
       if (expectedUid && parsed.uid && parsed.uid !== expectedUid) {
         return null;
       }
-      return {
+      memoryCachedData = {
         items: parsed.items,
         context: parsed.context,
         fingerprint: parsed.fingerprint,
-        timestamp: parsed.timestamp,
+        timestamp: parsed.timestamp || 0,
+        uid: parsed.uid,
       };
+      return memoryCachedData;
     }
   } catch {}
   return null;
 }
 
-export function ForYouPersonalizedRow({ fallbackMovies }: ForYouPersonalizedRowProps = {}) {
+function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowProps = {}) {
   const { user } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
 
@@ -251,18 +268,18 @@ export function ForYouPersonalizedRow({ fallbackMovies }: ForYouPersonalizedRowP
   const favoriteGenres = useMemo(() => profile?.favoriteGenres || [], [profile?.favoriteGenres]);
   const genresKey = useMemo(() => favoriteGenres.slice().sort().join(","), [favoriteGenres]);
 
-  // Nạp Stale cache từ localStorage ngay khi client mount nếu có
+  // Nạp cache từ memory / localStorage một lần duy nhất khi client mount
   useEffect(() => {
-    const stale = getStaleCachedData(user?.uid);
-    if (stale && stale.items.length >= 8) {
-      setMovies(stale.items);
-      if (stale.context) {
-        setContextText(stale.context);
+    const cached = getCachedData(user?.uid);
+    if (cached && cached.items.length >= 8) {
+      setMovies(cached.items);
+      if (cached.context) {
+        setContextText(cached.context);
       }
     }
   }, [user?.uid]);
 
-    // 2. Fetch danh sách phim đề xuất chạy ở background (SWR pattern)
+  // 2. Fetch danh sách phim đề xuất chạy ở background (SWR pattern)
   const fetchRecommendations = useCallback(async (forceRefresh = false, nextSeed?: number) => {
     const currentSeed = nextSeed !== undefined ? nextSeed : refreshCount;
     const history = getWatchHistory();
@@ -292,28 +309,23 @@ export function ForYouPersonalizedRow({ fallbackMovies }: ForYouPersonalizedRowP
     if (!forceRefresh && inFlightRef.current) return;
     if (!forceRefresh && lastFingerprintRef.current === currentFingerprint && moviesRef.current.length >= 8) return;
 
-    // Kiểm tra cache local còn tươi (Fresh Cache Hit)
-    if (!forceRefresh && typeof window !== "undefined") {
-      try {
-        const rawCached = localStorage.getItem(CACHE_KEY_NAME) || sessionStorage.getItem(CACHE_KEY_NAME);
-        if (rawCached) {
-          const cached = JSON.parse(rawCached);
-          if (
-            cached &&
-            cached.fingerprint === currentFingerprint &&
-            Date.now() - cached.timestamp < CACHE_TTL &&
-            Array.isArray(cached.items) &&
-            cached.items.length >= 8
-          ) {
-            lastFingerprintRef.current = currentFingerprint;
-            setMovies(cached.items);
-            if (cached.context) setContextText(cached.context);
-            setLoading(false);
-            setIsUpdating(false);
-            return;
-          }
-        }
-      } catch {}
+    // Kiểm tra cache đã nạp trong memory (Fresh Cache Hit) - Tránh đọc localStorage/JSON.parse lần nữa
+    if (!forceRefresh) {
+      const cached = getCachedData(user?.uid);
+      if (
+        cached &&
+        cached.fingerprint === currentFingerprint &&
+        Date.now() - cached.timestamp < CACHE_TTL &&
+        Array.isArray(cached.items) &&
+        cached.items.length >= 8
+      ) {
+        lastFingerprintRef.current = currentFingerprint;
+        setMovies(cached.items);
+        if (cached.context) setContextText(cached.context);
+        setLoading(false);
+        setIsUpdating(false);
+        return;
+      }
     }
 
     inFlightRef.current = true;
@@ -348,18 +360,18 @@ export function ForYouPersonalizedRow({ fallbackMovies }: ForYouPersonalizedRowP
           if (data.context) {
             setContextText(data.context);
           }
-          // Lưu vào localStorage & sessionStorage
+          // Lưu vào memory cache và localStorage một lần duy nhất
+          const payload: CachedPayload = {
+            items: data.items,
+            context: data.context || "Tuyển chọn chuẩn gu cho bạn",
+            timestamp: Date.now(),
+            fingerprint: currentFingerprint,
+            uid: user?.uid || null,
+          };
+          memoryCachedData = payload;
           if (typeof window !== "undefined") {
             try {
-              const cacheData = JSON.stringify({
-                items: data.items,
-                context: data.context || "Tuyển chọn chuẩn gu cho bạn",
-                timestamp: Date.now(),
-                fingerprint: currentFingerprint,
-                uid: user?.uid || null,
-              });
-              localStorage.setItem(CACHE_KEY_NAME, cacheData);
-              sessionStorage.setItem(CACHE_KEY_NAME, cacheData);
+              localStorage.setItem(CACHE_KEY_NAME, JSON.stringify(payload));
             } catch {}
           }
         }
@@ -502,7 +514,7 @@ export function ForYouPersonalizedRow({ fallbackMovies }: ForYouPersonalizedRowP
                     {/* POSTER IMAGE (Chuẩn tỷ lệ 2:3, ưu tiên poster dọc) */}
                     <div className="relative aspect-[2/3] w-full overflow-hidden bg-zinc-900 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950">
                       <Image
-                        src={toOptimizedPhimimgUrl(pickBestMoviePoster(movie, "/default-poster.jpg"), 480)}
+                        src={toOptimizedPhimimgUrl(pickBestMoviePoster(movie, "/default-poster.jpg"), 320)}
                         alt={movie.title || movie.name}
                         fill
                         unoptimized
@@ -559,3 +571,6 @@ export function ForYouPersonalizedRow({ fallbackMovies }: ForYouPersonalizedRowP
     </section>
   );
 }
+
+export const ForYouPersonalizedRow = React.memo(ForYouPersonalizedRowInner);
+export default ForYouPersonalizedRow;

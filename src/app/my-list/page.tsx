@@ -508,7 +508,7 @@ function MyListContent() {
                   time={item.time}
                   country={item.country}
                   type_name={item.type_name}
-                  priority={index < 8}
+                  priority={index < 4}
                 />
               ))}
             </div>
@@ -557,7 +557,7 @@ function MyListContent() {
                         <Image
                           src={toOptimizedPhimimgUrl(
                             pickBestMovieThumb({ poster_url: item.poster, thumb_url: item.thumb }, "/default-hero.jpg"),
-                            480
+                            320
                           )}
                           alt={item.title}
                           fill

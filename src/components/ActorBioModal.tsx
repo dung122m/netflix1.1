@@ -81,11 +81,11 @@ export const ActorBioModal: React.FC<ActorBioModalProps> = ({ initialActorName }
   return (
     <div
       onClick={() => setIsOpen(false)}
-      className="fixed inset-0 z-[120] bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200 overflow-y-auto"
+      className="fixed inset-0 z-[120] bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-150 overflow-y-auto"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-xl md:max-w-2xl bg-zinc-950/95 backdrop-blur-xl rounded-3xl border border-white/15 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 my-auto"
+        className="relative w-full max-w-xl md:max-w-2xl bg-zinc-950 rounded-3xl border border-white/15 shadow-2xl overflow-hidden transform-gpu will-change-[transform,opacity] animate-in zoom-in-95 duration-150 my-auto"
       >
         {/* TOP ACCENT GRADIENT */}
         <div className="h-1 w-full bg-gradient-to-r from-amber-500 via-rose-500 to-netflix-red" />

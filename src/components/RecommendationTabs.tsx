@@ -357,7 +357,7 @@ const RecommendedMovieCard = React.memo(function RecommendedMovieCard({
   matchPercent: number;
 }) {
   const rawThumb = pickBestMovieThumb(item, "/default-hero.jpg");
-  const thumbUrl = toOptimizedPhimimgUrl(rawThumb, 480);
+  const thumbUrl = toOptimizedPhimimgUrl(rawThumb, 320);
   const title = item.name || item.title || "Phim";
   const categoryName = item.category?.[0]?.name;
   const year = item.year;

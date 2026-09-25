@@ -69,7 +69,7 @@ type HeroMovie = {
   [key: string]: unknown;
 };
 
-export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
+const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
   movies = [],
 }) => {
   const slides = useMemo(() => (movies || []).slice(0, 8), [movies]);
@@ -81,10 +81,15 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
 
   const currentSlug = slides[index]?.slug;
   const [isHeroImageLoaded, setIsHeroImageLoaded] = useState(false);
+  const isInitialSlideRef = useRef(true);
   const [heroSynopsis, setHeroSynopsis] = useState<string>("");
   const [failedHeroImages, setFailedHeroImages] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
+    if (isInitialSlideRef.current) {
+      isInitialSlideRef.current = false;
+      return;
+    }
     setIsHeroImageLoaded(false);
   }, [index, currentSlug]);
 
@@ -107,8 +112,10 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
   useEffect(() => {
     if (typeof window !== "undefined") {
       const handleResize = () => {
-        setIsMobile(window.innerWidth <= 768);
-        setIsDesktop(isDesktopWithHover());
+        const mobile = window.innerWidth <= 768;
+        const desktop = isDesktopWithHover();
+        setIsMobile((prev) => (prev !== mobile ? mobile : prev));
+        setIsDesktop((prev) => (prev !== desktop ? desktop : prev));
       };
       handleResize();
       window.addEventListener("resize", handleResize, { passive: true });
@@ -117,7 +124,7 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
   }, []);
 
   useEffect(() => {
-    setIndex(0);
+    setIndex((prev) => (prev >= slides.length && slides.length > 0 ? 0 : prev));
   }, [slides.length]);
 
   // Ghi lại thời điểm mỗi slide bắt đầu để tính remaining time khi fallback
@@ -475,7 +482,9 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
         }),
       };
 
-  const targetWidth = isMobile ? "w780" : "w1280";
+  // Giữ targetWidth w1280 ổn định giữa SSR và client hydration để tránh trình duyệt mobile tải 2 lần ảnh (w1280 rồi w780)
+  // w1280 là chuẩn kích thước vật lý 1:1 hoàn hảo cho màn hình Retina 2x/3x trên mobile hiện đại (390-430px x 3 = 1170-1290px)
+  const targetWidth = "w1280";
   const backdropFromMovie = pickHeroBackdropImage(featuredMovie, "/default-hero.jpg", targetWidth);
   const heroImageSrc =
     (currentSlug && failedHeroImages[currentSlug])
@@ -518,10 +527,10 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
               alt={title}
               fill
               priority={index === 0}
-              quality={85}
+              quality={80}
               unoptimized
               sizes="100vw"
-              className={`object-cover object-[center_25%] transition-opacity duration-500 ${
+              className={`object-cover object-[center_25%] transition-opacity duration-300 ${
                 isHeroImageLoaded ? "opacity-100" : "opacity-0"
               }`}
               onLoad={() => setIsHeroImageLoaded(true)}
@@ -798,3 +807,6 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
     </section>
   );
 };
+
+export const HeroFeatured = React.memo(HeroFeaturedInner);
+export default HeroFeatured;

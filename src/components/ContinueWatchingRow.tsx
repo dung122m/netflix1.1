@@ -12,7 +12,7 @@ import {
 import { pickBestMovieThumb, toOptimizedPhimimgUrl } from "@/lib/movieMedia";
 import { formatEpisodeName } from "@/lib/formatEpisode";
 
-export function ContinueWatchingRow() {
+function ContinueWatchingRowInner() {
   const [items, setItems] = useState<WatchHistoryItem[]>([]);
   const [isClient, setIsClient] = useState(false);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -157,7 +157,7 @@ export function ContinueWatchingRow() {
                     <Image
                       src={toOptimizedPhimimgUrl(
                         pickBestMovieThumb({ poster_url: item.poster, thumb_url: item.thumb }, "/default-hero.jpg"),
-                        480
+                        320
                       )}
                       alt={item.title}
                       fill
@@ -230,4 +230,5 @@ export function ContinueWatchingRow() {
   );
 }
 
+export const ContinueWatchingRow = React.memo(ContinueWatchingRowInner);
 export default ContinueWatchingRow;

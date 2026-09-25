@@ -80,7 +80,7 @@ const TAB_CONFIG: Record<
   },
 };
 
-export function TmdbTopTrending() {
+function TmdbTopTrendingInner() {
   const [activeTab, setActiveTab] = useState<TmdbTab>("week");
   const [items, setItems] = useState<TmdbTrendingMovieItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -149,12 +149,10 @@ export function TmdbTopTrending() {
             setItems(data.items);
           }
           try {
-            const raw = localStorage.getItem(TMDB_RANKING_CACHE_KEY);
-            const currentCache = raw ? JSON.parse(raw) : {};
             localStorage.setItem(
               TMDB_RANKING_CACHE_KEY,
               JSON.stringify({
-                ...currentCache,
+                ...tabCacheRef.current,
                 week: data.items,
                 timestamp: Date.now(),
               })
@@ -476,7 +474,7 @@ export function TmdbTopTrending() {
                         },
                         "/default-poster.jpg"
                       );
-                      const posterSrc = toOptimizedPhimimgUrl(rawPoster, 480);
+                      const posterSrc = toOptimizedPhimimgUrl(rawPoster, 320);
 
                       return (
                         <Image
@@ -554,3 +552,6 @@ export function TmdbTopTrending() {
     </section>
   );
 }
+
+export const TmdbTopTrending = React.memo(TmdbTopTrendingInner);
+export default TmdbTopTrending;

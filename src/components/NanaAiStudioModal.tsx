@@ -224,13 +224,16 @@ export const NanaAiStudioModal: React.FC<NanaAiStudioModalProps> = ({
   chatMessagesRef.current = chatMessages;
   const isHistoryLoadedRef = useRef(false);
 
-  // Khôi phục lịch sử chat 24h từ localStorage khi khởi tạo
+  // Khôi phục lịch sử chat 24h từ localStorage sau khi browser hoàn tất initial frame paint
   useEffect(() => {
-    const saved = loadAiChatHistory();
-    if (saved && saved.length > 0) {
-      setChatMessages(saved);
-    }
-    isHistoryLoadedRef.current = true;
+    const frameId = requestAnimationFrame(() => {
+      const saved = loadAiChatHistory();
+      if (saved && saved.length > 0) {
+        setChatMessages(saved);
+      }
+      isHistoryLoadedRef.current = true;
+    });
+    return () => cancelAnimationFrame(frameId);
   }, []);
 
   // Tự động lưu lịch sử chat vào localStorage mỗi khi conversation thay đổi
@@ -522,33 +525,33 @@ export const NanaAiStudioModal: React.FC<NanaAiStudioModalProps> = ({
   return (
     <div
       onClick={() => setIsOpen(false)}
-      className="fixed inset-0 z-[120] bg-black/85 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 overflow-y-auto overscroll-contain"
+      className="fixed inset-0 z-[120] bg-black/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-y-auto overscroll-contain animate-in fade-in duration-150"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className={`relative w-full max-w-3xl h-[88dvh] max-h-[760px] sm:min-h-[500px] bg-zinc-950 rounded-2xl sm:rounded-3xl border shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 ${
+        className={`relative w-full max-w-3xl h-[88dvh] max-h-[760px] sm:min-h-[500px] bg-zinc-950 rounded-2xl sm:rounded-3xl border shadow-2xl flex flex-col overflow-hidden transform-gpu will-change-[transform,opacity] animate-in zoom-in-95 duration-150 ${
           activeTab === "concierge"
             ? "border-pink-500/30 shadow-pink-950/40"
             : "border-amber-500/35 shadow-amber-950/40"
         }`}
       >
-        {/* Glow ambient lights */}
+        {/* Glow ambient lights (tĩnh để loại bỏ continuous GPU rasterization load) */}
         {activeTab === "concierge" ? (
           <>
-            <div className="pointer-events-none absolute -top-24 -left-20 w-80 h-80 bg-pink-600/20 rounded-full blur-3xl animate-pulse" />
-            <div className="pointer-events-none absolute -bottom-24 -right-20 w-80 h-80 bg-purple-600/20 rounded-full blur-3xl" />
+            <div className="pointer-events-none absolute -top-24 -left-20 w-80 h-80 bg-pink-600/15 rounded-full blur-3xl opacity-50" />
+            <div className="pointer-events-none absolute -bottom-24 -right-20 w-80 h-80 bg-purple-600/15 rounded-full blur-3xl opacity-50" />
           </>
         ) : (
           <>
-            <div className="pointer-events-none absolute -top-24 -left-20 w-80 h-80 bg-amber-500/20 rounded-full blur-3xl animate-pulse" />
-            <div className="pointer-events-none absolute -bottom-24 -right-20 w-80 h-80 bg-orange-600/20 rounded-full blur-3xl" />
+            <div className="pointer-events-none absolute -top-24 -left-20 w-80 h-80 bg-amber-500/15 rounded-full blur-3xl opacity-50" />
+            <div className="pointer-events-none absolute -bottom-24 -right-20 w-80 h-80 bg-orange-600/15 rounded-full blur-3xl opacity-50" />
           </>
         )}
 
         {/* ========================================================= */}
         {/* DEDICATED PINNED HEADER FOR EACH MODE (NO REDUNDANT TABS) */}
         {/* ========================================================= */}
-        <div className="relative z-30 flex items-center justify-between px-3 sm:px-4 py-2 sm:py-2.5 border-b border-white/10 bg-zinc-900/98 backdrop-blur-xl shrink-0 gap-2">
+        <div className="relative z-30 flex items-center justify-between px-3 sm:px-4 py-2 sm:py-2.5 border-b border-white/10 bg-zinc-900 shrink-0 gap-2">
           {activeTab === "concierge" ? (
             <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
               <div className="relative w-7 h-7 sm:w-8.5 sm:h-8.5 rounded-xl bg-gradient-to-br from-pink-500 via-rose-600 to-purple-600 flex items-center justify-center text-white shadow-md shadow-pink-600/30 shrink-0 ring-1 ring-pink-500/30">
@@ -727,7 +730,7 @@ export const NanaAiStudioModal: React.FC<NanaAiStudioModalProps> = ({
                             m.movies && m.movies.length > 0
                               ? "w-full sm:max-w-[85%]"
                               : "max-w-[95%] sm:max-w-[82%]"
-                          } p-3 sm:p-3.5 rounded-2xl rounded-tl-xs bg-zinc-900/95 border border-white/15 text-gray-200 shadow-xl backdrop-blur-md text-xs sm:text-sm space-y-2.5`}
+                          } p-3 sm:p-3.5 rounded-2xl rounded-tl-xs bg-zinc-900/95 border border-white/15 text-gray-200 shadow-xl text-xs sm:text-sm space-y-2.5`}
                         >
                           <p className="leading-relaxed whitespace-pre-wrap select-text">{m.text}</p>
 
@@ -905,7 +908,7 @@ export const NanaAiStudioModal: React.FC<NanaAiStudioModalProps> = ({
                 /* STATE 2: SPOTLIGHT RESULT SHOWCASE (FITS 100% IN MODAL WITHOUT SCROLLING) */
                 <div className="flex-1 flex flex-col justify-between py-1 space-y-3 animate-in zoom-in-95 duration-200">
                   {/* COMPACT ACTIVE CRITERIA BAR */}
-                  <div className="flex items-center justify-between px-3 py-2 rounded-2xl bg-zinc-900/90 border border-amber-500/30 backdrop-blur-md shadow-md flex-none">
+                  <div className="flex items-center justify-between px-3 py-2 rounded-2xl bg-zinc-900/95 border border-amber-500/30 shadow-md flex-none">
                     <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto text-xs min-w-0 scrollbar-none">
                       <span className="text-amber-400 font-bold flex-none flex items-center gap-1">
                         <Sparkles className="w-3.5 h-3.5" />
@@ -1049,7 +1052,7 @@ export const NanaAiStudioModal: React.FC<NanaAiStudioModalProps> = ({
 
                   {/* QUẺ HÔM NAY PREVIEW CARD KHI DÙNG 'BỐC QUẺ NGẪU NHIÊN' */}
                   {randomFortuneCard ? (
-                    <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-br from-amber-500/20 via-orange-500/15 to-purple-500/20 border-2 border-amber-400/50 shadow-2xl backdrop-blur-md space-y-3.5 animate-in zoom-in-95 duration-200">
+                    <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-br from-amber-500/20 via-orange-500/15 to-purple-500/20 border-2 border-amber-400/50 shadow-2xl space-y-3.5 animate-in zoom-in-95 duration-150">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <span className="text-2xl animate-bounce">🎴</span>
@@ -1117,7 +1120,7 @@ export const NanaAiStudioModal: React.FC<NanaAiStudioModalProps> = ({
                     </div>
                   ) : (
                     /* BANNER BỐC QUẺ NGẪU NHIÊN KHI CHƯA MỞ CARD */
-                    <div className="flex items-center justify-between p-3 sm:p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-orange-500/15 to-purple-500/15 border border-amber-500/30 backdrop-blur-md">
+                    <div className="flex items-center justify-between p-3 sm:p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-orange-500/15 to-purple-500/15 border border-amber-500/30">
                       <div className="flex items-center gap-2.5 min-w-0">
                         <span className="text-2xl flex-none">🎴</span>
                         <div className="min-w-0">

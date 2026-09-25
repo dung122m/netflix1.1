@@ -121,10 +121,15 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [setIsSearchExpanded]);
 
-  // Global hotkey Ctrl+K, / to open search, and Escape to close
+  const isSearchExpandedRef = useRef(isSearchExpanded);
+  isSearchExpandedRef.current = isSearchExpanded;
+  const onOpenMobileSearchRef = useRef(onOpenMobileSearch);
+  onOpenMobileSearchRef.current = onOpenMobileSearch;
+
+  // Global hotkey Ctrl+K, / to open search, and Escape to close (đăng ký 1 lần duy nhất trên window)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isSearchExpanded) {
+      if (e.key === "Escape" && isSearchExpandedRef.current) {
         setShowDropdown(false);
         setIsSearchExpanded(false);
         inputRef.current?.blur();
@@ -144,7 +149,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
         (e.key === "/" && !isInput)
       ) {
         e.preventDefault();
-        onOpenMobileSearch?.();
+        onOpenMobileSearchRef.current?.();
         setIsSearchExpanded(true);
         setTimeout(() => {
           if (typeof window !== "undefined" && window.innerWidth < 768) {
@@ -160,7 +165,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isSearchExpanded, setIsSearchExpanded, onOpenMobileSearch]);
+  }, [setIsSearchExpanded]);
 
   const saveRecentSearch = (kw: string) => {
     const clean = kw.trim();
@@ -421,7 +426,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
 
           {/* MOBILE SEARCH DROPDOWN */}
           {showDropdown && hasDropdownContent && (
-            <div className="fixed top-[52px] sm:top-[56px] inset-x-2 w-auto max-w-lg mx-auto bg-zinc-950/98 border border-white/20 backdrop-blur-2xl rounded-2xl p-3 shadow-2xl z-50 max-h-[calc(100dvh-64px)] sm:max-h-[calc(100dvh-72px)] overflow-y-auto overscroll-contain">
+            <div className="fixed top-[52px] sm:top-[56px] inset-x-2 w-auto max-w-lg mx-auto bg-zinc-950/98 border border-white/20 backdrop-blur-md rounded-2xl p-3 shadow-2xl z-50 max-h-[calc(100dvh-64px)] sm:max-h-[calc(100dvh-72px)] overflow-y-auto overscroll-contain transform-gpu will-change-[transform,opacity]">
               {!hasSearchText && recentSearches.length > 0 ? (
                 <div>
                   <div className="flex items-center justify-between text-[11px] font-semibold text-gray-400 px-2 py-1 mb-1 border-b border-white/10">
@@ -623,7 +628,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
 
         {/* DESKTOP SEARCH DROPDOWN */}
         {showDropdown && hasDropdownContent && (
-          <div className="absolute top-full mt-2 right-0 w-[360px] bg-zinc-950/95 border border-white/15 backdrop-blur-xl rounded-xl shadow-2xl p-2.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+          <div className="absolute top-full mt-2 right-0 w-[360px] bg-zinc-950/98 border border-white/15 backdrop-blur-md rounded-xl shadow-2xl p-2.5 z-50 animate-in fade-in zoom-in-95 duration-150 transform-gpu will-change-[transform,opacity]">
             {!hasSearchText && recentSearches.length > 0 ? (
               <div>
                 <div className="flex items-center justify-between text-[11px] font-semibold text-gray-400 px-2 py-1 mb-1 border-b border-white/10">

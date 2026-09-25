@@ -1260,12 +1260,8 @@ function getActiveHolidayTheme(): HolidayNavbarTheme | null {
  * Sits at z-[1] behind z-10 navbar UI.
  * Returns null immediately on normal days.
  */
-export function HolidayNavbarAtmosphere() {
-  const [theme, setTheme] = useState<HolidayNavbarTheme | null>(getActiveHolidayTheme);
-
-  useEffect(() => {
-    setTheme(getActiveHolidayTheme());
-  }, []);
+function HolidayNavbarAtmosphereInner() {
+  const [theme] = useState<HolidayNavbarTheme | null>(getActiveHolidayTheme);
 
   // Ngày thường: Navbar sạch 100%, không render bất kỳ DOM nào
   if (!theme) return null;
@@ -1418,3 +1414,6 @@ export function HolidayNavbarAtmosphere() {
     </div>
   );
 }
+
+export const HolidayNavbarAtmosphere = React.memo(HolidayNavbarAtmosphereInner);
+export default HolidayNavbarAtmosphere;

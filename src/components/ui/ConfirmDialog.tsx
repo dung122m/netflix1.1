@@ -136,11 +136,11 @@ export const GlobalConfirmDialog: React.FC = () => {
   return (
     <div
       onClick={() => handleClose(false)}
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-sm sm:max-w-md bg-zinc-950 border border-white/20 rounded-3xl p-5 sm:p-7 shadow-[0_25px_70px_rgba(0,0,0,0.95)] text-white animate-in zoom-in-95 duration-200 overflow-hidden"
+        className="relative w-full max-w-sm sm:max-w-md bg-zinc-950 border border-white/20 rounded-3xl p-5 sm:p-7 shadow-[0_25px_70px_rgba(0,0,0,0.95)] text-white transform-gpu will-change-[transform,opacity] animate-in zoom-in-95 duration-150 overflow-hidden"
       >
         {/* Glow hiệu ứng màu nền tinh tế */}
         {variant === "danger" && (

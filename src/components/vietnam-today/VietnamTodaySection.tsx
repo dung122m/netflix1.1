@@ -1,24 +1,25 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
-import dynamic from "next/dynamic";
+import React, { useMemo } from "react";
 import { VietnamTodayCard } from "./VietnamTodayCard";
 import { VietnamFlagIcon } from "./VietnamFlagIcon";
 import { getVietnamTodayEvent, VietnamTodayInfo } from "@/lib/vietnamCalendar";
 
-// Lazy-load modal to keep initial bundle ultra-light
-const LazyVietnamTodayModal = dynamic(
-  () => import("./VietnamTodayModal").then((mod) => mod.VietnamTodayModal),
-  { ssr: false }
-);
-
 export function VietnamTodaySection() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
   // Compute event based on current Vietnam date
   const info: VietnamTodayInfo = useMemo(() => {
     return getVietnamTodayEvent();
   }, []);
+
+  const handleOpenModal = () => {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("open-vietnam-today-modal", {
+          detail: { tab: "holiday" },
+        })
+      );
+    }
+  };
 
   return (
     <section
@@ -43,17 +44,8 @@ export function VietnamTodaySection() {
       {/* FEATURE CARD */}
       <VietnamTodayCard
         info={info}
-        onOpenModal={() => setIsModalOpen(true)}
+        onOpenModal={handleOpenModal}
       />
-
-      {/* LAZY LOADED POPUP MODAL */}
-      {isModalOpen && (
-        <LazyVietnamTodayModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          info={info}
-        />
-      )}
     </section>
   );
 }

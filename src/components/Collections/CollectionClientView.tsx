@@ -270,7 +270,7 @@ export function CollectionClientView({
                     genre={item.category || ""}
                     year={item.year}
                     quality={item.quality}
-                    priority={index < 8}
+                    priority={index < 4}
                   />
                 ))}
               </div>

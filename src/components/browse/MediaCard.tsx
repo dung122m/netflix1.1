@@ -16,7 +16,7 @@ import {
   Users,
   Clapperboard,
 } from "lucide-react";
-import { isInWatchlist, toggleWatchlist } from "@/lib/watchlist";
+import { isInWatchlist, toggleWatchlist, subscribeToWatchlist } from "@/lib/watchlist";
 import { extractMovieCountry, detectMovieTypeName, toOptimizedCardBackdropUrl, sanitizeImageUrl } from "@/lib/movieMedia";
 import { TrailerModal } from "@/components/TrailerModal";
 import {
@@ -143,9 +143,13 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   const [currentImgSrc, setCurrentImgSrc] = useState(
     candidateImages[0] || (imageUrl ? toOptimizedCardBackdropUrl(imageUrl) : "/default-hero.jpg")
   );
+  const [isImageLoaded, setIsImageLoaded] = useState(false);
+  const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
     setImageAttemptIndex(0);
+    setIsImageLoaded(false);
+    setHasError(false);
     setCurrentImgSrc(candidateImages[0] || (imageUrl ? toOptimizedCardBackdropUrl(imageUrl) : "/default-hero.jpg"));
   }, [imageUrl, candidateImages]);
 
@@ -155,12 +159,15 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     if (nextIdx < candidateImages.length) {
       setImageAttemptIndex(nextIdx);
       setCurrentImgSrc(candidateImages[nextIdx]);
+      setIsImageLoaded(false);
       return;
     }
 
     // 2. Nếu tất cả đều lỗi, chuyển về ảnh bìa mặc định rõ nét
+    setHasError(true);
     if (currentImgSrc !== "/default-hero.jpg") {
       setCurrentImgSrc("/default-hero.jpg");
+      setIsImageLoaded(true);
     }
   };
 
@@ -218,13 +225,14 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   });
   const [isCardHovered, setIsCardHovered] = useState(false);
 
-  // Đồng bộ Watchlist
+  // Đồng bộ Watchlist qua 1 shared listener duy nhất
   useEffect(() => {
     setInList(isInWatchlist(slug));
-    const handleSync = () => setInList(isInWatchlist(slug));
-    window.addEventListener("watchlist-updated", handleSync);
+    const unsubscribe = subscribeToWatchlist(slug, (newInList) => {
+      setInList(newInList);
+    });
     return () => {
-      window.removeEventListener("watchlist-updated", handleSync);
+      unsubscribe();
       if (hoverIntentTimerRef.current) clearTimeout(hoverIntentTimerRef.current);
       if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
       if (trailerTimerRef.current) clearTimeout(trailerTimerRef.current);
@@ -595,8 +603,13 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
             : "border-white/[0.12]"
         }`}
       >
-        {/* Placeholder nền tối phía dưới ảnh */}
-        <div className="absolute inset-0 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950 pointer-events-none" />
+        {/* Placeholder skeleton & shimmer khi ảnh đang tải - loại bỏ hoàn toàn ô đen */}
+        {!isImageLoaded && !hasError && (
+          <div className="absolute inset-0 bg-zinc-900 flex items-center justify-center pointer-events-none animate-pulse" aria-hidden="true">
+            <div className="absolute inset-0 bg-gradient-to-br from-zinc-800/60 via-zinc-900 to-zinc-950" />
+            <Film className="w-8 h-8 text-zinc-700/50" />
+          </div>
+        )}
 
         <Image
           src={currentImgSrc}
@@ -606,11 +619,12 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 16vw"
           className={`object-cover object-center transition-all duration-300 ${
             isCardHovered ? "scale-105" : "scale-100"
-          }`}
+          } ${isImageLoaded ? "opacity-100" : "opacity-0"}`}
           priority={priority}
           loading={priority ? "eager" : "lazy"}
           decoding="async"
-          quality={85}
+          quality={80}
+          onLoad={() => setIsImageLoaded(true)}
           onError={handleImageError}
         />
 

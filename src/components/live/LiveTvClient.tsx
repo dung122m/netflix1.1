@@ -538,9 +538,20 @@ export function LiveTvClient({
     const startHls = (sourceUrl: string) => {
       if (!videoRef.current) return;
 
+      if (loadTimeoutRef.current) {
+        clearTimeout(loadTimeoutRef.current);
+        loadTimeoutRef.current = null;
+      }
+
       if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;
+      }
+
+      if (videoRef.current) {
+        videoRef.current.pause();
+        videoRef.current.removeAttribute("src");
+        videoRef.current.load();
       }
 
       if (Hls.isSupported()) {
@@ -548,19 +559,21 @@ export function LiveTvClient({
           enableWorker: true,
           lowLatencyMode: true,
           liveSyncDurationCount: 3,
-          backBufferLength: 40,
-          maxBufferLength: 25,
-          maxMaxBufferLength: 45,
-          maxBufferSize: 30 * 1000 * 1000,
+          liveMaxLatencyDurationCount: 5,
+          maxLiveSyncPlaybackRate: 1.08,
+          backBufferLength: 15,
+          maxBufferLength: 12,
+          maxMaxBufferLength: 20,
+          maxBufferSize: 15 * 1000 * 1000,
           abrEwmaDefaultEstimate: 5_000_000,
           capLevelToPlayerSize: false,
           startLevel: -1,
-          manifestLoadingTimeOut: 10000,
-          levelLoadingTimeOut: 10000,
-          fragLoadingTimeOut: 10000,
-          fragLoadingMaxRetry: 6,
-          levelLoadingMaxRetry: 6,
-          manifestLoadingMaxRetry: 6,
+          manifestLoadingTimeOut: 4000,
+          levelLoadingTimeOut: 4000,
+          fragLoadingTimeOut: 4500,
+          fragLoadingMaxRetry: 2,
+          levelLoadingMaxRetry: 2,
+          manifestLoadingMaxRetry: 2,
           fragLoadingMaxRetryTimeout: 1000,
           levelLoadingMaxRetryTimeout: 1000,
           xhrSetup: (xhr) => {
@@ -1220,8 +1233,8 @@ export function LiveTvClient({
         (playerRef.current && active && playerRef.current.contains(active))
       );
 
-      // Nếu focus đang ở ngoài player trên các input, form, button... -> nhường quyền
-      if (!isPlayerContainer && active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA")) {
+      // Nếu focus đang ở ngoài player trên các input, form, textarea hoặc thẻ nút danh sách -> nhường quyền TV navigation
+      if (!isPlayerContainer && active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA" || (!isFullscreen && (active.tagName === "BUTTON" || active.tagName === "A")))) {
         return;
       }
 

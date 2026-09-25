@@ -1,4 +1,5 @@
 import { VIETNAM_EVENTS, VietnamEvent } from "@/data/vietnamEvents";
+import { getHistoricalEventsForDate, VietnamHistoricalEvent } from "@/data/historicalEvents";
 
 const { floor, sin, PI } = Math;
 
@@ -284,6 +285,7 @@ export function formatLunarDateVn(lunar: LunarDateResult): string {
 export interface VietnamTodayInfo {
   event: VietnamEvent;
   allEventsToday?: VietnamEvent[];
+  historicalEventsToday?: VietnamHistoricalEvent[];
   isToday: boolean;
   daysUntil: number; // 0 if today, > 0 if upcoming
   solarDateFormatted: string;
@@ -305,6 +307,10 @@ export function getVietnamTodayEvent(customDate?: Date): VietnamTodayInfo {
 
   const lunar = computeDateToLunarDate(day, month, year, 7);
   const dayOfYear = getDayOfYear(now);
+
+  // Check if today matches any historical milestones
+  const historicalEvents = getHistoricalEventsForDate(month, day, lunar.lunarMonth, lunar.lunarDay);
+  const historicalEventsToday = historicalEvents.length > 0 ? historicalEvents : undefined;
 
   // 1. Check if today matches any event directly
   const todayMatches: VietnamEvent[] = [];
@@ -368,6 +374,7 @@ export function getVietnamTodayEvent(customDate?: Date): VietnamTodayInfo {
     return {
       event: priorityEvent,
       allEventsToday: sortedMatches,
+      historicalEventsToday,
       isToday: true,
       daysUntil: 0,
       solarDateFormatted,
@@ -397,7 +404,7 @@ export function getVietnamTodayEvent(customDate?: Date): VietnamTodayInfo {
       candidateSolarDate = candDate;
     } else if (ev.lunarDate) {
       let candLunarYear = lunar.lunarYear;
-      let targetSolar = computeDateFromLunarDate(
+      const targetSolar = computeDateFromLunarDate(
         ev.lunarDate.lunarDay,
         ev.lunarDate.lunarMonth,
         candLunarYear,
@@ -451,6 +458,7 @@ export function getVietnamTodayEvent(customDate?: Date): VietnamTodayInfo {
   return {
     event: nearestEvent,
     allEventsToday: [nearestEvent],
+    historicalEventsToday,
     isToday: false,
     daysUntil: minDaysUntil,
     solarDateFormatted,

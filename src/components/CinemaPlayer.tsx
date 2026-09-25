@@ -608,9 +608,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
 
     setIsBuffering(true);
     video.pause();
-    try {
-      video.currentTime = targetProgress > 0 ? targetProgress : 0;
-    } catch {}
     video.removeAttribute("src");
     video.load();
 
@@ -647,10 +644,10 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         enableWorker: true,
         lowLatencyMode: false,
         capLevelToPlayerSize: true,
-        maxBufferSize: 60 * 1000 * 1000,
-        maxBufferLength: 60,
-        maxMaxBufferLength: 90,
-        backBufferLength: 60,
+        maxBufferSize: 30 * 1000 * 1000,
+        maxBufferLength: 30,
+        maxMaxBufferLength: 60,
+        backBufferLength: 30,
         startPosition: targetProgress > 0 ? targetProgress : -1,
         startLevel: -1,
         autoStartLoad: true,
@@ -673,8 +670,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         } else {
           setQualityLevels([]);
         }
-
-        trySeekToTarget();
 
         const playPromise = video.play();
         if (playPromise !== undefined) {
@@ -710,16 +705,17 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       hls.on(Hls.Events.LEVEL_LOADED, updateHlsDuration);
       hls.on(Hls.Events.LEVEL_UPDATED, updateHlsDuration);
 
-      const onCanPlay = () => trySeekToTarget();
-      video.addEventListener("canplay", onCanPlay, { once: true });
-
-      // Fallback seek duy nhất sau khi player đã sẵn sàng nếu startPosition chưa khớp
+      // Fallback seek duy nhất sau 1.5s nếu Hls.js startPosition chưa khớp target
       seekTimeouts.push(
         setTimeout(() => {
           if (!hasSeekedInitialRef.current && targetProgress > 0 && videoRef.current) {
-            trySeekToTarget();
+            if (Math.abs(videoRef.current.currentTime - targetProgress) > 2) {
+              trySeekToTarget();
+            } else {
+              hasSeekedInitialRef.current = true;
+            }
           }
-        }, 1200)
+        }, 1500)
       );
 
       const fallbackToIframe = () => {

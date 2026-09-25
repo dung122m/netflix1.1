@@ -35,11 +35,39 @@ function invalidateMemoryCache(): void {
   memoryWatchlistSlugs = null;
 }
 
+// Shared registry for MediaCard subscribers: single window listener instead of 45 separate listeners
+const subscribers = new Set<{ slug: string; callback: (inList: boolean) => void }>();
+let isSharedListenerAttached = false;
+
+function ensureSharedListener(): void {
+  if (typeof window === "undefined" || isSharedListenerAttached) return;
+  isSharedListenerAttached = true;
+  window.addEventListener("watchlist-updated", (e: Event) => {
+    const customEvt = e as CustomEvent<{ slug?: string }>;
+    const targetSlug = customEvt?.detail?.slug;
+    subscribers.forEach(({ slug, callback }) => {
+      // If a specific movie was updated, only notify matching cards; if full sync, notify all
+      if (!targetSlug || targetSlug === slug) {
+        callback(isInWatchlist(slug));
+      }
+    });
+  });
+}
+
+export function subscribeToWatchlist(slug: string, callback: (inList: boolean) => void): () => void {
+  ensureSharedListener();
+  const entry = { slug, callback };
+  subscribers.add(entry);
+  return () => {
+    subscribers.delete(entry);
+  };
+}
+
 if (typeof window !== "undefined") {
   window.addEventListener("storage", (e) => {
     if (e.key === STORAGE_KEY) {
       invalidateMemoryCache();
-      window.dispatchEvent(new Event("watchlist-updated"));
+      window.dispatchEvent(new CustomEvent("watchlist-updated"));
     }
   });
 }
@@ -82,7 +110,7 @@ export function addToWatchlist(item: Omit<WatchlistItem, "addedAt">): void {
     const updated = [itemWithAddedAt, ...list];
     updateMemoryCache(updated);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-    window.dispatchEvent(new Event("watchlist-updated"));
+    window.dispatchEvent(new CustomEvent("watchlist-updated", { detail: { slug: item.slug } }));
 
     // Tự động lưu lên Supabase Cloud nếu đang đăng nhập
     if (auth?.currentUser) {
@@ -100,7 +128,7 @@ export function removeFromWatchlist(slug: string): void {
     const updated = list.filter((i) => i.slug !== slug);
     updateMemoryCache(updated);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-    window.dispatchEvent(new Event("watchlist-updated"));
+    window.dispatchEvent(new CustomEvent("watchlist-updated", { detail: { slug } }));
 
     // Tự động xóa khỏi Supabase Cloud nếu đang đăng nhập
     if (auth?.currentUser) {
@@ -129,7 +157,7 @@ export function clearLocalWatchlistOnly(): void {
   try {
     updateMemoryCache([]);
     localStorage.removeItem(STORAGE_KEY);
-    window.dispatchEvent(new Event("watchlist-updated"));
+    window.dispatchEvent(new CustomEvent("watchlist-updated"));
   } catch (e) {
     console.error("Lỗi xóa local watchlist:", e);
   }

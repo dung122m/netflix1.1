@@ -2,10 +2,13 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { VIETNAM_EVENTS } from "@/data/vietnamEvents";
 import {
+  VIETNAM_HISTORICAL_EVENTS,
+  getHistoricalEventsForDate,
+} from "@/data/historicalEvents";
+import {
   computeDateToLunarDate,
   computeDateFromLunarDate,
   getVietnamTodayEvent,
-  getVietnamNow,
 } from "./vietnamCalendar";
 
 test("Vietnam Events Dataset Validation", async (t) => {
@@ -295,4 +298,134 @@ test("Cinematic Living Navbar Themes Validation", async (t) => {
     assert.equal(theme, null, "Regular everyday events must return null to keep navbar pristine");
   });
 });
+
+test("Vietnam Historical Milestones System (Ngày này trong lịch sử Việt Nam)", async (t) => {
+  await t.test("Dataset integrity: All historical events have verified dates, sources, and themes", () => {
+    assert.ok(
+      VIETNAM_HISTORICAL_EVENTS.length >= 30,
+      `Expected >= 30 historical milestones, found ${VIETNAM_HISTORICAL_EVENTS.length}`
+    );
+
+    const validThemes = new Set([
+      "ba-dinh-1945",
+      "dien-bien-phu",
+      "giai-phong-thu-do",
+      "thong-nhat-1975",
+      "dong-da",
+      "hai-ba-trung",
+      "bach-dang",
+      "bac-ho-cuu-nuoc",
+      "khang-chien",
+      "general-history",
+    ]);
+
+    const seenIds = new Set<string>();
+
+    for (const ev of VIETNAM_HISTORICAL_EVENTS) {
+      assert.ok(ev.id && ev.id.length > 0, `Missing id for event`);
+      assert.ok(!seenIds.has(ev.id), `Duplicate historical event id: ${ev.id}`);
+      seenIds.add(ev.id);
+
+      assert.ok(ev.title && ev.title.trim().length > 0, `Missing title for ${ev.id}`);
+      assert.ok(ev.year !== undefined && !Number.isNaN(ev.year), `Invalid year for ${ev.id}`);
+      assert.ok(ev.summary && ev.summary.trim().length > 0, `Missing summary for ${ev.id}`);
+      assert.ok(ev.significance && ev.significance.trim().length > 0, `Missing significance for ${ev.id}`);
+      assert.ok(validThemes.has(ev.visualTheme), `Invalid visualTheme '${ev.visualTheme}' for ${ev.id}`);
+      assert.ok(Array.isArray(ev.sources) && ev.sources.length > 0, `Missing credible sources for ${ev.id}`);
+      assert.ok(ev.solarDate && ev.solarDate.month >= 1 && ev.solarDate.month <= 12, `Invalid solar month for ${ev.id}`);
+      assert.ok(ev.solarDate && ev.solarDate.day >= 1 && ev.solarDate.day <= 31, `Invalid solar day for ${ev.id}`);
+    }
+  });
+
+  await t.test("Case 1: Holiday + Historical (e.g. 02/09 Ba Đình 1945 & Quốc Khánh)", () => {
+    const res = getVietnamTodayEvent(new Date("2025-09-02T08:00:00+07:00"));
+    assert.equal(res.isToday, true);
+    assert.ok(res.event.id.includes("quoc-khanh"), "Should match Quoc Khanh holiday");
+    assert.ok(res.historicalEventsToday && res.historicalEventsToday.length >= 1);
+    const baDinhEvent = res.historicalEventsToday.find((h) => h.id.includes("tuyen-ngon-doc-lap-1945"));
+    assert.ok(baDinhEvent, "Should find 1945 Ba Dinh Declaration of Independence");
+    assert.equal(baDinhEvent?.year, 1945);
+    assert.equal(baDinhEvent?.visualTheme, "ba-dinh-1945");
+  });
+
+  await t.test("Case 2: Multiple historical events on the same day (e.g. 02/09: 1945 & 1969)", () => {
+    const eventsSep2 = getHistoricalEventsForDate(9, 2);
+    assert.ok(eventsSep2.length >= 2, `Expected >= 2 historical milestones on Sept 2nd, got ${eventsSep2.length}`);
+    const years = eventsSep2.map((e) => e.year);
+    assert.ok(years.includes(1945), "Must include 1945 Declaration of Independence");
+    assert.ok(years.includes(1969), "Must include 1969 President Ho Chi Minh passing");
+  });
+
+  await t.test("Case 3: Historical milestone on official holiday (e.g. 30/04 Thống nhất đất nước 1975)", () => {
+    const res = getVietnamTodayEvent(new Date("2025-04-30T08:00:00+07:00"));
+    assert.equal(res.isToday, true);
+    assert.ok(res.historicalEventsToday && res.historicalEventsToday.length >= 1);
+    const thongNhat = res.historicalEventsToday.find((h) => h.id.includes("giai-phong-mien-nam-1975"));
+    assert.ok(thongNhat);
+    assert.equal(thongNhat?.year, 1975);
+    assert.equal(thongNhat?.visualTheme, "thong-nhat-1975");
+  });
+
+  await t.test("Case 4: Historical event on 10/10 (Giải phóng Thủ đô Hà Nội 1954)", () => {
+    const res = getVietnamTodayEvent(new Date("2025-10-10T08:00:00+07:00"));
+    assert.ok(res.historicalEventsToday && res.historicalEventsToday.length >= 1);
+    const thuDo = res.historicalEventsToday.find((h) => h.id.includes("giai-phong-thu-do-1954"));
+    assert.ok(thuDo);
+    assert.equal(thuDo?.year, 1954);
+    assert.equal(thuDo?.visualTheme, "giai-phong-thu-do");
+  });
+
+  await t.test("Case 5: Historical milestone with lunar anniversary (e.g. Ngọc Hồi - Đống Đa: Mùng 5 tháng Giêng AL)", () => {
+    // 05/01 AL
+    const eventsTet5 = getHistoricalEventsForDate(0, 0, 1, 5);
+    assert.ok(eventsTet5.length >= 1);
+    const dongDa = eventsTet5.find((e) => e.id.includes("ngoc-hoi-dong-da-1789"));
+    assert.ok(dongDa);
+    assert.equal(dongDa?.year, 1789);
+    assert.equal(dongDa?.visualTheme, "dong-da");
+  });
+
+  await t.test("Case 6: Historical milestone for Hai Bà Trưng (Mùng 6 tháng 2 AL)", () => {
+    const eventsFeb6AL = getHistoricalEventsForDate(0, 0, 2, 6);
+    assert.ok(eventsFeb6AL.length >= 1);
+    const haiBaTrung = eventsFeb6AL.find((e) => e.id.includes("hai-ba-trung-40"));
+    assert.ok(haiBaTrung);
+    assert.equal(haiBaTrung?.year, 40);
+    assert.equal(haiBaTrung?.visualTheme, "hai-ba-trung");
+  });
+
+  await t.test("Case 7: Historical milestone for Bạch Đằng (Mùng 8 tháng 3 AL)", () => {
+    const eventsMar8AL = getHistoricalEventsForDate(0, 0, 3, 8);
+    assert.ok(eventsMar8AL.length >= 1);
+    const bachDang = eventsMar8AL.find((e) => e.id.includes("bach-dang-1288"));
+    assert.ok(bachDang);
+    assert.equal(bachDang?.year, 1288);
+    assert.equal(bachDang?.visualTheme, "bach-dang");
+  });
+
+  await t.test("Case 8: Điện Biên Phủ 07/05/1954", () => {
+    const eventsMay7 = getHistoricalEventsForDate(5, 7);
+    assert.ok(eventsMay7.length >= 1);
+    const dbp = eventsMay7.find((e) => e.id.includes("dien-bien-phu-1954"));
+    assert.ok(dbp);
+    assert.equal(dbp?.year, 1954);
+    assert.equal(dbp?.visualTheme, "dien-bien-phu");
+  });
+
+  await t.test("Case 9: Bác Hồ tìm đường cứu nước 05/06/1911", () => {
+    const eventsJun5 = getHistoricalEventsForDate(6, 5);
+    assert.ok(eventsJun5.length >= 1);
+    const bacHo = eventsJun5.find((e) => e.id.includes("1911"));
+    assert.ok(bacHo);
+    assert.equal(bacHo?.year, 1911);
+    assert.equal(bacHo?.visualTheme, "bac-ho-cuu-nuoc");
+  });
+
+  await t.test("Case 10: Regular day with no historical event returns undefined/empty", () => {
+    // 15/03 has no registered major historical milestone
+    const eventsMar15 = getHistoricalEventsForDate(3, 15);
+    assert.equal(eventsMar15.length, 0, "No historical milestone expected on March 15th");
+  });
+});
+
 

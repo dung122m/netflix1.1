@@ -449,11 +449,11 @@ function UserProfileModalInner({
   return createPortal(
     <div
       onClick={() => setIsOpen(false)}
-      className="fixed inset-0 z-[99999] flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200"
+      className="fixed inset-0 z-[99999] flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-3xl max-h-[92vh] sm:max-h-[90vh] overflow-y-auto rounded-2xl sm:rounded-3xl border border-white/15 bg-gradient-to-b from-zinc-900 via-zinc-950 to-black p-3.5 sm:p-6 shadow-2xl space-y-3.5 sm:space-y-5 scrollbar-thin text-white"
+        className="relative w-full max-w-3xl max-h-[92vh] sm:max-h-[90vh] overflow-y-auto rounded-2xl sm:rounded-3xl border border-white/15 bg-gradient-to-b from-zinc-900 via-zinc-950 to-black p-3.5 sm:p-6 shadow-2xl space-y-3.5 sm:space-y-5 scrollbar-thin text-white transform-gpu will-change-[transform,opacity] animate-in zoom-in-95 duration-150"
       >
         {/* NÚT ĐÓNG */}
         <button

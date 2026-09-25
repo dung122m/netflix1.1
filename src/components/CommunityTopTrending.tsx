@@ -15,7 +15,7 @@ import { pickBestMoviePoster, toOptimizedPhimimgUrl } from "@/lib/movieMedia";
 const TRENDING_CACHE_KEY = "nanaflix_trending_community_cache_v3";
 const FRESH_REVALIDATE_TTL = 5 * 60 * 1000; // 5 phút: Nếu cache dưới 5 phút, không cần revalidate ngầm
 
-export function CommunityTopTrending() {
+function CommunityTopTrendingInner() {
   const [items, setItems] = useState<MovieViewStatItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -82,14 +82,12 @@ export function CommunityTopTrending() {
             setItems(data.items);
           }
 
-          // Cập nhật localStorage mà không làm mất tab week
+          // Cập nhật localStorage mà không làm mất tab week (dùng tabCacheRef, không đọc storage lại)
           try {
-            const raw = localStorage.getItem(TRENDING_CACHE_KEY);
-            const currentCache = raw ? JSON.parse(raw) : {};
             localStorage.setItem(
               TRENDING_CACHE_KEY,
               JSON.stringify({
-                ...currentCache,
+                ...tabCacheRef.current,
                 total: data.items,
                 timestamp: Date.now(),
               })
@@ -414,7 +412,7 @@ export function CommunityTopTrending() {
                           },
                           "/default-poster.jpg"
                         );
-                        const posterSrc = toOptimizedPhimimgUrl(rawPoster, 480);
+                        const posterSrc = toOptimizedPhimimgUrl(rawPoster, 320);
 
                         return (
                           <Image
@@ -479,3 +477,6 @@ export function CommunityTopTrending() {
     </section>
   );
 }
+
+export const CommunityTopTrending = React.memo(CommunityTopTrendingInner);
+export default CommunityTopTrending;

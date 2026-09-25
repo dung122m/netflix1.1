@@ -21,6 +21,7 @@ import { subscribeUserProfile } from "@/services/userService";
 import { UserProfile } from "@/types/user";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { ThemeSwitcher } from "../ThemeSwitcher";
+import { getVietnamTodayEvent } from "@/lib/vietnamCalendar";
 
 interface NavLinkItem {
   name: string;
@@ -64,6 +65,15 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
     });
     return () => unsub();
   }, [user?.uid]);
+
+  const hasHistoricalToday = React.useMemo(() => {
+    try {
+      const today = getVietnamTodayEvent();
+      return Boolean(today.historicalEventsToday && today.historicalEventsToday.length > 0);
+    } catch {
+      return false;
+    }
+  }, []);
 
   if (!isOpen) return null;
 
@@ -247,6 +257,30 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
             </div>
           </Link>
         </div>
+
+        {/* 📜 NGÀY NÀY TRONG LỊCH SỬ VIỆT NAM (MOBILE) */}
+        {hasHistoricalToday && (
+          <button
+            type="button"
+            onClick={() => {
+              onClose();
+              if (typeof window !== "undefined") {
+                window.dispatchEvent(
+                  new CustomEvent("open-vietnam-today-modal", {
+                    detail: { tab: "history" },
+                  })
+                );
+              }
+            }}
+            className="w-full text-xs font-semibold py-2 px-3 text-amber-200 hover:text-white flex items-center justify-between rounded-xl bg-gradient-to-r from-red-950/40 to-amber-950/30 hover:bg-red-900/30 border border-red-500/30 transition text-left cursor-pointer shadow-sm active:scale-[0.98]"
+          >
+            <div className="flex items-center gap-2.5">
+              <span className="text-base leading-none">📜</span>
+              <span>Ngày này trong lịch sử Việt Nam</span>
+            </div>
+            <ChevronRight size={14} className="text-amber-400" />
+          </button>
+        )}
 
         {/* THÔNG BÁO */}
         <button

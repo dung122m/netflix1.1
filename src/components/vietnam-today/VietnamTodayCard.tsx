@@ -125,6 +125,18 @@ export function VietnamTodayCard({ info, onOpenModal }: VietnamTodayCardProps) {
               <span className="hidden sm:inline">+{info.allEventsToday.length - 1} sự kiện khác</span>
             </span>
           )}
+
+          {/* Historical milestones indicator */}
+          {info.historicalEventsToday && info.historicalEventsToday.length > 0 && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-semibold bg-red-950/60 text-red-200 border border-red-500/40 backdrop-blur-md shadow-sm">
+              <span>📜</span>
+              <span>
+                {info.historicalEventsToday.length === 1
+                  ? "1 mốc lịch sử"
+                  : `${info.historicalEventsToday.length} mốc lịch sử`}
+              </span>
+            </span>
+          )}
         </div>
 
         {/* MIDDLE BLOCK: EVENT TITLE & DESCRIPTION (Constrained to left side so right visuals have room) */}

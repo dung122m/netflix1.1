@@ -1258,10 +1258,12 @@ function LivePlayerInner({
         enableWorker: true,
         lowLatencyMode: true,
         liveSyncDurationCount: 3,
-        backBufferLength: 40,
-        maxBufferLength: 25,
-        maxMaxBufferLength: 45,
-        maxBufferSize: 30 * 1000 * 1000,
+        liveMaxLatencyDurationCount: 5,
+        maxLiveSyncPlaybackRate: 1.08,
+        backBufferLength: 15,
+        maxBufferLength: 12,
+        maxMaxBufferLength: 20,
+        maxBufferSize: 15 * 1000 * 1000,
         abrEwmaDefaultEstimate: 5_000_000,
         capLevelToPlayerSize: false,
         startLevel: -1,
@@ -2071,8 +2073,8 @@ function LivePlayerInner({
           containerRef.current.contains(active)
       );
 
-      // Nếu focus đang ở ngoài player trên các input, form, textarea... -> nhường quyền
-      if (!isPlayerContainer && active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA")) {
+      // Nếu focus đang ở ngoài player trên các input, form, textarea hoặc thẻ nút danh sách -> nhường quyền TV navigation
+      if (!isPlayerContainer && active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA" || (!isFullscreen && (active.tagName === "BUTTON" || active.tagName === "A")))) {
         return;
       }
 
