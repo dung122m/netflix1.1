@@ -18,9 +18,9 @@ const CORE_ANALYTICS_EVENT_TYPES = new Set<string>([
 
 export async function POST(req: NextRequest) {
   try {
-    // 1. Giới hạn tần suất phân tán theo IP (60 requests / 60s) qua Upstash Redis
+    // 1. Giới hạn tần suất phân tán theo IP (120 requests / 60s) qua Upstash Redis
     const clientIp = getClientIp(req);
-    const rateLimit = await checkDistributedRateLimit(`analytics_${clientIp}`, 60, 60);
+    const rateLimit = await checkDistributedRateLimit(`analytics_${clientIp}`, 120, 60);
     if (!rateLimit.allowed) {
       return NextResponse.json(
         { error: "Too many analytics requests. Please try again later." },

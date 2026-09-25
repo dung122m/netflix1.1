@@ -18,6 +18,17 @@ export interface StreamServer {
   sourceName?: string;
 }
 
+export type MatchCategory =
+  | "senior_men"
+  | "senior_women"
+  | "u19"
+  | "u20"
+  | "u21"
+  | "u23"
+  | "futsal"
+  | "youth"
+  | "other";
+
 export interface FootballMatch {
   id: string;
   time: string;
@@ -34,6 +45,7 @@ export interface FootballMatch {
   quality: "FHD 1080p" | "HD 720p" | "HD";
   tournament?: string;
   sport?: "football" | "basketball" | "volleyball" | "tennis" | "badminton" | "f1" | "motorsport" | "boxing" | "esports" | "billiards" | "other";
+  category?: MatchCategory;
   gender?: "men" | "women";
   isEvent?: boolean;
   sourceStatus?: SourceMatchStatus;
@@ -294,7 +306,7 @@ const AUXILIARY_CLUB_WORDS = new Set([
   "csd", "deportes", "deportivo", "deportiva", "dep", "municipal", "muni", "club", "clube", "societa",
   "asociacion", "asoc", "agrupacion", "ud", "sd", "ad", "sv", "tsv", "fsv", "spvg", "vfl", "ksv", "bsc",
   "united", "utd", "city", "town", "athletic", "albion", "rovers", "wanderers", "county", "sports",
-  "u19", "u20", "u21", "u23", "b", "reserves", "women", "nu", "dtqg", "dt", "doituyen", "tuyen", "quocgia"
+  "dtqg", "dt", "doituyen", "tuyen", "quocgia"
 ]);
 
 const CLUB_ALIAS_MAP: Record<string, string> = {
@@ -655,6 +667,59 @@ export function isSingleTeamMatching(nameA: string, nameB: string): boolean {
   return false;
 }
 
+export function areMatchTimesCompatible(
+  t1: { timestamp: number; time: string; isLive: boolean },
+  t2: { timestamp: number; time: string; isLive: boolean },
+  now: number = Date.now(),
+  toleranceMs: number = 90 * 60 * 1000,
+): boolean {
+  const isLive1 = t1.isLive || t1.time === "Trực tiếp";
+  const isLive2 = t2.isLive || t2.time === "Trực tiếp";
+
+  const hasTs1 = t1.timestamp > 0 && t1.timestamp !== Number.MAX_SAFE_INTEGER;
+  const hasTs2 = t2.timestamp > 0 && t2.timestamp !== Number.MAX_SAFE_INTEGER;
+
+  // Case 1: Cả hai đều có kickoff timestamp rõ ràng (Scheduled ↔ Scheduled)
+  if (hasTs1 && hasTs2) {
+    const diffMs = Math.abs(t1.timestamp - t2.timestamp);
+    if (diffMs <= toleranceMs) {
+      return true;
+    }
+
+    // Nếu 1 bên có timestamp thực tế (scheduled), còn 1 bên chỉ có timestamp = now (do live marker):
+    const scheduledTs = isLive1 && !isLive2 ? t2.timestamp : !isLive1 && isLive2 ? t1.timestamp : null;
+    if (scheduledTs !== null) {
+      return now >= scheduledTs - 60 * 60 * 1000 && now <= scheduledTs + MAX_MATCH_DURATION_MS;
+    }
+
+    return false;
+  }
+
+  // Case 2: Cả hai đều là Live stream (Live ↔ Live)
+  if (isLive1 && isLive2) {
+    return true;
+  }
+
+  // Case 3: Một bên Live và một bên Scheduled có timestamp
+  if ((isLive1 && hasTs2) || (isLive2 && hasTs1)) {
+    const scheduledTs = hasTs1 ? t1.timestamp : t2.timestamp;
+    return now >= scheduledTs - 60 * 60 * 1000 && now <= scheduledTs + MAX_MATCH_DURATION_MS;
+  }
+
+  // Case 4: Text time matching ("21:00" === "21:00")
+  if (t1.time && t2.time && t1.time !== "24/7" && t2.time !== "24/7") {
+    if (t1.time === t2.time) return true;
+    const c1 = t1.time.replace(/[^0-9]/g, "");
+    const c2 = t2.time.replace(/[^0-9]/g, "");
+    if (c1 && c2 && c1 === c2) return true;
+  }
+
+  // Case 5: 24/7 hoặc generic
+  if (t1.time === "24/7" && t2.time === "24/7") return true;
+
+  return false;
+}
+
 export function areMatchFixturesMatching(
   m1: {
     team1: string;
@@ -662,6 +727,8 @@ export function areMatchFixturesMatching(
     time: string;
     timestamp: number;
     isLiveMarker: boolean;
+    sport?: string;
+    category?: string;
     isEvent?: boolean;
   },
   m2: {
@@ -670,9 +737,14 @@ export function areMatchFixturesMatching(
     time: string;
     timestamp: number;
     isLiveMarker: boolean;
+    sport?: string;
+    category?: string;
     isEvent?: boolean;
   },
+  now: number = Date.now(),
 ): boolean {
+  if (m1.sport && m2.sport && m1.sport !== m2.sport) return false;
+  if (m1.category && m2.category && m1.category !== m2.category) return false;
   if (m1.isEvent || m2.isEvent) return false;
   if (!m1.team1 || !m1.team2 || !m2.team1 || !m2.team2) return false;
 
@@ -689,42 +761,12 @@ export function areMatchFixturesMatching(
     return false;
   }
 
-  // 2. Time Guard: Phải cùng khung giờ thi đấu
-  const isBothLive =
-    m1.isLiveMarker ||
-    m2.isLiveMarker ||
-    m1.time === "Trực tiếp" ||
-    m2.time === "Trực tiếp";
-
-  const hasValidTimestamps =
-    m1.timestamp !== Number.MAX_SAFE_INTEGER &&
-    m2.timestamp !== Number.MAX_SAFE_INTEGER &&
-    m1.timestamp > 0 &&
-    m2.timestamp > 0;
-
-  if (hasValidTimestamps) {
-    const diffMs = Math.abs(m1.timestamp - m2.timestamp);
-    // Khác giờ quá 45 phút -> Không phải cùng trận
-    if (diffMs > 45 * 60 * 1000) {
-      return false;
-    }
-    return true;
-  }
-
-  if (isBothLive) return true;
-
-  if (m1.time && m2.time) {
-    if (m1.time === m2.time) return true;
-    if (m1.time !== "24/7" && m2.time !== "24/7") {
-      const cleanTime1 = m1.time.replace(/[^0-9]/g, "");
-      const cleanTime2 = m2.time.replace(/[^0-9]/g, "");
-      if (cleanTime1 && cleanTime2 && cleanTime1 === cleanTime2) {
-        return true;
-      }
-    }
-  }
-
-  return false;
+  // 2. Time Guard: Phải tương thích thời gian thi đấu
+  return areMatchTimesCompatible(
+    { timestamp: m1.timestamp, time: m1.time, isLive: m1.isLiveMarker },
+    { timestamp: m2.timestamp, time: m2.time, isLive: m2.isLiveMarker },
+    now,
+  );
 }
 
 // Bảng nhận diện câu lạc bộ theo giải đấu
@@ -1521,6 +1563,17 @@ export function isValidFootballTeamName(name: string): boolean {
   if (!name) return false;
   const raw = name.trim();
   const norm = normalizeText(raw);
+  const compactNorm = norm.replace(/\s+/g, "");
+
+  // ĐTQG hoặc CLB chuẩn trong từ điển canonical luôn là team hợp lệ
+  if (
+    NATIONAL_TEAM_CANONICAL_MAP[norm] ||
+    NATIONAL_TEAM_CANONICAL_MAP[compactNorm] ||
+    Boolean(getTeamAsset(raw))
+  ) {
+    return true;
+  }
+
   if (norm.length < 2) return false;
 
   // 1. Phải có ít nhất một chữ cái (không chỉ là số hoặc ký hiệu) và không phải từ nối "vs" / "v"
@@ -1722,6 +1775,52 @@ export function extractSportAndGender(
   }
 
   return { sport, gender };
+}
+
+export function extractSportAndCategory(
+  rawTitle: string,
+  group?: string,
+): {
+  sport: "football" | "basketball" | "volleyball" | "tennis" | "badminton" | "f1" | "motorsport" | "boxing" | "esports" | "billiards" | "other";
+  category: MatchCategory;
+  gender?: "men" | "women";
+} {
+  const fullText = `${rawTitle || ""} ${group || ""}`;
+  const norm = fullText.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+  const isFutsal = /\b(?:futsal)\b/i.test(norm) || /\b(?:futsal)\b/i.test(fullText);
+
+  let category: MatchCategory = "senior_men";
+  if (isFutsal) {
+    category = "futsal";
+  } else if (/\b(?:u-?19)\b/i.test(norm) || /\bu19\b/i.test(fullText)) {
+    category = "u19";
+  } else if (/\b(?:u-?20)\b/i.test(norm) || /\bu20\b/i.test(fullText)) {
+    category = "u20";
+  } else if (/\b(?:u-?21)\b/i.test(norm) || /\bu21\b/i.test(fullText)) {
+    category = "u21";
+  } else if (/\b(?:u-?23)\b/i.test(norm) || /\bu23\b/i.test(fullText)) {
+    category = "u23";
+  } else if (
+    /(?:^|\s|[([_])(?:nu|women|woman|female)(?:$|\s|[)\]_])/i.test(norm) ||
+    /(?:^|\s|[([_])(?:nữ)(?:$|\s|[)\]_])/i.test(fullText)
+  ) {
+    category = "senior_women";
+  } else if (/\b(?:youth|tre|trẻ)\b/i.test(norm)) {
+    category = "youth";
+  }
+
+  let { sport, gender } = extractSportAndGender(rawTitle, group);
+  if (isFutsal) {
+    sport = "football";
+  }
+  if (category === "senior_women") {
+    gender = "women";
+  } else if (category === "senior_men" && !gender) {
+    gender = "men";
+  }
+
+  return { sport, category, gender };
 }
 
 export function cleanCandidateTeamName(name: string): string {
@@ -1993,6 +2092,7 @@ export function normalizeAndMergeStreams(
     team1: string;
     team2: string;
     sport: "football" | "basketball" | "volleyball" | "tennis" | "badminton" | "f1" | "motorsport" | "boxing" | "esports" | "billiards" | "other";
+    category: MatchCategory;
     gender?: "men" | "women";
     isEvent: boolean;
     tournament: string;
@@ -2073,7 +2173,7 @@ export function normalizeAndMergeStreams(
 
     channelsSet.add(cleanGroup);
 
-    const { sport, gender } = extractSportAndGender(rawTitle, group);
+    const { sport, category, gender } = extractSportAndCategory(rawTitle, group);
 
     let cleanedTitle = rawTitle.replace(/\[[^\]]*\]/g, " ").trim();
     const sourceStatus = parseSourceStatus(rawTitle, item.extinfLine);
@@ -2141,6 +2241,12 @@ export function normalizeAndMergeStreams(
       ) {
         prefixTournament = colonParts[0].trim();
         cleanedTitle = colonParts[1].trim();
+      } else if (colonParts.length > 2) {
+        const lastPart = colonParts[colonParts.length - 1].trim();
+        if (/\s+(?:vs|v|\bv\b)\s+/i.test(lastPart) || /\s+-\s+/.test(lastPart)) {
+          prefixTournament = colonParts.slice(0, -1).join(" : ").trim();
+          cleanedTitle = lastPart;
+        }
       }
     }
 
@@ -2237,6 +2343,7 @@ export function normalizeAndMergeStreams(
       team1,
       team2,
       sport,
+      category,
       gender,
       isEvent,
       tournament,
@@ -2253,7 +2360,6 @@ export function normalizeAndMergeStreams(
     // 1. Exact canonical URL match: Chỉ merge nếu cùng fixture hoặc event tương thích
     for (const existing of mergedMatches) {
       if (existing.servers.some((s) => s.url === item.effectiveUrl)) {
-        // Nếu cả existing và item đều có fixture metadata, bắt buộc phải là cùng fixture mới được merge
         if (
           !item.isEvent &&
           item.team1 &&
@@ -2269,6 +2375,8 @@ export function normalizeAndMergeStreams(
               time: item.time,
               timestamp: item.timestamp,
               isLiveMarker: item.isLiveMarker,
+              sport: item.sport,
+              category: item.category,
               isEvent: false,
             },
             {
@@ -2277,8 +2385,11 @@ export function normalizeAndMergeStreams(
               time: existing.time,
               timestamp: existing.timestamp,
               isLiveMarker: existing.sourceStatus === "live",
+              sport: existing.sport,
+              category: existing.category,
               isEvent: false,
             },
+            now,
           );
           if (isMatched) {
             foundMatch = existing;
@@ -2298,28 +2409,27 @@ export function normalizeAndMergeStreams(
           const normItemTitle = normalizeText(item.displayTitle);
           const normExTitle = normalizeText(existing.title);
           if (normItemTitle && normExTitle && normItemTitle === normExTitle) {
-            foundMatch = existing;
-            break;
+            const timeOk = areMatchTimesCompatible(
+              { timestamp: item.timestamp, time: item.time, isLive: item.isLiveMarker },
+              { timestamp: existing.timestamp, time: existing.time, isLive: existing.sourceStatus === "live" },
+              now,
+            );
+            if (timeOk) {
+              foundMatch = existing;
+              break;
+            }
           }
           continue;
         }
       }
     }
 
-    // 2. Fixture match: team1 vs team2
+    // 2. Fixture match (Unordered team pair + compatible time + sport + category guard)
     if (!foundMatch && !item.isEvent && item.team1 && item.team2) {
-      const itemMatchId = item.normT1 && item.normT2
-        ? `${item.time}_${[item.normT1, item.normT2].sort().join("_")}`
-        : "";
-
       for (const existing of mergedMatches) {
         if (existing.isEvent) continue;
-
-        // 2A. Direct stable canonical match ID match
-        if (itemMatchId && existing.id === itemMatchId) {
-          foundMatch = existing;
-          break;
-        }
+        if (existing.sport && item.sport && existing.sport !== item.sport) continue;
+        if (existing.category && item.category && existing.category !== item.category) continue;
 
         const isMatched = areMatchFixturesMatching(
           {
@@ -2328,6 +2438,8 @@ export function normalizeAndMergeStreams(
             time: item.time,
             timestamp: item.timestamp,
             isLiveMarker: item.isLiveMarker,
+            sport: item.sport,
+            category: item.category,
             isEvent: false,
           },
           {
@@ -2336,8 +2448,11 @@ export function normalizeAndMergeStreams(
             time: existing.time,
             timestamp: existing.timestamp,
             isLiveMarker: existing.sourceStatus === "live",
+            sport: existing.sport,
+            category: existing.category,
             isEvent: false,
           },
+          now,
         );
 
         if (isMatched) {
@@ -2347,35 +2462,25 @@ export function normalizeAndMergeStreams(
       }
     }
 
-    // 3. Event / Stream title match
+    // 3. Generic event / Stream title match
     if (!foundMatch && item.isEvent) {
       const normItemTitle = normalizeText(item.displayTitle);
       for (const existing of mergedMatches) {
-        if (!existing.isEvent) continue;
-        const normExTitle = normalizeText(existing.title);
+        if (existing.sport && item.sport && existing.sport !== item.sport) continue;
+        if (existing.category && item.category && existing.category !== item.category) continue;
 
-        if (normItemTitle && normExTitle && normItemTitle === normExTitle) {
-          const isBothLive =
-            item.isLiveMarker ||
-            existing.sourceStatus === "live" ||
-            item.time === "Trực tiếp" ||
-            existing.time === "Trực tiếp";
-
-          const hasValidTimestamps =
-            item.timestamp !== Number.MAX_SAFE_INTEGER &&
-            existing.timestamp !== Number.MAX_SAFE_INTEGER &&
-            item.timestamp > 0 &&
-            existing.timestamp > 0;
-
-          if (hasValidTimestamps) {
-            const diffMs = Math.abs(item.timestamp - existing.timestamp);
-            if (diffMs <= 45 * 60 * 1000) {
+        if (existing.isEvent) {
+          const normExTitle = normalizeText(existing.title);
+          if (normItemTitle && normExTitle && normItemTitle === normExTitle) {
+            const timeOk = areMatchTimesCompatible(
+              { timestamp: item.timestamp, time: item.time, isLive: item.isLiveMarker },
+              { timestamp: existing.timestamp, time: existing.time, isLive: existing.sourceStatus === "live" },
+              now,
+            );
+            if (timeOk) {
               foundMatch = existing;
               break;
             }
-          } else if (isBothLive || item.time === existing.time || !item.time || !existing.time) {
-            foundMatch = existing;
-            break;
           }
         }
       }
@@ -2407,14 +2512,23 @@ export function normalizeAndMergeStreams(
         foundMatch.quality = "FHD 1080p";
       }
 
-
-
       if ((!foundMatch.sport || foundMatch.sport === "other") && item.sport && item.sport !== "other") {
         foundMatch.sport = item.sport;
         foundMatch.tournament = getSportLabel(item.sport, foundMatch.tournament);
       }
+      if (!foundMatch.category && item.category) {
+        foundMatch.category = item.category;
+      }
       if (!foundMatch.gender && item.gender) {
         foundMatch.gender = item.gender;
+      }
+
+      // Nâng cấp event thành fixture nếu stream sau có đầy đủ team1 và team2
+      if (foundMatch.isEvent && !item.isEvent && item.team1 && item.team2) {
+        foundMatch.team1 = item.team1;
+        foundMatch.team2 = item.team2;
+        foundMatch.isEvent = false;
+        foundMatch.title = `${item.team1} vs ${item.team2}`;
       }
 
       if (item.blv) {
@@ -2462,9 +2576,13 @@ export function normalizeAndMergeStreams(
         ? item.displayTitle
         : `${item.team1} vs ${item.team2}`;
 
+      const timeKey = item.time && item.time !== "Trực tiếp" && item.time !== "24/7"
+        ? item.time.replace(/[^a-zA-Z0-9]/g, "")
+        : "live";
+
       const matchId = !item.isEvent && item.normT1 && item.normT2
-        ? `${item.time}_${[item.normT1, item.normT2].sort().join("_")}`
-        : `${item.cleanGroup}_${item.displayTitle}`.toLowerCase().replace(/[^a-z0-9]/g, "");
+        ? `${item.sport}_${item.category || "senior_men"}_${[item.normT1, item.normT2].sort().join("_")}_${timeKey}`
+        : `${item.sport}_${item.cleanGroup}_${item.displayTitle}`.toLowerCase().replace(/[^a-z0-9_]/g, "");
 
       const timeline = getMatchTimeline(
         item.timestamp,
@@ -2498,6 +2616,7 @@ export function normalizeAndMergeStreams(
         groups: [item.cleanGroup],
         tournament: item.tournament,
         sport: item.sport,
+        category: item.category,
         gender: item.gender,
         isEvent: item.isEvent,
         sourceStatus: item.sourceStatus,

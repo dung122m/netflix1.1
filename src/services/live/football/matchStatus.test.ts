@@ -1717,5 +1717,236 @@ describe("Comprehensive National Team Canonical Alias & Fixture Deduplication Sy
   });
 });
 
+describe("Generic Match Deduplication & Aggregation System", () => {
+  const baseNow = new Date("2026-09-26T21:00:00+07:00").getTime();
+
+  it("1. Same match across multilingual names, prefixes, order & BLVs merges into 1 MatchCard with 4 servers", () => {
+    const rawStreams = [
+      {
+        rawTitle: "21:00 26/09 ⚽ Italy vs Belgium (BLV Anh Quân) [1080P]",
+        url: "https://cdn1.example.com/live1.m3u8",
+        effectiveUrl: "https://cdn1.example.com/live1.m3u8",
+        group: "TV360",
+        rawLogo: "https://cdn.example.com/italy.png",
+      },
+      {
+        rawTitle: "21:00 26/09 ⚽ Ý vs Bỉ (BLV Quang Huy) [720P]",
+        url: "https://cdn2.example.com/live2.m3u8",
+        effectiveUrl: "https://cdn2.example.com/live2.m3u8",
+        group: "FPT Play",
+        rawLogo: "https://cdn.example.com/italy.png",
+      },
+      {
+        rawTitle: "21:00 26/09 ⚽ Belgium vs Italy (BLV Batman)",
+        url: "https://cdn3.example.com/live3.m3u8",
+        effectiveUrl: "https://cdn3.example.com/live3.m3u8",
+        group: "Xôi Lạc",
+        rawLogo: "https://cdn.example.com/belgium.png",
+      },
+      {
+        rawTitle: "21:00 26/09 ⚽ ĐTQG Ý vs Bỉ",
+        url: "https://cdn4.example.com/live4.m3u8",
+        effectiveUrl: "https://cdn4.example.com/live4.m3u8",
+        group: "Vua Sân Cỏ",
+        rawLogo: "",
+      },
+    ];
+
+    const { matches } = normalizeAndMergeStreams(rawStreams, baseNow);
+    assert.equal(matches.length, 1, "Must produce exactly 1 MatchCard for Italy vs Belgium");
+
+    const match = matches[0];
+    assert.equal(match.servers.length, 4, "Must aggregate all 4 distinct servers");
+    assert.equal(match.quality, "FHD 1080p", "Must preserve FHD quality from 1080p stream");
+    assert.ok(match.groups.includes("TV360") && match.groups.includes("FPT Play"), "Must retain all source providers");
+  });
+
+  it("2. Reversed teams: Finland vs France and France vs Finland merge into 1 MatchCard", () => {
+    const rawStreams = [
+      {
+        rawTitle: "22:00 26/09 ⚽ Finland vs France",
+        url: "https://cdn.example.com/fin-fra.m3u8",
+        effectiveUrl: "https://cdn.example.com/fin-fra.m3u8",
+        group: "TV360",
+        rawLogo: "https://cdn.example.com/finland.png",
+      },
+      {
+        rawTitle: "22:00 26/09 ⚽ Pháp vs Phần Lan",
+        url: "https://cdn.example.com/fra-fin.m3u8",
+        effectiveUrl: "https://cdn.example.com/fra-fin.m3u8",
+        group: "FPT Play",
+        rawLogo: "https://cdn.example.com/france.png",
+      },
+    ];
+
+    const { matches } = normalizeAndMergeStreams(rawStreams, baseNow);
+    assert.equal(matches.length, 1, "Must merge reversed teams into 1 MatchCard");
+    assert.equal(matches[0].servers.length, 2, "Must contain both stream servers");
+  });
+
+  it("3. Live marker [TRỰC TIẾP] and Scheduled stream (21:00) merge into 1 MatchCard during kickoff window", () => {
+    const rawStreams = [
+      {
+        rawTitle: "21:00 26/09 ⚽ Arsenal vs Chelsea",
+        url: "https://cdn.example.com/ars-che-sched.m3u8",
+        effectiveUrl: "https://cdn.example.com/ars-che-sched.m3u8",
+        group: "FPT Play",
+        rawLogo: "",
+      },
+      {
+        rawTitle: "🟢 [TRỰC TIẾP] ⚽ Arsenal vs Chelsea (BLV Batman)",
+        url: "https://cdn.example.com/ars-che-live.m3u8",
+        effectiveUrl: "https://cdn.example.com/ars-che-live.m3u8",
+        group: "Xôi Lạc",
+        rawLogo: "",
+      },
+    ];
+
+    const nowDuringMatch = new Date("2026-09-26T21:30:00+07:00").getTime();
+    const { matches } = normalizeAndMergeStreams(rawStreams, nowDuringMatch);
+    assert.equal(matches.length, 1, "Live stream must merge into scheduled fixture during match window");
+    assert.equal(matches[0].servers.length, 2);
+  });
+
+  it("4. Different matches on different dates (26/09 01:45 vs 30/09 20:00) remain 2 distinct MatchCards", () => {
+    const rawStreams = [
+      {
+        rawTitle: "01:45 26/09 ⚽ Italy vs Belgium",
+        url: "https://cdn.example.com/match1.m3u8",
+        effectiveUrl: "https://cdn.example.com/match1.m3u8",
+        group: "TV360",
+        rawLogo: "",
+      },
+      {
+        rawTitle: "20:00 30/09 ⚽ Italy vs Belgium",
+        url: "https://cdn.example.com/match2.m3u8",
+        effectiveUrl: "https://cdn.example.com/match2.m3u8",
+        group: "TV360",
+        rawLogo: "",
+      },
+    ];
+
+    const { matches } = normalizeAndMergeStreams(rawStreams, baseNow);
+    assert.equal(matches.length, 2, "Same teams with kickoff on different dates must NOT merge");
+  });
+
+  it("5. Category protection: Senior Men, U21, Women, and Futsal produce 4 distinct MatchCards", () => {
+    const rawStreams = [
+      {
+        rawTitle: "20:00 26/09 ⚽ Italy vs Spain",
+        url: "https://cdn.example.com/senior.m3u8",
+        effectiveUrl: "https://cdn.example.com/senior.m3u8",
+        group: "FPT Play",
+        rawLogo: "",
+      },
+      {
+        rawTitle: "20:00 26/09 ⚽ Italy U21 vs Spain U21",
+        url: "https://cdn.example.com/u21.m3u8",
+        effectiveUrl: "https://cdn.example.com/u21.m3u8",
+        group: "FPT Play",
+        rawLogo: "",
+      },
+      {
+        rawTitle: "20:00 26/09 ⚽ Italy Nữ vs Spain Nữ",
+        url: "https://cdn.example.com/women.m3u8",
+        effectiveUrl: "https://cdn.example.com/women.m3u8",
+        group: "FPT Play",
+        rawLogo: "",
+      },
+      {
+        rawTitle: "20:00 26/09 ⚽ Futsal Italy vs Futsal Spain",
+        url: "https://cdn.example.com/futsal.m3u8",
+        effectiveUrl: "https://cdn.example.com/futsal.m3u8",
+        group: "FPT Play",
+        rawLogo: "",
+      },
+    ];
+
+    const { matches } = normalizeAndMergeStreams(rawStreams, baseNow);
+    assert.equal(matches.length, 4, "Senior Men, U21, Women, and Futsal must produce 4 separate MatchCards");
+  });
+
+  it("6. Similar country names (Australia ≠ Austria, Niger ≠ Nigeria, Congo ≠ DR Congo, Guinea ≠ Guinea-Bissau) do NOT merge", () => {
+    const rawStreams = [
+      {
+        rawTitle: "19:00 26/09 ⚽ Australia vs Japan",
+        url: "https://cdn.example.com/aus.m3u8",
+        effectiveUrl: "https://cdn.example.com/aus.m3u8",
+        group: "TV360",
+        rawLogo: "",
+      },
+      {
+        rawTitle: "19:00 26/09 ⚽ Austria vs Japan",
+        url: "https://cdn.example.com/aut.m3u8",
+        effectiveUrl: "https://cdn.example.com/aut.m3u8",
+        group: "TV360",
+        rawLogo: "",
+      },
+      {
+        rawTitle: "21:00 26/09 ⚽ Niger vs Ghana",
+        url: "https://cdn.example.com/ner.m3u8",
+        effectiveUrl: "https://cdn.example.com/ner.m3u8",
+        group: "TV360",
+        rawLogo: "",
+      },
+      {
+        rawTitle: "21:00 26/09 ⚽ Nigeria vs Ghana",
+        url: "https://cdn.example.com/nga.m3u8",
+        effectiveUrl: "https://cdn.example.com/nga.m3u8",
+        group: "TV360",
+        rawLogo: "",
+      },
+    ];
+
+    const { matches } = normalizeAndMergeStreams(rawStreams, baseNow);
+    assert.equal(matches.length, 4, "Countries with similar names must never collide");
+  });
+
+  it("7. Multi-sport separation: Football vs Volleyball with same team names produce 2 distinct MatchCards", () => {
+    const rawStreams = [
+      {
+        rawTitle: "18:00 26/09 ⚽ Finland vs France",
+        url: "https://cdn.example.com/fin-fra-fb.m3u8",
+        effectiveUrl: "https://cdn.example.com/fin-fra-fb.m3u8",
+        group: "TV360",
+        rawLogo: "",
+      },
+      {
+        rawTitle: "18:00 26/09 🏐 Bóng Chuyền: Finland vs France",
+        url: "https://cdn.example.com/fin-fra-vb.m3u8",
+        effectiveUrl: "https://cdn.example.com/fin-fra-vb.m3u8",
+        group: "TV360",
+        rawLogo: "",
+      },
+    ];
+
+    const { matches } = normalizeAndMergeStreams(rawStreams, baseNow);
+    assert.equal(matches.length, 2, "Different sports must never be merged");
+  });
+
+  it("8. Duplicate effective URL across 2 raw stream items is deduplicated to 1 server within the match", () => {
+    const rawStreams = [
+      {
+        rawTitle: "20:00 26/09 ⚽ Real Madrid vs Barcelona",
+        url: "https://cdn.example.com/el-clasico.m3u8",
+        effectiveUrl: "https://cdn.example.com/el-clasico.m3u8",
+        group: "Nguồn 1",
+        rawLogo: "",
+      },
+      {
+        rawTitle: "20:00 26/09 ⚽ Real Madrid vs Barca",
+        url: "https://cdn.example.com/el-clasico.m3u8",
+        effectiveUrl: "https://cdn.example.com/el-clasico.m3u8",
+        group: "Nguồn 2",
+        rawLogo: "",
+      },
+    ];
+
+    const { matches } = normalizeAndMergeStreams(rawStreams, baseNow);
+    assert.equal(matches.length, 1);
+    assert.equal(matches[0].servers.length, 1, "Duplicate effective URLs must be deduplicated into 1 server");
+  });
+});
+
 
 

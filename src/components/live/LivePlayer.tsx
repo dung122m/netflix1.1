@@ -64,7 +64,7 @@ function getForwardBuffer(v: HTMLVideoElement): number {
         return +(v.buffered.end(i) - v.currentTime).toFixed(2);
       }
     }
-  } catch {}
+  } catch { }
   return 0;
 }
 
@@ -226,9 +226,8 @@ export function getSourceQuality(
   }
 
   // 2. Kiểm tra tên máy chủ hoặc resolution
-  const rawText = `${server.name || ""} ${
-    (server as Record<string, unknown>).resolution || ""
-  }`.toLowerCase();
+  const rawText = `${server.name || ""} ${(server as Record<string, unknown>).resolution || ""
+    }`.toLowerCase();
 
   if (
     /\b(1080p|1080|fhd|full\s*hd)\b/i.test(rawText) ||
@@ -274,7 +273,7 @@ export function toCanonicalSourceUrl(url?: string | null): string {
       if (match) {
         clean = decodeURIComponent(match[1]).trim();
       }
-    } catch {}
+    } catch { }
   }
   return clean;
 }
@@ -918,7 +917,7 @@ function LivePlayerInner({
         typeof document !== "undefined" &&
         document.pictureInPictureElement === video
       ) {
-        document.exitPictureInPicture().catch(() => {});
+        document.exitPictureInPicture().catch(() => { });
         setIsPip(false);
       }
     }
@@ -1186,7 +1185,7 @@ function LivePlayerInner({
     video.addEventListener("playing", onPlaybackConfirmed);
     video.addEventListener("timeupdate", onTimeUpdateCheck);
 
-    let cleanupDiagnosticListeners = () => {};
+    let cleanupDiagnosticListeners = () => { };
     let onNativeLoadedMetadata: (() => void) | null = null;
     let onNativeError: (() => void) | null = null;
 
@@ -1244,7 +1243,7 @@ function LivePlayerInner({
                   setIsPlaying(true);
                   setIsMuted(true);
                 })
-                .catch(() => {});
+                .catch(() => { });
             });
         }
       });
@@ -1434,7 +1433,7 @@ function LivePlayerInner({
                 .then(() => {
                   setIsPlaying(true);
                 })
-                .catch(() => {});
+                .catch(() => { });
             });
         }
       };
@@ -1543,7 +1542,7 @@ function LivePlayerInner({
       video
         .play()
         .then(() => setIsPlaying(true))
-        .catch(() => {});
+        .catch(() => { });
       triggerActionFeedback("play");
       resetControlsTimeout();
     }
@@ -1559,13 +1558,13 @@ function LivePlayerInner({
       videoRef.current.muted = false;
       videoRef.current.volume = targetVol;
       if (!userPausedRef.current && isActive) {
-        videoRef.current.play().catch(() => {});
+        videoRef.current.play().catch(() => { });
       }
     }
     triggerActionFeedback("volume", `${Math.round(targetVol * 100)}%`);
     try {
       localStorage.setItem("nanaflix_live_volume", String(targetVol));
-    } catch {}
+    } catch { }
   }, [volume, isActive, triggerActionFeedback]);
 
   // Bật / Tắt tiếng
@@ -1603,7 +1602,7 @@ function LivePlayerInner({
 
       try {
         localStorage.setItem("nanaflix_live_volume", String(clamped));
-      } catch {}
+      } catch { }
     },
     [triggerActionFeedback],
   );
@@ -1616,10 +1615,10 @@ function LivePlayerInner({
       const ori = (screen?.orientation || (screen as any)?.mozOrientation || (screen as any)?.msOrientation) as any;
       if (ori && typeof ori.lock === "function") {
         await ori.lock("landscape").catch(() => {
-          return ori.lock("landscape-primary").catch(() => {});
+          return ori.lock("landscape-primary").catch(() => { });
         });
       }
-    } catch {}
+    } catch { }
   }, []);
 
   // Mở khóa xoay màn hình tự do khi thoát toàn màn hình
@@ -1630,7 +1629,7 @@ function LivePlayerInner({
       if (ori && typeof ori.unlock === "function") {
         ori.unlock();
       }
-    } catch {}
+    } catch { }
   }, []);
 
   // Toàn màn hình hỗ trợ đa nền tảng (Desktop, Android, iOS Safari)
@@ -1659,7 +1658,7 @@ function LivePlayerInner({
     if (isDocFs || isVideoFs || isFullscreen) {
       // Thoát toàn màn hình
       if (document.exitFullscreen) {
-        document.exitFullscreen().catch(() => {});
+        document.exitFullscreen().catch(() => { });
       } else if (
         (document as unknown as { webkitExitFullscreen?: () => void })
           .webkitExitFullscreen
@@ -1703,7 +1702,7 @@ function LivePlayerInner({
         });
 
         if (p && typeof p.then === "function") {
-          p.then(lockLandscape).catch(() => {});
+          p.then(lockLandscape).catch(() => { });
         } else {
           lockLandscape();
         }
@@ -1927,7 +1926,7 @@ function LivePlayerInner({
         if (videoRef.current) {
           try {
             videoRef.current.currentTime = target;
-          } catch {}
+          } catch { }
         }
         if (seekThrottleTimerRef.current) {
           clearTimeout(seekThrottleTimerRef.current);
@@ -1983,8 +1982,8 @@ function LivePlayerInner({
       const activeTagName = typeof active?.tagName === "string" ? active.tagName.toLowerCase() : "";
       const isPlayerContainer = Boolean(
         containerRef.current &&
-          active &&
-          containerRef.current.contains(active)
+        active &&
+        containerRef.current.contains(active)
       );
 
       // Nếu focus đang ở ngoài player trên các input, form, textarea hoặc thẻ nút danh sách -> nhường quyền TV navigation
@@ -2088,15 +2087,13 @@ function LivePlayerInner({
       <>
         {/* BACKDROP KHI MỞ DRAWER CHỌN NGUỒN PHÁT TRÊN MOBILE & DESKTOP */}
         <div
-          className={`${
-            useMobilePortal
+          className={`${useMobilePortal
               ? "fixed inset-0 z-[9998] bg-black/80"
               : "fixed inset-0 sm:absolute sm:inset-0 z-40 bg-black/75 sm:bg-black/40"
-          } backdrop-blur-sm transition-all duration-300 ${
-            isRailVisible
+            } backdrop-blur-sm transition-all duration-300 ${isRailVisible
               ? "opacity-100 pointer-events-auto visible"
               : "opacity-0 pointer-events-none invisible"
-          }`}
+            }`}
           onClick={(e) => {
             e.stopPropagation();
             closeRail();
@@ -2105,15 +2102,13 @@ function LivePlayerInner({
 
         {/* DRAWER / BOTTOM SHEET CHỌN NGUỒN PHÁT CỦA TRẬN ĐANG XEM (TỐI ƯU CẢM ỨNG MOBILE) */}
         <aside
-          className={`${
-            useMobilePortal
+          className={`${useMobilePortal
               ? "fixed inset-x-0 bottom-0 z-[9999] w-full max-h-[85vh] rounded-t-3xl border-t border-white/20 bg-zinc-950/98 p-4 pb-6 shadow-2xl backdrop-blur-2xl"
               : "fixed inset-x-0 bottom-0 sm:absolute sm:inset-y-0 sm:right-0 sm:left-auto z-50 w-full sm:w-[360px] max-h-[85vh] sm:max-h-full rounded-t-3xl sm:rounded-none border-t sm:border-t-0 sm:border-l border-white/20 bg-zinc-950/98 sm:bg-zinc-950/95 p-4 shadow-2xl backdrop-blur-2xl"
-          } transition-all duration-300 flex flex-col ${
-            isRailVisible
+            } transition-all duration-300 flex flex-col ${isRailVisible
               ? "translate-y-0 sm:translate-x-0 opacity-100 pointer-events-auto visible"
               : "translate-y-full sm:translate-y-0 sm:translate-x-full opacity-0 pointer-events-none invisible"
-          }`}
+            }`}
           onClick={(event) => event.stopPropagation()}
         >
           {/* THANH VUỐT KÉO GỢI Ý TRÊN MOBILE */}
@@ -2201,11 +2196,10 @@ function LivePlayerInner({
                       closeRail();
                     }}
                     ref={isSelected ? activeOptionRef : undefined}
-                    className={`w-full rounded-xl border p-3 text-left transition flex items-center gap-2.5 cursor-pointer min-h-[48px] active:scale-[0.99] touch-manipulation ${
-                      isSelected
+                    className={`w-full rounded-xl border p-3 text-left transition flex items-center gap-2.5 cursor-pointer min-h-[48px] active:scale-[0.99] touch-manipulation ${isSelected
                         ? "border-netflix-red/90 bg-red-500/15 text-white shadow-md shadow-red-950/40 ring-1 ring-netflix-red/40"
                         : "border-white/10 bg-white/[0.04] text-gray-200 hover:border-white/20 hover:bg-white/[0.08]"
-                    }`}
+                      }`}
                   >
                     {/* Biểu tượng Check nếu đang chọn */}
                     <div className="w-5 h-5 flex items-center justify-center shrink-0">
@@ -2307,8 +2301,8 @@ function LivePlayerInner({
                 <div className="flex flex-col items-center text-center max-w-[110px] sm:max-w-[150px] group">
                   <div className="w-11 h-11 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-xl sm:rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-950 border-2 border-white/20 p-1.5 sm:p-2 flex items-center justify-center shadow-xl transition-all duration-300 group-hover:scale-105 group-hover:border-netflix-red/70 group-hover:shadow-red-950/60">
                     {!homeImgError &&
-                    homeLogo &&
-                    !homeLogo.includes("tinhlagi.pro/logo.jpg") ? (
+                      homeLogo &&
+                      !homeLogo.includes("tinhlagi.pro/logo.jpg") ? (
                       /* eslint-disable-next-line @next/next/no-img-element */
                       <img
                         src={homeLogo}
@@ -2322,10 +2316,10 @@ function LivePlayerInner({
                         <span className="text-base sm:text-xl font-black text-rose-400 tracking-wider">
                           {team1
                             ? team1
-                                .replace(/^CLB\s+/i, "")
-                                .replace(/^FC\s+/i, "")
-                                .slice(0, 2)
-                                .toUpperCase()
+                              .replace(/^CLB\s+/i, "")
+                              .replace(/^FC\s+/i, "")
+                              .slice(0, 2)
+                              .toUpperCase()
                             : "H"}
                         </span>
                         <span className="text-[7px] sm:text-[8px] uppercase tracking-widest text-gray-400 font-bold">
@@ -2361,8 +2355,8 @@ function LivePlayerInner({
                 <div className="flex flex-col items-center text-center max-w-[110px] sm:max-w-[150px] group">
                   <div className="w-11 h-11 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-xl sm:rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-950 border-2 border-white/20 p-1.5 sm:p-2 flex items-center justify-center shadow-xl transition-all duration-300 group-hover:scale-105 group-hover:border-sky-500/70 group-hover:shadow-sky-950/60">
                     {!awayImgError &&
-                    awayLogo &&
-                    !awayLogo.includes("tinhlagi.pro/logo.jpg") ? (
+                      awayLogo &&
+                      !awayLogo.includes("tinhlagi.pro/logo.jpg") ? (
                       /* eslint-disable-next-line @next/next/no-img-element */
                       <img
                         src={awayLogo}
@@ -2376,10 +2370,10 @@ function LivePlayerInner({
                         <span className="text-base sm:text-xl font-black text-sky-400 tracking-wider">
                           {team2
                             ? team2
-                                .replace(/^CLB\s+/i, "")
-                                .replace(/^FC\s+/i, "")
-                                .slice(0, 2)
-                                .toUpperCase()
+                              .replace(/^CLB\s+/i, "")
+                              .replace(/^FC\s+/i, "")
+                              .slice(0, 2)
+                              .toUpperCase()
                             : "A"}
                         </span>
                         <span className="text-[7px] sm:text-[8px] uppercase tracking-widest text-gray-400 font-bold">
@@ -2444,9 +2438,8 @@ function LivePlayerInner({
           setShowControls(false);
         }}
         onDoubleClick={toggleFullscreen}
-        className={`relative w-full aspect-video lg:max-h-[calc(100vh-210px)] lg:max-w-[calc((100vh-210px)*16/9)] mx-auto bg-black rounded-2xl sm:rounded-3xl overflow-hidden border border-white/15 shadow-2xl group select-none ring-1 ring-white/10 outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black contain-paint isolate ${
-          showControls ? "cursor-default" : "cursor-none"
-        }`}
+        className={`relative w-full aspect-video lg:max-h-[calc(100vh-210px)] lg:max-w-[calc((100vh-210px)*16/9)] mx-auto bg-black rounded-2xl sm:rounded-3xl overflow-hidden border border-white/15 shadow-2xl group select-none ring-1 ring-white/10 outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black contain-paint isolate ${showControls ? "cursor-default" : "cursor-none"
+          }`}
       >
         {isIframe ? (
           <iframe
@@ -2478,7 +2471,7 @@ function LivePlayerInner({
                 setVolume(v.volume);
                 try {
                   localStorage.setItem("nanaflix_live_volume", String(v.volume));
-                } catch {}
+                } catch { }
               }
             }}
           />
@@ -2486,9 +2479,8 @@ function LivePlayerInner({
 
         {/* HUY HIỆU SIGNAL & LIVE TRÊN TRÁI: BẤM ĐỂ QUAY VỀ LIVE EDGE */}
         <div
-          className={`absolute top-3 left-3 sm:top-4 sm:left-4 flex items-center gap-2 z-20 transition-opacity duration-300 ${
-            showControls ? "opacity-100" : "opacity-0 pointer-events-none"
-          }`}
+          className={`absolute top-3 left-3 sm:top-4 sm:left-4 flex items-center gap-2 z-20 transition-opacity duration-300 ${showControls ? "opacity-100" : "opacity-0 pointer-events-none"
+            }`}
         >
           {isAtLiveEdge ? (
             <button
@@ -2533,9 +2525,8 @@ function LivePlayerInner({
         {/* NÚT BẬT ÂM THANH NỔI BẬT KHI ĐANG MUTE Ở GÓC TRÊN PHẢI (ẨN KHI KHÔNG TƯƠNG TÁC) */}
         {isPlaying && isMuted && !isLoading && !hasError && (
           <div
-            className={`absolute top-3 right-3 sm:top-4 sm:right-4 z-30 transition-opacity duration-300 ${
-              showControls ? "opacity-100" : "opacity-0 pointer-events-none"
-            }`}
+            className={`absolute top-3 right-3 sm:top-4 sm:right-4 z-30 transition-opacity duration-300 ${showControls ? "opacity-100" : "opacity-0 pointer-events-none"
+              }`}
           >
             <button
               type="button"
@@ -2611,8 +2602,8 @@ function LivePlayerInner({
               {errorMessage && errorMessage !== "Chưa có tín hiệu phát"
                 ? errorMessage
                 : isPreKickoff
-                ? "Trận đấu chưa bắt đầu hoặc luồng phát pre-match chưa mở. Vui lòng bấm Thử lại sát giờ thi đấu."
-                : "Luồng phát bóng đá thường mở trước giờ bóng lăn 15-30 phút. Hãy bấm thử lại hoặc chuyển sang máy chủ khác."}
+                  ? "Trận đấu chưa bắt đầu hoặc luồng phát pre-match chưa mở. Vui lòng bấm Thử lại sát giờ thi đấu."
+                  : "Luồng phát bóng đá thường mở trước giờ bóng lăn 15-30 phút. Hãy bấm thử lại hoặc chuyển sang máy chủ khác."}
             </p>
             <div className="flex flex-wrap gap-2.5 justify-center">
               <button
@@ -2643,9 +2634,8 @@ function LivePlayerInner({
 
         {/* CONTROLS OVERLAY BOTTOM BAR */}
         <div
-          className={`absolute inset-x-0 bottom-0 z-30 transition-opacity duration-300 ${
-            showControls ? "opacity-100" : "opacity-0 pointer-events-none"
-          }`}
+          className={`absolute inset-x-0 bottom-0 z-30 transition-opacity duration-300 ${showControls ? "opacity-100" : "opacity-0 pointer-events-none"
+            }`}
         >
           <div
             onClick={(e) => e.stopPropagation()}
@@ -2673,11 +2663,10 @@ function LivePlayerInner({
                   onClick={() => handleSwitchServer("prev")}
                   disabled={availableServers.length <= 1}
                   title="Nguồn phát trước (Phím P hoặc PageUp)"
-                  className={`w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center rounded-full transition ${
-                    availableServers.length <= 1
+                  className={`w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center rounded-full transition ${availableServers.length <= 1
                       ? "text-gray-500 cursor-not-allowed opacity-50"
                       : "text-gray-300 hover:text-white hover:bg-white/10 cursor-pointer"
-                  }`}
+                    }`}
                 >
                   <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4" />
                 </button>
@@ -2690,11 +2679,10 @@ function LivePlayerInner({
                   onClick={() => handleSwitchServer("next")}
                   disabled={availableServers.length <= 1}
                   title="Nguồn phát kế tiếp (Phím N hoặc PageDown)"
-                  className={`w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center rounded-full transition ${
-                    availableServers.length <= 1
+                  className={`w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center rounded-full transition ${availableServers.length <= 1
                       ? "text-gray-500 cursor-not-allowed opacity-50"
                       : "text-gray-300 hover:text-white hover:bg-white/10 cursor-pointer"
-                  }`}
+                    }`}
                 >
                   <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4" />
                 </button>
@@ -2708,9 +2696,8 @@ function LivePlayerInner({
                 className="w-8 h-8 sm:hidden rounded-full bg-black/60 border border-white/20 flex items-center justify-center text-white hover:text-rose-400 transition cursor-pointer shrink-0 backdrop-blur-md"
               >
                 <VolumeIcon
-                  className={`w-3.5 h-3.5 ${
-                    isMuted || volume === 0 ? "text-rose-400" : "text-white"
-                  }`}
+                  className={`w-3.5 h-3.5 ${isMuted || volume === 0 ? "text-rose-400" : "text-white"
+                    }`}
                 />
               </button>
 
@@ -2723,9 +2710,8 @@ function LivePlayerInner({
                   className="text-white hover:text-rose-400 transition cursor-pointer p-0.5 flex items-center justify-center"
                 >
                   <VolumeIcon
-                    className={`w-4 h-4 sm:w-4.5 sm:h-4.5 ${
-                      isMuted || volume === 0 ? "text-rose-400" : "text-white"
-                    }`}
+                    className={`w-4 h-4 sm:w-4.5 sm:h-4.5 ${isMuted || volume === 0 ? "text-rose-400" : "text-white"
+                      }`}
                   />
                 </button>
 
@@ -2760,11 +2746,10 @@ function LivePlayerInner({
                     toggleRail();
                   }}
                   title="Chọn nguồn phát của trận đang xem (Phím C)"
-                  className={`h-8 sm:h-10 flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 rounded-full border text-[10px] sm:text-xs font-semibold transition backdrop-blur-md cursor-pointer touch-manipulation shrink-0 ${
-                    isRailVisible
+                  className={`h-8 sm:h-10 flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 rounded-full border text-[10px] sm:text-xs font-semibold transition backdrop-blur-md cursor-pointer touch-manipulation shrink-0 ${isRailVisible
                       ? "bg-gradient-to-r from-red-600 to-rose-600 text-white border-red-400 shadow-md shadow-red-950/60"
                       : "bg-black/60 hover:bg-white/20 text-gray-200 hover:text-white border-white/20"
-                  }`}
+                    }`}
                 >
                   <Mic className="w-3 h-3 sm:w-4 sm:h-4 text-amber-400 shrink-0" />
                   <span>Nguồn</span>
@@ -2784,11 +2769,10 @@ function LivePlayerInner({
                 type="button"
                 onClick={togglePip}
                 title="Xem thu nhỏ góc màn hình (PiP - Phím I)"
-                className={`w-9 h-9 sm:w-10 sm:h-10 hidden sm:flex rounded-full items-center justify-center transition hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md border border-white/20 shrink-0 ${
-                  isPip
+                className={`w-9 h-9 sm:w-10 sm:h-10 hidden sm:flex rounded-full items-center justify-center transition hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md border border-white/20 shrink-0 ${isPip
                     ? "bg-netflix-red text-white"
                     : "bg-black/60 hover:bg-white/20 text-white"
-                }`}
+                  }`}
               >
                 <PictureInPicture2 className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
               </button>
@@ -2995,32 +2979,29 @@ function LivePlayerInner({
                       setSelectedServerIndex(targetIdx);
                       setRetryNonce((prev) => prev + 1);
                     }}
-                    className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-between gap-2 cursor-pointer border text-left min-w-0 ${
-                      isSelected
+                    className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-between gap-2 cursor-pointer border text-left min-w-0 ${isSelected
                         ? "bg-netflix-red text-white border-netflix-red shadow-md shadow-red-950/50 scale-[1.01]"
                         : "bg-black/60 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800/90"
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center gap-2 min-w-0 flex-1 truncate">
                       <span
-                        className={`w-2 h-2 rounded-full shrink-0 ${
-                          isSelected ? "bg-white animate-ping" : "bg-emerald-400"
-                        }`}
+                        className={`w-2 h-2 rounded-full shrink-0 ${isSelected ? "bg-white animate-ping" : "bg-emerald-400"
+                          }`}
                       />
                       <span className="truncate">{cleanName}</span>
                     </div>
 
                     {qualityBadge && (
                       <span
-                        className={`shrink-0 px-1.5 py-0.5 text-[9px] font-black rounded tracking-wider border ${
-                          qualityBadge === "FHD"
+                        className={`shrink-0 px-1.5 py-0.5 text-[9px] font-black rounded tracking-wider border ${qualityBadge === "FHD"
                             ? isSelected
                               ? "bg-white/20 text-white border-white/30"
                               : "bg-amber-500/15 text-amber-300 border-amber-500/30"
                             : isSelected
-                            ? "bg-white/20 text-white border-white/30"
-                            : "bg-sky-500/15 text-sky-300 border-sky-500/30"
-                        }`}
+                              ? "bg-white/20 text-white border-white/30"
+                              : "bg-sky-500/15 text-sky-300 border-sky-500/30"
+                          }`}
                       >
                         {qualityBadge}
                       </span>

@@ -189,8 +189,8 @@ function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
       }}
       style={{ contentVisibility: "auto", containIntrinsicSize: "0 140px" }}
       className={`group relative rounded-2xl border p-3 sm:p-3.5 cursor-pointer transition-all duration-200 flex flex-col justify-between overflow-hidden transform-gpu will-change-transform outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-[1.02] ${isSelected
-          ? "football-match-active bg-zinc-900 border-netflix-red shadow-lg shadow-red-950/60 ring-1 ring-netflix-red/50"
-          : "football-match-card bg-zinc-900/90 border-white/10 hover:border-white/25 hover:bg-zinc-850/95 hover:shadow-lg hover:shadow-black/70"
+        ? "football-match-active bg-zinc-900 border-netflix-red shadow-lg shadow-red-950/60 ring-1 ring-netflix-red/50"
+        : "football-match-card bg-zinc-900/90 border-white/10 hover:border-white/25 hover:bg-zinc-850/95 hover:shadow-lg hover:shadow-black/70"
         }`}
     >
       {/* Ambient glow khi trận đang diễn ra (Live) */}
@@ -209,8 +209,8 @@ function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
         <div className="flex items-center gap-1.5 shrink-0">
           <span
             className={`px-1.5 py-0.5 rounded text-[8.5px] sm:text-[9px] font-black uppercase tracking-wider border ${isFhd
-                ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400"
-                : "bg-sky-500/15 border-sky-500/30 text-sky-400"
+              ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400"
+              : "bg-sky-500/15 border-sky-500/30 text-sky-400"
               }`}
           >
             {isFhd ? "1080P" : "720P"}
