@@ -726,15 +726,18 @@ export function LiveFootballClient({
       {liveMatchesList.length > 0 && (
         <section className="space-y-4 pt-2">
           <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-3">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping" />
-              <h2 className="text-lg md:text-xl font-black text-white tracking-tight flex items-center gap-2">
-                <span>🔴 ĐANG PHÁT TRỰC TIẾP</span>
-              </h2>
-              <span className="px-2.5 py-0.5 rounded-full bg-red-500/20 text-rose-300 font-black text-xs border border-red-500/30">
-                {liveMatchesList.length} trận
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="relative flex h-2.5 w-2.5 shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
               </span>
+              <h2 className="text-base sm:text-lg md:text-xl font-black text-white tracking-tight uppercase truncate">
+                Đang phát trực tiếp
+              </h2>
             </div>
+            <span className="shrink-0 whitespace-nowrap px-2.5 py-0.5 rounded-full bg-red-500/20 text-rose-300 font-bold text-xs border border-red-500/30">
+              {liveMatchesList.length} trận
+            </span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-4">
@@ -754,15 +757,18 @@ export function LiveFootballClient({
       {upcomingMatchesList.length > 0 && (
         <section className="space-y-4 pt-4">
           <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-3">
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-sky-400" />
-              <h2 className="text-lg md:text-xl font-black text-white tracking-tight flex items-center gap-2">
-                <span>🕐 SẮP PHÁT SÓNG (TRONG 60 PHÚT TỚI)</span>
+            <div className="flex items-center gap-2 min-w-0">
+              <Clock className="w-4 h-4 text-sky-400 shrink-0" />
+              <h2 className="text-base sm:text-lg md:text-xl font-black text-white tracking-tight uppercase truncate">
+                Sắp phát sóng{" "}
+                <span className="text-xs sm:text-sm font-semibold text-gray-400 normal-case">
+                  (Trong 60 phút tới)
+                </span>
               </h2>
-              <span className="px-2.5 py-0.5 rounded-full bg-sky-500/20 text-sky-300 font-black text-xs border border-sky-500/30">
-                {upcomingMatchesList.length} trận
-              </span>
             </div>
+            <span className="shrink-0 whitespace-nowrap px-2.5 py-0.5 rounded-full bg-sky-500/20 text-sky-300 font-bold text-xs border border-sky-500/30">
+              {upcomingMatchesList.length} trận
+            </span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-4">

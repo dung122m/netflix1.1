@@ -722,7 +722,13 @@ export const NanaAiStudioModal: React.FC<NanaAiStudioModalProps> = ({
                           </div>
                         </div>
                       ) : (
-                        <div className="max-w-[88%] sm:max-w-[82%] p-3 sm:p-3.5 rounded-2xl rounded-tl-xs bg-zinc-900/95 border border-white/15 text-gray-200 shadow-xl backdrop-blur-md text-xs sm:text-sm space-y-2.5">
+                        <div
+                          className={`${
+                            m.movies && m.movies.length > 0
+                              ? "w-full sm:max-w-[85%]"
+                              : "max-w-[95%] sm:max-w-[82%]"
+                          } p-3 sm:p-3.5 rounded-2xl rounded-tl-xs bg-zinc-900/95 border border-white/15 text-gray-200 shadow-xl backdrop-blur-md text-xs sm:text-sm space-y-2.5`}
+                        >
                           <p className="leading-relaxed whitespace-pre-wrap select-text">{m.text}</p>
 
                           {/* HIGH-END MOVIE RECOMMENDATION CARDS (BAN ĐẦU 4 PHIM + NÚT XEM THÊM) */}
@@ -739,10 +745,10 @@ export const NanaAiStudioModal: React.FC<NanaAiStudioModalProps> = ({
                                       key={`${mov.slug || "movie"}-${movIdx}`}
                                       href={`/movies/${mov.slug}`}
                                       onClick={() => setIsOpen(false)}
-                                      className="group relative flex gap-2.5 p-2 sm:p-2.5 rounded-xl bg-zinc-950/80 hover:bg-zinc-900 border border-white/10 hover:border-pink-500/50 transition-all duration-300 shadow-md hover:shadow-pink-950/25 hover:-translate-y-0.5 overflow-hidden"
+                                      className="group relative flex items-stretch gap-2.5 p-2 sm:p-2.5 rounded-xl bg-zinc-950/80 hover:bg-zinc-900 border border-white/10 hover:border-pink-500/50 transition-all duration-300 shadow-md hover:shadow-pink-950/25 hover:-translate-y-0.5 overflow-hidden"
                                     >
                                       {/* POSTER WITH PLAY OVERLAY */}
-                                      <div className="relative w-16 sm:w-20 aspect-[2/3] rounded-lg overflow-hidden bg-zinc-900 flex-none border border-white/10 shadow-sm">
+                                      <div className="relative w-16 sm:w-20 min-h-[105px] self-stretch rounded-lg overflow-hidden bg-zinc-900 flex-none shrink-0 border border-white/10 shadow-sm">
                                         <Image
                                           src={mov.poster || "/default-poster.jpg"}
                                           alt={mov.title || "Phim"}
@@ -758,7 +764,7 @@ export const NanaAiStudioModal: React.FC<NanaAiStudioModalProps> = ({
                                       </div>
 
                                       {/* MOVIE DETAILS */}
-                                      <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
+                                      <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5 gap-1.5">
                                         <div className="space-y-1">
                                           <h5
                                             className="text-xs sm:text-[13px] font-bold text-white truncate group-hover:text-pink-300 transition-colors"
@@ -782,24 +788,24 @@ export const NanaAiStudioModal: React.FC<NanaAiStudioModalProps> = ({
                                               </span>
                                             )}
                                           </div>
-                                          <div className="mt-1 p-1.5 rounded-lg bg-pink-500/10 border border-pink-500/20 text-[10px] sm:text-[10.5px] text-pink-200/90 leading-snug line-clamp-2 overflow-hidden">
-                                            <span className="font-semibold text-pink-400 mr-1">✦</span>
-                                            {getMovieHighlight(mov)}
+                                          <div className="mt-1 px-2 py-1.5 rounded-lg bg-pink-500/10 border border-pink-500/20 text-[10px] sm:text-[10.5px] text-pink-200/90 leading-normal line-clamp-2">
+                                            <span className="font-semibold text-pink-400 mr-1 shrink-0">✦</span>
+                                            <span>{getMovieHighlight(mov)}</span>
                                           </div>
                                         </div>
 
                                         {/* SEPARATE BOTTOM ACTION ROW */}
-                                        <div className="pt-1.5 mt-1.5 border-t border-white/5 flex items-center justify-between text-[10.5px] font-bold text-pink-400 group-hover:text-pink-300 transition-colors">
+                                        <div className="pt-1.5 mt-1 border-t border-white/5 flex items-center justify-between text-[10.5px] font-bold text-pink-400 group-hover:text-pink-300 transition-colors">
                                           <span className="flex items-center gap-1.5">
                                             <Play className="w-2.5 h-2.5 fill-current text-netflix-red group-hover:text-pink-400 transition-colors" />
                                             <span>Xem chi tiết</span>
                                           </span>
-                                      <ChevronRight className="w-3 h-3 text-zinc-500 group-hover:text-pink-300 group-hover:translate-x-0.5 transition-all" />
-                                    </div>
-                                  </div>
-                                </Link>
-                              ))}
-                            </div>
+                                          <ChevronRight className="w-3 h-3 text-zinc-500 group-hover:text-pink-300 group-hover:translate-x-0.5 transition-all" />
+                                        </div>
+                                      </div>
+                                    </Link>
+                                  ))}
+                                </div>
 
                             {/* NÚT XEM THÊM HOẶC THÔNG BÁO ĐÃ HIỂN THỊ HẾT */}
                             {hasMore ? (

@@ -366,6 +366,8 @@ export function pickHeroBackdropImage(
     rawMovie.backdropUrl,
     movie.backdrop_url,
     movie.backdropUrl,
+    (rawMovie.tmdb as any)?.backdrop_url,
+    (movie.tmdb as any)?.backdrop_url,
     rawMovie.banner_url,
     rawMovie.bannerUrl,
     movie.banner_url,
@@ -374,57 +376,79 @@ export function pickHeroBackdropImage(
     movie.backdrop_path,
     rawMovie.backdropPath,
     movie.backdropPath,
+    (rawMovie.tmdb as any)?.backdrop_path,
+    (movie.tmdb as any)?.backdrop_path,
   ];
 
-  const candidates = [
+  const rawCandidates = [
     ...backdropFields,
     primary,
     secondary,
     movie.imageUrl,
     rawMovie.imageUrl,
-  ]
-    .filter((value): value is string => typeof value === "string" && value.length > 0)
+  ].filter((value): value is string => typeof value === "string" && value.length > 0);
+
+  const candidates = rawCandidates
     .map((u) => toHighResBackdropUrl(u, targetWidth))
     .filter((url) => Boolean(url) && !url.endsWith("/null") && !url.endsWith("/undefined"));
 
   if (candidates.length === 0) return fallback;
 
-  // 1. Ưu tiên tuyệt đối ảnh backdrop chuyên dụng hoặc ảnh TMDb chất lượng cao (w1280 / w780 / banner / backdrop)
+  const isPoster = (url: string) => {
+    const l = url.toLowerCase();
+    return (
+      l.includes("-poster.") ||
+      l.includes("_poster.") ||
+      l.includes("/poster/") ||
+      l.includes("poster_") ||
+      l.includes("thumb-360x504")
+    );
+  };
+
+  const isLowResThumb = (url: string) => {
+    const l = url.toLowerCase();
+    return l.includes("-thumb.webp") || l.includes("/thumb.webp") || l.endsWith("thumb.webp");
+  };
+
+  // 1. Ưu tiên tuyệt đối backdrop TMDb w1280 (hoặc w780 cho mobile)
   for (const c of candidates) {
-    const l = c.toLowerCase();
-    const isExplicitPoster = l.includes("-poster.") || l.includes("_poster.") || l.includes("/poster/") || l.includes("poster_");
-    if (!isExplicitPoster) {
-      if (
-        l.includes("image.tmdb.org/t/p/w1280") ||
-        l.includes("image.tmdb.org/t/p/w780") ||
-        l.includes("backdrop") ||
-        l.includes("banner")
-      ) {
+    if (!isPoster(c)) {
+      const l = c.toLowerCase();
+      if (l.includes("image.tmdb.org/t/p/w1280") || l.includes("image.tmdb.org/t/p/w780")) {
         return c;
       }
     }
   }
 
-  // 2. Ưu tiên ảnh ngang (thumb_ / /thumb / -thumb / w780 / w500) không phải poster dọc
+  // 2. TMDb w1920 (chỉ dùng nếu w1280 không tồn tại/không khả dụng)
   for (const c of candidates) {
-    const l = c.toLowerCase();
-    const isExplicitPoster = l.includes("-poster.") || l.includes("_poster.") || l.includes("/poster/") || l.includes("poster_");
-    if (!isExplicitPoster) {
-      if (l.includes("thumb_") || l.includes("/thumb") || l.includes("-thumb") || l.includes("w780") || l.includes("w500")) {
+    if (!isPoster(c)) {
+      const l = c.toLowerCase();
+      if (l.includes("image.tmdb.org/t/p/w1920")) {
         return c;
       }
     }
   }
 
-  // 3. Fallback: Bất kỳ ứng viên nào không phải là poster dọc
+  // 3. Ảnh backdrop chuyên dụng hoặc banner chất lượng cao (không phải poster, không phải thumb.webp)
   for (const c of candidates) {
-    const l = c.toLowerCase();
-    if (!l.includes("-poster.") && !l.includes("_poster.") && !l.includes("/poster/") && !l.includes("poster_")) {
+    if (!isPoster(c) && !isLowResThumb(c)) {
+      const l = c.toLowerCase();
+      if (l.includes("backdrop") || l.includes("banner") || l.includes("image.tmdb.org")) {
+        return c;
+      }
+    }
+  }
+
+  // 4. Ảnh ngang chất lượng cao khác (vd: NguonC Post 16:9, ảnh JPG/PNG không phải poster và không phải thumb.webp)
+  for (const c of candidates) {
+    if (!isPoster(c) && !isLowResThumb(c)) {
       return c;
     }
   }
 
-  return candidates[0];
+  // Tuyệt đối không dùng poster dọc hoặc thumb.webp độ phân giải thấp gây mờ cho Hero -> fallback an toàn
+  return fallback;
 }
 
 export function pickBestMovieImage(movie: MovieLike, fallback: string) {

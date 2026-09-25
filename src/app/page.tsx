@@ -6,7 +6,7 @@ import { Footer } from "@/components/Footer";
 import { ContinueWatchingRow } from "@/components/ContinueWatchingRow";
 import { QuickGenreChips } from "@/components/QuickGenreChips";
 import { movieApi } from "@/services/movieApi";
-import { getTmdbRankedMovies } from "@/services/tmdbService";
+import { getTmdbRankedMovies, getTmdbBackdropUrl } from "@/services/tmdbService";
 import { CuratedMovieSection } from "@/components/CuratedMovieSection";
 import { TmdbTopTrending } from "@/components/TmdbTopTrending";
 import { CommunityTopTrending } from "@/components/CommunityTopTrending";
@@ -271,10 +271,31 @@ export default async function HomePage({
       ((m.thumb_url && m.thumb_url !== "null" && m.thumb_url !== "undefined") ||
         (m.poster_url && m.poster_url !== "null" && m.poster_url !== "undefined"))
   );
-  const heroMovies =
+  const rawHeroMovies =
     validTrendingMovies.length >= 3
       ? validTrendingMovies.slice(0, 8)
       : getFeaturedMoviesWithCache(movies);
+
+  // Đảm bảo mọi phim trong Hero Banner đều ưu tiên backdrop_url w1280 chuẩn sắc nét từ server
+  const heroMovies = await Promise.all(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    rawHeroMovies.map(async (movie: any) => {
+      if (movie?.backdrop_url) return movie;
+      if (movie?.tmdb?.id) {
+        try {
+          const tmdbBackdrop = await getTmdbBackdropUrl(movie.tmdb.id, movie.tmdb.type);
+          if (tmdbBackdrop) {
+            return {
+              ...movie,
+              backdrop_url: tmdbBackdrop,
+              thumb_url: tmdbBackdrop,
+            };
+          }
+        } catch {}
+      }
+      return movie;
+    })
+  );
 
   return (
     <div className="page-cinema-container min-h-screen pb-20">

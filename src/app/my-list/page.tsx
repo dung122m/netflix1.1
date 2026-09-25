@@ -349,7 +349,7 @@ function MyListContent() {
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
                 <span className="truncate">Đang đồng bộ Google Cloud: {user.displayName || user.email}</span>
               </p>
-              <p className="text-[11px] text-gray-400 truncate">
+              <p className="text-[11px] text-gray-400 leading-relaxed break-words line-clamp-2 sm:line-clamp-1">
                 Danh sách yêu thích, lịch sử xem và các bộ sưu tập được đồng bộ bảo mật tức thì.
               </p>
             </div>
@@ -363,7 +363,7 @@ function MyListContent() {
               <p className="text-xs font-bold text-white truncate">
                 Đồng bộ số phút, lịch sử & bộ sưu tập lên Đám mây
               </p>
-              <p className="text-[11px] text-gray-400 truncate">
+              <p className="text-[11px] text-gray-400 leading-relaxed break-words line-clamp-2 sm:line-clamp-1">
                 Đăng nhập tài khoản Google miễn phí để quản lý bộ sưu tập và xem tiếp đúng phút trên mọi thiết bị.
               </p>
             </div>
@@ -380,9 +380,9 @@ function MyListContent() {
                     window.dispatchEvent(new CustomEvent("open-user-profile-modal"));
                   }
                 }}
-                className="flex-1 sm:flex-none justify-center inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-netflix-red/20 hover:bg-netflix-red/30 border border-netflix-red/40 text-xs font-bold text-rose-300 hover:text-white transition cursor-pointer active:scale-95"
+                className="flex-1 sm:flex-none justify-center inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-netflix-red/20 hover:bg-netflix-red/30 border border-netflix-red/40 text-xs font-bold text-white transition cursor-pointer active:scale-95"
               >
-                <User className="w-3.5 h-3.5 text-rose-400 flex-shrink-0" />
+                <User className="w-3.5 h-3.5 text-current flex-shrink-0" />
                 <span>Sửa hồ sơ</span>
               </button>
 
@@ -410,56 +410,56 @@ function MyListContent() {
       </div>
 
       {/* TAB SELECTOR: Segmented Control thiết kế phẳng trượt mượt trên mobile */}
-      <div className="flex items-center gap-2 mb-6 overflow-x-auto scrollbar-none pb-1 touch-pan-x overscroll-x-contain">
+      <div className="-mx-4 px-4 sm:mx-0 sm:px-0 flex items-center gap-2 mb-6 overflow-x-auto scrollbar-none pb-1 touch-pan-x overscroll-x-contain no-scrollbar">
         <button
           type="button"
           onClick={() => setActiveTab("watchlist")}
-          className={`flex-none flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
+          className={`flex-none shrink-0 flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
             activeTab === "watchlist"
               ? "bg-netflix-red text-white shadow-lg shadow-red-950/50"
               : "bg-white/[0.04] text-zinc-400 hover:text-white hover:bg-white/10 border border-white/5"
           }`}
         >
-          <Bookmark className="w-4 h-4 text-red-400" />
+          <Bookmark className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-400" />
           <span>Yêu thích ({mounted ? watchlist.length : 0})</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab("history")}
-          className={`flex-none flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
+          className={`flex-none shrink-0 flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
             activeTab === "history"
               ? "bg-netflix-red text-white shadow-lg shadow-red-950/50"
               : "bg-white/[0.04] text-zinc-400 hover:text-white hover:bg-white/10 border border-white/5"
           }`}
         >
-          <Clock className="w-4 h-4 text-amber-400" />
+          <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
           <span>Lịch sử ({mounted ? history.length : 0})</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab("collections")}
-          className={`flex-none flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
+          className={`flex-none shrink-0 flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
             activeTab === "collections"
               ? "bg-netflix-red text-white shadow-lg shadow-red-950/50"
               : "bg-white/[0.04] text-zinc-400 hover:text-white hover:bg-white/10 border border-white/5"
           }`}
         >
-          <FolderHeart className="w-4 h-4 text-pink-400" />
+          <FolderHeart className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-pink-400" />
           <span>Bộ sưu tập ({mounted && user ? collections.length : 0})</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab("comments")}
-          className={`flex-none flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
+          className={`flex-none shrink-0 flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
             activeTab === "comments"
               ? "bg-netflix-red text-white shadow-lg shadow-red-950/50"
               : "bg-white/[0.04] text-zinc-400 hover:text-white hover:bg-white/10 border border-white/5"
           }`}
         >
-          <MessageSquare className="w-4 h-4 text-purple-400" />
+          <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-400" />
           <span>Bình luận ({mounted && user ? userComments.length : 0})</span>
         </button>
       </div>

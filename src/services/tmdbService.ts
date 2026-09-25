@@ -665,10 +665,15 @@ export async function matchTmdbMoviesWithSources(
             matchedCandidate.thumb_url ||
             (credit.poster_path ? `https://image.tmdb.org/t/p/w500${credit.poster_path}` : "");
 
+          const tmdbBackdrop = credit.backdrop_path
+            ? `https://image.tmdb.org/t/p/w1280${credit.backdrop_path}`
+            : "";
+
           const thumbImg =
+            tmdbBackdrop ||
             matchedCandidate.thumb_url ||
             matchedCandidate.poster_url ||
-            (credit.backdrop_path ? `https://image.tmdb.org/t/p/w780${credit.backdrop_path}` : posterImg);
+            posterImg;
 
           const formattedMovie = {
             _id: matchedCandidate._id || matchedCandidate.id || matchedCandidate.slug,
@@ -677,6 +682,8 @@ export async function matchTmdbMoviesWithSources(
             origin_name: matchedCandidate.origin_name || credit.original_title || matchedCandidate.name,
             poster_url: posterImg,
             thumb_url: thumbImg,
+            backdrop_url: tmdbBackdrop || matchedCandidate.backdrop_url || matchedCandidate.backdropUrl || undefined,
+            backdrop_path: credit.backdrop_path || undefined,
             year: matchedCandidate.year || tmdbYear,
             time: matchedCandidate.time || "",
             type: matchedCandidate.type || (credit.media_type === "tv" ? "series" : (credit.media_type === "movie" ? "single" : "")),
@@ -835,7 +842,7 @@ export async function getTmdbRankedMovies(
   limit = 10,
   concurrency = 8
 ): Promise<any[]> {
-  const cacheKey = `TMDB_RANKED_${type}_V2`;
+  const cacheKey = `TMDB_RANKED_${type}_V3`;
   const now = Date.now();
   const cached = TMDB_TRENDING_MOVIES_CACHE.get(cacheKey);
 
@@ -851,7 +858,7 @@ export async function getTmdbRankedMovies(
     }
   }
 
-  const kvKey = `tmdb:ranked_movies:${type}:${limit}`;
+  const kvKey = `tmdb:ranked_movies:${type}:${limit}:v3`;
   return await cacheService.fetchOrSet(
     kvKey,
     () => executeTmdbRankingQuery(type, cacheKey, limit, concurrency),

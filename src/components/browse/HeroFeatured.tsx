@@ -18,11 +18,8 @@ import {
   useReducedMotion,
 } from "framer-motion";
 import {
-  pickBestMovieImage,
-  pickBestMoviePoster,
   pickHeroBackdropImage,
   toHighResBackdropUrl,
-  toOptimizedPhimimgUrl,
 } from "@/lib/movieMedia";
 import { cleanHtmlText } from "@/lib/cleanHtml";
 import { clientSynopsisCache } from "./MediaCard";
@@ -84,7 +81,6 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
   const currentSlug = slides[index]?.slug;
   const [isHeroImageLoaded, setIsHeroImageLoaded] = useState(false);
   const [heroSynopsis, setHeroSynopsis] = useState<string>("");
-  const [heroBackdropMap, setHeroBackdropMap] = useState<Record<string, string>>({});
   const [failedHeroImages, setFailedHeroImages] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -107,10 +103,7 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
   // Ghi lại thời điểm slide bắt đầu để tính thời gian còn lại khi fallback
   const slideStartTimeRef = useRef<number>(Date.now());
 
-  const [isMounted, setIsMounted] = useState(false);
-
   useEffect(() => {
-    setIsMounted(true);
     if (typeof window !== "undefined") {
       const handleResize = () => {
         setIsMobile(window.innerWidth <= 768);
@@ -151,20 +144,7 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
     return () => observer.disconnect();
   }, []);
 
-  // Chỉ tải trước ảnh của slide tiếp theo để không nghẽn băng thông
-  useEffect(() => {
-    if (slides.length <= 1) return;
-    const nextIndex = (index + 1) % slides.length;
-    const nextMovie = slides[nextIndex];
-    if (nextMovie) {
-      const nextTargetWidth = isMobile ? "w780" : "w1280";
-      const nextUrl =
-        (nextMovie.slug && heroBackdropMap[nextMovie.slug]) ||
-        pickHeroBackdropImage(nextMovie, "/default-hero.jpg", nextTargetWidth);
-      const img = new window.Image();
-      img.src = toHighResBackdropUrl(nextUrl, nextTargetWidth);
-    }
-  }, [index, slides, heroBackdropMap, isMobile]);
+
 
   // Auto-slide: Tự động chuyển slide; trailer không chặn auto-slide
   // Banner có trailer: preview 15–20s (18s: 2s xuất hiện + ~16s trailer) rồi tự chuyển
@@ -218,9 +198,6 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
           if (data?.content) {
             clientSynopsisCache.set(currentSlug, data.content);
             setHeroSynopsis(data.content);
-          }
-          if (data?.backdrop_url) {
-            setHeroBackdropMap((prev) => ({ ...prev, [currentSlug]: data.backdrop_url }));
           }
           if (data?.trailer_url) {
             trailerUrlMapRef.current[currentSlug] = data.trailer_url;
@@ -502,13 +479,11 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
       };
 
   const targetWidth = isMobile ? "w780" : "w1280";
-  const fallbackHeroImage = pickHeroBackdropImage(featuredMovie, "/default-hero.jpg", targetWidth);
-  const lowResFallback = pickBestMovieImage(featuredMovie, "/default-hero.jpg");
-  const rawBackdrop = (currentSlug && heroBackdropMap[currentSlug]) || fallbackHeroImage;
+  const backdropFromMovie = pickHeroBackdropImage(featuredMovie, "/default-hero.jpg", targetWidth);
   const heroImageSrc =
     (currentSlug && failedHeroImages[currentSlug])
-      ? lowResFallback
-      : toHighResBackdropUrl(rawBackdrop, targetWidth);
+      ? "/default-hero.jpg"
+      : toHighResBackdropUrl(backdropFromMovie, targetWidth);
 
   return (
     <section
@@ -519,8 +494,25 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
     >
       {/* 1. HÌNH NỀN HERO BANNER TOÀN MÀN HÌNH VỚI HIỆU ỨNG CHUYỂN SLIDE MƯỢT MÀ */}
       <div className="absolute inset-0">
-        {!isMounted ? (
-          <div className="absolute inset-0">
+        <AnimatePresence initial={false} custom={direction} mode="wait">
+          <motion.div
+            key={index}
+            custom={direction}
+            variants={slideVariants}
+            initial={index === 0 ? false : "enter"}
+            animate="center"
+            exit="exit"
+            transition={{
+              x: { type: "spring", stiffness: 115, damping: 22, mass: 0.75 },
+              opacity: { duration: 0.45, ease: "easeOut" },
+              scale: { duration: 0.75, ease: "easeOut" },
+            }}
+            drag={slides.length > 1 ? "x" : false}
+            dragElastic={0.08}
+            dragConstraints={{ left: 0, right: 0 }}
+            onDragEnd={onDragEnd}
+            className="absolute inset-0 will-change-transform"
+          >
             {!isHeroImageLoaded && (
               <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-zinc-950 to-black animate-pulse pointer-events-none" />
             )}
@@ -543,65 +535,27 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
                 }
               }}
             />
-          </div>
-        ) : (
-          <AnimatePresence initial={false} custom={direction} mode="wait">
-            <motion.div
-              key={index}
-              custom={direction}
-              variants={slideVariants}
-              initial={index === 0 ? false : "enter"}
-              animate="center"
-              exit="exit"
-              transition={{
-                x: { type: "spring", stiffness: 115, damping: 22, mass: 0.75 },
-                opacity: { duration: 0.45, ease: "easeOut" },
-                scale: { duration: 0.75, ease: "easeOut" },
-              }}
-              drag={slides.length > 1 ? "x" : false}
-              dragElastic={0.08}
-              dragConstraints={{ left: 0, right: 0 }}
-              onDragEnd={onDragEnd}
-              className="absolute inset-0 will-change-transform"
-            >
-              {!isHeroImageLoaded && (
-                <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-zinc-950 to-black animate-pulse pointer-events-none" />
-              )}
-              <Image
-                src={heroImageSrc}
-                alt={title}
-                fill
-                priority={index === 0}
-                quality={85}
-                unoptimized
-                sizes="100vw"
-                className={`object-cover object-[center_25%] transition-opacity duration-500 ${
-                  isHeroImageLoaded ? "opacity-100" : "opacity-0"
-                }`}
-                onLoad={() => setIsHeroImageLoaded(true)}
-                onError={() => {
-                  setIsHeroImageLoaded(false);
-                  if (currentSlug && !failedHeroImages[currentSlug]) {
-                    setFailedHeroImages((prev) => ({ ...prev, [currentSlug]: true }));
-                  }
-                }}
-              />
-            </motion.div>
-          </AnimatePresence>
-        )}
+          </motion.div>
+        </AnimatePresence>
       </div>
 
       {/* 1.1 TRAILER CHẠY NỀN TRÊN DESKTOP (LAZY-LOAD SAU 2S, TỰ ĐỘNG PHÁT MUTED, FADE-IN PHÍA TRÊN POSTER) */}
       {isDesktop && activeTrailerEmbedUrl && !failedTrailerMap[currentSlug || ""] && (
         <div
-          className={`absolute inset-0 z-0 overflow-hidden pointer-events-none transition-opacity duration-1000 ${
+          className={`absolute inset-0 z-0 overflow-hidden pointer-events-none transition-opacity duration-1000 [container-type:size] ${
             isTrailerReady ? "opacity-100" : "opacity-0"
           }`}
         >
           <iframe
             ref={heroIframeRef}
             src={activeTrailerEmbedUrl}
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[130%] h-[130%] max-w-none border-0 object-cover pointer-events-none select-none"
+            style={{
+              width: "max(100cqw, 177.78cqh)",
+              height: "max(100cqh, 56.25cqw)",
+              minWidth: "100%",
+              minHeight: "100%",
+            }}
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 scale-[1.12] max-w-none border-0 object-cover pointer-events-none select-none"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             title={`Trailer ${title}`}
             onLoad={() => {
@@ -821,53 +775,13 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
             ))}
           </div>
 
-          {/* DOCK CHUYỂN NHANH POSTER THUMBNAIL Ở GÓC PHẢI DƯỚI (Card dọc 44x64px, ưu tiên poster dọc) */}
-          <div className="absolute bottom-6 right-8 z-20 hidden items-center gap-2.5 rounded-2xl border border-white/15 bg-black/60 p-2 backdrop-blur-2xl shadow-2xl lg:flex">
-            {slides.slice(0, 5).map((movie, i) => {
-              const rawDockThumb = pickBestMoviePoster(movie, "/default-poster.jpg");
-              const dockThumb = toOptimizedPhimimgUrl(rawDockThumb, 192);
-              const active = i === index;
-              return (
-                <button
-                  key={`${movie.slug || i}-thumb`}
-                  onClick={() => {
-                    setDirection(i > index ? 1 : -1);
-                    setIndex(i);
-                  }}
-                  className={`relative h-16 w-11 overflow-hidden rounded-xl border-2 transition-all duration-300 ${
-                    active
-                      ? "scale-110 border-netflix-red shadow-[0_0_18px_rgba(229,9,20,0.7)] ring-2 ring-red-500/40 z-10"
-                      : "border-white/15 opacity-65 hover:opacity-100 hover:scale-105 hover:border-white/40"
-                  }`}
-                  aria-label={`Xem phim ${movie.name || movie.title || i + 1}`}
-                >
-                  <Image
-                    src={dockThumb}
-                    alt={movie.name || movie.title || "thumb"}
-                    fill
-                    unoptimized
-                    sizes="44px"
-                    className="object-cover"
-                    onError={(e) => {
-                      const target = e.currentTarget as HTMLImageElement;
-                      if (target && !target.src.includes("/default-poster.jpg")) {
-                        target.srcset = "";
-                        target.src = "/default-poster.jpg";
-                      }
-                    }}
-                  />
-                </button>
-              );
-            })}
-          </div>
-
           {/* NÚT BẬT/TẮT TIẾNG TRAILER HERO TRÊN DESKTOP */}
           {isDesktop && activeTrailerEmbedUrl && isTrailerReady && (
             <button
               type="button"
               onClick={handleToggleHeroMute}
               aria-label={isHeroMuted ? "Bật âm thanh trailer" : "Tắt âm thanh trailer"}
-              className="absolute bottom-28 right-8 z-20 hidden lg:flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-white/20 bg-black/75 hover:bg-black text-white text-xs font-bold backdrop-blur-xl transition-all shadow-2xl hover:scale-105 active:scale-95 cursor-pointer"
+              className="absolute bottom-6 right-6 sm:bottom-8 sm:right-8 z-20 hidden lg:flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-white/20 bg-black/75 hover:bg-black text-white text-xs font-bold backdrop-blur-xl transition-all shadow-2xl hover:scale-105 active:scale-95 cursor-pointer"
             >
               {isHeroMuted ? (
                 <>
