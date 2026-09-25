@@ -748,10 +748,10 @@ export const NanaAiStudioModal: React.FC<NanaAiStudioModalProps> = ({
                                       key={`${mov.slug || "movie"}-${movIdx}`}
                                       href={`/movies/${mov.slug}`}
                                       onClick={() => setIsOpen(false)}
-                                      className="group relative flex items-stretch gap-2.5 p-2 sm:p-2.5 rounded-xl bg-zinc-950/80 hover:bg-zinc-900 border border-white/10 hover:border-pink-500/50 transition-all duration-300 shadow-md hover:shadow-pink-950/25 hover:-translate-y-0.5 overflow-hidden"
+                                      className="group relative flex items-stretch gap-2.5 p-2 sm:p-2.5 rounded-xl bg-zinc-950/80 hover:bg-zinc-900 border border-white/10 hover:border-pink-500/50 transition-all duration-300 shadow-md hover:shadow-pink-950/25 hover:-translate-y-0.5"
                                     >
                                       {/* POSTER WITH PLAY OVERLAY */}
-                                      <div className="relative w-16 sm:w-20 min-h-[105px] self-stretch rounded-lg overflow-hidden bg-zinc-900 flex-none shrink-0 border border-white/10 shadow-sm">
+                                      <div className="relative w-16 sm:w-20 min-h-[112px] self-stretch rounded-lg overflow-hidden bg-zinc-900 flex-none shrink-0 border border-white/10 shadow-sm">
                                         <Image
                                           src={mov.poster || "/default-poster.jpg"}
                                           alt={mov.title || "Phim"}
@@ -791,9 +791,11 @@ export const NanaAiStudioModal: React.FC<NanaAiStudioModalProps> = ({
                                               </span>
                                             )}
                                           </div>
-                                          <div className="mt-1 px-2 py-1.5 rounded-lg bg-pink-500/10 border border-pink-500/20 text-[10px] sm:text-[10.5px] text-pink-200/90 leading-normal line-clamp-2">
-                                            <span className="font-semibold text-pink-400 mr-1 shrink-0">✦</span>
-                                            <span>{getMovieHighlight(mov)}</span>
+                                          <div className="mt-1 px-2 py-1.5 rounded-lg bg-pink-500/10 border border-pink-500/20 flex items-start gap-1">
+                                            <span className="font-semibold text-pink-400 shrink-0 text-[10px] mt-0.5 select-none">✦</span>
+                                            <p className="text-[10px] sm:text-[10.5px] text-pink-200/90 leading-snug line-clamp-2 m-0 p-0 break-words">
+                                              {getMovieHighlight(mov)}
+                                            </p>
                                           </div>
                                         </div>
 

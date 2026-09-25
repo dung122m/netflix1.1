@@ -78,12 +78,17 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
   const [paused, setPaused] = useState(false);
   const reduceMotion = useReducedMotion();
   const [isMobile, setIsMobile] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
   const currentSlug = slides[index]?.slug;
   const [isHeroImageLoaded, setIsHeroImageLoaded] = useState(false);
   const isInitialSlideRef = useRef(true);
   const [heroSynopsis, setHeroSynopsis] = useState<string>("");
   const [failedHeroImages, setFailedHeroImages] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     if (isInitialSlideRef.current) {
@@ -513,11 +518,11 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
               opacity: { duration: 0.45, ease: "easeOut" },
               scale: { duration: 0.75, ease: "easeOut" },
             }}
-            drag={slides.length > 1 ? "x" : false}
+            drag={isMounted && slides.length > 1 ? "x" : false}
             dragElastic={0.08}
             dragConstraints={{ left: 0, right: 0 }}
             onDragEnd={onDragEnd}
-            className="absolute inset-0 will-change-transform"
+            className="absolute inset-0 will-change-transform touch-pan-y select-none"
           >
             {!isHeroImageLoaded && (
               <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-zinc-950 to-black animate-pulse pointer-events-none" />

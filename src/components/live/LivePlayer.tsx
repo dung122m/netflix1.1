@@ -2050,12 +2050,12 @@ function LivePlayerInner({
 
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
+      const tagName = typeof target?.tagName === "string" ? target.tagName.toLowerCase() : "";
       if (
-        target &&
-        (["input", "textarea", "select"].includes(target.tagName.toLowerCase()) ||
-          target.isContentEditable ||
-          target.getAttribute("role") === "textbox" ||
-          target.getAttribute("role") === "searchbox")
+        ["input", "textarea", "select"].includes(tagName) ||
+        Boolean(target?.isContentEditable) ||
+        target?.getAttribute?.("role") === "textbox" ||
+        target?.getAttribute?.("role") === "searchbox"
       ) {
         return;
       }
@@ -2067,6 +2067,7 @@ function LivePlayerInner({
 
       // Chỉ xử lý shortcut khi focus thực sự nằm trong vùng Live Player (hoặc đang tương tác với player)
       const active = document.activeElement as HTMLElement | null;
+      const activeTagName = typeof active?.tagName === "string" ? active.tagName.toLowerCase() : "";
       const isPlayerContainer = Boolean(
         containerRef.current &&
           active &&
@@ -2074,12 +2075,12 @@ function LivePlayerInner({
       );
 
       // Nếu focus đang ở ngoài player trên các input, form, textarea hoặc thẻ nút danh sách -> nhường quyền TV navigation
-      if (!isPlayerContainer && active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA" || (!isFullscreen && (active.tagName === "BUTTON" || active.tagName === "A")))) {
+      if (!isPlayerContainer && (["input", "textarea", "select"].includes(activeTagName) || (!isFullscreen && (activeTagName === "button" || activeTagName === "a")))) {
         return;
       }
 
       if (e.code === "Space" || e.key === "Enter") {
-        if (active && (active.tagName === "BUTTON" || active.tagName === "INPUT")) {
+        if (activeTagName === "button" || activeTagName === "input" || activeTagName === "a") {
           return;
         }
         e.preventDefault();
