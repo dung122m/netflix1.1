@@ -60,11 +60,11 @@ const nextConfig: NextConfig = {
             key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' https://apis.google.com https://www.gstatic.com https://*.firebaseapp.com https://va.vercel-scripts.com",
+              "script-src 'self' 'unsafe-inline' https://apis.google.com https://www.gstatic.com https://*.firebaseapp.com https://va.vercel-scripts.com https://*.vercel-insights.com",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "img-src 'self' data: blob: https://*.supabase.co https://api.dicebear.com https://firebasestorage.googleapis.com https://*.firebasestorage.app https://phimimg.com https://img.phimapi.com https://image.tmdb.org https://phim.nguonc.com https://img.gvapi.cc https://m.media-amazon.com https://images-na.ssl-images-amazon.com https://i.ytimg.com https://img.youtube.com https://lh3.googleusercontent.com https://*.googleusercontent.com https://avatars.githubusercontent.com https://graph.facebook.com https://*.wikimedia.org https://upload.wikimedia.org https://raw.githubusercontent.com https://r2.thesportsdb.com https://www.thesportsdb.com",
               "font-src 'self' data: https://fonts.gstatic.com",
-              "connect-src 'self' data: blob: https://*.supabase.co wss://*.supabase.co https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com https://api.themoviedb.org https://phimapi.com https://phim.nguonc.com https://vi.wikipedia.org https://en.wikipedia.org https://va.vercel-scripts.com https://vortex.data.vercel-scripts.com https://*.upstash.io https:",
+              "connect-src 'self' data: blob: https://*.supabase.co wss://*.supabase.co https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com https://api.themoviedb.org https://phimapi.com https://phim.nguonc.com https://vi.wikipedia.org https://en.wikipedia.org https://va.vercel-scripts.com https://vortex.data.vercel-scripts.com https://vitals.vercel-insights.com https://*.vercel-insights.com https://*.upstash.io https:",
               "media-src 'self' data: blob: https:",
               "frame-src 'self' https://*.firebaseapp.com https://accounts.google.com https://www.youtube.com https://www.youtube-nocookie.com https://embed.streamc.xyz https://player.phimapi.com",
               "worker-src 'self' blob:",

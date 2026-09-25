@@ -197,7 +197,10 @@ export async function trackAnalyticsEvent(
     };
     if (auth) {
       if (!auth.currentUser && typeof auth.authStateReady === "function") {
-        await auth.authStateReady().catch(() => {});
+        await Promise.race([
+          auth.authStateReady(),
+          new Promise((resolve) => setTimeout(resolve, 1000)),
+        ]).catch(() => {});
       }
       if (auth.currentUser) {
         activeUserId = activeUserId || auth.currentUser.uid;
