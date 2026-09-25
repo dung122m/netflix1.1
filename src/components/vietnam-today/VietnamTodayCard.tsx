@@ -53,7 +53,7 @@ export function VietnamTodayCard({ info, onOpenModal }: VietnamTodayCardProps) {
         }
       }}
       aria-label={`Sự kiện ${event.title}, bấm để xem chi tiết`}
-      className={`group relative w-full h-[120px] sm:h-[135px] md:h-[145px] rounded-2xl overflow-hidden cursor-pointer select-none transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-amber-500/50 border ${holidayBorderClass}`}
+      className={`group relative w-full min-h-[175px] sm:min-h-[195px] md:min-h-[215px] h-auto rounded-2xl sm:rounded-3xl overflow-hidden cursor-pointer select-none transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-amber-500/50 border ${holidayBorderClass}`}
     >
       {/* 1. BACKGROUND IMAGE OR FALLBACK GRADIENT */}
       <div className="absolute inset-0 z-0 overflow-hidden">
@@ -70,8 +70,8 @@ export function VietnamTodayCard({ info, onOpenModal }: VietnamTodayCardProps) {
         )}
 
         {/* Multi-stop cinematic dark gradient for guaranteed AAA readability */}
-        <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/85 to-zinc-950/40 sm:to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/90 via-transparent to-black/30" />
+        <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/90 sm:via-zinc-950/80 to-transparent w-full sm:w-3/4 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/90 via-transparent to-black/30 pointer-events-none" />
       </div>
 
       {/* SPECIAL HOLIDAY EFFECT (Active only when event has effect) */}
@@ -87,69 +87,64 @@ export function VietnamTodayCard({ info, onOpenModal }: VietnamTodayCardProps) {
       />
 
       {/* 3. CARD CONTENT */}
-      <div className="relative z-10 h-full w-full px-4 sm:px-6 py-3 sm:py-3.5 flex flex-col justify-between">
+      <div className="relative z-10 h-full w-full px-5 sm:px-8 py-4 sm:py-6 flex flex-col justify-between">
         {/* TOP ROW: BADGES */}
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center flex-wrap gap-2">
-            {/* Primary Status Badge */}
-            <span
-              className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:py-1 rounded-full text-[11px] sm:text-xs font-semibold backdrop-blur-md shadow-sm border transition-colors ${
-                isToday
-                  ? "bg-red-500/25 border-red-500/40 text-red-200 group-hover:bg-red-500/35"
-                  : "bg-white/10 border-white/15 text-zinc-300 group-hover:bg-white/15"
-              }`}
-            >
-              <VietnamFlagIcon className="w-3.5 h-2.5 sm:w-4 sm:h-2.8 rounded-[1px] shadow-sm" />
-              <span className="tracking-wide">
-                {isToday ? `${badgeLabel} • ${badgeSub}` : `${badgeLabel} • ${badgeSub}`}
-              </span>
+        <div className="flex items-center flex-wrap gap-2">
+          {/* Primary Status Badge */}
+          <span
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-semibold backdrop-blur-md shadow-sm border transition-colors ${
+              isToday
+                ? "bg-red-500/25 border-red-500/40 text-red-200 group-hover:bg-red-500/35"
+                : "bg-white/10 border-white/15 text-zinc-300 group-hover:bg-white/15"
+            }`}
+          >
+            <VietnamFlagIcon className="w-3.5 h-2.5 sm:w-4 sm:h-2.8 rounded-[1px] shadow-sm" />
+            <span className="tracking-wide">
+              {isToday ? `${badgeLabel} • ${badgeSub}` : `${badgeLabel} • ${badgeSub}`}
             </span>
+          </span>
 
-            {/* Nature / Category tag */}
-            <span className="hidden xs:inline-flex items-center gap-1 px-2.5 py-0.5 sm:py-1 rounded-full text-[11px] sm:text-xs font-medium bg-black/40 text-zinc-300 border border-white/10 backdrop-blur-md">
-              <Sparkles className="w-3 h-3 text-amber-400" />
-              <span>{event.natureLabel || event.categoryLabel}</span>
+          {/* Nature / Category tag */}
+          <span className="hidden xs:inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-medium bg-black/40 text-zinc-300 border border-white/10 backdrop-blur-md">
+            <Sparkles className="w-3 h-3 text-amber-400" />
+            <span>{event.natureLabel || event.categoryLabel}</span>
+          </span>
+
+          {/* Lunar date pill if applicable */}
+          {event.lunarDisplayDate && (
+            <span className="hidden md:inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-medium bg-amber-500/10 text-amber-200 border border-amber-500/25 backdrop-blur-md">
+              <Calendar className="w-3 h-3 text-amber-300" />
+              <span>{event.lunarDisplayDate}</span>
             </span>
+          )}
 
-            {/* Lunar date pill if applicable */}
-            {event.lunarDisplayDate && (
-              <span className="hidden md:inline-flex items-center gap-1 px-2.5 py-0.5 sm:py-1 rounded-full text-[11px] sm:text-xs font-medium bg-amber-500/10 text-amber-200 border border-amber-500/25 backdrop-blur-md">
-                <Calendar className="w-3 h-3 text-amber-300" />
-                <span>{event.lunarDisplayDate}</span>
-              </span>
-            )}
-
-            {/* Multi-event indicator */}
-            {info.allEventsToday && info.allEventsToday.length > 1 && (
-              <span className="hidden sm:inline-flex items-center px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium bg-amber-500/15 text-amber-300 border border-amber-500/30 backdrop-blur-md">
-                +{info.allEventsToday.length - 1} sự kiện khác
-              </span>
-            )}
-          </div>
-
-          {/* Quick desktop CTA */}
-          <div className="hidden sm:flex items-center gap-1.5 text-xs font-semibold text-amber-400 group-hover:text-amber-300 transition-colors">
-            <span>Khám phá</span>
-            <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-1" />
-          </div>
+          {/* Multi-event indicator */}
+          {info.allEventsToday && info.allEventsToday.length > 1 && (
+            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-medium bg-amber-500/15 text-amber-300 border border-amber-500/30 backdrop-blur-md">
+              <span className="sm:hidden">+{info.allEventsToday.length - 1} sự kiện</span>
+              <span className="hidden sm:inline">+{info.allEventsToday.length - 1} sự kiện khác</span>
+            </span>
+          )}
         </div>
 
-        {/* MIDDLE ROW: EVENT TITLE & DESCRIPTION */}
-        <div className="space-y-1">
-          <h3 className="text-base sm:text-lg md:text-xl font-bold text-white tracking-tight group-hover:text-amber-300 transition-colors line-clamp-1">
+        {/* MIDDLE BLOCK: EVENT TITLE & DESCRIPTION (Constrained to left side so right visuals have room) */}
+        <div className="space-y-1.5 sm:space-y-2 my-2 sm:my-3 max-w-lg md:max-w-xl lg:max-w-2xl">
+          <h3 className="text-lg sm:text-2xl md:text-[26px] font-black text-white tracking-tight group-hover:text-amber-300 transition-colors drop-shadow-md line-clamp-1">
             {event.title}
           </h3>
-          <p className="text-xs sm:text-sm text-zinc-300/90 line-clamp-1 max-w-3xl">
+          <p className="text-xs sm:text-sm md:text-[14.5px] text-zinc-200/95 line-clamp-2 sm:line-clamp-3 leading-relaxed font-normal">
             {event.shortDescription}
           </p>
         </div>
 
-        {/* BOTTOM ROW (MOBILE CTA & DETAILS) */}
-        <div className="flex sm:hidden items-center justify-between text-[11px] text-zinc-400 pt-0.5">
-          <span className="text-amber-300/80 font-medium">{event.displayDate}</span>
-          <span className="inline-flex items-center gap-1 font-semibold text-amber-400">
-            <span>Khám phá</span>
-            <ArrowRight className="w-3 h-3 transition-transform group-hover:translate-x-0.5" />
+        {/* BOTTOM ROW: SLEEK ACTION BUTTON */}
+        <div className="flex items-center gap-3 pt-1">
+          <span className="inline-flex items-center gap-2 px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-semibold bg-amber-500/15 group-hover:bg-amber-500/25 border border-amber-500/30 group-hover:border-amber-400/60 text-amber-300 group-hover:text-amber-200 backdrop-blur-md shadow-sm transition-all duration-300 group-hover:shadow-[0_0_16px_rgba(245,158,11,0.25)]">
+            <span>Khám phá nét đẹp văn hóa</span>
+            <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-1" />
+          </span>
+          <span className="hidden sm:inline-block text-xs text-zinc-400 font-medium">
+            {event.displayDate}
           </span>
         </div>
       </div>

@@ -22,10 +22,19 @@ export const JUNE_EVENTS: VietnamEvent[] = [
       "Khai mạc kỳ nghỉ hè thiếu nhi sôi động",
       "Tặng quà và tổ chức vui chơi cho các em nhỏ"
     ],
-    "quote": "Trẻ em như búp trên cành / Biết ăn ngủ, biết học hành là ngoan. — Bác Hồ",
+    "quote": "Trẻ em như búp trên cành / Biết ăn ngủ, biết học hành là ngoan. — Hồ Chí Minh",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "01 Tháng 06",
+    "meaning": "Việt Nam là nước đầu tiên ở châu Á phê chuẩn Công ước của Liên Hợp Quốc về Quyền trẻ em năm 1990.",
+    "subtitle": "Ngày Quốc tế Thiếu nhi — Dành trọn tình yêu thương cho thế hệ mầm non",
+    "traditions": [
+      "Tổ chức ngày hội vui chơi, xiếc kịch và tặng quà cho các em thiếu nhi",
+      "Cha mẹ đưa con đi chơi công viên, nhà sách và thưởng thức các món ăn con yêu thích",
+      "Thăm và tặng quà cho trẻ em có hoàn cảnh khó khăn tại các mái ấm tình thương"
+    ],
+    "cuisine": "Bánh kem ngọt ngào, kem ốc quế mát lạnh, bánh flan caramel và nước ép trái cây tươi mát."
   },
   {
     "id": "ev-06-02-thu-y",
@@ -50,7 +59,10 @@ export const JUNE_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "02 Tháng 06",
+    "meaning": "Thú cưng như chó, mèo mang lại niềm vui, sự gắn kết và giảm căng thẳng cho con người.",
+    "subtitle": "Chăm sóc sức khỏe cho những người bạn bốn chân trung thành và thú cưng trong ..."
   },
   {
     "id": "ev-06-03-xe-dap",
@@ -75,7 +87,10 @@ export const JUNE_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "03 Tháng 06",
+    "meaning": "Đạp xe 30 phút mỗi ngày giúp đốt cháy calo, cải thiện tim mạch và giảm ùn tắc giao thông đô thị.",
+    "subtitle": "Phương tiện giao thông xanh, rèn luyện sức bền và bảo vệ bầu không khí trong ..."
   },
   {
     "id": "ev-06-04-tre-em-vo-toi",
@@ -100,7 +115,10 @@ export const JUNE_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "04 Tháng 06",
+    "meaning": "Khẳng định cam kết bảo vệ quyền trẻ em được sống trong môi trường hòa bình, an toàn và hạnh phúc.",
+    "subtitle": "Chung tay bảo vệ trẻ em khỏi mọi hình thức bạo lực, bóc lột và chiến tranh tà..."
   },
   {
     "id": "ev-06-05-moi-truong-va-bac-ho",
@@ -123,10 +141,18 @@ export const JUNE_EVENTS: VietnamEvent[] = [
       "Kỷ niệm Bác Hồ ra đi tìm đường cứu nước từ Bến Nhà Rồng",
       "Hưởng ứng chiến dịch trồng cây Ngày Môi trường Thế giới"
     ],
-    "quote": null,
+    "quote": "Từ Bến Nhà Rồng, Người đã ra đi tìm đường cứu nước, mang lại mùa xuân độc lập trường tồn cho dân tộc.",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "05 Tháng 06",
+    "meaning": "Mở đường cho sự nghiệp giải phóng dân tộc và kêu gọi cộng đồng chung tay bảo vệ môi trường sinh thái.",
+    "subtitle": "Kỷ niệm Ngày Bác Hồ ra đi tìm đường cứu nước (1911) & Ngày Môi trường Thế giới",
+    "traditions": [
+      "Lễ dâng hoa tại Tượng đài Bác Hồ và Bến Nhà Rồng (Bảo tàng Hồ Chí Minh - Chi nhánh TP.HCM)",
+      "Phát động chiến dịch 'Vì một Việt Nam xanh', trồng cây bảo vệ rừng và dọn rác bãi biển",
+      "Tuyên truyền hạn chế sử dụng năng lượng hóa thạch và bảo vệ nguồn nước sạch"
+    ]
   },
   {
     "id": "ev-06-06-nguoi-cao-tuoi",
@@ -152,7 +178,10 @@ export const JUNE_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "06 Tháng 06",
+    "meaning": "Tôn vinh trí tuệ, kinh nghiệm sống và công lao của người cao tuổi trong gia đình và xã hội.",
+    "subtitle": "Kính lão đắc thọ"
   },
   {
     "id": "ev-06-07-an-toan-thuc-pham",
@@ -177,7 +206,10 @@ export const JUNE_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "07 Tháng 06",
+    "meaning": "Nhắc nhở người tiêu dùng và nhà sản xuất tuân thủ quy chuẩn vệ sinh an toàn thực phẩm.",
+    "subtitle": "Thực phẩm an toàn cho sức khỏe hôm nay"
   },
   {
     "id": "ev-06-08-dai-duong-the-gioi",
@@ -203,7 +235,10 @@ export const JUNE_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "08 Tháng 06",
+    "meaning": "Việt Nam có hơn 3.260 km bờ biển với tiềm năng kinh tế biển to lớn và chủ quyền biển đảo thiêng liêng.",
+    "subtitle": "Đại dương xanh nuôi dưỡng sự sống"
   },
   {
     "id": "ev-06-09-luu-tru-quoc-te",
@@ -228,7 +263,10 @@ export const JUNE_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "09 Tháng 06",
+    "meaning": "Bảo tồn các bản thảo cổ, mộc bản triều Nguyễn, châu bản triều Nguyễn được UNESCO ghi danh Di sản tư liệu thế giới.",
+    "subtitle": "Những trang tư liệu lịch sử vô giá"
   },
   {
     "id": "ev-06-10-art-nouveau",
@@ -253,7 +291,10 @@ export const JUNE_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "10 Tháng 06",
+    "meaning": "Nhiều công trình kiến trúc thời kỳ đầu thế kỷ 20 tại Hà Nội và TP.HCM mang dấu ấn giao thoa nghệ thuật này.",
+    "subtitle": "Vẻ đẹp uốn lượn mềm mại lấy cảm hứng từ thiên nhiên trong kiến trúc và hội họa."
   },
   {
     "id": "ev-06-11-thi-dua-ai-quoc",
@@ -279,7 +320,10 @@ export const JUNE_EVENTS: VietnamEvent[] = [
     "quote": "Thi đua là yêu nước, yêu nước thì phải thi đua.",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "11 Tháng 06",
+    "meaning": "Khơi dậy sức mạnh phi thường của khối đại đoàn kết toàn dân, lập nên những kỳ tích lịch sử vẻ vang.",
+    "subtitle": "Thi đua là yêu nước, yêu nước thì phải thi đua"
   },
   {
     "id": "ev-06-12-chong-lao-dong-tre-em",
@@ -304,7 +348,10 @@ export const JUNE_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "12 Tháng 06",
+    "meaning": "Bảo đảm mọi trẻ em đều được đến trường học tập, vui chơi và phát triển an toàn.",
+    "subtitle": "Để tuổi thơ được cắp sách tới trường, không phải gánh nặng mưu sinh trên đôi ..."
   },
   {
     "id": "ev-06-13-bach-tang",
@@ -329,7 +376,10 @@ export const JUNE_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "13 Tháng 06",
+    "meaning": "Bạch tạng là tình trạng di truyền hiếm gặp do thiếu hụt sắc tố melanin ở da, tóc và mắt.",
+    "subtitle": "Xóa bỏ kỳ thị, tôn trọng sự khác biệt và bảo vệ quyền bình đẳng của người bạc..."
   },
   {
     "id": "ev-06-14-hien-mau-the-gioi",
@@ -354,7 +404,10 @@ export const JUNE_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "14 Tháng 06",
+    "meaning": "Biết ơn hàng triệu người tình nguyện hiến máu thường xuyên duy trì sự sống cho các bệnh nhân hiểm nghèo.",
+    "subtitle": "Tri ân những nghĩa cử hiến dâng giọt máu hồng cứu người không màng thù lao."
   },
   {
     "id": "ev-06-15-cham-soc-nguoi-cao-tuoi",
@@ -379,7 +432,10 @@ export const JUNE_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "15 Tháng 06",
+    "meaning": "Con cháu phụng dưỡng ông bà cha mẹ là đạo hiếu thiêng liêng ngàn đời của văn hóa Việt.",
+    "subtitle": "Kính trọng, yêu thương và chăm sóc chu đáo đấng sinh thành trong những năm th..."
   },
   {
     "id": "ev-06-16-rua-bien",
@@ -404,7 +460,10 @@ export const JUNE_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "16 Tháng 06",
+    "meaning": "Rùa biển có tập tính bơi hàng ngàn hải lý để quay về đúng bãi cát nơi mình sinh ra để đẻ trứng.",
+    "subtitle": "Bảo tồn loài sứ giả cổ đại của đại dương khỏi nguy cơ tuyệt chủng vì rác thải..."
   },
   {
     "id": "ev-06-17-chong-sa-mac-hoa",
@@ -429,7 +488,10 @@ export const JUNE_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "17 Tháng 06",
+    "meaning": "Cảnh báo nguy cơ suy thoái đất canh tác và hạn hán khốc liệt do biến đổi khí hậu gây ra.",
+    "subtitle": "Giữ đất màu mỡ, phục hồi hệ sinh thái khô hạn và bảo đảm an ninh nguồn nước."
   },
   {
     "id": "ev-06-18-am-thuc-ben-vung",
@@ -452,10 +514,19 @@ export const JUNE_EVENTS: VietnamEvent[] = [
       "Nấu bữa ăn tươi ngon từ nông sản địa phương",
       "Không lãng phí thức ăn thừa"
     ],
-    "quote": null,
+    "quote": "Ẩm thực bền vững là sự tôn trọng đất mẹ và biết ơn nguồn cội sự sống.",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "18 Tháng 06",
+    "meaning": "Ẩm thực Việt Nam nổi tiếng thế giới vì tính hài hòa âm dương, nhiều rau xanh và nguyên liệu tươi ngon theo mùa.",
+    "subtitle": "Ăn sạch, sống xanh — Tôn vinh nông sản bản địa và bảo vệ môi trường",
+    "traditions": [
+      "Ưu tiên sử dụng nguyên liệu nông sản hữu cơ theo mùa của người nông dân địa phương",
+      "Nấu ăn giảm lãng phí thực phẩm và hạn chế rác thải nhựa trong nhà bếp",
+      "Tìm hiểu các mô hình canh tác tuần hoàn bảo vệ hệ sinh thái"
+    ],
+    "cuisine": "Món gỏi cuốn tôm thịt rau mầm tươi mát, canh chua cá lóc rau bổi Nam Bộ và chè dưỡng nhan thanh nhiệt."
   },
   {
     "id": "ev-06-19-dao-bo-thien-nhien",
@@ -480,7 +551,10 @@ export const JUNE_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "19 Tháng 06",
+    "meaning": "Đi bộ giữa thiên nhiên (Shinrin-yoku / Tắm rừng) giúp giảm hormone căng thẳng cortisol và hạ huyết áp.",
+    "subtitle": "Tạm gác lại âu lo, thả bước dưới tán cây xanh để tâm trí được thư thái và an ..."
   },
   {
     "id": "ev-06-20-ti-nan",
@@ -505,7 +579,10 @@ export const JUNE_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "20 Tháng 06",
+    "meaning": "Kêu gọi cộng đồng quốc tế đoàn kết, bảo vệ quyền cơ bản được an toàn và tái định cư của người tị nạn.",
+    "subtitle": "Mở rộng vòng tay nhân ái, chở che những phận người mất đi mái ấm vì chiến tra..."
   },
   {
     "id": "ev-06-21-bao-chi-cach-mang",
@@ -528,10 +605,18 @@ export const JUNE_EVENTS: VietnamEvent[] = [
       "Xuất bản số đầu tiên báo 'Thanh Niên' năm 1925",
       "Lễ trao Giải Báo chí Quốc gia hàng năm vinh danh tác phẩm xuất sắc"
     ],
-    "quote": "Cán bộ báo chí cũng là chiến sĩ cách mạng. Cây bút, trang giấy là vũ khí sắc bén.",
+    "quote": "Cây bút là vũ khí sắc bén, bài báo là tờ hịch cách mạng để động viên quần chúng. — Hồ Chí Minh",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "21 Tháng 06",
+    "meaning": "Tôn vinh các thế hệ nhà báo chiến sĩ dùng ngòi bút làm vũ khí sắc bén phản ánh sự thật và bảo vệ công lý.",
+    "subtitle": "Kỷ niệm Ngày Báo chí Cách mạng Việt Nam (21/06/1925)",
+    "traditions": [
+      "Lễ trao Giải Báo chí Quốc gia vinh danh các tác phẩm báo chí xuất sắc",
+      "Gặp mặt, tri ân các nhà báo, phóng viên, biên tập viên chiến trường và đương đại",
+      "Tọa đàm về đạo đức nghề báo và chuyển đổi số trong kỷ nguyên truyền thông hiện đại"
+    ]
   },
   {
     "id": "ev-06-22-rung-nhiet-doi",
@@ -556,7 +641,10 @@ export const JUNE_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "22 Tháng 06",
+    "meaning": "Rừng nhiệt đới lưu giữ hơn 50% số loài động thực vật của hành tinh dù chỉ chiếm 6% diện tích đất.",
+    "subtitle": "Bảo tồn kho tàng sinh quyển quý giá nhất hành tinh"
   },
   {
     "id": "ev-06-23-olympic-day",
@@ -581,7 +669,10 @@ export const JUNE_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "23 Tháng 06",
+    "meaning": "Khích lệ toàn dân tập luyện thể thao, nâng cao thể chất và tinh thần đoàn kết quốc tế.",
+    "subtitle": "Tôn vinh tinh thần thể thao cao thượng 'Nhanh hơn - Cao hơn - Mạnh hơn - Cùng..."
   },
   {
     "id": "ev-06-24-phu-nu-ngoai-giao",
@@ -606,7 +697,10 @@ export const JUNE_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "24 Tháng 06",
+    "meaning": "Ngoại giao Việt Nam tự hào có những nữ bộ trưởng, đại sứ tài ba như đồng chí Nguyễn Thị Bình — nguyên Bộ trưởng Ngoại giao Chính phủ CMLT.",
+    "subtitle": "Tôn vinh bản lĩnh, trí tuệ và sự duyên dáng của các nữ nhà ngoại giao trên tr..."
   },
   {
     "id": "ev-06-25-thuy-thu",
@@ -631,7 +725,10 @@ export const JUNE_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "25 Tháng 06",
+    "meaning": "Hơn 90% khối lượng thương mại toàn cầu được vận chuyển bằng đường biển nhờ sự hy sinh thầm lặng của các thủy thủ.",
+    "subtitle": "Tri ân những người lính biển kiên cường ngày đêm vượt sóng gió giữ vững mạch ..."
   },
   {
     "id": "ev-06-26-phong-chong-ma-tuy",
@@ -656,7 +753,10 @@ export const JUNE_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "26 Tháng 06",
+    "meaning": "Nâng cao cảnh giác trong giới trẻ, ngăn chặn ma túy học đường và giúp đỡ người nghiện tái hòa nhập cộng đồng.",
+    "subtitle": "Kiên quyết đẩy lùi hiểm họa ma túy vì một cộng đồng khỏe mạnh, an toàn và phá..."
   },
   {
     "id": "ev-06-27-doanh-nghiep-nho",
@@ -681,7 +781,10 @@ export const JUNE_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "27 Tháng 06",
+    "meaning": "Các doanh nghiệp MSME đóng góp hơn 40% GDP và tạo ra hơn 50% việc làm tại Việt Nam.",
+    "subtitle": "Xương sống của nền kinh tế"
   },
   {
     "id": "ev-06-28-gia-dinh-viet-nam",
@@ -704,10 +807,19 @@ export const JUNE_EVENTS: VietnamEvent[] = [
       "Bữa cơm gia đình ấm cúng chiều 28/6",
       "Tôn vinh các gia đình văn hóa tiêu biểu"
     ],
-    "quote": "Gia đình là điểm tựa bình yên nhất.",
+    "quote": "Gia đình là tế bào của xã hội, gia đình tốt thì xã hội mới tốt, xã hội tốt thì gia đình càng tốt hơn. — Hồ Chí Minh",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "28 Tháng 06",
+    "meaning": "Nhắc nhở mỗi người gìn giữ ngọn lửa yêu thương, xây dựng gia đình no ấm, tiến bộ, hạnh phúc và văn minh.",
+    "subtitle": "Ngày Gia đình Việt Nam — Mái ấm bình yên, cái nôi nuôi dưỡng nhân cách",
+    "traditions": [
+      "Cả nhà quây quần bên bữa cơm gia đình đầm ấm sum họp đầy đủ các thế hệ",
+      "Chụp bức ảnh gia đình lưu giữ khoảnh khắc yêu thương và gắn kết",
+      "Tổ chức Ngày hội Gia đình văn hóa tại các địa phương trên toàn quốc"
+    ],
+    "cuisine": "Bữa cơm gia đình thuần Việt với canh cua mồng tơi rau đay, cà pháo giòn tan, thịt kho tàu và cá bống kho tiêu đậm đà tình thân."
   },
   {
     "id": "ev-06-29-vung-nhiet-doi",
@@ -732,7 +844,10 @@ export const JUNE_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "29 Tháng 06",
+    "meaning": "Khu vực nhiệt đới sở hữu gần 95% diện tích rừng ngập mặn và đa dạng sinh học phong phú bậc nhất.",
+    "subtitle": "Vùng đất trù phú hoa thơm trái ngọt"
   },
   {
     "id": "ev-06-30-tieu-hanh-tinh",
@@ -757,6 +872,9 @@ export const JUNE_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "30 Tháng 06",
+    "meaning": "Khám phá khoa học thiên văn học, tìm kiếm các tiểu hành tinh gần Trái Đất và công nghệ phòng thủ hành tinh.",
+    "subtitle": "Theo dõi bầu trời đêm và nâng cao nhận thức bảo vệ Trái Đất trước các thiên t..."
   }
 ];

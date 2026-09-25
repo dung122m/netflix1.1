@@ -2,8 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { X, Sparkles, BookOpen, Target, Lightbulb, Calendar, Quote, ExternalLink } from "lucide-react";
-import { VietnamEvent } from "@/data/vietnamEvents";
+import { X, Sparkles, BookOpen, Target, Lightbulb, Calendar, Quote, Utensils } from "lucide-react";
 import { VietnamTodayInfo } from "@/lib/vietnamCalendar";
 import { VietnamEventEffect } from "./VietnamEventEffect";
 import { VietnamFlagIcon } from "./VietnamFlagIcon";
@@ -136,6 +135,11 @@ export function VietnamTodayModal({ isOpen, onClose, info }: VietnamTodayModalPr
             >
               {currentEvent.title}
             </h2>
+            {currentEvent.subtitle && (
+              <p className="text-xs sm:text-sm text-amber-200/90 line-clamp-2 mt-0.5 font-medium">
+                {currentEvent.subtitle}
+              </p>
+            )}
           </div>
         </div>
 
@@ -189,10 +193,39 @@ export function VietnamTodayModal({ isOpen, onClose, info }: VietnamTodayModalPr
                 <span>Ý nghĩa</span>
               </div>
               <p className="text-zinc-300 text-xs sm:text-sm leading-relaxed">
-                {currentEvent.significance}
+                {currentEvent.meaning || currentEvent.significance}
               </p>
             </div>
           </div>
+
+          {/* 🏮 Phong tục & Nét đẹp tiêu biểu (dành cho ngày lễ truyền thống & văn hóa) */}
+          {currentEvent.traditions && currentEvent.traditions.length > 0 && (
+            <div className="p-4 rounded-xl bg-gradient-to-br from-amber-950/20 via-zinc-900/70 to-zinc-900/50 border border-amber-500/25">
+              <div className="flex items-center gap-2 text-amber-300 font-semibold mb-2.5">
+                <Sparkles className="w-4 h-4 text-amber-400" />
+                <span>Phong tục & Nét đẹp tiêu biểu</span>
+              </div>
+              <ul className="space-y-2">
+                {currentEvent.traditions.map((t, idx) => (
+                  <li key={idx} className="flex items-start gap-2.5 text-xs sm:text-sm text-zinc-200">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-2 flex-shrink-0" />
+                    <span>{t}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* 🍜 Ẩm thực đặc trưng (nếu có món ăn tiêu biểu) */}
+          {currentEvent.cuisine && (
+            <div className="p-3.5 rounded-xl bg-orange-950/20 border border-orange-500/25 flex items-start gap-3">
+              <Utensils className="w-4 h-4 text-orange-400 flex-shrink-0 mt-0.5" />
+              <div className="text-xs sm:text-sm">
+                <span className="font-semibold text-orange-300 mr-2">Ẩm thực đặc trưng:</span>
+                <span className="text-orange-100/90">{currentEvent.cuisine}</span>
+              </div>
+            </div>
+          )}
 
           {/* 💡 Bạn có biết? (Fun fact / Did you know) */}
           {currentEvent.didYouKnow && (
@@ -207,12 +240,18 @@ export function VietnamTodayModal({ isOpen, onClose, info }: VietnamTodayModalPr
             </div>
           )}
 
-          {/* 📅 Các mốc & phong tục liên quan */}
+          {/* 📅 Các mốc lịch sử / Dòng thời gian / Hoạt động */}
           {currentEvent.milestones && currentEvent.milestones.length > 0 && (
             <div className="p-4 rounded-xl bg-zinc-900/60 border border-white/10">
               <div className="flex items-center gap-2 text-sky-400 font-semibold mb-2.5">
                 <Calendar className="w-4 h-4 text-sky-400" />
-                <span>Dấu mốc & Phong tục tiêu biểu</span>
+                <span>
+                  {currentEvent.traditions && currentEvent.traditions.length > 0
+                    ? "Dấu mốc & Dòng thời gian"
+                    : currentEvent.category === "vietnam-history" || currentEvent.category === "national-holiday"
+                    ? "Dấu mốc lịch sử tiêu biểu"
+                    : "Dấu mốc & Hoạt động tiêu biểu"}
+                </span>
               </div>
               <ul className="space-y-2">
                 {currentEvent.milestones.map((m, idx) => (
@@ -227,8 +266,8 @@ export function VietnamTodayModal({ isOpen, onClose, info }: VietnamTodayModalPr
 
           {/* 💬 Trích dẫn / Ca dao nếu có */}
           {currentEvent.quote && (
-            <div className="p-3.5 rounded-xl bg-zinc-900/40 border border-white/5 flex items-start gap-3 italic text-xs sm:text-sm text-zinc-400">
-              <Quote className="w-4 h-4 text-amber-400/70 flex-shrink-0 mt-0.5" />
+            <div className="p-3.5 rounded-xl bg-zinc-900/40 border border-white/5 flex items-start gap-3 italic text-xs sm:text-sm text-zinc-300">
+              <Quote className="w-4 h-4 text-amber-400/80 flex-shrink-0 mt-0.5" />
               <span>&ldquo;{currentEvent.quote}&rdquo;</span>
             </div>
           )}

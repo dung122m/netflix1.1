@@ -25,7 +25,10 @@ export const OCTOBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "01 Tháng 10",
+    "meaning": "Tri ân công ơn dưỡng dục của ông bà, cha mẹ và tự hào hạt cà phê Robusta Việt Nam xuất khẩu số 1 thế giới.",
+    "subtitle": "Kính trọng các bậc cao niên và thưởng thức hương vị cà phê đậm đà bản sắc Việt."
   },
   {
     "id": "ev-10-02-khuyen-hoc-vn",
@@ -50,7 +53,10 @@ export const OCTOBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "02 Tháng 10",
+    "meaning": "Khơi dậy truyền thống hiếu học, phong trào 'Gia đình học tập', 'Dòng họ học tập' trên khắp các vùng quê.",
+    "subtitle": "Truyền thống hiếu học ngàn đời"
   },
   {
     "id": "ev-10-03-habitat-day",
@@ -75,7 +81,10 @@ export const OCTOBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "03 Tháng 10",
+    "meaning": "Khuyến khích xây dựng nhà ở xã hội, phủ xanh đô thị và giải quyết ô nhiễm rác thải ở các khu dân cư.",
+    "subtitle": "Mỗi người dân đều có quyền có một mái nhà an cư lạc nghiệp và môi trường sống..."
   },
   {
     "id": "ev-10-04-dong-vat-the-gioi",
@@ -100,7 +109,10 @@ export const OCTOBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "04 Tháng 10",
+    "meaning": "Kêu gọi đối xử nhân đạo với thú cưng và bảo vệ các loài động vật hoang dã nguy cấp trước nạn săn bắt.",
+    "subtitle": "Yêu thương, bảo vệ muôn loài và tôn trọng quyền được sống hòa hợp của thế giớ..."
   },
   {
     "id": "ev-10-05-nha-giao-the-gioi",
@@ -125,7 +137,10 @@ export const OCTOBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "05 Tháng 10",
+    "meaning": "Tôn vinh vai trò không thể thay thế của người thầy trong việc truyền cảm hứng và bồi dưỡng nhân cách.",
+    "subtitle": "Tôn vinh những người khai sáng tri thức"
   },
   {
     "id": "ev-10-06-world-smile-day",
@@ -150,7 +165,10 @@ export const OCTOBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "06 Tháng 10",
+    "meaning": "Nụ cười kích thích giải phóng endorphin, làm dịu cơn đau, giảm căng thẳng và kết nối con người kỳ diệu.",
+    "subtitle": "Một nụ cười nở trên môi là một tia nắng sưởi ấm tâm hồn"
   },
   {
     "id": "ev-10-07-viec-lam-thoa-dang",
@@ -175,7 +193,10 @@ export const OCTOBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "07 Tháng 10",
+    "meaning": "Thúc đẩy các chính sách an sinh xã hội, tiền lương tối thiểu đủ sống và hợp đồng lao động minh bạch.",
+    "subtitle": "Lao động chân chính trong điều kiện an toàn, thu nhập thỏa đáng và được tôn t..."
   },
   {
     "id": "ev-10-08-bach-tuoc",
@@ -200,7 +221,10 @@ export const OCTOBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "08 Tháng 10",
+    "meaning": "Bạch tuộc có 3 trái tim, máu màu xanh lam và 9 bộ não (1 não trung tâm và 8 não ở các xúc tu).",
+    "subtitle": "Khám phá sinh vật thông minh bậc nhất đại dương với khả năng ngụy trang và gi..."
   },
   {
     "id": "ev-10-09-buu-chinh-the-gioi",
@@ -225,7 +249,10 @@ export const OCTOBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "09 Tháng 10",
+    "meaning": "Bưu chính đóng vai trò cốt lõi trong chuỗi vận chuyển bưu phẩm, thương mại điện tử và tài chính bưu điện.",
+    "subtitle": "Mạng lưới kết nối toàn cầu"
   },
   {
     "id": "ev-10-10-giai-phong-thu-do-va-so-hoa",
@@ -249,10 +276,18 @@ export const OCTOBER_EVENTS: VietnamEvent[] = [
       "Ngày hội Chuyển đổi số Quốc gia",
       "Ngày truyền thống Luật sư Việt Nam"
     ],
-    "quote": "Năm cửa ô đón mừng đoàn quân tiến về.",
+    "quote": "Năm cửa ô đón mừng đoàn quân tiến về / Như đài hoa đón mừng nở năm cánh đào. — Văn Cao",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "10 Tháng 10",
+    "meaning": "Mở ra trang sử mới xây dựng Thủ đô ngàn năm văn hiến hòa bình; đồng thời thúc đẩy công nghệ Make in Vietnam.",
+    "subtitle": "Ngày Giải phóng Thủ đô (10/10/1954) & Ngày Chuyển đổi số Quốc gia",
+    "traditions": [
+      "Trùng trùng quân đi như sóng tiến qua năm cửa ô rực cờ hoa tiếp quản Thủ đô",
+      "Lễ kỷ niệm ngày Giải phóng Thủ đô tại Quảng trường Đoan Môn (Hoàng thành Thăng Long)",
+      "Hưởng ứng ngày hội Chuyển đổi số Quốc gia trải nghiệm các tiện ích dịch vụ công trực tuyến và công nghệ số"
+    ]
   },
   {
     "id": "ev-10-11-tre-em-gai",
@@ -277,7 +312,10 @@ export const OCTOBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "11 Tháng 10",
+    "meaning": "Chấm dứt nạn tảo hôn, phân biệt đối xử giới tính và tạo cơ hội học tập bình đẳng các ngành công nghệ STEM.",
+    "subtitle": "Trao quyền cho trẻ em gái"
   },
   {
     "id": "ev-10-12-thi-giac-the-gioi",
@@ -302,7 +340,10 @@ export const OCTOBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "12 Tháng 10",
+    "meaning": "Quy tắc 20-20-20: Cứ 20 phút nhìn màn hình, hãy nhìn xa 20 feet (6m) trong 20 giây để mắt thư giãn.",
+    "subtitle": "Đôi mắt là cửa sổ tâm hồn"
   },
   {
     "id": "ev-10-13-doanh-nhan-viet-nam",
@@ -325,10 +366,17 @@ export const OCTOBER_EVENTS: VietnamEvent[] = [
       "Thư Bác Hồ gửi giới Công thương năm 1945",
       "Trao cúp Thánh Gióng vinh danh Doanh nhân tiêu biểu"
     ],
-    "quote": "Phụng sự Tổ quốc bằng tinh thần doanh nhân quả cảm.",
+    "quote": "Việc nước và việc nhà nông, thương, công nghiệp bao giờ cũng đi đôi với nhau. Nền kinh tế quốc dân thịnh vượng nghĩa là sự kinh doanh của các nhà công nghiệp, thương nghiệp thịnh vượng. — Hồ Chí Minh",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "13 Tháng 10",
+    "meaning": "Tôn vinh vai trò tiên phong của các doanh nhân trong đổi mới sáng tạo, tạo việc làm và hội nhập kinh tế quốc tế.",
+    "subtitle": "Kỷ niệm Thư Bác Hồ gửi giới Công thương (13/10/1945) — Khát vọng phụng sự phát triển",
+    "traditions": [
+      "Lễ trao cúp Thánh Gióng vinh danh Doanh nhân Việt Nam tiêu biểu của năm",
+      "Tọa đàm về đạo đức kinh doanh, văn hóa doanh nghiệp và trách nhiệm xã hội"
+    ]
   },
   {
     "id": "ev-10-14-nong-dan-viet-nam",
@@ -351,10 +399,19 @@ export const OCTOBER_EVENTS: VietnamEvent[] = [
       "Kỷ niệm ngày thành lập Hội Nông dân năm 1930",
       "Tôn vinh 'Nông dân Việt Nam xuất sắc'"
     ],
-    "quote": null,
+    "quote": "Nông dân ta giàu thì nước ta giàu. Nông nghiệp ta thịnh thì nước ta thịnh. — Hồ Chí Minh",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "14 Tháng 10",
+    "meaning": "Giai cấp nông dân Việt Nam cần cù, thủy chung, là trụ cột bảo đảm an ninh lương thực quốc gia và xuất khẩu gạo hàng đầu.",
+    "subtitle": "Tri ân bàn tay một sương hai nắng gieo hạt ngọc trời nuôi sống non sông",
+    "traditions": [
+      "Lễ tôn vinh 'Nông dân Việt Nam xuất sắc' và các sáng chế nông nghiệp hiệu quả",
+      "Hội chợ triển lãm nông sản OCOP tiêu biểu ba miền",
+      "Khởi sắc phong trào xây dựng nông thôn mới văn minh, hiện đại"
+    ],
+    "cuisine": "Xôi nếp nương thơm dẻo, gà thả đồi hấp lá chanh và chè búp Tân Cương Thái Nguyên đượm tình người nông dân."
   },
   {
     "id": "ev-10-15-thanh-nien-viet-nam",
@@ -377,10 +434,18 @@ export const OCTOBER_EVENTS: VietnamEvent[] = [
       "Họp mặt truyền thống Hội LHTN Việt Nam",
       "Phong trào thanh niên 'Tôi yêu Tổ quốc tôi'"
     ],
-    "quote": null,
+    "quote": "Thanh niên là rường cột của nước nhà, chủ nhân tương lai của đất nước.",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "15 Tháng 10",
+    "meaning": "Khơi dậy tinh thần xung kích, lòng tự hào dân tộc và phong trào tình nguyện 'Tôi yêu Tổ quốc tôi'.",
+    "subtitle": "Thanh niên Việt Nam đoàn kết, xung kích và khát vọng dựng xây đất nước hùng cường",
+    "traditions": [
+      "Ngày hội 'Tôi yêu Tổ quốc tôi' với các hoạt động tình nguyện vì cộng đồng",
+      "Tuyên dương 'Thanh niên sống đẹp' và giải thưởng '15 tháng 10' cho cán bộ Hội tiêu biểu",
+      "Hành trình thanh niên về các địa danh lịch sử biên cương, hải đảo"
+    ]
   },
   {
     "id": "ev-10-16-luong-thuc-the-gioi",
@@ -405,7 +470,10 @@ export const OCTOBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "16 Tháng 10",
+    "meaning": "Tôn vinh những người sản xuất thực phẩm và kêu gọi sử dụng tiết kiệm, không lãng phí thức ăn.",
+    "subtitle": "Không bỏ lại ai phía sau"
   },
   {
     "id": "ev-10-17-vi-nguoi-ngheo",
@@ -431,7 +499,10 @@ export const OCTOBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "17 Tháng 10",
+    "meaning": "Xây dựng những mái ấm tình thương, trao sinh kế và trao con chữ giúp người nghèo vươn lên thoát nghèo bền vững.",
+    "subtitle": "Lá lành đùm lá rách"
   },
   {
     "id": "ev-10-18-bac-son-khoi-nghia",
@@ -456,7 +527,10 @@ export const OCTOBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "18 Tháng 10",
+    "meaning": "Cuộc khởi nghĩa mở đầu cho thời kỳ đấu tranh vũ trang kết hợp chính trị giành chính quyền của cách mạng ta.",
+    "subtitle": "Tiếng súng Bắc Sơn rền vang"
   },
   {
     "id": "ev-10-19-ung-thu-vu",
@@ -481,7 +555,10 @@ export const OCTOBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "19 Tháng 10",
+    "meaning": "Ung thư vú nếu được phát hiện ở giai đoạn sớm có tỷ lệ điều trị thành công lên đến trên 90%.",
+    "subtitle": "Chiến dịch nơ hồng"
   },
   {
     "id": "ev-10-20-phu-nu-viet-nam",
@@ -504,10 +581,18 @@ export const OCTOBER_EVENTS: VietnamEvent[] = [
       "Thành lập Hội Liên hiệp Phụ nữ Việt Nam năm 1930",
       "Gửi trao những bó hoa tươi thắm và lời chúc ngọt ngào nhất"
     ],
-    "quote": "Dệt nên gấm vóc non sông, phụ nữ Việt Nam là niềm tự hào của dân tộc.",
+    "quote": "Anh hùng, bất khuất, trung hậu, đảm đang — Tám chữ vàng Bác Hồ kính tặng phụ nữ Việt Nam.",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "20 Tháng 10",
+    "meaning": "Khẳng định vai trò to lớn của phụ nữ trong giữ gìn tổ ấm gia đình và cống hiến xuất sắc trên mọi lĩnh vực xã hội.",
+    "subtitle": "Tôn vinh người phụ nữ Việt Nam — Anh hùng, bất khuất, trung hậu, đảm đang",
+    "traditions": [
+      "Tặng hoa tươi, thiệp chúc mừng và quà tặng tri ân người phụ nữ thân yêu trong gia đình và công sở",
+      "Lễ trao Giải thưởng Phụ nữ Việt Nam tôn vinh các tập thể, cá nhân nữ xuất sắc",
+      "Gặp mặt họp mặt gia đình ấm cúng tôn vinh ngọn lửa nếp nhà"
+    ]
   },
   {
     "id": "ev-10-21-hang-khong-truc-thang",
@@ -532,7 +617,10 @@ export const OCTOBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "21 Tháng 10",
+    "meaning": "Binh đoàn 18 và Trung đoàn Không quân 916 đã thực hiện hàng ngàn chuyến bay cấp cứu khẩn cấp từ Trường Sa.",
+    "subtitle": "Những cánh bay vượt gió bão tiếp tế cứu trợ đồng bào vùng lũ lụt và hải đảo x..."
   },
   {
     "id": "ev-10-22-noi-lap",
@@ -557,7 +645,10 @@ export const OCTOBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "22 Tháng 10",
+    "meaning": "Nói lắp là một rối loạn nhịp điệu lời nói, hoàn toàn không phản ánh trí tuệ hay năng lực của một người.",
+    "subtitle": "Lắng nghe bằng sự kiên nhẫn và thấu hiểu"
   },
   {
     "id": "ev-10-23-duong-ho-chi-minh-tren-bien",
@@ -583,7 +674,10 @@ export const OCTOBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "23 Tháng 10",
+    "meaning": "Những con tàu gỗ, tàu sắt không số ngụy trang khéo léo đã chở hàng ngàn tấn vũ khí, đạn dược vào các bến bí mật.",
+    "subtitle": "Huyền thoại Đoàn tàu Không số"
   },
   {
     "id": "ev-10-24-lien-hop-quoc",
@@ -609,7 +703,10 @@ export const OCTOBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "24 Tháng 10",
+    "meaning": "Diễn đàn đa phương lớn nhất hành tinh quy tụ 193 quốc gia thành viên hợp tác giải quyết các thách thức toàn cầu.",
+    "subtitle": "Kỷ niệm Hiến chương Liên Hợp Quốc có hiệu lực năm 1945"
   },
   {
     "id": "ev-10-25-pasta-day",
@@ -634,7 +731,10 @@ export const OCTOBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "25 Tháng 10",
+    "meaning": "Mì sợi, bún, miến, phở là những món ăn chứa đựng tinh hoa lúa gạo và lúa mì của nhân loại.",
+    "subtitle": "Tôn vinh món mì sợi thơm ngon kết nối tinh hoa ẩm thực toàn cầu với sợi phở, ..."
   },
   {
     "id": "ev-10-26-dieu-duong-vn",
@@ -659,7 +759,10 @@ export const OCTOBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "26 Tháng 10",
+    "meaning": "Tôn vinh vai trò không thể thiếu của người điều dưỡng trong quy trình chăm sóc y tế toàn diện.",
+    "subtitle": "Tri ân những chiến sĩ áo trắng tận tụy chăm lo cho từng giấc ngủ, nụ cười của..."
   },
   {
     "id": "ev-10-27-di-san-nghe-nhin",
@@ -684,7 +787,10 @@ export const OCTOBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "27 Tháng 10",
+    "meaning": "Viện Phim Việt Nam lưu giữ hàng triệu mét phim tư liệu nhựa quý giá về các cuộc kháng chiến vệ quốc vĩ đại.",
+    "subtitle": "Bảo tồn những thước phim, băng ghi âm và hình ảnh động ghi lại dấu ấn lịch sử..."
   },
   {
     "id": "ev-10-28-hoat-hinh-quoc-te",
@@ -709,7 +815,10 @@ export const OCTOBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "28 Tháng 10",
+    "meaning": "Hoạt hình không chỉ dành cho trẻ em mà còn truyền tải những thông điệp triết lý nhân văn sâu sắc cho người lớn.",
+    "subtitle": "Thế giới sắc màu diệu kỳ"
   },
   {
     "id": "ev-10-29-stroke-day",
@@ -734,7 +843,10 @@ export const OCTOBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "29 Tháng 10",
+    "meaning": "Quy tắc F.A.S.T: Mặt lệch (Face), Tay yếu (Arm), Nói khó (Speech), Thời gian gọi cấp cứu ngay (Time).",
+    "subtitle": "Thời gian là não bộ"
   },
   {
     "id": "ev-10-30-quang-ninh-thanh-lap",
@@ -760,7 +872,10 @@ export const OCTOBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "30 Tháng 10",
+    "meaning": "Cái nôi của giai cấp công nhân vùng mỏ với truyền thống 'Kỷ luật và Đồng tâm' đánh giặc giữ nước.",
+    "subtitle": "Vùng mỏ anh hùng kiên cường"
   },
   {
     "id": "ev-10-31-halloween-cities",
@@ -787,6 +902,9 @@ export const OCTOBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "31 Tháng 10",
+    "meaning": "Dịp vui chơi giải trí hóa trang sáng tạo của giới trẻ trên các tuyến phố đi bộ ngập tràn ánh đèn lung linh.",
+    "subtitle": "Đêm hội hóa trang bí ngô huyền bí và cùng xây dựng các đô thị xanh, thông min..."
   }
 ];

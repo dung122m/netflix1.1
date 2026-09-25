@@ -24,7 +24,10 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "01 Tháng 07",
+    "meaning": "Khẳng định ý nghĩa nhân văn sâu sắc 'chia sẻ rủi ro', giúp người nghèo tiếp cận dịch vụ y tế chất lượng.",
+    "subtitle": "Trụ cột an sinh xã hội"
   },
   {
     "id": "ev-07-02-doi-ten-nuoc",
@@ -46,10 +49,18 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "milestones": [
       "Nghị quyết lịch sử của Quốc hội khóa VI ngày 2/7/1976"
     ],
-    "quote": null,
+    "quote": "Nước Việt Nam là một, dân tộc Việt Nam là một. Sông có thể cạn, núi có thể mòn, song chân lý ấy không bao giờ thay đổi. — Hồ Chí Minh",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "02 Tháng 07",
+    "meaning": "Mốc son hoàn tất quá trình thống nhất đất nước về mặt nhà nước sau Đại thắng Mùa Xuân 1975.",
+    "subtitle": "Mốc son lịch sử thống nhất đất nước trọn vẹn về mặt nhà nước (02/07/1976)",
+    "traditions": [
+      "Tọa đàm chuyên đề lịch sử Quốc hội khóa VI và dấu ấn non sông liền một dải",
+      "Treo cờ Tổ quốc và dâng hương tri ân các thế hệ tiền nhân khai mở non sông",
+      "Giáo dục lịch sử đấu tranh thống nhất Tổ quốc cho thanh thiếu niên"
+    ]
   },
   {
     "id": "ev-07-03-khong-tui-nilon",
@@ -74,7 +85,10 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "03 Tháng 07",
+    "meaning": "Mỗi chiếc túi nilon mất từ 400 đến 1000 năm mới có thể phân hủy hoàn toàn trong tự nhiên.",
+    "subtitle": "Nói không với túi nilon dùng một lần"
   },
   {
     "id": "ev-07-04-hop-tac-xa",
@@ -99,7 +113,10 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "04 Tháng 07",
+    "meaning": "Mô hình hợp tác xã kiểu mới giúp nông dân liên kết sản xuất, xây dựng chuỗi giá trị nông sản sạch OCOP.",
+    "subtitle": "Đoàn kết tương trợ"
   },
   {
     "id": "ev-07-05-bikini-beach",
@@ -124,7 +141,10 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "05 Tháng 07",
+    "meaning": "Khuyến khích rèn luyện bơi lội, thể thao bãi biển và khám phá vẻ đẹp các bãi biển thiên đường của Việt Nam.",
+    "subtitle": "Tận hưởng không khí mùa hè sôi động bên những bờ cát trắng mịn và làn nước tr..."
   },
   {
     "id": "ev-07-06-zoonoses-day",
@@ -149,7 +169,10 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "06 Tháng 07",
+    "meaning": "Hơn 60% các bệnh truyền nhiễm ở người có nguồn gốc từ động vật hoang dã hoặc vật nuôi.",
+    "subtitle": "Kỷ niệm mũi tiêm vaccine dại đầu tiên của Louis Pasteur cứu sống cậu bé Josep..."
   },
   {
     "id": "ev-07-07-world-chocolate-day",
@@ -174,7 +197,10 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "07 Tháng 07",
+    "meaning": "Chocolate đen giàu chất chống oxy hóa flavonoid giúp cải thiện lưu thông máu và kích thích tiết endorphin.",
+    "subtitle": "Vị ngọt ngào pha chút đắng nhẹ quyến rũ"
   },
   {
     "id": "ev-07-08-esports-day",
@@ -199,7 +225,10 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "08 Tháng 07",
+    "meaning": "Các đội tuyển Esports Việt Nam đã xuất sắc giành nhiều huy chương vàng cho đoàn thể thao nước nhà.",
+    "subtitle": "Tôn vinh tư duy chiến thuật, phản xạ nhanh nhạy và tinh thần đồng đội của thế..."
   },
   {
     "id": "ev-07-09-du-lich-vn",
@@ -225,7 +254,10 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "09 Tháng 07",
+    "meaning": "Quảng bá cảnh quan hùng vĩ, ẩm thực phong phú và sự hiếu khách nồng hậu của con người đất Việt.",
+    "subtitle": "Tự hào vẻ đẹp non nước ngàn năm"
   },
   {
     "id": "ev-07-10-solar-energy",
@@ -250,7 +282,10 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "10 Tháng 07",
+    "meaning": "Việt Nam có số giờ nắng trung bình từ 2.000 đến 2.600 giờ/năm, tiềm năng năng lượng tái tạo hàng đầu khu vực.",
+    "subtitle": "Khai thác nguồn năng lượng vô tận từ ánh nắng vàng của vùng nhiệt đới trù phú."
   },
   {
     "id": "ev-07-11-dan-so-the-gioi",
@@ -275,7 +310,10 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "11 Tháng 07",
+    "meaning": "Khẳng định quyền được tiếp cận dịch vụ y tế kế hoạch hóa gia đình an toàn và bình đẳng giới.",
+    "subtitle": "Nâng cao chất lượng dân số, chăm sóc sức khỏe sinh sản và tận dụng cơ cấu dân..."
   },
   {
     "id": "ev-07-12-malala-day",
@@ -300,7 +338,10 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "quote": "Một cuốn sách, một cây bút, một đứa trẻ và một giáo viên có thể thay đổi thế giới.",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "12 Tháng 07",
+    "meaning": "Khẳng định một đứa trẻ, một giáo viên, một cuốn sách và một cây bút có thể thay đổi thế giới.",
+    "subtitle": "Tôn vinh lòng dũng cảm bảo vệ quyền được đến trường học tập của mọi bé gái tr..."
   },
   {
     "id": "ev-07-13-rock-music-day",
@@ -325,7 +366,10 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "13 Tháng 07",
+    "meaning": "Nhạc Rock Việt Nam ghi dấu ấn sâu đậm với các ban nhạc huyền thoại như Bức Tường, Microwave, Ngũ Cung...",
+    "subtitle": "Giai điệu bùng cháy, ngọn lửa tự do và tinh thần đoàn kết vượt qua ranh giới ..."
   },
   {
     "id": "ev-07-14-shark-awareness",
@@ -350,7 +394,10 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "14 Tháng 07",
+    "meaning": "Cá mập đã sinh sống trên Trái Đất hơn 400 triệu năm, trước cả khi loài khủng long xuất hiện.",
+    "subtitle": "Loài săn mồi đỉnh cao giữ vai trò then chốt điều hòa hệ sinh thái biển khơi."
   },
   {
     "id": "ev-07-15-thanh-nien-xung-phong",
@@ -373,10 +420,18 @@ export const JULY_EVENTS: VietnamEvent[] = [
       "Kỷ niệm thành lập lực lượng TNXP năm 1950",
       "Tưởng nhớ 10 cô gái thanh niên xung phong Ngã ba Đồng Lộc"
     ],
-    "quote": "Không có việc gì khó / Chỉ sợ lòng không bền / Đào núi và lấp biển / Quyết chí ắt làm nên. — Bác Hồ",
+    "quote": "Không có việc gì khó / Chỉ sợ lòng không bền / Đào núi và lấp biển / Quyết chí ắt làm nên. — Bác Hồ tặng Thanh niên xung phong (1951)",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "15 Tháng 07",
+    "meaning": "Gắn liền với những địa danh lịch sử huyền thoại: Ngã ba Đồng Lộc, Truông Bồn, Hang Tám Cô...",
+    "subtitle": "Noi gương 10 cô gái Ngã ba Đồng Lộc — Khúc tráng ca dâng hiến cho Tổ quốc",
+    "traditions": [
+      "Lễ dâng hương tại Khu di tích Lịch sử Quốc gia đặc biệt Ngã ba Đồng Lộc và Truông Bồn",
+      "Thăm hỏi và tặng quà các cựu thanh niên xung phong có hoàn cảnh khó khăn",
+      "Thế hệ trẻ học tập tấm gương kiên cường, dũng cảm mở đường thắng lợi của cha anh"
+    ]
   },
   {
     "id": "ev-07-16-snake-day",
@@ -401,7 +456,10 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "16 Tháng 07",
+    "meaning": "Trại rắn Đồng Tâm (Tiền Giang) là trung tâm nuôi dưỡng và nghiên cứu điều chế huyết thanh kháng nọc rắn lớn nhất nước ta.",
+    "subtitle": "Tìm hiểu sinh vật kỳ bí trong tự nhiên và giá trị y học của nọc rắn trong điề..."
   },
   {
     "id": "ev-07-17-world-emoji-day",
@@ -426,7 +484,10 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "17 Tháng 07",
+    "meaning": "Emoji giúp con người truyền tải cảm xúc vui, buồn, bất ngờ mà ngôn từ đôi khi khó diễn tả hết.",
+    "subtitle": "Ngôn ngữ biểu cảm phổ biến nhất thế giới số"
   },
   {
     "id": "ev-07-18-mandela-day",
@@ -451,7 +512,10 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "quote": "Khó khăn có thể quật ngã một số người, nhưng cũng tôi luyện những người khác trở nên phi thường.",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "18 Tháng 07",
+    "meaning": "Kêu gọi mỗi người dành ra 67 phút trong ngày để làm việc thiện phụng sự xã hội.",
+    "subtitle": "Tôn vinh biểu tượng bất diệt của lòng bao dung, hòa giải dân tộc và cuộc đấu ..."
   },
   {
     "id": "ev-07-19-ice-cream-day",
@@ -476,7 +540,10 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "19 Tháng 07",
+    "meaning": "Kem Tràng Tiền (Hà Nội), kem Bạch Đằng (TP.HCM) với vị đậu xanh, cốm non, dừa tươi đã in sâu vào ký ức nhiều thế hệ.",
+    "subtitle": "Món quà ngọt ngào xua tan cái nóng oi ả của mùa hè"
   },
   {
     "id": "ev-07-20-hiep-dinh-geneve",
@@ -502,7 +569,10 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "20 Tháng 07",
+    "meaning": "Kết thúc thắng lợi cuộc kháng chiến 9 năm chống thực dân Pháp, giải phóng hoàn toàn miền Bắc.",
+    "subtitle": "Buộc thực dân Pháp công nhận độc lập, chủ quyền, thống nhất và toàn vẹn lãnh ..."
   },
   {
     "id": "ev-07-21-junk-food",
@@ -527,7 +597,10 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "21 Tháng 07",
+    "meaning": "Ẩm thực truyền thống Việt Nam với nhiều rau thơm tươi sống, nước canh thanh đạm là bài thuốc dinh dưỡng tự nhiên.",
+    "subtitle": "Thưởng thức món ăn yêu thích một cách chừng mực và tăng cường rau xanh, trái ..."
   },
   {
     "id": "ev-07-22-world-brain-day",
@@ -552,7 +625,10 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "22 Tháng 07",
+    "meaning": "Đọc sách, học ngoại ngữ mới và ngủ đủ giấc là những cách tốt nhất để rèn luyện não bộ dẻo dai.",
+    "subtitle": "Chăm sóc bộ chỉ huy trung tâm của cơ thể"
   },
   {
     "id": "ev-07-23-hang-xom-than-thien",
@@ -577,7 +653,10 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "23 Tháng 07",
+    "meaning": "Tục ngữ Việt Nam: 'Hàng xóm tối lửa tắt đèn có nhau' thể hiện sự đùm bọc, tương thân tương ái truyền đời.",
+    "subtitle": "Bán anh em xa mua láng giềng gần"
   },
   {
     "id": "ev-07-24-self-care-day",
@@ -602,7 +681,10 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "24 Tháng 07",
+    "meaning": "Yêu thương bản thân không phải là ích kỷ, mà là nền tảng để có đủ năng lượng chăm lo cho những người xung quanh.",
+    "subtitle": "24/7 yêu thương chính mình"
   },
   {
     "id": "ev-07-25-chong-duoi-nuoc",
@@ -627,7 +709,10 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "25 Tháng 07",
+    "meaning": "Tại Việt Nam, các lớp dạy bơi miễn phí và trang bị kỹ năng an toàn trong môi trường nước được triển khai rộng khắp.",
+    "subtitle": "Trang bị kỹ năng bơi an toàn cho trẻ em"
   },
   {
     "id": "ev-07-26-rung-ngap-man",
@@ -652,7 +737,10 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "26 Tháng 07",
+    "meaning": "Rừng ngập mặn hấp thụ lượng carbon cao gấp nhiều lần rừng trên cạn và là bức tường thành chắn sóng bão tự nhiên.",
+    "subtitle": "Tấm đê xanh chở che bờ cõi"
   },
   {
     "id": "ev-07-27-thuong-binh-liet-si",
@@ -675,10 +763,18 @@ export const JULY_EVENTS: VietnamEvent[] = [
       "Đêm hội thắp nến tri ân tại Nghĩa trang Liệt sĩ Quốc gia Trường Sơn",
       "Thăm hỏi các Mẹ Việt Nam Anh hùng và thương bệnh binh"
     ],
-    "quote": "Máu đào của các liệt sĩ đã nhuộm màu cờ Tổ quốc thêm đỏ thắm. — Hồ Chí Minh",
+    "quote": "Máu đào của các liệt sĩ đã nhuộm màu cờ Tổ quốc thêm đỏ chói. Sự hy sinh dũng cảm của các liệt sĩ đã chuẩn bị cho đất nước ta nở hoa độc lập, kết quả tự do. — Hồ Chí Minh",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "27 Tháng 07",
+    "meaning": "Tri ân sâu sắc những người lính đã cống hiến xương máu vì độc lập dân tộc, tự do của nhân dân.",
+    "subtitle": "Ngày Thương binh - Liệt sĩ — Uống nước nhớ nguồn, Đền ơn đáp nghĩa",
+    "traditions": [
+      "Lễ thắp nến tri ân tại tất cả các nghĩa trang liệt sĩ trên toàn quốc lúc hoàng hôn 27/7",
+      "Thăm hỏi, tặng quà các Mẹ Việt Nam Anh hùng, thương binh, bệnh binh và gia đình liệt sĩ",
+      "Tổ chức chương trình nghệ thuật tưởng niệm khúc tráng ca hào hùng của cha anh"
+    ]
   },
   {
     "id": "ev-07-28-cong-doan-va-asean",
@@ -701,10 +797,18 @@ export const JULY_EVENTS: VietnamEvent[] = [
       "Thành lập Tổng Công hội Đỏ năm 1929",
       "Lễ kết nạp Việt Nam vào ASEAN tại Brunei năm 1995"
     ],
-    "quote": null,
+    "quote": "Công đoàn là chỗ dựa tin cậy của người lao động, cầu nối vững chắc giữa Đảng, Nhà nước và giai cấp công nhân.",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "28 Tháng 07",
+    "meaning": "Bảo vệ quyền lợi hợp pháp của người lao động và mở ra chương mới trong tiến trình hội nhập quốc tế sâu rộng.",
+    "subtitle": "Kỷ niệm Ngày thành lập Công đoàn Việt Nam (28/07/1929) & Gia nhập ASEAN (1995)",
+    "traditions": [
+      "Lễ kỷ niệm tôn vinh cán bộ công đoàn cơ sở tiêu biểu và người lao động xuất sắc",
+      "Phát động các phong trào thi đua 'Lao động giỏi, Lao động sáng tạo'",
+      "Ký kết thỏa ước lao động tập thể chăm lo quyền lợi tốt hơn cho người lao động"
+    ]
   },
   {
     "id": "ev-07-29-tiger-day",
@@ -729,7 +833,10 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "29 Tháng 07",
+    "meaning": "Hổ là loài chỉ thị sinh thái quan trọng phản ánh sức khỏe của những cánh rừng già nguyên sinh.",
+    "subtitle": "Bảo tồn loài chúa tể sơn lâm kiêu hùng khỏi nguy cơ tuyệt chủng trong tự nhiên."
   },
   {
     "id": "ev-07-30-huu-nghi-quoc-te",
@@ -754,7 +861,10 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "30 Tháng 07",
+    "meaning": "Tình bạn chân thành giúp xóa bỏ định kiến, hóa giải bất đồng và xây dựng niềm tin vững bền.",
+    "subtitle": "Bắc nhịp cầu tình bạn vượt muôn trùng biên giới"
   },
   {
     "id": "ev-07-31-kiem-lam",
@@ -779,6 +889,9 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "31 Tháng 07",
+    "meaning": "Lực lượng kiểm lâm ngày đêm đối mặt với hiểm nguy, gian nan để ngăn chặn lâm tặc và cháy rừng.",
+    "subtitle": "Tri ân những bước chân thầm lặng bám rừng tuần tra bảo vệ báu vật thiên nhiên..."
   }
 ];

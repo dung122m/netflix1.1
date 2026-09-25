@@ -25,7 +25,10 @@ export const APRIL_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "01 Tháng 04",
+    "meaning": "Mang lại tiếng cười sảng khoái và cùng lắng lòng nghe lại những bản tình ca vượt thời gian.",
+    "subtitle": "Những nụ cười dí dỏm cùng những giai điệu bất hủ về tình yêu và thân phận con..."
   },
   {
     "id": "ev-04-02-autism-day",
@@ -51,7 +54,10 @@ export const APRIL_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "02 Tháng 04",
+    "meaning": "Giúp xã hội có cái nhìn cảm thông, tạo điều kiện cho trẻ tự kỷ phát huy năng khiếu đặc biệt.",
+    "subtitle": "Thắp ánh sáng xanh hy vọng"
   },
   {
     "id": "ev-04-03-khong-quan-tran-dau",
@@ -77,7 +83,10 @@ export const APRIL_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "03 Tháng 04",
+    "meaning": "Mở đầu trang sử chiến đấu vẻ vang và truyền thống bách chiến bách thắng của Không quân Nhân dân.",
+    "subtitle": "Những cánh én bạc anh dũng xuất kích trên bầu trời Hàm Rồng bắn rơi máy bay t..."
   },
   {
     "id": "ev-04-04-bom-min",
@@ -103,7 +112,10 @@ export const APRIL_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "04 Tháng 04",
+    "meaning": "Việt Nam là một trong những quốc gia chịu hậu quả nặng nề nhất của bom mìn sót lại sau chiến tranh.",
+    "subtitle": "Hành động vì một mảnh đất bình yên, sạch bóng bom mìn sót lại sau chiến tranh."
   },
   {
     "id": "ev-04-05-conscience-day",
@@ -128,7 +140,10 @@ export const APRIL_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "05 Tháng 04",
+    "meaning": "Khẳng định lương tâm là chiếc la bàn đạo đức giúp con người vượt qua cám dỗ và bất công.",
+    "subtitle": "Lắng nghe tiếng gọi của lương tri"
   },
   {
     "id": "ev-04-06-the-thao-hoa-binh",
@@ -153,7 +168,10 @@ export const APRIL_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "06 Tháng 04",
+    "meaning": "Dùng sức mạnh của thể thao để thúc đẩy tình hữu nghị, đoàn kết và lối sống khỏe mạnh.",
+    "subtitle": "Thể thao kết nối các dân tộc, xóa nhòa ranh giới và thắp sáng tinh thần thượn..."
   },
   {
     "id": "ev-04-07-hien-mau-nhan-dao",
@@ -179,7 +197,10 @@ export const APRIL_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "07 Tháng 04",
+    "meaning": "Cung cấp nguồn máu quý giá cấp cứu người bệnh, lan tỏa tình thương đồng bào sâu sắc.",
+    "subtitle": "Một giọt máu cho đi"
   },
   {
     "id": "ev-04-08-nem-bom-dinh-doc-lap",
@@ -205,7 +226,10 @@ export const APRIL_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "08 Tháng 04",
+    "meaning": "Chứng minh tài mưu lược của mạng lưới tình báo cách mạng và sự phối hợp tài tình trên bầu trời.",
+    "subtitle": "Cú tập kích đường không táo bạo giáng đòn tâm lý sấm sét vào sào huyệt chính ..."
   },
   {
     "id": "ev-04-09-xuan-loc",
@@ -230,7 +254,10 @@ export const APRIL_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "09 Tháng 04",
+    "meaning": "Trận đánh then chốt phá vỡ tuyến phòng ngự phòng thủ mạnh nhất của địch bảo vệ cửa ngõ Sài Gòn.",
+    "subtitle": "Đập tan 'Cánh cửa thép' tử thủ phía Đông, mở toang đường tiến vào sào huyệt S..."
   },
   {
     "id": "ev-04-10-siblings-day",
@@ -255,7 +282,10 @@ export const APRIL_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "10 Tháng 04",
+    "meaning": "Gợi nhớ ca dao Việt Nam: 'Anh em như thể tay chân / Rách lành đùm bọc dở hay đỡ đần'.",
+    "subtitle": "Tình anh em như thể tay chân"
   },
   {
     "id": "ev-04-11-parkinson",
@@ -280,7 +310,10 @@ export const APRIL_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "11 Tháng 04",
+    "meaning": "Khuyến khích rèn luyện thể thao, vật lý trị liệu và phát hiện sớm các dấu hiệu run tay chân.",
+    "subtitle": "Cùng thấu hiểu, sẻ chia và nâng cao chất lượng cuộc sống cho người cao tuổi m..."
   },
   {
     "id": "ev-04-12-gagarin-flight",
@@ -306,7 +339,10 @@ export const APRIL_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "12 Tháng 04",
+    "meaning": "Việt Nam tự hào có Trung tướng Phạm Tuân là người châu Á đầu tiên bay vào vũ trụ năm 1980.",
+    "subtitle": "Mốc son lịch sử mở ra kỷ nguyên chinh phục không gian của phi hành gia Yuri G..."
   },
   {
     "id": "ev-04-13-scrabble-day",
@@ -331,7 +367,10 @@ export const APRIL_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "13 Tháng 04",
+    "meaning": "Trò chơi ghép chữ giúp mở rộng vốn từ, tăng khả năng tính toán điểm số chiến thuật.",
+    "subtitle": "Rèn luyện tư duy ngôn ngữ, vốn từ vựng phong phú và sự nhạy bén trí óc."
   },
   {
     "id": "ev-04-14-valentine-den",
@@ -356,7 +395,10 @@ export const APRIL_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "14 Tháng 04",
+    "meaning": "Thay vì buồn bã, hội độc thân cùng nhau tụ họp, mặc đồ đen và ăn mì tương đen Jajangmyeon.",
+    "subtitle": "Tôn vinh cuộc sống độc thân vui vẻ, tự do khám phá và yêu thương chăm sóc chí..."
   },
   {
     "id": "ev-04-15-world-art-day",
@@ -379,10 +421,18 @@ export const APRIL_EVENTS: VietnamEvent[] = [
       "Thưởng lãm tranh tại bảo tàng mỹ thuật",
       "Vẽ một bức tranh thể hiện cảm xúc cá nhân"
     ],
-    "quote": null,
+    "quote": "Hội họa là thơ ca được cảm nhận bằng thị giác. — Leonardo da Vinci",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "15 Tháng 04",
+    "meaning": "Nghệ thuật làm phong phú tâm hồn, kết nối cảm xúc và lan tỏa các giá trị thẩm mỹ nhân loại.",
+    "subtitle": "Kỷ niệm ngày sinh Leonardo da Vinci — Tôn vinh nghệ thuật và sức sáng tạo của nhân loại",
+    "traditions": [
+      "Tham quan các bảo tàng mỹ thuật và triển lãm tranh nghệ thuật đương đại",
+      "Trải nghiệm vẽ tranh, nặn gốm hoặc sáng tạo thủ công thư giãn tâm hồn",
+      "Giao lưu nghệ sĩ và tìm hiểu về các trường phái hội họa kinh điển"
+    ]
   },
   {
     "id": "ev-04-16-world-voice-day",
@@ -407,7 +457,10 @@ export const APRIL_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "16 Tháng 04",
+    "meaning": "Giọng nói là phương tiện giao tiếp cốt lõi, thể hiện cá tính, cảm xúc và tài năng ca hát.",
+    "subtitle": "Bảo vệ thanh quản và tôn vinh sức mạnh truyền cảm của giọng nói con người."
   },
   {
     "id": "ev-04-17-hemophilia",
@@ -432,7 +485,10 @@ export const APRIL_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "17 Tháng 04",
+    "meaning": "Nâng cao nhận thức về rối loạn đông máu di truyền và hỗ trợ điều trị sớm các biến chứng khớp.",
+    "subtitle": "Chung tay tiếp cận điều trị bình đẳng cho cộng đồng người bệnh máu khó đông."
   },
   {
     "id": "ev-04-18-nguoi-khuyet-tat-vn",
@@ -454,10 +510,18 @@ export const APRIL_EVENTS: VietnamEvent[] = [
     "milestones": [
       "Chương trình hỗ trợ việc làm và đào tạo nghề cho người khuyết tật"
     ],
-    "quote": null,
+    "quote": "Tình thương yêu và sự tôn trọng bình đẳng là nhịp cầu nâng bước người khuyết tật hòa nhập trọn vẹn vào xã hội.",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "18 Tháng 04",
+    "meaning": "Kêu gọi xóa bỏ rào cản, tạo cơ hội việc làm, học tập bình đẳng cho người khuyết tật.",
+    "subtitle": "Chung tay xóa bỏ rào cản — Tiếp thêm nghị lực vươn lên hòa nhập",
+    "traditions": [
+      "Thăm hỏi, tặng quà và trao phương tiện hỗ trợ sinh hoạt cho người khuyết tật",
+      "Tổ chức hội chợ việc làm và triển lãm sản phẩm thủ công do người khuyết tật làm ra",
+      "Tuyên truyền bảo đảm quyền tiếp cận giao thông, công trình công cộng cho người khuyết tật"
+    ]
   },
   {
     "id": "ev-04-19-van-hoa-dan-toc",
@@ -480,10 +544,19 @@ export const APRIL_EVENTS: VietnamEvent[] = [
       "Ngày hội văn hóa ẩm thực các dân tộc",
       "Trình diễn trang phục thổ cẩm truyền thống"
     ],
-    "quote": null,
+    "quote": "54 dân tộc anh em như 54 đóa hoa cùng khoe sắc trong vườn hoa đại đoàn kết Việt Nam.",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "19 Tháng 04",
+    "meaning": "Bảo tồn trang phục, tiếng nói, phong tục tập quán và làn điệu dân ca truyền thống.",
+    "subtitle": "Ngày Văn hóa các dân tộc Việt Nam — Rực rỡ sắc màu đại đoàn kết",
+    "traditions": [
+      "Lễ hội văn hóa các dân tộc tại Làng Văn hóa - Du lịch các Dân tộc Việt Nam (Đồng Mô, Sơn Tây)",
+      "Trình diễn các làn điệu cồng chiêng Tây Nguyên, múa xòe Thái, hát then Tày Nùng",
+      "Giao lưu ẩm thực và trưng bày trang phục thổ cẩm truyền thống 54 dân tộc"
+    ],
+    "cuisine": "Cơm lam ngũ sắc, thịt lợn cắp nách nướng than hoa, canh thụt Tây Nguyên và rượu cần nồng nàn men lá rừng."
   },
   {
     "id": "ev-04-20-thuong-hieu-quoc-gia",
@@ -509,7 +582,10 @@ export const APRIL_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "20 Tháng 04",
+    "meaning": "Khích lệ các doanh nghiệp nâng cao năng lực cạnh tranh, xây dựng thương hiệu uy tín toàn cầu.",
+    "subtitle": "Tôn vinh trí tuệ, chất lượng và uy tín của các sản phẩm Make in Vietnam vươn ..."
   },
   {
     "id": "ev-04-21-ngay-sach-viet-nam",
@@ -532,10 +608,18 @@ export const APRIL_EVENTS: VietnamEvent[] = [
       "Khai mạc Hội sách toàn quốc ngày 21/4",
       "Tặng sách và xây dựng tủ sách vùng cao"
     ],
-    "quote": "Sách mở ra những chân trời mới.",
+    "quote": "Sách mở ra trước mắt tôi những chân trời mới. — Maxim Gorky",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "21 Tháng 04",
+    "meaning": "Khẳng định vai trò của sách trong việc nuôi dưỡng tâm hồn, nâng cao dân trí và phát triển tư duy sáng tạo.",
+    "subtitle": "Lan tỏa văn hóa đọc — Nâng cao tri thức và phát triển tư duy dân tộc",
+    "traditions": [
+      "Tham quan Hội Sách Quốc gia và các hội sách đường hoa tại Hà Nội, TP.HCM",
+      "Quyên góp sách cho thư viện trường học vùng sâu, vùng xa, biên giới, hải đảo",
+      "Tọa đàm giao lưu giữa các tác giả, dịch giả uy tín và độc giả trẻ"
+    ]
   },
   {
     "id": "ev-04-22-ngay-trai-dat",
@@ -558,10 +642,18 @@ export const APRIL_EVENTS: VietnamEvent[] = [
       "Trồng thêm một mầm cây xanh",
       "Dọn sạch rác thải nhựa tại bờ biển và công viên"
     ],
-    "quote": "Trái Đất là ngôi nhà chung duy nhất của chúng ta.",
+    "quote": "Trái Đất cung cấp đủ cho nhu cầu của mọi người, nhưng không đủ cho lòng tham của con người. — Mahatma Gandhi",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "22 Tháng 04",
+    "meaning": "Kêu gọi giảm thiểu rác thải nhựa, tiết kiệm tài nguyên năng lượng và bảo vệ hệ sinh thái rừng, biển.",
+    "subtitle": "Hành động vì hành tinh xanh — Giảm thiểu rác thải nhựa và bảo vệ khí hậu",
+    "traditions": [
+      "Tắt các thiết bị điện không cần thiết và giảm rác thải nhựa một lần",
+      "Tham gia các buổi dọn rác bãi biển, trồng cây phủ xanh đồi trọc",
+      "Đạp xe hoặc sử dụng phương tiện giao thông công cộng bảo vệ bầu không khí"
+    ]
   },
   {
     "id": "ev-04-23-sach-ban-quyen",
@@ -587,7 +679,10 @@ export const APRIL_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "23 Tháng 04",
+    "meaning": "Khuyến khích mọi người khám phá niềm vui đọc sách và tôn trọng quyền sở hữu trí tuệ của tác giả.",
+    "subtitle": "Tôn vinh những tác giả vĩ đại và quyền tác giả bảo vệ sự sáng tạo văn học."
   },
   {
     "id": "ev-04-24-ngoai-giao-hoa-binh",
@@ -612,7 +707,10 @@ export const APRIL_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "24 Tháng 04",
+    "meaning": "Tôn vinh vai trò của ngoại giao đa phương trong việc duy trì an ninh toàn cầu và hợp tác phát triển.",
+    "subtitle": "Giải quyết tranh chấp bằng đàm phán hòa bình trên nền tảng luật pháp quốc tế."
   },
   {
     "id": "ev-04-25-sot-ret",
@@ -637,7 +735,10 @@ export const APRIL_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "25 Tháng 04",
+    "meaning": "Đánh giá tiến độ loại trừ sốt rét, cung cấp màn tẩm hóa chất và thuốc điều trị cho vùng sâu vùng xa.",
+    "subtitle": "Hành động quyết liệt vì một thế giới và một Việt Nam không còn bệnh sốt rét."
   },
   {
     "id": "ev-04-26-so-huu-tri-tue",
@@ -663,7 +764,10 @@ export const APRIL_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "26 Tháng 04",
+    "meaning": "Khích lệ các nhà sáng chế, doanh nghiệp đăng ký bảo hộ nhãn hiệu và phát minh khoa học.",
+    "subtitle": "Tôn vinh sức sáng tạo và vai trò của bằng sáng chế, bản quyền trong đổi mới c..."
   },
   {
     "id": "ev-04-27-kien-truc-vn",
@@ -689,7 +793,10 @@ export const APRIL_EVENTS: VietnamEvent[] = [
     "quote": "Kiến trúc là bộ mặt của xã hội.",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "27 Tháng 04",
+    "meaning": "Khẳng định kiến trúc phải kết hợp hài hòa giữa bản sắc văn hóa dân tộc và hơi thở thời đại.",
+    "subtitle": "Tôn vinh bàn tay và khối óc kiến tạo nên những công trình mang hồn cốt non sông."
   },
   {
     "id": "ev-04-28-an-toan-lao-dong",
@@ -714,7 +821,10 @@ export const APRIL_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "28 Tháng 04",
+    "meaning": "Bảo đảm quy chuẩn an toàn lao động, trang bị bảo hộ đầy đủ và chăm sóc sức khỏe công nhân.",
+    "subtitle": "An toàn là bạn, tai nạn là thù"
   },
   {
     "id": "ev-04-29-khieu-vu",
@@ -739,7 +849,10 @@ export const APRIL_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "29 Tháng 04",
+    "meaning": "Kết nối mọi người không phân biệt biên giới qua các điệu múa truyền thống, khiêu vũ thể thao và nhảy hiện đại.",
+    "subtitle": "Vẻ đẹp ngôn ngữ cơ thể"
   },
   {
     "id": "ev-04-30-giai-phong-mien-nam",
@@ -763,9 +876,18 @@ export const APRIL_EVENTS: VietnamEvent[] = [
       "Kỳ nghỉ lễ lớn thiêng liêng của toàn dân",
       "Dịp tri ân các anh hùng liệt sĩ đã hy sinh xương máu"
     ],
-    "quote": "Đất nước trọn niềm vui — Non sông liền một dải.",
+    "quote": "Năm tháng sẽ trôi qua, nhưng thắng lợi của nhân dân ta trong sự nghiệp kháng chiến chống Mỹ cứu nước mãi mãi được ghi vào lịch sử dân tộc như một trong những trang chói lọi nhất.",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "30 Tháng 04",
+    "meaning": "Chấm dứt chiến tranh chia cắt, non sông Việt Nam nối liền một dải, mở ra kỷ nguyên độc lập tự do.",
+    "subtitle": "Đại thắng Mùa Xuân 1975 — Non sông thu về một mối, đất nước trọn niềm vui",
+    "traditions": [
+      "Lễ dâng hương tri ân các Anh hùng liệt sĩ tại các nghĩa trang liệt sĩ trên cả nước",
+      "Viếng Dinh Độc Lập và các địa danh lịch sử gắn liền với Chiến dịch Hồ Chí Minh",
+      "Treo cờ Tổ quốc rực rỡ trước hiên nhà chào mừng ngày hội non sông thống nhất",
+      "Kỳ nghỉ lễ trọng đại của toàn dân cùng sum họp gia đình hoặc du lịch"
+    ]
   }
 ];

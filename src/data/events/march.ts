@@ -24,7 +24,10 @@ export const MARCH_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "01 Tháng 03",
+    "meaning": "Xây dựng một thế giới nơi mọi cá nhân đều được tôn trọng và đối xử công bằng.",
+    "subtitle": "Bảo vệ phẩm giá, quyền con người và sự bình đẳng trọn vẹn cho tất cả mọi người."
   },
   {
     "id": "ev-03-02-read-across",
@@ -49,7 +52,10 @@ export const MARCH_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "02 Tháng 03",
+    "meaning": "Nuôi dưỡng tâm hồn, trí tưởng tượng và vốn từ phong phú cho trẻ nhỏ.",
+    "subtitle": "Khơi gợi niềm đam mê khám phá thế giới qua những trang sách diệu kỳ cho trẻ thơ."
   },
   {
     "id": "ev-03-03-bien-phong-vn",
@@ -75,7 +81,10 @@ export const MARCH_EVENTS: VietnamEvent[] = [
     "quote": "Đồn là nhà, biên giới là quê hương, đồng bào các dân tộc là anh em ruột thịt.",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "03 Tháng 03",
+    "meaning": "Gìn giữ chủ quyền biên giới quốc gia, gắn bó máu thịt với đồng bào các dân tộc thiểu số.",
+    "subtitle": "Tôn vinh những người lính mang quân hàm xanh ngày đêm canh giữ vững chắc biên..."
   },
   {
     "id": "ev-03-04-engineering",
@@ -100,7 +109,10 @@ export const MARCH_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "04 Tháng 03",
+    "meaning": "Khuyến khích sáng tạo các công trình giao thông, năng lượng xanh bảo vệ môi trường.",
+    "subtitle": "Tôn vinh các kỹ sư và giải pháp công nghệ kiến tạo cơ sở hạ tầng tương lai."
   },
   {
     "id": "ev-03-05-energy-saving",
@@ -125,7 +137,10 @@ export const MARCH_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "05 Tháng 03",
+    "meaning": "Giảm phát thải khí nhà kính và tiết kiệm chi phí sinh hoạt cho mỗi gia đình.",
+    "subtitle": "Sử dụng năng lượng thông minh, tiết kiệm nguồn tài nguyên quý giá của đất mẹ."
   },
   {
     "id": "ev-03-06-dentist-day",
@@ -150,7 +165,10 @@ export const MARCH_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "06 Tháng 03",
+    "meaning": "Răng miệng khỏe mạnh là nền tảng cho sức khỏe tổng thể và sự tự tin giao tiếp.",
+    "subtitle": "Tri ân những chuyên gia chăm sóc nụ cười rạng rỡ và sức khỏe răng miệng cộng ..."
   },
   {
     "id": "ev-03-07-read-aloud",
@@ -175,7 +193,10 @@ export const MARCH_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "07 Tháng 03",
+    "meaning": "Gắn kết các thế hệ trong gia đình qua những câu chuyện cổ tích và bài học nhân văn.",
+    "subtitle": "Sức mạnh kết nối của giọng đọc truyền cảm qua từng câu chuyện ấm áp tình thân."
   },
   {
     "id": "ev-03-08-quoc-te-phu-nu",
@@ -198,10 +219,18 @@ export const MARCH_EVENTS: VietnamEvent[] = [
       "Cuộc biểu tình đòi bình đẳng của nữ công nhân năm 1908",
       "Tặng hoa và lời chúc yêu thương đến người phụ nữ quanh ta"
     ],
-    "quote": "Phụ nữ là để yêu thương và trân trọng.",
+    "quote": "Non sông gấm vóc Việt Nam do phụ nữ ta, trẻ cũng như già, ra sức dệt thêu mà thêm tốt đẹp, rực rỡ. — Hồ Chí Minh",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "08 Tháng 03",
+    "meaning": "Khẳng định bình đẳng giới và lòng biết ơn sâu sắc đối với một nửa thế giới dịu dàng.",
+    "subtitle": "Ngợi ca vẻ đẹp phụ nữ toàn cầu và hào khí Hai Bà Trưng bất khuất",
+    "traditions": [
+      "Gửi tặng những bó hoa tươi thắm và lời chúc chân thành đến bà, mẹ, vợ và đồng nghiệp nữ",
+      "Lễ dâng hương tưởng niệm Hai Bà Trưng tại Di tích Quốc gia đặc biệt Đền Hai Bà Trưng (Mê Linh, Hà Nội)",
+      "Tổ chức các buổi gặp mặt, hội thi nấu ăn và tôn vinh phụ nữ giỏi việc nước, đảm việc nhà"
+    ]
   },
   {
     "id": "ev-03-09-khang-nhat",
@@ -227,7 +256,10 @@ export const MARCH_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "09 Tháng 03",
+    "meaning": "Ban Thường vụ Trung ương Đảng họp ra chỉ thị lịch sử 'Nhật - Pháp bắn nhau và hành động của chúng ta'.",
+    "subtitle": "Bùng nổ thời cơ cách mạng"
   },
   {
     "id": "ev-03-10-buon-ma-thuot",
@@ -253,7 +285,10 @@ export const MARCH_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "10 Tháng 03",
+    "meaning": "Tạo bước ngoặt quyết định buộc địch phải rút chạy khỏi Tây Nguyên, mở toang cánh cửa về Sài Gòn.",
+    "subtitle": "Đòn điểm huyệt chiến lược mở màn cho Đại thắng Mùa Xuân năm 1975 lịch sử."
   },
   {
     "id": "ev-03-11-plumbing",
@@ -278,7 +313,10 @@ export const MARCH_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "11 Tháng 03",
+    "meaning": "Nước sạch và điều kiện vệ sinh là quyền con người cơ bản bảo vệ sức khỏe cộng đồng.",
+    "subtitle": "Tôn vinh những kỹ sư gìn giữ dòng nước sạch và hệ thống vệ sinh đô thị văn minh."
   },
   {
     "id": "ev-03-12-trong-cay",
@@ -303,7 +341,10 @@ export const MARCH_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "12 Tháng 03",
+    "meaning": "Bảo vệ tài nguyên rừng, chống xói mòn lũ lụt và hấp thụ khí carbon dioxide.",
+    "subtitle": "Phủ xanh đồi trọc, bảo vệ lá phổi xanh của đất nước vì thế hệ mai sau."
   },
   {
     "id": "ev-03-13-sleep-day",
@@ -328,7 +369,10 @@ export const MARCH_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "13 Tháng 03",
+    "meaning": "Nhắc nhở mọi người không hy sinh giấc ngủ vì công việc, ngủ đủ 7-8 tiếng mỗi đêm.",
+    "subtitle": "Giấc ngủ trọn vẹn là chìa khóa vàng tái tạo năng lượng thể chất và tinh thần ..."
   },
   {
     "id": "ev-03-14-gac-ma",
@@ -354,7 +398,10 @@ export const MARCH_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "14 Tháng 03",
+    "meaning": "Biểu tượng bất tử của lòng quả cảm, quyết tử bảo vệ chủ quyền biển đảo thiêng liêng.",
+    "subtitle": "Vòng tròn bất tử giữa ngàn khơi"
   },
   {
     "id": "ev-03-15-dien-anh-vn",
@@ -377,10 +424,18 @@ export const MARCH_EVENTS: VietnamEvent[] = [
       "Sắc lệnh thành lập ngành Điện ảnh năm 1953",
       "Lễ trao giải Cánh Diều Vàng hàng năm vinh danh điện ảnh nước nhà"
     ],
-    "quote": null,
+    "quote": "Điện ảnh là nghệ thuật thứ bảy giàu sức truyền cảm, phản ánh chân thực tâm hồn và khí phách Việt Nam.",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "15 Tháng 03",
+    "meaning": "Đánh dấu sự ra đời của nền Điện ảnh Cách mạng với những bộ phim kinh điển như 'Chung một dòng sông', 'Cánh đồng hoang', 'Bao giờ cho đến tháng Mười'.",
+    "subtitle": "Kỷ niệm Sắc lệnh 147/SL của Bác Hồ thành lập Doanh nghiệp Chiếu bóng (15/03/1953)",
+    "traditions": [
+      "Lễ kỷ niệm truyền thống và vinh danh các thế hệ nghệ sĩ, đạo diễn, nhà quay phim kỳ cựu",
+      "Chiếu phim tài liệu và phim truyện cách mạng kinh điển miễn phí phục vụ khán giả",
+      "Tọa đàm về phát triển công nghiệp điện ảnh Việt Nam hiện đại, giàu bản sắc"
+    ]
   },
   {
     "id": "ev-03-16-polar-bear",
@@ -405,7 +460,10 @@ export const MARCH_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "16 Tháng 03",
+    "meaning": "Lời cảnh tỉnh nhân loại về mực nước biển dâng đe dọa các đồng bằng ven biển toàn cầu.",
+    "subtitle": "Hành động khẩn cấp ngăn chặn băng tan và bảo vệ sinh vật biểu tượng Bắc Cực."
   },
   {
     "id": "ev-03-17-st-patrick",
@@ -430,7 +488,10 @@ export const MARCH_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "17 Tháng 03",
+    "meaning": "Giao lưu văn hóa âm nhạc dân gian, khiêu vũ vui nhộn và thưởng thức ẩm thực độc đáo.",
+    "subtitle": "Lễ hội sắc xanh rực rỡ tượng trưng cho may mắn, cỏ ba lá và tình bạn vượt biê..."
   },
   {
     "id": "ev-03-18-recycling-day",
@@ -455,7 +516,10 @@ export const MARCH_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "18 Tháng 03",
+    "meaning": "Khuyến khích phân loại rác tại nguồn, tái chế nhựa, giấy, kim loại để giảm ô nhiễm.",
+    "subtitle": "Biến rác thải thành tài nguyên quý giá, kiến tạo nền kinh tế tuần hoàn bền vững."
   },
   {
     "id": "ev-03-19-toan-quoc-chong-my",
@@ -480,7 +544,10 @@ export const MARCH_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "19 Tháng 03",
+    "meaning": "Khẳng định ý chí độc lập tự chủ bất khuất của nhân dân Việt Nam trước mọi thế lực ngoại xâm.",
+    "subtitle": "Ngọn lửa đấu tranh kiên cường của nhân dân Sài Gòn - Chợ Lớn mở màn phong trà..."
   },
   {
     "id": "ev-03-20-quoc-te-hanh-phuc",
@@ -503,10 +570,18 @@ export const MARCH_EVENTS: VietnamEvent[] = [
       "Hưởng ứng Ngày Quốc tế Hạnh phúc của Liên Hợp Quốc",
       "Trao tặng nụ cười và hành động tử tế cho người quanh ta"
     ],
-    "quote": "Hạnh phúc không phải là đích đến, mà là cách chúng ta bước đi.",
+    "quote": "Hạnh phúc không phải là đích đến, mà là hành trình chúng ta đang đi mỗi ngày.",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "20 Tháng 03",
+    "meaning": "Ngày Xuân phân mặt trời nằm thẳng đứng trên đường xích đạo, tượng trưng cho sự cân bằng và hòa hợp.",
+    "subtitle": "Ngày Quốc tế Hạnh phúc — Cân bằng, hài hòa và lan tỏa yêu thương",
+    "traditions": [
+      "Gửi thông điệp yêu thương, lời cảm ơn đến những người đã luôn đồng hành bên mình",
+      "Tham gia các hoạt động thiện nguyện sẻ chia nụ cười cùng những hoàn cảnh khó khăn",
+      "Dành thời gian chăm sóc sức khỏe tinh thần và gắn kết gia đình"
+    ]
   },
   {
     "id": "ev-03-21-tho-ca-the-gioi",
@@ -529,10 +604,18 @@ export const MARCH_EVENTS: VietnamEvent[] = [
       "Đọc và ngâm một bài thơ yêu thích",
       "Trồng thêm cây xanh hưởng ứng Ngày Rừng Thế giới"
     ],
-    "quote": null,
+    "quote": "Thơ là người thư ký trung thành của trái tim. — Balzac",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "21 Tháng 03",
+    "meaning": "Nuôi dưỡng tâm hồn yêu thiên nhiên, trân trọng từng vần thơ đong đầy tình tự dân tộc.",
+    "subtitle": "Tôn vinh tâm hồn thi ca — Tiếng lòng đồng điệu vượt mọi khoảng cách",
+    "traditions": [
+      "Tổ chức đêm thơ giao lưu thi ca tại các câu lạc bộ văn học và trường đại học",
+      "Đọc lại các thi phẩm bất hủ của đại thi hào Nguyễn Du, Hàn Mặc Tử, Xuân Diệu",
+      "Lan tỏa những vần thơ truyền cảm hứng sống đẹp trên không gian mạng"
+    ]
   },
   {
     "id": "ev-03-22-nuoc-the-gioi",
@@ -558,7 +641,10 @@ export const MARCH_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "22 Tháng 03",
+    "meaning": "Cảnh báo khủng hoảng khan hiếm nước ngọt và kêu gọi quản lý bền vững tài nguyên nước.",
+    "subtitle": "Nước là sự sống"
   },
   {
     "id": "ev-03-23-khi-tuong",
@@ -583,7 +669,10 @@ export const MARCH_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "23 Tháng 03",
+    "meaning": "Nâng cao năng lực cảnh báo sớm thiên tai, bão lũ, hạn mặn phục vụ sản xuất và đời sống an toàn.",
+    "subtitle": "Tri ân những nhà dự báo thời tiết thầm lặng giúp cộng đồng phòng tránh thiên ..."
   },
   {
     "id": "ev-03-24-giai-phong-quang-nam",
@@ -609,7 +698,10 @@ export const MARCH_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "24 Tháng 03",
+    "meaning": "Góp phần làm sụp đổ hoàn toàn tuyến phòng ngự kiên cố của địch ở miền Trung.",
+    "subtitle": "Khúc ca khải hoàn giải phóng vùng đất 'Trung dũng kiên cường, đi đầu diệt Mỹ'."
   },
   {
     "id": "ev-03-25-cong-tac-xa-hoi",
@@ -635,7 +727,10 @@ export const MARCH_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "25 Tháng 03",
+    "meaning": "Khẳng định giá trị nhân đạo sâu sắc, trợ giúp người nghèo, trẻ em mồ côi và người khuyết tật vươn lên.",
+    "subtitle": "Tôn vinh những trái tim nhân ái sẻ chia, kết nối và hỗ trợ những hoàn cảnh yế..."
   },
   {
     "id": "ev-03-26-thanh-lap-doan",
@@ -658,10 +753,18 @@ export const MARCH_EVENTS: VietnamEvent[] = [
       "Hội nghị Ban Chấp hành Trung ương Đảng tháng 3/1931",
       "Phong trào Tuổi trẻ sáng tạo và Tình nguyện vì cộng đồng"
     ],
-    "quote": "Đâu cần thanh niên có, việc gì khó có thanh niên.",
+    "quote": "Đâu cần thanh niên có, việc gì khó có thanh niên. — Hồ Chí Minh",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "26 Tháng 03",
+    "meaning": "Khơi dậy tinh thần dấn thân, sáng tạo, làm chủ khoa học công nghệ xây dựng non sông giàu mạnh.",
+    "subtitle": "Kỷ niệm Ngày thành lập Đoàn TNCS Hồ Chí Minh (26/03/1931)",
+    "traditions": [
+      "Lễ mít tinh kỷ niệm và tuyên dương Gương mặt trẻ Việt Nam tiêu biểu",
+      "Hưởng ứng các chiến dịch Tháng Thanh niên: ra quân dọn rác, hiến máu nhân đạo, xây cầu nông thôn",
+      "Kết nạp đoàn viên mới 'Lớp đoàn viên 26/3' tại các địa chỉ đỏ cách mạng"
+    ]
   },
   {
     "id": "ev-03-27-the-thao-vn",
@@ -684,10 +787,18 @@ export const MARCH_EVENTS: VietnamEvent[] = [
       "Bài viết lịch sử 'Sức khỏe và Thể dục' năm 1946",
       "Ngày chạy Olympic vì sức khỏe toàn dân hàng năm"
     ],
-    "quote": "Khỏe để xây dựng và bảo vệ Tổ quốc.",
+    "quote": "Giữ gìn dân chủ, xây dựng nước nhà, gây đời sống mới, việc gì cũng cần có sức khỏe mới làm thành công. — Hồ Chí Minh",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "27 Tháng 03",
+    "meaning": "Khích lệ toàn dân rèn luyện thân thể, nâng cao thể lực và ý chí bền bỉ phụng sự đất nước.",
+    "subtitle": "Noi gương Bác Hồ rèn luyện thân thể — Khỏe để xây dựng và bảo vệ Tổ quốc",
+    "traditions": [
+      "Tổ chức Ngày chạy Olympic vì sức khỏe toàn dân tại tất cả các tỉnh thành cả nước",
+      "Hội thao giao lưu cầu lông, bóng đá, bóng bàn trong các cơ quan trường học",
+      "Đọc lại Lời kêu gọi toàn dân tập thể dục năm 1946 của Bác Hồ"
+    ]
   },
   {
     "id": "ev-03-28-dan-quan-tu-ve",
@@ -713,7 +824,10 @@ export const MARCH_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "28 Tháng 03",
+    "meaning": "Lực lượng bán vũ trang rộng khắp sẵn sàng chiến đấu bảo vệ làng xóm, giữ gìn trật tự trị an tại cơ sở.",
+    "subtitle": "Lực lượng vũ trang quần chúng trung kiên"
   },
   {
     "id": "ev-03-29-giai-phong-da-nang",
@@ -739,7 +853,10 @@ export const MARCH_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "29 Tháng 03",
+    "meaning": "Giải phóng thành phố lớn thứ hai ở miền Nam chỉ trong vòng 3 ngày, tạo đà thần tốc giải phóng Sài Gòn.",
+    "subtitle": "Khải hoàn ca thành phố biển anh hùng"
   },
   {
     "id": "ev-03-30-bac-si-quoc-te",
@@ -764,7 +881,10 @@ export const MARCH_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "30 Tháng 03",
+    "meaning": "Tôn vinh sự hy sinh thầm lặng của đội ngũ y bác sĩ luôn túc trực ngày đêm nơi phòng cấp cứu.",
+    "subtitle": "Tri ân những bàn tay vàng cứu chữa sinh mệnh và thắp lên hy vọng cho người bệnh."
   },
   {
     "id": "ev-03-31-backup-day",
@@ -789,6 +909,9 @@ export const MARCH_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "31 Tháng 03",
+    "meaning": "Hình thành thói quen sao lưu định kỳ các tài liệu, hình ảnh kỷ niệm lên đám mây hoặc ổ cứng ngoài.",
+    "subtitle": "Đừng để một cú click chuột xóa sạch công sức"
   }
 ];

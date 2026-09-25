@@ -79,7 +79,15 @@ export interface DepthItem {
   blur?: string;
 }
 
+export interface HolidayVisualSet {
+  hero: string;
+  supporting: string[];
+  decorative: string[];
+}
+
 export interface HolidayNavbarTheme {
+  visuals?: string[];
+  visualSet?: HolidayVisualSet;
   id: HolidayNavbarThemeId;
   name: string;
   styleName: string;
@@ -112,6 +120,12 @@ export const HOLIDAY_NAVBAR_THEMES: Record<HolidayNavbarThemeId, HolidayNavbarTh
     id: "mid-autumn",
     name: "Tết Trung Thu",
     styleName: "Moonlit Asian Cinema",
+    visuals: ["moon", "lion-dance", "star-lantern", "mooncake", "lantern", "clouds", "stars"],
+    visualSet: {
+      hero: "moon",
+      supporting: ["lion-dance", "star-lantern", "mooncake", "lantern"],
+      decorative: ["clouds", "stars", "sky-lantern", "sparkles"],
+    },
     ambientGradient:
       "radial-gradient(ellipse 70% 90% at 65% -30%, rgba(245, 158, 11, 0.12) 0%, rgba(15, 23, 42, 0.55) 45%, rgba(5, 7, 13, 0.9) 85%)",
     hero: {
@@ -145,6 +159,12 @@ export const HOLIDAY_NAVBAR_THEMES: Record<HolidayNavbarThemeId, HolidayNavbarTh
     id: "tet",
     name: "Tết Nguyên Đán",
     styleName: "Luxury Lunar New Year",
+    visuals: ["blossom-branch", "red-envelope", "banh-chung", "silk-fan", "fireworks", "petals"],
+    visualSet: {
+      hero: "blossom-branch",
+      supporting: ["red-envelope", "banh-chung", "silk-lantern", "silk-fan"],
+      decorative: ["fireworks", "falling-petals", "gold-dust", "sparkles"],
+    },
     ambientGradient:
       "radial-gradient(ellipse 70% 100% at 50% -30%, rgba(136, 19, 55, 0.20) 0%, rgba(69, 10, 10, 0.22) 40%, rgba(5, 5, 5, 0.88) 85%)",
     hero: {
@@ -178,6 +198,12 @@ export const HOLIDAY_NAVBAR_THEMES: Record<HolidayNavbarThemeId, HolidayNavbarTh
     id: "national-day",
     name: "Quốc Khánh & Sự Kiện Lịch Sử",
     styleName: "Elegant Patriotic Cinema",
+    visuals: ["vietnam-flag", "golden-star", "peace-doves", "fireworks", "sunbeams"],
+    visualSet: {
+      hero: "vietnam-flag",
+      supporting: ["golden-star", "peace-doves", "fireworks"],
+      decorative: ["sunbeams", "gold-particles", "aura-glow"],
+    },
     ambientGradient:
       "radial-gradient(ellipse 65% 100% at 50% -30%, rgba(153, 27, 27, 0.20) 0%, rgba(120, 53, 15, 0.14) 45%, rgba(5, 5, 5, 0.88) 85%)",
     hero: {
@@ -209,6 +235,12 @@ export const HOLIDAY_NAVBAR_THEMES: Record<HolidayNavbarThemeId, HolidayNavbarTh
     id: "heritage-hung-kings",
     name: "Giỗ Tổ Hùng Vương",
     styleName: "Ancient Vietnamese Heritage",
+    visuals: ["dong-son-drum", "chim-lac", "sacred-mountains", "torch-embers", "incense"],
+    visualSet: {
+      hero: "dong-son-drum",
+      supporting: ["chim-lac", "sacred-mountains", "festival-banner"],
+      decorative: ["torch-embers", "sacred-flame", "incense-mist"],
+    },
     ambientGradient:
       "radial-gradient(ellipse 60% 100% at 50% -30%, rgba(146, 64, 14, 0.18) 0%, rgba(69, 26, 3, 0.22) 50%, rgba(5, 5, 5, 0.88) 85%)",
     hero: {
@@ -240,6 +272,12 @@ export const HOLIDAY_NAVBAR_THEMES: Record<HolidayNavbarThemeId, HolidayNavbarTh
     id: "christmas",
     name: "Giáng Sinh Noel",
     styleName: "Luxury Winter Cinema",
+    visuals: ["pine-tree", "jingle-bells", "gift-box", "snowflake", "snowfall"],
+    visualSet: {
+      hero: "pine-tree",
+      supporting: ["jingle-bells", "gift-box", "snowflake"],
+      decorative: ["pine-garland", "fairy-lights", "snowfall"],
+    },
     ambientGradient:
       "radial-gradient(ellipse 65% 100% at 60% -25%, rgba(15, 23, 42, 0.55) 0%, rgba(245, 158, 11, 0.08) 45%, rgba(2, 6, 23, 0.9) 85%)",
     hero: {
@@ -273,6 +311,12 @@ export const HOLIDAY_NAVBAR_THEMES: Record<HolidayNavbarThemeId, HolidayNavbarTh
     id: "halloween",
     name: "Lễ Hội Halloween",
     styleName: "Dark Fantasy Cinema",
+    visuals: ["jack-o-lantern", "flying-bats", "spider-web", "crescent-moon", "creepy-mist"],
+    visualSet: {
+      hero: "jack-o-lantern",
+      supporting: ["flying-bats", "spider-web", "crescent-moon"],
+      decorative: ["creepy-mist", "pumpkin-embers", "gnarled-branch"],
+    },
     ambientGradient:
       "radial-gradient(ellipse 65% 100% at 70% -25%, rgba(88, 28, 135, 0.20) 0%, rgba(154, 52, 18, 0.12) 50%, rgba(3, 7, 18, 0.9) 85%)",
     hero: {
@@ -304,6 +348,12 @@ export const HOLIDAY_NAVBAR_THEMES: Record<HolidayNavbarThemeId, HolidayNavbarTh
     id: "valentine",
     name: "Ngày Lễ Tình Nhân Valentine",
     styleName: "Romantic Cinema",
+    visuals: ["intertwined-hearts", "velvet-rose", "love-letter", "rose-petals", "sweet-bokeh"],
+    visualSet: {
+      hero: "intertwined-hearts",
+      supporting: ["velvet-rose", "love-letter", "cupid-arrow"],
+      decorative: ["rose-petals", "love-sparkles", "sweet-bokeh"],
+    },
     ambientGradient:
       "radial-gradient(ellipse 65% 100% at 50% -30%, rgba(159, 18, 57, 0.16) 0%, rgba(76, 5, 25, 0.20) 45%, rgba(5, 5, 5, 0.9) 85%)",
     hero: {
@@ -335,6 +385,12 @@ export const HOLIDAY_NAVBAR_THEMES: Record<HolidayNavbarThemeId, HolidayNavbarTh
     id: "women-family",
     name: "Phụ Nữ & Gia Đình",
     styleName: "Warm Golden Cinema",
+    visuals: ["blooming-peony", "silk-ribbon", "butterfly", "floral-petals", "sparkles"],
+    visualSet: {
+      hero: "blooming-peony",
+      supporting: ["silk-ribbon", "butterfly", "bouquet"],
+      decorative: ["falling-petals", "champagne-sparkles", "bokeh"],
+    },
     ambientGradient:
       "radial-gradient(ellipse 65% 100% at 50% -30%, rgba(112, 26, 117, 0.16) 0%, rgba(67, 20, 7, 0.14) 50%, rgba(5, 5, 5, 0.9) 85%)",
     hero: {
@@ -366,6 +422,12 @@ export const HOLIDAY_NAVBAR_THEMES: Record<HolidayNavbarThemeId, HolidayNavbarTh
     id: "education-teachers",
     name: "Nhà Giáo & Học Trí",
     styleName: "Warm Knowledge",
+    visuals: ["open-book", "fountain-pen", "floral-rosette", "graduation-cap", "warm-glow"],
+    visualSet: {
+      hero: "open-book",
+      supporting: ["fountain-pen", "floral-rosette", "graduation-cap"],
+      decorative: ["chalk-dust", "warm-lamp-glow", "stars"],
+    },
     ambientGradient:
       "radial-gradient(ellipse 65% 100% at 50% -30%, rgba(120, 53, 15, 0.18) 0%, rgba(69, 26, 3, 0.20) 50%, rgba(5, 5, 5, 0.9) 85%)",
     hero: {
@@ -397,6 +459,12 @@ export const HOLIDAY_NAVBAR_THEMES: Record<HolidayNavbarThemeId, HolidayNavbarTh
     id: "military-veterans",
     name: "Quân Đội & Tri Ân Liệt Sĩ",
     styleName: "Respectful Memorial",
+    visuals: ["star-emblem", "laurel-wreath", "peace-dove", "victory-flame", "honor-rays"],
+    visualSet: {
+      hero: "star-emblem",
+      supporting: ["laurel-wreath", "peace-dove", "victory-banner"],
+      decorative: ["honor-rays", "gold-dust", "aura"],
+    },
     ambientGradient:
       "radial-gradient(ellipse 65% 100% at 50% -30%, rgba(127, 29, 29, 0.18) 0%, rgba(69, 10, 10, 0.20) 50%, rgba(5, 5, 5, 0.9) 85%)",
     hero: {
@@ -426,6 +494,12 @@ export const HOLIDAY_NAVBAR_THEMES: Record<HolidayNavbarThemeId, HolidayNavbarTh
     id: "labor-may-day",
     name: "Quốc Tế Lao Động",
     styleName: "Sunrise Energy",
+    visuals: ["gear-wheat", "dawn-sunrise", "constructive-beams", "sunbeams", "energy-sparks"],
+    visualSet: {
+      hero: "gear-wheat",
+      supporting: ["dawn-sunrise", "constructive-beams"],
+      decorative: ["sunbeams", "energy-sparks", "dawn-aura"],
+    },
     ambientGradient:
       "radial-gradient(ellipse 70% 100% at 50% -30%, rgba(153, 27, 27, 0.16) 0%, rgba(120, 53, 15, 0.12) 45%, rgba(5, 5, 5, 0.9) 85%)",
     hero: {
@@ -455,6 +529,12 @@ export const HOLIDAY_NAVBAR_THEMES: Record<HolidayNavbarThemeId, HolidayNavbarTh
     id: "children-youth",
     name: "Thiếu Nhi & Tuổi Trẻ",
     styleName: "Bright Playful Cinema",
+    visuals: ["soaring-kite", "pinwheel", "soap-bubbles", "balloons", "dream-stars"],
+    visualSet: {
+      hero: "soaring-kite",
+      supporting: ["pinwheel", "soap-bubbles", "balloons"],
+      decorative: ["fluffy-clouds", "dream-stars", "sky-breeze"],
+    },
     ambientGradient:
       "radial-gradient(ellipse 65% 100% at 50% -30%, rgba(7, 89, 133, 0.16) 0%, rgba(15, 23, 42, 0.5) 50%, rgba(2, 6, 23, 0.9) 85%)",
     hero: {
@@ -486,6 +566,12 @@ export const HOLIDAY_NAVBAR_THEMES: Record<HolidayNavbarThemeId, HolidayNavbarTh
     id: "earth-environment",
     name: "Ngày Trái Đất & Môi Trường",
     styleName: "Nature Cinema",
+    visuals: ["planet-earth", "sprouting-leaf", "water-droplet", "clean-sunburst", "fireflies"],
+    visualSet: {
+      hero: "planet-earth",
+      supporting: ["sprouting-leaf", "water-droplet", "clean-sunburst"],
+      decorative: ["floating-leaves", "eco-fireflies", "nature-glow"],
+    },
     ambientGradient:
       "radial-gradient(ellipse 65% 100% at 50% -30%, rgba(6, 78, 59, 0.18) 0%, rgba(2, 44, 34, 0.22) 50%, rgba(2, 6, 23, 0.9) 85%)",
     hero: {
@@ -517,6 +603,12 @@ export const HOLIDAY_NAVBAR_THEMES: Record<HolidayNavbarThemeId, HolidayNavbarTh
     id: "traditional-spiritual",
     name: "Lễ Hội Truyền Thống & Tâm Linh",
     styleName: "Zen Cinematic",
+    visuals: ["blooming-lotus", "lotus-lantern", "temple-bell", "zen-incense", "water-ripples"],
+    visualSet: {
+      hero: "blooming-lotus",
+      supporting: ["lotus-lantern", "temple-bell", "herb-leaves"],
+      decorative: ["zen-incense", "candle-glow", "water-ripples"],
+    },
     ambientGradient:
       "radial-gradient(ellipse 65% 100% at 50% -30%, rgba(120, 53, 15, 0.16) 0%, rgba(69, 26, 3, 0.20) 50%, rgba(5, 5, 5, 0.9) 85%)",
     hero: {
@@ -548,6 +640,12 @@ export const HOLIDAY_NAVBAR_THEMES: Record<HolidayNavbarThemeId, HolidayNavbarTh
     id: "new-year",
     name: "Tết Dương Lịch",
     styleName: "Midnight Celebration",
+    visuals: ["midnight-starburst", "champagne-flutes", "midnight-clock", "confetti", "bubbles"],
+    visualSet: {
+      hero: "midnight-starburst",
+      supporting: ["champagne-flutes", "midnight-clock", "festive-ribbon"],
+      decorative: ["champagne-bubbles", "sparkler-twinkles", "gold-dust"],
+    },
     ambientGradient:
       "radial-gradient(ellipse 65% 100% at 50% -30%, rgba(113, 63, 18, 0.16) 0%, rgba(15, 23, 42, 0.5) 50%, rgba(2, 6, 23, 0.9) 85%)",
     hero: {
@@ -579,6 +677,12 @@ export const HOLIDAY_NAVBAR_THEMES: Record<HolidayNavbarThemeId, HolidayNavbarTh
     id: "nana-birthday",
     name: "Sinh Nhật Nana",
     styleName: "Premium Celebration",
+    visuals: ["princess-crown", "birthday-cake", "heart-balloons", "gift-box", "confetti"],
+    visualSet: {
+      hero: "princess-crown",
+      supporting: ["birthday-cake", "heart-balloons", "gift-box"],
+      decorative: ["confetti-streamers", "glitter-sparkles", "pink-aura"],
+    },
     ambientGradient:
       "radial-gradient(ellipse 65% 100% at 50% -30%, rgba(131, 24, 67, 0.16) 0%, rgba(120, 53, 15, 0.10) 45%, rgba(5, 5, 5, 0.9) 85%)",
     hero: {

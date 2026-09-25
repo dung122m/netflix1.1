@@ -24,7 +24,10 @@ export const SEPTEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "01 Tháng 09",
+    "meaning": "Khắp các ngõ phố, làng quê rợp bóng cờ đỏ sao vàng tung bay phấp phới đón Tết Độc Lập.",
+    "subtitle": "Chào tháng Chín mùa thu độc lập"
   },
   {
     "id": "ev-09-02-quoc-khanh-viet-nam",
@@ -49,10 +52,20 @@ export const SEPTEMBER_EVENTS: VietnamEvent[] = [
       "Lễ mít tinh diễu binh chào mừng Tết Độc Lập",
       "Kỳ nghỉ lễ Quốc khánh trọng đại của toàn dân"
     ],
-    "quote": "Nước Việt Nam có quyền hưởng tự do và độc lập, và sự thật đã thành một nước tự do độc lập. — Tuyên ngôn Độc lập",
+    "quote": "Nước Việt Nam có quyền hưởng tự do và độc lập, và sự thật đã thành một nước tự do độc lập. — Tuyên ngôn Độc lập (02/09/1945)",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "02 Tháng 09",
+    "meaning": "Khai sinh nước Việt Nam Dân chủ Cộng hòa, mở ra kỷ nguyên độc lập tự do và chủ nghĩa xã hội cho dân tộc.",
+    "subtitle": "Bản Tuyên ngôn Độc lập Ba Đình — Nước Việt Nam có quyền hưởng tự do và độc lập",
+    "traditions": [
+      "Lễ chào cờ trang nghiêm và dâng hương tại Lăng Chủ tịch Hồ Chí Minh (Quảng trường Ba Đình)",
+      "Treo cờ Tổ quốc đỏ thắm trước hiên nhà trên mọi ngả đường phố phường, làng quê",
+      "Xem pháo hoa rực rỡ và hòa mình vào không khí Tết Độc Lập thiêng liêng cùng gia đình",
+      "Thưởng thức kỳ nghỉ lễ Quốc khánh sum vầy trọn vẹn bên người thân"
+    ],
+    "cuisine": "Cốm vòng dẻo thơm gói lá sen, bún chả Hà Nội, nem rán giòn rụm và mâm cơm sum họp gia đình ngày Tết Độc Lập."
   },
   {
     "id": "ev-09-03-am-nhac-viet-nam",
@@ -75,10 +88,18 @@ export const SEPTEMBER_EVENTS: VietnamEvent[] = [
       "Bác Hồ bắt nhịp Bài ca Kết đoàn năm 1960",
       "Hòa nhạc Ngày Âm nhạc Việt Nam tại các nhà hát"
     ],
-    "quote": null,
+    "quote": "Kết đoàn chúng ta là sức mạnh / Kết đoàn chúng ta là sắt gang. — Bài ca Kết đoàn",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "03 Tháng 09",
+    "meaning": "Tôn vinh các nhạc sĩ, ca sĩ và các tác phẩm âm nhạc truyền thống, cách mạng và đương đại của nước nhà.",
+    "subtitle": "Kỷ niệm Bác Hồ bắt nhịp Bài ca Kết đoàn (03/09/1960) — Giai điệu tự hào",
+    "traditions": [
+      "Các nhà hát tổ chức hòa nhạc 'Ngày Âm nhạc Việt Nam' biểu diễn các tác phẩm kinh điển",
+      "Tôn vinh các nhạc sĩ, nghệ sĩ biểu diễn và giới thiệu các sáng tác mới giàu bản sắc dân tộc",
+      "Biểu diễn âm nhạc đường phố miễn phí phục vụ công chúng tại các không gian đi bộ"
+    ]
   },
   {
     "id": "ev-09-04-suc-khoe-gioi-tinh",
@@ -103,7 +124,10 @@ export const SEPTEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "04 Tháng 09",
+    "meaning": "Giáo dục giới tính sớm và khoa học giúp thanh thiếu niên tự bảo vệ bản thân và xây dựng tình yêu lành mạnh.",
+    "subtitle": "Thúc đẩy giáo dục giới tính khoa học, bình đẳng giới và sự tôn trọng lẫn nhau..."
   },
   {
     "id": "ev-09-05-khai-giang",
@@ -126,10 +150,18 @@ export const SEPTEMBER_EVENTS: VietnamEvent[] = [
       "Tiếng trống trường điểm khai giảng năm học mới",
       "Học sinh náo nức mang khăn quàng đỏ tới trường"
     ],
-    "quote": "Non sông Việt Nam có trở nên tươi đẹp hay không chính là nhờ một phần lớn ở công học tập của các em. — Bác Hồ",
+    "quote": "Non sông Việt Nam có trở nên tươi đẹp hay không, một phần lớn là nhờ vào công học tập của các em. — Hồ Chí Minh",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "05 Tháng 09",
+    "meaning": "Lễ khai giảng đồng loạt trên khắp các trường học từ miền núi đến hải đảo trong không khí hân hoan rực rỡ cờ hoa.",
+    "subtitle": "Ngày Toàn dân đưa trẻ đến trường — Tiếng trống khai trường rộn rã non sông",
+    "traditions": [
+      "Lễ khai giảng năm học mới đồng loạt diễn ra trên khắp mọi miền Tổ quốc lúc 7h30 sáng",
+      "Học sinh đón nghe thư chúc mừng năm học mới của Chủ tịch nước",
+      "Tiếng trống khai trường giòn giã điểm giờ xuất phát cho một năm học mới nhiều ước mơ"
+    ]
   },
   {
     "id": "ev-09-06-doc-sach-cung-con",
@@ -154,7 +186,10 @@ export const SEPTEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "06 Tháng 09",
+    "meaning": "Hình thành thói quen đọc sách từ nhỏ giúp trẻ phát triển tư duy ngôn ngữ và trí tưởng tượng phong phú.",
+    "subtitle": "Mười lăm phút đọc sách mỗi tối cùng con là món quà vô giá xây đắp tương lai t..."
   },
   {
     "id": "ev-09-07-vtv-va-khong-khi-sach",
@@ -180,7 +215,10 @@ export const SEPTEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "07 Tháng 09",
+    "meaning": "VTV là đài truyền hình quốc gia đồng hành cùng dòng chảy lịch sử, phản ánh hơi thở cuộc sống và văn hóa dân tộc.",
+    "subtitle": "Cầu nối thông tin của hàng triệu gia đình và hành động vì bầu trời trong lành..."
   },
   {
     "id": "ev-09-08-xoa-mu-chu-tieng-viet",
@@ -206,7 +244,10 @@ export const SEPTEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "08 Tháng 09",
+    "meaning": "Xóa mù chữ mở ra cơ hội việc làm, thoát nghèo và nâng cao vị thế của người dân trong xã hội.",
+    "subtitle": "Ánh sáng con chữ xua tan nghèo đói"
   },
   {
     "id": "ev-09-09-xe-dien-va-mua-sam",
@@ -231,7 +272,10 @@ export const SEPTEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "09 Tháng 09",
+    "meaning": "Các dòng xe buýt điện VinBus và xe máy điện đang trở thành phương tiện giao thông quen thuộc của người dân.",
+    "subtitle": "Chuyển đổi giao thông xanh không phát thải và sự bùng nổ của thương mại điện ..."
   },
   {
     "id": "ev-09-10-mat-tran-to-quoc",
@@ -257,7 +301,10 @@ export const SEPTEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "10 Tháng 09",
+    "meaning": "Kế thừa truyền thống vẻ vang của Hội Phản đế đồng minh (1930) và Mặt trận Việt Minh (1941).",
+    "subtitle": "Biểu tượng của khối đại đoàn kết toàn dân tộc"
   },
   {
     "id": "ev-09-11-hoa-binh-qua-cam",
@@ -282,7 +329,10 @@ export const SEPTEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "11 Tháng 09",
+    "meaning": "Những người lính cứu hỏa luôn sẵn sàng lao vào ngọn lửa rực cháy để bảo vệ tính mạng và tài sản cho nhân dân.",
+    "subtitle": "Tôn vinh những người lính cứu hỏa, cứu nạn cứu hộ không quản hiểm nguy xông p..."
   },
   {
     "id": "ev-09-12-xo-viet-nghe-tinh",
@@ -308,7 +358,10 @@ export const SEPTEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "12 Tháng 09",
+    "meaning": "Khẳng định sức mạnh vĩ đại của liên minh công nông dưới sự lãnh đạo của Đảng Cộng sản.",
+    "subtitle": "Bản anh hùng ca quật khởi"
   },
   {
     "id": "ev-09-13-lap-trinh-vien",
@@ -334,7 +387,10 @@ export const SEPTEMBER_EVENTS: VietnamEvent[] = [
     "quote": "First, solve the problem. Then, write the code.",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "13 Tháng 09",
+    "meaning": "Tôn vinh đóng góp thầm lặng của các kỹ sư phần mềm tạo ra những ứng dụng thay đổi cuộc sống hàng tỷ người.",
+    "subtitle": "Tôn vinh những 'phù thủy mã nguồn' đang ngày đêm viết nên các thuật toán định..."
   },
   {
     "id": "ev-09-14-so-cap-cuu",
@@ -359,7 +415,10 @@ export const SEPTEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "14 Tháng 09",
+    "meaning": "Sơ cứu đúng cách khi bị hóc dị vật, ngừng tim, bỏng hay tai nạn giao thông giúp giảm thiểu di chứng.",
+    "subtitle": "Kỹ năng sơ cứu ban đầu đúng cách"
   },
   {
     "id": "ev-09-15-thong-tan-va-dan-chu",
@@ -385,7 +444,10 @@ export const SEPTEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "15 Tháng 09",
+    "meaning": "Hơn 260 nhà báo liệt sĩ của TTXVN đã anh dũng hy sinh trên khắp các chiến trường vì độc lập dân tộc.",
+    "subtitle": "Dòng tin chính thống, chuẩn xác chảy mãi không ngừng"
   },
   {
     "id": "ev-09-16-bao-ve-tang-ozone",
@@ -410,7 +472,10 @@ export const SEPTEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "16 Tháng 09",
+    "meaning": "Nghị định thư Montreal được coi là hiệp ước môi trường quốc tế thành công nhất trong lịch sử nhân loại.",
+    "subtitle": "Bảo vệ tấm lá chắn vô hình che chở Trái Đất khỏi các tia bức xạ cực tím nguy ..."
   },
   {
     "id": "ev-09-17-an-toan-nguoi-benh",
@@ -435,7 +500,10 @@ export const SEPTEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "17 Tháng 09",
+    "meaning": "Khuyến khích văn hóa y tế minh bạch, lắng nghe người bệnh và kiểm soát chặt chẽ sai sót dùng thuốc.",
+    "subtitle": "Chẩn đoán chính xác, an toàn điều trị"
   },
   {
     "id": "ev-09-18-binh-dang-tien-luong",
@@ -460,7 +528,10 @@ export const SEPTEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "18 Tháng 09",
+    "meaning": "Phụ nữ trên toàn cầu vẫn đang nhận mức lương trung bình thấp hơn khoảng 20% so với nam giới cho cùng công việc.",
+    "subtitle": "Công việc như nhau"
   },
   {
     "id": "ev-09-19-den-hung-bac-ho",
@@ -486,7 +557,10 @@ export const SEPTEMBER_EVENTS: VietnamEvent[] = [
     "quote": "Các Vua Hùng đã có công dựng nước / Bác cháu ta phải cùng nhau giữ lấy nước. — Hồ Chí Minh",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "19 Tháng 09",
+    "meaning": "Lời hiệu triệu thiêng liêng đúc kết lịch sử hàng ngàn năm dựng nước và giữ nước của dân tộc Việt Nam.",
+    "subtitle": "'Các Vua Hùng đã có công dựng nước, Bác cháu ta phải cùng nhau giữ lấy nước'."
   },
   {
     "id": "ev-09-20-vietnam-lhq",
@@ -512,7 +586,10 @@ export const SEPTEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "20 Tháng 09",
+    "meaning": "Cột mốc khẳng định vị thế quốc tế của nước Việt Nam thống nhất, mở đầu thời kỳ hợp tác đa phương rộng mở.",
+    "subtitle": "Lá cờ đỏ sao vàng kiêu hãnh tung bay tại trụ sở Liên Hợp Quốc ở New York."
   },
   {
     "id": "ev-09-21-hoa-binh-quoc-te",
@@ -538,7 +615,10 @@ export const SEPTEMBER_EVENTS: VietnamEvent[] = [
     "quote": "Hòa bình không chỉ là vắng bóng chiến tranh, mà là sự hiện diện của công lý.",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "21 Tháng 09",
+    "meaning": "Mỗi năm, Tổng Thư ký Liên Hợp Quốc đánh Chuông Hòa bình tại trụ sở New York để mở màn buổi lễ.",
+    "subtitle": "Tiếng chuông hòa bình ngân vang"
   },
   {
     "id": "ev-09-22-khong-khoi-xe",
@@ -563,7 +643,10 @@ export const SEPTEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "22 Tháng 09",
+    "meaning": "Giảm ùn tắc giao thông, hạn chế tiếng ồn đô thị và cắt giảm hàng triệu tấn khí thải độc hại CO2.",
+    "subtitle": "Hưởng ứng lối sống xanh, đi bộ, xe đạp và xe buýt công cộng để trả lại bầu tr..."
   },
   {
     "id": "ev-09-23-nam-bo-khang-chien",
@@ -586,10 +669,17 @@ export const SEPTEMBER_EVENTS: VietnamEvent[] = [
       "Tiếng súng kháng chiến rền vang tại Sài Gòn ngày 23/9/1945",
       "Danh hiệu cao quý Thành đồng Tổ quốc"
     ],
-    "quote": "Thà chết tự do còn hơn sống nô lệ.",
+    "quote": "Mùa thu rồi ngày hai mươi ba / Ta đi theo tiếng kêu sơn hà nguy biến. — Tạ Thanh Sơn",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "23 Tháng 09",
+    "meaning": "Bác Hồ tặng quân dân miền Nam danh hiệu cao quý: 'Thành đồng Tổ quốc' vì sự kiên cường đi trước về sau.",
+    "subtitle": "Tiếng súng mở màn mùa thu 1945 — Thành đồng Tổ quốc quật khởi kiên cường",
+    "traditions": [
+      "Lễ dâng hoa tại Tượng đài Nam Bộ Kháng Chiến và Nghĩa trang Liệt sĩ TP.HCM",
+      "Gặp mặt nhân chứng lịch sử và ôn lại bài hát hào hùng 'Nam Bộ kháng chiến' của nhạc sĩ Tạ Thanh Sơn"
+    ]
   },
   {
     "id": "ev-09-24-thuyen-buom-the-thao",
@@ -614,7 +704,10 @@ export const SEPTEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "24 Tháng 09",
+    "meaning": "Bờ biển Nha Trang, Mũi Né, Phú Quốc là những thiên đường thể thao nước thu hút du khách khắp năm châu.",
+    "subtitle": "Lướt trên những con sóng bạc"
   },
   {
     "id": "ev-09-25-duoc-si-the-gioi",
@@ -639,7 +732,10 @@ export const SEPTEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "25 Tháng 09",
+    "meaning": "Dược sĩ đóng vai trò then chốt trong việc kiểm tra tương tác thuốc, hướng dẫn sử dụng thuốc hợp lý và an toàn.",
+    "subtitle": "Những chuyên gia tư vấn dùng thuốc an toàn, tận tâm vì sức khỏe người bệnh."
   },
   {
     "id": "ev-09-26-triet-tieu-hat-nhan",
@@ -664,7 +760,10 @@ export const SEPTEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "26 Tháng 09",
+    "meaning": "Hiệp ước Cấm Vũ khí Hạt nhân chính thức có hiệu lực từ năm 2021, Việt Nam là một trong những nước phê chuẩn sớm nhất.",
+    "subtitle": "Vì một thế giới không còn bóng ma chiến tranh nguyên tử đe dọa sự sinh tồn củ..."
   },
   {
     "id": "ev-09-27-du-lich-the-gioi",
@@ -689,7 +788,10 @@ export const SEPTEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "27 Tháng 09",
+    "meaning": "Thúc đẩy du lịch bền vững, tôn trọng môi trường và tạo sinh kế thịnh vượng cho cộng đồng địa phương.",
+    "subtitle": "Khám phá thế giới, kết nối văn hóa và lan tỏa tình hữu nghị giữa các quốc gia."
   },
   {
     "id": "ev-09-28-tiep-can-thong-tin",
@@ -714,7 +816,10 @@ export const SEPTEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "28 Tháng 09",
+    "meaning": "Ngày 28/9 đồng thời là Ngày Thế giới Phòng chống Bệnh dại kỷ niệm ngày mất của nhà bác học Louis Pasteur.",
+    "subtitle": "Minh bạch thông tin là nền tảng của một xã hội công bằng, dân chủ và văn minh."
   },
   {
     "id": "ev-09-29-tim-mach-the-gioi",
@@ -739,7 +844,10 @@ export const SEPTEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "29 Tháng 09",
+    "meaning": "Bệnh tim mạch là nguyên nhân gây tử vong hàng đầu thế giới, nhưng 80% trường hợp có thể phòng ngừa được.",
+    "subtitle": "Yêu thương và chăm sóc trái tim khỏe mạnh"
   },
   {
     "id": "ev-09-30-dich-thuat-the-gioi",
@@ -764,6 +872,9 @@ export const SEPTEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "30 Tháng 09",
+    "meaning": "Tôn vinh các dịch giả, biên dịch viên và thông dịch viên đưa những tinh hoa tri thức thế giới về với độc giả Việt Nam.",
+    "subtitle": "Những sứ giả ngôn ngữ thầm lặng"
   }
 ];

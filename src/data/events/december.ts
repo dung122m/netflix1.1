@@ -24,7 +24,10 @@ export const DECEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "01 Tháng 12",
+    "meaning": "Tuyên truyền các biện pháp can thiệp giảm hại, điều trị ARV sớm và xóa bỏ rào cản kỳ thị người nhiễm HIV.",
+    "subtitle": "Cùng chung tay hướng tới mục tiêu chấm dứt dịch bệnh AIDS"
   },
   {
     "id": "ev-12-02-xoa-bo-no-le",
@@ -49,7 +52,10 @@ export const DECEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "02 Tháng 12",
+    "meaning": "Lên án mạnh mẽ các thủ đoạn lừa đảo việc làm nhẹ lương cao và mua bán người qua biên giới.",
+    "subtitle": "Đấu tranh kiên quyết chống nạn buôn người, cưỡng bức lao động và bóc lột trẻ em."
   },
   {
     "id": "ev-12-03-nguoi-khuyet-tat-quoc-te",
@@ -74,7 +80,10 @@ export const DECEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "03 Tháng 12",
+    "meaning": "Khuyến khích thiết kế hạ tầng giao thông tiếp cận, đường dốc cho xe lăn và phần mềm đọc màn hình cho người khiếm thị.",
+    "subtitle": "Xóa bỏ rào cản"
   },
   {
     "id": "ev-12-04-ngan-hang-quoc-te",
@@ -99,7 +108,10 @@ export const DECEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "04 Tháng 12",
+    "meaning": "Thúc đẩy thanh toán không dùng tiền mặt, ứng dụng ngân hàng số tiện lợi trên điện thoại di động.",
+    "subtitle": "Tài chính thông minh cho tất cả"
   },
   {
     "id": "ev-12-05-tinh-nguyen-va-dat",
@@ -124,7 +136,10 @@ export const DECEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "05 Tháng 12",
+    "meaning": "Biết ơn hàng triệu thanh niên tình nguyện tham gia tiếp sức mùa thi, hiến máu nhân đạo và cứu trợ thiên tai.",
+    "subtitle": "Tôn vinh những trái tim tình nguyện thầm lặng và gìn giữ lớp đất màu mỡ nuôi ..."
   },
   {
     "id": "ev-12-06-cuu-chien-binh-vn",
@@ -147,10 +162,17 @@ export const DECEMBER_EVENTS: VietnamEvent[] = [
       "Gặp mặt các cựu chiến binh anh hùng",
       "Phong trào Cựu chiến binh gương mẫu giúp nhau thoát nghèo"
     ],
-    "quote": null,
+    "quote": "Phát huy truyền thống Bộ đội Cụ Hồ: Trung thành - Đoàn kết - Gương mẫu - Đổi mới.",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "06 Tháng 12",
+    "meaning": "Mái nhà chung tập hợp các thế hệ cựu chiến binh giúp nhau làm kinh tế, giáo dục truyền thống yêu nước cho thế hệ trẻ.",
+    "subtitle": "Kỷ niệm Ngày thành lập Hội Cựu chiến binh Việt Nam (06/12/1989)",
+    "traditions": [
+      "Gặp mặt các thế hệ cựu chiến binh ôn lại truyền thống hào hùng thời hoa lửa",
+      "Thăm hỏi, giúp đỡ các đồng đội thương bệnh binh phát triển kinh tế gia đình"
+    ]
   },
   {
     "id": "ev-12-07-hang-khong-dan-dung",
@@ -175,7 +197,10 @@ export const DECEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "07 Tháng 12",
+    "meaning": "Ngành Hàng không Dân dụng Việt Nam kết nối hàng trăm đường bay quốc tế đưa khách du lịch và đầu tư đến nước nhà.",
+    "subtitle": "Bắc những nhịp cầu bay kết nối bầu trời các châu lục an toàn và tiện nghi."
   },
   {
     "id": "ev-12-08-du-hanh-khong-gian",
@@ -200,7 +225,10 @@ export const DECEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "08 Tháng 12",
+    "meaning": "Nhìn lên bầu trời đêm mùa đông để thấy sự kỳ vĩ của vũ trụ và thêm trân quý ngôi nhà Trái Đất nhỏ bé.",
+    "subtitle": "Nuôi dưỡng ước mơ chinh phục những vì sao và bí ẩn của các thiên hà xa xôi."
   },
   {
     "id": "ev-12-09-phong-chong-tham-nhung",
@@ -225,7 +253,10 @@ export const DECEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "09 Tháng 12",
+    "meaning": "Khẳng định quyết tâm sắt đá của Đảng và Nhà nước trong công cuộc 'đốt lò' làm trong sạch bộ máy nhà nước.",
+    "subtitle": "Minh bạch, liêm chính và công bằng"
   },
   {
     "id": "ev-12-10-nhan-quyen-va-ca-phe",
@@ -252,7 +283,10 @@ export const DECEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "10 Tháng 12",
+    "meaning": "Khẳng định mọi con người sinh ra đều tự do và bình đẳng về phẩm giá và các quyền lợi.",
+    "subtitle": "Tôn vinh Tuyên ngôn Quốc tế Nhân quyền và hương vị đậm đà của cà phê Tây Nguyên."
   },
   {
     "id": "ev-12-11-nui-quoc-te-unicef",
@@ -278,7 +312,10 @@ export const DECEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "11 Tháng 12",
+    "meaning": "Dãy Hoàng Liên Sơn với đỉnh Fansipan nóc nhà Đông Dương là niềm tự hào cảnh quan kỳ vĩ của Việt Nam.",
+    "subtitle": "Bảo tồn các dãy núi hùng vĩ và vì nụ cười, tương lai hạnh phúc của mọi trẻ em."
   },
   {
     "id": "ev-12-12-ngay-cua-pho-vn",
@@ -304,7 +341,10 @@ export const DECEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "12 Tháng 12",
+    "meaning": "Nước dùng phở ngọt thanh từ xương hầm kết hợp thảo mộc quế, hồi, thảo quả tạo nên hương vị quyến rũ không thể trộn lẫn.",
+    "subtitle": "Tôn vinh món ăn 'quốc hồn quốc túy' mang tinh hoa ẩm thực Việt Nam vươn tầm t..."
   },
   {
     "id": "ev-12-13-am-thuc-len-men",
@@ -329,7 +369,10 @@ export const DECEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "13 Tháng 12",
+    "meaning": "Món dưa chua ăn kèm thịt kho tàu ngày đông hay canh dưa bò nóng hổi là thức quà ấm lòng bao thế hệ.",
+    "subtitle": "Hũ dưa cải muối chua, cà pháo giòn tan"
   },
   {
     "id": "ev-12-14-monkey-day",
@@ -354,7 +397,10 @@ export const DECEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "14 Tháng 12",
+    "meaning": "Bán đảo Sơn Trà (Đà Nẵng) là vương quốc của loài Vọoc chà vá chân nâu — được mệnh danh là 'Nữ hoàng linh trưởng'.",
+    "subtitle": "Bảo vệ loài linh trưởng thông minh và những cánh rừng nguyên sinh quý giá của..."
   },
   {
     "id": "ev-12-15-thuong-tra-mua-dong",
@@ -379,7 +425,10 @@ export const DECEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "15 Tháng 12",
+    "meaning": "Trà Shan tuyết cổ thụ Hà Giang mọc trên núi cao sương mù quanh năm đem lại hương vị ngọt hậu tinh khiết.",
+    "subtitle": "Bên chén trà ấm bốc khói nghi ngút"
   },
   {
     "id": "ev-12-16-hoa-giai-gia-dinh",
@@ -404,7 +453,10 @@ export const DECEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "16 Tháng 12",
+    "meaning": "Tục ngữ Việt Nam: 'Một câu nhịn, chín câu lành' dạy bài học quý báu về sự nhẫn nại và thấu hiểu lẫn nhau.",
+    "subtitle": "Lắng nghe, tha thứ và bao dung"
   },
   {
     "id": "ev-12-17-chuyen-bay-wright",
@@ -429,7 +481,10 @@ export const DECEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "17 Tháng 12",
+    "meaning": "Minh chứng cho sức mạnh của sự kiên trì theo đuổi ước mơ vượt qua muôn vàn thất bại.",
+    "subtitle": "Giấc mơ bay lượn trên bầu trời của loài người trở thành hiện thực nhờ lòng ki..."
   },
   {
     "id": "ev-12-18-nguoi-di-cu",
@@ -454,7 +509,10 @@ export const DECEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "18 Tháng 12",
+    "meaning": "Người lao động Việt Nam ở nước ngoài luôn chăm chỉ, sáng tạo và gửi kiều hối quý báu về xây dựng quê hương.",
+    "subtitle": "Tôn trọng phẩm giá, bảo vệ quyền của người lao động di cư và di sản ngôn ngữ ..."
   },
   {
     "id": "ev-12-19-toan-quoc-khang-chien",
@@ -477,10 +535,18 @@ export const DECEMBER_EVENTS: VietnamEvent[] = [
       "Pháo đài Láng nổ súng mở đầu toàn quốc kháng chiến",
       "Chiến đấu kiên cường 60 ngày đêm bảo vệ Hà Nội"
     ],
-    "quote": "Chúng ta thà hy sinh tất cả, chứ nhất định không chịu mất nước, nhất định không chịu làm nô lệ. — Lời kêu gọi Toàn quốc kháng chiến",
+    "quote": "Chúng ta thà hy sinh tất cả, chứ nhất định không chịu mất nước, nhất định không chịu làm nô lệ. — Hồ Chí Minh",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "19 Tháng 12",
+    "meaning": "Quân và dân thủ đô đã 'giam chân' quân đội viễn chinh Pháp suốt 60 ngày đêm, bảo vệ an toàn cho Trung ương rút lên chiến khu.",
+    "subtitle": "Kỷ niệm Ngày Toàn quốc Kháng chiến (19/12/1946) — Thà hy sinh tất cả chứ nhất định không chịu mất nước",
+    "traditions": [
+      "Lễ dâng hương tưởng niệm các chiến sĩ Quyết tử để Tổ quốc quyết sinh tại Hà Nội",
+      "Thăm Di tích Lịch sử Nhà Vạn Phúc (Hà Đông) nơi Bác Hồ viết Lời kêu gọi Toàn quốc kháng chiến",
+      "Tọa đàm ôn lại bài học mở đầu cuộc trường kỳ kháng chiến bảo vệ độc lập non sông"
+    ]
   },
   {
     "id": "ev-12-20-doan-ket-nhan-loai",
@@ -506,7 +572,10 @@ export const DECEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "20 Tháng 12",
+    "meaning": "Ngọn cờ hiệu triệu toàn thể đồng bào miền Nam vùng lên đấu tranh đánh đuổi đế quốc xâm lược, thống nhất giang sơn.",
+    "subtitle": "Tinh thần đoàn kết là sức mạnh vô địch vượt qua mọi giông bão thử thách của l..."
   },
   {
     "id": "ev-12-21-bong-ro-va-dong-chi",
@@ -531,7 +600,10 @@ export const DECEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "21 Tháng 12",
+    "meaning": "Bóng rổ rèn luyện chiều cao, phản xạ nhanh nhẹn và tinh thần đồng đội nỗ lực tới giây cuối cùng.",
+    "subtitle": "Ném bóng rổ sôi động làm ấm bầu không khí ngày có đêm dài nhất trong năm."
   },
   {
     "id": "ev-12-22-quan-doi-nhan-dan",
@@ -554,10 +626,18 @@ export const DECEMBER_EVENTS: VietnamEvent[] = [
       "Thành lập Đội Việt Nam Tuyên truyền Giải phóng quân năm 1944",
       "Lễ kỷ niệm Ngày hội Quốc phòng toàn dân thiêng liêng"
     ],
-    "quote": "Quân đội ta trung với Đảng, hiếu với dân, sẵn sàng chiến đấu hy sinh vì độc lập tự do của Tổ quốc. — Hồ Chí Minh",
+    "quote": "Quân đội ta trung với Đảng, hiếu với dân, sẵn sàng chiến đấu hy sinh vì độc lập tự do của Tổ quốc, vì chủ nghĩa xã hội. Nhiệm vụ nào cũng hoàn thành, khó khăn nào cũng vượt qua, kẻ thù nào cũng đánh thắng. — Hồ Chí Minh",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "22 Tháng 12",
+    "meaning": "Quân đội bách chiến bách thắng, từ nhân dân mà ra, vì nhân dân mà chiến đấu, lập nên những trang sử vàng chói lọi.",
+    "subtitle": "Ngày thành lập Quân đội Nhân dân Việt Nam (22/12/1944) & Ngày hội Quốc phòng toàn dân",
+    "traditions": [
+      "Lễ kỷ niệm ngày thành lập Quân đội và Ngày hội Quốc phòng toàn dân tại các đơn vị quân đội",
+      "Thăm Khu di tích Rừng Trần Hưng Đạo (Nguyên Bình, Cao Bằng) nơi thành lập Đội VNTTGPQ năm xưa",
+      "Giao lưu giữa các cựu chiến binh và thế hệ trẻ khơi dậy lòng yêu nước kiên cường"
+    ]
   },
   {
     "id": "ev-12-23-ong-cong-ong-tao",
@@ -583,7 +663,10 @@ export const DECEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "23 Tháng 12",
+    "meaning": "Thả cá chép đỏ phóng sinh với ước vọng cá chép vượt vũ môn hóa rồng, mang lại may mắn và phước lành.",
+    "subtitle": "Tập tục thả cá chép tiễn Táo Quân về trời bẩm báo một năm nếp nhà ấm êm thuận..."
   },
   {
     "id": "ev-12-24-dem-giang-sinh",
@@ -610,7 +693,10 @@ export const DECEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "24 Tháng 12",
+    "meaning": "Mọi người cùng nhau dạo phố, ngắm nhìn cây thông Noel lung linh và các nhà thờ cổ kính được trang hoàng tráng lệ.",
+    "subtitle": "Chuông ngân vang trong đêm thánh an lành"
   },
   {
     "id": "ev-12-25-le-giang-sinh",
@@ -634,10 +720,19 @@ export const DECEMBER_EVENTS: VietnamEvent[] = [
       "Bữa tối Giáng sinh sum vầy bên người thân",
       "Mở những gói quà trao gửi yêu thương"
     ],
-    "quote": null,
+    "quote": "Vinh danh Thiên Chúa trên trời / Bình an dưới thế cho người thiện tâm.",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "25 Tháng 12",
+    "meaning": "Các gia đình cùng nhau thưởng thức bữa tiệc ấm cúng, trao tặng những món quà và lời chúc tốt lành.",
+    "subtitle": "Lễ Giáng Sinh (Christmas) — An lành, ấm áp và chan chứa tình yêu thương",
+    "traditions": [
+      "Trang hoàng cây thông Noel rực rỡ đèn hoa, quả chuông và ngôi sao Bethlehem",
+      "Đi dạo phố phường đón không khí Giáng sinh tại các Nhà thờ Lớn lung linh",
+      "Cùng gia đình quây quần thưởng thức bữa tiệc Giáng sinh ấm áp và trao đổi quà tặng"
+    ],
+    "cuisine": "Gà tây nướng mật ong thơm lừng, bánh khúc cây sô-cô-la truyền thống và ly cacao nóng thơm nồng."
   },
   {
     "id": "ev-12-26-dan-so-viet-nam",
@@ -662,7 +757,10 @@ export const DECEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "26 Tháng 12",
+    "meaning": "Khẳng định công tác dân số là chiến lược then chốt để phát triển kinh tế xã hội và bảo đảm an sinh lâu dài.",
+    "subtitle": "Quy mô gia đình ấm no, bình đẳng"
   },
   {
     "id": "ev-12-27-phong-chong-dich-benh",
@@ -688,7 +786,10 @@ export const DECEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "27 Tháng 12",
+    "meaning": "Đánh dấu sáng kiến ngoại giao y tế đa phương xuất sắc của Việt Nam được cộng đồng quốc tế đánh giá rất cao.",
+    "subtitle": "Sáng kiến quốc tế do Việt Nam đề xuất được Đại hội đồng Liên Hợp Quốc nhất tr..."
   },
   {
     "id": "ev-12-28-dien-anh-quoc-te",
@@ -713,7 +814,10 @@ export const DECEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "28 Tháng 12",
+    "meaning": "Mở ra kỷ nguyên của môn Nghệ thuật thứ Bảy làm rung động hàng tỷ trái tim qua những câu chuyện màn ảnh bạc.",
+    "subtitle": "Kỷ niệm buổi chiếu phim thương mại đầu tiên của anh em nhà Lumière tại Paris ..."
   },
   {
     "id": "ev-12-29-nhin-lai-mot-nam",
@@ -738,7 +842,10 @@ export const DECEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "29 Tháng 12",
+    "meaning": "Gửi lời cảm ơn chân thành đến những người bạn, đồng nghiệp và người thân đã luôn sát cánh bên ta.",
+    "subtitle": "Lắng đọng nhìn lại chặng đường 365 ngày đã qua"
   },
   {
     "id": "ev-12-30-banh-gung-noi-am",
@@ -763,7 +870,10 @@ export const DECEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "30 Tháng 12",
+    "meaning": "Mùi mứt gừng cay nồng, đĩa bánh quy giòn thơm mang lại không khí đón mừng năm mới cận kề.",
+    "subtitle": "Gia đình quây quần bên mâm cơm cuối năm"
   },
   {
     "id": "ev-12-31-dem-giao-thua-duong-lich",
@@ -789,6 +899,9 @@ export const DECEMBER_EVENTS: VietnamEvent[] = [
     "quote": "Tạm biệt năm cũ, chào đón năm mới với trọn vẹn yêu thương và hy vọng!",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "31 Tháng 12",
+    "meaning": "Hàng triệu người dân hòa vào dòng người tại các quảng trường Countdown lớn rực rỡ ánh sáng và âm nhạc sôi động.",
+    "subtitle": "Khoảnh khắc đếm ngược nghẹt thở"
   }
 ];

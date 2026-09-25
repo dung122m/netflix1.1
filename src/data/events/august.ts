@@ -24,7 +24,10 @@ export const AUGUST_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "01 Tháng 08",
+    "meaning": "Định hướng tư tưởng, bảo vệ nền tảng lý luận của Đảng và lan tỏa tinh thần đại đoàn kết dân tộc.",
+    "subtitle": "Mặt trận tư tưởng tiên phong"
   },
   {
     "id": "ev-08-02-danh-thang-may-bay-my",
@@ -49,7 +52,10 @@ export const AUGUST_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "02 Tháng 08",
+    "meaning": "Minh chứng cho tinh thần dám đánh, quyết đánh và biết đánh thắng của Hải quân Nhân dân Việt Nam.",
+    "subtitle": "Phân đội tàu phóng lôi Hải quân Việt Nam dũng mãnh tiến công tàu chiến xâm ph..."
   },
   {
     "id": "ev-08-03-dua-hau",
@@ -75,7 +81,10 @@ export const AUGUST_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "03 Tháng 08",
+    "meaning": "Nhắc nhở bài học quý báu về tinh thần tự lập, bàn tay lao động cần cù biến sỏi đá thành mùa màng no ấm.",
+    "subtitle": "Trái dưa hấu đỏ ngọt ngào"
   },
   {
     "id": "ev-08-04-tinh-ban",
@@ -100,7 +109,10 @@ export const AUGUST_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "04 Tháng 08",
+    "meaning": "Tục ngữ Việt Nam: 'Thua trời một vạn không bằng bạn một câu' ca ngợi giá trị của sự thấu hiểu sẻ chia.",
+    "subtitle": "Có được một người bạn chân thành là sở hữu một kho báu vô giá của cuộc đời."
   },
   {
     "id": "ev-08-05-chien-thang-tran-dau-hai-quan",
@@ -126,7 +138,10 @@ export const AUGUST_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "05 Tháng 08",
+    "meaning": "Ngày truyền thống đánh thắng trận đầu hào hùng của Hải quân Nhân dân Việt Nam và bộ đội Phòng không - Không quân.",
+    "subtitle": "Lưới lửa phòng không rực lửa bắn rơi 8 máy bay phản lực Mỹ, bắt sống giặc lái..."
   },
   {
     "id": "ev-08-06-hiroshima-day",
@@ -151,7 +166,10 @@ export const AUGUST_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "06 Tháng 08",
+    "meaning": "Hình ảnh bé gái Sadako Sasaki và ngàn cánh hạc giấy đã trở thành biểu tượng toàn cầu khát vọng hòa bình.",
+    "subtitle": "Tiếng chuông hòa bình ngân vang"
   },
   {
     "id": "ev-08-07-ngon-hai-dang",
@@ -176,7 +194,10 @@ export const AUGUST_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "07 Tháng 08",
+    "meaning": "Hải đăng Đại Lãnh, Kê Gà, Bạch Long Vĩ, Song Tử Tây là những cột mốc chủ quyền sừng sững giữa ngàn khơi.",
+    "subtitle": "Mắt thần canh giữ đại dương"
   },
   {
     "id": "ev-08-08-asean-va-meo",
@@ -202,7 +223,10 @@ export const AUGUST_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "08 Tháng 08",
+    "meaning": "ASEAN là mái nhà chung đoàn kết 10 quốc gia Đông Nam Á cùng phát triển thịnh vượng và tự cường.",
+    "subtitle": "Gắn kết một Đông Nam Á hòa bình, tự cường và tôn vinh người bạn bốn chân đáng..."
   },
   {
     "id": "ev-08-09-ban-dia-the-gioi",
@@ -227,7 +251,10 @@ export const AUGUST_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "09 Tháng 08",
+    "meaning": "Người bản địa nắm giữ kho tàng thảo dược, tri thức bảo tồn rừng và cách thích ứng hài hòa với tự nhiên.",
+    "subtitle": "Bảo tồn tri thức dân gian cổ xưa và sự đa dạng văn hóa độc đáo của các tộc ng..."
   },
   {
     "id": "ev-08-10-da-cam-vn",
@@ -250,10 +277,18 @@ export const AUGUST_EVENTS: VietnamEvent[] = [
       "Thăm hỏi các trung tâm chăm sóc nạn nhân da cam",
       "Ủng hộ quỹ bảo trợ nạn nhân chất độc da cam"
     ],
-    "quote": null,
+    "quote": "Chung tay xoa dịu nỗi đau da cam là mệnh lệnh từ trái tim của mỗi người Việt Nam và bạn bè yêu chuộng công lý thế giới.",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "10 Tháng 08",
+    "meaning": "Hơn 4,8 triệu người Việt Nam bị phơi nhiễm chất độc da cam, để lại di chứng tàn khốc qua nhiều thế hệ.",
+    "subtitle": "Ngày Vì nạn nhân chất độc da cam/dioxin Việt Nam (10/08/1961)",
+    "traditions": [
+      "Thăm hỏi và tặng quà động viên tại các Làng Hòa Bình, Làng Hữu Nghị chăm sóc nạn nhân da cam",
+      "Phát động nhắn tin ủng hộ Quỹ Nạn nhân chất độc da cam/dioxin Việt Nam",
+      "Kêu gọi công lý quốc tế và sự chung tay của nhân loại xoa dịu nỗi đau da cam"
+    ]
   },
   {
     "id": "ev-08-11-gom-su-bat-trang",
@@ -278,7 +313,10 @@ export const AUGUST_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "11 Tháng 08",
+    "meaning": "Gốm Bát Tràng, gốm Chu Đậu, gốm Bàu Trúc mang đậm hoa văn mây nước, chim hạc và men lam cổ kính.",
+    "subtitle": "Đất hóa thành vàng qua bàn tay tài hoa của người nghệ nhân làng gốm Bát Tràng..."
   },
   {
     "id": "ev-08-12-thanh-nien-quoc-te",
@@ -303,7 +341,10 @@ export const AUGUST_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "12 Tháng 08",
+    "meaning": "Phát huy sức sáng tạo, tinh thần khởi nghiệp và kỹ năng công nghệ xanh của thế hệ trẻ.",
+    "subtitle": "Tuổi trẻ là lực lượng tiên phong dẫn dắt chuyển đổi số và kiến tạo xã hội tươ..."
   },
   {
     "id": "ev-08-13-thuan-tay-trai",
@@ -328,7 +369,10 @@ export const AUGUST_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "13 Tháng 08",
+    "meaning": "Nhiều danh nhân thiên tài như Leonardo da Vinci, Albert Einstein, Bill Gates, Barack Obama đều thuận tay trái.",
+    "subtitle": "Tôn vinh sự khéo léo, tư duy sáng tạo nghệ thuật độc đáo của 10% dân số thuận..."
   },
   {
     "id": "ev-08-14-tong-khoi-nghia-phat-lenh",
@@ -354,7 +398,10 @@ export const AUGUST_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "14 Tháng 08",
+    "meaning": "Ủy ban Khởi nghĩa toàn quốc ra Quân lệnh số 1 kêu gọi đồng bào và chiến sĩ vùng lên giành lại độc lập.",
+    "subtitle": "Thời cơ ngàn năm có một"
   },
   {
     "id": "ev-08-15-the-chien-ket-thuc",
@@ -379,7 +426,10 @@ export const AUGUST_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "15 Tháng 08",
+    "meaning": "Chính quyền tay sai tan rã, tạo điều kiện thuận lợi nhất để nhân dân ta vùng lên chớp thời cơ khởi nghĩa.",
+    "subtitle": "Phát xít Nhật đầu hàng vô điều kiện"
   },
   {
     "id": "ev-08-16-quoc-dan-tan-trao",
@@ -405,7 +455,10 @@ export const AUGUST_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "16 Tháng 08",
+    "meaning": "Thông qua 10 chính sách lớn của Việt Minh, quyết định Quốc kỳ cờ đỏ sao vàng và Quốc ca Tiến quân ca.",
+    "subtitle": "Đại hội lịch sử tiền thân của Quốc hội Việt Nam"
   },
   {
     "id": "ev-08-17-tiet-kiem-nuoc",
@@ -430,7 +483,10 @@ export const AUGUST_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "17 Tháng 08",
+    "meaning": "Các dòng sông là cái nôi nuôi dưỡng nền văn minh lúa nước và ký ức ấu thơ của biết bao thế hệ.",
+    "subtitle": "Gìn giữ dòng sông Hồng, sông Cửu Long mát lành phù sa bồi đắp đồng bằng trù phú."
   },
   {
     "id": "ev-08-18-khoa-hoc-khong-gian",
@@ -455,7 +511,10 @@ export const AUGUST_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "18 Tháng 08",
+    "meaning": "Việt Nam đã làm chủ công nghệ và chế tạo thành công các vệ tinh nhỏ như PicoDragon, MicroDragon.",
+    "subtitle": "Ngước nhìn các vì tinh tú xa xôi và nuôi dưỡng ước mơ bay vào khoảng không ba..."
   },
   {
     "id": "ev-08-19-cach-mang-thang-tam",
@@ -478,10 +537,18 @@ export const AUGUST_EVENTS: VietnamEvent[] = [
       "Khởi nghĩa giành chính quyền tại Hà Nội ngày 19/8/1945",
       "Ngày truyền thống Công an Nhân dân Việt Nam anh hùng"
     ],
-    "quote": "Toàn quốc đồng bào hãy đứng dậy đem sức ta mà tự giải phóng cho ta. — Lời kêu gọi Tổng khởi nghĩa",
+    "quote": "Cách mạng Tháng Tám đã đập tan xiềng xích nô lệ thực dân, phong kiến, mở ra kỷ nguyên độc lập tự do cho Tổ quốc.",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "19 Tháng 08",
+    "meaning": "Đập tan ách thống trị gần một thế kỷ của thực dân Pháp và hàng nghìn năm phong kiến lập nên nước Việt Nam mới.",
+    "subtitle": "Kỷ niệm Cách mạng Tháng Tám (19/08/1945) & Ngày truyền thống Công an Nhân dân",
+    "traditions": [
+      "Lễ dâng hương tưởng niệm các Anh hùng liệt sĩ tại Quảng trường Cách mạng Tháng Tám (Nhà hát Lớn Hà Nội)",
+      "Lễ kỷ niệm truyền thống lực lượng Công an Nhân dân: 'Vì nước quên thân, vì dân phục vụ'",
+      "Thăm các di tích lịch sử cách mạng như Quảng trường Ba Đình, Bắc Bộ Phủ"
+    ]
   },
   {
     "id": "ev-08-20-ton-duc-thang",
@@ -507,7 +574,10 @@ export const AUGUST_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "20 Tháng 08",
+    "meaning": "Người đã kéo lá cờ đỏ trên chiến hạm France ở Biển Đen năm 1919 ủng hộ Cách mạng Tháng Mười Nga.",
+    "subtitle": "Người chiến sĩ kiên trung của phong trào công nhân quốc tế, nhà lãnh đạo mẫu ..."
   },
   {
     "id": "ev-08-21-tuong-niem-khung-bo",
@@ -532,7 +602,10 @@ export const AUGUST_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "21 Tháng 08",
+    "meaning": "Khẳng định hòa bình, ổn định và tình hữu nghị là nguyện vọng tha thiết của mọi quốc gia trên hành tinh.",
+    "subtitle": "Lên án mọi hành vi bạo lực tàn bạo, cùng chung tay vun đắp một thế giới an to..."
   },
   {
     "id": "ev-08-22-dan-ca-phu-tho",
@@ -557,7 +630,10 @@ export const AUGUST_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "22 Tháng 08",
+    "meaning": "Hát Xoan kết hợp điêu luyện giữa ca hát, múa và đánh trống, mang đậm tính cộng đồng làng xã mộc mạc.",
+    "subtitle": "Làn điệu dân ca cửa đình cổ kính"
   },
   {
     "id": "ev-08-23-xoa-bo-no-le",
@@ -582,7 +658,10 @@ export const AUGUST_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "23 Tháng 08",
+    "meaning": "Nhắc nhở nhân loại bài học lịch sử đen tối và quyết tâm xóa bỏ các hình thức nô lệ hiện đại như buôn người.",
+    "subtitle": "Khẳng định quyền tự do, bình đẳng và phẩm giá bất khả xâm phạm của mọi con ng..."
   },
   {
     "id": "ev-08-24-khoi-nghia-hue",
@@ -608,7 +687,10 @@ export const AUGUST_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "24 Tháng 08",
+    "meaning": "Mở đường cho sự kiện thoái vị lịch sử của vua Bảo Đại ngày 30/8/1945 tại Ngọ Môn Huế.",
+    "subtitle": "Cố đô rực cờ đỏ sao vàng"
   },
   {
     "id": "ev-08-25-vo-nguyen-giap",
@@ -634,7 +716,10 @@ export const AUGUST_EVENTS: VietnamEvent[] = [
     "quote": "Tôi sống ngày nào, cũng là vì đất nước ngày đó. — Đại tướng Võ Nguyên Giáp",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "25 Tháng 08",
+    "meaning": "Thiên tài quân sự kiệt xuất thế kỷ 20, tổng chỉ huy làm nên chiến thắng Điện Biên Phủ và Đại thắng mùa Xuân 1975.",
+    "subtitle": "Vị tướng huyền thoại của nhân dân, người anh cả của Quân đội Nhân dân Việt Na..."
   },
   {
     "id": "ev-08-26-dog-day",
@@ -659,7 +744,10 @@ export const AUGUST_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "26 Tháng 08",
+    "meaning": "Loài chó hỗ trợ con người trông nhà, dẫn đường cho người khiếm thị, tìm kiếm cứu nạn và phá án ma túy.",
+    "subtitle": "Tôn vinh người bạn bốn chân trung thành, tận tụy và những chú chó nghiệp vụ q..."
   },
   {
     "id": "ev-08-27-dien-anh-tai-lieu",
@@ -684,7 +772,10 @@ export const AUGUST_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "27 Tháng 08",
+    "meaning": "Những bộ phim tài liệu như 'Hà Nội trong mắt ai', 'Chuyện tử tế' của đạo diễn Trần Văn Thủy đã đi vào lịch sử điện ảnh.",
+    "subtitle": "Những thước phim lịch sử chân thực ghi lại hơi thở hào hùng và những phận ngư..."
   },
   {
     "id": "ev-08-28-tu-phap-van-phong",
@@ -706,10 +797,18 @@ export const AUGUST_EVENTS: VietnamEvent[] = [
     "milestones": [
       "Kỷ niệm tuyên cáo thành lập Chính phủ lâm thời năm 1945"
     ],
-    "quote": null,
+    "quote": "Phụng công thủ pháp, chí công vô tư — Phương châm cốt lõi của người làm công tác cán bộ tư pháp cách mạng.",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "28 Tháng 08",
+    "meaning": "Tôn vinh các cán bộ tư pháp, công chứng, thừa phát lại và văn phòng hành chính vì sự nghiệp cải cách hành chính.",
+    "subtitle": "Kỷ niệm Tuyên cáo thành lập Chính phủ lâm thời nước VNDCCH (28/08/1945)",
+    "traditions": [
+      "Lễ kỷ niệm truyền thống ngành Tư pháp và tuyên dương cán bộ tư pháp liêm chính, mẫn cán",
+      "Hội thảo về xây dựng Nhà nước pháp quyền xã hội chủ nghĩa của nhân dân, do nhân dân, vì nhân dân",
+      "Nâng cao ý thức thượng tôn pháp luật và phụng sự công lý xã hội"
+    ]
   },
   {
     "id": "ev-08-29-chong-thu-hat-nhan",
@@ -734,7 +833,10 @@ export const AUGUST_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "29 Tháng 08",
+    "meaning": "Kêu gọi các quốc gia sớm phê chuẩn Hiệp ước Cấm Thử Hạt nhân Toàn diện (CTBT).",
+    "subtitle": "Chấm dứt mọi vụ nổ hạt nhân để bảo vệ bầu khí quyển, đại dương và sinh quyển ..."
   },
   {
     "id": "ev-08-30-mat-tich-cuong-buc",
@@ -759,7 +861,10 @@ export const AUGUST_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "30 Tháng 08",
+    "meaning": "Hàng ngàn liệt sĩ Việt Nam chưa tìm được hài cốt vẫn đang được Đội K tìm kiếm, quy tập bền bỉ mỗi ngày.",
+    "subtitle": "Đòi lại công lý và sự thật cho những phận người bị mất tích trong xung đột ch..."
   },
   {
     "id": "ev-08-31-qua-lieu-thuoc",
@@ -784,6 +889,9 @@ export const AUGUST_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "31 Tháng 08",
+    "meaning": "Uống thuốc theo đúng chỉ dẫn của bác sĩ, không tự ý tăng liều kháng sinh và thuốc an thần.",
+    "subtitle": "Nâng cao nhận thức dùng thuốc an toàn, phòng chống ngộ độc thuốc và lạm dụng ..."
   }
 ];

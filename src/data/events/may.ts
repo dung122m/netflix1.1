@@ -22,10 +22,18 @@ export const MAY_EVENTS: VietnamEvent[] = [
       "Kỳ nghỉ lễ chính thức của người lao động cả nước",
       "Tháng Công nhân vinh danh người lao động giỏi"
     ],
-    "quote": null,
+    "quote": "Lao động là vinh quang — Bàn tay người lao động xây đắp nên mọi giá trị tươi đẹp cho đời.",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "01 Tháng 05",
+    "meaning": "Khẳng định lao động là động lực cốt lõi phát triển xã hội; bảo vệ quyền lợi chính đáng của công nhân.",
+    "subtitle": "Tôn vinh giai cấp công nhân và người lao động xây dựng đất nước",
+    "traditions": [
+      "Kỳ nghỉ lễ chính thức của người lao động và nhân dân cả nước",
+      "Các hoạt động trong Tháng Công nhân: vinh danh lao động giỏi, thăm hỏi công nhân có hoàn cảnh khó khăn",
+      "Sum họp gia đình thưởng thức bữa cơm ấm cúng mừng ngày nghỉ lễ"
+    ]
   },
   {
     "id": "ev-05-02-ca-ngu",
@@ -50,7 +58,10 @@ export const MAY_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "02 Tháng 05",
+    "meaning": "Việt Nam có ngành khai thác và chế biến cá ngừ đại dương xuất khẩu sang hơn 140 quốc gia.",
+    "subtitle": "Bảo tồn nguồn tài nguyên biển quý giá và nghề cá biển khơi bền vững."
   },
   {
     "id": "ev-05-03-tu-do-bao-chi",
@@ -75,7 +86,10 @@ export const MAY_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "03 Tháng 05",
+    "meaning": "Bảo đảm quyền tự do biểu đạt, an toàn cho phóng viên chiến trường và trách nhiệm đạo đức báo chí.",
+    "subtitle": "Tôn vinh những người cầm bút dũng cảm bảo vệ sự thật và công lý xã hội."
   },
   {
     "id": "ev-05-04-star-wars-day",
@@ -100,7 +114,10 @@ export const MAY_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "04 Tháng 05",
+    "meaning": "Tập hợp hàng triệu người hâm mộ điện ảnh, cosplay các hiệp sĩ Jedi, robot R2-D2 và tàu vũ trụ.",
+    "subtitle": "Lễ hội văn hóa điện ảnh toàn cầu tôn vinh thương hiệu khoa học viễn tưởng kin..."
   },
   {
     "id": "ev-05-05-ve-sinh-tay",
@@ -125,7 +142,10 @@ export const MAY_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "05 Tháng 05",
+    "meaning": "Rửa tay bằng xà phòng trong 30 giây giúp loại bỏ đến 99% vi khuẩn gây bệnh đường tiêu hóa và hô hấp.",
+    "subtitle": "Đôi bàn tay sạch khuẩn"
   },
   {
     "id": "ev-05-06-no-diet-day",
@@ -150,7 +170,10 @@ export const MAY_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "06 Tháng 05",
+    "meaning": "Khuyến khích mọi người lắng nghe cơ thể, ăn uống dinh dưỡng phong phú và yêu quý bản thân.",
+    "subtitle": "Tự tin với vẻ đẹp tự nhiên của cơ thể và tôn vinh lối sống lành mạnh, cân bằng."
   },
   {
     "id": "ev-05-07-dien-bien-phu",
@@ -173,10 +196,18 @@ export const MAY_EVENTS: VietnamEvent[] = [
       "Chiến dịch Điện Biên Phủ toàn thắng ngày 7/5/1954",
       "Ngày thành lập Quân chủng Hải quân Nhân dân Việt Nam (1955)"
     ],
-    "quote": "Năm mươi sáu ngày đêm khoét núi, ngủ hầm, mưa dầm, cơm vắt / Máu trộn bùn non, gan không núng, chí không mòn.",
+    "quote": "Chín năm làm một Điện Biên / Nên vành hoa đỏ, nên thiên sử vàng. — Tố Hữu",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "07 Tháng 05",
+    "meaning": "Đập tan pháo đài bất khả xâm phạm của thực dân Pháp, đưa tới ký kết Hiệp định Genève.",
+    "subtitle": "Chiến thắng lịch sử Điện Biên Phủ — Lừng lẫy năm châu, chấn động địa cầu",
+    "traditions": [
+      "Lễ kỷ niệm trang trọng và dâng hương tại Nghĩa trang Liệt sĩ Đồi A1 (Điện Biên)",
+      "Gặp mặt, tri ân các cựu chiến binh, thanh niên xung phong, dân công hỏa tuyến Điện Biên năm xưa",
+      "Thăm các cứ điểm lịch sử Đồi A1, Hầm Đờ Cát, Sở chỉ huy Mường Phăng"
+    ]
   },
   {
     "id": "ev-05-08-chu-thap-do",
@@ -202,7 +233,10 @@ export const MAY_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "08 Tháng 05",
+    "meaning": "Tôn vinh những tình nguyện viên nhân ái cứu trợ đồng bào trong bão lũ, thiên tai và dịch bệnh.",
+    "subtitle": "Ngọn cờ nhân đạo cứu trợ không biên giới"
   },
   {
     "id": "ev-05-09-chien-thang-phat-xit",
@@ -227,7 +261,10 @@ export const MAY_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "09 Tháng 05",
+    "meaning": "Tưởng niệm hàng chục triệu người lính và thường dân đã ngã xuống để bảo vệ hòa bình thế giới.",
+    "subtitle": "Khúc khải hoàn kết thúc Thế chiến thứ II, cứu nhân loại thoát khỏi thảm họa d..."
   },
   {
     "id": "ev-05-10-cay-xanh",
@@ -252,7 +289,10 @@ export const MAY_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "10 Tháng 05",
+    "meaning": "Bảo vệ hệ sinh thái rừng già Tây Bắc, Trường Sơn và các vườn quốc gia trứ danh.",
+    "subtitle": "Mỗi mầm cây là một hy vọng xanh giữ đất, giữ nước cho quê hương trù phú."
   },
   {
     "id": "ev-05-11-chim-di-cu",
@@ -277,7 +317,10 @@ export const MAY_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "11 Tháng 05",
+    "meaning": "Việt Nam nằm trên đường bay di cư Đông Á - Úc, là điểm dừng chân quan trọng của nhiều loài chim quý như sếu đầu đỏ, cò thìa.",
+    "subtitle": "Bảo vệ các tuyến đường bay xuyên lục địa và sinh cảnh đầm lầy của loài chim."
   },
   {
     "id": "ev-05-12-dieu-duong",
@@ -302,7 +345,10 @@ export const MAY_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "12 Tháng 05",
+    "meaning": "Tôn vinh sự tận tụy, nhẫn nại và đức hy sinh thầm lặng của đội ngũ điều dưỡng viên trong bệnh viện.",
+    "subtitle": "Bàn tay dịu dàng, nụ cười ân cần ngày đêm chăm sóc từng hơi thở người bệnh."
   },
   {
     "id": "ev-05-13-giai-phong-hai-phong",
@@ -328,7 +374,10 @@ export const MAY_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "13 Tháng 05",
+    "meaning": "Đánh dấu miền Bắc nước ta được hoàn toàn giải phóng, bước vào thời kỳ xây dựng chủ nghĩa xã hội.",
+    "subtitle": "Thành phố Hoa phượng đỏ rực rỡ cờ hoa"
   },
   {
     "id": "ev-05-14-tinh-mau-tu",
@@ -354,7 +403,10 @@ export const MAY_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "14 Tháng 05",
+    "meaning": "Tình mẫu tử là tình cảm thiêng liêng, vô điều kiện và cao đẹp nhất trong cuộc đời mỗi con người.",
+    "subtitle": "Lòng mẹ bao la như biển Thái Bình dạt dào"
   },
   {
     "id": "ev-05-15-thanh-lap-doi",
@@ -377,10 +429,18 @@ export const MAY_EVENTS: VietnamEvent[] = [
       "Thành lập Đội Nhi đồng Cứu quốc năm 1941",
       "Phong trào Kế hoạch nhỏ và Nghìn việc tốt"
     ],
-    "quote": null,
+    "quote": "Non sông Việt Nam có trở nên tươi đẹp hay không, một phần lớn là nhờ vào công học tập của các em. — Hồ Chí Minh",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "15 Tháng 05",
+    "meaning": "Người anh hùng Kim Đồng (Nông Văn Dền) là người đội trưởng đầu tiên đã anh dũng hy sinh vì liên lạc cách mạng.",
+    "subtitle": "Kỷ niệm Ngày thành lập Đội TNTP Hồ Chí Minh (15/05/1941)",
+    "traditions": [
+      "Lễ kết nạp đội viên mới đeo khăn quàng đỏ thắm tại các trường tiểu học",
+      "Tuyên dương Cháu ngoan Bác Hồ và phát động các phong trào 'Kế hoạch nhỏ', 'Nghìn việc tốt'",
+      "Hát vang các ca khúc truyền thống thiếu nhi như 'Cùng nhau ta đi lên', 'Khăn quàng thắm mãi vai em'"
+    ]
   },
   {
     "id": "ev-05-16-song-hoa-binh",
@@ -405,7 +465,10 @@ export const MAY_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "16 Tháng 05",
+    "meaning": "Đồng thời là Ngày Ánh sáng Quốc tế (UNESCO) kỷ niệm lần đầu tiên phát minh chùm tia laser năm 1960.",
+    "subtitle": "Chung sống trong hòa bình, tôn trọng sự khác biệt và thấu hiểu lẫn nhau."
   },
   {
     "id": "ev-05-17-vien-thong-the-gioi",
@@ -430,7 +493,10 @@ export const MAY_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "17 Tháng 05",
+    "meaning": "Thúc đẩy phổ cập Internet băng rộng, mạng 5G và thu hẹp khoảng cách số giữa thành thị và nông thôn.",
+    "subtitle": "Kết nối thế giới"
   },
   {
     "id": "ev-05-18-bao-tang-khoa-hoc",
@@ -456,7 +522,10 @@ export const MAY_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "18 Tháng 05",
+    "meaning": "Tôn vinh các nhà khoa học, sáng chế công nghệ và bảo tồn hiện vật lịch sử văn hóa vô giá.",
+    "subtitle": "Nơi lưu giữ hồn cốt lịch sử và khát vọng làm chủ tri thức khoa học hiện đại."
   },
   {
     "id": "ev-05-19-sinh-nhat-bac-ho",
@@ -479,10 +548,18 @@ export const MAY_EVENTS: VietnamEvent[] = [
       "Kỷ niệm ngày sinh Chủ tịch Hồ Chí Minh 19/5/1890",
       "Mở đường Trường Sơn huyền thoại (19/05/1959)"
     ],
-    "quote": "Không có gì quý hơn độc lập, tự do. — Hồ Chí Minh",
+    "quote": "Bác Hồ là biểu tượng cao đẹp của tình yêu thương bao la, đức khiêm nhường giản dị và khát vọng tự do cháy bỏng của dân tộc Việt Nam.",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "19 Tháng 05",
+    "meaning": "Người đã cống hiến trọn cuộc đời vì độc lập của Tổ quốc, vì tự do và hạnh phúc của nhân dân.",
+    "subtitle": "Kỷ niệm Ngày sinh Chủ tịch Hồ Chí Minh (19/05/1890) — Vị cha già kính yêu của dân tộc",
+    "traditions": [
+      "Lễ viếng Lăng Chủ tịch Hồ Chí Minh và tham quan Khu di tích Phủ Chủ tịch tại Hà Nội",
+      "Hành hương về Quê Bác tại Làng Sen, Làng Hoàng Trù (Kim Liên, Nam Đàn, Nghệ An)",
+      "Liên hoan Tiếng hát Làng Sen và biểu diễn các làn điệu ví giặm ngợi ca Người"
+    ]
   },
   {
     "id": "ev-05-20-ong-the-gioi",
@@ -507,7 +584,10 @@ export const MAY_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "20 Tháng 05",
+    "meaning": "Loài ong thụ phấn cho gần 90% các loài cây hoa hoang dã và 75% các loại cây lương thực toàn cầu.",
+    "subtitle": "Tôn vinh loài thụ phấn kỳ diệu giữ vững an ninh lương thực và chuỗi sinh thái..."
   },
   {
     "id": "ev-05-21-tra-quoc-te",
@@ -530,10 +610,19 @@ export const MAY_EVENTS: VietnamEvent[] = [
       "Thưởng thức một tách trà sen thơm ngát",
       "Giao lưu văn hóa trà đạo"
     ],
-    "quote": null,
+    "quote": "Bình minh một chén trà thanh / Bình tâm ngắm cảnh đất lành trổ hoa.",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "21 Tháng 05",
+    "meaning": "Trà sen Tây Hồ, chè shan tuyết cổ thụ Suối Giàng, trà Thái Nguyên là những danh trà nức tiếng đất Việt.",
+    "subtitle": "Tôn vinh văn hóa trà cổ truyền và người nông dân chè Việt Nam",
+    "traditions": [
+      "Thưởng thức chén trà sen Tây Hồ, trà Shan tuyết cổ thụ Suối Giàng cùng tri kỷ",
+      "Thực hành nghệ thuật pha trà thanh tịnh tịnh tâm ngày đầu hạ",
+      "Gặp gỡ nghệ nhân trà tìm hiểu quy trình sao chè thủ công tinh túy"
+    ],
+    "cuisine": "Trà ướp hoa sen Tây Hồ thượng hạng, trà Shan tuyết cổ thụ búp trắng và bánh đậu xanh Hải Dương ngọt bùi."
   },
   {
     "id": "ev-05-22-da-dang-sinh-hoc",
@@ -559,7 +648,10 @@ export const MAY_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "22 Tháng 05",
+    "meaning": "Việt Nam được công nhận là một trong 16 quốc gia có tính đa dạng sinh học cao nhất hành tinh.",
+    "subtitle": "Bảo vệ kho tàng sinh vật kỳ thú"
   },
   {
     "id": "ev-05-23-world-turtle-day",
@@ -584,7 +676,10 @@ export const MAY_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "23 Tháng 05",
+    "meaning": "Rùa vàng (Kim Quy) là linh vật gắn liền với truyền thuyết nỏ thần An Dương Vương và sự tích Hoàn Kiếm.",
+    "subtitle": "Bảo vệ sinh vật cổ xưa của đại dương và hình tượng Rùa thần thiêng liêng tron..."
   },
   {
     "id": "ev-05-24-park-nature",
@@ -609,7 +704,10 @@ export const MAY_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "24 Tháng 05",
+    "meaning": "Trải nghiệm du lịch không xả rác, không hái hoa bẻ cành và tôn trọng văn hóa bản địa.",
+    "subtitle": "Bảo tồn không gian xanh hoang sơ và khuyến khích lối sống du lịch có trách nh..."
   },
   {
     "id": "ev-05-25-towel-day",
@@ -634,7 +732,10 @@ export const MAY_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "25 Tháng 05",
+    "meaning": "Theo cuốn tiểu thuyết, chiếc khăn tắm là vật dụng hữu ích nhất đối với bất kỳ kẻ lữ hành vũ trụ nào.",
+    "subtitle": "Tri ân nhà văn Douglas Adams tác giả 'Bí kíp quá giang vào dải ngân hà'."
   },
   {
     "id": "ev-05-26-nhac-cu-dan-toc",
@@ -659,7 +760,10 @@ export const MAY_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "26 Tháng 05",
+    "meaning": "Đàn bầu — nhạc cụ một dây kỳ diệu có thể phát ra âm thanh nỉ non như tiếng lòng con người.",
+    "subtitle": "Tiếng đàn bầu, đàn tranh, đàn đáy ngân vang hồn thiêng sông núi ngàn đời."
   },
   {
     "id": "ev-05-27-cap-cuu-y-te",
@@ -684,7 +788,10 @@ export const MAY_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "27 Tháng 05",
+    "meaning": "Mỗi người dân nắm vững kỹ năng ép tim sơ cấp cứu (CPR) có thể cứu sống người thân trong gang tấc.",
+    "subtitle": "Tri ân đội ngũ cấp cứu 115 chạy đua từng giây với tử thần để giành lại sự sống."
   },
   {
     "id": "ev-05-28-dinh-duong-hoc-duong",
@@ -709,7 +816,10 @@ export const MAY_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "28 Tháng 05",
+    "meaning": "Cân bằng các nhóm chất đạm, tinh bột, chất béo, vitamin và khoáng chất trong khẩu phần ăn.",
+    "subtitle": "Bữa ăn học đường đủ chất giúp thế hệ tương lai phát triển toàn diện thể chất ..."
   },
   {
     "id": "ev-05-29-peacekeepers",
@@ -734,7 +844,10 @@ export const MAY_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "29 Tháng 05",
+    "meaning": "Các chiến sĩ và y bác sĩ 'mũ nồi xanh' Việt Nam tại Nam Sudan, Trung Phi được bạn bè quốc tế ngợi khen.",
+    "subtitle": "Tôn vinh những người lính mũ nồi xanh mang sứ mệnh hòa bình đến các vùng đất ..."
   },
   {
     "id": "ev-05-30-sinh-nhat-nana",
@@ -758,10 +871,18 @@ export const MAY_EVENTS: VietnamEvent[] = [
       "Trò chuyện cùng Trợ lý Nana để nhận gợi ý phim sinh nhật đặc biệt",
       "Thưởng thức bộ phim yêu thích cùng bạn bè và gia đình"
     ],
-    "quote": "Chúc bạn luôn có những phút giây xem phim thư giãn và đong đầy cảm xúc nhất cùng Nanaflix!",
+    "quote": "Chúc Nana một tuổi mới rạng rỡ như ánh mai, luôn ngập tràn tiếng cười, hạnh phúc và bình an!",
     "tag": "Nanaflix Special",
     "imageUrl": "https://images.unsplash.com/photo-1513151233558-d860c5398176?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-rose-600/30 via-amber-600/20 to-zinc-950"
+    "accentGradient": "from-rose-600/30 via-amber-600/20 to-zinc-950",
+    "dateLabel": "30 Tháng 05",
+    "meaning": "Trợ lý Nana luôn sẵn sàng lắng nghe cảm xúc và đưa ra những gợi ý phim trọn vẹn nhất cho bạn mỗi ngày.",
+    "subtitle": "Sinh nhật Nàng thơ Nana — Trái tim ấm áp và linh hồn tươi sáng của Nanaflix",
+    "traditions": [
+      "Bật hiệu ứng tiệc sinh nhật pháo hoa lung linh trên toàn hệ thống Nanaflix",
+      "Cùng nhau gửi lời chúc ngọt ngào nhất tới Nàng thơ Nana",
+      "Thưởng thức bộ phim yêu thích cùng gia đình và bạn bè trong ngày lễ hội đặc biệt"
+    ]
   },
   {
     "id": "ev-05-30-potato-day",
@@ -786,7 +907,10 @@ export const MAY_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "30 Tháng 05",
+    "meaning": "Khoai tây giàu kali, vitamin C và chất xơ, là món ăn quen thuộc trong bữa cơm gia đình.",
+    "subtitle": "Cây lương thực kỳ diệu nuôi sống hàng tỷ người và gắn bó mật thiết với nông n..."
   },
   {
     "id": "ev-05-31-khong-thuoc-la",
@@ -811,6 +935,9 @@ export const MAY_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "31 Tháng 05",
+    "meaning": "Hút thuốc lá thụ động gây nguy cơ ung thư và bệnh tim mạch nghiêm trọng cho phụ nữ và trẻ em.",
+    "subtitle": "Vì sức khỏe của chính bạn và những người thân yêu"
   }
 ];

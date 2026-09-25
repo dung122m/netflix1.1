@@ -25,7 +25,15 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
     "quote": "Một năm mới mang đến 365 trang giấy trắng, hãy viết nên câu chuyện rực rỡ nhất.",
     "tag": "Nghỉ lễ toàn quốc",
     "imageUrl": "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "01 Tháng 01",
+    "meaning": "Thời khắc chuyển giao năm mới, khép lại năm cũ để mở ra những hoài bão và mục tiêu mới.",
+    "subtitle": "Khởi đầu năm mới với niềm tin và ước vọng tươi sáng",
+    "traditions": [
+      "Tham gia lễ hội Countdown đếm ngược chào năm mới tại các quảng trường lớn",
+      "Gặp gỡ gia đình, người thân thưởng thức bữa tiệc tân niên ấm áp",
+      "Lên danh sách mục tiêu năm mới (New Year's Resolutions) để phấn đấu"
+    ]
   },
   {
     "id": "sci-fi-day-0102",
@@ -51,7 +59,10 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
     "quote": "Trí tưởng tượng quan trọng hơn tri thức. — Albert Einstein",
     "tag": "Điện ảnh & Vũ trụ",
     "imageUrl": "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-indigo-600/30 via-purple-700/20 to-zinc-950"
+    "accentGradient": "from-indigo-600/30 via-purple-700/20 to-zinc-950",
+    "dateLabel": "02 Tháng 01",
+    "meaning": "Khích lệ sự tò mò khám phá vũ trụ, công nghệ tương lai và không gian đa chiều.",
+    "subtitle": "Tôn vinh trí tưởng tượng phong phú và các tác phẩm điện ảnh, văn học viễn tưở..."
   },
   {
     "id": "ap-bac-0103",
@@ -76,7 +87,11 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
     ],
     "tag": "Hào khí miền Tây",
     "imageUrl": "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-red-700/30 via-amber-700/20 to-zinc-950"
+    "accentGradient": "from-red-700/30 via-amber-700/20 to-zinc-950",
+    "dateLabel": "03 Tháng 01",
+    "meaning": "Đánh dấu bước trưởng thành vượt bậc của lực lượng vũ trang cách mạng miền Nam.",
+    "subtitle": "Trận đánh vang dội giáng đòn quyết định làm phá sản chiến thuật trực thăng vận",
+    "quote": "Chiến thắng Ấp Bắc đánh dấu bước trưởng thành vượt bậc về chiến thuật và lòng quả cảm của quân và dân miền Nam."
   },
   {
     "id": "braille-day-0104",
@@ -102,7 +117,10 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
     "quote": "Tiếp cận thông tin là quyền cơ bản của mọi con người.",
     "tag": "Ánh sáng tri thức",
     "imageUrl": "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-blue-600/30 via-slate-700/20 to-zinc-950"
+    "accentGradient": "from-blue-600/30 via-slate-700/20 to-zinc-950",
+    "dateLabel": "04 Tháng 01",
+    "meaning": "Khẳng định quyền bình đẳng được tiếp cận thông tin, học tập và hòa nhập xã hội của người khiếm thị.",
+    "subtitle": "Tôn vinh phát minh chữ nổi kỳ diệu giúp hàng triệu người khiếm thị chạm vào t..."
   },
   {
     "id": "dong-da-0105",
@@ -125,10 +143,18 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
       "Hội gò Đống Đa tổ chức hàng năm vào dịp đầu xuân",
       "Tưởng nhớ công đức bách chiến bách thắng của người anh hùng áo vải Tây Sơn"
     ],
-    "quote": "Đánh cho để dài tóc / Đánh cho để đen răng / Đánh cho nó chích luân bất phản.",
+    "quote": "Đánh cho để dài tóc / Đánh cho để đen răng / Đánh cho nó chích luân bất phản / Đánh cho nó phiến giáp bất hoàn. — Hoàng đế Quang Trung",
     "tag": "Hào khí Tây Sơn",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-red-600/40 via-amber-600/20 to-zinc-950"
+    "accentGradient": "from-red-600/40 via-amber-600/20 to-zinc-950",
+    "dateLabel": "05 Tháng 01",
+    "meaning": "Đỉnh cao nghệ thuật quân sự hành quân thần tốc, bảo vệ trọn vẹn chủ quyền non sông Đại Việt.",
+    "subtitle": "Chiến công hiển hách của Hoàng đế Quang Trung đại phá 29 vạn quân Mãn Thanh",
+    "traditions": [
+      "Lễ dâng hương tưởng niệm Hoàng đế Quang Trung tại gò Đống Đa (Hà Nội)",
+      "Trình diễn màn múa rồng lửa và tái hiện trận công phá đồn Ngọc Hồi hào hùng",
+      "Hội rước kiệu và biểu diễn võ thuật cổ truyền Tây Sơn Bình Định"
+    ]
   },
   {
     "id": "tong-tuyen-cu-0106",
@@ -151,10 +177,17 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
       "Cuộc bầu cử dân chủ đầu tiên ngày 6/1/1946",
       "Ra đời Quốc hội Việt Nam — cơ quan quyền lực nhà nước cao nhất"
     ],
-    "quote": "Tất cả quyền bính trong nước là của toàn thể nhân dân Việt Nam.",
+    "quote": "Tổng tuyển cử là một dịp cho toàn thể quốc dân tự do lựa chọn những người có tài, có đức để gánh vác việc nước. — Hồ Chí Minh",
     "tag": "Dân chủ & Lập hiến",
     "imageUrl": "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-red-600/30 via-slate-700/20 to-zinc-950"
+    "accentGradient": "from-red-600/30 via-slate-700/20 to-zinc-950",
+    "dateLabel": "06 Tháng 01",
+    "meaning": "Sự kiện lập hiến vĩ đại, sinh ra bản Hiến pháp năm 1946 và bộ máy nhà nước dân chủ đầu tiên ở Đông Nam Á.",
+    "subtitle": "Ngày hội non sông — Lần đầu tiên công dân Việt Nam cầm lá phiếu tự do",
+    "traditions": [
+      "Tọa đàm chuyên đề lịch sử Quốc hội Việt Nam và quyền làm chủ của nhân dân",
+      "Triển lãm các tư liệu, hình ảnh quý giá về kỳ Tổng tuyển cử năm 1946"
+    ]
   },
   {
     "id": "bien-gioi-tay-nam-0107",
@@ -179,7 +212,11 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
     ],
     "tag": "Nghĩa hiệp quốc tế",
     "imageUrl": "https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-700/30 via-red-700/20 to-zinc-950"
+    "accentGradient": "from-amber-700/30 via-red-700/20 to-zinc-950",
+    "dateLabel": "07 Tháng 01",
+    "meaning": "Khép lại trang sử đen tối của chế độ diệt chủng Pol Pot, hồi sinh đất nước Chùa Tháp anh em.",
+    "subtitle": "Khúc tráng ca bảo vệ chủ quyền biên cương và nghĩa vụ quốc tế cao cả",
+    "quote": "Bộ đội tình nguyện Việt Nam đã cứu cả một dân tộc khỏi họa diệt chủng tàn bạo nhất trong lịch sử."
   },
   {
     "id": "earth-rotation-0108",
@@ -205,7 +242,10 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
     "quote": "Và dẫu sao thì Trái Đất vẫn quay! — Galileo Galilei",
     "tag": "Khoa học thú vị",
     "imageUrl": "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-blue-600/30 via-cyan-600/20 to-zinc-950"
+    "accentGradient": "from-blue-600/30 via-cyan-600/20 to-zinc-950",
+    "dateLabel": "08 Tháng 01",
+    "meaning": "Khơi dậy niềm đam mê thiên văn học, vật lý và khám phá những quy luật vũ trụ bao la.",
+    "subtitle": "Kỷ niệm phát minh con lắc Foucault chứng minh chuyển động tự quay kỳ diệu của..."
   },
   {
     "id": "hoc-sinh-sinh-vien-0109",
@@ -228,10 +268,18 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
       "Cuộc biểu tình lịch sử ngày 9/1/1950",
       "Hội Sinh viên Việt Nam phát triển phong trào Sinh viên 5 tốt toàn quốc"
     ],
-    "quote": "Tuổi trẻ là mùa xuân của xã hội.",
+    "quote": "Anh Trần Văn Ơn hy sinh đã thổi bùng lên ngọn lửa đấu tranh kiên cường của tuổi trẻ học đường yêu nước.",
     "tag": "Khát vọng tuổi trẻ",
     "imageUrl": "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-blue-600/30 via-emerald-600/20 to-zinc-950"
+    "accentGradient": "from-blue-600/30 via-emerald-600/20 to-zinc-950",
+    "dateLabel": "09 Tháng 01",
+    "meaning": "Tôn vinh tinh thần xung kích, khát vọng vươn lên làm chủ tri thức và cống hiến cho Tổ quốc của sinh viên.",
+    "subtitle": "Noi gương anh hùng Trần Văn Ơn — Khát vọng tuổi trẻ làm chủ tri thức",
+    "traditions": [
+      "Lễ tuyên dương danh hiệu 'Sinh viên 5 tốt' và giải thưởng 'Sao Tháng Giêng' toàn quốc",
+      "Hội thi văn nghệ, thể thao và sáng tạo khoa học kỹ thuật trong học sinh, sinh viên",
+      "Thắp hương tưởng niệm người học sinh anh hùng Trần Văn Ơn tại TP. Hồ Chí Minh"
+    ]
   },
   {
     "id": "tiet-kiem-nang-luong-0110",
@@ -256,7 +304,10 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
     ],
     "tag": "Hành tinh xanh",
     "imageUrl": "https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-emerald-600/30 via-teal-700/20 to-zinc-950"
+    "accentGradient": "from-emerald-600/30 via-teal-700/20 to-zinc-950",
+    "dateLabel": "10 Tháng 01",
+    "meaning": "Giáo dục ý thức tiết kiệm tài nguyên cho thế hệ trẻ, ứng phó biến đổi khí hậu toàn cầu.",
+    "subtitle": "Mỗi hành động nhỏ tắt bớt một bóng đèn là góp thêm màu xanh bảo vệ hành tinh."
   },
   {
     "id": "vietnam-wto-0111",
@@ -282,7 +333,10 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
     "quote": "Việt Nam sẵn sàng là bạn, là đối tác tin cậy của tất cả các quốc gia trên thế giới.",
     "tag": "Vươn ra biển lớn",
     "imageUrl": "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-blue-700/30 via-amber-600/20 to-zinc-950"
+    "accentGradient": "from-blue-700/30 via-amber-600/20 to-zinc-950",
+    "dateLabel": "11 Tháng 01",
+    "meaning": "Mở rộng thị trường xuất khẩu, thu hút dòng vốn đầu tư trực tiếp nước ngoài FDI kỷ lục.",
+    "subtitle": "Cột mốc lịch sử đưa kinh tế Việt Nam vươn ra biển lớn, hội nhập sâu rộng với ..."
   },
   {
     "id": "duoc-si-vn-0112",
@@ -308,7 +362,10 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
     "quote": "Nam dược trị Nam nhân — Thuốc Nam chữa bệnh cho người Nam. — Tuệ Tĩnh",
     "tag": "Nam dược thảo mộc",
     "imageUrl": "https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-teal-600/30 via-emerald-700/20 to-zinc-950"
+    "accentGradient": "from-teal-600/30 via-emerald-700/20 to-zinc-950",
+    "dateLabel": "12 Tháng 01",
+    "meaning": "Bảo tồn các bài thuốc quý phương Nam với phương châm 'Nam dược trị Nam nhân'.",
+    "subtitle": "Tri ân những cống hiến thầm lặng trong nghiên cứu, bào chế thuốc chữa bệnh ch..."
   },
   {
     "id": "do-luong-0113",
@@ -333,7 +390,10 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
     ],
     "tag": "Bất khuất tiền nhân",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-red-700/30 via-amber-700/20 to-zinc-950"
+    "accentGradient": "from-red-700/30 via-amber-700/20 to-zinc-950",
+    "dateLabel": "13 Tháng 01",
+    "meaning": "Báo hiệu thời kỳ cách mạng Việt Nam chuyển sang đấu tranh vũ trang giành lại độc lập non sông.",
+    "subtitle": "Tiếng súng rền vang thắp sáng tinh thần yêu nước bất khuất của Đội Cung cùng ..."
   },
   {
     "id": "logic-day-0114",
@@ -359,7 +419,10 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
     "quote": "Logic đưa bạn từ điểm A đến điểm B. Trí tưởng tượng đưa bạn đến mọi nơi.",
     "tag": "Tư duy phản biện",
     "imageUrl": "https://images.unsplash.com/photo-1509228468518-180dd4864904?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-cyan-700/30 via-blue-800/20 to-zinc-950"
+    "accentGradient": "from-cyan-700/30 via-blue-800/20 to-zinc-950",
+    "dateLabel": "14 Tháng 01",
+    "meaning": "Thúc đẩy tư duy lập luận khoa học, ngăn chặn tin giả và định hình nền tảng cho trí tuệ nhân tạo (AI).",
+    "subtitle": "Tôn vinh tư duy phản biện, tính duy lý và vai trò của khoa học logic trong sự..."
   },
   {
     "id": "non-la-0115",
@@ -382,10 +445,19 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
       "Hình khắc nón lá trên trống đồng cổ",
       "Nghề chằm nón bài thơ cố đô Huế"
     ],
-    "quote": "Nón lá bài thơ nghiêng che suối tóc / Áo dài tha thướt bóng giai nhân.",
+    "quote": "Nón lá nghiêng che vành nón mỏng / Áo dài tha thướt bóng quê hương.",
     "tag": "Duyên dáng Việt Nam",
     "imageUrl": "https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-rose-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-rose-600/20 to-zinc-950",
+    "dateLabel": "15 Tháng 01",
+    "meaning": "Gắn liền với hình ảnh tà áo dài thướt tha, là biểu tượng nhận diện văn hóa Việt Nam trên trường quốc tế.",
+    "subtitle": "Biểu tượng duyên dáng, thuần hậu của văn hóa và người phụ nữ Việt",
+    "traditions": [
+      "Trải nghiệm làm nón lá thủ công tại làng nghề Chuông (Hà Nội) hoặc làng nón Dạ Lê (Huế)",
+      "Biểu diễn múa nón lá kết hợp áo dài truyền thống trong các sự kiện văn hóa",
+      "Tặng nón lá bài thơ làm quà lưu niệm gửi gắm nét đẹp quê hương cho du khách"
+    ],
+    "cuisine": "Chè sen long nhãn xứ Huế ngọt thanh tao đượm phong vị kinh kỳ."
   },
   {
     "id": "ton-giao-0116",
@@ -410,7 +482,10 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
     ],
     "tag": "Bao dung hòa hợp",
     "imageUrl": "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-purple-600/30 via-amber-600/20 to-zinc-950"
+    "accentGradient": "from-purple-600/30 via-amber-600/20 to-zinc-950",
+    "dateLabel": "16 Tháng 01",
+    "meaning": "Việt Nam là quốc gia đa tôn giáo, nơi các cộng đồng Phật giáo, Công giáo, Tin Lành, Hồi giáo... cùng đoàn kết chung sống.",
+    "subtitle": "Sống hài hòa, bao dung và tôn trọng các giá trị văn hóa tâm linh lành mạnh củ..."
   },
   {
     "id": "ben-tre-dong-khoi-0117",
@@ -433,10 +508,17 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
       "Tiếng mõ Đồng Khởi vang dậy khắp Ba Tri, Mỏ Cày",
       "Nữ tướng anh hùng Nguyễn Thị Định"
     ],
-    "quote": "Anh dũng Đồng Khởi, đập tan ách kìm kẹp.",
+    "quote": "Đội quân tóc dài Bến Tre — biểu tượng anh hùng, quật khởi của phụ nữ miền Nam trong kháng chiến.",
     "tag": "Đội quân tóc dài",
     "imageUrl": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-red-600/35 via-rose-700/20 to-zinc-950"
+    "accentGradient": "from-red-600/35 via-rose-700/20 to-zinc-950",
+    "dateLabel": "17 Tháng 01",
+    "meaning": "Chuyển cách mạng miền Nam từ thế giữ gìn lực lượng sang thế tiến công mạnh mẽ.",
+    "subtitle": "Ngọn đuốc Đồng Khởi rực sáng mở đường cho phong trào giải phóng miền Nam",
+    "traditions": [
+      "Lễ dâng hương tưởng niệm Nữ tướng Nguyễn Thị Định và Đội quân tóc dài Bến Tre",
+      "Thăm Di tích lịch sử Quốc gia đặc biệt Đồng Khởi tại Định Thủy, Mỏ Cày Nam"
+    ]
   },
   {
     "id": "ngoai-giao-vn-tq-0118",
@@ -461,7 +543,10 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
     ],
     "tag": "Ngoại giao non sông",
     "imageUrl": "https://images.unsplash.com/photo-1508873696983-2df5293cb325?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-red-700/30 via-yellow-600/20 to-zinc-950"
+    "accentGradient": "from-red-700/30 via-yellow-600/20 to-zinc-950",
+    "dateLabel": "18 Tháng 01",
+    "meaning": "Phá tan thế bao vây cô lập của kẻ thù, mở đường cho sự ủng hộ to lớn của bạn bè quốc tế đối với cuộc kháng chiến.",
+    "subtitle": "Cột mốc mở đầu cho các quan hệ ngoại giao chính thức giữa nước Việt Nam mới v..."
   },
   {
     "id": "hoang-sa-0119",
@@ -487,7 +572,10 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
     "quote": "Hoàng Sa, Trường Sa là máu thịt của Tổ quốc Việt Nam.",
     "tag": "Chủ quyền thiêng liêng",
     "imageUrl": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-blue-700/40 via-cyan-600/20 to-zinc-950"
+    "accentGradient": "from-blue-700/40 via-cyan-600/20 to-zinc-950",
+    "dateLabel": "19 Tháng 01",
+    "meaning": "Khẳng định ý chí sắt đá và chứng cứ lịch sử pháp lý không thể chối cãi về chủ quyền biển đảo của Tổ quốc.",
+    "subtitle": "Khắc ghi công ơn các thế hệ cha ông đã hy sinh xương máu giữ gìn từng tấc biể..."
   },
   {
     "id": "penguin-day-0120",
@@ -512,7 +600,10 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
     ],
     "tag": "Bảo tồn thiên nhiên",
     "imageUrl": "https://images.unsplash.com/photo-1598439210625-5067c578f3f6?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-cyan-600/30 via-slate-700/20 to-zinc-950"
+    "accentGradient": "from-cyan-600/30 via-slate-700/20 to-zinc-950",
+    "dateLabel": "20 Tháng 01",
+    "meaning": "Nhắc nhở con người về tác động khốc liệt của biến đổi khí hậu làm tan chảy băng vĩnh cửu.",
+    "subtitle": "Bảo vệ sinh vật đáng yêu và hệ sinh thái băng giá trước nguy cơ nóng lên toàn..."
   },
   {
     "id": "hug-day-0121",
@@ -538,7 +629,10 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
     "quote": "Đôi khi tất cả những gì bạn cần chỉ là một cái ôm không lời.",
     "tag": "Ấm áp tình thân",
     "imageUrl": "https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-rose-600/30 via-amber-600/20 to-zinc-950"
+    "accentGradient": "from-rose-600/30 via-amber-600/20 to-zinc-950",
+    "dateLabel": "21 Tháng 01",
+    "meaning": "Y học chứng minh cái ôm giúp cơ thể tiết ra oxytocin — hormone giảm căng thẳng và tăng cảm giác hạnh phúc.",
+    "subtitle": "Một cái ôm chân thành có sức mạnh chữa lành, xua tan cô đơn và kết nối những ..."
   },
   {
     "id": "song-tich-cuc-0122",
@@ -564,7 +658,10 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
     "quote": "Mỗi ngày là một món quà mới mẻ, hãy mở nó ra với lòng hân hoan.",
     "tag": "Tâm an vạn sự an",
     "imageUrl": "https://images.unsplash.com/photo-1499209974431-9dddcece7f88?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-yellow-600/30 via-emerald-600/20 to-zinc-950"
+    "accentGradient": "from-yellow-600/30 via-emerald-600/20 to-zinc-950",
+    "dateLabel": "22 Tháng 01",
+    "meaning": "Giúp mỗi người tìm thấy sự bình an nội tại, giảm áp lực công việc và tận hưởng từng khoảnh khắc giản đơn.",
+    "subtitle": "Chọn mỉm cười trước thử thách, giữ tâm an yên và lan tỏa nguồn năng lượng tíc..."
   },
   {
     "id": "chu-viet-tay-0123",
@@ -590,7 +687,10 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
     "quote": "Nét chữ nết người.",
     "tag": "Rèn đức luyện tài",
     "imageUrl": "https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-700/30 via-stone-700/20 to-zinc-950"
+    "accentGradient": "from-amber-700/30 via-stone-700/20 to-zinc-950",
+    "dateLabel": "23 Tháng 01",
+    "meaning": "Tại Việt Nam, phong trào 'Vở sạch chữ đẹp' đã rèn luyện tính kiên nhẫn, cẩn trọng cho biết bao thế hệ học trò.",
+    "subtitle": "Nét chữ nết người"
   },
   {
     "id": "giao-duc-0124",
@@ -616,7 +716,10 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
     "quote": "Giáo dục là vũ khí mạnh nhất mà bạn có thể dùng để thay đổi thế giới. — Nelson Mandela",
     "tag": "Trồng người trăm năm",
     "imageUrl": "https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-blue-600/30 via-indigo-700/20 to-zinc-950"
+    "accentGradient": "from-blue-600/30 via-indigo-700/20 to-zinc-950",
+    "dateLabel": "24 Tháng 01",
+    "meaning": "Bảo đảm mọi trẻ em, đặc biệt là ở vùng sâu vùng xa, đều có cơ hội học tập chất lượng và miễn phí.",
+    "subtitle": "Giáo dục là chìa khóa vàng mở cánh cửa hòa bình, bình đẳng và thịnh vượng cho..."
   },
   {
     "id": "van-hoa-dan-toc-0125",
@@ -639,10 +742,19 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
       "Ngày hội văn hóa các dân tộc Việt Nam",
       "Bảo tồn trang phục truyền thống dệt thổ cẩm"
     ],
-    "quote": "Như cây chung một gốc, như con một nhà.",
+    "quote": "Đồng bào Kinh hay Thổ, Mường hay Mán... đều là con cháu Việt Nam, đều là anh em ruột thịt. — Hồ Chí Minh",
     "tag": "Sắc màu non sông",
     "imageUrl": "https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-red-600/30 via-amber-600/20 to-zinc-950"
+    "accentGradient": "from-red-600/30 via-amber-600/20 to-zinc-950",
+    "dateLabel": "25 Tháng 01",
+    "meaning": "Bảo tồn tiếng nói, chữ viết, trang phục truyền thống, điệu múa xòe, tiếng cồng chiêng đại ngàn.",
+    "subtitle": "Tôn vinh vườn hoa sắc màu văn hóa của 54 dân tộc anh em",
+    "traditions": [
+      "Trình diễn trang phục thổ cẩm truyền thống của đồng bào các dân tộc thiểu số",
+      "Giao lưu dân ca, nhạc cụ cổ truyền cồng chiêng, khèn bè, đàn tính tại Làng Văn hóa - Du lịch các Dân tộc Việt Nam",
+      "Thưởng thức ẩm thực vùng cao như thắng cố, cơm lam, xôi ngũ sắc"
+    ],
+    "cuisine": "Cơm lam nướng ống tre thơm mùi nếp nương, xôi ngũ sắc nhuộm lá cẩm tự nhiên và thịt trâu gác bếp đậm đà."
   },
   {
     "id": "hai-quan-0126",
@@ -667,7 +779,10 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
     ],
     "tag": "Gác cửa biên mậu",
     "imageUrl": "https://images.unsplash.com/photo-1578575437130-527eed3abbec?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-blue-700/30 via-slate-700/20 to-zinc-950"
+    "accentGradient": "from-blue-700/30 via-slate-700/20 to-zinc-950",
+    "dateLabel": "26 Tháng 01",
+    "meaning": "Tôn vinh vai trò kiểm soát biên mậu, ngăn chặn buôn lậu và thúc đẩy chuỗi cung ứng hàng hóa an toàn.",
+    "subtitle": "Những người lính gác cửa khẩu ngày đêm giữ vững an ninh biên giới và tạo thuậ..."
   },
   {
     "id": "hiep-dinh-paris-0127",
@@ -690,10 +805,17 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
       "Cuộc đàm phán kéo dài kỷ lục 4 năm 8 tháng 14 ngày",
       "Cột mốc lịch sử buộc quân đội viễn chinh Mỹ rút khỏi nước ta"
     ],
-    "quote": "Đánh cho Mỹ cút, đánh cho Ngụy nhào. — Chủ tịch Hồ Chí Minh",
+    "quote": "Hiệp định Paris 1973 là thắng lợi lịch sử vẻ vang của nền ngoại giao cách mạng Việt Nam.",
     "tag": "Mốc son ngoại giao",
     "imageUrl": "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-red-600/35 via-yellow-600/20 to-zinc-950"
+    "accentGradient": "from-red-600/35 via-yellow-600/20 to-zinc-950",
+    "dateLabel": "27 Tháng 01",
+    "meaning": "Đỉnh cao của sự kết hợp tài tình giữa đấu tranh quân sự, chính trị và ngoại giao của dân tộc.",
+    "subtitle": "Đỉnh cao thắng lợi ngoại giao Việt Nam thời đại Hồ Chí Minh",
+    "traditions": [
+      "Tọa đàm chuyên đề bài học lịch sử của đàm phán Hiệp định Paris 1973",
+      "Gặp mặt tri ân các nhân chứng lịch sử và đoàn đàm phán ngoại giao Việt Nam"
+    ]
   },
   {
     "id": "bac-ho-ve-nuoc-0128",
@@ -719,7 +841,10 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
     "quote": "Bác đã về đây, Tổ quốc ơi! / Nhớ thương hòn đất ấm hơi Người. — Tố Hữu",
     "tag": "Mùa xuân cách mạng",
     "imageUrl": "https://images.unsplash.com/photo-1596767878342-9907f9f69747?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-red-600/40 via-amber-600/20 to-zinc-950"
+    "accentGradient": "from-red-600/40 via-amber-600/20 to-zinc-950",
+    "dateLabel": "28 Tháng 01",
+    "meaning": "Mốc son xoay chuyển vận mệnh dân tộc, mở đầu cho thắng lợi của Cách mạng Tháng Tám năm 1945.",
+    "subtitle": "Sau 30 năm bôn ba tìm đường cứu nước, Người trở về cột mốc 108 thiêng liêng t..."
   },
   {
     "id": "puzzle-day-0129",
@@ -745,7 +870,10 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
     "quote": "Mỗi trở ngại trong cuộc sống chỉ là một mảnh ghép đang chờ bạn xếp đúng chỗ.",
     "tag": "Trí tuệ nhạy bén",
     "imageUrl": "https://images.unsplash.com/photo-1513151233558-d860c5398176?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-orange-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-orange-600/20 to-zinc-950",
+    "dateLabel": "29 Tháng 01",
+    "meaning": "Giải đố kích thích hai bán cầu não hoạt động đồng thời, cải thiện trí nhớ không gian và sự tập trung.",
+    "subtitle": "Thử thách trí não, rèn luyện tính kiên nhẫn và khám phá niềm vui từ những mản..."
   },
   {
     "id": "non-violence-0130",
@@ -771,7 +899,10 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
     "quote": "Không có con đường dẫn đến hòa bình; hòa bình chính là con đường.",
     "tag": "Học đường yêu thương",
     "imageUrl": "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-teal-600/30 via-blue-700/20 to-zinc-950"
+    "accentGradient": "from-teal-600/30 via-blue-700/20 to-zinc-950",
+    "dateLabel": "30 Tháng 01",
+    "meaning": "Nhắc nhở học sinh, sinh viên và phụ huynh giải quyết xung đột bằng đối thoại, thấu hiểu và sự bao dung.",
+    "subtitle": "Xây dựng môi trường học đường yêu thương, tôn trọng và không có bạo lực."
   },
   {
     "id": "mau-than-0131",
@@ -796,6 +927,9 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
     ],
     "tag": "Khúc tráng ca",
     "imageUrl": "https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-red-700/35 via-yellow-600/20 to-zinc-950"
+    "accentGradient": "from-red-700/35 via-yellow-600/20 to-zinc-950",
+    "dateLabel": "31 Tháng 01",
+    "meaning": "Làm phá sản chiến lược 'Chiến tranh cục bộ', buộc chính quyền Mỹ phải ngồi vào bàn đàm phán Paris.",
+    "subtitle": "Đòn tiến công sấm sét làm rung chuyển nước Mỹ, xoay chuyển cục diện chiến tra..."
   }
 ];

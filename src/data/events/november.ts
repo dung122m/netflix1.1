@@ -24,7 +24,10 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "01 Tháng 11",
+    "meaning": "Chế độ ăn nhiều thực vật giúp giảm cholesterol, thanh lọc cơ thể và giảm lượng khí thải carbon nông nghiệp.",
+    "subtitle": "Ẩm thực chay thanh tịnh"
   },
   {
     "id": "ev-11-02-nha-bao",
@@ -49,7 +52,10 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "02 Tháng 11",
+    "meaning": "Lên án mọi hành vi đe dọa, bắt cóc và bạo lực đối với các phóng viên đang tác nghiệp tại các điểm nóng.",
+    "subtitle": "Bảo vệ các nhà báo dũng cảm dấn thân vì sự thật và quyền được biết của công c..."
   },
   {
     "id": "ev-11-03-sinh-quyen",
@@ -74,7 +80,10 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "03 Tháng 11",
+    "meaning": "Việt Nam tự hào có 11 Khu Dự trữ Sinh quyển Thế giới được UNESCO công nhận như Cần Giờ, Cát Tiên, Cù Lao Chàm...",
+    "subtitle": "Hài hòa giữa con người và thiên nhiên"
   },
   {
     "id": "ev-11-04-candy-day",
@@ -99,7 +108,10 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "04 Tháng 11",
+    "meaning": "Kẹo dừa Bến Tre, mè xửng xứ Huế, kẹo sìu dâu Nam Định là những đặc sản quà quê nức tiếng.",
+    "subtitle": "Vị ngọt ngào của những viên kẹo gừng, kẹo dừa, kẹo lạc gắn liền với tuổi thơ ..."
   },
   {
     "id": "ev-11-05-song-than",
@@ -124,7 +136,10 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "05 Tháng 11",
+    "meaning": "Nâng cao kỹ năng nhận biết dấu hiệu sóng thần: nước biển rút nhanh bất thường, mặt đất rung chuyển mạnh.",
+    "subtitle": "Cảnh báo sớm, chuẩn bị kỹ càng để giảm thiểu thiệt hại từ những cơn thịnh nộ ..."
   },
   {
     "id": "ev-11-06-moi-truong-chien-tranh",
@@ -149,7 +164,10 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "06 Tháng 11",
+    "meaning": "Việt Nam là minh chứng sâu sắc về sự phục hồi diệu kỳ của những cánh rừng bị bom đạn và chất độc hóa học tàn phá.",
+    "subtitle": "Thiên nhiên không có tội"
   },
   {
     "id": "ev-11-07-cach-mang-thang-muoi",
@@ -175,7 +193,10 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "07 Tháng 11",
+    "meaning": "Mở đường cho người thanh niên Nguyễn Ái Quốc tìm thấy chân lý cứu nước trong Luận cương của Lênin năm 1920.",
+    "subtitle": "Tiếng súng rền vang từ chiến hạm Rạng Đông mở ra thời đại mới giải phóng các ..."
   },
   {
     "id": "ev-11-08-do-thi-hoa",
@@ -200,7 +221,10 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "08 Tháng 11",
+    "meaning": "Quy hoạch đô thị xanh lấy người dân làm trung tâm, tăng diện tích cây xanh, hồ nước và giao thông công cộng.",
+    "subtitle": "Quy hoạch đô thị thông minh, bền vững và tôn vinh phát minh tia X cứu sống hà..."
   },
   {
     "id": "ev-11-09-phap-luat-viet-nam",
@@ -223,10 +247,17 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
       "Thông qua bản Hiến pháp đầu tiên năm 1946",
       "Hưởng ứng Ngày Pháp luật Việt Nam trên toàn quốc"
     ],
-    "quote": "Sống và làm việc theo Hiến pháp và Pháp luật.",
+    "quote": "Sống và làm việc theo Hiến pháp và pháp luật là nghĩa vụ thiêng liêng của mỗi công dân.",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "09 Tháng 11",
+    "meaning": "Nâng cao ý thức tuân thủ pháp luật, sống và làm việc theo Hiến pháp và pháp luật trong mọi tầng lớp nhân dân.",
+    "subtitle": "Ngày Pháp luật Nước CHXHCN Việt Nam — Tôn vinh Hiến pháp và tinh thần thượng tôn pháp luật",
+    "traditions": [
+      "Tuyên truyền phổ biến giáo dục pháp luật tại các trường học, cơ quan, doanh nghiệp",
+      "Tổ chức các phiên tòa giả định giáo dục pháp luật thực tế cho học sinh, sinh viên"
+    ]
   },
   {
     "id": "ev-11-10-khoa-hoc-hoa-binh",
@@ -251,7 +282,10 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "10 Tháng 11",
+    "meaning": "Khích lệ các bạn trẻ theo đuổi nghiên cứu khoa học công nghệ, ứng dụng trí tuệ nhân tạo vì mục tiêu nhân đạo.",
+    "subtitle": "Khoa học phụng sự nhân loại"
   },
   {
     "id": "ev-11-11-doc-than-mua-sam",
@@ -276,7 +310,10 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "11 Tháng 11",
+    "meaning": "Trở thành lễ hội mua sắm trực tuyến có doanh số lớn nhất toàn cầu với hàng triệu chương trình khuyến mãi hấp dẫn.",
+    "subtitle": "Bốn con số 1 thẳng đứng tượng trưng cho sự tự do, kiêu hãnh và yêu thương chă..."
   },
   {
     "id": "ev-11-12-cong-nhan-vung-mo",
@@ -302,7 +339,10 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "12 Tháng 11",
+    "meaning": "Tôn vinh tinh thần kiên cường, sự hy sinh thầm lặng của những người thợ mỏ khai thác 'vàng đen' làm giàu Tổ quốc.",
+    "subtitle": "'Kỷ luật và Đồng tâm'"
   },
   {
     "id": "ev-11-13-world-kindness-day",
@@ -327,7 +367,10 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "13 Tháng 11",
+    "meaning": "Nhường ghế cho người già trên xe buýt, mỉm cười với người phục vụ hay giúp đỡ người qua đường.",
+    "subtitle": "Một hành động tử tế dù nhỏ bé đến đâu cũng không bao giờ là lãng phí"
   },
   {
     "id": "ev-11-14-dai-thao-duong",
@@ -352,7 +395,10 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "14 Tháng 11",
+    "meaning": "Chế độ ăn giảm đường tinh luyện, tăng cường rau xanh và tập thể dục 30 phút/ngày giúp ngăn ngừa tiểu đường type 2.",
+    "subtitle": "Vòng tròn xanh hy vọng"
   },
   {
     "id": "ev-11-15-nan-nhan-tai-nan-giao-thong",
@@ -378,7 +424,10 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "15 Tháng 11",
+    "meaning": "Cảnh tỉnh toàn xã hội về thảm họa tai nạn giao thông; tuyệt đối đã uống rượu bia thì không lái xe.",
+    "subtitle": "Tưởng nhớ người đi"
   },
   {
     "id": "ev-11-16-khoan-dung",
@@ -403,7 +452,10 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "16 Tháng 11",
+    "meaning": "Khoan dung không phải là thỏa hiệp hay nhượng bộ, mà là thái độ tích cực tôn trọng quyền tự do của người khác.",
+    "subtitle": "Bao dung là chiếc cầu nối hàn gắn những bất đồng"
   },
   {
     "id": "ev-11-17-sinh-vien-quoc-te",
@@ -428,7 +480,10 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "17 Tháng 11",
+    "meaning": "Tôn vinh nhiệt huyết, khát vọng nghiên cứu khoa học và tinh thần dấn thân của sinh viên các trường đại học.",
+    "subtitle": "Tuổi trẻ sáng tạo vươn ra biển lớn và nâng niu từng hơi thở mong manh của nhữ..."
   },
   {
     "id": "ev-11-18-mat-tran-dan-toc-thong-nhat",
@@ -454,7 +509,15 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "quote": "Đoàn kết, đoàn kết, đại đoàn kết / Thành công, thành công, đại thành công. — Hồ Chí Minh",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "18 Tháng 11",
+    "meaning": "Ngày hội Đại đoàn kết toàn dân tộc được tổ chức sôi nổi tại khắp các nhà văn hóa thôn, bản, tổ dân phố trên cả nước.",
+    "subtitle": "Ngày hội Đại đoàn kết toàn dân tộc — Gắn kết nghĩa tình làng xóm, phố phường",
+    "traditions": [
+      "Tổ chức Ngày hội Đại đoàn kết toàn dân tộc tại tất cả các khu dân cư, thôn bản",
+      "Bữa cơm 'Đại đoàn kết' ấm áp sẻ chia tình làng nghĩa xóm",
+      "Biểu diễn các tiết mục văn nghệ quần chúng và trao quà hỗ trợ các hộ gia đình khó khăn"
+    ]
   },
   {
     "id": "ev-11-19-quoc-te-nam-gioi",
@@ -479,7 +542,10 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "19 Tháng 11",
+    "meaning": "Khích lệ nam giới quan tâm hơn đến sức khỏe tâm lý, phá bỏ những định kiến khắt khe về 'phái mạnh không được khóc'.",
+    "subtitle": "Tôn vinh vai trò của người cha, người chồng, người anh em và bảo đảm vệ sinh ..."
   },
   {
     "id": "ev-11-20-nha-giao-viet-nam",
@@ -502,10 +568,18 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
       "Học trò trở về thăm trường xưa tri ân thầy cô",
       "Tặng những đóa hoa tươi thắm và lời chúc chân thành nhất"
     ],
-    "quote": "Muốn sang thì bắc cầu Kiều / Muốn con hay chữ thì yêu lấy thầy.",
+    "quote": "Dưới ánh mặt trời không có nghề nào cao quý hơn nghề dạy học. — Comenius",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "20 Tháng 11",
+    "meaning": "Bày tỏ lòng biết ơn vô hạn đối với các thầy cô giáo — những người ươm mầm ước mơ cho bao thế hệ học trò trưởng thành.",
+    "subtitle": "Ngày Nhà giáo Việt Nam — Tri ân người lái đò thầm lặng chở tri thức qua sông",
+    "traditions": [
+      "Học trò các thế hệ về thăm lại trường xưa, dâng tặng thầy cô những đóa hoa tươi thắm",
+      "Hội diễn văn nghệ, làm báo tường và thi đua hoa điểm mười chào mừng ngày 20/11",
+      "Lễ tuyên dương 'Nhà giáo tiêu biểu của năm' trang trọng tại các trường học và ngành Giáo dục"
+    ]
   },
   {
     "id": "ev-11-21-truyen-hinh-the-gioi",
@@ -530,7 +604,10 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "21 Tháng 11",
+    "meaning": "Truyền hình là cầu nối truyền tải thông tin chính xác, giáo dục cộng đồng và phản ánh hơi thở đời sống nhân loại.",
+    "subtitle": "Màn ảnh nhỏ mở ra thế giới bao la"
   },
   {
     "id": "ev-11-22-nhac-si-thinh-phong",
@@ -555,7 +632,10 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "22 Tháng 11",
+    "meaning": "Âm nhạc giao hưởng thính phòng và các bản hòa tấu nhạc cụ giúp nuôi dưỡng sự thư thái, bình an cho tâm hồn.",
+    "subtitle": "Tôn vinh những tâm hồn nghệ sĩ tài hoa chắp cánh cho những nốt nhạc làm say đ..."
   },
   {
     "id": "ev-11-23-di-san-nam-ky-khoi-nghia",
@@ -579,10 +659,18 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
       "Ngày Di sản Văn hóa Việt Nam bảo tồn di tích cổ",
       "Ngày thành lập Hội Chữ thập đỏ Việt Nam (1946)"
     ],
-    "quote": "Ngọn cờ đỏ sao vàng bừng sáng trời Nam Kỳ.",
+    "quote": "Di sản văn hóa là tài sản vô giá của tiền nhân để lại, là linh hồn và cội nguồn sức mạnh của dân tộc.",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "23 Tháng 11",
+    "meaning": "Cuộc khởi nghĩa quật khởi làm rạng danh ngọn cờ đỏ sao vàng; đồng thời tôn vinh trách nhiệm giữ gìn di sản cha ông.",
+    "subtitle": "Ngày Nam Kỳ Khởi Nghĩa (1940) & Ngày Di Sản Văn Hóa Việt Nam",
+    "traditions": [
+      "Mở cửa miễn phí tham quan tại các bảo tàng, di tích quốc gia đặc biệt trên toàn quốc",
+      "Trình diễn các di sản phi vật thể: Ca trù, Nhã nhạc cung đình Huế, Đờn ca tài tử Nam Bộ",
+      "Lễ dâng hương tưởng niệm các chiến sĩ Nam Kỳ Khởi nghĩa tại Hóc Môn, TP.HCM"
+    ]
   },
   {
     "id": "ev-11-24-tien-hoa-hoc",
@@ -607,7 +695,10 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "24 Tháng 11",
+    "meaning": "Khơi dậy niềm đam mê khảo cổ học, cổ sinh vật học và sự ngưỡng mộ đối với tiến trình tiến hóa của sự sống.",
+    "subtitle": "Hành trình tìm về cội nguồn sinh học và sự phát triển kỳ diệu của nhân loại t..."
   },
   {
     "id": "ev-11-25-xoa-bo-bao-luc-phu-nu",
@@ -632,7 +723,10 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "25 Tháng 11",
+    "meaning": "Kêu gọi xóa bỏ mọi định kiến giới, bảo vệ an toàn cho phụ nữ và trẻ em gái tại gia đình và nơi công cộng.",
+    "subtitle": "Thắp sáng sắc cam hy vọng"
   },
   {
     "id": "ev-11-26-black-friday",
@@ -657,7 +751,10 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "26 Tháng 11",
+    "meaning": "Các trung tâm thương mại và cửa hàng đồng loạt tung ra các chương trình giảm giá sâu kích cầu tiêu dùng.",
+    "subtitle": "Cơn sốt mua sắm cuối năm rộn ràng"
   },
   {
     "id": "ev-11-27-small-business",
@@ -682,7 +779,10 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "27 Tháng 11",
+    "meaning": "Mỗi đồng tiền bạn chi tiêu tại doanh nghiệp nhỏ đều góp phần trực tiếp nuôi sống các gia đình lao động tại địa phương.",
+    "subtitle": "Ủng hộ những quán quen góc phố"
   },
   {
     "id": "ev-11-28-tet-trong-cay-bac-ho",
@@ -707,7 +807,10 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "28 Tháng 11",
+    "meaning": "Lời kêu gọi mộc mạc nhưng chứa đựng tư tưởng phát triển bền vững đi trước thời đại hàng chục năm.",
+    "subtitle": "'Mùa xuân là Tết trồng cây / Làm cho đất nước càng ngày càng xuân'"
   },
   {
     "id": "ev-11-29-doan-ket-palestine",
@@ -732,7 +835,10 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "29 Tháng 11",
+    "meaning": "Việt Nam kiên định lập trường ủng hộ giải pháp hai nhà nước, xây dựng nền hòa bình lâu dài và công bằng.",
+    "subtitle": "Ủng hộ cuộc đấu tranh chính nghĩa vì quyền tự quyết, độc lập và hòa bình công..."
   },
   {
     "id": "ev-11-30-an-ninh-mang",
@@ -757,6 +863,9 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "dateLabel": "30 Tháng 11",
+    "meaning": "Cảnh giác trước các đường link lạ, đặt mật khẩu mạnh hai lớp (2FA) và không chia sẻ mã OTP cho bất kỳ ai.",
+    "subtitle": "Bảo vệ thông tin cá nhân và dữ liệu số an toàn trước các cuộc tấn công mạng đ..."
   }
 ];

@@ -28,6 +28,8 @@ export interface VietnamEvent {
   id: string;
   title: string;
   shortDescription: string;
+  subtitle?: string | null;
+  dateLabel?: string | null;
   category: VietnamEventCategory;
   categoryLabel: string;
   nature: EventNature;
@@ -50,10 +52,15 @@ export interface VietnamEvent {
   lunarDisplayDate?: string | null;
   origin: string;
   significance: string;
+  meaning?: string | null;
+  traditions?: string[];
+  cuisine?: string | null;
   didYouKnow: string;
+  interestingFacts?: string[];
   milestones: string[];
   quote?: string | null;
   tag?: string | null;
   imageUrl?: string | null;
   accentGradient?: string | null;
 }
+

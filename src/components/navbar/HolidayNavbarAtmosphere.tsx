@@ -3,6 +3,36 @@
 import React, { useEffect, useState } from "react";
 import { getVietnamTodayEvent } from "@/lib/vietnamCalendar";
 import {
+  LionDanceHead,
+  StarLantern,
+  Mooncake,
+  RedEnvelope,
+  BanhChung,
+  SilkFan,
+  VietnamFlagRipple,
+  PeaceDoves,
+  FireworksBurst,
+  ChimLacBird,
+  NghiaLinhMountains,
+  FloatingLotusLantern,
+  AncientTempleBell,
+  GraduationCap,
+  FloralRosette,
+  SilkRibbonBow,
+  SpringButterfly,
+  ChristmasPineTree,
+  ChristmasGiftBox,
+  CrystalSnowflake,
+  JackOLantern,
+  SpiderWebCorner,
+  VelvetRose,
+  LoveLetterEnvelope,
+  SpinningPinwheel,
+  ToastingChampagne,
+  BirthdayCake,
+} from "./HolidayCulturalVisuals";
+
+import {
   getHolidayNavbarTheme,
   HolidayNavbarTheme,
   HolidayNavbarThemeId,
@@ -157,6 +187,30 @@ function MidAutumnScene() {
         </div>
       </div>
 
+      {/* 8. CULTURAL SUPPORTING: Lion Dance Head (Đầu lân Trung Thu) */}
+      <div
+        className="absolute top-1 left-[18%] hidden sm:flex items-center pointer-events-none cinema-anim"
+        style={{ animation: "cinemaFloat 12s ease-in-out infinite", transformOrigin: "center center" }}
+      >
+        <LionDanceHead className="w-6 h-6 sm:w-7 sm:h-7 opacity-80 filter drop-shadow-[0_0_8px_rgba(220,38,38,0.5)]" />
+      </div>
+
+      {/* 9. CULTURAL SUPPORTING: Traditional Star Lantern (Đèn ông sao 5 cánh) */}
+      <div
+        className="absolute top-0 right-[18%] flex flex-col items-center pointer-events-none cinema-anim"
+        style={{ animation: "cinemaLanternSway 6.5s ease-in-out infinite 0.5s", transformOrigin: "top center" }}
+      >
+        <StarLantern className="w-6 h-7 sm:w-7 sm:h-8 opacity-85 filter drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
+      </div>
+
+      {/* 10. CULTURAL SUPPORTING: Embossed Mooncake (Bánh Trung Thu hoa sen) */}
+      <div
+        className="absolute top-2 right-[46%] hidden md:flex items-center pointer-events-none cinema-anim"
+        style={{ animation: "cinemaBreathe 14s ease-in-out infinite 1s" }}
+      >
+        <Mooncake className="w-5 h-5 sm:w-6 sm:h-6 opacity-75 filter drop-shadow-[0_0_6px_rgba(217,119,6,0.45)]" />
+      </div>
+
       {/* 8. Stars twinkle 4s: twinkle bằng opacity + scale 1 -> 1.35 */}
       <div
         className="absolute top-2 left-[20%] w-1 h-1 rounded-full bg-amber-200/70 shadow-[0_0_3px_#FDE047] opacity-60 cinema-anim"
@@ -231,6 +285,38 @@ function TetScene() {
           <span className="inline-block text-[7.5px] text-yellow-300/85 font-bold cinema-anim" style={{ animation: "cinemaCandleFlicker 3s ease-in-out infinite 0.4s" }}>春</span>
         </div>
         <div className="w-[1px] h-2 bg-amber-600/50" />
+      </div>
+
+      {/* CULTURAL SUPPORTING: Red Lucky Envelope (Bao lì xì may mắn) */}
+      <div
+        className="absolute top-1 left-[18%] hidden sm:flex items-center pointer-events-none cinema-anim"
+        style={{ animation: "cinemaLanternSway 7s ease-in-out infinite 0.3s", transformOrigin: "top center" }}
+      >
+        <RedEnvelope className="w-5 h-6 sm:w-6 sm:h-7 opacity-80 filter drop-shadow-[0_0_7px_rgba(220,38,38,0.4)]" />
+      </div>
+
+      {/* CULTURAL SUPPORTING: Square Bánh Chưng (Bánh chưng xanh buộc lạt tre) */}
+      <div
+        className="absolute top-2 right-[16%] hidden md:flex items-center pointer-events-none cinema-anim"
+        style={{ animation: "cinemaBreathe 12s ease-in-out infinite 1s" }}
+      >
+        <BanhChung className="w-5 h-5 sm:w-6 sm:h-6 opacity-75 filter drop-shadow-[0_0_6px_rgba(22,101,52,0.4)]" />
+      </div>
+
+      {/* CULTURAL SUPPORTING: Silk Folding Fan (Quạt gấm ngày xuân) */}
+      <div
+        className="absolute top-2 right-[44%] hidden lg:flex items-center pointer-events-none cinema-anim"
+        style={{ animation: "cinemaFloat 14s ease-in-out infinite" }}
+      >
+        <SilkFan className="w-6 h-4 sm:w-7 sm:h-5 opacity-70 filter drop-shadow-[0_0_6px_rgba(190,18,60,0.35)]" />
+      </div>
+
+      {/* CULTURAL SUPPORTING: Midnight Fireworks Blossom */}
+      <div
+        className="absolute top-1 left-[38%] hidden sm:flex items-center pointer-events-none cinema-anim"
+        style={{ animation: "cinemaTwinkle 4s ease-in-out infinite 0.5s" }}
+      >
+        <FireworksBurst className="w-5 h-5 opacity-70 filter drop-shadow-[0_0_6px_#FEF08A]" />
       </div>
 
       {/* Drifting blossom petals - faint, slow */}
@@ -314,6 +400,30 @@ function NationalDayScene() {
         </div>
       </div>
 
+      {/* CULTURAL HERO/SUPPORTING: Waving Vietnam Flag SVG */}
+      <div
+        className="absolute top-1.5 left-[18%] hidden sm:flex items-center pointer-events-none cinema-anim"
+        style={{ animation: "cinemaFloat 13s ease-in-out infinite" }}
+      >
+        <VietnamFlagRipple className="w-7 h-5 sm:w-8 sm:h-5.5 opacity-85 filter drop-shadow-[0_0_8px_rgba(220,38,38,0.5)]" />
+      </div>
+
+      {/* CULTURAL SUPPORTING: Soaring Peace Doves */}
+      <div
+        className="absolute top-2 left-[34%] pointer-events-none cinema-anim"
+        style={{ animation: "cinemaFloat 20s ease-in-out infinite 1s" }}
+      >
+        <PeaceDoves className="w-6 h-4 sm:w-7 sm:h-5 opacity-70 filter drop-shadow-[0_0_5px_rgba(255,255,255,0.4)]" />
+      </div>
+
+      {/* CULTURAL SUPPORTING: Independence Fireworks Burst */}
+      <div
+        className="absolute top-1 right-[18%] hidden md:flex items-center pointer-events-none cinema-anim"
+        style={{ animation: "cinemaTwinkle 4.5s ease-in-out infinite 0.8s" }}
+      >
+        <FireworksBurst className="w-6 h-6 opacity-75 filter drop-shadow-[0_0_8px_#FDE047]" />
+      </div>
+
       {/* Tiny gold particles */}
       <div className="absolute top-2 left-[30%] w-1 h-1 rounded-full bg-yellow-400/70 shadow-[0_0_4px_#FDE047] opacity-50 cinema-anim" style={{ animation: "cinemaDrift 18s ease-in-out infinite" }} />
       <div className="absolute top-3 left-[68%] w-1 h-1 rounded-full bg-amber-400/70 shadow-[0_0_4px_#F59E0B] opacity-50 cinema-anim" style={{ animation: "cinemaTwinkle 4.5s ease-in-out infinite 1.2s" }} />
@@ -351,6 +461,19 @@ function HungKingsScene() {
             />
           </svg>
         </div>
+      </div>
+
+      {/* CULTURAL SUPPORTING: Soaring Chim Lạc Bird */}
+      <div
+        className="absolute top-2 left-[18%] hidden sm:flex items-center pointer-events-none cinema-anim"
+        style={{ animation: "cinemaFloat 16s ease-in-out infinite" }}
+      >
+        <ChimLacBird className="w-8 h-4 sm:w-9 sm:h-5 opacity-75 filter drop-shadow-[0_0_6px_rgba(217,119,6,0.4)]" />
+      </div>
+
+      {/* CULTURAL SUPPORTING: Nghĩa Lĩnh Sacred Mountains */}
+      <div className="absolute inset-x-0 bottom-0 h-4 pointer-events-none opacity-25">
+        <NghiaLinhMountains className="w-full h-full" />
       </div>
 
       {/* Sacred torch embers & flame */}
@@ -425,6 +548,30 @@ function ChristmasScene() {
         </div>
       </div>
 
+      {/* CULTURAL SUPPORTING: Christmas Pine Tree (Cây thông Noel) */}
+      <div
+        className="absolute top-0 right-[34%] pointer-events-none cinema-anim"
+        style={{ animation: "cinemaBreathe 12s ease-in-out infinite" }}
+      >
+        <ChristmasPineTree className="w-6 h-7 sm:w-7 sm:h-8 opacity-85 filter drop-shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
+      </div>
+
+      {/* CULTURAL SUPPORTING: Christmas Gift Box (Hộp quà Noel) */}
+      <div
+        className="absolute top-2 left-[18%] hidden sm:flex items-center pointer-events-none cinema-anim"
+        style={{ animation: "cinemaFloat 13s ease-in-out infinite" }}
+      >
+        <ChristmasGiftBox className="w-5 h-5 sm:w-6 sm:h-6 opacity-80 filter drop-shadow-[0_0_6px_rgba(220,38,38,0.4)]" />
+      </div>
+
+      {/* CULTURAL SUPPORTING: Crystal Snowflake (Bông tuyết pha lê) */}
+      <div
+        className="absolute top-2 right-[18%] hidden md:flex items-center pointer-events-none cinema-anim"
+        style={{ animation: "cinemaTwinkle 4s ease-in-out infinite 0.7s" }}
+      >
+        <CrystalSnowflake className="w-5 h-5 sm:w-6 sm:h-6 opacity-75 filter drop-shadow-[0_0_6px_#BAE6FD]" />
+      </div>
+
       {/* Faint snowfall - subtle fine dots (multi-layer slower fall) */}
       <div className="absolute top-0 left-[20%] w-1 h-1 rounded-full bg-sky-200 shadow-[0_0_3px_#BAE6FD] opacity-45 cinema-anim" style={{ animation: "cinemaSnowFall 12s linear infinite" }} />
       <div className="absolute top-0 left-[42%] w-1 h-1 rounded-full bg-sky-100 shadow-[0_0_3px_#E0F2FE] opacity-40 cinema-anim" style={{ animation: "cinemaSnowFallSlow 18s linear infinite 2s" }} />
@@ -490,6 +637,19 @@ function HalloweenScene() {
         </div>
       </div>
 
+      {/* CULTURAL HERO/SUPPORTING: Glowing Jack-o'-lantern Pumpkin */}
+      <div
+        className="absolute top-1 right-[32%] pointer-events-none cinema-anim"
+        style={{ animation: "cinemaBreathe 10s ease-in-out infinite" }}
+      >
+        <JackOLantern className="w-6 h-6 sm:w-7 sm:h-7 opacity-85 filter drop-shadow-[0_0_9px_rgba(234,88,12,0.6)]" />
+      </div>
+
+      {/* CULTURAL SUPPORTING: Spider Web in Corner */}
+      <div className="absolute top-0 left-0 pointer-events-none opacity-40">
+        <SpiderWebCorner className="w-8 h-8 sm:w-10 sm:h-10" />
+      </div>
+
       {/* Pumpkin embers & flame */}
       <div
         className="absolute top-3 left-[32%] pointer-events-none cinema-anim"
@@ -540,6 +700,22 @@ function ValentineScene() {
           </svg>
         </div>
       </div>
+{/* CULTURAL SUPPORTING: Velvet Red Rose (Hoa hồng nhung) */}
+      <div
+        className="absolute top-1 left-[18%] hidden sm:flex items-center pointer-events-none cinema-anim"
+        style={{ animation: "cinemaFloat 12s ease-in-out infinite" }}
+      >
+        <VelvetRose className="w-5 h-5 sm:w-6 sm:h-6 opacity-80 filter drop-shadow-[0_0_6px_rgba(190,18,60,0.4)]" />
+      </div>
+
+      {/* CULTURAL SUPPORTING: Love Letter Envelope (Thư tình) */}
+      <div
+        className="absolute top-2 right-[18%] hidden md:flex items-center pointer-events-none cinema-anim"
+        style={{ animation: "cinemaFloat 15s ease-in-out infinite 1s" }}
+      >
+        <LoveLetterEnvelope className="w-6 h-4 sm:w-7 sm:h-5 opacity-75 filter drop-shadow-[0_0_6px_rgba(244,114,182,0.35)]" />
+      </div>
+
       <div className="absolute top-2 left-[24%] w-1 h-1 rounded-full bg-rose-300/60 shadow-[0_0_4px_#FB7185] opacity-45 cinema-anim" style={{ animation: "cinemaDrift 16s ease-in-out infinite" }} />
       <div className="absolute top-3 left-[62%] w-1 h-1 rounded-full bg-pink-300/50 shadow-[0_0_4px_#FDA4AF] opacity-40 cinema-anim" style={{ animation: "cinemaDrift 19s ease-in-out infinite 2s" }} />
     </>
@@ -575,6 +751,22 @@ function WomenFamilyScene() {
           </svg>
         </div>
       </div>
+      {/* CULTURAL SUPPORTING: Silk Ribbon Bow (Dải lụa thắt nơ) */}
+      <div
+        className="absolute top-2 left-[18%] hidden sm:flex items-center pointer-events-none cinema-anim"
+        style={{ animation: "cinemaFloat 14s ease-in-out infinite" }}
+      >
+        <SilkRibbonBow className="w-6 h-4 sm:w-7 sm:h-5 opacity-75 filter drop-shadow-[0_0_6px_rgba(236,72,153,0.35)]" />
+      </div>
+
+      {/* CULTURAL SUPPORTING: Spring Butterfly (Bướm mùa xuân) */}
+      <div
+        className="absolute top-2 right-[18%] hidden md:flex items-center pointer-events-none cinema-anim"
+        style={{ animation: "cinemaFloat 10s ease-in-out infinite 1s" }}
+      >
+        <SpringButterfly className="w-5 h-4 sm:w-6 sm:h-5 opacity-75 filter drop-shadow-[0_0_5px_rgba(244,114,182,0.35)]" />
+      </div>
+
       {/* Drifting floral petals - very subtle */}
       <div className="absolute top-1 left-[22%] pointer-events-none cinema-anim" style={{ animation: "cinemaPetalFall 16s ease-in-out infinite" }}>
         <div className="w-2 h-1 rounded-full bg-rose-400 opacity-35 rotate-45 shadow-[0_0_2px_#FB7185]" />
@@ -621,6 +813,22 @@ function EducationScene() {
           </svg>
         </div>
       </div>
+{/* CULTURAL SUPPORTING: Graduation Cap (Mũ cử nhân) */}
+      <div
+        className="absolute top-2 left-[18%] hidden sm:flex items-center pointer-events-none cinema-anim"
+        style={{ animation: "cinemaFloat 13s ease-in-out infinite" }}
+      >
+        <GraduationCap className="w-6 h-4 sm:w-7 sm:h-5 opacity-75 filter drop-shadow-[0_0_6px_rgba(234,179,8,0.4)]" />
+      </div>
+
+      {/* CULTURAL SUPPORTING: Floral Rosette (Hoa điểm 10 tri ân thầy cô) */}
+      <div
+        className="absolute top-2 right-[18%] hidden md:flex items-center pointer-events-none cinema-anim"
+        style={{ animation: "cinemaBreathe 11s ease-in-out infinite 0.5s" }}
+      >
+        <FloralRosette className="w-5 h-5 sm:w-6 sm:h-6 opacity-75 filter drop-shadow-[0_0_6px_rgba(245,158,11,0.4)]" />
+      </div>
+
       <div className="absolute top-2 left-[30%] w-1 h-1 rounded-full bg-amber-300/60 shadow-[0_0_3px_#F59E0B] opacity-45 cinema-anim" style={{ animation: "cinemaDrift 20s ease-in-out infinite" }} />
       <div className="absolute top-3 left-[62%] w-1 h-1 rounded-full bg-yellow-300/50 shadow-[0_0_3px_#FEF08A] opacity-40 cinema-anim" style={{ animation: "cinemaDrift 24s ease-in-out infinite 2s" }} />
     </>
@@ -735,6 +943,14 @@ function YouthScene() {
           </svg>
         </div>
       </div>
+      {/* CULTURAL SUPPORTING: Spinning Pinwheel (Chong chóng tuổi thơ) */}
+      <div
+        className="absolute top-0 left-[18%] hidden sm:flex items-center pointer-events-none cinema-anim"
+        style={{ animation: "cinemaLanternSway 5s ease-in-out infinite", transformOrigin: "bottom center" }}
+      >
+        <SpinningPinwheel className="w-5 h-6 sm:w-6 sm:h-7 opacity-80 filter drop-shadow-[0_0_6px_rgba(59,130,246,0.35)]" />
+      </div>
+
       {/* Translucent soap bubbles - subtle and low-opacity */}
       <div className="absolute top-2 left-[24%] w-2.5 h-2.5 rounded-full border border-sky-400/30 bg-sky-500/5 shadow-[0_0_4px_rgba(56,189,248,0.25)] cinema-anim opacity-50" style={{ animation: "cinemaFloat 14s ease-in-out infinite" }} />
       <div className="absolute top-3 left-[60%] w-2 h-2 rounded-full border border-sky-400/25 bg-sky-500/5 shadow-[0_0_4px_rgba(56,189,248,0.2)] cinema-anim opacity-45" style={{ animation: "cinemaFloat 17s ease-in-out infinite 2.5s" }} />
@@ -819,6 +1035,22 @@ function SpiritualScene() {
         <div className="w-[1px] h-2 bg-amber-700/50" />
       </div>
 
+      {/* CULTURAL SUPPORTING: Floating Lotus Lantern (Hoa đăng cầu an) */}
+      <div
+        className="absolute top-1 left-[18%] hidden sm:flex items-center pointer-events-none cinema-anim"
+        style={{ animation: "cinemaFloat 15s ease-in-out infinite" }}
+      >
+        <FloatingLotusLantern className="w-6 h-5 sm:w-7 sm:h-6 opacity-80 filter drop-shadow-[0_0_8px_rgba(244,63,94,0.4)]" />
+      </div>
+
+      {/* CULTURAL SUPPORTING: Ancient Temple Bronze Bell (Chuông đồng cổ) */}
+      <div
+        className="absolute top-0 right-[18%] hidden md:flex items-center pointer-events-none cinema-anim"
+        style={{ animation: "cinemaLanternSway 8s ease-in-out infinite 0.7s", transformOrigin: "top center" }}
+      >
+        <AncientTempleBell className="w-5 h-6 sm:w-6 sm:h-7 opacity-75 filter drop-shadow-[0_0_6px_rgba(180,83,9,0.4)]" />
+      </div>
+
       {/* Sacred Golden Lotus Bloom */}
       <div
         className="absolute top-1 right-[36%] pointer-events-none cinema-anim"
@@ -887,6 +1119,22 @@ function NewYearScene() {
           </svg>
         </div>
       </div>
+{/* CULTURAL SUPPORTING: Toasting Champagne Flutes (Ly sâm panh giao thừa) */}
+      <div
+        className="absolute top-1 left-[18%] hidden sm:flex items-center pointer-events-none cinema-anim"
+        style={{ animation: "cinemaFloat 13s ease-in-out infinite" }}
+      >
+        <ToastingChampagne className="w-6 h-5 sm:w-7 sm:h-6 opacity-80 filter drop-shadow-[0_0_6px_rgba(251,191,36,0.4)]" />
+      </div>
+
+      {/* CULTURAL SUPPORTING: New Year Fireworks Blossom */}
+      <div
+        className="absolute top-1 right-[18%] hidden md:flex items-center pointer-events-none cinema-anim"
+        style={{ animation: "cinemaTwinkle 4s ease-in-out infinite 0.6s" }}
+      >
+        <FireworksBurst className="w-5 h-5 sm:w-6 sm:h-6 opacity-75 filter drop-shadow-[0_0_7px_#FEF08A]" />
+      </div>
+
       <div className="absolute top-2 left-[24%] w-1 h-1 rounded-full bg-amber-200/60 shadow-[0_0_3px_#FEF08A] opacity-45 cinema-anim" style={{ animation: "cinemaTwinkle 5s ease-in-out infinite" }} />
       <div className="absolute top-3 left-[60%] w-1.5 h-1.5 rounded-full bg-blue-300/40 shadow-[0_0_4px_#60A5FA] opacity-40 cinema-anim" style={{ animation: "cinemaTwinkle 6s ease-in-out infinite 1.5s" }} />
       <div className="absolute top-3 left-[40%] w-1 h-1 rounded-full bg-yellow-300/40 shadow-[0_0_2px_#FDE047] opacity-35 cinema-anim" style={{ animation: "cinemaDrift 18s ease-in-out infinite" }} />
@@ -930,6 +1178,22 @@ function NanaBirthdayScene() {
           </svg>
         </div>
       </div>
+{/* CULTURAL SUPPORTING: Birthday Cake with Glowing Candles */}
+      <div
+        className="absolute top-1 left-[18%] hidden sm:flex items-center pointer-events-none cinema-anim"
+        style={{ animation: "cinemaFloat 12s ease-in-out infinite" }}
+      >
+        <BirthdayCake className="w-5 h-6 sm:w-6 sm:h-7 opacity-85 filter drop-shadow-[0_0_8px_rgba(236,72,153,0.45)]" />
+      </div>
+
+      {/* CULTURAL SUPPORTING: Birthday Gift Box */}
+      <div
+        className="absolute top-2 right-[18%] hidden md:flex items-center pointer-events-none cinema-anim"
+        style={{ animation: "cinemaFloat 14s ease-in-out infinite 1s" }}
+      >
+        <ChristmasGiftBox className="w-5 h-5 sm:w-6 sm:h-6 opacity-75 filter drop-shadow-[0_0_6px_rgba(244,114,182,0.4)]" />
+      </div>
+
       <div className="absolute top-2 left-[25%] w-1 h-1 rounded-full bg-pink-300/50 shadow-[0_0_3px_#F472B6] opacity-45 cinema-anim" style={{ animation: "cinemaTwinkle 6s ease-in-out infinite" }} />
       <div className="absolute top-3 left-[62%] w-1 h-1 rounded-full bg-amber-200/50 shadow-[0_0_3px_#FEF08A] opacity-40 cinema-anim" style={{ animation: "cinemaTwinkle 7s ease-in-out infinite 1.5s" }} />
       <div className="absolute top-2 left-[45%] w-1 h-1 rounded-full bg-rose-200/40 shadow-[0_0_2px_#FDA4AF] opacity-35 cinema-anim" style={{ animation: "cinemaDrift 19s ease-in-out infinite" }} />
