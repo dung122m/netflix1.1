@@ -18,6 +18,7 @@ import {
   X,
 } from "lucide-react";
 import { NetflixLogo } from "@/components/NetflixLogo";
+import { HolidayNavbarAtmosphere } from "./navbar/HolidayNavbarAtmosphere";
 import { ThemeSwitcher } from "./ThemeSwitcher";
 import { NavSearchBar } from "./navbar/NavSearchBar";
 import { NavNotifications } from "./navbar/NavNotifications";
@@ -111,7 +112,10 @@ const NavbarInner: React.FC = () => {
           : "bg-gradient-to-b from-black/90 via-black/50 to-transparent py-3 sm:py-3.5"
       }`}
     >
-      <div className="flex items-center justify-between px-3 sm:px-6 lg:px-8 max-w-[1700px] mx-auto gap-2 sm:gap-4">
+      {/* CINEMATIC LIVING NAVBAR ATMOSPHERE (PHÍA SAU UI) */}
+      <HolidayNavbarAtmosphere />
+
+      <div className="flex items-center justify-between px-3 sm:px-6 lg:px-8 max-w-[1700px] mx-auto gap-2 sm:gap-4 relative z-10">
         {/* LOGO & DESKTOP NAV */}
         <div className="flex items-center gap-3 sm:gap-6 lg:gap-7 flex-shrink-0 min-w-0">
           <Link
@@ -120,9 +124,10 @@ const NavbarInner: React.FC = () => {
             onMouseEnter={() => router.prefetch("/")}
             onFocus={() => router.prefetch("/")}
             className="flex items-center gap-1.5 sm:gap-2 group flex-shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded-lg"
+            title="Nanaflix - Trang Chủ"
           >
             <NetflixLogo className="w-5 sm:w-6 h-auto transition-transform group-hover:scale-105" />
-            <span className="text-netflix-red font-black tracking-tighter text-lg sm:text-xl inline-block">
+            <span className="text-netflix-red font-black tracking-tighter text-lg sm:text-xl">
               NANAFLIX
             </span>
           </Link>

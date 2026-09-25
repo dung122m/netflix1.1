@@ -7,6 +7,7 @@ import React, {
   useEffect,
   useCallback,
 } from "react";
+import { createPortal } from "react-dom";
 import Hls from "hls.js";
 import {
   Search,
@@ -194,6 +195,21 @@ export function LiveTvClient({
   const [errorMessage, setErrorMessage] = useState("");
   const [showChannelRail, setShowChannelRail] = useState(false);
   const activeTvChannelRef = useRef<HTMLButtonElement | null>(null);
+  const drawerListRef = useRef<HTMLDivElement | null>(null);
+
+  const [isMounted, setIsMounted] = useState(false);
+  const [isMobileScreen, setIsMobileScreen] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+    const updateSize = () => setIsMobileScreen(window.innerWidth < 640);
+    updateSize();
+    window.addEventListener("resize", updateSize, { passive: true });
+    return () => window.removeEventListener("resize", updateSize);
+  }, []);
+
+  const useMobilePortal =
+    isMounted && isMobileScreen && !isFullscreen && typeof document !== "undefined";
   const [copied, setCopied] = useState(false);
   const [showControls, setShowControls] = useState(false);
   const [actionFeedback, setActionFeedback] = useState<{
@@ -211,13 +227,30 @@ export function LiveTvClient({
   const seekDeltaResetTimerRef = useRef<NodeJS.Timeout | null>(null);
   const targetClearTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Cuộn mượt CHỈ bên trong danh sách drawer, tuyệt đối không gọi element.scrollIntoView() gây giật/dịch ngang trang
   useEffect(() => {
-    if (showChannelRail && activeTvChannelRef.current) {
-      activeTvChannelRef.current.scrollIntoView({
-        behavior: "smooth",
-        block: "nearest",
-      });
-    }
+    if (!showChannelRail) return;
+    const rafId = requestAnimationFrame(() => {
+      const container = drawerListRef.current;
+      const activeEl = activeTvChannelRef.current;
+      if (!container || !activeEl) return;
+
+      const itemTop = activeEl.offsetTop - container.offsetTop;
+      const itemHeight = activeEl.clientHeight;
+      const containerHeight = container.clientHeight;
+      const currentScrollTop = container.scrollTop;
+
+      if (
+        itemTop < currentScrollTop ||
+        itemTop + itemHeight > currentScrollTop + containerHeight
+      ) {
+        container.scrollTo({
+          top: Math.max(0, itemTop - containerHeight / 2 + itemHeight / 2),
+          behavior: "smooth",
+        });
+      }
+    });
+    return () => cancelAnimationFrame(rafId);
   }, [showChannelRail, selectedTvChannel?.id]);
 
   const volumeRef = useRef(volume);
@@ -1286,11 +1319,163 @@ export function LiveTvClient({
   const VolumeIcon =
     isMuted || volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
 
+  const channelDrawerMarkup = selectedTvChannel ? (
+    <>
+      {/* BACKDROP KHI MỞ DRAWER KÊNH TRÊN MOBILE & DESKTOP */}
+      <div
+        className={`${
+          useMobilePortal
+            ? "fixed inset-0 z-[9998] bg-black/80"
+            : "fixed inset-0 sm:absolute sm:inset-0 z-40 bg-black/75 sm:bg-black/40"
+        } backdrop-blur-sm transition-all duration-300 ${
+          showChannelRail
+            ? "opacity-100 pointer-events-auto visible"
+            : "opacity-0 pointer-events-none invisible"
+        }`}
+        onClick={(e) => {
+          e.stopPropagation();
+          setShowChannelRail(false);
+        }}
+      />
+
+      {/* DRAWER / BOTTOM SHEET DANH SÁCH KÊNH TRUYỀN HÌNH (TỐI ƯU CẢM ỨNG MOBILE) */}
+      <aside
+        className={`${
+          useMobilePortal
+            ? "fixed inset-x-0 bottom-0 z-[9999] w-full max-h-[85vh] rounded-t-3xl border-t border-white/20 bg-zinc-950/98 p-3.5 pb-6 shadow-2xl backdrop-blur-2xl"
+            : "fixed inset-x-0 bottom-0 sm:absolute sm:inset-y-0 sm:right-0 sm:left-auto z-50 w-full sm:w-[380px] max-h-[85vh] sm:max-h-full rounded-t-3xl sm:rounded-none border-t sm:border-t-0 sm:border-l border-white/20 bg-zinc-950/98 sm:bg-zinc-950/95 p-3.5 sm:p-4 shadow-2xl backdrop-blur-2xl"
+        } transition-all duration-300 flex flex-col ${
+          showChannelRail
+            ? "translate-y-0 sm:translate-x-0 opacity-100 pointer-events-auto visible"
+            : "translate-y-full sm:translate-y-0 sm:translate-x-full opacity-0 pointer-events-none invisible"
+        }`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* THANH VUỐT KÉO GỢI Ý TRÊN MOBILE */}
+        <div className="w-12 h-1.5 bg-white/30 rounded-full mx-auto mb-2 sm:hidden shrink-0" />
+
+        <div className="mb-2.5 flex items-center justify-between border-b border-white/10 pb-2.5 shrink-0">
+          <div className="min-w-0 pr-2">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-sky-400 animate-ping" />
+              <p className="text-[11px] sm:text-[10px] font-black uppercase tracking-[0.18em] text-sky-300">
+                Kênh Truyền Hình Trực Tiếp
+              </p>
+            </div>
+            <p className="mt-0.5 truncate text-xs sm:text-xs font-bold text-white">
+              Đang xem: {selectedTvChannel.name}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowChannelRail(false);
+            }}
+            className="rounded-full p-2 text-white hover:bg-white/20 active:scale-95 bg-white/10 transition shrink-0 cursor-pointer min-w-[38px] min-h-[38px] flex items-center justify-center border border-white/15 shadow-sm"
+            title="Đóng danh sách kênh"
+            aria-label="Đóng"
+          >
+            <X className="h-4 w-4 text-white" />
+          </button>
+        </div>
+
+        {/* Ô TÌM KIẾM KÊNH TRONG DRAWER */}
+        <div className="relative mb-2.5 shrink-0">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Tìm kênh theo tên, đài, danh mục..."
+            className="w-full pl-9 pr-8 py-2 sm:py-1.5 rounded-xl bg-white/10 border border-white/15 text-xs text-white placeholder-gray-400 focus:outline-none focus:border-sky-400 transition"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white p-1 cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
+        {/* DANH SÁCH CUỘN KÊNH (TOUCH-FRIENDLY CHO MOBILE) */}
+        <div
+          ref={drawerListRef}
+          className="flex-1 overflow-y-auto space-y-2 pr-0.5 scrollbar-thin overscroll-contain"
+        >
+          {filteredChannels.length === 0 ? (
+            <div className="py-12 text-center text-xs text-gray-400">
+              Không tìm thấy kênh phù hợp với tìm kiếm.
+            </div>
+          ) : (
+            filteredChannels.map((channel) => {
+              const active = selectedTvChannel.id === channel.id;
+              return (
+                <button
+                  key={channel.id}
+                  ref={active ? activeTvChannelRef : undefined}
+                  type="button"
+                  onClick={() => handleSelectChannel(channel, true)}
+                  className={`flex w-full items-center gap-3 rounded-2xl border p-2.5 sm:p-2 text-left transition min-h-[56px] active:scale-[0.98] cursor-pointer touch-manipulation ${
+                    active
+                      ? "border-sky-400/90 bg-sky-500/20 text-white shadow-lg shadow-sky-950/50 ring-1 ring-sky-400/50"
+                      : "border-white/10 bg-white/[0.04] text-gray-200 hover:border-white/30 hover:bg-white/[0.1] active:bg-white/[0.15]"
+                  }`}
+                >
+                  <span className="flex h-11 w-14 sm:h-10 sm:w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-zinc-900/90 border border-white/15 p-1 shadow-inner">
+                    <TvChannelLogo
+                      logo={channel.logo}
+                      name={channel.name}
+                      size="sm"
+                    />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center justify-between gap-1">
+                      <span className="truncate text-xs sm:text-xs font-bold">
+                        {channel.name}
+                      </span>
+                      {active && <PlayingEqualizer />}
+                    </span>
+                    <span className="flex items-center gap-1.5 mt-0.5">
+                      <span className="truncate text-[11px] sm:text-[10px] text-gray-400">
+                        {channel.category}
+                      </span>
+                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-white/10 text-emerald-400 font-bold uppercase">
+                        {channel.quality}
+                      </span>
+                    </span>
+                  </span>
+                </button>
+              );
+            })
+          )}
+        </div>
+
+        {/* NÚT ĐÓNG TO RÕ Ở CUỐI DRAWER DÀNH RIÊNG CHO MOBILE */}
+        <div className="pt-2.5 mt-2 border-t border-white/10 shrink-0 sm:hidden">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowChannelRail(false);
+            }}
+            className="w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/20 active:scale-[0.99] text-white font-semibold text-xs transition cursor-pointer border border-white/10"
+          >
+            Đóng danh sách kênh
+          </button>
+        </div>
+      </aside>
+    </>
+  ) : null;
+
   return (
     <div className="space-y-6">
       {/* 1. KHUNG TRÌNH PHÁT TRUYỀN HÌNH TRỰC TIẾP */}
       {selectedTvChannel ? (
-        <div ref={playerRef} className="scroll-mt-24 space-y-4">
+        <div ref={playerRef} className="scroll-mt-24 space-y-4 w-full min-w-0">
           {/* HEADER KÊNH ĐANG PHÁT */}
           <div className="keep-dark-cinema relative rounded-2xl sm:rounded-3xl border border-white/15 bg-gradient-to-b from-zinc-900/95 via-zinc-950/98 to-black p-3 sm:p-4 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-3 backdrop-blur-xl">
             <div className="flex items-center gap-3 sm:gap-3.5 w-full md:w-auto">
@@ -1365,7 +1550,7 @@ export function LiveTvClient({
               setShowControls(false);
             }}
             onDoubleClick={toggleFullscreen}
-            className={`relative w-full aspect-video lg:max-h-[calc(100vh-210px)] lg:max-w-[calc((100vh-210px)*16/9)] mx-auto bg-black rounded-2xl sm:rounded-3xl overflow-hidden border border-white/15 shadow-2xl group select-none ring-1 ring-white/10 outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
+            className={`relative w-full aspect-video lg:max-h-[calc(100vh-210px)] lg:max-w-[calc((100vh-210px)*16/9)] mx-auto bg-black rounded-2xl sm:rounded-3xl overflow-hidden border border-white/15 shadow-2xl group select-none ring-1 ring-white/10 outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black contain-paint isolate ${
               showControls ? "cursor-default" : "cursor-none"
             }`}
           >
@@ -1435,122 +1620,8 @@ export function LiveTvClient({
               )}
             </div>
 
-            {/* BACKDROP KHI MỞ DRAWER KÊNH TRÊN MOBILE */}
-            {showChannelRail && (
-              <div
-                className="fixed inset-0 sm:absolute sm:inset-0 bg-black/75 sm:bg-black/40 backdrop-blur-sm z-40 transition-opacity"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowChannelRail(false);
-                }}
-              />
-            )}
-
-            {/* DRAWER / BOTTOM SHEET DANH SÁCH KÊNH TRUYỀN HÌNH (TỐI ƯU CẢM ỨNG MOBILE) */}
-            <aside
-              className={`fixed inset-x-0 bottom-0 sm:absolute sm:inset-y-0 sm:right-0 sm:left-auto z-50 w-full sm:w-[380px] max-h-[85vh] sm:max-h-full rounded-t-3xl sm:rounded-none border-t sm:border-t-0 sm:border-l border-white/20 bg-zinc-950/98 sm:bg-zinc-950/95 p-3.5 sm:p-4 shadow-2xl backdrop-blur-2xl transition-transform duration-300 flex flex-col ${
-                showChannelRail
-                  ? "translate-y-0 sm:translate-x-0 pointer-events-auto"
-                  : "translate-y-full sm:translate-y-0 sm:translate-x-full pointer-events-none"
-              }`}
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* THANH VUỐT KÉO GỢI Ý TRÊN MOBILE */}
-              <div className="w-12 h-1.5 bg-white/30 rounded-full mx-auto mb-2 sm:hidden flex-shrink-0" />
-
-              <div className="mb-2.5 flex items-center justify-between border-b border-white/10 pb-2.5 flex-shrink-0">
-                <div className="min-w-0 pr-2">
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-sky-400 animate-ping" />
-                    <p className="text-[11px] sm:text-[10px] font-black uppercase tracking-[0.18em] text-sky-300">
-                      Kênh Truyền Hình Trực Tiếp
-                    </p>
-                  </div>
-                  <p className="mt-0.5 truncate text-xs sm:text-xs font-bold text-white">
-                    Đang xem: {selectedTvChannel.name}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowChannelRail(false)}
-                  className="rounded-full p-2 text-gray-400 hover:bg-white/10 hover:text-white bg-white/5 transition flex-shrink-0 cursor-pointer"
-                  title="Đóng danh sách kênh"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-
-              {/* Ô TÌM KIẾM KÊNH TRONG DRAWER */}
-              <div className="relative mb-2.5 flex-shrink-0">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Tìm kênh theo tên, đài, danh mục..."
-                  className="w-full pl-9 pr-8 py-2 sm:py-1.5 rounded-xl bg-white/10 border border-white/15 text-xs text-white placeholder-gray-400 focus:outline-none focus:border-sky-400 transition"
-                />
-                {searchQuery && (
-                  <button
-                    type="button"
-                    onClick={() => setSearchQuery("")}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white p-1 cursor-pointer"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
-
-              {/* DANH SÁCH CUỘN KÊNH (TOUCH-FRIENDLY CHO MOBILE) */}
-              <div className="flex-1 overflow-y-auto space-y-2 pr-0.5 scrollbar-thin">
-                {filteredChannels.length === 0 ? (
-                  <div className="py-12 text-center text-xs text-gray-400">
-                    Không tìm thấy kênh phù hợp với tìm kiếm.
-                  </div>
-                ) : (
-                  filteredChannels.map((channel) => {
-                    const active = selectedTvChannel.id === channel.id;
-                    return (
-                      <button
-                        key={channel.id}
-                        ref={active ? activeTvChannelRef : undefined}
-                        type="button"
-                        onClick={() => handleSelectChannel(channel, true)}
-                        className={`flex w-full items-center gap-3 rounded-2xl border p-2.5 sm:p-2 text-left transition min-h-[56px] active:scale-[0.98] cursor-pointer ${
-                          active
-                            ? "border-sky-400/90 bg-sky-500/20 text-white shadow-lg shadow-sky-950/50 ring-1 ring-sky-400/50"
-                            : "border-white/10 bg-white/[0.04] text-gray-200 hover:border-white/30 hover:bg-white/[0.1] active:bg-white/[0.15]"
-                        }`}
-                      >
-                        <span className="flex h-11 w-14 sm:h-10 sm:w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-zinc-900/90 border border-white/15 p-1 shadow-inner">
-                          <TvChannelLogo
-                            logo={channel.logo}
-                            name={channel.name}
-                            size="sm"
-                          />
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="flex items-center justify-between gap-1">
-                            <span className="truncate text-xs sm:text-xs font-bold">
-                              {channel.name}
-                            </span>
-                            {active && <PlayingEqualizer />}
-                          </span>
-                          <span className="flex items-center gap-1.5 mt-0.5">
-                            <span className="truncate text-[11px] sm:text-[10px] text-gray-400">
-                              {channel.category}
-                            </span>
-                            <span className="text-[9px] px-1.5 py-0.2 rounded bg-white/10 text-emerald-400 font-bold uppercase">
-                              {channel.quality}
-                            </span>
-                          </span>
-                        </span>
-                      </button>
-                    );
-                  })
-                )}
-              </div>
-            </aside>
+            {/* DRAWER DANH SÁCH KÊNH TRUYỀN HÌNH (DESKTOP HOẶC FULLSCREEN) */}
+            {!useMobilePortal && channelDrawerMarkup}
 
             {/* NÚT BẬT TIẾNG KHI ĐANG MUTE GÓC TRÊN PHẢI (ẨN KHI KHÔNG TƯƠNG TÁC) */}
             {isPlaying && isMuted && !isLoading && !hasError && (
@@ -1731,7 +1802,7 @@ export function LiveTvClient({
                   title="Mở danh sách kênh (Phím C)"
                   className={`flex items-center gap-1 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-full border text-[11px] sm:text-xs font-bold transition backdrop-blur-md cursor-pointer ${
                     showChannelRail
-                      ? "bg-gradient-to-r from-sky-600 to-blue-600 text-white border-sky-400 shadow-md shadow-sky-950/60 scale-102"
+                      ? "bg-gradient-to-r from-sky-600 to-blue-600 text-white border-sky-400 shadow-md shadow-sky-950/60"
                       : "bg-white/15 hover:bg-white/25 text-gray-200 hover:text-white border-white/20"
                   }`}
                 >
@@ -1773,6 +1844,11 @@ export function LiveTvClient({
               </div>
             </div>
           </div>
+
+          {/* PORTAL BOTTOM SHEET CHO MOBILE: KHÔNG BỊ CLIPPED BỞI CONTAINER */}
+          {useMobilePortal &&
+            typeof document !== "undefined" &&
+            createPortal(channelDrawerMarkup, document.body)}
         </div>
       ) : null}
 

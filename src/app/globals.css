@@ -948,3 +948,129 @@ html[data-mode="dark"] .live-channel-active .live-channel-title {
   scrollbar-color: rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.03);
 }
 
+/* ========================================================
+   HOLIDAY NAVBAR CINEMATIC MOTION SYSTEM (GPU-FRIENDLY)
+   ======================================================== */
+@keyframes cinemaBreathe {
+  0%, 100% { transform: scale(1); opacity: 0.9; }
+  50% { transform: scale(1.03); opacity: 1; }
+}
+@keyframes cinemaHaloBreathe {
+  0%, 100% { transform: scale(1); opacity: 0.35; }
+  50% { transform: scale(1.08); opacity: 0.55; }
+}
+@keyframes cinemaLanternSway {
+  0%, 100% { transform: rotate(-6deg); }
+  50% { transform: rotate(6deg); }
+}
+@keyframes cinemaLanternSwaySlow {
+  0%, 100% { transform: rotate(-5deg); }
+  50% { transform: rotate(5deg); }
+}
+@keyframes cinemaCloudDrift {
+  0% { transform: translate3d(-55px, 0, 0); }
+  100% { transform: translate3d(55px, 0, 0); }
+}
+@keyframes cinemaCloudDriftSlow {
+  0% { transform: translate3d(-42px, 0, 0); }
+  100% { transform: translate3d(42px, 0, 0); }
+}
+@keyframes cinemaFogDrift {
+  0% { transform: translate3d(-50px, 0, 0); }
+  100% { transform: translate3d(50px, 0, 0); }
+}
+@keyframes cinemaPetalFall {
+  0% { transform: translate3d(0, -6px, 0) rotate(0deg); opacity: 0.2; }
+  25% { opacity: 0.7; }
+  60% { transform: translate3d(24px, 22px, 0) rotate(35deg); opacity: 0.65; }
+  100% { transform: translate3d(48px, 46px, 0) rotate(75deg); opacity: 0.15; }
+}
+@keyframes cinemaFloat {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(14px, -8px, 0); }
+}
+@keyframes cinemaRise {
+  0% { transform: translate3d(0, 10px, 0); opacity: 0.15; }
+  25% { opacity: 0.7; }
+  50% { transform: translate3d(8px, -24px, 0); opacity: 0.75; }
+  75% { opacity: 0.6; }
+  100% { transform: translate3d(-6px, -52px, 0); opacity: 0.15; }
+}
+@keyframes cinemaRiseSlow {
+  0% { transform: translate3d(0, 10px, 0); opacity: 0.15; }
+  25% { opacity: 0.65; }
+  50% { transform: translate3d(-7px, -18px, 0); opacity: 0.7; }
+  75% { opacity: 0.55; }
+  100% { transform: translate3d(7px, -42px, 0); opacity: 0.15; }
+}
+@keyframes cinemaGlow {
+  0%, 100% { transform: scale(1); opacity: 0.65; }
+  50% { transform: scale(1.08); opacity: 0.95; }
+}
+@keyframes cinemaDrift {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(20px, -6px, 0); }
+}
+@keyframes cinemaCandleFlicker {
+  0%, 100% { transform: scale(1); opacity: 0.85; filter: brightness(1); }
+  25% { transform: scale(0.9); opacity: 0.6; filter: brightness(0.85); }
+  50% { transform: scale(1.18); opacity: 1; filter: brightness(1.25); }
+  75% { transform: scale(0.94); opacity: 0.7; filter: brightness(0.9); }
+}
+@keyframes cinemaTwinkle {
+  0%, 100% { transform: scale(1); opacity: 0.25; }
+  50% { transform: scale(1.35); opacity: 0.95; }
+}
+@keyframes cinemaSnowFall {
+  0% { transform: translate3d(0, -8px, 0); opacity: 0.15; }
+  20% { opacity: 0.85; }
+  60% { transform: translate3d(10px, 24px, 0); opacity: 0.8; }
+  100% { transform: translate3d(22px, 48px, 0); opacity: 0.15; }
+}
+@keyframes cinemaSnowFallSlow {
+  0% { transform: translate3d(0, -8px, 0); opacity: 0.15; }
+  25% { opacity: 0.75; }
+  65% { transform: translate3d(-8px, 20px, 0); opacity: 0.7; }
+  100% { transform: translate3d(-18px, 44px, 0); opacity: 0.15; }
+}
+@keyframes cinemaStarburst {
+  0%, 100% { transform: rotate(0deg) scale(1); opacity: 0.75; }
+  50% { transform: rotate(12deg) scale(1.08); opacity: 0.95; }
+}
+
+/* Backward compatibility keyframe aliases */
+@keyframes cinemaSway {
+  0%, 100% { transform: rotate(-6deg); }
+  50% { transform: rotate(6deg); }
+}
+@keyframes cinemaSwaySlow {
+  0%, 100% { transform: rotate(-5deg); }
+  50% { transform: rotate(5deg); }
+}
+@keyframes cinemaFlicker {
+  0%, 100% { transform: scale(1); opacity: 0.85; }
+  25% { transform: scale(0.9); opacity: 0.6; }
+  50% { transform: scale(1.18); opacity: 1; }
+  75% { transform: scale(0.94); opacity: 0.7; }
+}
+@keyframes cinemaPulseSlow {
+  0%, 100% { transform: scale(1); opacity: 0.75; }
+  50% { transform: scale(1.06); opacity: 0.95; }
+}
+@keyframes cinemaFloatSlow {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -5px, 0); }
+}
+@keyframes cinemaPetalDrift {
+  0% { transform: translate3d(0, -6px, 0) rotate(0deg); opacity: 0.2; }
+  25% { opacity: 0.7; }
+  60% { transform: translate3d(24px, 22px, 0) rotate(35deg); opacity: 0.65; }
+  100% { transform: translate3d(48px, 46px, 0) rotate(75deg); opacity: 0.15; }
+}
+
+.cinema-anim {
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+

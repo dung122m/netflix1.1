@@ -11,6 +11,7 @@ import { CuratedMovieSection } from "@/components/CuratedMovieSection";
 import { TmdbTopTrending } from "@/components/TmdbTopTrending";
 import { CommunityTopTrending } from "@/components/CommunityTopTrending";
 import { ForYouPersonalizedRow } from "@/components/ForYouPersonalizedRow";
+import { VietnamTodaySection } from "@/components/vietnam-today/VietnamTodaySection";
 
 const HeroFeatured = dynamic(() =>
   import("@/components/browse/HeroFeatured").then(
@@ -302,6 +303,11 @@ export default async function HomePage({
       <Navbar />
 
       <HeroFeatured movies={heroMovies} />
+
+      {/* 🇻🇳 HÔM NAY TẠI VIỆT NAM (FEATURE SPOTLIGHT BANNER) */}
+      <div className="px-4 md:px-8 mt-2 sm:mt-4 relative z-20">
+        <VietnamTodaySection />
+      </div>
 
       {/* TIẾP TỤC XEM: Hiển thị ngay trên trang chủ khi có lịch sử */}
       <ContinueWatchingRow />

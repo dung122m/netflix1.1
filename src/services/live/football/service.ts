@@ -1,6 +1,13 @@
 import { enrichMatchLogos } from "@/services/live/football-logo/service";
 import { isBlockedStreamUrl } from "@/services/live/shared/streamHealth";
 import { getTeamAsset, normalizeTeamKey } from "@/data/live/teamAssets";
+import {
+  NATIONAL_TEAM_CANONICAL_MAP,
+  NATIONAL_TEAM_CANONICAL_KEYS,
+} from "./nationalTeamAliases";
+
+export { NATIONAL_TEAM_CANONICAL_MAP, NATIONAL_TEAM_CANONICAL_KEYS };
+
 
 export interface StreamServer {
   name: string;
@@ -287,7 +294,7 @@ const AUXILIARY_CLUB_WORDS = new Set([
   "csd", "deportes", "deportivo", "deportiva", "dep", "municipal", "muni", "club", "clube", "societa",
   "asociacion", "asoc", "agrupacion", "ud", "sd", "ad", "sv", "tsv", "fsv", "spvg", "vfl", "ksv", "bsc",
   "united", "utd", "city", "town", "athletic", "albion", "rovers", "wanderers", "county", "sports",
-  "u19", "u20", "u21", "u23", "b", "reserves", "women", "nu", "dtqg", "dt"
+  "u19", "u20", "u21", "u23", "b", "reserves", "women", "nu", "dtqg", "dt", "doituyen", "tuyen", "quocgia"
 ]);
 
 const CLUB_ALIAS_MAP: Record<string, string> = {
@@ -524,22 +531,37 @@ export function normalizeClubKey(name: string): string {
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/\[[^\]]*\]/g, " ")
     .replace(/\([^)]*\)/g, " ")
+    .replace(/^(?:doi\s*tuyen\s*quoc\s*gia|doi\s*tuyen|national\s*team|dtqg|dt|clb)\s+/g, "")
     .replace(/[^a-z0-9\s]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 
+  // 1. Direct canonical national-team lookup on compact alphanumeric string (handles "chinapr", "trungquoc", "vietnam", "vn", etc.)
+  const noSpace = clean.replace(/\s+/g, "");
+  if (NATIONAL_TEAM_CANONICAL_MAP[noSpace]) {
+    return NATIONAL_TEAM_CANONICAL_MAP[noSpace];
+  }
+
+  // 2. Auxiliary words stripping & check
   const words = clean.split(/\s+/).filter(Boolean);
   const coreWords = words.filter((w) => !AUXILIARY_CLUB_WORDS.has(w));
   const significant = coreWords.length > 0 ? coreWords.join("") : words.join("");
+
+  if (NATIONAL_TEAM_CANONICAL_MAP[significant]) {
+    return NATIONAL_TEAM_CANONICAL_MAP[significant];
+  }
 
   if (CLUB_ALIAS_MAP[significant]) {
     return CLUB_ALIAS_MAP[significant];
   }
 
-  // Canonical TeamAsset lookup (>210 ĐTQG + CLB hàng đầu thế giới)
+  // 3. Canonical TeamAsset lookup (>210 ĐTQG + CLB hàng đầu thế giới)
   const asset = getTeamAsset(name);
   if (asset && asset.name) {
     const assetClean = normalizeTeamKey(asset.name);
+    if (NATIONAL_TEAM_CANONICAL_MAP[assetClean]) {
+      return NATIONAL_TEAM_CANONICAL_MAP[assetClean];
+    }
     if (CLUB_ALIAS_MAP[assetClean]) {
       return CLUB_ALIAS_MAP[assetClean];
     }
@@ -595,17 +617,26 @@ export function isSingleTeamMatching(nameA: string, nameB: string): boolean {
   const keyA = normalizeClubKey(nameA);
   const keyB = normalizeClubKey(nameB);
 
-  // 1. Exact normalized key match (hoặc alias match)
+  // 1. Exact normalized key match (hoặc canonical national team alias match)
   if (keyA && keyB && keyA === keyB) return true;
 
-  // 2. Canonical Team Asset match (hỗ trợ toàn bộ >210 ĐTQG và CLB chuẩn hóa song ngữ Anh - Việt)
+  // 2. Guard tuyệt đối cho ĐTQG: Nếu bất kỳ đội nào là ĐTQG đã nhận diện canonical key mà keyA !== keyB:
+  // Tuyệt đối không để getTeamAsset / fuzzy / token overlap / substring merge nhầm các quốc gia khác nhau hoặc với CLB khác
+  // (ví dụ: Congo vs DR Congo, Guinea vs Equatorial Guinea vs Guinea-Bissau, Niger vs Nigeria, Australia vs Austria, North Korea vs South Korea)
+  const isNationalA = NATIONAL_TEAM_CANONICAL_KEYS.has(keyA);
+  const isNationalB = NATIONAL_TEAM_CANONICAL_KEYS.has(keyB);
+  if (isNationalA || isNationalB) {
+    return false;
+  }
+
+  // 3. Canonical Team Asset match (hỗ trợ toàn bộ CLB chuẩn hóa song ngữ Anh - Việt)
   const assetA = getTeamAsset(nameA);
   const assetB = getTeamAsset(nameB);
   if (assetA && assetB && assetA.name && assetA.name === assetB.name) {
     return true;
   }
 
-  // 3. Token overlap: Có chung từ khóa định danh cốt lõi (ví dụ ['iquique'])
+  // 4. Token overlap: Có chung từ khóa định danh cốt lõi (ví dụ ['iquique'])
   const tokensA = extractTeamTokens(nameA);
   const tokensB = extractTeamTokens(nameB);
   if (tokensA.length > 0 && tokensB.length > 0) {
@@ -1731,9 +1762,9 @@ export function cleanCandidateTeamName(name: string): string {
   clean = clean.replace(/\s+(?:nữ|nu|nam|women|woman|men|man)$/i, "");
   clean = clean.replace(/\s+[wWsS]$/, "");
 
-  // 8B. Strip team prefix markers: "ĐTQG", "ĐT", "CLB"
-  clean = clean.replace(/^(?:đtqg|dtqg|đt|dt|clb)\s+/i, "");
-  clean = clean.replace(/\s+(?:clb)$/i, "");
+  // 8B. Strip team prefix markers: "Đội tuyển quốc gia", "Đội tuyển", "National team", "ĐTQG", "ĐT", "CLB"
+  clean = clean.replace(/^(?:đội tuyển quốc gia|doi tuyen quoc gia|đội tuyển|doi tuyen|national team|đtqg|dtqg|đt|dt|clb)\s+/i, "");
+  clean = clean.replace(/\s+(?:clb|national team)$/i, "");
 
   // 9. Strip any remaining surrounding symbols/punctuation
   clean = clean.replace(/^[\s\-_|/:\.,;=~+*#@!?^$()\[\]{}'"]+|[\s\-_|/:\.,;=~+*#@!?^$()\[\]{}'"]+$/g, "").trim();
@@ -1742,8 +1773,8 @@ export function cleanCandidateTeamName(name: string): string {
   clean = clean.replace(/^(?:nữ|nu|nam|women|woman|men)\s+/i, "");
   clean = clean.replace(/\s+(?:nữ|nu|nam|women|woman|men|man)$/i, "");
   clean = clean.replace(/\s+[wWsS]$/, "");
-  clean = clean.replace(/^(?:đtqg|dtqg|đt|dt|clb)\s+/i, "");
-  clean = clean.replace(/\s+(?:clb)$/i, "");
+  clean = clean.replace(/^(?:đội tuyển quốc gia|doi tuyen quoc gia|đội tuyển|doi tuyen|national team|đtqg|dtqg|đt|dt|clb)\s+/i, "");
+  clean = clean.replace(/\s+(?:clb|national team)$/i, "");
 
   return clean.replace(/\s+/g, " ").trim();
 }

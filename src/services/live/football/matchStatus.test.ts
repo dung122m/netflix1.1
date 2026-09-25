@@ -11,6 +11,11 @@ import {
   normalizeAndMergeStreams,
   cleanCandidateTeamName,
   extractHailabLogos,
+  normalizeClubKey,
+  isSingleTeamMatching,
+  areMatchFixturesMatching,
+  NATIONAL_TEAM_CANONICAL_MAP,
+  NATIONAL_TEAM_CANONICAL_KEYS,
 } from "./service";
 import { getTeamAsset, TOTAL_MAPPED_TEAMS } from "@/data/live/teamAssets";
 
@@ -1463,5 +1468,254 @@ describe("Nanaflix Live TV - FHD Badges, Broken Source Hiding & Smart Fallback",
     );
   });
 });
+
+describe("Comprehensive National Team Canonical Alias & Fixture Deduplication System", () => {
+  const kickoffTime = new Date("2026-09-25T19:30:00+07:00").getTime();
+
+  it("1. Coverage & Statistics: Must support >= 200 countries and >= 700 aliases", () => {
+    assert.ok(NATIONAL_TEAM_CANONICAL_KEYS.size >= 200, `Expected >= 200 countries, got ${NATIONAL_TEAM_CANONICAL_KEYS.size}`);
+    assert.ok(Object.keys(NATIONAL_TEAM_CANONICAL_MAP).length >= 700, `Expected >= 700 aliases, got ${Object.keys(NATIONAL_TEAM_CANONICAL_MAP).length}`);
+  });
+
+  it("2. Multilingual Alias Mapping: Vietnam variants all normalize to 'vietnam'", () => {
+    const variants = ["Vietnam", "Việt", "Việt Nam", "Viet Nam", "VN", "VIE", "ĐTQG Việt Nam", "Đội tuyển Việt Nam", "U23 Việt Nam"];
+    for (const v of variants) {
+      assert.equal(normalizeClubKey(v), "vietnam", `Variant '${v}' must resolve to 'vietnam'`);
+    }
+  });
+
+  it("3. Multilingual Alias Mapping: China variants all normalize to 'china'", () => {
+    const variants = ["China", "Trung Quốc", "China PR", "PR China", "CN", "CHN", "Đội tuyển Trung Quốc"];
+    for (const v of variants) {
+      assert.equal(normalizeClubKey(v), "china", `Variant '${v}' must resolve to 'china'`);
+    }
+  });
+
+  it("4. Multilingual Alias Mapping: South Korea variants all normalize to 'southkorea'", () => {
+    const variants = ["South Korea", "Hàn Quốc", "Korea Republic", "Republic of Korea", "ROK", "KOR", "ĐT Hàn Quốc"];
+    for (const v of variants) {
+      assert.equal(normalizeClubKey(v), "southkorea", `Variant '${v}' must resolve to 'southkorea'`);
+    }
+  });
+
+  it("5. Multilingual Alias Mapping: North Korea variants all normalize to 'northkorea'", () => {
+    const variants = ["North Korea", "Triều Tiên", "Bắc Triều Tiên", "DPR Korea", "PRK"];
+    for (const v of variants) {
+      assert.equal(normalizeClubKey(v), "northkorea", `Variant '${v}' must resolve to 'northkorea'`);
+    }
+  });
+
+  it("6. Multilingual Alias Mapping: Major football nations across confederations", () => {
+    assert.equal(normalizeClubKey("Japan"), "japan");
+    assert.equal(normalizeClubKey("Nhật Bản"), "japan");
+    assert.equal(normalizeClubKey("Germany"), "germany");
+    assert.equal(normalizeClubKey("Đức"), "germany");
+    assert.equal(normalizeClubKey("Spain"), "spain");
+    assert.equal(normalizeClubKey("Tây Ban Nha"), "spain");
+    assert.equal(normalizeClubKey("Portugal"), "portugal");
+    assert.equal(normalizeClubKey("Bồ Đào Nha"), "portugal");
+    assert.equal(normalizeClubKey("Netherlands"), "netherlands");
+    assert.equal(normalizeClubKey("Hà Lan"), "netherlands");
+    assert.equal(normalizeClubKey("Brazil"), "brazil");
+    assert.equal(normalizeClubKey("Brasil"), "brazil");
+    assert.equal(normalizeClubKey("USA"), "usa");
+    assert.equal(normalizeClubKey("United States"), "usa");
+    assert.equal(normalizeClubKey("Hoa Kỳ"), "usa");
+    assert.equal(normalizeClubKey("USMNT"), "usa");
+    assert.equal(normalizeClubKey("France"), "france");
+    assert.equal(normalizeClubKey("Pháp"), "france");
+    assert.equal(normalizeClubKey("England"), "england");
+    assert.equal(normalizeClubKey("Anh"), "england");
+    assert.equal(normalizeClubKey("Italy"), "italy");
+    assert.equal(normalizeClubKey("Ý"), "italy");
+    assert.equal(normalizeClubKey("Argentina"), "argentina");
+    assert.equal(normalizeClubKey("Thailand"), "thailand");
+    assert.equal(normalizeClubKey("Thái Lan"), "thailand");
+  });
+
+  it("7. Strict Collision Guard: Congo and DR Congo must NEVER match", () => {
+    assert.equal(normalizeClubKey("Congo"), "congo");
+    assert.equal(normalizeClubKey("DR Congo"), "drcongo");
+    assert.equal(isSingleTeamMatching("Congo", "DR Congo"), false);
+  });
+
+  it("8. Strict Collision Guard: Guinea, Guinea-Bissau, and Equatorial Guinea must NEVER match", () => {
+    assert.equal(normalizeClubKey("Guinea"), "guinea");
+    assert.equal(normalizeClubKey("Guinea-Bissau"), "guineabissau");
+    assert.equal(normalizeClubKey("Equatorial Guinea"), "equatorialguinea");
+    assert.equal(isSingleTeamMatching("Guinea", "Guinea-Bissau"), false);
+    assert.equal(isSingleTeamMatching("Guinea", "Equatorial Guinea"), false);
+    assert.equal(isSingleTeamMatching("Guinea-Bissau", "Equatorial Guinea"), false);
+  });
+
+  it("9. Strict Collision Guard: Niger and Nigeria must NEVER match", () => {
+    assert.equal(normalizeClubKey("Niger"), "niger");
+    assert.equal(normalizeClubKey("Nigeria"), "nigeria");
+    assert.equal(isSingleTeamMatching("Niger", "Nigeria"), false);
+  });
+
+  it("10. Strict Collision Guard: Australia and Austria must NEVER match", () => {
+    assert.equal(normalizeClubKey("Australia"), "australia");
+    assert.equal(normalizeClubKey("Austria"), "austria");
+    assert.equal(isSingleTeamMatching("Australia", "Austria"), false);
+  });
+
+  it("11. Strict Collision Guard: North Korea and South Korea must NEVER match", () => {
+    assert.equal(normalizeClubKey("North Korea"), "northkorea");
+    assert.equal(normalizeClubKey("South Korea"), "southkorea");
+    assert.equal(isSingleTeamMatching("North Korea", "South Korea"), false);
+    assert.equal(isSingleTeamMatching("Triều Tiên", "Hàn Quốc"), false);
+  });
+
+  it("12. Fixture Matching: 'China vs Vietnam' + 'Việt vs Trung Quốc' MERGES into 1 fixture", () => {
+    const f1 = {
+      team1: "China",
+      team2: "Vietnam",
+      time: "19:30",
+      timestamp: kickoffTime,
+      isLiveMarker: false,
+    };
+    const f2 = {
+      team1: "Việt",
+      team2: "Trung Quốc",
+      time: "19:30",
+      timestamp: kickoffTime,
+      isLiveMarker: false,
+    };
+
+    assert.equal(areMatchFixturesMatching(f1, f2), true, "China vs Vietnam and Việt vs Trung Quốc must match");
+  });
+
+  it("13. Fixture Matching: Other major national fixtures merge across language & order", () => {
+    // South Korea vs Japan <-> Nhật Bản vs Hàn Quốc
+    assert.equal(
+      areMatchFixturesMatching(
+        { team1: "South Korea", team2: "Japan", time: "20:00", timestamp: kickoffTime, isLiveMarker: false },
+        { team1: "Nhật Bản", team2: "Hàn Quốc", time: "20:00", timestamp: kickoffTime, isLiveMarker: false },
+      ),
+      true,
+    );
+
+    // Germany vs Spain <-> Tây Ban Nha vs Đức
+    assert.equal(
+      areMatchFixturesMatching(
+        { team1: "Germany", team2: "Spain", time: "02:00", timestamp: kickoffTime, isLiveMarker: false },
+        { team1: "Tây Ban Nha", team2: "Đức", time: "02:00", timestamp: kickoffTime, isLiveMarker: false },
+      ),
+      true,
+    );
+
+    // Brazil vs Netherlands <-> Hà Lan vs Brasil
+    assert.equal(
+      areMatchFixturesMatching(
+        { team1: "Brazil", team2: "Netherlands", time: "21:00", timestamp: kickoffTime, isLiveMarker: false },
+        { team1: "Hà Lan", team2: "Brasil", time: "21:00", timestamp: kickoffTime, isLiveMarker: false },
+      ),
+      true,
+    );
+
+    // USA vs Portugal <-> Bồ Đào Nha vs United States
+    assert.equal(
+      areMatchFixturesMatching(
+        { team1: "USA", team2: "Portugal", time: "21:00", timestamp: kickoffTime, isLiveMarker: false },
+        { team1: "Bồ Đào Nha", team2: "United States", time: "21:00", timestamp: kickoffTime, isLiveMarker: false },
+      ),
+      true,
+    );
+  });
+
+  it("14. Separation Invariant: Different matches sharing one team must NOT merge", () => {
+    // Vietnam vs Thailand vs Vietnam vs Malaysia
+    const v_tha = { team1: "Vietnam", team2: "Thailand", time: "19:30", timestamp: kickoffTime, isLiveMarker: false };
+    const v_mas = { team1: "Vietnam", team2: "Malaysia", time: "19:30", timestamp: kickoffTime, isLiveMarker: false };
+    assert.equal(areMatchFixturesMatching(v_tha, v_mas), false, "Vietnam vs Thailand and Vietnam vs Malaysia must NOT merge");
+
+    // China vs Vietnam vs China vs Indonesia
+    const c_vie = { team1: "China", team2: "Vietnam", time: "19:30", timestamp: kickoffTime, isLiveMarker: false };
+    const c_idn = { team1: "China", team2: "Indonesia", time: "19:30", timestamp: kickoffTime, isLiveMarker: false };
+    assert.equal(areMatchFixturesMatching(c_vie, c_idn), false, "China vs Vietnam and China vs Indonesia must NOT merge");
+  });
+
+  it("15. Separation Invariant: Distinct countries with similar names must NOT merge", () => {
+    // Congo vs Mali vs DR Congo vs Mali
+    const congo_mali = { team1: "Congo", team2: "Mali", time: "19:30", timestamp: kickoffTime, isLiveMarker: false };
+    const drcongo_mali = { team1: "DR Congo", team2: "Mali", time: "19:30", timestamp: kickoffTime, isLiveMarker: false };
+    assert.equal(areMatchFixturesMatching(congo_mali, drcongo_mali), false, "Congo vs Mali and DR Congo vs Mali must NOT merge");
+
+    // Niger vs Ghana vs Nigeria vs Ghana
+    const niger_ghana = { team1: "Niger", team2: "Ghana", time: "19:30", timestamp: kickoffTime, isLiveMarker: false };
+    const nigeria_ghana = { team1: "Nigeria", team2: "Ghana", time: "19:30", timestamp: kickoffTime, isLiveMarker: false };
+    assert.equal(areMatchFixturesMatching(niger_ghana, nigeria_ghana), false, "Niger vs Ghana and Nigeria vs Ghana must NOT merge");
+
+    // Australia vs Japan vs Austria vs Japan
+    const aus_jpn = { team1: "Australia", team2: "Japan", time: "19:30", timestamp: kickoffTime, isLiveMarker: false };
+    const aut_jpn = { team1: "Austria", team2: "Japan", time: "19:30", timestamp: kickoffTime, isLiveMarker: false };
+    assert.equal(areMatchFixturesMatching(aus_jpn, aut_jpn), false, "Australia vs Japan and Austria vs Japan must NOT merge");
+
+    // Guinea vs Senegal vs Guinea-Bissau vs Senegal vs Equatorial Guinea vs Senegal
+    const gui_sen = { team1: "Guinea", team2: "Senegal", time: "19:30", timestamp: kickoffTime, isLiveMarker: false };
+    const gbs_sen = { team1: "Guinea-Bissau", team2: "Senegal", time: "19:30", timestamp: kickoffTime, isLiveMarker: false };
+    const eqg_sen = { team1: "Equatorial Guinea", team2: "Senegal", time: "19:30", timestamp: kickoffTime, isLiveMarker: false };
+    assert.equal(areMatchFixturesMatching(gui_sen, gbs_sen), false);
+    assert.equal(areMatchFixturesMatching(gui_sen, eqg_sen), false);
+    assert.equal(areMatchFixturesMatching(gbs_sen, eqg_sen), false);
+
+    // North Korea vs Jordan vs South Korea vs Jordan
+    const prk_jor = { team1: "North Korea", team2: "Jordan", time: "19:30", timestamp: kickoffTime, isLiveMarker: false };
+    const kor_jor = { team1: "South Korea", team2: "Jordan", time: "19:30", timestamp: kickoffTime, isLiveMarker: false };
+    assert.equal(areMatchFixturesMatching(prk_jor, kor_jor), false, "North Korea vs Jordan and South Korea vs Jordan must NOT merge");
+  });
+
+  it("16. End-to-End normalizeAndMergeStreams: China vs Vietnam + Việt vs Trung Quốc merges into 1 card with both streams", () => {
+    const rawItems = [
+      {
+        rawTitle: "19:30 25/09 ⚽ China vs Vietnam (BLV Quang Huy)",
+        url: "https://source1.example.com/stream1.m3u8",
+        effectiveUrl: "https://source1.example.com/stream1.m3u8",
+        group: "VTV5",
+        rawLogo: "https://cdn.example.com/china.png",
+      },
+      {
+        rawTitle: "19:30 25/09 ⚽ Việt vs Trung Quốc (BLV Anh Quân)",
+        url: "https://source2.example.com/stream2.m3u8",
+        effectiveUrl: "https://source2.example.com/stream2.m3u8",
+        group: "FPT Play",
+        rawLogo: "https://cdn.example.com/vietnam.png",
+      },
+    ];
+
+    const { matches } = normalizeAndMergeStreams(rawItems, kickoffTime - 15 * 60 * 1000);
+    assert.equal(matches.length, 1, "Must merge into exactly 1 match fixture card");
+
+    const match = matches[0];
+    assert.equal(match.servers.length, 2, "Must retain streams/servers from both sources");
+    const serverUrls = match.servers.map((s) => s.url);
+    assert.ok(serverUrls.includes("https://source1.example.com/stream1.m3u8"));
+    assert.ok(serverUrls.includes("https://source2.example.com/stream2.m3u8"));
+  });
+
+  it("17. End-to-End normalizeAndMergeStreams: Vietnam vs Thailand and Vietnam vs Malaysia remain 2 separate fixtures", () => {
+    const rawItems = [
+      {
+        rawTitle: "19:30 25/09 ⚽ Vietnam vs Thailand",
+        url: "https://source1.example.com/tha.m3u8",
+        effectiveUrl: "https://source1.example.com/tha.m3u8",
+        group: "Kênh 1",
+        rawLogo: "https://cdn.example.com/vietnam.png",
+      },
+      {
+        rawTitle: "19:30 25/09 ⚽ Vietnam vs Malaysia",
+        url: "https://source2.example.com/mas.m3u8",
+        effectiveUrl: "https://source2.example.com/mas.m3u8",
+        group: "Kênh 2",
+        rawLogo: "https://cdn.example.com/vietnam.png",
+      },
+    ];
+
+    const { matches } = normalizeAndMergeStreams(rawItems, kickoffTime - 15 * 60 * 1000);
+    assert.equal(matches.length, 2, "Must remain 2 distinct match fixture cards");
+  });
+});
+
 
 
