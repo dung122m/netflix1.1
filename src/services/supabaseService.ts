@@ -1054,69 +1054,97 @@ export interface DeviceHandoffItem {
   updatedAt: number;
 }
 
+const inFlightDeviceHandoffSave = new Map<string, Promise<void>>();
+const inFlightDeviceHandoffGet = new Map<string, Promise<DeviceHandoffItem | null>>();
+
 export async function saveDeviceHandoffSupabase(item: DeviceHandoffItem): Promise<void> {
   if (!item.userId) return;
-  try {
-    const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken();
-    if (!token) return;
-    const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
-    await fetch(`${baseUrl}/api/user/handoff`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        movieSlug: item.movieSlug,
-        movieTitle: item.movieTitle,
-        poster: item.poster,
-        episodeSlug: item.episodeSlug,
-        episodeName: item.episodeName,
-        progressSeconds: item.progressSeconds,
-        durationSeconds: item.durationSeconds,
-        deviceName: item.deviceName,
-      }),
-    });
-  } catch (err) {
-    console.warn("Lỗi lưu device handoff qua API:", err);
+  const dedupKey = `${item.userId}:${item.movieSlug}`;
+  const existing = inFlightDeviceHandoffSave.get(dedupKey);
+  if (existing) {
+    return existing;
   }
+
+  const promise = (async () => {
+    try {
+      const { auth } = await import("@/lib/firebase");
+      const token = await auth?.currentUser?.getIdToken();
+      if (!token) return;
+      const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
+      await fetch(`${baseUrl}/api/user/handoff`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          movieSlug: item.movieSlug,
+          movieTitle: item.movieTitle,
+          poster: item.poster,
+          episodeSlug: item.episodeSlug,
+          episodeName: item.episodeName,
+          progressSeconds: item.progressSeconds,
+          durationSeconds: item.durationSeconds,
+          deviceName: item.deviceName,
+        }),
+      });
+    } catch (err) {
+      console.warn("Lỗi lưu device handoff qua API:", err);
+    } finally {
+      inFlightDeviceHandoffSave.delete(dedupKey);
+    }
+  })();
+
+  inFlightDeviceHandoffSave.set(dedupKey, promise);
+  return promise;
 }
 
 export async function getDeviceHandoffSupabase(userId: string): Promise<DeviceHandoffItem | null> {
   if (!userId) return null;
-  try {
-    const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken();
-    if (!token) return null;
-    const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
-    const res = await fetch(`${baseUrl}/api/user/handoff`, {
-      headers: { Authorization: `Bearer ${token}` },
-      cache: "no-store",
-    });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.success && data.item) {
-        const d = data.item;
-        return {
-          id: userId,
-          userId: d.userId || userId,
-          movieSlug: d.movieSlug,
-          movieTitle: d.movieTitle,
-          poster: d.poster,
-          episodeSlug: d.episodeSlug,
-          episodeName: d.episodeName,
-          progressSeconds: Number(d.progressSeconds) || 0,
-          durationSeconds: Number(d.durationSeconds) || 0,
-          deviceName: d.deviceName,
-          updatedAt: Number(d.updatedAt) || Date.now(),
-        };
-      }
-    }
-  } catch (err) {
-    console.warn("Lỗi lấy device handoff qua API:", err);
+  const existing = inFlightDeviceHandoffGet.get(userId);
+  if (existing) {
+    return existing;
   }
-  return null;
+
+  const promise = (async (): Promise<DeviceHandoffItem | null> => {
+    try {
+      const { auth } = await import("@/lib/firebase");
+      const token = await auth?.currentUser?.getIdToken();
+      if (!token) return null;
+      const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
+      const res = await fetch(`${baseUrl}/api/user/handoff`, {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store",
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.item) {
+          const d = data.item;
+          return {
+            id: userId,
+            userId: d.userId || userId,
+            movieSlug: d.movieSlug,
+            movieTitle: d.movieTitle,
+            poster: d.poster,
+            episodeSlug: d.episodeSlug,
+            episodeName: d.episodeName,
+            progressSeconds: Number(d.progressSeconds) || 0,
+            durationSeconds: Number(d.durationSeconds) || 0,
+            deviceName: d.deviceName,
+            updatedAt: Number(d.updatedAt) || Date.now(),
+          };
+        }
+      }
+    } catch (err) {
+      console.warn("Lỗi lấy device handoff qua API:", err);
+    } finally {
+      inFlightDeviceHandoffGet.delete(userId);
+    }
+    return null;
+  })();
+
+  inFlightDeviceHandoffGet.set(userId, promise);
+  return promise;
 }
 
 export async function getAllDeviceHandoffsSupabase(): Promise<DeviceHandoffItem[]> {

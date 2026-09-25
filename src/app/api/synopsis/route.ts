@@ -22,6 +22,7 @@ export interface SynopsisDetailPayload {
 
 // Bộ nhớ đệm RAM trên server cho các yêu cầu tóm tắt và thông tin chi tiết phim (giới hạn tối đa 500 mục)
 const serverSynopsisCache = new Map<string, SynopsisDetailPayload>();
+const inFlightServerRequests = new Map<string, Promise<SynopsisDetailPayload | null>>();
 const MAX_SYNOPSIS_CACHE = 500;
 
 function setBoundedSynopsisCache(slug: string, payload: SynopsisDetailPayload) {
@@ -59,91 +60,118 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  // 1.5 Kiểm tra in-flight Promise trên server để không gọi trùng đồng thời
+  if (inFlightServerRequests.has(slug)) {
+    const inFlightPayload = await inFlightServerRequests.get(slug);
+    if (inFlightPayload) {
+      return NextResponse.json(
+        { slug, ...inFlightPayload },
+        {
+          headers: {
+            "Cache-Control":
+              "public, s-maxage=86400, stale-while-revalidate=86400",
+          },
+        }
+      );
+    }
+  }
+
+  const promise = (async (): Promise<SynopsisDetailPayload | null> => {
+    try {
+      // 2. Lấy dữ liệu chi tiết phim
+      const data = await movieApi.getMovieDetail(slug);
+      const movie = data?.movie;
+      const rawContent = movie?.content || movie?.description || "";
+      const originName = movie?.origin_name || "";
+      const trailerUrl = movie?.trailer_url || "";
+
+      // Làm sạch toàn bộ thẻ HTML và giải mã các thực thể HTML (&nbsp;, &amp;, &quot;...)
+      const cleanContent = cleanHtmlText(rawContent);
+
+      // Bóc tách danh sách diễn viên (actor / casts)
+      let actorList: string[] = [];
+      if (Array.isArray(movie?.actor)) {
+        actorList = movie.actor.map(String).map((s: string) => s.trim()).filter(Boolean);
+      } else if (typeof movie?.actor === "string" && movie.actor) {
+        actorList = movie.actor.split(",").map((s: string) => s.trim()).filter(Boolean);
+      } else if (Array.isArray(movie?.casts)) {
+        actorList = movie.casts.map(String).map((s: string) => s.trim()).filter(Boolean);
+      }
+
+      // Bóc tách đạo diễn
+      let directorList: string[] = [];
+      if (Array.isArray(movie?.director)) {
+        directorList = movie.director.map(String).map((s: string) => s.trim()).filter(Boolean);
+      } else if (typeof movie?.director === "string" && movie.director) {
+        directorList = movie.director.split(",").map((s: string) => s.trim()).filter(Boolean);
+      }
+
+      // Bóc tách thể loại
+      const categoryList: string[] = Array.isArray(movie?.category)
+        ? movie.category.map((c: { name?: string }) => c.name || "").filter(Boolean)
+        : typeof movie?.genre === "string"
+        ? movie.genre.split(",").map((g: string) => g.trim()).filter(Boolean)
+        : [];
+
+      // Bóc tách quốc gia
+      const countryList: string[] = Array.isArray(movie?.country)
+        ? movie.country.map((c: { name?: string }) => c.name || "").filter(Boolean)
+        : [];
+
+      let backdropUrl = "";
+      if (movie?.tmdb?.id) {
+        try {
+          backdropUrl = (await getTmdbBackdropUrl(movie.tmdb.id, movie.tmdb.type)) || "";
+        } catch {
+          // Fallback
+        }
+      }
+      if (!backdropUrl && movie) {
+        backdropUrl = pickHeroBackdropImage(movie);
+      }
+      const posterUrl = movie ? pickBestMoviePoster(movie) : "";
+      const thumbUrl = movie ? pickBestMovieThumb(movie) : "";
+
+      const payload: SynopsisDetailPayload = {
+        content: cleanContent,
+        origin_name: originName,
+        trailer_url: trailerUrl,
+        actor: actorList,
+        director: directorList,
+        country: countryList,
+        category: categoryList,
+        episode_current: movie?.episode_current || "",
+        time: movie?.time || "",
+        year: movie?.year || "",
+        backdrop_url: backdropUrl,
+        poster_url: posterUrl,
+        thumb_url: thumbUrl,
+      };
+
+      // Lưu vào RAM cache (bounded FIFO)
+      setBoundedSynopsisCache(slug, payload);
+      return payload;
+    } catch (err) {
+      console.error("Lỗi lấy tóm tắt phim:", slug, err);
+      return null;
+    }
+  })();
+
+  inFlightServerRequests.set(slug, promise);
+
   try {
-    // 2. Lấy dữ liệu chi tiết phim
-    const data = await movieApi.getMovieDetail(slug);
-    const movie = data?.movie;
-    const rawContent = movie?.content || movie?.description || "";
-    const originName = movie?.origin_name || "";
-    const trailerUrl = movie?.trailer_url || "";
-
-    // Làm sạch toàn bộ thẻ HTML và giải mã các thực thể HTML (&nbsp;, &amp;, &quot;...)
-    const cleanContent = cleanHtmlText(rawContent);
-
-    // Bóc tách danh sách diễn viên (actor / casts)
-    let actorList: string[] = [];
-    if (Array.isArray(movie?.actor)) {
-      actorList = movie.actor.map(String).map((s: string) => s.trim()).filter(Boolean);
-    } else if (typeof movie?.actor === "string" && movie.actor) {
-      actorList = movie.actor.split(",").map((s: string) => s.trim()).filter(Boolean);
-    } else if (Array.isArray(movie?.casts)) {
-      actorList = movie.casts.map(String).map((s: string) => s.trim()).filter(Boolean);
+    const payload = await promise;
+    if (payload) {
+      return NextResponse.json(
+        { slug, ...payload },
+        {
+          headers: {
+            "Cache-Control":
+              "public, s-maxage=86400, stale-while-revalidate=86400",
+          },
+        }
+      );
     }
-
-    // Bóc tách đạo diễn
-    let directorList: string[] = [];
-    if (Array.isArray(movie?.director)) {
-      directorList = movie.director.map(String).map((s: string) => s.trim()).filter(Boolean);
-    } else if (typeof movie?.director === "string" && movie.director) {
-      directorList = movie.director.split(",").map((s: string) => s.trim()).filter(Boolean);
-    }
-
-    // Bóc tách thể loại
-    const categoryList: string[] = Array.isArray(movie?.category)
-      ? movie.category.map((c: { name?: string }) => c.name || "").filter(Boolean)
-      : typeof movie?.genre === "string"
-      ? movie.genre.split(",").map((g: string) => g.trim()).filter(Boolean)
-      : [];
-
-    // Bóc tách quốc gia
-    const countryList: string[] = Array.isArray(movie?.country)
-      ? movie.country.map((c: { name?: string }) => c.name || "").filter(Boolean)
-      : [];
-
-    let backdropUrl = "";
-    if (movie?.tmdb?.id) {
-      try {
-        backdropUrl = (await getTmdbBackdropUrl(movie.tmdb.id, movie.tmdb.type)) || "";
-      } catch {
-        // Fallback
-      }
-    }
-    if (!backdropUrl && movie) {
-      backdropUrl = pickHeroBackdropImage(movie);
-    }
-    const posterUrl = movie ? pickBestMoviePoster(movie) : "";
-    const thumbUrl = movie ? pickBestMovieThumb(movie) : "";
-
-    const payload: SynopsisDetailPayload = {
-      content: cleanContent,
-      origin_name: originName,
-      trailer_url: trailerUrl,
-      actor: actorList,
-      director: directorList,
-      country: countryList,
-      category: categoryList,
-      episode_current: movie?.episode_current || "",
-      time: movie?.time || "",
-      year: movie?.year || "",
-      backdrop_url: backdropUrl,
-      poster_url: posterUrl,
-      thumb_url: thumbUrl,
-    };
-
-    // Lưu vào RAM cache (bounded FIFO)
-    setBoundedSynopsisCache(slug, payload);
-
-    return NextResponse.json(
-      { slug, ...payload },
-      {
-        headers: {
-          "Cache-Control":
-            "public, s-maxage=86400, stale-while-revalidate=86400",
-        },
-      }
-    );
-  } catch (err) {
-    console.error("Lỗi lấy tóm tắt phim:", slug, err);
     return NextResponse.json(
       { slug, content: "", origin_name: "", actor: [], director: [] },
       {
@@ -153,5 +181,7 @@ export async function GET(request: NextRequest) {
         },
       }
     );
+  } finally {
+    inFlightServerRequests.delete(slug);
   }
 }

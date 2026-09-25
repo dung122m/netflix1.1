@@ -39,8 +39,15 @@ export function detectDeviceType(): "Điện thoại" | "Máy tính" | "Tablet" 
 
 const STORAGE_SESSION_PREFIX = "nanaflix_active_playback_session_";
 
+// In-flight Promise deduplication map cho client handoff POST
+const inFlightHandoffRequests = new Map<string, Promise<void>>();
+let lastHandoffSyncRecord: { key: string; time: number; progress: number } | null = null;
+
 /**
  * Cập nhật phiên phát phim hiện tại (Broadcast Channel + LocalStorage + Supabase)
+ * Có cơ chế in-flight Promise deduplication: nếu cùng user và cùng movie đang có
+ * request in-flight hoặc gọi trùng lặp trong thời gian ngắn (< 2.5s) cùng tiến độ,
+ * sẽ dedup chia sẻ Promise thay vì bắn thêm request POST mới.
  */
 export async function updateActivePlaybackSession(
   userId: string,
@@ -83,58 +90,74 @@ export async function updateActivePlaybackSession(
       } catch {}
     }
 
-    // Đồng bộ lên Supabase qua Server API
-    try {
-      const { auth } = await import("@/lib/firebase");
-      const token = await auth?.currentUser?.getIdToken();
-      if (token) {
-        await fetch("/api/user/handoff", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
+    const currentSeconds = Math.floor(data.currentTime);
+    const dedupKey = `${userId}:${data.movieSlug}`;
+    const now = Date.now();
+
+    // 1. Bỏ qua nếu cùng user/session và cùng movie gọi đúp trong thời gian ngắn (< 2.5s) cùng tiến độ
+    if (
+      lastHandoffSyncRecord &&
+      lastHandoffSyncRecord.key === dedupKey &&
+      now - lastHandoffSyncRecord.time < 2500 &&
+      Math.abs(lastHandoffSyncRecord.progress - currentSeconds) < 2
+    ) {
+      return;
+    }
+
+    // 2. Dedup request in-flight: nếu đang có request POST /api/user/handoff đang bay cùng user & movie
+    const existingInFlight = inFlightHandoffRequests.get(dedupKey);
+    if (existingInFlight) {
+      return await existingInFlight;
+    }
+
+    // Đồng bộ lên Supabase qua Server API với in-flight Promise dedup
+    const syncPromise = (async () => {
+      try {
+        lastHandoffSyncRecord = { key: dedupKey, time: Date.now(), progress: currentSeconds };
+        const { auth } = await import("@/lib/firebase");
+        const token = await auth?.currentUser?.getIdToken();
+        if (token) {
+          await fetch("/api/user/handoff", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              movieSlug: data.movieSlug,
+              movieTitle: data.movieTitle,
+              poster: data.posterUrl,
+              episodeName: data.episodeName,
+              episodeSlug: data.episodeSlug,
+              progressSeconds: currentSeconds,
+              durationSeconds: Math.floor(data.duration || 0),
+              deviceName: detectDeviceType(),
+            }),
+          });
+        } else {
+          await saveDeviceHandoffSupabase({
+            id: userId,
+            userId,
             movieSlug: data.movieSlug,
             movieTitle: data.movieTitle,
             poster: data.posterUrl,
             episodeName: data.episodeName,
             episodeSlug: data.episodeSlug,
-            progressSeconds: Math.floor(data.currentTime),
+            progressSeconds: currentSeconds,
             durationSeconds: Math.floor(data.duration || 0),
             deviceName: detectDeviceType(),
-          }),
-        });
-      } else {
-        saveDeviceHandoffSupabase({
-          id: userId,
-          userId,
-          movieSlug: data.movieSlug,
-          movieTitle: data.movieTitle,
-          poster: data.posterUrl,
-          episodeName: data.episodeName,
-          episodeSlug: data.episodeSlug,
-          progressSeconds: Math.floor(data.currentTime),
-          durationSeconds: Math.floor(data.duration || 0),
-          deviceName: detectDeviceType(),
-          updatedAt: Date.now(),
-        }).catch(() => {});
+            updatedAt: Date.now(),
+          });
+        }
+      } catch (syncErr) {
+        console.warn("Lỗi đồng bộ handoff qua API:", syncErr);
+      } finally {
+        inFlightHandoffRequests.delete(dedupKey);
       }
-    } catch {
-      saveDeviceHandoffSupabase({
-        id: userId,
-        userId,
-        movieSlug: data.movieSlug,
-        movieTitle: data.movieTitle,
-        poster: data.posterUrl,
-        episodeName: data.episodeName,
-        episodeSlug: data.episodeSlug,
-        progressSeconds: Math.floor(data.currentTime),
-        durationSeconds: Math.floor(data.duration || 0),
-        deviceName: detectDeviceType(),
-        updatedAt: Date.now(),
-      }).catch(() => {});
-    }
+    })();
+
+    inFlightHandoffRequests.set(dedupKey, syncPromise);
+    await syncPromise;
   } catch (err) {
     console.warn("Lỗi đồng bộ phiên phát đa thiết bị:", err);
   }

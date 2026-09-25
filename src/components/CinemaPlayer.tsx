@@ -852,6 +852,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         saveWatchProgress(movieSlug, video.currentTime, currentEffectiveDuration, activeEpisodeSlug);
       }
       if (user?.uid && movieSlug && video.currentTime > 5) {
+        lastHandoffSyncRef.current = Date.now();
         updateActivePlaybackSession(user.uid, {
           movieSlug,
           movieTitle: title,

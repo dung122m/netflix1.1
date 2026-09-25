@@ -23,6 +23,7 @@ import {
 } from "@/lib/movieMedia";
 import { cleanHtmlText } from "@/lib/cleanHtml";
 import { clientSynopsisCache } from "./MediaCard";
+import { fetchMovieSynopsisShared } from "@/services/synopsisService";
 import TrailerModal from "@/components/TrailerModal";
 import {
   extractYoutubeId,
@@ -191,8 +192,7 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
 
     let isCancelled = false;
     const timer = setTimeout(() => {
-      fetch(`/api/synopsis?slug=${encodeURIComponent(currentSlug)}`)
-        .then((res) => res.json())
+      fetchMovieSynopsisShared(currentSlug)
         .then((data) => {
           if (isCancelled) return;
           if (data?.content) {
@@ -246,13 +246,10 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
 
       if (!rawTrailer) {
         try {
-          const res = await fetch(`/api/synopsis?slug=${encodeURIComponent(currentSlug)}`);
-          if (res.ok) {
-            const data = await res.json();
-            if (data?.trailer_url) {
-              rawTrailer = data.trailer_url;
-              trailerUrlMapRef.current[currentSlug] = data.trailer_url;
-            }
+          const data = await fetchMovieSynopsisShared(currentSlug);
+          if (data?.trailer_url) {
+            rawTrailer = data.trailer_url;
+            trailerUrlMapRef.current[currentSlug] = data.trailer_url;
           }
         } catch {}
       }
@@ -673,11 +670,11 @@ export const HeroFeatured: React.FC<{ movies?: HeroMovie[] }> = ({
                 </p>
               )}
 
-              {/* 3.5 TÓM TẮT NỘI DUNG (NGẮN GỌN 2 DÒNG) */}
+              {/* 3.5 TÓM TẮT NỘI DUNG (HIỂN THỊ ĐẦY ĐỦ CỐT TRUYỆN ĐIỆN ẢNH) */}
               {displaySynopsis ? (
                 <p
                   style={{ color: "#d1d5db" }}
-                  className="hero-cinema-desc max-w-2xl text-xs sm:text-sm md:text-base leading-relaxed text-zinc-300 line-clamp-2 drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]"
+                  className="hero-cinema-desc max-w-2xl sm:max-w-3xl text-xs sm:text-sm md:text-base leading-relaxed text-zinc-300 line-clamp-3 sm:line-clamp-4 md:line-clamp-5 lg:line-clamp-6 drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]"
                 >
                   {displaySynopsis}
                 </p>

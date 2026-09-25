@@ -45,32 +45,9 @@ export interface MovieExtraInfo {
 export const clientSynopsisCache = new Map<string, string>();
 export const clientTrailerCache = new Map<string, string>();
 export const clientExtraInfoCache = new Map<string, MovieExtraInfo>();
-// In-flight shared promise map để tránh fetch 2 lần cho cùng 1 slug
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const inFlightSynopsisRequests = new Map<string, Promise<any>>();
+import { fetchMovieSynopsisShared } from "@/services/synopsisService";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function fetchMovieSynopsisShared(slug: string): Promise<any> {
-  if (!slug) return null;
-  if (inFlightSynopsisRequests.has(slug)) {
-    return inFlightSynopsisRequests.get(slug);
-  }
-
-  const promise = (async () => {
-    try {
-      const res = await fetch(`/api/synopsis?slug=${encodeURIComponent(slug)}`);
-      if (!res.ok) return null;
-      return await res.json();
-    } catch {
-      return null;
-    } finally {
-      inFlightSynopsisRequests.delete(slug);
-    }
-  })();
-
-  inFlightSynopsisRequests.set(slug, promise);
-  return promise;
-}
+export { fetchMovieSynopsisShared };
 
 export { extractYoutubeId };
 
@@ -407,7 +384,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
             if (data?.backdrop_url) {
               setCurrentImgSrc((prev) => {
                 if (!prev || prev.includes("-poster") || prev.includes("/default-")) {
-                  return data.backdrop_url;
+                  return data.backdrop_url || prev;
                 }
                 return prev;
               });

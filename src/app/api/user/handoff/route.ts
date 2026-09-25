@@ -58,6 +58,9 @@ export async function GET(req: NextRequest) {
  * POST /api/user/handoff
  * Lưu tiến độ xem đa thiết bị của chính user
  */
+// In-flight dedup map cho server-side POST handoff
+const inFlightServerHandoffPosts = new Map<string, Promise<{ status: number; body: Record<string, unknown> }>>();
+
 export async function POST(req: NextRequest) {
   const supabase = getSupabaseAdmin();
   if (!supabase) {
@@ -77,6 +80,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing movieSlug" }, { status: 400 });
     }
 
+    const serverDedupKey = `${auth.userId}:${movieSlug}`;
+    const existing = inFlightServerHandoffPosts.get(serverDedupKey);
+    if (existing) {
+      const resData = await existing;
+      return NextResponse.json(resData.body, { status: resData.status });
+    }
+
     const payload = {
       id: auth.userId,
       user_id: auth.userId,
@@ -91,12 +101,21 @@ export async function POST(req: NextRequest) {
       updated_at: Date.now(),
     };
 
-    const { error } = await supabase.from("device_handoff").upsert(payload, { onConflict: "id" });
-    if (error) {
-      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-    }
+    const upsertPromise = (async () => {
+      const { error } = await supabase.from("device_handoff").upsert(payload, { onConflict: "id" });
+      if (error) {
+        return { status: 500, body: { success: false, error: error.message } };
+      }
+      return { status: 200, body: { success: true, item: payload } };
+    })();
 
-    return NextResponse.json({ success: true, item: payload });
+    inFlightServerHandoffPosts.set(serverDedupKey, upsertPromise);
+    try {
+      const result = await upsertPromise;
+      return NextResponse.json(result.body, { status: result.status });
+    } finally {
+      inFlightServerHandoffPosts.delete(serverDedupKey);
+    }
   } catch (err) {
     console.error("[Handoff API POST] Error:", err);
     return NextResponse.json({ success: false, error: "Internal error" }, { status: 500 });
