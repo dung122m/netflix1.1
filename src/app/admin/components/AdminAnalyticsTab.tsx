@@ -285,7 +285,7 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
 
         {!stats?.liveWatching || stats.liveWatching.length === 0 ? (
           <div className="p-8 text-center rounded-xl bg-black/40 border border-white/5 text-gray-400 text-xs">
-            Hiện chưa có thành viên nào đang phát phim.
+            Hiện chưa có ai đang phát phim.
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -306,11 +306,22 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
                       className="border border-white/10"
                     />
                     <div className="min-w-0">
-                      <div className="text-xs font-bold text-white truncate">
-                        {session.userName}
+                      <div className="text-xs font-bold text-white truncate flex items-center gap-1.5">
+                        <span className="truncate">{session.userName}</span>
+                        {session.isGuest ? (
+                          <span className="px-1.5 py-0.5 rounded bg-zinc-800 text-[10px] text-gray-300 font-semibold flex-shrink-0">
+                            🎭 Guest
+                          </span>
+                        ) : (
+                          <span className="px-1.5 py-0.5 rounded bg-emerald-500/15 text-[10px] text-emerald-300 font-semibold flex-shrink-0">
+                            👤 User
+                          </span>
+                        )}
                       </div>
-                      <div className="text-[10px] text-gray-500 truncate">
-                        {session.userEmail || session.userId.slice(0, 10)}
+                      <div className="text-[10px] text-gray-500 truncate font-mono">
+                        {session.isGuest
+                          ? (session.deviceName || "Khách vãng lai")
+                          : (session.userEmail || session.userId.slice(0, 10))}
                       </div>
                     </div>
                   </div>

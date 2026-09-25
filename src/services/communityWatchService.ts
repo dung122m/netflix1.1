@@ -22,6 +22,7 @@ export async function recordMovieViewSupabase(movie: {
   quality?: string;
   category?: string;
   userId?: string;
+  anonymousId?: string;
 }): Promise<void> {
   const adminClient = getSupabaseAdmin();
   if (!adminClient) {
@@ -29,7 +30,7 @@ export async function recordMovieViewSupabase(movie: {
   }
   if (!movie.slug) return;
   const now = Date.now();
-  const uid = movie.userId || "guest";
+  const uid = movie.userId || movie.anonymousId || "guest";
   const id = `${uid}_${movie.slug}`;
 
   const { error } = await adminClient.from("watch_history").upsert(

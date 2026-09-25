@@ -242,7 +242,7 @@ export async function upsertMovieEmbedding(
       movie.originalName ? `Tên gốc: ${movie.originalName}` : "",
       movie.category ? `Thể loại & Cảm xúc: ${movie.category}` : "",
       movie.year ? `Năm: ${movie.year}` : "",
-      movie.description ? `Nội dung tóm tắt: ${movie.description.replace(/<[^>]*>?/gm, "").slice(0, 500)}` : "",
+      movie.description ? `Nội dung tóm tắt: ${movie.description.replace(/<[^>]*>?/gm, "").slice(0, 1200)}` : "",
     ]
       .filter(Boolean)
       .join(". ");

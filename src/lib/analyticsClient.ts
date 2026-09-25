@@ -35,8 +35,18 @@ export interface AnalyticsEventPayload {
   timestamp?: number;
 }
 
+const ANON_STORAGE_KEY = "nanaflix_anon_id";
 const ANON_COOKIE_NAME = "nanaflix_anon_id";
 const COOKIE_MAX_AGE_SECONDS = 31536000; // 1 year
+
+let cachedAnonymousId: string | null = null;
+
+/**
+ * Validate anonymous ID format: starts with anon_ and has 8-64 alphanumeric chars
+ */
+export function isValidAnonymousId(id: unknown): id is string {
+  return typeof id === "string" && /^anon_[a-zA-Z0-9_-]{8,64}$/.test(id);
+}
 
 /**
  * Generate a cryptographically strong or random anonymous ID
@@ -66,16 +76,51 @@ function setCookie(name: string, val: string, maxAgeSec: number): void {
 }
 
 /**
- * Retrieve or generate persistent anonymous ID stored in cookie
+ * Retrieve or generate persistent anonymous ID stored in localStorage and synced to cookie.
+ * Ensures stable identity per browser/device across reloads, tab closes, and navigations.
  */
 export function getOrCreateAnonymousId(): string {
   if (typeof window === "undefined") return "";
 
-  let anonId = getCookie(ANON_COOKIE_NAME);
-  if (!anonId || !anonId.startsWith("anon_")) {
-    anonId = generateAnonymousId();
-    setCookie(ANON_COOKIE_NAME, anonId, COOKIE_MAX_AGE_SECONDS);
+  // 1. Fast in-memory cache for current tab lifecycle
+  if (cachedAnonymousId && isValidAnonymousId(cachedAnonymousId)) {
+    return cachedAnonymousId;
   }
+
+  let anonId: string | null = null;
+
+  // 2. Read from localStorage (Primary persistent store across sessions/tabs)
+  try {
+    const stored = localStorage.getItem(ANON_STORAGE_KEY);
+    if (isValidAnonymousId(stored)) {
+      anonId = stored;
+    }
+  } catch {
+    // localStorage might be unavailable or restricted (e.g. strict private mode)
+  }
+
+  // 3. Fallback: Read from Cookie
+  if (!anonId) {
+    const cookieVal = getCookie(ANON_COOKIE_NAME);
+    if (isValidAnonymousId(cookieVal)) {
+      anonId = cookieVal;
+    }
+  }
+
+  // 4. If not found or corrupted, generate a stable anonymous ID once
+  if (!anonId) {
+    anonId = generateAnonymousId();
+  }
+
+  cachedAnonymousId = anonId;
+
+  // 5. Persist to BOTH localStorage and Cookie to maintain synchronization
+  try {
+    localStorage.setItem(ANON_STORAGE_KEY, anonId);
+  } catch {}
+
+  setCookie(ANON_COOKIE_NAME, anonId, COOKIE_MAX_AGE_SECONDS);
+
   return anonId;
 }
 

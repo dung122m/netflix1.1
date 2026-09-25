@@ -138,10 +138,9 @@ export async function clearAllWatchHistoryFromCloud(
     const headers = await getAuthHeaders();
     if (!headers["Authorization" as keyof typeof headers]) return;
 
-    await fetch("/api/user/history", {
+    await fetch("/api/user/history?all=true", {
       method: "DELETE",
       headers,
-      body: JSON.stringify({ all: true }),
     });
   } catch (err) {
     console.warn("Lỗi clearAllWatchHistoryFromCloud:", err);
@@ -251,10 +250,9 @@ export async function clearAllWatchlistFromCloud(
     const headers = await getAuthHeaders();
     if (!headers["Authorization" as keyof typeof headers]) return;
 
-    await fetch("/api/user/watchlist", {
+    await fetch("/api/user/watchlist?all=true", {
       method: "DELETE",
       headers,
-      body: JSON.stringify({ all: true }),
     });
   } catch (err) {
     console.warn("Lỗi clearAllWatchlistFromCloud:", err);

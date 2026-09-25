@@ -100,6 +100,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     return () => unsubscribe();
   }, []);
 
+  // Tự động đồng bộ lịch sử xem khi quay lại tab (Visibility Change Sync)
+  useEffect(() => {
+    let lastVisibilitySyncTime = 0;
+
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState !== "visible") return;
+      if (!user?.uid) return; // Chỉ chạy cho authenticated user
+
+      const now = Date.now();
+      // Throttle: Tối thiểu 10s giữa các lần sync khi switch tab liên tục
+      if (now - lastVisibilitySyncTime < 10000) return;
+      lastVisibilitySyncTime = now;
+
+      try {
+        await syncWatchHistoryWithCloud(user.uid);
+      } catch (err) {
+        console.warn("Lỗi sync watch history khi quay lại tab:", err);
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [user?.uid]);
+
   const signInWithGoogle = useCallback(async (): Promise<{
     success: boolean;
     error?: string;

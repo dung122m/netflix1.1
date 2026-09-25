@@ -4,6 +4,7 @@ import {
   removeWatchItemFromCloud,
   clearAllWatchHistoryFromCloud,
 } from "./cloudSync";
+import { getOrCreateAnonymousId } from "./analyticsClient";
 
 export interface WatchHistoryItem {
   slug: string;
@@ -178,6 +179,7 @@ export const saveWatchHistory = (
       const sessionKey = `view_recorded_${newItem.slug}`;
       if (!sessionStorage.getItem(sessionKey)) {
         sessionStorage.setItem(sessionKey, "1");
+        const anonymousId = getOrCreateAnonymousId();
         fetch("/api/record-view", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -188,6 +190,7 @@ export const saveWatchHistory = (
             year: newItem.year,
             quality: newItem.quality,
             category: newItem.category,
+            anonymousId,
           }),
           keepalive: true,
         }).catch(() => {});

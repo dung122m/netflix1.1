@@ -1049,22 +1049,6 @@ export async function POST(req: NextRequest) {
       return allExclusions.includes(clean);
     };
 
-    // 2. Kiểm tra Cache tầng CacheService (1-2 giờ) cho cùng bộ tiêu chí
-    const recentExclusionTag = allExclusions.slice(-5).sort().join(",");
-    const rouletteCacheKey = `ai:roulette:${mood}:${country}:${companion}:${duration}:${surprise}:${recentExclusionTag}`;
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const cachedResult = await cacheService.get<any>(rouletteCacheKey);
-      if (cachedResult && cachedResult.movie?.slug && !isExcluded(cachedResult.movie.slug)) {
-        return NextResponse.json({
-          ...cachedResult,
-          cached: true,
-        });
-      }
-    } catch {
-      // Cache miss hoặc kết nối cache lỗi: tiếp tục xử lý bình thường
-    }
-
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let foundMovie: any = null;
     let finalPunchline = "";
@@ -1110,97 +1094,123 @@ export async function POST(req: NextRequest) {
       });
     };
 
-    // 1. TRUY VẤN CATALOG ĐA TẦNG (CATALOG ENGINE RETRIEVAL)
-    // Tùy theo chế độ bất ngờ, lấy số trang phù hợp:
-    // - "lieu": lấy song song page 1, 2, 3 (đến 72+ ứng viên) để gom cả top hot, tầm trung và hidden gems ít người biết.
-    // - "can-bang": lấy page 1, 2 (đến 48 ứng viên).
-    // - "an-toan": lấy page 1 (36 ứng viên hot nhất).
-    const pagesToFetch = surprise === "lieu" ? [1, 2, 3] : surprise === "can-bang" ? [1, 2] : [1];
-    try {
-      const catalogResponses = await Promise.all(
-        pagesToFetch.map((p) =>
-          movieApi.getMovies({
-            category: targetCategorySlug,
-            country: targetCountrySlug,
-            type: duration === "phim-bo" ? "phim-bo" : "phim-le",
-            page: p,
-            limit: 24,
-          }).catch((err) => {
-            console.warn(`[ai-roulette] Catalog page ${p} fetch failed:`, err);
-            return null;
-          })
-        )
-      );
+    // 2. KIỂM TRA CACHE CANDIDATE POOL (1 GIỜ) ĐỂ TÁI SỬ DỤNG CHO CÙNG BỘ TIÊU CHÍ
+    const poolCacheKey = `ai:roulette:pool:${mood}:${country}:${companion}:${duration}:${surprise}`;
+    let isPoolFromCache = false;
 
-      for (const catRes of catalogResponses) {
-        if (catRes?.items?.length) {
-          for (const item of catRes.items) {
-            const catName = item.category?.[0]?.name || moodMeta.label;
-            addCandidateToPool(item, {
-              punchline: `Tuyệt phẩm ${catName} chuẩn gu định mệnh: bùng nổ cảm xúc và trọn vẹn từng phút giây!`,
-              badges: [catName, item.country?.[0]?.name || "Đặc Sắc", "Bốc Quẻ Chuẩn"],
-              relevanceScore: 92,
-              provider: "Catalog Engine",
+    try {
+      const cachedPool = await cacheService.get<ScoredCandidateItem[]>(poolCacheKey);
+      if (Array.isArray(cachedPool) && cachedPool.length > 0) {
+        for (const item of cachedPool) {
+          if (item?.movie) {
+            addCandidateToPool(item.movie, {
+              punchline: item.punchline,
+              badges: item.badges,
+              relevanceScore: item.relevanceScore,
+              provider: item.provider,
             });
           }
         }
-      }
-    } catch (catErr) {
-      console.warn("[ai-roulette] Catalog engine phase error:", catErr);
-    }
-
-    // 2. BỔ SUNG TỪ SUPABASE PGVECTOR (NẾU CÓ)
-    try {
-      const vectorSearchTerm = `${moodMeta.label} ${moodMeta.desc} ${companionDesc} ${country !== "all" ? countryMeta.label : ""}`.trim();
-      const vectorPicks = await searchMoviesBySemantic(vectorSearchTerm, 8, 0.42, userApiKey);
-
-      for (const vp of vectorPicks) {
-        if (!vp.id || isExcluded(vp.id) || isExcluded(vp.title)) continue;
-        const candidateDetail = await searchSingleMovieFast(vp.title, vp.originalName || "");
-        if (candidateDetail && candidateDetail.slug) {
-          addCandidateToPool(candidateDetail, {
-            punchline: moodMeta.defaultPunchline,
-            badges: moodMeta.defaultBadges,
-            relevanceScore: Math.min(99, Math.round(88 + (vp.similarity || 0.5) * 15)),
-            provider: "Supabase Vector Engine",
-          });
+        if (candidateMap.size > 0) {
+          isPoolFromCache = true;
         }
       }
-    } catch (vErr) {
-      console.warn("[ai-roulette] Vector search phase skipped:", vErr);
+    } catch {
+      // Cache miss hoặc kết nối cache lỗi: tiếp tục truy vấn catalog
     }
 
-    // 3. BỔ SUNG TỪ FAST AI HYBRID (CHỈ GỌI KHI CẦN THÊM HOẶC THIẾU ỨNG VIÊN)
-    // Nếu candidate pool hiện tại còn mỏng (< 6 phim) thì mới gọi AI để tiết kiệm quota
-    if (candidateMap.size < 6) {
+    if (!isPoolFromCache) {
+      // 1. TRUY VẤN CATALOG ĐA TẦNG (CATALOG ENGINE RETRIEVAL)
+      // Tùy theo chế độ bất ngờ, lấy số trang phù hợp:
+      // - "lieu": lấy song song page 1, 2, 3 (đến 72+ ứng viên) để gom cả top hot, tầm trung và hidden gems ít người biết.
+      // - "can-bang": lấy page 1, 2 (đến 48 ứng viên).
+      // - "an-toan": lấy page 1 (36 ứng viên hot nhất).
+      const pagesToFetch = surprise === "lieu" ? [1, 2, 3] : surprise === "can-bang" ? [1, 2] : [1];
       try {
-        const countryConstraint =
-          country !== "all"
-            ? `\n- QUY TẮC BẮT BUỘC: Bộ phim BẮT BUỘC phải thuộc quốc gia "${countryMeta.label}". TUYỆT ĐỐI KHÔNG chọn phim của nước khác!`
+        const catalogResponses = await Promise.all(
+          pagesToFetch.map((p) =>
+            movieApi.getMovies({
+              category: targetCategorySlug,
+              country: targetCountrySlug,
+              type: duration === "phim-bo" ? "phim-bo" : "phim-le",
+              page: p,
+              limit: 24,
+            }).catch((err) => {
+              console.warn(`[ai-roulette] Catalog page ${p} fetch failed:`, err);
+              return null;
+            })
+          )
+        );
+
+        for (const catRes of catalogResponses) {
+          if (catRes?.items?.length) {
+            for (const item of catRes.items) {
+              const catName = item.category?.[0]?.name || moodMeta.label;
+              addCandidateToPool(item, {
+                punchline: `Tuyệt phẩm ${catName} chuẩn gu định mệnh: bùng nổ cảm xúc và trọn vẹn từng phút giây!`,
+                badges: [catName, item.country?.[0]?.name || "Đặc Sắc", "Bốc Quẻ Chuẩn"],
+                relevanceScore: 92,
+                provider: "Catalog Engine",
+              });
+            }
+          }
+        }
+      } catch (catErr) {
+        console.warn("[ai-roulette] Catalog engine phase error:", catErr);
+      }
+
+      // 2. BỔ SUNG TỪ SUPABASE PGVECTOR (NẾU CÓ)
+      try {
+        const vectorSearchTerm = `${moodMeta.label} ${moodMeta.desc} ${companionDesc} ${country !== "all" ? countryMeta.label : ""}`.trim();
+        const vectorPicks = await searchMoviesBySemantic(vectorSearchTerm, 8, 0.42, userApiKey);
+
+        for (const vp of vectorPicks) {
+          if (!vp.id || isExcluded(vp.id) || isExcluded(vp.title)) continue;
+          const candidateDetail = await searchSingleMovieFast(vp.title, vp.originalName || "");
+          if (candidateDetail && candidateDetail.slug) {
+            addCandidateToPool(candidateDetail, {
+              punchline: moodMeta.defaultPunchline,
+              badges: moodMeta.defaultBadges,
+              relevanceScore: Math.min(99, Math.round(88 + (vp.similarity || 0.5) * 15)),
+              provider: "Supabase Vector Engine",
+            });
+          }
+        }
+      } catch (vErr) {
+        console.warn("[ai-roulette] Vector search phase skipped:", vErr);
+      }
+
+      // 3. BỔ SUNG TỪ FAST AI HYBRID (CHỈ GỌI KHI CẦN THÊM HOẶC THIẾU ỨNG VIÊN)
+      // Nếu candidate pool hiện tại còn mỏng (< 6 phim) thì mới gọi AI để tiết kiệm quota
+      if (candidateMap.size < 6) {
+        try {
+          const countryConstraint =
+            country !== "all"
+              ? `\n- QUY TẮC BẮT BUỘC: Bộ phim BẮT BUỘC phải thuộc quốc gia "${countryMeta.label}". TUYỆT ĐỐI KHÔNG chọn phim của nước khác!`
+              : "";
+
+          const durationConstraint =
+            duration !== "all"
+              ? `\n- QUY TẮC THỜI LƯỢNG: Ưu tiên phim có thời lượng ${durationDesc}.`
+              : "";
+
+          const surpriseConstraint =
+            surprise === "an-toan"
+              ? "\n- GU CHỌN: Ưu tiên các kiệt tác cực kỳ nổi tiếng, kinh điển, điểm IMDb/TMDB cao nhất."
+              : surprise === "lieu"
+              ? "\n- GU CHỌN: Ưu tiên tác phẩm độc lạ, hidden gem, indie, cult classic, ít phổ biến đại trà nhưng có kịch bản cuốn hút đặc sắc."
+              : "\n- GU CHỌN: Cân bằng giữa phim phổ biến và tác phẩm giàu tính khám phá.";
+
+          const excludePrompt = hasExclusions
+            ? `\n- TUYỆT ĐỐI KHÔNG CHỌN bất kỳ phim nào trong danh sách đã xem sau: [${allExclusions.slice(-15).join(", ")}].`
             : "";
 
-        const durationConstraint =
-          duration !== "all"
-            ? `\n- QUY TẮC THỜI LƯỢNG: Ưu tiên phim có thời lượng ${durationDesc}.`
-            : "";
+          const promptRequirements =
+            surprise === "lieu"
+              ? `1. Phim PHẢI CÓ THẬT trên các trang xem phim tại Việt Nam (PhimAPI, Ophim), ưu tiên các tác phẩm ẩn mình (hidden gems), độc đáo, ít người biết nhưng chất lượng kịch bản xuất sắc.`
+              : `1. Phim PHẢI CÓ THẬT, CỰC KỲ NỔI TIẾNG, CÓ ĐIỂM ĐÁNH GIÁ CAO trên các trang xem phim tại Việt Nam (PhimAPI, Ophim, Netflix).`;
 
-        const surpriseConstraint =
-          surprise === "an-toan"
-            ? "\n- GU CHỌN: Ưu tiên các kiệt tác cực kỳ nổi tiếng, kinh điển, điểm IMDb/TMDB cao nhất."
-            : surprise === "lieu"
-            ? "\n- GU CHỌN: Ưu tiên tác phẩm độc lạ, hidden gem, indie, cult classic, ít phổ biến đại trà nhưng có kịch bản cuốn hút đặc sắc."
-            : "\n- GU CHỌN: Cân bằng giữa phim phổ biến và tác phẩm giàu tính khám phá.";
-
-        const excludePrompt = hasExclusions
-          ? `\n- TUYỆT ĐỐI KHÔNG CHỌN bất kỳ phim nào trong danh sách đã xem sau: [${allExclusions.slice(-15).join(", ")}].`
-          : "";
-
-        const promptRequirements =
-          surprise === "lieu"
-            ? `1. Phim PHẢI CÓ THẬT trên các trang xem phim tại Việt Nam (PhimAPI, Ophim), ưu tiên các tác phẩm ẩn mình (hidden gems), độc đáo, ít người biết nhưng chất lượng kịch bản xuất sắc.`
-            : `1. Phim PHẢI CÓ THẬT, CỰC KỲ NỔI TIẾNG, CÓ ĐIỂM ĐÁNH GIÁ CAO trên các trang xem phim tại Việt Nam (PhimAPI, Ophim, Netflix).`;
-
-        const promptText = `Bạn là Trợ lý Nana của Nanaflix đang bốc quẻ 'Suất Chiếu Định Mệnh' cho người dùng:
+          const promptText = `Bạn là Trợ lý Nana của Nanaflix đang bốc quẻ 'Suất Chiếu Định Mệnh' cho người dùng:
 - Tâm trạng: "${moodMeta.label} - ${moodMeta.desc}"
 - Người xem cùng: "${companionDesc}"
 - Thời lượng yêu cầu: "${durationDesc}"${countryConstraint}${durationConstraint}${surpriseConstraint}${excludePrompt}
@@ -1229,78 +1239,84 @@ Trả về DUY NHẤT một chuỗi JSON hợp lệ:
   }
 }`;
 
-        const aiRes = await generateFastAiChat({
-          userPrompt: promptText,
-          temperature: surprise === "lieu" ? 0.6 : 0.35,
-          maxTokens: 500,
-          jsonMode: true,
-          customApiKey: userApiKey,
-          timeoutMs: 5000,
-        });
+          const aiRes = await generateFastAiChat({
+            userPrompt: promptText,
+            temperature: surprise === "lieu" ? 0.6 : 0.35,
+            maxTokens: 500,
+            jsonMode: true,
+            customApiKey: userApiKey,
+            timeoutMs: 5000,
+          });
 
-        if (aiRes && aiRes.text) {
-          let cleaned = aiRes.text.replace(/```(?:json)?\s*/gi, "").replace(/\s*```/g, "").trim();
-          const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-          if (jsonMatch) cleaned = jsonMatch[0];
+          if (aiRes && aiRes.text) {
+            let cleaned = aiRes.text.replace(/```(?:json)?\s*/gi, "").replace(/\s*```/g, "").trim();
+            const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+            if (jsonMatch) cleaned = jsonMatch[0];
 
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          let parsed: any = null;
-          try {
-            parsed = JSON.parse(cleaned);
-          } catch {}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            let parsed: any = null;
+            try {
+              parsed = JSON.parse(cleaned);
+            } catch {}
 
-          if (parsed) {
-            const candidates = [
-              parsed.primary,
-              parsed.secondary,
-              parsed.title ? parsed : null,
-            ].filter(Boolean);
+            if (parsed) {
+              const candidates = [
+                parsed.primary,
+                parsed.secondary,
+                parsed.title ? parsed : null,
+              ].filter(Boolean);
 
-            for (const cand of candidates) {
-              const candTitle = (cand.title || "").trim();
-              const candOrig = (cand.originalTitle || "").trim();
-              if (!candTitle) continue;
-              if (isExcluded(candTitle) || isExcluded(candOrig)) continue;
+              for (const cand of candidates) {
+                const candTitle = (cand.title || "").trim();
+                const candOrig = (cand.originalTitle || "").trim();
+                if (!candTitle) continue;
+                if (isExcluded(candTitle) || isExcluded(candOrig)) continue;
 
-              const matched = await searchSingleMovieFast(candTitle, candOrig);
-              if (matched && matched.slug) {
-                addCandidateToPool(matched, {
-                  punchline: cand.punchline || moodMeta.defaultPunchline,
-                  badges: Array.isArray(cand.badges) ? cand.badges.slice(0, 3) : moodMeta.defaultBadges,
-                  relevanceScore: typeof cand.matchScore === "number" ? cand.matchScore : 97,
-                  provider: "Nana AI",
-                });
+                const matched = await searchSingleMovieFast(candTitle, candOrig);
+                if (matched && matched.slug) {
+                  addCandidateToPool(matched, {
+                    punchline: cand.punchline || moodMeta.defaultPunchline,
+                    badges: Array.isArray(cand.badges) ? cand.badges.slice(0, 3) : moodMeta.defaultBadges,
+                    relevanceScore: typeof cand.matchScore === "number" ? cand.matchScore : 97,
+                    provider: "Nana AI",
+                  });
+                }
               }
             }
           }
+        } catch (geminiErr) {
+          console.warn("[ai-roulette] AI candidates phase skipped:", geminiErr instanceof Error ? geminiErr.message : geminiErr);
         }
-      } catch (geminiErr) {
-        console.warn("[ai-roulette] AI candidates phase skipped:", geminiErr instanceof Error ? geminiErr.message : geminiErr);
-      }
-    }
-
-    // 4. BỔ SUNG TỪ KHO OFFLINE TUYỂN CHỌN (CURATED VAULT)
-    if (candidateMap.size < 6) {
-      let pool = CURATED_OFFLINE_PICKS[mood] || [];
-      if (country !== "all") {
-        const countryLabel = countryMeta.label;
-        pool = pool.filter((p) => p.country && countryLabel.includes(p.country));
       }
 
-      const available = pool.filter(
-        (p) => !isExcluded(p.title) && !isExcluded(p.originalTitle)
-      );
-
-      for (const pick of available) {
-        const matched = await searchSingleMovieFast(pick.title, pick.originalTitle);
-        if (matched && matched.slug) {
-          addCandidateToPool(matched, {
-            punchline: pick.punchline || moodMeta.defaultPunchline,
-            badges: pick.badges || moodMeta.defaultBadges,
-            relevanceScore: 95,
-            provider: "Curated Vault",
-          });
+      // 4. BỔ SUNG TỪ KHO OFFLINE TUYỂN CHỌN (CURATED VAULT)
+      if (candidateMap.size < 6) {
+        let pool = CURATED_OFFLINE_PICKS[mood] || [];
+        if (country !== "all") {
+          const countryLabel = countryMeta.label;
+          pool = pool.filter((p) => p.country && countryLabel.includes(p.country));
         }
+
+        const available = pool.filter(
+          (p) => !isExcluded(p.title) && !isExcluded(p.originalTitle)
+        );
+
+        for (const pick of available) {
+          const matched = await searchSingleMovieFast(pick.title, pick.originalTitle);
+          if (matched && matched.slug) {
+            addCandidateToPool(matched, {
+              punchline: pick.punchline || moodMeta.defaultPunchline,
+              badges: pick.badges || moodMeta.defaultBadges,
+              relevanceScore: 95,
+              provider: "Curated Vault",
+            });
+          }
+        }
+      }
+
+      // Lưu candidate pool vào cache 1 giờ để các lượt quay tiếp theo tái sử dụng tức thì
+      if (candidateMap.size > 0) {
+        cacheService.set(poolCacheKey, Array.from(candidateMap.values()), 3600).catch(() => {});
       }
     }
 
@@ -1321,7 +1337,29 @@ Trả về DUY NHẤT một chuỗi JSON hợp lệ:
 
     // Áp dụng thuật toán xếp hạng Percentile theo chế độ bất ngờ
     const rankedCandidates = rankCandidatesBySurprise(validCandidates, surprise);
-    const selectedWinner = rankedCandidates[0];
+
+    // Dynamic Weighted Random Sampling trong top ứng viên phù hợp:
+    // Đảm bảo cùng một bộ filter thì mỗi lượt quay ngẫu nhiên sẽ lấy ra các phim khác nhau,
+    // nhưng vẫn đảm bảo tính chuẩn xác và chất lượng cao nhất.
+    let selectedWinner: ScoredCandidateItem;
+    if (rankedCandidates.length === 1) {
+      selectedWinner = rankedCandidates[0];
+    } else {
+      const topPoolSize = Math.min(rankedCandidates.length, surprise === "lieu" ? 12 : 8);
+      const topCandidates = rankedCandidates.slice(0, topPoolSize);
+      
+      const weights = topCandidates.map((_, idx) => Math.max(1, Math.round((topPoolSize - idx) ** 1.4)));
+      const totalWeight = weights.reduce((sum, w) => sum + w, 0);
+      let rand = Math.random() * totalWeight;
+      selectedWinner = topCandidates[0];
+      for (let i = 0; i < topCandidates.length; i++) {
+        if (rand < weights[i]) {
+          selectedWinner = topCandidates[i];
+          break;
+        }
+        rand -= weights[i];
+      }
+    }
 
     foundMovie = selectedWinner.movie;
     finalPunchline = selectedWinner.punchline || moodMeta.defaultPunchline;
@@ -1387,9 +1425,6 @@ Trả về DUY NHẤT một chuỗi JSON hợp lệ:
       matchScore: Math.min(99, Math.max(92, finalMatchScore)),
       provider,
     };
-
-    // Lưu cache 1 giờ để giảm thiểu lượt gọi LLM lặp lại
-    cacheService.set(rouletteCacheKey, payload, 3600).catch(() => {});
 
     return NextResponse.json(payload);
   } catch (error) {

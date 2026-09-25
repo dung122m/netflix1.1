@@ -11,6 +11,13 @@ import {
 } from "@/lib/watchHistory";
 import { pickBestMovieThumb, toOptimizedPhimimgUrl } from "@/lib/movieMedia";
 import { formatEpisodeName } from "@/lib/formatEpisode";
+function isContinueWatchingItem(item: WatchHistoryItem): boolean {
+  if (item.durationSeconds && item.durationSeconds > 0 && typeof item.progressSeconds === "number") {
+    const percent = (item.progressSeconds / item.durationSeconds) * 100;
+    return percent < 95;
+  }
+  return true;
+}
 
 function ContinueWatchingRowInner() {
   const [items, setItems] = useState<WatchHistoryItem[]>([]);
@@ -38,16 +45,15 @@ function ContinueWatchingRowInner() {
 
   useEffect(() => {
     setIsClient(true);
-    const historyItems = getWatchHistory();
-    setItems(historyItems);
-
-    const handleUpdate = () => {
-      setItems(getWatchHistory());
+    const loadItems = () => {
+      const historyItems = getWatchHistory().filter(isContinueWatchingItem);
+      setItems(historyItems);
     };
+    loadItems();
 
-    window.addEventListener("watch-history-updated", handleUpdate);
+    window.addEventListener("watch-history-updated", loadItems);
     return () =>
-      window.removeEventListener("watch-history-updated", handleUpdate);
+      window.removeEventListener("watch-history-updated", loadItems);
   }, []);
 
   useEffect(() => {

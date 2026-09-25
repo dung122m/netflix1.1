@@ -21,15 +21,25 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { slug, title, poster, thumb, year, quality, category } = body || {};
+    const { slug, title, poster, thumb, year, quality, category, anonymousId: bodyAnonId } = body || {};
 
     if (!slug || typeof slug !== "string") {
       return NextResponse.json({ success: false, error: "Thiếu slug phim" }, { status: 400 });
     }
 
-    // 2. Xác thực danh tính phía Server: tuyệt đối không cho phép client tùy ý giả mạo userId
+    // 2. Xác thực danh tính phía Server: ưu tiên userId khi đã đăng nhập, ngược lại dùng anonymousId ổn định
     const auth = await verifyServerAuth(req);
-    const verifiedUserId = auth.isAuthenticated && auth.userId ? auth.userId : "guest";
+    const cookieAnonId = req.cookies.get("nanaflix_anon_id")?.value;
+    const isValidAnon = (id: unknown): id is string => typeof id === "string" && /^anon_[a-zA-Z0-9_-]{8,64}$/.test(id);
+
+    let verifiedUserId: string | undefined;
+    let verifiedAnonymousId: string | undefined;
+
+    if (auth.isAuthenticated && auth.userId) {
+      verifiedUserId = auth.userId;
+    } else {
+      verifiedAnonymousId = isValidAnon(bodyAnonId) ? bodyAnonId : (isValidAnon(cookieAnonId) ? cookieAnonId : undefined);
+    }
 
     // Ghi nhận lượt xem vào Supabase
     await recordMovieViewSupabase({
@@ -41,6 +51,7 @@ export async function POST(req: NextRequest) {
       quality,
       category,
       userId: verifiedUserId,
+      anonymousId: verifiedAnonymousId,
     });
 
     return NextResponse.json({ success: true });

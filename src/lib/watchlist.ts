@@ -43,6 +43,7 @@ function ensureSharedListener(): void {
   if (typeof window === "undefined" || isSharedListenerAttached) return;
   isSharedListenerAttached = true;
   window.addEventListener("watchlist-updated", (e: Event) => {
+    invalidateMemoryCache();
     const customEvt = e as CustomEvent<{ slug?: string }>;
     const targetSlug = customEvt?.detail?.slug;
     subscribers.forEach(({ slug, callback }) => {

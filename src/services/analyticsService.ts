@@ -41,6 +41,7 @@ export interface LiveWatchingSession {
   userName: string;
   userAvatar?: string;
   userEmail?: string;
+  isGuest?: boolean;
   movieSlug: string;
   movieTitle: string;
   poster?: string;
@@ -775,6 +776,7 @@ export async function getAnalyticsDashboardStats(
           userName: prof?.name || "Thành viên",
           userAvatar: prof?.avatar,
           userEmail: prof?.email,
+          isGuest: false,
           movieSlug: h.movie_slug || "unknown",
           movieTitle,
           poster: h.poster || undefined,
@@ -792,6 +794,60 @@ export async function getAnalyticsDashboardStats(
   } catch (err) {
     console.warn("[Analytics] Error processing live watching from handoff:", err);
   }
+
+  // 4B. Live Watching for Guests (scanned from recent watch_progress / watch_start in rawEvents)
+  const fiveMinutesAgo = now - 5 * 60 * 1000;
+  const latestGuestWatchMap = new Map<string, StoredAnalyticsEvent>();
+
+  for (const ev of rawEvents) {
+    if (
+      !ev.userId &&
+      ev.anonymousId &&
+      ev.movieSlug &&
+      (ev.eventType === "watch_progress" || ev.eventType === "watch_start" || ev.eventType === "watch_end")
+    ) {
+      const existing = latestGuestWatchMap.get(ev.anonymousId);
+      if (!existing || ev.createdAt > existing.createdAt) {
+        latestGuestWatchMap.set(ev.anonymousId, ev);
+      }
+    }
+  }
+
+  const guestLiveSessions: LiveWatchingSession[] = [];
+  for (const [anonId, ev] of latestGuestWatchMap.entries()) {
+    if (ev.createdAt >= fiveMinutesAgo && ev.eventType !== "watch_end" && ev.movieSlug) {
+      const rawDur = Number(ev.durationSeconds) || 0;
+      const dur = rawDur > 0 ? Math.floor(rawDur) : 0;
+      const rawProg = Number(ev.progressSeconds) || 0;
+      let prog = rawProg > 0 ? Math.floor(rawProg) : 0;
+      if (dur > 0) prog = Math.min(prog, dur);
+      prog = Math.max(0, prog);
+      const percent = dur > 0 ? Math.min(100, Math.max(0, Math.round((prog / dur) * 100))) : 0;
+
+      const currentTitle = ev.movieTitle || titleMap.get(ev.movieSlug) || ev.movieSlug;
+      const devTypeStr = ev.deviceType === "mobile" ? "Điện thoại" : ev.deviceType === "tablet" ? "Tablet" : "Máy tính";
+      const deviceLabel = `${devTypeStr} • ${ev.os || "Web"}`;
+
+      guestLiveSessions.push({
+        userId: anonId,
+        userName: `Guest (${anonId.slice(5, 11)})`,
+        isGuest: true,
+        movieSlug: ev.movieSlug,
+        movieTitle: currentTitle,
+        episodeSlug: ev.episodeSlug,
+        episodeName: ev.episodeName,
+        progressSeconds: prog,
+        durationSeconds: dur,
+        progressPercent: percent,
+        deviceName: deviceLabel,
+        updatedAt: ev.createdAt,
+        isLive: true,
+      });
+    }
+  }
+
+  // Combine User handoffs + Guest live sessions, ordered by most recent activity
+  liveWatching = [...liveWatching, ...guestLiveSessions].sort((a, b) => b.updatedAt - a.updatedAt);
 
   // If filtered events are empty (e.g. fresh system), also query Redis totals if timeframe === 'all'
   let finalTotalViews = totalViews;

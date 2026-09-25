@@ -39,12 +39,24 @@ export async function POST(req: NextRequest) {
     // 1. Server-controlled Timestamp (Do not trust client timestamp)
     const serverTimestamp = Date.now();
 
-    // 2. Server-controlled Anonymous ID (Extract strictly from cookie)
+    // 2. Server-controlled Anonymous ID (Validate client anonymousId or fallback to cookie / server generation)
     const cookieAnonId = req.cookies.get("nanaflix_anon_id")?.value;
-    let finalAnonymousId = cookieAnonId && cookieAnonId.startsWith("anon_") ? cookieAnonId : null;
+    const bodyAnonId = typeof body.anonymousId === "string" ? body.anonymousId.trim() : "";
+
+    const isValidAnonId = (id: string | null | undefined): boolean =>
+      Boolean(id && /^anon_[a-zA-Z0-9_-]{8,64}$/.test(id));
+
+    let finalAnonymousId: string;
     let isNewCookieNeeded = false;
 
-    if (!finalAnonymousId) {
+    if (isValidAnonId(bodyAnonId)) {
+      finalAnonymousId = bodyAnonId;
+      if (cookieAnonId !== bodyAnonId) {
+        isNewCookieNeeded = true;
+      }
+    } else if (isValidAnonId(cookieAnonId)) {
+      finalAnonymousId = cookieAnonId!;
+    } else {
       finalAnonymousId = "anon_" + Math.random().toString(36).substring(2, 10) + serverTimestamp.toString(36);
       isNewCookieNeeded = true;
     }

@@ -918,6 +918,14 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         controlsTimerRef.current = null;
       }
       const currentEffectiveDuration = getEffectiveDuration();
+      if (movieSlug && activeEpisodeSlug) {
+        saveWatchProgress(
+          movieSlug,
+          currentEffectiveDuration > 0 ? currentEffectiveDuration : video.currentTime,
+          currentEffectiveDuration,
+          activeEpisodeSlug
+        );
+      }
       if (movieSlug) {
         trackWatchEnd({
           movieSlug,

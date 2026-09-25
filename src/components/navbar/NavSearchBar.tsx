@@ -47,6 +47,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const mobileSearchRef = useRef<HTMLDivElement>(null);
   const lastTrackedKeywordRef = useRef<{ kw: string; timestamp: number }>({ kw: "", timestamp: 0 });
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const trackSearchOnce = useCallback((kw: string) => {
     const clean = kw.trim();
@@ -69,18 +70,40 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
   // Debounced search fetcher (500ms để giảm tải Cloudflare KV writes)
   const [debouncedFetchSuggestions, cancelDebouncedFetch] = useDebounce(
     async (val: string) => {
+      // Abort previous in-flight request to prevent race condition
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
       try {
         const res = await fetch(
-          `/api/search-suggest?keyword=${encodeURIComponent(val.trim())}`
+          `/api/search-suggest?keyword=${encodeURIComponent(val.trim())}`,
+          { signal: controller.signal }
         );
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
         const data = await res.json();
-        setSuggestions(data.items || []);
-        setShowDropdown(true);
-      } catch (err) {
+
+        // Verify that the response still matches current input value
+        const currentInputVal = (inputRef.current?.value || mobileInputRef.current?.value || "").trim();
+        if (currentInputVal.toLowerCase() === val.trim().toLowerCase()) {
+          setSuggestions(data.items || []);
+          setShowDropdown(true);
+        }
+      } catch (err: unknown) {
+        if (err instanceof Error && err.name === "AbortError") {
+          return; // Ignore AbortError silently
+        }
         console.error("Lỗi gợi ý tìm kiếm:", err);
         setSuggestions([]);
       } finally {
-        setIsSearching(false);
+        if (abortControllerRef.current === controller) {
+          abortControllerRef.current = null;
+          setIsSearching(false);
+        }
       }
     },
     500
@@ -95,7 +118,13 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
     } catch {}
   }, []);
 
-  useEffect(() => () => cancelDebouncedFetch(), [cancelDebouncedFetch]);
+  useEffect(() => () => {
+    cancelDebouncedFetch();
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+  }, [cancelDebouncedFetch]);
 
   // Sync keyword from URL
   useEffect(() => {
@@ -233,6 +262,11 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
       e.preventDefault();
       e.stopPropagation();
     }
+    cancelDebouncedFetch();
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
     if (inputRef.current) inputRef.current.value = "";
     if (mobileInputRef.current) mobileInputRef.current.value = "";
     setHasText(false);
@@ -265,6 +299,10 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
       debouncedFetchSuggestions(val);
     } else {
       cancelDebouncedFetch();
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
       setSuggestions([]);
       setIsSearching(false);
       setShowDropdown(true);
