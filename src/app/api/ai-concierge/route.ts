@@ -6,7 +6,6 @@ import { SuggestionCard, MatchOptions, ConciergeApiResponse, CacheEntry, SearchI
 import {
   CACHE_TTL_MS,
   MAX_CACHE_ENTRIES,
-  RATE_LIMIT_WINDOW_MS,
   RATE_LIMIT_MAX_REQUESTS,
 } from "./constants";
 import {

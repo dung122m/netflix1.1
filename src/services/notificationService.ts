@@ -326,8 +326,10 @@ export function subscribeUserNotifications(
       teardownSingleton(activeSingleton);
       activeSingleton = null;
     }, CLEANUP_GRACE_PERIOD_MS);
-    if (typeof (activeSingleton.cleanupTimer as any)?.unref === "function") {
-      (activeSingleton.cleanupTimer as any).unref();
+
+    const timerObj = activeSingleton.cleanupTimer as unknown as { unref?: () => void };
+    if (typeof timerObj?.unref === "function") {
+      timerObj.unref();
     }
   };
 }

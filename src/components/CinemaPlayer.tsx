@@ -968,6 +968,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     targetProgress,
     getEffectiveDuration,
     playerSettings.autoNextEpisode,
+    resetControlsTimeout,
   ]);
 
   // Mobile sticky detection

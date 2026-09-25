@@ -77,7 +77,6 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
   const [direction, setDirection] = useState(1);
   const [paused, setPaused] = useState(false);
   const reduceMotion = useReducedMotion();
-  const [isMobile, setIsMobile] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
   const currentSlug = slides[index]?.slug;
@@ -117,9 +116,7 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
   useEffect(() => {
     if (typeof window !== "undefined") {
       const handleResize = () => {
-        const mobile = window.innerWidth <= 768;
         const desktop = isDesktopWithHover();
-        setIsMobile((prev) => (prev !== mobile ? mobile : prev));
         setIsDesktop((prev) => (prev !== desktop ? desktop : prev));
       };
       handleResize();

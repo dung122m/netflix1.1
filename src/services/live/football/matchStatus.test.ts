@@ -959,7 +959,7 @@ describe("Nanaflix Live Match Status & Timeline System", () => {
     const failedServers = new Set<number>();
     const failedUrls = new Set<string>();
     let selectedServerIndex = 0;
-    let proxyCalls = 0;
+    const proxyCalls = 0;
     let stopped = false;
     let finalError = "";
 

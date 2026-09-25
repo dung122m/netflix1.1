@@ -16,7 +16,6 @@ import {
   Check,
   AlertCircle,
   Radio,
-  Tv,
   ChevronDown,
   ChevronUp,
   Sparkles,
@@ -24,46 +23,12 @@ import {
   Zap,
   ChevronLeft,
   ChevronRight,
-  Search,
   X,
-  List,
   RotateCcw,
   Mic,
 } from "lucide-react";
 import { FootballMatch, StreamServer } from "@/services/liveFootballService";
 import { LiveShortcutPopover } from "./LiveShortcutPopover";
-
-// Logo hiển thị trong drawer danh sách kênh & trận đấu
-function MatchRailLogo({ option }: { option: FootballMatch }) {
-  const [error, setError] = useState(false);
-  const logo = option.logo || option.homeLogo;
-
-  if (logo && !error && !logo.includes("tinhlagi.pro/logo.jpg")) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={logo}
-        alt={option.title}
-        className="w-full h-full object-contain filter drop-shadow-sm"
-        loading="lazy"
-        decoding="async"
-        onError={() => setError(true)}
-      />
-    );
-  }
-
-  if (option.group.includes("FPT")) {
-    return (
-      <span className="text-[10px] font-black text-orange-400 font-mono">FPT</span>
-    );
-  }
-
-  if (option.isEvent || option.time === "24/7") {
-    return <Tv className="w-4 h-4 text-sky-400" />;
-  }
-
-  return <Radio className="w-4 h-4 text-rose-400" />;
-}
 
 function getTeamInitials(teamName: string): string {
   if (!teamName) return "⚽";
@@ -325,7 +290,7 @@ export function cleanPlatformName(name?: string): string {
   ) {
     return "";
   }
-  let clean = trimmed
+  const clean = trimmed
     .replace(/^(?:xoilac|xôi\s*lạc)(?:\s*z)?(?:\s*tv)?$/i, "Xôi Lạc")
     .replace(/^(?:gà\s*vàng|gavang)(?:\s*\d+h?)?(?:\s*tv)?$/i, "Gà Vàng")
     .replace(/\s*Z\s*TV$/i, "")
@@ -498,11 +463,9 @@ function LivePlayerInner({
   homeLogo = match?.homeLogo,
   awayLogo = match?.awayLogo,
   isActive = true,
-  matchOptions = [],
   showMatchRail = false,
   onToggleMatchRail,
   onCloseMatchRail,
-  onSelectMatch,
 }: LivePlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -602,8 +565,6 @@ function LivePlayerInner({
 
   // Trạng thái drawer danh sách kênh & trận đấu (như bên Truyền hình)
   const [internalMatchRail, setInternalMatchRail] = useState(false);
-  const [railSearch, setRailSearch] = useState("");
-  const [railFilter, setRailFilter] = useState<"all" | "live" | "fpt">("all");
   const activeOptionRef = useRef<HTMLButtonElement | null>(null);
   const drawerListRef = useRef<HTMLDivElement | null>(null);
 
@@ -704,34 +665,7 @@ function LivePlayerInner({
     setUseProxyFallback(false);
   }, [selectedServerIndex]);
 
-  const liveOptionsCount = useMemo(() => {
-    return matchOptions.filter((m) => m.timeline === "live").length;
-  }, [matchOptions]);
 
-  const filteredRailOptions = useMemo(() => {
-    let list = matchOptions;
-    if (railFilter === "live") {
-      list = list.filter((m) => m.timeline === "live");
-    } else if (railFilter === "fpt") {
-      list = list.filter(
-        (m) =>
-          m.group.includes("FPT") ||
-          m.servers.some((s) => s.url.includes("fptplay")),
-      );
-    }
-    if (railSearch.trim()) {
-      const q = railSearch.toLowerCase().trim();
-      list = list.filter((m) => {
-        const inTitle = m.title.toLowerCase().includes(q);
-        const inTeam1 = m.team1.toLowerCase().includes(q);
-        const inTeam2 = m.team2.toLowerCase().includes(q);
-        const inBlv = m.blv?.toLowerCase().includes(q);
-        const inGroup = m.group.toLowerCase().includes(q);
-        return inTitle || inTeam1 || inTeam2 || inBlv || inGroup;
-      });
-    }
-    return list;
-  }, [matchOptions, railFilter, railSearch]);
 
   // Danh sách các máy chủ còn hoạt động (nguồn lỗi bị ẩn hoàn toàn theo match.id)
   const availableServers = useMemo(() => {
@@ -855,8 +789,11 @@ function LivePlayerInner({
 
   // Chặn và triệt tiêu các lỗi Unhandled Rejection do browser extensions tự tiêm vào (e.g. Coco, Media Downloader, M_ID)
   useEffect(() => {
-    const isExtensionError = (err: any, reason: any) => {
-      const str = `${err?.stack || err?.message || ""} ${reason?.stack || reason?.message || reason || ""}`;
+    const isExtensionError = (err: unknown, reason: unknown) => {
+      const errObj = typeof err === "object" && err !== null ? (err as { stack?: string; message?: string }) : null;
+      const reasonObj = typeof reason === "object" && reason !== null ? (reason as { stack?: string; message?: string }) : null;
+      const reasonStr = typeof reason === "string" ? reason : "";
+      const str = `${errObj?.stack || errObj?.message || ""} ${reasonObj?.stack || reasonObj?.message || reasonStr}`;
       return (
         str.includes("chrome-extension://") ||
         str.includes("moz-extension://") ||
@@ -1544,6 +1481,7 @@ function LivePlayerInner({
     isIframe,
     executeServerFallback,
     retryNonce,
+    markSourceFailed,
   ]);
 
   // Bắt Live Edge tức thì
@@ -1922,32 +1860,7 @@ function LivePlayerInner({
     [availableServers, currentServer?.url, servers, triggerActionFeedback],
   );
 
-  // Chuyển sang trận đấu / sự kiện thể thao tiếp theo hoặc trước đó
-  const handleSwitchMatch = useCallback(
-    (direction: "next" | "prev") => {
-      if (!matchOptions || matchOptions.length <= 1 || !match) {
-        handleSwitchServer(direction);
-        return;
-      }
-      const currentIdx = matchOptions.findIndex(
-        (m) =>
-          m.id === match.id ||
-          m.title.toLowerCase() === match.title.toLowerCase(),
-      );
-      let targetIdx = 0;
-      if (currentIdx !== -1) {
-        targetIdx =
-          direction === "next"
-            ? (currentIdx + 1) % matchOptions.length
-            : (currentIdx - 1 + matchOptions.length) % matchOptions.length;
-      }
-      if (onSelectMatch && matchOptions[targetIdx]) {
-        onSelectMatch(matchOptions[targetIdx]);
-        triggerActionFeedback("match", matchOptions[targetIdx].title);
-      }
-    },
-    [matchOptions, match, onSelectMatch, handleSwitchServer, triggerActionFeedback],
-  );
+
 
   // Tua thời gian (Seek ±5s) - Phản hồi tức thì (0ms), gom nhóm nếu nhấn liên tục và clamp chuẩn theo seekable window
   const handleSeek = useCallback(

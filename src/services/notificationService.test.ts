@@ -20,7 +20,6 @@ import { supabase } from "@/lib/supabase";
 import {
   subscribeUserNotifications,
   mergeNotifications,
-  getLocalNotifications,
   saveLocalNotifications,
 } from "./notificationService";
 import { UserNotification } from "@/types/notification";

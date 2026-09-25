@@ -347,8 +347,7 @@ export function pickHeroBackdropImage(
   targetWidth: "w780" | "w1280" = "w1280"
 ): string {
   if (!movie) return fallback;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const rawMovie = (movie as any)?.movie || movie;
+  const rawMovie = ((movie as Record<string, unknown>)?.movie as MovieLike) || movie;
   const isVsmov = isNguonCSource(movie);
 
   // VSMOV / NguonC đảo ngược: poster_url là backdrop 16:9, thumb_url là poster dọc 2:3
@@ -366,8 +365,8 @@ export function pickHeroBackdropImage(
     rawMovie.backdropUrl,
     movie.backdrop_url,
     movie.backdropUrl,
-    (rawMovie.tmdb as any)?.backdrop_url,
-    (movie.tmdb as any)?.backdrop_url,
+    (rawMovie.tmdb as Record<string, unknown> | undefined)?.backdrop_url,
+    (movie.tmdb as Record<string, unknown> | undefined)?.backdrop_url,
     rawMovie.banner_url,
     rawMovie.bannerUrl,
     movie.banner_url,
@@ -376,8 +375,8 @@ export function pickHeroBackdropImage(
     movie.backdrop_path,
     rawMovie.backdropPath,
     movie.backdropPath,
-    (rawMovie.tmdb as any)?.backdrop_path,
-    (movie.tmdb as any)?.backdrop_path,
+    (rawMovie.tmdb as Record<string, unknown> | undefined)?.backdrop_path,
+    (movie.tmdb as Record<string, unknown> | undefined)?.backdrop_path,
   ];
 
   const rawCandidates = [
