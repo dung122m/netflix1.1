@@ -3,8 +3,46 @@
 import React, { useState } from "react";
 import { ArrowRight, Sparkles, Calendar } from "lucide-react";
 import { VietnamTodayInfo } from "@/lib/vietnamCalendar";
+import { VietnamEvent } from "@/data/events/types";
 import { VietnamEventEffect } from "./VietnamEventEffect";
 import { VietnamFlagIcon } from "./VietnamFlagIcon";
+
+function getEventActionLabel(event: VietnamEvent): string {
+  switch (event.nature) {
+    case "official-holiday":
+      return "Tìm hiểu ngày đại lễ";
+    case "historical-anniversary":
+      return "Khám phá mốc son lịch sử";
+    case "traditional-festival":
+      return "Khám phá phong tục lễ hội";
+    case "international-day":
+      return "Tìm hiểu ý nghĩa ngày này";
+    case "social-observance":
+      return "Tìm hiểu ý nghĩa ngày kỷ niệm";
+    case "arts-culture":
+      return "Khám phá nét đẹp văn hóa";
+    case "theme-day":
+      return "Khám phá ngày chủ đề";
+    default:
+      break;
+  }
+
+  // Fallback by category
+  switch (event.category) {
+    case "vietnam-history":
+      return "Khám phá mốc son lịch sử";
+    case "traditional-culture":
+      return "Khám phá nét đẹp văn hóa";
+    case "national-holiday":
+      return "Tìm hiểu ngày đại lễ";
+    case "international":
+      return "Tìm hiểu ý nghĩa ngày này";
+    case "social-family":
+      return "Tìm hiểu ý nghĩa ngày kỷ niệm";
+    default:
+      return "Tìm hiểu chi tiết sự kiện";
+  }
+}
 
 interface VietnamTodayCardProps {
   info: VietnamTodayInfo;
@@ -152,7 +190,7 @@ export function VietnamTodayCard({ info, onOpenModal }: VietnamTodayCardProps) {
         {/* BOTTOM ROW: SLEEK ACTION BUTTON */}
         <div className="flex items-center gap-3 pt-1">
           <span className="inline-flex items-center gap-2 px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-semibold bg-amber-500/15 group-hover:bg-amber-500/25 border border-amber-500/30 group-hover:border-amber-400/60 text-amber-300 group-hover:text-amber-200 backdrop-blur-md shadow-sm transition-all duration-300 group-hover:shadow-[0_0_16px_rgba(245,158,11,0.25)]">
-            <span>Khám phá nét đẹp văn hóa</span>
+            <span>{getEventActionLabel(event)}</span>
             <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-1" />
           </span>
           <span className="hidden sm:inline-block text-xs text-zinc-400 font-medium">
