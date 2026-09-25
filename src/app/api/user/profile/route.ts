@@ -18,8 +18,16 @@ export async function GET(req: NextRequest) {
   }
 
   const { searchParams } = new URL(req.url);
+  const auth = await verifyServerAuth(req);
 
   if (searchParams.get("all") === "true") {
+    if (!auth.isAuthenticated || !auth.userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (!auth.isAdmin) {
+      return NextResponse.json({ error: "Forbidden: Yêu cầu quyền Quản trị viên" }, { status: 403 });
+    }
+
     try {
       const { data, count, error } = await supabase
         .from("profiles")
@@ -61,9 +69,7 @@ export async function GET(req: NextRequest) {
     }
   }
 
-
   const targetUserId = searchParams.get("userId");
-  const auth = await verifyServerAuth(req);
 
   let uid = targetUserId;
   if (!uid) {

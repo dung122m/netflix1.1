@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { movieApi } from "@/services/movieApi";
 import { cacheService } from "@/lib/cache";
+import { checkDistributedRateLimit, getClientIp } from "@/lib/security";
 import { SuggestionCard, MatchOptions, ConciergeApiResponse, CacheEntry, SearchIntent } from "./types";
 import {
   CACHE_TTL_MS,
@@ -62,24 +63,9 @@ export {
 };
 
 // ============================================================================
-// RATE LIMITING VÀ RESPONSE CACHING
+// RESPONSE CACHING
 // ============================================================================
 const AI_RESPONSE_CACHE = new Map<string, CacheEntry>();
-const ipRequestMap = new Map<string, { count: number; expiresAt: number }>();
-
-function checkRateLimit(ip: string): boolean {
-  const now = Date.now();
-  const record = ipRequestMap.get(ip);
-  if (!record || record.expiresAt < now) {
-    ipRequestMap.set(ip, { count: 1, expiresAt: now + RATE_LIMIT_WINDOW_MS });
-    return true;
-  }
-  if (record.count >= RATE_LIMIT_MAX_REQUESTS) {
-    return false;
-  }
-  record.count += 1;
-  return true;
-}
 
 // ============================================================================
 // GET: HEALTH CHECK & STATUS
@@ -107,17 +93,18 @@ function normalizeExcludeSlugs(slugs: unknown[]): string[] {
 // ============================================================================
 export async function POST(req: NextRequest) {
   try {
-    const clientIp =
-      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-      req.headers.get("x-real-ip") ||
-      "anonymous_client";
+    const clientIp = getClientIp(req);
+    const rateLimit = await checkDistributedRateLimit(`ai_concierge_${clientIp}`, RATE_LIMIT_MAX_REQUESTS, 60);
 
-    if (!checkRateLimit(clientIp)) {
+    if (!rateLimit.allowed) {
       return NextResponse.json(
         {
           error: "Bạn đang gửi yêu cầu quá nhanh. Vui lòng chờ 30 giây rồi thử lại để bảo vệ hệ thống.",
         },
-        { status: 429 }
+        {
+          status: 429,
+          headers: { "Retry-After": String(rateLimit.resetSeconds) },
+        }
       );
     }
 

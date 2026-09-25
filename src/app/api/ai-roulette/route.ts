@@ -3,7 +3,7 @@ import { movieApi } from "@/services/movieApi";
 import { sanitizeImageUrl } from "@/lib/movieMedia";
 import { searchMoviesBySemantic } from "@/services/aiVectorService";
 import { generateFastAiChat } from "@/services/aiProviderService";
-import { checkRateLimit, getClientIp } from "@/lib/security";
+import { checkDistributedRateLimit, getClientIp } from "@/lib/security";
 import { cacheService } from "@/lib/cache";
 
 export const maxDuration = 15;
@@ -997,9 +997,9 @@ function toSafePoster(item: any): string {
 
 export async function POST(req: NextRequest) {
   try {
-    // 1. Giới hạn tần suất theo IP (15 requests / 60s) - bảo vệ quota AI & tránh spam
+    // 1. Giới hạn tần suất phân tán theo IP (60 requests / 60s) qua Upstash Redis - bảo vệ quota AI & tránh spam
     const clientIp = getClientIp(req);
-    const rateLimit = checkRateLimit(`ai_roulette_${clientIp}`, 15, 60);
+    const rateLimit = await checkDistributedRateLimit(`ai_roulette_${clientIp}`, 60, 60);
     if (!rateLimit.allowed) {
       return NextResponse.json(
         {

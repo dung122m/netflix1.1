@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { recordAnalyticsEvent } from "@/services/analyticsService";
 import { AnalyticsEventPayload } from "@/lib/analyticsClient";
 import { verifyServerAuth } from "@/lib/serverAuth";
+import { checkDistributedRateLimit, getClientIp } from "@/lib/security";
 
 export const maxDuration = 10;
 
@@ -17,6 +18,19 @@ const CORE_ANALYTICS_EVENT_TYPES = new Set<string>([
 
 export async function POST(req: NextRequest) {
   try {
+    // 1. Giới hạn tần suất phân tán theo IP (60 requests / 60s) qua Upstash Redis
+    const clientIp = getClientIp(req);
+    const rateLimit = await checkDistributedRateLimit(`analytics_${clientIp}`, 60, 60);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: "Too many analytics requests. Please try again later." },
+        {
+          status: 429,
+          headers: { "Retry-After": String(rateLimit.resetSeconds) },
+        }
+      );
+    }
+
     let body: Partial<AnalyticsEventPayload> = {};
 
     const contentType = req.headers.get("content-type") || "";
