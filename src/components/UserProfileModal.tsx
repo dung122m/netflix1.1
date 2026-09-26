@@ -50,6 +50,7 @@ import { toast } from "@/components/Toast";
 import { showConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { PRESET_AVATARS } from "@/lib/avatarHelper";
 import { UserAvatar } from "@/components/ui/UserAvatar";
+import { useBodyScrollLock } from "@/lib/scrollLock";
 
 export { PRESET_AVATARS };
 
@@ -227,11 +228,11 @@ function UserProfileModalInner({
     }
   };
 
-  // Khóa cuộn trang và lắng nghe phím Escape khi mở modal
+  useBodyScrollLock(isOpen);
+
+  // Lắng nghe phím Escape khi mở modal
   useEffect(() => {
     if (!isOpen) return;
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") setIsOpen(false);
@@ -239,7 +240,6 @@ function UserProfileModalInner({
     window.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      document.body.style.overflow = prevOverflow;
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [isOpen]);
@@ -547,37 +547,46 @@ function UserProfileModalInner({
           <button
             type="button"
             onClick={() => setActiveTab("profile")}
-            className={`flex items-center justify-center gap-1 sm:gap-1.5 py-2 px-1.5 sm:px-2 rounded-xl transition cursor-pointer min-w-0 ${activeTab === "profile"
+            className={`flex items-center justify-center gap-1 sm:gap-1.5 py-2 px-1 sm:px-2 rounded-xl transition cursor-pointer min-w-0 ${activeTab === "profile"
               ? "bg-netflix-red text-white shadow-md shadow-rose-950/50"
               : "text-gray-400 hover:text-white hover:bg-white/5"
               }`}
           >
             <User className="w-3.5 h-3.5 flex-shrink-0" />
-            <span className="truncate">Hồ Sơ & Danh Hiệu</span>
+            <span className="truncate">
+              <span className="sm:hidden">Hồ Sơ</span>
+              <span className="hidden sm:inline">Hồ Sơ & Danh Hiệu</span>
+            </span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab("player_settings")}
-            className={`flex items-center justify-center gap-1 sm:gap-1.5 py-2 px-1.5 sm:px-2 rounded-xl transition cursor-pointer min-w-0 ${activeTab === "player_settings"
+            className={`flex items-center justify-center gap-1 sm:gap-1.5 py-2 px-1 sm:px-2 rounded-xl transition cursor-pointer min-w-0 ${activeTab === "player_settings"
               ? "bg-netflix-red text-white shadow-md shadow-rose-950/50"
               : "text-gray-400 hover:text-white hover:bg-white/5"
               }`}
           >
             <Settings className="w-3.5 h-3.5 flex-shrink-0" />
-            <span className="truncate">Cài Đặt Phát Lại</span>
+            <span className="truncate">
+              <span className="sm:hidden">Trình Phát</span>
+              <span className="hidden sm:inline">Cài Đặt Phát Lại</span>
+            </span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab("comments")}
-            className={`flex items-center justify-center gap-1 sm:gap-1.5 py-2 px-1.5 sm:px-2 rounded-xl transition cursor-pointer min-w-0 ${activeTab === "comments"
+            className={`flex items-center justify-center gap-1 sm:gap-1.5 py-2 px-1 sm:px-2 rounded-xl transition cursor-pointer min-w-0 ${activeTab === "comments"
               ? "bg-netflix-red text-white shadow-md shadow-rose-950/50"
               : "text-gray-400 hover:text-white hover:bg-white/5"
               }`}
           >
             <MessageSquare className="w-3.5 h-3.5 flex-shrink-0" />
-            <span className="truncate">Đánh Giá ({userComments.length})</span>
+            <span className="truncate">
+              <span className="sm:hidden">Đánh Giá</span>
+              <span className="hidden sm:inline">Đánh Giá ({userComments.length})</span>
+            </span>
           </button>
         </div>
 

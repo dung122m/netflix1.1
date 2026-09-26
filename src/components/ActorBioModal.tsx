@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { User, X, Sparkles, ExternalLink, Film, Loader2, BookOpen } from "lucide-react";
 import { ActorProfile } from "@/services/wikipediaService";
+import { useBodyScrollLock } from "@/lib/scrollLock";
 
 export interface ActorBioModalProps {
   initialActorName?: string;
@@ -15,6 +16,8 @@ export const ActorBioModal: React.FC<ActorBioModalProps> = ({ initialActorName }
   const [actorName, setActorName] = useState<string>(initialActorName || "");
   const [loading, setLoading] = useState(false);
   const [profile, setProfile] = useState<ActorProfile | null>(null);
+
+  useBodyScrollLock(isOpen);
 
   const loadActor = (name: string) => {
     setActorName(name);
@@ -91,17 +94,17 @@ export const ActorBioModal: React.FC<ActorBioModalProps> = ({ initialActorName }
         <div className="h-1 w-full bg-gradient-to-r from-amber-500 via-rose-500 to-netflix-red" />
 
         {/* HEADER BAR */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/10 bg-zinc-900/80">
-          <div className="flex items-center gap-2 text-rose-400">
-            <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
-            <span className="text-xs font-black uppercase tracking-wider text-white">
+        <div className="flex items-center justify-between px-3.5 sm:px-5 py-3 sm:py-3.5 border-b border-white/10 bg-zinc-900/80 gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 text-rose-400 min-w-0 flex-1">
+            <Sparkles className="w-4 h-4 text-amber-300 animate-pulse shrink-0" />
+            <span className="text-[11px] sm:text-xs font-black uppercase tracking-wider text-white truncate">
               Hồ Sơ Nghệ Sĩ & Tiểu Sử Điện Ảnh
             </span>
           </div>
           <button
             type="button"
             onClick={() => setIsOpen(false)}
-            className="p-1.5 rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition cursor-pointer"
+            className="p-1.5 rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition cursor-pointer shrink-0"
             aria-label="Đóng"
           >
             <X className="w-5 h-5" />

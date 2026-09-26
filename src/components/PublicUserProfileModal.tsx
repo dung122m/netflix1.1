@@ -22,6 +22,7 @@ import { UserProfile } from "@/types/user";
 import { MovieCollection } from "@/types/collection";
 import { toast } from "@/components/Toast";
 import { UserAvatar } from "@/components/ui/UserAvatar";
+import { useBodyScrollLock } from "@/lib/scrollLock";
 import Link from "next/link";
 
 export interface PublicProfileDetail {
@@ -125,15 +126,7 @@ export function PublicUserProfileModal({ initialDetail }: PublicUserProfileModal
     };
   }, [isOpen, targetUserId]);
 
-  // Khóa cuộn trang khi mở modal
-  useEffect(() => {
-    if (!isOpen) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [isOpen]);
+  useBodyScrollLock(isOpen);
 
   if (!isOpen || !mounted || !profile) return null;
 

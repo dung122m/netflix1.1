@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { X, FolderPlus, Plus, Check, Loader2, Globe, Lock, Film } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -11,6 +12,7 @@ import {
 import { MovieCollection } from "@/types/collection";
 import { CreateCollectionModal } from "./CreateCollectionModal";
 import { toast } from "@/components/Toast";
+import { useBodyScrollLock } from "@/lib/scrollLock";
 
 interface AddToCollectionModalProps {
   isOpen: boolean;
@@ -35,6 +37,13 @@ export const AddToCollectionModal: React.FC<AddToCollectionModalProps> = ({
   const [loading, setLoading] = useState(true);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useBodyScrollLock(isOpen);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!isOpen || !user?.uid) return;
@@ -56,14 +65,18 @@ export const AddToCollectionModal: React.FC<AddToCollectionModalProps> = ({
 
   useEffect(() => {
     if (!isOpen) return;
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
   const handleToggle = async (collectionItem: MovieCollection) => {
     if (!user?.uid) return;
@@ -124,14 +137,14 @@ export const AddToCollectionModal: React.FC<AddToCollectionModalProps> = ({
     }
   };
 
-  return (
+  return createPortal(
     <>
       <div
         onClick={onClose}
-        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200"
+        className="fixed inset-0 z-[99998] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto overscroll-contain"
       >
         <div
-          className="relative w-full max-w-md bg-zinc-950 border border-white/20 rounded-3xl p-6 shadow-[0_25px_70px_rgba(0,0,0,0.95)] text-white animate-in zoom-in-95 duration-200 flex flex-col max-h-[85vh] overflow-hidden"
+          className="relative w-full max-w-md my-auto bg-zinc-950 border border-white/20 rounded-3xl p-6 shadow-[0_25px_70px_rgba(0,0,0,0.95)] text-white animate-in zoom-in-95 duration-200 flex flex-col max-h-[85vh] overflow-hidden transform-gpu will-change-[transform,opacity]"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Ambient Glow */}
@@ -288,6 +301,7 @@ export const AddToCollectionModal: React.FC<AddToCollectionModalProps> = ({
           setCollections((prev) => [newCol, ...prev]);
         }}
       />
-    </>
+    </>,
+    document.body
   );
 };

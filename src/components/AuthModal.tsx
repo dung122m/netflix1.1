@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { X, CheckCircle2, Film, Loader2, AlertCircle, LogOut } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { UserAvatar } from "@/components/ui/UserAvatar";
+import { useBodyScrollLock } from "@/lib/scrollLock";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -19,6 +20,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, customTit
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
 
+  useBodyScrollLock(isOpen);
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -26,16 +29,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, customTit
   useEffect(() => {
     if (!isOpen) return;
 
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
     window.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      document.body.style.overflow = prevOverflow;
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [isOpen, onClose]);

@@ -1,7 +1,9 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Keyboard, X } from "lucide-react";
+import { useBodyScrollLock } from "@/lib/scrollLock";
 
 interface PlayerShortcutModalProps {
   isOpen: boolean;
@@ -10,26 +12,38 @@ interface PlayerShortcutModalProps {
 
 export const PlayerShortcutModal: React.FC<PlayerShortcutModalProps> = React.memo(
   function PlayerShortcutModal({ isOpen, onClose }) {
+    const [mounted, setMounted] = useState(false);
+
+    useBodyScrollLock(Boolean(isOpen && mounted));
+
     useEffect(() => {
+      setMounted(true);
+    }, []);
+
+    useEffect(() => {
+      if (!isOpen) return;
+
       const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === "Escape" && isOpen) {
+        if (e.key === "Escape") {
           onClose();
         }
       };
       window.addEventListener("keydown", handleKeyDown);
-      return () => window.removeEventListener("keydown", handleKeyDown);
+      return () => {
+        window.removeEventListener("keydown", handleKeyDown);
+      };
     }, [isOpen, onClose]);
 
-    if (!isOpen) return null;
+    if (!isOpen || !mounted) return null;
 
-    return (
+    return createPortal(
       <div
         onClick={onClose}
-        className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-200"
+        className="fixed inset-0 bg-black/85 backdrop-blur-md z-[99999] flex items-center justify-center p-4 animate-in fade-in duration-200 overflow-y-auto overscroll-contain"
       >
         <div
           onClick={(e) => e.stopPropagation()}
-          className="relative w-full max-w-md rounded-3xl border border-white/20 bg-zinc-950 p-6 sm:p-7 shadow-[0_25px_70px_rgba(0,0,0,0.95)] animate-in zoom-in-95 duration-200 overflow-hidden"
+          className="relative w-full max-w-md my-auto rounded-3xl border border-white/20 bg-zinc-950 p-6 sm:p-7 shadow-[0_25px_70px_rgba(0,0,0,0.95)] animate-in zoom-in-95 duration-200 overflow-hidden transform-gpu will-change-[transform,opacity]"
         >
           {/* Ambient Glow */}
           <div className="absolute -top-20 -left-20 w-44 h-44 bg-netflix-red/20 rounded-full blur-3xl pointer-events-none" />
@@ -82,7 +96,8 @@ export const PlayerShortcutModal: React.FC<PlayerShortcutModalProps> = React.mem
             </button>
           </div>
         </div>
-      </div>
+      </div>,
+      document.body
     );
   }
 );

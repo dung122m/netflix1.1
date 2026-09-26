@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
 import Hls from "hls.js";
+import { useBodyScrollLock } from "@/lib/scrollLock";
 import {
   Play,
   Pause,
@@ -21,14 +22,13 @@ import {
   Sparkles,
   PictureInPicture2,
   Zap,
-  ChevronLeft,
-  ChevronRight,
   X,
   RotateCcw,
   Mic,
 } from "lucide-react";
 import { FootballMatch, StreamServer } from "@/services/liveFootballService";
 import { LiveShortcutPopover } from "./LiveShortcutPopover";
+import { ChannelSourceSwitcher } from "./ChannelSourceSwitcher";
 
 function getTeamInitials(teamName: string): string {
   if (!teamName) return "⚽";
@@ -2082,6 +2082,8 @@ function LivePlayerInner({
   const VolumeIcon =
     isMuted || volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
 
+  useBodyScrollLock(Boolean(isRailVisible && useMobilePortal));
+
   const sourceDrawerMarkup =
     servers && servers.length > 0 ? (
       <>
@@ -2656,38 +2658,6 @@ function LivePlayerInner({
                 )}
               </button>
 
-              {/* NÚT ĐỔI NGUỒN PHÁT TRƯỚC / SAU TRÊN THANH CONTROL */}
-              <div className="h-8 sm:h-10 flex items-center bg-black/60 rounded-full border border-white/20 px-0.5 sm:px-1 backdrop-blur-md shrink-0">
-                <button
-                  type="button"
-                  onClick={() => handleSwitchServer("prev")}
-                  disabled={availableServers.length <= 1}
-                  title="Nguồn phát trước (Phím P hoặc PageUp)"
-                  className={`w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center rounded-full transition ${availableServers.length <= 1
-                      ? "text-gray-500 cursor-not-allowed opacity-50"
-                      : "text-gray-300 hover:text-white hover:bg-white/10 cursor-pointer"
-                    }`}
-                >
-                  <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4" />
-                </button>
-                <span className="text-[10px] sm:text-xs font-semibold px-1 sm:px-2 text-amber-300 whitespace-nowrap select-none">
-                  <span className="hidden sm:inline">Nguồn </span>
-                  {`${currentAvailableIdx !== -1 ? currentAvailableIdx + 1 : 1}/${availableServers.length || 1}`}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => handleSwitchServer("next")}
-                  disabled={availableServers.length <= 1}
-                  title="Nguồn phát kế tiếp (Phím N hoặc PageDown)"
-                  className={`w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center rounded-full transition ${availableServers.length <= 1
-                      ? "text-gray-500 cursor-not-allowed opacity-50"
-                      : "text-gray-300 hover:text-white hover:bg-white/10 cursor-pointer"
-                    }`}
-                >
-                  <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4" />
-                </button>
-              </div>
-
               {/* CỤM VOLUME TRÊN MOBILE (Chỉ hiện nút Mute nhỏ gọn) */}
               <button
                 type="button"
@@ -2735,30 +2705,28 @@ function LivePlayerInner({
               </div>
             </div>
 
-            {/* CỤM PHẢI: NÚT KÊNH + PHÍM TẮT GỢI Ý + PIP + TOÀN MÀN HÌNH */}
+            {/* CỤM PHẢI: BỘ CHỌN NGUỒN THỐNG NHẤT + PHÍM TẮT GỢI Ý + PIP + TOÀN MÀN HÌNH */}
             <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-              {/* Nút Chọn Nguồn Phát của trận đang xem */}
+              {/* BỘ CHỌN NGUỒN PHÁT ĐỒNG BỘ: ‹ [TÊN NGUỒN • NGUỒN 1/4] ▾ › */}
               {servers && servers.length > 0 && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleRail();
-                  }}
-                  title="Chọn nguồn phát của trận đang xem (Phím C)"
-                  className={`h-8 sm:h-10 flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 rounded-full border text-[10px] sm:text-xs font-semibold transition backdrop-blur-md cursor-pointer touch-manipulation shrink-0 ${isRailVisible
-                      ? "bg-gradient-to-r from-red-600 to-rose-600 text-white border-red-400 shadow-md shadow-red-950/60"
-                      : "bg-black/60 hover:bg-white/20 text-gray-200 hover:text-white border-white/20"
-                    }`}
-                >
-                  <Mic className="w-3 h-3 sm:w-4 sm:h-4 text-amber-400 shrink-0" />
-                  <span>Nguồn</span>
-                  {isRailVisible ? (
-                    <ChevronUp className="w-3 h-3 sm:w-4 sm:h-4 text-gray-300 shrink-0" />
-                  ) : (
-                    <ChevronDown className="w-3 h-3 sm:w-4 sm:h-4 text-gray-300 shrink-0" />
-                  )}
-                </button>
+                <ChannelSourceSwitcher
+                  type="source"
+                  currentName={
+                    currentServer
+                      ? parseServerDisplayLabel(
+                          currentServer,
+                          currentAvailableIdx !== -1 ? currentAvailableIdx : selectedServerIndex,
+                        )
+                      : "Chọn nguồn"
+                  }
+                  currentIndex={currentAvailableIdx !== -1 ? currentAvailableIdx : 0}
+                  totalCount={availableServers.length || servers.length}
+                  onPrevious={() => handleSwitchServer("prev")}
+                  onNext={() => handleSwitchServer("next")}
+                  onOpenList={toggleRail}
+                  isListOpen={isRailVisible}
+                  disabled={availableServers.length <= 1}
+                />
               )}
 
               {/* Hướng dẫn phím tắt dạng popover overlay góc dưới phải */}

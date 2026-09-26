@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { X, FolderPlus, Globe, Lock, Loader2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { createCollection } from "@/services/collectionService";
@@ -9,6 +10,7 @@ import { toast } from "@/components/Toast";
 
 import { subscribeUserProfile } from "@/services/userService";
 import { UserProfile } from "@/types/user";
+import { useBodyScrollLock } from "@/lib/scrollLock";
 
 interface CreateCollectionModalProps {
   isOpen: boolean;
@@ -27,6 +29,13 @@ export const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
   const [description, setDescription] = useState("");
   const [isPublic, setIsPublic] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useBodyScrollLock(isOpen);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!user?.uid) {
@@ -41,14 +50,18 @@ export const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
 
   useEffect(() => {
     if (!isOpen) return;
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape" && !loading) onClose();
     };
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
   }, [isOpen, loading, onClose]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,13 +108,13 @@ export const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
     }
   };
 
-  return (
+  return createPortal(
     <div
       onClick={onClose}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200"
+      className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto overscroll-contain"
     >
       <div
-        className="relative w-full max-w-md bg-zinc-950 border border-white/20 rounded-3xl p-6 sm:p-7 shadow-[0_25px_70px_rgba(0,0,0,0.95)] text-white animate-in zoom-in-95 duration-200 overflow-hidden"
+        className="relative w-full max-w-md my-auto bg-zinc-950 border border-white/20 rounded-3xl p-6 sm:p-7 shadow-[0_25px_70px_rgba(0,0,0,0.95)] text-white animate-in zoom-in-95 duration-200 overflow-hidden transform-gpu will-change-[transform,opacity]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Glow hiệu ứng nền đỏ Netflix */}
@@ -118,7 +131,7 @@ export const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
 
         {/* Tiêu đề */}
         <div className="flex items-center gap-3 mb-5">
-          <div className="w-10 h-10 rounded-2xl bg-netflix-red/20 text-netflix-red flex items-center justify-center border border-netflix-red/30 shadow-md">
+          <div className="w-10 h-10 rounded-2xl bg-netflix-red/20 text-netflix-red flex items-center justify-center border border-netflix-red/30 shadow-md flex-shrink-0">
             <FolderPlus className="w-5 h-5" />
           </div>
           <div>
@@ -217,6 +230,7 @@ export const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

@@ -33,6 +33,7 @@ import {
   saveAiChatHistory,
   clearAiChatHistory,
 } from "@/services/aiChatHistory";
+import { useBodyScrollLock } from "@/lib/scrollLock";
 
 // ============================================================================
 // TYPES
@@ -213,6 +214,8 @@ export const NanaAiStudioModal: React.FC<NanaAiStudioModalProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(initialOpen);
   const [activeTab, setActiveTab] = useState<StudioTab>(initialTab);
+
+  useBodyScrollLock(isOpen);
 
   // TAB 1: CONCIERGE CHAT STATE
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);

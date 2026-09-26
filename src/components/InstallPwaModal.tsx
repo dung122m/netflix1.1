@@ -14,6 +14,7 @@ import {
   Monitor,
   MoreVertical,
 } from "lucide-react";
+import { useBodyScrollLock } from "@/lib/scrollLock";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -37,6 +38,8 @@ export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({
   const [installSuccess, setInstallSuccess] = useState(false);
   const [showManualGuide, setShowManualGuide] = useState(false);
   const [mounted, setMounted] = useState(false);
+
+  useBodyScrollLock(isOpen);
 
   useEffect(() => {
     setMounted(true);
@@ -98,15 +101,12 @@ export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({
 
   useEffect(() => {
     if (!isOpen) return;
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => {
-      document.body.style.overflow = prevOverflow;
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [isOpen, onClose]);

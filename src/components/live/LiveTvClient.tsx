@@ -38,6 +38,7 @@ import {
 import { LiveTvData, TvChannel } from "@/services/liveTvService";
 import { useSearchParams } from "next/navigation";
 import { LiveShortcutPopover } from "./LiveShortcutPopover";
+import { ChannelSourceSwitcher } from "./ChannelSourceSwitcher";
 
 interface LiveTvClientProps {
   initialData: LiveTvData;
@@ -1432,7 +1433,7 @@ export function LiveTvClient({
                   key={channel.id}
                   ref={active ? activeTvChannelRef : undefined}
                   type="button"
-                  onClick={() => handleSelectChannel(channel, true)}
+                  onClick={() => handleSelectChannel(channel, false)}
                   className={`flex w-full items-center gap-3 rounded-2xl border p-2.5 sm:p-2 text-left transition min-h-[56px] active:scale-[0.98] cursor-pointer touch-manipulation ${
                     active
                       ? "border-sky-400/90 bg-sky-500/20 text-white shadow-lg shadow-sky-950/50 ring-1 ring-sky-400/50"
@@ -1804,26 +1805,29 @@ export function LiveTvClient({
                 </div>
               </div>
 
-              {/* CỤM PHẢI: NÚT KÊNH + PIP + FULLSCREEN */}
+              {/* CỤM PHẢI: BỘ CHỌN KÊNH THỐNG NHẤT + PHÍM TẮT GỢI Ý + PIP + FULLSCREEN */}
               <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-                {/* Nút Mở Danh sách Kênh */}
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowChannelRail((visible) => !visible);
-                  }}
-                  title="Mở danh sách kênh (Phím C)"
-                  className={`flex items-center gap-1 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-full border text-[11px] sm:text-xs font-bold transition backdrop-blur-md cursor-pointer ${
-                    showChannelRail
-                      ? "bg-gradient-to-r from-sky-600 to-blue-600 text-white border-sky-400 shadow-md shadow-sky-950/60"
-                      : "bg-white/15 hover:bg-white/25 text-gray-200 hover:text-white border-white/20"
-                  }`}
-                >
-                  <Tv className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-sky-300" />
-                  <span className="hidden sm:inline">Danh sách kênh</span>
-                  <span className="sm:hidden">Kênh</span>
-                </button>
+                {/* BỘ CHỌN KÊNH ĐỒNG BỘ: ‹ [TÊN KÊNH • KÊNH 3/12] ▾ › */}
+                <ChannelSourceSwitcher
+                  type="channel"
+                  currentName={selectedTvChannel?.name || "Chọn kênh"}
+                  currentIndex={
+                    selectedTvChannel
+                      ? (filteredChannels.length > 0 ? filteredChannels : channels).findIndex(
+                          (c) =>
+                            c.id === selectedTvChannel.id ||
+                            c.name.toLowerCase() === selectedTvChannel.name.toLowerCase(),
+                        )
+                      : -1
+                  }
+                  totalCount={
+                    (filteredChannels.length > 0 ? filteredChannels : channels).length
+                  }
+                  onPrevious={() => handleSwitchChannel("prev")}
+                  onNext={() => handleSwitchChannel("next")}
+                  onOpenList={() => setShowChannelRail((visible) => !visible)}
+                  isListOpen={showChannelRail}
+                />
 
                 {/* Hướng dẫn phím tắt dạng popover overlay góc dưới phải */}
                 <LiveShortcutPopover mode="tv" />

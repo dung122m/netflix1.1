@@ -2,6 +2,7 @@
 
 import React, { useEffect } from "react";
 import { Keyboard, X } from "lucide-react";
+import { useBodyScrollLock } from "@/lib/scrollLock";
 
 interface NavHotkeyModalProps {
   isOpen: boolean;
@@ -12,6 +13,7 @@ export const NavHotkeyModal: React.FC<NavHotkeyModalProps> = React.memo(function
   isOpen,
   onClose,
 }) {
+  useBodyScrollLock(isOpen);
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;

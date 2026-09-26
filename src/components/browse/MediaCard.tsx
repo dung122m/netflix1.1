@@ -629,44 +629,44 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         />
 
         {/* 1. GÓC TRÊN TRÁI: DÀNH CHO LOẠI PHIM (PHIM BỘ, PHIM LẺ, PHIM RẠP, HOẠT HÌNH) */}
-        <div className="absolute top-2 left-2 sm:top-2.5 sm:left-2.5 z-10 flex items-center gap-1 sm:gap-1.5">
+        <div className="absolute top-2 left-2 sm:top-2.5 sm:left-2.5 z-10 flex items-center gap-1 sm:gap-1.5 max-w-[50%]">
           {chieurap ? (
-            <div className="flex items-center gap-0.5 sm:gap-1 bg-gradient-to-r from-amber-600 to-orange-500 text-white font-black px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg text-[9px] sm:text-[10px] uppercase tracking-wider shadow-md border border-amber-400/40">
-              <span>🎬 Phim Rạp</span>
+            <div className="flex items-center gap-0.5 sm:gap-1 bg-gradient-to-r from-amber-600 to-orange-500 text-white font-black px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg text-[9px] sm:text-[10px] uppercase tracking-wider shadow-md border border-amber-400/40 min-w-0">
+              <span className="truncate">🎬 Phim Rạp</span>
             </div>
           ) : sub_docquyen ? (
-            <div className="flex items-center gap-0.5 sm:gap-1 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg text-[9px] sm:text-[10px] uppercase tracking-wider shadow-md border border-purple-400/40">
-              <span>💎 Độc Quyền</span>
+            <div className="flex items-center gap-0.5 sm:gap-1 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg text-[9px] sm:text-[10px] uppercase tracking-wider shadow-md border border-purple-400/40 min-w-0">
+              <span className="truncate">💎 Độc Quyền</span>
             </div>
           ) : displayType === "Phim bộ" ? (
-            <div className="flex items-center gap-0.5 sm:gap-1 bg-blue-600/90 text-white font-black px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg text-[9px] sm:text-[10px] uppercase tracking-wider shadow-md border border-blue-400/40">
-              <span>📺 Phim Bộ</span>
+            <div className="flex items-center gap-0.5 sm:gap-1 bg-blue-600/90 text-white font-black px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg text-[9px] sm:text-[10px] uppercase tracking-wider shadow-md border border-blue-400/40 min-w-0">
+              <span className="truncate">📺 Phim Bộ</span>
             </div>
           ) : displayType === "Hoạt hình" ? (
-            <div className="flex items-center gap-0.5 sm:gap-1 bg-pink-600/90 text-white font-black px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg text-[9px] sm:text-[10px] uppercase tracking-wider shadow-md border border-pink-400/40">
-              <span>✨ Hoạt Hình</span>
+            <div className="flex items-center gap-0.5 sm:gap-1 bg-pink-600/90 text-white font-black px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg text-[9px] sm:text-[10px] uppercase tracking-wider shadow-md border border-pink-400/40 min-w-0">
+              <span className="truncate">✨ Hoạt Hình</span>
             </div>
           ) : displayType === "TV Shows" ? (
-            <div className="flex items-center gap-0.5 sm:gap-1 bg-emerald-600/90 text-white font-black px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg text-[9px] sm:text-[10px] uppercase tracking-wider shadow-md border border-emerald-400/40">
-              <span>🎙️ TV Shows</span>
+            <div className="flex items-center gap-0.5 sm:gap-1 bg-emerald-600/90 text-white font-black px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg text-[9px] sm:text-[10px] uppercase tracking-wider shadow-md border border-emerald-400/40 min-w-0">
+              <span className="truncate">🎙️ TV Shows</span>
             </div>
           ) : (
-            <div className="flex items-center gap-0.5 sm:gap-1 bg-zinc-900/95 text-gray-200 font-bold px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg text-[9px] sm:text-[10px] uppercase tracking-wider shadow-md border border-white/20">
-              <span>🎬 Phim Lẻ</span>
+            <div className="flex items-center gap-0.5 sm:gap-1 bg-zinc-900/95 text-gray-200 font-bold px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg text-[9px] sm:text-[10px] uppercase tracking-wider shadow-md border border-white/20 min-w-0">
+              <span className="truncate">🎬 Phim Lẻ</span>
             </div>
           )}
         </div>
 
         {/* 2. GÓC TRÊN PHẢI: LUÔN CỐ ĐỊNH CHO ĐIỂM SAO VÀNG VÀ CHẤT LƯỢNG (FHD) */}
-        <div className="absolute top-2 right-2 sm:top-2.5 sm:right-2.5 z-10 flex items-center gap-1 sm:gap-1.5">
+        <div className="absolute top-2 right-2 sm:top-2.5 sm:right-2.5 z-10 flex items-center gap-1 sm:gap-1.5 max-w-[48%] justify-end">
           {rating && rating !== "N/A" && Number(rating) > 0 && (
-            <div className="flex items-center gap-0.5 sm:gap-1 bg-black/90 border border-amber-500/40 px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg text-[9.5px] sm:text-[11px] font-extrabold text-amber-400 shadow-md">
+            <div className="flex items-center gap-0.5 sm:gap-1 bg-black/90 border border-amber-500/40 px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg text-[9.5px] sm:text-[11px] font-extrabold text-amber-400 shadow-md shrink-0">
               <Star className="w-2.5 h-2.5 sm:w-3 sm:h-3 fill-amber-400 text-amber-400" />
               <span>{typeof rating === "number" ? rating.toFixed(1) : rating}</span>
             </div>
           )}
 
-          <span className="bg-black/90 border border-white/20 text-white font-bold text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg shadow-sm">
+          <span className="bg-black/90 border border-white/20 text-white font-bold text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg shadow-sm shrink-0">
             {quality || "FHD"}
           </span>
         </div>

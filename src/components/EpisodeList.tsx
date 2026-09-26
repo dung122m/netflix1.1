@@ -171,9 +171,9 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
     if (episodes.length <= 8) {
       return "grid grid-cols-2 sm:grid-cols-3 gap-2.5";
     }
-    // Khi có từ 9 đến 12 tập: 3 cột đều đặn
+    // Khi có từ 9 đến 12 tập: 2 cột trên màn <360px, 3 cột đều đặn từ 360px trở lên
     if (episodes.length <= 12) {
-      return "grid grid-cols-3 gap-2";
+      return "grid grid-cols-2 min-[360px]:grid-cols-3 gap-2";
     }
     // Khi nhiều tập (> 12 tập): nhãn chỉ là số ngắn (1, 2, 3...) nên chia 4-5 cột rất gọn gàng
     if (episodes.length <= 25) {
@@ -265,7 +265,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
                   episodes.length === 1
                     ? "py-3 px-4 text-xs sm:text-sm"
                     : isFewEpisodes
-                    ? "py-2.5 px-3 text-xs sm:text-[13px]"
+                    ? "py-2.5 px-2 sm:px-3 text-xs sm:text-[13px]"
                     : "py-2 sm:py-2.5 px-1 text-xs"
                 } ${
                   isActive
@@ -275,7 +275,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
                     : "bg-white/[0.06] hover:bg-white/[0.12] text-zinc-200 hover:text-white border border-white/10 hover:border-white/25 hover:scale-[1.02] active:scale-[0.98] shadow-sm"
                 }`}
               >
-                <div className="flex items-center justify-center gap-2 w-full min-w-0">
+                <div className="flex items-center justify-center gap-1.5 sm:gap-2 w-full min-w-0">
                   {/* Equalizer 3 cột sóng âm sống động khi tập đang phát */}
                   {isActive && (
                     <span className="flex items-end gap-[2px] h-3.5 shrink-0" aria-hidden="true" title="Đang phát">

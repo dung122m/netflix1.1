@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Trash2, AlertTriangle, HelpCircle, X } from "lucide-react";
+import { useBodyScrollLock } from "@/lib/scrollLock";
 
 export type ConfirmVariant = "danger" | "warning" | "info";
 
@@ -66,6 +67,8 @@ export const GlobalConfirmDialog: React.FC = () => {
     isOpen: false,
     message: "",
   });
+
+  useBodyScrollLock(dialog.isOpen);
 
   const resolveRef = useRef<((confirmed: boolean) => void) | undefined>(undefined);
 

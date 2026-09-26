@@ -20,6 +20,7 @@ import { WatchHistoryItem } from "@/lib/watchHistory";
 import { WatchlistItem } from "@/lib/watchlist";
 import { StarRating } from "@/components/MovieReviews/StarRating";
 import { UserAvatar } from "@/components/ui/UserAvatar";
+import { useBodyScrollLock } from "@/lib/scrollLock";
 
 interface AdminMemberDetailModalProps {
   selectedMember: MemberWithStats | null;
@@ -48,6 +49,8 @@ export const AdminMemberDetailModal: React.FC<AdminMemberDetailModalProps> = Rea
     formatDate,
   }) {
     const [memberDetailTab, setMemberDetailTab] = useState<"comments" | "history" | "watchlist">("comments");
+
+    useBodyScrollLock(Boolean(selectedMember));
 
     if (!selectedMember) return null;
 

@@ -119,7 +119,7 @@ function ContinueWatchingRowInner() {
             type="button"
             onClick={() => handleScroll("left")}
             aria-label="Cuộn sang trái"
-            className="absolute left-0 top-0 bottom-0 z-30 w-10 sm:w-12 bg-black/70 hover:bg-black/90 backdrop-blur-sm text-white flex items-center justify-center opacity-0 group-hover/row:opacity-100 transition-all rounded-r-lg cursor-pointer hover:scale-105"
+            className="hidden sm:flex absolute left-0 top-0 bottom-0 z-30 w-10 sm:w-12 bg-black/70 hover:bg-black/90 backdrop-blur-sm text-white items-center justify-center opacity-0 group-hover/row:opacity-100 transition-all rounded-r-lg cursor-pointer hover:scale-105"
           >
             <ChevronLeft className="w-6 h-6" />
           </button>
@@ -131,7 +131,7 @@ function ContinueWatchingRowInner() {
             type="button"
             onClick={() => handleScroll("right")}
             aria-label="Cuộn sang phải"
-            className="absolute right-0 top-0 bottom-0 z-30 w-10 sm:w-12 bg-black/70 hover:bg-black/90 backdrop-blur-sm text-white flex items-center justify-center opacity-0 group-hover/row:opacity-100 transition-all rounded-l-lg cursor-pointer hover:scale-105"
+            className="hidden sm:flex absolute right-0 top-0 bottom-0 z-30 w-10 sm:w-12 bg-black/70 hover:bg-black/90 backdrop-blur-sm text-white items-center justify-center opacity-0 group-hover/row:opacity-100 transition-all rounded-l-lg cursor-pointer hover:scale-105"
           >
             <ChevronRight className="w-6 h-6" />
           </button>
@@ -140,7 +140,7 @@ function ContinueWatchingRowInner() {
         {/* DANH SÁCH THẺ PHIM ĐÃ XEM (KHÔNG HIỂN THỊ THANH KÉO) */}
         <div
           ref={rowRef}
-          className="flex gap-3 sm:gap-4 overflow-x-auto py-2 scroll-smooth scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+          className="flex gap-3 sm:gap-4 overflow-x-auto py-2 scroll-smooth scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] touch-pan-x overscroll-x-contain"
         >
           {items.slice(0, 15).map((item) => {
             const href = item.episodeSlug
