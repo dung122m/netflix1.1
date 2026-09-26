@@ -167,26 +167,14 @@ export function pickBestMovieThumb(movie: MovieLike, fallback = "/default-hero.s
     }
   }
 
-  // 2. Nếu candidate có dạng -poster.webp từ phimimg, tự động phái sinh sang -thumb.webp (chuẩn tỷ lệ 16:9 và nhẹ hơn 95%)
+  // 2. Trả về candidate hợp lệ sẵn có (poster dọc 2:3 với object-cover vẫn hiển thị đẹp hơn là tự chế link thumb bị 404)
   for (const c of candidates) {
-    if (c.includes("-poster.webp")) {
-      return c.replace("-poster.webp", "-thumb.webp");
-    }
-  }
-
-  // 3. Loại trừ các candidate là poster dọc rõ ràng nếu còn candidate khác
-  for (const c of candidates) {
-    const l = c.toLowerCase();
-    const isExplicitPoster =
-      l.includes("poster_") ||
-      l.includes("/poster") ||
-      l.includes("-poster");
-    if (!isExplicitPoster) {
+    if (!c.includes("/default-") && !c.includes("null") && !c.includes("undefined")) {
       return c;
     }
   }
 
-  return candidates[0];
+  return candidates[0] || fallback;
 }
 
 export const ALLOWED_PROXY_WIDTHS = [192, 320, 480, 640, 1280] as const;
@@ -238,21 +226,7 @@ export function toOptimizedPhimimgUrl(
       ? 640
       : 320;
 
-    // 1. Nếu là ảnh cũ /upload/vod/ (JPEG gốc 1-3MB, không có thumbnail WebP): route qua proxy
-    if (clean.includes("/upload/vod/")) {
-      return `/api/img-thumb?url=${encodeURIComponent(clean)}&w=${w}`;
-    }
-
-    // 2. Với portrait poster (w <= 320) hoặc search preview (w <= 192): route qua proxy
-    if (w <= 320) {
-      return `/api/img-thumb?url=${encodeURIComponent(clean)}&w=${w}`;
-    }
-
-    // 3. Với landscape / card lớn: chuyển -poster sang -thumb trước và dùng trực tiếp
-    if (clean.includes("-poster.webp")) {
-      clean = clean.replace("-poster.webp", "-thumb.webp");
-      return clean;
-    }
+    // Route qua proxy để nén và resize chuẩn xác an toàn
     return `/api/img-thumb?url=${encodeURIComponent(clean)}&w=${w}`;
   }
 
@@ -262,7 +236,7 @@ export function toOptimizedPhimimgUrl(
 /**
  * Tối ưu ảnh cho Thẻ phim 16:9 trong danh sách (CuratedMovieSection / MediaCard).
  * - TMDb: Dùng TMDb w780 (~45KB) cho độ sắc nét Retina 2x/4K, tải siêu nhanh và không bị mờ.
- * - Phimimg: Chuyển -poster.webp sang -thumb.webp và dùng trực tiếp từ CDN; chỉ proxy các ảnh cũ /upload/vod/ nặng 1-3MB.
+ * - Phimimg: Dùng proxy an toàn nén thành WebP nhẹ và chuẩn kích thước.
  */
 export function toOptimizedCardBackdropUrl(url: string, targetWidth: number = 320): string {
   if (!url || typeof url !== "string") return "";
@@ -284,16 +258,11 @@ export function toOptimizedCardBackdropUrl(url: string, targetWidth: number = 32
   }
 
   if (clean.includes("phimimg.com")) {
-    // 1. Chuyển -poster.webp sang -thumb.webp trước (ưu tiên tỷ lệ 16:9)
-    if (clean.includes("-poster.webp")) {
-      clean = clean.replace("-poster.webp", "-thumb.webp");
-    }
-    // 2. Nếu đã là -thumb.webp: Dùng trực tiếp an toàn từ CDN, không qua proxy
+    // 1. Nếu đã là -thumb.webp: Dùng trực tiếp an toàn từ CDN
     if (clean.includes("-thumb.webp")) {
       return clean;
     }
     const w = targetWidth <= 192 ? 192 : targetWidth <= 320 ? 320 : targetWidth <= 480 ? 480 : 640;
-    // 3. Chỉ route qua proxy khi là ảnh cũ /upload/vod/ nặng 1-3MB chưa có WebP thumbnail
     return `/api/img-thumb?url=${encodeURIComponent(clean)}&w=${w}`;
   }
 

@@ -163,3 +163,90 @@ export function clearLocalWatchlistOnly(): void {
     console.error("Lỗi xóa local watchlist:", e);
   }
 }
+
+// Cờ chống gọi autoHydrate lặp lại trong cùng 1 phiên
+let isHydratingWatchlist = false;
+
+/**
+ * Tự động bù đắp thông tin (Tiêu đề, Poster/Image) cho các phim xem sau cũ bị thiếu
+ */
+export async function autoHydrateWatchlist(): Promise<void> {
+  if (typeof window === "undefined" || isHydratingWatchlist) return;
+  const list = getWatchlist();
+  const needHydration = list.filter(
+    (item) =>
+      !item.title ||
+      item.title === item.slug ||
+      !item.imageUrl ||
+      item.imageUrl.includes("default-")
+  );
+
+  if (needHydration.length === 0) return;
+
+  isHydratingWatchlist = true;
+  try {
+    const slugsToFetch = needHydration.map((i) => i.slug).join(",");
+    const res = await fetch(`/api/movies/meta?slugs=${encodeURIComponent(slugsToFetch)}`);
+    if (!res.ok) return;
+
+    const data = await res.json();
+    if (!data.success || !data.movies) return;
+
+    let hasChanges = false;
+    const currentList = getWatchlist();
+    const updatedList = currentList.map((item) => {
+      const meta = data.movies[item.slug];
+      if (!meta) return item;
+
+      let changed = false;
+      const updatedItem = { ...item };
+
+      if (meta.title && (!item.title || item.title === item.slug)) {
+        updatedItem.title = meta.title;
+        changed = true;
+      }
+      const bestImg = meta.thumb || meta.poster;
+      if (bestImg && (!item.imageUrl || item.imageUrl.includes("default-"))) {
+        updatedItem.imageUrl = bestImg;
+        changed = true;
+      }
+      if (meta.poster && !item.poster) {
+        updatedItem.poster = meta.poster;
+        changed = true;
+      }
+      if (meta.year && !item.year) {
+        updatedItem.year = meta.year;
+        changed = true;
+      }
+      if (meta.quality && (!item.quality || item.quality === "HD")) {
+        updatedItem.quality = meta.quality;
+        changed = true;
+      }
+      if (meta.category && !item.category && !item.genre) {
+        updatedItem.category = meta.category;
+        changed = true;
+      }
+
+      if (changed) {
+        hasChanges = true;
+        // Đẩy metadata cập nhật lên Cloud nếu có auth
+        if (auth?.currentUser) {
+          saveWatchlistItemToCloud(auth.currentUser.uid, updatedItem);
+        }
+      }
+
+      return updatedItem;
+    });
+
+    if (hasChanges) {
+      updateMemoryCache(updatedList);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedList));
+      window.dispatchEvent(new CustomEvent("watchlist-updated"));
+    }
+  } catch (err) {
+    console.warn("Lỗi autoHydrateWatchlist:", err);
+  } finally {
+    isHydratingWatchlist = false;
+  }
+}
+

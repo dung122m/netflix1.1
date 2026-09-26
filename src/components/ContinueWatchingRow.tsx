@@ -7,6 +7,7 @@ import { Play, X, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import {
   getWatchHistory,
   removeWatchHistoryItem,
+  autoHydrateWatchHistory,
   WatchHistoryItem,
 } from "@/lib/watchHistory";
 import { pickBestMovieThumb, toOptimizedPhimimgUrl } from "@/lib/movieMedia";
@@ -33,7 +34,6 @@ function ContinueWatchingRowInner() {
       cancelAnimationFrame(rafRef.current);
     }
     rafRef.current = requestAnimationFrame(() => {
-      rafRef.current = null;
       if (!rowRef.current) return;
       const { scrollLeft, scrollWidth, clientWidth } = rowRef.current;
       const nextLeft = scrollLeft > 10;
@@ -50,6 +50,7 @@ function ContinueWatchingRowInner() {
       setItems(historyItems);
     };
     loadItems();
+    autoHydrateWatchHistory();
 
     window.addEventListener("watch-history-updated", loadItems);
     return () =>
@@ -175,7 +176,11 @@ function ContinueWatchingRowInner() {
                       quality={85}
                       onError={(e) => {
                         const target = e.currentTarget as HTMLImageElement;
-                        if (target && !target.src.includes("/default-hero.jpg")) {
+                        if (!target) return;
+                        if (item.poster && !target.src.includes(item.poster) && !item.poster.includes("default-")) {
+                          target.srcset = "";
+                          target.src = item.poster;
+                        } else if (!target.src.includes("/default-hero.jpg")) {
                           target.srcset = "";
                           target.src = "/default-hero.jpg";
                         }

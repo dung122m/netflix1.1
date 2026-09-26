@@ -633,7 +633,11 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           : `Tiếp tục xem từ ${mins}:${secs}`
       );
       if (currentMovieSlug && activeEpisodeSlug) {
-        saveWatchProgress(currentMovieSlug, targetProgress, video.duration || 0, activeEpisodeSlug);
+        saveWatchProgress(currentMovieSlug, targetProgress, video.duration || 0, activeEpisodeSlug, {
+          title,
+          poster: posterUrl,
+          episodeName: activeEpisodeName,
+        });
       }
     }
 
@@ -845,7 +849,11 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       }
       const currentEffectiveDuration = getEffectiveDuration();
       if (movieSlug && activeEpisodeSlug && video.currentTime > 5) {
-        saveWatchProgress(movieSlug, video.currentTime, currentEffectiveDuration, activeEpisodeSlug);
+        saveWatchProgress(movieSlug, video.currentTime, currentEffectiveDuration, activeEpisodeSlug, {
+          title,
+          poster: posterUrl,
+          episodeName: activeEpisodeName,
+        });
       }
       if (user?.uid && movieSlug && video.currentTime > 5) {
         lastHandoffSyncRef.current = Date.now();
@@ -878,7 +886,11 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         lastProgressSaveRef.current = now;
         const currentEffectiveDuration = getEffectiveDuration();
         if (movieSlug && activeEpisodeSlug && video.currentTime > 0) {
-          saveWatchProgress(movieSlug, video.currentTime, currentEffectiveDuration, activeEpisodeSlug);
+          saveWatchProgress(movieSlug, video.currentTime, currentEffectiveDuration, activeEpisodeSlug, {
+            title,
+            poster: posterUrl,
+            episodeName: activeEpisodeName,
+          });
         }
       }
       if (user?.uid && now - lastHandoffSyncRef.current > 8000 && movieSlug && video.currentTime > 5) {
@@ -923,7 +935,12 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           movieSlug,
           currentEffectiveDuration > 0 ? currentEffectiveDuration : video.currentTime,
           currentEffectiveDuration,
-          activeEpisodeSlug
+          activeEpisodeSlug,
+          {
+            title,
+            poster: posterUrl,
+            episodeName: activeEpisodeName,
+          }
         );
       }
       if (movieSlug) {

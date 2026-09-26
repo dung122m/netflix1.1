@@ -34,11 +34,12 @@ import { AuthModal } from "@/components/AuthModal";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { Footer } from "@/components/Footer";
 import { MediaCard } from "@/components/browse/MediaCard";
-import { getWatchlist, WatchlistItem } from "@/lib/watchlist";
+import { getWatchlist, autoHydrateWatchlist, WatchlistItem } from "@/lib/watchlist";
 import {
   getWatchHistory,
   removeWatchHistoryItem,
   clearWatchHistory,
+  autoHydrateWatchHistory,
   WatchHistoryItem,
 } from "@/lib/watchHistory";
 import { pickBestMovieThumb, toOptimizedPhimimgUrl } from "@/lib/movieMedia";
@@ -86,6 +87,8 @@ function MyListContent() {
     setWatchlist(getWatchlist());
     setHistory(getWatchHistory());
     setMounted(true);
+    autoHydrateWatchHistory();
+    autoHydrateWatchlist();
 
     const handleWatchlistSync = () => {
       setWatchlist(getWatchlist());
@@ -569,7 +572,11 @@ function MyListContent() {
                           className="object-cover transition-transform duration-300 group-hover:scale-105"
                           onError={(e) => {
                             const target = e.currentTarget as HTMLImageElement;
-                            if (target && !target.src.includes("/default-hero.jpg")) {
+                            if (!target) return;
+                            if (item.poster && !target.src.includes(item.poster) && !item.poster.includes("default-")) {
+                              target.srcset = "";
+                              target.src = item.poster;
+                            } else if (!target.src.includes("/default-hero.jpg")) {
                               target.srcset = "";
                               target.src = "/default-hero.jpg";
                             }

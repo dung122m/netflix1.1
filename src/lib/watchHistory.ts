@@ -147,14 +147,33 @@ export const saveWatchHistory = (
   if (typeof window === "undefined" || !item.slug) return;
   try {
     const list = getWatchHistory();
-    // Loại bỏ mục cũ nếu có để đưa lên đầu danh sách, nhưng giữ lại progressSeconds/thumb nếu chưa truyền mới
     const existing = list.find((i) => i.slug === item.slug);
     const filtered = list.filter((i) => i.slug !== item.slug);
+
+    // Không để tiêu đề bị giáng cấp về slug nếu đã có tên tiếng Việt đầy đủ
+    const finalTitle =
+      item.title && item.title !== item.slug
+        ? item.title
+        : existing?.title && existing.title !== item.slug
+        ? existing.title
+        : item.title || item.slug;
+
+    // Không để poster bị giáng cấp về ảnh placeholder nếu đã có poster thật
+    const finalPoster =
+      item.poster && !item.poster.includes("default-")
+        ? item.poster
+        : existing?.poster && !existing.poster.includes("default-")
+        ? existing.poster
+        : item.poster || existing?.poster || "/default-poster.jpg";
+
+    const finalThumb = item.thumb || existing?.thumb;
 
     const newItem: WatchHistoryItem = {
       ...existing,
       ...item,
-      thumb: item.thumb || existing?.thumb,
+      title: finalTitle,
+      poster: finalPoster,
+      thumb: finalThumb,
       actor: item.actor || existing?.actor,
       country: item.country || existing?.country,
       category: item.category || existing?.category,
@@ -208,6 +227,15 @@ export const saveWatchProgress = (
   progressSeconds: number,
   durationSeconds?: number,
   episodeSlug?: string,
+  extraMeta?: {
+    title?: string;
+    poster?: string;
+    thumb?: string;
+    episodeName?: string;
+    year?: number | string;
+    quality?: string;
+    category?: string;
+  },
 ): void => {
   if (typeof window === "undefined" || !slug) return;
   try {
@@ -224,14 +252,40 @@ export const saveWatchProgress = (
       if (episodeSlug) {
         existing.episodeSlug = episodeSlug;
       }
+      if (extraMeta?.title && (existing.title === slug || !existing.title)) {
+        existing.title = extraMeta.title;
+      }
+      if (extraMeta?.poster && (!existing.poster || existing.poster.includes("default-"))) {
+        existing.poster = extraMeta.poster;
+      }
+      if (extraMeta?.thumb && !existing.thumb) {
+        existing.thumb = extraMeta.thumb;
+      }
+      if (extraMeta?.episodeName && !existing.episodeName) {
+        existing.episodeName = extraMeta.episodeName;
+      }
+      if (extraMeta?.year && !existing.year) {
+        existing.year = extraMeta.year;
+      }
+      if (extraMeta?.quality && (!existing.quality || existing.quality === "HD")) {
+        existing.quality = extraMeta.quality;
+      }
+      if (extraMeta?.category && !existing.category) {
+        existing.category = extraMeta.category;
+      }
       existing.updatedAt = now;
       targetItem = existing;
     } else {
       targetItem = {
         slug,
-        title: slug,
-        poster: "/default-poster.jpg",
+        title: extraMeta?.title || slug,
+        poster: extraMeta?.poster || "/default-poster.jpg",
+        thumb: extraMeta?.thumb,
         episodeSlug,
+        episodeName: extraMeta?.episodeName,
+        year: extraMeta?.year,
+        quality: extraMeta?.quality || "HD",
+        category: extraMeta?.category,
         progressSeconds: Math.floor(progressSeconds),
         durationSeconds: durationSeconds && durationSeconds > 0 ? Math.floor(durationSeconds) : undefined,
         updatedAt: now,
@@ -265,6 +319,92 @@ export const saveWatchProgress = (
     console.error("Lỗi lưu tiến trình xem:", error);
   }
 };
+
+// Cờ chống gọi autoHydrate lặp lại trong cùng 1 phiên
+let isHydratingWatchHistory = false;
+
+/**
+ * Tự động bù đắp thông tin (Tiêu đề, Poster, Thumbnail) cho các phim lịch sử cũ bị thiếu
+ */
+export async function autoHydrateWatchHistory(): Promise<void> {
+  if (typeof window === "undefined" || isHydratingWatchHistory) return;
+  const list = getWatchHistory();
+  const needHydration = list.filter(
+    (item) =>
+      !item.title ||
+      item.title === item.slug ||
+      !item.poster ||
+      item.poster.includes("default-") ||
+      !item.thumb
+  );
+
+  if (needHydration.length === 0) return;
+
+  isHydratingWatchHistory = true;
+  try {
+    const slugsToFetch = needHydration.map((i) => i.slug).join(",");
+    const res = await fetch(`/api/movies/meta?slugs=${encodeURIComponent(slugsToFetch)}`);
+    if (!res.ok) return;
+
+    const data = await res.json();
+    if (!data.success || !data.movies) return;
+
+    let hasChanges = false;
+    const currentList = getWatchHistory();
+    const updatedList = currentList.map((item) => {
+      const meta = data.movies[item.slug];
+      if (!meta) return item;
+
+      let changed = false;
+      const updatedItem = { ...item };
+
+      if (meta.title && (!item.title || item.title === item.slug)) {
+        updatedItem.title = meta.title;
+        changed = true;
+      }
+      if (meta.poster && (!item.poster || item.poster.includes("default-"))) {
+        updatedItem.poster = meta.poster;
+        changed = true;
+      }
+      if (meta.thumb && !item.thumb) {
+        updatedItem.thumb = meta.thumb;
+        changed = true;
+      }
+      if (meta.year && !item.year) {
+        updatedItem.year = meta.year;
+        changed = true;
+      }
+      if (meta.quality && (!item.quality || item.quality === "HD")) {
+        updatedItem.quality = meta.quality;
+        changed = true;
+      }
+      if (meta.category && !item.category) {
+        updatedItem.category = meta.category;
+        changed = true;
+      }
+
+      if (changed) {
+        hasChanges = true;
+        // Đẩy metadata cập nhật lên Cloud nếu có auth
+        if (auth?.currentUser) {
+          saveWatchItemToCloudDebounced(auth.currentUser.uid, updatedItem, 3000);
+        }
+      }
+
+      return updatedItem;
+    });
+
+    if (hasChanges) {
+      updateMemoryWatchHistory(updatedList);
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(updatedList));
+      window.dispatchEvent(new CustomEvent("watch-history-updated"));
+    }
+  } catch (err) {
+    console.warn("Lỗi autoHydrateWatchHistory:", err);
+  } finally {
+    isHydratingWatchHistory = false;
+  }
+}
 
 export const getWatchProgress = (slug: string, episodeSlug?: string): number => {
   if (typeof window === "undefined" || !slug) return 0;
