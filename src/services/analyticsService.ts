@@ -840,21 +840,23 @@ export async function getAnalyticsDashboardStats(
       .sort((a, b) => b.count - a.count)
       .slice(0, 10);
 
+    const totalCountryCount = Array.from(countryMap.values()).reduce((sum, item) => sum + item.count, 0);
     const countryList = Array.from(countryMap.entries())
       .map(([name, item]) => ({
         name,
         code: item.code,
         count: item.count,
-        percentage: Math.round((item.count / totalP) * 100),
+        percentage: totalCountryCount > 0 ? Math.round((item.count / totalCountryCount) * 100) : 0,
       }))
       .sort((a, b) => b.count - a.count);
 
+    const totalCityCount = Array.from(cityMap.values()).reduce((sum, item) => sum + item.count, 0);
     const cityList = Array.from(cityMap.entries())
       .map(([name, item]) => ({
         name,
         country: item.country,
         count: item.count,
-        percentage: Math.round((item.count / totalP) * 100),
+        percentage: totalCityCount > 0 ? Math.round((item.count / totalCityCount) * 100) : 0,
       }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 10);
