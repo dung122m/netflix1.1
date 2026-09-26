@@ -40,7 +40,7 @@ export interface TmdbTrendingMovieItem {
 
 type TmdbTab = "week" | "month" | "top_rated";
 
-const TMDB_RANKING_CACHE_KEY = "nanaflix_tmdb_ranking_cache_v3";
+const TMDB_RANKING_CACHE_KEY = "nanaflix_ranking_cache_v5";
 const FRESH_REVALIDATE_TTL = 6 * 60 * 60 * 1000; // 6 giờ: Tránh fetch TMDB lặp lại khi tải trang chủ
 
 const TAB_CONFIG: Record<
@@ -72,8 +72,8 @@ const TAB_CONFIG: Record<
   },
   top_rated: {
     title: "Top Phim Hay Nhất Mọi Thời Đại",
-    subtitle: "Top 20 kiệt tác điện ảnh có điểm đánh giá cao nhất lịch sử trên TMDB",
-    badge: "TMDB Top Rated • Điểm Cao Nhất",
+    subtitle: "Top 20 kiệt tác điện ảnh kinh điển theo bảng xếp hạng IMDb Top 250",
+    badge: "IMDb Top 250 • Kiệt Tác Điện Ảnh",
     icon: Crown,
     badgeClass: "text-yellow-400 bg-yellow-500/10 border-yellow-500/20",
     gradientClass: "from-amber-400 to-yellow-600 shadow-yellow-950/40",
@@ -100,6 +100,10 @@ function TmdbTopTrendingInner() {
     let shouldRevalidateWeek = true;
 
     try {
+      // Dọn dẹp cache cũ để tránh hiển thị danh sách TMDB top_rated cũ
+      localStorage.removeItem("nanaflix_tmdb_ranking_cache_v3");
+      localStorage.removeItem("nanaflix_tmdb_ranking_cache_v4");
+
       const raw = localStorage.getItem(TMDB_RANKING_CACHE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);

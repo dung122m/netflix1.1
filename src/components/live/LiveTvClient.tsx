@@ -2325,6 +2325,11 @@ export function LiveTvClient({
           padding-left: max(0.75rem, env(safe-area-inset-left, 0.75rem)) !important;
           padding-right: max(0.75rem, env(safe-area-inset-right, 0.75rem)) !important;
         }
+        @media (hover: none), (pointer: coarse), (max-height: 550px), (max-width: 1023px) {
+          .live-shortcut-popover {
+            display: none !important;
+          }
+        }
       `}</style>
     </div>
   );

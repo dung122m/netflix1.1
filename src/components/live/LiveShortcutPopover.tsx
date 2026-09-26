@@ -49,22 +49,30 @@ export function LiveShortcutPopover({ mode = "football" }: LiveShortcutPopoverPr
   const railLabel = mode === "football" ? "Danh sách trận đấu" : "Danh sách kênh";
 
   return (
-    <div className="relative hidden sm:inline-flex items-center">
-      {/* Nút trigger nhỏ gọn */}
-      <button
-        ref={buttonRef}
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          setIsOpen((prev) => !prev);
-        }}
-        title="Xem hướng dẫn phím tắt (Hotkeys)"
-        className={`h-9 sm:h-10 flex items-center gap-1.5 px-2.5 sm:px-3 rounded-full border text-[11px] sm:text-xs font-semibold transition backdrop-blur-md cursor-pointer select-none flex-shrink-0 ${
-          isOpen
-            ? "bg-white/25 text-white border-white/40 shadow-lg shadow-black/40"
-            : "bg-black/60 hover:bg-white/20 text-gray-200 hover:text-white border-white/20"
-        }`}
-      >
+    <>
+      <style>{`
+        @media (hover: none), (pointer: coarse), (max-height: 550px) {
+          .live-shortcut-popover {
+            display: none !important;
+          }
+        }
+      `}</style>
+      <div className="relative hidden lg:inline-flex items-center live-shortcut-popover">
+        {/* Nút trigger nhỏ gọn */}
+        <button
+          ref={buttonRef}
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsOpen((prev) => !prev);
+          }}
+          title="Xem hướng dẫn phím tắt (Hotkeys)"
+          className={`h-9 sm:h-10 flex items-center gap-1.5 px-2.5 sm:px-3 rounded-full border text-[11px] sm:text-xs font-semibold transition backdrop-blur-md cursor-pointer select-none flex-shrink-0 ${
+            isOpen
+              ? "bg-white/25 text-white border-white/40 shadow-lg shadow-black/40"
+              : "bg-black/60 hover:bg-white/20 text-gray-200 hover:text-white border-white/20"
+          }`}
+        >
         <Keyboard className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-300 shrink-0" />
         <span>Phím tắt</span>
       </button>
@@ -153,6 +161,7 @@ export function LiveShortcutPopover({ mode = "football" }: LiveShortcutPopoverPr
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }
