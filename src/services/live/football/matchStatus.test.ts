@@ -53,13 +53,13 @@ describe("Nanaflix Live Match Status & Timeline System", () => {
     assert.equal(timeline, "upcoming", "Match starting in 30 minutes must be classified as UPCOMING");
   });
 
-  // 4. Match bắt đầu hơn 60 phút tới → KHÔNG xuất hiện trong upcoming
-  it("4. Match bắt đầu hơn 60 phút tới → KHÔNG xuất hiện trong upcoming", () => {
-    const kickoffIn120m = baseNow + 120 * 60 * 1000; // 22:00
-    const timeline = getMatchTimeline(kickoffIn120m, "unknown", "unknown", baseNow);
+  // 4. Match bắt đầu hơn 2 giờ (120 phút) tới → KHÔNG xuất hiện trong upcoming
+  it("4. Match bắt đầu hơn 2 giờ tới → KHÔNG xuất hiện trong upcoming", () => {
+    const kickoffIn130m = baseNow + 130 * 60 * 1000; // 22:10
+    const timeline = getMatchTimeline(kickoffIn130m, "unknown", "unknown", baseNow);
 
-    assert.notEqual(timeline, "upcoming", "Match starting in 2 hours must NOT be upcoming");
-    assert.equal(timeline, "finished", "Match starting >60m must be finished/hidden from upcoming");
+    assert.notEqual(timeline, "upcoming", "Match starting >2 hours must NOT be upcoming");
+    assert.equal(timeline, "finished", "Match starting >120m must be finished/hidden from upcoming");
   });
 
   // 5. Case 1 thực tế: 18:00 24/09 Hàn Quốc vs Ecuador tại now ~20:30 (elapsed: 150m > 140m) → finished, KHÔNG LIVE
@@ -136,11 +136,11 @@ describe("Nanaflix Live Match Status & Timeline System", () => {
     assert.equal(timeline, "upcoming", "Match 30 minutes in future must be upcoming");
   });
 
-  // 7H. Regression 8: Upcoming >60 phút → không xuất hiện trong SẮP PHÁT (finished/hidden)
-  it("7H. Regression 8: Upcoming >60m (65 phút trước kickoff) → finished/hidden", () => {
-    const kickoffIn65m = baseNow + 65 * 60 * 1000;
-    const timeline = getMatchTimeline(kickoffIn65m, "unknown", "unknown", baseNow);
-    assert.equal(timeline, "finished", "Match >60 minutes in future must not appear in upcoming (hidden)");
+  // 7H. Regression 8: Upcoming >2 giờ (120 phút) → không xuất hiện trong SẮP PHÁT (finished/hidden)
+  it("7H. Regression 8: Upcoming >2 giờ (130 phút trước kickoff) → finished/hidden", () => {
+    const kickoffIn130m = baseNow + 130 * 60 * 1000;
+    const timeline = getMatchTimeline(kickoffIn130m, "unknown", "unknown", baseNow);
+    assert.equal(timeline, "finished", "Match >2 hours in future must not appear in upcoming (hidden)");
   });
 
   // 7I. Playback HTTPS Fallback: direct HTTPS first, only fallback to proxy on network/CORS failure
@@ -1092,15 +1092,15 @@ describe("Nanaflix Live Match Status & Timeline System", () => {
     const tl1 = getMatchTimeline(playingKickoff, "live", "unknown", baseNow);
     assert.equal(tl1, "live", "Match within 140m window must be LIVE");
 
-    // Trận 2: Sắp đá trong 30 phút tới -> UPCOMING
-    const soonKickoff = baseNow + 30 * 60 * 1000;
+    // Trận 2: Sắp đá trong 90 phút tới (trong khung 2 giờ) -> UPCOMING
+    const soonKickoff = baseNow + 90 * 60 * 1000;
     const tl2 = getMatchTimeline(soonKickoff, "upcoming", "unknown", baseNow);
-    assert.equal(tl2, "upcoming", "Match within 60m future must be UPCOMING");
+    assert.equal(tl2, "upcoming", "Match within 2h (120m) future must be UPCOMING");
 
-    // Trận 3: Trận đá hơn 60 phút tới (ví dụ 90m tới) -> FINISHED (ẩn)
-    const farFutureKickoff = baseNow + 90 * 60 * 1000;
+    // Trận 3: Trận đá hơn 2 giờ tới (ví dụ 150m tới) -> FINISHED (ẩn)
+    const farFutureKickoff = baseNow + 150 * 60 * 1000;
     const tl3 = getMatchTimeline(farFutureKickoff, "upcoming", "unknown", baseNow);
-    assert.equal(tl3, "finished", "Match >60m in future must be FINISHED (hidden)");
+    assert.equal(tl3, "finished", "Match >2h in future must be FINISHED (hidden)");
 
     // Trận 4: Trận đã kết thúc quá 140 phút (ví dụ 160m trước) -> FINISHED (ẩn)
     const endedKickoff = baseNow - 160 * 60 * 1000;

@@ -268,11 +268,11 @@ export function getMatchTimeline(
   if (hasValidTimestamp) {
     // 3A. TRẬN CHƯA KICKOFF (now < timestamp)
     if (now < timestamp) {
-      // Upcoming chỉ là trận chưa kickoff và nằm trong cửa sổ 60 phút
-      if (timestamp <= now + 60 * 60 * 1000) {
+      // Upcoming chỉ là trận chưa kickoff và nằm trong cửa sổ 2 giờ (120 phút)
+      if (timestamp <= now + 2 * 60 * 60 * 1000) {
         return "upcoming";
       }
-      // Bắt đầu hơn 60 phút tới -> không hiển thị trong SẮP PHÁT (finished/hidden)
+      // Bắt đầu hơn 2 giờ tới -> không hiển thị trong SẮP PHÁT (finished/hidden)
       return "finished";
     }
 
@@ -1987,12 +1987,12 @@ function getPriorityStreamUrls(matches: FootballMatch[]): string[] {
     }
   }
 
-  // 2. Trận sắp diễn ra trong 60 phút
+  // 2. Trận sắp diễn ra trong 2 giờ (120 phút)
   const soonMatches = matches.filter(
     (m) =>
       m.timeline === "today" &&
       m.timestamp > now &&
-      m.timestamp <= now + 60 * 60 * 1000,
+      m.timestamp <= now + 2 * 60 * 60 * 1000,
   );
   for (const m of soonMatches) {
     for (const s of m.servers) {
@@ -2006,7 +2006,7 @@ function getPriorityStreamUrls(matches: FootballMatch[]): string[] {
   const otherMatches = matches.filter(
     (m) =>
       m.timeline !== "live" &&
-      !(m.timestamp > now && m.timestamp <= now + 60 * 60 * 1000),
+      !(m.timestamp > now && m.timestamp <= now + 2 * 60 * 60 * 1000),
   );
   for (const m of otherMatches) {
     for (const s of m.servers) {
@@ -2738,10 +2738,10 @@ export async function fetchHailabStreams(now: number = Date.now()): Promise<RawS
         sourceStatus = "upcoming";
       }
 
-      // QUY TẮC LỌC TRẬN ĐANG ĐÁ / SẮP ĐÁ <= 60 PHÚT
+      // QUY TẮC LỌC TRẬN ĐANG ĐÁ / SẮP ĐÁ <= 2 GIỜ (120 PHÚT)
       // 1. Kickoff <= now <= kickoff + 140 phút -> live
-      // 2. now < kickoff <= now + 60 phút -> upcoming
-      // 3. Kickoff > now + 60 phút hoặc > 140 phút quá khứ -> finished (loại bỏ)
+      // 2. now < kickoff <= now + 2 giờ -> upcoming
+      // 3. Kickoff > now + 2 giờ hoặc > 140 phút quá khứ -> finished (loại bỏ)
       const timeline = getMatchTimeline(timestamp, sourceStatus, "unknown", now);
       if (timeline === "finished") {
         continue;

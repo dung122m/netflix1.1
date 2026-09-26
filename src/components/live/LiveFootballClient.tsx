@@ -203,7 +203,7 @@ export function LiveFootballClient({
     [],
   );
 
-  // Phân loại trạng thái realtime: Đang phát (live), Sắp phát trong 60 phút (upcoming_60m), Ẩn (hidden)
+  // Phân loại trạng thái realtime: Đang phát (live), Sắp phát trong 2 giờ (upcoming_2h), Ẩn (hidden)
   const enrichedMatches = useMemo(() => {
     return liveMatches.map((m) => {
       const hasReliableTimestamp =
@@ -225,22 +225,22 @@ export function LiveFootballClient({
 
       const isLive = timeline === "live";
 
-      // SẮP PHÁT (TRONG 60 PHÚT TỚI): Chưa đến giờ đá và kickoff <= now + 60m
-      const isUpcoming60m =
+      // SẮP PHÁT (TRONG 2 GIỜ TỚI): Chưa đến giờ đá và kickoff <= now + 2h (120 phút)
+      const isUpcoming2h =
         timeline === "upcoming" &&
         hasReliableTimestamp &&
         m.timestamp >= now &&
-        m.timestamp <= now + 60 * 60 * 1000;
+        m.timestamp <= now + 2 * 60 * 60 * 1000;
 
-      let sectionState: "live" | "upcoming_60m" | "hidden" = "hidden";
+      let sectionState: "live" | "upcoming_2h" | "hidden" = "hidden";
       if (isLive) sectionState = "live";
-      else if (isUpcoming60m) sectionState = "upcoming_60m";
+      else if (isUpcoming2h) sectionState = "upcoming_2h";
 
       return {
         ...m,
         timeline: isLive
           ? ("live" as const)
-          : isUpcoming60m
+          : isUpcoming2h
             ? ("upcoming" as const)
             : ("finished" as const),
         sectionState,
@@ -294,10 +294,10 @@ export function LiveFootballClient({
       .sort((a, b) => a.timestamp - b.timestamp);
   }, [enrichedMatches, matchesSearch]);
 
-  // 2. Danh sách trận SẮP PHÁT (TRONG 60 PHÚT TỚI)
+  // 2. Danh sách trận SẮP PHÁT (TRONG 2 GIỜ TỚI)
   const upcomingMatchesList = useMemo(() => {
     return enrichedMatches
-      .filter((m) => m.sectionState === "upcoming_60m" && matchesSearch(m))
+      .filter((m) => m.sectionState === "upcoming_2h" && matchesSearch(m))
       .sort((a, b) => a.timestamp - b.timestamp);
   }, [enrichedMatches, matchesSearch]);
 
@@ -753,7 +753,7 @@ export function LiveFootballClient({
         </section>
       )}
 
-      {/* 2. KHU VỰC 🕐 SẮP PHÁT (TRONG 60 PHÚT TỚI) */}
+      {/* 2. KHU VỰC 🕐 SẮP PHÁT (TRONG 2 GIỜ TỚI) */}
       {upcomingMatchesList.length > 0 && (
         <section className="space-y-4 pt-4">
           <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-3">
@@ -762,7 +762,7 @@ export function LiveFootballClient({
               <h2 className="text-base sm:text-lg md:text-xl font-black text-white tracking-tight uppercase truncate">
                 Sắp phát sóng{" "}
                 <span className="text-xs sm:text-sm font-semibold text-gray-400 normal-case">
-                  (Trong 60 phút tới)
+                  (Trong 2 giờ tới)
                 </span>
               </h2>
             </div>
@@ -784,14 +784,14 @@ export function LiveFootballClient({
         </section>
       )}
 
-      {/* TRẠNG THÁI RỖNG: KHÔNG CÓ TRẬN ĐANG PHÁT LẪN SẮP PHÁT TRONG 60 PHÚT */}
+      {/* TRẠNG THÁI RỖNG: KHÔNG CÓ TRẬN ĐANG PHÁT LẪN SẮP PHÁT TRONG 2 GIỜ */}
       {liveMatchesList.length === 0 && upcomingMatchesList.length === 0 && (
         <div className="rounded-3xl border border-white/10 bg-zinc-900/50 p-12 text-center text-gray-400 space-y-3">
           <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mx-auto text-gray-400">
             <Clock className="w-6 h-6 text-gray-400" />
           </div>
           <p className="text-base font-bold text-gray-200">
-            Hiện tại không có trận đấu nào đang phát hoặc sắp diễn ra trong 60 phút tới.
+            Hiện tại không có trận đấu nào đang phát hoặc sắp diễn ra trong 2 giờ tới.
           </p>
           <p className="text-xs text-gray-400">
             Hệ thống sẽ tự động cập nhật ngay khi các trận đấu tâm điểm bước vào khung giờ phát sóng.
