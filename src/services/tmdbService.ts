@@ -3,6 +3,7 @@ import dns from "dns";
 import https from "https";
 import { cacheService } from "@/lib/cache";
 import { normalizeForMatch as cleanStringForMatch } from "@/lib/stringUtils";
+import { IMDB_TOP_250_SNAPSHOT } from "@/data/imdb/imdbTop250";
 
 // =========================================================================
 // CẤU HÌNH TMDB API (LẤY TỪ BIẾN MÔI TRƯỜNG, BẢO MẬT PHÍA SERVER)
@@ -152,7 +153,7 @@ async function resolveTmdbIp(): Promise<string> {
  * 1. Thử fetch chuẩn của Node/Next.js có next.revalidate.
  * 2. Nếu gặp lỗi DNS ENOTFOUND do nhà mạng chặn, tự động fallback sang DNS Google 8.8.8.8 + https agent.
  */
-async function fetchTmdbEndpoint(endpointPath: string, revalidateSeconds = 3600): Promise<any> {
+export async function fetchTmdbEndpoint(endpointPath: string, revalidateSeconds = 3600): Promise<any> {
   const sep = endpointPath.includes("?") ? "&" : "?";
   const authQuery = TMDB_API_KEY ? `api_key=${TMDB_API_KEY}` : "";
   const fullRelativePath = `${endpointPath}${sep}${authQuery}`;
@@ -830,19 +831,19 @@ async function executeTmdbActorFlow(
 export type TmdbRankType = "week" | "month" | "top_rated";
 
 /**
- * 10. LẤY DANH SÁCH BẢNG XẾP HẠNG TMDB (WEEK / MONTH / TOP_RATED) ĐÃ ĐỐI CHIẾU CATALOG NANAFLIX
+ * 10. LẤY DANH SÁCH BẢNG XẾP HẠNG PHIM ĐÃ ĐỐI CHIẾU CATALOG NANAFLIX
  * - week: TMDB /trending/movie/week (Thịnh hành trong tuần)
  * - month: TMDB /movie/popular (Nổi bật trong tháng)
- * - top_rated: TMDB /movie/top_rated (Top phim hay nhất mọi thời đại, vote_count >= 300)
+ * - top_rated: IMDb Top 250 Snapshot thực sự (Kiệt tác điện ảnh mọi thời đại, logic 10 + 10)
  * - Đối chiếu PhimAPI & NguonC qua matchTmdbMoviesWithSources()
  * - SWR Cache In-Memory: Phản hồi 0ms
  */
 export async function getTmdbRankedMovies(
   type: TmdbRankType = "week",
-  limit = 10,
+  limit = 20,
   concurrency = 8
 ): Promise<any[]> {
-  const cacheKey = `TMDB_RANKED_${type}_V3`;
+  const cacheKey = `TMDB_RANKED_${type}_V5`;
   const now = Date.now();
   const cached = TMDB_TRENDING_MOVIES_CACHE.get(cacheKey);
 
@@ -852,55 +853,72 @@ export async function getTmdbRankedMovies(
     }
     if (cached.staleUntil > now) {
       setTimeout(() => {
-        executeTmdbRankingQuery(type, cacheKey, limit, concurrency).catch(() => {});
+        const queryFn =
+          type === "top_rated"
+            ? executeImdbTop250Query(cacheKey, limit, concurrency)
+            : executeTmdbRankingQuery(type, cacheKey, limit, concurrency);
+        queryFn.catch(() => {});
       }, 100);
       return cached.data.slice(0, limit);
     }
   }
 
-  const kvKey = `tmdb:ranked_movies:${type}:${limit}:v3`;
+  const kvKey = `tmdb:ranked_movies:${type}:${limit}:v5`;
+  const ttlSeconds = type === "top_rated" ? 24 * 3600 : 12 * 3600;
+
   return await cacheService.fetchOrSet(
     kvKey,
-    () => executeTmdbRankingQuery(type, cacheKey, limit, concurrency),
-    12 * 3600 // 12 giờ trên Cloudflare KV / Redis
+    () =>
+      type === "top_rated"
+        ? executeImdbTop250Query(cacheKey, limit, concurrency)
+        : executeTmdbRankingQuery(type, cacheKey, limit, concurrency),
+    ttlSeconds
   );
 }
 
 // Backward-compatible alias
 export async function getTmdbTrendingMovies(
   timeWindow: "day" | "week" = "week",
-  limit = 10,
+  limit = 20,
   concurrency = 8
 ): Promise<any[]> {
   return getTmdbRankedMovies(timeWindow === "day" ? "week" : "week", limit, concurrency);
 }
 
+/**
+ * Xử lý bảng xếp hạng trending/popular TMDB cho Tab Tuần & Tháng
+ */
 async function executeTmdbRankingQuery(
-  type: TmdbRankType,
+  type: "week" | "month",
   cacheKey: string,
   limit: number,
   concurrency: number
 ): Promise<any[]> {
   try {
     let endpoint = `/trending/movie/week?language=vi-VN`;
-    let revalidateTime = 21600; // 6 giờ cho trending tuần
+    const revalidateTime = 21600; // 6 giờ cho trending tuần & tháng
 
     if (type === "month") {
       endpoint = `/movie/popular?language=vi-VN`;
-      revalidateTime = 21600; // 6 giờ cho popular tháng
-    } else if (type === "top_rated") {
-      endpoint = `/movie/top_rated?language=vi-VN`;
-      revalidateTime = 86400; // 24 giờ cho top rated
     }
 
-    const data = await fetchTmdbEndpoint(endpoint, revalidateTime);
-    let rawResults = Array.isArray(data?.results) ? data.results : [];
+    const sep = endpoint.includes("?") ? "&" : "?";
+    const [page1Data, page2Data] = await Promise.all([
+      fetchTmdbEndpoint(`${endpoint}${sep}page=1`, revalidateTime),
+      fetchTmdbEndpoint(`${endpoint}${sep}page=2`, revalidateTime).catch(() => null),
+    ]);
+
+    let rawResults: any[] = [];
+    if (Array.isArray(page1Data?.results)) rawResults.push(...page1Data.results);
+    if (Array.isArray(page2Data?.results)) rawResults.push(...page2Data.results);
     if (rawResults.length === 0) return [];
 
-    // Đối với top_rated: lọc bỏ phim có quá ít lượt vote để đảm bảo danh sách uy tín
-    if (type === "top_rated") {
-      rawResults = rawResults.filter((m: any) => Number(m.vote_count || 0) >= 300);
-    }
+    const seenTmdbIds = new Set<number>();
+    rawResults = rawResults.filter((m: any) => {
+      if (!m?.id || seenTmdbIds.has(m.id)) return false;
+      seenTmdbIds.add(m.id);
+      return true;
+    });
 
     const credits: TmdbMovieCredit[] = rawResults.map((m: any) => ({
       id: m.id,
@@ -916,7 +934,7 @@ async function executeTmdbRankingQuery(
       media_type: m.media_type || "movie",
     }));
 
-    const matchedMovies = await matchTmdbMoviesWithSources(credits, 25, concurrency);
+    const matchedMovies = await matchTmdbMoviesWithSources(credits, 40, concurrency);
 
     const now = Date.now();
     TMDB_TRENDING_MOVIES_CACHE.set(cacheKey, {
@@ -931,4 +949,145 @@ async function executeTmdbRankingQuery(
     return [];
   }
 }
+
+/**
+ * Xử lý bảng xếp hạng IMDb Top 250 Thực Sự cho Tab "Mọi Thời Đại"
+ * Logic 10 + 10:
+ * - Nhóm 1: 10 phim khả dụng đầu tiên có rank IMDb cao nhất.
+ * - Nhóm 2: 10 phim khả dụng tiếp theo tiếp nối từ vị trí đang dừng.
+ * - Tuyệt đối không dùng TMDB /movie/top_rated hay tự tính ranking.
+ */
+async function executeImdbTop250Query(
+  cacheKey: string,
+  limit: number,
+  concurrency: number
+): Promise<any[]> {
+  try {
+    const targetTotal = Math.min(limit, 20);
+    const targetGroup1 = Math.min(10, targetTotal);
+    const targetGroup2 = Math.max(0, targetTotal - 10);
+
+    const group1: any[] = [];
+    const group2: any[] = [];
+    const seenSlugs = new Set<string>();
+    const seenTmdbIds = new Set<number>();
+    const seenImdbIds = new Set<string>();
+
+    let currentIndex = 0;
+    const batchSize = 15;
+
+    async function processBatch(startIndex: number, count: number): Promise<any[]> {
+      const batch = IMDB_TOP_250_SNAPSHOT.slice(startIndex, startIndex + count);
+      if (batch.length === 0) return [];
+
+      // 1. Resolve TMDB Movie IDs từ IMDb ID (cache 7 ngày)
+      const resolvedList = await runWithConcurrencyLimit(batch, concurrency, async (item) => {
+        const findRes = await fetchTmdbEndpoint(
+          `/find/${item.imdbId}?external_source=imdb_id&language=vi-VN`,
+          86400 * 7
+        );
+        const movie = findRes?.movie_results?.[0];
+        if (!movie || !movie.id) return null;
+        const credit: TmdbMovieCredit & { imdbRank: number; imdbId: string } = {
+          id: movie.id,
+          imdb_id: item.imdbId,
+          imdbId: item.imdbId,
+          imdbRank: item.rank,
+          title: movie.title || movie.name || "",
+          original_title: movie.original_title || movie.original_name || "",
+          release_date: movie.release_date || "",
+          vote_average: Number(movie.vote_average || 0),
+          vote_count: Number(movie.vote_count || 0),
+          popularity: Number(movie.popularity || 0),
+          poster_path: movie.poster_path || null,
+          backdrop_path: movie.backdrop_path || null,
+          overview: movie.overview || "",
+          media_type: "movie",
+        };
+        return credit;
+      });
+
+      const validCredits = resolvedList.filter(
+        (c): c is TmdbMovieCredit & { imdbRank: number; imdbId: string } => Boolean(c)
+      );
+      if (validCredits.length === 0) return [];
+
+      // Bảo toàn thứ tự rank IMDb tăng dần
+      validCredits.sort((a, b) => a.imdbRank - b.imdbRank);
+
+      // 2. Đối chiếu với PhimAPI & NguonC
+      const matchedList = await matchTmdbMoviesWithSources(validCredits, validCredits.length, concurrency);
+
+      const matchedMap = new Map<string, any>();
+      for (const m of matchedList) {
+        if (m?.tmdb?.id) matchedMap.set(`tmdb_${m.tmdb.id}`, m);
+        if (m?.imdb?.id) matchedMap.set(`imdb_${m.imdb.id}`, m);
+        if (m?.slug) matchedMap.set(`slug_${m.slug}`, m);
+      }
+
+      const orderedBatchResults: any[] = [];
+      for (const credit of validCredits) {
+        const match =
+          matchedMap.get(`imdb_${credit.imdbId}`) ||
+          matchedMap.get(`tmdb_${credit.id}`) ||
+          matchedList.find(
+            (m) => m?.id === credit.id || String(m?.tmdb?.id) === String(credit.id)
+          );
+
+        if (
+          match &&
+          !seenSlugs.has(match.slug) &&
+          !seenTmdbIds.has(credit.id) &&
+          !seenImdbIds.has(credit.imdbId)
+        ) {
+          seenSlugs.add(match.slug);
+          seenTmdbIds.add(credit.id);
+          seenImdbIds.add(credit.imdbId);
+          orderedBatchResults.push({
+            ...match,
+            imdb_rank: credit.imdbRank,
+            imdb_id: credit.imdbId,
+          });
+        }
+      }
+
+      return orderedBatchResults;
+    }
+
+    // NHÓM 1: Lấy 10 phim khả dụng đầu tiên có rank IMDb cao nhất
+    while (group1.length < targetGroup1 && currentIndex < IMDB_TOP_250_SNAPSHOT.length) {
+      const matched = await processBatch(currentIndex, batchSize);
+      for (const movie of matched) {
+        if (group1.length >= targetGroup1) break;
+        group1.push(movie);
+      }
+      currentIndex += batchSize;
+    }
+
+    // NHÓM 2: Tiếp tục duyệt từ vị trí đang dừng để lấy 10 phim khả dụng tiếp theo
+    while (group2.length < targetGroup2 && currentIndex < IMDB_TOP_250_SNAPSHOT.length) {
+      const matched = await processBatch(currentIndex, batchSize);
+      for (const movie of matched) {
+        if (group2.length >= targetGroup2) break;
+        group2.push(movie);
+      }
+      currentIndex += batchSize;
+    }
+
+    const finalResults = [...group1, ...group2];
+
+    const now = Date.now();
+    TMDB_TRENDING_MOVIES_CACHE.set(cacheKey, {
+      data: finalResults,
+      expireAt: now + 24 * 3600 * 1000, // 24h tươi
+      staleUntil: now + 48 * 3600 * 1000, // 48h stale
+    });
+
+    return finalResults;
+  } catch (err) {
+    console.warn("[IMDb Top 250 Query] Error fetching ranking:", err);
+    return [];
+  }
+}
+
 

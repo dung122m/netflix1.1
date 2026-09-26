@@ -27,8 +27,59 @@ import {
   Mic,
 } from "lucide-react";
 import { FootballMatch, StreamServer } from "@/services/liveFootballService";
+import { getTeamAsset } from "@/data/live/teamAssets";
 import { LiveShortcutPopover } from "./LiveShortcutPopover";
 import { ChannelSourceSwitcher } from "./ChannelSourceSwitcher";
+
+/**
+ * Hiển thị cờ quốc gia dạng đồ họa vector chuẩn quốc tế
+ * Giải quyết triệt để vấn đề Windows hiển thị ký tự mã ISO thay vì cờ
+ * Có fallback tự động về emoji text gốc
+ */
+function CountryFlag({ emoji, className = "" }: { emoji: string; className?: string }) {
+  const [imgError, setImgError] = useState(false);
+
+  const twemojiUrl = useMemo(() => {
+    try {
+      if (!emoji) return null;
+      const cps: string[] = [];
+      for (const char of emoji) {
+        const cp = char.codePointAt(0);
+        if (cp && cp !== 0xfe0f) {
+          cps.push(cp.toString(16));
+        }
+      }
+      const isFlag = cps.some((cp) => {
+        const num = parseInt(cp, 16);
+        return (num >= 0x1f1e6 && num <= 0x1f1ff) || num === 0x1f3f4;
+      });
+      if (!isFlag) return null;
+      return `https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/${cps.join("-")}.svg`;
+    } catch {
+      return null;
+    }
+  }, [emoji]);
+
+  if (twemojiUrl && !imgError) {
+    return (
+      /* eslint-disable-next-line @next/next/no-img-element */
+      <img
+        src={twemojiUrl}
+        alt={emoji}
+        className={`w-full h-full object-contain drop-shadow-md select-none inline-block ${className}`}
+        onError={() => setImgError(true)}
+        loading="lazy"
+        crossOrigin="anonymous"
+      />
+    );
+  }
+
+  return (
+    <span className={`text-2xl sm:text-3xl select-none leading-none drop-shadow-md ${className}`}>
+      {emoji}
+    </span>
+  );
+}
 
 function getTeamInitials(teamName: string): string {
   if (!teamName) return "⚽";
@@ -724,6 +775,35 @@ function LivePlayerInner({
 
   const [homeImgError, setHomeImgError] = useState(false);
   const [awayImgError, setAwayImgError] = useState(false);
+
+  useEffect(() => {
+    setHomeImgError(false);
+    setAwayImgError(false);
+  }, [match?.id, team1, team2, homeLogo, awayLogo]);
+
+  // Tra cứu cờ quốc gia / logo CLB O(1) từ local mapping (đồng bộ 100% với MatchCard)
+  const homeAsset = useMemo(() => getTeamAsset(team1), [team1]);
+  const awayAsset = useMemo(() => getTeamAsset(team2), [team2]);
+
+  const validHomeLogo =
+    Boolean(homeLogo) &&
+    !homeLogo?.includes("tinhlagi.pro/logo.jpg") &&
+    !homeImgError;
+
+  const validAwayLogo =
+    Boolean(awayLogo) &&
+    !awayLogo?.includes("tinhlagi.pro/logo.jpg") &&
+    !awayImgError;
+
+  // Ưu tiên cờ quốc gia / emoji đặc thù (luôn hiển thị chuẩn, sắc nét, không 404)
+  const homeFlagEmoji = homeAsset?.emoji || null;
+  const awayFlagEmoji = awayAsset?.emoji || null;
+
+  // Logo ảnh: chỉ dùng nếu không có cờ emoji hoặc là CLB thuần logo
+  const homeLogoSrc =
+    !homeFlagEmoji && (validHomeLogo ? homeLogo : (!homeImgError && homeAsset?.logo ? homeAsset.logo : null));
+  const awayLogoSrc =
+    !awayFlagEmoji && (validAwayLogo ? awayLogo : (!awayImgError && awayAsset?.logo ? awayAsset.logo : null));
 
   const volumeRef = useRef(volume);
   const isMutedRef = useRef(isMuted);
@@ -2301,13 +2381,13 @@ function LivePlayerInner({
               <div className="flex-1 w-full flex items-center justify-around sm:justify-center gap-2 sm:gap-4">
                 {/* ĐỘI NHÀ (TEAM 1) */}
                 <div className="flex flex-col items-center text-center max-w-[110px] sm:max-w-[150px] group">
-                  <div className="w-11 h-11 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-xl sm:rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-950 border-2 border-white/20 p-1.5 sm:p-2 flex items-center justify-center shadow-xl transition-all duration-300 group-hover:scale-105 group-hover:border-netflix-red/70 group-hover:shadow-red-950/60">
-                    {!homeImgError &&
-                      homeLogo &&
-                      !homeLogo.includes("tinhlagi.pro/logo.jpg") ? (
+                  <div className="w-11 h-11 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-xl sm:rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-950 border-2 border-white/20 p-1.5 sm:p-2 flex items-center justify-center shadow-xl transition-all duration-300 group-hover:scale-105 group-hover:border-netflix-red/70 group-hover:shadow-red-950/60 overflow-hidden">
+                    {homeFlagEmoji ? (
+                      <CountryFlag emoji={homeFlagEmoji} className="w-8 h-8 sm:w-10 sm:h-10" />
+                    ) : homeLogoSrc ? (
                       /* eslint-disable-next-line @next/next/no-img-element */
                       <img
-                        src={homeLogo}
+                        src={homeLogoSrc}
                         alt={team1 || "Đội nhà"}
                         className="w-full h-full object-contain filter drop-shadow-xl"
                         onError={() => setHomeImgError(true)}
@@ -2316,13 +2396,7 @@ function LivePlayerInner({
                     ) : (
                       <div className="flex flex-col items-center justify-center">
                         <span className="text-base sm:text-xl font-black text-rose-400 tracking-wider">
-                          {team1
-                            ? team1
-                              .replace(/^CLB\s+/i, "")
-                              .replace(/^FC\s+/i, "")
-                              .slice(0, 2)
-                              .toUpperCase()
-                            : "H"}
+                          {getTeamInitials(team1)}
                         </span>
                         <span className="text-[7px] sm:text-[8px] uppercase tracking-widest text-gray-400 font-bold">
                           CLB
@@ -2355,13 +2429,13 @@ function LivePlayerInner({
 
                 {/* ĐỘI KHÁCH (TEAM 2) */}
                 <div className="flex flex-col items-center text-center max-w-[110px] sm:max-w-[150px] group">
-                  <div className="w-11 h-11 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-xl sm:rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-950 border-2 border-white/20 p-1.5 sm:p-2 flex items-center justify-center shadow-xl transition-all duration-300 group-hover:scale-105 group-hover:border-sky-500/70 group-hover:shadow-sky-950/60">
-                    {!awayImgError &&
-                      awayLogo &&
-                      !awayLogo.includes("tinhlagi.pro/logo.jpg") ? (
+                  <div className="w-11 h-11 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-xl sm:rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-950 border-2 border-white/20 p-1.5 sm:p-2 flex items-center justify-center shadow-xl transition-all duration-300 group-hover:scale-105 group-hover:border-sky-500/70 group-hover:shadow-sky-950/60 overflow-hidden">
+                    {awayFlagEmoji ? (
+                      <CountryFlag emoji={awayFlagEmoji} className="w-8 h-8 sm:w-10 sm:h-10" />
+                    ) : awayLogoSrc ? (
                       /* eslint-disable-next-line @next/next/no-img-element */
                       <img
-                        src={awayLogo}
+                        src={awayLogoSrc}
                         alt={team2 || "Đội khách"}
                         className="w-full h-full object-contain filter drop-shadow-xl"
                         onError={() => setAwayImgError(true)}
@@ -2370,13 +2444,7 @@ function LivePlayerInner({
                     ) : (
                       <div className="flex flex-col items-center justify-center">
                         <span className="text-base sm:text-xl font-black text-sky-400 tracking-wider">
-                          {team2
-                            ? team2
-                              .replace(/^CLB\s+/i, "")
-                              .replace(/^FC\s+/i, "")
-                              .slice(0, 2)
-                              .toUpperCase()
-                            : "A"}
+                          {getTeamInitials(team2)}
                         </span>
                         <span className="text-[7px] sm:text-[8px] uppercase tracking-widest text-gray-400 font-bold">
                           CLB
@@ -2778,136 +2846,29 @@ function LivePlayerInner({
         typeof document !== "undefined" &&
         createPortal(sourceDrawerMarkup, document.body)}
 
-      {/* 3. THANH THÔNG TIN TRẬN ĐẤU & CHỌN MÁY CHỦ SẮC NÉT */}
+      {/* 3. DANH SÁCH MÁY CHỦ PHÁT SÓNG SẮC NÉT (KHÔNG LẶP LẠI THÔNG TIN TRẬN ĐÃ CÓ Ở SCOREBOARD TRÊN) */}
       <div className="keep-dark-cinema rounded-2xl sm:rounded-3xl border border-white/10 bg-zinc-900/95 p-3.5 sm:p-5 shadow-xl space-y-3 sm:space-y-4 w-full min-w-0">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
-          <div className="space-y-1 min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs text-gray-400">
-              {time && (
-                <span className="font-bold text-gray-200 bg-white/10 px-2 py-0.5 rounded-md text-[11px] sm:text-xs">
-                  ⏰ {time}
-                </span>
-              )}
-              {group && (
-                <span className="px-2 py-0.5 rounded-md bg-white/10 text-gray-300 font-medium text-[11px] sm:text-xs">
-                  🏆 {group}
-                </span>
-              )}
-              {blv && (
-                <span
-                  className="text-rose-400 font-bold flex items-center gap-1 bg-netflix-red/15 px-2 py-0.5 rounded-md border border-netflix-red/30 text-[11px] sm:text-xs max-w-[220px] sm:max-w-md truncate"
-                  title={`BLV: ${blv}`}
-                >
-                  <span className="shrink-0">🎙️</span>
-                  <span className="truncate">
-                    {(() => {
-                      const raw = blv.replace(/^(?:blv|bình luận viên)\s+/i, "");
-                      const parts = raw.split(",").map((p) => p.trim()).filter(Boolean);
-                      if (parts.length <= 2) return `BLV ${parts.join(", ")}`;
-                      return `BLV ${parts.slice(0, 2).join(", ")} (+${parts.length - 2})`;
-                    })()}
-                  </span>
-                </span>
-              )}
-            </div>
-            {!isEvent && team1 && team2 && team1.trim().toLowerCase() !== team2.trim().toLowerCase() ? (
-              <div className="flex flex-wrap items-center gap-2.5 sm:gap-4 my-1 pt-0.5">
-                {/* Đội Nhà */}
-                <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
-                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-zinc-800/90 border border-white/15 p-1 flex items-center justify-center shrink-0 overflow-hidden shadow-md">
-                    {homeLogo && !homeLogo.includes("tinhlagi.pro/logo.jpg") ? (
-                      /* eslint-disable-next-line @next/next/no-img-element */
-                      <img
-                        src={homeLogo}
-                        alt={team1}
-                        className="w-full h-full object-contain filter drop-shadow-sm"
-                        loading="lazy"
-                        referrerPolicy="no-referrer"
-                      />
-                    ) : (
-                      <div className="w-full h-full rounded-lg bg-gradient-to-br from-rose-500/25 to-red-950/50 flex items-center justify-center text-[9.5px] sm:text-[10.5px] font-black text-rose-300 font-mono">
-                        {getTeamInitials(team1)}
-                      </div>
-                    )}
-                  </div>
-                  <span className="text-sm sm:text-lg font-black text-white truncate max-w-[140px] sm:max-w-xs">{team1}</span>
-                </div>
-
-                {/* VS Badge */}
-                <span className="shrink-0 px-2 py-0.5 rounded-full bg-netflix-red/20 border border-netflix-red/40 text-[9px] sm:text-[10px] font-black text-netflix-red font-mono tracking-wider">
-                  VS
-                </span>
-
-                {/* Đội Khách */}
-                <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
-                  <span className="text-sm sm:text-lg font-black text-white truncate max-w-[140px] sm:max-w-xs">{team2}</span>
-                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-zinc-800/90 border border-white/15 p-1 flex items-center justify-center shrink-0 overflow-hidden shadow-md">
-                    {awayLogo && !awayLogo.includes("tinhlagi.pro/logo.jpg") ? (
-                      /* eslint-disable-next-line @next/next/no-img-element */
-                      <img
-                        src={awayLogo}
-                        alt={team2}
-                        className="w-full h-full object-contain filter drop-shadow-sm"
-                        loading="lazy"
-                        referrerPolicy="no-referrer"
-                      />
-                    ) : (
-                      <div className="w-full h-full rounded-lg bg-gradient-to-br from-sky-500/25 to-blue-950/50 flex items-center justify-center text-[9.5px] sm:text-[10.5px] font-black text-sky-300 font-mono">
-                        {getTeamInitials(team2)}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <h2
-                className="text-base sm:text-xl font-black text-white leading-snug break-words keep-white"
-                style={{ color: "#ffffff" }}
-              >
-                {title}
-              </h2>
+        <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-3">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <span className="flex items-center gap-1.5 text-gray-200 font-bold text-xs sm:text-sm">
+              <span>📡 Danh sách nguồn phát trực tiếp</span>
+              <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-white/10 text-gray-300 font-bold">
+                {availableServers.length}
+              </span>
+            </span>
+            {hasMoreServers && (
+              <span className="text-[11px] text-gray-400 hidden sm:inline">
+                ({showAllServers ? `Tất cả ${availableServers.length}` : `8/${availableServers.length}`})
+              </span>
             )}
           </div>
 
-          <div className="flex items-center gap-2 flex-shrink-0 self-start sm:self-center">
-
-            <button
-              type="button"
-              onClick={handleCopyStream}
-              title="Sao chép link stream trực tiếp"
-              className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white transition border border-white/10 cursor-pointer"
-            >
-              {copied ? (
-                <Check className="w-4 h-4 text-emerald-400" />
-              ) : (
-                <Copy className="w-4 h-4" />
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* DANH SÁCH MÁY CHỦ PHÁT SÓNG (GỌN GÀNG, TỐI GIẢN & RESPONSIVE GRID) */}
-        <div className="space-y-2.5 w-full min-w-0">
-          <div className="flex items-center justify-between gap-1.5 text-xs text-gray-400 font-medium">
-            <div className="flex items-center gap-2">
-              <span className="flex items-center gap-1.5 text-gray-300 font-bold text-xs">
-                <span>📡 Nguồn phát</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-gray-300 font-bold">
-                  {availableServers.length}
-                </span>
-              </span>
-              {hasMoreServers && (
-                <span className="text-[10px] text-gray-500 hidden sm:inline">
-                  ({showAllServers ? `Tất cả ${availableServers.length}` : `8/${availableServers.length}`})
-                </span>
-              )}
-            </div>
-
+          <div className="flex items-center gap-2 flex-shrink-0">
             {hasMoreServers && (
               <button
                 type="button"
                 onClick={() => setShowAllServers((prev) => !prev)}
-                className="flex items-center gap-1 text-[11px] font-bold text-netflix-red hover:text-red-400 transition cursor-pointer bg-white/5 hover:bg-white/10 px-2.5 py-1 rounded-md border border-white/10"
+                className="flex items-center gap-1 text-[11px] font-bold text-netflix-red hover:text-red-400 transition cursor-pointer bg-white/5 hover:bg-white/10 px-2.5 py-1.5 rounded-xl border border-white/10"
               >
                 <span>
                   {showAllServers
@@ -2921,7 +2882,30 @@ function LivePlayerInner({
                 )}
               </button>
             )}
+
+            <button
+              type="button"
+              onClick={handleCopyStream}
+              title="Sao chép link stream trực tiếp"
+              className="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white transition border border-white/10 cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
+            >
+              {copied ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="text-emerald-400 hidden sm:inline">Đã chép link</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Sao chép link</span>
+                </>
+              )}
+            </button>
           </div>
+        </div>
+
+        {/* DANH SÁCH MÁY CHỦ PHÁT SÓNG (GỌN GÀNG, TỐI GIẢN & RESPONSIVE GRID) */}
+        <div className="space-y-2.5 w-full min-w-0">
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5 sm:gap-2 w-full min-w-0 pt-0.5 max-h-72 overflow-y-auto">
             {availableServers.length === 0 ? (

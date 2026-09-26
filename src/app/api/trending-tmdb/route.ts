@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
   const rawType = searchParams.get("timeframe") || searchParams.get("type") || "week";
   const type: TmdbRankType =
     rawType === "month" || rawType === "top_rated" ? rawType : "week";
-  const limit = Math.min(Number(searchParams.get("limit")) || 10, 20);
+  const limit = Math.min(Number(searchParams.get("limit")) || 20, 20);
   const cacheKey = `${type}_${limit}`;
 
   // 1. Kiểm tra bộ nhớ cache trên RAM server (phản hồi tức thì ~0ms)

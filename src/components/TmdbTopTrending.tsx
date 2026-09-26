@@ -40,7 +40,7 @@ export interface TmdbTrendingMovieItem {
 
 type TmdbTab = "week" | "month" | "top_rated";
 
-const TMDB_RANKING_CACHE_KEY = "nanaflix_tmdb_ranking_cache_v2";
+const TMDB_RANKING_CACHE_KEY = "nanaflix_tmdb_ranking_cache_v3";
 const FRESH_REVALIDATE_TTL = 6 * 60 * 60 * 1000; // 6 giờ: Tránh fetch TMDB lặp lại khi tải trang chủ
 
 const TAB_CONFIG: Record<
@@ -56,7 +56,7 @@ const TAB_CONFIG: Record<
 > = {
   week: {
     title: "Phim Thịnh Hành Trong Tuần",
-    subtitle: "Top 10 phim thịnh hành toàn cầu trên TMDB đã có bản xem tại Nanaflix",
+    subtitle: "Top 20 phim thịnh hành toàn cầu trên TMDB đã có bản xem tại Nanaflix",
     badge: "TMDB Quốc Tế • Thịnh Hành Tuần",
     icon: Flame,
     badgeClass: "text-rose-400 bg-rose-500/10 border-rose-500/20",
@@ -64,7 +64,7 @@ const TAB_CONFIG: Record<
   },
   month: {
     title: "Phim Nổi Bật Trong Tháng",
-    subtitle: "Top 10 tác phẩm được đông đảo khán giả quốc tế quan tâm nhất trong tháng",
+    subtitle: "Top 20 tác phẩm được đông đảo khán giả quốc tế quan tâm nhất trong tháng",
     badge: "TMDB Quốc Tế • Nổi Bật Tháng",
     icon: Zap,
     badgeClass: "text-amber-400 bg-amber-500/10 border-amber-500/20",
@@ -72,7 +72,7 @@ const TAB_CONFIG: Record<
   },
   top_rated: {
     title: "Top Phim Hay Nhất Mọi Thời Đại",
-    subtitle: "Top 10 kiệt tác điện ảnh có điểm đánh giá cao nhất lịch sử trên TMDB",
+    subtitle: "Top 20 kiệt tác điện ảnh có điểm đánh giá cao nhất lịch sử trên TMDB",
     badge: "TMDB Top Rated • Điểm Cao Nhất",
     icon: Crown,
     badgeClass: "text-yellow-400 bg-yellow-500/10 border-yellow-500/20",
@@ -138,7 +138,7 @@ function TmdbTopTrendingInner() {
     // Chỉ fetch tab "week" khi mới mở trang (Lazy/On-demand cho các tab còn lại)
     const fetchWeekInitial = async () => {
       try {
-        const res = await fetch("/api/trending-tmdb?type=week&limit=10");
+        const res = await fetch("/api/trending-tmdb?type=week&limit=20");
         if (!res.ok) throw new Error("Fetch failed");
         const data = await res.json();
         if (!isMounted) return;
@@ -204,7 +204,7 @@ function TmdbTopTrendingInner() {
       if (isFresh) return;
 
       // Revalidate ngầm
-      fetch(`/api/trending-tmdb?type=${nextTab}&limit=10`)
+      fetch(`/api/trending-tmdb?type=${nextTab}&limit=20`)
         .then((r) => (r.ok ? r.json() : null))
         .then((data) => {
           if (data?.items && Array.isArray(data.items) && data.items.length > 0) {
@@ -230,7 +230,7 @@ function TmdbTopTrendingInner() {
     } else {
       // Chưa có cache cho tab này: fetch mới
       setLoading(true);
-      fetch(`/api/trending-tmdb?type=${nextTab}&limit=10`)
+      fetch(`/api/trending-tmdb?type=${nextTab}&limit=20`)
         .then((r) => (r.ok ? r.json() : null))
         .then((data) => {
           if (data?.items && Array.isArray(data.items) && data.items.length > 0) {
