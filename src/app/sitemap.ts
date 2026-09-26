@@ -15,6 +15,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/browse?type=phim-long-tieng",
     "/live",
     "/collection",
+    "/dien-vien",
     "/about",
     "/privacy",
     "/terms",

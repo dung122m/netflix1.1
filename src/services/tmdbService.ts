@@ -25,6 +25,17 @@ export interface TmdbPerson {
   known_for_department?: string;
 }
 
+export interface TmdbPersonDetail extends TmdbPerson {
+  birthday?: string;
+  deathday?: string;
+  place_of_birth?: string;
+  biography?: string;
+  also_known_as?: string[];
+  gender?: number;
+  homepage?: string;
+  imdb_id?: string;
+}
+
 export interface TmdbMovieCredit {
   id: number; // tmdb_id
   title: string;
@@ -54,6 +65,9 @@ interface CacheEntry<T> {
 
 // 1. Cache kết quả tìm kiếm diễn viên (24h)
 const TMDB_PERSON_CACHE = new Map<string, CacheEntry<TmdbPerson | null>>();
+
+// 1.1 Cache thông tin chi tiết diễn viên (24h)
+const TMDB_PERSON_DETAIL_CACHE = new Map<number, CacheEntry<TmdbPersonDetail | null>>();
 
 // 2. Cache toàn bộ filmography của diễn viên (24h)
 const TMDB_CREDITS_CACHE = new Map<number, CacheEntry<TmdbMovieCredit[]>>();
@@ -362,6 +376,63 @@ export async function searchTmdbPerson(
       return bestPerson;
     },
     30 * 86400 // 30 ngày trên Cloudflare KV
+  );
+}
+
+/**
+ * 4.1 LẤY THÔNG TIN CHI TIẾT CỦA DIỄN VIÊN TỪ TMDB (PERSON DETAIL)
+ * Bao gồm: Ngày sinh, nơi sinh, tiểu sử gốc, tên khác (also_known_as), ảnh profile
+ */
+export async function getTmdbPersonDetail(personId: number): Promise<TmdbPersonDetail | null> {
+  if (!personId) return null;
+
+  const now = Date.now();
+  const cached = TMDB_PERSON_DETAIL_CACHE.get(personId);
+  if (cached && cached.expireAt > now) {
+    return cached.data;
+  }
+
+  const kvKey = `tmdb:person_detail_v2:${personId}`;
+  return await cacheService.fetchOrSet(
+    kvKey,
+    async () => {
+      try {
+        let data = await fetchTmdbEndpoint(`/person/${personId}?language=vi-VN&append_to_response=external_ids`);
+        if (!data || !data.name) {
+          data = await fetchTmdbEndpoint(`/person/${personId}?append_to_response=external_ids`);
+        }
+        if (!data || !data.id) return null;
+
+        const detail: TmdbPersonDetail = {
+          id: data.id,
+          name: data.name,
+          original_name: data.also_known_as?.[0] || data.name,
+          profile_path: data.profile_path ? `${TMDB_IMAGE_BASE}${data.profile_path}` : null,
+          popularity: Number(data.popularity || 0),
+          known_for_department: data.known_for_department,
+          birthday: data.birthday || undefined,
+          deathday: data.deathday || undefined,
+          place_of_birth: data.place_of_birth || undefined,
+          biography: data.biography || undefined,
+          also_known_as: Array.isArray(data.also_known_as) ? data.also_known_as : [],
+          gender: data.gender,
+          homepage: data.homepage || undefined,
+          imdb_id: data.external_ids?.imdb_id || data.imdb_id || undefined,
+        };
+
+        TMDB_PERSON_DETAIL_CACHE.set(personId, {
+          data: detail,
+          expireAt: Date.now() + 24 * 3600 * 1000,
+          staleUntil: Date.now() + 48 * 3600 * 1000,
+        });
+
+        return detail;
+      } catch (err) {
+        console.warn(`[TMDB] Error fetching detail for person ${personId}:`, err);
+        return null;
+      }
+    },
+    30 * 86400 // 30 ngày KV
   );
 }
 

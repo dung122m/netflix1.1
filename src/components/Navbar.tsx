@@ -16,6 +16,7 @@ import {
   Radio,
   Bookmark,
   X,
+  Users,
 } from "lucide-react";
 import { NetflixLogo } from "@/components/NetflixLogo";
 import { HolidayNavbarAtmosphere } from "./navbar/HolidayNavbarAtmosphere";
@@ -40,6 +41,7 @@ const NAV_LINKS = [
   { name: "Phim lẻ", href: "/browse?type=phim-le", type: "phim-le", icon: Film, isLive: false },
   { name: "Chiếu rạp", href: "/browse?type=phim-chieu-rap", type: "phim-chieu-rap", icon: Clapperboard, isLive: false },
   { name: "Hoạt hình", href: "/browse?type=hoat-hinh", type: "hoat-hinh", icon: Sparkles, isLive: false },
+  { name: "Diễn viên", href: "/dien-vien", type: "dien-vien", icon: Users, isLive: false },
   { name: "TV Shows", href: "/browse?type=tv-shows", type: "tv-shows", icon: Radio, isLive: false, hideOnLg: true },
   { name: "Trực tiếp", href: "/live", type: "live", icon: Flame, isLive: true },
   { name: "Danh sách của tôi", href: "/my-list", type: "my-list", icon: Bookmark, isLive: false },
@@ -129,6 +131,7 @@ const NavbarInner: React.FC = () => {
 
   const isLinkActive = useCallback(
     (type: string | null) => {
+      if (type === "dien-vien") return pathname?.startsWith("/dien-vien");
       if (type === "live") return pathname === "/live";
       if (type === "my-list") return pathname === "/my-list";
       if (pathname !== "/" && pathname !== "/browse") return false;

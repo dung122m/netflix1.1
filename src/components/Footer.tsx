@@ -25,6 +25,7 @@ import {
   Compass,
   Layers,
   Scale,
+  Users,
 } from "lucide-react";
 
 export const Footer: React.FC = () => {
@@ -120,6 +121,12 @@ export const Footer: React.FC = () => {
                 <Link href="/browse?type=hoat-hinh" className="hover:text-white transition flex items-center gap-1.5 sm:gap-2">
                   <Sparkles size={12} className="text-gray-500 shrink-0" />
                   <span>Hoạt hình Anime</span>
+                </Link>
+              </li>
+              <li>
+                <Link href="/dien-vien" className="hover:text-white transition flex items-center gap-1.5 sm:gap-2 font-medium text-gray-300">
+                  <Users size={12} className="text-netflix-red shrink-0" />
+                  <span>Diễn viên & Nghệ sĩ</span>
                 </Link>
               </li>
               <li className="hidden sm:block">
