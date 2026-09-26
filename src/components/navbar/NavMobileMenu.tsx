@@ -84,7 +84,11 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
   const effectiveDisplayName = userProfile?.displayName || user?.displayName || "Hồ sơ";
 
   return (
-    <div className="lg:hidden border-t border-white/10 bg-black/98 backdrop-blur-2xl px-3.5 py-3 animate-in slide-in-from-top duration-200 max-h-[85vh] overflow-y-auto shadow-2xl safe-area-bottom overscroll-contain">
+    <div
+      data-mobile-menu
+      className="lg:hidden border-t border-white/10 bg-black/98 backdrop-blur-2xl px-3.5 py-3 animate-in slide-in-from-top duration-200 overflow-y-auto shadow-2xl overscroll-contain max-h-[calc(100dvh-3.5rem-env(safe-area-inset-bottom,0px))] pb-20"
+      style={{ WebkitOverflowScrolling: "touch" }}
+    >
       <div className="flex flex-col gap-2">
         {/* TÀI KHOẢN NGƯỜI DÙNG */}
         <div className="p-3 rounded-2xl bg-white/[0.04] border border-white/10">

@@ -1044,7 +1044,7 @@ function AdminDashboardContent() {
               </div>
 
               {/* Filter Chips - Scrollable on mobile to avoid overlapping */}
-              <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar scrollbar-none -mx-1 px-1 flex-nowrap touch-pan-x">
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar scrollbar-none -mx-1 px-1 flex-nowrap">
                 {/* Moderation / Flagged Filter */}
                 <div className="flex items-center gap-1 bg-black/50 p-1 rounded-xl border border-white/10 text-xs flex-shrink-0">
                   <button
@@ -1395,7 +1395,7 @@ function AdminDashboardContent() {
                 )}
               </div>
 
-              <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar scrollbar-none -mx-1 px-1 flex-nowrap touch-pan-x">
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar scrollbar-none -mx-1 px-1 flex-nowrap">
                 {/* Filter role */}
                 <div className="flex items-center gap-1 bg-black/50 p-1 rounded-xl border border-white/10 text-xs flex-shrink-0">
                   <button

@@ -299,7 +299,7 @@ const QuickGenreChipsInner: React.FC = () => {
 
       <div
         ref={typeRowRef}
-        className="flex-1 flex items-center gap-1.5 overflow-x-auto py-2 px-1 -mx-1 scrollbar-none [&::-webkit-scrollbar]:hidden touch-pan-x scroll-smooth"
+        className="flex-1 flex items-center gap-1.5 overflow-x-auto py-2 px-1 -mx-1 scrollbar-none [&::-webkit-scrollbar]:hidden"
       >
         {POPULAR_TYPES.map((typeItem) => {
           const isActive = typeItem.slug === "" ? !currentType : currentType === typeItem.slug;
@@ -355,7 +355,7 @@ const QuickGenreChipsInner: React.FC = () => {
 
       <div
         ref={genreRowRef}
-        className="flex-1 flex items-center gap-1.5 overflow-x-auto py-2 px-1 -mx-1 scrollbar-none [&::-webkit-scrollbar]:hidden touch-pan-x scroll-smooth"
+        className="flex-1 flex items-center gap-1.5 overflow-x-auto py-2 px-1 -mx-1 scrollbar-none [&::-webkit-scrollbar]:hidden"
       >
         <button
           type="button"
@@ -424,7 +424,7 @@ const QuickGenreChipsInner: React.FC = () => {
 
       <div
         ref={countryRowRef}
-        className="flex-1 flex items-center gap-1.5 overflow-x-auto py-2 px-1 -mx-1 scrollbar-none [&::-webkit-scrollbar]:hidden touch-pan-x scroll-smooth"
+        className="flex-1 flex items-center gap-1.5 overflow-x-auto py-2 px-1 -mx-1 scrollbar-none [&::-webkit-scrollbar]:hidden"
       >
         {POPULAR_COUNTRIES.map((c) => {
           const isActive = c.slug === "" ? !currentCountry : currentCountry === c.slug;
@@ -480,7 +480,7 @@ const QuickGenreChipsInner: React.FC = () => {
 
       <div
         ref={actorRowRef}
-        className="flex-1 flex items-center gap-1.5 overflow-x-auto py-2 px-1 -mx-1 scrollbar-none [&::-webkit-scrollbar]:hidden touch-pan-x scroll-smooth"
+        className="flex-1 flex items-center gap-1.5 overflow-x-auto py-2 px-1 -mx-1 scrollbar-none [&::-webkit-scrollbar]:hidden"
       >
         {POPULAR_ACTORS.map((act) => {
           const isActive =
@@ -538,7 +538,7 @@ const QuickGenreChipsInner: React.FC = () => {
 
       <div
         ref={yearRowRef}
-        className="flex-1 flex items-center gap-1.5 overflow-x-auto py-2 px-1 -mx-1 scrollbar-none [&::-webkit-scrollbar]:hidden touch-pan-x scroll-smooth"
+        className="flex-1 flex items-center gap-1.5 overflow-x-auto py-2 px-1 -mx-1 scrollbar-none [&::-webkit-scrollbar]:hidden"
       >
         {RECENT_YEARS.map((y) => {
           const isActive = y.year === "" ? !currentYear : currentYear === y.year;

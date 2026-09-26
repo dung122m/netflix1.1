@@ -109,7 +109,7 @@ export const ChannelSourceSwitcher: React.FC<ChannelSourceSwitcherProps> = ({
       role="group"
       aria-label={isChannel ? "Bộ chọn kênh truyền hình" : "Bộ chọn nguồn phát"}
       onKeyDown={handleKeyDown}
-      className={`h-8 sm:h-10 inline-flex items-center bg-black/60 hover:bg-black/75 rounded-full border border-white/20 p-0.5 sm:p-1 backdrop-blur-md shrink-0 transition select-none shadow-sm ${className}`}
+      className={`h-8 sm:h-10 inline-flex items-center bg-black/60 hover:bg-black/75 rounded-full border border-white/20 p-0.5 sm:p-1 backdrop-blur-md min-w-0 shrink max-w-full transition select-none shadow-sm ${className}`}
     >
       {/* NÚT ‹ CHUYỂN TRƯỚC */}
       <button
@@ -121,7 +121,7 @@ export const ChannelSourceSwitcher: React.FC<ChannelSourceSwitcherProps> = ({
         disabled={isPrevDisabled}
         title={prevTitle}
         aria-label={prevTitle}
-        className={`w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-full transition touch-manipulation focus-visible:outline-none focus-visible:ring-2 ${
+        className={`w-7 h-7 sm:w-8 sm:h-8 flex-shrink-0 flex items-center justify-center rounded-full transition touch-manipulation focus-visible:outline-none focus-visible:ring-2 ${
           isChannel ? "focus-visible:ring-sky-400" : "focus-visible:ring-red-400"
         } ${
           isPrevDisabled
@@ -144,7 +144,7 @@ export const ChannelSourceSwitcher: React.FC<ChannelSourceSwitcherProps> = ({
         aria-label={listTitle}
         aria-expanded={isListOpen}
         aria-haspopup="listbox"
-        className={`h-full flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 rounded-full text-[11px] sm:text-xs font-semibold transition touch-manipulation focus-visible:outline-none focus-visible:ring-2 cursor-pointer ${
+        className={`h-full flex items-center gap-1 sm:gap-1.5 px-1.5 min-[360px]:px-2 sm:px-3 rounded-full text-[11px] sm:text-xs font-semibold transition touch-manipulation focus-visible:outline-none focus-visible:ring-2 cursor-pointer min-w-0 flex-1 overflow-hidden ${
           isChannel
             ? "focus-visible:ring-sky-400"
             : "focus-visible:ring-red-400"
@@ -163,13 +163,13 @@ export const ChannelSourceSwitcher: React.FC<ChannelSourceSwitcherProps> = ({
         )}
 
         {/* Tên kênh / nguồn rút gọn trên mobile, đầy đủ hơn trên desktop */}
-        <span className="max-w-[55px] min-[360px]:max-w-[75px] xs:max-w-[90px] sm:max-w-[130px] md:max-w-[180px] truncate leading-none">
+        <span className="max-w-[42px] min-[360px]:max-w-[65px] min-[390px]:max-w-[90px] sm:max-w-[130px] md:max-w-[180px] truncate leading-none">
           {currentName || (isChannel ? "Chọn kênh" : "Chọn nguồn")}
         </span>
 
         {/* Chỉ số thứ tự item/tổng: Mobile hiện gọn • 3/12, Desktop hiện • Kênh 3/12 hoặc • Nguồn 1/4 */}
         {totalCount > 0 && (
-          <span className="text-[10px] sm:text-[11px] font-mono text-gray-300 select-none whitespace-nowrap opacity-90">
+          <span className="text-[10px] sm:text-[11px] font-mono text-gray-300 select-none whitespace-nowrap opacity-90 shrink-0">
             <span className="hidden md:inline">
               • {isChannel ? "Kênh " : "Nguồn "}
             </span>
@@ -199,7 +199,7 @@ export const ChannelSourceSwitcher: React.FC<ChannelSourceSwitcherProps> = ({
         disabled={isNextDisabled}
         title={nextTitle}
         aria-label={nextTitle}
-        className={`w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-full transition touch-manipulation focus-visible:outline-none focus-visible:ring-2 ${
+        className={`w-7 h-7 sm:w-8 sm:h-8 flex-shrink-0 flex items-center justify-center rounded-full transition touch-manipulation focus-visible:outline-none focus-visible:ring-2 ${
           isChannel ? "focus-visible:ring-sky-400" : "focus-visible:ring-red-400"
         } ${
           isNextDisabled

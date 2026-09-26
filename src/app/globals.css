@@ -830,9 +830,6 @@ html[data-mode="dark"] .live-channel-active .live-channel-title {
     width: 0;
     height: 0;
   }
-  body {
-    overflow-x: hidden;
-  }
 }
 
 /* Text truncate với số dòng cụ thể */

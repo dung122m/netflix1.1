@@ -1565,9 +1565,11 @@ export function LiveTvClient({
               setShowControls(false);
             }}
             onDoubleClick={toggleFullscreen}
-            className={`relative w-full aspect-video lg:max-h-[calc(100vh-210px)] lg:max-w-[calc((100vh-210px)*16/9)] mx-auto bg-black rounded-2xl sm:rounded-3xl overflow-hidden border border-white/15 shadow-2xl group select-none ring-1 ring-white/10 outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black contain-paint isolate ${
-              showControls ? "cursor-default" : "cursor-none"
-            }`}
+            className={`relative w-full mx-auto bg-black transition-all duration-300 group select-none ring-1 ring-white/10 outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black contain-paint isolate ${
+              isFullscreen
+                ? "fixed inset-0 z-50 w-full h-full max-w-none max-h-none rounded-none aspect-auto border-none shadow-none p-0 m-0 overflow-hidden flex flex-col justify-center"
+                : "aspect-video lg:max-h-[calc(100vh-210px)] lg:max-w-[calc((100vh-210px)*16/9)] rounded-2xl sm:rounded-3xl overflow-hidden border border-white/15 shadow-2xl"
+            } ${showControls ? "cursor-default" : "cursor-none"}`}
           >
             <video
               ref={videoRef}
@@ -1737,15 +1739,21 @@ export function LiveTvClient({
 
             {/* THANH ĐIỀU KHIỂN DƯỚI ĐÁY */}
             <div
+              data-live-controls
               onClick={(e) => e.stopPropagation()}
-              className={`absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/95 via-black/70 to-transparent p-2.5 sm:p-4 flex items-center justify-between gap-2 z-30 transition-opacity duration-300 ${
+              className={`absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/95 via-black/70 to-transparent p-1.5 sm:p-4 pt-4 sm:pt-8 flex items-center justify-between gap-1 sm:gap-2 z-30 transition-opacity duration-300 ${
                 showControls
                   ? "opacity-100 pointer-events-auto"
                   : "opacity-0 pointer-events-none"
               }`}
+              style={{
+                paddingBottom: isFullscreen ? "max(0.75rem, env(safe-area-inset-bottom, 0.75rem))" : undefined,
+                paddingLeft: isFullscreen ? "max(0.75rem, env(safe-area-inset-left, 0.75rem))" : undefined,
+                paddingRight: isFullscreen ? "max(0.75rem, env(safe-area-inset-right, 0.75rem))" : undefined,
+              }}
             >
               {/* CỤM TRÁI: PLAY/PAUSE + ÂM LƯỢNG */}
-              <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0 flex-shrink">
+              <div className="flex items-center gap-1 sm:gap-2.5 min-w-0 shrink-0">
                 <button
                   type="button"
                   onClick={togglePlay}
@@ -1806,7 +1814,7 @@ export function LiveTvClient({
               </div>
 
               {/* CỤM PHẢI: BỘ CHỌN KÊNH THỐNG NHẤT + PHÍM TẮT GỢI Ý + PIP + FULLSCREEN */}
-              <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+              <div className="flex items-center gap-1 sm:gap-2 min-w-0 shrink">
                 {/* BỘ CHỌN KÊNH ĐỒNG BỘ: ‹ [TÊN KÊNH • KÊNH 3/12] ▾ › */}
                 <ChannelSourceSwitcher
                   type="channel"
@@ -2279,6 +2287,45 @@ export function LiveTvClient({
           )}
         </div>
       )}
+      <style>{`
+        :fullscreen,
+        :-webkit-full-screen {
+          width: 100vw !important;
+          height: 100vh !important;
+          max-width: 100vw !important;
+          max-height: 100vh !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          background: #000000 !important;
+          overflow: hidden !important;
+          border-radius: 0 !important;
+          border: none !important;
+          aspect-ratio: auto !important;
+        }
+        :fullscreen video,
+        :-webkit-full-screen video {
+          width: 100% !important;
+          height: 100% !important;
+          max-height: 100vh !important;
+          aspect-ratio: auto !important;
+          object-fit: contain !important;
+        }
+        :fullscreen iframe,
+        :-webkit-full-screen iframe {
+          width: 100% !important;
+          height: 100% !important;
+        }
+        :fullscreen [data-live-controls],
+        :-webkit-full-screen [data-live-controls] {
+          position: absolute !important;
+          inset-inline: 0 !important;
+          bottom: 0 !important;
+          z-index: 50 !important;
+          padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0.75rem)) !important;
+          padding-left: max(0.75rem, env(safe-area-inset-left, 0.75rem)) !important;
+          padding-right: max(0.75rem, env(safe-area-inset-right, 0.75rem)) !important;
+        }
+      `}</style>
     </div>
   );
 }

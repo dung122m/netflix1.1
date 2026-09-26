@@ -410,7 +410,7 @@ function MyListContent() {
       </div>
 
       {/* TAB SELECTOR: Segmented Control thiết kế phẳng trượt mượt trên mobile */}
-      <div className="-mx-4 px-4 sm:mx-0 sm:px-0 flex items-center gap-2 mb-6 overflow-x-auto scrollbar-none pb-1 touch-pan-x overscroll-x-contain no-scrollbar">
+      <div className="-mx-4 px-4 sm:mx-0 sm:px-0 flex items-center gap-2 mb-6 overflow-x-auto scrollbar-none pb-1 no-scrollbar">
         <button
           type="button"
           onClick={() => setActiveTab("watchlist")}

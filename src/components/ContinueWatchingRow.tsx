@@ -140,7 +140,7 @@ function ContinueWatchingRowInner() {
         {/* DANH SÁCH THẺ PHIM ĐÃ XEM (KHÔNG HIỂN THỊ THANH KÉO) */}
         <div
           ref={rowRef}
-          className="flex gap-3 sm:gap-4 overflow-x-auto py-2 scroll-smooth scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] touch-pan-x overscroll-x-contain"
+          className="flex gap-3 sm:gap-4 overflow-x-auto py-2 scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
         >
           {items.slice(0, 15).map((item) => {
             const href = item.episodeSlug

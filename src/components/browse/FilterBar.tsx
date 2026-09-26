@@ -250,7 +250,7 @@ export const FilterBar: React.FC = () => {
       <div
         className={`${
           isMobileExpanded || hasFilters ? "flex" : "hidden sm:flex"
-        } items-center gap-2 sm:gap-3 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pb-2 pt-1 touch-pan-x overscroll-x-contain sm:flex-wrap sm:overflow-visible w-full`}
+        } items-center gap-2 sm:gap-3 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pb-2 pt-1 sm:flex-wrap sm:overflow-visible w-full`}
       >
         {/* LOẠI PHIM */}
         <button

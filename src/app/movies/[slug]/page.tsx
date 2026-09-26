@@ -542,7 +542,7 @@ export default async function MovieDetail({
 
             {/* THANH NÚT TÁC VỤ (ACTION TOOLBAR) - TỐI ƯU GỌN GÀNG CHO MOBILE 390PX VÀ DESKTOP */}
             <div className="mt-4 sm:mt-5 pt-3.5 border-t border-white/10">
-              <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none pb-0.5 -mx-1 px-1 touch-pan-x">
+              <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none pb-0.5 -mx-1 px-1">
                 {/* Nút Xem Trailer */}
                 <TrailerModal trailerUrl={movie.trailer_url} title={title} />
 
