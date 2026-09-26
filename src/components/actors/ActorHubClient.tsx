@@ -9,33 +9,58 @@ import {
   Sparkles,
   Film,
   User,
-  ExternalLink,
   ChevronRight,
   Flame,
+  Globe,
 } from "lucide-react";
 import { ActorCatalogItem } from "@/data/actorsCatalog";
 import { normalizeForMatch } from "@/lib/stringUtils";
+import { PaginationControl } from "@/components/PaginationControl";
 
 interface ActorHubClientProps {
   initialActors: ActorCatalogItem[];
 }
 
 const COUNTRY_FILTERS = [
-  { code: "all", label: "Tất cả", flag: "🌎" },
-  { code: "vn", label: "Việt Nam", flag: "🇻🇳" },
-  { code: "kr", label: "Hàn Quốc", flag: "🇰🇷" },
-  { code: "hk", label: "Hồng Kông", flag: "🇭🇰" },
-  { code: "cn", label: "Trung Quốc", flag: "🇨🇳" },
-  { code: "us_uk", label: "Âu Mỹ", flag: "🇺🇸" },
-  { code: "jp", label: "Nhật Bản", flag: "🇯🇵" },
-  { code: "th", label: "Thái Lan", flag: "🇹🇭" },
+  { code: "all", label: "Tất cả" },
+  { code: "vn", label: "Việt Nam" },
+  { code: "cn", label: "Trung Quốc" },
+  { code: "hk", label: "Hồng Kông" },
+  { code: "kr", label: "Hàn Quốc" },
+  { code: "us_uk", label: "Âu Mỹ" },
+  { code: "jp", label: "Nhật Bản" },
+  { code: "th", label: "Thái Lan" },
+  { code: "in", label: "Ấn Độ" },
 ];
+
+const COUNTRY_NAME_MAP: Record<string, string> = {
+  us_uk: "Âu Mỹ",
+  kr: "Hàn Quốc",
+  hk: "Hồng Kông",
+  cn: "Trung Quốc",
+  jp: "Nhật Bản",
+  in: "Ấn Độ",
+  th: "Thái Lan",
+  vn: "Việt Nam",
+};
+
+const PAGE_SIZE = 24;
+
+function getPaginationPages(currentPage: number, totalPages: number): (number | string)[] {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, i) => i + 1);
+  }
+  if (currentPage <= 4) {
+    return [1, 2, 3, 4, 5, "...", totalPages];
+  }
+  if (currentPage >= totalPages - 3) {
+    return [1, "...", totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+  }
+  return [1, "...", currentPage - 1, currentPage, currentPage + 1, "...", totalPages];
+}
 
 /**
  * COMPONENT PORTRAIT CHÂN DUNG AN TOÀN VÀ TỐI ƯU
- * - next/image với sizes phù hợp tránh tải ảnh quá lớn
- * - Fallback avatar tinh tế nếu ảnh lỗi hoặc rỗng
- * - Priority cho 6 ảnh đầu tiên để tăng chỉ số LCP
  */
 const ActorPortrait: React.FC<{
   name: string;
@@ -71,12 +96,27 @@ const ActorPortrait: React.FC<{
 export const ActorHubClient: React.FC<ActorHubClientProps> = ({ initialActors }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCountry, setActiveCountry] = useState<string>("all");
+  const [currentPage, setCurrentPage] = useState(1);
   const [, startTransition] = useTransition();
 
   const handleCountryChange = (code: string) => {
     startTransition(() => {
       setActiveCountry(code);
+      setCurrentPage(1);
     });
+  };
+
+  const handleSearchChange = (val: string) => {
+    setSearchQuery(val);
+    setCurrentPage(1);
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    const el = document.getElementById("actor-catalog-heading");
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   };
 
   const filteredActors = useMemo(() => {
@@ -105,13 +145,17 @@ export const ActorHubClient: React.FC<ActorHubClientProps> = ({ initialActors })
     });
   }, [initialActors, searchQuery, activeCountry]);
 
-  // Featured stars (diễn viên tiêu biểu)
-  const featuredActors = useMemo(() => {
-    return initialActors.filter((a) => a.featured).slice(0, 8);
-  }, [initialActors]);
+  // Phân trang
+  const totalPages = Math.max(1, Math.ceil(filteredActors.length / PAGE_SIZE));
+  const paginationPages = useMemo(() => getPaginationPages(currentPage, totalPages), [currentPage, totalPages]);
+
+  const pagedActors = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return filteredActors.slice(start, start + PAGE_SIZE);
+  }, [filteredActors, currentPage]);
 
   return (
-    <div className="space-y-8 sm:space-y-12">
+    <div className="space-y-8 sm:space-y-10">
       {/* ============================================================ */}
       {/* SEARCH & FILTER BAR */}
       {/* ============================================================ */}
@@ -124,14 +168,14 @@ export const ActorHubClient: React.FC<ActorHubClientProps> = ({ initialActors })
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Tìm kiếm diễn viên, nghệ danh, đạo diễn (vd: Trấn Thành, Châu Tinh Trì, Tom Cruise)..."
+              onChange={(e) => handleSearchChange(e.target.value)}
+              placeholder="Tìm kiếm diễn viên, nghệ danh (vd: Trấn Thành, Châu Tinh Trì, Tom Cruise)..."
               className="w-full bg-transparent text-white placeholder-gray-500 text-xs sm:text-sm font-medium focus:outline-none"
             />
             {searchQuery && (
               <button
                 type="button"
-                onClick={() => setSearchQuery("")}
+                onClick={() => handleSearchChange("")}
                 className="p-1 rounded-full text-gray-400 hover:text-white hover:bg-white/10 transition cursor-pointer shrink-0 ml-2"
                 aria-label="Xóa tìm kiếm"
               >
@@ -142,7 +186,7 @@ export const ActorHubClient: React.FC<ActorHubClientProps> = ({ initialActors })
         </div>
 
         {/* BỘ LỌC QUỐC GIA (PILLS) */}
-        <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-none justify-start sm:justify-center">
+        <div className="flex items-center justify-start sm:justify-center gap-1.5 sm:gap-2 flex-wrap pt-1">
           {COUNTRY_FILTERS.map((item) => {
             const isActive = activeCountry === item.code;
             return (
@@ -153,10 +197,10 @@ export const ActorHubClient: React.FC<ActorHubClientProps> = ({ initialActors })
                 className={`flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-200 cursor-pointer ${
                   isActive
                     ? "bg-netflix-red text-white shadow-lg shadow-red-950/50 scale-[1.02]"
-                    : "bg-zinc-950/80 hover:bg-zinc-900 text-gray-300 border border-white/[0.08] hover:border-white/20"
+                    : "bg-zinc-900/90 hover:bg-zinc-800 text-gray-300 border border-white/[0.08] hover:border-white/20"
                 }`}
               >
-                <span>{item.flag}</span>
+                {item.code === "all" && <Globe className="w-3.5 h-3.5" />}
                 <span>{item.label}</span>
               </button>
             );
@@ -167,24 +211,37 @@ export const ActorHubClient: React.FC<ActorHubClientProps> = ({ initialActors })
       {/* ============================================================ */}
       {/* KẾT QUẢ / SỐ LƯỢNG */}
       {/* ============================================================ */}
-      <div className="flex items-center justify-between border-b border-white/[0.08] pb-4">
+      <div id="actor-catalog-heading" className="flex items-center justify-between border-b border-white/[0.08] pb-4 scroll-mt-24">
         <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-400">
           <Sparkles className="w-4 h-4 text-amber-400" />
           <span>
-            Hiển thị <strong className="text-white font-bold">{filteredActors.length}</strong> nghệ sĩ
-            {activeCountry !== "all" && (
-              <> thuộc khu vực <strong className="text-amber-300">{COUNTRY_FILTERS.find((c) => c.code === activeCountry)?.label}</strong></>
+            {filteredActors.length > 0 ? (
+              <>
+                Hiển thị <strong className="text-white font-bold">{pagedActors.length}</strong> / <strong className="text-white font-bold">{filteredActors.length}</strong> nghệ sĩ
+                {totalPages > 1 && (
+                  <span className="text-gray-400 font-normal"> (Trang {currentPage}/{totalPages})</span>
+                )}
+                {activeCountry !== "all" && (
+                  <> khu vực <strong className="text-amber-300">{COUNTRY_NAME_MAP[activeCountry] || activeCountry}</strong></>
+                )}
+              </>
+            ) : (
+              <span>Không tìm thấy nghệ sĩ phù hợp</span>
             )}
           </span>
         </div>
 
-        {searchQuery && (
+        {(searchQuery || activeCountry !== "all") && (
           <button
             type="button"
-            onClick={() => setSearchQuery("")}
-            className="text-xs text-netflix-red hover:underline font-semibold"
+            onClick={() => {
+              setSearchQuery("");
+              setActiveCountry("all");
+              setCurrentPage(1);
+            }}
+            className="text-xs text-netflix-red hover:underline font-semibold cursor-pointer"
           >
-            Xóa bộ lọc
+            Đặt lại bộ lọc
           </button>
         )}
       </div>
@@ -192,67 +249,83 @@ export const ActorHubClient: React.FC<ActorHubClientProps> = ({ initialActors })
       {/* ============================================================ */}
       {/* LƯỚI DIỄN VIÊN (ACTOR GRID) */}
       {/* ============================================================ */}
-      {filteredActors.length > 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-5">
-          {filteredActors.map((actor, index) => {
-            return (
-              <Link
-                key={actor.slug}
-                href={`/dien-vien/${actor.slug}`}
-                className="group relative flex flex-col rounded-2xl bg-zinc-950/80 border border-white/[0.08] hover:border-netflix-red/50 hover:bg-zinc-900/90 transition-all duration-300 overflow-hidden shadow-lg hover:shadow-2xl hover:-translate-y-1.5 cursor-pointer"
-              >
-                {/* PORTRAIT CONTAINER (TỶ LỆ 3:4) */}
-                <div className="relative aspect-[3/4] w-full bg-gradient-to-b from-zinc-900 to-zinc-950 overflow-hidden">
-                  <ActorPortrait
-                    name={actor.name}
-                    avatarUrl={actor.avatarUrl}
-                    priority={index < 6}
-                  />
+      {pagedActors.length > 0 ? (
+        <>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-5">
+            {pagedActors.map((actor, index) => {
+              const countryDisplay = COUNTRY_NAME_MAP[actor.countryCode] || actor.country.replace(/[^\p{L}\p{N}\s]/gu, "").trim();
 
-                  {/* GRADIENT OVERLAY */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/20 to-transparent opacity-80 group-hover:opacity-60 transition-opacity" />
+              return (
+                <Link
+                  key={actor.slug}
+                  href={`/dien-vien/${actor.slug}`}
+                  className="group relative flex flex-col rounded-2xl bg-zinc-950/80 border border-white/[0.08] hover:border-netflix-red/50 hover:bg-zinc-900/90 transition-all duration-300 overflow-hidden shadow-lg hover:shadow-2xl hover:-translate-y-1.5 cursor-pointer"
+                >
+                  {/* PORTRAIT CONTAINER (TỶ LỆ 3:4) */}
+                  <div className="relative aspect-[3/4] w-full bg-gradient-to-b from-zinc-900 to-zinc-950 overflow-hidden">
+                    <ActorPortrait
+                      name={actor.name}
+                      avatarUrl={actor.avatarUrl}
+                      priority={index < 6}
+                    />
 
-                  {/* COUNTRY BADGE GÓC TRÊN */}
-                  <div className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-lg bg-black/60 backdrop-blur-md border border-white/10 text-[10px] sm:text-[11px] font-semibold text-gray-200 flex items-center gap-1 shadow">
-                    <span>{actor.country}</span>
-                  </div>
+                    {/* GRADIENT OVERLAY */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/20 to-transparent opacity-80 group-hover:opacity-60 transition-opacity" />
 
-                  {/* FEATURED BADGE */}
-                  {actor.featured && (
-                    <div className="absolute top-2.5 right-2.5 p-1 rounded-lg bg-amber-500/20 backdrop-blur-md border border-amber-500/30 text-amber-300 shadow">
-                      <Flame className="w-3.5 h-3.5 animate-pulse" />
+                    {/* COUNTRY BADGE GÓC TRÊN */}
+                    <div className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-lg bg-black/60 backdrop-blur-md border border-white/10 text-[10px] sm:text-[11px] font-semibold text-gray-200 flex items-center gap-1 shadow">
+                      <span>{countryDisplay}</span>
                     </div>
-                  )}
-                </div>
 
-                {/* INFO BODY */}
-                <div className="p-3 sm:p-3.5 flex flex-col flex-1 justify-between gap-1.5">
-                  <div className="space-y-0.5">
-                    <h3 className="text-xs sm:text-sm font-black text-white group-hover:text-netflix-red transition-colors line-clamp-1">
-                      {actor.name}
-                    </h3>
-                    {actor.englishName && actor.englishName !== actor.name && (
-                      <p className="text-[10px] sm:text-[11px] text-gray-400 line-clamp-1">
-                        {actor.englishName}
-                      </p>
+                    {/* FEATURED BADGE */}
+                    {actor.featured && (
+                      <div className="absolute top-2.5 right-2.5 p-1 rounded-lg bg-amber-500/20 backdrop-blur-md border border-amber-500/30 text-amber-300 shadow">
+                        <Flame className="w-3.5 h-3.5 animate-pulse" />
+                      </div>
                     )}
                   </div>
 
-                  {actor.roles && (
-                    <p className="text-[10px] text-zinc-400 font-medium line-clamp-1 border-t border-white/[0.06] pt-1.5 mt-0.5">
-                      {actor.roles}
-                    </p>
-                  )}
+                  {/* INFO BODY */}
+                  <div className="p-3 sm:p-3.5 flex flex-col flex-1 justify-between gap-1.5">
+                    <div className="space-y-0.5">
+                      <h3 className="text-xs sm:text-sm font-black text-white group-hover:text-netflix-red transition-colors line-clamp-1">
+                        {actor.name}
+                      </h3>
+                      {actor.englishName && actor.englishName !== actor.name && (
+                        <p className="text-[10px] sm:text-[11px] text-gray-400 line-clamp-1">
+                          {actor.englishName}
+                        </p>
+                      )}
+                    </div>
 
-                  <div className="pt-1 flex items-center justify-between text-[10px] sm:text-[11px] text-netflix-red font-bold opacity-0 group-hover:opacity-100 transition-opacity">
-                    <span>Xem tác phẩm</span>
-                    <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                    {actor.roles && (
+                      <p className="text-[10px] text-zinc-400 font-medium line-clamp-1 border-t border-white/[0.06] pt-1.5 mt-0.5">
+                        {actor.roles}
+                      </p>
+                    )}
+
+                    <div className="pt-1 flex items-center justify-between text-[10px] sm:text-[11px] text-netflix-red font-bold opacity-0 group-hover:opacity-100 transition-opacity">
+                      <span>Xem tuyển tập phim</span>
+                      <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                    </div>
                   </div>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
+                </Link>
+              );
+            })}
+          </div>
+
+          {/* PAGINATION CONTROL (TÁI SỬ DỤNG BROWSE PATTERN) */}
+          {totalPages > 1 && (
+            <div className="pt-4">
+              <PaginationControl
+                currentPage={currentPage}
+                totalPages={totalPages}
+                pages={paginationPages}
+                onPageChange={handlePageChange}
+              />
+            </div>
+          )}
+        </>
       ) : (
         /* EMPTY STATE / EXTENDED SEARCH */
         <div className="py-12 px-6 rounded-3xl bg-zinc-950/60 border border-white/[0.08] text-center max-w-xl mx-auto space-y-4">
@@ -283,6 +356,7 @@ export const ActorHubClient: React.FC<ActorHubClientProps> = ({ initialActors })
               onClick={() => {
                 setSearchQuery("");
                 setActiveCountry("all");
+                setCurrentPage(1);
               }}
               className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-gray-200 text-xs font-semibold transition cursor-pointer"
             >
@@ -290,34 +364,6 @@ export const ActorHubClient: React.FC<ActorHubClientProps> = ({ initialActors })
             </button>
           </div>
         </div>
-      )}
-
-      {/* ============================================================ */}
-      {/* QUICK DISCOVERY CAROUSEL / ROW */}
-      {/* ============================================================ */}
-      {featuredActors.length > 0 && !searchQuery && activeCountry === "all" && (
-        <section className="pt-8 border-t border-white/[0.08] space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-white font-black text-sm sm:text-base">
-              <Flame className="w-4 h-4 text-netflix-red" />
-              <span>Nghệ Sĩ Được Tìm Kiếm Nhiều Nhất</span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2.5 sm:gap-3 overflow-x-auto pb-2 scrollbar-none">
-            {featuredActors.map((actor) => (
-              <Link
-                key={`pill-${actor.slug}`}
-                href={`/dien-vien/${actor.slug}`}
-                className="flex items-center gap-2 px-3 py-2 rounded-xl bg-zinc-950/70 hover:bg-zinc-900 border border-white/[0.08] hover:border-netflix-red/50 text-xs font-semibold text-gray-200 hover:text-white transition whitespace-nowrap shadow group"
-              >
-                <span>{actor.country.split(" ")[1] || "🎬"}</span>
-                <span className="group-hover:text-netflix-red transition-colors">{actor.name}</span>
-                <ExternalLink className="w-3 h-3 text-gray-500 group-hover:text-white transition-colors" />
-              </Link>
-            ))}
-          </div>
-        </section>
       )}
     </div>
   );

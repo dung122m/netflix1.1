@@ -14,6 +14,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { MovieGrid } from "@/components/MovieGrid";
+import { PaginationControl } from "@/components/PaginationControl";
 
 interface ActorDetailClientProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -23,6 +24,21 @@ interface ActorDetailClientProps {
   actorName: string;
 }
 
+const PAGE_SIZE = 24;
+
+function getPaginationPages(currentPage: number, totalPages: number): (number | string)[] {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, i) => i + 1);
+  }
+  if (currentPage <= 4) {
+    return [1, 2, 3, 4, 5, "...", totalPages];
+  }
+  if (currentPage >= totalPages - 3) {
+    return [1, "...", totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+  }
+  return [1, "...", currentPage - 1, currentPage, currentPage + 1, "...", totalPages];
+}
+
 export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
   movies,
   bioText,
@@ -30,6 +46,7 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
   actorName,
 }) => {
   const [activeTab, setActiveTab] = useState<"all" | "single" | "series">("all");
+  const [currentPage, setCurrentPage] = useState(1);
   const [isBioExpanded, setIsBioExpanded] = useState(false);
 
   // Phân loại phim lẻ / phim bộ
@@ -64,6 +81,28 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
     if (activeTab === "series") return seriesMovies;
     return movies;
   }, [activeTab, movies, singleMovies, seriesMovies]);
+
+  // Phân trang danh sách phim
+  const totalPages = Math.max(1, Math.ceil(displayedMovies.length / PAGE_SIZE));
+  const paginationPages = useMemo(() => getPaginationPages(currentPage, totalPages), [currentPage, totalPages]);
+
+  const pagedMovies = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return displayedMovies.slice(start, start + PAGE_SIZE);
+  }, [displayedMovies, currentPage]);
+
+  const handleTabChange = (tab: "all" | "single" | "series") => {
+    setActiveTab(tab);
+    setCurrentPage(1);
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    const el = document.getElementById("actor-filmography-heading");
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
 
   // Giới hạn hiển thị ban đầu của Bio
   const isBioLong = bioText && bioText.length > 280;
@@ -115,7 +154,7 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
       {/* ============================================================ */}
       {/* 2. SECTION PHIM CỦA DIỄN VIÊN */}
       {/* ============================================================ */}
-      <section className="space-y-6">
+      <section id="actor-filmography-heading" className="space-y-6 scroll-mt-24">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/[0.08] pb-4">
           <div className="space-y-1">
             <h2 className="text-lg sm:text-2xl font-black text-white tracking-tight flex items-center gap-2.5">
@@ -123,7 +162,7 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
               <span>Tuyển Tập Phim Của {actorName}</span>
             </h2>
             <p className="text-xs sm:text-sm text-gray-400">
-              Tổng hợp {movies.length} tác phẩm đã được đối chiếu nguồn phát trên Nanaflix
+              Tổng hợp {displayedMovies.length} tác phẩm {totalPages > 1 ? `(Trang ${currentPage} / ${totalPages})` : ""} đã được đối chiếu nguồn phát trên Nanaflix
             </p>
           </div>
 
@@ -132,7 +171,7 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
             <div className="flex items-center gap-1.5 p-1 rounded-xl bg-zinc-900 border border-white/10 self-start sm:self-auto">
               <button
                 type="button"
-                onClick={() => setActiveTab("all")}
+                onClick={() => handleTabChange("all")}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                   activeTab === "all"
                     ? "bg-netflix-red text-white shadow-md"
@@ -146,7 +185,7 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
               {singleMovies.length > 0 && (
                 <button
                   type="button"
-                  onClick={() => setActiveTab("single")}
+                  onClick={() => handleTabChange("single")}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                     activeTab === "single"
                       ? "bg-netflix-red text-white shadow-md"
@@ -161,7 +200,7 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
               {seriesMovies.length > 0 && (
                 <button
                   type="button"
-                  onClick={() => setActiveTab("series")}
+                  onClick={() => handleTabChange("series")}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                     activeTab === "series"
                       ? "bg-netflix-red text-white shadow-md"
@@ -177,8 +216,18 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
         </div>
 
         {/* LƯỚI PHIM MOVIEGRID */}
-        {displayedMovies.length > 0 ? (
-          <MovieGrid movies={displayedMovies} />
+        {pagedMovies.length > 0 ? (
+          <>
+            <MovieGrid movies={pagedMovies} />
+            {totalPages > 1 && (
+              <PaginationControl
+                currentPage={currentPage}
+                totalPages={totalPages}
+                pages={paginationPages}
+                onPageChange={handlePageChange}
+              />
+            )}
+          </>
         ) : (
           <div className="py-16 px-6 rounded-3xl bg-zinc-950/60 border border-white/[0.08] text-center max-w-xl mx-auto space-y-4">
             <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center mx-auto">

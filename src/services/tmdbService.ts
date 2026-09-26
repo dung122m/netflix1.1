@@ -4,6 +4,7 @@ import https from "https";
 import { cacheService } from "@/lib/cache";
 import { normalizeForMatch as cleanStringForMatch } from "@/lib/stringUtils";
 import { IMDB_TOP_250_SNAPSHOT } from "@/data/imdb/imdbTop250";
+import { getActorBySlug } from "@/data/actorsCatalog";
 
 // =========================================================================
 // CẤU HÌNH TMDB API (LẤY TỪ BIẾN MÔI TRƯỜNG, BẢO MẬT PHÍA SERVER)
@@ -576,12 +577,34 @@ async function runWithConcurrencyLimit<T, R>(
 export async function matchTmdbMoviesWithSources(
   credits: TmdbMovieCredit[],
   maxCheckCount = 80,
-  concurrency = 8
+  concurrency = 16
 ): Promise<any[]> {
   if (!credits || credits.length === 0) return [];
 
   const tStart = performance.now();
-  const candidateCredits = credits.slice(0, maxCheckCount);
+  const currentYear = new Date().getFullYear();
+
+  // Lọc an toàn các credit rõ ràng không khả dụng:
+  // - Phim có năm phát hành trong tương lai (release_year > current_year)
+  // - Credit không có cả title lẫn original_title
+  // - Title hoặc original_title có độ dài dưới 2 ký tự
+  const validCredits = credits.filter((credit) => {
+    if (!credit) return false;
+    const title = (credit.title || "").trim();
+    const origTitle = (credit.original_title || "").trim();
+    if (!title && !origTitle) return false;
+    if (title.length < 2 && origTitle.length < 2) return false;
+
+    if (credit.release_date) {
+      const year = parseInt(credit.release_date.slice(0, 4), 10);
+      if (!isNaN(year) && year > currentYear) {
+        return false;
+      }
+    }
+    return true;
+  });
+
+  const candidateCredits = validCredits.slice(0, maxCheckCount);
 
   const matchedMovies: any[] = [];
   const seenSlugs = new Set<string>();
@@ -815,7 +838,8 @@ export async function getActorFilmographyFromTmdb(
   canonicalName?: string,
   aliases: string[] = [],
   maxMovies = 250,
-  concurrency = 8
+  concurrency = 16,
+  tmdbPersonId?: number
 ): Promise<any[]> {
   const cleanKey = cleanStringForMatch(actorQuery) || cleanStringForMatch(canonicalName);
   if (!cleanKey) return [];
@@ -831,7 +855,7 @@ export async function getActorFilmographyFromTmdb(
     if (cached.staleUntil > now) {
       // Revalidate ngầm
       setTimeout(() => {
-        executeTmdbActorFlow(actorQuery, canonicalName, aliases, cacheKey, maxMovies, concurrency).catch(() => {});
+        executeTmdbActorFlow(actorQuery, canonicalName, aliases, cacheKey, maxMovies, concurrency, tmdbPersonId).catch(() => {});
       }, 100);
       return cached.data.slice(0, maxMovies);
     }
@@ -840,7 +864,7 @@ export async function getActorFilmographyFromTmdb(
   const kvKey = `tmdb:actor_flow_v3:${cleanKey}:${maxMovies}`;
   return await cacheService.fetchOrSet(
     kvKey,
-    () => executeTmdbActorFlow(actorQuery, canonicalName, aliases, cacheKey, maxMovies, concurrency),
+    () => executeTmdbActorFlow(actorQuery, canonicalName, aliases, cacheKey, maxMovies, concurrency, tmdbPersonId),
     14 * 86400 // 14 ngày
   );
 }
@@ -851,22 +875,41 @@ async function executeTmdbActorFlow(
   aliases: string[],
   cacheKey: string,
   maxMovies = 250,
-  concurrency = 8
+  concurrency = 16,
+  tmdbPersonId?: number
 ): Promise<any[]> {
   const tTotalStart = performance.now();
   try {
-    // 1. Tìm diễn viên trên TMDB
-    const tPersonStart = performance.now();
-    const person = await searchTmdbPerson(actorQuery, canonicalName, aliases);
-    const tPersonEnd = performance.now();
+    let personId = tmdbPersonId;
+    let personName = canonicalName || actorQuery;
 
-    if (!person || !person.id) {
-      return [];
+    // Nếu chưa có tmdbPersonId truyền vào, thử tra cứu từ actorsCatalog
+    if (!personId) {
+      const catalogItem = getActorBySlug(actorQuery) || (canonicalName ? getActorBySlug(canonicalName) : undefined);
+      if (catalogItem?.tmdbPersonId) {
+        personId = catalogItem.tmdbPersonId;
+        personName = catalogItem.name;
+      }
+    }
+
+    // 1. Tìm diễn viên trên TMDB nếu chưa có tmdbPersonId
+    let tPersonStart = 0;
+    let tPersonEnd = 0;
+    if (!personId) {
+      tPersonStart = performance.now();
+      const person = await searchTmdbPerson(actorQuery, canonicalName, aliases);
+      tPersonEnd = performance.now();
+
+      if (!person || !person.id) {
+        return [];
+      }
+      personId = person.id;
+      personName = person.name;
     }
 
     // 2. Lấy danh sách phim mà diễn viên tham gia từ TMDB
     const tCreditsStart = performance.now();
-    const credits = await getTmdbPersonMovieCredits(person.id);
+    const credits = await getTmdbPersonMovieCredits(personId);
     const tCreditsEnd = performance.now();
 
     if (!credits || credits.length === 0) {
@@ -880,8 +923,9 @@ async function executeTmdbActorFlow(
     const tMatchEnd = performance.now();
 
     const tTotalEnd = performance.now();
+    const personTiming = tPersonEnd > 0 ? `${(tPersonEnd - tPersonStart).toFixed(0)}ms` : "0ms (bypassed)";
     console.log(
-      `[TMDB Actor Flow: ${person.name}] Person: ${(tPersonEnd - tPersonStart).toFixed(0)}ms | Credits: ${(tCreditsEnd - tCreditsStart).toFixed(0)}ms | Sources Match: ${(tMatchEnd - tMatchStart).toFixed(0)}ms | Total: ${(tTotalEnd - tTotalStart).toFixed(0)}ms`
+      `[TMDB Actor Flow: ${personName}] Person: ${personTiming} | Credits: ${(tCreditsEnd - tCreditsStart).toFixed(0)}ms | Sources Match: ${(tMatchEnd - tMatchStart).toFixed(0)}ms | Total: ${(tTotalEnd - tTotalStart).toFixed(0)}ms`
     );
 
     // Lưu cache 2 giờ tươi, 24 giờ stale

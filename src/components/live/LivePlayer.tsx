@@ -2388,17 +2388,17 @@ function LivePlayerInner({
                       /* eslint-disable-next-line @next/next/no-img-element */
                       <img
                         src={homeLogoSrc}
-                        alt={team1 || "Đội nhà"}
+                        alt=""
                         className="w-full h-full object-contain filter drop-shadow-xl"
                         onError={() => setHomeImgError(true)}
                         referrerPolicy="no-referrer"
                       />
                     ) : (
-                      <div className="flex flex-col items-center justify-center">
-                        <span className="text-base sm:text-xl font-black text-rose-400 tracking-wider">
+                      <div className="flex flex-col items-center justify-center w-full h-full bg-zinc-900/90 rounded-xl p-1 select-none">
+                        <span className="text-sm sm:text-base md:text-lg font-black text-rose-400 tracking-wider">
                           {getTeamInitials(team1)}
                         </span>
-                        <span className="text-[7px] sm:text-[8px] uppercase tracking-widest text-gray-400 font-bold">
+                        <span className="text-[7px] sm:text-[8px] uppercase tracking-widest text-zinc-400 font-bold">
                           CLB
                         </span>
                       </div>
@@ -2436,17 +2436,17 @@ function LivePlayerInner({
                       /* eslint-disable-next-line @next/next/no-img-element */
                       <img
                         src={awayLogoSrc}
-                        alt={team2 || "Đội khách"}
+                        alt=""
                         className="w-full h-full object-contain filter drop-shadow-xl"
                         onError={() => setAwayImgError(true)}
                         referrerPolicy="no-referrer"
                       />
                     ) : (
-                      <div className="flex flex-col items-center justify-center">
-                        <span className="text-base sm:text-xl font-black text-sky-400 tracking-wider">
+                      <div className="flex flex-col items-center justify-center w-full h-full bg-zinc-900/90 rounded-xl p-1 select-none">
+                        <span className="text-sm sm:text-base md:text-lg font-black text-sky-400 tracking-wider">
                           {getTeamInitials(team2)}
                         </span>
-                        <span className="text-[7px] sm:text-[8px] uppercase tracking-widest text-gray-400 font-bold">
+                        <span className="text-[7px] sm:text-[8px] uppercase tracking-widest text-zinc-400 font-bold">
                           CLB
                         </span>
                       </div>

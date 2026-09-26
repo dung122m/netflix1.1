@@ -248,7 +248,7 @@ export default function AboutPage() {
                   </div>
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 text-xs font-semibold">
                     <Sparkles size={12} />
-                    <span>Tác giả Nanaflix</span>
+                    <span>Founder & Creator</span>
                   </div>
                 </div>
               </div>

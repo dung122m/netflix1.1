@@ -14,21 +14,126 @@ import {
   LifeBuoy,
   Play,
   Film,
+  BookOpen,
+  Smartphone,
+  Cast,
+  Keyboard,
+  RefreshCw,
+  CheckCircle2,
 } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 
 interface FAQItem {
   id: string;
-  category: "player" | "account" | "ai" | "privacy";
+  category: "guide" | "player" | "account" | "ai" | "privacy";
   categoryLabel: string;
   question: string;
   answer: string;
   tips?: string;
 }
 
+const QUICK_GUIDES = [
+  {
+    id: "guide-pwa",
+    icon: Smartphone,
+    color: "text-rose-400",
+    bgColor: "bg-rose-500/10 border-rose-500/20",
+    badge: "iOS & Android",
+    title: "Cài đặt App lên Điện Thoại (PWA)",
+    summary: "Xem phim toàn màn hình không viền trình duyệt, mở nhanh từ màn hình chính như ứng dụng gốc.",
+    steps: [
+      {
+        device: "Dành cho iPhone (Safari):",
+        desc: "Mở Nanaflix trên Safari → Bấm nút Chia sẻ (biểu tượng ô vuông mũi tên lên ở đáy) → Cuộn xuống chọn 'Thêm vào MH chính' (Add to Home Screen).",
+      },
+      {
+        device: "Dành cho Android (Chrome):",
+        desc: "Mở Nanaflix trên Chrome → Bấm biểu tượng 3 chấm (⋮) ở góc trên → Chọn 'Cài đặt ứng dụng' hoặc bấm nút 'Cài đặt PWA' ở menu dưới chân trang.",
+      },
+    ],
+  },
+  {
+    id: "guide-tv",
+    icon: Cast,
+    color: "text-amber-400",
+    bgColor: "bg-amber-500/10 border-amber-500/20",
+    badge: "Smart TV & AirPlay",
+    title: "Truyền Phim Lên Màn Hình Lớn (TV)",
+    summary: "Thưởng thức chất lượng điện ảnh trên TV phòng khách cùng gia đình dễ dàng.",
+    steps: [
+      {
+        device: "Cách 1: AirPlay / Chromecast (Khuyên dùng)",
+        desc: "Kết nối điện thoại và Smart TV vào cùng một mạng Wi-Fi. Khi phát video, bấm vào biểu tượng Cast hoặc AirPlay trên trình phát để truyền hình ảnh.",
+      },
+      {
+        device: "Cách 2: Trình duyệt trên Smart TV",
+        desc: "Mở ứng dụng Web Browser trên TV (Samsung Tizen, LG webOS, Android TV, Sony), gõ địa chỉ Nanaflix và bấm F11 / Toàn màn hình để xem trực tiếp.",
+      },
+    ],
+  },
+  {
+    id: "guide-shortcuts",
+    icon: Keyboard,
+    color: "text-blue-400",
+    bgColor: "bg-blue-500/10 border-blue-500/20",
+    badge: "Bàn phím Máy tính",
+    title: "Bảng Phím Tắt Điều Khiển Nhanh",
+    summary: "Thao tác mượt mà như xem trên YouTube / Netflix mà không cần chạm chuột.",
+    shortcuts: [
+      { key: "Space / K", desc: "Tạm dừng / Tiếp tục phát" },
+      { key: "← / →", desc: "Tua lùi / Tua tới 5 giây" },
+      { key: "↑ / ↓", desc: "Tăng / Giảm âm lượng 10%" },
+      { key: "F", desc: "Bật / Tắt Toàn màn hình" },
+      { key: "T", desc: "Chế độ rạp chiếu (Theater Mode)" },
+      { key: "M", desc: "Tắt / Bật nhanh âm thanh (Mute)" },
+    ],
+  },
+  {
+    id: "guide-sync",
+    icon: RefreshCw,
+    color: "text-emerald-400",
+    bgColor: "bg-emerald-500/10 border-emerald-500/20",
+    badge: "Đa thiết bị",
+    title: "Đồng Bộ Tiến Trình & Xem Tiếp",
+    summary: "Đang xem dở trên laptop, tối lên giường mở điện thoại là xem tiếp đúng giây đó.",
+    steps: [
+      {
+        device: "Bước 1: Đăng nhập tài khoản",
+        desc: "Bấm 'Đăng nhập' ở góc trên bằng tài khoản Google hoặc Email của bạn.",
+      },
+      {
+        device: "Bước 2: Hệ thống tự động ghi nhớ",
+        desc: "Khi bạn xem phim, hệ thống tự động lưu lại vị trí từng giây và tập phim hiện tại lên đám mây.",
+      },
+      {
+        device: "Bước 3: Mở thiết bị khác xem tiếp",
+        desc: "Đăng nhập cùng tài khoản trên điện thoại hoặc TV, hàng 'Tiếp tục xem' ở trang chủ sẽ hiển thị ngay bộ phim bạn đang xem dở.",
+      },
+    ],
+  },
+];
+
 const FAQ_DATA: FAQItem[] = [
-  // 1. Trình phát & Video
+  // 1. Hướng dẫn & Sử dụng
+  {
+    id: "g1",
+    category: "guide",
+    categoryLabel: "Hướng Dẫn & Sử Dụng",
+    question: "Làm sao để tìm phim nhanh hoặc lọc theo năm, quốc gia?",
+    answer:
+      "Bạn có thể bấm vào mục 'Khám Phá' trên thanh menu hoặc dùng tổ hợp phím Ctrl + K (trên máy tính) để mở thanh tìm kiếm thông minh. Ngoài ra, trang /browse có sẵn bộ lọc đa chiều theo Thể loại, Quốc gia, Năm phát hành và Trạng thái phim (hoàn thành/đang chiếu).",
+  },
+  {
+    id: "g2",
+    category: "guide",
+    categoryLabel: "Hướng Dẫn & Sử Dụng",
+    question: "Làm thế nào để tạo bộ sưu tập phim yêu thích riêng của mình?",
+    answer:
+      "Khi mở xem chi tiết một bộ phim bất kỳ, bạn chỉ cần bấm nút 'Lưu vào danh sách' (biểu tượng Dấu trang). Bộ phim sẽ ngay lập tức được lưu vào trang 'Danh sách của tôi' (/my-list) để bạn tiện theo dõi sau này.",
+  },
+
+  // 2. Trình phát & Video
   {
     id: "p1",
     category: "player",
@@ -50,30 +155,14 @@ const FAQ_DATA: FAQItem[] = [
     id: "p3",
     category: "player",
     categoryLabel: "Trình Phát & Video",
-    question: "Các phím tắt điều khiển trên bàn phím là gì?",
-    answer:
-      "Khi xem phim trên máy tính, bạn có thể sử dụng các phím tắt tiện lợi: Phím Space / K (Tạm dừng/Phát), Phím F (Toàn màn hình), Phím M (Bật/Tắt tiếng), Mũi tên Trái/Phải (Tua lùi/Tua tới 5s), Mũi tên Lên/Xuống (Tăng/Giảm âm lượng), Phím T (Bật chế độ rạp chiếu Theater Mode).",
-  },
-  {
-    id: "p4",
-    category: "player",
-    categoryLabel: "Trình Phát & Video",
     question: "Nếu video bị mất tiếng hoặc lệch phụ đề thì xử lý thế nào?",
     answer:
       "Một số trình duyệt có thể tắt tiếng mặc định khi phát tự động. Bạn chỉ cần bấm vào biểu tượng Loa ở góc dưới video để bật âm thanh. Nếu phụ đề bị lệch, hãy thử chuyển sang Server phát dự phòng khác trong danh sách.",
   },
 
-  // 2. Tài khoản & Đồng bộ
+  // 3. Tài khoản & Đồng bộ
   {
     id: "a1",
-    category: "account",
-    categoryLabel: "Tài Khoản & Đồng Bộ",
-    question: "Làm thế nào để tiếp tục xem phim dở giữa điện thoại và máy tính?",
-    answer:
-      "Bạn chỉ cần đăng nhập cùng một tài khoản (qua Google hoặc Email). Hệ thống sẽ tự động ghi nhớ giây xem dở và tập phim hiện tại lên đám mây, giúp mục 'Tiếp tục xem' hiển thị chuẩn xác ngay khi bạn đổi thiết bị.",
-  },
-  {
-    id: "a2",
     category: "account",
     categoryLabel: "Tài Khoản & Đồng Bộ",
     question: "Tôi không có tài khoản có xem phim được không?",
@@ -81,7 +170,7 @@ const FAQ_DATA: FAQItem[] = [
       "Hoàn toàn được! Bạn có thể xem phim ngay lập tức dưới tư cách Khách (Guest) mà không bắt buộc phải đăng nhập. Tuy nhiên, khi đăng nhập tài khoản, bạn sẽ có thêm các tính năng cao cấp như: Đồng bộ lịch sử xem qua đám mây, Tạo danh sách phim yêu thích, Đánh giá phim và Lưu cấu hình phụ đề riêng.",
   },
   {
-    id: "a3",
+    id: "a2",
     category: "account",
     categoryLabel: "Tài Khoản & Đồng Bộ",
     question: "Làm thế nào để xóa phim khỏi danh sách xem tiếp hoặc danh sách yêu thích?",
@@ -89,7 +178,7 @@ const FAQ_DATA: FAQItem[] = [
       "Tại hàng 'Tiếp tục xem' hoặc trang 'Danh sách của tôi' (/my-list), bạn chỉ cần di chuột hoặc chạm vào nút Thùng rác (Xóa) trên thẻ phim đó để gỡ bỏ ngay lập tức.",
   },
 
-  // 3. Trợ lý AI Nana
+  // 4. Trợ lý AI Nana
   {
     id: "ai1",
     category: "ai",
@@ -107,7 +196,7 @@ const FAQ_DATA: FAQItem[] = [
       "Hệ thống phân tích các thể loại, quốc gia và diễn viên từ những bộ phim bạn đã xem để tự động gợi ý các tác phẩm có điểm tương đồng cao nhất tại mục 'Dành Riêng Cho Bạn' (For You) trên trang chủ.",
   },
 
-  // 4. Bảo mật & Chi phí
+  // 5. Bảo mật & Chi phí
   {
     id: "sec1",
     category: "privacy",
@@ -127,7 +216,8 @@ const FAQ_DATA: FAQItem[] = [
 ];
 
 const CATEGORIES = [
-  { id: "all", label: "Tất cả câu hỏi", icon: Sparkles },
+  { id: "all", label: "Tất cả", icon: Sparkles },
+  { id: "guide", label: "📖 Hướng Dẫn Nhanh", icon: BookOpen },
   { id: "player", label: "Trình phát & Video", icon: Tv },
   { id: "account", label: "Tài khoản & Đồng bộ", icon: MonitorSmartphone },
   { id: "ai", label: "Trợ lý AI Nana", icon: Bot },
@@ -137,7 +227,9 @@ const CATEGORIES = [
 export default function FAQPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [openGuideId, setOpenGuideId] = useState<string | null>("guide-pwa");
   const [openItems, setOpenItems] = useState<Record<string, boolean>>({
+    g1: true,
     p1: true,
     a1: true,
     sec1: true,
@@ -167,21 +259,21 @@ export default function FAQPage() {
       {/* AMBIENT GLOW */}
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[500px] bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(229,9,20,0.12),rgba(0,0,0,0))] pointer-events-none -z-10" />
 
-      <main className="flex-1 pt-28 sm:pt-32 pb-24 px-4 sm:px-8 md:px-12 max-w-5xl mx-auto w-full space-y-12 sm:space-y-16">
+      <main className="flex-1 pt-28 sm:pt-32 pb-24 px-4 sm:px-8 md:px-12 max-w-6xl mx-auto w-full space-y-14 sm:space-y-20">
         
         {/* ================= HERO HEADER ================= */}
         <section className="text-center space-y-6">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-xs font-semibold text-gray-300 backdrop-blur-xl shadow-sm">
             <HelpCircle size={14} className="text-netflix-red" />
-            <span>Trung Tâm Hỗ Trợ & Giải Đáp</span>
+            <span>Trung Tâm Trợ Giúp & Hướng Dẫn Sử Dụng</span>
           </div>
 
           <div className="space-y-3 max-w-2xl mx-auto">
-            <h1 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight text-white">
-              Câu Hỏi <span className="text-netflix-red">Thường Gặp</span>
+            <h1 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight text-white leading-tight">
+              Hướng Dẫn & <span className="text-netflix-red">Hỏi Đáp</span>
             </h1>
             <p className="text-sm sm:text-base text-gray-400 font-normal leading-relaxed">
-              Tất cả những điều bạn cần biết về trải nghiệm xem phim, tính năng đồng bộ và công nghệ tại Nanaflix.
+              Bí kíp sử dụng các tính năng cao cấp, mẹo xem phim mượt mà và giải đáp toàn bộ thắc mắc về Nanaflix.
             </p>
           </div>
 
@@ -193,14 +285,14 @@ export default function FAQPage() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Tìm kiếm câu hỏi (ví dụ: lag, đồng bộ, 4k, phím tắt...)"
+                placeholder="Tìm kiếm hướng dẫn (ví dụ: cài app, xem trên TV, phím tắt, lag...)"
                 className="w-full pl-11 pr-4 py-3.5 rounded-2xl bg-zinc-950/80 border border-white/[0.1] focus:border-netflix-red/60 focus:bg-black text-sm text-white placeholder-gray-500 focus:outline-none transition-all shadow-2xl backdrop-blur-xl"
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery("")}
-                  className="absolute right-3.5 px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-xs text-gray-400 hover:text-white transition"
+                  className="absolute right-3.5 px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-xs text-gray-400 hover:text-white transition cursor-pointer"
                 >
                   Xóa
                 </button>
@@ -209,86 +301,88 @@ export default function FAQPage() {
           </div>
         </section>
 
-        {/* ================= CATEGORY TABS ================= */}
-        <section className="flex items-center justify-center gap-2 flex-wrap pb-2">
-          {CATEGORIES.map((cat) => {
-            const Icon = cat.icon;
-            const active = selectedCategory === cat.id;
-            return (
-              <button
-                key={cat.id}
-                type="button"
-                onClick={() => setSelectedCategory(cat.id)}
-                className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-                  active
-                    ? "bg-netflix-red text-white shadow-lg shadow-red-950/50 scale-[1.02]"
-                    : "bg-zinc-900/60 hover:bg-zinc-900 text-gray-400 hover:text-white border border-white/[0.06]"
-                }`}
-              >
-                <Icon size={14} />
-                <span>{cat.label}</span>
-              </button>
-            );
-          })}
-        </section>
-
-        {/* ================= ACCORDION LIST ================= */}
-        <section className="space-y-4">
-          {filteredFAQs.length === 0 ? (
-            <div className="p-12 text-center rounded-3xl bg-zinc-950/60 border border-white/[0.08] text-gray-400 space-y-3">
-              <HelpCircle size={32} className="mx-auto text-gray-500 opacity-60" />
-              <p className="text-sm font-medium">Không tìm thấy câu hỏi phù hợp với từ khóa &ldquo;{searchQuery}&rdquo;.</p>
-              <button
-                type="button"
-                onClick={() => {
-                  setSearchQuery("");
-                  setSelectedCategory("all");
-                }}
-                className="text-xs text-netflix-red hover:underline font-semibold"
-              >
-                Xem tất cả câu hỏi
-              </button>
+        {/* ================= 4 INTERACTIVE QUICK GUIDES ================= */}
+        {(!searchQuery || searchQuery.length === 0) && (selectedCategory === "all" || selectedCategory === "guide") && (
+          <section className="space-y-6">
+            <div className="flex items-center justify-between border-b border-white/[0.08] pb-4">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-netflix-red">
+                <BookOpen size={16} />
+                <span>Hướng Dẫn Thao Tác Nhanh</span>
+              </div>
+              <span className="text-xs text-gray-500 font-mono">4 Hướng Dẫn Cốt Lõi</span>
             </div>
-          ) : (
-            <div className="space-y-3.5">
-              {filteredFAQs.map((faq) => {
-                const isOpen = Boolean(openItems[faq.id]);
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+              {QUICK_GUIDES.map((guide) => {
+                const Icon = guide.icon;
+                const isExpanded = openGuideId === guide.id;
+
                 return (
                   <div
-                    key={faq.id}
-                    className={`rounded-2xl bg-zinc-950/80 border transition-all duration-300 overflow-hidden backdrop-blur-xl ${
-                      isOpen ? "border-white/20 shadow-xl bg-zinc-900/40" : "border-white/[0.08] hover:border-white/15"
+                    key={guide.id}
+                    className={`p-6 sm:p-7 rounded-3xl bg-zinc-950/80 border transition-all duration-300 backdrop-blur-xl space-y-4 ${
+                      isExpanded
+                        ? "border-white/25 shadow-2xl bg-zinc-900/40"
+                        : "border-white/[0.08] hover:border-white/15"
                     }`}
                   >
-                    <button
-                      type="button"
-                      onClick={() => toggleItem(faq.id)}
-                      className="w-full p-5 sm:p-6 text-left flex items-start justify-between gap-4 cursor-pointer select-none"
-                    >
-                      <div className="space-y-1 min-w-0">
-                        <span className="text-[10px] font-mono text-netflix-red font-bold uppercase tracking-wider">
-                          {faq.categoryLabel}
-                        </span>
-                        <h3 className="text-sm sm:text-base font-bold text-white leading-snug">
-                          {faq.question}
-                        </h3>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2.5 rounded-2xl ${guide.bgColor} ${guide.color} flex-shrink-0`}>
+                          <Icon size={20} />
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-white/[0.05] border border-white/[0.08] text-gray-300">
+                            {guide.badge}
+                          </span>
+                          <h3 className="text-base font-bold text-white mt-1">{guide.title}</h3>
+                        </div>
                       </div>
-                      <div
-                        className={`p-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-gray-400 flex-shrink-0 transition-transform duration-300 ${
-                          isOpen ? "rotate-180 bg-netflix-red/20 text-netflix-red border-red-500/30" : ""
+
+                      <button
+                        type="button"
+                        onClick={() => setOpenGuideId(isExpanded ? null : guide.id)}
+                        className={`p-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-gray-400 hover:text-white transition-transform cursor-pointer ${
+                          isExpanded ? "rotate-180 bg-netflix-red/20 text-netflix-red border-red-500/30" : ""
                         }`}
+                        title={isExpanded ? "Thu gọn" : "Xem chi tiết"}
                       >
                         <ChevronDown size={16} />
-                      </div>
-                    </button>
+                      </button>
+                    </div>
 
-                    {isOpen && (
-                      <div className="px-5 sm:px-6 pb-6 pt-1 space-y-3 text-xs sm:text-sm text-gray-300 leading-relaxed border-t border-white/[0.05]">
-                        <p>{faq.answer}</p>
-                        {faq.tips && (
-                          <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-start gap-2.5">
-                            <Sparkles size={14} className="text-amber-400 flex-shrink-0 mt-0.5" />
-                            <span>{faq.tips}</span>
+                    <p className="text-xs text-gray-400 leading-relaxed">{guide.summary}</p>
+
+                    {/* Expandable Steps or Shortcuts */}
+                    {isExpanded && (
+                      <div className="pt-3 border-t border-white/[0.06] space-y-3 animate-fadeIn">
+                        {guide.steps && (
+                          <div className="space-y-2.5">
+                            {guide.steps.map((s, idx) => (
+                              <div key={idx} className="p-3.5 rounded-2xl bg-black/50 border border-white/[0.05] space-y-1">
+                                <div className="text-xs font-bold text-gray-200 flex items-center gap-1.5">
+                                  <CheckCircle2 size={13} className="text-emerald-400 shrink-0" />
+                                  <span>{s.device}</span>
+                                </div>
+                                <div className="text-[11px] text-gray-400 leading-relaxed pl-5">{s.desc}</div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {guide.shortcuts && (
+                          <div className="grid grid-cols-2 gap-2 pt-1">
+                            {guide.shortcuts.map((sc, idx) => (
+                              <div
+                                key={idx}
+                                className="p-2.5 rounded-xl bg-black/50 border border-white/[0.05] flex items-center justify-between gap-2 text-xs"
+                              >
+                                <span className="text-[11px] text-gray-400">{sc.desc}</span>
+                                <kbd className="px-2 py-0.5 rounded bg-zinc-800 border border-white/10 text-white font-mono text-[10px] font-bold shrink-0">
+                                  {sc.key}
+                                </kbd>
+                              </div>
+                            ))}
                           </div>
                         )}
                       </div>
@@ -297,7 +391,100 @@ export default function FAQPage() {
                 );
               })}
             </div>
-          )}
+          </section>
+        )}
+
+        {/* ================= CATEGORY TABS ================= */}
+        <section className="space-y-6">
+          <div className="flex items-center justify-center gap-2 flex-wrap pb-2">
+            {CATEGORIES.map((cat) => {
+              const Icon = cat.icon;
+              const active = selectedCategory === cat.id;
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => setSelectedCategory(cat.id)}
+                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                    active
+                      ? "bg-netflix-red text-white shadow-lg shadow-red-950/50 scale-[1.02]"
+                      : "bg-zinc-900/60 hover:bg-zinc-900 text-gray-400 hover:text-white border border-white/[0.06]"
+                  }`}
+                >
+                  <Icon size={14} />
+                  <span>{cat.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* ================= ACCORDION LIST ================= */}
+          <div className="space-y-4">
+            {filteredFAQs.length === 0 ? (
+              <div className="p-12 text-center rounded-3xl bg-zinc-950/60 border border-white/[0.08] text-gray-400 space-y-3">
+                <HelpCircle size={32} className="mx-auto text-gray-500 opacity-60" />
+                <p className="text-sm font-medium">Không tìm thấy nội dung phù hợp với từ khóa &ldquo;{searchQuery}&rdquo;.</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery("");
+                    setSelectedCategory("all");
+                  }}
+                  className="text-xs text-netflix-red hover:underline font-semibold cursor-pointer"
+                >
+                  Xem tất cả câu hỏi
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {filteredFAQs.map((faq) => {
+                  const isOpen = Boolean(openItems[faq.id]);
+                  return (
+                    <div
+                      key={faq.id}
+                      className={`rounded-2xl bg-zinc-950/80 border transition-all duration-300 overflow-hidden backdrop-blur-xl ${
+                        isOpen ? "border-white/20 shadow-xl bg-zinc-900/40" : "border-white/[0.08] hover:border-white/15"
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => toggleItem(faq.id)}
+                        className="w-full p-5 sm:p-6 text-left flex items-start justify-between gap-4 cursor-pointer select-none"
+                      >
+                        <div className="space-y-1 min-w-0">
+                          <span className="text-[10px] font-mono text-netflix-red font-bold uppercase tracking-wider">
+                            {faq.categoryLabel}
+                          </span>
+                          <h3 className="text-sm sm:text-base font-bold text-white leading-snug">
+                            {faq.question}
+                          </h3>
+                        </div>
+                        <div
+                          className={`p-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-gray-400 flex-shrink-0 transition-transform duration-300 ${
+                            isOpen ? "rotate-180 bg-netflix-red/20 text-netflix-red border-red-500/30" : ""
+                          }`}
+                        >
+                          <ChevronDown size={16} />
+                        </div>
+                      </button>
+
+                      {isOpen && (
+                        <div className="px-5 sm:px-6 pb-6 pt-1 space-y-3 text-xs sm:text-sm text-gray-300 leading-relaxed border-t border-white/[0.05]">
+                          <p>{faq.answer}</p>
+                          {faq.tips && (
+                            <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-start gap-2.5">
+                              <Sparkles size={14} className="text-amber-400 flex-shrink-0 mt-0.5" />
+                              <span>{faq.tips}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </section>
 
         {/* ================= STILL NEED HELP CTA ================= */}

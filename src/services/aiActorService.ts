@@ -3,6 +3,7 @@ import { generateFastAiChat } from "@/services/aiProviderService";
 import { getActorFilmographyFromTmdb, searchTmdbPerson } from "@/services/tmdbService";
 import { cacheService } from "@/lib/cache";
 import { normalizeForMatch } from "@/lib/stringUtils";
+import { getActorBySlug } from "@/data/actorsCatalog";
 
 export interface ActorProfile {
   name: string;
@@ -1268,7 +1269,7 @@ export async function queryMoviesByActor(
   actorName: string,
   aliases: string[] = [],
   country?: string,
-  maxMovies = 250
+  maxMovies = 80
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<any[]> {
   if (!actorName && aliases.length === 0) return [];
@@ -1335,11 +1336,16 @@ async function executeActorFilmQuery(
   // 4. Merge về format Movie chuẩn của dự án và hiển thị trên MovieGrid
   // =========================================================================
   try {
+    const catalogActor = getActorBySlug(matchedSlug) || getActorBySlug(actorName);
+    const tmdbPersonId = catalogActor?.tmdbPersonId;
+
     const tmdbMovies = await getActorFilmographyFromTmdb(
       actorName,
       synonymRes.canonicalName || actorName,
       allVariants,
-      maxMovies
+      maxMovies,
+      16,
+      tmdbPersonId
     );
     if (tmdbMovies && tmdbMovies.length > 0) {
       const enrichedMovies = tmdbMovies.map((m) => ({

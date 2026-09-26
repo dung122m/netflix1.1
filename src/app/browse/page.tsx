@@ -288,7 +288,7 @@ export default async function BrowsePage({
       canonicalName,
       actorAliases,
       detectedActor.country,
-      250
+      80
     );
 
     let filteredActorMovies = actorMovies;

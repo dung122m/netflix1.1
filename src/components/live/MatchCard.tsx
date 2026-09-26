@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from "react";
 import { Play } from "lucide-react";
 import { FootballMatch } from "@/services/liveFootballService";
-import { getTeamAsset } from "@/data/live/teamAssets";
+import { getTeamAsset, getTeamInitials } from "@/data/live/teamAssets";
 
 interface MatchCardProps {
   match: FootballMatch;
@@ -292,9 +292,14 @@ function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
                   referrerPolicy="no-referrer"
                 />
               ) : (
-                <span className="text-xl sm:text-2xl select-none leading-none opacity-80">
-                  {getSportIcon(match.sport)}
-                </span>
+                <div className="flex flex-col items-center justify-center w-full h-full bg-zinc-900/90 rounded-lg p-0.5 select-none">
+                  <span className="text-xs sm:text-sm font-black text-rose-400 tracking-wider">
+                    {getTeamInitials(match.team1)}
+                  </span>
+                  <span className="text-[6px] uppercase tracking-widest text-zinc-400 font-bold">
+                    CLB
+                  </span>
+                </div>
               )}
             </div>
             <span
@@ -341,9 +346,14 @@ function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
                   referrerPolicy="no-referrer"
                 />
               ) : (
-                <span className="text-xl sm:text-2xl select-none leading-none opacity-80">
-                  {getSportIcon(match.sport)}
-                </span>
+                <div className="flex flex-col items-center justify-center w-full h-full bg-zinc-900/90 rounded-lg p-0.5 select-none">
+                  <span className="text-xs sm:text-sm font-black text-sky-400 tracking-wider">
+                    {getTeamInitials(match.team2)}
+                  </span>
+                  <span className="text-[6px] uppercase tracking-widest text-zinc-400 font-bold">
+                    CLB
+                  </span>
+                </div>
               )}
             </div>
             <span

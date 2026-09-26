@@ -9,12 +9,14 @@ interface PaginationControlProps {
   currentPage: number;
   totalPages: number;
   pages: (number | string)[];
+  onPageChange?: (page: number) => void;
 }
 
 export const PaginationControl: React.FC<PaginationControlProps> = ({
   currentPage,
   totalPages,
   pages,
+  onPageChange,
 }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -23,11 +25,17 @@ export const PaginationControl: React.FC<PaginationControlProps> = ({
   const popoverRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Xây dựng URL giữ nguyên 100% search params hiện tại
+  // Xây dựng URL giữ nguyên 100% search params hiện tại cho mode Link
   const buildPageUrl = (pageNumber: number) => {
     const params = new URLSearchParams(searchParams ? searchParams.toString() : "");
     params.set("page", pageNumber.toString());
     return `?${params.toString()}`;
+  };
+
+  const handlePageClick = (pageNumber: number) => {
+    if (onPageChange) {
+      onPageChange(pageNumber);
+    }
   };
 
   // Tự động focus ô nhập khi mở popover
@@ -66,27 +74,50 @@ export const PaginationControl: React.FC<PaginationControlProps> = ({
 
     const validPage = Math.min(Math.max(1, pageNum), totalPages);
     setIsJumpOpen(false);
-    router.push(buildPageUrl(validPage));
+    if (onPageChange) {
+      onPageChange(validPage);
+    } else {
+      router.push(buildPageUrl(validPage));
+    }
   };
+
+  const prevPage = Math.max(1, currentPage - 1);
+  const nextPage = Math.min(totalPages, currentPage + 1);
 
   return (
     <div className="flex justify-center items-center gap-1.5 sm:gap-2 mt-8 sm:mt-12 relative select-none">
       {/* ============================================================ */}
       {/* 1. NÚT « TRƯỚC (Dùng chung cho cả Mobile & Desktop) */}
       {/* ============================================================ */}
-      <Link
-        href={buildPageUrl(Math.max(1, currentPage - 1))}
-        prefetch={true}
-        tabIndex={currentPage <= 1 ? -1 : 0}
-        className={`px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm rounded-xl font-semibold transition touch-target min-h-[40px] flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${
-          currentPage <= 1
-            ? "bg-zinc-900 text-zinc-600 pointer-events-none cursor-not-allowed opacity-50"
-            : "bg-zinc-800 text-white hover:bg-zinc-700 active:scale-95"
-        }`}
-        aria-label="Trang trước"
-      >
-        « Trước
-      </Link>
+      {onPageChange ? (
+        <button
+          type="button"
+          onClick={() => handlePageClick(prevPage)}
+          disabled={currentPage <= 1}
+          className={`px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm rounded-xl font-semibold transition touch-target min-h-[40px] flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${
+            currentPage <= 1
+              ? "bg-zinc-900 text-zinc-600 pointer-events-none opacity-50 cursor-not-allowed"
+              : "bg-zinc-800 text-white hover:bg-zinc-700 active:scale-95 cursor-pointer"
+          }`}
+          aria-label="Trang trước"
+        >
+          « Trước
+        </button>
+      ) : (
+        <Link
+          href={buildPageUrl(prevPage)}
+          prefetch={true}
+          tabIndex={currentPage <= 1 ? -1 : 0}
+          className={`px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm rounded-xl font-semibold transition touch-target min-h-[40px] flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 cursor-pointer ${
+            currentPage <= 1
+              ? "bg-zinc-900 text-zinc-600 pointer-events-none cursor-not-allowed opacity-50"
+              : "bg-zinc-800 text-white hover:bg-zinc-700 active:scale-95"
+          }`}
+          aria-label="Trang trước"
+        >
+          « Trước
+        </Link>
+      )}
 
       {/* ============================================================ */}
       {/* 2. DESKTOP VIEW: Dãy số trang đầy đủ (≥ 640px) */}
@@ -100,14 +131,34 @@ export const PaginationControl: React.FC<PaginationControlProps> = ({
               </span>
             );
           }
+          const pageNum = p as number;
+          const isActive = currentPage === pageNum;
+
+          if (onPageChange) {
+            return (
+              <button
+                key={index}
+                type="button"
+                onClick={() => handlePageClick(pageNum)}
+                className={`w-9 h-9 sm:w-10 sm:h-10 text-xs sm:text-sm flex items-center justify-center rounded-lg font-semibold transition-all outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-110 cursor-pointer ${
+                  isActive
+                    ? "bg-netflix-red text-white shadow-sm font-bold"
+                    : "bg-zinc-800 text-gray-300 hover:bg-zinc-700 hover:text-white"
+                }`}
+              >
+                {p}
+              </button>
+            );
+          }
+
           return (
             <Link
               key={index}
-              href={buildPageUrl(p as number)}
+              href={buildPageUrl(pageNum)}
               prefetch={true}
-              className={`w-9 h-9 sm:w-10 sm:h-10 text-xs sm:text-sm flex items-center justify-center rounded-lg font-semibold transition-all outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-110 ${
-                currentPage === p
-                  ? "bg-netflix-red text-white shadow-sm"
+              className={`w-9 h-9 sm:w-10 sm:h-10 text-xs sm:text-sm flex items-center justify-center rounded-lg font-semibold transition-all outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-110 cursor-pointer ${
+                isActive
+                  ? "bg-netflix-red text-white shadow-sm font-bold"
                   : "bg-zinc-800 text-gray-300 hover:bg-zinc-700 hover:text-white"
               }`}
             >
@@ -124,7 +175,7 @@ export const PaginationControl: React.FC<PaginationControlProps> = ({
         <button
           type="button"
           onClick={() => setIsJumpOpen((prev) => !prev)}
-          className="px-3.5 py-2 min-h-[40px] text-xs font-bold text-white bg-netflix-red rounded-xl shadow-md active:scale-95 hover:bg-red-700 transition-all flex items-center justify-center gap-1 touch-target border border-red-500/30 outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105"
+          className="px-3.5 py-2 min-h-[40px] text-xs font-bold text-white bg-netflix-red rounded-xl shadow-md active:scale-95 hover:bg-red-700 transition-all flex items-center justify-center gap-1 touch-target border border-red-500/30 outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 cursor-pointer"
           aria-label="Đi tới trang"
           title="Đi tới trang"
         >
@@ -145,7 +196,7 @@ export const PaginationControl: React.FC<PaginationControlProps> = ({
               <button
                 type="button"
                 onClick={() => setIsJumpOpen(false)}
-                className="p-1 text-gray-400 hover:text-white rounded-lg hover:bg-white/10 transition"
+                className="p-1 text-gray-400 hover:text-white rounded-lg hover:bg-white/10 transition cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -165,7 +216,7 @@ export const PaginationControl: React.FC<PaginationControlProps> = ({
               />
               <button
                 type="submit"
-                className="flex-none bg-netflix-red hover:bg-red-700 text-white font-bold text-xs px-3.5 py-2.5 rounded-xl transition flex items-center justify-center gap-1 shadow-md active:scale-95"
+                className="flex-none bg-netflix-red hover:bg-red-700 text-white font-bold text-xs px-3.5 py-2.5 rounded-xl transition flex items-center justify-center gap-1 shadow-md active:scale-95 cursor-pointer"
               >
                 <span>Đến</span>
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -178,19 +229,35 @@ export const PaginationControl: React.FC<PaginationControlProps> = ({
       {/* ============================================================ */}
       {/* 4. NÚT TIẾP » (Dùng chung cho cả Mobile & Desktop) */}
       {/* ============================================================ */}
-      <Link
-        href={buildPageUrl(currentPage + 1)}
-        prefetch={true}
-        tabIndex={currentPage >= totalPages ? -1 : 0}
-        className={`px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm rounded-xl font-semibold transition touch-target min-h-[40px] flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${
-          currentPage >= totalPages
-            ? "bg-zinc-900 text-zinc-600 pointer-events-none cursor-not-allowed opacity-50"
-            : "bg-zinc-800 text-white hover:bg-zinc-700 active:scale-95"
-        }`}
-        aria-label="Trang tiếp"
-      >
-        Tiếp »
-      </Link>
+      {onPageChange ? (
+        <button
+          type="button"
+          onClick={() => handlePageClick(nextPage)}
+          disabled={currentPage >= totalPages}
+          className={`px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm rounded-xl font-semibold transition touch-target min-h-[40px] flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${
+            currentPage >= totalPages
+              ? "bg-zinc-900 text-zinc-600 pointer-events-none opacity-50 cursor-not-allowed"
+              : "bg-zinc-800 text-white hover:bg-zinc-700 active:scale-95 cursor-pointer"
+          }`}
+          aria-label="Trang tiếp"
+        >
+          Tiếp »
+        </button>
+      ) : (
+        <Link
+          href={buildPageUrl(nextPage)}
+          prefetch={true}
+          tabIndex={currentPage >= totalPages ? -1 : 0}
+          className={`px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm rounded-xl font-semibold transition touch-target min-h-[40px] flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 cursor-pointer ${
+            currentPage >= totalPages
+              ? "bg-zinc-900 text-zinc-600 pointer-events-none cursor-not-allowed opacity-50"
+              : "bg-zinc-800 text-white hover:bg-zinc-700 active:scale-95"
+          }`}
+          aria-label="Trang tiếp"
+        >
+          Tiếp »
+        </Link>
+      )}
     </div>
   );
 };

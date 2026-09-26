@@ -291,6 +291,33 @@ const CLUBS_DATA: Array<{ name: string; logo: string; emoji?: string; aliases: s
   { name: "Norwich City", logo: "https://r2.thesportsdb.com/images/media/team/badge/0slmqu1556111718.png", aliases: ["norwich city", "norwich", "canaries"] },
   { name: "Watford", logo: "https://r2.thesportsdb.com/images/media/team/badge/gr4s2w1580047395.png", aliases: ["watford", "hornets"] },
 
+  // --- EFL CHAMPIONSHIP, LEAGUE ONE & TWO (ANH) ---
+  { name: "Wycombe Wanderers", logo: "https://r2.thesportsdb.com/images/media/team/badge/uypryv1422278456.png", aliases: ["wycombe wanderers", "wycombe wanderer", "wycombe", "chairboys"] },
+  { name: "Reading", logo: "https://r2.thesportsdb.com/images/media/team/badge/spvyvy1422278516.png", aliases: ["reading", "reading fc", "royals"] },
+  { name: "Derby County", logo: "https://r2.thesportsdb.com/images/media/team/badge/m62m781580047648.png", aliases: ["derby county", "derby", "rams"] },
+  { name: "Bolton Wanderers", logo: "https://r2.thesportsdb.com/images/media/team/badge/ywxvvr1422278488.png", aliases: ["bolton wanderers", "bolton", "trotters"] },
+  { name: "Peterborough United", logo: "https://r2.thesportsdb.com/images/media/team/badge/b91p3v1638210350.png", aliases: ["peterborough united", "peterborough", "posh"] },
+  { name: "Portsmouth", logo: "https://r2.thesportsdb.com/images/media/team/badge/vprxwv1448815152.png", aliases: ["portsmouth", "pompey"] },
+  { name: "Barnsley", logo: "https://r2.thesportsdb.com/images/media/team/badge/6t165v1621593361.png", aliases: ["barnsley", "tykes"] },
+  { name: "Charlton Athletic", logo: "https://r2.thesportsdb.com/images/media/team/badge/1v2l6f1580047806.png", aliases: ["charlton athletic", "charlton", "addicks"] },
+  { name: "Oxford United", logo: "https://r2.thesportsdb.com/images/media/team/badge/0slmqu1556111718.png", aliases: ["oxford united", "oxford", "u's"] },
+  { name: "Blackpool", logo: "https://r2.thesportsdb.com/images/media/team/badge/gr4s2w1580047395.png", aliases: ["blackpool", "seasiders", "tangerines"] },
+  { name: "Lincoln City", logo: "https://r2.thesportsdb.com/images/media/team/badge/xpyutx1422278380.png", aliases: ["lincoln city", "lincoln", "imps"] },
+  { name: "Wigan Athletic", logo: "https://r2.thesportsdb.com/images/media/team/badge/vwupxp1473503254.png", aliases: ["wigan athletic", "wigan", "latics"] },
+  { name: "Hull City", logo: "https://r2.thesportsdb.com/images/media/team/badge/19px9l1534001918.png", aliases: ["hull city", "hull", "tigers"] },
+  { name: "Stoke City", logo: "https://r2.thesportsdb.com/images/media/team/badge/xtwxyt1422278413.png", aliases: ["stoke city", "stoke", "potters"] },
+  { name: "Blackburn Rovers", logo: "https://r2.thesportsdb.com/images/media/team/badge/tpuusy1422278560.png", aliases: ["blackburn rovers", "blackburn", "rovers"] },
+  { name: "Preston North End", logo: "https://r2.thesportsdb.com/images/media/team/badge/vtwvru1422278347.png", aliases: ["preston north end", "preston", "pne", "lilywhites"] },
+  { name: "Coventry City", logo: "https://r2.thesportsdb.com/images/media/team/badge/jcgrml1756649030.png", aliases: ["coventry city", "coventry", "sky blues"] },
+  { name: "Bristol City", logo: "https://r2.thesportsdb.com/images/media/team/badge/rrtwvy1422278589.png", aliases: ["bristol city", "robins"] },
+  { name: "Swansea City", logo: "https://r2.thesportsdb.com/images/media/team/badge/t6y5t01580047413.png", aliases: ["swansea city", "swansea", "swans"] },
+  { name: "Cardiff City", logo: "https://r2.thesportsdb.com/images/media/team/badge/yptxvv1431696756.png", aliases: ["cardiff city", "cardiff", "bluebirds"] },
+  { name: "Queens Park Rangers", logo: "https://r2.thesportsdb.com/images/media/team/badge/m62m781580047648.png", aliases: ["queens park rangers", "qpr", "hoops"] },
+  { name: "Plymouth Argyle", logo: "https://r2.thesportsdb.com/images/media/team/badge/vprxwv1448815152.png", aliases: ["plymouth argyle", "plymouth", "pilgrims"] },
+  { name: "Millwall", logo: "https://r2.thesportsdb.com/images/media/team/badge/0slmqu1556111718.png", aliases: ["millwall", "lions"] },
+  { name: "Luton Town", logo: "https://r2.thesportsdb.com/images/media/team/badge/gr4s2w1580047395.png", aliases: ["luton town", "luton", "hatters"] },
+  { name: "Sheffield Wednesday", logo: "https://r2.thesportsdb.com/images/media/team/badge/8p1usm1579298288.png", aliases: ["sheffield wednesday", "sheff wed", "owls"] },
+
   // --- LA LIGA (TÂY BAN NHA) ---
   { name: "Real Madrid", logo: "https://r2.thesportsdb.com/images/media/team/badge/8p1usm1579298288.png", aliases: ["real madrid", "real", "ken ken trang", "los blancos", "merengues"] },
   { name: "Barcelona", logo: "https://r2.thesportsdb.com/images/media/team/badge/l2413e1742982366.png", aliases: ["barcelona", "barca", "blaugrana", "culers"] },
@@ -539,3 +566,25 @@ export function getTeamAsset(rawTeamName?: string | null): TeamAsset | null {
  * Tổng số lượng đội bóng / ĐTQG đã được index
  */
 export const TOTAL_MAPPED_TEAMS = NATIONAL_TEAMS_DATA.length + CLUBS_DATA.length;
+
+/**
+ * Trích xuất 2 chữ cái viết tắt của tên đội bóng hoặc biểu tượng bóng đá làm fallback
+ */
+export function getTeamInitials(teamName?: string | null): string {
+  if (!teamName) return "⚽";
+  const clean = teamName
+    .replace(/^CLB\s+/i, "")
+    .replace(/^FC\s+/i, "")
+    .replace(/^SSC\s+/i, "")
+    .replace(/^U\d+\s+/i, "")
+    .replace(/[^a-zA-Z0-9\s\u00C0-\u1EF9]/g, " ")
+    .trim();
+  const words = clean.split(/\s+/).filter(Boolean);
+  if (words.length >= 2) {
+    return (words[0][0] + words[1][0]).toUpperCase();
+  }
+  if (clean.length >= 2) {
+    return clean.slice(0, 2).toUpperCase();
+  }
+  return clean.toUpperCase() || "⚽";
+}

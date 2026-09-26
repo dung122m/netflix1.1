@@ -32,9 +32,9 @@ export default function ActorsHubPage() {
       <Navbar />
 
       {/* AMBIENT GLOW */}
-      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[500px] bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(229,9,20,0.1),rgba(0,0,0,0))] pointer-events-none -z-10" />
+      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[1800px] h-[500px] bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(229,9,20,0.1),rgba(0,0,0,0))] pointer-events-none -z-10" />
 
-      <main className="flex-1 pt-24 sm:pt-28 pb-24 px-4 sm:px-8 md:px-12 max-w-7xl mx-auto w-full space-y-10 sm:space-y-14">
+      <main className="flex-1 pt-24 sm:pt-28 pb-24 px-4 sm:px-6 md:px-10 lg:px-12 max-w-[1800px] mx-auto w-full space-y-10 sm:space-y-14">
         
         {/* ============================================================ */}
         {/* HERO / HEADER SECTION */}

@@ -19,7 +19,9 @@ import {
   getActorSynonyms,
   resolveActorMovies,
   queryMoviesByActor,
+  GOLDEN_ACTOR_INDEX,
 } from "@/services/aiActorService";
+import { normalizeForMatch } from "@/lib/stringUtils";
 import {
   searchTmdbPerson,
   getTmdbPersonDetail,
@@ -67,8 +69,9 @@ function formatDate(dateStr?: string): string | null {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
   const catalogItem = getActorBySlug(slug);
-  const synonymRes = getActorSynonyms(slug);
-  const actorName = catalogItem?.name || synonymRes?.canonicalName || slug.replace(/-/g, " ");
+  const rawQuery = slug.replace(/-/g, " ");
+  const synonymRes = getActorSynonyms(rawQuery) || getActorSynonyms(slug);
+  const actorName = catalogItem?.name || synonymRes?.canonicalName || rawQuery;
 
   return {
     title: `Phim của ${actorName} - Tiểu sử & Danh sách phim | Nanaflix`,
@@ -82,63 +85,95 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function ActorDetailPage({ params }: PageProps) {
   const { slug } = await params;
+  const rawQuery = slug.replace(/-/g, " ");
 
-  // 1. Phân giải danh tính nghệ sĩ
+  // 1. Phân giải danh tính nghệ sĩ (Chuẩn hóa 100% khớp với flow của /browse)
   const catalogItem = getActorBySlug(slug);
-  const synonymRes = getActorSynonyms(slug);
+  const actorSynonyms = getActorSynonyms(rawQuery) || getActorSynonyms(slug);
 
-  let canonicalName = catalogItem?.name || synonymRes?.canonicalName || "";
-  let country = catalogItem?.country || synonymRes?.country || "";
-  let aliases = catalogItem?.aliases || synonymRes?.variants || [];
-  const englishName = catalogItem?.englishName || synonymRes?.englishName;
+  const actorRes = actorSynonyms?.isMatched
+    ? {
+        actorName: actorSynonyms.canonicalName,
+        country: actorSynonyms.country,
+        aliases: actorSynonyms.variants,
+        isActor: true,
+        source: "preset" as const,
+      }
+    : await resolveActorMovies(rawQuery);
 
-  if (!canonicalName) {
-    const rawName = slug.replace(/-/g, " ");
-    const resolved = await resolveActorMovies(rawName);
-    if (resolved && resolved.isActor) {
-      canonicalName = resolved.actorName;
-      country = resolved.country || country;
-      aliases = resolved.aliases;
-    } else {
-      canonicalName = rawName;
-      aliases = [rawName];
-    }
+  const canonicalName =
+    catalogItem?.name ||
+    (actorRes?.isActor ? actorRes.actorName : (actorSynonyms?.canonicalName || rawQuery));
+
+  const actorAliases = Array.from(
+    new Set([
+      canonicalName,
+      ...(catalogItem?.aliases || []),
+      ...(actorSynonyms?.variants || []),
+      ...(actorRes?.aliases || []),
+      rawQuery,
+    ])
+  ).filter(Boolean);
+
+  const matchedPreset = GOLDEN_ACTOR_INDEX.find(
+    (p) => normalizeForMatch(p.name) === normalizeForMatch(canonicalName)
+  );
+  if (matchedPreset) {
+    actorAliases.push(...matchedPreset.aliases);
   }
 
-  if (!canonicalName.trim()) {
+  const country =
+    catalogItem?.country ||
+    actorRes?.country ||
+    actorSynonyms?.country ||
+    matchedPreset?.country ||
+    "";
+  const englishName = catalogItem?.englishName || actorSynonyms?.englishName;
+
+  if (!canonicalName || !canonicalName.trim()) {
     notFound();
   }
 
-  // 2. Gọi song song TMDB Person, Wikipedia Bio & Filmography
-  const [tmdbPerson, wikiProfile, movies] = await Promise.all([
-    searchTmdbPerson(canonicalName, canonicalName, aliases),
-    fetchActorProfile(canonicalName),
-    queryMoviesByActor(canonicalName, aliases, country, 80),
+  // 2. Tối ưu: Sử dụng trực tiếp metadata hardcoded, chỉ gọi API phụ khi thiếu dữ liệu
+  const hasLocalMetadata = Boolean(catalogItem?.avatarUrl && catalogItem?.bio);
+
+  const tmdbDetailPromise = hasLocalMetadata
+    ? Promise.resolve(null)
+    : catalogItem?.tmdbPersonId
+    ? getTmdbPersonDetail(catalogItem.tmdbPersonId)
+    : searchTmdbPerson(canonicalName, canonicalName, actorAliases).then((p) =>
+        p?.id ? getTmdbPersonDetail(p.id) : null
+      );
+
+  const wikiProfilePromise = hasLocalMetadata
+    ? Promise.resolve(null)
+    : fetchActorProfile(canonicalName);
+
+  const [tmdbDetail, wikiProfile, movies] = await Promise.all([
+    tmdbDetailPromise,
+    wikiProfilePromise,
+    queryMoviesByActor(canonicalName, actorAliases, country, 80),
   ]);
 
-  // 3. Nếu tìm thấy TMDB Person, lấy thông tin chi tiết (ngày sinh, nơi sinh, tiểu sử gốc)
-  const tmdbDetail = tmdbPerson?.id
-    ? await getTmdbPersonDetail(tmdbPerson.id)
-    : null;
-
-  // 4. Xác định avatar chất lượng tốt nhất
+  // 3. Xác định avatar chất lượng tốt nhất
   const bestAvatar =
-    tmdbDetail?.profile_path ||
-    tmdbPerson?.profile_path ||
-    wikiProfile?.thumbnail ||
-    catalogItem?.avatarUrl;
+    catalogItem?.avatarUrl ||
+    (tmdbDetail?.profile_path ? `https://image.tmdb.org/t/p/w500${tmdbDetail.profile_path}` : undefined) ||
+    wikiProfile?.thumbnail;
 
-  // 5. Xác định tiểu sử tốt nhất
+  // 4. Xác định tiểu sử tốt nhất
   const bestBio =
+    catalogItem?.bio ||
     wikiProfile?.extract ||
     tmdbDetail?.biography ||
     wikiProfile?.description;
 
-  // 6. Trích xuất thông tin cá nhân thực tế (chỉ hiển thị khi có dữ liệu)
-  const birthday = tmdbDetail?.birthday;
+  // 5. Trích xuất thông tin cá nhân thực tế (chỉ hiển thị khi có dữ liệu)
+  const birthday = catalogItem?.birthday || tmdbDetail?.birthday;
+  const deathday = catalogItem?.deathday || tmdbDetail?.deathday;
   const formattedBirthday = formatDate(birthday);
-  const age = calculateAge(birthday, tmdbDetail?.deathday);
-  const placeOfBirth = tmdbDetail?.place_of_birth;
+  const age = calculateAge(birthday, deathday);
+  const placeOfBirth = catalogItem?.placeOfBirth || tmdbDetail?.place_of_birth;
   const knownRole =
     catalogItem?.roles ||
     (tmdbDetail?.known_for_department === "Acting"
@@ -146,8 +181,9 @@ export default async function ActorDetailPage({ params }: PageProps) {
       : tmdbDetail?.known_for_department === "Directing"
       ? "Đạo diễn điện ảnh"
       : "Nghệ sĩ điện ảnh");
+  const wikiUrl = catalogItem?.wikiUrl || wikiProfile?.wikiUrl;
 
-  // 7. Diễn viên cùng khu vực (Discovery)
+  // 6. Diễn viên cùng khu vực (Discovery)
   const relatedActors = ACTORS_CATALOG.filter(
     (a) =>
       a.slug !== slug &&
@@ -160,9 +196,9 @@ export default async function ActorDetailPage({ params }: PageProps) {
       <Navbar />
 
       {/* AMBIENT GLOW */}
-      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[550px] bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(229,9,20,0.15),rgba(0,0,0,0))] pointer-events-none -z-10" />
+      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[1800px] h-[550px] bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(229,9,20,0.15),rgba(0,0,0,0))] pointer-events-none -z-10" />
 
-      <main className="flex-1 pt-24 sm:pt-28 pb-24 px-4 sm:px-8 md:px-12 max-w-7xl mx-auto w-full space-y-12 sm:space-y-16">
+      <main className="flex-1 pt-24 sm:pt-28 pb-24 px-4 sm:px-6 md:px-10 lg:px-12 max-w-[1800px] mx-auto w-full space-y-12 sm:space-y-16">
         
         {/* ============================================================ */}
         {/* BREADCRUMB & BACK BUTTON */}
@@ -282,7 +318,7 @@ export default async function ActorDetailPage({ params }: PageProps) {
         <ActorDetailClient
           movies={movies}
           bioText={bestBio}
-          wikiUrl={wikiProfile?.wikiUrl}
+          wikiUrl={wikiUrl}
           actorName={canonicalName}
         />
 
