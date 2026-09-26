@@ -216,17 +216,17 @@ export default function AboutPage() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
               {/* Text Column */}
               <div className="lg:col-span-8 space-y-4 text-sm sm:text-base text-gray-300 leading-relaxed font-normal">
-                <p className="text-lg sm:text-xl text-white font-medium">
-                  Chào bạn, mình là <span className="font-bold text-netflix-red">Dũng Trần</span>.
+                <p className="text-lg sm:text-xl text-white font-medium leading-snug">
+                  Nanaflix được bắt đầu rất giản dị: Từ mong muốn có một nơi xem phim <span className="text-netflix-red font-semibold">thực sự trọn vẹn</span> sau mỗi ngày dài.
                 </p>
                 <p>
-                  Nanaflix ra đời từ một nỗi bực mình rất đỗi quen thuộc: Mỗi lần muốn tìm một bộ phim hay để thư giãn sau ngày dài, thứ đập vào mắt lại là hàng tá quảng cáo cờ bạc nhấp nháy, link phim hỏng, và trình phát giật lag đến mức cụt cả hứng.
+                  Chắc hẳn bạn cũng từng gặp cảm giác cụt hứng khi muốn xem phim nhưng liên tục bị bủa vây bởi những quảng cáo nhấp nháy, link xem chập chờn hay trình phát vừa xem vừa giật.
                 </p>
                 <p>
-                  Mình quyết định tự tay xây dựng một trang web xem phim đúng nghĩa — nơi công nghệ phục vụ trọn vẹn cho cảm xúc điện ảnh. Không có bẫy click, không có quảng cáo rác; chỉ có phim hay, tốc độ tải tức thì và trải nghiệm cao cấp như đang ngồi trong rạp chiếu tại gia.
+                  Chính vì vậy, Nanaflix được tạo ra như một không gian điện ảnh tinh gọn và văn minh — nơi bạn chỉ cần bấm Play là phim chạy ngay mượt mà, hình ảnh sắc nét, tự động nhớ đúng giây đang xem dở trên mọi thiết bị và hoàn toàn không có phiền toái chen ngang.
                 </p>
                 <div className="pt-2 flex items-center gap-2 text-xs text-gray-400 font-mono">
-                  <span className="text-emerald-400 font-bold">●</span> Xây dựng với tất cả đam mê & sự chỉn chu.
+                  <span className="text-emerald-400 font-bold">●</span> Từng chi tiết nhỏ đều được chăm chút vì trải nghiệm của bạn.
                 </div>
               </div>
 
@@ -261,13 +261,13 @@ export default function AboutPage() {
           <div className="text-center space-y-3 max-w-2xl mx-auto">
             <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-netflix-red">
               <Zap size={14} />
-              <span>Triết Lý Sản Phẩm</span>
+              <span>Trải Nghiệm Khác Biệt</span>
             </div>
             <h2 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
-              4 Chuẩn Mực Không Khoan Nhượng
+              4 Điểm Tạo Nên Sự Khác Biệt Tại Nanaflix
             </h2>
             <p className="text-xs sm:text-sm text-gray-400">
-              Mọi tính năng tại Nanaflix đều được tinh chỉnh xoay quanh sự thoải mái và tiện lợi của bạn.
+              Những giá trị cốt lõi giúp bạn tận hưởng từng phút giây xem phim một cách thoải mái nhất.
             </p>
           </div>
 
@@ -307,8 +307,8 @@ export default function AboutPage() {
                   </div>
 
                   <div className="pt-2 border-t border-white/[0.06] flex items-center justify-between text-xs text-gray-500 font-mono">
-                    <span>Chuẩn mực #{p.number}</span>
-                    <span className="text-gray-400">Nanaflix Core</span>
+                    <span>Đặc trưng #{p.number}</span>
+                    <span className="text-gray-400">Nanaflix Experience</span>
                   </div>
                 </div>
               );
