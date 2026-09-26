@@ -53,7 +53,7 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
   isLinkActive,
   userUnreadCount,
 }) {
-  const { user, logout } = useAuth();
+  const { user, loading, logout } = useAuth();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
   useBodyScrollLock(isOpen);
@@ -92,7 +92,15 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
       <div className="flex flex-col gap-2">
         {/* TÀI KHOẢN NGƯỜI DÙNG */}
         <div className="p-3 rounded-2xl bg-white/[0.04] border border-white/10">
-          {user ? (
+          {loading ? (
+            <div className="flex items-center gap-3 animate-pulse py-1">
+              <div className="w-10 h-10 rounded-full bg-white/10 border border-white/15 flex-shrink-0" />
+              <div className="flex-1 space-y-1.5 min-w-0">
+                <div className="h-4 w-28 bg-white/10 rounded" />
+                <div className="h-3 w-40 bg-white/5 rounded" />
+              </div>
+            </div>
+          ) : user ? (
             <div className="space-y-2.5">
               <div className="flex items-center gap-3">
                 <UserAvatar

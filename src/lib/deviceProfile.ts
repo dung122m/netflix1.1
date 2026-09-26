@@ -289,7 +289,7 @@ export async function syncUnifiedDeviceProfile(force = false): Promise<void> {
       if (!auth.currentUser && typeof auth.authStateReady === "function") {
         await Promise.race([
           auth.authStateReady(),
-          new Promise((resolve) => setTimeout(resolve, 1000)),
+          new Promise((resolve) => setTimeout(resolve, 4000)),
         ]).catch(() => {});
       }
       if (auth.currentUser) {

@@ -26,7 +26,7 @@ interface NavUserMenuProps {
 export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUserMenu({
   onOpenAuthModal,
 }) {
-  const { user, logout } = useAuth();
+  const { user, loading, logout } = useAuth();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const userDropdownRef = useRef<HTMLDivElement>(null);
@@ -71,6 +71,15 @@ export const NavUserMenu: React.FC<NavUserMenuProps> = React.memo(function NavUs
 
   const effectiveAvatar = userProfile?.customAvatar || userProfile?.photoURL || user?.photoURL || "";
   const effectiveDisplayName = userProfile?.displayName || user?.displayName || "Thành viên Nanaflix";
+
+  if (loading) {
+    return (
+      <div
+        className="hidden sm:inline-flex items-center w-[105px] h-[30px] rounded-full bg-white/5 border border-white/10 animate-pulse flex-shrink-0"
+        aria-hidden="true"
+      />
+    );
+  }
 
   if (!user) {
     return (
