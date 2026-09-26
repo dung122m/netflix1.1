@@ -138,21 +138,20 @@ export function LiveHubClient({ footballData, tvData }: LiveHubClientProps) {
         </div>
       </div>
 
-      {/* 2. NỘI DUNG THEO TAB - truyền isActive để tự động pause player của tab không active, tránh chạy song song */}
-      <div className={activeTab === "football" ? "block" : "hidden"}>
+      {/* 2. NỘI DUNG THEO TAB - Chỉ mount component của tab đang active để tối ưu DOM & Hydration */}
+      {activeTab === "football" ? (
         <LiveFootballClient
           initialData={footballData}
           hideHeader
-          isActive={activeTab === "football"}
+          isActive={true}
           onMatchesCountChange={setFootballCount}
         />
-      </div>
-      <div className={activeTab === "tv" ? "block" : "hidden"}>
+      ) : (
         <LiveTvClient
           initialData={tvData}
-          isActive={activeTab === "tv"}
+          isActive={true}
         />
-      </div>
+      )}
     </div>
   );
 }
