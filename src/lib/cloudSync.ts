@@ -1,4 +1,3 @@
-import { auth } from "@/lib/firebase";
 import {
   getWatchHistory,
   setWatchHistoryFromSync,
@@ -10,7 +9,6 @@ import {
 } from "./watchlist";
 
 const WATCHLIST_STORAGE_KEY = "nanaflix_watchlist_v1";
-const MAX_ITEMS = 30;
 
 // Debounce map để hạn chế số lần ghi khi người dùng đang xem phim liên tục
 const cloudSaveTimers = new Map<string, NodeJS.Timeout>();
@@ -20,6 +18,7 @@ async function getAuthHeaders(): Promise<HeadersInit> {
     "Content-Type": "application/json",
   };
   try {
+    const { auth } = await import("@/lib/firebase");
     const token = await auth?.currentUser?.getIdToken();
     if (token) {
       headers["Authorization"] = `Bearer ${token}`;
@@ -50,22 +49,20 @@ export async function syncWatchHistoryWithCloud(
 
     if (res.ok) {
       const json = await res.json();
-      if (json.success && Array.isArray(json.items) && json.items.length > 0) {
-        setWatchHistoryFromSync(json.items);
-        return json.items;
+      if (json.success && Array.isArray(json.items)) {
+        if (json.items.length > 0) {
+          setWatchHistoryFromSync(json.items);
+          return getWatchHistory();
+        } else {
+          // Khi cloud history của user mới rỗng, KHÔNG upload unscoped localList của phiên trước.
+          // Đặt local history về rỗng để phân lập hoàn toàn với tài khoản trước.
+          setWatchHistoryFromSync([]);
+          return [];
+        }
       }
     }
 
-    // Nếu remote chưa có nhưng local có, sync lên server
-    const localList = getWatchHistory();
-    if (localList.length > 0) {
-      await fetch("/api/user/history", {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ items: localList.slice(0, MAX_ITEMS) }),
-      });
-    }
-    return localList;
+    return getWatchHistory();
   } catch (err) {
     console.warn("Lỗi sync watch history với Server API:", err);
     return getWatchHistory();
@@ -172,24 +169,25 @@ export async function syncWatchlistWithCloud(
 
     if (res.ok) {
       const json = await res.json();
-      if (json.success && Array.isArray(json.items) && json.items.length > 0) {
-        localStorage.setItem(WATCHLIST_STORAGE_KEY, JSON.stringify(json.items));
-        if (typeof window !== "undefined") {
-          window.dispatchEvent(new Event("watchlist-updated"));
+      if (json.success && Array.isArray(json.items)) {
+        if (json.items.length > 0) {
+          localStorage.setItem(WATCHLIST_STORAGE_KEY, JSON.stringify(json.items));
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new Event("watchlist-updated"));
+          }
+          return json.items;
+        } else {
+          // Khi cloud watchlist của user mới rỗng, KHÔNG upload unscoped localList của phiên trước.
+          localStorage.setItem(WATCHLIST_STORAGE_KEY, JSON.stringify([]));
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new Event("watchlist-updated"));
+          }
+          return [];
         }
-        return json.items;
       }
     }
 
-    const localList = getWatchlist();
-    if (localList.length > 0) {
-      await fetch("/api/user/watchlist", {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ items: localList }),
-      });
-    }
-    return localList;
+    return getWatchlist();
   } catch (error) {
     console.warn("Lỗi đồng bộ Danh sách yêu thích với Server API:", error);
     return getWatchlist();

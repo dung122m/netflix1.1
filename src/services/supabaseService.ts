@@ -104,7 +104,18 @@ export async function getUserProfileSupabase(userId: string): Promise<UserProfil
 export async function getAllProfilesSupabase(): Promise<{ profiles: UserProfile[]; totalCount: number }> {
   try {
     const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
-    const res = await fetch(`${baseUrl}/api/user/profile?all=true`, { cache: "no-store" });
+    const { auth } = await import("@/lib/firebase");
+    const token = await auth?.currentUser?.getIdToken();
+    if (!token) {
+      return { profiles: [], totalCount: 0 };
+    }
+
+    const res = await fetch(`${baseUrl}/api/user/profile?all=true`, {
+      cache: "no-store",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
     if (res.ok) {
       const apiRes = await res.json();
       if (apiRes.success && Array.isArray(apiRes.profiles)) {

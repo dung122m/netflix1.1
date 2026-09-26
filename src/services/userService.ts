@@ -134,27 +134,6 @@ export function setCachedUserProfile(userId: string, profile: Partial<UserProfil
 }
 
 /**
- * Tính tổng số phút cày phim từ lịch sử xem cục bộ
- */
-function calculateLocalHistoryWatchMinutes(): number {
-  if (typeof window === "undefined") return 0;
-  try {
-    const raw = localStorage.getItem("nanaflix_watch_history");
-    if (!raw) return 0;
-    const list: WatchHistoryItem[] = JSON.parse(raw);
-    let totalSecs = 0;
-    list.forEach((item) => {
-      if (item.progressSeconds && item.progressSeconds > 0) {
-        totalSecs += item.progressSeconds;
-      }
-    });
-    return Math.floor(totalSecs / 60);
-  } catch {
-    return 0;
-  }
-}
-
-/**
  * Ghi nhận hoặc cập nhật hồ sơ người dùng vào Supabase qua Server API khi đăng nhập
  */
 export async function recordUserProfile(user: BaseAuthUser): Promise<void> {
@@ -164,7 +143,6 @@ export async function recordUserProfile(user: BaseAuthUser): Promise<void> {
     const now = Date.now();
     const isAdmin = isUserAdmin(user.email);
     const cached = getCachedUserProfile(user.uid);
-    const localHistoryMins = calculateLocalHistoryWatchMinutes();
 
     // Lấy profile hiện có từ Supabase nếu có
     let remoteProfile: UserProfile | null = null;
@@ -205,10 +183,10 @@ export async function recordUserProfile(user: BaseAuthUser): Promise<void> {
         ? cached.badges
         : remoteProfile?.badges || [];
 
-    const currentWatchMins = Math.max(
-      Number(cached?.watchTimeMinutes || 0),
-      Number(remoteProfile?.watchTimeMinutes || 0),
-      localHistoryMins
+    // Nguồn dữ liệu chuẩn: Supabase remote profile hoặc cache riêng của chính user.
+    // Tuyệt đối không dùng unscoped local watch history để khởi tạo/nâng watchTimeMinutes.
+    const currentWatchMins = Number(
+      remoteProfile?.watchTimeMinutes ?? cached?.watchTimeMinutes ?? 0
     );
 
     const localPlayerSettings = getPlayerSettings();

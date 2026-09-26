@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, Suspense } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import {
   ShieldCheck,
   ShieldAlert,
@@ -68,12 +69,42 @@ import { AdminAnalyticsTab } from "./components/AdminAnalyticsTab";
 
 type SortOption = "newest" | "oldest" | "highest_rating" | "lowest_rating" | "most_liked";
 
-export default function AdminDashboardPage() {
+const VALID_ADMIN_TABS = ["comments", "members", "collections", "analytics"] as const;
+type AdminTab = (typeof VALID_ADMIN_TABS)[number];
+
+function AdminDashboardContent() {
   const { user, loading: authLoading } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
 
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const tabParam = searchParams.get("tab");
+  const resolvedTab: AdminTab = useMemo(() => {
+    if (tabParam && (VALID_ADMIN_TABS as readonly string[]).includes(tabParam)) {
+      return tabParam as AdminTab;
+    }
+    return "comments";
+  }, [tabParam]);
+
   // Tab navigation: comments | members | collections | analytics
-  const [activeTab, setActiveTab] = useState<"comments" | "members" | "collections" | "analytics">("comments");
+  const [activeTab, setActiveTab] = useState<AdminTab>(resolvedTab);
+
+  // Synchronize active tab when URL changes (e.g. Browser Back/Forward)
+  useEffect(() => {
+    setActiveTab(resolvedTab);
+  }, [resolvedTab]);
+
+  const handleTabChange = useCallback(
+    (newTab: AdminTab) => {
+      setActiveTab(newTab);
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("tab", newTab);
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    },
+    [pathname, searchParams, router]
+  );
 
   // Data states
   const [comments, setComments] = useState<MovieComment[]>([]);
@@ -880,7 +911,7 @@ export default function AdminDashboardPage() {
         <div className="flex items-center gap-1.5 sm:gap-2 border-b border-white/10 pb-3 overflow-x-auto no-scrollbar scrollbar-none -mx-3 px-3 sm:mx-0 sm:px-0">
           <button
             type="button"
-            onClick={() => setActiveTab("comments")}
+            onClick={() => handleTabChange("comments")}
             className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-bold transition cursor-pointer flex-shrink-0 ${activeTab === "comments"
                 ? "bg-netflix-red text-white shadow-lg shadow-red-950/60"
                 : "bg-white/5 text-gray-400 hover:text-white hover:bg-white/10"
@@ -900,7 +931,7 @@ export default function AdminDashboardPage() {
 
           <button
             type="button"
-            onClick={() => setActiveTab("members")}
+            onClick={() => handleTabChange("members")}
             className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-bold transition cursor-pointer flex-shrink-0 ${activeTab === "members"
                 ? "bg-netflix-red text-white shadow-lg shadow-red-950/60"
                 : "bg-white/5 text-gray-400 hover:text-white hover:bg-white/10"
@@ -915,7 +946,7 @@ export default function AdminDashboardPage() {
 
           <button
             type="button"
-            onClick={() => setActiveTab("collections")}
+            onClick={() => handleTabChange("collections")}
             className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-bold transition cursor-pointer flex-shrink-0 ${activeTab === "collections"
                 ? "bg-netflix-red text-white shadow-lg shadow-red-950/60"
                 : "bg-white/5 text-gray-400 hover:text-white hover:bg-white/10"
@@ -930,7 +961,7 @@ export default function AdminDashboardPage() {
 
           <button
             type="button"
-            onClick={() => setActiveTab("analytics")}
+            onClick={() => handleTabChange("analytics")}
             className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-bold transition cursor-pointer flex-shrink-0 ${activeTab === "analytics"
                 ? "bg-netflix-red text-white shadow-lg shadow-red-950/60"
                 : "bg-white/5 text-gray-400 hover:text-white hover:bg-white/10"
@@ -1658,5 +1689,20 @@ export default function AdminDashboardPage() {
         />
       </div>
     </div>
+  );
+}
+
+export default function AdminDashboardPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#0a0a0c] text-white flex flex-col items-center justify-center p-4">
+          <div className="w-12 h-12 rounded-full border-4 border-netflix-red border-t-transparent animate-spin mb-4" />
+          <p className="text-sm font-medium text-gray-400">Đang tải bảng điều khiển Quản trị viên...</p>
+        </div>
+      }
+    >
+      <AdminDashboardContent />
+    </Suspense>
   );
 }
