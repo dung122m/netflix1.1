@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { movieApi } from "@/services/movies/service";
-import { pickBestMoviePoster, pickBestMovieThumb } from "@/lib/movieMedia";
+import { pickBestMoviePoster, pickBestMovieThumb, detectMovieTypeName } from "@/lib/movieMedia";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +26,13 @@ export async function GET(req: NextRequest) {
         const title = m.name || m.title || slug;
         const poster = pickBestMoviePoster(m, "/default-poster.jpg");
         const thumb = pickBestMovieThumb(m, "/default-hero.jpg");
+        const typeName = detectMovieTypeName(m);
+        const isSingle =
+          m.type === "single" ||
+          typeName === "Phim lẻ" ||
+          typeName === "Phim rạp" ||
+          (m.episode_total !== undefined && Number(m.episode_total) === 1);
+
         const rawCats = Array.isArray(m.category)
           ? m.category
           : Array.isArray(m.categories)
@@ -47,6 +54,8 @@ export async function GET(req: NextRequest) {
           quality: m.quality || "HD",
           category,
           type: m.type,
+          typeName,
+          isSingle: Boolean(isSingle),
         };
       })
     );

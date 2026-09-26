@@ -14,7 +14,6 @@ import {
 import {
   AnimatePresence,
   motion,
-  type PanInfo,
   useReducedMotion,
 } from "framer-motion";
 import {
@@ -439,30 +438,87 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
 
   const goPrev = () => {
     isUserActionRef.current = true;
+    slideStartTimeRef.current = Date.now();
     setDirection(-1);
     setIndex((prev) => (prev - 1 + slides.length) % slides.length);
   };
 
   const goNext = () => {
     isUserActionRef.current = true;
+    slideStartTimeRef.current = Date.now();
     setDirection(1);
     setIndex((prev) => (prev + 1) % slides.length);
   };
 
-  const onDragEnd = (
-    _: MouseEvent | TouchEvent | PointerEvent,
-    info: PanInfo,
-  ) => {
-    const threshold = 85;
-    if (info.offset.x <= -threshold) {
-      isUserActionRef.current = true;
-      goNext();
-    }
-    if (info.offset.x >= threshold) {
-      isUserActionRef.current = true;
-      goPrev();
+  // Touch Swipe Gesture (Mobile): Ngưỡng 45-50px, ưu tiên vuốt ngang, không chặn vertical scroll
+  const touchStartXRef = useRef<number | null>(null);
+  const touchStartYRef = useRef<number | null>(null);
+  const touchStartTimeRef = useRef<number>(0);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (slides.length <= 1) return;
+    const touch = e.touches[0];
+    if (!touch) return;
+    touchStartXRef.current = touch.clientX;
+    touchStartYRef.current = touch.clientY;
+    touchStartTimeRef.current = Date.now();
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartXRef.current === null || touchStartYRef.current === null) return;
+    const touch = e.changedTouches[0];
+    if (!touch) return;
+
+    const deltaX = touch.clientX - touchStartXRef.current;
+    const deltaY = touch.clientY - touchStartYRef.current;
+    const deltaTime = Date.now() - touchStartTimeRef.current;
+
+    touchStartXRef.current = null;
+    touchStartYRef.current = null;
+
+    // Giới hạn thời gian vuốt dứt khoát < 650ms
+    if (deltaTime > 650) return;
+
+    const absX = Math.abs(deltaX);
+    const absY = Math.abs(deltaY);
+
+    // Ngưỡng vuốt 45px và hướng ngang rõ rệt hơn hướng dọc (absX > absY * 1.3) để không cản vertical scroll
+    if (absX >= 45 && absX > absY * 1.3) {
+      if (deltaX < 0) {
+        // Vuốt sang trái -> xem banner tiếp theo
+        goNext();
+      } else {
+        // Vuốt sang phải -> xem banner trước
+        goPrev();
+      }
     }
   };
+
+  // Keyboard navigation: Hỗ trợ phím mũi tên trái/phải khi banner đang hiển thị trong viewport
+  useEffect(() => {
+    if (!isHeroVisible || slides.length <= 1) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+      if (e.key === "ArrowLeft") {
+        goPrev();
+      } else if (e.key === "ArrowRight") {
+        goNext();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isHeroVisible, slides.length]);
 
   const slideVariants = reduceMotion
     ? {
@@ -499,6 +555,8 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
       className="hero-cinema-section keep-dark-cinema relative h-[58vh] sm:h-[75vh] md:h-[82vh] min-h-[460px] sm:min-h-[540px] max-h-[850px] w-full overflow-hidden bg-black select-none"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
     >
       {/* 1. HÌNH NỀN HERO BANNER TOÀN MÀN HÌNH VỚI HIỆU ỨNG CHUYỂN SLIDE MƯỢT MÀ */}
       <div className="absolute inset-0">
@@ -515,11 +573,7 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
               opacity: { duration: 0.45, ease: "easeOut" },
               scale: { duration: 0.75, ease: "easeOut" },
             }}
-            drag={isMounted && slides.length > 1 ? "x" : false}
-            dragElastic={0.08}
-            dragConstraints={{ left: 0, right: 0 }}
-            onDragEnd={onDragEnd}
-            className="absolute inset-0 will-change-transform touch-pan-y select-none"
+            className="absolute inset-0 will-change-transform select-none"
           >
             {!isHeroImageLoaded && (
               <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-zinc-950 to-black animate-pulse pointer-events-none" />
@@ -744,16 +798,18 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
       {slides.length > 1 && (
         <>
           <button
+            type="button"
             onClick={goPrev}
-            aria-label="Slide trước"
-            className="hidden sm:flex absolute left-4 md:left-8 top-1/2 z-20 -translate-y-1/2 rounded-full border border-white/20 bg-black/60 hover:bg-netflix-red hover:border-netflix-red p-3.5 text-white backdrop-blur-xl transition-all duration-300 shadow-2xl hover:scale-110 active:scale-95 items-center justify-center cursor-pointer"
+            aria-label="Banner trước"
+            className="hidden sm:flex absolute left-4 md:left-8 top-1/2 z-20 -translate-y-1/2 rounded-full border border-white/20 bg-black/60 hover:bg-netflix-red hover:border-netflix-red p-3.5 text-white backdrop-blur-xl transition-all duration-300 shadow-2xl hover:scale-110 active:scale-95 items-center justify-center cursor-pointer focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none"
           >
             <ChevronLeft size={22} />
           </button>
           <button
+            type="button"
             onClick={goNext}
-            aria-label="Slide tiếp"
-            className="hidden sm:flex absolute right-4 md:right-8 top-1/2 z-20 -translate-y-1/2 rounded-full border border-white/20 bg-black/60 hover:bg-netflix-red hover:border-netflix-red p-3.5 text-white backdrop-blur-xl transition-all duration-300 shadow-2xl hover:scale-110 active:scale-95 items-center justify-center cursor-pointer"
+            aria-label="Banner tiếp theo"
+            className="hidden sm:flex absolute right-4 md:right-8 top-1/2 z-20 -translate-y-1/2 rounded-full border border-white/20 bg-black/60 hover:bg-netflix-red hover:border-netflix-red p-3.5 text-white backdrop-blur-xl transition-all duration-300 shadow-2xl hover:scale-110 active:scale-95 items-center justify-center cursor-pointer focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none"
           >
             <ChevronRight size={22} />
           </button>

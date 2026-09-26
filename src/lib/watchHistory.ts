@@ -320,30 +320,36 @@ export const saveWatchProgress = (
   }
 };
 
-// Cờ chống gọi autoHydrate lặp lại trong cùng 1 phiên
+// Cờ và danh sách slug đã hydrate trong phiên chống gọi lặp lại
 let isHydratingWatchHistory = false;
+const hydratedHistorySlugsInSession = new Set<string>();
 
 /**
- * Tự động bù đắp thông tin (Tiêu đề, Poster, Thumbnail) cho các phim lịch sử cũ bị thiếu
+ * Tự động bù đắp thông tin (Tiêu đề, Poster, Thumbnail, Tên tập phim lẻ) cho các phim lịch sử cũ bị thiếu
  */
 export async function autoHydrateWatchHistory(): Promise<void> {
   if (typeof window === "undefined" || isHydratingWatchHistory) return;
   const list = getWatchHistory();
-  const needHydration = list.filter(
-    (item) =>
-      !item.title ||
-      item.title === item.slug ||
-      !item.poster ||
-      item.poster.includes("default-") ||
-      !item.thumb
-  );
+  const needHydration = list.filter((item) => {
+    if (hydratedHistorySlugsInSession.has(item.slug)) return false;
+    const isMissingTitle = !item.title || item.title === item.slug;
+    const isMissingPoster = !item.poster || item.poster.includes("default-");
+    const isMissingThumb = !item.thumb;
+    const isMissingEpisodeName = !item.episodeName || item.episodeName.trim() === "";
+    return isMissingTitle || isMissingPoster || isMissingThumb || isMissingEpisodeName;
+  });
 
   if (needHydration.length === 0) return;
 
+  const uniqueSlugs = Array.from(new Set(needHydration.map((i) => i.slug))).slice(0, 20);
+  if (uniqueSlugs.length === 0) return;
+
+  // Đánh dấu đã fetch trong session để chống tạo vòng lặp vô hạn
+  uniqueSlugs.forEach((s) => hydratedHistorySlugsInSession.add(s));
+
   isHydratingWatchHistory = true;
   try {
-    const slugsToFetch = needHydration.map((i) => i.slug).join(",");
-    const res = await fetch(`/api/movies/meta?slugs=${encodeURIComponent(slugsToFetch)}`);
+    const res = await fetch(`/api/movies/meta?slugs=${encodeURIComponent(uniqueSlugs.join(","))}`);
     if (!res.ok) return;
 
     const data = await res.json();
@@ -380,6 +386,25 @@ export async function autoHydrateWatchHistory(): Promise<void> {
       }
       if (meta.category && !item.category) {
         updatedItem.category = meta.category;
+        changed = true;
+      }
+      if (meta.type && !item.type) {
+        updatedItem.type = meta.type;
+        changed = true;
+      }
+
+      // Chuẩn hóa nhãn tập cho PHIM LẺ:
+      // Nếu episodeName rỗng/null/undefined VÀ phim là phim lẻ (isSingle / type === "single" / typeName === "Phim lẻ" / "Phim rạp")
+      // TUYỆT ĐỐI KHÔNG gán "Full" cho phim bộ!
+      const isSingleMovie =
+        meta.isSingle === true ||
+        meta.type === "single" ||
+        meta.typeName === "Phim lẻ" ||
+        meta.typeName === "Phim rạp" ||
+        item.type === "single";
+
+      if ((!updatedItem.episodeName || updatedItem.episodeName.trim() === "") && isSingleMovie) {
+        updatedItem.episodeName = "Full";
         changed = true;
       }
 
