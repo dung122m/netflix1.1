@@ -814,6 +814,9 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     urlParamT,
     initialTimeUsed,
     showHud,
+    activeEpisodeName,
+    posterUrl,
+    title,
   ]);
 
   // Video events

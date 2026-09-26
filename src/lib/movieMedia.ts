@@ -196,7 +196,7 @@ export function toOptimizedPhimimgUrl(
   targetWidth: number | OptimizedProxyWidth = 320
 ): string {
   if (!url || typeof url !== "string") return "";
-  let clean = sanitizeImageUrl(url);
+  const clean = sanitizeImageUrl(url);
   if (!clean) return "";
 
   // Bỏ qua ảnh local, ảnh TMDB/IMDb hoặc đã là URL proxy

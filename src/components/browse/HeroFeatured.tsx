@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useMemo, useState, useRef } from "react";
+import React, { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -76,17 +76,12 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
   const [direction, setDirection] = useState(1);
   const [paused, setPaused] = useState(false);
   const reduceMotion = useReducedMotion();
-  const [isMounted, setIsMounted] = useState(false);
 
   const currentSlug = slides[index]?.slug;
   const [isHeroImageLoaded, setIsHeroImageLoaded] = useState(false);
   const isInitialSlideRef = useRef(true);
   const [heroSynopsis, setHeroSynopsis] = useState<string>("");
   const [failedHeroImages, setFailedHeroImages] = useState<Record<string, boolean>>({});
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
 
   useEffect(() => {
     if (isInitialSlideRef.current) {
@@ -153,7 +148,89 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
     return () => observer.disconnect();
   }, []);
 
+  const goPrev = useCallback(() => {
+    isUserActionRef.current = true;
+    slideStartTimeRef.current = Date.now();
+    setDirection(-1);
+    setIndex((prev) => (prev - 1 + slides.length) % slides.length);
+  }, [slides.length]);
 
+  const goNext = useCallback(() => {
+    isUserActionRef.current = true;
+    slideStartTimeRef.current = Date.now();
+    setDirection(1);
+    setIndex((prev) => (prev + 1) % slides.length);
+  }, [slides.length]);
+
+  // Touch Swipe Gesture (Mobile): Ngưỡng 45-50px, ưu tiên vuốt ngang, không chặn vertical scroll
+  const touchStartXRef = useRef<number | null>(null);
+  const touchStartYRef = useRef<number | null>(null);
+  const touchStartTimeRef = useRef<number>(0);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (slides.length <= 1) return;
+    const touch = e.touches[0];
+    if (!touch) return;
+    touchStartXRef.current = touch.clientX;
+    touchStartYRef.current = touch.clientY;
+    touchStartTimeRef.current = Date.now();
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartXRef.current === null || touchStartYRef.current === null) return;
+    const touch = e.changedTouches[0];
+    if (!touch) return;
+
+    const deltaX = touch.clientX - touchStartXRef.current;
+    const deltaY = touch.clientY - touchStartYRef.current;
+    const deltaTime = Date.now() - touchStartTimeRef.current;
+
+    touchStartXRef.current = null;
+    touchStartYRef.current = null;
+
+    // Giới hạn thời gian vuốt dứt khoát < 650ms
+    if (deltaTime > 650) return;
+
+    const absX = Math.abs(deltaX);
+    const absY = Math.abs(deltaY);
+
+    // Ngưỡng vuốt 45px và hướng ngang rõ rệt hơn hướng dọc (absX > absY * 1.3) để không cản vertical scroll
+    if (absX >= 45 && absX > absY * 1.3) {
+      if (deltaX < 0) {
+        // Vuốt sang trái -> xem banner tiếp theo
+        goNext();
+      } else {
+        // Vuốt sang phải -> xem banner trước
+        goPrev();
+      }
+    }
+  };
+
+  // Keyboard navigation: Hỗ trợ phím mũi tên trái/phải khi banner đang hiển thị trong viewport
+  useEffect(() => {
+    if (!isHeroVisible || slides.length <= 1) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+      if (e.key === "ArrowLeft") {
+        goPrev();
+      } else if (e.key === "ArrowRight") {
+        goNext();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isHeroVisible, slides.length, goNext, goPrev]);
 
   // Auto-slide: Tự động chuyển slide; trailer không chặn auto-slide
   // Banner có trailer: preview 15–20s (18s: 2s xuất hiện + ~16s trailer) rồi tự chuyển
@@ -435,90 +512,6 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
     voteAverage !== undefined && voteAverage !== null && voteAverage !== ""
       ? Number(voteAverage).toFixed(1)
       : null;
-
-  const goPrev = () => {
-    isUserActionRef.current = true;
-    slideStartTimeRef.current = Date.now();
-    setDirection(-1);
-    setIndex((prev) => (prev - 1 + slides.length) % slides.length);
-  };
-
-  const goNext = () => {
-    isUserActionRef.current = true;
-    slideStartTimeRef.current = Date.now();
-    setDirection(1);
-    setIndex((prev) => (prev + 1) % slides.length);
-  };
-
-  // Touch Swipe Gesture (Mobile): Ngưỡng 45-50px, ưu tiên vuốt ngang, không chặn vertical scroll
-  const touchStartXRef = useRef<number | null>(null);
-  const touchStartYRef = useRef<number | null>(null);
-  const touchStartTimeRef = useRef<number>(0);
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (slides.length <= 1) return;
-    const touch = e.touches[0];
-    if (!touch) return;
-    touchStartXRef.current = touch.clientX;
-    touchStartYRef.current = touch.clientY;
-    touchStartTimeRef.current = Date.now();
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartXRef.current === null || touchStartYRef.current === null) return;
-    const touch = e.changedTouches[0];
-    if (!touch) return;
-
-    const deltaX = touch.clientX - touchStartXRef.current;
-    const deltaY = touch.clientY - touchStartYRef.current;
-    const deltaTime = Date.now() - touchStartTimeRef.current;
-
-    touchStartXRef.current = null;
-    touchStartYRef.current = null;
-
-    // Giới hạn thời gian vuốt dứt khoát < 650ms
-    if (deltaTime > 650) return;
-
-    const absX = Math.abs(deltaX);
-    const absY = Math.abs(deltaY);
-
-    // Ngưỡng vuốt 45px và hướng ngang rõ rệt hơn hướng dọc (absX > absY * 1.3) để không cản vertical scroll
-    if (absX >= 45 && absX > absY * 1.3) {
-      if (deltaX < 0) {
-        // Vuốt sang trái -> xem banner tiếp theo
-        goNext();
-      } else {
-        // Vuốt sang phải -> xem banner trước
-        goPrev();
-      }
-    }
-  };
-
-  // Keyboard navigation: Hỗ trợ phím mũi tên trái/phải khi banner đang hiển thị trong viewport
-  useEffect(() => {
-    if (!isHeroVisible || slides.length <= 1) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (
-        target &&
-        (target.tagName === "INPUT" ||
-          target.tagName === "TEXTAREA" ||
-          target.tagName === "SELECT" ||
-          target.isContentEditable)
-      ) {
-        return;
-      }
-      if (e.key === "ArrowLeft") {
-        goPrev();
-      } else if (e.key === "ArrowRight") {
-        goNext();
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isHeroVisible, slides.length]);
 
   const slideVariants = reduceMotion
     ? {

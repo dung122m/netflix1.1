@@ -14,7 +14,6 @@ import {
   Clock,
   Film,
   MapPin,
-  Globe,
   Monitor,
 } from "lucide-react";
 import { MemberWithStats } from "@/types/user";

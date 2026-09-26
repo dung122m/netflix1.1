@@ -21,9 +21,7 @@ import {
   Film,
   BarChart2,
   MapPin,
-  Wifi,
   Cpu,
-  Maximize2,
   Sparkles,
 } from "lucide-react";
 import { AnalyticsDashboardStats } from "@/services/analyticsService";
