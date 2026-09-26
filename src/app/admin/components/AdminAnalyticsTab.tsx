@@ -23,8 +23,14 @@ import {
   MapPin,
   Cpu,
   Sparkles,
+  Calendar,
+  UserCheck,
+  UserX,
 } from "lucide-react";
-import { AnalyticsDashboardStats } from "@/services/analyticsService";
+import {
+  AnalyticsDashboardStats,
+  DailyVisitorsResponse,
+} from "@/services/analyticsService";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { toast } from "@/components/Toast";
 import { useAuth } from "@/context/AuthContext";
@@ -49,6 +55,28 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
   const [stats, setStats] = useState<AnalyticsDashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Helper to compute YYYY-MM-DD in Asia/Ho_Chi_Minh (UTC+7)
+  const getTodayVietnamStr = () => {
+    const vn = new Date(Date.now() + 7 * 60 * 60 * 1000);
+    const y = vn.getUTCFullYear();
+    const m = String(vn.getUTCMonth() + 1).padStart(2, "0");
+    const d = String(vn.getUTCDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  };
+
+  const getYesterdayVietnamStr = () => {
+    const vn = new Date(Date.now() + 7 * 60 * 60 * 1000 - 86400000);
+    const y = vn.getUTCFullYear();
+    const m = String(vn.getUTCMonth() + 1).padStart(2, "0");
+    const d = String(vn.getUTCDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  };
+
+  const [selectedDate, setSelectedDate] = useState<string>(getTodayVietnamStr);
+  const [dailyVisitors, setDailyVisitors] = useState<DailyVisitorsResponse | null>(null);
+  const [loadingDaily, setLoadingDaily] = useState(true);
+  const [isRefreshingDaily, setIsRefreshingDaily] = useState(false);
 
   const filteredRecentActivity = useMemo(() => {
     const allowedTypes = new Set(["site_visit", "movie_view", "watch_start", "watch_end", "search"]);
@@ -79,14 +107,42 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
     }
   }, [user]);
 
+  const fetchDailyVisitors = useCallback(async (dateToFetch: string, showToast = false) => {
+    try {
+      if (showToast) setIsRefreshingDaily(true);
+      const idToken = await user?.getIdToken().catch(() => null);
+      const res = await fetch(`/api/analytics/daily-visitors?date=${dateToFetch}`, {
+        headers: idToken ? { Authorization: `Bearer ${idToken}` } : {},
+      });
+      const data = await res.json();
+      if (data.success && data.data) {
+        setDailyVisitors(data.data);
+        if (showToast) {
+          toast.success(`Đã cập nhật danh sách khách ngày ${dateToFetch}!`);
+        }
+      }
+    } catch {
+      if (showToast) {
+        toast.error("Không thể tải danh sách khách truy cập!");
+      }
+    } finally {
+      setLoadingDaily(false);
+      setIsRefreshingDaily(false);
+    }
+  }, [user]);
+
   useEffect(() => {
     // Skip fetch until Firebase auth has resolved to a real user.
-    // Without this guard the effect fires once with user=null (→ 401, wasted request)
-    // and then again after auth hydration, causing a duplicate request on every mount.
     if (!user) return;
     setLoading(true);
     fetchStats(timeframe);
   }, [timeframe, fetchStats, user]);
+
+  useEffect(() => {
+    if (!user) return;
+    setLoadingDaily(true);
+    fetchDailyVisitors(selectedDate);
+  }, [selectedDate, fetchDailyVisitors, user]);
 
   // Format seconds to hours and minutes
   const formatDuration = (seconds: number) => {
@@ -103,6 +159,17 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
   const formatTime = (ts: number) => {
     const d = new Date(ts);
     return `${d.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })} • ${d.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" })}`;
+  };
+
+  const formatTimeOnly = (ts: number) => {
+    if (!ts) return "—";
+    const d = new Date(ts);
+    return d.toLocaleTimeString("vi-VN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      timeZone: "Asia/Ho_Chi_Minh",
+    });
   };
 
   const getEventBadge = (type: string) => {
@@ -907,6 +974,228 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
                 </span>
               </div>
             ))}
+          </div>
+        )}
+      </div>
+
+      {/* SECTION: KHÁCH TRUY CẬP THEO NGÀY (DAILY VISITORS) */}
+      <div className="p-4 sm:p-6 rounded-2xl bg-zinc-900/60 border border-white/10 backdrop-blur-sm space-y-5">
+        {/* Header with Title & Date Picker Controls */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-violet-500/10 text-violet-400">
+              <Calendar size={18} />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <span>Khách Truy Cập Theo Ngày</span>
+                {selectedDate === getTodayVietnamStr() && (
+                  <span className="px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30 text-[10px] font-bold">
+                    Hôm nay
+                  </span>
+                )}
+              </h3>
+              <p className="text-[11px] text-gray-400">
+                Tổng hợp người dùng & khách vãng lai độc nhất theo từng ngày (Asia/Ho_Chi_Minh)
+              </p>
+            </div>
+          </div>
+
+          {/* Controls: Date buttons & input */}
+          <div className="flex items-center flex-wrap gap-2">
+            <div className="flex items-center bg-black/40 p-1 rounded-xl border border-white/10 text-xs">
+              <button
+                type="button"
+                onClick={() => setSelectedDate(getTodayVietnamStr())}
+                className={`px-3 py-1.5 rounded-lg font-medium transition ${
+                  selectedDate === getTodayVietnamStr()
+                    ? "bg-violet-600 text-white shadow-sm"
+                    : "text-gray-400 hover:text-white"
+                }`}
+              >
+                Hôm nay
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedDate(getYesterdayVietnamStr())}
+                className={`px-3 py-1.5 rounded-lg font-medium transition ${
+                  selectedDate === getYesterdayVietnamStr()
+                    ? "bg-violet-600 text-white shadow-sm"
+                    : "text-gray-400 hover:text-white"
+                }`}
+              >
+                Hôm qua
+              </button>
+            </div>
+
+            {/* Custom Date Input */}
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                value={selectedDate}
+                max={getTodayVietnamStr()}
+                onChange={(e) => {
+                  if (e.target.value) setSelectedDate(e.target.value);
+                }}
+                className="bg-black/40 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-violet-500 transition cursor-pointer"
+              />
+
+              <button
+                type="button"
+                onClick={() => fetchDailyVisitors(selectedDate, true)}
+                disabled={isRefreshingDaily || loadingDaily}
+                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 transition disabled:opacity-50"
+                title="Làm mới danh sách khách truy cập"
+              >
+                <RefreshCw size={14} className={isRefreshingDaily ? "animate-spin text-violet-400" : ""} />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Summary Cards for Selected Day */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="p-3.5 rounded-xl bg-black/30 border border-white/5 flex items-center justify-between">
+            <div>
+              <span className="text-[11px] text-gray-400 font-medium">Tổng Visitor Trong Ngày</span>
+              <div className="text-xl font-black text-white mt-0.5">
+                {loadingDaily ? "..." : dailyVisitors?.summary.total ?? 0}
+              </div>
+            </div>
+            <div className="p-2 rounded-lg bg-violet-500/10 text-violet-400">
+              <Users size={16} />
+            </div>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-black/30 border border-white/5 flex items-center justify-between">
+            <div>
+              <span className="text-[11px] text-gray-400 font-medium">Thành Viên (User)</span>
+              <div className="text-xl font-black text-emerald-400 mt-0.5">
+                {loadingDaily ? "..." : dailyVisitors?.summary.users ?? 0}
+              </div>
+            </div>
+            <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
+              <UserCheck size={16} />
+            </div>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-black/30 border border-white/5 flex items-center justify-between">
+            <div>
+              <span className="text-[11px] text-gray-400 font-medium">Khách Vãng Lai (Guest)</span>
+              <div className="text-xl font-black text-gray-300 mt-0.5">
+                {loadingDaily ? "..." : dailyVisitors?.summary.guests ?? 0}
+              </div>
+            </div>
+            <div className="p-2 rounded-lg bg-zinc-800 text-gray-400">
+              <UserX size={16} />
+            </div>
+          </div>
+        </div>
+
+        {/* Visitors Table */}
+        {loadingDaily ? (
+          <div className="p-8 text-center rounded-xl bg-black/40 border border-white/5 text-gray-400 text-xs">
+            <RefreshCw size={16} className="animate-spin mx-auto mb-2 text-violet-400" />
+            Đang tải danh sách khách truy cập ngày {selectedDate}...
+          </div>
+        ) : !dailyVisitors || dailyVisitors.visitors.length === 0 ? (
+          <div className="p-8 text-center rounded-xl bg-black/40 border border-white/5 text-gray-400 text-xs">
+            Không có lượt truy cập nào được ghi nhận trong ngày {selectedDate}.
+          </div>
+        ) : (
+          <div className="overflow-x-auto rounded-xl border border-white/5 bg-black/30">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="border-b border-white/10 bg-white/[0.02] text-gray-400 text-[11px]">
+                  <th className="py-3 px-4 font-semibold">Visitor</th>
+                  <th className="py-3 px-3 font-semibold">Loại</th>
+                  <th className="py-3 px-3 font-semibold">Vị trí (GeoIP)</th>
+                  <th className="py-3 px-3 font-semibold">Lần gần nhất</th>
+                  <th className="py-3 px-4 font-semibold">Hoạt động cuối</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {dailyVisitors.visitors.map((v) => (
+                  <tr key={v.visitorKey} className="hover:bg-white/[0.02] transition">
+                    {/* Visitor Info */}
+                    <td className="py-3 px-4 min-w-[180px]">
+                      <div className="flex items-center gap-2.5">
+                        {v.type === "user" ? (
+                          <UserAvatar
+                            src={v.avatar}
+                            name={v.displayName}
+                            seed={v.visitorKey}
+                            sizeClassName="w-8 h-8 text-xs font-bold flex-shrink-0"
+                            rounded="xl"
+                            className="border border-white/10"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-xl bg-zinc-800 border border-white/10 flex items-center justify-center text-gray-400 flex-shrink-0 font-bold text-[11px]">
+                            🎭
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <div className="font-bold text-white truncate text-xs flex items-center gap-1.5">
+                            <span className="truncate">{v.displayName}</span>
+                          </div>
+                          <div className="text-[10px] text-gray-400 truncate font-mono">
+                            {v.type === "user"
+                              ? (v.email || v.visitorKey.slice(0, 12) + "...")
+                              : `${v.deviceType || "desktop"} • ${v.os || "Web"}`}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Type Badge */}
+                    <td className="py-3 px-3 whitespace-nowrap">
+                      {v.type === "user" ? (
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-semibold text-[10px] inline-flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                          User
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full bg-zinc-800 border border-white/10 text-gray-300 font-semibold text-[10px] inline-flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
+                          Guest
+                        </span>
+                      )}
+                    </td>
+
+                    {/* Location */}
+                    <td className="py-3 px-3 whitespace-nowrap text-[11px]">
+                      {v.city || v.country ? (
+                        <span className="text-teal-300 font-medium inline-flex items-center gap-1">
+                          <MapPin size={11} className="text-teal-400 flex-shrink-0" />
+                          <span>
+                            {v.city ? `${v.city}, ${v.countryCode || v.country}` : v.country}
+                          </span>
+                        </span>
+                      ) : (
+                        <span className="text-gray-500 italic">Không xác định</span>
+                      )}
+                    </td>
+
+                    {/* Last Seen (HH:mm:ss) */}
+                    <td className="py-3 px-3 whitespace-nowrap font-mono text-[11px] text-gray-300">
+                      {formatTimeOnly(v.lastSeen)}
+                    </td>
+
+                    {/* Last Action */}
+                    <td className="py-3 px-4 min-w-[200px]">
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-200 text-xs truncate max-w-[240px]" title={v.lastAction}>
+                          {v.lastAction}
+                        </span>
+                        <span className="px-1.5 py-0.2 rounded-full bg-white/10 text-gray-400 font-mono text-[10px] flex-shrink-0">
+                          {v.eventCount} sự kiện
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

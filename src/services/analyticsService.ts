@@ -101,6 +101,35 @@ export interface DeviceProfileStats {
   };
 }
 
+export interface DailyVisitorItem {
+  visitorKey: string;
+  type: "user" | "guest";
+  displayName: string;
+  email?: string;
+  avatar?: string;
+  country?: string;
+  countryCode?: string;
+  region?: string;
+  city?: string;
+  firstSeen: number;
+  lastSeen: number;
+  eventCount: number;
+  lastAction: string;
+  deviceType?: string;
+  os?: string;
+  browser?: string;
+}
+
+export interface DailyVisitorsResponse {
+  date: string;
+  summary: {
+    total: number;
+    users: number;
+    guests: number;
+  };
+  visitors: DailyVisitorItem[];
+}
+
 export interface AnalyticsDashboardStats {
   timeframe: "today" | "7d" | "30d" | "all";
   totalViews: number;
@@ -1196,5 +1225,359 @@ export async function rebuildWatchTimeCounter(): Promise<{ previousSeconds: numb
   return {
     previousSeconds: prevSec,
     newSeconds: stats.totalWatchTimeSeconds,
+  };
+}
+
+/**
+ * Convert a YYYY-MM-DD date string (or today if empty) to Vietnam day boundaries [startMs, endMs].
+ * Times are calculated strictly in Asia/Ho_Chi_Minh (UTC+7).
+ */
+export function getVietnamDayBoundaries(dateStr?: string): { date: string; startMs: number; endMs: number } {
+  const now = Date.now();
+  let targetDate = dateStr?.trim();
+
+  if (!targetDate || !/^\d{4}-\d{2}-\d{2}$/.test(targetDate)) {
+    const vnNow = new Date(now + VIETNAM_TIMEZONE_OFFSET_MS);
+    const y = vnNow.getUTCFullYear();
+    const m = String(vnNow.getUTCMonth() + 1).padStart(2, "0");
+    const d = String(vnNow.getUTCDate()).padStart(2, "0");
+    targetDate = `${y}-${m}-${d}`;
+  }
+
+  const [yStr, mStr, dStr] = targetDate.split("-");
+  const year = parseInt(yStr, 10);
+  const month = parseInt(mStr, 10) - 1;
+  const day = parseInt(dStr, 10);
+
+  const startMs = Date.UTC(year, month, day, 0, 0, 0, 0) - VIETNAM_TIMEZONE_OFFSET_MS;
+  const endMs = startMs + 86400 * 1000 - 1; // 23:59:59.999
+
+  return { date: targetDate, startMs, endMs };
+}
+
+function formatEventAction(ev: StoredAnalyticsEvent): string {
+  const title = ev.movieTitle || ev.movieSlug;
+  switch (ev.eventType) {
+    case "movie_view":
+      return title ? `Mở trang phim: ${title}` : "Mở trang phim";
+    case "watch_start":
+      return title ? `Bắt đầu xem: ${title}` : "Bắt đầu xem";
+    case "watch_progress":
+      return title ? `Đang xem: ${title}` : "Đang xem phim";
+    case "watch_end":
+      return title ? `Xem xong: ${title}` : "Xem xong";
+    case "site_visit":
+      return "Truy cập website";
+    case "search":
+      return ev.keyword ? `Tìm kiếm: "${ev.keyword}"` : "Tìm kiếm";
+    default:
+      return "Hoạt động";
+  }
+}
+
+/**
+ * Retrieve unique daily visitors for a given date (default today in Asia/Ho_Chi_Minh).
+ * Deduplicates multiple events per user/guest into a single Daily Visitor record.
+ */
+export async function getDailyVisitorsStats(dateStr?: string): Promise<DailyVisitorsResponse> {
+  const { date, startMs, endMs } = getVietnamDayBoundaries(dateStr);
+  const now = Date.now();
+  const isTargetingToday = now >= startMs && now <= endMs;
+
+  const client = isSupabaseAdminConfigured() ? getSupabaseAdmin() : supabase;
+  const redis = getRedis();
+
+  const analyticsEventsColumns = [
+    "id", "event_type", "movie_slug", "movie_title", "episode_slug", "episode_name",
+    "user_id", "anonymous_id", "device_type", "os", "browser",
+    "duration_seconds", "progress_seconds", "keyword", "created_at",
+  ].join(",");
+
+  const [supabaseEventsResult, redisListData] = await Promise.all([
+    (async () => {
+      if (!client) return { data: null, error: null };
+      try {
+        return await client
+          .from("analytics_events")
+          .select(analyticsEventsColumns)
+          .gte("created_at", startMs)
+          .lte("created_at", endMs)
+          .order("created_at", { ascending: false })
+          .limit(2000);
+      } catch {
+        return { data: null, error: new Error("analytics_events fetch failed") };
+      }
+    })(),
+    (async () => {
+      if (!isTargetingToday || !redis) return null;
+      try {
+        return await redis.lrange<string | StoredAnalyticsEvent>("analytics:events", 0, 500);
+      } catch {
+        return null;
+      }
+    })(),
+  ]);
+
+  const eventMap = new Map<string, StoredAnalyticsEvent>();
+
+  // 1. Add Supabase events
+  const { data: dbEvents } = supabaseEventsResult ?? { data: null, error: null };
+  if (Array.isArray(dbEvents)) {
+    for (const raw of dbEvents) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const r = raw as any;
+      const ev: StoredAnalyticsEvent = {
+        id: r.id,
+        eventType: r.event_type,
+        movieSlug: r.movie_slug || undefined,
+        movieTitle: r.movie_title || undefined,
+        episodeSlug: r.episode_slug || undefined,
+        episodeName: r.episode_name || undefined,
+        userId: r.user_id || undefined,
+        anonymousId: r.anonymous_id,
+        deviceType: r.device_type,
+        os: r.os,
+        browser: r.browser,
+        durationSeconds: r.duration_seconds || 0,
+        progressSeconds: r.progress_seconds || 0,
+        keyword: r.keyword || undefined,
+        createdAt: Number(r.created_at),
+      };
+      if (ev.createdAt >= startMs && ev.createdAt <= endMs) {
+        eventMap.set(ev.id, ev);
+      }
+    }
+  }
+
+  // 2. Merge Redis events (if targeting today)
+  if (Array.isArray(redisListData)) {
+    for (const item of redisListData) {
+      let ev: StoredAnalyticsEvent | null = null;
+      if (typeof item === "string") {
+        try {
+          ev = JSON.parse(item);
+        } catch {}
+      } else if (item && typeof item === "object") {
+        ev = item as StoredAnalyticsEvent;
+      }
+      if (ev && ev.id && ev.createdAt >= startMs && ev.createdAt <= endMs) {
+        eventMap.set(ev.id, ev);
+      }
+    }
+  }
+
+  // 3. Fallback to memoryEventsBuffer if targeting today and no events found
+  if (isTargetingToday && memoryEventsBuffer.length > 0) {
+    for (const ev of memoryEventsBuffer) {
+      if (ev.createdAt >= startMs && ev.createdAt <= endMs) {
+        eventMap.set(ev.id, ev);
+      }
+    }
+  }
+
+  const allEvents = Array.from(eventMap.values());
+
+  // 4. Group by Unique Visitor Identity
+  interface VisitorGroup {
+    type: "user" | "guest";
+    userId?: string;
+    anonymousId: string;
+    events: StoredAnalyticsEvent[];
+  }
+
+  const visitorGroupMap = new Map<string, VisitorGroup>();
+
+  for (const ev of allEvents) {
+    const isUser = Boolean(ev.userId && ev.userId.trim());
+    const groupKey = isUser ? `user:${ev.userId!.trim()}` : `guest:${ev.anonymousId}`;
+
+    let group = visitorGroupMap.get(groupKey);
+    if (!group) {
+      group = {
+        type: isUser ? "user" : "guest",
+        userId: isUser ? ev.userId!.trim() : undefined,
+        anonymousId: ev.anonymousId,
+        events: [],
+      };
+      visitorGroupMap.set(groupKey, group);
+    }
+    group.events.push(ev);
+  }
+
+  // 5. Batch fetch Profiles and Device Profiles for location
+  const userIdsToFetch = new Set<string>();
+  const guestIdsToFetch = new Set<string>();
+
+  for (const group of visitorGroupMap.values()) {
+    if (group.userId) userIdsToFetch.add(group.userId);
+    if (group.anonymousId) guestIdsToFetch.add(group.anonymousId);
+  }
+
+  const profileMap = new Map<string, { name: string; avatar?: string; email?: string }>();
+  const userLocationMap = new Map<string, { country?: string; countryCode?: string; region?: string; city?: string }>();
+  const guestLocationMap = new Map<string, { country?: string; countryCode?: string; region?: string; city?: string }>();
+
+  if (client) {
+    const fetchPromises: Promise<void>[] = [];
+
+    // A. Profiles lookup for logged-in Users
+    if (userIdsToFetch.size > 0) {
+      fetchPromises.push(
+        (async () => {
+          try {
+            const { data: profs } = await client
+              .from("profiles")
+              .select("id, display_name, photo_url, custom_avatar, email")
+              .in("id", Array.from(userIdsToFetch));
+
+            if (Array.isArray(profs)) {
+              for (const p of profs) {
+                profileMap.set(p.id, {
+                  name: p.display_name || "Thành viên",
+                  avatar: p.custom_avatar || p.photo_url || undefined,
+                  email: p.email || undefined,
+                });
+              }
+            }
+          } catch {}
+        })()
+      );
+    }
+
+    // B. Device Profiles lookup by User ID
+    if (userIdsToFetch.size > 0) {
+      fetchPromises.push(
+        (async () => {
+          try {
+            const { data: userDevs } = await client
+              .from("device_profiles")
+              .select("user_id, country, country_code, region, city")
+              .in("user_id", Array.from(userIdsToFetch))
+              .order("last_seen", { ascending: false });
+
+            if (Array.isArray(userDevs)) {
+              for (const d of userDevs) {
+                if (d.user_id && !userLocationMap.has(d.user_id)) {
+                  userLocationMap.set(d.user_id, {
+                    country: d.country || undefined,
+                    countryCode: d.country_code || undefined,
+                    region: d.region || undefined,
+                    city: d.city || undefined,
+                  });
+                }
+              }
+            }
+          } catch {}
+        })()
+      );
+    }
+
+    // C. Device Profiles lookup by Guest ID (anon_...)
+    if (guestIdsToFetch.size > 0) {
+      fetchPromises.push(
+        (async () => {
+          try {
+            const { data: guestDevs } = await client
+              .from("device_profiles")
+              .select("id, guest_id, country, country_code, region, city")
+              .in("id", Array.from(guestIdsToFetch).slice(0, 1000));
+
+            if (Array.isArray(guestDevs)) {
+              for (const d of guestDevs) {
+                const key = d.guest_id || d.id;
+                if (key && !guestLocationMap.has(key)) {
+                  guestLocationMap.set(key, {
+                    country: d.country || undefined,
+                    countryCode: d.country_code || undefined,
+                    region: d.region || undefined,
+                    city: d.city || undefined,
+                  });
+                }
+              }
+            }
+          } catch {}
+        })()
+      );
+    }
+
+    await Promise.all(fetchPromises);
+  }
+
+  // 6. Build DailyVisitorItem list
+  const visitors: DailyVisitorItem[] = [];
+  let userCount = 0;
+  let guestCount = 0;
+
+  for (const group of visitorGroupMap.values()) {
+    // Sort events chronological
+    group.events.sort((a, b) => a.createdAt - b.createdAt);
+    const firstEv = group.events[0];
+    const lastEv = group.events[group.events.length - 1];
+
+    let loc = group.userId ? userLocationMap.get(group.userId) : undefined;
+    if (!loc) {
+      loc = guestLocationMap.get(group.anonymousId);
+    }
+
+    if (group.type === "user") {
+      userCount++;
+      const prof = group.userId ? profileMap.get(group.userId) : undefined;
+      const displayName = prof?.name || `User (${group.userId!.slice(0, 8)})`;
+
+      visitors.push({
+        visitorKey: group.userId!,
+        type: "user",
+        displayName,
+        email: prof?.email,
+        avatar: prof?.avatar,
+        country: loc?.country,
+        countryCode: loc?.countryCode,
+        region: loc?.region,
+        city: loc?.city,
+        firstSeen: firstEv.createdAt,
+        lastSeen: lastEv.createdAt,
+        eventCount: group.events.length,
+        lastAction: formatEventAction(lastEv),
+        deviceType: lastEv.deviceType,
+        os: lastEv.os,
+        browser: lastEv.browser,
+      });
+    } else {
+      guestCount++;
+      const anonShort = group.anonymousId.startsWith("anon_")
+        ? group.anonymousId.slice(5, 11)
+        : group.anonymousId.slice(0, 6);
+      const displayName = `Guest (${anonShort})`;
+
+      visitors.push({
+        visitorKey: group.anonymousId,
+        type: "guest",
+        displayName,
+        country: loc?.country,
+        countryCode: loc?.countryCode,
+        region: loc?.region,
+        city: loc?.city,
+        firstSeen: firstEv.createdAt,
+        lastSeen: lastEv.createdAt,
+        eventCount: group.events.length,
+        lastAction: formatEventAction(lastEv),
+        deviceType: lastEv.deviceType,
+        os: lastEv.os,
+        browser: lastEv.browser,
+      });
+    }
+  }
+
+  // Sort by lastSeen DESC
+  visitors.sort((a, b) => b.lastSeen - a.lastSeen);
+
+  return {
+    date,
+    summary: {
+      total: visitors.length,
+      users: userCount,
+      guests: guestCount,
+    },
+    visitors,
   };
 }
