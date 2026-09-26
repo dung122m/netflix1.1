@@ -20,13 +20,21 @@ import {
   Keyboard,
   RefreshCw,
   CheckCircle2,
+  Sliders,
+  AlertOctagon,
+  Volume2,
+  Subtitles,
+  Cpu,
+  Layers,
+  Flame,
+  MessageSquare,
 } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 
 interface FAQItem {
   id: string;
-  category: "guide" | "player" | "account" | "ai" | "privacy";
+  category: "guide" | "player" | "ai" | "account" | "content" | "troubleshoot";
   categoryLabel: string;
   question: string;
   answer: string;
@@ -40,16 +48,20 @@ const QUICK_GUIDES = [
     color: "text-rose-400",
     bgColor: "bg-rose-500/10 border-rose-500/20",
     badge: "iOS & Android",
-    title: "Cài đặt App lên Điện Thoại (PWA)",
-    summary: "Xem phim toàn màn hình không viền trình duyệt, mở nhanh từ màn hình chính như ứng dụng gốc.",
+    title: "Cài Đặt App Lên Màn Hình Chính (PWA)",
+    summary: "Xem phim toàn màn hình không viền trình duyệt, khởi động tức thì từ màn hình chính như một ứng dụng Native cao cấp.",
     steps: [
       {
-        device: "Dành cho iPhone (Safari):",
-        desc: "Mở Nanaflix trên Safari → Bấm nút Chia sẻ (biểu tượng ô vuông mũi tên lên ở đáy) → Cuộn xuống chọn 'Thêm vào MH chính' (Add to Home Screen).",
+        device: "Dành cho iPhone / iPad (Trình duyệt Safari):",
+        desc: "Mở Nanaflix trên Safari → Bấm nút Chia sẻ (biểu tượng ô vuông có mũi tên hướng lên ở thanh đáy) → Cuộn xuống và chọn 'Thêm vào MH chính' (Add to Home Screen) → Bấm 'Thêm' ở góc trên bên phải.",
       },
       {
-        device: "Dành cho Android (Chrome):",
-        desc: "Mở Nanaflix trên Chrome → Bấm biểu tượng 3 chấm (⋮) ở góc trên → Chọn 'Cài đặt ứng dụng' hoặc bấm nút 'Cài đặt PWA' ở menu dưới chân trang.",
+        device: "Dành cho điện thoại Android (Trình duyệt Google Chrome):",
+        desc: "Mở Nanaflix trên Chrome → Bấm vào biểu tượng 3 chấm (⋮) ở góc trên bên phải → Chọn 'Cài đặt ứng dụng' (Install App) hoặc bấm vào nút 'Cài đặt PWA' ở thanh công cụ dưới chân trang web.",
+      },
+      {
+        device: "Trải nghiệm sau khi cài đặt:",
+        desc: "Ứng dụng sẽ hoạt động độc lập, ẩn toàn bộ thanh địa chỉ URL của trình duyệt, tối ưu 100% diện tích hiển thị và tăng tốc độ tải trang nhờ bộ nhớ đệm Offline Service Worker.",
       },
     ],
   },
@@ -59,16 +71,20 @@ const QUICK_GUIDES = [
     color: "text-amber-400",
     bgColor: "bg-amber-500/10 border-amber-500/20",
     badge: "Smart TV & AirPlay",
-    title: "Truyền Phim Lên Màn Hình Lớn (TV)",
-    summary: "Thưởng thức chất lượng điện ảnh trên TV phòng khách cùng gia đình dễ dàng.",
+    title: "Truyền Phim Lên Màn Hình Lớn (Smart TV)",
+    summary: "Thưởng thức chất lượng hình ảnh điện ảnh cùng âm thanh sống động trên TV phòng khách cùng gia đình và bạn bè.",
     steps: [
       {
-        device: "Cách 1: AirPlay / Chromecast (Khuyên dùng)",
-        desc: "Kết nối điện thoại và Smart TV vào cùng một mạng Wi-Fi. Khi phát video, bấm vào biểu tượng Cast hoặc AirPlay trên trình phát để truyền hình ảnh.",
+        device: "Cách 1: Truyền không dây qua AirPlay / Google Cast (Khuyên Dùng)",
+        desc: "Đảm bảo điện thoại/máy tính và Smart TV đang kết nối vào cùng một mạng Wi-Fi. Khi đang phát phim trên Nanaflix, bấm vào biểu tượng Cast / AirPlay ngay trên thanh điều khiển của trình phát video để chuyển phát trực tiếp lên TV.",
       },
       {
-        device: "Cách 2: Trình duyệt trên Smart TV",
-        desc: "Mở ứng dụng Web Browser trên TV (Samsung Tizen, LG webOS, Android TV, Sony), gõ địa chỉ Nanaflix và bấm F11 / Toàn màn hình để xem trực tiếp.",
+        device: "Cách 2: Mở trực tiếp bằng trình duyệt trên Smart TV",
+        desc: "Khởi động ứng dụng Web Browser trên TV (hỗ trợ tốt trên Samsung Tizen OS, LG webOS, Google TV, Sony Bravia và Android TV Box), nhập địa chỉ website Nanaflix và chuyển sang chế độ Toàn màn hình (Full Screen).",
+      },
+      {
+        device: "Cách 3: Kết nối cáp HDMI / Type-C DisplayPort từ Laptop",
+        desc: "Cắm dây cáp từ máy tính sang TV, bật chế độ rạp chiếu (Theater Mode) hoặc Full Screen để có chất lượng truyền dẫn bitrate cao nhất và độ trễ bằng 0.",
       },
     ],
   },
@@ -77,16 +93,20 @@ const QUICK_GUIDES = [
     icon: Keyboard,
     color: "text-blue-400",
     bgColor: "bg-blue-500/10 border-blue-500/20",
-    badge: "Bàn phím Máy tính",
-    title: "Bảng Phím Tắt Điều Khiển Nhanh",
-    summary: "Thao tác mượt mà như xem trên YouTube / Netflix mà không cần chạm chuột.",
+    badge: "Bàn Phím Máy Tính",
+    title: "Bảng Phím Tắt Điều Khiển Trình Phát",
+    summary: "Thao tác mượt mà chuyên nghiệp như xem trên các nền tảng quốc tế mà không cần dùng chuột.",
     shortcuts: [
-      { key: "Space / K", desc: "Tạm dừng / Tiếp tục phát" },
-      { key: "← / →", desc: "Tua lùi / Tua tới 5 giây" },
+      { key: "Space / K", desc: "Tạm dừng / Tiếp tục phát video" },
+      { key: "← / →", desc: "Tua lùi / Tua tiến 5 giây" },
+      { key: "J / L", desc: "Tua nhanh 10 giây (YouTube style)" },
       { key: "↑ / ↓", desc: "Tăng / Giảm âm lượng 10%" },
-      { key: "F", desc: "Bật / Tắt Toàn màn hình" },
-      { key: "T", desc: "Chế độ rạp chiếu (Theater Mode)" },
-      { key: "M", desc: "Tắt / Bật nhanh âm thanh (Mute)" },
+      { key: "F", desc: "Bật / Tắt chế độ Toàn màn hình" },
+      { key: "T", desc: "Bật / Tắt chế độ rạp chiếu (Theater)" },
+      { key: "M", desc: "Tắt / Mở tiếng nhanh (Mute)" },
+      { key: "0 ... 9", desc: "Nhảy tới 0% ... 90% thời lượng phim" },
+      { key: "C", desc: "Bật / Tắt phụ đề phim" },
+      { key: "> / <", desc: "Tăng / Giảm tốc độ phát (Speed)" },
     ],
   },
   {
@@ -94,134 +114,203 @@ const QUICK_GUIDES = [
     icon: RefreshCw,
     color: "text-emerald-400",
     bgColor: "bg-emerald-500/10 border-emerald-500/20",
-    badge: "Đa thiết bị",
-    title: "Đồng Bộ Tiến Trình & Xem Tiếp",
-    summary: "Đang xem dở trên laptop, tối lên giường mở điện thoại là xem tiếp đúng giây đó.",
+    badge: "Cloud Handoff",
+    title: "Đồng Bộ Tiến Trình Đa Thiết Bị (Handoff)",
+    summary: "Đang xem dở một tập phim trên máy tính, tối về mở điện thoại là tiếp tục đúng từng giây đang dừng.",
     steps: [
       {
-        device: "Bước 1: Đăng nhập tài khoản",
-        desc: "Bấm 'Đăng nhập' ở góc trên bằng tài khoản Google hoặc Email của bạn.",
+        device: "Bước 1: Đăng nhập tài khoản Nanaflix",
+        desc: "Bấm nút 'Đăng nhập' ở góc trên bên phải bằng tài khoản Google hoặc Email của bạn.",
       },
       {
-        device: "Bước 2: Hệ thống tự động ghi nhớ",
-        desc: "Khi bạn xem phim, hệ thống tự động lưu lại vị trí từng giây và tập phim hiện tại lên đám mây.",
+        device: "Bước 2: Hệ thống tự động lưu vị trí",
+        desc: "Trong suốt quá trình xem phim, trình phát tự động ghi nhận vị trí giây và số tập phim hiện tại gửi lên hệ thống đám mây Supabase an toàn.",
       },
       {
-        device: "Bước 3: Mở thiết bị khác xem tiếp",
-        desc: "Đăng nhập cùng tài khoản trên điện thoại hoặc TV, hàng 'Tiếp tục xem' ở trang chủ sẽ hiển thị ngay bộ phim bạn đang xem dở.",
+        device: "Bước 3: Mở thiết bị mới và tiếp tục xem",
+        desc: "Khi bạn đăng nhập cùng tài khoản trên điện thoại, tablet hay TV, thanh 'Tiếp tục xem' ở ngay đầu trang chủ sẽ hiển thị tập phim bạn đang xem dở cùng thanh tiến trình trực quan.",
       },
     ],
   },
 ];
 
 const FAQ_DATA: FAQItem[] = [
-  // 1. Hướng dẫn & Sử dụng
+  // 1. HƯỚNG DẪN & SỬ DỤNG
   {
     id: "g1",
     category: "guide",
     categoryLabel: "Hướng Dẫn & Sử Dụng",
-    question: "Làm sao để tìm phim nhanh hoặc lọc theo năm, quốc gia?",
+    question: "Làm sao để tìm kiếm phim nhanh hoặc lọc theo nhiều tiêu chí?",
     answer:
-      "Bạn có thể bấm vào mục 'Khám Phá' trên thanh menu hoặc dùng tổ hợp phím Ctrl + K (trên máy tính) để mở thanh tìm kiếm thông minh. Ngoài ra, trang /browse có sẵn bộ lọc đa chiều theo Thể loại, Quốc gia, Năm phát hành và Trạng thái phim (hoàn thành/đang chiếu).",
+      "Bạn có thể sử dụng tổ hợp phím tắt Ctrl + K (hoặc Cmd + K trên macOS) tại bất kỳ trang nào để mở thanh tìm kiếm thông minh hỗ trợ gõ tiếng Việt có dấu hoặc không dấu. Nếu muốn duyệt phim chuyên sâu, hãy truy cập trang 'Khám Phá' (/browse) — nơi trang bị bộ lọc đa chiều kết hợp cùng lúc: Thể loại, Quốc gia sản xuất, Năm phát hành, Loại phim (Phim lẻ / Phim bộ) và Trạng thái hoàn thành.",
+    tips: "Mẹo nhỏ: Bạn cũng có thể tìm kiếm phim theo tên diễn viên hoặc đạo diễn để xem toàn bộ danh mục tác phẩm có họ tham gia.",
   },
   {
     id: "g2",
     category: "guide",
     categoryLabel: "Hướng Dẫn & Sử Dụng",
-    question: "Làm thế nào để tạo bộ sưu tập phim yêu thích riêng của mình?",
+    question: "Làm thế nào để lưu phim vào danh sách yêu thích cá nhân?",
     answer:
-      "Khi mở xem chi tiết một bộ phim bất kỳ, bạn chỉ cần bấm nút 'Lưu vào danh sách' (biểu tượng Dấu trang). Bộ phim sẽ ngay lập tức được lưu vào trang 'Danh sách của tôi' (/my-list) để bạn tiện theo dõi sau này.",
+      "Khi xem chi tiết bất kỳ bộ phim nào, bạn chỉ cần bấm vào nút 'Lưu vào danh sách' (biểu tượng Bookmark / Dấu trang). Bộ phim sẽ ngay lập tức được đưa vào trang 'Danh sách của tôi' (/my-list) để bạn dễ dàng theo dõi lại khi có thời gian rảnh.",
+  },
+  {
+    id: "g3",
+    category: "guide",
+    categoryLabel: "Hướng Dẫn & Sử Dụng",
+    question: "Nanaflix có chức năng xem lại lịch sử xem không?",
+    answer:
+      "Có. Tại trang cá nhân và mục 'Tiếp tục xem' trên trang chủ, hệ thống hiển thị danh sách toàn bộ các bộ phim bạn đã từng bấm xem cùng mốc thời gian xem gần nhất. Bạn có thể bấm vào thẻ phim để xem tiếp ngay, hoặc bấm nút biểu tượng Thùng rác để gỡ bỏ khỏi lịch sử nếu không muốn theo dõi nữa.",
   },
 
-  // 2. Trình phát & Video
+  // 2. TRÌNH PHÁT & VIDEO
   {
     id: "p1",
     category: "player",
     categoryLabel: "Trình Phát & Video",
-    question: "Tại sao phim bị đứng hình hoặc tải chậm khi đang xem?",
+    question: "Tại sao video bị đứng hình hoặc tải chậm (buffering) khi đang xem?",
     answer:
-      "Tốc độ tải phim phụ thuộc vào đường truyền mạng của bạn và lưu lượng tải của máy chủ phát lúc cao điểm. Nanaflix sử dụng công nghệ HLS tự động thích ứng độ phân giải theo băng thông.",
-    tips: "Mẹo khắc phục: Tại thanh điều khiển của trình phát phim, bấm nút đổi 'Server phát' (Server Dự Phòng / Server Direct) hoặc giảm độ phân giải xuống 720p/1080p.",
+      "Tốc độ tải phim phụ thuộc vào 2 yếu tố chính: Tốc độ đường truyền Internet nội mạng của bạn và băng thông của máy chủ phát lúc cao điểm. Trình phát của Nanaflix được tích hợp công nghệ HLS Adaptive Bitrate tự động cân chỉnh độ nét theo tốc độ mạng tức thời để tránh đứng hình.",
+    tips: "Cách xử lý nhanh: Bấm vào nút 'Server phát' trên thanh điều khiển của video để chuyển sang Server Dự Phòng (Backup HLS Server) hoặc hạ độ phân giải từ 1080p xuống 720p.",
   },
   {
     id: "p2",
     category: "player",
     categoryLabel: "Trình Phát & Video",
-    question: "Nanaflix có hỗ trợ độ phân giải 4K Ultra HD không?",
+    question: "Nanaflix hỗ trợ những chuẩn chất lượng video nào?",
     answer:
-      "Có! Các bộ phim điện ảnh bom tấn và series truyền hình có nguồn phát chất lượng 4K/Full HD sẽ tự động được hiển thị với chất lượng cao nhất khi đường truyền của bạn đáp ứng đủ băng thông.",
+      "Hầu hết các bộ phim điện ảnh và series truyền hình nổi bật trên Nanaflix đều được cung cấp nguồn phát chất lượng Full HD 1080p và một số siêu phẩm có hỗ trợ 4K Ultra HD với bitrate cao, hình ảnh sắc nét và âm thanh vòm sống động.",
   },
   {
     id: "p3",
     category: "player",
     categoryLabel: "Trình Phát & Video",
-    question: "Nếu video bị mất tiếng hoặc lệch phụ đề thì xử lý thế nào?",
+    question: "Nếu video bị mất âm thanh hoặc lệch tiếng thì xử lý như thế nào?",
     answer:
-      "Một số trình duyệt có thể tắt tiếng mặc định khi phát tự động. Bạn chỉ cần bấm vào biểu tượng Loa ở góc dưới video để bật âm thanh. Nếu phụ đề bị lệch, hãy thử chuyển sang Server phát dự phòng khác trong danh sách.",
-  },
-
-  // 3. Tài khoản & Đồng bộ
-  {
-    id: "a1",
-    category: "account",
-    categoryLabel: "Tài Khoản & Đồng Bộ",
-    question: "Tôi không có tài khoản có xem phim được không?",
-    answer:
-      "Hoàn toàn được! Bạn có thể xem phim ngay lập tức dưới tư cách Khách (Guest) mà không bắt buộc phải đăng nhập. Tuy nhiên, khi đăng nhập tài khoản, bạn sẽ có thêm các tính năng cao cấp như: Đồng bộ lịch sử xem qua đám mây, Tạo danh sách phim yêu thích, Đánh giá phim và Lưu cấu hình phụ đề riêng.",
+      "Khi video tự động phát, một số chính sách bảo mật của trình duyệt web (Autoplay Policy trên Chrome/Safari) có thể tạm thời tắt tiếng (Mute). Bạn chỉ cần bấm vào biểu tượng chiếc Loa ở góc dưới video để bật lại. Nếu âm thanh bị lệch so với khẩu hình diễn viên do sự cố mã hóa nguồn phát, hãy bấm đổi sang Server Dự Phòng khác trong danh sách tập phim.",
   },
   {
-    id: "a2",
-    category: "account",
-    categoryLabel: "Tài Khoản & Đồng Bộ",
-    question: "Làm thế nào để xóa phim khỏi danh sách xem tiếp hoặc danh sách yêu thích?",
+    id: "p4",
+    category: "player",
+    categoryLabel: "Trình Phát & Video",
+    question: "Tôi có thể tùy chỉnh kích thước phông chữ và kiểu hiển thị phụ đề không?",
     answer:
-      "Tại hàng 'Tiếp tục xem' hoặc trang 'Danh sách của tôi' (/my-list), bạn chỉ cần di chuột hoặc chạm vào nút Thùng rác (Xóa) trên thẻ phim đó để gỡ bỏ ngay lập tức.",
+      "Có! Tại bảng cài đặt (biểu tượng Bánh răng) trên trình phát video, bạn có thể tùy biến kích cỡ chữ phụ đề (Nhỏ / Vừa / Lớn), độ mờ của nền đen phía sau phụ đề và màu sắc chữ để dễ đọc nhất tùy theo kích thước màn hình thiết bị.",
+  },
+  {
+    id: "p5",
+    category: "player",
+    categoryLabel: "Trình Phát & Video",
+    question: "Chế độ 'Theater Mode' (Rạp chiếu) khác gì với Toàn màn hình?",
+    answer:
+      "Theater Mode mở rộng khung video chiếm trọn chiều rộng của cửa sổ trình duyệt nhưng vẫn giữ lại các thông tin mô tả phim, danh sách tập và đề xuất bên dưới để bạn vừa xem vừa có thể đổi tập nhanh chóng mà không cần thoát khỏi chế độ Full Screen.",
   },
 
-  // 4. Trợ lý AI Nana
+  // 3. TRỢ LÝ AI NANA
   {
     id: "ai1",
     category: "ai",
     categoryLabel: "Trợ Lý AI Nana",
-    question: "Trợ lý AI Nana giúp được gì cho tôi?",
+    question: "Trợ lý AI Nana có thể giúp gì cho trải nghiệm xem phim của tôi?",
     answer:
-      "AI Nana là trợ lý điện ảnh thông minh tích hợp sẵn trên website. Bạn có thể trò chuyện tự nhiên như: 'Gợi ý phim trinh thám Hàn Quốc có plot twist bất ngờ', 'Tìm phim hoạt hình nhẹ nhàng xem cuối tuần', hoặc bấm 'Bốc quẻ phim' để AI chọn ngẫu nhiên một siêu phẩm phù hợp với tâm trạng.",
+      "AI Nana là trợ lý ảo được huấn luyện chuyên sâu về điện ảnh. Bạn có thể trò chuyện với Nana bằng ngôn ngữ tự nhiên như: 'Gợi ý cho mình phim kinh dị tâm lý có kết thúc bất ngờ', 'Tìm phim hoạt hình Anime thanh xuân xem cuối tuần', hoặc 'Giải thích ý nghĩa đoạn kết phim Interstellar'.",
+    tips: "Thử tính năng 'Bốc quẻ phim ngẫu nhiên' khi bạn đang phân vân không biết tối nay nên xem gì!",
   },
   {
     id: "ai2",
     category: "ai",
     categoryLabel: "Trợ Lý AI Nana",
-    question: "Tính năng 'Taste Profile' hoạt động như thế nào?",
+    question: "Hệ thống 'Taste Profile' cá nhân hóa hoạt động ra sao?",
     answer:
-      "Hệ thống phân tích các thể loại, quốc gia và diễn viên từ những bộ phim bạn đã xem để tự động gợi ý các tác phẩm có điểm tương đồng cao nhất tại mục 'Dành Riêng Cho Bạn' (For You) trên trang chủ.",
+      "Taste Profile hoạt động hoàn toàn tự động dựa trên các bộ phim bạn đã xem, đánh giá và lưu lại. Thuật toán phân tích vector thể loại, đạo diễn, quốc gia và phong cách phim ưa thích để tạo ra danh mục đề xuất 'Dành Riêng Cho Bạn' (For You) chính xác nhất trên trang chủ.",
+  },
+  {
+    id: "ai3",
+    category: "ai",
+    categoryLabel: "Trợ Lý AI Nana",
+    question: "AI Nana sử dụng mô hình trí tuệ nhân tạo nào?",
+    answer:
+      "Nanaflix kết hợp kiến trúc Multi-Model AI Orchestration linh hoạt giữa Google Gemini 2.5 Flash, Groq Llama 3 và Mistral AI để đem lại câu trả lời thông minh, đúng ngữ cảnh điện ảnh với tốc độ phản hồi tính bằng mili-giây.",
   },
 
-  // 5. Bảo mật & Chi phí
+  // 4. TÀI KHOẢN & BẢO MẬT
   {
-    id: "sec1",
-    category: "privacy",
-    categoryLabel: "Bảo Mật & Chi Phí",
-    question: "Nanaflix có thu phí hàng tháng hay bắt xem quảng cáo không?",
+    id: "a1",
+    category: "account",
+    categoryLabel: "Tài Khoản & Bảo Mật",
+    question: "Không đăng ký tài khoản có thể xem phim được không?",
     answer:
-      "Không! Nanaflix là dự án phi thương mại được xây dựng vì đam mê điện ảnh và công nghệ. 100% không thu phí, không bán gói VIP, và cam kết không chèn banner quảng cáo cờ bạc làm phiền người xem.",
+      "Hoàn toàn được! Bạn có thể xem toàn bộ kho phim không giới hạn dưới tư cách Khách (Guest). Tuy nhiên, việc đăng ký tài khoản miễn phí (chỉ mất 10 giây qua nút Google Sign-In) sẽ mở khóa các tính năng cao cấp: Lưu lịch sử xem lên đám mây, Đồng bộ tiến trình đa thiết bị, Đánh giá phim và Lưu bộ sưu tập cá nhân.",
   },
   {
-    id: "sec2",
-    category: "privacy",
-    categoryLabel: "Bảo Mật & Chi Phí",
-    question: "Dữ liệu cá nhân của tôi được bảo vệ như thế nào?",
+    id: "a2",
+    category: "account",
+    categoryLabel: "Tài Khoản & Bảo Mật",
+    question: "Làm thế nào để đổi ảnh đại diện hoặc tên hiển thị?",
     answer:
-      "Chúng tôi áp dụng các tiêu chuẩn an toàn cao nhất: Quản lý đăng nhập qua Firebase Auth, cơ sở dữ liệu Supabase được bảo vệ bởi Row Level Security (RLS), và không lưu giữ địa chỉ IP thực của bạn trong hệ thống.",
+      "Bấm vào biểu tượng ảnh đại diện tài khoản ở góc trên cùng bên phải màn hình để mở bảng Hồ sơ cá nhân (Profile Modal). Tại đây, bạn có thể chọn các bộ Avatar phong cách điện ảnh có sẵn, tùy chỉnh Tên hiển thị và quản lý các thiết bị đang đăng nhập.",
+  },
+  {
+    id: "a3",
+    category: "account",
+    categoryLabel: "Tài Khoản & Bảo Mật",
+    question: "Nếu tôi muốn xóa hoàn toàn tài khoản và dữ liệu thì làm thế nào?",
+    answer:
+      "Chúng tôi tôn trọng tuyệt đối quyền tự chủ dữ liệu của bạn theo tiêu chuẩn GDPR. Tại mục Cài đặt tài khoản, bạn có thể chọn 'Xóa vĩnh viễn tài khoản'. Toàn bộ thông tin hồ sơ, lịch sử xem và danh sách phim của bạn trong cơ sở dữ liệu sẽ bị xóa sạch ngay lập tức.",
+  },
+
+  // 5. NGUỒN PHIM & NỘI DUNG
+  {
+    id: "c1",
+    category: "content",
+    categoryLabel: "Nguồn Phim & Nội Dung",
+    question: "Các bộ phim truyền hình đang chiếu được cập nhật bao lâu sau khi phát sóng?",
+    answer:
+      "Đối với các series phim bộ Hàn Quốc, Trung Quốc, US-UK hay Anime đang phát sóng, tập phim mới thường được tự động đồng bộ và cập nhật chỉ sau 1 đến 3 giờ kể từ thời điểm phát sóng chính thức tại nước sở tại.",
+  },
+  {
+    id: "c2",
+    category: "content",
+    categoryLabel: "Nguồn Phim & Nội Dung",
+    question: "Phim trên Nanaflix là bản Phụ đề (Vietsub) hay Thuyết minh/Lồng tiếng?",
+    answer:
+      "Hầu hết các phim đều có sẵn bản Phụ đề tiếng Việt (Vietsub) chuẩn nét. Nhiều phim hoạt hình chiếu rạp bom tấn hoặc phim bộ đình đám có hỗ trợ thêm các tùy chọn luồng âm thanh Thuyết minh hoặc Lồng tiếng giọng chuẩn để phục vụ khán giả mọi lứa tuổi.",
+  },
+  {
+    id: "c3",
+    category: "content",
+    categoryLabel: "Nguồn Phim & Nội Dung",
+    question: "Tôi có thể yêu cầu bổ sung bộ phim mà mình muốn xem không?",
+    answer:
+      "Rất hoan nghênh! Bạn có thể gửi tên bộ phim mong muốn qua mục 'Trợ giúp & Báo lỗi' (/about#contact) hoặc gửi email trực tiếp tới contact@nanaflix.id.vn. Chúng tôi sẽ cố gắng tìm kiếm nguồn phát chất lượng cao nhất để bổ sung vào hệ thống trong thời gian sớm nhất.",
+  },
+
+  // 6. XỬ LÝ SỰ CỐ & TRÌNH DUYỆT
+  {
+    id: "t1",
+    category: "troubleshoot",
+    categoryLabel: "Xử Lý Sự Cố Kỹ Thuật",
+    question: "Tại sao trình phát hiện màn hình đen hoặc thông báo 'Không thể tải luồng video'?",
+    answer:
+      "Lỗi này thường xảy ra do: 1) Một số tiện ích mở rộng chặn quảng cáo (AdBlock) bên ngoài bị cấu hình quá nghiêm ngặt chặn nhầm tệp dữ liệu HLS (.m3u8); 2) Bộ nhớ đệm trình duyệt bị lỗi thời; hoặc 3) Nguồn phát video tạm thời bảo trì. Hãy thử tắt AdBlock cho tên miền nanaflix, tải lại trang bằng Ctrl + F5 hoặc chuyển sang Server Dự Phòng.",
+  },
+  {
+    id: "t2",
+    category: "troubleshoot",
+    categoryLabel: "Xử Lý Sự Cố Kỹ Thuật",
+    question: "Nên sử dụng trình duyệt web nào để có trải nghiệm xem phim tốt nhất?",
+    answer:
+      "Nanaflix được tối ưu hóa hoàn hảo cho các trình duyệt hiện đại: Google Chrome, Apple Safari, Microsoft Edge, Brave và Mozilla Firefox. Khuyến nghị cập nhật trình duyệt lên phiên bản mới nhất để tận dụng phần cứng GPU tăng tốc giải mã video HLS mượt mà và tiết kiệm pin.",
   },
 ];
 
 const CATEGORIES = [
   { id: "all", label: "Tất cả", icon: Sparkles },
-  { id: "guide", label: "📖 Hướng Dẫn Nhanh", icon: BookOpen },
-  { id: "player", label: "Trình phát & Video", icon: Tv },
-  { id: "account", label: "Tài khoản & Đồng bộ", icon: MonitorSmartphone },
-  { id: "ai", label: "Trợ lý AI Nana", icon: Bot },
-  { id: "privacy", label: "Bảo mật & Chi phí", icon: ShieldCheck },
+  { id: "guide", label: "📖 Hướng Dẫn & Sử Dụng", icon: BookOpen },
+  { id: "player", label: "Trình Phát & Video", icon: Tv },
+  { id: "ai", label: "Trợ Lý AI Nana", icon: Bot },
+  { id: "account", label: "Tài Khoản & Bảo Mật", icon: MonitorSmartphone },
+  { id: "content", label: "Nguồn Phim & Lịch Chiếu", icon: Film },
+  { id: "troubleshoot", label: "Xử Lý Sự Cố", icon: AlertOctagon },
 ];
 
 export default function FAQPage() {
@@ -231,8 +320,8 @@ export default function FAQPage() {
   const [openItems, setOpenItems] = useState<Record<string, boolean>>({
     g1: true,
     p1: true,
+    ai1: true,
     a1: true,
-    sec1: true,
   });
 
   const toggleItem = (id: string) => {
@@ -261,11 +350,11 @@ export default function FAQPage() {
 
       <main className="flex-1 pt-28 sm:pt-32 pb-24 px-4 sm:px-8 md:px-12 max-w-6xl mx-auto w-full space-y-14 sm:space-y-20">
         
-        {/* ================= HERO HEADER ================= */}
+        {/* ================= 1. HERO HEADER ================= */}
         <section className="text-center space-y-6">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-xs font-semibold text-gray-300 backdrop-blur-xl shadow-sm">
             <HelpCircle size={14} className="text-netflix-red" />
-            <span>Trung Tâm Trợ Giúp & Hướng Dẫn Sử Dụng</span>
+            <span>Trung Tâm Trợ Giúp & Cẩm Nang Sử Dụng</span>
           </div>
 
           <div className="space-y-3 max-w-2xl mx-auto">
@@ -273,7 +362,7 @@ export default function FAQPage() {
               Hướng Dẫn & <span className="text-netflix-red">Hỏi Đáp</span>
             </h1>
             <p className="text-sm sm:text-base text-gray-400 font-normal leading-relaxed">
-              Bí kíp sử dụng các tính năng cao cấp, mẹo xem phim mượt mà và giải đáp toàn bộ thắc mắc về Nanaflix.
+              Tổng hợp bí kíp làm chủ các tính năng cao cấp, hướng dẫn cài đặt app, truyền phim lên Smart TV và giải đáp cặn kẽ mọi thắc mắc.
             </p>
           </div>
 
@@ -285,7 +374,7 @@ export default function FAQPage() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Tìm kiếm hướng dẫn (ví dụ: cài app, xem trên TV, phím tắt, lag...)"
+                placeholder="Tìm kiếm hướng dẫn (ví dụ: cài app, xem trên TV, phím tắt, giật lag, phụ đề...)"
                 className="w-full pl-11 pr-4 py-3.5 rounded-2xl bg-zinc-950/80 border border-white/[0.1] focus:border-netflix-red/60 focus:bg-black text-sm text-white placeholder-gray-500 focus:outline-none transition-all shadow-2xl backdrop-blur-xl"
               />
               {searchQuery && (
@@ -301,7 +390,7 @@ export default function FAQPage() {
           </div>
         </section>
 
-        {/* ================= 4 INTERACTIVE QUICK GUIDES ================= */}
+        {/* ================= 2. 4 INTERACTIVE QUICK GUIDES ================= */}
         {(!searchQuery || searchQuery.length === 0) && (selectedCategory === "all" || selectedCategory === "guide") && (
           <section className="space-y-6">
             <div className="flex items-center justify-between border-b border-white/[0.08] pb-4">
@@ -309,7 +398,7 @@ export default function FAQPage() {
                 <BookOpen size={16} />
                 <span>Hướng Dẫn Thao Tác Nhanh</span>
               </div>
-              <span className="text-xs text-gray-500 font-mono">4 Hướng Dẫn Cốt Lõi</span>
+              <span className="text-xs text-gray-500 font-mono">4 Cẩm Nang Thực Hành</span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
@@ -371,7 +460,7 @@ export default function FAQPage() {
                         )}
 
                         {guide.shortcuts && (
-                          <div className="grid grid-cols-2 gap-2 pt-1">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
                             {guide.shortcuts.map((sc, idx) => (
                               <div
                                 key={idx}
@@ -394,7 +483,7 @@ export default function FAQPage() {
           </section>
         )}
 
-        {/* ================= CATEGORY TABS ================= */}
+        {/* ================= 3. CATEGORY TABS ================= */}
         <section className="space-y-6">
           <div className="flex items-center justify-center gap-2 flex-wrap pb-2">
             {CATEGORIES.map((cat) => {
@@ -418,12 +507,12 @@ export default function FAQPage() {
             })}
           </div>
 
-          {/* ================= ACCORDION LIST ================= */}
+          {/* ================= 4. ACCORDION FAQ LIST ================= */}
           <div className="space-y-4">
             {filteredFAQs.length === 0 ? (
               <div className="p-12 text-center rounded-3xl bg-zinc-950/60 border border-white/[0.08] text-gray-400 space-y-3">
                 <HelpCircle size={32} className="mx-auto text-gray-500 opacity-60" />
-                <p className="text-sm font-medium">Không tìm thấy nội dung phù hợp với từ khóa &ldquo;{searchQuery}&rdquo;.</p>
+                <p className="text-sm font-medium">Không tìm thấy câu hỏi phù hợp với từ khóa &ldquo;{searchQuery}&rdquo;.</p>
                 <button
                   type="button"
                   onClick={() => {
@@ -432,7 +521,7 @@ export default function FAQPage() {
                   }}
                   className="text-xs text-netflix-red hover:underline font-semibold cursor-pointer"
                 >
-                  Xem tất cả câu hỏi
+                  Xem toàn bộ danh mục câu hỏi
                 </button>
               </div>
             ) : (
@@ -487,35 +576,35 @@ export default function FAQPage() {
           </div>
         </section>
 
-        {/* ================= STILL NEED HELP CTA ================= */}
+        {/* ================= 5. STILL NEED HELP CTA ================= */}
         <section className="p-8 sm:p-10 rounded-3xl bg-gradient-to-r from-zinc-900/90 via-zinc-950 to-black border border-white/[0.1] backdrop-blur-2xl flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="space-y-1.5 text-center md:text-left">
             <div className="flex items-center justify-center md:justify-start gap-2 text-netflix-red text-xs font-bold uppercase tracking-wider">
               <LifeBuoy size={14} />
-              <span>Chưa Tìm Thấy Lời Giải?</span>
+              <span>Chưa Tìm Thấy Lời Giải Đáp?</span>
             </div>
             <h3 className="text-lg sm:text-xl font-bold text-white">
-              Khám phá thêm về triết lý & câu chuyện của Nanaflix
+              Gửi thông tin sự cố trực tiếp tới đội ngũ kỹ thuật Nanaflix
             </h3>
             <p className="text-xs text-gray-400">
-              Đọc thêm trang giới thiệu tác giả hoặc quay lại trải nghiệm kho phim.
+              Chúng tôi luôn sẵn sàng hỗ trợ kiểm tra đường truyền và khắc phục lỗi sớm nhất.
             </p>
           </div>
 
           <div className="flex items-center gap-3 flex-wrap justify-center flex-shrink-0">
             <Link
+              href="/about#contact"
+              className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-netflix-red hover:bg-red-700 text-xs font-bold text-white transition shadow-lg shadow-red-950/50"
+            >
+              <MessageSquare size={14} />
+              <span>Báo Lỗi & Trợ Giúp</span>
+            </Link>
+            <Link
               href="/about"
               className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white/[0.08] hover:bg-white/[0.15] border border-white/10 text-xs font-bold text-white transition backdrop-blur-md"
             >
               <Film size={14} />
-              <span>Về Nanaflix</span>
-            </Link>
-            <Link
-              href="/"
-              className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-netflix-red hover:bg-red-700 text-xs font-bold text-white transition shadow-lg shadow-red-950/50"
-            >
-              <Play size={14} className="fill-current" />
-              <span>Khám Phá Phim Ngay</span>
+              <span>Giới Thiệu Dự Án</span>
             </Link>
           </div>
         </section>

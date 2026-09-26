@@ -18,14 +18,26 @@ import {
   MonitorSmartphone,
   Flame,
   CheckCircle,
+  Mail,
+  MessageSquare,
+  AlertTriangle,
+  Send,
+  HelpCircle,
+  Clock,
+  Radio,
+  ExternalLink,
+  Code2,
+  Lock,
+  Globe,
+  Milestone,
 } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 
 export const metadata: Metadata = {
-  title: "Về Nanaflix | Không Gian Điện Ảnh Thuần Khiết",
+  title: "Giới Thiệu Nanaflix | Không Gian Điện Ảnh Thuần Khiết & Công Nghệ Trực Tuyến",
   description:
-    "Nanaflix là nền tảng xem phim trực tuyến cá nhân do Dũng Trần phát triển — Không quảng cáo rác, trình phát HLS chuẩn rạp, đồng bộ tiến trình thông minh và giao diện tối giản sang trọng.",
+    "Tìm hiểu về Nanaflix — Nền tảng xem phim trực tuyến phi thương mại tối ưu tốc độ, không quảng cáo phiền toái, hỗ trợ HLS thích ứng đa thiết bị và trợ lý AI thông minh.",
 };
 
 const PILLARS = [
@@ -34,7 +46,7 @@ const PILLARS = [
     title: "Trình Phát Chuẩn Rạp Chiếu",
     subtitle: "HLS Adaptive Streaming & Auto-Fallback",
     description:
-      "Tự động cân chỉnh chất lượng video theo tốc độ mạng, không làm gián đoạn cảm xúc. Hỗ trợ đầy đủ Theater Mode, tua phím tắt nhanh và tự chuyển server dự phòng khi gặp sự cố mạng.",
+      "Hệ thống phát video phân giải cao tự động cân bằng bitrate theo băng thông mạng. Hỗ trợ đầy đủ Theater Mode, tua phím tắt tốc độ cao, ghi nhớ âm lượng và tự động chuyển đổi máy chủ dự phòng khi gặp sự cố nghẽn mạng.",
     badge: "Mượt mà • 4K/FHD",
     gradient: "from-rose-500/20 via-red-500/10 to-transparent",
     border: "border-red-500/20 hover:border-red-500/40",
@@ -44,9 +56,9 @@ const PILLARS = [
   {
     number: "02",
     title: "Tiếp Tục Xem Đa Thiết Bị",
-    subtitle: "Realtime Progress Sync & Device Handoff",
+    subtitle: "Realtime Progress Sync & Cloud Handoff",
     description:
-      "Xem dở trên máy tính ở công ty, tối về mở điện thoại là tiếp tục đúng giây đang dừng. Hệ thống tự động ghi nhớ vị trí từng tập phim mà bạn không cần phải bận tâm ghi chú.",
+      "Xem dở bộ phim trên máy tính làm việc ban ngày, tối về mở điện thoại là tiếp tục đúng từng giây và tập phim đang dừng. Cơ chế đồng bộ đám mây Supabase tức thì giúp trải nghiệm liền mạch không ngắt quãng.",
     badge: "Tự động đồng bộ",
     gradient: "from-amber-500/20 via-orange-500/10 to-transparent",
     border: "border-amber-500/20 hover:border-amber-500/40",
@@ -56,9 +68,9 @@ const PILLARS = [
   {
     number: "03",
     title: "Trợ Lý AI & Gợi Ý Đúng Gu",
-    subtitle: "Taste Profile & Natural Language Search",
+    subtitle: "Taste Profile & Natural Language Discovery",
     description:
-      "Không còn cảnh lướt 30 phút mà chưa chọn được phim. Trợ lý AI Nana hiểu tâm trạng, bốc quẻ phim ngẫu nhiên và phân tích sâu sắc theo diễn viên, đạo diễn bạn yêu thích.",
+      "Không còn phải lướt hàng chục trang tìm phim mà không biết xem gì. Trợ lý AI Nana hiểu ngữ cảnh tâm trạng, hỗ trợ bốc quẻ phim ngẫu nhiên và phân tích sâu theo diễn viên, đạo diễn cùng gu thưởng thức cá nhân hóa.",
     badge: "AI Nana cá nhân",
     gradient: "from-purple-500/20 via-indigo-500/10 to-transparent",
     border: "border-purple-500/20 hover:border-purple-500/40",
@@ -70,7 +82,7 @@ const PILLARS = [
     title: "Không Gian Sạch & Tôn Trọng Người Xem",
     subtitle: "Zero Spam, Zero Popups, Pure Cinema",
     description:
-      "Nói không với các thể loại banner cờ bạc, pop-up nhảy trang khó chịu hay quảng cáo chèn ngang video. Mọi pixel được thiết kế để bạn đắm chìm trọn vẹn vào câu chuyện trên màn ảnh.",
+      "Tuyệt đối nói không với các loại banner cờ bạc, pop-up nhảy tab khó chịu hay quảng cáo chèn ngang cao trào phim. Mọi chi tiết giao diện được thiết kế tối giản, êm mắt để bạn tập trung trọn vẹn vào cảm xúc điện ảnh.",
     badge: "100% Giao diện sạch",
     gradient: "from-emerald-500/20 via-teal-500/10 to-transparent",
     border: "border-emerald-500/20 hover:border-emerald-500/40",
@@ -81,50 +93,55 @@ const PILLARS = [
 
 const TECH_SPECS = [
   {
-    title: "Trải Nghiệm & Giao Diện",
+    title: "Trải Nghiệm & Giao Diện Hiện Đại",
     icon: Layers,
     items: [
-      { name: "Next.js 16 (App Router)", desc: "Server Components & Streaming SSR tức thì" },
-      { name: "React 19 & TypeScript", desc: "Mã nguồn hiện đại, an toàn và tối ưu hiệu năng" },
-      { name: "Cinematic Dark Theme", desc: "Ngôn ngữ thiết kế tương phản cao, êm mắt khi xem đêm" },
+      { name: "Next.js 16 (App Router)", desc: "Kiến trúc Server Components & Streaming SSR tối ưu hóa tốc độ tải trang ban đầu" },
+      { name: "React 19 & TypeScript", desc: "Mã nguồn chặt chẽ, type-safe toàn diện và tối ưu hóa bộ nhớ trình duyệt" },
+      { name: "Cinematic Dark Theme", desc: "Tương phản thị giác cao cấp, hạn chế mỏi mắt khi xem phim trong không gian tối" },
+      { name: "Progressive Web App (PWA)", desc: "Hỗ trợ cài đặt trực tiếp lên iPhone/Android với trải nghiệm toàn màn hình như app gốc" },
     ],
   },
   {
-    title: "Lưu Trữ & Dữ Liệu Tốc Độ Cao",
+    title: "Dữ Liệu & Hạ Tầng Phân Tán",
     icon: Database,
     items: [
-      { name: "Supabase (PostgreSQL)", desc: "Quản lý tài khoản, bộ sưu tập & phân quyền RLS chặt chẽ" },
-      { name: "Upstash Redis L2 Cache", desc: "Bộ đệm phân tán toàn cầu, phản hồi sub-millisecond" },
-      { name: "Local-First Memory", desc: "Hoạt động ổn định, mượt mà kể cả khi mạng chập chờn" },
+      { name: "Supabase (PostgreSQL)", desc: "Quản lý hồ sơ tài khoản, danh sách phim yêu thích & phân quyền dữ liệu RLS nghiêm ngặt" },
+      { name: "Upstash Redis L2 Cache", desc: "Bộ đệm phân tán toàn cầu, phản hồi truy vấn siêu nhanh và giảm tải máy chủ gốc" },
+      { name: "Local-First Architecture", desc: "Lưu trữ cục bộ thông minh, giữ cấu hình phát và lịch sử xem ngay cả khi mạng chập chờn" },
+      { name: "Global CDN Edge", desc: "Phân phối hình ảnh, poster và tài nguyên tĩnh từ các node máy chủ gần người dùng nhất" },
     ],
   },
   {
-    title: "Xử Lý Video & Trí Tuệ Nhân Tạo",
+    title: "Trình Phát & Trí Tuệ Nhân Tạo",
     icon: Cpu,
     items: [
-      { name: "HLS.js Video Engine", desc: "Phát trực tuyến bitrate thích ứng đa độ phân giải" },
-      { name: "Multi-Model AI Engine", desc: "Phối hợp linh hoạt giữa Google Gemini, Groq & Mistral" },
-      { name: "TMDB Data Normalization", desc: "Chuẩn hóa thông tin phim, diễn viên và poster sắc nét" },
+      { name: "HLS.js Video Streaming Engine", desc: "Bộ giải mã luồng video thích ứng bitrate tự động theo thời gian thực" },
+      { name: "Multi-Model AI Orchestrator", desc: "Kết hợp linh hoạt Google Gemini, Groq & Mistral cho tốc độ suy luận nhanh chóng" },
+      { name: "TMDB Data Normalization", desc: "Đồng bộ và chuẩn hóa thông tin phim, danh sách diễn viên, đạo diễn chuẩn quốc tế" },
+      { name: "Realtime Device Handoff", desc: "Truyền tiếp phiên xem dở giữa các thiết bị với độ trễ cực thấp" },
     ],
   },
 ];
 
-const FAQS = [
+const ROADMAP_STEPS = [
   {
-    q: "Nanaflix có thu phí hay yêu cầu mua gói VIP không?",
-    a: "Hoàn toàn không. Đây là dự án phi thương mại được xây dựng từ niềm đam mê điện ảnh và kỹ nghệ phần mềm. Bạn có thể xem miễn phí không giới hạn.",
+    phase: "Giai đoạn 1",
+    title: "Nền Tảng Cốt Lõi",
+    status: "Đã hoàn thành",
+    desc: "Xây dựng trình phát HLS chuẩn rạp, kho phim đa dạng, danh mục phân loại chi tiết và giao diện tối giản chuẩn điện ảnh.",
   },
   {
-    q: "Làm thế nào để đồng bộ lịch sử xem giữa điện thoại và máy tính?",
-    a: "Chỉ cần đăng nhập cùng tài khoản trên cả hai thiết bị. Nanaflix sẽ tự động ghi nhớ tiến trình và hiển thị ngay mục 'Tiếp tục xem' ở trang chủ.",
+    phase: "Giai đoạn 2",
+    title: "Đồng Bộ & Trợ Lý AI",
+    status: "Đã hoàn thành",
+    desc: "Ra mắt tính năng đồng bộ tiến trình đa thiết bị, Taste Profile cá nhân hóa, trợ lý bốc quẻ và tìm kiếm ngữ nghĩa tự nhiên.",
   },
   {
-    q: "Thông tin cá nhân của tôi có được bảo mật không?",
-    a: "Nanaflix áp dụng chính sách bảo mật tối đa: Không lưu raw IP, không chia sẻ dữ liệu cho bên thứ ba, mọi kết nối được mã hóa chuẩn SSL/TLS.",
-  },
-  {
-    q: "Nếu xem phim bị lag hoặc mất âm thanh thì làm thế nào?",
-    a: "Tại trình phát phim, bạn có thể bấm nút đổi Server (HLS / Direct) hoặc chọn chất lượng phù hợp với đường truyền của mình.",
+    phase: "Giai đoạn 3",
+    title: "Trải Nghiệm Trực Tiếp & Cộng Đồng",
+    status: "Đang phát triển",
+    desc: "Bổ sung tính năng Watch Party (xem chung cùng bạn bè theo thời gian thực), kênh Live thể thao/sự kiện và bình luận thảo luận văn minh.",
   },
 ];
 
@@ -139,12 +156,12 @@ export default function AboutPage() {
 
       <main className="flex-1 pt-28 sm:pt-32 pb-24 px-4 sm:px-8 md:px-12 max-w-6xl mx-auto w-full space-y-20 sm:space-y-28">
         
-        {/* ================= HERO SECTION ================= */}
+        {/* ================= 1. HERO SECTION ================= */}
         <section className="text-center space-y-8 relative">
           {/* Top Pill */}
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] backdrop-blur-xl text-xs font-semibold text-gray-300 shadow-2xl hover:border-white/20 transition">
             <span className="w-2 h-2 rounded-full bg-netflix-red animate-pulse" />
-            <span>Nền Tảng Điện Ảnh Cá Nhân Hoá</span>
+            <span>Nền Tảng Điện Ảnh Phi Thương Mại Cá Nhân Hóa</span>
           </div>
 
           {/* Main Title */}
@@ -157,7 +174,7 @@ export default function AboutPage() {
               thưởng thức.
             </h1>
             <p className="text-base sm:text-lg md:text-xl text-gray-400 font-normal leading-relaxed max-w-2xl mx-auto">
-              Một không gian giải trí sạch bóng quảng cáo phiền toái, trình phát thích ứng mượt mà và nhớ chính xác từng giây bạn đã xem.
+              Một không gian điện ảnh trực tuyến thuần khiết: 100% không quảng cáo rác, tốc độ phản hồi tính bằng mili-giây và tự động ghi nhớ chính xác từng giây bạn đã xem dở.
             </p>
           </div>
 
@@ -165,11 +182,11 @@ export default function AboutPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-3xl mx-auto pt-2">
             <div className="p-3.5 rounded-2xl bg-zinc-950/60 border border-white/[0.08] backdrop-blur-md text-center space-y-0.5">
               <div className="text-xl sm:text-2xl font-black text-white">0 Giây</div>
-              <div className="text-[11px] text-gray-400 font-medium">Quảng cáo chờ</div>
+              <div className="text-[11px] text-gray-400 font-medium">Quảng cáo phiền phức</div>
             </div>
             <div className="p-3.5 rounded-2xl bg-zinc-950/60 border border-white/[0.08] backdrop-blur-md text-center space-y-0.5">
               <div className="text-xl sm:text-2xl font-black text-red-400">Adaptive</div>
-              <div className="text-[11px] text-gray-400 font-medium">Auto Full HD / 4K</div>
+              <div className="text-[11px] text-gray-400 font-medium">Tự động Full HD / 4K</div>
             </div>
             <div className="p-3.5 rounded-2xl bg-zinc-950/60 border border-white/[0.08] backdrop-blur-md text-center space-y-0.5">
               <div className="text-xl sm:text-2xl font-black text-amber-400">Realtime</div>
@@ -177,7 +194,7 @@ export default function AboutPage() {
             </div>
             <div className="p-3.5 rounded-2xl bg-zinc-950/60 border border-white/[0.08] backdrop-blur-md text-center space-y-0.5">
               <div className="text-xl sm:text-2xl font-black text-emerald-400">100% Free</div>
-              <div className="text-[11px] text-gray-400 font-medium">Phi thương mại</div>
+              <div className="text-[11px] text-gray-400 font-medium">Phi lợi nhuận vì đam mê</div>
             </div>
           </div>
 
@@ -190,17 +207,17 @@ export default function AboutPage() {
               <Play size={16} className="fill-current" />
               <span>Khám Phá Phim Ngay</span>
             </Link>
-            <Link
-              href="/browse"
+            <a
+              href="#contact"
               className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.12] text-gray-200 font-semibold text-sm transition-all backdrop-blur-md hover:border-white/20 active:scale-95"
             >
-              <Compass size={16} />
-              <span>Duyệt Theo Thể Loại</span>
-            </Link>
+              <MessageSquare size={16} />
+              <span>Trợ Giúp & Báo Lỗi</span>
+            </a>
           </div>
         </section>
 
-        {/* ================= FOUNDER'S NOTE & CREATOR CARD ================= */}
+        {/* ================= 2. FOUNDER'S STORY & PHILOSOPHY ================= */}
         <section className="relative">
           <div className="p-6 sm:p-10 rounded-3xl bg-gradient-to-b from-zinc-900/80 via-zinc-950/90 to-black border border-white/[0.1] backdrop-blur-2xl shadow-2xl relative overflow-hidden space-y-8">
             {/* Top Tag */}
@@ -217,16 +234,16 @@ export default function AboutPage() {
               {/* Text Column */}
               <div className="lg:col-span-8 space-y-4 text-sm sm:text-base text-gray-300 leading-relaxed font-normal">
                 <p className="text-lg sm:text-xl text-white font-medium leading-snug">
-                  Nanaflix được bắt đầu rất giản dị: Từ mong muốn có một nơi xem phim <span className="text-netflix-red font-semibold">thực sự trọn vẹn</span> sau mỗi ngày dài.
+                  Nanaflix được bắt đầu rất giản dị: Từ mong muốn có một không gian xem phim <span className="text-netflix-red font-semibold">thực sự trọn vẹn và tĩnh lặng</span> sau mỗi ngày làm việc căng thẳng.
                 </p>
                 <p>
-                  Chắc hẳn bạn cũng từng gặp cảm giác cụt hứng khi muốn xem phim nhưng liên tục bị bủa vây bởi những quảng cáo nhấp nháy, link xem chập chờn hay trình phát vừa xem vừa giật.
+                  Chắc hẳn bạn cũng từng trải qua cảm giác cụt hứng khi chuẩn bị thưởng thức một tác phẩm điện ảnh yêu thích nhưng liên tục bị bủa vây bởi các biểu ngữ quảng cáo cá cược nhấp nháy, đường dẫn nhảy tab độc hại, hoặc video cứ xem được 5 phút lại bị giật đứng hình.
                 </p>
                 <p>
-                  Chính vì vậy, Nanaflix được tạo ra như một không gian điện ảnh tinh gọn và văn minh — nơi bạn chỉ cần bấm Play là phim chạy ngay mượt mà, hình ảnh sắc nét, tự động nhớ đúng giây đang xem dở trên mọi thiết bị và hoàn toàn không có phiền toái chen ngang.
+                  Đó là lý do Nanaflix ra đời — một nền tảng được đẽo gọt tỉ mỉ kết hợp giữa công nghệ streaming HLS hiện đại, kiến trúc đám mây thông minh và triết lý thiết kế hướng đến người dùng. Ở đây, bạn chỉ cần bấm Play là phim chạy mượt mà, ghi nhớ chuẩn xác từng phút từng giây bạn dừng lại trên mọi thiết bị và hoàn toàn không có bất kỳ phiền toái nào chen ngang.
                 </p>
                 <div className="pt-2 flex items-center gap-2 text-xs text-gray-400 font-mono">
-                  <span className="text-emerald-400 font-bold">●</span> Từng chi tiết nhỏ đều được chăm chút vì trải nghiệm của bạn.
+                  <span className="text-emerald-400 font-bold">●</span> Xây dựng với tình yêu điện ảnh và tinh thần mã nguồn mở vì cộng đồng.
                 </div>
               </div>
 
@@ -246,9 +263,8 @@ export default function AboutPage() {
                     <h3 className="text-lg font-black text-white">Dũng Trần</h3>
                     <p className="text-xs font-medium text-gray-400 mt-0.5">Creator & Full-stack Engineer</p>
                   </div>
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 text-xs font-semibold">
-                    <Sparkles size={12} />
-                    <span>Founder & Creator</span>
+                  <div className="text-[11px] text-gray-400 leading-normal border-t border-white/[0.06] pt-3">
+                    &ldquo;Sự hài lòng và những phút giây thư giãn của bạn là nguồn động lực lớn nhất để dự án không ngừng hoàn thiện mỗi ngày.&rdquo;
                   </div>
                 </div>
               </div>
@@ -256,7 +272,7 @@ export default function AboutPage() {
           </div>
         </section>
 
-        {/* ================= 4 CORE PILLARS (BENTO GRID) ================= */}
+        {/* ================= 3. 4 CORE PILLARS ================= */}
         <section className="space-y-8">
           <div className="text-center space-y-3 max-w-2xl mx-auto">
             <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-netflix-red">
@@ -264,10 +280,10 @@ export default function AboutPage() {
               <span>Trải Nghiệm Khác Biệt</span>
             </div>
             <h2 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
-              4 Điểm Tạo Nên Sự Khác Biệt Tại Nanaflix
+              4 Giá Trị Cốt Lõi Tạo Nên Sự Khác Biệt
             </h2>
             <p className="text-xs sm:text-sm text-gray-400">
-              Những giá trị cốt lõi giúp bạn tận hưởng từng phút giây xem phim một cách thoải mái nhất.
+              Từng dòng code và quyết định thiết kế đều hướng tới mục tiêu tối đa hóa trải nghiệm giải trí của bạn.
             </p>
           </div>
 
@@ -279,7 +295,6 @@ export default function AboutPage() {
                   key={p.number}
                   className={`p-7 rounded-3xl bg-gradient-to-b from-zinc-950/90 to-black border ${p.border} transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl flex flex-col justify-between space-y-5 relative overflow-hidden group`}
                 >
-                  {/* Subtle top glow */}
                   <div
                     className={`absolute top-0 right-0 w-48 h-48 bg-gradient-to-bl ${p.gradient} blur-3xl pointer-events-none -z-10 group-hover:opacity-100 transition-opacity`}
                   />
@@ -316,18 +331,18 @@ export default function AboutPage() {
           </div>
         </section>
 
-        {/* ================= TECH STACK & ENGINEERING DEEP DIVE ================= */}
+        {/* ================= 4. TECH STACK & ARCHITECTURE ================= */}
         <section className="space-y-8">
           <div className="text-center space-y-3 max-w-2xl mx-auto">
             <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-netflix-red">
               <Cpu size={14} />
-              <span>Dưới Nắp Capo</span>
+              <span>Dưới Nắp Capo Kỹ Thuật</span>
             </div>
             <h2 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
-              Công Nghệ & Kỹ Thuật Hệ Thống
+              Công Nghệ & Kiến Trúc Hệ Thống
             </h2>
             <p className="text-xs sm:text-sm text-gray-400">
-              Kiến trúc hiện đại, phân tán và tối ưu hóa đến từng mili-giây.
+              Ứng dụng các công nghệ web hiện đại nhất hiện nay nhằm mang lại tốc độ phản hồi sub-millisecond.
             </p>
           </div>
 
@@ -363,65 +378,175 @@ export default function AboutPage() {
           </div>
         </section>
 
-        {/* ================= FAQS SECTION ================= */}
+        {/* ================= 5. ROADMAP & EVOLUTION ================= */}
         <section className="space-y-8">
           <div className="text-center space-y-3 max-w-2xl mx-auto">
-            <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-netflix-red">
-              <HeartHandshake size={14} />
-              <span>Giải Đáp Nhanh</span>
+            <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-400">
+              <Milestone size={14} />
+              <span>Hành Trình Phát Triển</span>
             </div>
             <h2 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
-              Những Câu Hỏi Thường Gặp
+              Lộ Trình & Tầm Nhìn Dự Án
             </h2>
+            <p className="text-xs sm:text-sm text-gray-400">
+              Nanaflix liên tục được tinh chỉnh và nâng cấp tính năng định kỳ hàng tuần.
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {FAQS.map((faq, idx) => (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {ROADMAP_STEPS.map((step, idx) => (
               <div
                 key={idx}
-                className="p-6 rounded-2xl bg-zinc-950/60 border border-white/[0.08] hover:border-white/15 transition space-y-2 backdrop-blur-md"
+                className="p-6 rounded-3xl bg-zinc-950/60 border border-white/[0.08] space-y-3 backdrop-blur-md relative overflow-hidden"
               >
-                <h4 className="text-sm font-bold text-white flex items-start gap-2">
-                  <span className="text-netflix-red font-mono">Q.</span>
-                  <span>{faq.q}</span>
-                </h4>
-                <p className="text-xs text-gray-400 leading-relaxed pl-5">{faq.a}</p>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-mono font-bold text-gray-400">{step.phase}</span>
+                  <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
+                    step.status === "Đã hoàn thành" 
+                      ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                      : "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                  }`}>
+                    {step.status}
+                  </span>
+                </div>
+                <h3 className="text-base font-bold text-white">{step.title}</h3>
+                <p className="text-xs text-gray-400 leading-relaxed">{step.desc}</p>
               </div>
             ))}
           </div>
         </section>
 
-        {/* ================= FINAL CINEMA CTA ================= */}
-        <section className="pt-6 pb-2 text-center">
-          <div className="p-8 sm:p-14 rounded-3xl bg-gradient-to-b from-zinc-900/90 via-zinc-950 to-black border border-white/[0.12] relative overflow-hidden space-y-6 shadow-2xl">
-            <div className="space-y-3 max-w-xl mx-auto">
-              <span className="text-xs font-bold tracking-widest text-netflix-red uppercase">
-                Bật đèn mờ & Tận hưởng
-              </span>
-              <h3 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
-                Sẵn sàng cho bộ phim tiếp theo?
-              </h3>
+        {/* ================= 6. HELP & ISSUE REPORTING CENTER (SECTION #CONTACT) ================= */}
+        <section id="contact" className="scroll-mt-28 space-y-8">
+          <div className="p-8 sm:p-12 rounded-3xl bg-gradient-to-b from-zinc-900/90 via-zinc-950 to-black border border-white/[0.12] backdrop-blur-2xl shadow-2xl relative overflow-hidden space-y-8">
+            <div className="text-center space-y-3 max-w-2xl mx-auto">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-bold tracking-wider uppercase">
+                <MessageSquare size={14} />
+                <span>Trung Tâm Trợ Giúp & Báo Lỗi Kỹ Thuật</span>
+              </div>
+              <h2 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
+                Bạn Gặp Sự Cố Hoặc Cần Hỗ Trợ?
+              </h2>
               <p className="text-xs sm:text-sm text-gray-400 leading-relaxed">
-                Hàng ngàn bộ phim điện ảnh bom tấn, series truyền hình đình đám và các trận cầu trực tiếp đỉnh cao đang chờ đón bạn.
+                Chúng tôi luôn lắng nghe mọi đóng góp, phản hồi về chất lượng đường truyền video, lỗi hiển thị hoặc yêu cầu bổ sung phim mới từ bạn.
               </p>
             </div>
 
-            <div className="flex items-center justify-center gap-4 pt-2 flex-wrap">
-              <Link
-                href="/"
-                className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-netflix-red hover:bg-red-700 text-white font-bold text-sm transition-all shadow-xl shadow-red-950/50 hover:shadow-red-600/30 hover:scale-[1.02] active:scale-95"
-              >
-                <Play size={16} className="fill-current" />
-                <span>Bắt Đầu Thưởng Thức</span>
-              </Link>
-              <Link
-                href="/collection"
-                className="inline-flex items-center gap-2 px-6 py-4 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.12] text-gray-300 font-semibold text-sm transition-all backdrop-blur-md hover:border-white/20 active:scale-95"
-              >
-                <Film size={16} />
-                <span>Xem Bộ Sưu Tập Đặc Sắc</span>
-              </Link>
+            {/* 3 Channels Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              {/* Channel 1: Báo lỗi phim & phát video */}
+              <div className="p-6 rounded-2xl bg-black/50 border border-white/[0.08] hover:border-red-500/40 transition space-y-4">
+                <div className="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 flex items-center justify-center">
+                  <AlertTriangle size={20} />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-sm font-bold text-white">Báo Lỗi Phim & Máy Chủ</h3>
+                  <p className="text-xs text-gray-400 leading-relaxed">
+                    Phim bị đứng hình, link phát hỏng, mất tiếng hoặc lệch phụ đề? Gửi thông tin tên phim và tập phim bị ảnh hưởng.
+                  </p>
+                </div>
+                <a
+                  href="mailto:contact@nanaflix.id.vn?subject=[Bao%20Loi%20Phim]%20Nanaflix%20Issue%20Report"
+                  className="inline-flex items-center gap-2 text-xs font-bold text-red-400 hover:text-red-300 transition"
+                >
+                  <Mail size={13} />
+                  <span>Gửi email báo lỗi link</span>
+                </a>
+              </div>
+
+              {/* Channel 2: Góp ý tính năng & Yêu cầu phim */}
+              <div className="p-6 rounded-2xl bg-black/50 border border-white/[0.08] hover:border-purple-500/40 transition space-y-4">
+                <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center">
+                  <Sparkles size={20} />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-sm font-bold text-white">Yêu Cầu Phim & Tính Năng</h3>
+                  <p className="text-xs text-gray-400 leading-relaxed">
+                    Mong muốn bổ sung bộ phim bạn yêu thích hoặc có sáng kiến cải tiến giao diện Nanaflix ngày một hoàn thiện hơn.
+                  </p>
+                </div>
+                <a
+                  href="mailto:contact@nanaflix.id.vn?subject=[Yeu%20Cau%20Phim]%20De%20xuat%20noi%20dung%20moi"
+                  className="inline-flex items-center gap-2 text-xs font-bold text-purple-400 hover:text-purple-300 transition"
+                >
+                  <Send size={13} />
+                  <span>Gửi đề xuất tới tác giả</span>
+                </a>
+              </div>
+
+              {/* Channel 3: Hỗ trợ tài khoản & Bản quyền */}
+              <div className="p-6 rounded-2xl bg-black/50 border border-white/[0.08] hover:border-emerald-500/40 transition space-y-4">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                  <ShieldCheck size={20} />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-sm font-bold text-white">Tài Khoản & Bản Quyền DMCA</h3>
+                  <p className="text-xs text-gray-400 leading-relaxed">
+                    Thắc mắc về bảo mật dữ liệu, yêu cầu xóa tài khoản hoặc khiếu nại bản quyền tác giả theo tiêu chuẩn DMCA.
+                  </p>
+                </div>
+                <Link
+                  href="/terms"
+                  className="inline-flex items-center gap-2 text-xs font-bold text-emerald-400 hover:text-emerald-300 transition"
+                >
+                  <ExternalLink size={13} />
+                  <span>Xem quy trình DMCA</span>
+                </Link>
+              </div>
             </div>
+
+            {/* Direct Contact Banner */}
+            <div className="p-5 rounded-2xl bg-zinc-900/60 border border-white/[0.08] flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+              <div className="space-y-1">
+                <div className="text-xs font-bold text-white flex items-center justify-center sm:justify-start gap-2">
+                  <Clock size={14} className="text-amber-400" />
+                  <span>Thời gian phản hồi thông thường: 1 - 24 giờ làm việc</span>
+                </div>
+                <div className="text-[11px] text-gray-400">
+                  Hộp thư trực tiếp: <span className="font-mono text-zinc-300 font-semibold">contact@nanaflix.id.vn</span> hoặc liên hệ qua trang cá nhân.
+                </div>
+              </div>
+
+              <a
+                href="mailto:contact@nanaflix.id.vn"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-netflix-red hover:bg-red-700 text-white font-bold text-xs transition shadow-lg shrink-0"
+              >
+                <Mail size={14} />
+                <span>Gửi Email Ngay</span>
+              </a>
+            </div>
+          </div>
+        </section>
+
+        {/* ================= 7. CROSS LINKS & CINEMA CTA ================= */}
+        <section className="text-center space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Link
+              href="/faq"
+              className="p-5 rounded-2xl bg-zinc-950/60 hover:bg-zinc-900 border border-white/[0.08] hover:border-amber-500/40 transition text-left group"
+            >
+              <div className="text-xs font-mono text-amber-400 font-bold uppercase">Câu hỏi & Hướng dẫn</div>
+              <div className="text-sm font-bold text-white group-hover:text-amber-300 transition mt-1">Trang Hỏi & Đáp (FAQ)</div>
+              <div className="text-xs text-gray-400 mt-1">Bí kíp cài app PWA, cast TV và phím tắt nhanh.</div>
+            </Link>
+
+            <Link
+              href="/privacy"
+              className="p-5 rounded-2xl bg-zinc-950/60 hover:bg-zinc-900 border border-white/[0.08] hover:border-emerald-500/40 transition text-left group"
+            >
+              <div className="text-xs font-mono text-emerald-400 font-bold uppercase">An toàn dữ liệu</div>
+              <div className="text-sm font-bold text-white group-hover:text-emerald-300 transition mt-1">Chính Sách Bảo Mật</div>
+              <div className="text-xs text-gray-400 mt-1">Không lưu Raw IP, mã hóa RLS và tự chủ dữ liệu.</div>
+            </Link>
+
+            <Link
+              href="/terms"
+              className="p-5 rounded-2xl bg-zinc-950/60 hover:bg-zinc-900 border border-white/[0.08] hover:border-blue-500/40 transition text-left group"
+            >
+              <div className="text-xs font-mono text-blue-400 font-bold uppercase">Quy định & DMCA</div>
+              <div className="text-sm font-bold text-white group-hover:text-blue-300 transition mt-1">Điều Khoản Dịch Vụ</div>
+              <div className="text-xs text-gray-400 mt-1">Tuyên bố miễn trừ lưu trữ và tiếp nhận bản quyền.</div>
+            </Link>
           </div>
         </section>
 
