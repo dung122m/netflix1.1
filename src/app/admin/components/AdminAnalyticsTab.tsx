@@ -21,6 +21,10 @@ import {
   Film,
   BarChart2,
   MapPin,
+  Wifi,
+  Cpu,
+  Maximize2,
+  Sparkles,
 } from "lucide-react";
 import { AnalyticsDashboardStats } from "@/services/analyticsService";
 import { UserAvatar } from "@/components/ui/UserAvatar";
@@ -621,52 +625,166 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
         })()}
       </div>
 
-      {/* ROW: DEVICES & SEARCHES */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Device Breakdown */}
-        <div className="p-6 rounded-2xl bg-zinc-900/60 border border-white/10 backdrop-blur-sm space-y-4">
-          <h3 className="text-sm font-bold text-white flex items-center gap-2">
-            <Monitor size={16} className="text-blue-400" />
-            <span>Thiết Bị Truy Cập</span>
-          </h3>
+      {/* SECTION: THIẾT BỊ & MÔI TRƯỜNG KHÁN GIẢ (UNIFIED DEVICE PROFILE DASHBOARD) */}
+      <div className="p-6 rounded-2xl bg-zinc-900/60 border border-white/10 backdrop-blur-sm space-y-6">
+        <div className="flex items-center justify-between flex-wrap gap-2 pb-2 border-b border-white/10">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400">
+              <Cpu size={18} />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <span>Hồ Sơ Thiết Bị & Vị Trí Ước Lượng (Device & Location Profiles)</span>
+                <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 text-[10px] font-bold">
+                  Guest + User
+                </span>
+              </h3>
+              <p className="text-[11px] text-gray-400">
+                Phân tích nền tảng thiết bị, hệ điều hành, trình duyệt và phân bố địa lý ước lượng (GeoIP)
+              </p>
+            </div>
+          </div>
+          <span className="text-xs text-gray-400 font-mono">
+            {stats?.deviceProfileStats?.totalProfiles || stats?.devices ? (
+              <>
+                <strong className="text-white">
+                  {(stats?.deviceProfileStats?.totalProfiles ?? (stats?.devices.desktop + stats?.devices.mobile + stats?.devices.tablet)).toLocaleString()}
+                </strong>{" "}
+                hồ sơ thiết bị
+              </>
+            ) : (
+              "0 thiết bị"
+            )}
+          </span>
+        </div>
 
-          <div className="grid grid-cols-3 gap-2.5 pt-1">
-            <div className="p-3 rounded-xl bg-black/40 border border-white/5 text-center">
-              <Monitor size={18} className="text-blue-400 mx-auto mb-1.5" />
-              <span className="text-[11px] text-gray-400 block">Desktop</span>
-              <span className="text-base font-black text-white font-mono mt-0.5 block">
-                {stats?.devices.desktop || 0}
-              </span>
+        {/* ROW 1: DEVICE OVERVIEW, BROWSER, OPERATING SYSTEM */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* 1. Device Overview */}
+          <div className="p-4 rounded-xl bg-black/40 border border-white/5 space-y-3">
+            <h4 className="text-xs font-bold text-gray-300 flex items-center gap-2">
+              <Monitor size={15} className="text-blue-400" />
+              <span>Phân Loại Thiết Bị (Device Overview)</span>
+            </h4>
+
+            <div className="grid grid-cols-3 gap-2">
+              {/* Desktop */}
+              <div className="p-2.5 rounded-xl bg-zinc-900/80 border border-white/5 text-center">
+                <Monitor size={16} className="text-blue-400 mx-auto mb-1" />
+                <span className="text-[10px] text-gray-400 block">Desktop</span>
+                <span className="text-sm font-black text-white font-mono mt-0.5 block">
+                  {stats?.deviceProfileStats?.overview.desktop ?? stats?.devices.desktop ?? 0}
+                </span>
+                <span className="text-[10px] text-blue-400 font-bold block mt-0.5">
+                  {stats?.deviceProfileStats?.overview.desktopPercent ?? 0}%
+                </span>
+              </div>
+
+              {/* Mobile */}
+              <div className="p-2.5 rounded-xl bg-zinc-900/80 border border-white/5 text-center">
+                <Smartphone size={16} className="text-emerald-400 mx-auto mb-1" />
+                <span className="text-[10px] text-gray-400 block">Mobile</span>
+                <span className="text-sm font-black text-white font-mono mt-0.5 block">
+                  {stats?.deviceProfileStats?.overview.mobile ?? stats?.devices.mobile ?? 0}
+                </span>
+                <span className="text-[10px] text-emerald-400 font-bold block mt-0.5">
+                  {stats?.deviceProfileStats?.overview.mobilePercent ?? 0}%
+                </span>
+              </div>
+
+              {/* Tablet */}
+              <div className="p-2.5 rounded-xl bg-zinc-900/80 border border-white/5 text-center">
+                <Tablet size={16} className="text-purple-400 mx-auto mb-1" />
+                <span className="text-[10px] text-gray-400 block">Tablet</span>
+                <span className="text-sm font-black text-white font-mono mt-0.5 block">
+                  {stats?.deviceProfileStats?.overview.tablet ?? stats?.devices.tablet ?? 0}
+                </span>
+                <span className="text-[10px] text-purple-400 font-bold block mt-0.5">
+                  {stats?.deviceProfileStats?.overview.tabletPercent ?? 0}%
+                </span>
+              </div>
             </div>
-            <div className="p-3 rounded-xl bg-black/40 border border-white/5 text-center">
-              <Smartphone size={18} className="text-emerald-400 mx-auto mb-1.5" />
-              <span className="text-[11px] text-gray-400 block">Mobile</span>
-              <span className="text-base font-black text-white font-mono mt-0.5 block">
-                {stats?.devices.mobile || 0}
-              </span>
-            </div>
-            <div className="p-3 rounded-xl bg-black/40 border border-white/5 text-center">
-              <Tablet size={18} className="text-purple-400 mx-auto mb-1.5" />
-              <span className="text-[11px] text-gray-400 block">Tablet</span>
-              <span className="text-base font-black text-white font-mono mt-0.5 block">
-                {stats?.devices.tablet || 0}
-              </span>
+
+            {/* Visual ratio bar */}
+            <div className="h-2 rounded-full bg-black/60 overflow-hidden flex border border-white/5 mt-1">
+              <div
+                className="bg-blue-500 h-full"
+                style={{ width: `${stats?.deviceProfileStats?.overview.desktopPercent || 0}%` }}
+                title="Desktop"
+              />
+              <div
+                className="bg-emerald-500 h-full"
+                style={{ width: `${stats?.deviceProfileStats?.overview.mobilePercent || 0}%` }}
+                title="Mobile"
+              />
+              <div
+                className="bg-purple-500 h-full"
+                style={{ width: `${stats?.deviceProfileStats?.overview.tabletPercent || 0}%` }}
+                title="Tablet"
+              />
             </div>
           </div>
 
-          {/* OS Breakdown */}
-          <div className="pt-3 border-t border-white/10 space-y-2">
-            <span className="text-[11px] text-gray-400 font-semibold block">Hệ điều hành phổ biến</span>
-            {stats?.osList && stats.osList.length > 0 ? (
-              <div className="space-y-1.5">
-                {stats.osList.slice(0, 4).map((os) => (
-                  <div key={os.name} className="flex items-center justify-between text-xs">
-                    <span className="text-gray-300">{os.name}</span>
-                    <div className="flex items-center gap-2 font-mono">
-                      <span className="text-gray-400">{os.count}</span>
-                      <span className="text-xs text-white font-bold w-10 text-right">
-                        {os.percentage}%
+          {/* 2. Browser */}
+          <div className="p-4 rounded-xl bg-black/40 border border-white/5 space-y-3">
+            <h4 className="text-xs font-bold text-gray-300 flex items-center gap-2">
+              <Globe size={15} className="text-cyan-400" />
+              <span>Trình Duyệt (Browser)</span>
+            </h4>
+
+            {stats?.deviceProfileStats?.browsers && stats.deviceProfileStats.browsers.length > 0 ? (
+              <div className="space-y-2 pt-0.5">
+                {stats.deviceProfileStats.browsers.slice(0, 4).map((b) => (
+                  <div key={b.name} className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-gray-300 flex items-center gap-1.5">
+                        {b.name === "Safari" ? (
+                          <Compass size={12} className="text-blue-400" />
+                        ) : (
+                          <Globe size={12} className={b.name === "Chrome" ? "text-amber-400" : "text-cyan-400"} />
+                        )}
+                        <span className="truncate max-w-[120px]">{b.name}</span>
                       </span>
+                      <span className="text-gray-400 font-mono text-[11px]">
+                        {b.count} ({b.percentage}%)
+                      </span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-black/50 overflow-hidden border border-white/5">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-blue-500 to-cyan-400"
+                        style={{ width: `${Math.max(b.percentage, 4)}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-gray-500">Chưa có dữ liệu trình duyệt.</p>
+            )}
+          </div>
+
+          {/* 3. Operating System */}
+          <div className="p-4 rounded-xl bg-black/40 border border-white/5 space-y-3">
+            <h4 className="text-xs font-bold text-gray-300 flex items-center gap-2">
+              <Sparkles size={15} className="text-amber-400" />
+              <span>Hệ Điều Hành (Operating System)</span>
+            </h4>
+
+            {stats?.deviceProfileStats?.operatingSystems && stats.deviceProfileStats.operatingSystems.length > 0 ? (
+              <div className="space-y-2 pt-0.5">
+                {stats.deviceProfileStats.operatingSystems.slice(0, 4).map((os) => (
+                  <div key={os.name} className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-gray-300 truncate max-w-[130px]">{os.name}</span>
+                      <span className="text-gray-400 font-mono text-[11px]">
+                        {os.count} ({os.percentage}%)
+                      </span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-black/50 overflow-hidden border border-white/5">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-amber-500 to-emerald-400"
+                        style={{ width: `${Math.max(os.percentage, 4)}%` }}
+                      />
                     </div>
                   </div>
                 ))}
@@ -677,74 +795,122 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
           </div>
         </div>
 
-        {/* Browser Breakdown */}
-        <div className="p-6 rounded-2xl bg-zinc-900/60 border border-white/10 backdrop-blur-sm space-y-4">
-          <h3 className="text-sm font-bold text-white flex items-center gap-2">
-            <Globe size={16} className="text-cyan-400" />
-            <span>Trình Duyệt Sử Dụng</span>
-          </h3>
+        {/* ROW 2: APPROXIMATE LOCATION DISTRIBUTION (GEOIP) */}
+        <div className="pt-2 border-t border-white/5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* 4. Top Countries */}
+            <div className="p-4 rounded-xl bg-black/40 border border-white/5 space-y-3">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold text-gray-300 flex items-center gap-2">
+                  <Globe size={15} className="text-teal-400" />
+                  <span>Quốc Gia Ước Lượng (Approximate Country)</span>
+                </h4>
+                <span className="text-[10px] text-gray-500 font-medium">Edge GeoIP</span>
+              </div>
 
-          {stats?.browserList && stats.browserList.length > 0 ? (
-            <div className="space-y-3 pt-1">
-              {stats.browserList.slice(0, 5).map((b) => (
-                <div key={b.name} className="space-y-1">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-gray-300 flex items-center gap-1.5">
-                      {b.name === "Safari" ? (
-                        <Compass size={13} className="text-blue-400" />
-                      ) : (
-                        <Globe size={13} className={b.name === "Chrome" ? "text-amber-400" : "text-gray-400"} />
-                      )}
-                      <span>{b.name}</span>
-                    </span>
-                    <span className="text-gray-400 font-mono text-[11px]">
-                      {b.count} ({b.percentage}%)
-                    </span>
-                  </div>
-                  <div className="h-2 rounded-full bg-black/50 overflow-hidden border border-white/5">
+              {stats?.deviceProfileStats?.locations?.countries && stats.deviceProfileStats.locations.countries.length > 0 ? (
+                <div className="space-y-2 pt-0.5">
+                  {stats.deviceProfileStats.locations.countries.slice(0, 5).map((c) => (
+                    <div key={c.name} className="space-y-1">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-gray-300 flex items-center gap-1.5">
+                          <span className="px-1.5 py-0.2 rounded bg-teal-500/20 text-teal-300 font-mono text-[10px] font-bold">
+                            {c.code || "N/A"}
+                          </span>
+                          <span className="truncate max-w-[150px]">{c.name}</span>
+                        </span>
+                        <span className="text-gray-400 font-mono text-[11px]">
+                          {c.count} ({c.percentage}%)
+                        </span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-black/50 overflow-hidden border border-white/5">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-teal-500 to-emerald-400"
+                          style={{ width: `${Math.max(c.percentage, 4)}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-4 text-center rounded-lg bg-zinc-900/40 border border-white/5">
+                  <p className="text-xs text-gray-400">Chưa có dữ liệu quốc gia.</p>
+                  <p className="text-[10px] text-gray-500 mt-1">Dữ liệu sẽ tự động xuất hiện khi có lượt truy cập mới sau khi chạy migration.</p>
+                </div>
+              )}
+            </div>
+
+            {/* 5. Top Cities */}
+            <div className="p-4 rounded-xl bg-black/40 border border-white/5 space-y-3">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold text-gray-300 flex items-center gap-2">
+                  <MapPin size={15} className="text-amber-400" />
+                  <span>Tỉnh / Thành Phố Ước Lượng (Approximate City)</span>
+                </h4>
+                <span className="text-[10px] text-gray-500 font-medium">ISP Gateway Approx.</span>
+              </div>
+
+              {stats?.deviceProfileStats?.locations?.topCities && stats.deviceProfileStats.locations.topCities.length > 0 ? (
+                <div className="space-y-1.5 max-h-[160px] overflow-y-auto pr-1">
+                  {stats.deviceProfileStats.locations.topCities.slice(0, 5).map((ct) => (
                     <div
-                      className="h-full rounded-full bg-gradient-to-r from-blue-500 to-cyan-400"
-                      style={{ width: `${Math.max(b.percentage, 5)}%` }}
-                    />
-                  </div>
+                      key={ct.name}
+                      className="flex items-center justify-between text-xs p-1.5 rounded-lg bg-zinc-900/60 border border-white/5"
+                    >
+                      <span className="font-medium text-white text-[11px] flex items-center gap-1.5">
+                        <MapPin size={11} className="text-amber-400 flex-shrink-0" />
+                        <span className="truncate max-w-[140px]">{ct.name}</span>
+                        <span className="text-[10px] text-gray-500">({ct.country})</span>
+                      </span>
+                      <div className="flex items-center gap-2 font-mono text-[11px]">
+                        <span className="text-gray-400">{ct.count}</span>
+                        <span className="text-xs text-amber-300 font-bold w-9 text-right">
+                          {ct.percentage}%
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              ) : (
+                <div className="p-4 text-center rounded-lg bg-zinc-900/40 border border-white/5">
+                  <p className="text-xs text-gray-400">Chưa có dữ liệu tỉnh / thành phố.</p>
+                  <p className="text-[10px] text-gray-500 mt-1">Dữ liệu sẽ tự động xuất hiện khi có lượt truy cập mới sau khi chạy migration.</p>
+                </div>
+              )}
             </div>
-          ) : (
-            <p className="text-xs text-gray-500">Chưa có dữ liệu trình duyệt.</p>
-          )}
-        </div>
-
-        {/* Top Search Keywords */}
-        <div className="p-6 rounded-2xl bg-zinc-900/60 border border-white/10 backdrop-blur-sm space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <Search size={16} className="text-rose-400" />
-              <span>Từ Khóa Tìm Kiếm Hot</span>
-            </h3>
-            <span className="text-xs text-gray-400">Search Queries</span>
           </div>
-
-          {!stats?.topSearches || stats.topSearches.length === 0 ? (
-            <div className="p-8 text-center rounded-xl bg-black/40 border border-white/5 text-gray-400 text-xs">
-              Chưa có lượt tìm kiếm nào được ghi nhận.
-            </div>
-          ) : (
-            <div className="flex flex-wrap gap-2 pt-1">
-              {stats.topSearches.map((s) => (
-                <div
-                  key={s.keyword}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-black/40 border border-white/10 text-xs"
-                >
-                  <span className="text-gray-200 font-medium">{s.keyword}</span>
-                  <span className="px-1.5 py-0.2 rounded-full bg-rose-500/20 text-rose-300 font-mono text-[10px] font-bold">
-                    {s.count}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
+      </div>
+
+      {/* TOP SEARCH QUERIES */}
+      <div className="p-6 rounded-2xl bg-zinc-900/60 border border-white/10 backdrop-blur-sm space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-bold text-white flex items-center gap-2">
+            <Search size={16} className="text-rose-400" />
+            <span>Từ Khóa Tìm Kiếm Hot</span>
+          </h3>
+          <span className="text-xs text-gray-400">Search Queries</span>
+        </div>
+
+        {!stats?.topSearches || stats.topSearches.length === 0 ? (
+          <div className="p-8 text-center rounded-xl bg-black/40 border border-white/5 text-gray-400 text-xs">
+            Chưa có lượt tìm kiếm nào được ghi nhận.
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-2 pt-1">
+            {stats.topSearches.map((s) => (
+              <div
+                key={s.keyword}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-black/40 border border-white/10 text-xs"
+              >
+                <span className="text-gray-200 font-medium">{s.keyword}</span>
+                <span className="px-1.5 py-0.2 rounded-full bg-rose-500/20 text-rose-300 font-mono text-[10px] font-bold">
+                  {s.count}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* RECENT ACTIVITY FEED */}
@@ -794,6 +960,17 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
                   )}
                   <span>•</span>
                   <span className="truncate">{ev.deviceType} / {ev.os}</span>
+                  {(ev.city || ev.country) && (
+                    <>
+                      <span>•</span>
+                      <span className="text-teal-300 font-medium flex items-center gap-1 truncate max-w-[140px] sm:max-w-none">
+                        <MapPin size={10} className="text-teal-400 flex-shrink-0" />
+                        <span>
+                          {ev.city ? `${ev.city}, ${ev.countryCode || ev.country}` : ev.country}
+                        </span>
+                      </span>
+                    </>
+                  )}
                   <span>•</span>
                   <span className="text-gray-500 font-mono flex-shrink-0">{formatTime(ev.createdAt)}</span>
                 </div>

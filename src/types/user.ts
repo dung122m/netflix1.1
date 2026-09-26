@@ -28,6 +28,18 @@ export interface UserProfile {
   violationsCount?: number;     // Số lần cố tình vi phạm
   lastViolationAt?: number;
   lastViolationReason?: string;
+  // --- Approximate Location & Device (Admin analytics) ---
+  approximateLocation?: {
+    country?: string | null;
+    countryCode?: string | null;
+    region?: string | null;
+    city?: string | null;
+  } | null;
+  deviceInfo?: {
+    deviceType?: string | null;
+    browser?: string | null;
+    os?: string | null;
+  } | null;
 }
 
 export interface MemberWithStats extends UserProfile {

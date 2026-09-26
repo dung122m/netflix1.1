@@ -11,6 +11,7 @@
 
 import { useEffect } from "react";
 import { trackSiteVisit } from "@/lib/analyticsClient";
+import { syncUnifiedDeviceProfile } from "@/lib/deviceProfile";
 import { auth } from "@/lib/firebase";
 
 export function GlobalVisitorTracker() {
@@ -31,15 +32,28 @@ export function GlobalVisitorTracker() {
 
       if (!cancelled) {
         trackSiteVisit();
+        syncUnifiedDeviceProfile();
       }
     }
 
     track();
 
+    // Listen to auth changes to update profile linkage when user logs in
+    let unsubscribe: (() => void) | null = null;
+    if (auth && typeof auth.onAuthStateChanged === "function") {
+      unsubscribe = auth.onAuthStateChanged((currentUser) => {
+        if (!cancelled && currentUser) {
+          syncUnifiedDeviceProfile(true);
+        }
+      });
+    }
+
     return () => {
       cancelled = true;
+      if (unsubscribe) unsubscribe();
     };
   }, []); // Empty deps: fires once per mount (once per tab session + sessionStorage guard)
 
   return null;
 }
+

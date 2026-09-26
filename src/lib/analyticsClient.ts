@@ -32,6 +32,10 @@ export interface AnalyticsEventPayload {
   durationSeconds?: number;
   progressSeconds?: number;
   keyword?: string;
+  country?: string;
+  countryCode?: string;
+  region?: string;
+  city?: string;
   timestamp?: number;
 }
 

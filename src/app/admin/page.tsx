@@ -28,6 +28,7 @@ import {
   Ban,
   Eye,
   Check,
+  MapPin,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { isUserAdmin } from "@/lib/adminConfig";
@@ -1592,11 +1593,21 @@ function AdminDashboardContent() {
                           </div>
                         )}
 
-                        <div className="flex items-center justify-between mt-2.5 text-[10px] text-gray-500 flex-wrap gap-1">
+                        <div className="flex items-center justify-between mt-2.5 text-[10px] text-gray-500 flex-wrap gap-1.5">
                           <span className="flex items-center gap-1">
                             <Clock size={11} />
                             <span>Lần cuối: {formatDate(m.lastActiveAt || m.lastLoginAt)}</span>
                           </span>
+                          {m.approximateLocation?.country && (
+                            <span className="text-teal-400 font-medium flex items-center gap-1">
+                              <MapPin size={11} className="text-teal-400 flex-shrink-0" />
+                              <span className="truncate max-w-[130px]">
+                                {m.approximateLocation.city
+                                  ? `${m.approximateLocation.city}, ${m.approximateLocation.countryCode || m.approximateLocation.country}`
+                                  : m.approximateLocation.country}
+                              </span>
+                            </span>
+                          )}
                           {m.violationsCount && m.violationsCount > 0 ? (
                             <span className="text-red-400 font-semibold flex items-center gap-1">
                               <AlertOctagon size={11} />

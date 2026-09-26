@@ -39,24 +39,56 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
       }
 
+      // Lấy device_profiles của các user để hiển thị vị trí & thiết bị ước lượng
+      const { data: devProfiles } = await supabase
+        .from("device_profiles")
+        .select("user_id, country, country_code, region, city, device_type, browser, os, last_seen")
+        .not("user_id", "is", null)
+        .order("last_seen", { ascending: false })
+        .limit(1000);
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const profiles = (data as any[] || []).map((d) => ({
-        uid: d.id,
-        email: d.email || "",
-        displayName: d.display_name || "Thành viên",
-        photoURL: d.photo_url || d.custom_avatar || "",
-        customAvatar: d.custom_avatar,
-        bio: d.bio,
-        favoriteGenres: d.favorite_genres || [],
-        badges: d.badges || [],
-        watchTimeMinutes: d.watch_time_minutes || 0,
-        role: (d.role as "admin" | "member") || "member",
-        isCommentRestricted: Boolean(d.is_comment_restricted),
-        violationsCount: d.violations_count || 0,
-        lastViolationReason: d.last_violation_reason,
-        createdAt: d.created_at,
-        lastLoginAt: d.last_login_at,
-      }));
+      const devProfileMap = new Map<string, any>();
+      if (devProfiles && Array.isArray(devProfiles)) {
+        for (const dp of devProfiles) {
+          if (dp.user_id && !devProfileMap.has(dp.user_id)) {
+            devProfileMap.set(dp.user_id, dp);
+          }
+        }
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const profiles = (data as any[] || []).map((d) => {
+        const dp = devProfileMap.get(d.id);
+        return {
+          uid: d.id,
+          email: d.email || "",
+          displayName: d.display_name || "Thành viên",
+          photoURL: d.photo_url || d.custom_avatar || "",
+          customAvatar: d.custom_avatar,
+          bio: d.bio,
+          favoriteGenres: d.favorite_genres || [],
+          badges: d.badges || [],
+          watchTimeMinutes: d.watch_time_minutes || 0,
+          role: (d.role as "admin" | "member") || "member",
+          isCommentRestricted: Boolean(d.is_comment_restricted),
+          violationsCount: d.violations_count || 0,
+          lastViolationReason: d.last_violation_reason,
+          approximateLocation: dp?.country ? {
+            country: dp.country,
+            countryCode: dp.country_code,
+            region: dp.region,
+            city: dp.city,
+          } : null,
+          deviceInfo: dp?.device_type ? {
+            deviceType: dp.device_type,
+            browser: dp.browser,
+            os: dp.os,
+          } : null,
+          createdAt: d.created_at,
+          lastLoginAt: d.last_login_at,
+        };
+      });
 
       return NextResponse.json({
         success: true,

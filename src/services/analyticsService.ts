@@ -20,6 +20,10 @@ export interface StoredAnalyticsEvent {
   durationSeconds?: number;
   progressSeconds?: number;
   keyword?: string;
+  country?: string;
+  countryCode?: string;
+  region?: string;
+  city?: string;
   createdAt: number;
 }
 
@@ -61,6 +65,42 @@ export interface HourlyWatchStat {
   count: number;
 }
 
+export interface DeviceProfileStats {
+  totalProfiles: number;
+  overview: {
+    desktop: number;
+    mobile: number;
+    tablet: number;
+    desktopPercent: number;
+    mobilePercent: number;
+    tabletPercent: number;
+  };
+  browsers: Array<{ name: string; count: number; percentage: number }>;
+  operatingSystems: Array<{ name: string; count: number; percentage: number }>;
+  network: {
+    g4HighSpeed: number;
+    g3Medium: number;
+    g2Slow: number;
+    slow2g: number;
+    unknown: number;
+    saveDataCount: number;
+    saveDataPercent: number;
+  };
+  topViewports: Array<{ resolution: string; count: number; percentage: number; deviceType: string }>;
+  codecs: {
+    av1Count: number;
+    av1Percent: number;
+    hevcCount: number;
+    hevcPercent: number;
+    h264OnlyCount: number;
+    h264OnlyPercent: number;
+  };
+  locations?: {
+    countries: Array<{ name: string; code: string; count: number; percentage: number }>;
+    topCities: Array<{ name: string; country: string; count: number; percentage: number }>;
+  };
+}
+
 export interface AnalyticsDashboardStats {
   timeframe: "today" | "7d" | "30d" | "all";
   totalViews: number;
@@ -73,7 +113,6 @@ export interface AnalyticsDashboardStats {
   activeGuestsCount: number;
   topMoviesByViews: Array<{ slug: string; title: string; views: number }>;
   topMoviesByUnique: Array<{ slug: string; title: string; uniqueViewers: number }>;
-  topWatching: Array<{ slug: string; title: string; episodeName?: string; watchCount: number; totalSeconds: number }>;
   devices: {
     desktop: number;
     mobile: number;
@@ -86,6 +125,7 @@ export interface AnalyticsDashboardStats {
   liveWatching: LiveWatchingSession[];
   hourlyWatchActivity: HourlyWatchStat[];
   todayVisitorsCount: number;
+  deviceProfileStats: DeviceProfileStats;
 }
 
 let redisInstance: Redis | null = null;
@@ -181,6 +221,10 @@ export async function recordAnalyticsEvent(payload: AnalyticsEventPayload): Prom
     durationSeconds: payload.durationSeconds || 0,
     progressSeconds: payload.progressSeconds || 0,
     keyword: payload.keyword?.trim(),
+    country: payload.country?.trim() || undefined,
+    countryCode: payload.countryCode?.trim() || undefined,
+    region: payload.region?.trim() || undefined,
+    city: payload.city?.trim() || undefined,
     createdAt: now,
   };
 
@@ -358,7 +402,7 @@ export async function getAnalyticsDashboardStats(
     "duration_seconds", "progress_seconds", "keyword", "created_at",
   ].join(",");
 
-  const [redisListData, redisTitleData, supabaseEventsResult, supabaseHandoffResult] =
+  const [redisListData, redisTitleData, supabaseEventsResult, supabaseHandoffResult, supabaseDeviceProfilesResult] =
     await Promise.all([
       // B1: Redis recent events list
       redis
@@ -403,6 +447,25 @@ export async function getAnalyticsDashboardStats(
             .limit(30);
         } catch {
           return { data: null, error: new Error("handoff fetch failed") };
+        }
+      })(),
+
+      // E: Supabase device_profiles (Unified Device Profile telemetry)
+      (async () => {
+        const client = isSupabaseAdminConfigured() ? getSupabaseAdmin() : supabase;
+        if (!client) return { data: null, error: null };
+        try {
+          let q = client
+            .from("device_profiles")
+            .select("*")
+            .order("last_seen", { ascending: false })
+            .limit(2000);
+          if (cutoffTimestamp > 0) {
+            q = q.gte("last_seen", cutoffTimestamp);
+          }
+          return await q;
+        } catch {
+          return { data: null, error: new Error("device_profiles fetch failed") };
         }
       })(),
     ]);
@@ -593,9 +656,8 @@ export async function getAnalyticsDashboardStats(
     }
   }
 
-  // Calculate actual totalWatchTimeSeconds and topWatching from sessionProgressMap
+  // Calculate actual totalWatchTimeSeconds from sessionProgressMap
   let totalWatchTimeSeconds = 0;
-  const movieWatchingMap = new Map<string, { title: string; episodeName?: string; count: number; seconds: number }>();
 
   for (const session of sessionProgressMap.values()) {
     let sessionSec = session.maxProgress;
@@ -609,18 +671,6 @@ export async function getAnalyticsDashboardStats(
     }
 
     totalWatchTimeSeconds += sessionSec;
-
-    // Aggregate into topWatching (grouped by movie:episode)
-    const watchKey = `${session.movieSlug}:${session.episodeSlug || "full"}`;
-    const existingWatch = movieWatchingMap.get(watchKey) || {
-      title: session.movieTitle,
-      episodeName: session.episodeName,
-      count: 0,
-      seconds: 0,
-    };
-    existingWatch.count += 1;
-    existingWatch.seconds += sessionSec;
-    movieWatchingMap.set(watchKey, existingWatch);
   }
 
   // Count unique visitors today (unique viewerKeys with site_visit events within today boundary)
@@ -651,20 +701,6 @@ export async function getAnalyticsDashboardStats(
     .sort((a, b) => b.uniqueViewers - a.uniqueViewers)
     .slice(0, 10);
 
-  const topWatching = Array.from(movieWatchingMap.entries())
-    .map(([key, data]) => {
-      const [slug] = key.split(":");
-      return {
-        slug,
-        title: data.title,
-        episodeName: data.episodeName,
-        watchCount: data.count,
-        totalSeconds: data.seconds,
-      };
-    })
-    .sort((a, b) => b.totalSeconds - a.totalSeconds)
-    .slice(0, 10);
-
   const totalUniqueDevices = seenDeviceIdentities.size || 1;
 
   const osList = Array.from(osCounts.entries())
@@ -682,6 +718,216 @@ export async function getAnalyticsDashboardStats(
       percentage: Math.round((count / totalUniqueDevices) * 100),
     }))
     .sort((a, b) => b.count - a.count);
+
+  // 3B. Compute Unified Device Profile stats from device_profiles table
+  const { data: deviceProfileRows } = supabaseDeviceProfilesResult ?? { data: null, error: null };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rawProfiles = Array.isArray(deviceProfileRows) ? (deviceProfileRows as any[]) : [];
+
+  let deviceProfileStats: DeviceProfileStats;
+
+  if (rawProfiles.length > 0) {
+    const totalP = rawProfiles.length;
+    let dDesktop = 0;
+    let dMobile = 0;
+    let dTablet = 0;
+
+    const bMap = new Map<string, number>();
+    const osMap = new Map<string, number>();
+    const netCounts = {
+      g4HighSpeed: 0,
+      g3Medium: 0,
+      g2Slow: 0,
+      slow2g: 0,
+      unknown: 0,
+      saveDataCount: 0,
+      saveDataPercent: 0,
+    };
+    const vpMap = new Map<string, { count: number; deviceType: string }>();
+    let av1Count = 0;
+    let hevcCount = 0;
+    let h264OnlyCount = 0;
+
+    const countryMap = new Map<string, { code: string; count: number }>();
+    const cityMap = new Map<string, { country: string; count: number }>();
+
+    for (const p of rawProfiles) {
+      // Device Type
+      const dt = String(p.device_type || "").toLowerCase();
+      if (dt === "mobile") dMobile++;
+      else if (dt === "tablet") dTablet++;
+      else dDesktop++;
+
+      // Browser & OS
+      const bName = p.browser || "Other";
+      const oName = p.os || "Other";
+      bMap.set(bName, (bMap.get(bName) || 0) + 1);
+      osMap.set(oName, (osMap.get(oName) || 0) + 1);
+
+      // Location (Approximate Country & City)
+      if (p.country) {
+        const cName = p.country;
+        const cCode = p.country_code || "";
+        const ex = countryMap.get(cName) || { code: cCode, count: 0 };
+        ex.count++;
+        countryMap.set(cName, ex);
+      }
+      if (p.city) {
+        const ctName = p.city;
+        const cName = p.country || "Quốc tế";
+        const ex = cityMap.get(ctName) || { country: cName, count: 0 };
+        ex.count++;
+        cityMap.set(ctName, ex);
+      }
+
+      // Network Quality (W3C Network Information API standard tiers)
+      const netType = String(p.network_effective_type || "").toLowerCase();
+      if (netType === "4g") netCounts.g4HighSpeed++;
+      else if (netType === "3g") netCounts.g3Medium++;
+      else if (netType === "2g") netCounts.g2Slow++;
+      else if (netType === "slow-2g") netCounts.slow2g++;
+      else netCounts.unknown++;
+
+      if (p.network_save_data) {
+        netCounts.saveDataCount++;
+      }
+
+      // Viewports
+      const w = Number(p.viewport_width) || Number(p.screen_width) || 0;
+      const h = Number(p.viewport_height) || Number(p.screen_height) || 0;
+      if (w > 0 && h > 0) {
+        const vpKey = `${w}×${h}`;
+        const existingVp = vpMap.get(vpKey) || { count: 0, deviceType: dt || "desktop" };
+        existingVp.count++;
+        vpMap.set(vpKey, existingVp);
+      }
+
+      // Codecs
+      const hasAv1 = Boolean(p.codec_av1);
+      const hasHevc = Boolean(p.codec_hevc);
+      const hasH264 = Boolean(p.codec_h264 ?? true);
+
+      if (hasAv1) av1Count++;
+      if (hasHevc) hevcCount++;
+      if (hasH264 && !hasHevc && !hasAv1) h264OnlyCount++;
+    }
+
+    netCounts.saveDataPercent = totalP > 0 ? Math.round((netCounts.saveDataCount / totalP) * 100) : 0;
+
+    const bList = Array.from(bMap.entries())
+      .map(([name, count]) => ({
+        name,
+        count,
+        percentage: Math.round((count / totalP) * 100),
+      }))
+      .sort((a, b) => b.count - a.count);
+
+    const osL = Array.from(osMap.entries())
+      .map(([name, count]) => ({
+        name,
+        count,
+        percentage: Math.round((count / totalP) * 100),
+      }))
+      .sort((a, b) => b.count - a.count);
+
+    const topVpList = Array.from(vpMap.entries())
+      .map(([res, item]) => ({
+        resolution: res,
+        count: item.count,
+        percentage: Math.round((item.count / totalP) * 100),
+        deviceType: item.deviceType,
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+
+    const countryList = Array.from(countryMap.entries())
+      .map(([name, item]) => ({
+        name,
+        code: item.code,
+        count: item.count,
+        percentage: Math.round((item.count / totalP) * 100),
+      }))
+      .sort((a, b) => b.count - a.count);
+
+    const cityList = Array.from(cityMap.entries())
+      .map(([name, item]) => ({
+        name,
+        country: item.country,
+        count: item.count,
+        percentage: Math.round((item.count / totalP) * 100),
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+
+    deviceProfileStats = {
+      totalProfiles: totalP,
+      overview: {
+        desktop: dDesktop,
+        mobile: dMobile,
+        tablet: dTablet,
+        desktopPercent: Math.round((dDesktop / totalP) * 100),
+        mobilePercent: Math.round((dMobile / totalP) * 100),
+        tabletPercent: Math.round((dTablet / totalP) * 100),
+      },
+      browsers: bList,
+      operatingSystems: osL,
+      network: netCounts,
+      topViewports: topVpList,
+      codecs: {
+        av1Count,
+        av1Percent: Math.round((av1Count / totalP) * 100),
+        hevcCount,
+        hevcPercent: Math.round((hevcCount / totalP) * 100),
+        h264OnlyCount,
+        h264OnlyPercent: Math.round((h264OnlyCount / totalP) * 100),
+      },
+      locations: {
+        countries: countryList,
+        topCities: cityList,
+      },
+    };
+  } else {
+    // Graceful fallback from session events
+    const dDesktop = deviceCounts.desktop || 0;
+    const dMobile = deviceCounts.mobile || 0;
+    const dTablet = deviceCounts.tablet || 0;
+    const sumDev = dDesktop + dMobile + dTablet || 1;
+
+    deviceProfileStats = {
+      totalProfiles: totalUniqueDevices,
+      overview: {
+        desktop: dDesktop,
+        mobile: dMobile,
+        tablet: dTablet,
+        desktopPercent: Math.round((dDesktop / sumDev) * 100),
+        mobilePercent: Math.round((dMobile / sumDev) * 100),
+        tabletPercent: Math.round((dTablet / sumDev) * 100),
+      },
+      browsers: browserList,
+      operatingSystems: osList,
+      network: {
+        g4HighSpeed: totalUniqueDevices,
+        g3Medium: 0,
+        g2Slow: 0,
+        slow2g: 0,
+        unknown: 0,
+        saveDataCount: 0,
+        saveDataPercent: 0,
+      },
+      topViewports: [
+        { resolution: "1920×1080", count: dDesktop, percentage: Math.round((dDesktop / sumDev) * 100), deviceType: "desktop" },
+        { resolution: "390×844", count: dMobile, percentage: Math.round((dMobile / sumDev) * 100), deviceType: "mobile" },
+      ].filter((v) => v.count > 0),
+      codecs: {
+        av1Count: 0,
+        av1Percent: 0,
+        hevcCount: 0,
+        hevcPercent: 0,
+        h264OnlyCount: totalUniqueDevices,
+        h264OnlyPercent: 100,
+      },
+    };
+  }
 
   const topSearches = Array.from(searchMap.entries())
     .map(([keyword, count]) => ({ keyword, count }))
@@ -876,6 +1122,30 @@ export async function getAnalyticsDashboardStats(
     }
   }
 
+  // Map device profiles to location for enriching recentActivity
+  const profileLocationMap = new Map<string, { country?: string; countryCode?: string; region?: string; city?: string }>();
+  for (const p of rawProfiles) {
+    const loc = {
+      country: p.country || undefined,
+      countryCode: p.country_code || undefined,
+      region: p.region || undefined,
+      city: p.city || undefined,
+    };
+    if (p.guest_id) profileLocationMap.set(p.guest_id, loc);
+    if (p.user_id) profileLocationMap.set(p.user_id, loc);
+  }
+
+  const enrichedRecentActivity: StoredAnalyticsEvent[] = filteredEvents.slice(0, 40).map((ev) => {
+    const fallbackLoc = (ev.userId ? profileLocationMap.get(ev.userId) : null) || profileLocationMap.get(ev.anonymousId);
+    return {
+      ...ev,
+      country: ev.country || fallbackLoc?.country,
+      countryCode: ev.countryCode || fallbackLoc?.countryCode,
+      region: ev.region || fallbackLoc?.region,
+      city: ev.city || fallbackLoc?.city,
+    };
+  });
+
   return {
     timeframe,
     totalViews: finalTotalViews,
@@ -888,15 +1158,15 @@ export async function getAnalyticsDashboardStats(
     activeGuestsCount: activeGuestSet.size,
     topMoviesByViews,
     topMoviesByUnique,
-    topWatching,
     devices: deviceCounts,
     osList,
     browserList,
-    recentActivity: filteredEvents.slice(0, 30),
+    recentActivity: enrichedRecentActivity,
     topSearches,
     liveWatching,
     hourlyWatchActivity,
     todayVisitorsCount: todayVisitorSet.size,
+    deviceProfileStats,
   };
 }
 

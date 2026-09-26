@@ -3,6 +3,7 @@ import { recordAnalyticsEvent } from "@/services/analyticsService";
 import { AnalyticsEventPayload } from "@/lib/analyticsClient";
 import { verifyServerAuth } from "@/lib/serverAuth";
 import { checkDistributedRateLimit, getClientIp } from "@/lib/security";
+import { getGeoLocationFromRequest } from "@/lib/geoip";
 
 export const maxDuration = 10;
 
@@ -79,7 +80,10 @@ export async function POST(req: NextRequest) {
     const auth = await verifyServerAuth(req);
     const verifiedUserId = auth.isAuthenticated && auth.userId ? auth.userId : undefined;
 
-    // 4. Construct sanitized payload
+    // 4. Resolve Server-side Approximate GeoIP Location (Fast cache / edge headers)
+    const location = await getGeoLocationFromRequest(req);
+
+    // 5. Construct sanitized payload
     const sanitizedPayload: AnalyticsEventPayload = {
       eventType: body.eventType,
       movieSlug: typeof body.movieSlug === "string" ? body.movieSlug.slice(0, 200) : undefined,
@@ -98,6 +102,10 @@ export async function POST(req: NextRequest) {
       durationSeconds: typeof body.durationSeconds === "number" ? Math.max(0, Math.min(body.durationSeconds, 86400)) : 0,
       progressSeconds: typeof body.progressSeconds === "number" ? Math.max(0, Math.min(body.progressSeconds, 86400)) : 0,
       keyword: typeof body.keyword === "string" ? body.keyword.slice(0, 100) : undefined,
+      country: location.country || undefined,
+      countryCode: location.countryCode || undefined,
+      region: location.region || undefined,
+      city: location.city || undefined,
       timestamp: serverTimestamp, // Strictly server time
     };
 
