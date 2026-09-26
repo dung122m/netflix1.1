@@ -19,7 +19,6 @@ import {
   Monitor,
   Smartphone,
   Cast,
-  LifeBuoy,
   Cpu,
   ShieldCheck,
   Compass,
@@ -257,10 +256,7 @@ export const Footer: React.FC = () => {
                   <span>Hỏi & Đáp (FAQ)</span>
                 </Link>
               </li>
-              <li className="hidden sm:flex items-center gap-2 text-gray-500">
-                <LifeBuoy size={12} className="text-gray-600 shrink-0" />
-                <span>Phiên bản v2.6 Cinematic</span>
-              </li>
+          
             </ul>
           </div>
         </div>
