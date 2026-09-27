@@ -583,9 +583,10 @@ const QuickGenreChipsInner: React.FC = () => {
 
       {/* THANH ĐIỀU HƯỚNG BỘ LỌC ĐANG CHỌN (NẾU CÓ) */}
       {activeCount > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-white/10 text-xs">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="flex items-center gap-1.5 text-gray-300 font-bold bg-white/5 px-2.5 py-1 rounded-full border border-white/10">
+        <div className="pb-2.5 border-b border-white/10 text-xs space-y-2">
+          {/* Hàng 1: Badge + filter chips — cuộn ngang trên mobile thay vì wrap tràn */}
+          <div className="flex items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden min-w-0">
+            <span className="flex-none flex items-center gap-1.5 text-gray-300 font-bold bg-white/5 px-2.5 py-1 rounded-full border border-white/10 whitespace-nowrap">
               <Filter className="w-3 h-3 text-netflix-red" />
               <span>Đang lọc ({activeCount})</span>
             </span>
@@ -594,7 +595,7 @@ const QuickGenreChipsInner: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleTypeSelect("")}
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-netflix-red/15 border border-netflix-red/30 text-rose-200 font-semibold hover:bg-netflix-red hover:text-white transition cursor-pointer text-xs outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105"
+                className="flex-none inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-netflix-red/15 border border-netflix-red/30 text-rose-200 font-semibold hover:bg-netflix-red hover:text-white transition cursor-pointer text-xs whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black"
               >
                 <span>{activeTypeName}</span>
                 <X className="w-3 h-3" />
@@ -605,7 +606,7 @@ const QuickGenreChipsInner: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleCategorySelect("")}
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-netflix-red/15 border border-netflix-red/30 text-rose-200 font-semibold hover:bg-netflix-red hover:text-white transition cursor-pointer text-xs outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105"
+                className="flex-none inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-netflix-red/15 border border-netflix-red/30 text-rose-200 font-semibold hover:bg-netflix-red hover:text-white transition cursor-pointer text-xs whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black"
               >
                 <span>{activeCategoryName}</span>
                 <X className="w-3 h-3" />
@@ -616,7 +617,7 @@ const QuickGenreChipsInner: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleCountrySelect("")}
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-500/15 border border-sky-500/30 text-sky-200 font-semibold hover:bg-sky-500 hover:text-white transition cursor-pointer text-xs outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105"
+                className="flex-none inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-500/15 border border-sky-500/30 text-sky-200 font-semibold hover:bg-sky-500 hover:text-white transition cursor-pointer text-xs whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
               >
                 <span>{activeCountryName}</span>
                 <X className="w-3 h-3" />
@@ -633,7 +634,7 @@ const QuickGenreChipsInner: React.FC = () => {
                   const q = p.toString();
                   router.push(q ? `/?${q}` : "/", { scroll: false });
                 }}
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-200 font-semibold hover:bg-amber-500 hover:text-black transition cursor-pointer text-xs outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105"
+                className="flex-none inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-200 font-semibold hover:bg-amber-500 hover:text-black transition cursor-pointer text-xs whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
               >
                 <span>Diễn viên: {currentActor}</span>
                 <X className="w-3 h-3" />
@@ -650,7 +651,7 @@ const QuickGenreChipsInner: React.FC = () => {
                   const q = p.toString();
                   router.push(q ? `/?${q}` : "/", { scroll: false });
                 }}
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-200 font-semibold hover:bg-amber-500 hover:text-black transition cursor-pointer text-xs outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105"
+                className="flex-none inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-200 font-semibold hover:bg-amber-500 hover:text-black transition cursor-pointer text-xs whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
               >
                 <span>Tìm kiếm: {currentKeyword}</span>
                 <X className="w-3 h-3" />
@@ -661,22 +662,23 @@ const QuickGenreChipsInner: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleYearSelect("")}
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-200 font-semibold hover:bg-emerald-500 hover:text-black transition cursor-pointer text-xs outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105"
+                className="flex-none inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-200 font-semibold hover:bg-emerald-500 hover:text-black transition cursor-pointer text-xs whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
               >
                 <span>Năm: {currentYear}</span>
                 <X className="w-3 h-3" />
               </button>
             )}
-          </div>
 
-          <button
-            type="button"
-            onClick={handleClearAll}
-            className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold text-gray-400 hover:text-white hover:bg-white/10 transition ml-auto cursor-pointer border border-white/10 outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105"
-          >
-            <RotateCcw className="w-3 h-3 text-netflix-red" />
-            <span>Xóa bộ lọc</span>
-          </button>
+            {/* Nút xóa — luôn cuối hàng, không bị đẩy sang dòng khác */}
+            <button
+              type="button"
+              onClick={handleClearAll}
+              className="flex-none ml-1 flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold text-gray-400 hover:text-white hover:bg-white/10 transition cursor-pointer border border-white/10 whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+            >
+              <RotateCcw className="w-3 h-3 text-netflix-red" />
+              <span>Xóa bộ lọc</span>
+            </button>
+          </div>
         </div>
       )}
 

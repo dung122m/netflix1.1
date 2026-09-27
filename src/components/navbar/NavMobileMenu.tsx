@@ -11,7 +11,6 @@ import {
   Sparkles,
   Dices,
   History,
-  Bell,
   ChevronRight,
   Info,
 } from "lucide-react";
@@ -296,28 +295,6 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
             <ChevronRight size={14} className="text-amber-400 shrink-0 ml-1.5" />
           </button>
         )}
-
-        {/* THÔNG BÁO */}
-        <button
-          type="button"
-          onClick={() => {
-            onClose();
-            onOpenNotifications();
-          }}
-          className="w-full text-xs font-semibold py-2 px-3 text-gray-300 hover:text-white flex items-center justify-between rounded-xl bg-white/[0.03] hover:bg-white/10 border border-white/5 transition text-left cursor-pointer shadow-sm"
-        >
-          <div className="flex items-center gap-2.5">
-            <Bell size={14} className="text-netflix-red" />
-            <span>Thông báo</span>
-          </div>
-          {userUnreadCount > 0 ? (
-            <span className="px-2 py-0.5 rounded-full bg-netflix-red text-white text-[10px] font-bold">
-              {userUnreadCount} mới
-            </span>
-          ) : (
-            <ChevronRight size={14} className="text-gray-500" />
-          )}
-        </button>
 
         {/* DANH MỤC ĐIỀU HƯỚNG GRID 2 CỘT */}
         <div className="grid grid-cols-2 gap-1.5 pt-1 border-t border-white/10">
