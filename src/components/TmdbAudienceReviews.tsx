@@ -70,8 +70,8 @@ export const TmdbAudienceReviews: React.FC<TmdbAudienceReviewsProps> = React.mem
       return null;
     }
 
-    // Hiển thị tối đa 5 review
-    const displayReviews = reviews.slice(0, 5);
+    // Hiển thị tối đa 6 review (cân xứng 2 cột x 3 hàng)
+    const displayReviews = reviews.slice(0, 6);
 
     const toggleExpand = (id: string) => {
       setExpandedIds((prev) => ({
