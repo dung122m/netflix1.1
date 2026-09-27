@@ -17,6 +17,7 @@ import {
   Home,
   Compass,
   AlertCircle,
+  Star,
 } from "lucide-react";
 import { MovieSynopsis } from "@/components/MovieSynopsis";
 import { ShareButton } from "@/components/ShareButton";
@@ -37,6 +38,7 @@ import { findEpisodeMatch } from "@/lib/formatEpisode";
 import { MovieCommentsSection } from "@/components/MovieReviews/MovieCommentsSection";
 import { TrailerModal } from "@/components/TrailerModal";
 import { MovieRecommendationsClient } from "@/components/MovieRecommendationsClient";
+import { TmdbAudienceReviews } from "@/components/TmdbAudienceReviews";
 
 
 export async function generateMetadata({
@@ -207,8 +209,20 @@ export default async function MovieDetail({
       : []
   ).filter((c: { name: string; slug?: string }) => c?.name && !c.name.toLowerCase().includes("cập nhật"));
 
-  // Đánh giá IMDb
+  // Đánh giá TMDB & IMDb
+  const tmdbScore = movie.tmdb?.vote_average ? Number(movie.tmdb.vote_average) : undefined;
+  const tmdbVotes = movie.tmdb?.vote_count ? Number(movie.tmdb.vote_count) : undefined;
   const imdbScore = movie.imdb?.vote_average ? Number(movie.imdb.vote_average) : undefined;
+  const imdbVotes = movie.imdb?.vote_count ? Number(movie.imdb.vote_count) : undefined;
+
+  const formatVotes = (v?: number): string => {
+    if (!v || v <= 0) return "";
+    if (v >= 1000000) return `${(v / 1000000).toFixed(1)}M`;
+    if (v >= 1000) return `${(v / 1000).toFixed(1)}K`;
+    return String(v);
+  };
+  const tmdbVotesText = formatVotes(tmdbVotes);
+  const imdbVotesText = formatVotes(imdbVotes);
 
   // Cờ Chiếu rạp
   const isChieuRap = Boolean(
@@ -504,6 +518,20 @@ export default async function MovieDetail({
                   <span className="text-gray-300">{movie.lang}</span>
                 </>
               )}
+              {tmdbScore && tmdbScore > 0 ? (
+                <>
+                  <span className="text-gray-600">•</span>
+                  <span className="inline-flex items-center gap-1 font-bold text-emerald-400">
+                    <span className="bg-emerald-600/25 border border-emerald-500/40 text-emerald-300 px-1 py-0.2 rounded text-[10px] font-black leading-tight">
+                      TMDB
+                    </span>
+                    <span>{tmdbScore.toFixed(1)}</span>
+                    {tmdbVotesText && (
+                      <span className="text-gray-400 text-[10px] font-normal">({tmdbVotesText})</span>
+                    )}
+                  </span>
+                </>
+              ) : null}
               {imdbScore && imdbScore > 0 ? (
                 <>
                   <span className="text-gray-600">•</span>
@@ -512,6 +540,9 @@ export default async function MovieDetail({
                       IMDb
                     </span>
                     <span>{imdbScore.toFixed(1)}</span>
+                    {imdbVotesText && (
+                      <span className="text-gray-400 text-[10px] font-normal">({imdbVotesText})</span>
+                    )}
                   </span>
                 </>
               ) : null}
@@ -764,6 +795,12 @@ export default async function MovieDetail({
                 )}
               </div>
             )}
+
+            {/* ĐÁNH GIÁ TỪ KHÁN GIẢ TMDB */}
+            <TmdbAudienceReviews
+              tmdbId={movie.tmdb?.id}
+              tmdbType={movie.tmdb?.type || movie.type}
+            />
           </div>
         </div>
       </WatchController>

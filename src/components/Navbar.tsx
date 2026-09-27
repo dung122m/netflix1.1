@@ -13,7 +13,6 @@ import {
   Clapperboard,
   Sparkles,
   Dices,
-  Radio,
   Bookmark,
   X,
   Users,
@@ -42,7 +41,6 @@ const NAV_LINKS = [
   { name: "Chiếu rạp", href: "/browse?type=phim-chieu-rap", type: "phim-chieu-rap", icon: Clapperboard, isLive: false },
   { name: "Hoạt hình", href: "/browse?type=hoat-hinh", type: "hoat-hinh", icon: Sparkles, isLive: false },
   { name: "Diễn viên", href: "/dien-vien", type: "dien-vien", icon: Users, isLive: false },
-  { name: "TV Shows", href: "/browse?type=tv-shows", type: "tv-shows", icon: Radio, isLive: false, hideOnLg: true },
   { name: "Trực tiếp", href: "/live", type: "live", icon: Flame, isLive: true },
   { name: "Danh sách của tôi", href: "/my-list", type: "my-list", icon: Bookmark, isLive: false },
 ];
@@ -182,8 +180,6 @@ const NavbarInner: React.FC = () => {
                   onMouseEnter={() => router.prefetch(link.href)}
                   onFocus={() => router.prefetch(link.href)}
                   className={`transition-all relative py-1 flex items-center gap-1.5 whitespace-nowrap flex-shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded-md ${
-                    link.hideOnLg ? "hidden 2xl:flex" : ""
-                  } ${
                     active
                       ? "text-white font-bold light-nav-active"
                       : "text-gray-300 hover:text-white"

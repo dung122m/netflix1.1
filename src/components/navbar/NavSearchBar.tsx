@@ -436,28 +436,18 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
 
             <div className="flex items-center gap-1 ml-1 flex-shrink-0">
               {isSearching && (
-                <Loader2 size={14} className="animate-spin text-netflix-red" />
+                <Loader2 size={15} className="animate-spin text-netflix-red" />
               )}
               {hasSearchText && (
-                <>
-                  <button
-                    type="button"
-                    onClick={clearSearch}
-                    aria-label="Xóa nội dung tìm kiếm"
-                    className="p-1 text-gray-400 hover:text-white transition cursor-pointer rounded-full hover:bg-white/10"
-                    title="Xóa nội dung"
-                  >
-                    <X size={15} />
-                  </button>
-                  <button
-                    type="submit"
-                    aria-label="Tìm kiếm ngay"
-                    title="Tìm kiếm ngay"
-                    className="p-1.5 bg-netflix-red hover:bg-red-700 text-white rounded-full flex-shrink-0 cursor-pointer transition active:scale-95 shadow-md flex items-center justify-center ml-0.5"
-                  >
-                    <Search size={13} strokeWidth={2.5} />
-                  </button>
-                </>
+                <button
+                  type="button"
+                  onClick={clearSearch}
+                  aria-label="Xóa nội dung tìm kiếm"
+                  className="p-1 text-gray-400 hover:text-white transition cursor-pointer rounded-full hover:bg-white/10"
+                  title="Xóa nội dung"
+                >
+                  <X size={16} />
+                </button>
               )}
             </div>
           </form>
@@ -604,8 +594,8 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
           onSubmit={handleSearchSubmit}
           className={`flex items-center transition-all duration-300 rounded-full ${
             isSearchOpen
-              ? "border border-white/35 bg-black/90 px-3 py-1.5 backdrop-blur-md shadow-lg"
-              : "border-transparent px-1 py-1"
+              ? "w-[240px] lg:w-[270px] xl:w-[300px] border border-white/35 bg-black/90 px-3 py-1.5 backdrop-blur-md shadow-lg"
+              : "w-9 border-transparent px-1 py-1"
           }`}
         >
           <button
@@ -627,38 +617,28 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
             onFocus={() => {
               setShowDropdown(true);
             }}
-            className={`bg-transparent text-white text-sm outline-none transition-all duration-300 ${
+            className={`bg-transparent text-white text-sm outline-none transition-opacity duration-300 ${
               isSearchOpen
-                ? "w-40 lg:w-48 xl:w-56 ml-2 opacity-100 placeholder:text-gray-400"
+                ? "flex-1 min-w-0 ml-2 pr-1 opacity-100 placeholder:text-gray-400"
                 : "w-0 opacity-0 pointer-events-none"
             }`}
           />
 
           {isSearchOpen && (
-            <div className="flex items-center gap-1 ml-1 flex-shrink-0">
+            <div className="flex items-center gap-1 flex-shrink-0">
               {isSearching && (
                 <Loader2 size={14} className="animate-spin text-netflix-red" />
               )}
               {hasSearchText && (
-                <>
-                  <button
-                    type="button"
-                    onClick={clearSearch}
-                    aria-label="Xóa nội dung tìm kiếm"
-                    className="p-1 text-gray-400 hover:text-white transition flex-shrink-0 cursor-pointer rounded-full hover:bg-white/10"
-                    title="Xóa nội dung"
-                  >
-                    <X size={15} />
-                  </button>
-                  <button
-                    type="submit"
-                    aria-label="Tìm kiếm ngay"
-                    title="Tìm kiếm ngay"
-                    className="p-1.5 bg-netflix-red hover:bg-red-700 text-white rounded-full flex-shrink-0 cursor-pointer transition active:scale-95 shadow-md flex items-center justify-center ml-0.5"
-                  >
-                    <Search size={13} strokeWidth={2.5} />
-                  </button>
-                </>
+                <button
+                  type="button"
+                  onClick={clearSearch}
+                  aria-label="Xóa nội dung tìm kiếm"
+                  className="p-1 text-gray-400 hover:text-white transition flex-shrink-0 cursor-pointer rounded-full hover:bg-white/10"
+                  title="Xóa nội dung"
+                >
+                  <X size={15} />
+                </button>
               )}
             </div>
           )}

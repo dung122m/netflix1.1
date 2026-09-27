@@ -141,6 +141,89 @@ export async function getTmdbBackdropUrl(
   return backdropUrl;
 }
 
+// 6. CACHE REVIEWS KHÁN GIẢ TMDB (24h L1 RAM, 14 ngày L2 Upstash)
+const TMDB_REVIEWS_CACHE = new Map<string, { data: TmdbReview[]; expireAt: number }>();
+
+export interface TmdbReview {
+  id: string;
+  author: string;
+  author_name?: string;
+  author_username?: string;
+  author_avatar?: string | null;
+  rating?: number | null;
+  content: string;
+  created_at: string;
+  url: string;
+}
+
+export async function getTmdbReviews(
+  tmdbId: string | number | undefined | null,
+  type: string = "movie"
+): Promise<TmdbReview[]> {
+  if (!tmdbId) return [];
+  const cleanId = String(tmdbId).trim();
+  if (!cleanId || cleanId === "0" || cleanId === "null" || cleanId === "undefined") return [];
+
+  const cleanType = type === "tv" || type === "series" ? "tv" : "movie";
+  const cacheKey = `${cleanType}:${cleanId}`;
+  const now = Date.now();
+
+  const memHit = TMDB_REVIEWS_CACHE.get(cacheKey);
+  if (memHit && memHit.expireAt > now) {
+    return memHit.data;
+  }
+
+  const kvKey = `tmdb:reviews:${cleanType}:${cleanId}`;
+  const reviews = await cacheService.fetchOrSet<TmdbReview[]>(
+    kvKey,
+    async () => {
+      try {
+        let res = await fetchTmdbEndpoint(`/${cleanType}/${cleanId}/reviews?page=1`);
+        if (!res?.results || res.results.length === 0) {
+          const altType = cleanType === "tv" ? "movie" : "tv";
+          res = await fetchTmdbEndpoint(`/${altType}/${cleanId}/reviews?page=1`);
+        }
+        if (!res?.results || !Array.isArray(res.results)) return [];
+
+        const items: TmdbReview[] = res.results.slice(0, 5).map((r: any) => {
+          let avatar = r.author_details?.avatar_path || null;
+          if (avatar && typeof avatar === "string") {
+            if (avatar.startsWith("/https://") || avatar.startsWith("/http://")) {
+              avatar = avatar.slice(1);
+            } else if (avatar.startsWith("/")) {
+              avatar = `https://image.tmdb.org/t/p/w185${avatar}`;
+            }
+          }
+          return {
+            id: r.id || String(Math.random()),
+            author: r.author || r.author_details?.username || "Khán giả TMDB",
+            author_name: r.author_details?.name || undefined,
+            author_username: r.author_details?.username || undefined,
+            author_avatar: avatar,
+            rating: typeof r.author_details?.rating === "number" ? r.author_details.rating : null,
+            content: (r.content || "").trim(),
+            created_at: r.created_at || new Date().toISOString(),
+            url: r.url || `https://www.themoviedb.org/${cleanType}/${cleanId}`,
+          };
+        });
+
+        return items;
+      } catch (err) {
+        console.warn(`[TMDB] Error fetching reviews for ${cleanType}/${cleanId}:`, err);
+        return [];
+      }
+    },
+    14 * 86400 // 14 ngày
+  );
+
+  TMDB_REVIEWS_CACHE.set(cacheKey, {
+    data: reviews || [],
+    expireAt: now + 24 * 3600 * 1000,
+  });
+
+  return reviews || [];
+}
+
 // DNS IP cache nhằm khắc phục việc một số nhà mạng VNPT/Viettel chặn hoặc lỗi phân giải api.themoviedb.org
 let cachedTmdbIp: string | null = null;
 let lastIpResolveTime = 0;
