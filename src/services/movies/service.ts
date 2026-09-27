@@ -372,17 +372,11 @@ async function fetchSourceData(
   pageOverride?: number
 ) {
   try {
-    const activeFiltersCount =
-      (params.type ? 1 : 0) +
-      (params.category ? 1 : 0) +
-      (params.country ? 1 : 0) +
-      (params.year ? 1 : 0);
-    const isMultiFilter = activeFiltersCount > 1;
     const page = pageOverride || params.page || 1;
 
     const urlParams = new URLSearchParams();
     urlParams.set("page", String(page));
-    const fetchLimit = isMultiFilter ? 48 : (params.limit && params.limit <= 48 ? params.limit : 24);
+    const fetchLimit = params.limit && params.limit <= 48 ? params.limit : 24;
     urlParams.set("limit", String(fetchLimit));
 
     if (params.category) urlParams.set("category", params.category);
