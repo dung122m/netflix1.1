@@ -423,8 +423,6 @@ async function fetchSourceData(
       } else if (params.type) {
         if (params.type === "hoat-hinh") {
           fullUrl = `${baseUrl}/films/the-loai/hoat-hinh?page=${page}`;
-        } else if (params.type === "phim-chieu-rap") {
-          fullUrl = `${baseUrl}/films/danh-sach/dang-chieu?page=${page}`;
         } else if (params.type === "phim-bo") {
           fullUrl = `${baseUrl}/films/danh-sach/phim-bo?page=${page}`;
         } else if (params.type === "phim-le") {
@@ -432,7 +430,8 @@ async function fetchSourceData(
         } else if (params.type === "tv-shows") {
           fullUrl = `${baseUrl}/films/danh-sach/tv-shows?page=${page}`;
         } else {
-          fullUrl = `${baseUrl}/films/danh-sach/${params.type}?page=${page}`;
+          // Các loại phim NguonC không hỗ trợ (phim-chieu-rap, phim-sap-chieu, phim-thuyet-minh, phim-long-tieng) -> bỏ qua để tránh 404
+          return null;
         }
       } else {
         fullUrl = `${baseUrl}/films/phim-moi-cap-nhat?page=${page}`;
@@ -746,21 +745,22 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
     (params.year ? 1 : 0);
 
   let totalItemsCount: number;
+  let maxTotalPages: number;
 
-  if (activeFiltersCount > 1) {
-    // KHI CÓ NHIỀU BỘ LỌC KẾT HỢP (COMPOUND FILTERS):
-    // PhimAPI đã tính toán chính xác phép giao ở database upstream -> Sử dụng countApi1 chuẩn xác.
-    // NguonC chỉ lọc được 1 chiều (upstream scope rộng hơn) -> Tuyệt đối không dùng countApi2 để tránh phóng đại.
+  if (params.type || activeFiltersCount > 1) {
+    // KHI CÓ BỘ LỌC TYPE HOẶC NHIỀU BỘ LỌC KẾT HỢP:
+    // PhimAPI là nguồn chuẩn xác database upstream cho Type & Compound filters.
+    // NguonC chỉ dùng để bổ sung/dedupe nội dung, không cộng vào totalItems/totalPages để tránh số trang ảo.
     totalItemsCount = countApi1 > 0 ? countApi1 : allUniqueItems.length;
+    maxTotalPages = resPhimApi?.totalPages || Math.max(1, Math.ceil(totalItemsCount / limit));
   } else {
-    // KHI LÀ BỘ LỌC ĐƠN LẺ HOẶC TÌM KIẾM KEYWORD HOẶC MẶC ĐỊNH:
+    // KHI LÀ BỘ LỌC ĐƠN LẺ KHÁC (Category/Country/Year) HOẶC TÌM KIẾM KEYWORD HOẶC MẶC ĐỊNH:
     // Cả 2 nguồn cùng lọc đúng 1 phạm vi -> Áp dụng công thức cộng bù độc quyền NguonC (~25%)
     const OVERLAP_RATIO = 0.75;
     const uniqueFromNguonC = Math.round(countApi2 * (1 - OVERLAP_RATIO));
     totalItemsCount = (countApi1 || 0) + (countApi2 > 0 ? uniqueFromNguonC : 0) || allUniqueItems.length;
+    maxTotalPages = Math.max(1, Math.ceil(totalItemsCount / limit));
   }
-
-  const maxTotalPages = Math.max(1, Math.ceil(totalItemsCount / limit));
 
   const payload = {
     status: true,

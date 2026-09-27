@@ -577,6 +577,17 @@ export default async function BrowsePage({
         movies = scoredMovies;
       }
     }
+
+    // === PAGINATION CAP (page 1) ===
+    // Discovery expansion và semantic merge có thể làm pool vượt PAGE_LIMIT.
+    // Sau khi toàn bộ filter xong, slice về đúng page limit.
+    // Page 2+ không bị ảnh hưởng vì discovery chỉ chạy ở page 1.
+    if (keyword && currentPage === 1 && movies.length > PAGE_LIMIT) {
+      // totalItems phản ánh kích thước thực của filtered pool (có thể lớn hơn upstream báo).
+      totalItems = Math.max(movies.length, totalItems);
+      totalPages = Math.max(1, Math.ceil(totalItems / PAGE_LIMIT));
+      movies = movies.slice(0, PAGE_LIMIT);
+    }
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
