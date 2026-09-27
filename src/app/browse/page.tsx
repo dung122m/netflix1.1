@@ -17,6 +17,7 @@ import {
   cleanActorQuery,
 } from "@/services/aiActorService";
 import { searchMoviesBySemantic } from "@/services/aiVectorService";
+import { evaluateConceptEvidence, resolveConcepts } from "@/app/api/ai-concierge/conceptRegistry";
 import { BrowseAiSearchBanner } from "@/components/BrowseAiSearchBanner";
 import { PaginationControl } from "@/components/PaginationControl";
 
@@ -158,6 +159,166 @@ function extractDescriptionSnippet(content: string, kw: string): string | undefi
   return snippet;
 }
 
+type TitleEvidence = { score: number; matched: boolean };
+
+/**
+ * Lexical evidence is authoritative for ordinary search. This deliberately
+ * looks only at title, original title, and slug; descriptions are not enough
+ * to turn a semantic neighbour into a title result.
+ */
+function getTitleEvidence(movie: { name?: unknown; title?: unknown; origin_name?: unknown; slug?: unknown }, query: string): TitleEvidence {
+  const cleanQuery = cleanNormalizedForMatch(query);
+  if (!cleanQuery) return { score: 0, matched: false };
+
+  const name = cleanNormalizedForMatch(String(movie.name || movie.title || ""));
+  const original = cleanNormalizedForMatch(String(movie.origin_name || ""));
+  const slug = cleanNormalizedForMatch(String(movie.slug || ""));
+  const slugQuery = cleanQuery.replace(/\s+/g, "-");
+
+  if (name === cleanQuery || original === cleanQuery || slug === cleanQuery || slug === slugQuery) {
+    return { score: 100, matched: true };
+  }
+  if (name.startsWith(cleanQuery) || original.startsWith(cleanQuery) || slug.startsWith(slugQuery)) {
+    return { score: 85, matched: true };
+  }
+
+  const phrasePattern = new RegExp(
+    `(?:^|\\s)${cleanQuery.split(" ").map((word) => word.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&")).join("\\\\s+")}(?=$|\\s)`
+  );
+  if (phrasePattern.test(name) || phrasePattern.test(original) || phrasePattern.test(slug)) {
+    return { score: 70, matched: true };
+  }
+
+  return { score: 0, matched: false };
+}
+
+// Semantic search remains useful, but a nearest vector alone is not display evidence.
+function isRelevantSemanticCandidate(
+  candidate: { name?: unknown; title?: unknown; origin_name?: unknown; slug?: unknown; similarity?: unknown },
+  query: string,
+  concepts: ReturnType<typeof resolveConcepts>
+): boolean {
+  const titleEvidence = getTitleEvidence(candidate, query);
+  if (titleEvidence.matched) return true;
+
+  if (concepts.length === 0) return false;
+
+  const conceptEvidence = evaluateConceptEvidence(candidate, concepts);
+  return conceptEvidence.relevant && conceptEvidence.score >= 70;
+}
+
+function isKnownActorName(query: string): boolean {
+  const normalizedQuery = cleanNormalizedForMatch(query);
+  return Boolean(normalizedQuery) && GOLDEN_ACTOR_INDEX.some(
+    (profile) => cleanNormalizedForMatch(profile.name) === normalizedQuery
+  );
+}
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+type ActorSearchOptions = {
+  actorResult: Awaited<ReturnType<typeof resolveActorMovies>>;
+  actorSynonyms: ReturnType<typeof getActorSynonyms> | null;
+  actorParam?: string;
+  category?: string;
+  country?: string;
+  year?: string;
+  type?: string;
+  sort?: "latest" | "rating" | "views" | "year";
+  currentPage: number;
+  pageLimit: number;
+};
+
+/** Run the existing actor filmography flow after the title router has ruled out title matches. */
+async function runActorSearch(options: ActorSearchOptions) {
+  const {
+    actorResult,
+    actorSynonyms,
+    actorParam,
+    category,
+    country,
+    year,
+    type,
+    sort,
+    currentPage,
+    pageLimit,
+  } = options;
+  if (!actorResult.isActor && !actorParam && !actorSynonyms?.isMatched) return null;
+
+  const canonicalName = actorResult.isActor
+    ? actorResult.actorName
+    : (actorSynonyms?.canonicalName || actorParam || "");
+  if (!canonicalName) return null;
+
+  const actorAliases = Array.from(new Set([
+    canonicalName,
+    ...(actorSynonyms?.variants || []),
+    ...(actorResult.aliases || []),
+    ...(actorParam ? [actorParam] : []),
+  ])).filter(Boolean);
+  const matchedPreset = GOLDEN_ACTOR_INDEX.find(
+    (p) => cleanNormalizedForMatch(p.name) === cleanNormalizedForMatch(canonicalName)
+  );
+  if (matchedPreset) actorAliases.push(...matchedPreset.aliases);
+
+  const actorCountry = actorResult.country || actorSynonyms?.country || matchedPreset?.country;
+  const actorMovies = await queryMoviesByActor(canonicalName, actorAliases, actorCountry, 80);
+  let filteredActorMovies = actorMovies;
+
+  if (category) {
+    const catNorm = cleanNormalizedForMatch(category);
+    filteredActorMovies = filteredActorMovies.filter((m: any) => {
+      const mCats = Array.isArray(m.category)
+        ? m.category.map((c: any) => cleanNormalizedForMatch(c.slug || c.name || ""))
+        : [cleanNormalizedForMatch(String(m.category || ""))];
+      return mCats.some((c: string) => c.includes(catNorm));
+    });
+  }
+  if (country) {
+    const cntNorm = cleanNormalizedForMatch(country);
+    filteredActorMovies = filteredActorMovies.filter((m: any) => {
+      const mCnts = Array.isArray(m.country)
+        ? m.country.map((c: any) => cleanNormalizedForMatch(c.slug || c.name || ""))
+        : [cleanNormalizedForMatch(String(m.country || ""))];
+      return mCnts.some((c: string) => c.includes(cntNorm));
+    });
+  }
+  if (year) {
+    filteredActorMovies = filteredActorMovies.filter((m: any) => String(m.year || "").includes(year));
+  }
+  if (type) {
+    const t = type.toLowerCase();
+    filteredActorMovies = filteredActorMovies.filter((m: any) => {
+      const cat = Array.isArray(m.category)
+        ? m.category.map((c: any) => cleanNormalizedForMatch(c.slug || c.name || "")).join(" ")
+        : cleanNormalizedForMatch(String(m.category || ""));
+      const itemType = cleanNormalizedForMatch(String(m.type || ""));
+      if (t === "phim-bo") return itemType.includes("series") || cat.includes("phim bo") || Number(m.total_episodes) > 1;
+      if (t === "phim-le") return itemType.includes("single") || cat.includes("phim le") || !m.total_episodes || Number(m.total_episodes) <= 1;
+      if (t === "hoat-hinh") return itemType.includes("hoathinh") || cat.includes("hoat hinh") || cat.includes("anime");
+      if (t === "tv-shows") return itemType.includes("tvshows") || cat.includes("tv show") || cat.includes("truyen hinh");
+      if (t === "phim-chieu-rap") return Boolean(m.chieurap) || cat.includes("chieu rap");
+      return true;
+    });
+  }
+  if (sort === "rating") {
+    filteredActorMovies.sort((a, b) => Number(b.tmdb?.vote_average || b.imdb?.vote_average || 0) - Number(a.tmdb?.vote_average || a.imdb?.vote_average || 0));
+  } else if (sort === "views") {
+    filteredActorMovies.sort((a, b) => Number(b.view || b.tmdb?.vote_count || 0) - Number(a.view || a.tmdb?.vote_count || 0));
+  } else if (sort === "year") {
+    filteredActorMovies.sort((a, b) => Number(b.year || 0) - Number(a.year || 0));
+  }
+  const totalItems = filteredActorMovies.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageLimit));
+  const startIndex = (currentPage - 1) * pageLimit;
+  return {
+    actor: { name: canonicalName, country: actorCountry },
+    movies: filteredActorMovies.slice(startIndex, startIndex + pageLimit).map((m: any) => ({ ...m, isActorFilmography: true })),
+    totalItems,
+    totalPages,
+  };
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
 const GENRE_NAMES: Record<string, string> = {
   "hanh-dong": "Hành Động",
   "tinh-cam": "Tình Cảm",
@@ -221,154 +382,33 @@ export default async function BrowsePage({
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let movies: any[] = [];
+  // Keep the raw title payload available to the intent fallback decision.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let upstreamMovies: any[] = [];
   let totalPages = 1;
   let totalItems = 0;
   let detectedActor: { name: string; country?: string } | null = null;
-  let hasContentMatches = false;
 
   // =========================================================================
   // 1. TÁCH BIỆT RÕ RÀNG: TÌM KIẾM THEO DIỄN VIÊN VS TÌM KIẾM THEO TÊN PHIM
   // =========================================================================
-  const hasExplicitActor = Boolean(actorParam) || (Boolean(keyword) && hasExplicitActorPrefix(keyword!));
-  const isCandidateActorQuery =
-    Boolean(actorParam) ||
-    (Boolean(keyword) && !isAmbiguousShortActorKeyword(keyword!) && keyword!.trim().length >= 2);
-
-  const targetActorQuery = actorParam
-    ? actorParam.trim()
-    : hasExplicitActor && keyword
-      ? cleanActorQuery(keyword)
-      : isCandidateActorQuery && keyword
-        ? cleanActorQuery(keyword)
-        : undefined;
-
+  // Explicit actor routes are intentional. Keyword searches always go through the title search first.
+  const targetActorQuery = actorParam ? actorParam.trim() : undefined;
   const actorSynonyms = targetActorQuery ? getActorSynonyms(targetActorQuery) : null;
   const actorRes = targetActorQuery
     ? actorSynonyms?.isMatched
-      ? {
-        actorName: actorSynonyms.canonicalName,
-        country: actorSynonyms.country,
-        aliases: actorSynonyms.variants,
-        isActor: true,
-        source: "preset" as const,
-      }
+      ? { actorName: actorSynonyms.canonicalName, country: actorSynonyms.country, aliases: actorSynonyms.variants, isActor: true, source: "preset" as const }
       : await resolveActorMovies(targetActorQuery)
     : null;
 
-  const isActorSearch = Boolean(
-    actorParam ||
-    (hasExplicitActor && (actorRes?.isActor || actorSynonyms?.isMatched)) ||
-    (actorRes?.isActor && (actorRes.source === "preset" || actorRes.source === "tmdb" || actorRes.source === "cache"))
-  );
-
-  if (isActorSearch && (actorRes?.isActor || actorParam || actorSynonyms?.isMatched)) {
-    const canonicalName = actorRes?.isActor ? actorRes.actorName : (actorSynonyms?.canonicalName || actorParam || "");
-    const actorAliases = Array.from(
-      new Set([
-        canonicalName,
-        ...(actorSynonyms?.variants || []),
-        ...(actorRes?.aliases || []),
-        ...(actorParam ? [actorParam] : []),
-      ])
-    ).filter(Boolean);
-
-    const matchedPreset = GOLDEN_ACTOR_INDEX.find(
-      (p) => cleanNormalizedForMatch(p.name) === cleanNormalizedForMatch(canonicalName)
-    );
-    if (matchedPreset) {
-      actorAliases.push(...matchedPreset.aliases);
+  if (actorRes && (actorRes.isActor || actorParam || actorSynonyms?.isMatched)) {
+    const actorSearch = await runActorSearch({ actorResult: actorRes, actorSynonyms, actorParam, category, country, year, type, sort, currentPage, pageLimit: PAGE_LIMIT });
+    if (actorSearch) {
+      detectedActor = actorSearch.actor;
+      movies = actorSearch.movies;
+      totalItems = actorSearch.totalItems;
+      totalPages = actorSearch.totalPages;
     }
-
-    detectedActor = {
-      name: canonicalName,
-      country: actorRes?.country || actorSynonyms?.country || matchedPreset?.country,
-    };
-
-    const actorMovies = await queryMoviesByActor(
-      canonicalName,
-      actorAliases,
-      detectedActor.country,
-      80
-    );
-
-    let filteredActorMovies = actorMovies;
-
-    if (category) {
-      const catNorm = cleanNormalizedForMatch(category);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      filteredActorMovies = filteredActorMovies.filter((m: any) => {
-        const mCats = Array.isArray(m.category)
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          ? m.category.map((c: any) => cleanNormalizedForMatch(c.slug || c.name || ""))
-          : [cleanNormalizedForMatch(String(m.category || ""))];
-        return mCats.some((c: string) => c.includes(catNorm));
-      });
-    }
-
-    if (country) {
-      const cntNorm = cleanNormalizedForMatch(country);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      filteredActorMovies = filteredActorMovies.filter((m: any) => {
-        const mCnts = Array.isArray(m.country)
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          ? m.country.map((c: any) => cleanNormalizedForMatch(c.slug || c.name || ""))
-          : [cleanNormalizedForMatch(String(m.country || ""))];
-        return mCnts.some((c: string) => c.includes(cntNorm));
-      });
-    }
-
-    if (year) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      filteredActorMovies = filteredActorMovies.filter((m: any) =>
-        String(m.year || "").includes(year)
-      );
-    }
-
-    if (type) {
-      const t = type.toLowerCase();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      filteredActorMovies = filteredActorMovies.filter((m: any) => {
-        const cat = Array.isArray(m.category)
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          ? m.category.map((c: any) => cleanNormalizedForMatch(c.slug || c.name || "")).join(" ")
-          : cleanNormalizedForMatch(String(m.category || ""));
-        const itemType = cleanNormalizedForMatch(String(m.type || ""));
-
-        if (t === "phim-bo") {
-          return itemType.includes("series") || cat.includes("phim bo") || Number(m.total_episodes) > 1;
-        }
-        if (t === "phim-le") {
-          return itemType.includes("single") || cat.includes("phim le") || !m.total_episodes || Number(m.total_episodes) <= 1;
-        }
-        if (t === "hoat-hinh") {
-          return itemType.includes("hoathinh") || cat.includes("hoat hinh") || cat.includes("anime");
-        }
-        if (t === "tv-shows") {
-          return itemType.includes("tvshows") || cat.includes("tv show") || cat.includes("truyen hinh");
-        }
-        if (t === "phim-chieu-rap") {
-          return Boolean(m.chieurap) || cat.includes("chieu rap");
-        }
-        return true;
-      });
-    }
-
-    if (sort === "rating") {
-      filteredActorMovies.sort((a, b) => (Number(b.tmdb?.vote_average || b.imdb?.vote_average || 0)) - (Number(a.tmdb?.vote_average || a.imdb?.vote_average || 0)));
-    } else if (sort === "views") {
-      filteredActorMovies.sort((a, b) => (Number(b.view || b.tmdb?.vote_count || 0)) - (Number(a.view || a.tmdb?.vote_count || 0)));
-    } else if (sort === "year") {
-      filteredActorMovies.sort((a, b) => (Number(b.year || 0)) - (Number(a.year || 0)));
-    }
-
-    totalItems = filteredActorMovies.length;
-    totalPages = Math.max(1, Math.ceil(totalItems / PAGE_LIMIT));
-    const startIndex = (currentPage - 1) * PAGE_LIMIT;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    movies = filteredActorMovies.slice(startIndex, startIndex + PAGE_LIMIT).map((m: any) => ({
-      ...m,
-      isActorFilmography: true,
-    }));
   } else {
     // 2. TÌM KIẾM THƯỜNG THEO TIÊU ĐỀ PHIM HOẶC DUYỆT THEO DANH MỤC
     const [response, semanticPicks] = await Promise.all([
@@ -391,16 +431,24 @@ export default async function BrowsePage({
         : Promise.resolve([]),
     ]);
 
-    movies = response?.items || [];
+    upstreamMovies = response?.items || [];
+    movies = upstreamMovies;
     totalPages = response?.pagination?.totalPages || 1;
     totalItems = response?.pagination?.totalItems || movies.length;
 
     // Hòa trộn Semantic Match cho trang 1 nếu có kết quả chất lượng cao
-    if (currentPage === 1 && Array.isArray(semanticPicks) && semanticPicks.length > 0) {
+    const semanticConcepts = keyword ? resolveConcepts(keyword) : [];
+    const relevantSemanticPicks = Array.isArray(semanticPicks)
+      ? semanticPicks.filter((candidate) =>
+        isRelevantSemanticCandidate(candidate, keyword || "", semanticConcepts)
+      )
+      : [];
+
+    if (currentPage === 1 && relevantSemanticPicks.length > 0) {
       const seenSlugs = new Set<string>();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const combined: any[] = [];
-      for (const sp of semanticPicks) {
+      for (const sp of relevantSemanticPicks) {
         if (sp?.id && !seenSlugs.has(sp.id)) {
           seenSlugs.add(sp.id);
           combined.push({
@@ -426,6 +474,43 @@ export default async function BrowsePage({
       }
       movies = combined;
       totalItems = Math.max(movies.length, response?.pagination?.totalItems || 0);
+    }
+
+    // === CONCEPT DISCOVERY EXPANSION (trang 1, chỉ khi có concept kích hoạt) ===
+    // Dùng discoveryKeywords của concept để tìm thêm phim franchise liên quan
+    // (Iron Man, Spider-Man…) mà tên không chứa từ khóa gốc (vd: "Avengers").
+    // Tối đa 5 discovery queries, mỗi query lấy 6 phim, chạy song song.
+    if (currentPage === 1 && keyword && semanticConcepts.length > 0) {
+      const allDiscoveryKws = Array.from(
+        new Set(semanticConcepts.flatMap((c) => c.discoveryKeywords))
+      )
+        .filter((dk) => cleanNormalizedForMatch(dk) !== cleanNormalizedForMatch(keyword))
+        .slice(0, 5);
+
+      if (allDiscoveryKws.length > 0) {
+        const discoveryResponses = await Promise.all(
+          allDiscoveryKws.map((dk) =>
+            movieApi.getMovies({ keyword: dk, limit: 6 }).catch(() => null)
+          )
+        );
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const seenSlugs = new Set<string>(movies.map((m: any) => m?.slug).filter(Boolean));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const discoveryExtras: any[] = [];
+        for (const dRes of discoveryResponses) {
+          if (!dRes?.items) continue;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          for (const item of dRes.items as any[]) {
+            if (item?.slug && !seenSlugs.has(item.slug)) {
+              seenSlugs.add(item.slug);
+              discoveryExtras.push(item);
+            }
+          }
+        }
+        if (discoveryExtras.length > 0) {
+          movies = [...movies, ...discoveryExtras];
+        }
+      }
     }
 
     // Đánh giá độ phù hợp (Relevance Scoring) cho tìm kiếm theo tiêu đề phim
@@ -455,7 +540,6 @@ export default async function BrowsePage({
           score = 30;
           matchType = "content";
           matchSnippet = extractDescriptionSnippet(m.content || m.description || "", keyword);
-          if (matchSnippet) hasContentMatches = true;
         } else {
           const kwWords = normKw.split(" ").filter((w) => w.length > 1);
           const titleWords = kwWords.filter((w) => movieTitle.includes(w) || orig.includes(w));
@@ -465,7 +549,6 @@ export default async function BrowsePage({
           } else {
             score = 15;
             matchSnippet = extractDescriptionSnippet(m.content || m.description || "", keyword);
-            if (matchSnippet) hasContentMatches = true;
           }
         }
 
@@ -478,40 +561,71 @@ export default async function BrowsePage({
       });
 
       scoredMovies.sort((a, b) => b.relevanceScore - a.relevanceScore);
-      movies = scoredMovies;
+      const hasStrongTitleMatch = scoredMovies.some((movie) => movie.relevanceScore >= 40);
+      if (hasStrongTitleMatch) {
+        // Once the upstream title search has a real hit, discard broad/fuzzy
+        // upstream rows. Concept evidence may retain an intentional franchise
+        // expansion such as Iron Man for an Avengers query.
+        // Gate: concept candidate phải có title hoặc character evidence (score >= 80).
+        // Synopsis-only (score = 70) không đủ để giữ phim không liên quan vào kết quả.
+        movies = scoredMovies.filter((movie) =>
+          movie.relevanceScore >= 40 ||
+          getTitleEvidence(movie, keyword).matched ||
+          (semanticConcepts.length > 0 && evaluateConceptEvidence(movie, semanticConcepts).score >= 80)
+        );
+      } else {
+        movies = scoredMovies;
+      }
     }
   }
 
-  const pages = getPagination(currentPage, totalPages);
-
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let fallbackMovies: any[] = [];
+  // A title result is authoritative when it contains a meaningful title match.
+  // Content-only/semantic noise must not prevent a genuine person query from reaching Actor intent.
+  const hasUpstreamTitleEvidence = !keyword || upstreamMovies.some(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (movie: any) => getTitleEvidence(movie, keyword || "").matched
+  );
+  const hasSuitableTitleResults = !keyword || hasUpstreamTitleEvidence || movies.some(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (movie: any) =>
+      (movie.matchType === "title" && Number(movie.relevanceScore || 0) >= 40) ||
+      getTitleEvidence(movie, keyword || "").matched
+  );
   if (
-    movies.length === 0 &&
+    (!hasSuitableTitleResults || isKnownActorName(keyword || "")) &&
     keyword &&
     !actorParam &&
     !isAmbiguousShortActorKeyword(keyword)
   ) {
-    const fallbackSynonyms = getActorSynonyms(keyword);
-    if (fallbackSynonyms.isMatched) {
-      const actorMovies = await queryMoviesByActor(
-        fallbackSynonyms.canonicalName,
-        fallbackSynonyms.variants,
-        fallbackSynonyms.country,
-        PAGE_LIMIT
-      );
-      if (actorMovies.length > 0) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        movies = actorMovies.map((m: any) => ({ ...m, isActorFilmography: true }));
-        totalItems = actorMovies.length;
-        totalPages = Math.max(1, Math.ceil(totalItems / PAGE_LIMIT));
-        detectedActor = {
-          name: fallbackSynonyms.canonicalName,
-          country: fallbackSynonyms.country,
-        };
+    const actorKeyword = hasExplicitActorPrefix(keyword) ? cleanActorQuery(keyword) : keyword;
+    const fallbackSynonyms = getActorSynonyms(actorKeyword);
+    const fallbackResult = fallbackSynonyms.isMatched
+      ? { actorName: fallbackSynonyms.canonicalName, country: fallbackSynonyms.country, aliases: fallbackSynonyms.variants, isActor: true, source: "preset" as const }
+      : await resolveActorMovies(actorKeyword);
+    if (fallbackResult.isActor) {
+      const actorSearch = await runActorSearch({
+        actorResult: fallbackResult,
+        actorSynonyms: fallbackSynonyms,
+        category,
+        country,
+        year,
+        type,
+        sort,
+        currentPage,
+        pageLimit: PAGE_LIMIT,
+      });
+      if (actorSearch) {
+        movies = actorSearch.movies;
+        totalItems = actorSearch.totalItems;
+        totalPages = actorSearch.totalPages;
+        detectedActor = actorSearch.actor;
       }
     }
   }
+
+  const pages = getPagination(currentPage, totalPages);
 
   if (movies.length === 0 && (keyword || actorParam)) {
     const fallbackRes = await movieApi.getMovies({ limit: 16, sort: "views" });
@@ -617,7 +731,10 @@ export default async function BrowsePage({
         )}
 
         {keyword && !detectedActor && (
-          <BrowseAiSearchBanner keyword={keyword} hasContentMatches={hasContentMatches} />
+          <BrowseAiSearchBanner
+            keyword={keyword}
+            hasContentMatches={movies.some((movie) => movie.matchType === "content" && movie.matchSnippet)}
+          />
         )}
 
         {movies.length > 0 ? (

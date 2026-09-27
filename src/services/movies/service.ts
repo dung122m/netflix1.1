@@ -440,7 +440,9 @@ async function fetchSourceData(
     }
 
     const isNguonCSearch = baseUrl === API_NGUONC && isSearch;
-    const timeoutMs = isNguonCSearch ? 1500 : 6000;
+    // NguonC search cần 4 s để hoàn thành trong điều kiện bình thường.
+    // 1500 ms cũ quá ngắn → timeout → nItems = [] → merge thiếu nhiều phim (ví dụ "Lật Mặt").
+    const timeoutMs = isNguonCSearch ? 4000 : 6000;
 
     const res = await fetch(fullUrl, {
       next: { revalidate: 300 }, // 5 phút Next.js cache

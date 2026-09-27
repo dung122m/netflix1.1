@@ -453,7 +453,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           }
         }
       }, 1100);
-    }, 200);
+    }, 500);
   };
 
   const handleMouseLeave = () => {
