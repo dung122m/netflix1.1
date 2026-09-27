@@ -250,7 +250,7 @@ function CommunityTopTrendingInner() {
       }}
     >
       {/* HEADER SECTION */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-5 px-1">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 mb-5 px-1">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-gradient-to-tr from-amber-500 to-red-600 text-white shadow-lg shadow-red-950/40">
@@ -270,7 +270,7 @@ function CommunityTopTrendingInner() {
         </div>
 
         {/* TIMEFRAME TABS & NAVIGATION BUTTONS */}
-        <div className="flex items-center justify-between sm:justify-end gap-3">
+        <div className="flex items-center justify-between md:justify-end gap-3">
           <div className="inline-flex p-1 rounded-xl bg-zinc-900/90 border border-white/10 text-xs font-semibold backdrop-blur-md">
             <button
               type="button"

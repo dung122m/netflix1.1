@@ -322,7 +322,7 @@ function TmdbTopTrendingInner() {
       }}
     >
       {/* HEADER SECTION */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 sm:gap-4 mb-4 sm:mb-5 px-1">
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-3.5 sm:gap-4 mb-4 sm:mb-5 px-1">
         <div className="min-w-0">
           <div className="flex items-center gap-2 mb-1.5">
             <span
@@ -331,13 +331,13 @@ function TmdbTopTrendingInner() {
               <IconComponent className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
             </span>
             <span
-              className={`text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wider px-2 sm:px-2.5 py-0.5 rounded-full border flex items-center gap-1 truncate ${currentConfig.badgeClass}`}
+              className={`text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wider px-2 sm:px-2.5 py-0.5 rounded-full border flex items-center gap-1 shrink-0 ${currentConfig.badgeClass}`}
             >
               <Globe className="w-3 h-3 shrink-0" />
-              <span className="truncate">{currentConfig.badge}</span>
+              <span>{currentConfig.badge}</span>
             </span>
           </div>
-          <h2 className="text-lg sm:text-2xl md:text-3xl font-black text-white tracking-tight flex items-center gap-2">
+          <h2 className="text-xl sm:text-2xl lg:text-3xl font-black text-white tracking-tight flex items-center gap-2 flex-wrap sm:flex-nowrap">
             <span>{currentConfig.title}</span>
             {activeTab === "week" && <Flame className="w-5 h-5 sm:w-6 sm:h-6 text-netflix-red animate-bounce shrink-0" />}
             {activeTab === "month" && <Zap className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400 animate-pulse shrink-0" />}
@@ -349,12 +349,12 @@ function TmdbTopTrendingInner() {
         </div>
 
         {/* 3 TABS & CAROUSEL CONTROLS */}
-        <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
+        <div className="flex items-center justify-between lg:justify-end gap-3 w-full lg:w-auto shrink-0">
           <div className="flex items-center gap-1 p-1 rounded-xl bg-zinc-900/90 border border-white/10 text-xs font-semibold backdrop-blur-md overflow-x-auto no-scrollbar max-w-full w-full sm:w-auto justify-between sm:justify-start">
             <button
               type="button"
               onClick={() => switchTab("week")}
-              className={`px-2.5 sm:px-3 py-1.5 rounded-lg transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap flex-1 sm:flex-initial text-[11px] sm:text-xs ${
+              className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap flex-1 sm:flex-initial text-[11px] sm:text-xs ${
                 activeTab === "week"
                   ? "bg-netflix-red text-white font-bold shadow-md shadow-red-950/40 scale-100"
                   : "text-gray-400 hover:text-white hover:bg-white/5 active:scale-95"
@@ -366,7 +366,7 @@ function TmdbTopTrendingInner() {
             <button
               type="button"
               onClick={() => switchTab("month")}
-              className={`px-2.5 sm:px-3 py-1.5 rounded-lg transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap flex-1 sm:flex-initial text-[11px] sm:text-xs ${
+              className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap flex-1 sm:flex-initial text-[11px] sm:text-xs ${
                 activeTab === "month"
                   ? "bg-netflix-red text-white font-bold shadow-md shadow-red-950/40 scale-100"
                   : "text-gray-400 hover:text-white hover:bg-white/5 active:scale-95"
@@ -378,7 +378,7 @@ function TmdbTopTrendingInner() {
             <button
               type="button"
               onClick={() => switchTab("top_rated")}
-              className={`px-2.5 sm:px-3 py-1.5 rounded-lg transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap flex-1 sm:flex-initial text-[11px] sm:text-xs ${
+              className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap flex-1 sm:flex-initial text-[11px] sm:text-xs ${
                 activeTab === "top_rated"
                   ? "bg-netflix-red text-white font-bold shadow-md shadow-red-950/40 scale-100"
                   : "text-gray-400 hover:text-white hover:bg-white/5 active:scale-95"
