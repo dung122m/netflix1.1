@@ -3,61 +3,18 @@ import { cacheService } from "@/lib/cache";
 
 export const runtime = "nodejs";
 
-const GOOGLE_TRANSLATE_API_KEY =
-  process.env.GOOGLE_TRANSLATE_API_KEY ||
-  process.env.GOOGLE_CLOUD_TRANSLATION_API_KEY ||
-  process.env.GOOGLE_CLOUD_API_KEY ||
-  process.env.GOOGLE_API_KEY ||
-  "";
-
 const TRANSLATION_CACHE_TTL = 30 * 86400; // 30 ngày (2,592,000s)
 
 /**
- * Dịch văn bản sang tiếng Việt sử dụng Google Cloud Translation (NMT)
- * Có cơ chế tự động fallback sang Google NMT Translation Endpoint nếu chưa cấu hình Cloud Key
+ * Dịch văn bản sang tiếng Việt trực tiếp sử dụng Google NMT Translation Endpoint (Hoàn toàn miễn phí, không cần API Key)
  */
 async function translateWithGoogleNMT(text: string): Promise<string> {
-  // 1. Thử gọi qua Google Cloud Translation v2 (NMT) nếu có API Key
-  if (GOOGLE_TRANSLATE_API_KEY) {
-    try {
-      const url = `https://translation.googleapis.com/language/translate/v2?key=${encodeURIComponent(
-        GOOGLE_TRANSLATE_API_KEY
-      )}`;
-
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          q: [text],
-          target: "vi",
-          format: "text",
-          model: "nmt",
-        }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        const translatedText = data?.data?.translations?.[0]?.translatedText;
-        if (translatedText && typeof translatedText === "string") {
-          return translatedText;
-        }
-      } else {
-        console.warn(
-          `[Google Translation API] Cloud key responded with status ${res.status}, falling back to Google NMT service.`
-        );
-      }
-    } catch (err) {
-      console.warn("[Google Translation API] Cloud API error, attempting fallback:", err);
-    }
-  }
-
-  // 2. Fallback sang Google NMT Translation Endpoint (Không cần Key, tốc độ cao, ổn định)
   try {
-    const fallbackUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=vi&dt=t&q=${encodeURIComponent(
+    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=vi&dt=t&q=${encodeURIComponent(
       text
     )}`;
 
-    const res = await fetch(fallbackUrl, {
+    const res = await fetch(url, {
       method: "GET",
       headers: {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
@@ -65,7 +22,7 @@ async function translateWithGoogleNMT(text: string): Promise<string> {
     });
 
     if (!res.ok) {
-      throw new Error(`Google Translate fallback responded with status ${res.status}`);
+      throw new Error(`Google Translate responded with status ${res.status}`);
     }
 
     const data = await res.json();
@@ -78,9 +35,9 @@ async function translateWithGoogleNMT(text: string): Promise<string> {
       }
     }
     throw new Error("Invalid response format from Google Translate");
-  } catch (fallbackErr) {
-    console.error("[Google Translation API] Fallback error:", fallbackErr);
-    throw fallbackErr;
+  } catch (err) {
+    console.error("[TMDB Translation API] Error fetching translation:", err);
+    throw err;
   }
 }
 
@@ -142,7 +99,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 2. Cache miss -> Gọi Google Translation NMT
+    // 2. Cache miss -> Dịch trực tiếp bằng Google NMT Endpoint
     const translatedText = await translateWithGoogleNMT(cleanText);
 
     if (!translatedText) {
