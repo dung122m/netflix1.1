@@ -9,6 +9,9 @@ import {
   User,
   ChevronDown,
   ChevronUp,
+  Globe,
+  RotateCcw,
+  Loader2,
 } from "lucide-react";
 import type { TmdbReview } from "@/services/tmdbService";
 
@@ -22,6 +25,12 @@ export const TmdbAudienceReviews: React.FC<TmdbAudienceReviewsProps> = React.mem
     const [reviews, setReviews] = useState<TmdbReview[]>([]);
     const [loading, setLoading] = useState(Boolean(tmdbId));
     const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
+
+    // Trạng thái dịch từng bài đánh giá theo yêu cầu (On-Demand Translation)
+    const [translations, setTranslations] = useState<Record<string, string>>({});
+    const [translatingIds, setTranslatingIds] = useState<Record<string, boolean>>({});
+    const [showTranslated, setShowTranslated] = useState<Record<string, boolean>>({});
+    const [translationErrors, setTranslationErrors] = useState<Record<string, string>>({});
 
     useEffect(() => {
       if (!tmdbId || String(tmdbId) === "0") {
@@ -87,6 +96,49 @@ export const TmdbAudienceReviews: React.FC<TmdbAudienceReviewsProps> = React.mem
       }));
     };
 
+    const handleToggleTranslate = async (reviewId: string, originalText: string) => {
+      // Nếu đang hiển thị bản dịch, bấm lại sẽ chuyển về bản gốc
+      if (showTranslated[reviewId]) {
+        setShowTranslated((prev) => ({ ...prev, [reviewId]: false }));
+        return;
+      }
+
+      // Nếu đã có bản dịch trong state của component, hiển thị ngay lập tức (0ms)
+      if (translations[reviewId]) {
+        setShowTranslated((prev) => ({ ...prev, [reviewId]: true }));
+        return;
+      }
+
+      // Chưa có bản dịch -> Gọi API server-side Nanaflix với Google Translation NMT
+      setTranslatingIds((prev) => ({ ...prev, [reviewId]: true }));
+      setTranslationErrors((prev) => ({ ...prev, [reviewId]: "" }));
+
+      try {
+        const res = await fetch("/api/movies/tmdb-review-translation", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reviewId, text: originalText }),
+        });
+        const data = await res.json();
+        if (res.ok && data?.success && data?.translation) {
+          setTranslations((prev) => ({ ...prev, [reviewId]: data.translation }));
+          setShowTranslated((prev) => ({ ...prev, [reviewId]: true }));
+        } else {
+          setTranslationErrors((prev) => ({
+            ...prev,
+            [reviewId]: data?.error || "Không thể dịch đánh giá lúc này, vui lòng thử lại.",
+          }));
+        }
+      } catch {
+        setTranslationErrors((prev) => ({
+          ...prev,
+          [reviewId]: "Lỗi kết nối khi dịch, vui lòng thử lại.",
+        }));
+      } finally {
+        setTranslatingIds((prev) => ({ ...prev, [reviewId]: false }));
+      }
+    };
+
     return (
       <section id="tmdb-reviews" className="mt-8 sm:mt-12 bg-zinc-950/80 rounded-2xl sm:rounded-3xl border border-white/5 p-4 sm:p-6 md:p-8 backdrop-blur-md shadow-2xl">
         {/* Header Bar đồng bộ 100% với khối Bình Luận Cộng Đồng */}
@@ -110,6 +162,10 @@ export const TmdbAudienceReviews: React.FC<TmdbAudienceReviewsProps> = React.mem
           {displayReviews.map((rev) => {
             const isExpanded = Boolean(expandedIds[rev.id]);
             const isLong = (rev.content || "").length > 280;
+            const isTranslated = Boolean(showTranslated[rev.id] && translations[rev.id]);
+            const isTranslating = Boolean(translatingIds[rev.id]);
+            const currentContent = isTranslated ? translations[rev.id] : rev.content;
+            const translationError = translationErrors[rev.id];
 
             const formattedDate = (() => {
               try {
@@ -179,8 +235,47 @@ export const TmdbAudienceReviews: React.FC<TmdbAudienceReviewsProps> = React.mem
                       isExpanded ? "" : "line-clamp-4"
                     }`}
                   >
-                    {rev.content}
+                    {currentContent}
                   </p>
+
+                  {/* Translation Action / Status */}
+                  <div className="flex items-center gap-2 pt-0.5 flex-wrap">
+                    {isTranslating ? (
+                      <span className="inline-flex items-center gap-1.5 text-xs text-amber-400/90 font-medium py-0.5">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
+                        <span>Đang dịch...</span>
+                      </span>
+                    ) : isTranslated ? (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleTranslate(rev.id, rev.content)}
+                          className="inline-flex items-center gap-1.5 text-xs text-amber-400 hover:text-amber-300 font-medium py-0.5 transition cursor-pointer"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5" />
+                          <span>Xem bản gốc</span>
+                        </button>
+                        <span className="text-[10.5px] text-zinc-500 font-normal">
+                          · Đã dịch sang Tiếng Việt
+                        </span>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleToggleTranslate(rev.id, rev.content)}
+                        className="inline-flex items-center gap-1.5 text-xs text-amber-400/90 hover:text-amber-300 font-medium py-0.5 transition cursor-pointer"
+                      >
+                        <Globe className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Dịch sang tiếng Việt</span>
+                      </button>
+                    )}
+
+                    {translationError && (
+                      <span className="text-[11px] text-rose-400">
+                        {translationError}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 {/* Footer Bar: Expand Button & View on TMDB Link */}
@@ -224,3 +319,4 @@ export const TmdbAudienceReviews: React.FC<TmdbAudienceReviewsProps> = React.mem
 );
 
 export default TmdbAudienceReviews;
+
