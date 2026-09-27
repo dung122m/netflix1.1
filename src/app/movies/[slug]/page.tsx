@@ -36,6 +36,7 @@ import { findEpisodeMatch } from "@/lib/formatEpisode";
 
 import { MovieCommentsSection } from "@/components/MovieReviews/MovieCommentsSection";
 import { TrailerModal } from "@/components/TrailerModal";
+import { MovieRecommendationsClient } from "@/components/MovieRecommendationsClient";
 
 
 export async function generateMetadata({
@@ -774,6 +775,20 @@ export default async function MovieDetail({
           movieTitle={title}
           currentEpisodeSlug={activeEpisode?.slug}
           currentEpisodeName={activeEpisode?.name}
+        />
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 md:px-8 mt-10">
+        <MovieRecommendationsClient
+          currentMovieSlug={movie.slug}
+          currentMovieTitle={title}
+          categories={categoryList}
+          countries={countryList}
+          primaryActor={actorList[0]}
+          primaryDirector={directorList[0]}
+          year={movie.year}
+          type={movie.type}
+          contentText={movie.content || movie.description || ""}
         />
       </div>
 
