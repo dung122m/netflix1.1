@@ -88,29 +88,25 @@ export const TmdbAudienceReviews: React.FC<TmdbAudienceReviewsProps> = React.mem
     };
 
     return (
-      <div className="space-y-4">
-        {/* Header Bar */}
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400">
-              <MessageSquareQuote className="w-5 h-5 shrink-0" />
-            </div>
-            <div>
-              <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-                <span>Khán giả quốc tế nói gì?</span>
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-white/10 text-zinc-300">
-                  {displayReviews.length} đánh giá TMDB
-                </span>
-              </h3>
-              <p className="text-xs text-zinc-400">
-                Góc nhìn và cảm nhận trực tiếp từ cộng đồng người xem thế giới trên The Movie Database.
-              </p>
-            </div>
+      <section id="tmdb-reviews" className="mt-8 sm:mt-12 bg-zinc-950/80 rounded-2xl sm:rounded-3xl border border-white/5 p-4 sm:p-6 md:p-8 backdrop-blur-md shadow-2xl">
+        {/* Header Bar đồng bộ 100% với khối Bình Luận Cộng Đồng */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 pb-5 sm:pb-6 border-b border-white/10">
+          <div>
+            <h3 className="text-lg sm:text-xl md:text-2xl font-extrabold text-white flex items-center gap-2 sm:gap-2.5 flex-wrap">
+              <MessageSquareQuote className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400 flex-shrink-0" />
+              <span>Khán giả quốc tế nói gì?</span>
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                {displayReviews.length}
+              </span>
+            </h3>
+            <p className="text-xs text-zinc-400 mt-1 line-clamp-2 sm:line-clamp-none">
+              Góc nhìn và cảm nhận trực tiếp từ cộng đồng người xem thế giới trên The Movie Database.
+            </p>
           </div>
         </div>
 
         {/* Danh sách 5 review từ trên xuống dưới (Vertical Feed) */}
-        <div className="flex flex-col gap-3.5">
+        <div className="mt-6 space-y-4">
           {displayReviews.map((rev) => {
             const isExpanded = Boolean(expandedIds[rev.id]);
             const isLong = (rev.content || "").length > 280;
@@ -130,7 +126,7 @@ export const TmdbAudienceReviews: React.FC<TmdbAudienceReviewsProps> = React.mem
             return (
               <div
                 key={rev.id}
-                className="w-full rounded-2xl border border-white/10 bg-white/[0.025] hover:bg-white/[0.04] p-4 sm:p-5 transition flex flex-col justify-between overflow-hidden shadow-sm backdrop-blur-sm"
+                className="w-full rounded-xl sm:rounded-2xl border border-white/5 bg-zinc-900/60 hover:bg-zinc-900/80 p-4 sm:p-5 transition flex flex-col justify-between overflow-hidden shadow-sm backdrop-blur-sm"
               >
                 <div className="space-y-3">
                   {/* Author Header */}
@@ -222,7 +218,7 @@ export const TmdbAudienceReviews: React.FC<TmdbAudienceReviewsProps> = React.mem
             );
           })}
         </div>
-      </div>
+      </section>
     );
   }
 );
