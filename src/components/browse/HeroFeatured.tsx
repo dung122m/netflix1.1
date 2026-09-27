@@ -645,8 +645,8 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
         transition={{ duration: 0.45, ease: "easeOut" }}
         className="relative z-10 flex h-full items-end"
       >
-        <div className="w-full px-4 sm:px-8 md:px-14 pb-12 sm:pb-16 md:pb-20">
-          <div className="mx-auto max-w-7xl">
+        <div className="w-full px-4 sm:px-6 md:px-8 pb-12 sm:pb-16 md:pb-20">
+          <div className="mx-auto max-w-[1800px]">
             <div className="max-w-3xl space-y-3.5 sm:space-y-4">
               {/* 3.1 TOP BADGE TINH GIẢN */}
               <div className="flex items-center gap-2">

@@ -305,7 +305,7 @@ export default async function HomePage({
       <HeroFeatured movies={heroMovies} />
 
       {/* 🇻🇳 HÔM NAY TẠI VIỆT NAM (FEATURE SPOTLIGHT BANNER) */}
-      <div className="px-4 md:px-8 mt-2 sm:mt-4 relative z-20">
+      <div className="max-w-[1800px] mx-auto px-4 sm:px-6 md:px-8 mt-2 sm:mt-4 relative z-20">
         <VietnamTodaySection />
       </div>
 
@@ -313,11 +313,11 @@ export default async function HomePage({
       <ContinueWatchingRow />
 
       {/* BỘ LỌC PHIM CHI TIẾT */}
-      <div className="px-4 md:px-8 mt-4 sm:mt-8">
+      <div className="max-w-[1800px] mx-auto px-4 sm:px-6 md:px-8 mt-4 sm:mt-8">
         <FilterBarClient />
       </div>
 
-      <div className="px-4 md:px-8 relative z-10 pt-2 sm:pt-4">
+      <div className="max-w-[1800px] mx-auto px-4 sm:px-6 md:px-8 relative z-10 pt-2 sm:pt-4">
         {/* DẢI THẺ LỌC NHANH THỂ LOẠI & QUỐC GIA */}
         <QuickGenreChips />
 

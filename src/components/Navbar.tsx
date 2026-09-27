@@ -151,7 +151,7 @@ const NavbarInner: React.FC = () => {
       {/* CINEMATIC LIVING NAVBAR ATMOSPHERE (PHÍA SAU UI) */}
       <HolidayNavbarAtmosphere />
 
-      <div className="flex items-center justify-between px-3 sm:px-6 lg:px-8 max-w-[1700px] mx-auto gap-2 sm:gap-4 relative z-10">
+      <div className="flex items-center justify-between px-4 sm:px-6 md:px-8 max-w-[1800px] mx-auto gap-2 sm:gap-4 relative z-10">
         {/* LOGO & DESKTOP NAV */}
         <div className="flex items-center gap-3 sm:gap-6 lg:gap-7 flex-shrink-0 min-w-0">
           <Link
