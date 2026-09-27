@@ -402,20 +402,14 @@ const RecommendedMovieCard = React.memo(function RecommendedMovieCard({
             </span>
           </div>
 
-          {/* Badge Chất lượng / Điểm số góc trên bên phải */}
-          <div className="absolute top-2 right-2 z-10 flex items-center gap-1 pointer-events-none">
-            {score && Number(score) > 0 && (
-              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 backdrop-blur-md text-amber-300 border border-amber-500/30 flex items-center gap-0.5">
-                <Star className="w-2.5 h-2.5 fill-current" />
-                <span>{typeof score === "number" ? score.toFixed(1) : score}</span>
-              </span>
-            )}
-            {quality && (
+          {/* Badge Chất lượng góc trên bên phải */}
+          {quality && (
+            <div className="absolute top-2 right-2 z-10 pointer-events-none">
               <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-black/75 backdrop-blur-md text-zinc-300 border border-white/10">
                 {quality}
               </span>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Nút Play trung tâm khi hover */}
           <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
