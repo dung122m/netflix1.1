@@ -257,6 +257,14 @@ export default async function ActorDetailPage({ params }: PageProps) {
                   <Clapperboard className="w-3 h-3" />
                   <span>{movies.length} Phim trên Nanaflix</span>
                 </span>
+                {catalogItem?.tags?.map((tag) => (
+                  <span
+                    key={tag}
+                    className="px-2.5 py-1 rounded-full bg-zinc-800/80 border border-zinc-700/60 text-zinc-300 text-xs font-medium"
+                  >
+                    #{tag}
+                  </span>
+                ))}
               </div>
 
               {/* NAME */}
