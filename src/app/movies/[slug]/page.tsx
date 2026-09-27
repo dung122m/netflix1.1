@@ -795,12 +795,6 @@ export default async function MovieDetail({
                 )}
               </div>
             )}
-
-            {/* ĐÁNH GIÁ TỪ KHÁN GIẢ TMDB */}
-            <TmdbAudienceReviews
-              tmdbId={movie.tmdb?.id}
-              tmdbType={movie.tmdb?.type || movie.type}
-            />
           </div>
         </div>
       </WatchController>
@@ -812,6 +806,14 @@ export default async function MovieDetail({
           movieTitle={title}
           currentEpisodeSlug={activeEpisode?.slug}
           currentEpisodeName={activeEpisode?.name}
+        />
+      </div>
+
+      {/* ĐÁNH GIÁ TỪ KHÁN GIẢ TMDB (1 DÒNG CAROUSEL NGANG) */}
+      <div className="max-w-7xl mx-auto px-4 md:px-8 mt-10">
+        <TmdbAudienceReviews
+          tmdbId={movie.tmdb?.id}
+          tmdbType={movie.tmdb?.type || movie.type}
         />
       </div>
 
