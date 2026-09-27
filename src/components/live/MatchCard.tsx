@@ -97,6 +97,58 @@ function CountryFlag({ emoji, className = "" }: { emoji: string; className?: str
   );
 }
 
+/** SVG shield icon fallback khi không có logo đội */
+function TeamLogoFallback({
+  initials,
+  color = "rose",
+}: {
+  initials: string;
+  color?: "rose" | "sky";
+}) {
+  const strokeColor = color === "sky" ? "#38bdf8" : "#fb7185";
+  const textColor = color === "sky" ? "#7dd3fc" : "#fda4af";
+  return (
+    <svg
+      viewBox="0 0 48 52"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className="w-full h-full"
+      aria-hidden="true"
+    >
+      {/* Shield shape */}
+      <path
+        d="M24 2L4 10v16c0 12 8.5 22.5 20 26 11.5-3.5 20-14 20-26V10L24 2z"
+        fill={color === "sky" ? "rgba(56,189,248,0.10)" : "rgba(251,113,133,0.10)"}
+        stroke={strokeColor}
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+      {/* Decorative inner line */}
+      <path
+        d="M24 6L7 13v13c0 10 7 19 17 22 10-3 17-12 17-22V13L24 6z"
+        fill="none"
+        stroke={strokeColor}
+        strokeWidth="0.5"
+        strokeOpacity="0.4"
+        strokeLinejoin="round"
+      />
+      {/* Team initials */}
+      <text
+        x="24"
+        y="31"
+        textAnchor="middle"
+        fill={textColor}
+        fontSize={initials.length > 2 ? "10" : "13"}
+        fontWeight="900"
+        fontFamily="system-ui, sans-serif"
+        letterSpacing="1"
+      >
+        {initials}
+      </text>
+    </svg>
+  );
+}
+
 function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
   const [homeError, setHomeError] = useState(false);
   const [awayError, setAwayError] = useState(false);
@@ -292,14 +344,7 @@ function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
                   referrerPolicy="no-referrer"
                 />
               ) : (
-                <div className="flex flex-col items-center justify-center w-full h-full bg-zinc-900/90 rounded-lg p-0.5 select-none">
-                  <span className="text-xs sm:text-sm font-black text-rose-400 tracking-wider">
-                    {getTeamInitials(match.team1)}
-                  </span>
-                  <span className="text-[6px] uppercase tracking-widest text-zinc-400 font-bold">
-                    CLB
-                  </span>
-                </div>
+                <TeamLogoFallback initials={getTeamInitials(match.team1)} color="rose" />
               )}
             </div>
             <span
@@ -346,14 +391,7 @@ function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
                   referrerPolicy="no-referrer"
                 />
               ) : (
-                <div className="flex flex-col items-center justify-center w-full h-full bg-zinc-900/90 rounded-lg p-0.5 select-none">
-                  <span className="text-xs sm:text-sm font-black text-sky-400 tracking-wider">
-                    {getTeamInitials(match.team2)}
-                  </span>
-                  <span className="text-[6px] uppercase tracking-widest text-zinc-400 font-bold">
-                    CLB
-                  </span>
-                </div>
+                <TeamLogoFallback initials={getTeamInitials(match.team2)} color="sky" />
               )}
             </div>
             <span
