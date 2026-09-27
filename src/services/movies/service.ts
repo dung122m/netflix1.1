@@ -696,19 +696,26 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
 
   // 5. Sắp xếp
   if (params.sort === "rating") {
-    // Ưu tiên phim có lượt đánh giá nếu có dữ liệu TMDB
-    const ratedItems = allUniqueItems.filter((item) => {
-      const voteCount = Number(item.tmdb?.vote_count || 0);
-      return voteCount >= 50;
-    });
-    if (ratedItems.length >= 5) {
-      allUniqueItems = ratedItems;
-    }
-
     allUniqueItems.sort((a, b) => {
+      const voteCountA = Number(a.tmdb?.vote_count || 0);
+      const voteCountB = Number(b.tmdb?.vote_count || 0);
+      const hasReliableVotesA = voteCountA >= 50 ? 1 : 0;
+      const hasReliableVotesB = voteCountB >= 50 ? 1 : 0;
+
+      // 1. Ưu tiên nhóm phim có vote_count >= 50
+      if (hasReliableVotesA !== hasReliableVotesB) {
+        return hasReliableVotesB - hasReliableVotesA;
+      }
+
+      // 2. Trong cùng nhóm, sort theo rating giảm dần
       const rateA = Number(a.tmdb?.vote_average || a.imdb?.vote_average || 0);
       const rateB = Number(b.tmdb?.vote_average || b.imdb?.vote_average || 0);
-      return rateB - rateA;
+      if (rateB !== rateA) {
+        return rateB - rateA;
+      }
+
+      // 3. Nếu cùng rating, ưu tiên phim có nhiều lượt vote hơn
+      return voteCountB - voteCountA;
     });
   } else if (params.sort === "views") {
     allUniqueItems.sort((a, b) => {

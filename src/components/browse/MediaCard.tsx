@@ -203,8 +203,6 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   const [verticalShift, setVerticalShift] = useState(0);
 
   const hoverIntentTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const hoverTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const trailerTimerRef = useRef<NodeJS.Timeout | null>(null);
   const trailerReadyTimerRef = useRef<NodeJS.Timeout | null>(null);
   const unmountTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -234,8 +232,6 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     return () => {
       unsubscribe();
       if (hoverIntentTimerRef.current) clearTimeout(hoverIntentTimerRef.current);
-      if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
-      if (trailerTimerRef.current) clearTimeout(trailerTimerRef.current);
       if (trailerReadyTimerRef.current) clearTimeout(trailerReadyTimerRef.current);
       if (unmountTimerRef.current) clearTimeout(unmountTimerRef.current);
     };
@@ -355,27 +351,42 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         }
       }
 
-      // Kiểm tra cache
+      // 1. Kiểm tra cache đồng bộ
+      let currentSynopsis = synopsis;
       if (clientSynopsisCache.has(slug)) {
         const cached = clientSynopsisCache.get(slug)!;
         if (cached && cached !== synopsis) {
+          currentSynopsis = cached;
           setSynopsis(cached);
         }
       }
       if (clientExtraInfoCache.has(slug)) {
         setExtraInfo(clientExtraInfoCache.get(slug)!);
       }
+      let currentTUrl = trailerUrl;
       if (clientTrailerCache.has(slug)) {
         const cachedT = clientTrailerCache.get(slug)!;
         if (cachedT && cachedT !== trailerUrl) {
+          currentTUrl = cachedT;
           setTrailerUrl(cachedT);
         }
       }
 
-      // Tải thông tin chi tiết (Diễn viên, đạo diễn, nội dung, trailer) nếu chưa có
-      if ((!synopsis || !extraInfo.actor?.length) && slug) {
-        if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
-        hoverTimerRef.current = setTimeout(async () => {
+      // 2. Bắt đầu phát trailer ngay lập tức nếu URL đã có trong cache
+      if (currentTUrl && !trailerFailed) {
+        const ytId = extractYoutubeId(currentTUrl);
+        if (ytId) {
+          setIsTrailerReady(false);
+          setIsPlayingTrailer(true);
+        }
+      }
+
+      // 3. Tải thông tin chi tiết (Metadata & Trailer) NGAY LẬP TỨC (không delay thêm 650ms hay 1100ms)
+      const needsMetadata = (!currentSynopsis || !extraInfo.actor?.length) && slug;
+      const needsTrailer = !currentTUrl && slug && !trailerFailed;
+
+      if ((needsMetadata || needsTrailer) && slug) {
+        (async () => {
           try {
             const data = await fetchMovieSynopsisShared(slug);
             if (data?.content) {
@@ -388,6 +399,13 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
               clientTrailerCache.set(slug, data.trailer_url);
               setTrailerUrl(data.trailer_url);
               setHasTrailerState(true);
+              if (!trailerFailed) {
+                const ytId = extractYoutubeId(data.trailer_url);
+                if (ytId) {
+                  setIsTrailerReady(false);
+                  setIsPlayingTrailer(true);
+                }
+              }
             }
             if (data?.backdrop_url) {
               setCurrentImgSrc((prev) => {
@@ -410,65 +428,16 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           } catch {
             if (description) setSynopsis(description);
           }
-        }, 650);
+        })();
       }
-
-      // Bật trailer preview sau 1.1s hover ổn định (tránh kích hoạt khi rê chuột nhanh hoặc scroll)
-      if (trailerTimerRef.current) clearTimeout(trailerTimerRef.current);
-      trailerTimerRef.current = setTimeout(async () => {
-        if (trailerFailed) return;
-
-        let tUrl = clientTrailerCache.get(slug);
-        if (tUrl === undefined) {
-          try {
-            const data = await fetchMovieSynopsisShared(slug);
-            tUrl = data?.trailer_url || "";
-            clientTrailerCache.set(slug, tUrl || "");
-            if (data?.content && !synopsis) {
-              clientSynopsisCache.set(slug, data.content);
-              setSynopsis(data.content);
-            }
-            if (data?.actor) {
-              const info: MovieExtraInfo = {
-                actor: data?.actor || [],
-                director: data?.director || [],
-                country: data?.country || [],
-                category: data?.category || [],
-                origin_name: data?.origin_name || origin_name,
-              };
-              clientExtraInfoCache.set(slug, info);
-              setExtraInfo(info);
-            }
-          } catch {
-            tUrl = "";
-          }
-        }
-
-        if (tUrl) {
-          const ytId = extractYoutubeId(tUrl);
-          if (ytId) {
-            setTrailerUrl(tUrl);
-            setIsTrailerReady(false);
-            setIsPlayingTrailer(true);
-          }
-        }
-      }, 1100);
     }, 500);
   };
 
   const handleMouseLeave = () => {
-    // Hủy ngay lập tức hover-intent nếu người dùng chỉ lướt chuột qua thẻ (<200ms)
+    // Hủy ngay lập tức hover-intent nếu người dùng chỉ lướt chuột qua thẻ (<500ms)
     if (hoverIntentTimerRef.current) {
       clearTimeout(hoverIntentTimerRef.current);
       hoverIntentTimerRef.current = null;
-    }
-    if (hoverTimerRef.current) {
-      clearTimeout(hoverTimerRef.current);
-      hoverTimerRef.current = null;
-    }
-    if (trailerTimerRef.current) {
-      clearTimeout(trailerTimerRef.current);
-      trailerTimerRef.current = null;
     }
     if (trailerReadyTimerRef.current) {
       clearTimeout(trailerReadyTimerRef.current);
