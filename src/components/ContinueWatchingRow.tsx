@@ -96,7 +96,7 @@ function ContinueWatchingRowInner() {
   };
 
   return (
-    <section className="relative z-10 px-4 sm:px-6 md:px-8 max-w-[1800px] mx-auto mt-6 mb-8">
+    <section className="relative z-10 px-4 sm:px-8 max-w-[1800px] mx-auto mt-6 mb-8">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Clock className="w-5 h-5 text-netflix-red" />
