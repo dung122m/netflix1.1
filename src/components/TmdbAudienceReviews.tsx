@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import {
   MessageSquareQuote,
@@ -9,8 +9,6 @@ import {
   User,
   ChevronDown,
   ChevronUp,
-  ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
 import type { TmdbReview } from "@/services/tmdbService";
 
@@ -24,9 +22,6 @@ export const TmdbAudienceReviews: React.FC<TmdbAudienceReviewsProps> = React.mem
     const [reviews, setReviews] = useState<TmdbReview[]>([]);
     const [loading, setLoading] = useState(Boolean(tmdbId));
     const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
-    const scrollRef = useRef<HTMLDivElement>(null);
-    const [canScrollLeft, setCanScrollLeft] = useState(false);
-    const [canScrollRight, setCanScrollRight] = useState(false);
 
     useEffect(() => {
       if (!tmdbId || String(tmdbId) === "0") {
@@ -77,37 +72,13 @@ export const TmdbAudienceReviews: React.FC<TmdbAudienceReviewsProps> = React.mem
       };
     }, [tmdbId, tmdbType]);
 
-    const checkScroll = () => {
-      const el = scrollRef.current;
-      if (!el) return;
-      setCanScrollLeft(el.scrollLeft > 10);
-      setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 10);
-    };
-
-    useEffect(() => {
-      checkScroll();
-      const el = scrollRef.current;
-      if (el) {
-        el.addEventListener("scroll", checkScroll, { passive: true });
-        window.addEventListener("resize", checkScroll);
-        return () => {
-          el.removeEventListener("scroll", checkScroll);
-          window.removeEventListener("resize", checkScroll);
-        };
-      }
-    }, [reviews]);
-
-    const handleScroll = (direction: "left" | "right") => {
-      const el = scrollRef.current;
-      if (!el) return;
-      const scrollAmount = direction === "left" ? -400 : 400;
-      el.scrollBy({ left: scrollAmount, behavior: "smooth" });
-    };
-
     // Không có review hoặc đang nạp -> không hiển thị gì để tránh layout shift
     if (loading || reviews.length === 0) {
       return null;
     }
+
+    // Lấy đúng 5 đánh giá
+    const displayReviews = reviews.slice(0, 5);
 
     const toggleExpand = (id: string) => {
       setExpandedIds((prev) => ({
@@ -118,8 +89,8 @@ export const TmdbAudienceReviews: React.FC<TmdbAudienceReviewsProps> = React.mem
 
     return (
       <div className="space-y-4">
-        {/* Header Bar with Title & Navigation Arrows */}
-        <div className="flex items-center justify-between gap-4">
+        {/* Header Bar */}
+        <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400">
               <MessageSquareQuote className="w-5 h-5 shrink-0" />
@@ -128,54 +99,21 @@ export const TmdbAudienceReviews: React.FC<TmdbAudienceReviewsProps> = React.mem
               <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
                 <span>Khán giả quốc tế nói gì?</span>
                 <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-white/10 text-zinc-300">
-                  {reviews.length} đánh giá
+                  {displayReviews.length} đánh giá TMDB
                 </span>
               </h3>
               <p className="text-xs text-zinc-400">
-                Góc nhìn và cảm nhận trực tiếp từ cộng đồng người xem thế giới trên TMDB.
+                Góc nhìn và cảm nhận trực tiếp từ cộng đồng người xem thế giới trên The Movie Database.
               </p>
             </div>
           </div>
-
-          {/* Prev/Next Buttons (Desktop) */}
-          <div className="hidden sm:flex items-center gap-1.5 shrink-0">
-            <button
-              type="button"
-              onClick={() => handleScroll("left")}
-              disabled={!canScrollLeft}
-              className={`p-2 rounded-xl border border-white/10 transition ${
-                canScrollLeft
-                  ? "bg-white/5 hover:bg-white/15 text-white cursor-pointer"
-                  : "bg-white/[0.02] text-zinc-600 cursor-not-allowed opacity-50"
-              }`}
-              aria-label="Cuộn sang trái"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => handleScroll("right")}
-              disabled={!canScrollRight}
-              className={`p-2 rounded-xl border border-white/10 transition ${
-                canScrollRight
-                  ? "bg-white/5 hover:bg-white/15 text-white cursor-pointer"
-                  : "bg-white/[0.02] text-zinc-600 cursor-not-allowed opacity-50"
-              }`}
-              aria-label="Cuộn sang phải"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
         </div>
 
-        {/* 1-Row Horizontal Slider Container */}
-        <div
-          ref={scrollRef}
-          className="flex gap-4 overflow-x-auto pb-3 pt-1 scroll-smooth snap-x snap-mandatory scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent -mx-4 px-4 sm:mx-0 sm:px-0"
-        >
-          {reviews.map((rev) => {
+        {/* Danh sách 5 review từ trên xuống dưới (Vertical Feed) */}
+        <div className="flex flex-col gap-3.5">
+          {displayReviews.map((rev) => {
             const isExpanded = Boolean(expandedIds[rev.id]);
-            const isLong = (rev.content || "").length > 220;
+            const isLong = (rev.content || "").length > 280;
 
             const formattedDate = (() => {
               try {
@@ -192,13 +130,13 @@ export const TmdbAudienceReviews: React.FC<TmdbAudienceReviewsProps> = React.mem
             return (
               <div
                 key={rev.id}
-                className="w-[300px] sm:w-[380px] shrink-0 snap-start rounded-2xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.05] p-4 transition flex flex-col justify-between overflow-hidden shadow-sm backdrop-blur-sm group"
+                className="w-full rounded-2xl border border-white/10 bg-white/[0.025] hover:bg-white/[0.04] p-4 sm:p-5 transition flex flex-col justify-between overflow-hidden shadow-sm backdrop-blur-sm"
               >
                 <div className="space-y-3">
                   {/* Author Header */}
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="relative w-8 h-8 rounded-full bg-zinc-800 border border-white/10 overflow-hidden flex items-center justify-center shrink-0">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-zinc-800 border border-white/10 overflow-hidden flex items-center justify-center shrink-0">
                         {rev.author_avatar ? (
                           <Image
                             src={rev.author_avatar}
@@ -208,16 +146,21 @@ export const TmdbAudienceReviews: React.FC<TmdbAudienceReviewsProps> = React.mem
                             className="object-cover"
                           />
                         ) : (
-                          <User className="w-4 h-4 text-zinc-400" />
+                          <User className="w-5 h-5 text-zinc-400" />
                         )}
                       </div>
                       <div className="min-w-0">
-                        <span className="text-sm font-bold text-gray-200 truncate block">
-                          {rev.author}
-                        </span>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm sm:text-base font-bold text-gray-100 truncate">
+                            {rev.author}
+                          </span>
+                          <span className="text-[10.5px] px-1.5 py-0.2 rounded bg-white/10 text-zinc-400 font-medium">
+                            Khán giả quốc tế
+                          </span>
+                        </div>
                         {formattedDate && (
-                          <span className="text-[11px] text-zinc-500 block leading-tight">
-                            {formattedDate}
+                          <span className="text-xs text-zinc-500 block leading-tight mt-0.5">
+                            Đăng ngày {formattedDate}
                           </span>
                         )}
                       </div>
@@ -225,16 +168,18 @@ export const TmdbAudienceReviews: React.FC<TmdbAudienceReviewsProps> = React.mem
 
                     {/* Rating if available */}
                     {rev.rating !== null && rev.rating !== undefined && rev.rating > 0 && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-black shrink-0">
-                        <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                        <span>{rev.rating}/10</span>
-                      </span>
+                      <div className="self-start sm:self-center shrink-0">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-black">
+                          <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                          <span>{rev.rating}/10</span>
+                        </span>
+                      </div>
                     )}
                   </div>
 
                   {/* Review Content */}
                   <p
-                    className={`text-xs sm:text-sm text-zinc-300/90 leading-relaxed break-words whitespace-pre-line ${
+                    className={`text-xs sm:text-sm text-zinc-300 leading-relaxed break-words whitespace-pre-line ${
                       isExpanded ? "" : "line-clamp-4"
                     }`}
                   >
@@ -243,14 +188,14 @@ export const TmdbAudienceReviews: React.FC<TmdbAudienceReviewsProps> = React.mem
                 </div>
 
                 {/* Footer Bar: Expand Button & View on TMDB Link */}
-                <div className="pt-3 mt-3 border-t border-white/5 flex items-center justify-between gap-2 text-xs text-zinc-400">
+                <div className="pt-3 mt-3 border-t border-white/5 flex items-center justify-between gap-3 text-xs text-zinc-400">
                   {isLong ? (
                     <button
                       type="button"
                       onClick={() => toggleExpand(rev.id)}
                       className="inline-flex items-center gap-1 text-amber-400 hover:text-amber-300 font-semibold transition cursor-pointer"
                     >
-                      <span>{isExpanded ? "Thu gọn" : "Đọc tiếp"}</span>
+                      <span>{isExpanded ? "Thu gọn nội dung" : "Đọc toàn bộ đánh giá"}</span>
                       {isExpanded ? (
                         <ChevronUp className="w-3.5 h-3.5" />
                       ) : (
@@ -266,10 +211,10 @@ export const TmdbAudienceReviews: React.FC<TmdbAudienceReviewsProps> = React.mem
                       href={rev.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 hover:text-white transition ml-auto font-medium"
+                      className="inline-flex items-center gap-1.5 hover:text-white transition ml-auto font-medium"
                     >
-                      <span>Xem trên TMDB</span>
-                      <ExternalLink className="w-3 h-3" />
+                      <span>Xem review gốc trên TMDB</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
                     </a>
                   )}
                 </div>
