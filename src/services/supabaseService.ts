@@ -356,7 +356,7 @@ export async function postCommentSupabase(
       body: JSON.stringify({
         movieSlug: comment.movieSlug,
         movieTitle: comment.movieTitle || "",
-        rating: comment.rating || 5,
+        rating: comment.rating ?? 0,
         content: comment.content,
         isSpoiler: Boolean(comment.isSpoiler),
         episodeSlug: comment.episodeSlug,
@@ -995,7 +995,10 @@ export async function searchCommentsFtsSupabase(searchTerm: string): Promise<Mov
         userName: String(d.user_name || "Thành viên"),
         userAvatar: String(d.user_avatar || ""),
         userEmail: d.user_email ? String(d.user_email) : undefined,
-        rating: Number(d.rating) || 5,
+        rating: (() => {
+          const num = Number(d.rating);
+          return !isNaN(num) && num >= 1 && num <= 5 ? Math.round(num) : 0;
+        })(),
         content: String(d.content || ""),
         episodeSlug: d.episode_slug ? String(d.episode_slug) : undefined,
         episodeName: d.episode_name ? String(d.episode_name) : undefined,

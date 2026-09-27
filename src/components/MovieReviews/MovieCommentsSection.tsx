@@ -113,7 +113,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
   }, [targetComment]);
 
   // Form states
-  const [rating, setRating] = useState<number>(5);
+  const [rating, setRating] = useState<number>(0);
   const [content, setContent] = useState("");
   const [isSpoiler, setIsSpoiler] = useState(false);
   const [scopeEpisode, setScopeEpisode] = useState<"all" | "episode">("all");
@@ -130,7 +130,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
     setComments([]);
     setHasInitializedForm(false);
     setContent("");
-    setRating(5);
+    setRating(0);
     setIsSpoiler(false);
     setScopeEpisode("all");
   }, [movieSlug]);
@@ -165,7 +165,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
   // Tự động điền dữ liệu đánh giá cũ vào form khi tải xong
   useEffect(() => {
     if (myExistingReview && !hasInitializedForm) {
-      setRating(myExistingReview.rating || 5);
+      setRating(myExistingReview.rating || 0);
       setContent(myExistingReview.content || "");
       setIsSpoiler(Boolean(myExistingReview.isSpoiler));
       if (myExistingReview.episodeSlug) {
@@ -174,7 +174,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
       setHasInitializedForm(true);
     } else if (!myExistingReview && hasInitializedForm) {
       setContent("");
-      setRating(5);
+      setRating(0);
       setIsSpoiler(false);
       setHasInitializedForm(false);
     }
@@ -182,7 +182,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
 
   // Khi click nút sửa trên bài đánh giá ở danh sách bên dưới
   const handleEditReview = (item: MovieComment) => {
-    setRating(item.rating || 5);
+    setRating(item.rating || 0);
     setContent(item.content || "");
     setIsSpoiler(Boolean(item.isSpoiler));
     if (item.episodeSlug) {
@@ -304,7 +304,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
 
         // 2. Ghi vào database Supabase
         await updateMovieComment(myExistingReview.id, updatePayload, movieSlug);
-        toast.success("Đã cập nhật đánh giá của bạn thành công!");
+        toast.success(rating > 0 ? "Đã cập nhật đánh giá của bạn thành công!" : "Đã cập nhật bình luận thành công!");
       } else {
         // Tạo đánh giá mới (lần đầu)
         const createdId = await addMovieComment({
@@ -350,7 +350,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
           },
           ...prev.filter((c) => c.id !== createdId),
         ]);
-        toast.success("Đã đăng bình luận và đánh giá thành công!");
+        toast.success(rating > 0 ? "Đã đăng bình luận và đánh giá thành công!" : "Đã đăng bình luận thành công!");
       }
       clearTimeout(timeoutId);
     } catch (err: unknown) {
@@ -499,7 +499,9 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" />
                   <span>
-                    Bạn đã đánh giá bộ phim này ({myExistingReview.rating} sao). Bạn có thể chỉnh sửa nhận xét bên dưới và bấm Cập nhật.
+                    {myExistingReview.rating && myExistingReview.rating > 0
+                      ? `Bạn đã đánh giá bộ phim này (${myExistingReview.rating} sao). Bạn có thể chỉnh sửa nhận xét bên dưới và bấm Cập nhật.`
+                      : `Bạn đã để lại bình luận cho bộ phim này. Bạn có thể chỉnh sửa nhận xét bên dưới và bấm Cập nhật.`}
                   </span>
                 </div>
                 <button
@@ -525,7 +527,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
                     {effectiveDisplayName}
                   </span>
                   <span className="text-[11px] text-zinc-500">
-                    {myExistingReview ? "Cập nhật số sao bạn muốn chấm:" : "Chọn số sao bạn muốn chấm:"}
+                    {myExistingReview ? "Cập nhật đánh giá (không bắt buộc):" : "Đánh giá phim (không bắt buộc):"}
                   </span>
                 </div>
               </div>

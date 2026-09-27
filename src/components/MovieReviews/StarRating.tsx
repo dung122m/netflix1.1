@@ -34,7 +34,7 @@ export const StarRating: React.FC<StarRatingProps> = ({
     lg: "w-7 h-7 md:w-8 md:h-8",
   };
 
-  const activeRating = hoverValue ?? value;
+  const activeRating = hoverValue ?? value ?? 0;
 
   return (
     <div className="inline-flex items-center gap-2 select-none">
@@ -52,7 +52,12 @@ export const StarRating: React.FC<StarRatingProps> = ({
               key={star}
               type="button"
               disabled={readOnly}
-              onClick={() => onChange && onChange(star)}
+              onClick={() => {
+                if (onChange) {
+                  // Click lại vào sao đã chọn sẽ bỏ đánh giá (về 0)
+                  onChange(value === star ? 0 : star);
+                }
+              }}
               onMouseEnter={() => {
                 if (!readOnly) setHoverValue(star);
               }}
@@ -61,7 +66,13 @@ export const StarRating: React.FC<StarRatingProps> = ({
                   ? "cursor-default"
                   : "cursor-pointer focus:outline-none"
               }`}
-              title={readOnly ? `${value} sao` : RATING_LABELS[star]}
+              title={
+                readOnly
+                  ? value > 0
+                    ? `${value} sao`
+                    : "Chưa đánh giá"
+                  : RATING_LABELS[star]
+              }
               aria-label={`${star} sao`}
             >
               <Star
@@ -77,8 +88,12 @@ export const StarRating: React.FC<StarRatingProps> = ({
       </div>
 
       {showLabel && (
-        <span className="text-xs md:text-sm font-semibold text-amber-400 w-36 pl-1 inline-block select-none truncate">
-          {activeRating > 0 ? RATING_LABELS[activeRating] : ""}
+        <span className="text-xs md:text-sm w-36 pl-1 inline-block select-none truncate">
+          {activeRating > 0 ? (
+            <span className="font-semibold text-amber-400">{RATING_LABELS[activeRating]}</span>
+          ) : (
+            <span className="text-zinc-500 font-normal italic">Chưa đánh giá</span>
+          )}
         </span>
       )}
     </div>

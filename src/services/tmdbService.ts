@@ -185,7 +185,7 @@ export async function getTmdbReviews(
         }
         if (!res?.results || !Array.isArray(res.results)) return [];
 
-        const items: TmdbReview[] = res.results.slice(0, 5).map((r: any) => {
+        const items: TmdbReview[] = res.results.slice(0, 10).map((r: any) => {
           let avatar = r.author_details?.avatar_path || null;
           if (avatar && typeof avatar === "string") {
             if (avatar.startsWith("/https://") || avatar.startsWith("/http://")) {

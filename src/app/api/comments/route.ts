@@ -60,7 +60,10 @@ export async function GET(req: NextRequest) {
         userName: String(d.user_name || "Thành viên"),
         userAvatar: String(d.user_avatar || ""),
         userEmail: d.user_email ? String(d.user_email) : undefined,
-        rating: Number(d.rating) || 5,
+        rating: (() => {
+          const num = Number(d.rating);
+          return !isNaN(num) && num >= 1 && num <= 5 ? Math.round(num) : 0;
+        })(),
         content: String(d.content || ""),
         episodeSlug: d.episode_slug ? String(d.episode_slug) : undefined,
         episodeName: d.episode_name ? String(d.episode_name) : undefined,
@@ -121,7 +124,7 @@ export async function POST(req: NextRequest) {
     const {
       movieSlug,
       movieTitle,
-      rating = 5,
+      rating,
       content,
       isSpoiler = false,
       episodeSlug,
@@ -174,6 +177,14 @@ export async function POST(req: NextRequest) {
     const commentId = `cmt_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
     const now = Date.now();
 
+    let safeRating = 0;
+    if (rating !== undefined && rating !== null && rating !== "") {
+      const parsed = Number(rating);
+      if (!isNaN(parsed) && parsed >= 1 && parsed <= 5) {
+        safeRating = Math.round(parsed);
+      }
+    }
+
     const payload = {
       id: commentId,
       movie_slug: movieSlug,
@@ -182,7 +193,7 @@ export async function POST(req: NextRequest) {
       user_name: sanitizeSafeText(userName, 100),
       user_avatar: userAvatar || "",
       user_email: userEmail || "",
-      rating: Number(rating) || 5,
+      rating: safeRating,
       content: sanitizeSafeText(content, 2500),
       episode_slug: episodeSlug || null,
       episode_name: episodeName || null,
@@ -464,7 +475,14 @@ export async function PUT(req: NextRequest) {
     const payload: Record<string, unknown> = {
       updated_at: Date.now(),
     };
-    if (rating !== undefined) payload.rating = Number(rating) || 5;
+    if (rating !== undefined) {
+      if (rating === null || rating === 0 || rating === "") {
+        payload.rating = 0;
+      } else {
+        const parsed = Number(rating);
+        payload.rating = !isNaN(parsed) && parsed >= 1 && parsed <= 5 ? Math.round(parsed) : 0;
+      }
+    }
     if (content !== undefined) payload.content = sanitizeSafeText(content, 2500);
     if (isSpoiler !== undefined) payload.is_spoiler = Boolean(isSpoiler);
     if (episodeSlug !== undefined) payload.episode_slug = episodeSlug;
