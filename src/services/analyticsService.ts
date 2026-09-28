@@ -348,9 +348,10 @@ export async function recordAnalyticsEvent(payload: AnalyticsEventPayload): Prom
   }
 
   // 3. Persist to Supabase analytics_events table (fail-safe)
-  if (supabase) {
+  const client = isSupabaseAdminConfigured() ? getSupabaseAdmin() : supabase;
+  if (client) {
     try {
-      await supabase.from("analytics_events").insert({
+      await client.from("analytics_events").insert({
         id: eventRecord.id,
         event_type: eventRecord.eventType,
         movie_slug: eventRecord.movieSlug || null,
@@ -448,9 +449,10 @@ export async function getAnalyticsDashboardStats(
 
       // C: Supabase analytics_events (explicit columns only — no screen_res, no extras)
       (async () => {
-        if (!supabase) return { data: null, error: null };
+        const client = isSupabaseAdminConfigured() ? getSupabaseAdmin() : supabase;
+        if (!client) return { data: null, error: null };
         try {
-          let q = supabase
+          let q = client
             .from("analytics_events")
             .select(analyticsEventsColumns)
             .order("created_at", { ascending: false })
@@ -1281,8 +1283,6 @@ function formatEventAction(ev: StoredAnalyticsEvent): string {
  */
 export async function getDailyVisitorsStats(dateStr?: string): Promise<DailyVisitorsResponse> {
   const { date, startMs, endMs } = getVietnamDayBoundaries(dateStr);
-  const now = Date.now();
-  const isTargetingToday = now >= startMs && now <= endMs;
 
   const client = isSupabaseAdminConfigured() ? getSupabaseAdmin() : supabase;
   const redis = getRedis();
@@ -1309,7 +1309,7 @@ export async function getDailyVisitorsStats(dateStr?: string): Promise<DailyVisi
       }
     })(),
     (async () => {
-      if (!isTargetingToday || !redis) return null;
+      if (!redis) return null;
       try {
         return await redis.lrange<string | StoredAnalyticsEvent>("analytics:events", 0, 500);
       } catch {
@@ -1349,7 +1349,7 @@ export async function getDailyVisitorsStats(dateStr?: string): Promise<DailyVisi
     }
   }
 
-  // 2. Merge Redis events (if targeting today)
+  // 2. Merge Redis events
   if (Array.isArray(redisListData)) {
     for (const item of redisListData) {
       let ev: StoredAnalyticsEvent | null = null;
@@ -1366,8 +1366,8 @@ export async function getDailyVisitorsStats(dateStr?: string): Promise<DailyVisi
     }
   }
 
-  // 3. Fallback to memoryEventsBuffer if targeting today and no events found
-  if (isTargetingToday && memoryEventsBuffer.length > 0) {
+  // 3. Fallback to memoryEventsBuffer if no events found
+  if (memoryEventsBuffer.length > 0) {
     for (const ev of memoryEventsBuffer) {
       if (ev.createdAt >= startMs && ev.createdAt <= endMs) {
         eventMap.set(ev.id, ev);
