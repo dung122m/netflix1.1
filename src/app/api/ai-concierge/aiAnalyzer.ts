@@ -236,10 +236,10 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON THEO SCHEMA SAU (K
 export async function analyzeUserPrompt(
   prompt: string,
   userApiKey?: string,
-  conversationHistory?: Array<{ role: "user" | "assistant"; content: string }>
+  conversationHistory?: Array<{ role: "user" | "assistant"; content: string }>,
+  options?: { forceLocalFallback?: boolean }
 ): Promise<{ parsed: AiParsedResult | null; provider: string }> {
   const currentYear = new Date().getFullYear();
-  const systemPrompt = buildSystemPrompt(currentYear);
   const typoNormalized = normalizeTypos(prompt);
   const detectedChar = resolveCharacter(prompt);
   const charHint = detectedChar
@@ -256,18 +256,22 @@ export async function analyzeUserPrompt(
   }
 
   let parsed: AiParsedResult | null = null;
-  let provider = "Nana AI Engine";
+  let provider = options?.forceLocalFallback
+    ? "Nana AI (Fallback/Heuristic)"
+    : "Nana AI Engine";
 
-  try {
-    const aiRes = await generateFastAiChat({
-      systemPrompt,
-      userPrompt: `${contextPrompt}Phân tích yêu cầu tìm phim hiện tại: "${prompt}" (Chuẩn hóa chính tả: "${typoNormalized}"${charHint}). Mốc năm hiện tại là ${currentYear}. Trả về duy nhất JSON theo đúng schema.`,
-      temperature: 0.2,
-      maxTokens: 450,
-      jsonMode: true,
-      customApiKey: userApiKey,
-      timeoutMs: 2000,
-    });
+  if (!options?.forceLocalFallback) {
+    try {
+      const systemPrompt = buildSystemPrompt(currentYear);
+      const aiRes = await generateFastAiChat({
+        systemPrompt,
+        userPrompt: `${contextPrompt}Phân tích yêu cầu tìm phim hiện tại: "${prompt}" (Chuẩn hóa chính tả: "${typoNormalized}"${charHint}). Mốc năm hiện tại là ${currentYear}. Trả về duy nhất JSON theo đúng schema.`,
+        temperature: 0.2,
+        maxTokens: 450,
+        jsonMode: true,
+        customApiKey: userApiKey,
+        timeoutMs: 2000,
+      });
 
     if (aiRes && aiRes.text) {
       parsed = safeParseAiJson(aiRes.text);
@@ -319,6 +323,7 @@ export async function analyzeUserPrompt(
   } catch (aiErr) {
     console.warn("[aiAnalyzer] AI LLM call failed or timed out:", aiErr);
   }
+}
 
   // Heuristic Fallback cứu cánh nếu LLM thất bại hoàn toàn
   if (!parsed) {

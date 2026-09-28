@@ -1377,7 +1377,15 @@ export async function getDailyVisitorsStats(dateStr?: string): Promise<DailyVisi
 
   const allEvents = Array.from(eventMap.values());
 
-  // 4. Group by Unique Visitor Identity
+  // 4. Map anonymousId -> userId for sessions in the same day that transitioned from Guest to Logged-in User
+  const anonToUserMap = new Map<string, string>();
+  for (const ev of allEvents) {
+    if (ev.userId && ev.userId.trim() && ev.anonymousId) {
+      anonToUserMap.set(ev.anonymousId, ev.userId.trim());
+    }
+  }
+
+  // 5. Group by Unique Visitor Identity (seamlessly upgrading Guest events into the linked User group)
   interface VisitorGroup {
     type: "user" | "guest";
     userId?: string;
@@ -1388,14 +1396,16 @@ export async function getDailyVisitorsStats(dateStr?: string): Promise<DailyVisi
   const visitorGroupMap = new Map<string, VisitorGroup>();
 
   for (const ev of allEvents) {
-    const isUser = Boolean(ev.userId && ev.userId.trim());
-    const groupKey = isUser ? `user:${ev.userId!.trim()}` : `guest:${ev.anonymousId}`;
+    const rawUserId = ev.userId?.trim();
+    const effectiveUserId = rawUserId || (ev.anonymousId ? anonToUserMap.get(ev.anonymousId) : undefined);
+    const isUser = Boolean(effectiveUserId);
+    const groupKey = isUser ? `user:${effectiveUserId}` : `guest:${ev.anonymousId}`;
 
     let group = visitorGroupMap.get(groupKey);
     if (!group) {
       group = {
         type: isUser ? "user" : "guest",
-        userId: isUser ? ev.userId!.trim() : undefined,
+        userId: effectiveUserId,
         anonymousId: ev.anonymousId,
         events: [],
       };

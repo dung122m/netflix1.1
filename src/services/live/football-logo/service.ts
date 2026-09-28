@@ -127,6 +127,27 @@ const STATIC_CLUB_LOGOS: Record<string, string> = {
   nyredbulls: "https://r2.thesportsdb.com/images/media/team/badge/wyvwsy1422044955.png",
   newyorkcity: "https://r2.thesportsdb.com/images/media/team/badge/utvvtw1422044929.png",
 
+  // --- LIGA MX & BẮC MỸ ---
+  necaxa: "https://r2.thesportsdb.com/images/media/team/badge/vxvtvy1448815252.png",
+  clubnecaxa: "https://r2.thesportsdb.com/images/media/team/badge/vxvtvy1448815252.png",
+  america: "https://r2.thesportsdb.com/images/media/team/badge/upuxyt1422044818.png",
+  clubamerica: "https://r2.thesportsdb.com/images/media/team/badge/upuxyt1422044818.png",
+  chivas: "https://r2.thesportsdb.com/images/media/team/badge/vtuywt1422044846.png",
+  guadalajara: "https://r2.thesportsdb.com/images/media/team/badge/vtuywt1422044846.png",
+  cruzazul: "https://r2.thesportsdb.com/images/media/team/badge/spwsqu1422044790.png",
+  monterrey: "https://r2.thesportsdb.com/images/media/team/badge/spwxrw1422044761.png",
+  tigres: "https://r2.thesportsdb.com/images/media/team/badge/twsuus1422044704.png",
+  tigresuanl: "https://r2.thesportsdb.com/images/media/team/badge/twsuus1422044704.png",
+  pumas: "https://r2.thesportsdb.com/images/media/team/badge/rqsvsu1422044733.png",
+  pumasunam: "https://r2.thesportsdb.com/images/media/team/badge/rqsvsu1422044733.png",
+  toluca: "https://r2.thesportsdb.com/images/media/team/badge/sryuvv1422044675.png",
+  pachuca: "https://r2.thesportsdb.com/images/media/team/badge/upryty1422044646.png",
+  santoslaguna: "https://r2.thesportsdb.com/images/media/team/badge/vrqyyy1422044618.png",
+  atlas: "https://r2.thesportsdb.com/images/media/team/badge/vrxtvy1422044589.png",
+  tijuana: "https://r2.thesportsdb.com/images/media/team/badge/tyttux1422044560.png",
+  leon: "https://r2.thesportsdb.com/images/media/team/badge/swxstq1422044531.png",
+  puebla: "https://r2.thesportsdb.com/images/media/team/badge/vxxsws1422044502.png",
+
   // --- TOP CHÂU ÂU KHÁC ---
   sportingcp: "https://r2.thesportsdb.com/images/media/team/badge/ywwyqu1420578018.png",
   sporting: "https://r2.thesportsdb.com/images/media/team/badge/ywwyqu1420578018.png",

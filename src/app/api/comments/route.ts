@@ -3,6 +3,7 @@ import { checkContentModeration } from "@/lib/contentModeration";
 import { sanitizeSafeText } from "@/lib/security";
 import { verifyServerAuth } from "@/lib/serverAuth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { runSecurityGuard } from "@/lib/securityMiddleware";
 import { parseReactionsAndLikedBy } from "@/services/supabaseService";
 import { MovieComment } from "@/types/comment";
 
@@ -140,6 +141,20 @@ export async function POST(req: NextRequest) {
 
     if (!movieSlug || !content) {
       return NextResponse.json({ error: "Thiếu thông tin bắt buộc!" }, { status: 400 });
+    }
+
+    // Security Guard: Check if entity is blocked, check injection payload, check comment flood
+    const secGuard = await runSecurityGuard(req, {
+      userId,
+      userEmail,
+      userDisplayName: auth.displayName || undefined,
+      payload: content,
+      actionKey: "post_comment",
+      maxRequests: 10,
+      windowSeconds: 60,
+    });
+    if (!secGuard.passed && secGuard.response) {
+      return secGuard.response;
     }
 
     const modCheck = checkContentModeration(content);

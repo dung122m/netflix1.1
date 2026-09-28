@@ -202,10 +202,15 @@ export function VietnamTodayModal({
               {!imageError && currentEvent.imageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
+                  key={currentEvent.imageUrl}
                   src={currentEvent.imageUrl}
-                  alt={currentEvent.title}
+                  alt=""
+                  aria-hidden="true"
                   loading="lazy"
-                  onError={() => setImageError(true)}
+                  onError={(e) => {
+                    setImageError(true);
+                    e.currentTarget.style.display = "none";
+                  }}
                   className="w-full h-full object-cover object-center filter brightness-75 scale-105 transition-all duration-500"
                 />
               ) : (

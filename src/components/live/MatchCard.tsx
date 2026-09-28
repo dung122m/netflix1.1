@@ -186,11 +186,13 @@ function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
   const homeFlagEmoji = homeAsset?.emoji || null;
   const awayFlagEmoji = awayAsset?.emoji || null;
 
-  // Logo ảnh: chỉ dùng nếu không có cờ emoji hoặc là CLB thuần logo
-  const homeLogoSrc =
-    !homeFlagEmoji && (validHomeLogo ? match.homeLogo : (!homeError && homeAsset?.logo ? homeAsset.logo : null));
-  const awayLogoSrc =
-    !awayFlagEmoji && (validAwayLogo ? match.awayLogo : (!awayError && awayAsset?.logo ? awayAsset.logo : null));
+  // Logo ảnh: Ưu tiên logo từ API; nếu lỗi hoặc không có thì thử logo từ dictionary; nếu không có thì fallback sang initials
+  const homeLogoSrc = !homeFlagEmoji
+    ? (validHomeLogo ? match.homeLogo : (homeAsset?.logo ? homeAsset.logo : null))
+    : null;
+  const awayLogoSrc = !awayFlagEmoji
+    ? (validAwayLogo ? match.awayLogo : (awayAsset?.logo ? awayAsset.logo : null))
+    : null;
 
   const isTwoTeamMatch =
     !match.isEvent &&
@@ -336,10 +338,14 @@ function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
               ) : homeLogoSrc ? (
                 /* eslint-disable-next-line @next/next/no-img-element */
                 <img
+                  key={homeLogoSrc}
                   src={homeLogoSrc}
                   alt=""
                   className="w-full h-full object-contain filter drop-shadow-md"
-                  onError={() => setHomeError(true)}
+                  onError={(e) => {
+                    setHomeError(true);
+                    e.currentTarget.style.display = "none";
+                  }}
                   loading="lazy"
                   referrerPolicy="no-referrer"
                 />
@@ -383,10 +389,14 @@ function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
               ) : awayLogoSrc ? (
                 /* eslint-disable-next-line @next/next/no-img-element */
                 <img
+                  key={awayLogoSrc}
                   src={awayLogoSrc}
                   alt=""
                   className="w-full h-full object-contain filter drop-shadow-md"
-                  onError={() => setAwayError(true)}
+                  onError={(e) => {
+                    setAwayError(true);
+                    e.currentTarget.style.display = "none";
+                  }}
                   loading="lazy"
                   referrerPolicy="no-referrer"
                 />

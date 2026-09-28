@@ -487,7 +487,7 @@ const CLUBS_DATA: Array<{ name: string; logo: string; emoji?: string; aliases: s
   { name: "Sparta Prague", logo: "https://r2.thesportsdb.com/images/media/team/badge/3w513q1659960248.png", aliases: ["sparta prague", "sparta praha"] },
   { name: "Slavia Prague", logo: "https://r2.thesportsdb.com/images/media/team/badge/6t165v1621593361.png", aliases: ["slavia prague", "slavia praha"] },
 
-  // --- NAM MỸ (LIBERTADORES) ---
+  // --- NAM MỸ & CONCACAF / LIGA MX ---
   { name: "Flamengo", logo: "https://r2.thesportsdb.com/images/media/team/badge/u6n0321598717112.png", aliases: ["flamengo", "cr flamengo", "mengao"] },
   { name: "Palmeiras", logo: "https://r2.thesportsdb.com/images/media/team/badge/d934om1598717208.png", aliases: ["palmeiras", "verdao"] },
   { name: "Corinthians", logo: "https://r2.thesportsdb.com/images/media/team/badge/380i1r1598717676.png", aliases: ["corinthians", "timao"] },
@@ -495,6 +495,20 @@ const CLUBS_DATA: Array<{ name: string; logo: string; emoji?: string; aliases: s
   { name: "Santos FC", logo: "https://r2.thesportsdb.com/images/media/team/badge/d934om1598717208.png", aliases: ["santos", "santos fc", "peixe"] },
   { name: "River Plate", logo: "https://r2.thesportsdb.com/images/media/team/badge/u6n0321598717112.png", aliases: ["river plate", "los millonarios"] },
   { name: "Boca Juniors", logo: "https://r2.thesportsdb.com/images/media/team/badge/d934om1598717208.png", aliases: ["boca juniors", "boca", "xeneizes"] },
+  { name: "Club Necaxa", logo: "https://r2.thesportsdb.com/images/media/team/badge/vxvtvy1448815252.png", aliases: ["necaxa", "club necaxa", "rayos del necaxa", "los rayos"] },
+  { name: "Club America", logo: "https://r2.thesportsdb.com/images/media/team/badge/upuxyt1422044818.png", aliases: ["club america", "america", "las aguilas", "aguilas del america"] },
+  { name: "CD Guadalajara", logo: "https://r2.thesportsdb.com/images/media/team/badge/vtuywt1422044846.png", aliases: ["chivas", "guadalajara", "chivas guadalajara", "rebano sagrado"] },
+  { name: "Cruz Azul", logo: "https://r2.thesportsdb.com/images/media/team/badge/spwsqu1422044790.png", aliases: ["cruz azul", "la maquina"] },
+  { name: "CF Monterrey", logo: "https://r2.thesportsdb.com/images/media/team/badge/spwxrw1422044761.png", aliases: ["monterrey", "rayados"] },
+  { name: "Tigres UANL", logo: "https://r2.thesportsdb.com/images/media/team/badge/twsuus1422044704.png", aliases: ["tigres", "uanl", "tigres uanl"] },
+  { name: "Pumas UNAM", logo: "https://r2.thesportsdb.com/images/media/team/badge/rqsvsu1422044733.png", aliases: ["pumas", "unam", "pumas unam"] },
+  { name: "Deportivo Toluca", logo: "https://r2.thesportsdb.com/images/media/team/badge/sryuvv1422044675.png", aliases: ["toluca", "diablos rojos"] },
+  { name: "CF Pachuca", logo: "https://r2.thesportsdb.com/images/media/team/badge/upryty1422044646.png", aliases: ["pachuca", "tuzos"] },
+  { name: "Santos Laguna", logo: "https://r2.thesportsdb.com/images/media/team/badge/vrqyyy1422044618.png", aliases: ["santos laguna", "guerreros"] },
+  { name: "Atlas FC", logo: "https://r2.thesportsdb.com/images/media/team/badge/vrxtvy1422044589.png", aliases: ["atlas", "zorros"] },
+  { name: "Club Tijuana", logo: "https://r2.thesportsdb.com/images/media/team/badge/tyttux1422044560.png", aliases: ["tijuana", "xolos"] },
+  { name: "Club Leon", logo: "https://r2.thesportsdb.com/images/media/team/badge/swxstq1422044531.png", aliases: ["leon", "la fiera"] },
+  { name: "Club Puebla", logo: "https://r2.thesportsdb.com/images/media/team/badge/vxxsws1422044502.png", aliases: ["puebla", "la franja"] },
 ];
 
 // Xây dựng bảng tra cứu O(1)

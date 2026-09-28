@@ -53,6 +53,10 @@ export function VietnamTodayCard({ info, onOpenModal }: VietnamTodayCardProps) {
   const [imageError, setImageError] = useState(false);
   const { event, isToday, badgeLabel, badgeSub } = info;
 
+  React.useEffect(() => {
+    setImageError(false);
+  }, [event.id, event.imageUrl]);
+
   const accentGradient = event.accentGradient || "from-amber-600/30 via-red-600/20 to-zinc-950";
 
   const holidayBorderClass = (() => {
@@ -98,9 +102,14 @@ export function VietnamTodayCard({ info, onOpenModal }: VietnamTodayCardProps) {
         {!imageError && event.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
+            key={event.imageUrl}
             src={event.imageUrl}
-            alt={event.title}
-            onError={() => setImageError(true)}
+            alt=""
+            aria-hidden="true"
+            onError={(e) => {
+              setImageError(true);
+              e.currentTarget.style.display = "none";
+            }}
             className="w-full h-full object-cover object-center filter brightness-[0.55] contrast-105 transition-transform duration-700 ease-out group-hover:scale-105"
           />
         ) : (

@@ -1,12 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { movieApi } from "@/services/movieApi";
 import { cacheService } from "@/lib/cache";
-import { checkDistributedRateLimit, getClientIp } from "@/lib/security";
+import { verifyServerAuth } from "@/lib/serverAuth";
+import {
+  evaluateRateLimit,
+  hashClientIp,
+  isEntityBlocked,
+  recordSecurityViolation,
+} from "@/services/securityRiskService";
 import { SuggestionCard, MatchOptions, ConciergeApiResponse, CacheEntry, SearchIntent } from "./types";
 import {
   CACHE_TTL_MS,
   MAX_CACHE_ENTRIES,
-  RATE_LIMIT_MAX_REQUESTS,
+  GUEST_AI_REQUEST_LIMIT,
+  TOTAL_REQUEST_LIMIT,
+  RATE_LIMIT_WINDOW_SECONDS,
 } from "./constants";
 import {
   cleanNormalizedString,
@@ -92,20 +100,66 @@ function normalizeExcludeSlugs(slugs: unknown[]): string[] {
 // ============================================================================
 export async function POST(req: NextRequest) {
   try {
-    const clientIp = getClientIp(req);
-    const rateLimit = await checkDistributedRateLimit(`ai_concierge_${clientIp}`, RATE_LIMIT_MAX_REQUESTS, 60);
+    // 1. Identify client (user:${userId} > guest:${anonymousId} > ip:${ipHash})
+    const auth = await verifyServerAuth(req);
+    const isUser = auth.isAuthenticated && Boolean(auth.userId);
+    const userId = isUser ? auth.userId : undefined;
+    const anonymousId = req.headers.get("x-anonymous-id") || undefined;
+    const forwarded = req.headers.get("x-forwarded-for");
+    const rawIp = forwarded ? forwarded.split(",")[0].trim() : "127.0.0.1";
+    const ipHash = hashClientIp(rawIp);
+
+    // 2. Check if entity is currently temporary blocked (Risk >= 60)
+    const blockedCheck = await isEntityBlocked({ userId, anonymousId, ipHash });
+    if (blockedCheck.isBlocked) {
+      return NextResponse.json(
+        {
+          error: "Hệ thống phát hiện tần suất gửi yêu cầu bất thường. Để bảo vệ kết nối, tính năng tạm dừng trong ít phút. Vui lòng thử lại sau.",
+        },
+        { status: 429 }
+      );
+    }
+
+    // 3. Evaluate Rate Limit using Upstash Redis (Cross-instance)
+    // Limits: Logged-in User = 30 req / 60s, Guest = 30 req / 60s (Total limit)
+    // Guest AI quota = 10 req / 60s (req 11-30 will route directly to Local Heuristic Fallback without calling AI)
+    const windowSeconds = RATE_LIMIT_WINDOW_SECONDS;
+    const rateLimit = await evaluateRateLimit({
+      userId,
+      anonymousId,
+      ipHash,
+      actionKey: "ai_concierge",
+      maxRequests: TOTAL_REQUEST_LIMIT,
+      windowSeconds,
+    });
 
     if (!rateLimit.allowed) {
+      // Record violation in Security Center
+      recordSecurityViolation({
+        userId,
+        userEmail: auth.email,
+        userDisplayName: auth.displayName,
+        anonymousId,
+        ipHash,
+        violationType: "rapid_requests",
+        reason: `Vượt giới hạn gửi yêu cầu AI Concierge (${rateLimit.currentCount}/${TOTAL_REQUEST_LIMIT} req trong ${windowSeconds}s)`,
+        endpoint: "/api/ai-concierge",
+        method: "POST",
+      }).catch(() => {});
+
       return NextResponse.json(
         {
           error: "Bạn đang gửi yêu cầu quá nhanh. Vui lòng chờ 30 giây rồi thử lại để bảo vệ hệ thống.",
         },
         {
           status: 429,
-          headers: { "Retry-After": String(rateLimit.resetSeconds) },
+          headers: { "Retry-After": "30" },
         }
       );
     }
+
+    // Determine if request should use Local Heuristic Fallback (Guest req 11–30)
+    const shouldUseLocalFallback = !isUser && rateLimit.currentCount > GUEST_AI_REQUEST_LIMIT;
 
     const t0_req = performance.now();
     let t_ai_ms = 0;
@@ -171,7 +225,12 @@ export async function POST(req: NextRequest) {
 
     // 2. Phân tích ngữ nghĩa & trích xuất ý định bằng AI (Kèm ngữ cảnh cuộc hội thoại)
     const t_ai_start = performance.now();
-    const { parsed: aiParsed, provider: aiProviderName } = await analyzeUserPrompt(prompt, userApiKey, conversationHistory);
+    const { parsed: aiParsed, provider: aiProviderName } = await analyzeUserPrompt(
+      prompt,
+      userApiKey,
+      conversationHistory,
+      { forceLocalFallback: shouldUseLocalFallback }
+    );
     t_ai_ms = Math.round(performance.now() - t_ai_start);
 
     // 3. Chuẩn hóa bộ lọc (Slugs & Constraints)

@@ -776,10 +776,21 @@ function LivePlayerInner({
   const [homeImgError, setHomeImgError] = useState(false);
   const [awayImgError, setAwayImgError] = useState(false);
 
+  const prevHomeLogoRef = useRef<string | undefined>(homeLogo);
+  const prevAwayLogoRef = useRef<string | undefined>(awayLogo);
+  const prevMatchIdRef2 = useRef<string | undefined>(match?.id);
+
   useEffect(() => {
-    setHomeImgError(false);
-    setAwayImgError(false);
-  }, [match?.id, team1, team2, homeLogo, awayLogo]);
+    if (prevMatchIdRef2.current !== match?.id || prevHomeLogoRef.current !== homeLogo) {
+      prevMatchIdRef2.current = match?.id;
+      prevHomeLogoRef.current = homeLogo;
+      setHomeImgError(false);
+    }
+    if (prevMatchIdRef2.current !== match?.id || prevAwayLogoRef.current !== awayLogo) {
+      prevAwayLogoRef.current = awayLogo;
+      setAwayImgError(false);
+    }
+  }, [match?.id, homeLogo, awayLogo]);
 
   // Tra cứu cờ quốc gia / logo CLB O(1) từ local mapping (đồng bộ 100% với MatchCard)
   const homeAsset = useMemo(() => getTeamAsset(team1), [team1]);
@@ -799,11 +810,13 @@ function LivePlayerInner({
   const homeFlagEmoji = homeAsset?.emoji || null;
   const awayFlagEmoji = awayAsset?.emoji || null;
 
-  // Logo ảnh: chỉ dùng nếu không có cờ emoji hoặc là CLB thuần logo
-  const homeLogoSrc =
-    !homeFlagEmoji && (validHomeLogo ? homeLogo : (!homeImgError && homeAsset?.logo ? homeAsset.logo : null));
-  const awayLogoSrc =
-    !awayFlagEmoji && (validAwayLogo ? awayLogo : (!awayImgError && awayAsset?.logo ? awayAsset.logo : null));
+  // Logo ảnh: Ưu tiên logo từ API; nếu lỗi hoặc không có thì thử logo từ dictionary; nếu không có thì fallback sang initials
+  const homeLogoSrc = !homeFlagEmoji
+    ? (validHomeLogo ? homeLogo : (homeAsset?.logo ? homeAsset.logo : null))
+    : null;
+  const awayLogoSrc = !awayFlagEmoji
+    ? (validAwayLogo ? awayLogo : (awayAsset?.logo ? awayAsset.logo : null))
+    : null;
 
   const volumeRef = useRef(volume);
   const isMutedRef = useRef(isMuted);
@@ -2387,14 +2400,18 @@ function LivePlayerInner({
                     ) : homeLogoSrc ? (
                       /* eslint-disable-next-line @next/next/no-img-element */
                       <img
+                        key={homeLogoSrc}
                         src={homeLogoSrc}
                         alt=""
                         className="w-full h-full object-contain filter drop-shadow-xl"
-                        onError={() => setHomeImgError(true)}
+                        onError={(e) => {
+                          setHomeImgError(true);
+                          e.currentTarget.style.display = "none";
+                        }}
                         referrerPolicy="no-referrer"
                       />
                     ) : (
-                      <div className="flex flex-col items-center justify-center w-full h-full bg-zinc-900/90 rounded-xl p-1 select-none">
+                      <div className="flex flex-col items-center justify-center w-full h-full bg-rose-500/10 rounded-xl p-1 select-none">
                         <span className="text-sm sm:text-base md:text-lg font-black text-rose-400 tracking-wider">
                           {getTeamInitials(team1)}
                         </span>
@@ -2435,14 +2452,18 @@ function LivePlayerInner({
                     ) : awayLogoSrc ? (
                       /* eslint-disable-next-line @next/next/no-img-element */
                       <img
+                        key={awayLogoSrc}
                         src={awayLogoSrc}
                         alt=""
                         className="w-full h-full object-contain filter drop-shadow-xl"
-                        onError={() => setAwayImgError(true)}
+                        onError={(e) => {
+                          setAwayImgError(true);
+                          e.currentTarget.style.display = "none";
+                        }}
                         referrerPolicy="no-referrer"
                       />
                     ) : (
-                      <div className="flex flex-col items-center justify-center w-full h-full bg-zinc-900/90 rounded-xl p-1 select-none">
+                      <div className="flex flex-col items-center justify-center w-full h-full bg-sky-500/10 rounded-xl p-1 select-none">
                         <span className="text-sm sm:text-base md:text-lg font-black text-sky-400 tracking-wider">
                           {getTeamInitials(team2)}
                         </span>

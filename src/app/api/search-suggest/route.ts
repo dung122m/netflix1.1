@@ -4,6 +4,7 @@ import { resolveActorMovies, isAmbiguousShortActorKeyword, hasExplicitActorPrefi
 import { pickBestMoviePoster, MovieLike } from "@/lib/movieMedia";
 import { normalizeForMatch } from "@/lib/stringUtils";
 import { cacheService } from "@/lib/cache";
+import { evaluateRateLimit, hashClientIp } from "@/services/securityRiskService";
 
 // TTL cho Search Suggest: 1 giờ (3600s), theo convention của Nanaflix
 const SUGGEST_CACHE_TTL_SECONDS = 3600;
@@ -16,6 +17,36 @@ export async function GET(req: NextRequest) {
     // Không tạo cache riêng cho search < 2 ký tự
     if (!keyword || keyword.length < 2) {
       return NextResponse.json({ items: [] });
+    }
+
+    // Rate Limit check via Upstash Redis (60 requests / 60s)
+    const anonymousId =
+      req.headers.get("x-anonymous-id") ||
+      searchParams.get("anonymousId") ||
+      undefined;
+    const forwarded = req.headers.get("x-forwarded-for");
+    const rawIp = forwarded ? forwarded.split(",")[0].trim() : "127.0.0.1";
+    const ipHash = hashClientIp(rawIp);
+
+    const rateLimit = await evaluateRateLimit({
+      anonymousId,
+      ipHash,
+      actionKey: "search_suggest",
+      maxRequests: 60,
+      windowSeconds: 60,
+    });
+
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        {
+          error: "Bạn đang gửi yêu cầu tìm kiếm quá nhanh. Vui lòng chờ giây lát.",
+          items: [],
+        },
+        {
+          status: 429,
+          headers: { "Retry-After": "10" },
+        }
+      );
     }
 
     const normKw = normalizeForMatch(keyword);

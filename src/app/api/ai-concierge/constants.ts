@@ -2,6 +2,9 @@ export const CACHE_TTL_MS = 2 * 60 * 60 * 1000; // 2 giờ
 export const MAX_CACHE_ENTRIES = 300;
 export const RATE_LIMIT_WINDOW_MS = 60_000;
 export const RATE_LIMIT_MAX_REQUESTS = 40;
+export const GUEST_AI_REQUEST_LIMIT = 10;
+export const TOTAL_REQUEST_LIMIT = 30;
+export const RATE_LIMIT_WINDOW_SECONDS = 60;
 export const MAX_DURATION = 15;
 
 // ============================================================================

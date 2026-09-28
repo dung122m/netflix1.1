@@ -122,6 +122,25 @@ export function LiveFootballClient({
       return defaultMatch;
     },
   );
+
+  // Luôn đồng bộ selectedMatch với bản ghi mới nhất trong liveMatches (chứa logo đã cập nhật và trạng thái mới)
+  useEffect(() => {
+    if (!selectedMatch) {
+      if (defaultMatch) setSelectedMatch(defaultMatch);
+      return;
+    }
+    const updated = liveMatches.find((m) => m.id === selectedMatch.id);
+    if (
+      updated &&
+      (updated.homeLogo !== selectedMatch.homeLogo ||
+        updated.awayLogo !== selectedMatch.awayLogo ||
+        updated.logo !== selectedMatch.logo ||
+        updated.timeline !== selectedMatch.timeline ||
+        updated.servers !== selectedMatch.servers)
+    ) {
+      setSelectedMatch(updated);
+    }
+  }, [liveMatches, defaultMatch, selectedMatch]);
   const [selectedFootballGroup, setSelectedFootballGroup] = useState<string>(
     () => searchParams.get("group") || "all",
   );
