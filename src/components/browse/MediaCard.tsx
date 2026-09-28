@@ -210,7 +210,6 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   // Hướng neo lề thông minh chống tràn mép màn hình (trái/phải/giữa)
   const cardRef = useRef<HTMLDivElement>(null);
   const baseCardRef = useRef<HTMLAnchorElement>(null);
-  const rafIdRef = useRef<number | null>(null);
   const [edgeOrigin, setEdgeOrigin] = useState<"left" | "right" | "center">("center");
   const [verticalShift, setVerticalShift] = useState(0);
 
@@ -265,7 +264,6 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       if (hoverIntentTimerRef.current) clearTimeout(hoverIntentTimerRef.current);
       if (trailerReadyTimerRef.current) clearTimeout(trailerReadyTimerRef.current);
       if (unmountTimerRef.current) clearTimeout(unmountTimerRef.current);
-      if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
       if (navTimeoutRef.current) clearTimeout(navTimeoutRef.current);
       if (activePreviewSlug === slug) {
         setActivePreview(null);
@@ -471,55 +469,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     }, 500);
   };
 
-  // 3D Tilt & Lighting Effect (Desktop pointer movement)
-  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (e.pointerType !== "mouse") return;
-    if (!isDesktopWithHover()) return;
-    const card = baseCardRef.current;
-    if (!card) return;
 
-    if (rafIdRef.current) {
-      cancelAnimationFrame(rafIdRef.current);
-    }
-
-    const clientX = e.clientX;
-    const clientY = e.clientY;
-
-    rafIdRef.current = requestAnimationFrame(() => {
-      const rect = card.getBoundingClientRect();
-      if (rect.width <= 0 || rect.height <= 0) return;
-
-      const x = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-      const y = Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
-
-      // Góc nghiêng nhẹ nhàng tinh tế: 2.5° đến 3.25°
-      const tiltX = ((0.5 - y) * 5.5).toFixed(2); // ±2.75 deg
-      const tiltY = ((x - 0.5) * 6.5).toFixed(2); // ±3.25 deg
-
-      card.style.setProperty("--tilt-x", `${tiltX}deg`);
-      card.style.setProperty("--tilt-y", `${tiltY}deg`);
-      card.style.setProperty("--mouse-x", `${(x * 100).toFixed(1)}%`);
-      card.style.setProperty("--mouse-y", `${(y * 100).toFixed(1)}%`);
-      card.style.setProperty("--spot-opacity", "1");
-      card.style.setProperty("--card-scale", "1.04");
-    });
-  };
-
-  const handlePointerLeave = () => {
-    if (rafIdRef.current) {
-      cancelAnimationFrame(rafIdRef.current);
-      rafIdRef.current = null;
-    }
-    const card = baseCardRef.current;
-    if (card) {
-      card.style.setProperty("--tilt-x", "0deg");
-      card.style.setProperty("--tilt-y", "0deg");
-      card.style.setProperty("--mouse-x", "50%");
-      card.style.setProperty("--mouse-y", "50%");
-      card.style.setProperty("--spot-opacity", "0");
-      card.style.setProperty("--card-scale", "1");
-    }
-  };
 
   const handleMouseLeave = () => {
     // Hủy ngay lập tức hover-intent nếu người dùng rời chuột trước khi đủ 500ms
@@ -548,7 +498,6 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     }
     setIsCardHovered(false);
     setVerticalShift(0);
-    handlePointerLeave();
   };
 
   const handleToggleList = (e: React.MouseEvent) => {
@@ -675,8 +624,6 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       }`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      onPointerMove={handlePointerMove}
-      onPointerLeave={handlePointerLeave}
     >
       {/* ============================================================ */}
       {/* 1. BASE CARD (Trạng thái tĩnh: Chuẩn Poster đứng 2:3 trên Mobile & 16:9 trên Desktop) */}
@@ -686,7 +633,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         href={`/movies/${slug}`}
         onClick={handleCardClick}
         tabIndex={0}
-        className={`movie-card-3d group/card block w-full h-full rounded-2xl overflow-hidden bg-zinc-950 border relative transition-all duration-200 shadow-md outline-none focus-visible:ring-4 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-[1.05] focus-visible:shadow-[0_0_35px_rgba(229,9,20,0.6)] focus-visible:border-white/90 focus-visible:z-40 ${
+        className={`group/card block w-full h-full rounded-2xl overflow-hidden bg-zinc-950 border relative transition-all duration-200 shadow-md outline-none focus-visible:ring-4 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-[1.05] focus-visible:shadow-[0_0_35px_rgba(229,9,20,0.6)] focus-visible:border-white/90 focus-visible:z-40 ${
           isNavigating
             ? "movie-card-navigating"
             : isCardHovered
@@ -717,17 +664,6 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           quality={80}
           onLoad={() => setIsImageLoaded(true)}
           onError={handleImageError}
-        />
-
-        {/* Lớp ánh sáng Radial Highlight dịu nhẹ theo vị trí con trỏ chuột */}
-        <div
-          className="pointer-events-none absolute inset-0 z-20 rounded-2xl transition-opacity duration-200"
-          style={{
-            opacity: "var(--spot-opacity, 0)",
-            background:
-              "radial-gradient(circle 220px at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(255, 255, 255, 0.14), transparent 70%)",
-          }}
-          aria-hidden="true"
         />
 
         {/* 1. GÓC TRÊN TRÁI: DÀNH CHO LOẠI PHIM (PHIM BỘ, PHIM LẺ, PHIM RẠP, HOẠT HÌNH) */}

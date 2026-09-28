@@ -130,59 +130,8 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
 
 
   const heroRef = useRef<HTMLElement>(null);
-  const spotlightRef = useRef<HTMLDivElement>(null);
-  const spotRafIdRef = useRef<number | null>(null);
   const [isHeroVisible, setIsHeroVisible] = useState(true);
   const isUserActionRef = useRef(false);
-
-  // Hero Spotlight theo con trỏ chuột (Desktop only, 60fps RAF, direct DOM style)
-  const handlePointerMove = useCallback((e: React.PointerEvent<HTMLElement>) => {
-    if (e.pointerType !== "mouse") return;
-    if (!isDesktopWithHover()) return;
-    const heroEl = heroRef.current;
-    if (!heroEl) return;
-
-    if (spotRafIdRef.current) {
-      cancelAnimationFrame(spotRafIdRef.current);
-    }
-
-    const clientX = e.clientX;
-    const clientY = e.clientY;
-
-    spotRafIdRef.current = requestAnimationFrame(() => {
-      const rect = heroEl.getBoundingClientRect();
-      if (rect.width <= 0 || rect.height <= 0) return;
-
-      const x = Math.max(0, Math.min(rect.width, clientX - rect.left));
-      const y = Math.max(0, Math.min(rect.height, clientY - rect.top));
-
-      const spotEl = spotlightRef.current;
-      if (spotEl) {
-        spotEl.style.setProperty("--hero-mouse-x", `${x.toFixed(1)}px`);
-        spotEl.style.setProperty("--hero-mouse-y", `${y.toFixed(1)}px`);
-        spotEl.style.setProperty("--hero-spot-opacity", "1");
-      }
-    });
-  }, []);
-
-  const handlePointerLeave = useCallback(() => {
-    if (spotRafIdRef.current) {
-      cancelAnimationFrame(spotRafIdRef.current);
-      spotRafIdRef.current = null;
-    }
-    const spotEl = spotlightRef.current;
-    if (spotEl) {
-      spotEl.style.setProperty("--hero-spot-opacity", "0");
-    }
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (spotRafIdRef.current) {
-        cancelAnimationFrame(spotRafIdRef.current);
-      }
-    };
-  }, []);
 
   useEffect(() => {
     const el = heroRef.current;
@@ -598,12 +547,7 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
       ref={heroRef}
       className="hero-cinema-section keep-dark-cinema relative h-[58vh] sm:h-[75vh] md:h-[82vh] min-h-[460px] sm:min-h-[540px] max-h-[850px] w-full overflow-hidden bg-black select-none"
       onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => {
-        setPaused(false);
-        handlePointerLeave();
-      }}
-      onPointerMove={handlePointerMove}
-      onPointerLeave={handlePointerLeave}
+      onMouseLeave={() => setPaused(false)}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
@@ -699,18 +643,6 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
       <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-black via-black/45 to-transparent pointer-events-none z-[1]" />
       {/* Gradient mép trên thanh header */}
       <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/70 to-transparent pointer-events-none z-[1]" />
-
-      {/* 2.1 HERO SPOTLIGHT THEO CON TRỎ CHUỘT (DESKTOP CHỈNH CHU, 340PX SOFT LIGHT) */}
-      <div
-        ref={spotlightRef}
-        className="hero-spotlight-layer pointer-events-none absolute inset-0 z-[2] transition-opacity duration-500"
-        style={{
-          opacity: "var(--hero-spot-opacity, 0)",
-          background:
-            "radial-gradient(340px circle at var(--hero-mouse-x, 50%) var(--hero-mouse-y, 50%), rgba(255, 255, 255, 0.08), rgba(229, 9, 20, 0.03) 40%, transparent 75%)",
-        }}
-        aria-hidden="true"
-      />
 
       {/* 3. NỘI DUNG CHÍNH (TYPOGRAPHY, BADGES & CTA BUTTONS) */}
       <motion.div

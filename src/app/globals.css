@@ -1071,34 +1071,7 @@ html[data-mode="dark"] .live-channel-active .live-channel-title {
   backface-visibility: hidden;
 }
 
-/* ==========================================================================
-   CINEMATIC 3D MOVIE CARD HOVER EFFECT (DESKTOP ONLY)
-   ========================================================================== */
-@media (hover: hover) and (pointer: fine) {
-  .movie-card-3d {
-    transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 220ms ease, border-color 220ms ease;
-    transform: perspective(900px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) scale3d(var(--card-scale, 1), var(--card-scale, 1), 1);
-    transform-style: preserve-3d;
-    will-change: transform, box-shadow;
-  }
-}
 
-@media (prefers-reduced-motion: reduce) {
-  .movie-card-3d {
-    transition: none !important;
-    transform: none !important;
-  }
-}
-
-/* ==========================================================================
-   HERO SPOTLIGHT EFFECT (DESKTOP ONLY)
-   ========================================================================== */
-@media (hover: hover) and (pointer: fine) {
-  .hero-spotlight-layer {
-    will-change: opacity, background;
-    transition: opacity 400ms ease-out;
-  }
-}
 
 /* ==========================================================================
    CINEMATIC MOVIE CARD CLICK & PAGE EXPANSION TRANSITION
