@@ -38,6 +38,7 @@ export function getYoutubeTrailerEmbedUrl(
     playsinline: "1",
     rel: "0",
     iv_load_policy: "3",
+    cc_load_policy: "0",
     disablekb: "1",
     enablejsapi: "1",
   });

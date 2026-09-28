@@ -22,7 +22,7 @@ function getYoutubeEmbedUrl(url: string): string | null {
   }
   const videoId = extractYoutubeId(url);
   if (!videoId) return null;
-  return `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=0&controls=1&rel=0`;
+  return `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=0&controls=1&rel=0&iv_load_policy=3&cc_load_policy=0`;
 }
 
 export const TrailerModal: React.FC<TrailerModalProps> = React.memo(
@@ -94,14 +94,14 @@ export const TrailerModal: React.FC<TrailerModalProps> = React.memo(
           createPortal(
             <div
               onClick={handleClose}
-              className="fixed inset-0 z-[99999] bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200 overflow-y-auto overscroll-contain"
+              className="fixed inset-0 z-[99999] bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200 overflow-y-auto overscroll-none touch-none"
             >
               <div
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="trailer-modal-title"
                 onClick={(e) => e.stopPropagation()}
-                className="relative w-full max-w-4xl my-auto bg-zinc-950 rounded-2xl sm:rounded-3xl overflow-hidden border border-white/20 shadow-[0_25px_70px_rgba(0,0,0,0.95)] animate-in zoom-in-95 duration-200 transform-gpu will-change-[transform,opacity]"
+                className="relative w-full max-w-4xl my-auto bg-zinc-950 rounded-2xl sm:rounded-3xl overflow-hidden border border-white/20 shadow-[0_25px_70px_rgba(0,0,0,0.95)] animate-in zoom-in-95 duration-200 transform-gpu will-change-[transform,opacity] overscroll-contain"
               >
                 {/* MODAL HEADER */}
                 <div className="flex items-center justify-between px-4 sm:px-5 py-3.5 border-b border-white/10 bg-zinc-900/70">
@@ -125,11 +125,12 @@ export const TrailerModal: React.FC<TrailerModalProps> = React.memo(
                 </div>
 
                 {/* VIDEO IFRAME */}
-                <div className="relative aspect-video w-full bg-black">
+                <div translate="no" className="notranslate relative aspect-video w-full bg-black">
                   <iframe
                     src={embedUrl}
+                    translate="no"
                     title={`Trailer ${title}`}
-                    className="w-full h-full border-0"
+                    className="notranslate w-full h-full border-0"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
                     allowFullScreen
                   />

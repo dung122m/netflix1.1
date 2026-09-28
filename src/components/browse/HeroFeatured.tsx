@@ -653,26 +653,33 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
       {/* 1.1 TRAILER CHẠY NỀN TRÊN DESKTOP (LAZY-LOAD SAU 2S, TỰ ĐỘNG PHÁT MUTED, FADE-IN PHÍA TRÊN POSTER) */}
       {isDesktop && activeTrailerEmbedUrl && !failedTrailerMap[currentSlug || ""] && (
         <div
-          className={`absolute inset-0 z-0 overflow-hidden pointer-events-none transition-opacity duration-1000 [container-type:size] ${
+          translate="no"
+          className={`notranslate absolute inset-0 z-0 overflow-hidden pointer-events-none transition-opacity duration-1000 [container-type:size] ${
             isTrailerReady ? "opacity-100" : "opacity-0"
           }`}
         >
           <iframe
             ref={heroIframeRef}
             src={activeTrailerEmbedUrl}
+            translate="no"
             style={{
               width: "max(100cqw, 177.78cqh)",
               height: "max(100cqh, 56.25cqw)",
               minWidth: "100%",
               minHeight: "100%",
             }}
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 scale-[1.12] max-w-none border-0 object-cover pointer-events-none select-none"
+            className="notranslate absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 scale-[1.12] max-w-none border-0 object-cover pointer-events-none select-none"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             title={`Trailer ${title}`}
             onLoad={() => {
               try {
                 heroIframeRef.current?.contentWindow?.postMessage(
                   JSON.stringify({ event: "listening" }),
+                  "*"
+                );
+                // Gửi lệnh tắt phụ đề/captions trong player API YouTube
+                heroIframeRef.current?.contentWindow?.postMessage(
+                  JSON.stringify({ event: "command", func: "unloadModule", args: ["captions"] }),
                   "*"
                 );
               } catch {}

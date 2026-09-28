@@ -56,11 +56,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, customTit
   return createPortal(
     <div
       onClick={onClose}
-      className="fixed inset-0 z-[99999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-150 overflow-y-auto overscroll-contain"
+      className="fixed inset-0 z-[99999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-150 overflow-y-auto overscroll-none touch-none"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-sm sm:max-w-md bg-zinc-950 border border-white/10 rounded-2xl p-6 sm:p-8 shadow-2xl relative overflow-hidden space-y-6 transform-gpu will-change-[transform,opacity] animate-in zoom-in-95 duration-150 my-auto"
+        className="w-full max-w-sm sm:max-w-md bg-zinc-950 border border-white/10 rounded-2xl p-6 sm:p-8 shadow-2xl relative overflow-hidden space-y-6 transform-gpu will-change-[transform,opacity] animate-in zoom-in-95 duration-150 my-auto overscroll-contain"
       >
         {/* Glow đỏ nhẹ background */}
         <div className="absolute -top-20 -left-20 w-40 h-40 bg-netflix-red/15 rounded-full blur-3xl pointer-events-none" />

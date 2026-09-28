@@ -47,10 +47,8 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
   isOpen,
   onClose,
   onOpenAuthModal,
-  onOpenNotifications,
   navLinks,
   isLinkActive,
-  userUnreadCount,
 }) {
   const { user, loading, logout } = useAuth();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -83,11 +81,18 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
   const effectiveDisplayName = userProfile?.displayName || user?.displayName || "Hồ sơ";
 
   return (
-    <div
-      data-mobile-menu
-      className="lg:hidden border-t border-white/10 bg-black/98 backdrop-blur-2xl px-3.5 py-3 animate-in slide-in-from-top duration-200 overflow-y-auto shadow-2xl overscroll-contain max-h-[calc(100dvh-3.5rem-env(safe-area-inset-bottom,0px))] pb-20"
-      style={{ WebkitOverflowScrolling: "touch" }}
-    >
+    <>
+      {/* BACKDROP: Phủ toàn bộ màn hình phía dưới Navbar, trên page content nhưng dưới menu */}
+      <div
+        className="fixed inset-0 top-[52px] sm:top-[60px] bg-black/70 backdrop-blur-sm z-40 overscroll-none touch-none lg:hidden animate-in fade-in duration-150"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      <div
+        data-mobile-menu
+        className="relative z-50 lg:hidden border-t border-white/10 bg-black/98 backdrop-blur-2xl px-3.5 py-3 animate-in slide-in-from-top duration-200 overflow-y-auto shadow-2xl overscroll-contain max-h-[calc(100dvh-3.5rem-env(safe-area-inset-bottom,0px))] pb-20"
+        style={{ WebkitOverflowScrolling: "touch" }}
+      >
       <div className="flex flex-col gap-2">
         {/* TÀI KHOẢN NGƯỜI DÙNG */}
         <div className="p-3 rounded-2xl bg-white/[0.04] border border-white/10">
@@ -350,5 +355,6 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
         </div>
       </div>
     </div>
+    </>
   );
 });

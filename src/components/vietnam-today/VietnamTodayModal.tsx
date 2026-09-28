@@ -129,14 +129,14 @@ export function VietnamTodayModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150"
+      className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150 overscroll-none touch-none"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-labelledby="vietnam-event-title"
     >
       <div
-        className="relative w-full max-w-2xl max-h-[92vh] bg-zinc-950 border border-white/10 rounded-2xl shadow-2xl shadow-black/80 overflow-hidden flex flex-col my-auto transform-gpu will-change-[transform,opacity] animate-in zoom-in-95 duration-150"
+        className="relative w-full max-w-2xl max-h-[92vh] bg-zinc-950 border border-white/10 rounded-2xl shadow-2xl shadow-black/80 overflow-hidden flex flex-col my-auto transform-gpu will-change-[transform,opacity] animate-in zoom-in-95 duration-150 overscroll-contain"
         onClick={(e) => e.stopPropagation()}
       >
         {/* TOP TAB SWITCHER (Rendered when both Holiday & History are available) */}
@@ -314,7 +314,7 @@ export function VietnamTodayModal({
             {/* MODAL CONTENT BODY - SCROLLABLE */}
             <div
               ref={contentScrollRef}
-              className="p-4 sm:p-6 overflow-y-auto space-y-4 sm:space-y-5 text-zinc-300 text-sm leading-relaxed custom-scrollbar"
+              className="p-4 sm:p-6 overflow-y-auto space-y-4 sm:space-y-5 text-zinc-300 text-sm leading-relaxed custom-scrollbar overscroll-contain"
             >
               {/* Quick summary */}
               <div className="p-3.5 rounded-xl bg-white/[0.04] border border-white/10 text-zinc-200 font-medium">
@@ -479,7 +479,7 @@ export function VietnamTodayModal({
         {activeTab === "history" && currentHist && (
           <div
             ref={contentScrollRef}
-            className="p-4 sm:p-6 overflow-y-auto space-y-4 sm:space-y-5 text-zinc-300 text-sm leading-relaxed custom-scrollbar flex-1"
+            className="p-4 sm:p-6 overflow-y-auto space-y-4 sm:space-y-5 text-zinc-300 text-sm leading-relaxed custom-scrollbar flex-1 overscroll-contain"
           >
             {/* HISTORICAL HEADER BANNER */}
             <div className="flex items-center justify-between gap-2 pb-1 border-b border-white/10">

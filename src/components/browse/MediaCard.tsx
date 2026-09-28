@@ -340,7 +340,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   const displayYear = year || "";
   const displayTime = time || "";
 
-  // Hover Intent: Chỉ kích hoạt mở rộng thẻ & tải trailer preview sau 700ms người dùng thực sự dừng chuột liên tục
+  // Hover Intent: Chỉ kích hoạt mở rộng thẻ & tải trailer preview sau 500ms người dùng thực sự dừng chuột liên tục
   const handleMouseEnter = () => {
     // Chỉ kích hoạt trên thiết bị desktop có hover chuột (loại bỏ hoàn toàn mobile/touch)
     if (!isDesktopWithHover()) {
@@ -419,7 +419,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         }
       }
 
-      // 3. Tải thông tin chi tiết (Metadata & Trailer) sau 700ms nếu chưa có trong cache
+      // 3. Tải thông tin chi tiết (Metadata & Trailer) sau 500ms nếu chưa có trong cache
       const needsMetadata = (!currentSynopsis || !extraInfo.actor?.length) && slug;
       const needsTrailer = !currentTUrl && slug && !trailerFailed;
 
@@ -468,7 +468,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           }
         })();
       }
-    }, 700);
+    }, 500);
   };
 
   // 3D Tilt & Lighting Effect (Desktop pointer movement)
@@ -522,7 +522,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   };
 
   const handleMouseLeave = () => {
-    // Hủy ngay lập tức hover-intent nếu người dùng rời chuột trước khi đủ 700ms
+    // Hủy ngay lập tức hover-intent nếu người dùng rời chuột trước khi đủ 500ms
     if (hoverIntentTimerRef.current) {
       clearTimeout(hoverIntentTimerRef.current);
       hoverIntentTimerRef.current = null;
@@ -833,20 +833,27 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
                 {/* Video Trailer Preview tự động chạy - Poster luôn nằm dưới, trailer fade-in khi sẵn sàng */}
                 {isPlayingTrailer && embedTrailerUrl && !trailerFailed && (
                   <div
-                    className={`absolute inset-0 z-0 bg-black overflow-hidden pointer-events-none transition-opacity duration-500 flex items-center justify-center ${
+                    translate="no"
+                    className={`notranslate absolute inset-0 z-0 bg-black overflow-hidden pointer-events-none transition-opacity duration-500 flex items-center justify-center ${
                       isTrailerReady ? "opacity-100" : "opacity-0"
                     }`}
                   >
                     <iframe
                       ref={cardIframeRef}
                       src={embedTrailerUrl}
-                      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%] max-w-none border-0 pointer-events-none select-none"
+                      translate="no"
+                      className="notranslate absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%] max-w-none border-0 pointer-events-none select-none"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                       title={`Preview ${title}`}
                       onLoad={() => {
                         try {
                           cardIframeRef.current?.contentWindow?.postMessage(
                             JSON.stringify({ event: "listening" }),
+                            "*"
+                          );
+                          // Gửi lệnh tắt phụ đề/captions trong player API YouTube
+                          cardIframeRef.current?.contentWindow?.postMessage(
+                            JSON.stringify({ event: "command", func: "unloadModule", args: ["captions"] }),
                             "*"
                           );
                         } catch {}

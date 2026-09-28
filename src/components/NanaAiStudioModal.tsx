@@ -528,11 +528,11 @@ export const NanaAiStudioModal: React.FC<NanaAiStudioModalProps> = ({
   return (
     <div
       onClick={() => setIsOpen(false)}
-      className="fixed inset-0 z-[120] bg-black/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-y-auto overscroll-contain animate-in fade-in duration-150"
+      className="fixed inset-0 z-[120] bg-black/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-y-auto overscroll-none touch-none animate-in fade-in duration-150"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className={`relative w-full max-w-3xl h-[88dvh] max-h-[760px] sm:min-h-[500px] bg-zinc-950 rounded-2xl sm:rounded-3xl border shadow-2xl flex flex-col overflow-hidden transform-gpu will-change-[transform,opacity] animate-in zoom-in-95 duration-150 ${
+        className={`relative w-full max-w-3xl h-[88dvh] max-h-[760px] sm:min-h-[500px] bg-zinc-950 rounded-2xl sm:rounded-3xl border shadow-2xl flex flex-col overflow-hidden transform-gpu will-change-[transform,opacity] animate-in zoom-in-95 duration-150 overscroll-contain ${
           activeTab === "concierge"
             ? "border-pink-500/30 shadow-pink-950/40"
             : "border-amber-500/35 shadow-amber-950/40"
