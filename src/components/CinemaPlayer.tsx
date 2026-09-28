@@ -27,7 +27,7 @@ import { formatEpisodeName } from "@/lib/formatEpisode";
 import { useAuth } from "@/context/AuthContext";
 import { updateActivePlaybackSession } from "@/services/handoffService";
 import { incrementUserWatchTime, getPlayerSettings, PlayerSettings } from "@/services/userService";
-import { PlayerNativeControls } from "./player/PlayerNativeControls";
+import { PlayerNativeControls, SeekBack10Icon, SeekForward10Icon } from "./player/PlayerNativeControls";
 import { PlayerActionButtons } from "./player/PlayerActionButtons";
 import { PlayerShortcutModal } from "./player/PlayerShortcutModal";
 import { trackWatchStart, trackWatchProgress, trackWatchEnd } from "@/lib/analyticsClient";
@@ -109,6 +109,15 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const [qualityLevels, setQualityLevels] = useState<Array<{ id: number; label: string; height: number }>>([]);
   const [currentQualityIndex, setCurrentQualityIndex] = useState<number>(-1);
   const [knownDuration, setKnownDuration] = useState<number>(0);
+
+  // Double-tap on mobile seek state & timer
+  const lastTapRef = useRef<{ time: number; x: number; y: number } | null>(null);
+  const singleTapTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [doubleTapFeedback, setDoubleTapFeedback] = useState<{
+    side: "left" | "right";
+    delta: number;
+  } | null>(null);
+  const doubleTapFeedbackTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const current = getPlayerSettings(user?.uid);
@@ -1140,9 +1149,9 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           pendingKeyboardSeekRef.current.totalDelta = newTotalDelta;
 
           if (newTotalDelta > 0) {
-            showHud(<SkipForward className="w-5 h-5 text-netflix-red fill-current" />, `Tua tới +${newTotalDelta}s`);
+            showHud(<SeekForward10Icon className="w-5 h-5 text-netflix-red" />, `Tua tới +${newTotalDelta}s`);
           } else {
-            showHud(<SkipBack className="w-5 h-5 text-netflix-red fill-current" />, `Tua lùi ${newTotalDelta}s`);
+            showHud(<SeekBack10Icon className="w-5 h-5 text-netflix-red" />, `Tua lùi ${newTotalDelta}s`);
           }
 
           if (pendingKeyboardSeekRef.current.timer) {
@@ -1199,6 +1208,12 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     return () => {
       if (pendingSeek.timer) {
         clearTimeout(pendingSeek.timer);
+      }
+      if (singleTapTimerRef.current) {
+        clearTimeout(singleTapTimerRef.current);
+      }
+      if (doubleTapFeedbackTimerRef.current) {
+        clearTimeout(doubleTapFeedbackTimerRef.current);
       }
       window.removeEventListener("keydown", handleKeyDown);
     };
@@ -1306,15 +1321,83 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
               className={`w-full h-full relative ${
                 showControls || !isPlaying ? "cursor-pointer" : "cursor-none"
               }`}
-              onClick={() => {
-                if (!showControls && isPlaying) {
-                  setShowControls(true);
-                  resetControlsTimeout();
+              onClick={(e) => {
+                // If click is inside controls, do nothing
+                const target = e.target as HTMLElement | null;
+                if (target?.closest('[data-player-control="true"]')) {
                   return;
                 }
-                togglePlayPause();
+
+                const now = Date.now();
+                const rect = e.currentTarget.getBoundingClientRect();
+                if (rect.width <= 0 || rect.height <= 0) return;
+
+                const x = e.clientX - rect.left;
+                const xPct = x / rect.width;
+                const lastTap = lastTapRef.current;
+
+                // Check if double tap: within 320ms and within 90px
+                if (lastTap && now - lastTap.time < 320 && Math.abs(e.clientX - lastTap.x) < 90) {
+                  // DOUBLE TAP DETECTED
+                  if (singleTapTimerRef.current) {
+                    clearTimeout(singleTapTimerRef.current);
+                    singleTapTimerRef.current = null;
+                  }
+                  lastTapRef.current = null;
+
+                  if (xPct <= 0.42) {
+                    // TUA LÙI 10 GIÂY
+                    if (videoRef.current) {
+                      videoRef.current.currentTime = Math.max(0, videoRef.current.currentTime - 10);
+                    }
+                    showHud(<SeekBack10Icon className="w-5 h-5 text-netflix-red" />, "Tua lùi -10s");
+                    setDoubleTapFeedback({ side: "left", delta: -10 });
+                    if (doubleTapFeedbackTimerRef.current) clearTimeout(doubleTapFeedbackTimerRef.current);
+                    doubleTapFeedbackTimerRef.current = setTimeout(() => {
+                      setDoubleTapFeedback(null);
+                    }, 650);
+                  } else if (xPct >= 0.58) {
+                    // TUA TỚI 10 GIÂY
+                    if (videoRef.current) {
+                      const effectiveDuration = getEffectiveDuration();
+                      videoRef.current.currentTime =
+                        effectiveDuration > 0
+                          ? Math.min(effectiveDuration, (videoRef.current.currentTime || 0) + 10)
+                          : (videoRef.current.currentTime || 0) + 10;
+                    }
+                    showHud(<SeekForward10Icon className="w-5 h-5 text-netflix-red" />, "Tua tới +10s");
+                    setDoubleTapFeedback({ side: "right", delta: 10 });
+                    if (doubleTapFeedbackTimerRef.current) clearTimeout(doubleTapFeedbackTimerRef.current);
+                    doubleTapFeedbackTimerRef.current = setTimeout(() => {
+                      setDoubleTapFeedback(null);
+                    }, 650);
+                  } else {
+                    // Chạm đúp ở giữa (center)
+                    if (typeof window !== "undefined" && window.matchMedia && window.matchMedia("(pointer: fine)").matches) {
+                      toggleFullscreen();
+                    } else {
+                      togglePlayPause();
+                    }
+                  }
+                  resetControlsTimeout();
+                } else {
+                  // FIRST TAP: Schedule single-tap action after 260ms
+                  lastTapRef.current = { time: now, x: e.clientX, y: e.clientY };
+                  if (singleTapTimerRef.current) {
+                    clearTimeout(singleTapTimerRef.current);
+                  }
+                  singleTapTimerRef.current = setTimeout(() => {
+                    singleTapTimerRef.current = null;
+                    if (!showControls && isPlaying) {
+                      setShowControls(true);
+                      resetControlsTimeout();
+                      return;
+                    }
+                    togglePlayPause();
+                  }, 260);
+                  resetControlsTimeout();
+                }
               }}
-              onDoubleClick={toggleFullscreen}
               onMouseMove={resetControlsTimeout}
               onPointerMove={resetControlsTimeout}
               onTouchStart={resetControlsTimeout}
@@ -1327,6 +1410,24 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 autoPlay
                 preload="auto"
               />
+
+              {/* DOUBLE TAP RIPPLE EFFECT (YOUTUBE / NETFLIX STYLE) */}
+              {doubleTapFeedback && doubleTapFeedback.side === "left" && (
+                <div className="absolute inset-y-0 left-0 w-[42%] flex flex-col items-center justify-center bg-white/10 rounded-r-full pointer-events-none z-30 animate-in fade-in zoom-in-95 duration-200 backdrop-blur-[2px]">
+                  <div className="p-3.5 rounded-full bg-black/75 border border-white/20 text-white shadow-2xl flex flex-col items-center animate-pulse">
+                    <SeekBack10Icon className="w-8 h-8 text-white" />
+                    <span className="text-[11px] font-black tracking-wider text-white mt-1">-10 giây</span>
+                  </div>
+                </div>
+              )}
+              {doubleTapFeedback && doubleTapFeedback.side === "right" && (
+                <div className="absolute inset-y-0 right-0 w-[42%] flex flex-col items-center justify-center bg-white/10 rounded-l-full pointer-events-none z-30 animate-in fade-in zoom-in-95 duration-200 backdrop-blur-[2px]">
+                  <div className="p-3.5 rounded-full bg-black/75 border border-white/20 text-white shadow-2xl flex flex-col items-center animate-pulse">
+                    <SeekForward10Icon className="w-8 h-8 text-white" />
+                    <span className="text-[11px] font-black tracking-wider text-white mt-1">+10 giây</span>
+                  </div>
+                </div>
+              )}
 
               {/* SPINNER */}
               {isBuffering && (
@@ -1365,7 +1466,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 onTogglePlayPause={togglePlayPause}
                 onSeekFeedback={(txt) => {
                   resetControlsTimeout();
-                  showHud(<SkipForward className="w-5 h-5 text-netflix-red fill-current" />, `Đến ${txt}`);
+                  showHud(<SeekForward10Icon className="w-5 h-5 text-netflix-red" />, `Đến ${txt}`);
                 }}
                 onToggleMute={() => {
                   if (videoRef.current) {

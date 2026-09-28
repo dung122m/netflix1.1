@@ -17,6 +17,62 @@ import {
 } from "lucide-react";
 import { PlayerScrubBar } from "../PlayerScrubBar";
 
+export const SeekBack10Icon: React.FC<{ className?: string }> = ({ className = "w-4 h-4" }) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+    <path d="M3 3v5h5" />
+    <text
+      x="12"
+      y="15.5"
+      textAnchor="middle"
+      fill="currentColor"
+      stroke="none"
+      fontSize="8.5"
+      fontWeight="900"
+      fontFamily="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+    >
+      10
+    </text>
+  </svg>
+);
+
+export const SeekForward10Icon: React.FC<{ className?: string }> = ({ className = "w-4 h-4" }) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.85.99 6.57 2.6L21 8" />
+    <path d="M21 3v5h-5" />
+    <text
+      x="12"
+      y="15.5"
+      textAnchor="middle"
+      fill="currentColor"
+      stroke="none"
+      fontSize="8.5"
+      fontWeight="900"
+      fontFamily="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+    >
+      10
+    </text>
+  </svg>
+);
+
 interface QualityLevel {
   id: number;
   label: string;
@@ -163,7 +219,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
               title="Tua lùi 10 giây (←)"
               className="p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-110 focus-visible:bg-white/25"
             >
-              <SkipBack className="w-4 h-4 fill-current" />
+              <SeekBack10Icon className="w-4 h-4" />
             </button>
 
             {/* Tua tới 10s */}
@@ -180,7 +236,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
               title="Tua tới 10 giây (→)"
               className="p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-110 focus-visible:bg-white/25"
             >
-              <SkipForward className="w-4 h-4 fill-current" />
+              <SeekForward10Icon className="w-4 h-4" />
             </button>
 
             {/* Âm lượng */}
