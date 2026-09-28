@@ -212,7 +212,7 @@ export const FilterBar: React.FC = () => {
       case "quoc-gia":
         return "left-0 sm:left-48 lg:left-64 right-auto";
       case "year":
-        return "left-0 sm:left-auto sm:right-0";
+        return "left-0 sm:left-64 lg:left-80 right-auto";
       default:
         return "left-0 right-auto";
     }
@@ -233,9 +233,9 @@ export const FilterBar: React.FC = () => {
           type="button"
           onClick={() => setIsMobileExpanded((prev) => !prev)}
           aria-expanded={isMobileExpanded || hasFilters}
-          className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] motion-reduce:transform-none cursor-pointer shadow-sm ${
+          className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-semibold transition cursor-pointer shadow-sm ${
             hasFilters || isMobileExpanded
-              ? "bg-zinc-800 text-white border-white/20 shadow-[0_0_12px_rgba(255,255,255,0.06)]"
+              ? "bg-zinc-800 text-white border-white/20"
               : "bg-zinc-900/90 text-gray-300 border-white/10 hover:text-white hover:border-white/20"
           }`}
         >
@@ -257,7 +257,7 @@ export const FilterBar: React.FC = () => {
           <button
             type="button"
             onClick={clearAllFilters}
-            className="text-xs text-rose-400 hover:text-rose-300 flex items-center gap-1 font-medium px-2 py-1 transition-all duration-150 hover:scale-105 active:scale-95 motion-reduce:transform-none"
+            className="text-xs text-rose-400 hover:text-rose-300 flex items-center gap-1 font-medium px-2 py-1 transition"
           >
             <RotateCcw className="w-3 h-3" />
             <span>Đặt lại</span>
@@ -278,10 +278,10 @@ export const FilterBar: React.FC = () => {
           onClick={() =>
             setActiveDropdown(activeDropdown === "type" ? null : "type")
           }
-          className={`flex-shrink-0 whitespace-nowrap flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl border font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] motion-reduce:transform-none text-xs sm:text-sm shadow-sm cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${
+          className={`flex-shrink-0 whitespace-nowrap flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl border font-semibold transition text-xs sm:text-sm shadow-sm cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${
             activeDropdown === "type" || hasSelectedFilter("type")
-              ? "bg-zinc-800 text-white border-purple-500/70 shadow-[0_0_16px_rgba(168,85,247,0.22)]"
-              : "bg-zinc-950/80 text-gray-300 border-zinc-800 hover:border-purple-500/40 hover:text-white hover:shadow-[0_0_12px_rgba(168,85,247,0.12)]"
+              ? "bg-zinc-800 text-white border-purple-500/70"
+              : "bg-zinc-950/80 text-gray-300 border-zinc-800 hover:border-zinc-600 hover:text-white"
           }`}
         >
           <Layers className="w-3.5 h-3.5 text-purple-400 flex-shrink-0" />
@@ -300,10 +300,10 @@ export const FilterBar: React.FC = () => {
           onClick={() =>
             setActiveDropdown(activeDropdown === "the-loai" ? null : "the-loai")
           }
-          className={`flex-shrink-0 whitespace-nowrap flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl border font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] motion-reduce:transform-none text-xs sm:text-sm shadow-sm cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${
+          className={`flex-shrink-0 whitespace-nowrap flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl border font-semibold transition text-xs sm:text-sm shadow-sm cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${
             activeDropdown === "the-loai" || hasSelectedFilter("the-loai")
-              ? "bg-zinc-800 text-white border-rose-500/70 shadow-[0_0_16px_rgba(244,63,94,0.22)]"
-              : "bg-zinc-950/80 text-gray-300 border-zinc-800 hover:border-rose-500/40 hover:text-white hover:shadow-[0_0_12px_rgba(244,63,94,0.12)]"
+              ? "bg-zinc-800 text-white border-rose-500/70"
+              : "bg-zinc-950/80 text-gray-300 border-zinc-800 hover:border-zinc-600 hover:text-white"
           }`}
         >
           <Sparkles className="w-3.5 h-3.5 text-netflix-red flex-shrink-0" />
@@ -322,10 +322,10 @@ export const FilterBar: React.FC = () => {
           onClick={() =>
             setActiveDropdown(activeDropdown === "quoc-gia" ? null : "quoc-gia")
           }
-          className={`flex-shrink-0 whitespace-nowrap flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl border font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] motion-reduce:transform-none text-xs sm:text-sm shadow-sm cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${
+          className={`flex-shrink-0 whitespace-nowrap flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl border font-semibold transition text-xs sm:text-sm shadow-sm cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${
             activeDropdown === "quoc-gia" || hasSelectedFilter("quoc-gia")
-              ? "bg-zinc-800 text-white border-sky-500/70 shadow-[0_0_16px_rgba(14,165,233,0.22)]"
-              : "bg-zinc-950/80 text-gray-300 border-zinc-800 hover:border-sky-500/40 hover:text-white hover:shadow-[0_0_12px_rgba(14,165,233,0.12)]"
+              ? "bg-zinc-800 text-white border-sky-500/70"
+              : "bg-zinc-950/80 text-gray-300 border-zinc-800 hover:border-zinc-600 hover:text-white"
           }`}
         >
           <Globe2 className="w-3.5 h-3.5 text-sky-400 flex-shrink-0" />
@@ -344,10 +344,10 @@ export const FilterBar: React.FC = () => {
           onClick={() =>
             setActiveDropdown(activeDropdown === "year" ? null : "year")
           }
-          className={`flex-shrink-0 whitespace-nowrap flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl border font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] motion-reduce:transform-none text-xs sm:text-sm shadow-sm cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${
+          className={`flex-shrink-0 whitespace-nowrap flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl border font-semibold transition text-xs sm:text-sm shadow-sm cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${
             activeDropdown === "year" || hasSelectedFilter("year")
-              ? "bg-zinc-800 text-white border-emerald-500/70 shadow-[0_0_16px_rgba(16,185,129,0.22)]"
-              : "bg-zinc-950/80 text-gray-300 border-zinc-800 hover:border-emerald-500/40 hover:text-white hover:shadow-[0_0_12px_rgba(16,185,129,0.12)]"
+              ? "bg-zinc-800 text-white border-emerald-500/70"
+              : "bg-zinc-950/80 text-gray-300 border-zinc-800 hover:border-zinc-600 hover:text-white"
           }`}
         >
           <Calendar className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
@@ -364,7 +364,7 @@ export const FilterBar: React.FC = () => {
           <button
             type="button"
             onClick={clearAllFilters}
-            className="flex-shrink-0 whitespace-nowrap flex items-center gap-1 text-gray-400 hover:text-rose-400 px-3 py-2 text-xs sm:text-sm transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] motion-reduce:transform-none cursor-pointer hover:bg-rose-500/10 rounded-xl border border-dashed border-zinc-700/80 hover:border-rose-500/40 outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105"
+            className="flex-shrink-0 whitespace-nowrap flex items-center gap-1 text-gray-400 hover:text-rose-400 px-3 py-2 text-xs sm:text-sm transition cursor-pointer hover:bg-white/5 rounded-xl border border-dashed border-zinc-700/80 hover:border-rose-500/40 outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105"
           >
             <RotateCcw className="w-3 h-3 text-rose-400" />
             <span>Xóa bộ lọc</span>
@@ -377,7 +377,7 @@ export const FilterBar: React.FC = () => {
         <>
           {/* OVERLAY */}
           <div
-            className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px]"
+            className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px] touch-none overscroll-none"
             onClick={() => setActiveDropdown(null)}
           />
 
