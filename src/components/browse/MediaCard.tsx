@@ -45,6 +45,16 @@ export interface MovieExtraInfo {
 export const clientSynopsisCache = new Map<string, string>();
 export const clientTrailerCache = new Map<string, string>();
 export const clientExtraInfoCache = new Map<string, MovieExtraInfo>();
+
+// Bộ điều phối toàn cục đảm bảo chỉ duy nhất 1 Movie Card được phép Preview tại một thời điểm
+let activePreviewSlug: string | null = null;
+const previewListeners = new Set<(activeSlug: string | null) => void>();
+
+function setActivePreview(slug: string | null) {
+  activePreviewSlug = slug;
+  previewListeners.forEach((listener) => listener(slug));
+}
+
 import { fetchMovieSynopsisShared } from "@/services/synopsisService";
 
 export { fetchMovieSynopsisShared };
@@ -199,6 +209,8 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
 
   // Hướng neo lề thông minh chống tràn mép màn hình (trái/phải/giữa)
   const cardRef = useRef<HTMLDivElement>(null);
+  const baseCardRef = useRef<HTMLAnchorElement>(null);
+  const rafIdRef = useRef<number | null>(null);
   const [edgeOrigin, setEdgeOrigin] = useState<"left" | "right" | "center">("center");
   const [verticalShift, setVerticalShift] = useState(0);
 
@@ -206,7 +218,6 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   const trailerReadyTimerRef = useRef<NodeJS.Timeout | null>(null);
   const unmountTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Khởi tạo tóm tắt
   const [synopsis, setSynopsis] = useState<string>(() => {
     if (clientSynopsisCache.has(slug)) {
       return clientSynopsisCache.get(slug)!;
@@ -222,6 +233,8 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     return "";
   });
   const [isCardHovered, setIsCardHovered] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
+  const navTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Đồng bộ Watchlist qua 1 shared listener duy nhất
   useEffect(() => {
@@ -229,11 +242,34 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     const unsubscribe = subscribeToWatchlist(slug, (newInList) => {
       setInList(newInList);
     });
+
+    // Lắng nghe sự kiện active preview để dừng ngay preview khi card khác được hover
+    const handleActiveChange = (activeSlug: string | null) => {
+      if (activeSlug !== slug) {
+        if (hoverIntentTimerRef.current) {
+          clearTimeout(hoverIntentTimerRef.current);
+          hoverIntentTimerRef.current = null;
+        }
+        setIsPlayingTrailer(false);
+        setIsTrailerReady(false);
+        setIsMuted(true);
+        setIsCardHovered(false);
+        setVerticalShift(0);
+      }
+    };
+    previewListeners.add(handleActiveChange);
+
     return () => {
       unsubscribe();
+      previewListeners.delete(handleActiveChange);
       if (hoverIntentTimerRef.current) clearTimeout(hoverIntentTimerRef.current);
       if (trailerReadyTimerRef.current) clearTimeout(trailerReadyTimerRef.current);
       if (unmountTimerRef.current) clearTimeout(unmountTimerRef.current);
+      if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+      if (navTimeoutRef.current) clearTimeout(navTimeoutRef.current);
+      if (activePreviewSlug === slug) {
+        setActivePreview(null);
+      }
     };
   }, [slug]);
 
@@ -304,7 +340,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   const displayYear = year || "";
   const displayTime = time || "";
 
-  // Hover Intent: Chỉ kích hoạt mở rộng thẻ & tải dữ liệu sau 200ms người dùng thực sự dừng chuột
+  // Hover Intent: Chỉ kích hoạt mở rộng thẻ & tải trailer preview sau 700ms người dùng thực sự dừng chuột liên tục
   const handleMouseEnter = () => {
     // Chỉ kích hoạt trên thiết bị desktop có hover chuột (loại bỏ hoàn toàn mobile/touch)
     if (!isDesktopWithHover()) {
@@ -321,6 +357,8 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
 
     hoverIntentTimerRef.current = setTimeout(() => {
       hoverIntentTimerRef.current = null;
+      // Kích hoạt preview duy nhất cho card hiện tại (dừng preview của các card khác)
+      setActivePreview(slug);
       setIsCardHovered(true);
       if (slug) {
         router.prefetch(`/movies/${slug}`);
@@ -372,7 +410,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         }
       }
 
-      // 2. Bắt đầu phát trailer ngay lập tức nếu URL đã có trong cache
+      // 2. Bắt đầu phát trailer (muted) nếu URL đã có trong cache
       if (currentTUrl && !trailerFailed) {
         const ytId = extractYoutubeId(currentTUrl);
         if (ytId) {
@@ -381,7 +419,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
         }
       }
 
-      // 3. Tải thông tin chi tiết (Metadata & Trailer) NGAY LẬP TỨC (không delay thêm 650ms hay 1100ms)
+      // 3. Tải thông tin chi tiết (Metadata & Trailer) sau 700ms nếu chưa có trong cache
       const needsMetadata = (!currentSynopsis || !extraInfo.actor?.length) && slug;
       const needsTrailer = !currentTUrl && slug && !trailerFailed;
 
@@ -430,11 +468,61 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           }
         })();
       }
-    }, 500);
+    }, 700);
+  };
+
+  // 3D Tilt & Lighting Effect (Desktop pointer movement)
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType !== "mouse") return;
+    if (!isDesktopWithHover()) return;
+    const card = baseCardRef.current;
+    if (!card) return;
+
+    if (rafIdRef.current) {
+      cancelAnimationFrame(rafIdRef.current);
+    }
+
+    const clientX = e.clientX;
+    const clientY = e.clientY;
+
+    rafIdRef.current = requestAnimationFrame(() => {
+      const rect = card.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) return;
+
+      const x = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+      const y = Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
+
+      // Góc nghiêng nhẹ nhàng tinh tế: 2.5° đến 3.25°
+      const tiltX = ((0.5 - y) * 5.5).toFixed(2); // ±2.75 deg
+      const tiltY = ((x - 0.5) * 6.5).toFixed(2); // ±3.25 deg
+
+      card.style.setProperty("--tilt-x", `${tiltX}deg`);
+      card.style.setProperty("--tilt-y", `${tiltY}deg`);
+      card.style.setProperty("--mouse-x", `${(x * 100).toFixed(1)}%`);
+      card.style.setProperty("--mouse-y", `${(y * 100).toFixed(1)}%`);
+      card.style.setProperty("--spot-opacity", "1");
+      card.style.setProperty("--card-scale", "1.04");
+    });
+  };
+
+  const handlePointerLeave = () => {
+    if (rafIdRef.current) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
+    const card = baseCardRef.current;
+    if (card) {
+      card.style.setProperty("--tilt-x", "0deg");
+      card.style.setProperty("--tilt-y", "0deg");
+      card.style.setProperty("--mouse-x", "50%");
+      card.style.setProperty("--mouse-y", "50%");
+      card.style.setProperty("--spot-opacity", "0");
+      card.style.setProperty("--card-scale", "1");
+    }
   };
 
   const handleMouseLeave = () => {
-    // Hủy ngay lập tức hover-intent nếu người dùng chỉ lướt chuột qua thẻ (<500ms)
+    // Hủy ngay lập tức hover-intent nếu người dùng rời chuột trước khi đủ 700ms
     if (hoverIntentTimerRef.current) {
       clearTimeout(hoverIntentTimerRef.current);
       hoverIntentTimerRef.current = null;
@@ -442,6 +530,10 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     if (trailerReadyTimerRef.current) {
       clearTimeout(trailerReadyTimerRef.current);
       trailerReadyTimerRef.current = null;
+    }
+
+    if (activePreviewSlug === slug) {
+      setActivePreview(null);
     }
 
     // Cleanup trailer iframe ngay lập tức khi rời chuột
@@ -456,6 +548,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     }
     setIsCardHovered(false);
     setVerticalShift(0);
+    handlePointerLeave();
   };
 
   const handleToggleList = (e: React.MouseEvent) => {
@@ -472,6 +565,29 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       type_name: displayType,
     });
     setInList(nextState);
+  };
+
+  // Điều hướng chuyển trang mượt mà khi click Movie Card
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Để trình duyệt xử lý tự nhiên khi mở tab mới (Ctrl, Cmd, Shift, Alt, chuột giữa)
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) {
+      return;
+    }
+
+    // Nếu người dùng bật prefers-reduced-motion -> điều hướng trực tiếp không cần animation delay
+    if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      return;
+    }
+
+    e.preventDefault();
+    if (isNavigating) return;
+
+    setIsNavigating(true);
+
+    if (navTimeoutRef.current) clearTimeout(navTimeoutRef.current);
+    navTimeoutRef.current = setTimeout(() => {
+      router.push(`/movies/${slug}`);
+    }, 200);
   };
 
   const embedTrailerUrl = useMemo(() => {
@@ -559,17 +675,23 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       }`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      onPointerMove={handlePointerMove}
+      onPointerLeave={handlePointerLeave}
     >
       {/* ============================================================ */}
       {/* 1. BASE CARD (Trạng thái tĩnh: Chuẩn Poster đứng 2:3 trên Mobile & 16:9 trên Desktop) */}
       {/* ============================================================ */}
       <Link
+        ref={baseCardRef}
         href={`/movies/${slug}`}
+        onClick={handleCardClick}
         tabIndex={0}
-        className={`block w-full h-full rounded-2xl overflow-hidden bg-zinc-950 border relative transition-all duration-200 shadow-md outline-none focus-visible:ring-4 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-[1.05] focus-visible:shadow-[0_0_35px_rgba(229,9,20,0.6)] focus-visible:border-white/90 focus-visible:z-40 ${
-          isCardHovered
-            ? "border-white/40 shadow-[0_16px_40px_rgba(0,0,0,0.85)]"
-            : "border-white/[0.12]"
+        className={`movie-card-3d group/card block w-full h-full rounded-2xl overflow-hidden bg-zinc-950 border relative transition-all duration-200 shadow-md outline-none focus-visible:ring-4 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-[1.05] focus-visible:shadow-[0_0_35px_rgba(229,9,20,0.6)] focus-visible:border-white/90 focus-visible:z-40 ${
+          isNavigating
+            ? "movie-card-navigating"
+            : isCardHovered
+            ? "border-white/40 shadow-[0_16px_40px_rgba(0,0,0,0.85),0_0_24px_rgba(255,255,255,0.06)]"
+            : "border-white/[0.12] hover:border-white/30 hover:shadow-[0_12px_30px_rgba(0,0,0,0.75)]"
         }`}
       >
         {/* Placeholder skeleton & shimmer khi ảnh đang tải - loại bỏ hoàn toàn ô đen */}
@@ -587,7 +709,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           unoptimized
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 16vw"
           className={`object-cover object-center transition-all duration-300 ${
-            isCardHovered ? "scale-105" : "scale-100"
+            isCardHovered ? "scale-105" : "scale-100 group-hover/card:scale-[1.035]"
           } ${isImageLoaded ? "opacity-100" : "opacity-0"}`}
           priority={priority}
           loading={priority ? "eager" : "lazy"}
@@ -595,6 +717,17 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           quality={80}
           onLoad={() => setIsImageLoaded(true)}
           onError={handleImageError}
+        />
+
+        {/* Lớp ánh sáng Radial Highlight dịu nhẹ theo vị trí con trỏ chuột */}
+        <div
+          className="pointer-events-none absolute inset-0 z-20 rounded-2xl transition-opacity duration-200"
+          style={{
+            opacity: "var(--spot-opacity, 0)",
+            background:
+              "radial-gradient(circle 220px at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(255, 255, 255, 0.14), transparent 70%)",
+          }}
+          aria-hidden="true"
         />
 
         {/* 1. GÓC TRÊN TRÁI: DÀNH CHO LOẠI PHIM (PHIM BỘ, PHIM LẺ, PHIM RẠP, HOẠT HÌNH) */}
@@ -681,6 +814,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
             <div className="relative aspect-video w-full overflow-hidden bg-black group/video">
               <Link
                 href={`/movies/${slug}`}
+                onClick={handleCardClick}
                 className="block relative w-full h-full cursor-pointer"
               >
                 <Image
@@ -776,6 +910,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
             <div className="flex items-center gap-1.5">
               <Link
                 href={`/movies/${slug}`}
+                onClick={handleCardClick}
                 className="h-8 w-8 rounded-full bg-white text-black flex items-center justify-center hover:bg-gray-200 transition-transform hover:scale-110 active:scale-95 shadow-lg cursor-pointer"
                 title="Xem phim ngay"
               >
@@ -815,6 +950,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
 
             <Link
               href={`/movies/${slug}`}
+              onClick={handleCardClick}
               title="Xem trang chi tiết"
               className="h-8 w-8 rounded-full border border-white/40 bg-zinc-800/80 text-white hover:border-white flex items-center justify-center transition-transform hover:scale-110 active:scale-95 cursor-pointer"
             >
@@ -824,7 +960,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
 
           {/* 2. Tiêu đề phim */}
           <div>
-            <Link href={`/movies/${slug}`} className="block group/title">
+            <Link href={`/movies/${slug}`} onClick={handleCardClick} className="block group/title">
               <p className="text-white font-extrabold text-sm line-clamp-1 group-hover/title:text-rose-400 transition-colors">
                 {title}
               </p>
