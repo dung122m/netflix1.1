@@ -10,6 +10,8 @@ import {
   Calendar,
   RotateCcw,
   SlidersHorizontal,
+  ChevronDown,
+  Check,
 } from "lucide-react";
 
 type FilterType = "the-loai" | "quoc-gia" | "year" | "type";
@@ -122,6 +124,21 @@ export const FilterBar: React.FC = () => {
 
   const activeYear = searchParams.get("year") || "Năm";
 
+  const getActiveChipStyle = (filterType: FilterType) => {
+    switch (filterType) {
+      case "type":
+        return "bg-purple-600/90 text-white border-purple-400 shadow-md shadow-purple-950/60 font-semibold";
+      case "the-loai":
+        return "bg-rose-600/90 text-white border-rose-400 shadow-md shadow-red-950/60 font-semibold";
+      case "quoc-gia":
+        return "bg-sky-600/90 text-white border-sky-400 shadow-md shadow-sky-950/60 font-semibold";
+      case "year":
+        return "bg-emerald-600/90 text-white border-emerald-400 shadow-md shadow-emerald-950/60 font-semibold";
+      default:
+        return "bg-zinc-200 text-zinc-950 border-white font-semibold shadow-md";
+    }
+  };
+
   const Chip = ({
     label,
     value,
@@ -137,13 +154,13 @@ export const FilterBar: React.FC = () => {
       <button
         type="button"
         onClick={() => handleFilterChange(type, value)}
-        className={`px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-center truncate border outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 cursor-pointer ${
+        className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 text-center truncate border outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 cursor-pointer active:scale-95 motion-reduce:transform-none ${
           selected
-            ? "bg-white text-black border-white font-semibold shadow-md"
-            : "bg-zinc-800 text-gray-300 border-zinc-800 hover:bg-zinc-700 hover:text-white"
+            ? getActiveChipStyle(type)
+            : "bg-zinc-900/90 text-gray-300 border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 hover:text-white"
         }`}
       >
-        {selected && <span className="mr-1">✓</span>}
+        {selected && <Check className="inline-block w-3.5 h-3.5 mr-1 stroke-[2.5]" />}
         {label}
       </button>
     );
@@ -156,13 +173,13 @@ export const FilterBar: React.FC = () => {
       <button
         type="button"
         onClick={() => handleClearFilter(type)}
-        className={`px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-center truncate border outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 cursor-pointer ${
+        className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 text-center truncate border outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 cursor-pointer active:scale-95 motion-reduce:transform-none ${
           isAllSelected
-            ? "bg-white text-black border-white font-semibold shadow-md"
-            : "bg-zinc-800 text-gray-300 border-zinc-800 hover:bg-zinc-700 hover:text-white"
+            ? "bg-zinc-200 text-zinc-950 border-white font-semibold shadow-md"
+            : "bg-zinc-900/90 text-gray-300 border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 hover:text-white"
         }`}
       >
-        {isAllSelected && <span className="mr-1">✓</span>}
+        {isAllSelected && <Check className="inline-block w-3.5 h-3.5 mr-1 stroke-[2.5]" />}
         Tất cả
       </button>
     );
@@ -216,29 +233,31 @@ export const FilterBar: React.FC = () => {
           type="button"
           onClick={() => setIsMobileExpanded((prev) => !prev)}
           aria-expanded={isMobileExpanded || hasFilters}
-          className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-semibold transition active:scale-95 cursor-pointer shadow-sm ${
+          className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] motion-reduce:transform-none cursor-pointer shadow-sm ${
             hasFilters || isMobileExpanded
-              ? "bg-zinc-800 text-white border-white/20"
-              : "bg-zinc-900/90 text-gray-300 border-white/10 hover:text-white"
+              ? "bg-zinc-800 text-white border-white/20 shadow-[0_0_12px_rgba(255,255,255,0.06)]"
+              : "bg-zinc-900/90 text-gray-300 border-white/10 hover:text-white hover:border-white/20"
           }`}
         >
           <SlidersHorizontal className="w-3.5 h-3.5 text-netflix-red" />
           <span>Bộ lọc chi tiết</span>
           {activeFilterCount > 0 && (
-            <span className="w-4 h-4 rounded-full bg-netflix-red text-[10px] font-bold text-white flex items-center justify-center">
+            <span className="w-4 h-4 rounded-full bg-netflix-red text-[10px] font-bold text-white flex items-center justify-center shadow-sm shadow-red-950">
               {activeFilterCount}
             </span>
           )}
-          <span className="text-[9px] text-gray-500 ml-0.5">
-            {isMobileExpanded || hasFilters ? "▲" : "▼"}
-          </span>
+          <ChevronDown
+            className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 motion-reduce:transition-none ${
+              isMobileExpanded || hasFilters ? "rotate-180 text-white" : "rotate-0"
+            }`}
+          />
         </button>
 
         {hasFilters && (
           <button
             type="button"
             onClick={clearAllFilters}
-            className="text-xs text-rose-400 hover:text-rose-300 flex items-center gap-1 font-medium px-2 py-1"
+            className="text-xs text-rose-400 hover:text-rose-300 flex items-center gap-1 font-medium px-2 py-1 transition-all duration-150 hover:scale-105 active:scale-95 motion-reduce:transform-none"
           >
             <RotateCcw className="w-3 h-3" />
             <span>Đặt lại</span>
@@ -259,17 +278,19 @@ export const FilterBar: React.FC = () => {
           onClick={() =>
             setActiveDropdown(activeDropdown === "type" ? null : "type")
           }
-          className={`flex-shrink-0 whitespace-nowrap flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl border font-semibold transition text-xs sm:text-sm shadow-sm cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${
+          className={`flex-shrink-0 whitespace-nowrap flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl border font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] motion-reduce:transform-none text-xs sm:text-sm shadow-sm cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${
             activeDropdown === "type" || hasSelectedFilter("type")
-              ? "bg-zinc-800 text-white border-purple-500/60 shadow-purple-950/40"
-              : "bg-zinc-950/80 text-gray-300 border-zinc-800 hover:border-zinc-600 hover:text-white"
+              ? "bg-zinc-800 text-white border-purple-500/70 shadow-[0_0_16px_rgba(168,85,247,0.22)]"
+              : "bg-zinc-950/80 text-gray-300 border-zinc-800 hover:border-purple-500/40 hover:text-white hover:shadow-[0_0_12px_rgba(168,85,247,0.12)]"
           }`}
         >
           <Layers className="w-3.5 h-3.5 text-purple-400 flex-shrink-0" />
           <span className="whitespace-nowrap">{activeTypeName}</span>
-          <span className="text-[9px] sm:text-[10px] text-gray-500 ml-0.5">
-            {activeDropdown === "type" ? "▲" : "▼"}
-          </span>
+          <ChevronDown
+            className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 motion-reduce:transition-none flex-shrink-0 ${
+              activeDropdown === "type" ? "rotate-180 text-purple-300" : "rotate-0"
+            }`}
+          />
         </button>
 
         {/* THỂ LOẠI */}
@@ -279,17 +300,19 @@ export const FilterBar: React.FC = () => {
           onClick={() =>
             setActiveDropdown(activeDropdown === "the-loai" ? null : "the-loai")
           }
-          className={`flex-shrink-0 whitespace-nowrap flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl border font-semibold transition text-xs sm:text-sm shadow-sm cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${
+          className={`flex-shrink-0 whitespace-nowrap flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl border font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] motion-reduce:transform-none text-xs sm:text-sm shadow-sm cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${
             activeDropdown === "the-loai" || hasSelectedFilter("the-loai")
-              ? "bg-zinc-800 text-white border-rose-500/60 shadow-red-950/40"
-              : "bg-zinc-950/80 text-gray-300 border-zinc-800 hover:border-zinc-600 hover:text-white"
+              ? "bg-zinc-800 text-white border-rose-500/70 shadow-[0_0_16px_rgba(244,63,94,0.22)]"
+              : "bg-zinc-950/80 text-gray-300 border-zinc-800 hover:border-rose-500/40 hover:text-white hover:shadow-[0_0_12px_rgba(244,63,94,0.12)]"
           }`}
         >
           <Sparkles className="w-3.5 h-3.5 text-netflix-red flex-shrink-0" />
           <span className="whitespace-nowrap">{activeCategoryName}</span>
-          <span className="text-[9px] sm:text-[10px] text-gray-500 ml-0.5">
-            {activeDropdown === "the-loai" ? "▲" : "▼"}
-          </span>
+          <ChevronDown
+            className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 motion-reduce:transition-none flex-shrink-0 ${
+              activeDropdown === "the-loai" ? "rotate-180 text-rose-300" : "rotate-0"
+            }`}
+          />
         </button>
 
         {/* QUỐC GIA */}
@@ -299,17 +322,19 @@ export const FilterBar: React.FC = () => {
           onClick={() =>
             setActiveDropdown(activeDropdown === "quoc-gia" ? null : "quoc-gia")
           }
-          className={`flex-shrink-0 whitespace-nowrap flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl border font-semibold transition text-xs sm:text-sm shadow-sm cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${
+          className={`flex-shrink-0 whitespace-nowrap flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl border font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] motion-reduce:transform-none text-xs sm:text-sm shadow-sm cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${
             activeDropdown === "quoc-gia" || hasSelectedFilter("quoc-gia")
-              ? "bg-zinc-800 text-white border-sky-500/60 shadow-sky-950/40"
-              : "bg-zinc-950/80 text-gray-300 border-zinc-800 hover:border-zinc-600 hover:text-white"
+              ? "bg-zinc-800 text-white border-sky-500/70 shadow-[0_0_16px_rgba(14,165,233,0.22)]"
+              : "bg-zinc-950/80 text-gray-300 border-zinc-800 hover:border-sky-500/40 hover:text-white hover:shadow-[0_0_12px_rgba(14,165,233,0.12)]"
           }`}
         >
           <Globe2 className="w-3.5 h-3.5 text-sky-400 flex-shrink-0" />
           <span className="whitespace-nowrap">{activeCountryName}</span>
-          <span className="text-[9px] sm:text-[10px] text-gray-500 ml-0.5">
-            {activeDropdown === "quoc-gia" ? "▲" : "▼"}
-          </span>
+          <ChevronDown
+            className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 motion-reduce:transition-none flex-shrink-0 ${
+              activeDropdown === "quoc-gia" ? "rotate-180 text-sky-300" : "rotate-0"
+            }`}
+          />
         </button>
 
         {/* NĂM */}
@@ -319,17 +344,19 @@ export const FilterBar: React.FC = () => {
           onClick={() =>
             setActiveDropdown(activeDropdown === "year" ? null : "year")
           }
-          className={`flex-shrink-0 whitespace-nowrap flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl border font-semibold transition text-xs sm:text-sm shadow-sm cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${
+          className={`flex-shrink-0 whitespace-nowrap flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl border font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] motion-reduce:transform-none text-xs sm:text-sm shadow-sm cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${
             activeDropdown === "year" || hasSelectedFilter("year")
-              ? "bg-zinc-800 text-white border-emerald-500/60 shadow-emerald-950/40"
-              : "bg-zinc-950/80 text-gray-300 border-zinc-800 hover:border-zinc-600 hover:text-white"
+              ? "bg-zinc-800 text-white border-emerald-500/70 shadow-[0_0_16px_rgba(16,185,129,0.22)]"
+              : "bg-zinc-950/80 text-gray-300 border-zinc-800 hover:border-emerald-500/40 hover:text-white hover:shadow-[0_0_12px_rgba(16,185,129,0.12)]"
           }`}
         >
           <Calendar className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
           <span className="whitespace-nowrap">{activeYear}</span>
-          <span className="text-[9px] sm:text-[10px] text-gray-500 ml-0.5">
-            {activeDropdown === "year" ? "▲" : "▼"}
-          </span>
+          <ChevronDown
+            className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 motion-reduce:transition-none flex-shrink-0 ${
+              activeDropdown === "year" ? "rotate-180 text-emerald-300" : "rotate-0"
+            }`}
+          />
         </button>
 
         {/* XÓA TẤT CẢ */}
@@ -337,7 +364,7 @@ export const FilterBar: React.FC = () => {
           <button
             type="button"
             onClick={clearAllFilters}
-            className="flex-shrink-0 whitespace-nowrap flex items-center gap-1 text-gray-400 hover:text-rose-400 px-3 py-2 text-xs sm:text-sm transition cursor-pointer hover:bg-white/5 rounded-xl border border-dashed border-zinc-700/80 hover:border-rose-500/40 outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105"
+            className="flex-shrink-0 whitespace-nowrap flex items-center gap-1 text-gray-400 hover:text-rose-400 px-3 py-2 text-xs sm:text-sm transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] motion-reduce:transform-none cursor-pointer hover:bg-rose-500/10 rounded-xl border border-dashed border-zinc-700/80 hover:border-rose-500/40 outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105"
           >
             <RotateCcw className="w-3 h-3 text-rose-400" />
             <span>Xóa bộ lọc</span>
