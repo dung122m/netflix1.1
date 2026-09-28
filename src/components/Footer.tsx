@@ -29,7 +29,7 @@ import {
 
 export const Footer: React.FC = () => {
   return (
-    <footer className="relative z-0 bg-gradient-to-b from-transparent via-[#080808] to-[#030303] text-gray-400 pt-10 sm:pt-16 pb-28 sm:pb-12 px-4 sm:px-8 md:px-16 mt-12 sm:mt-20 border-t border-white/[0.08] overflow-hidden cv-auto-footer">
+    <footer className="relative z-0 bg-gradient-to-b from-transparent via-[#080808] to-[#030303] text-gray-400 pt-10 sm:pt-16 pb-36 sm:pb-16 px-4 sm:px-8 md:px-16 mt-12 sm:mt-20 border-t border-white/[0.08] overflow-hidden cv-auto-footer">
       {/* Hiệu ứng ánh sáng tinh tế phía trên footer */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 max-w-4xl h-[1px] bg-gradient-to-r from-transparent via-netflix-red/70 to-transparent" />
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 max-w-2xl h-16 sm:h-20 bg-netflix-red/10 blur-3xl pointer-events-none" />
@@ -40,8 +40,8 @@ export const Footer: React.FC = () => {
         {/* 1. 4 PILLS TÍNH NĂNG ĐẲNG CẤP (2x2 trên mobile, 4 col trên desktop) */}
         {/* ============================================================ */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-4">
-          <div className="flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-zinc-950/60 border border-white/[0.06] sm:border-white/[0.08] backdrop-blur-xl shadow-md hover:border-white/20 transition-all group">
-            <div className="p-1.5 sm:p-2.5 rounded-lg sm:rounded-xl bg-red-600/15 text-netflix-red border border-red-500/25 group-hover:scale-105 transition-transform flex-shrink-0">
+          <div className="flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-zinc-950/60 border border-white/[0.06] sm:border-white/[0.08] backdrop-blur-xl shadow-md hover:border-white/20 transition-all group min-h-[52px] sm:min-h-[60px]">
+            <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-red-600/15 text-netflix-red border border-red-500/25 group-hover:scale-105 transition-transform flex-shrink-0">
               <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
             <div className="min-w-0">
@@ -50,8 +50,8 @@ export const Footer: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-zinc-950/60 border border-white/[0.06] sm:border-white/[0.08] backdrop-blur-xl shadow-md hover:border-white/20 transition-all group">
-            <div className="p-1.5 sm:p-2.5 rounded-lg sm:rounded-xl bg-amber-500/15 text-amber-400 border border-amber-500/25 group-hover:scale-105 transition-transform flex-shrink-0">
+          <div className="flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-zinc-950/60 border border-white/[0.06] sm:border-white/[0.08] backdrop-blur-xl shadow-md hover:border-white/20 transition-all group min-h-[52px] sm:min-h-[60px]">
+            <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-amber-500/15 text-amber-400 border border-amber-500/25 group-hover:scale-105 transition-transform flex-shrink-0">
               <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
             <div className="min-w-0">
@@ -60,8 +60,8 @@ export const Footer: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-zinc-950/60 border border-white/[0.06] sm:border-white/[0.08] backdrop-blur-xl shadow-md hover:border-white/20 transition-all group">
-            <div className="p-1.5 sm:p-2.5 rounded-lg sm:rounded-xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 group-hover:scale-105 transition-transform flex-shrink-0">
+          <div className="flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-zinc-950/60 border border-white/[0.06] sm:border-white/[0.08] backdrop-blur-xl shadow-md hover:border-white/20 transition-all group min-h-[52px] sm:min-h-[60px]">
+            <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 group-hover:scale-105 transition-transform flex-shrink-0">
               <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
             <div className="min-w-0">
@@ -70,13 +70,13 @@ export const Footer: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-zinc-950/60 border border-white/[0.06] sm:border-white/[0.08] backdrop-blur-xl shadow-md hover:border-white/20 transition-all group">
-            <div className="p-1.5 sm:p-2.5 rounded-lg sm:rounded-xl bg-blue-500/15 text-blue-400 border border-blue-500/25 group-hover:scale-105 transition-transform flex-shrink-0">
+          <div className="flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-zinc-950/60 border border-white/[0.06] sm:border-white/[0.08] backdrop-blur-xl shadow-md hover:border-white/20 transition-all group min-h-[52px] sm:min-h-[60px]">
+            <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-blue-500/15 text-blue-400 border border-blue-500/25 group-hover:scale-105 transition-transform flex-shrink-0">
               <Cpu className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
             <div className="min-w-0">
               <h4 className="text-white text-[11px] sm:text-sm font-bold truncate">Đồng Bộ Cloud</h4>
-              <p className="text-[10px] sm:text-[11px] text-gray-400 truncate">Tiếp Tục Xem Đa Thiết Bị</p>
+              <p className="text-[10px] sm:text-[11px] text-gray-400 truncate">Xem Đa Thiết Bị</p>
             </div>
           </div>
         </div>
@@ -84,42 +84,54 @@ export const Footer: React.FC = () => {
         {/* ============================================================ */}
         {/* 2. CỘT ĐIỀU HƯỚNG (Cân đối 100% 5 mục mỗi cột trên mọi màn hình) */}
         {/* ============================================================ */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 sm:gap-x-8 gap-y-7 sm:gap-y-10 pt-1">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-x-5 sm:gap-x-8 gap-y-7 sm:gap-y-10 pt-1">
           {/* CỘT 1: THẾ GIỚI ĐIỆN ẢNH */}
           <div className="space-y-3 sm:space-y-4">
-            <h4 className="text-white font-black text-xs sm:text-sm tracking-wider uppercase flex items-center gap-1.5 sm:gap-2">
-              <Film className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-netflix-red" />
+            <h4 className="text-white font-black text-xs sm:text-sm tracking-wider uppercase flex items-center gap-2">
+              <span className="w-4 h-4 flex items-center justify-center shrink-0">
+                <Film className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-netflix-red" />
+              </span>
               <span>Điện Ảnh</span>
             </h4>
             <ul className="space-y-2.5 text-[11px] sm:text-xs text-gray-400 font-normal">
               <li>
-                <Link href="/" className="hover:text-white transition flex items-center gap-2">
-                  <Home size={13} className="text-gray-500 shrink-0" />
-                  <span>Trang chủ</span>
+                <Link href="/" className="hover:text-white transition-colors flex items-center gap-2">
+                  <span className="w-4 h-4 flex items-center justify-center shrink-0">
+                    <Home size={13} className="text-gray-500" />
+                  </span>
+                  <span className="truncate">Trang chủ</span>
                 </Link>
               </li>
               <li>
-                <Link href="/browse?type=phim-bo" className="hover:text-white transition flex items-center gap-2">
-                  <Tv size={13} className="text-gray-500 shrink-0" />
-                  <span>Phim bộ mới</span>
+                <Link href="/browse?type=phim-bo" className="hover:text-white transition-colors flex items-center gap-2">
+                  <span className="w-4 h-4 flex items-center justify-center shrink-0">
+                    <Tv size={13} className="text-gray-500" />
+                  </span>
+                  <span className="truncate">Phim bộ mới</span>
                 </Link>
               </li>
               <li>
-                <Link href="/browse?type=phim-le" className="hover:text-white transition flex items-center gap-2">
-                  <Film size={13} className="text-gray-500 shrink-0" />
-                  <span>Phim lẻ đặc sắc</span>
+                <Link href="/browse?type=phim-le" className="hover:text-white transition-colors flex items-center gap-2">
+                  <span className="w-4 h-4 flex items-center justify-center shrink-0">
+                    <Film size={13} className="text-gray-500" />
+                  </span>
+                  <span className="truncate">Phim lẻ đặc sắc</span>
                 </Link>
               </li>
               <li>
-                <Link href="/browse?type=phim-chieu-rap" className="hover:text-white transition flex items-center gap-2">
-                  <Clapperboard size={13} className="text-gray-500 shrink-0" />
-                  <span>Phim chiếu rạp</span>
+                <Link href="/browse?type=phim-chieu-rap" className="hover:text-white transition-colors flex items-center gap-2">
+                  <span className="w-4 h-4 flex items-center justify-center shrink-0">
+                    <Clapperboard size={13} className="text-gray-500" />
+                  </span>
+                  <span className="truncate">Phim chiếu rạp</span>
                 </Link>
               </li>
               <li>
-                <Link href="/dien-vien" className="hover:text-white transition flex items-center gap-2 font-medium text-gray-200">
-                  <Users size={13} className="text-netflix-red shrink-0" />
-                  <span>Diễn viên & Nghệ sĩ</span>
+                <Link href="/dien-vien" className="hover:text-white transition-colors flex items-center gap-2">
+                  <span className="w-4 h-4 flex items-center justify-center shrink-0">
+                    <Users size={13} className="text-netflix-red" />
+                  </span>
+                  <span className="truncate text-gray-300 font-medium">Diễn viên & Nghệ sĩ</span>
                 </Link>
               </li>
             </ul>
@@ -127,39 +139,51 @@ export const Footer: React.FC = () => {
 
           {/* CỘT 2: TRỰC TIẾP & LIVE */}
           <div className="space-y-3 sm:space-y-4">
-            <h4 className="text-white font-black text-xs sm:text-sm tracking-wider uppercase flex items-center gap-1.5 sm:gap-2">
-              <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-netflix-red" />
+            <h4 className="text-white font-black text-xs sm:text-sm tracking-wider uppercase flex items-center gap-2">
+              <span className="w-4 h-4 flex items-center justify-center shrink-0">
+                <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-netflix-red" />
+              </span>
               <span>Trực Tiếp</span>
             </h4>
             <ul className="space-y-2.5 text-[11px] sm:text-xs text-gray-400 font-normal">
               <li>
-                <Link href="/live?tab=football" className="hover:text-white transition flex items-center gap-2">
-                  <Flame size={13} className="text-netflix-red animate-pulse shrink-0" />
-                  <span className="text-gray-200 font-medium">Bóng đá trực tiếp</span>
+                <Link href="/live?tab=football" className="hover:text-white transition-colors flex items-center gap-2">
+                  <span className="w-4 h-4 flex items-center justify-center shrink-0">
+                    <Flame size={13} className="text-netflix-red animate-pulse" />
+                  </span>
+                  <span className="truncate text-gray-300 font-medium">Bóng đá trực tiếp</span>
                 </Link>
               </li>
               <li>
-                <Link href="/live?tab=tv" className="hover:text-white transition flex items-center gap-2">
-                  <Tv size={13} className="text-gray-500 shrink-0" />
-                  <span>Kênh Live TV</span>
+                <Link href="/live?tab=tv" className="hover:text-white transition-colors flex items-center gap-2">
+                  <span className="w-4 h-4 flex items-center justify-center shrink-0">
+                    <Tv size={13} className="text-gray-500" />
+                  </span>
+                  <span className="truncate">Kênh Live TV</span>
                 </Link>
               </li>
               <li>
-                <Link href="/browse?type=tv-shows" className="hover:text-white transition flex items-center gap-2">
-                  <Radio size={13} className="text-gray-500 shrink-0" />
-                  <span>Gameshow & TV</span>
+                <Link href="/browse?type=tv-shows" className="hover:text-white transition-colors flex items-center gap-2">
+                  <span className="w-4 h-4 flex items-center justify-center shrink-0">
+                    <Radio size={13} className="text-gray-500" />
+                  </span>
+                  <span className="truncate">Gameshow & TV</span>
                 </Link>
               </li>
               <li>
-                <Link href="/browse?type=hoat-hinh" className="hover:text-white transition flex items-center gap-2">
-                  <Sparkles size={13} className="text-gray-500 shrink-0" />
-                  <span>Hoạt hình Anime</span>
+                <Link href="/browse?type=hoat-hinh" className="hover:text-white transition-colors flex items-center gap-2">
+                  <span className="w-4 h-4 flex items-center justify-center shrink-0">
+                    <Sparkles size={13} className="text-gray-500" />
+                  </span>
+                  <span className="truncate">Hoạt hình Anime</span>
                 </Link>
               </li>
               <li>
-                <Link href="/my-list" className="hover:text-white transition flex items-center gap-2">
-                  <Bookmark size={13} className="text-gray-500 shrink-0" />
-                  <span>Danh sách của tôi</span>
+                <Link href="/my-list" className="hover:text-white transition-colors flex items-center gap-2">
+                  <span className="w-4 h-4 flex items-center justify-center shrink-0">
+                    <Bookmark size={13} className="text-gray-500" />
+                  </span>
+                  <span className="truncate">Danh sách của tôi</span>
                 </Link>
               </li>
             </ul>
@@ -167,8 +191,10 @@ export const Footer: React.FC = () => {
 
           {/* CỘT 3: TÍNH NĂNG & TIỆN ÍCH */}
           <div className="space-y-3 sm:space-y-4">
-            <h4 className="text-white font-black text-xs sm:text-sm tracking-wider uppercase flex items-center gap-1.5 sm:gap-2">
-              <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
+            <h4 className="text-white font-black text-xs sm:text-sm tracking-wider uppercase flex items-center gap-2">
+              <span className="w-4 h-4 flex items-center justify-center shrink-0">
+                <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
+              </span>
               <span>Khám Phá</span>
             </h4>
             <ul className="space-y-2.5 text-[11px] sm:text-xs text-gray-400 font-normal">
@@ -176,38 +202,48 @@ export const Footer: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => window.dispatchEvent(new CustomEvent("open-ai-roulette"))}
-                  className="hover:text-amber-300 transition flex items-center gap-2 cursor-pointer text-left w-full"
+                  className="hover:text-amber-300 transition-colors flex items-center gap-2 cursor-pointer text-left w-full"
                 >
-                  <Dices size={13} className="text-amber-400 shrink-0" />
-                  <span>Bốc quẻ phim AI</span>
+                  <span className="w-4 h-4 flex items-center justify-center shrink-0">
+                    <Dices size={13} className="text-amber-400" />
+                  </span>
+                  <span className="truncate">Bốc quẻ phim AI</span>
                 </button>
               </li>
               <li>
                 <button
                   type="button"
                   onClick={() => window.dispatchEvent(new CustomEvent("open-pwa-install"))}
-                  className="hover:text-emerald-300 transition flex items-center gap-2 cursor-pointer text-emerald-400 font-medium text-left w-full"
+                  className="hover:text-emerald-300 transition-colors flex items-center gap-2 cursor-pointer text-left w-full"
                 >
-                  <Smartphone size={13} className="shrink-0" />
-                  <span>Cài app (PWA)</span>
+                  <span className="w-4 h-4 flex items-center justify-center shrink-0">
+                    <Smartphone size={13} className="text-emerald-400" />
+                  </span>
+                  <span className="truncate text-emerald-400 font-medium">Cài app (PWA)</span>
                 </button>
               </li>
               <li>
-                <Link href="/collection" className="hover:text-white transition flex items-center gap-2">
-                  <Layers size={13} className="text-gray-500 shrink-0" />
-                  <span>Bộ sưu tập phim</span>
+                <Link href="/collection" className="hover:text-white transition-colors flex items-center gap-2">
+                  <span className="w-4 h-4 flex items-center justify-center shrink-0">
+                    <Layers size={13} className="text-gray-500" />
+                  </span>
+                  <span className="truncate">Bộ sưu tập phim</span>
                 </Link>
               </li>
               <li>
-                <Link href="/browse" className="hover:text-white transition flex items-center gap-2">
-                  <Compass size={13} className="text-gray-500 shrink-0" />
-                  <span>Bộ lọc phim đa chiều</span>
+                <Link href="/browse" className="hover:text-white transition-colors flex items-center gap-2">
+                  <span className="w-4 h-4 flex items-center justify-center shrink-0">
+                    <Compass size={13} className="text-gray-500" />
+                  </span>
+                  <span className="truncate">Bộ lọc phim đa chiều</span>
                 </Link>
               </li>
               <li>
-                <Link href="/browse?sort=view" className="hover:text-white transition flex items-center gap-2">
-                  <Flame size={13} className="text-amber-400 shrink-0" />
-                  <span>Bảng xếp hạng Top</span>
+                <Link href="/browse?sort=view" className="hover:text-white transition-colors flex items-center gap-2">
+                  <span className="w-4 h-4 flex items-center justify-center shrink-0">
+                    <Flame size={13} className="text-amber-400" />
+                  </span>
+                  <span className="truncate">Bảng xếp hạng Top</span>
                 </Link>
               </li>
             </ul>
@@ -215,54 +251,66 @@ export const Footer: React.FC = () => {
 
           {/* CỘT 4: GIỚI THIỆU & PHÁP LÝ */}
           <div className="space-y-3 sm:space-y-4">
-            <h4 className="text-white font-black text-xs sm:text-sm tracking-wider uppercase flex items-center gap-1.5 sm:gap-2">
-              <Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />
+            <h4 className="text-white font-black text-xs sm:text-sm tracking-wider uppercase flex items-center gap-2">
+              <span className="w-4 h-4 flex items-center justify-center shrink-0">
+                <Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />
+              </span>
               <span>Thông Tin</span>
             </h4>
             <ul className="space-y-2.5 text-[11px] sm:text-xs text-gray-400 font-normal">
               <li>
                 <Link
                   href="/about"
-                  className="text-gray-200 hover:text-netflix-red transition flex items-center gap-2 font-medium"
+                  className="hover:text-white transition-colors flex items-center gap-2"
                 >
-                  <Sparkles size={13} className="text-netflix-red shrink-0" />
-                  <span>Giới thiệu Nanaflix</span>
+                  <span className="w-4 h-4 flex items-center justify-center shrink-0">
+                    <Sparkles size={13} className="text-netflix-red" />
+                  </span>
+                  <span className="truncate text-gray-300 font-medium">Giới thiệu Nanaflix</span>
                 </Link>
               </li>
               <li>
                 <Link
                   href="/faq"
-                  className="hover:text-amber-300 transition flex items-center gap-2 font-medium"
+                  className="hover:text-white transition-colors flex items-center gap-2"
                 >
-                  <HelpCircle size={13} className="text-amber-400 shrink-0" />
-                  <span>Hỏi & Đáp (FAQ)</span>
+                  <span className="w-4 h-4 flex items-center justify-center shrink-0">
+                    <HelpCircle size={13} className="text-amber-400" />
+                  </span>
+                  <span className="truncate">Hỏi & Đáp (FAQ)</span>
                 </Link>
               </li>
               <li>
                 <Link
                   href="/privacy"
-                  className="hover:text-emerald-300 transition flex items-center gap-2 font-medium"
+                  className="hover:text-white transition-colors flex items-center gap-2"
                 >
-                  <ShieldCheck size={13} className="text-emerald-400 shrink-0" />
-                  <span>Bảo mật & Riêng tư</span>
+                  <span className="w-4 h-4 flex items-center justify-center shrink-0">
+                    <ShieldCheck size={13} className="text-emerald-400" />
+                  </span>
+                  <span className="truncate">Bảo mật & Riêng tư</span>
                 </Link>
               </li>
               <li>
                 <Link
                   href="/terms"
-                  className="hover:text-blue-300 transition flex items-center gap-2 font-medium"
+                  className="hover:text-white transition-colors flex items-center gap-2"
                 >
-                  <Scale size={13} className="text-blue-400 shrink-0" />
-                  <span>Điều khoản & DMCA</span>
+                  <span className="w-4 h-4 flex items-center justify-center shrink-0">
+                    <Scale size={13} className="text-blue-400" />
+                  </span>
+                  <span className="truncate">Điều khoản & DMCA</span>
                 </Link>
               </li>
               <li>
                 <Link
                   href="/about#contact"
-                  className="hover:text-rose-300 transition flex items-center gap-2 font-medium"
+                  className="hover:text-white transition-colors flex items-center gap-2"
                 >
-                  <Users size={13} className="text-rose-400 shrink-0" />
-                  <span>Trợ giúp & Báo lỗi</span>
+                  <span className="w-4 h-4 flex items-center justify-center shrink-0">
+                    <Users size={13} className="text-rose-400" />
+                  </span>
+                  <span className="truncate">Trợ giúp & Báo lỗi</span>
                 </Link>
               </li>
             </ul>
@@ -283,17 +331,17 @@ export const Footer: React.FC = () => {
             </span>
           </div>
 
-          <div className="flex items-center justify-center flex-wrap gap-2.5 sm:gap-5 text-[10px] sm:text-xs text-gray-400">
-            <span className="flex items-center gap-1.5 hover:text-white transition bg-white/5 sm:bg-transparent px-2.5 py-1 sm:p-0 rounded-lg sm:rounded-none border border-white/5 sm:border-none">
-              <Monitor className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-blue-400" />
+          <div className="grid grid-cols-3 sm:flex items-center justify-center gap-2 sm:gap-5 text-[10px] sm:text-xs text-gray-400 w-full sm:w-auto">
+            <span className="flex items-center justify-center gap-1.5 hover:text-white transition bg-white/5 sm:bg-transparent px-2 sm:px-2.5 py-1.5 sm:p-0 rounded-lg sm:rounded-none border border-white/5 sm:border-none whitespace-nowrap">
+              <Monitor className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-blue-400 shrink-0" />
               <span>Smart TV</span>
             </span>
-            <span className="flex items-center gap-1.5 hover:text-white transition bg-white/5 sm:bg-transparent px-2.5 py-1 sm:p-0 rounded-lg sm:rounded-none border border-white/5 sm:border-none">
-              <Cast className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-400" />
+            <span className="flex items-center justify-center gap-1.5 hover:text-white transition bg-white/5 sm:bg-transparent px-2 sm:px-2.5 py-1.5 sm:p-0 rounded-lg sm:rounded-none border border-white/5 sm:border-none whitespace-nowrap">
+              <Cast className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-400 shrink-0" />
               <span>Cast / AirPlay</span>
             </span>
-            <span className="flex items-center gap-1.5 hover:text-white transition bg-white/5 sm:bg-transparent px-2.5 py-1 sm:p-0 rounded-lg sm:rounded-none border border-white/5 sm:border-none">
-              <Smartphone className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-rose-400" />
+            <span className="flex items-center justify-center gap-1.5 hover:text-white transition bg-white/5 sm:bg-transparent px-2 sm:px-2.5 py-1.5 sm:p-0 rounded-lg sm:rounded-none border border-white/5 sm:border-none whitespace-nowrap">
+              <Smartphone className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-rose-400 shrink-0" />
               <span>Mobile App</span>
             </span>
           </div>
@@ -314,7 +362,7 @@ export const Footer: React.FC = () => {
 
           <Link
             href="/about"
-            className="flex items-center gap-3 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl bg-zinc-950/80 hover:bg-zinc-900 border border-white/[0.08] sm:border-white/[0.1] hover:border-netflix-red/50 transition-all duration-300 group cursor-pointer shadow-lg"
+            className="flex items-center gap-3 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl bg-zinc-950/80 hover:bg-zinc-900 border border-white/[0.08] sm:border-white/[0.1] hover:border-netflix-red/50 transition-all duration-300 group cursor-pointer shadow-lg w-full sm:w-auto justify-center sm:justify-start"
           >
             <Image
               src="/images/nana-footer.jpg"
