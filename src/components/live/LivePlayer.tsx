@@ -2482,28 +2482,35 @@ function LivePlayerInner({
           )}
 
           {/* META INFO BÊN PHẢI (GIẢI ĐẤU, BLV, CHẤT LƯỢNG) */}
-          <div className="flex flex-row md:flex-col items-center md:items-end justify-between w-full md:w-auto gap-1 sm:gap-1.5 border-t md:border-t-0 border-white/10 pt-1.5 md:pt-0">
+          <div className="flex flex-wrap md:flex-col items-center justify-center sm:justify-between md:items-end md:justify-start w-full md:w-auto gap-1.5 sm:gap-2 border-t md:border-t-0 border-white/10 pt-2 md:pt-0">
             {group && (
-              <span className="px-2.5 py-0.5 rounded-full bg-white/10 border border-white/20 text-gray-200 text-[11px] font-bold shadow-sm">
-                🏆 {group}
+              <span
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/10 border border-white/20 text-gray-200 text-[10px] sm:text-[11px] font-bold shadow-sm whitespace-nowrap max-w-[150px] sm:max-w-[220px]"
+                title={group}
+              >
+                <span className="shrink-0">🏆</span>
+                <span className="truncate">{group}</span>
               </span>
             )}
             {blv && (
               <span
-                className="px-2.5 py-0.5 rounded-full bg-netflix-red/20 border border-netflix-red/40 text-rose-300 text-[11px] font-extrabold shadow-sm max-w-[200px] sm:max-w-xs truncate"
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-netflix-red/20 border border-netflix-red/40 text-rose-300 text-[10px] sm:text-[11px] font-extrabold shadow-sm max-w-[160px] sm:max-w-xs whitespace-nowrap"
                 title={`BLV: ${blv}`}
               >
-                🎙️ {(() => {
-                  const raw = blv.replace(/^(?:blv|bình luận viên)\s+/i, "");
-                  const parts = raw.split(",").map((p) => p.trim()).filter(Boolean);
-                  if (parts.length <= 2) return `BLV ${parts.join(", ")}`;
-                  return `BLV ${parts.slice(0, 2).join(", ")} (+${parts.length - 2})`;
-                })()}
+                <span className="shrink-0">🎙️</span>
+                <span className="truncate">
+                  {(() => {
+                    const raw = blv.replace(/^(?:blv|bình luận viên)\s+/i, "");
+                    const parts = raw.split(",").map((p) => p.trim()).filter(Boolean);
+                    if (parts.length <= 2) return `BLV ${parts.join(", ")}`;
+                    return `BLV ${parts.slice(0, 2).join(", ")} (+${parts.length - 2})`;
+                  })()}
+                </span>
               </span>
             )}
-            <div className="flex items-center gap-1">
-              <span className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-[10px] font-black uppercase">
-                <Zap className="w-2.5 h-2.5 fill-emerald-400" />
+            <div className="flex items-center gap-1 shrink-0">
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-[10px] font-black uppercase whitespace-nowrap">
+                <Zap className="w-2.5 h-2.5 fill-emerald-400 shrink-0" />
                 <span>{currentServer?.quality || "FHD 1080p"}</span>
               </span>
             </div>

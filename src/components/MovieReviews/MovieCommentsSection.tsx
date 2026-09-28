@@ -544,9 +544,9 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
             </div>
 
             {/* Quick Emoji / Tag chips */}
-            <div className="flex items-center gap-1.5 flex-wrap mb-3">
-              <span className="text-[11px] text-zinc-500 mr-1 flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-amber-400" />
+            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none flex-nowrap sm:flex-wrap pb-1.5 mb-2.5 -mx-1 px-1">
+              <span className="text-[11px] text-zinc-500 mr-1 flex items-center gap-1 shrink-0 whitespace-nowrap">
+                <Sparkles className="w-3 h-3 text-amber-400 shrink-0" />
                 Gợi ý nhanh:
               </span>
               {QUICK_TAGS.map((tag) => (
@@ -558,7 +558,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
                       prev ? `${prev} ${tag}` : tag,
                     )
                   }
-                  className="px-2.5 py-1 rounded-full text-xs bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white border border-white/5 hover:border-white/15 transition-colors cursor-pointer"
+                  className="px-2.5 py-1 rounded-full text-xs bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white border border-white/5 hover:border-white/15 transition-colors cursor-pointer shrink-0 whitespace-nowrap"
                 >
                   {tag}
                 </button>
@@ -578,7 +578,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
                 }}
                 placeholder="Chia sẻ cảm nghĩ của bạn về bộ phim... (Vui lòng không tiết lộ trước nội dung 🤫)"
                 rows={3}
-                className="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-red-500/60 focus:ring-1 focus:ring-red-500/30 resize-y transition-all"
+                className="w-full min-h-[88px] bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-red-500/60 focus:ring-1 focus:ring-red-500/30 resize-y transition-all"
                 maxLength={1000}
               />
               <div className="text-[11px] text-zinc-600 text-right mt-1">
@@ -588,10 +588,10 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
 
             {/* Options Row: Episode scope, Spoil toggle, Submit button */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-3 pt-3 border-t border-white/5">
-              <div className="flex items-center gap-4 flex-wrap">
+              <div className="flex items-center gap-3 sm:gap-4 flex-wrap w-full sm:w-auto">
                 {/* Episode scope toggle */}
                 {currentEpisodeName && (
-                  <div className="flex items-center gap-1 bg-black/40 p-1 rounded-lg border border-white/5 text-xs">
+                  <div className="flex items-center gap-1 bg-black/40 p-1 rounded-lg border border-white/5 text-xs shrink-0">
                     <button
                       type="button"
                       onClick={() => setScopeEpisode("all")}
@@ -619,7 +619,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
                 )}
 
                 {/* Spoiler checkbox */}
-                <label className="inline-flex items-center gap-2 cursor-pointer select-none text-xs text-zinc-400 hover:text-zinc-200">
+                <label className="inline-flex items-center gap-2 cursor-pointer select-none text-xs text-zinc-400 hover:text-zinc-200 shrink-0">
                   <input
                     type="checkbox"
                     checked={isSpoiler}
@@ -637,7 +637,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
               <button
                 type="submit"
                 disabled={isSubmitting || !content.trim()}
-                className={`inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-white shadow-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95 shrink-0 ${
+                className={`inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-white shadow-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95 w-full sm:w-auto shrink-0 ${
                   myExistingReview
                     ? "bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 shadow-amber-900/30"
                     : "bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 shadow-red-900/30"

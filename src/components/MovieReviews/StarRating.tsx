@@ -88,7 +88,7 @@ export const StarRating: React.FC<StarRatingProps> = ({
       </div>
 
       {showLabel && (
-        <span className="text-xs md:text-sm w-36 pl-1 inline-block select-none truncate">
+        <span className="text-xs sm:text-sm pl-1.5 inline-block select-none truncate min-w-0 max-w-[130px] sm:max-w-none">
           {activeRating > 0 ? (
             <span className="font-semibold text-amber-400">{RATING_LABELS[activeRating]}</span>
           ) : (
