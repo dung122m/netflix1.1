@@ -335,7 +335,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
           <div className="flex items-center justify-between text-white text-xs sm:text-sm">
             {/* Cụm Trái: Play/Pause phụ, Âm lượng, Hiển thị thời gian inline */}
             <div className="flex items-center gap-1.5 sm:gap-2.5">
-              {/* Play / Pause Nút phụ góc trái */}
+              {/* Play / Pause Nút chính góc trái */}
               <button
                 type="button"
                 data-player-control="true"
@@ -349,6 +349,44 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
                 ) : (
                   <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-white ml-0.5" />
                 )}
+              </button>
+
+              {/* Tua lùi 10s */}
+              <button
+                type="button"
+                data-player-control="true"
+                data-control-section="main-controls"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (videoRef.current) {
+                    videoRef.current.currentTime = Math.max(0, videoRef.current.currentTime - 10);
+                  }
+                  onSeekFeedback("-10s");
+                  onUserInteraction?.();
+                }}
+                title="Tua lùi 10 giây (← / J)"
+                className="p-1.5 sm:p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:scale-110 focus-visible:bg-white/25"
+              >
+                <SeekBack10Icon className="w-4 h-4 sm:w-5 sm:h-5" />
+              </button>
+
+              {/* Tua tới 10s */}
+              <button
+                type="button"
+                data-player-control="true"
+                data-control-section="main-controls"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (videoRef.current) {
+                    videoRef.current.currentTime = (videoRef.current.currentTime || 0) + 10;
+                  }
+                  onSeekFeedback("+10s");
+                  onUserInteraction?.();
+                }}
+                title="Tua tới 10 giây (→ / L)"
+                className="p-1.5 sm:p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:scale-110 focus-visible:bg-white/25"
+              >
+                <SeekForward10Icon className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
 
               {/* Âm lượng */}
