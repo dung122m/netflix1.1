@@ -4,18 +4,27 @@ import React, { useState, useRef, useEffect } from "react";
 import {
   Play,
   Pause,
-  SkipBack,
-  SkipForward,
   Volume2,
   Volume1,
   VolumeX,
   Settings,
+  Scaling,
+  Check,
   PictureInPicture,
   Tv,
   Maximize2,
   Minimize2,
 } from "lucide-react";
 import { PlayerScrubBar } from "../PlayerScrubBar";
+
+export type VideoFit = "contain" | "cover" | "fill" | "zoom";
+
+const FIT_OPTIONS: Array<{ id: VideoFit; label: string }> = [
+  { id: "contain", label: "Vừa khung" },
+  { id: "cover", label: "Lấp đầy" },
+  { id: "fill", label: "Kéo dãn" },
+  { id: "zoom", label: "Zoom" },
+];
 
 export const SeekBack10Icon: React.FC<{ className?: string }> = ({ className = "w-4 h-4" }) => (
   <svg
@@ -87,6 +96,7 @@ interface PlayerNativeControlsProps {
   playbackSpeed: number;
   qualityLevels: QualityLevel[];
   currentQualityIndex: number;
+  videoFit?: VideoFit;
   isFullscreen: boolean;
   isNativeVideo: boolean;
   knownDuration?: number;
@@ -98,6 +108,7 @@ interface PlayerNativeControlsProps {
   onVolumeChange: (val: number) => void;
   onSpeedChange: (speed: number) => void;
   onQualityChange: (levelIndex: number) => void;
+  onVideoFitChange?: (fit: VideoFit) => void;
   onTogglePiP: () => void;
   onUseIframeFallback: () => void;
   onToggleFullscreen: () => void;
@@ -113,6 +124,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
     playbackSpeed,
     qualityLevels,
     currentQualityIndex,
+    videoFit = "contain",
     isFullscreen,
     isNativeVideo,
     knownDuration,
@@ -124,6 +136,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
     onVolumeChange,
     onSpeedChange,
     onQualityChange,
+    onVideoFitChange,
     onTogglePiP,
     onUseIframeFallback,
     onToggleFullscreen,
@@ -131,13 +144,15 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
   }) {
     const [showSpeedMenu, setShowSpeedMenu] = useState(false);
     const [showQualityMenu, setShowQualityMenu] = useState(false);
+    const [showFitMenu, setShowFitMenu] = useState(false);
 
     const speedBtnRef = useRef<HTMLButtonElement>(null);
     const qualityBtnRef = useRef<HTMLButtonElement>(null);
+    const fitBtnRef = useRef<HTMLButtonElement>(null);
 
     // Xử lý phím Escape / Backspace để đóng menu popup và trả focus chuẩn xác về nút trigger
     useEffect(() => {
-      if (!showSpeedMenu && !showQualityMenu) return;
+      if (!showSpeedMenu && !showQualityMenu && !showFitMenu) return;
 
       const handlePopupKeyDown = (e: KeyboardEvent) => {
         if (e.key === "Escape" || e.key === "Backspace") {
@@ -151,6 +166,10 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
             setShowQualityMenu(false);
             qualityBtnRef.current?.focus();
           }
+          if (showFitMenu) {
+            setShowFitMenu(false);
+            fitBtnRef.current?.focus();
+          }
         }
       };
 
@@ -158,7 +177,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
       return () => {
         window.removeEventListener("keydown", handlePopupKeyDown, { capture: true });
       };
-    }, [showSpeedMenu, showQualityMenu]);
+    }, [showSpeedMenu, showQualityMenu, showFitMenu]);
 
     return (
       <div
@@ -170,7 +189,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
         onPointerMove={onUserInteraction}
         onTouchStart={onUserInteraction}
         className={`cinema-player-controls absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 via-black/70 to-transparent pt-10 pb-3 px-3 sm:px-5 transition-opacity duration-300 z-50 ${
-          showControls || !isPlaying || showSpeedMenu || showQualityMenu ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+          showControls || !isPlaying || showSpeedMenu || showQualityMenu || showFitMenu ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         }`}
         style={{
           paddingBottom: isFullscreen ? "max(0.75rem, env(safe-area-inset-bottom, 0.75rem))" : undefined,
@@ -269,7 +288,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
             </div>
           </div>
 
-          {/* Nút Phải: Tốc độ, Chất lượng, PiP, QR, Iframe fallback, Toàn màn hình */}
+          {/* Nút Phải: Tốc độ, Chất lượng, Tỷ lệ khung hình, PiP, QR, Iframe fallback, Toàn màn hình */}
           <div className="flex items-center gap-1 sm:gap-2 relative">
             {/* TỐC ĐỘ PHÁT */}
             <div className="relative">
@@ -281,6 +300,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
                 onClick={() => {
                   setShowSpeedMenu(!showSpeedMenu);
                   setShowQualityMenu(false);
+                  setShowFitMenu(false);
                 }}
                 title="Tốc độ phát"
                 className="px-2 py-1 rounded-md hover:bg-white/20 text-gray-200 hover:text-white text-xs font-semibold transition cursor-pointer flex items-center gap-1 outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:bg-white/25"
@@ -322,6 +342,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
                   onClick={() => {
                     setShowQualityMenu(!showQualityMenu);
                     setShowSpeedMenu(false);
+                    setShowFitMenu(false);
                   }}
                   title="Chất lượng video"
                   className="p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer flex items-center outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-110 focus-visible:bg-white/25"
@@ -361,6 +382,49 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
                       >
                         <span>{lvl.label}</span>
                         {currentQualityIndex === lvl.id && <span className="w-1.5 h-1.5 rounded-full bg-netflix-red" />}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* TỶ LỆ KHUNG HÌNH (SCREEN FIT) */}
+            {isNativeVideo && (
+              <div className="relative">
+                <button
+                  ref={fitBtnRef}
+                  type="button"
+                  data-player-control="true"
+                  data-control-section="main-controls"
+                  onClick={() => {
+                    setShowFitMenu(!showFitMenu);
+                    setShowSpeedMenu(false);
+                    setShowQualityMenu(false);
+                  }}
+                  title="Tỷ lệ"
+                  className="p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer flex items-center outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-110 focus-visible:bg-white/25"
+                >
+                  <Scaling className="w-4 h-4" />
+                </button>
+                {showFitMenu && (
+                  <div data-player-menu="true" className="absolute bottom-full right-0 mb-2 py-1.5 w-32 bg-zinc-900/95 border border-white/15 rounded-xl shadow-2xl backdrop-blur-md z-50 text-xs flex flex-col">
+                    {FIT_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        data-player-menu-item="true"
+                        tabIndex={0}
+                        onClick={() => {
+                          onVideoFitChange?.(opt.id);
+                          setShowFitMenu(false);
+                        }}
+                        className={`px-3 py-1.5 text-left hover:bg-white/15 transition cursor-pointer flex items-center justify-between outline-none focus-visible:bg-white/20 focus-visible:text-white ${
+                          videoFit === opt.id ? "text-netflix-red font-bold" : "text-gray-300"
+                        }`}
+                      >
+                        <span>{opt.label}</span>
+                        {videoFit === opt.id && <Check className="w-3.5 h-3.5 text-netflix-red" />}
                       </button>
                     ))}
                   </div>

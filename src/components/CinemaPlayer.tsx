@@ -27,7 +27,7 @@ import { formatEpisodeName } from "@/lib/formatEpisode";
 import { useAuth } from "@/context/AuthContext";
 import { updateActivePlaybackSession } from "@/services/handoffService";
 import { incrementUserWatchTime, getPlayerSettings, PlayerSettings } from "@/services/userService";
-import { PlayerNativeControls, SeekBack10Icon, SeekForward10Icon } from "./player/PlayerNativeControls";
+import { PlayerNativeControls, SeekBack10Icon, SeekForward10Icon, VideoFit } from "./player/PlayerNativeControls";
 import { PlayerActionButtons } from "./player/PlayerActionButtons";
 import { PlayerShortcutModal } from "./player/PlayerShortcutModal";
 import { trackWatchStart, trackWatchProgress, trackWatchEnd } from "@/lib/analyticsClient";
@@ -102,13 +102,37 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const [isBuffering, setIsBuffering] = useState(false);
   const [useIframeFallback, setUseIframeFallback] = useState(false);
   const [showControls, setShowControls] = useState(true);
+  const showControlsRef = useRef(showControls);
   const [showShortcutModal, setShowShortcutModal] = useState(false);
   const [bigCenterIcon, setBigCenterIcon] = useState<"play" | "pause" | null>(null);
+
+  useEffect(() => {
+    showControlsRef.current = showControls;
+  }, [showControls]);
 
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [qualityLevels, setQualityLevels] = useState<Array<{ id: number; label: string; height: number }>>([]);
   const [currentQualityIndex, setCurrentQualityIndex] = useState<number>(-1);
   const [knownDuration, setKnownDuration] = useState<number>(0);
+
+  const [videoFit, setVideoFit] = useState<VideoFit>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("nana_player_video_fit");
+        if (saved === "contain" || saved === "cover" || saved === "fill" || saved === "zoom") {
+          return saved;
+        }
+      } catch {}
+    }
+    return "contain";
+  });
+
+  const handleVideoFitChange = useCallback((mode: VideoFit) => {
+    setVideoFit(mode);
+    try {
+      localStorage.setItem("nana_player_video_fit", mode);
+    } catch {}
+  }, []);
 
   // Double-tap on mobile seek state & timer
   const lastTapRef = useRef<{ time: number; x: number; y: number } | null>(null);
@@ -206,6 +230,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
 
   const resetControlsTimeout = useCallback(() => {
     setShowControls(true);
+    showControlsRef.current = true;
     if (controlsTimerRef.current) {
       clearTimeout(controlsTimerRef.current);
       controlsTimerRef.current = null;
@@ -216,6 +241,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         const isStillPaused = videoRef.current ? videoRef.current.paused : !isPlaying;
         if (!isStillPaused) {
           setShowControls(false);
+          showControlsRef.current = false;
         }
       }, 3000);
     }
@@ -1271,9 +1297,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         ref={containerRef}
         tabIndex={0}
         onMouseMove={resetControlsTimeout}
-        onPointerMove={resetControlsTimeout}
-        onTouchStart={resetControlsTimeout}
-        onTouchMove={resetControlsTimeout}
         className={`w-full mx-auto transition-all duration-300 bg-black outline-none focus:outline-none focus-visible:outline-none ${
           isFullscreen
             ? "fixed inset-0 z-50 w-full h-full max-w-none p-0 m-0 bg-black flex flex-col justify-center overflow-hidden"
@@ -1381,31 +1404,42 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                   }
                   resetControlsTimeout();
                 } else {
-                  // FIRST TAP: Schedule single-tap action after 260ms
+                  // FIRST TAP
                   lastTapRef.current = { time: now, x: e.clientX, y: e.clientY };
                   if (singleTapTimerRef.current) {
                     clearTimeout(singleTapTimerRef.current);
                   }
+
+                  // Nếu controls đang ẩn -> chỉ hiện controls, reset auto-hide timer, KHÔNG toggle play
+                  if (!showControlsRef.current) {
+                    setShowControls(true);
+                    showControlsRef.current = true;
+                    resetControlsTimeout();
+                    return;
+                  }
+
+                  // Nếu controls đang hiện -> toggle play/pause sau delay để chờ double-tap
                   singleTapTimerRef.current = setTimeout(() => {
                     singleTapTimerRef.current = null;
-                    if (!showControls && isPlaying) {
-                      setShowControls(true);
-                      resetControlsTimeout();
-                      return;
-                    }
                     togglePlayPause();
                   }, 260);
                   resetControlsTimeout();
                 }
               }}
               onMouseMove={resetControlsTimeout}
-              onPointerMove={resetControlsTimeout}
-              onTouchStart={resetControlsTimeout}
-              onTouchMove={resetControlsTimeout}
             >
               <video
                 ref={videoRef}
-                className="w-full h-full object-contain bg-black"
+                className={`w-full h-full bg-black transition-transform duration-200 ${
+                  videoFit === "cover"
+                    ? "object-cover"
+                    : videoFit === "fill"
+                    ? "object-fill"
+                    : "object-contain"
+                }`}
+                style={{
+                  transform: videoFit === "zoom" ? "scale(1.18)" : "none",
+                }}
                 playsInline
                 autoPlay
                 preload="auto"
@@ -1458,6 +1492,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 playbackSpeed={playbackSpeed}
                 qualityLevels={qualityLevels}
                 currentQualityIndex={currentQualityIndex}
+                videoFit={videoFit}
                 isFullscreen={isFullscreen}
                 isNativeVideo={isNativeVideo}
                 knownDuration={knownDuration}
@@ -1490,6 +1525,10 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 }}
                 onQualityChange={(lvl) => {
                   handleQualityChange(lvl);
+                  resetControlsTimeout();
+                }}
+                onVideoFitChange={(fit) => {
+                  handleVideoFitChange(fit);
                   resetControlsTimeout();
                 }}
                 onTogglePiP={togglePiP}
