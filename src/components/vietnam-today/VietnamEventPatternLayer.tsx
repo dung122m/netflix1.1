@@ -75,129 +75,102 @@ import {
   Sunrise,
   type LucideIcon,
 } from "lucide-react";
-import type { VietnamPatternThemeKey } from "@/lib/vietnamEventBackgrounds";
+import {
+  getVietnamEventThemeConfig,
+  type VietnamPatternThemeKey,
+} from "@/lib/vietnamEventBackgrounds";
 
-/**
- * Thematic Illustration Composition Definition
- */
-interface ThematicComposition {
+interface ThemeComposition {
   primary: LucideIcon;
   secondary: [LucideIcon, LucideIcon, LucideIcon, LucideIcon];
   detail: [LucideIcon, LucideIcon, LucideIcon, LucideIcon, LucideIcon];
   primaryRotateClass?: string;
 }
 
-const THEME_COMPOSITIONS: Record<VietnamPatternThemeKey, ThematicComposition> = {
-  // 1. ❤️ Y tế / Tim mạch / Sức khỏe (29/9 World Heart Day)
+const THEME_COMPOSITIONS: Record<VietnamPatternThemeKey, ThemeComposition> = {
   "medical-health": {
     primary: HeartPulse,
     secondary: [Heart, Activity, Stethoscope, Plus],
-    detail: [ShieldCheck, Pill, Ribbon, Sparkles, Heart],
+    detail: [ShieldCheck, Pill, Ribbon, Sparkles, Droplets],
     primaryRotateClass: "rotate-[6deg]",
   },
-
-  // 2. 🇻🇳 Quốc khánh & Đại lễ Việt Nam (2/9, 30/4, 19/8...)
   "vietnam-national": {
     primary: Flag,
-    secondary: [Star, Landmark, Building2, Crown],
-    detail: [Award, Shield, Compass, Sparkles, Star],
-    primaryRotateClass: "rotate-[4deg]",
+    secondary: [Star, Landmark, Building2, Shield],
+    detail: [Award, Sparkles, Crown, Map, Heart],
+    primaryRotateClass: "-rotate-[6deg]",
   },
-
-  // 3. 📜 Mốc son lịch sử Việt Nam
   "vietnam-history": {
     primary: Landmark,
-    secondary: [History, Scroll, Building2, Star],
-    detail: [Map, Flag, Award, Compass, BookOpen],
-    primaryRotateClass: "rotate-[0deg]",
+    secondary: [History, Scroll, Building2, Map],
+    detail: [Flag, Award, Star, Shield, Sparkles],
+    primaryRotateClass: "rotate-[4deg]",
   },
-
-  // 4. 🌍 Quốc tế & Toàn cầu (30/9 Dịch thuật, 1/5 Lao động, 8/3...)
   international: {
     primary: Globe,
     secondary: [Languages, Users, Plane, Compass],
-    detail: [Share2, MessageSquare, MapPin, Sparkles, Globe],
+    detail: [Sparkles, Share2, MapPin, MessageSquare, Sun],
     primaryRotateClass: "rotate-[8deg]",
   },
-
-  // 5. 🎎 Văn hóa truyền thống & Lễ hội (Tết, Trung Thu, Giỗ Tổ...)
   "culture-festival": {
     primary: PartyPopper,
-    secondary: [Flower2, Music, Utensils, Moon],
-    detail: [Gift, Sun, Flame, Sparkles, Smile],
-    primaryRotateClass: "rotate-[12deg]",
+    secondary: [Music, Utensils, Moon, Gift],
+    detail: [Sparkles, Sun, Smile, Flame, Star],
+    primaryRotateClass: "-rotate-[8deg]",
   },
-
-  // 6. 🎓 Giáo dục & Tôn sư trọng đạo (20/11, 5/9...)
   "education-teachers": {
     primary: GraduationCap,
-    secondary: [BookOpen, Pencil, Bookmark, Award],
-    detail: [Lightbulb, Sparkles, Compass, BookOpen, GraduationCap],
-    primaryRotateClass: "-rotate-[6deg]",
+    secondary: [BookOpen, Lightbulb, Pencil, Trophy],
+    detail: [Bookmark, Award, Star, Sparkles, Medal],
+    primaryRotateClass: "rotate-[5deg]",
   },
-
-  // 7. 🌱 Môi trường & Thiên nhiên
   "environment-nature": {
     primary: Leaf,
-    secondary: [TreePine, Trees, Droplets, Sun],
-    detail: [CloudSun, Flower2, Globe, Sparkles, Leaf],
-    primaryRotateClass: "rotate-[14deg]",
+    secondary: [TreePine, Droplets, Trees, CloudSun],
+    detail: [Sparkles, Sun, Mountain, Sunrise, Flower2],
+    primaryRotateClass: "rotate-[10deg]",
   },
-
-  // 8. ⚽ Thể thao & Olympic
   sports: {
     primary: Trophy,
-    secondary: [Medal, Activity, Flame, Bike],
-    detail: [Dumbbell, Star, Award, Sparkles, Trophy],
-    primaryRotateClass: "rotate-[4deg]",
+    secondary: [Medal, Activity, Dumbbell, Bike],
+    detail: [Sparkles, Star, Flame, Award, Shield],
+    primaryRotateClass: "-rotate-[5deg]",
   },
-
-  // 9. 💻 Công nghệ & Số hóa
   technology: {
     primary: Cpu,
-    secondary: [Monitor, Wifi, Smartphone, Code2],
-    detail: [Radio, Share2, Sparkles, Cpu, Wifi],
-    primaryRotateClass: "rotate-[0deg]",
+    secondary: [Monitor, Code2, Wifi, Smartphone],
+    detail: [Sparkles, Radio, Lightbulb, Star, Shield],
+    primaryRotateClass: "rotate-[4deg]",
   },
-
-  // 10. 🏠 Gia đình & Xã hội
   "family-social": {
-    primary: Users,
-    secondary: [Home, Heart, Smile, HandHeart],
-    detail: [Sun, Gift, Sparkles, Heart, Users],
-    primaryRotateClass: "rotate-[0deg]",
+    primary: HandHeart,
+    secondary: [Home, Users, Heart, Smile],
+    detail: [Sparkles, Gift, Sun, Flower2, Star],
+    primaryRotateClass: "rotate-[6deg]",
   },
-
-  // 11. 🎨 Nghệ thuật, Điện ảnh & Giải trí
   "arts-entertainment": {
-    primary: Palette,
-    secondary: [Music, Film, Camera, Clapperboard],
-    detail: [Tv, Radio, PartyPopper, Sparkles, Music],
-    primaryRotateClass: "rotate-[8deg]",
+    primary: Clapperboard,
+    secondary: [Film, Music, Camera, Palette],
+    detail: [Tv, Sparkles, Star, Award, Heart],
+    primaryRotateClass: "-rotate-[8deg]",
   },
-
-  // 12. 🎄 Giáng sinh (24-25/12)
   christmas: {
     primary: TreePine,
     secondary: [Gift, Snowflake, Bell, Star],
-    detail: [Sparkles, Snowflake, Gift, Star, Bell],
-    primaryRotateClass: "rotate-[0deg]",
+    detail: [Sparkles, Moon, Heart, Flame, Ribbon],
+    primaryRotateClass: "rotate-[4deg]",
   },
-
-  // 13. 🎃 Halloween (31/10)
   halloween: {
     primary: Ghost,
     secondary: [Skull, Moon, Flame, Eye],
-    detail: [Sparkles, Flame, Skull, Eye, Ghost],
-    primaryRotateClass: "rotate-[8deg]",
+    detail: [Sparkles, Star, Shield, Bell, Heart],
+    primaryRotateClass: "-rotate-[10deg]",
   },
-
-  // 14. ☀️ Fallback ngày thường
   fallback: {
     primary: CalendarDays,
-    secondary: [Sun, Mountain, Map, Sunrise],
-    detail: [Compass, Sparkles, Flame, Star, Sun],
-    primaryRotateClass: "-rotate-[4deg]",
+    secondary: [Sparkles, Star, Sun, Bookmark],
+    detail: [Heart, Ribbon, Award, Shield, Compass],
+    primaryRotateClass: "rotate-[4deg]",
   },
 };
 
@@ -209,6 +182,7 @@ export const VietnamEventPatternLayer = memo(function VietnamEventPatternLayer({
   themeKey,
 }: VietnamEventPatternLayerProps) {
   const comp = THEME_COMPOSITIONS[themeKey] || THEME_COMPOSITIONS.fallback;
+  const themeConfig = getVietnamEventThemeConfig(themeKey);
   const { primary: PrimaryIcon, secondary, detail, primaryRotateClass = "rotate-[4deg]" } = comp;
 
   return (
@@ -216,128 +190,138 @@ export const VietnamEventPatternLayer = memo(function VietnamEventPatternLayer({
       aria-hidden="true"
       className="absolute inset-0 z-[2] overflow-hidden pointer-events-none select-none"
     >
-      {/* COMPOSITION HERO: PRIMARY ICON + SOFT GLOW BACKDROP */}
+      {/* 1. THEMATIC AMBIENT SPOTLIGHT GLOW (Nửa phải card, 12-20% opacity) */}
       <div
-        style={{ top: "26%", right: "9%" }}
-        className={`absolute flex items-center justify-center transform transition-transform duration-700 ${primaryRotateClass} opacity-[0.09] text-white`}
+        style={{
+          background: `radial-gradient(circle at 82% 35%, ${themeConfig.spotlightRgba} 0%, transparent 58%)`,
+        }}
+        className="absolute inset-0 pointer-events-none z-0"
+      />
+
+      {/* 2. COMPOSITION HERO: PRIMARY ICON (96-140px, Duotone Fill + Stroke, opacity 0.14) */}
+      <div
+        style={{ top: "20%", right: "7%" }}
+        className={`absolute flex items-center justify-center transform transition-transform duration-700 ${primaryRotateClass} opacity-[0.14] ${themeConfig.primaryColorClass} z-[1]`}
       >
         <PrimaryIcon
-          className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 lg:w-36 lg:h-36 drop-shadow-md"
-          strokeWidth={1.2}
+          className="w-28 h-28 sm:w-32 sm:h-32 md:w-36 md:h-36 lg:w-40 lg:h-40 drop-shadow-lg"
+          fill="currentColor"
+          fillOpacity={0.10}
+          strokeWidth={1.5}
         />
       </div>
 
-      {/* SECONDARY SATELLITE 1: Upper-Left of Primary */}
+      {/* 3. SECONDARY SATELLITE 1: Upper-Left of Primary (32-52px, opacity 0.09) */}
       {(() => {
         const Sec1 = secondary[0];
         return (
           <div
-            style={{ top: "10%", right: "25%" }}
-            className="absolute flex items-center justify-center transform transition-transform duration-700 -rotate-[14deg] opacity-[0.08] text-white"
+            style={{ top: "10%", right: "26%" }}
+            className={`absolute flex items-center justify-center transform transition-transform duration-700 -rotate-[14deg] opacity-[0.09] ${themeConfig.secondaryColorClass} z-[1]`}
           >
-            <Sec1 className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 drop-shadow-sm" strokeWidth={1.4} />
+            <Sec1 className="w-10 h-10 sm:w-11 sm:h-11 md:w-12 md:h-12 drop-shadow-sm" strokeWidth={1.5} />
           </div>
         );
       })()}
 
-      {/* SECONDARY SATELLITE 2: Lower-Left of Primary */}
+      {/* 4. SECONDARY SATELLITE 2: Lower-Left of Primary (32-52px, opacity 0.09) */}
       {(() => {
         const Sec2 = secondary[1];
         return (
           <div
             style={{ bottom: "12%", right: "23%" }}
-            className="absolute flex items-center justify-center transform transition-transform duration-700 rotate-[12deg] opacity-[0.08] text-white"
+            className={`absolute flex items-center justify-center transform transition-transform duration-700 rotate-[12deg] opacity-[0.09] ${themeConfig.secondaryColorClass} z-[1]`}
           >
-            <Sec2 className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 drop-shadow-sm" strokeWidth={1.4} />
+            <Sec2 className="w-10 h-10 sm:w-11 sm:h-11 md:w-12 md:h-12 drop-shadow-sm" strokeWidth={1.5} />
           </div>
         );
       })()}
 
-      {/* SECONDARY SATELLITE 3: Upper-Right of Primary */}
+      {/* 5. SECONDARY SATELLITE 3: Upper-Right of Primary (32-52px, opacity 0.085) */}
       {(() => {
         const Sec3 = secondary[2];
         return (
           <div
             style={{ top: "6%", right: "4%" }}
-            className="absolute flex items-center justify-center transform transition-transform duration-700 rotate-[10deg] opacity-[0.075] text-white"
+            className={`absolute flex items-center justify-center transform transition-transform duration-700 rotate-[10deg] opacity-[0.085] ${themeConfig.secondaryColorClass} z-[1]`}
           >
-            <Sec3 className="w-9 h-9 sm:w-10 sm:h-10 md:w-12 md:h-12 drop-shadow-sm" strokeWidth={1.4} />
+            <Sec3 className="w-9 h-9 sm:w-10 sm:h-10 md:w-11 md:h-11 drop-shadow-sm" strokeWidth={1.5} />
           </div>
         );
       })()}
 
-      {/* SECONDARY SATELLITE 4: Lower-Right of Primary */}
+      {/* 6. SECONDARY SATELLITE 4: Lower-Right of Primary (32-52px, opacity 0.085) */}
       {(() => {
         const Sec4 = secondary[3];
         return (
           <div
             style={{ bottom: "8%", right: "3%" }}
-            className="absolute flex items-center justify-center transform transition-transform duration-700 -rotate-[10deg] opacity-[0.075] text-white"
+            className={`absolute flex items-center justify-center transform transition-transform duration-700 -rotate-[10deg] opacity-[0.085] ${themeConfig.secondaryColorClass} z-[1]`}
           >
-            <Sec4 className="w-9 h-9 sm:w-10 sm:h-10 md:w-12 md:h-12 drop-shadow-sm" strokeWidth={1.4} />
+            <Sec4 className="w-9 h-9 sm:w-10 sm:h-10 md:w-11 md:h-11 drop-shadow-sm" strokeWidth={1.5} />
           </div>
         );
       })()}
 
-      {/* DETAIL 1: Top Orbit Accent */}
+      {/* 7. DETAIL 1: Top Orbit Accent (14-24px, opacity 0.065) */}
       {(() => {
         const Det1 = detail[0];
         return (
           <div
             style={{ top: "4%", right: "16%" }}
-            className="absolute flex items-center justify-center transform transition-transform duration-700 rotate-[18deg] opacity-[0.06] text-white"
+            className={`absolute flex items-center justify-center transform transition-transform duration-700 rotate-[18deg] opacity-[0.065] ${themeConfig.detailColorClass} z-[1]`}
           >
-            <Det1 className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7" strokeWidth={1.5} />
+            <Det1 className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={1.5} />
           </div>
         );
       })()}
 
-      {/* DETAIL 2: Outer-Left Orbit Accent */}
+      {/* 8. DETAIL 2: Outer-Left Orbit Accent (14-24px, opacity 0.06) */}
       {(() => {
         const Det2 = detail[1];
         return (
           <div
-            style={{ top: "44%", right: "33%" }}
-            className="absolute flex items-center justify-center transform transition-transform duration-700 -rotate-[16deg] opacity-[0.055] text-white"
+            style={{ top: "45%", right: "34%" }}
+            className={`absolute flex items-center justify-center transform transition-transform duration-700 -rotate-[16deg] opacity-[0.06] ${themeConfig.detailColorClass} z-[1]`}
           >
-            <Det2 className="w-6 h-6 sm:w-7 sm:h-7" strokeWidth={1.5} />
+            <Det2 className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={1.5} />
           </div>
         );
       })()}
 
-      {/* DETAIL 3: Bottom Orbit Accent */}
+      {/* 9. DETAIL 3: Bottom Orbit Accent (14-24px, opacity 0.06) */}
       {(() => {
         const Det3 = detail[2];
         return (
           <div
             style={{ bottom: "4%", right: "15%" }}
-            className="absolute flex items-center justify-center transform transition-transform duration-700 rotate-[22deg] opacity-[0.055] text-white"
+            className={`absolute flex items-center justify-center transform transition-transform duration-700 rotate-[22deg] opacity-[0.06] ${themeConfig.detailColorClass} z-[1]`}
           >
             <Det3 className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={1.5} />
           </div>
         );
       })()}
 
-      {/* DETAIL 4: Ambient Atmosphere - Upper Left */}
+      {/* 10. DETAIL 4: Ambient Atmosphere - Upper Left (14-24px, opacity 0.04) */}
       {(() => {
         const Det4 = detail[3];
         return (
           <div
             style={{ top: "14%", left: "42%" }}
-            className="absolute flex items-center justify-center transform transition-transform duration-700 rotate-[10deg] opacity-[0.035] text-white"
+            className={`absolute flex items-center justify-center transform transition-transform duration-700 rotate-[10deg] opacity-[0.04] ${themeConfig.detailColorClass} z-[1]`}
           >
             <Det4 className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={1.5} />
           </div>
         );
       })()}
 
-      {/* DETAIL 5: Ambient Atmosphere - Lower Left */}
+      {/* 11. DETAIL 5: Ambient Atmosphere - Lower Left (14-24px, opacity 0.035) */}
       {(() => {
         const Det5 = detail[4];
         return (
           <div
             style={{ bottom: "16%", left: "30%" }}
-            className="absolute flex items-center justify-center transform transition-transform duration-700 -rotate-[12deg] opacity-[0.03] text-white"
+            className={`absolute flex items-center justify-center transform transition-transform duration-700 -rotate-[12deg] opacity-[0.035] ${themeConfig.detailColorClass} z-[1]`}
           >
             <Det5 className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={1.5} />
           </div>

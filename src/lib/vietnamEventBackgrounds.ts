@@ -124,6 +124,53 @@ export function getVietnamEventBackground(info: VietnamTodayInfo | {
 }
 
 /**
+ * Danh sách các ngày đại lễ / sự kiện lớn ĐÃ CÓ THIẾT KẾ RIÊNG từ trước
+ * (2/9, 30/4, 19/8, 10/10, Tết, Giỗ Tổ 10/3, Trung Thu, 20/11, 22/12, 27/7, Noel, Halloween...)
+ */
+const DEDICATED_MAJOR_EVENT_IDS = new Set([
+  "ev-09-02-quoc-khanh-viet-nam",
+  "ev-09-01-khoi-dau-thang-lich-su",
+  "ev-04-30-giai-phong-mien-nam",
+  "ev-08-19-cach-mang-thang-tam",
+  "ev-10-10-giai-phong-thu-do",
+  "ev-01-01-tet-nguyen-dan",
+  "ev-12-30-dem-giao-thua",
+  "ev-03-10-gio-to-hung-vuong",
+  "ev-08-15-tet-trung-thu",
+  "ev-11-20-nha-giao-viet-nam",
+  "ev-09-05-khai-giang-toan-quoc",
+  "ev-12-22-quan-doi-nhan-dan",
+  "ev-07-27-thuong-binh-liet-si",
+  "ev-12-25-giang-sinh",
+  "ev-10-31-halloween",
+]);
+
+/**
+ * Kiểm tra xem event có thiết kế / holiday effect riêng biệt từ trước hay không.
+ * - 1. Có Holiday Effect riêng (Tết, Quốc khánh, Trung thu, Giáng sinh, Halloween, Nana Birthday)
+ * - 2. Thuộc danh sách đại lễ lớn đã có thiết kế riêng từ trước (2/9, 30/4, 19/8, 10/10, Tết, Giỗ Tổ 10/3, Trung Thu...)
+ * Nếu đã có thiết kế riêng -> giữ nguyên 100%, không áp Thematic Illustration fallback đè lên.
+ */
+export function hasDedicatedEventDesign(info: VietnamTodayInfo | {
+  event: VietnamEvent;
+  historicalEventsToday?: VietnamHistoricalEvent[];
+}): boolean {
+  const { event } = info;
+
+  // 1. Có Holiday Effect riêng (Tết, Quốc khánh, Trung thu, Giáng sinh, Halloween, Nana Birthday)
+  if (event?.effect) {
+    return true;
+  }
+
+  // 2. Thuộc danh sách đại lễ lớn đã có thiết kế riêng
+  if (event?.id && DEDICATED_MAJOR_EVENT_IDS.has(event.id)) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
  * Các chủ đề biểu tượng hoa văn nền cho Vietnam Today / Special Events
  */
 export type VietnamPatternThemeKey =
@@ -276,4 +323,117 @@ export function getVietnamEventPatternTheme(info: VietnamTodayInfo | {
 
   // 14. Fallback
   return "fallback";
+}
+
+export interface ThemeVisualConfig {
+  gradient: string;
+  spotlightRgba: string;
+  primaryColorClass: string;
+  secondaryColorClass: string;
+  detailColorClass: string;
+}
+
+export const THEME_VISUAL_CONFIGS: Record<VietnamPatternThemeKey, ThemeVisualConfig> = {
+  "medical-health": {
+    gradient: "from-red-950/80 via-rose-950/40 to-zinc-950",
+    spotlightRgba: "rgba(239, 68, 68, 0.18)",
+    primaryColorClass: "text-rose-400",
+    secondaryColorClass: "text-rose-300",
+    detailColorClass: "text-amber-200",
+  },
+  "vietnam-national": {
+    gradient: "from-red-950/80 via-amber-950/40 to-zinc-950",
+    spotlightRgba: "rgba(234, 179, 8, 0.18)",
+    primaryColorClass: "text-yellow-400",
+    secondaryColorClass: "text-red-300",
+    detailColorClass: "text-amber-200",
+  },
+  "vietnam-history": {
+    gradient: "from-red-950/70 via-amber-950/35 to-zinc-950",
+    spotlightRgba: "rgba(217, 119, 6, 0.16)",
+    primaryColorClass: "text-amber-400",
+    secondaryColorClass: "text-red-300",
+    detailColorClass: "text-yellow-200",
+  },
+  international: {
+    gradient: "from-cyan-950/70 via-blue-950/40 to-zinc-950",
+    spotlightRgba: "rgba(6, 182, 212, 0.18)",
+    primaryColorClass: "text-cyan-400",
+    secondaryColorClass: "text-sky-300",
+    detailColorClass: "text-teal-200",
+  },
+  "culture-festival": {
+    gradient: "from-amber-950/70 via-orange-950/40 to-zinc-950",
+    spotlightRgba: "rgba(245, 158, 11, 0.18)",
+    primaryColorClass: "text-amber-400",
+    secondaryColorClass: "text-orange-300",
+    detailColorClass: "text-yellow-200",
+  },
+  "education-teachers": {
+    gradient: "from-indigo-950/75 via-sky-950/40 to-zinc-950",
+    spotlightRgba: "rgba(99, 102, 241, 0.18)",
+    primaryColorClass: "text-indigo-300",
+    secondaryColorClass: "text-sky-300",
+    detailColorClass: "text-amber-300",
+  },
+  "environment-nature": {
+    gradient: "from-emerald-950/75 via-teal-950/40 to-zinc-950",
+    spotlightRgba: "rgba(16, 185, 129, 0.18)",
+    primaryColorClass: "text-emerald-400",
+    secondaryColorClass: "text-teal-300",
+    detailColorClass: "text-lime-200",
+  },
+  sports: {
+    gradient: "from-orange-950/75 via-red-950/40 to-zinc-950",
+    spotlightRgba: "rgba(249, 115, 22, 0.18)",
+    primaryColorClass: "text-amber-400",
+    secondaryColorClass: "text-orange-300",
+    detailColorClass: "text-yellow-200",
+  },
+  technology: {
+    gradient: "from-blue-950/75 via-violet-950/40 to-zinc-950",
+    spotlightRgba: "rgba(59, 130, 246, 0.18)",
+    primaryColorClass: "text-blue-400",
+    secondaryColorClass: "text-violet-300",
+    detailColorClass: "text-cyan-200",
+  },
+  "family-social": {
+    gradient: "from-rose-950/70 via-amber-950/35 to-zinc-950",
+    spotlightRgba: "rgba(244, 63, 94, 0.16)",
+    primaryColorClass: "text-rose-300",
+    secondaryColorClass: "text-amber-300",
+    detailColorClass: "text-orange-200",
+  },
+  "arts-entertainment": {
+    gradient: "from-purple-950/75 via-pink-950/35 to-zinc-950",
+    spotlightRgba: "rgba(168, 85, 247, 0.18)",
+    primaryColorClass: "text-purple-300",
+    secondaryColorClass: "text-pink-300",
+    detailColorClass: "text-amber-200",
+  },
+  christmas: {
+    gradient: "from-red-950/80 via-emerald-950/35 to-zinc-950",
+    spotlightRgba: "rgba(239, 68, 68, 0.18)",
+    primaryColorClass: "text-emerald-400",
+    secondaryColorClass: "text-red-300",
+    detailColorClass: "text-amber-200",
+  },
+  halloween: {
+    gradient: "from-orange-950/80 via-purple-950/45 to-zinc-950",
+    spotlightRgba: "rgba(249, 115, 22, 0.18)",
+    primaryColorClass: "text-orange-400",
+    secondaryColorClass: "text-purple-300",
+    detailColorClass: "text-amber-300",
+  },
+  fallback: {
+    gradient: "from-slate-900/80 via-zinc-900/50 to-zinc-950",
+    spotlightRgba: "rgba(148, 163, 184, 0.14)",
+    primaryColorClass: "text-slate-300",
+    secondaryColorClass: "text-zinc-300",
+    detailColorClass: "text-amber-200",
+  },
+};
+
+export function getVietnamEventThemeConfig(themeKey: VietnamPatternThemeKey): ThemeVisualConfig {
+  return THEME_VISUAL_CONFIGS[themeKey] || THEME_VISUAL_CONFIGS.fallback;
 }

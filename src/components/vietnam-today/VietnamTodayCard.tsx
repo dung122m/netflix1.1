@@ -6,7 +6,12 @@ import { VietnamTodayInfo } from "@/lib/vietnamCalendar";
 import { VietnamEvent } from "@/data/events/types";
 import { VietnamEventEffect } from "./VietnamEventEffect";
 import { VietnamFlagIcon } from "./VietnamFlagIcon";
-import { getVietnamEventBackground, getVietnamEventPatternTheme } from "@/lib/vietnamEventBackgrounds";
+import {
+  getVietnamEventBackground,
+  getVietnamEventPatternTheme,
+  getVietnamEventThemeConfig,
+  hasDedicatedEventDesign,
+} from "@/lib/vietnamEventBackgrounds";
 import { VietnamEventPatternLayer } from "./VietnamEventPatternLayer";
 
 function getEventActionLabel(event: VietnamEvent): string {
@@ -55,19 +60,25 @@ export function VietnamTodayCard({ info, onOpenModal }: VietnamTodayCardProps) {
   const [imageError, setImageError] = useState(false);
   const { event, isToday, badgeLabel, badgeSub } = info;
 
-  const bgImageUrl = React.useMemo(() => {
-    return getVietnamEventBackground(info);
+  const isDedicated = React.useMemo(() => {
+    return hasDedicatedEventDesign(info);
   }, [info]);
+
+  const bgImageUrl = React.useMemo(() => {
+    return isDedicated ? getVietnamEventBackground(info) : null;
+  }, [info, isDedicated]);
 
   const patternTheme = React.useMemo(() => {
     return getVietnamEventPatternTheme(info);
   }, [info]);
 
+  const themeConfig = React.useMemo(() => {
+    return getVietnamEventThemeConfig(patternTheme);
+  }, [patternTheme]);
+
   React.useEffect(() => {
     setImageError(false);
   }, [event.id, bgImageUrl]);
-
-  const accentGradient = event.accentGradient || "from-amber-600/30 via-red-600/20 to-zinc-950";
 
   const holidayBorderClass = (() => {
     if (!event.effect) {
@@ -107,9 +118,9 @@ export function VietnamTodayCard({ info, onOpenModal }: VietnamTodayCardProps) {
       aria-label={`Sự kiện ${event.title}, bấm để xem chi tiết`}
       className={`group relative w-full min-h-[175px] sm:min-h-[195px] md:min-h-[215px] h-auto rounded-2xl sm:rounded-3xl overflow-hidden cursor-pointer select-none transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-amber-500/50 border ${holidayBorderClass}`}
     >
-      {/* 1. BACKGROUND IMAGE OR FALLBACK GRADIENT */}
+      {/* 1. BACKGROUND IMAGE (ONLY FOR DEDICATED EVENTS) OR THEMATIC GRADIENT */}
       <div className="absolute inset-0 z-0 overflow-hidden">
-        {!imageError && bgImageUrl ? (
+        {isDedicated && !imageError && bgImageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             key={bgImageUrl}
@@ -123,7 +134,7 @@ export function VietnamTodayCard({ info, onOpenModal }: VietnamTodayCardProps) {
             className="w-full h-full object-cover object-center filter brightness-[0.45] contrast-105 transition-transform duration-700 ease-out group-hover:scale-105"
           />
         ) : (
-          <div className={`w-full h-full bg-gradient-to-r ${accentGradient} opacity-90`} />
+          <div className={`w-full h-full bg-gradient-to-r ${themeConfig.gradient} opacity-95`} />
         )}
 
         {/* Multi-stop cinematic dark gradient for guaranteed AAA readability */}
@@ -131,8 +142,8 @@ export function VietnamTodayCard({ info, onOpenModal }: VietnamTodayCardProps) {
         <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/90 via-transparent to-black/30 pointer-events-none" />
       </div>
 
-      {/* THEMATIC ICON ILLUSTRATION PATTERN LAYER */}
-      <VietnamEventPatternLayer themeKey={patternTheme} />
+      {/* THEMATIC ICON ILLUSTRATION COMPOSITION (Chỉ render khi event CHƯA có thiết kế riêng) */}
+      {!isDedicated && <VietnamEventPatternLayer themeKey={patternTheme} />}
 
       {/* SPECIAL HOLIDAY EFFECT (Active only when event has effect) */}
       {event.effect && <VietnamEventEffect effect={event.effect} />}
@@ -201,7 +212,7 @@ export function VietnamTodayCard({ info, onOpenModal }: VietnamTodayCardProps) {
 
         {/* MIDDLE BLOCK: EVENT TITLE & DESCRIPTION (Constrained to left side so right visuals have room) */}
         <div className="space-y-1.5 sm:space-y-2 my-2 sm:my-3 max-w-lg md:max-w-xl lg:max-w-2xl">
-          <h3 className="text-lg sm:text-2xl md:text-[26px] font-black text-white tracking-tight group-hover:text-amber-300 transition-colors drop-shadow-md line-clamp-1">
+          <h3 className="text-lg sm:text-2xl md:text-[26px] font-black text-white tracking-tight group-hover:text-amber-300 transition-colors drop-shadow-md line-clamp-2">
             {event.title}
           </h3>
           <p className="text-xs sm:text-sm md:text-[14.5px] text-zinc-200/95 line-clamp-2 sm:line-clamp-3 leading-relaxed font-normal">
