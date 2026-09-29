@@ -104,7 +104,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const [showControls, setShowControls] = useState(true);
   const showControlsRef = useRef(showControls);
   const [showShortcutModal, setShowShortcutModal] = useState(false);
-  const [bigCenterIcon, setBigCenterIcon] = useState<"play" | "pause" | null>(null);
 
   useEffect(() => {
     showControlsRef.current = showControls;
@@ -172,7 +171,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
 
   const [hudState, setHudState] = useState<{ icon: React.ReactNode; text: string } | null>(null);
   const hudTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const centerIconTimerRef = useRef<NodeJS.Timeout | null>(null);
   const controlsTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -184,10 +182,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       if (hudTimerRef.current) {
         clearTimeout(hudTimerRef.current);
         hudTimerRef.current = null;
-      }
-      if (centerIconTimerRef.current) {
-        clearTimeout(centerIconTimerRef.current);
-        centerIconTimerRef.current = null;
       }
     };
   }, []);
@@ -221,13 +215,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     }, 1200);
   }, []);
 
-  const triggerCenterAnimation = useCallback((type: "play" | "pause") => {
-    if (centerIconTimerRef.current) clearTimeout(centerIconTimerRef.current);
-    setBigCenterIcon(type);
-    centerIconTimerRef.current = setTimeout(() => {
-      setBigCenterIcon(null);
-    }, 500);
-  }, []);
 
   const resetControlsTimeout = useCallback(() => {
     setShowControls(true);
@@ -547,13 +534,11 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         }
         v.play().catch(() => {});
         setIsPlaying(true);
-        triggerCenterAnimation("play");
         showHud(<Play className="w-5 h-5 text-emerald-400 fill-current" />, "Đang phát");
         resetControlsTimeout();
       } else {
         v.pause();
         setIsPlaying(false);
-        triggerCenterAnimation("pause");
         showHud(<Pause className="w-5 h-5 text-amber-400 fill-current" />, "Tạm dừng");
         setShowControls(true);
         if (controlsTimerRef.current) {
@@ -567,13 +552,11 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         if (next) {
           sendPlayerCommand("playVideo");
           sendPlayerCommand("play");
-          triggerCenterAnimation("play");
           showHud(<Play className="w-5 h-5 text-emerald-400 fill-current" />, "Đang phát");
           resetControlsTimeout();
         } else {
           sendPlayerCommand("pauseVideo");
           sendPlayerCommand("pause");
-          triggerCenterAnimation("pause");
           showHud(<Pause className="w-5 h-5 text-amber-400 fill-current" />, "Tạm dừng");
           setShowControls(true);
           if (controlsTimerRef.current) {
@@ -584,7 +567,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         return next;
       });
     }
-  }, [isNativeVideo, isMuted, sendPlayerCommand, showHud, triggerCenterAnimation, resetControlsTimeout]);
+  }, [isNativeVideo, isMuted, sendPlayerCommand, showHud, resetControlsTimeout]);
 
   const handleQualityChange = useCallback((levelIndex: number) => {
     if (!hlsRef.current) return;
@@ -1031,23 +1014,32 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     resetControlsTimeout,
   ]);
 
-  // Mobile sticky detection
+  // Mobile touch & sticky detection
   useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    const checkMobile = () => {
+      const hasTouch =
+        (typeof window !== "undefined" && window.matchMedia && window.matchMedia("(pointer: coarse)").matches) ||
+        (typeof window !== "undefined" && "ontouchstart" in window) ||
+        (typeof navigator !== "undefined" && navigator.maxTouchPoints > 0) ||
+        (typeof window !== "undefined" && window.innerWidth < 768);
+      setIsMobile(Boolean(hasTouch));
+    };
     checkMobile();
     window.addEventListener("resize", checkMobile);
+    window.addEventListener("orientationchange", checkMobile);
 
     const observer = new IntersectionObserver(
       ([entry]) => {
         setIsScrolledPast(!entry.isIntersecting && entry.boundingClientRect.top < 0);
       },
-      { threshold: 0 }
+      { threshold: 0, rootMargin: "-20px 0px 0px 0px" }
     );
 
     if (sentinelRef.current) observer.observe(sentinelRef.current);
 
     return () => {
       window.removeEventListener("resize", checkMobile);
+      window.removeEventListener("orientationchange", checkMobile);
       observer.disconnect();
     };
   }, []);
@@ -1267,9 +1259,16 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if ((e.nativeEvent as PointerEvent)?.pointerType === "touch") return;
-    if (typeof window !== "undefined" && window.matchMedia && window.matchMedia("(pointer: coarse)").matches && window.innerWidth < 768) return;
+    if (
+      typeof window !== "undefined" &&
+      ((window.matchMedia && window.matchMedia("(pointer: coarse)").matches) ||
+        "ontouchstart" in window ||
+        isMobile)
+    ) {
+      return;
+    }
     resetControlsTimeout();
-  }, [resetControlsTimeout]);
+  }, [resetControlsTimeout, isMobile]);
 
   const scrollToPlayer = useCallback(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1279,6 +1278,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     isMobile &&
     isScrolledPast &&
     isPlaying &&
+    !isFullscreen &&
     Boolean(activeSrc || m3u8Link);
 
   return (
@@ -1296,7 +1296,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       )}
 
       {/* Sentinel for sticky intersection */}
-      <div ref={sentinelRef} className="w-full h-0 pointer-events-none" />
+      <div ref={sentinelRef} className="w-full h-1 pointer-events-none" />
 
       {/* STICKY PLACEHOLDER */}
       {isMobileStickyActive && (
@@ -1499,18 +1499,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 </div>
               )}
 
-              {/* CENTER PLAY/PAUSE ICON (QUICK ANIMATION ON SHORTCUT / DESKTOP TOGGLE) */}
-              {bigCenterIcon && (
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20 animate-out fade-out zoom-out-125 duration-300">
-                  <div className="p-5 rounded-full bg-black/75 backdrop-blur-md border border-white/20 text-white shadow-2xl">
-                    {bigCenterIcon === "play" ? (
-                      <Play className="w-10 h-10 text-emerald-400 fill-current ml-1" />
-                    ) : (
-                      <Pause className="w-10 h-10 text-amber-400 fill-current" />
-                    )}
-                  </div>
-                </div>
-              )}
 
               {/* ISOLATED NATIVE CONTROLS OVERLAY (NETFLIX & YOUTUBE STYLE) */}
               <PlayerNativeControls
@@ -1644,26 +1632,30 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
             </div>
           )}
         </div>
-
-        {/* ISOLATED ACTION BUTTONS BAR */}
-        {!isFullscreen && (
-          <div className="cinema-action-buttons">
-            <PlayerActionButtons
-              isTheaterMode={isTheaterMode}
-              onToggleTheaterMode={() => setIsTheaterMode(!isTheaterMode)}
-              isLightsOff={isLightsOff}
-              onToggleLightsOff={() => setIsLightsOff(!isLightsOff)}
-              isFullscreen={isFullscreen}
-              onToggleFullscreen={toggleFullscreen}
-              onOpenShortcuts={() => setShowShortcutModal(true)}
-              prevEpisode={prevEpisode}
-              nextEpisode={nextEpisode}
-              onSwitchEpisode={switchEpisode}
-              isSticky={isMobileStickyActive}
-            />
-          </div>
-        )}
       </div>
+
+      {/* ISOLATED ACTION BUTTONS BAR */}
+      {!isFullscreen && (
+        <div
+          className={`cinema-action-buttons w-full mx-auto ${
+            isTheaterMode ? "max-w-none px-0 sm:px-0" : "max-w-7xl"
+          } relative z-20`}
+        >
+          <PlayerActionButtons
+            isTheaterMode={isTheaterMode}
+            onToggleTheaterMode={() => setIsTheaterMode(!isTheaterMode)}
+            isLightsOff={isLightsOff}
+            onToggleLightsOff={() => setIsLightsOff(!isLightsOff)}
+            isFullscreen={isFullscreen}
+            onToggleFullscreen={toggleFullscreen}
+            onOpenShortcuts={() => setShowShortcutModal(true)}
+            prevEpisode={prevEpisode}
+            nextEpisode={nextEpisode}
+            onSwitchEpisode={switchEpisode}
+            isSticky={false}
+          />
+        </div>
+      )}
 
       <style>{`
         :fullscreen,
