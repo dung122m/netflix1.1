@@ -243,7 +243,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           setShowControls(false);
           showControlsRef.current = false;
         }
-      }, 3000);
+      }, 4500);
     }
   }, [isPlaying]);
 
@@ -1379,7 +1379,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                   }
                   lastTapRef.current = null;
 
-                  if (xPct <= 0.42) {
+                  if (xPct <= 0.38) {
                     // TUA LÙI 10 GIÂY
                     if (videoRef.current) {
                       videoRef.current.currentTime = Math.max(0, videoRef.current.currentTime - 10);
@@ -1390,7 +1390,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                     doubleTapFeedbackTimerRef.current = setTimeout(() => {
                       setDoubleTapFeedback(null);
                     }, 650);
-                  } else if (xPct >= 0.58) {
+                  } else if (xPct >= 0.62) {
                     // TUA TỚI 10 GIÂY
                     if (videoRef.current) {
                       const effectiveDuration = getEffectiveDuration();
@@ -1406,12 +1406,8 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                       setDoubleTapFeedback(null);
                     }, 650);
                   } else {
-                    // Chạm đúp ở giữa (center)
-                    if (typeof window !== "undefined" && window.matchMedia && window.matchMedia("(pointer: fine)").matches) {
-                      toggleFullscreen();
-                    } else {
-                      togglePlayPause();
-                    }
+                    // Chạm đúp ở giữa (center) -> Toggle fullscreen
+                    toggleFullscreen();
                   }
                   resetControlsTimeout();
                 } else {
@@ -1423,27 +1419,26 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                   }
 
                   if (isTouch) {
-                    // MOBILE TOUCH LOGIC:
-                    // 1. Nếu controls đang ẩn -> Single tap chỉ hiện controls, video tiếp tục phát, KHÔNG pause
+                    // MOBILE TOUCH LOGIC (YOUTUBE / NETFLIX STYLE):
                     if (!showControlsRef.current) {
+                      // Nếu controls đang ẩn -> Single tap chỉ hiện controls, video tiếp tục phát
                       setShowControls(true);
                       showControlsRef.current = true;
                       resetControlsTimeout();
-                      return;
+                    } else {
+                      // Nếu controls đang hiện -> Chờ 250ms (tránh double-tap), sau đó ẩn controls
+                      singleTapTimerRef.current = setTimeout(() => {
+                        singleTapTimerRef.current = null;
+                        setShowControls(false);
+                        showControlsRef.current = false;
+                        if (controlsTimerRef.current) {
+                          clearTimeout(controlsTimerRef.current);
+                          controlsTimerRef.current = null;
+                        }
+                      }, 250);
                     }
-
-                    // 2. Nếu controls đang hiện -> Chờ 260ms (để tránh xung đột double-tap), sau đó chỉ ẩn controls, KHÔNG pause
-                    singleTapTimerRef.current = setTimeout(() => {
-                      singleTapTimerRef.current = null;
-                      setShowControls(false);
-                      showControlsRef.current = false;
-                      if (controlsTimerRef.current) {
-                        clearTimeout(controlsTimerRef.current);
-                        controlsTimerRef.current = null;
-                      }
-                    }, 260);
                   } else {
-                    // DESKTOP CLICK LOGIC (giữ nguyên hành vi hiện tại):
+                    // DESKTOP CLICK LOGIC:
                     if (!showControlsRef.current) {
                       setShowControls(true);
                       showControlsRef.current = true;
@@ -1451,7 +1446,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                     singleTapTimerRef.current = setTimeout(() => {
                       singleTapTimerRef.current = null;
                       togglePlayPause();
-                    }, 260);
+                    }, 250);
                     resetControlsTimeout();
                   }
                 }
@@ -1500,7 +1495,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 </div>
               )}
 
-              {/* CENTER PLAY/PAUSE ICON */}
+              {/* CENTER PLAY/PAUSE ICON (QUICK ANIMATION ON SHORTCUT / DESKTOP TOGGLE) */}
               {bigCenterIcon && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20 animate-out fade-out zoom-out-125 duration-300">
                   <div className="p-5 rounded-full bg-black/75 backdrop-blur-md border border-white/20 text-white shadow-2xl">
@@ -1513,7 +1508,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 </div>
               )}
 
-              {/* ISOLATED NATIVE CONTROLS OVERLAY */}
+              {/* ISOLATED NATIVE CONTROLS OVERLAY (NETFLIX & YOUTUBE STYLE) */}
               <PlayerNativeControls
                 showControls={showControls}
                 isPlaying={isPlaying}
@@ -1528,6 +1523,9 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 knownDuration={knownDuration}
                 embedSrc={embedSrc}
                 videoRef={videoRef}
+                title={title}
+                activeEpisodeName={activeEpisodeName ? formatEpisodeName(activeEpisodeName) : undefined}
+                nextEpisode={nextEpisode}
                 onTogglePlayPause={togglePlayPause}
                 onSeekFeedback={(txt) => {
                   resetControlsTimeout();
@@ -1564,6 +1562,9 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 onTogglePiP={togglePiP}
                 onUseIframeFallback={() => setUseIframeFallback(true)}
                 onToggleFullscreen={toggleFullscreen}
+                onSwitchEpisode={(slug) => {
+                  if (switchEpisode) switchEpisode(slug);
+                }}
                 onUserInteraction={resetControlsTimeout}
               />
             </div>

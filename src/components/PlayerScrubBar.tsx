@@ -7,9 +7,11 @@ interface PlayerScrubBarProps {
   isNativeVideo: boolean;
   knownDuration?: number;
   onSeekFeedback?: (text: string) => void;
+  onScrubStart?: () => void;
+  onScrubEnd?: () => void;
 }
 
-const formatTime = (secs: number) => {
+export const formatTime = (secs: number) => {
   if (isNaN(secs) || secs < 0 || !isFinite(secs)) return "00:00";
   const h = Math.floor(secs / 3600);
   const m = Math.floor((secs % 3600) / 60);
@@ -20,11 +22,73 @@ const formatTime = (secs: number) => {
   return `${m < 10 ? "0" : ""}${m}:${s < 10 ? "0" : ""}${s}`;
 };
 
+export const PlayerTimeDisplay: React.FC<{
+  videoRef: React.RefObject<HTMLVideoElement | null>;
+  isNativeVideo: boolean;
+  knownDuration?: number;
+}> = React.memo(function PlayerTimeDisplay({ videoRef, isNativeVideo, knownDuration }) {
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState<number>(() => knownDuration || 0);
+
+  useEffect(() => {
+    if (knownDuration && knownDuration > 0 && isFinite(knownDuration)) {
+      setDuration((prev) => (Math.abs(prev - knownDuration) > 1 ? knownDuration : prev));
+    }
+  }, [knownDuration]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !isNativeVideo) return;
+
+    const getRealDuration = (v: HTMLVideoElement): number => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const hlsDur = (v as any).__hlsDuration;
+      if (typeof hlsDur === "number" && hlsDur > 0 && isFinite(hlsDur)) return hlsDur;
+      if (knownDuration && knownDuration > 0 && isFinite(knownDuration)) return knownDuration;
+      if (v.duration && !isNaN(v.duration) && isFinite(v.duration) && v.duration > 0) return v.duration;
+      return 0;
+    };
+
+    const updateDur = () => {
+      const realDur = getRealDuration(video);
+      if (realDur > 0 && Math.abs(realDur - duration) > 0.5) {
+        setDuration(realDur);
+      }
+    };
+
+    const handleTimeUpdate = () => {
+      setCurrentTime(video.currentTime || 0);
+      updateDur();
+    };
+
+    updateDur();
+    video.addEventListener("timeupdate", handleTimeUpdate, { passive: true });
+    video.addEventListener("loadedmetadata", updateDur, { passive: true });
+    video.addEventListener("durationchange", updateDur, { passive: true });
+
+    return () => {
+      video.removeEventListener("timeupdate", handleTimeUpdate);
+      video.removeEventListener("loadedmetadata", updateDur);
+      video.removeEventListener("durationchange", updateDur);
+    };
+  }, [videoRef, isNativeVideo, knownDuration, duration]);
+
+  return (
+    <div className="flex items-center gap-1 text-[11px] sm:text-xs font-mono text-gray-300 select-none whitespace-nowrap">
+      <span className="text-white font-medium">{formatTime(currentTime)}</span>
+      <span className="text-white/40 font-normal">/</span>
+      <span className="text-gray-400">{formatTime(duration)}</span>
+    </div>
+  );
+});
+
 export const PlayerScrubBar: React.FC<PlayerScrubBarProps> = ({
   videoRef,
   isNativeVideo,
   knownDuration,
   onSeekFeedback,
+  onScrubStart,
+  onScrubEnd,
 }) => {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState<number>(() => knownDuration || 0);
@@ -126,6 +190,7 @@ export const PlayerScrubBar: React.FC<PlayerScrubBarProps> = ({
     if (e.button !== 0 && e.pointerType === "mouse") return;
     isScrubbingRef.current = true;
     setIsScrubbing(true);
+    onScrubStart?.();
 
     const targetTime = getTimeAtClientX(e.clientX);
     scrubTargetTimeRef.current = targetTime;
@@ -148,6 +213,7 @@ export const PlayerScrubBar: React.FC<PlayerScrubBarProps> = ({
     const handlePointerUp = (upEvent: PointerEvent) => {
       isScrubbingRef.current = false;
       setIsScrubbing(false);
+      onScrubEnd?.();
 
       if (scrubTargetTimeRef.current !== null && videoRef.current) {
         const finalTime = scrubTargetTimeRef.current;
@@ -186,8 +252,8 @@ export const PlayerScrubBar: React.FC<PlayerScrubBarProps> = ({
   const bufferedPercent = duration ? Math.min(100, Math.max(0, (buffered / duration) * 100)) : 0;
 
   return (
-    <div className="w-full select-none mb-2">
-      {/* THANH TIẾN TRÌNH: VÙNG CHẠM TOUCH 38PX CHUẨN MOBILE, GIỮ NGUYÊN GIAO DIỆN THANH 6PX */}
+    <div className="w-full select-none mb-1 sm:mb-2">
+      {/* THANH TIẾN TRÌNH: VÙNG CHẠM TOUCH RỘNG, THIẾT KẾ SLIM GỌN GÀNG CHUẨN YOUTUBE / NETFLIX */}
       <div
         ref={barRef}
         tabIndex={0}
@@ -203,9 +269,9 @@ export const PlayerScrubBar: React.FC<PlayerScrubBarProps> = ({
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMoveHover}
         onPointerLeave={handleMouseLeave}
-        className="w-full py-4 -my-4 cursor-pointer relative group/bar touch-none flex items-center outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded-lg transition-all"
+        className="w-full py-2.5 -my-2.5 cursor-pointer relative group/bar touch-none flex items-center outline-none focus-visible:ring-2 focus-visible:ring-netflix-red rounded-lg transition-all"
       >
-        <div className="w-full h-1.5 group-hover/bar:h-2.5 bg-white/20 rounded-full relative transition-all pointer-events-none">
+        <div className="w-full h-1 group-hover/bar:h-2 bg-white/20 rounded-full relative transition-all pointer-events-none">
           {/* Buffered bar */}
           <div
             className="absolute top-0 left-0 bottom-0 bg-white/30 rounded-full transition-all duration-150"
@@ -218,7 +284,7 @@ export const PlayerScrubBar: React.FC<PlayerScrubBarProps> = ({
             style={{ width: `${playedPercent}%` }}
           >
             <div
-              className={`w-3.5 h-3.5 rounded-full bg-white shadow-md transition-transform ${
+              className={`w-3.5 h-3.5 rounded-full bg-white shadow-[0_0_8px_rgba(229,9,20,0.8)] transition-transform ${
                 isScrubbing ? "scale-100" : "scale-0 group-hover/bar:scale-100"
               }`}
             />
@@ -227,19 +293,13 @@ export const PlayerScrubBar: React.FC<PlayerScrubBarProps> = ({
           {/* Hover preview tooltip */}
           {hoverTime !== null && (
             <div
-              className="absolute -top-7 -translate-x-1/2 px-1.5 py-0.5 rounded bg-black/90 text-[10px] font-mono font-bold text-white border border-white/20 shadow-md"
+              className="absolute -top-7 -translate-x-1/2 px-1.5 py-0.5 rounded bg-zinc-950/95 text-[10px] font-mono font-bold text-white border border-white/20 shadow-xl backdrop-blur-sm"
               style={{ left: `${hoverPos}px` }}
             >
               {formatTime(hoverTime)}
             </div>
           )}
         </div>
-      </div>
-
-      {/* HIỂN THỊ THỜI GIAN HIỆN TẠI VÀ TỔNG THỜI LƯỢNG */}
-      <div className="flex justify-between items-center text-[11px] sm:text-xs text-gray-300 font-mono mt-1 px-0.5">
-        <span className="text-white font-medium">{formatTime(currentTime)}</span>
-        <span className="text-gray-400">{formatTime(duration)}</span>
       </div>
     </div>
   );
