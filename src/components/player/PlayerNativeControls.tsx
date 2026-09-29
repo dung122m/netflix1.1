@@ -235,14 +235,14 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
           </div>
         </div>
 
-        {/* 2. CENTER PLAYBACK CONTROLS CLUSTER / BUFFERING SPINNER (YouTube & Netflix Style) */}
+        {/* 2. CENTER PLAYBACK CONTROLS CLUSTER / BUFFERING SPINNER (Mobile-Only Center Controls, YouTube Desktop Style on PC) */}
         {isBuffering ? (
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none select-none z-10 flex flex-col items-center justify-center">
             <div className="w-12 h-12 sm:w-16 sm:h-16 border-4 border-white/20 border-t-netflix-red rounded-full animate-spin shadow-2xl" />
           </div>
         ) : (
           <div
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center gap-6 sm:gap-10 pointer-events-none select-none z-10"
+            className="md:hidden absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center gap-6 sm:gap-10 pointer-events-none select-none z-10"
           >
             {/* Tua lùi 10s */}
             <button

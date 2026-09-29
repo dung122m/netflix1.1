@@ -1279,6 +1279,19 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     resetControlsTimeout();
   }, [resetControlsTimeout, isMobile]);
 
+  const handleMouseLeave = useCallback(() => {
+    if (isMobile) return;
+    const isPaused = videoRef.current ? videoRef.current.paused : !isPlaying;
+    if (!isPaused) {
+      if (controlsTimerRef.current) {
+        clearTimeout(controlsTimerRef.current);
+        controlsTimerRef.current = null;
+      }
+      setShowControls(false);
+      showControlsRef.current = false;
+    }
+  }, [isMobile, isPlaying]);
+
   const scrollToPlayer = useCallback(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
@@ -1317,6 +1330,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         ref={containerRef}
         tabIndex={0}
         onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
         className={`w-full mx-auto transition-all duration-300 bg-black outline-none focus:outline-none focus-visible:outline-none ${
           isFullscreen
             ? "fixed inset-0 z-50 w-full h-full max-w-none p-0 m-0 bg-black flex flex-col justify-center overflow-hidden"
@@ -1465,6 +1479,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 }
               }}
               onMouseMove={handleMouseMove}
+              onMouseLeave={handleMouseLeave}
             >
               <video
                 ref={videoRef}
