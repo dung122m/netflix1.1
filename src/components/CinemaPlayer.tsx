@@ -25,6 +25,7 @@ import { useWatchController } from "./WatchController";
 import { getWatchProgress, saveWatchProgress } from "@/lib/watchHistory";
 import { formatEpisodeName } from "@/lib/formatEpisode";
 import { useAuth } from "@/context/AuthContext";
+import { useGlobalPlayer } from "@/context/GlobalPlayerContext";
 import { updateActivePlaybackSession } from "@/services/handoffService";
 import { incrementUserWatchTime, getPlayerSettings, PlayerSettings } from "@/services/userService";
 import { PlayerNativeControls, SeekBack10Icon, SeekForward10Icon, VideoFit } from "./player/PlayerNativeControls";
@@ -69,6 +70,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   initialTime,
 }) => {
   const watchContext = useWatchController();
+  const globalPlayer = useGlobalPlayer();
   const { user } = useAuth();
   const searchParams = useSearchParams();
   const lastHandoffSyncRef = useRef<number>(0);
@@ -326,6 +328,60 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   }, [videoLink, embedSrc, trailerEmbedSrc, targetProgress]);
 
   const isNativeVideo = Boolean(resolvedM3u8 && !useIframeFallback);
+
+  // Đăng ký và đồng bộ vào Global Player Context cho In-App Mini Player
+  useEffect(() => {
+    if (!globalPlayer) return;
+    const currentSlug = propMovieSlug || watchContext?.movieSlug || "";
+    if (currentSlug) {
+      globalPlayer.registerMainPlayer({
+        movieSlug: currentSlug,
+        movieTitle: title,
+        posterUrl,
+        episodeName: activeEpisodeName,
+        episodeSlug: activeEpisodeSlug,
+        m3u8Link: resolvedM3u8 || undefined,
+        embedSrc: embedSrc || undefined,
+        isNativeVideo,
+        currentTime: videoRef.current?.currentTime || targetProgress || 0,
+        isPlaying,
+        isMuted,
+        volume,
+        playbackSpeed,
+      });
+    }
+
+    return () => {
+      if (currentSlug) {
+        const v = videoRef.current;
+        const curTime = v?.currentTime || 0;
+        const isCurrentlyPlaying = Boolean(v && !v.paused);
+        globalPlayer.unregisterMainPlayer({
+          movieSlug: currentSlug,
+          movieTitle: title,
+          posterUrl,
+          episodeName: activeEpisodeName,
+          episodeSlug: activeEpisodeSlug,
+          m3u8Link: resolvedM3u8 || undefined,
+          embedSrc: embedSrc || undefined,
+          isNativeVideo,
+          currentTime: curTime,
+          isPlaying: isCurrentlyPlaying,
+        });
+      }
+    };
+  }, [
+    globalPlayer,
+    propMovieSlug,
+    watchContext?.movieSlug,
+    title,
+    posterUrl,
+    activeEpisodeName,
+    activeEpisodeSlug,
+    resolvedM3u8,
+    embedSrc,
+    isNativeVideo,
+  ]);
 
   const getEffectiveDuration = useCallback(() => {
     const v = videoRef.current;
@@ -918,6 +974,11 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
             episodeName: activeEpisodeName,
           });
         }
+        globalPlayer?.updatePlaybackState({
+          currentTime: video.currentTime,
+          duration: currentEffectiveDuration,
+          isPlaying: !video.paused,
+        });
       }
       if (user?.uid && now - lastHandoffSyncRef.current > 8000 && movieSlug && video.currentTime > 5) {
         lastHandoffSyncRef.current = now;

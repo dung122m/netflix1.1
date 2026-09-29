@@ -9,6 +9,8 @@ import { InstallPwaBanner } from "@/components/InstallPwaBanner";
 import { DesktopReplyPopup } from "@/components/Notifications/DesktopReplyPopup";
 import { BottomNav } from "@/components/BottomNav";
 import { AuthProvider } from "@/context/AuthContext";
+import { GlobalPlayerProvider } from "@/context/GlobalPlayerContext";
+import { GlobalMiniPlayer } from "@/components/player/GlobalMiniPlayer";
 import { NavigationProgressBar } from "@/components/NavigationProgressBar";
 import { GlobalVisitorTracker } from "@/components/GlobalVisitorTracker";
 import { SecurityWarningListener } from "@/components/Notifications/SecurityWarningListener";
@@ -216,39 +218,43 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <AuthProvider>
+          <GlobalPlayerProvider>
+            {/* Global site visit tracker — fires once per browser tab session */}
+            <GlobalVisitorTracker />
 
-          {/* Global site visit tracker — fires once per browser tab session */}
-          <GlobalVisitorTracker />
+            {/* Client security warning listener for non-intrusive alerts */}
+            <SecurityWarningListener />
 
-          {/* Client security warning listener for non-intrusive alerts */}
-          <SecurityWarningListener />
+            {/* Thanh chỉ báo tải trang toàn cục mượt mà (Top Progress Bar) */}
+            <NavigationProgressBar />
 
-          {/* Thanh chỉ báo tải trang toàn cục mượt mà (Top Progress Bar) */}
-          <NavigationProgressBar />
+            <SmoothScroll>
+              <div className="pb-16 lg:pb-0 min-h-screen flex flex-col" suppressHydrationWarning>
+                {children}
+              </div>
+            </SmoothScroll>
 
-          <SmoothScroll>
-            <div className="pb-16 lg:pb-0 min-h-screen flex flex-col" suppressHydrationWarning>
-              {children}
-            </div>
-          </SmoothScroll>
+            {/* In-App Persistent Mini Player (YouTube Style) */}
+            <GlobalMiniPlayer />
 
-          {/* Thanh điều hướng cố định ở đáy cho điện thoại (Bottom Navigation) */}
-          <BottomNav />
+            {/* Thanh điều hướng cố định ở đáy cho điện thoại (Bottom Navigation) */}
+            <BottomNav />
 
-          {/* Back to top với progress ring */}
-          <BackToTop />
+            {/* Back to top với progress ring */}
+            <BackToTop />
 
-          {/* Toast notification system — global */}
-          <ToastContainer />
+            {/* Toast notification system — global */}
+            <ToastContainer />
 
-          {/* Facebook-style Desktop Reply & Realtime Notification Popup */}
-          <DesktopReplyPopup />
+            {/* Facebook-style Desktop Reply & Realtime Notification Popup */}
+            <DesktopReplyPopup />
 
-          {/* AI Modals: Concierge, Roulette, Actor Bio — lazy-loaded client-side */}
-          <ClientModals />
+            {/* AI Modals: Concierge, Roulette, Actor Bio — lazy-loaded client-side */}
+            <ClientModals />
 
-          {/* PWA Smart Install Banner & Modal */}
-          <InstallPwaBanner />
+            {/* PWA Smart Install Banner & Modal */}
+            <InstallPwaBanner />
+          </GlobalPlayerProvider>
         </AuthProvider>
       </body>
     </html>
