@@ -27,6 +27,7 @@ import {
   Compass,
   Star,
   Clock,
+  BookOpen,
 } from "lucide-react";
 import {
   loadAiChatHistory,
@@ -98,9 +99,17 @@ interface RouletteResult {
     year?: number | string;
     quality?: string;
     category?: string;
+    categories?: string[];
     country?: string;
     episodeCurrent?: string;
     duration?: string;
+    overview?: string;
+    description?: string;
+    content?: string;
+    actors?: string[];
+    director?: string[];
+    rating?: number;
+    trailerUrl?: string;
   };
   punchline: string;
   badges: string[];
@@ -953,32 +962,52 @@ export const NanaAiStudioModal: React.FC<NanaAiStudioModalProps> = ({
                   </div>
 
                   {/* SPOTLIGHT MOVIE CARD */}
-                  <div className="flex-1 min-h-0 p-3.5 sm:p-5 rounded-3xl bg-zinc-900/95 border-2 border-amber-500/40 shadow-2xl shadow-amber-950/40 flex flex-col sm:flex-row gap-3.5 sm:gap-5 items-center justify-center">
-                    {/* Poster */}
-                    <div className="relative w-28 sm:w-36 aspect-[2/3] rounded-2xl overflow-hidden bg-zinc-950 border-2 border-amber-400/40 flex-none shadow-2xl ring-2 ring-amber-400/20">
-                      <Image
-                        src={rouletteResult.movie.poster || "/default-poster.jpg"}
-                        alt={rouletteResult.movie.title}
-                        fill
-                        className="object-cover"
-                        sizes="160px"
-                        priority
-                      />
-                      <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-netflix-red text-white text-[10px] font-black uppercase shadow">
-                        {rouletteResult.movie.quality || "HD"}
+                  <div className="flex-1 min-h-0 p-4 sm:p-6 rounded-3xl bg-zinc-900/95 border-2 border-amber-500/40 shadow-2xl shadow-amber-950/40 flex flex-col md:flex-row gap-4 sm:gap-6 items-center md:items-start justify-center overflow-y-auto">
+                    {/* Poster Column */}
+                    <div className="flex flex-col items-center gap-2.5 flex-none">
+                      <div className="relative w-32 sm:w-44 md:w-48 aspect-[2/3] rounded-2xl overflow-hidden bg-zinc-950 border-2 border-amber-400/40 shadow-2xl ring-2 ring-amber-400/20 group">
+                        <Image
+                          src={rouletteResult.movie.poster || "/default-poster.jpg"}
+                          alt={rouletteResult.movie.title}
+                          fill
+                          className="object-cover transition-transform duration-500 group-hover:scale-105"
+                          sizes="(max-width: 768px) 176px, 192px"
+                          priority
+                        />
+                        <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-netflix-red text-white text-[10px] font-black uppercase shadow">
+                          {rouletteResult.movie.quality || "FHD"}
+                        </div>
+                        {rouletteResult.movie.episodeCurrent && (
+                          <div className="absolute bottom-2 left-2 right-2 px-2 py-1 rounded-lg bg-black/80 backdrop-blur-sm text-amber-300 text-[10px] font-bold text-center border border-white/10 truncate">
+                            {rouletteResult.movie.episodeCurrent}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Match score badge under poster */}
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-400/40 text-amber-300 text-xs font-black">
+                        <Star className="w-3.5 h-3.5 fill-amber-300 text-amber-300" />
+                        <span>{rouletteResult.matchScore}% Hợp Định Mệnh</span>
                       </div>
                     </div>
 
-                    {/* Movie Info & Punchline */}
-                    <div className="flex-1 min-w-0 space-y-2 text-center sm:text-left flex flex-col justify-center">
-                      <div className="flex flex-wrap items-center justify-center sm:justify-start gap-1.5 sm:gap-2">
-                        <span className="text-[11px] font-black uppercase text-amber-300 px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center gap-1">
-                          <Star className="w-3 h-3 fill-amber-300" />
-                          <span>{rouletteResult.matchScore}% Hợp Định Mệnh</span>
-                        </span>
+                    {/* Movie Info & Synopsis Dossier */}
+                    <div className="flex-1 min-w-0 space-y-2.5 text-center md:text-left flex flex-col justify-between">
+                      {/* Row 1: Badges & Tags */}
+                      <div className="flex flex-wrap items-center justify-center md:justify-start gap-1.5 sm:gap-2">
                         {rouletteResult.movie.category && (
-                          <span className="text-[11px] text-gray-300 px-2 py-0.5 rounded-full bg-white/10 font-medium">
+                          <span className="text-[11px] text-amber-200 px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/30 font-semibold">
                             {rouletteResult.movie.category}
+                          </span>
+                        )}
+                        {rouletteResult.movie.categories?.filter((c) => c !== rouletteResult.movie.category).slice(0, 2).map((cat) => (
+                          <span key={cat} className="text-[11px] text-gray-300 px-2 py-0.5 rounded-full bg-white/10 font-medium">
+                            {cat}
+                          </span>
+                        ))}
+                        {rouletteResult.movie.country && (
+                          <span className="text-[11px] text-sky-300 px-2 py-0.5 rounded-full bg-sky-500/20 border border-sky-500/30 font-medium">
+                            🌐 {rouletteResult.movie.country}
                           </span>
                         )}
                         {rouletteResult.movie.duration && (
@@ -987,22 +1016,73 @@ export const NanaAiStudioModal: React.FC<NanaAiStudioModalProps> = ({
                           </span>
                         )}
                         {rouletteResult.movie.year && (
-                          <span className="text-[11px] text-gray-400">
+                          <span className="text-[11px] text-gray-400 px-2 py-0.5 rounded-full bg-white/5">
                             {rouletteResult.movie.year}
+                          </span>
+                        )}
+                        {rouletteResult.movie.rating && rouletteResult.movie.rating > 0 && (
+                          <span className="text-[11px] text-yellow-300 px-2 py-0.5 rounded-full bg-yellow-500/20 border border-yellow-500/30 font-bold flex items-center gap-1">
+                            ⭐ {rouletteResult.movie.rating}/10
                           </span>
                         )}
                       </div>
 
-                      <h4 className="text-base sm:text-2xl font-black text-white leading-tight">
-                        {rouletteResult.movie.title}
-                      </h4>
+                      {/* Row 2: Title & Original Title */}
+                      <div>
+                        <h4 className="text-lg sm:text-2xl md:text-3xl font-black text-white leading-tight">
+                          {rouletteResult.movie.title}
+                        </h4>
+                        {rouletteResult.movie.originalTitle && rouletteResult.movie.originalTitle !== rouletteResult.movie.title && (
+                          <p className="text-xs sm:text-sm text-gray-400 font-medium italic mt-0.5">
+                            {rouletteResult.movie.originalTitle}
+                          </p>
+                        )}
+                      </div>
 
-                      <p className="text-xs sm:text-sm text-amber-200/95 italic bg-amber-500/15 p-2.5 sm:p-3 rounded-2xl border border-amber-500/30 leading-relaxed max-w-xl">
+                      {/* Row 3: Tarot Oracle Verdict */}
+                      <p className="text-xs sm:text-sm text-amber-200/95 italic bg-gradient-to-r from-amber-500/20 via-orange-500/10 to-transparent p-2.5 sm:p-3 rounded-2xl border border-amber-500/30 leading-relaxed text-left">
                         ✨ {rouletteResult.punchline}
                       </p>
 
-                      {/* Action Buttons */}
-                      <div className="pt-2 flex flex-wrap items-center justify-center sm:justify-start gap-2 sm:gap-2.5">
+                      {/* Row 4: TÓM TẮT NỘI DUNG PHIM (SYNOPSIS) */}
+                      <div className="space-y-1 bg-zinc-950/70 p-3 sm:p-3.5 rounded-2xl border border-white/10 text-left">
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-amber-300 uppercase tracking-wide">
+                          <BookOpen className="w-3.5 h-3.5 text-amber-400" />
+                          <span>Tóm tắt nội dung phim</span>
+                        </div>
+                        <p className="text-xs sm:text-sm text-gray-300 leading-relaxed line-clamp-3 sm:line-clamp-4">
+                          {rouletteResult.movie.overview ||
+                           rouletteResult.movie.description ||
+                           rouletteResult.movie.content ||
+                           `Tác phẩm ${rouletteResult.movie.category || "điện ảnh"} đặc sắc với cốt truyện lôi cuốn, kịch tính và tràn đầy cảm xúc. Hãy bắt đầu thưởng thức ngay suất chiếu định mệnh này trên Nanaflix.`}
+                        </p>
+                      </div>
+
+                      {/* Row 5: Cast & Director */}
+                      {((rouletteResult.movie.actors && rouletteResult.movie.actors.length > 0) ||
+                        (rouletteResult.movie.director && rouletteResult.movie.director.length > 0)) && (
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] sm:text-xs text-gray-400 text-left pt-0.5">
+                          {rouletteResult.movie.actors && rouletteResult.movie.actors.length > 0 && (
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span className="text-amber-300/90 font-semibold flex-none">🎭 Diễn viên:</span>
+                              <span className="text-gray-300 truncate max-w-xs sm:max-w-md">
+                                {rouletteResult.movie.actors.join(", ")}
+                              </span>
+                            </div>
+                          )}
+                          {rouletteResult.movie.director && rouletteResult.movie.director.length > 0 && (
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span className="text-amber-300/90 font-semibold flex-none">🎬 Đạo diễn:</span>
+                              <span className="text-gray-300 truncate">
+                                {rouletteResult.movie.director.join(", ")}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Row 6: Action Buttons */}
+                      <div className="pt-2 flex flex-wrap items-center justify-center md:justify-start gap-2 sm:gap-2.5">
                         <Link
                           href={`/movies/${rouletteResult.movie.slug}`}
                           onClick={() => setIsOpen(false)}

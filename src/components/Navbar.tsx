@@ -182,17 +182,27 @@ const NavbarInner: React.FC = () => {
                   className={`transition-all relative py-1 flex items-center gap-1.5 whitespace-nowrap flex-shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded-md ${
                     active
                       ? "text-white font-bold light-nav-active"
+                      : link.isLive
+                      ? "text-red-200 hover:text-white"
                       : "text-gray-300 hover:text-white"
                   }`}
                 >
-                  <span className="whitespace-nowrap">{link.name}</span>
-                  {link.isLive && (
-                    <span className="relative flex h-2 w-2 flex-shrink-0">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-netflix-red"></span>
+                  {link.isLive ? (
+                    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border transition-all duration-300 shadow-sm ${
+                      active
+                        ? "bg-red-600/30 border-red-500/60 text-white shadow-[0_0_12px_rgba(229,9,20,0.45)]"
+                        : "bg-red-500/15 hover:bg-red-500/25 border-red-500/40 hover:border-red-400/70 text-red-200 hover:text-white shadow-[0_0_10px_rgba(229,9,20,0.25)]"
+                    }`}>
+                      <span className="whitespace-nowrap font-bold tracking-tight">{link.name}</span>
+                      <span className="relative flex h-2 w-2 flex-shrink-0">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-80" />
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-netflix-red shadow-[0_0_6px_#E50914]" />
+                      </span>
                     </span>
+                  ) : (
+                    <span className="whitespace-nowrap">{link.name}</span>
                   )}
-                  {active && (
+                  {active && !link.isLive && (
                     <span className="absolute bottom-0 left-0 w-full h-0.5 bg-netflix-red rounded-full shadow-[0_0_8px_rgba(229,9,20,0.8)]" />
                   )}
                 </Link>
@@ -202,7 +212,7 @@ const NavbarInner: React.FC = () => {
         </div>
 
         {/* RIGHT ACTIONS */}
-        <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0 text-white">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 flex-shrink-0 text-white">
           {/* 📜 TEASER: NGÀY NÀY TRONG LỊCH SỬ VIỆT NAM (Hiển thị tinh tế khi có mốc lịch sử) */}
           {historicalTodayCount > 0 && (
             <button
@@ -230,7 +240,7 @@ const NavbarInner: React.FC = () => {
           )}
 
           {/* CỤM 2 TABS NANA AI TRÊN NAVBAR (Ẩn trên màn hình < 360px để tránh tràn header) */}
-          <div className="hidden min-[360px]:flex items-center gap-1 sm:gap-1.5">
+          <div className="hidden min-[360px]:flex items-center gap-1.5 sm:gap-2">
             {/* 1. NÚT CHAT & TÌM PHIM NANA AI */}
             <button
               type="button"
@@ -244,10 +254,10 @@ const NavbarInner: React.FC = () => {
                 }
               }}
               title="Hỏi Nana AI (Chat & Tìm Phim Thông Minh)"
-              className="inline-flex items-center justify-center gap-1 sm:gap-1.5 w-8 h-8 sm:w-auto sm:h-auto sm:px-2.5 sm:py-1.5 rounded-full text-xs font-bold bg-gradient-to-r from-purple-500/20 via-pink-500/20 to-rose-500/20 hover:from-purple-500/35 hover:via-pink-500/35 hover:to-rose-500/35 text-pink-300 hover:text-white border border-pink-500/35 hover:border-pink-400/60 transition-all cursor-pointer shadow-sm shadow-purple-950/40 active:scale-95 flex-shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-pink-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+              className="group inline-flex items-center justify-center gap-1 sm:gap-1.5 w-8 h-8 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 rounded-full text-xs font-bold bg-gradient-to-r from-purple-600/30 via-pink-600/35 to-rose-600/30 hover:from-purple-500/45 hover:via-pink-500/50 hover:to-rose-500/45 text-pink-200 hover:text-white border border-pink-500/45 hover:border-pink-300/80 transition-all duration-300 cursor-pointer shadow-[0_0_12px_rgba(236,72,153,0.25)] hover:shadow-[0_0_18px_rgba(236,72,153,0.5)] hover:scale-105 active:scale-95 flex-shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-pink-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black backdrop-blur-sm"
             >
-              <Sparkles className="w-4 h-4 sm:w-3.5 sm:h-3.5 text-pink-400 animate-pulse flex-shrink-0" />
-              <span className="hidden sm:inline">Hỏi Nana</span>
+              <Sparkles className="w-4 h-4 sm:w-3.5 sm:h-3.5 text-pink-300 animate-pulse flex-shrink-0 group-hover:rotate-12 transition-transform duration-300" />
+              <span className="hidden sm:inline tracking-tight font-extrabold">Hỏi Nana</span>
             </button>
 
             {/* 2. NÚT BỐC QUẺ ĐỊNH MỆNH */}
@@ -263,10 +273,10 @@ const NavbarInner: React.FC = () => {
                 }
               }}
               title="Bốc Quẻ Phim Định Mệnh"
-              className="inline-flex items-center justify-center gap-1 sm:gap-1.5 w-8 h-8 sm:w-auto sm:h-auto sm:px-2.5 sm:py-1.5 rounded-full text-xs font-bold bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-rose-500/20 hover:from-amber-500/35 hover:via-orange-500/35 hover:to-rose-500/35 text-amber-300 hover:text-white border border-amber-500/35 hover:border-amber-400/60 transition-all cursor-pointer shadow-sm shadow-amber-950/40 active:scale-95 flex-shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+              className="group inline-flex items-center justify-center gap-1 sm:gap-1.5 w-8 h-8 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 rounded-full text-xs font-bold bg-gradient-to-r from-amber-500/30 via-orange-500/35 to-amber-600/30 hover:from-amber-400/45 hover:via-orange-400/50 hover:to-amber-500/45 text-amber-200 hover:text-white border border-amber-500/45 hover:border-amber-300/80 transition-all duration-300 cursor-pointer shadow-[0_0_12px_rgba(245,158,11,0.25)] hover:shadow-[0_0_18px_rgba(245,158,11,0.5)] hover:scale-105 active:scale-95 flex-shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black backdrop-blur-sm"
             >
-              <Dices className="w-4 h-4 sm:w-3.5 sm:h-3.5 text-amber-400 flex-shrink-0" />
-              <span className="hidden sm:inline">Bốc quẻ</span>
+              <Dices className="w-4 h-4 sm:w-3.5 sm:h-3.5 text-amber-300 flex-shrink-0 group-hover:rotate-45 transition-transform duration-300" />
+              <span className="hidden sm:inline tracking-tight font-extrabold">Bốc quẻ</span>
             </button>
           </div>
 

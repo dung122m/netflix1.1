@@ -1382,43 +1382,124 @@ Trả về DUY NHẤT một chuỗi JSON hợp lệ:
       );
     }
 
+    // Bổ sung đầy đủ chi tiết phim (nội dung tóm tắt, diễn viên, đạo diễn, rating) nếu candidate chỉ có metadata cơ bản
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let fullDetail: any = null;
+    if (
+      (!foundMovie.content && !foundMovie.overview && !foundMovie.description) ||
+      !foundMovie.actor ||
+      (Array.isArray(foundMovie.actor) && foundMovie.actor.length === 0)
+    ) {
+      try {
+        fullDetail = await movieApi.getMovieDetail(foundMovie.slug);
+      } catch {}
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const mergedMovie: any = fullDetail?.movie || fullDetail || foundMovie;
+
     const firstValidCatName =
-      (Array.isArray(foundMovie.category)
-        ? foundMovie.category.find((c: ItemMeta | string) => {
+      (Array.isArray(mergedMovie.category || foundMovie.category)
+        ? (mergedMovie.category || foundMovie.category).find((c: ItemMeta | string) => {
             const cSlug = cleanNormalizedString(typeof c === "string" ? c : c?.slug || c?.name || "");
             return cSlug === cleanNormalizedString(targetCategorySlug);
           })
         : null
       )?.name ||
+      (Array.isArray(mergedMovie.category) ? mergedMovie.category[0]?.name : null) ||
       (Array.isArray(foundMovie.category) ? foundMovie.category[0]?.name : null) ||
       moodMeta.label;
 
+    const rawCategories = mergedMovie.category || foundMovie.category || [];
+    const allCategories: string[] = Array.isArray(rawCategories)
+      ? rawCategories
+          .map((c: unknown) => (typeof c === "string" ? c : (c as ItemMeta)?.name))
+          .filter((s): s is string => Boolean(s) && typeof s === "string")
+      : typeof rawCategories === "string" && rawCategories.trim()
+      ? [rawCategories.trim()]
+      : [];
+
     const firstValidCountryName =
-      (Array.isArray(foundMovie.country)
-        ? foundMovie.country.find((c: ItemMeta | string) => {
+      (Array.isArray(mergedMovie.country || foundMovie.country)
+        ? (mergedMovie.country || foundMovie.country).find((c: ItemMeta | string) => {
             const cSlug = cleanNormalizedString(typeof c === "string" ? c : c?.slug || c?.name || "");
             return cSlug === cleanNormalizedString(targetCountrySlug || "");
           })
         : null
       )?.name ||
+      (Array.isArray(mergedMovie.country) ? mergedMovie.country[0]?.name : null) ||
       (Array.isArray(foundMovie.country) ? foundMovie.country[0]?.name : null) ||
       countryMeta.label;
 
-    const movieMins = getMovieDurationMinutes(foundMovie);
-    const formattedDuration = movieMins ? `${movieMins} phút` : (typeof foundMovie.time === "string" ? foundMovie.time : undefined);
+    const movieMins = getMovieDurationMinutes(mergedMovie) || getMovieDurationMinutes(foundMovie);
+    const formattedDuration = movieMins
+      ? `${movieMins} phút`
+      : typeof mergedMovie.time === "string"
+      ? mergedMovie.time
+      : typeof foundMovie.time === "string"
+      ? foundMovie.time
+      : undefined;
+
+    // Trích xuất tóm tắt nội dung sạch, loại bỏ HTML tags
+    const rawContent =
+      mergedMovie.content ||
+      mergedMovie.overview ||
+      mergedMovie.description ||
+      foundMovie.content ||
+      foundMovie.overview ||
+      foundMovie.description ||
+      "";
+    const cleanOverview = typeof rawContent === "string"
+      ? rawContent.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim()
+      : "";
+
+    // Trích xuất danh sách diễn viên & đạo diễn
+    const rawActors = mergedMovie.actor || foundMovie.actor || [];
+    const actorsList: string[] = Array.isArray(rawActors)
+      ? rawActors
+          .map((a: unknown) => (typeof a === "string" ? a : (a as ItemMeta)?.name))
+          .filter((s): s is string => Boolean(s) && typeof s === "string")
+      : typeof rawActors === "string" && rawActors.trim()
+      ? rawActors.split(",").map((s: string) => s.trim()).filter((s): s is string => Boolean(s) && typeof s === "string")
+      : [];
+
+    const rawDirector = mergedMovie.director || foundMovie.director || [];
+    const directorList: string[] = Array.isArray(rawDirector)
+      ? rawDirector
+          .map((d: unknown) => (typeof d === "string" ? d : (d as ItemMeta)?.name))
+          .filter((s): s is string => Boolean(s) && typeof s === "string")
+      : typeof rawDirector === "string" && rawDirector.trim()
+      ? rawDirector.split(",").map((s: string) => s.trim()).filter((s): s is string => Boolean(s) && typeof s === "string")
+      : [];
+
+    const ratingVal = Number(
+      mergedMovie.tmdb?.vote_average ||
+      mergedMovie.imdb?.vote_average ||
+      mergedMovie.rating ||
+      foundMovie.tmdb?.vote_average ||
+      foundMovie.imdb?.vote_average ||
+      foundMovie.rating ||
+      0
+    );
 
     const payload = {
       movie: {
-        slug: foundMovie.slug,
-        title: foundMovie.name || foundMovie.title || "Tác Phẩm Đặc Sắc",
-        originalTitle: foundMovie.origin_name || "",
-        poster: toSafePoster(foundMovie),
-        year: foundMovie.year || 2024,
-        quality: foundMovie.quality || "FHD",
+        slug: mergedMovie.slug || foundMovie.slug,
+        title: mergedMovie.name || mergedMovie.title || foundMovie.name || foundMovie.title || "Tác Phẩm Đặc Sắc",
+        originalTitle: mergedMovie.origin_name || foundMovie.origin_name || "",
+        poster: toSafePoster(mergedMovie) || toSafePoster(foundMovie),
+        year: mergedMovie.year || foundMovie.year || 2024,
+        quality: mergedMovie.quality || foundMovie.quality || "FHD",
         category: firstValidCatName,
+        categories: allCategories.slice(0, 4),
         country: firstValidCountryName,
-        episodeCurrent: foundMovie.episode_current || "Trọn bộ",
+        episodeCurrent: mergedMovie.episode_current || foundMovie.episode_current || "Trọn bộ",
         duration: formattedDuration,
+        overview: cleanOverview || undefined,
+        actors: actorsList.slice(0, 6),
+        director: directorList.slice(0, 2),
+        rating: ratingVal > 0 ? Math.round(ratingVal * 10) / 10 : undefined,
+        trailerUrl: mergedMovie.trailer_url || foundMovie.trailer_url || undefined,
       },
       punchline: finalPunchline || moodMeta.defaultPunchline,
       badges: finalBadges.length > 0 ? finalBadges : moodMeta.defaultBadges,

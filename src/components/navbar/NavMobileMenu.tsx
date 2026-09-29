@@ -192,7 +192,7 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
         </div>
 
         {/* QUICK FEATURE APPS 2x2 GRID */}
-        <div className="grid grid-cols-2 gap-2 my-0.5">
+        <div className="grid grid-cols-2 gap-2.5 my-1">
           {/* CARD 1: CHAT TÌM PHIM AI */}
           <button
             type="button"
@@ -206,14 +206,14 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
                 );
               }
             }}
-            className="flex items-center gap-2.5 p-2.5 rounded-xl bg-gradient-to-r from-purple-500/15 via-pink-500/15 to-rose-500/15 border border-purple-500/30 hover:border-pink-500/40 text-white transition text-left active:scale-[0.98] cursor-pointer shadow-sm shadow-purple-950/30"
+            className="flex items-center gap-2.5 p-2.5 rounded-2xl bg-gradient-to-r from-purple-600/20 via-pink-600/25 to-rose-600/20 border border-pink-500/40 hover:border-pink-400/70 text-white transition-all text-left active:scale-[0.98] cursor-pointer shadow-[0_0_12px_rgba(236,72,153,0.2)]"
           >
-            <div className="w-9 h-9 rounded-xl bg-pink-500/20 text-pink-300 flex items-center justify-center shrink-0 border border-pink-500/30 shadow-inner">
+            <div className="w-9 h-9 rounded-xl bg-pink-500/25 text-pink-200 flex items-center justify-center shrink-0 border border-pink-400/40 shadow-inner">
               <Sparkles size={18} className="text-pink-300 animate-pulse" />
             </div>
             <div className="min-w-0 flex-1">
-              <div className="text-xs font-bold text-pink-300 truncate">Hỏi Nana</div>
-              <div className="text-[10px] text-zinc-400 truncate">Trợ lý AI</div>
+              <div className="text-xs font-black text-pink-200 truncate tracking-tight">Hỏi Nana</div>
+              <div className="text-[10px] text-pink-300/80 font-medium truncate">Trợ lý AI</div>
             </div>
           </button>
 
@@ -230,14 +230,14 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
                 );
               }
             }}
-            className="flex items-center gap-2.5 p-2.5 rounded-xl bg-gradient-to-r from-amber-500/15 via-orange-500/15 to-rose-500/15 border border-amber-500/30 hover:border-orange-500/40 text-white transition text-left active:scale-[0.98] cursor-pointer shadow-sm shadow-amber-950/30"
+            className="flex items-center gap-2.5 p-2.5 rounded-2xl bg-gradient-to-r from-amber-500/20 via-orange-500/25 to-rose-500/20 border border-amber-500/40 hover:border-amber-400/70 text-white transition-all text-left active:scale-[0.98] cursor-pointer shadow-[0_0_12px_rgba(245,158,11,0.2)]"
           >
-            <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center shrink-0 border border-amber-500/30 shadow-inner">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/25 text-amber-200 flex items-center justify-center shrink-0 border border-amber-400/40 shadow-inner">
               <Dices size={18} className="text-amber-300" />
             </div>
             <div className="min-w-0 flex-1">
-              <div className="text-xs font-bold text-amber-300 truncate">Bốc quẻ</div>
-              <div className="text-[10px] text-zinc-400 truncate">Vòng quay phim</div>
+              <div className="text-xs font-black text-amber-200 truncate tracking-tight">Bốc quẻ</div>
+              <div className="text-[10px] text-amber-300/80 font-medium truncate">Vòng quay phim</div>
             </div>
           </button>
 
