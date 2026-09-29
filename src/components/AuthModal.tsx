@@ -62,9 +62,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, customTit
         onClick={(e) => e.stopPropagation()}
         className="w-full max-w-sm sm:max-w-md bg-zinc-950 border border-white/10 rounded-2xl p-6 sm:p-8 shadow-2xl relative overflow-hidden space-y-6 transform-gpu will-change-[transform,opacity] animate-in zoom-in-95 duration-150 my-auto overscroll-contain"
       >
-        {/* Glow điện ảnh nhẹ background */}
-        <div className="absolute -top-20 -left-20 w-48 h-48 bg-netflix-red/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-20 -right-20 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+        {/* Glow đỏ nhẹ background */}
+        <div className="absolute -top-20 -left-20 w-40 h-40 bg-netflix-red/15 rounded-full blur-3xl pointer-events-none" />
 
         {/* Nút đóng */}
         <button

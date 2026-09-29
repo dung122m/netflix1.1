@@ -419,12 +419,7 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
   return (
     <section className="relative my-8 sm:my-12 select-none">
       {/* HEADER SECTION */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-5 px-1 relative">
-        {/* Soft Section Spotlight */}
-        <div
-          aria-hidden="true"
-          className="absolute -top-8 -left-6 w-80 h-36 bg-gradient-to-r from-purple-600/15 via-pink-600/10 to-transparent rounded-full blur-2xl pointer-events-none -z-10"
-        />
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-5 px-1">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-gradient-to-tr from-purple-600 via-pink-600 to-red-600 text-white shadow-lg shadow-purple-950/40">

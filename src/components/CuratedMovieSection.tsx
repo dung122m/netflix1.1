@@ -153,12 +153,7 @@ export const CuratedMovieSection: React.FC<CuratedMovieSectionProps> = ({
       aria-label="Tuyển chọn phim Nanaflix"
     >
       {/* HEADER & TABS BAR */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-6 relative">
-        {/* Soft Section Spotlight */}
-        <div
-          aria-hidden="true"
-          className="absolute -top-8 -left-6 w-80 h-36 bg-gradient-to-r from-red-600/12 via-purple-600/8 to-transparent rounded-full blur-2xl pointer-events-none -z-10"
-        />
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-6">
         <div>
           <div className="flex items-center gap-2 mb-2">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-red-600/20 to-purple-600/20 text-rose-300 border border-red-500/30">

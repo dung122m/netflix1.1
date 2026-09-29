@@ -151,7 +151,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
 
   const [imageAttemptIndex, setImageAttemptIndex] = useState(0);
   const [currentImgSrc, setCurrentImgSrc] = useState(
-    candidateImages[0] || (imageUrl ? toOptimizedCardBackdropUrl(imageUrl) : "/default-hero.jpg")
+    candidateImages[0] || (imageUrl ? toOptimizedCardBackdropUrl(imageUrl) : "/default-hero.svg")
   );
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
@@ -159,8 +159,13 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   useEffect(() => {
     setImageAttemptIndex(0);
     setIsImageLoaded(false);
-    setHasError(false);
-    setCurrentImgSrc(candidateImages[0] || (imageUrl ? toOptimizedCardBackdropUrl(imageUrl) : "/default-hero.jpg"));
+    if (candidateImages.length === 0 && !imageUrl) {
+      setHasError(true);
+      setCurrentImgSrc("/default-hero.svg");
+    } else {
+      setHasError(false);
+      setCurrentImgSrc(candidateImages[0] || (imageUrl ? toOptimizedCardBackdropUrl(imageUrl) : "/default-hero.svg"));
+    }
   }, [imageUrl, candidateImages]);
 
   const handleImageError = () => {
@@ -173,12 +178,9 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
       return;
     }
 
-    // 2. Nếu tất cả đều lỗi, chuyển về ảnh bìa mặc định rõ nét
+    // 2. Nếu tất cả đều lỗi, chuyển sang trạng thái hasError và dùng Nanaflix fallback
     setHasError(true);
-    if (currentImgSrc !== "/default-hero.jpg") {
-      setCurrentImgSrc("/default-hero.jpg");
-      setIsImageLoaded(true);
-    }
+    setIsImageLoaded(true);
   };
 
   // Trailer Video & Modal States (Desktop with hover only, lazy-load 1.1s, fault-tolerant)
@@ -445,7 +447,9 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
             }
             if (data?.backdrop_url) {
               setCurrentImgSrc((prev) => {
-                if (!prev || prev.includes("-poster") || prev.includes("/default-")) {
+                if (!prev || prev.includes("-poster") || prev.includes("/default-") || prev.includes("default-hero")) {
+                  setHasError(false);
+                  setIsImageLoaded(false);
                   return data.backdrop_url || prev;
                 }
                 return prev;
@@ -654,22 +658,36 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           </div>
         )}
 
-        <Image
-          src={currentImgSrc}
-          alt={title}
-          fill
-          unoptimized
-          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 16vw"
-          className={`object-cover object-center transition-transform duration-300 ${
-            isCardHovered ? "scale-105" : "scale-100 group-hover/card:scale-[1.035]"
-          }`}
-          priority={priority}
-          loading={priority ? "eager" : "lazy"}
-          decoding="async"
-          quality={80}
-          onLoad={() => setIsImageLoaded(true)}
-          onError={handleImageError}
-        />
+        {hasError ? (
+          <Image
+            src="/default-hero.svg"
+            alt=""
+            fill
+            unoptimized
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 16vw"
+            className={`object-cover object-center transition-transform duration-300 ${
+              isCardHovered ? "scale-105" : "scale-100 group-hover/card:scale-[1.035]"
+            }`}
+            priority={priority}
+          />
+        ) : (
+          <Image
+            src={currentImgSrc}
+            alt={title}
+            fill
+            unoptimized
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 16vw"
+            className={`object-cover object-center transition-transform duration-300 ${
+              isCardHovered ? "scale-105" : "scale-100 group-hover/card:scale-[1.035]"
+            }`}
+            priority={priority}
+            loading={priority ? "eager" : "lazy"}
+            decoding="async"
+            quality={80}
+            onLoad={() => setIsImageLoaded(true)}
+            onError={handleImageError}
+          />
+        )}
 
         {/* 1. GÓC TRÊN TRÁI: DÀNH CHO LOẠI PHIM (PHIM BỘ, PHIM LẺ, PHIM RẠP, HOẠT HÌNH) */}
         <div className="absolute top-2 left-2 sm:top-2.5 sm:left-2.5 z-10 flex items-center gap-1 sm:gap-1.5 max-w-[72%]">
@@ -758,18 +776,29 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
                 onClick={handleCardClick}
                 className="block relative w-full h-full cursor-pointer"
               >
-                <Image
-                  src={currentImgSrc}
-                  alt={title}
-                  fill
-                  unoptimized
-                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 450px"
-                  loading="lazy"
-                  decoding="async"
-                  quality={85}
-                  className="object-cover object-center"
-                  onError={handleImageError}
-                />
+                {hasError ? (
+                  <Image
+                    src="/default-hero.svg"
+                    alt=""
+                    fill
+                    unoptimized
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 450px"
+                    className="object-cover object-center"
+                  />
+                ) : (
+                  <Image
+                    src={currentImgSrc}
+                    alt={title}
+                    fill
+                    unoptimized
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 450px"
+                    loading="lazy"
+                    decoding="async"
+                    quality={85}
+                    className="object-cover object-center"
+                    onError={handleImageError}
+                  />
+                )}
 
                 {/* Video Trailer Preview tự động chạy - Poster luôn nằm dưới, trailer fade-in khi sẵn sàng */}
                 {isPlayingTrailer && embedTrailerUrl && !trailerFailed && (

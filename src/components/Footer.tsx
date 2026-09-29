@@ -33,8 +33,6 @@ export const Footer: React.FC = () => {
       {/* Hiệu ứng ánh sáng tinh tế phía trên footer */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 max-w-4xl h-[1px] bg-gradient-to-r from-transparent via-netflix-red/70 to-transparent" />
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 max-w-2xl h-16 sm:h-20 bg-netflix-red/10 blur-3xl pointer-events-none" />
-      {/* Cinema End Credits soft atmospheric ambient pool */}
-      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-3/4 max-w-4xl h-40 bg-gradient-to-t from-red-950/15 via-amber-950/5 to-transparent blur-3xl pointer-events-none" />
 
       <div className="max-w-7xl mx-auto space-y-8 sm:space-y-12 relative z-10">
         

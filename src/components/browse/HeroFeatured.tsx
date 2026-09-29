@@ -20,7 +20,6 @@ import {
   pickHeroBackdropImage,
   toHighResBackdropUrl,
 } from "@/lib/movieMedia";
-import { useTimeAtmosphere } from "@/lib/timeAtmosphere";
 import { cleanHtmlText } from "@/lib/cleanHtml";
 import { clientSynopsisCache } from "./MediaCard";
 import { fetchMovieSynopsisShared } from "@/services/synopsisService";
@@ -77,7 +76,6 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
   const [direction, setDirection] = useState(1);
   const [paused, setPaused] = useState(false);
   const reduceMotion = useReducedMotion();
-  const timePeriod = useTimeAtmosphere();
 
   const currentSlug = slides[index]?.slug;
   const [isHeroImageLoaded, setIsHeroImageLoaded] = useState(false);
@@ -645,21 +643,6 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
       <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-black via-black/45 to-transparent pointer-events-none z-[1]" />
       {/* Gradient mép trên thanh header */}
       <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/70 to-transparent pointer-events-none z-[1]" />
-
-      {/* 2.1 CINEMATIC TIME-AWARE ENVIRONMENTAL LIGHTING PHÍA SAU TYPOGRAPHY */}
-      <div
-        className="absolute left-0 bottom-8 sm:bottom-16 w-[550px] sm:w-[750px] h-[450px] sm:h-[550px] pointer-events-none z-[1] blur-3xl transition-opacity duration-1000 opacity-60"
-        style={{
-          background:
-            timePeriod === "morning"
-              ? "radial-gradient(ellipse at 20% 80%, rgba(245, 158, 11, 0.12) 0%, rgba(56, 189, 248, 0.05) 50%, transparent 75%)"
-              : timePeriod === "day"
-              ? "radial-gradient(ellipse at 20% 80%, rgba(186, 230, 253, 0.09) 0%, rgba(59, 130, 246, 0.04) 50%, transparent 75%)"
-              : timePeriod === "golden-hour"
-              ? "radial-gradient(ellipse at 20% 80%, rgba(249, 115, 22, 0.15) 0%, rgba(225, 29, 72, 0.05) 50%, transparent 75%)"
-              : "radial-gradient(ellipse at 20% 80%, rgba(99, 102, 241, 0.12) 0%, rgba(79, 70, 229, 0.05) 50%, transparent 75%)",
-        }}
-      />
 
       {/* 3. NỘI DUNG CHÍNH (TYPOGRAPHY, BADGES & CTA BUTTONS) */}
       <motion.div

@@ -103,14 +103,8 @@ export const TrailerModal: React.FC<TrailerModalProps> = React.memo(
                 onClick={(e) => e.stopPropagation()}
                 className="relative w-full max-w-4xl my-auto bg-zinc-950 rounded-2xl sm:rounded-3xl overflow-hidden border border-white/20 shadow-[0_25px_70px_rgba(0,0,0,0.95)] animate-in zoom-in-95 duration-200 transform-gpu will-change-[transform,opacity] overscroll-contain"
               >
-                {/* CINEMATIC MODAL AMBIENT GLOW */}
-                <div
-                  aria-hidden="true"
-                  className="absolute -top-24 left-1/2 -translate-x-1/2 w-96 sm:w-[500px] h-36 bg-gradient-to-b from-netflix-red/20 via-red-600/10 to-transparent rounded-full blur-3xl pointer-events-none z-0"
-                />
-
                 {/* MODAL HEADER */}
-                <div className="relative z-10 flex items-center justify-between px-4 sm:px-5 py-3.5 border-b border-white/10 bg-zinc-900/70">
+                <div className="flex items-center justify-between px-4 sm:px-5 py-3.5 border-b border-white/10 bg-zinc-900/70">
                   <div className="flex items-center gap-2 min-w-0">
                     <Film className="w-4 h-4 sm:w-5 sm:h-5 text-netflix-red flex-shrink-0" />
                     <h3

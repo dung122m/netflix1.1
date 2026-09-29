@@ -37,7 +37,6 @@ import {
   HolidayNavbarTheme,
   HolidayNavbarThemeId,
 } from "@/data/holidayNavbarThemes";
-import { EverydayNavbarAtmosphere } from "./EverydayNavbarAtmosphere";
 
 /**
  * CINEMATIC LIVING NAVBAR SCENE ENGINE
@@ -1264,8 +1263,8 @@ function getActiveHolidayTheme(): HolidayNavbarTheme | null {
 function HolidayNavbarAtmosphereInner() {
   const [theme] = useState<HolidayNavbarTheme | null>(getActiveHolidayTheme);
 
-  // Ngày thường: Render EverydayNavbarAtmosphere (4 time states, 0% border)
-  if (!theme) return <EverydayNavbarAtmosphere />;
+  // Ngày thường: Navbar sạch 100%, không render bất kỳ DOM nào
+  if (!theme) return null;
 
   return (
     <div

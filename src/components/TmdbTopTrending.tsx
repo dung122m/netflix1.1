@@ -322,12 +322,7 @@ function TmdbTopTrendingInner() {
       }}
     >
       {/* HEADER SECTION */}
-      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-3.5 sm:gap-4 mb-4 sm:mb-5 px-1 relative">
-        {/* Soft Section Spotlight */}
-        <div
-          aria-hidden="true"
-          className="absolute -top-8 -left-6 w-80 h-36 bg-gradient-to-r from-red-600/12 via-amber-500/8 to-transparent rounded-full blur-2xl pointer-events-none -z-10"
-        />
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-3.5 sm:gap-4 mb-4 sm:mb-5 px-1">
         <div className="min-w-0">
           <div className="flex items-center gap-2 mb-1.5">
             <span

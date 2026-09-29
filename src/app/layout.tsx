@@ -12,7 +12,6 @@ import { AuthProvider } from "@/context/AuthContext";
 import { NavigationProgressBar } from "@/components/NavigationProgressBar";
 import { GlobalVisitorTracker } from "@/components/GlobalVisitorTracker";
 import { SecurityWarningListener } from "@/components/Notifications/SecurityWarningListener";
-import { GlobalAtmosphere } from "@/components/atmosphere/GlobalAtmosphere";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -217,8 +216,6 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <AuthProvider>
-          {/* Global Everyday Atmosphere (Lớp ambience nền toàn cục 4 time states) */}
-          <GlobalAtmosphere />
 
           {/* Global site visit tracker — fires once per browser tab session */}
           <GlobalVisitorTracker />

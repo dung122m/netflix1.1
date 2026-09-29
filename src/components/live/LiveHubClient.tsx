@@ -60,20 +60,7 @@ export function LiveHubClient({ footballData, tvData }: LiveHubClientProps) {
   }, [footballData.matches]);
 
   return (
-    <div className="relative max-w-7xl mx-auto px-4 md:px-8 pt-20 md:pt-22 pb-12 space-y-4">
-      {/* BROADCAST STUDIO AMBIENT LIGHTING (Phía sau Header & Navigation) */}
-      <div
-        aria-hidden="true"
-        className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-96 pointer-events-none -z-10 overflow-hidden select-none"
-      >
-        {/* Studio cool blue spotlight */}
-        <div className="absolute -top-24 left-1/4 w-[500px] h-[350px] bg-sky-500/10 rounded-full blur-3xl" />
-        {/* Broadcast 'ON AIR' subtle ruby accent */}
-        <div className="absolute -top-20 right-1/4 w-[400px] h-[300px] bg-red-600/8 rounded-full blur-3xl" />
-        {/* Central overhead studio illumination */}
-        <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-[700px] h-[200px] bg-gradient-to-b from-sky-400/8 via-blue-500/4 to-transparent blur-2xl" />
-      </div>
-
+    <div className="max-w-7xl mx-auto px-4 md:px-8 pt-20 md:pt-22 pb-12 space-y-4">
       {/* 1. HEADER TRANG CHÍNH & TABS CHUYỂN ĐỔI BÓNG ĐÁ / TRUYỀN HÌNH */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 border-b border-white/10 pb-4">
         <div>
