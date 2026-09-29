@@ -92,6 +92,7 @@ interface QualityLevel {
 interface PlayerNativeControlsProps {
   showControls: boolean;
   isPlaying: boolean;
+  isBuffering?: boolean;
   isMuted: boolean;
   volume: number;
   playbackSpeed: number;
@@ -124,6 +125,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
   function PlayerNativeControls({
     showControls,
     isPlaying,
+    isBuffering = false,
     isMuted,
     volume,
     playbackSpeed,
@@ -233,68 +235,74 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
           </div>
         </div>
 
-        {/* 2. CENTER PLAYBACK CONTROLS CLUSTER (YouTube & Netflix Style) */}
-        <div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center gap-6 sm:gap-10 pointer-events-none select-none z-10"
-        >
-          {/* Tua lùi 10s */}
-          <button
-            type="button"
-            data-player-control="true"
-            data-control-section="center-controls"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (videoRef.current) {
-                videoRef.current.currentTime = Math.max(0, videoRef.current.currentTime - 10);
-              }
-              onSeekFeedback("-10s");
-              onUserInteraction?.();
-            }}
-            title="Tua lùi 10 giây (←)"
-            className="pointer-events-auto w-11 h-11 sm:w-13 sm:h-13 rounded-full bg-black/60 hover:bg-black/80 active:scale-90 hover:scale-105 border border-white/20 text-white flex items-center justify-center shadow-xl backdrop-blur-md transition-all cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red"
+        {/* 2. CENTER PLAYBACK CONTROLS CLUSTER / BUFFERING SPINNER (YouTube & Netflix Style) */}
+        {isBuffering ? (
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none select-none z-10 flex flex-col items-center justify-center">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 border-4 border-white/20 border-t-netflix-red rounded-full animate-spin shadow-2xl" />
+          </div>
+        ) : (
+          <div
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center gap-6 sm:gap-10 pointer-events-none select-none z-10"
           >
-            <SeekBack10Icon className="w-5 h-5 sm:w-6 sm:h-6" />
-          </button>
+            {/* Tua lùi 10s */}
+            <button
+              type="button"
+              data-player-control="true"
+              data-control-section="center-controls"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (videoRef.current) {
+                  videoRef.current.currentTime = Math.max(0, videoRef.current.currentTime - 10);
+                }
+                onSeekFeedback("-10s");
+                onUserInteraction?.();
+              }}
+              title="Tua lùi 10 giây (←)"
+              className="pointer-events-auto w-11 h-11 sm:w-13 sm:h-13 rounded-full bg-black/60 hover:bg-black/80 active:scale-90 hover:scale-105 border border-white/20 text-white flex items-center justify-center shadow-xl backdrop-blur-md transition-all cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red"
+            >
+              <SeekBack10Icon className="w-5 h-5 sm:w-6 sm:h-6" />
+            </button>
 
-          {/* Big Center Play / Pause */}
-          <button
-            type="button"
-            data-player-control="true"
-            data-control-section="center-controls"
-            onClick={(e) => {
-              e.stopPropagation();
-              onTogglePlayPause();
-              onUserInteraction?.();
-            }}
-            title={isPlaying ? "Tạm dừng (Space)" : "Phát (Space)"}
-            className="pointer-events-auto w-14 h-14 sm:w-18 sm:h-18 rounded-full bg-netflix-red/95 hover:bg-netflix-red active:scale-90 hover:scale-105 border border-white/30 text-white flex items-center justify-center shadow-[0_0_30px_rgba(229,9,20,0.6)] backdrop-blur-md transition-all cursor-pointer outline-none focus-visible:ring-4 focus-visible:ring-white/50"
-          >
-            {isPlaying ? (
-              <Pause className="w-7 h-7 sm:w-8 sm:h-8 fill-white" />
-            ) : (
-              <Play className="w-7 h-7 sm:w-8 sm:h-8 fill-white ml-1" />
-            )}
-          </button>
+            {/* Big Center Play / Pause */}
+            <button
+              type="button"
+              data-player-control="true"
+              data-control-section="center-controls"
+              onClick={(e) => {
+                e.stopPropagation();
+                onTogglePlayPause();
+                onUserInteraction?.();
+              }}
+              title={isPlaying ? "Tạm dừng (Space)" : "Phát (Space)"}
+              className="pointer-events-auto w-14 h-14 sm:w-18 sm:h-18 rounded-full bg-netflix-red/95 hover:bg-netflix-red active:scale-90 hover:scale-105 border border-white/30 text-white flex items-center justify-center shadow-[0_0_30px_rgba(229,9,20,0.6)] backdrop-blur-md transition-all cursor-pointer outline-none focus-visible:ring-4 focus-visible:ring-white/50"
+            >
+              {isPlaying ? (
+                <Pause className="w-7 h-7 sm:w-8 sm:h-8 fill-white" />
+              ) : (
+                <Play className="w-7 h-7 sm:w-8 sm:h-8 fill-white ml-1" />
+              )}
+            </button>
 
-          {/* Tua tới 10s */}
-          <button
-            type="button"
-            data-player-control="true"
-            data-control-section="center-controls"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (videoRef.current) {
-                videoRef.current.currentTime = (videoRef.current.currentTime || 0) + 10;
-              }
-              onSeekFeedback("+10s");
-              onUserInteraction?.();
-            }}
-            title="Tua tới 10 giây (→)"
-            className="pointer-events-auto w-11 h-11 sm:w-13 sm:h-13 rounded-full bg-black/60 hover:bg-black/80 active:scale-90 hover:scale-105 border border-white/20 text-white flex items-center justify-center shadow-xl backdrop-blur-md transition-all cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red"
-          >
-            <SeekForward10Icon className="w-5 h-5 sm:w-6 sm:h-6" />
-          </button>
-        </div>
+            {/* Tua tới 10s */}
+            <button
+              type="button"
+              data-player-control="true"
+              data-control-section="center-controls"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (videoRef.current) {
+                  videoRef.current.currentTime = (videoRef.current.currentTime || 0) + 10;
+                }
+                onSeekFeedback("+10s");
+                onUserInteraction?.();
+              }}
+              title="Tua tới 10 giây (→)"
+              className="pointer-events-auto w-11 h-11 sm:w-13 sm:h-13 rounded-full bg-black/60 hover:bg-black/80 active:scale-90 hover:scale-105 border border-white/20 text-white flex items-center justify-center shadow-xl backdrop-blur-md transition-all cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red"
+            >
+              <SeekForward10Icon className="w-5 h-5 sm:w-6 sm:h-6" />
+            </button>
+          </div>
+        )}
 
         {/* 3. BOTTOM CONTROLS BAR (Sleek, Compact YouTube / Netflix Style) */}
         <div

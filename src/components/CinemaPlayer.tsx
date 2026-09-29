@@ -25,7 +25,6 @@ import { useWatchController } from "./WatchController";
 import { getWatchProgress, saveWatchProgress } from "@/lib/watchHistory";
 import { formatEpisodeName } from "@/lib/formatEpisode";
 import { useAuth } from "@/context/AuthContext";
-import { useGlobalPlayer } from "@/context/GlobalPlayerContext";
 import { updateActivePlaybackSession } from "@/services/handoffService";
 import { incrementUserWatchTime, getPlayerSettings, PlayerSettings } from "@/services/userService";
 import { PlayerNativeControls, SeekBack10Icon, SeekForward10Icon, VideoFit } from "./player/PlayerNativeControls";
@@ -70,7 +69,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   initialTime,
 }) => {
   const watchContext = useWatchController();
-  const globalPlayer = useGlobalPlayer();
   const { user } = useAuth();
   const searchParams = useSearchParams();
   const lastHandoffSyncRef = useRef<number>(0);
@@ -101,7 +99,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const [isMuted, setIsMuted] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(1);
-  const [isBuffering, setIsBuffering] = useState(false);
+  const [isBuffering, setIsBuffering] = useState(true);
   const [useIframeFallback, setUseIframeFallback] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const showControlsRef = useRef(showControls);
@@ -171,8 +169,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     return () => window.removeEventListener("player-settings-updated", handleUpdate);
   }, [user?.uid]);
 
-  const [hudState, setHudState] = useState<{ icon: React.ReactNode; text: string } | null>(null);
-  const hudTimerRef = useRef<NodeJS.Timeout | null>(null);
   const controlsTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -180,10 +176,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       if (controlsTimerRef.current) {
         clearTimeout(controlsTimerRef.current);
         controlsTimerRef.current = null;
-      }
-      if (hudTimerRef.current) {
-        clearTimeout(hudTimerRef.current);
-        hudTimerRef.current = null;
       }
     };
   }, []);
@@ -209,12 +201,9 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const [isScrolledPast, setIsScrolledPast] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
-  const showHud = useCallback((icon: React.ReactNode, text: string) => {
-    if (hudTimerRef.current) clearTimeout(hudTimerRef.current);
-    setHudState({ icon, text });
-    hudTimerRef.current = setTimeout(() => {
-      setHudState(null);
-    }, 1200);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const showHud = useCallback((_icon?: React.ReactNode, _text?: string) => {
+    // Disabled HUD overlay to match YouTube & Netflix clean UI experience
   }, []);
 
 
@@ -310,6 +299,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   useEffect(() => {
     hasSeekedInitialRef.current = false;
     setUseIframeFallback(false);
+    setIsBuffering(true);
     if (activeEpisodeSlug && initialEpisodeSlug && activeEpisodeSlug !== initialEpisodeSlug) {
       setInitialTimeUsed(true);
     }
@@ -329,60 +319,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
 
   const isNativeVideo = Boolean(resolvedM3u8 && !useIframeFallback);
 
-  // Đăng ký và đồng bộ vào Global Player Context cho In-App Mini Player
-  useEffect(() => {
-    if (!globalPlayer) return;
-    const currentSlug = propMovieSlug || watchContext?.movieSlug || "";
-    if (currentSlug) {
-      globalPlayer.registerMainPlayer({
-        movieSlug: currentSlug,
-        movieTitle: title,
-        posterUrl,
-        episodeName: activeEpisodeName,
-        episodeSlug: activeEpisodeSlug,
-        m3u8Link: resolvedM3u8 || undefined,
-        embedSrc: embedSrc || undefined,
-        isNativeVideo,
-        currentTime: videoRef.current?.currentTime || targetProgress || 0,
-        isPlaying,
-        isMuted,
-        volume,
-        playbackSpeed,
-      });
-    }
-
-    return () => {
-      if (currentSlug) {
-        const v = videoRef.current;
-        const curTime = v?.currentTime || 0;
-        const isCurrentlyPlaying = Boolean(v && !v.paused);
-        globalPlayer.unregisterMainPlayer({
-          movieSlug: currentSlug,
-          movieTitle: title,
-          posterUrl,
-          episodeName: activeEpisodeName,
-          episodeSlug: activeEpisodeSlug,
-          m3u8Link: resolvedM3u8 || undefined,
-          embedSrc: embedSrc || undefined,
-          isNativeVideo,
-          currentTime: curTime,
-          isPlaying: isCurrentlyPlaying,
-        });
-      }
-    };
-  }, [
-    globalPlayer,
-    propMovieSlug,
-    watchContext?.movieSlug,
-    title,
-    posterUrl,
-    activeEpisodeName,
-    activeEpisodeSlug,
-    resolvedM3u8,
-    embedSrc,
-    isNativeVideo,
-  ]);
-
   const getEffectiveDuration = useCallback(() => {
     const v = videoRef.current;
     if (!v) return 0;
@@ -392,25 +328,26 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
 
   // Watch time heartbeat
   useEffect(() => {
-    if (!user?.uid) return;
+    const userId = user?.uid;
+    if (!userId) return;
     const initialTimer = setTimeout(() => {
       if (typeof document !== "undefined" && !document.hidden) {
         if (isNativeVideo && videoRef.current && (videoRef.current.paused || videoRef.current.ended)) return;
-        incrementUserWatchTime(user.uid, 1);
+        incrementUserWatchTime(userId, 1);
       }
     }, 15000);
 
     const interval = setInterval(() => {
       if (typeof document !== "undefined" && document.hidden) return;
       if (isNativeVideo && videoRef.current && (videoRef.current.paused || videoRef.current.ended)) return;
-      incrementUserWatchTime(user.uid, 1);
+      incrementUserWatchTime(userId, 1);
     }, 60000);
 
     return () => {
       clearTimeout(initialTimer);
       clearInterval(interval);
     };
-  }, [user, isNativeVideo]);
+  }, [user?.uid, isNativeVideo]);
 
   const sendPlayerCommand = useCallback((cmd: string, val?: string | number | boolean) => {
     if (!iframeRef.current?.contentWindow) return;
@@ -974,11 +911,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
             episodeName: activeEpisodeName,
           });
         }
-        globalPlayer?.updatePlaybackState({
-          currentTime: video.currentTime,
-          duration: currentEffectiveDuration,
-          isPlaying: !video.paused,
-        });
       }
       if (user?.uid && now - lastHandoffSyncRef.current > 8000 && movieSlug && video.currentTime > 5) {
         lastHandoffSyncRef.current = now;
@@ -1046,11 +978,22 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       }
     };
 
+    const handleCanPlay = () => setIsBuffering(false);
+    const handleSeeking = () => setIsBuffering(true);
+    const handleSeeked = () => setIsBuffering(false);
+    const handleLoadStart = () => setIsBuffering(true);
+    const handleLoadedData = () => setIsBuffering(false);
+
     video.addEventListener("waiting", handleWaiting, { passive: true });
     video.addEventListener("playing", handlePlaying, { passive: true });
     video.addEventListener("pause", handlePause, { passive: true });
     video.addEventListener("timeupdate", handleTimeUpdateThrottled, { passive: true });
     video.addEventListener("ended", handleEnded, { passive: true });
+    video.addEventListener("canplay", handleCanPlay, { passive: true });
+    video.addEventListener("seeking", handleSeeking, { passive: true });
+    video.addEventListener("seeked", handleSeeked, { passive: true });
+    video.addEventListener("loadstart", handleLoadStart, { passive: true });
+    video.addEventListener("loadeddata", handleLoadedData, { passive: true });
 
     return () => {
       video.removeEventListener("waiting", handleWaiting);
@@ -1058,6 +1001,11 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       video.removeEventListener("pause", handlePause);
       video.removeEventListener("timeupdate", handleTimeUpdateThrottled);
       video.removeEventListener("ended", handleEnded);
+      video.removeEventListener("canplay", handleCanPlay);
+      video.removeEventListener("seeking", handleSeeking);
+      video.removeEventListener("seeked", handleSeeked);
+      video.removeEventListener("loadstart", handleLoadStart);
+      video.removeEventListener("loadeddata", handleLoadedData);
     };
   }, [
     nextEpisode,
@@ -1553,18 +1501,11 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 </div>
               )}
 
-              {/* SPINNER */}
-              {isBuffering && (
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none bg-black/40 z-20">
-                  <div className="w-12 h-12 border-4 border-netflix-red border-t-transparent rounded-full animate-spin" />
-                </div>
-              )}
-
-
               {/* ISOLATED NATIVE CONTROLS OVERLAY (NETFLIX & YOUTUBE STYLE) */}
               <PlayerNativeControls
                 showControls={showControls}
                 isPlaying={isPlaying}
+                isBuffering={isBuffering}
                 isMuted={isMuted}
                 volume={volume}
                 playbackSpeed={playbackSpeed}
@@ -1679,16 +1620,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                     ? "Hiện chưa có tập phát chính thức. Vui lòng quay lại sau."
                     : "Bạn vui lòng quay lại sau ít phút nhé!"}
                 </p>
-              </div>
-            </div>
-          )}
-
-          {/* HUD OVERLAY */}
-          {hudState && (
-            <div className="absolute inset-0 z-40 flex items-center justify-center pointer-events-none animate-in fade-in zoom-in-95 duration-150">
-              <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-black/85 backdrop-blur-md border border-white/20 text-white font-bold text-sm sm:text-base shadow-2xl">
-                {hudState.icon}
-                <span>{hudState.text}</span>
               </div>
             </div>
           )}

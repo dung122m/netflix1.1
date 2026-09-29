@@ -8,6 +8,7 @@ import {
   getMatchTimeline,
   getStreamHealthStatus,
 } from "@/services/liveFootballService";
+import { clearProbeQueue } from "@/services/live/football/clientSourceProbe";
 import { LivePlayer } from "./LivePlayer";
 import { MatchCard } from "./MatchCard";
 import {
@@ -324,6 +325,13 @@ export function LiveFootballClient({
   const allVisibleMatches = useMemo(() => {
     return [...liveMatchesList, ...upcomingMatchesList];
   }, [liveMatchesList, upcomingMatchesList]);
+
+  // Dừng probe queue các trận khác khi người dùng đang mở xem một trận
+  useEffect(() => {
+    if (selectedMatch) {
+      clearProbeQueue();
+    }
+  }, [selectedMatch]);
 
   // Đồng bộ số lượng với LiveHubClient
   useEffect(() => {

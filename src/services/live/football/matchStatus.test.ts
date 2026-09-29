@@ -231,23 +231,35 @@ describe("Nanaflix Live Match Status & Timeline System", () => {
     assert.equal(incomplete2, false, "Single-team server stream must be kept in Football");
   });
 
-  // 13. Generic VTV/HTV/K+/SCTV TV channel (even with 🟢 or 🔴) → not Football
-  it("13. Generic VTV/HTV/K+/SCTV TV channel → not Football", () => {
-    const tvChannels = [
+  // 13. Generic non-sports TV channel → excluded; VN sports channels → kept
+  it("13. Generic non-sports TV channel → excluded; VN sports channels → kept", () => {
+    const nonSportsChannels = [
+      "VTV1 HD",
+      "VTV3 HD",
       "VTV5 HD",
-      "🟢 VTV5 HD",
       "VTV6 Cần Thơ",
+      "THVL1 HD",
+      "HTV7 HD",
+      "HTV9 HD",
+    ];
+
+    for (const title of nonSportsChannels) {
+      const isTv = isGenericTvChannel(title, "Kênh Truyền Hình");
+      assert.equal(isTv, true, `Generic TV channel '${title}' must be excluded from Sports`);
+    }
+
+    const sportsChannels = [
       "K+ SPORT 1 HD",
       "HTV Thể Thao",
       "ON Football HD",
-      "THVL1 HD",
-      "SCTV15 HD",
-      "VTC3 HD",
+      "ON Sports +",
+      "SPOTV HD",
+      "FPT Sport 1",
     ];
 
-    for (const title of tvChannels) {
-      const isTv = isGenericTvChannel(title, "Kênh Truyền Hình");
-      assert.equal(isTv, true, `TV station channel '${title}' must be classified as generic TV channel (excluded from Football)`);
+    for (const title of sportsChannels) {
+      const isTv = isGenericTvChannel(title, "Kênh Thể Thao");
+      assert.equal(isTv, false, `Sports channel '${title}' must be KEPT in Sports`);
     }
   });
 

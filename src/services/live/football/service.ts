@@ -82,11 +82,6 @@ export function getFootballM3uSources(): {
       url: "https://raw.githubusercontent.com/vuminhthanh12/vuminhthanh12/refs/heads/main/vmttv",
       priority: 2,
     },
-    {
-      name: "THTT Live Sports Dự Phòng (ttthethao7)",
-      url: "https://thtt27.github.io/tttt/tttt.m3u",
-      priority: 3,
-    },
   ];
 
   const customSources = envUrls.map((url, idx) => ({
@@ -1632,54 +1627,93 @@ export function isGenericTvChannel(
 ): boolean {
   const normTitle = normalizeText(rawTitle);
   const normGroup = normalizeText(group);
+  const fullText = `${rawTitle} ${group}`;
+  const normFull = `${normTitle} ${normGroup}`;
 
-  // 1. Trận đấu có cặp đấu rõ ràng (vs / v) -> Không phải kênh truyền hình chung
+  // 1. Cặp đấu đối đầu (vs, v, -) -> THỂ THAO -> GIỮ
   const hasMatchIndicator =
     /\s+(?:vs|v|\bv\b)\s+/i.test(rawTitle) ||
-    /\[(?:vs|v)\]/i.test(rawTitle);
-
-  if (hasMatchIndicator) {
+    /\[(?:vs|v)\]/i.test(rawTitle) ||
+    /\s+-\s+/.test(rawTitle);
+  if (hasMatchIndicator && !/^(?:htv|vtv|thvl|sctv|vtc)\s*\d+/i.test(normTitle)) {
     return false;
   }
 
-  // 2. Kênh phát phòng BLV hoặc bình luận thể thao trực tiếp -> Không phải kênh truyền hình chung
+  // 2. Bình luận viên / Phòng BLV -> THỂ THAO -> GIỮ
   if (
-    /\b(?:blv|binh luan vien)\b/i.test(rawTitle) ||
-    /\b(?:blv|binh luan vien)\b/i.test(group) ||
+    /\b(?:blv|binh luan vien|binh luan|phong blv)\b/i.test(normFull) ||
     /\((?:alan|tom|captain|giang a|batman|pocari|nguoi nan|dec|leo|ti|te)\)/i.test(rawTitle)
   ) {
     return false;
   }
 
-  // 3. Tên kênh truyền hình nhà đài quốc gia / truyền hình cáp 24/7
-  const isTvStationPattern =
-    /^(?:vtv|htv|thvl|sctv|vtc|btv|kplus|k)\s*\d*/i.test(normTitle) ||
-    /^(?:htvc|vov|antv|qpvn|ttxvn|hanoitv|hanoi tv|thhn)\b/i.test(normTitle) ||
-    /^k\s+(?:sport|action|cine|life|kids|\d)\b/i.test(normTitle) ||
-    /^k\+/i.test(rawTitle.trim()) ||
-    /^on\s+(?:sports|football|golf|volleyball|plus|cine)\b/i.test(normTitle) ||
-    /^(?:hbo|cinemax|axn|discovery|cartoon network|disney|fox|cnn|bbc)\b/i.test(normTitle);
-
-  if (isTvStationPattern) {
-    return true;
+  // 3. Kênh thể thao Việt Nam hợp lệ (K+ Sport, ON Sports/Football/Golf, HTV Thể Thao, SPOTV, FPT Sport,...) -> THỂ THAO -> GIỮ
+  const isVnSportsChannel =
+    /(?:k\+\s*(?:sport|action|1|2|pm|pc|ns)|kplus\s*(?:sport|action)|on\s+(?:sports|football|golf|volleyball|sports\s*news|sports\s*\+)|htv\s*(?:the\s*thao|thao|tt)|spotv|spotv\s*2|fpt\s*(?:sport|bong\s*da|the\s*thao)|vtc3|sctv15)\b/i.test(
+      normTitle,
+    );
+  if (isVnSportsChannel) {
+    return false;
   }
 
-  // 4. Danh mục / Nhóm kênh truyền hình 24/7
-  const isTvGroup =
-    /^(?:kenh\s+vtv|kenh\s+htv|kenh\s+sctv|kenh\s+vtvcab|truyen\s+hinh|thiet\s+yeu|tin\s+tuc|phim\s+truyen|giai\s+tri|thieu\s+nhi|ca\s+nhac|dia\s+phuong|quoc\s+te|iptv|24\s*7\s*tv)/i.test(
+  // 4. Giải đấu / Kênh / Sự kiện thể thao quốc tế -> THỂ THAO -> GIỮ
+  const isSportsTournamentOrEvent =
+    /(?:asian\s*games|asiad|sea\s*games|olympic|world\s*cup|euro|copa|champions\s*league|cup\s*c1|cup\s*c2|cup\s*c3|europa\s*league|premier\s*league|ngoai\s*hang\s*anh|la\s*liga|serie\s*a|bundesliga|ligue\s*1|v[-_ ]?league|vleague|afc|concacaf|conmebol|fa\s*cup|carabao|nba|cba|pba|vba|basketball|bong\s*ro|bong\s*chuyen|volleyball|tennis|quan\s*vot|roland\s*garros|wimbledon|us\s*open|atp|wta|f1|formula|motogp|ufc|mma|one\s*championship|boxing|quyen\s*anh|billiards|bida|snooker|esports|esport|lck|lpl|vcs|dota|cs2|valorant|bein\s*sports|astro\s*supersport|true\s*sport|fox\s*sports|sky\s*sports|bt\s*sport|tnt\s*sports|eurosport|nba\s*tv|mutv|chelsea\s*tv|manchester|real\s*madrid|barcelona|arsenal|chelsea|liverpool|juventus|bayern|psg|inter|milan|dortmund|tottenham)\b/i.test(
+      normFull,
+    ) ||
+    /[⚽🏀🎾🏐🏸🏒🥊🏎🏁🎱🎮]/.test(fullText);
+
+  if (isSportsTournamentOrEvent) {
+    const isMovieVod =
+      /Tập\s*\d+|Phim\s*(Bộ|Lẻ|Truyện|Ngắn)|Chiếu\s*Rạp|Thuyết\s*Minh|Lồng\s*Tiếng|Vietsub|Web\s*Drama/i.test(
+        rawTitle,
+      );
+    if (!isMovieVod) {
+      return false;
+    }
+  }
+
+  // 5. Nếu nhóm thuộc thể thao / bóng đá trực tiếp
+  const isSportsGroup =
+    /(?:bong\s*da|the\s*thao|sports|live\s*sports|football|soccer|tennis|basketball|esports|fpt\s*play|tv360|xoi\s*lac|cola|sao\s*ke|phao\s*hoa|pha\s*lang|vua\s*san\s*co|ga\s*vang|chuoi\s*chien|sut\s*bong|s8)/i.test(
       normGroup,
     );
 
-  if (isTvGroup) {
+  // 6. Nhận diện các kênh truyền hình nhà đài thông thường 24/7 KHÔNG PHẢI THỂ THAO -> LOẠI
+  const isGenericStationPattern =
+    /^(?:vtv[1-9]|vtv\s*(?:can\s*tho|dac\s*sac|hd|sd)?|htv[1-9]|thvl[1-4]|sctv[1-9]\d*|vtc[1-9]\d*|btv[1-9]|htvc|vov|antv|qpvn|ttxvn|hanoitv|hanoi\s*tv|thhn|todaytv|truyenhinh|kenh\s*\d+)\b/i.test(
+      normTitle,
+    ) ||
+    /^(?:hbo|cinemax|axn|discovery|cartoon\s*network|disney|fox|cnn|bbc|nhk|kbs|cctv|tvb)\b/i.test(
+      normTitle,
+    );
+
+  if (isGenericStationPattern) {
     return true;
   }
 
-  // 5. Kênh số / Kênh kỹ thuật đơn lẻ không gắn với sự kiện thể thao (ví dụ "Kênh 1 HD", "Server 2 FHD", "Channel 5")
+  // 7. Danh mục / Nhóm kênh truyền hình 24/7 không phải thể thao -> LOẠI
+  const isNonSportsGroup =
+    /(?:kenh\s+vtv|kenh\s+htv|kenh\s+sctv|kenh\s+vtvcab|truyen\s+hinh|thiet\s+yeu|tin\s+tuc|phim\s+truyen|giai\s+tri|thieu\s+nhi|ca\s+nhac|dia\s+phuong|quoc\s+te|am\s+nhac|phim\s+le|phim\s+bo)/i.test(
+      normGroup,
+    );
+
+  if (isNonSportsGroup) {
+    return true;
+  }
+
+  // 8. Kênh kỹ thuật đơn lẻ không có metadata thể thao ("Kênh 1", "Server 2") -> LOẠI
   if (/^(?:kenh|channel|dai|server|sv|stream|feed|ban|table|san|court)\s*\d+\s*(?:hd|fhd|4k|sd)?$/i.test(normTitle)) {
     return true;
   }
 
-  return false;
+  // Nếu thuộc sports group -> GIỮ
+  if (isSportsGroup) {
+    return false;
+  }
+
+  // Mặc định không có metadata thể thao -> LOẠI
+  return true;
 }
 
 export function extractSportAndGender(

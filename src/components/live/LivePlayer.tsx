@@ -2736,7 +2736,8 @@ function LivePlayerInner({
         {/* CONTROLS OVERLAY BOTTOM BAR */}
         <div
           data-live-controls
-          className={`absolute inset-x-0 bottom-0 z-30 transition-opacity duration-300 ${
+          onClick={(e) => e.stopPropagation()}
+          className={`absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/85 to-transparent p-1.5 sm:p-4 pt-4 sm:pt-8 z-30 transition-opacity duration-300 select-none ${
             showControls ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
           }`}
           style={{
@@ -2745,10 +2746,7 @@ function LivePlayerInner({
             paddingRight: isFullscreen ? "max(0.75rem, env(safe-area-inset-right, 0.75rem))" : undefined,
           }}
         >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="bg-gradient-to-t from-black/95 via-black/80 to-transparent p-1.5 sm:p-4 pt-4 sm:pt-8 flex items-center justify-between gap-1 sm:gap-2 select-none"
-          >
+          <div className="flex items-center justify-between gap-1 sm:gap-2">
             {/* CỤM TRÁI: PLAY/PAUSE + ĐỔI TRẬN NHANH + ÂM LƯỢNG */}
             <div className="flex items-center gap-1 sm:gap-2.5 min-w-0 shrink-0">
               <button

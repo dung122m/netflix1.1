@@ -20,7 +20,18 @@ export function BottomNav() {
       return;
     }
     const unsub = subscribeUserProfile(user.uid, (p) => {
-      if (p) setUserProfile(p);
+      if (!p) return;
+      setUserProfile((prev) => {
+        if (
+          prev &&
+          prev.customAvatar === p.customAvatar &&
+          prev.photoURL === p.photoURL &&
+          prev.displayName === p.displayName
+        ) {
+          return prev;
+        }
+        return p;
+      });
     });
     return () => unsub();
   }, [user?.uid]);
