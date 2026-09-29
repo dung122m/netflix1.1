@@ -1260,6 +1260,12 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   ]);
 
 
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if ((e.nativeEvent as PointerEvent)?.pointerType === "touch") return;
+    if (typeof window !== "undefined" && window.matchMedia && window.matchMedia("(pointer: coarse)").matches && window.innerWidth < 768) return;
+    resetControlsTimeout();
+  }, [resetControlsTimeout]);
+
   const scrollToPlayer = useCallback(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
@@ -1296,7 +1302,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       <div
         ref={containerRef}
         tabIndex={0}
-        onMouseMove={resetControlsTimeout}
+        onMouseMove={handleMouseMove}
         className={`w-full mx-auto transition-all duration-300 bg-black outline-none focus:outline-none focus-visible:outline-none ${
           isFullscreen
             ? "fixed inset-0 z-50 w-full h-full max-w-none p-0 m-0 bg-black flex flex-col justify-center overflow-hidden"
@@ -1359,6 +1365,11 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 const xPct = x / rect.width;
                 const lastTap = lastTapRef.current;
 
+                const isTouch =
+                  (e.nativeEvent as PointerEvent)?.pointerType === "touch" ||
+                  (typeof window !== "undefined" && window.matchMedia && window.matchMedia("(pointer: coarse)").matches) ||
+                  isMobile;
+
                 // Check if double tap: within 320ms and within 90px
                 if (lastTap && now - lastTap.time < 320 && Math.abs(e.clientX - lastTap.x) < 90) {
                   // DOUBLE TAP DETECTED
@@ -1404,29 +1415,48 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                   }
                   resetControlsTimeout();
                 } else {
-                  // FIRST TAP
+                  // FIRST TAP / SINGLE CLICK
                   lastTapRef.current = { time: now, x: e.clientX, y: e.clientY };
                   if (singleTapTimerRef.current) {
                     clearTimeout(singleTapTimerRef.current);
-                  }
-
-                  // Nếu controls đang ẩn -> chỉ hiện controls, reset auto-hide timer, KHÔNG toggle play
-                  if (!showControlsRef.current) {
-                    setShowControls(true);
-                    showControlsRef.current = true;
-                    resetControlsTimeout();
-                    return;
-                  }
-
-                  // Nếu controls đang hiện -> toggle play/pause sau delay để chờ double-tap
-                  singleTapTimerRef.current = setTimeout(() => {
                     singleTapTimerRef.current = null;
-                    togglePlayPause();
-                  }, 260);
-                  resetControlsTimeout();
+                  }
+
+                  if (isTouch) {
+                    // MOBILE TOUCH LOGIC:
+                    // 1. Nếu controls đang ẩn -> Single tap chỉ hiện controls, video tiếp tục phát, KHÔNG pause
+                    if (!showControlsRef.current) {
+                      setShowControls(true);
+                      showControlsRef.current = true;
+                      resetControlsTimeout();
+                      return;
+                    }
+
+                    // 2. Nếu controls đang hiện -> Chờ 260ms (để tránh xung đột double-tap), sau đó chỉ ẩn controls, KHÔNG pause
+                    singleTapTimerRef.current = setTimeout(() => {
+                      singleTapTimerRef.current = null;
+                      setShowControls(false);
+                      showControlsRef.current = false;
+                      if (controlsTimerRef.current) {
+                        clearTimeout(controlsTimerRef.current);
+                        controlsTimerRef.current = null;
+                      }
+                    }, 260);
+                  } else {
+                    // DESKTOP CLICK LOGIC (giữ nguyên hành vi hiện tại):
+                    if (!showControlsRef.current) {
+                      setShowControls(true);
+                      showControlsRef.current = true;
+                    }
+                    singleTapTimerRef.current = setTimeout(() => {
+                      singleTapTimerRef.current = null;
+                      togglePlayPause();
+                    }, 260);
+                    resetControlsTimeout();
+                  }
                 }
               }}
-              onMouseMove={resetControlsTimeout}
+              onMouseMove={handleMouseMove}
             >
               <video
                 ref={videoRef}
