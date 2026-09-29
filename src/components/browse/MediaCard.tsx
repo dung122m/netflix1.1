@@ -660,7 +660,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           fill
           unoptimized
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 16vw"
-          className={`object-cover object-center transition-all duration-300 ${
+          className={`object-cover object-center transition-transform duration-300 ${
             isCardHovered ? "scale-105" : "scale-100 group-hover/card:scale-[1.035]"
           }`}
           priority={priority}
