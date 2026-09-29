@@ -250,7 +250,12 @@ function CommunityTopTrendingInner() {
       }}
     >
       {/* HEADER SECTION */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 mb-5 px-1">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 mb-5 px-1 relative">
+        {/* Soft Section Spotlight */}
+        <div
+          aria-hidden="true"
+          className="absolute -top-8 -left-6 w-80 h-36 bg-gradient-to-r from-amber-500/12 via-red-600/10 to-transparent rounded-full blur-2xl pointer-events-none -z-10"
+        />
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-gradient-to-tr from-amber-500 to-red-600 text-white shadow-lg shadow-red-950/40">
