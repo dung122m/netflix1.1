@@ -213,7 +213,11 @@ function getRateLimitRedis(): Redis | null {
   }
 
   try {
-    redisRateLimitClient = new Redis({ url, token });
+    redisRateLimitClient = new Redis({
+      url,
+      token,
+      retry: false, // Tắt retry để fail-open ngay lập tức mà không làm chậm request
+    });
     return redisRateLimitClient;
   } catch (err) {
     console.warn("[DistributedRateLimit] Failed to initialize Redis client:", err);
@@ -232,13 +236,14 @@ const localFallbackStore = new Map<string, { count: number; expiresAt: number }>
  * Kiểm tra giới hạn tốc độ phân tán qua Upstash Redis (Fixed Window Algorithm)
  * - Distributed: Chia sẻ bộ đếm giữa tất cả Serverless Instances của Vercel
  * - Ephemeral L1 Cache: 0ms response cho IP đang bị khóa
- * - Fail-Open: Tự động cho phép request nếu Redis lỗi/timeout (>1.2s), không bao giờ gây 500/503
+ * - Fail-Open: Tự động cho phép request nếu Redis lỗi/timeout (150-250ms), không bao giờ gây 500/503
  * @returns { allowed: boolean, remaining: number, resetSeconds: number }
  */
 export async function checkDistributedRateLimit(
   key: string,
   maxRequests: number = 60,
-  windowSeconds: number = 60
+  windowSeconds: number = 60,
+  timeoutMs: number = 200
 ): Promise<{ allowed: boolean; remaining: number; resetSeconds: number }> {
   const now = Date.now();
   const windowMs = windowSeconds * 1000;
@@ -258,11 +263,11 @@ export async function checkDistributedRateLimit(
 
   const redis = getRateLimitRedis();
 
-  // 2. Thực thi Fixed Window trên Upstash Redis qua Pipeline với timeout 400ms
+  // 2. Thực thi Fixed Window trên Upstash Redis qua Pipeline với timeout 200ms
   if (redis) {
     try {
       const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("Redis rate limit timeout")), 400)
+        setTimeout(() => reject(new Error("Redis rate limit timeout")), timeoutMs)
       );
 
       const pipelinePromise = (async () => {

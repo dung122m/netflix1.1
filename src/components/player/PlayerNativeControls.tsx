@@ -192,7 +192,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
 
     return (
       <div
-        className={`cinema-player-controls-container absolute inset-0 transition-opacity duration-300 flex flex-col justify-between z-30 ${
+        className={`cinema-player-controls-container absolute inset-0 transition-opacity duration-300 z-30 ${
           isOverlayVisible ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         }`}
       >
@@ -203,11 +203,11 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
             e.stopPropagation();
             onUserInteraction?.();
           }}
-          className="w-full bg-gradient-to-b from-black/85 via-black/40 to-transparent pt-3 pb-8 px-3 sm:px-5 flex items-center justify-between"
+          className="absolute top-0 inset-x-0 w-full bg-gradient-to-b from-black/85 via-black/40 to-transparent pt-3 pb-8 px-3 sm:px-5 flex items-center justify-between z-10"
           style={{
-            paddingTop: isFullscreen ? "max(0.75rem, env(safe-area-inset-top, 0.75rem))" : undefined,
-            paddingLeft: isFullscreen ? "max(0.75rem, env(safe-area-inset-left, 0.75rem))" : undefined,
-            paddingRight: isFullscreen ? "max(0.75rem, env(safe-area-inset-right, 0.75rem))" : undefined,
+            paddingTop: "max(0.75rem, env(safe-area-inset-top, 0.75rem))",
+            paddingLeft: "max(0.75rem, env(safe-area-inset-left, 0.75rem))",
+            paddingRight: "max(0.75rem, env(safe-area-inset-right, 0.75rem))",
           }}
         >
           {/* Left: Movie Title & Episode Name */}
@@ -235,7 +235,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
 
         {/* 2. CENTER PLAYBACK CONTROLS CLUSTER (YouTube & Netflix Style) */}
         <div
-          className="w-full flex items-center justify-center gap-6 sm:gap-10 my-auto pointer-events-none select-none"
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center gap-6 sm:gap-10 pointer-events-none select-none z-10"
         >
           {/* Tua lùi 10s */}
           <button
@@ -306,11 +306,11 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
           onMouseMove={onUserInteraction}
           onPointerMove={onUserInteraction}
           onTouchStart={onUserInteraction}
-          className="cinema-player-controls w-full bg-gradient-to-t from-black/95 via-black/75 to-transparent pt-6 pb-2.5 sm:pb-3 px-3 sm:px-5"
+          className="cinema-player-controls absolute bottom-0 inset-x-0 w-full bg-gradient-to-t from-black/95 via-black/75 to-transparent pt-6 pb-2.5 sm:pb-3 px-3 sm:px-5 z-10"
           style={{
-            paddingBottom: isFullscreen ? "max(0.75rem, env(safe-area-inset-bottom, 0.75rem))" : undefined,
-            paddingLeft: isFullscreen ? "max(0.75rem, env(safe-area-inset-left, 0.75rem))" : undefined,
-            paddingRight: isFullscreen ? "max(0.75rem, env(safe-area-inset-right, 0.75rem))" : undefined,
+            paddingBottom: "max(0.75rem, env(safe-area-inset-bottom, 0.75rem))",
+            paddingLeft: "max(0.75rem, env(safe-area-inset-left, 0.75rem))",
+            paddingRight: "max(0.75rem, env(safe-area-inset-right, 0.75rem))",
           }}
         >
           {/* THANH TIẾN TRÌNH SLIM CÁCH LY RE-RENDER */}

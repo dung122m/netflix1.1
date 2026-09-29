@@ -136,6 +136,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
 
   // Double-tap on mobile seek state & timer
   const lastTapRef = useRef<{ time: number; x: number; y: number } | null>(null);
+  const lastControlsShownTimeRef = useRef<number>(0);
   const singleTapTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [doubleTapFeedback, setDoubleTapFeedback] = useState<{
     side: "left" | "right";
@@ -231,6 +232,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const resetControlsTimeout = useCallback(() => {
     setShowControls(true);
     showControlsRef.current = true;
+    lastControlsShownTimeRef.current = Date.now();
     if (controlsTimerRef.current) {
       clearTimeout(controlsTimerRef.current);
       controlsTimerRef.current = null;
@@ -243,7 +245,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           setShowControls(false);
           showControlsRef.current = false;
         }
-      }, 4500);
+      }, 3000);
     }
   }, [isPlaying]);
 
@@ -482,16 +484,19 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       } else {
         unlockOrientation();
       }
+      resetControlsTimeout();
     };
 
     const video = videoRef.current;
     const handleVideoBeginFs = () => {
       setIsFullscreen(true);
       lockLandscape();
+      resetControlsTimeout();
     };
     const handleVideoEndFs = () => {
       setIsFullscreen(false);
       unlockOrientation();
+      resetControlsTimeout();
     };
 
     document.addEventListener("fullscreenchange", handleFsChange);
@@ -514,7 +519,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         video.removeEventListener("webkitendfullscreen", handleVideoEndFs);
       }
     };
-  }, [lockLandscape, unlockOrientation]);
+  }, [lockLandscape, unlockOrientation, resetControlsTimeout]);
 
   const togglePiP = useCallback(async () => {
     const video = videoRef.current;
@@ -1421,27 +1426,26 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                   if (isTouch) {
                     // MOBILE TOUCH LOGIC (YOUTUBE / NETFLIX STYLE):
                     if (!showControlsRef.current) {
-                      // Nếu controls đang ẩn -> Single tap chỉ hiện controls, video tiếp tục phát
-                      setShowControls(true);
-                      showControlsRef.current = true;
+                      // Nếu controls đang ẩn -> Chạm 1 lần hiện controls và bắt đầu đếm 3s bình thường
                       resetControlsTimeout();
                     } else {
-                      // Nếu controls đang hiện -> Chờ 250ms (tránh double-tap), sau đó ẩn controls
-                      singleTapTimerRef.current = setTimeout(() => {
-                        singleTapTimerRef.current = null;
-                        setShowControls(false);
-                        showControlsRef.current = false;
-                        if (controlsTimerRef.current) {
-                          clearTimeout(controlsTimerRef.current);
-                          controlsTimerRef.current = null;
-                        }
-                      }, 250);
+                      // Nếu vừa mới mở controls trong 350ms, bỏ qua để tránh sự kiện chạm kép gây ẩn tức thì
+                      if (now - lastControlsShownTimeRef.current < 350) {
+                        resetControlsTimeout();
+                        return;
+                      }
+                      // Người dùng chủ động chạm vào khoảng trống màn hình -> Ẩn controls
+                      setShowControls(false);
+                      showControlsRef.current = false;
+                      if (controlsTimerRef.current) {
+                        clearTimeout(controlsTimerRef.current);
+                        controlsTimerRef.current = null;
+                      }
                     }
                   } else {
                     // DESKTOP CLICK LOGIC:
                     if (!showControlsRef.current) {
-                      setShowControls(true);
-                      showControlsRef.current = true;
+                      resetControlsTimeout();
                     }
                     singleTapTimerRef.current = setTimeout(() => {
                       singleTapTimerRef.current = null;
