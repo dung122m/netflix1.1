@@ -23,14 +23,14 @@ export function VietnamTodaySection() {
 
   return (
     <section
-      aria-label="Hôm Nay Tại Việt Nam"
+      aria-label="Hôm Nay Có Gì Đặc Biệt"
       className="my-5 sm:my-7 relative z-10 w-full"
     >
       {/* SECTION HEADER */}
       <div className="flex items-center justify-between gap-2 mb-2 sm:mb-2.5">
         <h2 className="text-base sm:text-lg font-bold text-white tracking-tight flex items-center gap-2.5">
           <VietnamFlagIcon className="w-5 h-3.5 shadow" />
-          <span>Hôm Nay Tại Việt Nam</span>
+          <span>Hôm Nay Có Gì Đặc Biệt</span>
         </h2>
 
         {/* Real-time date indicator in Vietnam */}

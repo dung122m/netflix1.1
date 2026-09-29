@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -149,37 +149,54 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     return list;
   }, [thumbUrl, imageUrl, posterUrl]);
 
-  const [imageAttemptIndex, setImageAttemptIndex] = useState(0);
-  const [currentImgSrc, setCurrentImgSrc] = useState(
-    candidateImages[0] || (imageUrl ? toOptimizedCardBackdropUrl(imageUrl) : "/default-hero.svg")
-  );
+  const attemptIndexRef = useRef(0);
+  const imgRef = useRef<HTMLImageElement | null>(null);
+  const [currentImgSrc, setCurrentImgSrc] = useState<string>(() => {
+    return candidateImages[0] || "";
+  });
   const [isImageLoaded, setIsImageLoaded] = useState(false);
-  const [hasError, setHasError] = useState(false);
+  const [hasError, setHasError] = useState(() => candidateImages.length === 0);
+
+  const checkImageComplete = useCallback((node: HTMLImageElement | null) => {
+    imgRef.current = node;
+    if (node && node.complete && node.naturalWidth > 0) {
+      setIsImageLoaded(true);
+    }
+  }, []);
 
   useEffect(() => {
-    setImageAttemptIndex(0);
-    setIsImageLoaded(false);
-    if (candidateImages.length === 0 && !imageUrl) {
+    attemptIndexRef.current = 0;
+    const initialSrc = candidateImages[0] || "";
+    if (!initialSrc) {
       setHasError(true);
-      setCurrentImgSrc("/default-hero.svg");
+      setCurrentImgSrc("");
+      setIsImageLoaded(false);
     } else {
       setHasError(false);
-      setCurrentImgSrc(candidateImages[0] || (imageUrl ? toOptimizedCardBackdropUrl(imageUrl) : "/default-hero.svg"));
+      setCurrentImgSrc(initialSrc);
+      if (imgRef.current && imgRef.current.complete && imgRef.current.naturalWidth > 0) {
+        setIsImageLoaded(true);
+      } else {
+        setIsImageLoaded(false);
+      }
     }
-  }, [imageUrl, candidateImages]);
+  }, [candidateImages]);
 
   const handleImageError = () => {
-    // 1. Chuyển sang nguồn ảnh tiếp theo trong danh sách candidate (vd: từ thumb sang poster hoặc link gốc)
-    const nextIdx = imageAttemptIndex + 1;
+    attemptIndexRef.current += 1;
+    const nextIdx = attemptIndexRef.current;
     if (nextIdx < candidateImages.length) {
-      setImageAttemptIndex(nextIdx);
-      setCurrentImgSrc(candidateImages[nextIdx]);
-      setIsImageLoaded(false);
-      return;
+      const nextSrc = candidateImages[nextIdx];
+      if (nextSrc && nextSrc !== currentImgSrc) {
+        setCurrentImgSrc(nextSrc);
+        setIsImageLoaded(false);
+        return;
+      }
     }
 
-    // 2. Nếu tất cả đều lỗi, chuyển sang trạng thái hasError và dùng Nanaflix fallback
+    // Tất cả candidate images đều lỗi -> Chuyển sang fallback ngay lập tức
     setHasError(true);
+    setCurrentImgSrc("");
     setIsImageLoaded(true);
   };
 
@@ -447,7 +464,8 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
             }
             if (data?.backdrop_url) {
               setCurrentImgSrc((prev) => {
-                if (!prev || prev.includes("-poster") || prev.includes("/default-") || prev.includes("default-hero")) {
+                if (!prev || prev.includes("-poster") || prev.includes("/default-") || prev.includes("default-hero") || hasError) {
+                  attemptIndexRef.current = 0;
                   setHasError(false);
                   setIsImageLoaded(false);
                   return data.backdrop_url || prev;
@@ -658,26 +676,32 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           </div>
         )}
 
-        {hasError ? (
+        {hasError || !currentImgSrc ? (
+          <div
+            className={`absolute inset-0 bg-gradient-to-br from-zinc-800/90 via-zinc-900 to-zinc-950 flex flex-col items-center justify-center p-3 select-none pointer-events-none transition-transform duration-300 ${
+              isCardHovered ? "scale-105" : "scale-100 group-hover/card:scale-[1.035]"
+            }`}
+            aria-hidden="true"
+          >
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-1.5 shadow-inner">
+              <Film className="w-5 h-5 sm:w-5.5 sm:h-5.5 text-netflix-red" />
+            </div>
+            <span className="text-[10px] sm:text-[11px] font-black tracking-widest text-white/50 uppercase">
+              NANAFLIX
+            </span>
+          </div>
+        ) : (
           <Image
-            src="/default-hero.svg"
+            ref={checkImageComplete}
+            key={currentImgSrc}
+            src={currentImgSrc}
             alt=""
             fill
             unoptimized
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 16vw"
-            className={`object-cover object-center transition-transform duration-300 ${
-              isCardHovered ? "scale-105" : "scale-100 group-hover/card:scale-[1.035]"
-            }`}
-            priority={priority}
-          />
-        ) : (
-          <Image
-            src={currentImgSrc}
-            alt={title}
-            fill
-            unoptimized
-            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 16vw"
-            className={`object-cover object-center transition-transform duration-300 ${
+            className={`object-cover object-center transition-all duration-300 ${
+              isImageLoaded ? "opacity-100" : "opacity-0"
+            } ${
               isCardHovered ? "scale-105" : "scale-100 group-hover/card:scale-[1.035]"
             }`}
             priority={priority}
@@ -776,26 +800,33 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
                 onClick={handleCardClick}
                 className="block relative w-full h-full cursor-pointer"
               >
-                {hasError ? (
-                  <Image
-                    src="/default-hero.svg"
-                    alt=""
-                    fill
-                    unoptimized
-                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 450px"
-                    className="object-cover object-center"
-                  />
+                {hasError || !currentImgSrc ? (
+                  <div
+                    className="absolute inset-0 bg-gradient-to-br from-zinc-800/90 via-zinc-900 to-zinc-950 flex flex-col items-center justify-center p-3 select-none pointer-events-none"
+                    aria-hidden="true"
+                  >
+                    <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-1.5 shadow-inner">
+                      <Film className="w-5 h-5 sm:w-5.5 sm:h-5.5 text-netflix-red" />
+                    </div>
+                    <span className="text-[10px] sm:text-[11px] font-black tracking-widest text-white/50 uppercase">
+                      NANAFLIX
+                    </span>
+                  </div>
                 ) : (
                   <Image
+                    key={`hover-${currentImgSrc}`}
                     src={currentImgSrc}
-                    alt={title}
+                    alt=""
                     fill
                     unoptimized
                     sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 450px"
                     loading="lazy"
                     decoding="async"
                     quality={85}
-                    className="object-cover object-center"
+                    className={`object-cover object-center transition-opacity duration-300 ${
+                      isImageLoaded ? "opacity-100" : "opacity-0"
+                    }`}
+                    onLoad={() => setIsImageLoaded(true)}
                     onError={handleImageError}
                   />
                 )}

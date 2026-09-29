@@ -6,6 +6,8 @@ import { VietnamTodayInfo } from "@/lib/vietnamCalendar";
 import { VietnamEvent } from "@/data/events/types";
 import { VietnamEventEffect } from "./VietnamEventEffect";
 import { VietnamFlagIcon } from "./VietnamFlagIcon";
+import { getVietnamEventBackground, getVietnamEventPatternTheme } from "@/lib/vietnamEventBackgrounds";
+import { VietnamEventPatternLayer } from "./VietnamEventPatternLayer";
 
 function getEventActionLabel(event: VietnamEvent): string {
   switch (event.nature) {
@@ -53,9 +55,17 @@ export function VietnamTodayCard({ info, onOpenModal }: VietnamTodayCardProps) {
   const [imageError, setImageError] = useState(false);
   const { event, isToday, badgeLabel, badgeSub } = info;
 
+  const bgImageUrl = React.useMemo(() => {
+    return getVietnamEventBackground(info);
+  }, [info]);
+
+  const patternTheme = React.useMemo(() => {
+    return getVietnamEventPatternTheme(info);
+  }, [info]);
+
   React.useEffect(() => {
     setImageError(false);
-  }, [event.id, event.imageUrl]);
+  }, [event.id, bgImageUrl]);
 
   const accentGradient = event.accentGradient || "from-amber-600/30 via-red-600/20 to-zinc-950";
 
@@ -99,18 +109,18 @@ export function VietnamTodayCard({ info, onOpenModal }: VietnamTodayCardProps) {
     >
       {/* 1. BACKGROUND IMAGE OR FALLBACK GRADIENT */}
       <div className="absolute inset-0 z-0 overflow-hidden">
-        {!imageError && event.imageUrl ? (
+        {!imageError && bgImageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            key={event.imageUrl}
-            src={event.imageUrl}
+            key={bgImageUrl}
+            src={bgImageUrl}
             alt=""
             aria-hidden="true"
             onError={(e) => {
               setImageError(true);
               e.currentTarget.style.display = "none";
             }}
-            className="w-full h-full object-cover object-center filter brightness-[0.55] contrast-105 transition-transform duration-700 ease-out group-hover:scale-105"
+            className="w-full h-full object-cover object-center filter brightness-[0.45] contrast-105 transition-transform duration-700 ease-out group-hover:scale-105"
           />
         ) : (
           <div className={`w-full h-full bg-gradient-to-r ${accentGradient} opacity-90`} />
@@ -120,6 +130,9 @@ export function VietnamTodayCard({ info, onOpenModal }: VietnamTodayCardProps) {
         <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/90 sm:via-zinc-950/80 to-transparent w-full sm:w-3/4 pointer-events-none" />
         <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/90 via-transparent to-black/30 pointer-events-none" />
       </div>
+
+      {/* THEMATIC ICON ILLUSTRATION PATTERN LAYER */}
+      <VietnamEventPatternLayer themeKey={patternTheme} />
 
       {/* SPECIAL HOLIDAY EFFECT (Active only when event has effect) */}
       {event.effect && <VietnamEventEffect effect={event.effect} />}
