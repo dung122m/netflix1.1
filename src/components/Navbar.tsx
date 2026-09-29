@@ -182,27 +182,17 @@ const NavbarInner: React.FC = () => {
                   className={`transition-all relative py-1 flex items-center gap-1.5 whitespace-nowrap flex-shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded-md ${
                     active
                       ? "text-white font-bold light-nav-active"
-                      : link.isLive
-                      ? "text-red-200 hover:text-white"
                       : "text-gray-300 hover:text-white"
                   }`}
                 >
-                  {link.isLive ? (
-                    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border transition-all duration-300 shadow-sm ${
-                      active
-                        ? "bg-red-600/30 border-red-500/60 text-white shadow-[0_0_12px_rgba(229,9,20,0.45)]"
-                        : "bg-red-500/15 hover:bg-red-500/25 border-red-500/40 hover:border-red-400/70 text-red-200 hover:text-white shadow-[0_0_10px_rgba(229,9,20,0.25)]"
-                    }`}>
-                      <span className="whitespace-nowrap font-bold tracking-tight">{link.name}</span>
-                      <span className="relative flex h-2 w-2 flex-shrink-0">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-80" />
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-netflix-red shadow-[0_0_6px_#E50914]" />
-                      </span>
+                  <span className="whitespace-nowrap">{link.name}</span>
+                  {link.isLive && (
+                    <span className="relative flex h-2 w-2 flex-shrink-0 ml-0.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-netflix-red shadow-[0_0_8px_#E50914]" />
                     </span>
-                  ) : (
-                    <span className="whitespace-nowrap">{link.name}</span>
                   )}
-                  {active && !link.isLive && (
+                  {active && (
                     <span className="absolute bottom-0 left-0 w-full h-0.5 bg-netflix-red rounded-full shadow-[0_0_8px_rgba(229,9,20,0.8)]" />
                   )}
                 </Link>
