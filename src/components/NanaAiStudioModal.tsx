@@ -541,7 +541,11 @@ export const NanaAiStudioModal: React.FC<NanaAiStudioModalProps> = ({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className={`relative w-full max-w-3xl h-[88dvh] max-h-[760px] sm:min-h-[500px] bg-zinc-950 rounded-2xl sm:rounded-3xl border shadow-2xl flex flex-col overflow-hidden transform-gpu will-change-[transform,opacity] animate-in zoom-in-95 duration-150 overscroll-contain ${
+        className={`relative w-full max-w-3xl ${
+          activeTab === "concierge"
+            ? "h-[88dvh] max-h-[760px] sm:min-h-[500px]"
+            : "max-h-[92dvh] sm:max-h-[840px]"
+        } bg-zinc-950 rounded-2xl sm:rounded-3xl border shadow-2xl flex flex-col overflow-hidden transform-gpu will-change-[transform,opacity] animate-in zoom-in-95 duration-150 overscroll-contain ${
           activeTab === "concierge"
             ? "border-pink-500/30 shadow-pink-950/40"
             : "border-amber-500/35 shadow-amber-950/40"
@@ -919,8 +923,8 @@ export const NanaAiStudioModal: React.FC<NanaAiStudioModalProps> = ({
                   </div>
                 </div>
               ) : rouletteResult && !showCriteriaPicker ? (
-                /* STATE 2: SPOTLIGHT RESULT SHOWCASE (FITS 100% IN MODAL WITHOUT SCROLLING) */
-                <div className="flex-1 flex flex-col justify-between py-1 space-y-3 animate-in zoom-in-95 duration-200">
+                /* STATE 2: SPOTLIGHT RESULT SHOWCASE (BALANCED & RESPONSIVE ON ALL SCREENS) */
+                <div className="w-full my-auto py-1 space-y-3 animate-in zoom-in-95 duration-200">
                   {/* COMPACT ACTIVE CRITERIA BAR */}
                   <div className="flex items-center justify-between px-3 py-2 rounded-2xl bg-zinc-900/95 border border-amber-500/30 shadow-md flex-none">
                     <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto text-xs min-w-0 scrollbar-none">
@@ -962,144 +966,191 @@ export const NanaAiStudioModal: React.FC<NanaAiStudioModalProps> = ({
                   </div>
 
                   {/* SPOTLIGHT MOVIE CARD */}
-                  <div className="flex-1 min-h-0 p-4 sm:p-6 rounded-3xl bg-zinc-900/95 border-2 border-amber-500/40 shadow-2xl shadow-amber-950/40 flex flex-col md:flex-row gap-4 sm:gap-6 items-center md:items-start justify-center overflow-y-auto">
-                    {/* Poster Column */}
-                    <div className="flex flex-col items-center gap-2.5 flex-none">
-                      <div className="relative w-32 sm:w-44 md:w-48 aspect-[2/3] rounded-2xl overflow-hidden bg-zinc-950 border-2 border-amber-400/40 shadow-2xl ring-2 ring-amber-400/20 group">
+                  <div className="w-full p-3.5 sm:p-5 md:p-6 rounded-3xl bg-zinc-900/95 border-2 border-amber-500/40 shadow-2xl shadow-amber-950/40 flex flex-col md:flex-row gap-3.5 sm:gap-5 items-stretch">
+                    {/* LEFT COLUMN (POSTER + DESKTOP MATCH BADGE) */}
+                    <div className="flex md:flex-col items-center md:items-stretch gap-3 sm:gap-3.5 md:w-48 lg:w-56 shrink-0">
+                      {/* Poster */}
+                      <div className="relative w-24 sm:w-28 md:w-full aspect-[2/3] rounded-2xl overflow-hidden bg-zinc-950 border-2 border-amber-400/40 shadow-2xl ring-2 ring-amber-400/20 shrink-0 group">
                         <Image
                           src={rouletteResult.movie.poster || "/default-poster.jpg"}
                           alt={rouletteResult.movie.title}
                           fill
                           className="object-cover transition-transform duration-500 group-hover:scale-105"
-                          sizes="(max-width: 768px) 176px, 192px"
+                          sizes="(max-width: 640px) 112px, (max-width: 768px) 128px, 224px"
                           priority
                         />
-                        <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-netflix-red text-white text-[10px] font-black uppercase shadow">
+                        <div className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-md bg-netflix-red text-white text-[9px] font-black uppercase shadow-md">
                           {rouletteResult.movie.quality || "FHD"}
                         </div>
                         {rouletteResult.movie.episodeCurrent && (
-                          <div className="absolute bottom-2 left-2 right-2 px-2 py-1 rounded-lg bg-black/80 backdrop-blur-sm text-amber-300 text-[10px] font-bold text-center border border-white/10 truncate">
+                          <div className="absolute bottom-1.5 right-1.5 max-w-[85%] px-1.5 py-0.5 rounded-md bg-black/85 backdrop-blur-sm text-amber-300 text-[9px] font-bold border border-white/15 shadow-md truncate">
                             {rouletteResult.movie.episodeCurrent}
                           </div>
                         )}
                       </div>
 
-                      {/* Match score badge under poster */}
-                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-400/40 text-amber-300 text-xs font-black">
-                        <Star className="w-3.5 h-3.5 fill-amber-300 text-amber-300" />
-                        <span>{rouletteResult.matchScore}% Hợp Định Mệnh</span>
-                      </div>
-                    </div>
+                      {/* MOBILE TOP INFO (Beside Poster on < md) */}
+                      <div className="md:hidden flex-1 min-w-0 space-y-1.5 text-left">
+                        <div className="flex flex-wrap items-center gap-1">
+                          <span className="text-[10px] font-black uppercase text-amber-300 px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 inline-flex items-center gap-1">
+                            <Star className="w-3 h-3 fill-amber-300 text-amber-300" />
+                            <span>{rouletteResult.matchScore}% Hợp Định Mệnh</span>
+                          </span>
+                          {rouletteResult.movie.rating && rouletteResult.movie.rating > 0 && (
+                            <span className="text-[10px] text-yellow-300 px-1.5 py-0.5 rounded-full bg-yellow-500/20 border border-yellow-500/30 font-bold flex items-center gap-0.5">
+                              ⭐ {rouletteResult.movie.rating}/10
+                            </span>
+                          )}
+                        </div>
 
-                    {/* Movie Info & Synopsis Dossier */}
-                    <div className="flex-1 min-w-0 space-y-2.5 text-center md:text-left flex flex-col justify-between">
-                      {/* Row 1: Badges & Tags */}
-                      <div className="flex flex-wrap items-center justify-center md:justify-start gap-1.5 sm:gap-2">
-                        {rouletteResult.movie.category && (
-                          <span className="text-[11px] text-amber-200 px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/30 font-semibold">
-                            {rouletteResult.movie.category}
-                          </span>
-                        )}
-                        {rouletteResult.movie.categories?.filter((c) => c !== rouletteResult.movie.category).slice(0, 2).map((cat) => (
-                          <span key={cat} className="text-[11px] text-gray-300 px-2 py-0.5 rounded-full bg-white/10 font-medium">
-                            {cat}
-                          </span>
-                        ))}
-                        {rouletteResult.movie.country && (
-                          <span className="text-[11px] text-sky-300 px-2 py-0.5 rounded-full bg-sky-500/20 border border-sky-500/30 font-medium">
-                            🌐 {rouletteResult.movie.country}
-                          </span>
-                        )}
-                        {rouletteResult.movie.duration && (
-                          <span className="text-[11px] text-purple-300 px-2 py-0.5 rounded-full bg-purple-500/20 border border-purple-500/30 font-semibold">
-                            ⏱️ {rouletteResult.movie.duration}
-                          </span>
-                        )}
-                        {rouletteResult.movie.year && (
-                          <span className="text-[11px] text-gray-400 px-2 py-0.5 rounded-full bg-white/5">
-                            {rouletteResult.movie.year}
-                          </span>
-                        )}
-                        {rouletteResult.movie.rating && rouletteResult.movie.rating > 0 && (
-                          <span className="text-[11px] text-yellow-300 px-2 py-0.5 rounded-full bg-yellow-500/20 border border-yellow-500/30 font-bold flex items-center gap-1">
-                            ⭐ {rouletteResult.movie.rating}/10
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Row 2: Title & Original Title */}
-                      <div>
-                        <h4 className="text-lg sm:text-2xl md:text-3xl font-black text-white leading-tight">
+                        <h4 className="text-base font-black text-white leading-tight line-clamp-2">
                           {rouletteResult.movie.title}
                         </h4>
                         {rouletteResult.movie.originalTitle && rouletteResult.movie.originalTitle !== rouletteResult.movie.title && (
-                          <p className="text-xs sm:text-sm text-gray-400 font-medium italic mt-0.5">
+                          <p className="text-[11px] text-gray-400 font-medium italic truncate">
                             {rouletteResult.movie.originalTitle}
                           </p>
                         )}
-                      </div>
 
-                      {/* Row 3: Tarot Oracle Verdict */}
-                      <p className="text-xs sm:text-sm text-amber-200/95 italic bg-gradient-to-r from-amber-500/20 via-orange-500/10 to-transparent p-2.5 sm:p-3 rounded-2xl border border-amber-500/30 leading-relaxed text-left">
-                        ✨ {rouletteResult.punchline}
-                      </p>
-
-                      {/* Row 4: TÓM TẮT NỘI DUNG PHIM (SYNOPSIS) */}
-                      <div className="space-y-1 bg-zinc-950/70 p-3 sm:p-3.5 rounded-2xl border border-white/10 text-left">
-                        <div className="flex items-center gap-1.5 text-xs font-bold text-amber-300 uppercase tracking-wide">
-                          <BookOpen className="w-3.5 h-3.5 text-amber-400" />
-                          <span>Tóm tắt nội dung phim</span>
+                        <div className="flex flex-wrap items-center gap-1 text-[10px]">
+                          {rouletteResult.movie.category && (
+                            <span className="text-amber-200 px-1.5 py-0.5 rounded-md bg-amber-500/15 border border-amber-500/25 font-semibold">
+                              {rouletteResult.movie.category}
+                            </span>
+                          )}
+                          {rouletteResult.movie.duration && (
+                            <span className="text-purple-300 px-1.5 py-0.5 rounded-md bg-purple-500/15 border border-purple-500/25 font-medium">
+                              ⏱️ {rouletteResult.movie.duration}
+                            </span>
+                          )}
+                          {rouletteResult.movie.year && (
+                            <span className="text-gray-300 px-1.5 py-0.5 rounded-md bg-white/10 font-medium">
+                              {rouletteResult.movie.year}
+                            </span>
+                          )}
+                          {rouletteResult.movie.country && (
+                            <span className="text-sky-300 px-1.5 py-0.5 rounded-md bg-sky-500/15 border border-sky-500/25 font-medium">
+                              🌐 {rouletteResult.movie.country}
+                            </span>
+                          )}
                         </div>
-                        <p className="text-xs sm:text-sm text-gray-300 leading-relaxed line-clamp-3 sm:line-clamp-4">
-                          {rouletteResult.movie.overview ||
-                           rouletteResult.movie.description ||
-                           rouletteResult.movie.content ||
-                           `Tác phẩm ${rouletteResult.movie.category || "điện ảnh"} đặc sắc với cốt truyện lôi cuốn, kịch tính và tràn đầy cảm xúc. Hãy bắt đầu thưởng thức ngay suất chiếu định mệnh này trên Nanaflix.`}
-                        </p>
                       </div>
 
-                      {/* Row 5: Cast & Director */}
+                      {/* DESKTOP MATCH BADGES UNDER POSTER (Visible on md+) */}
+                      <div className="hidden md:flex flex-col gap-1.5 w-full">
+                        <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-bold shadow-sm">
+                          <span className="inline-flex items-center gap-1.5">
+                            <Star className="w-3.5 h-3.5 fill-amber-300 text-amber-300" />
+                            <span>Hợp Định Mệnh</span>
+                          </span>
+                          <span className="font-black text-amber-200 text-sm">{rouletteResult.matchScore}%</span>
+                        </div>
+                        {rouletteResult.movie.rating && rouletteResult.movie.rating > 0 && (
+                          <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-yellow-500/10 border border-yellow-500/20 text-yellow-300 text-xs font-semibold">
+                            <span>Đánh giá IMDb</span>
+                            <span className="font-bold">⭐ {rouletteResult.movie.rating}/10</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* RIGHT MAIN DOSSIER COLUMN */}
+                    <div className="flex-1 min-w-0 flex flex-col justify-between gap-3 text-left">
+                      {/* DESKTOP TITLE & METADATA (Hidden on mobile) */}
+                      <div className="hidden md:block space-y-1.5">
+                        <h4 className="text-xl lg:text-2xl font-black text-white leading-tight">
+                          {rouletteResult.movie.title}
+                        </h4>
+                        {rouletteResult.movie.originalTitle && rouletteResult.movie.originalTitle !== rouletteResult.movie.title && (
+                          <p className="text-xs text-gray-400 font-medium italic">
+                            {rouletteResult.movie.originalTitle}
+                          </p>
+                        )}
+
+                        <div className="flex flex-wrap items-center gap-1.5 text-xs pt-1">
+                          {rouletteResult.movie.category && (
+                            <span className="text-amber-200 px-2 py-0.5 rounded-md bg-amber-500/15 border border-amber-500/25 font-semibold">
+                              {rouletteResult.movie.category}
+                            </span>
+                          )}
+                          {rouletteResult.movie.duration && (
+                            <span className="text-purple-300 px-2 py-0.5 rounded-md bg-purple-500/15 border border-purple-500/25 font-medium">
+                              ⏱️ {rouletteResult.movie.duration}
+                            </span>
+                          )}
+                          {rouletteResult.movie.year && (
+                            <span className="text-gray-300 px-2 py-0.5 rounded-md bg-white/10 font-medium">
+                              {rouletteResult.movie.year}
+                            </span>
+                          )}
+                          {rouletteResult.movie.country && (
+                            <span className="text-sky-300 px-2 py-0.5 rounded-md bg-sky-500/15 border border-sky-500/25 font-medium">
+                              🌐 {rouletteResult.movie.country}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* CAST & DIRECTOR */}
                       {((rouletteResult.movie.actors && rouletteResult.movie.actors.length > 0) ||
                         (rouletteResult.movie.director && rouletteResult.movie.director.length > 0)) && (
-                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] sm:text-xs text-gray-400 text-left pt-0.5">
+                        <div className="text-[11px] sm:text-xs text-gray-300 space-y-1 p-2 sm:p-2.5 rounded-xl bg-zinc-950/60 border border-white/5">
                           {rouletteResult.movie.actors && rouletteResult.movie.actors.length > 0 && (
-                            <div className="flex items-center gap-1.5 min-w-0">
-                              <span className="text-amber-300/90 font-semibold flex-none">🎭 Diễn viên:</span>
-                              <span className="text-gray-300 truncate max-w-xs sm:max-w-md">
-                                {rouletteResult.movie.actors.join(", ")}
-                              </span>
+                            <div className="truncate">
+                              <span className="text-amber-300 font-semibold">🎭 Diễn viên: </span>
+                              <span className="text-gray-300">{rouletteResult.movie.actors.join(", ")}</span>
                             </div>
                           )}
                           {rouletteResult.movie.director && rouletteResult.movie.director.length > 0 && (
-                            <div className="flex items-center gap-1.5 min-w-0">
-                              <span className="text-amber-300/90 font-semibold flex-none">🎬 Đạo diễn:</span>
-                              <span className="text-gray-300 truncate">
-                                {rouletteResult.movie.director.join(", ")}
-                              </span>
+                            <div className="truncate">
+                              <span className="text-amber-300 font-semibold">🎬 Đạo diễn: </span>
+                              <span className="text-gray-300">{rouletteResult.movie.director.join(", ")}</span>
                             </div>
                           )}
                         </div>
                       )}
 
-                      {/* Row 6: Action Buttons */}
-                      <div className="pt-2 flex flex-wrap items-center justify-center md:justify-start gap-2 sm:gap-2.5">
+                      {/* UNIFIED TAROT VERDICT & SYNOPSIS BOX */}
+                      <div className="space-y-2 p-3 sm:p-3.5 rounded-2xl bg-zinc-950/80 border border-amber-500/30 text-left shadow-inner">
+                        {/* Tarot Punchline Quote */}
+                        <p className="text-xs sm:text-[13px] text-amber-200 font-medium italic leading-relaxed border-l-2 border-amber-400 pl-2.5">
+                          ✨ {rouletteResult.punchline}
+                        </p>
+
+                        {/* Synopsis Paragraph */}
+                        <div className="pt-2 border-t border-white/10 space-y-1">
+                          <div className="flex items-center gap-1.5 text-[11px] font-bold text-amber-300 uppercase tracking-wide">
+                            <BookOpen className="w-3.5 h-3.5 text-amber-400" />
+                            <span>Tóm tắt nội dung</span>
+                          </div>
+                          <p className="text-[11px] sm:text-xs text-gray-300 leading-relaxed line-clamp-3 md:line-clamp-4">
+                            {rouletteResult.movie.overview ||
+                             rouletteResult.movie.description ||
+                             rouletteResult.movie.content ||
+                             `Tác phẩm ${rouletteResult.movie.category || "điện ảnh"} đặc sắc với cốt truyện lôi cuốn, kịch tính và tràn đầy cảm xúc. Hãy bắt đầu thưởng thức ngay suất chiếu định mệnh này trên Nanaflix.`}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* ACTION BUTTONS */}
+                      <div className="grid grid-cols-2 gap-2 sm:gap-3 pt-1">
                         <Link
                           href={`/movies/${rouletteResult.movie.slug}`}
                           onClick={() => setIsOpen(false)}
-                          className="inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl bg-netflix-red hover:bg-red-700 text-white font-black text-xs sm:text-sm transition shadow-xl shadow-red-950/50 cursor-pointer active:scale-95"
+                          className="inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2.5 sm:py-3 rounded-xl bg-netflix-red hover:bg-red-700 text-white font-black text-xs sm:text-sm transition shadow-xl shadow-red-950/50 cursor-pointer active:scale-95 text-center truncate"
                         >
-                          <Play className="w-4 h-4 fill-white" />
-                          <span>Xem Suất Chiếu Này Ngay</span>
+                          <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-white shrink-0" />
+                          <span className="truncate">Xem Suất Chiếu</span>
                         </Link>
 
                         <button
                           type="button"
                           onClick={() => spinRoulette()}
                           disabled={isSpinning}
-                          className="inline-flex items-center gap-1.5 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-amber-500 via-orange-600 to-rose-600 hover:from-amber-400 hover:to-rose-500 text-white font-bold text-xs sm:text-sm transition shadow-lg shadow-amber-950/40 cursor-pointer active:scale-95 disabled:opacity-50"
+                          className="inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-amber-500 via-orange-600 to-rose-600 hover:from-amber-400 hover:to-rose-500 text-white font-bold text-xs sm:text-sm transition shadow-lg shadow-amber-950/40 cursor-pointer active:scale-95 disabled:opacity-50 text-center truncate"
                         >
-                          <Dices className={`w-4 h-4 ${isSpinning ? "animate-spin" : ""}`} />
-                          <span>Bốc Quẻ Khác (Đổi Phim)</span>
+                          <Dices className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isSpinning ? "animate-spin" : ""} shrink-0`} />
+                          <span className="truncate">Bốc Quẻ Khác</span>
                         </button>
                       </div>
                     </div>
