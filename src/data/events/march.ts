@@ -27,7 +27,19 @@ export const MARCH_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "01 Tháng 03",
     "meaning": "Xây dựng một thế giới nơi mọi cá nhân đều được tôn trọng và đối xử công bằng.",
-    "subtitle": "Bảo vệ phẩm giá, quyền con người và sự bình đẳng trọn vẹn cho tất cả mọi người."
+    "subtitle": "Bảo vệ phẩm giá, quyền con người và sự bình đẳng trọn vẹn cho tất cả mọi người.",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Chung tay hành động vì một thế giới hòa bình, xanh sạch và ngập tràn tình yêu thương.",
+    "interestingFacts": [
+      "Biểu tượng của ngày này là cánh bướm tím đại diện cho sự biến chuyển tích cực."
+    ],
+    "description": "Bảo vệ phẩm giá, quyền con người và sự bình đẳng trọn vẹn cho tất cả mọi người.",
+    "bannerDescription": "Được Liên Hợp Quốc và UNAIDS phát động nhằm chấm dứt sự kỳ thị và phân biệt đối xử. Xây dựng một thế giới nơi mọi cá nhân đều được tôn trọng và đối xử công bằng. Đây là dịp ý nghĩa để tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm."
   },
   {
     "id": "ev-03-02-read-across",
@@ -55,7 +67,19 @@ export const MARCH_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "02 Tháng 03",
     "meaning": "Nuôi dưỡng tâm hồn, trí tưởng tượng và vốn từ phong phú cho trẻ nhỏ.",
-    "subtitle": "Khơi gợi niềm đam mê khám phá thế giới qua những trang sách diệu kỳ cho trẻ thơ."
+    "subtitle": "Khơi gợi niềm đam mê khám phá thế giới qua những trang sách diệu kỳ cho trẻ thơ.",
+    "activities": [
+      "Đọc ít nhất một chương sách hay hoặc chia sẻ cuốn sách tâm đắc với bạn bè",
+      "Tham gia các hội sách, hội thảo văn hóa đọc hoặc tặng sách cho thư viện cộng đồng",
+      "Hình thành không gian đọc yên tĩnh và thói quen đọc sách mỗi ngày"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Đọc sách 20 phút mỗi ngày giúp trẻ tiếp cận thêm 1,8 triệu từ ngữ mỗi năm."
+    ],
+    "description": "Khơi gợi niềm đam mê khám phá thế giới qua những trang sách diệu kỳ cho trẻ thơ.",
+    "bannerDescription": "Hưởng ứng phong trào đọc sách toàn cầu khích lệ tình yêu văn học từ thuở ấu thơ. Nuôi dưỡng tâm hồn, trí tưởng tượng và vốn từ phong phú cho trẻ nhỏ. Đây là dịp ý nghĩa để đọc ít nhất một chương sách hay hoặc chia sẻ cuốn sách tâm đắc với bạn bè."
   },
   {
     "id": "ev-03-03-bien-phong-vn",
@@ -84,7 +108,19 @@ export const MARCH_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "03 Tháng 03",
     "meaning": "Gìn giữ chủ quyền biên giới quốc gia, gắn bó máu thịt với đồng bào các dân tộc thiểu số.",
-    "subtitle": "Tôn vinh những người lính mang quân hàm xanh ngày đêm canh giữ vững chắc biên..."
+    "subtitle": "Tôn vinh những người lính mang quân hàm xanh ngày đêm canh giữ vững chắc biên...",
+    "activities": [
+      "Dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ",
+      "Tham quan các bảo tàng, di tích lịch sử để tìm hiểu mốc son vẻ vang của dân tộc",
+      "Kể lại những câu chuyện lịch sử hào hùng cho thế hệ trẻ gìn giữ truyền thống yêu nước"
+    ],
+    "whyItMatters": null,
+    "message": "Đồn là nhà, biên giới là quê hương, đồng bào các dân tộc là anh em ruột thịt.",
+    "interestingFacts": [
+      "Hình ảnh 'Thầy giáo quân hàm xanh', 'Thầy thuốc quân hàm xanh' đã trở thành biểu tượng thân thương ở vùng biên."
+    ],
+    "description": "Tôn vinh những người lính mang quân hàm xanh ngày đêm canh giữ vững chắc biên cương.",
+    "bannerDescription": "Ngày 3/3/1959, Thủ tướng Phạm Văn Đồng ký Nghị định 100/TTg thành lập lực lượng Công an nhân dân Vũ trang. Gìn giữ chủ quyền biên giới quốc gia, gắn bó máu thịt với đồng bào các dân tộc thiểu số. Đây là dịp ý nghĩa để dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ."
   },
   {
     "id": "ev-03-04-engineering",
@@ -112,7 +148,19 @@ export const MARCH_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "04 Tháng 03",
     "meaning": "Khuyến khích sáng tạo các công trình giao thông, năng lượng xanh bảo vệ môi trường.",
-    "subtitle": "Tôn vinh các kỹ sư và giải pháp công nghệ kiến tạo cơ sở hạ tầng tương lai."
+    "subtitle": "Tôn vinh các kỹ sư và giải pháp công nghệ kiến tạo cơ sở hạ tầng tương lai.",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Chung tay hành động vì một thế giới hòa bình, xanh sạch và ngập tràn tình yêu thương.",
+    "interestingFacts": [
+      "Cầu Nhật Tân, hầm Hải Vân là những kỳ tích kỹ thuật xây dựng đáng tự hào của Việt Nam."
+    ],
+    "description": "Tôn vinh các kỹ sư và giải pháp công nghệ kiến tạo cơ sở hạ tầng tương lai.",
+    "bannerDescription": "Được UNESCO công bố nhằm nhấn mạnh vai trò của kỹ thuật trong việc đạt được các mục tiêu phát triển bền vững. Khuyến khích sáng tạo các công trình giao thông, năng lượng xanh bảo vệ môi trường. Đây là dịp ý nghĩa để tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm."
   },
   {
     "id": "ev-03-05-energy-saving",
@@ -140,7 +188,19 @@ export const MARCH_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "05 Tháng 03",
     "meaning": "Giảm phát thải khí nhà kính và tiết kiệm chi phí sinh hoạt cho mỗi gia đình.",
-    "subtitle": "Sử dụng năng lượng thông minh, tiết kiệm nguồn tài nguyên quý giá của đất mẹ."
+    "subtitle": "Sử dụng năng lượng thông minh, tiết kiệm nguồn tài nguyên quý giá của đất mẹ.",
+    "activities": [
+      "Gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu",
+      "Tổ chức các buổi gặp gỡ, họp mặt ý nghĩa để thắt chặt tình đoàn kết",
+      "Thực hiện những việc làm tử tế, sẻ chia khó khăn với những hoàn cảnh kém may mắn"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Tận dụng ánh sáng tự nhiên vào ban ngày có thể giảm 10% hóa đơn tiền điện."
+    ],
+    "description": "Sử dụng năng lượng thông minh, tiết kiệm nguồn tài nguyên quý giá của đất mẹ.",
+    "bannerDescription": "Bắt nguồn từ Hội nghị Tiết kiệm Năng lượng Quốc tế đầu tiên tại Áo năm 1998. Giảm phát thải khí nhà kính và tiết kiệm chi phí sinh hoạt cho mỗi gia đình. Đây là dịp ý nghĩa để gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu."
   },
   {
     "id": "ev-03-06-dentist-day",
@@ -168,7 +228,19 @@ export const MARCH_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "06 Tháng 03",
     "meaning": "Răng miệng khỏe mạnh là nền tảng cho sức khỏe tổng thể và sự tự tin giao tiếp.",
-    "subtitle": "Tri ân những chuyên gia chăm sóc nụ cười rạng rỡ và sức khỏe răng miệng cộng ..."
+    "subtitle": "Tri ân những chuyên gia chăm sóc nụ cười rạng rỡ và sức khỏe răng miệng cộng ...",
+    "activities": [
+      "Gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu",
+      "Tổ chức các buổi gặp gỡ, họp mặt ý nghĩa để thắt chặt tình đoàn kết",
+      "Thực hiện những việc làm tử tế, sẻ chia khó khăn với những hoàn cảnh kém may mắn"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Đánh răng đúng cách 2 lần/ngày và dùng chỉ nha khoa giúp ngăn ngừa 90% bệnh nướu răng."
+    ],
+    "description": "Tri ân những chuyên gia chăm sóc nụ cười rạng rỡ và sức khỏe răng miệng cộng đồng.",
+    "bannerDescription": "Hưởng ứng ngày Nha sĩ Quốc tế tôn vinh nghề nghiệp chăm sóc răng miệng. Răng miệng khỏe mạnh là nền tảng cho sức khỏe tổng thể và sự tự tin giao tiếp. Đây là dịp ý nghĩa để gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu."
   },
   {
     "id": "ev-03-07-read-aloud",
@@ -196,7 +268,19 @@ export const MARCH_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "07 Tháng 03",
     "meaning": "Gắn kết các thế hệ trong gia đình qua những câu chuyện cổ tích và bài học nhân văn.",
-    "subtitle": "Sức mạnh kết nối của giọng đọc truyền cảm qua từng câu chuyện ấm áp tình thân."
+    "subtitle": "Sức mạnh kết nối của giọng đọc truyền cảm qua từng câu chuyện ấm áp tình thân.",
+    "activities": [
+      "Đọc ít nhất một chương sách hay hoặc chia sẻ cuốn sách tâm đắc với bạn bè",
+      "Tham gia các hội sách, hội thảo văn hóa đọc hoặc tặng sách cho thư viện cộng đồng",
+      "Hình thành không gian đọc yên tĩnh và thói quen đọc sách mỗi ngày"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Nghe đọc sách giúp phát triển khả năng ngôn ngữ và thấu cảm cảm xúc ở trẻ."
+    ],
+    "description": "Sức mạnh kết nối của giọng đọc truyền cảm qua từng câu chuyện ấm áp tình thân.",
+    "bannerDescription": "Sáng lập bởi tổ chức LitWorld nhằm tôn vinh truyền thống kể chuyện bằng âm thanh. Gắn kết các thế hệ trong gia đình qua những câu chuyện cổ tích và bài học nhân văn. Đây là dịp ý nghĩa để đọc ít nhất một chương sách hay hoặc chia sẻ cuốn sách tâm đắc với bạn bè."
   },
   {
     "id": "ev-03-08-quoc-te-phu-nu",
@@ -230,7 +314,19 @@ export const MARCH_EVENTS: VietnamEvent[] = [
       "Gửi tặng những bó hoa tươi thắm và lời chúc chân thành đến bà, mẹ, vợ và đồng nghiệp nữ",
       "Lễ dâng hương tưởng niệm Hai Bà Trưng tại Di tích Quốc gia đặc biệt Đền Hai Bà Trưng (Mê Linh, Hà Nội)",
       "Tổ chức các buổi gặp mặt, hội thi nấu ăn và tôn vinh phụ nữ giỏi việc nước, đảm việc nhà"
-    ]
+    ],
+    "activities": [
+      "Tặng hoa, thiệp và những món quà ý nghĩa gửi đến bà, mẹ, vợ và đồng nghiệp nữ",
+      "Tổ chức các buổi tọa đàm tôn vinh vai trò của phụ nữ trong gia đình và xã hội",
+      "Chia sẻ công việc nhà và lan tỏa tình yêu thương, sự trân trọng tới phái đẹp"
+    ],
+    "whyItMatters": null,
+    "message": "Non sông gấm vóc Việt Nam do phụ nữ ta, trẻ cũng như già, ra sức dệt thêu mà thêm tốt đẹp, rực rỡ. — Hồ Chí Minh",
+    "interestingFacts": [
+      "Tại Việt Nam, ngày 8/3 gắn liền với niềm tự hào cuộc Khởi nghĩa Hai Bà Trưng kiên cường."
+    ],
+    "description": "Tôn vinh vẻ đẹp, sự hy sinh và những đóng góp vĩ đại của phái đẹp trên toàn thế giới.",
+    "bannerDescription": "Khởi nguồn từ phong trào nữ công nhân may New York (1908) và Hội nghị Phụ nữ Quốc tế (1910). Khẳng định bình đẳng giới và lòng biết ơn sâu sắc đối với một nửa thế giới dịu dàng. Người dân và các gia đình thường gửi tặng những bó hoa tươi thắm và lời chúc chân thành đến bà, mẹ, vợ và đồng nghiệp nữ."
   },
   {
     "id": "ev-03-09-khang-nhat",
@@ -259,7 +355,19 @@ export const MARCH_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "09 Tháng 03",
     "meaning": "Ban Thường vụ Trung ương Đảng họp ra chỉ thị lịch sử 'Nhật - Pháp bắn nhau và hành động của chúng ta'.",
-    "subtitle": "Bùng nổ thời cơ cách mạng"
+    "subtitle": "Bùng nổ thời cơ cách mạng",
+    "activities": [
+      "Dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ",
+      "Tham quan các bảo tàng, di tích lịch sử để tìm hiểu mốc son vẻ vang của dân tộc",
+      "Kể lại những câu chuyện lịch sử hào hùng cho thế hệ trẻ gìn giữ truyền thống yêu nước"
+    ],
+    "whyItMatters": null,
+    "message": "Tự hào truyền thống vẻ vang của dân tộc, vững bước tương lai kiến thiết đất nước giàu mạnh.",
+    "interestingFacts": [
+      "Chỉ thị ngày 12/3/1945 đã phát động phong trào phá kho thóc của Nhật giải quyết nạn đói cho nhân dân."
+    ],
+    "description": "Bùng nổ thời cơ cách mạng — cao trào kháng Nhật cứu nước lan rộng khắp cả nước.",
+    "bannerDescription": "Đêm 9/3/1945, phát xít Nhật nổ súng lật đổ thực dân Pháp độc chiếm Đông Dương. Ban Thường vụ Trung ương Đảng họp ra chỉ thị lịch sử 'Nhật - Pháp bắn nhau và hành động của chúng ta'. Đây là dịp ý nghĩa để dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ."
   },
   {
     "id": "ev-03-10-buon-ma-thuot",
@@ -288,7 +396,19 @@ export const MARCH_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "10 Tháng 03",
     "meaning": "Tạo bước ngoặt quyết định buộc địch phải rút chạy khỏi Tây Nguyên, mở toang cánh cửa về Sài Gòn.",
-    "subtitle": "Đòn điểm huyệt chiến lược mở màn cho Đại thắng Mùa Xuân năm 1975 lịch sử."
+    "subtitle": "Đòn điểm huyệt chiến lược mở màn cho Đại thắng Mùa Xuân năm 1975 lịch sử.",
+    "activities": [
+      "Dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ",
+      "Tham quan các bảo tàng, di tích lịch sử để tìm hiểu mốc son vẻ vang của dân tộc",
+      "Kể lại những câu chuyện lịch sử hào hùng cho thế hệ trẻ gìn giữ truyền thống yêu nước"
+    ],
+    "whyItMatters": null,
+    "message": "Tự hào truyền thống vẻ vang của dân tộc, vững bước tương lai kiến thiết đất nước giàu mạnh.",
+    "interestingFacts": [
+      "Nghệ thuật nghi binh tài tình ở Pleiku và Kon Tum đã khiến địch hoàn toàn bất ngờ ở Buôn Ma Thuột."
+    ],
+    "description": "Đòn điểm huyệt chiến lược mở màn cho Đại thắng Mùa Xuân năm 1975 lịch sử.",
+    "bannerDescription": "Rạng sáng 10/3/1975, quân ta bất ngờ nổ súng tiến công thị xã Buôn Ma Thuột, giải phóng hoàn toàn thị xã. Tạo bước ngoặt quyết định buộc địch phải rút chạy khỏi Tây Nguyên, mở toang cánh cửa về Sài Gòn. Đây là dịp ý nghĩa để dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ."
   },
   {
     "id": "ev-03-11-plumbing",
@@ -316,7 +436,19 @@ export const MARCH_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "11 Tháng 03",
     "meaning": "Nước sạch và điều kiện vệ sinh là quyền con người cơ bản bảo vệ sức khỏe cộng đồng.",
-    "subtitle": "Tôn vinh những kỹ sư gìn giữ dòng nước sạch và hệ thống vệ sinh đô thị văn minh."
+    "subtitle": "Tôn vinh những kỹ sư gìn giữ dòng nước sạch và hệ thống vệ sinh đô thị văn minh.",
+    "activities": [
+      "Trồng thêm cây xanh tại khu dân cư, ban công hoặc nơi làm việc",
+      "Hạn chế sử dụng đồ nhựa dùng một lần và phân loại rác thải tại nguồn",
+      "Tắt bớt các thiết bị điện không cần thiết và sử dụng phương tiện giao thông thân thiện môi trường"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Hệ thống cấp nước sạch đã cứu sống nhiều sinh mạng hơn bất kỳ phát minh y học nào."
+    ],
+    "description": "Tôn vinh những kỹ sư gìn giữ dòng nước sạch và hệ thống vệ sinh đô thị văn minh.",
+    "bannerDescription": "Được Hội đồng Hệ thống Đường ống Nước Thế giới (WPC) khởi xướng. Nước sạch và điều kiện vệ sinh là quyền con người cơ bản bảo vệ sức khỏe cộng đồng. Đây là dịp ý nghĩa để trồng thêm cây xanh tại khu dân cư, ban công hoặc nơi làm việc."
   },
   {
     "id": "ev-03-12-trong-cay",
@@ -344,7 +476,19 @@ export const MARCH_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "12 Tháng 03",
     "meaning": "Bảo vệ tài nguyên rừng, chống xói mòn lũ lụt và hấp thụ khí carbon dioxide.",
-    "subtitle": "Phủ xanh đồi trọc, bảo vệ lá phổi xanh của đất nước vì thế hệ mai sau."
+    "subtitle": "Phủ xanh đồi trọc, bảo vệ lá phổi xanh của đất nước vì thế hệ mai sau.",
+    "activities": [
+      "Gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu",
+      "Tổ chức các buổi gặp gỡ, họp mặt ý nghĩa để thắt chặt tình đoàn kết",
+      "Thực hiện những việc làm tử tế, sẻ chia khó khăn với những hoàn cảnh kém may mắn"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Việt Nam cam kết phát thải ròng bằng 0 (Net Zero) vào năm 2050 tại Hội nghị COP26."
+    ],
+    "description": "Phủ xanh đồi trọc, bảo vệ lá phổi xanh của đất nước vì thế hệ mai sau.",
+    "bannerDescription": "Hưởng ứng lời dạy của Bác Hồ về Tết Trồng cây 'Mùa xuân là Tết trồng cây / Làm cho đất nước càng ngày càng xuân'. Bảo vệ tài nguyên rừng, chống xói mòn lũ lụt và hấp thụ khí carbon dioxide. Đây là dịp ý nghĩa để gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu."
   },
   {
     "id": "ev-03-13-sleep-day",
@@ -372,7 +516,19 @@ export const MARCH_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "13 Tháng 03",
     "meaning": "Nhắc nhở mọi người không hy sinh giấc ngủ vì công việc, ngủ đủ 7-8 tiếng mỗi đêm.",
-    "subtitle": "Giấc ngủ trọn vẹn là chìa khóa vàng tái tạo năng lượng thể chất và tinh thần ..."
+    "subtitle": "Giấc ngủ trọn vẹn là chìa khóa vàng tái tạo năng lượng thể chất và tinh thần ...",
+    "activities": [
+      "Gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu",
+      "Tổ chức các buổi gặp gỡ, họp mặt ý nghĩa để thắt chặt tình đoàn kết",
+      "Thực hiện những việc làm tử tế, sẻ chia khó khăn với những hoàn cảnh kém may mắn"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Thiếu ngủ kéo dài làm suy giảm hệ miễn dịch và tăng nguy cơ mắc bệnh tim mạch."
+    ],
+    "description": "Giấc ngủ trọn vẹn là chìa khóa vàng tái tạo năng lượng thể chất và tinh thần minh mẫn.",
+    "bannerDescription": "Khởi xướng bởi Hiệp hội Giấc ngủ Thế giới (WASM) vào thứ Sáu trước tiết Xuân phân. Nhắc nhở mọi người không hy sinh giấc ngủ vì công việc, ngủ đủ 7-8 tiếng mỗi đêm. Đây là dịp ý nghĩa để gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu."
   },
   {
     "id": "ev-03-14-gac-ma",
@@ -401,7 +557,19 @@ export const MARCH_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "14 Tháng 03",
     "meaning": "Biểu tượng bất tử của lòng quả cảm, quyết tử bảo vệ chủ quyền biển đảo thiêng liêng.",
-    "subtitle": "Vòng tròn bất tử giữa ngàn khơi"
+    "subtitle": "Vòng tròn bất tử giữa ngàn khơi",
+    "activities": [
+      "Dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ",
+      "Tham quan các bảo tàng, di tích lịch sử để tìm hiểu mốc son vẻ vang của dân tộc",
+      "Kể lại những câu chuyện lịch sử hào hùng cho thế hệ trẻ gìn giữ truyền thống yêu nước"
+    ],
+    "whyItMatters": null,
+    "message": "Tự hào truyền thống vẻ vang của dân tộc, vững bước tương lai kiến thiết đất nước giàu mạnh.",
+    "interestingFacts": [
+      "Khu tưởng niệm Chiến sĩ Gạc Ma tại Cam Ranh (Khánh Hòa) là nơi lưu giữ ký ức hào hùng của dân tộc."
+    ],
+    "description": "Vòng tròn bất tử giữa ngàn khơi — những người con anh dũng hy sinh vì chủ quyền biển đảo.",
+    "bannerDescription": "Ngày 14/3/1988 tại bãi đá Gạc Ma thuộc quần đảo Trường Sa, 64 chiến sĩ Hải quân đã kết thành vòng tròn giữ cờ Tổ quốc. Biểu tượng bất tử của lòng quả cảm, quyết tử bảo vệ chủ quyền biển đảo thiêng liêng. Đây là dịp ý nghĩa để dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ."
   },
   {
     "id": "ev-03-15-dien-anh-vn",
@@ -435,7 +603,19 @@ export const MARCH_EVENTS: VietnamEvent[] = [
       "Lễ kỷ niệm truyền thống và vinh danh các thế hệ nghệ sĩ, đạo diễn, nhà quay phim kỳ cựu",
       "Chiếu phim tài liệu và phim truyện cách mạng kinh điển miễn phí phục vụ khán giả",
       "Tọa đàm về phát triển công nghiệp điện ảnh Việt Nam hiện đại, giàu bản sắc"
-    ]
+    ],
+    "activities": [
+      "Thưởng thức những tác phẩm điện ảnh xuất sắc giàu giá trị nhân văn",
+      "Tìm hiểu hậu trường sáng tạo và hành trình lao động nghệ thuật của các nhà làm phim",
+      "Giao lưu và chia sẻ cảm nhận nghệ thuật cùng cộng đồng yêu phim"
+    ],
+    "whyItMatters": null,
+    "message": "Điện ảnh là nghệ thuật thứ bảy giàu sức truyền cảm, phản ánh chân thực tâm hồn và khí phách Việt Nam.",
+    "interestingFacts": [
+      "Bộ phim tài liệu 'Điện Biên Phủ' năm 1954 đã ghi lại những thước phim lịch sử vô giá dưới mưa bom bão đạn."
+    ],
+    "description": "Tôn vinh những tác phẩm điện ảnh kinh điển phản ánh hào khí và tâm hồn con người Việt Nam.",
+    "bannerDescription": "Ngày 15/3/1953 tại Đồi Cọ (Định Hóa, Thái Nguyên), Bác Hồ ký Sắc lệnh số 147/SL thành lập Doanh nghiệp Quốc gia Chiếu bóng và Chụp ảnh Việt Nam. Đánh dấu sự ra đời của nền Điện ảnh Cách mạng với những bộ phim kinh điển như 'Chung một dòng sông', 'Cánh đồng hoang', 'Bao giờ cho đến tháng Mười'. Người dân và các gia đình thường lễ kỷ niệm truyền thống và vinh danh các thế hệ nghệ sĩ, đạo diễn, nhà quay phim kỳ cựu."
   },
   {
     "id": "ev-03-16-polar-bear",
@@ -463,7 +643,19 @@ export const MARCH_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "16 Tháng 03",
     "meaning": "Lời cảnh tỉnh nhân loại về mực nước biển dâng đe dọa các đồng bằng ven biển toàn cầu.",
-    "subtitle": "Hành động khẩn cấp ngăn chặn băng tan và bảo vệ sinh vật biểu tượng Bắc Cực."
+    "subtitle": "Hành động khẩn cấp ngăn chặn băng tan và bảo vệ sinh vật biểu tượng Bắc Cực.",
+    "activities": [
+      "Khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này",
+      "Chia sẻ thông điệp tích cực và năng lượng lạc quan tới bạn bè, người thân",
+      "Dành thời gian thư giãn và trải nghiệm những khoảnh khắc ý nghĩa trong cuộc sống"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Gấu Bắc cực có thể bơi liên tục hàng trăm cây số giữa các tảng băng trôi."
+    ],
+    "description": "Hành động khẩn cấp ngăn chặn băng tan và bảo vệ sinh vật biểu tượng Bắc Cực.",
+    "bannerDescription": "Ngày nâng cao nhận thức về nguy cơ tuyệt chủng của loài gấu Bắc Cực do khí hậu ấm lên. Lời cảnh tỉnh nhân loại về mực nước biển dâng đe dọa các đồng bằng ven biển toàn cầu. Đây là dịp ý nghĩa để khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này."
   },
   {
     "id": "ev-03-17-st-patrick",
@@ -491,7 +683,19 @@ export const MARCH_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "17 Tháng 03",
     "meaning": "Giao lưu văn hóa âm nhạc dân gian, khiêu vũ vui nhộn và thưởng thức ẩm thực độc đáo.",
-    "subtitle": "Lễ hội sắc xanh rực rỡ tượng trưng cho may mắn, cỏ ba lá và tình bạn vượt biê..."
+    "subtitle": "Lễ hội sắc xanh rực rỡ tượng trưng cho may mắn, cỏ ba lá và tình bạn vượt biê...",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Chung tay hành động vì một thế giới hòa bình, xanh sạch và ngập tràn tình yêu thương.",
+    "interestingFacts": [
+      "Tục lệ mang trang phục màu xanh lá cây vào ngày này để đón nhận điều may mắn."
+    ],
+    "description": "Lễ hội sắc xanh rực rỡ tượng trưng cho may mắn, cỏ ba lá và tình bạn vượt biên giới.",
+    "bannerDescription": "Bắt nguồn từ Ireland kỷ niệm ngày mất của Thánh Patrick, hiện đã lan tỏa tới hàng chục quốc gia. Giao lưu văn hóa âm nhạc dân gian, khiêu vũ vui nhộn và thưởng thức ẩm thực độc đáo. Đây là dịp ý nghĩa để tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm."
   },
   {
     "id": "ev-03-18-recycling-day",
@@ -519,7 +723,19 @@ export const MARCH_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "18 Tháng 03",
     "meaning": "Khuyến khích phân loại rác tại nguồn, tái chế nhựa, giấy, kim loại để giảm ô nhiễm.",
-    "subtitle": "Biến rác thải thành tài nguyên quý giá, kiến tạo nền kinh tế tuần hoàn bền vững."
+    "subtitle": "Biến rác thải thành tài nguyên quý giá, kiến tạo nền kinh tế tuần hoàn bền vững.",
+    "activities": [
+      "Gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu",
+      "Tổ chức các buổi gặp gỡ, họp mặt ý nghĩa để thắt chặt tình đoàn kết",
+      "Thực hiện những việc làm tử tế, sẻ chia khó khăn với những hoàn cảnh kém may mắn"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Tái chế 1 tấn giấy giúp cứu sống được 17 cây xanh trưởng thành và tiết kiệm 26.000 lít nước."
+    ],
+    "description": "Biến rác thải thành tài nguyên quý giá, kiến tạo nền kinh tế tuần hoàn bền vững.",
+    "bannerDescription": "Được Liên đoàn Tái chế Quốc tế (BIR) khởi xướng và Liên Hợp Quốc công nhận. Khuyến khích phân loại rác tại nguồn, tái chế nhựa, giấy, kim loại để giảm ô nhiễm. Đây là dịp ý nghĩa để gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu."
   },
   {
     "id": "ev-03-19-toan-quoc-chong-my",
@@ -547,7 +763,19 @@ export const MARCH_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "19 Tháng 03",
     "meaning": "Khẳng định ý chí độc lập tự chủ bất khuất của nhân dân Việt Nam trước mọi thế lực ngoại xâm.",
-    "subtitle": "Ngọn lửa đấu tranh kiên cường của nhân dân Sài Gòn - Chợ Lớn mở màn phong trà..."
+    "subtitle": "Ngọn lửa đấu tranh kiên cường của nhân dân Sài Gòn - Chợ Lớn mở màn phong trà...",
+    "activities": [
+      "Dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ",
+      "Tham quan các bảo tàng, di tích lịch sử để tìm hiểu mốc son vẻ vang của dân tộc",
+      "Kể lại những câu chuyện lịch sử hào hùng cho thế hệ trẻ gìn giữ truyền thống yêu nước"
+    ],
+    "whyItMatters": null,
+    "message": "Tự hào truyền thống vẻ vang của dân tộc, vững bước tương lai kiến thiết đất nước giàu mạnh.",
+    "interestingFacts": [
+      "Luật sư Nguyễn Hữu Thọ đã dẫn đầu đoàn đại biểu nhân dân trong cuộc biểu tình lịch sử này."
+    ],
+    "description": "Ngọn lửa đấu tranh kiên cường của nhân dân Sài Gòn - Chợ Lớn mở màn phong trào chống can thiệp Mỹ.",
+    "bannerDescription": "Ngày 19/3/1950, hàng vạn đồng bào Sài Gòn xuống đường biểu tình phản đối tàu chiến Mỹ cập cảng. Khẳng định ý chí độc lập tự chủ bất khuất của nhân dân Việt Nam trước mọi thế lực ngoại xâm. Đây là dịp ý nghĩa để dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ."
   },
   {
     "id": "ev-03-20-quoc-te-hanh-phuc",
@@ -581,7 +809,19 @@ export const MARCH_EVENTS: VietnamEvent[] = [
       "Gửi thông điệp yêu thương, lời cảm ơn đến những người đã luôn đồng hành bên mình",
       "Tham gia các hoạt động thiện nguyện sẻ chia nụ cười cùng những hoàn cảnh khó khăn",
       "Dành thời gian chăm sóc sức khỏe tinh thần và gắn kết gia đình"
-    ]
+    ],
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Hạnh phúc không phải là đích đến, mà là hành trình chúng ta đang đi mỗi ngày.",
+    "interestingFacts": [
+      "Việt Nam hưởng ứng ngày này với thông điệp: 'Yêu thương và chia sẻ'."
+    ],
+    "description": "Lan tỏa nụ cười, sự cảm thông và trân quý những niềm vui giản dị trong từng khoảnh khắc.",
+    "bannerDescription": "Được Liên Hợp Quốc công bố từ năm 2012 theo đề xuất của Vương quốc Bhutan. Ngày Xuân phân mặt trời nằm thẳng đứng trên đường xích đạo, tượng trưng cho sự cân bằng và hòa hợp. Người dân và các gia đình thường gửi thông điệp yêu thương, lời cảm ơn đến những người đã luôn đồng hành bên mình."
   },
   {
     "id": "ev-03-21-tho-ca-the-gioi",
@@ -615,7 +855,19 @@ export const MARCH_EVENTS: VietnamEvent[] = [
       "Tổ chức đêm thơ giao lưu thi ca tại các câu lạc bộ văn học và trường đại học",
       "Đọc lại các thi phẩm bất hủ của đại thi hào Nguyễn Du, Hàn Mặc Tử, Xuân Diệu",
       "Lan tỏa những vần thơ truyền cảm hứng sống đẹp trên không gian mạng"
-    ]
+    ],
+    "activities": [
+      "Khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này",
+      "Chia sẻ thông điệp tích cực và năng lượng lạc quan tới bạn bè, người thân",
+      "Dành thời gian thư giãn và trải nghiệm những khoảnh khắc ý nghĩa trong cuộc sống"
+    ],
+    "whyItMatters": null,
+    "message": "Thơ là người thư ký trung thành của trái tim. — Balzac",
+    "interestingFacts": [
+      "Việt Nam có kho tàng ca dao và Truyện Kiều của Đại thi hào Nguyễn Du được dịch ra hơn 30 thứ tiếng."
+    ],
+    "description": "Giao hòa giữa giai điệu thi ca tao nhã và vẻ đẹp bao la, huyền diệu của những cánh rừng già.",
+    "bannerDescription": "Được UNESCO thông qua năm 1999 nhằm tôn vinh năng lực biểu đạt cảm xúc và bản sắc ngôn ngữ qua thơ. Nuôi dưỡng tâm hồn yêu thiên nhiên, trân trọng từng vần thơ đong đầy tình tự dân tộc. Người dân và các gia đình thường tổ chức đêm thơ giao lưu thi ca tại các câu lạc bộ văn học và trường đại học."
   },
   {
     "id": "ev-03-22-nuoc-the-gioi",
@@ -644,7 +896,19 @@ export const MARCH_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "22 Tháng 03",
     "meaning": "Cảnh báo khủng hoảng khan hiếm nước ngọt và kêu gọi quản lý bền vững tài nguyên nước.",
-    "subtitle": "Nước là sự sống"
+    "subtitle": "Nước là sự sống",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Chung tay hành động vì một thế giới hòa bình, xanh sạch và ngập tràn tình yêu thương.",
+    "interestingFacts": [
+      "Hơn 2 tỷ người trên thế giới hiện vẫn đang sống trong tình trạng thiếu nước sạch sinh hoạt an toàn."
+    ],
+    "description": "Nước là sự sống — bảo vệ từng giọt nước ngọt mát lành cho tương lai nhân loại.",
+    "bannerDescription": "Đại hội đồng Liên Hợp Quốc chọn ngày 22/3 hàng năm từ năm 1993. Cảnh báo khủng hoảng khan hiếm nước ngọt và kêu gọi quản lý bền vững tài nguyên nước. Đây là dịp ý nghĩa để tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm."
   },
   {
     "id": "ev-03-23-khi-tuong",
@@ -672,7 +936,19 @@ export const MARCH_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "23 Tháng 03",
     "meaning": "Nâng cao năng lực cảnh báo sớm thiên tai, bão lũ, hạn mặn phục vụ sản xuất và đời sống an toàn.",
-    "subtitle": "Tri ân những nhà dự báo thời tiết thầm lặng giúp cộng đồng phòng tránh thiên ..."
+    "subtitle": "Tri ân những nhà dự báo thời tiết thầm lặng giúp cộng đồng phòng tránh thiên ...",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Chung tay hành động vì một thế giới hòa bình, xanh sạch và ngập tràn tình yêu thương.",
+    "interestingFacts": [
+      "Hệ thống radar thời tiết hiện đại của Việt Nam có thể theo dõi hướng đi của bão cách bờ hàng trăm km."
+    ],
+    "description": "Tri ân những nhà dự báo thời tiết thầm lặng giúp cộng đồng phòng tránh thiên tai bão lũ.",
+    "bannerDescription": "Kỷ niệm ngày thành lập Tổ chức Khí tượng Thế giới (WMO) năm 1950. Nâng cao năng lực cảnh báo sớm thiên tai, bão lũ, hạn mặn phục vụ sản xuất và đời sống an toàn. Đây là dịp ý nghĩa để tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm."
   },
   {
     "id": "ev-03-24-giai-phong-quang-nam",
@@ -701,7 +977,19 @@ export const MARCH_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "24 Tháng 03",
     "meaning": "Góp phần làm sụp đổ hoàn toàn tuyến phòng ngự kiên cố của địch ở miền Trung.",
-    "subtitle": "Khúc ca khải hoàn giải phóng vùng đất 'Trung dũng kiên cường, đi đầu diệt Mỹ'."
+    "subtitle": "Khúc ca khải hoàn giải phóng vùng đất 'Trung dũng kiên cường, đi đầu diệt Mỹ'.",
+    "activities": [
+      "Dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ",
+      "Tham quan các bảo tàng, di tích lịch sử để tìm hiểu mốc son vẻ vang của dân tộc",
+      "Kể lại những câu chuyện lịch sử hào hùng cho thế hệ trẻ gìn giữ truyền thống yêu nước"
+    ],
+    "whyItMatters": null,
+    "message": "Tự hào truyền thống vẻ vang của dân tộc, vững bước tương lai kiến thiết đất nước giàu mạnh.",
+    "interestingFacts": [
+      "Quảng Nam là quê hương của Mẹ Thứ — Bà mẹ Việt Nam Anh hùng có 11 người con hy sinh vì Tổ quốc."
+    ],
+    "description": "Khúc ca khải hoàn giải phóng vùng đất 'Trung dũng kiên cường, đi đầu diệt Mỹ'.",
+    "bannerDescription": "Ngày 24/3/1975, quân và dân Quảng Nam đồng loạt tiến công, giải phóng hoàn toàn thị xã Tam Kỳ. Góp phần làm sụp đổ hoàn toàn tuyến phòng ngự kiên cố của địch ở miền Trung. Đây là dịp ý nghĩa để dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ."
   },
   {
     "id": "ev-03-25-cong-tac-xa-hoi",
@@ -730,7 +1018,19 @@ export const MARCH_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "25 Tháng 03",
     "meaning": "Khẳng định giá trị nhân đạo sâu sắc, trợ giúp người nghèo, trẻ em mồ côi và người khuyết tật vươn lên.",
-    "subtitle": "Tôn vinh những trái tim nhân ái sẻ chia, kết nối và hỗ trợ những hoàn cảnh yế..."
+    "subtitle": "Tôn vinh những trái tim nhân ái sẻ chia, kết nối và hỗ trợ những hoàn cảnh yế...",
+    "activities": [
+      "Gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu",
+      "Tổ chức các buổi gặp gỡ, họp mặt ý nghĩa để thắt chặt tình đoàn kết",
+      "Thực hiện những việc làm tử tế, sẻ chia khó khăn với những hoàn cảnh kém may mắn"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Nghề công tác xã hội được ví như chiếc cầu nối kỳ diệu hàn gắn những tổn thương trong cộng đồng."
+    ],
+    "description": "Tôn vinh những trái tim nhân ái sẻ chia, kết nối và hỗ trợ những hoàn cảnh yếu thế.",
+    "bannerDescription": "Thủ tướng Chính phủ ban hành Quyết định lấy ngày 25/3 làm Ngày Công tác Xã hội từ năm 2016. Khẳng định giá trị nhân đạo sâu sắc, trợ giúp người nghèo, trẻ em mồ côi và người khuyết tật vươn lên. Đây là dịp ý nghĩa để gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu."
   },
   {
     "id": "ev-03-26-thanh-lap-doan",
@@ -764,7 +1064,19 @@ export const MARCH_EVENTS: VietnamEvent[] = [
       "Lễ mít tinh kỷ niệm và tuyên dương Gương mặt trẻ Việt Nam tiêu biểu",
       "Hưởng ứng các chiến dịch Tháng Thanh niên: ra quân dọn rác, hiến máu nhân đạo, xây cầu nông thôn",
       "Kết nạp đoàn viên mới 'Lớp đoàn viên 26/3' tại các địa chỉ đỏ cách mạng"
-    ]
+    ],
+    "activities": [
+      "Dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ",
+      "Tham quan các bảo tàng, di tích lịch sử để tìm hiểu mốc son vẻ vang của dân tộc",
+      "Kể lại những câu chuyện lịch sử hào hùng cho thế hệ trẻ gìn giữ truyền thống yêu nước"
+    ],
+    "whyItMatters": null,
+    "message": "Đâu cần thanh niên có, việc gì khó có thanh niên. — Hồ Chí Minh",
+    "interestingFacts": [
+      "Tháng Ba hàng năm được Quốc hội công nhận là 'Tháng Thanh niên' với hàng triệu công trình ý nghĩa."
+    ],
+    "description": "Ngọn lửa xung kích, khát vọng cống hiến và bầu nhiệt huyết rực cháy của tuổi trẻ Việt Nam.",
+    "bannerDescription": "Đại hội đại biểu toàn quốc lần thứ III của Đoàn (1961) quyết định lấy ngày 26/3/1931 làm ngày kỷ niệm truyền thống. Khơi dậy tinh thần dấn thân, sáng tạo, làm chủ khoa học công nghệ xây dựng non sông giàu mạnh. Người dân và các gia đình thường lễ mít tinh kỷ niệm và tuyên dương Gương mặt trẻ Việt Nam tiêu biểu."
   },
   {
     "id": "ev-03-27-the-thao-vn",
@@ -798,7 +1110,19 @@ export const MARCH_EVENTS: VietnamEvent[] = [
       "Tổ chức Ngày chạy Olympic vì sức khỏe toàn dân tại tất cả các tỉnh thành cả nước",
       "Hội thao giao lưu cầu lông, bóng đá, bóng bàn trong các cơ quan trường học",
       "Đọc lại Lời kêu gọi toàn dân tập thể dục năm 1946 của Bác Hồ"
-    ]
+    ],
+    "activities": [
+      "Dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ",
+      "Tham quan các bảo tàng, di tích lịch sử để tìm hiểu mốc son vẻ vang của dân tộc",
+      "Kể lại những câu chuyện lịch sử hào hùng cho thế hệ trẻ gìn giữ truyền thống yêu nước"
+    ],
+    "whyItMatters": null,
+    "message": "Giữ gìn dân chủ, xây dựng nước nhà, gây đời sống mới, việc gì cũng cần có sức khỏe mới làm thành công. — Hồ Chí Minh",
+    "interestingFacts": [
+      "Bác Hồ là tấm gương mẫu mực về rèn luyện sức khỏe, Người tập thể dục và bơi lội đều đặn mỗi ngày."
+    ],
+    "description": "Lời kêu gọi 'Toàn dân tập thể dục' của Bác Hồ — Dân cường thì Quốc thịnh.",
+    "bannerDescription": "Ngày 27/3/1946, Chủ tịch Hồ Chí Minh viết bài 'Sức khỏe và Thể dục' đăng trên báo Cứu Quốc. Khích lệ toàn dân rèn luyện thân thể, nâng cao thể lực và ý chí bền bỉ phụng sự đất nước. Người dân và các gia đình thường tổ chức Ngày chạy Olympic vì sức khỏe toàn dân tại tất cả các tỉnh thành cả nước."
   },
   {
     "id": "ev-03-28-dan-quan-tu-ve",
@@ -827,7 +1151,19 @@ export const MARCH_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "28 Tháng 03",
     "meaning": "Lực lượng bán vũ trang rộng khắp sẵn sàng chiến đấu bảo vệ làng xóm, giữ gìn trật tự trị an tại cơ sở.",
-    "subtitle": "Lực lượng vũ trang quần chúng trung kiên"
+    "subtitle": "Lực lượng vũ trang quần chúng trung kiên",
+    "activities": [
+      "Dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ",
+      "Tham quan các bảo tàng, di tích lịch sử để tìm hiểu mốc son vẻ vang của dân tộc",
+      "Kể lại những câu chuyện lịch sử hào hùng cho thế hệ trẻ gìn giữ truyền thống yêu nước"
+    ],
+    "whyItMatters": null,
+    "message": "Tự hào truyền thống vẻ vang của dân tộc, vững bước tương lai kiến thiết đất nước giàu mạnh.",
+    "interestingFacts": [
+      "Bác Hồ từng khen ngợi: 'Dân quân tự vệ và du kích là lực lượng của toàn dân tộc, là một lực lượng vô địch, là bức tường sắt của Tổ quốc'."
+    ],
+    "description": "Lực lượng vũ trang quần chúng trung kiên — 'Bức tường sắt của Tổ quốc' gắn bó với nhân dân.",
+    "bannerDescription": "Đại hội lần thứ nhất của Đảng (28/3/1935) tại Ma Cao đã ra Nghị quyết về Đội Tự vệ. Lực lượng bán vũ trang rộng khắp sẵn sàng chiến đấu bảo vệ làng xóm, giữ gìn trật tự trị an tại cơ sở. Đây là dịp ý nghĩa để dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ."
   },
   {
     "id": "ev-03-29-giai-phong-da-nang",
@@ -856,7 +1192,19 @@ export const MARCH_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "29 Tháng 03",
     "meaning": "Giải phóng thành phố lớn thứ hai ở miền Nam chỉ trong vòng 3 ngày, tạo đà thần tốc giải phóng Sài Gòn.",
-    "subtitle": "Khải hoàn ca thành phố biển anh hùng"
+    "subtitle": "Khải hoàn ca thành phố biển anh hùng",
+    "activities": [
+      "Dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ",
+      "Tham quan các bảo tàng, di tích lịch sử để tìm hiểu mốc son vẻ vang của dân tộc",
+      "Kể lại những câu chuyện lịch sử hào hùng cho thế hệ trẻ gìn giữ truyền thống yêu nước"
+    ],
+    "whyItMatters": null,
+    "message": "Tự hào truyền thống vẻ vang của dân tộc, vững bước tương lai kiến thiết đất nước giàu mạnh.",
+    "interestingFacts": [
+      "Đà Nẵng ngày nay là thành phố đáng sống bậc nhất với những cây cầu biểu tượng vươn tầm quốc tế."
+    ],
+    "description": "Khải hoàn ca thành phố biển anh hùng — đập tan khu liên hợp quân sự khổng lồ của địch.",
+    "bannerDescription": "Ngày 29/3/1975, quân giải phóng cùng nhân dân nổi dậy đánh chiếm căn cứ liên hợp Đà Nẵng. Giải phóng thành phố lớn thứ hai ở miền Nam chỉ trong vòng 3 ngày, tạo đà thần tốc giải phóng Sài Gòn. Đây là dịp ý nghĩa để dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ."
   },
   {
     "id": "ev-03-30-bac-si-quoc-te",
@@ -884,7 +1232,19 @@ export const MARCH_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "30 Tháng 03",
     "meaning": "Tôn vinh sự hy sinh thầm lặng của đội ngũ y bác sĩ luôn túc trực ngày đêm nơi phòng cấp cứu.",
-    "subtitle": "Tri ân những bàn tay vàng cứu chữa sinh mệnh và thắp lên hy vọng cho người bệnh."
+    "subtitle": "Tri ân những bàn tay vàng cứu chữa sinh mệnh và thắp lên hy vọng cho người bệnh.",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Chung tay hành động vì một thế giới hòa bình, xanh sạch và ngập tràn tình yêu thương.",
+    "interestingFacts": [
+      "Lời thề Hippocrates là kim chỉ nam danh dự về y đức được gìn giữ qua hàng ngàn năm."
+    ],
+    "description": "Tri ân những bàn tay vàng cứu chữa sinh mệnh và thắp lên hy vọng cho người bệnh.",
+    "bannerDescription": "Kỷ niệm lần đầu tiên thuốc mê được áp dụng thành công trong phẫu thuật bởi bác sĩ Crawford Long năm 1842. Tôn vinh sự hy sinh thầm lặng của đội ngũ y bác sĩ luôn túc trực ngày đêm nơi phòng cấp cứu. Đây là dịp ý nghĩa để tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm."
   },
   {
     "id": "ev-03-31-backup-day",
@@ -912,6 +1272,18 @@ export const MARCH_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "31 Tháng 03",
     "meaning": "Hình thành thói quen sao lưu định kỳ các tài liệu, hình ảnh kỷ niệm lên đám mây hoặc ổ cứng ngoài.",
-    "subtitle": "Đừng để một cú click chuột xóa sạch công sức"
+    "subtitle": "Đừng để một cú click chuột xóa sạch công sức",
+    "activities": [
+      "Khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này",
+      "Chia sẻ thông điệp tích cực và năng lượng lạc quan tới bạn bè, người thân",
+      "Dành thời gian thư giãn và trải nghiệm những khoảnh khắc ý nghĩa trong cuộc sống"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Quy tắc sao lưu 3-2-1: 3 bản sao chép, trên 2 loại phương tiện khác nhau, có 1 bản lưu ngoài văn phòng."
+    ],
+    "description": "Đừng để một cú click chuột xóa sạch công sức — chủ động bảo vệ dữ liệu quý giá.",
+    "bannerDescription": "Được tổ chức vào ngày 31/3 (ngay trước ngày Cá Tháng Tư) để nhắc nhở an toàn số học. Hình thành thói quen sao lưu định kỳ các tài liệu, hình ảnh kỷ niệm lên đám mây hoặc ổ cứng ngoài. Đây là dịp ý nghĩa để khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này."
   }
 ];

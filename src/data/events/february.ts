@@ -31,7 +31,19 @@ export const FEBRUARY_EVENTS: VietnamEvent[] = [
     "quote": "Tháng Hai hoa mơ nở trắng rừng / Xuân về non nước ấm tình quê.",
     "tag": "Ý nghĩa đời sống",
     "imageUrl": "https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "activities": [
+      "Gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu",
+      "Tổ chức các buổi gặp gỡ, họp mặt ý nghĩa để thắt chặt tình đoàn kết",
+      "Thực hiện những việc làm tử tế, sẻ chia khó khăn với những hoàn cảnh kém may mắn"
+    ],
+    "whyItMatters": null,
+    "message": "Tháng Hai hoa mơ nở trắng rừng / Xuân về non nước ấm tình quê.",
+    "interestingFacts": [
+      "Tháng Hai trong tiếng Latinh là 'Februarius', bắt nguồn từ lễ thanh tẩy Februa thời La Mã cổ đại nhằm gột sạch những điều tiêu cực để đón chào mùa xuân mới."
+    ],
+    "description": "Chào tháng Hai — tháng của mùa lễ hội xuân non nước, hoa mơ hoa mận nở trắng rừng Tây Bắc, muôn người nô nức du xuân trẩy hội và gieo mầm những dự định mới.",
+    "bannerDescription": "Tháng Hai thường rơi vào dịp đầu xuân năm mới, là thời điểm cây cối đâm chồi nảy lộc và đất trời phương Nam đón nắng vàng ấm áp, miền Bắc bước vào tiết mưa phùn giăng mắc. Khởi đầu một tháng mới với tâm thế an hòa, hướng về các lễ hội truyền thống cầu bình an cho gia đạo và hanh thông cho công việc. Người dân và các gia đình thường hái lộc đầu xuân và viếng cảnh chùa thanh tịnh cầu an cho gia đạo."
   },
   {
     "id": "feb-day-02",
@@ -64,7 +76,19 @@ export const FEBRUARY_EVENTS: VietnamEvent[] = [
     "quote": "Đất ngập nước là lá phổi xanh và bể chứa carbon khổng lồ bảo vệ hành tinh xanh.",
     "tag": "Môi trường sinh thái",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-teal-600/30 via-emerald-600/20 to-zinc-950"
+    "accentGradient": "from-teal-600/30 via-emerald-600/20 to-zinc-950",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Đất ngập nước là lá phổi xanh và bể chứa carbon khổng lồ bảo vệ hành tinh xanh.",
+    "interestingFacts": [
+      "Việt Nam là quốc gia Đông Nam Á đầu tiên gia nhập Công ước Ramsar (năm 1989). Hiện nước ta có 9 khu Ramsar thế giới, tiêu biểu như Vườn quốc gia Xuân Thủy, Tràm Chim, Đất Mũi Cà Mau và Bàu Sấu Cát Tiên."
+    ],
+    "description": "Kỷ niệm Công ước Ramsar — nâng cao nhận thức bảo vệ các vùng đất ngập nước quý báu như Tràm Chim, Xuân Thủy, Bàu Sấu Cát Tiên nuôi dưỡng đa dạng sinh học vô giá.",
+    "bannerDescription": "Kỷ niệm ngày ký Công ước Ramsar về các vùng đất ngập nước có tầm quan trọng quốc tế vào ngày 02/02/1971 tại thành phố Ramsar (Iran). Nâng cao nhận thức toàn cầu về vai trò sống còn của các vùng đất ngập nước đối với con người và Trái Đất, duy trì nguồn nước ngọt, chống biến đổi khí hậu và bảo tồn đa dạng sinh học. Người dân và các gia đình thường tham quan trải nghiệm và tìm hiểu hệ sinh thái tại các vườn quốc gia đất ngập nước."
   },
   {
     "id": "thanh-lap-dang-0203",
@@ -96,7 +120,19 @@ export const FEBRUARY_EVENTS: VietnamEvent[] = [
     "quote": "Đảng ta là đạo đức, là văn minh / Là thống nhất, độc lập, là hòa bình, ấm no. — Hồ Chí Minh",
     "tag": "Mốc son chói lọi",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-red-600/40 via-amber-600/20 to-zinc-950"
+    "accentGradient": "from-red-600/40 via-amber-600/20 to-zinc-950",
+    "activities": [
+      "Dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ",
+      "Tham quan các bảo tàng, di tích lịch sử để tìm hiểu mốc son vẻ vang của dân tộc",
+      "Kể lại những câu chuyện lịch sử hào hùng cho thế hệ trẻ gìn giữ truyền thống yêu nước"
+    ],
+    "whyItMatters": null,
+    "message": "Đảng ta là đạo đức, là văn minh / Là thống nhất, độc lập, là hòa bình, ấm no. — Hồ Chí Minh",
+    "interestingFacts": [
+      "Chánh cương vắn tắt, Sách lược vắn tắt do Lãnh tụ Nguyễn Ái Quốc soạn thảo tại Hội nghị thành lập Đảng được xem là Cương lĩnh chính trị đầu tiên mẫu mực của cách mạng Việt Nam."
+    ],
+    "description": "Mốc son chói lọi mở ra bước ngoặt quyết định cho con đường giải phóng và phát triển dân tộc dưới ngọn cờ của Đảng Cộng sản Việt Nam quang vinh.",
+    "bannerDescription": "Từ ngày 06/01 đến 07/02/1930, tại Cửu Long (Hương Cảng, Trung Quốc), dưới sự chủ trì của đồng chí Nguyễn Ái Quốc, Hội nghị hợp nhất ba tổ chức cộng sản đã quyết định thành lập Đảng Cộng sản Việt Nam. Chấm dứt cuộc khủng hoảng sâu sắc về đường lối cứu nước kéo dài hàng thập kỷ; mở ra con đường đấu tranh giải phóng dân tộc gắn liền với độc lập dân tộc và chủ nghĩa xã hội. Người dân và các gia đình thường lễ dâng hương báo công tại Lăng Chủ tịch Hồ Chí Minh và Đài tưởng niệm các Anh hùng liệt sĩ."
   },
   {
     "id": "ung-thu-0204",
@@ -128,7 +164,19 @@ export const FEBRUARY_EVENTS: VietnamEvent[] = [
     "quote": "Phát hiện sớm ung thư là trao cho chính mình và người thân cơ hội sống khỏe mạnh.",
     "tag": "Sức khỏe cộng đồng",
     "imageUrl": "https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-blue-600/30 via-indigo-600/20 to-zinc-950"
+    "accentGradient": "from-blue-600/30 via-indigo-600/20 to-zinc-950",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Phát hiện sớm ung thư là trao cho chính mình và người thân cơ hội sống khỏe mạnh.",
+    "interestingFacts": [
+      "Tổ chức Y tế Thế giới (WHO) khẳng định có từ 30% đến 50% các ca ung thư có thể phòng ngừa được bằng cách thay đổi lối sống lành mạnh và tiêm phòng vắc-xin (như viêm gan B, HPV)."
+    ],
+    "description": "Chiến dịch toàn cầu kêu gọi sự thấu hiểu, tầm soát sớm và sẻ chia yêu thương cùng các bệnh nhân đang chiến đấu chống lại căn bệnh ung thư.",
+    "bannerDescription": "Liên minh Kiểm soát Ung thư Quốc tế (UICC) khởi xướng theo Tuyên bố Paris ký ngày 04/02/2000 tại Hội nghị Thượng đỉnh Thế giới về Chống Ung thư. Kêu gọi chính phủ và cộng đồng hành động để thu hẹp khoảng cách chăm sóc, nâng cao tỷ lệ sống sót và cải thiện chất lượng sống cho người bệnh. Người dân và các gia đình thường tham gia các chương trình tầm soát ung thư sớm định kỳ tại các bệnh viện."
   },
   {
     "id": "feb-day-05",
@@ -160,7 +208,19 @@ export const FEBRUARY_EVENTS: VietnamEvent[] = [
     "quote": "Xuân sang cây cỏ đâm chồi / Mưa phùn giăng mắc đất trời giao hoan.",
     "tag": "Thiên nhiên tươi đẹp",
     "imageUrl": "https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-teal-600/30 via-emerald-600/20 to-zinc-950"
+    "accentGradient": "from-teal-600/30 via-emerald-600/20 to-zinc-950",
+    "activities": [
+      "Gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu",
+      "Tổ chức các buổi gặp gỡ, họp mặt ý nghĩa để thắt chặt tình đoàn kết",
+      "Thực hiện những việc làm tử tế, sẻ chia khó khăn với những hoàn cảnh kém may mắn"
+    ],
+    "whyItMatters": null,
+    "message": "Xuân sang cây cỏ đâm chồi / Mưa phùn giăng mắc đất trời giao hoan.",
+    "interestingFacts": [
+      "Tiết Lập Xuân báo hiệu sự trỗi dậy của dương khí trong lòng đất; nhiệt độ ấm dần lên kích thích hạt giống nảy mầm và muôn hoa khoe sắc."
+    ],
+    "description": "Tiết Lập Xuân mở đầu chu kỳ 24 tiết khí — đất trời chuyển mình với mưa phùn giăng mắc miền Bắc và nắng ấm rực rỡ phương Nam, báo hiệu mùa màng tươi tốt.",
+    "bannerDescription": "Thường trùng với tiết Lập Xuân — tiết khí đầu tiên trong 24 tiết khí nông nghiệp cổ truyền Á Đông, mở đầu cho mùa xuân tươi tốt. Tôn vinh nét độc đáo của khí hậu nhiệt đới gió mùa Việt Nam; nhắc nhở cộng đồng thích ứng với thời tiết nồm ẩm đặc trưng miền Bắc và nắng ấm phương Nam để bảo vệ sức khỏe. Người dân và các gia đình thường trồng cây đầu xuân hưởng ứng phong trào Tết trồng cây bảo vệ màu xanh."
   },
   {
     "id": "feb-day-06",
@@ -192,7 +252,19 @@ export const FEBRUARY_EVENTS: VietnamEvent[] = [
     "quote": "Tạm buông màn hình ảo để kết nối chân thật với thế giới muôn màu xung quanh.",
     "tag": "Sống chậm lại",
     "imageUrl": "https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-cyan-600/30 via-blue-600/20 to-zinc-950"
+    "accentGradient": "from-cyan-600/30 via-blue-600/20 to-zinc-950",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Tạm buông màn hình ảo để kết nối chân thật với thế giới muôn màu xung quanh.",
+    "interestingFacts": [
+      "Hội chứng 'Nomophobia' (No Mobile Phone Phobia) là thuật ngữ tâm lý học chỉ nỗi lo âu, bồn chồn quá mức khi một người không thể kết nối hoặc cầm điện thoại bên mình."
+    ],
+    "description": "Chiến dịch Digital Detox khuyến khích con người tạm buông điện thoại di động trong 24 giờ để lắng nghe nhịp sống chân thật và gắn kết sâu sắc cùng người thân.",
+    "bannerDescription": "Do nhà văn người Pháp Phil Marso khởi xướng từ ngày 06/02/2001 sau khi xuất bản cuốn tiểu thuyết đầu tiên viết bằng tin nhắn SMS, nhằm cảnh tỉnh về sự lệ thuộc vào công nghệ. Khuyến khích con người tạm rời xa màn hình số (Digital Detox), giảm thiểu hội chứng Nomophobia (nỗi sợ khi không có điện thoại), dành thời gian gắn kết trực tiếp với người thân và thiên nhiên. Người dân và các gia đình thường tắt các thông báo mạng xã hội không cần thiết trong 24 giờ."
   },
   {
     "id": "feb-day-07",
@@ -224,7 +296,19 @@ export const FEBRUARY_EVENTS: VietnamEvent[] = [
     "quote": "Mỗi trang sách mở ra cho trẻ thơ là một cánh cửa bước vào thế giới kỳ diệu của tri thức.",
     "tag": "Nuôi dưỡng mầm xanh",
     "imageUrl": "https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-emerald-600/30 via-teal-600/20 to-zinc-950"
+    "accentGradient": "from-emerald-600/30 via-teal-600/20 to-zinc-950",
+    "activities": [
+      "Đọc ít nhất một chương sách hay hoặc chia sẻ cuốn sách tâm đắc với bạn bè",
+      "Tham gia các hội sách, hội thảo văn hóa đọc hoặc tặng sách cho thư viện cộng đồng",
+      "Hình thành không gian đọc yên tĩnh và thói quen đọc sách mỗi ngày"
+    ],
+    "whyItMatters": null,
+    "message": "Mỗi trang sách mở ra cho trẻ thơ là một cánh cửa bước vào thế giới kỳ diệu của tri thức.",
+    "interestingFacts": [
+      "Nhiều nghiên cứu thần kinh học chứng minh: trẻ em được cha mẹ đọc sách cho nghe từ nhỏ có vốn từ vựng phong phú gấp 3 lần và khả năng tập trung, thấu cảm xã hội vượt trội."
+    ],
+    "description": "Ngày hội toàn cầu tôn vinh sức mạnh của việc đọc to sách cho trẻ thơ, bồi đắp ngôn từ, gắn kết yêu thương và khơi dậy niềm đam mê học hỏi suốt đời.",
+    "bannerDescription": "Do tổ chức phi lợi nhuận LitWorld sáng lập năm 2010, được tổ chức vào tuần đầu tiên của tháng Hai hằng năm và đã lan tỏa tới hơn 170 quốc gia. Thúc đẩy văn hóa đọc to sách cho trẻ em nghe, gắn kết tình cảm cha mẹ - con cái, bồi đắp ngôn từ, nuôi dưỡng trí tưởng tượng và niềm đam mê học hỏi suốt đời của trẻ thơ. Người dân và các gia đình thường cha mẹ cùng con chọn cuốn truyện tranh yêu thích và đọc diễn cảm trước giờ đi ngủ."
   },
   {
     "id": "feb-day-08",
@@ -256,7 +340,19 @@ export const FEBRUARY_EVENTS: VietnamEvent[] = [
     "quote": "Bác đã về đây, Tổ quốc ơi! / Nhớ thương hòn đất ấm hơi Người / Ba mươi năm ấy, chân không nghỉ / Mà đến bây giờ mới tới nơi! — Tố Hữu",
     "tag": "Về với cội nguồn",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-red-600/40 via-amber-600/20 to-zinc-950"
+    "accentGradient": "from-red-600/40 via-amber-600/20 to-zinc-950",
+    "activities": [
+      "Dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ",
+      "Tham quan các bảo tàng, di tích lịch sử để tìm hiểu mốc son vẻ vang của dân tộc",
+      "Kể lại những câu chuyện lịch sử hào hùng cho thế hệ trẻ gìn giữ truyền thống yêu nước"
+    ],
+    "whyItMatters": null,
+    "message": "Bác đã về đây, Tổ quốc ơi! / Nhớ thương hòn đất ấm hơi Người / Ba mươi năm ấy, chân không nghỉ / Mà đến bây giờ mới tới nơi! — Tố Hữu",
+    "interestingFacts": [
+      "Tại Pác Bó, Bác Hồ đã sống trong hang Cốc Bó đơn sơ, dịch cuốn Lịch sử Đảng Cộng sản Liên Xô và đặt tên cho dòng suối trước hang là Suối Lê-nin, ngọn núi là Núi Các-Mác."
+    ],
+    "description": "Sau 30 năm bôn ba tìm đường cứu nước, Lãnh tụ Nguyễn Ái Quốc vượt qua cột mốc 108 trở về Pác Bó (Cao Bằng), trực tiếp lãnh đạo cách mạng Việt Nam đi tới thắng lợi.",
+    "bannerDescription": "Ngày 28/01/1941 Âm lịch (tức ngày 08/02/1941), sau 30 năm bôn ba khắp năm châu bốn biển tìm đường cứu nước, Lãnh tụ Nguyễn Ái Quốc vượt qua cột mốc 108 biên giới Việt - Trung trở về Tổ quốc tại Pác Bó (Trường Hà, Hà Quảng, Cao Bằng). Mốc son vĩ đại mở ra bước ngoặt quyết định cho cách mạng Việt Nam, trực tiếp lãnh đạo phong trào chuẩn bị Tổng khởi nghĩa Tháng Tám năm 1945 giành độc lập cho dân tộc. Người dân và các gia đình thường lễ dâng hương tưởng niệm Chủ tịch Hồ Chí Minh tại Khu di tích Quốc gia đặc biệt Pác Bó."
   },
   {
     "id": "feb-day-09",
@@ -289,7 +385,19 @@ export const FEBRUARY_EVENTS: VietnamEvent[] = [
     "quote": "Pizza không chỉ là món ăn, mà là biểu tượng của niềm vui sẻ chia và sự gắn kết.",
     "tag": "Ẩm thực thế giới",
     "imageUrl": "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "activities": [
+      "Khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này",
+      "Chia sẻ thông điệp tích cực và năng lượng lạc quan tới bạn bè, người thân",
+      "Dành thời gian thư giãn và trải nghiệm những khoảnh khắc ý nghĩa trong cuộc sống"
+    ],
+    "whyItMatters": null,
+    "message": "Pizza không chỉ là món ăn, mà là biểu tượng của niềm vui sẻ chia và sự gắn kết.",
+    "interestingFacts": [
+      "Chiếc bánh Pizza Margherita trứ danh ra đời năm 1889 tại Naples, được người thợ làm bánh tạo ra để vinh danh Nữ hoàng Margherita với ba màu sắc cờ Ý: đỏ (cà chua), trắng (phô mai Mozzarella) và xanh lá (lá húng quế Basil)."
+    ],
+    "description": "Tôn vinh món ăn trứ danh khởi nguồn từ vùng Naples (Ý) — Di sản văn hóa phi vật thể của nhân loại gắn kết triệu người quanh mâm bánh sẻ chia ấm áp.",
+    "bannerDescription": "Ngày tôn vinh bánh pizza có nguồn gốc từ vùng Naples (Ý). Ngày 09/02/2017, nghệ thuật làm bánh Pizza Napoletana truyền thống đã được UNESCO chính thức ghi danh là Di sản văn hóa phi vật thể của nhân loại. Tôn vinh một trong những món ăn đường phố phổ biến và được yêu thích nhất hành tinh, gắn kết gia đình và bạn bè qua những bữa ăn sẻ chia ấm cúng. Người dân và các gia đình thường cùng gia đình hoặc bạn bè thưởng thức những chiếc pizza nóng hổi với lớp phô mai kéo sợi."
   },
   {
     "id": "feb-day-10",
@@ -322,7 +430,19 @@ export const FEBRUARY_EVENTS: VietnamEvent[] = [
     "quote": "Hạt đậu nhỏ bé nuôi dưỡng sức khỏe con người và hồi sinh sự màu mỡ của đất mẹ.",
     "tag": "Dinh dưỡng xanh",
     "imageUrl": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-emerald-600/30 via-amber-600/20 to-zinc-950"
+    "accentGradient": "from-emerald-600/30 via-amber-600/20 to-zinc-950",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Hạt đậu nhỏ bé nuôi dưỡng sức khỏe con người và hồi sinh sự màu mỡ của đất mẹ.",
+    "interestingFacts": [
+      "Cây họ đậu là món quà thiên nhiên kỳ diệu: chúng không cần nhiều phân bón đạm hóa học vì các nốt sần ở rễ chứa vi khuẩn cố định nitơ tự nhiên từ không khí, giúp hồi sinh độ phì nhiêu cho đất canh tác."
+    ],
+    "description": "Ngày hội do Liên Hợp Quốc phát động tôn vinh giá trị dinh dưỡng dồi dào của các loại đậu đỗ, nguồn protein thực vật lành mạnh và nông nghiệp bền vững.",
+    "bannerDescription": "Được Đại hội đồng Liên Hợp Quốc thông qua năm 2018 theo đề xuất của Tổ chức Lương thực và Nông nghiệp Liên Hợp Quốc (FAO), xuất phát từ thành công của Năm Quốc tế Đậu đỗ 2016. Khẳng định giá trị dinh dưỡng dồi dào, giàu protein thực vật của các loại hạt đậu (đậu xanh, đậu đen, đậu đỏ, đậu nành), đồng thời nâng cao nhận thức về nông nghiệp bền vững vì rễ cây họ đậu có khả năng cố định đạm làm giàu cho đất. Người dân và các gia đình thường nấu các món chè đậu xanh, xôi đậu phộng, sữa đậu nành thanh dưỡng cho gia đình."
   },
   {
     "id": "feb-day-11",
@@ -354,7 +474,19 @@ export const FEBRUARY_EVENTS: VietnamEvent[] = [
     "quote": "Khoa học cần phụ nữ, và phụ nữ có sức mạnh vô song để thay đổi diện mạo thế giới khoa học.",
     "tag": "Phụ nữ trong STEM",
     "imageUrl": "https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-purple-600/30 via-pink-600/20 to-zinc-950"
+    "accentGradient": "from-purple-600/30 via-pink-600/20 to-zinc-950",
+    "activities": [
+      "Tặng hoa, thiệp và những món quà ý nghĩa gửi đến bà, mẹ, vợ và đồng nghiệp nữ",
+      "Tổ chức các buổi tọa đàm tôn vinh vai trò của phụ nữ trong gia đình và xã hội",
+      "Chia sẻ công việc nhà và lan tỏa tình yêu thương, sự trân trọng tới phái đẹp"
+    ],
+    "whyItMatters": null,
+    "message": "Khoa học cần phụ nữ, và phụ nữ có sức mạnh vô song để thay đổi diện mạo thế giới khoa học.",
+    "interestingFacts": [
+      "Nhà khoa học nữ Marie Curie là người duy nhất trong lịch sử đoạt hai giải Nobel ở hai ngành khoa học tự nhiên khác nhau (Vật lý năm 1903 và Hóa học năm 1911)."
+    ],
+    "description": "Tôn vinh trí tuệ và cống hiến xuất sắc của phụ nữ và trẻ em gái trong các ngành khoa học công nghệ, thúc đẩy bình đẳng giới trong kỷ nguyên tri thức.",
+    "bannerDescription": "Được Đại hội đồng Liên Hợp Quốc thông qua theo Nghị quyết A/RES/70/212 vào ngày 22/12/2015, chọn ngày 11 tháng 2 hằng năm để thúc đẩy bình đẳng giới trong khoa học. Phá vỡ rào cản định kiến giới trong các lĩnh vực STEM (Khoa học, Công nghệ, Kỹ thuật và Toán học); vinh danh những đóng góp to lớn của các nữ khoa học gia cho sự tiến bộ của nhân loại. Người dân và các gia đình thường tổ chức hội thảo, tọa đàm truyền cảm hứng đam mê khoa học cho các nữ sinh."
   },
   {
     "id": "feb-day-12",
@@ -386,7 +518,19 @@ export const FEBRUARY_EVENTS: VietnamEvent[] = [
     "quote": "Không phải loài mạnh nhất hay thông minh nhất sẽ sống sót, mà là loài thích ứng tốt nhất với sự thay đổi. — Charles Darwin",
     "tag": "Khám phá khoa học",
     "imageUrl": "https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-slate-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-slate-600/20 to-zinc-950",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Không phải loài mạnh nhất hay thông minh nhất sẽ sống sót, mà là loài thích ứng tốt nhất với sự thay đổi. — Charles Darwin",
+    "interestingFacts": [
+      "Chuyến hải trình 5 năm trên con tàu HMS Beagle (1831–1836), đặc biệt là những quan sát về các loài chim sẻ tại quần đảo Galapagos, đã đặt nền tảng cho sự ra đời của thuyết tiến hóa."
+    ],
+    "description": "Kỷ niệm ngày sinh Charles Darwin — tôn vinh tinh thần duy lý khoa học, lòng dũng cảm kiếm tìm chân lý và học thuyết tiến hóa làm thay đổi tư duy nhân loại.",
+    "bannerDescription": "Kỷ niệm ngày sinh 12/02/1809 của Charles Darwin — nhà tự nhiên học vĩ đại người Anh, tác giả của tác phẩm kinh điển 'Nguồn gốc các loài' (On the Origin of Species, 1859). Tôn vinh tinh thần khoa học duy lý, lòng can đảm tò mò khám phá sự thật tự nhiên và học thuyết tiến hóa bằng con đường chọn lọc tự nhiên làm thay đổi căn bản sinh học hiện đại. Người dân và các gia đình thường tổ chức các buổi thuyết trình và triển lãm chuyên đề sinh học tại các viện nghiên cứu và trường đại học."
   },
   {
     "id": "feb-day-13",
@@ -418,7 +562,19 @@ export const FEBRUARY_EVENTS: VietnamEvent[] = [
     "quote": "Sóng phát thanh đưa tiếng nói hòa bình, sự thật và tri thức vượt mọi biên giới đến với muôn người.",
     "tag": "Tiếng nói hòa bình",
     "imageUrl": "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-sky-600/30 via-indigo-600/20 to-zinc-950"
+    "accentGradient": "from-sky-600/30 via-indigo-600/20 to-zinc-950",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Sóng phát thanh đưa tiếng nói hòa bình, sự thật và tri thức vượt mọi biên giới đến với muôn người.",
+    "interestingFacts": [
+      "Đài Tiếng nói Việt Nam (VOV) thành lập ngày 07/09/1945; tiếng loa truyền thanh đầu ngõ xóm đã trở thành một phần ký ức thiêng liêng gắn liền với bao thế hệ người dân Việt Nam."
+    ],
+    "description": "Tôn vinh làn sóng phát thanh bền bỉ — phương tiện truyền thông tiếp cận sâu rộng nhất, kết nối triệu con tim và mang tri thức, cứu trợ đến muôn nơi.",
+    "bannerDescription": "Được Đại hội đồng UNESCO quyết định thành lập vào năm 2011 và Đại hội đồng Liên Hợp Quốc thông qua năm 2012, kỷ niệm ngày Đài Phát thanh Liên Hợp Quốc (UN Radio) phát sóng lần đầu tiên vào ngày 13/02/1946. Tôn vinh sức mạnh bền bỉ của sóng phát thanh — phương tiện truyền thông tiếp cận được số lượng thính giả lớn nhất, kịp thời cứu hộ thiên tai và truyền tải tri thức đến cả những vùng sâu, vùng xa nhất. Người dân và các gia đình thường các đài phát thanh tổ chức chương trình phát sóng trực tiếp đặc biệt và giao lưu cùng thính giả."
   },
   {
     "id": "valentine-day",
@@ -452,7 +608,19 @@ export const FEBRUARY_EVENTS: VietnamEvent[] = [
     "quote": "Yêu không chỉ là nhìn nhau, mà là cùng nhìn về một hướng. — Antoine de Saint-Exupéry",
     "tag": "Ngọt ngào tình yêu",
     "imageUrl": "https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-rose-600/40 via-pink-600/25 to-zinc-950"
+    "accentGradient": "from-rose-600/40 via-pink-600/25 to-zinc-950",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Yêu không chỉ là nhìn nhau, mà là cùng nhìn về một hướng. — Antoine de Saint-Exupéry",
+    "interestingFacts": [
+      "Tấm thiệp Valentine cổ xưa nhất còn lưu giữ đến ngày nay là một bài thơ tình do Công tước Charles xứ Orléans gửi cho vợ từ Tháp London khi ông bị giam giữ vào năm 1415."
+    ],
+    "description": "Ngày hội tôn vinh tình yêu đôi lứa ngọt ngào trên khắp hành tinh — dịp để những trái tim rung động trao nhau lời yêu thương và sự gắn kết thiêng liêng.",
+    "bannerDescription": "Bắt nguồn từ sự tích về Thánh Valentine — một linh mục La Mã thời Hoàng đế Claudius II đã dũng cảm bí mật cử hành hôn lễ cho các cặp đôi yêu nhau bất chấp lệnh cấm quân nhân kết hôn. Tôn vinh vẻ đẹp thiêng liêng của tình yêu đích thực, sự thủy chung và lòng can đảm bảo vệ hạnh phúc lứa đôi trước mọi thử thách cuộc đời. Người dân và các gia đình thường tặng hoa hồng đỏ và những hộp chocolate ngọt ngào cho người thương."
   },
   {
     "id": "feb-day-15",
@@ -484,7 +652,19 @@ export const FEBRUARY_EVENTS: VietnamEvent[] = [
     "quote": "Mỗi nụ cười của các em nhỏ là một tia nắng ấm xua tan gian nan bệnh tật.",
     "tag": "Chiến binh dũng cảm",
     "imageUrl": "https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-yellow-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-yellow-600/20 to-zinc-950",
+    "activities": [
+      "Gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu",
+      "Tổ chức các buổi gặp gỡ, họp mặt ý nghĩa để thắt chặt tình đoàn kết",
+      "Thực hiện những việc làm tử tế, sẻ chia khó khăn với những hoàn cảnh kém may mắn"
+    ],
+    "whyItMatters": null,
+    "message": "Mỗi nụ cười của các em nhỏ là một tia nắng ấm xua tan gian nan bệnh tật.",
+    "interestingFacts": [
+      "Biểu tượng của Ngày Ung thư Trẻ em Quốc tế là dải ruy băng vàng kim, bởi vàng là kim loại quý giá cũng như mỗi đứa trẻ đều là báu vật vô giá của nhân loại."
+    ],
+    "description": "Chiến dịch toàn cầu thắp lên hy vọng và tiếp thêm nghị lực cho các chiến binh nhí dũng cảm, kêu gọi bình đẳng tiếp cận điều trị và sự chở che của cộng đồng.",
+    "bannerDescription": "Được thành lập năm 2002 bởi Hiệp hội Ung thư Trẻ em Quốc tế (CCI — một mạng lưới toàn cầu của các tổ chức do cha mẹ bệnh nhi thành lập), chọn ngày 15 tháng 2 hằng năm. Nâng cao nhận thức xã hội về bệnh ung thư ở trẻ em, kêu gọi tiếp cận bình đẳng các phác đồ điều trị tiên tiến và lan tỏa vòng tay yêu thương tiếp thêm nghị lực cho các chiến binh nhí dũng cảm. Người dân và các gia đình thường đeo dải ruy băng vàng (Gold Ribbon) — biểu tượng lòng dũng cảm của các bệnh nhi."
   },
   {
     "id": "feb-day-16",
@@ -516,7 +696,19 @@ export const FEBRUARY_EVENTS: VietnamEvent[] = [
     "quote": "Khởi nghiệp không chỉ là mở công ty, mà là dũng cảm dấn thân tạo nên giá trị mới cho cuộc đời.",
     "tag": "Khát vọng tuổi trẻ",
     "imageUrl": "https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-blue-600/30 via-indigo-600/20 to-zinc-950"
+    "accentGradient": "from-blue-600/30 via-indigo-600/20 to-zinc-950",
+    "activities": [
+      "Gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu",
+      "Tổ chức các buổi gặp gỡ, họp mặt ý nghĩa để thắt chặt tình đoàn kết",
+      "Thực hiện những việc làm tử tế, sẻ chia khó khăn với những hoàn cảnh kém may mắn"
+    ],
+    "whyItMatters": null,
+    "message": "Khởi nghiệp không chỉ là mở công ty, mà là dũng cảm dấn thân tạo nên giá trị mới cho cuộc đời.",
+    "interestingFacts": [
+      "Hệ sinh thái khởi nghiệp đổi mới sáng tạo Việt Nam hiện nằm trong nhóm năng động bậc nhất Đông Nam Á, thu hút hàng tỷ USD vốn đầu tư mạo hiểm vào các lĩnh vực AI, fintech và thương mại điện tử."
+    ],
+    "description": "Khơi dậy tinh thần dấn thân, đổi mới sáng tạo và khát vọng khởi nghiệp của thế hệ trẻ Việt Nam, biến ý tưởng công nghệ thành giá trị phụng sự cộng đồng.",
+    "bannerDescription": "Hưởng ứng phong trào quốc gia khởi nghiệp và hệ sinh thái đổi mới sáng tạo Việt Nam (Đề án 844 của Thủ tướng Chính phủ), khích lệ tinh thần dám nghĩ, dám làm của thế hệ trẻ. Khơi dậy khát vọng lập thân, lập nghiệp, biến các ý tưởng công nghệ và giải pháp sáng tạo thành sản phẩm có giá trị phụng sự cộng đồng và thúc đẩy nền kinh tế số quốc gia. Người dân và các gia đình thường tổ chức các buổi Demo Day, giao lưu kết nối mạng lưới các nhà sáng lập và quỹ đầu tư."
   },
   {
     "id": "bien-gioi-phia-bac-0217",
@@ -548,7 +740,19 @@ export const FEBRUARY_EVENTS: VietnamEvent[] = [
     "quote": "Không có gì quý hơn độc lập, tự do — Đời đời ghi nhớ công ơn các anh hùng liệt sĩ đã ngã xuống vì từng tấc đất biên cương.",
     "tag": "Khúc tráng ca biên cương",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-red-800/40 via-amber-700/20 to-zinc-950"
+    "accentGradient": "from-red-800/40 via-amber-700/20 to-zinc-950",
+    "activities": [
+      "Dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ",
+      "Tham quan các bảo tàng, di tích lịch sử để tìm hiểu mốc son vẻ vang của dân tộc",
+      "Kể lại những câu chuyện lịch sử hào hùng cho thế hệ trẻ gìn giữ truyền thống yêu nước"
+    ],
+    "whyItMatters": null,
+    "message": "Không có gì quý hơn độc lập, tự do — Đời đời ghi nhớ công ơn các anh hùng liệt sĩ đã ngã xuống vì từng tấc đất biên cương.",
+    "interestingFacts": [
+      "Lời thề khắc trên báng súng của Anh hùng liệt sĩ Nguyễn Viết Ninh tại mặt trận Vị Xuyên: 'Sống bám đá đánh giặc, chết hóa đá bất tử' đã trở thành biểu tượng kiên trung bất khuất của người lính bảo vệ biên cương."
+    ],
+    "description": "Tưởng nhớ khúc tráng ca bất tử của quân và dân ta trên tuyến đầu biên giới phía Bắc — bảo vệ từng tấc đất thiêng liêng của Tổ quốc.",
+    "bannerDescription": "Rạng sáng 17/02/1979, cuộc chiến đấu bảo vệ biên giới phía Bắc bùng nổ trên toàn tuyến 6 tỉnh biên giới: Lạng Sơn, Cao Bằng, Hoàng Liên Sơn, Lai Châu, Hà Tuyên và Quảng Ninh. Minh chứng hào hùng cho ý chí sắt đá, lòng yêu nước nồng nàn và quyết tâm sắt đá bảo vệ vẹn toàn độc lập, chủ quyền lãnh thổ quốc gia của nhân dân Việt Nam. Người dân và các gia đình thường lễ dâng hương tưởng niệm các Anh hùng liệt sĩ tại Nghĩa trang Liệt sĩ Quốc gia Vị Xuyên và biên cương phía Bắc."
   },
   {
     "id": "feb-day-18",
@@ -580,7 +784,19 @@ export const FEBRUARY_EVENTS: VietnamEvent[] = [
     "quote": "Thu gom một viên pin cũ đúng nơi quy định là bảo vệ nguồn nước sạch cho ngàn sau.",
     "tag": "Năng lượng xanh",
     "imageUrl": "https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-yellow-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-yellow-600/20 to-zinc-950",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Thu gom một viên pin cũ đúng nơi quy định là bảo vệ nguồn nước sạch cho ngàn sau.",
+    "interestingFacts": [
+      "Một viên pin cúc áo thải ra ngoài môi trường có thể làm ô nhiễm 500 lít nước hoặc 1 mét khối đất trong suốt 50 năm do chứa các kim loại nặng độc hại như chì, thủy ngân và cadmium."
+    ],
+    "description": "Tôn vinh phát minh pin điện hóa của Alessandro Volta, thúc đẩy công nghệ lưu trữ năng lượng tái tạo và kêu gọi thu gom pin cũ bảo vệ nguồn nước sạch.",
+    "bannerDescription": "Tưởng nhớ ngày sinh của nhà vật lý người Ý Alessandro Volta (18/02/1745) — người đã phát minh ra cột Volta (Voltaic Pile) vào năm 1800, chiếc pin điện hóa đầu tiên trong lịch sử nhân loại. Nhắc nhở về tầm quan trọng của công nghệ lưu trữ năng lượng trong cuộc sống hiện đại và tương lai chuyển dịch năng lượng xanh, xe điện và điện mặt trời; kêu gọi thu gom pin cũ đúng cách bảo vệ môi trường. Người dân và các gia đình thường thu gom pin cũ đã qua sử dụng đến các điểm tiếp nhận tái chế rác thải nguy hại."
   },
   {
     "id": "feb-day-19",
@@ -612,7 +828,19 @@ export const FEBRUARY_EVENTS: VietnamEvent[] = [
     "quote": "Trước khi gõ một dòng chữ, hãy nhớ phía sau màn hình là một trái tim biết đau.",
     "tag": "Không gian mạng an toàn",
     "imageUrl": "https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-pink-600/30 via-rose-600/20 to-zinc-950"
+    "accentGradient": "from-pink-600/30 via-rose-600/20 to-zinc-950",
+    "activities": [
+      "Gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu",
+      "Tổ chức các buổi gặp gỡ, họp mặt ý nghĩa để thắt chặt tình đoàn kết",
+      "Thực hiện những việc làm tử tế, sẻ chia khó khăn với những hoàn cảnh kém may mắn"
+    ],
+    "whyItMatters": null,
+    "message": "Trước khi gõ một dòng chữ, hãy nhớ phía sau màn hình là một trái tim biết đau.",
+    "interestingFacts": [
+      "Tổ chức Y tế Thế giới (WHO) khuyến nghị rằng chứng kiến bắt nạt mà không lên tiếng cũng là một hình thức gián tiếp tiếp tay; một lời động viên kịp thời có thể cứu một mạng người trước bế tắc tâm lý."
+    ],
+    "description": "Chiến dịch xây dựng không gian mạng an toàn, văn minh và tử tế; dũng cảm lên tiếng bảo vệ người yếu thế và chấm dứt hành vi công kích trực tuyến.",
+    "bannerDescription": "Xuất phát từ phong trào Chiếc áo hồng (Pink Shirt Day) khởi xướng tại Nova Scotia (Canada) năm 2007 sau khi hai học sinh trung học dũng cảm bênh vực bạn bị bắt nạt, lan tỏa thành phong trào phòng chống bạo lực mạng trên toàn cầu. Nâng cao nhận thức về những tổn thương tâm lý do bắt nạt trực tuyến gây ra cho thanh thiếu niên; kêu gọi xây dựng văn hóa mạng văn minh, tử tế và dũng cảm lên tiếng bảo vệ người yếu thế. Người dân và các gia đình thường mặc áo màu hồng hoặc chia sẻ thông điệp tử tế trên mạng xã hội."
   },
   {
     "id": "feb-day-20",
@@ -644,7 +872,19 @@ export const FEBRUARY_EVENTS: VietnamEvent[] = [
     "quote": "Hòa bình bền vững chỉ có thể ngự trị khi công lý xã hội được thực thi trọn vẹn cho muôn người.",
     "tag": "Công bằng xã hội",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-sky-700/30 via-blue-700/20 to-zinc-950"
+    "accentGradient": "from-sky-700/30 via-blue-700/20 to-zinc-950",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Hòa bình bền vững chỉ có thể ngự trị khi công lý xã hội được thực thi trọn vẹn cho muôn người.",
+    "interestingFacts": [
+      "Theo định nghĩa của Liên Hợp Quốc, công lý xã hội không chỉ là bình đẳng trước pháp luật mà còn là sự công bằng trong phân phối của cải, cơ hội tiếp cận y tế, giáo dục và công việc tử tế."
+    ],
+    "description": "Ngày hội toàn cầu do Liên Hợp Quốc khởi xướng vì một xã hội công bằng, bình đẳng cơ hội phát triển và an sinh xã hội vững chắc cho mọi người dân.",
+    "bannerDescription": "Được Đại hội đồng Liên Hợp Quốc thông qua theo Nghị quyết A/RES/62/10 vào tháng 11/2007, chính thức kỷ niệm vào ngày 20 tháng 2 hằng năm từ năm 2009. Thúc đẩy các nỗ lực xóa đói giảm nghèo, bảo đảm việc làm thỏa đáng, bình đẳng giới và quyền tiếp cận an sinh xã hội công bằng cho mọi công dân, không để ai bị bỏ lại phía sau. Người dân và các gia đình thường tổ chức các diễn đàn đối thoại về chính sách an sinh xã hội và bảo vệ quyền lợi người lao động."
   },
   {
     "id": "tieng-me-de-0221",
@@ -676,7 +916,19 @@ export const FEBRUARY_EVENTS: VietnamEvent[] = [
     "quote": "Tiếng Việt còn trong mỗi gia đình, bè bạn / Thì non sông này còn mãi với mai sau. — Lưu Quang Vũ",
     "tag": "Hồn thiêng tiếng Việt",
     "imageUrl": "https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/35 via-rose-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/35 via-rose-600/20 to-zinc-950",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Tiếng Việt còn trong mỗi gia đình, bè bạn / Thì non sông này còn mãi với mai sau. — Lưu Quang Vũ",
+    "interestingFacts": [
+      "Tiếng Việt giàu thanh điệu với 6 thanh (ngang, huyền, sắc, hỏi, ngã, nặng) tạo nên nhạc tính du dương đặc biệt; cố Thủ tướng Phạm Văn Đồng từng ca ngợi: 'Tiếng Việt của chúng ta rất giàu, rất đẹp'."
+    ],
+    "description": "Tôn vinh vẻ đẹp thiêng liêng của tiếng mẹ đẻ — giữ gìn sự trong sáng của tiếng Việt và bảo tồn bản sắc ngôn ngữ của 54 dân tộc anh em.",
+    "bannerDescription": "UNESCO công bố ngày 21/02 hằng năm là Ngày Tiếng mẹ đẻ Quốc tế từ năm 1999 nhằm tưởng nhớ các sinh viên tại Dhaka (Bangladesh) đã hy sinh năm 1952 để bảo vệ ngôn ngữ mẹ đẻ Bengali. Khẳng định tiếng mẹ đẻ là linh hồn văn hóa của mỗi dân tộc; kêu gọi giữ gìn sự trong sáng của tiếng Việt và tôn trọng, bảo tồn ngôn ngữ của các dân tộc thiểu số. Người dân và các gia đình thường đọc các tác phẩm văn học kinh điển tiếng Việt như Truyện Kiều, thơ ca dân gian."
   },
   {
     "id": "feb-day-22",
@@ -708,7 +960,19 @@ export const FEBRUARY_EVENTS: VietnamEvent[] = [
     "quote": "Mỗi ngày hãy làm một việc tốt để để lại thế giới này tốt đẹp hơn khi ta đến. — Robert Baden-Powell",
     "tag": "Tinh thần Hướng đạo",
     "imageUrl": "https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-emerald-700/30 via-teal-700/20 to-zinc-950"
+    "accentGradient": "from-emerald-700/30 via-teal-700/20 to-zinc-950",
+    "activities": [
+      "Gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu",
+      "Tổ chức các buổi gặp gỡ, họp mặt ý nghĩa để thắt chặt tình đoàn kết",
+      "Thực hiện những việc làm tử tế, sẻ chia khó khăn với những hoàn cảnh kém may mắn"
+    ],
+    "whyItMatters": null,
+    "message": "Mỗi ngày hãy làm một việc tốt để để lại thế giới này tốt đẹp hơn khi ta đến. — Robert Baden-Powell",
+    "interestingFacts": [
+      "Phong trào Hướng đạo Việt Nam ra đời từ năm 1930 với sự đóng góp của các bậc tiền bối như Hoàng Đạo Thúy, Tạ Đình Đề; khẩu hiệu truyền thống của Hướng đạo sinh là 'Sắp Sẵn' (Be Prepared)."
+    ],
+    "description": "Kỷ niệm ngày sinh người sáng lập phong trào Hướng đạo — rèn luyện tinh thần tự lập, kỹ năng sinh tồn và bổn phận làm một việc tốt mỗi ngày giúp ích đời.",
+    "bannerDescription": "Kỷ niệm ngày sinh của Robert Baden-Powell (22/02/1857) — người sáng lập phong trào Hướng đạo toàn cầu, đồng thời cũng là ngày sinh của vợ ông, bà Olave Baden-Powell (Tổng huynh trưởng Nữ Hướng đạo sinh). Tôn vinh các giá trị cao đẹp của phong trào Hướng đạo: rèn luyện kỹ năng sinh tồn, lòng dũng cảm, tinh thần tự lập, tình bác ái và bổn phận giúp ích cho xã hội mỗi ngày. Người dân và các gia đình thường các đoàn Hướng đạo sinh tổ chức cắm trại dã ngoại, sinh hoạt lửa trại và thắt nút dây."
   },
   {
     "id": "feb-day-23",
@@ -740,7 +1004,19 @@ export const FEBRUARY_EVENTS: VietnamEvent[] = [
     "quote": "Hiểu biết là cây cầu vững chắc nhất bắc qua mọi hố sâu ngăn cách để dẫn tới hòa bình.",
     "tag": "Nhịp cầu hữu nghị",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-blue-600/30 via-indigo-600/20 to-zinc-950"
+    "accentGradient": "from-blue-600/30 via-indigo-600/20 to-zinc-950",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Hiểu biết là cây cầu vững chắc nhất bắc qua mọi hố sâu ngăn cách để dẫn tới hòa bình.",
+    "interestingFacts": [
+      "Nguyên tắc 'Thử thách 4 điều' (The 4-Way Test) của Paul Harris: Có phải là sự thật không? Có công bằng cho mọi người không? Có mang lại thiện chí và tình bạn không? Có lợi cho muôn người không? — đã trở thành chuẩn mực đạo đức giao tiếp toàn cầu."
+    ],
+    "description": "Kêu gọi xóa bỏ ranh giới định kiến, thúc đẩy tình hữu nghị quốc tế và sự thấu cảm giữa các nền văn hóa để kiến tạo nền hòa bình bền vững.",
+    "bannerDescription": "Đánh dấu ngày thành lập cuộc họp đầu tiên của tổ chức Rotary International vào ngày 23/02/1905 tại Chicago (Mỹ) do luật sư Paul P. Harris khởi xướng. Kêu gọi xóa bỏ định kiến và ranh giới sắc tộc, thúc đẩy tình hữu nghị quốc tế, lòng nhân ái và sự hiểu biết lẫn nhau giữa các nền văn hóa để ngăn ngừa xung đột và chiến tranh. Người dân và các gia đình thường tham gia các hoạt động thiện nguyện vì cộng đồng và trao đổi văn hóa đa quốc gia."
   },
   {
     "id": "feb-day-24",
@@ -771,7 +1047,19 @@ export const FEBRUARY_EVENTS: VietnamEvent[] = [
     "quote": "Một nụ cười niềm nở và một lời cảm ơn chân thành có thể làm sáng bừng cả ngày lao động vất vả.",
     "tag": "Ứng xử văn minh",
     "imageUrl": "https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-orange-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-orange-600/20 to-zinc-950",
+    "activities": [
+      "Gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu",
+      "Tổ chức các buổi gặp gỡ, họp mặt ý nghĩa để thắt chặt tình đoàn kết",
+      "Thực hiện những việc làm tử tế, sẻ chia khó khăn với những hoàn cảnh kém may mắn"
+    ],
+    "whyItMatters": null,
+    "message": "Một nụ cười niềm nở và một lời cảm ơn chân thành có thể làm sáng bừng cả ngày lao động vất vả.",
+    "interestingFacts": [
+      "Nghề phục vụ bàn đòi hỏi kỹ năng đa nhiệm phi thường: một người phục vụ trung bình đi bộ từ 12.000 đến 18.000 bước chân mỗi ca làm việc và ghi nhớ hàng chục yêu cầu khẩu vị khắt khe của khách hàng."
+    ],
+    "description": "Tôn vinh sự tận tụy, nhẫn nại và nụ cười ấm áp của những người làm nghề phục vụ bàn, F&B và dịch vụ khách hàng mang lại trải nghiệm trọn vẹn cho thực khách.",
+    "bannerDescription": "Ngày dành riêng để tôn vinh sự tận tụy, nhẫn nại và nụ cười ấm áp của những người làm nghề phục vụ bàn, pha chế và nhân sự tuyến đầu trong ngành nhà hàng, khách sạn và dịch vụ F&B. Nhắc nhở nét văn hóa ứng xử văn minh trong cộng đồng: biết nói lời cảm ơn, thấu hiểu sự vất vả của người lao động thầm lặng mang đến trải nghiệm ẩm thực trọn vẹn cho thực khách. Người dân và các gia đình thường gửi lời cảm ơn chân thành và nụ cười khích lệ đến nhân viên phục vụ sau bữa ăn."
   },
   {
     "id": "feb-day-25",
@@ -804,7 +1092,19 @@ export const FEBRUARY_EVENTS: VietnamEvent[] = [
     "quote": "Ẩm thực đường phố là nơi lưu giữ hồn cốt nguyên sơ và nhịp đập sống động nhất của một thành phố.",
     "tag": "Ẩm thực đường phố",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-orange-600/35 via-amber-600/20 to-zinc-950"
+    "accentGradient": "from-orange-600/35 via-amber-600/20 to-zinc-950",
+    "activities": [
+      "Chuẩn bị lễ vật chu đáo và thực hiện các nghi thức truyền thống trang nghiêm",
+      "Sum vầy bên gia đình, thưởng thức các món ăn mang phong vị đặc trưng lễ hội",
+      "Tham gia các trò chơi dân gian và tìm hiểu nguồn gốc phong tục cổ truyền"
+    ],
+    "whyItMatters": null,
+    "message": "Ẩm thực đường phố là nơi lưu giữ hồn cốt nguyên sơ và nhịp đập sống động nhất của một thành phố.",
+    "interestingFacts": [
+      "Cố đầu bếp huyền thoại Anthony Bourdain từng cùng Tổng thống Mỹ Barack Obama thưởng thức bún chả trên phố Lê Văn Hưu (Hà Nội) năm 2016, đưa hình ảnh ẩm thực vỉa hè Việt Nam gây sốt toàn cầu."
+    ],
+    "description": "Tôn vinh tinh hoa ẩm thực đường phố Việt Nam — từ ổ bánh mì giòn rụm đến bát phở nghi ngút khói làm say lòng thực khách bốn phương.",
+    "bannerDescription": "Tôn vinh nét văn hóa ẩm thực đường phố độc đáo, bình dị mà tinh túy của các đô thị trên khắp thế giới. Việt Nam được truyền thông quốc tế ca tụng là một trong những thủ phủ ẩm thực đường phố hấp dẫn nhất hành tinh. Khẳng định ẩm thực đường phố là linh hồn của đời sống đô thị, lưu giữ bí quyết gia truyền qua nhiều thế hệ và là cầu nối văn hóa kỳ diệu đưa hình ảnh đất nước thân thiện ra thế giới. Người dân và các gia đình thường cùng bạn bè ngồi ghế nhựa vỉa hè thưởng thức bát phở bò, ổ bánh mì hay đĩa bánh xèo nóng hổi."
   },
   {
     "id": "feb-day-26",
@@ -836,7 +1136,19 @@ export const FEBRUARY_EVENTS: VietnamEvent[] = [
     "quote": "Tôi yêu truyện cổ nước tôi / Vừa nhân hậu lại tuyệt vời sâu xa. — Lâm Thị Mỹ Dạ",
     "tag": "Cổ tích nhiệm màu",
     "imageUrl": "https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-purple-600/30 via-indigo-600/20 to-zinc-950"
+    "accentGradient": "from-purple-600/30 via-indigo-600/20 to-zinc-950",
+    "activities": [
+      "Chuẩn bị lễ vật chu đáo và thực hiện các nghi thức truyền thống trang nghiêm",
+      "Sum vầy bên gia đình, thưởng thức các món ăn mang phong vị đặc trưng lễ hội",
+      "Tham gia các trò chơi dân gian và tìm hiểu nguồn gốc phong tục cổ truyền"
+    ],
+    "whyItMatters": null,
+    "message": "Tôi yêu truyện cổ nước tôi / Vừa nhân hậu lại tuyệt vời sâu xa. — Lâm Thị Mỹ Dạ",
+    "interestingFacts": [
+      "Truyện cổ tích 'Sự tích Trầu Cau' là một trong những câu chuyện cổ xưa nhất của người Việt, giải thích nguồn gốc tục ăn trầu và triết lý thắm đượm nghĩa tình huynh đệ, thủy chung vợ chồng."
+    ],
+    "description": "Nuôi dưỡng tâm hồn trẻ thơ qua kho tàng cổ tích và truyền thuyết ngàn đời — bài học làm người nhân hậu, ở hiền gặp lành lưu truyền qua bao thế hệ.",
+    "bannerDescription": "Ngày hội văn hóa quốc tế dành riêng để tôn vinh nghệ thuật truyền miệng và kho tàng truyện cổ dân gian, thần thoại, truyền thuyết đã nuôi dưỡng tâm hồn con người qua hàng ngàn năm lịch sử. Nhắc nhở thế hệ hôm nay gìn giữ ngọn lửa văn hóa cội nguồn; dạy bài học làm người, phân biệt thiện ác, ở hiền gặp lành qua kho tàng cổ tích Việt Nam như Tấm Cám, Thạch Sanh, Cây tre trăm đốt, Sự tích quả dưa hấu. Người dân và các gia đình thường kể cho con nghe một câu chuyện cổ tích dân gian Việt Nam trước giờ đi ngủ."
   },
   {
     "id": "ngay-thay-thuoc-vn",
@@ -868,7 +1180,19 @@ export const FEBRUARY_EVENTS: VietnamEvent[] = [
     "quote": "Lương y phải như từ mẫu — Bác sĩ chẳng những phải chữa bệnh tật mà còn phải chăm sóc tinh thần người bệnh. — Hồ Chí Minh",
     "tag": "Lương y từ mẫu",
     "imageUrl": "https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-teal-600/35 via-cyan-600/20 to-zinc-950"
+    "accentGradient": "from-teal-600/35 via-cyan-600/20 to-zinc-950",
+    "activities": [
+      "Kiểm tra sức khỏe định kỳ và rèn luyện thể dục thể thao đều đặn",
+      "Xây dựng chế độ dinh dưỡng lành mạnh, ăn nhiều rau xanh và uống đủ nước",
+      "Gửi lời tri ân đến các y bác sĩ và nhân viên y tế đang ngày đêm chăm sóc sức khỏe nhân dân"
+    ],
+    "whyItMatters": null,
+    "message": "Lương y phải như từ mẫu — Bác sĩ chẳng những phải chữa bệnh tật mà còn phải chăm sóc tinh thần người bệnh. — Hồ Chí Minh",
+    "interestingFacts": [
+      "Bức thư Bác Hồ gửi Hội nghị y tế năm 1955 có câu dặn dò đã trở thành kim chỉ nam thiêng liêng cho mọi thế hệ thầy thuốc Việt Nam: 'Lương y phải như từ mẫu' (Người thầy thuốc giỏi đồng thời phải như người mẹ hiền)."
+    ],
+    "description": "Tôn vinh những cống hiến cao quý và sự hy sinh thầm lặng của đội ngũ y bác sĩ, nhân viên y tế cả nước — 'Lương y như từ mẫu' tận tụy cứu người.",
+    "bannerDescription": "Ngày 27/02/1955, Chủ tịch Hồ Chí Minh gửi bức thư lịch sử tới Hội nghị cán bộ y tế toàn quốc căn dặn ba điều cốt lõi: đoàn kết chặt chẽ, thương yêu người bệnh và xây dựng nền y học Việt Nam khoa học, dân tộc, đại chúng. Tri ân sâu sắc những người chiến sĩ áo trắng ngày đêm canh giữ sự sống; nhắc nhở giữ vững y đức, không ngừng trau dồi y thuật để bảo vệ và chăm sóc sức khỏe nhân dân. Người dân và các gia đình thường lễ kỷ niệm Ngày Thầy thuốc Việt Nam và tuyên dương Thầy thuốc Nhân dân, Thầy thuốc Ưu tú."
   },
   {
     "id": "feb-day-28",
@@ -900,7 +1224,19 @@ export const FEBRUARY_EVENTS: VietnamEvent[] = [
     "quote": "Hiếm nhưng không đơn độc — Mỗi người bệnh đều xứng đáng được lắng nghe và chở che.",
     "tag": "Thắp sáng hy vọng",
     "imageUrl": "https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-purple-600/30 via-pink-600/20 to-zinc-950"
+    "accentGradient": "from-purple-600/30 via-pink-600/20 to-zinc-950",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Hiếm nhưng không đơn độc — Mỗi người bệnh đều xứng đáng được lắng nghe và chở che.",
+    "interestingFacts": [
+      "Một căn bệnh được coi là 'hiếm' khi chỉ ảnh hưởng đến dưới 1 trong 2.000 người; tuy nhiên trên toàn thế giới hiện có hơn 7.000 căn bệnh hiếm khác nhau được ghi nhận, trong đó hơn 70% bắt nguồn từ di truyền."
+    ],
+    "description": "Chiến dịch toàn cầu thắp sáng niềm hy vọng cho hơn 300 triệu người đang chiến đấu với các căn bệnh hiếm, kêu gọi bình đẳng tiếp cận thuốc và dịch vụ y tế.",
+    "bannerDescription": "Được thành lập năm 2008 bởi Tổ chức Bệnh Hiếm Châu Âu (EURORDIS), chọn ngày cuối cùng của tháng Hai hằng năm (ngày 28 hoặc ngày nhuận 29) — một ngày 'hiếm hoi' trong lịch để tượng trưng cho tính chất của các căn bệnh hiếm. Thắp lên tiếng nói hy vọng cho hơn 300 triệu người đang sống chung với các căn bệnh hiếm trên thế giới; kêu gọi đầu tư nghiên cứu y khoa, chẩn đoán sớm và hỗ trợ tiếp cận thuốc điều trị đặc hiệu. Người dân và các gia đình thường thắp sáng dải màu biểu tượng (xanh lam, xanh lục, hồng, tím) tại các tòa nhà và mạng xã hội."
   },
   {
     "id": "feb-day-29",
@@ -932,6 +1268,18 @@ export const FEBRUARY_EVENTS: VietnamEvent[] = [
     "quote": "Bốn năm một lần đất trời dành tặng ta một ngày quý giá — Hãy sống trọn vẹn từng khoảnh khắc.",
     "tag": "Hiện tượng 4 năm một lần",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-indigo-600/35 via-purple-600/20 to-zinc-950"
+    "accentGradient": "from-indigo-600/35 via-purple-600/20 to-zinc-950",
+    "activities": [
+      "Khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này",
+      "Chia sẻ thông điệp tích cực và năng lượng lạc quan tới bạn bè, người thân",
+      "Dành thời gian thư giãn và trải nghiệm những khoảnh khắc ý nghĩa trong cuộc sống"
+    ],
+    "whyItMatters": null,
+    "message": "Bốn năm một lần đất trời dành tặng ta một ngày quý giá — Hãy sống trọn vẹn từng khoảnh khắc.",
+    "interestingFacts": [
+      "Xác suất một đứa trẻ sinh ra vào đúng ngày 29 tháng 2 là khoảng 1/1.461 (khoảng 0,068%); những người này thường phải chờ đến 4 năm mới được tổ chức sinh nhật đúng ngày dương lịch của mình!"
+    ],
+    "description": "Món quà thiên văn học kỳ diệu 4 năm mới xuất hiện một lần — ngày dôi thêm quý giá giúp lịch trần gian đồng điệu nhịp thở cùng quỹ đạo Trái Đất quanh Mặt Trời.",
+    "bannerDescription": "Hiện tượng thiên văn đặc biệt xuất hiện mỗi 4 năm một lần trong lịch Gregory. Do Trái Đất mất khoảng 365 ngày 5 giờ 48 phút 45 giây để quay hết một vòng quanh Mặt Trời, ngày nhuận 29/02 được bổ sung để bù đắp khoảng 6 giờ dôi ra mỗi năm. Sự điều chỉnh toán học và thiên văn học tuyệt diệu giúp giữ cho bốn mùa của lịch trần gian luôn đồng điệu với quỹ đạo của hành tinh; biểu tượng của một ngày 'thêm vào' quý giá để thực hiện những điều kỳ diệu. Người dân và các gia đình thường chúc mừng sinh nhật đặc biệt cho những người sinh ngày 29/02 ('Leaplings')."
   }
 ];

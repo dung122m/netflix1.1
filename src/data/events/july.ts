@@ -27,7 +27,19 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "01 Tháng 07",
     "meaning": "Khẳng định ý nghĩa nhân văn sâu sắc 'chia sẻ rủi ro', giúp người nghèo tiếp cận dịch vụ y tế chất lượng.",
-    "subtitle": "Trụ cột an sinh xã hội"
+    "subtitle": "Trụ cột an sinh xã hội",
+    "activities": [
+      "Gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu",
+      "Tổ chức các buổi gặp gỡ, họp mặt ý nghĩa để thắt chặt tình đoàn kết",
+      "Thực hiện những việc làm tử tế, sẻ chia khó khăn với những hoàn cảnh kém may mắn"
+    ],
+    "whyItMatters": null,
+    "message": "Tri ân sâu sắc những chiến sĩ áo trắng thầm lặng cống hiến vì sức khỏe và sự sống của nhân dân.",
+    "interestingFacts": [
+      "Tỷ lệ bao phủ BHYT tại Việt Nam đã đạt hơn 93% dân số, hướng tới mục tiêu BHYT toàn dân."
+    ],
+    "description": "Trụ cột an sinh xã hội — tấm lá chắn tài chính vững chắc bảo vệ sức khỏe nhân dân.",
+    "bannerDescription": "Thủ tướng Chính phủ ký Quyết định lấy ngày 1/7 làm Ngày Bảo hiểm y tế Việt Nam từ năm 2009. Khẳng định ý nghĩa nhân văn sâu sắc 'chia sẻ rủi ro', giúp người nghèo tiếp cận dịch vụ y tế chất lượng. Đây là dịp ý nghĩa để gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu."
   },
   {
     "id": "ev-07-02-doi-ten-nuoc",
@@ -60,7 +72,19 @@ export const JULY_EVENTS: VietnamEvent[] = [
       "Tọa đàm chuyên đề lịch sử Quốc hội khóa VI và dấu ấn non sông liền một dải",
       "Treo cờ Tổ quốc và dâng hương tri ân các thế hệ tiền nhân khai mở non sông",
       "Giáo dục lịch sử đấu tranh thống nhất Tổ quốc cho thanh thiếu niên"
-    ]
+    ],
+    "activities": [
+      "Dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ",
+      "Tham quan các bảo tàng, di tích lịch sử để tìm hiểu mốc son vẻ vang của dân tộc",
+      "Kể lại những câu chuyện lịch sử hào hùng cho thế hệ trẻ gìn giữ truyền thống yêu nước"
+    ],
+    "whyItMatters": null,
+    "message": "Nước Việt Nam là một, dân tộc Việt Nam là một. Sông có thể cạn, núi có thể mòn, song chân lý ấy không bao giờ thay đổi. — Hồ Chí Minh",
+    "interestingFacts": [
+      "Quốc kỳ cờ đỏ sao vàng và Quốc ca 'Tiến quân ca' được khẳng định là biểu tượng thiêng liêng duy nhất của cả nước."
+    ],
+    "description": "Khẳng định non sông gấm vóc thống nhất hoàn toàn trên mọi phương diện nhà nước và pháp lý.",
+    "bannerDescription": "Ngày 2/7/1976, Quốc hội khóa VI quyết định đặt tên nước là Cộng hòa xã hội chủ nghĩa Việt Nam và đổi tên Sài Gòn thành TP. Hồ Chí Minh. Mốc son hoàn tất quá trình thống nhất đất nước về mặt nhà nước sau Đại thắng Mùa Xuân 1975. Người dân và các gia đình thường tọa đàm chuyên đề lịch sử Quốc hội khóa VI và dấu ấn non sông liền một dải."
   },
   {
     "id": "ev-07-03-khong-tui-nilon",
@@ -88,7 +112,19 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "03 Tháng 07",
     "meaning": "Mỗi chiếc túi nilon mất từ 400 đến 1000 năm mới có thể phân hủy hoàn toàn trong tự nhiên.",
-    "subtitle": "Nói không với túi nilon dùng một lần"
+    "subtitle": "Nói không với túi nilon dùng một lần",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Chung tay hành động vì một thế giới hòa bình, xanh sạch và ngập tràn tình yêu thương.",
+    "interestingFacts": [
+      "Thay thế túi nilon bằng túi vải, làn tre khi đi chợ là thói quen sống xanh văn minh của nhiều bà nội trợ."
+    ],
+    "description": "Nói không với túi nilon dùng một lần — hành động nhỏ cứu lấy đại dương và đất đai.",
+    "bannerDescription": "Phong trào toàn cầu nhằm nâng cao nhận thức về tác hại khủng khiếp của rác thải nhựa dùng một lần. Mỗi chiếc túi nilon mất từ 400 đến 1000 năm mới có thể phân hủy hoàn toàn trong tự nhiên. Đây là dịp ý nghĩa để tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm."
   },
   {
     "id": "ev-07-04-hop-tac-xa",
@@ -116,7 +152,19 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "04 Tháng 07",
     "meaning": "Mô hình hợp tác xã kiểu mới giúp nông dân liên kết sản xuất, xây dựng chuỗi giá trị nông sản sạch OCOP.",
-    "subtitle": "Đoàn kết tương trợ"
+    "subtitle": "Đoàn kết tương trợ",
+    "activities": [
+      "Gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu",
+      "Tổ chức các buổi gặp gỡ, họp mặt ý nghĩa để thắt chặt tình đoàn kết",
+      "Thực hiện những việc làm tử tế, sẻ chia khó khăn với những hoàn cảnh kém may mắn"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Chương trình 'Mỗi xã một sản phẩm' (OCOP) tại Việt Nam đã nâng tầm hàng ngàn đặc sản làng quê."
+    ],
+    "description": "Đoàn kết tương trợ — mô hình kinh tế tập thể phát huy sức mạnh cộng đồng nông dân.",
+    "bannerDescription": "Đại hội đồng Liên Hợp Quốc thông qua tổ chức vào thứ Bảy đầu tiên của tháng 7 hàng năm. Mô hình hợp tác xã kiểu mới giúp nông dân liên kết sản xuất, xây dựng chuỗi giá trị nông sản sạch OCOP. Đây là dịp ý nghĩa để gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu."
   },
   {
     "id": "ev-07-05-bikini-beach",
@@ -144,7 +192,19 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "05 Tháng 07",
     "meaning": "Khuyến khích rèn luyện bơi lội, thể thao bãi biển và khám phá vẻ đẹp các bãi biển thiên đường của Việt Nam.",
-    "subtitle": "Tận hưởng không khí mùa hè sôi động bên những bờ cát trắng mịn và làn nước tr..."
+    "subtitle": "Tận hưởng không khí mùa hè sôi động bên những bờ cát trắng mịn và làn nước tr...",
+    "activities": [
+      "Khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này",
+      "Chia sẻ thông điệp tích cực và năng lượng lạc quan tới bạn bè, người thân",
+      "Dành thời gian thư giãn và trải nghiệm những khoảnh khắc ý nghĩa trong cuộc sống"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Mỹ Khê (Đà Nẵng), Bãi Sao (Phú Quốc), Nha Trang lọt top những bãi biển đẹp nhất châu Á."
+    ],
+    "description": "Tận hưởng không khí mùa hè sôi động bên những bờ cát trắng mịn và làn nước trong xanh.",
+    "bannerDescription": "Kỷ niệm nhà thiết kế người Pháp Louis Réard ra mắt mẫu đồ bơi hai mảnh hiện đại đầu tiên tại Paris năm 1946. Khuyến khích rèn luyện bơi lội, thể thao bãi biển và khám phá vẻ đẹp các bãi biển thiên đường của Việt Nam. Đây là dịp ý nghĩa để khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này."
   },
   {
     "id": "ev-07-06-zoonoses-day",
@@ -172,7 +232,19 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "06 Tháng 07",
     "meaning": "Hơn 60% các bệnh truyền nhiễm ở người có nguồn gốc từ động vật hoang dã hoặc vật nuôi.",
-    "subtitle": "Kỷ niệm mũi tiêm vaccine dại đầu tiên của Louis Pasteur cứu sống cậu bé Josep..."
+    "subtitle": "Kỷ niệm mũi tiêm vaccine dại đầu tiên của Louis Pasteur cứu sống cậu bé Josep...",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Chung tay hành động vì một thế giới hòa bình, xanh sạch và ngập tràn tình yêu thương.",
+    "interestingFacts": [
+      "Tiêm phòng dại cho chó mèo và không buôn bán động vật hoang dã là cách bảo vệ an toàn dịch tễ."
+    ],
+    "description": "Kỷ niệm mũi tiêm vaccine dại đầu tiên của Louis Pasteur cứu sống cậu bé Joseph Meister năm 1885.",
+    "bannerDescription": "Tôn vinh Louis Pasteur và nhắc nhở cộng đồng kiểm soát dịch bệnh truyền nhiễm từ động vật sang người. Hơn 60% các bệnh truyền nhiễm ở người có nguồn gốc từ động vật hoang dã hoặc vật nuôi. Đây là dịp ý nghĩa để tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm."
   },
   {
     "id": "ev-07-07-world-chocolate-day",
@@ -200,7 +272,19 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "07 Tháng 07",
     "meaning": "Chocolate đen giàu chất chống oxy hóa flavonoid giúp cải thiện lưu thông máu và kích thích tiết endorphin.",
-    "subtitle": "Vị ngọt ngào pha chút đắng nhẹ quyến rũ"
+    "subtitle": "Vị ngọt ngào pha chút đắng nhẹ quyến rũ",
+    "activities": [
+      "Khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này",
+      "Chia sẻ thông điệp tích cực và năng lượng lạc quan tới bạn bè, người thân",
+      "Dành thời gian thư giãn và trải nghiệm những khoảnh khắc ý nghĩa trong cuộc sống"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Hạt ca cao Bến Tre, Tiền Giang của Việt Nam được xếp vào hàng ca cao hương vị hảo hạng nhất thế giới."
+    ],
+    "description": "Vị ngọt ngào pha chút đắng nhẹ quyến rũ — món quà của tình yêu và sự tinh tế ẩm thực.",
+    "bannerDescription": "Được tổ chức từ năm 2009 nhằm kỷ niệm ngày hạt ca cao lần đầu tiên được đưa vào châu Âu năm 1550. Chocolate đen giàu chất chống oxy hóa flavonoid giúp cải thiện lưu thông máu và kích thích tiết endorphin. Đây là dịp ý nghĩa để khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này."
   },
   {
     "id": "ev-07-08-esports-day",
@@ -228,7 +312,19 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "08 Tháng 07",
     "meaning": "Các đội tuyển Esports Việt Nam đã xuất sắc giành nhiều huy chương vàng cho đoàn thể thao nước nhà.",
-    "subtitle": "Tôn vinh tư duy chiến thuật, phản xạ nhanh nhạy và tinh thần đồng đội của thế..."
+    "subtitle": "Tôn vinh tư duy chiến thuật, phản xạ nhanh nhạy và tinh thần đồng đội của thế...",
+    "activities": [
+      "Khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này",
+      "Chia sẻ thông điệp tích cực và năng lượng lạc quan tới bạn bè, người thân",
+      "Dành thời gian thư giãn và trải nghiệm những khoảnh khắc ý nghĩa trong cuộc sống"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Sự phối hợp ăn ý, giao tiếp chính xác và chiến thuật nhạy bén là chìa khóa chiến thắng trong game."
+    ],
+    "description": "Tôn vinh tư duy chiến thuật, phản xạ nhanh nhạy và tinh thần đồng đội của thế hệ số.",
+    "bannerDescription": "Khẳng định Esports là môn thể thao trí tuệ chính thức có mặt tại SEA Games và ASIAD. Các đội tuyển Esports Việt Nam đã xuất sắc giành nhiều huy chương vàng cho đoàn thể thao nước nhà. Đây là dịp ý nghĩa để khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này."
   },
   {
     "id": "ev-07-09-du-lich-vn",
@@ -257,7 +353,19 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "09 Tháng 07",
     "meaning": "Quảng bá cảnh quan hùng vĩ, ẩm thực phong phú và sự hiếu khách nồng hậu của con người đất Việt.",
-    "subtitle": "Tự hào vẻ đẹp non nước ngàn năm"
+    "subtitle": "Tự hào vẻ đẹp non nước ngàn năm",
+    "activities": [
+      "Dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ",
+      "Tham quan các bảo tàng, di tích lịch sử để tìm hiểu mốc son vẻ vang của dân tộc",
+      "Kể lại những câu chuyện lịch sử hào hùng cho thế hệ trẻ gìn giữ truyền thống yêu nước"
+    ],
+    "whyItMatters": null,
+    "message": "Tự hào truyền thống vẻ vang của dân tộc, vững bước tương lai kiến thiết đất nước giàu mạnh.",
+    "interestingFacts": [
+      "Việt Nam nhiều năm liền được vinh danh là 'Điểm đến di sản hàng đầu thế giới' bởi Giải thưởng Du lịch Thế giới (WTA)."
+    ],
+    "description": "Tự hào vẻ đẹp non nước ngàn năm — đưa văn hóa và con người Việt Nam tỏa sáng trên bản đồ du lịch thế giới.",
+    "bannerDescription": "Ngày 9/7/1960, Thủ tướng Phạm Văn Đồng ký Nghị định số 26/CP thành lập Công ty Du lịch Việt Nam trực thuộc Bộ Ngoại thương. Quảng bá cảnh quan hùng vĩ, ẩm thực phong phú và sự hiếu khách nồng hậu của con người đất Việt. Đây là dịp ý nghĩa để dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ."
   },
   {
     "id": "ev-07-10-solar-energy",
@@ -285,7 +393,19 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "10 Tháng 07",
     "meaning": "Việt Nam có số giờ nắng trung bình từ 2.000 đến 2.600 giờ/năm, tiềm năng năng lượng tái tạo hàng đầu khu vực.",
-    "subtitle": "Khai thác nguồn năng lượng vô tận từ ánh nắng vàng của vùng nhiệt đới trù phú."
+    "subtitle": "Khai thác nguồn năng lượng vô tận từ ánh nắng vàng của vùng nhiệt đới trù phú.",
+    "activities": [
+      "Gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu",
+      "Tổ chức các buổi gặp gỡ, họp mặt ý nghĩa để thắt chặt tình đoàn kết",
+      "Thực hiện những việc làm tử tế, sẻ chia khó khăn với những hoàn cảnh kém may mắn"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Lắp đặt điện mặt trời giúp tiết kiệm tiền điện và góp phần giảm phát thải khí nhà kính."
+    ],
+    "description": "Khai thác nguồn năng lượng vô tận từ ánh nắng vàng của vùng nhiệt đới trù phú.",
+    "bannerDescription": "Thúc đẩy phát triển điện mặt trời áp mái, giảm áp lực lên lưới điện quốc gia trong mùa cao điểm hè. Việt Nam có số giờ nắng trung bình từ 2.000 đến 2.600 giờ/năm, tiềm năng năng lượng tái tạo hàng đầu khu vực. Đây là dịp ý nghĩa để gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu."
   },
   {
     "id": "ev-07-11-dan-so-the-gioi",
@@ -313,7 +433,19 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "11 Tháng 07",
     "meaning": "Khẳng định quyền được tiếp cận dịch vụ y tế kế hoạch hóa gia đình an toàn và bình đẳng giới.",
-    "subtitle": "Nâng cao chất lượng dân số, chăm sóc sức khỏe sinh sản và tận dụng cơ cấu dân..."
+    "subtitle": "Nâng cao chất lượng dân số, chăm sóc sức khỏe sinh sản và tận dụng cơ cấu dân...",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Chung tay hành động vì một thế giới hòa bình, xanh sạch và ngập tràn tình yêu thương.",
+    "interestingFacts": [
+      "Việt Nam đang trong giai đoạn cơ cấu dân số vàng với lực lượng lao động trẻ dồi dào, cần nâng cao kỹ năng tay nghề."
+    ],
+    "description": "Nâng cao chất lượng dân số, chăm sóc sức khỏe sinh sản và tận dụng cơ cấu dân số vàng.",
+    "bannerDescription": "Quỹ Dân số Liên Hợp Quốc (UNFPA) quyết định từ năm 1989 kỷ niệm ngày dân số thế giới đạt mốc 5 tỷ người (11/7/1987). Khẳng định quyền được tiếp cận dịch vụ y tế kế hoạch hóa gia đình an toàn và bình đẳng giới. Đây là dịp ý nghĩa để tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm."
   },
   {
     "id": "ev-07-12-malala-day",
@@ -341,7 +473,19 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "12 Tháng 07",
     "meaning": "Khẳng định một đứa trẻ, một giáo viên, một cuốn sách và một cây bút có thể thay đổi thế giới.",
-    "subtitle": "Tôn vinh lòng dũng cảm bảo vệ quyền được đến trường học tập của mọi bé gái tr..."
+    "subtitle": "Tôn vinh lòng dũng cảm bảo vệ quyền được đến trường học tập của mọi bé gái tr...",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Một cuốn sách, một cây bút, một đứa trẻ và một giáo viên có thể thay đổi thế giới.",
+    "interestingFacts": [
+      "Malala là người trẻ tuổi nhất trong lịch sử từng đoạt giải Nobel Hòa bình (khi mới 17 tuổi)."
+    ],
+    "description": "Tôn vinh lòng dũng cảm bảo vệ quyền được đến trường học tập của mọi bé gái trên thế giới.",
+    "bannerDescription": "Liên Hợp Quốc chọn ngày sinh của Malala Yousafzai (12/7) sau bài phát biểu lịch sử của cô tại trụ sở LHQ năm 2013. Khẳng định một đứa trẻ, một giáo viên, một cuốn sách và một cây bút có thể thay đổi thế giới. Đây là dịp ý nghĩa để tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm."
   },
   {
     "id": "ev-07-13-rock-music-day",
@@ -369,7 +513,19 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "13 Tháng 07",
     "meaning": "Nhạc Rock Việt Nam ghi dấu ấn sâu đậm với các ban nhạc huyền thoại như Bức Tường, Microwave, Ngũ Cung...",
-    "subtitle": "Giai điệu bùng cháy, ngọn lửa tự do và tinh thần đoàn kết vượt qua ranh giới ..."
+    "subtitle": "Giai điệu bùng cháy, ngọn lửa tự do và tinh thần đoàn kết vượt qua ranh giới ...",
+    "activities": [
+      "Khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này",
+      "Chia sẻ thông điệp tích cực và năng lượng lạc quan tới bạn bè, người thân",
+      "Dành thời gian thư giãn và trải nghiệm những khoảnh khắc ý nghĩa trong cuộc sống"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Cố nhạc sĩ Trần Lập cùng ban nhạc Bức Tường đã truyền cảm hứng 'Đường đến ngày vinh quang' cho biết bao thế hệ thanh niên."
+    ],
+    "description": "Giai điệu bùng cháy, ngọn lửa tự do và tinh thần đoàn kết vượt qua ranh giới qua từng nhịp guitar bass.",
+    "bannerDescription": "Kỷ niệm đại nhạc hội Live Aid lịch sử ngày 13/7/1985 tại London và Philadelphia quyên góp cứu trợ nạn đói ở châu Phi. Nhạc Rock Việt Nam ghi dấu ấn sâu đậm với các ban nhạc huyền thoại như Bức Tường, Microwave, Ngũ Cung... Đây là dịp ý nghĩa để khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này."
   },
   {
     "id": "ev-07-14-shark-awareness",
@@ -397,7 +553,19 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "14 Tháng 07",
     "meaning": "Cá mập đã sinh sống trên Trái Đất hơn 400 triệu năm, trước cả khi loài khủng long xuất hiện.",
-    "subtitle": "Loài săn mồi đỉnh cao giữ vai trò then chốt điều hòa hệ sinh thái biển khơi."
+    "subtitle": "Loài săn mồi đỉnh cao giữ vai trò then chốt điều hòa hệ sinh thái biển khơi.",
+    "activities": [
+      "Khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này",
+      "Chia sẻ thông điệp tích cực và năng lượng lạc quan tới bạn bè, người thân",
+      "Dành thời gian thư giãn và trải nghiệm những khoảnh khắc ý nghĩa trong cuộc sống"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Nhiều tổ chức bảo tồn kêu gọi tẩy chay các món ăn từ vi cá mập để bảo vệ biển cả."
+    ],
+    "description": "Loài săn mồi đỉnh cao giữ vai trò then chốt điều hòa hệ sinh thái biển khơi.",
+    "bannerDescription": "Ngày nâng cao nhận thức bảo vệ các loài cá mập đang bị đe dọa nghiêm trọng bởi nạn săn bắt lấy vi cá. Cá mập đã sinh sống trên Trái Đất hơn 400 triệu năm, trước cả khi loài khủng long xuất hiện. Đây là dịp ý nghĩa để khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này."
   },
   {
     "id": "ev-07-15-thanh-nien-xung-phong",
@@ -431,7 +599,19 @@ export const JULY_EVENTS: VietnamEvent[] = [
       "Lễ dâng hương tại Khu di tích Lịch sử Quốc gia đặc biệt Ngã ba Đồng Lộc và Truông Bồn",
       "Thăm hỏi và tặng quà các cựu thanh niên xung phong có hoàn cảnh khó khăn",
       "Thế hệ trẻ học tập tấm gương kiên cường, dũng cảm mở đường thắng lợi của cha anh"
-    ]
+    ],
+    "activities": [
+      "Dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ",
+      "Tham quan các bảo tàng, di tích lịch sử để tìm hiểu mốc son vẻ vang của dân tộc",
+      "Kể lại những câu chuyện lịch sử hào hùng cho thế hệ trẻ gìn giữ truyền thống yêu nước"
+    ],
+    "whyItMatters": null,
+    "message": "Không có việc gì khó / Chỉ sợ lòng không bền / Đào núi và lấp biển / Quyết chí ắt làm nên. — Bác Hồ tặng Thanh niên xung phong (1951)",
+    "interestingFacts": [
+      "Bốn câu thơ Bác Hồ tặng Đội TNXP đã trở thành kim chỉ nam hành động cho tuổi trẻ Việt Nam qua mọi thời đại."
+    ],
+    "description": "Những chiến sĩ quả cảm 'Không có việc gì khó / Chỉ sợ lòng không bền' mở đường thắng lợi.",
+    "bannerDescription": "Ngày 15/7/1950, theo chỉ thị của Bác Hồ, Đội Thanh niên xung phong công tác Trung ương đầu tiên được thành lập tại Thái Nguyên. Gắn liền với những địa danh lịch sử huyền thoại: Ngã ba Đồng Lộc, Truông Bồn, Hang Tám Cô... Người dân và các gia đình thường lễ dâng hương tại Khu di tích Lịch sử Quốc gia đặc biệt Ngã ba Đồng Lộc và Truông Bồn."
   },
   {
     "id": "ev-07-16-snake-day",
@@ -459,7 +639,19 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "16 Tháng 07",
     "meaning": "Trại rắn Đồng Tâm (Tiền Giang) là trung tâm nuôi dưỡng và nghiên cứu điều chế huyết thanh kháng nọc rắn lớn nhất nước ta.",
-    "subtitle": "Tìm hiểu sinh vật kỳ bí trong tự nhiên và giá trị y học của nọc rắn trong điề..."
+    "subtitle": "Tìm hiểu sinh vật kỳ bí trong tự nhiên và giá trị y học của nọc rắn trong điề...",
+    "activities": [
+      "Khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này",
+      "Chia sẻ thông điệp tích cực và năng lượng lạc quan tới bạn bè, người thân",
+      "Dành thời gian thư giãn và trải nghiệm những khoảnh khắc ý nghĩa trong cuộc sống"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Nọc rắn được nghiên cứu điều chế các loại thuốc giảm đau và chống đông máu đột phá."
+    ],
+    "description": "Tìm hiểu sinh vật kỳ bí trong tự nhiên và giá trị y học của nọc rắn trong điều chế huyết thanh.",
+    "bannerDescription": "Ngày tìm hiểu về tập tính loài rắn, giải tỏa những định kiến sợ hãi vô căn cứ và bảo tồn sinh vật có ích. Trại rắn Đồng Tâm (Tiền Giang) là trung tâm nuôi dưỡng và nghiên cứu điều chế huyết thanh kháng nọc rắn lớn nhất nước ta. Đây là dịp ý nghĩa để khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này."
   },
   {
     "id": "ev-07-17-world-emoji-day",
@@ -487,7 +679,19 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "17 Tháng 07",
     "meaning": "Emoji giúp con người truyền tải cảm xúc vui, buồn, bất ngờ mà ngôn từ đôi khi khó diễn tả hết.",
-    "subtitle": "Ngôn ngữ biểu cảm phổ biến nhất thế giới số"
+    "subtitle": "Ngôn ngữ biểu cảm phổ biến nhất thế giới số",
+    "activities": [
+      "Khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này",
+      "Chia sẻ thông điệp tích cực và năng lượng lạc quan tới bạn bè, người thân",
+      "Dành thời gian thư giãn và trải nghiệm những khoảnh khắc ý nghĩa trong cuộc sống"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Mỗi ngày có hơn 10 tỷ biểu tượng cảm xúc được gửi đi qua các nền tảng mạng xã hội trên toàn cầu."
+    ],
+    "description": "Ngôn ngữ biểu cảm phổ biến nhất thế giới số — thêm sắc màu và tiếng cười cho mỗi dòng tin nhắn.",
+    "bannerDescription": "Chọn ngày 17/7 vì đây là ngày hiển thị trên biểu tượng emoji cuốn lịch chuẩn trên hầu hết bàn phím điện thoại. Emoji giúp con người truyền tải cảm xúc vui, buồn, bất ngờ mà ngôn từ đôi khi khó diễn tả hết. Đây là dịp ý nghĩa để khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này."
   },
   {
     "id": "ev-07-18-mandela-day",
@@ -515,7 +719,19 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "18 Tháng 07",
     "meaning": "Kêu gọi mỗi người dành ra 67 phút trong ngày để làm việc thiện phụng sự xã hội.",
-    "subtitle": "Tôn vinh biểu tượng bất diệt của lòng bao dung, hòa giải dân tộc và cuộc đấu ..."
+    "subtitle": "Tôn vinh biểu tượng bất diệt của lòng bao dung, hòa giải dân tộc và cuộc đấu ...",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Khó khăn có thể quật ngã một số người, nhưng cũng tôi luyện những người khác trở nên phi thường.",
+    "interestingFacts": [
+      "Nelson Mandela là người từng bị giam cầm 27 năm nhưng khi ra tù đã dùng lòng nhân ái hóa giải hận thù."
+    ],
+    "description": "Tôn vinh biểu tượng bất diệt của lòng bao dung, hòa giải dân tộc và cuộc đấu tranh chống phân biệt chủng tộc.",
+    "bannerDescription": "Đại hội đồng Liên Hợp Quốc chọn ngày sinh của Nelson Mandela (18/07/1918) để tôn vinh 67 năm cống hiến vì nhân loại của ông. Kêu gọi mỗi người dành ra 67 phút trong ngày để làm việc thiện phụng sự xã hội. Đây là dịp ý nghĩa để tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm."
   },
   {
     "id": "ev-07-19-ice-cream-day",
@@ -543,7 +759,19 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "19 Tháng 07",
     "meaning": "Kem Tràng Tiền (Hà Nội), kem Bạch Đằng (TP.HCM) với vị đậu xanh, cốm non, dừa tươi đã in sâu vào ký ức nhiều thế hệ.",
-    "subtitle": "Món quà ngọt ngào xua tan cái nóng oi ả của mùa hè"
+    "subtitle": "Món quà ngọt ngào xua tan cái nóng oi ả của mùa hè",
+    "activities": [
+      "Khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này",
+      "Chia sẻ thông điệp tích cực và năng lượng lạc quan tới bạn bè, người thân",
+      "Dành thời gian thư giãn và trải nghiệm những khoảnh khắc ý nghĩa trong cuộc sống"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Kem que Tràng Tiền ra đời từ năm 1958 đã trở thành nét văn hóa ẩm thực độc đáo của người thủ đô."
+    ],
+    "description": "Món quà ngọt ngào xua tan cái nóng oi ả của mùa hè — gắn liền với ký ức tuổi thơ tươi đẹp.",
+    "bannerDescription": "Tổng thống Mỹ Ronald Reagan khởi xướng năm 1984 tôn vinh món tráng miệng bổ dưỡng và phổ biến hàng đầu. Kem Tràng Tiền (Hà Nội), kem Bạch Đằng (TP.HCM) với vị đậu xanh, cốm non, dừa tươi đã in sâu vào ký ức nhiều thế hệ. Đây là dịp ý nghĩa để khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này."
   },
   {
     "id": "ev-07-20-hiep-dinh-geneve",
@@ -572,7 +800,19 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "20 Tháng 07",
     "meaning": "Kết thúc thắng lợi cuộc kháng chiến 9 năm chống thực dân Pháp, giải phóng hoàn toàn miền Bắc.",
-    "subtitle": "Buộc thực dân Pháp công nhận độc lập, chủ quyền, thống nhất và toàn vẹn lãnh ..."
+    "subtitle": "Buộc thực dân Pháp công nhận độc lập, chủ quyền, thống nhất và toàn vẹn lãnh ...",
+    "activities": [
+      "Dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ",
+      "Tham quan các bảo tàng, di tích lịch sử để tìm hiểu mốc son vẻ vang của dân tộc",
+      "Kể lại những câu chuyện lịch sử hào hùng cho thế hệ trẻ gìn giữ truyền thống yêu nước"
+    ],
+    "whyItMatters": null,
+    "message": "Tự hào truyền thống vẻ vang của dân tộc, vững bước tương lai kiến thiết đất nước giàu mạnh.",
+    "interestingFacts": [
+      "Ngày 20/7 đồng thời là Ngày Cờ vua Quốc tế kỷ niệm thành lập Liên đoàn Cờ vua Thế giới (FIDE)."
+    ],
+    "description": "Buộc thực dân Pháp công nhận độc lập, chủ quyền, thống nhất và toàn vẹn lãnh thổ của Việt Nam.",
+    "bannerDescription": "Đêm 20 rạng sáng 21/7/1954 tại Genève (Thụy Sĩ), Hiệp định đình chỉ chiến sự ở Việt Nam, Lào, Campuchia được ký kết. Kết thúc thắng lợi cuộc kháng chiến 9 năm chống thực dân Pháp, giải phóng hoàn toàn miền Bắc. Đây là dịp ý nghĩa để dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ."
   },
   {
     "id": "ev-07-21-junk-food",
@@ -600,7 +840,19 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "21 Tháng 07",
     "meaning": "Ẩm thực truyền thống Việt Nam với nhiều rau thơm tươi sống, nước canh thanh đạm là bài thuốc dinh dưỡng tự nhiên.",
-    "subtitle": "Thưởng thức món ăn yêu thích một cách chừng mực và tăng cường rau xanh, trái ..."
+    "subtitle": "Thưởng thức món ăn yêu thích một cách chừng mực và tăng cường rau xanh, trái ...",
+    "activities": [
+      "Gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu",
+      "Tổ chức các buổi gặp gỡ, họp mặt ý nghĩa để thắt chặt tình đoàn kết",
+      "Thực hiện những việc làm tử tế, sẻ chia khó khăn với những hoàn cảnh kém may mắn"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Uống nhiều nước lọc và ăn nhiều chất xơ giúp cơ thể thanh lọc hiệu quả."
+    ],
+    "description": "Thưởng thức món ăn yêu thích một cách chừng mực và tăng cường rau xanh, trái cây tươi.",
+    "bannerDescription": "Nhắc nhở cộng đồng giảm bớt thức ăn nhanh nhiều dầu mỡ và đồ ngọt để bảo vệ sức khỏe tim mạch. Ẩm thực truyền thống Việt Nam với nhiều rau thơm tươi sống, nước canh thanh đạm là bài thuốc dinh dưỡng tự nhiên. Đây là dịp ý nghĩa để gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu."
   },
   {
     "id": "ev-07-22-world-brain-day",
@@ -628,7 +880,19 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "22 Tháng 07",
     "meaning": "Đọc sách, học ngoại ngữ mới và ngủ đủ giấc là những cách tốt nhất để rèn luyện não bộ dẻo dai.",
-    "subtitle": "Chăm sóc bộ chỉ huy trung tâm của cơ thể"
+    "subtitle": "Chăm sóc bộ chỉ huy trung tâm của cơ thể",
+    "activities": [
+      "Gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu",
+      "Tổ chức các buổi gặp gỡ, họp mặt ý nghĩa để thắt chặt tình đoàn kết",
+      "Thực hiện những việc làm tử tế, sẻ chia khó khăn với những hoàn cảnh kém may mắn"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Bộ não con người tiêu thụ khoảng 20% tổng năng lượng của cơ thể dù chỉ chiếm 2% trọng lượng."
+    ],
+    "description": "Chăm sóc bộ chỉ huy trung tâm của cơ thể — nâng cao nhận thức phòng ngừa đột quỵ não.",
+    "bannerDescription": "Liên đoàn Thần kinh Thế giới (WFN) khởi xướng nhằm nâng cao hiểu biết về các bệnh lý thần kinh. Đọc sách, học ngoại ngữ mới và ngủ đủ giấc là những cách tốt nhất để rèn luyện não bộ dẻo dai. Đây là dịp ý nghĩa để gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu."
   },
   {
     "id": "ev-07-23-hang-xom-than-thien",
@@ -656,7 +920,19 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "23 Tháng 07",
     "meaning": "Tục ngữ Việt Nam: 'Hàng xóm tối lửa tắt đèn có nhau' thể hiện sự đùm bọc, tương thân tương ái truyền đời.",
-    "subtitle": "Bán anh em xa mua láng giềng gần"
+    "subtitle": "Bán anh em xa mua láng giềng gần",
+    "activities": [
+      "Gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu",
+      "Tổ chức các buổi gặp gỡ, họp mặt ý nghĩa để thắt chặt tình đoàn kết",
+      "Thực hiện những việc làm tử tế, sẻ chia khó khăn với những hoàn cảnh kém may mắn"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Bát canh ngon chia sẻ hay lời chào niềm nở mỗi sáng làm ấm áp tình làng nghĩa xóm."
+    ],
+    "description": "Bán anh em xa mua láng giềng gần — nét đẹp văn hóa gắn bó keo sơn trong làng xóm Việt Nam.",
+    "bannerDescription": "Tôn vinh tinh thần tương trợ, tắt lửa tối đèn có nhau của cộng đồng dân cư từ làng quê đến ngõ phố. Tục ngữ Việt Nam: 'Hàng xóm tối lửa tắt đèn có nhau' thể hiện sự đùm bọc, tương thân tương ái truyền đời. Đây là dịp ý nghĩa để gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu."
   },
   {
     "id": "ev-07-24-self-care-day",
@@ -684,7 +960,19 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "24 Tháng 07",
     "meaning": "Yêu thương bản thân không phải là ích kỷ, mà là nền tảng để có đủ năng lượng chăm lo cho những người xung quanh.",
-    "subtitle": "24/7 yêu thương chính mình"
+    "subtitle": "24/7 yêu thương chính mình",
+    "activities": [
+      "Gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu",
+      "Tổ chức các buổi gặp gỡ, họp mặt ý nghĩa để thắt chặt tình đoàn kết",
+      "Thực hiện những việc làm tử tế, sẻ chia khó khăn với những hoàn cảnh kém may mắn"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Dành cho mình 30 phút yên tĩnh nghe nhạc, ngâm chân thảo mộc hoặc đọc cuốn sách yêu thích."
+    ],
+    "description": "24/7 yêu thương chính mình — chăm sóc sức khỏe thể chất và nuôi dưỡng tâm hồn an yên.",
+    "bannerDescription": "Được chọn vào ngày 24/7 để nhấn mạnh thông điệp: chăm sóc bản thân là việc cần làm 24 giờ một ngày, 7 ngày một tuần. Yêu thương bản thân không phải là ích kỷ, mà là nền tảng để có đủ năng lượng chăm lo cho những người xung quanh. Đây là dịp ý nghĩa để gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu."
   },
   {
     "id": "ev-07-25-chong-duoi-nuoc",
@@ -712,7 +1000,19 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "25 Tháng 07",
     "meaning": "Tại Việt Nam, các lớp dạy bơi miễn phí và trang bị kỹ năng an toàn trong môi trường nước được triển khai rộng khắp.",
-    "subtitle": "Trang bị kỹ năng bơi an toàn cho trẻ em"
+    "subtitle": "Trang bị kỹ năng bơi an toàn cho trẻ em",
+    "activities": [
+      "Gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu",
+      "Tổ chức các buổi gặp gỡ, họp mặt ý nghĩa để thắt chặt tình đoàn kết",
+      "Thực hiện những việc làm tử tế, sẻ chia khó khăn với những hoàn cảnh kém may mắn"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Không bao giờ để trẻ em bơi một mình ở sông, suối, ao hồ mà không có người lớn giám sát."
+    ],
+    "description": "Trang bị kỹ năng bơi an toàn cho trẻ em — ngăn ngừa những tai nạn thương tâm mùa hè.",
+    "bannerDescription": "Đại hội đồng Liên Hợp Quốc thông qua năm 2021 nhằm kêu gọi hành động toàn cầu ngăn ngừa đuối nước. Tại Việt Nam, các lớp dạy bơi miễn phí và trang bị kỹ năng an toàn trong môi trường nước được triển khai rộng khắp. Đây là dịp ý nghĩa để gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu."
   },
   {
     "id": "ev-07-26-rung-ngap-man",
@@ -740,7 +1040,19 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "26 Tháng 07",
     "meaning": "Rừng ngập mặn hấp thụ lượng carbon cao gấp nhiều lần rừng trên cạn và là bức tường thành chắn sóng bão tự nhiên.",
-    "subtitle": "Tấm đê xanh chở che bờ cõi"
+    "subtitle": "Tấm đê xanh chở che bờ cõi",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Chung tay hành động vì một thế giới hòa bình, xanh sạch và ngập tràn tình yêu thương.",
+    "interestingFacts": [
+      "Rừng ngập mặn Cần Giờ được UNESCO công nhận là Khu Dự trữ Sinh quyển Thế giới đầu tiên của Việt Nam."
+    ],
+    "description": "Tấm đê xanh chở che bờ cõi — ngôi nhà chung của muôn loài thủy sản ven biển.",
+    "bannerDescription": "UNESCO thông qua năm 2015 nhằm nâng cao nhận thức về giá trị vô giá của hệ sinh thái rừng ngập mặn. Rừng ngập mặn hấp thụ lượng carbon cao gấp nhiều lần rừng trên cạn và là bức tường thành chắn sóng bão tự nhiên. Đây là dịp ý nghĩa để tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm."
   },
   {
     "id": "ev-07-27-thuong-binh-liet-si",
@@ -774,7 +1086,19 @@ export const JULY_EVENTS: VietnamEvent[] = [
       "Lễ thắp nến tri ân tại tất cả các nghĩa trang liệt sĩ trên toàn quốc lúc hoàng hôn 27/7",
       "Thăm hỏi, tặng quà các Mẹ Việt Nam Anh hùng, thương binh, bệnh binh và gia đình liệt sĩ",
       "Tổ chức chương trình nghệ thuật tưởng niệm khúc tráng ca hào hùng của cha anh"
-    ]
+    ],
+    "activities": [
+      "Treo cờ Tổ quốc trang trọng tại nhà và nơi làm việc chào mừng ngày lễ lớn",
+      "Tham gia các sự kiện văn hóa, biểu diễn nghệ thuật và pháo hoa kỷ niệm",
+      "Dành thời gian nghỉ ngơi trọn vẹn, sum họp và du lịch cùng người thân"
+    ],
+    "whyItMatters": null,
+    "message": "Máu đào của các liệt sĩ đã nhuộm màu cờ Tổ quốc thêm đỏ chói. Sự hy sinh dũng cảm của các liệt sĩ đã chuẩn bị cho đất nước ta nở hoa độc lập, kết quả tự do. — Hồ Chí Minh",
+    "interestingFacts": [
+      "Hàng triệu ngọn nến tri ân lung linh đồng loạt được thắp sáng trên khắp các nghĩa trang liệt sĩ vào đêm 26-27/7."
+    ],
+    "description": "Đạo lý 'Uống nước nhớ nguồn' — đời đời khắc ghi công ơn các anh hùng liệt sĩ ngã xuống vì Tổ quốc.",
+    "bannerDescription": "Tháng 7/1947, Bác Hồ chỉ thị chọn ngày 27/7 làm Ngày Thương binh toàn quốc để đồng bào tỏ lòng hiếu nghĩa. Tri ân sâu sắc những người lính đã cống hiến xương máu vì độc lập dân tộc, tự do của nhân dân. Người dân và các gia đình thường lễ thắp nến tri ân tại tất cả các nghĩa trang liệt sĩ trên toàn quốc lúc hoàng hôn 27/7."
   },
   {
     "id": "ev-07-28-cong-doan-va-asean",
@@ -808,7 +1132,19 @@ export const JULY_EVENTS: VietnamEvent[] = [
       "Lễ kỷ niệm tôn vinh cán bộ công đoàn cơ sở tiêu biểu và người lao động xuất sắc",
       "Phát động các phong trào thi đua 'Lao động giỏi, Lao động sáng tạo'",
       "Ký kết thỏa ước lao động tập thể chăm lo quyền lợi tốt hơn cho người lao động"
-    ]
+    ],
+    "activities": [
+      "Dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ",
+      "Tham quan các bảo tàng, di tích lịch sử để tìm hiểu mốc son vẻ vang của dân tộc",
+      "Kể lại những câu chuyện lịch sử hào hùng cho thế hệ trẻ gìn giữ truyền thống yêu nước"
+    ],
+    "whyItMatters": null,
+    "message": "Công đoàn là chỗ dựa tin cậy của người lao động, cầu nối vững chắc giữa Đảng, Nhà nước và giai cấp công nhân.",
+    "interestingFacts": [
+      "Ngày 28/7 đồng thời là Ngày Viêm gan Thế giới (WHO) kỷ niệm ngày sinh của bác sĩ đoạt giải Nobel Baruch Blumberg."
+    ],
+    "description": "Mái nhà chung của giai cấp công nhân và mốc son đưa Việt Nam hội nhập đại gia đình Đông Nam Á.",
+    "bannerDescription": "Ngày 28/7/1929 thành lập Tổng Công hội Đỏ Bắc Kỳ; ngày 28/7/1995 Việt Nam chính thức trở thành thành viên thứ 7 của Hiệp hội các Quốc gia Đông Nam Á (ASEAN). Bảo vệ quyền lợi hợp pháp của người lao động và mở ra chương mới trong tiến trình hội nhập quốc tế sâu rộng. Người dân và các gia đình thường lễ kỷ niệm tôn vinh cán bộ công đoàn cơ sở tiêu biểu và người lao động xuất sắc."
   },
   {
     "id": "ev-07-29-tiger-day",
@@ -836,7 +1172,19 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "29 Tháng 07",
     "meaning": "Hổ là loài chỉ thị sinh thái quan trọng phản ánh sức khỏe của những cánh rừng già nguyên sinh.",
-    "subtitle": "Bảo tồn loài chúa tể sơn lâm kiêu hùng khỏi nguy cơ tuyệt chủng trong tự nhiên."
+    "subtitle": "Bảo tồn loài chúa tể sơn lâm kiêu hùng khỏi nguy cơ tuyệt chủng trong tự nhiên.",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Chung tay hành động vì một thế giới hòa bình, xanh sạch và ngập tràn tình yêu thương.",
+    "interestingFacts": [
+      "Việt Nam thực thi nghiêm ngặt pháp luật cấm săn bắt, buôn bán các sản phẩm từ hổ và động vật quý hiếm."
+    ],
+    "description": "Bảo tồn loài chúa tể sơn lâm kiêu hùng khỏi nguy cơ tuyệt chủng trong tự nhiên.",
+    "bannerDescription": "Thành lập tại Hội nghị Thượng đỉnh về Hổ tại Saint Petersburg năm 2010 nhằm bảo vệ loài hổ hoang dã. Hổ là loài chỉ thị sinh thái quan trọng phản ánh sức khỏe của những cánh rừng già nguyên sinh. Đây là dịp ý nghĩa để tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm."
   },
   {
     "id": "ev-07-30-huu-nghi-quoc-te",
@@ -864,7 +1212,19 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "30 Tháng 07",
     "meaning": "Tình bạn chân thành giúp xóa bỏ định kiến, hóa giải bất đồng và xây dựng niềm tin vững bền.",
-    "subtitle": "Bắc nhịp cầu tình bạn vượt muôn trùng biên giới"
+    "subtitle": "Bắc nhịp cầu tình bạn vượt muôn trùng biên giới",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Chung tay hành động vì một thế giới hòa bình, xanh sạch và ngập tràn tình yêu thương.",
+    "interestingFacts": [
+      "Việt Nam là bạn, là đối tác tin cậy và thành viên có trách nhiệm của cộng đồng quốc tế."
+    ],
+    "description": "Bắc nhịp cầu tình bạn vượt muôn trùng biên giới — cùng kiến tạo một thế giới hòa bình, thịnh vượng.",
+    "bannerDescription": "Đại hội đồng Liên Hợp Quốc thông qua năm 2011 tôn vinh sức mạnh của tình bạn giữa các dân tộc, quốc gia và cá nhân. Tình bạn chân thành giúp xóa bỏ định kiến, hóa giải bất đồng và xây dựng niềm tin vững bền. Đây là dịp ý nghĩa để tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm."
   },
   {
     "id": "ev-07-31-kiem-lam",
@@ -892,6 +1252,18 @@ export const JULY_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "31 Tháng 07",
     "meaning": "Lực lượng kiểm lâm ngày đêm đối mặt với hiểm nguy, gian nan để ngăn chặn lâm tặc và cháy rừng.",
-    "subtitle": "Tri ân những bước chân thầm lặng bám rừng tuần tra bảo vệ báu vật thiên nhiên..."
+    "subtitle": "Tri ân những bước chân thầm lặng bám rừng tuần tra bảo vệ báu vật thiên nhiên...",
+    "activities": [
+      "Gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu",
+      "Tổ chức các buổi gặp gỡ, họp mặt ý nghĩa để thắt chặt tình đoàn kết",
+      "Thực hiện những việc làm tử tế, sẻ chia khó khăn với những hoàn cảnh kém may mắn"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Gần 15 triệu hecta rừng của Việt Nam luôn có sự túc trực bảo vệ kiên trì của các chiến sĩ kiểm lâm."
+    ],
+    "description": "Tri ân những bước chân thầm lặng bám rừng tuần tra bảo vệ báu vật thiên nhiên hoang dã.",
+    "bannerDescription": "Khởi xướng bởi Liên đoàn Kiểm lâm Quốc tế (IRF) nhằm tôn vinh những người kiểm lâm hy sinh khi làm nhiệm vụ. Lực lượng kiểm lâm ngày đêm đối mặt với hiểm nguy, gian nan để ngăn chặn lâm tặc và cháy rừng. Đây là dịp ý nghĩa để gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu."
   }
 ];

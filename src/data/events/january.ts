@@ -33,7 +33,19 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
       "Tham gia lễ hội Countdown đếm ngược chào năm mới tại các quảng trường lớn",
       "Gặp gỡ gia đình, người thân thưởng thức bữa tiệc tân niên ấm áp",
       "Lên danh sách mục tiêu năm mới (New Year's Resolutions) để phấn đấu"
-    ]
+    ],
+    "activities": [
+      "Treo cờ Tổ quốc trang trọng tại nhà và nơi làm việc chào mừng ngày lễ lớn",
+      "Tham gia các sự kiện văn hóa, biểu diễn nghệ thuật và pháo hoa kỷ niệm",
+      "Dành thời gian nghỉ ngơi trọn vẹn, sum họp và du lịch cùng người thân"
+    ],
+    "whyItMatters": null,
+    "message": "Một năm mới mang đến 365 trang giấy trắng, hãy viết nên câu chuyện rực rỡ nhất.",
+    "interestingFacts": [
+      "Tại Việt Nam, đêm 31/12 luôn là lễ hội đếm ngược (Countdown) rực rỡ tại các thành phố lớn."
+    ],
+    "description": "Khởi đầu một năm mới với những ước vọng tươi sáng, bình an và hạnh phúc trọn vẹn.",
+    "bannerDescription": "Đánh dấu thời khắc Trái Đất hoàn thành một chu kỳ quay quanh Mặt Trời theo lịch Gregory. Thời khắc chuyển giao năm mới, khép lại năm cũ để mở ra những hoài bão và mục tiêu mới. Người dân và các gia đình thường tham gia lễ hội Countdown đếm ngược chào năm mới tại các quảng trường lớn."
   },
   {
     "id": "sci-fi-day-0102",
@@ -62,7 +74,19 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-indigo-600/30 via-purple-700/20 to-zinc-950",
     "dateLabel": "02 Tháng 01",
     "meaning": "Khích lệ sự tò mò khám phá vũ trụ, công nghệ tương lai và không gian đa chiều.",
-    "subtitle": "Tôn vinh trí tưởng tượng phong phú và các tác phẩm điện ảnh, văn học viễn tưở..."
+    "subtitle": "Tôn vinh trí tưởng tượng phong phú và các tác phẩm điện ảnh, văn học viễn tưở...",
+    "activities": [
+      "Khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này",
+      "Chia sẻ thông điệp tích cực và năng lượng lạc quan tới bạn bè, người thân",
+      "Dành thời gian thư giãn và trải nghiệm những khoảnh khắc ý nghĩa trong cuộc sống"
+    ],
+    "whyItMatters": null,
+    "message": "Trí tưởng tượng quan trọng hơn tri thức. — Albert Einstein",
+    "interestingFacts": [
+      "Nhiều công nghệ hiện đại như máy tính bảng, điện thoại di động ban đầu đều xuất hiện trong phim viễn tưởng."
+    ],
+    "description": "Tôn vinh trí tưởng tượng phong phú và các tác phẩm điện ảnh, văn học viễn tưởng vượt thời gian.",
+    "bannerDescription": "Trùng ngày sinh của nhà văn khoa học viễn tưởng vĩ đại Isaac Asimov, tác giả của 'Tam quy tắc robot'. Khích lệ sự tò mò khám phá vũ trụ, công nghệ tương lai và không gian đa chiều. Đây là dịp ý nghĩa để khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này."
   },
   {
     "id": "ap-bac-0103",
@@ -91,7 +115,19 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
     "dateLabel": "03 Tháng 01",
     "meaning": "Đánh dấu bước trưởng thành vượt bậc của lực lượng vũ trang cách mạng miền Nam.",
     "subtitle": "Trận đánh vang dội giáng đòn quyết định làm phá sản chiến thuật trực thăng vận",
-    "quote": "Chiến thắng Ấp Bắc đánh dấu bước trưởng thành vượt bậc về chiến thuật và lòng quả cảm của quân và dân miền Nam."
+    "quote": "Chiến thắng Ấp Bắc đánh dấu bước trưởng thành vượt bậc về chiến thuật và lòng quả cảm của quân và dân miền Nam.",
+    "activities": [
+      "Dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ",
+      "Tham quan các bảo tàng, di tích lịch sử để tìm hiểu mốc son vẻ vang của dân tộc",
+      "Kể lại những câu chuyện lịch sử hào hùng cho thế hệ trẻ gìn giữ truyền thống yêu nước"
+    ],
+    "whyItMatters": null,
+    "message": "Chiến thắng Ấp Bắc đánh dấu bước trưởng thành vượt bậc về chiến thuật và lòng quả cảm của quân và dân miền Nam.",
+    "interestingFacts": [
+      "Trận Ấp Bắc đã chứng minh tinh thần dũng cảm có thể đánh bại vũ khí tối tân hiện đại."
+    ],
+    "description": "Chiến thắng lịch sử giáng đòn quyết định làm phá sản chiến thuật 'trực thăng vận' và 'thiết xa vận'.",
+    "bannerDescription": "Ngày 3/1/1963 tại Cai Lậy (Tiền Giang), quân và dân ta đã đánh bại cuộc càn quét quy mô lớn. Đánh dấu bước trưởng thành vượt bậc của lực lượng vũ trang cách mạng miền Nam. Đây là dịp ý nghĩa để dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ."
   },
   {
     "id": "braille-day-0104",
@@ -120,7 +156,19 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-blue-600/30 via-slate-700/20 to-zinc-950",
     "dateLabel": "04 Tháng 01",
     "meaning": "Khẳng định quyền bình đẳng được tiếp cận thông tin, học tập và hòa nhập xã hội của người khiếm thị.",
-    "subtitle": "Tôn vinh phát minh chữ nổi kỳ diệu giúp hàng triệu người khiếm thị chạm vào t..."
+    "subtitle": "Tôn vinh phát minh chữ nổi kỳ diệu giúp hàng triệu người khiếm thị chạm vào t...",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Tiếp cận thông tin là quyền cơ bản của mọi con người.",
+    "interestingFacts": [
+      "Chữ Braille gồm các ký tự tạo bởi các chấm nổi bố trí trong một khung 6 chấm (2 cột 3 hàng)."
+    ],
+    "description": "Tôn vinh phát minh chữ nổi kỳ diệu giúp hàng triệu người khiếm thị chạm vào tri thức và ánh sáng.",
+    "bannerDescription": "Kỷ niệm ngày sinh của Louis Braille (1809), người sáng tạo hệ thống chữ nổi 6 chấm. Khẳng định quyền bình đẳng được tiếp cận thông tin, học tập và hòa nhập xã hội của người khiếm thị. Đây là dịp ý nghĩa để tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm."
   },
   {
     "id": "dong-da-0105",
@@ -154,7 +202,19 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
       "Lễ dâng hương tưởng niệm Hoàng đế Quang Trung tại gò Đống Đa (Hà Nội)",
       "Trình diễn màn múa rồng lửa và tái hiện trận công phá đồn Ngọc Hồi hào hùng",
       "Hội rước kiệu và biểu diễn võ thuật cổ truyền Tây Sơn Bình Định"
-    ]
+    ],
+    "activities": [
+      "Dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ",
+      "Tham quan các bảo tàng, di tích lịch sử để tìm hiểu mốc son vẻ vang của dân tộc",
+      "Kể lại những câu chuyện lịch sử hào hùng cho thế hệ trẻ gìn giữ truyền thống yêu nước"
+    ],
+    "whyItMatters": null,
+    "message": "Đánh cho để dài tóc / Đánh cho để đen răng / Đánh cho nó chích luân bất phản / Đánh cho nó phiến giáp bất hoàn. — Hoàng đế Quang Trung",
+    "interestingFacts": [
+      "Chiếc áo bào màu đỏ của vua Quang Trung bị sém đen khói súng khi Người cưỡi voi dẫn đầu đoàn quân tiến vào Thăng Long."
+    ],
+    "description": "Bản anh hùng ca đại phá 29 vạn quân Thanh mùa xuân Kỷ Dậu 1789 của Hoàng đế Quang Trung.",
+    "bannerDescription": "Mờ sáng mùng 5 Tết Kỷ Dậu, đại quân Tây Sơn tiến đánh đồn Khương Thượng, đập tan quân xâm lược Mãn Thanh. Đỉnh cao nghệ thuật quân sự hành quân thần tốc, bảo vệ trọn vẹn chủ quyền non sông Đại Việt. Người dân và các gia đình thường lễ dâng hương tưởng niệm Hoàng đế Quang Trung tại gò Đống Đa (Hà Nội)."
   },
   {
     "id": "tong-tuyen-cu-0106",
@@ -187,7 +247,19 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
     "traditions": [
       "Tọa đàm chuyên đề lịch sử Quốc hội Việt Nam và quyền làm chủ của nhân dân",
       "Triển lãm các tư liệu, hình ảnh quý giá về kỳ Tổng tuyển cử năm 1946"
-    ]
+    ],
+    "activities": [
+      "Dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ",
+      "Tham quan các bảo tàng, di tích lịch sử để tìm hiểu mốc son vẻ vang của dân tộc",
+      "Kể lại những câu chuyện lịch sử hào hùng cho thế hệ trẻ gìn giữ truyền thống yêu nước"
+    ],
+    "whyItMatters": null,
+    "message": "Tổng tuyển cử là một dịp cho toàn thể quốc dân tự do lựa chọn những người có tài, có đức để gánh vác việc nước. — Hồ Chí Minh",
+    "interestingFacts": [
+      "Bất chấp bom đạn và sự chống phá của thực dân, 89% cử tri cả nước đã tham gia bỏ phiếu."
+    ],
+    "description": "Mốc son lịch sử khẳng định quyền làm chủ vận mệnh đất nước của nhân dân Việt Nam độc lập.",
+    "bannerDescription": "Ngày 6/1/1946, công dân Việt Nam từ 18 tuổi trở lên trên cả nước đã nô nức đi bỏ phiếu bầu Quốc hội khóa I. Sự kiện lập hiến vĩ đại, sinh ra bản Hiến pháp năm 1946 và bộ máy nhà nước dân chủ đầu tiên ở Đông Nam Á. Người dân và các gia đình thường tọa đàm chuyên đề lịch sử Quốc hội Việt Nam và quyền làm chủ của nhân dân."
   },
   {
     "id": "bien-gioi-tay-nam-0107",
@@ -216,7 +288,19 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
     "dateLabel": "07 Tháng 01",
     "meaning": "Khép lại trang sử đen tối của chế độ diệt chủng Pol Pot, hồi sinh đất nước Chùa Tháp anh em.",
     "subtitle": "Khúc tráng ca bảo vệ chủ quyền biên cương và nghĩa vụ quốc tế cao cả",
-    "quote": "Bộ đội tình nguyện Việt Nam đã cứu cả một dân tộc khỏi họa diệt chủng tàn bạo nhất trong lịch sử."
+    "quote": "Bộ đội tình nguyện Việt Nam đã cứu cả một dân tộc khỏi họa diệt chủng tàn bạo nhất trong lịch sử.",
+    "activities": [
+      "Dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ",
+      "Tham quan các bảo tàng, di tích lịch sử để tìm hiểu mốc son vẻ vang của dân tộc",
+      "Kể lại những câu chuyện lịch sử hào hùng cho thế hệ trẻ gìn giữ truyền thống yêu nước"
+    ],
+    "whyItMatters": null,
+    "message": "Bộ đội tình nguyện Việt Nam đã cứu cả một dân tộc khỏi họa diệt chủng tàn bạo nhất trong lịch sử.",
+    "interestingFacts": [
+      "Quân tình nguyện Việt Nam được người dân Campuchia gọi bằng cái tên trìu mến là 'Đội quân nhà Phật'."
+    ],
+    "description": "Bảo vệ vững chắc biên cương Tổ quốc và cứu nhân dân Campuchia thoát khỏi thảm họa diệt chủng.",
+    "bannerDescription": "Ngày 7/1/1979, Quân đội nhân dân Việt Nam cùng lực lượng vũ trang cách mạng Campuchia giải phóng thủ đô Phnom Penh. Khép lại trang sử đen tối của chế độ diệt chủng Pol Pot, hồi sinh đất nước Chùa Tháp anh em. Đây là dịp ý nghĩa để dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ."
   },
   {
     "id": "earth-rotation-0108",
@@ -245,7 +329,19 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-blue-600/30 via-cyan-600/20 to-zinc-950",
     "dateLabel": "08 Tháng 01",
     "meaning": "Khơi dậy niềm đam mê thiên văn học, vật lý và khám phá những quy luật vũ trụ bao la.",
-    "subtitle": "Kỷ niệm phát minh con lắc Foucault chứng minh chuyển động tự quay kỳ diệu của..."
+    "subtitle": "Kỷ niệm phát minh con lắc Foucault chứng minh chuyển động tự quay kỳ diệu của...",
+    "activities": [
+      "Khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này",
+      "Chia sẻ thông điệp tích cực và năng lượng lạc quan tới bạn bè, người thân",
+      "Dành thời gian thư giãn và trải nghiệm những khoảnh khắc ý nghĩa trong cuộc sống"
+    ],
+    "whyItMatters": null,
+    "message": "Và dẫu sao thì Trái Đất vẫn quay! — Galileo Galilei",
+    "interestingFacts": [
+      "Trái Đất tự quay với vận tốc xấp xỉ 1.670 km/h tại xích đạo, nhưng chúng ta không cảm nhận được nhờ lực hấp dẫn."
+    ],
+    "description": "Kỷ niệm phát minh con lắc Foucault chứng minh chuyển động tự quay kỳ diệu của hành tinh xanh.",
+    "bannerDescription": "Năm 1851, nhà vật lý người Pháp Léon Foucault lần đầu chứng minh Trái Đất tự quay quanh trục bằng con lắc khổng lồ. Khơi dậy niềm đam mê thiên văn học, vật lý và khám phá những quy luật vũ trụ bao la. Đây là dịp ý nghĩa để khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này."
   },
   {
     "id": "hoc-sinh-sinh-vien-0109",
@@ -279,7 +375,19 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
       "Lễ tuyên dương danh hiệu 'Sinh viên 5 tốt' và giải thưởng 'Sao Tháng Giêng' toàn quốc",
       "Hội thi văn nghệ, thể thao và sáng tạo khoa học kỹ thuật trong học sinh, sinh viên",
       "Thắp hương tưởng niệm người học sinh anh hùng Trần Văn Ơn tại TP. Hồ Chí Minh"
-    ]
+    ],
+    "activities": [
+      "Dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ",
+      "Tham quan các bảo tàng, di tích lịch sử để tìm hiểu mốc son vẻ vang của dân tộc",
+      "Kể lại những câu chuyện lịch sử hào hùng cho thế hệ trẻ gìn giữ truyền thống yêu nước"
+    ],
+    "whyItMatters": null,
+    "message": "Anh Trần Văn Ơn hy sinh đã thổi bùng lên ngọn lửa đấu tranh kiên cường của tuổi trẻ học đường yêu nước.",
+    "interestingFacts": [
+      "Giải thưởng danh giá 'Sinh viên 5 tốt' và 'Sao Tháng Giêng' được trao tặng hàng năm vào ngày này."
+    ],
+    "description": "Noi gương anh hùng Trần Văn Ơn — ngời sáng nhiệt huyết, trí tuệ và khát vọng của tuổi trẻ học đường.",
+    "bannerDescription": "Ngày 9/1/1950, anh học sinh Trần Văn Ơn đã anh dũng hy sinh trong cuộc biểu tình đòi quyền học tập tại Sài Gòn. Tôn vinh tinh thần xung kích, khát vọng vươn lên làm chủ tri thức và cống hiến cho Tổ quốc của sinh viên. Người dân và các gia đình thường lễ tuyên dương danh hiệu 'Sinh viên 5 tốt' và giải thưởng 'Sao Tháng Giêng' toàn quốc."
   },
   {
     "id": "tiet-kiem-nang-luong-0110",
@@ -307,7 +415,19 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-emerald-600/30 via-teal-700/20 to-zinc-950",
     "dateLabel": "10 Tháng 01",
     "meaning": "Giáo dục ý thức tiết kiệm tài nguyên cho thế hệ trẻ, ứng phó biến đổi khí hậu toàn cầu.",
-    "subtitle": "Mỗi hành động nhỏ tắt bớt một bóng đèn là góp thêm màu xanh bảo vệ hành tinh."
+    "subtitle": "Mỗi hành động nhỏ tắt bớt một bóng đèn là góp thêm màu xanh bảo vệ hành tinh.",
+    "activities": [
+      "Trồng thêm cây xanh tại khu dân cư, ban công hoặc nơi làm việc",
+      "Hạn chế sử dụng đồ nhựa dùng một lần và phân loại rác thải tại nguồn",
+      "Tắt bớt các thiết bị điện không cần thiết và sử dụng phương tiện giao thông thân thiện môi trường"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Sử dụng bóng đèn LED giúp tiết kiệm đến 75% điện năng so với bóng sợi đốt truyền thống."
+    ],
+    "description": "Mỗi hành động nhỏ tắt bớt một bóng đèn là góp thêm màu xanh bảo vệ hành tinh.",
+    "bannerDescription": "Phong trào lan tỏa thói quen sống xanh, sử dụng năng lượng tái tạo và giảm phát thải carbon. Giáo dục ý thức tiết kiệm tài nguyên cho thế hệ trẻ, ứng phó biến đổi khí hậu toàn cầu. Đây là dịp ý nghĩa để trồng thêm cây xanh tại khu dân cư, ban công hoặc nơi làm việc."
   },
   {
     "id": "vietnam-wto-0111",
@@ -336,7 +456,19 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-blue-700/30 via-amber-600/20 to-zinc-950",
     "dateLabel": "11 Tháng 01",
     "meaning": "Mở rộng thị trường xuất khẩu, thu hút dòng vốn đầu tư trực tiếp nước ngoài FDI kỷ lục.",
-    "subtitle": "Cột mốc lịch sử đưa kinh tế Việt Nam vươn ra biển lớn, hội nhập sâu rộng với ..."
+    "subtitle": "Cột mốc lịch sử đưa kinh tế Việt Nam vươn ra biển lớn, hội nhập sâu rộng với ...",
+    "activities": [
+      "Dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ",
+      "Tham quan các bảo tàng, di tích lịch sử để tìm hiểu mốc son vẻ vang của dân tộc",
+      "Kể lại những câu chuyện lịch sử hào hùng cho thế hệ trẻ gìn giữ truyền thống yêu nước"
+    ],
+    "whyItMatters": null,
+    "message": "Việt Nam sẵn sàng là bạn, là đối tác tin cậy của tất cả các quốc gia trên thế giới.",
+    "interestingFacts": [
+      "Kể từ khi gia nhập WTO, kim ngạch xuất nhập khẩu của Việt Nam đã tăng trưởng hơn 7 lần."
+    ],
+    "description": "Cột mốc lịch sử đưa kinh tế Việt Nam vươn ra biển lớn, hội nhập sâu rộng với thương mại toàn cầu.",
+    "bannerDescription": "Ngày 11/1/2007, Việt Nam chính thức trở thành thành viên thứ 150 của Tổ chức Thương mại Thế giới (WTO). Mở rộng thị trường xuất khẩu, thu hút dòng vốn đầu tư trực tiếp nước ngoài FDI kỷ lục. Đây là dịp ý nghĩa để dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ."
   },
   {
     "id": "duoc-si-vn-0112",
@@ -365,7 +497,19 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-teal-600/30 via-emerald-700/20 to-zinc-950",
     "dateLabel": "12 Tháng 01",
     "meaning": "Bảo tồn các bài thuốc quý phương Nam với phương châm 'Nam dược trị Nam nhân'.",
-    "subtitle": "Tri ân những cống hiến thầm lặng trong nghiên cứu, bào chế thuốc chữa bệnh ch..."
+    "subtitle": "Tri ân những cống hiến thầm lặng trong nghiên cứu, bào chế thuốc chữa bệnh ch...",
+    "activities": [
+      "Gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu",
+      "Tổ chức các buổi gặp gỡ, họp mặt ý nghĩa để thắt chặt tình đoàn kết",
+      "Thực hiện những việc làm tử tế, sẻ chia khó khăn với những hoàn cảnh kém may mắn"
+    ],
+    "whyItMatters": null,
+    "message": "Nam dược trị Nam nhân — Thuốc Nam chữa bệnh cho người Nam. — Tuệ Tĩnh",
+    "interestingFacts": [
+      "Việt Nam có hơn 5.000 loài thực vật có công dụng chữa bệnh phong phú hàng đầu thế giới."
+    ],
+    "description": "Tri ân những cống hiến thầm lặng trong nghiên cứu, bào chế thuốc chữa bệnh cho nhân dân.",
+    "bannerDescription": "Tôn vinh nền y học cổ truyền và dược liệu phong phú của đại danh y Tuệ Tĩnh và Hải Thượng Lãn Ông. Bảo tồn các bài thuốc quý phương Nam với phương châm 'Nam dược trị Nam nhân'. Đây là dịp ý nghĩa để gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu."
   },
   {
     "id": "do-luong-0113",
@@ -393,7 +537,19 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-red-700/30 via-amber-700/20 to-zinc-950",
     "dateLabel": "13 Tháng 01",
     "meaning": "Báo hiệu thời kỳ cách mạng Việt Nam chuyển sang đấu tranh vũ trang giành lại độc lập non sông.",
-    "subtitle": "Tiếng súng rền vang thắp sáng tinh thần yêu nước bất khuất của Đội Cung cùng ..."
+    "subtitle": "Tiếng súng rền vang thắp sáng tinh thần yêu nước bất khuất của Đội Cung cùng ...",
+    "activities": [
+      "Dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ",
+      "Tham quan các bảo tàng, di tích lịch sử để tìm hiểu mốc son vẻ vang của dân tộc",
+      "Kể lại những câu chuyện lịch sử hào hùng cho thế hệ trẻ gìn giữ truyền thống yêu nước"
+    ],
+    "whyItMatters": null,
+    "message": "Tự hào truyền thống vẻ vang của dân tộc, vững bước tương lai kiến thiết đất nước giàu mạnh.",
+    "interestingFacts": [
+      "Mặc dù thất bại nhưng cuộc khởi nghĩa đã thể hiện tinh thần ái quốc mãnh liệt của binh sĩ Việt Nam."
+    ],
+    "description": "Tiếng súng rền vang thắp sáng tinh thần yêu nước bất khuất của Đội Cung cùng các binh lính.",
+    "bannerDescription": "Đêm 13/1/1941, Đội Cung lãnh đạo binh lính đồn Chợ Rạng (Đô Lương, Nghệ An) nổi dậy chống thực dân Pháp. Báo hiệu thời kỳ cách mạng Việt Nam chuyển sang đấu tranh vũ trang giành lại độc lập non sông. Đây là dịp ý nghĩa để dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ."
   },
   {
     "id": "logic-day-0114",
@@ -422,7 +578,19 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-cyan-700/30 via-blue-800/20 to-zinc-950",
     "dateLabel": "14 Tháng 01",
     "meaning": "Thúc đẩy tư duy lập luận khoa học, ngăn chặn tin giả và định hình nền tảng cho trí tuệ nhân tạo (AI).",
-    "subtitle": "Tôn vinh tư duy phản biện, tính duy lý và vai trò của khoa học logic trong sự..."
+    "subtitle": "Tôn vinh tư duy phản biện, tính duy lý và vai trò của khoa học logic trong sự...",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Logic đưa bạn từ điểm A đến điểm B. Trí tưởng tượng đưa bạn đến mọi nơi.",
+    "interestingFacts": [
+      "Toàn bộ kiến trúc máy tính số và thuật toán AI ngày nay đều vận hành dựa trên đại số logic Boole."
+    ],
+    "description": "Tôn vinh tư duy phản biện, tính duy lý và vai trò của khoa học logic trong sự tiến bộ của nhân loại.",
+    "bannerDescription": "Được UNESCO công bố phối hợp với Hội đồng Quốc tế về Triết học và Khoa học Nhân văn (CIPSH). Thúc đẩy tư duy lập luận khoa học, ngăn chặn tin giả và định hình nền tảng cho trí tuệ nhân tạo (AI). Đây là dịp ý nghĩa để tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm."
   },
   {
     "id": "non-la-0115",
@@ -457,7 +625,19 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
       "Biểu diễn múa nón lá kết hợp áo dài truyền thống trong các sự kiện văn hóa",
       "Tặng nón lá bài thơ làm quà lưu niệm gửi gắm nét đẹp quê hương cho du khách"
     ],
-    "cuisine": "Chè sen long nhãn xứ Huế ngọt thanh tao đượm phong vị kinh kỳ."
+    "cuisine": "Chè sen long nhãn xứ Huế ngọt thanh tao đượm phong vị kinh kỳ.",
+    "activities": [
+      "Chuẩn bị lễ vật chu đáo và thực hiện các nghi thức truyền thống trang nghiêm",
+      "Sum vầy bên gia đình, thưởng thức các món ăn mang phong vị đặc trưng lễ hội",
+      "Tham gia các trò chơi dân gian và tìm hiểu nguồn gốc phong tục cổ truyền"
+    ],
+    "whyItMatters": null,
+    "message": "Nón lá nghiêng che vành nón mỏng / Áo dài tha thướt bóng quê hương.",
+    "interestingFacts": [
+      "Các làng nghề nón nổi tiếng như nón làng Chuông (Hà Nội), nón bài thơ xứ Huế đòi hỏi hàng chục công đoạn tỉ mỉ."
+    ],
+    "description": "Biểu tượng duyên dáng của tâm hồn Việt, che mưa che nắng và chở che nét đẹp dịu dàng.",
+    "bannerDescription": "Chiếc nón lá có lịch sử hàng ngàn năm, hình ảnh tiền thân đã được chạm khắc trên trống đồng Đông Sơn. Gắn liền với hình ảnh tà áo dài thướt tha, là biểu tượng nhận diện văn hóa Việt Nam trên trường quốc tế. Người dân và các gia đình thường trải nghiệm làm nón lá thủ công tại làng nghề Chuông (Hà Nội) hoặc làng nón Dạ Lê (Huế)."
   },
   {
     "id": "ton-giao-0116",
@@ -485,7 +665,19 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-purple-600/30 via-amber-600/20 to-zinc-950",
     "dateLabel": "16 Tháng 01",
     "meaning": "Việt Nam là quốc gia đa tôn giáo, nơi các cộng đồng Phật giáo, Công giáo, Tin Lành, Hồi giáo... cùng đoàn kết chung sống.",
-    "subtitle": "Sống hài hòa, bao dung và tôn trọng các giá trị văn hóa tâm linh lành mạnh củ..."
+    "subtitle": "Sống hài hòa, bao dung và tôn trọng các giá trị văn hóa tâm linh lành mạnh củ...",
+    "activities": [
+      "Gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu",
+      "Tổ chức các buổi gặp gỡ, họp mặt ý nghĩa để thắt chặt tình đoàn kết",
+      "Thực hiện những việc làm tử tế, sẻ chia khó khăn với những hoàn cảnh kém may mắn"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Hiến pháp Việt Nam bảo đảm quyền tự do tín ngưỡng, tôn giáo của mọi công dân."
+    ],
+    "description": "Sống hài hòa, bao dung và tôn trọng các giá trị văn hóa tâm linh lành mạnh của nhân loại.",
+    "bannerDescription": "Hưởng ứng ngày Tự do Tôn giáo nhằm thúc đẩy sự hiểu biết lẫn nhau và đối thoại hòa bình giữa các tôn giáo. Việt Nam là quốc gia đa tôn giáo, nơi các cộng đồng Phật giáo, Công giáo, Tin Lành, Hồi giáo... cùng đoàn kết chung sống. Đây là dịp ý nghĩa để gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu."
   },
   {
     "id": "ben-tre-dong-khoi-0117",
@@ -518,7 +710,19 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
     "traditions": [
       "Lễ dâng hương tưởng niệm Nữ tướng Nguyễn Thị Định và Đội quân tóc dài Bến Tre",
       "Thăm Di tích lịch sử Quốc gia đặc biệt Đồng Khởi tại Định Thủy, Mỏ Cày Nam"
-    ]
+    ],
+    "activities": [
+      "Dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ",
+      "Tham quan các bảo tàng, di tích lịch sử để tìm hiểu mốc son vẻ vang của dân tộc",
+      "Kể lại những câu chuyện lịch sử hào hùng cho thế hệ trẻ gìn giữ truyền thống yêu nước"
+    ],
+    "whyItMatters": null,
+    "message": "Đội quân tóc dài Bến Tre — biểu tượng anh hùng, quật khởi của phụ nữ miền Nam trong kháng chiến.",
+    "interestingFacts": [
+      "'Đội quân tóc dài' Bến Tre với phương châm đấu tranh chính trị sắc sảo đã khiến quân địch phải kinh hoàng thán phục."
+    ],
+    "description": "Ngọn lửa Đồng Khởi bùng cháy, khai sinh 'Đội quân tóc dài' huyền thoại làm rung chuyển thành lũy địch.",
+    "bannerDescription": "Ngày 17/1/1960, dưới sự chỉ đạo của nữ tướng Nguyễn Thị Định, nhân dân 3 xã Định Thủy, Phước Hiệp, Bình Khánh đồng loạt nổi dậy. Chuyển cách mạng miền Nam từ thế giữ gìn lực lượng sang thế tiến công mạnh mẽ. Người dân và các gia đình thường lễ dâng hương tưởng niệm Nữ tướng Nguyễn Thị Định và Đội quân tóc dài Bến Tre."
   },
   {
     "id": "ngoai-giao-vn-tq-0118",
@@ -546,7 +750,19 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-red-700/30 via-yellow-600/20 to-zinc-950",
     "dateLabel": "18 Tháng 01",
     "meaning": "Phá tan thế bao vây cô lập của kẻ thù, mở đường cho sự ủng hộ to lớn của bạn bè quốc tế đối với cuộc kháng chiến.",
-    "subtitle": "Cột mốc mở đầu cho các quan hệ ngoại giao chính thức giữa nước Việt Nam mới v..."
+    "subtitle": "Cột mốc mở đầu cho các quan hệ ngoại giao chính thức giữa nước Việt Nam mới v...",
+    "activities": [
+      "Dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ",
+      "Tham quan các bảo tàng, di tích lịch sử để tìm hiểu mốc son vẻ vang của dân tộc",
+      "Kể lại những câu chuyện lịch sử hào hùng cho thế hệ trẻ gìn giữ truyền thống yêu nước"
+    ],
+    "whyItMatters": null,
+    "message": "Tự hào truyền thống vẻ vang của dân tộc, vững bước tương lai kiến thiết đất nước giàu mạnh.",
+    "interestingFacts": [
+      "Chủ tịch Hồ Chí Minh đã trực tiếp thực hiện chuyến thăm bí mật sang Bắc Kinh và Moskva đầu năm 1950."
+    ],
+    "description": "Cột mốc mở đầu cho các quan hệ ngoại giao chính thức giữa nước Việt Nam mới và các nước láng giềng.",
+    "bannerDescription": "Ngày 18/1/1950, CHND Trung Hoa là quốc gia đầu tiên trên thế giới công nhận và thiết lập ngoại giao với VNDCCH. Phá tan thế bao vây cô lập của kẻ thù, mở đường cho sự ủng hộ to lớn của bạn bè quốc tế đối với cuộc kháng chiến. Đây là dịp ý nghĩa để dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ."
   },
   {
     "id": "hoang-sa-0119",
@@ -575,7 +791,19 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-blue-700/40 via-cyan-600/20 to-zinc-950",
     "dateLabel": "19 Tháng 01",
     "meaning": "Khẳng định ý chí sắt đá và chứng cứ lịch sử pháp lý không thể chối cãi về chủ quyền biển đảo của Tổ quốc.",
-    "subtitle": "Khắc ghi công ơn các thế hệ cha ông đã hy sinh xương máu giữ gìn từng tấc biể..."
+    "subtitle": "Khắc ghi công ơn các thế hệ cha ông đã hy sinh xương máu giữ gìn từng tấc biể...",
+    "activities": [
+      "Dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ",
+      "Tham quan các bảo tàng, di tích lịch sử để tìm hiểu mốc son vẻ vang của dân tộc",
+      "Kể lại những câu chuyện lịch sử hào hùng cho thế hệ trẻ gìn giữ truyền thống yêu nước"
+    ],
+    "whyItMatters": null,
+    "message": "Hoàng Sa, Trường Sa là máu thịt của Tổ quốc Việt Nam.",
+    "interestingFacts": [
+      "Lễ khao lề thế lính Hoàng Sa tại đảo Lý Sơn (Quảng Ngãi) là di sản phi vật thể quốc gia tri ân những người lính mở cõi."
+    ],
+    "description": "Khắc ghi công ơn các thế hệ cha ông đã hy sinh xương máu giữ gìn từng tấc biển đảo thiêng liêng.",
+    "bannerDescription": "Tưởng niệm sự kiện bảo vệ đảo Hoàng Sa năm 1974 và sự hiện diện chủ quyền liên tục từ thời các Chúa Nguyễn với Hải đội Hoàng Sa. Khẳng định ý chí sắt đá và chứng cứ lịch sử pháp lý không thể chối cãi về chủ quyền biển đảo của Tổ quốc. Đây là dịp ý nghĩa để dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ."
   },
   {
     "id": "penguin-day-0120",
@@ -603,7 +831,19 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-cyan-600/30 via-slate-700/20 to-zinc-950",
     "dateLabel": "20 Tháng 01",
     "meaning": "Nhắc nhở con người về tác động khốc liệt của biến đổi khí hậu làm tan chảy băng vĩnh cửu.",
-    "subtitle": "Bảo vệ sinh vật đáng yêu và hệ sinh thái băng giá trước nguy cơ nóng lên toàn..."
+    "subtitle": "Bảo vệ sinh vật đáng yêu và hệ sinh thái băng giá trước nguy cơ nóng lên toàn...",
+    "activities": [
+      "Khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này",
+      "Chia sẻ thông điệp tích cực và năng lượng lạc quan tới bạn bè, người thân",
+      "Dành thời gian thư giãn và trải nghiệm những khoảnh khắc ý nghĩa trong cuộc sống"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Chim cánh cụt hoàng đế có thể lặn sâu tới hơn 500m dưới đại dương băng giá."
+    ],
+    "description": "Bảo vệ sinh vật đáng yêu và hệ sinh thái băng giá trước nguy cơ nóng lên toàn cầu.",
+    "bannerDescription": "Ngày nâng cao nhận thức bảo vệ các loài chim cánh cụt đang bị đe dọa sinh cảnh sống ở Nam Bán Cầu. Nhắc nhở con người về tác động khốc liệt của biến đổi khí hậu làm tan chảy băng vĩnh cửu. Đây là dịp ý nghĩa để khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này."
   },
   {
     "id": "hug-day-0121",
@@ -632,7 +872,19 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-rose-600/30 via-amber-600/20 to-zinc-950",
     "dateLabel": "21 Tháng 01",
     "meaning": "Y học chứng minh cái ôm giúp cơ thể tiết ra oxytocin — hormone giảm căng thẳng và tăng cảm giác hạnh phúc.",
-    "subtitle": "Một cái ôm chân thành có sức mạnh chữa lành, xua tan cô đơn và kết nối những ..."
+    "subtitle": "Một cái ôm chân thành có sức mạnh chữa lành, xua tan cô đơn và kết nối những ...",
+    "activities": [
+      "Gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu",
+      "Tổ chức các buổi gặp gỡ, họp mặt ý nghĩa để thắt chặt tình đoàn kết",
+      "Thực hiện những việc làm tử tế, sẻ chia khó khăn với những hoàn cảnh kém may mắn"
+    ],
+    "whyItMatters": null,
+    "message": "Đôi khi tất cả những gì bạn cần chỉ là một cái ôm không lời.",
+    "interestingFacts": [
+      "Một cái ôm kéo dài ít nhất 20 giây sẽ kích hoạt giải phóng hormone hạnh phúc hiệu quả nhất."
+    ],
+    "description": "Một cái ôm chân thành có sức mạnh chữa lành, xua tan cô đơn và kết nối những trái tim.",
+    "bannerDescription": "Khởi xướng bởi Kevin Zaborney năm 1986 nhằm khuyến khích mọi người cởi mở trao nhau những cử chỉ ấm áp. Y học chứng minh cái ôm giúp cơ thể tiết ra oxytocin — hormone giảm căng thẳng và tăng cảm giác hạnh phúc. Đây là dịp ý nghĩa để gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu."
   },
   {
     "id": "song-tich-cuc-0122",
@@ -661,7 +913,19 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-yellow-600/30 via-emerald-600/20 to-zinc-950",
     "dateLabel": "22 Tháng 01",
     "meaning": "Giúp mỗi người tìm thấy sự bình an nội tại, giảm áp lực công việc và tận hưởng từng khoảnh khắc giản đơn.",
-    "subtitle": "Chọn mỉm cười trước thử thách, giữ tâm an yên và lan tỏa nguồn năng lượng tíc..."
+    "subtitle": "Chọn mỉm cười trước thử thách, giữ tâm an yên và lan tỏa nguồn năng lượng tíc...",
+    "activities": [
+      "Gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu",
+      "Tổ chức các buổi gặp gỡ, họp mặt ý nghĩa để thắt chặt tình đoàn kết",
+      "Thực hiện những việc làm tử tế, sẻ chia khó khăn với những hoàn cảnh kém may mắn"
+    ],
+    "whyItMatters": null,
+    "message": "Mỗi ngày là một món quà mới mẻ, hãy mở nó ra với lòng hân hoan.",
+    "interestingFacts": [
+      "Mỗi ngày ghi lại 3 điều bạn biết ơn sẽ cải thiện đáng kể chất lượng giấc ngủ và tâm trạng."
+    ],
+    "description": "Chọn mỉm cười trước thử thách, giữ tâm an yên và lan tỏa nguồn năng lượng tích cực.",
+    "bannerDescription": "Phong trào chăm sóc sức khỏe tinh thần và thực hành lòng biết ơn trong cuộc sống hiện đại. Giúp mỗi người tìm thấy sự bình an nội tại, giảm áp lực công việc và tận hưởng từng khoảnh khắc giản đơn. Đây là dịp ý nghĩa để gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu."
   },
   {
     "id": "chu-viet-tay-0123",
@@ -690,7 +954,19 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-700/30 via-stone-700/20 to-zinc-950",
     "dateLabel": "23 Tháng 01",
     "meaning": "Tại Việt Nam, phong trào 'Vở sạch chữ đẹp' đã rèn luyện tính kiên nhẫn, cẩn trọng cho biết bao thế hệ học trò.",
-    "subtitle": "Nét chữ nết người"
+    "subtitle": "Nét chữ nết người",
+    "activities": [
+      "Khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này",
+      "Chia sẻ thông điệp tích cực và năng lượng lạc quan tới bạn bè, người thân",
+      "Dành thời gian thư giãn và trải nghiệm những khoảnh khắc ý nghĩa trong cuộc sống"
+    ],
+    "whyItMatters": null,
+    "message": "Nét chữ nết người.",
+    "interestingFacts": [
+      "Viết tay giúp kích hoạt nhiều vùng não hơn so với gõ bàn phím, tăng cường trí nhớ và khả năng tư duy trừu tượng."
+    ],
+    "description": "Nét chữ nết người — gìn giữ vẻ đẹp mộc mạc, cảm xúc của những trang viết tay giữa kỷ nguyên số.",
+    "bannerDescription": "Ngày sinh của John Hancock, người đầu tiên ký tên nổi tiếng vào Tuyên ngôn Độc lập Hoa Kỳ với chữ ký tuyệt đẹp. Tại Việt Nam, phong trào 'Vở sạch chữ đẹp' đã rèn luyện tính kiên nhẫn, cẩn trọng cho biết bao thế hệ học trò. Đây là dịp ý nghĩa để khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này."
   },
   {
     "id": "giao-duc-0124",
@@ -719,7 +995,19 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-blue-600/30 via-indigo-700/20 to-zinc-950",
     "dateLabel": "24 Tháng 01",
     "meaning": "Bảo đảm mọi trẻ em, đặc biệt là ở vùng sâu vùng xa, đều có cơ hội học tập chất lượng và miễn phí.",
-    "subtitle": "Giáo dục là chìa khóa vàng mở cánh cửa hòa bình, bình đẳng và thịnh vượng cho..."
+    "subtitle": "Giáo dục là chìa khóa vàng mở cánh cửa hòa bình, bình đẳng và thịnh vượng cho...",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Giáo dục là vũ khí mạnh nhất mà bạn có thể dùng để thay đổi thế giới. — Nelson Mandela",
+    "interestingFacts": [
+      "Chủ tịch Hồ Chí Minh từng nói: 'Vì lợi ích mười năm thì phải trồng cây, vì lợi ích trăm năm thì phải trồng người'."
+    ],
+    "description": "Giáo dục là chìa khóa vàng mở cánh cửa hòa bình, bình đẳng và thịnh vượng cho nhân loại.",
+    "bannerDescription": "Đại hội đồng Liên Hợp Quốc thông qua năm 2018 nhằm tôn vinh vai trò của giáo dục đối với sự phát triển bền vững. Bảo đảm mọi trẻ em, đặc biệt là ở vùng sâu vùng xa, đều có cơ hội học tập chất lượng và miễn phí. Đây là dịp ý nghĩa để tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm."
   },
   {
     "id": "van-hoa-dan-toc-0125",
@@ -754,7 +1042,19 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
       "Giao lưu dân ca, nhạc cụ cổ truyền cồng chiêng, khèn bè, đàn tính tại Làng Văn hóa - Du lịch các Dân tộc Việt Nam",
       "Thưởng thức ẩm thực vùng cao như thắng cố, cơm lam, xôi ngũ sắc"
     ],
-    "cuisine": "Cơm lam nướng ống tre thơm mùi nếp nương, xôi ngũ sắc nhuộm lá cẩm tự nhiên và thịt trâu gác bếp đậm đà."
+    "cuisine": "Cơm lam nướng ống tre thơm mùi nếp nương, xôi ngũ sắc nhuộm lá cẩm tự nhiên và thịt trâu gác bếp đậm đà.",
+    "activities": [
+      "Chuẩn bị lễ vật chu đáo và thực hiện các nghi thức truyền thống trang nghiêm",
+      "Sum vầy bên gia đình, thưởng thức các món ăn mang phong vị đặc trưng lễ hội",
+      "Tham gia các trò chơi dân gian và tìm hiểu nguồn gốc phong tục cổ truyền"
+    ],
+    "whyItMatters": null,
+    "message": "Đồng bào Kinh hay Thổ, Mường hay Mán... đều là con cháu Việt Nam, đều là anh em ruột thịt. — Hồ Chí Minh",
+    "interestingFacts": [
+      "Không gian văn hóa Cồng chiêng Tây Nguyên được UNESCO công nhận là Kiệt tác truyền khẩu và Di sản phi vật thể nhân loại."
+    ],
+    "description": "Bức tranh thổ cẩm rực rỡ sắc màu văn hóa — đoàn kết một lòng dưới mái nhà chung Việt Nam.",
+    "bannerDescription": "Tôn vinh kho tàng di sản văn hóa vật thể và phi vật thể phong phú của 54 dân tộc anh em khắp mọi miền. Bảo tồn tiếng nói, chữ viết, trang phục truyền thống, điệu múa xòe, tiếng cồng chiêng đại ngàn. Người dân và các gia đình thường trình diễn trang phục thổ cẩm truyền thống của đồng bào các dân tộc thiểu số."
   },
   {
     "id": "hai-quan-0126",
@@ -782,7 +1082,19 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-blue-700/30 via-slate-700/20 to-zinc-950",
     "dateLabel": "26 Tháng 01",
     "meaning": "Tôn vinh vai trò kiểm soát biên mậu, ngăn chặn buôn lậu và thúc đẩy chuỗi cung ứng hàng hóa an toàn.",
-    "subtitle": "Những người lính gác cửa khẩu ngày đêm giữ vững an ninh biên giới và tạo thuậ..."
+    "subtitle": "Những người lính gác cửa khẩu ngày đêm giữ vững an ninh biên giới và tạo thuậ...",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Chung tay hành động vì một thế giới hòa bình, xanh sạch và ngập tràn tình yêu thương.",
+    "interestingFacts": [
+      "Ngành Hải quan Việt Nam đã triển khai hệ thống thông quan tự động VNACCS/VCIS xử lý hàng triệu tờ khai mỗi năm."
+    ],
+    "description": "Những người lính gác cửa khẩu ngày đêm giữ vững an ninh biên giới và tạo thuận lợi thương mại.",
+    "bannerDescription": "Kỷ niệm kỳ họp đầu tiên của Hội đồng Hợp tác Hải quan (nay là Tổ chức Hải quan Thế giới WCO) năm 1953. Tôn vinh vai trò kiểm soát biên mậu, ngăn chặn buôn lậu và thúc đẩy chuỗi cung ứng hàng hóa an toàn. Đây là dịp ý nghĩa để tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm."
   },
   {
     "id": "hiep-dinh-paris-0127",
@@ -815,7 +1127,19 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
     "traditions": [
       "Tọa đàm chuyên đề bài học lịch sử của đàm phán Hiệp định Paris 1973",
       "Gặp mặt tri ân các nhân chứng lịch sử và đoàn đàm phán ngoại giao Việt Nam"
-    ]
+    ],
+    "activities": [
+      "Dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ",
+      "Tham quan các bảo tàng, di tích lịch sử để tìm hiểu mốc son vẻ vang của dân tộc",
+      "Kể lại những câu chuyện lịch sử hào hùng cho thế hệ trẻ gìn giữ truyền thống yêu nước"
+    ],
+    "whyItMatters": null,
+    "message": "Hiệp định Paris 1973 là thắng lợi lịch sử vẻ vang của nền ngoại giao cách mạng Việt Nam.",
+    "interestingFacts": [
+      "Cuộc đàm phán Paris kéo dài gần 5 năm (1968-1973) với hơn 200 phiên họp công khai và 45 cuộc tiếp xúc bí mật lịch sử."
+    ],
+    "description": "Thắng lợi ngoại giao chói lọi buộc Mỹ phải rút hết quân, mở đường cho ngày toàn thắng thống nhất non sông.",
+    "bannerDescription": "Ngày 27/1/1973 tại Paris, Hiệp định về chấm dứt chiến tranh, lập lại hòa bình ở Việt Nam chính thức được ký kết. Đỉnh cao của sự kết hợp tài tình giữa đấu tranh quân sự, chính trị và ngoại giao của dân tộc. Người dân và các gia đình thường tọa đàm chuyên đề bài học lịch sử của đàm phán Hiệp định Paris 1973."
   },
   {
     "id": "bac-ho-ve-nuoc-0128",
@@ -844,7 +1168,19 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-red-600/40 via-amber-600/20 to-zinc-950",
     "dateLabel": "28 Tháng 01",
     "meaning": "Mốc son xoay chuyển vận mệnh dân tộc, mở đầu cho thắng lợi của Cách mạng Tháng Tám năm 1945.",
-    "subtitle": "Sau 30 năm bôn ba tìm đường cứu nước, Người trở về cột mốc 108 thiêng liêng t..."
+    "subtitle": "Sau 30 năm bôn ba tìm đường cứu nước, Người trở về cột mốc 108 thiêng liêng t...",
+    "activities": [
+      "Dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ",
+      "Tham quan các bảo tàng, di tích lịch sử để tìm hiểu mốc son vẻ vang của dân tộc",
+      "Kể lại những câu chuyện lịch sử hào hùng cho thế hệ trẻ gìn giữ truyền thống yêu nước"
+    ],
+    "whyItMatters": null,
+    "message": "Bác đã về đây, Tổ quốc ơi! / Nhớ thương hòn đất ấm hơi Người. — Tố Hữu",
+    "interestingFacts": [
+      "Tại hang Cốc Bó, Bác đã tự tay dịch cuốn 'Lịch sử Đảng Cộng sản Liên Xô' và đặt tên cho suối Lênin, núi Các Mác."
+    ],
+    "description": "Sau 30 năm bôn ba tìm đường cứu nước, Người trở về cột mốc 108 thiêng liêng trực tiếp lãnh đạo cách mạng.",
+    "bannerDescription": "Mùa xuân năm 1941, lãnh tụ Nguyễn Ái Quốc vượt qua mốc biên giới 108 về đến Pác Bó (Hà Quảng, Cao Bằng). Mốc son xoay chuyển vận mệnh dân tộc, mở đầu cho thắng lợi của Cách mạng Tháng Tám năm 1945. Đây là dịp ý nghĩa để dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ."
   },
   {
     "id": "puzzle-day-0129",
@@ -873,7 +1209,19 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-orange-600/20 to-zinc-950",
     "dateLabel": "29 Tháng 01",
     "meaning": "Giải đố kích thích hai bán cầu não hoạt động đồng thời, cải thiện trí nhớ không gian và sự tập trung.",
-    "subtitle": "Thử thách trí não, rèn luyện tính kiên nhẫn và khám phá niềm vui từ những mản..."
+    "subtitle": "Thử thách trí não, rèn luyện tính kiên nhẫn và khám phá niềm vui từ những mản...",
+    "activities": [
+      "Khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này",
+      "Chia sẻ thông điệp tích cực và năng lượng lạc quan tới bạn bè, người thân",
+      "Dành thời gian thư giãn và trải nghiệm những khoảnh khắc ý nghĩa trong cuộc sống"
+    ],
+    "whyItMatters": null,
+    "message": "Mỗi trở ngại trong cuộc sống chỉ là một mảnh ghép đang chờ bạn xếp đúng chỗ.",
+    "interestingFacts": [
+      "Trò chơi ghép hình đầu tiên trên thế giới được nhà bản đồ học John Spilsbury tạo ra năm 1767 để dạy địa lý."
+    ],
+    "description": "Thử thách trí não, rèn luyện tính kiên nhẫn và khám phá niềm vui từ những mảnh ghép kỳ thú.",
+    "bannerDescription": "Khởi xướng bởi Jodi Jill năm 2002 để tôn vinh tất cả các hình thức giải đố: Sudoku, ghép tranh, Rubik, ô chữ... Giải đố kích thích hai bán cầu não hoạt động đồng thời, cải thiện trí nhớ không gian và sự tập trung. Đây là dịp ý nghĩa để khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này."
   },
   {
     "id": "non-violence-0130",
@@ -902,7 +1250,19 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-teal-600/30 via-blue-700/20 to-zinc-950",
     "dateLabel": "30 Tháng 01",
     "meaning": "Nhắc nhở học sinh, sinh viên và phụ huynh giải quyết xung đột bằng đối thoại, thấu hiểu và sự bao dung.",
-    "subtitle": "Xây dựng môi trường học đường yêu thương, tôn trọng và không có bạo lực."
+    "subtitle": "Xây dựng môi trường học đường yêu thương, tôn trọng và không có bạo lực.",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Không có con đường dẫn đến hòa bình; hòa bình chính là con đường.",
+    "interestingFacts": [
+      "Phong trào 'Trường học hạnh phúc' tại Việt Nam lấy tiêu chí yêu thương, an toàn và tôn trọng làm cốt lõi."
+    ],
+    "description": "Xây dựng môi trường học đường yêu thương, tôn trọng và không có bạo lực.",
+    "bannerDescription": "Kỷ niệm ngày mất của Mahatma Gandhi (30/1/1948), người tiên phong cho triết lý đấu tranh bất bạo động. Nhắc nhở học sinh, sinh viên và phụ huynh giải quyết xung đột bằng đối thoại, thấu hiểu và sự bao dung. Đây là dịp ý nghĩa để tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm."
   },
   {
     "id": "mau-than-0131",
@@ -930,6 +1290,18 @@ export const JANUARY_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-red-700/35 via-yellow-600/20 to-zinc-950",
     "dateLabel": "31 Tháng 01",
     "meaning": "Làm phá sản chiến lược 'Chiến tranh cục bộ', buộc chính quyền Mỹ phải ngồi vào bàn đàm phán Paris.",
-    "subtitle": "Đòn tiến công sấm sét làm rung chuyển nước Mỹ, xoay chuyển cục diện chiến tra..."
+    "subtitle": "Đòn tiến công sấm sét làm rung chuyển nước Mỹ, xoay chuyển cục diện chiến tra...",
+    "activities": [
+      "Dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ",
+      "Tham quan các bảo tàng, di tích lịch sử để tìm hiểu mốc son vẻ vang của dân tộc",
+      "Kể lại những câu chuyện lịch sử hào hùng cho thế hệ trẻ gìn giữ truyền thống yêu nước"
+    ],
+    "whyItMatters": null,
+    "message": "Tự hào truyền thống vẻ vang của dân tộc, vững bước tương lai kiến thiết đất nước giàu mạnh.",
+    "interestingFacts": [
+      "Trận đánh táo bạo vào Tòa Đại sứ Mỹ, Dinh Độc Lập và Đài phát thanh Sài Gòn đã khiến cả thế giới kinh ngạc."
+    ],
+    "description": "Đòn tiến công sấm sét làm rung chuyển nước Mỹ, xoay chuyển cục diện chiến tranh Việt Nam.",
+    "bannerDescription": "Đêm giao thừa Tết Mậu Thân 1968, quân và dân ta đồng loạt nổ súng tiến công vào các căn cứ đầu não ở Sài Gòn, Huế, Đà Nẵng... Làm phá sản chiến lược 'Chiến tranh cục bộ', buộc chính quyền Mỹ phải ngồi vào bàn đàm phán Paris. Đây là dịp ý nghĩa để dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ."
   }
 ];

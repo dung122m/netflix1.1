@@ -28,7 +28,19 @@ export const APRIL_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "01 Tháng 04",
     "meaning": "Mang lại tiếng cười sảng khoái và cùng lắng lòng nghe lại những bản tình ca vượt thời gian.",
-    "subtitle": "Những nụ cười dí dỏm cùng những giai điệu bất hủ về tình yêu và thân phận con..."
+    "subtitle": "Những nụ cười dí dỏm cùng những giai điệu bất hủ về tình yêu và thân phận con...",
+    "activities": [
+      "Khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này",
+      "Chia sẻ thông điệp tích cực và năng lượng lạc quan tới bạn bè, người thân",
+      "Dành thời gian thư giãn và trải nghiệm những khoảnh khắc ý nghĩa trong cuộc sống"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Nhạc Trịnh đã trở thành một phần di sản tâm hồn của hàng triệu người con đất Việt."
+    ],
+    "description": "Những nụ cười dí dỏm cùng những giai điệu bất hủ về tình yêu và thân phận con người.",
+    "bannerDescription": "Ngày nói dối vô hại có từ châu Âu thế kỷ 16; đồng thời là ngày mất của người nhạc sĩ tài hoa Trịnh Công Sơn (01/04/2001). Mang lại tiếng cười sảng khoái và cùng lắng lòng nghe lại những bản tình ca vượt thời gian. Đây là dịp ý nghĩa để khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này."
   },
   {
     "id": "ev-04-02-autism-day",
@@ -57,7 +69,19 @@ export const APRIL_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "02 Tháng 04",
     "meaning": "Giúp xã hội có cái nhìn cảm thông, tạo điều kiện cho trẻ tự kỷ phát huy năng khiếu đặc biệt.",
-    "subtitle": "Thắp ánh sáng xanh hy vọng"
+    "subtitle": "Thắp ánh sáng xanh hy vọng",
+    "activities": [
+      "Gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu",
+      "Tổ chức các buổi gặp gỡ, họp mặt ý nghĩa để thắt chặt tình đoàn kết",
+      "Thực hiện những việc làm tử tế, sẻ chia khó khăn với những hoàn cảnh kém may mắn"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Nhiều công trình trên khắp thế giới thắp đèn xanh lam (Light It Up Blue) để hưởng ứng ngày này."
+    ],
+    "description": "Thắp ánh sáng xanh hy vọng — thấu hiểu, yêu thương và đồng hành cùng trẻ tự kỷ.",
+    "bannerDescription": "Đại hội đồng Liên Hợp Quốc thông qua năm 2007 nhằm nâng cao sự hòa nhập cho người tự kỷ. Giúp xã hội có cái nhìn cảm thông, tạo điều kiện cho trẻ tự kỷ phát huy năng khiếu đặc biệt. Đây là dịp ý nghĩa để gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu."
   },
   {
     "id": "ev-04-03-khong-quan-tran-dau",
@@ -86,7 +110,19 @@ export const APRIL_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "03 Tháng 04",
     "meaning": "Mở đầu trang sử chiến đấu vẻ vang và truyền thống bách chiến bách thắng của Không quân Nhân dân.",
-    "subtitle": "Những cánh én bạc anh dũng xuất kích trên bầu trời Hàm Rồng bắn rơi máy bay t..."
+    "subtitle": "Những cánh én bạc anh dũng xuất kích trên bầu trời Hàm Rồng bắn rơi máy bay t...",
+    "activities": [
+      "Dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ",
+      "Tham quan các bảo tàng, di tích lịch sử để tìm hiểu mốc son vẻ vang của dân tộc",
+      "Kể lại những câu chuyện lịch sử hào hùng cho thế hệ trẻ gìn giữ truyền thống yêu nước"
+    ],
+    "whyItMatters": null,
+    "message": "Tự hào truyền thống vẻ vang của dân tộc, vững bước tương lai kiến thiết đất nước giàu mạnh.",
+    "interestingFacts": [
+      "Đại tá phi công anh hùng Nguyễn Văn Bảy đã dùng MiG-17 bắn rơi 7 máy bay Mỹ."
+    ],
+    "description": "Những cánh én bạc anh dũng xuất kích trên bầu trời Hàm Rồng bắn rơi máy bay tối tân Mỹ.",
+    "bannerDescription": "Ngày 3/4/1965, biên đội tiêm kích MiG-17 của Không quân Việt Nam bắn rơi 2 máy bay F-8U của Mỹ trên bầu trời Thanh Hóa. Mở đầu trang sử chiến đấu vẻ vang và truyền thống bách chiến bách thắng của Không quân Nhân dân. Đây là dịp ý nghĩa để dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ."
   },
   {
     "id": "ev-04-04-bom-min",
@@ -115,7 +151,19 @@ export const APRIL_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "04 Tháng 04",
     "meaning": "Việt Nam là một trong những quốc gia chịu hậu quả nặng nề nhất của bom mìn sót lại sau chiến tranh.",
-    "subtitle": "Hành động vì một mảnh đất bình yên, sạch bóng bom mìn sót lại sau chiến tranh."
+    "subtitle": "Hành động vì một mảnh đất bình yên, sạch bóng bom mìn sót lại sau chiến tranh.",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Chung tay hành động vì một thế giới hòa bình, xanh sạch và ngập tràn tình yêu thương.",
+    "interestingFacts": [
+      "Trung tâm Hành động bom mìn quốc gia Việt Nam (VNMAC) đã giải phóng hàng triệu hecta đất an toàn."
+    ],
+    "description": "Hành động vì một mảnh đất bình yên, sạch bóng bom mìn sót lại sau chiến tranh.",
+    "bannerDescription": "Được Liên Hợp Quốc công bố nhằm kêu gọi hỗ trợ các nạn nhân bom mìn và đẩy nhanh việc rà phá. Việt Nam là một trong những quốc gia chịu hậu quả nặng nề nhất của bom mìn sót lại sau chiến tranh. Đây là dịp ý nghĩa để tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm."
   },
   {
     "id": "ev-04-05-conscience-day",
@@ -143,7 +191,19 @@ export const APRIL_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "05 Tháng 04",
     "meaning": "Khẳng định lương tâm là chiếc la bàn đạo đức giúp con người vượt qua cám dỗ và bất công.",
-    "subtitle": "Lắng nghe tiếng gọi của lương tri"
+    "subtitle": "Lắng nghe tiếng gọi của lương tri",
+    "activities": [
+      "Gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu",
+      "Tổ chức các buổi gặp gỡ, họp mặt ý nghĩa để thắt chặt tình đoàn kết",
+      "Thực hiện những việc làm tử tế, sẻ chia khó khăn với những hoàn cảnh kém may mắn"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Tục ngữ Việt Nam có câu: 'Cây ngay không sợ chết đứng' ca ngợi sự chính trực của lương tri."
+    ],
+    "description": "Lắng nghe tiếng gọi của lương tri — sống chân thành, hòa ái và tôn trọng đồng loại.",
+    "bannerDescription": "Được Đại hội đồng Liên Hợp Quốc thông qua năm 2019 nhằm thúc đẩy văn hóa hòa bình. Khẳng định lương tâm là chiếc la bàn đạo đức giúp con người vượt qua cám dỗ và bất công. Đây là dịp ý nghĩa để gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu."
   },
   {
     "id": "ev-04-06-the-thao-hoa-binh",
@@ -171,7 +231,19 @@ export const APRIL_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "06 Tháng 04",
     "meaning": "Dùng sức mạnh của thể thao để thúc đẩy tình hữu nghị, đoàn kết và lối sống khỏe mạnh.",
-    "subtitle": "Thể thao kết nối các dân tộc, xóa nhòa ranh giới và thắp sáng tinh thần thượn..."
+    "subtitle": "Thể thao kết nối các dân tộc, xóa nhòa ranh giới và thắp sáng tinh thần thượn...",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Chung tay hành động vì một thế giới hòa bình, xanh sạch và ngập tràn tình yêu thương.",
+    "interestingFacts": [
+      "Hình ảnh các vận động viên cờ đỏ sao vàng luôn làm nức lòng hàng triệu người hâm mộ."
+    ],
+    "description": "Thể thao kết nối các dân tộc, xóa nhòa ranh giới và thắp sáng tinh thần thượng võ.",
+    "bannerDescription": "Kỷ niệm lễ khai mạc Thế vận hội Olympic hiện đại đầu tiên tại Athens năm 1896. Dùng sức mạnh của thể thao để thúc đẩy tình hữu nghị, đoàn kết và lối sống khỏe mạnh. Đây là dịp ý nghĩa để tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm."
   },
   {
     "id": "ev-04-07-hien-mau-nhan-dao",
@@ -200,7 +272,19 @@ export const APRIL_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "07 Tháng 04",
     "meaning": "Cung cấp nguồn máu quý giá cấp cứu người bệnh, lan tỏa tình thương đồng bào sâu sắc.",
-    "subtitle": "Một giọt máu cho đi"
+    "subtitle": "Một giọt máu cho đi",
+    "activities": [
+      "Kiểm tra sức khỏe định kỳ và rèn luyện thể dục thể thao đều đặn",
+      "Xây dựng chế độ dinh dưỡng lành mạnh, ăn nhiều rau xanh và uống đủ nước",
+      "Gửi lời tri ân đến các y bác sĩ và nhân viên y tế đang ngày đêm chăm sóc sức khỏe nhân dân"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Lễ hội Xuân Hồng và Hành trình Đỏ đã thu hút hàng triệu lượt người tham gia hiến máu."
+    ],
+    "description": "Một giọt máu cho đi — một cuộc đời ở lại, nghĩa cử nhân văn cao đẹp của cộng đồng.",
+    "bannerDescription": "Thủ tướng Chính phủ ký Quyết định số 43/2000/QĐ-TTg lấy ngày 7/4 làm Ngày Toàn dân hiến máu tình nguyện. Cung cấp nguồn máu quý giá cấp cứu người bệnh, lan tỏa tình thương đồng bào sâu sắc. Đây là dịp ý nghĩa để kiểm tra sức khỏe định kỳ và rèn luyện thể dục thể thao đều đặn."
   },
   {
     "id": "ev-04-08-nem-bom-dinh-doc-lap",
@@ -229,7 +313,19 @@ export const APRIL_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "08 Tháng 04",
     "meaning": "Chứng minh tài mưu lược của mạng lưới tình báo cách mạng và sự phối hợp tài tình trên bầu trời.",
-    "subtitle": "Cú tập kích đường không táo bạo giáng đòn tâm lý sấm sét vào sào huyệt chính ..."
+    "subtitle": "Cú tập kích đường không táo bạo giáng đòn tâm lý sấm sét vào sào huyệt chính ...",
+    "activities": [
+      "Dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ",
+      "Tham quan các bảo tàng, di tích lịch sử để tìm hiểu mốc son vẻ vang của dân tộc",
+      "Kể lại những câu chuyện lịch sử hào hùng cho thế hệ trẻ gìn giữ truyền thống yêu nước"
+    ],
+    "whyItMatters": null,
+    "message": "Tự hào truyền thống vẻ vang của dân tộc, vững bước tương lai kiến thiết đất nước giàu mạnh.",
+    "interestingFacts": [
+      "Sau trận đánh, ông hạ cánh an toàn xuống sân bay dã chiến Phước Long trong sự đón chào nồng nhiệt."
+    ],
+    "description": "Cú tập kích đường không táo bạo giáng đòn tâm lý sấm sét vào sào huyệt chính quyền Sài Gòn.",
+    "bannerDescription": "Sáng 8/4/1975, phi công tình báo Nguyễn Thành Trung lái máy bay F-5E ném bom chính xác xuống Dinh Độc Lập. Chứng minh tài mưu lược của mạng lưới tình báo cách mạng và sự phối hợp tài tình trên bầu trời. Đây là dịp ý nghĩa để dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ."
   },
   {
     "id": "ev-04-09-xuan-loc",
@@ -257,7 +353,19 @@ export const APRIL_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "09 Tháng 04",
     "meaning": "Trận đánh then chốt phá vỡ tuyến phòng ngự phòng thủ mạnh nhất của địch bảo vệ cửa ngõ Sài Gòn.",
-    "subtitle": "Đập tan 'Cánh cửa thép' tử thủ phía Đông, mở toang đường tiến vào sào huyệt S..."
+    "subtitle": "Đập tan 'Cánh cửa thép' tử thủ phía Đông, mở toang đường tiến vào sào huyệt S...",
+    "activities": [
+      "Dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ",
+      "Tham quan các bảo tàng, di tích lịch sử để tìm hiểu mốc son vẻ vang của dân tộc",
+      "Kể lại những câu chuyện lịch sử hào hùng cho thế hệ trẻ gìn giữ truyền thống yêu nước"
+    ],
+    "whyItMatters": null,
+    "message": "Tự hào truyền thống vẻ vang của dân tộc, vững bước tương lai kiến thiết đất nước giàu mạnh.",
+    "interestingFacts": [
+      "Sau 12 ngày đêm chiến đấu ngoan cường, Xuân Lộc được giải phóng hoàn toàn vào ngày 21/4/1975."
+    ],
+    "description": "Đập tan 'Cánh cửa thép' tử thủ phía Đông, mở toang đường tiến vào sào huyệt Sài Gòn.",
+    "bannerDescription": "Rạng sáng 9/4/1975, Quân đoàn 4 cùng lực lượng địa phương nổ súng tiến công thị xã Xuân Lộc (Đồng Nai). Trận đánh then chốt phá vỡ tuyến phòng ngự phòng thủ mạnh nhất của địch bảo vệ cửa ngõ Sài Gòn. Đây là dịp ý nghĩa để dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ."
   },
   {
     "id": "ev-04-10-siblings-day",
@@ -285,7 +393,19 @@ export const APRIL_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "10 Tháng 04",
     "meaning": "Gợi nhớ ca dao Việt Nam: 'Anh em như thể tay chân / Rách lành đùm bọc dở hay đỡ đần'.",
-    "subtitle": "Tình anh em như thể tay chân"
+    "subtitle": "Tình anh em như thể tay chân",
+    "activities": [
+      "Gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu",
+      "Tổ chức các buổi gặp gỡ, họp mặt ý nghĩa để thắt chặt tình đoàn kết",
+      "Thực hiện những việc làm tử tế, sẻ chia khó khăn với những hoàn cảnh kém may mắn"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Một cuộc gọi hỏi thăm hay bữa cơm sum họp cùng anh chị em sẽ thắt chặt tình cảm gia đình."
+    ],
+    "description": "Tình anh em như thể tay chân — trân trọng mối dây liên kết ruột thịt thiêng liêng nhất đời.",
+    "bannerDescription": "Khởi xướng bởi Claudia Evart nhằm tôn vinh tình cảm keo sơn giữa các anh chị em trong nhà. Gợi nhớ ca dao Việt Nam: 'Anh em như thể tay chân / Rách lành đùm bọc dở hay đỡ đần'. Đây là dịp ý nghĩa để gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu."
   },
   {
     "id": "ev-04-11-parkinson",
@@ -313,7 +433,19 @@ export const APRIL_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "11 Tháng 04",
     "meaning": "Khuyến khích rèn luyện thể thao, vật lý trị liệu và phát hiện sớm các dấu hiệu run tay chân.",
-    "subtitle": "Cùng thấu hiểu, sẻ chia và nâng cao chất lượng cuộc sống cho người cao tuổi m..."
+    "subtitle": "Cùng thấu hiểu, sẻ chia và nâng cao chất lượng cuộc sống cho người cao tuổi m...",
+    "activities": [
+      "Gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu",
+      "Tổ chức các buổi gặp gỡ, họp mặt ý nghĩa để thắt chặt tình đoàn kết",
+      "Thực hiện những việc làm tử tế, sẻ chia khó khăn với những hoàn cảnh kém may mắn"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Hoa tulip đỏ là biểu tượng quốc tế chính thức của Ngày Parkinson Thế giới."
+    ],
+    "description": "Cùng thấu hiểu, sẻ chia và nâng cao chất lượng cuộc sống cho người cao tuổi mắc bệnh.",
+    "bannerDescription": "Kỷ niệm ngày sinh của bác sĩ James Parkinson (1755), người đầu tiên mô tả căn bệnh này. Khuyến khích rèn luyện thể thao, vật lý trị liệu và phát hiện sớm các dấu hiệu run tay chân. Đây là dịp ý nghĩa để gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu."
   },
   {
     "id": "ev-04-12-gagarin-flight",
@@ -342,7 +474,19 @@ export const APRIL_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "12 Tháng 04",
     "meaning": "Việt Nam tự hào có Trung tướng Phạm Tuân là người châu Á đầu tiên bay vào vũ trụ năm 1980.",
-    "subtitle": "Mốc son lịch sử mở ra kỷ nguyên chinh phục không gian của phi hành gia Yuri G..."
+    "subtitle": "Mốc son lịch sử mở ra kỷ nguyên chinh phục không gian của phi hành gia Yuri G...",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Chung tay hành động vì một thế giới hòa bình, xanh sạch và ngập tràn tình yêu thương.",
+    "interestingFacts": [
+      "Câu nói bất hủ của Gagarin khi nhìn về hành tinh: 'Trái Đất xanh tuyệt đẹp!'."
+    ],
+    "description": "Mốc son lịch sử mở ra kỷ nguyên chinh phục không gian của phi hành gia Yuri Gagarin.",
+    "bannerDescription": "Ngày 12/4/1961, tàu Vostok 1 đưa Yuri Gagarin bay vào quỹ đạo quanh Trái Đất trong 108 phút. Việt Nam tự hào có Trung tướng Phạm Tuân là người châu Á đầu tiên bay vào vũ trụ năm 1980. Đây là dịp ý nghĩa để tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm."
   },
   {
     "id": "ev-04-13-scrabble-day",
@@ -370,7 +514,19 @@ export const APRIL_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "13 Tháng 04",
     "meaning": "Trò chơi ghép chữ giúp mở rộng vốn từ, tăng khả năng tính toán điểm số chiến thuật.",
-    "subtitle": "Rèn luyện tư duy ngôn ngữ, vốn từ vựng phong phú và sự nhạy bén trí óc."
+    "subtitle": "Rèn luyện tư duy ngôn ngữ, vốn từ vựng phong phú và sự nhạy bén trí óc.",
+    "activities": [
+      "Khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này",
+      "Chia sẻ thông điệp tích cực và năng lượng lạc quan tới bạn bè, người thân",
+      "Dành thời gian thư giãn và trải nghiệm những khoảnh khắc ý nghĩa trong cuộc sống"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Scrabble được chơi bằng hơn 30 thứ tiếng trên khắp các châu lục."
+    ],
+    "description": "Rèn luyện tư duy ngôn ngữ, vốn từ vựng phong phú và sự nhạy bén trí óc.",
+    "bannerDescription": "Kỷ niệm ngày sinh của kiến trúc sư Alfred Mosher Butts, người sáng chế ra trò chơi Scrabble. Trò chơi ghép chữ giúp mở rộng vốn từ, tăng khả năng tính toán điểm số chiến thuật. Đây là dịp ý nghĩa để khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này."
   },
   {
     "id": "ev-04-14-valentine-den",
@@ -398,7 +554,19 @@ export const APRIL_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "14 Tháng 04",
     "meaning": "Thay vì buồn bã, hội độc thân cùng nhau tụ họp, mặc đồ đen và ăn mì tương đen Jajangmyeon.",
-    "subtitle": "Tôn vinh cuộc sống độc thân vui vẻ, tự do khám phá và yêu thương chăm sóc chí..."
+    "subtitle": "Tôn vinh cuộc sống độc thân vui vẻ, tự do khám phá và yêu thương chăm sóc chí...",
+    "activities": [
+      "Khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này",
+      "Chia sẻ thông điệp tích cực và năng lượng lạc quan tới bạn bè, người thân",
+      "Dành thời gian thư giãn và trải nghiệm những khoảnh khắc ý nghĩa trong cuộc sống"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Độc thân là khoảng thời gian tuyệt vời nhất để hoàn thiện bản thân và theo đuổi ước mơ."
+    ],
+    "description": "Tôn vinh cuộc sống độc thân vui vẻ, tự do khám phá và yêu thương chăm sóc chính mình.",
+    "bannerDescription": "Bắt nguồn từ giới trẻ Hàn Quốc, dành cho những người chưa tìm được nửa kia sau Valentine 14/2 và 14/3. Thay vì buồn bã, hội độc thân cùng nhau tụ họp, mặc đồ đen và ăn mì tương đen Jajangmyeon. Đây là dịp ý nghĩa để khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này."
   },
   {
     "id": "ev-04-15-world-art-day",
@@ -432,7 +600,19 @@ export const APRIL_EVENTS: VietnamEvent[] = [
       "Tham quan các bảo tàng mỹ thuật và triển lãm tranh nghệ thuật đương đại",
       "Trải nghiệm vẽ tranh, nặn gốm hoặc sáng tạo thủ công thư giãn tâm hồn",
       "Giao lưu nghệ sĩ và tìm hiểu về các trường phái hội họa kinh điển"
-    ]
+    ],
+    "activities": [
+      "Khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này",
+      "Chia sẻ thông điệp tích cực và năng lượng lạc quan tới bạn bè, người thân",
+      "Dành thời gian thư giãn và trải nghiệm những khoảnh khắc ý nghĩa trong cuộc sống"
+    ],
+    "whyItMatters": null,
+    "message": "Hội họa là thơ ca được cảm nhận bằng thị giác. — Leonardo da Vinci",
+    "interestingFacts": [
+      "Hội họa Việt Nam tự hào với bộ tứ huyền thoại 'Trí - Lân - Vân - Cẩn' và tranh lụa, sơn mài độc đáo."
+    ],
+    "description": "Tôn vinh sự sáng tạo không giới hạn và vẻ đẹp của hội họa, điêu khắc, mỹ thuật.",
+    "bannerDescription": "Chọn đúng ngày sinh của danh họa thiên tài Leonardo da Vinci (15/04/1452). Nghệ thuật làm phong phú tâm hồn, kết nối cảm xúc và lan tỏa các giá trị thẩm mỹ nhân loại. Người dân và các gia đình thường tham quan các bảo tàng mỹ thuật và triển lãm tranh nghệ thuật đương đại."
   },
   {
     "id": "ev-04-16-world-voice-day",
@@ -460,7 +640,19 @@ export const APRIL_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "16 Tháng 04",
     "meaning": "Giọng nói là phương tiện giao tiếp cốt lõi, thể hiện cá tính, cảm xúc và tài năng ca hát.",
-    "subtitle": "Bảo vệ thanh quản và tôn vinh sức mạnh truyền cảm của giọng nói con người."
+    "subtitle": "Bảo vệ thanh quản và tôn vinh sức mạnh truyền cảm của giọng nói con người.",
+    "activities": [
+      "Gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu",
+      "Tổ chức các buổi gặp gỡ, họp mặt ý nghĩa để thắt chặt tình đoàn kết",
+      "Thực hiện những việc làm tử tế, sẻ chia khó khăn với những hoàn cảnh kém may mắn"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Uống đủ nước ấm và không hét lớn giúp bảo vệ dây thanh âm luôn trong trẻo."
+    ],
+    "description": "Bảo vệ thanh quản và tôn vinh sức mạnh truyền cảm của giọng nói con người.",
+    "bannerDescription": "Khởi xướng bởi các bác sĩ phẫu thuật tai mũi họng nhằm nâng cao ý thức chăm sóc giọng nói. Giọng nói là phương tiện giao tiếp cốt lõi, thể hiện cá tính, cảm xúc và tài năng ca hát. Đây là dịp ý nghĩa để gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu."
   },
   {
     "id": "ev-04-17-hemophilia",
@@ -488,7 +680,19 @@ export const APRIL_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "17 Tháng 04",
     "meaning": "Nâng cao nhận thức về rối loạn đông máu di truyền và hỗ trợ điều trị sớm các biến chứng khớp.",
-    "subtitle": "Chung tay tiếp cận điều trị bình đẳng cho cộng đồng người bệnh máu khó đông."
+    "subtitle": "Chung tay tiếp cận điều trị bình đẳng cho cộng đồng người bệnh máu khó đông.",
+    "activities": [
+      "Gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu",
+      "Tổ chức các buổi gặp gỡ, họp mặt ý nghĩa để thắt chặt tình đoàn kết",
+      "Thực hiện những việc làm tử tế, sẻ chia khó khăn với những hoàn cảnh kém may mắn"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Hội Rối loạn đông máu Việt Nam đã giúp đỡ hàng ngàn bệnh nhân được chăm sóc y tế toàn diện."
+    ],
+    "description": "Chung tay tiếp cận điều trị bình đẳng cho cộng đồng người bệnh máu khó đông.",
+    "bannerDescription": "Được Liên đoàn Hemophilia Thế giới (WFH) thành lập năm 1989. Nâng cao nhận thức về rối loạn đông máu di truyền và hỗ trợ điều trị sớm các biến chứng khớp. Đây là dịp ý nghĩa để gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu."
   },
   {
     "id": "ev-04-18-nguoi-khuyet-tat-vn",
@@ -521,7 +725,19 @@ export const APRIL_EVENTS: VietnamEvent[] = [
       "Thăm hỏi, tặng quà và trao phương tiện hỗ trợ sinh hoạt cho người khuyết tật",
       "Tổ chức hội chợ việc làm và triển lãm sản phẩm thủ công do người khuyết tật làm ra",
       "Tuyên truyền bảo đảm quyền tiếp cận giao thông, công trình công cộng cho người khuyết tật"
-    ]
+    ],
+    "activities": [
+      "Gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu",
+      "Tổ chức các buổi gặp gỡ, họp mặt ý nghĩa để thắt chặt tình đoàn kết",
+      "Thực hiện những việc làm tử tế, sẻ chia khó khăn với những hoàn cảnh kém may mắn"
+    ],
+    "whyItMatters": null,
+    "message": "Tình thương yêu và sự tôn trọng bình đẳng là nhịp cầu nâng bước người khuyết tật hòa nhập trọn vẹn vào xã hội.",
+    "interestingFacts": [
+      "Những tấm gương vận động viên Paralympic Việt Nam giành huy chương vàng thế giới là niềm tự hào to lớn."
+    ],
+    "description": "Tôn vinh nghị lực phi thường vươn lên hòa nhập cộng đồng của những tấm gương vượt khó.",
+    "bannerDescription": "Ủy ban Thường vụ Quốc hội ban hành Pháp lệnh lấy ngày 18/4 làm Ngày Người tàn tật (nay là Người khuyết tật) từ năm 1998. Kêu gọi xóa bỏ rào cản, tạo cơ hội việc làm, học tập bình đẳng cho người khuyết tật. Người dân và các gia đình thường thăm hỏi, tặng quà và trao phương tiện hỗ trợ sinh hoạt cho người khuyết tật."
   },
   {
     "id": "ev-04-19-van-hoa-dan-toc",
@@ -556,7 +772,19 @@ export const APRIL_EVENTS: VietnamEvent[] = [
       "Trình diễn các làn điệu cồng chiêng Tây Nguyên, múa xòe Thái, hát then Tày Nùng",
       "Giao lưu ẩm thực và trưng bày trang phục thổ cẩm truyền thống 54 dân tộc"
     ],
-    "cuisine": "Cơm lam ngũ sắc, thịt lợn cắp nách nướng than hoa, canh thụt Tây Nguyên và rượu cần nồng nàn men lá rừng."
+    "cuisine": "Cơm lam ngũ sắc, thịt lợn cắp nách nướng than hoa, canh thụt Tây Nguyên và rượu cần nồng nàn men lá rừng.",
+    "activities": [
+      "Chuẩn bị lễ vật chu đáo và thực hiện các nghi thức truyền thống trang nghiêm",
+      "Sum vầy bên gia đình, thưởng thức các món ăn mang phong vị đặc trưng lễ hội",
+      "Tham gia các trò chơi dân gian và tìm hiểu nguồn gốc phong tục cổ truyền"
+    ],
+    "whyItMatters": null,
+    "message": "54 dân tộc anh em như 54 đóa hoa cùng khoe sắc trong vườn hoa đại đoàn kết Việt Nam.",
+    "interestingFacts": [
+      "Làng Văn hóa - Du lịch các Dân tộc Việt Nam tại Đồng Mô (Hà Nội) là không gian tái hiện sống động."
+    ],
+    "description": "Tôn vinh vườn hoa rực rỡ sắc màu di sản của 54 dân tộc anh em đoàn kết một lòng.",
+    "bannerDescription": "Thủ tướng Chính phủ ban hành Quyết định số 1668/QĐ-TTg lấy ngày 19/4 làm Ngày Văn hóa các dân tộc Việt Nam. Bảo tồn trang phục, tiếng nói, phong tục tập quán và làn điệu dân ca truyền thống. Người dân và các gia đình thường lễ hội văn hóa các dân tộc tại Làng Văn hóa - Du lịch các Dân tộc Việt Nam (Đồng Mô, Sơn Tây)."
   },
   {
     "id": "ev-04-20-thuong-hieu-quoc-gia",
@@ -585,7 +813,19 @@ export const APRIL_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "20 Tháng 04",
     "meaning": "Khích lệ các doanh nghiệp nâng cao năng lực cạnh tranh, xây dựng thương hiệu uy tín toàn cầu.",
-    "subtitle": "Tôn vinh trí tuệ, chất lượng và uy tín của các sản phẩm Make in Vietnam vươn ..."
+    "subtitle": "Tôn vinh trí tuệ, chất lượng và uy tín của các sản phẩm Make in Vietnam vươn ...",
+    "activities": [
+      "Dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ",
+      "Tham quan các bảo tàng, di tích lịch sử để tìm hiểu mốc son vẻ vang của dân tộc",
+      "Kể lại những câu chuyện lịch sử hào hùng cho thế hệ trẻ gìn giữ truyền thống yêu nước"
+    ],
+    "whyItMatters": null,
+    "message": "Tự hào truyền thống vẻ vang của dân tộc, vững bước tương lai kiến thiết đất nước giàu mạnh.",
+    "interestingFacts": [
+      "Cà phê, gạo ST25, hạt điều, dệt may Việt Nam đã khẳng định chất lượng tại hàng trăm thị trường khó tính."
+    ],
+    "description": "Tôn vinh trí tuệ, chất lượng và uy tín của các sản phẩm Make in Vietnam vươn tầm thế giới.",
+    "bannerDescription": "Thủ tướng Chính phủ ký Quyết định lấy ngày 20/4 là Ngày Thương hiệu Việt Nam từ năm 2008. Khích lệ các doanh nghiệp nâng cao năng lực cạnh tranh, xây dựng thương hiệu uy tín toàn cầu. Đây là dịp ý nghĩa để dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ."
   },
   {
     "id": "ev-04-21-ngay-sach-viet-nam",
@@ -619,7 +859,19 @@ export const APRIL_EVENTS: VietnamEvent[] = [
       "Tham quan Hội Sách Quốc gia và các hội sách đường hoa tại Hà Nội, TP.HCM",
       "Quyên góp sách cho thư viện trường học vùng sâu, vùng xa, biên giới, hải đảo",
       "Tọa đàm giao lưu giữa các tác giả, dịch giả uy tín và độc giả trẻ"
-    ]
+    ],
+    "activities": [
+      "Đọc ít nhất một chương sách hay hoặc chia sẻ cuốn sách tâm đắc với bạn bè",
+      "Tham gia các hội sách, hội thảo văn hóa đọc hoặc tặng sách cho thư viện cộng đồng",
+      "Hình thành không gian đọc yên tĩnh và thói quen đọc sách mỗi ngày"
+    ],
+    "whyItMatters": null,
+    "message": "Sách mở ra trước mắt tôi những chân trời mới. — Maxim Gorky",
+    "interestingFacts": [
+      "Các hội sách lớn tại phố đi bộ Hà Nội và TP.HCM thu hút hàng chục ngàn bạn trẻ mỗi năm."
+    ],
+    "description": "Tôn vinh giá trị của tri thức, khơi dậy niềm đam mê đọc sách trong cộng đồng trẻ.",
+    "bannerDescription": "Quyết định của Thủ tướng Chính phủ, trùng dịp xuất bản tác phẩm lịch sử 'Đường Kách mệnh' của Bác Hồ năm 1927. Khẳng định vai trò của sách trong việc nuôi dưỡng tâm hồn, nâng cao dân trí và phát triển tư duy sáng tạo. Người dân và các gia đình thường tham quan Hội Sách Quốc gia và các hội sách đường hoa tại Hà Nội, TP.HCM."
   },
   {
     "id": "ev-04-22-ngay-trai-dat",
@@ -653,7 +905,19 @@ export const APRIL_EVENTS: VietnamEvent[] = [
       "Tắt các thiết bị điện không cần thiết và giảm rác thải nhựa một lần",
       "Tham gia các buổi dọn rác bãi biển, trồng cây phủ xanh đồi trọc",
       "Đạp xe hoặc sử dụng phương tiện giao thông công cộng bảo vệ bầu không khí"
-    ]
+    ],
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Trái Đất cung cấp đủ cho nhu cầu của mọi người, nhưng không đủ cho lòng tham của con người. — Mahatma Gandhi",
+    "interestingFacts": [
+      "Hiệp định Khí hậu Paris lịch sử được mở ký kết vào đúng Ngày Trái Đất năm 2016."
+    ],
+    "description": "Cùng chung tay hành động vì một hành tinh xanh, sạch và bền vững cho muôn thế hệ sau.",
+    "bannerDescription": "Khởi xướng tại Mỹ năm 1970, hiện đã thu hút hơn 190 quốc gia và hàng tỷ người tham gia hành động vì khí hậu. Kêu gọi giảm thiểu rác thải nhựa, tiết kiệm tài nguyên năng lượng và bảo vệ hệ sinh thái rừng, biển. Người dân và các gia đình thường tắt các thiết bị điện không cần thiết và giảm rác thải nhựa một lần."
   },
   {
     "id": "ev-04-23-sach-ban-quyen",
@@ -682,7 +946,19 @@ export const APRIL_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "23 Tháng 04",
     "meaning": "Khuyến khích mọi người khám phá niềm vui đọc sách và tôn trọng quyền sở hữu trí tuệ của tác giả.",
-    "subtitle": "Tôn vinh những tác giả vĩ đại và quyền tác giả bảo vệ sự sáng tạo văn học."
+    "subtitle": "Tôn vinh những tác giả vĩ đại và quyền tác giả bảo vệ sự sáng tạo văn học.",
+    "activities": [
+      "Đọc ít nhất một chương sách hay hoặc chia sẻ cuốn sách tâm đắc với bạn bè",
+      "Tham gia các hội sách, hội thảo văn hóa đọc hoặc tặng sách cho thư viện cộng đồng",
+      "Hình thành không gian đọc yên tĩnh và thói quen đọc sách mỗi ngày"
+    ],
+    "whyItMatters": null,
+    "message": "Chung tay hành động vì một thế giới hòa bình, xanh sạch và ngập tràn tình yêu thương.",
+    "interestingFacts": [
+      "Tại xứ Catalonia (Tây Ban Nha), có truyền thống tặng một đóa hoa hồng kèm một cuốn sách vào ngày này."
+    ],
+    "description": "Tôn vinh những tác giả vĩ đại và quyền tác giả bảo vệ sự sáng tạo văn học.",
+    "bannerDescription": "UNESCO chọn ngày 23/4 — trùng ngày mất của William Shakespeare và Miguel de Cervantes (1616). Khuyến khích mọi người khám phá niềm vui đọc sách và tôn trọng quyền sở hữu trí tuệ của tác giả. Đây là dịp ý nghĩa để đọc ít nhất một chương sách hay hoặc chia sẻ cuốn sách tâm đắc với bạn bè."
   },
   {
     "id": "ev-04-24-ngoai-giao-hoa-binh",
@@ -710,7 +986,19 @@ export const APRIL_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "24 Tháng 04",
     "meaning": "Tôn vinh vai trò của ngoại giao đa phương trong việc duy trì an ninh toàn cầu và hợp tác phát triển.",
-    "subtitle": "Giải quyết tranh chấp bằng đàm phán hòa bình trên nền tảng luật pháp quốc tế."
+    "subtitle": "Giải quyết tranh chấp bằng đàm phán hòa bình trên nền tảng luật pháp quốc tế.",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Chung tay hành động vì một thế giới hòa bình, xanh sạch và ngập tràn tình yêu thương.",
+    "interestingFacts": [
+      "Việt Nam luôn là thành viên tích cực, có trách nhiệm trong các diễn đàn đa phương như LHQ, ASEAN."
+    ],
+    "description": "Giải quyết tranh chấp bằng đàm phán hòa bình trên nền tảng luật pháp quốc tế.",
+    "bannerDescription": "Đại hội đồng Liên Hợp Quốc thông qua năm 2018 khẳng định tôn chỉ của Hiến chương LHQ. Tôn vinh vai trò của ngoại giao đa phương trong việc duy trì an ninh toàn cầu và hợp tác phát triển. Đây là dịp ý nghĩa để tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm."
   },
   {
     "id": "ev-04-25-sot-ret",
@@ -738,7 +1026,19 @@ export const APRIL_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "25 Tháng 04",
     "meaning": "Đánh giá tiến độ loại trừ sốt rét, cung cấp màn tẩm hóa chất và thuốc điều trị cho vùng sâu vùng xa.",
-    "subtitle": "Hành động quyết liệt vì một thế giới và một Việt Nam không còn bệnh sốt rét."
+    "subtitle": "Hành động quyết liệt vì một thế giới và một Việt Nam không còn bệnh sốt rét.",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Chung tay hành động vì một thế giới hòa bình, xanh sạch và ngập tràn tình yêu thương.",
+    "interestingFacts": [
+      "Việt Nam đã đạt được những bước tiến ngoạn mục, nhiều tỉnh thành đã công bố loại trừ sốt rét thành công."
+    ],
+    "description": "Hành động quyết liệt vì một thế giới và một Việt Nam không còn bệnh sốt rét.",
+    "bannerDescription": "Được các quốc gia thành viên WHO thành lập tại Đại hội đồng Y tế Thế giới năm 2007. Đánh giá tiến độ loại trừ sốt rét, cung cấp màn tẩm hóa chất và thuốc điều trị cho vùng sâu vùng xa. Đây là dịp ý nghĩa để tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm."
   },
   {
     "id": "ev-04-26-so-huu-tri-tue",
@@ -767,7 +1067,19 @@ export const APRIL_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "26 Tháng 04",
     "meaning": "Khích lệ các nhà sáng chế, doanh nghiệp đăng ký bảo hộ nhãn hiệu và phát minh khoa học.",
-    "subtitle": "Tôn vinh sức sáng tạo và vai trò của bằng sáng chế, bản quyền trong đổi mới c..."
+    "subtitle": "Tôn vinh sức sáng tạo và vai trò của bằng sáng chế, bản quyền trong đổi mới c...",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Chung tay hành động vì một thế giới hòa bình, xanh sạch và ngập tràn tình yêu thương.",
+    "interestingFacts": [
+      "Đổi mới sáng tạo là động lực then chốt để Việt Nam thoát khỏi bẫy thu nhập trung bình."
+    ],
+    "description": "Tôn vinh sức sáng tạo và vai trò của bằng sáng chế, bản quyền trong đổi mới công nghệ.",
+    "bannerDescription": "Tổ chức Sở hữu Trí tuệ Thế giới (WIPO) thành lập năm 2000 kỷ niệm ngày có hiệu lực của Công ước WIPO năm 1970. Khích lệ các nhà sáng chế, doanh nghiệp đăng ký bảo hộ nhãn hiệu và phát minh khoa học. Đây là dịp ý nghĩa để tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm."
   },
   {
     "id": "ev-04-27-kien-truc-vn",
@@ -796,7 +1108,19 @@ export const APRIL_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "27 Tháng 04",
     "meaning": "Khẳng định kiến trúc phải kết hợp hài hòa giữa bản sắc văn hóa dân tộc và hơi thở thời đại.",
-    "subtitle": "Tôn vinh bàn tay và khối óc kiến tạo nên những công trình mang hồn cốt non sông."
+    "subtitle": "Tôn vinh bàn tay và khối óc kiến tạo nên những công trình mang hồn cốt non sông.",
+    "activities": [
+      "Dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ",
+      "Tham quan các bảo tàng, di tích lịch sử để tìm hiểu mốc son vẻ vang của dân tộc",
+      "Kể lại những câu chuyện lịch sử hào hùng cho thế hệ trẻ gìn giữ truyền thống yêu nước"
+    ],
+    "whyItMatters": null,
+    "message": "Kiến trúc là bộ mặt của xã hội.",
+    "interestingFacts": [
+      "Kiến trúc tre độc đáo của Việt Nam đã giành được hàng loạt giải thưởng danh giá trên thế giới."
+    ],
+    "description": "Tôn vinh bàn tay và khối óc kiến tạo nên những công trình mang hồn cốt non sông.",
+    "bannerDescription": "Ngày 27/4/1948, Chủ tịch Hồ Chí Minh gửi thư cho Hội nghị thành lập Đoàn Kiến trúc sư Việt Nam tại chiến khu Việt Bắc. Khẳng định kiến trúc phải kết hợp hài hòa giữa bản sắc văn hóa dân tộc và hơi thở thời đại. Đây là dịp ý nghĩa để dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ."
   },
   {
     "id": "ev-04-28-an-toan-lao-dong",
@@ -824,7 +1148,19 @@ export const APRIL_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "28 Tháng 04",
     "meaning": "Bảo đảm quy chuẩn an toàn lao động, trang bị bảo hộ đầy đủ và chăm sóc sức khỏe công nhân.",
-    "subtitle": "An toàn là bạn, tai nạn là thù"
+    "subtitle": "An toàn là bạn, tai nạn là thù",
+    "activities": [
+      "Kiểm tra sức khỏe định kỳ và rèn luyện thể dục thể thao đều đặn",
+      "Xây dựng chế độ dinh dưỡng lành mạnh, ăn nhiều rau xanh và uống đủ nước",
+      "Gửi lời tri ân đến các y bác sĩ và nhân viên y tế đang ngày đêm chăm sóc sức khỏe nhân dân"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Tháng Năm hàng năm tại Việt Nam được chọn là 'Tháng Hành động về An toàn, Vệ sinh lao động'."
+    ],
+    "description": "An toàn là bạn, tai nạn là thù — xây dựng môi trường lao động an toàn, nhân văn.",
+    "bannerDescription": "Tổ chức Lao động Quốc tế (ILO) phát động năm 2003 nhằm tôn vinh những người lao động bị tai nạn nghề nghiệp. Bảo đảm quy chuẩn an toàn lao động, trang bị bảo hộ đầy đủ và chăm sóc sức khỏe công nhân. Đây là dịp ý nghĩa để kiểm tra sức khỏe định kỳ và rèn luyện thể dục thể thao đều đặn."
   },
   {
     "id": "ev-04-29-khieu-vu",
@@ -852,7 +1188,19 @@ export const APRIL_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "29 Tháng 04",
     "meaning": "Kết nối mọi người không phân biệt biên giới qua các điệu múa truyền thống, khiêu vũ thể thao và nhảy hiện đại.",
-    "subtitle": "Vẻ đẹp ngôn ngữ cơ thể"
+    "subtitle": "Vẻ đẹp ngôn ngữ cơ thể",
+    "activities": [
+      "Khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này",
+      "Chia sẻ thông điệp tích cực và năng lượng lạc quan tới bạn bè, người thân",
+      "Dành thời gian thư giãn và trải nghiệm những khoảnh khắc ý nghĩa trong cuộc sống"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Các điệu múa xòe Thái, múa Chăm, múa sạp vùng cao là di sản nghệ thuật đặc sắc của Việt Nam."
+    ],
+    "description": "Vẻ đẹp ngôn ngữ cơ thể — nhịp điệu của tâm hồn hòa quyện cùng âm nhạc bay bổng.",
+    "bannerDescription": "Thành lập năm 1982 bởi Viện Kịch nghệ Quốc tế (ITI) kỷ niệm ngày sinh của Jean-Georges Noverre, bậc thầy ballet. Kết nối mọi người không phân biệt biên giới qua các điệu múa truyền thống, khiêu vũ thể thao và nhảy hiện đại. Đây là dịp ý nghĩa để khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này."
   },
   {
     "id": "ev-04-30-giai-phong-mien-nam",
@@ -888,6 +1236,18 @@ export const APRIL_EVENTS: VietnamEvent[] = [
       "Viếng Dinh Độc Lập và các địa danh lịch sử gắn liền với Chiến dịch Hồ Chí Minh",
       "Treo cờ Tổ quốc rực rỡ trước hiên nhà chào mừng ngày hội non sông thống nhất",
       "Kỳ nghỉ lễ trọng đại của toàn dân cùng sum họp gia đình hoặc du lịch"
-    ]
+    ],
+    "activities": [
+      "Treo cờ Tổ quốc trang trọng tại nhà và nơi làm việc chào mừng ngày lễ lớn",
+      "Tham gia các sự kiện văn hóa, biểu diễn nghệ thuật và pháo hoa kỷ niệm",
+      "Dành thời gian nghỉ ngơi trọn vẹn, sum họp và du lịch cùng người thân"
+    ],
+    "whyItMatters": null,
+    "message": "Năm tháng sẽ trôi qua, nhưng thắng lợi của nhân dân ta trong sự nghiệp kháng chiến chống Mỹ cứu nước mãi mãi được ghi vào lịch sử dân tộc như một trong những trang chói lọi nhất.",
+    "interestingFacts": [
+      "Thời khắc lịch sử thiêng liêng biểu tượng cho bản lĩnh kiên cường, tình đoàn kết keo sơn của dân tộc."
+    ],
+    "description": "Mốc son chói lọi trong lịch sử dân tộc — non sông thu về một mối, khải hoàn khúc hòa bình.",
+    "bannerDescription": "11 giờ 30 phút ngày 30/4/1975, xe tăng quân giải phóng húc đổ cổng Dinh Độc Lập, cờ giải phóng tung bay. Chấm dứt chiến tranh chia cắt, non sông Việt Nam nối liền một dải, mở ra kỷ nguyên độc lập tự do. Người dân và các gia đình thường lễ dâng hương tri ân các Anh hùng liệt sĩ tại các nghĩa trang liệt sĩ trên cả nước."
   }
 ];

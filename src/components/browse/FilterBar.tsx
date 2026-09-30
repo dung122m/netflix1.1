@@ -181,35 +181,170 @@ export const FilterBar: React.FC = () => {
       <div className="flex items-center gap-2 sm:gap-2.5 overflow-x-auto sm:overflow-visible [scrollbar-width:none] [&::-webkit-scrollbar]:hidden py-1 flex-nowrap sm:flex-wrap">
         
         {/* DROPDOWN 1: LOẠI PHIM */}
-        <div className="relative inline-block flex-none">
+        <button
+          type="button"
+          onClick={() => toggleDropdown("type")}
+          aria-expanded={activeDropdown === "type"}
+          aria-haspopup="listbox"
+          aria-label="Lọc theo loại phim"
+          className={`h-11 px-3.5 sm:px-4 rounded-xl sm:rounded-2xl border text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 cursor-pointer shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black flex-none ${
+            currentType
+              ? "bg-purple-950/60 border-purple-500/80 text-purple-200 ring-1 ring-purple-500/30 shadow-purple-950/50"
+              : activeDropdown === "type"
+              ? "bg-zinc-800 text-white border-zinc-600"
+              : "bg-zinc-900/90 text-gray-300 border-white/10 hover:bg-zinc-800 hover:text-white hover:border-white/20"
+          }`}
+        >
+          <Film className={`w-3.5 h-3.5 flex-none ${currentType ? "text-purple-400" : "text-gray-400"}`} />
+          <span className="truncate max-w-[110px] sm:max-w-none">
+            {currentType ? activeTypeName : "Loại phim"}
+          </span>
+          <ChevronDown
+            className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 flex-none ${
+              activeDropdown === "type" ? "rotate-180 text-white" : "rotate-0"
+            }`}
+          />
+        </button>
+
+        {/* DROPDOWN 2: THỂ LOẠI */}
+        <button
+          type="button"
+          onClick={() => toggleDropdown("genre")}
+          aria-expanded={activeDropdown === "genre"}
+          aria-haspopup="listbox"
+          aria-label="Lọc theo thể loại phim"
+          className={`h-11 px-3.5 sm:px-4 rounded-xl sm:rounded-2xl border text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 cursor-pointer shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black flex-none ${
+            currentCategory
+              ? "bg-rose-950/60 border-rose-500/80 text-rose-200 ring-1 ring-rose-500/30 shadow-rose-950/50"
+              : activeDropdown === "genre"
+              ? "bg-zinc-800 text-white border-zinc-600"
+              : "bg-zinc-900/90 text-gray-300 border-white/10 hover:bg-zinc-800 hover:text-white hover:border-white/20"
+          }`}
+        >
+          <Sparkles className={`w-3.5 h-3.5 flex-none ${currentCategory ? "text-rose-400" : "text-amber-400"}`} />
+          <span className="truncate max-w-[110px] sm:max-w-none">
+            {currentCategory ? activeCategoryName : "Thể loại"}
+          </span>
+          <ChevronDown
+            className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 flex-none ${
+              activeDropdown === "genre" ? "rotate-180 text-white" : "rotate-0"
+            }`}
+          />
+        </button>
+
+        {/* DROPDOWN 3: QUỐC GIA */}
+        <button
+          type="button"
+          onClick={() => toggleDropdown("country")}
+          aria-expanded={activeDropdown === "country"}
+          aria-haspopup="listbox"
+          aria-label="Lọc theo quốc gia sản xuất"
+          className={`h-11 px-3.5 sm:px-4 rounded-xl sm:rounded-2xl border text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 cursor-pointer shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black flex-none ${
+            currentCountry
+              ? "bg-sky-950/60 border-sky-500/80 text-sky-200 ring-1 ring-sky-500/30 shadow-sky-950/50"
+              : activeDropdown === "country"
+              ? "bg-zinc-800 text-white border-zinc-600"
+              : "bg-zinc-900/90 text-gray-300 border-white/10 hover:bg-zinc-800 hover:text-white hover:border-white/20"
+          }`}
+        >
+          <Globe2 className={`w-3.5 h-3.5 flex-none ${currentCountry ? "text-sky-400" : "text-gray-400"}`} />
+          <span className="truncate max-w-[110px] sm:max-w-none">
+            {currentCountry ? activeCountryName : "Quốc gia"}
+          </span>
+          <ChevronDown
+            className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 flex-none ${
+              activeDropdown === "country" ? "rotate-180 text-white" : "rotate-0"
+            }`}
+          />
+        </button>
+
+        {/* DROPDOWN 4: NĂM PHÁT HÀNH */}
+        <button
+          type="button"
+          onClick={() => toggleDropdown("year")}
+          aria-expanded={activeDropdown === "year"}
+          aria-haspopup="listbox"
+          aria-label="Lọc theo năm phát hành"
+          className={`h-11 px-3.5 sm:px-4 rounded-xl sm:rounded-2xl border text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 cursor-pointer shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black flex-none ${
+            currentYear
+              ? "bg-emerald-950/60 border-emerald-500/80 text-emerald-200 ring-1 ring-emerald-500/30 shadow-emerald-950/50"
+              : activeDropdown === "year"
+              ? "bg-zinc-800 text-white border-zinc-600"
+              : "bg-zinc-900/90 text-gray-300 border-white/10 hover:bg-zinc-800 hover:text-white hover:border-white/20"
+          }`}
+        >
+          <Calendar className={`w-3.5 h-3.5 flex-none ${currentYear ? "text-emerald-400" : "text-gray-400"}`} />
+          <span className="truncate max-w-[110px] sm:max-w-none">
+            {currentYear ? currentYear : "Năm"}
+          </span>
+          <ChevronDown
+            className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 flex-none ${
+              activeDropdown === "year" ? "rotate-180 text-white" : "rotate-0"
+            }`}
+          />
+        </button>
+
+        {/* DROPDOWN 5: SẮP XẾP */}
+        <button
+          type="button"
+          onClick={() => toggleDropdown("sort")}
+          aria-expanded={activeDropdown === "sort"}
+          aria-haspopup="listbox"
+          aria-label="Sắp xếp danh sách phim"
+          className={`h-11 px-3.5 sm:px-4 rounded-xl sm:rounded-2xl border text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 cursor-pointer shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black flex-none ${
+            currentSort
+              ? "bg-amber-950/60 border-amber-500/80 text-amber-200 ring-1 ring-amber-500/30 shadow-amber-950/50"
+              : activeDropdown === "sort"
+              ? "bg-zinc-800 text-white border-zinc-600"
+              : "bg-zinc-900/90 text-gray-300 border-white/10 hover:bg-zinc-800 hover:text-white hover:border-white/20"
+          }`}
+        >
+          <ArrowUpDown className={`w-3.5 h-3.5 flex-none ${currentSort ? "text-amber-400" : "text-gray-400"}`} />
+          <span className="truncate max-w-[110px] sm:max-w-none">
+            {currentSort ? activeSortName : "Sắp xếp"}
+          </span>
+          <ChevronDown
+            className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 flex-none ${
+              activeDropdown === "sort" ? "rotate-180 text-white" : "rotate-0"
+            }`}
+          />
+        </button>
+
+        {/* NÚT BỐC QUẺ NHANH */}
+        <button
+          type="button"
+          onClick={() => {
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(new CustomEvent("open-ai-roulette"));
+            }
+          }}
+          className="h-11 px-3.5 sm:px-4 rounded-xl sm:rounded-2xl border border-rose-500/30 bg-gradient-to-r from-red-600/20 via-rose-600/20 to-amber-600/20 hover:from-red-600/30 hover:to-rose-600/30 text-rose-200 hover:text-white text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-1.5 cursor-pointer shadow-sm flex-none outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+          title="Bốc quẻ phim ngẫu nhiên với AI"
+        >
+          <Dices className="w-4 h-4 text-amber-300" />
+          <span className="hidden md:inline">Bốc quẻ</span>
+        </button>
+
+        {/* XÓA NHANH TOÀN BỘ BỘ LỌC KHI CÓ FILTER */}
+        {hasAnyFilter && (
           <button
             type="button"
-            onClick={() => toggleDropdown("type")}
-            aria-expanded={activeDropdown === "type"}
-            aria-haspopup="listbox"
-            aria-label="Lọc theo loại phim"
-            className={`h-11 px-3.5 sm:px-4 rounded-xl sm:rounded-2xl border text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 cursor-pointer shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
-              currentType
-                ? "bg-purple-950/60 border-purple-500/80 text-purple-200 ring-1 ring-purple-500/30 shadow-purple-950/50"
-                : activeDropdown === "type"
-                ? "bg-zinc-800 text-white border-zinc-600"
-                : "bg-zinc-900/90 text-gray-300 border-white/10 hover:bg-zinc-800 hover:text-white hover:border-white/20"
-            }`}
+            onClick={handleClearAll}
+            className="h-11 px-3 sm:px-3.5 rounded-xl sm:rounded-2xl border border-dashed border-zinc-700/80 hover:border-rose-500/50 text-gray-400 hover:text-rose-300 hover:bg-rose-950/20 text-xs sm:text-sm font-medium transition-all duration-150 flex items-center gap-1.5 cursor-pointer shadow-sm flex-none outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+            title="Xóa tất cả các bộ lọc hiện tại"
           >
-            <Film className={`w-3.5 h-3.5 flex-none ${currentType ? "text-purple-400" : "text-gray-400"}`} />
-            <span className="truncate max-w-[110px] sm:max-w-none">
-              {currentType ? activeTypeName : "Loại phim"}
-            </span>
-            <ChevronDown
-              className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 flex-none ${
-                activeDropdown === "type" ? "rotate-180 text-white" : "rotate-0"
-              }`}
-            />
+            <RotateCcw className="w-3.5 h-3.5 text-rose-400" />
+            <span className="hidden sm:inline">Đặt lại</span>
           </button>
+        )}
+      </div>
 
-          {/* Popup Type: Nằm chính xác ngay bên dưới nút Loại phim */}
+      {/* 2. ACTIVE DROPDOWN POPUP (Nằm hoàn toàn ngoài container overflow-x-auto, không bao giờ bị cắt trên Mobile) */}
+      {activeDropdown && (
+        <div className="absolute top-full left-0 mt-2 z-50 max-w-[calc(100vw-2rem)]">
+          {/* POPUP 1: LOẠI PHIM */}
           {activeDropdown === "type" && (
-            <div className="absolute top-full left-0 mt-2 w-56 sm:w-60 rounded-2xl bg-zinc-950/98 border border-zinc-700/80 p-2.5 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150 z-50">
+            <div className="w-56 sm:w-60 rounded-2xl bg-zinc-950/98 border border-zinc-700/80 p-2.5 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
               <div className="px-2 py-1 text-[11px] font-bold text-gray-400 uppercase tracking-wider border-b border-white/10 mb-2 flex items-center justify-between">
                 <span>Chọn loại phim</span>
                 {currentType && (
@@ -259,38 +394,10 @@ export const FilterBar: React.FC = () => {
               </div>
             </div>
           )}
-        </div>
 
-        {/* DROPDOWN 2: THỂ LOẠI */}
-        <div className="relative inline-block flex-none">
-          <button
-            type="button"
-            onClick={() => toggleDropdown("genre")}
-            aria-expanded={activeDropdown === "genre"}
-            aria-haspopup="listbox"
-            aria-label="Lọc theo thể loại phim"
-            className={`h-11 px-3.5 sm:px-4 rounded-xl sm:rounded-2xl border text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 cursor-pointer shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
-              currentCategory
-                ? "bg-rose-950/60 border-rose-500/80 text-rose-200 ring-1 ring-rose-500/30 shadow-rose-950/50"
-                : activeDropdown === "genre"
-                ? "bg-zinc-800 text-white border-zinc-600"
-                : "bg-zinc-900/90 text-gray-300 border-white/10 hover:bg-zinc-800 hover:text-white hover:border-white/20"
-            }`}
-          >
-            <Sparkles className={`w-3.5 h-3.5 flex-none ${currentCategory ? "text-rose-400" : "text-amber-400"}`} />
-            <span className="truncate max-w-[110px] sm:max-w-none">
-              {currentCategory ? activeCategoryName : "Thể loại"}
-            </span>
-            <ChevronDown
-              className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 flex-none ${
-                activeDropdown === "genre" ? "rotate-180 text-white" : "rotate-0"
-              }`}
-            />
-          </button>
-
-          {/* Popup Genre: Nằm chính xác ngay bên dưới nút Thể loại */}
+          {/* POPUP 2: THỂ LOẠI */}
           {activeDropdown === "genre" && (
-            <div className="absolute top-full left-0 mt-2 w-[calc(100vw-2rem)] sm:w-80 md:w-96 rounded-2xl bg-zinc-950/98 border border-zinc-700/80 p-3 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150 z-50">
+            <div className="w-[calc(100vw-2rem)] sm:w-80 md:w-96 rounded-2xl bg-zinc-950/98 border border-zinc-700/80 p-3 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
               <div className="px-2 py-1 text-[11px] font-bold text-gray-400 uppercase tracking-wider border-b border-white/10 mb-2 flex items-center justify-between">
                 <span>Chọn thể loại</span>
                 {currentCategory && (
@@ -353,38 +460,10 @@ export const FilterBar: React.FC = () => {
               </div>
             </div>
           )}
-        </div>
 
-        {/* DROPDOWN 3: QUỐC GIA */}
-        <div className="relative inline-block flex-none">
-          <button
-            type="button"
-            onClick={() => toggleDropdown("country")}
-            aria-expanded={activeDropdown === "country"}
-            aria-haspopup="listbox"
-            aria-label="Lọc theo quốc gia sản xuất"
-            className={`h-11 px-3.5 sm:px-4 rounded-xl sm:rounded-2xl border text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 cursor-pointer shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
-              currentCountry
-                ? "bg-sky-950/60 border-sky-500/80 text-sky-200 ring-1 ring-sky-500/30 shadow-sky-950/50"
-                : activeDropdown === "country"
-                ? "bg-zinc-800 text-white border-zinc-600"
-                : "bg-zinc-900/90 text-gray-300 border-white/10 hover:bg-zinc-800 hover:text-white hover:border-white/20"
-            }`}
-          >
-            <Globe2 className={`w-3.5 h-3.5 flex-none ${currentCountry ? "text-sky-400" : "text-gray-400"}`} />
-            <span className="truncate max-w-[110px] sm:max-w-none">
-              {currentCountry ? activeCountryName : "Quốc gia"}
-            </span>
-            <ChevronDown
-              className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 flex-none ${
-                activeDropdown === "country" ? "rotate-180 text-white" : "rotate-0"
-              }`}
-            />
-          </button>
-
-          {/* Popup Country: Nằm chính xác ngay bên dưới nút Quốc gia */}
+          {/* POPUP 3: QUỐC GIA */}
           {activeDropdown === "country" && (
-            <div className="absolute top-full left-0 mt-2 w-[calc(100vw-2rem)] sm:w-80 rounded-2xl bg-zinc-950/98 border border-zinc-700/80 p-3 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150 z-50">
+            <div className="w-[calc(100vw-2rem)] sm:w-80 rounded-2xl bg-zinc-950/98 border border-zinc-700/80 p-3 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
               <div className="px-2 py-1 text-[11px] font-bold text-gray-400 uppercase tracking-wider border-b border-white/10 mb-2 flex items-center justify-between">
                 <span>Chọn quốc gia</span>
                 {currentCountry && (
@@ -431,38 +510,10 @@ export const FilterBar: React.FC = () => {
               </div>
             </div>
           )}
-        </div>
 
-        {/* DROPDOWN 4: NĂM PHÁT HÀNH */}
-        <div className="relative inline-block flex-none">
-          <button
-            type="button"
-            onClick={() => toggleDropdown("year")}
-            aria-expanded={activeDropdown === "year"}
-            aria-haspopup="listbox"
-            aria-label="Lọc theo năm phát hành"
-            className={`h-11 px-3.5 sm:px-4 rounded-xl sm:rounded-2xl border text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 cursor-pointer shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
-              currentYear
-                ? "bg-emerald-950/60 border-emerald-500/80 text-emerald-200 ring-1 ring-emerald-500/30 shadow-emerald-950/50"
-                : activeDropdown === "year"
-                ? "bg-zinc-800 text-white border-zinc-600"
-                : "bg-zinc-900/90 text-gray-300 border-white/10 hover:bg-zinc-800 hover:text-white hover:border-white/20"
-            }`}
-          >
-            <Calendar className={`w-3.5 h-3.5 flex-none ${currentYear ? "text-emerald-400" : "text-gray-400"}`} />
-            <span className="truncate max-w-[110px] sm:max-w-none">
-              {currentYear ? currentYear : "Năm"}
-            </span>
-            <ChevronDown
-              className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 flex-none ${
-                activeDropdown === "year" ? "rotate-180 text-white" : "rotate-0"
-              }`}
-            />
-          </button>
-
-          {/* Popup Year: Nằm chính xác ngay bên dưới nút Năm */}
+          {/* POPUP 4: NĂM PHÁT HÀNH */}
           {activeDropdown === "year" && (
-            <div className="absolute top-full left-0 mt-2 w-72 sm:w-80 rounded-2xl bg-zinc-950/98 border border-zinc-700/80 p-3 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150 z-50">
+            <div className="w-[calc(100vw-2rem)] sm:w-80 rounded-2xl bg-zinc-950/98 border border-zinc-700/80 p-3 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
               <div className="px-2 py-1 text-[11px] font-bold text-gray-400 uppercase tracking-wider border-b border-white/10 mb-2 flex items-center justify-between">
                 <span>Chọn năm phát hành</span>
                 {currentYear && (
@@ -508,38 +559,10 @@ export const FilterBar: React.FC = () => {
               </div>
             </div>
           )}
-        </div>
 
-        {/* DROPDOWN 5: SẮP XẾP */}
-        <div className="relative inline-block flex-none">
-          <button
-            type="button"
-            onClick={() => toggleDropdown("sort")}
-            aria-expanded={activeDropdown === "sort"}
-            aria-haspopup="listbox"
-            aria-label="Sắp xếp danh sách phim"
-            className={`h-11 px-3.5 sm:px-4 rounded-xl sm:rounded-2xl border text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 cursor-pointer shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
-              currentSort
-                ? "bg-amber-950/60 border-amber-500/80 text-amber-200 ring-1 ring-amber-500/30 shadow-amber-950/50"
-                : activeDropdown === "sort"
-                ? "bg-zinc-800 text-white border-zinc-600"
-                : "bg-zinc-900/90 text-gray-300 border-white/10 hover:bg-zinc-800 hover:text-white hover:border-white/20"
-            }`}
-          >
-            <ArrowUpDown className={`w-3.5 h-3.5 flex-none ${currentSort ? "text-amber-400" : "text-gray-400"}`} />
-            <span className="truncate max-w-[110px] sm:max-w-none">
-              {currentSort ? activeSortName : "Sắp xếp"}
-            </span>
-            <ChevronDown
-              className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 flex-none ${
-                activeDropdown === "sort" ? "rotate-180 text-white" : "rotate-0"
-              }`}
-            />
-          </button>
-
-          {/* Popup Sort: Nằm chính xác ngay bên dưới nút Sắp xếp */}
+          {/* POPUP 5: SẮP XẾP */}
           {activeDropdown === "sort" && (
-            <div className="absolute top-full left-0 sm:left-auto sm:right-0 mt-2 w-60 rounded-2xl bg-zinc-950/98 border border-zinc-700/80 p-2.5 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150 z-50">
+            <div className="w-56 sm:w-60 rounded-2xl bg-zinc-950/98 border border-zinc-700/80 p-2.5 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
               <div className="px-2 py-1 text-[11px] font-bold text-gray-400 uppercase tracking-wider border-b border-white/10 mb-1">
                 <span>Tiêu chí sắp xếp</span>
               </div>
@@ -570,35 +593,7 @@ export const FilterBar: React.FC = () => {
             </div>
           )}
         </div>
-
-        {/* NÚT BỐC QUẺ NHANH */}
-        <button
-          type="button"
-          onClick={() => {
-            if (typeof window !== "undefined") {
-              window.dispatchEvent(new CustomEvent("open-ai-roulette"));
-            }
-          }}
-          className="h-11 px-3.5 sm:px-4 rounded-xl sm:rounded-2xl border border-rose-500/30 bg-gradient-to-r from-red-600/20 via-rose-600/20 to-amber-600/20 hover:from-red-600/30 hover:to-rose-600/30 text-rose-200 hover:text-white text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-1.5 cursor-pointer shadow-sm flex-none outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
-          title="Bốc quẻ phim ngẫu nhiên với AI"
-        >
-          <Dices className="w-4 h-4 text-amber-300" />
-          <span className="hidden md:inline">Bốc quẻ</span>
-        </button>
-
-        {/* XÓA NHANH TOÀN BỘ BỘ LỌC KHI CÓ FILTER */}
-        {hasAnyFilter && (
-          <button
-            type="button"
-            onClick={handleClearAll}
-            className="h-11 px-3 sm:px-3.5 rounded-xl sm:rounded-2xl border border-dashed border-zinc-700/80 hover:border-rose-500/50 text-gray-400 hover:text-rose-300 hover:bg-rose-950/20 text-xs sm:text-sm font-medium transition-all duration-150 flex items-center gap-1.5 cursor-pointer shadow-sm flex-none outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black"
-            title="Xóa tất cả các bộ lọc hiện tại"
-          >
-            <RotateCcw className="w-3.5 h-3.5 text-rose-400" />
-            <span className="hidden sm:inline">Đặt lại</span>
-          </button>
-        )}
-      </div>
+      )}
 
       {/* 2. ACTIVE FILTERS CHIP BAR (Chỉ hiển thị khi có ít nhất 1 filter active) */}
       {hasAnyFilter && (

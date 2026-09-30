@@ -421,11 +421,53 @@ export function VietnamTodayModal({
                 </div>
               )}
 
-              {/* 💬 Trích dẫn / Ca dao */}
-              {currentEvent.quote && (
+              {/* 🎯 Hoạt động & Cách kỷ niệm tiêu biểu (activities) */}
+              {currentEvent.activities && currentEvent.activities.length > 0 && (
+                <div className="p-4 rounded-xl bg-gradient-to-br from-blue-950/20 via-zinc-900/70 to-zinc-900/50 border border-sky-500/25">
+                  <div className="flex items-center gap-2 text-sky-300 font-semibold mb-2.5">
+                    <Compass className="w-4 h-4 text-sky-400" />
+                    <span>Hoạt động & Trải nghiệm tiêu biểu</span>
+                  </div>
+                  <ul className="space-y-2">
+                    {currentEvent.activities.map((act, idx) => (
+                      <li
+                        key={idx}
+                        className="flex items-start gap-2.5 text-xs sm:text-sm text-zinc-200"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5 text-sky-400 mt-0.5 flex-shrink-0" />
+                        <span>{act}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* 💡 Điều thú vị mở rộng (interestingFacts) */}
+              {currentEvent.interestingFacts && currentEvent.interestingFacts.length > 0 && (
+                <div className="p-4 rounded-xl bg-amber-950/15 border border-amber-500/20">
+                  <div className="flex items-center gap-2 text-amber-300 font-semibold mb-2">
+                    <Lightbulb className="w-4 h-4 text-amber-400" />
+                    <span>Điều thú vị & Có thể bạn chưa biết</span>
+                  </div>
+                  <ul className="space-y-1.5">
+                    {currentEvent.interestingFacts.map((fact, idx) => (
+                      <li
+                        key={idx}
+                        className="flex items-start gap-2 text-xs sm:text-sm text-amber-100/90"
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-2 flex-shrink-0" />
+                        <span>{fact}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* 💬 Trích dẫn / Thông điệp gửi gắm */}
+              {(currentEvent.message || currentEvent.quote) && (
                 <div className="p-3.5 rounded-xl bg-zinc-900/40 border border-white/5 flex items-start gap-3 italic text-xs sm:text-sm text-zinc-300">
                   <Quote className="w-4 h-4 text-amber-400/80 flex-shrink-0 mt-0.5" />
-                  <span>&ldquo;{currentEvent.quote}&rdquo;</span>
+                  <span>&ldquo;{currentEvent.message || currentEvent.quote}&rdquo;</span>
                 </div>
               )}
 

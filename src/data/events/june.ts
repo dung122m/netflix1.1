@@ -34,7 +34,19 @@ export const JUNE_EVENTS: VietnamEvent[] = [
       "Cha mẹ đưa con đi chơi công viên, nhà sách và thưởng thức các món ăn con yêu thích",
       "Thăm và tặng quà cho trẻ em có hoàn cảnh khó khăn tại các mái ấm tình thương"
     ],
-    "cuisine": "Bánh kem ngọt ngào, kem ốc quế mát lạnh, bánh flan caramel và nước ép trái cây tươi mát."
+    "cuisine": "Bánh kem ngọt ngào, kem ốc quế mát lạnh, bánh flan caramel và nước ép trái cây tươi mát.",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Trẻ em như búp trên cành / Biết ăn ngủ, biết học hành là ngoan. — Hồ Chí Minh",
+    "interestingFacts": [
+      "Tháng 6 cũng là Tháng Hành động vì trẻ em trên toàn quốc với hàng triệu phần quà yêu thương."
+    ],
+    "description": "Ngày hội rực rỡ của nụ cười tuổi thơ, trao gửi tình thương và chăm lo cho thế hệ mầm non.",
+    "bannerDescription": "Thành lập năm 1949 sau thảm sát phát xít Lidice nhằm bảo vệ quyền được sống, học tập và vui chơi của trẻ thơ. Việt Nam là nước đầu tiên ở châu Á phê chuẩn Công ước của Liên Hợp Quốc về Quyền trẻ em năm 1990. Người dân và các gia đình thường tổ chức ngày hội vui chơi, xiếc kịch và tặng quà cho các em thiếu nhi."
   },
   {
     "id": "ev-06-02-thu-y",
@@ -62,7 +74,19 @@ export const JUNE_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "02 Tháng 06",
     "meaning": "Thú cưng như chó, mèo mang lại niềm vui, sự gắn kết và giảm căng thẳng cho con người.",
-    "subtitle": "Chăm sóc sức khỏe cho những người bạn bốn chân trung thành và thú cưng trong ..."
+    "subtitle": "Chăm sóc sức khỏe cho những người bạn bốn chân trung thành và thú cưng trong ...",
+    "activities": [
+      "Gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu",
+      "Tổ chức các buổi gặp gỡ, họp mặt ý nghĩa để thắt chặt tình đoàn kết",
+      "Thực hiện những việc làm tử tế, sẻ chia khó khăn với những hoàn cảnh kém may mắn"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Tiêm phòng dại định kỳ cho thú cưng là biện pháp bắt buộc để bảo vệ an toàn cho cả gia đình."
+    ],
+    "description": "Chăm sóc sức khỏe cho những người bạn bốn chân trung thành và thú cưng trong gia đình.",
+    "bannerDescription": "Tôn vinh nghề bác sĩ thú y bảo vệ sức khỏe đàn gia súc gia cầm và phòng ngừa dịch bệnh lây sang người. Thú cưng như chó, mèo mang lại niềm vui, sự gắn kết và giảm căng thẳng cho con người. Đây là dịp ý nghĩa để gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu."
   },
   {
     "id": "ev-06-03-xe-dap",
@@ -90,7 +114,19 @@ export const JUNE_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "03 Tháng 06",
     "meaning": "Đạp xe 30 phút mỗi ngày giúp đốt cháy calo, cải thiện tim mạch và giảm ùn tắc giao thông đô thị.",
-    "subtitle": "Phương tiện giao thông xanh, rèn luyện sức bền và bảo vệ bầu không khí trong ..."
+    "subtitle": "Phương tiện giao thông xanh, rèn luyện sức bền và bảo vệ bầu không khí trong ...",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Chung tay hành động vì một thế giới hòa bình, xanh sạch và ngập tràn tình yêu thương.",
+    "interestingFacts": [
+      "Phố cổ Hội An là một trong những đô thị đi đầu trong việc khuyến khích người dân và du khách đạp xe."
+    ],
+    "description": "Phương tiện giao thông xanh, rèn luyện sức bền và bảo vệ bầu không khí trong lành.",
+    "bannerDescription": "Đại hội đồng Liên Hợp Quốc thông qua năm 2018 khuyến khích sử dụng xe đạp làm phương tiện xanh. Đạp xe 30 phút mỗi ngày giúp đốt cháy calo, cải thiện tim mạch và giảm ùn tắc giao thông đô thị. Đây là dịp ý nghĩa để tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm."
   },
   {
     "id": "ev-06-04-tre-em-vo-toi",
@@ -118,7 +154,19 @@ export const JUNE_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "04 Tháng 06",
     "meaning": "Khẳng định cam kết bảo vệ quyền trẻ em được sống trong môi trường hòa bình, an toàn và hạnh phúc.",
-    "subtitle": "Chung tay bảo vệ trẻ em khỏi mọi hình thức bạo lực, bóc lột và chiến tranh tà..."
+    "subtitle": "Chung tay bảo vệ trẻ em khỏi mọi hình thức bạo lực, bóc lột và chiến tranh tà...",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Chung tay hành động vì một thế giới hòa bình, xanh sạch và ngập tràn tình yêu thương.",
+    "interestingFacts": [
+      "Tổng đài quốc gia bảo vệ trẻ em 111 tại Việt Nam hoạt động 24/7 tiếp nhận mọi thông tin trợ giúp trẻ."
+    ],
+    "description": "Chung tay bảo vệ trẻ em khỏi mọi hình thức bạo lực, bóc lột và chiến tranh tàn khốc.",
+    "bannerDescription": "Đại hội đồng Liên Hợp Quốc thành lập năm 1982 tại phiên họp đặc biệt về vấn đề Palestine. Khẳng định cam kết bảo vệ quyền trẻ em được sống trong môi trường hòa bình, an toàn và hạnh phúc. Đây là dịp ý nghĩa để tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm."
   },
   {
     "id": "ev-06-05-moi-truong-va-bac-ho",
@@ -152,7 +200,19 @@ export const JUNE_EVENTS: VietnamEvent[] = [
       "Lễ dâng hoa tại Tượng đài Bác Hồ và Bến Nhà Rồng (Bảo tàng Hồ Chí Minh - Chi nhánh TP.HCM)",
       "Phát động chiến dịch 'Vì một Việt Nam xanh', trồng cây bảo vệ rừng và dọn rác bãi biển",
       "Tuyên truyền hạn chế sử dụng năng lượng hóa thạch và bảo vệ nguồn nước sạch"
-    ]
+    ],
+    "activities": [
+      "Trồng thêm cây xanh tại khu dân cư, ban công hoặc nơi làm việc",
+      "Hạn chế sử dụng đồ nhựa dùng một lần và phân loại rác thải tại nguồn",
+      "Tắt bớt các thiết bị điện không cần thiết và sử dụng phương tiện giao thông thân thiện môi trường"
+    ],
+    "whyItMatters": null,
+    "message": "Từ Bến Nhà Rồng, Người đã ra đi tìm đường cứu nước, mang lại mùa xuân độc lập trường tồn cho dân tộc.",
+    "interestingFacts": [
+      "Từ Bến Nhà Rồng năm ấy, Người đã bôn ba qua 3 đại dương, 4 châu lục suốt 30 năm ròng rã."
+    ],
+    "description": "Hành động vì hành tinh xanh và khắc ghi mốc son lịch sử của người thanh niên Nguyễn Tất Thành.",
+    "bannerDescription": "Ngày 5/6/1911, từ Bến cảng Nhà Rồng, người thanh niên yêu nước ra đi trên tàu Amiral Latouche-Tréville tìm đường giải phóng dân tộc; đồng thời là Ngày Môi trường Thế giới (UNEP 1972). Mở đường cho sự nghiệp giải phóng dân tộc và kêu gọi cộng đồng chung tay bảo vệ môi trường sinh thái. Người dân và các gia đình thường lễ dâng hoa tại Tượng đài Bác Hồ và Bến Nhà Rồng (Bảo tàng Hồ Chí Minh - Chi nhánh TP.HCM)."
   },
   {
     "id": "ev-06-06-nguoi-cao-tuoi",
@@ -181,7 +241,19 @@ export const JUNE_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "06 Tháng 06",
     "meaning": "Tôn vinh trí tuệ, kinh nghiệm sống và công lao của người cao tuổi trong gia đình và xã hội.",
-    "subtitle": "Kính lão đắc thọ"
+    "subtitle": "Kính lão đắc thọ",
+    "activities": [
+      "Thăm hỏi, chúc thọ và chăm sóc sức khỏe cho ông bà, cha mẹ",
+      "Tổ chức các hoạt động văn nghệ, thể dục dưỡng sinh cho người cao tuổi",
+      "Gìn giữ nếp nhà 'Kính lão đắc thọ' và lắng nghe những lời khuyên quý báu của thế hệ đi trước"
+    ],
+    "whyItMatters": null,
+    "message": "Kính chúc các bậc cao niên luôn dồi dào sức khỏe, an khang trường thọ và mãi là chỗ dựa tinh thần vững chắc cho con cháu.",
+    "interestingFacts": [
+      "Phong trào 'Tuổi cao chí càng cao, nêu gương sáng vì sự nghiệp xây dựng Tổ quốc' lan tỏa sâu rộng."
+    ],
+    "description": "Kính lão đắc thọ — tri ân công đức sinh thành và phát huy vai trò 'Tuổi cao gương sáng'.",
+    "bannerDescription": "Ngày 6/6/1941, Bác Hồ viết bài 'Kính cáo đồng bào' kêu gọi toàn dân đoàn kết, trong đó đặc biệt nhấn mạnh vai trò của các bậc phụ lão. Tôn vinh trí tuệ, kinh nghiệm sống và công lao của người cao tuổi trong gia đình và xã hội. Đây là dịp ý nghĩa để thăm hỏi, chúc thọ và chăm sóc sức khỏe cho ông bà, cha mẹ."
   },
   {
     "id": "ev-06-07-an-toan-thuc-pham",
@@ -209,7 +281,19 @@ export const JUNE_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "07 Tháng 06",
     "meaning": "Nhắc nhở người tiêu dùng và nhà sản xuất tuân thủ quy chuẩn vệ sinh an toàn thực phẩm.",
-    "subtitle": "Thực phẩm an toàn cho sức khỏe hôm nay"
+    "subtitle": "Thực phẩm an toàn cho sức khỏe hôm nay",
+    "activities": [
+      "Gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu",
+      "Tổ chức các buổi gặp gỡ, họp mặt ý nghĩa để thắt chặt tình đoàn kết",
+      "Thực hiện những việc làm tử tế, sẻ chia khó khăn với những hoàn cảnh kém may mắn"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Ăn chín uống sôi, kiểm tra nguồn gốc xuất xứ thực phẩm là biện pháp bảo vệ sức khỏe cả nhà."
+    ],
+    "description": "Thực phẩm an toàn cho sức khỏe hôm nay — vì một tương lai khỏe mạnh ngày mai.",
+    "bannerDescription": "Được Liên Hợp Quốc thông qua phối hợp cùng WHO và FAO từ năm 2018. Nhắc nhở người tiêu dùng và nhà sản xuất tuân thủ quy chuẩn vệ sinh an toàn thực phẩm. Đây là dịp ý nghĩa để gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu."
   },
   {
     "id": "ev-06-08-dai-duong-the-gioi",
@@ -238,7 +322,19 @@ export const JUNE_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "08 Tháng 06",
     "meaning": "Việt Nam có hơn 3.260 km bờ biển với tiềm năng kinh tế biển to lớn và chủ quyền biển đảo thiêng liêng.",
-    "subtitle": "Đại dương xanh nuôi dưỡng sự sống"
+    "subtitle": "Đại dương xanh nuôi dưỡng sự sống",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Chung tay hành động vì một thế giới hòa bình, xanh sạch và ngập tràn tình yêu thương.",
+    "interestingFacts": [
+      "Tuần lễ Biển và Hải đảo Việt Nam diễn ra từ ngày 1 đến 8/6 hàng năm trên khắp các tỉnh ven biển."
+    ],
+    "description": "Đại dương xanh nuôi dưỡng sự sống — cùng giữ sạch từng tấc biển thiêng liêng của Tổ quốc.",
+    "bannerDescription": "Đại hội đồng Liên Hợp Quốc chính thức công nhận năm 2008 nhằm tôn vinh giá trị của biển và đại dương. Việt Nam có hơn 3.260 km bờ biển với tiềm năng kinh tế biển to lớn và chủ quyền biển đảo thiêng liêng. Đây là dịp ý nghĩa để tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm."
   },
   {
     "id": "ev-06-09-luu-tru-quoc-te",
@@ -266,7 +362,19 @@ export const JUNE_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "09 Tháng 06",
     "meaning": "Bảo tồn các bản thảo cổ, mộc bản triều Nguyễn, châu bản triều Nguyễn được UNESCO ghi danh Di sản tư liệu thế giới.",
-    "subtitle": "Những trang tư liệu lịch sử vô giá"
+    "subtitle": "Những trang tư liệu lịch sử vô giá",
+    "activities": [
+      "Khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này",
+      "Chia sẻ thông điệp tích cực và năng lượng lạc quan tới bạn bè, người thân",
+      "Dành thời gian thư giãn và trải nghiệm những khoảnh khắc ý nghĩa trong cuộc sống"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Mộc bản triều Nguyễn tại Đà Lạt khắc ngược chữ Hán Nôm trên gỗ thị là di sản độc bản của Việt Nam."
+    ],
+    "description": "Những trang tư liệu lịch sử vô giá — bảo tồn ký ức của tiền nhân trao truyền cho hậu thế.",
+    "bannerDescription": "Thành lập bởi Hội đồng Lưu trữ Quốc tế (ICA) dưới sự bảo trợ của UNESCO năm 1948. Bảo tồn các bản thảo cổ, mộc bản triều Nguyễn, châu bản triều Nguyễn được UNESCO ghi danh Di sản tư liệu thế giới. Đây là dịp ý nghĩa để khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này."
   },
   {
     "id": "ev-06-10-art-nouveau",
@@ -294,7 +402,19 @@ export const JUNE_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "10 Tháng 06",
     "meaning": "Nhiều công trình kiến trúc thời kỳ đầu thế kỷ 20 tại Hà Nội và TP.HCM mang dấu ấn giao thoa nghệ thuật này.",
-    "subtitle": "Vẻ đẹp uốn lượn mềm mại lấy cảm hứng từ thiên nhiên trong kiến trúc và hội họa."
+    "subtitle": "Vẻ đẹp uốn lượn mềm mại lấy cảm hứng từ thiên nhiên trong kiến trúc và hội họa.",
+    "activities": [
+      "Khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này",
+      "Chia sẻ thông điệp tích cực và năng lượng lạc quan tới bạn bè, người thân",
+      "Dành thời gian thư giãn và trải nghiệm những khoảnh khắc ý nghĩa trong cuộc sống"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Nhà hát Lớn Hà Nội và Bảo tàng Lịch sử Quốc gia là những kiệt tác kiến trúc di sản tuyệt đẹp."
+    ],
+    "description": "Vẻ đẹp uốn lượn mềm mại lấy cảm hứng từ thiên nhiên trong kiến trúc và hội họa.",
+    "bannerDescription": "Kỷ niệm các kiến trúc sư tiên phong của phong cách Art Nouveau như Antoni Gaudí và Ödön Lechner. Nhiều công trình kiến trúc thời kỳ đầu thế kỷ 20 tại Hà Nội và TP.HCM mang dấu ấn giao thoa nghệ thuật này. Đây là dịp ý nghĩa để khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này."
   },
   {
     "id": "ev-06-11-thi-dua-ai-quoc",
@@ -323,7 +443,19 @@ export const JUNE_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "11 Tháng 06",
     "meaning": "Khơi dậy sức mạnh phi thường của khối đại đoàn kết toàn dân, lập nên những kỳ tích lịch sử vẻ vang.",
-    "subtitle": "Thi đua là yêu nước, yêu nước thì phải thi đua"
+    "subtitle": "Thi đua là yêu nước, yêu nước thì phải thi đua",
+    "activities": [
+      "Dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ",
+      "Tham quan các bảo tàng, di tích lịch sử để tìm hiểu mốc son vẻ vang của dân tộc",
+      "Kể lại những câu chuyện lịch sử hào hùng cho thế hệ trẻ gìn giữ truyền thống yêu nước"
+    ],
+    "whyItMatters": null,
+    "message": "Thi đua là yêu nước, yêu nước thì phải thi đua.",
+    "interestingFacts": [
+      "Bác căn dặn: 'Người người thi đua, ngành ngành thi đua, ngày ngày thi đua, ta nhất định thắng, địch nhất định thua'."
+    ],
+    "description": "Thi đua là yêu nước, yêu nước thì phải thi đua — ngọn cờ cổ vũ toàn dân hăng say cống hiến.",
+    "bannerDescription": "Ngày 11/6/1948, giữa núi rừng chiến khu Việt Bắc, Chủ tịch Hồ Chí Minh ra Lời kêu gọi Thi đua ái quốc. Khơi dậy sức mạnh phi thường của khối đại đoàn kết toàn dân, lập nên những kỳ tích lịch sử vẻ vang. Đây là dịp ý nghĩa để dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ."
   },
   {
     "id": "ev-06-12-chong-lao-dong-tre-em",
@@ -351,7 +483,19 @@ export const JUNE_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "12 Tháng 06",
     "meaning": "Bảo đảm mọi trẻ em đều được đến trường học tập, vui chơi và phát triển an toàn.",
-    "subtitle": "Để tuổi thơ được cắp sách tới trường, không phải gánh nặng mưu sinh trên đôi ..."
+    "subtitle": "Để tuổi thơ được cắp sách tới trường, không phải gánh nặng mưu sinh trên đôi ...",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Chung tay hành động vì một thế giới hòa bình, xanh sạch và ngập tràn tình yêu thương.",
+    "interestingFacts": [
+      "Việt Nam cam kết mạnh mẽ loại trừ các hình thức lao động trẻ em tồi tệ nhất theo công ước quốc tế."
+    ],
+    "description": "Để tuổi thơ được cắp sách tới trường, không phải gánh nặng mưu sinh trên đôi vai non nớt.",
+    "bannerDescription": "Tổ chức Lao động Quốc tế (ILO) phát động năm 2002 nhằm chấm dứt tình trạng bóc lột sức lao động trẻ em. Bảo đảm mọi trẻ em đều được đến trường học tập, vui chơi và phát triển an toàn. Đây là dịp ý nghĩa để tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm."
   },
   {
     "id": "ev-06-13-bach-tang",
@@ -379,7 +523,19 @@ export const JUNE_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "13 Tháng 06",
     "meaning": "Bạch tạng là tình trạng di truyền hiếm gặp do thiếu hụt sắc tố melanin ở da, tóc và mắt.",
-    "subtitle": "Xóa bỏ kỳ thị, tôn trọng sự khác biệt và bảo vệ quyền bình đẳng của người bạc..."
+    "subtitle": "Xóa bỏ kỳ thị, tôn trọng sự khác biệt và bảo vệ quyền bình đẳng của người bạc...",
+    "activities": [
+      "Gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu",
+      "Tổ chức các buổi gặp gỡ, họp mặt ý nghĩa để thắt chặt tình đoàn kết",
+      "Thực hiện những việc làm tử tế, sẻ chia khó khăn với những hoàn cảnh kém may mắn"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Cộng đồng cần thấu hiểu để hỗ trợ người bạch tạng chống nắng, chăm sóc thị lực và hòa nhập tự tin."
+    ],
+    "description": "Xóa bỏ kỳ thị, tôn trọng sự khác biệt và bảo vệ quyền bình đẳng của người bạch tạng.",
+    "bannerDescription": "Đại hội đồng Liên Hợp Quốc thông qua năm 2014 nhằm bảo vệ người mắc hội chứng bạch tạng. Bạch tạng là tình trạng di truyền hiếm gặp do thiếu hụt sắc tố melanin ở da, tóc và mắt. Đây là dịp ý nghĩa để gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu."
   },
   {
     "id": "ev-06-14-hien-mau-the-gioi",
@@ -407,7 +563,19 @@ export const JUNE_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "14 Tháng 06",
     "meaning": "Biết ơn hàng triệu người tình nguyện hiến máu thường xuyên duy trì sự sống cho các bệnh nhân hiểm nghèo.",
-    "subtitle": "Tri ân những nghĩa cử hiến dâng giọt máu hồng cứu người không màng thù lao."
+    "subtitle": "Tri ân những nghĩa cử hiến dâng giọt máu hồng cứu người không màng thù lao.",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Chung tay hành động vì một thế giới hòa bình, xanh sạch và ngập tràn tình yêu thương.",
+    "interestingFacts": [
+      "Chiến dịch Hành trình Đỏ tại Việt Nam hàng năm vận động hàng trăm ngàn đơn vị máu an toàn."
+    ],
+    "description": "Tri ân những nghĩa cử hiến dâng giọt máu hồng cứu người không màng thù lao.",
+    "bannerDescription": "Kỷ niệm ngày sinh của Karl Landsteiner (1868), người phát hiện ra hệ nhóm máu ABO đoạt giải Nobel Y học. Biết ơn hàng triệu người tình nguyện hiến máu thường xuyên duy trì sự sống cho các bệnh nhân hiểm nghèo. Đây là dịp ý nghĩa để tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm."
   },
   {
     "id": "ev-06-15-cham-soc-nguoi-cao-tuoi",
@@ -435,7 +603,19 @@ export const JUNE_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "15 Tháng 06",
     "meaning": "Con cháu phụng dưỡng ông bà cha mẹ là đạo hiếu thiêng liêng ngàn đời của văn hóa Việt.",
-    "subtitle": "Kính trọng, yêu thương và chăm sóc chu đáo đấng sinh thành trong những năm th..."
+    "subtitle": "Kính trọng, yêu thương và chăm sóc chu đáo đấng sinh thành trong những năm th...",
+    "activities": [
+      "Thăm hỏi, chúc thọ và chăm sóc sức khỏe cho ông bà, cha mẹ",
+      "Tổ chức các hoạt động văn nghệ, thể dục dưỡng sinh cho người cao tuổi",
+      "Gìn giữ nếp nhà 'Kính lão đắc thọ' và lắng nghe những lời khuyên quý báu của thế hệ đi trước"
+    ],
+    "whyItMatters": null,
+    "message": "Kính chúc các bậc cao niên luôn dồi dào sức khỏe, an khang trường thọ và mãi là chỗ dựa tinh thần vững chắc cho con cháu.",
+    "interestingFacts": [
+      "Lắng nghe tâm sự và dành thời gian bầu bạn cùng cha mẹ già là món quà quý giá nhất."
+    ],
+    "description": "Kính trọng, yêu thương và chăm sóc chu đáo đấng sinh thành trong những năm tháng xế chiều.",
+    "bannerDescription": "Được Liên Hợp Quốc công bố nhằm bảo vệ phẩm giá, sức khỏe thể chất và tinh thần của người cao tuổi. Con cháu phụng dưỡng ông bà cha mẹ là đạo hiếu thiêng liêng ngàn đời của văn hóa Việt. Đây là dịp ý nghĩa để thăm hỏi, chúc thọ và chăm sóc sức khỏe cho ông bà, cha mẹ."
   },
   {
     "id": "ev-06-16-rua-bien",
@@ -463,7 +643,19 @@ export const JUNE_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "16 Tháng 06",
     "meaning": "Rùa biển có tập tính bơi hàng ngàn hải lý để quay về đúng bãi cát nơi mình sinh ra để đẻ trứng.",
-    "subtitle": "Bảo tồn loài sứ giả cổ đại của đại dương khỏi nguy cơ tuyệt chủng vì rác thải..."
+    "subtitle": "Bảo tồn loài sứ giả cổ đại của đại dương khỏi nguy cơ tuyệt chủng vì rác thải...",
+    "activities": [
+      "Khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này",
+      "Chia sẻ thông điệp tích cực và năng lượng lạc quan tới bạn bè, người thân",
+      "Dành thời gian thư giãn và trải nghiệm những khoảnh khắc ý nghĩa trong cuộc sống"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Hành động từ chối ống hút nhựa và túi nilon góp phần trực tiếp cứu sống các chú rùa biển."
+    ],
+    "description": "Bảo tồn loài sứ giả cổ đại của đại dương khỏi nguy cơ tuyệt chủng vì rác thải nhựa.",
+    "bannerDescription": "Kỷ niệm ngày sinh của Tiến sĩ Archie Carr, nhà sinh vật học bảo tồn rùa biển vĩ đại nhất thế giới. Rùa biển có tập tính bơi hàng ngàn hải lý để quay về đúng bãi cát nơi mình sinh ra để đẻ trứng. Đây là dịp ý nghĩa để khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này."
   },
   {
     "id": "ev-06-17-chong-sa-mac-hoa",
@@ -491,7 +683,19 @@ export const JUNE_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "17 Tháng 06",
     "meaning": "Cảnh báo nguy cơ suy thoái đất canh tác và hạn hán khốc liệt do biến đổi khí hậu gây ra.",
-    "subtitle": "Giữ đất màu mỡ, phục hồi hệ sinh thái khô hạn và bảo đảm an ninh nguồn nước."
+    "subtitle": "Giữ đất màu mỡ, phục hồi hệ sinh thái khô hạn và bảo đảm an ninh nguồn nước.",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Chung tay hành động vì một thế giới hòa bình, xanh sạch và ngập tràn tình yêu thương.",
+    "interestingFacts": [
+      "Các mô hình canh tác nông nghiệp chịu hạn, trồng cỏ vetiver chống sạt lở được áp dụng hiệu quả tại miền Trung."
+    ],
+    "description": "Giữ đất màu mỡ, phục hồi hệ sinh thái khô hạn và bảo đảm an ninh nguồn nước.",
+    "bannerDescription": "Đại hội đồng Liên Hợp Quốc thông qua năm 1994 kỷ niệm ngày thông qua Công ước Chống Sa mạc hóa. Cảnh báo nguy cơ suy thoái đất canh tác và hạn hán khốc liệt do biến đổi khí hậu gây ra. Đây là dịp ý nghĩa để tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm."
   },
   {
     "id": "ev-06-18-am-thuc-ben-vung",
@@ -526,7 +730,19 @@ export const JUNE_EVENTS: VietnamEvent[] = [
       "Nấu ăn giảm lãng phí thực phẩm và hạn chế rác thải nhựa trong nhà bếp",
       "Tìm hiểu các mô hình canh tác tuần hoàn bảo vệ hệ sinh thái"
     ],
-    "cuisine": "Món gỏi cuốn tôm thịt rau mầm tươi mát, canh chua cá lóc rau bổi Nam Bộ và chè dưỡng nhan thanh nhiệt."
+    "cuisine": "Món gỏi cuốn tôm thịt rau mầm tươi mát, canh chua cá lóc rau bổi Nam Bộ và chè dưỡng nhan thanh nhiệt.",
+    "activities": [
+      "Chuẩn bị lễ vật chu đáo và thực hiện các nghi thức truyền thống trang nghiêm",
+      "Sum vầy bên gia đình, thưởng thức các món ăn mang phong vị đặc trưng lễ hội",
+      "Tham gia các trò chơi dân gian và tìm hiểu nguồn gốc phong tục cổ truyền"
+    ],
+    "whyItMatters": null,
+    "message": "Ẩm thực bền vững là sự tôn trọng đất mẹ và biết ơn nguồn cội sự sống.",
+    "interestingFacts": [
+      "Hạn chế bỏ thừa thức ăn là hành động thiết thực bảo vệ tài nguyên đất và nước."
+    ],
+    "description": "Thưởng thức ẩm thực xanh, tôn vinh nguyên liệu địa phương và giảm thiểu lãng phí thức ăn.",
+    "bannerDescription": "Được Liên Hợp Quốc thông qua năm 2016 nhằm thúc đẩy thói quen ăn uống gắn với bảo vệ môi trường. Ẩm thực Việt Nam nổi tiếng thế giới vì tính hài hòa âm dương, nhiều rau xanh và nguyên liệu tươi ngon theo mùa. Người dân và các gia đình thường ưu tiên sử dụng nguyên liệu nông sản hữu cơ theo mùa của người nông dân địa phương."
   },
   {
     "id": "ev-06-19-dao-bo-thien-nhien",
@@ -554,7 +770,19 @@ export const JUNE_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "19 Tháng 06",
     "meaning": "Đi bộ giữa thiên nhiên (Shinrin-yoku / Tắm rừng) giúp giảm hormone căng thẳng cortisol và hạ huyết áp.",
-    "subtitle": "Tạm gác lại âu lo, thả bước dưới tán cây xanh để tâm trí được thư thái và an ..."
+    "subtitle": "Tạm gác lại âu lo, thả bước dưới tán cây xanh để tâm trí được thư thái và an ...",
+    "activities": [
+      "Khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này",
+      "Chia sẻ thông điệp tích cực và năng lượng lạc quan tới bạn bè, người thân",
+      "Dành thời gian thư giãn và trải nghiệm những khoảnh khắc ý nghĩa trong cuộc sống"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Một vòng dạo quanh hồ Gươm, hồ Tây hay công viên xanh mát sẽ nạp đầy năng lượng mới."
+    ],
+    "description": "Tạm gác lại âu lo, thả bước dưới tán cây xanh để tâm trí được thư thái và an yên.",
+    "bannerDescription": "Khởi xướng nhằm nhắc nhở mọi người giảm bớt nhịp sống vội vã, hít thở sâu và cảm nhận đất trời. Đi bộ giữa thiên nhiên (Shinrin-yoku / Tắm rừng) giúp giảm hormone căng thẳng cortisol và hạ huyết áp. Đây là dịp ý nghĩa để khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này."
   },
   {
     "id": "ev-06-20-ti-nan",
@@ -582,7 +810,19 @@ export const JUNE_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "20 Tháng 06",
     "meaning": "Kêu gọi cộng đồng quốc tế đoàn kết, bảo vệ quyền cơ bản được an toàn và tái định cư của người tị nạn.",
-    "subtitle": "Mở rộng vòng tay nhân ái, chở che những phận người mất đi mái ấm vì chiến tra..."
+    "subtitle": "Mở rộng vòng tay nhân ái, chở che những phận người mất đi mái ấm vì chiến tra...",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Chung tay hành động vì một thế giới hòa bình, xanh sạch và ngập tràn tình yêu thương.",
+    "interestingFacts": [
+      "Việt Nam từng trải qua chiến tranh nên luôn thấu hiểu và ủng hộ các nỗ lực nhân đạo toàn cầu."
+    ],
+    "description": "Mở rộng vòng tay nhân ái, chở che những phận người mất đi mái ấm vì chiến tranh bão tố.",
+    "bannerDescription": "Đại hội đồng Liên Hợp Quốc thông qua năm 2000 nhằm tôn vinh lòng dũng cảm kiên cường của người tị nạn. Kêu gọi cộng đồng quốc tế đoàn kết, bảo vệ quyền cơ bản được an toàn và tái định cư của người tị nạn. Đây là dịp ý nghĩa để tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm."
   },
   {
     "id": "ev-06-21-bao-chi-cach-mang",
@@ -616,7 +856,19 @@ export const JUNE_EVENTS: VietnamEvent[] = [
       "Lễ trao Giải Báo chí Quốc gia vinh danh các tác phẩm báo chí xuất sắc",
       "Gặp mặt, tri ân các nhà báo, phóng viên, biên tập viên chiến trường và đương đại",
       "Tọa đàm về đạo đức nghề báo và chuyển đổi số trong kỷ nguyên truyền thông hiện đại"
-    ]
+    ],
+    "activities": [
+      "Dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ",
+      "Tham quan các bảo tàng, di tích lịch sử để tìm hiểu mốc son vẻ vang của dân tộc",
+      "Kể lại những câu chuyện lịch sử hào hùng cho thế hệ trẻ gìn giữ truyền thống yêu nước"
+    ],
+    "whyItMatters": null,
+    "message": "Cây bút là vũ khí sắc bén, bài báo là tờ hịch cách mạng để động viên quần chúng. — Hồ Chí Minh",
+    "interestingFacts": [
+      "Ngày 21/6 đồng thời là Ngày Quốc tế Yoga và tiết Hạ chí — ngày có khoảng thời gian ban ngày dài nhất năm."
+    ],
+    "description": "Tôn vinh những ngòi bút trung thực, quả cảm luôn đồng hành cùng dòng chảy đất nước.",
+    "bannerDescription": "Ngày 21/6/1925, báo 'Thanh Niên' do lãnh tụ Nguyễn Ái Quốc sáng lập xuất bản số đầu tiên tại Quảng Châu. Tôn vinh các thế hệ nhà báo chiến sĩ dùng ngòi bút làm vũ khí sắc bén phản ánh sự thật và bảo vệ công lý. Người dân và các gia đình thường lễ trao Giải Báo chí Quốc gia vinh danh các tác phẩm báo chí xuất sắc."
   },
   {
     "id": "ev-06-22-rung-nhiet-doi",
@@ -644,7 +896,19 @@ export const JUNE_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "22 Tháng 06",
     "meaning": "Rừng nhiệt đới lưu giữ hơn 50% số loài động thực vật của hành tinh dù chỉ chiếm 6% diện tích đất.",
-    "subtitle": "Bảo tồn kho tàng sinh quyển quý giá nhất hành tinh"
+    "subtitle": "Bảo tồn kho tàng sinh quyển quý giá nhất hành tinh",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Chung tay hành động vì một thế giới hòa bình, xanh sạch và ngập tràn tình yêu thương.",
+    "interestingFacts": [
+      "Vườn Quốc gia Phong Nha - Kẻ Bàng là Di sản thiên nhiên thế giới sở hữu hệ sinh thái rừng nhiệt đới kỳ vĩ."
+    ],
+    "description": "Bảo tồn kho tàng sinh quyển quý giá nhất hành tinh — lá phổi xanh điều hòa khí hậu toàn cầu.",
+    "bannerDescription": "Được tổ chức Rainforest Partnership phát động năm 2017 nhằm kêu gọi hành động bảo vệ rừng mưa. Rừng nhiệt đới lưu giữ hơn 50% số loài động thực vật của hành tinh dù chỉ chiếm 6% diện tích đất. Đây là dịp ý nghĩa để tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm."
   },
   {
     "id": "ev-06-23-olympic-day",
@@ -672,7 +936,19 @@ export const JUNE_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "23 Tháng 06",
     "meaning": "Khích lệ toàn dân tập luyện thể thao, nâng cao thể chất và tinh thần đoàn kết quốc tế.",
-    "subtitle": "Tôn vinh tinh thần thể thao cao thượng 'Nhanh hơn - Cao hơn - Mạnh hơn - Cùng..."
+    "subtitle": "Tôn vinh tinh thần thể thao cao thượng 'Nhanh hơn - Cao hơn - Mạnh hơn - Cùng...",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Chung tay hành động vì một thế giới hòa bình, xanh sạch và ngập tràn tình yêu thương.",
+    "interestingFacts": [
+      "Ngày 23/6 đồng thời tôn vinh sự cống hiến tận tụy của lực lượng công chức trong ngành dịch vụ công."
+    ],
+    "description": "Tôn vinh tinh thần thể thao cao thượng 'Nhanh hơn - Cao hơn - Mạnh hơn - Cùng nhau'.",
+    "bannerDescription": "Kỷ niệm ngày thành lập Ủy ban Olympic Quốc tế (IOC) tại Paris năm 1894 bởi Nam tước Pierre de Coubertin. Khích lệ toàn dân tập luyện thể thao, nâng cao thể chất và tinh thần đoàn kết quốc tế. Đây là dịp ý nghĩa để tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm."
   },
   {
     "id": "ev-06-24-phu-nu-ngoai-giao",
@@ -700,7 +976,19 @@ export const JUNE_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "24 Tháng 06",
     "meaning": "Ngoại giao Việt Nam tự hào có những nữ bộ trưởng, đại sứ tài ba như đồng chí Nguyễn Thị Bình — nguyên Bộ trưởng Ngoại giao Chính phủ CMLT.",
-    "subtitle": "Tôn vinh bản lĩnh, trí tuệ và sự duyên dáng của các nữ nhà ngoại giao trên tr..."
+    "subtitle": "Tôn vinh bản lĩnh, trí tuệ và sự duyên dáng của các nữ nhà ngoại giao trên tr...",
+    "activities": [
+      "Tặng hoa, thiệp và những món quà ý nghĩa gửi đến bà, mẹ, vợ và đồng nghiệp nữ",
+      "Tổ chức các buổi tọa đàm tôn vinh vai trò của phụ nữ trong gia đình và xã hội",
+      "Chia sẻ công việc nhà và lan tỏa tình yêu thương, sự trân trọng tới phái đẹp"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc một nửa thế giới luôn rạng ngời, tự tin, hạnh phúc và tràn đầy yêu thương trên mọi nẻo đường cuộc sống.",
+    "interestingFacts": [
+      "Nữ bộ trưởng Nguyễn Thị Bình đã ghi dấu ấn sâu đậm tại bàn đàm phán Hiệp định Paris 1973 lịch sử."
+    ],
+    "description": "Tôn vinh bản lĩnh, trí tuệ và sự duyên dáng của các nữ nhà ngoại giao trên trường quốc tế.",
+    "bannerDescription": "Đại hội đồng Liên Hợp Quốc thông qua năm 2022 khẳng định vai trò quan trọng của phụ nữ trong việc duy trì hòa bình. Ngoại giao Việt Nam tự hào có những nữ bộ trưởng, đại sứ tài ba như đồng chí Nguyễn Thị Bình — nguyên Bộ trưởng Ngoại giao Chính phủ CMLT. Đây là dịp ý nghĩa để tặng hoa, thiệp và những món quà ý nghĩa gửi đến bà, mẹ, vợ và đồng nghiệp nữ."
   },
   {
     "id": "ev-06-25-thuy-thu",
@@ -728,7 +1016,19 @@ export const JUNE_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "25 Tháng 06",
     "meaning": "Hơn 90% khối lượng thương mại toàn cầu được vận chuyển bằng đường biển nhờ sự hy sinh thầm lặng của các thủy thủ.",
-    "subtitle": "Tri ân những người lính biển kiên cường ngày đêm vượt sóng gió giữ vững mạch ..."
+    "subtitle": "Tri ân những người lính biển kiên cường ngày đêm vượt sóng gió giữ vững mạch ...",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Chung tay hành động vì một thế giới hòa bình, xanh sạch và ngập tràn tình yêu thương.",
+    "interestingFacts": [
+      "Đội tàu viễn dương Việt Nam đưa hàng hóa nông sản nước nhà vươn tới khắp các hải cảng năm châu."
+    ],
+    "description": "Tri ân những người lính biển kiên cường ngày đêm vượt sóng gió giữ vững mạch máu giao thương.",
+    "bannerDescription": "Tổ chức Hàng hải Quốc tế (IMO) chọn ngày 25/6 hàng năm tôn vinh những người đi biển. Hơn 90% khối lượng thương mại toàn cầu được vận chuyển bằng đường biển nhờ sự hy sinh thầm lặng của các thủy thủ. Đây là dịp ý nghĩa để tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm."
   },
   {
     "id": "ev-06-26-phong-chong-ma-tuy",
@@ -756,7 +1056,19 @@ export const JUNE_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "26 Tháng 06",
     "meaning": "Nâng cao cảnh giác trong giới trẻ, ngăn chặn ma túy học đường và giúp đỡ người nghiện tái hòa nhập cộng đồng.",
-    "subtitle": "Kiên quyết đẩy lùi hiểm họa ma túy vì một cộng đồng khỏe mạnh, an toàn và phá..."
+    "subtitle": "Kiên quyết đẩy lùi hiểm họa ma túy vì một cộng đồng khỏe mạnh, an toàn và phá...",
+    "activities": [
+      "Gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu",
+      "Tổ chức các buổi gặp gỡ, họp mặt ý nghĩa để thắt chặt tình đoàn kết",
+      "Thực hiện những việc làm tử tế, sẻ chia khó khăn với những hoàn cảnh kém may mắn"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Lực lượng Cảnh sát điều tra tội phạm về ma túy đã dũng cảm triệt phá hàng ngàn chuyên án nguy hiểm."
+    ],
+    "description": "Kiên quyết đẩy lùi hiểm họa ma túy vì một cộng đồng khỏe mạnh, an toàn và phát triển.",
+    "bannerDescription": "Thủ tướng Chính phủ lấy tháng 6 là 'Tháng hành động phòng, chống ma túy' và ngày 26/6 là Ngày toàn dân phòng chống ma túy. Nâng cao cảnh giác trong giới trẻ, ngăn chặn ma túy học đường và giúp đỡ người nghiện tái hòa nhập cộng đồng. Đây là dịp ý nghĩa để gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu."
   },
   {
     "id": "ev-06-27-doanh-nghiep-nho",
@@ -784,7 +1096,19 @@ export const JUNE_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "27 Tháng 06",
     "meaning": "Các doanh nghiệp MSME đóng góp hơn 40% GDP và tạo ra hơn 50% việc làm tại Việt Nam.",
-    "subtitle": "Xương sống của nền kinh tế"
+    "subtitle": "Xương sống của nền kinh tế",
+    "activities": [
+      "Gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu",
+      "Tổ chức các buổi gặp gỡ, họp mặt ý nghĩa để thắt chặt tình đoàn kết",
+      "Thực hiện những việc làm tử tế, sẻ chia khó khăn với những hoàn cảnh kém may mắn"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Ủng hộ các cửa hàng tiện ích, quán ăn gia đình và sản phẩm khởi nghiệp địa phương."
+    ],
+    "description": "Xương sống của nền kinh tế — nơi ươm mầm sáng tạo và tạo ra hàng triệu việc làm.",
+    "bannerDescription": "Đại hội đồng Liên Hợp Quốc thông qua năm 2017 nhằm tôn vinh vai trò của các doanh nghiệp vừa và nhỏ. Các doanh nghiệp MSME đóng góp hơn 40% GDP và tạo ra hơn 50% việc làm tại Việt Nam. Đây là dịp ý nghĩa để gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu."
   },
   {
     "id": "ev-06-28-gia-dinh-viet-nam",
@@ -819,7 +1143,19 @@ export const JUNE_EVENTS: VietnamEvent[] = [
       "Chụp bức ảnh gia đình lưu giữ khoảnh khắc yêu thương và gắn kết",
       "Tổ chức Ngày hội Gia đình văn hóa tại các địa phương trên toàn quốc"
     ],
-    "cuisine": "Bữa cơm gia đình thuần Việt với canh cua mồng tơi rau đay, cà pháo giòn tan, thịt kho tàu và cá bống kho tiêu đậm đà tình thân."
+    "cuisine": "Bữa cơm gia đình thuần Việt với canh cua mồng tơi rau đay, cà pháo giòn tan, thịt kho tàu và cá bống kho tiêu đậm đà tình thân.",
+    "activities": [
+      "Quây quần bên mâm cơm gia đình ấm cúng, chia sẻ những câu chuyện thường nhật",
+      "Cùng các thành viên tham gia hoạt động dã ngoại hoặc chụp ảnh kỷ niệm",
+      "Bày tỏ lòng yêu thương và sự thấu hiểu giữa các thế hệ trong gia đình"
+    ],
+    "whyItMatters": null,
+    "message": "Gia đình là tế bào của xã hội, gia đình tốt thì xã hội mới tốt, xã hội tốt thì gia đình càng tốt hơn. — Hồ Chí Minh",
+    "interestingFacts": [
+      "Bác Hồ căn dặn: 'Nhiều gia đình cộng lại mới thành xã hội, xã hội tốt thì gia đình càng tốt'."
+    ],
+    "description": "Mái ấm sum vầy — nơi bình yên nhất để trở về và là chiếc nôi nuôi dưỡng nhân cách con người.",
+    "bannerDescription": "Thủ tướng Chính phủ ban hành Quyết định số 72/2001/QĐ-TTg lấy ngày 28/6 làm Ngày Gia đình Việt Nam. Nhắc nhở mỗi người gìn giữ ngọn lửa yêu thương, xây dựng gia đình no ấm, tiến bộ, hạnh phúc và văn minh. Người dân và các gia đình thường cả nhà quây quần bên bữa cơm gia đình đầm ấm sum họp đầy đủ các thế hệ."
   },
   {
     "id": "ev-06-29-vung-nhiet-doi",
@@ -847,7 +1183,19 @@ export const JUNE_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "29 Tháng 06",
     "meaning": "Khu vực nhiệt đới sở hữu gần 95% diện tích rừng ngập mặn và đa dạng sinh học phong phú bậc nhất.",
-    "subtitle": "Vùng đất trù phú hoa thơm trái ngọt"
+    "subtitle": "Vùng đất trù phú hoa thơm trái ngọt",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Chung tay hành động vì một thế giới hòa bình, xanh sạch và ngập tràn tình yêu thương.",
+    "interestingFacts": [
+      "Việt Nam tận dụng khí hậu nhiệt đới gió mùa phát triển các loại trái cây trứ danh như sầu riêng, xoài cát, thanh long."
+    ],
+    "description": "Vùng đất trù phú hoa thơm trái ngọt — cái nôi của sự trù phú và bản sắc văn hóa độc đáo.",
+    "bannerDescription": "Đại hội đồng Liên Hợp Quốc thông qua năm 2016 tôn vinh các quốc gia nằm trong vành đai nhiệt đới. Khu vực nhiệt đới sở hữu gần 95% diện tích rừng ngập mặn và đa dạng sinh học phong phú bậc nhất. Đây là dịp ý nghĩa để tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm."
   },
   {
     "id": "ev-06-30-tieu-hanh-tinh",
@@ -875,6 +1223,18 @@ export const JUNE_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "30 Tháng 06",
     "meaning": "Khám phá khoa học thiên văn học, tìm kiếm các tiểu hành tinh gần Trái Đất và công nghệ phòng thủ hành tinh.",
-    "subtitle": "Theo dõi bầu trời đêm và nâng cao nhận thức bảo vệ Trái Đất trước các thiên t..."
+    "subtitle": "Theo dõi bầu trời đêm và nâng cao nhận thức bảo vệ Trái Đất trước các thiên t...",
+    "activities": [
+      "Khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này",
+      "Chia sẻ thông điệp tích cực và năng lượng lạc quan tới bạn bè, người thân",
+      "Dành thời gian thư giãn và trải nghiệm những khoảnh khắc ý nghĩa trong cuộc sống"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Nhiều câu lạc bộ thiên văn nghiệp dư tại Hà Nội và TP.HCM tổ chức soi kính viễn vọng ngắm sao đêm."
+    ],
+    "description": "Theo dõi bầu trời đêm và nâng cao nhận thức bảo vệ Trái Đất trước các thiên thể vũ trụ.",
+    "bannerDescription": "Đại hội đồng Liên Hợp Quốc thông qua kỷ niệm sự kiện thiên thạch Tunguska phát nổ tại Siberia năm 1908. Khám phá khoa học thiên văn học, tìm kiếm các tiểu hành tinh gần Trái Đất và công nghệ phòng thủ hành tinh. Đây là dịp ý nghĩa để khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này."
   }
 ];

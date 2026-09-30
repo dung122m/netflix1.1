@@ -27,7 +27,19 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "01 Tháng 11",
     "meaning": "Chế độ ăn nhiều thực vật giúp giảm cholesterol, thanh lọc cơ thể và giảm lượng khí thải carbon nông nghiệp.",
-    "subtitle": "Ẩm thực chay thanh tịnh"
+    "subtitle": "Ẩm thực chay thanh tịnh",
+    "activities": [
+      "Gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu",
+      "Tổ chức các buổi gặp gỡ, họp mặt ý nghĩa để thắt chặt tình đoàn kết",
+      "Thực hiện những việc làm tử tế, sẻ chia khó khăn với những hoàn cảnh kém may mắn"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Ẩm thực chay Việt Nam vô cùng phong phú, tinh tế với các món từ nấm, đậu phụ, hạt sen thơm bùi."
+    ],
+    "description": "Ẩm thực chay thanh tịnh — bảo vệ sức khỏe, môi trường và lan tỏa lòng từ bi với muôn loài.",
+    "bannerDescription": "Được Hiệp hội Thuần chay Vương quốc Anh thành lập năm 1994 nhân kỷ niệm 50 năm thành lập hội. Chế độ ăn nhiều thực vật giúp giảm cholesterol, thanh lọc cơ thể và giảm lượng khí thải carbon nông nghiệp. Đây là dịp ý nghĩa để gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu."
   },
   {
     "id": "ev-11-02-nha-bao",
@@ -55,7 +67,19 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "02 Tháng 11",
     "meaning": "Lên án mọi hành vi đe dọa, bắt cóc và bạo lực đối với các phóng viên đang tác nghiệp tại các điểm nóng.",
-    "subtitle": "Bảo vệ các nhà báo dũng cảm dấn thân vì sự thật và quyền được biết của công c..."
+    "subtitle": "Bảo vệ các nhà báo dũng cảm dấn thân vì sự thật và quyền được biết của công c...",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Chung tay hành động vì một thế giới hòa bình, xanh sạch và ngập tràn tình yêu thương.",
+    "interestingFacts": [
+      "Sự an toàn của nhà báo là thước đo quan trọng của một xã hội tôn trọng pháp quyền và thông tin trung thực."
+    ],
+    "description": "Bảo vệ các nhà báo dũng cảm dấn thân vì sự thật và quyền được biết của công chúng.",
+    "bannerDescription": "Đại hội đồng Liên Hợp Quốc thông qua năm 2013 nhằm tưởng niệm hai nhà báo Pháp bị sát hại tại Mali. Lên án mọi hành vi đe dọa, bắt cóc và bạo lực đối với các phóng viên đang tác nghiệp tại các điểm nóng. Đây là dịp ý nghĩa để tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm."
   },
   {
     "id": "ev-11-03-sinh-quyen",
@@ -83,7 +107,19 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "03 Tháng 11",
     "meaning": "Việt Nam tự hào có 11 Khu Dự trữ Sinh quyển Thế giới được UNESCO công nhận như Cần Giờ, Cát Tiên, Cù Lao Chàm...",
-    "subtitle": "Hài hòa giữa con người và thiên nhiên"
+    "subtitle": "Hài hòa giữa con người và thiên nhiên",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Chung tay hành động vì một thế giới hòa bình, xanh sạch và ngập tràn tình yêu thương.",
+    "interestingFacts": [
+      "Các khu dự trữ sinh quyển là phòng thí nghiệm sống bảo tồn nguồn gen quý hiếm và phát triển du lịch sinh thái."
+    ],
+    "description": "Hài hòa giữa con người và thiên nhiên — bảo tồn các kho tàng đa dạng sinh học vô giá.",
+    "bannerDescription": "UNESCO công bố năm 2021 nhằm thúc đẩy mối quan hệ bền vững giữa con người và môi trường sống. Việt Nam tự hào có 11 Khu Dự trữ Sinh quyển Thế giới được UNESCO công nhận như Cần Giờ, Cát Tiên, Cù Lao Chàm... Đây là dịp ý nghĩa để tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm."
   },
   {
     "id": "ev-11-04-candy-day",
@@ -111,7 +147,19 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "04 Tháng 11",
     "meaning": "Kẹo dừa Bến Tre, mè xửng xứ Huế, kẹo sìu dâu Nam Định là những đặc sản quà quê nức tiếng.",
-    "subtitle": "Vị ngọt ngào của những viên kẹo gừng, kẹo dừa, kẹo lạc gắn liền với tuổi thơ ..."
+    "subtitle": "Vị ngọt ngào của những viên kẹo gừng, kẹo dừa, kẹo lạc gắn liền với tuổi thơ ...",
+    "activities": [
+      "Khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này",
+      "Chia sẻ thông điệp tích cực và năng lượng lạc quan tới bạn bè, người thân",
+      "Dành thời gian thư giãn và trải nghiệm những khoảnh khắc ý nghĩa trong cuộc sống"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Một phong kẹo ngọt biếu người thân làm ấm áp tình quê hương mỗi dịp đi xa trở về."
+    ],
+    "description": "Vị ngọt ngào của những viên kẹo gừng, kẹo dừa, kẹo lạc gắn liền với tuổi thơ êm đềm.",
+    "bannerDescription": "Ngày tôn vinh các món kẹo ngọt truyền thống mang lại niềm vui giản dị cho trẻ thơ. Kẹo dừa Bến Tre, mè xửng xứ Huế, kẹo sìu dâu Nam Định là những đặc sản quà quê nức tiếng. Đây là dịp ý nghĩa để khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này."
   },
   {
     "id": "ev-11-05-song-than",
@@ -139,7 +187,19 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "05 Tháng 11",
     "meaning": "Nâng cao kỹ năng nhận biết dấu hiệu sóng thần: nước biển rút nhanh bất thường, mặt đất rung chuyển mạnh.",
-    "subtitle": "Cảnh báo sớm, chuẩn bị kỹ càng để giảm thiểu thiệt hại từ những cơn thịnh nộ ..."
+    "subtitle": "Cảnh báo sớm, chuẩn bị kỹ càng để giảm thiểu thiệt hại từ những cơn thịnh nộ ...",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Chung tay hành động vì một thế giới hòa bình, xanh sạch và ngập tràn tình yêu thương.",
+    "interestingFacts": [
+      "Hệ thống phao cảnh báo sóng thần và đài thông tin duyên hải Việt Nam trực canh 24/7 bảo vệ ngư dân ven biển."
+    ],
+    "description": "Cảnh báo sớm, chuẩn bị kỹ càng để giảm thiểu thiệt hại từ những cơn thịnh nộ của đại dương.",
+    "bannerDescription": "Đại hội đồng Liên Hợp Quốc thông qua năm 2015 theo đề xuất của Nhật Bản sau trận sóng thần lịch sử 2011. Nâng cao kỹ năng nhận biết dấu hiệu sóng thần: nước biển rút nhanh bất thường, mặt đất rung chuyển mạnh. Đây là dịp ý nghĩa để tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm."
   },
   {
     "id": "ev-11-06-moi-truong-chien-tranh",
@@ -167,7 +227,19 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "06 Tháng 11",
     "meaning": "Việt Nam là minh chứng sâu sắc về sự phục hồi diệu kỳ của những cánh rừng bị bom đạn và chất độc hóa học tàn phá.",
-    "subtitle": "Thiên nhiên không có tội"
+    "subtitle": "Thiên nhiên không có tội",
+    "activities": [
+      "Trồng thêm cây xanh tại khu dân cư, ban công hoặc nơi làm việc",
+      "Hạn chế sử dụng đồ nhựa dùng một lần và phân loại rác thải tại nguồn",
+      "Tắt bớt các thiết bị điện không cần thiết và sử dụng phương tiện giao thông thân thiện môi trường"
+    ],
+    "whyItMatters": null,
+    "message": "Chung tay hành động vì một thế giới hòa bình, xanh sạch và ngập tràn tình yêu thương.",
+    "interestingFacts": [
+      "Những cánh rừng Cần Giờ, Trường Sơn hồi sinh ngút ngàn là biểu tượng cho sức sống mãnh liệt của non sông."
+    ],
+    "description": "Thiên nhiên không có tội — bảo vệ rừng xanh và nguồn nước khỏi sự tàn phá của vũ khí chiến tranh.",
+    "bannerDescription": "Đại hội đồng Liên Hợp Quốc thông qua năm 2001 nhằm bảo vệ môi trường sinh thái khỏi hậu quả xung đột vũ trang. Việt Nam là minh chứng sâu sắc về sự phục hồi diệu kỳ của những cánh rừng bị bom đạn và chất độc hóa học tàn phá. Đây là dịp ý nghĩa để trồng thêm cây xanh tại khu dân cư, ban công hoặc nơi làm việc."
   },
   {
     "id": "ev-11-07-cach-mang-thang-muoi",
@@ -196,7 +268,19 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "07 Tháng 11",
     "meaning": "Mở đường cho người thanh niên Nguyễn Ái Quốc tìm thấy chân lý cứu nước trong Luận cương của Lênin năm 1920.",
-    "subtitle": "Tiếng súng rền vang từ chiến hạm Rạng Đông mở ra thời đại mới giải phóng các ..."
+    "subtitle": "Tiếng súng rền vang từ chiến hạm Rạng Đông mở ra thời đại mới giải phóng các ...",
+    "activities": [
+      "Dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ",
+      "Tham quan các bảo tàng, di tích lịch sử để tìm hiểu mốc son vẻ vang của dân tộc",
+      "Kể lại những câu chuyện lịch sử hào hùng cho thế hệ trẻ gìn giữ truyền thống yêu nước"
+    ],
+    "whyItMatters": null,
+    "message": "Tự hào truyền thống vẻ vang của dân tộc, vững bước tương lai kiến thiết đất nước giàu mạnh.",
+    "interestingFacts": [
+      "Bác Hồ khẳng định: 'Giống như mặt trời chói lọi, Cách mạng Tháng Mười chiếu sáng khắp năm châu'."
+    ],
+    "description": "Tiếng súng rền vang từ chiến hạm Rạng Đông mở ra thời đại mới giải phóng các dân tộc thuộc địa.",
+    "bannerDescription": "Ngày 7/11/1917, Cách mạng Tháng Mười Nga thắng lợi, lật đổ chính quyền tư sản, lập nên nhà nước công nông đầu tiên. Mở đường cho người thanh niên Nguyễn Ái Quốc tìm thấy chân lý cứu nước trong Luận cương của Lênin năm 1920. Đây là dịp ý nghĩa để dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ."
   },
   {
     "id": "ev-11-08-do-thi-hoa",
@@ -224,7 +308,19 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "08 Tháng 11",
     "meaning": "Quy hoạch đô thị xanh lấy người dân làm trung tâm, tăng diện tích cây xanh, hồ nước và giao thông công cộng.",
-    "subtitle": "Quy hoạch đô thị thông minh, bền vững và tôn vinh phát minh tia X cứu sống hà..."
+    "subtitle": "Quy hoạch đô thị thông minh, bền vững và tôn vinh phát minh tia X cứu sống hà...",
+    "activities": [
+      "Gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu",
+      "Tổ chức các buổi gặp gỡ, họp mặt ý nghĩa để thắt chặt tình đoàn kết",
+      "Thực hiện những việc làm tử tế, sẻ chia khó khăn với những hoàn cảnh kém may mắn"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Kỹ thuật chụp X-quang là bước ngoặt vĩ đại giúp các bác sĩ nhìn thấu cấu trúc xương và chẩn đoán bệnh chính xác."
+    ],
+    "description": "Quy hoạch đô thị thông minh, bền vững và tôn vinh phát minh tia X cứu sống hàng triệu sinh mệnh.",
+    "bannerDescription": "Kỷ niệm nhà vật lý Wilhelm Röntgen phát hiện ra tia X năm 1895; đồng thời là Ngày Đô thị hóa Thế giới. Quy hoạch đô thị xanh lấy người dân làm trung tâm, tăng diện tích cây xanh, hồ nước và giao thông công cộng. Đây là dịp ý nghĩa để gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu."
   },
   {
     "id": "ev-11-09-phap-luat-viet-nam",
@@ -257,7 +353,19 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "traditions": [
       "Tuyên truyền phổ biến giáo dục pháp luật tại các trường học, cơ quan, doanh nghiệp",
       "Tổ chức các phiên tòa giả định giáo dục pháp luật thực tế cho học sinh, sinh viên"
-    ]
+    ],
+    "activities": [
+      "Treo cờ Tổ quốc trang trọng tại nhà và nơi làm việc chào mừng ngày lễ lớn",
+      "Tham gia các sự kiện văn hóa, biểu diễn nghệ thuật và pháo hoa kỷ niệm",
+      "Dành thời gian nghỉ ngơi trọn vẹn, sum họp và du lịch cùng người thân"
+    ],
+    "whyItMatters": null,
+    "message": "Sống và làm việc theo Hiến pháp và pháp luật là nghĩa vụ thiêng liêng của mỗi công dân.",
+    "interestingFacts": [
+      "Hiến pháp năm 1946 mang đậm tư tưởng dân chủ tiến bộ của Chủ tịch Hồ Chí Minh: mọi quyền bính đều thuộc về nhân dân."
+    ],
+    "description": "Thượng tôn Hiến pháp và Pháp luật — xây dựng Nhà nước pháp quyền xã hội chủ nghĩa công bằng, văn minh.",
+    "bannerDescription": "Ngày 9/11/1946, bản Hiến pháp đầu tiên của nước Việt Nam Dân chủ Cộng hòa được Quốc hội khóa I thông qua. Nâng cao ý thức tuân thủ pháp luật, sống và làm việc theo Hiến pháp và pháp luật trong mọi tầng lớp nhân dân. Người dân và các gia đình thường tuyên truyền phổ biến giáo dục pháp luật tại các trường học, cơ quan, doanh nghiệp."
   },
   {
     "id": "ev-11-10-khoa-hoc-hoa-binh",
@@ -285,7 +393,19 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "10 Tháng 11",
     "meaning": "Khích lệ các bạn trẻ theo đuổi nghiên cứu khoa học công nghệ, ứng dụng trí tuệ nhân tạo vì mục tiêu nhân đạo.",
-    "subtitle": "Khoa học phụng sự nhân loại"
+    "subtitle": "Khoa học phụng sự nhân loại",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Chung tay hành động vì một thế giới hòa bình, xanh sạch và ngập tràn tình yêu thương.",
+    "interestingFacts": [
+      "Các công trình nghiên cứu vaccine, lúa chịu mặn, xử lý rác thải nhựa của các nhà khoa học Việt Nam được đánh giá cao."
+    ],
+    "description": "Khoa học phụng sự nhân loại — giải quyết biến đổi khí hậu và cải thiện chất lượng sống con người.",
+    "bannerDescription": "UNESCO công bố năm 2001 nhằm kết nối khoa học gần gũi hơn với xã hội và cộng đồng. Khích lệ các bạn trẻ theo đuổi nghiên cứu khoa học công nghệ, ứng dụng trí tuệ nhân tạo vì mục tiêu nhân đạo. Đây là dịp ý nghĩa để tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm."
   },
   {
     "id": "ev-11-11-doc-than-mua-sam",
@@ -313,7 +433,19 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "11 Tháng 11",
     "meaning": "Trở thành lễ hội mua sắm trực tuyến có doanh số lớn nhất toàn cầu với hàng triệu chương trình khuyến mãi hấp dẫn.",
-    "subtitle": "Bốn con số 1 thẳng đứng tượng trưng cho sự tự do, kiêu hãnh và yêu thương chă..."
+    "subtitle": "Bốn con số 1 thẳng đứng tượng trưng cho sự tự do, kiêu hãnh và yêu thương chă...",
+    "activities": [
+      "Khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này",
+      "Chia sẻ thông điệp tích cực và năng lượng lạc quan tới bạn bè, người thân",
+      "Dành thời gian thư giãn và trải nghiệm những khoảnh khắc ý nghĩa trong cuộc sống"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Độc thân là khoảng thời gian tuyệt vời để đầu tư cho bản thân, học thêm kỹ năng mới và tự thưởng những món quà yêu thích."
+    ],
+    "description": "Bốn con số 1 thẳng đứng tượng trưng cho sự tự do, kiêu hãnh và yêu thương chăm sóc bản thân.",
+    "bannerDescription": "Bắt nguồn từ các sinh viên đại học Nam Kinh (Trung Quốc) thập niên 1990 kỷ niệm sự độc thân vui vẻ. Trở thành lễ hội mua sắm trực tuyến có doanh số lớn nhất toàn cầu với hàng triệu chương trình khuyến mãi hấp dẫn. Đây là dịp ý nghĩa để khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này."
   },
   {
     "id": "ev-11-12-cong-nhan-vung-mo",
@@ -342,7 +474,19 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "12 Tháng 11",
     "meaning": "Tôn vinh tinh thần kiên cường, sự hy sinh thầm lặng của những người thợ mỏ khai thác 'vàng đen' làm giàu Tổ quốc.",
-    "subtitle": "'Kỷ luật và Đồng tâm'"
+    "subtitle": "'Kỷ luật và Đồng tâm'",
+    "activities": [
+      "Dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ",
+      "Tham quan các bảo tàng, di tích lịch sử để tìm hiểu mốc son vẻ vang của dân tộc",
+      "Kể lại những câu chuyện lịch sử hào hùng cho thế hệ trẻ gìn giữ truyền thống yêu nước"
+    ],
+    "whyItMatters": null,
+    "message": "Tự hào truyền thống vẻ vang của dân tộc, vững bước tương lai kiến thiết đất nước giàu mạnh.",
+    "interestingFacts": [
+      "Ngày 12/11 đồng thời là Ngày Viêm phổi Thế giới (World Pneumonia Day) nâng cao nhận thức bảo vệ đường hô hấp."
+    ],
+    "description": "'Kỷ luật và Đồng tâm' — cuộc bãi công lịch sử vang dội của hơn 3 vạn thợ mỏ Hòn Gai - Cẩm Phả.",
+    "bannerDescription": "Đêm 12/11/1936, công nhân mỏ than Cẩm Phả đồng loạt bãi công đòi tăng lương, giảm giờ làm, giành thắng lợi vang dội. Tôn vinh tinh thần kiên cường, sự hy sinh thầm lặng của những người thợ mỏ khai thác 'vàng đen' làm giàu Tổ quốc. Đây là dịp ý nghĩa để dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ."
   },
   {
     "id": "ev-11-13-world-kindness-day",
@@ -370,7 +514,19 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "13 Tháng 11",
     "meaning": "Nhường ghế cho người già trên xe buýt, mỉm cười với người phục vụ hay giúp đỡ người qua đường.",
-    "subtitle": "Một hành động tử tế dù nhỏ bé đến đâu cũng không bao giờ là lãng phí"
+    "subtitle": "Một hành động tử tế dù nhỏ bé đến đâu cũng không bao giờ là lãng phí",
+    "activities": [
+      "Gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu",
+      "Tổ chức các buổi gặp gỡ, họp mặt ý nghĩa để thắt chặt tình đoàn kết",
+      "Thực hiện những việc làm tử tế, sẻ chia khó khăn với những hoàn cảnh kém may mắn"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Sự tử tế có tính lan truyền kỳ diệu, khi bạn đối đãi tử tế với một người, họ sẽ tiếp tục lan tỏa điều đó đến người khác."
+    ],
+    "description": "Một hành động tử tế dù nhỏ bé đến đâu cũng không bao giờ là lãng phí — Lan tỏa hơi ấm tình người.",
+    "bannerDescription": "Phong trào Tử tế Thế giới (WKM) khởi xướng tại Tokyo năm 1998 nhằm thúc đẩy các hành vi tốt đẹp giữa con người. Nhường ghế cho người già trên xe buýt, mỉm cười với người phục vụ hay giúp đỡ người qua đường. Đây là dịp ý nghĩa để gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu."
   },
   {
     "id": "ev-11-14-dai-thao-duong",
@@ -398,7 +554,19 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "14 Tháng 11",
     "meaning": "Chế độ ăn giảm đường tinh luyện, tăng cường rau xanh và tập thể dục 30 phút/ngày giúp ngăn ngừa tiểu đường type 2.",
-    "subtitle": "Vòng tròn xanh hy vọng"
+    "subtitle": "Vòng tròn xanh hy vọng",
+    "activities": [
+      "Gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu",
+      "Tổ chức các buổi gặp gỡ, họp mặt ý nghĩa để thắt chặt tình đoàn kết",
+      "Thực hiện những việc làm tử tế, sẻ chia khó khăn với những hoàn cảnh kém may mắn"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Việt Nam có tỷ lệ người mắc đái tháo đường đang trẻ hóa, cần chủ động xét nghiệm đường huyết định kỳ."
+    ],
+    "description": "Vòng tròn xanh hy vọng — kiểm soát đường huyết, ăn uống khoa học và bảo vệ sức khỏe cả nhà.",
+    "bannerDescription": "Kỷ niệm ngày sinh của Frederick Banting (1891), người đồng phát hiện ra Insulin cứu sống hàng triệu bệnh nhân tiểu đường. Chế độ ăn giảm đường tinh luyện, tăng cường rau xanh và tập thể dục 30 phút/ngày giúp ngăn ngừa tiểu đường type 2. Đây là dịp ý nghĩa để gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu."
   },
   {
     "id": "ev-11-15-nan-nhan-tai-nan-giao-thong",
@@ -427,7 +595,19 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "15 Tháng 11",
     "meaning": "Cảnh tỉnh toàn xã hội về thảm họa tai nạn giao thông; tuyệt đối đã uống rượu bia thì không lái xe.",
-    "subtitle": "Tưởng nhớ người đi"
+    "subtitle": "Tưởng nhớ người đi",
+    "activities": [
+      "Gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu",
+      "Tổ chức các buổi gặp gỡ, họp mặt ý nghĩa để thắt chặt tình đoàn kết",
+      "Thực hiện những việc làm tử tế, sẻ chia khó khăn với những hoàn cảnh kém may mắn"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Thông điệp: 'Tưởng nhớ người đi - Vì người ở lại' nhắc nhở mỗi người cẩn trọng cầm lái mỗi khi ra đường."
+    ],
+    "description": "Tưởng nhớ người đi — vì người ở lại, tuân thủ luật giao thông là bảo vệ tính mạng bản thân và gia đình.",
+    "bannerDescription": "Đại hội đồng Liên Hợp Quốc thông qua tổ chức vào Chủ nhật thứ ba của tháng 11 hàng năm. Cảnh tỉnh toàn xã hội về thảm họa tai nạn giao thông; tuyệt đối đã uống rượu bia thì không lái xe. Đây là dịp ý nghĩa để gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu."
   },
   {
     "id": "ev-11-16-khoan-dung",
@@ -455,7 +635,19 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "16 Tháng 11",
     "meaning": "Khoan dung không phải là thỏa hiệp hay nhượng bộ, mà là thái độ tích cực tôn trọng quyền tự do của người khác.",
-    "subtitle": "Bao dung là chiếc cầu nối hàn gắn những bất đồng"
+    "subtitle": "Bao dung là chiếc cầu nối hàn gắn những bất đồng",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Chung tay hành động vì một thế giới hòa bình, xanh sạch và ngập tràn tình yêu thương.",
+    "interestingFacts": [
+      "Sự hòa hợp giữa các dân tộc, tôn giáo tại Việt Nam là minh chứng sinh động cho tinh thần bao dung dân tộc."
+    ],
+    "description": "Bao dung là chiếc cầu nối hàn gắn những bất đồng — tôn trọng sự đa dạng của nhân loại.",
+    "bannerDescription": "UNESCO thông qua Tuyên bố về các Nguyên tắc Khoan dung năm 1995 kỷ niệm 50 năm thành lập Liên Hợp Quốc. Khoan dung không phải là thỏa hiệp hay nhượng bộ, mà là thái độ tích cực tôn trọng quyền tự do của người khác. Đây là dịp ý nghĩa để tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm."
   },
   {
     "id": "ev-11-17-sinh-vien-quoc-te",
@@ -483,7 +675,19 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "17 Tháng 11",
     "meaning": "Tôn vinh nhiệt huyết, khát vọng nghiên cứu khoa học và tinh thần dấn thân của sinh viên các trường đại học.",
-    "subtitle": "Tuổi trẻ sáng tạo vươn ra biển lớn và nâng niu từng hơi thở mong manh của nhữ..."
+    "subtitle": "Tuổi trẻ sáng tạo vươn ra biển lớn và nâng niu từng hơi thở mong manh của nhữ...",
+    "activities": [
+      "Gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu",
+      "Tổ chức các buổi gặp gỡ, họp mặt ý nghĩa để thắt chặt tình đoàn kết",
+      "Thực hiện những việc làm tử tế, sẻ chia khó khăn với những hoàn cảnh kém may mắn"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Màu tím là màu biểu tượng của Ngày Trẻ sinh non tôn vinh sự kiên cường giành giật sự sống của các bé nhỏ."
+    ],
+    "description": "Tuổi trẻ sáng tạo vươn ra biển lớn và nâng niu từng hơi thở mong manh của những thiên thần sinh non.",
+    "bannerDescription": "Tưởng niệm cuộc biểu tình dũng cảm của sinh viên Praha chống phát xít năm 1939; đồng thời là Ngày Trẻ sinh non Thế giới. Tôn vinh nhiệt huyết, khát vọng nghiên cứu khoa học và tinh thần dấn thân của sinh viên các trường đại học. Đây là dịp ý nghĩa để gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu."
   },
   {
     "id": "ev-11-18-mat-tran-dan-toc-thong-nhat",
@@ -517,7 +721,19 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
       "Tổ chức Ngày hội Đại đoàn kết toàn dân tộc tại tất cả các khu dân cư, thôn bản",
       "Bữa cơm 'Đại đoàn kết' ấm áp sẻ chia tình làng nghĩa xóm",
       "Biểu diễn các tiết mục văn nghệ quần chúng và trao quà hỗ trợ các hộ gia đình khó khăn"
-    ]
+    ],
+    "activities": [
+      "Dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ",
+      "Tham quan các bảo tàng, di tích lịch sử để tìm hiểu mốc son vẻ vang của dân tộc",
+      "Kể lại những câu chuyện lịch sử hào hùng cho thế hệ trẻ gìn giữ truyền thống yêu nước"
+    ],
+    "whyItMatters": null,
+    "message": "Đoàn kết, đoàn kết, đại đoàn kết / Thành công, thành công, đại thành công. — Hồ Chí Minh",
+    "interestingFacts": [
+      "Bữa cơm đại đoàn kết ấm cúng gắn kết tình làng nghĩa xóm, cùng nhau xây dựng đời sống văn hóa mới."
+    ],
+    "description": "Bản sắc ngày hội non sông — đoàn kết keo sơn triệu con tim Lạc Hồng cùng chung một ý chí.",
+    "bannerDescription": "Ngày 18/11/1930, Ban Thường vụ Trung ương Đảng ra chỉ thị thành lập Hội Phản đế Đồng minh (hình thức đầu tiên của Mặt trận). Ngày hội Đại đoàn kết toàn dân tộc được tổ chức sôi nổi tại khắp các nhà văn hóa thôn, bản, tổ dân phố trên cả nước. Người dân và các gia đình thường tổ chức Ngày hội Đại đoàn kết toàn dân tộc tại tất cả các khu dân cư, thôn bản."
   },
   {
     "id": "ev-11-19-quoc-te-nam-gioi",
@@ -545,7 +761,19 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "19 Tháng 11",
     "meaning": "Khích lệ nam giới quan tâm hơn đến sức khỏe tâm lý, phá bỏ những định kiến khắt khe về 'phái mạnh không được khóc'.",
-    "subtitle": "Tôn vinh vai trò của người cha, người chồng, người anh em và bảo đảm vệ sinh ..."
+    "subtitle": "Tôn vinh vai trò của người cha, người chồng, người anh em và bảo đảm vệ sinh ...",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Chung tay hành động vì một thế giới hòa bình, xanh sạch và ngập tràn tình yêu thương.",
+    "interestingFacts": [
+      "Ngày 19/11 đồng thời là Ngày Toilet Thế giới (UN) nâng cao nhận thức vệ sinh nguồn nước sạch."
+    ],
+    "description": "Tôn vinh vai trò của người cha, người chồng, người anh em và bảo đảm vệ sinh môi trường cho tất cả.",
+    "bannerDescription": "Được tổ chức tại hơn 80 quốc gia tôn vinh những đóng góp tích cực của nam giới cho gia đình và xã hội. Khích lệ nam giới quan tâm hơn đến sức khỏe tâm lý, phá bỏ những định kiến khắt khe về 'phái mạnh không được khóc'. Đây là dịp ý nghĩa để tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm."
   },
   {
     "id": "ev-11-20-nha-giao-viet-nam",
@@ -579,7 +807,19 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
       "Học trò các thế hệ về thăm lại trường xưa, dâng tặng thầy cô những đóa hoa tươi thắm",
       "Hội diễn văn nghệ, làm báo tường và thi đua hoa điểm mười chào mừng ngày 20/11",
       "Lễ tuyên dương 'Nhà giáo tiêu biểu của năm' trang trọng tại các trường học và ngành Giáo dục"
-    ]
+    ],
+    "activities": [
+      "Về thăm trường xưa, tri ân thầy cô giáo đã tận tụy dìu dắt bao thế hệ",
+      "Gửi những bó hoa tươi thắm và lời chúc chân thành đến các thầy cô",
+      "Phát động các phong trào thi đua học tốt, rèn luyện chăm ngoan"
+    ],
+    "whyItMatters": null,
+    "message": "Dưới ánh mặt trời không có nghề nào cao quý hơn nghề dạy học. — Comenius",
+    "interestingFacts": [
+      "Ngày 20/11 đồng thời là Ngày Trẻ em Thế giới (World Children's Day - UNICEF) kỷ niệm Công ước Quyền Trẻ em năm 1989."
+    ],
+    "description": "Đạo lý 'Tôn sư trọng đạo' — tri ân công lao dìu dắt, khai sáng tri thức của người lái đò thầm lặng.",
+    "bannerDescription": "Ngày 20/11/1958 lần đầu tiên tổ chức ngày Quốc tế Hiến chương các nhà giáo; năm 1982 Hội đồng Bộ trưởng chính thức ban hành Quyết định. Bày tỏ lòng biết ơn vô hạn đối với các thầy cô giáo — những người ươm mầm ước mơ cho bao thế hệ học trò trưởng thành. Người dân và các gia đình thường học trò các thế hệ về thăm lại trường xưa, dâng tặng thầy cô những đóa hoa tươi thắm."
   },
   {
     "id": "ev-11-21-truyen-hinh-the-gioi",
@@ -607,7 +847,19 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "21 Tháng 11",
     "meaning": "Truyền hình là cầu nối truyền tải thông tin chính xác, giáo dục cộng đồng và phản ánh hơi thở đời sống nhân loại.",
-    "subtitle": "Màn ảnh nhỏ mở ra thế giới bao la"
+    "subtitle": "Màn ảnh nhỏ mở ra thế giới bao la",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Chung tay hành động vì một thế giới hòa bình, xanh sạch và ngập tràn tình yêu thương.",
+    "interestingFacts": [
+      "Ngày 21/11 đồng thời là Ngày Triết học Thế giới (UNESCO) tôn vinh tư duy phản biện và chiều sâu triết lý."
+    ],
+    "description": "Màn ảnh nhỏ mở ra thế giới bao la — nhịp đập thông tin, văn hóa và giải trí của muôn nhà.",
+    "bannerDescription": "Đại hội đồng Liên Hợp Quốc thông qua năm 1996 kỷ niệm Diễn đàn Truyền hình Thế giới đầu tiên. Truyền hình là cầu nối truyền tải thông tin chính xác, giáo dục cộng đồng và phản ánh hơi thở đời sống nhân loại. Đây là dịp ý nghĩa để tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm."
   },
   {
     "id": "ev-11-22-nhac-si-thinh-phong",
@@ -635,7 +887,19 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "22 Tháng 11",
     "meaning": "Âm nhạc giao hưởng thính phòng và các bản hòa tấu nhạc cụ giúp nuôi dưỡng sự thư thái, bình an cho tâm hồn.",
-    "subtitle": "Tôn vinh những tâm hồn nghệ sĩ tài hoa chắp cánh cho những nốt nhạc làm say đ..."
+    "subtitle": "Tôn vinh những tâm hồn nghệ sĩ tài hoa chắp cánh cho những nốt nhạc làm say đ...",
+    "activities": [
+      "Khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này",
+      "Chia sẻ thông điệp tích cực và năng lượng lạc quan tới bạn bè, người thân",
+      "Dành thời gian thư giãn và trải nghiệm những khoảnh khắc ý nghĩa trong cuộc sống"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Nhạc sĩ Văn Cao, Trịnh Công Sơn, Hoàng Việt, Đỗ Nhuận đã để lại những di sản âm nhạc bất hủ cho non sông."
+    ],
+    "description": "Tôn vinh những tâm hồn nghệ sĩ tài hoa chắp cánh cho những nốt nhạc làm say đắm lòng người.",
+    "bannerDescription": "Kỷ niệm ngày Thánh Cecilia, người bảo trợ cho âm nhạc và các nhạc sĩ trong văn hóa phương Tây. Âm nhạc giao hưởng thính phòng và các bản hòa tấu nhạc cụ giúp nuôi dưỡng sự thư thái, bình an cho tâm hồn. Đây là dịp ý nghĩa để khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này."
   },
   {
     "id": "ev-11-23-di-san-nam-ky-khoi-nghia",
@@ -670,7 +934,19 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
       "Mở cửa miễn phí tham quan tại các bảo tàng, di tích quốc gia đặc biệt trên toàn quốc",
       "Trình diễn các di sản phi vật thể: Ca trù, Nhã nhạc cung đình Huế, Đờn ca tài tử Nam Bộ",
       "Lễ dâng hương tưởng niệm các chiến sĩ Nam Kỳ Khởi nghĩa tại Hóc Môn, TP.HCM"
-    ]
+    ],
+    "activities": [
+      "Dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ",
+      "Tham quan các bảo tàng, di tích lịch sử để tìm hiểu mốc son vẻ vang của dân tộc",
+      "Kể lại những câu chuyện lịch sử hào hùng cho thế hệ trẻ gìn giữ truyền thống yêu nước"
+    ],
+    "whyItMatters": null,
+    "message": "Di sản văn hóa là tài sản vô giá của tiền nhân để lại, là linh hồn và cội nguồn sức mạnh của dân tộc.",
+    "interestingFacts": [
+      "Lá cờ đỏ sao vàng 5 cánh lần đầu tiên tung bay kiêu hãnh tại Đình Long Hưng (Tiền Giang) trong Khởi nghĩa Nam Kỳ."
+    ],
+    "description": "Tiếng súng quật khởi quầng đỏ trời Nam và kho tàng di sản ngàn năm văn hiến tiên tổ trao truyền.",
+    "bannerDescription": "Đêm 22 rạng sáng 23/11/1940, cuộc Khởi nghĩa Nam Kỳ bùng nổ; ngày 23/11/1945 Bác Hồ ký Sắc lệnh bảo tồn cổ tích; đồng thời thành lập Hội Chữ thập đỏ VN (1946). Cuộc khởi nghĩa quật khởi làm rạng danh ngọn cờ đỏ sao vàng; đồng thời tôn vinh trách nhiệm giữ gìn di sản cha ông. Người dân và các gia đình thường mở cửa miễn phí tham quan tại các bảo tàng, di tích quốc gia đặc biệt trên toàn quốc."
   },
   {
     "id": "ev-11-24-tien-hoa-hoc",
@@ -698,7 +974,19 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "24 Tháng 11",
     "meaning": "Khơi dậy niềm đam mê khảo cổ học, cổ sinh vật học và sự ngưỡng mộ đối với tiến trình tiến hóa của sự sống.",
-    "subtitle": "Hành trình tìm về cội nguồn sinh học và sự phát triển kỳ diệu của nhân loại t..."
+    "subtitle": "Hành trình tìm về cội nguồn sinh học và sự phát triển kỳ diệu của nhân loại t...",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Chung tay hành động vì một thế giới hòa bình, xanh sạch và ngập tràn tình yêu thương.",
+    "interestingFacts": [
+      "Các di chỉ người tiền sử tại hang Con Moong (Thanh Hóa) chứng minh sự hiện diện của con người tại Việt Nam từ hàng vạn năm trước."
+    ],
+    "description": "Hành trình tìm về cội nguồn sinh học và sự phát triển kỳ diệu của nhân loại trên Trái Đất.",
+    "bannerDescription": "Kỷ niệm xuất bản cuốn 'Nguồn gốc các loài' của Charles Darwin (24/11/1859) và phát hiện hóa thạch vượn người Lucy (1974). Khơi dậy niềm đam mê khảo cổ học, cổ sinh vật học và sự ngưỡng mộ đối với tiến trình tiến hóa của sự sống. Đây là dịp ý nghĩa để tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm."
   },
   {
     "id": "ev-11-25-xoa-bo-bao-luc-phu-nu",
@@ -726,7 +1014,19 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "25 Tháng 11",
     "meaning": "Kêu gọi xóa bỏ mọi định kiến giới, bảo vệ an toàn cho phụ nữ và trẻ em gái tại gia đình và nơi công cộng.",
-    "subtitle": "Thắp sáng sắc cam hy vọng"
+    "subtitle": "Thắp sáng sắc cam hy vọng",
+    "activities": [
+      "Tặng hoa, thiệp và những món quà ý nghĩa gửi đến bà, mẹ, vợ và đồng nghiệp nữ",
+      "Tổ chức các buổi tọa đàm tôn vinh vai trò của phụ nữ trong gia đình và xã hội",
+      "Chia sẻ công việc nhà và lan tỏa tình yêu thương, sự trân trọng tới phái đẹp"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc một nửa thế giới luôn rạng ngời, tự tin, hạnh phúc và tràn đầy yêu thương trên mọi nẻo đường cuộc sống.",
+    "interestingFacts": [
+      "Màu cam được chọn làm màu biểu tượng cho tương lai tươi sáng, không còn bạo lực đối với phụ nữ."
+    ],
+    "description": "Thắp sáng sắc cam hy vọng — Không có bất kỳ lý do nào cho bạo lực gia đình và xâm hại phụ nữ.",
+    "bannerDescription": "Đại hội đồng Liên Hợp Quốc thông qua năm 1999 nhằm tưởng niệm ba chị em nhà Mirabal bị sát hại tại Dominica. Kêu gọi xóa bỏ mọi định kiến giới, bảo vệ an toàn cho phụ nữ và trẻ em gái tại gia đình và nơi công cộng. Đây là dịp ý nghĩa để tặng hoa, thiệp và những món quà ý nghĩa gửi đến bà, mẹ, vợ và đồng nghiệp nữ."
   },
   {
     "id": "ev-11-26-black-friday",
@@ -754,7 +1054,19 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "26 Tháng 11",
     "meaning": "Các trung tâm thương mại và cửa hàng đồng loạt tung ra các chương trình giảm giá sâu kích cầu tiêu dùng.",
-    "subtitle": "Cơn sốt mua sắm cuối năm rộn ràng"
+    "subtitle": "Cơn sốt mua sắm cuối năm rộn ràng",
+    "activities": [
+      "Khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này",
+      "Chia sẻ thông điệp tích cực và năng lượng lạc quan tới bạn bè, người thân",
+      "Dành thời gian thư giãn và trải nghiệm những khoảnh khắc ý nghĩa trong cuộc sống"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Mua sắm thông minh, có kế hoạch và cân đối tài chính giúp bạn tận hưởng trọn vẹn niềm vui mua sắm."
+    ],
+    "description": "Cơn sốt mua sắm cuối năm rộn ràng — cơ hội sở hữu những món đồ yêu thích với ưu đãi tốt nhất.",
+    "bannerDescription": "Diễn ra vào ngày thứ Sáu ngay sau Lễ Tạ Ơn tại Mỹ, mở đầu mùa mua sắm Giáng sinh nhộn nhịp. Các trung tâm thương mại và cửa hàng đồng loạt tung ra các chương trình giảm giá sâu kích cầu tiêu dùng. Đây là dịp ý nghĩa để khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này."
   },
   {
     "id": "ev-11-27-small-business",
@@ -782,7 +1094,19 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "27 Tháng 11",
     "meaning": "Mỗi đồng tiền bạn chi tiêu tại doanh nghiệp nhỏ đều góp phần trực tiếp nuôi sống các gia đình lao động tại địa phương.",
-    "subtitle": "Ủng hộ những quán quen góc phố"
+    "subtitle": "Ủng hộ những quán quen góc phố",
+    "activities": [
+      "Gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu",
+      "Tổ chức các buổi gặp gỡ, họp mặt ý nghĩa để thắt chặt tình đoàn kết",
+      "Thực hiện những việc làm tử tế, sẻ chia khó khăn với những hoàn cảnh kém may mắn"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Quán phở gia truyền, tiệm may đo góc phố là những nét duyên thầm làm nên hồn phố Việt Nam."
+    ],
+    "description": "Ủng hộ những quán quen góc phố — hơi thở ấm áp tạo nên bản sắc độc đáo của mỗi đô thị.",
+    "bannerDescription": "Khuyến khích người tiêu dùng ủng hộ các quán cà phê, tiệm bánh, cửa hàng thủ công truyền thống địa phương. Mỗi đồng tiền bạn chi tiêu tại doanh nghiệp nhỏ đều góp phần trực tiếp nuôi sống các gia đình lao động tại địa phương. Đây là dịp ý nghĩa để gửi gắm những lời chúc tốt đẹp và tình cảm ấm áp đến những người thân yêu."
   },
   {
     "id": "ev-11-28-tet-trong-cay-bac-ho",
@@ -810,7 +1134,19 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "28 Tháng 11",
     "meaning": "Lời kêu gọi mộc mạc nhưng chứa đựng tư tưởng phát triển bền vững đi trước thời đại hàng chục năm.",
-    "subtitle": "'Mùa xuân là Tết trồng cây / Làm cho đất nước càng ngày càng xuân'"
+    "subtitle": "'Mùa xuân là Tết trồng cây / Làm cho đất nước càng ngày càng xuân'",
+    "activities": [
+      "Dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ",
+      "Tham quan các bảo tàng, di tích lịch sử để tìm hiểu mốc son vẻ vang của dân tộc",
+      "Kể lại những câu chuyện lịch sử hào hùng cho thế hệ trẻ gìn giữ truyền thống yêu nước"
+    ],
+    "whyItMatters": null,
+    "message": "Tự hào truyền thống vẻ vang của dân tộc, vững bước tương lai kiến thiết đất nước giàu mạnh.",
+    "interestingFacts": [
+      "Phong trào trồng 1 tỷ cây xanh vì một Việt Nam xanh đang được các cấp các ngành tích cực hưởng ứng."
+    ],
+    "description": "'Mùa xuân là Tết trồng cây / Làm cho đất nước càng ngày càng xuân' — tầm nhìn sinh thái vĩ đại.",
+    "bannerDescription": "Ngày 28/11/1959, Bác Hồ viết bài 'Tết trồng cây' đăng trên báo Nhân Dân, khởi xướng phong trào trồng cây phủ xanh đất nước. Lời kêu gọi mộc mạc nhưng chứa đựng tư tưởng phát triển bền vững đi trước thời đại hàng chục năm. Đây là dịp ý nghĩa để dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ."
   },
   {
     "id": "ev-11-29-doan-ket-palestine",
@@ -838,7 +1174,19 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "29 Tháng 11",
     "meaning": "Việt Nam kiên định lập trường ủng hộ giải pháp hai nhà nước, xây dựng nền hòa bình lâu dài và công bằng.",
-    "subtitle": "Ủng hộ cuộc đấu tranh chính nghĩa vì quyền tự quyết, độc lập và hòa bình công..."
+    "subtitle": "Ủng hộ cuộc đấu tranh chính nghĩa vì quyền tự quyết, độc lập và hòa bình công...",
+    "activities": [
+      "Tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm",
+      "Lan tỏa nhận thức tích cực trên mạng xã hội và cộng đồng xung quanh",
+      "Tham gia các hoạt động tình nguyện hoặc đóng góp thiết thực cho cộng đồng"
+    ],
+    "whyItMatters": null,
+    "message": "Chung tay hành động vì một thế giới hòa bình, xanh sạch và ngập tràn tình yêu thương.",
+    "interestingFacts": [
+      "Tình đoàn kết quốc tế và sự ủng hộ đối với các dân tộc bị áp bức là nguyên tắc nhất quán của ngoại giao Việt Nam."
+    ],
+    "description": "Ủng hộ cuộc đấu tranh chính nghĩa vì quyền tự quyết, độc lập và hòa bình công lý ở Trung Đông.",
+    "bannerDescription": "Đại hội đồng Liên Hợp Quốc thông qua năm 1977 kỷ niệm Nghị quyết phân chia vùng lãnh thổ năm 1947. Việt Nam kiên định lập trường ủng hộ giải pháp hai nhà nước, xây dựng nền hòa bình lâu dài và công bằng. Đây là dịp ý nghĩa để tìm hiểu thông điệp và chủ đề toàn cầu của Liên Hợp Quốc cho ngày kỷ niệm."
   },
   {
     "id": "ev-11-30-an-ninh-mang",
@@ -866,6 +1214,18 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "30 Tháng 11",
     "meaning": "Cảnh giác trước các đường link lạ, đặt mật khẩu mạnh hai lớp (2FA) và không chia sẻ mã OTP cho bất kỳ ai.",
-    "subtitle": "Bảo vệ thông tin cá nhân và dữ liệu số an toàn trước các cuộc tấn công mạng đ..."
+    "subtitle": "Bảo vệ thông tin cá nhân và dữ liệu số an toàn trước các cuộc tấn công mạng đ...",
+    "activities": [
+      "Khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này",
+      "Chia sẻ thông điệp tích cực và năng lượng lạc quan tới bạn bè, người thân",
+      "Dành thời gian thư giãn và trải nghiệm những khoảnh khắc ý nghĩa trong cuộc sống"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Luật An ninh mạng của Việt Nam bảo đảm an toàn cho không gian mạng quốc gia và bảo vệ người dùng số."
+    ],
+    "description": "Bảo vệ thông tin cá nhân và dữ liệu số an toàn trước các cuộc tấn công mạng độc hại.",
+    "bannerDescription": "Được tổ chức từ năm 1988 sau khi sâu máy tính Morris đầu tiên lan truyền trên mạng ARPANET. Cảnh giác trước các đường link lạ, đặt mật khẩu mạnh hai lớp (2FA) và không chia sẻ mã OTP cho bất kỳ ai. Đây là dịp ý nghĩa để khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này."
   }
 ];

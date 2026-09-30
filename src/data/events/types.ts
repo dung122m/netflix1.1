@@ -28,6 +28,8 @@ export interface VietnamEvent {
   id: string;
   title: string;
   shortDescription: string;
+  bannerDescription?: string | null;
+  description?: string | null;
   subtitle?: string | null;
   dateLabel?: string | null;
   category: VietnamEventCategory;
@@ -36,6 +38,8 @@ export interface VietnamEvent {
   natureLabel: string;
   priority: number; // Điểm ưu tiên hiển thị (số càng cao ưu tiên càng lớn)
   effect?: EventEffectType | null;
+  country?: string | null;
+  region?: string | null;
   solarDate?: {
     month: number; // 1 - 12
     day: number; // 1 - 31
@@ -51,14 +55,18 @@ export interface VietnamEvent {
   displayDate: string;
   lunarDisplayDate?: string | null;
   origin: string;
+  history?: string | null;
   significance: string;
   meaning?: string | null;
+  whyItMatters?: string | null;
   traditions?: string[];
+  activities?: string[];
   cuisine?: string | null;
   didYouKnow: string;
   interestingFacts?: string[];
   milestones: string[];
   quote?: string | null;
+  message?: string | null;
   tag?: string | null;
   imageUrl?: string | null;
   accentGradient?: string | null;

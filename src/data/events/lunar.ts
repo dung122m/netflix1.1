@@ -34,7 +34,19 @@ export const LUNAR_EVENTS: VietnamEvent[] = [
     "quote": "Cá chép hóa rồng chở Táo lên mây, mang theo phúc lộc gửi về nhân gian.",
     "tag": "Phong tục cổ truyền",
     "imageUrl": "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-orange-600/30 via-amber-600/20 to-zinc-950"
+    "accentGradient": "from-orange-600/30 via-amber-600/20 to-zinc-950",
+    "activities": [
+      "Chuẩn bị lễ vật chu đáo và thực hiện các nghi thức truyền thống trang nghiêm",
+      "Sum vầy bên gia đình, thưởng thức các món ăn mang phong vị đặc trưng lễ hội",
+      "Tham gia các trò chơi dân gian và tìm hiểu nguồn gốc phong tục cổ truyền"
+    ],
+    "whyItMatters": null,
+    "message": "Cá chép hóa rồng chở Táo lên mây, mang theo phúc lộc gửi về nhân gian.",
+    "interestingFacts": [
+      "Dân gian chọn cá chép làm phương tiện đưa Táo Quân chầu trời bởi hình tượng cá chép vượt vũ môn hóa rồng tượng trưng cho sự kiên trì, thăng hoa và ước vọng thịnh vượng."
+    ],
+    "description": "Tập tục thả cá chép tiễn Táo Quân chầu trời bẩm báo một năm nếp nhà ấm êm thuận hòa, mở đầu chuỗi ngày chuẩn bị đón Tết Nguyên Đán.",
+    "bannerDescription": "Tín ngưỡng dân gian ngàn đời thờ phụng ba vị Định phúc Táo quân cai quản bếp lửa và nếp sống gia đình. Theo quan niệm truyền thống, ngày 23 tháng Chạp là thời khắc các vị Táo cưỡi cá chép lên thiên đình bẩm báo Ngọc Hoàng về mọi việc trong năm cũ. Gìn giữ ngọn lửa ấm cúng và đạo lý gia phong, nhắc nhở mỗi thành viên sống hòa thuận, tích đức hành thiện và trân trọng mái ấm gia đình. Người dân và các gia đình thường bao sái bàn thờ gia tiên, tỉa chân nhang và lau dọn gian bếp tinh tươm."
   },
   {
     "id": "lunar-giao-thua",
@@ -73,7 +85,19 @@ export const LUNAR_EVENTS: VietnamEvent[] = [
     "quote": "Thịt mỡ dưa hành câu đối đỏ / Cây nêu tràng pháo bánh chưng xanh.",
     "tag": "Đoàn viên dân tộc",
     "imageUrl": "https://images.unsplash.com/photo-1548625361-16eb1d746536?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-red-600/40 via-yellow-600/20 to-zinc-950"
+    "accentGradient": "from-red-600/40 via-yellow-600/20 to-zinc-950",
+    "activities": [
+      "Chuẩn bị lễ vật chu đáo và thực hiện các nghi thức truyền thống trang nghiêm",
+      "Sum vầy bên gia đình, thưởng thức các món ăn mang phong vị đặc trưng lễ hội",
+      "Tham gia các trò chơi dân gian và tìm hiểu nguồn gốc phong tục cổ truyền"
+    ],
+    "whyItMatters": null,
+    "message": "Thịt mỡ dưa hành câu đối đỏ / Cây nêu tràng pháo bánh chưng xanh.",
+    "interestingFacts": [
+      "Lễ trừ tịch có từ thời cổ đại; mâm cỗ ngoài trời là để đón tân Quan Hành khiển (vị thần cai quản năm mới) tiếp nhận bàn giao công việc từ cựu Quan Hành khiển."
+    ],
+    "description": "Thời khắc thiêng liêng đất trời chuyển giao giữa năm cũ và năm mới, muôn nhà sum vầy bên mâm cơm Tất niên cầu chúc quốc thái dân an cát tường.",
+    "bannerDescription": "Nghi lễ Trừ tịch trong văn hóa cổ truyền người Việt có ý nghĩa xua tan bóng tối và những điều không may mắn của năm cũ để nghênh đón cát khí, sinh khí mới của mùa xuân. Thời khắc thiêng liêng gắn kết tình thân gia đình, biểu hiện cao đẹp của lòng hiếu kính tiên tổ và niềm tin son sắt vào một khởi đầu an khang thịnh vượng. Người dân và các gia đình thường bữa cơm Tất niên chiều 30 Tết sum họp đầy đủ các thế hệ trong gia đình."
   },
   {
     "id": "lunar-tet-nguyen-dan",
@@ -112,7 +136,19 @@ export const LUNAR_EVENTS: VietnamEvent[] = [
     "quote": "Dù đi bốn phương trời, lòng người Việt luôn hướng về mâm cơm đoàn viên ngày Tết.",
     "tag": "Lễ hội lớn nhất năm",
     "imageUrl": "https://images.unsplash.com/photo-1518173946687-a4c8a383392e?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-red-600/40 via-amber-500/20 to-zinc-950"
+    "accentGradient": "from-red-600/40 via-amber-500/20 to-zinc-950",
+    "activities": [
+      "Treo cờ Tổ quốc trang trọng tại nhà và nơi làm việc chào mừng ngày lễ lớn",
+      "Tham gia các sự kiện văn hóa, biểu diễn nghệ thuật và pháo hoa kỷ niệm",
+      "Dành thời gian nghỉ ngơi trọn vẹn, sum họp và du lịch cùng người thân"
+    ],
+    "whyItMatters": null,
+    "message": "Dù đi bốn phương trời, lòng người Việt luôn hướng về mâm cơm đoàn viên ngày Tết.",
+    "interestingFacts": [
+      "Tập tục 'Mùng 1 Tết cha, mùng 2 Tết mẹ, mùng 3 Tết thầy' là nét văn hóa ứng xử nhân văn độc đáo thể hiện trọn vẹn ba mối quan hệ thiêng liêng: Gia đình - Dòng họ - Trí thức."
+    ],
+    "description": "Đại lễ thiêng liêng và lớn nhất trong năm của người Việt — cội nguồn sum vầy, tri ân tiên tổ và khởi đầu cho vạn sự tốt lành.",
+    "bannerDescription": "Gắn liền với nền văn minh lúa nước sông Hồng, Tết Nguyên Đán đánh dấu thời điểm khởi đầu tiết xuân mới, khi vạn vật sinh sôi nảy nở và mở ra một chu kỳ mùa màng hy vọng mới. Biểu tượng thiêng liêng của sự đoàn viên gia đình, gắn kết cộng đồng làng xóm và bồi đắp lòng biết ơn nguồn cội theo đạo lý 'Uống nước nhớ nguồn'. Người dân và các gia đình thường mùng 1 Tết Cha: thăm chúc thọ bên nội, con cháu mừng tuổi ông bà nhận phong bao lì xì đỏ may mắn."
   },
   {
     "id": "lunar-chua-huong",
@@ -147,7 +183,19 @@ export const LUNAR_EVENTS: VietnamEvent[] = [
     "quote": "Bầu trời cảnh Bụt / Thú Hương Sơn ao ước bấy lâu nay. — Chu Mạnh Trinh",
     "tag": "Hành hương đất Phật",
     "imageUrl": "https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-purple-800/30 via-emerald-800/20 to-zinc-950"
+    "accentGradient": "from-purple-800/30 via-emerald-800/20 to-zinc-950",
+    "activities": [
+      "Chuẩn bị lễ vật chu đáo và thực hiện các nghi thức truyền thống trang nghiêm",
+      "Sum vầy bên gia đình, thưởng thức các món ăn mang phong vị đặc trưng lễ hội",
+      "Tham gia các trò chơi dân gian và tìm hiểu nguồn gốc phong tục cổ truyền"
+    ],
+    "whyItMatters": null,
+    "message": "Bầu trời cảnh Bụt / Thú Hương Sơn ao ước bấy lâu nay. — Chu Mạnh Trinh",
+    "interestingFacts": [
+      "Động Hương Tích được Chúa Tĩnh Đô Vương Trịnh Sâm năm 1770 tự tay đề năm chữ lớn 'Nam thiên đệ nhất động' (Động đẹp nhất trời Nam) khắc trên vách đá."
+    ],
+    "description": "Hành hương miền đất Phật linh thiêng trên dòng suối Yến thanh bình và trẩy hội non thiêng cầu an lành đầu xuân.",
+    "bannerDescription": "Khai hội vào mùng 6 tháng Giêng hằng năm tại Quần thể danh thắng Hương Sơn (Mỹ Đức, Hà Nội). Đây là lễ hội dài nhất Việt Nam, kết hợp tín ngưỡng thờ Phật, thờ Chúa ngàn và tín ngưỡng nông nghiệp. Khởi đầu mùa hành hương non thiêng của người dân cả nước, tìm về sự thanh thản trong tâm hồn, gửi gắm ước nguyện một năm mưa thuận gió hòa, quốc thái dân an. Người dân và các gia đình thường ngồi thuyền nan trôi bồng bềnh xuôi dòng suối Yến thơ mộng ngắm hoa gạo đỏ rực."
   },
   {
     "id": "lunar-via-than-tai",
@@ -182,7 +230,19 @@ export const LUNAR_EVENTS: VietnamEvent[] = [
     "quote": "Mùng mười vía Thần Tài nghênh đón lộc xuân, mua may bán đắt hanh thông thịnh vượng.",
     "tag": "Chiêu tài đón lộc",
     "imageUrl": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-yellow-600/35 via-amber-600/20 to-zinc-950"
+    "accentGradient": "from-yellow-600/35 via-amber-600/20 to-zinc-950",
+    "activities": [
+      "Chuẩn bị lễ vật chu đáo và thực hiện các nghi thức truyền thống trang nghiêm",
+      "Sum vầy bên gia đình, thưởng thức các món ăn mang phong vị đặc trưng lễ hội",
+      "Tham gia các trò chơi dân gian và tìm hiểu nguồn gốc phong tục cổ truyền"
+    ],
+    "whyItMatters": null,
+    "message": "Mùng mười vía Thần Tài nghênh đón lộc xuân, mua may bán đắt hanh thông thịnh vượng.",
+    "interestingFacts": [
+      "Người Nam Bộ có tập tục đặc biệt cúng cá lóc nướng trui để nguyên con không cạo vảy, tượng trưng cho sự thuần khiết nguyên sơ của đất trời thuở khai hoang mở cõi."
+    ],
+    "description": "Tập tục nghênh đón Thần Tài cát tường, cầu mong một năm kinh doanh buôn bán hanh thông, tài lộc dồi dào.",
+    "bannerDescription": "Bắt nguồn từ tín ngưỡng dân gian thờ Thần Tài — vị thần cai quản tài lộc và của cải. Theo quan niệm truyền thống, mùng 10 tháng Giêng là ngày Thần Tài bay về trời sau khi mang lại vượng khí cho nhân gian. Khởi xướng tinh thần lạc quan, tạo động lực mạnh mẽ cho giới kinh doanh, tiểu thương và mọi gia đình bước vào một năm làm ăn cần cù, thuận buồm xuôi gió. Người dân và các gia đình thường lau dọn bàn thờ Thần Tài - Thổ Địa sáng bóng, thắp nén hương trầm thơm ngát."
   },
   {
     "id": "lunar-hoi-lim",
@@ -218,7 +278,19 @@ export const LUNAR_EVENTS: VietnamEvent[] = [
     "quote": "Người ơi người ở đừng về / Mối duyên Quan họ câu thề ngàn năm.",
     "tag": "Dân ca quan họ",
     "imageUrl": "https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-rose-600/30 via-pink-700/20 to-zinc-950"
+    "accentGradient": "from-rose-600/30 via-pink-700/20 to-zinc-950",
+    "activities": [
+      "Chuẩn bị lễ vật chu đáo và thực hiện các nghi thức truyền thống trang nghiêm",
+      "Sum vầy bên gia đình, thưởng thức các món ăn mang phong vị đặc trưng lễ hội",
+      "Tham gia các trò chơi dân gian và tìm hiểu nguồn gốc phong tục cổ truyền"
+    ],
+    "whyItMatters": null,
+    "message": "Người ơi người ở đừng về / Mối duyên Quan họ câu thề ngàn năm.",
+    "interestingFacts": [
+      "Người Quan họ có lối xưng hô đặc trưng vô cùng khiêm nhường và tao nhã: gọi nhau là 'Liền anh', 'Liền chị', tự xưng là 'em' hoặc 'chúng em', thể hiện triết lý trọng tình, trọng nghĩa."
+    ],
+    "description": "Về miền Kinh Bắc nghe câu hát trao duyên — lễ hội văn hóa đặc sắc tôn vinh Di sản văn hóa phi vật thể Dân ca Quan họ.",
+    "bannerDescription": "Lễ hội vùng Lim diễn ra vào ngày 12-13 tháng Giêng hằng năm tại huyện Tiên Du, tỉnh Bắc Ninh, bắt nguồn từ lễ hội cúng tướng quân Nguyễn Đình Diễn thời Lê - Nguyễn kết hợp hội hát dân ca cổ truyền. Bảo tồn và phát huy kho tàng dân ca Quan họ Bắc Ninh — di sản văn hóa phi vật thể đại diện của nhân loại được UNESCO ghi danh, biểu tượng của nét đẹp ứng xử lịch thiệp, nghĩa tình. Người dân và các gia đình thường lễ rước kiệu trang nghiêm của các làng vùng Lim quanh đồi Lim."
   },
   {
     "id": "lunar-khai-an-den-tran",
@@ -254,7 +326,19 @@ export const LUNAR_EVENTS: VietnamEvent[] = [
     "quote": "Tích phúc vô cương — Bốn chữ vàng khắc trên bảo ấn đền Trần răn dạy muôn đời.",
     "tag": "Hào khí Đông A",
     "imageUrl": "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-700/30 via-red-800/20 to-zinc-950"
+    "accentGradient": "from-amber-700/30 via-red-800/20 to-zinc-950",
+    "activities": [
+      "Chuẩn bị lễ vật chu đáo và thực hiện các nghi thức truyền thống trang nghiêm",
+      "Sum vầy bên gia đình, thưởng thức các món ăn mang phong vị đặc trưng lễ hội",
+      "Tham gia các trò chơi dân gian và tìm hiểu nguồn gốc phong tục cổ truyền"
+    ],
+    "whyItMatters": null,
+    "message": "Tích phúc vô cương — Bốn chữ vàng khắc trên bảo ấn đền Trần răn dạy muôn đời.",
+    "interestingFacts": [
+      "Bốn chữ Hán khắc trên bản ấn Đền Trần là 'Tích phúc vô cương' (積福無疆), mang ý nghĩa sâu xa: tích lũy phúc đức cho con cháu đời đời vô tận, răn dạy làm quan phải công tâm vì dân vì nước."
+    ],
+    "description": "Tái hiện nghi thức khai ấn triều Trần lúc nửa đêm — tưởng nhớ công đức Hào khí Đông A và cầu mong đức tài liêm chính.",
+    "bannerDescription": "Lễ hội Đền Trần (phường Lộc Vượng, TP Nam Định) có từ thời nhà Trần sau chiến thắng quân Nguyên Mông lần thứ nhất (1258). Vua tôi nhà Trần tổ chức tiệc khao quân và mở ấn triều chính vào ngày rằm tháng Giêng. Tôn vinh chiến công oanh liệt ba lần đánh thắng giặc Nguyên Mông hung hãn của vương triều Trần, nhắc nhở thế hệ sau về bài học đoàn kết toàn dân và bổn phận phụng sự quốc gia liêm chính. Người dân và các gia đình thường nghi lễ rước kiệu ấn và kiệu nước trang nghiêm lúc 23h đêm ngày 14 tháng Giêng."
   },
   {
     "id": "lunar-tet-nguyen-tieu",
@@ -289,7 +373,19 @@ export const LUNAR_EVENTS: VietnamEvent[] = [
     "quote": "Kim dạ nguyên tiêu nguyệt chính viên / Xuân giang xuân thủy tiếp xuân thiên. — Hồ Chí Minh",
     "tag": "Ngày thơ Việt Nam",
     "imageUrl": "https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-indigo-700/30 via-purple-700/20 to-zinc-950"
+    "accentGradient": "from-indigo-700/30 via-purple-700/20 to-zinc-950",
+    "activities": [
+      "Chuẩn bị lễ vật chu đáo và thực hiện các nghi thức truyền thống trang nghiêm",
+      "Sum vầy bên gia đình, thưởng thức các món ăn mang phong vị đặc trưng lễ hội",
+      "Tham gia các trò chơi dân gian và tìm hiểu nguồn gốc phong tục cổ truyền"
+    ],
+    "whyItMatters": null,
+    "message": "Kim dạ nguyên tiêu nguyệt chính viên / Xuân giang xuân thủy tiếp xuân thiên. — Hồ Chí Minh",
+    "interestingFacts": [
+      "Bài thơ 'Nguyên tiêu' được Bác Hồ sáng tác trên một chiếc thuyền trôi giữa dòng sông Đáy trong đêm rằm tháng Giêng năm Mậu Tý (1948) khi đang bàn việc quân đánh giặc."
+    ],
+    "description": "Đêm rằm Thượng Nguyên trăng tròn vằng vặc, hòa cùng tiếng thơ vang vọng khắp các tao đàn thi ca đất nước.",
+    "bannerDescription": "Tết Nguyên Tiêu (rằm tháng Giêng) là đêm trăng tròn đầu tiên của năm mới. Năm 1948 tại chiến khu Việt Bắc, Bác Hồ viết bài thơ chữ Hán bất hủ 'Nguyên tiêu'. Từ năm 2003, Hội Nhà văn Việt Nam chính thức lấy ngày này làm Ngày Thơ Việt Nam. Dân gian có câu 'Cúng cả năm không bằng rằm tháng Giêng'. Đây là dịp cầu an lành cho gia đạo, đồng thời tôn vinh tâm hồn thi ca, vẻ đẹp ngôn ngữ và văn hiến nghìn năm của dân tộc. Người dân và các gia đình thường lễ chùa dâng hương cầu an, phóng sinh tích phúc trong ngày rằm Thượng Nguyên."
   },
   {
     "id": "lunar-tet-han-thuc",
@@ -324,7 +420,19 @@ export const LUNAR_EVENTS: VietnamEvent[] = [
     "quote": "Thân em vừa trắng lại vừa tròn / Bảy nổi ba chìm với nước non / Rắn nát mặc dầu tay kẻ nặn / Mà em vẫn giữ tấm lòng son. — Hồ Xuân Hương",
     "tag": "Bánh trôi bánh chay",
     "imageUrl": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-teal-600/30 via-emerald-700/20 to-zinc-950"
+    "accentGradient": "from-teal-600/30 via-emerald-700/20 to-zinc-950",
+    "activities": [
+      "Chuẩn bị lễ vật chu đáo và thực hiện các nghi thức truyền thống trang nghiêm",
+      "Sum vầy bên gia đình, thưởng thức các món ăn mang phong vị đặc trưng lễ hội",
+      "Tham gia các trò chơi dân gian và tìm hiểu nguồn gốc phong tục cổ truyền"
+    ],
+    "whyItMatters": null,
+    "message": "Thân em vừa trắng lại vừa tròn / Bảy nổi ba chìm với nước non / Rắn nát mặc dầu tay kẻ nặn / Mà em vẫn giữ tấm lòng son. — Hồ Xuân Hương",
+    "interestingFacts": [
+      "Hình ảnh chiếc bánh trôi nước đã trở thành nguồn cảm hứng bất hủ cho bài thơ vịnh cùng tên của nữ sĩ Hồ Xuân Hương, ngợi ca vẻ đẹp đoan trang cùng tấm lòng son sắt của người phụ nữ Việt Nam."
+    ],
+    "description": "Mùi hương hoa bưởi thoang thoảng quện trong đĩa bánh trôi, bát bánh chay tròn đầy tấm lòng hiếu kính hướng về tổ tiên.",
+    "bannerDescription": "Tết Hàn Thực du nhập vào Việt Nam từ thời cổ nhưng đã được người Việt bản địa hóa hoàn toàn. Thay vì tập tục ăn đồ nguội kiêng lửa, người Việt làm bánh trôi, bánh chay dâng cúng tổ tiên vào ngày mùng 3 tháng 3 Âm lịch. Thể hiện lòng thành kính nhớ ơn tiên tổ và sự hòa hợp đất trời: viên bánh trôi tròn tượng trưng cho Trời, chiếc bánh chay dẹt bọc nhân tượng trưng cho Đất, đượm tinh hoa lúa gạo quê nhà. Người dân và các gia đình thường cả nhà quây quần nhào bột gạo nếp, nặn bánh trôi bọc viên đường phèn mật mía đỏ."
   },
   {
     "id": "lunar-gio-to-hung-vuong",
@@ -361,7 +469,19 @@ export const LUNAR_EVENTS: VietnamEvent[] = [
     "quote": "Dù ai đi ngược về xuôi / Nhớ ngày Giỗ Tổ mùng mười tháng ba.",
     "tag": "Cội nguồn dân tộc",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-red-600/40 via-amber-600/25 to-zinc-950"
+    "accentGradient": "from-red-600/40 via-amber-600/25 to-zinc-950",
+    "activities": [
+      "Treo cờ Tổ quốc trang trọng tại nhà và nơi làm việc chào mừng ngày lễ lớn",
+      "Tham gia các sự kiện văn hóa, biểu diễn nghệ thuật và pháo hoa kỷ niệm",
+      "Dành thời gian nghỉ ngơi trọn vẹn, sum họp và du lịch cùng người thân"
+    ],
+    "whyItMatters": null,
+    "message": "Dù ai đi ngược về xuôi / Nhớ ngày Giỗ Tổ mùng mười tháng ba.",
+    "interestingFacts": [
+      "Việt Nam là quốc gia duy nhất trên thế giới có chung một ngày Quốc giỗ tổ tiên cho toàn bộ hơn 100 triệu người dân, thể hiện sức mạnh đại đoàn kết bất diệt."
+    ],
+    "description": "Ngày Quốc giỗ thiêng liêng — hàng triệu con Lạc cháu Hồng muôn phương cùng hướng về Đền Hùng tri ân công đức dựng nước của các Vua Hùng.",
+    "bannerDescription": "Tín ngưỡng thờ cúng Hùng Vương bắt nguồn từ vùng đất cội nguồn Phong Châu (Phú Thọ) ngàn năm trước. Năm 2012, Tín ngưỡng thờ cúng Hùng Vương tại Phú Thọ được UNESCO vinh danh là Di sản văn hóa phi vật thể đại diện của nhân loại. Biểu tượng tâm linh độc nhất vô nhị trên thế giới về sự gắn kết dân tộc; khẳng định nguồn gốc chung 'đồng bào' cùng sinh ra từ bọc trăm trứng của mẹ Âu Cơ và cha Lạc Long Quân. Người dân và các gia đình thường đại lễ dâng hương tưởng niệm các Vua Hùng tại Đền Thượng trên đỉnh núi Nghĩa Lĩnh."
   },
   {
     "id": "lunar-phat-dan",
@@ -396,7 +516,19 @@ export const LUNAR_EVENTS: VietnamEvent[] = [
     "quote": "Từ bi hỷ xả — Ánh sáng Phật pháp soi rọi yêu thương và mang an lạc đến khắp muôn nơi.",
     "tag": "Đại lễ Vesak",
     "imageUrl": "https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-yellow-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-yellow-600/20 to-zinc-950",
+    "activities": [
+      "Chuẩn bị lễ vật chu đáo và thực hiện các nghi thức truyền thống trang nghiêm",
+      "Sum vầy bên gia đình, thưởng thức các món ăn mang phong vị đặc trưng lễ hội",
+      "Tham gia các trò chơi dân gian và tìm hiểu nguồn gốc phong tục cổ truyền"
+    ],
+    "whyItMatters": null,
+    "message": "Từ bi hỷ xả — Ánh sáng Phật pháp soi rọi yêu thương và mang an lạc đến khắp muôn nơi.",
+    "interestingFacts": [
+      "Nghi thức Tắm Phật bắt nguồn từ tích khi Đức Phật đản sinh, có chín con rồng phun hai dòng nước ấm và lạnh xuống tắm cho Ngài, biểu trưng cho sự gột sạch bụi trần phiền não."
+    ],
+    "description": "Mừng ngày Đức Phật Đản sinh — lan tỏa tinh thần từ bi hỷ xả, cầu nguyện hòa bình và an lạc cho muôn loài.",
+    "bannerDescription": "Kỷ niệm ngày sinh của Đức Phật Thích Ca Mâu Ni (Tất-đạt-đa Cồ-đàm) vào ngày rằm tháng 4 Âm lịch năm 624 TCN tại vườn Lâm-tỳ-ni. Năm 1999, Đại hội đồng Liên Hợp Quốc công nhận Đại lễ Vesak là ngày lễ văn hóa tôn giáo quốc tế. Khơi dậy lòng từ bi, bác ái và tinh thần bao dung trong mỗi con người; hướng thiện, gột rửa phiền não và cùng chung tay xây dựng cuộc sống hòa bình, an lành. Người dân và các gia đình thường nghi thức Tắm Phật trang nghiêm bằng nước thơm hoa tươi tinh khiết tại các tự viện."
   },
   {
     "id": "lunar-tet-doan-ngo",
@@ -431,7 +563,19 @@ export const LUNAR_EVENTS: VietnamEvent[] = [
     "quote": "Tháng Năm ngày Tết Đoan Dương / Rượu nếp thơm nồng ấm áp tình quê.",
     "tag": "Giết sâu bọ",
     "imageUrl": "https://images.unsplash.com/photo-1550258987-190a2d41a8ba?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-red-600/30 via-orange-600/20 to-zinc-950"
+    "accentGradient": "from-red-600/30 via-orange-600/20 to-zinc-950",
+    "activities": [
+      "Chuẩn bị lễ vật chu đáo và thực hiện các nghi thức truyền thống trang nghiêm",
+      "Sum vầy bên gia đình, thưởng thức các món ăn mang phong vị đặc trưng lễ hội",
+      "Tham gia các trò chơi dân gian và tìm hiểu nguồn gốc phong tục cổ truyền"
+    ],
+    "whyItMatters": null,
+    "message": "Tháng Năm ngày Tết Đoan Dương / Rượu nếp thơm nồng ấm áp tình quê.",
+    "interestingFacts": [
+      "Theo kinh nghiệm dân gian, lá cây cỏ hái vào chính giờ Ngọ ngày 5/5 tích tụ dược tính mạnh nhất do đón trọn ánh nắng mặt trời lúc cực dương, rất tốt để làm trà thuốc nam giải nhiệt."
+    ],
+    "description": "Tết Đoan Dương xua tan dịch bệnh ngày hè — thưởng thức cơm rượu nếp, mận hậu chín giòn và hoa quả đầu mùa thơm ngọt.",
+    "bannerDescription": "Tiết Đoan Dương (chính Ngọ ngày 5 tháng 5 Âm lịch) là thời điểm khí dương thịnh nhất trong năm khi bước vào giữa mùa hè. Người Việt cổ tổ chức ngày này để trừ dịch bệnh, diệt trừ sâu bọ phá hoại mùa màng và thanh lọc cơ thể. Gìn giữ tri thức dân gian về y học cổ truyền và vệ sinh phòng bệnh; biểu hiện lòng tạ ơn mùa màng bội thu hoa trái và tình cảm sum họp gia đình ấm cúng. Người dân và các gia đình thường ăn cơm rượu nếp thơm nồng và hoa quả đầu mùa vào sáng sớm vừa ngủ dậy để 'giết sâu bọ'."
   },
   {
     "id": "lunar-le-vu-lan",
@@ -466,7 +610,19 @@ export const LUNAR_EVENTS: VietnamEvent[] = [
     "quote": "Công cha như núi Thái Sơn / Nghĩa mẹ như nước trong nguồn chảy ra / Một lòng thờ mẹ kính cha / Cho tròn chữ hiếu mới là đạo con.",
     "tag": "Vu Lan báo hiếu",
     "imageUrl": "https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-rose-600/35 via-amber-600/20 to-zinc-950"
+    "accentGradient": "from-rose-600/35 via-amber-600/20 to-zinc-950",
+    "activities": [
+      "Chuẩn bị lễ vật chu đáo và thực hiện các nghi thức truyền thống trang nghiêm",
+      "Sum vầy bên gia đình, thưởng thức các món ăn mang phong vị đặc trưng lễ hội",
+      "Tham gia các trò chơi dân gian và tìm hiểu nguồn gốc phong tục cổ truyền"
+    ],
+    "whyItMatters": null,
+    "message": "Công cha như núi Thái Sơn / Nghĩa mẹ như nước trong nguồn chảy ra / Một lòng thờ mẹ kính cha / Cho tròn chữ hiếu mới là đạo con.",
+    "interestingFacts": [
+      "Nghi thức Bông hồng cài áo đầy xúc động trong ngày Vu Lan do Thiền sư Thích Nhất Hạnh khởi xướng từ đầu thập niên 1960, lấy cảm hứng từ truyền thống cài hoa cẩm chướng trong Ngày của Mẹ tại Nhật Bản."
+    ],
+    "description": "Bông hồng cài áo rưng rưng xúc động — mùa báo hiếu tri ân công đức sinh thành dưỡng dục của cha mẹ và tổ tiên.",
+    "bannerDescription": "Gắn liền với tích Bồ tát Mục Kiền Liên với lòng hiếu thảo vô biên đã cứu mẹ khỏi kiếp ngạ quỷ trong kinh Vu Lan Bồn. Tại Việt Nam, ngày này dung hợp sâu sắc với truyền thống hiếu đạo dân tộc và lễ xá tội vong nhân ngày rằm tháng Bảy. Nhắc nhở mỗi người về đạo làm con, giữ tròn chữ Hiếu đối với cha mẹ khi còn tại thế, đồng thời thể hiện lòng bác ái, bao dung với các vong linh không nơi nương tựa. Người dân và các gia đình thường nghi thức Bông hồng cài áo: hoa đỏ cho người còn cha mẹ, hoa trắng cho người cha mẹ đã khuất."
   },
   {
     "id": "lunar-ngay-san-khau",
@@ -501,7 +657,19 @@ export const LUNAR_EVENTS: VietnamEvent[] = [
     "quote": "Nhất nghệ tinh, nhất thân vinh — Giữ trọn ngọn lửa đam mê và chữ tâm với thánh đường nghệ thuật.",
     "tag": "Tổ nghiệp sân khấu",
     "imageUrl": "https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-red-700/30 via-amber-600/20 to-zinc-950"
+    "accentGradient": "from-red-700/30 via-amber-600/20 to-zinc-950",
+    "activities": [
+      "Khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này",
+      "Chia sẻ thông điệp tích cực và năng lượng lạc quan tới bạn bè, người thân",
+      "Dành thời gian thư giãn và trải nghiệm những khoảnh khắc ý nghĩa trong cuộc sống"
+    ],
+    "whyItMatters": null,
+    "message": "Nhất nghệ tinh, nhất thân vinh — Giữ trọn ngọn lửa đam mê và chữ tâm với thánh đường nghệ thuật.",
+    "interestingFacts": [
+      "Theo truyền thuyết dân gian của giới nghệ sĩ, bàn thờ Tổ nghiệp sân khấu thường thờ hai vị Thánh tử (hai hoàng tử mê hát kịch) và biểu tượng buồng hát thiêng liêng; nghệ sĩ luôn giữ lòng thanh tịnh trước khi bước ra sân khấu."
+    ],
+    "description": "Ngày Giỗ Tổ nghề sân khấu truyền thống — nghệ sĩ ba miền tề tựu kính cẩn tri ân Tổ nghiệp và bồi đắp ngọn lửa nghệ thuật nước nhà.",
+    "bannerDescription": "Từ xưa, ngày 12 tháng 8 Âm lịch đã là ngày giỗ truyền thống của các gánh hát tuồng, chèo, cải lương. Năm 2010, Thủ tướng Chính phủ ký Quyết định chính thức công nhận ngày 12/8 Âm lịch là Ngày Sân khấu Việt Nam. Tôn vinh cống hiến bền bỉ của các thế hệ nghệ sĩ kịch nghệ, giữ gìn bản sắc sân khấu dân tộc và khích lệ lao động sáng tạo mang lại những tác phẩm nghệ thuật đỉnh cao cho công chúng. Người dân và các gia đình thường lễ dâng hương Giỗ Tổ nghề Sân khấu trang nghiêm tại tất cả các nhà hát và rạp diễn ba miền."
   },
   {
     "id": "lunar-tet-trung-thu",
@@ -539,7 +707,19 @@ export const LUNAR_EVENTS: VietnamEvent[] = [
     "quote": "Tết Trung Thu rước đèn đi chơi / Em rước đèn đi khắp phố phường / Lòng vui sướng với đèn trong tay / Em múa ca trong ánh trăng rằm.",
     "tag": "Đoàn viên trăng rằm",
     "imageUrl": "https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-yellow-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-yellow-600/20 to-zinc-950",
+    "activities": [
+      "Chuẩn bị lễ vật chu đáo và thực hiện các nghi thức truyền thống trang nghiêm",
+      "Sum vầy bên gia đình, thưởng thức các món ăn mang phong vị đặc trưng lễ hội",
+      "Tham gia các trò chơi dân gian và tìm hiểu nguồn gốc phong tục cổ truyền"
+    ],
+    "whyItMatters": null,
+    "message": "Tết Trung Thu rước đèn đi chơi / Em rước đèn đi khắp phố phường / Lòng vui sướng với đèn trong tay / Em múa ca trong ánh trăng rằm.",
+    "interestingFacts": [
+      "Chiếc bánh Trung Thu cổ truyền Việt Nam mang triết lý âm dương hòa hợp: bánh dẻo tròn mềm tượng trưng cho vầng trăng khuyết rồi lại tròn (âm), còn bánh nướng vuông vức vàng ruộm tượng trưng cho đất mẹ chở che vạn vật (dương)."
+    ],
+    "description": "Đêm rằm tháng Tám trăng tròn vành vạnh sáng tỏ khắp xóm làng. Tiếng trống lân rộn rã hòa cùng tiếng cười reo vui của con trẻ rước đèn kéo quân, đèn ông sao ngũ sắc tạo nên tết thiếu nhi và tết đoàn viên đầm ấm bậc nhất trong năm.",
+    "bannerDescription": "Văn hóa Trung Thu gắn liền với truyền thống ngắm trăng tạ ơn mùa màng của nền văn minh lúa nước ngàn đời. Trong tâm thức dân gian Việt Nam, đêm rằm gắn với sự tích Chú Cuội ngồi gốc cây đa và Chị Hằng Nga cung trăng nhân hậu chở che ước mơ trẻ thơ. Tết Trung Thu là ngày hội sum vầy đoàn tụ thiêng liêng sau Tết Nguyên Đán; dịp để ông bà cha mẹ thể hiện tình yêu thương với con trẻ, cùng quây quần bên chén trà sen ngát hương, thưởng bánh ngắm trăng và cầu chúc mùa thu an hòa. Người dân và các gia đình thường rước đèn ông sao, đèn kéo quân, đèn cá chép lấp lánh khắp phố phường ngõ xóm."
   },
   {
     "id": "lunar-trung-cuu",
@@ -574,7 +754,19 @@ export const LUNAR_EVENTS: VietnamEvent[] = [
     "quote": "Đăng cao ngắm cảnh thu phương / Chúc bậc sinh thành vạn thọ vô cương.",
     "tag": "Trường thọ thanh tao",
     "imageUrl": "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-yellow-600/30 via-amber-700/20 to-zinc-950"
+    "accentGradient": "from-yellow-600/30 via-amber-700/20 to-zinc-950",
+    "activities": [
+      "Chuẩn bị lễ vật chu đáo và thực hiện các nghi thức truyền thống trang nghiêm",
+      "Sum vầy bên gia đình, thưởng thức các món ăn mang phong vị đặc trưng lễ hội",
+      "Tham gia các trò chơi dân gian và tìm hiểu nguồn gốc phong tục cổ truyền"
+    ],
+    "whyItMatters": null,
+    "message": "Đăng cao ngắm cảnh thu phương / Chúc bậc sinh thành vạn thọ vô cương.",
+    "interestingFacts": [
+      "Hoa cúc là một trong bốn loài cây quý trong bộ Tứ quân tử (Tùng - Cúc - Trúc - Mai), tượng trưng cho khí tiết thanh cao của người quân tử: cúc tàn cánh không rụng xuống đất, chỉ héo rũ trên cành."
+    ],
+    "description": "Tết Trùng Dương đăng cao ngắm cảnh thu trong trẻo — thưởng trà hoa cúc vàng thanh nhiệt và chúc phúc ông bà cha mẹ trường thọ.",
+    "bannerDescription": "Ngày mùng 9 tháng 9 Âm lịch có hai con số 9 (cực dương) trùng lặp, nên gọi là Trùng Cửu hay Trùng Dương. Văn hóa Á Đông xem số 9 là biểu tượng của sự trường cửu, viên mãn và trường thọ. Nét sinh hoạt văn hóa tao nhã lúc giao mùa thu sang đông; nhắc nhở con cháu hiếu kính chúc thọ ông bà cha mẹ và hòa mình vào thiên nhiên khoáng đạt. Người dân và các gia đình thường tục 'đăng cao' leo núi dã ngoại ngắm cảnh sắc mùa thu trong lành và hít thở linh khí đất trời."
   },
   {
     "id": "lunar-tet-ha-nguyen",
@@ -609,7 +801,19 @@ export const LUNAR_EVENTS: VietnamEvent[] = [
     "quote": "Bát cơm mùa mới dẻo thơm / Nhớ ơn hạt giống một sương hai nắng.",
     "tag": "Mùa vàng no ấm",
     "imageUrl": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/35 via-yellow-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/35 via-yellow-600/20 to-zinc-950",
+    "activities": [
+      "Chuẩn bị lễ vật chu đáo và thực hiện các nghi thức truyền thống trang nghiêm",
+      "Sum vầy bên gia đình, thưởng thức các món ăn mang phong vị đặc trưng lễ hội",
+      "Tham gia các trò chơi dân gian và tìm hiểu nguồn gốc phong tục cổ truyền"
+    ],
+    "whyItMatters": null,
+    "message": "Bát cơm mùa mới dẻo thơm / Nhớ ơn hạt giống một sương hai nắng.",
+    "interestingFacts": [
+      "Người Việt xưa tin rằng cơm nấu từ hạt gạo mới của vụ gặt tháng Mười thơm dẻo nhất trong năm, hương thơm của gạo mới bay xa khắp làng ngõ báo hiệu một mùa đông no ấm."
+    ],
+    "description": "Gặt hái mùa vàng trù phú — thổi nồi cơm gạo mới thơm dẻo dâng cúng tổ tiên, tạ ơn mẹ đất trời ban tặng mùa màng no ấm.",
+    "bannerDescription": "Rằm tháng Mười Âm lịch đánh dấu thời điểm gặt hái xong vụ lúa mùa (vụ lúa lớn nhất trong năm) của cư dân nông nghiệp lúa nước. Người Việt tổ chức lễ tạ ơn Thần Nông và gia tiên đã phù hộ cho một vụ mùa bội thu. Bày tỏ lòng biết ơn hạt gạo — 'hạt ngọc trời' nuôi sống con người; biểu hiện nét đẹp văn hóa quý trọng giọt mồ hôi công sức của nhà nông 'một sương hai nắng'. Người dân và các gia đình thường nấu nồi cơm gạo mới gặt đầu mùa thơm lừng dẻo quánh dâng lên bàn thờ tổ tiên."
   },
   {
     "id": "lunar-ooc-om-boc",
@@ -644,6 +848,18 @@ export const LUNAR_EVENTS: VietnamEvent[] = [
     "quote": "Ghe Ngo rẽ sóng Maspero / Cốm dẹp thơm nồng tiếng hát Oóc Om Bóc.",
     "tag": "Sông nước Cửu Long",
     "imageUrl": "https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950"
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "activities": [
+      "Chuẩn bị lễ vật chu đáo và thực hiện các nghi thức truyền thống trang nghiêm",
+      "Sum vầy bên gia đình, thưởng thức các món ăn mang phong vị đặc trưng lễ hội",
+      "Tham gia các trò chơi dân gian và tìm hiểu nguồn gốc phong tục cổ truyền"
+    ],
+    "whyItMatters": null,
+    "message": "Ghe Ngo rẽ sóng Maspero / Cốm dẹp thơm nồng tiếng hát Oóc Om Bóc.",
+    "interestingFacts": [
+      "Mỗi chiếc ghe Ngo là một báu vật thiêng liêng của một ngôi chùa Khmer; mũi ghe thường được chạm khắc hình tượng các con vật thần thoại như rắn thần Naga, chim thần Krud với tốc độ lướt sóng phi thường."
+    ],
+    "description": "Tiếng reo hò dậy sóng trên dòng sông Maspero — lễ cúng trăng và hội đua ghe Ngo rực rỡ sắc màu văn hóa Khmer Tây Nam Bộ.",
+    "bannerDescription": "Lễ hội Oóc Om Bóc (lễ cúng trăng) diễn ra vào ngày rằm tháng 10 hoặc 11 Âm lịch của đồng bào dân tộc Khmer Nam Bộ. Năm 2014, lễ hội đua ghe Ngo của người Khmer Sóc Trăng được công nhận là Di sản văn hóa phi vật thể quốc gia. Tạ ơn Thần Mặt Trăng (Preah Khoek) đã bảo hộ mùa màng, điều hòa thời tiết mang lại cuộc sống ấm no; đồng thời thể hiện tinh thần thượng võ, tình đoàn kết keo sơn của các dân tộc anh em vùng đồng bằng sông Cửu Long. Người dân và các gia đình thường nghi thức cúng Thần Mặt Trăng tại sân chùa Khmer khi vầng trăng lên đỉnh đầu."
   }
 ];

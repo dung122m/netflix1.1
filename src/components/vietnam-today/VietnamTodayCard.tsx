@@ -83,6 +83,9 @@ export function getEventTabBadge(event: VietnamEvent): { label: string; emoji: s
 }
 
 export function getEventQuoteOrMessage(event: VietnamEvent): string {
+  if (event.message && event.message.trim().length > 0) {
+    return event.message;
+  }
   if (event.quote && event.quote.trim().length > 0) {
     return event.quote;
   }
@@ -188,7 +191,7 @@ export function VietnamTodayCard({ info, selectedEventId, onOpenModal }: Vietnam
         }
       }}
       aria-label={`Sự kiện ${cleanTitle}, bấm để xem chi tiết`}
-      className={`group relative w-full min-h-[175px] sm:min-h-[190px] md:min-h-[200px] h-auto rounded-2xl sm:rounded-3xl overflow-hidden cursor-pointer select-none transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-amber-500/50 border ${holidayBorderClass}`}
+      className={`group relative w-full min-h-[185px] sm:min-h-[200px] md:min-h-[220px] h-auto rounded-2xl sm:rounded-3xl overflow-hidden cursor-pointer select-none transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-amber-500/50 border ${holidayBorderClass}`}
     >
       {/* 1. BACKGROUND IMAGE (ONLY FOR DEDICATED EVENTS) OR THEMATIC GRADIENT */}
       <div className="absolute inset-0 z-0 overflow-hidden">
@@ -251,13 +254,13 @@ export function VietnamTodayCard({ info, selectedEventId, onOpenModal }: Vietnam
               </span>
             </div>
 
-            {/* EVENT TITLE & SHORT DESCRIPTION */}
+            {/* EVENT TITLE & RICH BANNER DESCRIPTION */}
             <div className="space-y-1.5 my-1.5">
               <h3 className="text-lg sm:text-2xl md:text-[24px] font-black text-white tracking-tight group-hover:text-amber-300 transition-colors drop-shadow-md line-clamp-2 leading-snug">
                 {cleanTitle}
               </h3>
-              <p className="text-xs sm:text-sm md:text-[14px] text-zinc-300/95 line-clamp-2 md:line-clamp-3 leading-relaxed font-normal">
-                {event.shortDescription}
+              <p className="text-xs sm:text-sm md:text-[13.5px] lg:text-[14px] text-zinc-300/95 line-clamp-3 sm:line-clamp-4 md:line-clamp-4 leading-relaxed font-normal">
+                {event.bannerDescription || event.shortDescription}
               </p>
             </div>
 
