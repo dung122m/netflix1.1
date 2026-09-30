@@ -14,7 +14,7 @@ export async function upsertUserProfileSupabase(profile: Partial<UserProfile> & 
   if (!profile.uid) return;
   try {
     const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken();
+    const token = await auth?.currentUser?.getIdToken().catch(() => null);
     if (token) {
       const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
       await fetch(`${baseUrl}/api/user/profile`, {
@@ -105,7 +105,7 @@ export async function getAllProfilesSupabase(): Promise<{ profiles: UserProfile[
   try {
     const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
     const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken();
+    const token = await auth?.currentUser?.getIdToken().catch(() => null);
     if (!token) {
       return { profiles: [], totalCount: 0 };
     }
@@ -148,7 +148,7 @@ export async function updateUserProfileSupabase(
   if (!userId) return;
   try {
     const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken();
+    const token = await auth?.currentUser?.getIdToken().catch(() => null);
     if (token) {
       const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
       await fetch(`${baseUrl}/api/user/profile`, {
@@ -182,7 +182,7 @@ export async function setUserCommentRestrictionSupabase(
   if (!userId) return;
   try {
     const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken();
+    const token = await auth?.currentUser?.getIdToken().catch(() => null);
     if (token) {
       const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
       await fetch(`${baseUrl}/api/user/profile`, {
@@ -207,7 +207,7 @@ export async function deleteAllUserCommentsSupabase(userId: string): Promise<voi
   if (!userId) return;
   try {
     const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken();
+    const token = await auth?.currentUser?.getIdToken().catch(() => null);
     if (token) {
       const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
       await fetch(`${baseUrl}/api/comments?userId=${encodeURIComponent(userId)}`, {
@@ -390,7 +390,7 @@ export async function updateCommentSupabase(
   if (!commentId) return;
   try {
     const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken();
+    const token = await auth?.currentUser?.getIdToken().catch(() => null);
     if (token) {
       const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
       await fetch(`${baseUrl}/api/comments`, {
@@ -436,7 +436,7 @@ export async function togglePinCommentSupabase(commentId: string, isPinned: bool
   if (!commentId) return;
   try {
     const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken();
+    const token = await auth?.currentUser?.getIdToken().catch(() => null);
     if (token) {
       const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
       await fetch(`${baseUrl}/api/comments`, {
@@ -461,7 +461,7 @@ export async function setCommentReactionSupabase(
   if (!commentId || !userId) return;
   try {
     const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken();
+    const token = await auth?.currentUser?.getIdToken().catch(() => null);
     const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
     await fetch(`${baseUrl}/api/comments`, {
       method: "PATCH",
@@ -480,7 +480,7 @@ export async function deleteCommentSupabase(commentId: string): Promise<void> {
   if (!commentId) return;
   try {
     const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken();
+    const token = await auth?.currentUser?.getIdToken().catch(() => null);
     if (token) {
       const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
       await fetch(`${baseUrl}/api/comments?commentId=${encodeURIComponent(commentId)}`, {
@@ -511,7 +511,7 @@ export async function unflagCommentSupabase(commentId: string): Promise<void> {
   if (!commentId) return;
   try {
     const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken();
+    const token = await auth?.currentUser?.getIdToken().catch(() => null);
     if (token) {
       const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
       await fetch(`${baseUrl}/api/comments`, {
@@ -536,7 +536,7 @@ export async function syncWatchHistorySupabase(userId: string, items: WatchHisto
   if (!userId || !items.length) return;
   try {
     const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken();
+    const token = await auth?.currentUser?.getIdToken().catch(() => null);
     if (token) {
       const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
       await fetch(`${baseUrl}/api/user/history`, {
@@ -557,7 +557,7 @@ export async function getWatchHistorySupabase(userId: string): Promise<WatchHist
   if (!userId) return [];
   try {
     const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken();
+    const token = await auth?.currentUser?.getIdToken().catch(() => null);
     if (token) {
       const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
       const res = await fetch(`${baseUrl}/api/user/history?userId=${encodeURIComponent(userId)}`, {
@@ -581,7 +581,7 @@ export async function syncWatchlistSupabase(userId: string, items: WatchlistItem
   if (!userId || !items.length) return;
   try {
     const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken();
+    const token = await auth?.currentUser?.getIdToken().catch(() => null);
     if (token) {
       const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
       await fetch(`${baseUrl}/api/user/watchlist`, {
@@ -602,7 +602,7 @@ export async function getWatchlistSupabase(userId: string): Promise<WatchlistIte
   if (!userId) return [];
   try {
     const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken();
+    const token = await auth?.currentUser?.getIdToken().catch(() => null);
     if (token) {
       const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
       const res = await fetch(`${baseUrl}/api/user/watchlist?userId=${encodeURIComponent(userId)}`, {
@@ -630,7 +630,7 @@ export async function getUserCollectionsSupabase(userId: string): Promise<MovieC
   if (!userId) return [];
   try {
     const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken();
+    const token = await auth?.currentUser?.getIdToken().catch(() => null);
     const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
     const res = await fetch(`${baseUrl}/api/user/collections?userId=${encodeURIComponent(userId)}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -663,7 +663,7 @@ export async function saveCollectionSupabase(col: MovieCollection): Promise<void
   if (!col.id || !col.userId) return;
   try {
     const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken();
+    const token = await auth?.currentUser?.getIdToken().catch(() => null);
     if (token) {
       const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
       await fetch(`${baseUrl}/api/user/collections`, {
@@ -684,7 +684,7 @@ export async function deleteCollectionSupabase(id: string): Promise<void> {
   if (!id) return;
   try {
     const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken();
+    const token = await auth?.currentUser?.getIdToken().catch(() => null);
     if (token) {
       const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
       await fetch(`${baseUrl}/api/user/collections?id=${encodeURIComponent(id)}`, {
@@ -730,7 +730,7 @@ export async function getUserNotificationsSupabase(userId: string): Promise<User
   if (!userId) return [];
   try {
     const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken();
+    const token = await auth?.currentUser?.getIdToken().catch(() => null);
     if (token) {
       const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
       const res = await fetch(`${baseUrl}/api/notifications`, {
@@ -754,7 +754,7 @@ export async function createNotificationSupabase(notif: UserNotification & { use
   if (!notif.userId) return;
   try {
     const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken();
+    const token = await auth?.currentUser?.getIdToken().catch(() => null);
     if (token) {
       const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
       await fetch(`${baseUrl}/api/notifications`, {
@@ -786,7 +786,7 @@ export async function markNotificationAsReadSupabase(userId: string, notifId: st
   if (!userId || !notifId) return;
   try {
     const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken();
+    const token = await auth?.currentUser?.getIdToken().catch(() => null);
     if (token) {
       const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
       await fetch(`${baseUrl}/api/notifications`, {
@@ -807,7 +807,7 @@ export async function markAllNotificationsAsReadSupabase(userId: string): Promis
   if (!userId) return;
   try {
     const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken();
+    const token = await auth?.currentUser?.getIdToken().catch(() => null);
     if (token) {
       const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
       await fetch(`${baseUrl}/api/notifications`, {
@@ -828,7 +828,7 @@ export async function deleteNotificationSupabase(userId: string, notifId: string
   if (!userId || !notifId) return;
   try {
     const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken();
+    const token = await auth?.currentUser?.getIdToken().catch(() => null);
     if (token) {
       const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
       await fetch(`${baseUrl}/api/notifications?notifId=${encodeURIComponent(notifId)}`, {
@@ -845,7 +845,7 @@ export async function removeWatchHistoryItemSupabase(userId: string, slug: strin
   if (!userId || !slug) return;
   try {
     const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken();
+    const token = await auth?.currentUser?.getIdToken().catch(() => null);
     if (token) {
       const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
       await fetch(`${baseUrl}/api/user/history?slug=${encodeURIComponent(slug)}`, {
@@ -862,7 +862,7 @@ export async function clearAllWatchHistorySupabase(userId: string): Promise<void
   if (!userId) return;
   try {
     const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken();
+    const token = await auth?.currentUser?.getIdToken().catch(() => null);
     if (token) {
       const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
       await fetch(`${baseUrl}/api/user/history?all=true`, {
@@ -879,7 +879,7 @@ export async function removeWatchlistItemSupabase(userId: string, slug: string):
   if (!userId || !slug) return;
   try {
     const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken();
+    const token = await auth?.currentUser?.getIdToken().catch(() => null);
     if (token) {
       const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
       await fetch(`${baseUrl}/api/user/watchlist?slug=${encodeURIComponent(slug)}`, {
@@ -896,7 +896,7 @@ export async function clearAllWatchlistSupabase(userId: string): Promise<void> {
   if (!userId) return;
   try {
     const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken();
+    const token = await auth?.currentUser?.getIdToken().catch(() => null);
     if (token) {
       const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
       await fetch(`${baseUrl}/api/user/watchlist?all=true`, {
@@ -1082,7 +1082,7 @@ export async function saveDeviceHandoffSupabase(item: DeviceHandoffItem): Promis
   const promise = (async () => {
     try {
       const { auth } = await import("@/lib/firebase");
-      const token = await auth?.currentUser?.getIdToken();
+      const token = await auth?.currentUser?.getIdToken().catch(() => null);
       if (!token) return;
       const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
       await fetch(`${baseUrl}/api/user/handoff`, {
@@ -1123,7 +1123,7 @@ export async function getDeviceHandoffSupabase(userId: string): Promise<DeviceHa
   const promise = (async (): Promise<DeviceHandoffItem | null> => {
     try {
       const { auth } = await import("@/lib/firebase");
-      const token = await auth?.currentUser?.getIdToken();
+      const token = await auth?.currentUser?.getIdToken().catch(() => null);
       if (!token) return null;
       const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
       const res = await fetch(`${baseUrl}/api/user/handoff`, {
@@ -1164,7 +1164,7 @@ export async function getDeviceHandoffSupabase(userId: string): Promise<DeviceHa
 export async function getAllDeviceHandoffsSupabase(): Promise<DeviceHandoffItem[]> {
   try {
     const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken();
+    const token = await auth?.currentUser?.getIdToken().catch(() => null);
     if (!token) return [];
     const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
     const res = await fetch(`${baseUrl}/api/user/handoff?all=true`, {
@@ -1199,7 +1199,7 @@ export async function clearDeviceHandoffSupabase(userId: string): Promise<void> 
   if (!userId) return;
   try {
     const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken();
+    const token = await auth?.currentUser?.getIdToken().catch(() => null);
     if (!token) return;
     const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
     await fetch(`${baseUrl}/api/user/handoff`, {

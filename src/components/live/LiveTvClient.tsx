@@ -34,6 +34,8 @@ import {
   Sparkles,
   PictureInPicture2,
   Zap,
+  CalendarDays,
+  ChevronUp,
 } from "lucide-react";
 import { LiveTvData, TvChannel } from "@/services/liveTvService";
 import { useSearchParams } from "next/navigation";
@@ -143,29 +145,50 @@ export function LiveTvClient({
     );
   }, [channels]);
 
-  const [selectedTvChannel, setSelectedTvChannel] = useState<TvChannel | null>(
-    () => {
-      if (typeof window !== "undefined") {
-        try {
-          const channelParam = new URLSearchParams(window.location.search).get(
-            "channel",
+  const initialChannel = useMemo(() => {
+    const channelParam = searchParams.get("channel");
+    if (channelParam) {
+      const found = channels.find(
+        (c) =>
+          c.id === channelParam ||
+          c.name.toLowerCase() === channelParam.toLowerCase() ||
+          c.name.toLowerCase().includes(channelParam.toLowerCase()),
+      );
+      if (found) return found;
+    }
+    return defaultChannel;
+  }, [channels, searchParams, defaultChannel]);
+
+  const [selectedTvChannel, setSelectedTvChannel] = useState<TvChannel | null>(initialChannel);
+
+  // Sync with searchParams if external navigation occurs
+  useEffect(() => {
+    setSelectedTvChannel(initialChannel);
+  }, [initialChannel]);
+
+  // Restore saved channel from localStorage ONLY after mount (if no URL parameter was given)
+  useEffect(() => {
+    const channelParam = searchParams.get("channel");
+    if (!channelParam) {
+      try {
+        const savedId = localStorage.getItem("nanaflix_live_channel_id");
+        if (savedId) {
+          const found = channels.find(
+            (c) =>
+              c.id === savedId ||
+              c.name.toLowerCase() === savedId.toLowerCase() ||
+              c.name.toLowerCase().includes(savedId.toLowerCase()),
           );
-          const savedId = localStorage.getItem("nanaflix_live_channel_id");
-          const target = channelParam || savedId;
-          if (target) {
-            const found = channels.find(
-              (c) =>
-                c.id === target ||
-                c.name.toLowerCase() === target.toLowerCase() ||
-                c.name.toLowerCase().includes(target.toLowerCase()),
-            );
-            if (found) return found;
+          if (found) {
+            setSelectedTvChannel(found);
           }
-        } catch {}
-      }
-      return defaultChannel;
-    },
-  );
+        }
+      } catch {}
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const [showEpgSchedule, setShowEpgSchedule] = useState(false);
+  const epgActiveItemRef = useRef<HTMLDivElement | null>(null);
 
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -370,6 +393,22 @@ export function LiveTvClient({
   useEffect(() => {
     setVisibleCount(INITIAL_PAGE_SIZE);
   }, [selectedCategory, searchQuery, onlyFhd]);
+
+  // Tự động cuộn đến chương trình đang chiếu (hoặc sắp chiếu) khi mở lịch phát sóng
+  useEffect(() => {
+    if (showEpgSchedule) {
+      const timer = setTimeout(() => {
+        if (epgActiveItemRef.current) {
+          epgActiveItemRef.current.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+            inline: "nearest",
+          });
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [showEpgSchedule, selectedTvChannel?.id]);
 
   // Lọc danh sách kênh
   const filteredChannels = useMemo(() => {
@@ -1502,7 +1541,7 @@ export function LiveTvClient({
                 />
               </div>
 
-              <div>
+              <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
                   <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-netflix-red/20 border border-netflix-red/40 text-netflix-red text-[10px] font-black animate-pulse">
                     <Radio className="w-2.5 h-2.5" />
@@ -1518,18 +1557,71 @@ export function LiveTvClient({
                 </div>
                 <div className="flex items-center gap-2">
                   <h2
-                    className="text-base sm:text-xl font-black text-white keep-white"
+                    className="text-base sm:text-xl font-black text-white keep-white truncate"
                     style={{ color: "#ffffff" }}
                   >
                     {selectedTvChannel.name}
                   </h2>
                   {isPlaying && <PlayingEqualizer />}
                 </div>
+
+                {/* EPG CHƯƠNG TRÌNH ĐANG PHÁT & TIẾP THEO */}
+                {selectedTvChannel.currentProgram ? (
+                  <div className="mt-1.5 space-y-1">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2.5 text-xs">
+                      <div className="flex items-center gap-1.5 text-rose-300 font-medium truncate">
+                        <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping flex-shrink-0" />
+                        <span className="font-extrabold text-white flex-shrink-0">Đang phát:</span>
+                        <span className="text-gray-100 font-semibold truncate">{selectedTvChannel.currentProgram.title}</span>
+                        <span className="text-[11px] text-gray-400 font-mono flex-shrink-0">
+                          ({selectedTvChannel.currentProgram.start} - {selectedTvChannel.currentProgram.end})
+                        </span>
+                      </div>
+
+                      {selectedTvChannel.nextProgram && (
+                        <div className="hidden lg:flex items-center gap-1 text-gray-400 text-xs border-l border-white/15 pl-2.5 truncate">
+                          <span className="text-gray-500 flex-shrink-0">Kế tiếp:</span>
+                          <span className="text-gray-300 truncate">{selectedTvChannel.nextProgram.title}</span>
+                          <span className="text-[11px] text-gray-400 font-mono flex-shrink-0">({selectedTvChannel.nextProgram.start})</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* THANH TIẾN ĐỘ CHƯƠNG TRÌNH */}
+                    {selectedTvChannel.currentProgram.progressPercent !== undefined && (
+                      <div className="w-full max-w-md h-1 bg-white/10 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-netflix-red to-amber-400 transition-all duration-1000 rounded-full"
+                          style={{ width: `${selectedTvChannel.currentProgram.progressPercent}%` }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-400 mt-0.5">Tín hiệu truyền hình trực tuyến độ nét cao</p>
+                )}
               </div>
             </div>
 
-            {/* CỤM NÚT SAO CHÉP */}
-            <div className="flex items-center gap-2 self-end md:self-center">
+            {/* CỤM NÚT TƯƠNG TÁC (LỊCH PHÁT SÓNG & SAO CHÉP) */}
+            <div className="flex items-center gap-2 self-end md:self-center flex-shrink-0">
+              {selectedTvChannel.epg && selectedTvChannel.epg.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowEpgSchedule((prev) => !prev)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition border cursor-pointer ${
+                    showEpgSchedule
+                      ? "bg-netflix-red text-white border-netflix-red shadow-lg shadow-red-950/60 scale-102"
+                      : "bg-white/10 hover:bg-white/20 text-gray-200 border-white/15"
+                  }`}
+                  title="Xem lịch phát sóng chi tiết hôm nay"
+                >
+                  <CalendarDays className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="hidden sm:inline">Lịch phát sóng</span>
+                  {showEpgSchedule ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                </button>
+              )}
+
               <button
                 type="button"
                 onClick={handleCopy}
@@ -1544,6 +1636,77 @@ export function LiveTvClient({
               </button>
             </div>
           </div>
+
+          {/* EPG TIMELINE PANEL: LỊCH PHÁT SÓNG CHI TIẾT THEO GIỜ */}
+          {showEpgSchedule && selectedTvChannel.epg && selectedTvChannel.epg.length > 0 && (
+            <div className="keep-dark-cinema rounded-2xl sm:rounded-3xl border border-white/15 bg-zinc-950/95 p-3.5 sm:p-5 shadow-2xl backdrop-blur-2xl animate-in fade-in slide-in-from-top-2 duration-200 space-y-3">
+              <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
+                <div className="flex items-center gap-2">
+                  <CalendarDays className="w-4 h-4 text-netflix-red" />
+                  <h3 className="text-xs sm:text-sm font-black text-white">
+                    Lịch phát sóng — {selectedTvChannel.name}
+                  </h3>
+                </div>
+                <span className="text-[11px] text-gray-400 font-mono">
+                  {selectedTvChannel.epg.length} chương trình
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-64 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-700">
+                {(() => {
+                  const nowMs = Date.now();
+                  const targetLiveId =
+                    selectedTvChannel.epg.find((p) => p.isLiveNow)?.id ||
+                    selectedTvChannel.epg.find((p) => p.startTimestamp > nowMs)?.id ||
+                    selectedTvChannel.epg[0]?.id;
+
+                  return selectedTvChannel.epg.map((prog) => {
+                    const isTarget = prog.id === targetLiveId;
+                    return (
+                      <div
+                        key={prog.id}
+                        ref={isTarget ? epgActiveItemRef : undefined}
+                        className={`p-2.5 rounded-xl border text-left transition-all ${
+                          prog.isLiveNow
+                            ? "bg-red-950/30 border-netflix-red/60 shadow-lg shadow-red-950/40 ring-1 ring-netflix-red"
+                            : "bg-zinc-900/70 border-white/10 hover:border-white/20"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <span
+                            className={`text-[11px] font-mono font-bold ${
+                              prog.isLiveNow
+                                ? "text-netflix-red font-black"
+                                : "text-gray-400"
+                            }`}
+                          >
+                            {prog.start} - {prog.end}
+                          </span>
+                          {prog.isLiveNow && (
+                            <span className="px-1.5 py-0.2 rounded text-[9px] font-black uppercase bg-netflix-red text-white tracking-wider animate-pulse">
+                              ĐANG CHIẾU
+                            </span>
+                          )}
+                        </div>
+                        <p
+                          className={`text-xs font-bold line-clamp-1 ${
+                            prog.isLiveNow ? "text-white" : "text-gray-200"
+                          }`}
+                        >
+                          {prog.title}
+                        </p>
+                        {prog.description && (
+                          <p className="text-[10px] text-gray-400 line-clamp-1 mt-0.5">
+                            {prog.description}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+            </div>
+          )}
 
           {/* KHUNG PHÁT VIDEO PLAYER */}
           <div
@@ -2163,6 +2326,11 @@ export function LiveTvClient({
                     <h3 className="live-channel-title text-[11px] sm:text-xs md:text-sm font-bold sm:font-extrabold text-white group-hover:text-sky-400 transition line-clamp-1 mt-0.5 sm:mt-1 leading-tight w-full">
                       {ch.name}
                     </h3>
+                    {ch.currentProgram && (
+                      <p className="text-[9.5px] text-gray-400 group-hover:text-gray-300 line-clamp-1 w-full mt-0.5">
+                        {ch.currentProgram.title}
+                      </p>
+                    )}
                   </div>
                 );
               })}
@@ -2200,9 +2368,17 @@ export function LiveTvClient({
                           </h4>
                           {isSelected && isPlaying && <PlayingEqualizer />}
                         </div>
-                        <span className="text-[9.5px] sm:text-[10px] text-gray-400">
-                          {ch.category.replace("Kênh ", "")}
-                        </span>
+                        <div className="flex items-center gap-1.5 text-[9.5px] sm:text-[10px] text-gray-400 truncate">
+                          <span>{ch.category.replace("Kênh ", "")}</span>
+                          {ch.currentProgram && (
+                            <>
+                              <span>•</span>
+                              <span className="text-gray-300 font-medium truncate">
+                                {ch.currentProgram.title} ({ch.currentProgram.start})
+                              </span>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
 

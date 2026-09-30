@@ -20,6 +20,7 @@ import {
   VolumeX,
   Volume1,
   Volume2,
+  X,
 } from "lucide-react";
 import { useWatchController } from "./WatchController";
 import { getWatchProgress, saveWatchProgress } from "@/lib/watchHistory";
@@ -75,7 +76,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
 
   const title = watchContext?.movieTitle || propTitle;
   const isTrailerOnly = watchContext?.isTrailerOnly ?? propIsTrailerOnly;
-  const episodes = watchContext?.episodes || propEpisodes || [];
+  const episodes = useMemo(() => watchContext?.episodes || propEpisodes || [], [watchContext?.episodes, propEpisodes]);
   const activeEpisodeSlug = watchContext?.activeEpisodeSlug || propActiveEpisodeSlug;
   const activeEpisode = watchContext?.activeEpisode || episodes.find((e) => e.slug === activeEpisodeSlug) || episodes[0];
   const activeEpisodeName = activeEpisode?.name || propActiveEpisodeName;
@@ -88,8 +89,80 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     || propM3u8Link;
 
   const prevEpisode = watchContext?.prevEpisode ?? null;
-  const nextEpisode = watchContext?.nextEpisode ?? null;
+  const rawNextEpisode = watchContext?.nextEpisode ?? null;
   const switchEpisode = watchContext?.switchEpisode;
+
+  const effectiveNextEpisode = useMemo(() => {
+    if (rawNextEpisode) return rawNextEpisode;
+    if (!episodes || episodes.length <= 1 || !activeEpisodeSlug) return null;
+    const idx = episodes.findIndex((e) => e.slug === activeEpisodeSlug);
+    if (idx >= 0 && idx < episodes.length - 1) {
+      return episodes[idx + 1];
+    }
+    return null;
+  }, [rawNextEpisode, episodes, activeEpisodeSlug]);
+
+  // Next Episode Countdown States
+  const [showNextEpCountdown, setShowNextEpCountdown] = useState(false);
+  const [nextEpCountdown, setNextEpCountdown] = useState(10);
+  const isNextEpDismissedRef = useRef(false);
+  const nextEpCountdownTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    setShowNextEpCountdown(false);
+    setNextEpCountdown(10);
+    isNextEpDismissedRef.current = false;
+    if (nextEpCountdownTimerRef.current) {
+      clearInterval(nextEpCountdownTimerRef.current);
+      nextEpCountdownTimerRef.current = null;
+    }
+  }, [activeEpisodeSlug]);
+
+  useEffect(() => {
+    return () => {
+      if (nextEpCountdownTimerRef.current) {
+        clearInterval(nextEpCountdownTimerRef.current);
+        nextEpCountdownTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (showNextEpCountdown && effectiveNextEpisode?.slug) {
+      setNextEpCountdown(10);
+      if (nextEpCountdownTimerRef.current) {
+        clearInterval(nextEpCountdownTimerRef.current);
+      }
+      nextEpCountdownTimerRef.current = setInterval(() => {
+        setNextEpCountdown((prev) => {
+          if (prev <= 1) {
+            if (nextEpCountdownTimerRef.current) {
+              clearInterval(nextEpCountdownTimerRef.current);
+              nextEpCountdownTimerRef.current = null;
+            }
+            setShowNextEpCountdown(false);
+            if (switchEpisode && effectiveNextEpisode?.slug) {
+              switchEpisode(effectiveNextEpisode.slug);
+            }
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => {
+        if (nextEpCountdownTimerRef.current) {
+          clearInterval(nextEpCountdownTimerRef.current);
+          nextEpCountdownTimerRef.current = null;
+        }
+      };
+    } else {
+      if (nextEpCountdownTimerRef.current) {
+        clearInterval(nextEpCountdownTimerRef.current);
+        nextEpCountdownTimerRef.current = null;
+      }
+    }
+  }, [showNextEpCountdown, effectiveNextEpisode?.slug, switchEpisode]);
 
   // Player UI states
   const [playerSettings, setPlayerSettings] = useState<PlayerSettings>(() => getPlayerSettings(user?.uid));
@@ -142,6 +215,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     delta: number;
   } | null>(null);
   const doubleTapFeedbackTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const desktopFeedbackTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const current = getPlayerSettings(user?.uid);
@@ -177,6 +251,10 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         clearTimeout(controlsTimerRef.current);
         controlsTimerRef.current = null;
       }
+      if (desktopFeedbackTimerRef.current) {
+        clearTimeout(desktopFeedbackTimerRef.current);
+        desktopFeedbackTimerRef.current = null;
+      }
     };
   }, []);
 
@@ -200,6 +278,32 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const [isMobile, setIsMobile] = useState(false);
   const [isScrolledPast, setIsScrolledPast] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
+
+  // Desktop Playback Visual Feedback (Pause / Play / Rewind / FastForward)
+  const [desktopFeedback, setDesktopFeedback] = useState<{
+    type: "play" | "pause" | "seek-left" | "seek-right";
+    text?: string;
+    id: number;
+  } | null>(null);
+
+  const triggerDesktopFeedback = useCallback(
+    (type: "play" | "pause" | "seek-left" | "seek-right", text?: string) => {
+      if (isMobile) return;
+      if (desktopFeedbackTimerRef.current) {
+        clearTimeout(desktopFeedbackTimerRef.current);
+      }
+      setDesktopFeedback({
+        type,
+        text,
+        id: Date.now(),
+      });
+      desktopFeedbackTimerRef.current = setTimeout(() => {
+        setDesktopFeedback(null);
+        desktopFeedbackTimerRef.current = null;
+      }, 550);
+    },
+    [isMobile]
+  );
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const showHud = useCallback((_icon?: React.ReactNode, _text?: string) => {
@@ -527,12 +631,12 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         }
         v.play().catch(() => {});
         setIsPlaying(true);
-        showHud(<Play className="w-5 h-5 text-emerald-400 fill-current" />, "Đang phát");
+        triggerDesktopFeedback("play");
         resetControlsTimeout();
       } else {
         v.pause();
         setIsPlaying(false);
-        showHud(<Pause className="w-5 h-5 text-amber-400 fill-current" />, "Tạm dừng");
+        triggerDesktopFeedback("pause");
         setShowControls(true);
         if (controlsTimerRef.current) {
           clearTimeout(controlsTimerRef.current);
@@ -545,12 +649,12 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         if (next) {
           sendPlayerCommand("playVideo");
           sendPlayerCommand("play");
-          showHud(<Play className="w-5 h-5 text-emerald-400 fill-current" />, "Đang phát");
+          triggerDesktopFeedback("play");
           resetControlsTimeout();
         } else {
           sendPlayerCommand("pauseVideo");
           sendPlayerCommand("pause");
-          showHud(<Pause className="w-5 h-5 text-amber-400 fill-current" />, "Tạm dừng");
+          triggerDesktopFeedback("pause");
           setShowControls(true);
           if (controlsTimerRef.current) {
             clearTimeout(controlsTimerRef.current);
@@ -560,7 +664,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         return next;
       });
     }
-  }, [isNativeVideo, isMuted, sendPlayerCommand, showHud, resetControlsTimeout]);
+  }, [isNativeVideo, isMuted, sendPlayerCommand, resetControlsTimeout, triggerDesktopFeedback]);
 
   const handleQualityChange = useCallback((levelIndex: number) => {
     if (!hlsRef.current) return;
@@ -900,6 +1004,29 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     };
 
     const handleTimeUpdateThrottled = () => {
+      // Check countdown condition on timeupdate
+      if (effectiveNextEpisode?.slug && !isNextEpDismissedRef.current && playerSettings.autoNextEpisode !== false) {
+        const currentEffectiveDuration = getEffectiveDuration();
+        const currentTime = video.currentTime;
+        if (currentEffectiveDuration > 30) {
+          const remaining = currentEffectiveDuration - currentTime;
+          if (remaining <= 12 && remaining > 0.5 && !video.paused && !video.ended) {
+            setShowNextEpCountdown((prev) => (!prev ? true : prev));
+          } else if (remaining > 18) {
+            setShowNextEpCountdown((prev) => {
+              if (prev) {
+                setNextEpCountdown(10);
+                return false;
+              }
+              return prev;
+            });
+          }
+          if (remaining > 25) {
+            isNextEpDismissedRef.current = false;
+          }
+        }
+      }
+
       const now = Date.now();
       if (now - lastProgressSaveRef.current > 3000) {
         lastProgressSaveRef.current = now;
@@ -948,6 +1075,11 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         clearTimeout(controlsTimerRef.current);
         controlsTimerRef.current = null;
       }
+      if (nextEpCountdownTimerRef.current) {
+        clearInterval(nextEpCountdownTimerRef.current);
+        nextEpCountdownTimerRef.current = null;
+      }
+      setShowNextEpCountdown(false);
       const currentEffectiveDuration = getEffectiveDuration();
       if (movieSlug && activeEpisodeSlug) {
         saveWatchProgress(
@@ -973,8 +1105,8 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           durationSeconds: currentEffectiveDuration,
         });
       }
-      if (playerSettings.autoNextEpisode !== false && nextEpisode?.slug && switchEpisode) {
-        switchEpisode(nextEpisode.slug);
+      if (playerSettings.autoNextEpisode !== false && effectiveNextEpisode?.slug && switchEpisode && !isNextEpDismissedRef.current) {
+        switchEpisode(effectiveNextEpisode.slug);
       }
     };
 
@@ -1008,7 +1140,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       video.removeEventListener("loadeddata", handleLoadedData);
     };
   }, [
-    nextEpisode,
+    effectiveNextEpisode,
     switchEpisode,
     watchContext?.movieSlug,
     propMovieSlug,
@@ -1141,9 +1273,9 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         switchEpisode(prevEpisode.slug);
         return;
       }
-      if ((e.key === "n" || e.key === "N") && nextEpisode?.slug && switchEpisode) {
-        showHud(<SkipForward className="w-5 h-5 text-netflix-red" />, `Chuyển sang ${nextEpisode.name}`);
-        switchEpisode(nextEpisode.slug);
+      if ((e.key === "n" || e.key === "N") && effectiveNextEpisode?.slug && switchEpisode) {
+        showHud(<SkipForward className="w-5 h-5 text-netflix-red" />, `Chuyển sang ${effectiveNextEpisode.name}`);
+        switchEpisode(effectiveNextEpisode.slug);
         return;
       }
       if (e.key === "?" || (e.key === "/" && !e.shiftKey)) {
@@ -1181,9 +1313,9 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           pendingKeyboardSeekRef.current.totalDelta = newTotalDelta;
 
           if (newTotalDelta > 0) {
-            showHud(<SeekForward10Icon className="w-5 h-5 text-netflix-red" />, `Tua tới +${newTotalDelta}s`);
+            triggerDesktopFeedback("seek-right", `+${newTotalDelta}s`);
           } else {
-            showHud(<SeekBack10Icon className="w-5 h-5 text-netflix-red" />, `Tua lùi ${newTotalDelta}s`);
+            triggerDesktopFeedback("seek-left", `${newTotalDelta}s`);
           }
 
           if (pendingKeyboardSeekRef.current.timer) {
@@ -1252,7 +1384,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   }, [
     isNativeVideo,
     prevEpisode,
-    nextEpisode,
+    effectiveNextEpisode,
     switchEpisode,
     togglePlayPause,
     toggleFullscreen,
@@ -1263,6 +1395,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     isLightsOff,
     isFullscreen,
     resetControlsTimeout,
+    triggerDesktopFeedback,
   ]);
 
 
@@ -1516,6 +1649,48 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 </div>
               )}
 
+              {/* DESKTOP PLAYBACK FEEDBACK ICONS (PAUSE / PLAY / REWIND / FAST-FORWARD) */}
+              {desktopFeedback && (desktopFeedback.type === "play" || desktopFeedback.type === "pause") && (
+                <div
+                  key={desktopFeedback.id}
+                  className="absolute inset-0 flex items-center justify-center pointer-events-none z-20"
+                >
+                  <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-black/60 backdrop-blur-sm border border-white/20 text-white flex items-center justify-center shadow-2xl animate-in fade-in zoom-in-75 duration-200">
+                    {desktopFeedback.type === "play" ? (
+                      <Play className="w-7 h-7 sm:w-8 sm:h-8 fill-white text-white ml-1" />
+                    ) : (
+                      <Pause className="w-7 h-7 sm:w-8 sm:h-8 fill-white text-white" />
+                    )}
+                  </div>
+                </div>
+              )}
+              {desktopFeedback && desktopFeedback.type === "seek-left" && (
+                <div
+                  key={desktopFeedback.id}
+                  className="absolute inset-y-0 left-6 sm:left-12 flex items-center pointer-events-none z-20"
+                >
+                  <div className="px-3.5 py-2.5 rounded-2xl bg-black/65 backdrop-blur-sm border border-white/20 text-white flex items-center gap-2 shadow-2xl animate-in fade-in zoom-in-90 duration-200">
+                    <SeekBack10Icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                    <span className="text-xs sm:text-sm font-bold tracking-wide text-white">
+                      {desktopFeedback.text || "-10s"}
+                    </span>
+                  </div>
+                </div>
+              )}
+              {desktopFeedback && desktopFeedback.type === "seek-right" && (
+                <div
+                  key={desktopFeedback.id}
+                  className="absolute inset-y-0 right-6 sm:right-12 flex items-center pointer-events-none z-20"
+                >
+                  <div className="px-3.5 py-2.5 rounded-2xl bg-black/65 backdrop-blur-sm border border-white/20 text-white flex items-center gap-2 shadow-2xl animate-in fade-in zoom-in-90 duration-200">
+                    <span className="text-xs sm:text-sm font-bold tracking-wide text-white">
+                      {desktopFeedback.text || "+10s"}
+                    </span>
+                    <SeekForward10Icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                  </div>
+                </div>
+              )}
+
               {/* ISOLATED NATIVE CONTROLS OVERLAY (NETFLIX & YOUTUBE STYLE) */}
               <PlayerNativeControls
                 showControls={showControls}
@@ -1534,11 +1709,15 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 videoRef={videoRef}
                 title={title}
                 activeEpisodeName={activeEpisodeName ? formatEpisodeName(activeEpisodeName) : undefined}
-                nextEpisode={nextEpisode}
+                nextEpisode={effectiveNextEpisode}
                 onTogglePlayPause={togglePlayPause}
                 onSeekFeedback={(txt) => {
                   resetControlsTimeout();
-                  showHud(<SeekForward10Icon className="w-5 h-5 text-netflix-red" />, `Đến ${txt}`);
+                  if (txt.includes("-")) {
+                    triggerDesktopFeedback("seek-left", txt);
+                  } else if (txt.includes("+")) {
+                    triggerDesktopFeedback("seek-right", txt);
+                  }
                 }}
                 onToggleMute={() => {
                   if (videoRef.current) {
@@ -1576,6 +1755,70 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 }}
                 onUserInteraction={resetControlsTimeout}
               />
+
+              {/* NEXT EPISODE COUNTDOWN OVERLAY */}
+              {showNextEpCountdown && effectiveNextEpisode?.slug && (
+                <div
+                  className={`absolute right-3 sm:right-6 ${
+                    showControls ? "bottom-20 sm:bottom-24" : "bottom-5 sm:bottom-6"
+                  } z-40 max-w-[calc(100vw-24px)] sm:max-w-sm w-full bg-zinc-950/90 hover:bg-zinc-950/95 border border-white/20 backdrop-blur-xl rounded-2xl p-3 sm:p-3.5 shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-3 duration-300 text-white transition-all`}
+                  role="dialog"
+                  aria-label="Tập tiếp theo"
+                >
+                  {posterUrl && (
+                    <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden shrink-0 bg-zinc-900 border border-white/10">
+                      <Image
+                        src={posterUrl}
+                        alt={effectiveNextEpisode.name || "Tập tiếp theo"}
+                        fill
+                        unoptimized
+                        sizes="64px"
+                        className="object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                        <span className="text-xs font-black text-white px-1.5 py-0.5 rounded-md bg-black/70 backdrop-blur-xs shadow">
+                          {nextEpCountdown}s
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0 pr-1">
+                    <div className="flex items-center gap-1.5 text-xs text-zinc-400 font-medium">
+                      <span>Tập tiếp theo sau</span>
+                      <span className="text-netflix-red font-bold">{nextEpCountdown}s</span>
+                    </div>
+                    <div className="text-sm sm:text-base font-bold text-white truncate mt-0.5">
+                      {formatEpisodeName(effectiveNextEpisode.name || "Tập tiếp theo")}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (switchEpisode && effectiveNextEpisode.slug) {
+                          switchEpisode(effectiveNextEpisode.slug);
+                        }
+                      }}
+                      className="px-3 py-1.5 rounded-xl bg-netflix-red hover:bg-red-700 active:scale-95 text-white text-xs sm:text-sm font-bold shadow-lg shadow-red-950/50 transition cursor-pointer flex items-center gap-1.5"
+                    >
+                      <Play className="w-3.5 h-3.5 fill-white" />
+                      <span>Xem ngay</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        isNextEpDismissedRef.current = true;
+                        setShowNextEpCountdown(false);
+                      }}
+                      title="Hủy tự chuyển tập"
+                      aria-label="Hủy tự chuyển tập"
+                      className="p-1.5 rounded-full hover:bg-white/20 text-gray-400 hover:text-white transition cursor-pointer"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ) : activeSrc ? (
             <>
@@ -1657,7 +1900,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
             onToggleFullscreen={toggleFullscreen}
             onOpenShortcuts={() => setShowShortcutModal(true)}
             prevEpisode={prevEpisode}
-            nextEpisode={nextEpisode}
+            nextEpisode={effectiveNextEpisode}
             onSwitchEpisode={switchEpisode}
             isSticky={false}
           />

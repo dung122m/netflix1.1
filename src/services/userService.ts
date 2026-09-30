@@ -69,7 +69,7 @@ export async function updatePlayerSettings(
 
     try {
       const { auth } = await import("@/lib/firebase");
-      const token = await auth?.currentUser?.getIdToken();
+      const token = await auth?.currentUser?.getIdToken().catch(() => null);
       if (token) {
         fetch("/api/user/profile", {
           method: "POST",
@@ -92,7 +92,6 @@ export async function updatePlayerSettings(
   return updated;
 }
 import {
-  upsertUserProfileSupabase,
   getUserProfileSupabase,
   getAllProfilesSupabase,
   updateUserProfileSupabase,
@@ -224,7 +223,7 @@ export async function recordUserProfile(user: BaseAuthUser): Promise<void> {
     // Lưu qua Server API có xác thực Firebase Token
     try {
       const { auth } = await import("@/lib/firebase");
-      const token = await auth?.currentUser?.getIdToken();
+      const token = await auth?.currentUser?.getIdToken().catch(() => null);
       if (token) {
         await fetch("/api/user/profile", {
           method: "POST",
@@ -234,13 +233,9 @@ export async function recordUserProfile(user: BaseAuthUser): Promise<void> {
           },
           body: JSON.stringify(profileData),
         });
-      } else if (isSupabaseConfigured()) {
-        await upsertUserProfileSupabase(profileData);
       }
-    } catch {
-      if (isSupabaseConfigured()) {
-        await upsertUserProfileSupabase(profileData);
-      }
+    } catch (err) {
+      console.warn("Lỗi lưu thông tin người dùng qua API:", err);
     }
   } catch (err) {
     console.warn("Lỗi lưu thông tin người dùng:", err);
@@ -326,7 +321,7 @@ export async function getUserCloudWatchHistory(userId: string): Promise<WatchHis
 
   try {
     const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken();
+    const token = await auth?.currentUser?.getIdToken().catch(() => null);
     if (token) {
       const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
       const res = await fetch(`${baseUrl}/api/user/history?userId=${encodeURIComponent(userId)}`, {
@@ -363,7 +358,7 @@ export async function getUserCloudWatchlist(userId: string): Promise<WatchlistIt
 
   try {
     const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken();
+    const token = await auth?.currentUser?.getIdToken().catch(() => null);
     if (token) {
       const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
       const res = await fetch(`${baseUrl}/api/user/watchlist?userId=${encodeURIComponent(userId)}`, {
@@ -553,7 +548,7 @@ export async function updateUserProfile(
   // 2. Lưu qua Server API có xác thực
   try {
     const { auth } = await import("@/lib/firebase");
-    const token = await auth?.currentUser?.getIdToken();
+    const token = await auth?.currentUser?.getIdToken().catch(() => null);
     if (token) {
       await fetch("/api/user/profile", {
         method: "POST",
@@ -629,7 +624,7 @@ export async function incrementUserWatchTime(userId: string, minutes: number = 1
       watchTimeSaveTimers.delete(userId);
       try {
         const { auth } = await import("@/lib/firebase");
-        const token = await auth?.currentUser?.getIdToken();
+        const token = await auth?.currentUser?.getIdToken().catch(() => null);
         if (token) {
           await fetch("/api/user/profile", {
             method: "POST",
