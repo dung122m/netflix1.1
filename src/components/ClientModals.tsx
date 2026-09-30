@@ -134,9 +134,16 @@ export const ClientModals = React.memo(function ClientModals() {
 
     // 6. Vietnam Today Modal (Hôm nay tại Việt Nam & Ngày này trong lịch sử)
     const handleVietnamTodayTrigger = (e: Event) => {
-      const customEvent = e as CustomEvent<{ tab?: "holiday" | "history" }>;
+      const customEvent = e as CustomEvent<{ tab?: "holiday" | "history"; eventId?: string }>;
       setVietnamTodayTab(customEvent?.detail?.tab || "holiday");
-      setTodayInfo(getVietnamTodayEvent());
+      const currentInfo = getVietnamTodayEvent();
+      if (customEvent?.detail?.eventId && currentInfo.allEventsToday) {
+        const found = currentInfo.allEventsToday.find((x) => x.id === customEvent.detail.eventId);
+        if (found) {
+          currentInfo.event = found;
+        }
+      }
+      setTodayInfo(currentInfo);
       setMountVietnamToday(true);
       setVietnamTodayOpen(true);
     };

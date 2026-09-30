@@ -2,33 +2,62 @@ import { VietnamEvent } from "./types";
 
 export const OCTOBER_EVENTS: VietnamEvent[] = [
   {
-    "id": "ev-10-01-nguoi-cao-tuoi-ca-phe",
-    "title": "Ngày Quốc Tế Người Cao Tuổi & Ngày Cà Phê Quốc Tế (01/10)",
-    "shortDescription": "Kính trọng các bậc cao niên và thưởng thức hương vị cà phê đậm đà bản sắc Việt.",
+    "id": "ev-10-01-nguoi-cao-tuoi",
+    "title": "Ngày Quốc Tế Người Cao Tuổi (01/10)",
+    "shortDescription": "Kính trọng các bậc cao niên và tri ân những cống hiến quý báu của thế hệ đi trước cho gia đình và xã hội.",
     "category": "social-family",
     "categoryLabel": "Ngày vì cộng đồng",
     "nature": "social-observance",
     "natureLabel": "Vì cộng đồng",
-    "priority": 80,
+    "priority": 85,
     "solarDate": {
       "month": 10,
       "day": 1
     },
     "displayDate": "01 Tháng 10",
-    "origin": "Đại hội đồng Liên Hợp Quốc thông qua năm 1990; đồng thời là Ngày Cà phê Quốc tế tôn vinh hạt cà phê.",
-    "significance": "Tri ân công ơn dưỡng dục của ông bà, cha mẹ và tự hào hạt cà phê Robusta Việt Nam xuất khẩu số 1 thế giới.",
-    "didYouKnow": "Một ly cà phê phin đậm đà thơm nức buổi sáng là nét văn hóa đời thường thân thuộc của người Việt.",
+    "origin": "Đại hội đồng Liên Hợp Quốc thông qua năm 1990 nhằm nâng cao nhận thức về chăm sóc và phát huy vai trò người cao tuổi.",
+    "significance": "Tri ân công ơn dưỡng dục của ông bà, cha mẹ và gìn giữ nét đẹp truyền thống 'Kính lão đắc thọ' của dân tộc Việt Nam.",
+    "didYouKnow": "Việt Nam luôn xem người cao tuổi là vốn quý, là chỗ dựa tinh thần vững chắc cho gia đình và cộng đồng.",
     "milestones": [
-      "Chúc thọ ông bà cha mẹ",
-      "Thưởng thức ly cà phê phin đậm đà"
+      "Chúc thọ và tri ân ông bà, cha mẹ",
+      "Thăm hỏi, chăm sóc sức khỏe người cao tuổi"
     ],
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "01 Tháng 10",
-    "meaning": "Tri ân công ơn dưỡng dục của ông bà, cha mẹ và tự hào hạt cà phê Robusta Việt Nam xuất khẩu số 1 thế giới.",
-    "subtitle": "Kính trọng các bậc cao niên và thưởng thức hương vị cà phê đậm đà bản sắc Việt."
+    "meaning": "Tri ân công ơn dưỡng dục của ông bà, cha mẹ và gìn giữ truyền thống đạo lý tốt đẹp.",
+    "subtitle": "Kính trọng các bậc cao niên"
+  },
+  {
+    "id": "ev-10-01-ca-phe-quoc-te",
+    "title": "Ngày Cà Phê Quốc Tế (01/10)",
+    "shortDescription": "Tôn vinh hạt cà phê đậm đà và hàng triệu người nông dân làm nên văn hóa cà phê nồng nàn bản sắc Việt.",
+    "category": "social-family",
+    "categoryLabel": "Ngày vì cộng đồng",
+    "nature": "international-day",
+    "natureLabel": "Quốc tế",
+    "priority": 80,
+    "solarDate": {
+      "month": 10,
+      "day": 1
+    },
+    "displayDate": "01 Tháng 10",
+    "origin": "Được Tổ chức Cà phê Quốc tế (ICO) chính thức phát động lần đầu tiên tại Milan vào năm 2015.",
+    "significance": "Tôn vinh chuỗi giá trị cà phê từ người trồng, thu hái, chế biến đến văn hóa thưởng thức cà phê đặc sắc.",
+    "didYouKnow": "Việt Nam tự hào là quốc gia xuất khẩu cà phê Robusta số 1 thế giới, với văn hóa cà phê phin trứ danh.",
+    "milestones": [
+      "Thưởng thức ly cà phê phin đậm đà thơm nức",
+      "Tự hào thương hiệu cà phê Việt Nam trên bản đồ thế giới"
+    ],
+    "quote": null,
+    "tag": "Đời sống & Văn hóa",
+    "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
+    "accentGradient": "from-amber-600/30 via-amber-800/20 to-zinc-950",
+    "dateLabel": "01 Tháng 10",
+    "meaning": "Tôn vinh hạt cà phê đậm đà bản sắc Việt và người nông dân cần cù.",
+    "subtitle": "Thưởng thức hương vị cà phê đậm đà bản sắc Việt"
   },
   {
     "id": "ev-10-02-khuyen-hoc-vn",

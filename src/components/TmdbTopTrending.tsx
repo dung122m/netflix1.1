@@ -301,9 +301,12 @@ function TmdbTopTrendingInner() {
 
   const handleScroll = (direction: "left" | "right") => {
     if (scrollContainerRef.current) {
-      const scrollAmount = scrollContainerRef.current.clientWidth * 0.75;
+      const cardEl = scrollContainerRef.current.querySelector<HTMLElement>(".snap-start");
+      const step = cardEl
+        ? (cardEl.offsetWidth + 16) * Math.max(1, Math.floor(scrollContainerRef.current.clientWidth / (cardEl.offsetWidth + 16)))
+        : scrollContainerRef.current.clientWidth * 0.75;
       scrollContainerRef.current.scrollBy({
-        left: direction === "left" ? -scrollAmount : scrollAmount,
+        left: direction === "left" ? -step : step,
         behavior: "smooth",
       });
       checkScroll();
@@ -388,170 +391,186 @@ function TmdbTopTrendingInner() {
               <span>Mọi Thời Đại</span>
             </button>
           </div>
-
-          <div className="hidden sm:flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => handleScroll("left")}
-              disabled={!canScrollLeft}
-              aria-label="Cuộn trái"
-              className={`w-8 h-8 rounded-full flex items-center justify-center border transition ${
-                canScrollLeft
-                  ? "bg-zinc-800/90 border-white/15 text-white hover:bg-zinc-700 hover:scale-105 active:scale-95 cursor-pointer"
-                  : "bg-zinc-900/50 border-white/5 text-zinc-600 cursor-not-allowed"
-              }`}
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => handleScroll("right")}
-              disabled={!canScrollRight}
-              aria-label="Cuộn phải"
-              className={`w-8 h-8 rounded-full flex items-center justify-center border transition ${
-                canScrollRight
-                  ? "bg-zinc-800/90 border-white/15 text-white hover:bg-zinc-700 hover:scale-105 active:scale-95 cursor-pointer"
-                  : "bg-zinc-900/50 border-white/5 text-zinc-600 cursor-not-allowed"
-              }`}
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
         </div>
       </div>
 
       {/* HORIZONTAL SCROLL CAROUSEL */}
-      <div
-        ref={scrollContainerRef}
-        onScroll={checkScroll}
-        className="flex items-center gap-3 sm:gap-6 overflow-x-auto overflow-y-hidden pb-4 pt-2 scrollbar-none snap-x snap-mandatory"
-        style={{
-          scrollbarWidth: "none",
-          msOverflowStyle: "none",
-          opacity: isFading ? 0.4 : 1,
-          transition: "opacity 0.15s cubic-bezier(0.4, 0, 0.2, 1)",
-        }}
-      >
-        {loading && items.length === 0 ? (
-          Array.from({ length: 6 }).map((_, idx) => (
-            <div
-              key={idx}
-              className="flex-none w-[130px] sm:w-[160px] md:w-[185px] aspect-[2/3] rounded-2xl bg-zinc-900/80 animate-pulse border border-white/5"
-            />
-          ))
-        ) : items.length === 0 ? (
-          <div className="w-full py-12 flex flex-col items-center justify-center text-center px-4">
-            <Sparkles className="w-8 h-8 text-zinc-600 mb-2" />
-            <p className="text-sm font-medium text-zinc-400">
-              Chưa có phim phù hợp trong danh mục này.
-            </p>
-          </div>
-        ) : (
-          items.map((movie, index) => {
-            const rank = index + 1;
-            const movieSlug = movie.slug;
-            const movieTitle = movie.name || movie.origin_name || "Phim";
-            const categoryText = Array.isArray(movie.category)
-              ? (typeof movie.category[0] === "object" ? movie.category[0]?.name : movie.category[0]) || ""
-              : typeof movie.category === "string"
-              ? movie.category
-              : "";
+      <div className="relative group/row">
+        {/* NÚT CUỘN TRÁI (HOVER NỔI MÉP TRÁI) */}
+        {canScrollLeft && (
+          <button
+            type="button"
+            onClick={() => handleScroll("left")}
+            aria-label="Cuộn sang trái"
+            className="hidden sm:flex absolute left-0 top-0 bottom-4 z-30 w-12 md:w-14 bg-gradient-to-r from-black/90 via-black/60 to-transparent hover:from-black text-white items-center justify-start pl-1 opacity-0 group-hover/row:opacity-100 transition-all duration-300 cursor-pointer rounded-r-xl group/btn"
+          >
+            <div className="w-9 h-9 rounded-full bg-black/70 border border-white/20 flex items-center justify-center backdrop-blur-md group-hover/btn:scale-110 group-hover/btn:bg-white/20 transition-all shadow-xl">
+              <ChevronLeft className="w-5 h-5 text-white" />
+            </div>
+          </button>
+        )}
 
-            return (
+        {/* NÚT CUỘN PHẢI (HOVER NỔI MÉP PHẢI) */}
+        {canScrollRight && (
+          <button
+            type="button"
+            onClick={() => handleScroll("right")}
+            aria-label="Cuộn sang phải"
+            className="hidden sm:flex absolute right-0 top-0 bottom-4 z-30 w-12 md:w-14 bg-gradient-to-l from-black/90 via-black/60 to-transparent hover:from-black text-white items-center justify-end pr-1 opacity-0 group-hover/row:opacity-100 transition-all duration-300 cursor-pointer rounded-l-xl group/btn"
+          >
+            <div className="w-9 h-9 rounded-full bg-black/70 border border-white/20 flex items-center justify-center backdrop-blur-md group-hover/btn:scale-110 group-hover/btn:bg-white/20 transition-all shadow-xl">
+              <ChevronRight className="w-5 h-5 text-white" />
+            </div>
+          </button>
+        )}
+
+        <div
+          ref={scrollContainerRef}
+          onScroll={checkScroll}
+          className="flex items-center gap-3 sm:gap-6 overflow-x-auto overflow-y-hidden pb-4 pt-2 scrollbar-none snap-x snap-mandatory"
+          style={{
+            scrollbarWidth: "none",
+            msOverflowStyle: "none",
+            opacity: isFading ? 0.4 : 1,
+            transition: "opacity 0.15s cubic-bezier(0.4, 0, 0.2, 1)",
+          }}
+        >
+          {loading && items.length === 0 ? (
+            Array.from({ length: 6 }).map((_, idx) => (
               <div
-                key={movieSlug || `trending-tmdb-${activeTab}-${index}`}
-                className="flex-none relative snap-start group select-none"
-              >
-                <Link
-                  href={`/movies/${movieSlug}`}
-                  className="relative block cursor-pointer group-hover:scale-[1.03] transition-transform duration-300 ease-out"
+                key={idx}
+                className="flex-none w-[200px] sm:w-[240px] md:w-[260px] h-[280px] sm:h-[320px] rounded-xl bg-zinc-900/80 animate-pulse border border-white/5"
+              />
+            ))
+          ) : items.length === 0 ? (
+            <div className="w-full py-12 flex flex-col items-center justify-center text-center px-4">
+              <Sparkles className="w-8 h-8 text-zinc-600 mb-2" />
+              <p className="text-sm font-medium text-zinc-400">
+                Chưa có phim phù hợp trong danh mục này.
+              </p>
+            </div>
+          ) : (
+            items.map((movie, index) => {
+              const rank = index + 1;
+              const movieSlug = movie.slug;
+              const movieTitle = movie.name || movie.origin_name || "Phim";
+              const categoryText = Array.isArray(movie.category)
+                ? (typeof movie.category[0] === "object" ? movie.category[0]?.name : movie.category[0]) || ""
+                : typeof movie.category === "string"
+                ? movie.category
+                : "";
+
+              return (
+                <div
+                  key={movieSlug || `trending-tmdb-${activeTab}-${index}`}
+                  className="flex-none relative snap-start group select-none"
                 >
-                  {/* MOVIE POSTER CARD (Tỷ lệ dọc 2:3 chuẩn Netflix với Rank Badge) */}
-                  <div className="relative z-10 w-[130px] sm:w-[160px] md:w-[185px] aspect-[2/3] rounded-2xl overflow-hidden bg-zinc-900 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950 border border-white/10 shadow-[0_12px_28px_rgba(0,0,0,0.8)] group-hover:border-netflix-red/60 group-hover:shadow-[0_16px_36px_rgba(229,9,20,0.35)] transition-all duration-300">
-                    {(() => {
-                      const rawPoster = pickBestMoviePoster(
-                        {
-                          poster_url: movie.poster_url,
-                          thumb_url: movie.thumb_url,
-                          name: movieTitle,
-                          slug: movieSlug,
-                        },
-                        "/default-poster.jpg"
-                      );
-                      const posterSrc = toOptimizedPhimimgUrl(rawPoster, 320);
-
-                      return (
-                        <Image
-                          src={posterSrc}
-                          alt={movieTitle}
-                          fill
-                          unoptimized
-                          priority={index < 3}
-                          sizes="(max-width: 640px) 160px, (max-width: 768px) 200px, 240px"
-                          className="object-cover group-hover:scale-105 transition-transform duration-500"
-                          loading={index < 3 ? "eager" : "lazy"}
-                          quality={85}
-                          onError={(e) => {
-                            const target = e.currentTarget as HTMLImageElement;
-                            if (target) {
-                              if (
-                                movie.thumb_url &&
-                                typeof movie.thumb_url === "string" &&
-                                movie.thumb_url.includes("-thumb.webp") &&
-                                target.src !== movie.thumb_url
-                              ) {
-                                target.src = movie.thumb_url;
-                              } else if (!target.src.includes("/default-poster.jpg")) {
-                                target.srcset = "";
-                                target.src = "/default-poster.jpg";
-                              }
-                            }
-                          }}
-                        />
-                      );
-                    })()}
-
-                    {/* TOP RANK BADGE & QUALITY */}
-                    <div className="absolute top-2 left-2 right-2 flex items-center justify-between pointer-events-none z-10">
+                  <Link
+                    href={`/movies/${movieSlug}`}
+                    className="flex items-end relative block cursor-pointer group-hover:scale-[1.02] transition-transform duration-300 ease-out"
+                  >
+                    {/* NETFLIX-STYLE GIANT 3D NUMBER BEHIND POSTER */}
+                    <div className="relative -mr-5 sm:-mr-8 z-0 pointer-events-none select-none">
                       <span
-                        className={`px-1.5 sm:px-2 py-0.5 rounded-md text-[9px] sm:text-[10px] font-black uppercase tracking-wider shadow-md border ${
-                          rank === 1
-                            ? "bg-gradient-to-r from-amber-500 to-yellow-400 text-black border-amber-300"
+                        className="text-[90px] sm:text-[130px] md:text-[150px] font-black leading-none tracking-tighter"
+                        style={{
+                          WebkitTextStroke: rank <= 3 ? "2px rgba(245, 158, 11, 0.85)" : "2px rgba(255, 255, 255, 0.22)",
+                          color: rank === 1
+                            ? "transparent"
                             : rank === 2
-                            ? "bg-gradient-to-r from-slate-200 to-slate-400 text-black border-slate-200"
+                            ? "transparent"
                             : rank === 3
-                            ? "bg-gradient-to-r from-amber-700 to-amber-500 text-white border-amber-400/40"
-                            : "bg-black/75 backdrop-blur-md text-white/90 border-white/20"
-                        }`}
+                            ? "transparent"
+                            : "rgba(0, 0, 0, 0.6)",
+                          backgroundImage: rank === 1
+                            ? "linear-gradient(180deg, #fbbf24 0%, #d97706 100%)"
+                            : rank === 2
+                            ? "linear-gradient(180deg, #f1f5f9 0%, #64748b 100%)"
+                            : rank === 3
+                            ? "linear-gradient(180deg, #d97706 0%, #78350f 100%)"
+                            : undefined,
+                          WebkitBackgroundClip: rank <= 3 ? "text" : undefined,
+                          filter: rank <= 3 ? "drop-shadow(0 10px 15px rgba(245, 158, 11, 0.35))" : undefined,
+                        }}
                       >
-                        #{rank}
+                        {rank}
                       </span>
-                      {movie.quality && (
-                        <span className="ml-auto px-1.5 py-0.5 rounded bg-black/70 backdrop-blur-md text-amber-300 text-[9px] font-bold border border-white/10">
-                          {movie.quality}
-                        </span>
-                      )}
                     </div>
 
-                    {/* FOOTER INFO BADGE */}
-                    <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/95 via-black/55 to-transparent p-2.5 sm:p-3 pt-8 sm:pt-10">
-                      <p className="text-white text-xs sm:text-[13px] font-bold line-clamp-1 group-hover:text-red-400 transition-colors drop-shadow">
-                        {movieTitle}
-                      </p>
-                      <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-zinc-400 mt-0.5 font-medium">
-                        <span>{movie.year || "Mới"}</span>
-                        {categoryText && <span className="text-zinc-600">•</span>}
-                        {categoryText && (
-                          <span className="text-zinc-300 truncate">{categoryText}</span>
-                        )}
+                    {/* MOVIE POSTER CARD */}
+                    <div className="relative z-10 w-[140px] sm:w-[175px] md:w-[190px] aspect-[2/3] rounded-xl overflow-hidden bg-zinc-950 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950 border border-white/10 shadow-[0_15px_35px_rgba(0,0,0,0.8)] group-hover:border-amber-500/50 group-hover:shadow-[0_18px_40px_rgba(245,158,11,0.25)] transition-all duration-300">
+                      {(() => {
+                        const rawPoster = pickBestMoviePoster(
+                          {
+                            poster_url: movie.poster_url,
+                            thumb_url: movie.thumb_url,
+                            name: movieTitle,
+                            slug: movieSlug,
+                          },
+                          "/default-poster.jpg"
+                        );
+                        const posterSrc = toOptimizedPhimimgUrl(rawPoster, 320);
+
+                        return (
+                          <Image
+                            src={posterSrc}
+                            alt={movieTitle}
+                            fill
+                            unoptimized
+                            priority={index < 3}
+                            sizes="(max-width: 640px) 160px, (max-width: 768px) 200px, 240px"
+                            className="object-cover group-hover:scale-105 transition-transform duration-500"
+                            loading={index < 3 ? "eager" : "lazy"}
+                            quality={85}
+                            onError={(e) => {
+                              const target = e.currentTarget as HTMLImageElement;
+                              if (target) {
+                                if (
+                                  movie.thumb_url &&
+                                  typeof movie.thumb_url === "string" &&
+                                  movie.thumb_url.includes("-thumb.webp") &&
+                                  target.src !== movie.thumb_url
+                                ) {
+                                  target.src = movie.thumb_url;
+                                } else if (!target.src.includes("/default-poster.jpg")) {
+                                  target.srcset = "";
+                                  target.src = "/default-poster.jpg";
+                                }
+                              }
+                            }}
+                          />
+                        );
+                      })()}
+
+                      {/* QUALITY TAG GÓC TRÊN PHẢI */}
+                      {movie.quality && (
+                        <div className="absolute top-2 right-2 pointer-events-none z-10">
+                          <span className="px-1.5 py-0.5 rounded bg-black/70 backdrop-blur-md text-zinc-300 text-[9px] font-bold border border-white/10">
+                            {movie.quality}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* FOOTER INFO BADGE */}
+                      <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/95 via-black/55 to-transparent p-2.5 sm:p-3 pt-8 sm:pt-10">
+                        <p className="text-white text-xs sm:text-[13px] font-bold line-clamp-1 group-hover:text-amber-300 transition-colors drop-shadow">
+                          {movieTitle}
+                        </p>
+                        <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-zinc-400 mt-0.5 font-medium">
+                          <span>{movie.year || "Mới"}</span>
+                          {categoryText && <span className="text-zinc-600">•</span>}
+                          {categoryText && (
+                            <span className="text-zinc-300 truncate">{categoryText}</span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </Link>
-              </div>
-            );
-          })
-        )}
+                  </Link>
+                </div>
+              );
+            })
+          )}
+        </div>
       </div>
     </section>
   );

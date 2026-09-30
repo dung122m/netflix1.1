@@ -14,7 +14,7 @@ import {
 } from "@/lib/vietnamEventBackgrounds";
 import { VietnamEventPatternLayer } from "./VietnamEventPatternLayer";
 
-function getEventActionLabel(event: VietnamEvent): string {
+export function getEventActionLabel(event: VietnamEvent): string {
   switch (event.nature) {
     case "official-holiday":
       return "Tìm hiểu ngày đại lễ";
@@ -51,26 +51,94 @@ function getEventActionLabel(event: VietnamEvent): string {
   }
 }
 
-interface VietnamTodayCardProps {
-  info: VietnamTodayInfo;
-  onOpenModal: () => void;
+export function getCleanEventTitle(rawTitle: string): string {
+  return rawTitle.replace(/\s*\(\d{1,2}\/\d{1,2}(?:\/\d{4})?\)/g, "").trim();
 }
 
-export function VietnamTodayCard({ info, onOpenModal }: VietnamTodayCardProps) {
+export function getEventTabBadge(event: VietnamEvent): { label: string; emoji: string } {
+  const id = event.id.toLowerCase();
+  const title = event.title.toLowerCase();
+
+  let emoji = "✨";
+  if (id.includes("cao-tuoi") || title.includes("cao tuổi")) emoji = "👴";
+  else if (id.includes("ca-phe") || title.includes("cà phê")) emoji = "☕";
+  else if (id.includes("phu-nu") || title.includes("phụ nữ")) emoji = "🌸";
+  else if (id.includes("nha-giao") || id.includes("thay-co") || title.includes("nhà giáo")) emoji = "📚";
+  else if (id.includes("khuyen-hoc") || title.includes("khuyến học")) emoji = "🎓";
+  else if (id.includes("tet") || title.includes("tết")) emoji = "🧧";
+  else if (id.includes("trung-thu") || title.includes("trung thu")) emoji = "🥮";
+  else if (id.includes("thieu-nhi") || title.includes("thiếu nhi")) emoji = "🎈";
+  else if (id.includes("thay-thuoc") || id.includes("y-te") || title.includes("thầy thuốc") || title.includes("tim mạch")) emoji = "🩺";
+  else if (id.includes("quoc-khanh") || id.includes("doc-lap")) emoji = "🇻🇳";
+  else if (id.includes("moi-truong") || title.includes("môi trường")) emoji = "🌱";
+  else if (id.includes("sach") || title.includes("sách")) emoji = "📖";
+  else if (id.includes("gia-dinh") || title.includes("gia đình")) emoji = "🏡";
+  else if (id.includes("dich-thuat") || title.includes("dịch thuật")) emoji = "🌐";
+  else if (id.includes("doanh-nhan") || title.includes("doanh nhân")) emoji = "💼";
+  else if (id.includes("nong-dan") || title.includes("nông dân")) emoji = "🌾";
+  else if (id.includes("thanh-nien") || title.includes("thanh niên")) emoji = "⚡";
+
+  const label = getCleanEventTitle(event.title);
+  return { label, emoji };
+}
+
+export function getEventQuoteOrMessage(event: VietnamEvent): string {
+  if (event.quote && event.quote.trim().length > 0) {
+    return event.quote;
+  }
+  if (event.meaning && event.meaning.trim().length > 0) {
+    return event.meaning;
+  }
+  if (event.subtitle && event.subtitle.trim().length > 0 && event.subtitle !== event.shortDescription) {
+    return event.subtitle;
+  }
+  if (event.significance && event.significance.trim().length > 0) {
+    return event.significance;
+  }
+  return event.shortDescription;
+}
+
+interface VietnamTodayCardProps {
+  info: VietnamTodayInfo;
+  selectedEventId?: string;
+  onOpenModal: (eventId?: string) => void;
+}
+
+export function VietnamTodayCard({ info, selectedEventId, onOpenModal }: VietnamTodayCardProps) {
   const [imageError, setImageError] = useState(false);
-  const { event, isToday, badgeLabel, badgeSub } = info;
+
+  const events = React.useMemo(() => {
+    return info.allEventsToday && info.allEventsToday.length > 0
+      ? info.allEventsToday
+      : [info.event];
+  }, [info]);
+
+  const activeEventId = selectedEventId || info.event.id;
+
+  const event = React.useMemo(() => {
+    return events.find((e) => e.id === activeEventId) || events[0] || info.event;
+  }, [events, activeEventId, info.event]);
+
+  const currentInfo: VietnamTodayInfo = React.useMemo(() => {
+    return {
+      ...info,
+      event,
+    };
+  }, [info, event]);
+
+  const { isToday } = currentInfo;
 
   const isDedicated = React.useMemo(() => {
-    return hasDedicatedEventDesign(info);
-  }, [info]);
+    return hasDedicatedEventDesign(currentInfo);
+  }, [currentInfo]);
 
   const bgImageUrl = React.useMemo(() => {
-    return isDedicated ? getVietnamEventBackground(info) : null;
-  }, [info, isDedicated]);
+    return isDedicated ? getVietnamEventBackground(currentInfo) : null;
+  }, [currentInfo, isDedicated]);
 
   const patternTheme = React.useMemo(() => {
-    return getVietnamEventPatternTheme(info);
-  }, [info]);
+    return getVietnamEventPatternTheme(currentInfo);
+  }, [currentInfo]);
 
   const themeConfig = React.useMemo(() => {
     return getVietnamEventThemeConfig(patternTheme);
@@ -104,19 +172,23 @@ export function VietnamTodayCard({ info, onOpenModal }: VietnamTodayCardProps) {
     }
   })();
 
+  const cleanTitle = React.useMemo(() => getCleanEventTitle(event.title), [event.title]);
+  const currentBadge = React.useMemo(() => getEventTabBadge(event), [event]);
+  const quoteMessage = React.useMemo(() => getEventQuoteOrMessage(event), [event]);
+
   return (
     <div
       role="button"
       tabIndex={0}
-      onClick={onOpenModal}
+      onClick={() => onOpenModal(event.id)}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          onOpenModal();
+          onOpenModal(event.id);
         }
       }}
-      aria-label={`Sự kiện ${event.title}, bấm để xem chi tiết`}
-      className={`group relative w-full min-h-[175px] sm:min-h-[195px] md:min-h-[215px] h-auto rounded-2xl sm:rounded-3xl overflow-hidden cursor-pointer select-none transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-amber-500/50 border ${holidayBorderClass}`}
+      aria-label={`Sự kiện ${cleanTitle}, bấm để xem chi tiết`}
+      className={`group relative w-full min-h-[175px] sm:min-h-[190px] md:min-h-[200px] h-auto rounded-2xl sm:rounded-3xl overflow-hidden cursor-pointer select-none transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-amber-500/50 border ${holidayBorderClass}`}
     >
       {/* 1. BACKGROUND IMAGE (ONLY FOR DEDICATED EVENTS) OR THEMATIC GRADIENT */}
       <div className="absolute inset-0 z-0 overflow-hidden">
@@ -158,79 +230,81 @@ export function VietnamTodayCard({ info, onOpenModal }: VietnamTodayCardProps) {
       />
 
       {/* 3. CARD CONTENT */}
-      <div className="relative z-10 h-full w-full px-5 sm:px-8 py-4 sm:py-6 flex flex-col justify-between">
-        {/* TOP ROW: BADGES */}
-        <div className="flex items-center flex-wrap gap-2">
-          {/* Primary Status Badge */}
-          <span
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-semibold backdrop-blur-md shadow-sm border transition-colors ${
-              isToday
-                ? "bg-red-500/25 border-red-500/40 text-red-200 group-hover:bg-red-500/35"
-                : "bg-white/10 border-white/15 text-zinc-300 group-hover:bg-white/15"
-            }`}
-          >
-            <VietnamFlagIcon className="w-3.5 h-2.5 sm:w-4 sm:h-2.8 rounded-[1px] shadow-sm" />
-            <span className="tracking-wide">
-              {isToday ? `${badgeLabel} • ${badgeSub}` : `${badgeLabel} • ${badgeSub}`}
-            </span>
-          </span>
-
-          {/* Nature / Category tag */}
-          <span className="hidden xs:inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-medium bg-black/40 text-zinc-300 border border-white/10 backdrop-blur-md">
-            <Sparkles className="w-3 h-3 text-amber-400" />
-            <span>{event.natureLabel || event.categoryLabel}</span>
-          </span>
-
-          {/* Lunar date pill if applicable */}
-          {event.lunarDisplayDate && (
-            <span className="hidden md:inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-medium bg-amber-500/10 text-amber-200 border border-amber-500/25 backdrop-blur-md">
-              <Calendar className="w-3 h-3 text-amber-300" />
-              <span>{event.lunarDisplayDate}</span>
-            </span>
-          )}
-
-          {/* Multi-event indicator */}
-          {info.allEventsToday && info.allEventsToday.length > 1 && (
-            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-medium bg-amber-500/15 text-amber-300 border border-amber-500/30 backdrop-blur-md">
-              <span className="sm:hidden">+{info.allEventsToday.length - 1} sự kiện</span>
-              <span className="hidden sm:inline">+{info.allEventsToday.length - 1} sự kiện khác</span>
-            </span>
-          )}
-
-          {/* Historical milestones indicator */}
-          {info.historicalEventsToday && info.historicalEventsToday.length > 0 && (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-semibold bg-red-950/60 text-red-200 border border-red-500/40 backdrop-blur-md shadow-sm">
-              <span>📜</span>
-              <span>
-                {info.historicalEventsToday.length === 1
-                  ? "1 mốc lịch sử"
-                  : `${info.historicalEventsToday.length} mốc lịch sử`}
+      <div className="relative z-10 h-full w-full px-4 sm:px-6 md:px-8 py-4 sm:py-5 md:py-6 flex flex-col justify-between">
+        {/* RESPONSIVE LAYOUT WRAPPER (Desktop 2-column: Left ~60%, Right ~40%; Mobile 1-column) */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between md:gap-8 flex-1">
+          {/* LEFT COLUMN: PRIMARY EVENT INFO (~60% on Desktop) */}
+          <div className="flex-1 min-w-0 md:max-w-[62%] flex flex-col justify-between">
+            {/* TOP ROW: ONLY 1 STATUS BADGE (Không xếp chồng nhiều tầng pill) */}
+            <div className="flex items-center gap-2 mb-2">
+              <span
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-semibold backdrop-blur-md shadow-sm border transition-colors ${
+                  isToday
+                    ? "bg-red-500/20 border-red-500/40 text-red-200 group-hover:bg-red-500/30"
+                    : "bg-white/10 border-white/15 text-zinc-300 group-hover:bg-white/15"
+                }`}
+              >
+                <VietnamFlagIcon className="w-3.5 h-2.5 sm:w-4 sm:h-2.8 rounded-[1px] shadow-sm" />
+                <span className="tracking-wide">
+                  {isToday ? "ĐANG DIỄN RA" : "SẮP DIỄN RA"}
+                </span>
               </span>
-            </span>
-          )}
-        </div>
+            </div>
 
-        {/* MIDDLE BLOCK: EVENT TITLE & DESCRIPTION (Constrained to left side so right visuals have room) */}
-        <div className="space-y-1.5 sm:space-y-2 my-2 sm:my-3 max-w-lg md:max-w-xl lg:max-w-2xl">
-          <h3 className="text-lg sm:text-2xl md:text-[26px] font-black text-white tracking-tight group-hover:text-amber-300 transition-colors drop-shadow-md line-clamp-2">
-            {event.title}
-          </h3>
-          <p className="text-xs sm:text-sm md:text-[14.5px] text-zinc-200/95 line-clamp-2 sm:line-clamp-3 leading-relaxed font-normal">
-            {event.shortDescription}
-          </p>
-        </div>
+            {/* EVENT TITLE & SHORT DESCRIPTION */}
+            <div className="space-y-1.5 my-1.5">
+              <h3 className="text-lg sm:text-2xl md:text-[24px] font-black text-white tracking-tight group-hover:text-amber-300 transition-colors drop-shadow-md line-clamp-2 leading-snug">
+                {cleanTitle}
+              </h3>
+              <p className="text-xs sm:text-sm md:text-[14px] text-zinc-300/95 line-clamp-2 md:line-clamp-3 leading-relaxed font-normal">
+                {event.shortDescription}
+              </p>
+            </div>
 
-        {/* BOTTOM ROW: SLEEK ACTION BUTTON */}
-        <div className="flex items-center gap-3 pt-1">
-          <span className="inline-flex items-center gap-2 px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-semibold bg-amber-500/15 group-hover:bg-amber-500/25 border border-amber-500/30 group-hover:border-amber-400/60 text-amber-300 group-hover:text-amber-200 backdrop-blur-md shadow-sm transition-all duration-300 group-hover:shadow-[0_0_16px_rgba(245,158,11,0.25)]">
-            <span>{getEventActionLabel(event)}</span>
-            <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-1" />
-          </span>
-          <span className="hidden sm:inline-block text-xs text-zinc-400 font-medium">
-            {event.displayDate}
-          </span>
+            {/* ACTION BUTTON (Single CTA) */}
+            <div className="flex items-center gap-3 pt-2">
+              <span className="inline-flex items-center gap-2 px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-semibold bg-amber-500/15 group-hover:bg-amber-500/25 border border-amber-500/30 group-hover:border-amber-400/60 text-amber-300 group-hover:text-amber-200 backdrop-blur-md shadow-sm transition-all duration-300 group-hover:shadow-[0_0_16px_rgba(245,158,11,0.25)]">
+                <span>{getEventActionLabel(event)}</span>
+                <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-1" />
+              </span>
+            </div>
+
+            {/* MOBILE THEMATIC COMPACT VISUAL / QUOTE (< 768px - Placed below CTA) */}
+            <div className="md:hidden mt-3 p-2.5 rounded-xl bg-white/[0.04] border border-white/10 backdrop-blur-md flex items-center gap-2.5">
+              <span className="text-base flex-shrink-0">{currentBadge.emoji}</span>
+              <p className="text-[11px] text-zinc-300/90 italic line-clamp-2 leading-snug font-normal">
+                &ldquo;{quoteMessage}&rdquo;
+              </p>
+            </div>
+          </div>
+
+          {/* RIGHT COLUMN: THEMATIC EMBLEM / QUOTE CARD (~40% on Desktop ≥ 768px) */}
+          <div className="hidden md:flex md:w-[38%] lg:w-[36%] flex-shrink-0 items-center justify-center">
+            <div className="w-full rounded-2xl bg-white/[0.04] hover:bg-white/[0.07] border border-white/10 hover:border-white/20 p-4 lg:p-5 backdrop-blur-md transition-all duration-300 shadow-lg relative overflow-hidden group/emblem">
+              {/* Subtle ambient glow */}
+              <div className="absolute -top-8 -right-8 w-24 h-24 bg-amber-500/10 rounded-full blur-xl pointer-events-none" />
+              
+              <div className="flex items-start gap-3.5">
+                <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-amber-500/15 border border-amber-400/30 flex items-center justify-center text-2xl shadow-inner">
+                  {currentBadge.emoji}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[11px] uppercase tracking-wider font-bold text-amber-400/90 mb-1 flex items-center gap-1.5">
+                    <Sparkles className="w-3 h-3" />
+                    <span>Ý nghĩa & Thông điệp</span>
+                  </div>
+                  <p className="text-xs lg:text-[13px] text-zinc-200/90 leading-relaxed italic line-clamp-3 font-normal">
+                    &ldquo;{quoteMessage}&rdquo;
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   );
 }
+
+export default VietnamTodayCard;
+

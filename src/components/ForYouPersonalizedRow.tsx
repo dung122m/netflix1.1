@@ -406,9 +406,12 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
 
   const handleScroll = (direction: "left" | "right") => {
     if (scrollContainerRef.current) {
-      const scrollAmount = scrollContainerRef.current.clientWidth * 0.75;
+      const cardEl = scrollContainerRef.current.querySelector<HTMLElement>(".snap-start");
+      const step = cardEl
+        ? (cardEl.offsetWidth + 16) * Math.max(1, Math.floor(scrollContainerRef.current.clientWidth / (cardEl.offsetWidth + 16)))
+        : scrollContainerRef.current.clientWidth * 0.75;
       scrollContainerRef.current.scrollBy({
-        left: direction === "left" ? -scrollAmount : scrollAmount,
+        left: direction === "left" ? -step : step,
         behavior: "smooth",
       });
     }
@@ -461,9 +464,9 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
             type="button"
             onClick={() => handleScroll("left")}
             aria-label="Cuộn sang trái"
-            className="hidden sm:flex absolute left-0 top-0 bottom-4 z-30 w-12 md:w-14 bg-gradient-to-r from-black/90 via-black/60 to-transparent hover:from-black text-white items-center justify-start pl-2 opacity-0 group-hover/row:opacity-100 transition-all duration-300 cursor-pointer rounded-r-xl group/btn"
+            className="hidden sm:flex absolute left-0 top-0 bottom-4 z-30 w-12 md:w-14 bg-gradient-to-r from-black/90 via-black/60 to-transparent hover:from-black text-white items-center justify-start pl-1 opacity-0 group-hover/row:opacity-100 transition-all duration-300 cursor-pointer rounded-r-xl group/btn"
           >
-            <div className="w-9 h-9 rounded-full bg-black/60 border border-white/20 flex items-center justify-center backdrop-blur-md group-hover/btn:scale-110 group-hover/btn:bg-white/20 transition-all shadow-xl">
+            <div className="w-9 h-9 rounded-full bg-black/70 border border-white/20 flex items-center justify-center backdrop-blur-md group-hover/btn:scale-110 group-hover/btn:bg-white/20 transition-all shadow-xl">
               <ChevronLeft className="w-5 h-5 text-white" />
             </div>
           </button>
@@ -475,9 +478,9 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
             type="button"
             onClick={() => handleScroll("right")}
             aria-label="Cuộn sang phải"
-            className="hidden sm:flex absolute right-0 top-0 bottom-4 z-30 w-12 md:w-14 bg-gradient-to-l from-black/90 via-black/60 to-transparent hover:from-black text-white items-center justify-end pr-2 opacity-0 group-hover/row:opacity-100 transition-all duration-300 cursor-pointer rounded-l-xl group/btn"
+            className="hidden sm:flex absolute right-0 top-0 bottom-4 z-30 w-12 md:w-14 bg-gradient-to-l from-black/90 via-black/60 to-transparent hover:from-black text-white items-center justify-end pr-1 opacity-0 group-hover/row:opacity-100 transition-all duration-300 cursor-pointer rounded-l-xl group/btn"
           >
-            <div className="w-9 h-9 rounded-full bg-black/60 border border-white/20 flex items-center justify-center backdrop-blur-md group-hover/btn:scale-110 group-hover/btn:bg-white/20 transition-all shadow-xl">
+            <div className="w-9 h-9 rounded-full bg-black/70 border border-white/20 flex items-center justify-center backdrop-blur-md group-hover/btn:scale-110 group-hover/btn:bg-white/20 transition-all shadow-xl">
               <ChevronRight className="w-5 h-5 text-white" />
             </div>
           </button>
@@ -495,7 +498,7 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
           ? Array.from({ length: 6 }).map((_, idx) => (
               <div
                 key={idx}
-                className="flex-none w-[160px] sm:w-[200px] h-[260px] sm:h-[310px] rounded-2xl bg-zinc-900/80 animate-pulse border border-white/5"
+                className="flex-none w-[140px] sm:w-[175px] md:w-[195px] aspect-[2/3] rounded-xl bg-zinc-900/80 animate-pulse border border-white/5"
               />
             ))
           : movies.map((movie) => {
@@ -505,11 +508,11 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
               return (
                 <div
                   key={movie.slug}
-                  className="flex-none w-[145px] sm:w-[180px] md:w-[200px] snap-start group select-none"
+                  className="flex-none w-[140px] sm:w-[175px] md:w-[195px] snap-start group select-none"
                 >
                   <Link
                     href={`/movies/${movie.slug}`}
-                    className="block relative rounded-2xl overflow-hidden bg-zinc-900 border border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.7)] group-hover:border-pink-500/50 group-hover:shadow-[0_12px_32px_rgba(236,72,153,0.25)] transition-all duration-300 group-hover:scale-[1.03]"
+                    className="block relative rounded-xl overflow-hidden bg-zinc-950 border border-white/10 hover:border-emerald-500/40 shadow-[0_10px_30px_rgba(0,0,0,0.7)] hover:shadow-[0_12px_32px_rgba(16,185,129,0.2)] transition-all duration-300 hover:scale-[1.03]"
                   >
                     {/* POSTER IMAGE (Chuẩn tỷ lệ 2:3, ưu tiên poster dọc) */}
                     <div className="relative aspect-[2/3] w-full overflow-hidden bg-zinc-900 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950">
@@ -536,21 +539,21 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
                       />
 
                       {/* AI MATCH BADGE GÓC TRÊN TRÁI */}
-                      <div className="absolute top-2 left-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-emerald-500/40 text-[#46d369] text-[9px] sm:text-[10px] font-black shadow-lg">
-                        <Sparkles className="w-2.5 h-2.5 text-[#46d369]" />
+                      <div className="absolute top-2 left-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/70 backdrop-blur-md border border-emerald-500/35 text-emerald-400 text-[9px] sm:text-[10px] font-bold shadow-md">
+                        <Sparkles className="w-2.5 h-2.5 text-emerald-400" />
                         <span>{matchScore}% HỢP GU</span>
                       </div>
 
                       {/* QUALITY TAG GÓC TRÊN PHẢI */}
                       {movie.quality && (
-                        <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-black/70 backdrop-blur-md text-amber-300 text-[9px] font-bold border border-white/10">
+                        <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-black/70 backdrop-blur-md text-zinc-300 text-[9px] font-bold border border-white/10">
                           {movie.quality}
                         </div>
                       )}
 
-                      {/* BOTTOM INFO BAR (CHUẨN NETFLIX THOÁNG ĐÃNG) */}
+                      {/* BOTTOM INFO BAR */}
                       <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/95 via-black/55 to-transparent p-2.5 sm:p-3 pt-8 sm:pt-10">
-                        <p className="text-white text-xs sm:text-[13px] font-bold line-clamp-1 group-hover:text-pink-300 transition-colors drop-shadow">
+                        <p className="text-white text-xs sm:text-[13px] font-bold line-clamp-1 group-hover:text-emerald-300 transition-colors drop-shadow">
                           {movie.title || movie.name}
                         </p>
                         <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-zinc-400 mt-0.5 font-medium">

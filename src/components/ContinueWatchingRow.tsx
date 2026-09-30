@@ -81,9 +81,10 @@ function ContinueWatchingRowInner() {
 
   const handleScroll = (direction: "left" | "right") => {
     if (!rowRef.current) return;
-    const scrollAmount = rowRef.current.clientWidth * 0.75;
+    const cardEl = rowRef.current.querySelector<HTMLElement>(".group");
+    const step = cardEl ? (cardEl.offsetWidth + 16) * Math.max(1, Math.floor(rowRef.current.clientWidth / (cardEl.offsetWidth + 16))) : rowRef.current.clientWidth * 0.75;
     rowRef.current.scrollBy({
-      left: direction === "left" ? -scrollAmount : scrollAmount,
+      left: direction === "left" ? -step : step,
       behavior: "smooth",
     });
     checkScroll();
@@ -96,7 +97,7 @@ function ContinueWatchingRowInner() {
   };
 
   return (
-    <section className="relative z-10 px-4 sm:px-8 max-w-[1800px] mx-auto mt-6 mb-8">
+    <section className="relative z-10 px-4 sm:px-8 max-w-[1800px] mx-auto mt-6 mb-8 select-none">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Clock className="w-5 h-5 text-netflix-red" />
@@ -112,7 +113,7 @@ function ContinueWatchingRowInner() {
         </Link>
       </div>
 
-      {/* KHUNG CAROUSEL CÓ NÚT ĐIỀU HƯỚNG TRÁI/PHẢI CHUẨN NETFLIX, ẨN HOÀN TOÀN THANH CUỘN */}
+      {/* KHUNG CAROUSEL CÓ NÚT ĐIỀU HƯỚNG TRÁI/PHẢI CHUẨN NETFLIX */}
       <div className="relative group/row">
         {/* NÚT CUỘN TRÁI */}
         {canScrollLeft && (
@@ -120,9 +121,11 @@ function ContinueWatchingRowInner() {
             type="button"
             onClick={() => handleScroll("left")}
             aria-label="Cuộn sang trái"
-            className="hidden sm:flex absolute left-0 top-0 bottom-0 z-30 w-10 sm:w-12 bg-black/70 hover:bg-black/90 backdrop-blur-sm text-white items-center justify-center opacity-0 group-hover/row:opacity-100 transition-all rounded-r-lg cursor-pointer hover:scale-105"
+            className="hidden sm:flex absolute left-0 top-0 bottom-3 z-30 w-12 md:w-14 bg-gradient-to-r from-black/90 via-black/60 to-transparent hover:from-black text-white items-center justify-start pl-1 opacity-0 group-hover/row:opacity-100 transition-all duration-300 cursor-pointer rounded-r-xl group/btn"
           >
-            <ChevronLeft className="w-6 h-6" />
+            <div className="w-9 h-9 rounded-full bg-black/70 border border-white/20 flex items-center justify-center backdrop-blur-md group-hover/btn:scale-110 group-hover/btn:bg-white/20 transition-all shadow-xl">
+              <ChevronLeft className="w-5 h-5 text-white" />
+            </div>
           </button>
         )}
 
@@ -132,16 +135,18 @@ function ContinueWatchingRowInner() {
             type="button"
             onClick={() => handleScroll("right")}
             aria-label="Cuộn sang phải"
-            className="hidden sm:flex absolute right-0 top-0 bottom-0 z-30 w-10 sm:w-12 bg-black/70 hover:bg-black/90 backdrop-blur-sm text-white items-center justify-center opacity-0 group-hover/row:opacity-100 transition-all rounded-l-lg cursor-pointer hover:scale-105"
+            className="hidden sm:flex absolute right-0 top-0 bottom-3 z-30 w-12 md:w-14 bg-gradient-to-l from-black/90 via-black/60 to-transparent hover:from-black text-white items-center justify-end pr-1 opacity-0 group-hover/row:opacity-100 transition-all duration-300 cursor-pointer rounded-l-xl group/btn"
           >
-            <ChevronRight className="w-6 h-6" />
+            <div className="w-9 h-9 rounded-full bg-black/70 border border-white/20 flex items-center justify-center backdrop-blur-md group-hover/btn:scale-110 group-hover/btn:bg-white/20 transition-all shadow-xl">
+              <ChevronRight className="w-5 h-5 text-white" />
+            </div>
           </button>
         )}
 
-        {/* DANH SÁCH THẺ PHIM ĐÃ XEM (KHÔNG HIỂN THỊ THANH KÉO) */}
+        {/* DANH SÁCH THẺ PHIM ĐÃ XEM */}
         <div
           ref={rowRef}
-          className="flex gap-3 sm:gap-4 overflow-x-auto py-2 scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+          className="flex gap-3 sm:gap-4 overflow-x-auto py-2 pb-3 scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
         >
           {items.slice(0, 15).map((item) => {
             const href = item.episodeSlug
@@ -156,7 +161,7 @@ function ContinueWatchingRowInner() {
             return (
               <div
                 key={item.slug}
-                className="group relative flex-none w-[180px] sm:w-[240px] md:w-[280px] bg-zinc-900 rounded-xl overflow-hidden border border-white/10 hover:border-white/30 transition-all duration-300 hover:scale-[1.03] shadow-md hover:shadow-xl"
+                className="group relative flex-none w-[190px] sm:w-[240px] md:w-[270px] bg-zinc-950 rounded-xl overflow-hidden border border-white/10 hover:border-white/25 transition-all duration-300 hover:scale-[1.03] shadow-md hover:shadow-xl"
               >
                 <Link href={href} className="block">
                   {/* ẢNH THUMBNAIL (16:9, ưu tiên thumb ngang) */}
@@ -190,13 +195,13 @@ function ContinueWatchingRowInner() {
 
                     {/* NÚT PLAY Ở GIỮA */}
                     <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                      <div className="w-11 h-11 rounded-full bg-netflix-red text-white flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
-                        <Play className="w-5 h-5 fill-white ml-0.5" />
+                      <div className="w-10 h-10 rounded-full bg-netflix-red text-white flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
+                        <Play className="w-4 h-4 fill-white ml-0.5" />
                       </div>
                     </div>
 
                     {/* THANH TIẾN ĐỘ THỰC TẾ ĐANG XEM DỞ */}
-                    <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-zinc-800">
+                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-zinc-800/90">
                       <div
                         className="h-full bg-gradient-to-r from-netflix-red to-rose-500 rounded-r-full shadow-sm shadow-red-500/50"
                         style={{ width: `${progressPercent}%` }}
@@ -208,24 +213,24 @@ function ContinueWatchingRowInner() {
                       type="button"
                       onClick={(e) => handleRemove(e, item.slug)}
                       aria-label="Xoá khỏi danh sách tiếp tục xem"
-                      className="absolute top-2 right-2 p-1 rounded-full bg-black/60 text-gray-300 hover:text-white hover:bg-black/90 backdrop-blur-sm transition z-10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                      className="absolute top-2 right-2 p-1 rounded-full bg-black/60 text-zinc-300 hover:text-white hover:bg-black/90 backdrop-blur-sm transition z-10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
                     >
-                      <X className="w-4 h-4" />
+                      <X className="w-3.5 h-3.5" />
                     </button>
                   </div>
 
                   {/* THÔNG TIN PHIM */}
-                  <div className="p-3">
-                    <h3 className="text-white text-sm font-semibold truncate group-hover:text-rose-400 transition-colors">
+                  <div className="p-2.5 sm:p-3">
+                    <h3 className="text-white text-xs sm:text-[13px] font-semibold truncate group-hover:text-rose-400 transition-colors">
                       {item.title}
                     </h3>
-                    <div className="flex items-center justify-between text-xs text-zinc-300 mt-1">
-                      <span className="text-rose-400 font-semibold flex items-center gap-1">
+                    <div className="flex items-center justify-between text-[11px] sm:text-xs text-zinc-400 mt-1">
+                      <span className="text-rose-400 font-medium flex items-center gap-1 text-[10.5px] sm:text-[11px]">
                         <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
                         <span>{item.episodeName ? formatEpisodeName(item.episodeName) : "Đang xem dở"}</span>
                       </span>
                       {item.quality && (
-                        <span className="bg-zinc-800/90 border border-white/10 px-1.5 py-0.5 rounded text-[10px] text-zinc-200 font-semibold">
+                        <span className="bg-black/70 border border-white/10 px-1.5 py-0.5 rounded text-[9px] text-zinc-300 font-bold backdrop-blur-md">
                           {item.quality}
                         </span>
                       )}
