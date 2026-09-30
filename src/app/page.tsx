@@ -4,7 +4,6 @@ import { FilterBarClient } from "@/components/FilterBarClient";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { ContinueWatchingRow } from "@/components/ContinueWatchingRow";
-import { QuickGenreChips } from "@/components/QuickGenreChips";
 import { movieApi } from "@/services/movieApi";
 import { getTmdbRankedMovies, getTmdbBackdropUrl } from "@/services/tmdbService";
 import { CuratedMovieSection } from "@/components/CuratedMovieSection";
@@ -318,9 +317,6 @@ export default async function HomePage({
       </div>
 
       <div className="px-4 md:px-8 relative z-10 pt-2 sm:pt-4">
-        {/* DẢI THẺ LỌC NHANH THỂ LOẠI & QUỐC GIA */}
-        <QuickGenreChips />
-
         {/* HÀNG PHIM DÀNH RIÊNG CHO BẠN (AI PERSONALIZED RECOMMENDATIONS) */}
         <ForYouPersonalizedRow fallbackMovies={movies} />
 

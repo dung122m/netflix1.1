@@ -30,6 +30,7 @@ export interface LiveTvData {
 const VIETNAM_IPTV_M3U_SOURCES = [
   "https://raw.githubusercontent.com/vuminhthanh12/vuminhthanh12/refs/heads/main/vmttv",
   "https://dl.dropboxusercontent.com/s/o5vygit34v9ryly71gam4/coban66.m3u?rlkey=auyoon54hfubajt16nc7u7dbn&st=70gyvtcu&dl=0",
+  "https://raw.githubusercontent.com/hieu-TQS/error/refs/heads/main/error.m3u",
   "https://raw.githubusercontent.com/vietng228/m3u/refs/heads/main/new.m3u",
   "https://raw.githubusercontent.com/khanh71/All-In-One-IPTV/main/http-iptv.m3u",
   "https://raw.githubusercontent.com/giangnam0201/All-In-One-IPTV/refs/heads/main/channels.m3u",

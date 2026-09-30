@@ -49,6 +49,19 @@ interface LiveTvClientProps {
 
 const INITIAL_PAGE_SIZE = 24;
 
+function getPageNumbers(current: number, total: number): (number | string)[] {
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+  if (current <= 4) {
+    return [1, 2, 3, 4, 5, "...", total];
+  }
+  if (current >= total - 3) {
+    return [1, "...", total - 4, total - 3, total - 2, total - 1, total];
+  }
+  return [1, "...", current - 1, current, current + 1, "...", total];
+}
+
 function getCategoryEmoji(category: string): string {
   if (category.includes("VTV") && !category.includes("VTVcab")) return "🇻🇳";
   if (category.includes("HTV")) return "🏙️";
@@ -194,7 +207,8 @@ export function LiveTvClient({
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [onlyFhd, setOnlyFhd] = useState<boolean>(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [visibleCount, setVisibleCount] = useState<number>(INITIAL_PAGE_SIZE);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const channelGridTopRef = useRef<HTMLDivElement>(null);
 
   // Video Player States
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -391,7 +405,7 @@ export function LiveTvClient({
 
   // Reset phân trang khi đổi bộ lọc
   useEffect(() => {
-    setVisibleCount(INITIAL_PAGE_SIZE);
+    setCurrentPage(1);
   }, [selectedCategory, searchQuery, onlyFhd]);
 
   // Tự động cuộn đến chương trình đang chiếu (hoặc sắp chiếu) khi mở lịch phát sóng
@@ -429,9 +443,27 @@ export function LiveTvClient({
     });
   }, [channels, selectedCategory, searchQuery, onlyFhd]);
 
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredChannels.length / INITIAL_PAGE_SIZE),
+  );
+  const safePage = Math.min(Math.max(1, currentPage), totalPages);
+
   const displayedChannels = useMemo(() => {
-    return filteredChannels.slice(0, visibleCount);
-  }, [filteredChannels, visibleCount]);
+    const startIndex = (safePage - 1) * INITIAL_PAGE_SIZE;
+    return filteredChannels.slice(startIndex, startIndex + INITIAL_PAGE_SIZE);
+  }, [filteredChannels, safePage]);
+
+  const handlePageChange = useCallback((page: number) => {
+    setCurrentPage(page);
+    if (channelGridTopRef.current) {
+      const topOffset =
+        channelGridTopRef.current.getBoundingClientRect().top +
+        window.scrollY -
+        100;
+      window.scrollTo({ top: Math.max(0, topOffset), behavior: "smooth" });
+    }
+  }, []);
 
   const handleSelectChannel = useCallback(
     (channel: TvChannel, keepRailOpen = false) => {
@@ -2112,357 +2144,528 @@ export function LiveTvClient({
         </div>
       </div>
 
-      {/* 3. DANH MỤC KÊNH & THANH TÌM KIẾM */}
-      <div className="space-y-4 pt-2 border-t border-white/10">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <h2 className="text-lg md:text-xl font-bold text-white flex items-center gap-2">
-              <span>Danh mục truyền hình</span>
+      {/* 3. BỘ CHỌN KÊNH TRUYỀN HÌNH ĐA THIẾT BỊ (RESPONSIVE 2 CỘT CHO DESKTOP + HORIZONTAL TABS CHO MOBILE) */}
+      <div className="pt-2 border-t border-white/10">
+        {/* MOBILE & TABLET (< lg): THANH CUỘN NGANG TABS DANH MỤC */}
+        <div className="lg:hidden space-y-3 mb-4">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-base font-bold text-white flex items-center gap-1.5">
+              <span>Đài truyền hình</span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-white/10 text-gray-300 font-semibold">
+                {filteredChannels.length} kênh
+              </span>
             </h2>
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-white/10 text-gray-300 font-semibold">
-              Hiển thị{" "}
-              {Math.min(displayedChannels.length, filteredChannels.length)} /{" "}
-              {filteredChannels.length} kênh
-            </span>
+            <div className="flex items-center gap-1.5">
+              {/* Lọc FHD */}
+              <button
+                type="button"
+                onClick={() => setOnlyFhd((prev) => !prev)}
+                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold transition border cursor-pointer ${
+                  onlyFhd
+                    ? "bg-emerald-600 text-white border-emerald-400"
+                    : "bg-zinc-900 text-gray-300 border-white/10 hover:text-white"
+                }`}
+              >
+                <Zap className="w-3 h-3 fill-current" />
+                <span>FHD</span>
+              </button>
+              {/* Grid / List */}
+              <div className="flex items-center p-0.5 rounded-xl bg-zinc-900 border border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setViewMode("grid")}
+                  className={`p-1.5 rounded-lg transition ${
+                    viewMode === "grid"
+                      ? "bg-white text-black shadow-sm"
+                      : "text-gray-400"
+                  }`}
+                >
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode("list")}
+                  className={`p-1.5 rounded-lg transition ${
+                    viewMode === "list"
+                      ? "bg-white text-black shadow-sm"
+                      : "text-gray-400"
+                  }`}
+                >
+                  <List className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            {/* LỌC NHANH FHD */}
+          {/* Ô tìm kiếm mobile */}
+          <div className="relative w-full">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Tìm tên kênh (VTV3, HTV7, THVL...)"
+              className="w-full pl-9 pr-8 py-2 rounded-xl bg-zinc-900 border border-white/10 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-sky-400"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white p-0.5 cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          {/* Tabs cuộn ngang Mobile */}
+          <div className="relative group/carousel">
             <button
               type="button"
-              onClick={() => setOnlyFhd((prev) => !prev)}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition border shadow-sm cursor-pointer whitespace-nowrap focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:outline-none ${
-                onlyFhd
-                  ? "bg-emerald-600 text-white border-emerald-400 shadow-emerald-950/50 scale-102"
-                  : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/20 hover:text-white"
-              }`}
+              onClick={() => scrollCategories("left")}
+              className="absolute -left-2 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-zinc-900/95 hover:bg-white text-gray-300 hover:text-black border border-white/20 shadow-lg flex items-center justify-center transition-all opacity-80 backdrop-blur-md cursor-pointer"
             >
-              <Zap className="w-3 h-3 fill-current" />
-              <span>Chỉ FHD</span>
+              <ChevronLeft className="w-3.5 h-3.5" />
             </button>
 
-            {/* NÚT CHUYỂN CHẾ ĐỘ XEM: GRID HOẶC LIST */}
-            <div className="flex items-center p-1 rounded-xl bg-zinc-900 border border-white/10">
+            <div
+              ref={categoryScrollRef}
+              className="flex items-center gap-1.5 overflow-x-auto py-1 px-3 scroll-smooth scrollbar-none [&::-webkit-scrollbar]:hidden"
+            >
               <button
                 type="button"
-                onClick={() => setViewMode("grid")}
-                title="Xem dạng lưới"
-                className={`p-1.5 rounded-lg transition cursor-pointer ${
-                  viewMode === "grid"
-                    ? "bg-white text-black shadow-sm"
-                    : "text-gray-400 hover:text-white"
+                onClick={() => setSelectedCategory("all")}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1 border cursor-pointer ${
+                  selectedCategory === "all"
+                    ? "bg-white text-black border-white shadow-md font-extrabold"
+                    : "bg-zinc-900/90 text-gray-300 border-white/10 hover:text-white"
                 }`}
               >
-                <LayoutGrid className="w-3.5 h-3.5" />
+                <span>📺 Tất cả</span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/20 text-current font-black">
+                  {channels.length}
+                </span>
               </button>
-              <button
-                type="button"
-                onClick={() => setViewMode("list")}
-                title="Xem dạng danh sách gọn"
-                className={`p-1.5 rounded-lg transition cursor-pointer ${
-                  viewMode === "list"
-                    ? "bg-white text-black shadow-sm"
-                    : "text-gray-400 hover:text-white"
-                }`}
-              >
-                <List className="w-3.5 h-3.5" />
-              </button>
+
+              {categories.map((cat) => {
+                const count = channels.filter((c) => c.category === cat).length;
+                const isSelected = selectedCategory === cat;
+                const emoji = getCategoryEmoji(cat);
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1 border cursor-pointer ${
+                      isSelected
+                        ? "bg-sky-600 text-white border-sky-500 shadow-md shadow-sky-950/50"
+                        : "bg-zinc-900/90 text-gray-300 border-white/10 hover:text-white"
+                    }`}
+                  >
+                    <span>{emoji}</span>
+                    <span>{cat.replace("Kênh ", "")}</span>
+                    <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-white/15 text-current font-black">
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
 
-            {/* THANH TÌM KIẾM KÊNH */}
-            <div className="relative flex-1 sm:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <button
+              type="button"
+              onClick={() => scrollCategories("right")}
+              className="absolute -right-2 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-zinc-900/95 hover:bg-white text-gray-300 hover:text-black border border-white/20 shadow-lg flex items-center justify-center transition-all opacity-80 backdrop-blur-md cursor-pointer"
+            >
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+
+        {/* CONTAINER CHÍNH: DESKTOP SIDEBAR + LƯỚI KÊNH */}
+        <div className="flex flex-col lg:flex-row items-start gap-6">
+          {/* DESKTOP SIDEBAR (>= lg) */}
+          <aside className="hidden lg:flex flex-col w-64 xl:w-72 shrink-0 space-y-3 sticky top-20 rounded-2xl border border-white/10 bg-zinc-950/90 p-3.5 backdrop-blur-xl shadow-2xl">
+            <div className="flex items-center justify-between border-b border-white/10 pb-2.5 px-1">
+              <div className="flex items-center gap-2">
+                <Tv className="w-4 h-4 text-sky-400" />
+                <h3 className="text-xs font-black uppercase tracking-wider text-white">
+                  Danh mục đài TV
+                </h3>
+              </div>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-gray-300 font-bold">
+                {channels.length} kênh
+              </span>
+            </div>
+
+            {/* Ô tìm kiếm trong sidebar */}
+            <div className="relative w-full">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Tìm tên kênh (VTV3, HTV7, THVL...)"
-                className="w-full pl-9 pr-8 py-2 rounded-xl bg-zinc-900 border border-white/10 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-netflix-red transition"
+                placeholder="Tìm kênh theo tên..."
+                className="w-full pl-8 pr-7 py-1.5 rounded-xl bg-zinc-900/90 border border-white/10 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-sky-400 transition"
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery("")}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition p-0.5 cursor-pointer"
-                  title="Xóa tìm kiếm"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white p-0.5 cursor-pointer"
                 >
-                  <X className="w-3.5 h-3.5" />
+                  <X className="w-3 h-3" />
                 </button>
               )}
             </div>
-          </div>
-        </div>
 
-        {/* TABS DANH MỤC TRUYỀN HÌNH (CAROUSEL) */}
-        <div className="relative group/carousel">
-          <button
-            type="button"
-            onClick={() => scrollCategories("left")}
-            className="absolute -left-2 sm:-left-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-zinc-900/90 hover:bg-white text-gray-300 hover:text-black border border-white/20 shadow-xl flex items-center justify-center transition-all opacity-80 hover:opacity-100 backdrop-blur-md cursor-pointer"
-            title="Cuộn sang trái"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-
-          <div
-            ref={categoryScrollRef}
-            className="flex items-center gap-2 overflow-x-auto py-1 px-4 sm:px-6 scroll-smooth scrollbar-none [&::-webkit-scrollbar]:hidden"
-          >
-            <button
-              type="button"
-              onClick={() => setSelectedCategory("all")}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 border shadow-sm cursor-pointer focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:outline-none ${
-                selectedCategory === "all"
-                  ? "bg-white text-black border-white shadow-md font-extrabold scale-102"
-                  : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
-              }`}
-            >
-              <span>📺 Tất cả kênh</span>
-              <span
-                className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
+            {/* Danh sách danh mục dạng dọc */}
+            <div className="space-y-1 max-h-[calc(100vh-280px)] overflow-y-auto pr-1 scrollbar-thin">
+              <button
+                type="button"
+                onClick={() => setSelectedCategory("all")}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all border text-left cursor-pointer ${
                   selectedCategory === "all"
-                    ? "bg-black text-white"
-                    : "bg-white/10 text-gray-300"
+                    ? "bg-sky-600 text-white border-sky-500 shadow-lg shadow-sky-950/50"
+                    : "border-transparent text-gray-300 hover:bg-white/5 hover:text-white"
                 }`}
               >
-                {channels.length}
-              </span>
-            </button>
-
-            {categories.map((cat) => {
-              const count = channels.filter((c) => c.category === cat).length;
-              const isSelected = selectedCategory === cat;
-              const emoji = getCategoryEmoji(cat);
-              return (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 border shadow-sm cursor-pointer focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:outline-none ${
-                    isSelected
-                      ? "bg-sky-600 text-white border-sky-500 shadow-lg shadow-sky-950/50 scale-102"
-                      : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
+                <div className="flex items-center gap-2">
+                  <span className="text-sm">📺</span>
+                  <span>Tất cả kênh</span>
+                </div>
+                <span
+                  className={`text-[10px] px-2 py-0.5 rounded-full font-black ${
+                    selectedCategory === "all"
+                      ? "bg-black/30 text-white"
+                      : "bg-white/10 text-gray-400"
                   }`}
                 >
-                  <span>{emoji}</span>
-                  <span>{cat.replace("Kênh ", "")}</span>
-                  <span
-                    className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
-                      isSelected
-                        ? "bg-black/40 text-white"
-                        : "bg-white/10 text-gray-300"
-                    }`}
-                  >
-                    {count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+                  {channels.length}
+                </span>
+              </button>
 
-          <button
-            type="button"
-            onClick={() => scrollCategories("right")}
-            className="absolute -right-2 sm:-right-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-zinc-900/90 hover:bg-white text-gray-300 hover:text-black border border-white/20 shadow-xl flex items-center justify-center transition-all opacity-80 hover:opacity-100 backdrop-blur-md cursor-pointer"
-            title="Cuộn sang phải"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-
-      {/* 4. DANH SÁCH KÊNH TRUYỀN HÌNH (GRID HOẶC COMPACT LIST) */}
-      {displayedChannels.length > 0 ? (
-        <div className="space-y-6">
-          {viewMode === "grid" ? (
-            /* VIEW MODE: LƯỚI THẺ HIỆN ĐẠI (TỐI ƯU 2 CỘT GỌN GÀNG TRÊN ĐIỆN THOẠI) */
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-2 sm:gap-3.5">
-              {displayedChannels.map((ch) => {
-                const isSelected = selectedTvChannel?.id === ch.id;
+              {categories.map((cat) => {
+                const count = channels.filter((c) => c.category === cat).length;
+                const isSelected = selectedCategory === cat;
+                const emoji = getCategoryEmoji(cat);
                 return (
-                  <div
-                    key={ch.id}
-                    tabIndex={0}
-                    onClick={() => handleSelectChannel(ch)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        handleSelectChannel(ch);
-                      }
-                    }}
-                    className={`live-channel-card group relative rounded-xl sm:rounded-2xl border p-2 sm:p-3.5 cursor-pointer transition-all duration-300 flex flex-col items-center justify-between text-center focus-visible:scale-105 focus-visible:ring-4 focus-visible:ring-sky-400 focus-visible:outline-none ${
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all border text-left cursor-pointer ${
                       isSelected
-                        ? "live-channel-active ring-2 ring-sky-500/60 scale-102"
-                        : "hover:shadow-lg hover:-translate-y-0.5"
+                        ? "bg-sky-600 text-white border-sky-500 shadow-lg shadow-sky-950/50"
+                        : "border-transparent text-gray-300 hover:bg-white/5 hover:text-white"
                     }`}
                   >
-                    {/* HUY HIỆU GÓC TRÊN */}
-                    <div className="w-full flex items-center justify-between gap-1 mb-1 sm:mb-2">
-                      <span className="text-[9px] sm:text-[10px] font-bold text-gray-400 truncate max-w-[55px] sm:max-w-[80px]">
-                        {ch.category.replace("Kênh ", "")}
-                      </span>
-                      <div className="flex items-center gap-1 flex-shrink-0">
-                        {isSelected && isPlaying && <PlayingEqualizer />}
-                        <span
-                          className={`px-1 sm:px-1.5 py-0.2 rounded text-[8px] sm:text-[9.5px] font-black uppercase tracking-wider border ${
-                            ch.quality.includes("FHD")
-                              ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-400"
-                              : "bg-sky-500/15 border-sky-500/40 text-sky-400"
-                          }`}
-                        >
-                          {ch.quality
-                            .replace(" 1080p", "")
-                            .replace(" 720p", "")}
-                        </span>
-                      </div>
+                    <div className="flex items-center gap-2 truncate pr-2">
+                      <span className="text-sm flex-shrink-0">{emoji}</span>
+                      <span className="truncate">{cat.replace("Kênh ", "")}</span>
                     </div>
-
-                    {/* LOGO KÊNH */}
-                    <div className="live-channel-logo-container w-full h-11 sm:h-16 md:h-20 rounded-lg sm:rounded-xl bg-zinc-950/60 border border-white/10 p-1.5 sm:p-2.5 flex items-center justify-center my-0.5 sm:my-1.5 shadow-inner group-hover:scale-105 transition-transform overflow-hidden">
-                      <TvChannelLogo logo={ch.logo} name={ch.name} />
-                    </div>
-
-                    {/* TÊN KÊNH */}
-                    <h3 className="live-channel-title text-[11px] sm:text-xs md:text-sm font-bold sm:font-extrabold text-white group-hover:text-sky-400 transition line-clamp-1 mt-0.5 sm:mt-1 leading-tight w-full">
-                      {ch.name}
-                    </h3>
-                    {ch.currentProgram && (
-                      <p className="text-[9.5px] text-gray-400 group-hover:text-gray-300 line-clamp-1 w-full mt-0.5">
-                        {ch.currentProgram.title}
-                      </p>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            /* VIEW MODE: DANH SÁCH GỌN (COMPACT LIST) */
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-2.5">
-              {displayedChannels.map((ch) => {
-                const isSelected = selectedTvChannel?.id === ch.id;
-                return (
-                  <div
-                    key={ch.id}
-                    tabIndex={0}
-                    onClick={() => handleSelectChannel(ch)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        handleSelectChannel(ch);
-                      }
-                    }}
-                    className={`group rounded-xl border p-2 sm:p-2.5 cursor-pointer transition-all flex items-center justify-between gap-2.5 sm:gap-3 live-channel-card focus-visible:scale-102 focus-visible:ring-4 focus-visible:ring-sky-400 focus-visible:outline-none ${
-                      isSelected
-                        ? "live-channel-active ring-1 ring-sky-500/60"
-                        : "hover:border-white/25"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-                      <div className="live-channel-logo-container w-11 h-8 sm:w-14 sm:h-10 rounded-lg sm:rounded-xl bg-zinc-950/60 border border-white/10 p-1 flex items-center justify-center overflow-hidden flex-shrink-0">
-                        <TvChannelLogo logo={ch.logo} name={ch.name} />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <h4 className="live-channel-title text-[11px] sm:text-xs font-bold text-white group-hover:text-sky-300 truncate">
-                            {ch.name}
-                          </h4>
-                          {isSelected && isPlaying && <PlayingEqualizer />}
-                        </div>
-                        <div className="flex items-center gap-1.5 text-[9.5px] sm:text-[10px] text-gray-400 truncate">
-                          <span>{ch.category.replace("Kênh ", "")}</span>
-                          {ch.currentProgram && (
-                            <>
-                              <span>•</span>
-                              <span className="text-gray-300 font-medium truncate">
-                                {ch.currentProgram.title} ({ch.currentProgram.start})
-                              </span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
                     <span
-                      className={`text-[8.5px] sm:text-[9.5px] px-1.5 sm:px-2 py-0.5 rounded font-black uppercase flex-shrink-0 border ${
-                        ch.quality.includes("FHD")
-                          ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-400"
-                          : "bg-sky-500/15 border-sky-500/40 text-sky-400"
+                      className={`text-[10px] px-2 py-0.5 rounded-full font-black flex-shrink-0 ${
+                        isSelected
+                          ? "bg-black/30 text-white"
+                          : "bg-white/10 text-gray-400"
                       }`}
                     >
-                      {ch.quality.replace(" 1080p", "").replace(" 720p", "")}
+                      {count}
                     </span>
-                  </div>
+                  </button>
                 );
               })}
             </div>
-          )}
+          </aside>
 
-          {/* NÚT XEM THÊM KÊNH (PAGINATION LOAD MORE CHỐNG NGỢP) */}
-          {filteredChannels.length > visibleCount && (
-            <div className="flex flex-col items-center justify-center pt-4 pb-2 space-y-2">
-              <button
-                type="button"
-                onClick={() =>
-                  setVisibleCount((prev) => prev + INITIAL_PAGE_SIZE)
-                }
-                className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-zinc-900 hover:bg-zinc-800 text-white font-black text-xs sm:text-sm border border-white/20 hover:border-white/40 shadow-xl transition-all hover:scale-102 active:scale-98 cursor-pointer focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:outline-none"
-              >
-                <span>Xem thêm các kênh khác</span>
-                <span className="px-2 py-0.5 rounded-full bg-white/15 text-[11px] text-gray-200">
-                  +
-                  {Math.min(
-                    INITIAL_PAGE_SIZE,
-                    filteredChannels.length - visibleCount,
-                  )}{" "}
-                  kênh
+          {/* CỘT PHẢI: LƯỚI KÊNH & TOOLBAR */}
+          <div ref={channelGridTopRef} className="flex-1 min-w-0 space-y-4 w-full scroll-mt-24">
+            {/* Header thanh công cụ Desktop */}
+            <div className="hidden lg:flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center gap-3">
+                <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                  <span>
+                    {selectedCategory === "all"
+                      ? "📺 Tất cả kênh truyền hình"
+                      : `${getCategoryEmoji(selectedCategory)} ${selectedCategory}`}
+                  </span>
+                </h2>
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-sky-500/20 border border-sky-500/30 text-sky-300 font-bold">
+                  {filteredChannels.length} kênh
                 </span>
-                <ChevronDown className="w-4 h-4" />
-              </button>
-              <span className="text-[11px] text-gray-400">
-                Còn lại {filteredChannels.length - visibleCount} kênh truyền
-                hình
-              </span>
-            </div>
-          )}
+                {totalPages > 1 && (
+                  <span className="text-xs text-gray-400 font-medium">
+                    (Trang {safePage}/{totalPages})
+                  </span>
+                )}
+              </div>
 
-          {/* Nút thu gọn nếu đã xem nhiều */}
-          {visibleCount > INITIAL_PAGE_SIZE && (
-            <div className="text-center pt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setVisibleCount(INITIAL_PAGE_SIZE);
-                  if (playerRef.current) {
-                    playerRef.current.scrollIntoView({ behavior: "smooth" });
-                  }
-                }}
-                className="text-xs text-gray-400 hover:text-white transition underline cursor-pointer"
-              >
-                Thu gọn danh sách về 24 kênh đầu ↑
-              </button>
+              <div className="flex items-center gap-2">
+                {/* LỌC NHANH FHD */}
+                <button
+                  type="button"
+                  onClick={() => setOnlyFhd((prev) => !prev)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition border shadow-sm cursor-pointer whitespace-nowrap focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:outline-none ${
+                    onlyFhd
+                      ? "bg-emerald-600 text-white border-emerald-400 shadow-emerald-950/50"
+                      : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/20 hover:text-white"
+                  }`}
+                >
+                  <Zap className="w-3 h-3 fill-current" />
+                  <span>Chỉ FHD</span>
+                </button>
+
+                {/* NÚT CHUYỂN CHẾ ĐỘ XEM: GRID HOẶC LIST */}
+                <div className="flex items-center p-1 rounded-xl bg-zinc-900 border border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("grid")}
+                    title="Xem dạng lưới"
+                    className={`p-1.5 rounded-lg transition cursor-pointer ${
+                      viewMode === "grid"
+                        ? "bg-white text-black shadow-sm"
+                        : "text-gray-400 hover:text-white"
+                    }`}
+                  >
+                    <LayoutGrid className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("list")}
+                    title="Xem dạng danh sách gọn"
+                    className={`p-1.5 rounded-lg transition cursor-pointer ${
+                      viewMode === "list"
+                        ? "bg-white text-black shadow-sm"
+                        : "text-gray-400 hover:text-white"
+                    }`}
+                  >
+                    <List className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
             </div>
-          )}
-        </div>
-      ) : (
-        <div className="rounded-3xl border border-white/10 bg-zinc-900/50 p-12 text-center text-gray-400 space-y-3">
-          <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mx-auto text-gray-400">
-            <Search className="w-6 h-6" />
+
+            {/* DANH SÁCH KÊNH (GRID HOẶC LIST) */}
+            {displayedChannels.length > 0 ? (
+              <div className="space-y-4">
+                {viewMode === "grid" ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2.5 sm:gap-3.5">
+                    {displayedChannels.map((ch) => {
+                      const isSelected = selectedTvChannel?.id === ch.id;
+                      return (
+                        <div
+                          key={ch.id}
+                          tabIndex={0}
+                          onClick={() => handleSelectChannel(ch)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              handleSelectChannel(ch);
+                            }
+                          }}
+                          className={`live-channel-card group relative rounded-xl sm:rounded-2xl border p-2 sm:p-3.5 cursor-pointer transition-all duration-300 flex flex-col items-center justify-between text-center focus-visible:scale-105 focus-visible:ring-4 focus-visible:ring-sky-400 focus-visible:outline-none ${
+                            isSelected
+                              ? "live-channel-active ring-2 ring-sky-500/60 scale-102"
+                              : "hover:shadow-lg hover:-translate-y-0.5"
+                          }`}
+                        >
+                          {/* HUY HIỆU GÓC TRÊN */}
+                          <div className="w-full flex items-center justify-between gap-1 mb-1 sm:mb-2">
+                            <span className="text-[9px] sm:text-[10px] font-bold text-gray-400 truncate max-w-[55px] sm:max-w-[80px]">
+                              {ch.category.replace("Kênh ", "")}
+                            </span>
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                              {isSelected && isPlaying && <PlayingEqualizer />}
+                              <span
+                                className={`px-1 sm:px-1.5 py-0.2 rounded text-[8px] sm:text-[9.5px] font-black uppercase tracking-wider border ${
+                                  ch.quality.includes("FHD")
+                                    ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-400"
+                                    : "bg-sky-500/15 border-sky-500/40 text-sky-400"
+                                }`}
+                              >
+                                {ch.quality
+                                  .replace(" 1080p", "")
+                                  .replace(" 720p", "")}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* LOGO KÊNH */}
+                          <div className="live-channel-logo-container w-full h-11 sm:h-16 md:h-18 rounded-lg sm:rounded-xl bg-zinc-950/60 border border-white/10 p-1.5 sm:p-2 flex items-center justify-center my-0.5 sm:my-1.5 shadow-inner group-hover:scale-105 transition-transform overflow-hidden">
+                            <TvChannelLogo logo={ch.logo} name={ch.name} />
+                          </div>
+
+                          {/* TÊN KÊNH */}
+                          <h3 className="live-channel-title text-[11px] sm:text-xs md:text-sm font-bold sm:font-extrabold text-white group-hover:text-sky-400 transition line-clamp-1 mt-0.5 sm:mt-1 leading-tight w-full">
+                            {ch.name}
+                          </h3>
+                          {ch.currentProgram && (
+                            <p className="text-[9.5px] text-gray-400 group-hover:text-gray-300 line-clamp-1 w-full mt-0.5">
+                              {ch.currentProgram.title}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2 sm:gap-2.5">
+                    {displayedChannels.map((ch) => {
+                      const isSelected = selectedTvChannel?.id === ch.id;
+                      return (
+                        <div
+                          key={ch.id}
+                          tabIndex={0}
+                          onClick={() => handleSelectChannel(ch)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              handleSelectChannel(ch);
+                            }
+                          }}
+                          className={`group rounded-xl border p-2 sm:p-2.5 cursor-pointer transition-all flex items-center justify-between gap-2.5 sm:gap-3 live-channel-card focus-visible:scale-102 focus-visible:ring-4 focus-visible:ring-sky-400 focus-visible:outline-none ${
+                            isSelected
+                              ? "live-channel-active ring-1 ring-sky-500/60"
+                              : "hover:border-white/25"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                            <div className="live-channel-logo-container w-11 h-8 sm:w-14 sm:h-10 rounded-lg sm:rounded-xl bg-zinc-950/60 border border-white/10 p-1 flex items-center justify-center overflow-hidden flex-shrink-0">
+                              <TvChannelLogo logo={ch.logo} name={ch.name} />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <h4 className="live-channel-title text-[11px] sm:text-xs font-bold text-white group-hover:text-sky-300 truncate">
+                                  {ch.name}
+                                </h4>
+                                {isSelected && isPlaying && <PlayingEqualizer />}
+                              </div>
+                              <div className="flex items-center gap-1.5 text-[9.5px] sm:text-[10px] text-gray-400 truncate">
+                                <span>{ch.category.replace("Kênh ", "")}</span>
+                                {ch.currentProgram && (
+                                  <>
+                                    <span>•</span>
+                                    <span className="text-gray-300 font-medium truncate">
+                                      {ch.currentProgram.title} ({ch.currentProgram.start})
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          <span
+                            className={`text-[8.5px] sm:text-[9.5px] px-1.5 sm:px-2 py-0.5 rounded font-black uppercase flex-shrink-0 border ${
+                              ch.quality.includes("FHD")
+                                ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-400"
+                                : "bg-sky-500/15 border-sky-500/40 text-sky-400"
+                            }`}
+                          >
+                            {ch.quality.replace(" 1080p", "").replace(" 720p", "")}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* THANH ĐIỀU HƯỚNG PHÂN TRANG THEO SỐ TRANG (NUMBERED PAGINATION) */}
+                {totalPages > 1 && (
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 pb-2 border-t border-white/10 mt-6">
+                    <div className="text-xs text-gray-400">
+                      Hiển thị <span className="text-white font-bold">{(safePage - 1) * INITIAL_PAGE_SIZE + 1}</span> -{" "}
+                      <span className="text-white font-bold">
+                        {Math.min(safePage * INITIAL_PAGE_SIZE, filteredChannels.length)}
+                      </span>{" "}
+                      trên tổng số <span className="text-sky-400 font-bold">{filteredChannels.length}</span> kênh
+                    </div>
+
+                    <div className="flex items-center gap-1.5 flex-wrap justify-center">
+                      {/* Nút Trang Trước */}
+                      <button
+                        type="button"
+                        disabled={safePage <= 1}
+                        onClick={() => handlePageChange(safePage - 1)}
+                        className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold border transition ${
+                          safePage <= 1
+                            ? "opacity-35 cursor-not-allowed border-white/5 bg-white/[0.02] text-gray-500"
+                            : "border-white/10 bg-zinc-900 hover:bg-zinc-800 text-white hover:border-white/25 cursor-pointer shadow-sm active:scale-95"
+                        }`}
+                      >
+                        <ChevronLeft className="w-3.5 h-3.5" />
+                        <span>Trước</span>
+                      </button>
+
+                      {/* Các nút số trang */}
+                      <div className="flex items-center gap-1">
+                        {getPageNumbers(safePage, totalPages).map((p, idx) => {
+                          if (p === "...") {
+                            return (
+                              <span key={`dots-${idx}`} className="px-1.5 py-1 text-xs text-gray-500 font-bold">
+                                ...
+                              </span>
+                            );
+                          }
+                          const isCurrent = p === safePage;
+                          return (
+                            <button
+                              key={`page-${p}`}
+                              type="button"
+                              onClick={() => handlePageChange(Number(p))}
+                              className={`min-w-[32px] h-8 px-2 rounded-xl text-xs font-bold transition border cursor-pointer ${
+                                isCurrent
+                                  ? "bg-sky-600 text-white border-sky-400 shadow-md shadow-sky-950/50 font-black scale-105"
+                                  : "border-white/10 bg-zinc-900/90 text-gray-300 hover:text-white hover:bg-zinc-800 hover:border-white/20"
+                              }`}
+                            >
+                              {p}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Nút Trang Sau */}
+                      <button
+                        type="button"
+                        disabled={safePage >= totalPages}
+                        onClick={() => handlePageChange(safePage + 1)}
+                        className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold border transition ${
+                          safePage >= totalPages
+                            ? "opacity-35 cursor-not-allowed border-white/5 bg-white/[0.02] text-gray-500"
+                            : "border-white/10 bg-zinc-900 hover:bg-zinc-800 text-white hover:border-white/25 cursor-pointer shadow-sm active:scale-95"
+                        }`}
+                      >
+                        <span>Sau</span>
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="rounded-3xl border border-white/10 bg-zinc-900/50 p-12 text-center text-gray-400 space-y-3">
+                <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mx-auto text-gray-400">
+                  <Search className="w-6 h-6" />
+                </div>
+                <p className="text-sm font-semibold text-gray-300">
+                  Không tìm thấy kênh truyền hình nào phù hợp với bộ lọc.
+                </p>
+                {hasActiveFilters && (
+                  <button
+                    type="button"
+                    onClick={handleResetFilters}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold transition shadow-lg shadow-sky-950/50 cursor-pointer"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Đặt lại bộ lọc</span>
+                  </button>
+                )}
+              </div>
+            )}
           </div>
-          <p className="text-sm font-semibold text-gray-300">
-            Không tìm thấy kênh truyền hình nào phù hợp với bộ lọc.
-          </p>
-          {hasActiveFilters && (
-            <button
-              type="button"
-              onClick={handleResetFilters}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold transition shadow-lg shadow-sky-950/50 cursor-pointer"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>Xóa bộ lọc để xem tất cả {channels.length} kênh</span>
-            </button>
-          )}
         </div>
-      )}
+      </div>
       <style>{`
         :fullscreen,
         :-webkit-full-screen {

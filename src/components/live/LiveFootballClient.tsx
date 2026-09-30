@@ -91,38 +91,57 @@ export function LiveFootballClient({
     );
   }, [liveMatches]);
 
-  const [now, setNow] = useState<number>(() => Date.now());
+  const initialMatch = useMemo(() => {
+    const matchParam = searchParams.get("match");
+    if (matchParam) {
+      const found = liveMatches.find(
+        (m) =>
+          m.id === matchParam ||
+          m.title.toLowerCase().includes(matchParam.toLowerCase()),
+      );
+      if (found) return found;
+    }
+    return defaultMatch;
+  }, [liveMatches, searchParams, defaultMatch]);
 
-  // Cập nhật đồng hồ mỗi 10 giây để tự động chuyển trận từ "Sắp phát" sang "Đang phát" và ẩn khi kết thúc
+  // Initial SSR clock: 0 during SSR to use server pre-computed match timeline, synced to Date.now() on client mount
+  const [now, setNow] = useState<number>(0);
+
+  // Cập nhật đồng hồ sau khi mount trên client và mỗi 10 giây
   useEffect(() => {
+    setNow(Date.now());
     const timer = setInterval(() => {
       setNow(Date.now());
     }, 10_000);
     return () => clearInterval(timer);
   }, []);
 
-  const [selectedMatch, setSelectedMatch] = useState<FootballMatch | null>(
-    () => {
-      if (typeof window !== "undefined") {
-        try {
-          const matchParam = new URLSearchParams(window.location.search).get(
-            "match",
+  const [selectedMatch, setSelectedMatch] = useState<FootballMatch | null>(initialMatch);
+
+  // Sync khi external searchParams thay đổi
+  useEffect(() => {
+    setSelectedMatch(initialMatch);
+  }, [initialMatch]);
+
+  // Khôi phục trận đấu đã lưu từ localStorage sau khi client mount
+  useEffect(() => {
+    const matchParam = searchParams.get("match");
+    if (!matchParam) {
+      try {
+        const savedId = localStorage.getItem("nanaflix_live_match_id");
+        if (savedId) {
+          const found = liveMatches.find(
+            (m) =>
+              m.id === savedId ||
+              m.title.toLowerCase().includes(savedId.toLowerCase()),
           );
-          const savedId = localStorage.getItem("nanaflix_live_match_id");
-          const target = matchParam || savedId;
-          if (target) {
-            const found = liveMatches.find(
-              (m) =>
-                m.id === target ||
-                m.title.toLowerCase().includes(target.toLowerCase()),
-            );
-            if (found) return found;
+          if (found) {
+            setSelectedMatch(found);
           }
-        } catch { }
-      }
-      return defaultMatch;
-    },
-  );
+        }
+      } catch {}
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Luôn đồng bộ selectedMatch với bản ghi mới nhất trong liveMatches (chứa logo đã cập nhật và trạng thái mới)
   useEffect(() => {
@@ -142,6 +161,7 @@ export function LiveFootballClient({
       setSelectedMatch(updated);
     }
   }, [liveMatches, defaultMatch, selectedMatch]);
+
   const [selectedFootballGroup, setSelectedFootballGroup] = useState<string>(
     () => searchParams.get("group") || "all",
   );
@@ -226,6 +246,18 @@ export function LiveFootballClient({
   // Phân loại trạng thái realtime: Đang phát (live), Sắp phát trong 2 giờ (upcoming_2h), Ẩn (hidden)
   const enrichedMatches = useMemo(() => {
     return liveMatches.map((m) => {
+      if (now === 0) {
+        const isLive = m.timeline === "live";
+        const isUpcoming2h = m.timeline === "upcoming";
+        let sectionState: "live" | "upcoming_2h" | "hidden" = "hidden";
+        if (isLive) sectionState = "live";
+        else if (isUpcoming2h) sectionState = "upcoming_2h";
+        return {
+          ...m,
+          sectionState,
+        };
+      }
+
       const hasReliableTimestamp =
         m.timestamp !== undefined &&
         m.timestamp !== null &&
@@ -235,9 +267,13 @@ export function LiveFootballClient({
       const timeline = getMatchTimeline(
         m.timestamp,
         m.sourceStatus,
-        m.servers && m.servers.length > 0 && m.servers.some((s) => getStreamHealthStatus(s.url) === "alive")
+        m.servers &&
+          m.servers.length > 0 &&
+          m.servers.some((s) => getStreamHealthStatus(s.url) === "alive")
           ? "alive"
-          : m.servers && m.servers.length > 0 && m.servers.every((s) => getStreamHealthStatus(s.url) === "dead")
+          : m.servers &&
+              m.servers.length > 0 &&
+              m.servers.every((s) => getStreamHealthStatus(s.url) === "dead")
             ? "dead"
             : "unknown",
         now,

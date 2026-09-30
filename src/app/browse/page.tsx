@@ -3,7 +3,6 @@ import { MovieGrid } from "@/components/MovieGrid";
 import { FilterBarClient } from "@/components/FilterBarClient";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
-import { QuickGenreChips } from "@/components/QuickGenreChips";
 import { SortSelector } from "@/components/SortSelector";
 import { Film, ExternalLink, Sparkles } from "lucide-react";
 import { movieApi } from "@/services/movieApi";
@@ -691,9 +690,6 @@ export default async function BrowsePage({
       </div>
 
       <div className="px-4 md:px-8 relative z-10 pt-2 sm:pt-4">
-        {/* DẢI THẺ LỌC NHANH THỂ LOẠI & QUỐC GIA */}
-        <QuickGenreChips />
-
         {/* TIÊU ĐỀ & KẾT QUẢ DANH MỤC */}
         <div className="mb-7 flex flex-wrap items-center justify-between gap-3 mt-4">
           <div>
