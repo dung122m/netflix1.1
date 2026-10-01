@@ -13,6 +13,15 @@ const WATCHLIST_STORAGE_KEY = "nanaflix_watchlist_v1";
 // Debounce map để hạn chế số lần ghi khi người dùng đang xem phim liên tục
 const cloudSaveTimers = new Map<string, NodeJS.Timeout>();
 
+// Lưu lại trạng thái đồng bộ Cloud gần nhất để thực hiện Dirty Check
+interface SyncedCloudState {
+  progressSeconds: number;
+  episodeSlug?: string;
+  syncedAt: number;
+}
+const lastSyncedCloudState = new Map<string, SyncedCloudState>();
+const pendingCloudSaveItems = new Map<string, WatchHistoryItem>();
+
 async function getAuthHeaders(): Promise<HeadersInit> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -70,22 +79,83 @@ export async function syncWatchHistoryWithCloud(
 }
 
 /**
- * Lưu 1 mục lịch sử xem lên Cloud qua Server API (Debounced)
+ * Lưu 1 mục lịch sử xem lên Cloud qua Server API (Debounced 15s + Dirty check)
+ * - Tăng debounce lên 15000ms đối với tiến trình liên tục
+ * - Dirty check: chỉ gửi Cloud update nếu progressSeconds thay đổi >= 10s hoặc đổi tập/buộc lưu (force)
  */
 export function saveWatchItemToCloudDebounced(
   userId: string,
   item: WatchHistoryItem,
-  delayMs = 2500,
+  delayMs = 15000,
+  options?: { force?: boolean },
 ): void {
   if (!userId || !item.slug) return;
 
   const key = `${userId}_${item.slug}`;
+  const currentProgress = item.progressSeconds ?? 0;
+  const lastSynced = lastSyncedCloudState.get(key);
+
+  const isEpisodeChanged = Boolean(lastSynced && item.episodeSlug && lastSynced.episodeSlug !== item.episodeSlug);
+  const isProgressSignificant = !lastSynced || Math.abs(currentProgress - lastSynced.progressSeconds) >= 10;
+  const shouldSync = options?.force || isEpisodeChanged || isProgressSignificant;
+
+  // Luôn cập nhật thông tin mới nhất vào hàng đợi pending
+  pendingCloudSaveItems.set(key, item);
+
+  // Nếu không phải force và tiến trình chưa thay đổi đáng kể (< 10s) trên cùng 1 tập -> bỏ qua
+  if (!shouldSync) {
+    return;
+  }
+
+  // Nếu là sự kiện quan trọng (pause, ended, đổi tập, khởi tạo), gửi ngay lập tức
+  if (options?.force) {
+    if (cloudSaveTimers.has(key)) {
+      clearTimeout(cloudSaveTimers.get(key));
+      cloudSaveTimers.delete(key);
+    }
+
+    const targetItem = pendingCloudSaveItems.get(key) || item;
+    pendingCloudSaveItems.delete(key);
+
+    lastSyncedCloudState.set(key, {
+      progressSeconds: targetItem.progressSeconds ?? 0,
+      episodeSlug: targetItem.episodeSlug,
+      syncedAt: Date.now(),
+    });
+
+    (async () => {
+      try {
+        const headers = await getAuthHeaders();
+        if (!headers["Authorization" as keyof typeof headers]) return;
+
+        await fetch("/api/user/history", {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ items: [{ ...targetItem, updatedAt: targetItem.updatedAt || Date.now() }] }),
+        });
+      } catch (err) {
+        console.warn("Lỗi saveWatchItemToCloudDebounced (force):", err);
+      }
+    })();
+    return;
+  }
+
+  // Nếu đã có timer 15s đang chạy, giữ nguyên timer để không bị reset vô hạn khi xem phim liên tục
   if (cloudSaveTimers.has(key)) {
-    clearTimeout(cloudSaveTimers.get(key));
+    return;
   }
 
   const timer = setTimeout(async () => {
     cloudSaveTimers.delete(key);
+    const targetItem = pendingCloudSaveItems.get(key) || item;
+    pendingCloudSaveItems.delete(key);
+
+    lastSyncedCloudState.set(key, {
+      progressSeconds: targetItem.progressSeconds ?? 0,
+      episodeSlug: targetItem.episodeSlug,
+      syncedAt: Date.now(),
+    });
+
     try {
       const headers = await getAuthHeaders();
       if (!headers["Authorization" as keyof typeof headers]) return;
@@ -93,7 +163,7 @@ export function saveWatchItemToCloudDebounced(
       await fetch("/api/user/history", {
         method: "POST",
         headers,
-        body: JSON.stringify({ items: [{ ...item, updatedAt: item.updatedAt || Date.now() }] }),
+        body: JSON.stringify({ items: [{ ...targetItem, updatedAt: targetItem.updatedAt || Date.now() }] }),
       });
     } catch (err) {
       console.warn("Lỗi saveWatchItemToCloudDebounced:", err);

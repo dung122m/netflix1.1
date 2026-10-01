@@ -104,6 +104,44 @@ export function WatchController({
   });
 
   const prevInitialSlugRef = useRef(initialEpisodeSlug);
+  const hasInitializedHistoryRef = useRef<string | null>(null);
+
+  // Ghi nhận lịch sử xem duy nhất 1 lần khi mount trang hoặc khởi tạo tập phim
+  useEffect(() => {
+    if (!movieSlug || !activeEpisodeSlug) return;
+    const historyKey = `${movieSlug}_${activeEpisodeSlug}`;
+    if (hasInitializedHistoryRef.current === historyKey) return;
+    hasInitializedHistoryRef.current = historyKey;
+
+    const targetEp = episodes.find((ep) => ep.slug === activeEpisodeSlug);
+    saveWatchHistory({
+      slug: movieSlug,
+      title: movieTitle,
+      poster: posterUrl,
+      thumb: thumbUrl,
+      episodeName: targetEp?.name,
+      episodeSlug: activeEpisodeSlug,
+      year,
+      quality,
+      category,
+      country,
+      type,
+      actor,
+    });
+  }, [
+    movieSlug,
+    movieTitle,
+    posterUrl,
+    thumbUrl,
+    activeEpisodeSlug,
+    episodes,
+    year,
+    quality,
+    category,
+    country,
+    type,
+    actor,
+  ]);
 
   // Chỉ đồng bộ khi initialEpisodeSlug từ Server hoặc Router Navigation bên ngoài thay đổi
   useEffect(() => {

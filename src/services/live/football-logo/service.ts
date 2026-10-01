@@ -382,7 +382,7 @@ export async function enrichMatchLogos<T extends { team1: string; team2: string;
     }
   }
 
-  // 2. Chỉ query TheSportsDB cho tối đa 8 trận đầu tiên chưa có logo để tránh nghẽn timeout Vercel (10s)
+  // 2. Query TheSportsDB bất đồng bộ chạy nền để cập nhật LOGO_CACHE cho các request tiếp theo (KHÔNG block SSR critical path)
   const pending = matches
     .filter(
       (m) =>
@@ -392,7 +392,7 @@ export async function enrichMatchLogos<T extends { team1: string; team2: string;
     .slice(0, 8);
 
   if (pending.length > 0) {
-    await Promise.allSettled(
+    Promise.allSettled(
       pending.map(async (m) => {
         const needHome = Boolean(m.team1) && (!m.homeLogo || m.homeLogo.includes("tinhlagi.pro/logo.jpg"));
         const needAway = Boolean(m.team2) && (!m.awayLogo || m.awayLogo.includes("tinhlagi.pro/logo.jpg"));
@@ -406,7 +406,7 @@ export async function enrichMatchLogos<T extends { team1: string; team2: string;
           if (logo) m.awayLogo = logo;
         }
       })
-    );
+    ).catch(() => {});
   }
 
   return matches;

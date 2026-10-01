@@ -250,7 +250,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
 
             return (
               <Link
-                key={tapSlug}
+                key={`${tapSlug}-${tapIdx}`}
                 href={`?ep=${tapSlug}`}
                 scroll={false}
                 tabIndex={0}

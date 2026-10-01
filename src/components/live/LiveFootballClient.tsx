@@ -80,16 +80,6 @@ export function LiveFootballClient({
     };
   }, []);
 
-  // Khởi tạo match mặc định: Ưu tiên trận ĐANG ĐÁ (LIVE) và có luồng HLS
-  const defaultMatch = useMemo(() => {
-    return (
-      liveMatches.find((m) => m.timeline === "live" && m.servers.some((s) => s.isHls)) ||
-      liveMatches.find((m) => m.timeline === "live") ||
-      liveMatches.find((m) => m.servers.some((s) => s.isHls)) ||
-      liveMatches[0] ||
-      null
-    );
-  }, [liveMatches]);
 
   const initialMatch = useMemo(() => {
     const matchParam = searchParams.get("match");
@@ -101,8 +91,8 @@ export function LiveFootballClient({
       );
       if (found) return found;
     }
-    return defaultMatch;
-  }, [liveMatches, searchParams, defaultMatch]);
+    return null;
+  }, [liveMatches, searchParams]);
 
   // Initial SSR clock: 0 during SSR to use server pre-computed match timeline, synced to Date.now() on client mount
   const [now, setNow] = useState<number>(0);
@@ -143,12 +133,9 @@ export function LiveFootballClient({
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Luôn đồng bộ selectedMatch với bản ghi mới nhất trong liveMatches (chứa logo đã cập nhật và trạng thái mới)
+  // Luôn đồng bộ selectedMatch với bản ghi mới nhất trong liveMatches khi người dùng đã chọn trận
   useEffect(() => {
-    if (!selectedMatch) {
-      if (defaultMatch) setSelectedMatch(defaultMatch);
-      return;
-    }
+    if (!selectedMatch) return;
     const updated = liveMatches.find((m) => m.id === selectedMatch.id);
     if (
       updated &&
@@ -160,7 +147,7 @@ export function LiveFootballClient({
     ) {
       setSelectedMatch(updated);
     }
-  }, [liveMatches, defaultMatch, selectedMatch]);
+  }, [liveMatches, selectedMatch]);
 
   const [selectedFootballGroup, setSelectedFootballGroup] = useState<string>(
     () => searchParams.get("group") || "all",
@@ -405,25 +392,15 @@ export function LiveFootballClient({
   useEffect(() => {
     if (liveMatches.length === 0) return;
     const matchParam = searchParams.get("match");
-    const savedId =
-      typeof window !== "undefined"
-        ? localStorage.getItem("nanaflix_live_match_id")
-        : null;
-    const target = matchParam || savedId;
-
-    if (target) {
+    if (matchParam) {
       const found = liveMatches.find(
         (m) =>
-          m.id === target ||
-          m.title.toLowerCase().includes(target.toLowerCase()),
+          m.id === matchParam ||
+          m.title.toLowerCase().includes(matchParam.toLowerCase()),
       );
       if (found) {
         setSelectedMatch(found);
-      } else {
-        setSelectedMatch((prev) => prev || defaultMatch);
       }
-    } else {
-      setSelectedMatch((prev) => prev || defaultMatch);
     }
 
     const tourParam = searchParams.get("tournament");
@@ -437,7 +414,7 @@ export function LiveFootballClient({
 
     const fhdParam = searchParams.get("fhd");
     setOnlyFhd(fhdParam === "1");
-  }, [liveMatches, searchParams, defaultMatch]);
+  }, [liveMatches, searchParams]);
 
   useEffect(() => {
     setShowMatchRail(false);
@@ -574,8 +551,12 @@ export function LiveFootballClient({
           />
         </div>
       ) : (
-        <div className="rounded-3xl border border-white/10 bg-zinc-900/50 p-12 text-center text-gray-400">
-          Hiện chưa có trận đấu nào được chọn.
+        <div className="rounded-3xl border border-white/10 bg-zinc-900/50 p-8 sm:p-12 text-center text-gray-400 shadow-xl backdrop-blur-sm">
+          <div className="flex flex-col items-center justify-center gap-3 max-w-md mx-auto">
+            <Radio className="w-8 h-8 text-netflix-red animate-pulse" />
+            <p className="text-sm sm:text-base font-bold text-white">Chọn một trận đấu bên dưới để bắt đầu xem trực tiếp</p>
+            <p className="text-xs text-gray-400 leading-relaxed">Hỗ trợ luồng phát Full HD 1080p, bình luận tiếng Việt và nhiều máy chủ tốc độ cao</p>
+          </div>
         </div>
       )}
 

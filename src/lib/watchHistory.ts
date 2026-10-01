@@ -190,7 +190,7 @@ export const saveWatchHistory = (
 
     // Tự động đẩy lên Cloud nếu người dùng đã đăng nhập Google
     if (auth?.currentUser) {
-      saveWatchItemToCloudDebounced(auth.currentUser.uid, newItem, 2000);
+      saveWatchItemToCloudDebounced(auth.currentUser.uid, newItem, 2000, { force: true });
     }
 
     // Ghi nhận lượt xem vào Database để tính Top Trending (debounced 1 lần mỗi phiên xem)
@@ -236,6 +236,7 @@ export const saveWatchProgress = (
     quality?: string;
     category?: string;
   },
+  forceSync?: boolean,
 ): void => {
   if (typeof window === "undefined" || !slug) return;
   try {
@@ -311,9 +312,9 @@ export const saveWatchProgress = (
     );
     window.dispatchEvent(new CustomEvent("watch-history-updated"));
 
-    // Tự động đồng bộ số phút lên Cloud nếu đã đăng nhập Google
+    // Tự động đồng bộ số phút lên Cloud nếu đã đăng nhập Google (debounce 15s + dirty check)
     if (auth?.currentUser) {
-      saveWatchItemToCloudDebounced(auth.currentUser.uid, targetItem, 4000);
+      saveWatchItemToCloudDebounced(auth.currentUser.uid, targetItem, 15000, { force: forceSync });
     }
   } catch (error) {
     console.error("Lỗi lưu tiến trình xem:", error);

@@ -4,19 +4,30 @@ import { useEffect, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "@/components/Toast";
 
-const CHECK_INTERVAL_MS = 60 * 1000; // Check every 60 seconds
+const CHECK_INTERVAL_MS = 3 * 60 * 1000; // Check every 3 minutes
 const STORAGE_KEY = "nanaflix_last_sec_warn_ts";
 
 export function SecurityWarningListener() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const lastWarnedRef = useRef<number>(0);
+  const lastCheckTimeRef = useRef<number>(0);
 
   useEffect(() => {
+    // Không gọi checkSecurityWarning khi Firebase Auth đang hydrate
+    if (loading) return;
+
     let timer: NodeJS.Timeout | null = null;
+    let initialTimer: NodeJS.Timeout | null = null;
     let isCancelled = false;
 
     const checkSecurityWarning = async () => {
+      // Chỉ thực hiện khi tab đang visible
+      if (typeof document !== "undefined" && document.visibilityState !== "visible") {
+        return;
+      }
+
       try {
+        lastCheckTimeRef.current = Date.now();
         const anonymousId = typeof window !== "undefined" ? localStorage.getItem("nanaflix_anon_id") || "" : "";
         const url = new URL("/api/security/warnings", window.location.origin);
         if (user?.uid) {
@@ -71,20 +82,33 @@ export function SecurityWarningListener() {
       }
     };
 
-    // Initial check after a short delay (3s) to not block page load
-    const initialTimer = setTimeout(() => {
+    // Initial check after a short delay (3s) once Auth is hydrated
+    initialTimer = setTimeout(() => {
       checkSecurityWarning();
     }, 3000);
 
-    // Periodic check
+    // Periodic check every 3 minutes
     timer = setInterval(checkSecurityWarning, CHECK_INTERVAL_MS);
+
+    // Khi tab quay lại visible sau thời gian dài (>= 3 phút), thực hiện check
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        const now = Date.now();
+        if (now - lastCheckTimeRef.current >= CHECK_INTERVAL_MS) {
+          checkSecurityWarning();
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       isCancelled = true;
-      clearTimeout(initialTimer);
+      if (initialTimer) clearTimeout(initialTimer);
       if (timer) clearInterval(timer);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [user?.uid]);
+  }, [user?.uid, loading]);
 
   return null;
 }

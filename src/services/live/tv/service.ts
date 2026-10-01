@@ -1,12 +1,8 @@
 import { isBlockedStreamUrl } from "@/services/live/shared/streamHealth";
-import { epgService, EpgProgram, normalizeChannelKey } from "./epgService";
-
-export type { EpgProgram };
 
 // Service cung cấp danh sách kênh truyền hình trực tiếp chuẩn FHD / HD
 // - Kênh VTV sử dụng logo SVG vector chuẩn chính thức từ Đài Truyền hình Việt Nam
 // - Các kênh khác giữ nguyên 100% logo gốc từ nguồn phát (M3U / Official CDN)
-// - Tích hợp lịch phát sóng điện tử EPG (chương trình đang chiếu & tiếp theo)
 
 export interface TvChannel {
   id: string;
@@ -16,9 +12,6 @@ export interface TvChannel {
   fallbackUrl?: string;
   category: string;
   quality: "FHD 1080p" | "HD 720p";
-  currentProgram?: EpgProgram;
-  nextProgram?: EpgProgram;
-  epg?: EpgProgram[];
 }
 
 export interface LiveTvData {
@@ -657,22 +650,6 @@ export const liveTvService = {
         return a.localeCompare(b);
       });
 
-      // Tích hợp Lịch phát sóng điện tử (EPG) cho từng kênh
-      try {
-        const epgMap = await epgService.getEpgData();
-        for (const ch of channelList) {
-          const key = normalizeChannelKey(ch.name) || normalizeChannelKey(ch.id);
-          const channelEpg = epgMap[key];
-          if (channelEpg) {
-            ch.currentProgram = channelEpg.currentProgram;
-            ch.nextProgram = channelEpg.nextProgram;
-            ch.epg = channelEpg.programs;
-          }
-        }
-      } catch {
-        // Fallback im lặng nếu EPG tạm thời không phản hồi
-      }
-
       const data: LiveTvData = {
         updatedAt: new Date().toLocaleTimeString("vi-VN"),
         categories: sortedCategories,
@@ -687,20 +664,6 @@ export const liveTvService = {
 
       return data;
     } catch {
-      // Fallback nếu link lỗi - Nạp EPG cho danh sách kênh xác minh
-      try {
-        const epgMap = await epgService.getEpgData();
-        for (const ch of VERIFIED_CHANNELS) {
-          const key = normalizeChannelKey(ch.name) || normalizeChannelKey(ch.id);
-          const channelEpg = epgMap[key];
-          if (channelEpg) {
-            ch.currentProgram = channelEpg.currentProgram;
-            ch.nextProgram = channelEpg.nextProgram;
-            ch.epg = channelEpg.programs;
-          }
-        }
-      } catch {}
-
       return {
         updatedAt: new Date().toLocaleTimeString("vi-VN"),
         categories: [
@@ -713,7 +676,4 @@ export const liveTvService = {
       };
     }
   },
-
-  getEpgForChannel: epgService.getEpgForChannel,
-  getEpgData: epgService.getEpgData,
 };

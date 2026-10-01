@@ -972,11 +972,18 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       }
       const currentEffectiveDuration = getEffectiveDuration();
       if (movieSlug && activeEpisodeSlug && video.currentTime > 5) {
-        saveWatchProgress(movieSlug, video.currentTime, currentEffectiveDuration, activeEpisodeSlug, {
-          title,
-          poster: posterUrl,
-          episodeName: activeEpisodeName,
-        });
+        saveWatchProgress(
+          movieSlug,
+          video.currentTime,
+          currentEffectiveDuration,
+          activeEpisodeSlug,
+          {
+            title,
+            poster: posterUrl,
+            episodeName: activeEpisodeName,
+          },
+          true // forceSync khi pause
+        );
       }
       if (user?.uid && movieSlug && video.currentTime > 5) {
         lastHandoffSyncRef.current = Date.now();
@@ -1091,7 +1098,8 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
             title,
             poster: posterUrl,
             episodeName: activeEpisodeName,
-          }
+          },
+          true // forceSync khi kết thúc video
         );
       }
       if (movieSlug) {

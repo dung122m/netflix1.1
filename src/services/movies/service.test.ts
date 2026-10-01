@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { movieApi } from "./service";
+import { movieApi, deduplicateServerEpisodes } from "./service";
 
 describe("Nanaflix Movie Browse Pagination & Filter Service", () => {
   // A. /browse?category=hai-huoc&page=1
@@ -211,6 +211,45 @@ describe("Nanaflix Movie Browse Pagination & Filter Service", () => {
     assert.ok(Array.isArray(res.items));
     assert.ok(res.pagination.totalItems >= 0);
     assert.equal(res.pagination.totalPages, Math.max(1, Math.ceil(res.pagination.totalItems / 24)));
+  });
+
+  // R. deduplicateServerEpisodes correctly deduplicates duplicate episodes by slug and name
+  it("R. deduplicateServerEpisodes removes duplicate episodes like tap-14, tap-15 cleanly", () => {
+    const rawEpisodes = [
+      { name: "Tập 13", slug: "tap-13", link_m3u8: "url-13" },
+      { name: "Tập 14", slug: "tap-14", link_m3u8: "url-14-a" },
+      { name: "Tập 14", slug: "tap-14", link_m3u8: "url-14-b" },
+      { name: "Tập 15", slug: "tap-15", link_m3u8: "url-15-a" },
+      { name: "Tập 15", slug: "tap-15", link_m3u8: "url-15-b" },
+      { name: "Tập 16", slug: "tap-16", link_m3u8: "url-16" },
+    ];
+
+    const deduplicated = deduplicateServerEpisodes(rawEpisodes);
+    assert.equal(deduplicated.length, 4, "Must deduplicate from 6 to 4 episodes");
+    assert.deepEqual(
+      deduplicated.map((e) => e.slug),
+      ["tap-13", "tap-14", "tap-15", "tap-16"]
+    );
+    assert.equal(deduplicated[1].link_m3u8, "url-14-a", "Must retain first valid stream");
+  });
+
+  // S. movieApi.getMovieDetail for 'di-giua-troi-ruc-ro' has strictly unique episodes without duplicate keys
+  it("S. getMovieDetail deduplicates episodes for 'di-giua-troi-ruc-ro'", async () => {
+    const detail = await movieApi.getMovieDetail("di-giua-troi-ruc-ro");
+    assert.ok(detail, "Movie detail must exist");
+    const episodes = detail.episodes || detail.movie?.episodes || [];
+    assert.ok(episodes.length > 0, "Must have episode servers");
+
+    for (const srv of episodes) {
+      const serverData = srv.server_data || [];
+      const slugs = serverData.map((e: { slug?: string }) => e.slug);
+      const uniqueSlugs = new Set(slugs);
+      assert.equal(
+        slugs.length,
+        uniqueSlugs.size,
+        `All episode slugs in server '${srv.server_name}' must be strictly unique (found duplicates: ${slugs.length} vs ${uniqueSlugs.size})`
+      );
+    }
   });
 });
 

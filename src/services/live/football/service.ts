@@ -2920,7 +2920,7 @@ export const liveFootballService = {
     try {
       const channelsSet = new Set<string>();
 
-      // 1. LẤY TOÀN BỘ NGUỒN PHÁT TỪ TẤT CẢ DANH SÁCH PLAYLIST M3U VÀ LIVE SPORTS (HAILAB) ĐỒNG THỜI
+      // 1. LẤY TOÀN BỘ NGUỒN PHÁT TỪ TẤT CẢ DANH SÁCH PLAYLIST M3U
       const sources = getFootballM3uSources();
       const m3uFetchPromises = sources.map(async (source) => {
         try {
@@ -2940,15 +2940,12 @@ export const liveFootballService = {
         }
       });
 
-      const [m3uSettled, hailabSettled] = await Promise.allSettled([
-        Promise.allSettled(m3uFetchPromises),
-        fetchHailabStreams(now),
-      ]);
+      const m3uSettled = await Promise.allSettled(m3uFetchPromises);
 
       const rawStreams: RawStreamItem[] = [];
 
       // 2A. PARSE TỪNG DÒNG STREAM TỪ CÁC NGUỒN PLAYLIST M3U
-      const m3uTexts = m3uSettled.status === "fulfilled" ? m3uSettled.value : [];
+      const m3uTexts = m3uSettled;
       for (const res of m3uTexts) {
         if (res.status !== "fulfilled" || !res.value) continue;
         const text = res.value;
@@ -3059,12 +3056,6 @@ export const liveFootballService = {
         }
       }
 
-      // 2B. GỘP CÁC STREAM TỪ NGUỒN HAILAB ĐÃ QUA LỌC CANDIDATE
-      if (hailabSettled.status === "fulfilled" && Array.isArray(hailabSettled.value)) {
-        for (const st of hailabSettled.value) {
-          rawStreams.push(st);
-        }
-      }
 
       // 3. NORMALIZE VÀ GỘP CÁC STREAM TRÙNG TRẬN (DEDUP CHÍNH XÁC THEO IDENTITY)
       const { channels, matches: mergedMatches } = normalizeAndMergeStreams(rawStreams, now);

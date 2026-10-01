@@ -1,5 +1,4 @@
-import React from "react";
-import { movieApi } from "@/services/movieApi";
+import { movieApi, deduplicateServerEpisodes } from "@/services/movieApi";
 import Link from "next/link";
 import {
   buildMovieDescriptionFallback,
@@ -256,17 +255,19 @@ export default async function MovieDetail({
 
   // Chuẩn hóa và làm sạch cấu trúc episodeServers: chỉ giữ các trường thực sự cần thiết cho playback
   // và chuyển tập (name, slug, link_embed, link_m3u8), loại bỏ triệt để các thuộc tính nặng như filename
-  // để giảm tối đa kích thước RSC payload HTML ban đầu.
+  // đồng thời khử trùng lặp tập phim chống lỗi duplicate key từ upstream API.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const episodeServers = (episodes || []).map((srv: any, sIdx: number) => ({
     server_name: srv.server_name || `Server #${sIdx + 1}`,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    server_data: (srv.server_data || []).map((ep: any) => ({
-      name: ep.name || "",
-      slug: ep.slug || "",
-      link_embed: ep.link_embed || "",
-      link_m3u8: ep.link_m3u8 || "",
-    })),
+    server_data: deduplicateServerEpisodes(
+      (srv.server_data || []).map((ep: { name?: string; slug?: string; link_embed?: string; link_m3u8?: string }) => ({
+        name: ep.name || "",
+        slug: ep.slug || "",
+        link_embed: ep.link_embed || "",
+        link_m3u8: ep.link_m3u8 || "",
+      }))
+    ),
   }));
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

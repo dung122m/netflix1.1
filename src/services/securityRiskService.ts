@@ -840,6 +840,7 @@ export async function getActiveSecurityWarning(keys: {
 }): Promise<SecurityWarning | null> {
   const now = Date.now();
   const redis = getSecurityRedis();
+  if (!redis) return null;
 
   const candidates = [
     keys.userId ? `user:${keys.userId}` : null,
@@ -847,16 +848,27 @@ export async function getActiveSecurityWarning(keys: {
     keys.ipHash ? `ip:${keys.ipHash}` : null,
   ].filter(Boolean) as string[];
 
-  for (const k of candidates) {
-    if (redis) {
-      try {
-        const warn = await redis.get<SecurityWarning>(`sec:warn:${k}`);
-        if (warn && warn.expiresAt > now) {
-          return warn;
+  if (candidates.length === 0) return null;
+
+  try {
+    // Kiểm tra song song đồng thời tất cả candidate keys thay vì tuần tự
+    const results = await Promise.all(
+      candidates.map(async (k) => {
+        try {
+          return await redis.get<SecurityWarning>(`sec:warn:${k}`);
+        } catch {
+          return null;
         }
-      } catch {}
+      })
+    );
+
+    // Giữ nguyên thứ tự ưu tiên: user -> anon -> ip
+    for (const warn of results) {
+      if (warn && warn.expiresAt > now) {
+        return warn;
+      }
     }
-  }
+  } catch {}
 
   return null;
 }

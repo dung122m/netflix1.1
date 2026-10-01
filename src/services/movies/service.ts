@@ -57,6 +57,36 @@ function getNguonCGenreSlug(slug?: string): string {
   return NGUONC_GENRE_MAP[slug] || slug;
 }
 
+/**
+ * Khử trùng lặp tập phim trong từng server (Chống lỗi duplicate key tap-14, tap-15 từ upstream API)
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function deduplicateServerEpisodes(serverData: any[]): any[] {
+  if (!Array.isArray(serverData)) return [];
+  const seenKeys = new Set<string>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const uniqueList: any[] = [];
+
+  for (const ep of serverData) {
+    if (!ep) continue;
+    const rawSlug = String(ep.slug || "").trim().toLowerCase();
+    const rawName = String(ep.name || "").trim().toLowerCase();
+    const key = rawSlug || rawName;
+
+    if (!key) {
+      uniqueList.push(ep);
+      continue;
+    }
+
+    if (!seenKeys.has(key)) {
+      seenKeys.add(key);
+      uniqueList.push(ep);
+    }
+  }
+
+  return uniqueList;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function normalizeNguonCMovieDetail(raw: any) {
   if (!raw || !raw.movie) return null;
@@ -87,7 +117,7 @@ function normalizeNguonCMovieDetail(raw: any) {
   const episodes = (movie.episodes || []).map((srv: any, idx: number) => ({
     server_name: srv.server_name || `Server NguonC #${idx + 1}`,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    server_data: (srv.items || []).map((ep: any) => {
+    server_data: deduplicateServerEpisodes((srv.items || []).map((ep: any) => {
       const epName = String(ep.name || "");
       const formattedName = epName.toLowerCase().startsWith("tập") ? epName : `Tập ${epName}`;
       return {
@@ -97,7 +127,7 @@ function normalizeNguonCMovieDetail(raw: any) {
         link_embed: ep.embed || "",
         link_m3u8: "",
       };
-    }),
+    })),
   }));
 
   const castsArr = typeof movie.casts === "string"
@@ -141,6 +171,23 @@ function normalizeNguonCMovieDetail(raw: any) {
   };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function sanitizeMovieDetailEpisodes(result: any): any {
+  if (!result) return result;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const episodeContainers = [result.episodes, result.movie?.episodes].filter(Boolean) as any[][];
+  for (const container of episodeContainers) {
+    if (Array.isArray(container)) {
+      for (const srv of container) {
+        if (srv && Array.isArray(srv.server_data)) {
+          srv.server_data = deduplicateServerEpisodes(srv.server_data);
+        }
+      }
+    }
+  }
+  return result;
+}
+
 // Hàm nội bộ lấy chi tiết phim có multi-tier cache (L1 Memory SWR + L2 Cloudflare KV)
 const fetchMovieDetailInternal = async (
   slug: string,
@@ -152,22 +199,23 @@ const fetchMovieDetailInternal = async (
   if (movieDetailMemoryCache.has(localKey)) {
     const entry = movieDetailMemoryCache.get(localKey)!;
     if (entry.expireAt > now) {
-      return entry.data;
+      return sanitizeMovieDetailEpisodes(entry.data);
     }
     // Trả về dữ liệu đệm ngay lập tức nếu chưa quá hạn stale (0ms)
     if (entry.staleUntil > now) {
       // Revalidate ngầm
       revalidateMovieDetail(slug, source, localKey).catch(() => {});
-      return entry.data;
+      return sanitizeMovieDetailEpisodes(entry.data);
     }
   }
 
   const kvKey = `movie:detail:${slug}:${source || "any"}`;
-  return await cacheService.fetchOrSet(
+  const data = await cacheService.fetchOrSet(
     kvKey,
     () => fetchAndCacheMovieDetail(slug, source, localKey),
     7 * 24 * 60 * 60 // 7 ngày
   );
+  return sanitizeMovieDetailEpisodes(data);
 };
 
 async function revalidateMovieDetail(slug: string, source?: "nguonc" | "ophim", cacheKey?: string) {
@@ -265,6 +313,19 @@ async function fetchAndCacheMovieDetail(slug: string, source?: "nguonc" | "ophim
     }
 
     if (result) {
+      // Khử trùng lặp các tập phim trong từng server của kết quả (Chống lỗi duplicate key từ upstream API)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const episodeContainers = [result.episodes, result.movie?.episodes].filter(Boolean) as any[][];
+      for (const container of episodeContainers) {
+        if (Array.isArray(container)) {
+          for (const srv of container) {
+            if (srv && Array.isArray(srv.server_data)) {
+              srv.server_data = deduplicateServerEpisodes(srv.server_data);
+            }
+          }
+        }
+      }
+
       if (result.movie) {
         if (result.movie.content) {
           result.movie.content = cleanHtmlText(result.movie.content);

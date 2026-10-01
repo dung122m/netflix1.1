@@ -29,13 +29,10 @@ import {
   X,
   LayoutGrid,
   List,
-  ChevronDown,
   RotateCcw,
   Sparkles,
   PictureInPicture2,
   Zap,
-  CalendarDays,
-  ChevronUp,
 } from "lucide-react";
 import { LiveTvData, TvChannel } from "@/services/liveTvService";
 import { useSearchParams } from "next/navigation";
@@ -200,8 +197,6 @@ export function LiveTvClient({
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const [showEpgSchedule, setShowEpgSchedule] = useState(false);
-  const epgActiveItemRef = useRef<HTMLDivElement | null>(null);
 
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -408,21 +403,6 @@ export function LiveTvClient({
     setCurrentPage(1);
   }, [selectedCategory, searchQuery, onlyFhd]);
 
-  // Tự động cuộn đến chương trình đang chiếu (hoặc sắp chiếu) khi mở lịch phát sóng
-  useEffect(() => {
-    if (showEpgSchedule) {
-      const timer = setTimeout(() => {
-        if (epgActiveItemRef.current) {
-          epgActiveItemRef.current.scrollIntoView({
-            behavior: "smooth",
-            block: "center",
-            inline: "nearest",
-          });
-        }
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [showEpgSchedule, selectedTvChannel?.id]);
 
   // Lọc danh sách kênh
   const filteredChannels = useMemo(() => {
@@ -1602,25 +1582,8 @@ export function LiveTvClient({
                 </div>
               </div>
 
-              {/* CỤM NÚT TƯƠNG TÁC (LỊCH PHÁT SÓNG & SAO CHÉP) */}
+              {/* NÚT SAO CHÉP */}
               <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-                {selectedTvChannel.epg && selectedTvChannel.epg.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setShowEpgSchedule((prev) => !prev)}
-                    className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition border cursor-pointer ${
-                      showEpgSchedule
-                        ? "bg-netflix-red text-white border-netflix-red shadow-lg shadow-red-950/60 scale-102"
-                        : "bg-white/10 hover:bg-white/20 text-gray-200 border-white/15"
-                    }`}
-                    title="Xem toàn bộ lịch phát sóng hôm nay"
-                  >
-                    <CalendarDays className="w-3.5 h-3.5 text-amber-400" />
-                    <span className="hidden sm:inline">Lịch phát sóng</span>
-                    {showEpgSchedule ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                  </button>
-                )}
-
                 <button
                   type="button"
                   onClick={handleCopy}
@@ -1636,156 +1599,9 @@ export function LiveTvClient({
               </div>
             </div>
 
-            {/* HÀNG 2: EPG CHƯƠNG TRÌNH ĐANG PHÁT & TIẾP THEO (HIỂN THỊ ĐẦY ĐỦ THÔNG TIN CHI TIẾT) */}
-            {selectedTvChannel.currentProgram ? (
-              (() => {
-                const prog = selectedTvChannel.currentProgram;
-                let remainingText = "";
-                if (prog.endTimestamp) {
-                  const remainingMs = prog.endTimestamp - Date.now();
-                  if (remainingMs > 0) {
-                    const mins = Math.ceil(remainingMs / (60 * 1000));
-                    remainingText = mins > 60 ? `Còn ${Math.floor(mins / 60)}h${mins % 60}p` : `Còn ~${mins} phút`;
-                  }
-                }
-
-                return (
-                  <div className="rounded-xl sm:rounded-2xl bg-gradient-to-r from-zinc-900/90 via-zinc-900/60 to-zinc-900/90 border border-white/10 p-2.5 sm:p-3.5 space-y-2">
-                    {/* Header thông tin: Đang phát sóng + Khung giờ + Thời lượng còn lại */}
-                    <div className="flex items-center justify-between gap-2 flex-wrap">
-                      <div className="flex items-center gap-1.5 text-rose-400">
-                        <span className="relative flex h-2 w-2">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-500 opacity-75" />
-                          <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500" />
-                        </span>
-                        <span className="text-[10.5px] sm:text-xs font-black uppercase tracking-wider">
-                          Đang phát sóng
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-1.5 text-xs font-mono">
-                        <span className="text-gray-300 font-bold">{prog.start} - {prog.end}</span>
-                        {remainingText && (
-                          <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold border border-amber-500/30">
-                            {remainingText}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Tên chương trình đầy đủ & Mô tả */}
-                    <div>
-                      <h3 className="text-xs sm:text-sm md:text-base font-bold text-white leading-snug">
-                        {prog.title}
-                      </h3>
-                      {prog.description && (
-                        <p className="text-[11px] sm:text-xs text-gray-300 mt-1 leading-relaxed">
-                          {prog.description}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Thanh tiến độ phát sóng */}
-                    {prog.progressPercent !== undefined && (
-                      <div className="space-y-1 pt-0.5">
-                        <div className="flex items-center justify-between text-[10px] text-gray-400 font-mono">
-                          <span>Đã phát {prog.progressPercent}%</span>
-                          <span>Kết thúc lúc {prog.end}</span>
-                        </div>
-                        <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-to-r from-rose-500 via-netflix-red to-amber-400 transition-all duration-1000 rounded-full"
-                            style={{ width: `${prog.progressPercent}%` }}
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Chương trình kế tiếp */}
-                    {selectedTvChannel.nextProgram && (
-                      <div className="flex items-center gap-1.5 pt-1.5 border-t border-white/10 text-[11px] sm:text-xs text-gray-400">
-                        <span className="text-gray-500 font-medium shrink-0">Kế tiếp ({selectedTvChannel.nextProgram.start}):</span>
-                        <span className="text-gray-200 font-semibold truncate">{selectedTvChannel.nextProgram.title}</span>
-                      </div>
-                    )}
-                  </div>
-                );
-              })()
-            ) : (
-              <p className="text-[11px] sm:text-xs text-gray-400">Tín hiệu truyền hình trực tuyến độ nét cao</p>
-            )}
+            <p className="text-[11px] sm:text-xs text-gray-400">Tín hiệu truyền hình trực tuyến độ nét cao</p>
           </div>
 
-          {/* EPG TIMELINE PANEL: LỊCH PHÁT SÓNG CHI TIẾT THEO GIỜ */}
-          {showEpgSchedule && selectedTvChannel.epg && selectedTvChannel.epg.length > 0 && (
-            <div className="keep-dark-cinema rounded-2xl sm:rounded-3xl border border-white/15 bg-zinc-950/95 p-3.5 sm:p-5 shadow-2xl backdrop-blur-2xl animate-in fade-in slide-in-from-top-2 duration-200 space-y-3">
-              <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
-                <div className="flex items-center gap-2">
-                  <CalendarDays className="w-4 h-4 text-netflix-red" />
-                  <h3 className="text-xs sm:text-sm font-black text-white">
-                    Lịch phát sóng — {selectedTvChannel.name}
-                  </h3>
-                </div>
-                <span className="text-[11px] text-gray-400 font-mono">
-                  {selectedTvChannel.epg.length} chương trình
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-64 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-zinc-700">
-                {(() => {
-                  const nowMs = Date.now();
-                  const targetLiveId =
-                    selectedTvChannel.epg.find((p) => p.isLiveNow)?.id ||
-                    selectedTvChannel.epg.find((p) => p.startTimestamp > nowMs)?.id ||
-                    selectedTvChannel.epg[0]?.id;
-
-                  return selectedTvChannel.epg.map((prog) => {
-                    const isTarget = prog.id === targetLiveId;
-                    return (
-                      <div
-                        key={prog.id}
-                        ref={isTarget ? epgActiveItemRef : undefined}
-                        className={`p-2.5 rounded-xl border text-left transition-all ${
-                          prog.isLiveNow
-                            ? "bg-red-950/30 border-netflix-red/60 shadow-lg shadow-red-950/40 ring-1 ring-netflix-red"
-                            : "bg-zinc-900/70 border-white/10 hover:border-white/20"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between gap-2 mb-1">
-                          <span
-                            className={`text-[11px] font-mono font-bold ${
-                              prog.isLiveNow
-                                ? "text-netflix-red font-black"
-                                : "text-gray-400"
-                            }`}
-                          >
-                            {prog.start} - {prog.end}
-                          </span>
-                          {prog.isLiveNow && (
-                            <span className="px-1.5 py-0.2 rounded text-[9px] font-black uppercase bg-netflix-red text-white tracking-wider animate-pulse">
-                              ĐANG CHIẾU
-                            </span>
-                          )}
-                        </div>
-                        <p
-                          className={`text-xs font-bold line-clamp-1 ${
-                            prog.isLiveNow ? "text-white" : "text-gray-200"
-                          }`}
-                        >
-                          {prog.title}
-                        </p>
-                        {prog.description && (
-                          <p className="text-[10px] text-gray-400 line-clamp-1 mt-0.5">
-                            {prog.description}
-                          </p>
-                        )}
-                      </div>
-                    );
-                  });
-                })()}
-              </div>
-            </div>
-          )}
 
           {/* KHUNG PHÁT VIDEO PLAYER */}
           <div
@@ -2547,11 +2363,6 @@ export function LiveTvClient({
                           <h3 className="live-channel-title text-[11px] sm:text-xs md:text-sm font-bold sm:font-extrabold text-white group-hover:text-sky-400 transition line-clamp-1 mt-0.5 sm:mt-1 leading-tight w-full">
                             {ch.name}
                           </h3>
-                          {ch.currentProgram && (
-                            <p className="text-[9.5px] text-gray-400 group-hover:text-gray-300 line-clamp-1 w-full mt-0.5">
-                              {ch.currentProgram.title}
-                            </p>
-                          )}
                         </div>
                       );
                     })}
@@ -2590,14 +2401,6 @@ export function LiveTvClient({
                               </div>
                               <div className="flex items-center gap-1.5 text-[9.5px] sm:text-[10px] text-gray-400 truncate">
                                 <span>{ch.category.replace("Kênh ", "")}</span>
-                                {ch.currentProgram && (
-                                  <>
-                                    <span>•</span>
-                                    <span className="text-gray-300 font-medium truncate">
-                                      {ch.currentProgram.title} ({ch.currentProgram.start})
-                                    </span>
-                                  </>
-                                )}
                               </div>
                             </div>
                           </div>
