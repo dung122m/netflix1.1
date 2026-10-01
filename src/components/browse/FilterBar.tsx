@@ -175,13 +175,66 @@ export const FilterBar: React.FC = () => {
     setActiveDropdown((prev) => (prev === group ? null : group));
   };
 
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const buttonRefs = useRef<{ [key in FilterGroup]?: HTMLButtonElement | null }>({});
+  const [dropdownOffset, setDropdownOffset] = useState<{ left?: number; right?: number }>({});
+
+  const updateDropdownPosition = useCallback(() => {
+    if (!activeDropdown || !containerRef.current) return;
+    const btn = buttonRefs.current[activeDropdown];
+    if (!btn) return;
+
+    const containerRect = containerRef.current.getBoundingClientRect();
+    const btnRect = btn.getBoundingClientRect();
+    const isMobile = window.innerWidth < 640;
+
+    // On mobile, wide grid dropdowns (genre, country, year) align to container edge
+    if (isMobile && (activeDropdown === "genre" || activeDropdown === "country" || activeDropdown === "year")) {
+      setDropdownOffset({ left: 0, right: undefined });
+      return;
+    }
+
+    const left = btnRect.left - containerRect.left;
+
+    if (activeDropdown === "sort") {
+      const right = containerRect.right - btnRect.right;
+      setDropdownOffset({ right: Math.max(0, right), left: undefined });
+    } else if (activeDropdown === "year" && left + 320 > containerRect.width) {
+      const right = containerRect.right - btnRect.right;
+      setDropdownOffset({ right: Math.max(0, right), left: undefined });
+    } else {
+      const maxDropdownWidth = (activeDropdown === "genre" || activeDropdown === "country") ? 384 : 240;
+      const maxLeft = Math.max(0, containerRect.width - maxDropdownWidth);
+      setDropdownOffset({ left: Math.max(0, Math.min(left, maxLeft)), right: undefined });
+    }
+  }, [activeDropdown]);
+
+  useEffect(() => {
+    updateDropdownPosition();
+    window.addEventListener("resize", updateDropdownPosition);
+    const scrollEl = scrollContainerRef.current;
+    if (scrollEl) {
+      scrollEl.addEventListener("scroll", updateDropdownPosition, { passive: true });
+    }
+    return () => {
+      window.removeEventListener("resize", updateDropdownPosition);
+      if (scrollEl) scrollEl.removeEventListener("scroll", updateDropdownPosition);
+    };
+  }, [updateDropdownPosition]);
+
   return (
     <div ref={containerRef} className="w-full relative z-40 select-none">
       {/* 1. COMPACT DROPDOWN FILTER BAR (Single Row 44-48px) */}
-      <div className="flex items-center gap-2 sm:gap-2.5 overflow-x-auto sm:overflow-visible [scrollbar-width:none] [&::-webkit-scrollbar]:hidden py-1 flex-nowrap sm:flex-wrap">
+      <div
+        ref={scrollContainerRef}
+        className="flex items-center gap-2 sm:gap-2.5 overflow-x-auto sm:overflow-visible [scrollbar-width:none] [&::-webkit-scrollbar]:hidden py-1 flex-nowrap sm:flex-wrap"
+      >
         
         {/* DROPDOWN 1: LOẠI PHIM */}
         <button
+          ref={(el) => {
+            buttonRefs.current["type"] = el;
+          }}
           type="button"
           onClick={() => toggleDropdown("type")}
           aria-expanded={activeDropdown === "type"}
@@ -208,6 +261,9 @@ export const FilterBar: React.FC = () => {
 
         {/* DROPDOWN 2: THỂ LOẠI */}
         <button
+          ref={(el) => {
+            buttonRefs.current["genre"] = el;
+          }}
           type="button"
           onClick={() => toggleDropdown("genre")}
           aria-expanded={activeDropdown === "genre"}
@@ -234,6 +290,9 @@ export const FilterBar: React.FC = () => {
 
         {/* DROPDOWN 3: QUỐC GIA */}
         <button
+          ref={(el) => {
+            buttonRefs.current["country"] = el;
+          }}
           type="button"
           onClick={() => toggleDropdown("country")}
           aria-expanded={activeDropdown === "country"}
@@ -260,6 +319,9 @@ export const FilterBar: React.FC = () => {
 
         {/* DROPDOWN 4: NĂM PHÁT HÀNH */}
         <button
+          ref={(el) => {
+            buttonRefs.current["year"] = el;
+          }}
           type="button"
           onClick={() => toggleDropdown("year")}
           aria-expanded={activeDropdown === "year"}
@@ -286,6 +348,9 @@ export const FilterBar: React.FC = () => {
 
         {/* DROPDOWN 5: SẮP XẾP */}
         <button
+          ref={(el) => {
+            buttonRefs.current["sort"] = el;
+          }}
           type="button"
           onClick={() => toggleDropdown("sort")}
           aria-expanded={activeDropdown === "sort"}
@@ -339,9 +404,15 @@ export const FilterBar: React.FC = () => {
         )}
       </div>
 
-      {/* 2. ACTIVE DROPDOWN POPUP (Nằm hoàn toàn ngoài container overflow-x-auto, không bao giờ bị cắt trên Mobile) */}
+      {/* 2. ACTIVE DROPDOWN POPUP (Neo chính xác dưới từng nút bấm được chọn) */}
       {activeDropdown && (
-        <div className="absolute top-full left-0 mt-2 z-50 max-w-[calc(100vw-2rem)]">
+        <div
+          className="absolute top-full mt-2 z-50 transition-all duration-150"
+          style={{
+            left: dropdownOffset.left !== undefined ? `${dropdownOffset.left}px` : undefined,
+            right: dropdownOffset.right !== undefined ? `${dropdownOffset.right}px` : undefined,
+          }}
+        >
           {/* POPUP 1: LOẠI PHIM */}
           {activeDropdown === "type" && (
             <div className="w-56 sm:w-60 rounded-2xl bg-zinc-950/98 border border-zinc-700/80 p-2.5 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">

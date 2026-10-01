@@ -50,16 +50,16 @@ interface LiveTvClientProps {
 const INITIAL_PAGE_SIZE = 24;
 
 function getPageNumbers(current: number, total: number): (number | string)[] {
-  if (total <= 7) {
+  if (total <= 5) {
     return Array.from({ length: total }, (_, i) => i + 1);
   }
-  if (current <= 4) {
-    return [1, 2, 3, 4, 5, "...", total];
+  if (current <= 3) {
+    return [1, 2, 3, "...", total];
   }
-  if (current >= total - 3) {
-    return [1, "...", total - 4, total - 3, total - 2, total - 1, total];
+  if (current >= total - 2) {
+    return [1, "...", total - 2, total - 1, total];
   }
-  return [1, "...", current - 1, current, current + 1, "...", total];
+  return [1, "...", current, "...", total];
 }
 
 function getCategoryEmoji(category: string): string {
@@ -1563,110 +1563,157 @@ export function LiveTvClient({
       {selectedTvChannel ? (
         <div ref={playerRef} className="scroll-mt-24 space-y-4 w-full min-w-0">
           {/* HEADER KÊNH ĐANG PHÁT */}
-          <div className="keep-dark-cinema relative rounded-2xl sm:rounded-3xl border border-white/15 bg-gradient-to-b from-zinc-900/95 via-zinc-950/98 to-black p-3 sm:p-4 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-3 backdrop-blur-xl">
-            <div className="flex items-center gap-3 sm:gap-3.5 w-full md:w-auto">
-              {/* LOGO KÊNH */}
-              <div className="w-16 h-11 sm:w-20 sm:h-13 rounded-xl bg-zinc-900/90 border-2 border-white/20 p-1.5 flex items-center justify-center shadow-xl flex-shrink-0 overflow-hidden">
-                <TvChannelLogo
-                  logo={selectedTvChannel.logo}
-                  name={selectedTvChannel.name}
-                />
+          <div className="keep-dark-cinema relative rounded-2xl sm:rounded-3xl border border-white/15 bg-gradient-to-b from-zinc-900/95 via-zinc-950/98 to-black p-3.5 sm:p-4 shadow-2xl space-y-3 backdrop-blur-xl">
+            {/* HÀNG 1: LOGO + TÊN KÊNH + CÁC HUY HIỆU + CỤM NÚT THAO TÁC */}
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0 flex-1">
+                {/* LOGO KÊNH */}
+                <div className="w-12 h-9 sm:w-16 sm:h-11 md:w-20 md:h-13 rounded-xl bg-zinc-900/90 border-2 border-white/20 p-1 sm:p-1.5 flex items-center justify-center shadow-xl flex-shrink-0 overflow-hidden">
+                  <TvChannelLogo
+                    logo={selectedTvChannel.logo}
+                    name={selectedTvChannel.name}
+                  />
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1 sm:gap-1.5 mb-1 flex-wrap">
+                    <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-netflix-red/20 border border-netflix-red/40 text-netflix-red text-[9.5px] sm:text-[10px] font-black animate-pulse whitespace-nowrap">
+                      <Radio className="w-2.5 h-2.5" />
+                      <span>TRỰC TIẾP</span>
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full bg-white/10 border border-white/15 text-gray-300 text-[9.5px] sm:text-[10px] font-bold whitespace-nowrap">
+                      {selectedTvChannel.category}
+                    </span>
+                    <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-[9px] sm:text-[9.5px] font-black uppercase whitespace-nowrap">
+                      <Zap className="w-2.5 h-2.5 fill-emerald-400" />
+                      <span>{selectedTvChannel.quality}</span>
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <h2
+                      className="text-base sm:text-lg md:text-xl font-black text-white keep-white truncate"
+                      style={{ color: "#ffffff" }}
+                      title={selectedTvChannel.name}
+                    >
+                      {selectedTvChannel.name}
+                    </h2>
+                    {isPlaying && <PlayingEqualizer />}
+                  </div>
+                </div>
               </div>
 
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
-                  <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-netflix-red/20 border border-netflix-red/40 text-netflix-red text-[10px] font-black animate-pulse">
-                    <Radio className="w-2.5 h-2.5" />
-                    <span>TRỰC TIẾP</span>
-                  </span>
-                  <span className="px-2 py-0.5 rounded-full bg-white/10 border border-white/15 text-gray-300 text-[10px] font-bold">
-                    {selectedTvChannel.category}
-                  </span>
-                  <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-[9.5px] font-black uppercase">
-                    <Zap className="w-2.5 h-2.5 fill-emerald-400" />
-                    <span>{selectedTvChannel.quality}</span>
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <h2
-                    className="text-base sm:text-xl font-black text-white keep-white truncate"
-                    style={{ color: "#ffffff" }}
+              {/* CỤM NÚT TƯƠNG TÁC (LỊCH PHÁT SÓNG & SAO CHÉP) */}
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+                {selectedTvChannel.epg && selectedTvChannel.epg.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setShowEpgSchedule((prev) => !prev)}
+                    className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition border cursor-pointer ${
+                      showEpgSchedule
+                        ? "bg-netflix-red text-white border-netflix-red shadow-lg shadow-red-950/60 scale-102"
+                        : "bg-white/10 hover:bg-white/20 text-gray-200 border-white/15"
+                    }`}
+                    title="Xem toàn bộ lịch phát sóng hôm nay"
                   >
-                    {selectedTvChannel.name}
-                  </h2>
-                  {isPlaying && <PlayingEqualizer />}
-                </div>
+                    <CalendarDays className="w-3.5 h-3.5 text-amber-400" />
+                    <span className="hidden sm:inline">Lịch phát sóng</span>
+                    {showEpgSchedule ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                  </button>
+                )}
 
-                {/* EPG CHƯƠNG TRÌNH ĐANG PHÁT & TIẾP THEO */}
-                {selectedTvChannel.currentProgram ? (
-                  <div className="mt-1.5 space-y-1">
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2.5 text-xs">
-                      <div className="flex items-center gap-1.5 text-rose-300 font-medium truncate">
-                        <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping flex-shrink-0" />
-                        <span className="font-extrabold text-white flex-shrink-0">Đang phát:</span>
-                        <span className="text-gray-100 font-semibold truncate">{selectedTvChannel.currentProgram.title}</span>
-                        <span className="text-[11px] text-gray-400 font-mono flex-shrink-0">
-                          ({selectedTvChannel.currentProgram.start} - {selectedTvChannel.currentProgram.end})
+                <button
+                  type="button"
+                  onClick={handleCopy}
+                  title="Sao chép link stream HLS"
+                  className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white transition border border-white/10 cursor-pointer"
+                >
+                  {copied ? (
+                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  ) : (
+                    <Copy className="w-3.5 h-3.5" />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* HÀNG 2: EPG CHƯƠNG TRÌNH ĐANG PHÁT & TIẾP THEO (HIỂN THỊ ĐẦY ĐỦ THÔNG TIN CHI TIẾT) */}
+            {selectedTvChannel.currentProgram ? (
+              (() => {
+                const prog = selectedTvChannel.currentProgram;
+                let remainingText = "";
+                if (prog.endTimestamp) {
+                  const remainingMs = prog.endTimestamp - Date.now();
+                  if (remainingMs > 0) {
+                    const mins = Math.ceil(remainingMs / (60 * 1000));
+                    remainingText = mins > 60 ? `Còn ${Math.floor(mins / 60)}h${mins % 60}p` : `Còn ~${mins} phút`;
+                  }
+                }
+
+                return (
+                  <div className="rounded-xl sm:rounded-2xl bg-gradient-to-r from-zinc-900/90 via-zinc-900/60 to-zinc-900/90 border border-white/10 p-2.5 sm:p-3.5 space-y-2">
+                    {/* Header thông tin: Đang phát sóng + Khung giờ + Thời lượng còn lại */}
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <div className="flex items-center gap-1.5 text-rose-400">
+                        <span className="relative flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-500 opacity-75" />
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500" />
+                        </span>
+                        <span className="text-[10.5px] sm:text-xs font-black uppercase tracking-wider">
+                          Đang phát sóng
                         </span>
                       </div>
 
-                      {selectedTvChannel.nextProgram && (
-                        <div className="hidden lg:flex items-center gap-1 text-gray-400 text-xs border-l border-white/15 pl-2.5 truncate">
-                          <span className="text-gray-500 flex-shrink-0">Kế tiếp:</span>
-                          <span className="text-gray-300 truncate">{selectedTvChannel.nextProgram.title}</span>
-                          <span className="text-[11px] text-gray-400 font-mono flex-shrink-0">({selectedTvChannel.nextProgram.start})</span>
-                        </div>
+                      <div className="flex items-center gap-1.5 text-xs font-mono">
+                        <span className="text-gray-300 font-bold">{prog.start} - {prog.end}</span>
+                        {remainingText && (
+                          <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold border border-amber-500/30">
+                            {remainingText}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Tên chương trình đầy đủ & Mô tả */}
+                    <div>
+                      <h3 className="text-xs sm:text-sm md:text-base font-bold text-white leading-snug">
+                        {prog.title}
+                      </h3>
+                      {prog.description && (
+                        <p className="text-[11px] sm:text-xs text-gray-300 mt-1 leading-relaxed">
+                          {prog.description}
+                        </p>
                       )}
                     </div>
 
-                    {/* THANH TIẾN ĐỘ CHƯƠNG TRÌNH */}
-                    {selectedTvChannel.currentProgram.progressPercent !== undefined && (
-                      <div className="w-full max-w-md h-1 bg-white/10 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-gradient-to-r from-netflix-red to-amber-400 transition-all duration-1000 rounded-full"
-                          style={{ width: `${selectedTvChannel.currentProgram.progressPercent}%` }}
-                        />
+                    {/* Thanh tiến độ phát sóng */}
+                    {prog.progressPercent !== undefined && (
+                      <div className="space-y-1 pt-0.5">
+                        <div className="flex items-center justify-between text-[10px] text-gray-400 font-mono">
+                          <span>Đã phát {prog.progressPercent}%</span>
+                          <span>Kết thúc lúc {prog.end}</span>
+                        </div>
+                        <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-rose-500 via-netflix-red to-amber-400 transition-all duration-1000 rounded-full"
+                            style={{ width: `${prog.progressPercent}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Chương trình kế tiếp */}
+                    {selectedTvChannel.nextProgram && (
+                      <div className="flex items-center gap-1.5 pt-1.5 border-t border-white/10 text-[11px] sm:text-xs text-gray-400">
+                        <span className="text-gray-500 font-medium shrink-0">Kế tiếp ({selectedTvChannel.nextProgram.start}):</span>
+                        <span className="text-gray-200 font-semibold truncate">{selectedTvChannel.nextProgram.title}</span>
                       </div>
                     )}
                   </div>
-                ) : (
-                  <p className="text-xs text-gray-400 mt-0.5">Tín hiệu truyền hình trực tuyến độ nét cao</p>
-                )}
-              </div>
-            </div>
-
-            {/* CỤM NÚT TƯƠNG TÁC (LỊCH PHÁT SÓNG & SAO CHÉP) */}
-            <div className="flex items-center gap-2 self-end md:self-center flex-shrink-0">
-              {selectedTvChannel.epg && selectedTvChannel.epg.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setShowEpgSchedule((prev) => !prev)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition border cursor-pointer ${
-                    showEpgSchedule
-                      ? "bg-netflix-red text-white border-netflix-red shadow-lg shadow-red-950/60 scale-102"
-                      : "bg-white/10 hover:bg-white/20 text-gray-200 border-white/15"
-                  }`}
-                  title="Xem lịch phát sóng chi tiết hôm nay"
-                >
-                  <CalendarDays className="w-3.5 h-3.5 text-amber-400" />
-                  <span className="hidden sm:inline">Lịch phát sóng</span>
-                  {showEpgSchedule ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                </button>
-              )}
-
-              <button
-                type="button"
-                onClick={handleCopy}
-                title="Sao chép link stream HLS"
-                className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white transition border border-white/10 cursor-pointer"
-              >
-                {copied ? (
-                  <Check className="w-3.5 h-3.5 text-emerald-400" />
-                ) : (
-                  <Copy className="w-3.5 h-3.5" />
-                )}
-              </button>
-            </div>
+                );
+              })()
+            ) : (
+              <p className="text-[11px] sm:text-xs text-gray-400">Tín hiệu truyền hình trực tuyến độ nét cao</p>
+            )}
           </div>
 
           {/* EPG TIMELINE PANEL: LỊCH PHÁT SÓNG CHI TIẾT THEO GIỜ */}
@@ -2149,18 +2196,18 @@ export function LiveTvClient({
         {/* MOBILE & TABLET (< lg): THANH CUỘN NGANG TABS DANH MỤC */}
         <div className="lg:hidden space-y-3 mb-4">
           <div className="flex items-center justify-between gap-2">
-            <h2 className="text-base font-bold text-white flex items-center gap-1.5">
-              <span>Đài truyền hình</span>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-white/10 text-gray-300 font-semibold">
+            <h2 className="text-sm sm:text-base font-bold text-white flex items-center gap-1.5 min-w-0 shrink">
+              <span className="whitespace-nowrap">Đài truyền hình</span>
+              <span className="text-[11px] sm:text-xs px-2 py-0.5 rounded-full bg-white/10 text-gray-300 font-semibold whitespace-nowrap shrink-0">
                 {filteredChannels.length} kênh
               </span>
             </h2>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
               {/* Lọc FHD */}
               <button
                 type="button"
                 onClick={() => setOnlyFhd((prev) => !prev)}
-                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold transition border cursor-pointer ${
+                className={`flex items-center gap-1 px-2.5 py-1 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition border cursor-pointer whitespace-nowrap ${
                   onlyFhd
                     ? "bg-emerald-600 text-white border-emerald-400"
                     : "bg-zinc-900 text-gray-300 border-white/10 hover:text-white"
@@ -2170,7 +2217,7 @@ export function LiveTvClient({
                 <span>FHD</span>
               </button>
               {/* Grid / List */}
-              <div className="flex items-center p-0.5 rounded-xl bg-zinc-900 border border-white/10">
+              <div className="flex items-center p-0.5 rounded-xl bg-zinc-900 border border-white/10 shrink-0">
                 <button
                   type="button"
                   onClick={() => setViewMode("grid")}
@@ -2573,7 +2620,7 @@ export function LiveTvClient({
                 {/* THANH ĐIỀU HƯỚNG PHÂN TRANG THEO SỐ TRANG (NUMBERED PAGINATION) */}
                 {totalPages > 1 && (
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 pb-2 border-t border-white/10 mt-6">
-                    <div className="text-xs text-gray-400">
+                    <div className="text-xs text-gray-400 text-center sm:text-left">
                       Hiển thị <span className="text-white font-bold">{(safePage - 1) * INITIAL_PAGE_SIZE + 1}</span> -{" "}
                       <span className="text-white font-bold">
                         {Math.min(safePage * INITIAL_PAGE_SIZE, filteredChannels.length)}
@@ -2581,13 +2628,13 @@ export function LiveTvClient({
                       trên tổng số <span className="text-sky-400 font-bold">{filteredChannels.length}</span> kênh
                     </div>
 
-                    <div className="flex items-center gap-1.5 flex-wrap justify-center">
+                    <div className="flex items-center gap-1 sm:gap-1.5 justify-center flex-nowrap">
                       {/* Nút Trang Trước */}
                       <button
                         type="button"
                         disabled={safePage <= 1}
                         onClick={() => handlePageChange(safePage - 1)}
-                        className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold border transition ${
+                        className={`flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold border transition shrink-0 ${
                           safePage <= 1
                             ? "opacity-35 cursor-not-allowed border-white/5 bg-white/[0.02] text-gray-500"
                             : "border-white/10 bg-zinc-900 hover:bg-zinc-800 text-white hover:border-white/25 cursor-pointer shadow-sm active:scale-95"
@@ -2598,11 +2645,11 @@ export function LiveTvClient({
                       </button>
 
                       {/* Các nút số trang */}
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 shrink-0">
                         {getPageNumbers(safePage, totalPages).map((p, idx) => {
                           if (p === "...") {
                             return (
-                              <span key={`dots-${idx}`} className="px-1.5 py-1 text-xs text-gray-500 font-bold">
+                              <span key={`dots-${idx}`} className="px-1 py-1 text-xs text-gray-500 font-bold">
                                 ...
                               </span>
                             );
@@ -2613,7 +2660,7 @@ export function LiveTvClient({
                               key={`page-${p}`}
                               type="button"
                               onClick={() => handlePageChange(Number(p))}
-                              className={`min-w-[32px] h-8 px-2 rounded-xl text-xs font-bold transition border cursor-pointer ${
+                              className={`min-w-[30px] sm:min-w-[32px] h-7 sm:h-8 px-1.5 sm:px-2 rounded-xl text-[11px] sm:text-xs font-bold transition border cursor-pointer shrink-0 ${
                                 isCurrent
                                   ? "bg-sky-600 text-white border-sky-400 shadow-md shadow-sky-950/50 font-black scale-105"
                                   : "border-white/10 bg-zinc-900/90 text-gray-300 hover:text-white hover:bg-zinc-800 hover:border-white/20"
@@ -2630,7 +2677,7 @@ export function LiveTvClient({
                         type="button"
                         disabled={safePage >= totalPages}
                         onClick={() => handlePageChange(safePage + 1)}
-                        className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold border transition ${
+                        className={`flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold border transition shrink-0 ${
                           safePage >= totalPages
                             ? "opacity-35 cursor-not-allowed border-white/5 bg-white/[0.02] text-gray-500"
                             : "border-white/10 bg-zinc-900 hover:bg-zinc-800 text-white hover:border-white/25 cursor-pointer shadow-sm active:scale-95"
