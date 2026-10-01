@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowUpDown, Check, Clock, Star, Flame, Calendar } from "lucide-react";
+import { ArrowUpDown, Check, Clock, Star, Flame, Calendar, Loader2 } from "lucide-react";
 
 const SORT_OPTIONS = [
   { label: "Mới cập nhật", value: "", icon: Clock, iconColor: "text-sky-400" },
@@ -16,6 +16,7 @@ export const SortSelector: React.FC = () => {
   const searchParams = useSearchParams();
   const currentSort = searchParams.get("sort") || "";
   const [isOpen, setIsOpen] = useState(false);
+  const [isPending, startTransition] = useTransition();
   const containerRef = useRef<HTMLDivElement>(null);
 
   const activeOption =
@@ -36,6 +37,11 @@ export const SortSelector: React.FC = () => {
   }, []);
 
   const handleSelect = (value: string) => {
+    setIsOpen(false);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("app:loading-start"));
+    }
+
     const params = new URLSearchParams(searchParams.toString());
     if (value) {
       params.set("sort", value);
@@ -43,8 +49,10 @@ export const SortSelector: React.FC = () => {
       params.delete("sort");
     }
     params.delete("page");
-    router.push(`?${params.toString()}`, { scroll: false });
-    setIsOpen(false);
+
+    startTransition(() => {
+      router.push(`?${params.toString()}`, { scroll: false });
+    });
   };
 
   return (

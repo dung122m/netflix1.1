@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useRef, useCallback, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { movieApi, DEFAULT_GENRES, DEFAULT_COUNTRIES } from "@/services/movieApi";
 import {
@@ -18,6 +18,7 @@ import {
   Clock,
   Star,
   Flame,
+  Loader2,
 } from "lucide-react";
 
 export type FilterGroup = "type" | "genre" | "country" | "year" | "sort";
@@ -50,6 +51,7 @@ export const FilterBar: React.FC = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const containerRef = useRef<HTMLDivElement>(null);
+  const [isPending, startTransition] = useTransition();
 
   const [filters, setFilters] = useState<{
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -67,6 +69,14 @@ export const FilterBar: React.FC = () => {
   });
 
   const [activeDropdown, setActiveDropdown] = useState<FilterGroup | null>(null);
+  const [optimisticParams, setOptimisticParams] = useState<{
+    type?: string;
+    category?: string;
+    country?: string;
+    year?: string;
+    sort?: string;
+  }>({});
+  const [pendingGroup, setPendingGroup] = useState<FilterGroup | "all" | null>(null);
 
   // Sync with movieApi static/cached filters
   useEffect(() => {
@@ -98,17 +108,40 @@ export const FilterBar: React.FC = () => {
     };
   }, []);
 
-  // Current active values from URL search params
-  const currentType = searchParams.get("type") || "";
-  const currentCategory = searchParams.get("category") || "";
-  const currentCountry = searchParams.get("country") || "";
-  const currentYear = searchParams.get("year") || "";
-  const currentSort = searchParams.get("sort") || "";
+  // When searchParams updates, reset optimistic state and pending group
+  useEffect(() => {
+    setOptimisticParams({});
+    setPendingGroup(null);
+  }, [searchParams]);
+
+  // Current active values with optimistic instant feedback
+  const currentType = optimisticParams.type !== undefined ? optimisticParams.type : (searchParams.get("type") || "");
+  const currentCategory = optimisticParams.category !== undefined ? optimisticParams.category : (searchParams.get("category") || "");
+  const currentCountry = optimisticParams.country !== undefined ? optimisticParams.country : (searchParams.get("country") || "");
+  const currentYear = optimisticParams.year !== undefined ? optimisticParams.year : (searchParams.get("year") || "");
+  const currentSort = optimisticParams.sort !== undefined ? optimisticParams.sort : (searchParams.get("sort") || "");
   const currentActor = searchParams.get("actor") || "";
   const currentKeyword = searchParams.get("keyword") || "";
 
-  // Query parameter updating helper
+  // Query parameter updating helper with immediate transition & loading events
   const updateQueryParam = useCallback((key: string, value: string) => {
+    const groupKey = (key === "type" ? "type" : key === "category" ? "genre" : key === "country" ? "country" : key === "year" ? "year" : key === "sort" ? "sort" : null) as FilterGroup | null;
+    
+    // 1. Cập nhật nhãn và trạng thái active ngay lập tức (0ms)
+    setOptimisticParams((prev) => ({
+      ...prev,
+      [key]: value === searchParams.get(key) ? "" : value,
+    }));
+    if (groupKey) {
+      setPendingGroup(groupKey);
+    }
+    setActiveDropdown(null);
+
+    // 2. Kích hoạt thanh tiến trình đỏ đỉnh trang (Top Progress Bar)
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("app:loading-start"));
+    }
+
     const params = new URLSearchParams(searchParams.toString());
     if (!value || params.get(key) === value) {
       params.delete(key);
@@ -117,22 +150,54 @@ export const FilterBar: React.FC = () => {
     }
     params.delete("page");
     const query = params.toString();
-    router.push(query ? `/browse?${query}` : "/browse", { scroll: false });
-    setActiveDropdown(null);
+
+    // 3. Thực hiện chuyển trang không chặn UI bằng useTransition
+    startTransition(() => {
+      router.push(query ? `/browse?${query}` : "/browse", { scroll: false });
+    });
   }, [searchParams, router]);
 
   // Clear single key
   const handleClearKey = useCallback((key: string) => {
+    const groupKey = (key === "type" ? "type" : key === "category" ? "genre" : key === "country" ? "country" : key === "year" ? "year" : key === "sort" ? "sort" : null) as FilterGroup | null;
+    setOptimisticParams((prev) => ({
+      ...prev,
+      [key]: "",
+    }));
+    if (groupKey) {
+      setPendingGroup(groupKey);
+    }
+
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("app:loading-start"));
+    }
+
     const params = new URLSearchParams(searchParams.toString());
     params.delete(key);
     params.delete("page");
     const query = params.toString();
-    router.push(query ? `/browse?${query}` : "/browse", { scroll: false });
+
+    startTransition(() => {
+      router.push(query ? `/browse?${query}` : "/browse", { scroll: false });
+    });
   }, [searchParams, router]);
 
   // Clear all filters
   const handleClearAll = useCallback(() => {
     setActiveDropdown(null);
+    setOptimisticParams({
+      type: "",
+      category: "",
+      country: "",
+      year: "",
+      sort: "",
+    });
+    setPendingGroup("all");
+
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("app:loading-start"));
+    }
+
     const params = new URLSearchParams(searchParams.toString());
     params.delete("type");
     params.delete("category");
@@ -143,7 +208,10 @@ export const FilterBar: React.FC = () => {
     params.delete("keyword");
     params.delete("page");
     const query = params.toString();
-    router.push(query ? `/browse?${query}` : "/browse", { scroll: false });
+
+    startTransition(() => {
+      router.push(query ? `/browse?${query}` : "/browse", { scroll: false });
+    });
   }, [searchParams, router]);
 
   // Resolved display labels
@@ -252,11 +320,15 @@ export const FilterBar: React.FC = () => {
           <span className="truncate max-w-[110px] sm:max-w-none">
             {currentType ? activeTypeName : "Loại phim"}
           </span>
-          <ChevronDown
-            className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 flex-none ${
-              activeDropdown === "type" ? "rotate-180 text-white" : "rotate-0"
-            }`}
-          />
+          {isPending && pendingGroup === "type" ? (
+            <Loader2 className="w-3.5 h-3.5 text-purple-400 animate-spin flex-none" />
+          ) : (
+            <ChevronDown
+              className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 flex-none ${
+                activeDropdown === "type" ? "rotate-180 text-white" : "rotate-0"
+              }`}
+            />
+          )}
         </button>
 
         {/* DROPDOWN 2: THỂ LOẠI */}
@@ -281,11 +353,15 @@ export const FilterBar: React.FC = () => {
           <span className="truncate max-w-[110px] sm:max-w-none">
             {currentCategory ? activeCategoryName : "Thể loại"}
           </span>
-          <ChevronDown
-            className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 flex-none ${
-              activeDropdown === "genre" ? "rotate-180 text-white" : "rotate-0"
-            }`}
-          />
+          {isPending && pendingGroup === "genre" ? (
+            <Loader2 className="w-3.5 h-3.5 text-rose-400 animate-spin flex-none" />
+          ) : (
+            <ChevronDown
+              className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 flex-none ${
+                activeDropdown === "genre" ? "rotate-180 text-white" : "rotate-0"
+              }`}
+            />
+          )}
         </button>
 
         {/* DROPDOWN 3: QUỐC GIA */}
@@ -310,11 +386,15 @@ export const FilterBar: React.FC = () => {
           <span className="truncate max-w-[110px] sm:max-w-none">
             {currentCountry ? activeCountryName : "Quốc gia"}
           </span>
-          <ChevronDown
-            className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 flex-none ${
-              activeDropdown === "country" ? "rotate-180 text-white" : "rotate-0"
-            }`}
-          />
+          {isPending && pendingGroup === "country" ? (
+            <Loader2 className="w-3.5 h-3.5 text-sky-400 animate-spin flex-none" />
+          ) : (
+            <ChevronDown
+              className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 flex-none ${
+                activeDropdown === "country" ? "rotate-180 text-white" : "rotate-0"
+              }`}
+            />
+          )}
         </button>
 
         {/* DROPDOWN 4: NĂM PHÁT HÀNH */}
@@ -339,11 +419,15 @@ export const FilterBar: React.FC = () => {
           <span className="truncate max-w-[110px] sm:max-w-none">
             {currentYear ? currentYear : "Năm"}
           </span>
-          <ChevronDown
-            className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 flex-none ${
-              activeDropdown === "year" ? "rotate-180 text-white" : "rotate-0"
-            }`}
-          />
+          {isPending && pendingGroup === "year" ? (
+            <Loader2 className="w-3.5 h-3.5 text-emerald-400 animate-spin flex-none" />
+          ) : (
+            <ChevronDown
+              className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 flex-none ${
+                activeDropdown === "year" ? "rotate-180 text-white" : "rotate-0"
+              }`}
+            />
+          )}
         </button>
 
         {/* DROPDOWN 5: SẮP XẾP */}
@@ -368,11 +452,15 @@ export const FilterBar: React.FC = () => {
           <span className="truncate max-w-[110px] sm:max-w-none">
             {currentSort ? activeSortName : "Sắp xếp"}
           </span>
-          <ChevronDown
-            className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 flex-none ${
-              activeDropdown === "sort" ? "rotate-180 text-white" : "rotate-0"
-            }`}
-          />
+          {isPending && pendingGroup === "sort" ? (
+            <Loader2 className="w-3.5 h-3.5 text-amber-400 animate-spin flex-none" />
+          ) : (
+            <ChevronDown
+              className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 flex-none ${
+                activeDropdown === "sort" ? "rotate-180 text-white" : "rotate-0"
+              }`}
+            />
+          )}
         </button>
 
         {/* NÚT BỐC QUẺ NHANH */}
@@ -398,7 +486,11 @@ export const FilterBar: React.FC = () => {
             className="h-11 px-3 sm:px-3.5 rounded-xl sm:rounded-2xl border border-dashed border-zinc-700/80 hover:border-rose-500/50 text-gray-400 hover:text-rose-300 hover:bg-rose-950/20 text-xs sm:text-sm font-medium transition-all duration-150 flex items-center gap-1.5 cursor-pointer shadow-sm flex-none outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black"
             title="Xóa tất cả các bộ lọc hiện tại"
           >
-            <RotateCcw className="w-3.5 h-3.5 text-rose-400" />
+            {isPending && pendingGroup === "all" ? (
+              <Loader2 className="w-3.5 h-3.5 text-rose-400 animate-spin" />
+            ) : (
+              <RotateCcw className="w-3.5 h-3.5 text-rose-400" />
+            )}
             <span className="hidden sm:inline">Đặt lại</span>
           </button>
         )}
@@ -679,7 +771,7 @@ export const FilterBar: React.FC = () => {
             <button
               type="button"
               onClick={() => handleClearKey("type")}
-              className="flex-none inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-950/70 border border-purple-500/40 text-purple-200 font-semibold hover:bg-purple-900 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
+              className="flex-none inline-flex items-center gap-1.5 px-3.5 sm:px-3 py-2 sm:py-1 min-h-[40px] sm:min-h-0 rounded-full bg-purple-950/70 border border-purple-500/40 text-purple-200 font-semibold hover:bg-purple-900 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
               title="Nhấn để bỏ lọc loại phim này"
             >
               <span>{activeTypeObj?.emoji} {activeTypeName}</span>
@@ -692,7 +784,7 @@ export const FilterBar: React.FC = () => {
             <button
               type="button"
               onClick={() => handleClearKey("category")}
-              className="flex-none inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-950/70 border border-rose-500/40 text-rose-200 font-semibold hover:bg-rose-900 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
+              className="flex-none inline-flex items-center gap-1.5 px-3.5 sm:px-3 py-2 sm:py-1 min-h-[40px] sm:min-h-0 rounded-full bg-rose-950/70 border border-rose-500/40 text-rose-200 font-semibold hover:bg-rose-900 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
               title="Nhấn để bỏ lọc thể loại này"
             >
               <span>{activeCategoryName}</span>
@@ -705,7 +797,7 @@ export const FilterBar: React.FC = () => {
             <button
               type="button"
               onClick={() => handleClearKey("country")}
-              className="flex-none inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-950/70 border border-sky-500/40 text-sky-200 font-semibold hover:bg-sky-900 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
+              className="flex-none inline-flex items-center gap-1.5 px-3.5 sm:px-3 py-2 sm:py-1 min-h-[40px] sm:min-h-0 rounded-full bg-sky-950/70 border border-sky-500/40 text-sky-200 font-semibold hover:bg-sky-900 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
               title="Nhấn để bỏ lọc quốc gia này"
             >
               <span>{activeCountryName}</span>
@@ -718,7 +810,7 @@ export const FilterBar: React.FC = () => {
             <button
               type="button"
               onClick={() => handleClearKey("year")}
-              className="flex-none inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/70 border border-emerald-500/40 text-emerald-200 font-semibold hover:bg-emerald-900 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
+              className="flex-none inline-flex items-center gap-1.5 px-3.5 sm:px-3 py-2 sm:py-1 min-h-[40px] sm:min-h-0 rounded-full bg-emerald-950/70 border border-emerald-500/40 text-emerald-200 font-semibold hover:bg-emerald-900 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
               title="Nhấn để bỏ lọc năm này"
             >
               <span>Năm {currentYear}</span>
@@ -731,7 +823,7 @@ export const FilterBar: React.FC = () => {
             <button
               type="button"
               onClick={() => handleClearKey("sort")}
-              className="flex-none inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-950/70 border border-amber-500/40 text-amber-200 font-semibold hover:bg-amber-900 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
+              className="flex-none inline-flex items-center gap-1.5 px-3.5 sm:px-3 py-2 sm:py-1 min-h-[40px] sm:min-h-0 rounded-full bg-amber-950/70 border border-amber-500/40 text-amber-200 font-semibold hover:bg-amber-900 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
               title="Nhấn để đưa về sắp xếp mặc định"
             >
               <span>{activeSortName}</span>
@@ -744,7 +836,7 @@ export const FilterBar: React.FC = () => {
             <button
               type="button"
               onClick={() => handleClearKey("actor")}
-              className="flex-none inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-950/70 border border-amber-500/40 text-amber-200 font-semibold hover:bg-amber-900 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
+              className="flex-none inline-flex items-center gap-1.5 px-3.5 sm:px-3 py-2 sm:py-1 min-h-[40px] sm:min-h-0 rounded-full bg-amber-950/70 border border-amber-500/40 text-amber-200 font-semibold hover:bg-amber-900 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
               title="Nhấn để bỏ lọc diễn viên này"
             >
               <span>Diễn viên: {currentActor}</span>
@@ -757,7 +849,7 @@ export const FilterBar: React.FC = () => {
             <button
               type="button"
               onClick={() => handleClearKey("keyword")}
-              className="flex-none inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-950/70 border border-amber-500/40 text-amber-200 font-semibold hover:bg-amber-900 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
+              className="flex-none inline-flex items-center gap-1.5 px-3.5 sm:px-3 py-2 sm:py-1 min-h-[40px] sm:min-h-0 rounded-full bg-amber-950/70 border border-amber-500/40 text-amber-200 font-semibold hover:bg-amber-900 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
               title="Nhấn để bỏ lọc từ khóa này"
             >
               <span>Từ khóa: &quot;{currentKeyword}&quot;</span>

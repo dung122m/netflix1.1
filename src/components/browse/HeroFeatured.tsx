@@ -10,7 +10,12 @@ import {
   Sparkles,
   Volume2,
   VolumeX,
+  Plus,
+  Check,
+  Info,
 } from "lucide-react";
+import { isInWatchlist, toggleWatchlist } from "@/lib/watchlist";
+import { toast } from "@/components/Toast";
 import {
   AnimatePresence,
   motion,
@@ -90,6 +95,20 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
     }
     setIsHeroImageLoaded(false);
   }, [index, currentSlug]);
+
+  const [inWatchlist, setInWatchlist] = useState(false);
+  useEffect(() => {
+    if (currentSlug) {
+      setInWatchlist(isInWatchlist(currentSlug));
+    }
+    const handleSync = () => {
+      if (currentSlug) {
+        setInWatchlist(isInWatchlist(currentSlug));
+      }
+    };
+    window.addEventListener("watchlist-updated", handleSync);
+    return () => window.removeEventListener("watchlist-updated", handleSync);
+  }, [currentSlug]);
 
   // Trailer States (Desktop only, lazy-load 2s, fault-tolerant)
   const [isDesktop, setIsDesktop] = useState(false);
@@ -542,10 +561,30 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
       ? "/default-hero.jpg"
       : toHighResBackdropUrl(backdropFromMovie, targetWidth);
 
+  const handleToggleWatchlist = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!featuredMovie || !featuredMovie.slug) return;
+    const added = toggleWatchlist({
+      slug: featuredMovie.slug,
+      title: title,
+      imageUrl: featuredMovie.imageUrl || featuredMovie.poster_url || featuredMovie.thumb_url || "/default-poster.jpg",
+      year: featuredMovie.year,
+      genre: genresList.join(", "),
+      time: cleanDuration || undefined,
+    });
+    setInWatchlist(added);
+    if (added) {
+      toast.success(`Đã thêm "${title}" vào Danh sách của tôi!`);
+    } else {
+      toast.info(`Đã xóa khỏi Danh sách của tôi.`);
+    }
+  };
+
   return (
     <section
       ref={heroRef}
-      className="hero-cinema-section keep-dark-cinema relative h-[58vh] sm:h-[75vh] md:h-[82vh] min-h-[460px] sm:min-h-[540px] max-h-[850px] w-full overflow-hidden bg-black select-none"
+      className="hero-cinema-section keep-dark-cinema relative h-[68vh] sm:h-[75vh] md:h-[82vh] min-h-[500px] sm:min-h-[540px] max-h-[850px] w-full overflow-hidden bg-black select-none"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onTouchStart={handleTouchStart}
@@ -637,12 +676,12 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
       )}
 
       {/* 2. CÁC LỚP MÀNG GRADIENT ĐIỆN ẢNH SẮC NÉT (CINEMATIC FULL-BLEED GRADIENTS) */}
-      {/* Gradient mờ bên trái che chữ, giữ bên phải ảnh sắc nét */}
-      <div className="absolute inset-y-0 left-0 w-full sm:w-[60%] bg-gradient-to-r from-black/95 via-black/55 to-transparent pointer-events-none z-[1]" />
-      {/* Gradient chân trang chuyển màu êm ái */}
-      <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-black via-black/45 to-transparent pointer-events-none z-[1]" />
+      {/* Gradient mờ bên trái che chữ trên màn hình lớn */}
+      <div className="hidden sm:block absolute inset-y-0 left-0 w-[60%] bg-gradient-to-r from-black/95 via-black/55 to-transparent pointer-events-none z-[1]" />
+      {/* Gradient chân trang chuyển màu êm ái, tối hơn và cao hơn ở mobile để text nổi bật */}
+      <div className="absolute inset-x-0 bottom-0 h-80 sm:h-52 bg-gradient-to-t from-black via-black/90 sm:via-black/50 via-50% to-transparent pointer-events-none z-[1]" />
       {/* Gradient mép trên thanh header */}
-      <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/70 to-transparent pointer-events-none z-[1]" />
+      <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/85 via-black/40 to-transparent pointer-events-none z-[1]" />
 
       {/* 3. NỘI DUNG CHÍNH (TYPOGRAPHY, BADGES & CTA BUTTONS) */}
       <motion.div
@@ -652,17 +691,17 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
         transition={{ duration: 0.45, ease: "easeOut" }}
         className="relative z-10 flex h-full items-end"
       >
-        <div className="w-full px-4 sm:px-8 md:px-16 pb-12 sm:pb-16 md:pb-20">
+        <div className="w-full px-4 sm:px-8 md:px-16 pb-8 sm:pb-16 md:pb-20">
           <div className="mx-auto max-w-7xl">
-            <div className="max-w-3xl space-y-3.5 sm:space-y-4">
+            <div className="max-w-3xl mx-auto sm:mx-0 flex flex-col items-center sm:items-start text-center sm:text-left space-y-3 sm:space-y-4">
               {/* 3.1 TOP BADGE TINH GIẢN */}
               <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-netflix-red/40 bg-netflix-red/20 px-3 py-0.5 text-[11px] sm:text-xs font-bold text-white shadow-sm backdrop-blur-md">
-                  <Sparkles size={12} className="text-netflix-red fill-netflix-red" />
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-netflix-red/40 bg-netflix-red/25 px-2.5 sm:px-3 py-0.5 text-[10px] sm:text-xs font-bold text-white shadow-sm backdrop-blur-md">
+                  <Sparkles size={11} className="text-netflix-red fill-netflix-red" />
                   <span>Nổi bật</span>
                 </span>
                 {heroType && (
-                  <span className="text-[11px] sm:text-xs font-semibold text-zinc-400">
+                  <span className="text-[11px] sm:text-xs font-semibold text-zinc-300">
                     • {heroType}
                   </span>
                 )}
@@ -671,16 +710,16 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
               {/* 3.2 TIÊU ĐỀ PHIM */}
               <h1
                 style={{ color: "#ffffff" }}
-                className="hero-cinema-title text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black leading-[1.08] text-white line-clamp-2 tracking-tight drop-shadow-[0_4px_24px_rgba(0,0,0,0.95)]"
+                className="hero-cinema-title text-2xl sm:text-5xl md:text-6xl lg:text-7xl font-black leading-[1.1] text-white line-clamp-2 tracking-tight drop-shadow-[0_4px_24px_rgba(0,0,0,0.95)]"
               >
                 {title}
               </h1>
 
               {/* 3.3 HÀNG THÔNG TIN TINH GỌN (1 DÒNG DUY NHẤT CHUẨN NETFLIX) */}
-              <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs sm:text-sm font-medium text-zinc-300">
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-2.5 gap-y-1 text-xs sm:text-sm font-medium text-zinc-300">
                 {voteText && (
                   <span className="inline-flex items-center gap-1 text-amber-400 font-bold">
-                    <Star size={13} className="fill-amber-400 text-amber-400" />
+                    <Star size={12} className="fill-amber-400 text-amber-400" />
                     <span>{voteText}</span>
                   </span>
                 )}
@@ -707,7 +746,7 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
                 {featuredMovie?.quality && (
                   <>
                     <span className="text-zinc-600">•</span>
-                    <span className="px-1.5 py-0.2 rounded border border-white/20 bg-white/10 text-[10px] font-bold text-white uppercase tracking-wider">
+                    <span className="px-1.5 py-0.2 rounded border border-white/20 bg-white/10 text-[9px] sm:text-[10px] font-bold text-white uppercase tracking-wider">
                       {featuredMovie.quality}
                     </span>
                   </>
@@ -716,15 +755,15 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
                 {featuredMovie?.lang && (
                   <>
                     <span className="text-zinc-600">•</span>
-                    <span className="text-rose-300/90">{featuredMovie.lang}</span>
+                    <span className="text-rose-300/90 font-medium">{featuredMovie.lang}</span>
                   </>
                 )}
 
                 {heroCountry && (
-                  <>
+                  <span className="hidden sm:inline-flex items-center gap-x-2">
                     <span className="text-zinc-600">•</span>
                     <span className="text-zinc-300">{heroCountry}</span>
-                  </>
+                  </span>
                 )}
               </div>
 
@@ -735,18 +774,60 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
                 </p>
               )}
 
-              {/* 3.5 TÓM TẮT NỘI DUNG (HIỂN THỊ ĐẦY ĐỦ CỐT TRUYỆN ĐIỆN ẢNH) */}
+              {/* 3.5 TÓM TẮT NỘI DUNG (ẨN TRÊN MOBILE NHỎ ĐỂ GIAO DIỆN THOÁNG CHUẨN NETFLIX APP) */}
               {displaySynopsis ? (
                 <p
                   style={{ color: "#d1d5db" }}
-                  className="hero-cinema-desc max-w-2xl sm:max-w-3xl text-xs sm:text-sm md:text-base leading-relaxed text-zinc-300 line-clamp-3 sm:line-clamp-4 md:line-clamp-5 lg:line-clamp-6 drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]"
+                  className="hero-cinema-desc hidden sm:block max-w-2xl sm:max-w-3xl text-xs sm:text-sm md:text-base leading-relaxed text-zinc-300 line-clamp-2 sm:line-clamp-4 md:line-clamp-5 lg:line-clamp-6 drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]"
                 >
                   {displaySynopsis}
                 </p>
               ) : null}
 
-              {/* 3.5 CỤM NÚT HÀNH ĐỘNG (CTA) */}
-              <div className="flex flex-wrap items-center gap-3 pt-2">
+              {/* 3.6 CỤM NÚT HÀNH ĐỘNG (CTA) */}
+              {/* MOBILE SIGNATURE NETFLIX 3-COLUMN ACTION BAR */}
+              <div className="flex sm:hidden items-center justify-between w-full max-w-[340px] pt-2 px-2">
+                {/* NÚT TRÁI: DANH SÁCH CỦA TÔI */}
+                <button
+                  type="button"
+                  onClick={handleToggleWatchlist}
+                  className="flex flex-col items-center justify-center gap-1 text-white active:scale-90 transition-transform cursor-pointer min-w-[64px]"
+                >
+                  {inWatchlist ? (
+                    <Check size={22} className="text-netflix-red" />
+                  ) : (
+                    <Plus size={22} className="text-white" />
+                  )}
+                  <span className="text-[11px] font-medium text-zinc-300">
+                    {inWatchlist ? "Đã lưu" : "Danh sách"}
+                  </span>
+                </button>
+
+                {/* NÚT GIỮA: PHÁT / XEM NGAY */}
+                {featuredMovie?.slug && (
+                  <Link
+                    href={`/movies/${featuredMovie.slug}`}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-white hover:bg-zinc-200 text-black px-7 py-2.5 text-sm font-black transition-all active:scale-95 shadow-[0_4px_20px_rgba(255,255,255,0.25)] cursor-pointer"
+                  >
+                    <Play size={18} fill="black" className="ml-0.5" />
+                    <span>{isTrailerOnly ? "Trailer" : "Phát"}</span>
+                  </Link>
+                )}
+
+                {/* NÚT PHẢI: THÔNG TIN CHI TIẾT */}
+                {featuredMovie?.slug && (
+                  <Link
+                    href={`/movies/${featuredMovie.slug}`}
+                    className="flex flex-col items-center justify-center gap-1 text-white active:scale-90 transition-transform cursor-pointer min-w-[64px]"
+                  >
+                    <Info size={22} className="text-white" />
+                    <span className="text-[11px] font-medium text-zinc-300">Chi tiết</span>
+                  </Link>
+                )}
+              </div>
+
+              {/* DESKTOP CTA BUTTONS */}
+              <div className="hidden sm:flex flex-wrap items-center gap-3 pt-2">
                 {featuredMovie?.slug && (
                   <Link
                     href={`/movies/${featuredMovie.slug}`}
@@ -757,6 +838,24 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
                   </Link>
                 )}
 
+                <button
+                  type="button"
+                  onClick={handleToggleWatchlist}
+                  className="inline-flex items-center gap-2 rounded-2xl border border-white/20 bg-white/10 hover:bg-white/20 text-white px-5 py-3.5 sm:py-4 text-xs sm:text-sm font-bold backdrop-blur-md transition-all hover:scale-105 active:scale-95 cursor-pointer"
+                >
+                  {inWatchlist ? (
+                    <>
+                      <Check size={18} className="text-netflix-red" />
+                      <span>Đã lưu vào danh sách</span>
+                    </>
+                  ) : (
+                    <>
+                      <Plus size={18} />
+                      <span>Danh sách của tôi</span>
+                    </>
+                  )}
+                </button>
+
                 {featuredMovie?.trailer_url && (
                   <TrailerModal
                     trailerUrl={featuredMovie.trailer_url}
@@ -765,9 +864,9 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
                 )}
               </div>
 
-              {/* 3.6 THANH TIẾN TRÌNH AUTO-SLIDE */}
+              {/* 3.7 THANH TIẾN TRÌNH AUTO-SLIDE (DESKTOP ONLY) */}
               {slides.length > 1 && (
-                <div className="pt-3 max-w-sm">
+                <div className="hidden sm:block pt-3 max-w-sm w-full">
                   <div className="h-1 w-full overflow-hidden rounded-full bg-white/15">
                     <motion.div
                       key={`progress-${index}-${paused ? "pause" : "play"}-${isDesktop && currentSlug && !failedTrailerMap[currentSlug] ? "trailer" : "normal"}`}
@@ -815,7 +914,7 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
           </button>
 
           {/* CHẤM CHỈ SỐ PHÂN TRANG (DOTS VỚI TOUCH TARGET CHUẨN 44x44PX) */}
-          <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-center">
+          <div className="absolute bottom-2 sm:bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1 sm:gap-1.5">
             {slides.map((_, i) => (
               <button
                 key={i}
@@ -826,13 +925,13 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
                   setDirection(i > index ? 1 : -1);
                   setIndex(i);
                 }}
-                className="w-11 h-11 flex items-center justify-center cursor-pointer touch-manipulation focus:outline-none"
+                className="p-1 sm:p-2 flex items-center justify-center cursor-pointer touch-manipulation focus:outline-none"
               >
                 <span
-                  className={`h-2 rounded-full transition-all duration-300 block ${
+                  className={`h-1 sm:h-1.5 rounded-full transition-all duration-300 block ${
                     i === index
-                      ? "w-8 bg-netflix-red shadow-[0_0_10px_rgba(229,9,20,0.8)]"
-                      : "w-2 bg-white/40 hover:bg-white/80"
+                      ? "w-6 sm:w-8 bg-netflix-red shadow-[0_0_10px_rgba(229,9,20,0.8)]"
+                      : "w-1.5 sm:w-2 bg-white/30 hover:bg-white/70"
                   }`}
                 />
               </button>

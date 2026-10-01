@@ -1,8 +1,9 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { MediaCard } from "@/components/browse/MediaCard";
 import { normalizeMovie } from "@/lib/movieMedia";
+import { Loader2 } from "lucide-react";
 
 interface MovieGridProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -13,11 +14,12 @@ const INITIAL_BATCH = 8;
 const BATCH_SIZE = 8;
 
 const MovieGridInner = ({ movies }: MovieGridProps) => {
-  const [visibleCount, setVisibleCount] = React.useState(INITIAL_BATCH);
-  const sentinelRef = React.useRef<HTMLDivElement>(null);
+  const [visibleCount, setVisibleCount] = useState(INITIAL_BATCH);
+  const [isDimmed, setIsDimmed] = useState(false);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   // Memoize danh sách phim đã chuẩn hóa để giữ nguyên tham chiếu props của MediaCard
-  const normalizedMovies = React.useMemo(() => {
+  const normalizedMovies = useMemo(() => {
     return (movies || []).map((m) => {
       const norm = normalizeMovie(m);
       const bestThumb = norm.thumbUrl || norm.imageUrl;
@@ -25,13 +27,28 @@ const MovieGridInner = ({ movies }: MovieGridProps) => {
     });
   }, [movies]);
 
-  // Reset batch khi danh sách phim thay đổi (đổi trang, filter)
-  React.useEffect(() => {
+  // Reset batch & tắt dimming khi danh sách phim thay đổi (đổi trang, filter)
+  useEffect(() => {
     setVisibleCount(INITIAL_BATCH);
+    setIsDimmed(false);
   }, [movies]);
 
+  // Lắng nghe sự kiện loading toàn trang hoặc filter để làm mờ nhẹ lưới phim tức thì
+  useEffect(() => {
+    const handleStart = () => setIsDimmed(true);
+    const handleEnd = () => setIsDimmed(false);
+
+    window.addEventListener("app:loading-start", handleStart);
+    window.addEventListener("app:loading-end", handleEnd);
+
+    return () => {
+      window.removeEventListener("app:loading-start", handleStart);
+      window.removeEventListener("app:loading-end", handleEnd);
+    };
+  }, []);
+
   // Observer đón đầu khi cuộn gần cuối danh sách để mount batch tiếp theo
-  React.useEffect(() => {
+  useEffect(() => {
     if (visibleCount >= normalizedMovies.length) return;
 
     const currentSentinel = sentinelRef.current;
@@ -52,14 +69,28 @@ const MovieGridInner = ({ movies }: MovieGridProps) => {
     };
   }, [visibleCount, normalizedMovies.length]);
 
-  const visibleMovies = React.useMemo(() => {
+  const visibleMovies = useMemo(() => {
     return normalizedMovies.slice(0, visibleCount);
   }, [normalizedMovies, visibleCount]);
 
   return (
-    <div className="movie-grid-container rounded-2xl sm:rounded-3xl border border-white/10 p-2 sm:p-5 md:p-6 shadow-2xl space-y-6 overflow-visible">
+    <div className="relative movie-grid-container rounded-2xl sm:rounded-3xl border border-white/10 p-2 sm:p-5 md:p-6 shadow-2xl space-y-6 overflow-visible">
+      {/* FLOATING LOADING BADGE KHI ĐANG LỌC PHIM */}
+      {isDimmed && (
+        <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none">
+          <div className="sticky top-1/2 -translate-y-1/2 flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-zinc-950/95 border border-white/20 shadow-2xl backdrop-blur-xl text-white text-xs font-bold animate-in fade-in zoom-in-95 duration-150">
+            <Loader2 className="w-4 h-4 text-netflix-red animate-spin flex-none" />
+            <span>Đang cập nhật danh sách phim...</span>
+          </div>
+        </div>
+      )}
+
       {/* LƯỚI PHIM CHÍNH: 2 cột trên mobile (<640px), 2 cột trên sm và iPad (md: 768-1023px), 3 cột trên laptop/lg, 4 cột trên PC (xl) */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-5 md:gap-6">
+      <div
+        className={`grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-5 md:gap-6 transition-all duration-300 ${
+          isDimmed ? "opacity-35 blur-[0.6px] scale-[0.995] pointer-events-none select-none" : "opacity-100 blur-0 scale-100"
+        }`}
+      >
         {visibleMovies.map(({ norm, bestThumb }, index) => {
           return (
             <MediaCard

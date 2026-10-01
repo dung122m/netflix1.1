@@ -229,8 +229,8 @@ const NavbarInner: React.FC = () => {
             </button>
           )}
 
-          {/* CỤM 2 TABS NANA AI TRÊN NAVBAR (Ẩn trên màn hình < 360px để tránh tràn header) */}
-          <div className="hidden min-[360px]:flex items-center gap-1.5 sm:gap-2">
+          {/* CỤM 2 TABS NANA AI TRÊN NAVBAR (Chỉ hiển thị trên màn hình md+ để giữ header mobile thoáng đãng) */}
+          <div className="hidden md:flex items-center gap-1.5 sm:gap-2">
             {/* 1. NÚT CHAT & TÌM PHIM NANA AI */}
             <button
               type="button"

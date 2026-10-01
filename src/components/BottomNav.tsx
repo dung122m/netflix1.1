@@ -44,7 +44,7 @@ export function BottomNav() {
     return null;
   }
 
-  const isHome = pathname === "/" || pathname === "/browse";
+  const isHome = pathname === "/";
   const isLive = pathname?.startsWith("/live");
   const isMyList = pathname?.startsWith("/my-list");
 

@@ -157,7 +157,7 @@ export const DesktopReplyPopup: React.FC = () => {
     <div
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
-      className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[9999] max-w-[360px] sm:max-w-[390px] w-[calc(100vw-32px)] bg-zinc-950/98 border border-white/20 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.9)] backdrop-blur-2xl p-3.5 sm:p-4 animate-in fade-in slide-in-from-bottom-5 zoom-in-95 duration-300 select-none group"
+      className="fixed bottom-16 right-4 sm:bottom-6 sm:right-6 md:bottom-4 md:right-4 z-[9999] max-w-[360px] sm:max-w-[390px] w-[calc(100vw-32px)] bg-zinc-950/98 border border-white/20 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.9)] backdrop-blur-2xl p-3.5 sm:p-4 animate-in fade-in slide-in-from-bottom-5 zoom-in-95 duration-300 select-none group"
     >
       {/* HEADER: AVATAR, TITLE & CLOSE BUTTON */}
       <div className="flex items-start justify-between gap-2.5">

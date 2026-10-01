@@ -86,6 +86,21 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
     }
   }, [activeEpisodeIndex, episodes]);
 
+  // Tự động cuộn đến tập phim đang phát khi active episode thay đổi
+  const activeItemRef = React.useRef<HTMLAnchorElement | null>(null);
+  useEffect(() => {
+    if (activeEpisodeSlug && activeItemRef.current) {
+      const scrollTimer = setTimeout(() => {
+        activeItemRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "nearest",
+          inline: "center",
+        });
+      }, 50);
+      return () => clearTimeout(scrollTimer);
+    }
+  }, [activeEpisodeSlug, activeChunk]);
+
   useEffect(() => {
     // Đọc danh sách tập đã xem của phim này
     setWatchedList(getWatchedEpisodes(movieSlug));
@@ -251,6 +266,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
             return (
               <Link
                 key={`${tapSlug}-${tapIdx}`}
+                ref={isActive ? activeItemRef : null}
                 href={`?ep=${tapSlug}`}
                 scroll={false}
                 tabIndex={0}
