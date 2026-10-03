@@ -1290,16 +1290,16 @@ function LivePlayerInner({
         liveMaxLatencyDurationCount: 5,
         maxLiveSyncPlaybackRate: 1.08,
         backBufferLength: 15,
-        maxBufferLength: 12,
-        maxMaxBufferLength: 20,
+        maxBufferLength: 25,
+        maxMaxBufferLength: 40,
         maxBufferSize: 15 * 1000 * 1000,
-        abrEwmaDefaultEstimate: 5_000_000,
+        abrEwmaDefaultEstimate: 2_500_000,
         capLevelToPlayerSize: false,
         startLevel: -1,
         // Cấu hình timeout & retry nhanh để không bắt người dùng chờ lâu khi server chết
         manifestLoadingTimeOut: 4000,
         levelLoadingTimeOut: 4000,
-        fragLoadingTimeOut: 4500,
+        fragLoadingTimeOut: 8000,
         fragLoadingMaxRetry: 2,
         levelLoadingMaxRetry: 2,
         manifestLoadingMaxRetry: 2,
@@ -1446,23 +1446,26 @@ function LivePlayerInner({
       hls.on(Hls.Events.ERROR, (_, data) => {
         if (isStoppedRef.current) return;
 
-        // Bắt lỗi HTTP 404, 403, 5xx từ response mạng
-        const httpStatus = data.response?.code;
-        if (
-          typeof httpStatus === "number" &&
-          (httpStatus === 404 || httpStatus === 403 || httpStatus >= 500)
-        ) {
-          executeServerFallback(`lỗi HTTP ${httpStatus}`);
-          return;
-        }
-
         // Bắt lỗi manifest không tồn tại hoặc parse lỗi nghiêm trọng
         if (
           data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR ||
           data.details === Hls.ErrorDetails.MANIFEST_LOAD_TIMEOUT ||
           data.details === Hls.ErrorDetails.MANIFEST_PARSING_ERROR
         ) {
-          executeServerFallback("không tải được luồng phát (m3u8)");
+          const httpStatus = data.response?.code;
+          const reason = httpStatus ? `lỗi HTTP ${httpStatus}` : "không tải được luồng phát (m3u8)";
+          executeServerFallback(reason);
+          return;
+        }
+
+        // Bắt lỗi HTTP 404, 403, 5xx nghiêm trọng ở cấp độ manifest/level hoặc khi lỗi đã fatal
+        const httpStatus = data.response?.code;
+        if (
+          typeof httpStatus === "number" &&
+          (httpStatus === 404 || httpStatus === 403 || httpStatus >= 500) &&
+          (data.fatal || data.details === Hls.ErrorDetails.LEVEL_LOAD_ERROR)
+        ) {
+          executeServerFallback(`lỗi HTTP ${httpStatus}`);
           return;
         }
 

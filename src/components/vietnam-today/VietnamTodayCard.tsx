@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { ArrowRight, Sparkles, Calendar } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, Sparkles, Play } from "lucide-react";
 import { VietnamTodayInfo } from "@/lib/vietnamCalendar";
 import { VietnamEvent } from "@/data/events/types";
 import { VietnamEventEffect } from "./VietnamEventEffect";
@@ -15,6 +16,13 @@ import {
 import { VietnamEventPatternLayer } from "./VietnamEventPatternLayer";
 
 export function getEventActionLabel(event: VietnamEvent): string {
+  if (event.relatedLabel) {
+    return event.relatedLabel;
+  }
+  if (event.actorName || event.id.startsWith("ev-actor-birthday")) {
+    return `Xem phim của ${event.actorName || "diễn viên"}`;
+  }
+
   switch (event.nature) {
     case "official-holiday":
       return "Tìm hiểu ngày đại lễ";
@@ -27,7 +35,7 @@ export function getEventActionLabel(event: VietnamEvent): string {
     case "social-observance":
       return "Tìm hiểu ý nghĩa ngày kỷ niệm";
     case "arts-culture":
-      return "Khám phá nét đẹp văn hóa";
+      return "Khám phá nét đẹp văn hóa & điện ảnh";
     case "theme-day":
       return "Khám phá ngày chủ đề";
     default:
@@ -46,6 +54,8 @@ export function getEventActionLabel(event: VietnamEvent): string {
       return "Tìm hiểu ý nghĩa ngày này";
     case "social-family":
       return "Tìm hiểu ý nghĩa ngày kỷ niệm";
+    case "entertainment":
+      return "Khám phá kho phim";
     default:
       return "Tìm hiểu chi tiết sự kiện";
   }
@@ -60,7 +70,10 @@ export function getEventTabBadge(event: VietnamEvent): { label: string; emoji: s
   const title = event.title.toLowerCase();
 
   let emoji = "✨";
-  if (id.includes("cao-tuoi") || title.includes("cao tuổi")) emoji = "👴";
+  if (id.startsWith("ev-actor-birthday") || title.includes("sinh nhật")) emoji = "🎂";
+  else if (id.includes("dien-anh") || title.includes("điện ảnh") || title.includes("chiếu bóng")) emoji = "🎬";
+  else if (id.includes("hoat-hinh") || title.includes("hoạt hình")) emoji = "🎨";
+  else if (id.includes("cao-tuoi") || title.includes("cao tuổi")) emoji = "👴";
   else if (id.includes("ca-phe") || title.includes("cà phê")) emoji = "☕";
   else if (id.includes("phu-nu") || title.includes("phụ nữ")) emoji = "🌸";
   else if (id.includes("nha-giao") || id.includes("thay-co") || title.includes("nhà giáo")) emoji = "📚";
@@ -77,6 +90,7 @@ export function getEventTabBadge(event: VietnamEvent): { label: string; emoji: s
   else if (id.includes("doanh-nhan") || title.includes("doanh nhân")) emoji = "💼";
   else if (id.includes("nong-dan") || title.includes("nông dân")) emoji = "🌾";
   else if (id.includes("thanh-nien") || title.includes("thanh niên")) emoji = "⚡";
+  else if (event.nature === "arts-culture" || event.category === "entertainment") emoji = "🎭";
 
   const label = getCleanEventTitle(event.title);
   return { label, emoji };
@@ -136,8 +150,8 @@ export function VietnamTodayCard({ info, selectedEventId, onOpenModal }: Vietnam
   }, [currentInfo]);
 
   const bgImageUrl = React.useMemo(() => {
-    return isDedicated ? getVietnamEventBackground(currentInfo) : null;
-  }, [currentInfo, isDedicated]);
+    return getVietnamEventBackground(currentInfo);
+  }, [currentInfo]);
 
   const patternTheme = React.useMemo(() => {
     return getVietnamEventPatternTheme(currentInfo);
@@ -193,9 +207,9 @@ export function VietnamTodayCard({ info, selectedEventId, onOpenModal }: Vietnam
       aria-label={`Sự kiện ${cleanTitle}, bấm để xem chi tiết`}
       className={`group relative w-full min-h-[185px] sm:min-h-[200px] md:min-h-[220px] h-auto rounded-2xl sm:rounded-3xl overflow-hidden cursor-pointer select-none transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-amber-500/50 border ${holidayBorderClass}`}
     >
-      {/* 1. BACKGROUND IMAGE (ONLY FOR DEDICATED EVENTS) OR THEMATIC GRADIENT */}
-      <div className="absolute inset-0 z-0 overflow-hidden">
-        {isDedicated && !imageError && bgImageUrl ? (
+      {/* 1. BACKGROUND IMAGE OR THEMATIC GRADIENT */}
+      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+        {!imageError && bgImageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             key={bgImageUrl}
@@ -206,7 +220,7 @@ export function VietnamTodayCard({ info, selectedEventId, onOpenModal }: Vietnam
               setImageError(true);
               e.currentTarget.style.display = "none";
             }}
-            className="w-full h-full object-cover object-center filter brightness-[0.45] contrast-105 transition-transform duration-700 ease-out group-hover:scale-105"
+            className="w-full h-full object-cover object-center opacity-30 filter brightness-[0.40] contrast-110 transition-transform duration-700 ease-out group-hover:scale-105 motion-reduce:transform-none"
           />
         ) : (
           <div className={`w-full h-full bg-gradient-to-r ${themeConfig.gradient} opacity-95`} />
@@ -264,12 +278,25 @@ export function VietnamTodayCard({ info, selectedEventId, onOpenModal }: Vietnam
               </p>
             </div>
 
-            {/* ACTION BUTTON (Single CTA) */}
+            {/* ACTION BUTTON (Single CTA with direct link when available) */}
             <div className="flex items-center gap-3 pt-2">
-              <span className="inline-flex items-center gap-2 px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-semibold bg-amber-500/15 group-hover:bg-amber-500/25 border border-amber-500/30 group-hover:border-amber-400/60 text-amber-300 group-hover:text-amber-200 backdrop-blur-md shadow-sm transition-all duration-300 group-hover:shadow-[0_0_16px_rgba(245,158,11,0.25)]">
-                <span>{getEventActionLabel(event)}</span>
-                <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-1" />
-              </span>
+              {event.relatedLink ? (
+                <Link
+                  href={event.relatedLink}
+                  onClick={(e) => e.stopPropagation()}
+                  aria-label={getEventActionLabel(event)}
+                  className="inline-flex items-center gap-2 px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-bold bg-gradient-to-r from-red-600 via-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white border border-amber-400/40 shadow-lg shadow-red-950/40 backdrop-blur-md transition-all duration-300 hover:scale-[1.03] active:scale-95 cursor-pointer z-10"
+                >
+                  <Play className="w-3.5 h-3.5 fill-white text-white" />
+                  <span>{getEventActionLabel(event)}</span>
+                  <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-1" />
+                </Link>
+              ) : (
+                <span className="inline-flex items-center gap-2 px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-semibold bg-amber-500/15 group-hover:bg-amber-500/25 border border-amber-500/30 group-hover:border-amber-400/60 text-amber-300 group-hover:text-amber-200 backdrop-blur-md shadow-sm transition-all duration-300 group-hover:shadow-[0_0_16px_rgba(245,158,11,0.25)]">
+                  <span>{getEventActionLabel(event)}</span>
+                  <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-1" />
+                </span>
+              )}
             </div>
 
             {/* MOBILE THEMATIC COMPACT VISUAL / QUOTE (< 768px - Placed below CTA) */}
@@ -288,8 +315,17 @@ export function VietnamTodayCard({ info, selectedEventId, onOpenModal }: Vietnam
               <div className="absolute -top-8 -right-8 w-24 h-24 bg-amber-500/10 rounded-full blur-xl pointer-events-none" />
               
               <div className="flex items-start gap-3.5">
-                <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-amber-500/15 border border-amber-400/30 flex items-center justify-center text-2xl shadow-inner">
-                  {currentBadge.emoji}
+                <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-amber-500/15 border border-amber-400/30 flex items-center justify-center text-2xl shadow-inner overflow-hidden">
+                  {event.imageUrl && (event.actorSlug || event.id.startsWith("ev-actor-birthday")) ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={event.imageUrl}
+                      alt={event.actorName || cleanTitle}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    currentBadge.emoji
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-[11px] uppercase tracking-wider font-bold text-amber-400/90 mb-1 flex items-center gap-1.5">

@@ -24,6 +24,7 @@ import { VietnamTodayInfo } from "@/lib/vietnamCalendar";
 import { VietnamEventEffect } from "./VietnamEventEffect";
 import { VietnamFlagIcon } from "./VietnamFlagIcon";
 import { useBodyScrollLock } from "@/lib/scrollLock";
+import { getVietnamEventBackground } from "@/lib/vietnamEventBackgrounds";
 
 // Lazy-load historical SVG visual scenes to prevent blocking initial modal render
 const HistoricalVisual = dynamic(
@@ -123,6 +124,10 @@ export function VietnamTodayModal({
 
   const currentEvent = events.find((e) => e.id === activeId) || events[0] || info.event;
   const accentGradient = currentEvent.accentGradient || "from-amber-600/30 via-red-600/20 to-zinc-950";
+  const modalHeroBg = getVietnamEventBackground({
+    event: currentEvent,
+    historicalEventsToday: historicalEvents,
+  });
 
   const currentHist =
     historicalEvents.find((h) => h.id === selectedHistId) || historicalEvents[0];
@@ -199,11 +204,11 @@ export function VietnamTodayModal({
           <>
             {/* HERO HEADER WITH IMAGE OR AMBIENT GRADIENT */}
             <div className="relative h-44 sm:h-56 w-full overflow-hidden flex-shrink-0 bg-zinc-900">
-              {!imageError && currentEvent.imageUrl ? (
+              {!imageError && modalHeroBg ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  key={currentEvent.imageUrl}
-                  src={currentEvent.imageUrl}
+                  key={modalHeroBg}
+                  src={modalHeroBg}
                   alt=""
                   aria-hidden="true"
                   loading="lazy"

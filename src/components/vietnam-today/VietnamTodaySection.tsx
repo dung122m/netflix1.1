@@ -52,6 +52,7 @@ export function VietnamTodaySection() {
                   <button
                     key={ev.id}
                     type="button"
+                    role="tab"
                     tabIndex={0}
                     onClick={() => setSelectedEventId(ev.id)}
                     onKeyDown={(e) => {

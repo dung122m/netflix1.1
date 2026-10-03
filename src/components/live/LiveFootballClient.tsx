@@ -9,6 +9,7 @@ import {
   getStreamHealthStatus,
 } from "@/services/liveFootballService";
 import { clearProbeQueue } from "@/services/live/football/clientSourceProbe";
+import { isRawNumericOrArtifactTournament } from "@/data/live/teamAssets";
 import { LivePlayer } from "./LivePlayer";
 import { MatchCard } from "./MatchCard";
 import {
@@ -134,18 +135,38 @@ export function LiveFootballClient({
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Luôn đồng bộ selectedMatch với bản ghi mới nhất trong liveMatches khi người dùng đã chọn trận
+  // Tránh tạo reference mới cho servers khi polling nếu link phát không thay đổi, bảo vệ HLS player không bị re-create
   useEffect(() => {
     if (!selectedMatch) return;
     const updated = liveMatches.find((m) => m.id === selectedMatch.id);
-    if (
-      updated &&
-      (updated.homeLogo !== selectedMatch.homeLogo ||
-        updated.awayLogo !== selectedMatch.awayLogo ||
-        updated.logo !== selectedMatch.logo ||
-        updated.timeline !== selectedMatch.timeline ||
-        updated.servers !== selectedMatch.servers)
-    ) {
+    if (!updated) return;
+
+    const isServersChanged =
+      (updated.servers?.length || 0) !== (selectedMatch.servers?.length || 0) ||
+      updated.servers?.some(
+        (s, i) =>
+          s.url !== selectedMatch.servers?.[i]?.url ||
+          s.name !== selectedMatch.servers?.[i]?.name
+      );
+
+    const isMetadataChanged =
+      updated.homeLogo !== selectedMatch.homeLogo ||
+      updated.awayLogo !== selectedMatch.awayLogo ||
+      updated.logo !== selectedMatch.logo ||
+      updated.timeline !== selectedMatch.timeline ||
+      updated.title !== selectedMatch.title ||
+      updated.time !== selectedMatch.time;
+
+    if (isServersChanged) {
       setSelectedMatch(updated);
+    } else if (isMetadataChanged) {
+      setSelectedMatch((prev) => {
+        if (!prev) return updated;
+        return {
+          ...updated,
+          servers: prev.servers,
+        };
+      });
     }
   }, [liveMatches, selectedMatch]);
 
@@ -367,7 +388,10 @@ export function LiveFootballClient({
     allVisibleMatches.forEach((m) => {
       if (m.tournament && m.tournament.trim()) {
         const t = m.tournament.trim();
-        map.set(t, (map.get(t) || 0) + 1);
+        // Bỏ qua các chuỗi số thuần túy hoặc artifact không có chữ cái (ví dụ "23", "🌵 23", "❖ 22") do tách nhầm giờ/kênh từ raw feed
+        if (!isRawNumericOrArtifactTournament(t)) {
+          map.set(t, (map.get(t) || 0) + 1);
+        }
       }
     });
     return Array.from(map.entries())
@@ -382,6 +406,7 @@ export function LiveFootballClient({
         ch &&
         !ch.includes(";") &&
         !["Undefined", "General", "Shop", "Kids", "Education"].includes(ch) &&
+        !isRawNumericOrArtifactTournament(ch) &&
         allVisibleMatches.some(
           (m) => m.group === ch || m.groups?.includes(ch),
         ),

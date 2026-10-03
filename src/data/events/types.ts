@@ -70,5 +70,9 @@ export interface VietnamEvent {
   tag?: string | null;
   imageUrl?: string | null;
   accentGradient?: string | null;
+  relatedLink?: string | null;
+  relatedLabel?: string | null;
+  actorSlug?: string | null;
+  actorName?: string | null;
 }
 

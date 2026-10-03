@@ -11,6 +11,7 @@ import { TmdbTopTrending } from "@/components/TmdbTopTrending";
 import { CommunityTopTrending } from "@/components/CommunityTopTrending";
 import { ForYouPersonalizedRow } from "@/components/ForYouPersonalizedRow";
 import { VietnamTodaySection } from "@/components/vietnam-today/VietnamTodaySection";
+import { TonightNanaflixWidget } from "@/components/tonight/TonightNanaflixWidget";
 
 const HeroFeatured = dynamic(() =>
   import("@/components/browse/HeroFeatured").then(
@@ -310,6 +311,11 @@ export default async function HomePage({
 
       {/* TIẾP TỤC XEM: Hiển thị ngay trên trang chủ khi có lịch sử */}
       <ContinueWatchingRow />
+
+      {/* 🌙 ĐÊM NAY NANAFLIX (DYNAMIC DAY/TIME MOOD SPOTLIGHT WIDGET) */}
+      <div className="px-4 md:px-8 mt-3 sm:mt-5">
+        <TonightNanaflixWidget />
+      </div>
 
       {/* BỘ LỌC PHIM CHI TIẾT */}
       <div className="px-4 md:px-8 mt-4 sm:mt-8">

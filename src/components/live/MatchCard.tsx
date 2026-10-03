@@ -3,7 +3,11 @@
 import React, { useState, useMemo } from "react";
 import { Play } from "lucide-react";
 import { FootballMatch } from "@/services/liveFootballService";
-import { getTeamAsset, getTeamInitials } from "@/data/live/teamAssets";
+import {
+  getTeamAsset,
+  getTeamInitials,
+  isRawNumericOrArtifactTournament,
+} from "@/data/live/teamAssets";
 
 interface MatchCardProps {
   match: FootballMatch;
@@ -97,7 +101,7 @@ function CountryFlag({ emoji, className = "" }: { emoji: string; className?: str
   );
 }
 
-/** SVG shield icon fallback khi không có logo đội */
+/** Fallback hiển thị chữ viết tắt của CLB / ĐTQG khi không có logo */
 function TeamLogoFallback({
   initials,
   color = "rose",
@@ -105,47 +109,26 @@ function TeamLogoFallback({
   initials: string;
   color?: "rose" | "sky";
 }) {
-  const strokeColor = color === "sky" ? "#38bdf8" : "#fb7185";
-  const textColor = color === "sky" ? "#7dd3fc" : "#fda4af";
+  const isSky = color === "sky";
+  const displayInitials = initials && initials.trim() ? initials.trim() : "⚽";
   return (
-    <svg
-      viewBox="0 0 48 52"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className="w-full h-full"
-      aria-hidden="true"
+    <div
+      className={`w-full h-full rounded-xl flex items-center justify-center font-black select-none border transition-all ${
+        isSky
+          ? "bg-sky-950/60 border-sky-500/40 text-sky-300 shadow-sm"
+          : "bg-rose-950/60 border-rose-500/40 text-rose-300 shadow-sm"
+      }`}
     >
-      {/* Shield shape */}
-      <path
-        d="M24 2L4 10v16c0 12 8.5 22.5 20 26 11.5-3.5 20-14 20-26V10L24 2z"
-        fill={color === "sky" ? "rgba(56,189,248,0.10)" : "rgba(251,113,133,0.10)"}
-        stroke={strokeColor}
-        strokeWidth="1.5"
-        strokeLinejoin="round"
-      />
-      {/* Decorative inner line */}
-      <path
-        d="M24 6L7 13v13c0 10 7 19 17 22 10-3 17-12 17-22V13L24 6z"
-        fill="none"
-        stroke={strokeColor}
-        strokeWidth="0.5"
-        strokeOpacity="0.4"
-        strokeLinejoin="round"
-      />
-      {/* Team initials */}
-      <text
-        x="24"
-        y="31"
-        textAnchor="middle"
-        fill={textColor}
-        fontSize={initials.length > 2 ? "10" : "13"}
-        fontWeight="900"
-        fontFamily="system-ui, sans-serif"
-        letterSpacing="1"
+      <span
+        className={`tracking-wider ${
+          displayInitials.length > 2
+            ? "text-[10px] sm:text-[11px]"
+            : "text-xs sm:text-sm font-extrabold"
+        }`}
       >
-        {initials}
-      </text>
-    </svg>
+        {displayInitials}
+      </span>
+    </div>
   );
 }
 
@@ -226,7 +209,7 @@ function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
   // Tổng hợp tên các đài phát (COLA TV, Gà Vàng...)
   const displayGroups =
     match.groups && match.groups.length > 0
-      ? match.groups.map((g) => g.replace(/^[🔴🟢🟡⚪🟠\s]+/, "").trim())
+      ? match.groups.map((g: string) => g.replace(/^[🔴🟢🟡⚪🟠\s]+/, "").trim())
       : [match.group.replace(/^[🔴🟢🟡⚪🟠\s]+/, "").trim()];
 
   const primaryGroup = displayGroups[0] || match.group;
@@ -256,7 +239,13 @@ function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
       <div className="flex items-center justify-between gap-2 mb-2 relative z-10 w-full min-w-0">
         <div className="flex items-center gap-1.5 min-w-0 flex-1">
           <span className="text-[10px] sm:text-[11px] text-gray-400 font-semibold truncate flex items-center gap-1">
-            <span>{match.tournament && match.tournament !== "Kênh Thể Thao 24/7" ? match.tournament : "🏆 Trực Tiếp Thể Thao"}</span>
+            <span>
+              {match.tournament &&
+              match.tournament !== "Kênh Thể Thao 24/7" &&
+              !isRawNumericOrArtifactTournament(match.tournament)
+                ? match.tournament
+                : "🏆 Trực Tiếp Thể Thao"}
+            </span>
           </span>
         </div>
 
@@ -354,7 +343,7 @@ function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
               )}
             </div>
             <span
-              className="mt-1.5 text-xs sm:text-[13px] font-extrabold text-white line-clamp-2 leading-snug group-hover:text-rose-400 transition-colors duration-200 w-full px-0.5 break-words text-center"
+              className="mt-1.5 text-xs sm:text-[13px] font-extrabold text-white truncate leading-snug group-hover:text-rose-400 transition-colors duration-200 w-full px-0.5 block text-center"
               title={match.team1}
             >
               {match.team1}
@@ -405,7 +394,7 @@ function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
               )}
             </div>
             <span
-              className="mt-1.5 text-xs sm:text-[13px] font-extrabold text-white line-clamp-2 leading-snug group-hover:text-sky-400 transition-colors duration-200 w-full px-0.5 break-words text-center"
+              className="mt-1.5 text-xs sm:text-[13px] font-extrabold text-white truncate leading-snug group-hover:text-sky-400 transition-colors duration-200 w-full px-0.5 block text-center"
               title={match.team2 || "Đối thủ"}
             >
               {match.team2 || "Đối thủ"}
@@ -427,7 +416,7 @@ function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
                 {(() => {
                   const rawBlvs = match.blv
                     .split(",")
-                    .map((b) => b.trim().replace(/^(?:blv|bình luận viên)\s+/i, ""))
+                    .map((b: string) => b.trim().replace(/^(?:blv|bình luận viên)\s+/i, ""))
                     .filter(Boolean);
                   if (rawBlvs.length === 0) return primaryGroup;
                   if (rawBlvs.length <= 2) return `BLV ${rawBlvs.join(", ")}`;

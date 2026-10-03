@@ -534,9 +534,9 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
 
   const slideVariants = reduceMotion
     ? {
-        enter: { opacity: 0 },
-        center: { opacity: 1 },
-        exit: { opacity: 0 },
+        enter: { opacity: 0, x: 0, scale: 1 },
+        center: { opacity: 1, x: 0, scale: 1 },
+        exit: { opacity: 0, x: 0, scale: 1 },
       }
     : {
         enter: (dir: number) => ({
@@ -650,8 +650,13 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
               height: "max(100cqh, 56.25cqw)",
               minWidth: "100%",
               minHeight: "100%",
+              transform: "translate3d(-50%, -50%, 0) scale(1.12)",
+              WebkitTransform: "translate3d(-50%, -50%, 0) scale(1.12)",
+              backfaceVisibility: "hidden",
+              WebkitBackfaceVisibility: "hidden",
+              outline: "none",
             }}
-            className="notranslate absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 scale-[1.12] max-w-none border-0 object-cover pointer-events-none select-none"
+            className="notranslate absolute top-1/2 left-1/2 max-w-none border-0 object-cover pointer-events-none select-none"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             title={`Trailer ${title}`}
             onLoad={() => {

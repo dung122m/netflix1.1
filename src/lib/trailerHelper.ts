@@ -41,6 +41,9 @@ export function getYoutubeTrailerEmbedUrl(
     cc_load_policy: "0",
     disablekb: "1",
     enablejsapi: "1",
+    modestbranding: "1",
+    fs: "0",
+    autohide: "1",
   });
 
   if (typeof window !== "undefined" && window.location?.origin) {

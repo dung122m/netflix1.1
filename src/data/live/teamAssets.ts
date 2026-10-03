@@ -587,10 +587,7 @@ export const TOTAL_MAPPED_TEAMS = NATIONAL_TEAMS_DATA.length + CLUBS_DATA.length
 export function getTeamInitials(teamName?: string | null): string {
   if (!teamName) return "⚽";
   const clean = teamName
-    .replace(/^CLB\s+/i, "")
-    .replace(/^FC\s+/i, "")
-    .replace(/^SSC\s+/i, "")
-    .replace(/^U\d+\s+/i, "")
+    .replace(/^(?:CLB|FC|SSC|CD|UD|SD|AC|AS|RC|CF|BK|SC|U\d{1,2})\s+/i, "")
     .replace(/[^a-zA-Z0-9\s\u00C0-\u1EF9]/g, " ")
     .trim();
   const words = clean.split(/\s+/).filter(Boolean);
@@ -601,4 +598,24 @@ export function getTeamInitials(teamName?: string | null): string {
     return clean.slice(0, 2).toUpperCase();
   }
   return clean.toUpperCase() || "⚽";
+}
+
+/**
+ * Kiểm tra xem chuỗi giải đấu có phải là artifact số thuần túy / giờ phát sóng / ký tự rác không
+ * Ví dụ: "23", "22", "🌵 23", "❖ 22", "🎮 🌵 23", "23:00"
+ */
+export function isRawNumericOrArtifactTournament(t?: string | null): boolean {
+  if (!t) return true;
+  const trimmed = t.trim();
+  if (!trimmed) return true;
+  // Phải có ít nhất 1 chữ cái (Latin hoặc Tiếng Việt)
+  const hasLetters = /[a-zA-Z\u00C0-\u1EF9]/u.test(trimmed);
+  if (!hasLetters) return true;
+  // Bỏ emoji và ký tự đặc biệt, nếu chỉ còn lại số thì vẫn là artifact giờ phát sóng (VD: "🎮 23")
+  const textWithoutEmojis = trimmed.replace(
+    /[\p{Extended_Pictographic}\s\-_:./|()#❖🌵⚡📡🎙️📱🌐🏆⚽🏀🏐🎾🏸🥊🎮🏎️🎱🏅🌍🌎🇻🇳🇬🇧🇪🇸🇮🇹🇩🇪🇫🇷🇺🇸🇸🇦]/gu,
+    "",
+  );
+  if (/^\d+$/.test(textWithoutEmojis)) return true;
+  return false;
 }

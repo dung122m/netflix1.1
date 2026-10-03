@@ -428,4 +428,63 @@ test("Vietnam Historical Milestones System (Ngày này trong lịch sử Việt 
   });
 });
 
+test("Daily Identity & Cinema Connection System", async (t) => {
+  await t.test("Actor Birthday: Matches actor birthday (e.g. 05/10 Tiêu Chiến) and provides direct link", () => {
+    const res = getVietnamTodayEvent(new Date("2026-10-05T08:00:00+07:00"));
+    assert.ok(res.isToday);
+    assert.ok(res.allEventsToday);
+    assert.ok(res.allEventsToday.some((e) => e.actorSlug === "tieu-chien" || e.id.includes("tieu-chien")));
+    const actorEv = res.allEventsToday.find((e) => e.actorSlug === "tieu-chien");
+    assert.ok(actorEv);
+    assert.equal(actorEv?.relatedLink, "/dien-vien/tieu-chien");
+    assert.equal(actorEv?.nature, "arts-culture");
+    assert.ok(actorEv?.title.includes("Tiêu Chiến"));
+  });
+
+  await t.test("Actor Birthday: Matches featured actor (e.g. 05/02 Trấn Thành) with high priority", () => {
+    const res = getVietnamTodayEvent(new Date("2026-02-05T08:00:00+07:00"));
+    assert.ok(res.isToday);
+    assert.ok(res.allEventsToday);
+    const actorEv = res.allEventsToday.find((e) => e.actorSlug === "tran-thanh");
+    assert.ok(actorEv);
+    assert.equal(actorEv?.relatedLink, "/dien-vien/tran-thanh");
+    assert.equal(actorEv?.priority, 92);
+  });
+
+  await t.test("Cinema Holiday: 15/03 Ngày Điện Ảnh Việt Nam links to cinema catalog", () => {
+    const res = getVietnamTodayEvent(new Date("2026-03-15T08:00:00+07:00"));
+    assert.ok(res.isToday);
+    assert.ok(res.allEventsToday);
+    const cinemaEv = res.allEventsToday.find((e) => e.id.includes("dien-anh-vn"));
+    assert.ok(cinemaEv);
+    assert.equal(cinemaEv?.relatedLink, "/browse?type=phim-chieu-rap");
+    assert.equal(cinemaEv?.relatedLabel, "Khám phá phim chiếu rạp");
+  });
+
+  await t.test("Major Holiday: 02/09 Quốc Khánh maintains top priority and links to history search", () => {
+    const res = getVietnamTodayEvent(new Date("2026-09-02T08:00:00+07:00"));
+    assert.ok(res.isToday);
+    assert.equal(res.event.category, "national-holiday");
+    assert.equal(res.event.priority, 100);
+    assert.equal(res.event.relatedLink, "/browse?search=lịch sử");
+  });
+
+  await t.test("Festival Holiday: Halloween links to horror catalog", () => {
+    const res = getVietnamTodayEvent(new Date("2026-10-31T08:00:00+07:00"));
+    assert.ok(res.isToday);
+    assert.ok(res.allEventsToday);
+    const halEv = res.allEventsToday.find((e) => e.id.includes("halloween"));
+    assert.ok(halEv);
+    assert.equal(halEv?.relatedLink, "/browse?search=kinh-di");
+  });
+
+  await t.test("Regular Day: Preserves Solar and Lunar calendar info accurately", () => {
+    const res = getVietnamTodayEvent(new Date("2026-10-03T08:00:00+07:00"));
+    assert.ok(res.solarDateFormatted.includes("3 Tháng 10"));
+    assert.ok(res.lunarDateFormatted.includes("Âm lịch"));
+    assert.ok(res.event.title.length > 0);
+  });
+});
+
+
 

@@ -1,6 +1,7 @@
 import { auth } from "./firebase";
 import {
   saveWatchItemToCloudDebounced,
+  saveWatchItemsBatchToCloud,
   removeWatchItemFromCloud,
   clearAllWatchHistoryFromCloud,
 } from "./cloudSync";
@@ -357,6 +358,7 @@ export async function autoHydrateWatchHistory(): Promise<void> {
     if (!data.success || !data.movies) return;
 
     let hasChanges = false;
+    const changedItems: WatchHistoryItem[] = [];
     const currentList = getWatchHistory();
     const updatedList = currentList.map((item) => {
       const meta = data.movies[item.slug];
@@ -411,10 +413,7 @@ export async function autoHydrateWatchHistory(): Promise<void> {
 
       if (changed) {
         hasChanges = true;
-        // Đẩy metadata cập nhật lên Cloud nếu có auth
-        if (auth?.currentUser) {
-          saveWatchItemToCloudDebounced(auth.currentUser.uid, updatedItem, 3000);
-        }
+        changedItems.push(updatedItem);
       }
 
       return updatedItem;
@@ -424,6 +423,11 @@ export async function autoHydrateWatchHistory(): Promise<void> {
       updateMemoryWatchHistory(updatedList);
       localStorage.setItem(HISTORY_KEY, JSON.stringify(updatedList));
       window.dispatchEvent(new CustomEvent("watch-history-updated"));
+
+      // Đẩy metadata cập nhật lên Cloud trong 1 batch duy nhất nếu có auth
+      if (auth?.currentUser && changedItems.length > 0) {
+        saveWatchItemsBatchToCloud(auth.currentUser.uid, changedItems);
+      }
     }
   } catch (err) {
     console.warn("Lỗi autoHydrateWatchHistory:", err);

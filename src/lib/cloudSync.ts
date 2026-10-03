@@ -174,6 +174,47 @@ export function saveWatchItemToCloudDebounced(
 }
 
 /**
+ * Lưu nhiều mục lịch sử xem lên Cloud trong 1 request duy nhất (Batch POST)
+ */
+export async function saveWatchItemsBatchToCloud(
+  userId: string,
+  items: WatchHistoryItem[],
+): Promise<void> {
+  if (!userId || !Array.isArray(items) || items.length === 0) return;
+
+  const validItems = items.filter((i) => i && i.slug);
+  if (validItems.length === 0) return;
+
+  const now = Date.now();
+  for (const item of validItems) {
+    const key = `${userId}_${item.slug}`;
+    lastSyncedCloudState.set(key, {
+      progressSeconds: item.progressSeconds ?? 0,
+      episodeSlug: item.episodeSlug,
+      syncedAt: now,
+    });
+  }
+
+  try {
+    const headers = await getAuthHeaders();
+    if (!headers["Authorization" as keyof typeof headers]) return;
+
+    await fetch("/api/user/history", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        items: validItems.map((item) => ({
+          ...item,
+          updatedAt: item.updatedAt || now,
+        })),
+      }),
+    });
+  } catch (err) {
+    console.warn("Lỗi saveWatchItemsBatchToCloud:", err);
+  }
+}
+
+/**
  * Xoá 1 mục lịch sử trên Cloud qua Server API
  */
 export async function removeWatchItemFromCloud(

@@ -79,13 +79,18 @@ const CATEGORY_BACKGROUNDS: Record<string, string> = {
   "vietnam-history": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
   "traditional-culture": "https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?auto=format&fit=crop&w=1200&q=80",
   "social-family": "https://images.unsplash.com/photo-1511895426328-dc8714191300?auto=format&fit=crop&w=1200&q=80",
-  international: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1200&q=80",
+  "environment-nature": "https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=1200&q=80",
+  international: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80",
   entertainment: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=1200&q=80",
   fun: "https://images.unsplash.com/photo-1513151233558-d860c5398176?auto=format&fit=crop&w=1200&q=80",
 };
 
 // 5. Default Scenic Vietnam Cinematic Fallback
 const DEFAULT_CINEMATIC_BACKGROUND = "https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=1200&q=80";
+
+const PLACEHOLDER_TEMPLATE_URLS = new Set([
+  "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
+]);
 
 /**
  * Lấy background cinematic tối ưu cho sự kiện hôm nay
@@ -95,6 +100,11 @@ export function getVietnamEventBackground(info: VietnamTodayInfo | {
   historicalEventsToday?: VietnamHistoricalEvent[];
 }): string {
   const { event, historicalEventsToday } = info;
+
+  // 0. Ảnh cụ thể đi kèm sự kiện (vd Avatar diễn viên sinh nhật, poster sự kiện thật, không phải placeholder)
+  if (event?.imageUrl && !PLACEHOLDER_TEMPLATE_URLS.has(event.imageUrl)) {
+    return event.imageUrl;
+  }
 
   // 1. Kiểm tra ID sự kiện cụ thể
   if (event?.id && SPECIFIC_EVENT_BACKGROUNDS[event.id]) {
@@ -114,7 +124,13 @@ export function getVietnamEventBackground(info: VietnamTodayInfo | {
     }
   }
 
-  // 4. Kiểm tra Category
+  // 4. Kiểm tra theo Pattern Theme (như Môi trường, Thiên nhiên, Lễ hội...)
+  const pattern = getVietnamEventPatternTheme(info);
+  if (pattern && CATEGORY_BACKGROUNDS[pattern]) {
+    return CATEGORY_BACKGROUNDS[pattern];
+  }
+
+  // 5. Kiểm tra Category
   if (event?.category && CATEGORY_BACKGROUNDS[event.category]) {
     return CATEGORY_BACKGROUNDS[event.category];
   }
@@ -149,6 +165,7 @@ const DEDICATED_MAJOR_EVENT_IDS = new Set([
  * Kiểm tra xem event có thiết kế / holiday effect riêng biệt từ trước hay không.
  * - 1. Có Holiday Effect riêng (Tết, Quốc khánh, Trung thu, Giáng sinh, Halloween, Nana Birthday)
  * - 2. Thuộc danh sách đại lễ lớn đã có thiết kế riêng từ trước (2/9, 30/4, 19/8, 10/10, Tết, Giỗ Tổ 10/3, Trung Thu...)
+ * - 3. Có ảnh riêng (vd sinh nhật diễn viên, banner riêng)
  * Nếu đã có thiết kế riêng -> giữ nguyên 100%, không áp Thematic Illustration fallback đè lên.
  */
 export function hasDedicatedEventDesign(info: VietnamTodayInfo | {
@@ -164,6 +181,11 @@ export function hasDedicatedEventDesign(info: VietnamTodayInfo | {
 
   // 2. Thuộc danh sách đại lễ lớn đã có thiết kế riêng
   if (event?.id && DEDICATED_MAJOR_EVENT_IDS.has(event.id)) {
+    return true;
+  }
+
+  // 3. Có ảnh riêng (vd sinh nhật diễn viên)
+  if (event?.imageUrl || event?.actorSlug || event?.id?.startsWith("ev-actor-birthday")) {
     return true;
   }
 
@@ -274,7 +296,17 @@ export function getVietnamEventPatternTheme(info: VietnamTodayInfo | {
     return "sports";
   }
 
-  // 8. Ngày quốc tế & Toàn cầu (vd 1/5 Quốc tế Lao động, 8/3, 30/9 Dịch thuật...)
+  // 8. Môi trường, Thiên nhiên & Định cư xanh (vd World Habitat Day, Earth Day, Môi trường thế giới)
+  if (
+    id === "ev-10-world-habitat-day" ||
+    id === "ev-10-05-moi-truong-dinh-cu" ||
+    /moi-truong|khi-hau|trai-dat|rung|nuoc|dai-duong|dinh-cu|habitat/i.test(id) ||
+    /môi trường|khí hậu|trái đất|rừng|định cư|habitat/i.test(title)
+  ) {
+    return "environment-nature";
+  }
+
+  // 9. Ngày quốc tế & Toàn cầu (vd 1/5 Quốc tế Lao động, 8/3, 30/9 Dịch thuật...)
   if (
     id === "ev-05-01-quoc-te-lao-dong" ||
     id === "ev-03-08-quoc-te-phu-nu" ||
@@ -313,15 +345,7 @@ export function getVietnamEventPatternTheme(info: VietnamTodayInfo | {
     return "family-social";
   }
 
-  // 13. Môi trường & Thiên nhiên
-  if (
-    /moi-truong|khi-hau|trai-dat|rung|nuoc|dai-duong/i.test(id) ||
-    /môi trường|khí hậu|trái đất|rừng/i.test(title)
-  ) {
-    return "environment-nature";
-  }
-
-  // 14. Fallback
+  // 13. Fallback
   return "fallback";
 }
 

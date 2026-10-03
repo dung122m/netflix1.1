@@ -1,5 +1,6 @@
 import { VIETNAM_EVENTS, VietnamEvent } from "@/data/vietnamEvents";
 import { getHistoricalEventsForDate, VietnamHistoricalEvent } from "@/data/historicalEvents";
+import { ACTORS_CATALOG } from "@/data/actorsCatalog";
 
 const { floor, sin, PI } = Math;
 
@@ -297,6 +298,144 @@ export interface VietnamTodayInfo {
 }
 
 /**
+ * Tìm các diễn viên có ngày sinh nhật trùng với ngày được chọn (dữ liệu xác thực từ ACTORS_CATALOG)
+ */
+export function getActorBirthdaysForDate(month: number, day: number, currentYear: number): VietnamEvent[] {
+  const matches: VietnamEvent[] = [];
+  const dayStr = String(day).padStart(2, "0");
+  const monthStr = String(month).padStart(2, "0");
+
+  for (const actor of ACTORS_CATALOG) {
+    if (!actor.birthday) continue;
+    const parts = actor.birthday.split("-");
+    if (parts.length >= 3) {
+      const bMonth = parseInt(parts[1], 10);
+      const bDay = parseInt(parts[2], 10);
+      if (bMonth === month && bDay === day) {
+        const birthYear = parseInt(parts[0], 10);
+        const age = !isNaN(birthYear) && currentYear > birthYear ? currentYear - birthYear : undefined;
+
+        matches.push({
+          id: `ev-actor-birthday-${actor.slug}`,
+          title: `Sinh Nhật Diễn Viên ${actor.name} (${dayStr}/${monthStr})`,
+          shortDescription: `Mừng sinh nhật ${actor.name}${age ? ` (${age} tuổi)` : ""} — chúc mừng tuổi mới và cùng khám phá các tác phẩm điện ảnh xuất sắc.`,
+          bannerDescription: `Hôm nay là sinh nhật của ${actor.name} (${actor.roles || actor.country || "Diễn viên"}). ${actor.bio ? actor.bio.slice(0, 180) + "..." : "Cùng Nanaflix khám phá các tác phẩm điện ảnh và vai diễn nổi bật gắn liền với sự nghiệp của nghệ sĩ."}`,
+          category: "entertainment",
+          categoryLabel: "Điện ảnh & Nghệ sĩ",
+          nature: "arts-culture",
+          natureLabel: "Sinh nhật diễn viên",
+          priority: actor.featured ? 92 : 88,
+          solarDate: { month, day },
+          displayDate: `${dayStr} Tháng ${monthStr}`,
+          origin: `Nghệ sĩ ${actor.name} sinh ngày ${dayStr}/${monthStr}/${birthYear || ""}${actor.placeOfBirth ? ` tại ${actor.placeOfBirth}` : ""}.`,
+          significance: `Tôn vinh hành trình cống hiến nghệ thuật và các vai diễn ghi dấu ấn sâu đậm trong lòng khán giả.`,
+          didYouKnow: actor.bio || `Nghệ sĩ ${actor.name} là gương mặt được đông đảo khán giả mến mộ trên Nanaflix.`,
+          milestones: [
+            `Mừng sinh nhật tuổi mới của ${actor.name}`,
+            `Khám phá toàn bộ danh sách phim của ${actor.name} trên Nanaflix`,
+          ],
+          imageUrl: actor.avatarUrl || null,
+          accentGradient: "from-purple-600/30 via-pink-600/20 to-zinc-950",
+          quote: `“Chúc mừng sinh nhật ${actor.name}! Chúc nghệ sĩ luôn thăng hoa cùng nghệ thuật và mang đến nhiều vai diễn xuất sắc.”`,
+          message: `Chúc ${actor.name} luôn ngập tràn nhiệt huyết sáng tạo và thành công rực rỡ trên con đường nghệ thuật.`,
+          tag: "Điện ảnh",
+          relatedLink: `/dien-vien/${actor.slug}`,
+          relatedLabel: `Xem phim của ${actor.name}`,
+          actorSlug: actor.slug,
+          actorName: actor.name,
+        });
+      }
+    }
+  }
+
+  return matches;
+}
+
+/**
+ * Tự động liên kết sự kiện văn hóa / điện ảnh / lễ hội với bộ sưu tập phim tương ứng
+ */
+export function enrichEventWithCinemaLinks(event: VietnamEvent): VietnamEvent {
+  if (event.relatedLink) return event;
+
+  const id = event.id.toLowerCase();
+  const nature = event.nature;
+  const category = event.category;
+
+  if (id.startsWith("ev-actor-birthday") && event.actorSlug) {
+    return {
+      ...event,
+      relatedLink: `/dien-vien/${event.actorSlug}`,
+      relatedLabel: event.relatedLabel || `Xem phim của ${event.actorName || "diễn viên"}`,
+    };
+  }
+
+  // Ngày Điện ảnh Việt Nam
+  if (id.includes("dien-anh-vn") || id.includes("03-15-dien-anh")) {
+    return {
+      ...event,
+      relatedLink: "/browse?type=phim-chieu-rap",
+      relatedLabel: "Khám phá phim chiếu rạp",
+    };
+  }
+
+  // Ngày Hoạt hình Thế giới
+  if (id.includes("hoat-hinh") || id.includes("animation")) {
+    return {
+      ...event,
+      relatedLink: "/browse?type=hoat-hinh",
+      relatedLabel: "Xem phim hoạt hình",
+    };
+  }
+
+  // Ngày Điện ảnh Thế giới / Phim kinh điển
+  if (id.includes("dien-anh-the-gioi") || (nature === "arts-culture" && id.includes("dien-anh"))) {
+    return {
+      ...event,
+      relatedLink: "/browse?sort=views",
+      relatedLabel: "Khám phá phim kinh điển",
+    };
+  }
+
+  // Halloween
+  if (event.effect === "halloween" || id.includes("halloween")) {
+    return {
+      ...event,
+      relatedLink: "/browse?search=kinh-di",
+      relatedLabel: "Xem phim kinh dị",
+    };
+  }
+
+  // Giáng Sinh
+  if (event.effect === "christmas" || id.includes("giang-sinh") || id.includes("noel")) {
+    return {
+      ...event,
+      relatedLink: "/browse?search=giáng sinh",
+      relatedLabel: "Xem phim Giáng Sinh",
+    };
+  }
+
+  // Tết Nguyên Đán
+  if (event.effect === "tet" || id.includes("tet-nguyen-dan") || id.includes("giao-thua")) {
+    return {
+      ...event,
+      relatedLink: "/browse?search=tết",
+      relatedLabel: "Xem phim Tết sum vầy",
+    };
+  }
+
+  // Mốc son lịch sử
+  if (category === "vietnam-history" || nature === "historical-anniversary" || id.includes("giai-phong") || id.includes("quoc-khanh")) {
+    return {
+      ...event,
+      relatedLink: "/browse?search=lịch sử",
+      relatedLabel: "Xem phim lịch sử & tư liệu",
+    };
+  }
+
+  return event;
+}
+
+/**
  * Main helper: Finds the event for today, or finds the nearest upcoming event
  */
 export function getVietnamTodayEvent(customDate?: Date): VietnamTodayInfo {
@@ -323,7 +462,7 @@ export function getVietnamTodayEvent(customDate?: Date): VietnamTodayInfo {
         ? day >= ev.solarDate.day && day <= ev.solarDate.endDay
         : day === ev.solarDate.day;
       if (matchMonth && matchDay) {
-        todayMatches.push(ev);
+        todayMatches.push(enrichEventWithCinemaLinks(ev));
         continue;
       }
     }
@@ -333,7 +472,7 @@ export function getVietnamTodayEvent(customDate?: Date): VietnamTodayInfo {
       if (ev.lunarDate.isNewYearEve) {
         // Giao thừa: 29 or 30 of month 12
         if (lunar.lunarMonth === 12 && (lunar.lunarDay === 29 || lunar.lunarDay === 30)) {
-          todayMatches.push(ev);
+          todayMatches.push(enrichEventWithCinemaLinks(ev));
           continue;
         }
       } else {
@@ -342,7 +481,7 @@ export function getVietnamTodayEvent(customDate?: Date): VietnamTodayInfo {
           ? lunar.lunarDay >= ev.lunarDate.lunarDay && lunar.lunarDay <= ev.lunarDate.endLunarDay
           : lunar.lunarDay === ev.lunarDate.lunarDay;
         if (matchLMonth && matchLDay) {
-          todayMatches.push(ev);
+          todayMatches.push(enrichEventWithCinemaLinks(ev));
           continue;
         }
       }
@@ -352,17 +491,23 @@ export function getVietnamTodayEvent(customDate?: Date): VietnamTodayInfo {
     if (ev.dateRule === "programmer-day") {
       const targetDayOfYear = isLeapYear(year) ? 256 : 256;
       if (dayOfYear === targetDayOfYear) {
-        todayMatches.push(ev);
+        todayMatches.push(enrichEventWithCinemaLinks(ev));
         continue;
       }
     }
+  }
+
+  // 1.1 Kiểm tra sinh nhật diễn viên từ ACTORS_CATALOG (dữ liệu thật)
+  const actorBirthdays = getActorBirthdaysForDate(month, day, year);
+  if (actorBirthdays.length > 0) {
+    todayMatches.push(...actorBirthdays);
   }
 
   const solarDateFormatted = formatSolarDateVn(now);
   const lunarDateFormatted = formatLunarDateVn(lunar);
 
   if (todayMatches.length > 0) {
-    // Ưu tiên theo điểm priority (quốc lễ 100 > truyền thống 90 > lịch sử 80-85 > xã hội 70 > quốc tế 55-65 > fun 40-50)
+    // Ưu tiên theo điểm priority (quốc lễ 100 > truyền thống 90 > sinh nhật diễn viên / lịch sử 85-92 > xã hội 70 > quốc tế 55-65 > fun 40-50)
     const sortedMatches = [...todayMatches].sort((a, b) => {
       const pDiff = (b.priority ?? 50) - (a.priority ?? 50);
       if (pDiff !== 0) return pDiff;
