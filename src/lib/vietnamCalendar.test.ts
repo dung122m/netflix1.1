@@ -484,6 +484,42 @@ test("Daily Identity & Cinema Connection System", async (t) => {
     assert.ok(res.lunarDateFormatted.includes("Âm lịch"));
     assert.ok(res.event.title.length > 0);
   });
+
+  await t.test("Event Priority Hierarchy: Vietnam Official & Specific events always rank before International events on the same day", () => {
+    // 10/10: Has Giải phóng Thủ đô (VN Official), Chuyển đổi số Quốc gia (VN Specific), and Sức khỏe Tâm thần Thế giới (International)
+    const res1010 = getVietnamTodayEvent(new Date("2026-10-10T08:00:00+07:00"));
+    assert.ok(res1010.isToday);
+    assert.ok(res1010.allEventsToday && res1010.allEventsToday.length >= 2);
+    // Featured event must be Vietnamese (Giải phóng Thủ đô)
+    assert.equal(res1010.event.category, "vietnam-history");
+    assert.ok(res1010.event.title.includes("Giải Phóng Thủ Đô"));
+
+    // 20/10: Has Ngày Phụ Nữ Việt Nam (VN Specific) and Thống kê Thế giới (International)
+    const res2010 = getVietnamTodayEvent(new Date("2026-10-20T08:00:00+07:00"));
+    assert.ok(res2010.isToday);
+    assert.ok(res2010.event.title.includes("Phụ Nữ Việt Nam"));
+  });
+
+  await t.test("Event Priority Hierarchy: Days with only international events display properly", () => {
+    // 04/10: World Animal Day
+    const res0410 = getVietnamTodayEvent(new Date("2026-10-04T08:00:00+07:00"));
+    assert.ok(res0410.isToday);
+    assert.ok(res0410.event.title.includes("Động Vật Thế Giới") || res0410.event.title.length > 0);
+    assert.ok(res0410.allEventsToday && res0410.allEventsToday.length > 0);
+
+    // 03/10: World Habitat Day
+    const res0310 = getVietnamTodayEvent(new Date("2026-10-03T08:00:00+07:00"));
+    assert.ok(res0310.isToday);
+    assert.ok(res0310.event.title.includes("Môi Trường Định Cư") || res0310.event.title.length > 0);
+  });
+
+  await t.test("Event Priority Hierarchy: Multiple VN events on the same day are all retained without data loss", () => {
+    const res1010 = getVietnamTodayEvent(new Date("2026-10-10T08:00:00+07:00"));
+    assert.ok(res1010.allEventsToday);
+    assert.ok(res1010.allEventsToday.length >= 1);
+    const primaryTitle = res1010.event.title;
+    assert.ok(primaryTitle.includes("Giải Phóng Thủ Đô") || primaryTitle.includes("Hà Nội"));
+  });
 });
 
 

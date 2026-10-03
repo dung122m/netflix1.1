@@ -2,6 +2,53 @@ import { VietnamEvent } from "./types";
 
 export const APRIL_EVENTS: VietnamEvent[] = [
   {
+    "id": "ev-04-01-thuy-san-viet-nam",
+    "title": "Ngày Truyền Thống Ngành Thủy Sản Việt Nam (01/04)",
+    "shortDescription": "Tôn vinh hành trình vươn khơi bám biển của ngư dân và sự phát triển vượt bậc của ngành kinh tế biển Việt Nam.",
+    "category": "vietnam-history",
+    "categoryLabel": "Kỷ niệm lịch sử",
+    "nature": "historical-anniversary",
+    "natureLabel": "Mốc son lịch sử",
+    "priority": 85,
+    "solarDate": {
+      "month": 4,
+      "day": 1
+    },
+    "displayDate": "01 Tháng 04",
+    "origin": "Ngày 01/04/1959, Bác Hồ về thăm làng chài Cát Bà, Cát Hải (Hải Phòng) và căn dặn: 'Rừng vàng biển bạc của ta, do nhân dân ta làm chủ'. Quyết định số 173-CT ngày 18/05/1990 của Chủ tịch Hội đồng Bộ trưởng chính thức lấy ngày 1/4 là Ngày Truyền thống ngành Thủy sản Việt Nam.",
+    "significance": "Khơi dậy niềm tự hào nghề biển truyền thống, phát triển kinh tế thủy sản bền vững và khẳng định chủ quyền biển đảo thiêng liêng của Tổ quốc.",
+    "didYouKnow": "Việt Nam hiện nằm trong top 3 quốc gia xuất khẩu thủy hải sản lớn nhất thế giới.",
+    "milestones": [
+      "Kỷ niệm Ngày Bác Hồ về thăm làng chài Cát Bà năm 1959",
+      "Lễ hội Cầu ngư và ra quân đánh bắt vụ cá Nam",
+      "Thả giống tái tạo nguồn lợi thủy sản trên cả nước"
+    ],
+    "quote": "Rừng vàng biển bạc của ta, do nhân dân ta làm chủ. — Chủ tịch Hồ Chí Minh",
+    "tag": "Đời sống & Văn hóa",
+    "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
+    "accentGradient": "from-cyan-600/30 via-blue-600/20 to-zinc-950",
+    "dateLabel": "01 Tháng 04",
+    "meaning": "Tôn vinh những người lao động ngành thủy sản và ngư dân kiên cường ngày đêm vươn khơi giữ vững chủ quyền biển đảo.",
+    "subtitle": "Ngày Truyền Thống Ngành Thủy Sản Việt Nam",
+    "traditions": [
+      "Tổ chức Lễ hội Cầu ngư cầu mùa biển thuận buồm xuôi gió bội thu tôm cá",
+      "Thả hàng triệu con cá giống và tôm giống tái tạo nguồn lợi thủy sản tự nhiên",
+      "Tri ân và khen thưởng các nghiệp đoàn nghề cá và ngư dân tiêu biểu"
+    ],
+    "activities": [
+      "Tìm hiểu lịch sử phát triển ngành thủy sản và các đội tàu vươn khơi bám biển",
+      "Hưởng ứng phong trào bảo vệ môi trường biển và khai thác thủy sản có trách nhiệm",
+      "Thưởng thức hải sản tươi ngon và chia sẻ tình yêu với biển đảo quê hương"
+    ],
+    "whyItMatters": null,
+    "message": "Kính chúc bà con ngư dân và cán bộ ngành thủy sản luôn thuận buồm xuôi gió, biển bạc bội thu và bình an trên mỗi chuyến hải trình.",
+    "interestingFacts": [
+      "Việt Nam hiện nằm trong top 3 quốc gia xuất khẩu thủy hải sản lớn nhất thế giới."
+    ],
+    "description": "Tôn vinh hành trình vươn khơi bám biển của ngư dân và sự phát triển vượt bậc của ngành kinh tế biển Việt Nam.",
+    "bannerDescription": "Kỷ niệm ngày Bác Hồ về thăm làng cá Cát Bà (01/04/1959) và Quyết định số 173-CT của Hội đồng Bộ trưởng. Tôn vinh tinh thần lao động quật cường của ngư dân và ngành thủy sản Việt Nam."
+  },
+  {
     "id": "ev-04-01-ca-thang-tu",
     "title": "Ngày Cá Tháng Tư (April Fools) & Tưởng Nhớ Trịnh Công Sơn",
     "shortDescription": "Những nụ cười dí dỏm cùng những giai điệu bất hủ về tình yêu và thân phận con người.",

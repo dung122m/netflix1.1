@@ -436,6 +436,70 @@ export function enrichEventWithCinemaLinks(event: VietnamEvent): VietnamEvent {
 }
 
 /**
+ * Tính điểm ưu tiên toàn diện của sự kiện:
+ * 1. 🇻🇳 Ngày lễ / kỷ niệm chính thức của Việt Nam (Tier Base 4000)
+ * 2. 🇻🇳 Ngày / sự kiện Việt Nam khác (ngành nghề, xã hội, sinh nhật diễn viên VN...) (Tier Base 3000)
+ * 3. 🌎 Ngày quốc tế / toàn cầu (LHQ, UNESCO, WHO, toàn cầu...) (Tier Base 2000)
+ * 4. Các sự kiện còn lại (đời sống, chủ đề vui, fun...) (Tier Base 1000)
+ * Trong cùng phân cấp (Tier), điểm priority gốc được cộng thêm để bảo toàn tuyệt đối thứ hạng nội bộ.
+ */
+export function getEventPriorityScore(event: VietnamEvent): number {
+  const id = event.id.toLowerCase();
+  const title = event.title.toLowerCase();
+  const cat = event.category;
+  const nat = event.nature;
+
+  // 1. 🇻🇳 Ngày lễ / ngày kỷ niệm chính thức của Việt Nam
+  const isOfficialVnHoliday =
+    cat === "national-holiday" ||
+    nat === "official-holiday" ||
+    cat === "vietnam-history" ||
+    nat === "historical-anniversary" ||
+    nat === "traditional-festival" ||
+    (cat === "traditional-culture" && !nat.includes("international")) ||
+    event.effect === "national-day" ||
+    event.effect === "tet" ||
+    event.effect === "mid-autumn";
+
+  if (isOfficialVnHoliday) {
+    return 4000 + (event.priority ?? 50);
+  }
+
+  // 2. 🇻🇳 Ngày / sự kiện Việt Nam khác (ngành nghề, xã hội, khuyến học, phụ nữ VN, doanh nhân VN, sinh nhật diễn viên VN...)
+  const isVnSpecificEvent =
+    id.includes("-vn") ||
+    id.includes("viet-nam") ||
+    id.includes("vietnam") ||
+    title.includes("việt nam") ||
+    title.includes("quốc gia") ||
+    id.startsWith("ev-actor-birthday") ||
+    (event.country && /^(?:vn|vietnam|việt nam)$/i.test(event.country)) ||
+    (cat === "social-family" && nat !== "international-day" && !id.includes("the-gioi") && !id.includes("quoc-te")) ||
+    (nat === "arts-culture" && !id.includes("the-gioi") && !id.includes("quoc-te"));
+
+  if (isVnSpecificEvent) {
+    return 3000 + (event.priority ?? 50);
+  }
+
+  // 3. 🌎 Ngày quốc tế / toàn cầu
+  const isInternationalEvent =
+    cat === "international" ||
+    nat === "international-day" ||
+    id.includes("the-gioi") ||
+    id.includes("quoc-te") ||
+    id.includes("world-") ||
+    id.includes("international") ||
+    /quốc tế|thế giới|toàn cầu|un|unesco|who/i.test(title);
+
+  if (isInternationalEvent) {
+    return 2000 + (event.priority ?? 50);
+  }
+
+  // 4. Các sự kiện còn lại (Chủ đề đời sống, thú vị, fun...)
+  return 1000 + (event.priority ?? 50);
+}
+
+/**
  * Main helper: Finds the event for today, or finds the nearest upcoming event
  */
 export function getVietnamTodayEvent(customDate?: Date): VietnamTodayInfo {
@@ -507,10 +571,14 @@ export function getVietnamTodayEvent(customDate?: Date): VietnamTodayInfo {
   const lunarDateFormatted = formatLunarDateVn(lunar);
 
   if (todayMatches.length > 0) {
-    // Ưu tiên theo điểm priority (quốc lễ 100 > truyền thống 90 > sinh nhật diễn viên / lịch sử 85-92 > xã hội 70 > quốc tế 55-65 > fun 40-50)
+    // Ưu tiên theo thứ bậc:
+    // 1. 🇻🇳 Ngày lễ/kỷ niệm chính thức của Việt Nam (Tier 4000)
+    // 2. 🇻🇳 Ngày/sự kiện Việt Nam khác / Sinh nhật diễn viên VN (Tier 3000)
+    // 3. 🌎 Ngày quốc tế / toàn cầu (Tier 2000)
+    // 4. Các sự kiện còn lại (Tier 1000)
     const sortedMatches = [...todayMatches].sort((a, b) => {
-      const pDiff = (b.priority ?? 50) - (a.priority ?? 50);
-      if (pDiff !== 0) return pDiff;
+      const scoreDiff = getEventPriorityScore(b) - getEventPriorityScore(a);
+      if (scoreDiff !== 0) return scoreDiff;
       return a.id.localeCompare(b.id);
     });
 
@@ -586,9 +654,15 @@ export function getVietnamTodayEvent(customDate?: Date): VietnamTodayInfo {
     if (candidateSolarDate) {
       const diffMs = candidateSolarDate.getTime() - todayTime;
       const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
-      if (diffDays > 0 && diffDays < minDaysUntil) {
-        minDaysUntil = diffDays;
-        nearestEvent = ev;
+      if (diffDays > 0) {
+        if (diffDays < minDaysUntil) {
+          minDaysUntil = diffDays;
+          nearestEvent = ev;
+        } else if (diffDays === minDaysUntil) {
+          if (getEventPriorityScore(ev) > getEventPriorityScore(nearestEvent)) {
+            nearestEvent = ev;
+          }
+        }
       }
     }
   }

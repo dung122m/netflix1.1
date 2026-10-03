@@ -283,6 +283,53 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "bannerDescription": "Ngày 7/11/1917, Cách mạng Tháng Mười Nga thắng lợi, lật đổ chính quyền tư sản, lập nên nhà nước công nông đầu tiên. Mở đường cho người thanh niên Nguyễn Ái Quốc tìm thấy chân lý cứu nước trong Luận cương của Lênin năm 1920. Đây là dịp ý nghĩa để dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ."
   },
   {
+    "id": "ev-11-08-do-thi-viet-nam",
+    "title": "Ngày Đô Thị Việt Nam (08/11)",
+    "shortDescription": "Quy hoạch đô thị thông minh, xanh và bền vững — nâng cao chất lượng cuộc sống người dân đô thị Việt Nam.",
+    "category": "vietnam-history",
+    "categoryLabel": "Kỷ niệm lịch sử",
+    "nature": "historical-anniversary",
+    "natureLabel": "Mốc son lịch sử",
+    "priority": 85,
+    "solarDate": {
+      "month": 11,
+      "day": 8
+    },
+    "displayDate": "08 Tháng 11",
+    "origin": "Thủ tướng Chính phủ ban hành Quyết định số 1511/QĐ-TTg ngày 24/10/2008 công nhận ngày 08 tháng 11 hằng năm là 'Ngày Đô thị Việt Nam'.",
+    "significance": "Thúc đẩy phong trào thi đua xây dựng đô thị văn minh, hiện đại, bảo tồn bản sắc kiến trúc cảnh quan và nâng tầm vị thế đô thị Việt Nam.",
+    "didYouKnow": "Hệ thống đô thị Việt Nam đang phát triển mạnh mẽ theo định hướng đô thị xanh, thông minh và thích ứng biến đổi khí hậu.",
+    "milestones": [
+      "Hưởng ứng Ngày Đô thị Việt Nam 08/11",
+      "Phát triển đô thị xanh, thông minh và bền vững",
+      "Tôn vinh các nhà quy hoạch và quản lý đô thị xuất sắc"
+    ],
+    "quote": "Xây dựng đô thị hiện đại, giàu bản sắc văn hóa là đòn bẩy phát triển kinh tế xã hội đất nước.",
+    "tag": "Đời sống & Văn hóa",
+    "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
+    "accentGradient": "from-emerald-600/30 via-teal-600/20 to-zinc-950",
+    "dateLabel": "08 Tháng 11",
+    "meaning": "Tôn vinh vai trò của các đô thị trong sự nghiệp công nghiệp hóa, hiện đại hóa và nâng cao chất lượng sống nhân dân.",
+    "subtitle": "Ngày Đô Thị Việt Nam",
+    "traditions": [
+      "Hội nghị đô thị toàn quốc và triển lãm quy hoạch kiến trúc đô thị",
+      "Phát động phong trào xây dựng tuyến phố văn minh, sạch đẹp",
+      "Trồng cây xanh và chỉnh trang cảnh quan công viên đô thị"
+    ],
+    "activities": [
+      "Tìm hiểu các giải pháp quy hoạch đô thị xanh và giao thông công cộng thông minh",
+      "Chung tay giữ gìn vệ sinh môi trường, mỹ quan đô thị tại nơi sinh sống",
+      "Ủng hộ lối sống xanh, giảm thiểu rác thải nhựa tại các thành phố lớn"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc các đô thị Việt Nam ngày càng hiện đại, đáng sống, giữ trọn hồn cốt văn hóa ngàn năm.",
+    "interestingFacts": [
+      "Hệ thống đô thị Việt Nam đang phát triển mạnh mẽ theo định hướng đô thị xanh, thông minh và thích ứng biến đổi khí hậu."
+    ],
+    "description": "Quy hoạch đô thị thông minh, xanh và bền vững — nâng cao chất lượng cuộc sống người dân đô thị Việt Nam.",
+    "bannerDescription": "Thủ tướng Chính phủ ban hành Quyết định số 1511/QĐ-TTg ngày 24/10/2008 lấy ngày 8/11 hằng năm là Ngày Đô thị Việt Nam. Thúc đẩy xây dựng các đô thị văn minh, hiện đại và giàu bản sắc dân tộc."
+  },
+  {
     "id": "ev-11-08-do-thi-hoa",
     "title": "Ngày Đô Thị Hóa Thế Giới (World Urbanism Day) & Ngày Chụp X-Quang",
     "shortDescription": "Quy hoạch đô thị thông minh, bền vững và tôn vinh phát minh tia X cứu sống hàng triệu sinh mệnh.",
@@ -903,8 +950,8 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
   },
   {
     "id": "ev-11-23-di-san-nam-ky-khoi-nghia",
-    "title": "Ngày Nam Kỳ Khởi Nghĩa (1940) & Ngày Di Sản Văn Hóa Việt Nam",
-    "shortDescription": "Tiếng súng quật khởi quầng đỏ trời Nam và kho tàng di sản ngàn năm văn hiến tiên tổ trao truyền.",
+    "title": "Ngày Nam Kỳ Khởi Nghĩa (1940), Ngày Di Sản Văn Hóa & Thành Lập Hội Chữ Thập Đỏ Việt Nam",
+    "shortDescription": "Tiếng súng quật khởi quầng đỏ trời Nam, kho tàng di sản văn hiến và tinh thần nhân đạo cao cả vì cộng đồng.",
     "category": "vietnam-history",
     "categoryLabel": "Kỷ niệm lịch sử",
     "nature": "historical-anniversary",
@@ -915,8 +962,8 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
       "day": 23
     },
     "displayDate": "23 Tháng 11",
-    "origin": "Đêm 22 rạng sáng 23/11/1940, cuộc Khởi nghĩa Nam Kỳ bùng nổ; ngày 23/11/1945 Bác Hồ ký Sắc lệnh bảo tồn cổ tích; đồng thời thành lập Hội Chữ thập đỏ VN (1946).",
-    "significance": "Cuộc khởi nghĩa quật khởi làm rạng danh ngọn cờ đỏ sao vàng; đồng thời tôn vinh trách nhiệm giữ gìn di sản cha ông.",
+    "origin": "Đêm 22 rạng sáng 23/11/1940 cuộc Khởi nghĩa Nam Kỳ bùng nổ; ngày 23/11/1945 Bác Hồ ký Sắc lệnh bảo tồn cổ tích (Ngày Di sản Văn hóa VN); ngày 23/11/1946 Bác Hồ sáng lập và là Chủ tịch danh dự đầu tiên của Hội Chữ thập đỏ Việt Nam.",
+    "significance": "Cuộc khởi nghĩa quật khởi làm rạng danh ngọn cờ đỏ sao vàng; tôn vinh trách nhiệm giữ gìn di sản cha ông và lan tỏa truyền thống nhân ái thương người như thể thương thân.",
     "didYouKnow": "Lá cờ đỏ sao vàng 5 cánh lần đầu tiên tung bay kiêu hãnh tại Đình Long Hưng (Tiền Giang) trong Khởi nghĩa Nam Kỳ.",
     "milestones": [
       "Kỷ niệm cuộc Khởi nghĩa Nam Kỳ hào hùng năm 1940",
@@ -928,8 +975,8 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "23 Tháng 11",
-    "meaning": "Cuộc khởi nghĩa quật khởi làm rạng danh ngọn cờ đỏ sao vàng; đồng thời tôn vinh trách nhiệm giữ gìn di sản cha ông.",
-    "subtitle": "Ngày Nam Kỳ Khởi Nghĩa (1940) & Ngày Di Sản Văn Hóa Việt Nam",
+    "meaning": "Cuộc khởi nghĩa quật khởi làm rạng danh ngọn cờ đỏ sao vàng; đồng thời tôn vinh trách nhiệm giữ gìn di sản cha ông và tinh thần nhân đạo.",
+    "subtitle": "Ngày Nam Kỳ Khởi Nghĩa, Ngày Di Sản Văn Hóa & Thành Lập Hội Chữ Thập Đỏ Việt Nam",
     "traditions": [
       "Mở cửa miễn phí tham quan tại các bảo tàng, di tích quốc gia đặc biệt trên toàn quốc",
       "Trình diễn các di sản phi vật thể: Ca trù, Nhã nhạc cung đình Huế, Đờn ca tài tử Nam Bộ",
@@ -1110,43 +1157,45 @@ export const NOVEMBER_EVENTS: VietnamEvent[] = [
   },
   {
     "id": "ev-11-28-tet-trong-cay-bac-ho",
-    "title": "Kỷ Niệm Bác Hồ Phát Động Tết Trồng Cây (28/11/1959)",
-    "shortDescription": "'Mùa xuân là Tết trồng cây / Làm cho đất nước càng ngày càng xuân' — tầm nhìn sinh thái vĩ đại.",
+    "title": "Ngày Lâm Nghiệp Việt Nam & Kỷ Niệm Bác Hồ Phát Động Tết Trồng Cây (28/11/1959)",
+    "shortDescription": "Tôn vinh ngành lâm nghiệp và lời căn dặn bất hủ: 'Mùa xuân là Tết trồng cây / Làm cho đất nước càng ngày càng xuân'.",
     "category": "vietnam-history",
     "categoryLabel": "Kỷ niệm lịch sử",
     "nature": "historical-anniversary",
     "natureLabel": "Mốc son lịch sử",
-    "priority": 80,
+    "priority": 85,
     "solarDate": {
       "month": 11,
       "day": 28
     },
     "displayDate": "28 Tháng 11",
-    "origin": "Ngày 28/11/1959, Bác Hồ viết bài 'Tết trồng cây' đăng trên báo Nhân Dân, khởi xướng phong trào trồng cây phủ xanh đất nước.",
-    "significance": "Lời kêu gọi mộc mạc nhưng chứa đựng tư tưởng phát triển bền vững đi trước thời đại hàng chục năm.",
+    "origin": "Ngày 28/11/1959, Bác Hồ viết bài 'Tết trồng cây' đăng trên báo Nhân Dân; Thủ tướng Chính phủ ban hành Quyết định số 380/QĐ-TTg ngày 28/06/1995 lấy ngày 28/11 hằng năm là 'Ngày Lâm nghiệp Việt Nam'.",
+    "significance": "Tôn vinh lực lượng giữ rừng, phát triển tài nguyên rừng bền vững và hiện thực hóa lời dạy của Bác về bảo vệ môi trường sinh thái.",
     "didYouKnow": "Phong trào trồng 1 tỷ cây xanh vì một Việt Nam xanh đang được các cấp các ngành tích cực hưởng ứng.",
     "milestones": [
-      "Hưởng ứng lời dạy Tết Trồng cây của Bác Hồ"
+      "Hưởng ứng Ngày Lâm nghiệp Việt Nam 28/11",
+      "Kỷ niệm phong trào Tết Trồng cây của Bác Hồ năm 1959",
+      "Trồng cây phủ xanh đất trống đồi trọc và bảo tồn rừng đầu nguồn"
     ],
-    "quote": null,
+    "quote": "Mùa xuân là Tết trồng cây / Làm cho đất nước càng ngày càng xuân. — Chủ tịch Hồ Chí Minh",
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "accentGradient": "from-emerald-600/30 via-green-600/20 to-zinc-950",
     "dateLabel": "28 Tháng 11",
-    "meaning": "Lời kêu gọi mộc mạc nhưng chứa đựng tư tưởng phát triển bền vững đi trước thời đại hàng chục năm.",
-    "subtitle": "'Mùa xuân là Tết trồng cây / Làm cho đất nước càng ngày càng xuân'",
+    "meaning": "Tôn vinh ngành lâm nghiệp Việt Nam và lan tỏa phong trào trồng cây gây rừng, bảo vệ lá phổi xanh của non sông.",
+    "subtitle": "Ngày Lâm Nghiệp Việt Nam — 'Mùa xuân là Tết trồng cây / Làm cho đất nước càng ngày càng xuân'",
     "activities": [
-      "Dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ",
-      "Tham quan các bảo tàng, di tích lịch sử để tìm hiểu mốc son vẻ vang của dân tộc",
-      "Kể lại những câu chuyện lịch sử hào hùng cho thế hệ trẻ gìn giữ truyền thống yêu nước"
+      "Tham gia các hoạt động trồng cây xanh, gây rừng và phủ xanh không gian sống",
+      "Tri ân những người lính kiểm lâm và công nhân lâm nghiệp ngày đêm bảo vệ rừng",
+      "Tuyên truyền ý thức phòng chống cháy rừng và bảo tồn đa dạng sinh học rừng tự nhiên"
     ],
     "whyItMatters": null,
-    "message": "Tự hào truyền thống vẻ vang của dân tộc, vững bước tương lai kiến thiết đất nước giàu mạnh.",
+    "message": "Kính chúc cán bộ, công nhân ngành lâm nghiệp luôn vững vàng tay súng giữ rừng, vì non sông gấm vóc ngát xanh mãi muôn đời.",
     "interestingFacts": [
       "Phong trào trồng 1 tỷ cây xanh vì một Việt Nam xanh đang được các cấp các ngành tích cực hưởng ứng."
     ],
-    "description": "'Mùa xuân là Tết trồng cây / Làm cho đất nước càng ngày càng xuân' — tầm nhìn sinh thái vĩ đại.",
-    "bannerDescription": "Ngày 28/11/1959, Bác Hồ viết bài 'Tết trồng cây' đăng trên báo Nhân Dân, khởi xướng phong trào trồng cây phủ xanh đất nước. Lời kêu gọi mộc mạc nhưng chứa đựng tư tưởng phát triển bền vững đi trước thời đại hàng chục năm. Đây là dịp ý nghĩa để dâng hương tưởng niệm các anh hùng liệt sĩ tại đài tưởng niệm và nghĩa trang liệt sĩ."
+    "description": "Tôn vinh ngành lâm nghiệp và lời căn dặn bất hủ: 'Mùa xuân là Tết trồng cây / Làm cho đất nước càng ngày càng xuân'.",
+    "bannerDescription": "Ngày 28/11/1959 Bác Hồ phát động Tết trồng cây; Quyết định 380/QĐ-TTg của Thủ tướng Chính phủ công nhận ngày 28/11 là Ngày Lâm nghiệp Việt Nam. Tôn vinh tinh thần bảo vệ và phát triển rừng xanh bền vững."
   },
   {
     "id": "ev-11-29-doan-ket-palestine",

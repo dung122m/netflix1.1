@@ -573,23 +573,24 @@ export const MARCH_EVENTS: VietnamEvent[] = [
   },
   {
     "id": "ev-03-15-dien-anh-vn",
-    "title": "Ngày Điện Ảnh Cách Mạng Việt Nam (15/03/1953)",
-    "shortDescription": "Tôn vinh những tác phẩm điện ảnh kinh điển phản ánh hào khí và tâm hồn con người Việt Nam.",
+    "title": "Ngày Điện Ảnh Cách Mạng & Quyền Của Người Tiêu Dùng Việt Nam (15/03)",
+    "shortDescription": "Tôn vinh những tác phẩm điện ảnh phản ánh hào khí dân tộc và bảo vệ quyền lợi hợp pháp của người tiêu dùng Việt Nam.",
     "category": "entertainment",
     "categoryLabel": "Văn hóa nghệ thuật",
     "nature": "arts-culture",
     "natureLabel": "Nghệ thuật & Sáng tạo",
-    "priority": 80,
+    "priority": 85,
     "solarDate": {
       "month": 3,
       "day": 15
     },
     "displayDate": "15 Tháng 03",
-    "origin": "Ngày 15/3/1953 tại Đồi Cọ (Định Hóa, Thái Nguyên), Bác Hồ ký Sắc lệnh số 147/SL thành lập Doanh nghiệp Quốc gia Chiếu bóng và Chụp ảnh Việt Nam.",
-    "significance": "Đánh dấu sự ra đời của nền Điện ảnh Cách mạng với những bộ phim kinh điển như 'Chung một dòng sông', 'Cánh đồng hoang', 'Bao giờ cho đến tháng Mười'.",
+    "origin": "Ngày 15/3/1953 tại Đồi Cọ (Định Hóa, Thái Nguyên), Bác Hồ ký Sắc lệnh số 147/SL thành lập Doanh nghiệp Quốc gia Chiếu bóng và Chụp ảnh Việt Nam; Thủ tướng Chính phủ ban hành Quyết định số 1035/QĐ-TTg ngày 10/07/2015 lấy ngày 15/03 hằng năm là 'Ngày Quyền của người tiêu dùng Việt Nam'.",
+    "significance": "Đánh dấu sự ra đời của nền Điện ảnh Cách mạng với những bộ phim kinh điển; đồng thời khẳng định vai trò bảo vệ quyền lợi chính đáng của người tiêu dùng trong nền kinh tế thị trường.",
     "didYouKnow": "Bộ phim tài liệu 'Điện Biên Phủ' năm 1954 đã ghi lại những thước phim lịch sử vô giá dưới mưa bom bão đạn.",
     "milestones": [
-      "Sắc lệnh thành lập ngành Điện ảnh năm 1953",
+      "Kỷ niệm Sắc lệnh thành lập ngành Điện ảnh năm 1953",
+      "Hưởng ứng Ngày Quyền của Người tiêu dùng Việt Nam",
       "Lễ trao giải Cánh Diều Vàng hàng năm vinh danh điện ảnh nước nhà"
     ],
     "quote": "Điện ảnh là nghệ thuật thứ bảy giàu sức truyền cảm, phản ánh chân thực tâm hồn và khí phách Việt Nam.",
@@ -597,25 +598,25 @@ export const MARCH_EVENTS: VietnamEvent[] = [
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "15 Tháng 03",
-    "meaning": "Đánh dấu sự ra đời của nền Điện ảnh Cách mạng với những bộ phim kinh điển như 'Chung một dòng sông', 'Cánh đồng hoang', 'Bao giờ cho đến tháng Mười'.",
-    "subtitle": "Kỷ niệm Sắc lệnh 147/SL của Bác Hồ thành lập Doanh nghiệp Chiếu bóng (15/03/1953)",
+    "meaning": "Đánh dấu sự ra đời của nền Điện ảnh Cách mạng Việt Nam và nâng cao trách nhiệm xã hội trong bảo vệ quyền người tiêu dùng.",
+    "subtitle": "Kỷ Niệm Sắc Lệnh 147/SL Ngành Điện Ảnh & Ngày Quyền Của Người Tiêu Dùng Việt Nam",
     "traditions": [
       "Lễ kỷ niệm truyền thống và vinh danh các thế hệ nghệ sĩ, đạo diễn, nhà quay phim kỳ cựu",
       "Chiếu phim tài liệu và phim truyện cách mạng kinh điển miễn phí phục vụ khán giả",
-      "Tọa đàm về phát triển công nghiệp điện ảnh Việt Nam hiện đại, giàu bản sắc"
+      "Tọa đàm về bảo vệ quyền lợi người tiêu dùng và phát triển công nghiệp điện ảnh Việt Nam"
     ],
     "activities": [
       "Thưởng thức những tác phẩm điện ảnh xuất sắc giàu giá trị nhân văn",
-      "Tìm hiểu hậu trường sáng tạo và hành trình lao động nghệ thuật của các nhà làm phim",
+      "Tìm hiểu kiến thức tiêu dùng thông minh và quyền lợi người tiêu dùng theo pháp luật",
       "Giao lưu và chia sẻ cảm nhận nghệ thuật cùng cộng đồng yêu phim"
     ],
     "whyItMatters": null,
-    "message": "Điện ảnh là nghệ thuật thứ bảy giàu sức truyền cảm, phản ánh chân thực tâm hồn và khí phách Việt Nam.",
+    "message": "Chúc nền điện ảnh nước nhà không ngừng vươn xa và mỗi người dân đều là những người tiêu dùng thông thái.",
     "interestingFacts": [
       "Bộ phim tài liệu 'Điện Biên Phủ' năm 1954 đã ghi lại những thước phim lịch sử vô giá dưới mưa bom bão đạn."
     ],
     "description": "Tôn vinh những tác phẩm điện ảnh kinh điển phản ánh hào khí và tâm hồn con người Việt Nam.",
-    "bannerDescription": "Ngày 15/3/1953 tại Đồi Cọ (Định Hóa, Thái Nguyên), Bác Hồ ký Sắc lệnh số 147/SL thành lập Doanh nghiệp Quốc gia Chiếu bóng và Chụp ảnh Việt Nam. Đánh dấu sự ra đời của nền Điện ảnh Cách mạng với những bộ phim kinh điển như 'Chung một dòng sông', 'Cánh đồng hoang', 'Bao giờ cho đến tháng Mười'. Người dân và các gia đình thường lễ kỷ niệm truyền thống và vinh danh các thế hệ nghệ sĩ, đạo diễn, nhà quay phim kỳ cựu."
+    "bannerDescription": "Ngày 15/3/1953 Bác Hồ ký Sắc lệnh số 147/SL thành lập ngành Chiếu bóng; Quyết định 1035/QĐ-TTg của Thủ tướng Chính phủ lấy ngày 15/3 là Ngày Quyền của người tiêu dùng Việt Nam. Tôn vinh nền điện ảnh dân tộc và bảo vệ quyền lợi người tiêu dùng."
   },
   {
     "id": "ev-03-16-polar-bear",

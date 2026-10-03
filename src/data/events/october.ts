@@ -164,6 +164,95 @@ export const OCTOBER_EVENTS: VietnamEvent[] = [
     "bannerDescription": "Được Liên Hợp Quốc chọn vào thứ Hai đầu tiên của tháng 10 nhằm hướng tới phát triển đô thị bền vững. Khuyến khích xây dựng nhà ở xã hội, phủ xanh đô thị và giải quyết ô nhiễm rác thải ở các khu dân cư. Đây là dịp ý nghĩa để trồng thêm cây xanh tại khu dân cư, ban công hoặc nơi làm việc."
   },
   {
+    "id": "ev-10-04-pccc-viet-nam",
+    "title": "Ngày Toàn Dân Phòng Cháy & Chữa Cháy (04/10)",
+    "shortDescription": "Toàn dân tham gia phòng cháy, chữa cháy và cứu nạn, cứu hộ — bảo vệ bình yên cho mỗi mái nhà và cộng đồng.",
+    "category": "vietnam-history",
+    "categoryLabel": "Kỷ niệm lịch sử",
+    "nature": "historical-anniversary",
+    "natureLabel": "Mốc son lịch sử",
+    "priority": 90,
+    "solarDate": {
+      "month": 10,
+      "day": 4
+    },
+    "displayDate": "04 Tháng 10",
+    "origin": "Ngày 04/10/1961 Bác Hồ ký Lệnh công bố Pháp lệnh phòng cháy chữa cháy; Điều 11 Luật PCCC 2001 và Quyết định số 369/1996/QĐ-TTg của Thủ tướng Chính phủ quy định ngày 4/10 là Ngày Toàn dân phòng cháy và chữa cháy.",
+    "significance": "Nâng cao ý thức toàn dân trong phòng ngừa cháy nổ, cứu nạn cứu hộ và tri ân sự cống hiến quên mình của lực lượng Cảnh sát PCCC & CNCH.",
+    "didYouKnow": "Phương châm 4 tại chỗ trong PCCC gồm: Chỉ huy tại chỗ, lực lượng tại chỗ, phương tiện tại chỗ và hậu cần tại chỗ.",
+    "milestones": [
+      "Hưởng ứng Ngày Toàn dân Phòng cháy & Chữa cháy 04/10",
+      "Tập huấn kỹ năng thoát hiểm và xử lý sự cố cháy nổ",
+      "Tri ân lực lượng Cảnh sát PCCC & CNCH dũng cảm"
+    ],
+    "quote": "Phòng cháy hơn chữa cháy — bình an của nhân dân là mệnh lệnh từ trái tim người lính cứu hỏa.",
+    "tag": "Đời sống & Văn hóa",
+    "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
+    "accentGradient": "from-red-600/30 via-amber-600/20 to-zinc-950",
+    "dateLabel": "04 Tháng 10",
+    "meaning": "Nâng cao ý thức toàn dân trong công tác phòng cháy, chữa cháy và cứu nạn cứu hộ bảo vệ tính mạng tài sản nhân dân.",
+    "subtitle": "Ngày Toàn Dân Phòng Cháy, Chữa Cháy & Cứu Nạn, Cứu Hộ",
+    "traditions": [
+      "Diễn tập phương án chữa cháy và cứu nạn cứu hộ tại các khu dân cư và tòa nhà",
+      "Kiểm tra, trang bị bình chữa cháy và thiết bị báo cháy gia đình",
+      "Tuyên truyền kỹ năng an toàn điện và an toàn phòng chống cháy nổ"
+    ],
+    "activities": [
+      "Kiểm tra an toàn hệ thống điện và các nguồn phát nhiệt trong nhà",
+      "Trang bị kiến thức và kỹ năng thoát nạn an toàn khi xảy ra sự cố",
+      "Chia sẻ cẩm nang an toàn PCCC cho gia đình và cộng đồng xung quanh"
+    ],
+    "whyItMatters": null,
+    "message": "Mỗi gia đình là một pháo đài an toàn, mỗi người dân là một chiến sĩ trên mặt trận phòng chống giặc lửa.",
+    "interestingFacts": [
+      "Phương châm 4 tại chỗ trong PCCC gồm: Chỉ huy tại chỗ, lực lượng tại chỗ, phương tiện tại chỗ và hậu cần tại chỗ."
+    ],
+    "description": "Toàn dân tham gia phòng cháy, chữa cháy và cứu nạn, cứu hộ — bảo vệ bình yên cho mỗi mái nhà và cộng đồng.",
+    "bannerDescription": "Kỷ niệm Ngày Toàn dân phòng cháy và chữa cháy theo Luật PCCC và Quyết định 369/1996/QĐ-TTg của Thủ tướng Chính phủ. Nâng cao ý thức phòng ngừa hỏa hoạn, cứu nạn cứu hộ bảo vệ an toàn tính mạng, tài sản của nhân dân."
+  },
+  {
+    "id": "ev-10-04-ky-nang-lao-dong-vn",
+    "title": "Ngày Kỹ Năng Lao Động Việt Nam (04/10)",
+    "shortDescription": "Tôn vinh lực lượng lao động tài hoa — nâng tầm kỹ năng và năng suất lao động quốc gia trong kỷ nguyên số.",
+    "category": "social-family",
+    "categoryLabel": "Ngày vì cộng đồng",
+    "nature": "social-observance",
+    "natureLabel": "Vì cộng đồng",
+    "priority": 85,
+    "solarDate": {
+      "month": 10,
+      "day": 4
+    },
+    "displayDate": "04 Tháng 10",
+    "origin": "Thủ tướng Chính phủ ban hành Quyết định số 1486/QĐ-TTg ngày 01/10/2020 lấy ngày 04/10 hằng năm là 'Ngày Kỹ năng lao động Việt Nam'.",
+    "significance": "Khích lệ tinh thần học hỏi, rèn luyện tay nghề và phát triển nguồn nhân lực chất lượng cao phục vụ công nghiệp hóa, hiện đại hóa.",
+    "didYouKnow": "Kỹ năng lao động là đơn vị tiền tệ mới của thị trường lao động toàn cầu trong thời đại trí tuệ nhân tạo và chuyển đổi số.",
+    "milestones": [
+      "Hưởng ứng Ngày Kỹ năng lao động Việt Nam 04/10",
+      "Tôn vinh người lao động giỏi và nghệ nhân tay nghề cao",
+      "Thúc đẩy phong trào học tập, rèn luyện kỹ năng nghề"
+    ],
+    "quote": "Bàn tay vàng, khối óc sáng tạo — người lao động vững kỹ năng là nền tảng cho một Việt Nam phát triển hùng cường.",
+    "tag": "Đời sống & Văn hóa",
+    "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
+    "accentGradient": "from-blue-600/30 via-indigo-600/20 to-zinc-950",
+    "dateLabel": "04 Tháng 10",
+    "meaning": "Tôn vinh người lao động có kỹ năng nghề cao và thúc đẩy phát triển kỹ năng toàn diện cho thế hệ trẻ.",
+    "subtitle": "Nâng tầm kỹ năng lao động Việt Nam vì một quốc gia thịnh vượng",
+    "activities": [
+      "Tham gia các khóa đào tạo nâng cao trình độ chuyên môn và kỹ năng số",
+      "Biểu dương những tấm gương thợ giỏi, kỹ sư xuất sắc và lao động sáng tạo",
+      "Định hướng nghề nghiệp và truyền cảm hứng tự học suốt đời cho người lao động trẻ"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc toàn thể người lao động Việt Nam không ngừng trau dồi tay nghề, tự tin hội nhập và chinh phục những đỉnh cao mới.",
+    "interestingFacts": [
+      "Kỹ năng lao động là đơn vị tiền tệ mới của thị trường lao động toàn cầu trong thời đại trí tuệ nhân tạo và chuyển đổi số."
+    ],
+    "description": "Tôn vinh lực lượng lao động tài hoa — nâng tầm kỹ năng và năng suất lao động quốc gia trong kỷ nguyên số.",
+    "bannerDescription": "Thủ tướng Chính phủ ban hành Quyết định số 1486/QĐ-TTg ngày 01/10/2020 lấy ngày 04/10 hằng năm là Ngày Kỹ năng lao động Việt Nam. Khích lệ tinh thần học hỏi, rèn luyện tay nghề và phát triển nguồn nhân lực chất lượng cao."
+  },
+  {
     "id": "ev-10-04-dong-vat-the-gioi",
     "title": "Ngày Động Vật Thế Giới (World Animal Day)",
     "shortDescription": "Yêu thương, bảo vệ muôn loài và tôn trọng quyền được sống hòa hợp của thế giới động vật.",
@@ -405,8 +494,8 @@ export const OCTOBER_EVENTS: VietnamEvent[] = [
   },
   {
     "id": "ev-10-10-giai-phong-thu-do-va-so-hoa",
-    "title": "Ngày Giải Phóng Thủ Đô (10/10/1954) & Ngày Chuyển Đổi Số Quốc Gia",
-    "shortDescription": "Hà Nội rợp cờ hoa đón mừng đoàn quân chiến thắng và khát vọng tiên phong kiến tạo xã hội số hiện đại.",
+    "title": "Ngày Giải Phóng Thủ Đô (10/10/1954), Ngày Chuyển Đổi Số Quốc Gia & Ngày Luật Sư Việt Nam",
+    "shortDescription": "Hà Nội rợp cờ hoa đón mừng đoàn quân chiến thắng, khát vọng xã hội số hiện đại và thượng tôn pháp luật.",
     "category": "vietnam-history",
     "categoryLabel": "Kỷ niệm lịch sử",
     "nature": "historical-anniversary",
@@ -417,8 +506,8 @@ export const OCTOBER_EVENTS: VietnamEvent[] = [
       "day": 10
     },
     "displayDate": "10 Tháng 10",
-    "origin": "Sáng 10/10/1954, các cánh quân Đại đoàn Quân Tiên Phong tiến vào tiếp quản Hà Nội; ngày 10/10 cũng là Ngày Chuyển đổi số Quốc gia và Ngày Luật sư Việt Nam.",
-    "significance": "Mở ra trang sử mới xây dựng Thủ đô ngàn năm văn hiến hòa bình; đồng thời thúc đẩy công nghệ Make in Vietnam.",
+    "origin": "Sáng 10/10/1954, các cánh quân Đại đoàn Quân Tiên Phong tiến vào tiếp quản Hà Nội; ngày 10/10 cũng là Ngày Chuyển đổi số Quốc gia và Ngày Truyền thống Luật sư Việt Nam.",
+    "significance": "Mở ra trang sử mới xây dựng Thủ đô ngàn năm văn hiến hòa bình; thúc đẩy công nghệ Make in Vietnam và bảo vệ công lý, quyền công dân.",
     "didYouKnow": "Hình ảnh các chiến sĩ tiến qua Cầu Long Biên, phố Hàng Đào giữa rợp trời cờ hoa đã đi vào bất tử.",
     "milestones": [
       "Kỷ niệm ngày Giải phóng Thủ đô 10/10/1954",
@@ -430,8 +519,8 @@ export const OCTOBER_EVENTS: VietnamEvent[] = [
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
     "dateLabel": "10 Tháng 10",
-    "meaning": "Mở ra trang sử mới xây dựng Thủ đô ngàn năm văn hiến hòa bình; đồng thời thúc đẩy công nghệ Make in Vietnam.",
-    "subtitle": "Ngày Giải phóng Thủ đô (10/10/1954) & Ngày Chuyển đổi số Quốc gia",
+    "meaning": "Mở ra trang sử mới xây dựng Thủ đô ngàn năm văn hiến hòa bình; thúc đẩy công nghệ Make in Vietnam và bảo vệ công lý, quyền công dân.",
+    "subtitle": "Ngày Giải Phóng Thủ Đô, Ngày Chuyển Đổi Số Quốc Gia & Ngày Truyền Thống Luật Sư Việt Nam",
     "traditions": [
       "Trùng trùng quân đi như sóng tiến qua năm cửa ô rực cờ hoa tiếp quản Thủ đô",
       "Lễ kỷ niệm ngày Giải phóng Thủ đô tại Quảng trường Đoan Môn (Hoàng thành Thăng Long)",
