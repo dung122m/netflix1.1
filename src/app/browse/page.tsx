@@ -208,8 +208,14 @@ function isRelevantSemanticCandidate(
 
 function isKnownActorName(query: string): boolean {
   const normalizedQuery = cleanNormalizedForMatch(query);
-  return Boolean(normalizedQuery) && GOLDEN_ACTOR_INDEX.some(
-    (profile) => cleanNormalizedForMatch(profile.name) === normalizedQuery
+  return (
+    Boolean(normalizedQuery) &&
+    (GOLDEN_ACTOR_INDEX.some(
+      (profile) =>
+        cleanNormalizedForMatch(profile.name) === normalizedQuery ||
+        profile.aliases.some((alias) => cleanNormalizedForMatch(alias) === normalizedQuery)
+    ) ||
+      getActorSynonyms(query).isMatched)
   );
 }
 

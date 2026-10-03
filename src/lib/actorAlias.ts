@@ -6,7 +6,7 @@ import { normalizeForMatch } from "./stringUtils";
  */
 const ACTOR_ALIAS_GROUPS: readonly string[][] = [
   // Donnie Yen: tên EN, VN, và biến thể VN khác nhau giữa các phim
-  ["Donnie Yen", "Chân Tử Đan", "Chung Tử Đơn"],
+  ["Donnie Yen", "Chân Tử Đan", "Chung Tử Đơn", "Chung Tử Đan"],
   // Jackie Chan
   ["Jackie Chan", "Thành Long"],
   // Jet Li

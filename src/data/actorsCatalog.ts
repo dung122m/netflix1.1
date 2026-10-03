@@ -653,6 +653,10 @@ export const ACTORS_CATALOG: ActorCatalogItem[] = [
     "aliases": [
       "chân tử đan",
       "chan tu dan",
+      "chung tử đơn",
+      "chung tu don",
+      "chung tử đan",
+      "chung tu dan",
       "donnie yen",
       "diep van"
     ],
