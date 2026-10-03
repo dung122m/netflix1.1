@@ -326,7 +326,7 @@ export function toCanonicalSourceUrl(url?: string | null): string {
       }
     } catch { }
   }
-  return clean;
+  return clean.split("?")[0].trim();
 }
 
 /**
@@ -2677,14 +2677,16 @@ function LivePlayerInner({
           </div>
         )}
 
-        {/* LOADING SPINNER */}
+        {/* LOADING BADGE (Floating corner toast without dark full-screen blackout) */}
         {isLoading && !hasError && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm z-20 pointer-events-none">
-            <div className="w-12 h-12 rounded-full border-4 border-netflix-red border-t-transparent animate-spin mb-3 shadow-lg" />
-            <p className="text-xs sm:text-sm font-bold text-gray-200 flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-amber-400 animate-spin" />
-              <span>Đang kết nối luồng phát sóng trực tiếp...</span>
-            </p>
+          <div className="absolute top-4 right-4 z-20 pointer-events-none animate-in fade-in duration-200">
+            <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-black/75 backdrop-blur-md border border-white/15 shadow-xl">
+              <div className="w-4 h-4 rounded-full border-2 border-netflix-red border-t-transparent animate-spin flex-shrink-0 shadow-sm" />
+              <p className="text-xs sm:text-sm font-semibold text-gray-200 flex items-center gap-1.5 whitespace-nowrap">
+                <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-spin flex-shrink-0" />
+                <span>Đang kết nối luồng phát sóng trực tiếp...</span>
+              </p>
+            </div>
           </div>
         )}
 

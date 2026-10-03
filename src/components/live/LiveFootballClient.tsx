@@ -10,7 +10,7 @@ import {
 } from "@/services/liveFootballService";
 import { clearProbeQueue } from "@/services/live/football/clientSourceProbe";
 import { isRawNumericOrArtifactTournament } from "@/data/live/teamAssets";
-import { LivePlayer } from "./LivePlayer";
+import { LivePlayer, toCanonicalSourceUrl } from "./LivePlayer";
 import { MatchCard } from "./MatchCard";
 import {
   Search,
@@ -145,7 +145,8 @@ export function LiveFootballClient({
       (updated.servers?.length || 0) !== (selectedMatch.servers?.length || 0) ||
       updated.servers?.some(
         (s, i) =>
-          s.url !== selectedMatch.servers?.[i]?.url ||
+          toCanonicalSourceUrl(s.url) !==
+            toCanonicalSourceUrl(selectedMatch.servers?.[i]?.url) ||
           s.name !== selectedMatch.servers?.[i]?.name
       );
 
