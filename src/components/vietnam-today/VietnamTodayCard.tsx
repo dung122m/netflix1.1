@@ -220,15 +220,15 @@ export function VietnamTodayCard({ info, selectedEventId, onOpenModal }: Vietnam
               setImageError(true);
               e.currentTarget.style.display = "none";
             }}
-            className="w-full h-full object-cover object-center opacity-30 filter brightness-[0.40] contrast-110 transition-transform duration-700 ease-out group-hover:scale-105 motion-reduce:transform-none"
+            className="w-full h-full object-cover object-center opacity-55 filter brightness-[0.80] contrast-105 transition-all duration-700 ease-out group-hover:scale-105 group-hover:opacity-70 motion-reduce:transform-none"
           />
         ) : (
           <div className={`w-full h-full bg-gradient-to-r ${themeConfig.gradient} opacity-95`} />
         )}
 
         {/* Multi-stop cinematic dark gradient for guaranteed AAA readability */}
-        <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/90 sm:via-zinc-950/80 to-transparent w-full sm:w-3/4 pointer-events-none" />
-        <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/90 via-transparent to-black/30 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-r from-zinc-950/95 via-zinc-950/80 sm:via-zinc-950/65 to-transparent w-full sm:w-3/5 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/80 via-transparent to-transparent pointer-events-none" />
       </div>
 
       {/* THEMATIC ICON ILLUSTRATION COMPOSITION (Chỉ render khi event CHƯA có thiết kế riêng) */}

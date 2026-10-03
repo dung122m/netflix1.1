@@ -40,10 +40,10 @@ export function TonightNanaflixWidget() {
             src={config.bgImageUrl}
             alt=""
             aria-hidden="true"
-            className="w-full h-full object-cover object-center opacity-40 filter brightness-[0.75] contrast-105 motion-reduce:transform-none"
+            className="w-full h-full object-cover object-center opacity-55 filter brightness-[0.85] contrast-105 motion-reduce:transform-none"
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-zinc-950/90 via-zinc-950/60 to-zinc-950/40 pointer-events-none" />
-          <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/80 via-transparent to-transparent pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-r from-zinc-950/90 via-zinc-950/55 to-zinc-950/30 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/70 via-transparent to-transparent pointer-events-none" />
         </div>
       )}
 
