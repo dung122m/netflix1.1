@@ -223,12 +223,25 @@ export function VietnamTodayCard({ info, selectedEventId, onOpenModal }: Vietnam
             className="w-full h-full object-cover object-center opacity-55 filter brightness-[0.80] contrast-105 transition-all duration-700 ease-out group-hover:scale-105 group-hover:opacity-70 motion-reduce:transform-none"
           />
         ) : (
-          <div className={`w-full h-full bg-gradient-to-r ${themeConfig.gradient} opacity-95`} />
+          <div className="relative w-full h-full overflow-hidden">
+            {/* Thematic rich subtle gradient */}
+            <div className={`w-full h-full bg-gradient-to-r ${themeConfig.gradient}`} />
+            
+            {/* Ambient soft glow spotlights */}
+            <div
+              className="absolute -right-12 -top-12 w-64 h-64 rounded-full blur-3xl opacity-40 pointer-events-none transition-all duration-700"
+              style={{ backgroundColor: themeConfig.spotlightRgba }}
+            />
+            <div
+              className="absolute right-1/4 -bottom-16 w-56 h-56 rounded-full blur-3xl opacity-25 pointer-events-none transition-all duration-700"
+              style={{ backgroundColor: themeConfig.spotlightRgba }}
+            />
+          </div>
         )}
 
         {/* Multi-stop cinematic dark gradient for guaranteed AAA readability */}
-        <div className="absolute inset-0 bg-gradient-to-r from-zinc-950/95 via-zinc-950/80 sm:via-zinc-950/65 to-transparent w-full sm:w-3/5 pointer-events-none" />
-        <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/80 via-transparent to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-r from-zinc-950/90 via-zinc-950/60 sm:via-zinc-950/40 to-transparent w-full sm:w-3/5 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/60 via-transparent to-transparent pointer-events-none" />
       </div>
 
       {/* THEMATIC ICON ILLUSTRATION COMPOSITION (Chỉ render khi event CHƯA có thiết kế riêng) */}

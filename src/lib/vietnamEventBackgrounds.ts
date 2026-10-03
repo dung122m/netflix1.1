@@ -94,6 +94,8 @@ const PLACEHOLDER_TEMPLATE_URLS = new Set([
 
 /**
  * Lấy background cinematic tối ưu cho sự kiện hôm nay
+ * - Chỉ dùng ảnh cụ thể cho diễn viên thật hoặc đại lễ lớn có thiết kế riêng.
+ * - Các ngày kỷ niệm / sự kiện thường dùng hệ màu sắc gradient & hiệu ứng vector nhẹ nhàng để không lệch ngữ cảnh.
  */
 export function getVietnamEventBackground(info: VietnamTodayInfo | {
   event: VietnamEvent;
@@ -101,22 +103,26 @@ export function getVietnamEventBackground(info: VietnamTodayInfo | {
 }): string {
   const { event, historicalEventsToday } = info;
 
-  // 0. Ảnh cụ thể đi kèm sự kiện (vd Avatar diễn viên sinh nhật, poster sự kiện thật, không phải placeholder)
-  if (event?.imageUrl && !PLACEHOLDER_TEMPLATE_URLS.has(event.imageUrl)) {
+  // 0. Ảnh cụ thể của diễn viên (sinh nhật) hoặc poster sự kiện thực tế có thật
+  if (
+    event?.imageUrl &&
+    !PLACEHOLDER_TEMPLATE_URLS.has(event.imageUrl) &&
+    (event.id.startsWith("ev-actor-birthday") || event.actorName)
+  ) {
     return event.imageUrl;
   }
 
-  // 1. Kiểm tra ID sự kiện cụ thể
-  if (event?.id && SPECIFIC_EVENT_BACKGROUNDS[event.id]) {
+  // 1. Kiểm tra ID sự kiện cụ thể có thiết kế riêng
+  if (event?.id && SPECIFIC_EVENT_BACKGROUNDS[event.id] && DEDICATED_MAJOR_EVENT_IDS.has(event.id)) {
     return SPECIFIC_EVENT_BACKGROUNDS[event.id];
   }
 
-  // 2. Kiểm tra hiệu ứng đặc biệt
+  // 2. Kiểm tra hiệu ứng đặc biệt (Tết, Trung Thu, Noel, Halloween, Quốc Khánh)
   if (event?.effect && EFFECT_BACKGROUNDS[event.effect]) {
     return EFFECT_BACKGROUNDS[event.effect];
   }
 
-  // 3. Kiểm tra mốc son lịch sử trùng ngày (nếu có)
+  // 3. Mốc son lịch sử trùng ngày (nếu có visual theme)
   if (historicalEventsToday && historicalEventsToday.length > 0) {
     const firstHist = historicalEventsToday[0];
     if (firstHist?.visualTheme && HISTORICAL_THEME_BACKGROUNDS[firstHist.visualTheme]) {
@@ -124,19 +130,9 @@ export function getVietnamEventBackground(info: VietnamTodayInfo | {
     }
   }
 
-  // 4. Kiểm tra theo Pattern Theme (như Môi trường, Thiên nhiên, Lễ hội...)
-  const pattern = getVietnamEventPatternTheme(info);
-  if (pattern && CATEGORY_BACKGROUNDS[pattern]) {
-    return CATEGORY_BACKGROUNDS[pattern];
-  }
-
-  // 5. Kiểm tra Category
-  if (event?.category && CATEGORY_BACKGROUNDS[event.category]) {
-    return CATEGORY_BACKGROUNDS[event.category];
-  }
-
-  // 6. Default Fallback
-  return DEFAULT_CINEMATIC_BACKGROUND;
+  // Đối với các ngày kỷ niệm/chủ đề thông thường: Không dùng ảnh stock ngẫu nhiên để tránh lệch ngữ cảnh.
+  // Trả về rỗng để component dùng màu sắc gradient và hiệu ứng vector/ambient ánh sáng tinh tế.
+  return "";
 }
 
 /**
