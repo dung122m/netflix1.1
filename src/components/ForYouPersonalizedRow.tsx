@@ -546,14 +546,20 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
 
                       {/* QUALITY TAG GÓC TRÊN PHẢI */}
                       {movie.quality && (
-                        <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-black/70 backdrop-blur-md text-zinc-300 text-[9px] font-bold border border-white/10">
+                        <div
+                          className={`absolute top-2 right-2 px-1.5 py-0.5 rounded backdrop-blur-md text-[9px] font-bold border ${
+                            movie.quality.toUpperCase().includes("CAM")
+                              ? "bg-amber-950/80 text-amber-300 border-amber-500/40"
+                              : "bg-black/70 text-zinc-300 border-white/10"
+                          }`}
+                        >
                           {movie.quality}
                         </div>
                       )}
 
                       {/* BOTTOM INFO BAR */}
                       <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/95 via-black/55 to-transparent p-2.5 sm:p-3 pt-8 sm:pt-10">
-                        <p className="text-white text-xs sm:text-[13px] font-bold line-clamp-1 group-hover:text-emerald-300 transition-colors drop-shadow">
+                        <p className="text-white text-xs sm:text-[13px] font-bold line-clamp-1 truncate group-hover:text-emerald-300 transition-colors drop-shadow">
                           {movie.title || movie.name}
                         </p>
                         <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-zinc-400 mt-0.5 font-medium">

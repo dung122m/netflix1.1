@@ -107,7 +107,7 @@ export default function RootLayout({
     <html
       lang="vi"
       suppressHydrationWarning
-      className={`${inter.variable} font-sans antialiased bg-black text-white`}
+      className={`${inter.variable} font-sans antialiased bg-black text-white dark`}
     >
       <head>
         {/* PWA & Mobile Web App */}
@@ -141,21 +141,15 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://vip.opstream16.com" />
         <link rel="dns-prefetch" href="https://embed.streamc.xyz" />
 
-        {/* Khởi tạo màu giao diện, chế độ sáng/tối và khử các attribute do browser extension tự tiêm vào (bts_skin_checked, etc.) */}
+        {/* Khởi tạo Dark Mode & Khử các attribute do browser extension tự tiêm vào (bts_skin_checked, etc.) */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
                 try {
-                  var m = localStorage.getItem('nanaflix_mode') || 'dark';
-                  document.documentElement.classList.remove('light', 'dark');
-                  document.documentElement.classList.add(m);
-                  document.documentElement.setAttribute('data-mode', m);
-
-                  var t = localStorage.getItem('nanaflix_theme');
-                  if (t) {
-                    document.documentElement.setAttribute('data-theme', t);
-                  }
+                  document.documentElement.classList.add('dark');
+                  document.documentElement.classList.remove('light');
+                  document.documentElement.setAttribute('data-mode', 'dark');
                 } catch(e) {}
 
                 // Gỡ bỏ các thuộc tính do Chrome Extension (Baidu, Translators, Skins) tiêm vào DOM trước khi React hydrate

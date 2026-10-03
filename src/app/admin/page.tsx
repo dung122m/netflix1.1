@@ -67,11 +67,10 @@ import { AdminCollectionsTab } from "./components/AdminCollectionsTab";
 import { AdminMemberDetailModal } from "./components/AdminMemberDetailModal";
 import { AdminCleanResultModal } from "./components/AdminCleanResultModal";
 import { AdminAnalyticsTab } from "./components/AdminAnalyticsTab";
-import { AdminSecurityTab } from "./components/AdminSecurityTab";
 
 type SortOption = "newest" | "oldest" | "highest_rating" | "lowest_rating" | "most_liked";
 
-const VALID_ADMIN_TABS = ["comments", "members", "collections", "analytics", "security"] as const;
+const VALID_ADMIN_TABS = ["comments", "members", "collections", "analytics"] as const;
 type AdminTab = (typeof VALID_ADMIN_TABS)[number];
 
 function AdminDashboardContent() {
@@ -972,18 +971,6 @@ function AdminDashboardContent() {
             <Sparkles size={14} />
             <span>Phân Tích</span>
           </button>
-
-          <button
-            type="button"
-            onClick={() => handleTabChange("security")}
-            className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-bold transition cursor-pointer flex-shrink-0 ${activeTab === "security"
-                ? "bg-netflix-red text-white shadow-lg shadow-red-950/60"
-                : "bg-white/5 text-gray-400 hover:text-white hover:bg-white/10"
-              }`}
-          >
-            <ShieldAlert size={14} />
-            <span>🚨 Security Center</span>
-          </button>
         </div>
 
         {/* TAB 1: COMMENTS MANAGEMENT */}
@@ -1690,11 +1677,6 @@ function AdminDashboardContent() {
             adminEmail={user.email}
             totalMembersCount={totalMemberCount}
           />
-        )}
-
-        {/* TAB 5: SECURITY CENTER */}
-        {activeTab === "security" && (
-          <AdminSecurityTab adminEmail={user?.email} />
         )}
 
         {/* MODAL: MEMBER ACTIVITY DETAILS */}

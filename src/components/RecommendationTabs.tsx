@@ -405,7 +405,13 @@ const RecommendedMovieCard = React.memo(function RecommendedMovieCard({
           {/* Badge Chất lượng góc trên bên phải */}
           {quality && (
             <div className="absolute top-2 right-2 z-10 pointer-events-none">
-              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-black/75 backdrop-blur-md text-zinc-300 border border-white/10">
+              <span
+                className={`px-1.5 py-0.5 rounded text-[10px] font-bold backdrop-blur-md border ${
+                  quality.toUpperCase().includes("CAM")
+                    ? "bg-amber-950/80 text-amber-300 border-amber-500/40"
+                    : "bg-black/75 text-zinc-300 border-white/10"
+                }`}
+              >
                 {quality}
               </span>
             </div>

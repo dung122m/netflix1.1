@@ -19,7 +19,6 @@ import {
 } from "lucide-react";
 import { NetflixLogo } from "@/components/NetflixLogo";
 import { HolidayNavbarAtmosphere } from "./navbar/HolidayNavbarAtmosphere";
-import { ThemeSwitcher } from "./ThemeSwitcher";
 import { NavSearchBar } from "./navbar/NavSearchBar";
 import { NavNotifications } from "./navbar/NavNotifications";
 import { NavUserMenu } from "./navbar/NavUserMenu";
@@ -279,11 +278,6 @@ const NavbarInner: React.FC = () => {
 
           {/* ISOLATED NOTIFICATION CENTER */}
           <NavNotifications />
-
-          {/* THEME SWITCHER */}
-          <div className="hidden sm:block flex-shrink-0">
-            <ThemeSwitcher />
-          </div>
 
           {/* ISOLATED USER MENU */}
           <NavUserMenu onOpenAuthModal={handleOpenAuthModal} />

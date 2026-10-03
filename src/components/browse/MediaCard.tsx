@@ -742,9 +742,15 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           )}
         </div>
 
-        {/* 2. GÓC TRÊN PHẢI: CHẤT LƯỢNG (FHD) */}
+        {/* 2. GÓC TRÊN PHẢI: CHẤT LƯỢNG (FHD / CAM) */}
         <div className="absolute top-2 right-2 sm:top-2.5 sm:right-2.5 z-10 flex items-center justify-end">
-          <span className="bg-black/90 border border-white/20 text-white font-bold text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg shadow-sm shrink-0">
+          <span
+            className={`border font-bold text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg shadow-sm shrink-0 backdrop-blur-sm ${
+              (quality || "FHD").toUpperCase().includes("CAM")
+                ? "bg-amber-950/90 border-amber-500/40 text-amber-300"
+                : "bg-black/90 border-white/20 text-white"
+            }`}
+          >
             {quality || "FHD"}
           </span>
         </div>
@@ -757,23 +763,23 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
               <span className="font-normal italic text-amber-200/90 truncate">{matchSnippet}</span>
             </div>
           )}
-          <p className="text-white font-black text-xs sm:text-base line-clamp-2 sm:line-clamp-1 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] leading-snug sm:leading-tight">
+          <p className="text-white font-black text-xs sm:text-base line-clamp-1 truncate drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] leading-snug sm:leading-tight">
             {title}
           </p>
-          <div className="flex items-center gap-1 sm:gap-2 text-[10px] sm:text-xs font-semibold text-zinc-300 mt-0.5 sm:mt-1 flex-wrap">
+          <div className="flex items-center gap-1 sm:gap-2 text-[10px] sm:text-xs font-semibold text-zinc-300 mt-0.5 sm:mt-1 flex-nowrap overflow-hidden">
             {displayYear && (
-              <span>{displayYear}</span>
+              <span className="shrink-0">{displayYear}</span>
             )}
             {displayTime && (
               <>
-                {displayYear && <span className="text-white/40">•</span>}
+                {displayYear && <span className="text-white/40 shrink-0">•</span>}
                 <span className="truncate max-w-[90px] sm:max-w-[120px] text-white font-medium">{displayTime}</span>
               </>
             )}
             {lang && (
               <>
-                {(displayYear || displayTime) && <span className="text-white/40">•</span>}
-                <span className="text-rose-300 font-bold">{lang}</span>
+                {(displayYear || displayTime) && <span className="text-white/40 shrink-0">•</span>}
+                <span className="text-rose-300 font-bold shrink-0">{lang}</span>
               </>
             )}
           </div>
@@ -873,7 +879,13 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
                 </div>
 
                 <div className="absolute top-2 right-2 z-10">
-                  <span className="bg-black/75 border border-white/20 text-white/90 text-[9px] font-bold px-1.5 py-0.5 rounded backdrop-blur-sm">
+                  <span
+                    className={`border text-[9px] font-bold px-1.5 py-0.5 rounded backdrop-blur-sm ${
+                      (quality || "FHD").toUpperCase().includes("CAM")
+                        ? "bg-amber-950/90 border-amber-500/40 text-amber-300"
+                        : "bg-black/75 border-white/20 text-white/90"
+                    }`}
+                  >
                     {quality || "FHD"}
                   </span>
                 </div>

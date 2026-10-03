@@ -1958,6 +1958,61 @@ describe("Generic Match Deduplication & Aggregation System", () => {
     assert.equal(matches.length, 1);
     assert.equal(matches[0].servers.length, 1, "Duplicate effective URLs must be deduplicated into 1 server");
   });
+
+  it("9. Manchester United vs Liverpool: merges all sources/BLVs (including BLV Deal Pool) into 1 MatchCard and classifies as football", () => {
+    const rawStreams = [
+      {
+        rawTitle: "19:30 26/09 ⚽ Manchester United vs Liverpool (BLV Joker, Phan Quân)",
+        url: "https://cdn1.example.com/mu-liv-1.m3u8",
+        effectiveUrl: "https://cdn1.example.com/mu-liv-1.m3u8",
+        group: "Bia Ôm TV",
+        rawLogo: "",
+      },
+      {
+        rawTitle: "19:30 26/09 ⚽ Manchester United vs Liverpool (BLV Deal Pool)",
+        url: "https://cdn2.example.com/mu-liv-2.m3u8",
+        effectiveUrl: "https://cdn2.example.com/mu-liv-2.m3u8",
+        group: "Bia Ôm TV",
+        rawLogo: "",
+      },
+      {
+        rawTitle: "19:30 26/09 ⚽ Manchester United vs Liverpool (BLV NGƯỜI BẠC, FABIO)",
+        url: "https://cdn3.example.com/mu-liv-3.m3u8",
+        effectiveUrl: "https://cdn3.example.com/mu-liv-3.m3u8",
+        group: "Vua Sân Cỏ TV",
+        rawLogo: "",
+      },
+    ];
+
+    const { matches } = normalizeAndMergeStreams(rawStreams, baseNow);
+    assert.equal(matches.length, 1, "Must produce exactly 1 MatchCard for Manchester United vs Liverpool");
+    assert.equal(matches[0].servers.length, 3, "Must aggregate all 3 servers");
+    assert.equal(matches[0].sport, "football", "Must be classified as football, not billiards");
+  });
+
+  it("10. Nilufer vs Eczacibasi: merges Nilufer and Nilufer Bld variants into 1 MatchCard and classifies as volleyball", () => {
+    const rawStreams = [
+      {
+        rawTitle: "20:00 26/09 🏐 Nilufer vs Eczacibasi (BLV KaKa, Sún)",
+        url: "https://cdn1.example.com/nilufer-1.m3u8",
+        effectiveUrl: "https://cdn1.example.com/nilufer-1.m3u8",
+        group: "Khán Đài TV",
+        rawLogo: "",
+      },
+      {
+        rawTitle: "20:00 26/09 🏐 Nilufer Bld vs Eczacibasi (BLV TYSON, HD TYSON)",
+        url: "https://cdn2.example.com/nilufer-2.m3u8",
+        effectiveUrl: "https://cdn2.example.com/nilufer-2.m3u8",
+        group: "Chuối Chiên TV",
+        rawLogo: "",
+      },
+    ];
+
+    const { matches } = normalizeAndMergeStreams(rawStreams, baseNow);
+    assert.equal(matches.length, 1, "Must produce exactly 1 MatchCard for Nilufer vs Eczacibasi");
+    assert.equal(matches[0].servers.length, 2, "Must aggregate both servers");
+    assert.equal(matches[0].sport, "volleyball", "Must be classified as volleyball");
+  });
 });
 
 

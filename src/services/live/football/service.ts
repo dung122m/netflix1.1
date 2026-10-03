@@ -301,7 +301,8 @@ const AUXILIARY_CLUB_WORDS = new Set([
   "csd", "deportes", "deportivo", "deportiva", "dep", "municipal", "muni", "club", "clube", "societa",
   "asociacion", "asoc", "agrupacion", "ud", "sd", "ad", "sv", "tsv", "fsv", "spvg", "vfl", "ksv", "bsc",
   "united", "utd", "city", "town", "athletic", "albion", "rovers", "wanderers", "county", "sports",
-  "dtqg", "dt", "doituyen", "tuyen", "quocgia"
+  "dtqg", "dt", "doituyen", "tuyen", "quocgia",
+  "bld", "belediye", "belediyespor", "spor", "sk", "bk", "vk", "kulubu", "dsk"
 ]);
 
 const CLUB_ALIAS_MAP: Record<string, string> = {
@@ -738,8 +739,20 @@ export function areMatchFixturesMatching(
   },
   now: number = Date.now(),
 ): boolean {
-  if (m1.sport && m2.sport && m1.sport !== m2.sport) return false;
+  // 1. Sport Guard: Nếu 2 bên đều có sport cụ thể và sport khác nhau -> không merge
+  // Ngoại lệ: Nếu một bên là "other", cho phép merge với sport cụ thể ("football", "volleyball", ...)
+  if (
+    m1.sport &&
+    m2.sport &&
+    m1.sport !== "other" &&
+    m2.sport !== "other" &&
+    m1.sport !== m2.sport
+  ) {
+    return false;
+  }
+
   if (m1.category && m2.category && m1.category !== m2.category) return false;
+
   if (m1.isEvent || m2.isEvent) return false;
   if (!m1.team1 || !m1.team2 || !m2.team1 || !m2.team2) return false;
 
@@ -1288,7 +1301,13 @@ function detectTournament(title: string, team1: string, team2: string): string {
   if (normTitle.includes("🥊") || normTitle.includes("boxing") || normTitle.includes("quyen anh") || normTitle.includes("ufc") || normTitle.includes("mma")) {
     return "🥊 Quyền Anh Trực Tiếp";
   }
-  if (normTitle.includes("🎱") || normTitle.includes("billiards") || normTitle.includes("bida") || normTitle.includes("snooker") || normTitle.includes("pool")) {
+  if (
+    normTitle.includes("🎱") ||
+    normTitle.includes("billiards") ||
+    normTitle.includes("bida") ||
+    normTitle.includes("snooker") ||
+    /\b(?:pool\s*(?:9|8|bida|billiards|table)|bida\s*pool|billiards\s*pool|9-ball|8-ball)\b/i.test(normTitle)
+  ) {
     return "🎱 Bida / Billiards Trực Tiếp";
   }
   if (normTitle.includes("🎮") || normTitle.includes("esports") || normTitle.includes("esport") || normTitle.includes("lck") || normTitle.includes("lpl") || normTitle.includes("vcs")) {
@@ -1723,7 +1742,10 @@ export function extractSportAndGender(
   sport: "football" | "basketball" | "volleyball" | "tennis" | "badminton" | "f1" | "motorsport" | "boxing" | "esports" | "billiards" | "other";
   gender?: "men" | "women";
 } {
-  const fullText = `${rawTitle || ""} ${group || ""}`;
+  const cleanTitle = (rawTitle || "")
+    .replace(/\((?:BLV\s+[^)]+|[^)]*)\)/gi, " ")
+    .replace(/\[(?:BLV\s+[^\]]+|[^\]]*)\]/gi, " ");
+  const fullText = `${cleanTitle} ${group || ""}`;
   const norm = fullText.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
   let sport: "football" | "basketball" | "volleyball" | "tennis" | "badminton" | "f1" | "motorsport" | "boxing" | "esports" | "billiards" | "other" = "other";
@@ -1758,7 +1780,8 @@ export function extractSportAndGender(
     sport = "boxing";
   } else if (
     fullText.includes("🎱") ||
-    /(?:^|\s|[([_:\-/])(?:billiards|billiard|bida|snooker|pool|jayson shaw|vanboening|vanboning|efren reyes)(?:$|\s|[)\]_:\-/])/i.test(norm)
+    /(?:^|\s|[([_:\-/])(?:billiards|billiard|bida|snooker|9-ball|8-ball|jayson shaw|vanboening|vanboning|efren reyes)(?:$|\s|[)\]_:\-/])/i.test(norm) ||
+    /\b(?:pool\s*(?:9|8|bida|billiards|table)|bida\s*pool|billiards\s*pool)\b/i.test(norm)
   ) {
     sport = "billiards";
   } else if (
@@ -1779,15 +1802,15 @@ export function extractSportAndGender(
   } else {
     // Kiểm tra tên các câu lạc bộ bóng đá đã biết
     if (
-      matchTeamInList(rawTitle, EPL_TEAMS) ||
-      matchTeamInList(rawTitle, LALIGA_TEAMS) ||
-      matchTeamInList(rawTitle, SERIE_A_TEAMS) ||
-      matchTeamInList(rawTitle, BUNDESLIGA_TEAMS) ||
-      matchTeamInList(rawTitle, LIGUE_1_TEAMS) ||
-      matchTeamInList(rawTitle, OTHER_EUROPE_TEAMS) ||
-      matchTeamInList(rawTitle, MLS_TEAMS) ||
-      matchTeamInList(rawTitle, SAUDI_TEAMS) ||
-      matchTeamInList(rawTitle, VLEAGUE_TEAMS)
+      matchTeamInList(cleanTitle, EPL_TEAMS) ||
+      matchTeamInList(cleanTitle, LALIGA_TEAMS) ||
+      matchTeamInList(cleanTitle, SERIE_A_TEAMS) ||
+      matchTeamInList(cleanTitle, BUNDESLIGA_TEAMS) ||
+      matchTeamInList(cleanTitle, LIGUE_1_TEAMS) ||
+      matchTeamInList(cleanTitle, OTHER_EUROPE_TEAMS) ||
+      matchTeamInList(cleanTitle, MLS_TEAMS) ||
+      matchTeamInList(cleanTitle, SAUDI_TEAMS) ||
+      matchTeamInList(cleanTitle, VLEAGUE_TEAMS)
     ) {
       sport = "football";
     } else {
@@ -2462,8 +2485,6 @@ export function normalizeAndMergeStreams(
     if (!foundMatch && !item.isEvent && item.team1 && item.team2) {
       for (const existing of mergedMatches) {
         if (existing.isEvent) continue;
-        if (existing.sport && item.sport && existing.sport !== item.sport) continue;
-        if (existing.category && item.category && existing.category !== item.category) continue;
 
         const isMatched = areMatchFixturesMatching(
           {
@@ -2550,11 +2571,20 @@ export function normalizeAndMergeStreams(
         foundMatch.sport = item.sport;
         foundMatch.tournament = getSportLabel(item.sport, foundMatch.tournament);
       }
-      if (!foundMatch.category && item.category) {
+      if ((!foundMatch.category || foundMatch.category === "senior_men") && item.category && item.category !== "senior_men") {
         foundMatch.category = item.category;
       }
       if (!foundMatch.gender && item.gender) {
         foundMatch.gender = item.gender;
+      }
+
+      if (
+        foundMatch.tournament &&
+        /^(?:⚽\s*Bóng Đá Trực Tiếp|🏆\s*Trực Tiếp Thể Thao|Live Sports|🎱\s*Bida \/ Billiards Trực Tiếp)$/i.test(foundMatch.tournament.trim()) &&
+        item.tournament &&
+        !/^(?:⚽\s*Bóng Đá Trực Tiếp|🏆\s*Trực Tiếp Thể Thao|Live Sports|🎱\s*Bida \/ Billiards Trực Tiếp)$/i.test(item.tournament.trim())
+      ) {
+        foundMatch.tournament = item.tournament;
       }
 
       // Nâng cấp event thành fixture nếu stream sau có đầy đủ team1 và team2

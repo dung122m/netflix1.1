@@ -19,7 +19,6 @@ import { isUserAdmin } from "@/lib/adminConfig";
 import { subscribeUserProfile } from "@/services/userService";
 import { UserProfile } from "@/types/user";
 import { UserAvatar } from "@/components/ui/UserAvatar";
-import { ThemeSwitcher } from "../ThemeSwitcher";
 import { getVietnamTodayEvent } from "@/lib/vietnamCalendar";
 import { useBodyScrollLock } from "@/lib/scrollLock";
 
@@ -338,7 +337,7 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
           })}
         </div>
 
-        {/* THEME & ABOUT NANAFLIX */}
+        {/* ABOUT NANAFLIX */}
         <div className="border-t border-white/10 pt-2 mt-1 flex flex-col gap-2">
           <Link
             href="/about"
@@ -351,7 +350,6 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
             </div>
             <ChevronRight size={14} className="text-gray-500" />
           </Link>
-          <ThemeSwitcher isMobileInline={true} />
         </div>
       </div>
     </div>

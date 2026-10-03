@@ -230,7 +230,13 @@ function ContinueWatchingRowInner() {
                         <span>{item.episodeName ? formatEpisodeName(item.episodeName) : "Đang xem dở"}</span>
                       </span>
                       {item.quality && (
-                        <span className="bg-black/70 border border-white/10 px-1.5 py-0.5 rounded text-[9px] text-zinc-300 font-bold backdrop-blur-md">
+                        <span
+                          className={`px-1.5 py-0.5 rounded text-[9px] font-bold backdrop-blur-md border ${
+                            item.quality.toUpperCase().includes("CAM")
+                              ? "bg-amber-950/80 text-amber-300 border-amber-500/40"
+                              : "bg-black/70 border-white/10 text-zinc-300"
+                          }`}
+                        >
                           {item.quality}
                         </span>
                       )}
