@@ -269,7 +269,7 @@ export const PlayerScrubBar: React.FC<PlayerScrubBarProps> = ({
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMoveHover}
         onPointerLeave={handleMouseLeave}
-        className="w-full py-2.5 -my-2.5 cursor-pointer relative group/bar touch-none flex items-center outline-none focus-visible:ring-2 focus-visible:ring-netflix-red rounded-lg transition-all"
+        className="w-full py-2.5 -my-2.5 cursor-pointer relative group/bar touch-none flex items-center outline-none focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 transition-all"
       >
         <div className="w-full h-1 group-hover/bar:h-2 bg-white/20 rounded-full relative transition-all pointer-events-none">
           {/* Buffered bar */}
