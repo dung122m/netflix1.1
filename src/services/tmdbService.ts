@@ -1042,7 +1042,7 @@ export async function getActorFilmographyFromTmdb(
   const cleanKey = cleanStringForMatch(actorQuery) || cleanStringForMatch(canonicalName);
   if (!cleanKey) return [];
 
-  const cacheKey = `TMDB_ACTOR_FLOW_V3:${cleanKey}`;
+  const cacheKey = `TMDB_ACTOR_FLOW_V4:${cleanKey}`;
   const now = Date.now();
   const cached = TMDB_ACTOR_MOVIES_CACHE.get(cacheKey);
 
@@ -1059,7 +1059,7 @@ export async function getActorFilmographyFromTmdb(
     }
   }
 
-  const kvKey = `tmdb:actor_flow_v3:${cleanKey}:${maxMovies}`;
+  const kvKey = `tmdb:actor_flow_v4:${cleanKey}:${maxMovies}`;
   return await cacheService.fetchOrSet(
     kvKey,
     () => executeTmdbActorFlow(actorQuery, canonicalName, aliases, cacheKey, maxMovies, concurrency, tmdbPersonId),

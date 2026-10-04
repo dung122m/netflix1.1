@@ -5453,8 +5453,12 @@ export const ACTORS_CATALOG: ActorCatalogItem[] = [
   }
 ];
 
-export function getActorBySlug(slug: string): ActorCatalogItem | undefined {
-  return ACTORS_CATALOG.find((a) => a.slug === slug);
+export function getActorBySlug(slug?: string): ActorCatalogItem | undefined {
+  if (!slug) return undefined;
+  const clean = slug.toLowerCase().trim();
+  return ACTORS_CATALOG.find(
+    (a) => a.slug === clean || (a.aliases && a.aliases.some((al) => al.toLowerCase().trim() === clean))
+  );
 }
 
 export function getAllCatalogActors(): ActorCatalogItem[] {
