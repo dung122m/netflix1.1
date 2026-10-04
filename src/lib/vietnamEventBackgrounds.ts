@@ -8,161 +8,49 @@ import type { VietnamHistoricalEvent } from "@/data/historicalEvents";
  * - Được nhóm theo chủ đề: Đại lễ, Lịch sử, Văn hóa truyền thống, Xã hội/Y tế, Quốc tế, Nghệ thuật.
  */
 
-// 1. Specific Major Holidays & High-Priority Events
-const SPECIFIC_EVENT_BACKGROUNDS: Record<string, string> = {
-  // Quốc Khánh 2/9 & Mùa thu lịch sử
-  "ev-09-02-quoc-khanh-viet-nam": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-  "ev-09-01-khoi-dau-thang-lich-su": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
 
-  // 30/4 Giải phóng miền Nam & 1/5 Quốc tế Lao động
-  "ev-04-30-giai-phong-mien-nam": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-  "ev-05-01-quoc-te-lao-dong": "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1200&q=80",
 
-  // 10/10 Giải phóng Thủ đô & 19/8 Cách mạng Tháng Tám
-  "ev-10-10-giai-phong-thu-do": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-  "ev-08-19-cach-mang-thang-tam": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-
-  // Tết Cổ Truyền & Giao Thừa (Âm lịch)
-  "ev-01-01-tet-nguyen-dan": "https://images.unsplash.com/photo-1583248369069-9d91f1640fe6?auto=format&fit=crop&w=1200&q=80",
-  "ev-12-30-dem-giao-thua": "https://images.unsplash.com/photo-1583248369069-9d91f1640fe6?auto=format&fit=crop&w=1200&q=80",
-
-  // Giỗ Tổ Hùng Vương (10/3 ÂL)
-  "ev-03-10-gio-to-hung-vuong": "https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=1200&q=80",
-
-  // Tết Trung Thu (15/8 ÂL)
-  "ev-08-15-tet-trung-thu": "https://images.unsplash.com/photo-1569154941061-e231b4725ef1?auto=format&fit=crop&w=1200&q=80",
-
-  // Ngày Tim Mạch Thế Giới (29/9)
-  "ev-09-29-tim-mach-the-gioi": "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=1200&q=80",
-
-  // Ngày Dịch Thuật Quốc Tế (30/9)
-  "ev-09-30-dich-thuat-the-gioi": "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1200&q=80",
-
-  // Ngày Nhà Giáo Việt Nam (20/11) & Khai Giảng (5/9)
-  "ev-11-20-nha-giao-viet-nam": "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&w=1200&q=80",
-  "ev-09-05-khai-giang-toan-quoc": "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&w=1200&q=80",
-
-  // Quân Đội Nhân Dân VN (22/12) & Thương Binh Liệt Sĩ (27/7)
-  "ev-12-22-quan-doi-nhan-dan": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-  "ev-07-27-thuong-binh-liet-si": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-
-  // Giáng Sinh (24-25/12) & Halloween (31/10)
-  "ev-12-25-giang-sinh": "https://images.unsplash.com/photo-1543589077-47d81606c1bf?auto=format&fit=crop&w=1200&q=80",
-  "ev-10-31-halloween": "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?auto=format&fit=crop&w=1200&q=80",
-};
-
-// 2. Mapping by Effect Type
-const EFFECT_BACKGROUNDS: Record<string, string> = {
-  tet: "https://images.unsplash.com/photo-1583248369069-9d91f1640fe6?auto=format&fit=crop&w=1200&q=80",
-  "national-day": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-  "mid-autumn": "https://images.unsplash.com/photo-1569154941061-e231b4725ef1?auto=format&fit=crop&w=1200&q=80",
-  christmas: "https://images.unsplash.com/photo-1543589077-47d81606c1bf?auto=format&fit=crop&w=1200&q=80",
-  halloween: "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?auto=format&fit=crop&w=1200&q=80",
-  "nana-birthday": "https://images.unsplash.com/photo-1513151233558-d860c5398176?auto=format&fit=crop&w=1200&q=80",
-};
-
-// 3. Mapping by Historical Visual Theme
-const HISTORICAL_THEME_BACKGROUNDS: Record<string, string> = {
-  "ba-dinh-1945": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-  "dien-bien-phu": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-  "giai-phong-thu-do": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-  "thong-nhat-1975": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-  "general-history": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-  "dong-da": "https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=1200&q=80",
-  "hai-ba-trung": "https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=1200&q=80",
-  "bach-dang": "https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=1200&q=80",
-};
-
-// 4. Mapping by Category / Nature
-const CATEGORY_BACKGROUNDS: Record<string, string> = {
-  "national-holiday": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-  "vietnam-history": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-  "traditional-culture": "https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?auto=format&fit=crop&w=1200&q=80",
-  "social-family": "https://images.unsplash.com/photo-1511895426328-dc8714191300?auto=format&fit=crop&w=1200&q=80",
-  "environment-nature": "https://images.unsplash.com/photo-1542273917363-3b1817f69a2d?auto=format&fit=crop&w=1200&q=80",
-  international: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80",
-  entertainment: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=1200&q=80",
-  fun: "https://images.unsplash.com/photo-1513151233558-d860c5398176?auto=format&fit=crop&w=1200&q=80",
-};
-
-// 5. Default Scenic Vietnam Cinematic Fallback
-const DEFAULT_CINEMATIC_BACKGROUND = "https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=1200&q=80";
-
-const PLACEHOLDER_TEMPLATE_URLS = new Set([
-  "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-]);
+/**
+ * Helper kiểm tra URL ảnh có phải là stock placeholder ngẫu nhiên hay không
+ */
+export function isPlaceholderUrl(url?: string | null): boolean {
+  if (!url) return true;
+  if (url.includes("images.unsplash.com")) return true;
+  if (url.includes("placeholder")) return true;
+  return false;
+}
 
 /**
  * Lấy background cinematic tối ưu cho sự kiện hôm nay
- * - Chỉ dùng ảnh cụ thể cho diễn viên thật hoặc đại lễ lớn có thiết kế riêng.
- * - Các ngày kỷ niệm / sự kiện thường dùng hệ màu sắc gradient & hiệu ứng vector nhẹ nhàng để không lệch ngữ cảnh.
+ * - Chỉ dùng ảnh cụ thể cho diễn viên thật (TMDB actor backdrop/poster thật).
+ * - Tất cả các ngày kỷ niệm / sự kiện văn hóa / lịch sử / đại lễ sử dụng hệ màu sắc gradient tinh tế,
+ *   ánh sáng ambient spotlights và các hiệu ứng động đặc quyền (Tết, Trung Thu, Quốc Khánh, Noel, Halloween...).
  */
 export function getVietnamEventBackground(info: VietnamTodayInfo | {
   event: VietnamEvent;
   historicalEventsToday?: VietnamHistoricalEvent[];
 }): string {
-  const { event, historicalEventsToday } = info;
+  const { event } = info;
 
-  // 0. Ảnh cụ thể của diễn viên (sinh nhật) hoặc poster sự kiện thực tế có thật
+  // 0. Ảnh cụ thể của diễn viên thật (sinh nhật) từ TMDB hoặc nguồn chân dung xác thực
   if (
     event?.imageUrl &&
-    !PLACEHOLDER_TEMPLATE_URLS.has(event.imageUrl) &&
-    (event.id.startsWith("ev-actor-birthday") || event.actorName)
+    !isPlaceholderUrl(event.imageUrl) &&
+    (event.id?.startsWith("ev-actor-birthday") || event.actorName || event.actorSlug)
   ) {
     return event.imageUrl;
   }
 
-  // 1. Kiểm tra ID sự kiện cụ thể có thiết kế riêng
-  if (event?.id && SPECIFIC_EVENT_BACKGROUNDS[event.id] && DEDICATED_MAJOR_EVENT_IDS.has(event.id)) {
-    return SPECIFIC_EVENT_BACKGROUNDS[event.id];
-  }
-
-  // 2. Kiểm tra hiệu ứng đặc biệt (Tết, Trung Thu, Noel, Halloween, Quốc Khánh)
-  if (event?.effect && EFFECT_BACKGROUNDS[event.effect]) {
-    return EFFECT_BACKGROUNDS[event.effect];
-  }
-
-  // 3. Mốc son lịch sử trùng ngày (nếu có visual theme)
-  if (historicalEventsToday && historicalEventsToday.length > 0) {
-    const firstHist = historicalEventsToday[0];
-    if (firstHist?.visualTheme && HISTORICAL_THEME_BACKGROUNDS[firstHist.visualTheme]) {
-      return HISTORICAL_THEME_BACKGROUNDS[firstHist.visualTheme];
-    }
-  }
-
-  // Đối với các ngày kỷ niệm/chủ đề thông thường: Không dùng ảnh stock ngẫu nhiên để tránh lệch ngữ cảnh.
-  // Trả về rỗng để component dùng màu sắc gradient và hiệu ứng vector/ambient ánh sáng tinh tế.
+  // Đối với các ngày kỷ niệm, lịch sử, văn hóa, đại lễ: Không dùng ảnh stock ngẫu nhiên để tránh lệch ngữ cảnh.
+  // Trả về rỗng để component render màu sắc gradient, ambient spotlights và hiệu ứng lễ hội.
   return "";
 }
 
 /**
- * Danh sách các ngày đại lễ / sự kiện lớn ĐÃ CÓ THIẾT KẾ RIÊNG từ trước
- * (2/9, 30/4, 19/8, 10/10, Tết, Giỗ Tổ 10/3, Trung Thu, 20/11, 22/12, 27/7, Noel, Halloween...)
- */
-const DEDICATED_MAJOR_EVENT_IDS = new Set([
-  "ev-09-02-quoc-khanh-viet-nam",
-  "ev-09-01-khoi-dau-thang-lich-su",
-  "ev-04-30-giai-phong-mien-nam",
-  "ev-08-19-cach-mang-thang-tam",
-  "ev-10-10-giai-phong-thu-do",
-  "ev-01-01-tet-nguyen-dan",
-  "ev-12-30-dem-giao-thua",
-  "ev-03-10-gio-to-hung-vuong",
-  "ev-08-15-tet-trung-thu",
-  "ev-11-20-nha-giao-viet-nam",
-  "ev-09-05-khai-giang-toan-quoc",
-  "ev-12-22-quan-doi-nhan-dan",
-  "ev-07-27-thuong-binh-liet-si",
-  "ev-12-25-giang-sinh",
-  "ev-10-31-halloween",
-]);
-
-/**
  * Kiểm tra xem event có thiết kế / holiday effect riêng biệt từ trước hay không.
  * - 1. Có Holiday Effect riêng (Tết, Quốc khánh, Trung thu, Giáng sinh, Halloween, Nana Birthday)
- * - 2. Thuộc danh sách đại lễ lớn đã có thiết kế riêng từ trước (2/9, 30/4, 19/8, 10/10, Tết, Giỗ Tổ 10/3, Trung Thu...)
- * - 3. Có ảnh riêng (vd sinh nhật diễn viên, banner riêng)
- * Nếu đã có thiết kế riêng -> giữ nguyên 100%, không áp Thematic Illustration fallback đè lên.
+ * - 2. Có ảnh diễn viên thực tế (sinh nhật diễn viên)
+ * Nếu đã có thiết kế lễ hội riêng -> giữ nguyên 100% hiệu ứng động và không áp Thematic Icon Composition đè lên.
  */
 export function hasDedicatedEventDesign(info: VietnamTodayInfo | {
   event: VietnamEvent;
@@ -175,13 +63,12 @@ export function hasDedicatedEventDesign(info: VietnamTodayInfo | {
     return true;
   }
 
-  // 2. Thuộc danh sách đại lễ lớn đã có thiết kế riêng
-  if (event?.id && DEDICATED_MAJOR_EVENT_IDS.has(event.id)) {
-    return true;
-  }
-
-  // 3. Có ảnh riêng (vd sinh nhật diễn viên)
-  if (event?.imageUrl || event?.actorSlug || event?.id?.startsWith("ev-actor-birthday")) {
+  // 2. Có ảnh diễn viên thực tế (sinh nhật diễn viên)
+  if (
+    (event?.id?.startsWith("ev-actor-birthday") || event?.actorSlug || event?.actorName) &&
+    event?.imageUrl &&
+    !isPlaceholderUrl(event.imageUrl)
+  ) {
     return true;
   }
 

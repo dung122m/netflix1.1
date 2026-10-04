@@ -37,6 +37,8 @@ export interface VietnamEvent {
   nature: EventNature;
   natureLabel: string;
   priority: number; // Điểm ưu tiên hiển thị (số càng cao ưu tiên càng lớn)
+  eventYear?: number | null; // Năm diễn ra sự kiện gốc (dùng để tính số năm kỷ niệm anniversary)
+  milestoneFigure?: string | null; // Nhân vật / danh nhân gắn liền với sự kiện
   effect?: EventEffectType | null;
   country?: string | null;
   region?: string | null;

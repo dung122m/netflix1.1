@@ -293,17 +293,52 @@ async function fetchAndCacheMovieDetail(slug: string, source?: "nguonc" | "ophim
         const secondary = primary === resPhimApi ? resNguonC : resPhimApi;
 
         // Bổ sung các server phát từ nguồn phụ (NguonC Embed hoặc PhimAPI) để người dùng có nhiều server lựa chọn
-        if (secondary?.movie?.episodes && Array.isArray(secondary.movie.episodes)) {
+        const secondaryEpContainer = secondary?.episodes || secondary?.movie?.episodes;
+        if (Array.isArray(secondaryEpContainer) && secondaryEpContainer.length > 0) {
           if (!primary.movie.episodes) primary.movie.episodes = [];
-          const primaryServerNames = new Set(
+          if (!primary.episodes) primary.episodes = primary.movie.episodes;
+
+          // Thu thập toàn bộ các stream URL thực tế đang có ở server chính để chống duplicate link
+          const primaryStreamUrls = new Set<string>();
+          for (const s of primary.movie.episodes) {
+            for (const ep of s?.server_data || []) {
+              const u = (ep?.link_m3u8 || ep?.link_embed || "").trim();
+              if (u) primaryStreamUrls.add(u);
+            }
+          }
+
+          const existingNames = new Set(
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             primary.movie.episodes.map((s: any) => (s.server_name || "").trim().toLowerCase())
           );
-          for (const s of secondary.movie.episodes) {
-            const cleanName = (s.server_name || "").trim().toLowerCase();
-            if (!primaryServerNames.has(cleanName) && s.server_data?.length > 0) {
-              primary.movie.episodes.push(s);
-              primaryServerNames.add(cleanName);
+
+          for (const s of secondaryEpContainer) {
+            if (!s || !Array.isArray(s.server_data) || s.server_data.length === 0) continue;
+
+            // Kiểm tra xem server phụ này có mang stream khác biệt so với server chính hay không
+            const hasDistinctStream = s.server_data.some((ep: any) => {
+              const u = (ep?.link_m3u8 || ep?.link_embed || "").trim();
+              return u && !primaryStreamUrls.has(u);
+            });
+
+            if (hasDistinctStream) {
+              let targetName = (s.server_name || "Dự phòng").trim();
+              if (existingNames.has(targetName.toLowerCase())) {
+                targetName = `${targetName} (Dự phòng)`;
+              }
+              if (existingNames.has(targetName.toLowerCase())) {
+                targetName = `${targetName} #2`;
+              }
+              existingNames.add(targetName.toLowerCase());
+
+              const newServerObj = {
+                ...s,
+                server_name: targetName,
+              };
+              primary.movie.episodes.push(newServerObj);
+              if (primary.episodes && primary.episodes !== primary.movie.episodes) {
+                primary.episodes.push(newServerObj);
+              }
             }
           }
         }

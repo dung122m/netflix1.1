@@ -536,9 +536,7 @@ export function VietnamTodayModal({
                   <h3 className="text-xs sm:text-sm font-bold text-amber-400 tracking-wider uppercase">
                     Ngày này trong lịch sử Việt Nam
                   </h3>
-                  <p className="text-[11px] text-zinc-400">
-                    Dấu mốc lịch sử hào hùng đã được kiểm chứng
-                  </p>
+                  
                 </div>
               </div>
 

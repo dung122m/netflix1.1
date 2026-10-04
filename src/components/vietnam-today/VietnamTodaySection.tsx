@@ -12,9 +12,12 @@ export function VietnamTodaySection() {
   }, []);
 
   const events = useMemo(() => {
-    return info.allEventsToday && info.allEventsToday.length > 0
-      ? info.allEventsToday
-      : [info.event];
+    const list =
+      info.allEventsToday && info.allEventsToday.length > 0
+        ? info.allEventsToday
+        : [info.event];
+    // Hiển thị 1 sự kiện chính + tối đa 3 sự kiện phụ xếp theo priority score giảm dần
+    return list.slice(0, 4);
   }, [info]);
 
   const [selectedEventId, setSelectedEventId] = useState<string>(info.event.id);

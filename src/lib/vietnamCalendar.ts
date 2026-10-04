@@ -358,9 +358,8 @@ export function enrichEventWithCinemaLinks(event: VietnamEvent): VietnamEvent {
   if (event.relatedLink) return event;
 
   const id = event.id.toLowerCase();
-  const nature = event.nature;
-  const category = event.category;
 
+  // Chỉ liên kết trực tiếp tới trang diễn viên khi là sinh nhật diễn viên
   if (id.startsWith("ev-actor-birthday") && event.actorSlug) {
     return {
       ...event,
@@ -369,134 +368,143 @@ export function enrichEventWithCinemaLinks(event: VietnamEvent): VietnamEvent {
     };
   }
 
-  // Ngày Điện ảnh Việt Nam
-  if (id.includes("dien-anh-vn") || id.includes("03-15-dien-anh")) {
-    return {
-      ...event,
-      relatedLink: "/browse?type=phim-chieu-rap",
-      relatedLabel: "Khám phá phim chiếu rạp",
-    };
-  }
-
-  // Ngày Hoạt hình Thế giới
-  if (id.includes("hoat-hinh") || id.includes("animation")) {
-    return {
-      ...event,
-      relatedLink: "/browse?type=hoat-hinh",
-      relatedLabel: "Xem phim hoạt hình",
-    };
-  }
-
-  // Ngày Điện ảnh Thế giới / Phim kinh điển
-  if (id.includes("dien-anh-the-gioi") || (nature === "arts-culture" && id.includes("dien-anh"))) {
-    return {
-      ...event,
-      relatedLink: "/browse?sort=views",
-      relatedLabel: "Khám phá phim kinh điển",
-    };
-  }
-
-  // Halloween
-  if (event.effect === "halloween" || id.includes("halloween")) {
-    return {
-      ...event,
-      relatedLink: "/browse?search=kinh-di",
-      relatedLabel: "Xem phim kinh dị",
-    };
-  }
-
-  // Giáng Sinh
-  if (event.effect === "christmas" || id.includes("giang-sinh") || id.includes("noel")) {
-    return {
-      ...event,
-      relatedLink: "/browse?search=giáng sinh",
-      relatedLabel: "Xem phim Giáng Sinh",
-    };
-  }
-
-  // Tết Nguyên Đán
-  if (event.effect === "tet" || id.includes("tet-nguyen-dan") || id.includes("giao-thua")) {
-    return {
-      ...event,
-      relatedLink: "/browse?search=tết",
-      relatedLabel: "Xem phim Tết sum vầy",
-    };
-  }
-
-  // Mốc son lịch sử
-  if (category === "vietnam-history" || nature === "historical-anniversary" || id.includes("giai-phong") || id.includes("quoc-khanh")) {
-    return {
-      ...event,
-      relatedLink: "/browse?search=lịch sử",
-      relatedLabel: "Xem phim lịch sử & tư liệu",
-    };
-  }
-
+  // Không tự động gắn link tìm kiếm từ khóa /browse?search=... hoặc /browse?category=...
+  // để tránh kết quả tìm kiếm không chính xác trên trang duyệt phim.
   return event;
 }
 
 /**
- * Tính điểm ưu tiên toàn diện của sự kiện:
- * 1. 🇻🇳 Ngày lễ / kỷ niệm chính thức của Việt Nam (Tier Base 4000)
- * 2. 🇻🇳 Ngày / sự kiện Việt Nam khác (ngành nghề, xã hội, sinh nhật diễn viên VN...) (Tier Base 3000)
- * 3. 🌎 Ngày quốc tế / toàn cầu (LHQ, UNESCO, WHO, toàn cầu...) (Tier Base 2000)
- * 4. Các sự kiện còn lại (đời sống, chủ đề vui, fun...) (Tier Base 1000)
- * Trong cùng phân cấp (Tier), điểm priority gốc được cộng thêm để bảo toàn tuyệt đối thứ hạng nội bộ.
+ * Trích xuất năm diễn ra sự kiện từ eventYear hoặc tiêu đề/ID
  */
-export function getEventPriorityScore(event: VietnamEvent): number {
+export function extractEventYear(event: VietnamEvent): number | null {
+  if (event.eventYear && event.eventYear > 0) return event.eventYear;
+  const match = event.title.match(/\b(18\d{2}|19\d{2}|20\d{2})\b/) || event.id.match(/\b(18\d{2}|19\d{2}|20\d{2})\b/);
+  if (match) {
+    const y = parseInt(match[1], 10);
+    if (y >= 1800 && y <= 2099) return y;
+  }
+  return null;
+}
+
+/**
+ * Tính điểm ưu tiên toàn diện của sự kiện:
+ * 
+ * Hierarchy:
+ * - Priority Tier 1: (Base 50000) Sự kiện lịch sử / danh nhân đặc biệt của Việt Nam
+ *   (Ngày mất/sinh danh nhân lịch sử vĩ đại: Đại tướng Võ Nguyên Giáp, Bác Hồ, Nguyễn Trãi, Quang Trung..., các mốc kỷ niệm lịch sử lớn)
+ * 
+ * - Priority Tier 2: (Base 40000) Ngày lễ / sự kiện quốc gia Việt Nam quan trọng & Đại lễ/Lễ hội lớn
+ *   (Quốc khánh 2/9, 30/4, 19/8 Cách mạng Tháng Tám, 7/5 Điện Biên Phủ, 10/10 Giải phóng Thủ đô, Tết, Giáng Sinh, Giỗ Tổ Hùng Vương...)
+ * 
+ * - Priority Tier 3: (Base 30000) Ngày quốc tế / xã hội phổ biến
+ *   (8/3 Quốc tế Phụ nữ, 1/6 Quốc tế Thiếu nhi, 20/11 Ngày Nhà giáo VN, 27/2 Thầy thuốc VN, Ngày Trái Đất, Môi trường, Sinh nhật diễn viên...)
+ * 
+ * - Priority Tier 4: (Base 20000) Ngày chuyên ngành / xã hội
+ *   (4/10 Ngày Toàn dân PCCC, 4/10 Kỹ năng lao động VN, Doanh nhân VN, Nông dân VN...)
+ * 
+ * - Priority Tier 5: (Base 10000) Ngày quốc tế niche / ngày vui / marketing
+ *   (World Animal Day, các ngày National X Day...)
+ */
+export function getEventPriorityScore(event: VietnamEvent, currentYear: number = 2026): number {
   const id = event.id.toLowerCase();
   const title = event.title.toLowerCase();
   const cat = event.category;
   const nat = event.nature;
+  const rawPriority = event.priority ?? 50;
 
-  // 1. 🇻🇳 Ngày lễ / ngày kỷ niệm chính thức của Việt Nam
-  const isOfficialVnHoliday =
+  // Tính bonus kỷ niệm (anniversary bonus) nếu có năm sự kiện
+  let anniversaryBonus = 0;
+  const eventYear = extractEventYear(event);
+  if (eventYear && eventYear < currentYear) {
+    const anniversaryYears = currentYear - eventYear;
+    if (anniversaryYears > 0) {
+      if (anniversaryYears % 50 === 0 || anniversaryYears % 100 === 0) {
+        anniversaryBonus += 8;
+      } else if (anniversaryYears % 10 === 0) {
+        anniversaryBonus += 5;
+      } else if (anniversaryYears % 5 === 0) {
+        anniversaryBonus += 3;
+      }
+    }
+  }
+
+  // 1. TIER 1: Sự kiện lịch sử / danh nhân đặc biệt của Việt Nam
+  const isTopHistoricalFigure =
+    id.includes("vo-nguyen-giap") ||
+    id.includes("bac-ho") ||
+    id.includes("ho-chi-minh") ||
+    id.includes("tran-hung-dao") ||
+    id.includes("quang-trung") ||
+    title.includes("võ nguyên giáp") ||
+    title.includes("hồ chí minh") ||
+    title.includes("bác hồ") ||
+    event.milestoneFigure?.toLowerCase().includes("võ nguyên giáp") ||
+    event.milestoneFigure?.toLowerCase().includes("hồ chí minh") ||
+    (cat === "vietnam-history" && rawPriority >= 95);
+
+  if (isTopHistoricalFigure) {
+    return 50000 + rawPriority * 10 + anniversaryBonus;
+  }
+
+  // 2. TIER 2: Ngày lễ / sự kiện quốc gia Việt Nam quan trọng & Đại lễ
+  const isMajorNationalHoliday =
     cat === "national-holiday" ||
     nat === "official-holiday" ||
-    cat === "vietnam-history" ||
-    nat === "historical-anniversary" ||
-    nat === "traditional-festival" ||
-    (cat === "traditional-culture" && !nat.includes("international")) ||
     event.effect === "national-day" ||
     event.effect === "tet" ||
-    event.effect === "mid-autumn";
+    event.effect === "mid-autumn" ||
+    event.effect === "christmas" ||
+    id.includes("giang-sinh") ||
+    id.includes("noel") ||
+    id.includes("christmas") ||
+    id.includes("quoc-khanh") ||
+    id.includes("giai-phong") ||
+    id.includes("dien-bien-phu") ||
+    id.includes("cach-mang-thang-tam") ||
+    id.includes("gio-to") ||
+    (cat === "vietnam-history" && rawPriority >= 75);
 
-  if (isOfficialVnHoliday) {
-    return 4000 + (event.priority ?? 50);
+  if (isMajorNationalHoliday) {
+    return 40000 + rawPriority * 10 + anniversaryBonus;
   }
 
-  // 2. 🇻🇳 Ngày / sự kiện Việt Nam khác (ngành nghề, xã hội, khuyến học, phụ nữ VN, doanh nhân VN, sinh nhật diễn viên VN...)
-  const isVnSpecificEvent =
-    id.includes("-vn") ||
-    id.includes("viet-nam") ||
-    id.includes("vietnam") ||
-    title.includes("việt nam") ||
-    title.includes("quốc gia") ||
+  // 3. TIER 3: Ngày quốc tế / xã hội phổ biến
+  const isMajorSocialOrCultural =
     id.startsWith("ev-actor-birthday") ||
-    (event.country && /^(?:vn|vietnam|việt nam)$/i.test(event.country)) ||
-    (cat === "social-family" && nat !== "international-day" && !id.includes("the-gioi") && !id.includes("quoc-te")) ||
-    (nat === "arts-culture" && !id.includes("the-gioi") && !id.includes("quoc-te"));
+    id.includes("nha-giao") ||
+    id.includes("phu-nu") ||
+    id.includes("thieu-nhi") ||
+    id.includes("thay-thuoc") ||
+    id.includes("gia-dinh") ||
+    id.includes("moi-truong") ||
+    id.includes("trai-dat") ||
+    id.includes("dien-anh") ||
+    id.includes("hoat-hinh") ||
+    cat === "traditional-culture" ||
+    nat === "arts-culture" ||
+    rawPriority >= 60;
 
-  if (isVnSpecificEvent) {
-    return 3000 + (event.priority ?? 50);
+  if (isMajorSocialOrCultural && cat !== "fun" && !id.includes("dong-vat") && !id.includes("pccc") && !id.includes("lao-dong")) {
+    return 30000 + rawPriority * 10 + anniversaryBonus;
   }
 
-  // 3. 🌎 Ngày quốc tế / toàn cầu
-  const isInternationalEvent =
-    cat === "international" ||
-    nat === "international-day" ||
-    id.includes("the-gioi") ||
-    id.includes("quoc-te") ||
-    id.includes("world-") ||
-    id.includes("international") ||
-    /quốc tế|thế giới|toàn cầu|un|unesco|who/i.test(title);
+  // 4. TIER 4: Ngày chuyên ngành / xã hội
+  const isProfessionalOrObservance =
+    nat === "social-observance" ||
+    cat === "social-family" ||
+    id.includes("pccc") ||
+    id.includes("lao-dong") ||
+    id.includes("doanh-nhan") ||
+    id.includes("nong-dan") ||
+    id.includes("khuyen-hoc") ||
+    rawPriority >= 40;
 
-  if (isInternationalEvent) {
-    return 2000 + (event.priority ?? 50);
+  if (isProfessionalOrObservance) {
+    return 20000 + rawPriority * 10 + anniversaryBonus;
   }
 
-  // 4. Các sự kiện còn lại (Chủ đề đời sống, thú vị, fun...)
-  return 1000 + (event.priority ?? 50);
+  // 5. TIER 5: Ngày quốc tế niche / ngày vui / marketing
+  return 10000 + rawPriority * 10 + anniversaryBonus;
 }
 
 /**
@@ -571,15 +579,29 @@ export function getVietnamTodayEvent(customDate?: Date): VietnamTodayInfo {
   const lunarDateFormatted = formatLunarDateVn(lunar);
 
   if (todayMatches.length > 0) {
-    // Ưu tiên theo thứ bậc:
-    // 1. 🇻🇳 Ngày lễ/kỷ niệm chính thức của Việt Nam (Tier 4000)
-    // 2. 🇻🇳 Ngày/sự kiện Việt Nam khác / Sinh nhật diễn viên VN (Tier 3000)
-    // 3. 🌎 Ngày quốc tế / toàn cầu (Tier 2000)
-    // 4. Các sự kiện còn lại (Tier 1000)
+    // Ưu tiên theo thứ bậc toàn diện:
+    // Tier 1 (50000+): Lịch sử / Danh nhân đặc biệt
+    // Tier 2 (40000+): Quốc gia / Ngày lễ lớn
+    // Tier 3 (30000+): Quốc tế / Xã hội phổ biến
+    // Tier 4 (20000+): Chuyên ngành / Xã hội
+    // Tier 5 (10000+): Niche / Marketing / Fun
     const sortedMatches = [...todayMatches].sort((a, b) => {
-      const scoreDiff = getEventPriorityScore(b) - getEventPriorityScore(a);
+      const scoreDiff = getEventPriorityScore(b, year) - getEventPriorityScore(a, year);
       if (scoreDiff !== 0) return scoreDiff;
-      return a.id.localeCompare(b.id);
+
+      // Tie-break rule: Vietnamese historical > Vietnamese national > international major > professional > niche
+      const rankCategory = (ev: VietnamEvent) => {
+        if (ev.category === "vietnam-history") return 5;
+        if (ev.category === "national-holiday") return 4;
+        if (ev.nature === "arts-culture" || ev.category === "traditional-culture") return 3;
+        if (ev.category === "social-family") return 2;
+        if (ev.category === "international") return 1;
+        return 0;
+      };
+      const catDiff = rankCategory(b) - rankCategory(a);
+      if (catDiff !== 0) return catDiff;
+
+      return (b.priority ?? 50) - (a.priority ?? 50) || a.id.localeCompare(b.id);
     });
 
     const priorityEvent = sortedMatches[0];

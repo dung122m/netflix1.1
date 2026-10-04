@@ -16,6 +16,7 @@ import {
   Bookmark,
   X,
   Users,
+  Landmark,
 } from "lucide-react";
 import { NetflixLogo } from "@/components/NetflixLogo";
 import { HolidayNavbarAtmosphere } from "./navbar/HolidayNavbarAtmosphere";
@@ -35,6 +36,7 @@ const AuthModal = dynamic(
 
 const NAV_LINKS = [
   { name: "Trang chủ", href: "/", type: null, icon: Home, isLive: false },
+  { name: "Lịch sử", href: "/history", type: "history", icon: Landmark, isLive: false },
   { name: "Phim bộ", href: "/browse?type=phim-bo", type: "phim-bo", icon: Tv, isLive: false },
   { name: "Phim lẻ", href: "/browse?type=phim-le", type: "phim-le", icon: Film, isLive: false },
   { name: "Chiếu rạp", href: "/browse?type=phim-chieu-rap", type: "phim-chieu-rap", icon: Clapperboard, isLive: false },

@@ -164,14 +164,64 @@ export const OCTOBER_EVENTS: VietnamEvent[] = [
     "bannerDescription": "Được Liên Hợp Quốc chọn vào thứ Hai đầu tiên của tháng 10 nhằm hướng tới phát triển đô thị bền vững. Khuyến khích xây dựng nhà ở xã hội, phủ xanh đô thị và giải quyết ô nhiễm rác thải ở các khu dân cư. Đây là dịp ý nghĩa để trồng thêm cây xanh tại khu dân cư, ban công hoặc nơi làm việc."
   },
   {
-    "id": "ev-10-04-pccc-viet-nam",
-    "title": "Ngày Toàn Dân Phòng Cháy & Chữa Cháy (04/10)",
-    "shortDescription": "Toàn dân tham gia phòng cháy, chữa cháy và cứu nạn, cứu hộ — bảo vệ bình yên cho mỗi mái nhà và cộng đồng.",
+    "id": "ev-10-04-tuong-niem-vo-nguyen-giap",
+    "title": "Tưởng Niệm Ngày Mất Đại Tướng Võ Nguyên Giáp (04/10/2013)",
+    "shortDescription": "Tưởng nhớ vị tướng huyền thoại của dân tộc, người Anh cả của Quân đội Nhân dân Việt Nam anh hùng.",
     "category": "vietnam-history",
     "categoryLabel": "Kỷ niệm lịch sử",
     "nature": "historical-anniversary",
     "natureLabel": "Mốc son lịch sử",
-    "priority": 90,
+    "priority": 100,
+    "eventYear": 2013,
+    "milestoneFigure": "Đại tướng Võ Nguyên Giáp",
+    "solarDate": {
+      "month": 10,
+      "day": 4
+    },
+    "displayDate": "04 Tháng 10",
+    "origin": "Ngày 04/10/2013, Đại tướng Võ Nguyên Giáp từ trần tại Hà Nội ở tuổi 103, để lại niềm tiếc thương vô hạn trong lòng triệu triệu đồng bào và bạn bè quốc tế.",
+    "significance": "Thiên tài quân sự kiệt xuất thế kỷ 20, vị Tổng chỉ huy làm nên chiến thắng Điện Biên Phủ và Đại thắng mùa Xuân 1975 thống nhất non sông.",
+    "didYouKnow": "Đại tướng được nhân dân kính trọng gọi bằng danh xưng 'Vị tướng của nhân dân' và là người Anh Cả của Quân đội Nhân dân Việt Nam.",
+    "milestones": [
+      "04/10/2013: Ngày mất Đại tướng Võ Nguyên Giáp",
+      "Khai sinh Đội Việt Nam Tuyên truyền Giải phóng quân (1944)",
+      "Tổng tư lệnh Chiến dịch Điện Biên Phủ (1954)",
+      "Tổng tư lệnh Chiến dịch Hồ Chí Minh lịch sử (1975)"
+    ],
+    "quote": "Tôi sống ngày nào, cũng là vì đất nước ngày đó. — Đại tướng Võ Nguyên Giáp",
+    "tag": "Lịch sử & Danh nhân",
+    "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
+    "accentGradient": "from-red-700/40 via-amber-600/30 to-zinc-950",
+    "dateLabel": "04 Tháng 10",
+    "meaning": "Tôn vinh cuộc đời, sự nghiệp vẻ vang và nhân cách cao đẹp của Đại tướng Tổng tư lệnh đầu tiên của Quân đội Nhân dân Việt Nam.",
+    "subtitle": "Vị tướng huyền thoại của nhân dân, người Anh cả của Quân đội Nhân dân Việt Nam",
+    "traditions": [
+      "Dâng hương tưởng niệm Đại tướng tại Vũng Chùa - Đảo Yến (Quảng Bình)",
+      "Tham quan bảo tàng, phòng truyền thống lịch sử quân sự",
+      "Kể lại những chiến công hiển hách và bài học làm người của Đại tướng"
+    ],
+    "activities": [
+      "Dâng hương, hoa tưởng niệm và tri ân công đức vĩ đại của Đại tướng",
+      "Tìm hiểu các tác phẩm quân sự và hồi ký lịch sử của Đại tướng Võ Nguyên Giáp",
+      "Gìn giữ và phát huy truyền thống yêu nước, tự lực tự cường của dân tộc"
+    ],
+    "whyItMatters": null,
+    "message": "Trọn cuộc đời vì nước vì dân — Đại tướng Võ Nguyên Giáp sống mãi trong triệu triệu trái tim người Việt Nam.",
+    "interestingFacts": [
+      "Đại tướng Võ Nguyên Giáp được các nhà sử học và quân sự thế giới bầu chọn là một trong những vị tướng kiệt xuất nhất mọi thời đại."
+    ],
+    "description": "Tưởng nhớ vị tướng huyền thoại của dân tộc, người Anh cả của Quân đội Nhân dân Việt Nam anh hùng.",
+    "bannerDescription": "Ngày 04/10/2013, Đại tướng Võ Nguyên Giáp — vị tướng kiệt xuất của dân tộc đã về cõi vĩnh hằng ở tuổi 103. Trọn một đời vì nước vì dân, Đại tướng là biểu tượng sáng ngời của chủ nghĩa anh hùng cách mạng và niềm tự hào bất diệt của non sông Việt Nam."
+  },
+  {
+    "id": "ev-10-04-pccc-viet-nam",
+    "title": "Ngày Toàn Dân Phòng Cháy & Chữa Cháy (04/10)",
+    "shortDescription": "Toàn dân tham gia phòng cháy, chữa cháy và cứu nạn, cứu hộ — bảo vệ bình yên cho mỗi mái nhà và cộng đồng.",
+    "category": "social-family",
+    "categoryLabel": "Kỷ niệm chuyên ngành",
+    "nature": "social-observance",
+    "natureLabel": "Vì cộng đồng",
+    "priority": 55,
     "solarDate": {
       "month": 10,
       "day": 4
@@ -218,7 +268,7 @@ export const OCTOBER_EVENTS: VietnamEvent[] = [
     "categoryLabel": "Ngày vì cộng đồng",
     "nature": "social-observance",
     "natureLabel": "Vì cộng đồng",
-    "priority": 85,
+    "priority": 50,
     "solarDate": {
       "month": 10,
       "day": 4
@@ -260,7 +310,7 @@ export const OCTOBER_EVENTS: VietnamEvent[] = [
     "categoryLabel": "Ngày quốc tế hưởng ứng",
     "nature": "international-day",
     "natureLabel": "Quốc tế hưởng ứng",
-    "priority": 55,
+    "priority": 30,
     "solarDate": {
       "month": 10,
       "day": 4

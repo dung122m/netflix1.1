@@ -422,9 +422,9 @@ test("Vietnam Historical Milestones System (Ngày này trong lịch sử Việt 
   });
 
   await t.test("Case 10: Regular day with no historical event returns undefined/empty", () => {
-    // 15/03 has no registered major historical milestone
-    const eventsMar15 = getHistoricalEventsForDate(3, 15);
-    assert.equal(eventsMar15.length, 0, "No historical milestone expected on March 15th");
+    // 04/01 has no registered major historical milestone
+    const eventsJan4 = getHistoricalEventsForDate(1, 4);
+    assert.equal(eventsJan4.length, 0, "No historical milestone expected on January 4th");
   });
 });
 
@@ -451,31 +451,29 @@ test("Daily Identity & Cinema Connection System", async (t) => {
     assert.equal(actorEv?.priority, 92);
   });
 
-  await t.test("Cinema Holiday: 15/03 Ngày Điện Ảnh Việt Nam links to cinema catalog", () => {
+  await t.test("Cinema Holiday: 15/03 Ngày Điện Ảnh Việt Nam preserves cultural identity without auto-keyword links", () => {
     const res = getVietnamTodayEvent(new Date("2026-03-15T08:00:00+07:00"));
     assert.ok(res.isToday);
     assert.ok(res.allEventsToday);
     const cinemaEv = res.allEventsToday.find((e) => e.id.includes("dien-anh-vn"));
     assert.ok(cinemaEv);
-    assert.equal(cinemaEv?.relatedLink, "/browse?type=phim-chieu-rap");
-    assert.equal(cinemaEv?.relatedLabel, "Khám phá phim chiếu rạp");
+    assert.equal(cinemaEv?.nature, "arts-culture");
   });
 
-  await t.test("Major Holiday: 02/09 Quốc Khánh maintains top priority and links to history search", () => {
+  await t.test("Major Holiday: 02/09 Quốc Khánh maintains top priority", () => {
     const res = getVietnamTodayEvent(new Date("2026-09-02T08:00:00+07:00"));
     assert.ok(res.isToday);
     assert.equal(res.event.category, "national-holiday");
     assert.equal(res.event.priority, 100);
-    assert.equal(res.event.relatedLink, "/browse?search=lịch sử");
   });
 
-  await t.test("Festival Holiday: Halloween links to horror catalog", () => {
+  await t.test("Festival Holiday: Halloween maintains festival nature without auto browse links", () => {
     const res = getVietnamTodayEvent(new Date("2026-10-31T08:00:00+07:00"));
     assert.ok(res.isToday);
     assert.ok(res.allEventsToday);
     const halEv = res.allEventsToday.find((e) => e.id.includes("halloween"));
     assert.ok(halEv);
-    assert.equal(halEv?.relatedLink, "/browse?search=kinh-di");
+    assert.equal(halEv?.effect, "halloween");
   });
 
   await t.test("Regular Day: Preserves Solar and Lunar calendar info accurately", () => {
@@ -500,13 +498,18 @@ test("Daily Identity & Cinema Connection System", async (t) => {
     assert.ok(res2010.event.title.includes("Phụ Nữ Việt Nam"));
   });
 
-  await t.test("Event Priority Hierarchy: Days with only international events display properly", () => {
-    // 04/10: World Animal Day
+  await t.test("Event Priority Hierarchy: 04/10 prioritizes Vo Nguyen Giap memorial over specialized/international days", () => {
+    // 04/10: Tưởng Niệm Ngày Mất Đại Tướng Võ Nguyên Giáp vs PCCC vs Kỹ Năng Lao Động vs World Animal Day
     const res0410 = getVietnamTodayEvent(new Date("2026-10-04T08:00:00+07:00"));
     assert.ok(res0410.isToday);
-    assert.ok(res0410.event.title.includes("Động Vật Thế Giới") || res0410.event.title.length > 0);
-    assert.ok(res0410.allEventsToday && res0410.allEventsToday.length > 0);
+    assert.ok(res0410.event.title.includes("Võ Nguyên Giáp"));
+    assert.equal(res0410.event.priority, 100);
+    assert.ok(res0410.allEventsToday && res0410.allEventsToday.length >= 4);
+    assert.ok(res0410.allEventsToday[0].title.includes("Võ Nguyên Giáp"));
+    assert.ok(res0410.allEventsToday[1].title.includes("Phòng Cháy"));
+  });
 
+  await t.test("Event Priority Hierarchy: Days with only international events display properly", () => {
     // 03/10: World Habitat Day
     const res0310 = getVietnamTodayEvent(new Date("2026-10-03T08:00:00+07:00"));
     assert.ok(res0310.isToday);
