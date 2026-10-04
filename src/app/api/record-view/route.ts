@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { recordMovieViewSupabase } from "@/services/communityWatchService";
+import { recordAnalyticsEvent } from "@/services/analyticsService";
+import { invalidateTrendingCache } from "@/app/api/trending-community/route";
 import { checkDistributedRateLimit, getClientIp } from "@/lib/security";
 import { verifyServerAuth } from "@/lib/serverAuth";
 
@@ -21,11 +23,26 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { slug, title, poster, thumb, year, quality, category, anonymousId: bodyAnonId } = body || {};
+    const {
+      slug,
+      title,
+      poster,
+      thumb,
+      year,
+      quality,
+      category,
+      durationSeconds,
+      progressSeconds,
+      episodeSlug,
+      episodeName,
+      anonymousId: bodyAnonId,
+    } = body || {};
 
     if (!slug || typeof slug !== "string") {
       return NextResponse.json({ success: false, error: "Thiếu slug phim" }, { status: 400 });
     }
+
+    const cleanSlug = slug.trim();
 
     // 2. Xác thực danh tính phía Server: ưu tiên userId khi đã đăng nhập, ngược lại dùng anonymousId ổn định
     const auth = await verifyServerAuth(req);
@@ -41,10 +58,10 @@ export async function POST(req: NextRequest) {
       verifiedAnonymousId = isValidAnon(bodyAnonId) ? bodyAnonId : (isValidAnon(cookieAnonId) ? cookieAnonId : undefined);
     }
 
-    // Ghi nhận lượt xem vào Supabase
+    // 3. Ghi nhận lịch sử xem cá nhân vào Supabase (để phục vụ Continue Watching)
     await recordMovieViewSupabase({
-      slug: slug.trim(),
-      title: title || slug,
+      slug: cleanSlug,
+      title: title || cleanSlug,
       poster,
       thumb,
       year: Number(year) || undefined,
@@ -52,7 +69,29 @@ export async function POST(req: NextRequest) {
       category,
       userId: verifiedUserId,
       anonymousId: verifiedAnonymousId,
+    }).catch((err) => {
+      console.warn("[record-view API] Lỗi ghi watch_history:", err);
     });
+
+    // 4. Ghi nhận lượt xem vào Analytics Pipeline (Redis Sorted Sets + Supabase analytics_events)
+    await recordAnalyticsEvent({
+      eventType: "movie_view",
+      movieSlug: cleanSlug,
+      movieTitle: title || cleanSlug,
+      episodeSlug,
+      episodeName,
+      userId: verifiedUserId,
+      anonymousId: verifiedAnonymousId,
+      durationSeconds: Number(durationSeconds) || undefined,
+      progressSeconds: Number(progressSeconds) || undefined,
+    }).catch((err) => {
+      console.warn("[record-view API] Lỗi ghi analytics event:", err);
+    });
+
+    // 5. Invalidate bộ nhớ RAM server cache để BXH cập nhật tức thì
+    try {
+      invalidateTrendingCache();
+    } catch {}
 
     return NextResponse.json({ success: true });
   } catch (err) {
@@ -60,4 +99,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, error: "Internal error" }, { status: 500 });
   }
 }
-

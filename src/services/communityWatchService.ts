@@ -1,4 +1,7 @@
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { getTopMovieSlugsFromAnalytics, getStartOfWeekVietnam } from "@/services/analyticsService";
+import { movieApi } from "@/services/movies/service";
+import { pickBestMoviePoster, pickBestMovieThumb } from "@/lib/movieMedia";
 
 export interface MovieViewStatItem {
   movieSlug: string;
@@ -50,41 +53,104 @@ export async function recordMovieViewSupabase(movie: {
   );
 
   if (error) {
-    console.error("[recordMovieViewSupabase] Lỗi ghi nhận lượt xem vào Supabase watch_history:", error);
+    console.error("[recordMovieViewSupabase] Lỗi ghi nhận lịch sử xem vào Supabase watch_history:", error);
     throw error;
   }
 }
 
+/**
+ * Lấy danh sách phim thịnh hành cộng đồng theo view count thực tế từ Analytics Pipeline.
+ * Hỗ trợ phân định chính xác giữa "total" (Toàn thời gian) và "week" (Thứ 2 00:00 -> Chủ Nhật 23:59:59 Asia/Ho_Chi_Minh).
+ */
 export async function getTopTrendingCommunitySupabase(
   limit: number = 10,
   timeframe: "total" | "week" = "total"
 ): Promise<MovieViewStatItem[]> {
+  try {
+    // 1. Lấy danh sách top slugs từ Analytics Pipeline (Redis Sorted Sets + Supabase events)
+    const analyticsSlugs = await getTopMovieSlugsFromAnalytics(timeframe, Math.max(limit * 2, 20));
+
+    if (analyticsSlugs && analyticsSlugs.length > 0) {
+      const resolvedMovies = await Promise.allSettled(
+        analyticsSlugs.map(async ({ slug, score }) => {
+          try {
+            const detail = await movieApi.getMovieDetail(slug);
+            if (!detail || !detail.movie) return null;
+            const m = detail.movie;
+
+            const title = m.name || m.title || slug;
+            const poster = pickBestMoviePoster(m, "/default-poster.jpg");
+            const thumb = pickBestMovieThumb(m, "/default-hero.jpg");
+            const year = m.year ? Number(m.year) : undefined;
+            const quality = m.quality || "HD";
+
+            const rawCats = Array.isArray(m.category)
+              ? m.category
+              : Array.isArray(m.categories)
+              ? m.categories
+              : [];
+            const category =
+              rawCats
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                .map((c: any) => (typeof c === "string" ? c : c?.name || ""))
+                .filter(Boolean)
+                .join(", ") || "Phim Hay";
+
+            return {
+              movieSlug: slug,
+              movieTitle: title,
+              poster,
+              thumb,
+              year,
+              quality,
+              category,
+              viewsTotal: timeframe === "total" ? score : 0,
+              viewsWeek: timeframe === "week" ? score : 0,
+              lastViewedAt: Date.now(),
+            } as MovieViewStatItem;
+          } catch {
+            return null;
+          }
+        })
+      );
+
+      const items: MovieViewStatItem[] = [];
+      for (const r of resolvedMovies) {
+        if (r.status === "fulfilled" && r.value) {
+          items.push(r.value);
+        }
+      }
+
+      if (items.length > 0) {
+        return items.slice(0, limit);
+      }
+    }
+  } catch (analyticsErr) {
+    console.warn("[getTopTrendingCommunitySupabase] Analytics fetch warning:", analyticsErr);
+  }
+
+  // 2. Fallback dự phòng: Query watch_history khi hệ thống analytics chưa có dữ liệu ban đầu
   const adminClient = getSupabaseAdmin();
   if (!adminClient) {
-    throw new Error("[getTopTrendingCommunitySupabase] SUPABASE_SERVICE_ROLE_KEY is required to access watch history");
+    return [];
   }
 
   const { data, error } = await adminClient
     .from("watch_history")
-    .select("slug, title, poster, year, quality, category, updated_at, synced_at");
+    .select("slug, title, poster, year, quality, category, updated_at, synced_at")
+    .limit(1000);
 
-  if (error) {
-    console.error("[getTopTrendingCommunitySupabase] Lỗi truy vấn watch_history:", error);
-    throw error;
-  }
-
-  if (!data || data.length === 0) return [];
+  if (error || !data || data.length === 0) return [];
 
   const now = Date.now();
-  const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
-
+  const startOfWeekMs = getStartOfWeekVietnam(now);
   const movieMap = new Map<string, MovieViewStatItem>();
 
   for (const row of data) {
     if (!row.slug) continue;
     const slug = row.slug.toLowerCase();
     const updatedAt = Number(row.updated_at) || Number(row.synced_at) || 0;
-    const isWeek = updatedAt >= sevenDaysAgo;
+    const isWeek = updatedAt >= startOfWeekMs;
 
     if (timeframe === "week" && !isWeek) {
       continue;
@@ -114,8 +180,6 @@ export async function getTopTrendingCommunitySupabase(
   }
 
   const items = Array.from(movieMap.values());
-
-  // Sắp xếp: Ưu tiên số lượt xem nhiều nhất, nếu bằng nhau ưu tiên phim xem gần đây nhất
   items.sort((a, b) => {
     const viewA = timeframe === "week" ? a.viewsWeek : a.viewsTotal;
     const viewB = timeframe === "week" ? b.viewsWeek : b.viewsTotal;

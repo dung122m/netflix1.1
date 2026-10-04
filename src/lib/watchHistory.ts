@@ -29,6 +29,9 @@ const HISTORY_KEY = "nanaflix_watch_history";
 const EPISODES_PROGRESS_KEY = "nanaflix_episodes_progress";
 const MAX_HISTORY_ITEMS = 20;
 
+// Client-side debounce map to prevent rapid duplicate record-view calls on component re-renders
+const clientViewThrottleMap = new Map<string, number>();
+
 // Module-level in-memory cache tránh parse JSON lặp lại mỗi khi đọc lịch sử xem
 let memoryWatchHistory: WatchHistoryItem[] | null = null;
 
@@ -194,11 +197,12 @@ export const saveWatchHistory = (
       saveWatchItemToCloudDebounced(auth.currentUser.uid, newItem, 2000, { force: true });
     }
 
-    // Ghi nhận lượt xem vào Database để tính Top Trending (debounced 1 lần mỗi phiên xem)
+    // Ghi nhận lượt xem vào Database & Analytics để tính BXH (throttled 30s per movie trên client)
     try {
-      const sessionKey = `view_recorded_${newItem.slug}`;
-      if (!sessionStorage.getItem(sessionKey)) {
-        sessionStorage.setItem(sessionKey, "1");
+      const nowMs = Date.now();
+      const lastRecorded = clientViewThrottleMap.get(newItem.slug) || 0;
+      if (nowMs - lastRecorded >= 30000) {
+        clientViewThrottleMap.set(newItem.slug, nowMs);
         const anonymousId = getOrCreateAnonymousId();
         fetch("/api/record-view", {
           method: "POST",
@@ -210,6 +214,10 @@ export const saveWatchHistory = (
             year: newItem.year,
             quality: newItem.quality,
             category: newItem.category,
+            episodeSlug: newItem.episodeSlug,
+            episodeName: newItem.episodeName,
+            progressSeconds: newItem.progressSeconds,
+            durationSeconds: newItem.durationSeconds,
             anonymousId,
           }),
           keepalive: true,

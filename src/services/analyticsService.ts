@@ -288,8 +288,11 @@ export async function recordAnalyticsEvent(payload: AnalyticsEventPayload): Prom
 
       // C. Update specific metrics
       if (payload.eventType === "movie_view" && movieSlug) {
+        const weekKey = getWeekKeyVietnam(now);
         await redis.incr("analytics:views:total");
         await redis.zincrby("analytics:views:movies", 1, movieSlug);
+        await redis.zincrby(`analytics:views:week:${weekKey}`, 1, movieSlug);
+        await redis.expire(`analytics:views:week:${weekKey}`, 14 * 86400); // 14 days retention
         if (payload.movieTitle) {
           await redis.hset("analytics:movie_titles", { [movieSlug]: payload.movieTitle });
         }
@@ -379,7 +382,7 @@ export async function recordAnalyticsEvent(payload: AnalyticsEventPayload): Prom
 }
 
 // Timezone offset for Vietnam (Asia/Ho_Chi_Minh, UTC+7 in milliseconds)
-const VIETNAM_TIMEZONE_OFFSET_MS = 7 * 60 * 60 * 1000;
+export const VIETNAM_TIMEZONE_OFFSET_MS = 7 * 60 * 60 * 1000;
 
 /**
  * Calculate the epoch timestamp for 00:00:00.000 Asia/Ho_Chi_Minh (UTC+7) of the current day.
@@ -391,6 +394,143 @@ export function getStartOfTodayVietnam(nowMs: number = Date.now()): number {
   const vnMonth = vnDate.getUTCMonth();
   const vnDay = vnDate.getUTCDate();
   return Date.UTC(vnYear, vnMonth, vnDay, 0, 0, 0, 0) - VIETNAM_TIMEZONE_OFFSET_MS;
+}
+
+/**
+ * Calculate the epoch timestamp for Monday 00:00:00.000 Asia/Ho_Chi_Minh (UTC+7) of the current calendar week.
+ */
+export function getStartOfWeekVietnam(nowMs: number = Date.now()): number {
+  const vnDate = new Date(nowMs + VIETNAM_TIMEZONE_OFFSET_MS);
+  const vnYear = vnDate.getUTCFullYear();
+  const vnMonth = vnDate.getUTCMonth();
+  const vnDay = vnDate.getUTCDate();
+  const dayOfWeek = vnDate.getUTCDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  const daysSinceMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  const startOfDayMs = Date.UTC(vnYear, vnMonth, vnDay, 0, 0, 0, 0) - VIETNAM_TIMEZONE_OFFSET_MS;
+  return startOfDayMs - daysSinceMonday * 24 * 60 * 60 * 1000;
+}
+
+/**
+ * Generate a deterministic week key for Redis indexing (e.g., '2026_10_05') based on Monday start date in Vietnam.
+ */
+export function getWeekKeyVietnam(nowMs: number = Date.now()): string {
+  const startOfWeekMs = getStartOfWeekVietnam(nowMs);
+  const vnDate = new Date(startOfWeekMs + VIETNAM_TIMEZONE_OFFSET_MS);
+  const y = vnDate.getUTCFullYear();
+  const m = String(vnDate.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(vnDate.getUTCDate()).padStart(2, "0");
+  return `${y}_${m}_${d}`;
+}
+
+/**
+ * Helper to safely parse ZRANGE / ZREVRANGE scores from Upstash Redis
+ */
+function parseZRangeScores(raw: unknown): Array<{ slug: string; score: number }> {
+  if (!Array.isArray(raw)) return [];
+  const results: Array<{ slug: string; score: number }> = [];
+
+  // Format 1: [{ member: 'slug', score: 10 }, ...]
+  if (raw.length > 0 && typeof raw[0] === "object" && raw[0] !== null && "member" in raw[0]) {
+    for (const item of raw as Array<{ member: string; score: number }>) {
+      if (item.member && typeof item.member === "string") {
+        results.push({ slug: item.member, score: Number(item.score) || 0 });
+      }
+    }
+    return results;
+  }
+
+  // Format 2: ['slug1', 10, 'slug2', 5]
+  for (let i = 0; i < raw.length; i += 2) {
+    const slug = raw[i];
+    const score = raw[i + 1];
+    if (typeof slug === "string" && slug.length > 0) {
+      results.push({ slug, score: Number(score) || 0 });
+    }
+  }
+  return results;
+}
+
+/**
+ * Get top movie slugs and view counts from Analytics (Redis Sorted Set with Supabase fallback).
+ */
+export async function getTopMovieSlugsFromAnalytics(
+  timeframe: "total" | "week" = "total",
+  limit: number = 10
+): Promise<Array<{ slug: string; score: number }>> {
+  const redis = getRedis();
+
+  // 1. Try Redis Sorted Set
+  if (redis) {
+    try {
+      const redisKey =
+        timeframe === "week"
+          ? `analytics:views:week:${getWeekKeyVietnam(Date.now())}`
+          : "analytics:views:movies";
+
+      const raw = await redis.zrange(redisKey, 0, limit - 1, { rev: true, withScores: true });
+      const parsed = parseZRangeScores(raw);
+      if (parsed.length > 0) {
+        return parsed;
+      }
+    } catch (err) {
+      console.warn("[Analytics] Error reading top movie slugs from Redis:", err);
+    }
+  }
+
+  // 2. Fallback: Query Supabase analytics_events table
+  const client = isSupabaseAdminConfigured() ? getSupabaseAdmin() : supabase;
+  if (client) {
+    try {
+      let q = client
+        .from("analytics_events")
+        .select("movie_slug")
+        .eq("event_type", "movie_view")
+        .not("movie_slug", "is", null);
+
+      if (timeframe === "week") {
+        const startOfWeekMs = getStartOfWeekVietnam(Date.now());
+        q = q.gte("created_at", startOfWeekMs);
+      }
+
+      const { data, error } = await q.limit(2000);
+      if (!error && data && data.length > 0) {
+        const map = new Map<string, number>();
+        for (const row of data) {
+          if (row.movie_slug) {
+            map.set(row.movie_slug, (map.get(row.movie_slug) || 0) + 1);
+          }
+        }
+        return Array.from(map.entries())
+          .map(([slug, score]) => ({ slug, score }))
+          .sort((a, b) => b.score - a.score)
+          .slice(0, limit);
+      }
+    } catch (dbErr) {
+      console.warn("[Analytics] Error querying analytics_events fallback:", dbErr);
+    }
+  }
+
+  // 3. Fallback: Memory buffer
+  if (memoryEventsBuffer.length > 0) {
+    const startOfWeekMs = getStartOfWeekVietnam(Date.now());
+    const map = new Map<string, number>();
+    for (const ev of memoryEventsBuffer) {
+      if (ev.eventType === "movie_view" && ev.movieSlug) {
+        if (timeframe === "week" && ev.createdAt < startOfWeekMs) {
+          continue;
+        }
+        map.set(ev.movieSlug, (map.get(ev.movieSlug) || 0) + 1);
+      }
+    }
+    if (map.size > 0) {
+      return Array.from(map.entries())
+        .map(([slug, score]) => ({ slug, score }))
+        .sort((a, b) => b.score - a.score)
+        .slice(0, limit);
+    }
+  }
+
+  return [];
 }
 
 /**

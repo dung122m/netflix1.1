@@ -12,8 +12,7 @@ import {
 import { MovieViewStatItem } from "@/services/supabaseService";
 import { pickBestMoviePoster, toOptimizedPhimimgUrl } from "@/lib/movieMedia";
 
-const TRENDING_CACHE_KEY = "nanaflix_trending_community_cache_v3";
-const FRESH_REVALIDATE_TTL = 5 * 60 * 1000; // 5 phút: Nếu cache dưới 5 phút, không cần revalidate ngầm
+const TRENDING_CACHE_KEY = "nanaflix_trending_community_cache_v4";
 
 function CommunityTopTrendingInner() {
   const [items, setItems] = useState<MovieViewStatItem[]>([]);
@@ -28,18 +27,19 @@ function CommunityTopTrendingInner() {
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
 
-  // 1. Đọc cache localStorage ngay khi mount (0ms) và tải ngầm chỉ tab "total" nếu cache đã quá 5 phút
+  // 1. Đọc cache localStorage ngay khi mount (0ms) và luôn revalidate ngầm từ server (SWR)
   useEffect(() => {
     let isMounted = true;
-    let shouldRevalidateTotal = true;
 
-    // Đọc cache localStorage ngay khi mount nếu dữ liệu còn hợp lệ
+    // Đọc cache localStorage ngay khi mount nếu dữ liệu còn hợp lệ (trong 12 giờ)
     try {
+      // Dọn dẹp cache v3 cũ
+      localStorage.removeItem("nanaflix_trending_community_cache_v3");
+
       const raw = localStorage.getItem(TRENDING_CACHE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
-        // Hợp lệ trong 24 giờ
-        const isValid = parsed.timestamp && Date.now() - parsed.timestamp < 24 * 60 * 60 * 1000;
+        const isValid = parsed.timestamp && Date.now() - parsed.timestamp < 12 * 60 * 60 * 1000;
         if (isValid) {
           if (Array.isArray(parsed.total) && parsed.total.length > 0) {
             tabCacheRef.current["total"] = parsed.total;
@@ -54,20 +54,13 @@ function CommunityTopTrendingInner() {
             setItems(cachedForCurrent);
             setLoading(false);
           }
-
-          // Nếu cache total còn dưới 5 phút, không cần revalidate ngầm
-          if (Date.now() - parsed.timestamp < FRESH_REVALIDATE_TTL && Array.isArray(parsed.total) && parsed.total.length > 0) {
-            shouldRevalidateTotal = false;
-          }
         }
       }
     } catch {
       // Bỏ qua nếu localStorage lỗi
     }
 
-    if (!shouldRevalidateTotal) return;
-
-    // Chỉ fetch BXH "total" khi mới vào trang (chạy ngầm revalidate)
+    // Luôn fetch BXH "total" khi mới vào trang (SWR: chạy ngầm revalidate)
     const fetchTotal = async () => {
       try {
         const res = await fetch("/api/trending-community?timeframe=total&limit=10");
@@ -75,19 +68,19 @@ function CommunityTopTrendingInner() {
         const data = await res.json();
         if (!isMounted) return;
 
-        if (Array.isArray(data?.items) && data.items.length > 0) {
+        if (Array.isArray(data?.items)) {
           tabCacheRef.current["total"] = data.items;
-          // Chỉ update UI nếu user vẫn đang ở tab total
           if (timeframeRef.current === "total") {
             setItems(data.items);
           }
 
-          // Cập nhật localStorage mà không làm mất tab week (dùng tabCacheRef, không đọc storage lại)
           try {
+            const raw = localStorage.getItem(TRENDING_CACHE_KEY);
+            const currentCache = raw ? JSON.parse(raw) : {};
             localStorage.setItem(
               TRENDING_CACHE_KEY,
               JSON.stringify({
-                ...tabCacheRef.current,
+                ...currentCache,
                 total: data.items,
                 timestamp: Date.now(),
               })
@@ -107,7 +100,7 @@ function CommunityTopTrendingInner() {
     };
   }, []);
 
-  // 2. Chuyển đổi tab: fetch on-demand nếu tab chưa có dữ liệu
+  // 2. Chuyển đổi tab: render cache tức thì nếu có, và luôn fetch revalidate ngầm
   const switchTab = (nextTf: "total" | "week") => {
     if (nextTf === timeframe) return;
 
@@ -123,78 +116,40 @@ function CommunityTopTrendingInner() {
     if (cached && cached.length > 0) {
       setItems(cached);
       setTimeout(() => setIsFading(false), 100);
-
-      // Nếu cache tab còn dưới 5 phút, không cần gửi request revalidate ngầm
-      let isFresh = false;
-      try {
-        const raw = localStorage.getItem(TRENDING_CACHE_KEY);
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (parsed.timestamp && Date.now() - parsed.timestamp < FRESH_REVALIDATE_TTL && parsed[nextTf]) {
-            isFresh = true;
-          }
-        }
-      } catch {}
-
-      if (isFresh) return;
-
-      // Revalidate ngầm nếu có cache cũ
-      fetch(`/api/trending-community?timeframe=${nextTf}&limit=10`)
-        .then((r) => (r.ok ? r.json() : null))
-        .then((data) => {
-          if (data?.items) {
-            tabCacheRef.current[nextTf] = data.items;
-            if (timeframeRef.current === nextTf) {
-              setItems(data.items);
-            }
-            try {
-              const raw = localStorage.getItem(TRENDING_CACHE_KEY);
-              const currentCache = raw ? JSON.parse(raw) : {};
-              localStorage.setItem(
-                TRENDING_CACHE_KEY,
-                JSON.stringify({
-                  ...currentCache,
-                  [nextTf]: data.items,
-                  timestamp: Date.now(),
-                })
-              );
-            } catch {}
-          }
-        })
-        .catch(() => {});
     } else {
-      // Chưa có cache cho tab này: fetch mới
       setLoading(true);
-      fetch(`/api/trending-community?timeframe=${nextTf}&limit=10`)
-        .then((r) => (r.ok ? r.json() : null))
-        .then((data) => {
-          if (data?.items) {
-            tabCacheRef.current[nextTf] = data.items;
-            if (timeframeRef.current === nextTf) {
-              setItems(data.items);
-            }
-            try {
-              const raw = localStorage.getItem(TRENDING_CACHE_KEY);
-              const currentCache = raw ? JSON.parse(raw) : {};
-              localStorage.setItem(
-                TRENDING_CACHE_KEY,
-                JSON.stringify({
-                  ...currentCache,
-                  [nextTf]: data.items,
-                  timestamp: Date.now(),
-                })
-              );
-            } catch {}
-          }
-        })
-        .catch((err) => {
-          console.warn(`Lỗi tải BXH ${nextTf}:`, err);
-        })
-        .finally(() => {
-          setIsFading(false);
-          setLoading(false);
-        });
     }
+
+    // Luôn gửi request lấy dữ liệu mới nhất cho tab được chọn
+    fetch(`/api/trending-community?timeframe=${nextTf}&limit=10`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.items && Array.isArray(data.items)) {
+          tabCacheRef.current[nextTf] = data.items;
+          if (timeframeRef.current === nextTf) {
+            setItems(data.items);
+          }
+          try {
+            const raw = localStorage.getItem(TRENDING_CACHE_KEY);
+            const currentCache = raw ? JSON.parse(raw) : {};
+            localStorage.setItem(
+              TRENDING_CACHE_KEY,
+              JSON.stringify({
+                ...currentCache,
+                [nextTf]: data.items,
+                timestamp: Date.now(),
+              })
+            );
+          } catch {}
+        }
+      })
+      .catch((err) => {
+        console.warn(`Lỗi tải BXH ${nextTf}:`, err);
+      })
+      .finally(() => {
+        setIsFading(false);
+        setLoading(false);
+      });
   };
 
   const rafRef = useRef<number | null>(null);
