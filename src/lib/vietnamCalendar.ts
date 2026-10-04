@@ -428,7 +428,24 @@ export function getEventPriorityScore(event: VietnamEvent, currentYear: number =
     }
   }
 
-  // 1. TIER 1: Sự kiện lịch sử / danh nhân đặc biệt của Việt Nam
+  // 1. TIER 1: Ngày đại lễ / Quốc lễ chính thức của Việt Nam (Quốc Khánh, Tết Nguyên Đán, Giỗ Tổ, 30/04)
+  const isMajorNationalHoliday =
+    cat === "national-holiday" ||
+    nat === "official-holiday" ||
+    event.effect === "national-day" ||
+    event.effect === "tet" ||
+    event.effect === "mid-autumn" ||
+    event.effect === "christmas" ||
+    id.includes("quoc-khanh") ||
+    id.includes("gio-to") ||
+    id.includes("thong-nhat") ||
+    id.includes("giai-phong-mien-nam");
+
+  if (isMajorNationalHoliday) {
+    return 60000 + rawPriority * 10 + anniversaryBonus;
+  }
+
+  // 2. TIER 2: Sự kiện lịch sử / danh nhân đặc biệt của Việt Nam
   const isTopHistoricalFigure =
     id.includes("vo-nguyen-giap") ||
     id.includes("bac-ho") ||
@@ -440,32 +457,11 @@ export function getEventPriorityScore(event: VietnamEvent, currentYear: number =
     title.includes("bác hồ") ||
     event.milestoneFigure?.toLowerCase().includes("võ nguyên giáp") ||
     event.milestoneFigure?.toLowerCase().includes("hồ chí minh") ||
-    (cat === "vietnam-history" && rawPriority >= 95);
+    (cat === "vietnam-history" && rawPriority >= 75) ||
+    Boolean(event.historicalEventId);
 
   if (isTopHistoricalFigure) {
     return 50000 + rawPriority * 10 + anniversaryBonus;
-  }
-
-  // 2. TIER 2: Ngày lễ / sự kiện quốc gia Việt Nam quan trọng & Đại lễ
-  const isMajorNationalHoliday =
-    cat === "national-holiday" ||
-    nat === "official-holiday" ||
-    event.effect === "national-day" ||
-    event.effect === "tet" ||
-    event.effect === "mid-autumn" ||
-    event.effect === "christmas" ||
-    id.includes("giang-sinh") ||
-    id.includes("noel") ||
-    id.includes("christmas") ||
-    id.includes("quoc-khanh") ||
-    id.includes("giai-phong") ||
-    id.includes("dien-bien-phu") ||
-    id.includes("cach-mang-thang-tam") ||
-    id.includes("gio-to") ||
-    (cat === "vietnam-history" && rawPriority >= 75);
-
-  if (isMajorNationalHoliday) {
-    return 40000 + rawPriority * 10 + anniversaryBonus;
   }
 
   // 3. TIER 3: Ngày quốc tế / xã hội phổ biến
@@ -507,6 +503,200 @@ export function getEventPriorityScore(event: VietnamEvent, currentYear: number =
   return 10000 + rawPriority * 10 + anniversaryBonus;
 }
 
+function normalizeStringForComparison(str: string): string {
+  return str
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/[^a-z0-9]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * Checks if a holiday event is an exact duplicate of a historical milestone.
+ */
+export function isDuplicateHistoricalEvent(
+  holidayEv: VietnamEvent,
+  histEv: VietnamHistoricalEvent
+): boolean {
+  // 1. Direct ID match
+  if (holidayEv.historicalEventId === histEv.id) return true;
+  const hIdNorm = holidayEv.id.toLowerCase();
+  const histIdNorm = histEv.id.toLowerCase();
+  if (hIdNorm.includes("vo-nguyen-giap") && histIdNorm.includes("vo-nguyen-giap")) return true;
+
+  // 2. Figure match on same day
+  const normHolidayTitle = normalizeStringForComparison(holidayEv.title);
+  const normHistTitle = normalizeStringForComparison(histEv.title);
+
+  if (histEv.figures && histEv.figures.length > 0) {
+    for (const fig of histEv.figures) {
+      const normFig = normalizeStringForComparison(fig);
+      if (
+        normFig.length >= 4 &&
+        (normHolidayTitle.includes(normFig) ||
+          (holidayEv.milestoneFigure &&
+            normalizeStringForComparison(holidayEv.milestoneFigure).includes(normFig)))
+      ) {
+        const isMemorial =
+          (normHolidayTitle.includes("mat") ||
+            normHolidayTitle.includes("tu tran") ||
+            normHolidayTitle.includes("tuong niem")) &&
+          (normHistTitle.includes("mat") ||
+            normHistTitle.includes("tu tran") ||
+            normHistTitle.includes("tuong niem") ||
+            normHistTitle.includes("qua doi"));
+        const isBirth = normHolidayTitle.includes("sinh") && normHistTitle.includes("sinh");
+        const isGeneralFigureMilestone =
+          holidayEv.category === "vietnam-history" ||
+          holidayEv.nature === "historical-anniversary";
+        if (isMemorial || isBirth || isGeneralFigureMilestone) {
+          return true;
+        }
+      }
+    }
+  }
+
+  // 3. Significant token matching for historical battles/events
+  const removeNoise = (s: string) =>
+    s
+      .replace(
+        /\b(ngay|ky niem|tuong niem|le|nam|chao mung|toan dan|quoc te|the gioi)\b/g,
+        ""
+      )
+      .replace(/\s+/g, " ")
+      .trim();
+
+  const cleanHoliday = removeNoise(normHolidayTitle);
+  const cleanHist = removeNoise(normHistTitle);
+
+  const holidayTokens = cleanHoliday.split(" ").filter((w) => w.length >= 3);
+  const histTokens = cleanHist.split(" ").filter((w) => w.length >= 3);
+
+  if (holidayTokens.length > 0 && histTokens.length > 0) {
+    let matchCount = 0;
+    for (const t of holidayTokens) {
+      if (histTokens.includes(t)) matchCount++;
+    }
+    const overlapRatio = matchCount / Math.min(holidayTokens.length, histTokens.length);
+    if (
+      overlapRatio >= 0.6 &&
+      (holidayEv.category === "vietnam-history" ||
+        holidayEv.nature === "historical-anniversary")
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Converts a VietnamHistoricalEvent into a canonical VietnamEvent
+ */
+export function convertHistoricalToVietnamEvent(
+  hist: VietnamHistoricalEvent,
+  matchingHoliday?: VietnamEvent
+): VietnamEvent {
+  const displayDate = `${String(hist.solarDate.day).padStart(2, "0")}/${String(
+    hist.solarDate.month
+  ).padStart(2, "0")}${hist.year ? `/${hist.year}` : ""}`;
+  const milestoneFigure = hist.figures && hist.figures.length > 0 ? hist.figures[0] : null;
+
+  return {
+    id: hist.id,
+    title: hist.year ? `${hist.title} (${hist.year})` : hist.title,
+    shortDescription: hist.summary,
+    bannerDescription: hist.summary,
+    description: hist.context || hist.summary,
+    subtitle: hist.context || hist.significance,
+    category: "vietnam-history",
+    categoryLabel: "Mốc son lịch sử",
+    nature: "historical-anniversary",
+    natureLabel: "Lịch sử Việt Nam",
+    priority: matchingHoliday?.priority ?? 100,
+    eventYear: hist.year,
+    milestoneFigure,
+    solarDate: {
+      month: hist.solarDate.month,
+      day: hist.solarDate.day,
+    },
+    lunarDate: hist.lunarDate
+      ? {
+          lunarMonth: hist.lunarDate.lunarMonth,
+          lunarDay: hist.lunarDate.lunarDay,
+        }
+      : undefined,
+    displayDate,
+    origin: hist.context || hist.summary,
+    significance: hist.significance,
+    meaning: hist.significance,
+    didYouKnow: hist.didYouKnow || matchingHoliday?.didYouKnow || "",
+    milestones: hist.keyFacts || matchingHoliday?.milestones || [],
+    quote: matchingHoliday?.quote || null,
+    message: matchingHoliday?.message || null,
+    tag: "Lịch sử & Danh nhân",
+    imageUrl: matchingHoliday?.imageUrl || null,
+    accentGradient:
+      matchingHoliday?.accentGradient || "from-red-900/40 via-amber-800/30 to-zinc-950",
+    relatedLink: matchingHoliday?.relatedLink || null,
+    relatedLabel: matchingHoliday?.relatedLabel || undefined,
+    historicalEventId: hist.id,
+  };
+}
+
+/**
+ * Merges holiday events and historical milestones with canonical deduplication
+ */
+export function mergeAndDeduplicateEvents(
+  holidayMatches: VietnamEvent[],
+  historicalEvents: VietnamHistoricalEvent[] = [],
+  actorBirthdays: VietnamEvent[] = [],
+  currentYear: number = new Date().getFullYear()
+): VietnamEvent[] {
+  const consumedHolidayIds = new Set<string>();
+  const canonicalEvents: VietnamEvent[] = [];
+
+  // 1. Process historical events as canonical representations
+  for (const hist of historicalEvents) {
+    const matchingHoliday = holidayMatches.find(
+      (h) => !consumedHolidayIds.has(h.id) && isDuplicateHistoricalEvent(h, hist)
+    );
+    if (matchingHoliday) {
+      consumedHolidayIds.add(matchingHoliday.id);
+    }
+    canonicalEvents.push(convertHistoricalToVietnamEvent(hist, matchingHoliday));
+  }
+
+  // 2. Add non-duplicate holiday events
+  const remainingHolidays = holidayMatches.filter((h) => !consumedHolidayIds.has(h.id));
+
+  // 3. Combine with actor birthdays
+  const allCandidates = [...canonicalEvents, ...remainingHolidays, ...actorBirthdays];
+
+  // 4. Sort with comprehensive priority hierarchy
+  return allCandidates.sort((a, b) => {
+    const scoreDiff =
+      getEventPriorityScore(b, currentYear) - getEventPriorityScore(a, currentYear);
+    if (scoreDiff !== 0) return scoreDiff;
+
+    const rankCategory = (ev: VietnamEvent) => {
+      if (ev.category === "vietnam-history") return 5;
+      if (ev.category === "national-holiday") return 4;
+      if (ev.nature === "arts-culture" || ev.category === "traditional-culture") return 3;
+      if (ev.category === "social-family") return 2;
+      if (ev.category === "international") return 1;
+      return 0;
+    };
+    const catDiff = rankCategory(b) - rankCategory(a);
+    if (catDiff !== 0) return catDiff;
+
+    return (b.priority ?? 50) - (a.priority ?? 50) || a.id.localeCompare(b.id);
+  });
+}
+
 /**
  * Main helper: Finds the event for today, or finds the nearest upcoming event
  */
@@ -523,8 +713,8 @@ export function getVietnamTodayEvent(customDate?: Date): VietnamTodayInfo {
   const historicalEvents = getHistoricalEventsForDate(month, day, lunar.lunarMonth, lunar.lunarDay);
   const historicalEventsToday = historicalEvents.length > 0 ? historicalEvents : undefined;
 
-  // 1. Check if today matches any event directly
-  const todayMatches: VietnamEvent[] = [];
+  // 1. Check if today matches any event directly from VIETNAM_EVENTS
+  const holidayMatches: VietnamEvent[] = [];
 
   for (const ev of VIETNAM_EVENTS) {
     // Solar match
@@ -534,7 +724,7 @@ export function getVietnamTodayEvent(customDate?: Date): VietnamTodayInfo {
         ? day >= ev.solarDate.day && day <= ev.solarDate.endDay
         : day === ev.solarDate.day;
       if (matchMonth && matchDay) {
-        todayMatches.push(enrichEventWithCinemaLinks(ev));
+        holidayMatches.push(enrichEventWithCinemaLinks(ev));
         continue;
       }
     }
@@ -544,7 +734,7 @@ export function getVietnamTodayEvent(customDate?: Date): VietnamTodayInfo {
       if (ev.lunarDate.isNewYearEve) {
         // Giao thừa: 29 or 30 of month 12
         if (lunar.lunarMonth === 12 && (lunar.lunarDay === 29 || lunar.lunarDay === 30)) {
-          todayMatches.push(enrichEventWithCinemaLinks(ev));
+          holidayMatches.push(enrichEventWithCinemaLinks(ev));
           continue;
         }
       } else {
@@ -553,7 +743,7 @@ export function getVietnamTodayEvent(customDate?: Date): VietnamTodayInfo {
           ? lunar.lunarDay >= ev.lunarDate.lunarDay && lunar.lunarDay <= ev.lunarDate.endLunarDay
           : lunar.lunarDay === ev.lunarDate.lunarDay;
         if (matchLMonth && matchLDay) {
-          todayMatches.push(enrichEventWithCinemaLinks(ev));
+          holidayMatches.push(enrichEventWithCinemaLinks(ev));
           continue;
         }
       }
@@ -563,7 +753,7 @@ export function getVietnamTodayEvent(customDate?: Date): VietnamTodayInfo {
     if (ev.dateRule === "programmer-day") {
       const targetDayOfYear = isLeapYear(year) ? 256 : 256;
       if (dayOfYear === targetDayOfYear) {
-        todayMatches.push(enrichEventWithCinemaLinks(ev));
+        holidayMatches.push(enrichEventWithCinemaLinks(ev));
         continue;
       }
     }
@@ -571,44 +761,24 @@ export function getVietnamTodayEvent(customDate?: Date): VietnamTodayInfo {
 
   // 1.1 Kiểm tra sinh nhật diễn viên từ ACTORS_CATALOG (dữ liệu thật)
   const actorBirthdays = getActorBirthdaysForDate(month, day, year);
-  if (actorBirthdays.length > 0) {
-    todayMatches.push(...actorBirthdays);
-  }
+
+  // 1.2 Deduplicate and merge EVENTS + HISTORY with HISTORY as canonical
+  const mergedTodayEvents = mergeAndDeduplicateEvents(
+    holidayMatches,
+    historicalEvents,
+    actorBirthdays,
+    year
+  );
 
   const solarDateFormatted = formatSolarDateVn(now);
   const lunarDateFormatted = formatLunarDateVn(lunar);
 
-  if (todayMatches.length > 0) {
-    // Ưu tiên theo thứ bậc toàn diện:
-    // Tier 1 (50000+): Lịch sử / Danh nhân đặc biệt
-    // Tier 2 (40000+): Quốc gia / Ngày lễ lớn
-    // Tier 3 (30000+): Quốc tế / Xã hội phổ biến
-    // Tier 4 (20000+): Chuyên ngành / Xã hội
-    // Tier 5 (10000+): Niche / Marketing / Fun
-    const sortedMatches = [...todayMatches].sort((a, b) => {
-      const scoreDiff = getEventPriorityScore(b, year) - getEventPriorityScore(a, year);
-      if (scoreDiff !== 0) return scoreDiff;
-
-      // Tie-break rule: Vietnamese historical > Vietnamese national > international major > professional > niche
-      const rankCategory = (ev: VietnamEvent) => {
-        if (ev.category === "vietnam-history") return 5;
-        if (ev.category === "national-holiday") return 4;
-        if (ev.nature === "arts-culture" || ev.category === "traditional-culture") return 3;
-        if (ev.category === "social-family") return 2;
-        if (ev.category === "international") return 1;
-        return 0;
-      };
-      const catDiff = rankCategory(b) - rankCategory(a);
-      if (catDiff !== 0) return catDiff;
-
-      return (b.priority ?? 50) - (a.priority ?? 50) || a.id.localeCompare(b.id);
-    });
-
-    const priorityEvent = sortedMatches[0];
+  if (mergedTodayEvents.length > 0) {
+    const priorityEvent = mergedTodayEvents[0];
 
     return {
       event: priorityEvent,
-      allEventsToday: sortedMatches,
+      allEventsToday: mergedTodayEvents,
       historicalEventsToday,
       isToday: true,
       daysUntil: 0,

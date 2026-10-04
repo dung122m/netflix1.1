@@ -16,11 +16,30 @@ import {
 import { VietnamEventPatternLayer } from "./VietnamEventPatternLayer";
 
 export function getEventActionLabel(event: VietnamEvent): string {
-  if (event.relatedLabel) {
-    return event.relatedLabel;
-  }
   if (event.actorName || event.id.startsWith("ev-actor-birthday")) {
     return `Xem phim của ${event.actorName || "diễn viên"}`;
+  }
+
+  const titleLower = event.title.toLowerCase();
+  const idLower = event.id.toLowerCase();
+
+  // Check if this is a memorial / solemn remembrance event
+  const isMemorial =
+    titleLower.includes("tưởng niệm") ||
+    titleLower.includes("ngày mất") ||
+    titleLower.includes("từ trần") ||
+    titleLower.includes("liệt sĩ") ||
+    titleLower.includes("thương binh") ||
+    titleLower.includes("tri ân") ||
+    idLower.includes("tuong-niem") ||
+    idLower.includes("ngay-mat");
+
+  if (isMemorial) {
+    return "Tưởng nhớ & Tri ân";
+  }
+
+  if (event.relatedLabel) {
+    return event.relatedLabel;
   }
 
   switch (event.nature) {
@@ -70,7 +89,17 @@ export function getEventTabBadge(event: VietnamEvent): { label: string; emoji: s
   const title = event.title.toLowerCase();
 
   let emoji = "✨";
-  if (id.startsWith("ev-actor-birthday") || title.includes("sinh nhật")) emoji = "🎂";
+  if (
+    title.includes("tưởng niệm") ||
+    title.includes("ngày mất") ||
+    title.includes("từ trần") ||
+    title.includes("liệt sĩ") ||
+    title.includes("thương binh") ||
+    id.includes("tuong-niem") ||
+    id.includes("ngay-mat")
+  ) {
+    emoji = "🕯️";
+  } else if (id.startsWith("ev-actor-birthday") || title.includes("sinh nhật")) emoji = "🎂";
   else if (id.includes("dien-anh") || title.includes("điện ảnh") || title.includes("chiếu bóng")) emoji = "🎬";
   else if (id.includes("hoat-hinh") || title.includes("hoạt hình")) emoji = "🎨";
   else if (id.includes("cao-tuoi") || title.includes("cao tuổi")) emoji = "👴";
@@ -91,6 +120,7 @@ export function getEventTabBadge(event: VietnamEvent): { label: string; emoji: s
   else if (id.includes("nong-dan") || title.includes("nông dân")) emoji = "🌾";
   else if (id.includes("thanh-nien") || title.includes("thanh niên")) emoji = "⚡";
   else if (event.nature === "arts-culture" || event.category === "entertainment") emoji = "🎭";
+  else if (event.category === "vietnam-history" || event.nature === "historical-anniversary") emoji = "📜";
 
   const label = getCleanEventTitle(event.title);
   return { label, emoji };

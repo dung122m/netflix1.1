@@ -66,7 +66,17 @@ export function VietnamTodayModal({
     () => info.historicalEventsToday || [],
     [info.historicalEventsToday]
   );
+  
+  // Non-duplicate cultural / national / social holidays
+  const holidayEvents = React.useMemo(() => {
+    return events.filter(
+      (e) => !e.historicalEventId && e.category !== "vietnam-history" && !e.id.startsWith("hist-")
+    );
+  }, [events]);
+
+  const hasHoliday = holidayEvents.length > 0;
   const hasHistory = historicalEvents.length > 0;
+  const showTabSwitcher = hasHoliday && hasHistory;
 
   // Decide active tab: if initialTab is passed use it; if no holiday today but history exists, default to history
   const [activeTab, setActiveTab] = useState<"holiday" | "history">("holiday");
@@ -83,12 +93,19 @@ export function VietnamTodayModal({
   useEffect(() => {
     if (initialTab) {
       setActiveTab(initialTab);
-    } else if (!info.isToday && hasHistory) {
+    } else if (hasHistory && !hasHoliday) {
+      setActiveTab("history");
+    } else if (
+      info.event &&
+      (info.event.historicalEventId ||
+        info.event.category === "vietnam-history" ||
+        info.event.id.startsWith("hist-"))
+    ) {
       setActiveTab("history");
     } else {
       setActiveTab("holiday");
     }
-  }, [initialTab, isOpen, info.isToday, hasHistory]);
+  }, [initialTab, isOpen, info.event, hasHoliday, hasHistory]);
 
   useEffect(() => {
     setActiveId(info.event.id);
@@ -97,9 +114,16 @@ export function VietnamTodayModal({
 
   useEffect(() => {
     if (historicalEvents.length > 0) {
-      setSelectedHistId(historicalEvents[0].id);
+      const match = historicalEvents.find(
+        (h) => h.id === info.event.id || h.id === info.event.historicalEventId
+      );
+      if (match) {
+        setSelectedHistId(match.id);
+      } else {
+        setSelectedHistId(historicalEvents[0].id);
+      }
     }
-  }, [historicalEvents]);
+  }, [historicalEvents, info.event]);
 
   useBodyScrollLock(isOpen);
 
@@ -122,7 +146,8 @@ export function VietnamTodayModal({
 
   if (!isOpen || !mounted) return null;
 
-  const currentEvent = events.find((e) => e.id === activeId) || events[0] || info.event;
+  const currentEvent =
+    holidayEvents.find((e) => e.id === activeId) || holidayEvents[0] || events[0] || info.event;
   const accentGradient = currentEvent.accentGradient || "from-amber-600/30 via-red-600/20 to-zinc-950";
   const modalHeroBg = getVietnamEventBackground({
     event: currentEvent,
@@ -145,7 +170,7 @@ export function VietnamTodayModal({
         onClick={(e) => e.stopPropagation()}
       >
         {/* TOP TAB SWITCHER (Rendered when both Holiday & History are available) */}
-        {hasHistory && (
+        {showTabSwitcher && (
           <div className="bg-zinc-900/90 border-b border-white/10 px-3 sm:px-4 py-2 flex items-center justify-between gap-2 flex-shrink-0 z-30">
             <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar scrollbar-none min-w-0 flex-1 pr-1">
               {/* TAB 1: Holiday / Special Day */}
@@ -162,7 +187,7 @@ export function VietnamTodayModal({
                 }`}
               >
                 <Sparkles className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
-                <span>Nét đẹp ngày lễ</span>
+                <span>Sự kiện & Ngày lễ</span>
               </button>
 
               {/* TAB 2: Historical Events */}
@@ -230,7 +255,7 @@ export function VietnamTodayModal({
               {currentEvent.effect && <VietnamEventEffect effect={currentEvent.effect} />}
 
               {/* Close Button if no history tab header */}
-              {!hasHistory && (
+              {!showTabSwitcher && (
                 <button
                   onClick={onClose}
                   aria-label="Đóng"
@@ -292,12 +317,12 @@ export function VietnamTodayModal({
             </div>
 
             {/* Multi-event tab switcher if today has multiple holidays */}
-            {events.length > 1 && (
+            {holidayEvents.length > 1 && (
               <div className="px-4 sm:px-6 pt-3 pb-1 border-b border-white/10 bg-zinc-950 flex items-center gap-2 overflow-x-auto scrollbar-none flex-shrink-0">
                 <span className="text-xs text-zinc-400 font-medium whitespace-nowrap">
                   Sự kiện hôm nay:
                 </span>
-                {events.map((ev) => (
+                {holidayEvents.map((ev) => (
                   <button
                     key={ev.id}
                     onClick={() => {

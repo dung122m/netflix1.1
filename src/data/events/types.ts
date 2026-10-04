@@ -76,5 +76,7 @@ export interface VietnamEvent {
   relatedLabel?: string | null;
   actorSlug?: string | null;
   actorName?: string | null;
+  historicalEventId?: string | null;
 }
+
 

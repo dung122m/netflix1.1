@@ -23,10 +23,20 @@ export function VietnamTodaySection() {
   const [selectedEventId, setSelectedEventId] = useState<string>(info.event.id);
 
   const handleOpenModal = (eventId?: string) => {
+    const targetId = eventId || selectedEventId;
+    const targetEvent = events.find((e) => e.id === targetId) || info.event;
+    const isHistorical =
+      targetEvent.category === "vietnam-history" ||
+      Boolean(targetEvent.historicalEventId) ||
+      targetEvent.id.startsWith("hist-");
+
     if (typeof window !== "undefined") {
       window.dispatchEvent(
         new CustomEvent("open-vietnam-today-modal", {
-          detail: { tab: "holiday", eventId: eventId || selectedEventId },
+          detail: {
+            tab: isHistorical ? "history" : "holiday",
+            eventId: targetId,
+          },
         })
       );
     }
