@@ -49,7 +49,7 @@ export const GOLDEN_ACTOR_INDEX: ActorProfile[] = [
   },
   {
     name: "Thu Trang",
-    aliases: ["thu trang", "hoa hậu hài thu trang", "chi muoi ba"],
+    aliases: ["thu trang", "hoa hậu hài thu trang"],
     country: "Việt Nam 🇻🇳",
   },
   {
@@ -81,7 +81,7 @@ export const GOLDEN_ACTOR_INDEX: ActorProfile[] = [
   // --- HÀN QUỐC ---
   {
     name: "Kim Ji-won",
-    aliases: ["kim ji won", "kim jiwon", "hong hae in"],
+    aliases: ["kim ji won", "kim jiwon"],
     country: "Hàn Quốc 🇰🇷",
   },
   {
@@ -136,7 +136,7 @@ export const GOLDEN_ACTOR_INDEX: ActorProfile[] = [
   },
   {
     name: "Gong Yoo",
-    aliases: ["gong yoo", "gong yoo"],
+    aliases: ["gong yoo"],
     country: "Hàn Quốc 🇰🇷",
   },
   {
@@ -257,17 +257,17 @@ export const GOLDEN_ACTOR_INDEX: ActorProfile[] = [
   // --- HOLLYWOOD / QUỐC TẾ ---
   {
     name: "Benedict Cumberbatch",
-    aliases: ["benedict cumberbatch", "cumberbatch", "doctor strange"],
+    aliases: ["benedict cumberbatch", "cumberbatch"],
     country: "Hollywood 🇺🇸 / Anh Quốc 🇬🇧",
   },
   {
     name: "Cillian Murphy",
-    aliases: ["cillian murphy", "murphy", "oppenheimer", "thomas shelby"],
+    aliases: ["cillian murphy", "murphy"],
     country: "Hollywood 🇺🇸 / Anh Quốc 🇬🇧",
   },
   {
     name: "Tom Cruise",
-    aliases: ["tom cruise", "cruise", "ethan hunt"],
+    aliases: ["tom cruise", "cruise"],
     country: "Hollywood 🇺🇸",
   },
   {
@@ -277,7 +277,7 @@ export const GOLDEN_ACTOR_INDEX: ActorProfile[] = [
   },
   {
     name: "Robert Downey Jr",
-    aliases: ["robert downey jr", "robert downey", "iron man", "tony stark"],
+    aliases: ["robert downey jr", "robert downey", "rdj"],
     country: "Hollywood 🇺🇸",
   },
   {
@@ -287,22 +287,22 @@ export const GOLDEN_ACTOR_INDEX: ActorProfile[] = [
   },
   {
     name: "Keanu Reeves",
-    aliases: ["keanu reeves", "john wick", "neo"],
+    aliases: ["keanu reeves"],
     country: "Hollywood 🇺🇸",
   },
   {
     name: "Scarlett Johansson",
-    aliases: ["scarlett johansson", "black widow", "natasha romanoff"],
+    aliases: ["scarlett johansson"],
     country: "Hollywood 🇺🇸",
   },
   {
     name: "Tom Hiddleston",
-    aliases: ["tom hiddleston", "loki"],
+    aliases: ["tom hiddleston"],
     country: "Hollywood 🇺🇸 / Anh Quốc 🇬🇧",
   },
   {
     name: "Margot Robbie",
-    aliases: ["margot robbie", "harley quinn", "barbie"],
+    aliases: ["margot robbie"],
     country: "Hollywood 🇺🇸 / Úc 🇦🇺",
   },
   {
@@ -312,7 +312,7 @@ export const GOLDEN_ACTOR_INDEX: ActorProfile[] = [
   },
   {
     name: "Ryan Reynolds",
-    aliases: ["ryan reynolds", "deadpool"],
+    aliases: ["ryan reynolds"],
     country: "Hollywood 🇺🇸",
   },
 
@@ -334,7 +334,7 @@ export const GOLDEN_ACTOR_INDEX: ActorProfile[] = [
   },
   {
     name: "Hayao Miyazaki",
-    aliases: ["hayao miyazaki", "miyazaki", "ghibli"],
+    aliases: ["hayao miyazaki", "miyazaki"],
     country: "Nhật Bản 🇯🇵",
   },
   {
@@ -435,30 +435,14 @@ function escapeRegex(str: string): string {
 // =========================================================================
 export const ACTOR_CANONICAL_MAP: Record<string, string> = {
   // Marvel & Hollywood
-  "iron man": "Robert Downey Jr",
-  "nguoi sat": "Robert Downey Jr",
-  "người sắt": "Robert Downey Jr",
   "rdj": "Robert Downey Jr",
   "robert downey": "Robert Downey Jr",
   "robert downey jr": "Robert Downey Jr",
-  "captain america": "Chris Evans",
-  "doi truong my": "Chris Evans",
-  "đội trưởng mỹ": "Chris Evans",
   "chris evans": "Chris Evans",
-  "thor": "Chris Hemsworth",
-  "than sam": "Chris Hemsworth",
-  "thần sấm": "Chris Hemsworth",
   "chris hemsworth": "Chris Hemsworth",
-  "spider man": "Tom Holland",
-  "spiderman": "Tom Holland",
-  "nguoi nhen": "Tom Holland",
-  "người nhện": "Tom Holland",
   "tom holland": "Tom Holland",
-  "deadpool": "Ryan Reynolds",
   "ryan reynolds": "Ryan Reynolds",
-  "wolverine": "Hugh Jackman",
   "hugh jackman": "Hugh Jackman",
-  "john wick": "Keanu Reeves",
   "keanu reeves": "Keanu Reeves",
   "the rock": "Dwayne Johnson",
   "dwayne johnson": "Dwayne Johnson",
@@ -471,14 +455,9 @@ export const ACTOR_CANONICAL_MAP: Record<string, string> = {
   "will smith": "Will Smith",
   "jason statham": "Jason Statham",
   "vin diesel": "Vin Diesel",
-  "dom toretto": "Vin Diesel",
   "benedict cumberbatch": "Benedict Cumberbatch",
-  "doctor strange": "Benedict Cumberbatch",
   "scarlett johansson": "Scarlett Johansson",
-  "black widow": "Scarlett Johansson",
-  "goa phu den": "Scarlett Johansson",
   "henry cavill": "Henry Cavill",
-  "superman": "Henry Cavill",
 
   // Việt Nam
   "trấn thành": "Huỳnh Trấn Thành",
@@ -505,8 +484,6 @@ export const ACTOR_CANONICAL_MAP: Record<string, string> = {
   "đạo diễn lý hải": "Lý Hải",
   "thu trang": "Thu Trang",
   "hoa hậu hài thu trang": "Thu Trang",
-  "chị mười ba": "Thu Trang",
-  "chi muoi ba": "Thu Trang",
   "ninh dương lan ngọc": "Ninh Dương Lan Ngọc",
   "ninh duong lan ngoc": "Ninh Dương Lan Ngọc",
   "lan ngọc": "Ninh Dương Lan Ngọc",
@@ -553,8 +530,6 @@ export const ACTOR_CANONICAL_MAP: Record<string, string> = {
   "chung tử đan": "Donnie Yen",
   "chung tu dan": "Donnie Yen",
   "donnie yen": "Donnie Yen",
-  "diệp vấn": "Donnie Yen",
-  "diep van": "Donnie Yen",
   "lý liên kiệt": "Jet Li",
   "ly lien kiet": "Jet Li",
   "jet li": "Jet Li",
@@ -680,28 +655,28 @@ export const ACTOR_SLUG_MAP: Record<string, string[]> = {
   "thai-hoa": ["thái hòa", "thai hoa", "ông hoàng phòng vé thái hòa"],
   "ninh-duong-lan-ngoc": ["ninh dương lan ngọc", "ninh duong lan ngoc", "lan ngoc"],
   "kieu-minh-tuan": ["kiều minh tuấn", "kieu minh tuan"],
-  "thu-trang": ["thu trang", "hoa hậu hài thu trang", "chị mười ba", "chi muoi ba"],
-  "ly-hai": ["lý hải", "ly hai", "đạo diễn lý hải", "lat mat"],
+  "thu-trang": ["thu trang", "hoa hậu hài thu trang"],
+  "ly-hai": ["lý hải", "ly hai", "đạo diễn lý hải"],
   "hoai-linh": ["hoài linh", "hoai linh", "sáu bảnh", "sau sang"],
   "viet-huong": ["việt hương", "viet huong"],
   "tuan-tran": ["tuấn trần", "tuan tran"],
   "miu-le": ["miu lê", "miu le"],
 
   // Hollywood
-  "tom-cruise": ["tom cruise", "thomas cruise mapother", "ethan hunt"],
-  "keanu-reeves": ["keanu reeves", "keanu charles reeves", "john wick"],
+  "tom-cruise": ["tom cruise", "thomas cruise mapother"],
+  "keanu-reeves": ["keanu reeves", "keanu charles reeves"],
   "leonardo-dicaprio": ["leonardo dicaprio", "leo dicaprio"],
   "dwayne-johnson": ["dwayne johnson", "the rock"],
   "jason-statham": ["jason statham"],
   "brad-pitt": ["brad pitt", "william bradley pitt"],
   "will-smith": ["will smith"],
-  "robert-downey-jr": ["robert downey jr", "robert downey", "iron man"],
-  "chris-evans": ["chris evans", "captain america"],
-  "chris-hemsworth": ["chris hemsworth", "thor"],
-  "scarlett-johansson": ["scarlett johansson", "black widow"],
-  "ryan-reynolds": ["ryan reynolds", "deadpool"],
+  "robert-downey-jr": ["robert downey jr", "robert downey"],
+  "chris-evans": ["chris evans"],
+  "chris-hemsworth": ["chris hemsworth"],
+  "scarlett-johansson": ["scarlett johansson"],
+  "ryan-reynolds": ["ryan reynolds"],
   "cillian-murphy": ["cillian murphy"],
-  "christian-bale": ["christian bale", "batman"],
+  "christian-bale": ["christian bale"],
 
   // Hàn Quốc
   "song-joong-ki": ["song joong ki", "song joong-ki"],
@@ -710,7 +685,7 @@ export const ACTOR_SLUG_MAP: Record<string, string[]> = {
   "lee-min-ho": ["lee min ho", "lee min-ho"],
   "park-seo-joon": ["park seo joon", "park seo-jun"],
   "son-ye-jin": ["son ye jin", "son ye-jin"],
-  "kim-ji-won": ["kim ji won", "kim ji-won", "hong hae in"],
+  "kim-ji-won": ["kim ji won", "kim ji-won"],
   "song-kang": ["song kang"],
   "iu": ["iu", "lee ji eun", "lee ji-eun"],
   "cha-eun-woo": ["cha eun woo", "cha eunwoo"],
