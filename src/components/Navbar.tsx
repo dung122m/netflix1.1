@@ -27,7 +27,6 @@ import { NavMobileMenu } from "./navbar/NavMobileMenu";
 import { NavHotkeyModal } from "./navbar/NavHotkeyModal";
 import { useAuth } from "@/context/AuthContext";
 import { subscribeUserNotifications } from "@/services/notificationService";
-import { getVietnamTodayEvent } from "@/lib/vietnamCalendar";
 
 const AuthModal = dynamic(
   () => import("./AuthModal").then((mod) => mod.AuthModal),
@@ -61,18 +60,6 @@ const NavbarInner: React.FC = () => {
 
   const { user } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
-  const [historicalTodayCount, setHistoricalTodayCount] = useState(0);
-
-  useEffect(() => {
-    try {
-      const todayInfo = getVietnamTodayEvent();
-      if (todayInfo.historicalEventsToday && todayInfo.historicalEventsToday.length > 0) {
-        setHistoricalTodayCount(todayInfo.historicalEventsToday.length);
-      }
-    } catch {
-      // Ignore
-    }
-  }, []);
 
   // Subscribe unread notification count for mobile menu badges
   useEffect(() => {
@@ -204,31 +191,6 @@ const NavbarInner: React.FC = () => {
 
         {/* RIGHT ACTIONS */}
         <div className="flex items-center gap-1.5 sm:gap-2.5 flex-shrink-0 text-white">
-          {/* 📜 TEASER: NGÀY NÀY TRONG LỊCH SỬ VIỆT NAM (Hiển thị tinh tế khi có mốc lịch sử) */}
-          {historicalTodayCount > 0 && (
-            <button
-              type="button"
-              onClick={() => {
-                if (typeof window !== "undefined") {
-                  window.dispatchEvent(
-                    new CustomEvent("open-vietnam-today-modal", {
-                      detail: { tab: "history" },
-                    })
-                  );
-                }
-              }}
-              title="Ngày này trong lịch sử Việt Nam (Bấm để xem sự kiện lịch sử)"
-              className="hidden lg:inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full text-xs font-semibold bg-gradient-to-r from-red-950/60 via-amber-950/40 to-red-950/60 hover:from-red-900/70 hover:via-amber-900/50 hover:to-red-900/70 text-amber-200 hover:text-white border border-red-500/35 hover:border-amber-400/60 shadow-sm transition-all cursor-pointer active:scale-95 flex-shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
-            >
-              <span className="text-[13px] leading-none">📜</span>
-              <span className="whitespace-nowrap font-medium tracking-tight">Ngày này trong lịch sử</span>
-              {historicalTodayCount > 1 && (
-                <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] bg-red-500/30 text-red-200 border border-red-500/40">
-                  {historicalTodayCount}
-                </span>
-              )}
-            </button>
-          )}
 
           {/* CỤM 2 TABS NANA AI TRÊN NAVBAR (Chỉ hiển thị trên màn hình md+ để giữ header mobile thoáng đãng) */}
           <div className="hidden md:flex items-center gap-1.5 sm:gap-2">
