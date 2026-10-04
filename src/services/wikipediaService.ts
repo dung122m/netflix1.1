@@ -95,6 +95,69 @@ function isPersonSignal(desc = "", extract = ""): boolean {
   return personKeywords.some((kw) => text.includes(kw));
 }
 
+/**
+ * Lấy nội dung chi tiết mở rộng (Tiểu sử, Cuộc đời & Sự nghiệp) từ MediaWiki API khi đoạn tóm tắt quá ngắn
+ */
+async function fetchExtendedWikiExtract(
+  pageTitle: string,
+  lang: "vi" | "en" = "vi"
+): Promise<string | null> {
+  try {
+    const url = `https://${lang}.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&titles=${encodeURIComponent(
+      pageTitle
+    )}&format=json`;
+    const res = await fetch(url, {
+      headers: { "User-Agent": "Nanaflix/2.0 (contact@nanaflix.tv)" },
+      next: { revalidate: 86400 },
+      signal: AbortSignal.timeout(3000),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const pages = data?.query?.pages;
+    if (!pages) return null;
+    const page = Object.values(pages)[0] as { extract?: string };
+    if (!page || !page.extract || page.extract.length < 150) return null;
+    let text = page.extract as string;
+
+    const cutKeywords = [
+      "== Giải thưởng",
+      "== Tham khảo",
+      "== Liên kết ngoài",
+      "== Danh sách đĩa",
+      "== Đĩa nhạc",
+      "== Chương trình truyền hình",
+      "== Chương trình tham gia",
+      "== Ghi chú",
+      "== Vinh danh",
+      "== Xem thêm",
+      "== Sự cố",
+      "== Tranh cãi",
+      "== Awards",
+      "== References",
+      "== External links",
+      "== Filmography",
+    ];
+    let minCutIndex = -1;
+    for (const kw of cutKeywords) {
+      const idx = text.indexOf(kw);
+      if (idx !== -1 && (minCutIndex === -1 || idx < minCutIndex)) {
+        minCutIndex = idx;
+      }
+    }
+    if (minCutIndex !== -1 && minCutIndex > 300) {
+      text = text.slice(0, minCutIndex);
+    }
+    text = text
+      .replace(/==+\s*([^=]+?)\s*==+/g, "\n\n$1:\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+
+    return text.length >= 250 ? text : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchActorProfile(actorName: string): Promise<ActorProfile | null> {
   const cleanName = actorName.trim();
   if (!cleanName) return null;
@@ -118,6 +181,7 @@ export async function fetchActorProfile(actorName: string): Promise<ActorProfile
 
   try {
     for (const titleCandidate of titlesToTry) {
+      let isVi = true;
       // 1. Thử Wikipedia Tiếng Việt trước
       let res = await fetch(
         `https://vi.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(titleCandidate)}`,
@@ -130,6 +194,7 @@ export async function fetchActorProfile(actorName: string): Promise<ActorProfile
 
       // 2. Nếu tiếng Việt không có kết quả hợp lệ, thử Wikipedia Tiếng Anh
       if (!res.ok) {
+        isVi = false;
         res = await fetch(
           `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(titleCandidate)}`,
           {
@@ -147,7 +212,7 @@ export async function fetchActorProfile(actorName: string): Promise<ActorProfile
         }
 
         const desc = data.description || "";
-        const extract = data.extract || "";
+        let extract = data.extract || "";
 
         // BỎ QUA NẾU LÀ ĐỊA DANH / SÔNG / TỔ CHỨC / KHÔNG PHẢI NGƯỜI
         if (isNonPersonEntity(desc, extract) && !isPersonSignal(desc, extract)) {
@@ -156,15 +221,28 @@ export async function fetchActorProfile(actorName: string): Promise<ActorProfile
 
         // XÁC THỰC LÀ CON NGƯỜI / NGHỆ SĨ
         if (isPersonSignal(desc, extract) || (!isNonPersonEntity(desc, extract) && desc)) {
+          // Nếu đoạn tóm tắt ngắn (dưới 400 ký tự), tự động lấy thêm bài viết chi tiết đầy đủ
+          if (extract.length < 400) {
+            const extended = await fetchExtendedWikiExtract(
+              data.title || titleCandidate,
+              isVi ? "vi" : "en"
+            );
+            if (extended && extended.length > extract.length) {
+              extract = extended;
+            }
+          }
+
           const profile: ActorProfile = {
             name: cleanName,
             title: data.title || cleanName,
             description: data.description || "Nghệ sĩ / Diễn viên điện ảnh",
-            extract: data.extract || undefined,
+            extract: extract || undefined,
             thumbnail: data.thumbnail?.source || undefined,
             wikiUrl:
               data.content_urls?.desktop?.page ||
-              `https://vi.wikipedia.org/wiki/${encodeURIComponent(data.title || cleanName)}`,
+              `https://${isVi ? "vi" : "en"}.wikipedia.org/wiki/${encodeURIComponent(
+                data.title || cleanName
+              )}`,
           };
 
           wikiCache.set(cleanName, profile);
@@ -179,3 +257,4 @@ export async function fetchActorProfile(actorName: string): Promise<ActorProfile
   wikiCache.set(cleanName, null);
   return null;
 }
+
