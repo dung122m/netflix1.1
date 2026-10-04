@@ -12,6 +12,7 @@ export interface StoredAnalyticsEvent {
   episodeSlug?: string;
   episodeName?: string;
   userId?: string;
+  userName?: string;
   anonymousId: string;
   deviceType?: string;
   os?: string;
@@ -986,38 +987,37 @@ export async function getAnalyticsDashboardStats(
     count,
   }));
 
-  // 4. Live Watching sessions — built from the device_handoff result already fetched in
-  //    parallel above (supabaseHandoffResult). Profiles query runs here because it has a
-  //    real data dependency on the returned handoff user IDs.
+  // 4. Live Watching sessions & Profile Enrichment — built from device_handoff and recent activity.
+  //    Profiles query runs in one single batch for all relevant user IDs.
+  const profileMap = new Map<string, { name: string; avatar?: string; email?: string }>();
   let liveWatching: LiveWatchingSession[] = [];
   try {
     const { data: handoffs, error: handoffErr } = supabaseHandoffResult ?? { data: null, error: null };
+    const handoffRows = (!handoffErr && handoffs && Array.isArray(handoffs)) ? (handoffs as any[]) : [];
 
-    if (!handoffErr && handoffs && handoffs.length > 0) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const handoffRows = handoffs as any[];
-      const userIds = Array.from(new Set(handoffRows.map((h) => h.user_id).filter(Boolean)));
-      const profileMap = new Map<string, { name: string; avatar?: string; email?: string }>();
+    const handoffUserIds = handoffRows.map((h) => h.user_id).filter(Boolean);
+    const recentActivityUserIds = filteredEvents.slice(0, 40).map((e) => e.userId).filter(Boolean) as string[];
+    const userIds = Array.from(new Set([...handoffUserIds, ...recentActivityUserIds]));
 
-      // Profiles query is sequential here by necessity: we need handoff user IDs first
-      const adminClient = isSupabaseAdminConfigured() ? getSupabaseAdmin() : supabase;
-      if (userIds.length > 0 && adminClient) {
-        const { data: profiles } = await adminClient
-          .from("profiles")
-          .select("id, display_name, photo_url, custom_avatar, email")
-          .in("id", userIds);
+    const adminClient = isSupabaseAdminConfigured() ? getSupabaseAdmin() : supabase;
+    if (userIds.length > 0 && adminClient) {
+      const { data: profiles } = await adminClient
+        .from("profiles")
+        .select("id, display_name, photo_url, custom_avatar, email")
+        .in("id", userIds);
 
-        if (profiles) {
-          profiles.forEach((p) => {
-            profileMap.set(p.id, {
-              name: p.display_name || "Thành viên",
-              avatar: p.custom_avatar || p.photo_url || undefined,
-              email: p.email || undefined,
-            });
+      if (profiles) {
+        profiles.forEach((p) => {
+          profileMap.set(p.id, {
+            name: p.display_name || "Thành viên",
+            avatar: p.custom_avatar || p.photo_url || undefined,
+            email: p.email || undefined,
           });
-        }
+        });
       }
+    }
 
+    if (handoffRows.length > 0) {
       const fiveMinutesAgo = now - 5 * 60 * 1000;
       liveWatching = handoffRows.map((h) => {
         const prof = profileMap.get(h.user_id);
@@ -1170,8 +1170,21 @@ export async function getAnalyticsDashboardStats(
 
   const enrichedRecentActivity: StoredAnalyticsEvent[] = filteredEvents.slice(0, 40).map((ev) => {
     const fallbackLoc = (ev.userId ? profileLocationMap.get(ev.userId) : null) || profileLocationMap.get(ev.anonymousId);
+    let resolvedUserName: string | undefined = undefined;
+    if (ev.userId) {
+      const prof = profileMap.get(ev.userId);
+      if (prof) {
+        const rawName = prof.name?.trim();
+        if (rawName && rawName !== "Thành viên") {
+          resolvedUserName = rawName;
+        } else if (prof.email) {
+          resolvedUserName = prof.email;
+        }
+      }
+    }
     return {
       ...ev,
+      userName: resolvedUserName,
       country: ev.country || fallbackLoc?.country,
       countryCode: ev.countryCode || fallbackLoc?.countryCode,
       region: ev.region || fallbackLoc?.region,

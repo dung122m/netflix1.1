@@ -1237,8 +1237,11 @@ export const AdminAnalyticsTab: React.FC<AdminAnalyticsTabProps> = ({
 
                 <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-[11px] text-gray-400 flex-wrap sm:flex-nowrap sm:flex-shrink-0 pl-1 sm:pl-0">
                   {ev.userId ? (
-                    <span className="text-emerald-400 font-semibold truncate max-w-[120px] sm:max-w-none">
-                      User: {ev.userId.slice(0, 8)}...
+                    <span
+                      title={`UID: ${ev.userId}`}
+                      className="text-emerald-400 font-semibold truncate max-w-[140px] sm:max-w-none cursor-default"
+                    >
+                      {ev.userName ? `Người dùng: ${ev.userName}` : `User: ${ev.userId.slice(0, 8)}...`}
                     </span>
                   ) : (
                     <span className="text-gray-400 font-mono">

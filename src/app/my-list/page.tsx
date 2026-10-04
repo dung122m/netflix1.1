@@ -3,7 +3,7 @@
 import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import {
   Bookmark,
   Film,
@@ -58,7 +58,20 @@ import { CreateCollectionModal } from "@/components/Collections/CreateCollection
 import { showConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { toast } from "@/components/Toast";
 
+function formatCommentDate(timestamp: number | string): string {
+  const d = new Date(timestamp);
+  if (isNaN(d.getTime())) return "";
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = d.getFullYear();
+  const hours = String(d.getHours()).padStart(2, "0");
+  const minutes = String(d.getMinutes()).padStart(2, "0");
+  return `${day}/${month}/${year} • ${hours}:${minutes}`;
+}
+
 function MyListContent() {
+  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
   const initialTab: "watchlist" | "history" | "collections" | "comments" =
@@ -71,6 +84,20 @@ function MyListContent() {
       : "watchlist";
 
   const [activeTab, setActiveTab] = useState<"watchlist" | "history" | "collections" | "comments">(initialTab);
+
+  // Đồng bộ activeTab khi URL thay đổi hoặc điều hướng trực tiếp bằng query ?tab=...
+  useEffect(() => {
+    if (tabParam && ["watchlist", "history", "collections", "comments"].includes(tabParam)) {
+      setActiveTab(tabParam as "watchlist" | "history" | "collections" | "comments");
+    }
+  }, [tabParam]);
+
+  const handleTabChange = (tab: "watchlist" | "history" | "collections" | "comments") => {
+    setActiveTab(tab);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", tab);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  };
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
   const [history, setHistory] = useState<WatchHistoryItem[]>([]);
   const [collections, setCollections] = useState<MovieCollection[]>([]);
@@ -251,6 +278,8 @@ function MyListContent() {
                 ? "Danh sách của tôi"
                 : activeTab === "history"
                 ? "Lịch sử xem"
+                : activeTab === "comments"
+                ? "Bình luận & Đánh giá"
                 : "Bộ sưu tập của tôi"}
             </span>
           </div>
@@ -265,6 +294,11 @@ function MyListContent() {
                 <Clock className="h-7 w-7 sm:h-8 sm:w-8 text-netflix-red" />
                 Lịch sử xem phim
               </>
+            ) : activeTab === "comments" ? (
+              <>
+                <MessageSquare className="h-7 w-7 sm:h-8 sm:w-8 text-netflix-red" />
+                Bình luận & Đánh giá
+              </>
             ) : (
               <>
                 <FolderHeart className="h-7 w-7 sm:h-8 sm:w-8 text-netflix-red" />
@@ -277,6 +311,8 @@ function MyListContent() {
               ? "Các bộ phim bạn đã đánh dấu để xem lại bất cứ khi nào."
               : activeTab === "history"
               ? "Danh sách các bộ phim và tập phim bạn đã xem gần đây."
+              : activeTab === "comments"
+              ? "Tất cả các nhận xét và đánh giá bạn đã đăng trên Nanaflix."
               : "Các danh sách phim được tuyển chọn theo chủ đề riêng và có thể chia sẻ công khai."}
           </p>
         </div>
@@ -416,7 +452,7 @@ function MyListContent() {
       <div className="-mx-4 px-4 sm:mx-0 sm:px-0 flex items-center gap-2 mb-6 overflow-x-auto scrollbar-none pb-1 no-scrollbar">
         <button
           type="button"
-          onClick={() => setActiveTab("watchlist")}
+          onClick={() => handleTabChange("watchlist")}
           className={`flex-none shrink-0 flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
             activeTab === "watchlist"
               ? "bg-netflix-red text-white shadow-lg shadow-red-950/50"
@@ -429,7 +465,7 @@ function MyListContent() {
 
         <button
           type="button"
-          onClick={() => setActiveTab("history")}
+          onClick={() => handleTabChange("history")}
           className={`flex-none shrink-0 flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
             activeTab === "history"
               ? "bg-netflix-red text-white shadow-lg shadow-red-950/50"
@@ -442,7 +478,7 @@ function MyListContent() {
 
         <button
           type="button"
-          onClick={() => setActiveTab("collections")}
+          onClick={() => handleTabChange("collections")}
           className={`flex-none shrink-0 flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
             activeTab === "collections"
               ? "bg-netflix-red text-white shadow-lg shadow-red-950/50"
@@ -455,7 +491,7 @@ function MyListContent() {
 
         <button
           type="button"
-          onClick={() => setActiveTab("comments")}
+          onClick={() => handleTabChange("comments")}
           className={`flex-none shrink-0 flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
             activeTab === "comments"
               ? "bg-netflix-red text-white shadow-lg shadow-red-950/50"
@@ -723,9 +759,9 @@ function MyListContent() {
                               />
                             </div>
                           ) : (
-                            <div className="flex flex-col items-center justify-center h-full text-gray-500">
-                              <Film className="w-8 h-8 mb-1 opacity-50" />
-                              <span className="text-[11px]">Chưa có phim</span>
+                            <div className="flex flex-col items-center justify-center h-full text-gray-500 border border-dashed border-white/15 rounded-lg m-2 bg-zinc-900/30">
+                              <Film className="w-7 h-7 mb-1.5 opacity-40 group-hover:opacity-75 group-hover:scale-105 transition-all text-gray-400" />
+                              <span className="text-[11px] text-zinc-400 group-hover:text-zinc-200 transition-colors">Chưa có phim • Bấm để thêm</span>
                             </div>
                           )}
 
@@ -743,7 +779,7 @@ function MyListContent() {
                           </div>
                         </div>
 
-                        <h3 className="text-white font-bold text-base truncate group-hover:text-netflix-red transition-colors">
+                        <h3 className="text-white font-bold text-base sm:text-[17px] tracking-tight truncate group-hover:text-netflix-red transition-colors">
                           {col.name}
                         </h3>
                         <p className="text-xs text-gray-400 line-clamp-1 mt-1">
@@ -794,7 +830,7 @@ function MyListContent() {
                         <button
                           type="button"
                           onClick={() => handleDeleteCollection(col)}
-                          className="p-1.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition cursor-pointer"
+                          className="p-1.5 px-2 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-500/15 focus-visible:ring-1 focus-visible:ring-red-400 transition-all cursor-pointer"
                           title="Xóa bộ sưu tập"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -882,16 +918,16 @@ function MyListContent() {
               {userComments.map((c) => (
                 <div
                   key={c.id}
-                  className="p-4 rounded-2xl border border-white/10 bg-zinc-900/80 hover:bg-zinc-900 hover:border-white/25 transition space-y-3"
+                  className="p-3.5 sm:p-4 rounded-2xl border border-white/10 bg-zinc-900/80 hover:bg-zinc-900 hover:border-white/25 transition space-y-2.5 sm:space-y-3"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <Link
                         href={`/movies/${c.movieSlug}#comments`}
-                        className="text-sm sm:text-base font-bold text-white hover:text-rose-400 transition flex items-center gap-1.5 group"
+                        className="text-sm sm:text-base font-bold text-white hover:text-netflix-red hover:underline decoration-netflix-red/40 underline-offset-2 transition-colors inline-flex items-center gap-1.5 group"
                       >
-                        <span>{c.movieTitle || c.movieSlug}</span>
-                        <ExternalLink className="w-3.5 h-3.5 text-gray-500 group-hover:text-rose-400 transition" />
+                        <span className="truncate">{c.movieTitle || c.movieSlug}</span>
+                        <ExternalLink className="w-3.5 h-3.5 text-zinc-500 group-hover:text-netflix-red group-hover:translate-x-0.5 transition-all shrink-0" />
                       </Link>
                       {c.episodeName && (
                         <span className="text-[11px] text-rose-300 font-semibold bg-rose-500/10 px-2 py-0.5 rounded-md border border-rose-500/20 inline-block mt-1">
@@ -909,15 +945,18 @@ function MyListContent() {
                     )}
                   </div>
 
-                  <p className="text-xs sm:text-sm text-gray-200 leading-relaxed bg-black/50 p-3 rounded-xl border border-white/5 whitespace-pre-line">
+                  <p className="text-xs sm:text-sm text-gray-200 leading-relaxed bg-black/50 p-2.5 sm:p-3 rounded-xl border border-white/5 whitespace-pre-line">
                     {c.content}
                   </p>
 
-                  <div className="flex items-center justify-between text-xs text-gray-400 pt-1">
+                  <div className="flex items-center justify-between text-xs text-gray-400 pt-0.5">
                     <div className="flex items-center gap-3">
-                      <span className="flex items-center gap-1 text-gray-400">
+                      <span
+                        className="flex items-center gap-1 text-gray-400"
+                        title={new Date(c.createdAt).toLocaleString("vi-VN")}
+                      >
                         <Clock className="w-3.5 h-3.5 text-gray-500" />
-                        {new Date(c.createdAt).toLocaleString("vi-VN")}
+                        <span>{formatCommentDate(c.createdAt)}</span>
                       </span>
                       {c.likes > 0 && (
                         <span className="flex items-center gap-1 text-rose-400 font-bold">
