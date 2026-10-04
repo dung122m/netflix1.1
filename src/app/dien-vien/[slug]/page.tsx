@@ -152,7 +152,7 @@ export default async function ActorDetailPage({ params }: PageProps) {
   const [tmdbDetail, wikiProfile, movies] = await Promise.all([
     tmdbDetailPromise,
     wikiProfilePromise,
-    queryMoviesByActor(canonicalName, actorAliases, country, 80),
+    queryMoviesByActor(canonicalName, actorAliases, country, 150),
   ]);
 
   // 3. Xác định avatar chất lượng tốt nhất

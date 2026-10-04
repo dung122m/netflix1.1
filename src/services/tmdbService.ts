@@ -537,7 +537,7 @@ export async function getTmdbPersonMovieCredits(personId: number): Promise<TmdbM
     return cached.data;
   }
 
-  const kvKey = `tmdb:credits:${personId}`;
+  const kvKey = `tmdb:credits:v2:${personId}`;
   return await cacheService.fetchOrSet(
     kvKey,
     async () => {
@@ -568,6 +568,10 @@ export async function getTmdbPersonMovieCredits(personId: number): Promise<TmdbM
     // LỌC BỎ CÁC CREDIT KHÔNG PHẢI DIỄN XUẤT CHÍNH
     const charLower = (m.character || "").toLowerCase();
     const jobLower = (m.job || "").toLowerCase();
+    const genreIds: number[] = Array.isArray(m.genre_ids) ? m.genre_ids : [];
+    const isTv = m.media_type === "tv" || Boolean(m.first_air_date);
+    const episodeCount = Number(m.episode_count || 1);
+
     if (
       charLower.includes("uncredited") &&
       (charLower.includes("archive") || charLower.includes("thanks"))
@@ -575,6 +579,20 @@ export async function getTmdbPersonMovieCredits(personId: number): Promise<TmdbM
       continue;
     }
     if (jobLower.includes("special thanks") || jobLower.includes("thanks")) {
+      continue;
+    }
+
+    // Lọc bỏ TV Game Shows, Talk Shows, Reality Shows, Tin tức nơi nghệ sĩ chỉ tham gia với tư cách khách mời (ví dụ: Running Man, Late Show...)
+    const isRealityOrTalk =
+      genreIds.includes(10764) || genreIds.includes(10767) || genreIds.includes(10763);
+    const isGuestOrSelf =
+      charLower.startsWith("self - guest") ||
+      charLower.includes("guest") ||
+      charLower === "self" ||
+      charLower === "self - host" ||
+      !charLower;
+
+    if (isTv && (isRealityOrTalk || (isGuestOrSelf && episodeCount <= 2))) {
       continue;
     }
 
@@ -1042,7 +1060,7 @@ export async function getActorFilmographyFromTmdb(
   const cleanKey = cleanStringForMatch(actorQuery) || cleanStringForMatch(canonicalName);
   if (!cleanKey) return [];
 
-  const cacheKey = `TMDB_ACTOR_FLOW_V4:${cleanKey}`;
+  const cacheKey = `TMDB_ACTOR_FLOW_V6:${cleanKey}`;
   const now = Date.now();
   const cached = TMDB_ACTOR_MOVIES_CACHE.get(cacheKey);
 
@@ -1059,7 +1077,7 @@ export async function getActorFilmographyFromTmdb(
     }
   }
 
-  const kvKey = `tmdb:actor_flow_v4:${cleanKey}:${maxMovies}`;
+  const kvKey = `tmdb:actor_flow_v6:${cleanKey}:${maxMovies}`;
   return await cacheService.fetchOrSet(
     kvKey,
     () => executeTmdbActorFlow(actorQuery, canonicalName, aliases, cacheKey, maxMovies, concurrency, tmdbPersonId),
@@ -1114,9 +1132,9 @@ async function executeTmdbActorFlow(
       return [];
     }
 
-    // 3. Đối chiếu TMDB ID với KKPhim và NguonC (Giới hạn động theo maxMovies, tối đa 80 phim)
+    // 3. Đối chiếu TMDB ID với KKPhim và NguonC (Quét đủ số credit để tìm tối đa số phim khả dụng)
     const tMatchStart = performance.now();
-    const checkLimit = Math.min(maxMovies, 80);
+    const checkLimit = Math.min(credits.length, Math.max(maxMovies * 2, 160));
     const matchedMovies = await matchTmdbMoviesWithSources(credits, checkLimit, concurrency);
     const tMatchEnd = performance.now();
 

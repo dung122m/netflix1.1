@@ -5,8 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowUpDown, Check, Clock, Star, Flame, Calendar, Loader2 } from "lucide-react";
 
 const SORT_OPTIONS = [
-  { label: "Mới cập nhật", value: "", icon: Clock, iconColor: "text-sky-400" },
   { label: "Điểm đánh giá cao", value: "rating", icon: Star, iconColor: "text-amber-400" },
+  { label: "Mới cập nhật", value: "latest", icon: Clock, iconColor: "text-sky-400" },
   { label: "Xem nhiều nhất", value: "views", icon: Flame, iconColor: "text-orange-500" },
   { label: "Năm mới nhất", value: "year", icon: Calendar, iconColor: "text-emerald-400" },
 ];
@@ -14,7 +14,8 @@ const SORT_OPTIONS = [
 export const SortSelector: React.FC = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const currentSort = searchParams.get("sort") || "";
+  const rawSort = searchParams.get("sort") || "";
+  const currentSort = rawSort || "rating";
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -43,15 +44,16 @@ export const SortSelector: React.FC = () => {
     }
 
     const params = new URLSearchParams(searchParams.toString());
-    if (value) {
-      params.set("sort", value);
-    } else {
+    if (value === "rating" || !value) {
       params.delete("sort");
+    } else {
+      params.set("sort", value);
     }
     params.delete("page");
 
     startTransition(() => {
-      router.push(`?${params.toString()}`, { scroll: false });
+      const query = params.toString();
+      router.push(query ? `?${query}` : "?", { scroll: false });
     });
   };
 

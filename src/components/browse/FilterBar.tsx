@@ -41,8 +41,8 @@ const MOVIE_TYPES: MovieTypeOption[] = [
 ];
 
 const SORT_OPTIONS = [
-  { label: "Mới cập nhật", value: "", icon: Clock, color: "text-sky-400" },
   { label: "Đánh giá cao", value: "rating", icon: Star, color: "text-amber-400" },
+  { label: "Mới cập nhật", value: "latest", icon: Clock, color: "text-sky-400" },
   { label: "Xem nhiều nhất", value: "views", icon: Flame, color: "text-orange-500" },
   { label: "Năm mới nhất", value: "year", icon: Calendar, color: "text-emerald-400" },
 ];
@@ -119,7 +119,7 @@ export const FilterBar: React.FC = () => {
   const currentCategory = optimisticParams.category !== undefined ? optimisticParams.category : (searchParams.get("category") || "");
   const currentCountry = optimisticParams.country !== undefined ? optimisticParams.country : (searchParams.get("country") || "");
   const currentYear = optimisticParams.year !== undefined ? optimisticParams.year : (searchParams.get("year") || "");
-  const currentSort = optimisticParams.sort !== undefined ? optimisticParams.sort : (searchParams.get("sort") || "");
+  const currentSort = optimisticParams.sort !== undefined ? optimisticParams.sort : (searchParams.get("sort") || "rating");
   const currentActor = searchParams.get("actor") || "";
   const currentKeyword = searchParams.get("keyword") || "";
 
@@ -143,7 +143,13 @@ export const FilterBar: React.FC = () => {
     }
 
     const params = new URLSearchParams(searchParams.toString());
-    if (!value || params.get(key) === value) {
+    if (key === "sort") {
+      if (value === "rating" || !value) {
+        params.delete("sort");
+      } else {
+        params.set("sort", value);
+      }
+    } else if (!value || params.get(key) === value) {
       params.delete(key);
     } else {
       params.set(key, value);
@@ -225,15 +231,16 @@ export const FilterBar: React.FC = () => {
   const activeCountryName = activeCountryObj ? activeCountryObj.name : "Quốc gia";
 
   const activeSortObj = SORT_OPTIONS.find((s) => s.value === currentSort);
-  const activeSortName = activeSortObj && currentSort ? activeSortObj.label : "Sắp xếp";
+  const activeSortName = activeSortObj ? activeSortObj.label : "Đánh giá cao";
 
   // Count active filters for badge
+  const isCustomSort = Boolean(currentSort && currentSort !== "rating");
   const activeFiltersCount = [
     Boolean(currentType),
     Boolean(currentCategory),
     Boolean(currentCountry),
     Boolean(currentYear),
-    Boolean(currentSort),
+    isCustomSort,
     Boolean(currentActor || currentKeyword),
   ].filter(Boolean).length;
 
@@ -441,16 +448,16 @@ export const FilterBar: React.FC = () => {
           aria-haspopup="listbox"
           aria-label="Sắp xếp danh sách phim"
           className={`h-11 px-3.5 sm:px-4 rounded-xl sm:rounded-2xl border text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 cursor-pointer shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black flex-none ${
-            currentSort
+            isCustomSort
               ? "bg-amber-950/60 border-amber-500/80 text-amber-200 ring-1 ring-amber-500/30 shadow-amber-950/50"
               : activeDropdown === "sort"
               ? "bg-zinc-800 text-white border-zinc-600"
               : "bg-zinc-900/90 text-gray-300 border-white/10 hover:bg-zinc-800 hover:text-white hover:border-white/20"
           }`}
         >
-          <ArrowUpDown className={`w-3.5 h-3.5 flex-none ${currentSort ? "text-amber-400" : "text-gray-400"}`} />
+          <ArrowUpDown className={`w-3.5 h-3.5 flex-none ${isCustomSort ? "text-amber-400" : "text-gray-400"}`} />
           <span className="truncate max-w-[110px] sm:max-w-none">
-            {currentSort ? activeSortName : "Sắp xếp"}
+            {activeSortName}
           </span>
           {isPending && pendingGroup === "sort" ? (
             <Loader2 className="w-3.5 h-3.5 text-amber-400 animate-spin flex-none" />

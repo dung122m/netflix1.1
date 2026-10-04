@@ -1265,7 +1265,7 @@ export async function queryMoviesByActor(
   actorName: string,
   aliases: string[] = [],
   country?: string,
-  maxMovies = 80
+  maxMovies = 150
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<any[]> {
   if (!actorName && aliases.length === 0) return [];
@@ -1288,7 +1288,7 @@ export async function queryMoviesByActor(
   );
 
   const normalizedVariants = Array.from(new Set(allVariants.map(normalizeForMatch).filter(Boolean)));
-  const cacheKey = `ACTOR_QUERY_V7:${matchedSlug || normalizedVariants.sort().join("|")}`;
+  const cacheKey = `ACTOR_QUERY_V9:${matchedSlug || normalizedVariants.sort().join("|")}`;
 
   // 2. Cơ chế SWR Cache (Stale-While-Revalidate - Phản hồi 0ms tức thì)
   const cached = ACTOR_FILM_CACHE.get(cacheKey);
@@ -1306,7 +1306,7 @@ export async function queryMoviesByActor(
     }
   }
 
-  const kvKey = `actor:filmography_v7:${matchedSlug || actorName}:${maxMovies}`;
+  const kvKey = `actor:filmography_v9:${matchedSlug || actorName}:${maxMovies}`;
   return await cacheService.fetchOrSet(
     kvKey,
     () => executeActorFilmQuery(actorName, allVariants, matchedSlug, synonymRes, maxMovies, cacheKey),

@@ -266,7 +266,7 @@ async function runActorSearch(options: ActorSearchOptions) {
   if (matchedPreset) actorAliases.push(...matchedPreset.aliases);
 
   const actorCountry = actorResult.country || actorSynonyms?.country || matchedPreset?.country;
-  const actorMovies = await queryMoviesByActor(canonicalName, actorAliases, actorCountry, 80);
+  const actorMovies = await queryMoviesByActor(canonicalName, actorAliases, actorCountry, 150);
   let filteredActorMovies = actorMovies;
 
   if (category) {
@@ -305,11 +305,26 @@ async function runActorSearch(options: ActorSearchOptions) {
       return true;
     });
   }
-  if (sort === "rating") {
-    filteredActorMovies.sort((a, b) => Number(b.tmdb?.vote_average || b.imdb?.vote_average || 0) - Number(a.tmdb?.vote_average || a.imdb?.vote_average || 0));
-  } else if (sort === "views") {
+  const effectiveActorSort = sort || "rating";
+  if (effectiveActorSort === "rating") {
+    filteredActorMovies.sort((a, b) => {
+      const voteCountA = Number(a.tmdb?.vote_count || 0);
+      const voteCountB = Number(b.tmdb?.vote_count || 0);
+      const hasReliableVotesA = voteCountA >= 50 ? 1 : 0;
+      const hasReliableVotesB = voteCountB >= 50 ? 1 : 0;
+      if (hasReliableVotesA !== hasReliableVotesB) {
+        return hasReliableVotesB - hasReliableVotesA;
+      }
+      const rateA = Number(a.tmdb?.vote_average || a.imdb?.vote_average || 0);
+      const rateB = Number(b.tmdb?.vote_average || b.imdb?.vote_average || 0);
+      if (rateB !== rateA) {
+        return rateB - rateA;
+      }
+      return voteCountB - voteCountA;
+    });
+  } else if (effectiveActorSort === "views") {
     filteredActorMovies.sort((a, b) => Number(b.view || b.tmdb?.vote_count || 0) - Number(a.view || a.tmdb?.vote_count || 0));
-  } else if (sort === "year") {
+  } else if (effectiveActorSort === "year") {
     filteredActorMovies.sort((a, b) => Number(b.year || 0) - Number(a.year || 0));
   }
   const totalItems = filteredActorMovies.length;
@@ -378,12 +393,12 @@ export default async function BrowsePage({
   const keyword = params.keyword || undefined;
   const actorParam = params.actor || undefined;
   const type = params.type || undefined;
-  const sort = (params.sort as "latest" | "rating" | "views" | "year") || undefined;
+  const rawSort = (params.sort as "latest" | "rating" | "views" | "year") || undefined;
+  const sort = rawSort || "rating";
+  const effectiveSort = sort;
 
   const currentPage = params.page ? parseInt(params.page, 10) : 1;
   const PAGE_LIMIT = 24;
-
-  const effectiveSort = sort || undefined;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let movies: any[] = [];
@@ -662,10 +677,12 @@ export default async function BrowsePage({
     } else {
       title = `Kết quả tìm kiếm: "${keyword}"`;
     }
-  } else if (sort === "rating") {
+  } else if (rawSort === "rating") {
     title = "⭐ Phim Có Điểm Đánh Giá Cao Nhất";
-  } else if (sort === "views") {
+  } else if (rawSort === "views") {
     title = "🔥 Phim Có Lượt Xem & Bình Chọn Nhiều Nhất";
+  } else if (rawSort === "latest") {
+    title = "🕒 Phim Mới Cập Nhật";
   } else if (type && category) {
     const typeLabel = TYPE_TITLES[type] || type;
     const catLabel = GENRE_NAMES[category] || category;

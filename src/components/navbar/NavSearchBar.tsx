@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Search, Loader2, X, History, ArrowLeft } from "lucide-react";
 import { useDebounce } from "@/hooks/useDebounce";
 import { toOptimizedPhimimgUrl } from "@/lib/movieMedia";
@@ -31,6 +31,7 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
   onOpenMobileSearch,
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const urlKeyword = searchParams.get("keyword") || "";
   const { user } = useAuth();
@@ -239,7 +240,19 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
     router.push(`/browse?keyword=${encodeURIComponent(kw)}`);
   };
 
-  const toggleSearch = () => {
+  // Close dropdown and collapse search on route change away from /browse
+  useEffect(() => {
+    setShowDropdown(false);
+    if (pathname !== "/browse") {
+      setIsSearchExpanded(false);
+    }
+  }, [pathname, setIsSearchExpanded]);
+
+  const toggleSearch = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     if (!isSearchExpanded) {
       onOpenMobileSearch?.();
       setIsSearchExpanded(true);
@@ -280,12 +293,13 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
       inputRef.current?.focus();
     }
 
-    if (urlKeyword) {
+    // Only update URL query params if we are currently on /browse page and urlKeyword is present
+    if (pathname === "/browse" && urlKeyword) {
       const params = new URLSearchParams(searchParams.toString());
       params.delete("keyword");
       params.delete("page");
       const query = params.toString();
-      router.push(query ? `/browse?${query}` : "/browse");
+      router.replace(query ? `/browse?${query}` : "/browse", { scroll: false });
     }
   };
 
@@ -371,19 +385,25 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const currentKeyword = (inputRef.current?.value || mobileInputRef.current?.value || "").trim();
+
+    if (!currentKeyword) {
+      if (typeof window !== "undefined" && window.innerWidth < 768) {
+        mobileInputRef.current?.focus();
+      } else {
+        inputRef.current?.focus();
+      }
+      return;
+    }
+
     setShowDropdown(false);
     if (typeof window !== "undefined" && window.innerWidth < 768) {
       setIsSearchExpanded(false);
     }
-    const currentKeyword = (inputRef.current?.value || mobileInputRef.current?.value || "").trim();
 
-    if (currentKeyword) {
-      saveRecentSearch(currentKeyword);
-      trackSearchOnce(currentKeyword);
-      router.push(`/browse?keyword=${encodeURIComponent(currentKeyword)}`);
-    } else {
-      router.push("/browse");
-    }
+    saveRecentSearch(currentKeyword);
+    trackSearchOnce(currentKeyword);
+    router.push(`/browse?keyword=${encodeURIComponent(currentKeyword)}`);
   };
 
   return (
@@ -411,7 +431,8 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
             className="flex-1 flex items-center bg-zinc-900/90 border border-white/25 rounded-full px-3 py-1.5 shadow-inner min-w-0"
           >
             <button
-              type="submit"
+              type={hasSearchText ? "submit" : "button"}
+              onClick={hasSearchText ? undefined : (e) => { e.preventDefault(); mobileInputRef.current?.focus(); }}
               aria-label="Tìm kiếm"
               title="Tìm kiếm ngay"
               className="text-gray-300 hover:text-white mr-2 flex-shrink-0 cursor-pointer"

@@ -443,10 +443,11 @@ async function fetchSourceData(
     if (params.category) urlParams.set("category", params.category);
     if (params.country) urlParams.set("country", params.country);
     if (params.year) urlParams.set("year", params.year);
-    if (params.sort) {
+    const effectiveSortMode = params.sort || "rating";
+    if (effectiveSortMode) {
       urlParams.set(
         "sort_field",
-        params.sort === "views" ? "view" : params.sort === "year" ? "year" : "modified.time"
+        effectiveSortMode === "views" ? "view" : effectiveSortMode === "year" ? "year" : "modified.time"
       );
     }
 
@@ -731,7 +732,15 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
   // 3. Lọc theo Thể Loại
   if (params.category) {
     const targetCat = params.category.toLowerCase().trim();
+    const isExplicitHoatHinh = params.category === "hoat-hinh" || params.type === "hoat-hinh";
+
     allUniqueItems = allUniqueItems.filter((item) => {
+      // Khi chọn thể loại thông thường (Hành Động, Kinh Dị...) mà không chọn loại phim Hoạt Hình:
+      // Loại bỏ Anime/Hoạt hình để hiển thị đúng phim người đóng theo định hướng UX
+      if (!isExplicitHoatHinh && isMovieOfType(item, "hoat-hinh")) {
+        return false;
+      }
+
       // Schema NguonC thiếu metadata thể loại -> không giả định thiếu metadata nghĩa là không match
       if (!item.category || (Array.isArray(item.category) && item.category.length === 0)) {
         return true;
@@ -755,8 +764,9 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
     });
   }
 
-  // 5. Sắp xếp
-  if (params.sort === "rating") {
+  // 5. Sắp xếp (Mặc định: Điểm đánh giá cao - rating)
+  const effectiveSort = params.sort || "rating";
+  if (effectiveSort === "rating") {
     allUniqueItems.sort((a, b) => {
       const voteCountA = Number(a.tmdb?.vote_count || 0);
       const voteCountB = Number(b.tmdb?.vote_count || 0);
@@ -778,13 +788,13 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
       // 3. Nếu cùng rating, ưu tiên phim có nhiều lượt vote hơn
       return voteCountB - voteCountA;
     });
-  } else if (params.sort === "views") {
+  } else if (effectiveSort === "views") {
     allUniqueItems.sort((a, b) => {
       const countA = Number(a.tmdb?.vote_count || a.view || 0);
       const countB = Number(b.tmdb?.vote_count || b.view || 0);
       return countB - countA;
     });
-  } else if (params.sort === "year") {
+  } else if (effectiveSort === "year") {
     allUniqueItems.sort((a, b) => {
       const yearA = Number(a.year || 0);
       const yearB = Number(b.year || 0);
