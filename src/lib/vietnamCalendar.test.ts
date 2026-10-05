@@ -666,3 +666,61 @@ test("Banner 'Hôm nay có gì đặc biệt' — GitHub Historical Events Provi
     assert.ok(resEdge.event.title);
   });
 });
+
+test("Regression Verification — Multi-Source Banner Aggregation (Actor Birthdays + Hardcoded + GitHub History)", async (t) => {
+  await t.test("1. Actor Birthday: 05/10 Tiêu Chiến generates birthday event with rich banner description and direct link", () => {
+    const res0510 = getVietnamTodayEvent(new Date("2026-10-05T08:00:00+07:00"));
+    assert.ok(res0510.isToday, "05/10 must be recognized as today");
+    assert.ok(res0510.allEventsToday && res0510.allEventsToday.length >= 1);
+
+    const tieuChienEvent = res0510.allEventsToday.find(
+      (e) => e.actorSlug === "tieu-chien" || e.id.includes("tieu-chien")
+    );
+    assert.ok(tieuChienEvent, "Tiêu Chiến birthday event must be present on 05/10");
+    assert.ok(
+      tieuChienEvent?.bannerDescription?.includes("Hôm nay là sinh nhật của Tiêu Chiến"),
+      "Banner description must state 'Hôm nay là sinh nhật của Tiêu Chiến'"
+    );
+    assert.equal(tieuChienEvent?.relatedLink, "/dien-vien/tieu-chien");
+    assert.equal(tieuChienEvent?.category, "entertainment");
+  });
+
+  await t.test("2. Historical Event: GitHub historical events still appear (04/10 Võ Nguyên Giáp & Trận Suối Sóc)", () => {
+    const res0410 = getVietnamTodayEvent(new Date("2026-10-04T08:00:00+07:00"));
+    assert.ok(res0410.isToday);
+    assert.ok(res0410.allEventsToday);
+
+    const vngEvent = res0410.allEventsToday.find((e) => e.title.includes("Võ Nguyên Giáp"));
+    assert.ok(vngEvent, "Historical event Võ Nguyên Giáp must appear on 04/10");
+
+    const suoiSocEvent = res0410.allEventsToday.find((e) => e.title.includes("Suối Sóc"));
+    assert.ok(suoiSocEvent, "Historical event Trận Suối Sóc must appear on 04/10");
+  });
+
+  await t.test("3. Hardcoded Event: Nanaflix hardcoded special events still appear (04/10 PCCC, 20/11 Nhà giáo VN)", () => {
+    const res0410 = getVietnamTodayEvent(new Date("2026-10-04T08:00:00+07:00"));
+    const pcccEvent = res0410.allEventsToday?.find((e) => e.title.includes("Phòng Cháy"));
+    assert.ok(pcccEvent, "Hardcoded event PCCC must appear on 04/10");
+
+    const res2011 = getVietnamTodayEvent(new Date("2026-11-20T08:00:00+07:00"));
+    const nhaGiaoEvent = res2011.allEventsToday?.find((e) => e.title.includes("Nhà Giáo") || e.title.includes("Nhà giáo"));
+    assert.ok(nhaGiaoEvent, "Hardcoded event Ngày Nhà giáo VN must appear on 20/11");
+  });
+
+  await t.test("4. Combined Sources: Multi-source day (05/10) contains Actor Birthday + Hardcoded events without overwriting", () => {
+    const res0510 = getVietnamTodayEvent(new Date("2026-10-05T08:00:00+07:00"));
+    assert.ok(res0510.allEventsToday && res0510.allEventsToday.length >= 2);
+
+    const hasActor = res0510.allEventsToday.some((e) => e.actorSlug === "tieu-chien");
+    const hasHardcoded = res0510.allEventsToday.some((e) => e.id.includes("nha-giao-the-gioi"));
+    assert.ok(hasActor, "Actor birthday source must be present");
+    assert.ok(hasHardcoded, "Hardcoded event source must be present");
+  });
+
+  await t.test("5. Navigation: Tab 'Lịch sử' is not in NAV_LINKS", async () => {
+    const fs = await import("fs");
+    const navbarCode = fs.readFileSync("src/components/Navbar.tsx", "utf-8");
+    assert.ok(!navbarCode.includes('href: "/history"'), "Navbar must not contain /history link");
+    assert.ok(!navbarCode.includes('name: "Lịch sử"'), "Navbar must not contain 'Lịch sử' link");
+  });
+});

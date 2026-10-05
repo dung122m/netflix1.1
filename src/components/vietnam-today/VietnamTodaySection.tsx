@@ -3,12 +3,12 @@
 import React, { useMemo, useState } from "react";
 import { VietnamTodayCard, getEventTabBadge, getCleanEventTitle } from "./VietnamTodayCard";
 import { VietnamFlagIcon } from "./VietnamFlagIcon";
-import { getVietnamTodayHistoryBanner, VietnamTodayInfo } from "@/lib/vietnamCalendar";
+import { getVietnamTodayEvent, VietnamTodayInfo } from "@/lib/vietnamCalendar";
 
 export function VietnamTodaySection() {
-  // Compute event based on current Vietnam date strictly from GitHub Historical Events
+  // Aggregate today's events from GitHub History, Hardcoded Events, and Actor Birthdays
   const info: VietnamTodayInfo = useMemo(() => {
-    return getVietnamTodayHistoryBanner();
+    return getVietnamTodayEvent();
   }, []);
 
   const events = useMemo(() => {
