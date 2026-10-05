@@ -836,7 +836,7 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
                 {featuredMovie?.slug && (
                   <Link
                     href={`/movies/${featuredMovie.slug}`}
-                    className="inline-flex items-center gap-2.5 rounded-2xl bg-gradient-to-r from-netflix-red to-red-600 hover:from-red-600 hover:to-rose-600 text-white px-7 sm:px-9 py-3.5 sm:py-4 text-xs sm:text-sm md:text-base font-black transition-all duration-300 hover:scale-105 active:scale-95 shadow-[0_10px_30px_-5px_rgba(229,9,20,0.7)] hover:shadow-[0_15px_35px_-5px_rgba(229,9,20,0.9)] cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105"
+                    className="inline-flex items-center gap-2.5 rounded-2xl bg-netflix-red hover:brightness-110 text-white px-7 sm:px-9 py-3.5 sm:py-4 text-xs sm:text-sm md:text-base font-black transition-all duration-300 hover:scale-105 active:scale-95 shadow-[0_10px_30px_-5px_var(--accent-glow,rgba(229,9,20,0.7))] hover:shadow-[0_15px_35px_-5px_var(--accent-glow,rgba(229,9,20,0.9))] cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105"
                   >
                     <Play size={19} fill="white" className="ml-0.5" />
                     <span>{isTrailerOnly ? "Xem Trailer" : "Xem Ngay"}</span>
@@ -888,7 +888,7 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
                               ease: "linear",
                             }
                       }
-                      className="h-full rounded-full bg-netflix-red shadow-[0_0_10px_rgba(229,9,20,0.8)]"
+                      className="h-full rounded-full bg-netflix-red shadow-[0_0_10px_var(--accent-glow,rgba(229,9,20,0.8))]"
                     />
                   </div>
                 </div>
@@ -935,7 +935,7 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
                 <span
                   className={`h-1 sm:h-1.5 rounded-full transition-all duration-300 block ${
                     i === index
-                      ? "w-6 sm:w-8 bg-netflix-red shadow-[0_0_10px_rgba(229,9,20,0.8)]"
+                      ? "w-6 sm:w-8 bg-netflix-red shadow-[0_0_10px_var(--accent-glow,rgba(229,9,20,0.8))]"
                       : "w-1.5 sm:w-2 bg-white/30 hover:bg-white/70"
                   }`}
                 />

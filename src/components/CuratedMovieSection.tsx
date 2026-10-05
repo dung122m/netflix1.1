@@ -156,7 +156,7 @@ export const CuratedMovieSection: React.FC<CuratedMovieSectionProps> = ({
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-6">
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-red-600/20 to-purple-600/20 text-rose-300 border border-red-500/30">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-netflix-red/20 text-white border border-netflix-red/40">
               <Sparkles className="w-3.5 h-3.5 text-amber-300" />
               {currentTabConfig.tag}
             </span>
@@ -196,7 +196,7 @@ export const CuratedMovieSection: React.FC<CuratedMovieSectionProps> = ({
               onClick={() => handleSelectTab(tab.id)}
               className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-2xl text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer select-none shrink-0 border ${
                 isActive
-                  ? "bg-gradient-to-r from-red-600 to-red-700 text-white border-red-500 shadow-lg shadow-red-950/50 scale-[1.02]"
+                  ? "bg-netflix-red text-white border-netflix-red shadow-lg shadow-[var(--accent-glow,rgba(229,9,20,0.4))] scale-[1.02]"
                   : "bg-zinc-900/90 hover:bg-zinc-800 text-gray-300 hover:text-white border-white/10 hover:border-white/20"
               }`}
             >

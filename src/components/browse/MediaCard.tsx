@@ -960,7 +960,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
                     setShowTrailerModal(true);
                   }}
                   title="Xem Trailer chính thức"
-                  className="h-8 px-2.5 rounded-full border border-red-500/50 bg-red-600/20 text-red-300 hover:bg-netflix-red hover:text-white flex items-center gap-1 transition-all hover:scale-105 active:scale-95 cursor-pointer text-[11px] font-bold shadow-sm"
+                  className="h-8 px-2.5 rounded-full border border-netflix-red/40 bg-netflix-red/20 text-white hover:bg-netflix-red hover:text-white flex items-center gap-1 transition-all hover:scale-105 active:scale-95 cursor-pointer text-[11px] font-bold shadow-sm"
                 >
                   <Film className="h-3 w-3 text-current" />
                   <span>Trailer</span>
@@ -1020,7 +1020,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
               </>
             )}
             {lang && (
-              <span className="bg-red-600/20 text-red-400 border border-red-500/30 px-1.5 py-0.2 rounded text-[9px] font-bold">
+              <span className="bg-netflix-red/20 text-white border border-netflix-red/30 px-1.5 py-0.2 rounded text-[9px] font-bold">
                 {lang}
               </span>
             )}

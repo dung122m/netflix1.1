@@ -27,9 +27,9 @@ export function BrowseAiSearchBanner({ keyword, hasContentMatches }: Props) {
   };
 
   return (
-    <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-red-950/40 via-zinc-900/90 to-zinc-900/90 border border-red-500/20 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-lg">
+    <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-zinc-900/90 via-zinc-900/90 to-zinc-900/90 border border-netflix-red/30 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-lg">
       <div className="flex items-center gap-3 w-full sm:w-auto">
-        <div className="w-10 h-10 rounded-xl bg-red-600/20 border border-red-500/30 flex items-center justify-center text-red-400 flex-none shadow">
+        <div className="w-10 h-10 rounded-xl bg-netflix-red/20 border border-netflix-red/40 flex items-center justify-center text-white flex-none shadow">
           <Sparkles className="w-5 h-5 text-amber-300" />
         </div>
         <div>
@@ -49,7 +49,7 @@ export function BrowseAiSearchBanner({ keyword, hasContentMatches }: Props) {
       <button
         type="button"
         onClick={handleOpenConcierge}
-        className="w-full sm:w-auto px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 flex-none shadow-md shadow-red-950 cursor-pointer hover:scale-105 active:scale-95"
+        className="w-full sm:w-auto px-4 py-2 rounded-xl bg-netflix-red hover:brightness-110 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 flex-none shadow-md shadow-[var(--accent-glow,rgba(229,9,20,0.3))] cursor-pointer hover:scale-105 active:scale-95"
       >
         <MessageSquare className="w-3.5 h-3.5" />
         <span>Hỏi Nana AI về &quot;{keyword.slice(0, 18)}{keyword.length > 18 ? "..." : ""}&quot;</span>

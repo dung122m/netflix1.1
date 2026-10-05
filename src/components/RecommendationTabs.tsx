@@ -169,7 +169,7 @@ export function RecommendationTabs({
             }}
             className={`flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl sm:rounded-2xl text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${
               activeTab === "best"
-                ? "bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 text-white border-netflix-red shadow-lg shadow-red-950/60 scale-102"
+                ? "bg-netflix-red text-white border-netflix-red shadow-lg shadow-[var(--accent-glow,rgba(229,9,20,0.4))] scale-102"
                 : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
             }`}
           >

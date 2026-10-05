@@ -132,7 +132,7 @@ function NavigationProgressBarInner() {
         style={{ opacity: loading ? 1 : 0 }}
       >
         <div
-          className="h-[3px] sm:h-[3.5px] w-full bg-gradient-to-r from-red-600 via-rose-500 to-amber-400 shadow-[0_0_15px_rgba(229,9,20,0.9),0_0_8px_rgba(251,191,36,0.8)] transition-all duration-200 ease-out will-change-[width]"
+          className="h-[3px] sm:h-[3.5px] w-full bg-netflix-red shadow-[0_0_15px_var(--accent-glow,rgba(229,9,20,0.9))] transition-all duration-200 ease-out will-change-[width]"
           style={{ width: `${progress}%` }}
         />
       </div>
@@ -145,7 +145,7 @@ function NavigationProgressBarInner() {
           transform: loading ? "scale(1) translateY(0)" : "scale(0.8) translateY(-6px)",
         }}
       >
-        <div className="w-3.5 h-3.5 rounded-full border-2 border-red-500/30 border-t-red-500 animate-spin" />
+        <div className="w-3.5 h-3.5 rounded-full border-2 border-netflix-red/30 border-t-netflix-red animate-spin" />
         <span className="text-[10px] font-black text-gray-200 tracking-wider hidden xs:inline">Đang tải...</span>
       </div>
     </>

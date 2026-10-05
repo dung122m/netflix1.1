@@ -149,8 +149,8 @@ export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({
         onClick={(e) => e.stopPropagation()}
         className="relative w-full max-w-md bg-zinc-950 border border-white/15 rounded-3xl p-5 sm:p-6 md:p-8 shadow-[0_25px_70px_rgba(0,0,0,0.95)] overflow-hidden"
       >
-        {/* Glowing Red Ambient */}
-        <div className="absolute -top-20 -right-20 w-48 h-48 bg-red-600/20 rounded-full blur-3xl pointer-events-none" />
+        {/* Glowing Ambient */}
+        <div className="absolute -top-20 -right-20 w-48 h-48 bg-netflix-red/20 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-20 -left-20 w-48 h-48 bg-amber-600/15 rounded-full blur-3xl pointer-events-none" />
 
         {/* Close Button */}
@@ -165,7 +165,7 @@ export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({
 
         {/* App Icon & Header */}
         <div className="flex items-center gap-3.5 mb-5">
-          <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl overflow-hidden shadow-xl border border-red-500/30 shrink-0 bg-gradient-to-br from-red-600 to-zinc-900 flex items-center justify-center p-2">
+          <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl overflow-hidden shadow-xl border border-netflix-red/30 shrink-0 bg-gradient-to-br from-netflix-red to-zinc-900 flex items-center justify-center p-2">
             <Image
               src="/icon-192.png"
               alt="Nanaflix App"
@@ -173,13 +173,10 @@ export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({
               height={64}
               className="w-full h-full object-contain rounded-xl drop-shadow"
             />
-            <span className="absolute inset-0 flex items-center justify-center font-black text-2xl text-white select-none -z-0">
-              N
-            </span>
           </div>
 
           <div>
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-red-600/20 text-red-400 border border-red-500/30 mb-1">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-netflix-red/20 text-white border border-netflix-red/30 mb-1">
               <Sparkles className="w-3 h-3" />
               Ứng Dụng Nanaflix (PWA)
             </div>
@@ -215,12 +212,12 @@ export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({
           <div className="space-y-4">
             <div className="bg-zinc-900/70 border border-white/10 rounded-2xl p-4 space-y-3 text-xs">
               <div className="font-semibold text-zinc-200 flex items-center gap-2 text-sm">
-                <Smartphone className="w-4 h-4 text-red-500" />
+                <Smartphone className="w-4 h-4 text-netflix-red" />
                 Hướng dẫn cài trên iPhone / iPad (Safari):
               </div>
 
               <div className="flex items-start gap-3">
-                <div className="w-6 h-6 rounded-full bg-red-600/20 text-red-400 font-bold flex items-center justify-center shrink-0 border border-red-500/30">
+                <div className="w-6 h-6 rounded-full bg-netflix-red/20 text-white font-bold flex items-center justify-center shrink-0 border border-netflix-red/30">
                   1
                 </div>
                 <div className="text-zinc-300">
@@ -233,7 +230,7 @@ export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({
               </div>
 
               <div className="flex items-start gap-3">
-                <div className="w-6 h-6 rounded-full bg-red-600/20 text-red-400 font-bold flex items-center justify-center shrink-0 border border-red-500/30">
+                <div className="w-6 h-6 rounded-full bg-netflix-red/20 text-white font-bold flex items-center justify-center shrink-0 border border-netflix-red/30">
                   2
                 </div>
                 <div className="text-zinc-300">
@@ -246,7 +243,7 @@ export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({
               </div>
 
               <div className="flex items-start gap-3">
-                <div className="w-6 h-6 rounded-full bg-red-600/20 text-red-400 font-bold flex items-center justify-center shrink-0 border border-red-500/30">
+                <div className="w-6 h-6 rounded-full bg-netflix-red/20 text-white font-bold flex items-center justify-center shrink-0 border border-netflix-red/30">
                   3
                 </div>
                 <div className="text-zinc-300">
@@ -270,7 +267,7 @@ export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({
             <button
               type="button"
               onClick={handleInstallClick}
-              className="w-full py-3.5 rounded-2xl font-bold text-base bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white shadow-xl shadow-red-900/40 flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer"
+              className="w-full py-3.5 rounded-2xl font-bold text-base bg-netflix-red hover:brightness-110 text-white shadow-xl shadow-[var(--accent-glow,rgba(229,9,20,0.4))] flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer"
             >
               <Download className="w-5 h-5" />
               <span>Cài Đặt App Ngay</span>
@@ -283,12 +280,12 @@ export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({
                   /* Android Mobile Chrome / Mobile Browser Guide */
                   <>
                     <div className="font-semibold text-zinc-200 flex items-center gap-2 text-sm">
-                      <Smartphone className="w-4 h-4 text-red-500" />
+                      <Smartphone className="w-4 h-4 text-netflix-red" />
                       <span>Hướng dẫn thêm vào màn hình trên Android:</span>
                     </div>
 
                     <div className="bg-black/50 p-2.5 rounded-xl border border-white/5 flex items-start gap-2.5">
-                      <div className="w-6 h-6 rounded-lg bg-red-600/20 text-red-400 flex items-center justify-center font-bold text-xs shrink-0 border border-red-500/30 mt-0.5">
+                      <div className="w-6 h-6 rounded-lg bg-netflix-red/20 text-white flex items-center justify-center font-bold text-xs shrink-0 border border-netflix-red/30 mt-0.5">
                         1
                       </div>
                       <p className="text-zinc-300 leading-relaxed">
@@ -297,7 +294,7 @@ export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({
                     </div>
 
                     <div className="bg-black/50 p-2.5 rounded-xl border border-white/5 flex items-start gap-2.5">
-                      <div className="w-6 h-6 rounded-lg bg-red-600/20 text-red-400 flex items-center justify-center font-bold text-xs shrink-0 border border-red-500/30 mt-0.5">
+                      <div className="w-6 h-6 rounded-lg bg-netflix-red/20 text-white flex items-center justify-center font-bold text-xs shrink-0 border border-netflix-red/30 mt-0.5">
                         2
                       </div>
                       <p className="text-zinc-300 leading-relaxed">
@@ -309,12 +306,12 @@ export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({
                   /* Desktop Browser Guide */
                   <>
                     <div className="font-semibold text-zinc-200 flex items-center gap-2 text-sm">
-                      <Monitor className="w-4 h-4 text-red-500" />
+                      <Monitor className="w-4 h-4 text-netflix-red" />
                       <span>Hướng dẫn cài trên Chrome / Edge Máy tính:</span>
                     </div>
 
                     <div className="bg-black/50 p-2.5 rounded-xl border border-white/5 flex items-start gap-2.5">
-                      <div className="w-6 h-6 rounded-lg bg-red-600/20 text-red-400 flex items-center justify-center font-bold text-xs shrink-0 border border-red-500/30 mt-0.5">
+                      <div className="w-6 h-6 rounded-lg bg-netflix-red/20 text-white flex items-center justify-center font-bold text-xs shrink-0 border border-netflix-red/30 mt-0.5">
                         1
                       </div>
                       <p className="text-zinc-300 leading-relaxed">
@@ -323,7 +320,7 @@ export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({
                     </div>
 
                     <div className="bg-black/50 p-2.5 rounded-xl border border-white/5 flex items-start gap-2.5">
-                      <div className="w-6 h-6 rounded-lg bg-red-600/20 text-red-400 flex items-center justify-center font-bold text-xs shrink-0 border border-red-500/30 mt-0.5">
+                      <div className="w-6 h-6 rounded-lg bg-netflix-red/20 text-white flex items-center justify-center font-bold text-xs shrink-0 border border-netflix-red/30 mt-0.5">
                         2
                       </div>
                       <p className="text-zinc-300 leading-relaxed">

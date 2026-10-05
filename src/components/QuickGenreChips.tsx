@@ -578,7 +578,7 @@ const QuickGenreChipsInner: React.FC = () => {
     <div className="w-full mb-6 rounded-2xl sm:rounded-3xl border border-white/15 bg-zinc-950/90 p-3 sm:p-4 backdrop-blur-xl shadow-2xl space-y-3 relative overflow-hidden">
       {/* THANH TIẾN TRÌNH NẠP KHI CHUYỂN BỘ LỌC */}
       {isPending && (
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-600 via-amber-400 to-red-600 animate-pulse z-30 shadow-[0_0_10px_rgba(229,9,20,0.8)]" />
+        <div className="absolute top-0 left-0 right-0 h-1 bg-netflix-red animate-pulse z-30 shadow-[0_0_10px_var(--accent-glow,rgba(229,9,20,0.8))]" />
       )}
 
       {/* THANH ĐIỀU HƯỚNG BỘ LỌC ĐANG CHỌN (NẾU CÓ) */}

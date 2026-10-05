@@ -285,7 +285,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
                     : "py-2 sm:py-2.5 px-1 text-xs"
                 } ${
                   isActive
-                    ? "bg-gradient-to-br from-red-600 via-netflix-red to-rose-700 text-white font-black shadow-[0_4px_18px_rgba(229,9,20,0.45)] border border-red-400/60 scale-[1.01] z-10"
+                    ? "bg-netflix-red text-white font-black shadow-[0_4px_18px_var(--accent-glow,rgba(229,9,20,0.45))] border border-white/40 scale-[1.01] z-10"
                     : isWatched
                     ? "bg-zinc-950/60 hover:bg-zinc-900 text-zinc-400 hover:text-zinc-200 border border-white/5 hover:border-white/15"
                     : "bg-white/[0.06] hover:bg-white/[0.12] text-zinc-200 hover:text-white border border-white/10 hover:border-white/25 hover:scale-[1.02] active:scale-[0.98] shadow-sm"

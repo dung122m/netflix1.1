@@ -478,7 +478,7 @@ export const FilterBar: React.FC = () => {
               window.dispatchEvent(new CustomEvent("open-ai-roulette"));
             }
           }}
-          className="h-11 px-3.5 sm:px-4 rounded-xl sm:rounded-2xl border border-rose-500/30 bg-gradient-to-r from-red-600/20 via-rose-600/20 to-amber-600/20 hover:from-red-600/30 hover:to-rose-600/30 text-rose-200 hover:text-white text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-1.5 cursor-pointer shadow-sm flex-none outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+          className="h-11 px-3.5 sm:px-4 rounded-xl sm:rounded-2xl border border-[var(--accent-border,rgba(229,9,20,0.5))] bg-netflix-red/15 hover:bg-netflix-red/30 text-white text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-1.5 cursor-pointer shadow-sm flex-none outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black"
           title="Bốc quẻ phim ngẫu nhiên với AI"
         >
           <Dices className="w-4 h-4 text-amber-300" />
@@ -590,7 +590,7 @@ export const FilterBar: React.FC = () => {
                     window.dispatchEvent(new CustomEvent("open-ai-roulette"));
                   }
                 }}
-                className="w-full mb-2.5 px-3 py-2 rounded-xl text-xs font-bold transition bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white flex items-center justify-center gap-2 shadow-md shadow-red-950/40 cursor-pointer border border-rose-400/30"
+                className="w-full mb-2.5 px-3 py-2 rounded-xl text-xs font-bold transition bg-netflix-red hover:brightness-110 text-white flex items-center justify-center gap-2 shadow-md shadow-[var(--accent-glow,rgba(229,9,20,0.3))] cursor-pointer border border-white/20"
               >
                 <Dices className="w-4 h-4 text-amber-300 animate-spin" style={{ animationDuration: "4s" }} />
                 <span>Bốc quẻ phim ngẫu nhiên</span>
