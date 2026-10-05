@@ -1,15 +1,15 @@
 import React from "react";
-import { NetflixLogo } from "@/components/NetflixLogo";
+import { VietnamFlag } from "@/components/NetflixLogo";
 
 export default function Loading() {
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center pointer-events-none select-none">
       <div className="relative flex flex-col items-center gap-5">
-        {/* Pulsing Glow Logo Container with Vietnam Flag */}
+        {/* Pulsing Glow Container with Rectangular 3:2 Vietnam Flag */}
         <div className="relative">
-          <div className="absolute -inset-4 bg-red-600/30 rounded-full blur-2xl animate-pulse" />
-          <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-zinc-950 border border-white/10 flex items-center justify-center shadow-2xl p-2.5">
-            <NetflixLogo className="w-full h-full drop-shadow-[0_0_15px_rgba(234,29,36,0.8)] animate-pulse" />
+          <div className="absolute -inset-4 bg-red-600/35 rounded-2xl blur-2xl animate-pulse" />
+          <div className="relative w-24 h-16 sm:w-28 sm:h-[74px] rounded-2xl bg-zinc-950/90 border border-white/10 flex items-center justify-center shadow-2xl p-2">
+            <VietnamFlag className="w-full h-full drop-shadow-[0_0_15px_rgba(234,29,36,0.85)] animate-pulse" />
           </div>
         </div>
 

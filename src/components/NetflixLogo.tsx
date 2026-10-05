@@ -177,4 +177,54 @@ export const NetflixLogo: React.FC<React.SVGProps<SVGSVGElement>> = ({
   );
 };
 
+/**
+ * 🇻🇳 Lá cờ Việt Nam chuẩn Quốc kỳ (Tỷ lệ hình chữ nhật 3:2)
+ */
+export const VietnamFlag: React.FC<React.SVGProps<SVGSVGElement>> = ({
+  className = "w-18 h-12",
+  ...props
+}) => {
+  return (
+    <svg
+      viewBox="0 0 90 60"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={`overflow-hidden ${className}`}
+      aria-label="Cờ Việt Nam"
+      {...props}
+    >
+      <defs>
+        <linearGradient id="vn-rect-flag-red" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#EA1D24" />
+          <stop offset="100%" stopColor="#DA251D" />
+        </linearGradient>
+        <linearGradient id="vn-rect-flag-star" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#FFF200" />
+          <stop offset="100%" stopColor="#FFDE00" />
+        </linearGradient>
+      </defs>
+
+      {/* Nền cờ đỏ chữ nhật tỷ lệ 3:2 */}
+      <rect width="90" height="60" rx="4" fill="url(#vn-rect-flag-red)" />
+
+      {/* Ngôi sao vàng 5 cánh tỷ lệ chuẩn */}
+      <polygon
+        points="
+          45,10
+          49.49,23.82
+          64.02,23.82
+          52.26,32.36
+          56.76,46.18
+          45,37.64
+          33.24,46.18
+          37.74,32.36
+          25.98,23.82
+          40.51,23.82
+        "
+        fill="url(#vn-rect-flag-star)"
+      />
+    </svg>
+  );
+};
+
 export default NanaflixBrandLogo;
