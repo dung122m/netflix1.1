@@ -226,7 +226,7 @@ export default function AboutPage() {
                 <Flame size={16} />
                 <span>Câu Chuyện Phía Sau Màn Ảnh</span>
               </div>
-              <span className="text-xs text-gray-500 font-mono">Nanaflix Project • Est. 2024</span>
+              <span className="text-xs text-gray-500 font-mono">Nanaflix Project • Est. 2026</span>
             </div>
 
             {/* Note Content Grid */}

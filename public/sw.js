@@ -1,11 +1,13 @@
-const CACHE_NAME = 'nanaflix-shell-v1';
+const CACHE_NAME = 'nanaflix-shell-v2';
 const PRECACHE_URLS = [
   '/',
   '/browse',
   '/manifest.json',
+  '/icon.svg',
   '/favicon.ico',
   '/icon-192.png',
   '/icon-512.png',
+  '/apple-touch-icon.png',
 ];
 
 self.addEventListener('install', (event) => {

@@ -26,6 +26,7 @@ import {
   Scale,
   Users,
 } from "lucide-react";
+import { NanaflixBrandLogo } from "@/components/NetflixLogo";
 
 export const Footer: React.FC = () => {
   return (
@@ -351,9 +352,9 @@ export const Footer: React.FC = () => {
         {/* 4. BRANDING & CREATOR CARD (DŨNG TRẦN) */}
         {/* ============================================================ */}
         <div className="border-t border-white/[0.08] pt-6 sm:pt-8 flex flex-col md:flex-row items-center justify-between gap-4 sm:gap-6">
-          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 text-center sm:text-left">
-            <Link href="/" className="text-netflix-red font-black text-xl sm:text-2xl tracking-tighter hover:opacity-90 transition">
-              NANAFLIX
+          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-center sm:text-left">
+            <Link href="/" className="hover:opacity-90 transition inline-flex items-center">
+              <NanaflixBrandLogo />
             </Link>
             <span className="text-[11px] sm:text-xs text-gray-500 sm:border-l sm:border-white/15 sm:pl-3">
               Không gian điện ảnh cá nhân hóa • Không quảng cáo rác

@@ -592,6 +592,23 @@
   }
 }
 
+@keyframes cinematic-shimmer {
+  0% {
+    transform: translateX(-150%) skewX(-20deg);
+    opacity: 0;
+  }
+  25% {
+    opacity: 0.9;
+  }
+  60% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateX(250%) skewX(-20deg);
+    opacity: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .movie-card-navigating {
     transform: none !important;
@@ -600,6 +617,9 @@
   }
   .page-cinema-container {
     animation: none !important;
+  }
+  .group\/brand [class*="cinematic-shimmer"] {
+    display: none !important;
   }
 }
 

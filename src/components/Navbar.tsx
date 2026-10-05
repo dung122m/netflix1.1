@@ -17,11 +17,12 @@ import {
   X,
   Users,
 } from "lucide-react";
-import { NetflixLogo } from "@/components/NetflixLogo";
+import { NetflixLogo, NanaflixBrandLogo } from "@/components/NetflixLogo";
 import { HolidayNavbarAtmosphere } from "./navbar/HolidayNavbarAtmosphere";
 import { NavSearchBar } from "./navbar/NavSearchBar";
 import { NavNotifications } from "./navbar/NavNotifications";
 import { NavUserMenu } from "./navbar/NavUserMenu";
+import { AccentStudio } from "./navbar/AccentStudio";
 import { NavMobileMenu } from "./navbar/NavMobileMenu";
 import { NavHotkeyModal } from "./navbar/NavHotkeyModal";
 import { useAuth } from "@/context/AuthContext";
@@ -145,13 +146,10 @@ const NavbarInner: React.FC = () => {
             prefetch={false}
             onMouseEnter={() => router.prefetch("/")}
             onFocus={() => router.prefetch("/")}
-            className="flex items-center gap-1.5 sm:gap-2 group flex-shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded-lg"
+            className="flex items-center group flex-shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded-lg"
             title="Nanaflix - Trang Chủ"
           >
-            <NetflixLogo className="w-5 sm:w-6 h-auto transition-transform group-hover:scale-105" />
-            <span className="text-netflix-red font-black tracking-tighter text-lg sm:text-xl">
-              NANAFLIX
-            </span>
+            <NanaflixBrandLogo />
           </Link>
 
           {/* DESKTOP NAV LINKS */}
@@ -237,6 +235,9 @@ const NavbarInner: React.FC = () => {
             setIsSearchExpanded={setIsSearchExpanded}
             onOpenMobileSearch={handleOpenMobileSearch}
           />
+
+          {/* ACCENT STUDIO COMPACT (ĐỔI MÀU GIAO DIỆN) */}
+          <AccentStudio />
 
           {/* ISOLATED NOTIFICATION CENTER */}
           <NavNotifications />

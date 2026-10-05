@@ -1,20 +1,37 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="100%" height="100%">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
-    <radialGradient
-      id="netflix-shadow"
-      r="75%"
-      gradientTransform="matrix(.38 0 .5785 1 .02 0)"
-    >
-      <stop offset="60%" stop-opacity=".4" stop-color="#000"></stop>
-      <stop offset="90%" stop-opacity=".08" stop-color="#000"></stop>
-      <stop offset="100%" stop-opacity="0" stop-color="#000"></stop>
-    </radialGradient>
+    <linearGradient id="vn-red-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#EA1D24"/>
+      <stop offset="100%" stop-color="#DA251D"/>
+    </linearGradient>
+    <linearGradient id="vn-star-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFF566"/>
+      <stop offset="50%" stop-color="#FFDD00"/>
+      <stop offset="100%" stop-color="#E5A900"/>
+    </linearGradient>
+    <filter id="star-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.3"/>
+    </filter>
   </defs>
-  <path d="M225 0v1000c60-8 138-14 198-17V0H225" fill="#b1060e"></path>
-  <path d="M579 0v983c71 3 131 9 198 17V0H579" fill="#b1060e"></path>
-  <path
-    d="M225 0v200l198 600V557l151 426c76 3 136 9 203 17V800L579 200v240L423 0H225"
-    fill="url(#netflix-shadow)"
-  ></path>
-  <path d="M225 0l349 983c76 3 136 9 203 17L423 0H225" fill="#e50914"></path>
+
+  <!-- Background: Rounded App Squircle -->
+  <rect x="16" y="16" width="480" height="480" rx="108" fill="url(#vn-red-grad)"/>
+
+  <!-- Golden 5-point star of Vietnam (Tâm: 256, 256) -->
+  <polygon
+    points="
+      256, 106
+      290.1, 211
+      401, 211
+      311.2, 276.3
+      345.5, 381.8
+      256, 316.7
+      166.5, 381.8
+      200.8, 276.3
+      111, 211
+      221.9, 211
+    "
+    fill="url(#vn-star-grad)"
+    filter="url(#star-shadow)"
+  />
 </svg>

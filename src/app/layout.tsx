@@ -46,10 +46,12 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   icons: {
     icon: [
-      { url: "/icon.svg", type: "image/svg+xml" },
-      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icon.svg?v=vn-flag", type: "image/svg+xml" },
+      { url: "/icon-192.png?v=vn-flag", type: "image/png", sizes: "192x192" },
+      { url: "/favicon.ico?v=vn-flag", sizes: "any" },
     ],
-    apple: "/apple-touch-icon.png",
+    shortcut: "/icon.svg?v=vn-flag",
+    apple: "/apple-touch-icon.png?v=vn-flag",
   },
   appleWebApp: {
     capable: true,
@@ -118,7 +120,11 @@ export default function RootLayout({
         <meta name="application-name" content="Nanaflix" />
         <meta name="msapplication-TileColor" content="#000000" />
         <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
-        <meta name="theme-color" content="#000000" />
+        {/* Favicon & App Icons */}
+        <link rel="icon" type="image/svg+xml" href="/icon.svg?v=vn-flag" />
+        <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png?v=vn-flag" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=vn-flag" />
+        <link rel="shortcut icon" href="/favicon.ico?v=vn-flag" />
 
         {/* Viewport với safe-area cho iPhone notch & home indicator */}
         <meta
@@ -150,6 +156,24 @@ export default function RootLayout({
                   document.documentElement.classList.add('dark');
                   document.documentElement.classList.remove('light');
                   document.documentElement.setAttribute('data-mode', 'dark');
+
+                  var savedTheme = localStorage.getItem('nanaflix_theme');
+                  var themeMap = {
+                    'netflix-red': { oklch: 'oklch(0.55 0.23 25)', color: '#E50914', rgb: '229, 9, 20', glow: 'rgba(229, 9, 20, 0.40)', border: 'rgba(229, 9, 20, 0.55)' },
+                    'cyber-cyan': { oklch: 'oklch(0.68 0.18 220)', color: '#00b4d8', rgb: '0, 180, 216', glow: 'rgba(0, 180, 216, 0.30)', border: 'rgba(0, 180, 216, 0.50)' },
+                    'amethyst-purple': { oklch: 'oklch(0.58 0.22 300)', color: '#a855f7', rgb: '168, 85, 247', glow: 'rgba(168, 85, 247, 0.45)', border: 'rgba(168, 85, 247, 0.55)' },
+                    'emerald-green': { oklch: 'oklch(0.62 0.20 150)', color: '#10b981', rgb: '16, 185, 129', glow: 'rgba(16, 185, 129, 0.38)', border: 'rgba(16, 185, 129, 0.50)' },
+                    'sunset-gold': { oklch: 'oklch(0.68 0.21 48)', color: '#f59e0b', rgb: '245, 158, 11', glow: 'rgba(245, 158, 11, 0.30)', border: 'rgba(245, 158, 11, 0.50)' },
+                    'hot-pink': { oklch: 'oklch(0.62 0.24 350)', color: '#f43f5e', rgb: '244, 63, 94', glow: 'rgba(244, 63, 94, 0.42)', border: 'rgba(244, 63, 94, 0.55)' }
+                  };
+                  var themeObj = (savedTheme && themeMap[savedTheme]) ? themeMap[savedTheme] : themeMap['netflix-red'];
+                  var themeKey = (savedTheme && themeMap[savedTheme]) ? savedTheme : 'netflix-red';
+                  document.documentElement.setAttribute('data-accent', themeKey);
+                  document.documentElement.style.setProperty('--netflix-red', themeObj.oklch);
+                  document.documentElement.style.setProperty('--accent-color', themeObj.color);
+                  document.documentElement.style.setProperty('--accent-rgb', themeObj.rgb);
+                  document.documentElement.style.setProperty('--accent-glow', themeObj.glow);
+                  document.documentElement.style.setProperty('--accent-border', themeObj.border);
                 } catch(e) {}
 
                 // Gỡ bỏ các thuộc tính do Chrome Extension (Baidu, Translators, Skins) tiêm vào DOM trước khi React hydrate

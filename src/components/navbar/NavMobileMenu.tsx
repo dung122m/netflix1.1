@@ -13,6 +13,7 @@ import {
   History,
   ChevronRight,
   Info,
+  Palette,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { isUserAdmin } from "@/lib/adminConfig";
@@ -21,6 +22,12 @@ import { UserProfile } from "@/types/user";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { getVietnamTodayEvent } from "@/lib/vietnamCalendar";
 import { useBodyScrollLock } from "@/lib/scrollLock";
+import {
+  ACCENT_PRESETS,
+  AccentPreset,
+  getActiveAccent,
+  applyAccent,
+} from "@/lib/accentStudio";
 
 interface NavLinkItem {
   name: string;
@@ -64,6 +71,22 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
     });
     return () => unsub();
   }, [user?.uid]);
+
+  const [currentAccent, setCurrentAccent] = useState<AccentPreset>(ACCENT_PRESETS[0]);
+
+  useEffect(() => {
+    setCurrentAccent(getActiveAccent());
+    const handleAccentChange = (e: Event) => {
+      const customEvent = e as CustomEvent<AccentPreset>;
+      if (customEvent.detail) {
+        setCurrentAccent(customEvent.detail);
+      }
+    };
+    window.addEventListener("nanaflix-accent-changed", handleAccentChange);
+    return () => {
+      window.removeEventListener("nanaflix-accent-changed", handleAccentChange);
+    };
+  }, []);
 
   const hasHistoricalToday = React.useMemo(() => {
     try {
@@ -335,6 +358,60 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
               </Link>
             );
           })}
+        </div>
+
+        {/* ACCENT STUDIO MOBILE SELECTOR */}
+        <div className="border-t border-white/10 pt-2 mt-1 p-2.5 rounded-2xl bg-white/[0.03] border border-white/5 space-y-2">
+          <div className="flex items-center justify-between text-xs">
+            <div className="flex items-center gap-1.5 font-bold text-gray-200">
+              <Palette size={14} className="text-pink-400" />
+              <span>Accent Studio</span>
+            </div>
+            <span className="text-[11px] text-gray-400 font-medium">
+              {currentAccent.icon} {currentAccent.badgeText}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-6 gap-1.5 pt-0.5">
+            {ACCENT_PRESETS.map((preset) => {
+              const isSelected = currentAccent.id === preset.id;
+              return (
+                <button
+                  key={preset.id}
+                  type="button"
+                  aria-label={preset.name}
+                  onClick={() => {
+                    const updated = applyAccent(preset.id);
+                    setCurrentAccent(updated);
+                  }}
+                  className={`flex flex-col items-center justify-center p-1.5 rounded-xl border transition-all cursor-pointer ${
+                    isSelected
+                      ? "bg-white/15 scale-105"
+                      : "bg-black/40 hover:bg-white/10 border-white/10"
+                  }`}
+                  style={
+                    isSelected
+                      ? {
+                          borderColor: preset.border,
+                          boxShadow: `0 0 10px ${preset.glow}`,
+                        }
+                      : {}
+                  }
+                >
+                  <span
+                    className="w-4 h-4 rounded-full shadow-sm"
+                    style={{
+                      backgroundColor: preset.color,
+                      boxShadow: isSelected ? `0 0 8px ${preset.glow}` : "none",
+                    }}
+                  />
+                  <span className="text-[9px] font-bold text-gray-300 mt-1 truncate max-w-full">
+                    {preset.badgeText.slice(0, 4)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* ABOUT NANAFLIX */}
