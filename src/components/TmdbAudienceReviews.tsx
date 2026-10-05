@@ -18,10 +18,11 @@ import type { TmdbReview } from "@/services/tmdbService";
 interface TmdbAudienceReviewsProps {
   tmdbId?: string | number | null;
   tmdbType?: string | null;
+  hideOuterCard?: boolean;
 }
 
 export const TmdbAudienceReviews: React.FC<TmdbAudienceReviewsProps> = React.memo(
-  function TmdbAudienceReviews({ tmdbId, tmdbType }) {
+  function TmdbAudienceReviews({ tmdbId, tmdbType, hideOuterCard = false }) {
     const [reviews, setReviews] = useState<TmdbReview[]>([]);
     const [loading, setLoading] = useState(Boolean(tmdbId));
     const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
@@ -140,7 +141,14 @@ export const TmdbAudienceReviews: React.FC<TmdbAudienceReviewsProps> = React.mem
     };
 
     return (
-      <section id="tmdb-reviews" className="mt-8 sm:mt-12 bg-zinc-950/80 rounded-2xl sm:rounded-3xl border border-white/5 p-4 sm:p-6 md:p-8 backdrop-blur-md shadow-2xl">
+      <section
+        id="tmdb-reviews"
+        className={
+          hideOuterCard
+            ? "space-y-6"
+            : "mt-8 sm:mt-12 bg-zinc-950/80 rounded-2xl sm:rounded-3xl border border-white/5 p-4 sm:p-6 md:p-8 backdrop-blur-md shadow-2xl"
+        }
+      >
         {/* Header Bar đồng bộ 100% với khối Bình Luận Cộng Đồng */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 pb-5 sm:pb-6 border-b border-white/10">
           <div>

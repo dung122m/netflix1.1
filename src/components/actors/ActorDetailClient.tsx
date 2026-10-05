@@ -39,6 +39,83 @@ function getPaginationPages(currentPage: number, totalPages: number): (number | 
   return [1, "...", currentPage - 1, currentPage, currentPage + 1, "...", totalPages];
 }
 
+interface BioSection {
+  heading?: string;
+  paragraphs: string[];
+}
+
+function parseBioContent(rawText?: string): { leadParagraph?: string; sections: BioSection[] } {
+  if (!rawText || !rawText.trim()) {
+    return { sections: [] };
+  }
+
+  const clean = rawText.replace(/\r\n/g, "\n").trim();
+  const rawBlocks = clean.split(/\n\s*\n+/).map((b) => b.trim()).filter(Boolean);
+
+  if (rawBlocks.length === 0) {
+    return { sections: [] };
+  }
+
+  const headingRegex =
+    /^(tiểu sử|cuộc đời và sự nghiệp|cuộc đời|sự nghiệp|sự nghiệp âm nhạc|sự nghiệp điện ảnh|sự nghiệp diễn xuất|đời tư|hoạt động nghệ thuật|những năm gần đây|thời thơ ấu|thành tựu|giải thưởng|phong cách nghệ thuật|đánh giá):?$/i;
+
+  let leadParagraph: string | undefined = undefined;
+  const sections: BioSection[] = [];
+  let currentSection: BioSection = { paragraphs: [] };
+
+  rawBlocks.forEach((block, index) => {
+    const lines = block.split("\n").map((l) => l.trim()).filter(Boolean);
+
+    // Kiểm tra dòng đầu tiên có phải tiêu đề mục không
+    if (lines.length > 0 && headingRegex.test(lines[0].replace(/:$/, ""))) {
+      if (currentSection.paragraphs.length > 0 || currentSection.heading) {
+        sections.push(currentSection);
+      }
+      const heading = lines[0].replace(/:$/, "");
+      const remaining = lines.slice(1);
+      currentSection = {
+        heading,
+        paragraphs: remaining.length > 0 ? [remaining.join("\n")] : [],
+      };
+      return;
+    }
+
+    // Kiểm tra block đơn dòng kết thúc bằng dấu hai chấm
+    if (lines.length === 1 && (headingRegex.test(lines[0]) || (lines[0].endsWith(":") && lines[0].length < 45))) {
+      if (currentSection.paragraphs.length > 0 || currentSection.heading) {
+        sections.push(currentSection);
+      }
+      currentSection = {
+        heading: lines[0].replace(/:$/, ""),
+        paragraphs: [],
+      };
+      return;
+    }
+
+    if (index === 0 && !leadParagraph) {
+      leadParagraph = block;
+    } else {
+      currentSection.paragraphs.push(block);
+    }
+  });
+
+  if (currentSection.paragraphs.length > 0 || currentSection.heading) {
+    sections.push(currentSection);
+  }
+
+  return { leadParagraph, sections };
+}
+
+function getSectionIcon(heading?: string) {
+  if (!heading) return Sparkles;
+  const lower = heading.toLowerCase();
+  if (lower.includes("âm nhạc") || lower.includes("ca hát")) return Sparkles;
+  if (lower.includes("điện ảnh") || lower.includes("diễn xuất") || lower.includes("phim")) return Clapperboard;
+  if (lower.includes("thành tựu") || lower.includes("giải thưởng")) return Sparkles;
+  if (lower.includes("đời tư") || lower.includes("thời thơ ấu") || lower.includes("tiểu sử")) return BookOpen;
+  return BookOpen;
+}
+
 export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
   movies,
   bioText,
@@ -104,49 +181,140 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
     }
   };
 
-  // Giới hạn hiển thị ban đầu của Bio
-  const isBioLong = bioText && bioText.length > 280;
-  const shortBio = isBioLong && !isBioExpanded ? `${bioText.slice(0, 280)}...` : bioText;
+  // Parse structured bio
+  const { leadParagraph, sections } = useMemo(() => parseBioContent(bioText), [bioText]);
+  const estimatedReadTime = useMemo(() => {
+    if (!bioText) return 1;
+    return Math.max(1, Math.ceil(bioText.split(/\s+/).length / 160));
+  }, [bioText]);
+
+  const isBioLong = Boolean(bioText && bioText.length > 380);
 
   return (
     <div className="space-y-12">
       {/* ============================================================ */}
-      {/* 1. SECTION TIỂU SỬ / BIOGRAPHY */}
+      {/* 1. SECTION TIỂU SỬ & SỰ NGHIỆP ĐIỆN ẢNH (EDITORIAL CARD) */}
       {/* ============================================================ */}
       {bioText && (
-        <section className="p-5 sm:p-7 rounded-2xl sm:rounded-3xl bg-zinc-950/70 border border-white/[0.08] backdrop-blur-xl space-y-4 shadow-xl">
-          <div className="flex items-center justify-between border-b border-white/[0.08] pb-3.5">
-            <h2 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
-              <BookOpen className="w-4 h-4 text-amber-400" />
-              <span>Tiểu Sử & Sự Nghiệp Điện Ảnh</span>
-            </h2>
+        <section className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-b from-zinc-900/90 via-zinc-950/95 to-zinc-950 border border-white/[0.1] shadow-2xl p-5 sm:p-7 md:p-8 backdrop-blur-2xl">
+          {/* Ambient Glow Accents */}
+          <div className="absolute top-0 right-0 w-72 sm:w-96 h-72 sm:h-96 bg-red-600/[0.04] rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 left-1/4 w-64 h-64 bg-amber-500/[0.03] rounded-full blur-3xl pointer-events-none" />
 
-            {wikiUrl && (
-              <a
-                href={wikiUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition font-medium"
-              >
-                <span>Wikipedia</span>
-                <ExternalLink className="w-3 h-3" />
-              </a>
+          {/* HEADER BAR */}
+          <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.08] pb-4 mb-5 sm:mb-6">
+            <div className="flex items-center gap-2.5 sm:gap-3">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-amber-500/20 to-red-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-inner flex-shrink-0">
+                <BookOpen className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+              </div>
+              <div>
+                <h2 className="text-base sm:text-lg font-black text-white tracking-tight flex items-center gap-2">
+                  <span>Tiểu Sử & Dấu Ấn Nghệ Thuật</span>
+                </h2>
+                <p className="text-[11px] sm:text-xs text-zinc-400 font-normal">
+                  Hành trình cống hiến và các cột mốc sự nghiệp của {actorName}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-[11px] text-zinc-400 font-medium">
+                ~{estimatedReadTime} phút đọc
+              </span>
+
+              {wikiUrl && (
+                <a
+                  href={wikiUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.1] text-xs text-zinc-300 hover:text-white transition font-medium cursor-pointer"
+                >
+                  <span>Wikipedia</span>
+                  <ExternalLink className="w-3 h-3 text-zinc-400" />
+                </a>
+              )}
+            </div>
+          </div>
+
+          {/* MAIN CONTENT WRAPPER (WITH COLLAPSIBLE OVERLAY) */}
+          <div
+            className={`relative transition-all duration-500 ease-in-out ${
+              !isBioExpanded && isBioLong
+                ? "max-h-[260px] sm:max-h-[300px] overflow-hidden"
+                : "max-h-none"
+            }`}
+          >
+            <div className="space-y-5 sm:space-y-6 text-zinc-300 text-xs sm:text-sm leading-relaxed font-normal">
+              {/* LEAD INTRO PARAGRAPH */}
+              {leadParagraph && (
+                <div className="relative p-4 sm:p-5 rounded-xl sm:rounded-2xl bg-gradient-to-r from-red-950/25 via-zinc-900/40 to-transparent border-l-4 border-red-600/80 border-y border-r border-white/[0.06] shadow-sm">
+                  <p className="text-zinc-200 text-sm sm:text-[14.5px] leading-relaxed font-normal">
+                    {leadParagraph}
+                  </p>
+                </div>
+              )}
+
+              {/* STRUCTURED SUB-SECTIONS */}
+              {sections.map((sec, sIdx) => {
+                const SecIcon = getSectionIcon(sec.heading);
+                return (
+                  <div key={sIdx} className="space-y-3 pt-1">
+                    {sec.heading && (
+                      <div className="flex items-center gap-2 pt-2 border-t border-white/[0.05]">
+                        <span className="w-5 h-5 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center flex-shrink-0">
+                          <SecIcon className="w-3 h-3" />
+                        </span>
+                        <h3 className="text-xs sm:text-sm uppercase tracking-wider font-bold text-amber-300/90">
+                          {sec.heading}
+                        </h3>
+                      </div>
+                    )}
+
+                    <div className="space-y-3.5 pl-0 sm:pl-7">
+                      {sec.paragraphs.map((p, pIdx) => (
+                        <p key={pIdx} className="text-zinc-300/95 leading-relaxed">
+                          {p}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* COLLAPSED BOTTOM GRADIENT FADE */}
+            {!isBioExpanded && isBioLong && (
+              <div className="absolute bottom-0 inset-x-0 h-32 bg-gradient-to-t from-zinc-950 via-zinc-950/90 to-transparent flex items-end justify-center pb-1 z-10 pointer-events-none">
+                <button
+                  type="button"
+                  onClick={() => setIsBioExpanded(true)}
+                  className="pointer-events-auto inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-zinc-800/95 hover:bg-zinc-700/95 text-white text-xs font-bold border border-white/20 backdrop-blur-md shadow-xl hover:scale-[1.03] active:scale-95 transition-all duration-200 cursor-pointer"
+                >
+                  <span>Xem toàn bộ tiểu sử (~{estimatedReadTime} phút đọc)</span>
+                  <ChevronDown className="w-3.5 h-3.5 text-amber-400" />
+                </button>
+              </div>
             )}
           </div>
 
-          <div className="text-xs sm:text-sm text-gray-300 leading-relaxed font-normal">
-            <p className="whitespace-pre-line">{shortBio}</p>
-          </div>
-
-          {isBioLong && (
-            <button
-              type="button"
-              onClick={() => setIsBioExpanded(!isBioExpanded)}
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-netflix-red hover:text-red-400 transition cursor-pointer pt-1"
-            >
-              <span>{isBioExpanded ? "Thu gọn tiểu sử" : "Xem thêm tiểu sử đầy đủ"}</span>
-              {isBioExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-            </button>
+          {/* EXPANDED BOTTOM COLLAPSE BUTTON */}
+          {isBioExpanded && isBioLong && (
+            <div className="pt-5 border-t border-white/[0.06] flex justify-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsBioExpanded(false);
+                  const el = document.getElementById("actor-filmography-heading");
+                  if (el) {
+                    el.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }
+                }}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white text-xs font-semibold border border-white/10 transition cursor-pointer"
+              >
+                <span>Thu gọn tiểu sử</span>
+                <ChevronUp className="w-3.5 h-3.5 text-red-400" />
+              </button>
+            </div>
           )}
         </section>
       )}

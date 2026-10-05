@@ -11,7 +11,6 @@ import { TmdbTopTrending } from "@/components/TmdbTopTrending";
 import { CommunityTopTrending } from "@/components/CommunityTopTrending";
 import { ForYouPersonalizedRow } from "@/components/ForYouPersonalizedRow";
 import { VietnamTodaySection } from "@/components/vietnam-today/VietnamTodaySection";
-import { TonightNanaflixWidget } from "@/components/tonight/TonightNanaflixWidget";
 
 const HeroFeatured = dynamic(() =>
   import("@/components/browse/HeroFeatured").then(
@@ -302,37 +301,31 @@ export default async function HomePage({
     <div className="page-cinema-container min-h-screen pb-20">
       <Navbar />
 
+      {/* 1. HERO SPOTLIGHT BANNER */}
       <HeroFeatured movies={heroMovies} />
 
-      {/* 🇻🇳 HÔM NAY TẠI VIỆT NAM (FEATURE SPOTLIGHT BANNER) */}
+      {/* 2. TIẾP TỤC XEM: Hiển thị ngay sau Hero khi có lịch sử */}
+      <ContinueWatchingRow />
+
+      {/* 3. 🇻🇳 HÔM NAY TẠI VIỆT NAM (FEATURE SPOTLIGHT BANNER) */}
       <div className="px-4 md:px-8 mt-2 sm:mt-4 relative z-20">
         <VietnamTodaySection />
       </div>
 
-      {/* TIẾP TỤC XEM: Hiển thị ngay trên trang chủ khi có lịch sử */}
-      <ContinueWatchingRow />
-
-      {/* 🌙 ĐÊM NAY NANAFLIX (DYNAMIC DAY/TIME MOOD SPOTLIGHT WIDGET) */}
-      <div className="px-4 md:px-8 mt-3 sm:mt-5">
-        <TonightNanaflixWidget />
-      </div>
-
-      {/* BỘ LỌC PHIM CHI TIẾT */}
-      <div className="px-4 md:px-8 mt-4 sm:mt-8">
-        <FilterBarClient />
-      </div>
-
       <div className="px-4 md:px-8 relative z-10 pt-2 sm:pt-4">
-        {/* HÀNG PHIM DÀNH RIÊNG CHO BẠN (AI PERSONALIZED RECOMMENDATIONS) */}
+        {/* 4. HÀNG PHIM DÀNH RIÊNG CHO BẠN (AI PERSONALIZED RECOMMENDATIONS) */}
         <ForYouPersonalizedRow fallbackMovies={movies} />
 
-        {/* BẢNG XẾP HẠNG PHIM THỊNH HÀNH TRONG TUẦN (TMDB TRENDING MATCHED CATALOG) */}
+        {/* 5. BẢNG XẾP HẠNG PHIM THỊNH HÀNH & TOP 10 CỘNG ĐỒNG */}
         <TmdbTopTrending />
-
-        {/* BẢNG XẾP HẠNG TOP 10 TRENDING DỰA TRÊN LƯỢT XEM THỰC TẾ CỦA CỘNG ĐỒNG */}
         <CommunityTopTrending />
 
-        {/* TAB TUYỂN CHỌN PHIM ĐA NĂNG TRÊN TRANG CHỦ */}
+        {/* BỘ LỌC PHIM CHI TIẾT (Đưa về sát khu vực khám phá danh mục) */}
+        <div className="mb-4 mt-6 sm:mt-8">
+          <FilterBarClient />
+        </div>
+
+        {/* 6. TAB TUYỂN CHỌN PHIM ĐA NĂNG TRÊN TRANG CHỦ */}
         <CuratedMovieSection
           initialMovies={movies}
           initialTotalItems={totalItems}

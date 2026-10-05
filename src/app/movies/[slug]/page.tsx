@@ -34,10 +34,9 @@ import { AddToCollectionButton } from "@/components/Collections/AddToCollectionB
 import { ActiveEpisodeBadge, EpisodeCountBadge } from "@/components/ActiveEpisodeBadge";
 import { findEpisodeMatch } from "@/lib/formatEpisode";
 
-import { MovieCommentsSection } from "@/components/MovieReviews/MovieCommentsSection";
+import { MovieReviewsContainer } from "@/components/MovieReviews/MovieReviewsContainer";
 import { TrailerModal } from "@/components/TrailerModal";
 import { MovieRecommendationsClient } from "@/components/MovieRecommendationsClient";
-import { TmdbAudienceReviews } from "@/components/TmdbAudienceReviews";
 
 
 export async function generateMetadata({
@@ -286,6 +285,7 @@ export default async function MovieDetail({
     movie.status === "trailer" ||
     serverData.length === 0 ||
     movie.episode_current === "Trailer";
+  const isSingleEpisode = serverData.length <= 1;
 
   // Định dạng thời lượng phim chuẩn xác chống lỗi lặp 'phút phút'
   const cleanDuration = (() => {
@@ -477,9 +477,9 @@ export default async function MovieDetail({
           />
         </div>
 
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-8 mt-4 sm:mt-6 md:mt-10 grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 lg:gap-6">
-          {/* KHỐI 1: THÔNG TIN PHIM CHÍNH & THANH CÔNG CỤ (Mobile: Order 1, Desktop: Hàng 1 Cột trái 8 phần) */}
-          <div className="lg:col-span-8 order-1 rounded-2xl sm:rounded-3xl border border-white/15 bg-gradient-to-b from-zinc-900/80 via-zinc-950/85 to-black/90 p-4 sm:p-6 md:p-8 backdrop-blur-xl shadow-2xl space-y-4 sm:space-y-5">
+        <div className={`max-w-7xl mx-auto px-3 sm:px-4 md:px-8 mt-4 sm:mt-6 md:mt-10 ${isSingleEpisode ? "space-y-4 sm:space-y-5" : "grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 lg:gap-6"}`}>
+          {/* KHỐI 1: THÔNG TIN PHIM CHÍNH & THANH CÔNG CỤ (Phim lẻ: full width, Phim bộ: Cột trái 8 phần) */}
+          <div className={`${isSingleEpisode ? "w-full" : "lg:col-span-8 order-1"} rounded-2xl sm:rounded-3xl border border-white/15 bg-gradient-to-b from-zinc-900/80 via-zinc-950/85 to-black/90 p-4 sm:p-6 md:p-8 backdrop-blur-xl shadow-2xl space-y-4 sm:space-y-5`}>
             {/* TIÊU ĐỀ PHIM & TÊN GỐC TÁCH BIỆT RÕ RÀNG */}
             <div className="space-y-1.5">
               <div className="flex flex-wrap items-center gap-2.5">
@@ -573,6 +573,16 @@ export default async function MovieDetail({
               )}
             </div>
 
+            {/* NẾU LÀ PHIM LẺ CÓ NHIỀU SERVER NGUỒN PHÁT -> HIỂN THỊ COMPACT SOURCE SELECTOR */}
+            {isSingleEpisode && serverSummaries.length > 1 && (
+              <div className="pt-2">
+                <ServerSelector
+                  servers={serverSummaries}
+                  initialServerIndex={currentServerIndex}
+                />
+              </div>
+            )}
+
             {/* THANH NÚT TÁC VỤ (ACTION TOOLBAR) - TỐI ƯU GỌN GÀNG CHO MOBILE 390PX VÀ DESKTOP */}
             <div className="mt-4 sm:mt-5 pt-3.5 border-t border-white/10">
               <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none pb-0.5 -mx-1 px-1">
@@ -660,32 +670,34 @@ export default async function MovieDetail({
             )}
           </div>
 
-          {/* KHỐI 2: DANH SÁCH TẬP PHIM & NGUỒN PHÁT (Mobile: Order 2 hiển thị ngay sau Info chính, Desktop: Cột phải 4 phần kéo dài 2 hàng) */}
-          <div className="lg:col-span-4 order-2 lg:row-span-2">
-            <div className="rounded-2xl sm:rounded-3xl border border-white/15 bg-gradient-to-b from-zinc-900/80 via-zinc-950/85 to-black/90 p-4 sm:p-5 md:p-6 h-fit overflow-visible max-h-none lg:max-h-[680px] lg:overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-zinc-700 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-zinc-500 lg:pr-2 shadow-2xl backdrop-blur-xl">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-bold flex items-center gap-2.5 text-white">
-                  <Film className="w-5 h-5 text-red-500 shrink-0" />
-                  <span>Danh sách tập</span>
-                </h3>
-                <EpisodeCountBadge initialCount={serverData.length} isTrailerOnly={isTrailerOnly} />
+          {/* KHỐI 2: DANH SÁCH TẬP PHIM & NGUỒN PHÁT (CHỈ HIỂN THỊ VỚI PHIM BỘ / CÓ TỪ 2 TẬP TRỞ LÊN) */}
+          {!isSingleEpisode && (
+            <div className="lg:col-span-4 order-2 lg:row-span-2">
+              <div className="rounded-2xl sm:rounded-3xl border border-white/15 bg-gradient-to-b from-zinc-900/80 via-zinc-950/85 to-black/90 p-4 sm:p-5 md:p-6 h-fit overflow-visible max-h-none lg:max-h-[680px] lg:overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-zinc-700 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-zinc-500 lg:pr-2 shadow-2xl backdrop-blur-xl">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-bold flex items-center gap-2.5 text-white">
+                    <Film className="w-5 h-5 text-red-500 shrink-0" />
+                    <span>Danh sách tập</span>
+                  </h3>
+                  <EpisodeCountBadge initialCount={serverData.length} isTrailerOnly={isTrailerOnly} />
+                </div>
+
+                {/* THANH CHUYỂN SERVER NẾU PHIM CÓ NHIỀU NGUỒN PHÁT (0MS SWITCHING) */}
+                <ServerSelector
+                  servers={serverSummaries}
+                  initialServerIndex={currentServerIndex}
+                />
+
+                <EpisodeList
+                  movieSlug={movie.slug}
+                  activeEpisodeSlug={activeEpisode?.slug}
+                />
               </div>
-
-              {/* THANH CHUYỂN SERVER NẾU PHIM CÓ NHIỀU NGUỒN PHÁT (0MS SWITCHING) */}
-              <ServerSelector
-                servers={serverSummaries}
-                initialServerIndex={currentServerIndex}
-              />
-
-              <EpisodeList
-                movieSlug={movie.slug}
-                activeEpisodeSlug={activeEpisode?.slug}
-              />
             </div>
-          </div>
+          )}
 
-          {/* KHỐI 3: TÓM TẮT CỐT TRUYỆN, DIỄN VIÊN & THÔNG TIN CHI TIẾT (Mobile: Order 3 sau EpisodeList, Desktop: Hàng 2 Cột trái 8 phần) */}
-          <div className="lg:col-span-8 order-3 rounded-2xl sm:rounded-3xl border border-white/15 bg-gradient-to-b from-zinc-900/80 via-zinc-950/85 to-black/90 p-4 sm:p-6 md:p-8 backdrop-blur-xl shadow-2xl space-y-4 sm:space-y-5">
+          {/* KHỐI 3: TÓM TẮT CỐT TRUYỆN, DIỄN VIÊN & THÔNG TIN CHI TIẾT (Phim lẻ: full width, Phim bộ: Cột trái 8 phần) */}
+          <div className={`${isSingleEpisode ? "w-full" : "lg:col-span-8 order-3"} rounded-2xl sm:rounded-3xl border border-white/15 bg-gradient-to-b from-zinc-900/80 via-zinc-950/85 to-black/90 p-4 sm:p-6 md:p-8 backdrop-blur-xl shadow-2xl space-y-4 sm:space-y-5`}>
             <MovieSynopsis
               synopsis={description}
               originName={movie.origin_name}
@@ -800,25 +812,8 @@ export default async function MovieDetail({
         </div>
       </WatchController>
 
-      {/* ĐÁNH GIÁ & BÌNH LUẬN CỘNG ĐỒNG */}
-      <div className="max-w-7xl mx-auto px-4 md:px-8 mt-10">
-        <MovieCommentsSection
-          movieSlug={movie.slug}
-          movieTitle={title}
-          currentEpisodeSlug={activeEpisode?.slug}
-          currentEpisodeName={activeEpisode?.name}
-        />
-      </div>
-
-      {/* ĐÁNH GIÁ TỪ KHÁN GIẢ TMDB (1 DÒNG CAROUSEL NGANG) */}
-      <div className="max-w-7xl mx-auto px-4 md:px-8 mt-10">
-        <TmdbAudienceReviews
-          tmdbId={movie.tmdb?.id}
-          tmdbType={movie.tmdb?.type || movie.type}
-        />
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 md:px-8 mt-10">
+      {/* 🌟 PHIM TƯƠNG TỰ & ĐỀ XUẤT (NÂNG LÊN TRƯỚC KHỐI REVIEW THEO FLOW NGƯỜI DÙNG) */}
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-8 mt-8 sm:mt-10">
         <MovieRecommendationsClient
           currentMovieSlug={movie.slug}
           currentMovieTitle={title}
@@ -829,6 +824,18 @@ export default async function MovieDetail({
           year={movie.year}
           type={movie.type}
           contentText={movie.content || movie.description || ""}
+        />
+      </div>
+
+      {/* 💬 KHU VỰC ĐÁNH GIÁ & BÌNH LUẬN (GỘP CHUNG 1 KHUNG TAB DUY NHẤT: NANAFLIX + TMDB) */}
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-8 mt-8 sm:mt-10">
+        <MovieReviewsContainer
+          movieSlug={movie.slug}
+          movieTitle={title}
+          currentEpisodeSlug={activeEpisode?.slug}
+          currentEpisodeName={activeEpisode?.name}
+          tmdbId={movie.tmdb?.id}
+          tmdbType={movie.tmdb?.type || movie.type}
         />
       </div>
 

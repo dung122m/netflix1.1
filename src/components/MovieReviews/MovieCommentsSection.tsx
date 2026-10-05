@@ -38,6 +38,7 @@ interface MovieCommentsSectionProps {
   movieTitle: string;
   currentEpisodeSlug?: string;
   currentEpisodeName?: string;
+  hideOuterCard?: boolean;
 }
 
 const QUICK_TAGS = [
@@ -54,6 +55,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
   movieTitle,
   currentEpisodeSlug,
   currentEpisodeName,
+  hideOuterCard = false,
 }) => {
   const { user } = useAuth();
   const searchParams = useSearchParams();
@@ -442,7 +444,14 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
   };
 
   return (
-    <section id="comments" className="mt-8 sm:mt-12 bg-zinc-950/80 rounded-2xl sm:rounded-3xl border border-white/5 p-4 sm:p-6 md:p-8 backdrop-blur-md shadow-2xl">
+    <section
+      id="comments"
+      className={
+        hideOuterCard
+          ? "space-y-6"
+          : "mt-8 sm:mt-12 bg-zinc-950/80 rounded-2xl sm:rounded-3xl border border-white/5 p-4 sm:p-6 md:p-8 backdrop-blur-md shadow-2xl"
+      }
+    >
       {/* Title & Section Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 pb-5 sm:pb-6 border-b border-white/10">
         <div>
