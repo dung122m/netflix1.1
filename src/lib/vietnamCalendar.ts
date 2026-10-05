@@ -315,11 +315,17 @@ export function getActorBirthdaysForDate(month: number, day: number, currentYear
         const birthYear = parseInt(parts[0], 10);
         const age = !isNaN(birthYear) && currentYear > birthYear ? currentYear - birthYear : undefined;
 
+        // Tinh chỉnh tóm tắt tiểu sử súc tích, loại bỏ ngoặc rườm rà
+        const rawFirstParagraph = actor.bio ? actor.bio.split("\n")[0] : "";
+        const cleanBioSummary = rawFirstParagraph
+          ? rawFirstParagraph.replace(/\s*\([^)]*\)/g, "").replace(/\s+/g, " ").trim()
+          : `Nghệ sĩ ${actor.name} là gương mặt được đông đảo khán giả mến mộ trên Nanaflix.`;
+
         matches.push({
           id: `ev-actor-birthday-${actor.slug}`,
           title: `Sinh Nhật Diễn Viên ${actor.name} (${dayStr}/${monthStr})`,
-          shortDescription: `Mừng sinh nhật ${actor.name}${age ? ` (${age} tuổi)` : ""} — chúc mừng tuổi mới và cùng khám phá các tác phẩm điện ảnh xuất sắc.`,
-          bannerDescription: `Hôm nay là sinh nhật của ${actor.name} (${actor.roles || actor.country || "Diễn viên"}). ${actor.bio ? actor.bio.slice(0, 180) + "..." : "Cùng Nanaflix khám phá các tác phẩm điện ảnh và vai diễn nổi bật gắn liền với sự nghiệp của nghệ sĩ."}`,
+          shortDescription: `Mừng sinh nhật ${actor.name}${age ? ` (${age} tuổi)` : ""} — cùng thưởng thức các tác phẩm nổi bật của nghệ sĩ trên Nanaflix.`,
+          bannerDescription: `Hôm nay là sinh nhật của ${actor.name} (${actor.roles || actor.country || "Diễn viên"}). Cùng Nanaflix khám phá các tác phẩm điện ảnh và vai diễn nổi bật gắn liền với sự nghiệp của nghệ sĩ.`,
           category: "entertainment",
           categoryLabel: "Điện ảnh & Nghệ sĩ",
           nature: "arts-culture",
@@ -329,7 +335,7 @@ export function getActorBirthdaysForDate(month: number, day: number, currentYear
           displayDate: `${dayStr} Tháng ${monthStr}`,
           origin: `Nghệ sĩ ${actor.name} sinh ngày ${dayStr}/${monthStr}/${birthYear || ""}${actor.placeOfBirth ? ` tại ${actor.placeOfBirth}` : ""}.`,
           significance: `Tôn vinh hành trình cống hiến nghệ thuật và các vai diễn ghi dấu ấn sâu đậm trong lòng khán giả.`,
-          didYouKnow: actor.bio || `Nghệ sĩ ${actor.name} là gương mặt được đông đảo khán giả mến mộ trên Nanaflix.`,
+          didYouKnow: cleanBioSummary,
           milestones: [
             `Mừng sinh nhật tuổi mới của ${actor.name}`,
             `Khám phá toàn bộ danh sách phim của ${actor.name} trên Nanaflix`,

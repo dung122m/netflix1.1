@@ -482,6 +482,32 @@ export const ACTORS_CATALOG: ActorCatalogItem[] = [
     "featured": true
   },
   {
+    "slug": "pham-bang-bang",
+    "name": "Phạm Băng Băng",
+    "englishName": "Fan Bingbing",
+    "country": "Trung Quốc 🇨🇳",
+    "countryCode": "cn",
+    "gender": 1,
+    "tags": [
+      "Cổ trang",
+      "Điện ảnh",
+      "Chính kịch"
+    ],
+    "roles": "Võ Mị Nương Truyền Kỳ • Hoàn Châu Cách Cách",
+    "avatarUrl": "https://image.tmdb.org/t/p/w500/t0f0Buh71wP8R4z1d3p0wUeY8kP.jpg",
+    "tmdbPersonId": 108304,
+    "birthday": "1981-09-16",
+    "placeOfBirth": "Qingdao, Shandong, China",
+    "bio": "Phạm Băng Băng là nữ diễn viên, ca sĩ, người mẫu và nhà sản xuất phim nổi tiếng người Trung Quốc, được biết đến qua các vai diễn kinh điển trong Hoàn Châu Cách Cách, Võ Mị Nương Truyền Kỳ, Tôi Không Phải Phan Kim Liên.",
+    "aliases": [
+      "phạm băng băng",
+      "pham bang bang",
+      "fan bingbing",
+      "fan bing bing"
+    ],
+    "featured": true
+  },
+  {
     "slug": "vuong-nhat-bac",
     "name": "Vương Nhất Bác",
     "englishName": "Wang Yibo",

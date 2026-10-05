@@ -19,6 +19,7 @@ import {
   Users,
   CheckCircle2,
   ArrowRight,
+  Film,
 } from "lucide-react";
 import { VietnamTodayInfo } from "@/lib/vietnamCalendar";
 import { VietnamEventEffect } from "./VietnamEventEffect";
@@ -342,171 +343,187 @@ export function VietnamTodayModal({
             )}
 
             {/* MODAL CONTENT BODY - SCROLLABLE */}
+            {/* MODAL CONTENT BODY - SCROLLABLE */}
             <div
               ref={contentScrollRef}
               className="p-4 sm:p-6 overflow-y-auto space-y-4 sm:space-y-5 text-zinc-300 text-sm leading-relaxed custom-scrollbar overscroll-contain"
             >
-              {/* Quick summary */}
-              <div className="p-3.5 rounded-xl bg-white/[0.04] border border-white/10 text-zinc-200 font-medium">
-                {currentEvent.shortDescription}
-              </div>
+              {/* SPECIAL CASE: ACTOR BIRTHDAY DEDICATED CARD */}
+              {currentEvent.category === "entertainment" && currentEvent.actorSlug ? (
+                <div className="space-y-4">
+                  {/* Actor Profile Highlight Card */}
+                  <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-amber-500/10 via-zinc-900/80 to-zinc-900/60 border border-amber-500/30 shadow-lg">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
+                      <div>
+                        <div className="flex items-center gap-2 text-amber-400 text-xs font-bold uppercase tracking-wider mb-1">
+                          <Sparkles className="w-3.5 h-3.5" />
+                          <span>Gương mặt điện ảnh tiêu biểu</span>
+                        </div>
+                        <h3 className="text-lg sm:text-xl font-black text-white">
+                          {currentEvent.actorName || currentEvent.title}
+                        </h3>
+                        <p className="text-xs text-zinc-400 mt-0.5">
+                          {currentEvent.origin}
+                        </p>
+                      </div>
 
-              {/* Grid: Nguồn gốc & Ý nghĩa */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-                {/* 📖 Nguồn gốc */}
-                <div className="p-4 rounded-xl bg-zinc-900/60 border border-white/10 hover:border-white/15 transition-colors">
-                  <div className="flex items-center gap-2 text-amber-400 font-semibold mb-2">
-                    <BookOpen className="w-4 h-4 text-amber-400" />
-                    <span>Nguồn gốc</span>
+                      {currentEvent.relatedLink && (
+                        <a
+                          href={currentEvent.relatedLink}
+                          className="px-4 py-2 rounded-xl bg-netflix-red hover:brightness-110 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-black/40 shrink-0 cursor-pointer"
+                        >
+                          <Film className="w-3.5 h-3.5" />
+                          <span>{currentEvent.relatedLabel || "Xem phim"}</span>
+                        </a>
+                      )}
+                    </div>
+
+                    {/* Concise Highlight Bio */}
+                    {currentEvent.didYouKnow && (
+                      <div className="pt-3 text-xs sm:text-sm text-zinc-300 leading-relaxed">
+                        <p>{currentEvent.didYouKnow}</p>
+                      </div>
+                    )}
                   </div>
-                  <p className="text-zinc-300 text-xs sm:text-sm leading-relaxed">
-                    {currentEvent.origin}
-                  </p>
-                </div>
 
-                {/* 🎯 Ý nghĩa */}
-                <div className="p-4 rounded-xl bg-zinc-900/60 border border-white/10 hover:border-white/15 transition-colors">
-                  <div className="flex items-center gap-2 text-rose-400 font-semibold mb-2">
-                    <Target className="w-4 h-4 text-rose-400" />
-                    <span>Ý nghĩa</span>
+                  {/* Birthday Wish */}
+                  {currentEvent.quote && (
+                    <div className="p-3.5 rounded-xl bg-white/[0.04] border border-white/10 flex items-start gap-2.5 italic text-xs sm:text-sm text-amber-200/90">
+                      <Quote className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+                      <span>{currentEvent.quote}</span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* STANDARD HOLIDAY / EVENT VIEW */
+                <>
+                  {/* Quick summary */}
+                  <div className="p-3.5 rounded-xl bg-white/[0.04] border border-white/10 text-zinc-200 font-medium text-xs sm:text-sm">
+                    {currentEvent.shortDescription}
                   </div>
-                  <p className="text-zinc-300 text-xs sm:text-sm leading-relaxed">
-                    {currentEvent.meaning || currentEvent.significance}
-                  </p>
-                </div>
-              </div>
 
-              {/* 🏮 Phong tục & Nét đẹp tiêu biểu */}
-              {currentEvent.traditions && currentEvent.traditions.length > 0 && (
-                <div className="p-4 rounded-xl bg-gradient-to-br from-amber-950/20 via-zinc-900/70 to-zinc-900/50 border border-amber-500/25">
-                  <div className="flex items-center gap-2 text-amber-300 font-semibold mb-2.5">
-                    <Sparkles className="w-4 h-4 text-amber-400" />
-                    <span>Phong tục & Nét đẹp tiêu biểu</span>
-                  </div>
-                  <ul className="space-y-2">
-                    {currentEvent.traditions.map((t, idx) => (
-                      <li
-                        key={idx}
-                        className="flex items-start gap-2.5 text-xs sm:text-sm text-zinc-200"
-                      >
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-2 flex-shrink-0" />
-                        <span>{t}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+                  {/* Grid: Nguồn gốc & Ý nghĩa */}
+                  {(currentEvent.origin || currentEvent.meaning || currentEvent.significance) && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                      {/* 📖 Nguồn gốc */}
+                      {currentEvent.origin && (
+                        <div className="p-4 rounded-xl bg-zinc-900/60 border border-white/10 hover:border-white/15 transition-colors">
+                          <div className="flex items-center gap-2 text-amber-400 font-semibold mb-2">
+                            <BookOpen className="w-4 h-4 text-amber-400" />
+                            <span>Nguồn gốc</span>
+                          </div>
+                          <p className="text-zinc-300 text-xs sm:text-sm leading-relaxed">
+                            {currentEvent.origin}
+                          </p>
+                        </div>
+                      )}
 
-              {/* 🍜 Ẩm thực đặc trưng */}
-              {currentEvent.cuisine && (
-                <div className="p-3.5 rounded-xl bg-orange-950/20 border border-orange-500/25 flex items-start gap-3">
-                  <Utensils className="w-4 h-4 text-orange-400 flex-shrink-0 mt-0.5" />
-                  <div className="text-xs sm:text-sm">
-                    <span className="font-semibold text-orange-300 mr-2">
-                      Ẩm thực đặc trưng:
-                    </span>
-                    <span className="text-orange-100/90">{currentEvent.cuisine}</span>
-                  </div>
-                </div>
-              )}
+                      {/* 🎯 Ý nghĩa */}
+                      {(currentEvent.meaning || currentEvent.significance) && (
+                        <div className="p-4 rounded-xl bg-zinc-900/60 border border-white/10 hover:border-white/15 transition-colors">
+                          <div className="flex items-center gap-2 text-rose-400 font-semibold mb-2">
+                            <Target className="w-4 h-4 text-rose-400" />
+                            <span>Ý nghĩa</span>
+                          </div>
+                          <p className="text-zinc-300 text-xs sm:text-sm leading-relaxed">
+                            {currentEvent.meaning || currentEvent.significance}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
-              {/* 💡 Bạn có biết? */}
-              {currentEvent.didYouKnow && (
-                <div className="p-4 rounded-xl bg-amber-950/20 border border-amber-500/25 relative overflow-hidden">
-                  <div className="flex items-center gap-2 text-amber-300 font-semibold mb-1.5">
-                    <Lightbulb className="w-4 h-4 text-amber-400 animate-pulse" />
-                    <span>Bạn có biết?</span>
-                  </div>
-                  <p className="text-amber-100/90 text-xs sm:text-sm leading-relaxed">
-                    {currentEvent.didYouKnow}
-                  </p>
-                </div>
-              )}
+                  {/* 🏮 Phong tục & Nét đẹp tiêu biểu */}
+                  {currentEvent.traditions && currentEvent.traditions.length > 0 && (
+                    <div className="p-4 rounded-xl bg-gradient-to-br from-amber-950/20 via-zinc-900/70 to-zinc-900/50 border border-amber-500/25">
+                      <div className="flex items-center gap-2 text-amber-300 font-semibold mb-2.5">
+                        <Sparkles className="w-4 h-4 text-amber-400" />
+                        <span>Phong tục & Nét đẹp tiêu biểu</span>
+                      </div>
+                      <ul className="space-y-2">
+                        {currentEvent.traditions.map((t, idx) => (
+                          <li
+                            key={idx}
+                            className="flex items-start gap-2.5 text-xs sm:text-sm text-zinc-200"
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-2 flex-shrink-0" />
+                            <span>{t}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
 
-              {/* 📅 Các mốc lịch sử / Dòng thời gian */}
-              {currentEvent.milestones && currentEvent.milestones.length > 0 && (
-                <div className="p-4 rounded-xl bg-zinc-900/60 border border-white/10">
-                  <div className="flex items-center gap-2 text-sky-400 font-semibold mb-2.5">
-                    <Calendar className="w-4 h-4 text-sky-400" />
-                    <span>
-                      {currentEvent.traditions && currentEvent.traditions.length > 0
-                        ? "Dấu mốc & Dòng thời gian"
-                        : currentEvent.category === "vietnam-history" ||
-                          currentEvent.category === "national-holiday"
-                        ? "Dấu mốc lịch sử tiêu biểu"
-                        : "Dấu mốc & Hoạt động tiêu biểu"}
-                    </span>
-                  </div>
-                  <ul className="space-y-2">
-                    {currentEvent.milestones.map((m, idx) => (
-                      <li
-                        key={idx}
-                        className="flex items-start gap-2.5 text-xs sm:text-sm text-zinc-300"
-                      >
-                        <span className="w-1.5 h-1.5 rounded-full bg-sky-400 mt-2 flex-shrink-0" />
-                        <span>{m}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+                  {/* 🍜 Ẩm thực đặc trưng */}
+                  {currentEvent.cuisine && (
+                    <div className="p-3.5 rounded-xl bg-orange-950/20 border border-orange-500/25 flex items-start gap-3">
+                      <Utensils className="w-4 h-4 text-orange-400 flex-shrink-0 mt-0.5" />
+                      <div className="text-xs sm:text-sm">
+                        <span className="font-semibold text-orange-300 mr-2">
+                          Ẩm thực đặc trưng:
+                        </span>
+                        <span className="text-orange-100/90">{currentEvent.cuisine}</span>
+                      </div>
+                    </div>
+                  )}
 
-              {/* 🎯 Hoạt động & Cách kỷ niệm tiêu biểu (activities) */}
-              {currentEvent.activities && currentEvent.activities.length > 0 && (
-                <div className="p-4 rounded-xl bg-gradient-to-br from-blue-950/20 via-zinc-900/70 to-zinc-900/50 border border-sky-500/25">
-                  <div className="flex items-center gap-2 text-sky-300 font-semibold mb-2.5">
-                    <Compass className="w-4 h-4 text-sky-400" />
-                    <span>Hoạt động & Trải nghiệm tiêu biểu</span>
-                  </div>
-                  <ul className="space-y-2">
-                    {currentEvent.activities.map((act, idx) => (
-                      <li
-                        key={idx}
-                        className="flex items-start gap-2.5 text-xs sm:text-sm text-zinc-200"
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5 text-sky-400 mt-0.5 flex-shrink-0" />
-                        <span>{act}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+                  {/* 💡 Bạn có biết? (Gọn gàng, súc tích) */}
+                  {currentEvent.didYouKnow && currentEvent.didYouKnow !== currentEvent.shortDescription && (
+                    <div className="p-4 rounded-xl bg-amber-950/20 border border-amber-500/25 relative overflow-hidden">
+                      <div className="flex items-center gap-2 text-amber-300 font-semibold mb-1.5">
+                        <Lightbulb className="w-4 h-4 text-amber-400 animate-pulse" />
+                        <span>Bạn có biết?</span>
+                      </div>
+                      <p className="text-amber-100/90 text-xs sm:text-sm leading-relaxed">
+                        {currentEvent.didYouKnow}
+                      </p>
+                    </div>
+                  )}
 
-              {/* 💡 Điều thú vị mở rộng (interestingFacts) */}
-              {currentEvent.interestingFacts && currentEvent.interestingFacts.length > 0 && (
-                <div className="p-4 rounded-xl bg-amber-950/15 border border-amber-500/20">
-                  <div className="flex items-center gap-2 text-amber-300 font-semibold mb-2">
-                    <Lightbulb className="w-4 h-4 text-amber-400" />
-                    <span>Điều thú vị & Có thể bạn chưa biết</span>
-                  </div>
-                  <ul className="space-y-1.5">
-                    {currentEvent.interestingFacts.map((fact, idx) => (
-                      <li
-                        key={idx}
-                        className="flex items-start gap-2 text-xs sm:text-sm text-amber-100/90"
-                      >
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-2 flex-shrink-0" />
-                        <span>{fact}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+                  {/* 📅 Các mốc lịch sử / Dòng thời gian */}
+                  {currentEvent.milestones && currentEvent.milestones.length > 0 && (
+                    <div className="p-4 rounded-xl bg-zinc-900/60 border border-white/10">
+                      <div className="flex items-center gap-2 text-sky-400 font-semibold mb-2.5">
+                        <Calendar className="w-4 h-4 text-sky-400" />
+                        <span>
+                          {currentEvent.traditions && currentEvent.traditions.length > 0
+                            ? "Dấu mốc & Dòng thời gian"
+                            : currentEvent.category === "vietnam-history" ||
+                              currentEvent.category === "national-holiday"
+                            ? "Dấu mốc lịch sử tiêu biểu"
+                            : "Dấu mốc & Hoạt động tiêu biểu"}
+                        </span>
+                      </div>
+                      <ul className="space-y-2">
+                        {currentEvent.milestones.map((m, idx) => (
+                          <li
+                            key={idx}
+                            className="flex items-start gap-2.5 text-xs sm:text-sm text-zinc-300"
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full bg-sky-400 mt-2 flex-shrink-0" />
+                            <span>{m}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
 
-              {/* 💬 Trích dẫn / Thông điệp gửi gắm */}
-              {(currentEvent.message || currentEvent.quote) && (
-                <div className="p-3.5 rounded-xl bg-zinc-900/40 border border-white/5 flex items-start gap-3 italic text-xs sm:text-sm text-zinc-300">
-                  <Quote className="w-4 h-4 text-amber-400/80 flex-shrink-0 mt-0.5" />
-                  <span>&ldquo;{currentEvent.message || currentEvent.quote}&rdquo;</span>
-                </div>
+                  {/* 💬 Trích dẫn / Thông điệp gửi gắm */}
+                  {(currentEvent.message || currentEvent.quote) && (
+                    <div className="p-3.5 rounded-xl bg-zinc-900/40 border border-white/5 flex items-start gap-3 italic text-xs sm:text-sm text-zinc-300">
+                      <Quote className="w-4 h-4 text-amber-400/80 flex-shrink-0 mt-0.5" />
+                      <span>&ldquo;{currentEvent.message || currentEvent.quote}&rdquo;</span>
+                    </div>
+                  )}
+                </>
               )}
 
               {/* 📜 LINK TO HISTORICAL EVENTS IF AVAILABLE TODAY */}
               {hasHistory && (
-                <div className="p-4 rounded-2xl bg-gradient-to-r from-red-950/40 via-zinc-900/80 to-amber-950/30 border border-red-500/30 flex items-center justify-between gap-3">
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-zinc-900 via-zinc-900/90 to-zinc-900/80 border border-netflix-red/30 flex items-center justify-between gap-3 shadow-md">
                   <div className="space-y-1">
-                    <div className="flex items-center gap-2 text-xs font-bold text-red-300 tracking-wide uppercase">
-                      <History className="w-3.5 h-3.5 text-red-400" />
+                    <div className="flex items-center gap-2 text-xs font-bold text-netflix-red tracking-wide uppercase">
+                      <History className="w-3.5 h-3.5 text-netflix-red" />
                       <span>Ngày này trong lịch sử Việt Nam</span>
                     </div>
                     <p className="text-xs text-zinc-300 line-clamp-1">
@@ -519,7 +536,7 @@ export function VietnamTodayModal({
                       setActiveTab("history");
                       if (contentScrollRef.current) contentScrollRef.current.scrollTop = 0;
                     }}
-                    className="px-3 py-1.5 rounded-lg bg-red-600/30 hover:bg-red-600/50 text-red-100 border border-red-500/40 text-xs font-semibold whitespace-nowrap flex items-center gap-1.5 transition-all"
+                    className="px-3 py-1.5 rounded-lg bg-netflix-red hover:brightness-110 text-white border border-white/10 text-xs font-semibold whitespace-nowrap flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
                   >
                     <span>Khám phá</span>
                     <ArrowRight className="w-3.5 h-3.5" />
@@ -536,7 +553,7 @@ export function VietnamTodayModal({
                 </div>
                 <button
                   onClick={onClose}
-                  className="px-4 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white font-medium transition-colors text-xs ml-auto"
+                  className="px-4 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white font-medium transition-colors text-xs ml-auto cursor-pointer"
                 >
                   Đã hiểu
                 </button>

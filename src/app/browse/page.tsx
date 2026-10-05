@@ -735,20 +735,20 @@ export default async function BrowsePage({
         </div>
 
         {detectedActor && (
-          <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-red-950/80 via-zinc-900 to-zinc-900 border border-red-500/30 flex items-center justify-between gap-3 shadow-xl animate-in fade-in duration-300">
+          <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-zinc-900/90 via-zinc-900 to-zinc-900 border border-netflix-red/30 flex items-center justify-between gap-3 shadow-xl animate-in fade-in duration-300">
             <div className="flex items-center gap-3.5">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-red-600 to-purple-600 text-white flex items-center justify-center flex-none shadow-md border border-white/20">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-netflix-red text-white flex items-center justify-center flex-none shadow-md border border-white/20">
                 <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-amber-300" />
               </div>
               <div>
                 <h4 className="text-sm sm:text-base font-black text-white flex items-center gap-2 flex-wrap">
                   <span>Tuyển Tập Tác Phẩm Của {detectedActor.name}</span>
                   {detectedActor.country && (
-                    <span className="text-xs text-rose-300 font-bold px-2.5 py-0.5 rounded-full bg-white/10 border border-white/10">
+                    <span className="text-xs text-white font-bold px-2.5 py-0.5 rounded-full bg-white/10 border border-white/10">
                       {detectedActor.country}
                     </span>
                   )}
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-gradient-to-r from-red-600/30 to-purple-600/30 text-rose-300 font-bold border border-red-500/40">
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-netflix-red/20 text-white font-bold border border-netflix-red/40">
                     ✨ Nana AI Nhận Diện
                   </span>
                 </h4>

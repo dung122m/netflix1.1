@@ -12,6 +12,21 @@ export interface ActorProfile {
 }
 
 /**
+ * Hàm viết hoa chữ cái đầu từng từ chuẩn tiếng Việt (Unicode-safe Title Case)
+ */
+export function toVietnameseTitleCase(str: string): string {
+  if (!str) return "";
+  return str
+    .trim()
+    .split(/\s+/)
+    .map((word) => {
+      if (!word) return "";
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    })
+    .join(" ");
+}
+
+/**
  * DANH SÁCH DIỄN VIÊN / NGHỆ SĨ HÀNG ĐẦU (TIER 1 - PRE-INDEXED)
  * Tốc độ tức thì (0ms), độ chính xác 100%, không tốn token AI, không phụ thuộc mạng.
  */
@@ -169,6 +184,11 @@ export const GOLDEN_ACTOR_INDEX: ActorProfile[] = [
   {
     name: "Tiêu Chiến",
     aliases: ["tieu chien", "xiao zhan", "sean xiao"],
+    country: "Trung Quốc 🇨🇳",
+  },
+  {
+    name: "Phạm Băng Băng",
+    aliases: ["pham bang bang", "fan bingbing", "fan bing bing"],
     country: "Trung Quốc 🇨🇳",
   },
   {
@@ -799,7 +819,7 @@ export function getActorSynonyms(query: string): ActorSynonymResult {
         (a) => !/[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(a) && a.includes(" ")
       ) || aliases[2];
 
-      const canonicalName = preset?.name || (aliases[0] ? aliases[0].replace(/\b\w/g, (l) => l.toUpperCase()) : query.trim());
+      const canonicalName = preset?.name || (aliases[0] ? toVietnameseTitleCase(aliases[0]) : toVietnameseTitleCase(query.trim()));
 
       return {
         isMatched: true,
