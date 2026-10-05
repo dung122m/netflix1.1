@@ -196,6 +196,9 @@ export function VietnamTodayCard({ info, selectedEventId, onOpenModal }: Vietnam
   }, [event.id, bgImageUrl]);
 
   const holidayBorderClass = (() => {
+    if (event.id.startsWith("ev-actor-birthday") || event.actorSlug) {
+      return "border-pink-500/40 hover:border-pink-400/70 bg-zinc-950 shadow-[0_0_24px_rgba(236,72,153,0.18)] hover:shadow-[0_0_32px_rgba(236,72,153,0.28)]";
+    }
     if (!event.effect) {
       return isToday
         ? "border-red-500/30 hover:border-amber-500/60 bg-zinc-950 shadow-red-950/20 hover:shadow-amber-950/30"

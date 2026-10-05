@@ -723,4 +723,22 @@ test("Regression Verification — Multi-Source Banner Aggregation (Actor Birthda
     assert.ok(!navbarCode.includes('href: "/history"'), "Navbar must not contain /history link");
     assert.ok(!navbarCode.includes('name: "Lịch sử"'), "Navbar must not contain 'Lịch sử' link");
   });
+
+  await t.test("6. Sorting Order on 05/10: Actor Birthday (Tiêu Chiến) -> Top Historical Figure (Lê Thái Tổ) -> International Day (Nhà Giáo) -> Generic History (Hội nghị 1951)", () => {
+    const res0510 = getVietnamTodayEvent(new Date("2026-10-05T08:00:00+07:00"));
+    const titles = res0510.allEventsToday?.map((e) => e.title) || [];
+    assert.ok(titles.length >= 4, "Must have 4 events on 05/10");
+
+    // Rank 1: Tiêu Chiến (Actor birthday with CTA)
+    assert.ok(titles[0].includes("Tiêu Chiến"), `Rank 1 must be Tiêu Chiến, got: ${titles[0]}`);
+
+    // Rank 2: Vua Lê Thái Tổ (Historical figure)
+    assert.ok(titles[1].includes("Lê Thái Tổ") || titles[1].includes("Lê Lợi"), `Rank 2 must be Lê Thái Tổ, got: ${titles[1]}`);
+
+    // Rank 3: Ngày Nhà Giáo Thế Giới
+    assert.ok(titles[2].includes("Nhà Giáo"), `Rank 3 must be Nhà Giáo Thế Giới, got: ${titles[2]}`);
+
+    // Rank 4: Hội nghị Trung ương 1951
+    assert.ok(titles[3].includes("Hội nghị") || titles[3].includes("Ban Chấp hành"), `Rank 4 must be Hội nghị 1951, got: ${titles[3]}`);
+  });
 });

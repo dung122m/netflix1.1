@@ -88,6 +88,12 @@ interface ThemeComposition {
 }
 
 const THEME_COMPOSITIONS: Record<VietnamPatternThemeKey, ThemeComposition> = {
+  "actor-birthday": {
+    primary: PartyPopper,
+    secondary: [Gift, Film, Sparkles, Star],
+    detail: [Heart, Clapperboard, Award, Smile, Music],
+    primaryRotateClass: "-rotate-[10deg]",
+  },
   "medical-health": {
     primary: HeartPulse,
     secondary: [Heart, Activity, Stethoscope, Plus],

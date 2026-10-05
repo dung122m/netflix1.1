@@ -32,14 +32,17 @@ export function getVietnamEventBackground(info: VietnamTodayInfo | {
 }): string {
   const { event } = info;
 
-  // 0. Ảnh cụ thể của diễn viên thật hoặc ảnh tư liệu lịch sử từ GitHub Historical Events
+  // Đối với sinh nhật diễn viên: KHÔNG dùng ảnh chân dung dọc kéo dãn full màn hình làm background (tránh bị cắt xén mặt).
+  // Thay vào đó dùng gradient màu sắc lễ hội và hoa văn biểu tượng sinh nhật (VietnamEventPatternLayer).
+  if (event?.id?.startsWith("ev-actor-birthday") || event?.actorSlug) {
+    return "";
+  }
+
+  // Ảnh tư liệu lịch sử từ GitHub Historical Events (ảnh ngang documentary)
   if (
     event?.imageUrl &&
     !isPlaceholderUrl(event.imageUrl) &&
-    (event.id?.startsWith("ev-actor-birthday") ||
-      event.actorName ||
-      event.actorSlug ||
-      event.category === "vietnam-history" ||
+    (event.category === "vietnam-history" ||
       Boolean(event.historicalEventId) ||
       event.id?.startsWith("he-") ||
       event.id?.startsWith("hist-"))
@@ -55,7 +58,7 @@ export function getVietnamEventBackground(info: VietnamTodayInfo | {
 /**
  * Kiểm tra xem event có thiết kế / holiday effect riêng biệt từ trước hay không.
  * - 1. Có Holiday Effect riêng (Tết, Quốc khánh, Trung thu, Giáng sinh, Halloween, Nana Birthday)
- * - 2. Có ảnh diễn viên thực tế hoặc ảnh tư liệu lịch sử
+ * - 2. Có ảnh tư liệu lịch sử
  * Nếu đã có thiết kế riêng -> giữ nguyên 100% hiệu ứng và không áp Thematic Icon Composition đè lên.
  */
 export function hasDedicatedEventDesign(info: VietnamTodayInfo | {
@@ -69,14 +72,16 @@ export function hasDedicatedEventDesign(info: VietnamTodayInfo | {
     return true;
   }
 
-  // 2. Có ảnh diễn viên thực tế (sinh nhật diễn viên) hoặc ảnh tư liệu lịch sử
+  // 2. Với sinh nhật diễn viên: Cho phép hiển thị hoa văn biểu tượng sinh nhật (hasDedicatedEventDesign = false)
+  if (event?.id?.startsWith("ev-actor-birthday") || event?.actorSlug) {
+    return false;
+  }
+
+  // 3. Có ảnh tư liệu lịch sử
   if (
     event?.imageUrl &&
     !isPlaceholderUrl(event.imageUrl) &&
-    (event?.id?.startsWith("ev-actor-birthday") ||
-      event?.actorSlug ||
-      event?.actorName ||
-      event?.category === "vietnam-history" ||
+    (event?.category === "vietnam-history" ||
       Boolean(event?.historicalEventId) ||
       event?.id?.startsWith("he-") ||
       event?.id?.startsWith("hist-"))
@@ -91,6 +96,7 @@ export function hasDedicatedEventDesign(info: VietnamTodayInfo | {
  * Các chủ đề biểu tượng hoa văn nền cho Vietnam Today / Special Events
  */
 export type VietnamPatternThemeKey =
+  | "actor-birthday"
   | "medical-health"
   | "vietnam-national"
   | "vietnam-history"
@@ -116,6 +122,16 @@ export function getVietnamEventPatternTheme(info: VietnamTodayInfo | {
   const { event, historicalEventsToday } = info;
   const id = event?.id || "";
   const title = event?.title || "";
+
+  // 0. Sinh nhật diễn viên & nghệ sĩ (chủ đề tiệc, sinh nhật, điện ảnh)
+  if (
+    id.startsWith("ev-actor-birthday") ||
+    Boolean(event?.actorSlug) ||
+    /sinh-nhat.*(dien-vien|nghe-si)/i.test(id) ||
+    /sinh nhật diễn viên/i.test(title)
+  ) {
+    return "actor-birthday";
+  }
 
   // 1. Nhóm Y tế, Tim mạch & Sức khỏe (vd 29/9 World Heart Day)
   if (
@@ -253,6 +269,13 @@ export interface ThemeVisualConfig {
 }
 
 export const THEME_VISUAL_CONFIGS: Record<VietnamPatternThemeKey, ThemeVisualConfig> = {
+  "actor-birthday": {
+    gradient: "from-purple-950/85 via-pink-950/60 to-zinc-950",
+    spotlightRgba: "rgba(236, 72, 153, 0.28)",
+    primaryColorClass: "text-pink-400",
+    secondaryColorClass: "text-purple-300",
+    detailColorClass: "text-amber-300",
+  },
   "medical-health": {
     gradient: "from-red-950/80 via-rose-950/40 to-zinc-950",
     spotlightRgba: "rgba(239, 68, 68, 0.18)",
