@@ -32,16 +32,22 @@ export function getVietnamEventBackground(info: VietnamTodayInfo | {
 }): string {
   const { event } = info;
 
-  // 0. Ảnh cụ thể của diễn viên thật (sinh nhật) từ TMDB hoặc nguồn chân dung xác thực
+  // 0. Ảnh cụ thể của diễn viên thật hoặc ảnh tư liệu lịch sử từ GitHub Historical Events
   if (
     event?.imageUrl &&
     !isPlaceholderUrl(event.imageUrl) &&
-    (event.id?.startsWith("ev-actor-birthday") || event.actorName || event.actorSlug)
+    (event.id?.startsWith("ev-actor-birthday") ||
+      event.actorName ||
+      event.actorSlug ||
+      event.category === "vietnam-history" ||
+      Boolean(event.historicalEventId) ||
+      event.id?.startsWith("he-") ||
+      event.id?.startsWith("hist-"))
   ) {
     return event.imageUrl;
   }
 
-  // Đối với các ngày kỷ niệm, lịch sử, văn hóa, đại lễ: Không dùng ảnh stock ngẫu nhiên để tránh lệch ngữ cảnh.
+  // Đối với các ngày kỷ niệm, lịch sử, văn hóa, đại lễ không có ảnh: Không dùng ảnh stock ngẫu nhiên để tránh lệch ngữ cảnh.
   // Trả về rỗng để component render màu sắc gradient, ambient spotlights và hiệu ứng lễ hội.
   return "";
 }
@@ -49,8 +55,8 @@ export function getVietnamEventBackground(info: VietnamTodayInfo | {
 /**
  * Kiểm tra xem event có thiết kế / holiday effect riêng biệt từ trước hay không.
  * - 1. Có Holiday Effect riêng (Tết, Quốc khánh, Trung thu, Giáng sinh, Halloween, Nana Birthday)
- * - 2. Có ảnh diễn viên thực tế (sinh nhật diễn viên)
- * Nếu đã có thiết kế lễ hội riêng -> giữ nguyên 100% hiệu ứng động và không áp Thematic Icon Composition đè lên.
+ * - 2. Có ảnh diễn viên thực tế hoặc ảnh tư liệu lịch sử
+ * Nếu đã có thiết kế riêng -> giữ nguyên 100% hiệu ứng và không áp Thematic Icon Composition đè lên.
  */
 export function hasDedicatedEventDesign(info: VietnamTodayInfo | {
   event: VietnamEvent;
@@ -63,11 +69,17 @@ export function hasDedicatedEventDesign(info: VietnamTodayInfo | {
     return true;
   }
 
-  // 2. Có ảnh diễn viên thực tế (sinh nhật diễn viên)
+  // 2. Có ảnh diễn viên thực tế (sinh nhật diễn viên) hoặc ảnh tư liệu lịch sử
   if (
-    (event?.id?.startsWith("ev-actor-birthday") || event?.actorSlug || event?.actorName) &&
     event?.imageUrl &&
-    !isPlaceholderUrl(event.imageUrl)
+    !isPlaceholderUrl(event.imageUrl) &&
+    (event?.id?.startsWith("ev-actor-birthday") ||
+      event?.actorSlug ||
+      event?.actorName ||
+      event?.category === "vietnam-history" ||
+      Boolean(event?.historicalEventId) ||
+      event?.id?.startsWith("he-") ||
+      event?.id?.startsWith("hist-"))
   ) {
     return true;
   }

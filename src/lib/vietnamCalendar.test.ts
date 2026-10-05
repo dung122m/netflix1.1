@@ -9,6 +9,7 @@ import {
   computeDateToLunarDate,
   computeDateFromLunarDate,
   getVietnamTodayEvent,
+  getVietnamTodayHistoryBanner,
 } from "./vietnamCalendar";
 
 test("Vietnam Events Dataset Validation", async (t) => {
@@ -422,9 +423,9 @@ test("Vietnam Historical Milestones System (Ngày này trong lịch sử Việt 
   });
 
   await t.test("Case 10: Regular day with no historical event returns undefined/empty", () => {
-    // 04/01 has no registered major historical milestone
-    const eventsJan4 = getHistoricalEventsForDate(1, 4);
-    assert.equal(eventsJan4.length, 0, "No historical milestone expected on January 4th");
+    // 13/02 has no registered historical milestone in dataset
+    const eventsFeb13 = getHistoricalEventsForDate(2, 13);
+    assert.equal(eventsFeb13.length, 0, "No historical milestone expected on February 13th");
   });
 });
 
@@ -506,7 +507,7 @@ test("Daily Identity & Cinema Connection System", async (t) => {
     assert.equal(res0410.event.priority, 100);
     assert.ok(res0410.allEventsToday && res0410.allEventsToday.length >= 4);
     assert.ok(res0410.allEventsToday[0].title.includes("Võ Nguyên Giáp"));
-    assert.ok(res0410.allEventsToday[1].title.includes("Phòng Cháy"));
+    assert.ok(res0410.allEventsToday.some((e) => e.title.includes("Phòng Cháy")));
   });
 
   await t.test("Event Priority Hierarchy: Days with only international events display properly", () => {
@@ -596,6 +597,72 @@ test("Phase 5 — Event & History Canonical Deduplication Engine", async (t) => 
   });
 });
 
+test("Banner 'Hôm nay có gì đặc biệt' — GitHub Historical Events Provider", async (t) => {
+  await t.test("1. Ngày có nhiều historical events: giữ tất cả, không tự động chọn một event duy nhất (04/10, 02/09, 30/04)", () => {
+    // 04/10
+    const res0410 = getVietnamTodayHistoryBanner(new Date("2026-10-04T08:00:00+07:00"));
+    assert.equal(res0410.isToday, true);
+    assert.ok(res0410.allEventsToday && res0410.allEventsToday.length >= 2, "04/10 must retain all historical events");
+    assert.ok(res0410.allEventsToday.some((e) => e.title.includes("Võ Nguyên Giáp")), "04/10 must include Vo Nguyen Giap");
+    assert.ok(res0410.allEventsToday.some((e) => e.title.includes("Suối Sóc")), "04/10 must include Tran Suoi Soc");
 
+    // 02/09
+    const res0209 = getVietnamTodayHistoryBanner(new Date("2026-09-02T08:00:00+07:00"));
+    assert.equal(res0209.isToday, true);
+    assert.ok(res0209.allEventsToday && res0209.allEventsToday.length >= 3, "02/09 must have multiple events");
 
+    // 30/04
+    const res3004 = getVietnamTodayHistoryBanner(new Date("2026-04-30T08:00:00+07:00"));
+    assert.equal(res3004.isToday, true);
+    assert.ok(res3004.allEventsToday && res3004.allEventsToday.length >= 3, "30/04 must have multiple events");
+  });
 
+  await t.test("2. Ngày chỉ có một event: hiển thị chính xác event đó mà không crash", () => {
+    // 04/01
+    const res0401 = getVietnamTodayHistoryBanner(new Date("2026-01-04T08:00:00+07:00"));
+    assert.equal(res0401.isToday, true);
+    assert.ok(res0401.allEventsToday && res0401.allEventsToday.length >= 1);
+    assert.ok(res0401.event.title.length > 0);
+  });
+
+  await t.test("3. Ngày không có event: fallback 'Hôm nay chưa có sự kiện lịch sử nổi bật', không crash, không hiển thị ngày khác, không tự sinh AI", () => {
+    // 07/07
+    const res = getVietnamTodayHistoryBanner(new Date("2026-07-07T08:00:00+07:00"));
+    assert.equal(res.isToday, true);
+    if (!res.historicalEventsToday || res.historicalEventsToday.length === 0) {
+      assert.ok(res.event.title.includes("Hôm nay chưa có sự kiện lịch sử nổi bật"));
+      assert.equal(res.daysUntil, 0);
+    }
+  });
+
+  await t.test("4. Ngày 04/10: Võ Nguyên Giáp phải xuất hiện và không bị loại do duplicate trong events/", () => {
+    const res = getVietnamTodayHistoryBanner(new Date("2026-10-04T12:00:00+07:00"));
+    assert.equal(res.isToday, true);
+    const vngEvent = res.allEventsToday?.find((e) => e.title.includes("Võ Nguyên Giáp"));
+    assert.ok(vngEvent, "Võ Nguyên Giáp must be present on 04/10");
+    assert.equal(vngEvent?.eventYear, 2013);
+    assert.ok(vngEvent?.imageUrl, "Should have documentary image if available");
+  });
+
+  await t.test("5. Kiểm tra timezone Việt Nam quanh thời điểm 00:00 (Asia/Ho_Chi_Minh UTC+7)", () => {
+    // 2026-10-03T17:01:00Z is 2026-10-04T00:01:00+07:00 in Vietnam
+    const dateAtMidnightStart = new Date("2026-10-03T17:01:00Z");
+    const resMidnight = getVietnamTodayHistoryBanner(dateAtMidnightStart);
+    assert.equal(resMidnight.todaySolar.day, 4, "Must be Oct 4 in Vietnam timezone");
+    assert.equal(resMidnight.todaySolar.month, 10, "Must be Oct in Vietnam timezone");
+    assert.ok(resMidnight.allEventsToday?.some((e) => e.title.includes("Võ Nguyên Giáp")));
+
+    // 2026-10-04T16:59:00Z is 2026-10-04T23:59:00+07:00 in Vietnam
+    const dateAtMidnightEnd = new Date("2026-10-04T16:59:00Z");
+    const resEnd = getVietnamTodayHistoryBanner(dateAtMidnightEnd);
+    assert.equal(resEnd.todaySolar.day, 4, "Must still be Oct 4 in Vietnam timezone");
+    assert.ok(resEnd.allEventsToday?.some((e) => e.title.includes("Võ Nguyên Giáp")));
+  });
+
+  await t.test("6. GitHub/local history source rỗng hoặc lỗi → Banner không crash", () => {
+    const resEdge = getVietnamTodayHistoryBanner(new Date("2099-12-31T23:59:59+07:00"));
+    assert.ok(resEdge);
+    assert.ok(resEdge.event);
+    assert.ok(resEdge.event.title);
+  });
+});

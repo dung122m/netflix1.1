@@ -71,6 +71,8 @@ export interface VietnamEvent {
   message?: string | null;
   tag?: string | null;
   imageUrl?: string | null;
+  imageCaption?: string | null;
+  imageSource?: string | null;
   accentGradient?: string | null;
   relatedLink?: string | null;
   relatedLabel?: string | null;

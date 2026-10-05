@@ -436,6 +436,7 @@ export function getEventPriorityScore(event: VietnamEvent, currentYear: number =
     event.effect === "tet" ||
     event.effect === "mid-autumn" ||
     event.effect === "christmas" ||
+    event.effect === "nana-birthday" ||
     id.includes("quoc-khanh") ||
     id.includes("gio-to") ||
     id.includes("thong-nhat") ||
@@ -445,22 +446,32 @@ export function getEventPriorityScore(event: VietnamEvent, currentYear: number =
     return 60000 + rawPriority * 10 + anniversaryBonus;
   }
 
-  // 2. TIER 2: Sự kiện lịch sử / danh nhân đặc biệt của Việt Nam
+  // 2. TIER 2: Sự kiện danh nhân lịch sử vĩ đại / mốc son trọng đại của Việt Nam
   const isTopHistoricalFigure =
     id.includes("vo-nguyen-giap") ||
     id.includes("bac-ho") ||
     id.includes("ho-chi-minh") ||
     id.includes("tran-hung-dao") ||
     id.includes("quang-trung") ||
+    id.includes("le-loi") ||
+    id.includes("dien-bien-phu") ||
+    id.includes("giai-phong-thu-do") ||
     title.includes("võ nguyên giáp") ||
     title.includes("hồ chí minh") ||
     title.includes("bác hồ") ||
+    title.includes("trần hưng đạo") ||
+    title.includes("quang trung") ||
+    title.includes("điện biên phủ") ||
+    title.includes("giải phóng thủ đô") ||
     event.milestoneFigure?.toLowerCase().includes("võ nguyên giáp") ||
-    event.milestoneFigure?.toLowerCase().includes("hồ chí minh") ||
-    (cat === "vietnam-history" && rawPriority >= 75) ||
-    Boolean(event.historicalEventId);
+    event.milestoneFigure?.toLowerCase().includes("hồ chí minh");
 
   if (isTopHistoricalFigure) {
+    return 55000 + rawPriority * 10 + anniversaryBonus;
+  }
+
+  // 2.1 Mốc son lịch sử chung
+  if (cat === "vietnam-history" || Boolean(event.historicalEventId)) {
     return 50000 + rawPriority * 10 + anniversaryBonus;
   }
 
@@ -638,12 +649,102 @@ export function convertHistoricalToVietnamEvent(
     quote: matchingHoliday?.quote || null,
     message: matchingHoliday?.message || null,
     tag: "Lịch sử & Danh nhân",
-    imageUrl: matchingHoliday?.imageUrl || null,
+    imageUrl: hist.imageUrl || matchingHoliday?.imageUrl || null,
+    imageCaption: hist.imageCaption || undefined,
+    imageSource: hist.imageSource || undefined,
     accentGradient:
       matchingHoliday?.accentGradient || "from-red-900/40 via-amber-800/30 to-zinc-950",
     relatedLink: matchingHoliday?.relatedLink || null,
     relatedLabel: matchingHoliday?.relatedLabel || undefined,
     historicalEventId: hist.id,
+  };
+}
+
+/**
+ * CANONICAL HISTORY BANNER PROVIDER:
+ * Supplies historical events for Banner "Hôm nay có gì đặc biệt" strictly from GitHub Historical Events dataset.
+ * 
+ * Flow:
+ * GitHub Historical Events -> Today's date (Asia/Ho_Chi_Minh) -> Banner
+ * 
+ * Rules:
+ * 1. Timezone: Asia/Ho_Chi_Minh
+ * 2. Filter: month === currentMonth && day === currentDay (or matching lunar anniversary)
+ * 3. Keeps ALL historical events on the day (no loss of events, no single-event forcing).
+ * 4. Fallback: If no event on this day, gracefully returns "Hôm nay chưa có sự kiện lịch sử nổi bật."
+ * 5. No mixing/fuzzy matching with holiday events dataset.
+ */
+export function getVietnamTodayHistoryBanner(customDate?: Date): VietnamTodayInfo {
+  const now = getVietnamNow(customDate);
+  const day = now.getDate();
+  const month = now.getMonth() + 1;
+  const year = now.getFullYear();
+
+  const lunar = computeDateToLunarDate(day, month, year, 7);
+  const solarDateFormatted = formatSolarDateVn(now);
+  const lunarDateFormatted = formatLunarDateVn(lunar);
+
+  // Retrieve historical events for today strictly from canonical GitHub historical dataset
+  const historicalEvents = getHistoricalEventsForDate(month, day, lunar.lunarMonth, lunar.lunarDay);
+
+  if (historicalEvents && historicalEvents.length > 0) {
+    const convertedEvents = historicalEvents
+      .map((h) => convertHistoricalToVietnamEvent(h))
+      .sort((a, b) => getEventPriorityScore(b, year) - getEventPriorityScore(a, year));
+
+    return {
+      event: convertedEvents[0],
+      allEventsToday: convertedEvents,
+      historicalEventsToday: historicalEvents,
+      isToday: true,
+      daysUntil: 0,
+      solarDateFormatted,
+      lunarDateFormatted,
+      badgeLabel: "ĐANG DIỄN RA",
+      badgeSub: convertedEvents[0].displayDate,
+      todaySolar: { day, month, year },
+      todayLunar: lunar,
+    };
+  }
+
+  // Graceful fallback when today has no historical milestones in dataset
+  const fallbackEvent: VietnamEvent = {
+    id: `hist-fallback-${month}-${day}`,
+    title: "Hôm nay chưa có sự kiện lịch sử nổi bật",
+    shortDescription: "Hiện chưa có sự kiện lịch sử nổi bật được ghi nhận cho ngày này trong tư liệu lịch sử. Cùng khám phá thêm các bộ phim và tài liệu lịch sử Việt Nam trên Nanaflix.",
+    bannerDescription: "Hôm nay chưa có sự kiện lịch sử nổi bật. Cùng Nanaflix đón đọc và tìm hiểu các trang sử hào hùng của dân tộc Việt Nam qua các tác phẩm điện ảnh.",
+    description: "Hôm nay chưa có sự kiện lịch sử nổi bật.",
+    category: "vietnam-history",
+    categoryLabel: "Lịch sử Việt Nam",
+    nature: "historical-anniversary",
+    natureLabel: "Lịch sử",
+    priority: 0,
+    solarDate: { month, day },
+    displayDate: `${String(day).padStart(2, "0")}/${String(month).padStart(2, "0")}`,
+    origin: "Tư liệu lịch sử Việt Nam",
+    significance: "Dòng chảy lịch sử hào hùng dựng nước và giữ nước của dân tộc.",
+    didYouKnow: "Mỗi ngày trôi qua trong lịch sử đều ghi dấu những bước chuyển mình của đất nước.",
+    milestones: [],
+    quote: null,
+    message: null,
+    tag: "Lịch sử",
+    accentGradient: "from-red-950/40 via-zinc-900 to-zinc-950",
+    relatedLink: null,
+    historicalEventId: `hist-fallback-${month}-${day}`,
+  };
+
+  return {
+    event: fallbackEvent,
+    allEventsToday: [fallbackEvent],
+    historicalEventsToday: [],
+    isToday: true,
+    daysUntil: 0,
+    solarDateFormatted,
+    lunarDateFormatted,
+    badgeLabel: "LỊCH SỬ VIỆT NAM",
+    badgeSub: `${String(day).padStart(2, "0")}/${String(month).padStart(2, "0")}`,
+    todaySolar: { day, month, year },
+    todayLunar: lunar,
   };
 }
 

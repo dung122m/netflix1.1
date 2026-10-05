@@ -3,12 +3,12 @@
 import React, { useMemo, useState } from "react";
 import { VietnamTodayCard, getEventTabBadge, getCleanEventTitle } from "./VietnamTodayCard";
 import { VietnamFlagIcon } from "./VietnamFlagIcon";
-import { getVietnamTodayEvent, VietnamTodayInfo } from "@/lib/vietnamCalendar";
+import { getVietnamTodayHistoryBanner, VietnamTodayInfo } from "@/lib/vietnamCalendar";
 
 export function VietnamTodaySection() {
-  // Compute event based on current Vietnam date
+  // Compute event based on current Vietnam date strictly from GitHub Historical Events
   const info: VietnamTodayInfo = useMemo(() => {
-    return getVietnamTodayEvent();
+    return getVietnamTodayHistoryBanner();
   }, []);
 
   const events = useMemo(() => {
@@ -16,8 +16,8 @@ export function VietnamTodaySection() {
       info.allEventsToday && info.allEventsToday.length > 0
         ? info.allEventsToday
         : [info.event];
-    // Hiển thị 1 sự kiện chính + tối đa 3 sự kiện phụ xếp theo priority score giảm dần
-    return list.slice(0, 4);
+    // Keep all historical events for today
+    return list;
   }, [info]);
 
   const [selectedEventId, setSelectedEventId] = useState<string>(info.event.id);
