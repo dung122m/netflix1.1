@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
       episodeSlug: typeof body.episodeSlug === "string" ? body.episodeSlug.slice(0, 100) : undefined,
       episodeName: typeof body.episodeName === "string" ? body.episodeName.slice(0, 100) : undefined,
       userId: verifiedUserId, // Only set if token is verified by server
-      anonymousId: finalAnonymousId, // Strictly from verified cookie
+      anonymousId: verifiedUserId ? undefined : finalAnonymousId, // Strictly guest when unauthenticated
       deviceInfo: body.deviceInfo
         ? {
             deviceType: body.deviceInfo.deviceType || "desktop",

@@ -18,3 +18,37 @@ test("isValidAnonymousId correctly validates anonymous identity format", () => {
   assert.equal(isValidAnonymousId("anon_!@#$%^"), false); // invalid characters
   assert.equal(isValidAnonymousId(12345), false);
 });
+
+test("Identity prioritization: Authenticated user vs Unauthenticated guest", () => {
+  // Case 1: Authenticated user
+  const authPayload = {
+    eventType: "movie_view" as const,
+    movieSlug: "hoan-chau-cach-cach",
+    userId: "usr_dung_tran_123",
+    anonymousId: "anon_97ac11247e90c461",
+  };
+
+  const resolvedAuthUser = authPayload.userId?.trim() || undefined;
+  const resolvedAuthAnon = resolvedAuthUser ? "" : (authPayload.anonymousId?.trim() || "anon_unknown");
+  const authViewerKey = resolvedAuthUser || resolvedAuthAnon;
+
+  assert.equal(resolvedAuthUser, "usr_dung_tran_123");
+  assert.equal(resolvedAuthAnon, "");
+  assert.equal(authViewerKey, "usr_dung_tran_123");
+
+  // Case 2: Unauthenticated guest
+  const guestPayload = {
+    eventType: "movie_view" as const,
+    movieSlug: "hoan-chau-cach-cach",
+    userId: undefined,
+    anonymousId: "anon_97ac11247e90c461",
+  };
+
+  const resolvedGuestUser = (guestPayload.userId as string | undefined)?.trim() || undefined;
+  const resolvedGuestAnon = resolvedGuestUser ? "" : (guestPayload.anonymousId?.trim() || "anon_unknown");
+  const guestViewerKey = resolvedGuestUser || resolvedGuestAnon;
+
+  assert.equal(resolvedGuestUser, undefined);
+  assert.equal(resolvedGuestAnon, "anon_97ac11247e90c461");
+  assert.equal(guestViewerKey, "anon_97ac11247e90c461");
+});

@@ -198,8 +198,9 @@ export async function recordAnalyticsEvent(payload: AnalyticsEventPayload): Prom
   }
 
   const now = payload.timestamp || Date.now();
-  const anonymousId = payload.anonymousId || "anon_unknown";
   const userId = payload.userId?.trim() || undefined;
+  // Khi user đã đăng nhập, identity tuyệt đối là userId, không lưu song song Guest anonymousId
+  const anonymousId = userId ? "" : (payload.anonymousId?.trim() || "anon_unknown");
   const viewerKey = userId || anonymousId;
   const movieSlug = payload.movieSlug?.trim() || undefined;
 
@@ -299,7 +300,7 @@ export async function recordAnalyticsEvent(payload: AnalyticsEventPayload): Prom
         await redis.sadd("analytics:unique:total", viewerKey);
         if (userId) {
           await redis.sadd("analytics:unique:users", userId);
-        } else {
+        } else if (anonymousId) {
           await redis.sadd("analytics:unique:guests", anonymousId);
         }
         await redis.sadd(`analytics:unique:movie:${movieSlug}`, viewerKey);
@@ -341,7 +342,7 @@ export async function recordAnalyticsEvent(payload: AnalyticsEventPayload): Prom
       id: viewerKey,
       isUser: Boolean(userId),
       userId,
-      anonymousId,
+      anonymousId: userId ? "" : anonymousId,
       deviceType: eventRecord.deviceType || "desktop",
       os: eventRecord.os || "Other",
       browser: eventRecord.browser || "Other",
@@ -363,7 +364,7 @@ export async function recordAnalyticsEvent(payload: AnalyticsEventPayload): Prom
         episode_slug: eventRecord.episodeSlug || null,
         episode_name: eventRecord.episodeName || null,
         user_id: eventRecord.userId || null,
-        anonymous_id: eventRecord.anonymousId,
+        anonymous_id: eventRecord.userId ? null : (eventRecord.anonymousId || null),
         device_type: eventRecord.deviceType,
         os: eventRecord.os,
         browser: eventRecord.browser,
@@ -744,12 +745,12 @@ export async function getAnalyticsDashboardStats(
     uniqueAll.add(viewerKey);
     if (ev.userId) {
       uniqueUsers.add(ev.userId);
-    } else {
+    } else if (ev.anonymousId) {
       uniqueGuests.add(ev.anonymousId);
     }
 
     // Active guests in last 30 minutes
-    if (!ev.userId && ev.createdAt >= activeThreshold) {
+    if (!ev.userId && ev.anonymousId && ev.createdAt >= activeThreshold) {
       activeGuestSet.add(ev.anonymousId);
     }
 

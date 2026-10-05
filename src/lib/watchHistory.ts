@@ -197,31 +197,51 @@ export const saveWatchHistory = (
       saveWatchItemToCloudDebounced(auth.currentUser.uid, newItem, 2000, { force: true });
     }
 
-    // Ghi nhận lượt xem vào Database & Analytics để tính BXH (throttled 30s per movie trên client)
+    // Ghi nhận lịch sử xem vào Supabase watch_history (throttled 30s per movie trên client)
     try {
       const nowMs = Date.now();
       const lastRecorded = clientViewThrottleMap.get(newItem.slug) || 0;
       if (nowMs - lastRecorded >= 30000) {
         clientViewThrottleMap.set(newItem.slug, nowMs);
-        const anonymousId = getOrCreateAnonymousId();
-        fetch("/api/record-view", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            slug: newItem.slug,
-            title: newItem.title,
-            poster: newItem.poster,
-            year: newItem.year,
-            quality: newItem.quality,
-            category: newItem.category,
-            episodeSlug: newItem.episodeSlug,
-            episodeName: newItem.episodeName,
-            progressSeconds: newItem.progressSeconds,
-            durationSeconds: newItem.durationSeconds,
-            anonymousId,
-          }),
-          keepalive: true,
-        }).catch(() => {});
+        (async () => {
+          const headers: Record<string, string> = { "Content-Type": "application/json" };
+          let userId: string | undefined = undefined;
+          if (auth) {
+            if (!auth.currentUser && typeof auth.authStateReady === "function") {
+              await Promise.race([
+                auth.authStateReady(),
+                new Promise((resolve) => setTimeout(resolve, 3000)),
+              ]).catch(() => {});
+            }
+            if (auth.currentUser) {
+              userId = auth.currentUser.uid;
+              const token = await auth.currentUser.getIdToken().catch(() => null);
+              if (token) {
+                headers["Authorization"] = `Bearer ${token}`;
+              }
+            }
+          }
+          const anonymousId = userId ? undefined : getOrCreateAnonymousId();
+          await fetch("/api/record-view", {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+              slug: newItem.slug,
+              title: newItem.title,
+              poster: newItem.poster,
+              year: newItem.year,
+              quality: newItem.quality,
+              category: newItem.category,
+              episodeSlug: newItem.episodeSlug,
+              episodeName: newItem.episodeName,
+              progressSeconds: newItem.progressSeconds,
+              durationSeconds: newItem.durationSeconds,
+              userId,
+              anonymousId,
+            }),
+            keepalive: true,
+          }).catch(() => {});
+        })().catch(() => {});
       }
     } catch {
       // Ignore

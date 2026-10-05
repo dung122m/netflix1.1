@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { recordMovieViewSupabase } from "@/services/communityWatchService";
-import { recordAnalyticsEvent } from "@/services/analyticsService";
 import { invalidateTrendingCache } from "@/app/api/trending-community/route";
 import { checkDistributedRateLimit, getClientIp } from "@/lib/security";
 import { verifyServerAuth } from "@/lib/serverAuth";
@@ -44,7 +43,7 @@ export async function POST(req: NextRequest) {
 
     const cleanSlug = slug.trim();
 
-    // 2. Xác thực danh tính phía Server: ưu tiên userId khi đã đăng nhập, ngược lại dùng anonymousId ổn định
+    // 2. Xác thực danh tính phía Server: ưu tiên userId khi đã đăng nhập, tuyệt đối không fallback sang anonymousId khi đã xác thực
     const auth = await verifyServerAuth(req);
     const cookieAnonId = req.cookies.get("nanaflix_anon_id")?.value;
     const isValidAnon = (id: unknown): id is string => typeof id === "string" && /^anon_[a-zA-Z0-9_-]{8,64}$/.test(id);
@@ -54,6 +53,7 @@ export async function POST(req: NextRequest) {
 
     if (auth.isAuthenticated && auth.userId) {
       verifiedUserId = auth.userId;
+      verifiedAnonymousId = undefined; // Khi đã đăng nhập, tuyệt đối không dùng Guest identity
     } else {
       verifiedAnonymousId = isValidAnon(bodyAnonId) ? bodyAnonId : (isValidAnon(cookieAnonId) ? cookieAnonId : undefined);
     }
@@ -73,22 +73,7 @@ export async function POST(req: NextRequest) {
       console.warn("[record-view API] Lỗi ghi watch_history:", err);
     });
 
-    // 4. Ghi nhận lượt xem vào Analytics Pipeline (Redis Sorted Sets + Supabase analytics_events)
-    await recordAnalyticsEvent({
-      eventType: "movie_view",
-      movieSlug: cleanSlug,
-      movieTitle: title || cleanSlug,
-      episodeSlug,
-      episodeName,
-      userId: verifiedUserId,
-      anonymousId: verifiedAnonymousId,
-      durationSeconds: Number(durationSeconds) || undefined,
-      progressSeconds: Number(progressSeconds) || undefined,
-    }).catch((err) => {
-      console.warn("[record-view API] Lỗi ghi analytics event:", err);
-    });
-
-    // 5. Invalidate bộ nhớ RAM server cache để BXH cập nhật tức thì
+    // 4. Invalidate bộ nhớ RAM server cache để BXH cập nhật tức thì
     try {
       invalidateTrendingCache();
     } catch {}
