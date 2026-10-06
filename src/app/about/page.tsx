@@ -3,18 +3,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import {
-  Film,
   Sparkles,
   Bot,
   Tv,
-  Compass,
   Layers,
   Database,
   Cpu,
   ShieldCheck,
   Zap,
   Play,
-  HeartHandshake,
   MonitorSmartphone,
   Flame,
   CheckCircle,
@@ -22,13 +19,8 @@ import {
   MessageSquare,
   AlertTriangle,
   Send,
-  HelpCircle,
   Clock,
-  Radio,
   ExternalLink,
-  Code2,
-  Lock,
-  Globe,
   Milestone,
 } from "lucide-react";
 import { Navbar } from "@/components/Navbar";

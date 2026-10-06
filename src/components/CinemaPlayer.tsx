@@ -7,8 +7,6 @@ import Hls from "hls.js";
 import {
   Maximize2,
   Minimize2,
-  Moon,
-  Sun,
   SkipBack,
   SkipForward,
   Play,

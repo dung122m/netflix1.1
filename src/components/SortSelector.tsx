@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowUpDown, Check, Clock, Star, Flame, Calendar, Loader2 } from "lucide-react";
+import { ArrowUpDown, Check, Clock, Star, Flame, Calendar } from "lucide-react";
 
 const SORT_OPTIONS = [
   { label: "Điểm đánh giá cao", value: "rating", icon: Star, iconColor: "text-amber-400" },
@@ -17,7 +17,7 @@ export const SortSelector: React.FC = () => {
   const rawSort = searchParams.get("sort") || "";
   const currentSort = rawSort || "rating";
   const [isOpen, setIsOpen] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   const containerRef = useRef<HTMLDivElement>(null);
 
   const activeOption =

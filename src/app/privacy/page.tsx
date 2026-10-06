@@ -8,16 +8,10 @@ import {
   Database,
   KeyRound,
   Trash2,
-  ArrowLeft,
   CheckCircle2,
   FileText,
-  HelpCircle,
-  Server,
-  Globe,
-  UserCheck,
   Mail,
   Scale,
-  Sparkles,
 } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";

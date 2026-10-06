@@ -1134,9 +1134,22 @@ export async function getAnalyticsDashboardStats(
   let liveWatching: LiveWatchingSession[] = [];
   try {
     const { data: handoffs, error: handoffErr } = supabaseHandoffResult ?? { data: null, error: null };
-    const handoffRows = (!handoffErr && handoffs && Array.isArray(handoffs)) ? (handoffs as any[]) : [];
+    interface HandoffRow {
+      user_id?: string;
+      duration_seconds?: number | string;
+      progress_seconds?: number | string;
+      updated_at?: string | number;
+      movie_title?: string;
+      movie_slug?: string;
+      episode_name?: string;
+      episode_slug?: string;
+      device_name?: string;
+      poster?: string;
+    }
+    const rawHandoffRows = (!handoffErr && handoffs && Array.isArray(handoffs)) ? (handoffs as HandoffRow[]) : [];
+    const handoffRows = rawHandoffRows.filter((h): h is HandoffRow & { user_id: string } => Boolean(h.user_id));
 
-    const handoffUserIds = handoffRows.map((h) => h.user_id).filter(Boolean);
+    const handoffUserIds = handoffRows.map((h) => h.user_id);
     const recentActivityUserIds = filteredEvents.slice(0, 40).map((e) => e.userId).filter(Boolean) as string[];
     const userIds = Array.from(new Set([...handoffUserIds, ...recentActivityUserIds]));
 

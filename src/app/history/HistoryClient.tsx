@@ -5,17 +5,13 @@ import Link from "next/link";
 import {
   Search,
   Calendar,
-  Filter,
   RotateCcw,
-  Clock,
   Landmark,
   Sparkles,
   ChevronDown,
   ArrowLeft,
   X,
   History as HistoryIcon,
-  Tag,
-  Flame,
   ShieldCheck,
   BookOpen,
 } from "lucide-react";
@@ -23,11 +19,56 @@ import allHistoryData from "@/data/history/catalog/allHistory.json";
 import { HISTORICAL_PERIODS, getHistoricalPeriodById } from "@/data/history/periods";
 import { resolveHistoricalFigure } from "@/data/history/figures";
 import { getEventImage, getPeriodImage } from "@/data/history/images";
-import { HistoricalEvent, HistoricalPeriodId, HistoricalPrecision } from "@/data/history/types";
+import { HistoricalEvent, HistoricalPrecision } from "@/data/history/types";
 import { getVietnamNow } from "@/lib/vietnamCalendar";
 
 const ALL_EVENTS = allHistoryData as HistoricalEvent[];
 const PAGE_SIZE = 40;
+
+const PERIOD_COUNTS: Record<string, number> = (() => {
+  const map: Record<string, number> = {};
+  for (const e of ALL_EVENTS) {
+    map[e.periodId] = (map[e.periodId] || 0) + 1;
+  }
+  return map;
+})();
+
+function computeTodayHighlight() {
+  const now = getVietnamNow();
+  const currentMonth = now.getMonth() + 1;
+  const currentDay = now.getDate();
+  const currentYear = now.getFullYear();
+
+  // Find exact day events occurring on today's month & day
+  const todayEvents = ALL_EVENTS.filter(
+    (e) => e.date.precision === "exact_day" && e.date.month === currentMonth && e.date.day === currentDay
+  );
+
+  if (todayEvents.length > 0) {
+    // Sort by priorityScore desc
+    const sorted = [...todayEvents].sort((a, b) => (b.priorityScore || 0) - (a.priorityScore || 0));
+    return {
+      isExactToday: true,
+      events: sorted,
+      primary: sorted[0],
+      dateFormatted: `${currentDay.toString().padStart(2, "0")}/${currentMonth.toString().padStart(2, "0")}`,
+      currentYear,
+    };
+  }
+
+  // Fallback: monthly notable events
+  const monthEvents = ALL_EVENTS.filter(
+    (e) => e.date.month === currentMonth
+  ).sort((a, b) => (b.priorityScore || 0) - (a.priorityScore || 0));
+
+  return {
+    isExactToday: false,
+    events: monthEvents.slice(0, 3),
+    primary: monthEvents[0] || ALL_EVENTS[0],
+    dateFormatted: `Tháng ${currentMonth}`,
+    currentYear,
+  };
+}
 
 export function HistoryClient() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -36,52 +77,8 @@ export function HistoryClient() {
   const [yearFilter, setYearFilter] = useState<string>("");
   const [displayCount, setDisplayCount] = useState<number>(PAGE_SIZE);
 
-  // Pre-compute event counts per period to eliminate repetitive array filtering
-  const periodCounts = useMemo(() => {
-    const map: Record<string, number> = {};
-    for (const e of ALL_EVENTS) {
-      map[e.periodId] = (map[e.periodId] || 0) + 1;
-    }
-    return map;
-  }, []);
-
-  // 1. "Hôm nay trong lịch sử" milestone calculation
-  const todayHighlight = useMemo(() => {
-    const now = getVietnamNow();
-    const currentMonth = now.getMonth() + 1;
-    const currentDay = now.getDate();
-    const currentYear = now.getFullYear();
-
-    // Find exact day events occurring on today's month & day
-    const todayEvents = ALL_EVENTS.filter(
-      (e) => e.date.precision === "exact_day" && e.date.month === currentMonth && e.date.day === currentDay
-    );
-
-    if (todayEvents.length > 0) {
-      // Sort by priorityScore desc
-      const sorted = [...todayEvents].sort((a, b) => (b.priorityScore || 0) - (a.priorityScore || 0));
-      return {
-        isExactToday: true,
-        events: sorted,
-        primary: sorted[0],
-        dateFormatted: `${currentDay.toString().padStart(2, "0")}/${currentMonth.toString().padStart(2, "0")}`,
-        currentYear,
-      };
-    }
-
-    // Fallback: monthly notable events
-    const monthEvents = ALL_EVENTS.filter(
-      (e) => e.date.month === currentMonth
-    ).sort((a, b) => (b.priorityScore || 0) - (a.priorityScore || 0));
-
-    return {
-      isExactToday: false,
-      events: monthEvents.slice(0, 3),
-      primary: monthEvents[0] || ALL_EVENTS[0],
-      dateFormatted: `Tháng ${currentMonth}`,
-      currentYear,
-    };
-  }, []);
+  const periodCounts = PERIOD_COUNTS;
+  const todayHighlight = useMemo(() => computeTodayHighlight(), []);
 
   // 2. Filter & Search across all 3,388 events
   const filteredEvents = useMemo(() => {

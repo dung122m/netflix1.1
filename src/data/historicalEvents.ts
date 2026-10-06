@@ -8,7 +8,7 @@
 import { FEATURED_HISTORICAL_EVENTS } from "./history/featuredHistory";
 import allHistoryData from "./history/catalog/allHistory.json";
 import { getEventImage } from "./history/images";
-import { HistoricalVisualTheme } from "./history/types";
+import { HistoricalEvent, HistoricalVisualTheme } from "./history/types";
 
 export type { HistoricalVisualTheme };
 
@@ -39,7 +39,7 @@ function buildHistoricalEventsDataset(): VietnamHistoricalEvent[] {
 
   // 1. Process allHistoryData from GitHub repository
   if (Array.isArray(allHistoryData)) {
-    for (const raw of allHistoryData as any[]) {
+    for (const raw of allHistoryData as HistoricalEvent[]) {
       if (!raw || !raw.id) continue;
       const m = raw.date?.month;
       const d = raw.date?.day;
@@ -57,8 +57,8 @@ function buildHistoricalEventsDataset(): VietnamHistoricalEvent[] {
             (f.date?.month === m &&
               f.date?.day === d &&
               (f.year === year || Math.abs((f.year || 0) - year) <= 1) &&
-              (f.title.toLowerCase().includes(raw.title.toLowerCase().slice(0, 15)) ||
-                raw.title.toLowerCase().includes(f.title.toLowerCase().slice(0, 15))))
+              (f.title.toLowerCase().includes((raw.title || "").toLowerCase().slice(0, 15)) ||
+                (raw.title || "").toLowerCase().includes(f.title.toLowerCase().slice(0, 15))))
         );
 
         if (curatedMatch && !seenIds.has(curatedMatch.id)) {
@@ -73,9 +73,9 @@ function buildHistoricalEventsDataset(): VietnamHistoricalEvent[] {
           solarDate: { month: m, day: d },
           lunarDate: raw.date?.lunarDate || curatedMatch?.date?.lunarDate,
           year,
-          title: curatedMatch?.title || raw.title,
-          summary: curatedMatch?.summary || raw.summary,
-          context: curatedMatch?.context || raw.context || raw.summary,
+          title: curatedMatch?.title || raw.title || "",
+          summary: curatedMatch?.summary || raw.summary || "",
+          context: curatedMatch?.context || raw.context || undefined,
           significance: curatedMatch?.significance || raw.significance || "Sự kiện trong dòng thời gian lịch sử Việt Nam.",
           figures: curatedMatch?.figures || raw.figures,
           location: curatedMatch?.location || raw.location,

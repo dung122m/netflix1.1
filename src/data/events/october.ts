@@ -124,6 +124,47 @@ export const OCTOBER_EVENTS: VietnamEvent[] = [
     "bannerDescription": "Thủ tướng Chính phủ ký Quyết định số 1271/QĐ-TTg lấy ngày 2/10 làm Ngày Khuyến học Việt Nam từ năm 2008. Khơi dậy truyền thống hiếu học, phong trào 'Gia đình học tập', 'Dòng họ học tập' trên khắp các vùng quê. Đây là dịp ý nghĩa để trao học bổng khuyến học cho học sinh nghèo hiếu học."
   },
   {
+    "id": "ev-10-02-world-smile-day",
+    "title": "Ngày Nụ Cười Thế Giới (World Smile Day)",
+    "shortDescription": "Một nụ cười nở trên môi là một tia nắng sưởi ấm tâm hồn — Hãy trao nhau nụ cười hôm nay!",
+    "category": "fun",
+    "categoryLabel": "Ngày chủ đề đời sống",
+    "nature": "theme-day",
+    "natureLabel": "Chủ đề thú vị",
+    "priority": 55,
+    "dateRule": "first-friday-october",
+    "solarDate": {
+      "month": 10,
+      "day": 2
+    },
+    "displayDate": "Thứ Sáu đầu tiên của Tháng 10",
+    "dateLabel": "02 Tháng 10",
+    "origin": "Khởi xướng bởi Harvey Ball, họa sĩ đã sáng tạo ra biểu tượng mặt cười 'Smiley Face' màu vàng năm 1963. Được tổ chức thường niên vào Thứ Sáu đầu tiên của Tháng 10.",
+    "significance": "Nụ cười kích thích giải phóng endorphin, làm dịu cơn đau, giảm căng thẳng và kết nối con người kỳ diệu.",
+    "didYouKnow": "Thông điệp của ngày này: 'Hãy làm một hành động tử tế, giúp một ai đó mỉm cười!'.",
+    "milestones": [
+      "Trao nụ cười thân thiện với mọi người quanh ta"
+    ],
+    "quote": null,
+    "tag": "Đời sống & Văn hóa",
+    "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
+    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
+    "meaning": "Nụ cười kích thích giải phóng endorphin, làm dịu cơn đau, giảm căng thẳng và kết nối con người kỳ diệu.",
+    "subtitle": "Một nụ cười nở trên môi là một tia nắng sưởi ấm tâm hồn",
+    "activities": [
+      "Khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này",
+      "Chia sẻ thông điệp tích cực và năng lượng lạc quan tới bạn bè, người thân",
+      "Dành thời gian thư giãn và trải nghiệm những khoảnh khắc ý nghĩa trong cuộc sống"
+    ],
+    "whyItMatters": null,
+    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "interestingFacts": [
+      "Thông điệp của ngày này: 'Hãy làm một hành động tử tế, giúp một ai đó mỉm cười!'."
+    ],
+    "description": "Một nụ cười nở trên môi là một tia nắng sưởi ấm tâm hồn — Hãy trao nhau nụ cười hôm nay!",
+    "bannerDescription": "Khởi xướng bởi Harvey Ball, họa sĩ đã sáng tạo ra biểu tượng mặt cười 'Smiley Face' màu vàng năm 1963. Nụ cười kích thích giải phóng endorphin, làm dịu cơn đau, giảm căng thẳng và kết nối con người kỳ diệu. Đây là dịp ý nghĩa để khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này."
+  },
+  {
     "id": "ev-10-03-habitat-day",
     "title": "Ngày Môi Trường Định Cư Thế Giới (World Habitat Day - UN)",
     "shortDescription": "Mỗi người dân đều có quyền có một mái nhà an cư lạc nghiệp và môi trường sống lành mạnh.",
@@ -137,7 +178,8 @@ export const OCTOBER_EVENTS: VietnamEvent[] = [
       "day": 3
     },
     "displayDate": "03 Tháng 10",
-    "origin": "Được Liên Hợp Quốc chọn vào thứ Hai đầu tiên của tháng 10 nhằm hướng tới phát triển đô thị bền vững.",
+    "dateLabel": "03 Tháng 10",
+    "origin": "Được Liên Hợp Quốc chọn vào Tháng 10 hằng năm nhằm hướng tới phát triển đô thị bền vững.",
     "significance": "Khuyến khích xây dựng nhà ở xã hội, phủ xanh đô thị và giải quyết ô nhiễm rác thải ở các khu dân cư.",
     "didYouKnow": "An cư thì mới lạc nghiệp là ước vọng giản dị mà thiêng liêng của mỗi người lao động.",
     "milestones": [
@@ -147,7 +189,6 @@ export const OCTOBER_EVENTS: VietnamEvent[] = [
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
     "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
-    "dateLabel": "03 Tháng 10",
     "meaning": "Khuyến khích xây dựng nhà ở xã hội, phủ xanh đô thị và giải quyết ô nhiễm rác thải ở các khu dân cư.",
     "subtitle": "Mỗi người dân đều có quyền có một mái nhà an cư lạc nghiệp và môi trường sống...",
     "activities": [
@@ -161,7 +202,7 @@ export const OCTOBER_EVENTS: VietnamEvent[] = [
       "An cư thì mới lạc nghiệp là ước vọng giản dị mà thiêng liêng của mỗi người lao động."
     ],
     "description": "Mỗi người dân đều có quyền có một mái nhà an cư lạc nghiệp và môi trường sống lành mạnh.",
-    "bannerDescription": "Được Liên Hợp Quốc chọn vào thứ Hai đầu tiên của tháng 10 nhằm hướng tới phát triển đô thị bền vững. Khuyến khích xây dựng nhà ở xã hội, phủ xanh đô thị và giải quyết ô nhiễm rác thải ở các khu dân cư. Đây là dịp ý nghĩa để trồng thêm cây xanh tại khu dân cư, ban công hoặc nơi làm việc."
+    "bannerDescription": "Được Liên Hợp Quốc chọn vào Tháng 10 hằng năm nhằm hướng tới phát triển đô thị bền vững. Khuyến khích xây dựng nhà ở xã hội, phủ xanh đô thị và giải quyết ô nhiễm rác thải ở các khu dân cư. Đây là dịp ý nghĩa để trồng thêm cây xanh tại khu dân cư, ban công hoặc nơi làm việc."
   },
   {
     "id": "ev-10-04-tuong-niem-vo-nguyen-giap",
@@ -383,44 +424,45 @@ export const OCTOBER_EVENTS: VietnamEvent[] = [
     "bannerDescription": "UNESCO thành lập năm 1994 kỷ niệm ngày thông qua Khuyến nghị về vị thế của giáo viên năm 1966. Tôn vinh vai trò không thể thay thế của người thầy trong việc truyền cảm hứng và bồi dưỡng nhân cách. Đây là dịp ý nghĩa để về thăm trường xưa, tri ân thầy cô giáo đã tận tụy dìu dắt bao thế hệ."
   },
   {
-    "id": "ev-10-06-world-smile-day",
-    "title": "Ngày Nụ Cười Thế Giới (World Smile Day)",
-    "shortDescription": "Một nụ cười nở trên môi là một tia nắng sưởi ấm tâm hồn — Hãy trao nhau nụ cười hôm nay!",
-    "category": "fun",
-    "categoryLabel": "Ngày chủ đề đời sống",
-    "nature": "theme-day",
-    "natureLabel": "Chủ đề thú vị",
-    "priority": 55,
+    "id": "ev-10-06-world-cp-day",
+    "title": "Ngày Bại Não Thế Giới (World Cerebral Palsy Day)",
+    "shortDescription": "Đồng hành, sẻ chia và thắp sáng hy vọng — kiến tạo một thế giới bình đẳng và hòa nhập cho người bại não.",
+    "category": "social-family",
+    "categoryLabel": "Ngày vì cộng đồng",
+    "nature": "international-day",
+    "natureLabel": "Quốc tế hưởng ứng",
+    "priority": 65,
     "solarDate": {
       "month": 10,
       "day": 6
     },
     "displayDate": "06 Tháng 10",
-    "origin": "Khởi xướng bởi Harvey Ball, họa sĩ đã sáng tạo ra biểu tượng mặt cười 'Smiley Face' màu vàng năm 1963.",
-    "significance": "Nụ cười kích thích giải phóng endorphin, làm dịu cơn đau, giảm căng thẳng và kết nối con người kỳ diệu.",
-    "didYouKnow": "Thông điệp của ngày này: 'Hãy làm một hành động tử tế, giúp một ai đó mỉm cười!'.",
+    "dateLabel": "06 Tháng 10",
+    "origin": "Được Liên minh Bại não Thế giới (World CP Day) thành lập tổ chức vào ngày 6 tháng 10 hằng năm nhằm kết nối hơn 17 triệu người mắc chứng bại não trên toàn cầu và nâng cao nhận thức cộng đồng.",
+    "significance": "Kêu gọi xóa bỏ rào cản xã hội, hỗ trợ phục hồi chức năng và mang lại cơ hội học tập, việc làm bình đẳng cho người khuyết tật.",
+    "didYouKnow": "Màu xanh lá cây là biểu tượng toàn cầu của Ngày Bại Não Thế Giới, tượng trưng cho hy vọng, sự sống và ý chí vươn lên.",
     "milestones": [
-      "Trao nụ cười thân thiện với mọi người quanh ta"
+      "Hưởng ứng Ngày Bại Não Thế Giới 06/10",
+      "Lan tỏa thông điệp thấu hiểu và sẻ chia yêu thương"
     ],
     "quote": null,
     "tag": "Đời sống & Văn hóa",
     "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
-    "accentGradient": "from-amber-600/30 via-red-600/20 to-zinc-950",
-    "dateLabel": "06 Tháng 10",
-    "meaning": "Nụ cười kích thích giải phóng endorphin, làm dịu cơn đau, giảm căng thẳng và kết nối con người kỳ diệu.",
-    "subtitle": "Một nụ cười nở trên môi là một tia nắng sưởi ấm tâm hồn",
+    "accentGradient": "from-emerald-600/30 via-teal-600/20 to-zinc-950",
+    "meaning": "Nâng cao nhận thức xã hội, hỗ trợ y tế và tạo cơ hội bình đẳng cho người bại não hòa nhập cuộc sống.",
+    "subtitle": "Đồng hành, sẻ chia và thắp sáng hy vọng cho người bại não",
     "activities": [
-      "Khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này",
-      "Chia sẻ thông điệp tích cực và năng lượng lạc quan tới bạn bè, người thân",
-      "Dành thời gian thư giãn và trải nghiệm những khoảnh khắc ý nghĩa trong cuộc sống"
+      "Lan tỏa thông điệp thấu hiểu và chia sẻ tới người mắc chứng bại não và gia đình",
+      "Ủng hộ các chương trình trị liệu, phục hồi chức năng và giáo dục hòa nhập",
+      "Chung tay xây dựng không gian sống và công trình công cộng thân thiện cho người khuyết tật"
     ],
     "whyItMatters": null,
-    "message": "Chúc bạn có một ngày trọn vẹn niềm vui, hạnh phúc và gặt hái nhiều điều tốt đẹp.",
+    "message": "Mỗi người sinh ra đều có quyền được yêu thương, tôn trọng và trao cơ hội phát triển trọn vẹn khả năng của mình.",
     "interestingFacts": [
-      "Thông điệp của ngày này: 'Hãy làm một hành động tử tế, giúp một ai đó mỉm cười!'."
+      "Màu xanh lá cây là biểu tượng toàn cầu của Ngày Bại Não Thế Giới, tượng trưng cho hy vọng, sự sống và ý chí vươn lên."
     ],
-    "description": "Một nụ cười nở trên môi là một tia nắng sưởi ấm tâm hồn — Hãy trao nhau nụ cười hôm nay!",
-    "bannerDescription": "Khởi xướng bởi Harvey Ball, họa sĩ đã sáng tạo ra biểu tượng mặt cười 'Smiley Face' màu vàng năm 1963. Nụ cười kích thích giải phóng endorphin, làm dịu cơn đau, giảm căng thẳng và kết nối con người kỳ diệu. Đây là dịp ý nghĩa để khám phá ý nghĩa đặc biệt và những câu chuyện truyền cảm hứng của ngày này."
+    "description": "Đồng hành, sẻ chia và thắp sáng hy vọng — kiến tạo một thế giới bình đẳng và hòa nhập cho người bại não.",
+    "bannerDescription": "Được Liên minh Bại não Thế giới (World CP Day) thành lập tổ chức vào ngày 6 tháng 10 hằng năm. Kêu gọi cộng đồng xóa bỏ định kiến, chung tay hỗ trợ người mắc chứng bại não hòa nhập cuộc sống và tiếp cận giáo dục, y tế bình đẳng."
   },
   {
     "id": "ev-10-07-viec-lam-thoa-dang",
@@ -588,6 +630,46 @@ export const OCTOBER_EVENTS: VietnamEvent[] = [
     ],
     "description": "Hà Nội rợp cờ hoa đón mừng đoàn quân chiến thắng và khát vọng tiên phong kiến tạo xã hội số hiện đại.",
     "bannerDescription": "Sáng 10/10/1954, các cánh quân Đại đoàn Quân Tiên Phong tiến vào tiếp quản Hà Nội; ngày 10/10 cũng là Ngày Chuyển đổi số Quốc gia và Ngày Luật sư Việt Nam. Mở ra trang sử mới xây dựng Thủ đô ngàn năm văn hiến hòa bình; đồng thời thúc đẩy công nghệ Make in Vietnam. Người dân và các gia đình thường trùng trùng quân đi như sóng tiến qua năm cửa ô rực cờ hoa tiếp quản Thủ đô."
+  },
+  {
+    "id": "ev-10-10-suc-khoe-tam-than",
+    "title": "Ngày Sức Khỏe Tâm Thần Thế Giới (World Mental Health Day)",
+    "shortDescription": "Chăm sóc sức khỏe tinh thần — biết lắng nghe, sẻ chia và yêu thương chính bản thân mình mỗi ngày.",
+    "category": "international",
+    "categoryLabel": "Ngày quốc tế hưởng ứng",
+    "nature": "international-day",
+    "natureLabel": "Quốc tế hưởng ứng",
+    "priority": 60,
+    "solarDate": {
+      "month": 10,
+      "day": 10
+    },
+    "displayDate": "10 Tháng 10",
+    "dateLabel": "10 Tháng 10",
+    "origin": "Được Liên đoàn Sức khỏe Tâm thần Thế giới (WFMH) và WHO khởi xướng từ năm 1992.",
+    "significance": "Nâng cao nhận thức xã hội về sức khỏe tinh thần, xóa bỏ định kiến và hỗ trợ tâm lý cộng đồng.",
+    "didYouKnow": "Sức khỏe tâm thần quan trọng không kém sức khỏe thể chất đối với chất lượng cuộc sống mỗi người.",
+    "milestones": [
+      "Hưởng ứng Ngày Sức Khỏe Tâm Thần Thế Giới 10/10"
+    ],
+    "quote": null,
+    "tag": "Đời sống & Văn hóa",
+    "imageUrl": "https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=1200&q=80",
+    "accentGradient": "from-teal-600/30 via-emerald-600/20 to-zinc-950",
+    "meaning": "Chăm sóc tâm trí, giảm bớt áp lực và xây dựng lối sống cân bằng, lạc quan.",
+    "subtitle": "Chăm sóc sức khỏe tâm thần và tinh thần bình an",
+    "activities": [
+      "Dành thời gian nghỉ ngơi, thư giãn và lắng nghe cảm xúc bản thân",
+      "Chia sẻ, tâm sự cùng bạn bè và người thân khi gặp áp lực cuộc sống",
+      "Thực hành thiền định, thể dục nhẹ nhàng để cân bằng năng lượng tích cực"
+    ],
+    "whyItMatters": null,
+    "message": "Hãy dịu dàng với chính mình và luôn nhớ rằng bạn không bao giờ phải đơn độc trên hành trình này.",
+    "interestingFacts": [
+      "Sức khỏe tâm thần quan trọng không kém sức khỏe thể chất đối với chất lượng cuộc sống mỗi người."
+    ],
+    "description": "Chăm sóc sức khỏe tinh thần — biết lắng nghe, sẻ chia và yêu thương chính bản thân mình mỗi ngày.",
+    "bannerDescription": "Được Liên đoàn Sức khỏe Tâm thần Thế giới (WFMH) và WHO khởi xướng từ năm 1992. Nâng cao nhận thức xã hội về sức khỏe tinh thần, xóa bỏ định kiến và hỗ trợ tâm lý cộng đồng."
   },
   {
     "id": "ev-10-11-tre-em-gai",

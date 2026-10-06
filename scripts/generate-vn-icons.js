@@ -2,7 +2,7 @@ const sharp = require('sharp');
 const fs = require('fs');
 const path = require('path');
 
-// SVG content for high quality Vietnam Flag App & Favicon
+// SVG content for high quality Vietnam Rectangular Flag App & Favicon (3:2 standard ratio)
 const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
     <linearGradient id="vn-red-grad" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -14,27 +14,40 @@ const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512
       <stop offset="50%" stop-color="#FFDD00"/>
       <stop offset="100%" stop-color="#E5A900"/>
     </linearGradient>
+    <filter id="flag-shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
     <filter id="star-shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.3"/>
+      <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#000000" flood-opacity="0.25"/>
     </filter>
   </defs>
 
-  <!-- Background: Rounded App Squircle -->
-  <rect x="16" y="16" width="480" height="480" rx="108" fill="url(#vn-red-grad)"/>
+  <!-- Background: Rectangular Flag (Tỉ lệ chuẩn 3:2: width 480, height 320, căn giữa 512x512) -->
+  <rect
+    x="16"
+    y="96"
+    width="480"
+    height="320"
+    rx="20"
+    fill="url(#vn-red-grad)"
+    stroke="rgba(255, 255, 255, 0.12)"
+    stroke-width="2"
+    filter="url(#flag-shadow)"
+  />
 
-  <!-- Golden 5-point star of Vietnam (Tâm: 256, 256) -->
+  <!-- Golden 5-point star of Vietnam (Tâm: 256, 256, R = 105) -->
   <polygon
     points="
-      256, 106
-      290.1, 211
-      401, 211
-      311.2, 276.3
-      345.5, 381.8
-      256, 316.7
-      166.5, 381.8
-      200.8, 276.3
-      111, 211
-      221.9, 211
+      256, 151
+      279.6, 223.6
+      355.9, 223.6
+      294.1, 268.4
+      317.7, 340.9
+      256, 296.1
+      194.3, 340.9
+      217.9, 268.4
+      156.1, 223.6
+      232.4, 223.6
     "
     fill="url(#vn-star-grad)"
     filter="url(#star-shadow)"

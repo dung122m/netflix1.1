@@ -308,15 +308,14 @@ async function fetchAndCacheMovieDetail(slug: string, source?: "nguonc" | "ophim
           }
 
           const existingNames = new Set(
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            primary.movie.episodes.map((s: any) => (s.server_name || "").trim().toLowerCase())
+            primary.movie.episodes.map((s: { server_name?: string }) => (s.server_name || "").trim().toLowerCase())
           );
 
           for (const s of secondaryEpContainer) {
             if (!s || !Array.isArray(s.server_data) || s.server_data.length === 0) continue;
 
             // Kiểm tra xem server phụ này có mang stream khác biệt so với server chính hay không
-            const hasDistinctStream = s.server_data.some((ep: any) => {
+            const hasDistinctStream = s.server_data.some((ep: { link_m3u8?: string; link_embed?: string }) => {
               const u = (ep?.link_m3u8 || ep?.link_embed || "").trim();
               return u && !primaryStreamUrls.has(u);
             });

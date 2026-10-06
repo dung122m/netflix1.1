@@ -5,8 +5,6 @@ import Link from "next/link";
 import {
   Maximize2,
   Minimize2,
-  Moon,
-  Sun,
   Keyboard,
   SkipBack,
   SkipForward,

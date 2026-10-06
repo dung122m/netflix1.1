@@ -11,11 +11,7 @@ import {
   ArrowLeft,
   ExternalLink,
   ShieldCheck,
-  HelpCircle,
   Sparkles,
-  CheckCircle2,
-  Lock,
-  Globe,
   MessageSquare,
 } from "lucide-react";
 import { Navbar } from "@/components/Navbar";

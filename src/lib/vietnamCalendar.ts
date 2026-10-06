@@ -454,7 +454,7 @@ export function isFeaturedHistoricalEvent(hist: VietnamHistoricalEvent | Vietnam
   const normId = normalizeStringForComparison(hist.id);
   const normTitle = normalizeStringForComparison(hist.title);
 
-  // 1. Curated featured events with Tier S or A
+  // 1. Curated Tier S historical events (Major national turning-point milestones)
   const curatedMatch = FEATURED_HISTORICAL_EVENTS.find(
     (f) =>
       f.id === hist.id ||
@@ -463,10 +463,7 @@ export function isFeaturedHistoricalEvent(hist: VietnamHistoricalEvent | Vietnam
   );
   if (
     curatedMatch &&
-    (curatedMatch.priorityTier === "S" ||
-      curatedMatch.priorityTier === "A" ||
-      (curatedMatch.priorityScore ?? 0) >= 80 ||
-      curatedMatch.isCurated)
+    (curatedMatch.priorityTier === "S" || (curatedMatch.priorityScore ?? 0) >= 95)
   ) {
     return true;
   }
@@ -501,8 +498,8 @@ export function isFeaturedHistoricalEvent(hist: VietnamHistoricalEvent | Vietnam
     normTitle.includes("ngo quyen") ||
     normTitle.includes("dinh bo linh") ||
     normTitle.includes("nguyen trai") ||
-    (Array.isArray((hist as any).figures) &&
-      (hist as any).figures.some((fig: string) => {
+    (Array.isArray((hist as { figures?: string[] }).figures) &&
+      ((hist as { figures?: string[] }).figures ?? []).some((fig: string) => {
         const nf = normalizeStringForComparison(fig);
         return (
           nf.includes("ho chi minh") ||
@@ -541,15 +538,6 @@ export function isFeaturedHistoricalEvent(hist: VietnamHistoricalEvent | Vietnam
     normId.includes("ba-dinh-1945");
 
   if (isMajorMilestone) {
-    return true;
-  }
-
-  // 4. Dedicated visual theme and documentary image
-  if (
-    (hist as any).visualTheme &&
-    (hist as any).visualTheme !== "general-history" &&
-    Boolean(hist.imageUrl)
-  ) {
     return true;
   }
 
@@ -604,7 +592,7 @@ export function getEventPriorityScore(event: VietnamEvent, currentYear: number =
 
   const isActorEvent = Boolean(event.actorSlug) || normId.startsWith("ev actor birthday");
   const isRawHistoricalEvent =
-    Boolean((event as any).isHistoricalOnly) ||
+    Boolean((event as { isHistoricalOnly?: boolean }).isHistoricalOnly) ||
     (Boolean(event.historicalEventId) && normId.startsWith("hist repo"));
 
   // 1. TIER 1: Curated Holiday / Special Day (From VIETNAM_EVENTS or canonical merged holiday)
@@ -947,8 +935,12 @@ export function mergeAndDeduplicateEvents(
   const consumedHolidayIds = new Set<string>();
   const canonicalEvents: VietnamEvent[] = [];
 
-  // 1. Process historical events as canonical representations
-  for (const hist of historicalEvents) {
+  // 1. Process Major Historical Events independently:
+  // - Only Tier S / Major national turning-point historical milestones (isFeaturedHistoricalEvent) qualify as Hero candidates
+  // - Minor historical chronicles/statistical records are EXCLUDED from Hero candidates (preserved in historicalEventsToday for Popup)
+  const validMajorHistories = historicalEvents.filter((h) => isFeaturedHistoricalEvent(h));
+
+  for (const hist of validMajorHistories) {
     const matchingHoliday = holidayMatches.find(
       (h) => !consumedHolidayIds.has(h.id) && isDuplicateHistoricalEvent(h, hist)
     );
@@ -958,13 +950,16 @@ export function mergeAndDeduplicateEvents(
     canonicalEvents.push(convertHistoricalToVietnamEvent(hist, matchingHoliday));
   }
 
-  // 2. Add non-duplicate holiday events
+  // 2. Add non-duplicate holiday events (All valid curated holidays preserved!)
   const remainingHolidays = holidayMatches.filter((h) => !consumedHolidayIds.has(h.id));
 
-  // 3. Combine with actor birthdays
-  const allCandidates = [...canonicalEvents, ...remainingHolidays, ...actorBirthdays];
+  // 3. Add featured actor birthdays (All featured persons preserved!)
+  const validFeaturedPersons = actorBirthdays.filter((a) => isFeaturedActor(a));
 
-  // 4. Sort with comprehensive priority hierarchy
+  // 4. Combine all independently evaluated Hero candidates (Holiday + Person + Major History co-exist!)
+  const allCandidates = [...canonicalEvents, ...remainingHolidays, ...validFeaturedPersons];
+
+  // 5. Sort with comprehensive priority hierarchy
   return allCandidates.sort((a, b) => {
     const scoreDiff =
       getEventPriorityScore(b, currentYear) - getEventPriorityScore(a, currentYear);
@@ -987,12 +982,9 @@ export function mergeAndDeduplicateEvents(
 }
 
 /**
- * Resolves the primary Hero event according to strict 3-tier precedence:
- * 1. Curated Holiday / Special Day (Highest Priority for Hero)
- * 2. Featured Actor / Person Birthday (if no Curated Holiday)
- * 3. Featured Historical Event (if no Curated Holiday and no Featured Actor)
- * 
- * If none of the above are eligible: Returns null (Hero does NOT force Normal Historical or poor data).
+ * Resolves the primary Hero event among the independently evaluated Hero candidates:
+ * Returns the highest-priority candidate from mergeAndDeduplicateEvents.
+ * If no candidate is eligible (e.g. only minor history records): Returns null (Hero does not force minor history).
  */
 export function resolveHeroEvent(
   holidayMatches: VietnamEvent[],
@@ -1000,34 +992,78 @@ export function resolveHeroEvent(
   historicalEvents: VietnamHistoricalEvent[],
   currentYear: number = new Date().getFullYear()
 ): VietnamEvent | null {
-  // 1. Curated Holiday / Special Day from VIETNAM_EVENTS
-  if (holidayMatches.length > 0) {
-    const sortedHolidays = [...holidayMatches].sort(
-      (a, b) => getEventPriorityScore(b, currentYear) - getEventPriorityScore(a, currentYear)
-    );
-    return sortedHolidays[0];
-  }
+  const candidates = mergeAndDeduplicateEvents(
+    holidayMatches,
+    historicalEvents,
+    actorBirthdays,
+    currentYear
+  );
+  return candidates.length > 0 ? candidates[0] : null;
+}
 
-  // 2. Featured Actor / Person Birthday
-  const featuredActors = actorBirthdays.filter((a) => isFeaturedActor(a));
-  if (featuredActors.length > 0) {
-    const sortedActors = [...featuredActors].sort(
-      (a, b) => getEventPriorityScore(b, currentYear) - getEventPriorityScore(a, currentYear)
-    );
-    return sortedActors[0];
+/**
+ * Computes the day of the month for the N-th occurrence of a specific day of week (0 = Sun, 1 = Mon, ..., 6 = Sat)
+ */
+export function getNthDayOfWeek(year: number, month: number, dayOfWeek: number, n: number): number {
+  let count = 0;
+  const daysInMonth = new Date(year, month, 0).getDate();
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dow = new Date(year, month - 1, d).getDay();
+    if (dow === dayOfWeek) {
+      count++;
+      if (count === n) return d;
+    }
   }
+  return 1;
+}
 
-  // 3. Featured Historical Event
-  const featuredHistories = historicalEvents.filter((h) => isFeaturedHistoricalEvent(h));
-  if (featuredHistories.length > 0) {
-    const converted = featuredHistories
-      .map((h) => convertHistoricalToVietnamEvent(h))
-      .sort((a, b) => getEventPriorityScore(b, currentYear) - getEventPriorityScore(a, currentYear));
-    return converted[0];
+/**
+ * Computes the target solar { month, day } for dynamic/floating date rules
+ */
+export function computeDateRuleTarget(dateRule: string, year: number): { month: number; day: number } | null {
+  switch (dateRule) {
+    case "programmer-day": {
+      const isLeap = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+      return { month: 9, day: isLeap ? 12 : 13 };
+    }
+    case "first-friday-october":
+    case "world-smile-day": {
+      const d = getNthDayOfWeek(year, 10, 5, 1); // 1st Friday of October
+      return { month: 10, day: d };
+    }
+    case "first-monday-october":
+    case "world-habitat-day": {
+      const d = getNthDayOfWeek(year, 10, 1, 1); // 1st Monday of October
+      return { month: 10, day: d };
+    }
+    case "mothers-day": {
+      const d = getNthDayOfWeek(year, 5, 0, 2); // 2nd Sunday of May
+      return { month: 5, day: d };
+    }
+    case "fathers-day": {
+      const d = getNthDayOfWeek(year, 6, 0, 3); // 3rd Sunday of June
+      return { month: 6, day: d };
+    }
+    case "second-saturday-september":
+    case "world-first-aid-day": {
+      const d = getNthDayOfWeek(year, 9, 6, 2); // 2nd Saturday of September
+      return { month: 9, day: d };
+    }
+    case "first-saturday-july": {
+      const d = getNthDayOfWeek(year, 7, 6, 1); // 1st Saturday of July
+      return { month: 7, day: d };
+    }
+    case "third-sunday-november": {
+      const d = getNthDayOfWeek(year, 11, 0, 3); // 3rd Sunday of November
+      return { month: 11, day: d };
+    }
+    case "last-day-february": {
+      const isLeap = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+      return { month: 2, day: isLeap ? 29 : 28 };
+    }
+    default:
+      return null;
   }
-
-  // No eligible Hero candidate (do NOT force Historical Normal/Minor onto Hero)
-  return null;
 }
 
 /**
@@ -1040,7 +1076,6 @@ export function getVietnamTodayEvent(customDate?: Date): VietnamTodayInfo {
   const year = now.getFullYear();
 
   const lunar = computeDateToLunarDate(day, month, year, 7);
-  const dayOfYear = getDayOfYear(now);
 
   // Check if today matches any historical milestones
   const historicalEvents = getHistoricalEventsForDate(month, day, lunar.lunarMonth, lunar.lunarDay);
@@ -1082,10 +1117,10 @@ export function getVietnamTodayEvent(customDate?: Date): VietnamTodayInfo {
       }
     }
 
-    // Custom date rules
-    if (ev.dateRule === "programmer-day") {
-      const targetDayOfYear = isLeapYear(year) ? 256 : 256;
-      if (dayOfYear === targetDayOfYear) {
+    // Custom dynamic date rules
+    if (ev.dateRule) {
+      const target = computeDateRuleTarget(ev.dateRule, year);
+      if (target && target.month === month && target.day === day) {
         holidayMatches.push(enrichEventWithCinemaLinks(ev));
         continue;
       }
@@ -1166,15 +1201,20 @@ export function getVietnamTodayEvent(customDate?: Date): VietnamTodayInfo {
         }
         candidateSolarDate = candDate;
       }
-    } else if (ev.dateRule === "programmer-day") {
+    } else if (ev.dateRule) {
       let candYear = year;
-      const targetDay = isLeapYear(candYear) ? 12 : 13;
-      let candDate = new Date(candYear, 8, targetDay); // Sept 12 or 13
-      if (candDate.getTime() < todayTime) {
-        candYear += 1;
-        candDate = new Date(candYear, 8, isLeapYear(candYear) ? 12 : 13);
+      const target = computeDateRuleTarget(ev.dateRule, candYear);
+      if (target) {
+        let candDate = new Date(candYear, target.month - 1, target.day);
+        if (candDate.getTime() < todayTime) {
+          candYear += 1;
+          const nextTarget = computeDateRuleTarget(ev.dateRule, candYear);
+          if (nextTarget) {
+            candDate = new Date(candYear, nextTarget.month - 1, nextTarget.day);
+          }
+        }
+        candidateSolarDate = candDate;
       }
-      candidateSolarDate = candDate;
     }
 
     if (candidateSolarDate) {

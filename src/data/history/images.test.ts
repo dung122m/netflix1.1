@@ -2,7 +2,6 @@ import { describe, it } from "node:test";
 import assert from "node:assert";
 import {
   HISTORICAL_IMAGE_CATALOG,
-  PERIOD_IMAGE_CATALOG,
   getEventImage,
   getPeriodImage,
 } from "./images";

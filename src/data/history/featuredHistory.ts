@@ -5009,6 +5009,40 @@ export const FEATURED_HISTORICAL_EVENTS: HistoricalEvent[] = [
     "isCurated": true
   },
   {
+    "id": "he-2541-1973",
+    "date": {
+      "day": 6,
+      "month": 10,
+      "year": 1973,
+      "precision": "exact_day"
+    },
+    "displayDate": "06/10/1973",
+    "year": 1973,
+    "title": "Chính phủ Cách mạng lâm thời CHMN Việt Nam được 34 quốc gia công nhận",
+    "summary": "Tính đến ngày 06/10/1973, Chính phủ Cách mạng lâm thời Cộng hòa miền Nam Việt Nam đã được 34 quốc gia trên thế giới chính thức công nhận và thiết lập quan hệ ngoại giao.",
+    "context": "Sau thắng lợi của Hiệp định Paris (01/1973), phong trào ngoại giao quốc tế ủng hộ cách mạng Việt Nam phát triển mạnh mẽ; uy tín và vị thế của Chính phủ Cách mạng lâm thời Cộng hòa miền Nam Việt Nam ngày càng được nâng cao trên trường quốc tế.",
+    "significance": "Khẳng định vị thế chính danh và đại diện hợp pháp duy nhất của nhân dân miền Nam Việt Nam trong cuộc kháng chiến chống Mỹ cứu nước, mở rộng mặt trận ngoại giao tranh thủ sự ủng hộ to lớn của bạn bè quốc tế.",
+    "figures": [
+      "Luật sư Nguyễn Hữu Thọ",
+      "Bộ trưởng Nguyễn Thị Bình"
+    ],
+    "location": "Trụ sở Chính phủ Cách mạng lâm thời CHMN Việt Nam (Cam Lộ, Quảng Trị)",
+    "keyFacts": [
+      "34 quốc gia chính thức công nhận và thiết lập quan hệ ngoại giao tính đến tháng 10/1973",
+      "Mở rộng mặt trận ngoại giao quốc tế ủng hộ nhân dân miền Nam sau Hiệp định Paris"
+    ],
+    "didYouKnow": "Vùng giải phóng Quảng Trị là nơi đặt trụ sở Chính phủ Cách mạng lâm thời Cộng hòa miền Nam Việt Nam, từng đón tiếp nhiều nguyên thủ quốc gia và đoàn ngoại giao quốc tế đến thăm, tiêu biểu là Chủ tịch Cuba Fidel Castro vào tháng 9/1973.",
+    "periodId": "khang-chien-chong-my",
+    "priorityTier": "A",
+    "priorityScore": 88,
+    "visualTheme": "thong-nhat-1975",
+    "sources": [
+      "Tài liệu Lịch sử Ngoại giao Việt Nam",
+      "vietnamese-historical-events (CC0)"
+    ],
+    "isCurated": true
+  },
+  {
     "id": "hist-repo-10-07-1947-quan-phap-mo-cuoc-tien-co",
     "date": {
       "day": 7,

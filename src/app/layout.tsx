@@ -46,12 +46,12 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   icons: {
     icon: [
-      { url: "/icon.svg?v=vn-flag", type: "image/svg+xml" },
-      { url: "/icon-192.png?v=vn-flag", type: "image/png", sizes: "192x192" },
-      { url: "/favicon.ico?v=vn-flag", sizes: "any" },
+      { url: "/icon.svg?v=vn-flag-rect", type: "image/svg+xml" },
+      { url: "/icon-192.png?v=vn-flag-rect", type: "image/png", sizes: "192x192" },
+      { url: "/favicon.ico?v=vn-flag-rect", sizes: "any" },
     ],
-    shortcut: "/icon.svg?v=vn-flag",
-    apple: "/apple-touch-icon.png?v=vn-flag",
+    shortcut: "/icon.svg?v=vn-flag-rect",
+    apple: "/apple-touch-icon.png?v=vn-flag-rect",
   },
   appleWebApp: {
     capable: true,
@@ -121,10 +121,10 @@ export default function RootLayout({
         <meta name="msapplication-TileColor" content="#000000" />
         <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
         {/* Favicon & App Icons */}
-        <link rel="icon" type="image/svg+xml" href="/icon.svg?v=vn-flag" />
-        <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png?v=vn-flag" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=vn-flag" />
-        <link rel="shortcut icon" href="/favicon.ico?v=vn-flag" />
+        <link rel="icon" type="image/svg+xml" href="/icon.svg?v=vn-flag-rect" />
+        <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png?v=vn-flag-rect" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=vn-flag-rect" />
+        <link rel="shortcut icon" href="/favicon.ico?v=vn-flag-rect" />
 
         {/* Viewport với safe-area cho iPhone notch & home indicator */}
         <meta

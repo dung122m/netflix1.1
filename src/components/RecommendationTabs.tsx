@@ -503,7 +503,6 @@ const RecommendedMovieCard = React.memo(function RecommendedMovieCard({
   const year = item.year;
   const time = item.time;
   const quality = item.quality || "FHD";
-  const score = item.score || item.imdb?.vote_average;
 
   return (
     <div className="group relative bg-zinc-900 rounded-2xl overflow-hidden border border-white/10 hover:border-white/25 transition-all duration-300 hover:scale-[1.02] shadow-md hover:shadow-2xl flex flex-col">

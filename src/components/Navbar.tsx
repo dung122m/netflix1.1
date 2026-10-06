@@ -17,7 +17,7 @@ import {
   X,
   Users,
 } from "lucide-react";
-import { NetflixLogo, NanaflixBrandLogo } from "@/components/NetflixLogo";
+import { NanaflixBrandLogo } from "@/components/NetflixLogo";
 import { HolidayNavbarAtmosphere } from "./navbar/HolidayNavbarAtmosphere";
 import { NavSearchBar } from "./navbar/NavSearchBar";
 import { NavNotifications } from "./navbar/NavNotifications";

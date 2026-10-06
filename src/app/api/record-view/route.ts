@@ -30,10 +30,6 @@ export async function POST(req: NextRequest) {
       year,
       quality,
       category,
-      durationSeconds,
-      progressSeconds,
-      episodeSlug,
-      episodeName,
       anonymousId: bodyAnonId,
     } = body || {};
 
