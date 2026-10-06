@@ -139,7 +139,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
 
     try {
-      setLoading(true);
       const res = await signInWithPopup(auth, googleProvider);
       if (res.user) {
         setUser(res.user);
@@ -166,8 +165,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         }
       }
       return { success: false, error: message };
-    } finally {
-      setLoading(false);
     }
   }, [isConfigured]);
 

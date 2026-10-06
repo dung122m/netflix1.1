@@ -21,6 +21,8 @@ export interface MovieComment {
   reactionCounts?: Partial<Record<CommentReactionType, number>>; // Số lượng từng loại cảm xúc
   createdAt: number; // Timestamp (Date.now())
   updatedAt?: number; // Timestamp cập nhật (Date.now())
+  isEdited?: boolean; // Bình luận đã được tác giả chỉnh sửa nội dung
+  editedAt?: number; // Thời điểm chỉnh sửa nội dung lần cuối
   // --- Reply / Thread ---
   parentId?: string;    // ID của comment cha (nếu là reply). Undefined = top-level comment
   parentOwnerId?: string; // ID của tác giả bài viết gốc (để gửi thông báo khi có reply)

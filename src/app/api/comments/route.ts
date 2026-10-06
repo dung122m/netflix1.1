@@ -82,6 +82,8 @@ export async function GET(req: NextRequest) {
         isPinned: Boolean(d.is_pinned),
         createdAt: Number(d.created_at) || Date.now(),
         updatedAt: Number(d.updated_at) || Date.now(),
+        isEdited: Boolean(d.is_edited ?? d.isEdited ?? (d.edited_at ? Number(d.edited_at) > (Number(d.created_at) || 0) + 3000 : false)),
+        editedAt: d.edited_at ? Number(d.edited_at) : undefined,
       };
     });
 
@@ -222,6 +224,8 @@ export async function POST(req: NextRequest) {
       is_flagged: false,
       is_approved: true,
       is_pinned: false,
+      is_edited: false,
+      edited_at: null,
       created_at: now,
       updated_at: now,
     };
@@ -488,6 +492,8 @@ export async function PUT(req: NextRequest) {
     }
 
     const payload: Record<string, unknown> = {
+      is_edited: true,
+      edited_at: Date.now(),
       updated_at: Date.now(),
     };
     if (rating !== undefined) {

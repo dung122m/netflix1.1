@@ -658,6 +658,7 @@ export async function addMovieComment(
     episodeName: comment.episodeName,
     createdAt: now,
     updatedAt: now,
+    isEdited: false,
   };
 
   // 3. Ghi vào cơ sở dữ liệu qua Server API (/api/comments)
@@ -971,7 +972,7 @@ export async function updateMovieComment(
     if (idx !== -1) {
       if (!affectedMovieSlug) affectedMovieSlug = slug;
       movieCommentsMemoryCache[slug] = list.map((c) =>
-        c.id === commentId ? { ...c, ...data, updatedAt: now } : c
+        c.id === commentId ? { ...c, ...data, isEdited: true, editedAt: now, updatedAt: now } : c
       );
       saveLocalMovieComments(slug, movieCommentsMemoryCache[slug]);
       break;
@@ -981,7 +982,7 @@ export async function updateMovieComment(
   // Cập nhật cả trong reply memory cache nếu là reply
   Object.keys(replyCommentsMemoryCache).forEach((parentId) => {
     replyCommentsMemoryCache[parentId] = replyCommentsMemoryCache[parentId].map((r) =>
-      r.id === commentId ? { ...r, ...data, updatedAt: now } : r
+      r.id === commentId ? { ...r, ...data, isEdited: true, editedAt: now, updatedAt: now } : r
     );
   });
 
