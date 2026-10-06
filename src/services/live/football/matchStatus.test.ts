@@ -1990,28 +1990,37 @@ describe("Generic Match Deduplication & Aggregation System", () => {
     assert.equal(matches[0].sport, "football", "Must be classified as football, not billiards");
   });
 
-  it("10. Nilufer vs Eczacibasi: merges Nilufer and Nilufer Bld variants into 1 MatchCard and classifies as volleyball", () => {
+  it("11. Russia vs Nigeria & Nga vs Nigeria: correctly identifies 2 teams (Russia / Nga vs Nigeria) and merges into 1 MatchCard", () => {
     const rawStreams = [
       {
-        rawTitle: "20:00 26/09 🏐 Nilufer vs Eczacibasi (BLV KaKa, Sún)",
-        url: "https://cdn1.example.com/nilufer-1.m3u8",
-        effectiveUrl: "https://cdn1.example.com/nilufer-1.m3u8",
-        group: "Khán Đài TV",
+        rawTitle: "23:00 26/09 ⚽ Russia vs Nigeria",
+        url: "https://cdn1.example.com/rus-nga-1.m3u8",
+        effectiveUrl: "https://cdn1.example.com/rus-nga-1.m3u8",
+        group: "Cola TV",
         rawLogo: "",
       },
       {
-        rawTitle: "20:00 26/09 🏐 Nilufer Bld vs Eczacibasi (BLV TYSON, HD TYSON)",
-        url: "https://cdn2.example.com/nilufer-2.m3u8",
-        effectiveUrl: "https://cdn2.example.com/nilufer-2.m3u8",
-        group: "Chuối Chiên TV",
+        rawTitle: "23:00 26/09 ⚽ Nga vs Nigeria (BLV SAMURAI)",
+        url: "https://cdn2.example.com/rus-nga-2.m3u8",
+        effectiveUrl: "https://cdn2.example.com/rus-nga-2.m3u8",
+        group: "Gà Vàng TV",
+        rawLogo: "",
+      },
+      {
+        rawTitle: "23:00 26/09 ⚽ Russia vs Nigeria (LÝ LINH LỰC)",
+        url: "https://cdn3.example.com/rus-nga-3.m3u8",
+        effectiveUrl: "https://cdn3.example.com/rus-nga-3.m3u8",
+        group: "Sút Bóng TV",
         rawLogo: "",
       },
     ];
 
     const { matches } = normalizeAndMergeStreams(rawStreams, baseNow);
-    assert.equal(matches.length, 1, "Must produce exactly 1 MatchCard for Nilufer vs Eczacibasi");
-    assert.equal(matches[0].servers.length, 2, "Must aggregate both servers");
-    assert.equal(matches[0].sport, "volleyball", "Must be classified as volleyball");
+    assert.equal(matches.length, 1, "Must merge all 3 Russia vs Nigeria streams into 1 card");
+    assert.equal(matches[0].isEvent, false, "Must be classified as a two-team match, not an event");
+    assert.ok(matches[0].team1.toLowerCase().includes("russia") || matches[0].team1.toLowerCase().includes("nga"));
+    assert.ok(matches[0].team2.toLowerCase().includes("nigeria"));
+    assert.equal(matches[0].servers.length, 3, "Must aggregate all 3 servers");
   });
 });
 

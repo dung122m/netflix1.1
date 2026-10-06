@@ -146,9 +146,60 @@ function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
     [match.timestamp],
   );
 
+  // Tự động phân giải 2 đội nếu match chưa tách team1, team2 hoặc isEvent bị đánh dấu nhầm
+  const resolvedTeams = useMemo(() => {
+    if (
+      !match.isEvent &&
+      match.team1 &&
+      match.team2 &&
+      match.team1.trim().toLowerCase() !== match.team2.trim().toLowerCase()
+    ) {
+      return { team1: match.team1.trim(), team2: match.team2.trim() };
+    }
+
+    const cleanT = (match.title || match.team1 || "")
+      .replace(/\[[^\]]*\]/g, "")
+      .replace(/\([^)]*\)/g, "")
+      .replace(/^[🟢🔴⚪⚽🏀🎾🏐🏸🏒🥊🏎🏁🎱🎮\s]+/, "")
+      .replace(/^\s*(?:(?:[012]?\d[:hH]\d{2}|\d{1,2})\s*)?(?:\d{1,2}[-/.]\d{1,2}(?:[-/.]\d{2,4})?)?\s*/, "")
+      .trim();
+
+    const vsMatch = cleanT.match(/(.+?)\s+(?:vs|v|\bv\b)\s+(.+)/i);
+    if (vsMatch) {
+      const t1 = vsMatch[1].trim();
+      const t2 = vsMatch[2].trim();
+      if (t1 && t2 && t1.toLowerCase() !== t2.toLowerCase()) {
+        return { team1: t1, team2: t2 };
+      }
+    }
+
+    const hyphenMatch = cleanT.match(/(.+?)\s+-\s+(.+)/);
+    if (hyphenMatch) {
+      const t1 = hyphenMatch[1].trim();
+      const t2 = hyphenMatch[2].trim();
+      if (
+        t1 &&
+        t2 &&
+        t1.toLowerCase() !== t2.toLowerCase() &&
+        !t1.includes("TV") &&
+        !t2.includes("TV") &&
+        !t1.toLowerCase().includes("server") &&
+        !t2.toLowerCase().includes("server")
+      ) {
+        return { team1: t1, team2: t2 };
+      }
+    }
+
+    return null;
+  }, [match.isEvent, match.team1, match.team2, match.title]);
+
+  const isTwoTeamMatch = Boolean(resolvedTeams);
+  const displayTeam1 = resolvedTeams?.team1 || match.team1 || "";
+  const displayTeam2 = resolvedTeams?.team2 || match.team2 || "";
+
   // Tra cứu cờ quốc gia / logo CLB O(1) từ local mapping
-  const homeAsset = useMemo(() => getTeamAsset(match.team1), [match.team1]);
-  const awayAsset = useMemo(() => getTeamAsset(match.team2), [match.team2]);
+  const homeAsset = useMemo(() => getTeamAsset(displayTeam1), [displayTeam1]);
+  const awayAsset = useMemo(() => getTeamAsset(displayTeam2), [displayTeam2]);
 
   const validHomeLogo =
     Boolean(match.homeLogo) &&
@@ -176,35 +227,6 @@ function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
   const awayLogoSrc = !awayFlagEmoji
     ? (validAwayLogo ? match.awayLogo : (awayAsset?.logo ? awayAsset.logo : null))
     : null;
-
-  const isTwoTeamMatch =
-    !match.isEvent &&
-    Boolean(match.team1) &&
-    Boolean(match.team2) &&
-    match.team1.trim().toLowerCase() !== match.team2.trim().toLowerCase();
-
-  // Nhận diện cờ cho sự kiện đơn có dạng "A vs B" hoặc "A - B"
-  const eventFlags = useMemo(() => {
-    if (isTwoTeamMatch) return null;
-    const cleanT = (match.title || match.team1 || "")
-      .replace(/\[[^\]]*\]/g, "")
-      .replace(/\([^)]*\)/g, "")
-      .replace(/^[🟢🔴⚪⚽🏀🎾🏐🏸🏒🥊🏎🏁🎱🎮\s]+/, "")
-      .replace(/^\s*(?:(?:[012]?\d[:hH]\d{2}|\d{1,2})\s*)?(?:\d{1,2}[-/.]\d{1,2}(?:[-/.]\d{2,4})?)?\s*/, "")
-      .trim();
-    const parts = cleanT.split(/\s+(?:vs|v|\bv\b|-)\s+/i);
-    if (parts.length >= 2) {
-      const a1 = getTeamAsset(parts[0].trim());
-      const a2 = getTeamAsset(parts[1].trim());
-      if (a1?.emoji || a2?.emoji) {
-        return {
-          t1Emoji: a1?.emoji || null,
-          t2Emoji: a2?.emoji || null,
-        };
-      }
-    }
-    return null;
-  }, [isTwoTeamMatch, match.title, match.team1]);
 
   // Tổng hợp tên các đài phát (COLA TV, Gà Vàng...)
   const displayGroups =
@@ -264,20 +286,7 @@ function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
       {/* 2. MATCH ARENA: TRỰC QUAN 2 ĐỘI BÓNG ĐỐI ĐẦU HOẶC SỰ KIỆN */}
       {!isTwoTeamMatch ? (
         <div className="flex items-center gap-3 my-2 relative z-10">
-          {eventFlags ? (
-            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-zinc-800/90 border border-white/15 flex items-center justify-center shrink-0 shadow-md gap-1">
-              {eventFlags.t1Emoji ? (
-                <CountryFlag emoji={eventFlags.t1Emoji} className="w-5 h-5 sm:w-6 sm:h-6" />
-              ) : (
-                <span className="text-lg">{getSportIcon(match.sport)}</span>
-              )}
-              {eventFlags.t2Emoji ? (
-                <CountryFlag emoji={eventFlags.t2Emoji} className="w-5 h-5 sm:w-6 sm:h-6" />
-              ) : (
-                <span className="text-lg">{getSportIcon(match.sport)}</span>
-              )}
-            </div>
-          ) : homeFlagEmoji ? (
+          {homeFlagEmoji ? (
             <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-zinc-800/90 border border-white/15 flex items-center justify-center shrink-0 shadow-md">
               <CountryFlag emoji={homeFlagEmoji} />
             </div>
@@ -339,14 +348,14 @@ function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
                   referrerPolicy="no-referrer"
                 />
               ) : (
-                <TeamLogoFallback initials={getTeamInitials(match.team1)} color="rose" />
+                <TeamLogoFallback initials={getTeamInitials(displayTeam1)} color="rose" />
               )}
             </div>
             <span
               className="mt-1.5 text-xs sm:text-[13px] font-extrabold text-white truncate leading-snug group-hover:text-rose-400 transition-colors duration-200 w-full px-0.5 block text-center"
-              title={match.team1}
+              title={displayTeam1}
             >
-              {match.team1}
+              {displayTeam1}
             </span>
           </div>
 
@@ -390,14 +399,14 @@ function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
                   referrerPolicy="no-referrer"
                 />
               ) : (
-                <TeamLogoFallback initials={getTeamInitials(match.team2)} color="sky" />
+                <TeamLogoFallback initials={getTeamInitials(displayTeam2)} color="sky" />
               )}
             </div>
             <span
               className="mt-1.5 text-xs sm:text-[13px] font-extrabold text-white truncate leading-snug group-hover:text-sky-400 transition-colors duration-200 w-full px-0.5 block text-center"
-              title={match.team2 || "Đối thủ"}
+              title={displayTeam2 || "Đối thủ"}
             >
-              {match.team2 || "Đối thủ"}
+              {displayTeam2 || "Đối thủ"}
             </span>
           </div>
         </div>
