@@ -1170,7 +1170,13 @@ function LivePlayerInner({
     ],
   );
 
-  // Khởi tạo luồng phát HLS tối ưu độ trễ thấp (Ultra Low Latency) + Auto ABR + Watchdog bảo vệ không bị treo
+  const executeServerFallbackRef = useRef(executeServerFallback);
+  executeServerFallbackRef.current = executeServerFallback;
+
+  const markSourceFailedRef = useRef(markSourceFailed);
+  markSourceFailedRef.current = markSourceFailed;
+
+  // Khởi tạo luồng phát HLS tối ưu độ trễ thấp mượt mà + Auto ABR + Watchdog bảo vệ không bị treo
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !currentServer || !isActive) return;
@@ -1209,7 +1215,7 @@ function LivePlayerInner({
     if (!isEffectiveHls && currentServer.format === "flv") {
       failedServersRef.current.add(selectedServerIndex);
       if (currentServer.url) {
-        markSourceFailed(currentServer.url, selectedServerIndex);
+        markSourceFailedRef.current(currentServer.url, selectedServerIndex);
       }
 
       const nextHlsIdx = servers.findIndex(
@@ -1232,7 +1238,7 @@ function LivePlayerInner({
       return;
     }
 
-    // Khởi động Playback Watchdog: Tối đa 8 giây nếu không phát được hình ảnh thật sẽ tự động chuyển server
+    // Khởi động Playback Watchdog: Tối đa 12 giây nếu không phát được hình ảnh thật sẽ tự động chuyển server
     const currentAttemptId = ++attemptIdRef.current;
     if (watchdogTimerRef.current) {
       clearTimeout(watchdogTimerRef.current);
@@ -1254,7 +1260,7 @@ function LivePlayerInner({
         return;
       }
 
-      executeServerFallback("không phản hồi");
+      executeServerFallbackRef.current("không phản hồi");
     }, 12000);
 
     // Xác nhận luồng phát thực sự chạy mượt mà (chỉ gỡ watchdog khi video đã chạy thật)
@@ -1281,30 +1287,35 @@ function LivePlayerInner({
     let cleanupDiagnosticListeners = () => { };
     let onNativeLoadedMetadata: (() => void) | null = null;
     let onNativeError: (() => void) | null = null;
+    let stallNudgeTimer: NodeJS.Timeout | null = null;
 
     if (Hls.isSupported()) {
       const hls = new Hls({
         enableWorker: true,
-        lowLatencyMode: true,
+        lowLatencyMode: false,
         liveSyncDurationCount: 3,
-        liveMaxLatencyDurationCount: 5,
-        maxLiveSyncPlaybackRate: 1.08,
-        backBufferLength: 15,
-        maxBufferLength: 25,
-        maxMaxBufferLength: 40,
-        maxBufferSize: 15 * 1000 * 1000,
-        abrEwmaDefaultEstimate: 2_500_000,
+        liveMaxLatencyDurationCount: 8,
+        maxLiveSyncPlaybackRate: 1.04,
+        backBufferLength: 30,
+        maxBufferLength: 30,
+        maxMaxBufferLength: 60,
+        maxBufferSize: 60 * 1000 * 1000,
+        maxBufferHole: 0.5,
+        highBufferWatchdogPeriod: 2,
+        nudgeOffset: 0.1,
+        nudgeMaxRetry: 5,
+        abrEwmaDefaultEstimate: 3_000_000,
         capLevelToPlayerSize: false,
         startLevel: -1,
-        // Cấu hình timeout & retry nhanh để không bắt người dùng chờ lâu khi server chết
-        manifestLoadingTimeOut: 4000,
-        levelLoadingTimeOut: 4000,
-        fragLoadingTimeOut: 8000,
-        fragLoadingMaxRetry: 2,
-        levelLoadingMaxRetry: 2,
-        manifestLoadingMaxRetry: 2,
-        fragLoadingMaxRetryTimeout: 1000,
-        levelLoadingMaxRetryTimeout: 1000,
+        manifestLoadingTimeOut: 8000,
+        manifestLoadingMaxRetry: 3,
+        manifestLoadingRetryDelay: 1000,
+        levelLoadingTimeOut: 8000,
+        levelLoadingMaxRetry: 3,
+        levelLoadingRetryDelay: 1000,
+        fragLoadingTimeOut: 12000,
+        fragLoadingMaxRetry: 4,
+        fragLoadingRetryDelay: 1000,
       });
 
       hlsRef.current = hls;
@@ -1397,9 +1408,35 @@ function LivePlayerInner({
           level: curLvl,
           bitrate,
         };
+
+        // Tự động giải phóng trạng thái nghẽn decoder nếu có buffer sẵn
+        if (stallNudgeTimer) clearTimeout(stallNudgeTimer);
+        stallNudgeTimer = setTimeout(() => {
+          const currentV = videoRef.current;
+          if (!currentV || (!currentV.paused && currentV.readyState >= 3)) return;
+          const currentForward = getForwardBuffer(currentV);
+          if (currentForward > 0.1 && currentForward < 30) {
+            currentV.currentTime += 0.1;
+          } else if (
+            hls &&
+            hls.liveSyncPosition &&
+            Number.isFinite(hls.liveSyncPosition) &&
+            hls.liveSyncPosition > 0
+          ) {
+            const gap = hls.liveSyncPosition - currentV.currentTime;
+            if (gap > 15 || gap < -2) {
+              currentV.currentTime = hls.liveSyncPosition;
+              hls.startLoad();
+            }
+          }
+        }, 1800);
       };
 
       const onPlayingDiagnostic = () => {
+        if (stallNudgeTimer) {
+          clearTimeout(stallNudgeTimer);
+          stallNudgeTimer = null;
+        }
         if (pendingStallSnapshot) {
           const durationMs = Math.round(
             performance.now() - pendingStallSnapshot.startTime,
@@ -1440,6 +1477,10 @@ function LivePlayerInner({
       cleanupDiagnosticListeners = () => {
         video.removeEventListener("waiting", onWaiting);
         video.removeEventListener("playing", onPlayingDiagnostic);
+        if (stallNudgeTimer) {
+          clearTimeout(stallNudgeTimer);
+          stallNudgeTimer = null;
+        }
         pendingStallSnapshot = null;
       };
 
@@ -1454,7 +1495,7 @@ function LivePlayerInner({
         ) {
           const httpStatus = data.response?.code;
           const reason = httpStatus ? `lỗi HTTP ${httpStatus}` : "không tải được luồng phát (m3u8)";
-          executeServerFallback(reason);
+          executeServerFallbackRef.current(reason);
           return;
         }
 
@@ -1465,7 +1506,7 @@ function LivePlayerInner({
           (httpStatus === 404 || httpStatus === 403 || httpStatus >= 500) &&
           (data.fatal || data.details === Hls.ErrorDetails.LEVEL_LOAD_ERROR)
         ) {
-          executeServerFallback(`lỗi HTTP ${httpStatus}`);
+          executeServerFallbackRef.current(`lỗi HTTP ${httpStatus}`);
           return;
         }
 
@@ -1496,13 +1537,24 @@ function LivePlayerInner({
                 return;
               }
 
-              executeServerFallback("bị gián đoạn kết nối");
+              // Khôi phục lỗi mạng tạm thời bằng startLoad() trước khi đổi server
+              if (retryCountRef.current < 2) {
+                retryCountRef.current++;
+                console.warn(
+                  `[LivePlayer] Transient network error, recovering with startLoad() (attempt ${retryCountRef.current}/2)...`,
+                );
+                hls.startLoad();
+                return;
+              }
+
+              executeServerFallbackRef.current("bị gián đoạn kết nối");
               break;
             case Hls.ErrorTypes.MEDIA_ERROR:
+              console.warn("[LivePlayer] Media error encountered, recovering media error...");
               hls.recoverMediaError();
               break;
             default:
-              executeServerFallback("gặp sự cố luồng phát");
+              executeServerFallbackRef.current("gặp sự cố luồng phát");
               break;
           }
         }
@@ -1536,7 +1588,7 @@ function LivePlayerInner({
 
       onNativeError = () => {
         if (isStoppedRef.current) return;
-        executeServerFallback("không thể phát trên thiết bị này");
+        executeServerFallbackRef.current("không thể phát trên thiết bị này");
       };
 
       video.addEventListener("loadedmetadata", onNativeLoadedMetadata);
@@ -1545,6 +1597,10 @@ function LivePlayerInner({
 
     return () => {
       cleanupDiagnosticListeners();
+      if (stallNudgeTimer) {
+        clearTimeout(stallNudgeTimer);
+        stallNudgeTimer = null;
+      }
       if (watchdogTimerRef.current) {
         clearTimeout(watchdogTimerRef.current);
         watchdogTimerRef.current = null;
@@ -1567,16 +1623,14 @@ function LivePlayerInner({
         video.load();
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- servers and fallbacks are ref-stabilized to prevent destroying playback on parent polling
   }, [
     selectedServerIndex,
-    currentServer,
+    currentServer?.url,
     activeUrl,
     isActive,
-    servers,
     isIframe,
-    executeServerFallback,
     retryNonce,
-    markSourceFailed,
   ]);
 
   // Bắt Live Edge tức thì

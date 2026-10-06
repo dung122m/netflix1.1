@@ -238,11 +238,11 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
         {/* 2. CENTER PLAYBACK CONTROLS CLUSTER / BUFFERING SPINNER (Mobile-Only Center Controls, YouTube Desktop Style on PC) */}
         {isBuffering ? (
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none select-none z-10 flex flex-col items-center justify-center">
-            <div className="w-12 h-12 sm:w-16 sm:h-16 border-4 border-white/20 border-t-netflix-red rounded-full animate-spin shadow-2xl" />
+            <div className="w-10 h-10 sm:w-14 sm:h-14 border-3 sm:border-4 border-white/20 border-t-netflix-red rounded-full animate-spin shadow-2xl" />
           </div>
         ) : (
           <div
-            className="md:hidden absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center gap-6 sm:gap-10 pointer-events-none select-none z-10"
+            className="md:hidden absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center gap-4 sm:gap-6 pointer-events-none select-none z-10"
           >
             {/* Tua lùi 10s */}
             <button
@@ -257,9 +257,9 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
                 onUserInteraction?.();
               }}
               title="Tua lùi 10 giây (←)"
-              className="pointer-events-auto w-11 h-11 sm:w-13 sm:h-13 rounded-full bg-black/60 hover:bg-black/80 active:scale-90 hover:scale-105 border border-white/20 text-white flex items-center justify-center shadow-xl backdrop-blur-md transition-all cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+              className="pointer-events-auto w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/45 hover:bg-black/70 active:scale-90 hover:scale-105 border border-white/15 text-white/90 hover:text-white flex items-center justify-center shadow-lg backdrop-blur-md transition-all cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
             >
-              <SeekBack10Icon className="w-5 h-5 sm:w-6 sm:h-6" />
+              <SeekBack10Icon className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
             </button>
 
             {/* Big Center Play / Pause */}
@@ -272,12 +272,12 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
                 onUserInteraction?.();
               }}
               title={isPlaying ? "Tạm dừng (Space)" : "Phát (Space)"}
-              className="pointer-events-auto w-14 h-14 sm:w-18 sm:h-18 rounded-full bg-netflix-red/95 hover:bg-netflix-red active:scale-90 hover:scale-105 border border-white/30 text-white flex items-center justify-center shadow-[0_0_30px_rgba(229,9,20,0.6)] backdrop-blur-md transition-all cursor-pointer outline-none focus-visible:ring-4 focus-visible:ring-white/50"
+              className="pointer-events-auto w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-netflix-red/90 hover:bg-netflix-red active:scale-90 hover:scale-105 border border-white/25 text-white flex items-center justify-center shadow-[0_0_20px_rgba(229,9,20,0.5)] backdrop-blur-md transition-all cursor-pointer outline-none focus-visible:ring-4 focus-visible:ring-white/50"
             >
               {isPlaying ? (
-                <Pause className="w-7 h-7 sm:w-8 sm:h-8 fill-white" />
+                <Pause className="w-5 h-5 sm:w-6 sm:h-6 fill-white" />
               ) : (
-                <Play className="w-7 h-7 sm:w-8 sm:h-8 fill-white ml-1" />
+                <Play className="w-5 h-5 sm:w-6 sm:h-6 fill-white ml-0.5" />
               )}
             </button>
 
@@ -294,9 +294,9 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
                 onUserInteraction?.();
               }}
               title="Tua tới 10 giây (→)"
-              className="pointer-events-auto w-11 h-11 sm:w-13 sm:h-13 rounded-full bg-black/60 hover:bg-black/80 active:scale-90 hover:scale-105 border border-white/20 text-white flex items-center justify-center shadow-xl backdrop-blur-md transition-all cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+              className="pointer-events-auto w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/45 hover:bg-black/70 active:scale-90 hover:scale-105 border border-white/15 text-white/90 hover:text-white flex items-center justify-center shadow-lg backdrop-blur-md transition-all cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
             >
-              <SeekForward10Icon className="w-5 h-5 sm:w-6 sm:h-6" />
+              <SeekForward10Icon className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
             </button>
           </div>
         )}
@@ -347,7 +347,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
                 )}
               </button>
 
-              {/* Tua lùi 10s */}
+              {/* Tua lùi 10s (Ẩn trên mobile để giao diện thanh điều khiển dưới gọn gàng, rộng rãi) */}
               <button
                 type="button"
                 data-player-control="true"
@@ -360,12 +360,12 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
                   onUserInteraction?.();
                 }}
                 title="Tua lùi 10 giây (← / J)"
-                className="p-1.5 sm:p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                className="hidden sm:inline-flex p-1.5 sm:p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
               >
                 <SeekBack10Icon className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
 
-              {/* Tua tới 10s */}
+              {/* Tua tới 10s (Ẩn trên mobile để giao diện thanh điều khiển dưới gọn gàng, rộng rãi) */}
               <button
                 type="button"
                 data-player-control="true"
@@ -378,7 +378,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
                   onUserInteraction?.();
                 }}
                 title="Tua tới 10 giây (→ / L)"
-                className="p-1.5 sm:p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                className="hidden sm:inline-flex p-1.5 sm:p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
               >
                 <SeekForward10Icon className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>

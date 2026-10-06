@@ -1801,18 +1801,18 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
 
               {/* DOUBLE TAP RIPPLE EFFECT (YOUTUBE / NETFLIX STYLE) */}
               {doubleTapFeedback && doubleTapFeedback.side === "left" && (
-                <div className="absolute inset-y-0 left-0 w-[42%] flex flex-col items-center justify-center bg-white/10 rounded-r-full pointer-events-none z-30 animate-in fade-in zoom-in-95 duration-200 backdrop-blur-[2px]">
-                  <div className="p-3.5 rounded-full bg-black/75 border border-white/20 text-white shadow-2xl flex flex-col items-center animate-pulse">
-                    <SeekBack10Icon className="w-8 h-8 text-white" />
-                    <span className="text-[11px] font-black tracking-wider text-white mt-1">-10 giây</span>
+                <div className="absolute inset-y-0 left-0 w-[35%] flex flex-col items-center justify-center bg-white/5 rounded-r-full pointer-events-none z-30 animate-in fade-in zoom-in-95 duration-200 backdrop-blur-[1px]">
+                  <div className="p-2.5 rounded-full bg-black/65 border border-white/15 text-white shadow-xl flex flex-col items-center animate-pulse">
+                    <SeekBack10Icon className="w-5 h-5 text-white" />
+                    <span className="text-[10px] font-bold tracking-wider text-white mt-0.5">-10s</span>
                   </div>
                 </div>
               )}
               {doubleTapFeedback && doubleTapFeedback.side === "right" && (
-                <div className="absolute inset-y-0 right-0 w-[42%] flex flex-col items-center justify-center bg-white/10 rounded-l-full pointer-events-none z-30 animate-in fade-in zoom-in-95 duration-200 backdrop-blur-[2px]">
-                  <div className="p-3.5 rounded-full bg-black/75 border border-white/20 text-white shadow-2xl flex flex-col items-center animate-pulse">
-                    <SeekForward10Icon className="w-8 h-8 text-white" />
-                    <span className="text-[11px] font-black tracking-wider text-white mt-1">+10 giây</span>
+                <div className="absolute inset-y-0 right-0 w-[35%] flex flex-col items-center justify-center bg-white/5 rounded-l-full pointer-events-none z-30 animate-in fade-in zoom-in-95 duration-200 backdrop-blur-[1px]">
+                  <div className="p-2.5 rounded-full bg-black/65 border border-white/15 text-white shadow-xl flex flex-col items-center animate-pulse">
+                    <SeekForward10Icon className="w-5 h-5 text-white" />
+                    <span className="text-[10px] font-bold tracking-wider text-white mt-0.5">+10s</span>
                   </div>
                 </div>
               )}
