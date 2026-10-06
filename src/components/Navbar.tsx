@@ -132,7 +132,7 @@ const NavbarInner: React.FC = () => {
       className={`nanaflix-navbar fixed top-0 left-0 right-0 w-full z-50 transition-all duration-300 ${
         showBackground || isMobileMenuOpen
           ? "bg-black/95 backdrop-blur-sm border-b border-white/10 shadow-lg py-2.5"
-          : "bg-gradient-to-b from-black/90 via-black/50 to-transparent py-3 sm:py-3.5"
+          : "bg-black/80 backdrop-blur-md border-b border-white/10 sm:border-transparent sm:bg-gradient-to-b sm:from-black/90 sm:via-black/50 sm:to-transparent py-2.5 sm:py-3.5"
       }`}
     >
       {/* CINEMATIC LIVING NAVBAR ATMOSPHERE (PHÍA SAU UI) */}

@@ -724,21 +724,212 @@ test("Regression Verification — Multi-Source Banner Aggregation (Actor Birthda
     assert.ok(!navbarCode.includes('name: "Lịch sử"'), "Navbar must not contain 'Lịch sử' link");
   });
 
-  await t.test("6. Sorting Order on 05/10: Actor Birthday (Tiêu Chiến) -> Top Historical Figure (Lê Thái Tổ) -> International Day (Nhà Giáo) -> Generic History (Hội nghị 1951)", () => {
+  await t.test("6. Sorting Order on 05/10: Curated Holiday (Nhà Giáo) -> Actor Birthday (Tiêu Chiến) -> Featured Historical (Lê Thái Tổ) -> Minor History (Hội nghị 1951)", () => {
     const res0510 = getVietnamTodayEvent(new Date("2026-10-05T08:00:00+07:00"));
     const titles = res0510.allEventsToday?.map((e) => e.title) || [];
     assert.ok(titles.length >= 4, "Must have 4 events on 05/10");
 
-    // Rank 1: Tiêu Chiến (Actor birthday with CTA)
-    assert.ok(titles[0].includes("Tiêu Chiến"), `Rank 1 must be Tiêu Chiến, got: ${titles[0]}`);
+    // Rank 1: Curated Holiday (Ngày Nhà Giáo Thế Giới)
+    assert.ok(titles[0].includes("Nhà Giáo"), `Rank 1 must be Nhà Giáo Thế Giới, got: ${titles[0]}`);
 
-    // Rank 2: Vua Lê Thái Tổ (Historical figure)
-    assert.ok(titles[1].includes("Lê Thái Tổ") || titles[1].includes("Lê Lợi"), `Rank 2 must be Lê Thái Tổ, got: ${titles[1]}`);
+    // Rank 2: Featured Actor Birthday (Tiêu Chiến)
+    assert.ok(titles[1].includes("Tiêu Chiến"), `Rank 2 must be Tiêu Chiến, got: ${titles[1]}`);
 
-    // Rank 3: Ngày Nhà Giáo Thế Giới
-    assert.ok(titles[2].includes("Nhà Giáo"), `Rank 3 must be Nhà Giáo Thế Giới, got: ${titles[2]}`);
+    // Rank 3: Featured Historical Figure (Vua Lê Thái Tổ)
+    assert.ok(titles[2].includes("Lê Thái Tổ") || titles[2].includes("Lê Lợi"), `Rank 3 must be Lê Thái Tổ, got: ${titles[2]}`);
 
-    // Rank 4: Hội nghị Trung ương 1951
+    // Rank 4: Minor History (Hội nghị Trung ương 1951)
     assert.ok(titles[3].includes("Hội nghị") || titles[3].includes("Ban Chấp hành"), `Rank 4 must be Hội nghị 1951, got: ${titles[3]}`);
+  });
+});
+
+test("Nanaflix Hero Date-Content Resolver — 3-Tier Precedence & Test Matrix Verification", async (t) => {
+  const { resolveHeroEvent, isFeaturedActor, isFeaturedHistoricalEvent } = await import("./vietnamCalendar");
+
+  await t.test("Real-world Case 06/10 (Audit Screenshot): World Smile Day takes Hero, Minor History is relegated to tabs/list", () => {
+    const res0610 = getVietnamTodayEvent(new Date("2026-10-06T08:00:00+07:00"));
+    assert.equal(res0610.isToday, true);
+    // Hero must be World Smile Day (Curated Holiday), NOT the minor historical chronicle
+    assert.ok(
+      res0610.event.title.includes("Nụ Cười") || res0610.event.title.includes("Smile"),
+      `Hero must be World Smile Day, got: ${res0610.event.title}`
+    );
+    assert.notEqual(res0610.event.category, "vietnam-history");
+    // Minor historical events are still preserved in allEventsToday for tabs/popup
+    assert.ok(
+      res0610.allEventsToday?.some((e) => e.title.includes("Chính phủ Cách mạng") || e.title.includes("Nhóm những người bạn")),
+      "allEventsToday must retain historical timeline records for tabs"
+    );
+  });
+
+  await t.test("Case A: Holiday = YES, Actor Birthday = YES, Historical = Featured -> Hero = Holiday", () => {
+    const mockHoliday: any = {
+      id: "ev-test-holiday",
+      title: "Ngày Lễ Thử Nghiệm",
+      category: "international",
+      nature: "international-day",
+      priority: 70,
+      displayDate: "01/01",
+    };
+    const mockActorBirthday: any = {
+      id: "ev-actor-birthday-tran-thanh",
+      actorSlug: "tran-thanh",
+      title: "Sinh Nhật Trấn Thành",
+      category: "entertainment",
+      nature: "arts-culture",
+      priority: 92,
+      displayDate: "01/01",
+    };
+    const mockFeaturedHist: any = {
+      id: "hist-repo-vo-nguyen-giap",
+      title: "Đại tướng Võ Nguyên Giáp",
+      solarDate: { month: 1, day: 1 },
+      year: 2013,
+      summary: "Đại tướng Võ Nguyên Giáp",
+      significance: "Danh tướng",
+      visualTheme: "general-history",
+      sources: ["test"],
+    };
+
+    const hero = resolveHeroEvent([mockHoliday], [mockActorBirthday], [mockFeaturedHist], 2026);
+    assert.ok(hero);
+    assert.equal(hero?.id, "ev-test-holiday", "Hero must be Holiday in Case A");
+  });
+
+  await t.test("Case B: Holiday = NO, Featured Actor Birthday = YES, Historical Featured = YES -> Hero = Featured Actor Birthday", () => {
+    const mockActorBirthday: any = {
+      id: "ev-actor-birthday-tran-thanh",
+      actorSlug: "tran-thanh",
+      title: "Sinh Nhật Trấn Thành",
+      category: "entertainment",
+      nature: "arts-culture",
+      priority: 92,
+      displayDate: "01/01",
+    };
+    const mockFeaturedHist: any = {
+      id: "hist-repo-vo-nguyen-giap",
+      title: "Đại tướng Võ Nguyên Giáp",
+      solarDate: { month: 1, day: 1 },
+      year: 2013,
+      summary: "Đại tướng Võ Nguyên Giáp",
+      significance: "Danh tướng",
+      visualTheme: "general-history",
+      sources: ["test"],
+    };
+
+    const hero = resolveHeroEvent([], [mockActorBirthday], [mockFeaturedHist], 2026);
+    assert.ok(hero);
+    assert.equal(hero?.id, "ev-actor-birthday-tran-thanh", "Hero must be Featured Actor in Case B");
+  });
+
+  await t.test("Case C: Holiday = NO, Actor Birthday = Normal, Historical Featured = YES -> Hero = Historical Featured", () => {
+    // Normal actor (not marked as featured in ACTORS_CATALOG or slug without featured)
+    const mockNormalActor: any = {
+      id: "ev-actor-birthday-normal-actor",
+      actorSlug: "unknown-normal-actor",
+      title: "Sinh Nhật Diễn Viên Phụ",
+      category: "entertainment",
+      nature: "arts-culture",
+      priority: 50,
+      displayDate: "01/01",
+    };
+    const mockFeaturedHist: any = {
+      id: "hist-repo-vo-nguyen-giap",
+      title: "Đại tướng Võ Nguyên Giáp",
+      solarDate: { month: 1, day: 1 },
+      year: 2013,
+      summary: "Đại tướng Võ Nguyên Giáp",
+      significance: "Danh tướng",
+      visualTheme: "general-history",
+      sources: ["test"],
+    };
+
+    const hero = resolveHeroEvent([], [mockNormalActor], [mockFeaturedHist], 2026);
+    assert.ok(hero);
+    assert.ok(hero?.title.includes("Võ Nguyên Giáp"), "Hero must be Historical Featured in Case C");
+  });
+
+  await t.test("Case D: Holiday = NO, Actor Birthday = Normal, Historical = Normal/Minor -> Không ép Historical lên Hero (returns null)", () => {
+    const mockNormalActor: any = {
+      id: "ev-actor-birthday-normal-actor",
+      actorSlug: "unknown-normal-actor",
+      title: "Sinh Nhật Diễn Viên Phụ",
+      category: "entertainment",
+      nature: "arts-culture",
+      priority: 50,
+      displayDate: "01/01",
+    };
+    const mockMinorHist: any = {
+      id: "hist-repo-10-06-1973-tinh-den-thoi-iem-nay-chinh-phu-cach-m",
+      title: "Tính đến thời điểm này, Chính phủ Cách mạng lâm thời...",
+      solarDate: { month: 10, day: 6 },
+      year: 1973,
+      summary: "Số liệu ngoại giao...",
+      significance: "Sự kiện lịch sử",
+      visualTheme: "general-history",
+      sources: ["test"],
+    };
+
+    const hero = resolveHeroEvent([], [mockNormalActor], [mockMinorHist], 2026);
+    assert.equal(hero, null, "Must return null so Hero does not force minor historical event");
+  });
+
+  await t.test("Case E: Holiday = NO, Featured Actor Birthday = nhiều người -> Chọn actor có priority/importance cao nhất", () => {
+    const actor1: any = {
+      id: "ev-actor-birthday-tran-thanh",
+      actorSlug: "tran-thanh",
+      title: "Sinh Nhật Trấn Thành",
+      category: "entertainment",
+      nature: "arts-culture",
+      priority: 95,
+      displayDate: "01/01",
+    };
+    const actor2: any = {
+      id: "ev-actor-birthday-tieu-chien",
+      actorSlug: "tieu-chien",
+      title: "Sinh Nhật Tiêu Chiến",
+      category: "entertainment",
+      nature: "arts-culture",
+      priority: 90,
+      displayDate: "01/01",
+    };
+
+    const hero = resolveHeroEvent([], [actor2, actor1], [], 2026);
+    assert.ok(hero);
+    assert.equal(hero?.id, "ev-actor-birthday-tran-thanh", "Must select actor with highest priority");
+  });
+
+  await t.test("Case F: Holiday = YES, Historical = Minor, Actor Birthday = Normal -> Hero = Holiday", () => {
+    const mockHoliday: any = {
+      id: "ev-test-holiday",
+      title: "Ngày Nụ Cười Thế Giới",
+      category: "fun",
+      nature: "theme-day",
+      priority: 55,
+      displayDate: "06/10",
+    };
+    const mockNormalActor: any = {
+      id: "ev-actor-birthday-normal-actor",
+      actorSlug: "unknown-normal-actor",
+      title: "Sinh Nhật Diễn Viên",
+      category: "entertainment",
+      nature: "arts-culture",
+      priority: 50,
+      displayDate: "06/10",
+    };
+    const mockMinorHist: any = {
+      id: "hist-repo-10-06-1973-tinh-den-thoi-iem-nay",
+      title: "Tính đến thời điểm này...",
+      solarDate: { month: 10, day: 6 },
+      year: 1973,
+      summary: "34 nước công nhận...",
+      significance: "Sự kiện ngoại giao",
+      visualTheme: "general-history",
+      sources: ["test"],
+    };
+
+    const hero = resolveHeroEvent([mockHoliday], [mockNormalActor], [mockMinorHist], 2026);
+    assert.ok(hero);
+    assert.equal(hero?.id, "ev-test-holiday", "Hero must be Holiday in Case F");
   });
 });

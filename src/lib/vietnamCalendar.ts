@@ -1,5 +1,6 @@
 import { VIETNAM_EVENTS, VietnamEvent } from "@/data/vietnamEvents";
 import { getHistoricalEventsForDate, VietnamHistoricalEvent } from "@/data/historicalEvents";
+import { FEATURED_HISTORICAL_EVENTS } from "@/data/history/featuredHistory";
 import { ACTORS_CATALOG } from "@/data/actorsCatalog";
 
 const { floor, sin, PI } = Math;
@@ -404,16 +405,179 @@ export function normalizeStringForComparison(str: string): string {
 }
 
 /**
- * Tính điểm ưu tiên toàn diện của sự kiện theo thứ bậc Nanaflix Cinema:
+ * Evaluates whether an actor birthday event qualifies as a "Featured Person" (Hero candidate).
+ * Strict criteria:
+ * 1. Actor must exist in ACTORS_CATALOG
+ * 2. Actor must be marked as featured (actor.featured === true) or have high priority (>= 90)
+ * 3. Complete and valid data: non-empty name, valid non-placeholder avatarUrl, valid slug
+ */
+export function isFeaturedActor(event: VietnamEvent): boolean {
+  if (!event) return false;
+  const isActorEvent = Boolean(event.actorSlug) || event.id.startsWith("ev-actor-birthday");
+  if (!isActorEvent) return false;
+
+  const slug = event.actorSlug || event.id.replace("ev-actor-birthday-", "");
+  const actor = ACTORS_CATALOG.find((a) => a.slug === slug);
+  if (!actor) return false;
+
+  // Complete data check
+  const hasValidName = Boolean(actor.name && actor.name.trim().length > 0);
+  const hasValidAvatar = Boolean(
+    actor.avatarUrl &&
+      typeof actor.avatarUrl === "string" &&
+      actor.avatarUrl.trim().length > 5 &&
+      !actor.avatarUrl.includes("placeholder")
+  );
+  const hasValidSlug = Boolean(actor.slug && actor.slug.trim().length > 0);
+
+  if (!hasValidName || !hasValidAvatar || !hasValidSlug) {
+    return false;
+  }
+
+  return Boolean(actor.featured) || (event.priority !== undefined && event.priority >= 90);
+}
+
+/**
+ * Checks whether a historical event qualifies as a "Featured Historical Milestone" (Hero candidate).
+ * Strict criteria:
+ * 1. Matches Tier S/A in FEATURED_HISTORICAL_EVENTS (priorityScore >= 80 or isCurated: true)
+ * 2. OR features an iconic national historical figure (Bác Hồ, Võ Nguyên Giáp, Trần Hưng Đạo, Quang Trung, Lê Lợi, Lý Thường Kiệt, Hai Bà Trưng, Ngô Quyền, Đinh Bộ Lĩnh...)
+ * 3. OR is an iconic national turning-point victory / event (Tuyên ngôn Độc lập, Điện Biên Phủ, Giải phóng miền Nam 30/4, Giải phóng Thủ đô 10/10, Cách mạng Tháng Tám, Bạch Đằng, Đống Đa...)
+ * 4. OR has dedicated visual theme and documentary image
+ *
+ * All other events (administrative, routine diplomatic milestones, general statistics like "tính đến thời điểm này...")
+ * are considered "Historical Normal / Minor / Chronicle" and CANNOT be promoted to Hero.
+ */
+export function isFeaturedHistoricalEvent(hist: VietnamHistoricalEvent | VietnamEvent): boolean {
+  if (!hist || !hist.title) return false;
+
+  const normId = normalizeStringForComparison(hist.id);
+  const normTitle = normalizeStringForComparison(hist.title);
+
+  // 1. Curated featured events with Tier S or A
+  const curatedMatch = FEATURED_HISTORICAL_EVENTS.find(
+    (f) =>
+      f.id === hist.id ||
+      normId.includes(normalizeStringForComparison(f.id)) ||
+      normTitle.includes(normalizeStringForComparison(f.title.slice(0, 20)))
+  );
+  if (
+    curatedMatch &&
+    (curatedMatch.priorityTier === "S" ||
+      curatedMatch.priorityTier === "A" ||
+      (curatedMatch.priorityScore ?? 0) >= 80 ||
+      curatedMatch.isCurated)
+  ) {
+    return true;
+  }
+
+  // 2. Iconic historical figures
+  const isMajorFigure =
+    normId.includes("vo nguyen giap") ||
+    normId.includes("bac ho") ||
+    normId.includes("ho chi minh") ||
+    normId.includes("tran hung dao") ||
+    normId.includes("quang trung") ||
+    normId.includes("nguyen hue") ||
+    normId.includes("le loi") ||
+    normId.includes("le thai to") ||
+    normId.includes("ly thuong kiet") ||
+    normId.includes("hai ba trung") ||
+    normId.includes("ngo quyen") ||
+    normId.includes("dinh bo linh") ||
+    normId.includes("nguyen trai") ||
+    normId.includes("phan boi chau") ||
+    normId.includes("phan chau trinh") ||
+    normTitle.includes("vo nguyen giap") ||
+    normTitle.includes("ho chi minh") ||
+    normTitle.includes("bac ho") ||
+    normTitle.includes("tran hung dao") ||
+    normTitle.includes("quang trung") ||
+    normTitle.includes("nguyen hue") ||
+    normTitle.includes("le loi") ||
+    normTitle.includes("le thai to") ||
+    normTitle.includes("ly thuong kiet") ||
+    normTitle.includes("hai ba trung") ||
+    normTitle.includes("ngo quyen") ||
+    normTitle.includes("dinh bo linh") ||
+    normTitle.includes("nguyen trai") ||
+    (Array.isArray((hist as any).figures) &&
+      (hist as any).figures.some((fig: string) => {
+        const nf = normalizeStringForComparison(fig);
+        return (
+          nf.includes("ho chi minh") ||
+          nf.includes("vo nguyen giap") ||
+          nf.includes("tran hung dao") ||
+          nf.includes("quang trung") ||
+          nf.includes("nguyen hue") ||
+          nf.includes("le loi") ||
+          nf.includes("le thai to") ||
+          nf.includes("ly thuong kiet") ||
+          nf.includes("hai ba trung") ||
+          nf.includes("ngo quyen") ||
+          nf.includes("dinh bo linh") ||
+          nf.includes("nguyen trai")
+        );
+      }));
+
+  if (isMajorFigure) {
+    return true;
+  }
+
+  // 3. Iconic national milestones
+  const isMajorMilestone =
+    normTitle.includes("tuyen ngon doc lap") ||
+    normTitle.includes("dien bien phu") ||
+    normTitle.includes("giai phong thu do") ||
+    normTitle.includes("giai phong mien nam") ||
+    normTitle.includes("thong nhat dat nuoc") ||
+    normTitle.includes("cach mang thang tam") ||
+    normTitle.includes("bach dang") ||
+    normTitle.includes("ngoc hoi dong da") ||
+    normTitle.includes("khoi nghia lam son") ||
+    normId.includes("dien-bien-phu") ||
+    normId.includes("giai-phong-thu-do") ||
+    normId.includes("thong-nhat-1975") ||
+    normId.includes("ba-dinh-1945");
+
+  if (isMajorMilestone) {
+    return true;
+  }
+
+  // 4. Dedicated visual theme and documentary image
+  if (
+    (hist as any).visualTheme &&
+    (hist as any).visualTheme !== "general-history" &&
+    Boolean(hist.imageUrl)
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Calculates priority score strictly enforcing the Nanaflix 3-tier hierarchy:
  * 
- * Hierarchy:
- * - Priority Tier 1: (Base 70000) Ngày đại lễ / Quốc lễ Việt Nam (Quốc Khánh 2/9, 30/4, Giải phóng Thủ đô 10/10, Tết, Giỗ Tổ...)
- * - Priority Tier 2: (Base 60000) Sự kiện Điện ảnh / Diễn viên có CTA dẫn vào kho phim (Sinh nhật diễn viên...)
- * - Priority Tier 3: (Base 50000) Sự kiện danh nhân lịch sử vĩ đại / mốc son trọng đại (Bác Hồ, Võ Nguyên Giáp, Lê Lợi/Lê Thái Tổ, Quang Trung...)
- * - Priority Tier 4: (Base 40000) Ngày kỷ niệm quốc gia / quốc tế phổ biến (Nhà giáo, Phụ nữ, Thiếu nhi...)
- * - Priority Tier 5: (Base 30000) Ngày chuyên ngành / xã hội (PCCC, Kỹ năng lao động...)
- * - Priority Tier 6: (Base 20000) Mốc son tư liệu lịch sử chung (hội nghị, văn bản, trận đánh nhỏ...)
- * - Priority Tier 7: (Base 10000) Ngày quốc tế niche / ngày vui / marketing
+ * 1. Curated Holiday / Special Day (Base 40,000 - 80,000+)
+ *    - 1.1 National Holiday / Major celebration: 80,000 + rawPriority*10 + anniversaryBonus
+ *    - 1.2 Top Historical Figure Memorial (Curated/Deduplicated): 75,000 + rawPriority*10 + anniversaryBonus
+ *    - 1.3 Cinema / Arts & Culture Day: 70,000 + rawPriority*10 + anniversaryBonus
+ *    - 1.4 Traditional Culture / Festival: 60,000 + rawPriority*10 + anniversaryBonus
+ *    - 1.5 International & Social Observance: 50,000 + rawPriority*10 + anniversaryBonus
+ *    - 1.6 Life / Theme / Fun Day (e.g. World Smile Day): 40,000 + rawPriority*10 + anniversaryBonus
+ * 
+ * 2. Featured Actor / Person Birthday (Base 30,000)
+ *    - Prominent actor with valid avatar & filmography: 30,000 + rawPriority*10
+ * 
+ * 3. Featured Historical Event (Base 20,000)
+ *    - Major national milestone / iconic battle / Tier S/A: 20,000 + rawPriority*10 + anniversaryBonus
+ * 
+ * 4. Normal Actor Birthday (Base 10,000)
+ *    - Regular actor birthday: 10,000 + rawPriority*10 (tabs only, not hero override)
+ * 
+ * 5. Historical Normal / Minor / Chronicle (Base 1,000)
+ *    - Routine administrative/diplomatic records: 1,000 + rawPriority*10 + anniversaryBonus (tabs only, never hero)
  */
 export function getEventPriorityScore(event: VietnamEvent, currentYear: number = 2026): number {
   const normTitle = normalizeStringForComparison(event.title);
@@ -422,7 +586,7 @@ export function getEventPriorityScore(event: VietnamEvent, currentYear: number =
   const nat = event.nature;
   const rawPriority = event.priority ?? 50;
 
-  // Tính bonus kỷ niệm (anniversary bonus) nếu có năm sự kiện
+  // Anniversary bonus
   let anniversaryBonus = 0;
   const eventYear = extractEventYear(event);
   if (eventYear && eventYear < currentYear) {
@@ -438,115 +602,113 @@ export function getEventPriorityScore(event: VietnamEvent, currentYear: number =
     }
   }
 
-  // 1. TIER 1: Ngày đại lễ / Quốc lễ chính thức của Việt Nam (Quốc Khánh, Tết Nguyên Đán, Giỗ Tổ, 30/04, Giải phóng Thủ đô 10/10, Điện Biên Phủ 7/5)
-  const isMajorNationalHoliday =
-    cat === "national-holiday" ||
-    nat === "official-holiday" ||
-    event.effect === "national-day" ||
-    event.effect === "tet" ||
-    event.effect === "mid-autumn" ||
-    event.effect === "christmas" ||
-    event.effect === "nana-birthday" ||
-    normId.includes("quoc khanh") ||
-    normId.includes("gio to") ||
-    normId.includes("thong nhat") ||
-    normId.includes("giai phong mien nam") ||
-    normId.includes("giai phong thu do") ||
-    normTitle.includes("giai phong thu do") ||
-    normId.includes("dien bien phu") ||
-    normTitle.includes("dien bien phu");
+  const isActorEvent = Boolean(event.actorSlug) || normId.startsWith("ev actor birthday");
+  const isRawHistoricalEvent =
+    Boolean((event as any).isHistoricalOnly) ||
+    (Boolean(event.historicalEventId) && normId.startsWith("hist repo"));
 
-  if (isMajorNationalHoliday) {
-    return 70000 + rawPriority * 10 + anniversaryBonus;
-  }
+  // 1. TIER 1: Curated Holiday / Special Day (From VIETNAM_EVENTS or canonical merged holiday)
+  if (!isActorEvent && !isRawHistoricalEvent) {
+    // 1.1 National Holiday / Major celebration
+    const isMajorNationalHoliday =
+      cat === "national-holiday" ||
+      nat === "official-holiday" ||
+      event.effect === "national-day" ||
+      event.effect === "tet" ||
+      event.effect === "mid-autumn" ||
+      event.effect === "christmas" ||
+      event.effect === "nana-birthday" ||
+      normId.includes("quoc khanh") ||
+      normId.includes("gio to") ||
+      normId.includes("thong nhat") ||
+      normId.includes("giai phong mien nam") ||
+      normId.includes("giai phong thu do") ||
+      normTitle.includes("giai phong thu do") ||
+      normId.includes("dien bien phu") ||
+      normTitle.includes("dien bien phu");
 
-  // 2. TIER 2: Sự kiện Điện ảnh / Diễn viên có CTA dẫn trực tiếp vào kho phim (Sinh nhật diễn viên, Ngày Điện ảnh...)
-  const isCinemaOrActorActionable =
-    normId.includes("actor birthday") ||
-    Boolean(event.actorSlug) ||
-    Boolean(event.actorName) ||
-    (event.category === "entertainment" && Boolean(event.relatedLink)) ||
-    (event.nature === "arts-culture" && Boolean(event.relatedLink));
+    if (isMajorNationalHoliday) {
+      return 80000 + rawPriority * 10 + anniversaryBonus;
+    }
 
-  if (isCinemaOrActorActionable) {
-    return 60000 + rawPriority * 10 + anniversaryBonus;
-  }
+    // 1.2 Top Historical Figure Memorial
+    const isTopHistoricalFigure =
+      normId.includes("vo nguyen giap") ||
+      normId.includes("bac ho") ||
+      normId.includes("ho chi minh") ||
+      normId.includes("tran hung dao") ||
+      normId.includes("quang trung") ||
+      normId.includes("nguyen hue") ||
+      normId.includes("le loi") ||
+      normId.includes("le thai to") ||
+      normId.includes("ly thuong kiet") ||
+      normId.includes("hai ba trung") ||
+      normTitle.includes("vo nguyen giap") ||
+      normTitle.includes("ho chi minh") ||
+      normTitle.includes("bac ho") ||
+      normTitle.includes("tran hung dao") ||
+      normTitle.includes("quang trung") ||
+      normTitle.includes("nguyen hue") ||
+      normTitle.includes("le loi") ||
+      normTitle.includes("le thai to") ||
+      normTitle.includes("ly thuong kiet") ||
+      normTitle.includes("hai ba trung");
 
-  // 3. TIER 3: Sự kiện danh nhân lịch sử vĩ đại / mốc son trọng đại của Việt Nam
-  const isTopHistoricalFigure =
-    normId.includes("vo nguyen giap") ||
-    normId.includes("bac ho") ||
-    normId.includes("ho chi minh") ||
-    normId.includes("tran hung dao") ||
-    normId.includes("quang trung") ||
-    normId.includes("nguyen hue") ||
-    normId.includes("le loi") ||
-    normId.includes("le thai to") ||
-    normId.includes("ly thuong kiet") ||
-    normId.includes("hai ba trung") ||
-    normTitle.includes("vo nguyen giap") ||
-    normTitle.includes("ho chi minh") ||
-    normTitle.includes("bac ho") ||
-    normTitle.includes("tran hung dao") ||
-    normTitle.includes("quang trung") ||
-    normTitle.includes("nguyen hue") ||
-    normTitle.includes("le loi") ||
-    normTitle.includes("le thai to") ||
-    normTitle.includes("ly thuong kiet") ||
-    normTitle.includes("hai ba trung");
+    if (isTopHistoricalFigure) {
+      return 75000 + rawPriority * 10 + anniversaryBonus;
+    }
 
-  if (isTopHistoricalFigure) {
-    return 50000 + rawPriority * 10 + anniversaryBonus;
-  }
+    // 1.3 Cinema / Arts & Culture Day
+    const isCinemaOrArts =
+      nat === "arts-culture" ||
+      cat === "entertainment" ||
+      normId.includes("dien anh") ||
+      normTitle.includes("dien anh") ||
+      normId.includes("hoat hinh");
 
-  // 4. TIER 4: Ngày kỷ niệm quốc gia / quốc tế phổ biến & Văn hóa truyền thống
-  const isMajorSocialOrCultural =
-    normId.includes("nha giao") ||
-    normTitle.includes("nha giao") ||
-    normId.includes("phu nu") ||
-    normTitle.includes("phu nu") ||
-    normId.includes("thieu nhi") ||
-    normTitle.includes("thieu nhi") ||
-    normId.includes("thay thuoc") ||
-    normTitle.includes("thay thuoc") ||
-    normId.includes("gia dinh") ||
-    normTitle.includes("gia dinh") ||
-    normId.includes("moi truong") ||
-    normTitle.includes("moi truong") ||
-    normId.includes("trai dat") ||
-    normTitle.includes("trai dat") ||
-    normId.includes("dien anh") ||
-    normTitle.includes("dien anh") ||
-    normId.includes("hoat hinh") ||
-    cat === "traditional-culture" ||
-    (nat === "arts-culture" && cat !== "entertainment") ||
-    (cat === "international" && rawPriority >= 50);
+    if (isCinemaOrArts) {
+      return 70000 + rawPriority * 10 + anniversaryBonus;
+    }
 
-  if (isMajorSocialOrCultural && cat !== "fun" && !normId.includes("dong vat") && !normId.includes("pccc") && !normId.includes("lao dong") && cat !== "vietnam-history") {
+    // 1.4 Traditional Culture / Festival
+    const isTraditional =
+      cat === "traditional-culture" ||
+      nat === "traditional-festival";
+
+    if (isTraditional) {
+      return 60000 + rawPriority * 10 + anniversaryBonus;
+    }
+
+    // 1.5 International & Social Observance
+    const isSocialOrInternational =
+      nat === "international-day" ||
+      nat === "social-observance" ||
+      cat === "social-family" ||
+      cat === "international";
+
+    if (isSocialOrInternational && cat !== "fun") {
+      return 50000 + rawPriority * 10 + anniversaryBonus;
+    }
+
+    // 1.6 Life / Theme / Fun Day (World Smile Day, etc.)
     return 40000 + rawPriority * 10 + anniversaryBonus;
   }
 
-  // 5. TIER 5: Ngày chuyên ngành / xã hội
-  const isProfessionalOrObservance =
-    nat === "social-observance" ||
-    cat === "social-family" ||
-    normId.includes("pccc") ||
-    normId.includes("lao dong") ||
-    normId.includes("doanh nhan") ||
-    normId.includes("nong dan") ||
-    normId.includes("khuyen hoc");
-
-  if (isProfessionalOrObservance && cat !== "vietnam-history") {
-    return 30000 + rawPriority * 10 + anniversaryBonus;
+  // 2. TIER 2 & 4: Actor Birthdays
+  if (isActorEvent) {
+    if (isFeaturedActor(event)) {
+      return 30000 + rawPriority * 10;
+    }
+    return 10000 + rawPriority * 10;
   }
 
-  // 6. TIER 6: Mốc son tư liệu lịch sử chung (hội nghị, văn bản, trận đánh nhỏ...)
-  if (cat === "vietnam-history" || Boolean(event.historicalEventId)) {
+  // 3. TIER 3 & 5: Historical Events
+  if (isFeaturedHistoricalEvent(event)) {
     return 20000 + rawPriority * 10 + anniversaryBonus;
   }
 
-  // 7. TIER 7: Ngày quốc tế niche / ngày vui / marketing
-  return 10000 + rawPriority * 10 + anniversaryBonus;
+  // Tier 5: Historical Normal / Minor / Chronicle
+  return 1000 + rawPriority * 10 + anniversaryBonus;
 }
 
 /**
@@ -647,11 +809,11 @@ export function convertHistoricalToVietnamEvent(
     bannerDescription: hist.summary,
     description: hist.context || hist.summary,
     subtitle: hist.context || hist.significance,
-    category: "vietnam-history",
-    categoryLabel: "Mốc son lịch sử",
-    nature: "historical-anniversary",
-    natureLabel: "Lịch sử Việt Nam",
-    priority: matchingHoliday?.priority ?? 50,
+    category: matchingHoliday ? matchingHoliday.category : "vietnam-history",
+    categoryLabel: matchingHoliday ? matchingHoliday.categoryLabel : "Mốc son lịch sử",
+    nature: matchingHoliday ? matchingHoliday.nature : "historical-anniversary",
+    natureLabel: matchingHoliday ? matchingHoliday.natureLabel : "Lịch sử Việt Nam",
+    priority: matchingHoliday?.priority ?? (isFeaturedHistoricalEvent(hist) ? 80 : 50),
     eventYear: hist.year,
     milestoneFigure,
     solarDate: {
@@ -672,7 +834,7 @@ export function convertHistoricalToVietnamEvent(
     milestones: hist.keyFacts || matchingHoliday?.milestones || [],
     quote: matchingHoliday?.quote || null,
     message: matchingHoliday?.message || null,
-    tag: "Lịch sử & Danh nhân",
+    tag: matchingHoliday?.tag || "Lịch sử & Danh nhân",
     imageUrl: hist.imageUrl || matchingHoliday?.imageUrl || null,
     imageCaption: hist.imageCaption || undefined,
     imageSource: hist.imageSource || undefined,
@@ -681,7 +843,8 @@ export function convertHistoricalToVietnamEvent(
     relatedLink: matchingHoliday?.relatedLink || null,
     relatedLabel: matchingHoliday?.relatedLabel || undefined,
     historicalEventId: hist.id,
-  };
+    ...(matchingHoliday ? {} : { isHistoricalOnly: true }),
+  } as VietnamEvent;
 }
 
 /**
@@ -824,6 +987,50 @@ export function mergeAndDeduplicateEvents(
 }
 
 /**
+ * Resolves the primary Hero event according to strict 3-tier precedence:
+ * 1. Curated Holiday / Special Day (Highest Priority for Hero)
+ * 2. Featured Actor / Person Birthday (if no Curated Holiday)
+ * 3. Featured Historical Event (if no Curated Holiday and no Featured Actor)
+ * 
+ * If none of the above are eligible: Returns null (Hero does NOT force Normal Historical or poor data).
+ */
+export function resolveHeroEvent(
+  holidayMatches: VietnamEvent[],
+  actorBirthdays: VietnamEvent[],
+  historicalEvents: VietnamHistoricalEvent[],
+  currentYear: number = new Date().getFullYear()
+): VietnamEvent | null {
+  // 1. Curated Holiday / Special Day from VIETNAM_EVENTS
+  if (holidayMatches.length > 0) {
+    const sortedHolidays = [...holidayMatches].sort(
+      (a, b) => getEventPriorityScore(b, currentYear) - getEventPriorityScore(a, currentYear)
+    );
+    return sortedHolidays[0];
+  }
+
+  // 2. Featured Actor / Person Birthday
+  const featuredActors = actorBirthdays.filter((a) => isFeaturedActor(a));
+  if (featuredActors.length > 0) {
+    const sortedActors = [...featuredActors].sort(
+      (a, b) => getEventPriorityScore(b, currentYear) - getEventPriorityScore(a, currentYear)
+    );
+    return sortedActors[0];
+  }
+
+  // 3. Featured Historical Event
+  const featuredHistories = historicalEvents.filter((h) => isFeaturedHistoricalEvent(h));
+  if (featuredHistories.length > 0) {
+    const converted = featuredHistories
+      .map((h) => convertHistoricalToVietnamEvent(h))
+      .sort((a, b) => getEventPriorityScore(b, currentYear) - getEventPriorityScore(a, currentYear));
+    return converted[0];
+  }
+
+  // No eligible Hero candidate (do NOT force Historical Normal/Minor onto Hero)
+  return null;
+}
+
+/**
  * Main helper: Finds the event for today, or finds the nearest upcoming event
  */
 export function getVietnamTodayEvent(customDate?: Date): VietnamTodayInfo {
@@ -888,7 +1095,7 @@ export function getVietnamTodayEvent(customDate?: Date): VietnamTodayInfo {
   // 1.1 Kiểm tra sinh nhật diễn viên từ ACTORS_CATALOG (dữ liệu thật)
   const actorBirthdays = getActorBirthdaysForDate(month, day, year);
 
-  // 1.2 Deduplicate and merge EVENTS + HISTORY with HISTORY as canonical
+  // 1.2 Deduplicate and merge EVENTS + HISTORY with canonical deduplication
   const mergedTodayEvents = mergeAndDeduplicateEvents(
     holidayMatches,
     historicalEvents,
@@ -899,11 +1106,12 @@ export function getVietnamTodayEvent(customDate?: Date): VietnamTodayInfo {
   const solarDateFormatted = formatSolarDateVn(now);
   const lunarDateFormatted = formatLunarDateVn(lunar);
 
-  if (mergedTodayEvents.length > 0) {
-    const priorityEvent = mergedTodayEvents[0];
+  // 1.3 Resolve primary Hero candidate
+  const heroCandidate = resolveHeroEvent(holidayMatches, actorBirthdays, historicalEvents, year);
 
+  if (heroCandidate) {
     return {
-      event: priorityEvent,
+      event: heroCandidate,
       allEventsToday: mergedTodayEvents,
       historicalEventsToday,
       isToday: true,
@@ -911,7 +1119,7 @@ export function getVietnamTodayEvent(customDate?: Date): VietnamTodayInfo {
       solarDateFormatted,
       lunarDateFormatted,
       badgeLabel: "ĐANG DIỄN RA",
-      badgeSub: priorityEvent.displayDate,
+      badgeSub: heroCandidate.displayDate,
       todaySolar: { day, month, year },
       todayLunar: lunar,
     };
