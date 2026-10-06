@@ -286,6 +286,20 @@ function CommunityTopTrendingInner() {
           </button>
         )}
 
+        {/* MOBILE SUBTLE GRADIENT FADE AFFORDANCE */}
+        {canScrollLeft && (
+          <div
+            className="sm:hidden absolute left-0 top-0 bottom-4 w-6 bg-gradient-to-r from-black via-black/60 to-transparent pointer-events-none z-20 transition-opacity duration-200"
+            aria-hidden="true"
+          />
+        )}
+        {canScrollRight && (
+          <div
+            className="sm:hidden absolute right-0 top-0 bottom-4 w-8 bg-gradient-to-l from-black via-black/60 to-transparent pointer-events-none z-20 transition-opacity duration-200"
+            aria-hidden="true"
+          />
+        )}
+
         <div
           ref={scrollContainerRef}
           onScroll={checkScroll}

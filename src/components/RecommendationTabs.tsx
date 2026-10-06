@@ -226,14 +226,17 @@ export function RecommendationTabs({
           
           {/* NÚT CUỘN TRÁI */}
           {canScrollLeft && (
-            <button
-              type="button"
-              onClick={() => scrollTabs("left")}
-              aria-label="Cuộn sang trái"
-              className="absolute left-0 z-20 h-7 w-7 rounded-full bg-zinc-900/95 hover:bg-zinc-800 text-white border border-white/20 shadow-xl flex items-center justify-center transition cursor-pointer backdrop-blur-md"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
+            <>
+              <div className="absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-black/80 to-transparent pointer-events-none z-10 sm:hidden" />
+              <button
+                type="button"
+                onClick={() => scrollTabs("left")}
+                aria-label="Cuộn sang trái"
+                className="absolute left-0 z-20 h-7 w-7 rounded-full bg-zinc-900/95 hover:bg-zinc-800 text-white border border-white/20 shadow-xl flex items-center justify-center transition cursor-pointer backdrop-blur-md"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+            </>
           )}
 
           {/* DẢI TABS CUỘN NGANG VỚI KÉO CHUỘT + LĂN CHUỘT */}
@@ -342,14 +345,17 @@ export function RecommendationTabs({
 
           {/* NÚT CUỘN PHẢI */}
           {canScrollRight && (
-            <button
-              type="button"
-              onClick={() => scrollTabs("right")}
-              aria-label="Cuộn sang phải"
-              className="absolute right-10 sm:right-11 z-20 h-7 w-7 rounded-full bg-zinc-900/95 hover:bg-zinc-800 text-white border border-white/20 shadow-xl flex items-center justify-center transition cursor-pointer backdrop-blur-md"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
+            <>
+              <div className="absolute right-8 sm:right-10 top-0 bottom-0 w-8 bg-gradient-to-l from-black/80 to-transparent pointer-events-none z-10 sm:hidden" />
+              <button
+                type="button"
+                onClick={() => scrollTabs("right")}
+                aria-label="Cuộn sang phải"
+                className="absolute right-10 sm:right-11 z-20 h-7 w-7 rounded-full bg-zinc-900/95 hover:bg-zinc-800 text-white border border-white/20 shadow-xl flex items-center justify-center transition cursor-pointer backdrop-blur-md"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </>
           )}
 
           {/* NÚT ĐỔI PHIM (SHUFFLE) */}
