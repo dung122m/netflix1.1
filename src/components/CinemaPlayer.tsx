@@ -166,8 +166,11 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
 
   // Player UI states
   const [playerSettings, setPlayerSettings] = useState<PlayerSettings>(() => getPlayerSettings(user?.uid));
-  const [isTheaterMode, setIsTheaterMode] = useState(false);
-  const [isLightsOff, setIsLightsOff] = useState(false);
+  const [localTheaterMode, setLocalTheaterMode] = useState(false);
+
+  const isTheaterMode = watchContext?.isTheaterMode ?? localTheaterMode;
+  const setIsTheaterMode = watchContext?.setIsTheaterMode ?? setLocalTheaterMode;
+
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -222,9 +225,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     setPlayerSettings(current);
     if (current.defaultTheaterMode && typeof window !== "undefined" && window.innerWidth >= 1024) {
       setIsTheaterMode(true);
-    }
-    if (current.defaultLightsOff) {
-      setIsLightsOff(true);
     }
     if (current.playbackSpeed && current.playbackSpeed !== 1) {
       setPlaybackSpeed(current.playbackSpeed);
@@ -1407,17 +1407,11 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       // Reset controls timeout on any player shortcut key
       resetControlsTimeout();
 
-      // 1. Phím Escape: Đóng modal / Tắt đèn / Thoát toàn màn hình
+      // 1. Phím Escape: Đóng modal / Thoát toàn màn hình
       if (e.key === "Escape") {
         if (showShortcutModal) {
           e.preventDefault();
           setShowShortcutModal(false);
-          return;
-        }
-
-        if (isLightsOff) {
-          e.preventDefault();
-          setIsLightsOff(false);
           return;
         }
 
@@ -1457,15 +1451,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       if (e.key === "t" || e.key === "T") {
         e.preventDefault();
         setIsTheaterMode((prev) => !prev);
-        return;
-      }
-      if (e.key === "l" || e.key === "L") {
-        e.preventDefault();
-        setIsLightsOff((prev) => {
-          const next = !prev;
-          showHud(next ? <Moon className="w-5 h-5 text-yellow-300" /> : <Sun className="w-5 h-5 text-yellow-400" />, next ? "Đã tắt đèn" : "Đã bật đèn");
-          return next;
-        });
         return;
       }
       if ((e.key === "p" || e.key === "P") && prevEpisode?.slug && switchEpisode) {
@@ -1592,7 +1577,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     showHud,
     getEffectiveDuration,
     showShortcutModal,
-    isLightsOff,
     isFullscreen,
     resetControlsTimeout,
     triggerDesktopFeedback,
@@ -1638,18 +1622,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
 
   return (
     <>
-      {/* LỚP NỀN TẮT ĐÈN */}
-      {isLightsOff && (
-        <div
-          onClick={() => setIsLightsOff(false)}
-          className="fixed inset-0 bg-black/95 z-40 transition-opacity duration-300 cursor-pointer flex items-start justify-center pt-24"
-        >
-          <div className="text-white/60 text-xs bg-zinc-900/80 border border-white/10 px-3.5 py-2 rounded-full backdrop-blur-sm pointer-events-none shadow-xl">
-            💡 Nhấn phím <span className="text-white font-bold">L</span> hoặc <span className="text-white font-bold">Escape</span> để bật đèn lại
-          </div>
-        </div>
-      )}
-
       {/* Sentinel for sticky intersection */}
       <div ref={sentinelRef} className="w-full h-1 pointer-events-none" />
 
@@ -1666,13 +1638,11 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         onMouseLeave={handleMouseLeave}
         className={`w-full mx-auto transition-all duration-300 bg-black outline-none focus:outline-none focus-visible:outline-none ${
           isFullscreen
-            ? "fixed inset-0 z-50 w-full h-full max-w-none p-0 m-0 bg-black flex flex-col justify-center overflow-hidden"
+            ? "fixed inset-0 z-[80] w-full h-full max-w-none p-0 m-0 bg-black flex flex-col justify-center overflow-hidden"
             : isMobileStickyActive
             ? "fixed top-[56px] left-0 right-0 z-40 shadow-2xl border-b border-white/25 md:relative md:top-auto"
             : "relative z-30"
-        } ${isTheaterMode && !isFullscreen ? "max-w-none px-0 sm:px-0" : isFullscreen ? "" : "max-w-7xl"} ${
-          isLightsOff && !isFullscreen ? "z-50" : ""
-        }`}
+        } ${isTheaterMode && !isFullscreen ? "max-w-none px-0 sm:px-0" : isFullscreen ? "" : "max-w-7xl"}`}
       >
         {isMobileStickyActive && (
           <div className="md:hidden bg-gradient-to-r from-zinc-950 via-zinc-900 to-black px-3 py-1.5 flex items-center justify-between border-b border-white/10 text-xs">
@@ -1702,8 +1672,8 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
               : isMobileStickyActive
               ? "aspect-video rounded-none max-h-[38vh] shadow-2xl"
               : isTheaterMode
-              ? "aspect-video rounded-none border-y border-white/20 shadow-[0_30px_90px_rgba(0,0,0,0.85)] sm:max-h-[calc(100vh-90px)]"
-              : "aspect-video rounded-none sm:rounded-2xl md:rounded-3xl border-b sm:border border-white/15 shadow-[0_25px_70px_rgba(0,0,0,0.55)]"
+              ? "aspect-video w-full rounded-xl sm:rounded-2xl md:rounded-3xl border border-white/20 shadow-[0_30px_90px_rgba(0,0,0,0.85)] max-h-[calc(100vh-185px)]"
+              : "aspect-video rounded-xl sm:rounded-2xl md:rounded-3xl border border-white/15 shadow-[0_25px_70px_rgba(0,0,0,0.55)]"
           }`}
         >
           {isNativeVideo ? (
@@ -2087,15 +2057,13 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       {/* ISOLATED ACTION BUTTONS BAR */}
       {!isFullscreen && (
         <div
-          className={`cinema-action-buttons w-full mx-auto ${
+          className={`cinema-action-buttons w-full mx-auto relative z-20 ${
             isTheaterMode ? "max-w-none px-0 sm:px-0" : "max-w-7xl"
-          } relative z-20`}
+          }`}
         >
           <PlayerActionButtons
             isTheaterMode={isTheaterMode}
-            onToggleTheaterMode={() => setIsTheaterMode(!isTheaterMode)}
-            isLightsOff={isLightsOff}
-            onToggleLightsOff={() => setIsLightsOff(!isLightsOff)}
+            onToggleTheaterMode={() => setIsTheaterMode((prev) => !prev)}
             isFullscreen={isFullscreen}
             onToggleFullscreen={toggleFullscreen}
             onOpenShortcuts={() => setShowShortcutModal(true)}

@@ -71,7 +71,6 @@ export const PlayerShortcutModal: React.FC<PlayerShortcutModalProps> = React.mem
               { label: "Tắt / Bật âm thanh", key: "M" },
               { label: "Tăng / Giảm âm lượng", key: "↑ / ↓" },
               { label: "Chế độ Rạp phim", key: "T" },
-              { label: "Tắt / Bật đèn xung quanh", key: "L" },
               { label: "Chuyển về tập trước", key: "P" },
               { label: "Chuyển sang tập kế tiếp", key: "N" },
               { label: "Thoát chế độ / Đóng", key: "Esc" },

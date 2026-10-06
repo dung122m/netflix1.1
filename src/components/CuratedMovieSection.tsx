@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { MovieGrid } from "@/components/MovieGrid";
 import { movieApi } from "@/services/movieApi";
+import { ScrollFadeContainer } from "@/components/ui/ScrollFadeContainer";
 
 export type CuratedTabKey = "trending" | "rating" | "theaters" | "latest";
 
@@ -187,7 +188,11 @@ export const CuratedMovieSection: React.FC<CuratedMovieSectionProps> = ({
       </div>
 
       {/* THANH TAB TUYỂN CHỌN ĐA NĂNG */}
-      <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto no-scrollbar pb-3 mb-6">
+      <ScrollFadeContainer
+        className="mb-6"
+        scrollClassName="gap-2 sm:gap-3 py-1 pb-3"
+        activeChildTrigger={activeTab}
+      >
         {CURATED_TABS.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
@@ -205,7 +210,7 @@ export const CuratedMovieSection: React.FC<CuratedMovieSectionProps> = ({
             </button>
           );
         })}
-      </div>
+      </ScrollFadeContainer>
 
       {/* LƯỚI PHIM VỚI 100% HIỆU ỨNG HOVER */}
       {loading ? (

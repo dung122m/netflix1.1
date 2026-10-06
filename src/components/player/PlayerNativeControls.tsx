@@ -194,8 +194,8 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
 
     return (
       <div
-        className={`cinema-player-controls-container absolute inset-0 transition-opacity duration-300 z-30 ${
-          isOverlayVisible ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        className={`cinema-player-controls-container absolute inset-0 transition-opacity duration-300 z-30 pointer-events-none ${
+          isOverlayVisible ? "opacity-100" : "opacity-0"
         }`}
       >
         {/* 1. TOP HEADER OVERLAY (Netflix Style Title & Episode Info) */}
@@ -205,7 +205,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
             e.stopPropagation();
             onUserInteraction?.();
           }}
-          className="absolute top-0 inset-x-0 w-full bg-gradient-to-b from-black/85 via-black/40 to-transparent pt-3 pb-8 px-3 sm:px-5 flex items-center justify-between z-10"
+          className="pointer-events-auto absolute top-0 inset-x-0 w-full bg-gradient-to-b from-black/85 via-black/40 to-transparent pt-3 pb-8 px-3 sm:px-5 flex items-center justify-between z-10"
           style={{
             paddingTop: "max(0.75rem, env(safe-area-inset-top, 0.75rem))",
             paddingLeft: "max(0.75rem, env(safe-area-inset-left, 0.75rem))",
@@ -311,7 +311,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
           onMouseMove={onUserInteraction}
           onPointerMove={onUserInteraction}
           onTouchStart={onUserInteraction}
-          className="cinema-player-controls absolute bottom-0 inset-x-0 w-full bg-gradient-to-t from-black/95 via-black/75 to-transparent pt-6 pb-2.5 sm:pb-3 px-3 sm:px-5 z-10"
+          className="pointer-events-auto cinema-player-controls absolute bottom-0 inset-x-0 w-full bg-gradient-to-t from-black/95 via-black/75 to-transparent pt-6 pb-2.5 sm:pb-3 px-3 sm:px-5 z-10"
           style={{
             paddingBottom: "max(0.75rem, env(safe-area-inset-bottom, 0.75rem))",
             paddingLeft: "max(0.75rem, env(safe-area-inset-left, 0.75rem))",
@@ -453,7 +453,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
                 </button>
                 {showSpeedMenu && (
                   <div
-                    className="absolute bottom-full right-0 mb-2 py-1.5 w-24 bg-zinc-900/95 border border-white/15 rounded-xl shadow-2xl backdrop-blur-md z-50 text-xs flex flex-col"
+                    className="pointer-events-auto absolute bottom-full right-0 mb-2 py-1.5 w-24 bg-zinc-900/95 border border-white/15 rounded-xl shadow-2xl backdrop-blur-md z-50 text-xs flex flex-col"
                   >
                     {[0.5, 0.75, 1, 1.25, 1.5, 2].map((spd) => (
                       <button
@@ -496,7 +496,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
                   </button>
                   {showQualityMenu && (
                     <div
-                      className="absolute bottom-full right-0 mb-2 py-1.5 w-28 bg-zinc-900/95 border border-white/15 rounded-xl shadow-2xl backdrop-blur-md z-50 text-xs flex flex-col"
+                      className="pointer-events-auto absolute bottom-full right-0 mb-2 py-1.5 w-28 bg-zinc-900/95 border border-white/15 rounded-xl shadow-2xl backdrop-blur-md z-50 text-xs flex flex-col"
                     >
                       <button
                         type="button"
@@ -555,7 +555,7 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
                   </button>
                   {showFitMenu && (
                     <div
-                      className="absolute bottom-full right-0 mb-2 py-1.5 w-32 bg-zinc-900/95 border border-white/15 rounded-xl shadow-2xl backdrop-blur-md z-50 text-xs flex flex-col"
+                      className="pointer-events-auto absolute bottom-full right-0 mb-2 py-1.5 w-32 bg-zinc-900/95 border border-white/15 rounded-xl shadow-2xl backdrop-blur-md z-50 text-xs flex flex-col"
                     >
                       {FIT_OPTIONS.map((opt) => (
                         <button

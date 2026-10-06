@@ -43,6 +43,12 @@ interface WatchContextValue {
   isTrailerOnly: boolean;
   switchEpisode: (slug: string) => void;
   switchServer: (serverIndex: number) => void;
+  isTheaterMode: boolean;
+  setIsTheaterMode: React.Dispatch<React.SetStateAction<boolean>>;
+  toggleTheaterMode: () => void;
+  isLightsOff: boolean;
+  setIsLightsOff: React.Dispatch<React.SetStateAction<boolean>>;
+  toggleLightsOff: () => void;
 }
 
 const WatchContext = createContext<WatchContextValue | null>(null);
@@ -88,6 +94,16 @@ export function WatchController({
   children,
 }: WatchControllerProps) {
   const [currentServerIndex, setCurrentServerIndex] = useState(initialServerIndex);
+  const [isTheaterMode, setIsTheaterMode] = useState<boolean>(false);
+  const [isLightsOff, setIsLightsOff] = useState<boolean>(false);
+
+  const toggleTheaterMode = useCallback(() => {
+    setIsTheaterMode((prev) => !prev);
+  }, []);
+
+  const toggleLightsOff = useCallback(() => {
+    setIsLightsOff((prev) => !prev);
+  }, []);
 
   const currentServer = initialServers[currentServerIndex] || initialServers[0];
   const episodes = useMemo(
@@ -303,6 +319,12 @@ export function WatchController({
       isTrailerOnly,
       switchEpisode,
       switchServer,
+      isTheaterMode,
+      setIsTheaterMode,
+      toggleTheaterMode,
+      isLightsOff,
+      setIsLightsOff,
+      toggleLightsOff,
     };
   }, [
     movieSlug,
@@ -322,6 +344,10 @@ export function WatchController({
     isTrailerOnly,
     switchEpisode,
     switchServer,
+    isTheaterMode,
+    toggleTheaterMode,
+    isLightsOff,
+    toggleLightsOff,
   ]);
 
   return (

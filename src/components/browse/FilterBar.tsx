@@ -284,26 +284,58 @@ export const FilterBar: React.FC = () => {
     }
   }, [activeDropdown]);
 
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const checkFilterScroll = useCallback(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 3);
+    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 3);
+  }, []);
+
   useEffect(() => {
     updateDropdownPosition();
+    checkFilterScroll();
     window.addEventListener("resize", updateDropdownPosition);
+    window.addEventListener("resize", checkFilterScroll);
     const scrollEl = scrollContainerRef.current;
     if (scrollEl) {
       scrollEl.addEventListener("scroll", updateDropdownPosition, { passive: true });
+      scrollEl.addEventListener("scroll", checkFilterScroll, { passive: true });
     }
     return () => {
       window.removeEventListener("resize", updateDropdownPosition);
-      if (scrollEl) scrollEl.removeEventListener("scroll", updateDropdownPosition);
+      window.removeEventListener("resize", checkFilterScroll);
+      if (scrollEl) {
+        scrollEl.removeEventListener("scroll", updateDropdownPosition);
+        scrollEl.removeEventListener("scroll", checkFilterScroll);
+      }
     };
-  }, [updateDropdownPosition]);
+  }, [updateDropdownPosition, checkFilterScroll]);
 
   return (
     <div ref={containerRef} className="w-full relative z-40 select-none">
       {/* 1. COMPACT DROPDOWN FILTER BAR (Single Row 44-48px) */}
-      <div
-        ref={scrollContainerRef}
-        className="flex items-center gap-2 sm:gap-2.5 overflow-x-auto sm:overflow-visible [scrollbar-width:none] [&::-webkit-scrollbar]:hidden py-1 flex-nowrap sm:flex-wrap"
-      >
+      <div className="relative w-full overflow-hidden">
+        {/* MOBILE SUBTLE GRADIENT FADE AFFORDANCE */}
+        {canScrollLeft && (
+          <div
+            className="sm:hidden absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-black via-black/60 to-transparent pointer-events-none z-10 transition-opacity duration-200"
+            aria-hidden="true"
+          />
+        )}
+        {canScrollRight && (
+          <div
+            className="sm:hidden absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-black via-black/60 to-transparent pointer-events-none z-10 transition-opacity duration-200"
+            aria-hidden="true"
+          />
+        )}
+
+        <div
+          ref={scrollContainerRef}
+          className="flex items-center gap-2 sm:gap-2.5 overflow-x-auto sm:overflow-visible [scrollbar-width:none] [&::-webkit-scrollbar]:hidden py-1 flex-nowrap sm:flex-wrap"
+        >
         
         {/* DROPDOWN 1: LOẠI PHIM */}
         <button
@@ -501,6 +533,7 @@ export const FilterBar: React.FC = () => {
             <span className="hidden sm:inline">Đặt lại</span>
           </button>
         )}
+        </div>
       </div>
 
       {/* 2. ACTIVE DROPDOWN POPUP (Neo chính xác dưới từng nút bấm được chọn) */}

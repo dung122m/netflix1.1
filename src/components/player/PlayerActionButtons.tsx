@@ -22,8 +22,8 @@ interface EpisodeItem {
 interface PlayerActionButtonsProps {
   isTheaterMode: boolean;
   onToggleTheaterMode: () => void;
-  isLightsOff: boolean;
-  onToggleLightsOff: () => void;
+  isLightsOff?: boolean;
+  onToggleLightsOff?: () => void;
   isFullscreen: boolean;
   onToggleFullscreen: () => void;
   onOpenShortcuts: () => void;
@@ -37,8 +37,6 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = React.mem
   function PlayerActionButtons({
     isTheaterMode,
     onToggleTheaterMode,
-    isLightsOff,
-    onToggleLightsOff,
     isFullscreen,
     onToggleFullscreen,
     onOpenShortcuts,
@@ -86,33 +84,7 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = React.mem
             )}
           </button>
 
-          {/* 2. Nút Tắt đèn */}
-          <button
-            type="button"
-            data-player-control="true"
-            onClick={onToggleLightsOff}
-            className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg border transition cursor-pointer text-xs outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
-              isLightsOff
-                ? "bg-yellow-500/20 text-yellow-300 border-yellow-500/40 font-medium"
-                : "bg-zinc-900/80 hover:bg-zinc-800 text-gray-300 hover:text-white border-white/10"
-            }`}
-          >
-            {isLightsOff ? (
-              <>
-                <Sun className="w-3.5 h-3.5 text-yellow-400" />
-                <span>Bật sáng</span>
-                <span className="hidden sm:inline text-white/60">(L)</span>
-              </>
-            ) : (
-              <>
-                <Moon className="w-3.5 h-3.5" />
-                <span>Chế độ Cinema</span>
-                <span className="hidden sm:inline text-white/60">(L)</span>
-              </>
-            )}
-          </button>
-
-          {/* 3. Nút Toàn màn hình */}
+          {/* 2. Nút Toàn màn hình */}
           <button
             type="button"
             data-player-control="true"

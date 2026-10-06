@@ -13,6 +13,7 @@ interface MovieRecommendationsClientProps {
   year?: number | string;
   type?: string;
   contentText?: string;
+  variant?: "grid" | "sidebar";
 }
 
 interface RecommendationsData {
@@ -29,7 +30,29 @@ interface RecommendationsData {
   allMovies: any[];
 }
 
-export function RecommendationSkeleton() {
+export function RecommendationSkeleton({ variant = "grid" }: { variant?: "grid" | "sidebar" }) {
+  if (variant === "sidebar") {
+    return (
+      <div className="space-y-3 animate-pulse">
+        <div className="flex gap-2 pb-2 border-b border-white/10">
+          <div className="h-7 w-24 bg-zinc-800 rounded-xl" />
+          <div className="h-7 w-20 bg-zinc-900 rounded-xl" />
+        </div>
+        <div className="space-y-2">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="flex gap-2.5 p-1.5 rounded-xl bg-zinc-900/40">
+              <div className="aspect-video w-[110px] bg-zinc-800 rounded-lg shrink-0" />
+              <div className="flex-1 space-y-2 py-1">
+                <div className="h-3 bg-zinc-800 rounded w-4/5" />
+                <div className="h-2.5 bg-zinc-900 rounded w-1/2" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4 animate-pulse">
       <div className="flex gap-2">
@@ -56,6 +79,7 @@ export function MovieRecommendationsClient({
   year,
   type,
   contentText = "",
+  variant = "grid",
 }: MovieRecommendationsClientProps) {
   const [data, setData] = useState<RecommendationsData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -118,7 +142,7 @@ export function MovieRecommendationsClient({
   }, [currentMovieSlug, currentMovieTitle, categories, countries, primaryActor, primaryDirector, year, type, contentText]);
 
   if (loading || !data || data.allMovies.length === 0) {
-    return <RecommendationSkeleton />;
+    return <RecommendationSkeleton variant={variant} />;
   }
 
   return (
@@ -131,6 +155,7 @@ export function MovieRecommendationsClient({
       countryMovies={data.countryMovies}
       actorMovies={data.actorMovies}
       allMovies={data.allMovies}
+      variant={variant}
     />
   );
 }

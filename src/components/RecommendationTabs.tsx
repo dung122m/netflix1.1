@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useRef, useEffect } from "react";
+import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -12,6 +12,8 @@ import {
   Shuffle,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
   Play,
 } from "lucide-react";
 import { pickBestMovieThumb, toOptimizedPhimimgUrl } from "@/lib/movieMedia";
@@ -41,6 +43,7 @@ interface RecommendationTabsProps {
   countryMovies: MovieItem[];
   actorMovies?: MovieItem[];
   allMovies: MovieItem[];
+  variant?: "grid" | "sidebar";
 }
 
 export function RecommendationTabs({
@@ -52,6 +55,7 @@ export function RecommendationTabs({
   countryMovies = [],
   actorMovies = [],
   allMovies = [],
+  variant = "grid",
 }: RecommendationTabsProps) {
   const [activeTab, setActiveTab] = useState<
     "best" | "genre" | "country" | "actor" | "top"
@@ -154,184 +158,314 @@ export function RecommendationTabs({
     }, 450);
   };
 
+  const tabsRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+  const isDragging = useRef(false);
+  const startX = useRef(0);
+  const scrollLeftStart = useRef(0);
+
+  const checkScroll = useCallback(() => {
+    const el = tabsRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 4);
+    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
+  }, []);
+
+  useEffect(() => {
+    checkScroll();
+    const el = tabsRef.current;
+    if (el) {
+      el.addEventListener("scroll", checkScroll, { passive: true });
+      window.addEventListener("resize", checkScroll);
+      return () => {
+        el.removeEventListener("scroll", checkScroll);
+        window.removeEventListener("resize", checkScroll);
+      };
+    }
+  }, [checkScroll, currentTabMovies]);
+
+  const scrollTabs = (direction: "left" | "right") => {
+    if (!tabsRef.current) return;
+    const amount = direction === "left" ? -160 : 160;
+    tabsRef.current.scrollBy({ left: amount, behavior: "smooth" });
+  };
+
+  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    if (tabsRef.current && (e.deltaY !== 0 || e.deltaX !== 0)) {
+      e.preventDefault();
+      tabsRef.current.scrollLeft += e.deltaY !== 0 ? e.deltaY * 0.8 : e.deltaX;
+      checkScroll();
+    }
+  };
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    isDragging.current = true;
+    startX.current = e.pageX - (tabsRef.current?.offsetLeft || 0);
+    scrollLeftStart.current = tabsRef.current?.scrollLeft || 0;
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDragging.current || !tabsRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - (tabsRef.current.offsetLeft || 0);
+    const walk = (x - startX.current) * 1.2;
+    tabsRef.current.scrollLeft = scrollLeftStart.current - walk;
+    checkScroll();
+  };
+
+  const handlePointerUp = () => {
+    isDragging.current = false;
+  };
+
   return (
-    <div className="space-y-6">
-      {/* 1. THANH TABS ĐỀ XUẤT THÔNG MINH (RESPONSIVE 1 HÀNG GỌN GÀNG TRÊN MOBILE) */}
-      <div className="flex items-center justify-between gap-2 border-b border-white/10 pb-3 sm:pb-4 w-full min-w-0">
-        {/* Cụm Tabs cuộn mượt */}
-        <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto py-0.5 scrollbar-none [&::-webkit-scrollbar]:hidden flex-1 min-w-0">
-          {/* Tab 1: Phù hợp nhất */}
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab("best");
-              setVisibleLimit(12);
-            }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl sm:rounded-2xl text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${
-              activeTab === "best"
-                ? "bg-netflix-red text-white border-netflix-red shadow-lg shadow-[var(--accent-glow,rgba(229,9,20,0.4))] scale-102"
-                : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
-            }`}
+    <div className={variant === "sidebar" ? "space-y-4" : "space-y-6"}>
+      {/* 1. THANH TABS ĐỀ XUẤT THÔNG MINH (KÉO CHUỘT / LĂN CHUỘT / NÚT MŨI TÊN TRÁI PHẢI) */}
+      <div className="relative border-b border-white/10 pb-2.5 w-full min-w-0">
+        <div className="flex items-center gap-1.5 w-full min-w-0 relative">
+          
+          {/* NÚT CUỘN TRÁI */}
+          {canScrollLeft && (
+            <button
+              type="button"
+              onClick={() => scrollTabs("left")}
+              aria-label="Cuộn sang trái"
+              className="absolute left-0 z-20 h-7 w-7 rounded-full bg-zinc-900/95 hover:bg-zinc-800 text-white border border-white/20 shadow-xl flex items-center justify-center transition cursor-pointer backdrop-blur-md"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+          )}
+
+          {/* DẢI TABS CUỘN NGANG VỚI KÉO CHUỘT + LĂN CHUỘT */}
+          <div
+            ref={tabsRef}
+            onWheel={handleWheel}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerLeave={handlePointerUp}
+            className="flex items-center gap-1.5 overflow-x-auto py-1 px-1 scrollbar-none [&::-webkit-scrollbar]:hidden flex-1 min-w-0 cursor-grab active:cursor-grabbing select-none"
           >
-            <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-300 animate-pulse" />
-            <span>Phim Tương Tự ({allMovies.length})</span>
-          </button>
-
-          {/* Tab 2: Cùng diễn viên (nếu có) */}
-          {actorName && validActorMovies.length > 0 && (
+            {/* Tab 1: Phù hợp nhất */}
             <button
               type="button"
               onClick={() => {
-                setActiveTab("actor");
+                setActiveTab("best");
                 setVisibleLimit(12);
               }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl sm:rounded-2xl text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${
-                activeTab === "actor"
-                  ? "bg-purple-600 text-white border-purple-400 shadow-lg shadow-purple-950/60 scale-102"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red shrink-0 ${
+                activeTab === "best"
+                  ? "bg-netflix-red text-white border-netflix-red shadow-lg shadow-[var(--accent-glow,rgba(229,9,20,0.4))]"
                   : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
               }`}
             >
-              <Users className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-purple-300" />
-              <span>Diễn viên: {actorName} ({validActorMovies.length})</span>
+              <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+              <span>{variant === "sidebar" ? "Tương Tự" : "Phim Tương Tự"} ({allMovies.length})</span>
             </button>
-          )}
 
-          {/* Tab 3: Cùng thể loại */}
-          {genreName && genreMovies.length > 0 && (
+            {/* Tab 2: Cùng diễn viên (nếu có) */}
+            {actorName && validActorMovies.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab("actor");
+                  setVisibleLimit(12);
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-purple-500 shrink-0 ${
+                  activeTab === "actor"
+                    ? "bg-purple-600 text-white border-purple-400 shadow-lg shadow-purple-950/60"
+                    : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
+                }`}
+              >
+                <Users className="w-3.5 h-3.5 text-purple-300" />
+                <span>{variant === "sidebar" ? actorName : `Diễn viên: ${actorName}`} ({validActorMovies.length})</span>
+              </button>
+            )}
+
+            {/* Tab 3: Cùng thể loại */}
+            {genreName && genreMovies.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab("genre");
+                  setVisibleLimit(12);
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-rose-500 shrink-0 ${
+                  activeTab === "genre"
+                    ? "bg-netflix-red text-white border-netflix-red shadow-lg shadow-red-950/60"
+                    : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
+                }`}
+              >
+                <Clapperboard className="w-3.5 h-3.5 text-rose-300" />
+                <span>{variant === "sidebar" ? genreName : `Thể loại: ${genreName}`} ({genreMovies.length})</span>
+              </button>
+            )}
+
+            {/* Tab 4: Cùng quốc gia */}
+            {countryName && countryMovies.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab("country");
+                  setVisibleLimit(12);
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-sky-500 shrink-0 ${
+                  activeTab === "country"
+                    ? "bg-sky-600 text-white border-sky-400 shadow-lg shadow-sky-950/60"
+                    : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
+                }`}
+              >
+                <Globe2 className="w-3.5 h-3.5 text-sky-300" />
+                <span>{variant === "sidebar" ? countryName : `Quốc gia: ${countryName}`} ({countryMovies.length})</span>
+              </button>
+            )}
+
+            {/* Tab 5: Đánh giá cao (Top Rated) */}
+            {topRatedMovies.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab("top");
+                  setVisibleLimit(12);
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-amber-500 shrink-0 ${
+                  activeTab === "top"
+                    ? "bg-amber-600 text-white border-amber-400 shadow-lg shadow-amber-950/60"
+                    : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
+                }`}
+              >
+                <Star className="w-3.5 h-3.5 text-amber-300 fill-current" />
+                <span>Đánh giá cao ({topRatedMovies.length})</span>
+              </button>
+            )}
+          </div>
+
+          {/* NÚT CUỘN PHẢI */}
+          {canScrollRight && (
             <button
               type="button"
-              onClick={() => {
-                setActiveTab("genre");
-                setVisibleLimit(12);
-              }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl sm:rounded-2xl text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${
-                activeTab === "genre"
-                  ? "bg-netflix-red text-white border-netflix-red shadow-lg shadow-red-950/60 scale-102"
-                  : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
-              }`}
+              onClick={() => scrollTabs("right")}
+              aria-label="Cuộn sang phải"
+              className="absolute right-10 sm:right-11 z-20 h-7 w-7 rounded-full bg-zinc-900/95 hover:bg-zinc-800 text-white border border-white/20 shadow-xl flex items-center justify-center transition cursor-pointer backdrop-blur-md"
             >
-              <Clapperboard className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-rose-300" />
-              <span>Thể loại: {genreName} ({genreMovies.length})</span>
+              <ChevronRight className="w-4 h-4" />
             </button>
           )}
 
-          {/* Tab 4: Cùng quốc gia */}
-          {countryName && countryMovies.length > 0 && (
+          {/* NÚT ĐỔI PHIM (SHUFFLE) */}
+          <div className="flex items-center flex-shrink-0 ml-1">
             <button
               type="button"
-              onClick={() => {
-                setActiveTab("country");
-                setVisibleLimit(12);
-              }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl sm:rounded-2xl text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${
-                activeTab === "country"
-                  ? "bg-sky-600 text-white border-sky-400 shadow-lg shadow-sky-950/60 scale-102"
-                  : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
-              }`}
+              onClick={handleShuffle}
+              title="Đổi phim khác"
+              aria-label="Đổi phim khác"
+              className="flex items-center justify-center p-2 rounded-xl text-xs font-bold text-gray-200 hover:text-white bg-zinc-900/90 hover:bg-zinc-800 border border-white/15 hover:border-white/30 transition shadow-sm cursor-pointer active:scale-95 shrink-0"
             >
-              <Globe2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-sky-300" />
-              <span>Quốc gia: {countryName} ({countryMovies.length})</span>
+              <Shuffle
+                className={`w-3.5 h-3.5 text-amber-400 transition-transform ${
+                  isShuffling ? "rotate-180 scale-110" : ""
+                }`}
+              />
             </button>
-          )}
-
-          {/* Tab 5: Đánh giá cao (Top Rated) */}
-          {topRatedMovies.length > 0 && (
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab("top");
-                setVisibleLimit(12);
-              }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl sm:rounded-2xl text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${
-                activeTab === "top"
-                  ? "bg-amber-600 text-white border-amber-400 shadow-lg shadow-amber-950/60 scale-102"
-                  : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
-              }`}
-            >
-              <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-300 fill-current" />
-              <span>Đánh giá cao ({topRatedMovies.length})</span>
-            </button>
-          )}
-        </div>
-
-        {/* Nút Đổi Gợi Ý Ngẫu Nhiên (Shuffle) */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <button
-            type="button"
-            onClick={handleShuffle}
-            title="Đổi phim khác"
-            className="flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-[11px] sm:text-xs font-bold text-gray-200 hover:text-white bg-zinc-900/90 hover:bg-zinc-800 border border-white/15 hover:border-white/30 transition shadow-sm cursor-pointer active:scale-95 whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105"
-          >
-            <Shuffle
-              className={`w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-400 transition-transform ${
-                isShuffling ? "rotate-180 scale-110" : ""
-              }`}
-            />
-            <span className="hidden sm:inline">Đổi phim khác</span>
-            <span className="sm:hidden">Đổi phim</span>
-          </button>
+          </div>
         </div>
       </div>
 
-      {/* 2. LƯỚI PHIM GỢI Ý ĐẸP MẮT THEO PHONG CÁCH TIẾP TỤC XEM (16:9 GỌN GÀNG, KHÔNG RỐI MẮT) */}
+      {/* 2. HIỂN THỊ PHIM GỢI Ý: DẠNG SIDEBAR (YOUTUBE WATCH STYLE) HOẶC DẠNG LƯỚI GRID */}
       {displayedMovies.length > 0 ? (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
-            {displayedMovies.map((item, index) => {
-              // Điểm tương đồng thực tế từ recommendation score
-              const matchPercent =
-                typeof item.matchPercent === "number"
-                  ? item.matchPercent
-                  : Math.max(65, 95 - (index % 10));
+        variant === "sidebar" ? (
+          <div className="space-y-3">
+            <div className="space-y-1.5 max-h-[600px] overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-zinc-700 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-zinc-500 pr-1">
+              {displayedMovies.map((item, index) => {
+                const matchPercent =
+                  typeof item.matchPercent === "number"
+                    ? item.matchPercent
+                    : Math.max(65, 95 - (index % 10));
 
-              return (
-                <RecommendedMovieCard
-                  key={item.slug}
-                  item={item}
-                  matchPercent={matchPercent}
-                />
-              );
-            })}
+                return (
+                  <RecommendedSidebarCard
+                    key={item.slug}
+                    item={item}
+                    matchPercent={matchPercent}
+                  />
+                );
+              })}
+              <div ref={sentinelRef} className="w-full h-2 pointer-events-none opacity-0" aria-hidden="true" />
+            </div>
+
+            {/* NÚT XEM THÊM TRONG SIDEBAR */}
+            {currentTabMovies.length > visibleLimit && (
+              <div className="flex justify-center pt-1 border-t border-white/5">
+                <button
+                  type="button"
+                  onClick={() => setVisibleLimit((prev) => prev + 8)}
+                  className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-xs border border-white/10 hover:border-white/20 transition-all cursor-pointer"
+                >
+                  <span>Xem thêm</span>
+                  <ChevronDown className="w-3.5 h-3.5 text-netflix-red" />
+                </button>
+              </div>
+            )}
           </div>
+        ) : (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
+              {displayedMovies.map((item, index) => {
+                // Điểm tương đồng thực tế từ recommendation score
+                const matchPercent =
+                  typeof item.matchPercent === "number"
+                    ? item.matchPercent
+                    : Math.max(65, 95 - (index % 10));
 
-          {/* Sentinel kích hoạt cuộn tự động lazy load mượt mà */}
-          {currentTabMovies.length > visibleLimit && (
-            <div ref={sentinelRef} className="w-full h-4 pointer-events-none opacity-0" aria-hidden="true" />
-          )}
-
-          {/* NÚT XEM THÊM PHIM ĐỀ XUẤT */}
-          {currentTabMovies.length > visibleLimit && (
-            <div className="flex justify-center pt-2">
-              <button
-                type="button"
-                onClick={() => setVisibleLimit((prev) => prev + 12)}
-                className="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-xs sm:text-sm border border-white/15 hover:border-white/30 shadow-lg transition-all hover:scale-102 active:scale-98 cursor-pointer"
-              >
-                <span>Xem thêm gợi ý</span>
-                <span className="px-2 py-0.5 rounded-full bg-white/15 text-[11px] text-gray-300">
-                  +{Math.min(12, currentTabMovies.length - visibleLimit)}
-                </span>
-                <ChevronDown className="w-4 h-4 text-netflix-red" />
-              </button>
+                return (
+                  <RecommendedMovieCard
+                    key={item.slug}
+                    item={item}
+                    matchPercent={matchPercent}
+                  />
+                );
+              })}
             </div>
-          )}
 
-          {/* Nút thu gọn nếu đã mở rộng nhiều */}
-          {visibleLimit > 12 && (
-            <div className="text-center pt-1">
-              <button
-                type="button"
-                onClick={() => setVisibleLimit(12)}
-                className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-white transition font-medium cursor-pointer"
-              >
-                <span>Thu gọn</span>
-                <ChevronUp className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
-        </div>
+            {/* Sentinel kích hoạt cuộn tự động lazy load mượt mà */}
+            {currentTabMovies.length > visibleLimit && (
+              <div ref={sentinelRef} className="w-full h-4 pointer-events-none opacity-0" aria-hidden="true" />
+            )}
+
+            {/* NÚT XEM THÊM PHIM ĐỀ XUẤT */}
+            {currentTabMovies.length > visibleLimit && (
+              <div className="flex justify-center pt-2">
+                <button
+                  type="button"
+                  onClick={() => setVisibleLimit((prev) => prev + 12)}
+                  className="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-xs sm:text-sm border border-white/15 hover:border-white/30 shadow-lg transition-all hover:scale-102 active:scale-98 cursor-pointer"
+                >
+                  <span>Xem thêm gợi ý</span>
+                  <span className="px-2 py-0.5 rounded-full bg-white/15 text-[11px] text-gray-300">
+                    +{Math.min(12, currentTabMovies.length - visibleLimit)}
+                  </span>
+                  <ChevronDown className="w-4 h-4 text-netflix-red" />
+                </button>
+              </div>
+            )}
+
+            {/* Nút thu gọn nếu đã mở rộng nhiều */}
+            {visibleLimit > 12 && (
+              <div className="text-center pt-1">
+                <button
+                  type="button"
+                  onClick={() => setVisibleLimit(12)}
+                  className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-white transition font-medium cursor-pointer"
+                >
+                  <span>Thu gọn</span>
+                  <ChevronUp className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+          </div>
+        )
       ) : (
-        <div className="rounded-2xl border border-white/10 bg-zinc-900/50 p-8 text-center text-sm text-gray-400 space-y-3">
+        <div className="rounded-2xl border border-white/10 bg-zinc-900/50 p-6 text-center text-sm text-gray-400 space-y-3">
           <p>Chưa có danh sách phim đề xuất phù hợp.</p>
           <button
             type="button"
@@ -444,6 +578,83 @@ const RecommendedMovieCard = React.memo(function RecommendedMovieCard({
         </div>
       </Link>
     </div>
+  );
+});
+
+/**
+ * Thẻ phim đề xuất phong cách YouTube Watch Sidebar (Horizontal layout: Thumb bên trái, Text bên phải)
+ */
+const RecommendedSidebarCard = React.memo(function RecommendedSidebarCard({
+  item,
+  matchPercent,
+}: {
+  item: MovieItem;
+  matchPercent: number;
+}) {
+  const rawThumb = pickBestMovieThumb(item, "/default-hero.jpg");
+  const thumbUrl = toOptimizedPhimimgUrl(rawThumb, 240);
+  const title = item.name || item.title || "Phim";
+  const categoryName = item.category?.[0]?.name;
+  const year = item.year;
+  const time = item.time;
+  const quality = item.quality || "HD";
+
+  return (
+    <Link
+      href={`/movies/${item.slug}`}
+      tabIndex={0}
+      title={title}
+      className="group flex items-center gap-3 p-2 rounded-xl hover:bg-white/[0.07] border border-transparent hover:border-white/10 transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-white cursor-pointer"
+    >
+      {/* 1. THUMBNAIL (16:9) */}
+      <div className="relative aspect-video w-[115px] sm:w-[130px] rounded-lg overflow-hidden bg-zinc-800 shrink-0 border border-white/10 group-hover:border-white/25 shadow-sm">
+        <Image
+          src={thumbUrl}
+          alt={title}
+          fill
+          unoptimized
+          sizes="140px"
+          className="object-cover group-hover:scale-105 transition-transform duration-300"
+          decoding="async"
+          loading="lazy"
+          quality={80}
+          onError={(e) => {
+            const target = e.currentTarget as HTMLImageElement;
+            if (target && !target.src.includes("/default-hero.jpg")) {
+              target.srcset = "";
+              target.src = "/default-hero.jpg";
+            }
+          }}
+        />
+        {quality && (
+          <span className="absolute bottom-1 right-1 px-1 py-0.2 rounded text-[9px] font-bold bg-black/80 text-zinc-300 backdrop-blur-sm border border-white/10 pointer-events-none">
+            {quality}
+          </span>
+        )}
+      </div>
+
+      {/* 2. THÔNG TIN PHIM */}
+      <div className="flex-1 min-w-0 flex flex-col justify-center">
+        <h4 className="text-white text-xs sm:text-[13px] font-bold line-clamp-2 leading-tight group-hover:text-red-500 transition-colors">
+          {title}
+        </h4>
+        <div className="flex items-center gap-1.5 text-[11px] text-zinc-400 mt-1">
+          {year && <span>{year}</span>}
+          {time && <span className="text-zinc-500 truncate">• {time}</span>}
+        </div>
+        <div className="flex items-center gap-1.5 mt-1.5">
+          {categoryName && (
+            <span className="text-[10px] font-medium text-zinc-300 bg-white/10 px-1.5 py-0.2 rounded border border-white/10 truncate max-w-[90px]">
+              {categoryName}
+            </span>
+          )}
+          <span className="text-[10px] font-bold text-amber-400 flex items-center gap-0.5">
+            <Sparkles className="w-2.5 h-2.5 fill-current" />
+            <span>{matchPercent}%</span>
+          </span>
+        </div>
+      </div>
+    </Link>
   );
 });
 

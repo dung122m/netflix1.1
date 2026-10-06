@@ -149,21 +149,23 @@ export const TmdbAudienceReviews: React.FC<TmdbAudienceReviewsProps> = React.mem
             : "mt-8 sm:mt-12 bg-zinc-950/80 rounded-2xl sm:rounded-3xl border border-white/5 p-4 sm:p-6 md:p-8 backdrop-blur-md shadow-2xl"
         }
       >
-        {/* Header Bar đồng bộ 100% với khối Bình Luận Cộng Đồng */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 pb-5 sm:pb-6 border-b border-white/10">
-          <div>
-            <h3 className="text-lg sm:text-xl md:text-2xl font-extrabold text-white flex items-center gap-2 sm:gap-2.5 flex-wrap">
-              <MessageSquareQuote className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400 flex-shrink-0" />
-              <span>Khán giả quốc tế nói gì?</span>
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                {displayReviews.length}
-              </span>
-            </h3>
-            <p className="text-xs text-zinc-400 mt-1 line-clamp-2 sm:line-clamp-none">
-              Góc nhìn và cảm nhận trực tiếp từ cộng đồng người xem thế giới trên The Movie Database.
-            </p>
+        {/* Header Bar: Chỉ render khi dùng độc lập (!hideOuterCard) */}
+        {!hideOuterCard && (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 pb-5 sm:pb-6 border-b border-white/10">
+            <div>
+              <h3 className="text-lg sm:text-xl md:text-2xl font-extrabold text-white flex items-center gap-2 sm:gap-2.5 flex-wrap">
+                <MessageSquareQuote className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400 flex-shrink-0" />
+                <span>Khán giả quốc tế nói gì?</span>
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                  {displayReviews.length}
+                </span>
+              </h3>
+              <p className="text-xs text-zinc-400 mt-1 line-clamp-2 sm:line-clamp-none">
+                Góc nhìn và cảm nhận trực tiếp từ cộng đồng người xem thế giới trên The Movie Database.
+              </p>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Danh sách 5 review từ trên xuống dưới (Vertical Feed) */}
         <div className="mt-6 space-y-4">

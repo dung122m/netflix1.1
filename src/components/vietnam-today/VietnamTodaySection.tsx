@@ -4,6 +4,7 @@ import React, { useMemo, useState } from "react";
 import { VietnamTodayCard, getEventTabBadge, getCleanEventTitle } from "./VietnamTodayCard";
 import { VietnamFlagIcon } from "./VietnamFlagIcon";
 import { getVietnamTodayEvent, VietnamTodayInfo } from "@/lib/vietnamCalendar";
+import { ScrollFadeContainer } from "@/components/ui/ScrollFadeContainer";
 
 export function VietnamTodaySection() {
   // Aggregate today's events from GitHub History, Hardcoded Events, and Actor Birthdays
@@ -57,7 +58,11 @@ export function VietnamTodaySection() {
 
           {/* EVENT SELECTOR TABS placed directly next to the title */}
           {events.length > 1 && (
-            <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden py-1 px-1 max-w-full">
+            <ScrollFadeContainer
+              className="max-w-full flex-1 min-w-0"
+              scrollClassName="gap-1.5 sm:gap-2 py-1 px-1"
+              activeChildTrigger={selectedEventId}
+            >
               {events.map((ev) => {
                 const isSelected = ev.id === (selectedEventId || events[0].id);
                 const { label, emoji } = getEventTabBadge(ev);
@@ -87,7 +92,7 @@ export function VietnamTodaySection() {
                   </button>
                 );
               })}
-            </div>
+            </ScrollFadeContainer>
           )}
         </div>
 

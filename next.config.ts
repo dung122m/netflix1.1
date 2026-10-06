@@ -7,7 +7,7 @@ const bundleAnalyzer = withBundleAnalyzer({
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  compress: true,
+  compress: false, // Tắt in-process Node.js Gzip để tránh MaxListenersExceededWarning trên streaming RSC responses (CDN/Edge tự động nén Brotli/Gzip)
   poweredByHeader: false,
   compiler: {
     removeConsole:

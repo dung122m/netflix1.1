@@ -452,47 +452,70 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
           : "mt-8 sm:mt-12 bg-zinc-950/80 rounded-2xl sm:rounded-3xl border border-white/5 p-4 sm:p-6 md:p-8 backdrop-blur-md shadow-2xl"
       }
     >
-      {/* Title & Section Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 pb-5 sm:pb-6 border-b border-white/10">
-        <div>
-          <h3 className="text-lg sm:text-xl md:text-2xl font-extrabold text-white flex items-center gap-2 sm:gap-2.5 flex-wrap">
-            <MessageSquare className="w-5 h-5 sm:w-6 sm:h-6 text-red-500 flex-shrink-0" />
-            <span>Đánh Giá &amp; Bình Luận Cộng Đồng</span>
-            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-500/20">
-              {sortedComments.length}
-            </span>
-          </h3>
-          <p className="text-xs text-zinc-400 mt-1 line-clamp-2 sm:line-clamp-none">
-            Cùng trao đổi, chấm điểm và thảo luận về các tình tiết trong &quot;{movieTitle}&quot;.
-          </p>
-        </div>
-
-        {/* Aggregate Score Card */}
-        {stats.totalReviews > 0 && (
-          <div className="flex items-center gap-3 sm:gap-4 bg-zinc-900/90 border border-white/10 rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5 shrink-0 self-start sm:self-auto">
-            <div className="text-center">
-              <div className="text-xl sm:text-2xl font-black text-amber-400 flex items-center justify-center gap-1">
-                <span>{stats.averageRating}</span>
-                <span className="text-sm font-normal text-zinc-400">/5</span>
-              </div>
-              <div className="text-[10px] text-zinc-500">
-                {stats.totalReviews} lượt đánh giá
-              </div>
-            </div>
-            <div className="h-8 w-[1px] bg-white/10" />
-            <div className="flex flex-col gap-0.5">
-              <StarRating value={Math.round(stats.averageRating)} readOnly size="sm" />
-              <span className="text-[11px] text-zinc-400 font-medium">
-                {stats.averageRating >= 4.5
-                  ? "Tuyệt tác được yêu thích"
-                  : stats.averageRating >= 3.5
-                    ? "Đánh giá tích cực"
-                    : "Đánh giá hỗn hợp"}
+      {/* Title & Section Header: Chỉ render khi dùng độc lập (!hideOuterCard) hoặc hiện widget điểm khi bọc trong MovieReviewsContainer */}
+      {!hideOuterCard ? (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 pb-5 sm:pb-6 border-b border-white/10">
+          <div>
+            <h3 className="text-lg sm:text-xl md:text-2xl font-extrabold text-white flex items-center gap-2 sm:gap-2.5 flex-wrap">
+              <MessageSquare className="w-5 h-5 sm:w-6 sm:h-6 text-red-500 flex-shrink-0" />
+              <span>Đánh Giá &amp; Bình Luận Cộng Đồng</span>
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-500/20">
+                {sortedComments.length}
               </span>
-            </div>
+            </h3>
+            <p className="text-xs text-zinc-400 mt-1 line-clamp-2 sm:line-clamp-none">
+              Cùng trao đổi, chấm điểm và thảo luận về các tình tiết trong &quot;{movieTitle}&quot;.
+            </p>
           </div>
-        )}
-      </div>
+
+          {/* Aggregate Score Card */}
+          {stats.totalReviews > 0 && (
+            <div className="flex items-center gap-3 sm:gap-4 bg-zinc-900/90 border border-white/10 rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5 shrink-0 self-start sm:self-auto">
+              <div className="text-center">
+                <div className="text-xl sm:text-2xl font-black text-amber-400 flex items-center justify-center gap-1">
+                  <span>{stats.averageRating}</span>
+                  <span className="text-sm font-normal text-zinc-400">/5</span>
+                </div>
+                <div className="text-[10px] text-zinc-500">
+                  {stats.totalReviews} lượt đánh giá
+                </div>
+              </div>
+              <div className="h-8 w-[1px] bg-white/10" />
+              <div className="flex flex-col gap-0.5">
+                <StarRating value={Math.round(stats.averageRating)} readOnly size="sm" />
+                <span className="text-[11px] text-zinc-400 font-medium">
+                  {stats.averageRating >= 4.5
+                    ? "Tuyệt tác được yêu thích"
+                    : stats.averageRating >= 3.5
+                      ? "Đánh giá tích cực"
+                      : "Đánh giá hỗn hợp"}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : stats.totalReviews > 0 ? (
+        <div className="flex items-center justify-between pb-3 border-b border-white/5">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-gray-300">Tổng quan đánh giá:</span>
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-500/20">
+              {sortedComments.length} bình luận
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2.5 bg-zinc-900/80 border border-white/10 rounded-xl px-3 py-1.5 shrink-0">
+            <div className="flex items-center gap-1">
+              <span className="text-base font-black text-amber-400">{stats.averageRating}</span>
+              <span className="text-xs text-zinc-400">/5</span>
+            </div>
+            <div className="h-4 w-[1px] bg-white/10" />
+            <StarRating value={Math.round(stats.averageRating)} readOnly size="sm" />
+            <span className="text-[11px] text-zinc-400 hidden xs:inline">
+              ({stats.totalReviews} lượt)
+            </span>
+          </div>
+        </div>
+      ) : null}
 
       {/* Main Review Form */}
       <div className="mt-6">
