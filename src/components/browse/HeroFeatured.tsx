@@ -715,7 +715,7 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
               {/* 3.2 TIÊU ĐỀ PHIM */}
               <h1
                 style={{ color: "#ffffff" }}
-                className="hero-cinema-title text-2xl sm:text-5xl md:text-6xl lg:text-7xl font-black leading-[1.1] text-white line-clamp-2 tracking-tight drop-shadow-[0_4px_24px_rgba(0,0,0,0.95)]"
+                className="hero-cinema-title text-2xl sm:text-5xl md:text-6xl lg:text-7xl font-black leading-[1.22] sm:leading-[1.18] text-white line-clamp-2 tracking-tight drop-shadow-[0_4px_24px_rgba(0,0,0,0.95)] pb-1.5"
               >
                 {title}
               </h1>
