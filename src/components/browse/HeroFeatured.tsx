@@ -698,7 +698,7 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
       >
         <div className="w-full px-4 sm:px-8 md:px-16 pb-8 sm:pb-16 md:pb-20">
           <div className="mx-auto max-w-7xl">
-            <div className="max-w-3xl lg:max-w-4xl mx-auto sm:mx-0 flex flex-col items-center sm:items-start text-center sm:text-left space-y-3 sm:space-y-4">
+            <div className="max-w-2xl md:max-w-3xl mx-auto sm:mx-0 flex flex-col items-center sm:items-start text-center sm:text-left space-y-3 sm:space-y-4">
               {/* 3.1 TOP BADGE TINH GIẢN */}
               <div className="flex items-center gap-2">
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-netflix-red/40 bg-netflix-red/25 px-2.5 sm:px-3 py-0.5 text-[10px] sm:text-xs font-bold text-white shadow-sm backdrop-blur-md">
@@ -783,7 +783,7 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
               {displaySynopsis ? (
                 <p
                   style={{ color: "#d1d5db" }}
-                  className="hero-cinema-desc hidden sm:block max-w-2xl sm:max-w-3xl lg:max-w-4xl text-xs sm:text-sm md:text-base leading-relaxed text-zinc-300 line-clamp-4 md:line-clamp-5 lg:line-clamp-6 drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]"
+                  className="hero-cinema-desc hidden sm:block max-w-lg sm:max-w-xl md:max-w-2xl text-xs sm:text-sm leading-relaxed text-zinc-300 line-clamp-2 md:line-clamp-3 drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]"
                 >
                   {displaySynopsis}
                 </p>
