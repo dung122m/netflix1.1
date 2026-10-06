@@ -6,6 +6,7 @@ import Link from "next/link";
 import { User, X, Sparkles, ExternalLink, Film, Loader2, BookOpen } from "lucide-react";
 import { ActorProfile } from "@/services/wikipediaService";
 import { useBodyScrollLock } from "@/lib/scrollLock";
+import { splitBlockIntoNaturalParagraphs } from "@/lib/bioFormatter";
 
 export interface ActorBioModalProps {
   initialActorName?: string;
@@ -157,7 +158,17 @@ export const ActorBioModal: React.FC<ActorBioModalProps> = ({ initialActorName }
 
               {/* BIO EXTRACT */}
               <div className="p-4 sm:p-5 rounded-2xl bg-zinc-900/70 border border-white/10 text-xs sm:text-sm text-zinc-200 leading-relaxed max-h-56 sm:max-h-60 overflow-y-auto pr-3 custom-scrollbar">
-                <p className="whitespace-pre-line">{profile?.extract || "Chưa có thêm mô tả chi tiết."}</p>
+                {profile?.extract ? (
+                  <div className="space-y-3">
+                    {splitBlockIntoNaturalParagraphs(profile.extract).map((para, pIdx) => (
+                      <p key={pIdx} className="leading-relaxed">
+                        {para}
+                      </p>
+                    ))}
+                  </div>
+                ) : (
+                  <p>Chưa có thêm mô tả chi tiết.</p>
+                )}
               </div>
 
               {/* ACTIONS */}

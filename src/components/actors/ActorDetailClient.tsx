@@ -39,80 +39,15 @@ function getPaginationPages(currentPage: number, totalPages: number): (number | 
   return [1, "...", currentPage - 1, currentPage, currentPage + 1, "...", totalPages];
 }
 
-interface BioSection {
-  heading?: string;
-  paragraphs: string[];
-}
-
-function parseBioContent(rawText?: string): { leadParagraph?: string; sections: BioSection[] } {
-  if (!rawText || !rawText.trim()) {
-    return { sections: [] };
-  }
-
-  const clean = rawText.replace(/\r\n/g, "\n").trim();
-  const rawBlocks = clean.split(/\n\s*\n+/).map((b) => b.trim()).filter(Boolean);
-
-  if (rawBlocks.length === 0) {
-    return { sections: [] };
-  }
-
-  const headingRegex =
-    /^(tiểu sử|cuộc đời và sự nghiệp|cuộc đời|sự nghiệp|sự nghiệp âm nhạc|sự nghiệp điện ảnh|sự nghiệp diễn xuất|đời tư|hoạt động nghệ thuật|những năm gần đây|thời thơ ấu|thành tựu|giải thưởng|phong cách nghệ thuật|đánh giá):?$/i;
-
-  let leadParagraph: string | undefined = undefined;
-  const sections: BioSection[] = [];
-  let currentSection: BioSection = { paragraphs: [] };
-
-  rawBlocks.forEach((block, index) => {
-    const lines = block.split("\n").map((l) => l.trim()).filter(Boolean);
-
-    // Kiểm tra dòng đầu tiên có phải tiêu đề mục không
-    if (lines.length > 0 && headingRegex.test(lines[0].replace(/:$/, ""))) {
-      if (currentSection.paragraphs.length > 0 || currentSection.heading) {
-        sections.push(currentSection);
-      }
-      const heading = lines[0].replace(/:$/, "");
-      const remaining = lines.slice(1);
-      currentSection = {
-        heading,
-        paragraphs: remaining.length > 0 ? [remaining.join("\n")] : [],
-      };
-      return;
-    }
-
-    // Kiểm tra block đơn dòng kết thúc bằng dấu hai chấm
-    if (lines.length === 1 && (headingRegex.test(lines[0]) || (lines[0].endsWith(":") && lines[0].length < 45))) {
-      if (currentSection.paragraphs.length > 0 || currentSection.heading) {
-        sections.push(currentSection);
-      }
-      currentSection = {
-        heading: lines[0].replace(/:$/, ""),
-        paragraphs: [],
-      };
-      return;
-    }
-
-    if (index === 0 && !leadParagraph) {
-      leadParagraph = block;
-    } else {
-      currentSection.paragraphs.push(block);
-    }
-  });
-
-  if (currentSection.paragraphs.length > 0 || currentSection.heading) {
-    sections.push(currentSection);
-  }
-
-  return { leadParagraph, sections };
-}
+import { parseBioContent, BioSection } from "@/lib/bioFormatter";
 
 function getSectionIcon(heading?: string) {
   if (!heading) return Sparkles;
   const lower = heading.toLowerCase();
   if (lower.includes("âm nhạc") || lower.includes("ca hát")) return Sparkles;
-  if (lower.includes("điện ảnh") || lower.includes("diễn xuất") || lower.includes("phim")) return Clapperboard;
-  if (lower.includes("thành tựu") || lower.includes("giải thưởng")) return Sparkles;
-  if (lower.includes("đời tư") || lower.includes("thời thơ ấu") || lower.includes("tiểu sử")) return BookOpen;
+  if (lower.includes("điện ảnh") || lower.includes("diễn xuất") || lower.includes("phim") || lower.includes("filmography")) return Clapperboard;
+  if (lower.includes("thành tựu") || lower.includes("giải thưởng") || lower.includes("awards")) return Sparkles;
+  if (lower.includes("đời tư") || lower.includes("thời thơ ấu") || lower.includes("tiểu sử") || lower.includes("personal") || lower.includes("life")) return BookOpen;
   return BookOpen;
 }
 
@@ -270,9 +205,9 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
                       </div>
                     )}
 
-                    <div className="space-y-3.5 pl-0 sm:pl-7">
+                    <div className={`space-y-3.5 ${sec.heading ? "pl-0 sm:pl-7" : ""}`}>
                       {sec.paragraphs.map((p, pIdx) => (
-                        <p key={pIdx} className="text-zinc-300/95 leading-relaxed">
+                        <p key={pIdx} className="text-zinc-300/95 leading-relaxed text-xs sm:text-sm">
                           {p}
                         </p>
                       ))}
