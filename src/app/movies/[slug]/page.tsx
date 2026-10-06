@@ -173,39 +173,71 @@ export default async function MovieDetail({
     }) ||
     "";
 
-  // Danh sách diễn viên dạng mảng (lọc bỏ null/đang cập nhật)
+  // Danh sách diễn viên dạng mảng (hỗ trợ cả movie.actor, movie.casts, movie.actors)
+  const rawActors = movie.actor || movie.casts || movie.actors;
   const actorList: string[] = (
-    Array.isArray(movie.actor)
-      ? movie.actor.map(String).map((s: string) => s.trim()).filter(Boolean)
-      : typeof movie.actor === "string" && movie.actor
-        ? movie.actor.split(",").map((s: string) => s.trim()).filter(Boolean)
+    Array.isArray(rawActors)
+      ? rawActors.map(String).map((s: string) => s.trim()).filter(Boolean)
+      : typeof rawActors === "string" && rawActors
+        ? rawActors.split(",").map((s: string) => s.trim()).filter(Boolean)
         : []
   ).filter((a: string) => !a.toLowerCase().includes("cập nhật") && !a.toLowerCase().includes("updating"));
 
-  // Danh sách đạo diễn dạng mảng (lọc bỏ null/đang cập nhật)
+  // Danh sách đạo diễn dạng mảng (hỗ trợ cả movie.director, movie.directors)
+  const rawDirectors = movie.director || movie.directors;
   const directorList: string[] = (
-    Array.isArray(movie.director)
-      ? movie.director.map(String).map((s: string) => s.trim()).filter(Boolean)
-      : typeof movie.director === "string" && movie.director
-        ? movie.director.split(",").map((s: string) => s.trim()).filter(Boolean)
+    Array.isArray(rawDirectors)
+      ? rawDirectors.map(String).map((s: string) => s.trim()).filter(Boolean)
+      : typeof rawDirectors === "string" && rawDirectors
+        ? rawDirectors.split(",").map((s: string) => s.trim()).filter(Boolean)
         : []
   ).filter((d: string) => !d.toLowerCase().includes("cập nhật") && !d.toLowerCase().includes("updating"));
 
-  // Danh sách thể loại
-  const categoryList: Array<{ name: string; slug?: string }> = (
-    Array.isArray(movie.category)
-      ? (movie.category as Array<{ name: string; slug?: string }>)
-      : typeof movie.genre === "string"
-        ? movie.genre.split(",").map((g: string) => ({ name: g.trim(), slug: undefined }))
-        : []
-  ).filter((c: { name: string; slug?: string }) => c?.name && !c.name.toLowerCase().includes("cập nhật"));
+  // Danh sách thể loại (hỗ trợ mảng, group object NguonC, string genre)
+  const categoryList: Array<{ name: string; slug?: string }> = (() => {
+    if (Array.isArray(movie.category)) {
+      return (movie.category as Array<{ name: string; slug?: string }>);
+    }
+    if (movie.category && typeof movie.category === "object") {
+      const extracted: Array<{ name: string; slug?: string }> = [];
+      for (const grp of Object.values(movie.category) as Array<{ group?: { name?: string }; list?: Array<{ id?: string; name: string; slug?: string }> }>) {
+        const gName = (grp?.group?.name || "").toLowerCase();
+        if (gName.includes("thể loại") || gName.includes("the loai")) {
+          for (const item of grp.list || []) {
+            if (item?.name) extracted.push({ name: item.name, slug: item.slug || item.id });
+          }
+        }
+      }
+      if (extracted.length > 0) return extracted;
+    }
+    if (typeof movie.genre === "string" && movie.genre) {
+      return movie.genre.split(",").map((g: string) => ({ name: g.trim(), slug: undefined }));
+    }
+    return [];
+  })().filter((c: { name?: string; slug?: string }) => c?.name && !c.name.toLowerCase().includes("cập nhật"));
 
-  // Danh sách quốc gia
-  const countryList: Array<{ name: string; slug?: string }> = (
-    Array.isArray(movie.country)
-      ? (movie.country as Array<{ name: string; slug?: string }>)
-      : []
-  ).filter((c: { name: string; slug?: string }) => c?.name && !c.name.toLowerCase().includes("cập nhật"));
+  // Danh sách quốc gia (hỗ trợ mảng, group object NguonC, string country)
+  const countryList: Array<{ name: string; slug?: string }> = (() => {
+    if (Array.isArray(movie.country)) {
+      return (movie.country as Array<{ name: string; slug?: string }>);
+    }
+    if (movie.category && typeof movie.category === "object") {
+      const extracted: Array<{ name: string; slug?: string }> = [];
+      for (const grp of Object.values(movie.category) as Array<{ group?: { name?: string }; list?: Array<{ id?: string; name: string; slug?: string }> }>) {
+        const gName = (grp?.group?.name || "").toLowerCase();
+        if (gName.includes("quốc gia") || gName.includes("quoc gia")) {
+          for (const item of grp.list || []) {
+            if (item?.name) extracted.push({ name: item.name, slug: item.slug || item.id });
+          }
+        }
+      }
+      if (extracted.length > 0) return extracted;
+    }
+    if (typeof movie.country === "string" && movie.country) {
+      return movie.country.split(",").map((c: string) => ({ name: c.trim(), slug: undefined }));
+    }
+    return [];
+  })().filter((c: { name?: string; slug?: string }) => c?.name && !c.name.toLowerCase().includes("cập nhật"));
 
   // Đánh giá TMDB & IMDb
   const tmdbScore = movie.tmdb?.vote_average ? Number(movie.tmdb.vote_average) : undefined;
@@ -231,18 +263,22 @@ export default async function MovieDetail({
   );
 
   // Tên gọi khác (tên tiếng Trung/Anh/phụ)
-  const altNames: string[] = Array.isArray(movie.alternative_names)
-    ? movie.alternative_names.map(String).map((s: string) => s.trim()).filter(Boolean)
-    : typeof movie.alternative_names === "string" && movie.alternative_names
-      ? movie.alternative_names.split(",").map((s: string) => s.trim()).filter(Boolean)
-      : [];
+  const rawAlt = movie.alternative_names || (movie.origin_name && movie.origin_name !== movie.name ? [movie.origin_name] : []) || (movie.original_name && movie.original_name !== movie.name ? [movie.original_name] : []);
+  const altNames: string[] = (
+    Array.isArray(rawAlt)
+      ? rawAlt.map(String).map((s: string) => s.trim()).filter(Boolean)
+      : typeof rawAlt === "string" && rawAlt
+        ? rawAlt.split(",").map((s: string) => s.trim()).filter(Boolean)
+        : []
+  ).filter((n) => n.toLowerCase() !== (movie.name || "").toLowerCase());
 
   // Lượt xem tích lũy từ API
   const viewCount =
     typeof movie.view === "number" && movie.view > 0 ? movie.view : undefined;
 
-  // Thời gian cập nhật gần nhất
-  const modifiedTime = movie.modified?.time ? new Date(movie.modified.time) : null;
+  // Thời gian cập nhật gần nhất (hỗ trợ cả object .time và ISO string)
+  const rawModified = movie.modified?.time || (typeof movie.modified === "string" ? movie.modified : null) || movie.created?.time || (typeof movie.created === "string" ? movie.created : null) || movie.time;
+  const modifiedTime = rawModified ? new Date(rawModified) : null;
   const formattedModified =
     modifiedTime && !isNaN(modifiedTime.getTime())
       ? modifiedTime.toLocaleDateString("vi-VN", {

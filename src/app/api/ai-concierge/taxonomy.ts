@@ -3,7 +3,7 @@ import { ACTOR_SLUG_MAP } from "@/services/aiActorService";
 import { cleanNormalizedString } from "@/lib/stringUtils";
 import { CharacterProfile } from "./types";
 
-export { cleanNormalizedString };
+export { cleanNormalizedString, ACTOR_SLUG_MAP };
 
 /**
  * Bảng ánh xạ chuẩn hóa nhân vật điện ảnh kinh điển (Character Taxonomy)
@@ -164,13 +164,9 @@ export function hasWordMatch(text: string, word: string): boolean {
   const cleanT = cleanNormalizedString(text);
   const cleanW = cleanNormalizedString(word);
   if (cleanT === cleanW) return true;
-  // Với từ ngắn <= 4 ký tự (như anh, my, y, uc, duc): Bắt buộc phải là từ độc lập
-  if (cleanW.length <= 4) {
-    const escaped = cleanW.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const regex = new RegExp(`(?:^|\\s)${escaped}(?:$|\\s)`, "i");
-    return regex.test(cleanT);
-  }
-  return cleanT.includes(cleanW);
+  const escaped = cleanW.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const regex = new RegExp(`(?:^|\\s)${escaped}(?:$|\\s)`, "i");
+  return regex.test(cleanT);
 }
 
 /**
@@ -241,6 +237,20 @@ export function resolveCharacter(
   }
 
   return null;
+}
+
+/**
+ * Bóc tách từ khóa tìm kiếm sạch (loại bỏ tiền tố 'tìm phim', 'xem phim', 'gợi ý phim', ...)
+ */
+export function extractCleanSearchKeywords(query: string): string {
+  if (!query) return "";
+  let cleaned = query.trim();
+  cleaned = cleaned
+    .replace(/^(?:tìm|tim|xem|cho\s+tôi\s+xem|cho\s+toi\s+xem|gợi\s+ý|goi\s+y|có|co)\s+(?:phim\s+lẻ\s+về|phim\s+le\s+ve|phim\s+bộ\s+về|phim\s+bo\s+ve|phim\s+về|phim\s+ve|phim\s+lẻ|phim\s+le|phim\s+bộ|phim\s+bo|phim)\s+/gi, "")
+    .replace(/^(?:tìm|tim|xem|gợi\s+ý|goi\s+y)\s+/gi, "")
+    .replace(/^(?:phim\s+lẻ\s+về|phim\s+le\s+ve|phim\s+bộ\s+về|phim\s+bo\s+ve|phim\s+về|phim\s+ve|phim\s+lẻ|phim\s+le|phim\s+bộ|phim\s+bo|phim)\s+/gi, "")
+    .trim();
+  return cleaned || query.trim();
 }
 
 /**
@@ -374,51 +384,59 @@ export function resolveGenreSlug(rawGenre?: string): string {
  * Ánh xạ chuẩn sang các định dạng catalog hỗ trợ: phim-bo, phim-le, hoat-hinh, tv-shows, phim-chieu-rap
  */
 export function resolveTypeSlug(rawType?: string, prompt?: string): string {
-  const combined = `${rawType || ""} ${prompt || ""}`.toLowerCase();
+  const p = (prompt || "").toLowerCase();
+  const raw = (rawType || "").toLowerCase();
 
-  // 1. TV Shows
+  // 0. Xử lý các mẫu câu phủ định rõ ràng (ví dụ: "không muốn phim bộ", "không phải phim lẻ")
+  const isNoSeries = /(?:khong\s+muon|không\s+muốn|khong\s+phai|không\s+phải|ko\s+phai|tru|trừ|loai\s+tru|loại\s+trừ)\s+(?:phim\s+)?(?:bo|bộ|series|drama)/i.test(p);
+  const isNoSingle = /(?:khong\s+muon|không\s+muốn|khong\s+phai|không\s+phải|ko\s+phai|tru|trừ|loai\s+tru|loại\s+trừ)\s+(?:phim\s+)?(?:le|lẻ|single|movie)/i.test(p);
+  const isNoAnime = /(?:khong\s+muon|không\s+muốn|khong\s+phai|không\s+phải|tru|trừ)\s+(?:hoat\s+hinh|hoạt\s+hình|anime)/i.test(p);
+
+  // 1. Phim lẻ (ưu tiên nếu có yêu cầu phim lẻ rõ ràng hoặc loại trừ phim bộ)
   if (
-    /(?:tv\s*shows?|truyen\s+hinh\s+thuc\s+te|truyền\s+hình\s+thực\s+tế|\bshow\b)/i.test(combined) ||
-    rawType === "tvshows" ||
-    rawType === "tv-shows"
+    (!isNoSingle && /(?:phim\s+le|phim\s+lẻ|dien\s+anh|điện\s+ảnh|\bmovie\b|\bsingle\b)/i.test(p)) ||
+    (isNoSeries && !isNoSingle) ||
+    raw === "single" ||
+    raw === "phim-le"
+  ) {
+    return "phim-le";
+  }
+
+  // 2. TV Shows
+  if (
+    /(?:tv\s*shows?|truyen\s+hinh\s+thuc\s+te|truyền\s+hình\s+thực\s+tế|\bshow\b)/i.test(p) ||
+    raw === "tvshows" ||
+    raw === "tv-shows"
   ) {
     return "tv-shows";
   }
 
-  // 2. Hoạt hình & Anime
+  // 3. Hoạt hình & Anime
   if (
-    /(?:hoat\s+hinh|hoạt\s+hình|anime|animation|manga)/i.test(combined) ||
-    rawType === "anime" ||
-    rawType === "hoat-hinh" ||
-    rawType === "hoathinh"
+    (!isNoAnime && /(?:hoat\s+hinh|hoạt\s+hình|anime|animation|manga)/i.test(p)) ||
+    raw === "anime" ||
+    raw === "hoat-hinh" ||
+    raw === "hoathinh"
   ) {
     return "hoat-hinh";
   }
 
-  // 3. Chiếu rạp
+  // 4. Chiếu rạp
   if (
-    /(?:chieu\s+rap|chiếu\s+rạp|dien\s+anh\s+chieu\s+rap)/i.test(combined) ||
-    rawType === "phim-chieu-rap"
+    /(?:chieu\s+rap|chiếu\s+rạp|dien\s+anh\s+chieu\s+rap)/i.test(p) ||
+    raw === "phim-chieu-rap"
   ) {
     return "phim-chieu-rap";
   }
 
-  // 4. Phim bộ
+  // 5. Phim bộ
   if (
-    /(?:phim\s+bo|phim\s+bộ|\bseries\b|\bdrama\b|truyen\s+hinh|truyền\s+hình|nhieu\s+tap|nhiều\s+tập)/i.test(combined) ||
-    rawType === "series" ||
-    rawType === "phim-bo"
+    (!isNoSeries && /(?:phim\s+bo|phim\s+bộ|\bseries\b|\bdrama\b|truyen\s+hinh|truyền\s+hình|nhieu\s+tap|nhiều\s+tập)/i.test(p)) ||
+    (isNoSingle && !isNoSeries) ||
+    raw === "series" ||
+    raw === "phim-bo"
   ) {
     return "phim-bo";
-  }
-
-  // 5. Phim lẻ
-  if (
-    /(?:phim\s+le|phim\s+lẻ|dien\s+anh|điện\s+ảnh|\bmovie\b|\bsingle\b)/i.test(combined) ||
-    rawType === "single" ||
-    rawType === "phim-le"
-  ) {
-    return "phim-le";
   }
 
   return "";

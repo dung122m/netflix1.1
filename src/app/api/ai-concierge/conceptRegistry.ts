@@ -791,6 +791,236 @@ export const SEMANTIC_CONCEPTS: SemanticConcept[] = [
     ],
     negativePhrases: [],
   },
+  {
+    id: "deep_pensive_drama",
+    canonicalName: "Tâm lý sâu sắc / Trầm lắng / Suy tư & Cảm xúc",
+    triggerPhrases: [
+      "cham sau sac",
+      "sau sac",
+      "nhieu cam xuc",
+      "co don va suy tu",
+      "co don",
+      "suy tu",
+      "triet hoc",
+      "chieu sau triet hoc",
+      "tram lang",
+      "lang dong",
+    ],
+    discoveryKeywords: [
+      "tâm lý",
+      "suy tư",
+      "cảm xúc",
+      "chiều sâu",
+      "triết học",
+      "cô đơn",
+    ],
+    strongTitleConcepts: [
+      "interstellar",
+      "oppenheimer",
+      "her",
+      "manchester by the sea",
+      "drive my car",
+      "past lives",
+      "aftersun",
+      "dune",
+      "blade runner",
+    ],
+    strongSynopsisConcepts: [
+      "tam ly",
+      "suy tu",
+      "cam xuc",
+      "co don",
+      "sau sac",
+      "triet ly",
+      "triet hoc",
+      "noi tam",
+      "so phan",
+      "y nghia cuoc song",
+      "ton tai",
+      "ky uc",
+    ],
+    negativePhrases: [],
+  },
+  {
+    id: "light_evening_cozy",
+    canonicalName: "Thư giãn / Dễ xem buổi tối / Ấm áp / Không căng thẳng",
+    triggerPhrases: [
+      "de xem buoi toi",
+      "de xem",
+      "khong qua cang thang",
+      "khong cang thang",
+      "thu gian buoi toi",
+      "thu gian nhe nhang",
+      "nhe nhang de xem",
+      "xem giai tri buoi toi",
+    ],
+    discoveryKeywords: [
+      "hài hước",
+      "tình cảm nhẹ nhàng",
+      "gia đình",
+      "thư giãn",
+      "chữa lành",
+      "hoạt hình",
+    ],
+    strongTitleConcepts: [
+      "ted",
+      "friends",
+      "little forest",
+      "paddington",
+      "ratatouille",
+      "home alone",
+      "about time",
+      "frieren",
+    ],
+    strongSynopsisConcepts: [
+      "hai huoc",
+      "nhe nhang",
+      "am ap",
+      "gia dinh",
+      "tinh ban",
+      "chua lanh",
+      "tieng cuoi",
+      "thu gian",
+      "vui ve",
+      "doi thuong",
+    ],
+    negativePhrases: ["kinh di", "mau me", "kinh hoang", "am anh"],
+  },
+  {
+    id: "healing_feelgood",
+    canonicalName: "Chữa lành / Ấm áp / Feel-Good",
+    triggerPhrases: [
+      "chua lanh",
+      "phim chua lanh",
+      "healing",
+      "feel good",
+      "am long",
+      "khong qua suot muot",
+      "nhe nhang am ap",
+    ],
+    discoveryKeywords: [
+      "chữa lành",
+      "ấm áp",
+      "tình bạn",
+      "cuộc sống",
+      "bình yên",
+      "thiên nhiên",
+    ],
+    strongTitleConcepts: [
+      "little forest",
+      "frieren",
+      "our little sister",
+      "soul",
+      "totoro",
+      "green book",
+    ],
+    strongSynopsisConcepts: [
+      "chua lanh",
+      "binh yen",
+      "am ap",
+      "tinh yeu thuong",
+      "dong luc",
+      "dong vien",
+      "cuoc song yen binh",
+      "thien nhien",
+    ],
+    negativePhrases: ["kinh di", "dam mau", "giet nguoi", "kinh hoang"],
+  },
+  {
+    id: "space_exploration_philosophical",
+    canonicalName: "Khám phá không gian / Du hành vũ trụ / Triết lý viễn tưởng",
+    triggerPhrases: [
+      "kham pha vu tru",
+      "du hanh vu tru",
+      "chieu sau triet hoc",
+      "khoa hoc vu tru",
+      "giong interstellar",
+      "tuong tu interstellar",
+      "khong gian vu tru",
+      "du hanh khong gian",
+    ],
+    discoveryKeywords: [
+      "Interstellar",
+      "vũ trụ",
+      "không gian",
+      "du hành",
+      "khoa học viễn tưởng",
+      "hố đen",
+    ],
+    strongTitleConcepts: [
+      "interstellar",
+      "gravity",
+      "the martian",
+      "first man",
+      "ad astra",
+      "contact",
+      "2001 a space odyssey",
+      "dune",
+      "arrival",
+    ],
+    strongSynopsisConcepts: [
+      "vu tru",
+      "khong gian",
+      "tau vu tru",
+      "hanh tinh",
+      "kham pha",
+      "ho den",
+      "du hanh",
+      "thoi gian",
+      "khoa hoc",
+      "trai dat",
+      "nhan loai",
+    ],
+    negativePhrases: [],
+  },
+  {
+    id: "korean_noir_crime_thriller",
+    canonicalName: "Tội phạm giật gân Hàn Quốc / Noir / Trinh thám phá án",
+    triggerPhrases: [
+      "giong parasite",
+      "giong memories of murder",
+      "tuong tu parasite",
+      "tuong tu memories of murder",
+      "toi pham han quoc hoi hop",
+      "trinh tham han quoc",
+      "noir han quoc",
+    ],
+    discoveryKeywords: [
+      "Parasite",
+      "Memories of Murder",
+      "Hàn Quốc",
+      "trinh thám",
+      "tội phạm",
+      "kịch tính",
+      "giật gân",
+    ],
+    strongTitleConcepts: [
+      "parasite",
+      "memories of murder",
+      "oldboy",
+      "the chaser",
+      "i saw the devil",
+      "mother",
+      "decision to leave",
+      "voice",
+      "signal",
+      "through the darkness",
+    ],
+    strongSynopsisConcepts: [
+      "toi pham",
+      "pha an",
+      "dieu tra",
+      "giet nguoi hang loat",
+      "canh sat",
+      "hinh su",
+      "giau ngheo",
+      "tang lop",
+      "bi an",
+      "hoi hop",
+      "am anh",
+    ],
+    negativePhrases: ["tinh cam lang man", "ngon tinh", "tong tai"],
+  },
 ];
 
 /**
@@ -806,16 +1036,28 @@ export function resolveConcepts(
 
   // 1. Kiểm tra đối chiếu với danh mục các khái niệm chính thức
   for (const concept of SEMANTIC_CONCEPTS) {
+    // Kiểm tra xem concept có đang bị phủ định / loại trừ trong câu truy vấn không
+    const isNegated = concept.triggerPhrases.some((tp) => {
+      const cleanTp = cleanNormalizedString(tp);
+      const escaped = cleanTp.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const negRegex = new RegExp(`(?:không|khong|chẳng|chang|ko|k|trừ|tru|loại trừ|loai tru|không phải|khong phai|không có|khong co|không lấy|khong lay)\\s+(?:yếu tố\\s+|yeu to\\s+)?${escaped}`, "i");
+      return negRegex.test(cleanQ);
+    });
+
+    if (isNegated) {
+      continue;
+    }
+
     // A. Kiểm tra từ ID do AI trích xuất
     if (aiConcepts && aiConcepts.includes(concept.id)) {
       matched.push(concept);
       continue;
     }
 
-    // B. Kiểm tra trigger phrases trong câu hỏi của người dùng
+    // B. Kiểm tra trigger phrases trong câu hỏi của người dùng với word boundary chính xác
     const hasTrigger = concept.triggerPhrases.some((tp) => {
       const cleanTp = cleanNormalizedString(tp);
-      return cleanQ.includes(cleanTp) || hasWordMatch(cleanQ, cleanTp);
+      return hasWordMatch(cleanQ, cleanTp);
     });
 
     if (hasTrigger) {

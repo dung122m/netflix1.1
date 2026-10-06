@@ -222,150 +222,153 @@ export function RecommendationTabs({
     <div className={variant === "sidebar" ? "space-y-4" : "space-y-6"}>
       {/* 1. THANH TABS ĐỀ XUẤT THÔNG MINH (KÉO CHUỘT / LĂN CHUỘT / NÚT MŨI TÊN TRÁI PHẢI) */}
       <div className="relative border-b border-white/10 pb-2.5 w-full min-w-0">
-        <div className="flex items-center gap-1.5 w-full min-w-0 relative">
+        <div className="flex items-center gap-1.5 w-full min-w-0">
           
-          {/* NÚT CUỘN TRÁI */}
+          {/* NÚT CUỘN TRÁI (INLINE, KHÔNG ĐÈ LÊN NỘI DUNG TABS) */}
           {canScrollLeft && (
-            <>
-              <div className="absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-black/80 to-transparent pointer-events-none z-10 sm:hidden" />
-              <button
-                type="button"
-                onClick={() => scrollTabs("left")}
-                aria-label="Cuộn sang trái"
-                className="absolute left-0 z-20 h-7 w-7 rounded-full bg-zinc-900/95 hover:bg-zinc-800 text-white border border-white/20 shadow-xl flex items-center justify-center transition cursor-pointer backdrop-blur-md"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-            </>
-          )}
-
-          {/* DẢI TABS CUỘN NGANG VỚI KÉO CHUỘT + LĂN CHUỘT */}
-          <div
-            ref={tabsRef}
-            onWheel={handleWheel}
-            onPointerDown={handlePointerDown}
-            onPointerMove={handlePointerMove}
-            onPointerUp={handlePointerUp}
-            onPointerLeave={handlePointerUp}
-            className="flex items-center gap-1.5 overflow-x-auto py-1 px-1 scrollbar-none [&::-webkit-scrollbar]:hidden flex-1 min-w-0 cursor-grab active:cursor-grabbing select-none"
-          >
-            {/* Tab 1: Phù hợp nhất */}
             <button
               type="button"
-              onClick={() => {
-                setActiveTab("best");
-                setVisibleLimit(12);
-              }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red shrink-0 ${
-                activeTab === "best"
-                  ? "bg-netflix-red text-white border-netflix-red shadow-lg shadow-[var(--accent-glow,rgba(229,9,20,0.4))]"
-                  : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
-              }`}
+              onClick={() => scrollTabs("left")}
+              aria-label="Cuộn sang trái"
+              className="flex-none h-7 w-7 rounded-full bg-zinc-900/95 hover:bg-zinc-800 text-gray-300 hover:text-white border border-white/20 shadow-md flex items-center justify-center transition cursor-pointer active:scale-95 shrink-0 backdrop-blur-md"
             >
-              <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
-              <span>{variant === "sidebar" ? "Tương Tự" : "Phim Tương Tự"} ({allMovies.length})</span>
+              <ChevronLeft className="w-4 h-4" />
             </button>
+          )}
 
-            {/* Tab 2: Cùng diễn viên (nếu có) */}
-            {actorName && validActorMovies.length > 0 && (
+          {/* DẢI TABS CUỘN NGANG VỚI KÉO CHUỘT + LĂN CHUỘT VÀ GRADIENT FADE */}
+          <div className="relative flex-1 min-w-0 overflow-hidden">
+            {canScrollLeft && (
+              <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-5 bg-gradient-to-r from-zinc-950 via-zinc-950/60 to-transparent z-10" />
+            )}
+            {canScrollRight && (
+              <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-zinc-950 via-zinc-950/60 to-transparent z-10" />
+            )}
+
+            <div
+              ref={tabsRef}
+              onWheel={handleWheel}
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
+              onPointerLeave={handlePointerUp}
+              className="flex items-center gap-1.5 overflow-x-auto py-1 px-0.5 scrollbar-none [&::-webkit-scrollbar]:hidden w-full cursor-grab active:cursor-grabbing select-none scroll-smooth"
+            >
+              {/* Tab 1: Phù hợp nhất */}
               <button
                 type="button"
                 onClick={() => {
-                  setActiveTab("actor");
+                  setActiveTab("best");
                   setVisibleLimit(12);
                 }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-purple-500 shrink-0 ${
-                  activeTab === "actor"
-                    ? "bg-purple-600 text-white border-purple-400 shadow-lg shadow-purple-950/60"
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red shrink-0 ${
+                  activeTab === "best"
+                    ? "bg-netflix-red text-white border-netflix-red shadow-lg shadow-[var(--accent-glow,rgba(229,9,20,0.4))]"
                     : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
                 }`}
               >
-                <Users className="w-3.5 h-3.5 text-purple-300" />
-                <span>{variant === "sidebar" ? actorName : `Diễn viên: ${actorName}`} ({validActorMovies.length})</span>
+                <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+                <span>{variant === "sidebar" ? "Tương Tự" : "Phim Tương Tự"} ({allMovies.length})</span>
               </button>
-            )}
 
-            {/* Tab 3: Cùng thể loại */}
-            {genreName && genreMovies.length > 0 && (
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab("genre");
-                  setVisibleLimit(12);
-                }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-rose-500 shrink-0 ${
-                  activeTab === "genre"
-                    ? "bg-netflix-red text-white border-netflix-red shadow-lg shadow-red-950/60"
-                    : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
-                }`}
-              >
-                <Clapperboard className="w-3.5 h-3.5 text-rose-300" />
-                <span>{variant === "sidebar" ? genreName : `Thể loại: ${genreName}`} ({genreMovies.length})</span>
-              </button>
-            )}
+              {/* Tab 2: Cùng diễn viên (nếu có) */}
+              {actorName && validActorMovies.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab("actor");
+                    setVisibleLimit(12);
+                  }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-purple-500 shrink-0 ${
+                    activeTab === "actor"
+                      ? "bg-purple-600 text-white border-purple-400 shadow-lg shadow-purple-950/60"
+                      : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
+                  }`}
+                >
+                  <Users className="w-3.5 h-3.5 text-purple-300" />
+                  <span>{variant === "sidebar" ? actorName : `Diễn viên: ${actorName}`} ({validActorMovies.length})</span>
+                </button>
+              )}
 
-            {/* Tab 4: Cùng quốc gia */}
-            {countryName && countryMovies.length > 0 && (
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab("country");
-                  setVisibleLimit(12);
-                }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-sky-500 shrink-0 ${
-                  activeTab === "country"
-                    ? "bg-sky-600 text-white border-sky-400 shadow-lg shadow-sky-950/60"
-                    : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
-                }`}
-              >
-                <Globe2 className="w-3.5 h-3.5 text-sky-300" />
-                <span>{variant === "sidebar" ? countryName : `Quốc gia: ${countryName}`} ({countryMovies.length})</span>
-              </button>
-            )}
+              {/* Tab 3: Cùng thể loại */}
+              {genreName && genreMovies.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab("genre");
+                    setVisibleLimit(12);
+                  }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-rose-500 shrink-0 ${
+                    activeTab === "genre"
+                      ? "bg-netflix-red text-white border-netflix-red shadow-lg shadow-red-950/60"
+                      : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
+                  }`}
+                >
+                  <Clapperboard className="w-3.5 h-3.5 text-rose-300" />
+                  <span>{variant === "sidebar" ? genreName : `Thể loại: ${genreName}`} ({genreMovies.length})</span>
+                </button>
+              )}
 
-            {/* Tab 5: Đánh giá cao (Top Rated) */}
-            {topRatedMovies.length > 0 && (
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab("top");
-                  setVisibleLimit(12);
-                }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-amber-500 shrink-0 ${
-                  activeTab === "top"
-                    ? "bg-amber-600 text-white border-amber-400 shadow-lg shadow-amber-950/60"
-                    : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
-                }`}
-              >
-                <Star className="w-3.5 h-3.5 text-amber-300 fill-current" />
-                <span>Đánh giá cao ({topRatedMovies.length})</span>
-              </button>
-            )}
+              {/* Tab 4: Cùng quốc gia */}
+              {countryName && countryMovies.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab("country");
+                    setVisibleLimit(12);
+                  }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-sky-500 shrink-0 ${
+                    activeTab === "country"
+                      ? "bg-sky-600 text-white border-sky-400 shadow-lg shadow-sky-950/60"
+                      : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
+                  }`}
+                >
+                  <Globe2 className="w-3.5 h-3.5 text-sky-300" />
+                  <span>{variant === "sidebar" ? countryName : `Quốc gia: ${countryName}`} ({countryMovies.length})</span>
+                </button>
+              )}
+
+              {/* Tab 5: Đánh giá cao (Top Rated) */}
+              {topRatedMovies.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab("top");
+                    setVisibleLimit(12);
+                  }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-amber-500 shrink-0 ${
+                    activeTab === "top"
+                      ? "bg-amber-600 text-white border-amber-400 shadow-lg shadow-amber-950/60"
+                      : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
+                  }`}
+                >
+                  <Star className="w-3.5 h-3.5 text-amber-300 fill-current" />
+                  <span>Đánh giá cao ({topRatedMovies.length})</span>
+                </button>
+              )}
+            </div>
           </div>
 
-          {/* NÚT CUỘN PHẢI */}
-          {canScrollRight && (
-            <>
-              <div className="absolute right-8 sm:right-10 top-0 bottom-0 w-8 bg-gradient-to-l from-black/80 to-transparent pointer-events-none z-10 sm:hidden" />
+          {/* CÁC NÚT ĐIỀU KHIỂN BÊN PHẢI (NÚT CUỘN PHẢI + NÚT SHUFFLE) */}
+          <div className="flex items-center gap-1 flex-shrink-0">
+            {canScrollRight && (
               <button
                 type="button"
                 onClick={() => scrollTabs("right")}
                 aria-label="Cuộn sang phải"
-                className="absolute right-10 sm:right-11 z-20 h-7 w-7 rounded-full bg-zinc-900/95 hover:bg-zinc-800 text-white border border-white/20 shadow-xl flex items-center justify-center transition cursor-pointer backdrop-blur-md"
+                className="h-7 w-7 rounded-full bg-zinc-900/95 hover:bg-zinc-800 text-gray-300 hover:text-white border border-white/20 shadow-md flex items-center justify-center transition cursor-pointer active:scale-95 shrink-0 backdrop-blur-md"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
-            </>
-          )}
+            )}
 
-          {/* NÚT ĐỔI PHIM (SHUFFLE) */}
-          <div className="flex items-center flex-shrink-0 ml-1">
+            {/* NÚT ĐỔI PHIM (SHUFFLE) */}
             <button
               type="button"
               onClick={handleShuffle}
               title="Đổi phim khác"
               aria-label="Đổi phim khác"
-              className="flex items-center justify-center p-2 rounded-xl text-xs font-bold text-gray-200 hover:text-white bg-zinc-900/90 hover:bg-zinc-800 border border-white/15 hover:border-white/30 transition shadow-sm cursor-pointer active:scale-95 shrink-0"
+              className="flex items-center justify-center h-7 w-7 rounded-xl text-xs font-bold text-gray-200 hover:text-white bg-zinc-900/90 hover:bg-zinc-800 border border-white/15 hover:border-white/30 transition shadow-sm cursor-pointer active:scale-95 shrink-0"
             >
               <Shuffle
                 className={`w-3.5 h-3.5 text-amber-400 transition-transform ${

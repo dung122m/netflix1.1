@@ -584,11 +584,11 @@
 @keyframes cinemaPageEnter {
   0% {
     opacity: 0.85;
-    transform: scale(0.992) translateZ(0);
+    transform: scale(0.992);
   }
   100% {
     opacity: 1;
-    transform: scale(1) translateZ(0);
+    transform: none;
   }
 }
 

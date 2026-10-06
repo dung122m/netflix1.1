@@ -2,6 +2,7 @@ import { movieApi } from "@/services/movieApi";
 import { MatchOptions } from "./types";
 import {
   cleanNormalizedString,
+  extractCleanSearchKeywords,
   extractMovieYear,
   matchesCountry,
   matchesGenre,
@@ -189,8 +190,8 @@ export async function queryPhimApiDirect(keyword: string, originalKeyword?: stri
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function searchSingleMovieFast(title: string, originalTitle?: string, options?: MatchOptions): Promise<any> {
-  const cleanTitle = (title || "").replace(/\([^)]*\)/g, "").replace(/\[[^\]]*\]/g, "").trim();
-  const cleanOriginal = (originalTitle || "").replace(/\([^)]*\)/g, "").replace(/\[[^\]]*\]/g, "").trim();
+  const cleanTitle = extractCleanSearchKeywords((title || "").replace(/\([^)]*\)/g, "").replace(/\[[^\]]*\]/g, "").trim());
+  const cleanOriginal = extractCleanSearchKeywords((originalTitle || "").replace(/\([^)]*\)/g, "").replace(/\[[^\]]*\]/g, "").trim());
   if (!cleanTitle && !cleanOriginal) return null;
 
   const key = `${cleanTitle}__${cleanOriginal}__${options?.expectedCountry || ""}__${options?.expectedGenre || ""}__${options?.yearFrom || ""}`.toLowerCase();

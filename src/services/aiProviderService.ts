@@ -11,8 +11,10 @@ export interface AiChatRequest {
 export interface AiChatResponse {
   text: string;
   provider:
+    | "Groq (Qwen 2.5 27B)"
     | "Groq (Llama 3.1 8B)"
     | "Groq (Llama 3.3 70B)"
+    | "Groq AI"
     | "Mistral AI"
     | "Cloudflare Workers AI"
     | "Google Gemini Flash"
@@ -36,7 +38,7 @@ function getGroqApiKeys(): string[] {
  * Lấy Mistral API Key từ biến môi trường
  */
 function getMistralApiKey(): string | null {
-  const envKey = process.env.MISTRAL_API_KEY?.trim() || "";
+  const envKey = process.env.MISTRAL_API_KEY?.split(",")[0]?.trim() || "";
   return envKey.length > 5 ? envKey : null;
 }
 
@@ -55,12 +57,11 @@ function getGeminiApiKeys(customKey?: string): string[] {
   );
 }
 
-// Model Groq duy nhất được chứng minh hỗ trợ tốt JSON Schema và tốc độ siêu tốc ~400ms-1200ms:
 const GROQ_MODELS = [
   "qwen/qwen3.8-27b",
 ];
 
-// Model Mistral AI: Nhẹ, nhanh, hỗ trợ JSON mode chuẩn, phù hợp làm Fallback 1 cho AI Concierge
+// Model Mistral AI: Nhẹ, nhanh, hỗ trợ JSON mode chuẩn, làm Fallback 1 cho AI Concierge
 const MISTRAL_MODELS = [
   "open-mistral-nemo",
 ];
@@ -72,9 +73,11 @@ const CLOUDFLARE_MODELS = [
 
 // Google Gemini: Hỗ trợ key hệ thống & custom key (Fallback 3)
 const GEMINI_MODELS = [
-  "gemini-flash-lite-latest",
-  "gemini-flash-latest",
+  "gemini-3.8-flash",
+  "gemini-3.5-flash-lite",
 ];
+
+let groqCooldownUntil = 0;
 
 /**
  * Gọi Groq API (Siêu tốc 200ms-600ms, fail-fast khi gặp lỗi)
@@ -85,6 +88,10 @@ async function callGroq(
   model: string,
   timeoutMs: number
 ): Promise<string | null> {
+  if (Date.now() < groqCooldownUntil) {
+    return null;
+  }
+
   const systemContent = req.systemPrompt || "";
   const userContent = req.userPrompt;
 
@@ -119,7 +126,7 @@ async function callGroq(
         model,
         messages,
         temperature: req.temperature ?? 0.2,
-        max_tokens: req.maxTokens ?? 800,
+        max_tokens: req.maxTokens ?? 850,
         ...(req.jsonMode ? { response_format: { type: "json_object" } } : {}),
       }),
       signal: controller.signal,
@@ -127,14 +134,23 @@ async function callGroq(
 
     clearTimeout(timeout);
     if (!res.ok) {
+      if (res.status === 429) {
+        groqCooldownUntil = Date.now() + 45000;
+        console.warn(`[Groq AI] 429 Rate limited. Cooling down for 45s.`);
+      } else {
+        const errText = await res.text().catch(() => "");
+        console.warn(`[Groq AI] Request failed with HTTP ${res.status} (${model}):`, errText.slice(0, 200));
+      }
       return null;
     }
 
     const data = await res.json();
     const content = data?.choices?.[0]?.message?.content;
     return typeof content === "string" ? content : null;
-  } catch {
+  } catch (err: unknown) {
     clearTimeout(timeout);
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn(`[Groq AI] Request exception (${model}):`, msg);
     return null;
   }
 }
@@ -332,7 +348,7 @@ async function callGemini(
  */
 export async function generateFastAiChat(req: AiChatRequest): Promise<AiChatResponse | null> {
   const start = Date.now();
-  const maxTotalTimeout = req.timeoutMs || 3500;
+  const maxTotalTimeout = req.timeoutMs || 5000;
 
   // 1. Primary Provider: Groq AI với model đã xác minh
   const groqKeys = getGroqApiKeys();
@@ -340,10 +356,10 @@ export async function generateFastAiChat(req: AiChatRequest): Promise<AiChatResp
     const primaryKey = groqKeys[0];
     for (const model of GROQ_MODELS) {
       if (Date.now() - start >= maxTotalTimeout) break;
-      const perCallTimeout = Math.min(maxTotalTimeout - (Date.now() - start), 1500);
+      const perCallTimeout = Math.min(maxTotalTimeout - (Date.now() - start), 2500);
       const text = await callGroq(req, primaryKey, model, perCallTimeout);
       if (text && text.trim()) {
-        const providerName: AiChatResponse["provider"] = "Groq (Llama 3.1 8B)";
+        const providerName: AiChatResponse["provider"] = "Groq (Qwen 2.5 27B)";
         return {
           text: text.trim(),
           provider: providerName,
@@ -360,7 +376,7 @@ export async function generateFastAiChat(req: AiChatRequest): Promise<AiChatResp
   if (mistralKey && Date.now() - start < maxTotalTimeout) {
     for (const model of MISTRAL_MODELS) {
       if (Date.now() - start >= maxTotalTimeout) break;
-      const perCallTimeout = Math.min(maxTotalTimeout - (Date.now() - start), 1800);
+      const perCallTimeout = Math.min(maxTotalTimeout - (Date.now() - start), 3000);
       const mistralText = await callMistral(req, mistralKey, model, perCallTimeout);
       if (mistralText && mistralText.trim()) {
         const trimmed = mistralText.trim();

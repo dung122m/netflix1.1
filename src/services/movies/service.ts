@@ -163,9 +163,15 @@ function normalizeNguonCMovieDetail(raw: any) {
       lang: movie.language || "Vietsub",
       year: Number(movie.year) || new Date().getFullYear(),
       actor: castsArr,
+      casts: castsArr,
       director: directorArr,
       category: categories,
       country: countries,
+      modified: movie.modified ? { time: String(movie.modified) } : undefined,
+      created: movie.created ? { time: String(movie.created) } : undefined,
+      alternative_names: movie.original_name && movie.original_name !== movie.name ? [movie.original_name] : [],
+      tmdb: movie.tmdb || undefined,
+      imdb: movie.imdb || undefined,
       episodes: episodes,
     },
   };
@@ -339,6 +345,27 @@ async function fetchAndCacheMovieDetail(slug: string, source?: "nguonc" | "ophim
                 primary.episodes.push(newServerObj);
               }
             }
+          }
+        }
+
+        // Bổ sung đầy đủ metadata từ secondary nếu primary bị thiếu (actor, director, category, country, alt names,...)
+        if (secondary?.movie && primary?.movie) {
+          const pm = primary.movie;
+          const sm = secondary.movie;
+          if ((!pm.actor || (Array.isArray(pm.actor) && pm.actor.length === 0)) && sm.actor) pm.actor = sm.actor;
+          if ((!pm.casts || (Array.isArray(pm.casts) && pm.casts.length === 0)) && sm.casts) pm.casts = sm.casts;
+          if ((!pm.director || (Array.isArray(pm.director) && pm.director.length === 0)) && sm.director) pm.director = sm.director;
+          if ((!pm.category || (Array.isArray(pm.category) && pm.category.length === 0)) && sm.category) pm.category = sm.category;
+          if ((!pm.country || (Array.isArray(pm.country) && pm.country.length === 0)) && sm.country) pm.country = sm.country;
+          if ((!pm.alternative_names || (Array.isArray(pm.alternative_names) && pm.alternative_names.length === 0)) && sm.alternative_names) pm.alternative_names = sm.alternative_names;
+          if (!pm.tmdb && sm.tmdb) pm.tmdb = sm.tmdb;
+          if (!pm.imdb && sm.imdb) pm.imdb = sm.imdb;
+          if (!pm.modified && sm.modified) pm.modified = sm.modified;
+          if (!pm.created && sm.created) pm.created = sm.created;
+          if (!pm.trailer_url && sm.trailer_url) pm.trailer_url = sm.trailer_url;
+          if ((!pm.content || !pm.description) && (sm.content || sm.description)) {
+            if (!pm.content) pm.content = sm.content || sm.description;
+            if (!pm.description) pm.description = sm.description || sm.content;
           }
         }
 
