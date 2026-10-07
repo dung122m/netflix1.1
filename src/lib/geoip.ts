@@ -13,6 +13,7 @@
 
 import { NextRequest } from "next/server";
 import { Redis } from "@upstash/redis";
+import { getClientIp } from "@/lib/security";
 
 export interface GeoLocationInfo {
   country: string | null;
@@ -265,6 +266,13 @@ export async function getGeoLocationFromIp(
 
   // 2. Filter out private, local, or invalid IPs
   if (isPrivateOrLocalIp(ip)) {
+    // Khi đang chạy local dev hoặc test trên máy phát triển, tự động tra cứu theo public IP của máy
+    if (process.env.NODE_ENV === "development") {
+      const devGeo = await fetchFallbackGeoFromIp("");
+      if (devGeo.country || devGeo.countryCode) {
+        return devGeo;
+      }
+    }
     return { ...EMPTY_GEO_LOCATION };
   }
 
@@ -316,9 +324,103 @@ export async function getGeoLocationFromRequest(req: NextRequest, explicitIp?: s
     return edgeGeo;
   }
 
-  const forwardedFor = req.headers.get("x-forwarded-for");
-  const realIp = req.headers.get("x-real-ip");
-  const ip = explicitIp || (forwardedFor ? forwardedFor.split(",")[0].trim() : (realIp ? realIp.trim() : ""));
-
+  const ip = explicitIp || getClientIp(req);
   return getGeoLocationFromIp(ip, req);
+}
+
+/**
+ * Ánh xạ tên tỉnh thành Việt Nam sang mã viết tắt 2-3 ký tự (ví dụ: HCM, HN, BD, HT, DN...)
+ */
+export function getVietnamProvinceAbbreviation(locationName: string | null | undefined): string | null {
+  if (!locationName) return null;
+  const clean = locationName
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/^(tp|thanh pho|tinh|thanh pho truoc thuoc trung uong)\s+/i, "")
+    .replace(/\s+(city|province)$/i, "")
+    .trim();
+
+  if (/ho\s*chi\s*minh|sai\s*gon|hcmc?|sg\b/i.test(clean)) return "HCM";
+  if (/ha\s*noi|hn\b/i.test(clean)) return "HN";
+  if (/binh\s*duong|bd\b/i.test(clean)) return "BD";
+  if (/ha\s*tinh|ht\b/i.test(clean)) return "HT";
+  if (/da\s*nang|danang|dn\b/i.test(clean)) return "DN";
+  if (/hai\s*phong|haiphong|hp\b/i.test(clean)) return "HP";
+  if (/can\s*tho|cantho|ct\b/i.test(clean)) return "CT";
+  if (/nghe\s*an|nghean|na\b/i.test(clean)) return "NA";
+  if (/thanh\s*hoa|thanhhoa|th\b/i.test(clean)) return "TH";
+  if (/quang\s*ninh|quangninh|qn\b/i.test(clean)) return "QN";
+  if (/khanh\s*hoa|nha\s*trang|nhatrang|nt\b|kh\b/i.test(clean)) return "NT";
+  if (/lam\s*dong|da\s*lat|dalat|dl\b/i.test(clean)) return "DL";
+  if (/ba\s*ria|vung\s*tau|vungtau|vt\b/i.test(clean)) return "VT";
+  if (/dong\s*nai|bien\s*hoa|bienhoa|dni\b/i.test(clean)) return "ĐN";
+  if (/tay\s*ninh|tayninh|tn\b/i.test(clean)) return "TN";
+  if (/an\s*giang|angiang|ag\b/i.test(clean)) return "AG";
+  if (/tien\s*giang|my\s*tho|mytho|tg\b/i.test(clean)) return "TG";
+  if (/ben\s*tre|bentre|bte\b/i.test(clean)) return "BT";
+  if (/ca\s*mau|camau|cm\b/i.test(clean)) return "CM";
+  if (/kien\s*giang|rach\s*gia|phu\s*quoc|kg\b/i.test(clean)) return "KG";
+  if (/dak\s*lak|buon\s*ma\s*thuot|daklak|dlk\b/i.test(clean)) return "ĐL";
+  if (/gia\s*lai|pleiku|gl\b/i.test(clean)) return "GL";
+  if (/hue\b|thua\s*thien|tth\b/i.test(clean)) return "HUE";
+  if (/quang\s*nam|tam\s*ky|hoi\s*an|qnam\b/i.test(clean)) return "QN";
+  if (/quang\s*ngai|quangngai|qng\b/i.test(clean)) return "QNG";
+  if (/binh\s*dinh|quy\s*nhon|quynhon|bdh\b/i.test(clean)) return "QNH";
+  if (/phu\s*yen|tuy\s*hoa|tuyhoa|py\b/i.test(clean)) return "PY";
+  if (/binh\s*thuan|phan\s*thiet|phanthiet|bth\b/i.test(clean)) return "PT";
+  if (/ninh\s*thuan|phan\s*rang|phanrang/i.test(clean)) return "PR";
+  if (/long\s*an|tan\s*an|la\b/i.test(clean)) return "LA";
+  if (/dong\s*thap|cao\s*lanh|sa\s*dec|dt\b/i.test(clean)) return "ĐT";
+  if (/vinh\s*long|vinhlong|vl\b/i.test(clean)) return "VL";
+  if (/hau\s*giang|vi\s*thanh|hg\b/i.test(clean)) return "HG";
+  if (/soc\s*trang|soctrang|st\b/i.test(clean)) return "ST";
+  if (/bac\s*lieu|baclieu|bl\b/i.test(clean)) return "BL";
+  if (/tra\s*vinh|travinh|tv\b/i.test(clean)) return "TV";
+  if (/nam\s*dinh|namdinh|nd\b/i.test(clean)) return "NĐ";
+  if (/thai\s*binh|thaibinh|tb\b/i.test(clean)) return "TB";
+  if (/ninh\s*binh|ninhbinh|nb\b/i.test(clean)) return "NB";
+  if (/ha\s*nam|phu\s*ly|phuly|hna\b/i.test(clean)) return "HNA";
+  if (/hung\s*yen|hungyen|hy\b/i.test(clean)) return "HY";
+  if (/hai\s*duong|haiduong|hd\b/i.test(clean)) return "HD";
+  if (/bac\s*ninh|bacninh|bn\b/i.test(clean)) return "BN";
+  if (/bac\s*giang|bacgiang|bg\b/i.test(clean)) return "BG";
+  if (/phu\s*tho|viet\s*tri|viettri|pt\b/i.test(clean)) return "PT";
+  if (/vinh\s*phuc|vinh\s*yen|vinhyen|vp\b/i.test(clean)) return "VP";
+  if (/thai\s*nguyen|thainguyen/i.test(clean)) return "TN";
+  if (/tuyen\s*quang|tuyenquang|tq\b/i.test(clean)) return "TQ";
+  if (/lao\s*cai|sapa|lc\b/i.test(clean)) return "LC";
+  if (/yen\s*bai|yenbai|yb\b/i.test(clean)) return "YB";
+  if (/son\s*la|sonla|sl\b/i.test(clean)) return "SL";
+  if (/dien\s*bien|dienbien|db\b/i.test(clean)) return "ĐB";
+  if (/lai\s*chau|laichau/i.test(clean)) return "LC";
+  if (/hoa\s*binh|hoabinh|hb\b/i.test(clean)) return "HB";
+  if (/lang\s*son|langson|ls\b/i.test(clean)) return "LS";
+  if (/cao\s*bang|caobang|cb\b/i.test(clean)) return "CB";
+  if (/bac\s*kan|backan|bk\b/i.test(clean)) return "BK";
+  if (/ha\s*giang|hagiang/i.test(clean)) return "HG";
+  if (/quang\s*binh|dong\s*hoi|donghoi|qb\b/i.test(clean)) return "QB";
+  if (/quang\s*tri|dong\s*ha|dongha|qt\b/i.test(clean)) return "QT";
+
+  return null;
+}
+
+/**
+ * Trích xuất ký hiệu vị trí cho Logo Nanaflix (VN, HCM, HN, BD, HT... hoặc Quốc tế US, JP, KR, SG...)
+ */
+export function getRegionalBadge(geo: GeoLocationInfo | null | undefined): string {
+  if (!geo || !geo.countryCode) return "VN";
+  const code = geo.countryCode.trim().toUpperCase();
+  if (code === "VN") {
+    const provinceCode =
+      getVietnamProvinceAbbreviation(geo.city) ||
+      getVietnamProvinceAbbreviation(geo.region);
+    return provinceCode || "VN";
+  }
+  // Nếu ở nước ngoài: hiển thị mã quốc gia ISO (ví dụ: US, JP, KR, SG, AU, CA, UK, FR, DE...)
+  if (code.length === 2) {
+    return code === "GB" ? "UK" : code;
+  }
+  return "VN";
 }

@@ -30,7 +30,7 @@ export function setLastReadTimestamp(userId: string, ts: number): void {
 }
 
 /**
- * Lấy danh sách thông báo từ bộ nhớ đệm LocalStorage (Chỉ giữ comment_reply và comment_reaction)
+ * Lấy danh sách thông báo từ bộ nhớ đệm LocalStorage (Hỗ trợ comment_reply và comment_reaction)
  */
 export function getLocalNotifications(userId: string): UserNotification[] {
   if (typeof window === "undefined" || !userId) return [];
@@ -41,7 +41,12 @@ export function getLocalNotifications(userId: string): UserNotification[] {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
         return parsed
-          .filter((item) => item && (item.type === "comment_reply" || item.type === "comment_reaction"))
+          .filter(
+            (item) =>
+              item &&
+              (item.type === "comment_reply" ||
+                item.type === "comment_reaction"),
+          )
           .map((item) => ({
             ...item,
             isRead: Boolean(
@@ -62,14 +67,17 @@ export function saveLocalNotifications(userId: string, items: UserNotification[]
   if (typeof window === "undefined" || !userId) return;
   try {
     const filtered = items.filter(
-      (item) => item && (item.type === "comment_reply" || item.type === "comment_reaction")
+      (item) =>
+        item &&
+        (item.type === "comment_reply" ||
+          item.type === "comment_reaction"),
     );
     localStorage.setItem(`nanaflix_notifs_${userId}`, JSON.stringify(filtered.slice(0, 50)));
   } catch {}
 }
 
 /**
- * Hợp nhất danh sách thông báo mới với danh sách cũ và khử trùng lặp thông minh (Chỉ giữ comment_reply và comment_reaction)
+ * Hợp nhất danh sách thông báo mới với danh sách cũ và khử trùng lặp thông minh
  */
 export function mergeNotifications(
   current: UserNotification[],
@@ -84,13 +92,19 @@ export function mergeNotifications(
 
   for (const item of combined) {
     if (!item || !item.id) continue;
-    if (item.type !== "comment_reply" && item.type !== "comment_reaction") continue;
+    if (
+      item.type !== "comment_reply" &&
+      item.type !== "comment_reaction"
+    ) {
+      continue;
+    }
 
-    const semanticKey = item.commentId && item.type === "comment_reply"
-      ? `cmt_${item.commentId}`
-      : item.commentId && item.type === "comment_reaction"
-      ? `react_${item.commentId}`
-      : `${item.type}_${item.id}`;
+    const semanticKey =
+      item.commentId && item.type === "comment_reply"
+        ? `cmt_${item.commentId}`
+        : item.commentId && item.type === "comment_reaction"
+        ? `react_${item.commentId}`
+        : `${item.type}_${item.id}`;
 
     if (seenExactIds.has(item.id) || seenSemanticKeys.has(semanticKey)) {
       continue;

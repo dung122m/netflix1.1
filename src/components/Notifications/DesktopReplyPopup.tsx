@@ -72,12 +72,13 @@ export const DesktopReplyPopup: React.FC = () => {
         return;
       }
 
-      // Tìm thông báo chưa đọc mới nhất (chỉ comment_reply hoặc comment_reaction)
+      // Tìm thông báo chưa đọc mới nhất (comment_reply hoặc comment_reaction)
       const newNotif = notifications.find(
         (n) =>
           !n.isRead &&
           !seenIdsRef.current.has(n.id) &&
-          (n.type === "comment_reply" || n.type === "comment_reaction")
+          (n.type === "comment_reply" ||
+            n.type === "comment_reaction")
       );
 
       if (newNotif) {
@@ -110,7 +111,7 @@ export const DesktopReplyPopup: React.FC = () => {
       activeNotification.link ||
       (activeNotification.movieSlug
         ? activeNotification.commentId
-          ? `/movies/${activeNotification.movieSlug}?highlightComment=${activeNotification.commentId}#comment-${activeNotification.commentId}`
+        ? `/movies/${activeNotification.movieSlug}?highlightComment=${activeNotification.commentId}#comment-${activeNotification.commentId}`
           : `/movies/${activeNotification.movieSlug}#comments`
         : "/");
     handleDismiss();

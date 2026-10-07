@@ -5,8 +5,11 @@ import {
   extractGeoLocationFromHeaders,
   isPrivateOrLocalIp,
   getCountryNameFromCode,
+  getVietnamProvinceAbbreviation,
+  getRegionalBadge,
   EMPTY_GEO_LOCATION,
 } from "./geoip";
+import { getClientIp } from "./security";
 
 describe("Server-Side GeoIP & Location Determination", () => {
   // Test 1 & 6: Vietnam Edge Headers
@@ -118,5 +121,91 @@ describe("Server-Side GeoIP & Location Determination", () => {
     assert.equal(geo.country, "Japan");
     assert.equal(geo.city, "Tokyo");
     assert.equal(geo.timezone, "Asia/Tokyo");
+  });
+
+  // Test 10: Vietnamese province abbreviations (HCM, HN, BD, HT, DN, etc.)
+  it("should map Vietnamese province and city names to concise 2-3 letter badges", () => {
+    assert.equal(getVietnamProvinceAbbreviation("Ho Chi Minh City"), "HCM");
+    assert.equal(getVietnamProvinceAbbreviation("TP. Hồ Chí Minh"), "HCM");
+    assert.equal(getVietnamProvinceAbbreviation("Sài Gòn"), "HCM");
+    assert.equal(getVietnamProvinceAbbreviation("Hanoi"), "HN");
+    assert.equal(getVietnamProvinceAbbreviation("Hà Nội"), "HN");
+    assert.equal(getVietnamProvinceAbbreviation("Bình Dương"), "BD");
+    assert.equal(getVietnamProvinceAbbreviation("Hà Tĩnh"), "HT");
+    assert.equal(getVietnamProvinceAbbreviation("Đà Nẵng"), "DN");
+    assert.equal(getVietnamProvinceAbbreviation("Hải Phòng"), "HP");
+    assert.equal(getVietnamProvinceAbbreviation("Cần Thơ"), "CT");
+    assert.equal(getVietnamProvinceAbbreviation("Nghệ An"), "NA");
+    assert.equal(getVietnamProvinceAbbreviation("Unknown Province"), null);
+    assert.equal(getVietnamProvinceAbbreviation(null), null);
+  });
+
+  // Test 11: getRegionalBadge overall logic for domestic and international users
+  it("should generate appropriate regional badges for logo", () => {
+    // Domestic with city
+    assert.equal(
+      getRegionalBadge({ country: "Vietnam", countryCode: "VN", city: "Ho Chi Minh City", region: "SG", timezone: null }),
+      "HCM",
+    );
+    assert.equal(
+      getRegionalBadge({ country: "Vietnam", countryCode: "VN", city: "Hanoi", region: "HN", timezone: null }),
+      "HN",
+    );
+    assert.equal(
+      getRegionalBadge({ country: "Vietnam", countryCode: "VN", city: "Binh Duong", region: "BD", timezone: null }),
+      "BD",
+    );
+    assert.equal(
+      getRegionalBadge({ country: "Vietnam", countryCode: "VN", city: "Ha Tinh", region: "HT", timezone: null }),
+      "HT",
+    );
+    // Domestic without city/province
+    assert.equal(
+      getRegionalBadge({ country: "Vietnam", countryCode: "VN", city: null, region: null, timezone: null }),
+      "VN",
+    );
+    // International users (US, JP, KR, SG, AU, UK, FR, etc.)
+    assert.equal(
+      getRegionalBadge({ country: "United States", countryCode: "US", city: "Los Angeles", region: "CA", timezone: null }),
+      "US",
+    );
+    assert.equal(
+      getRegionalBadge({ country: "Japan", countryCode: "JP", city: "Tokyo", region: "13", timezone: null }),
+      "JP",
+    );
+    assert.equal(
+      getRegionalBadge({ country: "United Kingdom", countryCode: "GB", city: "London", region: null, timezone: null }),
+      "UK",
+    );
+  });
+
+  // Test 12: getClientIp header prioritization & IP normalization
+  it("should extract client IP accurately according to CDN/Proxy priority", () => {
+    // 1. Cloudflare cf-connecting-ip has highest priority
+    const headersCf = new Headers({
+      "cf-connecting-ip": "113.161.72.10",
+      "x-forwarded-for": "198.51.100.2, 198.51.100.3",
+      "x-real-ip": "198.51.100.4",
+    });
+    assert.equal(getClientIp(headersCf), "113.161.72.10");
+
+    // 2. Vercel forwarded for
+    const headersVercel = new Headers({
+      "x-vercel-forwarded-for": "14.232.180.25, 76.76.21.21",
+      "x-forwarded-for": "76.76.21.21",
+    });
+    assert.equal(getClientIp(headersVercel), "14.232.180.25");
+
+    // 3. Port stripping
+    const headersPort = new Headers({
+      "x-forwarded-for": "27.72.60.10:45678, 10.0.0.1",
+    });
+    assert.equal(getClientIp(headersPort), "27.72.60.10");
+
+    // 4. IPv4-mapped IPv6 cleanup
+    const headersIpv6 = new Headers({
+      "x-real-ip": "::ffff:118.69.182.5",
+    });
+    assert.equal(getClientIp(headersIpv6), "118.69.182.5");
   });
 });

@@ -12,16 +12,76 @@ import React from "react";
  * 4. Chữ "Nanaflix" Bold Sans-serif trắng tuyết sắc nét và ký hiệu "VN" superscript xám kim loại.
  */
 
+let cachedGeoBadge: string | null = null;
+let inFlightGeoBadgePromise: Promise<string> | null = null;
+
+/**
+ * Hook tự động phát hiện mã vùng / tỉnh thành / quốc gia cho Logo Nanaflix
+ * 1. Đọc tức thì 0ms từ sessionStorage
+ * 2. Fallback gọi /api/geo/badge (đúng 1 request cho cả phiên duyệt web)
+ */
+export function useGeoBadge(): string {
+  const [badge, setBadge] = React.useState<string>(() => {
+    if (typeof window !== "undefined") {
+      if (cachedGeoBadge) return cachedGeoBadge;
+      try {
+        const stored = sessionStorage.getItem("nanaflix_geo_badge");
+        if (stored) {
+          cachedGeoBadge = stored;
+          return stored;
+        }
+      } catch {}
+    }
+    return "VN";
+  });
+
+  React.useEffect(() => {
+    if (cachedGeoBadge && cachedGeoBadge !== "VN") {
+      if (badge !== cachedGeoBadge) setBadge(cachedGeoBadge);
+      return;
+    }
+
+    if (!inFlightGeoBadgePromise) {
+      inFlightGeoBadgePromise = fetch("/api/geo/badge", {
+        signal: AbortSignal.timeout(3000),
+      })
+        .then((res) => (res.ok ? res.json() : { badge: "VN" }))
+        .then((data) => {
+          const resBadge =
+            typeof data.badge === "string" && data.badge ? data.badge.trim().toUpperCase() : "VN";
+          cachedGeoBadge = resBadge;
+          try {
+            sessionStorage.setItem("nanaflix_geo_badge", resBadge);
+          } catch {}
+          return resBadge;
+        })
+        .catch(() => "VN");
+    }
+
+    inFlightGeoBadgePromise.then((b) => {
+      setBadge(b);
+    });
+  }, [badge]);
+
+  return badge;
+}
+
 export interface NanaflixBrandLogoProps extends React.HTMLAttributes<HTMLDivElement> {
   className?: string;
   size?: "sm" | "md" | "lg" | "auto";
+  badgeOverride?: string;
 }
 
 export const NanaflixBrandLogo: React.FC<NanaflixBrandLogoProps> = ({
   className = "",
   size = "auto",
+  badgeOverride,
   ...props
 }) => {
+  const dynamicBadge = useGeoBadge();
+  const displayBadge = badgeOverride || dynamicBadge || "VN";
+  const isThreeLetters = displayBadge.length >= 3;
+
   const sizeClasses = {
     sm: "h-6 w-auto",
     md: "h-7 sm:h-8 w-auto",
@@ -33,13 +93,13 @@ export const NanaflixBrandLogo: React.FC<NanaflixBrandLogoProps> = ({
     <div
       className={`group/brand relative inline-flex items-center select-none cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded-lg transition-opacity duration-200 hover:opacity-90 ${className}`}
       role="img"
-      aria-label="Nanaflix VN"
-      title="Nanaflix VN - Trang Chủ"
+      aria-label={`Nanaflix ${displayBadge}`}
+      title={`Nanaflix ${displayBadge} - Trang Chủ`}
       {...props}
     >
       {/* 🎬 SVG Vector YouTube-Style NANAFLIX VN Logo */}
       <svg
-        viewBox="0 0 150 32"
+        viewBox="0 0 152 32"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         className={`${sizeClasses} max-w-full overflow-visible`}
@@ -107,19 +167,19 @@ export const NanaflixBrandLogo: React.FC<NanaflixBrandLogoProps> = ({
         </text>
 
         {/* ============================================================ */}
-        {/* 🇻🇳 3. KÝ HIỆU: VN (YouTube Regional Badge - Xám kim loại) */}
+        {/* 🇻🇳 3. KÝ HIỆU VỊ TRÍ: VN, HCM, HN, BD, HT... hoặc Quốc tế (Xám kim loại, khoảng cách chuẩn YouTube) */}
         {/* ============================================================ */}
         <text
-          x="128"
+          x="122.5"
           y="11.5"
           fill="#94A3B8"
           fontFamily="'YouTube Sans', 'Roboto', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif"
           fontWeight="600"
-          fontSize="8.5"
+          fontSize={isThreeLetters ? "7.5" : "8.5"}
           letterSpacing="0.2px"
           style={{ textRendering: "geometricPrecision" }}
         >
-          VN
+          {displayBadge}
         </text>
       </svg>
     </div>

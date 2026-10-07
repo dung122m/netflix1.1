@@ -2011,13 +2011,38 @@ function LivePlayerInner({
 
 
 
-  // Tua thời gian (Seek ±5s) - Phản hồi tức thì (0ms), gom nhóm nếu nhấn liên tục và clamp chuẩn theo seekable window
+  // Tua thời gian (Seek ±10s) - Dựa trên seekable range thực tế của HLS/DVR (không giả lập tua trên live thuần)
   const handleSeek = useCallback(
     (seconds: number) => {
       const video = videoRef.current;
       if (!video) return;
 
-      // 1. Tích lũy delta để hiển thị visual feedback overlay (+5s, +10s, -15s...)
+      const seekable = video.seekable;
+      const hasSeekable = Boolean(seekable && seekable.length > 0);
+      const hls = hlsRef.current;
+      const livePos = hls?.liveSyncPosition;
+
+      // 1. Kiểm tra seekable range thực tế từ Media Engine
+      const seekableStart = hasSeekable && seekable ? seekable.start(0) : 0;
+      const seekableEnd =
+        hasSeekable && seekable ? seekable.end(seekable.length - 1) : 0;
+      const seekableWindow = seekableEnd - seekableStart;
+
+      // Nếu stream không hỗ trợ DVR / seekable window quá hẹp (< 8s) -> Giữ nguyên trạng thái Live bình thường
+      if (!hasSeekable || seekableWindow < 8) {
+        if (seconds < 0) {
+          triggerActionFeedback("seek", "🔴 Trực tiếp (Không có DVR)");
+          return;
+        }
+        if (isAtLiveEdge) {
+          triggerActionFeedback("seek", "🔴 Đang phát trực tiếp");
+          return;
+        }
+        goToLiveEdge();
+        return;
+      }
+
+      // 2. Tích lũy delta để hiển thị visual feedback overlay (+10s, -10s...)
       if (seekDeltaResetTimerRef.current) {
         clearTimeout(seekDeltaResetTimerRef.current);
       }
@@ -2031,28 +2056,15 @@ function LivePlayerInner({
         accumulatedSeekDeltaRef.current = 0;
       }, 800);
 
-      // 2. Xác định giới hạn tua an toàn dựa trên video.seekable (không dùng duration/Infinity)
-      const seekable = video.seekable;
-      const hls = hlsRef.current;
-      const livePos = hls?.liveSyncPosition;
+      // 3. Xác định giới hạn tua an toàn trong dải DVR thực tế (chừa biên an toàn tránh trôi khỏi playlist buffer)
+      const minSeek = seekableStart + 1.5;
+      const liveEdgeRef =
+        livePos && Number.isFinite(livePos) && livePos > 0
+          ? Math.min(seekableEnd, livePos)
+          : seekableEnd;
+      const maxSeek = Math.max(minSeek, liveEdgeRef - 1.0);
 
-      let minSeek = 0;
-      let maxSeek = video.currentTime;
-
-      if (seekable && seekable.length > 0) {
-        minSeek = seekable.start(0);
-        maxSeek = seekable.end(seekable.length - 1);
-      } else if (livePos && Number.isFinite(livePos) && livePos > 0) {
-        maxSeek = livePos;
-        minSeek = Math.max(0, livePos - 40);
-      }
-
-      // Giới hạn maxSeek không vượt quá Live Edge để tránh đụng đầu live chưa có segment
-      if (livePos && Number.isFinite(livePos) && livePos > 0) {
-        maxSeek = Math.min(maxSeek, livePos);
-      }
-
-      // 3. Tính toán target từ mốc hiện tại hoặc mốc đang dồn dập seek
+      // 4. Tính toán target từ mốc hiện tại hoặc mốc đang dồn dập seek
       const baseTime =
         lastTargetTimeRef.current !== null
           ? lastTargetTimeRef.current
@@ -2067,7 +2079,7 @@ function LivePlayerInner({
 
       lastTargetTimeRef.current = target;
 
-      // 4. Cơ chế thực thi seek: Ngay lập tức cho 1 lần bấm, hoãn nhẹ nếu spam phím siêu nhanh (<120ms)
+      // 5. Cơ chế thực thi seek an toàn, không treo decoder
       const now = performance.now();
       const isRapid = now - lastSeekTimestampRef.current < 120;
       lastSeekTimestampRef.current = now;
@@ -2075,7 +2087,21 @@ function LivePlayerInner({
       const commitSeek = () => {
         if (videoRef.current) {
           try {
-            videoRef.current.currentTime = target;
+            // Nếu tua tiến chạm sát Live Edge (còn <= 2s) -> Đưa về Live Edge
+            if (maxSeek - target <= 2 && seconds > 0) {
+              if (livePos && Number.isFinite(livePos) && livePos > 0) {
+                videoRef.current.currentTime = livePos;
+              } else {
+                videoRef.current.currentTime = maxSeek;
+              }
+              setIsAtLiveEdge(true);
+              setLiveLatency(0);
+            } else {
+              videoRef.current.currentTime = target;
+              if (hls && typeof hls.startLoad === "function") {
+                hls.startLoad();
+              }
+            }
           } catch { }
         }
         if (seekThrottleTimerRef.current) {
@@ -2085,17 +2111,14 @@ function LivePlayerInner({
       };
 
       if (!isRapid) {
-        // Lần bấm đầu tiên hoặc bấm cách quãng: seek NGAY LẬP TỨC (0ms delay)
         commitSeek();
       } else {
-        // Bấm dồn dập liên tiếp: hoãn nhẹ 80ms để tránh spam decoder trình duyệt
         if (seekThrottleTimerRef.current) {
           clearTimeout(seekThrottleTimerRef.current);
         }
         seekThrottleTimerRef.current = setTimeout(commitSeek, 80);
       }
 
-      // Đặt timer giải phóng target reference sau khi ngừng bấm 450ms
       if (targetClearTimerRef.current) {
         clearTimeout(targetClearTimerRef.current);
       }
@@ -2103,7 +2126,7 @@ function LivePlayerInner({
         lastTargetTimeRef.current = null;
       }, 450);
     },
-    [triggerActionFeedback],
+    [triggerActionFeedback, isAtLiveEdge, goToLiveEdge],
   );
 
   // Phím tắt bàn phím dùng chung cho Live Football Player

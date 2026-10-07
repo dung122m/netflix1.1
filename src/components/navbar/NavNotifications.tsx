@@ -38,20 +38,26 @@ export const NavNotifications: React.FC = React.memo(function NavNotifications()
     return () => unsubNotif();
   }, [user?.uid]);
 
-  // Khử trùng lặp danh sách thông báo người dùng (Chỉ lấy comment_reply và comment_reaction)
+  // Khử trùng lặp danh sách thông báo người dùng (comment_reply và comment_reaction)
   const dedupedUserNotifications = useMemo(() => {
     const seenIds = new Set<string>();
     const seenKeys = new Set<string>();
     const result: UserNotification[] = [];
     for (const item of userNotifications) {
       if (!item || !item.id) continue;
-      if (item.type !== "comment_reply" && item.type !== "comment_reaction") continue;
+      if (
+        item.type !== "comment_reply" &&
+        item.type !== "comment_reaction"
+      ) {
+        continue;
+      }
 
-      const semanticKey = item.commentId && item.type === "comment_reply"
-        ? `cmt_${item.commentId}`
-        : item.commentId && item.type === "comment_reaction"
-        ? `react_${item.commentId}`
-        : `${item.type}_${item.id}`;
+      const semanticKey =
+        item.commentId && item.type === "comment_reply"
+          ? `cmt_${item.commentId}`
+          : item.commentId && item.type === "comment_reaction"
+          ? `react_${item.commentId}`
+          : `${item.type}_${item.id}`;
 
       if (seenIds.has(item.id) || seenKeys.has(semanticKey)) continue;
       seenIds.add(item.id);
@@ -274,12 +280,16 @@ export const NavNotifications: React.FC = React.memo(function NavNotifications()
                         {/* SUBTITLE CATEGORY */}
                         <p
                           className={`text-[11px] font-medium flex items-center gap-1.5 ${
-                            isReply ? "text-blue-400" : "text-rose-400"
+                            isReply
+                              ? "text-blue-400"
+                              : "text-rose-400"
                           }`}
                         >
                           <span
                             className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
-                              isReply ? "bg-blue-400" : "bg-rose-400"
+                              isReply
+                                ? "bg-blue-400"
+                                : "bg-rose-400"
                             }`}
                           />
                           <span className="truncate">

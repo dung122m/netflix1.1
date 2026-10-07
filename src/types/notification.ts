@@ -17,7 +17,6 @@ export type NotificationType =
   | "comment_reply"
   | "comment_reaction"
   | "achievement_level"
-  | "match_reminder"
   | "system"
   | "movie_recommend";
 

@@ -139,17 +139,49 @@ if (typeof setInterval !== "undefined") {
   }, 5 * 60 * 1000);
 }
 
-/**
- * Lấy IP định danh từ NextRequest
- */
-export function getClientIp(req: NextRequest): string {
-  const forwardedFor = req.headers.get("x-forwarded-for");
-  if (forwardedFor) {
-    return forwardedFor.split(",")[0].trim();
+function cleanIpString(raw: string | null | undefined): string {
+  if (!raw) return "anonymous-client";
+  let ip = raw.trim();
+  // Loại bỏ port nếu là IPv4:port (ví dụ: 1.2.3.4:5678)
+  if (/^(\d{1,3}\.){3}\d{1,3}:\d+$/.test(ip)) {
+    ip = ip.split(":")[0];
   }
-  const realIp = req.headers.get("x-real-ip");
+  // Chuẩn hóa IPv4-mapped IPv6 (::ffff:1.2.3.4 -> 1.2.3.4)
+  if (ip.startsWith("::ffff:")) {
+    ip = ip.substring(7);
+  }
+  return ip || "anonymous-client";
+}
+
+/**
+ * Lấy IP định danh từ NextRequest hoặc Headers với thứ tự ưu tiên chuẩn hóa:
+ * 1. cf-connecting-ip (Cloudflare - IP client gốc thực sự)
+ * 2. x-vercel-forwarded-for (Vercel edge proxy)
+ * 3. true-client-ip (Akamai / Fastly / CDN)
+ * 4. x-forwarded-for (chuỗi proxy - lấy IP đầu tiên)
+ * 5. x-real-ip
+ */
+export function getClientIp(req: NextRequest | Headers): string {
+  const headers = "headers" in req ? req.headers : req;
+  const cfConnectingIp = headers.get("cf-connecting-ip");
+  if (cfConnectingIp) {
+    return cleanIpString(cfConnectingIp);
+  }
+  const vercelForwardedFor = headers.get("x-vercel-forwarded-for");
+  if (vercelForwardedFor) {
+    return cleanIpString(vercelForwardedFor.split(",")[0]);
+  }
+  const trueClientIp = headers.get("true-client-ip");
+  if (trueClientIp) {
+    return cleanIpString(trueClientIp);
+  }
+  const forwardedFor = headers.get("x-forwarded-for");
+  if (forwardedFor) {
+    return cleanIpString(forwardedFor.split(",")[0]);
+  }
+  const realIp = headers.get("x-real-ip");
   if (realIp) {
-    return realIp.trim();
+    return cleanIpString(realIp);
   }
   return "anonymous-client";
 }
