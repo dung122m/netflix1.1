@@ -268,6 +268,7 @@ export function HistoryClient() {
               return (
                 <div className="my-4 rounded-2xl overflow-hidden border border-white/10 bg-zinc-950/80 shadow-xl group/todayimg">
                   <div className="flex items-center justify-center p-3 sm:p-4 bg-black/40">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={todayImg.imageUrl}
                       alt={captionText}
@@ -493,6 +494,7 @@ export function HistoryClient() {
                 return (
                   <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-xl overflow-hidden border border-amber-500/40 shrink-0 shadow-md bg-zinc-900 flex items-center justify-center">
                     {pImg ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
                       <img
                         src={pImg.imageUrl}
                         alt={pImg.imageCaption}
@@ -650,6 +652,7 @@ export function HistoryClient() {
                       return (
                         <div className="my-4 rounded-2xl overflow-hidden border border-white/10 bg-zinc-950/80 shadow-xl group/img">
                           <div className="flex items-center justify-center p-3 sm:p-4 bg-black/40">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                               src={eventImage.imageUrl}
                               alt={captionText}

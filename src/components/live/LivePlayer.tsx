@@ -2371,8 +2371,8 @@ function LivePlayerInner({
                       closeRail();
                     }}
                     ref={isSelected ? activeOptionRef : undefined}
-                    className={`w-full rounded-xl border p-3 text-left transition flex items-center gap-2.5 cursor-pointer min-h-[48px] active:scale-[0.99] touch-manipulation ${isSelected
-                        ? "border-netflix-red/90 bg-red-500/15 text-white shadow-md shadow-red-950/40 ring-1 ring-netflix-red/40"
+                    className={`w-full rounded-xl border p-2.5 sm:p-3 text-left transition flex items-center gap-2.5 cursor-pointer min-h-[44px] active:scale-[0.99] touch-manipulation ${isSelected
+                        ? "border-red-500/80 bg-red-950/70 text-white shadow-md shadow-red-950/40 ring-1 ring-red-500/40"
                         : "border-white/10 bg-white/[0.04] text-gray-200 hover:border-white/20 hover:bg-white/[0.08]"
                       }`}
                   >
@@ -2451,151 +2451,154 @@ function LivePlayerInner({
         <div className="pointer-events-none absolute -top-24 left-1/4 w-96 h-96 bg-red-600/15 rounded-full blur-3xl" />
         <div className="pointer-events-none absolute -top-24 right-1/4 w-96 h-96 bg-sky-600/15 rounded-full blur-3xl" />
 
-        <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-4">
-          {isEvent || !team1 || !team2 || team1.trim().toLowerCase() === team2.trim().toLowerCase() ? (
-            <div className="flex-1 w-full flex flex-col items-center justify-center text-center py-1">
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] text-rose-400 bg-rose-500/15 border border-rose-500/30 px-2.5 py-0.5 rounded-full">
-                  Kênh / Sự kiện
+        {isEvent || !team1 || !team2 || team1.trim().toLowerCase() === team2.trim().toLowerCase() ? (
+          <div className="relative z-10 w-full flex flex-col items-center justify-center text-center py-2">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] text-rose-400 bg-rose-500/15 border border-rose-500/30 px-2.5 py-0.5 rounded-full">
+                Kênh / Sự kiện
+              </span>
+              {time && time !== "Trực tiếp" && (
+                <span className="text-[10px] sm:text-xs font-bold text-gray-300 bg-white/10 px-2 py-0.5 rounded-full border border-white/10">
+                  ⏰ {time}
                 </span>
-                {time && time !== "Trực tiếp" && (
-                  <span className="text-[10px] sm:text-xs font-bold text-gray-300 bg-white/10 px-2 py-0.5 rounded-full border border-white/10">
-                    ⏰ {time}
+              )}
+            </div>
+            <h2 className="mt-1 text-lg sm:text-2xl font-black text-white tracking-wide">
+              {title}
+            </h2>
+          </div>
+        ) : (
+          <div className="relative z-10 flex flex-col gap-2 sm:gap-2.5">
+            {/* 1. TOP BAR: GIẢI ĐẤU, BLV & CHẤT LƯỢNG STREAM */}
+            <div className="flex items-center justify-between gap-2 border-b border-white/10 pb-2">
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                <span
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-gray-200 text-[11px] sm:text-xs font-bold shadow-sm max-w-full truncate"
+                  title={group || match?.tournament || "Trực Tiếp Bóng Đá"}
+                >
+                  <span className="shrink-0 text-xs sm:text-sm">🏆</span>
+                  <span className="truncate">{group || match?.tournament || "Trực Tiếp Bóng Đá"}</span>
+                </span>
+              </div>
+
+              <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                {(blv || match?.blv) && (
+                  <span
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-500/15 border border-rose-500/30 text-rose-300 text-[10px] sm:text-xs font-bold shadow-sm max-w-[130px] sm:max-w-[200px] truncate"
+                    title={`BLV: ${blv || match?.blv}`}
+                  >
+                    <span className="shrink-0 text-[11px]">🎙️</span>
+                    <span className="truncate">
+                      {(() => {
+                        const raw = (blv || match?.blv || "").replace(/^(?:blv|bình luận viên)\s+/i, "");
+                        const parts = raw.split(",").map((p) => p.trim()).filter(Boolean);
+                        if (parts.length === 0) return "BLV";
+                        if (parts.length <= 2) return `BLV ${parts.join(", ")}`;
+                        return `BLV ${parts.slice(0, 2).join(", ")} (+${parts.length - 2})`;
+                      })()}
+                    </span>
                   </span>
                 )}
+
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-[10px] sm:text-xs font-black uppercase whitespace-nowrap">
+                  <Zap className="w-3 h-3 fill-emerald-400 shrink-0" />
+                  <span>{currentServer?.quality || "FHD 1080p"}</span>
+                </span>
               </div>
-              <h2 className="mt-1 text-lg sm:text-2xl font-black text-white tracking-wide">
-                {title}
-              </h2>
             </div>
-          ) : (
-            <>
-              {/* KHU VỰC 2 ĐỘI & HUY HIỆU CLB */}
-              <div className="flex-1 w-full flex items-center justify-around sm:justify-center gap-2 sm:gap-4">
-                {/* ĐỘI NHÀ (TEAM 1) */}
-                <div className="flex flex-col items-center text-center max-w-[110px] sm:max-w-[150px] group">
-                  <div className="w-11 h-11 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-xl sm:rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-950 border-2 border-white/20 p-1.5 sm:p-2 flex items-center justify-center shadow-xl transition-all duration-300 group-hover:scale-105 group-hover:border-netflix-red/70 group-hover:shadow-red-950/60 overflow-hidden">
-                    {homeFlagEmoji ? (
-                      <CountryFlag emoji={homeFlagEmoji} className="w-8 h-8 sm:w-10 sm:h-10" />
-                    ) : homeLogoSrc ? (
-                      /* eslint-disable-next-line @next/next/no-img-element */
-                      <img
-                        key={homeLogoSrc}
-                        src={homeLogoSrc}
-                        alt=""
-                        className="w-full h-full object-contain filter drop-shadow-xl"
-                        onError={(e) => {
-                          setHomeImgError(true);
-                          e.currentTarget.style.display = "none";
-                        }}
-                        referrerPolicy="no-referrer"
-                      />
-                    ) : (
-                      <div className="flex flex-col items-center justify-center w-full h-full bg-rose-500/10 rounded-xl p-1 select-none">
-                        <span className="text-sm sm:text-base md:text-lg font-black text-rose-400 tracking-wider">
-                          {getTeamInitials(team1)}
-                        </span>
-                        <span className="text-[7px] sm:text-[8px] uppercase tracking-widest text-zinc-400 font-bold">
-                          CLB
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  <h3 className="mt-1 text-[11px] sm:text-xs font-black text-white line-clamp-1 leading-tight">
-                    {team1}
-                  </h3>
+
+            {/* 2. MATCH ARENA (TRỌNG TÂM ĐỐI ĐẦU ĐỐI XỨNG TUYỆT ĐỐI 1fr auto 1fr) */}
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-6 md:gap-8 py-1.5 w-full">
+              {/* ĐỘI NHÀ (TEAM 1 - 50% CÂN ĐỐI) */}
+              <div className="flex flex-col items-center justify-center text-center min-w-0 w-full group">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-2xl bg-zinc-800/90 border-2 border-white/20 p-1.5 sm:p-2 flex items-center justify-center shadow-xl transition-all duration-300 group-hover:scale-105 group-hover:border-netflix-red/70 group-hover:shadow-red-950/60 overflow-hidden">
+                  {homeFlagEmoji ? (
+                    <CountryFlag emoji={homeFlagEmoji} className="w-8 h-8 sm:w-12 sm:h-12" />
+                  ) : homeLogoSrc ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      key={homeLogoSrc}
+                      src={homeLogoSrc}
+                      alt=""
+                      className="w-full h-full object-contain filter drop-shadow-xl"
+                      onError={(e) => {
+                        setHomeImgError(true);
+                        e.currentTarget.style.display = "none";
+                      }}
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center justify-center w-full h-full bg-rose-500/10 rounded-xl p-1 select-none">
+                      <span className="text-base sm:text-xl font-black text-rose-400 tracking-wider">
+                        {getTeamInitials(team1)}
+                      </span>
+                      <span className="text-[7px] sm:text-[8px] uppercase tracking-widest text-zinc-400 font-bold">
+                        CLB
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <h3 className="mt-1.5 text-xs sm:text-sm md:text-base font-extrabold text-white truncate max-w-full px-1 leading-tight block text-center" title={team1}>
+                  {team1}
+                </h3>
+              </div>
+
+              {/* TRUNG TÂM MATCHUP: VS NỔI BẬT & TRẠNG THÁI / THỜI GIAN TRÊN CÙNG 1 HÀNG NGANG */}
+              <div className="flex flex-col items-center justify-center shrink-0 px-1 sm:px-4 text-center">
+                <div className="px-3.5 py-1 sm:px-5 sm:py-1.5 rounded-xl sm:rounded-2xl bg-zinc-800/90 border border-white/15 text-sm sm:text-lg md:text-xl font-black text-rose-400 font-mono tracking-widest shadow-inner">
+                  VS
                 </div>
 
-                {/* TRUNG TÂM VS & THỜI GIAN TRẬN ĐẤU */}
-                <div className="flex flex-col items-center flex-shrink-0 px-1 sm:px-2">
-                  <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-netflix-red/20 border border-netflix-red/40 text-netflix-red text-[9px] sm:text-[10px] font-black animate-pulse mb-0.5 sm:mb-1 shadow-sm">
+                <div className="mt-1 sm:mt-1.5 flex items-center justify-center gap-1 sm:gap-1.5 flex-wrap">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 sm:px-2.5 sm:py-0.5 rounded-full bg-netflix-red/20 border border-netflix-red/40 text-netflix-red text-[8.5px] sm:text-[10.5px] font-black animate-pulse shadow-sm">
                     <Radio className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                     <span>TRỰC TIẾP</span>
-                  </div>
+                  </span>
 
-                  <div className="px-2.5 py-0.5 rounded-lg bg-zinc-800/90 border border-white/15 text-xs sm:text-sm font-black text-rose-400 tracking-wider shadow-inner">
-                    VS
-                  </div>
-
-                  {time && (
-                    <span className="mt-1 text-[9px] sm:text-[10px] text-gray-300 font-semibold bg-white/10 px-1.5 py-0.5 rounded-full border border-white/10 whitespace-nowrap">
+                  {time && time !== "Trực tiếp" && (
+                    <span className="text-[8.5px] sm:text-[10.5px] text-gray-300 font-semibold bg-white/10 px-2 py-0.5 rounded-full border border-white/10 whitespace-nowrap shadow-sm">
                       ⏰ {time}
                     </span>
                   )}
                 </div>
-
-                {/* ĐỘI KHÁCH (TEAM 2) */}
-                <div className="flex flex-col items-center text-center max-w-[110px] sm:max-w-[150px] group">
-                  <div className="w-11 h-11 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-xl sm:rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-950 border-2 border-white/20 p-1.5 sm:p-2 flex items-center justify-center shadow-xl transition-all duration-300 group-hover:scale-105 group-hover:border-sky-500/70 group-hover:shadow-sky-950/60 overflow-hidden">
-                    {awayFlagEmoji ? (
-                      <CountryFlag emoji={awayFlagEmoji} className="w-8 h-8 sm:w-10 sm:h-10" />
-                    ) : awayLogoSrc ? (
-                      /* eslint-disable-next-line @next/next/no-img-element */
-                      <img
-                        key={awayLogoSrc}
-                        src={awayLogoSrc}
-                        alt=""
-                        className="w-full h-full object-contain filter drop-shadow-xl"
-                        onError={(e) => {
-                          setAwayImgError(true);
-                          e.currentTarget.style.display = "none";
-                        }}
-                        referrerPolicy="no-referrer"
-                      />
-                    ) : (
-                      <div className="flex flex-col items-center justify-center w-full h-full bg-sky-500/10 rounded-xl p-1 select-none">
-                        <span className="text-sm sm:text-base md:text-lg font-black text-sky-400 tracking-wider">
-                          {getTeamInitials(team2)}
-                        </span>
-                        <span className="text-[7px] sm:text-[8px] uppercase tracking-widest text-zinc-400 font-bold">
-                          CLB
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  <h3 className="mt-1 text-[11px] sm:text-xs font-black text-white line-clamp-1 leading-tight">
-                    {team2 || "Đối thủ"}
-                  </h3>
-                </div>
               </div>
-            </>
-          )}
 
-          {/* META INFO BÊN PHẢI (GIẢI ĐẤU, BLV, CHẤT LƯỢNG) */}
-          <div className="flex flex-wrap md:flex-col items-center justify-center sm:justify-between md:items-end md:justify-start w-full md:w-auto gap-1.5 sm:gap-2 border-t md:border-t-0 border-white/10 pt-2 md:pt-0">
-            {group && (
-              <span
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/10 border border-white/20 text-gray-200 text-[10px] sm:text-[11px] font-bold shadow-sm whitespace-nowrap max-w-[150px] sm:max-w-[220px]"
-                title={group}
-              >
-                <span className="shrink-0">🏆</span>
-                <span className="truncate">{group}</span>
-              </span>
-            )}
-            {blv && (
-              <span
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-netflix-red/20 border border-netflix-red/40 text-rose-300 text-[10px] sm:text-[11px] font-extrabold shadow-sm max-w-[160px] sm:max-w-xs whitespace-nowrap"
-                title={`BLV: ${blv}`}
-              >
-                <span className="shrink-0">🎙️</span>
-                <span className="truncate">
-                  {(() => {
-                    const raw = blv.replace(/^(?:blv|bình luận viên)\s+/i, "");
-                    const parts = raw.split(",").map((p) => p.trim()).filter(Boolean);
-                    if (parts.length <= 2) return `BLV ${parts.join(", ")}`;
-                    return `BLV ${parts.slice(0, 2).join(", ")} (+${parts.length - 2})`;
-                  })()}
-                </span>
-              </span>
-            )}
-            <div className="flex items-center gap-1 shrink-0">
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-[10px] font-black uppercase whitespace-nowrap">
-                <Zap className="w-2.5 h-2.5 fill-emerald-400 shrink-0" />
-                <span>{currentServer?.quality || "FHD 1080p"}</span>
-              </span>
+              {/* ĐỘI KHÁCH (TEAM 2 - 50% CÂN ĐỐI) */}
+              <div className="flex flex-col items-center justify-center text-center min-w-0 w-full group">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-2xl bg-zinc-800/90 border-2 border-white/20 p-1.5 sm:p-2 flex items-center justify-center shadow-xl transition-all duration-300 group-hover:scale-105 group-hover:border-sky-500/70 group-hover:shadow-sky-950/60 overflow-hidden">
+                  {awayFlagEmoji ? (
+                    <CountryFlag emoji={awayFlagEmoji} className="w-8 h-8 sm:w-12 sm:h-12" />
+                  ) : awayLogoSrc ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      key={awayLogoSrc}
+                      src={awayLogoSrc}
+                      alt=""
+                      className="w-full h-full object-contain filter drop-shadow-xl"
+                      onError={(e) => {
+                        setAwayImgError(true);
+                        e.currentTarget.style.display = "none";
+                      }}
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center justify-center w-full h-full bg-sky-500/10 rounded-xl p-1 select-none">
+                      <span className="text-base sm:text-xl font-black text-sky-400 tracking-wider">
+                        {getTeamInitials(team2)}
+                      </span>
+                      <span className="text-[7px] sm:text-[8px] uppercase tracking-widest text-zinc-400 font-bold">
+                        CLB
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <h3 className="mt-1.5 text-xs sm:text-sm md:text-base font-extrabold text-white truncate max-w-full px-1 leading-tight block text-center" title={team2 || "Đối thủ"}>
+                  {team2 || "Đối thủ"}
+                </h3>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
       <div
         ref={containerRef}
@@ -3049,14 +3052,14 @@ function LivePlayerInner({
                       setSelectedServerIndex(targetIdx);
                       setRetryNonce((prev) => prev + 1);
                     }}
-                    className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-between gap-2 cursor-pointer border text-left min-w-0 ${isSelected
-                        ? "bg-netflix-red text-white border-netflix-red shadow-md shadow-red-950/50 scale-[1.01]"
+                    className={`px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-between gap-2 cursor-pointer border text-left min-w-0 ${isSelected
+                        ? "bg-red-950/80 text-white border-red-500/80 shadow-md shadow-red-950/60 ring-1 ring-red-500/50 scale-[1.01]"
                         : "bg-black/60 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800/90"
                       }`}
                   >
                     <div className="flex items-center gap-2 min-w-0 flex-1 truncate">
                       <span
-                        className={`w-2 h-2 rounded-full shrink-0 ${isSelected ? "bg-white animate-ping" : "bg-emerald-400"
+                        className={`w-2 h-2 rounded-full shrink-0 ${isSelected ? "bg-red-400 ring-2 ring-red-500/40 animate-pulse" : "bg-emerald-400"
                           }`}
                       />
                       <span className="truncate">{cleanName}</span>
@@ -3066,10 +3069,10 @@ function LivePlayerInner({
                       <span
                         className={`shrink-0 px-1.5 py-0.5 text-[9px] font-black rounded tracking-wider border ${qualityBadge === "FHD"
                             ? isSelected
-                              ? "bg-white/20 text-white border-white/30"
+                              ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
                               : "bg-amber-500/15 text-amber-300 border-amber-500/30"
                             : isSelected
-                              ? "bg-white/20 text-white border-white/30"
+                              ? "bg-sky-500/20 text-sky-300 border-sky-500/40"
                               : "bg-sky-500/15 text-sky-300 border-sky-500/30"
                           }`}
                       >
@@ -3085,7 +3088,7 @@ function LivePlayerInner({
               <button
                 type="button"
                 onClick={() => setShowAllServers(true)}
-                className="px-3 py-2 rounded-xl text-xs font-medium transition-all flex items-center justify-center gap-1 cursor-pointer bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-dashed border-white/20 sm:col-span-2 lg:col-span-3"
+                className="px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs font-medium transition-all flex items-center justify-center gap-1 cursor-pointer bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-dashed border-white/20 sm:col-span-2 lg:col-span-3"
               >
                 <span>+{availableServers.length - INITIAL_SERVER_LIMIT} nguồn khác</span>
                 <ChevronDown className="w-3.5 h-3.5 text-netflix-red" />

@@ -39,7 +39,7 @@ function getPaginationPages(currentPage: number, totalPages: number): (number | 
   return [1, "...", currentPage - 1, currentPage, currentPage + 1, "...", totalPages];
 }
 
-import { parseBioContent, BioSection } from "@/lib/bioFormatter";
+import { parseBioContent } from "@/lib/bioFormatter";
 
 function getSectionIcon(heading?: string) {
   if (!heading) return Sparkles;

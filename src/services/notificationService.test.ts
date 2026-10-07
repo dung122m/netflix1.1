@@ -21,7 +21,6 @@ import {
   subscribeUserNotifications,
   mergeNotifications,
   saveLocalNotifications,
-  getLocalNotifications,
 } from "./notificationService";
 import { UserNotification } from "@/types/notification";
 

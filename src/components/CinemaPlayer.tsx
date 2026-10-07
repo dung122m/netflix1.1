@@ -239,7 +239,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
 
     window.addEventListener("player-settings-updated", handleUpdate);
     return () => window.removeEventListener("player-settings-updated", handleUpdate);
-  }, [user?.uid]);
+  }, [user?.uid, setIsTheaterMode]);
 
   const controlsTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -1054,6 +1054,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     activeEpisodeName,
     posterUrl,
     title,
+    getBufferAhead,
   ]);
 
   // Video events
@@ -1351,6 +1352,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     getEffectiveDuration,
     playerSettings.autoNextEpisode,
     resetControlsTimeout,
+    getBufferAhead,
   ]);
 
   // Mobile touch & sticky detection
@@ -1578,6 +1580,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     isFullscreen,
     resetControlsTimeout,
     triggerDesktopFeedback,
+    setIsTheaterMode,
   ]);
 
 

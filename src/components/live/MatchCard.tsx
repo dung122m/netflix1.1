@@ -246,21 +246,21 @@ function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
           onSelect(match);
         }
       }}
-      style={{ contentVisibility: "auto", containIntrinsicSize: "0 140px" }}
-      className={`group relative rounded-2xl border p-3 sm:p-3.5 cursor-pointer transition-all duration-200 flex flex-col justify-between overflow-hidden transform-gpu will-change-transform outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-[1.02] ${isSelected
+      style={{ contentVisibility: "auto", containIntrinsicSize: "0 115px" }}
+      className={`group relative rounded-xl sm:rounded-2xl border p-2 sm:p-2.5 md:p-3 cursor-pointer transition-all duration-200 flex flex-col justify-between overflow-hidden transform-gpu will-change-transform outline-none focus-visible:ring-2 focus-visible:ring-netflix-red ${isSelected
         ? "football-match-active bg-zinc-900 border-netflix-red shadow-lg shadow-red-950/60 ring-1 ring-netflix-red/50"
         : "football-match-card bg-zinc-900/90 border-white/10 hover:border-white/25 hover:bg-zinc-850/95 hover:shadow-lg hover:shadow-black/70"
         }`}
     >
       {/* Ambient glow khi trận đang diễn ra (Live) */}
       {isLive && (
-        <div className="pointer-events-none absolute -top-8 -right-8 w-24 h-24 bg-red-600/15 rounded-full blur-2xl group-hover:bg-red-600/25 transition-all" />
+        <div className="pointer-events-none absolute -top-8 -right-8 w-20 h-20 bg-red-600/15 rounded-full blur-2xl group-hover:bg-red-600/25 transition-all" />
       )}
 
-      {/* 1. TOP HEADER: GIẢI ĐẤU & CHẤT LƯỢNG / THÔNG BÁO */}
-      <div className="flex items-center justify-between gap-2 mb-2 relative z-10 w-full min-w-0">
-        <div className="flex items-center gap-1.5 min-w-0 flex-1">
-          <span className="text-[10px] sm:text-[11px] text-gray-400 font-semibold truncate flex items-center gap-1">
+      {/* 1. TOP HEADER: GIẢI ĐẤU & CHẤT LƯỢNG */}
+      <div className="flex items-center justify-between gap-1.5 mb-1 sm:mb-1.5 relative z-10 w-full min-w-0">
+        <div className="flex items-center gap-1 min-w-0 flex-1">
+          <span className="text-[9px] sm:text-[10px] text-gray-400 font-medium truncate flex items-center gap-1">
             <span>
               {match.tournament &&
               match.tournament !== "Kênh Thể Thao 24/7" &&
@@ -271,9 +271,9 @@ function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
           </span>
         </div>
 
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex items-center gap-1 shrink-0">
           <span
-            className={`px-1.5 py-0.5 rounded text-[8.5px] sm:text-[9px] font-black uppercase tracking-wider border ${isFhd
+            className={`px-1.5 py-0.2 rounded text-[7.5px] sm:text-[8.5px] font-black uppercase tracking-wider border ${isFhd
               ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400"
               : "bg-sky-500/15 border-sky-500/30 text-sky-400"
               }`}
@@ -285,13 +285,13 @@ function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
 
       {/* 2. MATCH ARENA: TRỰC QUAN 2 ĐỘI BÓNG ĐỐI ĐẦU HOẶC SỰ KIỆN */}
       {!isTwoTeamMatch ? (
-        <div className="flex items-center gap-3 my-2 relative z-10">
+        <div className="flex items-center gap-2 sm:gap-2.5 my-1 sm:my-1.5 relative z-10">
           {homeFlagEmoji ? (
-            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-zinc-800/90 border border-white/15 flex items-center justify-center shrink-0 shadow-md">
-              <CountryFlag emoji={homeFlagEmoji} />
+            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg bg-zinc-800/90 border border-white/15 flex items-center justify-center shrink-0 shadow-md">
+              <CountryFlag emoji={homeFlagEmoji} className="w-6 h-6 sm:w-7 sm:h-7" />
             </div>
           ) : validEventLogo ? (
-            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-zinc-800 border border-white/10 overflow-hidden shrink-0 shadow-md p-1">
+            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg bg-zinc-800 border border-white/10 overflow-hidden shrink-0 shadow-md p-0.5">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={match.logo || match.homeLogo}
@@ -303,36 +303,36 @@ function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
               />
             </div>
           ) : (
-            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center shrink-0 text-rose-400 text-lg shadow-sm">
+            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg bg-rose-500/15 border border-rose-500/30 flex items-center justify-center shrink-0 text-rose-400 text-sm sm:text-base shadow-sm">
               {getSportIcon(match.sport)}
             </div>
           )}
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5 mb-1">
+            <div className="flex items-center gap-1.5 mb-0.5">
               {isLive ? (
-                <span className="px-2 py-0.5 rounded-full bg-red-600 text-white font-black text-[9px] flex items-center gap-1 shadow-sm shadow-red-950/40 tracking-wider animate-pulse whitespace-nowrap shrink-0">
-                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+                <span className="px-1.5 py-0.2 rounded-full bg-red-600 text-white font-black text-[8px] sm:text-[8.5px] flex items-center gap-1 shadow-sm tracking-wider animate-pulse whitespace-nowrap shrink-0">
+                  <span className="w-1 h-1 rounded-full bg-white animate-ping" />
                   <span>LIVE</span>
                 </span>
               ) : null}
               {kickoffTime && (
-                <span className="text-[10px] text-sky-400 font-bold bg-sky-500/10 border border-sky-500/20 px-2 py-0.5 rounded whitespace-nowrap shrink-0">
+                <span className="text-[9px] sm:text-[9.5px] text-sky-400 font-bold bg-sky-500/10 border border-sky-500/20 px-1.5 py-0.2 rounded whitespace-nowrap shrink-0">
                   🕐 {kickoffTime}
                 </span>
               )}
             </div>
-            <strong className="text-xs sm:text-sm font-bold text-white line-clamp-2 group-hover:text-rose-400 transition leading-snug">
+            <strong className="text-[11px] sm:text-xs font-bold text-white line-clamp-1 group-hover:text-rose-400 transition leading-snug">
               {match.title || match.team1}
             </strong>
           </div>
         </div>
       ) : (
-        <div className="flex items-center justify-between gap-1 sm:gap-2 my-2 relative z-10 w-full min-w-0">
-          {/* ĐỘI NHÀ (CỘT TRÁI) */}
-          <div className="flex-1 flex flex-col items-center text-center min-w-0 group/team">
-            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-zinc-800/90 border border-white/15 p-1.5 sm:p-2 flex items-center justify-center shrink-0 overflow-hidden shadow-md group-hover:scale-105 transition-transform duration-200">
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1 sm:gap-1.5 my-1 sm:my-1.5 relative z-10 w-full min-w-0">
+          {/* ĐỘI NHÀ (CỘT TRÁI - 50% CÂN ĐỐI) */}
+          <div className="flex flex-col items-center justify-center text-center min-w-0 w-full group/team">
+            <div className="w-9 h-9 sm:w-11 sm:h-11 md:w-12 md:h-12 rounded-xl bg-zinc-800/90 border border-white/15 p-1 flex items-center justify-center shrink-0 overflow-hidden shadow-md group-hover:scale-105 transition-transform duration-200">
               {homeFlagEmoji ? (
-                <CountryFlag emoji={homeFlagEmoji} />
+                <CountryFlag emoji={homeFlagEmoji} className="w-6 h-6 sm:w-8 sm:h-8" />
               ) : homeLogoSrc ? (
                 /* eslint-disable-next-line @next/next/no-img-element */
                 <img
@@ -352,38 +352,38 @@ function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
               )}
             </div>
             <span
-              className="mt-1.5 text-xs sm:text-[13px] font-extrabold text-white truncate leading-snug group-hover:text-rose-400 transition-colors duration-200 w-full px-0.5 block text-center"
+              className="mt-1 text-[10.5px] sm:text-xs font-extrabold text-white truncate leading-tight group-hover:text-rose-400 transition-colors duration-200 w-full px-0.5 block text-center"
               title={displayTeam1}
             >
               {displayTeam1}
             </span>
           </div>
 
-          {/* TRUNG TÂM MATCHUP: VS, STATUS & GIỜ ĐÁ (CỘT GIỮA) */}
-          <div className="shrink-0 flex flex-col items-center justify-center px-1 text-center min-w-[65px] sm:min-w-[75px]">
+          {/* TRUNG TÂM MATCHUP: VS, STATUS & GIỜ ĐÁ (CỘT GIỮA TRỤC TÂM) */}
+          <div className="shrink-0 flex flex-col items-center justify-center px-0.5 text-center min-w-[50px] sm:min-w-[62px]">
             {isLive ? (
-              <span className="px-1.5 py-0.5 rounded-full bg-red-600 text-white font-black text-[8px] sm:text-[9px] flex items-center gap-1 shadow-md shadow-red-950/60 animate-pulse tracking-wider whitespace-nowrap shrink-0">
+              <span className="px-1.5 py-0.2 rounded-full bg-red-600 text-white font-black text-[7.5px] sm:text-[8.5px] flex items-center gap-0.5 shadow-md animate-pulse tracking-wider whitespace-nowrap shrink-0">
                 <span className="w-1 h-1 rounded-full bg-white animate-ping" />
                 <span>LIVE</span>
               </span>
             ) : null}
 
-            <span className="mt-1 px-1.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-[8px] sm:text-[9px] font-black text-rose-400/90 font-mono tracking-widest shadow-sm">
+            <span className="mt-0.5 px-1 py-0.2 rounded-full bg-white/5 border border-white/10 text-[7.5px] sm:text-[8.5px] font-black text-rose-400/90 font-mono tracking-widest">
               VS
             </span>
 
             {kickoffTime && (
-              <span className="mt-1 px-1.5 py-0.5 rounded-md bg-white/10 border border-white/10 text-[9px] sm:text-[10px] font-bold text-gray-200 tracking-tight whitespace-nowrap shadow-sm">
+              <span className="mt-0.5 px-1.5 py-0.2 rounded bg-white/10 border border-white/10 text-[8px] sm:text-[9px] font-bold text-gray-200 tracking-tight whitespace-nowrap">
                 🕐 {kickoffTime}
               </span>
             )}
           </div>
 
-          {/* ĐỘI KHÁCH (CỘT PHẢI) */}
-          <div className="flex-1 flex flex-col items-center text-center min-w-0 group/team">
-            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-zinc-800/90 border border-white/15 p-1.5 sm:p-2 flex items-center justify-center shrink-0 overflow-hidden shadow-md group-hover:scale-105 transition-transform duration-200">
+          {/* ĐỘI KHÁCH (CỘT PHẢI - 50% CÂN ĐỐI) */}
+          <div className="flex flex-col items-center justify-center text-center min-w-0 w-full group/team">
+            <div className="w-9 h-9 sm:w-11 sm:h-11 md:w-12 md:h-12 rounded-xl bg-zinc-800/90 border border-white/15 p-1 flex items-center justify-center shrink-0 overflow-hidden shadow-md group-hover:scale-105 transition-transform duration-200">
               {awayFlagEmoji ? (
-                <CountryFlag emoji={awayFlagEmoji} />
+                <CountryFlag emoji={awayFlagEmoji} className="w-6 h-6 sm:w-8 sm:h-8" />
               ) : awayLogoSrc ? (
                 /* eslint-disable-next-line @next/next/no-img-element */
                 <img
@@ -403,7 +403,7 @@ function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
               )}
             </div>
             <span
-              className="mt-1.5 text-xs sm:text-[13px] font-extrabold text-white truncate leading-snug group-hover:text-sky-400 transition-colors duration-200 w-full px-0.5 block text-center"
+              className="mt-1 text-[10.5px] sm:text-xs font-extrabold text-white truncate leading-tight group-hover:text-sky-400 transition-colors duration-200 w-full px-0.5 block text-center"
               title={displayTeam2 || "Đối thủ"}
             >
               {displayTeam2 || "Đối thủ"}
@@ -413,14 +413,14 @@ function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
       )}
 
       {/* 3. FOOTER: BLV & SỐ LƯỢNG NGUỒN PHÁT */}
-      <div className="flex items-center justify-between gap-2 pt-2 mt-1 border-t border-white/5 text-[10px] sm:text-[11px] relative z-10 text-gray-400">
+      <div className="flex items-center justify-between gap-1.5 pt-1 sm:pt-1.5 mt-0.5 border-t border-white/5 text-[9px] sm:text-[10px] relative z-10 text-gray-400">
         <div className="flex items-center gap-1 min-w-0 flex-1">
           {match.blv ? (
             <span
               className="text-rose-400 font-medium flex items-center gap-1 min-w-0 truncate"
               title={`BLV: ${match.blv}`}
             >
-              <span className="shrink-0">🎙️</span>
+              <span className="shrink-0 text-[10px]">🎙️</span>
               <span className="truncate">
                 {(() => {
                   const rawBlvs = match.blv
@@ -441,13 +441,13 @@ function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
           )}
         </div>
 
-        <div className="flex items-center gap-1.5 shrink-0">
-          <span className="text-gray-300 font-semibold flex items-center gap-1 text-[10px] sm:text-[11px] bg-white/5 px-2 py-0.5 rounded-md border border-white/10">
+        <div className="flex items-center gap-1 shrink-0">
+          <span className="text-gray-300 font-semibold flex items-center gap-1 text-[9px] sm:text-[9.5px] bg-white/5 px-1.5 py-0.2 rounded border border-white/10">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
             <span>{match.servers.length} nguồn</span>
           </span>
-          <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-netflix-red text-white p-1 rounded-full shadow-sm">
-            <Play className="w-2.5 h-2.5 fill-current" />
+          <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-netflix-red text-white p-0.5 rounded-full shadow-sm">
+            <Play className="w-2 h-2 fill-current" />
           </span>
         </div>
       </div>

@@ -60,50 +60,52 @@ export function LiveHubClient({ footballData, tvData }: LiveHubClientProps) {
   }, [footballData.matches]);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 md:px-8 pt-20 md:pt-22 pb-12 space-y-4">
+    <div className="max-w-7xl mx-auto px-4 md:px-8 pt-16 sm:pt-18 md:pt-20 pb-8 space-y-3.5 sm:space-y-4">
       {/* 1. HEADER TRANG CHÍNH & TABS CHUYỂN ĐỔI BÓNG ĐÁ / TRUYỀN HÌNH */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 border-b border-white/10 pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b border-white/10 pb-3 sm:pb-3.5">
         <div>
-          <div className="flex items-center gap-2 mb-2 flex-wrap">
-            <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-netflix-red/20 border border-netflix-red/40 text-netflix-red text-[11px] font-black animate-pulse shadow-sm">
-              <Radio className="w-3.5 h-3.5" />
+          {/* BADGES METADATA TINH GỌN */}
+          <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
+            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-netflix-red/20 border border-netflix-red/40 text-netflix-red text-[10px] font-black shadow-sm shrink-0">
+              <Radio className="w-3 h-3 text-netflix-red" />
               <span>NANA LIVE HUB</span>
             </span>
-            <span className="flex items-center gap-1 text-[11px] text-emerald-400 font-bold bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+            <span className="flex items-center gap-1 text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 shrink-0">
               <Zap className="w-2.5 h-2.5 fill-emerald-400" />
               <span>Full HD 1080p</span>
             </span>
             {liveFootballCount > 0 && (
-              <span className="flex items-center gap-1 text-[11px] text-rose-400 font-bold bg-red-500/10 px-2.5 py-0.5 rounded-full border border-red-500/20">
+              <span className="flex items-center gap-1 text-[10px] text-rose-400 font-bold bg-red-500/10 px-2 py-0.5 rounded-full border border-red-500/20 shrink-0">
                 <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
                 <span>{liveFootballCount} trận đang đá</span>
               </span>
             )}
           </div>
 
-          <h1 className="text-2xl md:text-4xl font-black text-white tracking-tight">
+          {/* HEADING ANCHOR CHÍNH */}
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-white tracking-tight">
             {activeTab === "football"
               ? "Trực Tiếp Bóng Đá HD"
               : "Truyền Hình Trực Tuyến Live TV"}
           </h1>
         </div>
 
-        {/* CỤM NÚT CHUYỂN TAB */}
-        <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-zinc-900/90 border border-white/15 shadow-2xl backdrop-blur-xl self-start md:self-auto">
+        {/* CỤM NÚT CHUYỂN TAB GỌN GÀNG, ĐẸP MẮT */}
+        <div className="w-full sm:w-auto grid grid-cols-2 sm:flex items-center gap-1 p-1 rounded-xl bg-zinc-900/90 border border-white/10 shadow-lg backdrop-blur-xl">
           {/* TAB BÓNG ĐÁ */}
           <button
             type="button"
             onClick={() => handleTabChange("football")}
-            className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold transition-all cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${
+            className={`flex items-center justify-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs font-extrabold transition-all cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red ${
               activeTab === "football"
-                ? "bg-gradient-to-r from-netflix-red to-red-600 text-white shadow-xl shadow-red-950/70 scale-[1.02]"
+                ? "bg-gradient-to-r from-netflix-red to-red-600 text-white shadow-md shadow-red-950/60 scale-[1.01]"
                 : "text-gray-400 hover:text-white hover:bg-white/5"
             }`}
           >
-            <Flame className={`w-4 h-4 ${activeTab === "football" ? "text-amber-300 animate-pulse" : "text-gray-400"}`} />
-            <span>Bóng Đá Trực Tiếp</span>
+            <Flame className={`w-3.5 h-3.5 ${activeTab === "football" ? "text-amber-300 animate-pulse" : "text-gray-400"}`} />
+            <span>Bóng Đá</span>
             <span
-              className={`text-[10px] px-1.5 py-0.5 rounded-full font-black ${
+              className={`text-[9.5px] px-1.5 py-0.2 rounded-full font-black ${
                 activeTab === "football"
                   ? "bg-black/40 text-white"
                   : "bg-white/10 text-gray-300"
@@ -117,16 +119,16 @@ export function LiveHubClient({ footballData, tvData }: LiveHubClientProps) {
           <button
             type="button"
             onClick={() => handleTabChange("tv")}
-            className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold transition-all cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:scale-105 ${
+            className={`flex items-center justify-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs font-extrabold transition-all cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-sky-500 ${
               activeTab === "tv"
-                ? "bg-gradient-to-r from-sky-600 to-blue-600 text-white shadow-xl shadow-sky-950/70 scale-[1.02]"
+                ? "bg-gradient-to-r from-sky-600 to-blue-600 text-white shadow-md shadow-sky-950/60 scale-[1.01]"
                 : "text-gray-400 hover:text-white hover:bg-white/5"
             }`}
           >
-            <Tv className={`w-4 h-4 ${activeTab === "tv" ? "text-sky-200 animate-pulse" : "text-gray-400"}`} />
-            <span>Truyền Hình TV</span>
+            <Tv className={`w-3.5 h-3.5 ${activeTab === "tv" ? "text-sky-200 animate-pulse" : "text-gray-400"}`} />
+            <span>Truyền Hình</span>
             <span
-              className={`text-[10px] px-1.5 py-0.5 rounded-full font-black ${
+              className={`text-[9.5px] px-1.5 py-0.2 rounded-full font-black ${
                 activeTab === "tv"
                   ? "bg-black/40 text-white"
                   : "bg-white/10 text-gray-300"

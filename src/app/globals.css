@@ -125,7 +125,7 @@
   }
   body {
     @apply bg-background text-foreground;
-    overflow-x: hidden;
+    overflow-x: clip;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
@@ -133,7 +133,7 @@
   html {
     @apply font-sans;
     scroll-padding-top: 5rem;
-    overflow-x: hidden;
+    overflow-x: clip;
     scrollbar-gutter: stable;
   }
 }
@@ -310,9 +310,9 @@
   min-width: 44px;
 }
 
-/* Prevent horizontal scroll leak trên mobile */
+/* Prevent horizontal scroll leak trên mobile mà không phá vỡ position: sticky */
 .no-x-overflow {
-  overflow-x: hidden;
+  overflow-x: clip;
   max-width: 100vw;
 }
 
