@@ -79,6 +79,7 @@ export interface VietnamEvent {
   actorSlug?: string | null;
   actorName?: string | null;
   historicalEventId?: string | null;
+  heroEligible?: boolean;
 }
 
 

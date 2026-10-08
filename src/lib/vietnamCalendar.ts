@@ -1,6 +1,7 @@
 import { VIETNAM_EVENTS, VietnamEvent } from "@/data/vietnamEvents";
 import { getHistoricalEventsForDate, VietnamHistoricalEvent } from "@/data/historicalEvents";
 import { FEATURED_HISTORICAL_EVENTS } from "@/data/history/featuredHistory";
+import { CURATED_NANAFLIX_MILESTONES } from "@/data/history/curatedSeed";
 import { ACTORS_CATALOG } from "@/data/actorsCatalog";
 
 const { floor, sin, PI } = Math;
@@ -438,37 +439,93 @@ export function isFeaturedActor(event: VietnamEvent): boolean {
 }
 
 /**
- * Checks whether a historical event qualifies as a "Featured Historical Milestone" (Hero candidate).
- * Strict criteria:
- * 1. Matches Tier S/A in FEATURED_HISTORICAL_EVENTS (priorityScore >= 80 or isCurated: true)
- * 2. OR features an iconic national historical figure (Bác Hồ, Võ Nguyên Giáp, Trần Hưng Đạo, Quang Trung, Lê Lợi, Lý Thường Kiệt, Hai Bà Trưng, Ngô Quyền, Đinh Bộ Lĩnh...)
- * 3. OR is an iconic national turning-point victory / event (Tuyên ngôn Độc lập, Điện Biên Phủ, Giải phóng miền Nam 30/4, Giải phóng Thủ đô 10/10, Cách mạng Tháng Tám, Bạch Đằng, Đống Đa...)
- * 4. OR has dedicated visual theme and documentary image
- *
- * All other events (administrative, routine diplomatic milestones, general statistics like "tính đến thời điểm này...")
- * are considered "Historical Normal / Minor / Chronicle" and CANNOT be promoted to Hero.
+ * Strict Quality Gate & Eligibility Checker for Historical Events.
+ * Disqualifies Tier 7 chronicle/routine/administrative records from Hero Banner.
  */
-export function isFeaturedHistoricalEvent(hist: VietnamHistoricalEvent | VietnamEvent): boolean {
+export function isHeroEligibleHistoricalEvent(
+  hist: VietnamHistoricalEvent | VietnamEvent
+): boolean {
   if (!hist || !hist.title) return false;
 
-  const normId = normalizeStringForComparison(hist.id);
-  const normTitle = normalizeStringForComparison(hist.title);
+  const rawTitle = (hist.title || "").trim();
+  const rawSummary = (
+    ("summary" in hist && hist.summary ? hist.summary : "") ||
+    ("shortDescription" in hist && hist.shortDescription ? hist.shortDescription : "") ||
+    ""
+  ).trim();
 
-  // 1. Curated Tier S historical events (Major national turning-point milestones)
-  const curatedMatch = FEATURED_HISTORICAL_EVENTS.find(
-    (f) =>
-      f.id === hist.id ||
-      normId.includes(normalizeStringForComparison(f.id)) ||
-      normTitle.includes(normalizeStringForComparison(f.title.slice(0, 20)))
-  );
-  if (
-    curatedMatch &&
-    (curatedMatch.priorityTier === "S" || (curatedMatch.priorityScore ?? 0) >= 95)
-  ) {
+  // 1. DISQUALIFICATION FILTER (Immediate rejection of Tier 7 / Administrative / Routine Chronicle)
+  // Check for routine administrative meeting, circular, telegram, committee, or status report keywords
+  const isRoutineAdministrative =
+    /\b(họp\s*\(?đợt|họp\s+bàn|họp\s+thường\s+kỳ|hội\s+nghị|ban\s+thường\s+vụ|chấp\s+hành\s+trung\s+ương\s+họp|chỉ\s+thị\s+số|chỉ\s+thị\s+\d+|nghị\s+quyết\s+số|nghị\s+quyết\s+\d+|công\s+điện|gửi\s+điện\s+cho|điện\s+mật|ký\s+lệnh|ban\s+hành\s+nghị\s+quyết|ban\s+hành\s+chỉ\s+thị|thông\s+tư|tiểu\s+ban|thành\s+lập\s+chi\s+bộ|tính\s+đến\s+thời\s+điểm\s+này|báo\s+cáo\s+sơ\s+kết|tổng\s+kết|kinh\s+tế\s+trang\s+trại|cải\s+cách\s+tư\s+pháp|cải\s+cách\s+giáo\s+dục)\b/i.test(
+      rawTitle
+    ) ||
+    /\b(tính\s+đến\s+thời\s+điểm\s+này|thành\s+lập\s+tiểu\s+ban|báo\s+cáo\s+sơ\s+kết)\b/i.test(
+      rawSummary
+    );
+
+  if (isRoutineAdministrative) {
+    return false;
+  }
+
+  // Raw crawl title that ends with truncated ellipsis "..." without curated override is disqualified from Hero
+  if (rawTitle.endsWith("...") || rawTitle.endsWith("…")) {
+    const curatedExact = CURATED_NANAFLIX_MILESTONES.find(
+      (c) => c.id === hist.id || ("historicalEventId" in hist && c.id === hist.historicalEventId)
+    );
+    if (!curatedExact) {
+      return false;
+    }
+  }
+
+  // 2. POSITIVE ELIGIBILITY CRITERIA (Must meet at least ONE with exact date/identity match)
+  const normId = normalizeStringForComparison(hist.id);
+  const normTitle = normalizeStringForComparison(rawTitle);
+  const solarM = hist.solarDate?.month;
+  const solarD = hist.solarDate?.day;
+
+  // 2.1 Match Curated Nanaflix Milestones (CURATED_NANAFLIX_MILESTONES) with EXACT ID or EXACT DATE
+  const curatedMatch = CURATED_NANAFLIX_MILESTONES.find((f) => {
+    if (f.id === hist.id || ("historicalEventId" in hist && f.id === hist.historicalEventId)) {
+      return true;
+    }
+    // Strict Date match + Token similarity (prevents cross-date bleeding)
+    if (solarM && solarD && f.date?.month === solarM && f.date?.day === solarD) {
+      const fNormTitle = normalizeStringForComparison(f.title);
+      return (
+        normTitle.includes(fNormTitle.slice(0, 15)) ||
+        fNormTitle.includes(normTitle.slice(0, 15))
+      );
+    }
+    return false;
+  });
+
+  if (curatedMatch) {
     return true;
   }
 
-  // 2. Iconic historical figures
+  // 2.2 Match FEATURED_HISTORICAL_EVENTS with isCurated or Tier S AND exact date/ID match
+  const featuredMatch = FEATURED_HISTORICAL_EVENTS.find((f) => {
+    if (f.id === hist.id || ("historicalEventId" in hist && f.id === hist.historicalEventId)) {
+      return f.isCurated || f.priorityTier === "S" || (f.priorityScore ?? 0) >= 95;
+    }
+    if (solarM && solarD && f.date?.month === solarM && f.date?.day === solarD) {
+      if (f.isCurated || f.priorityTier === "S" || (f.priorityScore ?? 0) >= 95) {
+        const fNormTitle = normalizeStringForComparison(f.title);
+        return (
+          normTitle.includes(fNormTitle.slice(0, 15)) ||
+          fNormTitle.includes(normTitle.slice(0, 15))
+        );
+      }
+    }
+    return false;
+  });
+
+  if (featuredMatch) {
+    return true;
+  }
+
+  // 2.3 Major Iconic National Figure Memorial on exact date (Solemn Remembrance / Birth)
   const isMajorFigure =
     normId.includes("vo nguyen giap") ||
     normId.includes("bac ho") ||
@@ -483,8 +540,6 @@ export function isFeaturedHistoricalEvent(hist: VietnamHistoricalEvent | Vietnam
     normId.includes("ngo quyen") ||
     normId.includes("dinh bo linh") ||
     normId.includes("nguyen trai") ||
-    normId.includes("phan boi chau") ||
-    normId.includes("phan chau trinh") ||
     normTitle.includes("vo nguyen giap") ||
     normTitle.includes("ho chi minh") ||
     normTitle.includes("bac ho") ||
@@ -497,51 +552,69 @@ export function isFeaturedHistoricalEvent(hist: VietnamHistoricalEvent | Vietnam
     normTitle.includes("hai ba trung") ||
     normTitle.includes("ngo quyen") ||
     normTitle.includes("dinh bo linh") ||
-    normTitle.includes("nguyen trai") ||
-    (Array.isArray((hist as { figures?: string[] }).figures) &&
-      ((hist as { figures?: string[] }).figures ?? []).some((fig: string) => {
-        const nf = normalizeStringForComparison(fig);
-        return (
-          nf.includes("ho chi minh") ||
-          nf.includes("vo nguyen giap") ||
-          nf.includes("tran hung dao") ||
-          nf.includes("quang trung") ||
-          nf.includes("nguyen hue") ||
-          nf.includes("le loi") ||
-          nf.includes("le thai to") ||
-          nf.includes("ly thuong kiet") ||
-          nf.includes("hai ba trung") ||
-          nf.includes("ngo quyen") ||
-          nf.includes("dinh bo linh") ||
-          nf.includes("nguyen trai")
-        );
-      }));
+    normTitle.includes("nguyen trai");
 
-  if (isMajorFigure) {
-    return true;
-  }
+  const isSolemnFigureAnniversary =
+    normTitle.includes("tuong niem") ||
+    normTitle.includes("ngay mat") ||
+    normTitle.includes("tu tran") ||
+    normTitle.includes("qua doi") ||
+    normTitle.includes("ngay sinh") ||
+    normTitle.includes("sinh nhat") ||
+    normTitle.includes("sinh ra tai") ||
+    normTitle.includes("dai thang") ||
+    normTitle.includes("khoi nghia");
 
-  // 3. Iconic national milestones
-  const isMajorMilestone =
-    normTitle.includes("tuyen ngon doc lap") ||
-    normTitle.includes("dien bien phu") ||
-    normTitle.includes("giai phong thu do") ||
-    normTitle.includes("giai phong mien nam") ||
-    normTitle.includes("thong nhat dat nuoc") ||
-    normTitle.includes("cach mang thang tam") ||
-    normTitle.includes("bach dang") ||
-    normTitle.includes("ngoc hoi dong da") ||
-    normTitle.includes("khoi nghia lam son") ||
-    normId.includes("dien-bien-phu") ||
-    normId.includes("giai-phong-thu-do") ||
-    normId.includes("thong-nhat-1975") ||
-    normId.includes("ba-dinh-1945");
-
-  if (isMajorMilestone) {
+  if (isMajorFigure && isSolemnFigureAnniversary && rawTitle.length >= 10 && !rawTitle.endsWith("...")) {
     return true;
   }
 
   return false;
+}
+
+export function isFeaturedHistoricalEvent(hist: VietnamHistoricalEvent | VietnamEvent): boolean {
+  return isHeroEligibleHistoricalEvent(hist);
+}
+
+/**
+ * Checks whether an event is eligible to be promoted to Hero Banner.
+ * Strict Hero Eligibility Gate:
+ * - Tier 1: National Holidays (Quốc khánh, 30/4, Tết...) -> Eligible
+ * - Tier 2: Top Historical Figure Memorials (Curated) -> Eligible
+ * - Tier 3: Cinema, Arts, Culture & International Curated Days -> Eligible
+ * - Tier 4: Featured Actor Birthdays (with valid avatar & catalog presence) -> Eligible
+ * - Tier 5/6: Curated Major Historical Milestones (Tier S/A) -> Eligible
+ * - Tier 7: Routine Administrative / Chronicle / Meeting records -> NEVER Eligible (False)
+ */
+export function isHeroEligibleEvent(
+  event: VietnamEvent,
+  _currentYear: number = new Date().getFullYear()
+): boolean {
+  if (!event) return false;
+
+  // 1. National Holiday / Major celebration
+  if (event.category === "national-holiday" || event.nature === "official-holiday") {
+    return true;
+  }
+
+  // 2. Actor Birthdays: Must be featured actor with avatar & valid catalog entry
+  if (event.actorSlug || event.id.startsWith("ev-actor-birthday")) {
+    return isFeaturedActor(event);
+  }
+
+  // 3. Historical Events: Must satisfy strict Hero Eligibility Gate
+  const isHistorical =
+    event.category === "vietnam-history" ||
+    event.nature === "historical-anniversary" ||
+    Boolean(event.historicalEventId) ||
+    event.id.startsWith("hist-");
+
+  if (isHistorical) {
+    return isHeroEligibleHistoricalEvent(event);
+  }
+
+  // 4. Cultural / Arts / International / Fun curated holidays from VIETNAM_EVENTS
+  return true;
 }
 
 /**
@@ -790,9 +863,17 @@ export function convertHistoricalToVietnamEvent(
   ).padStart(2, "0")}${hist.year ? `/${hist.year}` : ""}`;
   const milestoneFigure = hist.figures && hist.figures.length > 0 ? hist.figures[0] : null;
 
+  // Clean trailing "..." or "…" from raw crawl titles if any
+  const cleanTitle = (hist.title || "")
+    .replace(/\s*\.{3,}$/, "")
+    .replace(/\s*…$/, "")
+    .trim();
+
+  const isEligible = isHeroEligibleHistoricalEvent(hist);
+
   return {
     id: hist.id,
-    title: hist.year ? `${hist.title} (${hist.year})` : hist.title,
+    title: hist.year ? `${cleanTitle} (${hist.year})` : cleanTitle,
     shortDescription: hist.summary,
     bannerDescription: hist.summary,
     description: hist.context || hist.summary,
@@ -801,7 +882,7 @@ export function convertHistoricalToVietnamEvent(
     categoryLabel: matchingHoliday ? matchingHoliday.categoryLabel : "Mốc son lịch sử",
     nature: matchingHoliday ? matchingHoliday.nature : "historical-anniversary",
     natureLabel: matchingHoliday ? matchingHoliday.natureLabel : "Lịch sử Việt Nam",
-    priority: matchingHoliday?.priority ?? (isFeaturedHistoricalEvent(hist) ? 80 : 50),
+    priority: matchingHoliday?.priority ?? (isEligible ? 80 : 50),
     eventYear: hist.year,
     milestoneFigure,
     solarDate: {
@@ -831,6 +912,7 @@ export function convertHistoricalToVietnamEvent(
     relatedLink: matchingHoliday?.relatedLink || null,
     relatedLabel: matchingHoliday?.relatedLabel || undefined,
     historicalEventId: hist.id,
+    heroEligible: isEligible,
     ...(matchingHoliday ? {} : { isHistoricalOnly: true }),
   } as VietnamEvent;
 }
@@ -998,7 +1080,9 @@ export function resolveHeroEvent(
     actorBirthdays,
     currentYear
   );
-  return candidates.length > 0 ? candidates[0] : null;
+  // Ensure the chosen candidate strictly satisfies the Hero Eligibility Gate
+  const eligibleHero = candidates.find((c) => isHeroEligibleEvent(c, currentYear));
+  return eligibleHero || null;
 }
 
 /**

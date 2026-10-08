@@ -11,6 +11,12 @@ import {
   computeDateFromLunarDate,
   getVietnamTodayEvent,
   getVietnamTodayHistoryBanner,
+  isHeroEligibleHistoricalEvent,
+  isHeroEligibleEvent,
+  isFeaturedHistoricalEvent,
+  getEventPriorityScore,
+  mergeAndDeduplicateEvents,
+  resolveHeroEvent,
 } from "./vietnamCalendar";
 
 test("Vietnam Events Dataset Validation", async (t) => {
@@ -1032,3 +1038,141 @@ test("Nanaflix Hero Date-Content Resolver — 3-Tier Precedence & Test Matrix Ve
     );
   });
 });
+
+test("Hero Eligibility Gate & Historical Event Filtration Audit Verification", async (t) => {
+  await t.test("1. Audit Case 08/10/2026: Raw chronicle event 'Bộ Chính trị họp (1974)' does NOT get into Hero or tabs", () => {
+    const res0810 = getVietnamTodayEvent(new Date("2026-10-08T08:00:00+07:00"));
+    assert.ok(res0810.event, "Hero event exists");
+    assert.equal(res0810.event.id, "ev-10-08-bach-tuoc", "Hero must be World Octopus Day");
+    
+    // Ensure allEventsToday does NOT contain the meeting event
+    assert.ok(
+      !res0810.allEventsToday?.some((e) => e.id === "he-2561-1974" || e.title.includes("Bộ Chính trị họp")),
+      "Raw chronicle meeting must NOT appear in allEventsToday / Hero tabs"
+    );
+
+    // Ensure all 5 historical events are preserved in historicalEventsToday for Popup and /history
+    assert.ok(
+      res0810.historicalEventsToday && res0810.historicalEventsToday.length >= 5,
+      "historicalEventsToday retains all 5 historical events"
+    );
+    assert.ok(
+      res0810.historicalEventsToday?.some((h) => h.id === "he-2561-1974"),
+      "he-2561-1974 is preserved in historicalEventsToday"
+    );
+  });
+
+  await t.test("2. Disqualification Filter: Routine meetings, circulars, directives, truncated titles are not Hero eligible", () => {
+    const meetingEvent = {
+      id: "he-test-meeting",
+      title: "Bộ Chính trị họp (đợt 1), bàn phương hướng chiến lược...",
+      solarDate: { month: 10, day: 8 },
+      year: 1974,
+      summary: "Họp bàn về giải phóng miền Nam",
+      significance: "Sự kiện",
+      visualTheme: "general-history",
+      sources: ["test"],
+    } as unknown as VietnamHistoricalEvent;
+
+    const directiveEvent = {
+      id: "he-test-directive",
+      title: "Bộ Chính trị ra Chỉ thị 228 về việc lãnh đạo cuộc bầu cử",
+      solarDate: { month: 1, day: 3 },
+      year: 1976,
+      summary: "Chỉ thị 228",
+      significance: "Sự kiện",
+      visualTheme: "general-history",
+      sources: ["test"],
+    } as unknown as VietnamHistoricalEvent;
+
+    const resolutionEvent = {
+      id: "he-test-resolution",
+      title: "Bộ Chính trị ban hành Nghị quyết số 14-NQ/TW về Cải cách giáo dục",
+      solarDate: { month: 1, day: 11 },
+      year: 1979,
+      summary: "Nghị quyết 14",
+      significance: "Sự kiện",
+      visualTheme: "general-history",
+      sources: ["test"],
+    } as unknown as VietnamHistoricalEvent;
+
+    assert.equal(isHeroEligibleHistoricalEvent(meetingEvent), false, "Meeting event must NOT be hero eligible");
+    assert.equal(isHeroEligibleHistoricalEvent(directiveEvent), false, "Directive event must NOT be hero eligible");
+    assert.equal(isHeroEligibleHistoricalEvent(resolutionEvent), false, "Resolution event must NOT be hero eligible");
+  });
+
+  await t.test("3. Tier 1 & 2 Historical Milestones (Curated) ARE Hero eligible", () => {
+    // 04/10 Võ Nguyên Giáp
+    const voNguyenGiap = {
+      id: "hist-10-04-vo-nguyen-giap-2013",
+      title: "Tưởng niệm Ngày mất Đại tướng Võ Nguyên Giáp",
+      solarDate: { month: 10, day: 4 },
+      year: 2013,
+      summary: "Tưởng niệm Ngày mất Đại tướng Võ Nguyên Giáp",
+      significance: "Vị tướng huyền thoại",
+      visualTheme: "dien-bien-phu",
+      sources: ["test"],
+    } as unknown as VietnamHistoricalEvent;
+
+    // 30/04 Giải phóng miền Nam 1975
+    const giaiPhongMienNam = {
+      id: "hist-04-30-giai-phong-mien-nam-1975",
+      title: "Giải phóng hoàn toàn miền Nam, Thống nhất non sông",
+      solarDate: { month: 4, day: 30 },
+      year: 1975,
+      summary: "Giải phóng miền Nam 30/4/1975",
+      significance: "Mốc son chói lọi",
+      visualTheme: "thong-nhat-1975",
+      sources: ["test"],
+    } as unknown as VietnamHistoricalEvent;
+
+    assert.equal(isHeroEligibleHistoricalEvent(voNguyenGiap), true, "Võ Nguyên Giáp memorial must be hero eligible");
+    assert.equal(isHeroEligibleHistoricalEvent(giaiPhongMienNam), true, "30/04 milestone must be hero eligible");
+  });
+
+  await t.test("4. Anniversary Bonus cannot breach Tier Hierarchy", () => {
+    const tier7Chronicle = {
+      id: "he-minor-anniversary",
+      title: "Ký kết văn bản địa phương (1926)",
+      category: "vietnam-history",
+      nature: "historical-anniversary",
+      priority: 50,
+      eventYear: 1926, // 100 years anniversary in 2026 -> +8 bonus
+      solarDate: { month: 5, day: 10 },
+      displayDate: "10/05/1926",
+      isHistoricalOnly: true,
+    } as unknown as VietnamEvent;
+
+    const tier6CuratedHistory = {
+      id: "hist-curated-event",
+      title: "Chiến thắng lịch sử",
+      category: "vietnam-history",
+      nature: "historical-anniversary",
+      priority: 80,
+      solarDate: { month: 5, day: 10 },
+      displayDate: "10/05",
+      historicalEventId: "hist-05-10-test",
+    } as unknown as VietnamEvent;
+
+    const tier1Holiday = {
+      id: "ev-test-national",
+      title: "Ngày Lễ Quốc Gia",
+      category: "national-holiday",
+      nature: "official-holiday",
+      priority: 90,
+      solarDate: { month: 5, day: 10 },
+      displayDate: "10/05",
+    } as unknown as VietnamEvent;
+
+    const scoreTier7 = getEventPriorityScore(tier7Chronicle, 2026);
+    const scoreTier6 = getEventPriorityScore(tier6CuratedHistory, 2026);
+    const scoreTier1 = getEventPriorityScore(tier1Holiday, 2026);
+
+    assert.ok(scoreTier7 < 2000, `Tier 7 score with anniversary bonus (${scoreTier7}) must stay below 2,000`);
+    assert.ok(scoreTier6 >= 20000, `Tier 6 score (${scoreTier6}) must be >= 20,000`);
+    assert.ok(scoreTier1 >= 80000, `Tier 1 score (${scoreTier1}) must be >= 80,000`);
+    assert.ok(scoreTier7 < scoreTier6, "Tier 7 score cannot exceed Tier 6");
+    assert.ok(scoreTier6 < scoreTier1, "Tier 6 score cannot exceed Tier 1");
+  });
+});
+
