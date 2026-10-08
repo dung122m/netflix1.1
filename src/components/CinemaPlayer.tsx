@@ -38,7 +38,7 @@ interface EpisodeItem {
   link_m3u8?: string;
 }
 
-interface CinemaPlayerProps {
+export interface CinemaPlayerProps {
   embedSrc?: string;
   videoLink?: string;
   m3u8Link?: string;

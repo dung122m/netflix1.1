@@ -412,6 +412,16 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
           clearTimeout(trailerReadyTimerRef.current);
           trailerReadyTimerRef.current = null;
         }
+        try {
+          heroIframeRef.current?.contentWindow?.postMessage(
+            JSON.stringify({ event: "command", func: "unloadModule", args: ["captions"] }),
+            "*"
+          );
+          heroIframeRef.current?.contentWindow?.postMessage(
+            JSON.stringify({ event: "command", func: "setOption", args: ["captions", "track", {}] }),
+            "*"
+          );
+        } catch {}
         setIsTrailerReady(true);
         return;
       }
@@ -668,6 +678,10 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
                 // Gửi lệnh tắt phụ đề/captions trong player API YouTube
                 heroIframeRef.current?.contentWindow?.postMessage(
                   JSON.stringify({ event: "command", func: "unloadModule", args: ["captions"] }),
+                  "*"
+                );
+                heroIframeRef.current?.contentWindow?.postMessage(
+                  JSON.stringify({ event: "command", func: "setOption", args: ["captions", "track", {}] }),
                   "*"
                 );
               } catch {}

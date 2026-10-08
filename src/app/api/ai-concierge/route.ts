@@ -54,6 +54,11 @@ import {
 } from "./relevanceGate";
 import { resolveConcepts } from "./conceptRegistry";
 import { queryMoviesByActor, isAmbiguousShortActorKeyword } from "@/services/aiActorService";
+import {
+  searchTmdbMedia,
+  getTmdbMovieRecommendations,
+  discoverTmdbConceptMovies,
+} from "@/services/tmdbService";
 
 export const maxDuration = 15;
 
@@ -250,6 +255,61 @@ export async function POST(req: NextRequest) {
       const rawEx = excludePatternMatch[1].trim().toLowerCase();
       if (rawEx && !excludedTitles.includes(rawEx)) {
         excludedTitles.push(rawEx);
+      }
+    }
+
+    // 2.4. Trích xuất "phim giống X" / Reference Seed Movie (Hỗ trợ cả lượt hiện tại và kế thừa từ lịch sử)
+    const similarPatternMatch = prompt.match(
+      /(?:phim\s+)?(?:giống|giong|tương tự|tuong tu|kiểu như|kieu nhu|same as|similar to|like)\s+(?:phim\s+)?([^\.,\?!]+)/i
+    );
+    let seedMovieTitle = "";
+    if (similarPatternMatch && similarPatternMatch[1]) {
+      const rawSeed = similarPatternMatch[1]
+        .replace(/(?:nhưng|nhung|mà|ma|chứ|chu|không|khong|trừ|tru)[\s\S]*/i, "")
+        .trim();
+      const cleanRaw = cleanNormalizedString(rawSeed).toLowerCase();
+      if (rawSeed && rawSeed.length >= 2 && !VIETNAMESE_STOP_WORDS.has(cleanRaw) && !GENERIC_SINGLE_WORDS.has(cleanRaw)) {
+        seedMovieTitle = rawSeed;
+      }
+    }
+    if (!seedMovieTitle && aiParsed?.suggested_movies && aiParsed.suggested_movies.length > 0) {
+      if (/(?:giống|giong|tương tự|tuong tu|similar|like)/i.test(prompt)) {
+        const firstM = aiParsed.suggested_movies[0];
+        if (firstM?.original_title || firstM?.title) {
+          const t = firstM.original_title || firstM.title;
+          const cleanT = cleanNormalizedString(t).toLowerCase();
+          if (!VIETNAMESE_STOP_WORDS.has(cleanT) && !GENERIC_SINGLE_WORDS.has(cleanT)) {
+            seedMovieTitle = t;
+          }
+        }
+      }
+    }
+    // Kế thừa seed movie từ hội thoại trước nếu lượt này là câu hỏi tương tự tiếp nối
+    if (!seedMovieTitle && conversationHistory.length > 0) {
+      for (let i = conversationHistory.length - 1; i >= 0; i--) {
+        const prev = conversationHistory[i];
+        if (prev.role === "user") {
+          const m = prev.content.match(
+            /(?:phim\s+)?(?:giống|giong|tương tự|tuong tu|kiểu như|kieu nhu|same as|similar to|like)\s+(?:phim\s+)?([^\.,\?!]+)/i
+          );
+          if (m && m[1]) {
+            const rawSeed = m[1]
+              .replace(/(?:nhưng|nhung|mà|ma|chứ|chu|không|khong|trừ|tru)[\s\S]*/i, "")
+              .trim();
+            const cleanRaw = cleanNormalizedString(rawSeed).toLowerCase();
+            if (rawSeed && rawSeed.length >= 2 && !VIETNAMESE_STOP_WORDS.has(cleanRaw) && !GENERIC_SINGLE_WORDS.has(cleanRaw)) {
+              seedMovieTitle = rawSeed;
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    if (seedMovieTitle) {
+      const cleanSeedLower = seedMovieTitle.trim().toLowerCase();
+      if (!excludedTitles.includes(cleanSeedLower)) {
+        excludedTitles.push(cleanSeedLower);
       }
     }
 
@@ -700,11 +760,22 @@ export async function POST(req: NextRequest) {
     // - Nhánh 3: Pass 2 (Database Catalog & Vector Search)
     const t_search_start = performance.now();
 
+    const hasContextualTarget = Boolean(
+      seedMovieTitle ||
+      hasCharacterIntent ||
+      targetActorSlug ||
+      effectiveActorName ||
+      effectiveGenreSlug ||
+      effectiveCountrySlug ||
+      targetTypeSlug ||
+      (conversationHistory.length > 0 && (aiParsed?.suggested_movies?.length || 0) > 0)
+    );
+
     const isTrapOrOffTopic = Boolean(
       (aiParsed?.is_trap && !hasCharacterIntent) ||
       aiParsed?.is_off_topic ||
       isGibberishQuery(prompt) ||
-      isVagueQuery(prompt)
+      (!hasContextualTarget && isVagueQuery(prompt))
     );
 
     // Task 0: Tìm kiếm dữ liệu thật trong catalog cho nhân vật (Character Search)
@@ -716,7 +787,7 @@ export async function POST(req: NextRequest) {
         : [rawCharacter, cleanNormalizedString(rawCharacter)].filter(Boolean);
 
       const charSearchTasks = charKeywords.slice(0, 4).map((kw) =>
-        movieApi.getMovies({ keyword: kw, limit: 16 })
+        movieApi.getAiCandidates({ keyword: kw, limit: 16 }, { minCandidates: 8 })
       );
 
       try {
@@ -813,6 +884,83 @@ export async function POST(req: NextRequest) {
         return foundCards;
       } catch (charErr) {
         console.warn("[ai-concierge] Error in character catalog search:", charErr);
+        return [];
+      }
+    };
+
+    // Task S: TMDB Discovery Graph cho "Phim giống X" (Recommendations & Similar)
+    const runSimilarMovieDiscovery = async (): Promise<SuggestionCard[]> => {
+      if (!seedMovieTitle || isTrapOrOffTopic) return [];
+      try {
+        const tmdbMedia = await searchTmdbMedia(seedMovieTitle);
+        if (!tmdbMedia || !tmdbMedia.id) return [];
+
+        const recs = await getTmdbMovieRecommendations(tmdbMedia.id, tmdbMedia.type, undefined, 16);
+        if (!recs || recs.length === 0) return [];
+
+        const similarCards: SuggestionCard[] = [];
+        for (const m of recs) {
+          if (!m || !m.slug || seenSlugs.has(m.slug)) continue;
+
+          const itemCountry = toSafeCountry(m);
+          const itemCategory = toSafeCategory(m);
+          const itemCategories = toSafeCategories(m);
+          const itemCategoryStr = itemCategories.length > 0 ? itemCategories.join(" ") : itemCategory;
+          const itemYear = extractMovieYear(m) || 2024;
+          const mName = cleanNormalizedString(m.name || "");
+          const mOrig = cleanNormalizedString(m.origin_name || "");
+
+          // 1. Kiểm tra loại trừ tiêu đề
+          if (
+            excludedTitles.some((ex) => {
+              const cleanEx = cleanNormalizedString(ex);
+              return cleanEx && (mName === cleanEx || mOrig === cleanEx || m.slug === cleanEx.replace(/\s+/g, "-"));
+            })
+          ) {
+            continue;
+          }
+
+          // 2. Kiểm tra loại trừ quốc gia & thể loại
+          if (excludedCountrySlugs.some((ex) => matchesCountry(itemCountry, ex))) continue;
+          if (
+            excludedGenreSlugs.some(
+              (ex) =>
+                itemCategories.some((c) => matchesGenre(c, ex)) ||
+                matchesGenre(itemCategoryStr, ex)
+            )
+          ) {
+            continue;
+          }
+
+          // 3. Khớp quốc gia / thể loại nếu có bộ lọc cụ thể từ người dùng
+          if (effectiveCountrySlug && !matchesCountry(itemCountry, effectiveCountrySlug)) continue;
+          if (
+            effectiveGenreSlug &&
+            !itemCategories.some((c) => matchesGenre(c, effectiveGenreSlug)) &&
+            !matchesGenre(itemCategoryStr, effectiveGenreSlug)
+          ) {
+            continue;
+          }
+
+          // 4. Khớp năm
+          if (yearFrom && itemYear < yearFrom) continue;
+          if (yearTo && itemYear > yearTo) continue;
+
+          similarCards.push({
+            slug: m.slug,
+            title: m.name || m.title || "Phim Hay",
+            poster: toSafePoster(m),
+            year: itemYear,
+            quality: m.quality || "HD",
+            category: itemCategory,
+            country: itemCountry || (targetCountrySlug ? "Âu Mỹ" : "Quốc Tế"),
+            actors: toSafeActors(m),
+            reason: getMovieHighlight(m, `Gợi ý tương đồng với ${seedMovieTitle}`),
+          });
+        }
+        return similarCards;
+      } catch (err) {
+        console.warn("[ai-concierge] TMDB similar discovery error:", err);
         return [];
       }
     };
@@ -930,14 +1078,23 @@ export async function POST(req: NextRequest) {
 
         for (const kw of combinedKeywords.slice(0, 6)) {
           queryTasks.push(
-            movieApi.getMovies({ keyword: kw.trim(), limit: 12 }).catch(() => null)
+            movieApi.getAiCandidates({ keyword: kw.trim(), limit: 12 }, { minCandidates: 6 }).catch(() => null)
+          );
+        }
+
+        // Bổ sung TMDB Discovery Graph cho chủ đề/concept nếu có từ khóa hợp lệ
+        if (combinedKeywords.length > 0) {
+          queryTasks.push(
+            discoverTmdbConceptMovies(combinedKeywords, 12, excludeSlugs)
+              .then((items) => ({ items }))
+              .catch(() => null)
           );
         }
       }
 
       if (hasCharacterIntent && rawCharacter) {
         queryTasks.push(
-          movieApi.getMovies({ keyword: rawCharacter, limit: 16 }).catch(() => null)
+          movieApi.getAiCandidates({ keyword: rawCharacter, limit: 16 }, { minCandidates: 8 }).catch(() => null)
         );
       }
 
@@ -953,17 +1110,17 @@ export async function POST(req: NextRequest) {
               .then((movies) => ({ items: movies }))
               .catch(() => null)
           );
-          queryTasks.push(movieApi.getMovies({ keyword: mainName, limit: 20 }).catch(() => null));
+          queryTasks.push(movieApi.getAiCandidates({ keyword: mainName, limit: 20 }, { minCandidates: 8 }).catch(() => null));
           if (aliases[1]) {
             queryTasks.push(
-              movieApi.getMovies({ keyword: aliases[1], limit: 20 }).catch(() => null)
+              movieApi.getAiCandidates({ keyword: aliases[1], limit: 20 }, { minCandidates: 8 }).catch(() => null)
             );
           }
         }
 
         for (const name of uniqueActorNames) {
           if (!uniqueActorSlugs.some((s) => getActorAliases(s).some((a) => cleanNormalizedString(a) === cleanNormalizedString(name)))) {
-            queryTasks.push(movieApi.getMovies({ keyword: name, limit: 20 }).catch(() => null));
+            queryTasks.push(movieApi.getAiCandidates({ keyword: name, limit: 20 }, { minCandidates: 8 }).catch(() => null));
           }
         }
       }
@@ -971,11 +1128,11 @@ export async function POST(req: NextRequest) {
       if (searchIntent === "movie_title") {
         const cleanTitle = extractCleanSearchKeywords(prompt);
         queryTasks.push(
-          movieApi.getMovies({ keyword: cleanTitle, limit: 16 }).catch(() => null)
+          movieApi.getAiCandidates({ keyword: cleanTitle, limit: 16 }, { minCandidates: 8 }).catch(() => null)
         );
         if (cleanTitle !== prompt.trim()) {
           queryTasks.push(
-            movieApi.getMovies({ keyword: prompt.trim(), limit: 16 }).catch(() => null)
+            movieApi.getAiCandidates({ keyword: prompt.trim(), limit: 16 }, { minCandidates: 8 }).catch(() => null)
           );
         }
         queryTasks.push(
@@ -993,7 +1150,7 @@ export async function POST(req: NextRequest) {
         rawKeyword.trim().length >= 2
       ) {
         queryTasks.push(
-          movieApi.getMovies({ keyword: rawKeyword.trim(), limit: 16 }).catch(() => null)
+          movieApi.getAiCandidates({ keyword: rawKeyword.trim(), limit: 16 }, { minCandidates: 8 }).catch(() => null)
         );
       }
 
@@ -1007,35 +1164,35 @@ export async function POST(req: NextRequest) {
       ) {
         if (targetExplicitYear > 0) {
           queryTasks.push(
-            movieApi.getMovies({
+            movieApi.getAiCandidates({
               type: targetTypeSlug || undefined,
               category: effectiveGenreSlug || undefined,
               country: effectiveCountrySlug || undefined,
               year: String(targetExplicitYear),
               limit: 20,
               sort: "latest",
-            }).catch(() => null)
+            }, { minCandidates: 8 }).catch(() => null)
           );
         } else if (isLatest) {
           queryTasks.push(
-            movieApi.getMovies({
+            movieApi.getAiCandidates({
               type: targetTypeSlug || undefined,
               category: effectiveGenreSlug || undefined,
               country: effectiveCountrySlug || undefined,
               year: String(currentYear),
               limit: 20,
               sort: "latest",
-            }).catch(() => null)
+            }, { minCandidates: 8 }).catch(() => null)
           );
         } else {
           queryTasks.push(
-            movieApi.getMovies({
+            movieApi.getAiCandidates({
               type: targetTypeSlug || undefined,
               category: effectiveGenreSlug || undefined,
               country: effectiveCountrySlug || undefined,
               limit: 20,
               sort: "rating",
-            }).catch(() => null)
+            }, { minCandidates: 8 }).catch(() => null)
           );
         }
       }
@@ -1063,9 +1220,10 @@ export async function POST(req: NextRequest) {
       }
     };
 
-    // Khởi chạy song song cả 3 nhánh tìm kiếm
-    const [characterCards, pass1Resolved, pass2CandidatePool] = await Promise.all([
+    // Khởi chạy song song các nhánh tìm kiếm
+    const [characterCards, similarCards, pass1Resolved, pass2CandidatePool] = await Promise.all([
       runCharacterSearch(),
+      runSimilarMovieDiscovery(),
       runPass1Lookup(),
       runPass2Catalog(),
     ]);
@@ -1078,6 +1236,15 @@ export async function POST(req: NextRequest) {
       if (!seenSlugs.has(c.slug)) {
         seenSlugs.add(c.slug);
         cards.push(c);
+      }
+    }
+
+    // Bước 4.0b: Thêm kết quả từ TMDB Similar Movie Discovery (nếu có)
+    for (const s of similarCards) {
+      if (cards.length >= 16) break;
+      if (!seenSlugs.has(s.slug)) {
+        seenSlugs.add(s.slug);
+        cards.push(s);
       }
     }
 
@@ -1418,32 +1585,32 @@ export async function POST(req: NextRequest) {
 
         if (effectiveGenreSlug) {
           fallbackTasks.push(
-            movieApi.getMovies({
+            movieApi.getAiCandidates({
               category: effectiveGenreSlug,
               country: targetCountrySlug || undefined,
               type: targetTypeSlug || undefined,
               limit: 16,
               sort: "rating",
-            })
+            }, { minCandidates: 6 })
           );
         }
         if (targetCountrySlug && !effectiveGenreSlug) {
           fallbackTasks.push(
-            movieApi.getMovies({
+            movieApi.getAiCandidates({
               country: targetCountrySlug,
               type: targetTypeSlug || undefined,
               limit: 16,
               sort: "rating",
-            })
+            }, { minCandidates: 6 })
           );
         }
         if (targetTypeSlug && !effectiveGenreSlug && !targetCountrySlug) {
           fallbackTasks.push(
-            movieApi.getMovies({
+            movieApi.getAiCandidates({
               type: targetTypeSlug,
               limit: 16,
               sort: "rating",
-            })
+            }, { minCandidates: 6 })
           );
         }
 

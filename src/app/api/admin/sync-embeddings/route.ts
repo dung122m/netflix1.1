@@ -3,6 +3,8 @@ import { movieApi } from "@/services/movieApi";
 import { upsertMovieEmbedding } from "@/services/aiVectorService";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { isUserAdmin } from "@/lib/adminConfig";
+import { getVsmovCatalogFeed } from "@/services/providers/vsmov";
+import { deduplicateMovieItems } from "@/services/movies/service";
 
 export const maxDuration = 60;
 
@@ -81,9 +83,18 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // 1. Lấy danh sách phim hot / mới nhất
-    const res = await movieApi.getMovies({ page: 1, limit });
-    const items = res?.items || [];
+    // 1. Lấy danh sách phim từ cả Primary Catalog (PhimAPI + NguonC) và VSMOV Catalog Feed
+    const [resPrimary, vsmovFeed] = await Promise.all([
+      movieApi.getMovies({ page: 1, limit, skipKvCache: true }),
+      getVsmovCatalogFeed(),
+    ]);
+
+    const primaryItems = resPrimary?.items || [];
+    const vsmovItems = vsmovFeed?.items || [];
+
+    // Hợp nhất và khử trùng lặp 4 cấp độ (TMDB ID, IMDb ID, slug, title + year)
+    const combinedCatalog = deduplicateMovieItems([...primaryItems, ...vsmovItems]);
+    const items = combinedCatalog.slice(0, Math.max(limit, 60));
 
     if (items.length === 0) {
       return NextResponse.json({ success: false, error: "Không tìm thấy phim để nạp vector" });

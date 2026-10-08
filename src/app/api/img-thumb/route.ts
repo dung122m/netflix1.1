@@ -230,4 +230,3 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(rawUrl, { status: 307 });
   }
 }
-

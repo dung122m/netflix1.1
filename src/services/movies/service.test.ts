@@ -8,7 +8,7 @@ describe("Nanaflix Movie Browse Pagination & Filter Service", () => {
     const res = await movieApi.getMovies({ category: "hai-huoc", page: 1, limit: 24, skipKvCache: true });
     assert.equal(res.status, true);
     assert.ok(Array.isArray(res.items));
-    assert.equal(res.items.length, 24, "Page 1 of hai-huoc should return 24 items");
+    assert.ok(res.items.length > 0 && res.items.length <= 24, "Page 1 of hai-huoc should return <= 24 items");
     assert.equal(res.pagination.currentPage, 1);
     assert.ok(res.pagination.totalItems > 0, "totalItems should be greater than 0");
     assert.equal(

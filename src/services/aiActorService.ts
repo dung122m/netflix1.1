@@ -1408,8 +1408,8 @@ async function executeActorFilmQuery(
   ).slice(0, 4);
 
   for (const kw of searchKeywords) {
-    searchPromises.push(movieApi.getMovies({ keyword: kw.trim(), page: 1, limit: 30 }));
-    searchPromises.push(movieApi.getMovies({ keyword: kw.trim(), page: 2, limit: 30 }));
+    searchPromises.push(movieApi.getAiCandidates({ keyword: kw.trim(), page: 1, limit: 30 }, { minCandidates: 10 }));
+    searchPromises.push(movieApi.getAiCandidates({ keyword: kw.trim(), page: 2, limit: 30 }, { minCandidates: 10 }));
   }
 
   // Chờ tất cả kết quả tìm kiếm ứng viên đồng thời (1 đợt duy nhất, loại bỏ vòng lặp tuần tự N+1)

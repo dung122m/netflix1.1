@@ -141,6 +141,110 @@ export async function getTmdbBackdropUrl(
   return backdropUrl;
 }
 
+// 5.1 CACHE CLEARLOGO TRONG SUỐT CHO MOVIE DETAIL (24h L1 RAM, 30 ngày L2 Upstash)
+const TMDB_LOGO_CACHE = new Map<string, { url: string | null; expireAt: number }>();
+
+export interface TmdbImageLogo {
+  aspect_ratio: number;
+  height: number;
+  iso_639_1: string | null;
+  file_path: string;
+  vote_average: number;
+  vote_count: number;
+  width: number;
+}
+
+export async function getTmdbMovieLogo(
+  tmdbId: string | number | undefined | null,
+  type: string = "movie"
+): Promise<string | null> {
+  if (!tmdbId) return null;
+  const cleanId = String(tmdbId).trim();
+  if (!cleanId || cleanId === "0" || cleanId === "null" || cleanId === "undefined") return null;
+
+  const cleanType =
+    type === "tv" || type === "series" || type === "phim-bo" || type === "tvshows" ? "tv" : "movie";
+  const cacheKey = `${cleanType}:${cleanId}`;
+  const now = Date.now();
+
+  const memHit = TMDB_LOGO_CACHE.get(cacheKey);
+  if (memHit && memHit.expireAt > now) {
+    return memHit.url;
+  }
+
+  const kvKey = `tmdb:logo:v1:${cleanType}:${cleanId}`;
+  const logoUrl = await cacheService.fetchOrSet<string | null>(
+    kvKey,
+    async () => {
+      try {
+        // 1. Gọi endpoint images với ngôn ngữ vi, en và null
+        let data = await fetchTmdbEndpoint(
+          `/${cleanType}/${cleanId}/images?include_image_language=vi,en,null`
+        );
+        let logos: TmdbImageLogo[] = Array.isArray(data?.logos) ? data.logos : [];
+
+        // 2. Fallback sang loại hình thay thế nếu upstream phân loại nhầm giữa movie và tv
+        if (logos.length === 0) {
+          const altType = cleanType === "tv" ? "movie" : "tv";
+          data = await fetchTmdbEndpoint(
+            `/${altType}/${cleanId}/images?include_image_language=vi,en,null`
+          );
+          logos = Array.isArray(data?.logos) ? data.logos : [];
+        }
+
+        if (logos.length === 0) return null;
+
+        // 3. Lọc các logo hợp lệ: định dạng png/svg, tỷ lệ ngang hợp lý, độ phân giải tối thiểu
+        const validLogos = logos.filter((l) => {
+          if (!l || !l.file_path) return false;
+          const fp = l.file_path.toLowerCase();
+          const isTransparentFormat = fp.endsWith(".png") || fp.endsWith(".svg");
+          // Lọc aspect ratio ngang chuẩn (tránh poster bị tag nhầm thành logo)
+          const isHorizontal = l.aspect_ratio >= 0.8 && l.aspect_ratio <= 8.0;
+          const isGoodResolution = (l.width || 0) >= 120 && (l.height || 0) >= 30;
+          return isTransparentFormat && isHorizontal && isGoodResolution;
+        });
+
+        if (validLogos.length === 0) return null;
+
+        // 4. Sắp xếp theo thứ tự ưu tiên:
+        // Priority 1: Tiếng Việt (vi)
+        // Priority 2: Tiếng Anh (en)
+        // Priority 3: Không phân biệt ngôn ngữ (null / khác)
+        // Tie-breaker: Vote cao hơn hoặc độ phân giải cao hơn
+        validLogos.sort((a, b) => {
+          const getLangScore = (lang: string | null) => {
+            if (lang === "vi") return 300;
+            if (lang === "en") return 200;
+            if (lang === null || !lang) return 100;
+            return 50;
+          };
+          const scoreA = getLangScore(a.iso_639_1) + (a.vote_average || 0) * 5 + (a.width > 300 ? 10 : 0);
+          const scoreB = getLangScore(b.iso_639_1) + (b.vote_average || 0) * 5 + (b.width > 300 ? 10 : 0);
+          return scoreB - scoreA;
+        });
+
+        const best = validLogos[0];
+        if (best && best.file_path) {
+          return `https://image.tmdb.org/t/p/w500${best.file_path}`;
+        }
+        return null;
+      } catch (err) {
+        console.warn(`[TMDB] Error fetching logo for ${cleanType}/${cleanId}:`, err);
+        return null;
+      }
+    },
+    30 * 86400 // 30 ngày trên Upstash KV
+  );
+
+  TMDB_LOGO_CACHE.set(cacheKey, {
+    url: logoUrl,
+    expireAt: now + (logoUrl ? 24 * 3600 * 1000 : 3600 * 1000),
+  });
+
+  return logoUrl;
+}
+
 // 6. CACHE REVIEWS KHÁN GIẢ TMDB (24h L1 RAM, 14 ngày L2 Upstash)
 const TMDB_REVIEWS_CACHE = new Map<string, { data: TmdbReview[]; expireAt: number }>();
 
@@ -222,6 +326,209 @@ export async function getTmdbReviews(
   });
 
   return reviews || [];
+}
+
+// 7. CACHE DÀN DIỄN VIÊN & NHÂN VẬT (24h L1 RAM, 30 ngày L2 Upstash)
+const TMDB_CAST_CACHE = new Map<string, { data: TmdbCastMember[]; expireAt: number }>();
+
+export interface TmdbCastMember {
+  id: number;
+  name: string;
+  original_name?: string;
+  character?: string;
+  profile_path?: string | null;
+  known_for_department?: string;
+  order?: number;
+}
+
+export async function getTmdbMovieCredits(
+  tmdbId: string | number | undefined | null,
+  type: string = "movie"
+): Promise<TmdbCastMember[]> {
+  if (!tmdbId) return [];
+  const cleanId = String(tmdbId).trim();
+  if (!cleanId || cleanId === "0" || cleanId === "null" || cleanId === "undefined") return [];
+
+  const cleanType =
+    type === "tv" || type === "series" || type === "phim-bo" || type === "tvshows" ? "tv" : "movie";
+  const cacheKey = `${cleanType}:${cleanId}`;
+  const now = Date.now();
+
+  const memHit = TMDB_CAST_CACHE.get(cacheKey);
+  if (memHit && memHit.expireAt > now) {
+    return memHit.data;
+  }
+
+  const kvKey = `tmdb:credits:v1:${cleanType}:${cleanId}`;
+  const castList = await cacheService.fetchOrSet<TmdbCastMember[]>(
+    kvKey,
+    async () => {
+      try {
+        // 1. Thử lấy credits với ngôn ngữ tiếng Việt
+        let res = await fetchTmdbEndpoint(`/${cleanType}/${cleanId}/credits?language=vi-VN`);
+        if (!res?.cast || !Array.isArray(res.cast) || res.cast.length === 0) {
+          // 2. Fallback sang tiếng Anh / gốc
+          res = await fetchTmdbEndpoint(`/${cleanType}/${cleanId}/credits`);
+        }
+        if (!res?.cast || !Array.isArray(res.cast) || res.cast.length === 0) {
+          // 3. Fallback sang loại hình thay thế (movie <-> tv) nếu upstream gán nhầm
+          const altType = cleanType === "tv" ? "movie" : "tv";
+          res = await fetchTmdbEndpoint(`/${altType}/${cleanId}/credits`);
+        }
+
+        if (!res?.cast || !Array.isArray(res.cast)) return [];
+
+        const validCast: TmdbCastMember[] = res.cast
+          .filter((c: any) => c && c.name && typeof c.name === "string" && c.name.trim())
+          .slice(0, 15)
+          .map((c: any, index: number) => ({
+            id: Number(c.id) || index,
+            name: String(c.name).trim(),
+            original_name: c.original_name ? String(c.original_name).trim() : undefined,
+            character: c.character
+              ? String(c.character).trim()
+              : c.roles?.[0]?.character
+              ? String(c.roles[0].character).trim()
+              : "",
+            profile_path: c.profile_path ? `https://image.tmdb.org/t/p/w276_and_h350_face${c.profile_path}` : null,
+            known_for_department: c.known_for_department || "Acting",
+            order: typeof c.order === "number" ? c.order : index,
+          }));
+
+        return validCast;
+      } catch (err) {
+        console.warn(`[TMDB] Error fetching credits for ${cleanType}/${cleanId}:`, err);
+        return [];
+      }
+    },
+    30 * 86400 // 30 ngày trên Upstash KV
+  );
+
+  TMDB_CAST_CACHE.set(cacheKey, {
+    data: castList || [],
+    expireAt: now + 24 * 3600 * 1000,
+  });
+
+  return castList || [];
+}
+
+// 8. CACHE ĐỀ XUẤT PHIM TƯƠNG TỰ TỪ TMDB (24h L1 RAM, 14 ngày L2 Upstash)
+const TMDB_RECOMMENDATIONS_CACHE = new Map<string, { data: any[]; expireAt: number }>();
+
+export async function getTmdbMovieRecommendations(
+  tmdbId: string | number | undefined | null,
+  type: string = "movie",
+  excludeSlug?: string | string[],
+  limit: number = 12
+): Promise<any[]> {
+  if (!tmdbId) return [];
+  const cleanId = String(tmdbId).trim();
+  if (!cleanId || cleanId === "0" || cleanId === "null" || cleanId === "undefined") return [];
+
+  const cleanType =
+    type === "tv" || type === "series" || type === "phim-bo" || type === "tvshows" ? "tv" : "movie";
+  const cacheKey = `${cleanType}:${cleanId}`;
+  const now = Date.now();
+
+  const filterExcludes = (list: any[]) => {
+    if (!excludeSlug) return list.slice(0, limit);
+    const exSet = new Set(Array.isArray(excludeSlug) ? excludeSlug : [excludeSlug]);
+    return list.filter((m: any) => !exSet.has(m?.slug)).slice(0, limit);
+  };
+
+  const memHit = TMDB_RECOMMENDATIONS_CACHE.get(cacheKey);
+  if (memHit && memHit.expireAt > now) {
+    return filterExcludes(memHit.data);
+  }
+
+  const kvKey = `tmdb:recommendations:v1:${cleanType}:${cleanId}`;
+  const matchedMovies = await cacheService.fetchOrSet<any[]>(
+    kvKey,
+    async () => {
+      try {
+        // 1. Thử lấy danh sách recommendations trước (ưu tiên số 1)
+        let res = await fetchTmdbEndpoint(`/${cleanType}/${cleanId}/recommendations?language=vi-VN&page=1`);
+        let results = Array.isArray(res?.results) ? res.results : [];
+
+        // 2. Nếu recommendations rỗng hoặc ít hơn 6 phim, bổ sung / fallback từ endpoint similar (ưu tiên số 2)
+        if (results.length < 6) {
+          const simRes = await fetchTmdbEndpoint(`/${cleanType}/${cleanId}/similar?language=vi-VN&page=1`);
+          const simResults = Array.isArray(simRes?.results) ? simRes.results : [];
+          const existingIds = new Set(results.map((r: any) => r?.id).filter(Boolean));
+          for (const s of simResults) {
+            if (s?.id && !existingIds.has(s.id)) {
+              existingIds.add(s.id);
+              results.push(s);
+            }
+          }
+        }
+
+        // 3. Fallback loại hình chéo nếu upstream phân loại nhầm giữa movie và tv
+        if (results.length === 0) {
+          const altType = cleanType === "tv" ? "movie" : "tv";
+          res = await fetchTmdbEndpoint(`/${altType}/${cleanId}/recommendations?language=vi-VN&page=1`);
+          results = Array.isArray(res?.results) ? res.results : [];
+          if (results.length === 0) {
+            const altSim = await fetchTmdbEndpoint(`/${altType}/${cleanId}/similar?language=vi-VN&page=1`);
+            results = Array.isArray(altSim?.results) ? altSim.results : [];
+          }
+        }
+
+        if (results.length === 0) return [];
+
+        // Lọc top 15 - 20 candidates TMDB chất lượng nhất, loại bỏ phim tương lai
+        const currentYear = new Date().getFullYear();
+        const seenIds = new Set<number>();
+        const candidateCredits: TmdbMovieCredit[] = [];
+
+        for (const item of results) {
+          if (!item || !item.id || seenIds.has(item.id)) continue;
+          seenIds.add(item.id);
+
+          const releaseDate = item.release_date || item.first_air_date || "";
+          if (releaseDate) {
+            const y = parseInt(releaseDate.slice(0, 4), 10);
+            if (!isNaN(y) && y > currentYear + 1) continue;
+          }
+
+          candidateCredits.push({
+            id: item.id,
+            title: item.title || item.name || "",
+            original_title: item.original_title || item.original_name || item.title || item.name || "",
+            release_date: releaseDate,
+            vote_average: Number(item.vote_average || 0),
+            vote_count: Number(item.vote_count || 0),
+            popularity: Number(item.popularity || 0),
+            poster_path: item.poster_path || null,
+            backdrop_path: item.backdrop_path || null,
+            overview: item.overview || "",
+            media_type: item.media_type || (item.first_air_date ? "tv" : "movie"),
+          });
+
+          if (candidateCredits.length >= 20) break;
+        }
+
+        if (candidateCredits.length === 0) return [];
+
+        // 4. Đối chiếu candidate TMDB với catalog Nanaflix (PhimAPI/NguonC/VSMOV)
+        // Ưu tiên: 1. TMDB ID -> 2. IMDb ID -> 3. Title + Year match
+        const matched = await matchTmdbMoviesWithSources(candidateCredits, candidateCredits.length, 10);
+        return matched || [];
+      } catch (err) {
+        console.warn(`[TMDB] Error fetching recommendations for ${cleanType}/${cleanId}:`, err);
+        return [];
+      }
+    },
+    14 * 86400 // 14 ngày trên Upstash KV
+  );
+
+  TMDB_RECOMMENDATIONS_CACHE.set(cacheKey, {
+    data: matchedMovies || [],
+    expireAt: now + 24 * 3600 * 1000,
+  });
+
+  const list = matchedMovies || [];
+  return filterExcludes(list);
 }
 
 // DNS IP cache nhằm khắc phục việc một số nhà mạng VNPT/Viettel chặn hoặc lỗi phân giải api.themoviedb.org
@@ -821,18 +1128,36 @@ export async function matchTmdbMoviesWithSources(
     return true;
   });
 
-  const candidateCredits = validCredits.slice(0, maxCheckCount);
+  // P0-1: PRE-PROBE DEDUPLICATION
+  // Loại bỏ credit trùng lặp (vai diễn kép/sản xuất trong TMDB) trước khi thực hiện bất kỳ HTTP request nào
+  const seenTmdbIds = new Set<number | string>();
+  const seenTitleYears = new Set<string>();
+  const dedupedCredits: TmdbMovieCredit[] = [];
+
+  for (const credit of validCredits) {
+    if (!credit) continue;
+    if (credit.id && credit.id !== 0) {
+      if (seenTmdbIds.has(credit.id)) continue;
+      seenTmdbIds.add(credit.id);
+      dedupedCredits.push(credit);
+    } else {
+      const year = credit.release_date ? credit.release_date.slice(0, 4) : "";
+      const normTitle = cleanStringForMatch(credit.original_title || credit.title);
+      const titleYearKey = `${normTitle}_${year}`;
+      if (seenTitleYears.has(titleYearKey)) continue;
+      seenTitleYears.add(titleYearKey);
+      dedupedCredits.push(credit);
+    }
+  }
+
+  const candidateCredits = dedupedCredits.slice(0, maxCheckCount);
 
   const matchedMovies: any[] = [];
   const seenSlugs = new Set<string>();
-
-  // Danh sách các phim cần gọi API (chưa có trong cache từng phim)
-  const creditsToFetch: TmdbMovieCredit[] = [];
-
   const now = Date.now();
 
-  // BƯỚC 1: KIỂM TRA BỘ NHỚ ĐỆM TỪNG PHIM TRONG RAM (0MS)
-  // Chỉ dùng in-memory cache TMDB_SINGLE_MOVIE_MATCH_CACHE, TUYỆT ĐỐI không đọc/ghi Cloudflare KV cho từng credit
+  // BƯỚC 1: KIỂM TRA BỘ NHỚ ĐỆM L1 (RAM) TỪNG PHIM (0MS)
+  const missedL1: TmdbMovieCredit[] = [];
   for (const credit of candidateCredits) {
     const memEntry = TMDB_SINGLE_MOVIE_MATCH_CACHE.get(credit.id);
     if (memEntry && memEntry.expireAt > now) {
@@ -846,10 +1171,47 @@ export async function matchTmdbMoviesWithSources(
       continue;
     }
 
-    creditsToFetch.push(credit);
+    missedL1.push(credit);
   }
 
-  // BƯỚC 2: ƯU TIÊN PHIMAPI TRƯỚC, CHỈ FALLBACK SANG NGUONC KHI CẦN THIẾT
+  // BƯỚC 2: KIỂM TRA BỘ NHỚ ĐỆM L2 (REDIS / KV) CHO CÁC CREDIT CHƯA CÓ TRONG L1
+  const creditsToFetch: TmdbMovieCredit[] = [];
+  if (missedL1.length > 0) {
+    await Promise.all(
+      missedL1.map(async (credit) => {
+        const kvKey = `tmdb:movie_source:v1:${credit.id}`;
+        try {
+          const l2Entry = await cacheService.get<{ movie: any | null; _isNegative?: boolean }>(kvKey);
+          if (l2Entry !== null && l2Entry !== undefined) {
+            if (l2Entry.movie) {
+              // Positive hit từ L2 -> lưu lại vào L1 (TTL 60 phút)
+              TMDB_SINGLE_MOVIE_MATCH_CACHE.set(credit.id, {
+                movie: l2Entry.movie,
+                expireAt: now + 60 * 60 * 1000,
+              });
+              if (!seenSlugs.has(l2Entry.movie.slug)) {
+                seenSlugs.add(l2Entry.movie.slug);
+                matchedMovies.push(l2Entry.movie);
+              }
+              return;
+            } else if (l2Entry._isNegative || l2Entry.movie === null) {
+              // Negative miss từ L2 -> lưu lại vào L1 (TTL 12 giờ) và bỏ qua probe 0ms
+              TMDB_SINGLE_MOVIE_MATCH_CACHE.set(credit.id, {
+                movie: null,
+                expireAt: now + 12 * 3600 * 1000,
+              });
+              return;
+            }
+          }
+        } catch {
+          // Fail-safe: tiếp tục probe HTTP nếu L2 gặp sự cố
+        }
+        creditsToFetch.push(credit);
+      })
+    );
+  }
+
+  // BƯỚC 3: ƯU TIÊN PHIMAPI TRƯỚC, CHỈ FALLBACK SANG NGUONC KHI CẦN THIẾT (CONCURRENCY <= 16)
   if (creditsToFetch.length > 0) {
     await runWithConcurrencyLimit(creditsToFetch, concurrency, async (credit) => {
       const tmdbIdStr = String(credit.id);
@@ -866,8 +1228,11 @@ export async function matchTmdbMoviesWithSources(
       const primarySearchKw = isLatinOriginal ? cleanOrigTitle : (cleanViTitle || cleanOrigTitle);
       const secondarySearchKw = isLatinOriginal ? cleanViTitle : cleanOrigTitle;
 
+      const kvKey = `tmdb:movie_source:v1:${credit.id}`;
+
       if ((!primarySearchKw || primarySearchKw.length < 2) && (!secondarySearchKw || secondarySearchKw.length < 2)) {
         TMDB_SINGLE_MOVIE_MATCH_CACHE.set(credit.id, { movie: null, expireAt: now + 12 * 3600 * 1000 });
+        cacheService.set(kvKey, { movie: null, _isNegative: true }, 14 * 86400).catch(() => {});
         return;
       }
 
@@ -969,7 +1334,7 @@ export async function matchTmdbMoviesWithSources(
         const matchedCandidate = matchResult?.candidate || null;
         const matchType = matchResult?.matchType || null;
 
-        // 1.5 Format về định dạng Movie chuẩn
+        // Format về định dạng Movie chuẩn
         if (matchedCandidate && matchedCandidate.slug) {
           const posterImg =
             matchedCandidate.poster_url ||
@@ -1013,22 +1378,28 @@ export async function matchTmdbMoviesWithSources(
             matchBy: matchType,
           };
 
-          // Lưu cache phim thành công vào RAM (TTL 60 phút)
+          // Lưu cache L1 RAM (TTL 60 phút)
           TMDB_SINGLE_MOVIE_MATCH_CACHE.set(credit.id, {
             movie: formattedMovie,
             expireAt: now + 60 * 60 * 1000,
           });
+
+          // Lưu cache L2 Redis / KV (TTL 30 ngày)
+          cacheService.set(kvKey, { movie: formattedMovie }, 30 * 86400).catch(() => {});
 
           if (!seenSlugs.has(formattedMovie.slug)) {
             seenSlugs.add(formattedMovie.slug);
             matchedMovies.push(formattedMovie);
           }
         } else {
-          // Lưu cache phim không tìm thấy nguồn vào RAM (TTL 60 phút) để lần sau bỏ qua ngay lập tức (0ms)
+          // Lưu cache L1 RAM negative miss (TTL 12 giờ)
           TMDB_SINGLE_MOVIE_MATCH_CACHE.set(credit.id, {
             movie: null,
-            expireAt: now + 60 * 60 * 1000,
+            expireAt: now + 12 * 3600 * 1000,
           });
+
+          // Lưu cache L2 Redis / KV negative miss (TTL 14 ngày)
+          cacheService.set(kvKey, { movie: null, _isNegative: true }, 14 * 86400).catch(() => {});
         }
       } catch {
         // Bỏ qua lỗi từng phim để không làm crash toàn bộ danh sách
@@ -1038,7 +1409,7 @@ export async function matchTmdbMoviesWithSources(
 
   const tEnd = performance.now();
   console.log(
-    `[TMDB Perf] Matched ${matchedMovies.length}/${candidateCredits.length} movies in ${(tEnd - tStart).toFixed(0)}ms (Cache Hits: ${candidateCredits.length - creditsToFetch.length})`
+    `[TMDB Perf] Matched ${matchedMovies.length}/${candidateCredits.length} movies in ${(tEnd - tStart).toFixed(0)}ms (L1/L2 Hits: ${candidateCredits.length - creditsToFetch.length}, Probes: ${creditsToFetch.length})`
   );
 
   return matchedMovies;
@@ -1134,7 +1505,10 @@ async function executeTmdbActorFlow(
 
     // 3. Đối chiếu TMDB ID với KKPhim và NguonC (Quét đủ số credit để tìm tối đa số phim khả dụng)
     const tMatchStart = performance.now();
-    const checkLimit = Math.min(credits.length, Math.max(maxMovies * 2, 160));
+    const checkLimit = Math.min(
+      credits.length,
+      Math.min(Math.max(maxMovies * 2.5, 50), 160)
+    );
     const matchedMovies = await matchTmdbMoviesWithSources(credits, checkLimit, concurrency);
     const tMatchEnd = performance.now();
 
@@ -1419,6 +1793,154 @@ async function executeImdbTop250Query(
     console.warn("[IMDb Top 250 Query] Error fetching ranking:", err);
     return [];
   }
+}
+
+/**
+ * 11. TRA CỨU TMDB ID TỪ TIÊU ĐỀ PHIM (SEARCH MEDIA MULTI)
+ * Dùng cho Nana AI khi phân tích câu hỏi "Phim giống [Tựa Phim]"
+ */
+const TMDB_MEDIA_SEARCH_CACHE = new Map<string, { data: { id: number; type: "movie" | "tv"; title: string } | null; expireAt: number }>();
+
+export async function searchTmdbMedia(title: string): Promise<{ id: number; type: "movie" | "tv"; title: string } | null> {
+  const cleanTitle = title.trim();
+  if (!cleanTitle || cleanTitle.length < 2) return null;
+
+  const cacheKey = cleanStringForMatch(cleanTitle);
+  const now = Date.now();
+  const memHit = TMDB_MEDIA_SEARCH_CACHE.get(cacheKey);
+  if (memHit && memHit.expireAt > now) {
+    return memHit.data;
+  }
+
+  const kvKey = `tmdb:media_search:v1:${cacheKey}`;
+  const result = await cacheService.fetchOrSet<{ id: number; type: "movie" | "tv"; title: string } | null>(
+    kvKey,
+    async () => {
+      try {
+        let data = await fetchTmdbEndpoint(
+          `/search/multi?query=${encodeURIComponent(cleanTitle)}&language=vi-VN&include_adult=false`
+        );
+        let results = Array.isArray(data?.results) ? data.results : [];
+        if (results.length === 0) {
+          data = await fetchTmdbEndpoint(
+            `/search/multi?query=${encodeURIComponent(cleanTitle)}&include_adult=false`
+          );
+          results = Array.isArray(data?.results) ? data.results : [];
+        }
+
+        const best = results.find((r: any) => r && (r.media_type === "movie" || r.media_type === "tv") && r.id);
+        if (best) {
+          return {
+            id: Number(best.id),
+            type: best.media_type === "tv" ? "tv" : "movie",
+            title: best.title || best.name || cleanTitle,
+          };
+        }
+        return null;
+      } catch (err) {
+        console.warn(`[TMDB] Error searching media for "${cleanTitle}":`, err);
+        return null;
+      }
+    },
+    14 * 86400 // 14 ngày
+  );
+
+  TMDB_MEDIA_SEARCH_CACHE.set(cacheKey, {
+    data: result,
+    expireAt: now + 24 * 3600 * 1000,
+  });
+
+  return result;
+}
+
+/**
+ * 12. DISCOVERY NANA AI THEO CHỦ ĐỀ / KEYWORDS QUA TMDB GRAPH
+ * Khám phá candidate từ TMDB rồi đối chiếu sang catalog Nanaflix
+ */
+const TMDB_CONCEPT_CACHE = new Map<string, { data: any[]; expireAt: number }>();
+
+export async function discoverTmdbConceptMovies(
+  keywords: string[],
+  limit = 10,
+  excludeSlugs: string[] = []
+): Promise<any[]> {
+  if (!keywords || keywords.length === 0) return [];
+
+  const cleanKeywords = keywords
+    .map((k) => (k || "").trim())
+    .filter((k) => k.length >= 2)
+    .slice(0, 3);
+  if (cleanKeywords.length === 0) return [];
+
+  const cacheKey = cleanKeywords.map(cleanStringForMatch).join("_");
+  const now = Date.now();
+  const memHit = TMDB_CONCEPT_CACHE.get(cacheKey);
+  if (memHit && memHit.expireAt > now) {
+    const exSet = new Set(excludeSlugs.map((s) => s.toLowerCase()));
+    return memHit.data.filter((m: any) => m?.slug && !exSet.has(m.slug.toLowerCase())).slice(0, limit);
+  }
+
+  const kvKey = `tmdb:concept:v1:${cacheKey}`;
+  const matchedMovies = await cacheService.fetchOrSet<any[]>(
+    kvKey,
+    async () => {
+      try {
+        const searchTasks = cleanKeywords.map((kw) =>
+          fetchTmdbEndpoint(
+            `/search/multi?query=${encodeURIComponent(kw)}&language=vi-VN&include_adult=false`
+          )
+            .then((d) => (Array.isArray(d?.results) ? d.results : []))
+            .catch(() => [])
+        );
+
+        const resultsNested = await Promise.all(searchTasks);
+        const seenIds = new Set<number>();
+        const credits: TmdbMovieCredit[] = [];
+
+        for (const list of resultsNested) {
+          for (const m of list) {
+            if (!m || !m.id || seenIds.has(m.id)) continue;
+            if (m.media_type !== "movie" && m.media_type !== "tv") continue;
+            seenIds.add(m.id);
+
+            credits.push({
+              id: Number(m.id),
+              title: m.title || m.name || "",
+              original_title: m.original_title || m.original_name || m.title || m.name || "",
+              release_date: m.release_date || m.first_air_date || "",
+              vote_average: Number(m.vote_average || 0),
+              vote_count: Number(m.vote_count || 0),
+              popularity: Number(m.popularity || 0),
+              poster_path: m.poster_path || null,
+              backdrop_path: m.backdrop_path || null,
+              overview: m.overview || "",
+              media_type: m.media_type,
+            });
+
+            if (credits.length >= 20) break;
+          }
+          if (credits.length >= 20) break;
+        }
+
+        if (credits.length === 0) return [];
+
+        const matched = await matchTmdbMoviesWithSources(credits, Math.min(credits.length, 16), 8);
+        return matched || [];
+      } catch (err) {
+        console.warn(`[TMDB] Error discovering concept for "${keywords.join(', ')}":`, err);
+        return [];
+      }
+    },
+    7 * 86400 // 7 ngày
+  );
+
+  TMDB_CONCEPT_CACHE.set(cacheKey, {
+    data: matchedMovies || [],
+    expireAt: now + 24 * 3600 * 1000,
+  });
+
+  const exSet = new Set(excludeSlugs.map((s) => s.toLowerCase()));
+  return (matchedMovies || []).filter((m: any) => m?.slug && !exSet.has(m.slug.toLowerCase())).slice(0, limit);
 }
 
 

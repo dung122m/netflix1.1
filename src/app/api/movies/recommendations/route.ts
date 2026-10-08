@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { movieApi, DEFAULT_GENRES, DEFAULT_COUNTRIES } from "@/services/movieApi";
 import { matchesActorAlias } from "@/lib/actorAlias";
+import { getTmdbMovieRecommendations } from "@/services/tmdbService";
 
 export const maxDuration = 15;
 
@@ -16,6 +17,8 @@ export async function POST(req: NextRequest) {
       primaryDirector,
       year,
       type,
+      tmdbId,
+      tmdbType,
       contentText = "",
     } = body || {};
 
@@ -48,8 +51,11 @@ export async function POST(req: NextRequest) {
     const plainContent = (contentText || "").replace(/<[^>]+>/g, " ");
     const srcHasMartialArts = /võ thuật|kung fu|martial|quyền|kiếm hiệp/i.test(plainContent);
 
-    // 3. Truy vấn song song các nguồn phim: thể loại, quốc gia, diễn viên, và tùy chọn võ thuật
-    const [genreResults, countryResults, actorResult, martialArtsResult] = await Promise.all([
+    // 3. Truy vấn song song các nguồn phim: TMDB Recommendations, thể loại, quốc gia, diễn viên, và võ thuật
+    const [tmdbRecs, genreResults, countryResults, actorResult, martialArtsResult] = await Promise.all([
+      tmdbId
+        ? getTmdbMovieRecommendations(tmdbId, tmdbType || type, currentMovieSlug).catch(() => [])
+        : Promise.resolve([]),
       Promise.all(
         targetCategories.map((c) =>
           movieApi.getMovies({ category: c.slug, page: 1, limit: 16 }).catch(() => null)
@@ -74,6 +80,13 @@ export async function POST(req: NextRequest) {
     // 4. Khử trùng lặp và loại bỏ phim hiện tại
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const dedupedMap = new Map<string, any>();
+
+    // 4.1 Ưu tiên nạp đề xuất TMDB đã đối chiếu catalog trước
+    for (const item of tmdbRecs || []) {
+      if (item?.slug && item.slug !== currentMovieSlug && !dedupedMap.has(item.slug)) {
+        dedupedMap.set(item.slug, { ...item, _isTmdbRec: true });
+      }
+    }
 
     for (const res of genreResults) {
       for (const item of res?.items || []) {
@@ -127,6 +140,11 @@ export async function POST(req: NextRequest) {
 
     for (const item of dedupedMap.values()) {
       let score = 0;
+
+      // +25 nếu là phim đề xuất trực tiếp từ thuật toán TMDB Recommendations / Similar
+      if (item._isTmdbRec) {
+        score += 25;
+      }
 
       // +8 nếu có cùng diễn viên chính (tín hiệu mạnh nhất — so khớp alias EN/VN/ZH)
       let hasActorMatch = false;

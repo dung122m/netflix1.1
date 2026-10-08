@@ -586,10 +586,7 @@ export function isFeaturedHistoricalEvent(hist: VietnamHistoricalEvent | Vietnam
  * - Tier 5/6: Curated Major Historical Milestones (Tier S/A) -> Eligible
  * - Tier 7: Routine Administrative / Chronicle / Meeting records -> NEVER Eligible (False)
  */
-export function isHeroEligibleEvent(
-  event: VietnamEvent,
-  _currentYear: number = new Date().getFullYear()
-): boolean {
+export function isHeroEligibleEvent(event: VietnamEvent): boolean {
   if (!event) return false;
 
   // 1. National Holiday / Major celebration
@@ -1081,7 +1078,7 @@ export function resolveHeroEvent(
     currentYear
   );
   // Ensure the chosen candidate strictly satisfies the Hero Eligibility Gate
-  const eligibleHero = candidates.find((c) => isHeroEligibleEvent(c, currentYear));
+  const eligibleHero = candidates.find((c) => isHeroEligibleEvent(c));
   return eligibleHero || null;
 }
 

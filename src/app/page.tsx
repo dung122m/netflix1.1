@@ -305,27 +305,29 @@ export default async function HomePage({
       <HeroFeatured movies={heroMovies} />
 
       {/* 2. TIẾP TỤC XEM: Hiển thị ngay sau Hero khi có lịch sử */}
-      <ContinueWatchingRow />
+      <div className="px-4 md:px-8 my-4 relative z-30">
+        <ContinueWatchingRow />
+      </div>
 
-      {/* 3. 🇻🇳 HÔM NAY TẠI VIỆT NAM (FEATURE SPOTLIGHT BANNER) */}
+      {/* 3. BỘ LỌC PHIM NHANH (Đặt ngay dưới Hero / Tiếp tục xem) */}
+      <div className="px-4 md:px-8 my-3 sm:my-4 relative z-30">
+        <FilterBarClient />
+      </div>
+
+      {/* 4. 🇻🇳 HÔM NAY TẠI VIỆT NAM (FEATURE SPOTLIGHT BANNER) */}
       <div className="px-4 md:px-8 mt-2 sm:mt-4 relative z-20">
         <VietnamTodaySection />
       </div>
 
       <div className="px-4 md:px-8 relative z-10 pt-2 sm:pt-4">
-        {/* 4. HÀNG PHIM DÀNH RIÊNG CHO BẠN (AI PERSONALIZED RECOMMENDATIONS) */}
+        {/* 5. HÀNG PHIM DÀNH RIÊNG CHO BẠN (AI PERSONALIZED RECOMMENDATIONS) */}
         <ForYouPersonalizedRow fallbackMovies={movies} />
 
-        {/* 5. BẢNG XẾP HẠNG PHIM THỊNH HÀNH & TOP 10 CỘNG ĐỒNG */}
+        {/* 6. BẢNG XẾP HẠNG PHIM THỊNH HÀNH & TOP 10 CỘNG ĐỒNG */}
         <TmdbTopTrending />
         <CommunityTopTrending />
 
-        {/* BỘ LỌC PHIM CHI TIẾT (Đưa về sát khu vực khám phá danh mục) */}
-        <div className="mb-4 mt-6 sm:mt-8">
-          <FilterBarClient />
-        </div>
-
-        {/* 6. TAB TUYỂN CHỌN PHIM ĐA NĂNG TRÊN TRANG CHỦ */}
+        {/* 7. TAB TUYỂN CHỌN PHIM ĐA NĂNG TRÊN TRANG CHỦ */}
         <CuratedMovieSection
           initialMovies={movies}
           initialTotalItems={totalItems}

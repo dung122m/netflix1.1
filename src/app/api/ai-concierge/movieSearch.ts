@@ -217,7 +217,7 @@ export async function searchSingleMovieFast(title: string, originalTitle?: strin
       if (cleanTitle) {
         fallbackTasks.push(
           Promise.race([
-            movieApi.getMovies({ keyword: cleanTitle, page: 1, limit: 6 }),
+            movieApi.getAiCandidates({ keyword: cleanTitle, page: 1, limit: 6 }, { minCandidates: 1 }),
             new Promise<null>((resolve) => setTimeout(() => resolve(null), 1200)),
           ]).catch(() => null)
         );
@@ -225,7 +225,7 @@ export async function searchSingleMovieFast(title: string, originalTitle?: strin
       if (cleanOriginal && cleanOriginal !== cleanTitle) {
         fallbackTasks.push(
           Promise.race([
-            movieApi.getMovies({ keyword: cleanOriginal, page: 1, limit: 6 }),
+            movieApi.getAiCandidates({ keyword: cleanOriginal, page: 1, limit: 6 }, { minCandidates: 1 }),
             new Promise<null>((resolve) => setTimeout(() => resolve(null), 1200)),
           ]).catch(() => null)
         );

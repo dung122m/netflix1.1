@@ -179,7 +179,7 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
                 : "max-h-none"
             }`}
           >
-            <div className="space-y-5 sm:space-y-6 text-zinc-300 text-xs sm:text-sm leading-relaxed font-normal">
+            <div className="space-y-4 sm:space-y-5 text-zinc-300 text-xs sm:text-sm leading-relaxed font-normal">
               {/* LEAD INTRO PARAGRAPH */}
               {leadParagraph && (
                 <div className="relative p-4 sm:p-5 rounded-xl sm:rounded-2xl bg-gradient-to-r from-red-950/25 via-zinc-900/40 to-transparent border-l-4 border-red-600/80 border-y border-r border-white/[0.06] shadow-sm">
@@ -193,9 +193,9 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
               {sections.map((sec, sIdx) => {
                 const SecIcon = getSectionIcon(sec.heading);
                 return (
-                  <div key={sIdx} className="space-y-3 pt-1">
+                  <div key={sIdx} className="space-y-3">
                     {sec.heading && (
-                      <div className="flex items-center gap-2 pt-2 border-t border-white/[0.05]">
+                      <div className="flex items-center gap-2 pt-3 sm:pt-4 border-t border-white/[0.06]">
                         <span className="w-5 h-5 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center flex-shrink-0">
                           <SecIcon className="w-3 h-3" />
                         </span>
@@ -205,7 +205,7 @@ export const ActorDetailClient: React.FC<ActorDetailClientProps> = ({
                       </div>
                     )}
 
-                    <div className={`space-y-3.5 ${sec.heading ? "pl-0 sm:pl-7" : ""}`}>
+                    <div className="space-y-3.5">
                       {sec.paragraphs.map((p, pIdx) => (
                         <p key={pIdx} className="text-zinc-300/95 leading-relaxed text-xs sm:text-sm">
                           {p}

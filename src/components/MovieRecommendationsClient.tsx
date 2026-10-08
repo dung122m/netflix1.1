@@ -12,6 +12,8 @@ interface MovieRecommendationsClientProps {
   primaryDirector?: string;
   year?: number | string;
   type?: string;
+  tmdbId?: number | string;
+  tmdbType?: string;
   contentText?: string;
   variant?: "grid" | "sidebar";
 }
@@ -69,6 +71,47 @@ export function RecommendationSkeleton({ variant = "grid" }: { variant?: "grid" 
   );
 }
 
+// Module-level in-flight request singleton map để khử trùng lặp hoàn toàn khi Mobile + Desktop cùng mount
+const inFlightRecommendations = new Map<string, Promise<RecommendationsData | null>>();
+
+function fetchRecommendationsDeduplicated(
+  cacheKey: string,
+  payload: Record<string, unknown>
+): Promise<RecommendationsData | null> {
+  // 1. Nếu đang có request in-flight cùng cacheKey -> tái sử dụng Promise ngay lập tức
+  if (inFlightRecommendations.has(cacheKey)) {
+    return inFlightRecommendations.get(cacheKey)!;
+  }
+
+  // 2. Tạo Promise fetch mới
+  const promise = fetch("/api/movies/recommendations", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  })
+    .then((res) => (res.ok ? res.json() : null))
+    .then((recData) => {
+      if (recData && Array.isArray(recData.allMovies) && recData.allMovies.length > 0) {
+        try {
+          sessionStorage.setItem(cacheKey, JSON.stringify(recData));
+        } catch {}
+        return recData;
+      }
+      return null;
+    })
+    .catch((err) => {
+      console.warn("[MovieRecommendationsClient] Lỗi tải đề xuất:", err);
+      return null;
+    })
+    .finally(() => {
+      // Dọn dẹp in-flight entry sau khi hoàn tất
+      inFlightRecommendations.delete(cacheKey);
+    });
+
+  inFlightRecommendations.set(cacheKey, promise);
+  return promise;
+}
+
 export function MovieRecommendationsClient({
   currentMovieSlug,
   currentMovieTitle,
@@ -78,6 +121,8 @@ export function MovieRecommendationsClient({
   primaryDirector,
   year,
   type,
+  tmdbId,
+  tmdbType,
   contentText = "",
   variant = "grid",
 }: MovieRecommendationsClientProps) {
@@ -86,7 +131,7 @@ export function MovieRecommendationsClient({
 
   useEffect(() => {
     let isMounted = true;
-    const cacheKey = `nanaflix_rec_${currentMovieSlug}`;
+    const cacheKey = `nanaflix_rec_${currentMovieSlug}_${tmdbId || ""}`;
 
     // 1. Kiểm tra cache trong sessionStorage (0ms response)
     try {
@@ -103,34 +148,25 @@ export function MovieRecommendationsClient({
 
     setLoading(true);
 
-    // 2. Fetch recommendations ngầm không block trang chính
-    fetch("/api/movies/recommendations", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        currentMovieSlug,
-        currentMovieTitle,
-        categories,
-        countries,
-        primaryActor,
-        primaryDirector,
-        year,
-        type,
-        contentText,
-      }),
+    // 2. Fetch recommendations qua singleton Promise khử trùng lặp (Mobile + Desktop chia sẻ 1 request duy nhất)
+    fetchRecommendationsDeduplicated(cacheKey, {
+      currentMovieSlug,
+      currentMovieTitle,
+      categories,
+      countries,
+      primaryActor,
+      primaryDirector,
+      year,
+      type,
+      tmdbId,
+      tmdbType,
+      contentText,
     })
-      .then((res) => (res.ok ? res.json() : null))
       .then((recData) => {
         if (!isMounted) return;
         if (recData && Array.isArray(recData.allMovies) && recData.allMovies.length > 0) {
           setData(recData);
-          try {
-            sessionStorage.setItem(cacheKey, JSON.stringify(recData));
-          } catch {}
         }
-      })
-      .catch((err) => {
-        console.warn("[MovieRecommendationsClient] Lỗi tải đề xuất:", err);
       })
       .finally(() => {
         if (isMounted) setLoading(false);
@@ -139,10 +175,15 @@ export function MovieRecommendationsClient({
     return () => {
       isMounted = false;
     };
-  }, [currentMovieSlug, currentMovieTitle, categories, countries, primaryActor, primaryDirector, year, type, contentText]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentMovieSlug, tmdbId]);
 
-  if (loading || !data || data.allMovies.length === 0) {
+  if (loading) {
     return <RecommendationSkeleton variant={variant} />;
+  }
+
+  if (!data || !Array.isArray(data.allMovies) || data.allMovies.length === 0) {
+    return null;
   }
 
   return (

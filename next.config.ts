@@ -68,7 +68,7 @@ const nextConfig: NextConfig = {
               "font-src 'self' data: https://fonts.gstatic.com",
               "connect-src 'self' data: blob: https://*.supabase.co wss://*.supabase.co https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com https://api.themoviedb.org https://phimapi.com https://phim.nguonc.com https://vi.wikipedia.org https://en.wikipedia.org https://va.vercel-scripts.com https://vortex.data.vercel-scripts.com https://vitals.vercel-insights.com https://*.vercel-insights.com https://*.upstash.io https:",
               "media-src 'self' data: blob: https:",
-              "frame-src 'self' https://*.firebaseapp.com https://accounts.google.com https://www.youtube.com https://www.youtube-nocookie.com https://embed.streamc.xyz https://player.phimapi.com",
+              "frame-src 'self' https://*.firebaseapp.com https://accounts.google.com https://www.youtube.com https://www.youtube-nocookie.com https://embed.streamc.xyz https://player.phimapi.com https://*.streamvsmov.com",
               "worker-src 'self' blob:",
               "object-src 'none'",
               "base-uri 'self'",

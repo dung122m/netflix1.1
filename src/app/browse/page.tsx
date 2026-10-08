@@ -580,7 +580,9 @@ export default async function BrowsePage({
         };
       });
 
-      scoredMovies.sort((a, b) => b.relevanceScore - a.relevanceScore);
+      if (effectiveSort !== "year") {
+        scoredMovies.sort((a, b) => b.relevanceScore - a.relevanceScore);
+      }
       const hasStrongTitleMatch = scoredMovies.some((movie) => movie.relevanceScore >= 40);
       if (hasStrongTitleMatch) {
         // Once the upstream title search has a real hit, discard broad/fuzzy
@@ -595,6 +597,89 @@ export default async function BrowsePage({
         );
       } else {
         movies = scoredMovies;
+      }
+
+      // Refill candidate batch nếu relevance gate làm số lượng < PAGE_LIMIT (tối đa 2 trang tiếp theo)
+      const MAX_REFILL_PAGES = 2;
+      let refillPage = currentPage + 1;
+      while (
+        keyword &&
+        effectiveSort !== "year" &&
+        movies.length < PAGE_LIMIT &&
+        refillPage <= totalPages &&
+        refillPage <= currentPage + MAX_REFILL_PAGES
+      ) {
+        const nextRes = await movieApi.getMovies({
+          category,
+          country,
+          year,
+          keyword,
+          page: refillPage,
+          limit: PAGE_LIMIT,
+          type,
+          sort: effectiveSort,
+        }).catch(() => null);
+
+        if (!nextRes?.items || nextRes.items.length === 0) break;
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const seenSlugs = new Set<string>(movies.map((m: any) => m?.slug).filter(Boolean));
+        const nextScored = nextRes.items
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .filter((m: any) => m?.slug && !seenSlugs.has(m.slug))
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .map((m: any) => {
+            const movieTitle = cleanNormalizedForMatch(m.name || m.title || "");
+            const orig = cleanNormalizedForMatch(m.origin_name || "");
+            const slug = cleanNormalizedForMatch(m.slug || "");
+            const desc = cleanNormalizedForMatch(m.content || m.description || "");
+
+            let score = 0;
+            let matchType: "title" | "actor" | "content" = "title";
+            let matchSnippet: string | undefined = undefined;
+
+            if (movieTitle === normKw || orig === normKw || slug === normKw.replace(/\s+/g, "-")) {
+              score = 100;
+              matchType = "title";
+            } else if (movieTitle.startsWith(normKw) || orig.startsWith(normKw)) {
+              score = 85;
+              matchType = "title";
+            } else if (movieTitle.includes(normKw) || orig.includes(normKw)) {
+              score = 70;
+              matchType = "title";
+            } else if (desc && desc.includes(normKw)) {
+              score = 30;
+              matchType = "content";
+              matchSnippet = extractDescriptionSnippet(m.content || m.description || "", keyword);
+            } else {
+              const kwWords = normKw.split(" ").filter((w) => w.length > 1);
+              const titleWords = kwWords.filter((w) => movieTitle.includes(w) || orig.includes(w));
+              if (titleWords.length > 0) {
+                score = 40 + Math.round((titleWords.length / kwWords.length) * 20);
+                matchType = "title";
+              } else {
+                score = 15;
+                matchSnippet = extractDescriptionSnippet(m.content || m.description || "", keyword);
+              }
+            }
+
+            return { ...m, relevanceScore: score, matchType, matchSnippet };
+          })
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .filter((m: any) => m.relevanceScore >= 40);
+
+        if (nextScored.length > 0) {
+          movies = [...movies, ...nextScored];
+        }
+        refillPage++;
+      }
+
+      if (effectiveSort === "year") {
+        movies.sort((a, b) => {
+          const yearA = Number(a.year || 0);
+          const yearB = Number(b.year || 0);
+          return yearB - yearA;
+        });
       }
     }
 

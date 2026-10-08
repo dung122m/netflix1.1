@@ -94,19 +94,20 @@ const COMPANION_META: Record<string, string> = {
 
 const DURATION_META: Record<string, { desc: string; typeSlug?: string }> = {
   "phim-le": {
-    desc: "Phim Lẻ (Phim điện ảnh 1 tập kết thúc trọn vẹn trong 90 - 120 phút. BẮT BUỘC KHÔNG CHỌN phim bộ nhiều tập)",
+    desc: "Phim Lẻ (Phim điện ảnh 1 tập kết thúc trọn vẹn trong 90 - 120 phút)",
     typeSlug: "phim-le",
   },
   "chieu-rap": {
-    desc: "Bom Tấn Rạp (Phim lẻ chiếu rạp hoành tráng, mãn nhãn. BẮT BUỘC là phim lẻ chiếu rạp)",
+    desc: "Bom Tấn Rạp (Phim lẻ chiếu rạp hoành tráng, mãn nhãn)",
     typeSlug: "phim-chieu-rap",
   },
   "phim-bo": {
-    desc: "Phim Bộ / Series (TV Series nhiều tập cuốn hút để cày đêm. BẮT BUỘC KHÔNG CHỌN phim lẻ)",
-    typeSlug: "phim-bo",
+    desc: "Phim Lẻ (Phim điện ảnh kết thúc trọn vẹn)",
+    typeSlug: "phim-le",
   },
   "bat-ky": {
-    desc: "Bất kỳ định dạng nào (Phim lẻ hoặc phim bộ đều được)",
+    desc: "Bất kỳ thời lượng nào (Phim lẻ xem trọn vẹn)",
+    typeSlug: "phim-le",
   },
 };
 
@@ -245,10 +246,10 @@ const CURATED_OFFLINE_PICKS: Record<
   ],
   "ngot-ngao": [
     {
-      title: "Hạ Cánh Nơi Anh",
-      originalTitle: "Crash Landing on You",
-      punchline: "Chuyện tình vượt biên giới đẹp như mơ đốn tim hàng triệu khán giả khắp thế giới.",
-      badges: ["Lãng Mạn", "Hàn Quốc", "Cực Ngọt"],
+      title: "Và Em Sẽ Đến",
+      originalTitle: "Be With You",
+      punchline: "Câu chuyện tình yêu gia đình diệu kỳ và cảm động lấy đi nước mắt của hàng triệu khán giả.",
+      badges: ["Lãng Mạn", "Hàn Quốc", "Cảm Động"],
       country: "Hàn Quốc",
     },
     {
@@ -259,9 +260,9 @@ const CURATED_OFFLINE_PICKS: Record<
       country: "Âu Mỹ",
     },
     {
-      title: "Vụng Trộm Không Thể Giấu",
-      originalTitle: "Hidden Love",
-      punchline: "Mối tình thanh xuân ngọt ngào ngập tràn mật đường giữa Tang Trĩ và Đoàn Gia Hứa.",
+      title: "Thời Thiếu Nữ Của Tôi",
+      originalTitle: "Our Times",
+      punchline: "Bản tình ca thanh xuân học đường ngọt ngào và đong đầy kỷ niệm tuổi học trò.",
       badges: ["Thanh Xuân", "Ngọt Ngào", "Trung Quốc"],
       country: "Trung Quốc",
     },
@@ -381,24 +382,24 @@ const CURATED_OFFLINE_PICKS: Record<
   ],
   "co-trang": [
     {
-      title: "Trần Tình Lệnh",
-      originalTitle: "The Untamed",
-      punchline: "Tuyệt phẩm tiên hiệp huynh đệ kinh điển làm mưa làm gió toàn châu Á.",
-      badges: ["Tiên Hiệp", "Trung Quốc", "Huyền Thoại"],
+      title: "Anh Hùng",
+      originalTitle: "Hero",
+      punchline: "Tuyệt phẩm kiếm hiệp võ thuật kinh điển của Trương Nghệ Mưu với khung hình mãn nhãn.",
+      badges: ["Kiếm Hiệp", "Võ Thuật", "Kinh Điển"],
       country: "Trung Quốc",
     },
     {
-      title: "Chân Hoàn Truyện",
-      originalTitle: "Empresses in the Palace",
-      punchline: "Bức tranh cung đấu đỉnh cao với những màn tranh sủng và đấu trí tàn khốc bậc nhất.",
-      badges: ["Cung Đấu", "Kinh Điển", "Trung Quốc"],
+      title: "Thập Diện Mai Phục",
+      originalTitle: "House of Flying Daggers",
+      punchline: "Bức tranh kiếm hiệp diễm lệ cùng những màn đấu võ điêu luyện và chuyện tình trắc trở.",
+      badges: ["Cổ Trang", "Võ Thuật", "Mãn Nhãn"],
       country: "Trung Quốc",
     },
     {
-      title: "Khánh Dư Niên",
-      originalTitle: "Joy of Life",
-      punchline: "Màn xuyên không đấu trí quyền mưu lôi cuốn hài hước nhưng không kém phần kịch tính.",
-      badges: ["Quyền Mưu", "Cổ Trang", "Hài Hước"],
+      title: "Ngọa Hổ Tàng Long",
+      originalTitle: "Crouching Tiger, Hidden Dragon",
+      punchline: "Kiệt tác võ hiệp đoạt 4 giải Oscar định hình dòng phim kiếm hiệp châu Á trên toàn cầu.",
+      badges: ["Oscar", "Võ Hiệp", "Huyền Thoại"],
       country: "Trung Quốc",
     },
   ],
@@ -722,6 +723,67 @@ export function rankCandidatesBySurprise(
  * Category AND Country AND Duration AND Exclusion.
  * Tuyệt đối không dùng tên phim để suy đoán.
  */
+/**
+ * KIỂM TRA PHIM BỘ / SERIES NHIỀU TẬP (ĐỂ BẢO VỆ HARD CONSTRAINT PHIM LẺ CỦA BỐC QUẺ)
+ * Nhận diện chính xác 100% phim bộ để loại trừ triệt để khỏi kết quả Bốc Quẻ.
+ */
+export function isSeriesMovie(movie: RouletteMovieCandidate | null | undefined): boolean {
+  if (!movie || typeof movie !== "object") return false;
+  const rawType = String(movie.type || "").toLowerCase().trim();
+  const timeStr = String(movie.time || movie.duration || movie.runtime || "").toLowerCase();
+  const epTotalRaw = movie.episode_total || movie.total_episodes;
+  const epTotal = typeof epTotalRaw === "number" ? epTotalRaw : parseInt(String(epTotalRaw || "0"), 10);
+  const epCurrent = String(movie.episode_current || movie.current_episode || "").toLowerCase();
+
+  const catSlugs = Array.isArray(movie.category)
+    ? movie.category.map((c: unknown) =>
+        typeof c === "string"
+          ? c.toLowerCase()
+          : `${(c as { slug?: string })?.slug || ""} ${(c as { name?: string })?.name || ""}`.toLowerCase()
+      )
+    : [String(movie.category || "").toLowerCase()];
+
+  // Phim bộ nếu:
+  // 1. rawType là series hoặc phim-bo
+  if (rawType === "series" || rawType === "phim-bo") return true;
+
+  // 2. Category chứa phim bộ
+  if (catSlugs.some((c) => c.includes("phim-bo") || c.includes("phim bộ") || c === "series")) return true;
+
+  // 3. Thời lượng có dạng "45 phút/tập", "/tập", "/tap", "phút/tập"
+  if (timeStr.includes("/tập") || timeStr.includes("/tap") || timeStr.includes("phút/tập")) return true;
+
+  // 4. Tổng số tập > 1
+  if (!isNaN(epTotal) && epTotal > 1) return true;
+
+  // 5. Episode current biểu thị tập nhiều phần (ví dụ "Tập 12", "Tập 16/16", "24/24") nhưng không phải "1 tập" hay "Full"
+  if (
+    epCurrent &&
+    !epCurrent.includes("full") &&
+    !epCurrent.includes("1 tập") &&
+    !epCurrent.includes("1/1") &&
+    !epCurrent.includes("trọn bộ") &&
+    (/\btập\s*\d+/i.test(epCurrent) || /\d+\s*\/\s*\d+/.test(epCurrent))
+  ) {
+    const fracMatch = epCurrent.match(/(\d+)\s*\/\s*(\d+)/);
+    if (fracMatch) {
+      const total = parseInt(fracMatch[2], 10);
+      if (total > 1) return true;
+    } else if (/\btập\s*([2-9]|\d{2,})/i.test(epCurrent)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * CỔNG KIỂM DUYỆT CHUẨN XÁC (SAFETY GATE):
+ * Kiểm tra xem movie có thỏa mãn đồng thời category, country, duration, exclusion và HARD CONSTRAINT PHIM LẺ hay không.
+ * Hỗ trợ multi-category và multi-country với .some().
+ * Category AND Country AND Duration AND Exclusion AND Phim Lẻ Only.
+ * Tuyệt đối không dùng tên phim để suy đoán.
+ */
 export function matchesCriteria(
   movie: RouletteMovieCandidate | null | undefined,
   targetCategorySlug?: string,
@@ -742,7 +804,12 @@ export function matchesCriteria(
     if (isExcluded) return false;
   }
 
-  // 1. Kiểm tra Category
+  // 1. HARD CONSTRAINT: BỐC QUẺ = PHIM LẺ ONLY (TUYỆT ĐỐI KHÔNG TRẢ PHIM BỘ / SERIES)
+  if (isSeriesMovie(movie)) {
+    return false;
+  }
+
+  // 2. Kiểm tra Category
   if (targetCategorySlug && targetCategorySlug !== "all") {
     const rawCategories: (string | ItemMeta)[] = Array.isArray(movie.category)
       ? movie.category
@@ -765,7 +832,7 @@ export function matchesCriteria(
     if (!hasCategoryMatch) return false;
   }
 
-  // 2. Kiểm tra Country
+  // 3. Kiểm tra Country
   if (targetCountrySlug && targetCountrySlug !== "all") {
     const rawCountries: (string | ItemMeta)[] = Array.isArray(movie.country)
       ? movie.country
@@ -813,7 +880,7 @@ export function matchesCriteria(
     if (!hasCountryMatch) return false;
   }
 
-  // 3. Kiểm tra Thời lượng (Duration)
+  // 4. Kiểm tra Thời lượng (Duration)
   if (targetDuration && targetDuration !== "all") {
     const mins = getMovieDurationMinutes(movie);
     if (!matchesDurationRange(mins, targetDuration)) {
@@ -951,12 +1018,12 @@ async function searchSingleMovieFast(title: string, originalTitle: string): Prom
     foundItem = await queryPhimApiDirect(cleanOriginal, cleanTitle);
   }
 
-  // 3. Fallback qua movieApi.getMovies với timeout an toàn
+  // 3. Fallback qua movieApi.getAiCandidates với timeout an toàn (loại bỏ VSMOV khỏi critical path)
   if (!foundItem && cleanTitle) {
     try {
       const res1 = await Promise.race([
-        movieApi.getMovies({ keyword: cleanTitle, page: 1, limit: 5 }),
-        new Promise<null>((resolve) => setTimeout(() => resolve(null), 2000)),
+        movieApi.getAiCandidates({ keyword: cleanTitle, page: 1, limit: 5 }, { minCandidates: 1 }),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 1500)),
       ]);
       if (res1?.items && res1.items.length > 0) {
         foundItem = findBestMatchMovie(res1.items, cleanTitle, cleanOriginal);
@@ -967,8 +1034,8 @@ async function searchSingleMovieFast(title: string, originalTitle: string): Prom
   if (!foundItem && cleanOriginal && cleanOriginal !== cleanTitle) {
     try {
       const res2 = await Promise.race([
-        movieApi.getMovies({ keyword: cleanOriginal, page: 1, limit: 5 }),
-        new Promise<null>((resolve) => setTimeout(() => resolve(null), 2000)),
+        movieApi.getAiCandidates({ keyword: cleanOriginal, page: 1, limit: 5 }, { minCandidates: 1 }),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 1500)),
       ]);
       if (res2?.items && res2.items.length > 0) {
         foundItem = findBestMatchMovie(res2.items, cleanOriginal, cleanTitle);
@@ -1094,8 +1161,8 @@ export async function POST(req: NextRequest) {
       });
     };
 
-    // 2. KIỂM TRA CACHE CANDIDATE POOL (1 GIỜ) ĐỂ TÁI SỬ DỤNG CHO CÙNG BỘ TIÊU CHÍ
-    const poolCacheKey = `ai:roulette:pool:${mood}:${country}:${companion}:${duration}:${surprise}`;
+    // 2. KIỂM TRA CACHE CANDIDATE POOL V2 (1 GIỜ) ĐỂ TÁI SỬ DỤNG CHO CÙNG BỘ TIÊU CHÍ (PHIM LẺ ONLY)
+    const poolCacheKey = `ai:roulette:pool:v2:${mood}:${country}:${companion}:${duration}:${surprise}`;
     let isPoolFromCache = false;
 
     try {
@@ -1120,22 +1187,25 @@ export async function POST(req: NextRequest) {
     }
 
     if (!isPoolFromCache) {
-      // 1. TRUY VẤN CATALOG ĐA TẦNG (CATALOG ENGINE RETRIEVAL)
+      // 1. TRUY VẤN CATALOG ĐA TẦNG (CATALOG ENGINE RETRIEVAL - PHIM LẺ ONLY)
       // Tùy theo chế độ bất ngờ, lấy số trang phù hợp:
       // - "lieu": lấy song song page 1, 2, 3 (đến 72+ ứng viên) để gom cả top hot, tầm trung và hidden gems ít người biết.
-      // - "can-bang": lấy page 1, 2 (đến 48 ứng viên).
-      // - "an-toan": lấy page 1 (36 ứng viên hot nhất).
-      const pagesToFetch = surprise === "lieu" ? [1, 2, 3] : surprise === "can-bang" ? [1, 2] : [1];
+      // - "can-bang" & "an-toan": mặc định chỉ lấy page 1 (24 ứng viên chất lượng cao nhất), chỉ lấy thêm page 2 nếu pool < 12.
+      const initialPages = surprise === "lieu" ? [1, 2, 3] : [1];
+      
+      // Bốc Quẻ = PHIM LẺ ONLY: Truy vấn trực tiếp type "phim-le" từ catalog (hoặc "hoat-hinh" nếu chọn mood anime)
+      const effectiveType = targetCategorySlug === "hoat-hinh" ? "hoat-hinh" : "phim-le";
+
       try {
         const catalogResponses = await Promise.all(
-          pagesToFetch.map((p) =>
-            movieApi.getMovies({
+          initialPages.map((p) =>
+            movieApi.getAiCandidates({
               category: targetCategorySlug,
               country: targetCountrySlug,
-              type: duration === "phim-bo" ? "phim-bo" : "phim-le",
+              type: effectiveType,
               page: p,
               limit: 24,
-            }).catch((err) => {
+            }, { minCandidates: 12 }).catch((err) => {
               console.warn(`[ai-roulette] Catalog page ${p} fetch failed:`, err);
               return null;
             })
@@ -1155,29 +1225,65 @@ export async function POST(req: NextRequest) {
             }
           }
         }
+
+        // Với 'an-toan' / 'can-bang', chỉ fetch thêm Page 2 nếu sau matchesCriteria pool còn < 12 candidates
+        if (surprise !== "lieu" && candidateMap.size < 12) {
+          try {
+            const page2Res = await movieApi.getAiCandidates({
+              category: targetCategorySlug,
+              country: targetCountrySlug,
+              type: effectiveType,
+              page: 2,
+              limit: 24,
+            }, { minCandidates: 8 }).catch((err) => {
+              console.warn("[ai-roulette] Supplemental page 2 fetch failed:", err);
+              return null;
+            });
+
+            if (page2Res?.items?.length) {
+              for (const item of page2Res.items) {
+                const catName = item.category?.[0]?.name || moodMeta.label;
+                addCandidateToPool(item, {
+                  punchline: `Tuyệt phẩm ${catName} chuẩn gu định mệnh: bùng nổ cảm xúc và trọn vẹn từng phút giây!`,
+                  badges: [catName, item.country?.[0]?.name || "Đặc Sắc", "Bốc Quẻ Chuẩn"],
+                  relevanceScore: 92,
+                  provider: "Catalog Engine",
+                });
+              }
+            }
+          } catch {}
+        }
       } catch (catErr) {
         console.warn("[ai-roulette] Catalog engine phase error:", catErr);
       }
 
-      // 2. BỔ SUNG TỪ SUPABASE PGVECTOR (NẾU CÓ)
-      try {
-        const vectorSearchTerm = `${moodMeta.label} ${moodMeta.desc} ${companionDesc} ${country !== "all" ? countryMeta.label : ""}`.trim();
-        const vectorPicks = await searchMoviesBySemantic(vectorSearchTerm, 8, 0.42, userApiKey);
+      // 2. BỔ SUNG TỪ SUPABASE PGVECTOR (NẾU CÓ CẤU HÌNH HỢP LỆ)
+      const hasSupabaseServiceKey = Boolean(
+        process.env.SUPABASE_SERVICE_ROLE_KEY &&
+        process.env.SUPABASE_SERVICE_ROLE_KEY.trim() &&
+        (process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL)
+      );
 
-        for (const vp of vectorPicks) {
-          if (!vp.id || isExcluded(vp.id) || isExcluded(vp.title)) continue;
-          const candidateDetail = await searchSingleMovieFast(vp.title, vp.originalName || "");
-          if (candidateDetail && candidateDetail.slug) {
-            addCandidateToPool(candidateDetail, {
-              punchline: moodMeta.defaultPunchline,
-              badges: moodMeta.defaultBadges,
-              relevanceScore: Math.min(99, Math.round(88 + (vp.similarity || 0.5) * 15)),
-              provider: "Supabase Vector Engine",
-            });
+      if (hasSupabaseServiceKey) {
+        try {
+          const vectorSearchTerm = `${moodMeta.label} ${moodMeta.desc} ${companionDesc} ${country !== "all" ? countryMeta.label : ""}`.trim();
+          const vectorPicks = await searchMoviesBySemantic(vectorSearchTerm, 8, 0.42, userApiKey);
+
+          for (const vp of vectorPicks) {
+            if (!vp.id || isExcluded(vp.id) || isExcluded(vp.title)) continue;
+            const candidateDetail = await searchSingleMovieFast(vp.title, vp.originalName || "");
+            if (candidateDetail && candidateDetail.slug) {
+              addCandidateToPool(candidateDetail, {
+                punchline: moodMeta.defaultPunchline,
+                badges: moodMeta.defaultBadges,
+                relevanceScore: Math.min(99, Math.round(88 + (vp.similarity || 0.5) * 15)),
+                provider: "Supabase Vector Engine",
+              });
+            }
           }
+        } catch (vErr) {
+          console.warn("[ai-roulette] Vector search phase skipped:", vErr);
         }
-      } catch (vErr) {
-        console.warn("[ai-roulette] Vector search phase skipped:", vErr);
       }
 
       // 3. BỔ SUNG TỪ FAST AI HYBRID (CHỈ GỌI KHI CẦN THÊM HOẶC THIẾU ỨNG VIÊN)
@@ -1217,9 +1323,10 @@ export async function POST(req: NextRequest) {
 
 HÃY CHỌN 2 ỨNG VIÊN PHIM ĐẶC SẮC (ỨNG VIÊN 1 VÀ ỨNG VIÊN DỰ PHÒNG), ĐẢM BẢO:
 ${promptRequirements}
-2. TUÂN THỦ 100% định dạng và quốc gia được yêu cầu.
-3. Tên phim: "title" là tên tiếng Việt chuẩn nhất (KHÔNG ghi năm hay hậu tố vào title, ví dụ: "Vây Hãm: Kẻ Trừng Phạt", "Ký Sinh Trùng", "Hạ Cánh Nơi Anh").
-4. "punchline": 1 câu giật gân, cuốn hút hoặc hài hước (dưới 25 từ) lý giải vì sao bộ phim này là định mệnh dành cho người dùng lúc này.
+2. BẮT BUỘC CHỈ CHỌN PHIM LẺ / PHIM ĐIỆN ẢNH (1 tập kết thúc trọn vẹn trong 90-150 phút). TUYỆT ĐỐI KHÔNG CHỌN PHIM BỘ (TV Series nhiều tập).
+3. TUÂN THỦ 100% định dạng và quốc gia được yêu cầu.
+4. Tên phim: "title" là tên tiếng Việt chuẩn nhất (KHÔNG ghi năm hay hậu tố vào title, ví dụ: "Vây Hãm: Kẻ Trừng Phạt", "Ký Sinh Trùng", "Và Em Sẽ Đến").
+5. "punchline": 1 câu giật gân, cuốn hút hoặc hài hước (dưới 25 từ) lý giải vì sao bộ phim này là định mệnh dành cho người dùng lúc này.
 
 Trả về DUY NHẤT một chuỗi JSON hợp lệ:
 {

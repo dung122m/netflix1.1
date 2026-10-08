@@ -12,6 +12,8 @@ import React, {
 import { saveWatchHistory } from "@/lib/watchHistory";
 import { findEpisodeMatch } from "@/lib/formatEpisode";
 
+export type PlaybackProviderType = "nanaflix" | "vsmov";
+
 export interface EpisodeItem {
   name?: string;
   slug?: string;
@@ -25,7 +27,7 @@ export interface EpisodeServer {
   server_data?: EpisodeItem[];
 }
 
-interface WatchContextValue {
+export interface WatchContextValue {
   movieSlug: string;
   movieTitle: string;
   posterUrl: string;
@@ -43,6 +45,10 @@ interface WatchContextValue {
   isTrailerOnly: boolean;
   switchEpisode: (slug: string) => void;
   switchServer: (serverIndex: number) => void;
+  activeProvider: PlaybackProviderType;
+  setActiveProvider: (provider: PlaybackProviderType) => void;
+  tmdbId?: string | number | null;
+  isSeries?: boolean;
   isTheaterMode: boolean;
   setIsTheaterMode: React.Dispatch<React.SetStateAction<boolean>>;
   toggleTheaterMode: () => void;
@@ -72,6 +78,9 @@ interface WatchControllerProps {
   initialServers: EpisodeServer[];
   initialServerIndex?: number;
   initialEpisodeSlug?: string;
+  initialProvider?: PlaybackProviderType;
+  tmdbId?: string | number | null;
+  isSeries?: boolean;
   isTrailerOnly?: boolean;
   children: React.ReactNode;
 }
@@ -90,10 +99,14 @@ export function WatchController({
   initialServers,
   initialServerIndex = 0,
   initialEpisodeSlug,
+  initialProvider = "nanaflix",
+  tmdbId,
+  isSeries,
   isTrailerOnly = false,
   children,
 }: WatchControllerProps) {
   const [currentServerIndex, setCurrentServerIndex] = useState(initialServerIndex);
+  const [activeProvider, setActiveProvider] = useState<PlaybackProviderType>(initialProvider);
   const [isTheaterMode, setIsTheaterMode] = useState<boolean>(false);
   const [isLightsOff, setIsLightsOff] = useState<boolean>(false);
 
@@ -319,6 +332,10 @@ export function WatchController({
       isTrailerOnly,
       switchEpisode,
       switchServer,
+      activeProvider,
+      setActiveProvider,
+      tmdbId,
+      isSeries,
       isTheaterMode,
       setIsTheaterMode,
       toggleTheaterMode,
@@ -344,6 +361,10 @@ export function WatchController({
     isTrailerOnly,
     switchEpisode,
     switchServer,
+    activeProvider,
+    setActiveProvider,
+    tmdbId,
+    isSeries,
     isTheaterMode,
     toggleTheaterMode,
     isLightsOff,

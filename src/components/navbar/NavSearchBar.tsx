@@ -88,9 +88,14 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
         }
         const data = await res.json();
 
-        // Verify that the response still matches current input value
+        // Verify that input is still actively focused and matches the query
+        const isFocused =
+          typeof document !== "undefined" &&
+          (document.activeElement === inputRef.current ||
+            document.activeElement === mobileInputRef.current);
         const currentInputVal = (inputRef.current?.value || mobileInputRef.current?.value || "").trim();
-        if (currentInputVal.toLowerCase() === val.trim().toLowerCase()) {
+
+        if (isFocused && currentInputVal.toLowerCase() === val.trim().toLowerCase()) {
           setSuggestions(data.items || []);
           setShowDropdown(true);
         }
@@ -228,10 +233,19 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
   };
 
   const handleRecentClick = (kw: string) => {
+    cancelDebouncedFetch();
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setIsSearching(false);
+    setSelectedSuggestionIndex(-1);
     if (inputRef.current) inputRef.current.value = kw;
     if (mobileInputRef.current) mobileInputRef.current.value = kw;
     setHasText(true);
     setShowDropdown(false);
+    inputRef.current?.blur();
+    mobileInputRef.current?.blur();
     if (typeof window !== "undefined" && window.innerWidth < 768) {
       setIsSearchExpanded(false);
     }
@@ -240,13 +254,19 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
     router.push(`/browse?keyword=${encodeURIComponent(kw)}`);
   };
 
-  // Close dropdown and collapse search on route change away from /browse
+  // Close dropdown and abort any pending fetch on route or search params change
   useEffect(() => {
+    cancelDebouncedFetch();
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setIsSearching(false);
     setShowDropdown(false);
     if (pathname !== "/browse") {
       setIsSearchExpanded(false);
     }
-  }, [pathname, setIsSearchExpanded]);
+  }, [pathname, searchParams, cancelDebouncedFetch, setIsSearchExpanded]);
 
   const toggleSearch = (e?: React.MouseEvent) => {
     if (e) {
@@ -326,11 +346,52 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Escape") {
       e.preventDefault();
+      cancelDebouncedFetch();
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+      setIsSearching(false);
       setShowDropdown(false);
       setIsSearchExpanded(false);
       inputRef.current?.blur();
       mobileInputRef.current?.blur();
       return;
+    }
+
+    if (e.key === "Enter") {
+      if (showDropdown && suggestions.length > 0 && selectedSuggestionIndex >= 0 && selectedSuggestionIndex < suggestions.length) {
+        e.preventDefault();
+        const selected = suggestions[selectedSuggestionIndex];
+        const val = (inputRef.current?.value || mobileInputRef.current?.value || "").trim();
+        if (val) {
+          saveRecentSearch(val);
+          trackSearchOnce(val);
+        }
+        cancelDebouncedFetch();
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+          abortControllerRef.current = null;
+        }
+        setIsSearching(false);
+        setShowDropdown(false);
+        setIsSearchExpanded(false);
+        inputRef.current?.blur();
+        mobileInputRef.current?.blur();
+        router.push(
+          selected.slug.startsWith("browse?")
+            ? `/browse?${selected.slug.slice(7)}`
+            : selected.slug.startsWith("?")
+            ? `/browse${selected.slug}`
+            : `/movies/${selected.slug}`
+        );
+        return;
+      } else if (showDropdown && !hasSearchText && recentSearches.length > 0 && selectedSuggestionIndex >= 0 && selectedSuggestionIndex < recentSearches.length) {
+        e.preventDefault();
+        const selected = recentSearches[selectedSuggestionIndex];
+        handleRecentClick(selected);
+        return;
+      }
     }
 
     if (!showDropdown) return;
@@ -357,29 +418,6 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
           prev > 0 ? prev - 1 : recentSearches.length - 1
         );
       }
-    } else if (e.key === "Enter") {
-      if (suggestions.length > 0 && selectedSuggestionIndex >= 0 && selectedSuggestionIndex < suggestions.length) {
-        e.preventDefault();
-        const selected = suggestions[selectedSuggestionIndex];
-        const val = (inputRef.current?.value || mobileInputRef.current?.value || "").trim();
-        if (val) {
-          saveRecentSearch(val);
-          trackSearchOnce(val);
-        }
-        setShowDropdown(false);
-        setIsSearchExpanded(false);
-        router.push(
-          selected.slug.startsWith("browse?")
-            ? `/browse?${selected.slug.slice(7)}`
-            : selected.slug.startsWith("?")
-            ? `/browse${selected.slug}`
-            : `/movies/${selected.slug}`
-        );
-      } else if (!hasSearchText && recentSearches.length > 0 && selectedSuggestionIndex >= 0 && selectedSuggestionIndex < recentSearches.length) {
-        e.preventDefault();
-        const selected = recentSearches[selectedSuggestionIndex];
-        handleRecentClick(selected);
-      }
     }
   };
 
@@ -396,7 +434,18 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
       return;
     }
 
+    cancelDebouncedFetch();
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setIsSearching(false);
     setShowDropdown(false);
+    setSelectedSuggestionIndex(-1);
+
+    inputRef.current?.blur();
+    mobileInputRef.current?.blur();
+
     if (typeof window !== "undefined" && window.innerWidth < 768) {
       setIsSearchExpanded(false);
     }
@@ -541,8 +590,16 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
                             trackSearchOnce(val);
                             saveRecentSearch(val);
                           }
+                          cancelDebouncedFetch();
+                          if (abortControllerRef.current) {
+                            abortControllerRef.current.abort();
+                            abortControllerRef.current = null;
+                          }
+                          setIsSearching(false);
                           setShowDropdown(false);
                           setIsSearchExpanded(false);
+                          inputRef.current?.blur();
+                          mobileInputRef.current?.blur();
                         }}
                         className={`flex items-center gap-3 p-2 rounded-lg transition group ${
                           selectedSuggestionIndex === idx
@@ -733,7 +790,15 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
                           trackSearchOnce(val);
                           saveRecentSearch(val);
                         }
+                        cancelDebouncedFetch();
+                        if (abortControllerRef.current) {
+                          abortControllerRef.current.abort();
+                          abortControllerRef.current = null;
+                        }
+                        setIsSearching(false);
                         setShowDropdown(false);
+                        inputRef.current?.blur();
+                        mobileInputRef.current?.blur();
                       }}
                       className={`flex items-center gap-3 p-2 rounded-lg transition group ${
                         selectedSuggestionIndex === idx

@@ -450,6 +450,10 @@ export async function analyzeUserPrompt(
     const effectiveType = currentType || inheritedType || null;
     const effectiveYear = clearYearRequested ? null : currentYear || inheritedYear || null;
 
+    const similarPatternMatch = prompt.match(
+      /(?:phim\s+)?(?:giống|giong|tương tự|tuong tu|kiểu như|kieu nhu|same as|similar to|like)\s+(?:phim\s+)?([^\.,\?!]+)/i
+    );
+
     if (detectedConcepts.length > 0) {
       const conceptIds = detectedConcepts.map((c) => c.id);
       const isTokusatsu = conceptIds.includes("japanese_tokusatsu");
@@ -471,6 +475,29 @@ export async function analyzeUserPrompt(
         analysis: `Dưới đây là các tác phẩm điện ảnh tiêu biểu về ${detectedConcepts[0]?.canonicalName} dành cho bạn:`,
         mood: `${detectedConcepts[0]?.canonicalName} 🎬`,
         suggested_movies: [],
+      };
+    } else if (similarPatternMatch && similarPatternMatch[1]) {
+      const rawSeed = similarPatternMatch[1]
+        .replace(/(?:nhưng|nhung|mà|ma|chứ|chu|không|khong|trừ|tru)[\s\S]*/i, "")
+        .trim();
+      parsed = {
+        intent: "theme",
+        keywords: [rawSeed],
+        semanticQuery: prompt,
+        concepts: [],
+        genres: effectiveGenres,
+        countries: effectiveCountries,
+        people: [],
+        franchises: [],
+        themes: [`Tương đồng với ${rawSeed}`],
+        year: effectiveYear,
+        type: effectiveType,
+        clearFields,
+        is_trap: false,
+        is_off_topic: false,
+        analysis: `Dưới đây là các tác phẩm điện ảnh tương đồng với "${rawSeed}" dành cho bạn:`,
+        mood: `Gợi Ý Tương Đồng 🎬`,
+        suggested_movies: [{ title: rawSeed, original_title: rawSeed, reason: `Tương đồng với ${rawSeed}` }],
       };
     } else if (themePatternMatch) {
       const rawTheme = themePatternMatch[1].trim();

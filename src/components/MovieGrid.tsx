@@ -10,8 +10,8 @@ interface MovieGridProps {
   movies: any[];
 }
 
-const INITIAL_BATCH = 8;
-const BATCH_SIZE = 8;
+const INITIAL_BATCH = 24;
+const BATCH_SIZE = 24;
 
 const MovieGridInner = ({ movies }: MovieGridProps) => {
   const [visibleCount, setVisibleCount] = useState(INITIAL_BATCH);

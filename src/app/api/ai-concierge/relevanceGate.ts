@@ -96,6 +96,21 @@ export const VIETNAMESE_STOP_WORDS = new Set([
   "loại",
   "kieu",
   "kiểu",
+  "giong",
+  "giống",
+  "tuong",
+  "tương",
+  "tu",
+  "tự",
+  "them",
+  "thêm",
+  "nua",
+  "nữa",
+  "con",
+  "còn",
+  "same",
+  "similar",
+  "like",
 ]);
 
 // Danh sách các từ đơn quá ngắn hoặc quá chung chung, không được coi là từ khóa chủ đề độc lập
@@ -188,6 +203,16 @@ const GENERIC_PHRASES = new Set([
   "có bếp",
   "co banh",
   "có bánh",
+  "tuong tu",
+  "tương tự",
+  "giong phim",
+  "giống phim",
+  "them phim",
+  "thêm phim",
+  "con nua",
+  "còn nữa",
+  "cho them",
+  "cho thêm",
 ]);
 
 /**
@@ -197,9 +222,9 @@ export function extractContentKeywords(query: string): string[] {
   const clean = cleanNormalizedString(query || "");
   if (!clean) return [];
 
-  // Tách bỏ các tiền tố phổ biến như "phim ve", "phim chu de", "phim noi ve", v.v.
+  // Tách bỏ các tiền tố phổ biến như "phim ve", "phim chu de", "phim noi ve", "phim giong", "cho them", v.v.
   const coreSubject = clean
-    .replace(/^(?:phim\s+)?(?:ve|chu de|noi ve|ke ve|xoay quanh|de tai)\s+/i, "")
+    .replace(/^(?:phim\s+)?(?:ve|chu de|noi ve|ke ve|xoay quanh|de tai|giong|tuong tu|kieu nhu|same as|similar to|like|cho them|them|con nua)\s+(?:phim\s+)?/i, "")
     .trim();
 
   const words = clean.split(/\s+/).filter(Boolean);

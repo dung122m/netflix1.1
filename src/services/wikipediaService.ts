@@ -158,6 +158,56 @@ async function fetchExtendedWikiExtract(
   }
 }
 
+async function fetchSummary(
+  title: string,
+  lang: "vi" | "en"
+): Promise<ActorProfile | null> {
+  try {
+    const res = await fetch(
+      `https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`,
+      {
+        headers: { "User-Agent": "Nanaflix/2.0 (contact@nanaflix.tv)" },
+        next: { revalidate: 86400 },
+        signal: AbortSignal.timeout(1500),
+      }
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data.type === "disambiguation" || data.title === "Not found.") return null;
+
+    const desc = data.description || "";
+    let extract = data.extract || "";
+
+    if (isNonPersonEntity(desc, extract) && !isPersonSignal(desc, extract)) {
+      return null;
+    }
+
+    if (isPersonSignal(desc, extract) || (!isNonPersonEntity(desc, extract) && (desc || data.thumbnail))) {
+      // Nếu đoạn tóm tắt ngắn (dưới 350 ký tự), lấy thêm bài viết chi tiết
+      if (extract.length < 350) {
+        const extended = await fetchExtendedWikiExtract(data.title || title, lang);
+        if (extended && extended.length > extract.length) {
+          extract = extended;
+        }
+      }
+
+      return {
+        name: title,
+        title: data.title || title,
+        description: data.description || "Nghệ sĩ / Diễn viên điện ảnh",
+        extract: extract || undefined,
+        thumbnail: data.thumbnail?.source || undefined,
+        wikiUrl:
+          data.content_urls?.desktop?.page ||
+          `https://${lang}.wikipedia.org/wiki/${encodeURIComponent(data.title || title)}`,
+      };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchActorProfile(actorName: string): Promise<ActorProfile | null> {
   const cleanName = actorName.trim();
   if (!cleanName) return null;
@@ -166,89 +216,36 @@ export async function fetchActorProfile(actorName: string): Promise<ActorProfile
     return wikiCache.get(cleanName) || null;
   }
 
-  // Danh sách các tiêu đề Wikipedia cần thử theo thứ tự ưu tiên
-  // Giải quyết triệt để các trường hợp trùng tên với địa danh/sông/tổ chức (vd: "Trường Giang (nghệ sĩ)", "Thái Hòa (diễn viên)")
-  const titlesToTry = [
-    `${cleanName} (nghệ sĩ)`,
-    `${cleanName} (diễn viên)`,
-    `${cleanName} (đạo diễn)`,
-    cleanName,
-    `${cleanName} (ca sĩ)`,
-    `${cleanName} (actor)`,
-    `${cleanName} (actress)`,
-    `${cleanName} (director)`,
-  ];
-
   try {
-    for (const titleCandidate of titlesToTry) {
-      let isVi = true;
-      // 1. Thử Wikipedia Tiếng Việt trước
-      let res = await fetch(
-        `https://vi.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(titleCandidate)}`,
-        {
-          headers: { "User-Agent": "Nanaflix/2.0 (contact@nanaflix.tv)" },
-          next: { revalidate: 86400 }, // Cache 24h
-          signal: AbortSignal.timeout(3000),
-        }
-      );
+    // 1. GIAI ĐOẠN 1: Quét song song tên chính trên cả Wikipedia Tiếng Việt và Tiếng Anh (~150-300ms)
+    const [summaryVi, summaryEn] = await Promise.all([
+      fetchSummary(cleanName, "vi"),
+      fetchSummary(cleanName, "en"),
+    ]);
 
-      // 2. Nếu tiếng Việt không có kết quả hợp lệ, thử Wikipedia Tiếng Anh
-      if (!res.ok) {
-        isVi = false;
-        res = await fetch(
-          `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(titleCandidate)}`,
-          {
-            headers: { "User-Agent": "Nanaflix/2.0 (contact@nanaflix.tv)" },
-            next: { revalidate: 86400 },
-            signal: AbortSignal.timeout(3000),
-          }
-        );
-      }
+    if (summaryVi) {
+      wikiCache.set(cleanName, summaryVi);
+      return summaryVi;
+    }
+    if (summaryEn) {
+      wikiCache.set(cleanName, summaryEn);
+      return summaryEn;
+    }
 
-      if (res.ok) {
-        const data = await res.json();
-        if (data.type === "disambiguation" || data.title === "Not found.") {
-          continue;
-        }
+    // 2. GIAI ĐOẠN 2: Thử đồng thời các danh xưng nếu tên bị trùng lặp địa danh/định hướng (vd: Trường Giang (nghệ sĩ))
+    const disambiguationCandidates = [
+      fetchSummary(`${cleanName} (diễn viên)`, "vi"),
+      fetchSummary(`${cleanName} (nghệ sĩ)`, "vi"),
+      fetchSummary(`${cleanName} (actor)`, "en"),
+      fetchSummary(`${cleanName} (actress)`, "en"),
+    ];
 
-        const desc = data.description || "";
-        let extract = data.extract || "";
+    const disambiguationResults = await Promise.all(disambiguationCandidates);
+    const validDisambiguation = disambiguationResults.find(Boolean);
 
-        // BỎ QUA NẾU LÀ ĐỊA DANH / SÔNG / TỔ CHỨC / KHÔNG PHẢI NGƯỜI
-        if (isNonPersonEntity(desc, extract) && !isPersonSignal(desc, extract)) {
-          continue;
-        }
-
-        // XÁC THỰC LÀ CON NGƯỜI / NGHỆ SĨ
-        if (isPersonSignal(desc, extract) || (!isNonPersonEntity(desc, extract) && desc)) {
-          // Nếu đoạn tóm tắt ngắn (dưới 400 ký tự), tự động lấy thêm bài viết chi tiết đầy đủ
-          if (extract.length < 400) {
-            const extended = await fetchExtendedWikiExtract(
-              data.title || titleCandidate,
-              isVi ? "vi" : "en"
-            );
-            if (extended && extended.length > extract.length) {
-              extract = extended;
-            }
-          }
-
-          const profile: ActorProfile = {
-            name: cleanName,
-            title: data.title || cleanName,
-            description: data.description || "Nghệ sĩ / Diễn viên điện ảnh",
-            extract: extract || undefined,
-            thumbnail: data.thumbnail?.source || undefined,
-            wikiUrl:
-              data.content_urls?.desktop?.page ||
-              `https://${isVi ? "vi" : "en"}.wikipedia.org/wiki/${encodeURIComponent(
-                data.title || cleanName
-              )}`,
-          };
-
-          wikiCache.set(cleanName, profile);
-          return profile;
-        }
-      }
+    if (validDisambiguation) {
+      wikiCache.set(cleanName, validDisambiguation);
+      return validDisambiguation;
     }
   } catch (err) {
     console.error("Lỗi lấy thông tin diễn viên từ Wikipedia:", err);

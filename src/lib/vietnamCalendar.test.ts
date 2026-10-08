@@ -12,11 +12,7 @@ import {
   getVietnamTodayEvent,
   getVietnamTodayHistoryBanner,
   isHeroEligibleHistoricalEvent,
-  isHeroEligibleEvent,
-  isFeaturedHistoricalEvent,
   getEventPriorityScore,
-  mergeAndDeduplicateEvents,
-  resolveHeroEvent,
 } from "./vietnamCalendar";
 
 test("Vietnam Events Dataset Validation", async (t) => {

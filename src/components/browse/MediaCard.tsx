@@ -663,12 +663,10 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
             : "border-white/[0.12] hover:border-white/30 hover:shadow-[0_12px_30px_rgba(0,0,0,0.75)]"
         }`}
       >
-        {/* Placeholder skeleton & shimmer khi ảnh đang tải - fade out mượt mà */}
-        {!hasError && (
+        {/* Placeholder skeleton & shimmer khi ảnh đang tải */}
+        {!hasError && !isImageLoaded && (
           <div
-            className={`absolute inset-0 bg-zinc-900 flex items-center justify-center pointer-events-none transition-opacity duration-200 ease-out z-0 ${
-              isImageLoaded ? "opacity-0" : "opacity-100 animate-pulse"
-            }`}
+            className="absolute inset-0 bg-zinc-900 flex items-center justify-center pointer-events-none z-0 opacity-100 animate-pulse"
             aria-hidden="true"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-zinc-800/60 via-zinc-900 to-zinc-950" />
@@ -699,7 +697,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
             fill
             unoptimized
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 16vw"
-            className={`object-cover object-center transition-all duration-300 ${
+            className={`object-cover object-center transition-transform duration-300 ${
               isImageLoaded ? "opacity-100" : "opacity-0"
             } ${
               isCardHovered ? "scale-105" : "scale-100 group-hover/card:scale-[1.035]"

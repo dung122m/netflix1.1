@@ -21,26 +21,29 @@ let inFlightGeoBadgePromise: Promise<string> | null = null;
  * 2. Fallback gọi /api/geo/badge (đúng 1 request cho cả phiên duyệt web)
  */
 export function useGeoBadge(): string {
-  const [badge, setBadge] = React.useState<string>(() => {
-    if (typeof window !== "undefined") {
-      if (cachedGeoBadge) return cachedGeoBadge;
-      try {
-        const stored = sessionStorage.getItem("nanaflix_geo_badge");
-        if (stored) {
-          cachedGeoBadge = stored;
-          return stored;
-        }
-      } catch {}
-    }
-    return "VN";
-  });
+  // Luôn khởi tạo "VN" một cách deterministic cho cả SSR và lần render đầu tiên của client (tránh hydration mismatch)
+  const [badge, setBadge] = React.useState<string>("VN");
 
   React.useEffect(() => {
-    if (cachedGeoBadge && cachedGeoBadge !== "VN") {
-      if (badge !== cachedGeoBadge) setBadge(cachedGeoBadge);
+    // 1. Kiểm tra cache trong RAM sau khi component đã mount / hydrate xong
+    if (cachedGeoBadge) {
+      if (badge !== cachedGeoBadge) {
+        setBadge(cachedGeoBadge);
+      }
       return;
     }
 
+    // 2. Đọc từ sessionStorage (chỉ thực thi an toàn sau hydration)
+    try {
+      const stored = sessionStorage.getItem("nanaflix_geo_badge");
+      if (stored) {
+        cachedGeoBadge = stored;
+        setBadge(stored);
+        return;
+      }
+    } catch {}
+
+    // 3. Nếu chưa có trong cache, gọi /api/geo/badge (đúng 1 request duy nhất)
     if (!inFlightGeoBadgePromise) {
       inFlightGeoBadgePromise = fetch("/api/geo/badge", {
         signal: AbortSignal.timeout(3000),

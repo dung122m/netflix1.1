@@ -1,6 +1,14 @@
 import { cache } from "react";
 import { cleanHtmlText } from "@/lib/cleanHtml";
 import { cacheService } from "@/lib/cache";
+import {
+  fetchVsmovDetail,
+  fetchVsmovFiltered,
+  adaptVsmovMovieItem,
+  adaptVsmovMovieDetail,
+  performVsmovCatalogIngestion,
+} from "@/services/providers/vsmov";
+import { normalizeForMatch } from "@/lib/stringUtils";
 
 const API_NGUONC = process.env.NEXT_PUBLIC_API_URL || "https://phim.nguonc.com/api";
 const API_PHIMAPI = process.env.NEXT_PUBLIC_API_URL_2 || "https://phimapi.com";
@@ -38,6 +46,12 @@ export interface MovieFilterParams {
   slug?: string;
   sort?: "latest" | "rating" | "views" | "year";
   skipKvCache?: boolean;
+  vsmovTimeoutMs?: number;
+}
+
+export interface AiCandidateOptions {
+  minCandidates?: number;
+  skipVsmov?: boolean;
 }
 
 // Bảng ánh xạ slug thể loại sang NguonC
@@ -197,7 +211,7 @@ export function sanitizeMovieDetailEpisodes(result: any): any {
 // Hàm nội bộ lấy chi tiết phim có multi-tier cache (L1 Memory SWR + L2 Cloudflare KV)
 const fetchMovieDetailInternal = async (
   slug: string,
-  source?: "nguonc" | "ophim",
+  source?: "nguonc" | "ophim" | "vsmov",
 ) => {
   const localKey = `${slug}_${source || "any"}`;
   const now = Date.now();
@@ -205,10 +219,12 @@ const fetchMovieDetailInternal = async (
   if (movieDetailMemoryCache.has(localKey)) {
     const entry = movieDetailMemoryCache.get(localKey)!;
     if (entry.expireAt > now) {
+      if (entry.data === null) return undefined;
       return sanitizeMovieDetailEpisodes(entry.data);
     }
     // Trả về dữ liệu đệm ngay lập tức nếu chưa quá hạn stale (0ms)
     if (entry.staleUntil > now) {
+      if (entry.data === null) return undefined;
       // Revalidate ngầm
       revalidateMovieDetail(slug, source, localKey).catch(() => {});
       return sanitizeMovieDetailEpisodes(entry.data);
@@ -221,16 +237,19 @@ const fetchMovieDetailInternal = async (
     () => fetchAndCacheMovieDetail(slug, source, localKey),
     7 * 24 * 60 * 60 // 7 ngày
   );
+  if (!data || (typeof data === "object" && "_isNegative" in data)) {
+    return undefined;
+  }
   return sanitizeMovieDetailEpisodes(data);
 };
 
-async function revalidateMovieDetail(slug: string, source?: "nguonc" | "ophim", cacheKey?: string) {
+async function revalidateMovieDetail(slug: string, source?: "nguonc" | "ophim" | "vsmov", cacheKey?: string) {
   try {
     await fetchAndCacheMovieDetail(slug, source, cacheKey || `${slug}_${source || "any"}`);
   } catch {}
 }
 
-async function fetchAndCacheMovieDetail(slug: string, source?: "nguonc" | "ophim", cacheKey?: string) {
+async function fetchAndCacheMovieDetail(slug: string, source?: "nguonc" | "ophim" | "vsmov", cacheKey?: string) {
   const now = Date.now();
   const key = cacheKey || `${slug}_${source || "any"}`;
 
@@ -252,6 +271,11 @@ async function fetchAndCacheMovieDetail(slug: string, source?: "nguonc" | "ophim
         signal: AbortSignal.timeout(4500),
       });
       if (res.ok) result = await res.json();
+    } else if (source === "vsmov") {
+      const vsmovData = await fetchVsmovDetail(slug);
+      if (vsmovData) {
+        result = adaptVsmovMovieDetail(vsmovData);
+      }
     } else {
       // Fetch đồng thời cả 2 nguồn PhimAPI và NguonC
       const results = await Promise.allSettled([
@@ -281,7 +305,13 @@ async function fetchAndCacheMovieDetail(slug: string, source?: "nguonc" | "ophim
         }
       }
 
-      if (validCandidates.length === 1) {
+      if (validCandidates.length === 0) {
+        // Fallback sang nguồn thứ 3 VSMOV nếu PhimAPI & NguonC không có phim
+        const vsmovData = await fetchVsmovDetail(slug);
+        if (vsmovData) {
+          result = adaptVsmovMovieDetail(vsmovData);
+        }
+      } else if (validCandidates.length === 1) {
         result = validCandidates[0];
       } else if (validCandidates.length > 1) {
         // Ưu tiên PhimAPI (hỗ trợ m3u8 direct streaming) làm nguồn chính nếu có đủ tập
@@ -401,10 +431,30 @@ async function fetchAndCacheMovieDetail(slug: string, source?: "nguonc" | "ophim
         expireAt: now + 600 * 1000,
         staleUntil: now + 3600 * 1000,
       });
+      return result;
     }
 
-    return result;
+    // ============================================================
+    // NEGATIVE CACHE (60s TTL):
+    // Khi slug không tìm thấy trên cả 3 nguồn (PhimAPI, NguonC, VSMOV)
+    // -> Lưu negative cache ngắn 60s để chống lãng phí quét upstream liên tục
+    // ============================================================
+    movieDetailMemoryCache.set(key, {
+      data: null,
+      expireAt: now + 60 * 1000,
+      staleUntil: now + 60 * 1000,
+    });
+    const kvKey = `movie:detail:${slug}:${source || "any"}`;
+    cacheService.set(kvKey, { _isNegative: true }, 60).catch(() => {});
+
+    return undefined;
   } catch {
+    // Negative cache an toàn khi có lỗi
+    movieDetailMemoryCache.set(key, {
+      data: null,
+      expireAt: now + 60 * 1000,
+      staleUntil: now + 60 * 1000,
+    });
     return undefined;
   }
 }
@@ -555,21 +605,18 @@ async function fetchSourceData(
       }
     }
 
-    const isNguonCSearch = baseUrl === API_NGUONC && isSearch;
-    // NguonC search cần 4 s để hoàn thành trong điều kiện bình thường.
-    // 1500 ms cũ quá ngắn → timeout → nItems = [] → merge thiếu nhiều phim (ví dụ "Lật Mặt").
-    const timeoutMs = isNguonCSearch ? 4000 : 6000;
-
-    const res = await fetch(fullUrl, {
-      next: { revalidate: 300 }, // 5 phút Next.js cache
-      signal: AbortSignal.timeout(timeoutMs),
-    });
-
-    if (!res.ok) return null;
-
-    const json = await res.json();
-
     if (baseUrl === API_PHIMAPI) {
+      const isSearchPhimApi = isSearch && params.keyword;
+      const timeoutMs = isSearchPhimApi ? 4000 : 6000;
+
+      const res = await fetch(fullUrl, {
+        next: { revalidate: 300 },
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+
+      if (!res.ok) return null;
+      const json = await res.json();
+
       const imageDomain =
         json.data?.APP_DOMAIN_CDN_IMAGE ||
         json.data?.APP_DOMAIN_FRONTEND ||
@@ -611,6 +658,8 @@ async function fetchSourceData(
 
           return {
             ...item,
+            source: "phimapi",
+            sources: ["phimapi"],
             thumb_url: formattedThumb || formattedPoster,
             poster_url: formattedPoster || formattedThumb,
           };
@@ -626,7 +675,7 @@ async function fetchSourceData(
       const totalPages =
         json.data?.params?.pagination?.totalPages ||
         json.pagination?.totalPages ||
-        Math.ceil(totalItems / 24) ||
+        Math.ceil(totalItems / fetchLimit) ||
         1;
 
       return {
@@ -636,8 +685,83 @@ async function fetchSourceData(
       };
     }
 
+    // ============================================================
+    // NguonC Offset-Aligned Fetching (Đồng bộ 10 items/trang sang 24 items/trang)
+    // ============================================================
+    const offsetStart = (page - 1) * fetchLimit;
+    const offsetEnd = page * fetchLimit;
+    const startNguonCPage = Math.floor(offsetStart / 10) + 1;
+    const endNguonCPage = Math.ceil(offsetEnd / 10);
+
+    const buildNguonCUrl = (p: number) => {
+      if (isSearch && params.keyword) {
+        return `${baseUrl}/films/search?keyword=${encodeURIComponent(params.keyword.trim())}&page=${p}`;
+      } else if (params.country) {
+        return `${baseUrl}/films/quoc-gia/${params.country}?page=${p}`;
+      } else if (params.category) {
+        return `${baseUrl}/films/the-loai/${getNguonCGenreSlug(params.category)}?page=${p}`;
+      } else if (params.year) {
+        return `${baseUrl}/films/nam-phat-hanh/${params.year}?page=${p}`;
+      } else if (params.type) {
+        if (params.type === "hoat-hinh") {
+          return `${baseUrl}/films/the-loai/hoat-hinh?page=${p}`;
+        } else if (params.type === "phim-bo") {
+          return `${baseUrl}/films/danh-sach/phim-bo?page=${p}`;
+        } else if (params.type === "phim-le") {
+          return `${baseUrl}/films/danh-sach/phim-le?page=${p}`;
+        } else if (params.type === "tv-shows") {
+          return `${baseUrl}/films/danh-sach/tv-shows?page=${p}`;
+        }
+        return null;
+      }
+      return `${baseUrl}/films/phim-moi-cap-nhat?page=${p}`;
+    };
+
+    if (buildNguonCUrl(1) === null) {
+      return null;
+    }
+
+    const pagesToFetch: number[] = [];
+    for (let p = startNguonCPage; p <= endNguonCPage; p++) {
+      pagesToFetch.push(p);
+    }
+
+    const nguonCResults = await Promise.all(
+      pagesToFetch.map(async (p) => {
+        const u = buildNguonCUrl(p);
+        if (!u) return null;
+        try {
+          const res = await fetch(u, {
+            next: { revalidate: 300 },
+            signal: AbortSignal.timeout(4000),
+          });
+          if (!res.ok) return null;
+          return await res.json();
+        } catch {
+          return null;
+        }
+      })
+    );
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rawCombined: any[] = [];
+    let nguonCTotalItems = 0;
+    for (const r of nguonCResults) {
+      if (r) {
+        const itms = r.items || r.data?.items || [];
+        rawCombined.push(...itms);
+        if (r.paginate?.total_items) {
+          nguonCTotalItems = Math.max(nguonCTotalItems, r.paginate.total_items);
+        }
+      }
+    }
+
+    const chunkStartOffset = (startNguonCPage - 1) * 10;
+    const sliceFrom = Math.max(0, offsetStart - chunkStartOffset);
+    const sliceTo = sliceFrom + fetchLimit;
+    const rawItems = rawCombined.slice(sliceFrom, sliceTo);
+
     // Mapping danh sách phim từ NguonC
-    const rawItems = json.items || json.data?.items || [];
     const mappedNguonCItems = rawItems.map((item: {
       name?: string;
       slug?: string;
@@ -686,6 +810,8 @@ async function fetchSourceData(
 
       return {
         ...item,
+        source: "nguonc",
+        sources: ["nguonc"],
         name: item.name,
         slug: item.slug,
         origin_name: item.original_name || item.name,
@@ -703,18 +829,67 @@ async function fetchSourceData(
       };
     });
 
-    const totalItems =
-      json.paginate?.total_items ||
-      mappedNguonCItems.length ||
-      0;
-
     const totalPages =
-      json.paginate?.total_page ||
-      Math.ceil(totalItems / 10) ||
+      Math.ceil(nguonCTotalItems / fetchLimit) ||
       1;
 
     return {
       items: mappedNguonCItems,
+      totalPages,
+      totalItems: nguonCTotalItems,
+    };
+  } catch {
+    return null;
+  }
+}
+
+// Hàm tải nguồn phim VSMOV (FIRST-CLASS CATALOG PROVIDER)
+async function fetchVsmovSourceData(
+  params: MovieFilterParams,
+  isSearch: boolean,
+  pageOverride?: number
+) {
+  try {
+    const page = pageOverride || params.page || 1;
+    const fetchLimit = params.limit && params.limit <= 48 ? params.limit : 24;
+    const timeout = params.vsmovTimeoutMs || 4000;
+
+    const rawRes = await fetchVsmovFiltered(
+      {
+        keyword: isSearch && params.keyword ? params.keyword.trim() : undefined,
+        type: params.type,
+        category: params.category,
+        country: params.country,
+        year: params.year,
+        page,
+        limit: fetchLimit,
+      },
+      timeout
+    );
+
+    if (!rawRes || !Array.isArray(rawRes.items)) return null;
+
+    const mappedItems = rawRes.items
+      .map((item) => {
+        const adapted = adaptVsmovMovieItem(item);
+        if (!adapted) return null;
+        if (params.category && (!adapted.category || (Array.isArray(adapted.category) && adapted.category.length === 0))) {
+          adapted.category = [{ id: params.category, name: params.category, slug: params.category }];
+        }
+        if (params.country && (!adapted.country || (Array.isArray(adapted.country) && adapted.country.length === 0))) {
+          adapted.country = [{ id: params.country, name: params.country, slug: params.country }];
+        }
+        return adapted;
+      })
+      .filter(Boolean);
+
+    const totalItems = rawRes.pagination?.totalItems || mappedItems.length || 0;
+    const totalPages =
+      rawRes.pagination?.totalPages ||
+      Math.max(1, Math.ceil(totalItems / (rawRes.pagination?.totalItemsPerPage || fetchLimit)));
+
+    return {
+      items: mappedItems,
       totalPages,
       totalItems,
     };
@@ -723,52 +898,76 @@ async function fetchSourceData(
   }
 }
 
-async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
-  const isSearch = Boolean(params.keyword?.trim());
-  const limit = params.limit || 24;
 
-  // ============================================================
-  // CHIẾN LƯỢC MERGE ĐỒNG BỘ:
-  // - Fetch page N từ cả 2 nguồn (PhimAPI + NguonC) song song
-  // - Gộp danh sách phim → khử trùng theo slug
-  // - Ưu tiên PhimAPI (hỗ trợ m3u8 direct) và bổ sung phim độc quyền từ NguonC
-  // ============================================================
-  const [resPhimApi, resNguonC] = await Promise.all([
-    fetchSourceData(API_PHIMAPI, params, isSearch),
-    fetchSourceData(API_NGUONC,   params, isSearch),
-  ]);
 
-  const pItems = resPhimApi?.items || [];
-  const nItems = resNguonC?.items || [];
-
-  // Interleave 2:1 để đảm bảo cả 2 nguồn (PhimAPI và NguonC) đều hiện diện trên từng trang
+// ============================================================
+// KHỬ TRÙNG LẶP & LỌC ỨNG VIÊN (GIỮ SOURCE PROVENANCE)
+// ============================================================
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function deduplicateMovieItems(items: any[]): any[] {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const allItems: any[] = [];
-  let pi = 0;
-  let ni = 0;
-  while (pi < pItems.length || ni < nItems.length) {
-    for (let k = 0; k < 2 && pi < pItems.length; k++) {
-      allItems.push(pItems[pi++]);
+  const seenMap = new Map<string, any>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const uniqueItems: any[] = [];
+
+  for (const item of items) {
+    if (!item) continue;
+    const tmdbId = item.tmdb?.id ? String(item.tmdb.id).trim() : "";
+    const imdbId = item.imdb?.id ? String(item.imdb.id).trim().toLowerCase() : "";
+    const slug = item.slug ? String(item.slug).trim().toLowerCase() : "";
+    const year = item.year ? String(item.year).trim() : "";
+    const normName = item.name ? normalizeForMatch(String(item.name)) : "";
+    const titleYearKey = normName && year ? `${normName}_${year}` : "";
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let existing: any = null;
+    if (tmdbId && seenMap.has(`tmdb:${tmdbId}`)) existing = seenMap.get(`tmdb:${tmdbId}`);
+    else if (imdbId && seenMap.has(`imdb:${imdbId}`)) existing = seenMap.get(`imdb:${imdbId}`);
+    else if (slug && seenMap.has(`slug:${slug}`)) existing = seenMap.get(`slug:${slug}`);
+    else if (titleYearKey && seenMap.has(`ty:${titleYearKey}`)) existing = seenMap.get(`ty:${titleYearKey}`);
+
+    if (existing) {
+      // Merge source provenance
+      const itemSources = Array.isArray(item.sources) ? item.sources : (item.source ? [item.source] : []);
+      const existingSources = Array.isArray(existing.sources) ? existing.sources : (existing.source ? [existing.source] : []);
+      const mergedSources = Array.from(new Set([...existingSources, ...itemSources]));
+      existing.sources = mergedSources;
+
+      // Merge missing metadata nếu existing bị khuyết
+      if (!existing.poster_url && item.poster_url) existing.poster_url = item.poster_url;
+      if (!existing.thumb_url && item.thumb_url) existing.thumb_url = item.thumb_url;
+      if (!existing.year && item.year) existing.year = item.year;
+      if (!existing.quality && item.quality) existing.quality = item.quality;
+      if (!existing.lang && item.lang) existing.lang = item.lang;
+      if (!existing.time && item.time) existing.time = item.time;
+      if (!existing.tmdb && item.tmdb) existing.tmdb = item.tmdb;
+      if (!existing.imdb && item.imdb) existing.imdb = item.imdb;
+      continue;
     }
-    if (ni < nItems.length) {
-      allItems.push(nItems[ni++]);
+
+    // Đảm bảo item có sources
+    if (!item.sources) {
+      item.sources = item.source ? [item.source] : (item._id && !String(item._id).includes("-") ? ["phimapi"] : ["nguonc"]);
     }
+
+    if (tmdbId) seenMap.set(`tmdb:${tmdbId}`, item);
+    if (imdbId) seenMap.set(`imdb:${imdbId}`, item);
+    if (slug) seenMap.set(`slug:${slug}`, item);
+    if (titleYearKey) seenMap.set(`ty:${titleYearKey}`, item);
+
+    uniqueItems.push(item);
   }
 
-  // Khử trùng lặp theo slug — giữ phần tử đầu tiên gặp
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const uniqueItemsMap = new Map<string, any>();
-  allItems.forEach((item) => {
-    if (item?.slug && !uniqueItemsMap.has(item.slug)) {
-      uniqueItemsMap.set(item.slug, item);
-    }
-  });
+  return uniqueItems;
+}
 
-  let allUniqueItems = Array.from(uniqueItemsMap.values());
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function applyMovieFilters(items: any[], params: MovieFilterParams): any[] {
+  let filtered = items;
 
-  // 1. Lọc theo Loại Phim (Phim lẻ / Phim bộ / Hoạt hình / Chiếu rạp / TV Shows)
+  // 1. Lọc theo Loại Phim
   if (params.type) {
-    allUniqueItems = allUniqueItems.filter((item) =>
+    filtered = filtered.filter((item) =>
       isMovieOfType(item, params.type!)
     );
   }
@@ -776,13 +975,13 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
   // 2. Lọc theo Quốc Gia
   if (params.country) {
     const targetCountry = params.country.toLowerCase().trim();
-    allUniqueItems = allUniqueItems.filter((item) => {
-      // Schema NguonC thiếu metadata quốc gia -> không giả định thiếu metadata nghĩa là không match
+    filtered = filtered.filter((item) => {
       if (!item.country || (Array.isArray(item.country) && item.country.length === 0)) {
         return true;
       }
       const ctryArray = Array.isArray(item.country)
-        ? item.country.map((c: { slug?: string; name?: string }) =>
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ? item.country.map((c: any) =>
             `${c.slug || ""} ${c.name || ""}`.toLowerCase()
           )
         : [String(item.country || "").toLowerCase()];
@@ -795,19 +994,17 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
     const targetCat = params.category.toLowerCase().trim();
     const isExplicitHoatHinh = params.category === "hoat-hinh" || params.type === "hoat-hinh";
 
-    allUniqueItems = allUniqueItems.filter((item) => {
-      // Khi chọn thể loại thông thường (Hành Động, Kinh Dị...) mà không chọn loại phim Hoạt Hình:
-      // Loại bỏ Anime/Hoạt hình để hiển thị đúng phim người đóng theo định hướng UX
+    filtered = filtered.filter((item) => {
       if (!isExplicitHoatHinh && isMovieOfType(item, "hoat-hinh")) {
         return false;
       }
 
-      // Schema NguonC thiếu metadata thể loại -> không giả định thiếu metadata nghĩa là không match
       if (!item.category || (Array.isArray(item.category) && item.category.length === 0)) {
         return true;
       }
       const catArray = Array.isArray(item.category)
-        ? item.category.map((c: { slug?: string; name?: string }) =>
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ? item.category.map((c: any) =>
             `${c.slug || ""} ${c.name || ""}`.toLowerCase()
           )
         : [String(item.category || "").toLowerCase()];
@@ -817,7 +1014,7 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
 
   // 4. Lọc theo Năm
   if (params.year) {
-    allUniqueItems = allUniqueItems.filter((item) => {
+    filtered = filtered.filter((item) => {
       if (item.year === undefined || item.year === null || item.year === "") {
         return true;
       }
@@ -825,51 +1022,118 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
     });
   }
 
-  // 5. Sắp xếp (Mặc định: Điểm đánh giá cao - rating)
+  return filtered;
+}
+
+// ============================================================
+// AI CANDIDATE SOURCING (FEDERATED 3 SOURCES IN PARALLEL)
+// ============================================================
+async function executeGetAiCandidates(params: MovieFilterParams, options?: AiCandidateOptions) {
+  const isSearch = Boolean(params.keyword?.trim());
+  const limit = params.limit || 24;
+
+  // Song song cả 3 nguồn (PhimAPI + NguonC + VSMOV)
+  const [resPhimApi, resNguonC, resVsmov] = await Promise.all([
+    fetchSourceData(API_PHIMAPI, params, isSearch),
+    fetchSourceData(API_NGUONC,   params, isSearch),
+    options?.skipVsmov ? Promise.resolve(null) : fetchVsmovSourceData(params, isSearch),
+  ]);
+
+  const pItems = resPhimApi?.items || [];
+  const nItems = resNguonC?.items || [];
+  const vItems = resVsmov?.items || [];
+
+  // Interleave 2:1:1 (PhimAPI : NguonC : VSMOV)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const primaryItems: any[] = [];
+  let pi = 0;
+  let ni = 0;
+  let vi = 0;
+  while (pi < pItems.length || ni < nItems.length || vi < vItems.length) {
+    for (let k = 0; k < 2 && pi < pItems.length; k++) {
+      primaryItems.push(pItems[pi++]);
+    }
+    if (ni < nItems.length) {
+      primaryItems.push(nItems[ni++]);
+    }
+    if (vi < vItems.length) {
+      primaryItems.push(vItems[vi++]);
+    }
+  }
+
+  let candidates = deduplicateMovieItems(primaryItems);
+  candidates = applyMovieFilters(candidates, params);
+
+  return {
+    status: true,
+    items: candidates.slice(0, limit),
+    pagination: {
+      currentPage: params.page || 1,
+      totalPages: Math.max(1, Math.ceil(candidates.length / limit)),
+      totalItems: candidates.length,
+    },
+  };
+}
+
+async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
+  const isSearch = Boolean(params.keyword?.trim());
+  const limit = params.limit || 24;
   const effectiveSort = params.sort || "rating";
-  if (effectiveSort === "rating") {
-    allUniqueItems.sort((a, b) => {
-      const voteCountA = Number(a.tmdb?.vote_count || 0);
-      const voteCountB = Number(b.tmdb?.vote_count || 0);
-      const hasReliableVotesA = voteCountA >= 50 ? 1 : 0;
-      const hasReliableVotesB = voteCountB >= 50 ? 1 : 0;
 
-      // 1. Ưu tiên nhóm phim có vote_count >= 50
-      if (hasReliableVotesA !== hasReliableVotesB) {
-        return hasReliableVotesB - hasReliableVotesA;
-      }
+  // ============================================================
+  // CHIẾN LƯỢC FEDERATION PER-PAGE SONG SONG CHO BROWSE:
+  // - Fetch song song cả 3 nguồn: PhimAPI + NguonC + VSMOV với bounded timeout (4000ms)
+  // - Interleave 2:1:1
+  // - Dedupe 4 cấp độ (TMDB ID, IMDb ID, slug, title+year), merge metadata & source provenance
+  // - Áp dụng filter & sort
+  // ============================================================
+  const [resPhimApi, resNguonC, resVsmov] = await Promise.all([
+    fetchSourceData(API_PHIMAPI, params, isSearch),
+    fetchSourceData(API_NGUONC,   params, isSearch),
+    fetchVsmovSourceData(params, isSearch),
+  ]);
 
-      // 2. Trong cùng nhóm, sort theo rating giảm dần
-      const rateA = Number(a.tmdb?.vote_average || a.imdb?.vote_average || 0);
-      const rateB = Number(b.tmdb?.vote_average || b.imdb?.vote_average || 0);
-      if (rateB !== rateA) {
-        return rateB - rateA;
-      }
+  const pItems = resPhimApi?.items || [];
+  const nItems = resNguonC?.items || [];
+  const vItems = resVsmov?.items || [];
 
-      // 3. Nếu cùng rating, ưu tiên phim có nhiều lượt vote hơn
-      return voteCountB - voteCountA;
-    });
-  } else if (effectiveSort === "views") {
-    allUniqueItems.sort((a, b) => {
-      const countA = Number(a.tmdb?.vote_count || a.view || 0);
-      const countB = Number(b.tmdb?.vote_count || b.view || 0);
-      return countB - countA;
-    });
-  } else if (effectiveSort === "year") {
-    allUniqueItems.sort((a, b) => {
+  // Interleave 2:1:1 (PhimAPI : NguonC : VSMOV)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const primaryItems: any[] = [];
+  let pi = 0;
+  let ni = 0;
+  let vi = 0;
+  while (pi < pItems.length || ni < nItems.length || vi < vItems.length) {
+    for (let k = 0; k < 2 && pi < pItems.length; k++) {
+      primaryItems.push(pItems[pi++]);
+    }
+    if (ni < nItems.length) {
+      primaryItems.push(nItems[ni++]);
+    }
+    if (vi < vItems.length) {
+      primaryItems.push(vItems[vi++]);
+    }
+  }
+
+  let candidates = deduplicateMovieItems(primaryItems);
+  candidates = applyMovieFilters(candidates, params);
+
+  if (effectiveSort === "year") {
+    candidates.sort((a, b) => {
       const yearA = Number(a.year || 0);
       const yearB = Number(b.year || 0);
       return yearB - yearA;
     });
   }
 
-  const finalItems = allUniqueItems.slice(0, limit);
+  const finalItems = candidates.slice(0, limit);
 
   // ============================================================
-  // TÍNH TỔNG SỐ PHIM VÀ TRANG (CHUẨN HÓA THEO PHẠM VI BỘ LỌC)
+  // TÍNH TỔNG SỐ PHIM VÀ TRANG (CHUẨN HÓA THEO PHẠM VI BỘ LỌC FEDERATION 3 NGUỒN)
   // ============================================================
   const countApi1 = resPhimApi?.totalItems || 0;
   const countApi2 = resNguonC?.totalItems   || 0;
+  const countApi3 = resVsmov?.totalItems    || 0;
 
   const activeFiltersCount =
     (params.type ? 1 : 0) +
@@ -882,16 +1146,20 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
 
   if (params.type || activeFiltersCount > 1) {
     // KHI CÓ BỘ LỌC TYPE HOẶC NHIỀU BỘ LỌC KẾT HỢP:
-    // PhimAPI là nguồn chuẩn xác database upstream cho Type & Compound filters.
-    // NguonC chỉ dùng để bổ sung/dedupe nội dung, không cộng vào totalItems/totalPages để tránh số trang ảo.
-    totalItemsCount = countApi1 > 0 ? countApi1 : allUniqueItems.length;
-    maxTotalPages = resPhimApi?.totalPages || Math.max(1, Math.ceil(totalItemsCount / limit));
+    const NGUONC_OVERLAP = 0.80;
+    const VSMOV_OVERLAP = 0.75;
+    const uniqueFromNguonC = Math.round(countApi2 * (1 - NGUONC_OVERLAP));
+    const uniqueFromVsmov = Math.round(countApi3 * (1 - VSMOV_OVERLAP));
+    totalItemsCount = (countApi1 || 0) + (countApi2 > 0 ? uniqueFromNguonC : 0) + (countApi3 > 0 ? uniqueFromVsmov : 0) || candidates.length;
+    maxTotalPages = Math.max(1, Math.ceil(totalItemsCount / limit));
   } else {
-    // KHI LÀ BỘ LỌC ĐƠN LẺ KHÁC (Category/Country/Year) HOẶC TÌM KIẾM KEYWORD HOẶC MẶC ĐỊNH:
-    // Cả 2 nguồn cùng lọc đúng 1 phạm vi -> Áp dụng công thức cộng bù độc quyền NguonC (~25%)
-    const OVERLAP_RATIO = 0.75;
-    const uniqueFromNguonC = Math.round(countApi2 * (1 - OVERLAP_RATIO));
-    totalItemsCount = (countApi1 || 0) + (countApi2 > 0 ? uniqueFromNguonC : 0) || allUniqueItems.length;
+    // KHI LÀ BỘ LỌC ĐƠN LẺ (Country/Category/Year) HOẶC TÌM KIẾM KEYWORD HOẶC MẶC ĐỊNH:
+    // Áp dụng công thức cộng bù độc quyền từ NguonC (~25%) và VSMOV (~30%):
+    const NGUONC_OVERLAP = 0.75;
+    const VSMOV_OVERLAP = 0.70;
+    const uniqueFromNguonC = Math.round(countApi2 * (1 - NGUONC_OVERLAP));
+    const uniqueFromVsmov = Math.round(countApi3 * (1 - VSMOV_OVERLAP));
+    totalItemsCount = (countApi1 || 0) + (countApi2 > 0 ? uniqueFromNguonC : 0) + (countApi3 > 0 ? uniqueFromVsmov : 0) || candidates.length;
     maxTotalPages = Math.max(1, Math.ceil(totalItemsCount / limit));
   }
 
@@ -915,6 +1183,31 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
   return payload;
 }
 
+export function buildMovieCacheKey(params: MovieFilterParams): string {
+  return JSON.stringify({
+    v: 7,
+    category: params.category || "",
+    country: params.country || "",
+    year: params.year || "",
+    keyword: params.keyword?.trim() || "",
+    page: params.page || 1,
+    limit: params.limit || 24,
+    type: params.type || "",
+    sort: params.sort || "latest",
+  });
+}
+
+const PRIORITY_WARMUP_COMBINATIONS: MovieFilterParams[] = [
+  { type: "phim-le" },
+  { type: "phim-bo" },
+  { type: "phim-le", country: "han-quoc" },
+  { type: "phim-le", country: "hong-kong" },
+  { type: "phim-le", country: "viet-nam" },
+  { type: "phim-bo", country: "han-quoc" },
+  { type: "phim-chieu-rap" },
+  { type: "hoat-hinh" },
+];
+
 let hasWarmedUp = false;
 function warmUpTopCategories() {
   if (hasWarmedUp) return;
@@ -924,17 +1217,41 @@ function warmUpTopCategories() {
     process.argv.some((a) => a.includes("--test") || a.includes(".test.ts"));
   if (isTest) return;
 
-  const commonTabs = [
-    { type: "phim-bo" },
-    { type: "phim-le" },
-    { type: "phim-chieu-rap" },
-    { type: "hoat-hinh" },
-    { year: "2026" },
-  ];
-  setTimeout(() => {
-    commonTabs.forEach((tab) => {
-      movieApi.getMovies({ ...tab, limit: 24, skipKvCache: true }).catch(() => {});
-    });
+  // Background non-blocking execution với Concurrency = 2
+  setTimeout(async () => {
+    try {
+      const now = Date.now();
+      // Chỉ nạp các combination chưa có trong cache hoặc đã hết hạn tươi
+      const needed = PRIORITY_WARMUP_COMBINATIONS.filter((comb) => {
+        const key = buildMovieCacheKey({ ...comb, limit: 24, page: 1 });
+        const entry = moviesMemoryCache.get(key);
+        return !entry || entry.expireAt <= now;
+      });
+
+      // Chạy theo nhóm 2 requests (Chunking) để tránh request storm lên upstream providers
+      const CHUNK_SIZE = 2;
+      for (let i = 0; i < needed.length; i += CHUNK_SIZE) {
+        const batch = needed.slice(i, i + CHUNK_SIZE);
+        await Promise.all(
+          batch.map(async (comb) => {
+            try {
+              await movieApi.getMovies({ ...comb, limit: 24, page: 1 });
+            } catch {
+              // Bỏ qua lỗi ngầm để đảm bảo tính cô lập
+            }
+          })
+        );
+        // Nghỉ 100ms giữa các chunk
+        if (i + CHUNK_SIZE < needed.length) {
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+      }
+
+      // Kích hoạt Ingestion VSMOV catalog feed chạy ngầm (Non-blocking)
+      performVsmovCatalogIngestion().catch(() => {});
+    } catch {
+      // Safe fallback
+    }
   }, 200);
 }
 
@@ -991,17 +1308,7 @@ export const movieApi = {
       warmUpTopCategories();
     }
 
-    const cacheKey = JSON.stringify({
-      v: 2,
-      category: params.category || "",
-      country: params.country || "",
-      year: params.year || "",
-      keyword: params.keyword?.trim() || "",
-      page: params.page || 1,
-      limit: params.limit || 24,
-      type: params.type || "",
-      sort: params.sort || "latest",
-    });
+    const cacheKey = buildMovieCacheKey(params);
 
     const now = Date.now();
     if (moviesMemoryCache.has(cacheKey)) {
@@ -1064,5 +1371,62 @@ export const movieApi = {
   // ==========================================
   searchMovies: async (keyword: string, limit = 24) => {
     return await movieApi.getMovies({ keyword, limit });
+  },
+
+  // ==========================================
+  // 5. TRUY VẤN ỨNG VIÊN CHO AI CONCIERGE & ROULETTE (FAST PHIMAPI + NGUONC, VSMOV CHỈ FALLBACK KHI THIẾU)
+  // ==========================================
+  getAiCandidates: async (params: MovieFilterParams = {}, options?: AiCandidateOptions) => {
+    const cacheKey = JSON.stringify({
+      v: "ai_cand_1",
+      category: params.category || "",
+      country: params.country || "",
+      year: params.year || "",
+      keyword: params.keyword?.trim() || "",
+      page: params.page || 1,
+      limit: params.limit || 24,
+      type: params.type || "",
+      sort: params.sort || "latest",
+      min: options?.minCandidates || 0,
+      skipV: options?.skipVsmov || false,
+    });
+
+    const now = Date.now();
+    if (moviesMemoryCache.has(cacheKey)) {
+      const entry = moviesMemoryCache.get(cacheKey)!;
+      if (entry.expireAt > now) {
+        return entry.data;
+      }
+      if (entry.staleUntil > now) {
+        executeGetAiCandidates(params, options).catch(() => {});
+        return entry.data;
+      }
+    }
+
+    if (params.skipKvCache) {
+      const res = await executeGetAiCandidates(params, options);
+      moviesMemoryCache.set(cacheKey, {
+        data: res,
+        expireAt: now + 300 * 1000,
+        staleUntil: now + 1800 * 1000,
+      });
+      return res;
+    }
+
+    const kvKey = `ai:candidate:${cacheKey}`;
+    const ttlSeconds = params.keyword ? 86400 : 7200;
+    return await cacheService.fetchOrSet(
+      kvKey,
+      async () => {
+        const res = await executeGetAiCandidates(params, options);
+        moviesMemoryCache.set(cacheKey, {
+          data: res,
+          expireAt: Date.now() + 300 * 1000,
+          staleUntil: Date.now() + 1800 * 1000,
+        });
+        return res;
+      },
+      ttlSeconds
+    );
   },
 };
