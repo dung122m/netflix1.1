@@ -832,26 +832,14 @@ async function fetchSourceData(
       const cleanPoster = nguoncPoster || item.poster_url || "";
       const cleanThumb = nguoncBackdrop || item.thumb_url || "";
 
-      // Hydrate metadata known from request endpoint
-      const categories: { id?: string; name: string; slug: string }[] = [];
-      const countries: { id?: string; name: string; slug: string }[] = [];
       let itemType: string | undefined = undefined;
       let chieurap: boolean | undefined = undefined;
 
-      if (params.category) {
-        categories.push({ id: params.category, name: params.category, slug: params.category });
-      }
-      if (params.country) {
-        countries.push({ id: params.country, name: params.country, slug: params.country });
-      }
       if (params.type === "phim-chieu-rap") {
         chieurap = true;
         itemType = "phim-chieu-rap";
       } else if (params.type === "hoat-hinh") {
         itemType = "hoat-hinh";
-        if (!categories.some((c) => c.slug === "hoat-hinh")) {
-          categories.push({ id: "hoat-hinh", name: "Hoạt Hình", slug: "hoat-hinh" });
-        }
       } else if (params.type === "phim-bo") {
         itemType = "series";
       } else if (params.type === "phim-le") {
@@ -874,8 +862,8 @@ async function fetchSourceData(
         episode_current: item.current_episode || "",
         year: Number(item.year) || undefined,
         time: item.time || "",
-        ...(categories.length > 0 ? { category: categories } : {}),
-        ...(countries.length > 0 ? { country: countries } : {}),
+        ...(Array.isArray(item.category) && item.category.length > 0 ? { category: item.category } : {}),
+        ...(Array.isArray(item.country) && item.country.length > 0 ? { country: item.country } : {}),
         ...(itemType ? { type: itemType } : {}),
         ...(chieurap !== undefined ? { chieurap } : {}),
       };
@@ -922,17 +910,7 @@ async function fetchVsmovSourceData(
     if (!rawRes || !Array.isArray(rawRes.items)) return null;
 
     const mappedItems = rawRes.items
-      .map((item) => {
-        const adapted = adaptVsmovMovieItem(item);
-        if (!adapted) return null;
-        if (params.category && (!adapted.category || (Array.isArray(adapted.category) && adapted.category.length === 0))) {
-          adapted.category = [{ id: params.category, name: params.category, slug: params.category }];
-        }
-        if (params.country && (!adapted.country || (Array.isArray(adapted.country) && adapted.country.length === 0))) {
-          adapted.country = [{ id: params.country, name: params.country, slug: params.country }];
-        }
-        return adapted;
-      })
+      .map((item) => adaptVsmovMovieItem(item))
       .filter(Boolean);
 
     const totalItems = rawRes.pagination?.totalItems || mappedItems.length || 0;
@@ -1024,12 +1002,12 @@ export function applyMovieFilters(items: any[], params: MovieFilterParams): any[
     );
   }
 
-  // 2. Lọc theo Quốc Gia
+  // 2. Lọc theo Quốc Gia: Khi có filter country cụ thể, KHÔNG được coi unknown/empty là match
   if (params.country) {
     const targetCountry = params.country.toLowerCase().trim();
     filtered = filtered.filter((item) => {
       if (!item.country || (Array.isArray(item.country) && item.country.length === 0)) {
-        return true;
+        return false;
       }
       const ctryArray = Array.isArray(item.country)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1041,7 +1019,7 @@ export function applyMovieFilters(items: any[], params: MovieFilterParams): any[
     });
   }
 
-  // 3. Lọc theo Thể Loại
+  // 3. Lọc theo Thể Loại: Khi có filter category cụ thể, KHÔNG được coi unknown/empty là match
   if (params.category) {
     const targetCat = params.category.toLowerCase().trim();
     const isExplicitHoatHinh = params.category === "hoat-hinh" || params.type === "hoat-hinh";
@@ -1052,7 +1030,7 @@ export function applyMovieFilters(items: any[], params: MovieFilterParams): any[
       }
 
       if (!item.category || (Array.isArray(item.category) && item.category.length === 0)) {
-        return true;
+        return false;
       }
       const catArray = Array.isArray(item.category)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1068,7 +1046,7 @@ export function applyMovieFilters(items: any[], params: MovieFilterParams): any[
   if (params.year) {
     filtered = filtered.filter((item) => {
       if (item.year === undefined || item.year === null || item.year === "") {
-        return true;
+        return false;
       }
       return String(item.year || "").includes(String(params.year));
     });
@@ -1178,8 +1156,6 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
     });
   }
 
-  const finalItems = candidates.slice(0, limit);
-
   // ============================================================
   // TÍNH TỔNG SỐ PHIM VÀ TRANG (CHUẨN HÓA THEO PHẠM VI BỘ LỌC FEDERATION 3 NGUỒN)
   // ============================================================
@@ -1196,8 +1172,16 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
   let totalItemsCount: number;
   let maxTotalPages: number;
 
-  if (params.type || activeFiltersCount > 1) {
-    // KHI CÓ BỘ LỌC TYPE HOẶC NHIỀU BỘ LỌC KẾT HỢP:
+  if (activeFiltersCount >= 2) {
+    // KHI CÓ TỪ 2 BỘ LỌC TRỞ LÊN (VD: type + category + country):
+    // PhimAPI và VSMOV hỗ trợ filter đa chiều, còn NguonC chỉ lọc 1 chiều (không hỗ trợ compound filter).
+    // Do đó NguonC totalItems không được cộng vào để tránh thổi phồng tổng số phim lên hàng chục nghìn.
+    const VSMOV_OVERLAP = 0.75;
+    const uniqueFromVsmov = Math.round(countApi3 * (1 - VSMOV_OVERLAP));
+    totalItemsCount = (countApi1 || 0) + (countApi3 > 0 ? uniqueFromVsmov : 0) || candidates.length;
+    maxTotalPages = Math.max(1, Math.ceil(totalItemsCount / limit));
+  } else if (params.type) {
+    // KHI CHỈ LỌC DUY NHẤT TYPE (cả 3 nguồn đều hỗ trợ type endpoint):
     const NGUONC_OVERLAP = 0.80;
     const VSMOV_OVERLAP = 0.75;
     const uniqueFromNguonC = Math.round(countApi2 * (1 - NGUONC_OVERLAP));
@@ -1215,11 +1199,14 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
     maxTotalPages = Math.max(1, Math.ceil(totalItemsCount / limit));
   }
 
+  const requestedPage = params.page || 1;
+  const finalItems = (maxTotalPages > 0 && requestedPage > maxTotalPages) ? [] : candidates.slice(0, limit);
+
   const payload = {
     status: true,
     items: finalItems,
     pagination: {
-      currentPage: params.page || 1,
+      currentPage: requestedPage,
       totalPages: maxTotalPages,
       totalItems: totalItemsCount,
     },
@@ -1435,7 +1422,7 @@ export const movieApi = {
   // ==========================================
   getAiCandidates: async (params: MovieFilterParams = {}, options?: AiCandidateOptions) => {
     const cacheKey = JSON.stringify({
-      v: "ai_cand_1",
+      v: "ai_cand_2",
       category: params.category || "",
       country: params.country || "",
       year: params.year || "",

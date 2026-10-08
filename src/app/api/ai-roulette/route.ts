@@ -13,6 +13,13 @@ const MOOD_META: Record<
   string,
   { label: string; desc: string; categorySlug: string; defaultPunchline: string; defaultBadges: string[] }
 > = {
+  all: {
+    label: "Mọi Thể Loại",
+    desc: "Tất cả thể loại phim phong phú",
+    categorySlug: "",
+    defaultPunchline: "Tuyệt phẩm điện ảnh dành riêng cho bạn: bùng nổ cảm xúc và trọn vẹn từng phút giây!",
+    defaultBadges: ["Đặc Sắc", "Bốc Quẻ Chuẩn"],
+  },
   "xa-stress": {
     label: "Xả Stress",
     desc: "Hài hước, vui tươi, dí dỏm, mang lại tiếng cười sảng khoái và năng lượng tích cực",
@@ -30,7 +37,7 @@ const MOOD_META: Record<
   "hack-nao": {
     label: "Hack Não",
     desc: "Trinh thám, đấu trí, cốt truyện xoắn não, cú twist giật gân bất ngờ không thể đoán trước",
-    categorySlug: "tam-ly",
+    categorySlug: "bi-an",
     defaultPunchline: "Mê cung bí ẩn cùng những cú bẻ lái bất ngờ sẽ khiến bạn không thể rời mắt!",
     defaultBadges: ["Hack Não", "Trinh Thám", "Plot Twist"],
   },
@@ -826,6 +833,38 @@ export function matchesCriteria(
       const cName = cleanNormalizedString(typeof c === "string" ? c : c.name || "");
       if (cSlug === normTarget || cName === normTarget) return true;
       if (cSlug.replace(/\s+/g, "-") === normTarget.replace(/\s+/g, "-")) return true;
+
+      if (normTarget === "bi-an" || normTarget === "hack-nao") {
+        if (
+          cSlug === "bi-an" ||
+          cSlug === "trinh-tham" ||
+          cSlug === "hinh-su" ||
+          cName.includes("bi an") ||
+          cName.includes("trinh tham") ||
+          cName.includes("hinh su")
+        ) {
+          return true;
+        }
+      }
+      if (normTarget === "hoat-hinh" || normTarget === "anime") {
+        if (
+          cSlug === "hoat-hinh" ||
+          cSlug === "anime" ||
+          cName.includes("hoat hinh") ||
+          cName.includes("anime")
+        ) {
+          return true;
+        }
+      }
+      if (normTarget === "vien-tuong") {
+        if (
+          cSlug === "vien-tuong" ||
+          cSlug === "khoa-hoc-vien-tuong" ||
+          cName.includes("vien tuong")
+        ) {
+          return true;
+        }
+      }
       return false;
     });
 
@@ -856,8 +895,13 @@ export function matchesCriteria(
         if (
           cSlug === "au-my" ||
           cSlug === "my" ||
+          cSlug === "anh" ||
+          cSlug === "phap" ||
+          cSlug === "duc" ||
+          cSlug === "canada" ||
+          cSlug === "australia" ||
           cName.includes("au my") ||
-          /\b(my|hoa ky)\b/.test(cName)
+          /\b(my|hoa ky|anh|phap|duc|canada|australia)\b/.test(cName)
         ) {
           return true;
         }
@@ -871,6 +915,26 @@ export function matchesCriteria(
           cName.includes("hong kong") ||
           cName.includes("dai loan")
         ) {
+          return true;
+        }
+      }
+      if (normTargetCountry.includes("viet nam")) {
+        if (cSlug === "viet-nam" || cName.includes("viet nam")) {
+          return true;
+        }
+      }
+      if (normTargetCountry.includes("han quoc")) {
+        if (cSlug === "han-quoc" || cName.includes("han quoc")) {
+          return true;
+        }
+      }
+      if (normTargetCountry.includes("nhat ban")) {
+        if (cSlug === "nhat-ban" || cName.includes("nhat ban")) {
+          return true;
+        }
+      }
+      if (normTargetCountry.includes("thai lan")) {
+        if (cSlug === "thai-lan" || cName.includes("thai lan")) {
           return true;
         }
       }
@@ -1089,7 +1153,10 @@ export async function POST(req: NextRequest) {
     const excludeTitles: string[] = Array.isArray(body.excludeTitles) ? body.excludeTitles : [];
     const userApiKey: string = body.apiKey || "";
 
-    const moodMeta = MOOD_META[mood] || MOOD_META["xa-stress"];
+    const moodMeta =
+      MOOD_META[mood] ||
+      Object.values(MOOD_META).find((m) => m.categorySlug === mood) ||
+      (mood === "all" || mood === "bat-ky" ? MOOD_META["all"] : MOOD_META["xa-stress"]);
     const countryMeta = COUNTRY_META[country] || COUNTRY_META["all"];
     const companionDesc = COMPANION_META[companion] || COMPANION_META["mot-minh"];
 
@@ -1127,12 +1194,10 @@ export async function POST(req: NextRequest) {
     const targetCountrySlug = country !== "all" ? (countryMeta.slug || country) : undefined;
 
     // BỘ THU THẬP ỨNG VIÊN ĐA NGUỒN (UNIFIED CANDIDATE POOL):
-    // Thay vì early-exit ngắt sớm ở từng stage khiến 'Liều' chỉ nhận 1-2 phim nổi tiếng,
-    // ta gom ứng viên hợp lệ từ Catalog (đa page), AI, Curated Vault và Vector Search.
     // Toàn bộ candidate ĐỀU BẮT BUỘC vượt qua matchesCriteria()!
     const candidateMap = new Map<string, ScoredCandidateItem>();
 
-    const addCandidateToPool = (
+    const addCandidateToPool = async (
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       movieItem: any,
       options: {
@@ -1147,13 +1212,30 @@ export async function POST(req: NextRequest) {
       if (isExcluded(slug) || isExcluded(movieItem.name) || isExcluded(movieItem.title)) return;
       if (candidateMap.has(slug)) return;
 
-      // CỔNG KIỂM DUYỆT BẮT BUỘC: Category AND Country AND Duration AND Exclusion
-      if (!matchesCriteria(movieItem, targetCategorySlug, targetCountrySlug, duration, allExclusions)) {
+      let itemToCheck = movieItem;
+      // Requirement 3 & 4: Nếu candidate thiếu category, country hoặc thời lượng/tập, hydrate detail thật từ upstream
+      const needsCategory = Boolean(targetCategorySlug && targetCategorySlug !== "all");
+      const hasCategories = Array.isArray(itemToCheck.category) && itemToCheck.category.length > 0;
+      const needsCountry = Boolean(targetCountrySlug && targetCountrySlug !== "all");
+      const hasCountries = Array.isArray(itemToCheck.country) && itemToCheck.country.length > 0;
+      const isMissingEssentialMeta = (needsCategory && !hasCategories) || (needsCountry && !hasCountries) || !itemToCheck.time;
+
+      if (isMissingEssentialMeta) {
+        try {
+          const detail = await movieApi.getMovieDetail(itemToCheck.slug);
+          if (detail?.movie) {
+            itemToCheck = { ...itemToCheck, ...detail.movie };
+          }
+        } catch {}
+      }
+
+      // CỔNG KIỂM DUYỆT BẮT BUỘC: Category AND Country AND Duration AND Exclusion AND Phim Lẻ
+      if (!matchesCriteria(itemToCheck, targetCategorySlug, targetCountrySlug, duration, allExclusions)) {
         return;
       }
 
       candidateMap.set(slug, {
-        movie: movieItem,
+        movie: itemToCheck,
         punchline: options.punchline,
         badges: options.badges,
         relevanceScore: options.relevanceScore ?? 92,
@@ -1161,8 +1243,8 @@ export async function POST(req: NextRequest) {
       });
     };
 
-    // 2. KIỂM TRA CACHE CANDIDATE POOL V2 (1 GIỜ) ĐỂ TÁI SỬ DỤNG CHO CÙNG BỘ TIÊU CHÍ (PHIM LẺ ONLY)
-    const poolCacheKey = `ai:roulette:pool:v2:${mood}:${country}:${companion}:${duration}:${surprise}`;
+    // 2. KIỂM TRA CACHE CANDIDATE POOL V3 (1 GIỜ) ĐỂ TÁI SỬ DỤNG CHO CÙNG BỘ TIÊU CHÍ (PHIM LẺ ONLY)
+    const poolCacheKey = `ai:roulette:pool:v3:${mood}:${country}:${companion}:${duration}:${surprise}`;
     let isPoolFromCache = false;
 
     try {
@@ -1170,7 +1252,7 @@ export async function POST(req: NextRequest) {
       if (Array.isArray(cachedPool) && cachedPool.length > 0) {
         for (const item of cachedPool) {
           if (item?.movie) {
-            addCandidateToPool(item.movie, {
+            await addCandidateToPool(item.movie, {
               punchline: item.punchline,
               badges: item.badges,
               relevanceScore: item.relevanceScore,
@@ -1188,12 +1270,7 @@ export async function POST(req: NextRequest) {
 
     if (!isPoolFromCache) {
       // 1. TRUY VẤN CATALOG ĐA TẦNG (CATALOG ENGINE RETRIEVAL - PHIM LẺ ONLY)
-      // Tùy theo chế độ bất ngờ, lấy số trang phù hợp:
-      // - "lieu": lấy song song page 1, 2, 3 (đến 72+ ứng viên) để gom cả top hot, tầm trung và hidden gems ít người biết.
-      // - "can-bang" & "an-toan": mặc định chỉ lấy page 1 (24 ứng viên chất lượng cao nhất), chỉ lấy thêm page 2 nếu pool < 12.
       const initialPages = surprise === "lieu" ? [1, 2, 3] : [1];
-      
-      // Bốc Quẻ = PHIM LẺ ONLY: Truy vấn trực tiếp type "phim-le" từ catalog (hoặc "hoat-hinh" nếu chọn mood anime)
       const effectiveType = targetCategorySlug === "hoat-hinh" ? "hoat-hinh" : "phim-le";
 
       try {
@@ -1216,7 +1293,7 @@ export async function POST(req: NextRequest) {
           if (catRes?.items?.length) {
             for (const item of catRes.items) {
               const catName = item.category?.[0]?.name || moodMeta.label;
-              addCandidateToPool(item, {
+              await addCandidateToPool(item, {
                 punchline: `Tuyệt phẩm ${catName} chuẩn gu định mệnh: bùng nổ cảm xúc và trọn vẹn từng phút giây!`,
                 badges: [catName, item.country?.[0]?.name || "Đặc Sắc", "Bốc Quẻ Chuẩn"],
                 relevanceScore: 92,
@@ -1243,7 +1320,7 @@ export async function POST(req: NextRequest) {
             if (page2Res?.items?.length) {
               for (const item of page2Res.items) {
                 const catName = item.category?.[0]?.name || moodMeta.label;
-                addCandidateToPool(item, {
+                await addCandidateToPool(item, {
                   punchline: `Tuyệt phẩm ${catName} chuẩn gu định mệnh: bùng nổ cảm xúc và trọn vẹn từng phút giây!`,
                   badges: [catName, item.country?.[0]?.name || "Đặc Sắc", "Bốc Quẻ Chuẩn"],
                   relevanceScore: 92,
@@ -1273,7 +1350,7 @@ export async function POST(req: NextRequest) {
             if (!vp.id || isExcluded(vp.id) || isExcluded(vp.title)) continue;
             const candidateDetail = await searchSingleMovieFast(vp.title, vp.originalName || "");
             if (candidateDetail && candidateDetail.slug) {
-              addCandidateToPool(candidateDetail, {
+              await addCandidateToPool(candidateDetail, {
                 punchline: moodMeta.defaultPunchline,
                 badges: moodMeta.defaultBadges,
                 relevanceScore: Math.min(99, Math.round(88 + (vp.similarity || 0.5) * 15)),
@@ -1287,7 +1364,6 @@ export async function POST(req: NextRequest) {
       }
 
       // 3. BỔ SUNG TỪ FAST AI HYBRID (CHỈ GỌI KHI CẦN THÊM HOẶC THIẾU ỨNG VIÊN)
-      // Nếu candidate pool hiện tại còn mỏng (< 6 phim) thì mới gọi AI để tiết kiệm quota
       if (candidateMap.size < 6) {
         try {
           const countryConstraint =
@@ -1381,7 +1457,7 @@ Trả về DUY NHẤT một chuỗi JSON hợp lệ:
 
                 const matched = await searchSingleMovieFast(candTitle, candOrig);
                 if (matched && matched.slug) {
-                  addCandidateToPool(matched, {
+                  await addCandidateToPool(matched, {
                     punchline: cand.punchline || moodMeta.defaultPunchline,
                     badges: Array.isArray(cand.badges) ? cand.badges.slice(0, 3) : moodMeta.defaultBadges,
                     relevanceScore: typeof cand.matchScore === "number" ? cand.matchScore : 97,
@@ -1411,7 +1487,7 @@ Trả về DUY NHẤT một chuỗi JSON hợp lệ:
         for (const pick of available) {
           const matched = await searchSingleMovieFast(pick.title, pick.originalTitle);
           if (matched && matched.slug) {
-            addCandidateToPool(matched, {
+            await addCandidateToPool(matched, {
               punchline: pick.punchline || moodMeta.defaultPunchline,
               badges: pick.badges || moodMeta.defaultBadges,
               relevanceScore: 95,
@@ -1430,8 +1506,6 @@ Trả về DUY NHẤT một chuỗi JSON hợp lệ:
     // 5. CỔNG AN TOÀN & XẾP HẠNG BẤT NGỜ (PERCENTILE RANKING)
     const validCandidates = Array.from(candidateMap.values());
 
-    // Nếu sau tất cả các nguồn vẫn không có ứng viên nào thỏa mãn:
-    // Tuyệt đối không fallback sang phim hot ngẫu nhiên sai tiêu chí!
     if (validCandidates.length === 0) {
       return NextResponse.json(
         {
@@ -1442,12 +1516,8 @@ Trả về DUY NHẤT một chuỗi JSON hợp lệ:
       );
     }
 
-    // Áp dụng thuật toán xếp hạng Percentile theo chế độ bất ngờ
     const rankedCandidates = rankCandidatesBySurprise(validCandidates, surprise);
 
-    // Dynamic Weighted Random Sampling trong top ứng viên phù hợp:
-    // Đảm bảo cùng một bộ filter thì mỗi lượt quay ngẫu nhiên sẽ lấy ra các phim khác nhau,
-    // nhưng vẫn đảm bảo tính chuẩn xác và chất lượng cao nhất.
     let selectedWinner: ScoredCandidateItem;
     if (rankedCandidates.length === 1) {
       selectedWinner = rankedCandidates[0];
@@ -1505,17 +1575,18 @@ Trả về DUY NHẤT một chuỗi JSON hợp lệ:
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const mergedMovie: any = fullDetail?.movie || fullDetail || foundMovie;
 
-    const firstValidCatName =
-      (Array.isArray(mergedMovie.category || foundMovie.category)
-        ? (mergedMovie.category || foundMovie.category).find((c: ItemMeta | string) => {
-            const cSlug = cleanNormalizedString(typeof c === "string" ? c : c?.slug || c?.name || "");
-            return cSlug === cleanNormalizedString(targetCategorySlug);
-          })
-        : null
-      )?.name ||
-      (Array.isArray(mergedMovie.category) ? mergedMovie.category[0]?.name : null) ||
-      (Array.isArray(foundMovie.category) ? foundMovie.category[0]?.name : null) ||
-      moodMeta.label;
+    const matchedCatObj = Array.isArray(mergedMovie.category || foundMovie.category)
+      ? (mergedMovie.category || foundMovie.category).find((c: ItemMeta | string) => {
+          const cSlug = cleanNormalizedString(typeof c === "string" ? c : c?.slug || c?.name || "");
+          return targetCategorySlug ? cSlug === cleanNormalizedString(targetCategorySlug) : false;
+        })
+      : null;
+
+    const firstValidCatName = targetCategorySlug
+      ? (typeof matchedCatObj === "object" ? matchedCatObj?.name : matchedCatObj) || moodMeta.label
+      : (Array.isArray(mergedMovie.category) ? mergedMovie.category[0]?.name : null) ||
+        (Array.isArray(foundMovie.category) ? foundMovie.category[0]?.name : null) ||
+        moodMeta.label;
 
     const rawCategories = mergedMovie.category || foundMovie.category || [];
     const allCategories: string[] = Array.isArray(rawCategories)
@@ -1526,17 +1597,18 @@ Trả về DUY NHẤT một chuỗi JSON hợp lệ:
       ? [rawCategories.trim()]
       : [];
 
-    const firstValidCountryName =
-      (Array.isArray(mergedMovie.country || foundMovie.country)
-        ? (mergedMovie.country || foundMovie.country).find((c: ItemMeta | string) => {
-            const cSlug = cleanNormalizedString(typeof c === "string" ? c : c?.slug || c?.name || "");
-            return cSlug === cleanNormalizedString(targetCountrySlug || "");
-          })
-        : null
-      )?.name ||
-      (Array.isArray(mergedMovie.country) ? mergedMovie.country[0]?.name : null) ||
-      (Array.isArray(foundMovie.country) ? foundMovie.country[0]?.name : null) ||
-      countryMeta.label;
+    const matchedCountryObj = Array.isArray(mergedMovie.country || foundMovie.country)
+      ? (mergedMovie.country || foundMovie.country).find((c: ItemMeta | string) => {
+          const cSlug = cleanNormalizedString(typeof c === "string" ? c : c?.slug || c?.name || "");
+          return targetCountrySlug ? cSlug === cleanNormalizedString(targetCountrySlug) : false;
+        })
+      : null;
+
+    const firstValidCountryName = targetCountrySlug
+      ? (typeof matchedCountryObj === "object" ? matchedCountryObj?.name : matchedCountryObj) || countryMeta.label
+      : (Array.isArray(mergedMovie.country) ? mergedMovie.country[0]?.name : null) ||
+        (Array.isArray(foundMovie.country) ? foundMovie.country[0]?.name : null) ||
+        countryMeta.label;
 
     const movieMins = getMovieDurationMinutes(mergedMovie) || getMovieDurationMinutes(foundMovie);
     const formattedDuration = movieMins

@@ -242,6 +242,15 @@ export async function fetchVsmovYear(
   }
 }
 
+function mapVsmovTypeParam(type?: string): string | undefined {
+  if (!type) return undefined;
+  if (type === "phim-le" || type === "single") return "single";
+  if (type === "phim-bo" || type === "series") return "series";
+  if (type === "hoat-hinh" || type === "hoathinh") return "hoathinh";
+  if (type === "tv-shows" || type === "tvshows") return "tvshows";
+  return type;
+}
+
 export interface VsmovFilterOptions {
   keyword?: string;
   type?: string;
@@ -255,9 +264,9 @@ export interface VsmovFilterOptions {
 /**
  * Generalized VSMOV catalog fetcher with first-class server-side filter support:
  * - Keyword search: /api/tim-kiem
+ * - Genres: /api/the-loai/[slug] (supports country, type, year params)
+ * - Countries: /api/quoc-gia/[slug] (supports type, year params)
  * - Types: /api/danh-sach/phim-bo, /api/danh-sach/phim-le, /api/the-loai/hoat-hinh, /api/the-loai/tv-shows
- * - Genres: /api/the-loai/[slug] (supports year, country, type params)
- * - Countries: /api/quoc-gia/[slug] (supports year, type params)
  * - Years: /api/nam/[year] (supports type params)
  * - Default: /api/danh-sach/phim-moi-cap-nhat
  */
@@ -277,11 +286,21 @@ export async function fetchVsmovFiltered(
   if (options.keyword && options.keyword.trim()) {
     queryParams.set("keyword", options.keyword.trim());
     endpoint = `${VSMOV_API_BASE}/tim-kiem?${queryParams.toString()}`;
+  } else if (options.category) {
+    // /api/the-loai/[slug] hỗ trợ tốt nhất đa tiêu chí (country, type, year)
+    if (options.country) queryParams.set("country", options.country);
+    const mappedType = mapVsmovTypeParam(options.type);
+    if (mappedType) queryParams.set("type", mappedType);
+    if (options.year) queryParams.set("year", String(options.year));
+    endpoint = `${VSMOV_API_BASE}/the-loai/${encodeURIComponent(options.category)}?${queryParams.toString()}`;
+  } else if (options.country) {
+    // /api/quoc-gia/[slug] hỗ trợ type, year
+    const mappedType = mapVsmovTypeParam(options.type);
+    if (mappedType) queryParams.set("type", mappedType);
+    if (options.year) queryParams.set("year", String(options.year));
+    endpoint = `${VSMOV_API_BASE}/quoc-gia/${encodeURIComponent(options.country)}?${queryParams.toString()}`;
   } else if (options.type) {
     if (options.year) queryParams.set("year", String(options.year));
-    if (options.country) queryParams.set("country", options.country);
-    if (options.category) queryParams.set("category", options.category);
-
     if (options.type === "phim-bo") {
       endpoint = `${VSMOV_API_BASE}/danh-sach/phim-bo?${queryParams.toString()}`;
     } else if (options.type === "phim-le") {
@@ -295,14 +314,9 @@ export async function fetchVsmovFiltered(
     } else {
       endpoint = `${VSMOV_API_BASE}/danh-sach/${encodeURIComponent(options.type)}?${queryParams.toString()}`;
     }
-  } else if (options.category) {
-    if (options.year) queryParams.set("year", String(options.year));
-    if (options.country) queryParams.set("country", options.country);
-    endpoint = `${VSMOV_API_BASE}/the-loai/${encodeURIComponent(options.category)}?${queryParams.toString()}`;
-  } else if (options.country) {
-    if (options.year) queryParams.set("year", String(options.year));
-    endpoint = `${VSMOV_API_BASE}/quoc-gia/${encodeURIComponent(options.country)}?${queryParams.toString()}`;
   } else if (options.year) {
+    const mappedType = mapVsmovTypeParam(options.type);
+    if (mappedType) queryParams.set("type", mappedType);
     endpoint = `${VSMOV_API_BASE}/nam/${encodeURIComponent(String(options.year))}?${queryParams.toString()}`;
   } else {
     endpoint = `${VSMOV_API_BASE}/danh-sach/phim-moi-cap-nhat?${queryParams.toString()}`;
