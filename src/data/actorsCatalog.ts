@@ -494,7 +494,7 @@ export const ACTORS_CATALOG: ActorCatalogItem[] = [
       "Chính kịch"
     ],
     "roles": "Võ Mị Nương Truyền Kỳ • Hoàn Châu Cách Cách",
-    "avatarUrl": "https://image.tmdb.org/t/p/w500/t0f0Buh71wP8R4z1d3p0wUeY8kP.jpg",
+    "avatarUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Fan_Bingbing_attending_BIFAN_2026_11.jpg/440px-Fan_Bingbing_attending_BIFAN_2026_11.jpg",
     "tmdbPersonId": 108304,
     "birthday": "1981-09-16",
     "placeOfBirth": "Qingdao, Shandong, China",
@@ -5489,4 +5489,25 @@ export function getActorBySlug(slug?: string): ActorCatalogItem | undefined {
 
 export function getAllCatalogActors(): ActorCatalogItem[] {
   return ACTORS_CATALOG;
+}
+
+export function findCatalogActor(nameOrQuery?: string): ActorCatalogItem | undefined {
+  if (!nameOrQuery) return undefined;
+  const clean = nameOrQuery.toLowerCase().trim();
+  const cleanNoDash = clean.replace(/-/g, " ");
+  return ACTORS_CATALOG.find((a) => {
+    if (a.name.toLowerCase().trim() === clean || a.name.toLowerCase().trim() === cleanNoDash) return true;
+    if (a.englishName && (a.englishName.toLowerCase().trim() === clean || a.englishName.toLowerCase().trim() === cleanNoDash)) return true;
+    if (a.slug === clean) return true;
+    if (a.aliases && a.aliases.some((al) => {
+      const aClean = al.toLowerCase().trim();
+      return aClean === clean || aClean === cleanNoDash;
+    })) return true;
+    return false;
+  });
+}
+
+export function getCatalogActorAvatar(nameOrQuery?: string): string | undefined {
+  const actor = findCatalogActor(nameOrQuery);
+  return actor?.avatarUrl;
 }

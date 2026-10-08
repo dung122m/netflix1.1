@@ -1,14 +1,21 @@
 "use client";
 
-import React, { useRef, useState, useCallback, useEffect } from "react";
-import Image from "next/image";
-import { User, ChevronLeft, ChevronRight, Users } from "lucide-react";
+import React, { useRef, useState, useCallback, useEffect, useMemo } from "react";
+import { ChevronLeft, ChevronRight, Users } from "lucide-react";
 import { TmdbCastMember } from "@/services/tmdbService";
-import { ActorChipClient } from "@/components/ActorChipClient";
+import { ActorAvatar } from "@/components/actors/ActorAvatar";
+import { findCatalogActor } from "@/data/actorsCatalog";
 
 export interface MovieCastGalleryProps {
   cast?: TmdbCastMember[];
   fallbackActors?: string[];
+}
+
+interface ProcessedCastItem {
+  id: string | number;
+  name: string;
+  character?: string;
+  avatarUrl?: string | null;
 }
 
 export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
@@ -29,6 +36,40 @@ export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
     }
   };
 
+  // Chuẩn hóa danh sách diễn viên hiển thị: ưu tiên cast TMDB, nếu không có thì dùng fallbackActors
+  const displayItems = useMemo<ProcessedCastItem[]>(() => {
+    if (cast && cast.length > 0) {
+      return cast.map((c) => {
+        // Nếu TMDB không có profile_path, tra cứu thử trong danh mục actorsCatalog của hệ thống
+        const catalogAvatar = !c.profile_path ? findCatalogActor(c.name)?.avatarUrl : undefined;
+        return {
+          id: c.id,
+          name: c.name,
+          character: c.character || undefined,
+          avatarUrl: c.profile_path || catalogAvatar || null,
+        };
+      });
+    }
+
+    if (fallbackActors && fallbackActors.length > 0) {
+      return fallbackActors
+        .map((name) => name.trim())
+        .filter(Boolean)
+        .slice(0, 16)
+        .map((name, idx) => {
+          const catalogItem = findCatalogActor(name);
+          return {
+            id: `fb-${idx}-${name}`,
+            name,
+            character: catalogItem?.roles ? catalogItem.roles.split("•")[0]?.trim() : undefined,
+            avatarUrl: catalogItem?.avatarUrl || null,
+          };
+        });
+    }
+
+    return [];
+  }, [cast, fallbackActors]);
+
   const checkScroll = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
@@ -47,7 +88,7 @@ export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
       if (el) el.removeEventListener("scroll", checkScroll);
       window.removeEventListener("resize", checkScroll);
     };
-  }, [checkScroll, cast]);
+  }, [checkScroll, displayItems]);
 
   const handleScroll = (direction: "left" | "right") => {
     const el = scrollRef.current;
@@ -59,22 +100,8 @@ export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
     });
   };
 
-  // FALLBACK: Nếu không có dữ liệu TMDB Cast, render dạng Chip như hiện tại
-  if (!cast || cast.length === 0) {
-    if (!fallbackActors || fallbackActors.length === 0) return null;
-
-    return (
-      <div className="flex flex-wrap items-baseline gap-2">
-        <span className="text-gray-400 font-medium min-w-[75px] flex-shrink-0 text-xs uppercase tracking-wider">
-          Diễn viên:
-        </span>
-        <div className="flex flex-wrap gap-1.5 items-center">
-          {fallbackActors.slice(0, 10).map((a, idx) => (
-            <ActorChipClient key={idx} name={a} isDirector={false} />
-          ))}
-        </div>
-      </div>
-    );
+  if (displayItems.length === 0) {
+    return null;
   }
 
   return (
@@ -90,7 +117,7 @@ export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
           </h3>
         </div>
         <span className="text-[11px] text-gray-400 font-medium">
-          {cast.length} diễn viên
+          {displayItems.length} diễn viên
         </span>
       </div>
 
@@ -143,7 +170,7 @@ export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
           ref={scrollRef}
           className="flex gap-2.5 sm:gap-3 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden py-1 pb-2"
         >
-          {cast.map((actor) => (
+          {displayItems.map((actor) => (
             <button
               key={actor.id}
               type="button"
@@ -152,28 +179,18 @@ export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
                 fetch(`/api/actor-bio?name=${encodeURIComponent(actor.name)}`).catch(() => {});
               }}
               title={`Xem hồ sơ & phim của ${actor.name}${actor.character ? ` (Vai: ${actor.character})` : ""}`}
-              className="group/card flex-none w-[100px] sm:w-[115px] md:w-[125px] rounded-xl bg-zinc-900/70 hover:bg-zinc-800/90 border border-white/10 hover:border-rose-500/40 p-2 transition-all duration-200 hover:scale-[1.03] shadow-md cursor-pointer flex flex-col text-left"
+              className="group/card flex-none w-[105px] sm:w-[115px] md:w-[125px] rounded-xl bg-zinc-900/70 hover:bg-zinc-800/90 border border-white/10 hover:border-rose-500/40 p-2 transition-all duration-200 hover:scale-[1.03] shadow-md cursor-pointer flex flex-col text-left"
             >
-              {/* ẢNH AVATAR CHÂN DUNG 3:4 */}
+              {/* ẢNH AVATAR CHÂN DUNG 3:4 VỚI FALLBACK CAO CẤP */}
               <div className="relative aspect-[3/4] w-full rounded-lg bg-zinc-950 overflow-hidden border border-white/5 flex items-center justify-center">
-                {actor.profile_path ? (
-                  <Image
-                    src={actor.profile_path}
-                    alt={actor.name}
-                    fill
-                    sizes="(max-width: 640px) 100px, 130px"
-                    unoptimized
-                    decoding="async"
-                    loading="lazy"
-                    className="object-cover transition-transform duration-300 group-hover/card:scale-105"
-                  />
-                ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-b from-zinc-800 to-zinc-950 text-zinc-500">
-                    <User className="w-7 h-7 sm:w-8 sm:h-8 mb-1 text-zinc-600" />
-                    <span className="text-[9px] font-semibold text-zinc-500">No Image</span>
-                  </div>
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity" />
+                <ActorAvatar
+                  name={actor.name}
+                  avatarUrl={actor.avatarUrl}
+                  shape="card"
+                  imageClassName="group-hover/card:scale-105 transition-transform duration-300"
+                  sizes="(max-width: 640px) 105px, 130px"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity pointer-events-none" />
               </div>
 
               {/* TÊN DIỄN VIÊN & NHÂN VẬT */}
@@ -181,9 +198,13 @@ export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
                 <h4 className="text-[11.5px] sm:text-xs font-bold text-white group-hover/card:text-rose-400 transition-colors line-clamp-1">
                   {actor.name}
                 </h4>
-                {actor.character && (
+                {actor.character ? (
                   <p className="text-[10px] sm:text-[11px] text-zinc-400 line-clamp-1 mt-0.5" title={actor.character}>
                     {actor.character}
+                  </p>
+                ) : (
+                  <p className="text-[10px] text-zinc-500 line-clamp-1 mt-0.5">
+                    Diễn viên
                   </p>
                 )}
               </div>

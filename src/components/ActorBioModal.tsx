@@ -7,6 +7,7 @@ import { User, X, Sparkles, ExternalLink, Film, Loader2, BookOpen } from "lucide
 import { ActorProfile } from "@/services/wikipediaService";
 import { useBodyScrollLock } from "@/lib/scrollLock";
 import { splitBlockIntoNaturalParagraphs } from "@/lib/bioFormatter";
+import { ActorAvatar } from "@/components/actors/ActorAvatar";
 
 export interface ActorBioModalProps {
   initialActorName?: string;
@@ -124,20 +125,12 @@ export const ActorBioModal: React.FC<ActorBioModalProps> = ({ initialActorName }
               {/* ACTOR HEADER WITH PHOTO */}
               <div className="flex items-start sm:items-center gap-4">
                 <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden bg-zinc-900 border border-white/20 flex-none shadow-xl ring-1 ring-white/10">
-                  {profile?.thumbnail ? (
-                    <Image
-                      src={profile.thumbnail}
-                      alt={profile.title || actorName}
-                      fill
-                      unoptimized
-                      className="object-cover object-top"
-                      sizes="120px"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-500 bg-gradient-to-br from-zinc-800 to-zinc-950">
-                      <User className="w-10 h-10 text-gray-400" />
-                    </div>
-                  )}
+                  <ActorAvatar
+                    name={profile?.title || actorName}
+                    avatarUrl={profile?.thumbnail}
+                    shape="rounded"
+                    sizes="120px"
+                  />
                 </div>
 
                 <div className="min-w-0 flex-1 space-y-1">

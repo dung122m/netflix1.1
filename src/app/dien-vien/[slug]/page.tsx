@@ -28,6 +28,7 @@ import {
 } from "@/services/tmdbService";
 import { fetchActorProfile } from "@/services/wikipediaService";
 import { ActorDetailClient } from "@/components/actors/ActorDetailClient";
+import { ActorAvatar } from "@/components/actors/ActorAvatar";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -223,21 +224,14 @@ export default async function ActorDetailPage({ params }: PageProps) {
             
             {/* PORTRAIT IMAGE */}
             <div className="relative w-40 h-52 sm:w-48 sm:h-64 md:w-56 md:h-72 rounded-2xl overflow-hidden bg-zinc-900 border-2 border-white/20 shadow-2xl shrink-0 group ring-1 ring-white/10">
-              {bestAvatar ? (
-                <Image
-                  src={bestAvatar}
-                  alt={canonicalName}
-                  fill
-                  priority
-                  unoptimized
-                  sizes="(max-width: 768px) 192px, 224px"
-                  className="object-cover object-top group-hover:scale-105 transition-transform duration-500"
-                />
-              ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-zinc-800 to-zinc-950 text-gray-400">
-                  <User className="w-16 h-16 sm:w-20 sm:h-20" />
-                </div>
-              )}
+              <ActorAvatar
+                name={canonicalName}
+                avatarUrl={bestAvatar}
+                shape="card"
+                priority
+                imageClassName="group-hover:scale-105 transition-transform duration-500"
+                sizes="(max-width: 768px) 192px, 224px"
+              />
             </div>
 
             {/* ACTOR DETAILS & FACTS */}
@@ -355,19 +349,13 @@ export default async function ActorDetailPage({ params }: PageProps) {
                   href={`/dien-vien/${actor.slug}`}
                   className="group p-3 rounded-2xl bg-zinc-950/70 hover:bg-zinc-900 border border-white/[0.06] hover:border-netflix-red/50 transition-all text-center space-y-2 shadow"
                 >
-                  <div className="w-16 h-16 rounded-full overflow-hidden bg-zinc-800 mx-auto border border-white/10 group-hover:border-netflix-red group-hover:scale-105 transition-all flex items-center justify-center">
-                    {actor.avatarUrl ? (
-                      <Image
-                        src={actor.avatarUrl}
-                        alt={actor.name}
-                        width={64}
-                        height={64}
-                        unoptimized
-                        className="object-cover w-full h-full"
-                      />
-                    ) : (
-                      <User className="w-7 h-7 text-gray-400" />
-                    )}
+                  <div className="w-16 h-16 rounded-full overflow-hidden bg-zinc-800 mx-auto border border-white/10 group-hover:border-netflix-red group-hover:scale-105 transition-all flex items-center justify-center relative">
+                    <ActorAvatar
+                      name={actor.name}
+                      avatarUrl={actor.avatarUrl}
+                      shape="circle"
+                      sizes="64px"
+                    />
                   </div>
                   <div>
                     <h3 className="text-xs font-bold text-white group-hover:text-netflix-red transition-colors truncate">

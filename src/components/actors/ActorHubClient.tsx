@@ -59,39 +59,8 @@ function getPaginationPages(currentPage: number, totalPages: number): (number | 
   return [1, "...", currentPage - 1, currentPage, currentPage + 1, "...", totalPages];
 }
 
-/**
- * COMPONENT PORTRAIT CHÂN DUNG AN TOÀN VÀ TỐI ƯU
- */
-const ActorPortrait: React.FC<{
-  name: string;
-  avatarUrl?: string;
-  priority?: boolean;
-}> = ({ name, avatarUrl, priority }) => {
-  const [imgError, setImgError] = useState(false);
+import { ActorAvatar } from "./ActorAvatar";
 
-  if (avatarUrl && !imgError) {
-    return (
-      <Image
-        src={avatarUrl}
-        alt={name}
-        fill
-        priority={priority}
-        unoptimized
-        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 16vw"
-        className="object-cover object-top group-hover:scale-105 transition-transform duration-500 ease-out"
-        onError={() => setImgError(true)}
-      />
-    );
-  }
-
-  return (
-    <div className="w-full h-full flex flex-col items-center justify-center p-4 bg-gradient-to-br from-zinc-900 via-zinc-950 to-black text-center group-hover:from-zinc-800 group-hover:to-zinc-900 transition-colors">
-      <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/[0.06] border border-white/10 flex items-center justify-center text-gray-400 group-hover:text-netflix-red group-hover:border-netflix-red/40 group-hover:scale-110 transition-all shadow-md">
-        <User className="w-7 h-7 sm:w-8 sm:h-8" />
-      </div>
-    </div>
-  );
-};
 
 export const ActorHubClient: React.FC<ActorHubClientProps> = ({ initialActors }) => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -263,10 +232,12 @@ export const ActorHubClient: React.FC<ActorHubClientProps> = ({ initialActors })
                 >
                   {/* PORTRAIT CONTAINER (TỶ LỆ 3:4) */}
                   <div className="relative aspect-[3/4] w-full bg-gradient-to-b from-zinc-900 to-zinc-950 overflow-hidden">
-                    <ActorPortrait
+                    <ActorAvatar
                       name={actor.name}
                       avatarUrl={actor.avatarUrl}
+                      shape="card"
                       priority={index < 6}
+                      imageClassName="group-hover:scale-105 transition-transform duration-500 ease-out"
                     />
 
                     {/* GRADIENT OVERLAY */}
