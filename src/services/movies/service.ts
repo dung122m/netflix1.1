@@ -610,6 +610,12 @@ async function fetchSourceData(
       const timeoutMs = isSearchPhimApi ? 4000 : 6000;
 
       const res = await fetch(fullUrl, {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+          Accept: "application/json, text/plain, */*",
+          "Accept-Language": "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7",
+        },
         next: { revalidate: 300 },
         signal: AbortSignal.timeout(timeoutMs),
       });
@@ -732,8 +738,14 @@ async function fetchSourceData(
         if (!u) return null;
         try {
           const res = await fetch(u, {
+            headers: {
+              "User-Agent":
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+              Accept: "application/json, text/plain, */*",
+              "Accept-Language": "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7",
+            },
             next: { revalidate: 300 },
-            signal: AbortSignal.timeout(4000),
+            signal: AbortSignal.timeout(6500),
           });
           if (!res.ok) return null;
           return await res.json();
@@ -852,7 +864,7 @@ async function fetchVsmovSourceData(
   try {
     const page = pageOverride || params.page || 1;
     const fetchLimit = params.limit && params.limit <= 48 ? params.limit : 24;
-    const timeout = params.vsmovTimeoutMs || 4000;
+    const timeout = params.vsmovTimeoutMs || 6000;
 
     const rawRes = await fetchVsmovFiltered(
       {

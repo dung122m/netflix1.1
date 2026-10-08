@@ -3,8 +3,17 @@ import { VsmovRawListResponse, VsmovRawDetailResponse } from "./types";
 const VSMOV_API_BASE = "https://vsmov.com/api";
 const DEFAULT_HEADERS = {
   "User-Agent":
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-  Accept: "application/json",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+  Accept: "application/json, text/plain, */*",
+  "Accept-Language": "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7",
+  "Sec-Ch-Ua": '"Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"',
+  "Sec-Ch-Ua-Mobile": "?0",
+  "Sec-Ch-Ua-Platform": '"Windows"',
+  "Sec-Fetch-Dest": "empty",
+  "Sec-Fetch-Mode": "cors",
+  "Sec-Fetch-Site": "cross-site",
+  Referer: "https://vsmov.com/",
+  Origin: "https://vsmov.com",
 };
 
 /**
@@ -12,7 +21,7 @@ const DEFAULT_HEADERS = {
  */
 export async function fetchVsmovList(
   page: number = 1,
-  timeoutMs: number = 5000
+  timeoutMs: number = 6000
 ): Promise<VsmovRawListResponse | null> {
   try {
     const controller = new AbortController();
@@ -248,7 +257,7 @@ export interface VsmovFilterOptions {
  */
 export async function fetchVsmovFiltered(
   options: VsmovFilterOptions,
-  timeoutMs: number = 4000
+  timeoutMs: number = 6000
 ): Promise<VsmovRawListResponse | null> {
   const page = options.page || 1;
   const limit = options.limit || 24;
