@@ -329,6 +329,28 @@ export function toCanonicalSourceUrl(url?: string | null): string {
   return clean.split("?")[0].trim();
 }
 
+export function extractStreamHost(url?: string | null): string {
+  if (!url) return "";
+  const canonical = toCanonicalSourceUrl(url);
+  if (!canonical) return "";
+  try {
+    const parsed = new URL(canonical.startsWith("http") ? canonical : `http://${canonical}`);
+    return parsed.hostname.toLowerCase();
+  } catch {
+    return "";
+  }
+}
+
+export function isSourceFailed(url?: string | null, failedSet: Set<string> = new Set()): boolean {
+  if (!url) return false;
+  const canonical = toCanonicalSourceUrl(url);
+  if (!canonical) return false;
+  if (failedSet.has(canonical)) return true;
+  const host = extractStreamHost(url);
+  if (host && failedSet.has(`host:${host}`)) return true;
+  return false;
+}
+
 /**
  * Làm sạch tên nền tảng/nhóm nguồn để hiển thị gọn gàng, hiện đại (ví dụ: Xôi Lạc, Gà Vàng, Cola TV...)
  */
@@ -443,8 +465,7 @@ export function findBestInitialServerIndex(
   let bestScore = -1;
   for (let i = 0; i < serverList.length; i++) {
     const s = serverList[i];
-    const canonical = toCanonicalSourceUrl(s?.url);
-    if (canonical && failedSet.has(canonical)) continue;
+    if (isSourceFailed(s?.url, failedSet)) continue;
     const score = getQualityPriorityScore(s);
     if (score > bestScore) {
       bestScore = score;
@@ -460,7 +481,7 @@ export function findBestInitialServerIndex(
 /**
  * Tìm máy chủ dự phòng tiếp theo:
  * Ưu tiên:
- * 1. Không nằm trong danh sách failed (đối chiếu bằng canonical URL)
+ * 1. Không nằm trong danh sách failed (đối chiếu bằng canonical URL và host-level failure)
  * 2. Điểm chất lượng cao hơn (FHD > HD > Khác)
  * 3. Duyệt xoay vòng tự nhiên sau currentIndex để tránh nhảy hỗn loạn
  * Nếu không còn nguồn nào -> trả về -1
@@ -474,8 +495,7 @@ export function findNextFallbackServerIndex(
 
   const available: { index: number; score: number }[] = [];
   serverList.forEach((s, idx) => {
-    const canonical = toCanonicalSourceUrl(s?.url);
-    if (!canonical || !failedSet.has(canonical)) {
+    if (!isSourceFailed(s?.url, failedSet)) {
       available.push({
         index: idx,
         score: getQualityPriorityScore(s),
@@ -551,10 +571,14 @@ function LivePlayerInner({
 
       const currentSet =
         failedSourcesByMatchRef.current[activeMatchId] || new Set<string>();
-      if (currentSet.has(canonical)) return;
 
+      const host = extractStreamHost(rawUrl);
       const nextSet = new Set(currentSet);
       nextSet.add(canonical);
+      if (host) {
+        nextSet.add(`host:${host}`);
+      }
+
       failedSourcesByMatchRef.current[activeMatchId] = nextSet;
 
       setFailedSourcesByMatch((prev) => ({

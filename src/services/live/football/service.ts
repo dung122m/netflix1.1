@@ -3075,6 +3075,8 @@ export const liveFootballService = {
             effectiveUrl = effectiveUrl.replace(/\.flv(\?.*)?$/i, ".m3u8$1");
           }
 
+          if (isBlockedStreamUrl(effectiveUrl)) continue;
+
           rawStreams.push({
             rawTitle,
             group,
@@ -3097,9 +3099,10 @@ export const liveFootballService = {
       const availableMatches: FootballMatch[] = [];
 
       for (const m of mergedMatches) {
-        // Lọc bỏ các server đã xác nhận DEAD (chỉ loại bỏ khi cache dead còn hiệu lực hoặc URL bị blacklist)
+        // Lọc bỏ các server đã xác nhận DEAD hoặc thuộc blocked host list
         // Giữ lại server ALIVE và UNKNOWN (để match vẫn hiển thị khi cold-start)
         const workingServers = m.servers.filter((s) => {
+          if (isBlockedStreamUrl(s.url)) return false;
           const status = getStreamHealthStatus(s.url);
           return status !== "dead";
         });

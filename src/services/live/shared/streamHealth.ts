@@ -2,6 +2,7 @@ const BLOCKED_STREAM_HOSTS = new Set([
   "fmvttv.dpdns.org",
   "live05.msdht.app",
   "freem3u.xyz",
+  "pro2cdnlive.com",
 ]);
 const healthCache = new Map<string, { ok: boolean; expiresAt: number }>();
 
@@ -11,7 +12,9 @@ export function isBlockedStreamUrl(streamUrl: string): boolean {
     return (
       BLOCKED_STREAM_HOSTS.has(hostname) ||
       hostname.endsWith(".dpdns.org") ||
-      hostname.endsWith(".msdht.app")
+      hostname.endsWith(".msdht.app") ||
+      hostname.endsWith(".pro2cdnlive.com") ||
+      hostname === "pro2cdnlive.com"
     );
   } catch {
     return true;
