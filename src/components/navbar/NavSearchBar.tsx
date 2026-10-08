@@ -312,15 +312,6 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
     } else {
       inputRef.current?.focus();
     }
-
-    // Only update URL query params if we are currently on /browse page and urlKeyword is present
-    if (pathname === "/browse" && urlKeyword) {
-      const params = new URLSearchParams(searchParams.toString());
-      params.delete("keyword");
-      params.delete("page");
-      const query = params.toString();
-      router.replace(query ? `/browse?${query}` : "/browse", { scroll: false });
-    }
   };
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {

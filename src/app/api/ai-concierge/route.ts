@@ -217,7 +217,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         reply: cachedItem.reply,
         mood: cachedItem.mood,
-        movies: cachedItem.movies,
+        movies: cachedItem.movies.slice(0, 8),
         provider: cachedItem.provider || "Nana AI",
         cached: true,
       });
@@ -225,11 +225,13 @@ export async function POST(req: NextRequest) {
 
     const cacheRes = await cacheService.get<ConciergeApiResponse>(`ai:concierge:${cacheKey}`);
     if (cacheRes && cacheRes.movies && cacheRes.movies.length > 0) {
-      AI_RESPONSE_CACHE.set(cacheKey, { ...cacheRes, cachedAt: Date.now() });
-      return NextResponse.json({
+      const responsePayload = {
         ...cacheRes,
+        movies: cacheRes.movies.slice(0, 8),
         cached: true,
-      });
+      };
+      AI_RESPONSE_CACHE.set(cacheKey, { ...responsePayload, cachedAt: Date.now() });
+      return NextResponse.json(responsePayload);
     }
 
     const currentYear = new Date().getFullYear();
@@ -1702,7 +1704,7 @@ export async function POST(req: NextRequest) {
     const finalPayload: ConciergeApiResponse & { timing?: { totalMs: number; aiMs: number; searchMs: number } } = {
       reply: finalAnalysis,
       mood: finalMood,
-      movies: cards.slice(0, 16),
+      movies: cards.slice(0, 8),
       provider: aiProviderName,
       ...(process.env.NODE_ENV !== "production" ? { timing: { totalMs, aiMs: t_ai_ms, searchMs: t_search_ms } } : {}),
     };
