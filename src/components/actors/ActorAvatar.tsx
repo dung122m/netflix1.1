@@ -128,6 +128,7 @@ export const ActorAvatar: React.FC<ActorAvatarProps> = ({
         priority={priority}
         unoptimized={unoptimized}
         sizes={sizes}
+        referrerPolicy="no-referrer"
         className={`object-cover object-top transition-transform duration-500 ${imageClassName}`}
         onError={() => setImgError(true)}
       />

@@ -494,7 +494,7 @@ export const ACTORS_CATALOG: ActorCatalogItem[] = [
       "Chính kịch"
     ],
     "roles": "Võ Mị Nương Truyền Kỳ • Hoàn Châu Cách Cách",
-    "avatarUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Fan_Bingbing_attending_BIFAN_2026_11.jpg/440px-Fan_Bingbing_attending_BIFAN_2026_11.jpg",
+    "avatarUrl": "https://upload.wikimedia.org/wikipedia/commons/a/a1/Fan_Bingbing_attending_BIFAN_2026_11.jpg",
     "tmdbPersonId": 108304,
     "birthday": "1981-09-16",
     "placeOfBirth": "Qingdao, Shandong, China",
