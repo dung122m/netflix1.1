@@ -1,19 +1,14 @@
 import { VsmovRawListResponse, VsmovRawDetailResponse } from "./types";
 
 const VSMOV_API_BASE = "https://vsmov.com/api";
+export const VSMOV_DEFAULT_TIMEOUT_MS = 7500;
+
 const DEFAULT_HEADERS = {
+  Accept: "application/json, text/plain, */*",
+  "Accept-Language": "vi-VN,vi;q=0.9,en;q=0.8",
   "User-Agent":
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
-  Accept: "application/json, text/plain, */*",
-  "Accept-Language": "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7",
-  "Sec-Ch-Ua": '"Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"',
-  "Sec-Ch-Ua-Mobile": "?0",
-  "Sec-Ch-Ua-Platform": '"Windows"',
-  "Sec-Fetch-Dest": "empty",
-  "Sec-Fetch-Mode": "cors",
-  "Sec-Fetch-Site": "cross-site",
   Referer: "https://vsmov.com/",
-  Origin: "https://vsmov.com",
 };
 
 /**
@@ -21,8 +16,9 @@ const DEFAULT_HEADERS = {
  */
 export async function fetchVsmovList(
   page: number = 1,
-  timeoutMs: number = 6000
+  timeoutMs: number = VSMOV_DEFAULT_TIMEOUT_MS
 ): Promise<VsmovRawListResponse | null> {
+  const t0 = performance.now();
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -36,11 +32,21 @@ export async function fetchVsmovList(
       }
     );
     clearTimeout(timer);
+    const elapsed = Math.round(performance.now() - t0);
 
-    if (!res.ok) return null;
-    return await res.json().catch(() => null);
+    if (!res.ok) {
+      console.info(`[VSMOV] list page=${page} status=${res.status} elapsed=${elapsed}ms`);
+      return null;
+    }
+    const data = await res.json().catch(() => null);
+    const count = data?.items?.length ?? 0;
+    const total = data?.pagination?.totalItems ?? count;
+    console.info(`[VSMOV] list page=${page} status=200 elapsed=${elapsed}ms items=${count} total=${total}`);
+    return data;
   } catch (error) {
-    console.warn("[VSMOV Client] fetchVsmovList failed:", error);
+    const elapsed = Math.round(performance.now() - t0);
+    const errType = error instanceof Error && error.name === "AbortError" ? "timeout" : "network_error";
+    console.info(`[VSMOV] list page=${page} error=${errType} elapsed=${elapsed}ms`);
     return null;
   }
 }
@@ -257,7 +263,7 @@ export interface VsmovFilterOptions {
  */
 export async function fetchVsmovFiltered(
   options: VsmovFilterOptions,
-  timeoutMs: number = 6000
+  timeoutMs: number = VSMOV_DEFAULT_TIMEOUT_MS
 ): Promise<VsmovRawListResponse | null> {
   const page = options.page || 1;
   const limit = options.limit || 24;
@@ -302,6 +308,7 @@ export async function fetchVsmovFiltered(
     endpoint = `${VSMOV_API_BASE}/danh-sach/phim-moi-cap-nhat?${queryParams.toString()}`;
   }
 
+  const t0 = performance.now();
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -312,11 +319,21 @@ export async function fetchVsmovFiltered(
       next: { revalidate: 300 },
     });
     clearTimeout(timer);
+    const elapsed = Math.round(performance.now() - t0);
 
-    if (!res.ok) return null;
-    return await res.json().catch(() => null);
+    if (!res.ok) {
+      console.info(`[VSMOV] filtered status=${res.status} elapsed=${elapsed}ms endpoint=${endpoint}`);
+      return null;
+    }
+    const data = await res.json().catch(() => null);
+    const count = data?.items?.length ?? 0;
+    const total = data?.pagination?.totalItems ?? count;
+    console.info(`[VSMOV] filtered status=200 elapsed=${elapsed}ms items=${count} total=${total}`);
+    return data;
   } catch (error) {
-    console.warn(`[VSMOV Client] fetchVsmovFiltered (${endpoint}) failed:`, error);
+    const elapsed = Math.round(performance.now() - t0);
+    const errType = error instanceof Error && error.name === "AbortError" ? "timeout" : "network_error";
+    console.info(`[VSMOV] filtered error=${errType} elapsed=${elapsed}ms endpoint=${endpoint}`);
     return null;
   }
 }

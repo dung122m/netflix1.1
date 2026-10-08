@@ -13,6 +13,11 @@ import { normalizeForMatch } from "@/lib/stringUtils";
 const API_NGUONC = process.env.NEXT_PUBLIC_API_URL || "https://phim.nguonc.com/api";
 const API_PHIMAPI = process.env.NEXT_PUBLIC_API_URL_2 || "https://phimapi.com";
 
+const PHIMAPI_TIMEOUT_MS = 6000;
+const PHIMAPI_SEARCH_TIMEOUT_MS = 4000;
+const NGUONC_TIMEOUT_MS = 7500;
+const VSMOV_TIMEOUT_MS = 7500;
+
 // =========================================================
 // BỘ NHỚ ĐỆM SERVER (IN-MEMORY CACHE SWR - 0MS RESPONSE)
 // =========================================================
@@ -607,88 +612,102 @@ async function fetchSourceData(
 
     if (baseUrl === API_PHIMAPI) {
       const isSearchPhimApi = isSearch && params.keyword;
-      const timeoutMs = isSearchPhimApi ? 4000 : 6000;
+      const timeoutMs = isSearchPhimApi ? PHIMAPI_SEARCH_TIMEOUT_MS : PHIMAPI_TIMEOUT_MS;
+      const t0 = performance.now();
 
-      const res = await fetch(fullUrl, {
-        headers: {
-          "User-Agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
-          Accept: "application/json, text/plain, */*",
-          "Accept-Language": "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7",
-        },
-        next: { revalidate: 300 },
-        signal: AbortSignal.timeout(timeoutMs),
-      });
+      try {
+        const res = await fetch(fullUrl, {
+          headers: {
+            "User-Agent":
+              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+            Accept: "application/json, text/plain, */*",
+            "Accept-Language": "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7",
+          },
+          next: { revalidate: 300 },
+          signal: AbortSignal.timeout(timeoutMs),
+        });
+        const elapsed = Math.round(performance.now() - t0);
 
-      if (!res.ok) return null;
-      const json = await res.json();
+        if (!res.ok) {
+          console.info(`[PhimAPI] status=${res.status} elapsed=${elapsed}ms url=${fullUrl}`);
+          return null;
+        }
+        const json = await res.json();
 
-      const imageDomain =
-        json.data?.APP_DOMAIN_CDN_IMAGE ||
-        json.data?.APP_DOMAIN_FRONTEND ||
-        "https://phimimg.com/";
-      const items = json.data?.items || json.items || [];
+        const imageDomain =
+          json.data?.APP_DOMAIN_CDN_IMAGE ||
+          json.data?.APP_DOMAIN_FRONTEND ||
+          "https://phimimg.com/";
+        const items = json.data?.items || json.items || [];
 
-      const mappedItems = items.map(
-        (item: {
-          thumb_url?: string;
-          poster_url?: string;
-          slug?: string;
-          [key: string]: unknown;
-        }) => {
-          const rawThumb =
-            typeof item.thumb_url === "string" &&
-            item.thumb_url.trim() &&
-            item.thumb_url !== "null" &&
-            item.thumb_url !== "undefined"
-              ? item.thumb_url.trim()
-              : "";
-          const rawPoster =
-            typeof item.poster_url === "string" &&
-            item.poster_url.trim() &&
-            item.poster_url !== "null" &&
-            item.poster_url !== "undefined"
-              ? item.poster_url.trim()
-              : "";
+        const mappedItems = items.map(
+          (item: {
+            thumb_url?: string;
+            poster_url?: string;
+            slug?: string;
+            [key: string]: unknown;
+          }) => {
+            const rawThumb =
+              typeof item.thumb_url === "string" &&
+              item.thumb_url.trim() &&
+              item.thumb_url !== "null" &&
+              item.thumb_url !== "undefined"
+                ? item.thumb_url.trim()
+                : "";
+            const rawPoster =
+              typeof item.poster_url === "string" &&
+              item.poster_url.trim() &&
+              item.poster_url !== "null" &&
+              item.poster_url !== "undefined"
+                ? item.poster_url.trim()
+                : "";
 
-          const cdnClean = imageDomain.replace(/\/+$/, "");
+            const cdnClean = imageDomain.replace(/\/+$/, "");
 
-          const formatImg = (path: string) => {
-            if (!path) return "";
-            if (path.startsWith("http://") || path.startsWith("https://")) return path;
-            return `${cdnClean}/${path.replace(/^\/+/, "")}`;
-          };
+            const formatImg = (path: string) => {
+              if (!path) return "";
+              if (path.startsWith("http://") || path.startsWith("https://")) return path;
+              return `${cdnClean}/${path.replace(/^\/+/, "")}`;
+            };
 
-          const formattedThumb = formatImg(rawThumb);
-          const formattedPoster = formatImg(rawPoster);
+            const formattedThumb = formatImg(rawThumb);
+            const formattedPoster = formatImg(rawPoster);
 
-          return {
-            ...item,
-            source: "phimapi",
-            sources: ["phimapi"],
-            thumb_url: formattedThumb || formattedPoster,
-            poster_url: formattedPoster || formattedThumb,
-          };
-        },
-      );
+            return {
+              ...item,
+              source: "phimapi",
+              sources: ["phimapi"],
+              thumb_url: formattedThumb || formattedPoster,
+              poster_url: formattedPoster || formattedThumb,
+            };
+          },
+        );
 
-      const totalItems =
-        json.data?.params?.pagination?.totalItems ||
-        json.pagination?.totalItems ||
-        mappedItems.length ||
-        0;
+        const totalItems =
+          json.data?.params?.pagination?.totalItems ||
+          json.pagination?.totalItems ||
+          mappedItems.length ||
+          0;
 
-      const totalPages =
-        json.data?.params?.pagination?.totalPages ||
-        json.pagination?.totalPages ||
-        Math.ceil(totalItems / fetchLimit) ||
-        1;
+        const totalPages =
+          json.data?.params?.pagination?.totalPages ||
+          json.pagination?.totalPages ||
+          Math.ceil(totalItems / fetchLimit) ||
+          1;
 
-      return {
-        items: mappedItems,
-        totalPages,
-        totalItems,
-      };
+        console.info(`[PhimAPI] status=200 elapsed=${elapsed}ms items=${mappedItems.length} total=${totalItems}`);
+
+        return {
+          items: mappedItems,
+          totalPages,
+          totalItems,
+        };
+      } catch (err) {
+        const elapsed = Math.round(performance.now() - t0);
+        const errType = err instanceof Error && err.name === "AbortError" ? "timeout" : "network_error";
+        console.info(`[PhimAPI] error=${errType} elapsed=${elapsed}ms`);
+        return null;
+      }
     }
 
     // ============================================================
@@ -732,10 +751,11 @@ async function fetchSourceData(
       pagesToFetch.push(p);
     }
 
-    const nguonCResults = await Promise.all(
+    const nguonCSettled = await Promise.allSettled(
       pagesToFetch.map(async (p) => {
         const u = buildNguonCUrl(p);
         if (!u) return null;
+        const t0 = performance.now();
         try {
           const res = await fetch(u, {
             headers: {
@@ -745,27 +765,47 @@ async function fetchSourceData(
               "Accept-Language": "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7",
             },
             next: { revalidate: 300 },
-            signal: AbortSignal.timeout(6500),
+            signal: AbortSignal.timeout(NGUONC_TIMEOUT_MS),
           });
-          if (!res.ok) return null;
-          return await res.json();
-        } catch {
+          const elapsed = Math.round(performance.now() - t0);
+          if (!res.ok) {
+            console.info(`[NguonC] page=${p} status=${res.status} elapsed=${elapsed}ms`);
+            return null;
+          }
+          const json = await res.json();
+          const itmCount = json?.items?.length || 0;
+          const tot = json?.paginate?.total_items || itmCount;
+          console.info(`[NguonC] page=${p} status=200 elapsed=${elapsed}ms items=${itmCount} total=${tot}`);
+          return json;
+        } catch (err) {
+          const elapsed = Math.round(performance.now() - t0);
+          const errType = err instanceof Error && err.name === "AbortError" ? "timeout" : "network_error";
+          console.info(`[NguonC] page=${p} error=${errType} elapsed=${elapsed}ms`);
           return null;
         }
       })
     );
 
+    const nguonCResults = nguonCSettled.map((s) => (s.status === "fulfilled" ? s.value : null));
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const rawCombined: any[] = [];
     let nguonCTotalItems = 0;
+    let successfulPagesCount = 0;
+
     for (const r of nguonCResults) {
       if (r) {
+        successfulPagesCount++;
         const itms = r.items || r.data?.items || [];
         rawCombined.push(...itms);
         if (r.paginate?.total_items) {
           nguonCTotalItems = Math.max(nguonCTotalItems, r.paginate.total_items);
         }
       }
+    }
+
+    if (successfulPagesCount === 0 || rawCombined.length === 0) {
+      return null;
     }
 
     const chunkStartOffset = (startNguonCPage - 1) * 10;
@@ -864,7 +904,7 @@ async function fetchVsmovSourceData(
   try {
     const page = pageOverride || params.page || 1;
     const fetchLimit = params.limit && params.limit <= 48 ? params.limit : 24;
-    const timeout = params.vsmovTimeoutMs || 6000;
+    const timeout = params.vsmovTimeoutMs || VSMOV_TIMEOUT_MS;
 
     const rawRes = await fetchVsmovFiltered(
       {
@@ -1185,11 +1225,16 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
     },
   };
 
+  const isDegraded = resPhimApi === null || resNguonC === null || resVsmov === null;
   const now = Date.now();
+  // Nếu bị degraded (1 trong các nguồn bị timeout/lỗi), chỉ lưu RAM ngắn hạn (15s) thay vì 300s để request sau phục hồi trọn vẹn
+  const freshTtl = isDegraded ? 15 * 1000 : 300 * 1000;
+  const staleTtl = isDegraded ? 30 * 1000 : 1800 * 1000;
+
   moviesMemoryCache.set(cacheKey, {
     data: payload,
-    expireAt: now + 300 * 1000,    // 5 phút tươi
-    staleUntil: now + 1800 * 1000, // Cho phép dùng stale đến 30 phút trong nền
+    expireAt: now + freshTtl,
+    staleUntil: now + staleTtl,
   });
 
   return payload;
