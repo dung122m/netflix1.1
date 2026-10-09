@@ -4,6 +4,7 @@ import {
   cleanNormalizedString,
   extractCleanSearchKeywords,
   extractMovieYear,
+  extractEpisodeTotal,
   matchesCountry,
   matchesGenre,
   matchesActor,
@@ -54,6 +55,24 @@ export function findBestMatchMovie(items: any[], query: string, originalQuery?: 
       }
     }
 
+    // 3. Ràng buộc số tập (Episode constraint)
+    if (options?.episodeConstraint) {
+      const epConst = options.episodeConstraint;
+      const epTotal = extractEpisodeTotal(it);
+      if (epConst.requireSeries) {
+        const isSeries = it.type === "series" || it.type === "phim-bo" || (epTotal !== null && epTotal > 1);
+        if (!isSeries) continue;
+      }
+      if (epTotal !== null) {
+        if (epConst.strictLessThan !== undefined && epTotal >= epConst.strictLessThan) {
+          continue;
+        }
+        if (epConst.maxEpisodes !== undefined && epTotal > epConst.maxEpisodes) {
+          continue;
+        }
+      }
+    }
+
     let score = 0;
 
     // So khớp tiêu đề (Title Match)
@@ -89,8 +108,9 @@ export function findBestMatchMovie(items: any[], query: string, originalQuery?: 
       }
     }
 
-    if (options?.expectedGenre) {
-      if (matchesGenre(category, options.expectedGenre)) {
+    const targetGenre = options?.expectedGenre || options?.expectedGenreSlugs?.[0];
+    if (targetGenre) {
+      if (matchesGenre(category, targetGenre)) {
         score += 20;
       }
     }
@@ -101,13 +121,8 @@ export function findBestMatchMovie(items: any[], query: string, originalQuery?: 
       if (hasActor) {
         score += 50;
       } else if (itemActors.length > 0) {
-        // Có danh sách diễn viên cụ thể nhưng không có diễn viên cần tìm
-        // Nếu tiêu đề khớp tuyệt đối 100% thì trừ điểm nhẹ, nếu tiêu đề chỉ khớp lỏng thì loại bỏ
-        if (!isExact) {
-          continue;
-        } else {
-          score -= 30;
-        }
+        // Có danh sách diễn viên cụ thể nhưng không có diễn viên cần tìm -> Loại bỏ
+        continue;
       } else {
         // Database phim không có thông tin mảng diễn viên
         score -= 10;

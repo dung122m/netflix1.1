@@ -6,6 +6,7 @@ export const GUEST_AI_REQUEST_LIMIT = 10;
 export const TOTAL_REQUEST_LIMIT = 30;
 export const RATE_LIMIT_WINDOW_SECONDS = 60;
 export const MAX_DURATION = 15;
+export const AI_CONCIERGE_CACHE_VERSION = "v2";
 
 // ============================================================================
 // BẢNG ÁNH XẠ CHUẨN HÓA QUỐC GIA (COUNTRY SLUG MAP)
@@ -14,17 +15,29 @@ export const COUNTRY_SLUG_MAP: Record<string, string[]> = {
   "au-my": [
     "au-my", "us", "usa", "hollywood", "my", "mỹ", "hoa ky", "hoa kỳ",
     "au my", "âu mỹ", "anh", "uk", "phap", "pháp", "france", "duc",
-    "đức", "germany", "y", "ý", "italy", "tay ban nha", "tây ban nha",
+    "đức", "germany", "italy", "italia", "nuoc y", "nước ý", "nuoc duc", "tay ban nha", "tây ban nha",
     "spain", "canada", "uc", "úc", "australia"
   ],
   "thai-lan": ["thai-lan", "thailand", "thai lan", "thái lan", "thai", "xiem"],
-  "han-quoc": ["han-quoc", "korea", "han quoc", "hàn quốc", "south korea", "han", "hàn"],
-  "trung-quoc": ["trung-quoc", "china", "trung quoc", "trung quốc", "chinese", "hoa ngu", "hoa ngữ", "dai luc", "đại lục"],
+  "han-quoc": ["han-quoc", "korea", "korean", "han quoc", "hàn quốc", "south korea", "han", "hàn"],
+  "trung-quoc": ["trung-quoc", "china", "chinese", "trung quoc", "trung quốc", "hoa ngu", "hoa ngữ", "dai luc", "đại lục", "trung"],
   "hong-kong": ["hong-kong", "hong kong", "hongkong", "hồng kông", "hk", "tvb"],
-  "nhat-ban": ["nhat-ban", "japan", "nhat ban", "nhật bản", "japanese", "anime", "nhat", "nhật"],
+  "nhat-ban": ["nhat-ban", "japan", "japanese", "nhat ban", "nhật bản", "anime", "nhat", "nhật"],
   "viet-nam": ["viet-nam", "vietnam", "viet nam", "việt nam", "vn"],
   "dai-loan": ["dai-loan", "taiwan", "dai loan", "đài loan"],
   "an-do": ["an-do", "india", "an do", "ấn độ", "bollywood"],
+};
+
+export const COUNTRY_DISPLAY_NAMES: Record<string, string> = {
+  "au-my": "Âu Mỹ",
+  "thai-lan": "Thái Lan",
+  "han-quoc": "Hàn Quốc",
+  "trung-quoc": "Trung Quốc",
+  "hong-kong": "Hồng Kông",
+  "nhat-ban": "Nhật Bản",
+  "viet-nam": "Việt Nam",
+  "dai-loan": "Đài Loan",
+  "an-do": "Ấn Độ",
 };
 
 // ============================================================================

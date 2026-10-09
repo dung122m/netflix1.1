@@ -1,9 +1,9 @@
-import { COUNTRY_SLUG_MAP, GENRE_SLUG_MAP } from "./constants";
+import { COUNTRY_SLUG_MAP, COUNTRY_DISPLAY_NAMES, GENRE_SLUG_MAP } from "./constants";
 import { ACTOR_SLUG_MAP } from "@/services/aiActorService";
 import { cleanNormalizedString } from "@/lib/stringUtils";
 import { CharacterProfile } from "./types";
 
-export { cleanNormalizedString, ACTOR_SLUG_MAP };
+export { cleanNormalizedString, ACTOR_SLUG_MAP, COUNTRY_DISPLAY_NAMES };
 
 /**
  * Bảng ánh xạ chuẩn hóa nhân vật điện ảnh kinh điển (Character Taxonomy)
@@ -342,28 +342,259 @@ export function matchesActor(itemActors: string[], actorSlug: string): boolean {
 }
 
 /**
+ * Lấy tên hiển thị tiếng Việt của quốc gia từ slug
+ */
+export function getCountryDisplayName(countrySlug?: string): string {
+  if (!countrySlug) return "Quốc Tế";
+  return COUNTRY_DISPLAY_NAMES[countrySlug] || "Quốc Tế";
+}
+
+/**
+ * Kiểm tra đạo diễn của phim có khớp với tên / slug đạo diễn mục tiêu hay không
+ */
+export function matchesDirector(
+  directorMetadata: unknown,
+  personNameOrSlug: string
+): boolean {
+  if (!directorMetadata || !personNameOrSlug) return false;
+  const cleanTarget = cleanNormalizedString(personNameOrSlug);
+  if (!cleanTarget || cleanTarget.length < 2) return false;
+
+  const aliases = getActorAliases(personNameOrSlug).map(cleanNormalizedString);
+  if (!aliases.includes(cleanTarget)) aliases.push(cleanTarget);
+
+  const directorList: string[] = Array.isArray(directorMetadata)
+    ? directorMetadata.map((d) => (typeof d === "string" ? d : (d as { name?: string })?.name || ""))
+    : typeof directorMetadata === "string"
+    ? directorMetadata.split(/[,;\/]/)
+    : [];
+
+  const cleanDirectors = directorList
+    .map(cleanNormalizedString)
+    .filter(Boolean);
+
+  return cleanDirectors.some((d) =>
+    aliases.some((a) => a && (d === a || hasWordMatch(d, a) || (a.split(" ").length >= 2 && d.includes(a))))
+  );
+}
+
+/**
+ * Trích xuất tổng số tập thực tế từ metadata phim (hỗ trợ cả number, "10 Tập", "Full", etc.)
+ */
+export function extractEpisodeTotal(item: unknown): number | null {
+  if (!item || typeof item !== "object") return null;
+  const it = item as Record<string, unknown>;
+
+  const raw =
+    it.episode_total ||
+    it.total_episodes ||
+    it.episodes_total ||
+    it.episode_current ||
+    it.episodes ||
+    it.quality ||
+    it.time;
+
+  if (typeof raw === "number" && !isNaN(raw)) return raw;
+
+  if (typeof raw === "string") {
+    const cleanRaw = cleanNormalizedString(raw).toLowerCase();
+    const m =
+      cleanRaw.match(/(\d+)\s*(?:tap|ep|chuong)/i) ||
+      cleanRaw.match(/(?:tap|ep)\s*(\d+)/i) ||
+      cleanRaw.match(/(\d+)\/(\d+)/) ||
+      cleanRaw.match(/\b(\d+)\b/);
+    if (m) {
+      const parsed = parseInt(m[2] || m[1], 10);
+      if (!isNaN(parsed) && parsed > 0) return parsed;
+    }
+    if (/full|hoan tat|tron bo|hoan thanh/i.test(cleanRaw)) {
+      if (it.type === "single" || it.type === "phim-le") return 1;
+    }
+  }
+
+  const name = typeof it.name === "string" ? it.name : typeof it.title === "string" ? it.title : "";
+  if (name) {
+    const epMatch = name.match(/(\d+)\s*(?:tap|ep)/i) || name.match(/(?:tap|ep)\s*(\d+)/i);
+    if (epMatch) {
+      const parsed = parseInt(epMatch[1], 10);
+      if (!isNaN(parsed) && parsed > 0) return parsed;
+    }
+  }
+
+  if (it.type === "single" || it.type === "phim-le") return 1;
+
+  // Nếu là phim bộ nhưng không có số tập cụ thể
+  return null;
+}
+
+/**
+ * Trích xuất ràng buộc số tập từ prompt (dưới 10 tập vs tối đa 10 tập, yêu cầu phim bộ/series)
+ */
+export function parseEpisodeConstraint(prompt: string): {
+  maxEpisodes?: number;
+  strictLessThan?: number;
+  requireSeries?: boolean;
+} | null {
+  if (!prompt) return null;
+  const clean = cleanNormalizedString(prompt).toLowerCase();
+
+  const requireSeries = /(?:phim\s+bo|series|truyen\s+hinh|nhieu\s+tap|phim\s+ngan\s+tap)/i.test(clean);
+
+  // "dưới X tập", "ít hơn X tập", "nhỏ hơn X tập", "< X tập"
+  const lessThanMatch = clean.match(/(?:duoi|it\s+hon|nho\s+hon|<\s*)\s*(\d+)\s*(?:tap|ep)/i);
+  if (lessThanMatch) {
+    const num = parseInt(lessThanMatch[1], 10);
+    if (!isNaN(num) && num > 0) {
+      return {
+        maxEpisodes: num - 1,
+        strictLessThan: num,
+        requireSeries,
+      };
+    }
+  }
+
+  // "tối đa X tập", "không quá X tập", "<= X tập", "X tập trở xuống"
+  const maxNumMatch =
+    clean.match(/(?:toi\s+da|khong\s+qua|<=\s*)\s*(\d+)\s*(?:tap|ep)/i) ||
+    clean.match(/(?:tu\s+)?(\d+)\s*(?:tap|ep)\s*tro\s*xuong/i);
+  if (maxNumMatch) {
+    const num = parseInt(maxNumMatch[1], 10);
+    if (!isNaN(num) && num > 0) {
+      return {
+        maxEpisodes: num,
+        requireSeries,
+      };
+    }
+  }
+
+  return null;
+}
+
+/**
  * Tìm kiếm slug quốc gia chuẩn hóa
  */
 export function resolveCountrySlug(rawCountry?: string): string {
   if (!rawCountry) return "";
   const clean = cleanNormalizedString(rawCountry);
+  
+  // Exact match check
   for (const [slug, aliases] of Object.entries(COUNTRY_SLUG_MAP)) {
     if (aliases.some((a) => clean === cleanNormalizedString(a))) {
       return slug;
     }
   }
+
+  // Multi-word / longer phrase matches first (length >= 4)
   for (const [slug, aliases] of Object.entries(COUNTRY_SLUG_MAP)) {
-    if (aliases.some((a) => hasWordMatch(clean, cleanNormalizedString(a)))) {
+    const multiWordAliases = aliases.filter((a) => cleanNormalizedString(a).length >= 4);
+    if (multiWordAliases.some((a) => hasWordMatch(clean, cleanNormalizedString(a)))) {
+      return slug;
+    }
+  }
+
+  // Single word / short alias matches
+  for (const [slug, aliases] of Object.entries(COUNTRY_SLUG_MAP)) {
+    const shortAliases = aliases.filter((a) => cleanNormalizedString(a).length < 4);
+    if (shortAliases.some((a) => hasWordMatch(clean, cleanNormalizedString(a)))) {
       return slug;
     }
   }
   return "";
 }
 
+// Thứ tự ưu tiên thể loại chuyên biệt/hẹp hơn trước thể loại chung
+export const GENRE_SPECIFICITY_WEIGHT: Record<string, number> = {
+  "vo-thuat": 100,
+  "co-trang": 90,
+  "kinh-di": 85,
+  "hai-huoc": 80,
+  "hoat-hinh": 80,
+  "hinh-su": 75,
+  "vien-tuong": 75,
+  "chien-tranh": 70,
+  "tai-lieu": 70,
+  "phieu-luu": 65,
+  "tinh-cam": 60,
+  "bi-an": 60,
+  "hanh-dong": 40,
+  "tam-ly": 30,
+};
+
+function isNegatedInPrompt(cleanPrompt: string, cleanAlias: string): boolean {
+  const negationPrefixes = [
+    `khong uu tien ${cleanAlias}`,
+    `khong thich ${cleanAlias}`,
+    `khong phai ${cleanAlias}`,
+    `khong muon ${cleanAlias}`,
+    `khong co ${cleanAlias}`,
+    `khong xem ${cleanAlias}`,
+    `khong can ${cleanAlias}`,
+    `tranh ${cleanAlias}`,
+    `loai tru ${cleanAlias}`,
+    `tru ${cleanAlias}`,
+    `dung goi y ${cleanAlias}`,
+    `dung ${cleanAlias}`,
+  ];
+  return negationPrefixes.some((prefix) => cleanPrompt.includes(prefix));
+}
+
 /**
- * Tìm kiếm slug thể loại chuẩn hóa
+ * Trích xuất danh sách tất cả các slug thể loại chuẩn hóa từ danh sách hoặc câu prompt
+ * Ưu tiên các thể loại chuyên biệt/hẹp hơn (ví dụ: 'vo-thuat' trước 'hanh-dong')
  */
-export function resolveGenreSlug(rawGenre?: string): string {
+export function resolveGenreSlugs(rawGenres?: string | string[], fullPrompt?: string): string[] {
+  const resultSlugs: string[] = [];
+  const addSlug = (slug: string) => {
+    if (slug && !resultSlugs.includes(slug)) {
+      resultSlugs.push(slug);
+    }
+  };
+
+  const cleanPrompt = fullPrompt ? cleanNormalizedString(fullPrompt) : "";
+
+  // 1. Phân tích các chuỗi đầu vào từ rawGenres (nếu có)
+  const rawList = Array.isArray(rawGenres) ? rawGenres : rawGenres ? [rawGenres] : [];
+  for (const raw of rawList) {
+    if (!raw) continue;
+    const clean = cleanNormalizedString(raw);
+    for (const [slug, aliases] of Object.entries(GENRE_SLUG_MAP)) {
+      if (aliases.some((a) => {
+        const cleanA = cleanNormalizedString(a);
+        if (cleanPrompt && isNegatedInPrompt(cleanPrompt, cleanA)) return false;
+        return clean === cleanA || hasWordMatch(clean, cleanA);
+      })) {
+        addSlug(slug);
+      }
+    }
+  }
+
+  // 2. Quét thêm từ fullPrompt (nếu có)
+  if (cleanPrompt) {
+    for (const [slug, aliases] of Object.entries(GENRE_SLUG_MAP)) {
+      if (aliases.some((a) => {
+        const cleanA = cleanNormalizedString(a);
+        if (isNegatedInPrompt(cleanPrompt, cleanA)) return false;
+        return hasWordMatch(cleanPrompt, cleanA);
+      })) {
+        addSlug(slug);
+      }
+    }
+  }
+
+  // Sắp xếp thứ tự ưu tiên thể loại hẹp/chuyên biệt lên trước
+  resultSlugs.sort((a, b) => (GENRE_SPECIFICITY_WEIGHT[b] || 50) - (GENRE_SPECIFICITY_WEIGHT[a] || 50));
+
+  return resultSlugs;
+}
+
+/**
+ * Tìm kiếm slug thể loại chuẩn hóa (ưu tiên thể loại hẹp nếu có nhiều thể loại)
+ */
+export function resolveGenreSlug(rawGenre?: string, fullPrompt?: string): string {
+  const slugs = resolveGenreSlugs(rawGenre, fullPrompt);
+  if (slugs.length > 0) {
+    return slugs[0];
+  }
   if (!rawGenre) return "";
   const clean = cleanNormalizedString(rawGenre);
   for (const [slug, aliases] of Object.entries(GENRE_SLUG_MAP)) {
@@ -377,6 +608,70 @@ export function resolveGenreSlug(rawGenre?: string): string {
     }
   }
   return "";
+}
+
+/**
+ * Kiểm tra xem người dùng có yêu cầu cụ thể "tất cả các phần", "các mùa", "toàn bộ phần phim" hay không
+ */
+export function isExplicitAllPartsRequest(prompt?: string): boolean {
+  if (!prompt) return false;
+  const p = cleanNormalizedString(prompt).toLowerCase();
+  return (
+    p.includes("tat ca cac phan") ||
+    p.includes("tat ca phan") ||
+    p.includes("toan bo cac phan") ||
+    p.includes("toan bo phan") ||
+    p.includes("moi phan") ||
+    p.includes("cac phan") ||
+    p.includes("cac season") ||
+    p.includes("tat ca season") ||
+    p.includes("toan bo season") ||
+    p.includes("tat ca tap") ||
+    p.includes("cac mua") ||
+    p.includes("all parts") ||
+    p.includes("all seasons")
+  );
+}
+
+const KNOWN_FRANCHISE_PREFIXES: Array<{ prefix: string; franchise: string }> = [
+  { prefix: "diep-van", franchise: "diep-van" },
+  { prefix: "ip-man", franchise: "diep-van" },
+  { prefix: "kung-fu-panda", franchise: "kung-fu-panda" },
+  { prefix: "kung-fu-gau-truc", franchise: "kung-fu-panda" },
+  { prefix: "dreamworks-nhung-bi-mat-tuyet-voi-cua-gau-truc-kung-fu", franchise: "kung-fu-panda" },
+  { prefix: "sat-thu-john-wick", franchise: "john-wick" },
+  { prefix: "john-wick", franchise: "john-wick" },
+  { prefix: "sat-pha-lang", franchise: "sat-pha-lang" },
+  { prefix: "vuot-nguc", franchise: "vuot-nguc" },
+  { prefix: "prison-break", franchise: "vuot-nguc" },
+  { prefix: "cobra-kai", franchise: "cobra-kai" },
+  { prefix: "qua-nhanh-qua-nguy-hiem", franchise: "fast-and-furious" },
+  { prefix: "fast-and-furious", franchise: "fast-and-furious" },
+  { prefix: "nhiem-vu-bat-kha-thi", franchise: "mission-impossible" },
+  { prefix: "mission-impossible", franchise: "mission-impossible" },
+];
+
+/**
+ * Chuẩn hóa khóa nhận diện franchise/series để gom nhóm các season/phần phim
+ */
+export function extractFranchiseKey(slug: string, title?: string): string {
+  if (!slug) return "";
+  let baseSlug = slug.toLowerCase().trim();
+
+  for (const item of KNOWN_FRANCHISE_PREFIXES) {
+    if (baseSlug === item.prefix || baseSlug.startsWith(`${item.prefix}-`) || baseSlug.startsWith(item.prefix)) {
+      return item.franchise;
+    }
+  }
+
+  // Xóa bỏ các đuôi phần/season: -season-\d+, -phan-\d+, -part-\d+, -chap-\d+, -chapter-\d+, -tap-\d+, -\d+$
+  baseSlug = baseSlug
+    .replace(/-(?:season|phan|part|chapter|chap|tap|ss|s)-?\d+.*$/i, "")
+    .replace(/-(?:season|phan|part|chapter|chap|tap|ss|s)$/i, "")
+    .replace(/-\d+$/i, "")
+    .replace(/-(?:i|ii|iii|iv|v|vi|vii|viii|ix|x)$/i, "");
+
+  return baseSlug || slug.toLowerCase().trim();
 }
 
 /**

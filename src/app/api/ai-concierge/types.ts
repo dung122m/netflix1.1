@@ -9,13 +9,17 @@ export interface SuggestionCard {
   country?: string;
   actors?: string[];
   reason?: string;
+  episode_total?: number | string;
+  type?: string;
 }
 
 export interface MatchOptions {
   expectedCountry?: string;
   expectedGenre?: string;
+  expectedGenreSlugs?: string[];
   expectedActorSlug?: string;
   expectedActorName?: string;
+  expectedDirector?: string;
   expectedTypeSlug?: string;
   yearFrom?: number;
   yearTo?: number;
@@ -23,6 +27,11 @@ export interface MatchOptions {
   excludedCountries?: string[];
   excludedGenres?: string[];
   expectedCharacter?: string;
+  episodeConstraint?: {
+    maxEpisodes?: number;
+    strictLessThan?: number;
+    requireSeries?: boolean;
+  };
 }
 
 export interface CandidateMovie {

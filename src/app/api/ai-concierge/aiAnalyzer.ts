@@ -4,6 +4,7 @@ import {
   normalizeTypos,
   resolveCharacter,
   resolveGenreSlug,
+  resolveGenreSlugs,
   resolveCountrySlug,
   resolveTypeSlug,
   resolveActorSlug,
@@ -402,13 +403,27 @@ export async function analyzeUserPrompt(
       }
     }
 
-    const currentGenre = resolveGenreSlug(prompt);
+    const currentGenres = resolveGenreSlugs(undefined, prompt);
+    const currentGenre = currentGenres[0] || resolveGenreSlug(prompt);
     const currentCountry = resolveCountrySlug(prompt);
     const currentType = resolveTypeSlug(undefined, prompt);
     const currentActorSlug = resolveActorSlug("", prompt);
     const currentActorName = currentActorSlug ? getActorAliases(currentActorSlug)[0] : "";
     const explicitYearMatch = prompt.match(/(?:năm|nam)\s*(\d{4})/i) || prompt.match(/\b(19\d{2}|20\d{2})\b/);
+    const afterYearMatch = prompt.match(/(?:sau|tu|từ)\s*(?:năm\s+|nam\s+)?(\d{4})/i);
+    const rangeMatch = prompt.match(
+      /(?:từ|tu)\s+(?:năm\s+|nam\s+)?(19\d{2}|20\d{2})\s+(?:đến|den|tới|toi)\s+(?:năm\s+|nam\s+)?(19\d{2}|20\d{2})/i
+    );
     const currentYear = explicitYearMatch ? parseInt(explicitYearMatch[1], 10) : null;
+    let fallbackYearFrom: number | undefined = undefined;
+    let fallbackYearTo: number | undefined = undefined;
+    if (rangeMatch && rangeMatch[1] && rangeMatch[2]) {
+      fallbackYearFrom = parseInt(rangeMatch[1], 10);
+      fallbackYearTo = parseInt(rangeMatch[2], 10);
+    } else if (afterYearMatch && afterYearMatch[1]) {
+      fallbackYearFrom = parseInt(afterYearMatch[1], 10);
+      fallbackYearTo = new Date().getFullYear();
+    }
 
     const clearYearRequested =
       /(?:bo|xoa|bo qua|khong gioi han|tat ca|moi)\s+(?:dieu kien\s+)?(?:nam|thoi gian)/i.test(cleanPromptLower) ||
@@ -434,6 +449,8 @@ export async function analyzeUserPrompt(
 
     const effectiveGenres = clearGenreRequested
       ? []
+      : currentGenres.length > 0
+      ? currentGenres
       : currentGenre
       ? [currentGenre]
       : inheritedGenres;
@@ -448,7 +465,17 @@ export async function analyzeUserPrompt(
       ? [{ name: currentActorName, role: "actor" }]
       : inheritedActors;
     const effectiveType = currentType || inheritedType || null;
-    const effectiveYear = clearYearRequested ? null : currentYear || inheritedYear || null;
+    const effectiveYear = clearYearRequested ? null : fallbackYearFrom ? null : currentYear || inheritedYear || null;
+    const effectiveYearRange = clearYearRequested ? null : fallbackYearFrom ? { from: fallbackYearFrom, to: fallbackYearTo } : null;
+
+    const titleOfPersonMatch = prompt.match(/(?:tìm|tim|xem|gợi\s+ý|goi\s+y)?\s*phim\s+(.+?)\s+của\s+(.+)/i);
+    const specificFranchises: string[] = [...inheritedFranchises];
+    if (titleOfPersonMatch && titleOfPersonMatch[1]) {
+      const candidateTitle = titleOfPersonMatch[1].trim();
+      if (candidateTitle && !/(?:hay|mới|hot|bộ|lẻ|nổi tiếng|xuất sắc|đặc sắc)/i.test(candidateTitle)) {
+        specificFranchises.push(candidateTitle);
+      }
+    }
 
     const similarPatternMatch = prompt.match(
       /(?:phim\s+)?(?:giống|giong|tương tự|tuong tu|kiểu như|kieu nhu|same as|similar to|like)\s+(?:phim\s+)?([^\.,\?!]+)/i
@@ -520,14 +547,21 @@ export async function analyzeUserPrompt(
         mood: `Chủ Đề & Điện Ảnh 🎬`,
         suggested_movies: [],
       };
-    } else if (effectiveActors.length > 0 || effectiveGenres.length > 0 || effectiveCountries.length > 0 || effectiveType || effectiveYear) {
+    } else if (
+      effectiveActors.length > 0 ||
+      effectiveGenres.length > 0 ||
+      effectiveCountries.length > 0 ||
+      effectiveType ||
+      effectiveYear ||
+      effectiveYearRange
+    ) {
       let derivedIntent: SearchIntent = "genre";
       if (effectiveActors.length > 0 && (effectiveGenres.length > 0 || effectiveCountries.length > 0)) derivedIntent = "mixed";
       else if (effectiveActors.length > 0) derivedIntent = "actor";
       else if (effectiveGenres.length > 0 && effectiveCountries.length > 0) derivedIntent = "mixed";
       else if (effectiveGenres.length > 0) derivedIntent = "genre";
       else if (effectiveCountries.length > 0) derivedIntent = "country";
-      else if (effectiveYear) derivedIntent = "year";
+      else if (effectiveYear || effectiveYearRange) derivedIntent = "year";
 
       const actorDesc = effectiveActors.length > 0 ? ` của diễn viên ${effectiveActors.map(a => a.name).join(" & ")}` : "";
       parsed = {
@@ -538,9 +572,10 @@ export async function analyzeUserPrompt(
         genres: effectiveGenres,
         countries: effectiveCountries,
         people: effectiveActors,
-        franchises: inheritedFranchises,
+        franchises: specificFranchises,
         themes: [],
         year: effectiveYear,
+        yearRange: effectiveYearRange,
         type: effectiveType,
         clearFields,
         is_trap: false,

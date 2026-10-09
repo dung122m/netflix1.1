@@ -6,6 +6,8 @@ import {
   getActorAliases,
   hasWordMatch,
   matchesActor,
+  matchesDirector,
+  extractEpisodeTotal,
   matchesCountry,
   matchesGenre,
   resolveGenreSlug,
@@ -26,8 +28,10 @@ export interface RelevanceCheckOptions {
   expectedActorName?: string;
   expectedActorSlugs?: string[];
   expectedActorNames?: string[];
+  expectedDirector?: string;
   expectedCharacter?: string;
   targetGenreSlug?: string;
+  targetGenreSlugs?: string[];
   targetCountrySlug?: string;
   targetTypeSlug?: string;
   expectedTypeSlug?: string;
@@ -40,6 +44,11 @@ export interface RelevanceCheckOptions {
   excludedGenres?: string[];
   franchises?: string[];
   themes?: string[];
+  episodeConstraint?: {
+    maxEpisodes?: number;
+    strictLessThan?: number;
+    requireSeries?: boolean;
+  };
 }
 
 export interface RelevanceResult {
@@ -457,11 +466,52 @@ export function isRelevantToQuery(
     }
   }
 
+  // 1.1b KIỂM TRA QUỐC GIA MỤC TIÊU (TARGET COUNTRY CONSTRAINT)
+  if (options?.targetCountrySlug) {
+    const isCountryMatch =
+      countries.some((c) => matchesCountry(c, options.targetCountrySlug!)) ||
+      matchesCountry(countryStr, options.targetCountrySlug!) ||
+      matchesCountry(country, options.targetCountrySlug!);
+    if (!isCountryMatch && (countries.length > 0 || country)) {
+      return { relevant: false, score: 0, reason: `Không đúng quốc gia yêu cầu (${options.targetCountrySlug})` };
+    }
+  }
+
   // 1.2 KIỂM TRA ĐỊNH DẠNG PHIM (TYPE FILTER: PHIM BỘ / PHIM LẺ / HOẠT HÌNH / TV SHOWS)
   if (options?.targetTypeSlug) {
     const isTypeMatch = isMovieOfType(movie, options.targetTypeSlug);
     if (!isTypeMatch) {
       return { relevant: false, score: 0, reason: `Không khớp định dạng phim yêu cầu (${options.targetTypeSlug})` };
+    }
+  }
+
+  // 1.3 KIỂM TRA RÀNG BUỘC SỐ TẬP (EPISODE COUNT & SERIES CONSTRAINT)
+  if (options?.episodeConstraint) {
+    const epConst = options.episodeConstraint;
+    const epTotal = extractEpisodeTotal(movie);
+
+    if (epConst.requireSeries) {
+      const isSeries = movie.type === "series" || movie.type === "phim-bo" || (epTotal !== null && epTotal > 1);
+      if (!isSeries) {
+        return { relevant: false, score: 0, reason: "Không phải định dạng phim bộ / series theo yêu cầu" };
+      }
+    }
+
+    if (epTotal !== null) {
+      if (epConst.strictLessThan !== undefined && epTotal >= epConst.strictLessThan) {
+        return {
+          relevant: false,
+          score: 0,
+          reason: `Số tập (${epTotal}) không nhỏ hơn yêu cầu (< ${epConst.strictLessThan} tập)`,
+        };
+      }
+      if (epConst.maxEpisodes !== undefined && epTotal > epConst.maxEpisodes) {
+        return {
+          relevant: false,
+          score: 0,
+          reason: `Số tập (${epTotal}) vượt quá giới hạn tối đa (${epConst.maxEpisodes} tập)`,
+        };
+      }
     }
   }
 
@@ -517,11 +567,12 @@ export function isRelevantToQuery(
     return { relevant: false, score: 0, reason: "Không khớp tựa phim cần tìm" };
   }
 
-  // 3. INTENT = ACTOR (Tìm theo diễn viên)
+  // 3. INTENT = ACTOR / PERSON / DIRECTOR (Tìm theo diễn viên / đạo diễn)
   if (
     parsedIntent === "actor" ||
     options?.expectedActorSlug ||
     options?.expectedActorName ||
+    options?.expectedDirector ||
     (options?.expectedActorSlugs && options.expectedActorSlugs.length > 0) ||
     (options?.expectedActorNames && options.expectedActorNames.length > 0)
   ) {
@@ -535,47 +586,98 @@ export function isRelevantToQuery(
       : options?.expectedActorName
       ? [options.expectedActorName]
       : [];
+    if (options?.expectedDirector && !actorNames.includes(options.expectedDirector)) {
+      actorNames.push(options.expectedDirector);
+    }
+
+    const directorMeta = movie.director || movie.directors;
 
     if (actorSlugs.length > 0) {
-      // Khi có nhiều diễn viên (ví dụ: Thành Long và Hồng Kim Bảo)
-      // Mọi diễn viên yêu cầu phải xuất hiện
       const allSlugsMatched = actorSlugs.every((slug) => {
-        if (matchesActor(actors, slug)) return true;
-        const aliases = getActorAliases(slug).map(cleanNormalizedString);
-        return aliases.some((a) => a && (desc.includes(a) || name.includes(a) || orig.includes(a)));
+        // 1. Kiểm tra danh sách diễn viên (cast list)
+        if (actors && actors.length > 0 && matchesActor(actors, slug)) {
+          return true;
+        }
+        // 2. Kiểm tra đạo diễn (director)
+        if (directorMeta && matchesDirector(directorMeta, slug)) {
+          return true;
+        }
+        // 3. Nếu metadata hoàn toàn thiếu cả actors và director, chỉ chấp nhận nếu tựa phim khớp từ nguyên vẹn (word boundary)
+        if ((!actors || actors.length === 0) && !directorMeta) {
+          const aliases = getActorAliases(slug).map(cleanNormalizedString);
+          return aliases.some((a) => a && (hasWordMatch(name, a) || hasWordMatch(orig, a)));
+        }
+        return false;
       });
 
       if (allSlugsMatched) {
+        if (options?.franchises && options.franchises.length > 0) {
+          const hasFranchiseMatch = options.franchises.some((fr) => {
+            const cleanFr = cleanNormalizedString(fr);
+            return (
+              hasWordMatch(name, cleanFr) ||
+              hasWordMatch(orig, cleanFr) ||
+              slug.includes(cleanFr.replace(/\s+/g, "-"))
+            );
+          });
+          if (!hasFranchiseMatch) {
+            return { relevant: false, score: 0, reason: "Không khớp loạt phim yêu cầu" };
+          }
+        }
+
         return {
           relevant: true,
           score: 95 + (actorSlugs.length > 1 ? 10 : 0),
-          reason: `Có đầy đủ diễn viên yêu cầu (${actorSlugs.join(", ")})`,
+          reason: `Xác minh có diễn viên/đạo diễn yêu cầu (${actorSlugs.join(", ")})`,
         };
       }
-      return { relevant: false, score: 0, reason: "Không có đầy đủ diễn viên yêu cầu" };
+      return { relevant: false, score: 0, reason: "Không có diễn viên hoặc đạo diễn yêu cầu trong metadata" };
     } else if (actorNames.length > 0) {
-      const actorListStr = Array.isArray(actors) ? actors.join(" ") : String(actors || "");
-      const cleanActorList = cleanNormalizedString(actorListStr);
-
       const allNamesMatched = actorNames.every((an) => {
         const cleanAn = cleanNormalizedString(an);
         if (!cleanAn || cleanAn.length < 2) return true;
-        if (cleanActorList.includes(cleanAn)) return true;
-        if (Array.isArray(actors) && actors.some((a) => {
-          const cleanA = cleanNormalizedString(a);
-          return cleanA === cleanAn || cleanA.includes(cleanAn) || cleanAn.includes(cleanA);
-        })) return true;
-        return desc.includes(cleanAn) || name.includes(cleanAn) || orig.includes(cleanAn);
+
+        if (actors && actors.length > 0) {
+          const hasInCast = actors.some((a) => {
+            const cleanA = cleanNormalizedString(a);
+            return cleanA === cleanAn || cleanA.includes(cleanAn) || cleanAn.includes(cleanA) || hasWordMatch(cleanA, cleanAn);
+          });
+          if (hasInCast) return true;
+        }
+
+        if (directorMeta && matchesDirector(directorMeta, an)) {
+          return true;
+        }
+
+        // Nếu thiếu cả actors và director
+        if ((!actors || actors.length === 0) && !directorMeta) {
+          return hasWordMatch(name, cleanAn) || hasWordMatch(orig, cleanAn);
+        }
+        return false;
       });
 
       if (allNamesMatched) {
+        if (options?.franchises && options.franchises.length > 0) {
+          const hasFranchiseMatch = options.franchises.some((fr) => {
+            const cleanFr = cleanNormalizedString(fr);
+            return (
+              hasWordMatch(name, cleanFr) ||
+              hasWordMatch(orig, cleanFr) ||
+              slug.includes(cleanFr.replace(/\s+/g, "-"))
+            );
+          });
+          if (!hasFranchiseMatch) {
+            return { relevant: false, score: 0, reason: "Không khớp loạt phim yêu cầu" };
+          }
+        }
+
         return {
           relevant: true,
           score: 95 + (actorNames.length > 1 ? 10 : 0),
-          reason: `Có diễn viên yêu cầu (${actorNames.join(", ")})`,
+          reason: `Xác minh có nhân sự yêu cầu (${actorNames.join(", ")})`,
         };
       }
-      return { relevant: false, score: 0, reason: "Không có đầy đủ diễn viên yêu cầu" };
+      return { relevant: false, score: 0, reason: "Không có diễn viên hoặc đạo diễn yêu cầu trong metadata" };
     }
   }
 
@@ -750,11 +852,54 @@ export function isRelevantToQuery(
   let countryOk = true;
   let yearOk = true;
 
-  if (options?.targetGenreSlug) {
-    genreOk =
-      categories.some((c) => matchesGenre(c, options.targetGenreSlug!)) ||
-      matchesGenre(categoryStr, options.targetGenreSlug);
+  const requestedGenreSlugs = options?.targetGenreSlugs && options.targetGenreSlugs.length > 0
+    ? options.targetGenreSlugs
+    : options?.targetGenreSlug
+    ? [options.targetGenreSlug]
+    : [];
+
+  let genreBonus = 0;
+  if (requestedGenreSlugs.length > 0) {
+    const primaryGenre = requestedGenreSlugs[0];
+    const isPrimaryMatch =
+      categories.some((c) => matchesGenre(c, primaryGenre)) ||
+      matchesGenre(categoryStr, primaryGenre);
+
+    if (isPrimaryMatch) {
+      genreOk = true;
+      genreBonus += 10;
+      // Bonus cho các thể loại phụ khớp thêm (ví dụ vừa võ thuật vừa hành động / hài hước)
+      for (let i = 1; i < requestedGenreSlugs.length; i++) {
+        const secGenre = requestedGenreSlugs[i];
+        if (categories.some((c) => matchesGenre(c, secGenre)) || matchesGenre(categoryStr, secGenre)) {
+          genreBonus += 15;
+        }
+      }
+    } else if (primaryGenre === "vo-thuat") {
+      // Catalog metadata fallback: Nếu phim không có tag "vo-thuat" chính thức nhưng có tag "hanh-dong"
+      // VÀ có bằng chứng võ thuật rõ rệt từ tựa đề/mô tả/diễn viên võ thuật
+      const isAction = categories.some((c) => matchesGenre(c, "hanh-dong")) || matchesGenre(categoryStr, "hanh-dong");
+      const hasMartialArtsEvidence =
+        name.includes("vo thuat") || name.includes("kungfu") || name.includes("kung fu") || name.includes("diep van") ||
+        name.includes("ip man") || name.includes("the raid") || name.includes("john wick") || name.includes("ong bak") ||
+        desc.includes("vo thuat") || desc.includes("can chien") || desc.includes("thuc chien") || desc.includes("danh vo") ||
+        desc.includes("kung fu") || desc.includes("mon phai") || desc.includes("vo dai") ||
+        actors.some((a) => ["chan tu dan", "ly tieu long", "thanh long", "ly lien kiet", "ngo kinh", "tony jaa", "iko uwais", "keanu reeves"].some((actor) => a.includes(actor)));
+
+      if (isAction && hasMartialArtsEvidence) {
+        genreOk = true;
+        genreBonus += 5;
+      } else {
+        genreOk = false;
+      }
+    } else {
+      // Đối với các thể loại khác, nếu có ít nhất 1 thể loại trong danh sách requested khớp
+      const anyMatch = requestedGenreSlugs.some((g) => categories.some((c) => matchesGenre(c, g)) || matchesGenre(categoryStr, g));
+      genreOk = anyMatch;
+      if (anyMatch) genreBonus += 10;
+    }
   }
+
   if (options?.targetCountrySlug) {
     countryOk =
       countries.some((c) => matchesCountry(c, options.targetCountrySlug!)) ||
@@ -781,8 +926,8 @@ export function isRelevantToQuery(
   }
 
   // Nếu người dùng có các ràng buộc rõ ràng (Genre, Country, Year, Type), BẮT BUỘC phải thỏa mãn đồng thời
-  if (options?.targetGenreSlug && !genreOk) {
-    return { relevant: false, score: 0, reason: `Không khớp thể loại yêu cầu (${options.targetGenreSlug})` };
+  if (requestedGenreSlugs.length > 0 && !genreOk) {
+    return { relevant: false, score: 0, reason: `Không khớp thể loại yêu cầu (${requestedGenreSlugs.join(", ")})` };
   }
   if (options?.targetCountrySlug && !countryOk) {
     return { relevant: false, score: 0, reason: `Không khớp quốc gia yêu cầu (${options.targetCountrySlug})` };
@@ -794,11 +939,10 @@ export function isRelevantToQuery(
     return { relevant: false, score: 0, reason: `Không khớp định dạng phim yêu cầu (${effectiveTypeSlug})` };
   }
 
-  if (options?.targetGenreSlug || options?.targetCountrySlug || options?.targetYear || options?.yearFrom || options?.yearTo || effectiveTypeSlug) {
-    let matchScore = 75;
-    if (options.targetGenreSlug && genreOk) matchScore += 10;
-    if (options.targetCountrySlug && countryOk) matchScore += 10;
-    if ((options.targetYear || options.yearFrom || options.yearTo) && yearOk) matchScore += 10;
+  if (requestedGenreSlugs.length > 0 || options?.targetCountrySlug || options?.targetYear || options?.yearFrom || options?.yearTo || effectiveTypeSlug) {
+    let matchScore = 75 + genreBonus;
+    if (options?.targetCountrySlug && countryOk) matchScore += 10;
+    if ((options?.targetYear || options?.yearFrom || options?.yearTo) && yearOk) matchScore += 10;
     if (effectiveTypeSlug && typeOk) matchScore += 10;
     return { relevant: true, score: matchScore, reason: "Thỏa mãn đầy đủ các ràng buộc tìm kiếm" };
   }

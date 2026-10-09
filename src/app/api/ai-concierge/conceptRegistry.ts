@@ -1,5 +1,5 @@
 import { cleanNormalizedString, hasWordMatch } from "./taxonomy";
-import { toSafeActors } from "./movieFormatter";
+import { toSafeActors, toSafeCategory, toSafeCategories } from "./movieFormatter";
 
 export interface SemanticConcept {
   id: string;
@@ -445,6 +445,108 @@ export const SEMANTIC_CONCEPTS: SemanticConcept[] = [
       "gaoranger",
       "tokusatsu",
     ],
+  },
+  {
+    id: "martial_arts_combat",
+    canonicalName: "Võ thuật / Cận chiến / Thực chiến / Martial Arts",
+    triggerPhrases: [
+      "vo thuat",
+      "võ thuật",
+      "phim vo thuat",
+      "phim võ thuật",
+      "martial arts",
+      "martial art",
+      "vo thuat thuc chien",
+      "thuc chien",
+      "thực chiến",
+      "can chien",
+      "cận chiến",
+      "danh vo",
+      "đánh võ",
+      "kungfu",
+      "kung fu",
+      "phim chuong",
+      "phim chưởng",
+      "hanh dong vo thuat",
+      "hành động võ thuật",
+      "vo thuat man nhan",
+      "võ thuật mãn nhãn",
+      "can chien man nhan",
+      "cận chiến mãn nhãn",
+      "danh dam",
+      "đánh đấm",
+    ],
+    discoveryKeywords: [
+      "võ thuật",
+      "cận chiến",
+      "thực chiến",
+      "martial arts",
+      "kung fu",
+      "Diệp Vấn",
+      "The Raid",
+      "Tinh Võ Môn",
+      "Sát Phá Lang",
+      "John Wick",
+    ],
+    strongTitleConcepts: [
+      "vo thuat",
+      "kung fu",
+      "kungfu",
+      "diep van",
+      "ip man",
+      "the raid",
+      "ong bak",
+      "tinh vo",
+      "sat pha lang",
+      "hoang phi hong",
+      "fist of legend",
+      "tuy quyen",
+      "thai cuc",
+      "vo si",
+      "boxing",
+      "karate",
+      "taekwondo",
+      "judo",
+      "mma",
+      "cobra kai",
+      "quyen vuong",
+      "sat thu",
+      "john wick",
+    ],
+    strongSynopsisConcepts: [
+      "vo thuat",
+      "can chien",
+      "thuc chien",
+      "danh vo",
+      "kung fu",
+      "kungfu",
+      "mon phai",
+      "vo dai",
+      "quyen thuat",
+      "tuyet ky",
+      "don danh",
+      "dau vo",
+      "ti vo",
+      "boxing",
+      "karate",
+      "mma",
+      "taekwondo",
+      "sat thu",
+    ],
+    characterEntities: [
+      "Diệp Vấn",
+      "Hoàng Phi Hồng",
+      "Trần Chân",
+      "Lý Tiểu Long",
+      "Thành Long",
+      "Chân Tử Đan",
+      "Lý Liên Kiệt",
+      "Ngô Kinh",
+      "Tony Jaa",
+      "Iko Uwais",
+      "Keanu Reeves",
+    ],
+    negativePhrases: [],
   },
   {
     id: "hong_kong_martial_arts",
@@ -1040,7 +1142,7 @@ export function resolveConcepts(
     const isNegated = concept.triggerPhrases.some((tp) => {
       const cleanTp = cleanNormalizedString(tp);
       const escaped = cleanTp.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const negRegex = new RegExp(`(?:không|khong|chẳng|chang|ko|k|trừ|tru|loại trừ|loai tru|không phải|khong phai|không có|khong co|không lấy|khong lay)\\s+(?:yếu tố\\s+|yeu to\\s+)?${escaped}`, "i");
+      const negRegex = new RegExp(`(?:không\\s+ưu\\s+tiên|khong\\s+uu\\s+tien|không\\s+cần|khong\\s+can|không\\s+thích|khong\\s+thich|không\\s+xem|khong\\s+xem|không|khong|chẳng|chang|ko|k|trừ|tru|loại trừ|loai tru|không phải|khong phai|không có|khong co|không lấy|khong lay)\\s+(?:yếu tố\\s+|yeu to\\s+)?${escaped}`, "i");
       return negRegex.test(cleanQ);
     });
 
@@ -1168,6 +1270,19 @@ export function evaluateConceptEvidence(
         ? `${evidence} và tóm tắt đề cập [${matchedSynopsis.slice(0, 2).join(", ")}]`
         : `Cốt truyện xoay quanh [${matchedSynopsis.slice(0, 2).join(", ")}]`;
       evidenceType = evidenceType || "SYNOPSIS_CONCEPT";
+    }
+
+    // 5. CATEGORY_CONCEPT: Bằng chứng từ thể loại chính thức (+80 điểm cho martial arts concepts)
+    const categoryStr = cleanNormalizedString(toSafeCategory(movie) || "");
+    const categories = toSafeCategories(movie).map(cleanNormalizedString);
+    if (
+      (concept.id === "martial_arts_combat" || concept.id === "hong_kong_martial_arts") &&
+      (categories.some((c) => c.includes("vo thuat") || c.includes("vo-thuat") || c.includes("martial")) ||
+       categoryStr.includes("vo thuat") || categoryStr.includes("vo-thuat"))
+    ) {
+      score += 80;
+      evidence = evidence ? `${evidence}, Thể loại chính thức Võ thuật` : "Thể loại chính thức Võ thuật";
+      evidenceType = evidenceType || "CATEGORY_CONCEPT";
     }
 
     if (score >= 70) {
