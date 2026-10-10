@@ -1,18 +1,21 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { Play } from "lucide-react";
 import { FootballMatch } from "@/services/liveFootballService";
+import { LiveMatchScore } from "@/services/live/football-score/types";
 import {
   getTeamAsset,
   getTeamInitials,
   isRawNumericOrArtifactTournament,
 } from "@/data/live/teamAssets";
+import { toDarkModeLogoUrl } from "@/services/live/football-logo/service";
 
 interface MatchCardProps {
   match: FootballMatch;
   isSelected: boolean;
   onSelect: (match: FootballMatch) => void;
+  score?: LiveMatchScore | null;
 }
 
 function formatKickoffTime(timestamp?: number | null): string | null {
@@ -132,10 +135,26 @@ function TeamLogoFallback({
   );
 }
 
-function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
-  const [homeError, setHomeError] = useState(false);
-  const [awayError, setAwayError] = useState(false);
+function MatchCardInner({ match, isSelected, onSelect, score }: MatchCardProps) {
+  const currentScore = score || match.score || null;
+  const hasScore = Boolean(
+    currentScore &&
+      (currentScore.status === "live" || currentScore.status === "finished"),
+  );
+  const [homeTriedAsset, setHomeTriedAsset] = useState(false);
+  const [homeFailed, setHomeFailed] = useState(false);
+  const [awayTriedAsset, setAwayTriedAsset] = useState(false);
+  const [awayFailed, setAwayFailed] = useState(false);
   const [logoError, setLogoError] = useState(false);
+
+  // Đặt lại trạng thái lỗi khi đổi trận đấu hoặc link logo
+  useEffect(() => {
+    setHomeTriedAsset(false);
+    setHomeFailed(false);
+    setAwayTriedAsset(false);
+    setAwayFailed(false);
+    setLogoError(false);
+  }, [match.id, match.homeLogo, match.awayLogo, match.logo]);
 
   const isFhd = match.quality.includes("FHD");
   const isLive = match.timeline === "live";
@@ -201,32 +220,63 @@ function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
   const homeAsset = useMemo(() => getTeamAsset(displayTeam1), [displayTeam1]);
   const awayAsset = useMemo(() => getTeamAsset(displayTeam2), [displayTeam2]);
 
-  const validHomeLogo =
-    Boolean(match.homeLogo) &&
-    !match.homeLogo?.includes("tinhlagi.pro/logo.jpg") &&
-    !homeError;
-
-  const validAwayLogo =
-    Boolean(match.awayLogo) &&
-    !match.awayLogo?.includes("tinhlagi.pro/logo.jpg") &&
-    !awayError;
-
   const validEventLogo =
     Boolean(match.logo || match.homeLogo) &&
     !match.logo?.includes("tinhlagi.pro/logo.jpg") &&
     !logoError;
 
-  // Ưu tiên cờ quốc gia / emoji đặc thù (luôn hiển thị chuẩn, sắc nét, không 404)
+  // Ưu tiên cờ quốc gia / emoji đặc thù (luôn hiển thị chuẩn, sắc nét, không bao giờ 404)
   const homeFlagEmoji = homeAsset?.emoji || null;
   const awayFlagEmoji = awayAsset?.emoji || null;
 
-  // Logo ảnh: Ưu tiên logo từ API; nếu lỗi hoặc không có thì thử logo từ dictionary; nếu không có thì fallback sang initials
-  const homeLogoSrc = !homeFlagEmoji
-    ? (validHomeLogo ? match.homeLogo : (homeAsset?.logo ? homeAsset.logo : null))
-    : null;
-  const awayLogoSrc = !awayFlagEmoji
-    ? (validAwayLogo ? match.awayLogo : (awayAsset?.logo ? awayAsset.logo : null))
-    : null;
+  // Chuỗi URL logo candidate:
+  const rawHome =
+    Boolean(match.homeLogo) &&
+    !match.homeLogo?.includes("tinhlagi.pro/logo.jpg")
+      ? match.homeLogo
+      : null;
+  const assetHome = homeAsset?.logo || null;
+
+  let homeLogoSrc: string | null = null;
+  if (!homeFlagEmoji && !homeFailed) {
+    if (rawHome && !homeTriedAsset) {
+      homeLogoSrc = toDarkModeLogoUrl(rawHome);
+    } else if (assetHome) {
+      homeLogoSrc = toDarkModeLogoUrl(assetHome);
+    }
+  }
+
+  const handleHomeImgError = useCallback(() => {
+    if (rawHome && !homeTriedAsset && assetHome && assetHome !== rawHome) {
+      setHomeTriedAsset(true);
+    } else {
+      setHomeFailed(true);
+    }
+  }, [rawHome, homeTriedAsset, assetHome]);
+
+  const rawAway =
+    Boolean(match.awayLogo) &&
+    !match.awayLogo?.includes("tinhlagi.pro/logo.jpg")
+      ? match.awayLogo
+      : null;
+  const assetAway = awayAsset?.logo || null;
+
+  let awayLogoSrc: string | null = null;
+  if (!awayFlagEmoji && !awayFailed) {
+    if (rawAway && !awayTriedAsset) {
+      awayLogoSrc = toDarkModeLogoUrl(rawAway);
+    } else if (assetAway) {
+      awayLogoSrc = toDarkModeLogoUrl(assetAway);
+    }
+  }
+
+  const handleAwayImgError = useCallback(() => {
+    if (rawAway && !awayTriedAsset && assetAway && assetAway !== rawAway) {
+      setAwayTriedAsset(true);
+    } else {
+      setAwayFailed(true);
+    }
+  }, [rawAway, awayTriedAsset, assetAway]);
 
   // Tổng hợp tên các đài phát (COLA TV, Gà Vàng...)
   const displayGroups =
@@ -291,12 +341,13 @@ function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
               <CountryFlag emoji={homeFlagEmoji} className="w-6 h-6 sm:w-7 sm:h-7" />
             </div>
           ) : validEventLogo ? (
-            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg bg-zinc-800 border border-white/10 overflow-hidden shrink-0 shadow-md p-0.5">
+            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg bg-gradient-to-b from-zinc-700/80 via-zinc-800/95 to-zinc-900 border border-white/20 overflow-hidden shrink-0 shadow-md p-1 relative">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.16)_0%,_transparent_75%)] pointer-events-none" />
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={match.logo || match.homeLogo}
+                src={toDarkModeLogoUrl(match.logo || match.homeLogo)}
                 alt=""
-                className="w-full h-full object-contain filter drop-shadow-sm"
+                className="w-full h-full object-contain filter drop-shadow-[0_0_1.5px_rgba(255,255,255,0.7)] drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)] relative z-10"
                 onError={() => setLogoError(true)}
                 loading="lazy"
                 referrerPolicy="no-referrer"
@@ -309,12 +360,26 @@ function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
           )}
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5 mb-0.5">
-              {isLive ? (
+              {hasScore && currentScore?.status === "live" ? (
+                <span className="px-1.5 py-0.2 rounded-full bg-red-600 text-white font-black text-[8px] sm:text-[8.5px] flex items-center gap-1 shadow-sm tracking-wider animate-pulse whitespace-nowrap shrink-0">
+                  <span className="w-1 h-1 rounded-full bg-white animate-ping" />
+                  <span>{currentScore.displayClock ? `LIVE ${currentScore.displayClock}` : "LIVE"}</span>
+                </span>
+              ) : isLive ? (
                 <span className="px-1.5 py-0.2 rounded-full bg-red-600 text-white font-black text-[8px] sm:text-[8.5px] flex items-center gap-1 shadow-sm tracking-wider animate-pulse whitespace-nowrap shrink-0">
                   <span className="w-1 h-1 rounded-full bg-white animate-ping" />
                   <span>LIVE</span>
                 </span>
+              ) : hasScore && currentScore?.status === "finished" ? (
+                <span className="px-1.5 py-0.2 rounded-full bg-zinc-700/80 border border-white/10 text-gray-300 font-bold text-[7.5px] sm:text-[8px] uppercase tracking-wider whitespace-nowrap shrink-0">
+                  FT
+                </span>
               ) : null}
+              {hasScore && (
+                <span className="text-[9px] sm:text-[9.5px] font-black font-mono px-1.5 py-0.2 rounded bg-zinc-800/90 border border-white/15 text-amber-400 whitespace-nowrap shrink-0 shadow-inner">
+                  {currentScore?.team1Score} - {currentScore?.team2Score}
+                </span>
+              )}
               {kickoffTime && (
                 <span className="text-[9px] sm:text-[9.5px] text-sky-400 font-bold bg-sky-500/10 border border-sky-500/20 px-1.5 py-0.2 rounded whitespace-nowrap shrink-0">
                   🕐 {kickoffTime}
@@ -330,20 +395,18 @@ function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1 sm:gap-1.5 my-1 sm:my-1.5 relative z-10 w-full min-w-0">
           {/* ĐỘI NHÀ (CỘT TRÁI - 50% CÂN ĐỐI) */}
           <div className="flex flex-col items-center justify-center text-center min-w-0 w-full group/team">
-            <div className="w-9 h-9 sm:w-11 sm:h-11 md:w-12 md:h-12 rounded-xl bg-zinc-800/90 border border-white/15 p-1 flex items-center justify-center shrink-0 overflow-hidden shadow-md group-hover:scale-105 transition-transform duration-200">
+            <div className="w-9 h-9 sm:w-11 sm:h-11 md:w-12 md:h-12 rounded-xl bg-gradient-to-b from-zinc-700/80 via-zinc-800/95 to-zinc-900 border border-white/20 p-1 flex items-center justify-center shrink-0 overflow-hidden shadow-md group-hover:scale-105 transition-transform duration-200 relative">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.16)_0%,_transparent_75%)] pointer-events-none" />
               {homeFlagEmoji ? (
-                <CountryFlag emoji={homeFlagEmoji} className="w-6 h-6 sm:w-8 sm:h-8" />
+                <CountryFlag emoji={homeFlagEmoji} className="w-6 h-6 sm:w-8 sm:h-8 relative z-10" />
               ) : homeLogoSrc ? (
                 /* eslint-disable-next-line @next/next/no-img-element */
                 <img
                   key={homeLogoSrc}
                   src={homeLogoSrc}
                   alt=""
-                  className="w-full h-full object-contain filter drop-shadow-md"
-                  onError={(e) => {
-                    setHomeError(true);
-                    e.currentTarget.style.display = "none";
-                  }}
+                  className="w-full h-full object-contain filter drop-shadow-[0_0_1.5px_rgba(255,255,255,0.7)] drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)] relative z-10"
+                  onError={handleHomeImgError}
                   loading="lazy"
                   referrerPolicy="no-referrer"
                 />
@@ -359,42 +422,76 @@ function MatchCardInner({ match, isSelected, onSelect }: MatchCardProps) {
             </span>
           </div>
 
-          {/* TRUNG TÂM MATCHUP: VS, STATUS & GIỜ ĐÁ (CỘT GIỮA TRỤC TÂM) */}
+          {/* TRUNG TÂM MATCHUP: TỶ SỐ HOẶC VS & GIỜ ĐÁ (CỘT GIỮA TRỤC TÂM) */}
           <div className="shrink-0 flex flex-col items-center justify-center px-0.5 text-center min-w-[50px] sm:min-w-[62px]">
-            {isLive ? (
-              <span className="px-1.5 py-0.2 rounded-full bg-red-600 text-white font-black text-[7.5px] sm:text-[8.5px] flex items-center gap-0.5 shadow-md animate-pulse tracking-wider whitespace-nowrap shrink-0">
-                <span className="w-1 h-1 rounded-full bg-white animate-ping" />
-                <span>LIVE</span>
-              </span>
-            ) : null}
+            {hasScore ? (
+              <>
+                {currentScore?.status === "live" ? (
+                  <span className="px-1.5 py-0.2 rounded-full bg-red-600 text-white font-black text-[7.5px] sm:text-[8.5px] flex items-center gap-0.5 shadow-md animate-pulse tracking-wider whitespace-nowrap shrink-0">
+                    <span className="w-1 h-1 rounded-full bg-white animate-ping" />
+                    <span>{currentScore.displayClock ? `LIVE ${currentScore.displayClock}` : "LIVE"}</span>
+                  </span>
+                ) : (
+                  <span className="px-1.5 py-0.2 rounded-full bg-zinc-700/80 border border-white/10 text-gray-300 font-bold text-[7px] sm:text-[8px] uppercase tracking-wider whitespace-nowrap shrink-0">
+                    FT
+                  </span>
+                )}
 
-            <span className="mt-0.5 px-1 py-0.2 rounded-full bg-white/5 border border-white/10 text-[7.5px] sm:text-[8.5px] font-black text-rose-400/90 font-mono tracking-widest">
-              VS
-            </span>
+                <span
+                  className={`mt-0.5 px-1.5 py-0.2 rounded border font-mono tracking-wider text-[10px] sm:text-[11.5px] font-black shadow-inner whitespace-nowrap ${
+                    currentScore?.status === "live"
+                      ? "bg-zinc-800/90 border-red-500/30 text-amber-400"
+                      : "bg-zinc-800/70 border-white/10 text-gray-200"
+                  }`}
+                >
+                  {currentScore?.team1Score} - {currentScore?.team2Score}
+                </span>
 
-            {kickoffTime && (
-              <span className="mt-0.5 px-1.5 py-0.2 rounded bg-white/10 border border-white/10 text-[8px] sm:text-[9px] font-bold text-gray-200 tracking-tight whitespace-nowrap">
-                🕐 {kickoffTime}
-              </span>
+                {currentScore?.status === "live" &&
+                currentScore.statusDetail &&
+                currentScore.statusDetail !== currentScore.displayClock &&
+                currentScore.statusDetail !== "In Progress" ? (
+                  <span className="mt-0.5 text-[7px] sm:text-[8px] font-bold text-amber-300/90 tracking-tight whitespace-nowrap">
+                    {currentScore.statusDetail}
+                  </span>
+                ) : null}
+              </>
+            ) : (
+              <>
+                {isLive ? (
+                  <span className="px-1.5 py-0.2 rounded-full bg-red-600 text-white font-black text-[7.5px] sm:text-[8.5px] flex items-center gap-0.5 shadow-md animate-pulse tracking-wider whitespace-nowrap shrink-0">
+                    <span className="w-1 h-1 rounded-full bg-white animate-ping" />
+                    <span>LIVE</span>
+                  </span>
+                ) : null}
+
+                <span className="mt-0.5 px-1 py-0.2 rounded-full bg-white/5 border border-white/10 text-[7.5px] sm:text-[8.5px] font-black text-rose-400/90 font-mono tracking-widest">
+                  VS
+                </span>
+
+                {kickoffTime && (
+                  <span className="mt-0.5 px-1.5 py-0.2 rounded bg-white/10 border border-white/10 text-[8px] sm:text-[9px] font-bold text-gray-200 tracking-tight whitespace-nowrap">
+                    🕐 {kickoffTime}
+                  </span>
+                )}
+              </>
             )}
           </div>
 
           {/* ĐỘI KHÁCH (CỘT PHẢI - 50% CÂN ĐỐI) */}
           <div className="flex flex-col items-center justify-center text-center min-w-0 w-full group/team">
-            <div className="w-9 h-9 sm:w-11 sm:h-11 md:w-12 md:h-12 rounded-xl bg-zinc-800/90 border border-white/15 p-1 flex items-center justify-center shrink-0 overflow-hidden shadow-md group-hover:scale-105 transition-transform duration-200">
+            <div className="w-9 h-9 sm:w-11 sm:h-11 md:w-12 md:h-12 rounded-xl bg-gradient-to-b from-zinc-700/80 via-zinc-800/95 to-zinc-900 border border-white/20 p-1 flex items-center justify-center shrink-0 overflow-hidden shadow-md group-hover:scale-105 transition-transform duration-200 relative">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.16)_0%,_transparent_75%)] pointer-events-none" />
               {awayFlagEmoji ? (
-                <CountryFlag emoji={awayFlagEmoji} className="w-6 h-6 sm:w-8 sm:h-8" />
+                <CountryFlag emoji={awayFlagEmoji} className="w-6 h-6 sm:w-8 sm:h-8 relative z-10" />
               ) : awayLogoSrc ? (
                 /* eslint-disable-next-line @next/next/no-img-element */
                 <img
                   key={awayLogoSrc}
                   src={awayLogoSrc}
                   alt=""
-                  className="w-full h-full object-contain filter drop-shadow-md"
-                  onError={(e) => {
-                    setAwayError(true);
-                    e.currentTarget.style.display = "none";
-                  }}
+                  className="w-full h-full object-contain filter drop-shadow-[0_0_1.5px_rgba(255,255,255,0.7)] drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)] relative z-10"
+                  onError={handleAwayImgError}
                   loading="lazy"
                   referrerPolicy="no-referrer"
                 />

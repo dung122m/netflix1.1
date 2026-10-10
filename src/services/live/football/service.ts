@@ -1,12 +1,16 @@
 import { enrichMatchLogos } from "@/services/live/football-logo/service";
 import { isBlockedStreamUrl } from "@/services/live/shared/streamHealth";
 import { getTeamAsset, normalizeTeamKey } from "@/data/live/teamAssets";
+import { LiveMatchScore } from "@/services/live/football-score/types";
+import { footballScoreService } from "@/services/live/football-score/service";
+import { matchFixtureToScore } from "@/services/live/football-score/matcher";
 import {
   NATIONAL_TEAM_CANONICAL_MAP,
   NATIONAL_TEAM_CANONICAL_KEYS,
 } from "./nationalTeamAliases";
 
 export { NATIONAL_TEAM_CANONICAL_MAP, NATIONAL_TEAM_CANONICAL_KEYS };
+export type { LiveMatchScore };
 
 
 export interface StreamServer {
@@ -51,6 +55,7 @@ export interface FootballMatch {
   sourceStatus?: SourceMatchStatus;
   timeline?: "live" | "today" | "upcoming" | "finished";
   servers: StreamServer[];
+  score?: LiveMatchScore;
 }
 
 export interface LiveFootballData {
@@ -3163,6 +3168,17 @@ export const liveFootballService = {
             !match.isEvent && Boolean(match.team1) && Boolean(match.team2),
         ),
       );
+
+      // Tự động gắn tỷ số livescore nếu đã có sẵn trong memory cache (0ms latency, không block)
+      const cachedScoreEvents = footballScoreService.getCachedEventsSync();
+      if (cachedScoreEvents && cachedScoreEvents.length > 0) {
+        for (const m of sortedMatches) {
+          const matchedScore = matchFixtureToScore(m, cachedScoreEvents);
+          if (matchedScore) {
+            m.score = matchedScore;
+          }
+        }
+      }
 
       const result: LiveFootballData = {
         updatedAt: new Date().toISOString(),

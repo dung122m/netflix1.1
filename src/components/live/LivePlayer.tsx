@@ -27,7 +27,9 @@ import {
   Mic,
 } from "lucide-react";
 import { FootballMatch, StreamServer } from "@/services/liveFootballService";
+import { LiveMatchScore } from "@/services/live/football-score/types";
 import { getTeamAsset } from "@/data/live/teamAssets";
+import { toDarkModeLogoUrl } from "@/services/live/football-logo/service";
 import { LiveShortcutPopover } from "./LiveShortcutPopover";
 import { ChannelSourceSwitcher } from "./ChannelSourceSwitcher";
 
@@ -249,6 +251,7 @@ interface LivePlayerProps {
   onToggleMatchRail?: () => void;
   onCloseMatchRail?: () => void;
   onSelectMatch?: (match: FootballMatch) => void;
+  score?: LiveMatchScore | null;
 }
 
 /**
@@ -536,7 +539,13 @@ function LivePlayerInner({
   showMatchRail = false,
   onToggleMatchRail,
   onCloseMatchRail,
+  score,
 }: LivePlayerProps) {
+  const currentScore = score || match?.score || null;
+  const hasScore = Boolean(
+    currentScore &&
+      (currentScore.status === "live" || currentScore.status === "finished"),
+  );
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const hlsRef = useRef<Hls | null>(null);
@@ -797,50 +806,71 @@ function LivePlayerInner({
       ? availableServers
       : availableServers.slice(0, INITIAL_SERVER_LIMIT);
 
-  const [homeImgError, setHomeImgError] = useState(false);
-  const [awayImgError, setAwayImgError] = useState(false);
-
-  const prevHomeLogoRef = useRef<string | undefined>(homeLogo);
-  const prevAwayLogoRef = useRef<string | undefined>(awayLogo);
-  const prevMatchIdRef2 = useRef<string | undefined>(match?.id);
+  const [homeTriedAsset, setHomeTriedAsset] = useState(false);
+  const [homeFailed, setHomeFailed] = useState(false);
+  const [awayTriedAsset, setAwayTriedAsset] = useState(false);
+  const [awayFailed, setAwayFailed] = useState(false);
 
   useEffect(() => {
-    if (prevMatchIdRef2.current !== match?.id || prevHomeLogoRef.current !== homeLogo) {
-      prevMatchIdRef2.current = match?.id;
-      prevHomeLogoRef.current = homeLogo;
-      setHomeImgError(false);
-    }
-    if (prevMatchIdRef2.current !== match?.id || prevAwayLogoRef.current !== awayLogo) {
-      prevAwayLogoRef.current = awayLogo;
-      setAwayImgError(false);
-    }
+    setHomeTriedAsset(false);
+    setHomeFailed(false);
+    setAwayTriedAsset(false);
+    setAwayFailed(false);
   }, [match?.id, homeLogo, awayLogo]);
 
   // Tra cứu cờ quốc gia / logo CLB O(1) từ local mapping (đồng bộ 100% với MatchCard)
   const homeAsset = useMemo(() => getTeamAsset(team1), [team1]);
   const awayAsset = useMemo(() => getTeamAsset(team2), [team2]);
 
-  const validHomeLogo =
-    Boolean(homeLogo) &&
-    !homeLogo?.includes("tinhlagi.pro/logo.jpg") &&
-    !homeImgError;
-
-  const validAwayLogo =
-    Boolean(awayLogo) &&
-    !awayLogo?.includes("tinhlagi.pro/logo.jpg") &&
-    !awayImgError;
-
   // Ưu tiên cờ quốc gia / emoji đặc thù (luôn hiển thị chuẩn, sắc nét, không 404)
   const homeFlagEmoji = homeAsset?.emoji || null;
   const awayFlagEmoji = awayAsset?.emoji || null;
 
-  // Logo ảnh: Ưu tiên logo từ API; nếu lỗi hoặc không có thì thử logo từ dictionary; nếu không có thì fallback sang initials
-  const homeLogoSrc = !homeFlagEmoji
-    ? (validHomeLogo ? homeLogo : (homeAsset?.logo ? homeAsset.logo : null))
-    : null;
-  const awayLogoSrc = !awayFlagEmoji
-    ? (validAwayLogo ? awayLogo : (awayAsset?.logo ? awayAsset.logo : null))
-    : null;
+  const rawHome =
+    Boolean(homeLogo) && !homeLogo?.includes("tinhlagi.pro/logo.jpg")
+      ? homeLogo
+      : null;
+  const assetHome = homeAsset?.logo || null;
+
+  let homeLogoSrc: string | null = null;
+  if (!homeFlagEmoji && !homeFailed) {
+    if (rawHome && !homeTriedAsset) {
+      homeLogoSrc = toDarkModeLogoUrl(rawHome);
+    } else if (assetHome) {
+      homeLogoSrc = toDarkModeLogoUrl(assetHome);
+    }
+  }
+
+  const handleHomeImgError = useCallback(() => {
+    if (rawHome && !homeTriedAsset && assetHome && assetHome !== rawHome) {
+      setHomeTriedAsset(true);
+    } else {
+      setHomeFailed(true);
+    }
+  }, [rawHome, homeTriedAsset, assetHome]);
+
+  const rawAway =
+    Boolean(awayLogo) && !awayLogo?.includes("tinhlagi.pro/logo.jpg")
+      ? awayLogo
+      : null;
+  const assetAway = awayAsset?.logo || null;
+
+  let awayLogoSrc: string | null = null;
+  if (!awayFlagEmoji && !awayFailed) {
+    if (rawAway && !awayTriedAsset) {
+      awayLogoSrc = toDarkModeLogoUrl(rawAway);
+    } else if (assetAway) {
+      awayLogoSrc = toDarkModeLogoUrl(assetAway);
+    }
+  }
+
+  const handleAwayImgError = useCallback(() => {
+    if (rawAway && !awayTriedAsset && assetAway && assetAway !== rawAway) {
+      setAwayTriedAsset(true);
+    } else {
+      setAwayFailed(true);
+    }
+  }, [rawAway, awayTriedAsset, assetAway]);
 
   const volumeRef = useRef(volume);
   const isMutedRef = useRef(isMuted);
@@ -2535,20 +2565,18 @@ function LivePlayerInner({
             <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-6 md:gap-8 py-1.5 w-full">
               {/* ĐỘI NHÀ (TEAM 1 - 50% CÂN ĐỐI) */}
               <div className="flex flex-col items-center justify-center text-center min-w-0 w-full group">
-                <div className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-2xl bg-zinc-800/90 border-2 border-white/20 p-1.5 sm:p-2 flex items-center justify-center shadow-xl transition-all duration-300 group-hover:scale-105 group-hover:border-netflix-red/70 group-hover:shadow-red-950/60 overflow-hidden">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-2xl bg-gradient-to-b from-zinc-700/80 via-zinc-800/95 to-zinc-900 border-2 border-white/20 p-1.5 sm:p-2 flex items-center justify-center shadow-xl transition-all duration-300 group-hover:scale-105 group-hover:border-netflix-red/70 group-hover:shadow-red-950/60 overflow-hidden relative">
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.18)_0%,_transparent_75%)] pointer-events-none" />
                   {homeFlagEmoji ? (
-                    <CountryFlag emoji={homeFlagEmoji} className="w-8 h-8 sm:w-12 sm:h-12" />
+                    <CountryFlag emoji={homeFlagEmoji} className="w-8 h-8 sm:w-12 sm:h-12 relative z-10" />
                   ) : homeLogoSrc ? (
                     /* eslint-disable-next-line @next/next/no-img-element */
                     <img
                       key={homeLogoSrc}
                       src={homeLogoSrc}
                       alt=""
-                      className="w-full h-full object-contain filter drop-shadow-xl"
-                      onError={(e) => {
-                        setHomeImgError(true);
-                        e.currentTarget.style.display = "none";
-                      }}
+                      className="w-full h-full object-contain filter drop-shadow-[0_0_2px_rgba(255,255,255,0.7)] drop-shadow-[0_3px_6px_rgba(0,0,0,0.7)] relative z-10"
+                      onError={handleHomeImgError}
                       referrerPolicy="no-referrer"
                     />
                   ) : (
@@ -2567,42 +2595,78 @@ function LivePlayerInner({
                 </h3>
               </div>
 
-              {/* TRUNG TÂM MATCHUP: VS NỔI BẬT & TRẠNG THÁI / THỜI GIAN TRÊN CÙNG 1 HÀNG NGANG */}
+              {/* TRUNG TÂM MATCHUP: TỶ SỐ LIVESCORE HOẶC VS NỔI BẬT */}
               <div className="flex flex-col items-center justify-center shrink-0 px-1 sm:px-4 text-center">
-                <div className="px-3.5 py-1 sm:px-5 sm:py-1.5 rounded-xl sm:rounded-2xl bg-zinc-800/90 border border-white/15 text-sm sm:text-lg md:text-xl font-black text-rose-400 font-mono tracking-widest shadow-inner">
-                  VS
-                </div>
+                {hasScore ? (
+                  <>
+                    <div
+                      className={`px-3.5 py-1 sm:px-5 sm:py-1.5 rounded-xl sm:rounded-2xl border text-sm sm:text-lg md:text-xl font-black font-mono tracking-wider shadow-inner ${
+                        currentScore?.status === "live"
+                          ? "bg-zinc-800/90 border-red-500/40 text-amber-400"
+                          : "bg-zinc-800/70 border-white/15 text-gray-200"
+                      }`}
+                    >
+                      {currentScore?.team1Score} - {currentScore?.team2Score}
+                    </div>
 
-                <div className="mt-1 sm:mt-1.5 flex items-center justify-center gap-1 sm:gap-1.5 flex-wrap">
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 sm:px-2.5 sm:py-0.5 rounded-full bg-netflix-red/20 border border-netflix-red/40 text-netflix-red text-[8.5px] sm:text-[10.5px] font-black animate-pulse shadow-sm">
-                    <Radio className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                    <span>TRỰC TIẾP</span>
-                  </span>
+                    <div className="mt-1 sm:mt-1.5 flex items-center justify-center gap-1 sm:gap-1.5 flex-wrap">
+                      {currentScore?.status === "live" ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 sm:px-2.5 sm:py-0.5 rounded-full bg-netflix-red/20 border border-netflix-red/40 text-netflix-red text-[8.5px] sm:text-[10.5px] font-black animate-pulse shadow-sm">
+                          <Radio className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                          <span>{currentScore.displayClock ? `LIVE ${currentScore.displayClock}` : "TRỰC TIẾP"}</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-zinc-700/80 border border-white/10 text-gray-300 text-[8.5px] sm:text-[10.5px] font-bold shadow-sm">
+                          <span>HẾT GIỜ (FT)</span>
+                        </span>
+                      )}
 
-                  {time && time !== "Trực tiếp" && (
-                    <span className="text-[8.5px] sm:text-[10.5px] text-gray-300 font-semibold bg-white/10 px-2 py-0.5 rounded-full border border-white/10 whitespace-nowrap shadow-sm">
-                      ⏰ {time}
-                    </span>
-                  )}
-                </div>
+                      {currentScore?.status === "live" &&
+                      currentScore.statusDetail &&
+                      currentScore.statusDetail !== currentScore.displayClock &&
+                      currentScore.statusDetail !== "In Progress" ? (
+                        <span className="text-[8.5px] sm:text-[10px] text-amber-300 font-bold bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20 whitespace-nowrap shadow-sm">
+                          {currentScore.statusDetail}
+                        </span>
+                      ) : null}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="px-3.5 py-1 sm:px-5 sm:py-1.5 rounded-xl sm:rounded-2xl bg-zinc-800/90 border border-white/15 text-sm sm:text-lg md:text-xl font-black text-rose-400 font-mono tracking-widest shadow-inner">
+                      VS
+                    </div>
+
+                    <div className="mt-1 sm:mt-1.5 flex items-center justify-center gap-1 sm:gap-1.5 flex-wrap">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 sm:px-2.5 sm:py-0.5 rounded-full bg-netflix-red/20 border border-netflix-red/40 text-netflix-red text-[8.5px] sm:text-[10.5px] font-black animate-pulse shadow-sm">
+                        <Radio className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                        <span>TRỰC TIẾP</span>
+                      </span>
+
+                      {time && time !== "Trực tiếp" && (
+                        <span className="text-[8.5px] sm:text-[10.5px] text-gray-300 font-semibold bg-white/10 px-2 py-0.5 rounded-full border border-white/10 whitespace-nowrap shadow-sm">
+                          ⏰ {time}
+                        </span>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* ĐỘI KHÁCH (TEAM 2 - 50% CÂN ĐỐI) */}
               <div className="flex flex-col items-center justify-center text-center min-w-0 w-full group">
-                <div className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-2xl bg-zinc-800/90 border-2 border-white/20 p-1.5 sm:p-2 flex items-center justify-center shadow-xl transition-all duration-300 group-hover:scale-105 group-hover:border-sky-500/70 group-hover:shadow-sky-950/60 overflow-hidden">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-2xl bg-gradient-to-b from-zinc-700/80 via-zinc-800/95 to-zinc-900 border-2 border-white/20 p-1.5 sm:p-2 flex items-center justify-center shadow-xl transition-all duration-300 group-hover:scale-105 group-hover:border-sky-500/70 group-hover:shadow-sky-950/60 overflow-hidden relative">
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.18)_0%,_transparent_75%)] pointer-events-none" />
                   {awayFlagEmoji ? (
-                    <CountryFlag emoji={awayFlagEmoji} className="w-8 h-8 sm:w-12 sm:h-12" />
+                    <CountryFlag emoji={awayFlagEmoji} className="w-8 h-8 sm:w-12 sm:h-12 relative z-10" />
                   ) : awayLogoSrc ? (
                     /* eslint-disable-next-line @next/next/no-img-element */
                     <img
                       key={awayLogoSrc}
                       src={awayLogoSrc}
                       alt=""
-                      className="w-full h-full object-contain filter drop-shadow-xl"
-                      onError={(e) => {
-                        setAwayImgError(true);
-                        e.currentTarget.style.display = "none";
-                      }}
+                      className="w-full h-full object-contain filter drop-shadow-[0_0_2px_rgba(255,255,255,0.7)] drop-shadow-[0_3px_6px_rgba(0,0,0,0.7)] relative z-10"
+                      onError={handleAwayImgError}
                       referrerPolicy="no-referrer"
                     />
                   ) : (

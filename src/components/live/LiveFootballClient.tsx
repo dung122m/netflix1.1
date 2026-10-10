@@ -12,6 +12,7 @@ import { clearProbeQueue } from "@/services/live/football/clientSourceProbe";
 import { isRawNumericOrArtifactTournament } from "@/data/live/teamAssets";
 import { LivePlayer, toCanonicalSourceUrl } from "./LivePlayer";
 import { MatchCard } from "./MatchCard";
+import { LiveMatchScore } from "@/services/live/football-score/types";
 import {
   Search,
   Radio,
@@ -77,6 +78,50 @@ export function LiveFootballClient({
     const interval = setInterval(refreshMatches, 3 * 60 * 1000);
     return () => {
       clearTimeout(initialDelay);
+      clearInterval(interval);
+    };
+  }, []);
+
+  // Bản đồ tỷ số livescore được làm mới mỗi 60s
+  const [scoresMap, setScoresMap] = useState<Record<string, LiveMatchScore>>(() => {
+    const initialMap: Record<string, LiveMatchScore> = {};
+    if (initialData?.matches) {
+      for (const m of initialData.matches) {
+        if (m.score) {
+          initialMap[m.id] = m.score;
+        }
+      }
+    }
+    return initialMap;
+  });
+
+  // TỰ ĐỘNG CẬP NHẬT TỶ SỐ LIVESCORE MỖI 60 GIÂY (KHÔNG GỌI TRỰC TIẾP TỪ THẺ)
+  useEffect(() => {
+    let isMounted = true;
+    const fetchScores = async () => {
+      try {
+        const res = await fetch("/api/live-football/scores", {
+          signal: AbortSignal.timeout(6000),
+        });
+        if (!res.ok) return;
+        const json = await res.json();
+        if (isMounted && json.status && json.data?.scores) {
+          setScoresMap((prev) => ({
+            ...prev,
+            ...json.data.scores,
+          }));
+        }
+      } catch {
+        // Giữ nguyên dữ liệu cũ nếu fetch thất bại
+      }
+    };
+
+    // Tải ngay sau 3s lần đầu nếu chưa có dữ liệu, sau đó mỗi 60 giây
+    const initialTimer = setTimeout(fetchScores, 3000);
+    const interval = setInterval(fetchScores, 60_000);
+    return () => {
+      isMounted = false;
+      clearTimeout(initialTimer);
       clearInterval(interval);
     };
   }, []);
@@ -564,6 +609,7 @@ export function LiveFootballClient({
             servers={selectedMatch.servers}
             blv={selectedMatch.blv}
             time={selectedMatch.time}
+            score={scoresMap[selectedMatch.id] || selectedMatch.score}
             matchOptions={
               allVisibleMatches.length > 0
                 ? allVisibleMatches
@@ -832,6 +878,7 @@ export function LiveFootballClient({
               <MatchCard
                 key={match.id}
                 match={match}
+                score={scoresMap[match.id] || match.score}
                 isSelected={selectedMatch?.id === match.id}
                 onSelect={handleSelectMatch}
               />
@@ -863,6 +910,7 @@ export function LiveFootballClient({
               <MatchCard
                 key={match.id}
                 match={match}
+                score={scoresMap[match.id] || match.score}
                 isSelected={selectedMatch?.id === match.id}
                 onSelect={handleSelectMatch}
               />
