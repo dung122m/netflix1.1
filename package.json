@@ -34,7 +34,7 @@
     "typecheck": "tsc --noEmit",
     "test": "npx tsx --env-file=.env.local --test src/services/live/football/matchStatus.test.ts src/services/live/football-score/matcher.test.ts src/services/movies/service.test.ts src/services/notificationService.test.ts src/services/dataIsolation.test.ts",
     "test:movies": "npx tsx --env-file=.env.local --test src/services/movies/service.test.ts",
-    "test:live": "npx tsx --env-file=.env.local --test src/services/live/football/matchStatus.test.ts src/services/live/football-score/matcher.test.ts src/services/live/football-score/liveStatus.test.ts src/services/live/football-score/matchCenterRealtime.test.ts src/services/live/football-score/standings.test.ts src/services/live/football-score/fixtures.test.ts",
+    "test:live": "npx tsx --env-file=.env.local --test src/services/live/football/matchStatus.test.ts src/services/live/football/featuredMatch.test.ts src/services/live/football-score/matcher.test.ts src/services/live/football-score/liveStatus.test.ts src/services/live/football-score/matchCenterRealtime.test.ts src/services/live/football-score/standings.test.ts src/services/live/football-score/fixtures.test.ts src/services/live/football-score/tacticalLineup.test.ts src/services/live/football-logo/service.test.ts",
     "test:isolation": "npx tsx --env-file=.env.local --test src/services/dataIsolation.test.ts",
     "check": "npm run lint && npm run typecheck && npm run test && npm run build"
   },

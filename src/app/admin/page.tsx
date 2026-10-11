@@ -146,13 +146,13 @@ function AdminDashboardContent() {
     try {
       const idToken = await user?.getIdToken().catch(() => null);
       if (!idToken) return;
-      const res = await fetch("/api/analytics/stats?timeframe=today", {
+      const res = await fetch("/api/user/handoff?all=true", {
         headers: { Authorization: `Bearer ${idToken}` },
       });
       const json = await res.json();
-      if (json.success && Array.isArray(json.data?.liveWatching)) {
+      if (json.success && Array.isArray(json.items)) {
         setDeviceHandoffs(
-          json.data.liveWatching.map((s: {
+          json.items.map((s: {
             userId: string;
             movieSlug: string;
             movieTitle: string;
@@ -193,7 +193,9 @@ function AdminDashboardContent() {
       } else {
         toast.info("Dữ liệu bình luận đã là mới nhất.");
       }
-      fetchAuthorizedHandoffs().catch(() => { });
+      if (activeTab === "members") {
+        fetchAuthorizedHandoffs().catch(() => { });
+      }
     } catch {
       toast.error("Không thể làm mới danh sách bình luận!");
     } finally {
@@ -203,12 +205,13 @@ function AdminDashboardContent() {
 
   const isAdmin = useMemo(() => isUserAdmin(user?.email), [user?.email]);
 
-  // Subscribe to real-time data when admin is authenticated
+  // 1. Comments subscription: Chỉ kích hoạt khi ở tab "comments"
   useEffect(() => {
     if (!isAdmin) {
       setLoadingData(false);
       return;
     }
+    if (activeTab !== "comments") return;
 
     setLoadingData(true);
 
@@ -225,6 +228,15 @@ function AdminDashboardContent() {
       300
     );
 
+    return () => {
+      unsubComments();
+    };
+  }, [isAdmin, activeTab]);
+
+  // 2. Collections subscription: Chỉ kích hoạt khi ở tab "collections"
+  useEffect(() => {
+    if (!isAdmin || activeTab !== "collections") return;
+
     const unsubCollections = subscribeAllPublicCollections(
       (items) => {
         setCollections(items);
@@ -233,6 +245,15 @@ function AdminDashboardContent() {
         console.warn("Lỗi realtime collections:", err);
       }
     );
+
+    return () => {
+      unsubCollections();
+    };
+  }, [isAdmin, activeTab]);
+
+  // 3. Members subscription & live watching: Chỉ kích hoạt khi ở tab "members"
+  useEffect(() => {
+    if (!isAdmin || activeTab !== "members") return;
 
     const unsubUsers = subscribeAllUsers(
       (items, dbTotalCount) => {
@@ -251,11 +272,9 @@ function AdminDashboardContent() {
     fetchAuthorizedHandoffs().catch(() => { });
 
     return () => {
-      unsubComments();
-      unsubCollections();
       unsubUsers();
     };
-  }, [isAdmin, fetchAuthorizedHandoffs]);
+  }, [isAdmin, activeTab, fetchAuthorizedHandoffs]);
 
   // Derived: Enrich rawUsers (registered profiles only) with comment stats and device_handoffs
   const allMembers = useMemo<MemberWithStats[]>(() => {

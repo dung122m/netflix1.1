@@ -15,6 +15,7 @@ import {
   Maximize2,
   Minimize2,
   SkipForward,
+  Keyboard,
 } from "lucide-react";
 import { PlayerScrubBar, PlayerTimeDisplay } from "../PlayerScrubBar";
 
@@ -116,6 +117,9 @@ interface PlayerNativeControlsProps {
   onVideoFitChange?: (fit: VideoFit) => void;
   onTogglePiP: () => void;
   onUseIframeFallback: () => void;
+  isTheaterMode?: boolean;
+  onToggleTheaterMode?: () => void;
+  onOpenShortcuts?: () => void;
   onToggleFullscreen: () => void;
   onSwitchEpisode?: (slug: string) => void;
   onUserInteraction?: () => void;
@@ -149,6 +153,9 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
     onVideoFitChange,
     onTogglePiP,
     onUseIframeFallback,
+    isTheaterMode = false,
+    onToggleTheaterMode,
+    onOpenShortcuts,
     onToggleFullscreen,
     onSwitchEpisode,
     onUserInteraction,
@@ -390,14 +397,14 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
                   data-player-control="true"
                   onClick={onToggleMute}
                   title={isMuted ? "Bật tiếng (M)" : "Tắt tiếng (M)"}
-                  className="p-1.5 sm:p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                  className="p-1.5 sm:p-2 rounded-full hover:bg-white/20 text-white/80 hover:text-white transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
                 >
                   {isMuted || volume === 0 ? (
                     <VolumeX className="w-4 h-4 text-rose-400" />
                   ) : volume < 0.5 ? (
-                    <Volume1 className="w-4 h-4 text-emerald-400" />
+                    <Volume1 className="w-4 h-4 text-white/90" />
                   ) : (
-                    <Volume2 className="w-4 h-4 text-emerald-400" />
+                    <Volume2 className="w-4 h-4 text-white/90" />
                   )}
                 </button>
                 <input
@@ -407,7 +414,8 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
                   step="0.05"
                   value={isMuted ? 0 : volume}
                   onChange={(e) => onVolumeChange(parseFloat(e.target.value))}
-                  className="w-14 sm:w-20 accent-netflix-red h-1.5 bg-white/20 rounded-full cursor-pointer hidden sm:inline-block outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                  aria-label="Âm lượng"
+                  className="w-0 opacity-0 group-hover/vol:w-16 sm:group-hover/vol:w-20 group-hover/vol:opacity-100 group-focus-within/vol:w-16 sm:group-focus-within/vol:w-20 group-focus-within/vol:opacity-100 transition-all duration-200 ease-out accent-netflix-red h-1 bg-white/25 rounded-full cursor-pointer hidden sm:inline-block outline-none focus-visible:ring-2 focus-visible:ring-white/40"
                 />
               </div>
 
@@ -591,17 +599,45 @@ export const PlayerNativeControls: React.FC<PlayerNativeControlsProps> = React.m
                 <PictureInPicture className="w-4 h-4" />
               </button>
 
-              {/* Iframe Fallback Toggle */}
+              {/* Nguồn phát dự phòng */}
               {embedSrc && (
                 <button
                   type="button"
                   data-player-control="true"
                   onClick={onUseIframeFallback}
-                  title="Đổi nguồn phát"
-                  className="hidden md:inline-flex items-center gap-1 px-2 py-1 rounded-md bg-white/10 hover:bg-white/20 text-gray-300 text-[11px] font-medium transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                  title="Chuyển sang nguồn phát dự phòng"
+                  className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 hover:bg-white/20 text-white/85 hover:text-white text-xs font-medium backdrop-blur-md border border-white/10 transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
                 >
-                  <Tv className="w-3 h-3" />
-                  <span>Iframe</span>
+                  <Tv className="w-3.5 h-3.5 text-white/80" />
+                  <span>Dự phòng</span>
+                </button>
+              )}
+
+              {/* Chế độ Rạp phim (T) */}
+              {onToggleTheaterMode && !isFullscreen && (
+                <button
+                  type="button"
+                  data-player-control="true"
+                  onClick={onToggleTheaterMode}
+                  title={isTheaterMode ? "Thu nhỏ chế độ rạp phim (T)" : "Chế độ rạp phim (T)"}
+                  className={`hidden sm:inline-flex p-1.5 sm:p-2 rounded-full hover:bg-white/20 transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
+                    isTheaterMode ? "text-netflix-red" : "text-gray-200 hover:text-white"
+                  }`}
+                >
+                  {isTheaterMode ? <Minimize2 className="w-4 h-4" /> : <Tv className="w-4 h-4" />}
+                </button>
+              )}
+
+              {/* Danh sách phím tắt (?) */}
+              {onOpenShortcuts && (
+                <button
+                  type="button"
+                  data-player-control="true"
+                  onClick={onOpenShortcuts}
+                  title="Danh sách phím tắt (?)"
+                  className="hidden md:inline-flex p-1.5 sm:p-2 rounded-full hover:bg-white/20 text-gray-200 hover:text-white transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                >
+                  <Keyboard className="w-4 h-4" />
                 </button>
               )}
 

@@ -35,99 +35,95 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
   // Nếu không có bất kỳ server hay context nào, không render
   if (servers.length === 0 && !watchContext) return null;
 
+  const isSingleSource = servers.length <= 1;
+
   return (
-    <div className="w-full space-y-3">
-      {/* 1. HEADER KHỐI NGUỒN PHÁT */}
-      {showHeader && (
-        <div className="flex items-center justify-between pb-2 border-b border-white/10">
-          <h3 className="text-sm sm:text-base font-bold flex items-center gap-2 text-white">
-            <Radio className="w-4 h-4 text-netflix-red shrink-0" />
-            <span>Nguồn phát</span>
-          </h3>
-          <span className="text-[11px] font-semibold text-gray-400">
-            {activeProvider === "nanaflix"
-              ? "Nanaflix VIP"
-              : "VSMOV Dự phòng"}
-          </span>
+    <div className="w-full space-y-2.5">
+      {/* 1. GIAO DIỆN CAPSULE GỌN GÀNG KHI CHỈ CÓ 1 BẢN/NGUỒN PHIM */}
+      {isSingleSource ? (
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2">
+            <Radio className="w-3.5 h-3.5 text-netflix-red shrink-0" />
+            <span className="text-xs font-bold text-white tracking-wide">Nguồn phát:</span>
+            <span className="text-[11px] font-medium text-zinc-300 bg-white/5 border border-white/10 px-2 py-0.5 rounded-full">
+              {servers[0]?.server_name || "Bản chuẩn HD"}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-1 bg-zinc-900/90 p-0.5 rounded-full border border-white/10">
+            <button
+              type="button"
+              onClick={() => setActiveProvider?.("nanaflix" as PlaybackProviderType)}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold transition cursor-pointer ${
+                activeProvider === "nanaflix"
+                  ? "bg-zinc-100 text-black shadow-sm"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${activeProvider === "nanaflix" ? "bg-red-600 animate-pulse" : "bg-zinc-500"}`} />
+              <span>Nanaflix VIP</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveProvider?.("vsmov" as PlaybackProviderType)}
+              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold transition cursor-pointer ${
+                activeProvider === "vsmov"
+                  ? "bg-cyan-500 text-black shadow-sm"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              <ShieldCheck className="w-3 h-3" />
+              <span>VSMOV</span>
+            </button>
+          </div>
         </div>
-      )}
-
-      {/* 2. MÁY CHỦ (PHÂN CẤP CHÍNH - LEVEL 1) */}
-      <div className="space-y-1.5">
-        <div className="flex items-center justify-between">
-          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
-            <Radio className="w-3 h-3 text-cyan-400" />
-            <span>Máy chủ phát</span>
-          </span>
-          <span className="text-[10px] text-gray-500 font-medium">
-            Tự động đồng bộ
-          </span>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          {/* SERVER 1: NANAFLIX (VIP HLS) */}
-          <button
-            type="button"
-            onClick={() => setActiveProvider?.("nanaflix" as PlaybackProviderType)}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
-              activeProvider === "nanaflix"
-                ? "bg-zinc-100 text-black shadow-lg shadow-white/10 ring-2 ring-white/60"
-                : "bg-zinc-800/80 text-gray-400 hover:text-white hover:bg-zinc-700/80 border border-white/5"
-            }`}
-          >
-            <span className={`w-2 h-2 rounded-full ${activeProvider === "nanaflix" ? "bg-red-600 animate-pulse" : "bg-gray-500"}`} />
-            <span>Nanaflix</span>
-            <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${
-              activeProvider === "nanaflix" ? "bg-black/15 text-zinc-900" : "bg-white/5 text-gray-400"
-            }`}>
-              HLS VIP
-            </span>
-          </button>
-
-          {/* SERVER 2: VSMOV (DỰ PHÒNG) */}
-          <button
-            type="button"
-            onClick={() => setActiveProvider?.("vsmov" as PlaybackProviderType)}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
-              activeProvider === "vsmov"
-                ? "bg-cyan-500 text-black shadow-lg shadow-cyan-500/25 ring-2 ring-cyan-400/60"
-                : "bg-zinc-800/80 text-gray-400 hover:text-white hover:bg-zinc-700/80 border border-white/5"
-            }`}
-          >
-            <ShieldCheck className="w-3.5 h-3.5" />
-            <span>VSMOV</span>
-            <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${
-              activeProvider === "vsmov" ? "bg-black/20 text-cyan-950" : "bg-white/5 text-gray-400"
-            }`}>
-              Dự phòng
-            </span>
-          </button>
-        </div>
-      </div>
-
-      {/* 3. BẢN PHIM (NGỮ CẢNH CỦA MÁY CHỦ HIỆN TẠI - LEVEL 2) */}
-      <div className="space-y-1.5 pt-2 border-t border-white/5">
-        <div className="flex items-center justify-between">
-          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
-            <Zap className="w-3 h-3 text-amber-400" />
-            <span>
-              {activeProvider === "nanaflix"
-                ? "Bản phim (Nanaflix)"
-                : "Luồng phát VSMOV"}
-            </span>
-          </span>
-          {activeProvider === "nanaflix" && servers.length > 0 && (
-            <span className="text-[10px] text-gray-500 font-medium">
-              {servers[currentServerIndex]?.server_name || "Mặc định"}
-            </span>
+      ) : (
+        /* 2. GIAO DIỆN ĐẦY ĐỦ KHI CÓ NHIỀU BẢN/PHÂN LOẠI PHIM */
+        <>
+          {showHeader && (
+            <div className="flex items-center justify-between pb-2 border-b border-white/10">
+              <h3 className="text-xs sm:text-sm font-bold flex items-center gap-1.5 text-white">
+                <Radio className="w-3.5 h-3.5 text-netflix-red shrink-0" />
+                <span>Nguồn phát</span>
+              </h3>
+              <div className="flex items-center gap-1 bg-zinc-900/90 p-0.5 rounded-full border border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setActiveProvider?.("nanaflix" as PlaybackProviderType)}
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold transition cursor-pointer ${
+                    activeProvider === "nanaflix"
+                      ? "bg-zinc-100 text-black shadow-sm"
+                      : "text-zinc-400 hover:text-white"
+                  }`}
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full ${activeProvider === "nanaflix" ? "bg-red-600 animate-pulse" : "bg-zinc-500"}`} />
+                  <span>Nanaflix VIP</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveProvider?.("vsmov" as PlaybackProviderType)}
+                  className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold transition cursor-pointer ${
+                    activeProvider === "vsmov"
+                      ? "bg-cyan-500 text-black shadow-sm"
+                      : "text-zinc-400 hover:text-white"
+                  }`}
+                >
+                  <ShieldCheck className="w-3 h-3" />
+                  <span>VSMOV</span>
+                </button>
+              </div>
+            </div>
           )}
-        </div>
 
-        {/* Khi đang ở Server Nanaflix -> Hiển thị danh sách Vietsub / Thuyết minh */}
-        {activeProvider === "nanaflix" && (
-          <div className="flex flex-wrap items-center gap-2">
-            {servers.length > 0 ? (
-              servers.map((s, sIdx) => {
+          {/* DANH SÁCH BẢN PHIM (VIETSUB / THUYẾT MINH) */}
+          <div className="space-y-1.5">
+            <span className="text-[10.5px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+              <Zap className="w-3 h-3 text-amber-400" />
+              <span>Bản phim</span>
+            </span>
+
+            <div className="flex flex-wrap items-center gap-1.5">
+              {servers.map((s, sIdx) => {
                 const isSelected = sIdx === currentServerIndex;
                 const count = "count" in s && s.count !== undefined ? s.count : s.server_data?.length;
                 const displayName = s.server_name || `Bản #${sIdx + 1}`;
@@ -140,18 +136,18 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
                       e.preventDefault();
                       switchServer?.(sIdx);
                     }}
-                    className={`group relative inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
+                    className={`group relative inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-all duration-150 cursor-pointer ${
                       isSelected
-                        ? "bg-netflix-red text-white shadow-lg shadow-red-950/60 ring-1 ring-white/20"
-                        : "bg-zinc-800/90 text-gray-300 hover:text-white hover:bg-zinc-700/90 border border-white/5"
+                        ? "bg-netflix-red text-white shadow-sm ring-1 ring-white/20"
+                        : "bg-zinc-900/80 text-zinc-300 hover:text-white hover:bg-zinc-800 border border-white/10"
                     }`}
                   >
-                    <Sparkles className={`w-3.5 h-3.5 ${isSelected ? "text-amber-300" : "text-gray-400 group-hover:text-gray-200"}`} />
+                    <Sparkles className={`w-3 h-3 ${isSelected ? "text-amber-300" : "text-zinc-400"}`} />
                     <span>{displayName}</span>
                     {count !== undefined && count > 0 && (
                       <span
-                        className={`text-[10px] px-1.5 py-0.2 rounded-md font-semibold ${
-                          isSelected ? "bg-black/30 text-white" : "bg-white/10 text-gray-400"
+                        className={`text-[10px] px-1.5 py-0.2 rounded-full font-medium ${
+                          isSelected ? "bg-black/30 text-white" : "bg-white/10 text-zinc-400"
                         }`}
                       >
                         {count} tập
@@ -159,33 +155,28 @@ export const ServerSelector: React.FC<ServerSelectorProps> = ({
                     )}
                   </button>
                 );
-              })
-            ) : (
-              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-netflix-red text-white shadow-md ring-1 ring-white/20">
-                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                <span>Bản chuẩn (Full HD)</span>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Khi đang ở Server VSMOV -> Thông báo luồng phát nhúng VSMOV */}
-        {activeProvider === "vsmov" && (
-          <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl bg-cyan-950/20 border border-cyan-900/30">
-            <div className="flex items-center gap-2 text-xs text-cyan-300 font-medium">
-              <ShieldCheck className="w-4 h-4 text-cyan-400 shrink-0" />
-              <span>Bản phát trực tiếp từ máy chủ VSMOV (Tự động phụ đề/lồng tiếng)</span>
+              })}
             </div>
-            <button
-              type="button"
-              onClick={() => setActiveProvider?.("nanaflix")}
-              className="text-[11px] font-bold text-gray-300 hover:text-white underline cursor-pointer transition"
-            >
-              Chuyển về Nanaflix
-            </button>
           </div>
-        )}
-      </div>
+        </>
+      )}
+
+      {/* Khi đang ở Server VSMOV -> Thông báo luồng phát nhúng VSMOV */}
+      {activeProvider === "vsmov" && (
+        <div className="flex flex-wrap items-center justify-between gap-2 p-2 rounded-xl bg-cyan-950/20 border border-cyan-900/30">
+          <div className="flex items-center gap-1.5 text-xs text-cyan-300 font-medium">
+            <ShieldCheck className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+            <span>Phát từ máy chủ dự phòng VSMOV (Tự động phụ đề)</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setActiveProvider?.("nanaflix")}
+            className="text-[11px] font-bold text-gray-300 hover:text-white underline cursor-pointer transition"
+          >
+            Chuyển về Nanaflix
+          </button>
+        </div>
+      )}
     </div>
   );
 };

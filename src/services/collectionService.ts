@@ -554,10 +554,12 @@ export function subscribeAllPublicCollections(
   onError?: (err: Error) => void
 ): () => void {
   let isUnsubscribed = false;
+  let isFetching = false;
 
   const fetchCollections = async () => {
-    if (isUnsubscribed) return;
+    if (isUnsubscribed || isFetching) return;
     if (isSupabaseConfigured()) {
+      isFetching = true;
       try {
         const items = await getPublicCollectionsSupabase();
         if (!isUnsubscribed && items) {
@@ -565,6 +567,8 @@ export function subscribeAllPublicCollections(
         }
       } catch (err) {
         if (onError && err instanceof Error) onError(err);
+      } finally {
+        isFetching = false;
       }
     }
   };
@@ -575,9 +579,15 @@ export function subscribeAllPublicCollections(
     if (!isUnsubscribed) fetchCollections();
   };
 
+  const handleVisibilityChange = () => {
+    if (!isUnsubscribed && typeof document !== "undefined" && !document.hidden) {
+      fetchCollections();
+    }
+  };
+
   if (typeof window !== "undefined") {
     window.addEventListener("collections-updated", handleUpdate);
-    document.addEventListener("visibilitychange", handleUpdate);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
   }
 
   const interval = setInterval(() => {
@@ -591,7 +601,7 @@ export function subscribeAllPublicCollections(
     clearInterval(interval);
     if (typeof window !== "undefined") {
       window.removeEventListener("collections-updated", handleUpdate);
-      document.removeEventListener("visibilitychange", handleUpdate);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     }
   };
 }

@@ -907,7 +907,6 @@ function isCacheValidForPrompt(
         // Nếu chưa có epTotal hoặc là phim bộ đang tìm kiếm theo số tập
         if (epTotal === null && (isSeriesHint || episodeConstraint.requireSeries)) {
           try {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const detailRes = await movieApi.getMovieDetail(card.slug);
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const detailMovie = (detailRes as any)?.movie || detailRes;

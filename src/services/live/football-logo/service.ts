@@ -1,7 +1,9 @@
+import { getTeamAsset } from "@/data/live/teamAssets";
+
 // Service tự động tra cứu, chuẩn hóa và bổ sung Logo/Huy hiệu (Crest/Badge) cho các đội bóng đá
 // Hỗ trợ: Static Dictionary (0ms), TheSportsDB API (Dynamic HD Badges), In-memory LRU cache
 
-const LOGO_CACHE = new Map<string, string>();
+export const LOGO_CACHE = new Map<string, string>();
 
 /**
  * Tự động chuyển đổi logo ESPN sang phiên bản Dark Mode (nền trắng / độ tương phản cao)
@@ -21,7 +23,7 @@ export function toDarkModeLogoUrl(url?: string | null): string {
 }
 
 // Bảng huy hiệu chuẩn tĩnh của các CLB và Đội tuyển hàng đầu thế giới (0ms lookup)
-const STATIC_CLUB_LOGOS: Record<string, string> = {
+export const STATIC_CLUB_LOGOS: Record<string, string> = {
   arsenal: "https://a.espncdn.com/i/teamlogos/soccer/500/359.png",
   chelsea: "https://a.espncdn.com/i/teamlogos/soccer/500/363.png",
   liverpool: "https://a.espncdn.com/i/teamlogos/soccer/500/364.png",
@@ -78,7 +80,7 @@ const STATIC_CLUB_LOGOS: Record<string, string> = {
   watford: "https://a.espncdn.com/i/teamlogos/soccer/500/395.png",
   luton: "https://a.espncdn.com/i/teamlogos/soccer/500/390.png",
   lutontown: "https://a.espncdn.com/i/teamlogos/soccer/500/390.png",
-  sheffieldwednesday: "https://a.espncdn.com/i/teamlogos/soccer/500/393.png",
+  sheffieldwednesday: "https://a.espncdn.com/i/teamlogos/soccer/500/394.png",
   plymouth: "https://a.espncdn.com/i/teamlogos/soccer/500/384.png",
   plymouthargyle: "https://a.espncdn.com/i/teamlogos/soccer/500/384.png",
   derbycounty: "https://a.espncdn.com/i/teamlogos/soccer/500/381.png",
@@ -343,8 +345,14 @@ const AUXILIARY_LOGO_WORDS = new Set([
   "clb", "fc", "ssc", "vfb", "ac", "as", "rc", "sc", "sl", "afc", "ogc", "fk", "sk", "cf", "cd", "ca",
   "csd", "deportes", "deportivo", "deportiva", "dep", "municipal", "muni", "club", "clube", "societa",
   "asociacion", "asoc", "agrupacion", "ud", "sd", "ad", "sv", "tsv", "fsv", "spvg", "vfl", "ksv", "bsc",
-  "united", "utd", "city", "town", "athletic", "albion", "rovers", "wanderers", "county", "sports",
   "u19", "u20", "u21", "u23", "b", "reserves", "women", "nu"
+]);
+
+const DISCRIMINATIVE_WORDS = new Set([
+  "city", "united", "utd", "wednesday", "rovers", "wanderers", "albion",
+  "town", "athletic", "county", "forest", "hotspur", "villa", "palace",
+  "inter", "milan", "real", "atletico", "sporting", "borussia",
+  "north", "south", "east", "west", "central"
 ]);
 
 export function normalizeTeamKey(name: string): string {
@@ -356,13 +364,13 @@ export function normalizeTeamKey(name: string): string {
     .replace(/\([^)]*\)/g, " ")
     .replace(/^(clb|fc|s\s*s\s*c|ssc|vfb|v\s*f\s*b|ac|as|rc|sc|sl|afc|ogc|fk|sk|cf|cd|rb|csd|deportes|municipal)\s+/i, "")
     .replace(/^(clb|fc|s\s*s\s*c|ssc|vfb|v\s*f\s*b|ac|as|rc|sc|sl|afc|ogc|fk|sk|cf|cd|rb|csd|deportes|municipal)\s+/i, "")
-    .replace(/\s+(clb|fc|fk|sc|cf|united|utd|city|town)$/i, "")
-    .replace(/\s+(clb|fc|fk|sc|cf|united|utd|city|town)$/i, "")
+    .replace(/\s+(clb|fc|fk|sc|cf)$/i, "")
+    .replace(/\s+(clb|fc|fk|sc|cf)$/i, "")
     .replace(/[^a-z0-9]/g, "")
     .trim();
 }
 
-function extractCoreTokens(name: string): string[] {
+function extractTokens(name: string): string[] {
   if (!name) return [];
   const clean = name
     .toLowerCase()
@@ -371,14 +379,19 @@ function extractCoreTokens(name: string): string[] {
     .replace(/[^a-z0-9\s]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
-  const rawTokens = clean.split(/\s+/).filter(Boolean);
+  return clean.split(/\s+/).filter(Boolean);
+}
+
+function extractCoreTokens(name: string): string[] {
+  if (!name) return [];
+  const rawTokens = extractTokens(name);
   const significant = rawTokens.filter(
     (w) => w.length >= 3 && !AUXILIARY_LOGO_WORDS.has(w),
   );
   return significant.length > 0 ? significant : rawTokens;
 }
 
-function isTeamIdentityMatch(
+export function isTeamIdentityMatch(
   queriedTeam: string,
   apiTeam: { strTeam?: string; strTeamShort?: string; strAlternate?: string },
 ): boolean {
@@ -389,22 +402,54 @@ function isTeamIdentityMatch(
   const altKey = apiTeam.strAlternate ? normalizeTeamKey(apiTeam.strAlternate) : "";
   const shortKey = apiTeam.strTeamShort ? normalizeTeamKey(apiTeam.strTeamShort) : "";
 
-  // 1. Direct exact normalized key match or alias match
+  // 1. Khớp chính xác hoàn toàn trên key đã chuẩn hóa hoặc alias chính thức
   if (qKey && (qKey === teamKey || (altKey && qKey === altKey) || (shortKey && qKey === shortKey))) {
     return true;
   }
 
-  // 2. Core significant token overlap (e.g. "Deportes Iquique" vs "Iquique")
-  const qTokens = extractCoreTokens(queriedTeam);
-  const apiTokens = extractCoreTokens(apiTeam.strTeam);
-  if (qTokens.length > 0 && apiTokens.length > 0) {
-    const shared = qTokens.filter((t) => apiTokens.includes(t));
-    if (shared.some((t) => t.length >= 4)) {
-      return true;
+  const qTokens = extractTokens(queriedTeam);
+  const apiTokens = extractTokens(apiTeam.strTeam);
+
+  // 2. Chống nhầm CLB có số phân biệt (ví dụ Manchester 62 vs Manchester City, Hannover 96, Schalke 04)
+  const qNumbers = qTokens.filter((t) => /^\d+$/.test(t));
+  const apiNumbers = apiTokens.filter((t) => /^\d+$/.test(t));
+  if (qNumbers.length !== apiNumbers.length || !qNumbers.every((n) => apiNumbers.includes(n))) {
+    return false;
+  }
+
+  // 3. Chống nhầm giữa các CLB cùng thành phố / vùng qua từ phân biệt cốt lõi (City, United, Wednesday, Rovers, Wanderers...)
+  const STRICT_DISCRIMINATIVE = new Set([
+    "city", "united", "utd", "wednesday", "rovers", "wanderers", "albion", "town"
+  ]);
+  const qStrict = qTokens.filter((t) => STRICT_DISCRIMINATIVE.has(t));
+  const apiStrict = apiTokens.filter((t) => STRICT_DISCRIMINATIVE.has(t));
+  if (qStrict.length !== apiStrict.length) {
+    return false;
+  }
+  if (!qStrict.every((w) => apiStrict.includes(w))) {
+    return false;
+  }
+
+  // 4. Nếu cả hai có từ phân biệt mở rộng mà khác nhau -> từ chối (Real vs Atletico, Inter vs Milan)
+  const qDisc = qTokens.filter((t) => DISCRIMINATIVE_WORDS.has(t));
+  const apiDisc = apiTokens.filter((t) => DISCRIMINATIVE_WORDS.has(t));
+  if (qDisc.length > 0 && apiDisc.length > 0 && !qDisc.some((d) => apiDisc.includes(d))) {
+    return false;
+  }
+
+  // 5. Kiểm tra token cốt lõi: không được nhận bừa chỉ vì trùng 1 token thành phố (như "manchester")
+  const qCore = extractCoreTokens(queriedTeam);
+  const apiCore = extractCoreTokens(apiTeam.strTeam);
+  if (qCore.length === 0 || apiCore.length === 0) return false;
+
+  const shared = qCore.filter((t) => apiCore.includes(t));
+  if (qCore.length > 1 || apiCore.length > 1) {
+    if (shared.length < Math.min(qCore.length, apiCore.length)) {
+      return false;
     }
   }
 
-  return false;
+  return shared.length > 0;
 }
 
 /**
@@ -415,11 +460,20 @@ export async function resolveTeamLogo(teamName: string): Promise<string> {
   const key = normalizeTeamKey(teamName);
   if (!key) return "";
 
-  // 1. Kiểm tra bộ nhớ đệm hoặc từ điển tĩnh (0ms)
+  // 1. Kiểm tra từ điển tĩnh đã xác minh (0ms)
   if (STATIC_CLUB_LOGOS[key]) return STATIC_CLUB_LOGOS[key];
+
+  // 2. Kiểm tra curated TeamAsset từ teamAssets.ts (0ms)
+  const asset = getTeamAsset(teamName);
+  if (asset && asset.logo) {
+    STATIC_CLUB_LOGOS[key] = asset.logo;
+    return asset.logo;
+  }
+
+  // 3. Kiểm tra in-memory cache
   if (LOGO_CACHE.has(key)) return LOGO_CACHE.get(key) || "";
 
-  // 2. Dọn sạch tên để tìm kiếm trên TheSportsDB API
+  // 4. Dọn sạch tên để tìm kiếm trên TheSportsDB API (KHÔNG bỏ City, United, Town...)
   const clean = teamName
     .replace(/^CLB\s+/i, "")
     .replace(/^FC\s+/i, "")
@@ -434,7 +488,7 @@ export async function resolveTeamLogo(teamName: string): Promise<string> {
     .replace(/^Municipal\s+/i, "")
     .replace(/\[[^\]]*\]/g, " ")
     .replace(/\([^)]*\)/g, " ")
-    .replace(/\s+(FC|CLB|FK|SC|CF|United|Utd|City|Town)$/i, "")
+    .replace(/\s+(FC|CLB|FK|SC|CF)$/i, "")
     .trim();
 
   const queries = Array.from(
@@ -463,7 +517,7 @@ export async function resolveTeamLogo(teamName: string): Promise<string> {
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data.teams)) {
-          // Xác thực danh tính team trước khi lấy strBadge
+          // Xác thực danh tính team nghiêm ngặt trước khi lấy strBadge
           for (const t of data.teams) {
             if (t?.strBadge && isTeamIdentityMatch(teamName, t)) {
               LOGO_CACHE.set(key, t.strBadge);

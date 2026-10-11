@@ -931,6 +931,12 @@ async function fetchVsmovSourceData(
 
 
 // ============================================================
+// CHUẨN HÓA ĐIỂM ĐÁNH GIÁ (TMDB / IMDB / INTERNAL SCORE)
+// ============================================================
+import { extractMovieRatingScore } from "@/lib/movieMedia";
+export { extractMovieRatingScore };
+
+// ============================================================
 // KHỬ TRÙNG LẶP & LỌC ỨNG VIÊN (GIỮ SOURCE PROVENANCE)
 // ============================================================
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -970,8 +976,26 @@ export function deduplicateMovieItems(items: any[]): any[] {
       if (!existing.quality && item.quality) existing.quality = item.quality;
       if (!existing.lang && item.lang) existing.lang = item.lang;
       if (!existing.time && item.time) existing.time = item.time;
-      if (!existing.tmdb && item.tmdb) existing.tmdb = item.tmdb;
-      if (!existing.imdb && item.imdb) existing.imdb = item.imdb;
+      if (!existing.tmdb && item.tmdb) {
+        existing.tmdb = item.tmdb;
+      } else if (existing.tmdb && item.tmdb) {
+        const existingRate = Number(existing.tmdb.vote_average || 0);
+        const itemRate = Number(item.tmdb.vote_average || 0);
+        if (existingRate <= 0 && itemRate > 0) {
+          existing.tmdb.vote_average = itemRate;
+          if (item.tmdb.vote_count) existing.tmdb.vote_count = item.tmdb.vote_count;
+        }
+      }
+      if (!existing.imdb && item.imdb) {
+        existing.imdb = item.imdb;
+      } else if (existing.imdb && item.imdb) {
+        const existingRate = Number(existing.imdb.vote_average || 0);
+        const itemRate = Number(item.imdb.vote_average || 0);
+        if (existingRate <= 0 && itemRate > 0) {
+          existing.imdb.vote_average = itemRate;
+          if (item.imdb.vote_count) existing.imdb.vote_count = item.imdb.vote_count;
+        }
+      }
       continue;
     }
 
@@ -1108,7 +1132,7 @@ async function executeGetAiCandidates(params: MovieFilterParams, options?: AiCan
 async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
   const isSearch = Boolean(params.keyword?.trim());
   const limit = params.limit || 24;
-  const effectiveSort = params.sort || "rating";
+  const effectiveSort = params.sort || "latest";
 
   // ============================================================
   // CHIẾN LƯỢC FEDERATION PER-PAGE SONG SONG CHO BROWSE:
@@ -1148,7 +1172,29 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
   let candidates = deduplicateMovieItems(primaryItems);
   candidates = applyMovieFilters(candidates, params);
 
-  if (effectiveSort === "year") {
+  if (effectiveSort === "rating") {
+    candidates.sort((a, b) => {
+      const { rating: rateA, voteCount: vcA } = extractMovieRatingScore(a);
+      const { rating: rateB, voteCount: vcB } = extractMovieRatingScore(b);
+
+      // 1. Phim có điểm thực tế xếp trên phim không có điểm (hoặc điểm = 0)
+      if (rateB !== rateA) {
+        return rateB - rateA;
+      }
+      // 2. Tie-break: Phim có lượt vote tin cậy / nhiều hơn xếp trên
+      if (vcB !== vcA) {
+        return vcB - vcA;
+      }
+      // 3. Tie-break phụ: Năm phát hành mới hơn xếp trên
+      const yearA = Number(a.year || 0);
+      const yearB = Number(b.year || 0);
+      if (yearB !== yearA) {
+        return yearB - yearA;
+      }
+      // 4. Tie-break ổn định: Tiêu đề phim (alphabetical) để thứ tự không phụ thuộc nguồn
+      return String(a.name || "").localeCompare(String(b.name || ""));
+    });
+  } else if (effectiveSort === "year") {
     candidates.sort((a, b) => {
       const yearA = Number(a.year || 0);
       const yearB = Number(b.year || 0);
@@ -1229,7 +1275,7 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
 
 export function buildMovieCacheKey(params: MovieFilterParams): string {
   return JSON.stringify({
-    v: 8,
+    v: 9,
     category: params.category || "",
     country: params.country || "",
     year: params.year || "",

@@ -52,7 +52,7 @@ export const LeagueStandings: React.FC<LeagueStandingsProps> = ({
 
   // Client-side cache theo league để tránh fetch lại khi người dùng bấm chuyển đổi giữa các giải đấu
   const clientCacheRef = useRef<Record<string, { data: NormalizedLeagueStandings | null; isCup: boolean }>>({});
-  const inFlightRef = useRef<boolean>(false);
+  const inFlightLeagueRef = useRef<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const [standings, setStandings] = useState<NormalizedLeagueStandings | null>(null);
@@ -60,6 +60,13 @@ export const LeagueStandings: React.FC<LeagueStandingsProps> = ({
   const [cupMessage, setCupMessage] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Đồng bộ khi prop initialLeague thay đổi
+  useEffect(() => {
+    if (initialLeague && STANDINGS_LEAGUES.some((l) => l.slug === initialLeague)) {
+      setSelectedLeague(initialLeague);
+    }
+  }, [initialLeague]);
 
   const fetchStandings = async (leagueSlug: string, force: boolean = false) => {
     // 1. Kiểm tra cache phía client nếu không force
@@ -72,7 +79,7 @@ export const LeagueStandings: React.FC<LeagueStandingsProps> = ({
       return;
     }
 
-    if (inFlightRef.current && !force) {
+    if (inFlightLeagueRef.current === leagueSlug && !force) {
       return;
     }
 
@@ -83,7 +90,7 @@ export const LeagueStandings: React.FC<LeagueStandingsProps> = ({
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
-    inFlightRef.current = true;
+    inFlightLeagueRef.current = leagueSlug;
     setLoading(true);
     setError(null);
 
@@ -123,8 +130,10 @@ export const LeagueStandings: React.FC<LeagueStandingsProps> = ({
       }
       setError(err instanceof Error ? err.message : "Đã có lỗi xảy ra");
     } finally {
-      inFlightRef.current = false;
-      setLoading(false);
+      if (inFlightLeagueRef.current === leagueSlug) {
+        inFlightLeagueRef.current = null;
+        setLoading(false);
+      }
     }
   };
 
@@ -137,9 +146,10 @@ export const LeagueStandings: React.FC<LeagueStandingsProps> = ({
     return () => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
+        abortControllerRef.current = null;
       }
+      inFlightLeagueRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, selectedLeague]);
 
   const currentLeagueMeta = STANDINGS_LEAGUES.find((l) => l.slug === selectedLeague);
@@ -274,7 +284,13 @@ export const LeagueStandings: React.FC<LeagueStandingsProps> = ({
                     key={l.slug}
                     data-league={l.slug}
                     type="button"
-                    onClick={() => setSelectedLeague(l.slug)}
+                    onClick={() => {
+                      if (selectedLeague === l.slug) {
+                        fetchStandings(l.slug, true);
+                      } else {
+                        setSelectedLeague(l.slug);
+                      }
+                    }}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all border cursor-pointer shrink-0 ${
                       isSelected
                         ? "bg-amber-500/20 text-amber-300 border-amber-400/50 shadow-sm font-bold scale-[1.02]"
@@ -392,6 +408,14 @@ export const LeagueStandings: React.FC<LeagueStandingsProps> = ({
               <p className="text-xs text-gray-400 max-w-md leading-relaxed">
                 Vui lòng chọn một giải đấu ở thanh tab phía trên để xem bảng xếp hạng chi tiết.
               </p>
+              <button
+                type="button"
+                onClick={() => fetchStandings(selectedLeague, true)}
+                className="mt-2 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/30 text-xs font-bold transition cursor-pointer"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Tải bảng xếp hạng {currentLeagueMeta?.name || ""}</span>
+              </button>
             </div>
           )}
 

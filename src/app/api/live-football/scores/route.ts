@@ -38,7 +38,7 @@ export async function GET() {
         },
       },
     );
-  } catch (error) {
+  } catch {
     // Fail-safe tuyệt đối: trả về status true với dữ liệu rỗng, không bao giờ throw 500 làm sập giao diện
     return NextResponse.json({
       status: true,

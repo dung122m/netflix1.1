@@ -4,6 +4,7 @@ import { getTeamAsset, normalizeTeamKey } from "@/data/live/teamAssets";
 import { LiveMatchScore } from "@/services/live/football-score/types";
 import { footballScoreService } from "@/services/live/football-score/service";
 import { matchFixtureToScore } from "@/services/live/football-score/matcher";
+import { resolveCanonicalTournament } from "@/services/live/football-score/canonicalLeagues";
 import {
   NATIONAL_TEAM_CANONICAL_MAP,
   NATIONAL_TEAM_CANONICAL_KEYS,
@@ -56,6 +57,8 @@ export interface FootballMatch {
   timeline?: "live" | "today" | "upcoming" | "finished";
   servers: StreamServer[];
   score?: LiveMatchScore;
+  realStatus?: "live" | "upcoming" | "finished";
+  isLive?: boolean;
 }
 
 export interface LiveFootballData {
@@ -351,13 +354,14 @@ const CLUB_ALIAS_MAP: Record<string, string> = {
   realmadrid: "realmadrid",
   rma: "realmadrid",
   mancity: "mancity",
+  manchestercity: "mancity",
+  mcfc: "mancity",
   mc: "mancity",
   mci: "mancity",
   manutd: "manutd",
   manchesterunited: "manutd",
   mu: "manutd",
   mun: "manutd",
-  manchester: "manutd",
   spurs: "tottenham",
   tot: "tottenham",
   tottenham: "tottenham",
@@ -549,10 +553,13 @@ export function normalizeClubKey(name: string): string {
     .replace(/\s+/g, " ")
     .trim();
 
-  // 1. Direct canonical national-team lookup on compact alphanumeric string (handles "chinapr", "trungquoc", "vietnam", "vn", etc.)
+  // 1. Direct canonical national-team & club lookup on compact alphanumeric string
   const noSpace = clean.replace(/\s+/g, "");
   if (NATIONAL_TEAM_CANONICAL_MAP[noSpace]) {
     return NATIONAL_TEAM_CANONICAL_MAP[noSpace];
+  }
+  if (CLUB_ALIAS_MAP[noSpace]) {
+    return CLUB_ALIAS_MAP[noSpace];
   }
 
   // 2. Auxiliary words stripping & check
@@ -1337,7 +1344,7 @@ function detectTournament(title: string, team1: string, team2: string): string {
     normTitle.includes("ucl") ||
     /\bc1\b/.test(normTitle)
   ) {
-    return "🏆 Cúp C1 Châu Âu";
+    return "UEFA Champions League";
   }
   if (
     normTitle.includes("europa league") ||
@@ -1346,7 +1353,7 @@ function detectTournament(title: string, team1: string, team2: string): string {
     normTitle.includes("uel") ||
     /\bc2\b/.test(normTitle)
   ) {
-    return "🏆 Cúp C2 Europa League";
+    return "UEFA Europa League";
   }
   if (
     normTitle.includes("conference league") ||
@@ -1355,26 +1362,26 @@ function detectTournament(title: string, team1: string, team2: string): string {
     normTitle.includes("uecl") ||
     /\bc3\b/.test(normTitle)
   ) {
-    return "🏆 Cúp C3";
+    return "UEFA Conference League";
   }
   if (
     normTitle.includes("premier league") ||
     normTitle.includes("ngoai hang anh") ||
     normTitle.includes("epl")
   ) {
-    return "🏴󠁧󠁢󠁥󠁮󠁧󠁿 Ngoại Hạng Anh";
+    return "Ngoại Hạng Anh";
   }
   if (normTitle.includes("la liga") || normTitle.includes("laliga")) {
-    return "🇪🇸 La Liga";
+    return "La Liga";
   }
   if (normTitle.includes("serie a") || normTitle.includes("seriea")) {
-    return "🇮🇹 Serie A";
+    return "Serie A";
   }
   if (normTitle.includes("bundesliga")) {
-    return "🇩🇪 Bundesliga";
+    return "Bundesliga";
   }
   if (normTitle.includes("ligue 1") || normTitle.includes("ligue1")) {
-    return "🇫🇷 Ligue 1";
+    return "Ligue 1";
   }
   if (
     normTitle.includes("mls") ||
@@ -1382,24 +1389,24 @@ function detectTournament(title: string, team1: string, team2: string): string {
     normTitle.includes("sounders") ||
     normTitle.includes("salt lake")
   ) {
-    return "🇺🇸 MLS (Mỹ)";
+    return "Major League Soccer";
   }
   if (
     normTitle.includes("saudi pro league") ||
     normTitle.includes("saudi league") ||
     normTitle.includes("spl")
   ) {
-    return "🇸🇦 Saudi League";
+    return "Saudi Pro League";
   }
   if (
     normTitle.includes("v league") ||
     normTitle.includes("vleague") ||
     normTitle.includes("v league 1")
   ) {
-    return "🇻🇳 V-League";
+    return "V-League";
   }
 
-  // 3. Đội tuyển Quốc gia & Giao hữu Quốc tế
+  // 3. Đội tuyển Quốc gia & Giao hữu Quốc tế (chỉ khi có từ khóa giải đấu/giao hữu hoặc CẢ HAI đội là ĐTQG)
   const nationalKeywords = [
     "laos", "brunei", "japan", "uruguay", "china", "maldives", "myanmar", "timor", "namibia", "congo",
     "uae", "yemen", "libya", "botswana", "mauritania", "central african", "equatorial guinea", "andorra",
@@ -1407,33 +1414,29 @@ function detectTournament(title: string, team1: string, team2: string): string {
     "brazil", "argentina", "france", "germany", "england", "spain", "portugal", "italy", "netherlands",
     "belgium", "croatia", "korea", "australia"
   ];
+  const isNationalT1 = nationalKeywords.some((n) => normT1.includes(n));
+  const isNationalT2 = nationalKeywords.some((n) => normT2.includes(n));
   if (
-    nationalKeywords.some((n) => normT1.includes(n)) ||
-    nationalKeywords.some((n) => normT2.includes(n)) ||
+    (isNationalT1 && isNationalT2) ||
     normTitle.includes("giao huu") ||
     normTitle.includes("giao hữu") ||
-    normTitle.includes("friendly")
+    normTitle.includes("friendly") ||
+    normTitle.includes("international friendly")
   ) {
-    return "🌍 Giao Hữu & ĐTQG";
+    return "Giao Hữu & ĐTQG";
   }
 
-  // 4. Giải Nam Mỹ / Châu Mỹ
-  const southAmericaKeywords = [
-    "cali", "iquique", "antofagasta", "calera", "catolica", "aguilas", "doradas", "boca", "river",
-    "flamengo", "palmeiras", "colo", "nacional", "millonarios", "junior", "santa fe", "medellin", "copa"
-  ];
+  // 4. Giải Nam Mỹ / Châu Mỹ (chỉ khi có từ khóa giải đấu rõ ràng trong title)
   if (
-    southAmericaKeywords.some((n) => normT1.includes(n)) ||
-    southAmericaKeywords.some((n) => normT2.includes(n)) ||
-    normTitle.includes("chile") ||
-    normTitle.includes("colombia") ||
-    normTitle.includes("argentina") ||
-    normTitle.includes("brazil")
+    normTitle.includes("copa libertadores") ||
+    normTitle.includes("copa sudamericana") ||
+    normTitle.includes("nam my") ||
+    normTitle.includes("conmebol")
   ) {
-    return "🌎 Giải Nam Mỹ (Copa / VĐQG)";
+    return "Giải Nam Mỹ";
   }
 
-  // 5. Nhận diện giải đấu của từng câu lạc bộ
+  // 5. Nhận diện giải đấu của từng câu lạc bộ (chỉ gán khi CẢ HAI CLB cùng giải quốc nội)
   const getLeagueOfTeam = (team: string): string => {
     if (!team) return "";
     if (matchTeamInList(team, MLS_TEAMS)) return "mls";
@@ -1444,40 +1447,21 @@ function detectTournament(title: string, team1: string, team2: string): string {
     if (matchTeamInList(team, SERIE_A_TEAMS)) return "seriea";
     if (matchTeamInList(team, BUNDESLIGA_TEAMS)) return "bundesliga";
     if (matchTeamInList(team, LIGUE_1_TEAMS)) return "ligue1";
-    if (matchTeamInList(team, OTHER_EUROPE_TEAMS)) return "other_europe";
     return "";
   };
 
   const l1 = getLeagueOfTeam(normT1);
   const l2 = getLeagueOfTeam(normT2);
 
-  // Cùng giải quốc nội:
-  if (l1 === "epl" && l2 === "epl") return "🏴󠁧󠁢󠁥󠁮󠁧󠁿 Ngoại Hạng Anh";
-  if (l1 === "laliga" && l2 === "laliga") return "🇪🇸 La Liga";
-  if (l1 === "seriea" && l2 === "seriea") return "🇮🇹 Serie A";
-  if (l1 === "bundesliga" && l2 === "bundesliga") return "🇩🇪 Bundesliga";
-  if (l1 === "ligue1" && l2 === "ligue1") return "🇫🇷 Ligue 1";
-  if (l1 === "saudi" && l2 === "saudi") return "🇸🇦 Saudi League";
-  if (l1 === "mls" && l2 === "mls") return "🇺🇸 MLS (Mỹ)";
-  if (l1 === "vleague" && l2 === "vleague") return "🇻🇳 V-League";
-
-  // Khác giải (2 đội bóng Châu Âu gặp nhau mà tiêu đề chưa ghi rõ C1/C2/C3) -> Cúp Châu Âu:
-  const euroLeagues = [
-    "epl",
-    "laliga",
-    "seriea",
-    "bundesliga",
-    "ligue1",
-    "other_europe",
-  ];
-  if (euroLeagues.includes(l1) && euroLeagues.includes(l2) && l1 !== l2) {
-    return "🏆 Cúp Châu Âu";
-  }
-
-  if (l1 === "other_europe" || l2 === "other_europe") return "🏆 Cúp Châu Âu";
-  if (l1 === "mls" || l2 === "mls") return "🇺🇸 MLS (Mỹ)";
-  if (l1 === "saudi" || l2 === "saudi") return "🇸🇦 Saudi League";
-  if (l1 === "vleague" || l2 === "vleague") return "🇻🇳 V-League";
+  // Chỉ gán giải quốc nội khi cả 2 CLB cùng thuộc giải đó
+  if (l1 === "epl" && l2 === "epl") return "Ngoại Hạng Anh";
+  if (l1 === "laliga" && l2 === "laliga") return "La Liga";
+  if (l1 === "seriea" && l2 === "seriea") return "Serie A";
+  if (l1 === "bundesliga" && l2 === "bundesliga") return "Bundesliga";
+  if (l1 === "ligue1" && l2 === "ligue1") return "Ligue 1";
+  if (l1 === "saudi" && l2 === "saudi") return "Saudi Pro League";
+  if (l1 === "mls" && l2 === "mls") return "Major League Soccer";
+  if (l1 === "vleague" && l2 === "vleague") return "V-League";
 
   return "";
 }
@@ -2251,9 +2235,7 @@ export function normalizeAndMergeStreams(
     const timestamp =
       time !== "Trực tiếp" && time !== "24/7"
         ? parseMatchTimeToTimestamp(time)
-        : isLiveMarker
-          ? now
-          : Number.MAX_SAFE_INTEGER;
+        : Number.MAX_SAFE_INTEGER;
 
     cleanedTitle = cleanedTitle
       .replace(/^[🟢🔴⚪\s]+/u, "")
@@ -2381,7 +2363,16 @@ export function normalizeAndMergeStreams(
     }
 
     const rawDetectedTourn = item.tournament || prefixTournament || detectTournament(rawTitle, team1, team2);
-    const tournament = getSportLabel(sport, rawDetectedTourn);
+    const tournament =
+      sport && sport !== "football"
+        ? getSportLabel(sport, rawDetectedTourn)
+        : resolveCanonicalTournament({
+            tournament: rawDetectedTourn,
+            title: rawTitle,
+            sport,
+            team1,
+            team2,
+          });
 
     const normT1 = !isEvent && team1 ? normalizeClubKey(team1) : "";
     const normT2 = !isEvent && team2 ? normalizeClubKey(team2) : "";
@@ -2584,9 +2575,10 @@ export function normalizeAndMergeStreams(
       }
 
       if (
-        foundMatch.tournament &&
-        /^(?:⚽\s*Bóng Đá Trực Tiếp|🏆\s*Trực Tiếp Thể Thao|Live Sports|🎱\s*Bida \/ Billiards Trực Tiếp)$/i.test(foundMatch.tournament.trim()) &&
+        (foundMatch.tournament === "Giải Đấu Khác" ||
+          /^(?:⚽\s*Bóng Đá Trực Tiếp|🏆\s*Trực Tiếp Thể Thao|Live Sports|🎱\s*Bida \/ Billiards Trực Tiếp)$/i.test(foundMatch.tournament?.trim() || "")) &&
         item.tournament &&
+        item.tournament !== "Giải Đấu Khác" &&
         !/^(?:⚽\s*Bóng Đá Trực Tiếp|🏆\s*Trực Tiếp Thể Thao|Live Sports|🎱\s*Bida \/ Billiards Trực Tiếp)$/i.test(item.tournament.trim())
       ) {
         foundMatch.tournament = item.tournament;
@@ -2614,10 +2606,21 @@ export function normalizeAndMergeStreams(
         }
       }
 
-      if (
-        foundMatch.timestamp === Number.MAX_SAFE_INTEGER &&
+      // Ưu tiên giữ/cập nhật giờ đá cụ thể (HH:mm) khi stream hiện tại là placeholder ("Trực tiếp", "24/7") hoặc chưa có
+      const isFoundTimePlaceholder =
+        !foundMatch.time ||
+        foundMatch.time === "Trực tiếp" ||
+        foundMatch.time === "24/7" ||
+        foundMatch.timestamp === Number.MAX_SAFE_INTEGER;
+      const isItemTimeValid = Boolean(
+        item.time &&
+        item.time !== "Trực tiếp" &&
+        item.time !== "24/7" &&
+        item.timestamp &&
         item.timestamp !== Number.MAX_SAFE_INTEGER
-      ) {
+      );
+
+      if (isFoundTimePlaceholder && isItemTimeValid) {
         foundMatch.timestamp = item.timestamp;
         foundMatch.time = item.time;
       }
@@ -3169,14 +3172,37 @@ export const liveFootballService = {
         ),
       );
 
-      // Tự động gắn tỷ số livescore nếu đã có sẵn trong memory cache (0ms latency, không block)
+      // Tự động gắn tỷ số livescore và chuẩn hóa giải đấu canonical (0ms latency, không block)
       const cachedScoreEvents = footballScoreService.getCachedEventsSync();
-      if (cachedScoreEvents && cachedScoreEvents.length > 0) {
-        for (const m of sortedMatches) {
-          const matchedScore = matchFixtureToScore(m, cachedScoreEvents);
+      for (const m of sortedMatches) {
+        let matchedScore: LiveMatchScore | null = null;
+        if (cachedScoreEvents && cachedScoreEvents.length > 0) {
+          matchedScore = matchFixtureToScore(m, cachedScoreEvents);
           if (matchedScore) {
             m.score = matchedScore;
+            // Bổ sung giờ đá và timestamp chuẩn xác từ Scoreboard API khi trận chỉ có mác placeholder ("Trực tiếp", "24/7")
+            const wasPlaceholderTime = !m.time || m.time === "Trực tiếp" || m.time === "24/7";
+            if (matchedScore.kickoffTime && wasPlaceholderTime) {
+              m.time = matchedScore.kickoffTime;
+            }
+            if (
+              matchedScore.kickoffTimestamp &&
+              (wasPlaceholderTime || m.timestamp === Number.MAX_SAFE_INTEGER || !m.timestamp)
+            ) {
+              m.timestamp = matchedScore.kickoffTimestamp;
+            }
           }
+        }
+        // Luôn chuẩn hóa giải đấu canonical duy nhất cho mọi trận bóng đá
+        if (!m.sport || m.sport === "football" || m.sport === "other") {
+          m.tournament = resolveCanonicalTournament({
+            tournament: m.tournament,
+            title: m.title,
+            sport: m.sport,
+            team1: m.team1,
+            team2: m.team2,
+            score: matchedScore,
+          });
         }
       }
 

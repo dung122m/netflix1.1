@@ -269,7 +269,7 @@ export const PlayerScrubBar: React.FC<PlayerScrubBarProps> = ({
         onPointerLeave={handleMouseLeave}
         className="w-full py-2.5 -my-2.5 cursor-pointer relative group/bar touch-none flex items-center outline-none focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 transition-all"
       >
-        <div className="w-full h-1 group-hover/bar:h-2 bg-white/20 rounded-full relative transition-all pointer-events-none">
+        <div className="w-full h-[3px] group-hover/bar:h-[5px] bg-white/20 rounded-full relative transition-all duration-200 pointer-events-none">
           {/* Buffered bar */}
           <div
             className="absolute top-0 left-0 bottom-0 bg-white/30 rounded-full transition-all duration-150"
@@ -282,7 +282,7 @@ export const PlayerScrubBar: React.FC<PlayerScrubBarProps> = ({
             style={{ width: `${playedPercent}%` }}
           >
             <div
-              className={`w-3.5 h-3.5 rounded-full bg-white shadow-[0_0_8px_rgba(229,9,20,0.8)] transition-transform ${
+              className={`w-3.5 h-3.5 rounded-full bg-netflix-red border-2 border-white shadow-[0_0_8px_rgba(229,9,20,0.9)] transition-transform ${
                 isScrubbing ? "scale-100" : "scale-0 group-hover/bar:scale-100"
               }`}
             />

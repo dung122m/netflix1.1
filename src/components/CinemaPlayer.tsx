@@ -342,7 +342,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           setShowControls(false);
           showControlsRef.current = false;
         }
-      }, 3000);
+      }, 2500);
     }
   }, [isPlaying]);
 
@@ -1939,6 +1939,9 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 }}
                 onTogglePiP={togglePiP}
                 onUseIframeFallback={() => setUseIframeFallback(true)}
+                isTheaterMode={isTheaterMode}
+                onToggleTheaterMode={() => setIsTheaterMode((prev) => !prev)}
+                onOpenShortcuts={() => setShowShortcutModal(true)}
                 onToggleFullscreen={toggleFullscreen}
                 onSwitchEpisode={(slug) => {
                   if (switchEpisode) switchEpisode(slug);

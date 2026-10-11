@@ -124,8 +124,11 @@ export function resolveMatchDisplayStatus(params: {
 }): MatchDisplayStatusResult {
   const { timestamp, score, sourceStatus } = params;
 
-  const validKickoff = isValidKickoffTimestamp(timestamp);
-  const kickoffTime = formatKickoffTime(timestamp);
+  const scoreTsValid = isValidKickoffTimestamp(score?.kickoffTimestamp);
+  const m3uTsValid = isValidKickoffTimestamp(timestamp);
+  const effectiveTimestamp = scoreTsValid ? score!.kickoffTimestamp : m3uTsValid ? timestamp : null;
+  const validKickoff = effectiveTimestamp !== null;
+  const kickoffTime = (scoreTsValid && score?.kickoffTime) ? score.kickoffTime : formatKickoffTime(effectiveTimestamp);
 
   // 1. Kiểm tra trạng thái hoãn, hủy, tạm hoãn
   const special = getMatchSpecialStatus(score, sourceStatus);

@@ -30,6 +30,7 @@ import {
   LayoutGrid,
   List,
   RotateCcw,
+  RotateCw,
   Sparkles,
   PictureInPicture2,
   Zap,
@@ -1176,7 +1177,7 @@ export function LiveTvClient({
       const totalDelta = accumulatedSeekDeltaRef.current;
       triggerActionFeedback(
         "seek",
-        totalDelta > 0 ? `+${totalDelta}s ⏩` : `${totalDelta}s ⏪`,
+        totalDelta > 0 ? `+${totalDelta}s` : `${totalDelta}s`,
       );
       seekDeltaResetTimerRef.current = setTimeout(() => {
         accumulatedSeekDeltaRef.current = 0;
@@ -1723,34 +1724,64 @@ export function LiveTvClient({
               </div>
             )}
 
-            {/* ACTION FEEDBACK OVERLAY (PLAY, PAUSE, VOLUME, CHANNEL SWITCH) */}
+            {/* ACTION FEEDBACK OVERLAY (PLAY, PAUSE, VOLUME, CHANNEL SWITCH & CINEMA SEEK HUD) */}
             {actionFeedback && (
               <div className="absolute inset-0 flex items-center justify-center z-25 pointer-events-none">
-                <div className="flex flex-col items-center justify-center px-6 py-4 rounded-3xl bg-black/75 border border-white/25 backdrop-blur-xl shadow-2xl animate-in fade-in zoom-in duration-200">
-                  {actionFeedback.icon === "play" && (
-                    <Play className="w-12 h-12 text-white fill-white ml-1" />
-                  )}
-                  {actionFeedback.icon === "pause" && (
-                    <Pause className="w-12 h-12 text-white fill-white" />
-                  )}
-                  {actionFeedback.icon === "volume" && (
-                    <Volume2 className="w-12 h-12 text-white" />
-                  )}
-                  {actionFeedback.icon === "mute" && (
-                    <VolumeX className="w-12 h-12 text-rose-400" />
-                  )}
-                  {actionFeedback.icon === "channel" && (
-                    <Tv className="w-10 h-10 text-sky-400" />
-                  )}
-                  {actionFeedback.icon === "seek" && (
-                    <Zap className="w-10 h-10 text-cyan-400 fill-cyan-400" />
-                  )}
-                  {actionFeedback.text && (
-                    <span className="mt-2 text-xs sm:text-sm font-bold text-white font-mono">
-                      {actionFeedback.text}
-                    </span>
-                  )}
-                </div>
+                {actionFeedback.icon === "seek" ? (
+                  actionFeedback.text && /^[+-]?\d+s$/i.test(actionFeedback.text.trim()) ? (
+                    // CINEMA SEEK HUD (±10s, ±20s, ...)
+                    (() => {
+                      const isForward = actionFeedback.text.startsWith("+");
+                      return (
+                        <div className="flex flex-col items-center justify-center min-w-[130px] px-6 py-4 rounded-3xl bg-black/85 border border-white/20 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.8)] animate-in fade-in zoom-in-95 duration-150">
+                          <div className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center text-white mb-1 shadow-inner">
+                            {isForward ? (
+                              <RotateCw className="w-6 h-6 text-white" />
+                            ) : (
+                              <RotateCcw className="w-6 h-6 text-white" />
+                            )}
+                          </div>
+                          <span className="text-2xl font-black font-mono tracking-tight text-white">
+                            {actionFeedback.text}
+                          </span>
+                          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">
+                            {isForward ? "Tua tới" : "Tua lùi"}
+                          </span>
+                        </div>
+                      );
+                    })()
+                  ) : (
+                    <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-black/85 border border-white/20 backdrop-blur-2xl shadow-2xl animate-in fade-in zoom-in-95 duration-150 text-white">
+                      <Radio className="w-4 h-4 text-netflix-red animate-pulse" />
+                      <span className="text-xs font-bold text-zinc-200 tracking-wide">
+                        {actionFeedback.text || "Đang phát trực tiếp"}
+                      </span>
+                    </div>
+                  )
+                ) : (
+                  <div className="flex flex-col items-center justify-center px-6 py-4 rounded-3xl bg-black/75 border border-white/25 backdrop-blur-xl shadow-2xl animate-in fade-in zoom-in duration-200">
+                    {actionFeedback.icon === "play" && (
+                      <Play className="w-12 h-12 text-white fill-white ml-1" />
+                    )}
+                    {actionFeedback.icon === "pause" && (
+                      <Pause className="w-12 h-12 text-white fill-white" />
+                    )}
+                    {actionFeedback.icon === "volume" && (
+                      <Volume2 className="w-12 h-12 text-white" />
+                    )}
+                    {actionFeedback.icon === "mute" && (
+                      <VolumeX className="w-12 h-12 text-rose-400" />
+                    )}
+                    {actionFeedback.icon === "channel" && (
+                      <Tv className="w-10 h-10 text-sky-400" />
+                    )}
+                    {actionFeedback.text && (
+                      <span className="mt-2 text-xs sm:text-sm font-bold text-white font-mono">
+                        {actionFeedback.text}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 

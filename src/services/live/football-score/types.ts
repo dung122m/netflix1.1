@@ -39,6 +39,9 @@ export interface LiveMatchScore {
   statusDetail?: string;
   displayClock?: string;
   period?: number;
+  kickoffTime?: string;
+  kickoffTimestamp?: number;
+  kickoffIso?: string;
   updatedAt: string;
   cached?: boolean;
 }
@@ -89,6 +92,12 @@ export interface MatchKeyEvent {
   isOwnGoal?: boolean;
 }
 
+export interface PlayerMatchStat {
+  name: string;
+  displayName: string;
+  value: string | number;
+}
+
 export interface MatchRosterPlayer {
   id: string;
   name: string;
@@ -101,6 +110,9 @@ export interface MatchRosterPlayer {
   subbedIn?: boolean;
   subbedOut?: boolean;
   subClock?: string;
+  photoUrl?: string;
+  jerseyImageUrl?: string;
+  stats?: PlayerMatchStat[];
 }
 
 export interface MatchCommentaryItem {

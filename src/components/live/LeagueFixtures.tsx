@@ -217,7 +217,7 @@ export const LeagueFixtures: React.FC<LeagueFixturesProps> = ({
     }
   }, [selectedDate]);
 
-  const [cacheVersion, setCacheVersion] = useState<number>(0);
+  const [, setCacheVersion] = useState<number>(0);
 
   // Hàm tải dữ liệu fixtures (có client cache và in-flight cancellation)
   const fetchFixtures = async (leagueSlug: string, tab: TabFilter, force: boolean = false) => {
@@ -341,7 +341,6 @@ export const LeagueFixtures: React.FC<LeagueFixturesProps> = ({
         abortControllerRef.current.abort();
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, selectedLeague, activeTab]);
 
   // Cuộn thanh chọn giải đấu
@@ -462,7 +461,7 @@ export const LeagueFixtures: React.FC<LeagueFixturesProps> = ({
     }
 
     return groups;
-  }, [selectedLeague, activeTab, selectedDate, fixturesData, cacheVersion]);
+  }, [selectedLeague, activeTab, selectedDate, fixturesData]);
 
   const totalMatchesOnDate = useMemo(() => {
     return leagueGroups.reduce((acc, g) => acc + g.matches.length, 0);
@@ -1033,6 +1032,8 @@ export const LeagueFixtures: React.FC<LeagueFixturesProps> = ({
                   matchTitle={activeModalFixture.name}
                   team1={activeModalFixture.homeTeam.displayName}
                   team2={activeModalFixture.awayTeam.displayName}
+                  team1Logo={activeModalFixture.homeTeam.logo}
+                  team2Logo={activeModalFixture.awayTeam.logo}
                   isLive={activeModalFixture.status === "live"}
                 />
               </div>

@@ -3,7 +3,6 @@ import assert from "node:assert/strict";
 import {
   isValidKickoffTimestamp,
   formatKickoffTime,
-  getMatchSpecialStatus,
   resolveMatchDisplayStatus,
 } from "./liveStatus";
 import { LiveMatchScore } from "./types";

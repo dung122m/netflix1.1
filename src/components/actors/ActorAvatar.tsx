@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
-import { User, Film, Sparkles } from "lucide-react";
+import { User, Film } from "lucide-react";
 
 /**
  * Lấy chữ cái viết tắt đại diện cho tên diễn viên (VD: "Phạm Băng Băng" -> "PB", "Trần Thành" -> "TT", "IU" -> "IU")

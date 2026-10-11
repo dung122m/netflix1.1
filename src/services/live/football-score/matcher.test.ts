@@ -6,8 +6,11 @@ import {
   buildScoresMap,
   cleanRawTeamString,
 } from "./matcher";
-import { LiveScoreboardEvent } from "./types";
+import { LiveScoreboardEvent, LiveMatchScore } from "./types";
 import { footballScoreService, VERIFIED_SCOREBOARD_LEAGUES } from "./service";
+import { resolveCanonicalTournament, LEAGUE_CANONICAL_MAP } from "./canonicalLeagues";
+import { resolveMatchDisplayStatus, formatKickoffTime } from "./liveStatus";
+import { normalizeAndMergeStreams, RawStreamItem } from "../football/service";
 
 describe("LiveScore Football Matcher & Enrichment Test Suite", () => {
   // Mock dữ liệu sự kiện từ livescore API
@@ -320,10 +323,13 @@ describe("LiveScore Football Matcher & Enrichment Test Suite", () => {
     assert.ok(Array.isArray(syncEvents), "Sync cache phải trả về mảng sự kiện");
   });
 
-  // 11. Mở rộng giải đấu Giai đoạn P1: đủ 13 giải đấu và có usa.1, eng.fa, eng.league_cup, esp.copa_del_rey
-  it("11. VERIFIED_SCOREBOARD_LEAGUES mở rộng chuẩn xác 13 giải đấu (có MLS và các giải cúp)", () => {
-    assert.strictEqual(VERIFIED_SCOREBOARD_LEAGUES.length, 13, "Tổng số giải đấu phải là 13");
+  // 11. Mở rộng giải đấu Giai đoạn P1 & P2: đủ 16 giải đấu đã xác minh (bao gồm 3 cúp UEFA)
+  it("11. VERIFIED_SCOREBOARD_LEAGUES mở rộng chuẩn xác 16 giải đấu (có MLS, UEFA C1/C2/C3 và các giải cúp)", () => {
+    assert.strictEqual(VERIFIED_SCOREBOARD_LEAGUES.length, 16, "Tổng số giải đấu phải là 16");
     assert.ok(VERIFIED_SCOREBOARD_LEAGUES.includes("usa.1"), "Phải có MLS (usa.1)");
+    assert.ok(VERIFIED_SCOREBOARD_LEAGUES.includes("uefa.champions"), "Phải có UEFA Champions League (uefa.champions)");
+    assert.ok(VERIFIED_SCOREBOARD_LEAGUES.includes("uefa.europa"), "Phải có UEFA Europa League (uefa.europa)");
+    assert.ok(VERIFIED_SCOREBOARD_LEAGUES.includes("uefa.europa.conf"), "Phải có UEFA Conference League (uefa.europa.conf)");
     assert.ok(VERIFIED_SCOREBOARD_LEAGUES.includes("eng.fa"), "Phải có FA Cup (eng.fa)");
     assert.ok(VERIFIED_SCOREBOARD_LEAGUES.includes("eng.league_cup"), "Phải có Carabao Cup (eng.league_cup)");
     assert.ok(VERIFIED_SCOREBOARD_LEAGUES.includes("esp.copa_del_rey"), "Phải có Copa del Rey (esp.copa_del_rey)");
@@ -469,6 +475,7 @@ describe("LiveScore Football Matcher & Enrichment Test Suite", () => {
     const p2 = footballScoreService.getMatchSummary("usa.1", "761856");
 
     const [res1, res2] = await Promise.all([p1, p2]);
+    assert.ok(res2, "Request trùng lặp in-flight phải trả về kết quả");
 
     // Nếu mạng kết nối được với upstream
     if (res1.data) {
@@ -555,6 +562,313 @@ describe("LiveScore Football Matcher & Enrichment Test Suite", () => {
     assert.strictEqual(mockSummary.stats[0].name, "possessionPct");
     assert.strictEqual(mockSummary.events[0].type, "goal");
     assert.strictEqual(mockSummary.gameInfo.venue?.name, "Emirates Stadium");
+  });
+
+  // 18. matchFixtureToScore trích xuất kickoffTime và kickoffTimestamp chuẩn xác từ ev.date
+  it("18. matchFixtureToScore trích xuất kickoffTime và kickoffTimestamp theo múi giờ Việt Nam", () => {
+    const fixture = {
+      team1: "Arsenal",
+      team2: "Leeds United",
+      sport: "football",
+    };
+    const score = matchFixtureToScore(fixture, sampleEvents);
+    assert.ok(score, "Phải ghép được trận Arsenal vs Leeds");
+    assert.ok(score.kickoffTimestamp, "Phải có kickoffTimestamp");
+    assert.strictEqual(score.kickoffTimestamp, Date.parse("2026-10-10T11:30:00.000Z"));
+    // 11:30 UTC = 18:30 GMT+7
+    assert.strictEqual(score.kickoffTime, "18:30");
+  });
+
+  // 19. resolveCanonicalTournament phân loại 4 tầng, loại bỏ nhãn playlist và emoji lỗi
+  it("19. resolveCanonicalTournament chuẩn hóa tên giải: loại bỏ cờ lỗi, loại bỏ nhãn playlist, dùng leagueSlug khi có score", () => {
+    // Tầng 1: Ưu tiên score.leagueSlug đã xác minh
+    const t1 = resolveCanonicalTournament({
+      tournament: "Bóng Đá Trực Tiếp",
+      title: "Real Madrid vs Barcelona",
+      score: {
+        eventId: "1",
+        leagueSlug: "esp.1",
+        team1Score: 2,
+        team2Score: 1,
+        homeScore: 2,
+        awayScore: 1,
+        isReversed: false,
+        status: "live",
+        updatedAt: new Date().toISOString(),
+      },
+    });
+    assert.strictEqual(t1, "La Liga", "Phải lấy đúng La Liga từ leagueSlug esp.1");
+
+    // Tầng 2: Sửa chuỗi bị lỗi font Unicode Windows (es La Liga -> La Liga, it Serie A -> Serie A)
+    const tLaLiga = resolveCanonicalTournament({
+      tournament: "es La Liga",
+      title: "Real Betis vs Celta Vigo",
+    });
+    assert.strictEqual(tLaLiga, "La Liga", "Phải làm sạch tiền tố 'es ' thành 'La Liga'");
+
+    const tSerieA = resolveCanonicalTournament({
+      tournament: "it Serie A",
+      title: "Juventus vs Roma",
+    });
+    assert.strictEqual(tSerieA, "Serie A", "Phải làm sạch tiền tố 'it ' thành 'Serie A'");
+
+    // UEFA Champions League từ title
+    const tUcl = resolveCanonicalTournament({
+      tournament: "Trực Tiếp Cúp C1",
+      title: "PSG vs Bayern Munich | Champions League",
+    });
+    assert.strictEqual(tUcl, "UEFA Champions League");
+
+    // Loại bỏ hoàn toàn nhãn playlist chung và gom vào "Giải Đấu Khác"
+    const tGeneric1 = resolveCanonicalTournament({
+      tournament: "Bóng Đá Trực Tiếp",
+      title: "Trận Đấu Không Rõ",
+      sport: "football",
+    });
+    assert.strictEqual(tGeneric1, "Giải Đấu Khác", "Bóng Đá Trực Tiếp phải gom vào Giải Đấu Khác");
+
+    const tGeneric2 = resolveCanonicalTournament({
+      tournament: "COLA TV",
+      title: "Trận Đấu Cola",
+      sport: "football",
+    });
+    assert.strictEqual(tGeneric2, "Giải Đấu Khác", "COLA TV phải gom vào Giải Đấu Khác");
+  });
+
+  // 20. Trận mơ hồ hoặc không đủ tin cậy bị từ chối ghép
+  it("20. matchFixtureToScore từ chối ghép khi có nhiều ứng viên trùng lặp mà không có timestamp để phân định", () => {
+    const ambiguousEvents: LiveScoreboardEvent[] = [
+      {
+        id: "ev_1",
+        leagueSlug: "eng.1",
+        name: "Arsenal at Chelsea",
+        date: "2026-10-10T12:00:00.000Z",
+        homeTeam: { id: "1", name: "Chelsea", displayName: "Chelsea" },
+        awayTeam: { id: "2", name: "Arsenal", displayName: "Arsenal" },
+        homeScore: 1,
+        awayScore: 0,
+        status: "finished",
+        statusText: "STATUS_FULL_TIME",
+        statusDetail: "FT",
+      },
+      {
+        id: "ev_2",
+        leagueSlug: "eng.fa",
+        name: "Arsenal at Chelsea",
+        date: "2026-10-10T13:00:00.000Z",
+        homeTeam: { id: "1", name: "Chelsea", displayName: "Chelsea" },
+        awayTeam: { id: "2", name: "Arsenal", displayName: "Arsenal" },
+        homeScore: 2,
+        awayScore: 2,
+        status: "live",
+        statusText: "STATUS_IN_PROGRESS",
+        statusDetail: "60'",
+      },
+    ];
+
+    // Không có timestamp -> mơ hồ không biết trận nào -> trả về null
+    const noTimestampFixture = {
+      team1: "Chelsea",
+      team2: "Arsenal",
+      sport: "football",
+    };
+    const res = matchFixtureToScore(noTimestampFixture, ambiguousEvents);
+    assert.strictEqual(res, null, "Không được tự đoán trận khi có nhiều ứng viên mà không có timestamp");
+  });
+
+  // 21. M3U chỉ có "Trực tiếp", scoreboard có kickoff
+  it("21. M3U chỉ có 'Trực tiếp' (sentinel MAX_SAFE_INTEGER), scoreboard có kickoff: khôi phục kickoff chuẩn", () => {
+    const fixtureWithLiveMarker = {
+      id: "m_live_1",
+      team1: "Arsenal",
+      team2: "Leeds United",
+      sport: "football",
+      timestamp: Number.MAX_SAFE_INTEGER,
+    };
+    const score = matchFixtureToScore(fixtureWithLiveMarker, sampleEvents);
+    assert.ok(score, "Phải ghép thành công với event Arsenal vs Leeds");
+    assert.strictEqual(score?.kickoffTime, "18:30", "Giờ kickoff phải là 18:30 theo giờ VN");
+    assert.strictEqual(score?.kickoffIso, "2026-10-10T11:30:00.000Z");
+    assert.ok(score?.kickoffTimestamp && score.kickoffTimestamp > 0);
+
+    // Kiểm tra tầng hiển thị qua resolveMatchDisplayStatus
+    const display = resolveMatchDisplayStatus({
+      timestamp: Number.MAX_SAFE_INTEGER,
+      score,
+    });
+    assert.strictEqual(display.kickoffTime, "18:30", "Tầng hiển thị phải giữ giờ kickoff 18:30");
+  });
+
+  // 22. Nguồn M3U thứ nhất không có giờ ("Trực tiếp"), nguồn thứ hai có HH:mm -> merge không làm mất giờ hợp lệ
+  it("22. Nguồn M3U thứ nhất không có giờ, nguồn thứ hai có HH:mm -> merge giữ nguyên HH:mm", () => {
+    const matchNow = new Date("2026-09-26T21:30:00+07:00").getTime();
+    const rawStreams = [
+      {
+        channel: "Kênh 1",
+        rawTitle: "[TRỰC TIẾP] Arsenal vs Leeds United",
+        group: "Bóng đá trực tiếp",
+        rawLogo: "",
+        effectiveUrl: "http://stream1.m3u8",
+      },
+      {
+        channel: "Kênh 2",
+        rawTitle: "21:30 26/09 Arsenal vs Leeds United (BLV Batman)",
+        group: "Bóng đá trực tiếp",
+        rawLogo: "",
+        effectiveUrl: "http://stream2.m3u8",
+      },
+    ];
+    const { matches } = normalizeAndMergeStreams(rawStreams as unknown as RawStreamItem[], matchNow);
+    assert.strictEqual(matches.length, 1, "Phải gộp thành 1 thẻ trận");
+    assert.ok(matches[0].time.startsWith("21:30"), "Phải ưu tiên giờ 21:30 thay vì 'Trực tiếp'");
+    assert.notStrictEqual(matches[0].timestamp, Number.MAX_SAFE_INTEGER, "Timestamp phải là giờ thực");
+  });
+
+  // 23. Nguồn M3U thứ nhất có giờ, nguồn thứ hai 'Trực tiếp' -> không bị ghi đè
+  it("23. Merge không ghi đè giờ hợp lệ bằng 'Trực tiếp' hay sentinel", () => {
+    const matchNow = new Date("2026-09-26T20:00:00+07:00").getTime();
+    const rawStreams = [
+      {
+        channel: "Kênh 1",
+        rawTitle: "20:00 26/09 Chelsea vs Bournemouth",
+        group: "Bóng đá",
+        rawLogo: "",
+        effectiveUrl: "http://stream1.m3u8",
+      },
+      {
+        channel: "Kênh 2",
+        rawTitle: "[TRỰC TIẾP] Chelsea vs Bournemouth",
+        group: "Bóng đá trực tiếp",
+        rawLogo: "",
+        effectiveUrl: "http://stream2.m3u8",
+      },
+    ];
+    const { matches } = normalizeAndMergeStreams(rawStreams as unknown as RawStreamItem[], matchNow);
+    assert.strictEqual(matches.length, 1);
+    assert.ok(matches[0].time.startsWith("20:00"), "Không được ghi đè 20:00 bằng 'Trực tiếp'");
+  });
+
+  // 24. Trận không match được API vẫn hiển thị giờ M3U nếu hợp lệ
+  it("24. Trận không match được API vẫn hiển thị giờ M3U nếu hợp lệ", () => {
+    const validKickoffTs = new Date("2026-10-10T20:00:00+07:00").getTime();
+    const display = resolveMatchDisplayStatus({
+      timestamp: validKickoffTs,
+      score: null, // Không có livescore
+    });
+    assert.strictEqual(display.kickoffTime, "20:00");
+    assert.strictEqual(display.statusType, "upcoming");
+  });
+
+  // 25. Timestamp ISO có Z được chuyển chính xác sang giờ Việt Nam, kể cả khi qua ngày
+  it("25. Timestamp ISO có 'Z' được chuyển chính xác sang giờ Việt Nam, kể cả khi qua ngày", () => {
+    // 17:15Z ngày 10/10 -> 00:15 ngày 11/10 tại VN (+7)
+    const midnightIsoTs = Date.parse("2026-10-10T17:15:00.000Z");
+    assert.strictEqual(formatKickoffTime(midnightIsoTs), "00:15");
+
+    // 23:45Z ngày 10/10 -> 06:45 ngày 11/10 tại VN (+7)
+    const nextDayMorningTs = Date.parse("2026-10-10T23:45:00.000Z");
+    assert.strictEqual(formatKickoffTime(nextDayMorningTs), "06:45");
+  });
+
+  // 26. API không có ngày giờ hợp lệ: không tự tạo kickoff giả
+  it("26. API không có ngày giờ hợp lệ: không tự tạo kickoff giả", () => {
+    const eventWithoutDate: LiveScoreboardEvent = {
+      id: "ev_no_date",
+      leagueSlug: "eng.1",
+      name: "Manchester United vs Liverpool",
+      date: "", // rỗng
+      homeTeam: { id: "1", name: "Liverpool", displayName: "Liverpool" },
+      awayTeam: { id: "2", name: "Manchester United", displayName: "Manchester United" },
+      homeScore: 0,
+      awayScore: 0,
+      status: "scheduled",
+      statusText: "STATUS_SCHEDULED",
+    };
+    const fixture = {
+      team1: "Liverpool",
+      team2: "Manchester United",
+      sport: "football",
+    };
+    const score = matchFixtureToScore(fixture, [eventWithoutDate]);
+    assert.ok(score);
+    assert.strictEqual(score?.kickoffTime, undefined, "Không được tự tạo kickoffTime khi API thiếu date");
+    assert.strictEqual(score?.kickoffTimestamp, undefined, "Không được tự tạo kickoffTimestamp khi API thiếu date");
+
+    const display = resolveMatchDisplayStatus({
+      timestamp: undefined,
+      score,
+    });
+    assert.strictEqual(display.kickoffTime, null, "Display layer không được tự tạo kickoff giả");
+  });
+
+  // 27. Tên giải từ scoreboard thống nhất với nhãn bộ lọc
+  it("27. Tên giải từ scoreboard thống nhất tuyệt đối với từ điển giải đấu", () => {
+    for (const slug of VERIFIED_SCOREBOARD_LEAGUES) {
+      const canonical = resolveCanonicalTournament({
+        score: { leagueSlug: slug } as unknown as LiveMatchScore,
+      });
+      assert.strictEqual(
+        canonical,
+        LEAGUE_CANONICAL_MAP[slug],
+        `League slug ${slug} phải trả về tên chuẩn ${LEAGUE_CANONICAL_MAP[slug]}`,
+      );
+    }
+  });
+
+  // 28. Trận không xác định được giải đấu không suy đoán từ 1 đội (vd CD Nacional) và không dùng BLV làm giải đấu
+  it("28. Trận không xác định được giải đấu dùng 'Giải Đấu Khác', không đoán từ 1 đội và không dùng tên BLV", () => {
+    const tour1 = resolveCanonicalTournament({
+      title: "CD Nacional vs FC Porto",
+      tournament: "",
+      team1: "CD Nacional",
+      team2: "FC Porto",
+      score: null,
+    });
+    assert.strictEqual(tour1, "Giải Đấu Khác", "Không được suy đoán thành Giải Nam Mỹ chỉ vì tên có Nacional");
+
+    const tourBlv = resolveCanonicalTournament({
+      title: "Trận Đấu Kịch Tính",
+      tournament: "BLV Batman",
+      score: null,
+    });
+    assert.strictEqual(tourBlv, "Giải Đấu Khác", "Không được dùng tên BLV làm giải đấu");
+
+    const tourCommentator = resolveCanonicalTournament({
+      title: "Trận Đấu Căng Thẳng",
+      tournament: "Bình luận viên Captain",
+      score: null,
+    });
+    assert.strictEqual(tourCommentator, "Giải Đấu Khác", "Không được dùng Bình luận viên làm giải đấu");
+  });
+
+  // 29. Nhận diện tên giải đấu rõ ràng bằng chữ không phụ thuộc logo
+  it("29. Nhận diện tên giải đấu rõ ràng bằng chữ: Premier League, La Liga, UEFA Champions League, NBA", () => {
+    assert.strictEqual(
+      resolveCanonicalTournament({ title: "Arsenal vs Chelsea (Premier League)" }),
+      "Ngoại Hạng Anh",
+    );
+    assert.strictEqual(
+      resolveCanonicalTournament({ title: "Barcelona vs Real Madrid (La Liga)" }),
+      "La Liga",
+    );
+    assert.strictEqual(
+      resolveCanonicalTournament({ title: "Bayern vs PSG (UEFA Champions League)" }),
+      "UEFA Champions League",
+    );
+    assert.strictEqual(
+      resolveCanonicalTournament({ title: "Los Angeles Lakers vs Golden State Warriors (NBA)" }),
+      "Giải Bóng Rổ NBA",
+    );
+  });
+
+  // 30. Trận thể thao bóng rổ trả về fallback bộ môn khi không có giải đấu rõ ràng
+  it("30. Trận có sport='basketball' và không có tên giải thô trả về 'Bóng Rổ'", () => {
+    const res = resolveCanonicalTournament({
+      title: "Hà Nội Buffaloes vs Saigon Heat",
+      sport: "basketball",
+      tournament: "",
+    });
+    assert.strictEqual(res, "Bóng Rổ", "Trận bóng rổ không có tên giải phải trả về Bóng Rổ");
   });
 });
 

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { ChevronDown, ChevronUp, FileText } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { cleanHtmlText } from "@/lib/cleanHtml";
 
 interface MovieSynopsisProps {
@@ -20,15 +20,15 @@ export function MovieSynopsis({ synopsis: rawSynopsis, originName }: MovieSynops
       <div className="absolute left-0 top-0 bottom-0 w-1 bg-netflix-red" />
 
       <div className="flex items-center justify-between gap-3 mb-3">
-        <div className="flex items-center gap-2">
-          <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-netflix-red" />
+        <div className="flex items-center gap-2.5">
+          <span className="w-1.5 h-4 rounded-full bg-netflix-red" />
           <h2 className="text-base sm:text-lg font-bold text-white tracking-wide">
-            Tóm tắt cốt truyện
+            Nội dung phim
           </h2>
         </div>
 
         {originName && (
-          <span className="text-xs text-gray-400 font-medium italic truncate max-w-[200px] sm:max-w-xs">
+          <span className="text-xs text-zinc-400 font-medium italic truncate max-w-[200px] sm:max-w-xs">
             Tên gốc: {originName}
           </span>
         )}
@@ -36,7 +36,7 @@ export function MovieSynopsis({ synopsis: rawSynopsis, originName }: MovieSynops
 
       <div className="relative">
         <p
-          className={`text-gray-200 text-sm sm:text-base leading-relaxed transition-all duration-300 font-normal ${
+          className={`text-zinc-200 text-sm sm:text-base leading-relaxed transition-all duration-300 font-normal ${
             !expanded && isLong ? "line-clamp-3 sm:line-clamp-4" : ""
           }`}
         >
@@ -52,13 +52,15 @@ export function MovieSynopsis({ synopsis: rawSynopsis, originName }: MovieSynops
         <button
           type="button"
           onClick={() => setExpanded(!expanded)}
-          className="mt-3 inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-netflix-red hover:text-red-400 transition-colors cursor-pointer group"
+          className="mt-3 inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-zinc-300 hover:text-white transition-colors cursor-pointer group"
         >
-          <span>{expanded ? "Thu gọn" : "Xem toàn bộ tóm tắt"}</span>
+          <span className="underline underline-offset-4 decoration-netflix-red/60 group-hover:decoration-netflix-red">
+            {expanded ? "Thu gọn" : "Xem thêm"}
+          </span>
           {expanded ? (
-            <ChevronUp className="h-3.5 w-3.5 transition-transform group-hover:-translate-y-0.5" />
+            <ChevronUp className="h-3.5 w-3.5 text-zinc-400 group-hover:text-white transition-transform group-hover:-translate-y-0.5" />
           ) : (
-            <ChevronDown className="h-3.5 w-3.5 transition-transform group-hover:translate-y-0.5" />
+            <ChevronDown className="h-3.5 w-3.5 text-zinc-400 group-hover:text-white transition-transform group-hover:translate-y-0.5" />
           )}
         </button>
       )}

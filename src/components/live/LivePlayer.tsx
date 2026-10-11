@@ -24,13 +24,17 @@ import {
   Zap,
   X,
   RotateCcw,
+  RotateCw,
   Mic,
+  MapPin,
+  UserCheck,
 } from "lucide-react";
 import { FootballMatch, StreamServer } from "@/services/liveFootballService";
-import { LiveMatchScore } from "@/services/live/football-score/types";
+import { LiveMatchScore, NormalizedMatchSummary } from "@/services/live/football-score/types";
 import { getTeamAsset } from "@/data/live/teamAssets";
 import { toDarkModeLogoUrl } from "@/services/live/football-logo/service";
 import { resolveMatchDisplayStatus } from "@/services/live/football-score/liveStatus";
+import { resolveCanonicalTournament } from "@/services/live/football-score/canonicalLeagues";
 import { LiveShortcutPopover } from "./LiveShortcutPopover";
 import { ChannelSourceSwitcher } from "./ChannelSourceSwitcher";
 import { CountryFlag } from "./CountryFlag";
@@ -204,6 +208,7 @@ interface LivePlayerProps {
   onCloseMatchRail?: () => void;
   onSelectMatch?: (match: FootballMatch) => void;
   score?: LiveMatchScore | null;
+  summary?: NormalizedMatchSummary | null;
 }
 
 /**
@@ -492,6 +497,7 @@ function LivePlayerInner({
   onToggleMatchRail,
   onCloseMatchRail,
   score,
+  summary,
 }: LivePlayerProps) {
   const currentScore = score || match?.score || null;
   const displayStatus = useMemo(
@@ -512,6 +518,15 @@ function LivePlayerInner({
     displayStatus.statusType === "suspended"
       ? displayStatus.badgeLabel
       : null;
+
+  const homeDisplayName =
+    summary?.homeTeam?.displayName || summary?.homeTeam?.name || team1;
+  const awayDisplayName =
+    summary?.awayTeam?.displayName || summary?.awayTeam?.name || team2;
+  const homeFormation = summary?.homeRoster?.formation;
+  const awayFormation = summary?.awayRoster?.formation;
+  const venueName = summary?.gameInfo?.venue?.name;
+  const refereeName = summary?.gameInfo?.referee;
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const hlsRef = useRef<Hls | null>(null);
@@ -606,7 +621,7 @@ function LivePlayerInner({
 
   // Trạng thái đồng bộ Live Edge & Tua thời gian (Seek)
   const [isAtLiveEdge, setIsAtLiveEdge] = useState<boolean>(true);
-  const [liveLatency, setLiveLatency] = useState<number>(0);
+  const [, setLiveLatency] = useState<number>(0);
   const lastTargetTimeRef = useRef<number | null>(null);
   const seekThrottleTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastSeekTimestampRef = useRef<number>(0);
@@ -786,18 +801,36 @@ function LivePlayerInner({
     setAwayFailed(false);
   }, [match?.id, homeLogo, awayLogo]);
 
-  // Tra cứu cờ quốc gia / logo CLB O(1) từ local mapping (đồng bộ 100% với MatchCard)
-  const homeAsset = useMemo(() => getTeamAsset(team1), [team1]);
-  const awayAsset = useMemo(() => getTeamAsset(team2), [team2]);
+  // Tra cứu cờ quốc gia / logo CLB O(1) từ local mapping (đồng bộ 100% với MatchCard & MatchCenter)
+  const homeAsset = useMemo(
+    () =>
+      getTeamAsset(
+        summary?.homeTeam?.name || summary?.homeTeam?.displayName || team1,
+      ),
+    [summary?.homeTeam?.name, summary?.homeTeam?.displayName, team1],
+  );
+  const awayAsset = useMemo(
+    () =>
+      getTeamAsset(
+        summary?.awayTeam?.name || summary?.awayTeam?.displayName || team2,
+      ),
+    [summary?.awayTeam?.name, summary?.awayTeam?.displayName, team2],
+  );
 
   // Ưu tiên cờ quốc gia / emoji đặc thù (luôn hiển thị chuẩn, sắc nét, không 404)
   const homeFlagEmoji = homeAsset?.emoji || null;
   const awayFlagEmoji = awayAsset?.emoji || null;
 
   const rawHome =
-    Boolean(homeLogo) && !homeLogo?.includes("tinhlagi.pro/logo.jpg")
+    (Boolean(summary?.homeTeam?.logo) &&
+    !summary?.homeTeam?.logo?.includes("tinhlagi.pro/logo.jpg")
+      ? summary?.homeTeam?.logo
+      : null) ||
+    (Boolean(homeLogo) && !homeLogo?.includes("tinhlagi.pro/logo.jpg")
       ? homeLogo
-      : null;
+      : null) ||
+    homeAsset?.logo ||
+    null;
   const assetHome = homeAsset?.logo || null;
 
   let homeLogoSrc: string | null = null;
@@ -818,9 +851,15 @@ function LivePlayerInner({
   }, [rawHome, homeTriedAsset, assetHome]);
 
   const rawAway =
-    Boolean(awayLogo) && !awayLogo?.includes("tinhlagi.pro/logo.jpg")
+    (Boolean(summary?.awayTeam?.logo) &&
+    !summary?.awayTeam?.logo?.includes("tinhlagi.pro/logo.jpg")
+      ? summary?.awayTeam?.logo
+      : null) ||
+    (Boolean(awayLogo) && !awayLogo?.includes("tinhlagi.pro/logo.jpg")
       ? awayLogo
-      : null;
+      : null) ||
+    awayAsset?.logo ||
+    null;
   const assetAway = awayAsset?.logo || null;
 
   let awayLogoSrc: string | null = null;
@@ -1000,18 +1039,18 @@ function LivePlayerInner({
     ? getStreamUrl(currentServer.url, currentServer.isHls)
     : "";
 
-  // Tự động ẩn controls sau 3.5s nếu không di chuyển chuột
+  // Tự động ẩn controls sau ~2.5s nếu đang phát và không mở menu nguồn
   const resetControlsTimeout = useCallback(() => {
     setShowControls(true);
     if (controlsTimeoutRef.current) {
       clearTimeout(controlsTimeoutRef.current);
     }
     controlsTimeoutRef.current = setTimeout(() => {
-      if (isPlaying) {
+      if (isPlaying && !isRailVisible) {
         setShowControls(false);
       }
-    }, 3500);
-  }, [isPlaying]);
+    }, 2500);
+  }, [isPlaying, isRailVisible]);
 
   // Helper dọn dẹp HLS instance một cách an toàn và triệt để
   const destroyHlsInstance = useCallback(() => {
@@ -1323,6 +1362,8 @@ function LivePlayerInner({
       triggerActionFeedback,
       markSourceFailed,
       activeMatchId,
+      destroyHlsInstance,
+      resetMediaElement,
     ],
   );
 
@@ -1452,9 +1493,9 @@ function LivePlayerInner({
         enableWorker: true,
         lowLatencyMode: false,
         liveSyncDurationCount: 3,
-        liveMaxLatencyDurationCount: 8,
-        maxLiveSyncPlaybackRate: 1.04,
-        backBufferLength: 30,
+        liveMaxLatencyDurationCount: Infinity,
+        maxLiveSyncPlaybackRate: 1.0,
+        backBufferLength: 90,
         maxBufferLength: 30,
         maxMaxBufferLength: 60,
         maxBufferSize: 60 * 1000 * 1000,
@@ -1566,9 +1607,19 @@ function LivePlayerInner({
             Number.isFinite(hls.liveSyncPosition) &&
             hls.liveSyncPosition > 0
           ) {
-            const gap = hls.liveSyncPosition - currentV.currentTime;
-            if (gap > 15 || gap < -2) {
+            const isOutsideSeekable =
+              currentV.seekable &&
+              currentV.seekable.length > 0 &&
+              currentV.currentTime < currentV.seekable.start(0);
+            const isAheadOfLiveEdge =
+              currentV.currentTime > hls.liveSyncPosition + 2;
+
+            if (isOutsideSeekable || isAheadOfLiveEdge) {
               currentV.currentTime = hls.liveSyncPosition;
+              setIsAtLiveEdge(true);
+              setLiveLatency(0);
+              hls.startLoad();
+            } else {
               hls.startLoad();
             }
           }
@@ -1661,17 +1712,12 @@ function LivePlayerInner({
                 videoRef.current.seekable &&
                 videoRef.current.seekable.length > 0 &&
                 videoRef.current.currentTime < videoRef.current.seekable.start(0);
-              const isCriticallyBehind =
-                videoRef.current &&
-                hls.liveSyncPosition &&
-                Number.isFinite(hls.liveSyncPosition) &&
-                hls.liveSyncPosition - videoRef.current.currentTime > 38;
 
               if (
                 videoRef.current &&
                 hls.liveSyncPosition &&
                 Number.isFinite(hls.liveSyncPosition) &&
-                (isOutsideSeekable || isCriticallyBehind)
+                isOutsideSeekable
               ) {
                 videoRef.current.currentTime = hls.liveSyncPosition;
                 setIsAtLiveEdge(true);
@@ -1791,19 +1837,14 @@ function LivePlayerInner({
       const hls = hlsRef.current;
       const livePos = hls?.liveSyncPosition;
 
-      // Chỉ đưa về live edge khi unpause nếu vị trí hiện tại đã trôi ra ngoài seekable window hoặc trễ quá 38s
+      // Chỉ đưa về live edge khi unpause nếu vị trí hiện tại đã trôi ra ngoài seekable window
       const isOutsideSeekable =
         video.seekable &&
         video.seekable.length > 0 &&
         video.currentTime < video.seekable.start(0);
-      const isCriticallyBehind =
-        livePos &&
-        Number.isFinite(livePos) &&
-        livePos > 0 &&
-        livePos - video.currentTime > 38;
 
       if (
-        (isOutsideSeekable || isCriticallyBehind) &&
+        isOutsideSeekable &&
         livePos &&
         Number.isFinite(livePos) &&
         livePos > 0
@@ -2152,11 +2193,11 @@ function LivePlayerInner({
       // Nếu stream không hỗ trợ DVR / seekable window quá hẹp (< 8s) -> Giữ nguyên trạng thái Live bình thường
       if (!hasSeekable || seekableWindow < 8) {
         if (seconds < 0) {
-          triggerActionFeedback("seek", "🔴 Trực tiếp (Không có DVR)");
+          triggerActionFeedback("seek", "Luồng trực tiếp (Không có DVR)");
           return;
         }
         if (isAtLiveEdge) {
-          triggerActionFeedback("seek", "🔴 Đang phát trực tiếp");
+          triggerActionFeedback("seek", "Đang phát trực tiếp");
           return;
         }
         goToLiveEdge();
@@ -2171,7 +2212,7 @@ function LivePlayerInner({
       const totalDelta = accumulatedSeekDeltaRef.current;
       triggerActionFeedback(
         "seek",
-        totalDelta > 0 ? `+${totalDelta}s ⏩` : `${totalDelta}s ⏪`,
+        totalDelta > 0 ? `+${totalDelta}s` : `${totalDelta}s`,
       );
       seekDeltaResetTimerRef.current = setTimeout(() => {
         accumulatedSeekDeltaRef.current = 0;
@@ -2219,6 +2260,12 @@ function LivePlayerInner({
               setLiveLatency(0);
             } else {
               videoRef.current.currentTime = target;
+              const { latencySec, isLive } = calculateLiveLatency(
+                videoRef.current,
+                hls,
+              );
+              setLiveLatency(latencySec);
+              setIsAtLiveEdge(isLive);
               if (hls && typeof hls.startLoad === "function") {
                 hls.startLoad();
               }
@@ -2593,13 +2640,25 @@ function LivePlayerInner({
             {/* 1. TOP BAR: GIẢI ĐẤU, BLV & CHẤT LƯỢNG STREAM */}
             <div className="flex items-center justify-between gap-2 border-b border-white/[0.08] pb-1.5">
               <div className="flex items-center gap-2 min-w-0 flex-1">
-                <span
-                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-white/5 border border-white/10 text-zinc-300 text-[10.5px] sm:text-xs font-semibold shadow-sm max-w-full truncate"
-                  title={group || match?.tournament || "Trực Tiếp Bóng Đá"}
-                >
-                  <span className="shrink-0 text-xs">🏆</span>
-                  <span className="truncate">{group || match?.tournament || "Trực Tiếp Bóng Đá"}</span>
-                </span>
+                {(() => {
+                  const displayTournament = resolveCanonicalTournament({
+                    tournament: match?.tournament,
+                    title: title || match?.title,
+                    sport: match?.sport,
+                    team1: match?.team1,
+                    team2: match?.team2,
+                    score,
+                  });
+                  return (
+                    <span
+                      className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-white/5 border border-white/10 text-zinc-300 text-[10.5px] sm:text-xs font-semibold shadow-sm max-w-full truncate"
+                      title={displayTournament}
+                    >
+                      <span className="shrink-0 text-xs">🏆</span>
+                      <span className="truncate">{displayTournament}</span>
+                    </span>
+                  );
+                })()}
               </div>
 
               <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
@@ -2621,149 +2680,169 @@ function LivePlayerInner({
                   </span>
                 )}
 
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] sm:text-xs font-bold uppercase whitespace-nowrap">
-                  <Zap className="w-3 h-3 fill-emerald-400 shrink-0" />
-                  <span>{currentServer?.quality || "FHD 1080p"}</span>
-                </span>
+                {currentServer?.quality && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white/10 border border-white/15 text-white/90 text-[10px] sm:text-xs font-medium uppercase whitespace-nowrap">
+                    <Zap className="w-3 h-3 text-white/80 shrink-0" />
+                    <span>{currentServer.quality}</span>
+                  </span>
+                )}
               </div>
             </div>
 
-            {/* 2. MATCH ARENA (TRỌNG TÂM ĐỐI ĐẦU ĐỐI XỨNG TUYỆT ĐỐI 1fr auto 1fr) */}
-            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-4 md:gap-6 py-1 sm:py-1.5 w-full">
-              {/* ĐỘI NHÀ (TEAM 1 - 50% CÂN ĐỐI) */}
-              <div className="flex flex-col items-center justify-center text-center min-w-0 w-full group">
-                <div className="w-11 h-11 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-xl sm:rounded-2xl bg-gradient-to-b from-zinc-700/80 via-zinc-800/95 to-zinc-900 border-2 border-white/20 p-1.5 sm:p-2 flex items-center justify-center shadow-lg transition-all duration-300 group-hover:scale-105 group-hover:border-netflix-red/70 group-hover:shadow-red-950/60 overflow-hidden relative">
+            {/* 2. MATCH ARENA (SOFASCORE ARENA HERO - ĐỒNG BỘ 100% VỚI MATCH CENTER) */}
+            <div className="flex items-center justify-between gap-3 sm:gap-4 py-1 sm:py-2 w-full">
+              {/* ĐỘI NHÀ */}
+              <div className="flex-1 flex flex-col items-center sm:items-end text-center sm:text-right min-w-0">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 mb-1.5 sm:mb-2 rounded-2xl bg-gradient-to-b from-zinc-700/80 via-zinc-800/95 to-zinc-900 border-2 border-white/20 p-1.5 sm:p-2 flex items-center justify-center shadow-lg relative overflow-hidden shrink-0 transition-all duration-300 hover:scale-105 hover:border-netflix-red/70">
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.18)_0%,_transparent_75%)] pointer-events-none" />
                   {homeFlagEmoji ? (
-                    <CountryFlag emoji={homeFlagEmoji} className="w-7 h-7 sm:w-9 sm:h-9 md:w-10 md:h-10 relative z-10" />
+                    <CountryFlag emoji={homeFlagEmoji} className="w-7 h-7 sm:w-9 sm:h-9 relative z-10" />
                   ) : homeLogoSrc ? (
                     /* eslint-disable-next-line @next/next/no-img-element */
                     <img
                       key={homeLogoSrc}
                       src={homeLogoSrc}
-                      alt=""
+                      alt={homeDisplayName}
                       className="w-full h-full object-contain filter drop-shadow-[0_0_2px_rgba(255,255,255,0.7)] drop-shadow-[0_3px_6px_rgba(0,0,0,0.7)] relative z-10"
                       onError={handleHomeImgError}
                       referrerPolicy="no-referrer"
                     />
                   ) : (
                     <div className="flex flex-col items-center justify-center w-full h-full bg-rose-500/10 rounded-xl p-1 select-none">
-                      <span className="text-sm sm:text-lg font-black text-rose-400 tracking-wider">
+                      <span className="text-sm sm:text-base font-black text-rose-400 tracking-wider">
                         {getTeamInitials(team1)}
-                      </span>
-                      <span className="text-[7px] uppercase tracking-widest text-zinc-400 font-bold">
-                        CLB
                       </span>
                     </div>
                   )}
                 </div>
-                <h3 className="mt-1 text-xs sm:text-[13px] md:text-sm font-bold text-white truncate max-w-full px-1 leading-tight block text-center" title={team1}>
-                  {team1}
-                </h3>
-              </div>
-
-              {/* TRUNG TÂM MATCHUP: TỶ SỐ LIVESCORE HOẶC VS NỔI BẬT */}
-              <div className="flex flex-col items-center justify-center shrink-0 px-1 sm:px-3 text-center">
-                {isConfirmedLive ? (
-                  <>
-                    <div
-                      className="px-3 py-0.5 sm:px-4 sm:py-1 rounded-xl border text-sm sm:text-base md:text-lg font-black font-mono tracking-wider shadow-inner bg-zinc-800/90 border-red-500/40 text-amber-400"
-                    >
-                      {currentScore?.team1Score} - {currentScore?.team2Score}
-                    </div>
-
-                    <div className="mt-0.5 sm:mt-1 flex items-center justify-center gap-1 sm:gap-1.5 flex-wrap">
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 sm:px-2.5 sm:py-0.5 rounded-full bg-netflix-red/20 border border-netflix-red/40 text-netflix-red text-[8.5px] sm:text-[10px] font-black animate-pulse shadow-sm">
-                        <Radio className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                        <span>{currentScore?.displayClock ? `LIVE ${currentScore.displayClock}` : "TRỰC TIẾP"}</span>
-                      </span>
-
-                      {currentScore?.statusDetail &&
-                      currentScore.statusDetail !== currentScore.displayClock &&
-                      currentScore.statusDetail !== "In Progress" ? (
-                        <span className="text-[8.5px] sm:text-[9.5px] text-amber-300 font-bold bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20 whitespace-nowrap shadow-sm">
-                          {currentScore.statusDetail}
-                        </span>
-                      ) : null}
-                    </div>
-                  </>
-                ) : isFinished ? (
-                  <>
-                    <div
-                      className="px-3 py-0.5 sm:px-4 sm:py-1 rounded-xl border text-sm sm:text-base md:text-lg font-black font-mono tracking-wider shadow-inner bg-zinc-800/70 border-white/15 text-gray-200"
-                    >
-                      {currentScore ? `${currentScore.team1Score} - ${currentScore.team2Score}` : "VS"}
-                    </div>
-
-                    <div className="mt-0.5 sm:mt-1 flex items-center justify-center gap-1 sm:gap-1.5 flex-wrap">
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-zinc-700/80 border border-white/10 text-gray-300 text-[8.5px] sm:text-[10px] font-bold shadow-sm">
-                        <span>HẾT GIỜ (FT)</span>
-                      </span>
-                    </div>
-                  </>
+                <h4 className="text-sm sm:text-base font-extrabold text-white tracking-tight truncate w-full" title={homeDisplayName}>
+                  {homeDisplayName}
+                </h4>
+                {homeFormation ? (
+                  <span className="text-[10px] text-gray-400 font-medium mt-0.5">
+                    Sơ đồ: {homeFormation}
+                  </span>
                 ) : (
-                  <>
-                    <div className="px-3 py-0.5 sm:px-4 sm:py-1 rounded-xl bg-zinc-800/80 border border-white/15 text-sm sm:text-base md:text-lg font-black text-rose-400 font-mono tracking-widest shadow-inner">
-                      VS
-                    </div>
-
-                    <div className="mt-0.5 sm:mt-1 flex items-center justify-center gap-1 sm:gap-1.5 flex-wrap">
-                      {specialStatusLabel ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[8.5px] sm:text-[10px] font-bold shadow-sm">
-                          <span>{specialStatusLabel}</span>
-                        </span>
-                      ) : null}
-
-                      {displayStatus.kickoffTime ? (
-                        <span className="text-[8.5px] sm:text-[10px] text-gray-300 font-semibold bg-white/10 px-2 py-0.5 rounded-full border border-white/10 whitespace-nowrap shadow-sm">
-                          ⏰ {displayStatus.kickoffTime}
-                        </span>
-                      ) : time && time !== "Trực tiếp" ? (
-                        <span className="text-[8.5px] sm:text-[10px] text-gray-300 font-semibold bg-white/10 px-2 py-0.5 rounded-full border border-white/10 whitespace-nowrap shadow-sm">
-                          ⏰ {time}
-                        </span>
-                      ) : (
-                        <span className="text-[8.5px] sm:text-[10px] text-sky-400 font-semibold bg-sky-500/10 px-2 py-0.5 rounded-full border border-sky-500/20 whitespace-nowrap shadow-sm">
-                          SẮP DIỄN RA
-                        </span>
-                      )}
-                    </div>
-                  </>
+                  <span className="text-[10px] text-gray-400 font-medium mt-0.5">
+                    Đội nhà
+                  </span>
                 )}
               </div>
 
-              {/* ĐỘI KHÁCH (TEAM 2 - 50% CÂN ĐỐI) */}
-              <div className="flex flex-col items-center justify-center text-center min-w-0 w-full group">
-                <div className="w-11 h-11 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-xl sm:rounded-2xl bg-gradient-to-b from-zinc-700/80 via-zinc-800/95 to-zinc-900 border-2 border-white/20 p-1.5 sm:p-2 flex items-center justify-center shadow-lg transition-all duration-300 group-hover:scale-105 group-hover:border-sky-500/70 group-hover:shadow-sky-950/60 overflow-hidden relative">
+              {/* TỶ SỐ TRUNG TÂM & ĐỒNG HỒ */}
+              <div className="flex flex-col items-center px-2 sm:px-6 py-1 shrink-0">
+                <div className="flex items-center gap-2 sm:gap-4 font-mono text-3xl sm:text-5xl font-black text-white tracking-wider">
+                  <span>
+                    {isConfirmedLive
+                      ? (currentScore?.team1Score ?? summary?.homeTeam?.score ?? 0)
+                      : isFinished
+                        ? (currentScore?.team1Score ?? summary?.homeTeam?.score ?? "-")
+                        : (currentScore?.team1Score ?? summary?.homeTeam?.score ?? "-")}
+                  </span>
+                  <span className="text-gray-500 text-2xl sm:text-3xl font-light select-none">:</span>
+                  <span>
+                    {isConfirmedLive
+                      ? (currentScore?.team2Score ?? summary?.awayTeam?.score ?? 0)
+                      : isFinished
+                        ? (currentScore?.team2Score ?? summary?.awayTeam?.score ?? "-")
+                        : (currentScore?.team2Score ?? summary?.awayTeam?.score ?? "-")}
+                  </span>
+                </div>
+
+                <div className="mt-2 flex items-center gap-1.5 flex-wrap justify-center">
+                  <span
+                    className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full border tracking-wider ${
+                      isConfirmedLive
+                        ? "bg-red-600/20 text-red-400 border-red-500/40 animate-pulse"
+                        : isFinished
+                          ? "bg-zinc-800 text-gray-300 border-white/10"
+                          : "bg-sky-500/20 text-sky-400 border-sky-500/30"
+                    }`}
+                  >
+                    {isConfirmedLive
+                      ? (currentScore?.displayClock || summary?.displayClock || "TRỰC TIẾP")
+                      : isFinished
+                        ? "HẾT GIỜ (FT)"
+                        : (specialStatusLabel ||
+                           summary?.displayClock ||
+                           (summary?.statusText === "STATUS_SCHEDULED"
+                             ? null
+                             : summary?.statusText?.replace(/^STATUS_/i, "")) ||
+                           displayStatus.kickoffTime ||
+                           (time && time !== "Trực tiếp" ? `⏰ ${time}` : "SẮP DIỄN RA"))}
+                  </span>
+
+                  {isConfirmedLive && currentScore?.statusDetail &&
+                   currentScore.statusDetail !== currentScore.displayClock &&
+                   currentScore.statusDetail !== "In Progress" && (
+                    <span className="text-[9px] text-amber-300 font-bold bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20 whitespace-nowrap shadow-sm">
+                      {currentScore.statusDetail}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* ĐỘI KHÁCH */}
+              <div className="flex-1 flex flex-col items-center sm:items-start text-center sm:text-left min-w-0">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 mb-1.5 sm:mb-2 rounded-2xl bg-gradient-to-b from-zinc-700/80 via-zinc-800/95 to-zinc-900 border-2 border-white/20 p-1.5 sm:p-2 flex items-center justify-center shadow-lg relative overflow-hidden shrink-0 transition-all duration-300 hover:scale-105 hover:border-sky-500/70">
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.18)_0%,_transparent_75%)] pointer-events-none" />
                   {awayFlagEmoji ? (
-                    <CountryFlag emoji={awayFlagEmoji} className="w-7 h-7 sm:w-9 sm:h-9 md:w-10 md:h-10 relative z-10" />
+                    <CountryFlag emoji={awayFlagEmoji} className="w-7 h-7 sm:w-9 sm:h-9 relative z-10" />
                   ) : awayLogoSrc ? (
                     /* eslint-disable-next-line @next/next/no-img-element */
                     <img
                       key={awayLogoSrc}
                       src={awayLogoSrc}
-                      alt=""
+                      alt={awayDisplayName}
                       className="w-full h-full object-contain filter drop-shadow-[0_0_2px_rgba(255,255,255,0.7)] drop-shadow-[0_3px_6px_rgba(0,0,0,0.7)] relative z-10"
                       onError={handleAwayImgError}
                       referrerPolicy="no-referrer"
                     />
                   ) : (
                     <div className="flex flex-col items-center justify-center w-full h-full bg-sky-500/10 rounded-xl p-1 select-none">
-                      <span className="text-sm sm:text-lg font-black text-sky-400 tracking-wider">
+                      <span className="text-sm sm:text-base font-black text-sky-400 tracking-wider">
                         {getTeamInitials(team2)}
-                      </span>
-                      <span className="text-[7px] uppercase tracking-widest text-zinc-400 font-bold">
-                        CLB
                       </span>
                     </div>
                   )}
                 </div>
-                <h3 className="mt-1 text-xs sm:text-[13px] md:text-sm font-bold text-white truncate max-w-full px-1 leading-tight block text-center" title={team2 || "Đối thủ"}>
-                  {team2 || "Đối thủ"}
-                </h3>
+                <h4 className="text-sm sm:text-base font-extrabold text-white tracking-tight truncate w-full" title={awayDisplayName}>
+                  {awayDisplayName}
+                </h4>
+                {awayFormation ? (
+                  <span className="text-[10px] text-gray-400 font-medium mt-0.5">
+                    Sơ đồ: {awayFormation}
+                  </span>
+                ) : (
+                  <span className="text-[10px] text-gray-400 font-medium mt-0.5">
+                    Đội khách
+                  </span>
+                )}
               </div>
             </div>
+
+            {/* THÔNG TIN SÂN & TRỌNG TÀI / GIẢI ĐẤU (ĐỒNG BỘ MATCH CENTER) */}
+            {(venueName || refereeName || group || match?.tournament) && (
+              <div className="w-full mt-2 sm:mt-3 pt-2 sm:pt-2.5 border-t border-white/5 flex flex-wrap items-center justify-center gap-3 sm:gap-4 text-xs text-gray-400">
+                {venueName ? (
+                  <div className="flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-netflix-red shrink-0" />
+                    <span>{venueName}</span>
+                  </div>
+                ) : (group || match?.tournament) ? (
+                  <div className="flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-netflix-red shrink-0" />
+                    <span>{group || match?.tournament}</span>
+                  </div>
+                ) : null}
+                {refereeName && (
+                  <div className="flex items-center gap-1.5">
+                    <UserCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <span>Trọng tài: {refereeName}</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -2841,13 +2920,13 @@ function LivePlayerInner({
                 goToLiveEdge();
               }}
               title="Đang phát trực tiếp (Bấm để đồng bộ)"
-              className="group flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full bg-gradient-to-r from-red-600 via-rose-600 to-red-600 text-white text-[10px] sm:text-[11px] font-black uppercase tracking-wider shadow-[0_2px_12px_rgba(229,9,20,0.5)] border border-red-400/40 backdrop-blur-md transition hover:scale-105 active:scale-95 cursor-pointer select-none"
+              className="group flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/60 hover:bg-black/80 text-white/95 text-[11px] font-medium tracking-wide shadow-lg border border-white/15 backdrop-blur-md transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer select-none"
             >
               <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-netflix-red opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-netflix-red" />
               </span>
-              <span>TRỰC TIẾP</span>
+              <span className="font-semibold tracking-wider text-[10px] sm:text-[11px]">TRỰC TIẾP</span>
             </button>
           ) : (
             <button
@@ -2856,71 +2935,71 @@ function LivePlayerInner({
                 e.stopPropagation();
                 goToLiveEdge();
               }}
-              title={
-                liveLatency > 0
-                  ? `Đang trễ ~${liveLatency}s so với trực tiếp. Bấm để quay về Live Edge`
-                  : "Bấm để quay về Live Edge"
-              }
-              className="group flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black text-[10px] sm:text-[11px] font-black uppercase tracking-wider shadow-[0_2px_12px_rgba(245,158,11,0.5)] border border-amber-300/60 backdrop-blur-md transition hover:scale-105 active:scale-95 cursor-pointer animate-pulse select-none"
+              title="Quay về phát trực tiếp"
+              className="group flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/70 hover:bg-black/85 text-amber-300 text-[10px] sm:text-[11px] font-medium tracking-wide shadow-lg border border-amber-500/30 backdrop-blur-md transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer select-none"
             >
-              <RotateCcw className="w-3 h-3 group-hover:-rotate-90 transition-transform duration-300" />
-              <span>
-                {liveLatency > 0 ? `VỀ LIVE (-${liveLatency}s)` : "VỀ LIVE"}
-              </span>
+              <RotateCcw className="w-3 h-3 group-hover:-rotate-90 transition-transform duration-300 text-amber-400" />
+              <span>VỀ LIVE</span>
             </button>
           )}
         </div>
 
         {!useMobilePortal && sourceDrawerMarkup}
 
-        {/* NÚT BẬT ÂM THANH NỔI BẬT KHI ĐANG MUTE Ở GÓC TRÊN PHẢI (ẨN KHI KHÔNG TƯƠNG TÁC) */}
-        {isPlaying && isMuted && !isLoading && !hasError && (
-          <div
-            className={`absolute top-3 right-3 sm:top-4 sm:right-4 z-30 transition-opacity duration-300 ${showControls ? "opacity-100" : "opacity-0 pointer-events-none"
-              }`}
-          >
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                unmuteSound();
-              }}
-              className="flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-gradient-to-r from-red-600 via-rose-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white text-[11px] sm:text-xs font-black shadow-2xl border border-white/40 backdrop-blur-md transition-transform hover:scale-105 active:scale-95 cursor-pointer animate-bounce"
-            >
-              <Volume2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-pulse" />
-              <span>BẬT TIẾNG</span>
-            </button>
-          </div>
-        )}
-
-        {/* ACTION FEEDBACK OVERLAY (PLAY, PAUSE, VOLUME, SERVER SWITCH) */}
+        {/* ACTION FEEDBACK OVERLAY (PLAY, PAUSE, VOLUME, SERVER SWITCH & CINEMA SEEK HUD) */}
         {actionFeedback && (
           <div className="absolute inset-0 flex items-center justify-center z-25 pointer-events-none">
-            <div className="flex flex-col items-center justify-center px-6 py-4 rounded-3xl bg-black/75 border border-white/25 backdrop-blur-xl shadow-2xl animate-in fade-in zoom-in duration-200">
-              {actionFeedback.icon === "play" && (
-                <Play className="w-12 h-12 text-white fill-white ml-1" />
-              )}
-              {actionFeedback.icon === "pause" && (
-                <Pause className="w-12 h-12 text-white fill-white" />
-              )}
-              {actionFeedback.icon === "volume" && (
-                <Volume2 className="w-12 h-12 text-white" />
-              )}
-              {actionFeedback.icon === "mute" && (
-                <VolumeX className="w-12 h-12 text-rose-400" />
-              )}
-              {actionFeedback.icon === "server" && (
-                <Sparkles className="w-10 h-10 text-amber-400" />
-              )}
-              {actionFeedback.icon === "seek" && (
-                <Zap className="w-10 h-10 text-cyan-400 fill-cyan-400" />
-              )}
-              {actionFeedback.text && (
-                <span className="mt-2 text-xs sm:text-sm font-bold text-white font-mono">
-                  {actionFeedback.text}
-                </span>
-              )}
-            </div>
+            {actionFeedback.icon === "seek" ? (
+              actionFeedback.text && /^[+-]?\d+s$/i.test(actionFeedback.text.trim()) ? (
+                // CINEMA SEEK HUD (±10s, ±20s, ...)
+                (() => {
+                  const isForward = actionFeedback.text.startsWith("+");
+                  return (
+                    <div className="flex flex-col items-center justify-center min-w-[130px] px-6 py-4 rounded-3xl bg-black/85 border border-white/20 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.8)] animate-in fade-in zoom-in-95 duration-150">
+                      <div className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center text-white mb-1 shadow-inner">
+                        {isForward ? (
+                          <RotateCw className="w-6 h-6 text-white" />
+                        ) : (
+                          <RotateCcw className="w-6 h-6 text-white" />
+                        )}
+                      </div>
+                      <span className="text-2xl font-black font-mono tracking-tight text-white">
+                        {actionFeedback.text}
+                      </span>
+                      <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">
+                        {isForward ? "Tua tới" : "Tua lùi"}
+                      </span>
+                    </div>
+                  );
+                })()
+              ) : (
+                // Thông báo Live / không hỗ trợ DVR
+                <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-black/85 border border-white/20 backdrop-blur-2xl shadow-2xl animate-in fade-in zoom-in-95 duration-150 text-white">
+                  <Radio className="w-4 h-4 text-netflix-red animate-pulse" />
+                  <span className="text-xs font-bold text-zinc-200 tracking-wide">
+                    {actionFeedback.text || "Đang phát trực tiếp"}
+                  </span>
+                </div>
+              )
+            ) : (
+              <div className="flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-black/75 border border-white/20 backdrop-blur-xl shadow-2xl animate-in fade-in zoom-in duration-150">
+                {actionFeedback.icon === "play" && (
+                  <Play className="w-8 h-8 text-white fill-white ml-0.5" />
+                )}
+                {actionFeedback.icon === "pause" && (
+                  <Pause className="w-8 h-8 text-white fill-white" />
+                )}
+                {actionFeedback.icon === "volume" && (
+                  <Volume2 className="w-8 h-8 text-white" />
+                )}
+                {actionFeedback.icon === "mute" && (
+                  <VolumeX className="w-8 h-8 text-rose-400" />
+                )}
+                {actionFeedback.icon === "server" && (
+                  <Sparkles className="w-7 h-7 text-amber-400" />
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -3027,13 +3106,13 @@ function LivePlayerInner({
                 />
               </button>
 
-              {/* CỤM VOLUME TRÊN TABLET & DESKTOP (Hiện đầy đủ Slider + % text) */}
-              <div className="h-8 sm:h-9.5 hidden sm:flex items-center gap-1.5 md:gap-2 bg-black/60 px-2.5 sm:px-3 rounded-full border border-white/20 backdrop-blur-md shrink-0">
+              {/* CỤM VOLUME TRÊN TABLET & DESKTOP (Hiện đầy đủ Slider) */}
+              <div className="h-8 sm:h-9.5 hidden sm:flex items-center gap-2 bg-black/60 px-3 rounded-full border border-white/15 backdrop-blur-md shrink-0">
                 <button
                   type="button"
                   onClick={toggleMute}
                   title={isMuted ? "Bật âm thanh (M)" : "Tắt âm thanh (M)"}
-                  className="text-white hover:text-rose-400 transition cursor-pointer p-0.5 flex items-center justify-center"
+                  className="text-white hover:text-rose-400 transition cursor-pointer p-0.5 flex items-center justify-center outline-none"
                 >
                   <VolumeIcon
                     className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isMuted || volume === 0 ? "text-rose-400" : "text-white"
@@ -3049,15 +3128,8 @@ function LivePlayerInner({
                   value={isMuted ? 0 : volume}
                   onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
                   aria-label="Điều chỉnh âm lượng"
-                  className="w-14 sm:w-16 md:w-20 lg:w-24 h-1.5 bg-zinc-700 accent-netflix-red rounded-lg appearance-none cursor-pointer hover:accent-red-500 transition"
+                  className="w-16 sm:w-20 md:w-24 h-1.5 bg-zinc-700 accent-netflix-red rounded-lg appearance-none cursor-pointer hover:accent-red-500 transition outline-none"
                 />
-
-                <span
-                  onClick={toggleMute}
-                  className="text-[10px] sm:text-[11px] font-mono font-bold text-gray-200 cursor-pointer hover:text-white select-none whitespace-nowrap min-w-[32px]"
-                >
-                  {isMuted ? "Tắt tiếng" : `${Math.round(volume * 100)}%`}
-                </span>
               </div>
             </div>
 
@@ -3093,9 +3165,9 @@ function LivePlayerInner({
                 type="button"
                 onClick={togglePip}
                 title="Xem thu nhỏ góc màn hình (PiP - Phím I)"
-                className={`w-9 h-9 sm:w-10 sm:h-10 hidden sm:flex rounded-full items-center justify-center transition hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md border border-white/20 shrink-0 ${isPip
-                    ? "bg-netflix-red text-white"
-                    : "bg-black/60 hover:bg-white/20 text-white"
+                className={`w-9 h-9 sm:w-10 sm:h-10 hidden sm:flex rounded-full items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md border border-white/15 shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${isPip
+                    ? "bg-netflix-red text-white border-white/30"
+                    : "bg-white/10 hover:bg-white/20 text-white"
                   }`}
               >
                 <PictureInPicture2 className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
@@ -3106,12 +3178,12 @@ function LivePlayerInner({
                 type="button"
                 onClick={toggleFullscreen}
                 title={isFullscreen ? "Thu nhỏ (F)" : "Toàn màn hình (F)"}
-                className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-netflix-red hover:bg-red-700 flex items-center justify-center text-white transition hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md shrink-0 shadow-lg shadow-red-950/60 border border-white/20"
+                className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md shrink-0 border border-white/15 outline-none focus-visible:ring-2 focus-visible:ring-white/40"
               >
                 {isFullscreen ? (
-                  <Minimize className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
+                  <Minimize className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5" />
                 ) : (
-                  <Maximize className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
+                  <Maximize className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5" />
                 )}
               </button>
             </div>

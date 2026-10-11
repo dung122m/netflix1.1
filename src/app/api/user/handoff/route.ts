@@ -19,6 +19,45 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const { searchParams } = new URL(req.url);
+  const isAll = searchParams.get("all") === "true";
+
+  if (isAll) {
+    if (!auth.isAdmin) {
+      return NextResponse.json({ error: "Forbidden: Yêu cầu quyền Quản trị viên" }, { status: 403 });
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from("device_handoff")
+        .select("*")
+        .order("updated_at", { ascending: false })
+        .limit(50);
+
+      if (error) {
+        return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+      }
+
+      const items = (data || []).map((d) => ({
+        userId: d.user_id,
+        movieSlug: d.movie_slug,
+        movieTitle: d.movie_title,
+        poster: d.poster,
+        episodeSlug: d.episode_slug,
+        episodeName: d.episode_name,
+        progressSeconds: Number(d.progress_seconds) || 0,
+        durationSeconds: Number(d.duration_seconds) || 0,
+        deviceName: d.device_name,
+        updatedAt: Number(d.updated_at) || Date.now(),
+      }));
+
+      return NextResponse.json({ success: true, items });
+    } catch (err) {
+      console.error("[Handoff API GET ALL] Error:", err);
+      return NextResponse.json({ success: false, error: "Internal error" }, { status: 500 });
+    }
+  }
+
   try {
     const { data, error } = await supabase
       .from("device_handoff")

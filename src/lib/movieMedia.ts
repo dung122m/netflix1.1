@@ -7,6 +7,31 @@ export type MovieLike = {
   [key: string]: unknown;
 };
 
+/**
+ * Trích xuất và chuẩn hóa điểm đánh giá thống nhất từ TMDB / IMDb / internal score.
+ * - Trả về rating trong khoảng (0, 10] và voteCount >= 0.
+ * - Điểm không hợp lệ, null, NaN hoặc <= 0 trả về 0 (không tự gán điểm cao).
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function extractMovieRatingScore(m: any): { rating: number; voteCount: number } {
+  if (!m) return { rating: 0, voteCount: 0 };
+  const rawRating =
+    m.tmdb?.vote_average ??
+    m.imdb?.vote_average ??
+    m.imdb?.rating ??
+    m.vote_average ??
+    m.score ??
+    m.rating;
+  const parsedRating = typeof rawRating === "string" ? parseFloat(rawRating) : Number(rawRating);
+  const rating = Number.isFinite(parsedRating) && parsedRating > 0 && parsedRating <= 10 ? parsedRating : 0;
+
+  const rawVoteCount = m.tmdb?.vote_count ?? m.imdb?.vote_count ?? 0;
+  const parsedVoteCount = typeof rawVoteCount === "string" ? parseInt(rawVoteCount, 10) : Number(rawVoteCount);
+  const voteCount = Number.isFinite(parsedVoteCount) && parsedVoteCount > 0 ? parsedVoteCount : 0;
+
+  return { rating, voteCount };
+}
+
 export function sanitizeImageUrl(url: string): string {
   if (!url || typeof url !== "string") return "";
   let clean = url.trim();
@@ -704,16 +729,8 @@ export function normalizeMovie(m: any): NormalizedMovie {
 
   const type_name = detectMovieTypeName(m);
 
-  const ratingRaw =
-    m?.imdb?.rating ??
-    m?.imdb?.vote_average ??
-    m?.tmdb?.vote_average ??
-    m?.vote_average ??
-    m?.rating;
-  const score =
-    ratingRaw !== undefined && ratingRaw !== null && ratingRaw !== ""
-      ? Number(ratingRaw).toFixed(1)
-      : "N/A";
+  const { rating: normRating } = extractMovieRatingScore(m);
+  const score = normRating > 0 ? normRating.toFixed(1) : "N/A";
 
   // Bóc tách diễn viên & đạo diễn (tái sử dụng tham chiếu array ổn định nếu cùng movie object)
   const isObject = typeof m === "object" && m !== null;

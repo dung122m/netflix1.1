@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import Image from "next/image";
 import {
   Activity,
   BarChart2,
@@ -15,14 +14,15 @@ import {
   MapPin,
   UserCheck,
   ArrowUpDown,
-  Shield,
 } from "lucide-react";
-import { NormalizedMatchSummary, MatchStatItem } from "@/services/live/football-score/types";
+import { NormalizedMatchSummary, MatchStatItem, LiveMatchScore } from "@/services/live/football-score/types";
 import {
   calculateMatchCenterPollInterval,
   shouldRefreshOnTabFocus,
   shouldSkipDuplicateRequest,
 } from "@/services/live/football-score/matchCenterRealtime";
+import { resolveCanonicalTournament } from "@/services/live/football-score/canonicalLeagues";
+import { TacticalLineup } from "./TacticalLineup";
 
 interface MatchCenterProps {
   leagueSlug?: string;
@@ -30,7 +30,11 @@ interface MatchCenterProps {
   matchTitle: string;
   team1?: string;
   team2?: string;
+  tournament?: string;
+  team1Logo?: string;
+  team2Logo?: string;
   isLive?: boolean;
+  onSummaryChange?: (summary: NormalizedMatchSummary | null) => void;
 }
 
 type TabType = "overview" | "stats" | "timeline" | "lineups" | "commentary";
@@ -41,14 +45,26 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
   matchTitle,
   team1,
   team2,
+  tournament,
+  team1Logo: _team1Logo,
+  team2Logo: _team2Logo,
   isLive,
+  onSummaryChange,
 }) => {
+  void _team1Logo;
+  void _team2Logo;
   const [isOpen, setIsOpen] = useState(true);
   const [activeTab, setActiveTab] = useState<TabType>("overview");
   const [summary, setSummary] = useState<NormalizedMatchSummary | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    onSummaryChange?.(summary);
+  }, [summary, onSummaryChange]);
+
+
 
   // Thứ tự hiển thị bình luận: mặc định "newest" để luôn thấy thời gian hiện tại ở đầu
   const [commentaryOrder, setCommentaryOrder] = useState<"newest" | "oldest">("newest");
@@ -216,6 +232,17 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
     return matchTitle;
   }, [team1, team2, matchTitle]);
 
+  const canonicalLeague = useMemo(() => {
+    const slug = summary?.leagueSlug || leagueSlug;
+    return resolveCanonicalTournament({
+      score: slug ? ({ leagueSlug: slug } as unknown as LiveMatchScore) : null,
+      tournament: tournament,
+      title: matchTitle,
+      team1,
+      team2,
+    });
+  }, [leagueSlug, summary?.leagueSlug, tournament, matchTitle, team1, team2]);
+
   // Helper tính phần trăm cho thanh so sánh thống kê Sofascore
   const calculateStatPercentage = (homeVal: string | number, awayVal: string | number) => {
     const h = parseFloat(String(homeVal).replace("%", "")) || 0;
@@ -240,10 +267,16 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
             <Activity className="w-5 h-5" />
           </div>
           <div className="min-w-0">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <h3 className="text-base sm:text-lg font-black text-white tracking-tight truncate">
                 {displayTitle}
               </h3>
+              {canonicalLeague && canonicalLeague !== "Giải Đấu Khác" && (
+                <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-white/10 text-zinc-300 border border-white/10 shrink-0 flex items-center gap-1">
+                  <span>🏆</span>
+                  <span>{canonicalLeague}</span>
+                </span>
+              )}
               {isLive && (
                 <span className="flex items-center gap-1 text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-red-600/20 text-red-400 border border-red-500/30 animate-pulse shrink-0">
                   <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
@@ -286,107 +319,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
       {/* 2. NỘI DUNG MATCH CENTER */}
       {isOpen && (
         <div className="p-3.5 sm:p-6 space-y-4">
-          {/* A. SCOREBOARD CARD LỚN (SOFASCORE ARENA HERO) */}
-          {summary && (
-            <div className="rounded-2xl bg-gradient-to-b from-zinc-900/90 to-zinc-950 border border-white/10 p-4 sm:p-6 shadow-xl relative overflow-hidden">
-              <div className="flex items-center justify-between gap-4">
-                {/* ĐỘI NHÀ */}
-                <div className="flex-1 flex flex-col items-center sm:items-end text-center sm:text-right min-w-0">
-                  {summary.homeTeam.logo ? (
-                    <div className="relative w-12 h-12 sm:w-16 sm:h-16 mb-2 shrink-0 drop-shadow-md">
-                      <Image
-                        src={summary.homeTeam.logo}
-                        alt={summary.homeTeam.name}
-                        fill
-                        unoptimized
-                        className="object-contain"
-                      />
-                    </div>
-                  ) : (
-                    <div className="w-12 h-12 sm:w-16 sm:h-16 mb-2 rounded-2xl bg-rose-950/60 border border-rose-500/30 flex items-center justify-center font-black text-rose-300 text-lg shadow-inner">
-                      {summary.homeTeam.name.slice(0, 2).toUpperCase()}
-                    </div>
-                  )}
-                  <h4 className="text-sm sm:text-base font-extrabold text-white tracking-tight truncate w-full">
-                    {summary.homeTeam.displayName}
-                  </h4>
-                  {summary.homeRoster.formation && (
-                    <span className="text-[10px] text-gray-400 font-medium mt-0.5">
-                      Sơ đồ: {summary.homeRoster.formation}
-                    </span>
-                  )}
-                </div>
 
-                {/* TỶ SỐ TRUNG TÂM & ĐỒNG HỒ */}
-                <div className="flex flex-col items-center px-2 sm:px-6 py-1 shrink-0">
-                  <div className="flex items-center gap-2 sm:gap-4 font-mono text-3xl sm:text-5xl font-black text-white tracking-wider">
-                    <span>{summary.homeTeam.score ?? "-"}</span>
-                    <span className="text-gray-500 text-2xl sm:text-3xl font-light">:</span>
-                    <span>{summary.awayTeam.score ?? "-"}</span>
-                  </div>
-
-                  <div className="mt-2 flex items-center gap-1.5">
-                    <span
-                      className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full border tracking-wider ${
-                        summary.status === "live"
-                          ? "bg-red-600/20 text-red-400 border-red-500/40 animate-pulse"
-                          : summary.status === "finished"
-                            ? "bg-zinc-800 text-gray-300 border-white/10"
-                            : "bg-sky-500/20 text-sky-400 border-sky-500/30"
-                      }`}
-                    >
-                      {summary.displayClock || summary.statusText}
-                    </span>
-                  </div>
-                </div>
-
-                {/* ĐỘI KHÁCH */}
-                <div className="flex-1 flex flex-col items-center sm:items-start text-center sm:text-left min-w-0">
-                  {summary.awayTeam.logo ? (
-                    <div className="relative w-12 h-12 sm:w-16 sm:h-16 mb-2 shrink-0 drop-shadow-md">
-                      <Image
-                        src={summary.awayTeam.logo}
-                        alt={summary.awayTeam.name}
-                        fill
-                        unoptimized
-                        className="object-contain"
-                      />
-                    </div>
-                  ) : (
-                    <div className="w-12 h-12 sm:w-16 sm:h-16 mb-2 rounded-2xl bg-sky-950/60 border border-sky-500/30 flex items-center justify-center font-black text-sky-300 text-lg shadow-inner">
-                      {summary.awayTeam.name.slice(0, 2).toUpperCase()}
-                    </div>
-                  )}
-                  <h4 className="text-sm sm:text-base font-extrabold text-white tracking-tight truncate w-full">
-                    {summary.awayTeam.displayName}
-                  </h4>
-                  {summary.awayRoster.formation && (
-                    <span className="text-[10px] text-gray-400 font-medium mt-0.5">
-                      Sơ đồ: {summary.awayRoster.formation}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Thông tin sân & trọng tài */}
-              {summary.gameInfo && (
-                <div className="w-full mt-4 pt-3 border-t border-white/5 flex flex-wrap items-center justify-center gap-4 text-xs text-gray-400">
-                  {summary.gameInfo.venue?.name && (
-                    <div className="flex items-center gap-1.5">
-                      <MapPin className="w-3.5 h-3.5 text-netflix-red shrink-0" />
-                      <span>{summary.gameInfo.venue.name}</span>
-                    </div>
-                  )}
-                  {summary.gameInfo.referee && (
-                    <div className="flex items-center gap-1.5">
-                      <UserCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                      <span>Trọng tài: {summary.gameInfo.referee}</span>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
 
           {/* B. THANH ĐIỀU HƯỚNG TAB CHỨC NĂNG */}
           <div className="flex items-center gap-1 sm:gap-2 overflow-x-auto pb-1 scrollbar-none border-b border-white/10">
@@ -455,7 +388,26 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
             <div className="space-y-4">
               {/* TAB 1: TỔNG QUAN (OVERVIEW) */}
               {activeTab === "overview" && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="space-y-4">
+                  {/* Thông tin sân vận động & trọng tài */}
+                  {summary.gameInfo && (summary.gameInfo.venue?.name || summary.gameInfo.referee) && (
+                    <div className="rounded-xl bg-white/[0.03] border border-white/10 p-3 flex flex-wrap items-center justify-center gap-4 sm:gap-6 text-xs text-gray-400">
+                      {summary.gameInfo.venue?.name && (
+                        <div className="flex items-center gap-1.5">
+                          <MapPin className="w-3.5 h-3.5 text-netflix-red shrink-0" />
+                          <span>Sân vận động: <strong className="text-gray-200">{summary.gameInfo.venue.name}</strong></span>
+                        </div>
+                      )}
+                      {summary.gameInfo.referee && (
+                        <div className="flex items-center gap-1.5">
+                          <UserCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                          <span>Trọng tài: <strong className="text-gray-200">{summary.gameInfo.referee}</strong></span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   {/* Cột trái: Thống kê nổi bật */}
                   <div className="rounded-2xl bg-zinc-900/50 border border-white/10 p-4 space-y-3">
                     <h5 className="text-xs font-extrabold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
@@ -547,7 +499,8 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                     )}
                   </div>
                 </div>
-              )}
+              </div>
+            )}
 
               {/* TAB 2: THỐNG KÊ CHI TIẾT (STATS - SOFASCORE BARS) */}
               {activeTab === "stats" && (
@@ -644,73 +597,14 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                 </div>
               )}
 
-              {/* TAB 4: ĐỘI HÌNH (LINEUPS) */}
+              {/* TAB 4: ĐỘI HÌNH & SƠ ĐỒ CHIẾN THUẬT (TACTICAL LINEUPS) */}
               {activeTab === "lineups" && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Đội hình Đội nhà */}
-                  <div className="rounded-2xl bg-zinc-900/50 border border-white/10 p-4 space-y-3">
-                    <div className="flex items-center justify-between pb-2 border-b border-white/10">
-                      <div className="flex items-center gap-2">
-                        <Shield className="w-4 h-4 text-netflix-red" />
-                        <h5 className="text-xs sm:text-sm font-black text-white">
-                          {summary.homeTeam.displayName}
-                        </h5>
-                      </div>
-                      {summary.homeRoster.formation && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/10 text-gray-300">
-                          {summary.homeRoster.formation}
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <p className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider">Ra sân chính thức</p>
-                      {summary.homeRoster.starters.length > 0 ? (
-                        summary.homeRoster.starters.map((p, i) => (
-                          <div key={i} className="flex items-center gap-2 py-1 px-2 rounded-lg bg-white/[0.02] text-xs">
-                            <span className="font-mono text-gray-400 min-w-[20px] font-bold">{p.jersey || (i + 1)}</span>
-                            <span className="text-white font-semibold flex-1 truncate">{p.name}</span>
-                            {p.position && <span className="text-[10px] text-gray-500 uppercase">{p.position}</span>}
-                          </div>
-                        ))
-                      ) : (
-                        <p className="text-xs text-gray-500 py-2">Đang cập nhật danh sách ra sân</p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Đội hình Đội khách */}
-                  <div className="rounded-2xl bg-zinc-900/50 border border-white/10 p-4 space-y-3">
-                    <div className="flex items-center justify-between pb-2 border-b border-white/10">
-                      <div className="flex items-center gap-2">
-                        <Shield className="w-4 h-4 text-sky-400" />
-                        <h5 className="text-xs sm:text-sm font-black text-white">
-                          {summary.awayTeam.displayName}
-                        </h5>
-                      </div>
-                      {summary.awayRoster.formation && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/10 text-gray-300">
-                          {summary.awayRoster.formation}
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <p className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider">Ra sân chính thức</p>
-                      {summary.awayRoster.starters.length > 0 ? (
-                        summary.awayRoster.starters.map((p, i) => (
-                          <div key={i} className="flex items-center gap-2 py-1 px-2 rounded-lg bg-white/[0.02] text-xs">
-                            <span className="font-mono text-gray-400 min-w-[20px] font-bold">{p.jersey || (i + 1)}</span>
-                            <span className="text-white font-semibold flex-1 truncate">{p.name}</span>
-                            {p.position && <span className="text-[10px] text-gray-500 uppercase">{p.position}</span>}
-                          </div>
-                        ))
-                      ) : (
-                        <p className="text-xs text-gray-500 py-2">Đang cập nhật danh sách ra sân</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                <TacticalLineup
+                  homeTeam={summary.homeTeam}
+                  awayTeam={summary.awayTeam}
+                  homeRoster={summary.homeRoster}
+                  awayRoster={summary.awayRoster}
+                />
               )}
 
               {/* TAB 5: BÌNH LUẬN TRỰC TIẾP (COMMENTARY) */}

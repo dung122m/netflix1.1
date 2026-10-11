@@ -447,26 +447,32 @@ export function subscribeAllComments(
 ): () => void {
   void _maxLimit;
   let isUnsubscribed = false;
+  let isFetching = false;
 
   const fetchAll = async () => {
-    if (isUnsubscribed) return;
-    if (isSupabaseConfigured()) {
-      try {
-        const items = await getAllCommentsSupabase();
-        if (!isUnsubscribed) {
-          onUpdate(items);
-          return;
-        }
-      } catch (err) {
-        if (onError && err instanceof Error) onError(err);
-      }
-    }
+    if (isUnsubscribed || isFetching) return;
+    isFetching = true;
     try {
-      const items = await fetchAllCommentsDirect();
-      if (!isUnsubscribed && items.length > 0) {
-        onUpdate(items);
+      if (isSupabaseConfigured()) {
+        try {
+          const items = await getAllCommentsSupabase();
+          if (!isUnsubscribed) {
+            onUpdate(items);
+            return;
+          }
+        } catch (err) {
+          if (onError && err instanceof Error) onError(err);
+        }
       }
-    } catch {}
+      try {
+        const items = await fetchAllCommentsDirect();
+        if (!isUnsubscribed && items.length > 0) {
+          onUpdate(items);
+        }
+      } catch {}
+    } finally {
+      isFetching = false;
+    }
   };
 
   fetchAll();
@@ -475,9 +481,15 @@ export function subscribeAllComments(
     if (!isUnsubscribed) fetchAll();
   };
 
+  const handleVisibilityChange = () => {
+    if (!isUnsubscribed && typeof document !== "undefined" && !document.hidden) {
+      fetchAll();
+    }
+  };
+
   if (typeof window !== "undefined") {
     window.addEventListener("comments-updated", handleCommentsUpdated);
-    document.addEventListener("visibilitychange", handleCommentsUpdated);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
   }
 
   const syncInterval = setInterval(() => {
@@ -491,7 +503,7 @@ export function subscribeAllComments(
     clearInterval(syncInterval);
     if (typeof window !== "undefined") {
       window.removeEventListener("comments-updated", handleCommentsUpdated);
-      document.removeEventListener("visibilitychange", handleCommentsUpdated);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     }
   };
 }
@@ -510,10 +522,12 @@ export function subscribeUserComments(
   }
 
   let isUnsubscribed = false;
+  let isFetching = false;
 
   const fetchUserComments = async () => {
-    if (isUnsubscribed) return;
+    if (isUnsubscribed || isFetching) return;
     if (isSupabaseConfigured()) {
+      isFetching = true;
       try {
         const items = await getUserCommentsSupabase(userId);
         if (!isUnsubscribed) {
@@ -521,6 +535,8 @@ export function subscribeUserComments(
         }
       } catch (err) {
         if (onError && err instanceof Error) onError(err);
+      } finally {
+        isFetching = false;
       }
     }
   };
@@ -531,9 +547,15 @@ export function subscribeUserComments(
     if (!isUnsubscribed) fetchUserComments();
   };
 
+  const handleVisibilityChange = () => {
+    if (!isUnsubscribed && typeof document !== "undefined" && !document.hidden) {
+      fetchUserComments();
+    }
+  };
+
   if (typeof window !== "undefined") {
     window.addEventListener("comments-updated", handleCommentsUpdated);
-    document.addEventListener("visibilitychange", handleCommentsUpdated);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
   }
 
   const interval = setInterval(() => {
@@ -547,7 +569,7 @@ export function subscribeUserComments(
     clearInterval(interval);
     if (typeof window !== "undefined") {
       window.removeEventListener("comments-updated", handleCommentsUpdated);
-      document.removeEventListener("visibilitychange", handleCommentsUpdated);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     }
   };
 }

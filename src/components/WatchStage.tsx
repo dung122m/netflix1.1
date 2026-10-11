@@ -28,7 +28,7 @@ export function WatchStage({ player, mainContent, sidebar }: WatchStageProps) {
             <div className="lg:col-span-8 space-y-4 sm:space-y-6 min-w-0">
               {mainContent}
             </div>
-            <div className="hidden lg:block lg:col-span-4 space-y-5 min-w-0 sticky top-[80px]">
+            <div className="hidden lg:block lg:col-span-4 space-y-3.5 min-w-0 sticky top-[72px]">
               {sidebar}
             </div>
           </div>
@@ -40,7 +40,7 @@ export function WatchStage({ player, mainContent, sidebar }: WatchStageProps) {
             {player}
             {mainContent}
           </div>
-          <div className="hidden lg:block lg:col-span-4 space-y-5 min-w-0 sticky top-[80px]">
+          <div className="hidden lg:block lg:col-span-4 space-y-3.5 min-w-0 sticky top-[72px]">
             {sidebar}
           </div>
         </div>

@@ -5,6 +5,7 @@ import {
   MatchStatItem,
   MatchKeyEvent,
   MatchRosterPlayer,
+  PlayerMatchStat,
   MatchCommentaryItem,
   MatchGameInfo,
   NormalizedLeagueStandings,
@@ -30,15 +31,19 @@ export const VERIFIED_SCOREBOARD_LEAGUES = [
   "eng.fa", // English FA Cup
   "eng.league_cup", // English Carabao Cup
   "esp.copa_del_rey", // Spanish Copa del Rey
+  "uefa.champions", // UEFA Champions League (Cúp C1)
+  "uefa.europa", // UEFA Europa League (Cúp C2)
+  "uefa.europa.conf", // UEFA Conference League (Cúp C3)
 ] as const;
 
 export type LeagueSlug = (typeof VERIFIED_SCOREBOARD_LEAGUES)[number];
 
+const ESPN_CDN_API_URL = "https://site.api.espn.com";
 const BASE_API_URL = process.env.LIVESCORE_API_URL || "https://worldcup26.ir";
 const CACHE_TTL_LIVE_MS = 15 * 1000; // 15s cache TTL khi có trận đang live
 const CACHE_TTL_DEFAULT_MS = 60 * 1000; // 60s cache TTL khi không có trận live
 const STALE_TTL_MS = 45 * 1000; // 45s stale grace period
-const REQUEST_TIMEOUT_MS = 3000; // 3s timeout mỗi request
+const REQUEST_TIMEOUT_MS = 4000; // 4s timeout mỗi request
 
 // Cache cấu hình cho Match Center Summary (P2)
 const SUMMARY_TTL_LIVE_MS = 15 * 1000; // 15s cho trận đang diễn ra
@@ -152,86 +157,89 @@ function parseStatus(
 async function fetchLeagueScoreboard(
   leagueSlug: string,
 ): Promise<LiveScoreboardEvent[]> {
-  try {
-    const url = `${BASE_API_URL}/get/soccer/${leagueSlug}/scoreboard`;
-    const res = await fetch(url, {
-      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-      headers: {
-        Accept: "application/json",
-        "User-Agent": "Nanaflix/1.0 (LiveScore Enrichment)",
-      },
-      cache: "no-store",
-    });
+  const candidateUrls = [
+    `${ESPN_CDN_API_URL}/apis/site/v2/sports/soccer/${leagueSlug}/scoreboard`,
+    `${BASE_API_URL}/get/soccer/${leagueSlug}/scoreboard`,
+  ];
 
-    if (!res.ok) {
-      return [];
-    }
+  for (const url of candidateUrls) {
+    try {
+      const res = await fetch(url, {
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        headers: {
+          Accept: "application/json",
+          "User-Agent": "Nanaflix/1.0 (LiveScore Enrichment)",
+        },
+        cache: "no-store",
+      });
 
-    const data = await res.json();
-    if (!data || !Array.isArray(data.events)) {
-      return [];
-    }
+      if (!res.ok) continue;
 
-    const events: LiveScoreboardEvent[] = [];
+      const data = await res.json();
+      if (!data || !Array.isArray(data.events)) continue;
 
-    for (const rawEvent of data.events) {
-      if (!rawEvent || !rawEvent.id) continue;
-      const comp = rawEvent.competitions?.[0];
-      if (!comp || !Array.isArray(comp.competitors) || comp.competitors.length < 2) {
-        continue;
+      const events: LiveScoreboardEvent[] = [];
+
+      for (const rawEvent of data.events) {
+        if (!rawEvent || !rawEvent.id) continue;
+        const comp = rawEvent.competitions?.[0];
+        if (!comp || !Array.isArray(comp.competitors) || comp.competitors.length < 2) {
+          continue;
+        }
+
+        const homeComp = comp.competitors.find(
+          (c: { homeAway?: string }) => c.homeAway === "home",
+        );
+        const awayComp = comp.competitors.find(
+          (c: { homeAway?: string }) => c.homeAway === "away",
+        );
+
+        if (!homeComp?.team || !awayComp?.team) continue;
+
+        const homeScore = parseInt(homeComp.score || "0", 10) || 0;
+        const awayScore = parseInt(awayComp.score || "0", 10) || 0;
+
+        const { status, statusText, statusDetail, displayClock } = parseStatus(
+          rawEvent.status,
+        );
+
+        events.push({
+          id: String(rawEvent.id),
+          leagueSlug,
+          name: rawEvent.name || `${homeComp.team.name} vs ${awayComp.team.name}`,
+          shortName: rawEvent.shortName,
+          date: rawEvent.date || "",
+          homeTeam: {
+            id: String(homeComp.team.id || ""),
+            name: homeComp.team.name || "",
+            displayName: homeComp.team.displayName || homeComp.team.name || "",
+            shortDisplayName: homeComp.team.shortDisplayName,
+            abbreviation: homeComp.team.abbreviation,
+          },
+          awayTeam: {
+            id: String(awayComp.team.id || ""),
+            name: awayComp.team.name || "",
+            displayName: awayComp.team.displayName || awayComp.team.name || "",
+            shortDisplayName: awayComp.team.shortDisplayName,
+            abbreviation: awayComp.team.abbreviation,
+          },
+          homeScore,
+          awayScore,
+          status,
+          statusText,
+          statusDetail,
+          displayClock,
+          period: rawEvent.status?.period,
+        });
       }
 
-      const homeComp = comp.competitors.find(
-        (c: { homeAway?: string }) => c.homeAway === "home",
-      );
-      const awayComp = comp.competitors.find(
-        (c: { homeAway?: string }) => c.homeAway === "away",
-      );
-
-      if (!homeComp?.team || !awayComp?.team) continue;
-
-      const homeScore = parseInt(homeComp.score || "0", 10) || 0;
-      const awayScore = parseInt(awayComp.score || "0", 10) || 0;
-
-      const { status, statusText, statusDetail, displayClock } = parseStatus(
-        rawEvent.status,
-      );
-
-      events.push({
-        id: String(rawEvent.id),
-        leagueSlug,
-        name: rawEvent.name || `${homeComp.team.name} vs ${awayComp.team.name}`,
-        shortName: rawEvent.shortName,
-        date: rawEvent.date || "",
-        homeTeam: {
-          id: String(homeComp.team.id || ""),
-          name: homeComp.team.name || "",
-          displayName: homeComp.team.displayName || homeComp.team.name || "",
-          shortDisplayName: homeComp.team.shortDisplayName,
-          abbreviation: homeComp.team.abbreviation,
-        },
-        awayTeam: {
-          id: String(awayComp.team.id || ""),
-          name: awayComp.team.name || "",
-          displayName: awayComp.team.displayName || awayComp.team.name || "",
-          shortDisplayName: awayComp.team.shortDisplayName,
-          abbreviation: awayComp.team.abbreviation,
-        },
-        homeScore,
-        awayScore,
-        status,
-        statusText,
-        statusDetail,
-        displayClock,
-        period: rawEvent.status?.period,
-      });
+      return events;
+    } catch {
+      // Tiếp tục thử candidate URL tiếp theo
     }
-
-    return events;
-  } catch {
-    // Fail-safe: lỗi timeout hoặc network trả về mảng rỗng, không làm sập luồng
-    return [];
   }
+
+  return [];
 }
 
 /**
@@ -401,46 +409,49 @@ export const footballScoreService = {
     }
 
     const fetchPromise = (async (): Promise<NormalizedMatchSummary | null> => {
+      const candidateUrls = [
+        `${ESPN_CDN_API_URL}/apis/site/v2/sports/soccer/${cleanLeague}/summary?event=${cleanEventId}`,
+        `${BASE_API_URL}/get/soccer/${cleanLeague}/summary?event=${cleanEventId}`,
+      ];
+
       try {
-        const url = `${BASE_API_URL}/get/soccer/${cleanLeague}/summary?event=${cleanEventId}`;
-        const res = await fetch(url, {
-          signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-          headers: {
-            Accept: "application/json",
-            "User-Agent": "Nanaflix/1.0 (Match Center)",
-          },
-          cache: "no-store",
-        });
+        for (const url of candidateUrls) {
+          try {
+            const res = await fetch(url, {
+              signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+              headers: {
+                Accept: "application/json",
+                "User-Agent": "Nanaflix/1.0 (Match Center)",
+              },
+              cache: "no-store",
+            });
 
-        if (!res.ok) {
-          return null;
+            if (!res.ok) continue;
+
+            const raw = await res.json();
+            if (!raw || typeof raw !== "object") continue;
+
+            const normalized = parseRawSummary(cleanLeague, cleanEventId, raw);
+            if (!normalized) continue;
+
+            // Quyết định TTL theo trạng thái trận đấu
+            let ttl = SUMMARY_TTL_SCHEDULED_MS;
+            if (normalized.status === "live") {
+              ttl = SUMMARY_TTL_LIVE_MS;
+            } else if (normalized.status === "finished") {
+              ttl = SUMMARY_TTL_FINISHED_MS;
+            }
+
+            summaryMemoryCache.set(cacheKey, {
+              data: normalized,
+              expireAt: Date.now() + ttl,
+            });
+
+            return normalized;
+          } catch {
+            // Thử tiếp candidate URL tiếp theo
+          }
         }
-
-        const raw = await res.json();
-        if (!raw || typeof raw !== "object") {
-          return null;
-        }
-
-        const normalized = parseRawSummary(cleanLeague, cleanEventId, raw);
-        if (!normalized) {
-          return null;
-        }
-
-        // Quyết định TTL theo trạng thái trận đấu
-        let ttl = SUMMARY_TTL_SCHEDULED_MS;
-        if (normalized.status === "live") {
-          ttl = SUMMARY_TTL_LIVE_MS;
-        } else if (normalized.status === "finished") {
-          ttl = SUMMARY_TTL_FINISHED_MS;
-        }
-
-        summaryMemoryCache.set(cacheKey, {
-          data: normalized,
-          expireAt: Date.now() + ttl,
-        });
-
-        return normalized;
-      } catch {
         return null;
       } finally {
         summaryInFlight.delete(cacheKey);
@@ -494,60 +505,69 @@ export const footballScoreService = {
 
     // 3. Thực hiện fetch từ upstream
     const fetchPromise = (async () => {
-      try {
-        const url = `${BASE_API_URL}/get/soccer/${cleanLeague}/standings${
+      const candidateUrls = [
+        `https://site.api.espn.com/apis/v2/sports/soccer/${cleanLeague}/standings${
           cleanSeason ? `?season=${cleanSeason}` : ""
-        }`;
-        const res = await fetch(url, {
-          signal: AbortSignal.timeout(STANDINGS_REQUEST_TIMEOUT_MS),
-          cache: "no-store",
-          headers: {
-            Accept: "application/json",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-          },
-        });
+        }`,
+        `${BASE_API_URL}/get/soccer/${cleanLeague}/standings${
+          cleanSeason ? `?season=${cleanSeason}` : ""
+        }`,
+      ];
 
-        if (!res.ok) {
-          if (res.status === 404) {
-            // Giải đấu cúp hoặc không có bảng xếp hạng
-            const resObj = { data: null, isCupOrNoStandings: true };
+      try {
+        for (const url of candidateUrls) {
+          try {
+            const res = await fetch(url, {
+              signal: AbortSignal.timeout(STANDINGS_REQUEST_TIMEOUT_MS),
+              cache: "no-store",
+              headers: {
+                Accept: "application/json",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+              },
+            });
+
+            if (!res.ok) {
+              if (res.status === 404) {
+                const resObj = { data: null, isCupOrNoStandings: true };
+                standingsMemoryCache.set(cacheKey, {
+                  ...resObj,
+                  expireAt: now + STANDINGS_CACHE_TTL_MS,
+                });
+                return resObj;
+              }
+              continue;
+            }
+
+            const json = await res.json();
+            if (!json || !Array.isArray(json.children) || json.children.length === 0) {
+              const resObj = { data: null, isCupOrNoStandings: true };
+              standingsMemoryCache.set(cacheKey, {
+                ...resObj,
+                expireAt: now + STANDINGS_CACHE_TTL_MS,
+              });
+              return resObj;
+            }
+
+            const normalized = normalizeStandings(json, cleanLeague);
+            if (!normalized || normalized.groups.length === 0) {
+              const resObj = { data: null, isCupOrNoStandings: true };
+              standingsMemoryCache.set(cacheKey, {
+                ...resObj,
+                expireAt: now + STANDINGS_CACHE_TTL_MS,
+              });
+              return resObj;
+            }
+
+            const resObj = { data: normalized, isCupOrNoStandings: false };
             standingsMemoryCache.set(cacheKey, {
               ...resObj,
               expireAt: now + STANDINGS_CACHE_TTL_MS,
             });
             return resObj;
+          } catch {
+            // Thử URL tiếp theo
           }
-          return { data: null, isCupOrNoStandings: false };
         }
-
-        const json = await res.json();
-        // Nếu json không có children hoặc children rỗng -> Giải cúp
-        if (!json || !Array.isArray(json.children) || json.children.length === 0) {
-          const resObj = { data: null, isCupOrNoStandings: true };
-          standingsMemoryCache.set(cacheKey, {
-            ...resObj,
-            expireAt: now + STANDINGS_CACHE_TTL_MS,
-          });
-          return resObj;
-        }
-
-        const normalized = normalizeStandings(json, cleanLeague);
-        if (!normalized || normalized.groups.length === 0) {
-          const resObj = { data: null, isCupOrNoStandings: true };
-          standingsMemoryCache.set(cacheKey, {
-            ...resObj,
-            expireAt: now + STANDINGS_CACHE_TTL_MS,
-          });
-          return resObj;
-        }
-
-        const resObj = { data: normalized, isCupOrNoStandings: false };
-        standingsMemoryCache.set(cacheKey, {
-          ...resObj,
-          expireAt: now + STANDINGS_CACHE_TTL_MS,
-        });
-        return resObj;
-      } catch {
         return { data: null, isCupOrNoStandings: false };
       } finally {
         standingsInFlight.delete(cacheKey);
@@ -611,33 +631,42 @@ export const footballScoreService = {
 
     // 3. Thực hiện fetch từ upstream
     const fetchPromise = (async () => {
+      const candidateUrls = [
+        `${BASE_API_URL}/get/soccer/${cleanLeague}/fixtures?status=${upstreamStatus}&limit=${cleanLimit}&page=${cleanPage}`,
+        `${ESPN_CDN_API_URL}/apis/site/v2/sports/soccer/${cleanLeague}/scoreboard`,
+      ];
+
       try {
-        const url = `${BASE_API_URL}/get/soccer/${cleanLeague}/fixtures?status=${upstreamStatus}&limit=${cleanLimit}&page=${cleanPage}`;
-        const res = await fetch(url, {
-          signal: AbortSignal.timeout(FIXTURES_REQUEST_TIMEOUT_MS),
-          cache: "no-store",
-          headers: {
-            Accept: "application/json",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-          },
-        });
+        for (const url of candidateUrls) {
+          try {
+            const res = await fetch(url, {
+              signal: AbortSignal.timeout(FIXTURES_REQUEST_TIMEOUT_MS),
+              cache: "no-store",
+              headers: {
+                Accept: "application/json",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+              },
+            });
 
-        if (!res.ok) {
-          return null;
+            if (!res.ok) continue;
+
+            const json = await res.json();
+            const normalized = normalizeFixtures(json, cleanLeague);
+            if (!normalized) continue;
+
+            if (upstreamStatus !== "all" && Array.isArray(normalized.events)) {
+              normalized.events = normalized.events.filter((ev) => ev.status === upstreamStatus);
+            }
+
+            fixturesMemoryCache.set(cacheKey, {
+              data: normalized,
+              expireAt: now + FIXTURES_CACHE_TTL_MS,
+            });
+            return normalized;
+          } catch {
+            // Thử candidate URL tiếp theo
+          }
         }
-
-        const json = await res.json();
-        const normalized = normalizeFixtures(json, cleanLeague);
-        if (!normalized) {
-          return null;
-        }
-
-        fixturesMemoryCache.set(cacheKey, {
-          data: normalized,
-          expireAt: now + FIXTURES_CACHE_TTL_MS,
-        });
-        return normalized;
-      } catch {
         return null;
       } finally {
         fixturesInFlight.delete(cacheKey);
@@ -659,7 +688,7 @@ export const footballScoreService = {
  * Chuẩn hóa raw JSON từ upstream ESPN/worldcup26.ir thành cấu trúc NormalizedMatchSummary an toàn
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-function parseRawSummary(
+export function parseRawSummary(
   leagueSlug: string,
   eventId: string,
   raw: any,
@@ -684,12 +713,26 @@ function parseRawSummary(
       return isNaN(n) ? undefined : n;
     };
 
+    const resolveTeamLogo = (teamObj: any): string => {
+      if (!teamObj) return "";
+      if (typeof teamObj.logo === "string" && teamObj.logo.trim()) {
+        return teamObj.logo.trim();
+      }
+      if (Array.isArray(teamObj.logos) && teamObj.logos.length > 0) {
+        const first = teamObj.logos[0];
+        if (first && typeof first.href === "string" && first.href.trim()) {
+          return first.href.trim();
+        }
+      }
+      return "";
+    };
+
     const homeTeam = {
       id: String(homeComp.id || homeComp.team?.id || ""),
       name: homeComp.team?.displayName || homeComp.team?.name || "Đội nhà",
       displayName: homeComp.team?.displayName || homeComp.team?.name || "Đội nhà",
       abbreviation: homeComp.team?.abbreviation || "",
-      logo: homeComp.team?.logo || "",
+      logo: resolveTeamLogo(homeComp.team),
       score: parseScore(homeComp.score),
       homeAway: "home" as const,
       winner: homeComp.winner === true,
@@ -701,7 +744,7 @@ function parseRawSummary(
       name: awayComp.team?.displayName || awayComp.team?.name || "Đội khách",
       displayName: awayComp.team?.displayName || awayComp.team?.name || "Đội khách",
       abbreviation: awayComp.team?.abbreviation || "",
-      logo: awayComp.team?.logo || "",
+      logo: resolveTeamLogo(awayComp.team),
       score: parseScore(awayComp.score),
       homeAway: "away" as const,
       winner: awayComp.winner === true,
@@ -845,6 +888,23 @@ function parseRawSummary(
       const bench: MatchRosterPlayer[] = [];
 
       for (const p of rosterList) {
+        const photoUrl = typeof p.athlete?.headshot?.href === "string" ? p.athlete.headshot.href : undefined;
+        const jerseyImageUrl =
+          Array.isArray(p.athlete?.jerseyImages)
+            ? p.athlete.jerseyImages.find((j: any) => j.rel?.includes("dark") || j.rel?.includes("default"))?.href ||
+              p.athlete.jerseyImages[0]?.href
+            : undefined;
+
+        const stats: PlayerMatchStat[] | undefined = Array.isArray(p.stats)
+          ? p.stats
+              .filter((s: any) => s && (s.value !== undefined || s.displayValue !== undefined))
+              .map((s: any) => ({
+                name: String(s.name || ""),
+                displayName: String(s.displayName || s.shortDisplayName || s.name || ""),
+                value: s.displayValue !== undefined ? s.displayValue : s.value,
+              }))
+          : undefined;
+
         const item: MatchRosterPlayer = {
           id: String(p.athlete?.id || p.id || Math.random().toString()),
           name: p.athlete?.fullName || p.athlete?.displayName || "Cầu thủ",
@@ -857,6 +917,9 @@ function parseRawSummary(
           subbedIn: Boolean(p.subbedIn),
           subbedOut: Boolean(p.subbedOut),
           subClock: p.plays?.[0]?.clock?.displayValue,
+          photoUrl,
+          jerseyImageUrl,
+          stats: stats && stats.length > 0 ? stats : undefined,
         };
 
         if (item.starter) {

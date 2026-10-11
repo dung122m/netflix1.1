@@ -655,6 +655,7 @@ const KNOWN_FRANCHISE_PREFIXES: Array<{ prefix: string; franchise: string }> = [
  * Chuẩn hóa khóa nhận diện franchise/series để gom nhóm các season/phần phim
  */
 export function extractFranchiseKey(slug: string, title?: string): string {
+  void title;
   if (!slug) return "";
   let baseSlug = slug.toLowerCase().trim();
 

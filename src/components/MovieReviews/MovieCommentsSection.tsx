@@ -42,12 +42,12 @@ interface MovieCommentsSectionProps {
 }
 
 const QUICK_TAGS = [
-  "🔥 Siêu phẩm đáng xem",
-  "❤️ Xúc động rơi nước mắt",
-  "🍿 Giải trí cuối tuần",
-  "🤣 Hài hước đau bụng",
-  "👏 Diễn xuất 10/10",
-  "🤯 Plot twist bất ngờ",
+  "Siêu phẩm đáng xem",
+  "Xúc động",
+  "Giải trí cuối tuần",
+  "Hài hước",
+  "Diễn xuất 10/10",
+  "Plot twist bất ngờ",
 ];
 
 const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
@@ -575,11 +575,11 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
               </div>
             </div>
 
-            {/* Quick Emoji / Tag chips */}
+            {/* Quick Tag chips */}
             <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none flex-nowrap sm:flex-wrap pb-1.5 mb-2.5 -mx-1 px-1">
               <span className="text-[11px] text-zinc-500 mr-1 flex items-center gap-1 shrink-0 whitespace-nowrap">
-                <Sparkles className="w-3 h-3 text-amber-400 shrink-0" />
-                Gợi ý nhanh:
+                <Sparkles className="w-3 h-3 text-zinc-400 shrink-0" />
+                Gợi ý:
               </span>
               {QUICK_TAGS.map((tag) => (
                 <button
@@ -590,7 +590,7 @@ const MovieCommentsSectionContent: React.FC<MovieCommentsSectionProps> = ({
                       prev ? `${prev} ${tag}` : tag,
                     )
                   }
-                  className="px-2.5 py-1 rounded-full text-xs bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white border border-white/5 hover:border-white/15 transition-colors cursor-pointer shrink-0 whitespace-nowrap"
+                  className="px-2.5 py-1 rounded-full text-xs bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-white/10 hover:border-white/25 transition-colors cursor-pointer shrink-0 whitespace-nowrap"
                 >
                   {tag}
                 </button>

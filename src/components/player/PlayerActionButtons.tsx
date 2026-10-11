@@ -50,21 +50,21 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = React.mem
         className={`${
           isSticky
             ? hasEpisodes
-              ? "flex items-center justify-between gap-1.5 py-1 px-2 border-t border-white/10 bg-zinc-950/95 text-xs text-gray-300 md:py-2.5 md:px-1 md:gap-2 md:flex-wrap md:bg-transparent md:border-t-0"
-              : "hidden md:flex flex-wrap items-center justify-between gap-2 py-2.5 px-1 text-xs text-gray-300"
-            : "flex flex-wrap items-center justify-between gap-2 py-2.5 px-1 text-xs text-gray-300"
+              ? "flex items-center justify-between gap-1.5 py-1 px-2 border-t border-white/10 bg-zinc-950/95 text-xs text-zinc-300 md:py-1.5 md:px-0 md:gap-2 md:flex-wrap md:bg-transparent md:border-t-0"
+              : "hidden md:flex flex-wrap items-center justify-end gap-1.5 py-1 px-0 text-xs text-zinc-300"
+            : "flex flex-wrap items-center justify-between gap-2 py-1.5 px-0 text-xs text-zinc-300"
         }`}
       >
-        <div className={isSticky ? "hidden md:flex flex-wrap items-center gap-1.5 sm:gap-2" : "flex flex-wrap items-center gap-1.5 sm:gap-2"}>
+        <div className={isSticky ? "hidden md:flex flex-wrap items-center gap-1.5" : "flex flex-wrap items-center gap-1.5"}>
           {/* 1. Nút Rạp phim */}
           <button
             type="button"
             data-player-control="true"
             onClick={onToggleTheaterMode}
-            className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg border transition cursor-pointer text-xs outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition cursor-pointer text-xs outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
               isTheaterMode
-                ? "bg-netflix-red/90 text-white border-netflix-red font-medium"
-                : "bg-zinc-900/80 hover:bg-zinc-800 text-gray-300 hover:text-white border-white/10"
+                ? "bg-netflix-red/90 text-white border-netflix-red font-medium shadow-sm"
+                : "bg-zinc-900/60 hover:bg-zinc-800/80 text-zinc-300 hover:text-white border-white/10 backdrop-blur-md"
             }`}
           >
             {isTheaterMode ? (
@@ -88,12 +88,12 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = React.mem
             data-player-control="true"
             onClick={onToggleFullscreen}
             title="Phóng to toàn màn hình (Phím F)"
-            className="hidden sm:inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-zinc-900/80 hover:bg-zinc-800 text-gray-300 hover:text-white border border-white/10 transition cursor-pointer text-xs outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+            className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/60 hover:bg-zinc-800/80 text-zinc-300 hover:text-white border border-white/10 backdrop-blur-md transition cursor-pointer text-xs outline-none focus-visible:ring-2 focus-visible:ring-white/40"
           >
             {isFullscreen ? (
               <>
                 <Minimize2 className="w-3.5 h-3.5" />
-                <span>Thoát Fullscreen</span>
+                <span>Thoát</span>
                 <span className="text-white/60">(F)</span>
               </>
             ) : (
@@ -105,13 +105,13 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = React.mem
             )}
           </button>
 
-          {/* 4. Nút Danh sách Phím tắt */}
+          {/* 3. Nút Danh sách Phím tắt */}
           <button
             type="button"
             data-player-control="true"
             onClick={onOpenShortcuts}
             title="Xem danh sách phím tắt (?)"
-            className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-zinc-900/80 hover:bg-zinc-800 text-gray-400 hover:text-white border border-white/10 transition cursor-pointer text-xs outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+            className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-zinc-900/60 hover:bg-zinc-800/80 text-zinc-400 hover:text-white border border-white/10 backdrop-blur-md transition cursor-pointer text-xs outline-none focus-visible:ring-2 focus-visible:ring-white/40"
           >
             <Keyboard className="w-3.5 h-3.5" />
             <span>Phím tắt</span>
@@ -132,13 +132,13 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = React.mem
                 }
               }}
               title={`Tập trước: ${prevEpisode.name} (Phím P)`}
-              className={`inline-flex items-center gap-1 rounded-lg bg-zinc-900/90 hover:bg-zinc-800 text-gray-300 hover:text-white transition font-medium border border-white/10 text-xs outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
-                isSticky ? "px-2 py-1 text-[11px] md:px-2.5 md:py-1.5 md:text-xs" : "px-2.5 py-1.5"
+              className={`inline-flex items-center gap-1 rounded-full bg-zinc-900/60 hover:bg-zinc-800 text-zinc-300 hover:text-white transition font-medium border border-white/10 text-xs outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
+                isSticky ? "px-2.5 py-1 text-[11px] md:px-3 md:py-1 md:text-xs" : "px-3 py-1"
               }`}
             >
               <SkipBack className="w-3.5 h-3.5" />
               <span>Tập trước</span>
-              <span className="hidden md:inline"> ({prevEpisode.name}) [P]</span>
+              <span className="hidden md:inline text-zinc-400"> ({prevEpisode.name})</span>
             </Link>
           )}
           {nextEpisode && (
@@ -153,12 +153,12 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = React.mem
                 }
               }}
               title={`Tập tiếp theo: ${nextEpisode.name} (Phím N)`}
-              className={`inline-flex items-center gap-1.5 rounded-lg bg-zinc-800 hover:bg-netflix-red text-white transition font-semibold border border-white/10 shadow-md text-xs outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
-                isSticky ? "px-2.5 py-1 text-[11px] md:px-3 md:py-1.5 md:text-xs" : "px-3 py-1.5"
+              className={`inline-flex items-center gap-1.5 rounded-full bg-zinc-900/80 hover:bg-netflix-red text-white transition font-semibold border border-white/15 hover:border-netflix-red shadow-sm text-xs outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
+                isSticky ? "px-3 py-1 text-[11px] md:px-3.5 md:py-1 md:text-xs" : "px-3.5 py-1"
               }`}
             >
               <span>Tập tiếp</span>
-              <span className="hidden md:inline"> ({nextEpisode.name}) [N]</span>
+              <span className="hidden md:inline text-zinc-300"> ({nextEpisode.name})</span>
               <SkipForward className="w-3.5 h-3.5 fill-white" />
             </Link>
           )}

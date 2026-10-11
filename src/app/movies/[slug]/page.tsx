@@ -501,23 +501,23 @@ export default async function MovieDetail({
       >
         <div className="max-w-[1700px] mx-auto px-2 sm:px-4 md:px-6 lg:px-8 pt-[56px] md:pt-[66px]">
           {/* BREADCRUMB */}
-          <div className="py-2 px-1 flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-gray-400 overflow-hidden">
-            <Link href="/" className="hover:text-white transition">
+          <div className="py-2 px-1 flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-zinc-500 overflow-hidden">
+            <Link href="/" className="hover:text-zinc-300 transition">
               Trang chủ
             </Link>
-            <span className="text-gray-600">/</span>
+            <span className="text-zinc-700 select-none">/</span>
             {primaryGenreSlug && (
               <>
                 <Link
                   href={`/?category=${primaryGenreSlug}`}
-                  className="hover:text-white transition"
+                  className="hover:text-zinc-300 transition"
                 >
                   {movie.category?.[0]?.name || "Thể loại"}
                 </Link>
-                <span className="text-gray-600">/</span>
+                <span className="text-zinc-700 select-none">/</span>
               </>
             )}
-            <span className="text-gray-200 font-medium truncate max-w-[150px] xs:max-w-[200px] sm:max-w-none">
+            <span className="text-zinc-300 font-medium truncate max-w-[150px] xs:max-w-[200px] sm:max-w-none">
               {title}
             </span>
           </div>
@@ -943,7 +943,7 @@ export default async function MovieDetail({
 
                   {/* KHỐI 2: NGUỒN PHÁT (CHO PHIM LẺ TRÊN SIDEBAR) */}
                   {isSingleEpisode && (
-                    <div className="rounded-2xl sm:rounded-3xl border border-white/15 bg-gradient-to-b from-zinc-900/80 via-zinc-950/85 to-black/90 p-4 sm:p-5 shadow-2xl backdrop-blur-xl">
+                    <div className="rounded-2xl border border-white/10 bg-zinc-950/70 p-3 sm:p-3.5 shadow-xl backdrop-blur-xl">
                       <ServerSelector
                         servers={serverSummaries}
                         initialServerIndex={currentServerIndex}
@@ -952,7 +952,7 @@ export default async function MovieDetail({
                   )}
 
                   {/* KHỐI 3: PHIM ĐỀ XUẤT SIDEBAR (DESKTOP) */}
-                  <div className="rounded-2xl sm:rounded-3xl border border-white/15 bg-gradient-to-b from-zinc-900/80 via-zinc-950/85 to-black/90 p-4 sm:p-5 shadow-2xl backdrop-blur-xl">
+                  <div className="rounded-2xl sm:rounded-3xl border border-white/10 bg-gradient-to-b from-zinc-900/80 via-zinc-950/85 to-black/90 p-3.5 sm:p-4 shadow-2xl backdrop-blur-xl">
                     <MovieRecommendationsClient
                       currentMovieSlug={movie.slug}
                       currentMovieTitle={title}

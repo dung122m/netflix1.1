@@ -349,7 +349,7 @@ export const FilterBar: React.FC = () => {
 
           <div
             ref={scrollContainerRef}
-            className="flex items-center gap-2 sm:gap-2.5 overflow-x-auto sm:overflow-visible [scrollbar-width:none] [&::-webkit-scrollbar]:hidden py-0.5 flex-nowrap sm:flex-wrap"
+            className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto sm:overflow-visible [scrollbar-width:none] [&::-webkit-scrollbar]:hidden py-0.5 flex-nowrap sm:flex-wrap"
           >
             {/* MOBILE ONLY COMPACT LABEL */}
             <div className="sm:hidden flex-none flex items-center gap-1.5 pl-1 pr-2 border-r border-white/10 text-white font-bold text-xs">
@@ -522,7 +522,7 @@ export const FilterBar: React.FC = () => {
               )}
             </button>
 
-            {/* NÚT BỐC QUẺ NHANH (CTA NỔI BẬT NHẤT) */}
+            {/* NÚT BỐC QUẺ NHANH (CTA TINH TẾ DARK GLASS) */}
             <button
               type="button"
               onClick={() => {
@@ -530,10 +530,10 @@ export const FilterBar: React.FC = () => {
                   window.dispatchEvent(new CustomEvent("open-ai-roulette"));
                 }
               }}
-              className="h-10 px-3.5 sm:px-4 rounded-xl bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white text-xs sm:text-sm font-bold transition-all duration-150 flex items-center gap-1.5 cursor-pointer shadow-md shadow-red-950/60 border border-white/20 flex-none active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+              className="h-10 px-3.5 sm:px-4 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 text-white text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-1.5 cursor-pointer shadow-sm border border-red-500/40 hover:border-red-500/80 flex-none active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black"
               title="Bốc quẻ phim ngẫu nhiên với AI"
             >
-              <Dices className="w-4 h-4 text-amber-200 flex-none" />
+              <Dices className="w-4 h-4 text-netflix-red flex-none" />
               <span>Bốc quẻ</span>
             </button>
 
@@ -821,8 +821,8 @@ export const FilterBar: React.FC = () => {
 
       {/* 2. ACTIVE FILTERS CHIP BAR (Chỉ hiển thị khi có ít nhất 1 filter active) */}
       {hasAnyFilter && (
-        <div className="mt-3 pt-2.5 border-t border-white/10 flex items-center gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden text-xs animate-in fade-in slide-in-from-top-1 duration-150">
-          <span className="flex-none flex items-center gap-1.5 text-gray-400 font-bold bg-white/5 px-2.5 py-1 rounded-full border border-white/10 whitespace-nowrap">
+        <div className="mt-2.5 pt-2 border-t border-white/10 flex items-center gap-1.5 overflow-x-auto sm:flex-wrap [scrollbar-width:none] [&::-webkit-scrollbar]:hidden text-xs animate-in fade-in slide-in-from-top-1 duration-150">
+          <span className="flex-none flex items-center gap-1 text-zinc-400 font-semibold bg-white/5 px-2 py-0.5 rounded-full border border-white/10 whitespace-nowrap text-[11px]">
             <Filter className="w-3 h-3 text-netflix-red" />
             <span>Đang lọc:</span>
           </span>
@@ -832,11 +832,11 @@ export const FilterBar: React.FC = () => {
             <button
               type="button"
               onClick={() => handleClearKey("type")}
-              className="flex-none inline-flex items-center gap-1.5 px-3.5 sm:px-3 py-2 sm:py-1 min-h-[40px] sm:min-h-0 rounded-full bg-purple-950/70 border border-purple-500/40 text-purple-200 font-semibold hover:bg-purple-900 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
+              className="flex-none inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/90 border border-white/10 hover:border-white/25 text-zinc-300 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
               title="Nhấn để bỏ lọc loại phim này"
             >
               <span>{activeTypeObj?.emoji} {activeTypeName}</span>
-              <X className="w-3 h-3 text-purple-300 group-hover:text-white" />
+              <X className="w-3 h-3 text-zinc-400 group-hover:text-white" />
             </button>
           )}
 
@@ -845,11 +845,11 @@ export const FilterBar: React.FC = () => {
             <button
               type="button"
               onClick={() => handleClearKey("category")}
-              className="flex-none inline-flex items-center gap-1.5 px-3.5 sm:px-3 py-2 sm:py-1 min-h-[40px] sm:min-h-0 rounded-full bg-rose-950/70 border border-rose-500/40 text-rose-200 font-semibold hover:bg-rose-900 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
+              className="flex-none inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/90 border border-white/10 hover:border-white/25 text-zinc-300 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
               title="Nhấn để bỏ lọc thể loại này"
             >
               <span>{activeCategoryName}</span>
-              <X className="w-3 h-3 text-rose-300 group-hover:text-white" />
+              <X className="w-3 h-3 text-zinc-400 group-hover:text-white" />
             </button>
           )}
 
@@ -858,11 +858,11 @@ export const FilterBar: React.FC = () => {
             <button
               type="button"
               onClick={() => handleClearKey("country")}
-              className="flex-none inline-flex items-center gap-1.5 px-3.5 sm:px-3 py-2 sm:py-1 min-h-[40px] sm:min-h-0 rounded-full bg-sky-950/70 border border-sky-500/40 text-sky-200 font-semibold hover:bg-sky-900 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
+              className="flex-none inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/90 border border-white/10 hover:border-white/25 text-zinc-300 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
               title="Nhấn để bỏ lọc quốc gia này"
             >
               <span>{activeCountryName}</span>
-              <X className="w-3 h-3 text-sky-300 group-hover:text-white" />
+              <X className="w-3 h-3 text-zinc-400 group-hover:text-white" />
             </button>
           )}
 
@@ -871,11 +871,11 @@ export const FilterBar: React.FC = () => {
             <button
               type="button"
               onClick={() => handleClearKey("year")}
-              className="flex-none inline-flex items-center gap-1.5 px-3.5 sm:px-3 py-2 sm:py-1 min-h-[40px] sm:min-h-0 rounded-full bg-emerald-950/70 border border-emerald-500/40 text-emerald-200 font-semibold hover:bg-emerald-900 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
+              className="flex-none inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/90 border border-white/10 hover:border-white/25 text-zinc-300 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
               title="Nhấn để bỏ lọc năm này"
             >
               <span>Năm {currentYear}</span>
-              <X className="w-3 h-3 text-emerald-300 group-hover:text-white" />
+              <X className="w-3 h-3 text-zinc-400 group-hover:text-white" />
             </button>
           )}
 
@@ -884,11 +884,11 @@ export const FilterBar: React.FC = () => {
             <button
               type="button"
               onClick={() => handleClearKey("sort")}
-              className="flex-none inline-flex items-center gap-1.5 px-3.5 sm:px-3 py-2 sm:py-1 min-h-[40px] sm:min-h-0 rounded-full bg-amber-950/70 border border-amber-500/40 text-amber-200 font-semibold hover:bg-amber-900 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
+              className="flex-none inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/90 border border-white/10 hover:border-white/25 text-zinc-300 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
               title="Nhấn để đưa về sắp xếp mặc định"
             >
               <span>{activeSortName}</span>
-              <X className="w-3 h-3 text-amber-300 group-hover:text-white" />
+              <X className="w-3 h-3 text-zinc-400 group-hover:text-white" />
             </button>
           )}
 
@@ -897,11 +897,11 @@ export const FilterBar: React.FC = () => {
             <button
               type="button"
               onClick={() => handleClearKey("actor")}
-              className="flex-none inline-flex items-center gap-1.5 px-3.5 sm:px-3 py-2 sm:py-1 min-h-[40px] sm:min-h-0 rounded-full bg-amber-950/70 border border-amber-500/40 text-amber-200 font-semibold hover:bg-amber-900 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
+              className="flex-none inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/90 border border-white/10 hover:border-white/25 text-zinc-300 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
               title="Nhấn để bỏ lọc diễn viên này"
             >
               <span>Diễn viên: {currentActor}</span>
-              <X className="w-3 h-3 text-amber-300 group-hover:text-white" />
+              <X className="w-3 h-3 text-zinc-400 group-hover:text-white" />
             </button>
           )}
 
@@ -910,11 +910,11 @@ export const FilterBar: React.FC = () => {
             <button
               type="button"
               onClick={() => handleClearKey("keyword")}
-              className="flex-none inline-flex items-center gap-1.5 px-3.5 sm:px-3 py-2 sm:py-1 min-h-[40px] sm:min-h-0 rounded-full bg-amber-950/70 border border-amber-500/40 text-amber-200 font-semibold hover:bg-amber-900 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
+              className="flex-none inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/90 border border-white/10 hover:border-white/25 text-zinc-300 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
               title="Nhấn để bỏ lọc từ khóa này"
             >
               <span>Từ khóa: &quot;{currentKeyword}&quot;</span>
-              <X className="w-3 h-3 text-amber-300 group-hover:text-white" />
+              <X className="w-3 h-3 text-zinc-400 group-hover:text-white" />
             </button>
           )}
 

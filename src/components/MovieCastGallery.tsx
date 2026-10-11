@@ -179,10 +179,10 @@ export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
                 fetch(`/api/actor-bio?name=${encodeURIComponent(actor.name)}`).catch(() => {});
               }}
               title={`Xem hồ sơ & phim của ${actor.name}${actor.character ? ` (Vai: ${actor.character})` : ""}`}
-              className="group/card flex-none w-[105px] sm:w-[115px] md:w-[125px] rounded-xl bg-zinc-900/70 hover:bg-zinc-800/90 border border-white/10 hover:border-rose-500/40 p-2 transition-all duration-200 hover:scale-[1.03] shadow-md cursor-pointer flex flex-col text-left"
+              className="group/card flex-none w-[100px] sm:w-[112px] md:w-[120px] transition-all duration-200 cursor-pointer flex flex-col text-left"
             >
               {/* ẢNH AVATAR CHÂN DUNG 3:4 VỚI FALLBACK CAO CẤP */}
-              <div className="relative aspect-[3/4] w-full rounded-lg bg-zinc-950 overflow-hidden border border-white/5 flex items-center justify-center">
+              <div className="relative aspect-[3/4] w-full rounded-xl bg-zinc-900 overflow-hidden border border-white/10 group-hover/card:border-white/30 shadow-md flex items-center justify-center group-hover/card:scale-[1.03] transition-transform duration-200">
                 <ActorAvatar
                   name={actor.name}
                   avatarUrl={actor.avatarUrl}
@@ -194,8 +194,8 @@ export const MovieCastGallery: React.FC<MovieCastGalleryProps> = ({
               </div>
 
               {/* TÊN DIỄN VIÊN & NHÂN VẬT */}
-              <div className="mt-2 text-center min-w-0 flex-1 flex flex-col justify-between w-full">
-                <h4 className="text-[11.5px] sm:text-xs font-bold text-white group-hover/card:text-rose-400 transition-colors line-clamp-1">
+              <div className="mt-2 text-center min-w-0 flex-1 flex flex-col justify-between w-full px-0.5">
+                <h4 className="text-[11.5px] sm:text-xs font-bold text-white group-hover/card:text-zinc-200 transition-colors line-clamp-1">
                   {actor.name}
                 </h4>
                 {actor.character ? (

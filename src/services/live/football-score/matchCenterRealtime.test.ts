@@ -9,6 +9,10 @@ import {
 
 describe("Nanaflix /live - Match Center Realtime Polling & Deduplication", () => {
   it("1. Tính toán chu kỳ polling thích ứng chính xác theo trạng thái trận đấu", () => {
+    assert.equal(MATCH_CENTER_INTERVALS.LIVE_MS, 30_000);
+    assert.equal(MATCH_CENTER_INTERVALS.FINISHED_MS, 120_000);
+    assert.equal(MATCH_CENTER_INTERVALS.SCHEDULED_MS, 60_000);
+
     // Trận đang diễn ra (isLive = true hoặc status = 'live') -> 30 giây
     assert.equal(calculateMatchCenterPollInterval("live", false), 30_000);
     assert.equal(calculateMatchCenterPollInterval("in_progress", true), 30_000);

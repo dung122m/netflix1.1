@@ -1,9 +1,9 @@
 import {
   getTeamAsset,
   normalizeTeamKey,
-  normalizeTeamTokens,
 } from "@/data/live/teamAssets";
 import { LiveMatchScore, LiveScoreboardEvent } from "./types";
+import { formatKickoffTime } from "./liveStatus";
 
 /**
  * Làm sạch tên đội bóng thô:
@@ -126,12 +126,18 @@ export function matchFixtureToScore(
       isSameTeam(fixture.team1, awayName) &&
       isSameTeam(fixture.team2, homeName);
 
+    const hasReliableFixtureTs = Boolean(
+      fixture.timestamp &&
+      fixture.timestamp > 0 &&
+      fixture.timestamp !== Number.MAX_SAFE_INTEGER
+    );
+
     if (directMatch || reversedMatch) {
       let timeDiffMs = 0;
-      if (fixture.timestamp && fixture.timestamp > 0 && ev.date) {
+      if (hasReliableFixtureTs && ev.date) {
         const evTime = Date.parse(ev.date);
         if (!isNaN(evTime)) {
-          timeDiffMs = Math.abs(fixture.timestamp - evTime);
+          timeDiffMs = Math.abs(fixture.timestamp! - evTime);
         }
       }
 
@@ -147,18 +153,30 @@ export function matchFixtureToScore(
     return null;
   }
 
-  // Nếu có nhiều hơn 1 ứng viên, sắp xếp chọn trận có thời gian thi đấu gần nhất
+  const hasReliableFixtureTs = Boolean(
+    fixture.timestamp &&
+    fixture.timestamp > 0 &&
+    fixture.timestamp !== Number.MAX_SAFE_INTEGER
+  );
+
+  // Nếu có nhiều hơn 1 ứng viên:
   if (candidates.length > 1) {
+    // Nếu không có fixture.timestamp tin cậy để phân định -> kết quả mơ hồ, không tự đoán
+    if (!hasReliableFixtureTs) {
+      return null;
+    }
+
     candidates.sort((a, b) => a.timeDiffMs - b.timeDiffMs);
+
+    // Nếu 2 ứng viên có khoảng cách thời gian quá gần nhau (< 2 giờ) -> mơ hồ, từ chối ghép
+    if (Math.abs(candidates[1].timeDiffMs - candidates[0].timeDiffMs) < 2 * 60 * 60 * 1000) {
+      return null;
+    }
   }
 
   const chosenCandidate = candidates[0];
-  // Nếu có timestamp mà độ lệch thời gian quá lớn (> 36h) -> không đủ tin cậy để ghép
-  if (
-    fixture.timestamp &&
-    fixture.timestamp > 0 &&
-    chosenCandidate.timeDiffMs > 36 * 60 * 60 * 1000
-  ) {
+  // Nếu có timestamp đáng tin cậy mà độ lệch thời gian quá lớn (> 36h) -> không đủ tin cậy để ghép
+  if (hasReliableFixtureTs && chosenCandidate.timeDiffMs > 36 * 60 * 60 * 1000) {
     return null;
   }
 
@@ -166,6 +184,10 @@ export function matchFixtureToScore(
 
   const team1Score = isReversed ? ev.awayScore : ev.homeScore;
   const team2Score = isReversed ? ev.homeScore : ev.awayScore;
+
+  const evTime = ev.date ? Date.parse(ev.date) : NaN;
+  const kickoffTimestamp = !isNaN(evTime) ? evTime : undefined;
+  const kickoffTime = kickoffTimestamp ? formatKickoffTime(kickoffTimestamp) ?? undefined : undefined;
 
   return {
     eventId: ev.id,
@@ -179,6 +201,9 @@ export function matchFixtureToScore(
     statusDetail: ev.statusDetail,
     displayClock: ev.displayClock,
     period: ev.period,
+    kickoffIso: ev.date || undefined,
+    kickoffTime,
+    kickoffTimestamp,
     updatedAt: new Date().toISOString(),
   };
 }

@@ -16,7 +16,7 @@ import {
   ChevronRight,
   Play,
 } from "lucide-react";
-import { pickBestMovieThumb, toOptimizedPhimimgUrl } from "@/lib/movieMedia";
+import { pickBestMovieThumb, toOptimizedPhimimgUrl, extractMovieRatingScore } from "@/lib/movieMedia";
 import { toast } from "./Toast";
 
 interface MovieItem {
@@ -76,9 +76,14 @@ export function RecommendationTabs({
   const topRatedMovies = useMemo(() => {
     return [...allMovies]
       .sort((a, b) => {
-        const scoreA = Number(a.score) || Number(a.imdb?.vote_average) || 7.0;
-        const scoreB = Number(b.score) || Number(b.imdb?.vote_average) || 7.0;
-        return scoreB - scoreA;
+        const { rating: rateA, voteCount: vcA } = extractMovieRatingScore(a);
+        const { rating: rateB, voteCount: vcB } = extractMovieRatingScore(b);
+        if (rateB !== rateA) return rateB - rateA;
+        if (vcB !== vcA) return vcB - vcA;
+        const yearA = Number(a.year || 0);
+        const yearB = Number(b.year || 0);
+        if (yearB !== yearA) return yearB - yearA;
+        return String(a.name || "").localeCompare(String(b.name || ""));
       })
       .slice(0, 18);
   }, [allMovies]);
@@ -219,9 +224,9 @@ export function RecommendationTabs({
   };
 
   return (
-    <div className={variant === "sidebar" ? "space-y-4" : "space-y-6"}>
+    <div className={variant === "sidebar" ? "space-y-3" : "space-y-6"}>
       {/* 1. THANH TABS ĐỀ XUẤT THÔNG MINH (KÉO CHUỘT / LĂN CHUỘT / NÚT MŨI TÊN TRÁI PHẢI) */}
-      <div className="relative border-b border-white/10 pb-2.5 w-full min-w-0">
+      <div className="relative border-b border-white/10 pb-2 w-full min-w-0">
         <div className="flex items-center gap-1.5 w-full min-w-0">
           
           {/* NÚT CUỘN TRÁI (INLINE, KHÔNG ĐÈ LÊN NỘI DUNG TABS) */}
@@ -230,9 +235,9 @@ export function RecommendationTabs({
               type="button"
               onClick={() => scrollTabs("left")}
               aria-label="Cuộn sang trái"
-              className="flex-none h-7 w-7 rounded-full bg-zinc-900/95 hover:bg-zinc-800 text-gray-300 hover:text-white border border-white/20 shadow-md flex items-center justify-center transition cursor-pointer active:scale-95 shrink-0 backdrop-blur-md"
+              className="flex-none h-6 w-6 rounded-full bg-zinc-900/95 hover:bg-zinc-800 text-gray-300 hover:text-white border border-white/20 shadow-md flex items-center justify-center transition cursor-pointer active:scale-95 shrink-0 backdrop-blur-md"
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="w-3.5 h-3.5" />
             </button>
           )}
 
@@ -252,7 +257,7 @@ export function RecommendationTabs({
               onPointerMove={handlePointerMove}
               onPointerUp={handlePointerUp}
               onPointerLeave={handlePointerUp}
-              className="flex items-center gap-1.5 overflow-x-auto py-1 px-0.5 scrollbar-none [&::-webkit-scrollbar]:hidden w-full cursor-grab active:cursor-grabbing select-none scroll-smooth"
+              className="flex items-center gap-1.5 overflow-x-auto py-0.5 px-0.5 scrollbar-none [&::-webkit-scrollbar]:hidden w-full cursor-grab active:cursor-grabbing select-none scroll-smooth"
             >
               {/* Tab 1: Phù hợp nhất */}
               <button
@@ -261,13 +266,15 @@ export function RecommendationTabs({
                   setActiveTab("best");
                   setVisibleLimit(12);
                 }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red shrink-0 ${
+                className={`flex items-center gap-1.5 ${
+                  variant === "sidebar" ? "px-2.5 py-1 rounded-full text-[11px]" : "px-3 py-1.5 rounded-xl text-xs"
+                } font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red shrink-0 ${
                   activeTab === "best"
-                    ? "bg-netflix-red text-white border-netflix-red shadow-lg shadow-[var(--accent-glow,rgba(229,9,20,0.4))]"
-                    : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
+                    ? "bg-netflix-red text-white border-netflix-red shadow-sm"
+                    : "bg-zinc-900/90 text-zinc-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
                 }`}
               >
-                <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+                <Sparkles className="w-3 h-3 text-amber-300 animate-pulse" />
                 <span>{variant === "sidebar" ? "Tương Tự" : "Phim Tương Tự"} ({allMovies.length})</span>
               </button>
 
@@ -279,13 +286,15 @@ export function RecommendationTabs({
                     setActiveTab("actor");
                     setVisibleLimit(12);
                   }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-purple-500 shrink-0 ${
+                  className={`flex items-center gap-1.5 ${
+                    variant === "sidebar" ? "px-2.5 py-1 rounded-full text-[11px]" : "px-3 py-1.5 rounded-xl text-xs"
+                  } font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-purple-500 shrink-0 ${
                     activeTab === "actor"
-                      ? "bg-purple-600 text-white border-purple-400 shadow-lg shadow-purple-950/60"
-                      : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
+                      ? "bg-purple-600 text-white border-purple-400 shadow-sm"
+                      : "bg-zinc-900/90 text-zinc-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
                   }`}
                 >
-                  <Users className="w-3.5 h-3.5 text-purple-300" />
+                  <Users className="w-3 h-3 text-purple-300" />
                   <span>{variant === "sidebar" ? actorName : `Diễn viên: ${actorName}`} ({validActorMovies.length})</span>
                 </button>
               )}
@@ -298,13 +307,15 @@ export function RecommendationTabs({
                     setActiveTab("genre");
                     setVisibleLimit(12);
                   }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-rose-500 shrink-0 ${
+                  className={`flex items-center gap-1.5 ${
+                    variant === "sidebar" ? "px-2.5 py-1 rounded-full text-[11px]" : "px-3 py-1.5 rounded-xl text-xs"
+                  } font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-rose-500 shrink-0 ${
                     activeTab === "genre"
-                      ? "bg-netflix-red text-white border-netflix-red shadow-lg shadow-red-950/60"
-                      : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
+                      ? "bg-netflix-red text-white border-netflix-red shadow-sm"
+                      : "bg-zinc-900/90 text-zinc-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
                   }`}
                 >
-                  <Clapperboard className="w-3.5 h-3.5 text-rose-300" />
+                  <Clapperboard className="w-3 h-3 text-rose-300" />
                   <span>{variant === "sidebar" ? genreName : `Thể loại: ${genreName}`} ({genreMovies.length})</span>
                 </button>
               )}
@@ -317,13 +328,15 @@ export function RecommendationTabs({
                     setActiveTab("country");
                     setVisibleLimit(12);
                   }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-sky-500 shrink-0 ${
+                  className={`flex items-center gap-1.5 ${
+                    variant === "sidebar" ? "px-2.5 py-1 rounded-full text-[11px]" : "px-3 py-1.5 rounded-xl text-xs"
+                  } font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-sky-500 shrink-0 ${
                     activeTab === "country"
-                      ? "bg-sky-600 text-white border-sky-400 shadow-lg shadow-sky-950/60"
-                      : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
+                      ? "bg-sky-600 text-white border-sky-400 shadow-sm"
+                      : "bg-zinc-900/90 text-zinc-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
                   }`}
                 >
-                  <Globe2 className="w-3.5 h-3.5 text-sky-300" />
+                  <Globe2 className="w-3 h-3 text-sky-300" />
                   <span>{variant === "sidebar" ? countryName : `Quốc gia: ${countryName}`} ({countryMovies.length})</span>
                 </button>
               )}
@@ -336,13 +349,15 @@ export function RecommendationTabs({
                     setActiveTab("top");
                     setVisibleLimit(12);
                   }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-amber-500 shrink-0 ${
+                  className={`flex items-center gap-1.5 ${
+                    variant === "sidebar" ? "px-2.5 py-1 rounded-full text-[11px]" : "px-3 py-1.5 rounded-xl text-xs"
+                  } font-bold transition-all whitespace-nowrap cursor-pointer border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-amber-500 shrink-0 ${
                     activeTab === "top"
-                      ? "bg-amber-600 text-white border-amber-400 shadow-lg shadow-amber-950/60"
-                      : "bg-zinc-900/90 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
+                      ? "bg-amber-600 text-white border-amber-400 shadow-sm"
+                      : "bg-zinc-900/90 text-zinc-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800"
                   }`}
                 >
-                  <Star className="w-3.5 h-3.5 text-amber-300 fill-current" />
+                  <Star className="w-3 h-3 text-amber-300 fill-current" />
                   <span>Đánh giá cao ({topRatedMovies.length})</span>
                 </button>
               )}

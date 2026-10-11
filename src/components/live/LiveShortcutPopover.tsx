@@ -58,7 +58,7 @@ export function LiveShortcutPopover({ mode = "football" }: LiveShortcutPopoverPr
         }
       `}</style>
       <div className="relative hidden lg:inline-flex items-center live-shortcut-popover">
-        {/* Nút trigger nhỏ gọn */}
+        {/* Nút trigger nhỏ gọn (Icon-only, đồng bộ với PiP & Fullscreen) */}
         <button
           ref={buttonRef}
           type="button"
@@ -67,15 +67,15 @@ export function LiveShortcutPopover({ mode = "football" }: LiveShortcutPopoverPr
             setIsOpen((prev) => !prev);
           }}
           title="Xem hướng dẫn phím tắt (Hotkeys)"
-          className={`h-9 sm:h-10 flex items-center gap-1.5 px-2.5 sm:px-3 rounded-full border text-[11px] sm:text-xs font-semibold transition backdrop-blur-md cursor-pointer select-none flex-shrink-0 ${
+          aria-label="Phím tắt điều khiển"
+          className={`w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full border transition-all duration-200 backdrop-blur-md cursor-pointer select-none flex-shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
             isOpen
               ? "bg-white/25 text-white border-white/40 shadow-lg shadow-black/40"
-              : "bg-black/60 hover:bg-white/20 text-gray-200 hover:text-white border-white/20"
+              : "bg-white/10 hover:bg-white/20 text-white/80 hover:text-white border-white/15"
           }`}
         >
-        <Keyboard className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-300 shrink-0" />
-        <span>Phím tắt</span>
-      </button>
+          <Keyboard className="w-4 h-4 text-white/90 shrink-0" />
+        </button>
 
       {/* Popover / Panel nhỏ gọn overlay ở góc dưới phải player */}
       {isOpen && (
