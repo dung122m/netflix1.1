@@ -15,7 +15,7 @@ export function MovieSynopsis({ synopsis: rawSynopsis, originName }: MovieSynops
   const isLong = synopsis.length > 280;
 
   return (
-    <section className="mt-6 rounded-xl border border-white/10 bg-zinc-950/60 p-4 sm:p-5 md:p-6 backdrop-blur-sm relative overflow-hidden">
+    <section className="rounded-xl border border-white/10 bg-zinc-950/60 p-4 sm:p-5 md:p-6 backdrop-blur-sm relative overflow-hidden">
       {/* Điểm nhấn viền đỏ đặc trưng của Netflix ở mép trái */}
       <div className="absolute left-0 top-0 bottom-0 w-1 bg-netflix-red" />
 

@@ -419,7 +419,7 @@ const CLUBS_DATA: Array<{ name: string; logo?: string; emoji?: string; aliases: 
   { name: "Al Khaleej", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/21829.png", aliases: ["al khaleej", "al khaleej club", "alkhaleej"] },
 
   // --- MLS (MỸ) ---
-  { name: "Inter Miami CF", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/20232.png", aliases: ["inter miami", "inter miami cf", "miami", "messi team", "herons"] },
+  { name: "Inter Miami CF", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/20232.png", aliases: ["inter miami", "inter miami cf", "clb inter miami", "inter miami fc", "inter miami club", "miami cf", "cf inter miami", "miami", "messi team", "herons"] },
   { name: "LA Galaxy", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/187.png", aliases: ["la galaxy", "los angeles galaxy", "galaxy"] },
   { name: "Los Angeles FC", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/18966.png", aliases: ["lafc", "los angeles fc"] },
   { name: "New York Red Bulls", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/190.png", aliases: ["new york red bulls", "ny red bulls"] },

@@ -1685,7 +1685,7 @@ export function isGenericTvChannel(
     /(?:asian\s*games|asiad|sea\s*games|olympic|world\s*cup|euro|copa|champions\s*league|cup\s*c1|cup\s*c2|cup\s*c3|europa\s*league|premier\s*league|ngoai\s*hang\s*anh|la\s*liga|serie\s*a|bundesliga|ligue\s*1|v[-_ ]?league|vleague|afc|concacaf|conmebol|fa\s*cup|carabao|nba|cba|pba|vba|basketball|bong\s*ro|bong\s*chuyen|volleyball|tennis|quan\s*vot|roland\s*garros|wimbledon|us\s*open|atp|wta|f1|formula|motogp|ufc|mma|one\s*championship|boxing|quyen\s*anh|billiards|bida|snooker|esports|esport|lck|lpl|vcs|dota|cs2|valorant|bein\s*sports|astro\s*supersport|true\s*sport|fox\s*sports|sky\s*sports|bt\s*sport|tnt\s*sports|eurosport|nba\s*tv|mutv|chelsea\s*tv|manchester|real\s*madrid|barcelona|arsenal|chelsea|liverpool|juventus|bayern|psg|inter|milan|dortmund|tottenham)\b/i.test(
       normFull,
     ) ||
-    /[⚽🏀🎾🏐🏸🏒🥊🏎🏁🎱🎮]/.test(fullText);
+    /[⚽🏀🎾🏐🏸🏒🥊🏎🏁🎱🎮]/u.test(fullText);
 
   if (isSportsTournamentOrEvent) {
     const isMovieVod =
@@ -1887,7 +1887,7 @@ export function extractSportAndCategory(
 
 export function cleanCandidateTeamName(name: string): string {
   if (!name) return "";
-  let clean = name.trim();
+  let clean = name.toWellFormed().replace(/\uFFFD+/g, " ").trim();
 
   // 1. Strip square brackets [flv], [hls], [HD], etc.
   clean = clean.replace(/\[[^\]]*\]/g, " ");
@@ -1908,7 +1908,7 @@ export function cleanCandidateTeamName(name: string): string {
   clean = clean.replace(/\s+(?:fhd|hd|4k|1080p|720p|sd)$/i, "").trim();
 
   // 6. Strip all sport and status emojis
-  clean = clean.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}⚽🏀🎾🏐🏸🏒🥊⚾🎮🎱🏓🏊🚴🏆🏅🏎🏁🔴🟢⚪🟡🟠]/gu, " ");
+  clean = clean.replace(/[\p{Extended_Pictographic}\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\s🔴🟢⚪🟡🟠]/gu, " ");
 
   // 7. Strip leading/trailing timestamps, dates and time-like prefixes
   // e.g. "00 24/09", "09:00 24/09", "09:00", "09h00", "24/09", "24-09", "00h", "08:30"
@@ -1937,7 +1937,7 @@ export function cleanCandidateTeamName(name: string): string {
   clean = clean.replace(/^(?:đội tuyển quốc gia|doi tuyen quoc gia|đội tuyển|doi tuyen|national team|đtqg|dtqg|đt|dt|clb)\s+/i, "");
   clean = clean.replace(/\s+(?:clb|national team)$/i, "");
 
-  return clean.replace(/\s+/g, " ").trim();
+  return clean.toWellFormed().replace(/\uFFFD+/g, " ").replace(/\s+/g, " ").trim();
 }
 
 // Danh sách các kênh thể thao phát sóng HLS chính thức 100% hoạt động
@@ -2230,14 +2230,14 @@ export function normalizeAndMergeStreams(
     } else if (upperGroup.includes("HAILAB")) {
       cleanGroup = "Live Sports (Hailab)";
     } else if (group && !group.includes("Updated") && !group.includes("Changed")) {
-      cleanGroup = group.replace(/^[🔴🟢🟡⚪🟠\s]+/, "").trim();
+      cleanGroup = group.toWellFormed().replace(/^[🔴🟢🟡⚪🟠\s]+/u, "").trim();
     }
 
     channelsSet.add(cleanGroup);
 
     const { sport, category, gender } = extractSportAndCategory(rawTitle, group);
 
-    let cleanedTitle = rawTitle.replace(/\[[^\]]*\]/g, " ").trim();
+    let cleanedTitle = rawTitle.toWellFormed().replace(/\[[^\]]*\]/g, " ").trim();
     const sourceStatus = parseSourceStatus(rawTitle, item.extinfLine);
     const isLiveMarker = sourceStatus === "live" || /\[(?:LIVE|TRỰC\s*TIẾP|ĐANG\s*PHÁT|ĐANG\s*ĐÁ|IN_PROGRESS)\]/i.test(rawTitle);
     const timeMatch = cleanedTitle.match(
@@ -2256,9 +2256,9 @@ export function normalizeAndMergeStreams(
           : Number.MAX_SAFE_INTEGER;
 
     cleanedTitle = cleanedTitle
-      .replace(/^[🟢🔴⚪\s]+/, "")
-      .replace(/^\s*(?:(?:[012]?\d[:hH]\d{2}|\d{1,2})\s*)?(?:\d{1,2}[-/.]\d{1,2}(?:[-/.]\d{2,4})?)?\s*/, "")
-      .replace(/^[⚽🏀🎾🏐🏸🏒🥊🏎🏁🎱🎮\s]+/, "")
+      .replace(/^[🟢🔴⚪\s]+/u, "")
+      .replace(/^\s*(?:(?:[012]?\d[:hH]\d{2}|\d{1,2})\s*)?(?:\d{1,2}[-/.]\d{1,2}(?:[-/.]\d{2,4})?)?\s*/u, "")
+      .replace(/^[\p{Extended_Pictographic}\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}⚽🏀🎾🏐🏸🏒🥊🏎🏁🎱🎮\s]+/u, "")
       .trim();
 
     let blv = "";

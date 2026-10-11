@@ -109,7 +109,7 @@ export const ChannelSourceSwitcher: React.FC<ChannelSourceSwitcherProps> = ({
       role="group"
       aria-label={isChannel ? "Bộ chọn kênh truyền hình" : "Bộ chọn nguồn phát"}
       onKeyDown={handleKeyDown}
-      className={`h-8 sm:h-10 inline-flex items-center bg-black/60 hover:bg-black/75 rounded-full border border-white/20 p-0.5 sm:p-1 backdrop-blur-md min-w-0 shrink max-w-full transition select-none shadow-sm ${className}`}
+      className={`h-8 sm:h-9.5 inline-flex items-center bg-black/60 hover:bg-black/75 rounded-full border border-white/20 p-0.5 sm:p-1 backdrop-blur-md min-w-0 shrink max-w-full transition select-none shadow-sm ${className}`}
     >
       {/* NÚT ‹ CHUYỂN TRƯỚC */}
       <button

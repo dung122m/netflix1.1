@@ -1468,12 +1468,22 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         return;
       }
 
-      // 4. Phím Tua video (← / →)
+      // 4. Phím Tua video (← / →): Chỉ can thiệp khi focus nằm trong player hoặc đang fullscreen
       if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
         const active = document.activeElement as HTMLElement | null;
         if (active && active.tagName === "INPUT" && active.getAttribute("type") === "range") {
           return;
         }
+
+        const isPlayerFocused = Boolean(
+          isFullscreen ||
+          (containerRef.current && (active === containerRef.current || containerRef.current.contains(active)))
+        );
+
+        if (!isPlayerFocused) {
+          return;
+        }
+
         e.preventDefault();
         if (isNativeVideo && videoRef.current) {
           const delta = e.key === "ArrowRight" ? 10 : -10;
@@ -1519,10 +1529,19 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         return;
       }
 
-      // 5. Phím Tăng/Giảm âm lượng (↑ / ↓)
+      // 5. Phím Tăng/Giảm âm lượng (↑ / ↓): Chỉ can thiệp khi focus nằm trong player hoặc đang fullscreen
       if (e.key === "ArrowUp" || e.key === "ArrowDown") {
         const active = document.activeElement as HTMLElement | null;
         if (active && active.tagName === "INPUT" && active.getAttribute("type") === "range") {
+          return;
+        }
+
+        const isPlayerFocused = Boolean(
+          isFullscreen ||
+          (containerRef.current && (active === containerRef.current || containerRef.current.contains(active)))
+        );
+
+        if (!isPlayerFocused) {
           return;
         }
 

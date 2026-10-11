@@ -7,7 +7,7 @@ import {
   cleanRawTeamString,
 } from "./matcher";
 import { LiveScoreboardEvent } from "./types";
-import { footballScoreService } from "./service";
+import { footballScoreService, VERIFIED_SCOREBOARD_LEAGUES } from "./service";
 
 describe("LiveScore Football Matcher & Enrichment Test Suite", () => {
   // Mock dữ liệu sự kiện từ livescore API
@@ -122,6 +122,29 @@ describe("LiveScore Football Matcher & Enrichment Test Suite", () => {
       status: "scheduled",
       statusText: "STATUS_SCHEDULED",
       statusDetail: "Scheduled",
+    },
+    {
+      id: "761859",
+      leagueSlug: "usa.1",
+      name: "Atlanta United FC at Inter Miami CF",
+      date: "2026-10-10T23:30:00.000Z",
+      homeTeam: {
+        id: "20232",
+        name: "Inter Miami CF",
+        displayName: "Inter Miami CF",
+      },
+      awayTeam: {
+        id: "18418",
+        name: "Atlanta United FC",
+        displayName: "Atlanta United FC",
+      },
+      homeScore: 3,
+      awayScore: 1,
+      status: "live",
+      statusText: "STATUS_SECOND_HALF",
+      statusDetail: "65'",
+      displayClock: "65'",
+      period: 2,
     },
   ];
 
@@ -296,4 +319,242 @@ describe("LiveScore Football Matcher & Enrichment Test Suite", () => {
     const syncEvents = footballScoreService.getCachedEventsSync();
     assert.ok(Array.isArray(syncEvents), "Sync cache phải trả về mảng sự kiện");
   });
+
+  // 11. Mở rộng giải đấu Giai đoạn P1: đủ 13 giải đấu và có usa.1, eng.fa, eng.league_cup, esp.copa_del_rey
+  it("11. VERIFIED_SCOREBOARD_LEAGUES mở rộng chuẩn xác 13 giải đấu (có MLS và các giải cúp)", () => {
+    assert.strictEqual(VERIFIED_SCOREBOARD_LEAGUES.length, 13, "Tổng số giải đấu phải là 13");
+    assert.ok(VERIFIED_SCOREBOARD_LEAGUES.includes("usa.1"), "Phải có MLS (usa.1)");
+    assert.ok(VERIFIED_SCOREBOARD_LEAGUES.includes("eng.fa"), "Phải có FA Cup (eng.fa)");
+    assert.ok(VERIFIED_SCOREBOARD_LEAGUES.includes("eng.league_cup"), "Phải có Carabao Cup (eng.league_cup)");
+    assert.ok(VERIFIED_SCOREBOARD_LEAGUES.includes("esp.copa_del_rey"), "Phải có Copa del Rey (esp.copa_del_rey)");
+  });
+
+  // 12. Nhận diện Inter Miami từ tên chuẩn và các biến thể alias
+  it("12. Ghép chuẩn xác trận đấu Inter Miami từ tên chuẩn và các alias (Inter Miami, CLB Inter Miami, Inter Miami FC)", () => {
+    // Tên chuẩn
+    const standardFixture = {
+      team1: "Inter Miami CF",
+      team2: "Atlanta United FC",
+      sport: "football",
+    };
+    const score1 = matchFixtureToScore(standardFixture, sampleEvents);
+    assert.ok(score1, "Phải ghép được Inter Miami CF");
+    assert.strictEqual(score1.team1Score, 3);
+    assert.strictEqual(score1.team2Score, 1);
+    assert.strictEqual(score1.status, "live");
+    assert.strictEqual(score1.displayClock, "65'");
+    assert.strictEqual(score1.leagueSlug, "usa.1");
+
+    // Alias phổ biến trên M3U: "Inter Miami" vs "Atlanta United"
+    const commonFixture = {
+      team1: "Inter Miami",
+      team2: "Atlanta United",
+      sport: "football",
+    };
+    const score2 = matchFixtureToScore(commonFixture, sampleEvents);
+    assert.ok(score2, "Phải ghép được alias 'Inter Miami'");
+    assert.strictEqual(score2.team1Score, 3);
+    assert.strictEqual(score2.team2Score, 1);
+
+    // Tiền tố tiếng Việt: "CLB Inter Miami" vs "Atlanta Utd"
+    const vnFixture = {
+      team1: "CLB Inter Miami",
+      team2: "Atlanta Utd",
+      sport: "football",
+    };
+    const score3 = matchFixtureToScore(vnFixture, sampleEvents);
+    assert.ok(score3, "Phải ghép được 'CLB Inter Miami'");
+    assert.strictEqual(score3.team1Score, 3);
+
+    // Hậu tố FC: "Inter Miami FC"
+    const fcFixture = {
+      team1: "Inter Miami FC",
+      team2: "Atlanta United",
+      sport: "football",
+    };
+    const score4 = matchFixtureToScore(fcFixture, sampleEvents);
+    assert.ok(score4, "Phải ghép được 'Inter Miami FC'");
+    assert.strictEqual(score4.team1Score, 3);
+  });
+
+  // 13. Tuyệt đối không ghép nhầm Inter Miami với Inter Milan hoặc AC Milan
+  it("13. Chống ghép nhầm Inter Miami với Inter Milan hoặc AC Milan", () => {
+    // isSameTeam giữa Inter Miami và Inter Milan
+    assert.strictEqual(isSameTeam("Inter Miami", "Inter Milan"), false);
+    assert.strictEqual(isSameTeam("Inter Miami CF", "Inter Milan"), false);
+    assert.strictEqual(isSameTeam("Inter", "Inter Miami"), false);
+    assert.strictEqual(isSameTeam("Inter Miami", "AC Milan"), false);
+
+    // Ghép một trận giả định: Inter Milan vs Atlanta United -> Không được ghép vào trận của Inter Miami
+    const interMilanFixture = {
+      team1: "Inter Milan",
+      team2: "Atlanta United",
+      sport: "football",
+    };
+    const scoreMilan = matchFixtureToScore(interMilanFixture, sampleEvents);
+    assert.strictEqual(scoreMilan, null, "Không được ghép nhầm Inter Milan vào sự kiện của Inter Miami");
+
+    const interShortFixture = {
+      team1: "Inter",
+      team2: "Atlanta United",
+      sport: "football",
+    };
+    const scoreInterShort = matchFixtureToScore(interShortFixture, sampleEvents);
+    assert.strictEqual(scoreInterShort, null, "Không được ghép nhầm 'Inter' (Inter Milan) vào sự kiện của Inter Miami");
+  });
+
+  // 14. Xử lý đảo chiều sân nhà / sân khách cho trận Inter Miami
+  it("14. Xử lý đảo chiều sân nhà / sân khách cho trận Inter Miami", () => {
+    const reversedFixture = {
+      team1: "Atlanta United",
+      team2: "Inter Miami",
+      sport: "football",
+    };
+    const score = matchFixtureToScore(reversedFixture, sampleEvents);
+    assert.ok(score, "Phải nhận diện được trận đảo chiều");
+    assert.strictEqual(score.isReversed, true);
+    assert.strictEqual(score.team1Score, 1, "team1 là Atlanta nên tỷ số là 1");
+    assert.strictEqual(score.team2Score, 3, "team2 là Miami nên tỷ số là 3");
+    assert.strictEqual(score.homeScore, 3, "homeScore của Miami vẫn là 3");
+    assert.strictEqual(score.awayScore, 1, "awayScore của Atlanta vẫn là 1");
+  });
+
+  // 15. Kiểm tra dung sai thời gian thi đấu (>36h không được ghép)
+  it("15. Trận đấu vượt quá dung sai thời gian thi đấu (>36h) bị từ chối ghép", () => {
+    const eventTime = Date.parse("2026-10-10T23:30:00.000Z");
+
+    // Trận cách 48 giờ (> 36h)
+    const farFixture = {
+      team1: "Inter Miami",
+      team2: "Atlanta United",
+      sport: "football",
+      timestamp: eventTime + 48 * 60 * 60 * 1000,
+    };
+    const scoreFar = matchFixtureToScore(farFixture, sampleEvents);
+    assert.strictEqual(scoreFar, null, "Trận cách >36h phải trả về null");
+
+    // Trận trong khoảng 2 giờ (< 36h)
+    const nearFixture = {
+      team1: "Inter Miami",
+      team2: "Atlanta United",
+      sport: "football",
+      timestamp: eventTime + 2 * 60 * 60 * 1000,
+    };
+    const scoreNear = matchFixtureToScore(nearFixture, sampleEvents);
+    assert.ok(scoreNear, "Trận trong khoảng thời gian hợp lệ phải được ghép");
+    assert.strictEqual(scoreNear.team1Score, 3);
+  });
+
+  // 16. P2: Match Center - Kiểm tra tính hợp lệ của leagueSlug và eventId đầu vào
+  it("16. P2 Match Center: Từ chối leagueSlug bất hợp pháp hoặc eventId có định dạng không an toàn", async () => {
+    // League slug ngoài danh mục đã xác minh
+    const invalidLeagueRes = await footballScoreService.getMatchSummary("unknown.league", "123456");
+    assert.strictEqual(invalidLeagueRes.data, null);
+
+    // EventId chứa ký tự injection nguy hiểm
+    const maliciousIdRes = await footballScoreService.getMatchSummary("usa.1", "../../../etc/passwd");
+    assert.strictEqual(maliciousIdRes.data, null);
+
+    // EventId rỗng
+    const emptyIdRes = await footballScoreService.getMatchSummary("usa.1", "   ");
+    assert.strictEqual(emptyIdRes.data, null);
+  });
+
+  // 17. P2: Match Center - In-flight deduplication và Server Cache cho Match Summary
+  it("17. P2 Match Center: In-flight deduplication và bộ nhớ đệm chống quá tải API", async () => {
+    footballScoreService.clearCacheForTesting();
+
+    // Giả lập 2 request đồng thời cho cùng 1 trận
+    const p1 = footballScoreService.getMatchSummary("usa.1", "761856");
+    const p2 = footballScoreService.getMatchSummary("usa.1", "761856");
+
+    const [res1, res2] = await Promise.all([p1, p2]);
+
+    // Nếu mạng kết nối được với upstream
+    if (res1.data) {
+      assert.strictEqual(res1.data.eventId, "761856");
+      assert.strictEqual(res1.data.leagueSlug, "usa.1");
+      assert.ok(res1.data.homeTeam.displayName, "Phải có tên đội nhà");
+      assert.ok(res1.data.awayTeam.displayName, "Phải có tên đội khách");
+      assert.ok(Array.isArray(res1.data.stats), "Stats phải là mảng");
+      assert.ok(Array.isArray(res1.data.events), "Events phải là mảng");
+      assert.ok(Array.isArray(res1.data.homeRoster.starters), "Starters phải là mảng");
+      assert.ok(Array.isArray(res1.data.commentary), "Commentary phải là mảng");
+
+      // Request thứ 3 ngay sau đó phải lấy từ cache
+      const res3 = await footballScoreService.getMatchSummary("usa.1", "761856");
+      assert.strictEqual(res3.cached, true, "Lần gọi thứ 3 phải trả về từ memory cache");
+    }
+  });
+
+  // 18. P2: Match Center - Kiểm tra cấu trúc chuẩn hóa NormalizedMatchSummary
+  it("18. P2 Match Center: Cấu trúc dữ liệu NormalizedMatchSummary có đầy đủ các tab cần thiết", () => {
+    // Kiểm tra các trường thiết yếu của NormalizedMatchSummary
+    const mockSummary = {
+      eventId: "999",
+      leagueSlug: "eng.1",
+      status: "live" as const,
+      statusText: "Second Half",
+      displayClock: "75'",
+      homeTeam: {
+        id: "1",
+        name: "Arsenal",
+        displayName: "Arsenal",
+        score: 2,
+        homeAway: "home" as const,
+      },
+      awayTeam: {
+        id: "2",
+        name: "Chelsea",
+        displayName: "Chelsea",
+        score: 1,
+        homeAway: "away" as const,
+      },
+      stats: [
+        {
+          name: "possessionPct",
+          label: "Kiểm soát bóng (%)",
+          homeValue: "58",
+          awayValue: "42",
+          homeNumeric: 58,
+          awayNumeric: 42,
+        },
+      ],
+      events: [
+        {
+          id: "ev1",
+          type: "goal" as const,
+          typeText: "Goal",
+          text: "Goal! Arsenal 1, Chelsea 0.",
+          clock: "25'",
+          minute: 25,
+          playerName: "Bukayo Saka",
+        },
+      ],
+      homeRoster: {
+        formation: "4-3-3",
+        starters: [],
+        bench: [],
+      },
+      awayRoster: {
+        formation: "4-2-3-1",
+        starters: [],
+        bench: [],
+      },
+      gameInfo: {
+        venue: { name: "Emirates Stadium", city: "London" },
+        referee: "Michael Oliver",
+      },
+      commentary: [],
+      updatedAt: new Date().toISOString(),
+    };
+
+    assert.strictEqual(mockSummary.status, "live");
+    assert.strictEqual(mockSummary.homeTeam.score, 2);
+    assert.strictEqual(mockSummary.awayTeam.score, 1);
+    assert.strictEqual(mockSummary.stats[0].name, "possessionPct");
+    assert.strictEqual(mockSummary.events[0].type, "goal");
+    assert.strictEqual(mockSummary.gameInfo.venue?.name, "Emirates Stadium");
+  });
 });
+

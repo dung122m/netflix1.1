@@ -60,55 +60,56 @@ export function LiveHubClient({ footballData, tvData }: LiveHubClientProps) {
   }, [footballData.matches]);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 md:px-8 pt-16 sm:pt-18 md:pt-20 pb-8 space-y-3.5 sm:space-y-4">
-      {/* 1. HEADER TRANG CHÍNH & TABS CHUYỂN ĐỔI BÓNG ĐÁ / TRUYỀN HÌNH */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b border-white/10 pb-3 sm:pb-3.5">
-        <div>
-          {/* BADGES METADATA TINH GỌN */}
-          <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
-            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-netflix-red/20 border border-netflix-red/40 text-netflix-red text-[10px] font-black shadow-sm shrink-0">
-              <Radio className="w-3 h-3 text-netflix-red" />
-              <span>NANA LIVE HUB</span>
-            </span>
-            <span className="flex items-center gap-1 text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 shrink-0">
-              <Zap className="w-2.5 h-2.5 fill-emerald-400" />
-              <span>Full HD 1080p</span>
-            </span>
-            {liveFootballCount > 0 && (
-              <span className="flex items-center gap-1 text-[10px] text-rose-400 font-bold bg-red-500/10 px-2 py-0.5 rounded-full border border-red-500/20 shrink-0">
-                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
-                <span>{liveFootballCount} trận đang đá</span>
-              </span>
-            )}
+    <div className="max-w-[1720px] w-full mx-auto px-3 sm:px-6 lg:px-8 pt-16 sm:pt-20 pb-12 space-y-4">
+      {/* 1. NANAFLIX LIVE STUDIO COMMAND BAR */}
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-3.5 sm:p-4 rounded-2xl bg-zinc-950/80 border border-white/10 backdrop-blur-2xl shadow-2xl">
+        <div className="flex items-center gap-3.5">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-600 via-rose-600 to-amber-600 flex items-center justify-center text-white shadow-lg shadow-red-950/50 shrink-0">
+            <Radio className="w-5 h-5 animate-pulse" />
           </div>
-
-          {/* HEADING ANCHOR CHÍNH */}
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-white tracking-tight">
-            {activeTab === "football"
-              ? "Trực Tiếp Bóng Đá HD"
-              : "Truyền Hình Trực Tuyến Live TV"}
-          </h1>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[10px] font-black uppercase tracking-widest text-netflix-red bg-netflix-red/15 px-2 py-0.5 rounded-md border border-netflix-red/30">
+                LIVE HUB
+              </span>
+              <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20 flex items-center gap-1">
+                <Zap className="w-2.5 h-2.5 fill-current" />
+                <span>1080p Ultra-Low Latency</span>
+              </span>
+              {liveFootballCount > 0 && (
+                <span className="text-[10px] font-bold text-rose-400 bg-red-500/15 px-2 py-0.5 rounded-md border border-red-500/30 flex items-center gap-1.5 animate-pulse">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                  <span>{liveFootballCount} trận đang trực tiếp</span>
+                </span>
+              )}
+            </div>
+            <h1 className="text-base sm:text-xl font-black text-white tracking-tight mt-0.5">
+              {activeTab === "football"
+                ? "Trung Tâm Trực Tiếp Bóng Đá & Thể Thao"
+                : "Truyền Hình Trực Tuyến Live TV"}
+            </h1>
+          </div>
         </div>
 
-        {/* CỤM NÚT CHUYỂN TAB GỌN GÀNG, ĐẸP MẮT */}
-        <div className="w-full sm:w-auto grid grid-cols-2 sm:flex items-center gap-1 p-1 rounded-xl bg-zinc-900/90 border border-white/10 shadow-lg backdrop-blur-xl">
+        {/* CỤM CHUYỂN ĐỔI KHÔNG GIAN (TV VS BÓNG ĐÁ) */}
+        <div className="grid grid-cols-2 sm:flex items-center gap-1.5 p-1 rounded-xl bg-zinc-900 border border-white/10 shadow-inner">
           {/* TAB BÓNG ĐÁ */}
           <button
             type="button"
             onClick={() => handleTabChange("football")}
-            className={`flex items-center justify-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs font-extrabold transition-all cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red ${
+            className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-black transition-all cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red ${
               activeTab === "football"
-                ? "bg-gradient-to-r from-netflix-red to-red-600 text-white shadow-md shadow-red-950/60 scale-[1.01]"
+                ? "bg-gradient-to-r from-netflix-red to-red-600 text-white shadow-lg shadow-red-950/60 scale-[1.01]"
                 : "text-gray-400 hover:text-white hover:bg-white/5"
             }`}
           >
-            <Flame className={`w-3.5 h-3.5 ${activeTab === "football" ? "text-amber-300 animate-pulse" : "text-gray-400"}`} />
-            <span>Bóng Đá</span>
+            <Flame className={`w-4 h-4 ${activeTab === "football" ? "text-amber-300 animate-pulse" : "text-gray-400"}`} />
+            <span>Sân Cỏ Trực Tiếp</span>
             <span
               className={`text-[9.5px] px-1.5 py-0.2 rounded-full font-black ${
                 activeTab === "football"
-                  ? "bg-black/40 text-white"
-                  : "bg-white/10 text-gray-300"
+                  ? "bg-black/50 text-white"
+                  : "bg-white/10 text-gray-400"
               }`}
             >
               {footballCount}
@@ -119,41 +120,42 @@ export function LiveHubClient({ footballData, tvData }: LiveHubClientProps) {
           <button
             type="button"
             onClick={() => handleTabChange("tv")}
-            className={`flex items-center justify-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs font-extrabold transition-all cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-sky-500 ${
+            className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-black transition-all cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-sky-500 ${
               activeTab === "tv"
-                ? "bg-gradient-to-r from-sky-600 to-blue-600 text-white shadow-md shadow-sky-950/60 scale-[1.01]"
+                ? "bg-gradient-to-r from-sky-600 to-blue-600 text-white shadow-lg shadow-sky-950/60 scale-[1.01]"
                 : "text-gray-400 hover:text-white hover:bg-white/5"
             }`}
           >
-            <Tv className={`w-3.5 h-3.5 ${activeTab === "tv" ? "text-sky-200 animate-pulse" : "text-gray-400"}`} />
-            <span>Truyền Hình</span>
+            <Tv className={`w-4 h-4 ${activeTab === "tv" ? "text-sky-200 animate-pulse" : "text-gray-400"}`} />
+            <span>Kênh Truyền Hình</span>
             <span
               className={`text-[9.5px] px-1.5 py-0.2 rounded-full font-black ${
                 activeTab === "tv"
-                  ? "bg-black/40 text-white"
-                  : "bg-white/10 text-gray-300"
+                  ? "bg-black/50 text-white"
+                  : "bg-white/10 text-gray-400"
               }`}
             >
               {tvData.channels.length}
             </span>
           </button>
         </div>
-      </div>
+      </header>
 
-      {/* 2. NỘI DUNG THEO TAB - Chỉ mount component của tab đang active để tối ưu DOM & Hydration */}
-      {activeTab === "football" ? (
+      {/* 2. NỘI DUNG THEO TAB - Giữ cả hai component trong DOM để bảo toàn kênh/trận và không remount Player khi đổi tab */}
+      <div className={activeTab === "football" ? "block" : "hidden"}>
         <LiveFootballClient
           initialData={footballData}
           hideHeader
-          isActive={true}
+          isActive={activeTab === "football"}
           onMatchesCountChange={setFootballCount}
         />
-      ) : (
+      </div>
+      <div className={activeTab === "tv" ? "block" : "hidden"}>
         <LiveTvClient
           initialData={tvData}
-          isActive={true}
+          isActive={activeTab === "tv"}
         />
-      )}
+      </div>
     </div>
   );
 }

@@ -147,18 +147,19 @@ export function matchFixtureToScore(
     return null;
   }
 
-  // Nếu có nhiều hơn 1 ứng viên, chọn trận có thời gian thi đấu gần nhất (dưới 36h)
-  let chosenCandidate: Candidate;
-  if (candidates.length === 1) {
-    chosenCandidate = candidates[0];
-  } else {
-    // Sắp xếp theo độ lệch thời gian
+  // Nếu có nhiều hơn 1 ứng viên, sắp xếp chọn trận có thời gian thi đấu gần nhất
+  if (candidates.length > 1) {
     candidates.sort((a, b) => a.timeDiffMs - b.timeDiffMs);
-    // Nếu độ lệch thời gian của ứng viên gần nhất quá lớn (> 36h) hoặc 2 ứng viên có cùng thời gian -> không đủ tin cậy
-    if (candidates[0].timeDiffMs > 36 * 60 * 60 * 1000) {
-      return null;
-    }
-    chosenCandidate = candidates[0];
+  }
+
+  const chosenCandidate = candidates[0];
+  // Nếu có timestamp mà độ lệch thời gian quá lớn (> 36h) -> không đủ tin cậy để ghép
+  if (
+    fixture.timestamp &&
+    fixture.timestamp > 0 &&
+    chosenCandidate.timeDiffMs > 36 * 60 * 60 * 1000
+  ) {
+    return null;
   }
 
   const { event: ev, isReversed } = chosenCandidate;

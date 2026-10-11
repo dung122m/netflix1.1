@@ -2022,6 +2022,49 @@ describe("Generic Match Deduplication & Aggregation System", () => {
     assert.ok(matches[0].team2.toLowerCase().includes("nigeria"));
     assert.equal(matches[0].servers.length, 3, "Must aggregate all 3 servers");
   });
+
+  it("12. Unicode Surrogate & Hydration Safety: Never breaks surrogate pairs or leaves lone surrogates in team names", () => {
+    const rawStreams = [
+      {
+        rawTitle: "🟢 12:10 11/10 🥎 Alex de Minaur vs Rei Sakamoto (Điếc) [hls]",
+        url: "https://cdn.example.com/tennis1.m3u8",
+        effectiveUrl: "https://cdn.example.com/tennis1.m3u8",
+        group: "Giờ Vàng TV",
+        rawLogo: "",
+      },
+      {
+        rawTitle: "🟢 13:20 11/10 🥎 Francisco Cerundolo vs Jakub Mensik",
+        url: "https://cdn.example.com/tennis2.m3u8",
+        effectiveUrl: "https://cdn.example.com/tennis2.m3u8",
+        group: "Giờ Vàng TV",
+        rawLogo: "",
+      },
+      {
+        rawTitle: "🟢 14:30 11/10 🥎 Alexander Bublik vs Brandon Nakashima",
+        url: "https://cdn.example.com/tennis3.m3u8",
+        effectiveUrl: "https://cdn.example.com/tennis3.m3u8",
+        group: "Giờ Vàng TV",
+        rawLogo: "",
+      },
+    ];
+
+    const { matches } = normalizeAndMergeStreams(rawStreams, baseNow);
+    assert.equal(matches.length, 3);
+
+    for (const m of matches) {
+      assert.ok(!/[\uD800-\uDFFF]/.test(m.team1), `team1 must not contain lone surrogates: ${m.team1}`);
+      assert.ok(!/[\uD800-\uDFFF]/.test(m.team2), `team2 must not contain lone surrogates: ${m.team2}`);
+      assert.ok(!/[\uD800-\uDFFF]/.test(m.title), `title must not contain lone surrogates: ${m.title}`);
+      assert.ok(!m.team1.includes("\uFFFD"), `team1 must not contain replacement character: ${m.team1}`);
+      assert.ok(!m.team2.includes("\uFFFD"), `team2 must not contain replacement character: ${m.team2}`);
+      assert.ok(!m.title.includes("\uFFFD"), `title must not contain replacement character: ${m.title}`);
+    }
+
+    const minaurMatch = matches.find((m) => m.team1.toLowerCase().includes("minaur"));
+    assert.ok(minaurMatch);
+    assert.equal(minaurMatch?.team1, "Alex de Minaur");
+    assert.equal(minaurMatch?.team2, "Rei Sakamoto");
+  });
 });
 
 

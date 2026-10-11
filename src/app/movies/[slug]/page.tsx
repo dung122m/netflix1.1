@@ -739,7 +739,7 @@ export default async function MovieDetail({
                     )}
                   </div>
 
-                  {/* 3. MOBILE-ONLY SOURCE CONTROL & EPISODE PLAYLIST (< 1024px) */}
+                  {/* 3. MOBILE-FIRST NGUỒN PHÁT & DANH SÁCH TẬP PHIM (< 1024px) - Vị trí ưu tiên ngay dưới player & header */}
                   <div className="lg:hidden rounded-2xl border border-white/15 bg-gradient-to-b from-zinc-900/80 via-zinc-950/85 to-black/90 p-4 shadow-xl backdrop-blur-xl space-y-3">
                     <ServerSelector
                       servers={serverSummaries}

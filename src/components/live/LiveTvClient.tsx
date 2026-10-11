@@ -1539,9 +1539,13 @@ export function LiveTvClient({
 
   return (
     <div className="space-y-6">
-      {/* 1. KHUNG TRÌNH PHÁT TRUYỀN HÌNH TRỰC TIẾP */}
-      {selectedTvChannel ? (
-        <div ref={playerRef} className="scroll-mt-24 space-y-4 w-full min-w-0">
+      {/* 2-COLUMN THEATER STUDIO LAYOUT (Desktop lg:grid-cols-12, Mobile flex-col) */}
+      <div className="flex flex-col lg:grid lg:grid-cols-12 gap-5 xl:gap-6 items-start">
+        {/* CỘT TRÁI (THEATER SCREEN & POPULAR QUICK ACCESS): lg:col-span-7 xl:col-span-8 */}
+        <div className="w-full min-w-0 lg:col-span-7 xl:col-span-8 space-y-4">
+          {/* 1. KHUNG TRÌNH PHÁT TRUYỀN HÌNH TRỰC TIẾP */}
+          {selectedTvChannel ? (
+            <div ref={playerRef} className="scroll-mt-24 space-y-4 w-full min-w-0">
           {/* HEADER KÊNH ĐANG PHÁT */}
           <div className="keep-dark-cinema relative rounded-2xl sm:rounded-3xl border border-white/15 bg-gradient-to-b from-zinc-900/95 via-zinc-950/98 to-black p-3.5 sm:p-4 shadow-2xl space-y-3 backdrop-blur-xl">
             {/* HÀNG 1: LOGO + TÊN KÊNH + CÁC HUY HIỆU + CỤM NÚT THAO TÁC */}
@@ -2006,9 +2010,12 @@ export function LiveTvClient({
           </button>
         </div>
       </div>
+      </div>
 
-      {/* 3. BỘ CHỌN KÊNH TRUYỀN HÌNH ĐA THIẾT BỊ (RESPONSIVE 2 CỘT CHO DESKTOP + HORIZONTAL TABS CHO MOBILE) */}
-      <div className="pt-2 border-t border-white/10">
+      {/* CỘT PHẢI (CHANNEL GUIDE RAIL): lg:col-span-5 xl:col-span-4 */}
+      <div className="w-full min-w-0 lg:col-span-5 xl:col-span-4">
+        {/* BỘ CHỌN KÊNH TRUYỀN HÌNH ĐA THIẾT BỊ */}
+        <div className="w-full space-y-3">
         {/* MOBILE & TABLET (< lg): THANH CUỘN NGANG TABS DANH MỤC */}
         <div className="lg:hidden space-y-3 mb-4">
           <div className="flex items-center justify-between gap-2">
@@ -2515,6 +2522,8 @@ export function LiveTvClient({
             )}
           </div>
         </div>
+      </div>
+      </div>
       </div>
       <style>{`
         :fullscreen,

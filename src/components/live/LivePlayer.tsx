@@ -30,58 +30,10 @@ import { FootballMatch, StreamServer } from "@/services/liveFootballService";
 import { LiveMatchScore } from "@/services/live/football-score/types";
 import { getTeamAsset } from "@/data/live/teamAssets";
 import { toDarkModeLogoUrl } from "@/services/live/football-logo/service";
+import { resolveMatchDisplayStatus } from "@/services/live/football-score/liveStatus";
 import { LiveShortcutPopover } from "./LiveShortcutPopover";
 import { ChannelSourceSwitcher } from "./ChannelSourceSwitcher";
-
-/**
- * Hiển thị cờ quốc gia dạng đồ họa vector chuẩn quốc tế
- * Giải quyết triệt để vấn đề Windows hiển thị ký tự mã ISO thay vì cờ
- * Có fallback tự động về emoji text gốc
- */
-function CountryFlag({ emoji, className = "" }: { emoji: string; className?: string }) {
-  const [imgError, setImgError] = useState(false);
-
-  const twemojiUrl = useMemo(() => {
-    try {
-      if (!emoji) return null;
-      const cps: string[] = [];
-      for (const char of emoji) {
-        const cp = char.codePointAt(0);
-        if (cp && cp !== 0xfe0f) {
-          cps.push(cp.toString(16));
-        }
-      }
-      const isFlag = cps.some((cp) => {
-        const num = parseInt(cp, 16);
-        return (num >= 0x1f1e6 && num <= 0x1f1ff) || num === 0x1f3f4;
-      });
-      if (!isFlag) return null;
-      return `https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/${cps.join("-")}.svg`;
-    } catch {
-      return null;
-    }
-  }, [emoji]);
-
-  if (twemojiUrl && !imgError) {
-    return (
-      /* eslint-disable-next-line @next/next/no-img-element */
-      <img
-        src={twemojiUrl}
-        alt={emoji}
-        className={`w-full h-full object-contain drop-shadow-md select-none inline-block ${className}`}
-        onError={() => setImgError(true)}
-        loading="lazy"
-        crossOrigin="anonymous"
-      />
-    );
-  }
-
-  return (
-    <span className={`text-2xl sm:text-3xl select-none leading-none drop-shadow-md ${className}`}>
-      {emoji}
-    </span>
-  );
-}
+import { CountryFlag } from "./CountryFlag";
 
 function getTeamInitials(teamName: string): string {
   if (!teamName) return "⚽";
@@ -359,7 +311,7 @@ export function isSourceFailed(url?: string | null, failedSet: Set<string> = new
  */
 export function cleanPlatformName(name?: string): string {
   if (!name) return "";
-  const trimmed = name.replace(/^[🔴🟢🟡⚪🟠📡\s]+/, "").trim();
+  const trimmed = name.toWellFormed().replace(/^[🔴🟢🟡⚪🟠📡\s]+/u, "").trim();
   if (
     /^(?:other|live football|bóng đá|thể thao|livetv|sports)$/i.test(trimmed)
   ) {
@@ -542,10 +494,24 @@ function LivePlayerInner({
   score,
 }: LivePlayerProps) {
   const currentScore = score || match?.score || null;
-  const hasScore = Boolean(
-    currentScore &&
-      (currentScore.status === "live" || currentScore.status === "finished"),
+  const displayStatus = useMemo(
+    () =>
+      resolveMatchDisplayStatus({
+        timestamp: match?.timestamp,
+        score: currentScore,
+        sourceStatus: match?.sourceStatus,
+      }),
+    [match?.timestamp, currentScore, match?.sourceStatus],
   );
+
+  const isConfirmedLive = displayStatus.isConfirmedLive;
+  const isFinished = displayStatus.statusType === "finished";
+  const specialStatusLabel =
+    displayStatus.statusType === "postponed" ||
+    displayStatus.statusType === "canceled" ||
+    displayStatus.statusType === "suspended"
+      ? displayStatus.badgeLabel
+      : null;
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const hlsRef = useRef<Hls | null>(null);
@@ -557,6 +523,8 @@ function LivePlayerInner({
   const fallbackCountRef = useRef<number>(0);
   const watchdogTimerRef = useRef<NodeJS.Timeout | null>(null);
   const attemptIdRef = useRef<number>(0);
+  const playPromiseRef = useRef<Promise<void> | null>(null);
+  const isPlayingRef = useRef<boolean>(false);
   const failedServersRef = useRef<Set<number>>(new Set());
   const [failedSourcesByMatch, setFailedSourcesByMatch] = useState<
     Record<string, Set<string>>
@@ -1045,20 +1013,161 @@ function LivePlayerInner({
     }, 3500);
   }, [isPlaying]);
 
+  // Helper dọn dẹp HLS instance một cách an toàn và triệt để
+  const destroyHlsInstance = useCallback(() => {
+    if (hlsRef.current) {
+      try {
+        hlsRef.current.stopLoad();
+        hlsRef.current.detachMedia();
+        hlsRef.current.destroy();
+      } catch { }
+      hlsRef.current = null;
+    }
+  }, []);
+
+  // Helper reset HTMLMediaElement triệt để, không để nguồn cũ chạy ngầm
+  const resetMediaElement = useCallback((video: HTMLVideoElement | null) => {
+    if (!video) return;
+    try {
+      video.pause();
+    } catch { }
+    try {
+      video.removeAttribute("src");
+      video.src = "";
+      if ("srcObject" in video && video.srcObject) {
+        video.srcObject = null;
+      }
+      video.load();
+    } catch { }
+  }, []);
+
+  // Safe Pause: Ngăn race condition khi pause lúc video.play() promise đang pending
+  const safePause = useCallback(() => {
+    userPausedRef.current = true;
+    isPlayingRef.current = false;
+    setIsPlaying(false);
+
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (playPromiseRef.current) {
+      playPromiseRef.current
+        .catch(() => { })
+        .finally(() => {
+          if (userPausedRef.current && videoRef.current) {
+            try {
+              videoRef.current.pause();
+            } catch { }
+          }
+        });
+    } else {
+      try {
+        video.pause();
+      } catch { }
+    }
+  }, []);
+
+  // Safe Play: Kiểm tra chặt chẽ userPausedRef, isActive, attemptId để không bao giờ phát trùng
+  const safePlay = useCallback(
+    (expectedAttemptId?: number) => {
+      const video = videoRef.current;
+      if (!video) return;
+
+      if (userPausedRef.current || !isActive || isStoppedRef.current) {
+        return;
+      }
+      if (
+        expectedAttemptId !== undefined &&
+        expectedAttemptId !== attemptIdRef.current
+      ) {
+        return;
+      }
+
+      const promise = video.play();
+      if (promise !== undefined) {
+        playPromiseRef.current = promise;
+        promise
+          .then(() => {
+            if (
+              expectedAttemptId !== undefined &&
+              expectedAttemptId !== attemptIdRef.current
+            ) {
+              video.pause();
+              return;
+            }
+            if (userPausedRef.current || !isActive) {
+              video.pause();
+              return;
+            }
+            isPlayingRef.current = true;
+            setIsPlaying(true);
+            setIsMuted(video.muted || video.volume === 0);
+          })
+          .catch((err: unknown) => {
+            const errName =
+              typeof err === "object" && err !== null && "name" in err
+                ? (err as { name?: string }).name
+                : "";
+
+            // AbortError xảy ra khi pause() ngắt play() in-flight -> hoàn toàn bình thường, không retry
+            if (errName === "AbortError") {
+              return;
+            }
+
+            // Chỉ retry muted khi trình duyệt chặn Autoplay có tiếng (NotAllowedError)
+            // VÀ người dùng CHƯA bấm pause
+            if (errName === "NotAllowedError" && !userPausedRef.current && isActive) {
+              if (
+                expectedAttemptId !== undefined &&
+                expectedAttemptId !== attemptIdRef.current
+              ) {
+                return;
+              }
+              video.muted = true;
+              setIsMuted(true);
+              const retryPromise = video.play();
+              if (retryPromise !== undefined) {
+                playPromiseRef.current = retryPromise;
+                retryPromise
+                  .then(() => {
+                    if (
+                      expectedAttemptId !== undefined &&
+                      expectedAttemptId !== attemptIdRef.current
+                    ) {
+                      video.pause();
+                      return;
+                    }
+                    if (userPausedRef.current || !isActive) {
+                      video.pause();
+                      return;
+                    }
+                    isPlayingRef.current = true;
+                    setIsPlaying(true);
+                    setIsMuted(true);
+                  })
+                  .catch(() => { });
+              }
+            }
+          })
+          .finally(() => {
+            if (playPromiseRef.current === promise) {
+              playPromiseRef.current = null;
+            }
+          });
+      }
+    },
+    [isActive],
+  );
+
   // Xử lý khi tab thay đổi (isActive true/false) hoặc minimize tab - Cleanup triệt để tránh rò rỉ RAM
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
     if (!isActive) {
-      video.pause();
-      video.removeAttribute("src");
-      video.load();
-      setIsPlaying(false);
-      if (hlsRef.current) {
-        hlsRef.current.destroy();
-        hlsRef.current = null;
-      }
+      safePause();
+      resetMediaElement(video);
+      destroyHlsInstance();
       lastLoadedUrlRef.current = "";
       if (
         typeof document !== "undefined" &&
@@ -1068,7 +1177,7 @@ function LivePlayerInner({
         setIsPip(false);
       }
     }
-  }, [isActive]);
+  }, [isActive, safePause, resetMediaElement, destroyHlsInstance]);
 
   // Phát hiện nếu nguồn chỉ hỗ trợ iframe/embed
   const isIframe = useMemo(() => {
@@ -1095,15 +1204,8 @@ function LivePlayerInner({
         watchdogTimerRef.current = null;
       }
       attemptIdRef.current++;
-      if (hlsRef.current) {
-        hlsRef.current.destroy();
-        hlsRef.current = null;
-      }
-      if (videoRef.current) {
-        videoRef.current.pause();
-        videoRef.current.removeAttribute("src");
-        videoRef.current.load();
-      }
+      destroyHlsInstance();
+      resetMediaElement(videoRef.current);
       lastLoadedUrlRef.current = "";
 
       const currentUrl = currentServer?.url || "";
@@ -1257,10 +1359,8 @@ function LivePlayerInner({
     setHasError(false);
     setErrorMessage("");
 
-    if (hlsRef.current) {
-      hlsRef.current.destroy();
-      hlsRef.current = null;
-    }
+    destroyHlsInstance();
+    resetMediaElement(video);
 
     const effectiveUrl = toPlayableHlsUrl(currentServer.url);
     const isEffectiveHls =
@@ -1319,13 +1419,17 @@ function LivePlayerInner({
 
     // Xác nhận luồng phát thực sự chạy mượt mà (chỉ gỡ watchdog khi video đã chạy thật)
     const onPlaybackConfirmed = () => {
+      if (currentAttemptId !== attemptIdRef.current) return;
       if (watchdogTimerRef.current) {
         clearTimeout(watchdogTimerRef.current);
         watchdogTimerRef.current = null;
       }
       setIsLoading(false);
       setHasError(false);
-      setIsPlaying(true);
+      if (!userPausedRef.current) {
+        isPlayingRef.current = true;
+        setIsPlaying(true);
+      }
     };
 
     const onTimeUpdateCheck = () => {
@@ -1378,6 +1482,7 @@ function LivePlayerInner({
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         // Lưu ý: KHÔNG hủy watchdog ở đây vì manifest parsed chưa đảm bảo video segment có thể tải được
+        if (currentAttemptId !== attemptIdRef.current) return;
         hls.currentLevel = -1;
         hls.loadLevel = -1;
         hls.nextLevel = -1;
@@ -1386,23 +1491,7 @@ function LivePlayerInner({
         video.muted = userMutedRef.current;
 
         if (isActive && !userPausedRef.current) {
-          video
-            .play()
-            .then(() => {
-              setIsPlaying(true);
-              setIsMuted(video.muted || video.volume === 0);
-            })
-            .catch(() => {
-              video.muted = true;
-              setIsMuted(true);
-              video
-                .play()
-                .then(() => {
-                  setIsPlaying(true);
-                  setIsMuted(true);
-                })
-                .catch(() => { });
-            });
+          safePlay(currentAttemptId);
         }
       });
 
@@ -1621,26 +1710,14 @@ function LivePlayerInner({
       video.muted = isMutedRef.current;
 
       onNativeLoadedMetadata = () => {
+        if (currentAttemptId !== attemptIdRef.current) return;
         if (isActive && !userPausedRef.current) {
-          video
-            .play()
-            .then(() => {
-              setIsPlaying(true);
-            })
-            .catch(() => {
-              setIsMuted(true);
-              video.muted = true;
-              video
-                .play()
-                .then(() => {
-                  setIsPlaying(true);
-                })
-                .catch(() => { });
-            });
+          safePlay(currentAttemptId);
         }
       };
 
       onNativeError = () => {
+        if (currentAttemptId !== attemptIdRef.current) return;
         if (isStoppedRef.current) return;
         executeServerFallbackRef.current("không thể phát trên thiết bị này");
       };
@@ -1659,10 +1736,7 @@ function LivePlayerInner({
         clearTimeout(watchdogTimerRef.current);
         watchdogTimerRef.current = null;
       }
-      if (hlsRef.current) {
-        hlsRef.current.destroy();
-        hlsRef.current = null;
-      }
+      destroyHlsInstance();
       video.removeEventListener("playing", onPlaybackConfirmed);
       video.removeEventListener("timeupdate", onTimeUpdateCheck);
       if (onNativeLoadedMetadata) {
@@ -1672,9 +1746,7 @@ function LivePlayerInner({
         video.removeEventListener("error", onNativeError);
       }
       if (video) {
-        video.pause();
-        video.removeAttribute("src");
-        video.load();
+        resetMediaElement(video);
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- servers and fallbacks are ref-stabilized to prevent destroying playback on parent polling
@@ -1710,9 +1782,7 @@ function LivePlayerInner({
   const togglePlay = useCallback(() => {
     if (!videoRef.current) return;
     if (isPlaying) {
-      userPausedRef.current = true;
-      videoRef.current.pause();
-      setIsPlaying(false);
+      safePause();
       setShowControls(true);
       triggerActionFeedback("pause");
     } else {
@@ -1743,14 +1813,11 @@ function LivePlayerInner({
         setLiveLatency(0);
       }
 
-      video
-        .play()
-        .then(() => setIsPlaying(true))
-        .catch(() => { });
+      safePlay();
       triggerActionFeedback("play");
       resetControlsTimeout();
     }
-  }, [isPlaying, resetControlsTimeout, triggerActionFeedback]);
+  }, [isPlaying, safePause, safePlay, resetControlsTimeout, triggerActionFeedback]);
 
   // Bật tiếng
   const unmuteSound = useCallback(() => {
@@ -1762,14 +1829,14 @@ function LivePlayerInner({
       videoRef.current.muted = false;
       videoRef.current.volume = targetVol;
       if (!userPausedRef.current && isActive) {
-        videoRef.current.play().catch(() => { });
+        safePlay();
       }
     }
     triggerActionFeedback("volume", `${Math.round(targetVol * 100)}%`);
     try {
       localStorage.setItem("nanaflix_live_volume", String(targetVol));
     } catch { }
-  }, [volume, isActive, triggerActionFeedback]);
+  }, [volume, isActive, safePlay, triggerActionFeedback]);
 
   // Bật / Tắt tiếng
   const toggleMute = useCallback(() => {
@@ -2498,9 +2565,9 @@ function LivePlayerInner({
     ) : null;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2.5 sm:space-y-3">
       {/* 1. SCOREBOARD HEADER SÂN CỎ ĐỈNH CAO: AMBIENT GLOW & HUY HIỆU CLB SẮC NÉT */}
-      <div className="relative rounded-2xl sm:rounded-3xl border border-white/15 bg-gradient-to-b from-zinc-900/95 via-zinc-950/98 to-black p-3 sm:p-4 shadow-2xl overflow-hidden w-full min-w-0 backdrop-blur-xl">
+      <div className="relative rounded-2xl sm:rounded-3xl border border-white/10 bg-gradient-to-b from-zinc-900/90 via-zinc-950/95 to-zinc-950 px-3.5 py-2.5 sm:px-4 sm:py-3 shadow-xl overflow-hidden w-full min-w-0 backdrop-blur-xl">
         {/* Glow hiệu ứng sân vận động 2 bên */}
         <div className="pointer-events-none absolute -top-24 left-1/4 w-96 h-96 bg-red-600/15 rounded-full blur-3xl" />
         <div className="pointer-events-none absolute -top-24 right-1/4 w-96 h-96 bg-sky-600/15 rounded-full blur-3xl" />
@@ -2524,13 +2591,13 @@ function LivePlayerInner({
         ) : (
           <div className="relative z-10 flex flex-col gap-2 sm:gap-2.5">
             {/* 1. TOP BAR: GIẢI ĐẤU, BLV & CHẤT LƯỢNG STREAM */}
-            <div className="flex items-center justify-between gap-2 border-b border-white/10 pb-2">
+            <div className="flex items-center justify-between gap-2 border-b border-white/[0.08] pb-1.5">
               <div className="flex items-center gap-2 min-w-0 flex-1">
                 <span
-                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-gray-200 text-[11px] sm:text-xs font-bold shadow-sm max-w-full truncate"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-white/5 border border-white/10 text-zinc-300 text-[10.5px] sm:text-xs font-semibold shadow-sm max-w-full truncate"
                   title={group || match?.tournament || "Trực Tiếp Bóng Đá"}
                 >
-                  <span className="shrink-0 text-xs sm:text-sm">🏆</span>
+                  <span className="shrink-0 text-xs">🏆</span>
                   <span className="truncate">{group || match?.tournament || "Trực Tiếp Bóng Đá"}</span>
                 </span>
               </div>
@@ -2538,7 +2605,7 @@ function LivePlayerInner({
               <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                 {(blv || match?.blv) && (
                   <span
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-500/15 border border-rose-500/30 text-rose-300 text-[10px] sm:text-xs font-bold shadow-sm max-w-[130px] sm:max-w-[200px] truncate"
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-300 text-[10px] sm:text-xs font-medium shadow-sm max-w-[130px] sm:max-w-[200px] truncate"
                     title={`BLV: ${blv || match?.blv}`}
                   >
                     <span className="shrink-0 text-[11px]">🎙️</span>
@@ -2554,7 +2621,7 @@ function LivePlayerInner({
                   </span>
                 )}
 
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-[10px] sm:text-xs font-black uppercase whitespace-nowrap">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] sm:text-xs font-bold uppercase whitespace-nowrap">
                   <Zap className="w-3 h-3 fill-emerald-400 shrink-0" />
                   <span>{currentServer?.quality || "FHD 1080p"}</span>
                 </span>
@@ -2562,13 +2629,13 @@ function LivePlayerInner({
             </div>
 
             {/* 2. MATCH ARENA (TRỌNG TÂM ĐỐI ĐẦU ĐỐI XỨNG TUYỆT ĐỐI 1fr auto 1fr) */}
-            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-6 md:gap-8 py-1.5 w-full">
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-4 md:gap-6 py-1 sm:py-1.5 w-full">
               {/* ĐỘI NHÀ (TEAM 1 - 50% CÂN ĐỐI) */}
               <div className="flex flex-col items-center justify-center text-center min-w-0 w-full group">
-                <div className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-2xl bg-gradient-to-b from-zinc-700/80 via-zinc-800/95 to-zinc-900 border-2 border-white/20 p-1.5 sm:p-2 flex items-center justify-center shadow-xl transition-all duration-300 group-hover:scale-105 group-hover:border-netflix-red/70 group-hover:shadow-red-950/60 overflow-hidden relative">
+                <div className="w-11 h-11 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-xl sm:rounded-2xl bg-gradient-to-b from-zinc-700/80 via-zinc-800/95 to-zinc-900 border-2 border-white/20 p-1.5 sm:p-2 flex items-center justify-center shadow-lg transition-all duration-300 group-hover:scale-105 group-hover:border-netflix-red/70 group-hover:shadow-red-950/60 overflow-hidden relative">
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.18)_0%,_transparent_75%)] pointer-events-none" />
                   {homeFlagEmoji ? (
-                    <CountryFlag emoji={homeFlagEmoji} className="w-8 h-8 sm:w-12 sm:h-12 relative z-10" />
+                    <CountryFlag emoji={homeFlagEmoji} className="w-7 h-7 sm:w-9 sm:h-9 md:w-10 md:h-10 relative z-10" />
                   ) : homeLogoSrc ? (
                     /* eslint-disable-next-line @next/next/no-img-element */
                     <img
@@ -2581,71 +2648,83 @@ function LivePlayerInner({
                     />
                   ) : (
                     <div className="flex flex-col items-center justify-center w-full h-full bg-rose-500/10 rounded-xl p-1 select-none">
-                      <span className="text-base sm:text-xl font-black text-rose-400 tracking-wider">
+                      <span className="text-sm sm:text-lg font-black text-rose-400 tracking-wider">
                         {getTeamInitials(team1)}
                       </span>
-                      <span className="text-[7px] sm:text-[8px] uppercase tracking-widest text-zinc-400 font-bold">
+                      <span className="text-[7px] uppercase tracking-widest text-zinc-400 font-bold">
                         CLB
                       </span>
                     </div>
                   )}
                 </div>
-                <h3 className="mt-1.5 text-xs sm:text-sm md:text-base font-extrabold text-white truncate max-w-full px-1 leading-tight block text-center" title={team1}>
+                <h3 className="mt-1 text-xs sm:text-[13px] md:text-sm font-bold text-white truncate max-w-full px-1 leading-tight block text-center" title={team1}>
                   {team1}
                 </h3>
               </div>
 
               {/* TRUNG TÂM MATCHUP: TỶ SỐ LIVESCORE HOẶC VS NỔI BẬT */}
-              <div className="flex flex-col items-center justify-center shrink-0 px-1 sm:px-4 text-center">
-                {hasScore ? (
+              <div className="flex flex-col items-center justify-center shrink-0 px-1 sm:px-3 text-center">
+                {isConfirmedLive ? (
                   <>
                     <div
-                      className={`px-3.5 py-1 sm:px-5 sm:py-1.5 rounded-xl sm:rounded-2xl border text-sm sm:text-lg md:text-xl font-black font-mono tracking-wider shadow-inner ${
-                        currentScore?.status === "live"
-                          ? "bg-zinc-800/90 border-red-500/40 text-amber-400"
-                          : "bg-zinc-800/70 border-white/15 text-gray-200"
-                      }`}
+                      className="px-3 py-0.5 sm:px-4 sm:py-1 rounded-xl border text-sm sm:text-base md:text-lg font-black font-mono tracking-wider shadow-inner bg-zinc-800/90 border-red-500/40 text-amber-400"
                     >
                       {currentScore?.team1Score} - {currentScore?.team2Score}
                     </div>
 
-                    <div className="mt-1 sm:mt-1.5 flex items-center justify-center gap-1 sm:gap-1.5 flex-wrap">
-                      {currentScore?.status === "live" ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 sm:px-2.5 sm:py-0.5 rounded-full bg-netflix-red/20 border border-netflix-red/40 text-netflix-red text-[8.5px] sm:text-[10.5px] font-black animate-pulse shadow-sm">
-                          <Radio className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                          <span>{currentScore.displayClock ? `LIVE ${currentScore.displayClock}` : "TRỰC TIẾP"}</span>
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-zinc-700/80 border border-white/10 text-gray-300 text-[8.5px] sm:text-[10.5px] font-bold shadow-sm">
-                          <span>HẾT GIỜ (FT)</span>
-                        </span>
-                      )}
+                    <div className="mt-0.5 sm:mt-1 flex items-center justify-center gap-1 sm:gap-1.5 flex-wrap">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 sm:px-2.5 sm:py-0.5 rounded-full bg-netflix-red/20 border border-netflix-red/40 text-netflix-red text-[8.5px] sm:text-[10px] font-black animate-pulse shadow-sm">
+                        <Radio className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                        <span>{currentScore?.displayClock ? `LIVE ${currentScore.displayClock}` : "TRỰC TIẾP"}</span>
+                      </span>
 
-                      {currentScore?.status === "live" &&
-                      currentScore.statusDetail &&
+                      {currentScore?.statusDetail &&
                       currentScore.statusDetail !== currentScore.displayClock &&
                       currentScore.statusDetail !== "In Progress" ? (
-                        <span className="text-[8.5px] sm:text-[10px] text-amber-300 font-bold bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20 whitespace-nowrap shadow-sm">
+                        <span className="text-[8.5px] sm:text-[9.5px] text-amber-300 font-bold bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20 whitespace-nowrap shadow-sm">
                           {currentScore.statusDetail}
                         </span>
                       ) : null}
                     </div>
                   </>
+                ) : isFinished ? (
+                  <>
+                    <div
+                      className="px-3 py-0.5 sm:px-4 sm:py-1 rounded-xl border text-sm sm:text-base md:text-lg font-black font-mono tracking-wider shadow-inner bg-zinc-800/70 border-white/15 text-gray-200"
+                    >
+                      {currentScore ? `${currentScore.team1Score} - ${currentScore.team2Score}` : "VS"}
+                    </div>
+
+                    <div className="mt-0.5 sm:mt-1 flex items-center justify-center gap-1 sm:gap-1.5 flex-wrap">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-zinc-700/80 border border-white/10 text-gray-300 text-[8.5px] sm:text-[10px] font-bold shadow-sm">
+                        <span>HẾT GIỜ (FT)</span>
+                      </span>
+                    </div>
+                  </>
                 ) : (
                   <>
-                    <div className="px-3.5 py-1 sm:px-5 sm:py-1.5 rounded-xl sm:rounded-2xl bg-zinc-800/90 border border-white/15 text-sm sm:text-lg md:text-xl font-black text-rose-400 font-mono tracking-widest shadow-inner">
+                    <div className="px-3 py-0.5 sm:px-4 sm:py-1 rounded-xl bg-zinc-800/80 border border-white/15 text-sm sm:text-base md:text-lg font-black text-rose-400 font-mono tracking-widest shadow-inner">
                       VS
                     </div>
 
-                    <div className="mt-1 sm:mt-1.5 flex items-center justify-center gap-1 sm:gap-1.5 flex-wrap">
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 sm:px-2.5 sm:py-0.5 rounded-full bg-netflix-red/20 border border-netflix-red/40 text-netflix-red text-[8.5px] sm:text-[10.5px] font-black animate-pulse shadow-sm">
-                        <Radio className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                        <span>TRỰC TIẾP</span>
-                      </span>
+                    <div className="mt-0.5 sm:mt-1 flex items-center justify-center gap-1 sm:gap-1.5 flex-wrap">
+                      {specialStatusLabel ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[8.5px] sm:text-[10px] font-bold shadow-sm">
+                          <span>{specialStatusLabel}</span>
+                        </span>
+                      ) : null}
 
-                      {time && time !== "Trực tiếp" && (
-                        <span className="text-[8.5px] sm:text-[10.5px] text-gray-300 font-semibold bg-white/10 px-2 py-0.5 rounded-full border border-white/10 whitespace-nowrap shadow-sm">
+                      {displayStatus.kickoffTime ? (
+                        <span className="text-[8.5px] sm:text-[10px] text-gray-300 font-semibold bg-white/10 px-2 py-0.5 rounded-full border border-white/10 whitespace-nowrap shadow-sm">
+                          ⏰ {displayStatus.kickoffTime}
+                        </span>
+                      ) : time && time !== "Trực tiếp" ? (
+                        <span className="text-[8.5px] sm:text-[10px] text-gray-300 font-semibold bg-white/10 px-2 py-0.5 rounded-full border border-white/10 whitespace-nowrap shadow-sm">
                           ⏰ {time}
+                        </span>
+                      ) : (
+                        <span className="text-[8.5px] sm:text-[10px] text-sky-400 font-semibold bg-sky-500/10 px-2 py-0.5 rounded-full border border-sky-500/20 whitespace-nowrap shadow-sm">
+                          SẮP DIỄN RA
                         </span>
                       )}
                     </div>
@@ -2655,10 +2734,10 @@ function LivePlayerInner({
 
               {/* ĐỘI KHÁCH (TEAM 2 - 50% CÂN ĐỐI) */}
               <div className="flex flex-col items-center justify-center text-center min-w-0 w-full group">
-                <div className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-2xl bg-gradient-to-b from-zinc-700/80 via-zinc-800/95 to-zinc-900 border-2 border-white/20 p-1.5 sm:p-2 flex items-center justify-center shadow-xl transition-all duration-300 group-hover:scale-105 group-hover:border-sky-500/70 group-hover:shadow-sky-950/60 overflow-hidden relative">
+                <div className="w-11 h-11 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-xl sm:rounded-2xl bg-gradient-to-b from-zinc-700/80 via-zinc-800/95 to-zinc-900 border-2 border-white/20 p-1.5 sm:p-2 flex items-center justify-center shadow-lg transition-all duration-300 group-hover:scale-105 group-hover:border-sky-500/70 group-hover:shadow-sky-950/60 overflow-hidden relative">
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.18)_0%,_transparent_75%)] pointer-events-none" />
                   {awayFlagEmoji ? (
-                    <CountryFlag emoji={awayFlagEmoji} className="w-8 h-8 sm:w-12 sm:h-12 relative z-10" />
+                    <CountryFlag emoji={awayFlagEmoji} className="w-7 h-7 sm:w-9 sm:h-9 md:w-10 md:h-10 relative z-10" />
                   ) : awayLogoSrc ? (
                     /* eslint-disable-next-line @next/next/no-img-element */
                     <img
@@ -2671,16 +2750,16 @@ function LivePlayerInner({
                     />
                   ) : (
                     <div className="flex flex-col items-center justify-center w-full h-full bg-sky-500/10 rounded-xl p-1 select-none">
-                      <span className="text-base sm:text-xl font-black text-sky-400 tracking-wider">
+                      <span className="text-sm sm:text-lg font-black text-sky-400 tracking-wider">
                         {getTeamInitials(team2)}
                       </span>
-                      <span className="text-[7px] sm:text-[8px] uppercase tracking-widest text-zinc-400 font-bold">
+                      <span className="text-[7px] uppercase tracking-widest text-zinc-400 font-bold">
                         CLB
                       </span>
                     </div>
                   )}
                 </div>
-                <h3 className="mt-1.5 text-xs sm:text-sm md:text-base font-extrabold text-white truncate max-w-full px-1 leading-tight block text-center" title={team2 || "Đối thủ"}>
+                <h3 className="mt-1 text-xs sm:text-[13px] md:text-sm font-bold text-white truncate max-w-full px-1 leading-tight block text-center" title={team2 || "Đối thủ"}>
                   {team2 || "Đối thủ"}
                 </h3>
               </div>
@@ -2910,7 +2989,7 @@ function LivePlayerInner({
         <div
           data-live-controls
           onClick={(e) => e.stopPropagation()}
-          className={`absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/85 to-transparent p-1.5 sm:p-4 pt-4 sm:pt-8 z-30 transition-opacity duration-300 select-none ${
+          className={`absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/85 to-transparent px-2 py-2 sm:px-4 sm:py-3 pt-6 sm:pt-8 z-30 transition-opacity duration-300 select-none ${
             showControls ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
           }`}
           style={{
@@ -2921,17 +3000,17 @@ function LivePlayerInner({
         >
           <div className="flex items-center justify-between gap-1 sm:gap-2">
             {/* CỤM TRÁI: PLAY/PAUSE + ĐỔI TRẬN NHANH + ÂM LƯỢNG */}
-            <div className="flex items-center gap-1 sm:gap-2.5 min-w-0 shrink-0">
+            <div className="flex items-center gap-1 sm:gap-2 min-w-0 shrink-0">
               <button
                 type="button"
                 onClick={togglePlay}
                 title={isPlaying ? "Tạm dừng (Space)" : "Phát (Space)"}
-                className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/20 hover:bg-white/30 shrink-0 flex items-center justify-center text-white transition hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md border border-white/20"
+                className="w-8 h-8 sm:w-9.5 sm:h-9.5 rounded-full bg-white/20 hover:bg-white/30 shrink-0 flex items-center justify-center text-white transition hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md border border-white/20"
               >
                 {isPlaying ? (
-                  <Pause className="w-3.5 h-3.5 sm:w-5 sm:h-5 fill-current" />
+                  <Pause className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5 fill-current" />
                 ) : (
-                  <Play className="w-3.5 h-3.5 sm:w-5 sm:h-5 fill-current ml-0.5" />
+                  <Play className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5 fill-current ml-0.5" />
                 )}
               </button>
 
@@ -2949,7 +3028,7 @@ function LivePlayerInner({
               </button>
 
               {/* CỤM VOLUME TRÊN TABLET & DESKTOP (Hiện đầy đủ Slider + % text) */}
-              <div className="h-9 sm:h-10 hidden sm:flex items-center gap-2 bg-black/60 px-3 rounded-full border border-white/20 backdrop-blur-md shrink-0">
+              <div className="h-8 sm:h-9.5 hidden sm:flex items-center gap-1.5 md:gap-2 bg-black/60 px-2.5 sm:px-3 rounded-full border border-white/20 backdrop-blur-md shrink-0">
                 <button
                   type="button"
                   onClick={toggleMute}
@@ -2957,7 +3036,7 @@ function LivePlayerInner({
                   className="text-white hover:text-rose-400 transition cursor-pointer p-0.5 flex items-center justify-center"
                 >
                   <VolumeIcon
-                    className={`w-4 h-4 sm:w-4.5 sm:h-4.5 ${isMuted || volume === 0 ? "text-rose-400" : "text-white"
+                    className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isMuted || volume === 0 ? "text-rose-400" : "text-white"
                       }`}
                   />
                 </button>
@@ -2970,12 +3049,12 @@ function LivePlayerInner({
                   value={isMuted ? 0 : volume}
                   onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
                   aria-label="Điều chỉnh âm lượng"
-                  className="w-16 sm:w-24 h-1.5 bg-zinc-700 accent-netflix-red rounded-lg appearance-none cursor-pointer hover:accent-red-500 transition"
+                  className="w-14 sm:w-16 md:w-20 lg:w-24 h-1.5 bg-zinc-700 accent-netflix-red rounded-lg appearance-none cursor-pointer hover:accent-red-500 transition"
                 />
 
                 <span
                   onClick={toggleMute}
-                  className="text-[11px] sm:text-xs font-mono font-bold text-gray-200 cursor-pointer hover:text-white select-none whitespace-nowrap min-w-[36px]"
+                  className="text-[10px] sm:text-[11px] font-mono font-bold text-gray-200 cursor-pointer hover:text-white select-none whitespace-nowrap min-w-[32px]"
                 >
                   {isMuted ? "Tắt tiếng" : `${Math.round(volume * 100)}%`}
                 </span>
@@ -3106,7 +3185,7 @@ function LivePlayerInner({
         {/* DANH SÁCH MÁY CHỦ PHÁT SÓNG (GỌN GÀNG, TỐI GIẢN & RESPONSIVE GRID) */}
         <div className="space-y-2.5 w-full min-w-0">
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5 sm:gap-2 w-full min-w-0 pt-0.5 max-h-72 overflow-y-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5 sm:gap-2 w-full min-w-0 pt-0.5 px-1 py-1 max-h-72 overflow-y-auto">
             {availableServers.length === 0 ? (
               <div className="col-span-full py-4 px-3 text-center rounded-xl bg-red-950/20 border border-red-900/30 text-gray-400 text-xs flex flex-col items-center justify-center gap-2">
                 <AlertCircle className="w-5 h-5 text-red-500" />
@@ -3141,7 +3220,7 @@ function LivePlayerInner({
                       setRetryNonce((prev) => prev + 1);
                     }}
                     className={`px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-between gap-2 cursor-pointer border text-left min-w-0 ${isSelected
-                        ? "bg-red-950/80 text-white border-red-500/80 shadow-md shadow-red-950/60 ring-1 ring-red-500/50 scale-[1.01]"
+                        ? "bg-red-950/80 text-white border-red-500/80 shadow-md shadow-red-950/60 ring-2 ring-red-500/60"
                         : "bg-black/60 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800/90"
                       }`}
                   >
