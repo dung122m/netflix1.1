@@ -80,7 +80,6 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   posterUrl,
   thumbUrl,
   genre,
-  description,
   priority = false,
   time,
   year,
@@ -89,8 +88,6 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   lang,
   chieurap,
   sub_docquyen,
-  actor: initialActor,
-  director: initialDirector,
   country: initialCountry,
   type_name: initialTypeName,
   hasTrailer: initialHasTrailer = false,
@@ -372,6 +369,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
             </span>
           </div>
         ) : (
+          /* eslint-disable-next-line @next/next/no-img-element */
           <img
             ref={checkImageComplete}
             src={currentSrc}

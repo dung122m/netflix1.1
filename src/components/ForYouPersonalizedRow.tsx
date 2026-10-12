@@ -516,7 +516,6 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
               />
             ))
           : movies.map((movie) => {
-              const matchScore = movie.matchPercentage || 95;
               const categoryName = movie.category?.[0]?.name;
 
               return (

@@ -106,7 +106,10 @@ export const CuratedMovieSection: React.FC<CuratedMovieSectionProps> = ({
 
   const currentTabConfig =
     CURATED_TABS.find((t) => t.id === activeTab) || CURATED_TABS[0];
-  const currentMovies = tabMovies[activeTab] || [];
+  const currentMovies = useMemo(
+    () => tabMovies[activeTab] || [],
+    [tabMovies, activeTab],
+  );
 
   // Chuẩn hóa movies để truyền an toàn vào MediaCard
   const normalizedMovies = useMemo(() => {

@@ -509,10 +509,9 @@ export function RecommendationTabs({
  */
 const RecommendedMovieCard = React.memo(function RecommendedMovieCard({
   item,
-  matchPercent,
 }: {
   item: MovieItem;
-  matchPercent: number;
+  matchPercent?: number;
 }) {
   const rawThumb = pickBestMovieThumb(item, "/default-hero.jpg");
   const thumbUrl = toOptimizedPhimimgUrl(rawThumb, 320);
@@ -612,10 +611,9 @@ const RecommendedMovieCard = React.memo(function RecommendedMovieCard({
  */
 const RecommendedSidebarCard = React.memo(function RecommendedSidebarCard({
   item,
-  matchPercent,
 }: {
   item: MovieItem;
-  matchPercent: number;
+  matchPercent?: number;
 }) {
   const rawThumb = pickBestMovieThumb(item, "/default-hero.jpg");
   const thumbUrl = toOptimizedPhimimgUrl(rawThumb, 240);
