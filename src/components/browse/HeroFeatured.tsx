@@ -715,7 +715,7 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
             <div className="max-w-2xl md:max-w-3xl mx-auto sm:mx-0 flex flex-col items-center sm:items-start text-center sm:text-left space-y-3 sm:space-y-4">
               {/* 3.1 TOP BADGE TINH GIẢN */}
               <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-netflix-red/40 bg-netflix-red/25 px-2.5 sm:px-3 py-0.5 text-[10px] sm:text-xs font-bold text-white shadow-sm backdrop-blur-md">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-netflix-red/40 bg-netflix-red/25 px-2.5 sm:px-3 py-0.5 text-[11px] sm:text-xs font-bold text-white shadow-sm backdrop-blur-md">
                   <Sparkles size={11} className="text-netflix-red fill-netflix-red" />
                   <span>Nổi bật</span>
                 </span>
@@ -745,27 +745,27 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
 
                 {featuredMovie?.year && (
                   <>
-                    <span className="text-zinc-600">•</span>
+                    <span className="text-zinc-400">•</span>
                     <span className="text-zinc-200">{featuredMovie.year}</span>
                   </>
                 )}
 
                 {isEpisodeUseful ? (
                   <>
-                    <span className="text-zinc-600">•</span>
+                    <span className="text-zinc-400">•</span>
                     <span className="text-emerald-400 font-semibold">{rawEpisode}</span>
                   </>
                 ) : cleanDuration ? (
                   <>
-                    <span className="text-zinc-600">•</span>
+                    <span className="text-zinc-400">•</span>
                     <span className="text-zinc-300">{cleanDuration}</span>
                   </>
                 ) : null}
 
                 {featuredMovie?.quality && (
                   <>
-                    <span className="text-zinc-600">•</span>
-                    <span className="px-1.5 py-0.2 rounded border border-white/20 bg-white/10 text-[9px] sm:text-[10px] font-bold text-white uppercase tracking-wider">
+                    <span className="text-zinc-400">•</span>
+                    <span className="px-2 py-0.5 rounded-md border border-white/25 bg-white/10 text-xs font-bold text-white uppercase tracking-wider backdrop-blur-sm">
                       {featuredMovie.quality}
                     </span>
                   </>
@@ -773,14 +773,14 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
 
                 {featuredMovie?.lang && (
                   <>
-                    <span className="text-zinc-600">•</span>
-                    <span className="text-rose-300/90 font-medium">{featuredMovie.lang}</span>
+                    <span className="text-zinc-400">•</span>
+                    <span className="text-rose-200 font-semibold">{featuredMovie.lang}</span>
                   </>
                 )}
 
                 {heroCountry && (
                   <span className="hidden sm:inline-flex items-center gap-x-2">
-                    <span className="text-zinc-600">•</span>
+                    <span className="text-zinc-400">•</span>
                     <span className="text-zinc-300">{heroCountry}</span>
                   </span>
                 )}
@@ -817,7 +817,7 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
                   ) : (
                     <Plus size={22} className="text-white" />
                   )}
-                  <span className="text-[11px] font-medium text-zinc-300">
+                  <span className="text-xs font-semibold text-zinc-200">
                     {inWatchlist ? "Đã lưu" : "Danh sách"}
                   </span>
                 </button>
@@ -840,7 +840,7 @@ const HeroFeaturedInner: React.FC<{ movies?: HeroMovie[] }> = ({
                     className="flex flex-col items-center justify-center gap-1 text-white active:scale-90 transition-transform cursor-pointer min-w-[64px]"
                   >
                     <Info size={22} className="text-white" />
-                    <span className="text-[11px] font-medium text-zinc-300">Chi tiết</span>
+                    <span className="text-xs font-semibold text-zinc-200">Chi tiết</span>
                   </Link>
                 )}
               </div>

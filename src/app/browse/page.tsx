@@ -792,14 +792,16 @@ export default async function BrowsePage({
     <div className="page-cinema-container min-h-screen pb-20">
       <Navbar />
 
-      {/* BỘ LỌC PHIM CHI TIẾT */}
-      <div className="px-4 md:px-8 pt-20 sm:pt-24">
-        <FilterBarClient />
-      </div>
+      {/* TRỤC CĂN CHỈNH NỘI DUNG CHÍNH (MAX-WIDTH 1440PX ĐỒNG BỘ THẲNG HÀNG 100%) */}
+      <div className="w-full max-w-[1440px] mx-auto px-4 md:px-8">
+        {/* BỘ LỌC PHIM CHI TIẾT */}
+        <div className="pt-20 sm:pt-24">
+          <FilterBarClient />
+        </div>
 
-      <div className="px-4 md:px-8 relative z-10 pt-2 sm:pt-4">
-        {/* TIÊU ĐỀ & KẾT QUẢ DANH MỤC */}
-        <div className="mb-7 flex flex-wrap items-center justify-between gap-3 mt-4">
+        <div className="relative z-10 pt-2 sm:pt-4">
+          {/* TIÊU ĐỀ & KẾT QUẢ DANH MỤC */}
+          <div className="mb-7 flex flex-wrap items-center justify-between gap-3 mt-4">
           <div>
             <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">
               {title}
@@ -945,6 +947,7 @@ export default async function BrowsePage({
             )}
           </div>
         )}
+        </div>
       </div>
       <Footer />
     </div>

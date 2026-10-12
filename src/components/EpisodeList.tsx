@@ -86,16 +86,24 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
     }
   }, [activeEpisodeIndex, episodes]);
 
-  // Tự động cuộn đến tập phim đang phát khi active episode thay đổi
+  // Tự động cuộn đến tập phim đang phát khi active episode thay đổi (chỉ trong container nội bộ, không cuộn window lúc mở trang)
   const activeItemRef = React.useRef<HTMLAnchorElement | null>(null);
+  const isInitialMount = React.useRef(true);
   useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
     if (activeEpisodeSlug && activeItemRef.current) {
       const scrollTimer = setTimeout(() => {
-        activeItemRef.current?.scrollIntoView({
-          behavior: "smooth",
-          block: "nearest",
-          inline: "center",
-        });
+        const scrollParent = activeItemRef.current?.closest(".overflow-y-auto");
+        if (scrollParent) {
+          activeItemRef.current?.scrollIntoView({
+            behavior: "smooth",
+            block: "nearest",
+            inline: "center",
+          });
+        }
       }, 50);
       return () => clearTimeout(scrollTimer);
     }

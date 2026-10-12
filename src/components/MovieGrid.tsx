@@ -8,12 +8,13 @@ import { Loader2 } from "lucide-react";
 interface MovieGridProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   movies: any[];
+  columnsClassName?: string;
 }
 
 const INITIAL_BATCH = 24;
 const BATCH_SIZE = 24;
 
-const MovieGridInner = ({ movies }: MovieGridProps) => {
+const MovieGridInner = ({ movies, columnsClassName }: MovieGridProps) => {
   const [visibleCount, setVisibleCount] = useState(INITIAL_BATCH);
   const [isDimmed, setIsDimmed] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -74,7 +75,7 @@ const MovieGridInner = ({ movies }: MovieGridProps) => {
   }, [normalizedMovies, visibleCount]);
 
   return (
-    <div className="relative movie-grid-container rounded-2xl sm:rounded-3xl border border-white/10 p-2 sm:p-5 md:p-6 shadow-2xl space-y-6 overflow-visible">
+    <div className="relative movie-grid-container rounded-2xl sm:rounded-3xl border border-white/10 p-2 sm:p-4 md:p-5 lg:p-6 shadow-2xl space-y-6 overflow-visible">
       {/* FLOATING LOADING BADGE KHI ĐANG LỌC PHIM */}
       {isDimmed && (
         <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none">
@@ -85,9 +86,12 @@ const MovieGridInner = ({ movies }: MovieGridProps) => {
         </div>
       )}
 
-      {/* LƯỚI PHIM CHÍNH: 2 cột trên mobile (<640px), 2 cột trên sm và iPad (md: 768-1023px), 3 cột trên laptop/lg, 4 cột trên PC (xl) */}
+      {/* LƯỚI PHIM CHÍNH: 2 cột mobile, 3 cột tablet, 4 cột laptop, 6 CỘT CÂN BẰNG TRÊN DESKTOP (24 PHIM = 4 HÀNG FULL) */}
       <div
-        className={`grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-5 md:gap-6 transition-all duration-300 ${
+        className={`grid ${
+          columnsClassName ||
+          "grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-4 lg:gap-5 xl:gap-5"
+        } transition-all duration-300 ${
           isDimmed ? "opacity-35 blur-[0.6px] scale-[0.995] pointer-events-none select-none" : "opacity-100 blur-0 scale-100"
         }`}
       >

@@ -27,18 +27,17 @@ export type FilterGroup = "type" | "genre" | "country" | "year" | "sort";
 interface MovieTypeOption {
   name: string;
   slug: string;
-  emoji: string;
 }
 
 const MOVIE_TYPES: MovieTypeOption[] = [
-  { name: "Phim Lẻ", slug: "phim-le", emoji: "🍿" },
-  { name: "Phim Bộ", slug: "phim-bo", emoji: "📺" },
-  { name: "Chiếu Rạp", slug: "phim-chieu-rap", emoji: "🎬" },
-  { name: "Hoạt Hình", slug: "hoat-hinh", emoji: "🎨" },
-  { name: "TV Shows", slug: "tv-shows", emoji: "🎪" },
-  { name: "Sắp Chiếu", slug: "phim-sap-chieu", emoji: "⏳" },
-  { name: "Thuyết Minh", slug: "phim-thuyet-minh", emoji: "🎙️" },
-  { name: "Lồng Tiếng", slug: "phim-long-tieng", emoji: "🗣️" },
+  { name: "Phim Lẻ", slug: "phim-le" },
+  { name: "Phim Bộ", slug: "phim-bo" },
+  { name: "Chiếu Rạp", slug: "phim-chieu-rap" },
+  { name: "Hoạt Hình", slug: "hoat-hinh" },
+  { name: "TV Shows", slug: "tv-shows" },
+  { name: "Sắp Chiếu", slug: "phim-sap-chieu" },
+  { name: "Thuyết Minh", slug: "phim-thuyet-minh" },
+  { name: "Lồng Tiếng", slug: "phim-long-tieng" },
 ];
 
 const SORT_OPTIONS = [
@@ -247,6 +246,84 @@ export const FilterBar: React.FC = () => {
 
   const hasAnyFilter = activeFiltersCount > 0;
 
+  // Mobile Filter Drawer State & Draft (< 640px)
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
+  const [draftType, setDraftType] = useState(currentType);
+  const [draftCategory, setDraftCategory] = useState(currentCategory);
+  const [draftCountry, setDraftCountry] = useState(currentCountry);
+  const [draftYear, setDraftYear] = useState(currentYear);
+  const [draftSort, setDraftSort] = useState(currentSort);
+
+  const openMobileDrawer = useCallback(() => {
+    setDraftType(currentType);
+    setDraftCategory(currentCategory);
+    setDraftCountry(currentCountry);
+    setDraftYear(currentYear);
+    setDraftSort(currentSort);
+    setIsMobileDrawerOpen(true);
+  }, [currentType, currentCategory, currentCountry, currentYear, currentSort]);
+
+  const handleApplyMobileDrawer = useCallback(() => {
+    setIsMobileDrawerOpen(false);
+
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("app:loading-start"));
+    }
+
+    const params = new URLSearchParams(searchParams.toString());
+
+    if (draftType) params.set("type", draftType);
+    else params.delete("type");
+
+    if (draftCategory) params.set("category", draftCategory);
+    else params.delete("category");
+
+    if (draftCountry) params.set("country", draftCountry);
+    else params.delete("country");
+
+    if (draftYear) params.set("year", draftYear);
+    else params.delete("year");
+
+    if (draftSort && draftSort !== "rating") {
+      params.set("sort", draftSort);
+    } else {
+      params.delete("sort");
+    }
+
+    params.delete("page");
+    const query = params.toString();
+
+    startTransition(() => {
+      router.push(query ? `/browse?${query}` : "/browse", { scroll: false });
+    });
+  }, [draftType, draftCategory, draftCountry, draftYear, draftSort, searchParams, router]);
+
+  const handleResetMobileDraft = useCallback(() => {
+    setDraftType("");
+    setDraftCategory("");
+    setDraftCountry("");
+    setDraftYear("");
+    setDraftSort("rating");
+  }, []);
+
+  const draftActiveCount = [
+    Boolean(draftType),
+    Boolean(draftCategory),
+    Boolean(draftCountry),
+    Boolean(draftYear),
+    Boolean(draftSort && draftSort !== "rating"),
+  ].filter(Boolean).length;
+
+  useEffect(() => {
+    if (isMobileDrawerOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isMobileDrawerOpen]);
+
   const toggleDropdown = (group: FilterGroup) => {
     setActiveDropdown((prev) => (prev === group ? null : group));
   };
@@ -323,8 +400,57 @@ export const FilterBar: React.FC = () => {
         className="pointer-events-none absolute -inset-0.5 rounded-2xl bg-gradient-to-r from-red-600/15 via-purple-600/10 to-transparent blur-lg opacity-70"
       />
 
-      {/* 1. CINEMATIC GLASSMORPHIC DOCK CONTAINER */}
-      <div className="relative w-full rounded-2xl bg-zinc-900/80 backdrop-blur-xl border border-white/10 p-2 sm:p-2.5 shadow-2xl shadow-black/80 flex items-center gap-2 sm:gap-3">
+      {/* 1A. MOBILE COMPACT TRIGGER BAR (< 640px) */}
+      <div className="sm:hidden relative w-full rounded-2xl bg-zinc-900/90 backdrop-blur-xl border border-white/10 p-2 shadow-2xl shadow-black/80 flex items-center justify-between gap-2">
+        <button
+          type="button"
+          onClick={openMobileDrawer}
+          className="flex-1 h-10 px-3.5 rounded-xl bg-zinc-800/80 hover:bg-zinc-700/80 border border-white/15 text-white flex items-center justify-between gap-2 shadow-sm active:scale-[0.98] transition cursor-pointer"
+        >
+          <div className="flex items-center gap-2 min-w-0">
+            <SlidersHorizontal className="w-4 h-4 text-netflix-red shrink-0" />
+            <span className="font-bold text-xs truncate">Bộ lọc & Phân loại</span>
+            {activeFiltersCount > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full bg-netflix-red text-white text-[10px] font-black shrink-0">
+                {activeFiltersCount}
+              </span>
+            )}
+          </div>
+          <ChevronDown className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(new CustomEvent("open-ai-roulette"));
+            }
+          }}
+          className="h-10 px-3 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 text-white border border-red-500/40 text-xs font-semibold flex items-center gap-1.5 shrink-0 active:scale-95 transition cursor-pointer"
+          title="Bốc quẻ phim ngẫu nhiên"
+        >
+          <Dices className="w-3.5 h-3.5 text-netflix-red shrink-0" />
+          <span className="text-xs font-bold">Bốc quẻ</span>
+        </button>
+
+        {hasAnyFilter && (
+          <button
+            type="button"
+            onClick={handleClearAll}
+            className="h-10 w-10 rounded-xl border border-dashed border-rose-500/50 text-rose-300 hover:bg-rose-950/40 flex items-center justify-center shrink-0 active:scale-95 transition cursor-pointer"
+            title="Xóa tất cả bộ lọc"
+          >
+            {isPending && pendingGroup === "all" ? (
+              <Loader2 className="w-3.5 h-3.5 text-rose-400 animate-spin" />
+            ) : (
+              <RotateCcw className="w-3.5 h-3.5 text-rose-400" />
+            )}
+          </button>
+        )}
+      </div>
+
+      {/* 1B. CINEMATIC GLASSMORPHIC DOCK CONTAINER (DESKTOP >= 640px) */}
+      <div className="hidden sm:flex relative w-full rounded-2xl bg-zinc-900/80 backdrop-blur-xl border border-white/10 p-2 sm:p-2.5 shadow-2xl shadow-black/80 items-center gap-2 sm:gap-3">
         {/* LEFT LABEL: ICON + TEXT (DESKTOP / TABLET) */}
         <div className="flex-none hidden sm:flex items-center gap-2 pl-2 pr-2.5 border-r border-white/10 text-white font-bold text-xs sm:text-sm tracking-tight">
           <SlidersHorizontal className="w-4 h-4 text-netflix-red flex-none" />
@@ -557,10 +683,10 @@ export const FilterBar: React.FC = () => {
         </div>
       </div>
 
-      {/* 2. ACTIVE DROPDOWN POPUP (Neo chính xác dưới từng nút bấm được chọn) */}
+      {/* 2. ACTIVE DROPDOWN POPUP (Neo chính xác dưới từng nút bấm được chọn - CHỈ TRÊN DESKTOP) */}
       {activeDropdown && (
         <div
-          className="absolute top-full mt-2 z-50 transition-all duration-150"
+          className="hidden sm:block absolute top-full mt-2 z-50 transition-all duration-150"
           style={{
             left: dropdownOffset.left !== undefined ? `${dropdownOffset.left}px` : undefined,
             right: dropdownOffset.right !== undefined ? `${dropdownOffset.right}px` : undefined,
@@ -607,10 +733,7 @@ export const FilterBar: React.FC = () => {
                           : "text-gray-300 hover:bg-zinc-800/80 hover:text-white"
                       }`}
                     >
-                      <span className="flex items-center gap-2">
-                        <span>{t.emoji}</span>
-                        <span>{t.name}</span>
-                      </span>
+                      <span>{t.name}</span>
                       {isSelected && <Check className="w-3.5 h-3.5 text-white" />}
                     </button>
                   );
@@ -835,7 +958,7 @@ export const FilterBar: React.FC = () => {
               className="flex-none inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/90 border border-white/10 hover:border-white/25 text-zinc-300 hover:text-white transition cursor-pointer text-xs whitespace-nowrap group"
               title="Nhấn để bỏ lọc loại phim này"
             >
-              <span>{activeTypeObj?.emoji} {activeTypeName}</span>
+              <span>{activeTypeName}</span>
               <X className="w-3 h-3 text-zinc-400 group-hover:text-white" />
             </button>
           )}
@@ -926,6 +1049,297 @@ export const FilterBar: React.FC = () => {
           >
             <span>[Xóa bộ lọc]</span>
           </button>
+        </div>
+      )}
+
+      {/* 3. MOBILE FILTER DRAWER (BOTTOM SHEET - HIỂN THỊ TRÊN MOBILE < 640px) */}
+      {isMobileDrawerOpen && (
+        <div className="fixed inset-0 z-[60] sm:hidden select-none">
+          {/* Lớp nền mờ tối (Backdrop Overlay) */}
+          <div
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200 cursor-pointer"
+            onClick={() => setIsMobileDrawerOpen(false)}
+            aria-hidden="true"
+          />
+
+          {/* Bảng điều khiển Bottom Sheet */}
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Bảng điều khiển bộ lọc phim"
+            className="fixed inset-x-0 bottom-0 z-[70] max-h-[85vh] flex flex-col rounded-t-3xl bg-zinc-950 border-t border-white/15 shadow-[0_-16px_50px_rgba(0,0,0,0.95)] animate-in slide-in-from-bottom duration-200"
+          >
+            {/* Thanh nắm kéo (Grab Handle) */}
+            <div className="w-12 h-1.5 rounded-full bg-zinc-700/80 mx-auto my-2.5 shrink-0" />
+
+            {/* Tiêu đề Bottom Sheet */}
+            <div className="px-4 py-2 border-b border-white/10 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2">
+                <SlidersHorizontal className="w-4 h-4 text-netflix-red shrink-0" />
+                <h3 className="text-base font-bold text-white">Bộ Lọc Phim</h3>
+                {draftActiveCount > 0 && (
+                  <span className="px-2 py-0.5 rounded-full bg-netflix-red/20 text-netflix-red border border-netflix-red/30 text-xs font-bold">
+                    {draftActiveCount} đang chọn
+                  </span>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsMobileDrawerOpen(false)}
+                className="w-8 h-8 rounded-full flex items-center justify-center bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white transition cursor-pointer"
+                aria-label="Đóng bảng bộ lọc"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Danh sách các nhóm bộ lọc có thể cuộn */}
+            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {/* NHÓM 1: SẮP XẾP */}
+              <div className="space-y-2">
+                <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <ArrowUpDown className="w-3.5 h-3.5 text-amber-400" />
+                  Sắp xếp theo
+                </span>
+                <div className="grid grid-cols-2 gap-2">
+                  {SORT_OPTIONS.map((opt) => {
+                    const isSelected = draftSort === opt.value;
+                    const Icon = opt.icon;
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setDraftSort(opt.value)}
+                        className={`py-2 px-3 rounded-xl border text-xs font-semibold flex items-center gap-2 transition active:scale-95 cursor-pointer text-left ${
+                          isSelected
+                            ? "bg-amber-950/70 border-amber-500/80 text-amber-200 ring-1 ring-amber-500/40"
+                            : "bg-zinc-900/90 border-white/10 text-zinc-300 hover:bg-zinc-800"
+                        }`}
+                      >
+                        <Icon className={`w-3.5 h-3.5 shrink-0 ${opt.color}`} />
+                        <span className="truncate">{opt.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* NHÓM 2: LOẠI PHIM */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <Film className="w-3.5 h-3.5 text-purple-400" />
+                    Loại phim
+                  </span>
+                  {draftType && (
+                    <button
+                      type="button"
+                      onClick={() => setDraftType("")}
+                      className="text-[11px] text-purple-400 hover:text-purple-300 font-medium cursor-pointer"
+                    >
+                      Bỏ chọn
+                    </button>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setDraftType("")}
+                    className={`py-1.5 px-3 rounded-xl border text-xs font-semibold transition active:scale-95 cursor-pointer ${
+                      !draftType
+                        ? "bg-purple-600 text-white font-bold border-purple-400"
+                        : "bg-zinc-900/90 border-white/10 text-zinc-300"
+                    }`}
+                  >
+                    Tất cả
+                  </button>
+                  {MOVIE_TYPES.map((t) => {
+                    const isSelected = draftType === t.slug;
+                    return (
+                      <button
+                        key={t.slug}
+                        type="button"
+                        onClick={() => setDraftType(isSelected ? "" : t.slug)}
+                        className={`py-1.5 px-3 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition active:scale-95 cursor-pointer ${
+                          isSelected
+                            ? "bg-purple-600 text-white font-bold border-purple-400 shadow-sm"
+                            : "bg-zinc-900/90 border-white/10 text-zinc-300"
+                        }`}
+                      >
+                        <span>{t.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* NHÓM 3: THỂ LOẠI */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-rose-400" />
+                    Thể loại
+                  </span>
+                  {draftCategory && (
+                    <button
+                      type="button"
+                      onClick={() => setDraftCategory("")}
+                      className="text-[11px] text-rose-400 hover:text-rose-300 font-medium cursor-pointer"
+                    >
+                      Bỏ chọn
+                    </button>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto pr-1">
+                  <button
+                    type="button"
+                    onClick={() => setDraftCategory("")}
+                    className={`py-1.5 px-3 rounded-xl border text-xs font-semibold transition active:scale-95 cursor-pointer ${
+                      !draftCategory
+                        ? "bg-rose-600 text-white font-bold border-rose-400"
+                        : "bg-zinc-900/90 border-white/10 text-zinc-300"
+                    }`}
+                  >
+                    Tất cả
+                  </button>
+                  {filters.genres.map((g) => {
+                    const isSelected = draftCategory === g.slug;
+                    return (
+                      <button
+                        key={g.slug}
+                        type="button"
+                        onClick={() => setDraftCategory(isSelected ? "" : g.slug)}
+                        className={`py-1.5 px-3 rounded-xl border text-xs font-semibold transition active:scale-95 cursor-pointer ${
+                          isSelected
+                            ? "bg-rose-600 text-white font-bold border-rose-400 shadow-sm"
+                            : "bg-zinc-900/90 border-white/10 text-zinc-300"
+                        }`}
+                      >
+                        {g.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* NHÓM 4: QUỐC GIA */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <Globe2 className="w-3.5 h-3.5 text-sky-400" />
+                    Quốc gia
+                  </span>
+                  {draftCountry && (
+                    <button
+                      type="button"
+                      onClick={() => setDraftCountry("")}
+                      className="text-[11px] text-sky-400 hover:text-sky-300 font-medium cursor-pointer"
+                    >
+                      Bỏ chọn
+                    </button>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setDraftCountry("")}
+                    className={`py-1.5 px-3 rounded-xl border text-xs font-semibold transition active:scale-95 cursor-pointer ${
+                      !draftCountry
+                        ? "bg-sky-600 text-white font-bold border-sky-400"
+                        : "bg-zinc-900/90 border-white/10 text-zinc-300"
+                    }`}
+                  >
+                    Tất cả
+                  </button>
+                  {filters.countries.map((c) => {
+                    const isSelected = draftCountry === c.slug;
+                    return (
+                      <button
+                        key={c.slug}
+                        type="button"
+                        onClick={() => setDraftCountry(isSelected ? "" : c.slug)}
+                        className={`py-1.5 px-3 rounded-xl border text-xs font-semibold transition active:scale-95 cursor-pointer ${
+                          isSelected
+                            ? "bg-sky-600 text-white font-bold border-sky-400 shadow-sm"
+                            : "bg-zinc-900/90 border-white/10 text-zinc-300"
+                        }`}
+                      >
+                        {c.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* NHÓM 5: NĂM PHÁT HÀNH */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-emerald-400" />
+                    Năm phát hành
+                  </span>
+                  {draftYear && (
+                    <button
+                      type="button"
+                      onClick={() => setDraftYear("")}
+                      className="text-[11px] text-emerald-400 hover:text-emerald-300 font-medium cursor-pointer"
+                    >
+                      Bỏ chọn
+                    </button>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto pr-1">
+                  <button
+                    type="button"
+                    onClick={() => setDraftYear("")}
+                    className={`py-1.5 px-3 rounded-xl border text-xs font-semibold transition active:scale-95 cursor-pointer ${
+                      !draftYear
+                        ? "bg-emerald-600 text-white font-bold border-emerald-400"
+                        : "bg-zinc-900/90 border-white/10 text-zinc-300"
+                    }`}
+                  >
+                    Tất cả
+                  </button>
+                  {filters.years.slice(0, 24).map((y) => {
+                    const isSelected = draftYear === y;
+                    return (
+                      <button
+                        key={y}
+                        type="button"
+                        onClick={() => setDraftYear(isSelected ? "" : y)}
+                        className={`py-1.5 px-3 rounded-xl border text-xs font-semibold transition active:scale-95 cursor-pointer ${
+                          isSelected
+                            ? "bg-emerald-600 text-white font-bold border-emerald-400 shadow-sm"
+                            : "bg-zinc-900/90 border-white/10 text-zinc-300"
+                        }`}
+                      >
+                        {y}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Chân Bottom Sheet dính cố định (Sticky Footer) */}
+            <div className="px-4 py-3 border-t border-white/10 bg-zinc-950/98 flex items-center gap-3 shrink-0 pb-[calc(env(safe-area-inset-bottom,0px)+16px)]">
+              <button
+                type="button"
+                onClick={handleResetMobileDraft}
+                className="h-11 px-4 rounded-xl border border-white/15 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-bold text-xs active:scale-95 transition cursor-pointer"
+              >
+                Đặt lại
+              </button>
+              <button
+                type="button"
+                onClick={handleApplyMobileDrawer}
+                className="flex-1 h-11 rounded-xl bg-netflix-red hover:bg-red-700 text-white font-bold text-xs shadow-lg shadow-red-950/50 flex items-center justify-center gap-2 active:scale-95 transition cursor-pointer"
+              >
+                <span>Áp dụng bộ lọc</span>
+                {draftActiveCount > 0 && <span>({draftActiveCount})</span>}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

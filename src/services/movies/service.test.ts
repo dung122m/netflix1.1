@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { movieApi, deduplicateServerEpisodes } from "./service";
+import { movieApi, deduplicateServerEpisodes, buildMovieCacheKey } from "./service";
 
 describe("Nanaflix Movie Browse Pagination & Filter Service", () => {
   // A. /browse?category=hai-huoc&page=1
@@ -250,6 +250,83 @@ describe("Nanaflix Movie Browse Pagination & Filter Service", () => {
         `All episode slugs in server '${srv.server_name}' must be strictly unique (found duplicates: ${slugs.length} vs ${uniqueSlugs.size})`
       );
     }
+  });
+
+  // T. Toàn bộ loại phim (phim-le, phim-bo, hoat-hinh, tv-shows) tuân thủ công thức phân trang
+  it("T. All movie types (phim-le, phim-bo, hoat-hinh, tv-shows) obey pagination invariants", async () => {
+    const types = ["phim-le", "phim-bo", "hoat-hinh", "tv-shows"] as const;
+    for (const t of types) {
+      const res = await movieApi.getMovies({ type: t, page: 1, limit: 24, skipKvCache: true });
+      assert.equal(res.status, true);
+      assert.ok(res.items.length > 0 && res.items.length <= 24, `Type ${t} must return 1-24 items`);
+      assert.ok(res.pagination.totalItems > 0, `Type ${t} totalItems must be > 0`);
+      assert.equal(
+        res.pagination.totalPages,
+        Math.ceil(res.pagination.totalItems / 24),
+        `Type ${t} totalPages must equal Math.ceil(totalItems / 24)`
+      );
+    }
+  });
+
+  // U. Compound filter (type + country, type + category) metadata invariance across page 1 and page 2
+  it("U. Compound filter (type + country) metadata is invariant across page 1 and page 2", async () => {
+    const p1 = await movieApi.getMovies({
+      type: "phim-le",
+      country: "han-quoc",
+      page: 1,
+      limit: 24,
+      skipKvCache: true,
+    });
+    const p2 = await movieApi.getMovies({
+      type: "phim-le",
+      country: "han-quoc",
+      page: 2,
+      limit: 24,
+      skipKvCache: true,
+    });
+    assert.equal(p1.status, true);
+    assert.equal(p2.status, true);
+    assert.ok(p1.pagination.totalItems > 0, "Compound filter must return items");
+    assert.equal(p2.pagination.totalItems, p1.pagination.totalItems, "totalItems must match across pages");
+    assert.equal(p2.pagination.totalPages, p1.pagination.totalPages, "totalPages must match across pages");
+  });
+
+  // V. Keyword search pagination metadata consistency
+  it("V. Search query has consistent pagination metadata and non-empty items", async () => {
+    const res = await movieApi.getMovies({
+      keyword: "tinh yeu",
+      page: 1,
+      limit: 24,
+      skipKvCache: true,
+    });
+    assert.equal(res.status, true);
+    assert.ok(Array.isArray(res.items));
+    assert.ok(res.pagination.totalItems >= res.items.length);
+    assert.equal(
+      res.pagination.totalPages,
+      Math.max(1, Math.ceil(res.pagination.totalItems / 24))
+    );
+  });
+
+  // W. Cache key generation produces correct version 11 and includes all filter fields
+  it("W. buildMovieCacheKey generates version 11 with normalized filter parameters", () => {
+    const key = buildMovieCacheKey({
+      type: "phim-le",
+      category: "hanh-dong",
+      country: "han-quoc",
+      year: "2024",
+      page: 2,
+      limit: 24,
+      sort: "rating",
+    });
+    const parsed = JSON.parse(key);
+    assert.equal(parsed.v, 11, "Cache key version must be 11");
+    assert.equal(parsed.type, "phim-le");
+    assert.equal(parsed.category, "hanh-dong");
+    assert.equal(parsed.country, "han-quoc");
+    assert.equal(parsed.year, "2024");
+    assert.equal(parsed.page, 2);
+    assert.equal(parsed.sort, "rating");
   });
 });
 

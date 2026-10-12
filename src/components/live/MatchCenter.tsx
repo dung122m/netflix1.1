@@ -14,6 +14,7 @@ import {
   MapPin,
   UserCheck,
   ArrowUpDown,
+  Radio,
 } from "lucide-react";
 import { NormalizedMatchSummary, MatchStatItem, LiveMatchScore } from "@/services/live/football-score/types";
 import {
@@ -22,7 +23,25 @@ import {
   shouldSkipDuplicateRequest,
 } from "@/services/live/football-score/matchCenterRealtime";
 import { resolveCanonicalTournament } from "@/services/live/football-score/canonicalLeagues";
+import { getTeamAsset } from "@/data/live/teamAssets";
+import { toDarkModeLogoUrl } from "@/services/live/football-logo/service";
 import { TacticalLineup } from "./TacticalLineup";
+import { CountryFlag } from "./CountryFlag";
+
+function getTeamInitials(teamName: string): string {
+  if (!teamName) return "⚽";
+  const clean = teamName
+    .replace(/^CLB\s+/i, "")
+    .replace(/^FC\s+/i, "")
+    .replace(/^SSC\s+/i, "")
+    .replace(/^U\d+\s+/i, "")
+    .trim();
+  const words = clean.split(/\s+/).filter(Boolean);
+  if (words.length >= 2) {
+    return (words[0][0] + words[1][0]).toUpperCase();
+  }
+  return clean.slice(0, 2).toUpperCase();
+}
 
 interface MatchCenterProps {
   leagueSlug?: string;
@@ -34,6 +53,11 @@ interface MatchCenterProps {
   team1Logo?: string;
   team2Logo?: string;
   isLive?: boolean;
+  time?: string;
+  blv?: string;
+  group?: string;
+  serversCount?: number;
+  quality?: string;
   onSummaryChange?: (summary: NormalizedMatchSummary | null) => void;
 }
 
@@ -46,13 +70,16 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
   team1,
   team2,
   tournament,
-  team1Logo: _team1Logo,
-  team2Logo: _team2Logo,
+  team1Logo,
+  team2Logo,
   isLive,
+  time,
+  blv,
+  group,
+  serversCount,
+  quality,
   onSummaryChange,
 }) => {
-  void _team1Logo;
-  void _team2Logo;
   const [isOpen, setIsOpen] = useState(true);
   const [activeTab, setActiveTab] = useState<TabType>("overview");
   const [summary, setSummary] = useState<NormalizedMatchSummary | null>(null);
@@ -60,11 +87,17 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [homeImgFailed, setHomeImgFailed] = useState(false);
+  const [awayImgFailed, setAwayImgFailed] = useState(false);
+
+  useEffect(() => {
+    setHomeImgFailed(false);
+    setAwayImgFailed(false);
+  }, [team1, team2, team1Logo, team2Logo]);
+
   useEffect(() => {
     onSummaryChange?.(summary);
   }, [summary, onSummaryChange]);
-
-
 
   // Thứ tự hiển thị bình luận: mặc định "newest" để luôn thấy thời gian hiện tại ở đầu
   const [commentaryOrder, setCommentaryOrder] = useState<"newest" | "oldest">("newest");
@@ -133,7 +166,10 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
 
       if (!res.ok) {
         if (res.status === 404) {
-          throw new Error("Chưa có dữ liệu chi tiết cho trận đấu này.");
+          // Trận đấu chưa có dữ liệu chi tiết API -> chuyển sang chế độ thông tin luồng phát
+          setSummary(null);
+          setError(null);
+          return;
         }
         throw new Error("Không thể tải thông tin trận đấu lúc này.");
       }
@@ -227,6 +263,24 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
     }
   }, [activeTab, commentaryOrder]);
 
+  const homeDisplayName = summary?.homeTeam?.displayName || summary?.homeTeam?.name || team1 || "Đội nhà";
+  const awayDisplayName = summary?.awayTeam?.displayName || summary?.awayTeam?.name || team2 || "Đội khách";
+
+  const homeAsset = useMemo(() => getTeamAsset(homeDisplayName), [homeDisplayName]);
+  const awayAsset = useMemo(() => getTeamAsset(awayDisplayName), [awayDisplayName]);
+
+  const homeLogoSrc = useMemo(() => {
+    if (homeImgFailed) return null;
+    const raw = summary?.homeTeam?.logo || team1Logo || homeAsset?.logo;
+    return raw ? toDarkModeLogoUrl(raw) : null;
+  }, [summary?.homeTeam?.logo, team1Logo, homeAsset, homeImgFailed]);
+
+  const awayLogoSrc = useMemo(() => {
+    if (awayImgFailed) return null;
+    const raw = summary?.awayTeam?.logo || team2Logo || awayAsset?.logo;
+    return raw ? toDarkModeLogoUrl(raw) : null;
+  }, [summary?.awayTeam?.logo, team2Logo, awayAsset, awayImgFailed]);
+
   const displayTitle = useMemo(() => {
     if (team1 && team2) return `${team1} vs ${team2}`;
     return matchTitle;
@@ -264,7 +318,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
       >
         <div className="flex items-center gap-3 min-w-0">
           <div className="p-2.5 rounded-2xl bg-netflix-red/15 text-netflix-red border border-netflix-red/30 shrink-0">
-            <Activity className="w-5 h-5" />
+            {summary ? <Activity className="w-5 h-5" /> : <Radio className="w-5 h-5 text-netflix-red" />}
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
@@ -285,7 +339,9 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
               )}
             </div>
             <p className="text-xs text-gray-400 mt-0.5 truncate">
-              Diễn biến thời gian thực, đội hình, bình luận và thống kê chuyên sâu
+              {summary
+                ? "Diễn biến thời gian thực, đội hình, bình luận và thống kê chuyên sâu"
+                : "Thông tin trận đấu & trạng thái luồng phát trực tiếp"}
             </p>
           </div>
         </div>
@@ -319,37 +375,6 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
       {/* 2. NỘI DUNG MATCH CENTER */}
       {isOpen && (
         <div className="p-3.5 sm:p-6 space-y-4">
-
-
-          {/* B. THANH ĐIỀU HƯỚNG TAB CHỨC NĂNG */}
-          <div className="flex items-center gap-1 sm:gap-2 overflow-x-auto pb-1 scrollbar-none border-b border-white/10">
-            {[
-              { id: "overview", label: "Tổng quan", icon: Clock },
-              { id: "stats", label: "Thống kê", icon: BarChart2 },
-              { id: "timeline", label: "Diễn biến", icon: Activity },
-              { id: "lineups", label: "Đội hình", icon: Users },
-              { id: "commentary", label: "Bình luận", icon: MessageSquare },
-            ].map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setActiveTab(tab.id as TabType)}
-                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-extrabold transition-all cursor-pointer whitespace-nowrap ${
-                    isActive
-                      ? "bg-gradient-to-r from-netflix-red to-red-600 text-white shadow-md shadow-red-950/60 scale-[1.02]"
-                      : "text-gray-400 hover:text-white hover:bg-white/5"
-                  }`}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                  <span>{tab.label}</span>
-                </button>
-              );
-            })}
-          </div>
-
           {/* C. LOADING SKELETON */}
           {loading && !summary && (
             <div className="py-12 flex flex-col items-center justify-center gap-3 text-gray-400">
@@ -374,19 +399,192 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
             </div>
           )}
 
-          {/* E. EMPTY STATE */}
+          {/* E. KHI CHƯA/KHÔNG CÓ DỮ LIỆU SỐ LIỆU: THẺ "THÔNG TIN TRẬN ĐẤU & LUỒNG PHÁT" (ẨN TOÀN BỘ 5 TAB RỖNG) */}
           {!loading && !error && !summary && (
-            <div className="py-12 flex flex-col items-center justify-center text-center gap-2 text-gray-400 rounded-2xl bg-zinc-900/30 border border-white/5 p-6">
-              <Activity className="w-8 h-8 text-gray-500 mb-1" />
-              <p className="text-sm font-bold text-gray-300">Chưa có thông tin chi tiết cho trận đấu này</p>
-              <p className="text-xs text-gray-500">Dữ liệu từ ban tổ chức sẽ tự động cập nhật khi trận đấu diễn ra.</p>
+            <div className="space-y-4">
+              {/* Thẻ cặp đấu đối đầu */}
+              <div className="rounded-2xl bg-gradient-to-b from-white/[0.04] via-zinc-900/60 to-zinc-950 border border-white/10 p-4 sm:p-5">
+                <div className="flex items-center justify-between gap-3 sm:gap-6">
+                  {/* Đội nhà */}
+                  <div className="flex-1 flex flex-col items-center sm:items-end text-center sm:text-right min-w-0">
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 mb-2 rounded-2xl bg-zinc-800/90 border border-white/15 p-2 flex items-center justify-center shadow-lg relative overflow-hidden shrink-0">
+                      {homeAsset?.emoji ? (
+                        <CountryFlag emoji={homeAsset.emoji} className="w-7 h-7 sm:w-8 sm:h-8 relative z-10" />
+                      ) : homeLogoSrc ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img
+                          src={homeLogoSrc}
+                          alt={homeDisplayName}
+                          className="w-full h-full object-contain filter drop-shadow relative z-10"
+                          onError={() => setHomeImgFailed(true)}
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center w-full h-full bg-rose-500/10 rounded-xl">
+                          <span className="text-sm font-black text-rose-400">
+                            {getTeamInitials(homeDisplayName)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <h4 className="text-sm sm:text-base font-extrabold text-white tracking-tight truncate w-full" title={homeDisplayName}>
+                      {homeDisplayName}
+                    </h4>
+                    <span className="text-[10px] text-gray-400 font-medium mt-0.5">Đội nhà</span>
+                  </div>
+
+                  {/* Cụm VS trung tâm */}
+                  <div className="flex flex-col items-center px-2 shrink-0">
+                    <div className="px-2.5 py-0.5 rounded-md bg-zinc-900/90 border border-white/15 shadow-sm">
+                      <span className="text-xs sm:text-sm font-black uppercase tracking-[0.2em] text-zinc-200 select-none">
+                        VS
+                      </span>
+                    </div>
+                    <span
+                      className={`mt-1.5 inline-flex items-center gap-1.5 text-[9.5px] font-black uppercase px-2.5 py-0.5 rounded-full border tracking-wider ${
+                        isLive
+                          ? "bg-red-950/50 text-red-400 border-red-500/30 shadow-sm"
+                          : "bg-zinc-900 text-sky-400 border-sky-500/20"
+                      }`}
+                    >
+                      {isLive && (
+                        <span className="relative flex h-1.5 w-1.5 shrink-0">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500" />
+                        </span>
+                      )}
+                      <span>{isLive ? "TRỰC TIẾP" : (time && time !== "Trực tiếp" ? `⏰ ${time}` : "TRỰC TIẾP")}</span>
+                    </span>
+                  </div>
+
+                  {/* Đội khách */}
+                  <div className="flex-1 flex flex-col items-center sm:items-start text-center sm:text-left min-w-0">
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 mb-2 rounded-2xl bg-zinc-800/90 border border-white/15 p-2 flex items-center justify-center shadow-lg relative overflow-hidden shrink-0">
+                      {awayAsset?.emoji ? (
+                        <CountryFlag emoji={awayAsset.emoji} className="w-7 h-7 sm:w-8 sm:h-8 relative z-10" />
+                      ) : awayLogoSrc ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img
+                          src={awayLogoSrc}
+                          alt={awayDisplayName}
+                          className="w-full h-full object-contain filter drop-shadow relative z-10"
+                          onError={() => setAwayImgFailed(true)}
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center w-full h-full bg-sky-500/10 rounded-xl">
+                          <span className="text-sm font-black text-sky-400">
+                            {getTeamInitials(awayDisplayName)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <h4 className="text-sm sm:text-base font-extrabold text-white tracking-tight truncate w-full" title={awayDisplayName}>
+                      {awayDisplayName}
+                    </h4>
+                    <span className="text-[10px] text-gray-400 font-medium mt-0.5">Đội khách</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Lưới thông tin luồng phát & Trận đấu */}
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                {/* Giải đấu */}
+                <div className="rounded-xl bg-white/[0.03] border border-white/10 p-3 flex flex-col gap-1">
+                  <span className="text-[10px] uppercase font-bold text-gray-400 flex items-center gap-1">
+                    <span>🏆</span>
+                    <span>Giải đấu</span>
+                  </span>
+                  <span className="font-extrabold text-white truncate" title={canonicalLeague || tournament || "Giải Đấu Khác"}>
+                    {canonicalLeague || tournament || "Giải Đấu Khác"}
+                  </span>
+                </div>
+
+                {/* Bình luận viên */}
+                <div className="rounded-xl bg-white/[0.03] border border-white/10 p-3 flex flex-col gap-1">
+                  <span className="text-[10px] uppercase font-bold text-gray-400 flex items-center gap-1">
+                    <span>🎙️</span>
+                    <span>Bình luận</span>
+                  </span>
+                  <span className="font-extrabold text-white truncate" title={blv || "BLV Tiếng Việt"}>
+                    {blv || "BLV Tiếng Việt"}
+                  </span>
+                </div>
+
+                {/* Kênh phát */}
+                <div className="rounded-xl bg-white/[0.03] border border-white/10 p-3 flex flex-col gap-1">
+                  <span className="text-[10px] uppercase font-bold text-gray-400 flex items-center gap-1">
+                    <span>📺</span>
+                    <span>Kênh tiếp sóng</span>
+                  </span>
+                  <span className="font-extrabold text-white truncate" title={group || "Kênh Thể Thao"}>
+                    {group || "Kênh Thể Thao"}
+                  </span>
+                </div>
+
+                {/* Tín hiệu & Luồng */}
+                <div className="rounded-xl bg-white/[0.03] border border-white/10 p-3 flex flex-col gap-1">
+                  <span className="text-[10px] uppercase font-bold text-gray-400 flex items-center gap-1">
+                    <span>⚡</span>
+                    <span>Chất lượng</span>
+                  </span>
+                  <span className="font-extrabold text-emerald-400 truncate">
+                    {quality || "HD Sắc Nét"} {serversCount ? `(${serversCount} nguồn)` : ""}
+                  </span>
+                </div>
+              </div>
+
+              {/* Thông báo tiếp sóng & giải thích dữ liệu */}
+              <div className="rounded-2xl bg-zinc-900/40 border border-white/5 p-4 flex items-start gap-3 text-xs text-gray-400">
+                <div className="p-2 rounded-xl bg-white/5 text-gray-300 border border-white/10 shrink-0 mt-0.5">
+                  <Radio className="w-4 h-4 text-netflix-red animate-pulse" />
+                </div>
+                <div className="space-y-1">
+                  <p className="font-bold text-gray-200">
+                    Trận đấu đang được tiếp sóng trực tiếp
+                  </p>
+                  <p className="text-gray-400 leading-relaxed text-[11px] sm:text-xs">
+                    Dữ liệu phân tích chuyên sâu (sơ đồ chiến thuật, diễn biến từng phút) hiện chưa được ban tổ chức giải đấu này cung cấp qua hệ thống số liệu thời gian thực. Quý khán giả có thể theo dõi trọn vẹn trận đấu qua luồng video phát sóng phía trên.
+                  </p>
+                </div>
+              </div>
             </div>
           )}
 
-          {/* F. NỘI DUNG TỪNG TAB */}
+          {/* F. NỘI DUNG TỪNG TAB (CHỈ HIỂN THỊ KHI CÓ DỮ LIỆU SUMMARY) */}
           {summary && (
-            <div className="space-y-4">
-              {/* TAB 1: TỔNG QUAN (OVERVIEW) */}
+            <>
+              {/* B. THANH ĐIỀU HƯỚNG TAB CHỨC NĂNG */}
+              <div className="flex items-center gap-1 sm:gap-2 overflow-x-auto pb-1 scrollbar-none border-b border-white/10">
+                {[
+                  { id: "overview", label: "Tổng quan", icon: Clock },
+                  { id: "stats", label: "Thống kê", icon: BarChart2 },
+                  { id: "timeline", label: "Diễn biến", icon: Activity },
+                  { id: "lineups", label: "Đội hình", icon: Users },
+                  { id: "commentary", label: "Bình luận", icon: MessageSquare },
+                ].map((tab) => {
+                  const Icon = tab.icon;
+                  const isActive = activeTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setActiveTab(tab.id as TabType)}
+                      className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-extrabold transition-all cursor-pointer whitespace-nowrap ${
+                        isActive
+                          ? "bg-gradient-to-r from-netflix-red to-red-600 text-white shadow-md shadow-red-950/60 scale-[1.02]"
+                          : "text-gray-400 hover:text-white hover:bg-white/5"
+                      }`}
+                    >
+                      <Icon className="w-3.5 h-3.5" />
+                      <span>{tab.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="space-y-4">
+                {/* TAB 1: TỔNG QUAN (OVERVIEW) */}
               {activeTab === "overview" && (
                 <div className="space-y-4">
                   {/* Thông tin sân vận động & trọng tài */}
@@ -407,7 +605,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                     </div>
                   )}
 
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-4">
                   {/* Cột trái: Thống kê nổi bật */}
                   <div className="rounded-2xl bg-zinc-900/50 border border-white/10 p-4 space-y-3">
                     <h5 className="text-xs font-extrabold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
@@ -649,6 +847,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                 </div>
               )}
             </div>
+            </>
           )}
         </div>
       )}

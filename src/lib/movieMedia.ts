@@ -295,6 +295,44 @@ export function toOptimizedCardBackdropUrl(url: string, targetWidth: number = 32
 }
 
 /**
+ * Tối ưu ảnh cho Thẻ phim dọc 2:3 trên mobile (MediaCard / Mobile Grid).
+ * - TMDb: Dùng TMDb w500 chuẩn tỷ lệ poster 2:3 sắc nét.
+ * - Phimimg: Tự động đổi -thumb.webp thành -poster.webp (chuẩn tỷ lệ 2:3).
+ */
+export function toOptimizedCardPosterUrl(url: string, targetWidth: number = 320): string {
+  if (!url || typeof url !== "string") return "";
+  let clean = sanitizeImageUrl(url);
+  if (!clean) return "";
+
+  if (
+    clean.startsWith("/api/img-thumb") ||
+    clean.startsWith("/default-") ||
+    clean.startsWith("/images/")
+  ) {
+    return clean;
+  }
+
+  if (clean.includes("image.tmdb.org/t/p/")) {
+    clean = clean.replace(/\/t\/p\/(w1280|original|w780)\//, "/t/p/w500/");
+    return clean;
+  }
+
+  if (clean.includes("phimimg.com")) {
+    // Nếu có dạng -thumb.webp, chuyển sang -poster.webp để lấy poster dọc 2:3 chuẩn
+    if (clean.includes("-thumb.webp")) {
+      clean = clean.replace("-thumb.webp", "-poster.webp");
+    }
+    if (clean.includes("-poster.webp")) {
+      return clean;
+    }
+    const w = targetWidth <= 192 ? 192 : targetWidth <= 320 ? 320 : targetWidth <= 480 ? 480 : 640;
+    return `/api/img-thumb?url=${encodeURIComponent(clean)}&w=${w}`;
+  }
+
+  return clean;
+}
+
+/**
  * Dành riêng cho Banner Hero cỡ lớn toàn màn hình trên đầu trang.
  * Ưu tiên độ phân giải gốc cực cao (original / w1280) cho màn hình lớn & Retina 2x/4K.
  */

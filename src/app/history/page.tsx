@@ -4,7 +4,7 @@ import { Footer } from "@/components/Footer";
 import { HistoryClient } from "./HistoryClient";
 
 export const metadata: Metadata = {
-  title: "Lịch Sử Việt Nam | Dòng Thời Gian Lịch Sử Hào Hùng - Nanaflix",
+  title: "Biên Niên Sử Việt Nam | Dòng Thời Gian Lịch Sử Hào Hùng - Nanaflix",
   description:
     "Tra cứu hơn 3.300 mốc son lịch sử, các trận chiến hiển hách và danh nhân lập quốc qua 11 thời kỳ lịch sử vẻ vang từ thời các Vua Hùng dựng nước đến nay.",
   keywords: [
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     "nanaflix lịch sử",
   ],
   openGraph: {
-    title: "Lịch Sử Việt Nam | Dòng Thời Gian Lịch Sử Hào Hùng - Nanaflix",
+    title: "Biên Niên Sử Việt Nam | Dòng Thời Gian Lịch Sử Hào Hùng - Nanaflix",
     description:
       "Tra cứu hơn 3.300 mốc son lịch sử, các trận chiến hiển hách và danh nhân lập quốc qua 11 thời kỳ lịch sử vẻ vang từ thời các Vua Hùng dựng nước đến nay.",
     type: "website",

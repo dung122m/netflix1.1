@@ -122,7 +122,10 @@ export function getEventTabBadge(event: VietnamEvent): { label: string; emoji: s
   else if (event.nature === "arts-culture" || event.category === "entertainment") emoji = "🎭";
   else if (event.category === "vietnam-history" || event.nature === "historical-anniversary") emoji = "📜";
 
-  const label = getCleanEventTitle(event.title);
+  let label = getCleanEventTitle(event.title);
+  if (label.includes(" (") && label.endsWith(")")) {
+    label = label.replace(/\s*\([^)]*\)$/, "").trim();
+  }
   return { label, emoji };
 }
 

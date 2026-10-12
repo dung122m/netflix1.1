@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
-import { Tv, Radio, Zap } from "lucide-react";
+import { Tv, Radio, Zap, Trophy, Activity } from "lucide-react";
 import { LiveFootballData } from "@/services/liveFootballService";
 import { LiveTvData } from "@/services/liveTvService";
 import { LiveFootballClient } from "./LiveFootballClient";
@@ -152,7 +152,7 @@ export function LiveHubClient({ footballData, tvData }: LiveHubClientProps) {
                 : "text-gray-400 hover:text-white hover:bg-white/5"
             }`}
           >
-            <span className="text-sm leading-none">⚽</span>
+            <Trophy className="w-3.5 h-3.5 shrink-0" />
             <span>Bóng Đá</span>
             <span
               className={`text-[9.5px] px-1.5 py-0.2 rounded-full font-black ${
@@ -175,7 +175,7 @@ export function LiveHubClient({ footballData, tvData }: LiveHubClientProps) {
                 : "text-gray-400 hover:text-white hover:bg-white/5"
             }`}
           >
-            <span className="text-sm leading-none">🏀</span>
+            <Activity className="w-3.5 h-3.5 shrink-0" />
             <span>Bóng Rổ</span>
             <span
               className={`text-[9.5px] px-1.5 py-0.2 rounded-full font-black ${

@@ -521,6 +521,7 @@ const RecommendedMovieCard = React.memo(function RecommendedMovieCard({
   const year = item.year;
   const time = item.time;
   const quality = item.quality || "FHD";
+  const rating = extractMovieRatingScore(item)?.rating || 0;
 
   return (
     <div className="group relative bg-zinc-900 rounded-2xl overflow-hidden border border-white/10 hover:border-white/25 transition-all duration-300 hover:scale-[1.02] shadow-md hover:shadow-2xl flex flex-col">
@@ -551,13 +552,15 @@ const RecommendedMovieCard = React.memo(function RecommendedMovieCard({
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
-          {/* Badge % Khớp thông minh góc trên bên trái */}
-          <div className="absolute top-2 left-2 z-10 pointer-events-none">
-            <span className="px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wide bg-black/80 backdrop-blur-md text-amber-300 border border-amber-500/30 flex items-center gap-1 shadow-md">
-              <Sparkles className="w-2.5 h-2.5 text-amber-400 fill-current" />
-              <span>{matchPercent}% Trùng khớp</span>
-            </span>
-          </div>
+          {/* Badge Điểm đánh giá góc trên bên trái */}
+          {rating > 0 ? (
+            <div className="absolute top-2 left-2 z-10 pointer-events-none">
+              <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-black/80 backdrop-blur-md text-amber-300 border border-amber-500/30 flex items-center gap-1 shadow-md">
+                <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
+                <span>{rating.toFixed(1)}</span>
+              </span>
+            </div>
+          ) : null}
 
           {/* Badge Chất lượng góc trên bên phải */}
           {quality && (
@@ -621,6 +624,7 @@ const RecommendedSidebarCard = React.memo(function RecommendedSidebarCard({
   const year = item.year;
   const time = item.time;
   const quality = item.quality || "HD";
+  const rating = extractMovieRatingScore(item)?.rating || 0;
 
   return (
     <Link
@@ -671,10 +675,12 @@ const RecommendedSidebarCard = React.memo(function RecommendedSidebarCard({
               {categoryName}
             </span>
           )}
-          <span className="text-[10px] font-bold text-amber-400 flex items-center gap-0.5">
-            <Sparkles className="w-2.5 h-2.5 fill-current" />
-            <span>{matchPercent}%</span>
-          </span>
+          {rating > 0 ? (
+            <span className="text-[10px] font-semibold text-amber-300 flex items-center gap-0.5">
+              <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
+              <span>{rating.toFixed(1)}</span>
+            </span>
+          ) : null}
         </div>
       </div>
     </Link>

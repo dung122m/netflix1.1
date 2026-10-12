@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect, useCallback } from "react";
-import { Play, Clock } from "lucide-react";
+import { Play, Clock, Star } from "lucide-react";
 import { FootballMatch } from "@/services/liveFootballService";
 import { LiveMatchScore } from "@/services/live/football-score/types";
 import {
@@ -308,7 +308,7 @@ function MatchCardInner({ match, isSelected, onSelect, score }: MatchCardProps) 
         <div className="flex items-center justify-between gap-1.5 pb-1 mb-1 border-b border-white/[0.06] text-xs">
           {/* Tên giải đấu & Badge Tâm Điểm */}
           <div className="flex items-center gap-1.5 min-w-0 flex-1">
-            <span className="text-zinc-400 text-[10.5px] sm:text-[11px] font-medium truncate flex items-center gap-1">
+            <span className="text-zinc-300 text-[11px] sm:text-xs font-medium truncate flex items-center gap-1">
               <span>{getSportIcon(match.sport)}</span>
               <span className="truncate">{tournamentName}</span>
             </span>
@@ -316,10 +316,10 @@ function MatchCardInner({ match, isSelected, onSelect, score }: MatchCardProps) 
             {/* Badge Trận Cầu Tâm Điểm */}
             {featured.isFeatured && (
               <span
-                className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[8.5px] sm:text-[9px] font-black uppercase tracking-wider bg-amber-500/15 border border-amber-500/40 text-amber-300 shadow-sm shrink-0"
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] sm:text-xs font-bold uppercase tracking-wider bg-amber-500/15 border border-amber-500/40 text-amber-300 shadow-sm shrink-0"
                 title={featured.badgeLabel || "Trận cầu tâm điểm"}
               >
-                <span className="text-[9px] leading-none text-amber-400">⭐</span>
+                <Star size={11} className="text-amber-400 fill-amber-400 shrink-0" />
                 <span>{featured.badgeLabel || "TÂM ĐIỂM"}</span>
               </span>
             )}
@@ -330,32 +330,35 @@ function MatchCardInner({ match, isSelected, onSelect, score }: MatchCardProps) 
             {isConfirmedLive ? (
               <div className="flex items-center gap-1.5">
                 {kickoffTime && (
-                  <span className="text-[9.5px] sm:text-[10px] font-mono text-zinc-400 font-medium">
+                  <span className="text-[11px] sm:text-xs font-mono text-zinc-200 font-semibold">
                     {kickoffTime}
                   </span>
                 )}
-                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] sm:text-[9.5px] font-bold bg-black/60 border border-red-500/30 text-white shadow-sm tracking-wider whitespace-nowrap">
-                  <span className="w-1.5 h-1.5 rounded-full bg-netflix-red animate-ping shrink-0" />
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] sm:text-xs font-black uppercase bg-red-950/70 border border-red-500/40 text-red-300 shadow-sm tracking-wider whitespace-nowrap">
+                  <span className="relative flex h-1.5 w-1.5 shrink-0">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500" />
+                  </span>
                   <span>{liveBadgeLabel}</span>
                 </span>
               </div>
             ) : isFinished ? (
-              <span className="px-1.5 py-0.5 rounded-full bg-zinc-800 border border-white/10 text-gray-400 font-bold text-[9px] uppercase whitespace-nowrap">
+              <span className="px-2 py-0.5 rounded-md bg-zinc-800 border border-white/15 text-zinc-300 font-bold text-[11px] sm:text-xs uppercase whitespace-nowrap">
                 FT
               </span>
             ) : specialStatusLabel ? (
-              <span className="px-1.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-300 font-bold text-[9px] whitespace-nowrap">
+              <span className="px-2 py-0.5 rounded-md bg-amber-500/20 border border-amber-500/35 text-amber-300 font-bold text-[11px] sm:text-xs whitespace-nowrap">
                 {specialStatusLabel}
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-sky-500/15 border border-sky-500/30 text-sky-300 font-bold text-[9px] sm:text-[9.5px] whitespace-nowrap shadow-sm">
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-sky-500/15 border border-sky-500/35 text-sky-300 font-bold text-[11px] sm:text-xs whitespace-nowrap shadow-sm">
                 <Clock className="w-2.5 h-2.5 text-sky-400 shrink-0" />
                 <span>{kickoffTime || "Sắp phát"}</span>
               </span>
             )}
 
             {isFhd && (
-              <span className="px-1 py-0.2 rounded text-[8px] font-black uppercase tracking-wider bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+              <span className="px-1.5 py-0.5 rounded text-[11px] sm:text-xs font-black uppercase tracking-wider bg-emerald-500/15 border border-emerald-500/30 text-emerald-300">
                 1080P
               </span>
             )}
@@ -364,7 +367,7 @@ function MatchCardInner({ match, isSelected, onSelect, score }: MatchCardProps) 
 
       {/* 2. BODY SCOREBOARD: 2 HÀNG ĐỘI BÓNG SIÊU NÉT, GỌN GÀNG */}
       {isTwoTeamMatch ? (
-        <div className="space-y-1 py-0.5">
+        <div className="space-y-1.5 py-0.5">
           {/* HÀNG 1: ĐỘI NHÀ */}
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-1.5 min-w-0 flex-1">
@@ -390,10 +393,10 @@ function MatchCardInner({ match, isSelected, onSelect, score }: MatchCardProps) 
 
               {/* Tên đội nhà */}
               <span
-                className={`text-[11.5px] sm:text-xs truncate transition-colors ${
+                className={`text-xs sm:text-[13px] truncate transition-colors ${
                   isSelected
-                    ? "text-white font-black text-xs sm:text-[13px] drop-shadow-sm"
-                    : "text-zinc-200 font-bold group-hover:text-white"
+                    ? "text-white font-black drop-shadow-sm"
+                    : "text-zinc-100 font-bold group-hover:text-white"
                 }`}
                 title={displayTeam1}
               >
@@ -404,7 +407,7 @@ function MatchCardInner({ match, isSelected, onSelect, score }: MatchCardProps) 
             {/* Tỷ số đội nhà */}
             {(isConfirmedLive || isFinished) && currentScore?.team1Score !== undefined ? (
               <span
-                className={`font-mono text-xs sm:text-[13px] font-black px-1.5 py-0.2 rounded shrink-0 ${
+                className={`font-mono text-[13px] sm:text-sm font-black px-2 py-0.5 rounded shrink-0 ${
                   isSelected
                     ? "text-amber-300 bg-amber-500/20 border border-amber-400/40 shadow-sm"
                     : isConfirmedLive
@@ -442,10 +445,10 @@ function MatchCardInner({ match, isSelected, onSelect, score }: MatchCardProps) 
 
               {/* Tên đội khách */}
               <span
-                className={`text-[11.5px] sm:text-xs truncate transition-colors ${
+                className={`text-xs sm:text-[13px] truncate transition-colors ${
                   isSelected
-                    ? "text-white font-black text-xs sm:text-[13px] drop-shadow-sm"
-                    : "text-zinc-200 font-bold group-hover:text-white"
+                    ? "text-white font-black drop-shadow-sm"
+                    : "text-zinc-100 font-bold group-hover:text-white"
                 }`}
                 title={displayTeam2}
               >
@@ -456,7 +459,7 @@ function MatchCardInner({ match, isSelected, onSelect, score }: MatchCardProps) 
             {/* Tỷ số đội khách */}
             {(isConfirmedLive || isFinished) && currentScore?.team2Score !== undefined ? (
               <span
-                className={`font-mono text-xs sm:text-[13px] font-black px-1.5 py-0.2 rounded shrink-0 ${
+                className={`font-mono text-[13px] sm:text-sm font-black px-2 py-0.5 rounded shrink-0 ${
                   isSelected
                     ? "text-amber-300 bg-amber-500/20 border border-amber-400/40 shadow-sm"
                     : isConfirmedLive
@@ -485,17 +488,17 @@ function MatchCardInner({ match, isSelected, onSelect, score }: MatchCardProps) 
               <span className="text-xs">{getSportIcon(match.sport)}</span>
             )}
           </div>
-          <strong className="text-xs font-bold text-white line-clamp-1 flex-1">
+          <strong className="text-xs sm:text-[13px] font-bold text-white line-clamp-1 flex-1">
             {match.title || match.team1}
           </strong>
         </div>
       )}
 
       {/* 3. FOOTER: BLV & SERVERS NGUỒN PHÁT (TINH GỌN, CHUẨN XEM TRỰC TIẾP) */}
-      <div className="flex items-center justify-between gap-1.5 pt-1 mt-1 border-t border-white/[0.06] text-[9.5px] sm:text-[10px] text-zinc-400">
+      <div className="flex items-center justify-between gap-1.5 pt-1.5 mt-1 border-t border-white/[0.06] text-[11px] sm:text-xs text-zinc-300">
         <div className="flex items-center gap-1 min-w-0 flex-1 truncate">
           {match.blv ? (
-            <span className="text-zinc-400 group-hover:text-zinc-300 font-medium truncate flex items-center gap-1">
+            <span className="text-zinc-300 group-hover:text-white font-medium truncate flex items-center gap-1">
               <span className="shrink-0 text-amber-400/90">🎙️</span>
               <span className="truncate">
                 {(() => {
@@ -518,14 +521,14 @@ function MatchCardInner({ match, isSelected, onSelect, score }: MatchCardProps) 
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
-          <span className="text-zinc-300 font-medium flex items-center gap-1 bg-white/5 px-1.5 py-0.2 rounded border border-white/5 text-[9px] sm:text-[9.5px]">
+          <span className="text-zinc-200 font-semibold flex items-center gap-1 bg-white/5 px-2 py-0.5 rounded-md border border-white/10 text-[11px] sm:text-xs">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
             <span>{match.servers.length} nguồn</span>
           </span>
 
           {isSelected ? (
             <span
-              className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-netflix-red/15 border border-netflix-red/40 text-red-400 font-bold text-[9px] sm:text-[9.5px] tracking-wide shrink-0"
+              className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-netflix-red/20 border border-netflix-red/45 text-red-300 font-bold text-[11px] sm:text-xs tracking-wide shrink-0"
               title="Đang phát trên player chính"
             >
               <span className="flex items-end gap-[1.5px] h-2.5 px-0.5 shrink-0">

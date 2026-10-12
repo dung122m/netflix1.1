@@ -219,11 +219,11 @@ function CommunityTopTrendingInner() {
             </span>
           </div>
           <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-white tracking-tight flex items-center gap-2">
-            <span>👀 Xem Nhiều Nhất</span>
-            <Flame className="w-6 h-6 text-netflix-red animate-bounce" />
+            <span>Khán Giả Xem Nhiều Nhất</span>
+            <Flame className="w-5 h-5 sm:w-6 sm:h-6 text-netflix-red" />
           </h2>
           <p className="text-xs sm:text-sm text-gray-400 mt-0.5">
-            Bảng xếp hạng phim thịnh hành được cộng đồng khán giả yêu thích nhất
+            Bảng xếp hạng phim thịnh hành được cộng đồng khán giả xem nhiều nhất
           </p>
         </div>
 
@@ -239,7 +239,7 @@ function CommunityTopTrendingInner() {
                   : "text-gray-400 hover:text-white hover:bg-white/5 active:scale-95"
               }`}
             >
-              🔥 Toàn Thời Gian
+              Toàn Thời Gian
             </button>
             <button
               type="button"
@@ -250,7 +250,7 @@ function CommunityTopTrendingInner() {
                   : "text-gray-400 hover:text-white hover:bg-white/5 active:scale-95"
               }`}
             >
-              ⚡ Trong Tuần
+              Trong Tuần
             </button>
           </div>
         </div>
@@ -415,10 +415,10 @@ function CommunityTopTrendingInner() {
                         {movie.quality && (
                           <div className="absolute top-2 right-2 pointer-events-none z-10">
                             <span
-                              className={`px-1.5 py-0.5 rounded text-[9px] font-bold backdrop-blur-md border ${
+                              className={`px-2 py-0.5 rounded-md text-[10.5px] font-bold backdrop-blur-md border ${
                                 movie.quality.toUpperCase().includes("CAM")
-                                  ? "bg-amber-950/80 text-amber-300 border-amber-500/40"
-                                  : "bg-black/70 text-zinc-300 border-white/10"
+                                  ? "bg-amber-950/90 text-amber-300 border-amber-500/40"
+                                  : "bg-black/80 text-zinc-100 border-white/20"
                               }`}
                             >
                               {movie.quality}

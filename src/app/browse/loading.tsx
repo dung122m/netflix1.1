@@ -32,12 +32,12 @@ export default function BrowseLoading() {
           <div className="h-9 w-28 bg-white/10 rounded-xl" />
         </div>
 
-        {/* MOVIE GRID SKELETON (12 CARDS) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
-          {Array.from({ length: 12 }).map((_, i) => (
+        {/* MOVIE GRID SKELETON (24 CARDS) */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-4 lg:gap-5 xl:gap-5 p-2 sm:p-4 md:p-5 lg:p-6 rounded-2xl sm:rounded-3xl border border-white/10 bg-zinc-950/40">
+          {Array.from({ length: 24 }).map((_, i) => (
             <div
               key={i}
-              className="aspect-video rounded-2xl bg-zinc-900/80 border border-white/5 relative overflow-hidden"
+              className="aspect-[2/3] rounded-xl sm:rounded-2xl bg-zinc-900/80 border border-white/5 relative overflow-hidden"
             >
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
               <div className="absolute bottom-3 left-3 right-3 space-y-2">

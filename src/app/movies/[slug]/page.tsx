@@ -40,6 +40,7 @@ import { TrailerModal } from "@/components/TrailerModal";
 import { MovieRecommendationsClient } from "@/components/MovieRecommendationsClient";
 import { MovieCastGallery } from "@/components/MovieCastGallery";
 import { getTmdbMovieCredits } from "@/services/tmdbService";
+import { MobileMovieNav } from "@/components/movies/MobileMovieNav";
 
 // =========================================================================
 // BỘ THÀNH PHẦN STREAMING BẤT ĐỒNG BỘ (SUSPENSE NON-BLOCKING CHO TMDB DATA)
@@ -629,8 +630,8 @@ export default async function MovieDetail({
                       {isChieuRap && (
                         <>
                           <span className="text-gray-600">•</span>
-                          <span className="text-amber-300 font-semibold flex items-center gap-1">
-                            🎬 Chiếu Rạp
+                          <span className="text-amber-300 font-semibold">
+                            Chiếu Rạp
                           </span>
                         </>
                       )}
@@ -739,8 +740,14 @@ export default async function MovieDetail({
                     )}
                   </div>
 
+                  {/* MOBILE NAVIGATION BAR (TẬP PHIM · THÔNG TIN · BÌNH LUẬN · ĐỀ XUẤT) */}
+                  <MobileMovieNav isSeries={!isSingleEpisode} />
+
                   {/* 3. MOBILE-FIRST NGUỒN PHÁT & DANH SÁCH TẬP PHIM (< 1024px) - Vị trí ưu tiên ngay dưới player & header */}
-                  <div className="lg:hidden rounded-2xl border border-white/15 bg-gradient-to-b from-zinc-900/80 via-zinc-950/85 to-black/90 p-4 shadow-xl backdrop-blur-xl space-y-3">
+                  <div
+                    id="section-episodes"
+                    className="scroll-mt-[105px] sm:scroll-mt-[115px] lg:hidden rounded-2xl border border-white/15 bg-gradient-to-b from-zinc-900/80 via-zinc-950/85 to-black/90 p-4 shadow-xl backdrop-blur-xl space-y-3"
+                  >
                     <ServerSelector
                       servers={serverSummaries}
                       initialServerIndex={currentServerIndex}
@@ -765,7 +772,10 @@ export default async function MovieDetail({
                   </div>
 
                   {/* 4. TÓM TẮT CỐT TRUYỆN, DIỄN VIÊN & THÔNG TIN CHI TIẾT */}
-                  <div className="rounded-2xl sm:rounded-3xl border border-white/15 bg-gradient-to-b from-zinc-900/80 via-zinc-950/85 to-black/90 p-4 sm:p-6 backdrop-blur-xl shadow-2xl space-y-4">
+                  <div
+                    id="section-info"
+                    className="scroll-mt-[105px] sm:scroll-mt-[115px] rounded-2xl sm:rounded-3xl border border-white/15 bg-gradient-to-b from-zinc-900/80 via-zinc-950/85 to-black/90 p-4 sm:p-6 backdrop-blur-xl shadow-2xl space-y-4"
+                  >
                     <MovieSynopsis
                       synopsis={description}
                       originName={movie.origin_name}
@@ -881,8 +891,26 @@ export default async function MovieDetail({
                     )}
                   </div>
 
-                  {/* 5. MOBILE-ONLY RECOMMENDATIONS (< 1024px) */}
-                  <div className="lg:hidden mt-6">
+                  {/* 5. BÌNH LUẬN & ĐÁNH GIÁ (NẰM Ở CUỐI CỘT TRÁI THEO FLOW YOUTUBE CHUẨN) */}
+                  <div
+                    id="section-reviews"
+                    className="scroll-mt-[105px] sm:scroll-mt-[115px] pt-2"
+                  >
+                    <MovieReviewsContainer
+                      movieSlug={movie.slug}
+                      movieTitle={title}
+                      currentEpisodeSlug={activeEpisode?.slug}
+                      currentEpisodeName={activeEpisode?.name}
+                      tmdbId={movie.tmdb?.id}
+                      tmdbType={movie.tmdb?.type || movie.type}
+                    />
+                  </div>
+
+                  {/* 6. MOBILE-ONLY RECOMMENDATIONS (< 1024px) */}
+                  <div
+                    id="section-recommendations"
+                    className="scroll-mt-[105px] sm:scroll-mt-[115px] lg:hidden mt-6"
+                  >
                     <MovieRecommendationsClient
                       currentMovieSlug={movie.slug}
                       currentMovieTitle={title}
@@ -896,18 +924,6 @@ export default async function MovieDetail({
                       tmdbType={tmdbType}
                       contentText={movie.content || movie.description || ""}
                       variant="grid"
-                    />
-                  </div>
-
-                  {/* 6. BÌNH LUẬN & ĐÁNH GIÁ (NẰM Ở CUỐI CỘT TRÁI THEO FLOW YOUTUBE CHUẨN) */}
-                  <div className="pt-2">
-                    <MovieReviewsContainer
-                      movieSlug={movie.slug}
-                      movieTitle={title}
-                      currentEpisodeSlug={activeEpisode?.slug}
-                      currentEpisodeName={activeEpisode?.name}
-                      tmdbId={movie.tmdb?.id}
-                      tmdbType={movie.tmdb?.type || movie.type}
                     />
                   </div>
                 </>

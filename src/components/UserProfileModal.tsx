@@ -496,11 +496,16 @@ function UserProfileModalInner({
 
         {/* QUICK STATS BAR */}
         <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5 sm:gap-2">
-          <div className="p-1.5 sm:p-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-center flex flex-col items-center justify-center min-w-0 overflow-hidden">
-            <Film className="w-3.5 h-3.5 text-rose-400 mb-0.5 sm:mb-1 flex-shrink-0" />
+          <Link
+            href="/my-list?tab=history"
+            onClick={() => setIsOpen(false)}
+            className="p-1.5 sm:p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-center flex flex-col items-center justify-center transition group min-w-0 overflow-hidden cursor-pointer"
+            title="Xem lịch sử xem phim"
+          >
+            <Film className="w-3.5 h-3.5 text-rose-400 mb-0.5 sm:mb-1 group-hover:scale-110 transition flex-shrink-0" />
             <span className="text-xs sm:text-sm font-black text-white truncate max-w-full">{watchHistoryCount}</span>
-            <span className="text-[9.5px] sm:text-[10px] text-gray-400 truncate max-w-full px-0.5">Phim đã xem</span>
-          </div>
+            <span className="text-[9.5px] sm:text-[10px] text-gray-400 truncate max-w-full px-0.5">Lịch sử xem</span>
+          </Link>
 
           <div className="p-1.5 sm:p-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-center flex flex-col items-center justify-center min-w-0 overflow-hidden">
             <Flame className="w-3.5 h-3.5 text-amber-400 mb-0.5 sm:mb-1 flex-shrink-0" />

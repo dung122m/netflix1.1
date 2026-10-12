@@ -52,6 +52,7 @@ export interface FootballMatch {
   sport?: "football" | "basketball" | "volleyball" | "tennis" | "badminton" | "f1" | "motorsport" | "boxing" | "esports" | "billiards" | "other";
   category?: MatchCategory;
   gender?: "men" | "women";
+  isCategoryExplicit?: boolean;
   isEvent?: boolean;
   sourceStatus?: SourceMatchStatus;
   timeline?: "live" | "today" | "upcoming" | "finished";
@@ -532,10 +533,19 @@ const CLUB_ALIAS_MAP: Record<string, string> = {
   colombia: "colombia",
   chile: "chile",
   peru: "peru",
-  ecuador: "ecuador",
   paraguay: "paraguay",
   venezuela: "venezuela",
   bolivia: "bolivia",
+
+  // Vietnamese Women's League Verified Clubs & Aliases
+  phongphuhanam: "phongphuhanam",
+  pphanam: "phongphuhanam",
+  ppha: "phongphuhanam",
+  thainguyentt: "thainguyen",
+  clbthainguyentt: "thainguyen",
+  thainguyen: "thainguyen",
+  hanoi2: "hanoi2",
+  hanoiii: "hanoi2",
 };
 
 export function normalizeClubKey(name: string): string {
@@ -549,6 +559,15 @@ export function normalizeClubKey(name: string): string {
     .replace(/\[[^\]]*\]/g, " ")
     .replace(/\([^)]*\)/g, " ")
     .replace(/^(?:doi\s*tuyen\s*quoc\s*gia|doi\s*tuyen|national\s*team|dtqg|dt|clb)\s+/g, "")
+    // Tách từ dính liền giữa số La Mã và chữ (ví dụ "iiwomen" -> "ii women")
+    .replace(/\b(ii|iii|iv|v|\d+)(women|woman|nu|w)\b/g, "$1 $2")
+    // Chuẩn hóa số La Mã chỉ đội B/2: Ha Noi II -> Ha Noi 2, Ha Noi III -> Ha Noi 3
+    .replace(/\bii\b/g, "2")
+    .replace(/\biii\b/g, "3")
+    .replace(/\biv\b/g, "4")
+    // Loại bỏ hậu tố giới tính thừa trong normalize key nếu có
+    .replace(/(?<!\b(?:ha|viet|quang))\s+(?:nam|man)$/g, "")
+    .replace(/\s+(?:nu|women|woman|w)$/g, "")
     .replace(/[^a-z0-9\s]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
@@ -737,6 +756,7 @@ export function areMatchFixturesMatching(
     isLiveMarker: boolean;
     sport?: string;
     category?: string;
+    isCategoryExplicit?: boolean;
     isEvent?: boolean;
   },
   m2: {
@@ -747,6 +767,7 @@ export function areMatchFixturesMatching(
     isLiveMarker: boolean;
     sport?: string;
     category?: string;
+    isCategoryExplicit?: boolean;
     isEvent?: boolean;
   },
   now: number = Date.now(),
@@ -763,7 +784,36 @@ export function areMatchFixturesMatching(
     return false;
   }
 
-  if (m1.category && m2.category && m1.category !== m2.category) return false;
+  // 1B. Category Guard & Safe Reconciliation Rule:
+  // - Nếu category giống nhau -> OK.
+  // - Tuyệt đối không tự động gộp senior_women với senior_men nếu tên là generic quốc gia / CLB chung (như Italy vs Spain).
+  // - Chỉ cho phép hòa giải khi 1 bên là senior_women và bên kia là senior_men mặc định (!isCategoryExplicit)
+  //   NẾU VÀ CHỈ NẾU ít nhất một trong hai đội là CLB bóng đá nữ chuyên biệt được xác minh (như "phongphuhanam", "thainguyen")
+  //   hoặc tiêu đề có bằng chứng rõ ràng.
+  if (m1.category && m2.category && m1.category !== m2.category) {
+    const isOneWomenOneDefaultMen =
+      (m1.category === "senior_women" && m2.category === "senior_men" && m2.isCategoryExplicit !== true) ||
+      (m2.category === "senior_women" && m1.category === "senior_men" && m1.isCategoryExplicit !== true);
+
+    if (isOneWomenOneDefaultMen) {
+      const k1 = normalizeClubKey(m1.team1);
+      const k2 = normalizeClubKey(m1.team2);
+      // Chỉ hòa giải khi có ít nhất một CLB nữ đặc thù (tránh gộp nhầm ĐTQG nam và nữ như Italy vs Spain)
+      const isKnownWomenClub =
+        k1 === "phongphuhanam" ||
+        k2 === "phongphuhanam" ||
+        k1 === "thainguyen" ||
+        k2 === "thainguyen" ||
+        k1 === "hanoi2" ||
+        k2 === "hanoi2";
+
+      if (!isKnownWomenClub) {
+        return false;
+      }
+    } else {
+      return false;
+    }
+  }
 
   if (m1.isEvent || m2.isEvent) return false;
   if (!m1.team1 || !m1.team2 || !m2.team1 || !m2.team2) return false;
@@ -1591,7 +1641,8 @@ export function isValidFootballTeamName(name: string): boolean {
 
   // 3. Sub-channel / Table / Court / Server / Room codes (e.g. A1, A2, Bàn 1, Server 2, Sân 3, Phòng BLV)
   if (/^[a-z]\d{1,2}$/.test(norm)) return false;
-  if (/^(?:ban|table|san|court|phong|room|kenh|channel|ch|link|server|sv|stream|cam|feed|track|bang|group|vong|round|tap|phan|tran|match|luong|session|matchday|ngay)\b/i.test(norm)) return false;
+  if (/^(?:ban\s*\d+|table\s*\d+|san\s*\d+|court\s*\d+|phong\s*(?:blv|stream|ky\s*thuat|vip|\d+)|room\s*\d+|kenh\s*\d+|channel\s*\d+|ch\s*\d+|link\s*\d+|server\s*\d+|sv\s*\d+|stream\s*\d+|cam\s*\d+|feed\s*\d+|track\s*\d+|bang\s*[a-z0-9]|group\s*[a-z0-9]|vong\s*\d+|round\s*\d+|tap\s*\d+|phan\s*\d+|tran\s*\d+|match\s*\d+|luong\s*\d+|session\s*\d+|matchday\s*\d+|ngay\s*\d+)\b/i.test(norm)) return false;
+  if (/^(?:ban|table|san|court|phong|room|kenh|channel|ch|link|server|sv|stream|cam|feed|track|bang|group|vong|round|tap|phan|tran|match|luong|session|matchday|ngay)$/i.test(norm)) return false;
   if (/^(?:sv|hd|fhd|4k)\s*\d*$/i.test(norm)) return false;
   if (/^ngay\s*thi\s*dau/i.test(norm)) return false;
 
@@ -1810,14 +1861,20 @@ export function extractSportAndGender(
   let gender: "men" | "women" | undefined = undefined;
   if (
     /(?:^|\s|[([_])(?:nu|women|woman|female|w)(?:$|\s|[)\]_])/i.test(norm) ||
-    /(?:^|\s|[([_])(?:nữ)(?:$|\s|[)\]_])/i.test(fullText)
+    /(?:^|\s|[([_])(?:nữ)(?:$|\s|[)\]_])/i.test(fullText) ||
+    /\([wW]\)/.test(rawTitle || "") ||
+    /\b(?:women|woman|female)\b/i.test(norm) ||
+    /\b(?:phong\s*phu\s*ha\s*nam|thai\s*nguyen\s*t&t|thai\s*nguyen\s*tt)\b/i.test(norm)
   ) {
     gender = "women";
   } else if (
     /(?:^|\s|[([_])(?:nam|men|male|m)(?:$|\s|[)\]_])/i.test(norm) ||
     /(?:^|\s|[([_])(?:nam)(?:$|\s|[)\]_])/i.test(fullText)
   ) {
-    gender = "men";
+    // Chỉ đánh dấu men nếu không phải là địa danh ghép (như "hà nam")
+    if (!/(?:ha|hà|viet|việt|quang|quảng)\s*nam/i.test(norm)) {
+      gender = "men";
+    }
   }
 
   return { sport, gender };
@@ -1830,6 +1887,7 @@ export function extractSportAndCategory(
   sport: "football" | "basketball" | "volleyball" | "tennis" | "badminton" | "f1" | "motorsport" | "boxing" | "esports" | "billiards" | "other";
   category: MatchCategory;
   gender?: "men" | "women";
+  isCategoryExplicit?: boolean;
 } {
   const fullText = `${rawTitle || ""} ${group || ""}`;
   const norm = fullText.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -1837,23 +1895,41 @@ export function extractSportAndCategory(
   const isFutsal = /\b(?:futsal)\b/i.test(norm) || /\b(?:futsal)\b/i.test(fullText);
 
   let category: MatchCategory = "senior_men";
+  let isCategoryExplicit = false;
+
   if (isFutsal) {
     category = "futsal";
+    isCategoryExplicit = true;
   } else if (/\b(?:u-?19)\b/i.test(norm) || /\bu19\b/i.test(fullText)) {
     category = "u19";
+    isCategoryExplicit = true;
   } else if (/\b(?:u-?20)\b/i.test(norm) || /\bu20\b/i.test(fullText)) {
     category = "u20";
+    isCategoryExplicit = true;
   } else if (/\b(?:u-?21)\b/i.test(norm) || /\bu21\b/i.test(fullText)) {
     category = "u21";
+    isCategoryExplicit = true;
   } else if (/\b(?:u-?23)\b/i.test(norm) || /\bu23\b/i.test(fullText)) {
     category = "u23";
+    isCategoryExplicit = true;
   } else if (
-    /(?:^|\s|[([_])(?:nu|women|woman|female)(?:$|\s|[)\]_])/i.test(norm) ||
-    /(?:^|\s|[([_])(?:nữ)(?:$|\s|[)\]_])/i.test(fullText)
+    /(?:^|\s|[([_])(?:nu|women|woman|female|w)(?:$|\s|[)\]_])/i.test(norm) ||
+    /(?:^|\s|[([_])(?:nữ)(?:$|\s|[)\]_])/i.test(fullText) ||
+    /\([wW]\)/.test(rawTitle || "") ||
+    /\b(?:women|woman|female)\b/i.test(norm) ||
+    /\b(?:phong\s*phu\s*ha\s*nam|thai\s*nguyen\s*t&t|thai\s*nguyen\s*tt)\b/i.test(norm)
   ) {
     category = "senior_women";
+    isCategoryExplicit = true;
   } else if (/\b(?:youth|tre|trẻ)\b/i.test(norm)) {
     category = "youth";
+    isCategoryExplicit = true;
+  } else if (
+    /(?:^|\s|[([_])(?:nam|men|male)(?:$|\s|[)\]_])/i.test(norm) &&
+    !/(?:ha|hà|viet|việt|quang|quảng)\s*nam/i.test(norm)
+  ) {
+    category = "senior_men";
+    isCategoryExplicit = true;
   }
 
   let { sport, gender } = extractSportAndGender(rawTitle, group);
@@ -1862,11 +1938,11 @@ export function extractSportAndCategory(
   }
   if (category === "senior_women") {
     gender = "women";
-  } else if (category === "senior_men" && !gender) {
+  } else if (category === "senior_men" && isCategoryExplicit && !gender) {
     gender = "men";
   }
 
-  return { sport, category, gender };
+  return { sport, category, gender, isCategoryExplicit };
 }
 
 export function cleanCandidateTeamName(name: string): string {
@@ -1902,9 +1978,15 @@ export function cleanCandidateTeamName(name: string): string {
     .replace(/\s*(?:(?:[012]?\d[:hH]\d{2}|\d{1,2})\s*)?(?:\d{1,2}[-/.]\d{1,2}(?:[-/.]\d{2,4})?)\s*$/, "")
     .trim();
 
+  // 7B. Normalize sticky Roman numerals / numbers and gender / category words (e.g. "IIWomen" -> "II Women", "2Women" -> "2 Women")
+  clean = clean.replace(/\b(ii|iii|iv|v|\d+)(women|woman|nu|nữ|w)\b/gi, "$1 $2");
+
   // 8. Strip leading and trailing gender markers: "Nữ", "Nam", "Women", "Men"
   clean = clean.replace(/^(?:nữ|nu|nam|women|woman|men)\s+/i, "");
-  clean = clean.replace(/\s+(?:nữ|nu|nam|women|woman|men|man)$/i, "");
+  // Bảo vệ không cắt nhầm "Nam" trong các địa danh / tên đội bóng hợp lệ: "Hà Nam", "Việt Nam", "Quảng Nam"
+  clean = clean.replace(/(?<!\b(?:ha|hà|viet|việt|quang|quảng))\s+(?:nam|man)$/i, "");
+  clean = clean.replace(/\s+(?:nữ|nu|women|woman)$/i, "");
+  clean = clean.replace(/\s+\([wWsS]\)$/i, "");
   clean = clean.replace(/\s+[wWsS]$/, "");
 
   // 8B. Strip team prefix markers: "Đội tuyển quốc gia", "Đội tuyển", "National team", "ĐTQG", "ĐT", "CLB"
@@ -1916,7 +1998,9 @@ export function cleanCandidateTeamName(name: string): string {
 
   // 10. Repeat gender & prefix strip if symbols were removed around it
   clean = clean.replace(/^(?:nữ|nu|nam|women|woman|men)\s+/i, "");
-  clean = clean.replace(/\s+(?:nữ|nu|nam|women|woman|men|man)$/i, "");
+  clean = clean.replace(/(?<!\b(?:ha|hà|viet|việt|quang|quảng))\s+(?:nam|man)$/i, "");
+  clean = clean.replace(/\s+(?:nữ|nu|women|woman)$/i, "");
+  clean = clean.replace(/\s+\([wWsS]\)$/i, "");
   clean = clean.replace(/\s+[wWsS]$/, "");
   clean = clean.replace(/^(?:đội tuyển quốc gia|doi tuyen quoc gia|đội tuyển|doi tuyen|national team|đtqg|dtqg|đt|dt|clb)\s+/i, "");
   clean = clean.replace(/\s+(?:clb|national team)$/i, "");
@@ -2140,6 +2224,7 @@ export function normalizeAndMergeStreams(
     sport: "football" | "basketball" | "volleyball" | "tennis" | "badminton" | "f1" | "motorsport" | "boxing" | "esports" | "billiards" | "other";
     category: MatchCategory;
     gender?: "men" | "women";
+    isCategoryExplicit?: boolean;
     isEvent: boolean;
     tournament: string;
     normT1: string;
@@ -2219,7 +2304,7 @@ export function normalizeAndMergeStreams(
 
     channelsSet.add(cleanGroup);
 
-    const { sport, category, gender } = extractSportAndCategory(rawTitle, group);
+    const { sport, category, gender, isCategoryExplicit } = extractSportAndCategory(rawTitle, group);
 
     let cleanedTitle = rawTitle.toWellFormed().replace(/\[[^\]]*\]/g, " ").trim();
     const sourceStatus = parseSourceStatus(rawTitle, item.extinfLine);
@@ -2398,6 +2483,7 @@ export function normalizeAndMergeStreams(
       sport,
       category,
       gender,
+      isCategoryExplicit,
       isEvent,
       tournament,
       normT1,
@@ -2430,6 +2516,7 @@ export function normalizeAndMergeStreams(
               isLiveMarker: item.isLiveMarker,
               sport: item.sport,
               category: item.category,
+              isCategoryExplicit: item.isCategoryExplicit,
               isEvent: false,
             },
             {
@@ -2440,6 +2527,7 @@ export function normalizeAndMergeStreams(
               isLiveMarker: existing.sourceStatus === "live",
               sport: existing.sport,
               category: existing.category,
+              isCategoryExplicit: existing.isCategoryExplicit,
               isEvent: false,
             },
             now,
@@ -2491,6 +2579,7 @@ export function normalizeAndMergeStreams(
             isLiveMarker: item.isLiveMarker,
             sport: item.sport,
             category: item.category,
+            isCategoryExplicit: item.isCategoryExplicit,
             isEvent: false,
           },
           {
@@ -2501,6 +2590,7 @@ export function normalizeAndMergeStreams(
             isLiveMarker: existing.sourceStatus === "live",
             sport: existing.sport,
             category: existing.category,
+            isCategoryExplicit: existing.isCategoryExplicit,
             isEvent: false,
           },
           now,
@@ -2569,6 +2659,9 @@ export function normalizeAndMergeStreams(
       }
       if ((!foundMatch.category || foundMatch.category === "senior_men") && item.category && item.category !== "senior_men") {
         foundMatch.category = item.category;
+      }
+      if (item.isCategoryExplicit) {
+        foundMatch.isCategoryExplicit = true;
       }
       if (!foundMatch.gender && item.gender) {
         foundMatch.gender = item.gender;
@@ -2690,6 +2783,7 @@ export function normalizeAndMergeStreams(
         sport: item.sport,
         category: item.category,
         gender: item.gender,
+        isCategoryExplicit: item.isCategoryExplicit,
         isEvent: item.isEvent,
         sourceStatus: item.sourceStatus,
         timeline,

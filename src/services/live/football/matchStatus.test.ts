@@ -2065,6 +2065,127 @@ describe("Generic Match Deduplication & Aggregation System", () => {
     assert.equal(minaurMatch?.team1, "Alex de Minaur");
     assert.equal(minaurMatch?.team2, "Rei Sakamoto");
   });
+
+  // 13. P0 Regression: isValidFootballTeamName must accept 'Phong Phú Hà Nam' but reject streaming rooms like 'Phòng BLV', 'Phòng Stream', 'Phòng 1'
+  it("13. P0 Regression: isValidFootballTeamName correctly differentiates club 'Phong' from streaming rooms", () => {
+    assert.equal(isValidFootballTeamName("Phong Phú Hà Nam"), true);
+    assert.equal(isValidFootballTeamName("Phong Phu Ha Nam"), true);
+    assert.equal(isValidFootballTeamName("Phòng BLV"), false);
+    assert.equal(isValidFootballTeamName("Phong BLV"), false);
+    assert.equal(isValidFootballTeamName("Phòng Stream"), false);
+    assert.equal(isValidFootballTeamName("Phòng 1"), false);
+    assert.equal(isValidFootballTeamName("Phòng Kỹ Thuật"), false);
+    assert.equal(isValidFootballTeamName("Phong 2"), false);
+  });
+
+  // 14. P0 Regression: cleanCandidateTeamName must preserve 'Nam' in 'Phong Phú Hà Nam' and separate sticky Roman numerals like 'IIWomen'
+  it("14. P0 Regression: cleanCandidateTeamName preserves 'Nam' in 'Phong Phú Hà Nam' and normalizes sticky tokens", () => {
+    assert.equal(cleanCandidateTeamName("Phong Phú Hà Nam"), "Phong Phú Hà Nam");
+    assert.equal(cleanCandidateTeamName("Phong Phu Ha Nam (w)"), "Phong Phu Ha Nam");
+    assert.equal(cleanCandidateTeamName("Phong Phú Hà Nam Nữ"), "Phong Phú Hà Nam");
+    assert.equal(cleanCandidateTeamName("Ha Noi IIWomen"), "Ha Noi II");
+    assert.equal(cleanCandidateTeamName("Ha Noi 2 W"), "Ha Noi 2");
+    assert.equal(cleanCandidateTeamName("Ha Noi II Women"), "Ha Noi II");
+  });
+
+  // 15. P1 Regression: Women's football variants: (w), W, Women, IIWomen must merge into a single card
+  it("15. P1 & P2 Regression: 5 streams of Phong Phu Ha Nam vs Ha Noi II merge into 1 single MatchCard with 5 servers", () => {
+    const rawStreams = [
+      {
+        rawTitle: "15:30 11/10 Phong Phu Ha Nam (w) vs Ha Noi II (w) [hls]",
+        url: "https://cdn.example.com/stream1.m3u8",
+        effectiveUrl: "https://cdn.example.com/stream1.m3u8",
+        group: "Phá Làng TV",
+        rawLogo: "",
+      },
+      {
+        rawTitle: "15:30 11/10 Phong Phu Ha Nam W vs Ha Noi 2 W [flv]",
+        url: "https://cdn.example.com/stream2.flv",
+        effectiveUrl: "https://cdn.example.com/stream2.flv",
+        group: "Giờ Vàng TV",
+        rawLogo: "",
+      },
+      {
+        rawTitle: "15:30 11/10 Phong Phu Ha Nam Women vs Ha Noi II Women [hls]",
+        url: "https://cdn.example.com/stream3.m3u8",
+        effectiveUrl: "https://cdn.example.com/stream3.m3u8",
+        group: "Sút Bóng TV",
+        rawLogo: "",
+      },
+      {
+        rawTitle: "15:30 11/10 Phong Phu Ha Nam Women vs Ha Noi IIWomen",
+        url: "https://cdn.example.com/stream4.m3u8",
+        effectiveUrl: "https://cdn.example.com/stream4.m3u8",
+        group: "Bia Ôm TV",
+        rawLogo: "",
+      },
+      {
+        rawTitle: "15:30 11/10 Phong Phu Ha Nam Women vs Ha Noi IIWomen (LÝ LÀNG LÁ)",
+        url: "https://cdn.example.com/stream5.m3u8",
+        effectiveUrl: "https://cdn.example.com/stream5.m3u8",
+        group: "Chuối Chiên TV",
+        rawLogo: "",
+      },
+    ];
+
+    const { matches } = normalizeAndMergeStreams(rawStreams, baseNow);
+    assert.equal(matches.length, 1, "All 5 stream variants must merge into exactly 1 MatchCard");
+    assert.equal(matches[0].isEvent, false, "Must be classified as a two-team match fixture, not a generic event");
+    assert.equal(matches[0].servers.length, 5, "Must aggregate all 5 stream servers");
+    assert.equal(matches[0].category, "senior_women", "Must be classified under category 'senior_women'");
+  });
+
+  // 16. P2 Regression: Thai Nguyen T&T vs Ha Noi and [Nữ] Thái Nguyên vs Hà Nội merge into 1 card
+  it("16. P2 Regression: Thai Nguyen T&T vs Ha Noi and [Nữ] Thái Nguyên vs Hà Nội merge into 1 MatchCard", () => {
+    const rawStreams = [
+      {
+        rawTitle: "15:30 11/10 ⚽ [Nữ] Thái Nguyên vs Hà Nội [hls]",
+        url: "https://cdn.example.com/tn1.m3u8",
+        effectiveUrl: "https://cdn.example.com/tn1.m3u8",
+        group: "Xôi Lạc TV",
+        rawLogo: "",
+      },
+      {
+        rawTitle: "15:30 11/10 ⚽ Thai Nguyen T&T vs Ha Noi [hls]",
+        url: "https://cdn.example.com/tn2.m3u8",
+        effectiveUrl: "https://cdn.example.com/tn2.m3u8",
+        group: "Phá Làng TV",
+        rawLogo: "",
+      },
+    ];
+
+    const { matches } = normalizeAndMergeStreams(rawStreams, baseNow);
+    assert.equal(matches.length, 1, "Must merge into exactly 1 MatchCard");
+    assert.equal(matches[0].servers.length, 2, "Must aggregate both servers");
+    assert.equal(matches[0].category, "senior_women", "Must be classified under category 'senior_women'");
+  });
+
+  // 17. Safety Guard: Ha Noi 1st team and Ha Noi II must NEVER collide
+  it("17. Safety Guard: Ha Noi 1st team and Ha Noi II must NEVER collide", () => {
+    assert.notEqual(normalizeClubKey("Ha Noi"), normalizeClubKey("Ha Noi II"));
+    assert.notEqual(normalizeClubKey("Ha Noi"), normalizeClubKey("Ha Noi 2"));
+    assert.equal(normalizeClubKey("Ha Noi II"), normalizeClubKey("Ha Noi 2"));
+
+    const rawStreams = [
+      {
+        rawTitle: "15:30 11/10 ⚽ [Nữ] Thái Nguyên vs Hà Nội [hls]",
+        url: "https://cdn.example.com/tn1.m3u8",
+        effectiveUrl: "https://cdn.example.com/tn1.m3u8",
+        group: "Xôi Lạc TV",
+        rawLogo: "",
+      },
+      {
+        rawTitle: "15:30 11/10 ⚽ [Nữ] Phong Phú Hà Nam vs Hà Nội II [hls]",
+        url: "https://cdn.example.com/pp1.m3u8",
+        effectiveUrl: "https://cdn.example.com/pp1.m3u8",
+        group: "Phá Làng TV",
+        rawLogo: "",
+      },
+    ];
+
+    const { matches } = normalizeAndMergeStreams(rawStreams, baseNow);
+    assert.equal(matches.length, 2, "Two distinct matches involving Ha Noi vs Ha Noi II must never merge");
+  });
 });
 
 

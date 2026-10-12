@@ -804,8 +804,16 @@ async function fetchSourceData(
       }
     }
 
-    if (successfulPagesCount === 0 || rawCombined.length === 0) {
+    if (successfulPagesCount === 0) {
       return null;
+    }
+
+    if (rawCombined.length === 0) {
+      return {
+        items: [],
+        totalPages: Math.ceil(nguonCTotalItems / fetchLimit) || 1,
+        totalItems: nguonCTotalItems,
+      };
     }
 
     const chunkStartOffset = (startNguonCPage - 1) * 10;
@@ -862,8 +870,16 @@ async function fetchSourceData(
         episode_current: item.current_episode || "",
         year: Number(item.year) || undefined,
         time: item.time || "",
-        ...(Array.isArray(item.category) && item.category.length > 0 ? { category: item.category } : {}),
-        ...(Array.isArray(item.country) && item.country.length > 0 ? { country: item.country } : {}),
+        ...(Array.isArray(item.category) && item.category.length > 0
+          ? { category: item.category }
+          : params.category
+          ? { category: [{ name: params.category, slug: params.category }] }
+          : {}),
+        ...(Array.isArray(item.country) && item.country.length > 0
+          ? { country: item.country }
+          : params.country
+          ? { country: [{ name: params.country, slug: params.country }] }
+          : {}),
         ...(itemType ? { type: itemType } : {}),
         ...(chieurap !== undefined ? { chieurap } : {}),
       };
@@ -894,29 +910,75 @@ async function fetchVsmovSourceData(
     const fetchLimit = params.limit && params.limit <= 48 ? params.limit : 24;
     const timeout = params.vsmovTimeoutMs || VSMOV_TIMEOUT_MS;
 
-    const rawRes = await fetchVsmovFiltered(
-      {
-        keyword: isSearch && params.keyword ? params.keyword.trim() : undefined,
-        type: params.type,
-        category: params.category,
-        country: params.country,
-        year: params.year,
-        page,
-        limit: fetchLimit,
-      },
-      timeout
+    const offsetStart = (page - 1) * fetchLimit;
+    const offsetEnd = page * fetchLimit;
+    const VSMOV_PAGE_SIZE = 20;
+    const startVsmovPage = Math.floor(offsetStart / VSMOV_PAGE_SIZE) + 1;
+    const endVsmovPage = Math.ceil(offsetEnd / VSMOV_PAGE_SIZE);
+
+    const pagesToFetch: number[] = [];
+    for (let p = startVsmovPage; p <= endVsmovPage; p++) {
+      pagesToFetch.push(p);
+    }
+
+    const vsmovSettled = await Promise.allSettled(
+      pagesToFetch.map((p) =>
+        fetchVsmovFiltered(
+          {
+            keyword: isSearch && params.keyword ? params.keyword.trim() : undefined,
+            type: params.type,
+            category: params.category,
+            country: params.country,
+            year: params.year,
+            page: p,
+            limit: VSMOV_PAGE_SIZE,
+          },
+          timeout
+        )
+      )
     );
 
-    if (!rawRes || !Array.isArray(rawRes.items)) return null;
+    const vsmovResults = vsmovSettled.map((s) => (s.status === "fulfilled" ? s.value : null));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rawCombined: any[] = [];
+    let vsmovTotalItems = 0;
+    let successfulPagesCount = 0;
 
-    const mappedItems = rawRes.items
-      .map((item) => adaptVsmovMovieItem(item))
+    for (const r of vsmovResults) {
+      if (r && Array.isArray(r.items)) {
+        successfulPagesCount++;
+        rawCombined.push(...r.items);
+        if (r.pagination?.totalItems && r.pagination.totalItems > vsmovTotalItems) {
+          vsmovTotalItems = r.pagination.totalItems;
+        }
+      }
+    }
+
+    if (successfulPagesCount === 0 && rawCombined.length === 0) {
+      return null;
+    }
+
+    const baseOffset = (startVsmovPage - 1) * VSMOV_PAGE_SIZE;
+    const relStart = Math.max(0, offsetStart - baseOffset);
+    const relEnd = Math.max(relStart, offsetEnd - baseOffset);
+    const rawSliced = rawCombined.slice(relStart, relEnd);
+
+    const mappedItems = rawSliced
+      .map((item) => {
+        const adapted = adaptVsmovMovieItem(item);
+        if (!adapted) return null;
+        if (params.category && (!adapted.category || adapted.category.length === 0)) {
+          adapted.category = [{ name: params.category, slug: params.category }];
+        }
+        if (params.country && (!adapted.country || adapted.country.length === 0)) {
+          adapted.country = [{ name: params.country, slug: params.country }];
+        }
+        return adapted;
+      })
       .filter(Boolean);
 
-    const totalItems = rawRes.pagination?.totalItems || mappedItems.length || 0;
-    const totalPages =
-      rawRes.pagination?.totalPages ||
-      Math.max(1, Math.ceil(totalItems / (rawRes.pagination?.totalItemsPerPage || fetchLimit)));
+    const totalItems = vsmovTotalItems || mappedItems.length || 0;
+    const totalPages = Math.max(1, Math.ceil(totalItems / fetchLimit));
 
     return {
       items: mappedItems,
@@ -976,6 +1038,12 @@ export function deduplicateMovieItems(items: any[]): any[] {
       if (!existing.quality && item.quality) existing.quality = item.quality;
       if (!existing.lang && item.lang) existing.lang = item.lang;
       if (!existing.time && item.time) existing.time = item.time;
+      if ((!existing.category || (Array.isArray(existing.category) && existing.category.length === 0)) && item.category) {
+        existing.category = item.category;
+      }
+      if ((!existing.country || (Array.isArray(existing.country) && existing.country.length === 0)) && item.country) {
+        existing.country = item.country;
+      }
       if (!existing.tmdb && item.tmdb) {
         existing.tmdb = item.tmdb;
       } else if (existing.tmdb && item.tmdb) {
@@ -1203,11 +1271,20 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
   }
 
   // ============================================================
-  // TÍNH TỔNG SỐ PHIM VÀ TRANG (CHUẨN HÓA THEO PHẠM VI BỘ LỌC FEDERATION 3 NGUỒN)
+  // TÍNH TỔNG SỐ PHIM VÀ TRANG (FEDERATION THỰC TẾ & BẢO ĐẢM NHẤT QUÁN TOÀN HỆ THỐNG)
   // ============================================================
-  const countApi1 = resPhimApi?.totalItems || 0;
-  const countApi2 = resNguonC?.totalItems   || 0;
-  const countApi3 = resVsmov?.totalItems    || 0;
+  const metaKey = buildQueryMetaKey(params);
+  const cachedMeta = queryMetadataCache.get(metaKey);
+
+  let countApi1 = resPhimApi?.totalItems || 0;
+  let countApi2 = resNguonC?.totalItems   || 0;
+  let countApi3 = resVsmov?.totalItems    || 0;
+
+  // Nếu một nguồn bị lỗi/timeout hoặc vượt quá số trang riêng của nguồn đó (trả về 0),
+  // kế thừa giá trị count đã biết từ queryMetadataCache để tránh sụt giảm totalItems giữa các trang.
+  if (countApi1 === 0 && cachedMeta?.countApi1) countApi1 = cachedMeta.countApi1;
+  if (countApi2 === 0 && cachedMeta?.countApi2) countApi2 = cachedMeta.countApi2;
+  if (countApi3 === 0 && cachedMeta?.countApi3) countApi3 = cachedMeta.countApi3;
 
   const activeFiltersCount =
     (params.type ? 1 : 0) +
@@ -1216,37 +1293,48 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
     (params.year ? 1 : 0);
 
   let totalItemsCount: number;
-  let maxTotalPages: number;
 
   if (activeFiltersCount >= 2) {
-    // KHI CÓ TỪ 2 BỘ LỌC TRỞ LÊN (VD: type + category + country):
-    // PhimAPI và VSMOV hỗ trợ filter đa chiều, còn NguonC chỉ lọc 1 chiều (không hỗ trợ compound filter).
-    // Do đó NguonC totalItems không được cộng vào để tránh thổi phồng tổng số phim lên hàng chục nghìn.
-    const VSMOV_OVERLAP = 0.75;
-    const uniqueFromVsmov = Math.round(countApi3 * (1 - VSMOV_OVERLAP));
-    totalItemsCount = (countApi1 || 0) + (countApi3 > 0 ? uniqueFromVsmov : 0) || candidates.length;
-    maxTotalPages = Math.max(1, Math.ceil(totalItemsCount / limit));
-  } else if (params.type) {
-    // KHI CHỈ LỌC DUY NHẤT TYPE (cả 3 nguồn đều hỗ trợ type endpoint):
-    const NGUONC_OVERLAP = 0.80;
-    const VSMOV_OVERLAP = 0.75;
-    const uniqueFromNguonC = Math.round(countApi2 * (1 - NGUONC_OVERLAP));
-    const uniqueFromVsmov = Math.round(countApi3 * (1 - VSMOV_OVERLAP));
-    totalItemsCount = (countApi1 || 0) + (countApi2 > 0 ? uniqueFromNguonC : 0) + (countApi3 > 0 ? uniqueFromVsmov : 0) || candidates.length;
-    maxTotalPages = Math.max(1, Math.ceil(totalItemsCount / limit));
+    // KHI CÓ TỪ 2 BỘ LỌC TRỞ LÊN (VD: type + country hoặc category + year):
+    // PhimAPI và VSMOV hỗ trợ filter server-side đa chiều, NguonC chỉ lọc 1 chiều.
+    // Lấy count lớn nhất từ các nguồn hỗ trợ compound filter.
+    const compoundCounts = [countApi1, countApi3].filter((c) => c > 0);
+    totalItemsCount = compoundCounts.length > 0 ? Math.max(...compoundCounts) : (countApi2 || candidates.length);
   } else {
-    // KHI LÀ BỘ LỌC ĐƠN LẺ (Country/Category/Year) HOẶC TÌM KIẾM KEYWORD HOẶC MẶC ĐỊNH:
-    // Áp dụng công thức cộng bù độc quyền từ NguonC (~25%) và VSMOV (~30%):
-    const NGUONC_OVERLAP = 0.75;
-    const VSMOV_OVERLAP = 0.70;
-    const uniqueFromNguonC = Math.round(countApi2 * (1 - NGUONC_OVERLAP));
-    const uniqueFromVsmov = Math.round(countApi3 * (1 - VSMOV_OVERLAP));
-    totalItemsCount = (countApi1 || 0) + (countApi2 > 0 ? uniqueFromNguonC : 0) + (countApi3 > 0 ? uniqueFromVsmov : 0) || candidates.length;
-    maxTotalPages = Math.max(1, Math.ceil(totalItemsCount / limit));
+    // BỘ LỌC ĐƠN LẺ (Type / Country / Category / Year) HOẶC TÌM KIẾM KEYWORD HOẶC MẶC ĐỊNH:
+    // Các nguồn đều hỗ trợ endpoint tương ứng và được query song song theo cùng virtual page offset.
+    // KHÔNG cộng dồn hư cấu (fictitious summing); độ sâu phân trang khả dụng được xác định bởi
+    // catalog lớn nhất trong các provider hợp lệ, bảo đảm trang cuối cùng luôn có phim.
+    const availableCounts = [countApi1, countApi2, countApi3].filter((c) => c > 0);
+    totalItemsCount = availableCounts.length > 0 ? Math.max(...availableCounts) : candidates.length;
   }
 
+  // Bảo đảm tính bất biến/đơn điệu của totalItems cho cùng query giữa các trang khác nhau
+  if (cachedMeta?.totalItems && cachedMeta.totalItems > totalItemsCount) {
+    totalItemsCount = cachedMeta.totalItems;
+  }
+
+  const maxTotalPages = Math.max(1, Math.ceil(totalItemsCount / limit));
+
+  // Lưu lại metadata của query để các request trang sau (page=20, page=last) kế thừa chính xác
+  queryMetadataCache.set(metaKey, {
+    countApi1: Math.max(countApi1, cachedMeta?.countApi1 || 0),
+    countApi2: Math.max(countApi2, cachedMeta?.countApi2 || 0),
+    countApi3: Math.max(countApi3, cachedMeta?.countApi3 || 0),
+    totalItems: totalItemsCount,
+    totalPages: maxTotalPages,
+    updatedAt: Date.now(),
+  });
+
   const requestedPage = params.page || 1;
-  const finalItems = (maxTotalPages > 0 && requestedPage > maxTotalPages) ? [] : candidates.slice(0, limit);
+  let finalItems = (maxTotalPages > 0 && requestedPage > maxTotalPages) ? [] : candidates.slice(0, limit);
+
+  // Bảo đảm an toàn tuyệt đối cho trang cuối: không bao giờ trả về [] nếu totalItemsCount > 0
+  if (requestedPage === maxTotalPages && finalItems.length === 0 && totalItemsCount > 0) {
+    if (candidates.length > 0) {
+      finalItems = candidates.slice(0, Math.min(limit, candidates.length));
+    }
+  }
 
   const payload = {
     status: true,
@@ -1273,9 +1361,31 @@ async function executeGetMovies(params: MovieFilterParams, cacheKey: string) {
   return payload;
 }
 
+interface QueryPaginationMeta {
+  countApi1: number;
+  countApi2: number;
+  countApi3: number;
+  totalItems: number;
+  totalPages: number;
+  updatedAt: number;
+}
+const queryMetadataCache = new Map<string, QueryPaginationMeta>();
+
+function buildQueryMetaKey(params: MovieFilterParams): string {
+  return JSON.stringify({
+    category: params.category || "",
+    country: params.country || "",
+    year: params.year || "",
+    keyword: params.keyword?.trim() || "",
+    limit: params.limit || 24,
+    type: params.type || "",
+    sort: params.sort || "latest",
+  });
+}
+
 export function buildMovieCacheKey(params: MovieFilterParams): string {
   return JSON.stringify({
-    v: 9,
+    v: 11,
     category: params.category || "",
     country: params.country || "",
     year: params.year || "",

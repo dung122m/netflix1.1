@@ -28,6 +28,7 @@ import {
   Trophy,
   Check,
   RotateCcw,
+  ArrowLeft,
 } from "lucide-react";
 
 interface LiveFootballClientProps {
@@ -54,6 +55,7 @@ export function LiveFootballClient({
   const [activeSection, setActiveSection] = useState<
     "matches" | "match-center" | "standings"
   >("matches");
+  const [sidePanelTab, setSidePanelTab] = useState<"match-center" | "matches">("match-center");
 
   // Đồng bộ khi dữ liệu từ server thay đổi hoặc khi lọc kênh
   useEffect(() => {
@@ -295,30 +297,13 @@ export function LiveFootballClient({
     setMatchSummary(null);
   }, [selectedMatch?.id]);
 
-  // Khôi phục trận đấu ban đầu từ URL hoặc localStorage (chỉ chạy khi chưa có thao tác chọn chủ động)
+  // Khôi phục trận đấu khi URL có param ?match= (nếu không có, giữ null để vào thẳng Match Discovery)
   useEffect(() => {
     if (hasUserSelectedRef.current) return;
     if (initialMatch) {
       setSelectedMatch(initialMatch);
-      return;
     }
-    const matchParam = searchParams.get("match");
-    if (!matchParam) {
-      try {
-        const savedId = localStorage.getItem("nanaflix_live_match_id");
-        if (savedId) {
-          const found = liveMatches.find(
-            (m) =>
-              m.id === savedId ||
-              m.title.toLowerCase().includes(savedId.toLowerCase()),
-          );
-          if (found) {
-            setSelectedMatch(found);
-          }
-        }
-      } catch {}
-    }
-  }, [initialMatch, liveMatches, searchParams]);
+  }, [initialMatch]);
 
   // Đồng bộ selectedMatch với bản ghi mới nhất khi liveMatches cập nhật qua polling (không tự đổi trận khác)
   useEffect(() => {
@@ -491,6 +476,12 @@ export function LiveFootballClient({
     },
     [],
   );
+
+  const handleClosePlayer = useCallback(() => {
+    hasUserSelectedRef.current = true;
+    setSelectedMatch(null);
+    updateUrl({ match: null }, false);
+  }, [updateUrl]);
 
   const enrichedMatches = useMemo(() => {
     return liveMatches.map((m) => {
@@ -795,6 +786,7 @@ export function LiveFootballClient({
       hasUserSelectedRef.current = true;
       clearProbeQueue();
       setSelectedMatch(match);
+      setSidePanelTab("match-center");
       try {
         localStorage.setItem("nanaflix_live_match_id", match.id);
       } catch {}
@@ -958,157 +950,175 @@ export function LiveFootballClient({
         </div>
       </div>
 
-      {/* KHU VỰC 1: SÂN CỎ TRỰC TIẾP & MATCH CENTER */}
+      {/* KHU VỰC 1: SÂN CỎ TRỰC TIẾP & MATCH DISCOVERY / MATCH CENTER */}
       {(activeSection === "matches" || activeSection === "match-center") && (
         <div className="space-y-6">
           {/* ============================================================ */}
-          {/* DESKTOP (>= lg): BỐ CỤC THEATER STUDIO 2 CỘT (65% / 35%)     */}
+          {/* TRƯỜNG HỢP 1: KHI ĐÃ CHỌN TRẬN ĐẤU (THEATER WATCH & DETAILS) */}
           {/* ============================================================ */}
-          <div className="space-y-4 lg:space-y-0 lg:grid lg:grid-cols-12 lg:gap-6 items-start">
-            {/* CỘT TRÁI (COL 1-8 TRÊN DESKTOP, TOÀN BỘ CHIỀU RỘNG TRÊN MOBILE): LIVE PLAYER & MATCH CENTER */}
-            <div className="lg:col-span-7 xl:col-span-8 space-y-4">
-              {/* KHUNG PHÁT VIDEO CHÍNH (DUY NHẤT 1 INSTANCE PLAYER) */}
-              {selectedMatch ? (
-                <div ref={playerRef} className="space-y-3">
-                  <LivePlayer
-                    match={selectedMatch}
-                    title={selectedMatch.title}
-                    servers={selectedMatch.servers}
-                    blv={selectedMatch.blv}
-                    time={selectedMatch.time}
-                    score={scoresMap[selectedMatch.id] || selectedMatch.score}
-                    summary={matchSummary}
-                    matchOptions={
-                      allVisibleMatches.length > 0 ? allVisibleMatches : [selectedMatch]
-                    }
-                    onSelectMatch={handleSelectMatch}
-                    showMatchRail={showMatchRail}
-                    onToggleMatchRail={() => setShowMatchRail((prev) => !prev)}
-                    onCloseMatchRail={() => setShowMatchRail(false)}
-                    isActive={isActive}
-                  />
+          {selectedMatch ? (
+            <div className="space-y-6">
+              {/* THANH ĐIỀU HƯỚNG QUAY LẠI DANH SÁCH & TIÊU ĐỀ TRẬN */}
+              <div className="flex items-center justify-between gap-3 p-3 rounded-2xl bg-zinc-950/90 border border-white/10 backdrop-blur-xl shadow-lg">
+                <button
+                  type="button"
+                  onClick={handleClosePlayer}
+                  className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-black transition cursor-pointer shrink-0 shadow-sm"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>Danh sách trận</span>
+                </button>
 
-                  {/* Thanh thông tin nhanh dưới player */}
-                  <div className="flex items-center justify-between gap-3 px-3.5 py-2 rounded-xl bg-zinc-950/80 border border-white/10 text-xs shadow-md">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-                      <span className="text-gray-300 truncate">
-                        Đang phát: <strong className="text-white font-black">{selectedMatch.title}</strong>
-                        {selectedMatch.blv && (
-                          <span className="ml-1.5 text-orange-400 font-semibold">• BLV {selectedMatch.blv}</span>
-                        )}
+                <div className="flex items-center gap-2 min-w-0 flex-1 justify-center px-2">
+                  <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
+                  <span className="text-xs sm:text-sm font-black text-white truncate text-center">
+                    {selectedMatch.title}
+                  </span>
+                  {selectedMatch.blv && (
+                    <span className="hidden sm:inline-block text-[11px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20 shrink-0">
+                      BLV {selectedMatch.blv}
+                    </span>
+                  )}
+                </div>
+
+                <span className="text-[10px] font-mono font-bold px-2 py-1 rounded-lg bg-netflix-red/20 text-rose-300 border border-netflix-red/30 shrink-0">
+                  {selectedMatch.quality || "FHD"}
+                </span>
+              </div>
+
+              {/* BỐ CỤC THEATER STUDIO 2 CỘT (DESKTOP) / XẾP CHỒNG (MOBILE) */}
+              <div className="space-y-4 lg:space-y-0 lg:grid lg:grid-cols-12 lg:gap-6 items-start">
+                {/* CỘT TRÁI (COL 1-7/8 TRÊN DESKTOP): LIVE PLAYER */}
+                <div className="lg:col-span-7 xl:col-span-8 space-y-3">
+                  <div ref={playerRef} className="space-y-3">
+                    <LivePlayer
+                      match={selectedMatch}
+                      title={selectedMatch.title}
+                      servers={selectedMatch.servers}
+                      blv={selectedMatch.blv}
+                      time={selectedMatch.time}
+                      score={scoresMap[selectedMatch.id] || selectedMatch.score}
+                      summary={matchSummary}
+                      matchOptions={
+                        allVisibleMatches.length > 0 ? allVisibleMatches : [selectedMatch]
+                      }
+                      onSelectMatch={handleSelectMatch}
+                      showMatchRail={showMatchRail}
+                      onToggleMatchRail={() => setShowMatchRail((prev) => !prev)}
+                      onCloseMatchRail={() => setShowMatchRail(false)}
+                      isActive={isActive}
+                    />
+
+                    {/* Thanh thông tin nhanh dưới player */}
+                    <div className="flex items-center justify-between gap-3 px-3.5 py-2 rounded-xl bg-zinc-950/80 border border-white/10 text-xs shadow-md">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                        <span className="text-gray-300 truncate">
+                          Đang phát: <strong className="text-white font-black">{selectedMatch.title}</strong>
+                          {selectedMatch.blv && (
+                            <span className="ml-1.5 text-orange-400 font-semibold">• BLV {selectedMatch.blv}</span>
+                          )}
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-netflix-red/20 text-rose-300 border border-netflix-red/30 shrink-0">
+                        Tín hiệu chuẩn HD
                       </span>
                     </div>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-netflix-red/20 text-rose-300 border border-netflix-red/30 shrink-0">
-                      Tín hiệu chuẩn HD
-                    </span>
                   </div>
                 </div>
-              ) : (
-                <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-zinc-900/90 via-zinc-950/80 to-zinc-900/90 p-8 xl:p-12 text-center text-gray-400 shadow-2xl backdrop-blur-xl">
-                  <div className="flex flex-col items-center justify-center gap-3 max-w-lg mx-auto">
-                    <div className="w-14 h-14 rounded-2xl bg-netflix-red/10 border border-netflix-red/30 flex items-center justify-center text-netflix-red shadow-lg shadow-red-950/50">
-                      <Radio className="w-7 h-7 animate-pulse" />
+
+                {/* CỘT PHẢI (COL 8-12 TRÊN DESKTOP): SIDE PANEL VỚI MATCH CENTER & ĐỔI TRẬN */}
+                <div className="lg:col-span-5 xl:col-span-4 min-w-0 flex flex-col rounded-2xl border border-white/10 bg-zinc-950/90 backdrop-blur-xl shadow-2xl p-3 space-y-2.5 lg:sticky lg:top-20 lg:max-h-[calc(100vh-100px)] overflow-hidden">
+                  {/* SUB-TABS TRÊN SIDE PANEL */}
+                  <div className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-zinc-900 border border-white/10 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setSidePanelTab("match-center")}
+                      className={`flex items-center justify-center gap-1.5 py-2 text-xs font-black rounded-lg transition text-center cursor-pointer ${
+                        sidePanelTab === "match-center"
+                          ? "bg-netflix-red text-white shadow-md shadow-red-950/50"
+                          : "text-gray-400 hover:text-white hover:bg-white/5"
+                      }`}
+                    >
+                      <Activity className="w-3.5 h-3.5" />
+                      <span className="truncate">CHI TIẾT TRẬN</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSidePanelTab("matches")}
+                      className={`flex items-center justify-center gap-1.5 py-2 text-xs font-black rounded-lg transition text-center cursor-pointer ${
+                        sidePanelTab === "matches"
+                          ? "bg-netflix-red text-white shadow-md shadow-red-950/50"
+                          : "text-gray-400 hover:text-white hover:bg-white/5"
+                      }`}
+                    >
+                      <Clock className="w-3.5 h-3.5" />
+                      <span className="truncate">ĐỔI TRẬN ({filteredMatches.length})</span>
+                    </button>
+                  </div>
+
+                  {/* TAB 1: MATCH CENTER & DIỄN BIẾN THỜI GIAN THỰC */}
+                  {sidePanelTab === "match-center" && (
+                    <div className="flex-1 min-h-0 overflow-y-auto pr-0.5 space-y-2 overscroll-y-contain [overscroll-behavior-y:contain] scrollbar-thin">
+                      <div className="space-y-2 pt-0.5">
+                        <div className="flex items-center justify-between border-b border-white/10 pb-2 px-0.5">
+                          <div className="flex items-center gap-2 min-w-0">
+                            {matchSummary ? (
+                              <Activity className="w-4 h-4 text-netflix-red shrink-0" />
+                            ) : (
+                              <Radio className="w-4 h-4 text-netflix-red animate-pulse shrink-0" />
+                            )}
+                            <h3 className="text-xs font-black uppercase tracking-wider text-white truncate">
+                              {matchSummary
+                                ? "Trung Tâm Trận Đấu & Diễn Biến"
+                                : "Thông Tin Trận Đấu & Luồng Phát"}
+                            </h3>
+                          </div>
+                          <span className="text-[10px] text-gray-400 font-medium shrink-0 ml-2">
+                            {matchSummary ? "Tự động đồng bộ số liệu" : "Tiếp sóng trực tiếp"}
+                          </span>
+                        </div>
+
+                        <MatchCenter
+                          leagueSlug={
+                            (scoresMap[selectedMatch.id] || selectedMatch.score)?.leagueSlug
+                          }
+                          eventId={
+                            (scoresMap[selectedMatch.id] || selectedMatch.score)?.eventId
+                          }
+                          matchTitle={selectedMatch.title}
+                          tournament={selectedMatch.tournament}
+                          team1={selectedMatch.team1}
+                          team2={selectedMatch.team2}
+                          team1Logo={selectedMatch.homeLogo || selectedMatch.logo}
+                          team2Logo={selectedMatch.awayLogo}
+                          isLive={
+                            (scoresMap[selectedMatch.id] || selectedMatch.score)?.status === "live" ||
+                            selectedMatch.timeline === "live"
+                          }
+                          time={selectedMatch.time}
+                          blv={selectedMatch.blv}
+                          group={selectedMatch.group}
+                          serversCount={selectedMatch.servers?.length}
+                          quality={selectedMatch.quality}
+                          onSummaryChange={setMatchSummary}
+                        />
+                      </div>
                     </div>
-                    <h3 className="text-lg xl:text-xl font-black text-white">
-                      Chọn một trận đấu bên danh sách để phát sóng trực tiếp
-                    </h3>
-                    <p className="text-xs xl:text-sm text-gray-400 leading-relaxed">
-                      Phát sóng đầy đủ các trận cầu tâm điểm với bình luận viên Tiếng Việt, nhiều máy chủ tốc độ cao và số liệu trực tiếp Match Center.
-                    </p>
-                    {liveMatchesList.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => handleSelectMatch(liveMatchesList[0])}
-                        className="mt-2 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-netflix-red hover:bg-red-700 text-white text-xs font-black transition shadow-xl shadow-red-950/60 cursor-pointer"
-                      >
-                        <Radio className="w-3.5 h-3.5" />
-                        <span>Xem ngay: {liveMatchesList[0].title}</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
+                  )}
 
-              {/* TRÊN DESKTOP (>= lg): TRUNG TÂM THÔNG SỐ MATCH CENTER (TÍCH HỢP NGAY DƯỚI VIDEO) */}
-              {selectedMatch && (
-                <div className="hidden lg:block space-y-2 pt-2">
-                  <div className="flex items-center justify-between px-1">
-                    <div className="flex items-center gap-2">
-                      <Activity className="w-4 h-4 text-netflix-red" />
-                      <h3 className="text-xs font-black uppercase tracking-wider text-white">
-                        Trung Tâm Trận Đấu & Diễn Biến Thời Gian Thực
-                      </h3>
-                    </div>
-                    <span className="text-[10px] text-gray-400 font-medium">
-                      Tự động đồng bộ số liệu
-                    </span>
-                  </div>
-
-                  <MatchCenter
-                    leagueSlug={
-                      (scoresMap[selectedMatch.id] || selectedMatch.score)?.leagueSlug
-                    }
-                    eventId={
-                      (scoresMap[selectedMatch.id] || selectedMatch.score)?.eventId
-                    }
-                    matchTitle={selectedMatch.title}
-                    tournament={selectedMatch.tournament}
-                    team1={selectedMatch.team1}
-                    team2={selectedMatch.team2}
-                    team1Logo={selectedMatch.homeLogo || selectedMatch.logo}
-                    team2Logo={selectedMatch.awayLogo}
-                    isLive={
-                      (scoresMap[selectedMatch.id] || selectedMatch.score)?.status === "live" ||
-                      selectedMatch.timeline === "live"
-                    }
-                    onSummaryChange={setMatchSummary}
-                  />
-                </div>
-              )}
-
-              {/* TRÊN MOBILE (< lg): SUB-TABS [TRẬN ĐẤU] / [MATCH CENTER] */}
-              <div className="lg:hidden space-y-4 pt-1">
-                {/* SUB-TABS TRÊN MOBILE */}
-                <div className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-zinc-900 border border-white/10">
-                  <button
-                    type="button"
-                    onClick={() => setActiveSection("matches")}
-                    className={`py-2 text-xs font-black rounded-lg transition text-center cursor-pointer ${
-                      activeSection === "matches"
-                        ? "bg-netflix-red text-white shadow-md"
-                        : "text-gray-400 hover:text-white"
-                    }`}
-                  >
-                    <span>Danh Sách Trận ({allVisibleMatches.length})</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveSection("match-center")}
-                    className={`py-2 text-xs font-black rounded-lg transition text-center cursor-pointer ${
-                      activeSection === "match-center"
-                        ? "bg-netflix-red text-white shadow-md"
-                        : "text-gray-400 hover:text-white"
-                    }`}
-                  >
-                    <span>Match Center</span>
-                  </button>
-                </div>
-
-                {/* NỘI DUNG MOBILE: DANH SÁCH TRẬN */}
-                {activeSection === "matches" && (
-                  <div className="space-y-3.5">
-                    {/* Search & Filters Mobile */}
-                    <div className="space-y-2 bg-zinc-950/70 p-2.5 rounded-2xl border border-white/10 backdrop-blur-md">
-                      {/* Ô TÌM KIẾM NỔI BẬT */}
+                  {/* TAB 2: ĐỔI TRẬN ĐẤU - DANH SÁCH THU GỌN VỚI TÌM KIẾM */}
+                  {sidePanelTab === "matches" && (
+                    <div className="flex-1 min-h-0 flex flex-col space-y-2.5 overflow-hidden">
+                      {/* Ô tìm kiếm nhanh trong side panel */}
                       <div className="relative w-full">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
                         <input
                           type="text"
                           value={searchQuery}
                           onChange={(e) => handleSearchChange(e.target.value)}
                           placeholder="Tìm đội (MU, Real...), giải đấu, BLV..."
-                          className="w-full pl-9 pr-16 py-2 rounded-xl bg-zinc-900 border border-white/15 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-netflix-red focus:ring-1 focus:ring-netflix-red/50 transition shadow-inner"
+                          className="w-full pl-8 pr-16 py-1.5 rounded-xl bg-zinc-900 border border-white/15 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-netflix-red focus:ring-1 focus:ring-netflix-red/50 transition shadow-inner"
                         />
                         <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
                           {searchQuery && (
@@ -1118,519 +1128,267 @@ export function LiveFootballClient({
                               title="Xóa tìm kiếm"
                               className="text-gray-400 hover:text-white p-0.5 cursor-pointer rounded-full hover:bg-white/10"
                             >
-                              <X className="w-3.5 h-3.5" />
+                              <X className="w-3 h-3" />
                             </button>
                           )}
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-white/10 text-gray-300">
+                          <span className="text-[9.5px] font-bold px-1.5 py-0.2 rounded bg-white/10 text-gray-300">
                             {filteredMatches.length}
                           </span>
                         </div>
                       </div>
 
-                      {/* BỘ LỌC TRẠNG THÁI & TÍNH NĂNG NHANH */}
-                      <ScrollablePillsRow innerClassName="flex items-center gap-1.5 py-0.5">
-                        <button
-                          type="button"
-                          onClick={() => handleStatusChange("all")}
-                          className={`px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition border shrink-0 cursor-pointer ${
-                            selectedStatus === "all"
-                              ? "bg-white text-black border-white shadow-sm font-extrabold"
-                              : "bg-zinc-900 text-gray-300 border-white/10 hover:text-white"
-                          }`}
-                        >
-                          Tất cả ({counts.total})
-                        </button>
-                        {counts.live > 0 && (
-                          <button
-                            type="button"
-                            onClick={() => handleStatusChange("live")}
-                            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition border shrink-0 cursor-pointer ${
-                              selectedStatus === "live"
-                                ? "bg-red-600 text-white border-red-500 shadow-md shadow-red-950/50"
-                                : "bg-zinc-900 text-rose-300 border-red-500/20 hover:text-white"
-                            }`}
-                          >
-                            <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                            <span>Đang đá ({counts.live})</span>
-                          </button>
-                        )}
-                        {counts.upcoming > 0 && (
-                          <button
-                            type="button"
-                            onClick={() => handleStatusChange("upcoming")}
-                            className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition border shrink-0 cursor-pointer ${
-                              selectedStatus === "upcoming"
-                                ? "bg-sky-600 text-white border-sky-500 shadow-sm"
-                                : "bg-zinc-900 text-sky-300 border-white/10 hover:text-white"
-                            }`}
-                          >
-                            <Clock className="w-3 h-3" />
-                            <span>Sắp đá ({counts.upcoming})</span>
-                          </button>
-                        )}
-                        {counts.finished > 0 && (
-                          <button
-                            type="button"
-                            onClick={() => handleStatusChange("finished")}
-                            className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition border shrink-0 cursor-pointer ${
-                              selectedStatus === "finished"
-                                ? "bg-zinc-700 text-white border-zinc-600 shadow-sm"
-                                : "bg-zinc-900 text-gray-400 border-white/10 hover:text-white"
-                            }`}
-                          >
-                            <Check className="w-3 h-3" />
-                            <span>Đã xong ({counts.finished})</span>
-                          </button>
-                        )}
-
-                        <div className="h-4 w-px bg-white/15 shrink-0 mx-0.5" />
-
-                        <button
-                          type="button"
-                          onClick={handleStreamToggle}
-                          className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition border shrink-0 cursor-pointer ${
-                            onlyWithStream
-                              ? "bg-emerald-600 text-white border-emerald-500 shadow-sm"
-                              : "bg-zinc-900 text-emerald-400/90 border-white/10 hover:text-emerald-300"
-                          }`}
-                        >
-                          <span>📶 Có nguồn ({counts.withStream})</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={handleFhdToggle}
-                          className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition border shrink-0 cursor-pointer ${
-                            onlyFhd
-                              ? "bg-emerald-600 text-white border-emerald-500 shadow-sm"
-                              : "bg-zinc-900 text-gray-400 border-white/10 hover:text-white"
-                          }`}
-                        >
-                          <span>⚡ FHD</span>
-                        </button>
-                      </ScrollablePillsRow>
-
-                      {/* Tournament Filter Pills Mobile */}
-                      {availableTournaments.length > 0 && (
-                        <ScrollablePillsRow innerClassName="flex items-center gap-1.5 py-0.5">
-                          <button
-                            type="button"
-                            onClick={() => handleTournamentChange("all")}
-                            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition border shrink-0 cursor-pointer ${
-                              selectedTournament === "all"
-                                ? "bg-white/20 text-white border-white/30"
-                                : "bg-zinc-900/80 text-gray-400 border-white/5 hover:text-white"
-                            }`}
-                          >
-                            Tất cả giải
-                          </button>
-                          {availableTournaments.map((t) => (
-                            <button
-                              key={t.name}
-                              type="button"
-                              onClick={() => handleTournamentChange(t.name)}
-                              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition border shrink-0 cursor-pointer ${
-                                selectedTournament === t.name
-                                  ? "bg-netflix-red text-white border-netflix-red shadow-sm"
-                                  : "bg-zinc-900/80 text-gray-400 border-white/5 hover:text-white"
-                              }`}
-                            >
-                              <span>{t.name}</span>
-                              <span className="ml-1 opacity-70 text-[10px]">({t.count})</span>
-                            </button>
-                          ))}
-                        </ScrollablePillsRow>
-                      )}
-
-                      {/* Reset filter bar nếu có filter active */}
-                      {hasActiveFilters && (
-                        <div className="flex items-center justify-between pt-1 border-t border-white/5 text-xs">
-                          <span className="text-gray-400 text-[11px]">
-                            Đang hiển thị <strong className="text-white font-bold">{filteredMatches.length}</strong>/{counts.total} trận
-                          </span>
-                          <button
-                            type="button"
-                            onClick={handleResetFilters}
-                            className="text-[11px] text-netflix-red hover:text-red-400 font-bold flex items-center gap-1 transition cursor-pointer"
-                          >
-                            <RotateCcw className="w-3 h-3" />
-                            <span>Đặt lại bộ lọc</span>
-                          </button>
-                        </div>
-                      )}
+                      {/* Danh sách thẻ trận cuộn dọc */}
+                      <div
+                        ref={railContainerRef}
+                        className="flex-1 min-h-0 overflow-y-auto space-y-1.5 px-0.5 py-0.5 pr-1 scrollbar-thin overscroll-y-contain [overscroll-behavior-y:contain] touch-pan-y"
+                        style={{ overscrollBehaviorY: "contain" }}
+                      >
+                        {filteredMatches.map((match) => (
+                          <MatchCard
+                            key={match.id}
+                            match={match}
+                            score={scoresMap[match.id] || match.score}
+                            isSelected={selectedMatch?.id === match.id}
+                            onSelect={handleSelectMatch}
+                          />
+                        ))}
+                      </div>
                     </div>
+                  )}
+                </div>
+              </div>
 
-                    {/* Danh sách trận đang phát */}
-                    {liveMatchesList.length > 0 && (
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-gradient-to-r from-red-950/90 via-red-900/40 to-zinc-900/90 border border-red-500/40 shadow-lg shadow-red-950/30">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span className="relative flex h-2.5 w-2.5 shrink-0">
-                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-                              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
-                            </span>
-                            <span className="text-xs font-black uppercase tracking-wider text-white truncate flex items-center gap-1.5">
-                              <span>ĐANG PHÁT TRỰC TIẾP</span>
-                              <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                            </span>
-                          </div>
-                          <span className="text-[10px] font-mono font-black px-2.5 py-0.5 rounded-full bg-red-600 text-white shadow-sm shadow-red-950/60 shrink-0 border border-red-400/30">
-                            🔴 {liveMatchesList.length} trận
-                          </span>
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                          {liveMatchesList.map((match) => (
-                            <MatchCard
-                              key={match.id}
-                              match={match}
-                              score={scoresMap[match.id] || match.score}
-                              isSelected={selectedMatch?.id === match.id}
-                              onSelect={handleSelectMatch}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Danh sách trận sắp phát */}
-                    {upcomingMatchesList.length > 0 && (
-                      <div className="space-y-2 pt-2">
-                        <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-gradient-to-r from-sky-950/80 via-zinc-900/70 to-zinc-900/90 border border-sky-500/30 shadow-md shadow-sky-950/30">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <div className="w-5 h-5 rounded-md bg-sky-500/20 border border-sky-500/30 text-sky-400 flex items-center justify-center shrink-0">
-                              <Clock className="w-3 h-3" />
-                            </div>
-                            <span className="text-xs font-black uppercase tracking-wider text-sky-100 truncate">
-                              SẮP PHÁT SÓNG
-                            </span>
-                          </div>
-                          <span className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-sky-500/15 border border-sky-500/30 text-sky-300 shrink-0">
-                            🕐 {upcomingMatchesList.length} trận
-                          </span>
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                          {upcomingMatchesList.map((match) => (
-                            <MatchCard
-                              key={match.id}
-                              match={match}
-                              score={scoresMap[match.id] || match.score}
-                              isSelected={selectedMatch?.id === match.id}
-                              onSelect={handleSelectMatch}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Danh sách trận đã kết thúc */}
-                    {finishedMatchesList.length > 0 && (
-                      <div className="space-y-2 pt-1">
-                        <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-zinc-900/70 border border-white/10">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <div className="w-5 h-5 rounded-md bg-white/10 text-zinc-400 flex items-center justify-center shrink-0">
-                              <Check className="w-3 h-3" />
-                            </div>
-                            <span className="text-xs font-black uppercase tracking-wider text-zinc-300 truncate">
-                              Đã kết thúc
-                            </span>
-                          </div>
-                          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-zinc-400 shrink-0">
-                            {finishedMatchesList.length} trận
-                          </span>
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                          {finishedMatchesList.map((match) => (
-                            <MatchCard
-                              key={match.id}
-                              match={match}
-                              score={scoresMap[match.id] || match.score}
-                              isSelected={selectedMatch?.id === match.id}
-                              onSelect={handleSelectMatch}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Trạng thái rỗng trên Mobile khi tìm kiếm/lọc không có kết quả */}
-                    {filteredMatches.length === 0 && (
-                      <div className="p-8 text-center text-gray-400 space-y-3 rounded-2xl bg-zinc-900/60 border border-white/10 backdrop-blur-md">
-                        <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto text-gray-400">
-                          <Search className="w-6 h-6" />
-                        </div>
-                        <div className="space-y-1">
-                          <p className="text-sm font-bold text-white">Không tìm thấy trận đấu nào</p>
-                          <p className="text-xs text-gray-400">
-                            {searchQuery
-                              ? `Không có trận nào khớp với từ khóa "${searchQuery}"`
-                              : "Không có trận nào phù hợp với bộ lọc đang chọn"}
-                          </p>
-                        </div>
-                        {hasActiveFilters && (
-                          <button
-                            type="button"
-                            onClick={handleResetFilters}
-                            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-netflix-red hover:bg-red-700 text-white text-xs font-bold transition shadow-lg shadow-red-950/50 cursor-pointer"
-                          >
-                            <RotateCcw className="w-3.5 h-3.5" />
-                            <span>Đặt lại tất cả bộ lọc</span>
-                          </button>
-                        )}
-                      </div>
-                    )}
+              {/* KHU VỰC KHÁM PHÁ CÁC TRẬN ĐẤU KHÁC (BÊN DƯỚI PLAYER) */}
+              <div className="pt-6 border-t border-white/10 space-y-4">
+                <div className="flex items-center justify-between px-1">
+                  <div className="flex items-center gap-2">
+                    <Radio className="w-4 h-4 text-netflix-red" />
+                    <h3 className="text-sm sm:text-base font-black uppercase tracking-wider text-white">
+                      Các Trận Đấu Trực Tiếp & Sắp Diễn Ra Khác
+                    </h3>
                   </div>
-                )}
+                  <button
+                    type="button"
+                    onClick={handleClosePlayer}
+                    className="text-xs font-bold text-netflix-red hover:underline cursor-pointer"
+                  >
+                    Xem tất cả ({counts.total}) →
+                  </button>
+                </div>
 
-                {/* NỘI DUNG MOBILE: MATCH CENTER */}
-                {activeSection === "match-center" && (
-                  <div>
-                    {selectedMatch ? (
-                      <MatchCenter
-                        leagueSlug={
-                          (scoresMap[selectedMatch.id] || selectedMatch.score)?.leagueSlug
-                        }
-                        eventId={
-                          (scoresMap[selectedMatch.id] || selectedMatch.score)?.eventId
-                        }
-                        matchTitle={selectedMatch.title}
-                        tournament={selectedMatch.tournament}
-                        team1={selectedMatch.team1}
-                        team2={selectedMatch.team2}
-                        team1Logo={selectedMatch.homeLogo || selectedMatch.logo}
-                        team2Logo={selectedMatch.awayLogo}
-                        isLive={
-                          (scoresMap[selectedMatch.id] || selectedMatch.score)?.status === "live" ||
-                          selectedMatch.timeline === "live"
-                        }
-                        onSummaryChange={setMatchSummary}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                  {allVisibleMatches
+                    .filter((m) => m.id !== selectedMatch.id)
+                    .slice(0, 8)
+                    .map((match) => (
+                      <MatchCard
+                        key={match.id}
+                        match={match}
+                        score={scoresMap[match.id] || match.score}
+                        isSelected={false}
+                        onSelect={handleSelectMatch}
                       />
-                    ) : (
-                      <div className="p-8 text-center text-gray-400 rounded-2xl bg-zinc-900/60 border border-white/10 space-y-2">
-                        <Activity className="w-8 h-8 mx-auto text-gray-500" />
-                        <p className="text-sm font-bold text-white">Chưa chọn trận đấu nào</p>
-                        <p className="text-xs text-gray-400">Chọn một trận trong danh sách để xem chi tiết</p>
-                        <button
-                          type="button"
-                          onClick={() => setActiveSection("matches")}
-                          className="px-4 py-2 rounded-xl bg-netflix-red text-white text-xs font-bold"
-                        >
-                          Xem danh sách trận
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
+                    ))}
+                </div>
               </div>
             </div>
+          ) : (
+            /* ============================================================ */
+            /* TRƯỜNG HỢP 2: KHI VỪA VÀO TRANG (MATCH DISCOVERY FIRST)      */
+            /* ============================================================ */
+            <div className="space-y-6">
+              {/* THANH BỘ LỌC TÌM KIẾM TOÀN DIỆN & TIỆN LỢI */}
+              <div className="rounded-2xl border border-white/10 bg-zinc-950/80 backdrop-blur-xl p-3.5 sm:p-5 space-y-3.5 shadow-2xl">
+                {/* Hàng 1: Ô tìm kiếm & Bộ lọc trạng thái */}
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                  {/* Ô tìm kiếm thông minh */}
+                  <div className="relative w-full lg:max-w-md">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => handleSearchChange(e.target.value)}
+                      placeholder="Tìm đội bóng (MU, Real, Arsenal...), giải đấu, BLV..."
+                      className="w-full pl-10 pr-16 py-2.5 rounded-xl bg-zinc-900 border border-white/15 text-xs sm:text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-netflix-red focus:ring-1 focus:ring-netflix-red/50 transition shadow-inner font-medium"
+                    />
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                      {searchQuery && (
+                        <button
+                          type="button"
+                          onClick={() => handleSearchChange("")}
+                          title="Xóa tìm kiếm"
+                          className="text-zinc-400 hover:text-white p-0.5 cursor-pointer rounded-full hover:bg-white/10"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-white/10 text-zinc-300">
+                        {filteredMatches.length}
+                      </span>
+                    </div>
+                  </div>
 
-            {/* CỘT PHẢI (CHỈ HIỂN THỊ TRÊN DESKTOP >= lg): LIVE MATCH GUIDE RAIL STICKY */}
-            <div
-              className="hidden lg:flex lg:col-span-5 xl:col-span-4 sticky top-20 max-h-[calc(100vh-120px)] min-h-0 flex-col rounded-2xl border border-white/10 bg-zinc-950/90 backdrop-blur-xl shadow-2xl p-3 space-y-2.5 overflow-hidden overscroll-y-contain [overscroll-behavior-y:contain]"
-              style={{ overscrollBehaviorY: "contain" }}
-            >
-              <div className="flex items-center justify-between border-b border-white/10 pb-2">
-                <div className="flex items-center gap-2">
-                  <Radio className="w-4 h-4 text-netflix-red" />
-                  <h3 className="text-xs font-black uppercase tracking-wider text-white">
-                    Lịch Trực Tiếp Hôm Nay
-                  </h3>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/10 text-gray-300">
-                    {filteredMatches.length}/{counts.total} trận
-                  </span>
-                </div>
-              </div>
-
-              {/* Ô TÌM KIẾM TRẬN, ĐỘI & BLV NỔI BẬT */}
-              <div className="relative w-full">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => handleSearchChange(e.target.value)}
-                  placeholder="Tìm đội (MU, Real...), giải đấu, BLV..."
-                  className="w-full pl-8 pr-16 py-1.5 rounded-xl bg-zinc-900 border border-white/15 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-netflix-red focus:ring-1 focus:ring-netflix-red/50 transition shadow-inner"
-                />
-                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                  {searchQuery && (
+                  {/* Cụm nút lọc trạng thái trận đấu */}
+                  <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-0.5">
                     <button
                       type="button"
-                      onClick={() => handleSearchChange("")}
-                      title="Xóa tìm kiếm"
-                      className="text-gray-400 hover:text-white p-0.5 cursor-pointer rounded-full hover:bg-white/10"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  )}
-                  <span className="text-[9.5px] font-bold px-1.5 py-0.2 rounded bg-white/10 text-gray-300">
-                    {filteredMatches.length}
-                  </span>
-                </div>
-              </div>
-
-              {/* BỘ LỌC TRẠNG THÁI & TÍNH NĂNG NHANH */}
-              <ScrollablePillsRow innerClassName="flex items-center gap-1 py-0.5">
-                <button
-                  type="button"
-                  onClick={() => handleStatusChange("all")}
-                  className={`px-2 py-1 rounded-lg text-[10.5px] font-bold whitespace-nowrap transition border shrink-0 cursor-pointer ${
-                    selectedStatus === "all"
-                      ? "bg-white text-black border-white shadow-sm font-extrabold"
-                      : "bg-zinc-900 text-gray-400 border-white/10 hover:text-white"
-                  }`}
-                >
-                  Tất cả ({counts.total})
-                </button>
-                {counts.live > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => handleStatusChange("live")}
-                    className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10.5px] font-bold whitespace-nowrap transition border shrink-0 cursor-pointer ${
-                      selectedStatus === "live"
-                        ? "bg-red-600 text-white border-red-500 shadow-md shadow-red-950/50"
-                        : "bg-zinc-900 text-rose-300 border-red-500/20 hover:text-white"
-                    }`}
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                    <span>Đang đá ({counts.live})</span>
-                  </button>
-                )}
-                {counts.upcoming > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => handleStatusChange("upcoming")}
-                    className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10.5px] font-bold whitespace-nowrap transition border shrink-0 cursor-pointer ${
-                      selectedStatus === "upcoming"
-                        ? "bg-sky-600 text-white border-sky-500 shadow-sm"
-                        : "bg-zinc-900 text-sky-300 border-white/10 hover:text-white"
-                    }`}
-                  >
-                    <Clock className="w-2.5 h-2.5" />
-                    <span>Sắp đá ({counts.upcoming})</span>
-                  </button>
-                )}
-                {counts.finished > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => handleStatusChange("finished")}
-                    className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10.5px] font-bold whitespace-nowrap transition border shrink-0 cursor-pointer ${
-                      selectedStatus === "finished"
-                        ? "bg-zinc-700 text-white border-zinc-600 shadow-sm"
-                        : "bg-zinc-900 text-gray-400 border-white/10 hover:text-white"
-                    }`}
-                  >
-                    <Check className="w-2.5 h-2.5" />
-                    <span>Đã xong ({counts.finished})</span>
-                  </button>
-                )}
-
-                <div className="h-3.5 w-px bg-white/15 shrink-0 mx-0.5" />
-
-                <button
-                  type="button"
-                  onClick={handleStreamToggle}
-                  className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10.5px] font-bold whitespace-nowrap transition border shrink-0 cursor-pointer ${
-                    onlyWithStream
-                      ? "bg-emerald-600 text-white border-emerald-500 shadow-sm"
-                      : "bg-zinc-900 text-emerald-400/90 border-white/10 hover:text-emerald-300"
-                  }`}
-                >
-                  <span>📶 Có nguồn ({counts.withStream})</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleFhdToggle}
-                  className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10.5px] font-bold whitespace-nowrap transition border shrink-0 cursor-pointer ${
-                    onlyFhd
-                      ? "bg-emerald-600 text-white border-emerald-500 shadow-sm"
-                      : "bg-zinc-900 text-gray-400 border-white/10 hover:text-white"
-                  }`}
-                >
-                  <span>⚡ FHD</span>
-                </button>
-              </ScrollablePillsRow>
-
-              {/* TABS CHỌN GIẢI ĐẤU DẠNG CUỘN NGANG NHỎ GỌN */}
-              {availableTournaments.length > 0 && (
-                <ScrollablePillsRow innerClassName="flex items-center gap-1 py-0.5">
-                  <button
-                    type="button"
-                    onClick={() => handleTournamentChange("all")}
-                    className={`px-2 py-0.5 rounded-lg text-[10px] font-bold whitespace-nowrap transition border cursor-pointer shrink-0 ${
-                      selectedTournament === "all"
-                        ? "bg-white/20 text-white border-white/30"
-                        : "bg-zinc-900/80 text-gray-400 border-white/5 hover:text-white"
-                    }`}
-                  >
-                    Tất cả giải
-                  </button>
-                  {availableTournaments.map((t) => (
-                    <button
-                      key={t.name}
-                      type="button"
-                      onClick={() => handleTournamentChange(t.name)}
-                      className={`px-2 py-0.5 rounded-lg text-[10px] font-bold whitespace-nowrap transition border cursor-pointer shrink-0 ${
-                        selectedTournament === t.name
-                          ? "bg-netflix-red text-white border-netflix-red shadow-sm"
-                          : "bg-zinc-900/80 text-gray-400 border-white/5 hover:text-white"
+                      onClick={() => handleStatusChange("all")}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition border shrink-0 cursor-pointer ${
+                        selectedStatus === "all"
+                          ? "bg-white text-black border-white shadow-sm font-extrabold"
+                          : "bg-zinc-900 text-zinc-400 border-white/10 hover:text-white"
                       }`}
                     >
-                      <span>{t.name}</span>
-                      <span className="ml-1 opacity-70 text-[9px]">({t.count})</span>
+                      Tất cả ({counts.total})
                     </button>
-                  ))}
-                </ScrollablePillsRow>
-              )}
+                    {counts.live > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => handleStatusChange("live")}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition border shrink-0 cursor-pointer ${
+                          selectedStatus === "live"
+                            ? "bg-red-600 text-white border-red-500 shadow-md shadow-red-950/50"
+                            : "bg-zinc-900 text-rose-300 border-red-500/20 hover:text-white"
+                        }`}
+                      >
+                        <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                        <span>Đang diễn ra ({counts.live})</span>
+                      </button>
+                    )}
+                    {counts.upcoming > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => handleStatusChange("upcoming")}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition border shrink-0 cursor-pointer ${
+                          selectedStatus === "upcoming"
+                            ? "bg-sky-600 text-white border-sky-500 shadow-sm"
+                            : "bg-zinc-900 text-sky-300 border-white/10 hover:text-white"
+                        }`}
+                      >
+                        <Clock className="w-3 h-3" />
+                        <span>Sắp đá ({counts.upcoming})</span>
+                      </button>
+                    )}
+                    {counts.finished > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => handleStatusChange("finished")}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition border shrink-0 cursor-pointer ${
+                          selectedStatus === "finished"
+                            ? "bg-zinc-700 text-white border-zinc-600 shadow-sm"
+                            : "bg-zinc-900 text-zinc-400 border-white/10 hover:text-white"
+                        }`}
+                      >
+                        <Check className="w-3 h-3" />
+                        <span>Đã kết thúc ({counts.finished})</span>
+                      </button>
+                    )}
 
-              {/* THANH ĐẶT LẠI BỘ LỌC KHI ĐANG CÓ LỌC */}
-              {hasActiveFilters && (
-                <div className="flex items-center justify-between px-1 text-[10.5px]">
-                  <span className="text-gray-400">
-                    Hiển thị <strong className="text-white font-bold">{filteredMatches.length}</strong>/{counts.total} trận
-                  </span>
-                  <button
-                    type="button"
-                    onClick={handleResetFilters}
-                    className="text-netflix-red hover:text-red-400 font-bold flex items-center gap-1 transition cursor-pointer"
-                  >
-                    <RotateCcw className="w-2.5 h-2.5" />
-                    <span>Đặt lại</span>
-                  </button>
+                    <div className="h-4 w-px bg-white/15 shrink-0 mx-0.5" />
+
+                    <button
+                      type="button"
+                      onClick={handleStreamToggle}
+                      className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition border shrink-0 cursor-pointer ${
+                        onlyWithStream
+                          ? "bg-emerald-600 text-white border-emerald-500 shadow-sm"
+                          : "bg-zinc-900 text-emerald-400/90 border-white/10 hover:text-emerald-300"
+                      }`}
+                    >
+                      <span>📶 Có nguồn ({counts.withStream})</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleFhdToggle}
+                      className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition border shrink-0 cursor-pointer ${
+                        onlyFhd
+                          ? "bg-emerald-600 text-white border-emerald-500 shadow-sm"
+                          : "bg-zinc-900 text-zinc-400 border-white/10 hover:text-white"
+                      }`}
+                    >
+                      <span>⚡ FHD</span>
+                    </button>
+                  </div>
                 </div>
-              )}
 
-              {/* DANH SÁCH MATCH CARDS TRONG RAIL CUỘN DỌC (CUỘN XUỐNG TRẬN ĐANG PHÁT) */}
-              <div
-                ref={railContainerRef}
-                className="flex-1 min-h-0 overflow-y-auto space-y-2 px-0.5 py-0.5 pr-1 scrollbar-thin overscroll-y-contain [overscroll-behavior-y:contain] touch-pan-y max-h-[calc(100vh-320px)]"
-                style={{ overscrollBehaviorY: "contain" }}
-              >
-                {/* NHÓM 🔴 ĐANG PHÁT */}
+                {/* Hàng 2: Bộ lọc các giải đấu nổi bật dạng cuộn ngang */}
+                {availableTournaments.length > 0 && (
+                  <ScrollablePillsRow innerClassName="flex items-center gap-1.5 py-0.5">
+                    <button
+                      type="button"
+                      onClick={() => handleTournamentChange("all")}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition border cursor-pointer shrink-0 ${
+                        selectedTournament === "all"
+                          ? "bg-white/20 text-white border-white/30"
+                          : "bg-zinc-900/80 text-zinc-400 border-white/5 hover:text-white"
+                      }`}
+                    >
+                      Tất cả giải ({counts.total})
+                    </button>
+                    {availableTournaments.map((t) => (
+                      <button
+                        key={t.name}
+                        type="button"
+                        onClick={() => handleTournamentChange(t.name)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition border cursor-pointer shrink-0 ${
+                          selectedTournament === t.name
+                            ? "bg-netflix-red text-white border-netflix-red shadow-sm"
+                            : "bg-zinc-900/80 text-zinc-400 border-white/5 hover:text-white"
+                        }`}
+                      >
+                        <span>{t.name}</span>
+                        <span className="ml-1 opacity-70 text-[10px]">({t.count})</span>
+                      </button>
+                    ))}
+                  </ScrollablePillsRow>
+                )}
+
+                {/* Thanh Reset filter khi có áp dụng */}
+                {hasActiveFilters && (
+                  <div className="flex items-center justify-between pt-2 border-t border-white/5 text-xs">
+                    <span className="text-zinc-400">
+                      Hiển thị <strong className="text-white font-bold">{filteredMatches.length}</strong>/{counts.total} trận
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleResetFilters}
+                      className="text-netflix-red hover:text-red-400 font-bold flex items-center gap-1 transition cursor-pointer"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      <span>Đặt lại bộ lọc</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* LƯỚI TRẬN ĐẤU RESPONSIVE DISCOVERY GRID (3 CỘT TRÊN DESKTOP, 1 CỘT TRÊN MOBILE) */}
+              <div className="space-y-6">
+                {/* NHÓM 🔴 ĐANG PHÁT TRỰC TIẾP */}
                 {liveMatchesList.length > 0 && (
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between px-2.5 py-1 rounded-lg bg-zinc-900/80 border border-red-500/30">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <span className="relative flex h-2 w-2 shrink-0">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between px-1">
+                      <div className="flex items-center gap-2">
+                        <span className="relative flex h-2.5 w-2.5 shrink-0">
                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-                          <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+                          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
                         </span>
-                        <span className="text-[10.5px] font-bold uppercase tracking-wider text-white truncate">
-                          Đang phát trực tiếp
-                        </span>
+                        <h3 className="text-sm sm:text-base font-black uppercase tracking-wider text-white">
+                          Đang Phát Trực Tiếp
+                        </h3>
                       </div>
-                      <span className="text-[9.5px] font-mono font-bold px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-300 border border-red-500/30 shrink-0">
+                      <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded-full bg-red-500/20 text-red-300 border border-red-500/30">
                         {liveMatchesList.length} trận
                       </span>
                     </div>
-                    <div className="space-y-1">
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5 sm:gap-4">
                       {liveMatchesList.map((match) => (
                         <MatchCard
                           key={match.id}
                           match={match}
                           score={scoresMap[match.id] || match.score}
-                          isSelected={selectedMatch?.id === match.id}
+                          isSelected={false}
                           onSelect={handleSelectMatch}
                         />
                       ))}
@@ -1640,25 +1398,26 @@ export function LiveFootballClient({
 
                 {/* NHÓM 🕐 SẮP DIỄN RA */}
                 {upcomingMatchesList.length > 0 && (
-                  <div className="space-y-1.5 pt-2">
-                    <div className="flex items-center justify-between px-2.5 py-1 rounded-lg bg-zinc-900/80 border border-white/10">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <Clock className="w-3 h-3 text-sky-400 shrink-0" />
-                        <span className="text-[10.5px] font-bold uppercase tracking-wider text-zinc-300 truncate">
-                          Sắp phát sóng
-                        </span>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between px-1">
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-sky-400 shrink-0" />
+                        <h3 className="text-sm sm:text-base font-black uppercase tracking-wider text-zinc-300">
+                          Sắp Phát Sóng
+                        </h3>
                       </div>
-                      <span className="text-[9.5px] font-mono font-bold px-1.5 py-0.5 rounded-full bg-white/5 text-zinc-400 border border-white/10 shrink-0">
+                      <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded-full bg-white/5 text-zinc-400 border border-white/10">
                         {upcomingMatchesList.length} trận
                       </span>
                     </div>
-                    <div className="space-y-1">
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5 sm:gap-4">
                       {upcomingMatchesList.map((match) => (
                         <MatchCard
                           key={match.id}
                           match={match}
                           score={scoresMap[match.id] || match.score}
-                          isSelected={selectedMatch?.id === match.id}
+                          isSelected={false}
                           onSelect={handleSelectMatch}
                         />
                       ))}
@@ -1668,27 +1427,26 @@ export function LiveFootballClient({
 
                 {/* NHÓM 🏁 ĐÃ KẾT THÚC */}
                 {finishedMatchesList.length > 0 && (
-                  <div className="space-y-1.5 pt-2">
-                    <div className="flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-zinc-900/70 border border-white/10">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <div className="w-4.5 h-4.5 rounded-md bg-white/10 text-zinc-400 flex items-center justify-center shrink-0">
-                          <Check className="w-2.5 h-2.5" />
-                        </div>
-                        <span className="text-[11px] font-black uppercase tracking-wider text-zinc-300 truncate">
-                          Đã kết thúc
-                        </span>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between px-1">
+                      <div className="flex items-center gap-2">
+                        <Check className="w-4 h-4 text-zinc-400 shrink-0" />
+                        <h3 className="text-sm sm:text-base font-black uppercase tracking-wider text-zinc-400">
+                          Đã Kết Thúc
+                        </h3>
                       </div>
-                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-zinc-400 shrink-0">
+                      <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded-full bg-white/5 text-zinc-400 border border-white/10">
                         {finishedMatchesList.length} trận
                       </span>
                     </div>
-                    <div className="space-y-1">
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5 sm:gap-4">
                       {finishedMatchesList.map((match) => (
                         <MatchCard
                           key={match.id}
                           match={match}
                           score={scoresMap[match.id] || match.score}
-                          isSelected={selectedMatch?.id === match.id}
+                          isSelected={false}
                           onSelect={handleSelectMatch}
                         />
                       ))}
@@ -1696,33 +1454,30 @@ export function LiveFootballClient({
                   </div>
                 )}
 
-                {/* TRẠNG THÁI RỖNG */}
+                {/* TRẠNG THÁI RỖNG KHI TÌM KIẾM KHÔNG CÓ TRẬN */}
                 {filteredMatches.length === 0 && (
-                  <div className="p-6 text-center text-gray-400 space-y-2.5 rounded-xl bg-zinc-900/50 border border-white/5">
-                    <Search className="w-5 h-5 mx-auto text-gray-500" />
-                    <div className="space-y-0.5">
-                      <p className="text-xs font-bold text-white">Không tìm thấy trận đấu nào</p>
-                      <p className="text-[11px] text-gray-400">
-                        {searchQuery
-                          ? `Không có trận nào khớp với "${searchQuery}"`
-                          : "Không có trận nào phù hợp với bộ lọc đang chọn"}
-                      </p>
-                    </div>
+                  <div className="p-12 text-center text-zinc-400 space-y-3 rounded-2xl bg-zinc-950/80 border border-white/10 shadow-xl">
+                    <Search className="w-8 h-8 mx-auto text-zinc-500" />
+                    <p className="text-sm font-bold text-white">Không tìm thấy trận đấu nào</p>
+                    <p className="text-xs text-zinc-400">
+                      {searchQuery
+                        ? `Không có trận nào khớp với từ khóa "${searchQuery}"`
+                        : "Không có trận nào phù hợp với bộ lọc đang chọn"}
+                    </p>
                     {hasActiveFilters && (
                       <button
                         type="button"
                         onClick={handleResetFilters}
-                        className="text-[11px] text-netflix-red hover:underline font-bold inline-flex items-center gap-1 cursor-pointer"
+                        className="px-4 py-2 rounded-xl bg-netflix-red text-white text-xs font-bold cursor-pointer hover:bg-red-700 transition"
                       >
-                        <RotateCcw className="w-3 h-3" />
-                        <span>Đặt lại tất cả bộ lọc</span>
+                        Đặt lại bộ lọc
                       </button>
                     )}
                   </div>
                 )}
               </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 

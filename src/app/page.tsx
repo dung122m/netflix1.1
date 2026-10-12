@@ -1,6 +1,6 @@
 import dynamic from "next/dynamic";
 import { redirect } from "next/navigation";
-import { FilterBarClient } from "@/components/FilterBarClient";
+import { HomeGenreExploreBar } from "@/components/home/HomeGenreExploreBar";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { ContinueWatchingRow } from "@/components/ContinueWatchingRow";
@@ -309,9 +309,9 @@ export default async function HomePage({
         <ContinueWatchingRow />
       </div>
 
-      {/* 3. BỘ LỌC PHIM NHANH (Đặt ngay dưới Hero / Tiếp tục xem) */}
+      {/* 3. KHÁM PHÁ THEO THỂ LOẠI (Điều hướng chủ đích sang Browse) */}
       <div className="px-4 md:px-8 my-3 sm:my-4 relative z-30">
-        <FilterBarClient />
+        <HomeGenreExploreBar />
       </div>
 
       {/* 4. 🇻🇳 HÔM NAY TẠI VIỆT NAM (FEATURE SPOTLIGHT BANNER) */}

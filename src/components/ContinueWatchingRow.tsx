@@ -245,10 +245,10 @@ function ContinueWatchingRowInner() {
                       </span>
                       {item.quality && (
                         <span
-                          className={`px-1.5 py-0.5 rounded text-[9px] font-bold backdrop-blur-md border ${
+                          className={`px-2 py-0.5 rounded-md text-[10.5px] font-bold backdrop-blur-md border ${
                             item.quality.toUpperCase().includes("CAM")
-                              ? "bg-amber-950/80 text-amber-300 border-amber-500/40"
-                              : "bg-black/70 border-white/10 text-zinc-300"
+                              ? "bg-amber-950/90 text-amber-300 border-amber-500/40"
+                              : "bg-black/80 border-white/20 text-zinc-100"
                           }`}
                         >
                           {item.quality}

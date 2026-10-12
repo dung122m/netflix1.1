@@ -259,8 +259,8 @@ export function CollectionClientView({
               </p>
             </div>
           ) : (
-            <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-zinc-900/40 to-zinc-950/40 p-3 sm:p-4 md:p-5 overflow-visible">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5">
+            <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-zinc-900/40 to-zinc-950/40 p-2.5 sm:p-4 md:p-5 overflow-visible">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-4 lg:gap-5 xl:gap-6">
                 {collection.movies.map((item, index) => (
                   <MediaCard
                     key={item.slug}

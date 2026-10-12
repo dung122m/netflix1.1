@@ -2729,58 +2729,81 @@ function LivePlayerInner({
                 )}
               </div>
 
-              {/* TỶ SỐ TRUNG TÂM & ĐỒNG HỒ */}
-              <div className="flex flex-col items-center px-2 sm:px-6 py-1 shrink-0">
-                <div className="flex items-center gap-2 sm:gap-4 font-mono text-3xl sm:text-5xl font-black text-white tracking-wider">
-                  <span>
-                    {isConfirmedLive
-                      ? (currentScore?.team1Score ?? summary?.homeTeam?.score ?? 0)
-                      : isFinished
-                        ? (currentScore?.team1Score ?? summary?.homeTeam?.score ?? "-")
-                        : (currentScore?.team1Score ?? summary?.homeTeam?.score ?? "-")}
-                  </span>
-                  <span className="text-gray-500 text-2xl sm:text-3xl font-light select-none">:</span>
-                  <span>
-                    {isConfirmedLive
-                      ? (currentScore?.team2Score ?? summary?.awayTeam?.score ?? 0)
-                      : isFinished
-                        ? (currentScore?.team2Score ?? summary?.awayTeam?.score ?? "-")
-                        : (currentScore?.team2Score ?? summary?.awayTeam?.score ?? "-")}
-                  </span>
-                </div>
+              {/* TỶ SỐ TRUNG TÂM & ĐỒNG HỒ / HOẶC HUY HIỆU VS HIỆN ĐẠI */}
+              {(() => {
+                const homeScoreVal = currentScore?.team1Score ?? summary?.homeTeam?.score;
+                const awayScoreVal = currentScore?.team2Score ?? summary?.awayTeam?.score;
+                const hasScore =
+                  typeof homeScoreVal === "number" &&
+                  typeof awayScoreVal === "number" &&
+                  !isNaN(homeScoreVal) &&
+                  !isNaN(awayScoreVal);
+                const isMatchLive =
+                  isConfirmedLive ||
+                  match?.timeline === "live" ||
+                  time === "Trực tiếp" ||
+                  match?.isLive === true;
 
-                <div className="mt-2 flex items-center gap-1.5 flex-wrap justify-center">
-                  <span
-                    className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full border tracking-wider ${
-                      isConfirmedLive
-                        ? "bg-red-600/20 text-red-400 border-red-500/40 animate-pulse"
-                        : isFinished
-                          ? "bg-zinc-800 text-gray-300 border-white/10"
-                          : "bg-sky-500/20 text-sky-400 border-sky-500/30"
-                    }`}
-                  >
-                    {isConfirmedLive
-                      ? (currentScore?.displayClock || summary?.displayClock || "TRỰC TIẾP")
-                      : isFinished
-                        ? "HẾT GIỜ (FT)"
-                        : (specialStatusLabel ||
-                           summary?.displayClock ||
-                           (summary?.statusText === "STATUS_SCHEDULED"
-                             ? null
-                             : summary?.statusText?.replace(/^STATUS_/i, "")) ||
-                           displayStatus.kickoffTime ||
-                           (time && time !== "Trực tiếp" ? `⏰ ${time}` : "SẮP DIỄN RA"))}
-                  </span>
+                return (
+                  <div className="flex flex-col items-center px-2 sm:px-6 py-1 shrink-0">
+                    {hasScore ? (
+                      <div className="flex items-center gap-2 sm:gap-4 font-mono text-3xl sm:text-5xl font-black text-white tracking-wider">
+                        <span>{homeScoreVal}</span>
+                        <span className="text-gray-500 text-2xl sm:text-3xl font-light select-none">:</span>
+                        <span>{awayScoreVal}</span>
+                      </div>
+                    ) : (
+                      <div className="my-0.5 sm:my-1 flex items-center justify-center">
+                        <div className="px-3 sm:px-3.5 py-0.5 rounded-lg bg-zinc-900/90 border border-white/15 shadow-sm">
+                          <span className="text-sm sm:text-base font-black uppercase tracking-[0.2em] text-zinc-200 select-none">
+                            VS
+                          </span>
+                        </div>
+                      </div>
+                    )}
 
-                  {isConfirmedLive && currentScore?.statusDetail &&
-                   currentScore.statusDetail !== currentScore.displayClock &&
-                   currentScore.statusDetail !== "In Progress" && (
-                    <span className="text-[9px] text-amber-300 font-bold bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20 whitespace-nowrap shadow-sm">
-                      {currentScore.statusDetail}
-                    </span>
-                  )}
-                </div>
-              </div>
+                    <div className="mt-2 flex items-center gap-1.5 flex-wrap justify-center">
+                      <span
+                        className={`inline-flex items-center gap-1.5 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full border tracking-wider ${
+                          isMatchLive
+                            ? "bg-red-950/50 text-red-400 border-red-500/30 shadow-sm"
+                            : isFinished
+                              ? "bg-zinc-800 text-gray-300 border-white/10"
+                              : "bg-sky-500/20 text-sky-400 border-sky-500/30"
+                        }`}
+                      >
+                        {isMatchLive && (
+                          <span className="relative flex h-1.5 w-1.5 shrink-0">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500" />
+                          </span>
+                        )}
+                        <span>
+                          {isMatchLive
+                            ? (currentScore?.displayClock || summary?.displayClock || "TRỰC TIẾP")
+                            : isFinished
+                              ? "HẾT GIỜ (FT)"
+                              : (specialStatusLabel ||
+                                 summary?.displayClock ||
+                                 (summary?.statusText === "STATUS_SCHEDULED"
+                                   ? null
+                                   : summary?.statusText?.replace(/^STATUS_/i, "")) ||
+                                 displayStatus.kickoffTime ||
+                                 (time && time !== "Trực tiếp" ? `⏰ ${time}` : "TRỰC TIẾP"))}
+                        </span>
+                      </span>
+
+                      {isMatchLive && currentScore?.statusDetail &&
+                       currentScore.statusDetail !== currentScore.displayClock &&
+                       currentScore.statusDetail !== "In Progress" && (
+                        <span className="text-[9px] text-amber-300 font-bold bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20 whitespace-nowrap shadow-sm">
+                          {currentScore.statusDetail}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* ĐỘI KHÁCH */}
               <div className="flex-1 flex flex-col items-center sm:items-start text-center sm:text-left min-w-0">

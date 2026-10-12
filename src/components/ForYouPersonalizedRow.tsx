@@ -552,19 +552,13 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
                         }}
                       />
 
-                      {/* AI MATCH BADGE GÓC TRÊN TRÁI */}
-                      <div className="absolute top-2 left-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/70 backdrop-blur-md border border-emerald-500/35 text-emerald-400 text-[9px] sm:text-[10px] font-bold shadow-md">
-                        <Sparkles className="w-2.5 h-2.5 text-emerald-400" />
-                        <span>{matchScore}% HỢP GU</span>
-                      </div>
-
                       {/* QUALITY TAG GÓC TRÊN PHẢI */}
                       {movie.quality && (
                         <div
-                          className={`absolute top-2 right-2 px-1.5 py-0.5 rounded backdrop-blur-md text-[9px] font-bold border ${
+                          className={`absolute top-2 right-2 px-2 py-0.5 rounded-md backdrop-blur-md text-[10.5px] font-bold border ${
                             movie.quality.toUpperCase().includes("CAM")
-                              ? "bg-amber-950/80 text-amber-300 border-amber-500/40"
-                              : "bg-black/70 text-zinc-300 border-white/10"
+                              ? "bg-amber-950/90 text-amber-300 border-amber-500/40"
+                              : "bg-black/80 text-zinc-100 border-white/20"
                           }`}
                         >
                           {movie.quality}
