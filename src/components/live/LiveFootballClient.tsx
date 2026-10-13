@@ -1744,7 +1744,7 @@ export function LiveFootballClient({
                         onClick={() => handleSportChange(sp.key)}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition border cursor-pointer shrink-0 ${
                           isSelected
-                            ? "bg-gradient-to-r from-netflix-red to-red-600 text-white border-red-500 shadow-md shadow-red-950/50 scale-[1.02]"
+                            ? "bg-gradient-to-r from-netflix-red to-netflix-red/85 text-white border-netflix-red shadow-md shadow-[var(--accent-glow,rgba(229,9,20,0.4))] scale-[1.02]"
                             : "bg-zinc-900/90 text-zinc-300 border-white/10 hover:text-white hover:bg-white/5"
                         }`}
                       >

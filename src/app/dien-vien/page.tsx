@@ -48,14 +48,14 @@ export default function ActorsHubPage() {
             <span>Quay lại Trang chủ</span>
           </Link>
 
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-netflix-red text-xs font-semibold tracking-wide uppercase mx-auto block w-fit">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-netflix-red/10 border border-netflix-red/20 text-netflix-red text-xs font-semibold tracking-wide uppercase mx-auto block w-fit">
             <Users className="w-3.5 h-3.5" />
             <span>Thư viện nghệ sĩ • Cast Directory</span>
           </div>
 
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight leading-[1.15]">
             Khám Phá{" "}
-            <span className="bg-gradient-to-r from-netflix-red via-rose-400 to-amber-400 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-netflix-red via-white to-zinc-300 bg-clip-text text-transparent">
               Diễn Viên & Nghệ Sĩ
             </span>
           </h1>

@@ -57,7 +57,7 @@ export const ResumeEpisodeBanner: React.FC<ResumeEpisodeBannerProps> = ({
 
   return (
     <div className="max-w-[1800px] mx-auto mb-2 px-1 animate-in fade-in slide-in-from-top-2 duration-300">
-      <div className="flex items-center justify-between gap-3 px-3.5 py-2 rounded-xl bg-gradient-to-r from-zinc-900 via-zinc-900/90 to-red-950/40 border border-netflix-red/30 shadow-lg">
+      <div className="flex items-center justify-between gap-3 px-3.5 py-2 rounded-xl bg-gradient-to-r from-zinc-900 via-zinc-900/90 to-netflix-red/10 border border-netflix-red/30 shadow-lg">
         <div className="flex items-center gap-2.5 text-xs sm:text-sm text-gray-200 min-w-0">
           <RotateCcw className="w-4 h-4 text-netflix-red flex-none animate-spin-slow" />
           <span className="truncate">
@@ -78,7 +78,7 @@ export const ResumeEpisodeBanner: React.FC<ResumeEpisodeBannerProps> = ({
                 switchEpisode(resumeData.episodeSlug);
               }
             }}
-            className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-netflix-red hover:bg-red-700 text-white text-xs font-bold transition shadow-md hover:scale-105"
+            className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-netflix-red hover:brightness-110 text-white text-xs font-bold transition shadow-md hover:scale-105"
           >
             <Play className="w-3 h-3 fill-white" />
             <span>Tiếp tục xem ngay</span>

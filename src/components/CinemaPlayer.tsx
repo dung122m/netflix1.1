@@ -14,6 +14,7 @@ import {
   ArrowUpRight,
   PictureInPicture,
   RotateCcw,
+  RotateCw,
   Zap,
   VolumeX,
   Volume1,
@@ -22,6 +23,7 @@ import {
 } from "lucide-react";
 import { useWatchController } from "./WatchController";
 import { getWatchProgress, saveWatchProgress } from "@/lib/watchHistory";
+import { markEpisodeAsWatched } from "@/lib/episodeTracker";
 import { formatEpisodeName } from "@/lib/formatEpisode";
 import { useAuth } from "@/context/AuthContext";
 import { updateActivePlaybackSession } from "@/services/handoffService";
@@ -242,6 +244,8 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   }, [user?.uid, setIsTheaterMode]);
 
   const controlsTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const volumeOsdTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const hudTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     return () => {
@@ -252,6 +256,14 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       if (desktopFeedbackTimerRef.current) {
         clearTimeout(desktopFeedbackTimerRef.current);
         desktopFeedbackTimerRef.current = null;
+      }
+      if (volumeOsdTimerRef.current) {
+        clearTimeout(volumeOsdTimerRef.current);
+        volumeOsdTimerRef.current = null;
+      }
+      if (hudTimerRef.current) {
+        clearTimeout(hudTimerRef.current);
+        hudTimerRef.current = null;
       }
     };
   }, []);
@@ -282,10 +294,12 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   }, []);
   const pendingKeyboardSeekRef = useRef<{
     targetTime: number;
+    originTime: number;
     totalDelta: number;
     timer: NodeJS.Timeout | null;
   }>({
     targetTime: 0,
+    originTime: 0,
     totalDelta: 0,
     timer: null,
   });
@@ -298,31 +312,93 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const [desktopFeedback, setDesktopFeedback] = useState<{
     type: "play" | "pause" | "seek-left" | "seek-right";
     text?: string;
+    seconds?: number;
     id: number;
   } | null>(null);
 
   const triggerDesktopFeedback = useCallback(
-    (type: "play" | "pause" | "seek-left" | "seek-right", text?: string) => {
-      if (isMobile) return;
+    (type: "play" | "pause" | "seek-left" | "seek-right", text?: string, seconds?: number) => {
+      if (volumeOsdTimerRef.current) {
+        clearTimeout(volumeOsdTimerRef.current);
+        volumeOsdTimerRef.current = null;
+      }
+      setVolumeOsd((prev) => (prev ? { ...prev, visible: false } : null));
+
       if (desktopFeedbackTimerRef.current) {
         clearTimeout(desktopFeedbackTimerRef.current);
       }
       setDesktopFeedback({
         type,
         text,
+        seconds,
         id: Date.now(),
       });
+      // Tua video: tự ẩn sau 800ms (chuẩn 700-900ms). Play/pause: 550ms.
+      const timeoutMs = type === "seek-left" || type === "seek-right" ? 800 : 550;
       desktopFeedbackTimerRef.current = setTimeout(() => {
         setDesktopFeedback(null);
         desktopFeedbackTimerRef.current = null;
-      }, 550);
+      }, timeoutMs);
     },
-    [isMobile]
+    []
   );
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const showHud = useCallback((_icon?: React.ReactNode, _text?: string) => {
-    // Disabled HUD overlay to match YouTube & Netflix clean UI experience
+  // Premium Volume OSD & General HUD (YouTube Top Pill Style)
+  const [volumeOsd, setVolumeOsd] = useState<{
+    volume: number;
+    isMuted: boolean;
+    visible: boolean;
+  } | null>(null);
+
+  const [hudNotification, setHudNotification] = useState<{
+    icon: React.ReactNode;
+    text: string;
+    id: number;
+  } | null>(null);
+
+  const triggerVolumeOsd = useCallback((newVol: number, muted: boolean) => {
+    // Khi chỉnh âm lượng, ẩn feedback tua/play/pause để tránh chồng lấn
+    if (desktopFeedbackTimerRef.current) {
+      clearTimeout(desktopFeedbackTimerRef.current);
+      desktopFeedbackTimerRef.current = null;
+    }
+    setDesktopFeedback(null);
+
+    if (hudTimerRef.current) {
+      clearTimeout(hudTimerRef.current);
+      hudTimerRef.current = null;
+    }
+    setHudNotification(null);
+
+    setVolumeOsd({
+      volume: newVol,
+      isMuted: muted,
+      visible: true,
+    });
+
+    if (volumeOsdTimerRef.current) {
+      clearTimeout(volumeOsdTimerRef.current);
+    }
+    volumeOsdTimerRef.current = setTimeout(() => {
+      setVolumeOsd((prev) => (prev ? { ...prev, visible: false } : null));
+      volumeOsdTimerRef.current = null;
+    }, 1200);
+  }, []);
+
+  const showHud = useCallback((icon?: React.ReactNode, text?: string) => {
+    if (!text && !icon) return;
+    if (hudTimerRef.current) {
+      clearTimeout(hudTimerRef.current);
+    }
+    setHudNotification({
+      icon: icon || null,
+      text: text || "",
+      id: Date.now(),
+    });
+    hudTimerRef.current = setTimeout(() => {
+      setHudNotification(null);
+      hudTimerRef.current = null;
+    }, 1200);
   }, []);
 
 
@@ -388,10 +464,18 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
 
   const [initialEpisodeSlug] = useState<string | undefined>(activeEpisodeSlug);
   const [initialTimeUsed, setInitialTimeUsed] = useState<boolean>(false);
+  const initialLoadedEpisodeRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!initialLoadedEpisodeRef.current && activeEpisodeSlug) {
+      initialLoadedEpisodeRef.current = activeEpisodeSlug;
+    }
+  }, [activeEpisodeSlug]);
 
   const urlParamT = searchParams?.get("t");
   const targetProgress = useMemo(() => {
-    const isInitialEpisode = !initialEpisodeSlug || activeEpisodeSlug === initialEpisodeSlug;
+    const effectiveInitialSlug = initialEpisodeSlug || initialLoadedEpisodeRef.current;
+    const isInitialEpisode = !effectiveInitialSlug || activeEpisodeSlug === effectiveInitialSlug;
     if (isInitialEpisode && !initialTimeUsed) {
       if (typeof initialTime === "number" && initialTime > 0) return initialTime;
       if (urlParamT) {
@@ -419,7 +503,8 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     hasSeekedInitialRef.current = false;
     setUseIframeFallback(false);
     setIsBuffering(true);
-    if (activeEpisodeSlug && initialEpisodeSlug && activeEpisodeSlug !== initialEpisodeSlug) {
+    const effectiveInitialSlug = initialEpisodeSlug || initialLoadedEpisodeRef.current;
+    if (activeEpisodeSlug && effectiveInitialSlug && activeEpisodeSlug !== effectiveInitialSlug) {
       setInitialTimeUsed(true);
     }
   }, [activeEpisodeSlug, resolvedM3u8, initialEpisodeSlug]);
@@ -704,30 +789,26 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
   const handleVolumeDelta = useCallback((delta: number) => {
     setVolume((prevVol) => {
       let current = prevVol;
+      let nextMuted = isMuted;
       if (delta > 0 && isMuted) {
         if (videoRef.current) {
           videoRef.current.muted = false;
         }
         setIsMuted(false);
-        current = Math.max(0.1, prevVol);
+        nextMuted = false;
+        current = Math.max(0.05, prevVol);
       }
       const newVol = Math.max(0, Math.min(1, Math.round((current + delta) * 100) / 100));
       if (videoRef.current) {
         videoRef.current.volume = newVol;
         videoRef.current.muted = newVol === 0;
       }
-      setIsMuted(newVol === 0);
-      const percent = Math.round(newVol * 100);
-      if (newVol === 0) {
-        showHud(<VolumeX className="w-5 h-5 text-rose-400" />, "Âm lượng: 0% (Tắt tiếng)");
-      } else if (newVol < 0.5) {
-        showHud(<Volume1 className="w-5 h-5 text-emerald-400" />, `Âm lượng: ${percent}%`);
-      } else {
-        showHud(<Volume2 className="w-5 h-5 text-emerald-400" />, `Âm lượng: ${percent}%`);
-      }
+      const finalMuted = newVol === 0 ? true : nextMuted;
+      setIsMuted(finalMuted);
+      triggerVolumeOsd(newVol, finalMuted);
       return newVol;
     });
-  }, [isMuted, showHud]);
+  }, [isMuted, triggerVolumeOsd]);
 
   // HLS lifecycle
   useEffect(() => {
@@ -758,6 +839,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
 
     setIsBuffering(true);
     video.pause();
+    video.currentTime = 0;
     video.removeAttribute("src");
     video.load();
 
@@ -1247,6 +1329,17 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           durationSeconds: currentEffectiveDuration,
         });
       }
+      // Tự động đánh dấu đã xem khi xem được >= 85% hoặc cách đoạn kết tối đa 90 giây
+      if (movieSlug && activeEpisodeSlug) {
+        const currentEffectiveDuration = getEffectiveDuration();
+        if (
+          currentEffectiveDuration > 60 &&
+          (video.currentTime / currentEffectiveDuration >= 0.85 ||
+            currentEffectiveDuration - video.currentTime <= 90)
+        ) {
+          markEpisodeAsWatched(movieSlug, activeEpisodeSlug);
+        }
+      }
     };
 
     const handleEnded = () => {
@@ -1264,6 +1357,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
       setShowNextEpCountdown(false);
       const currentEffectiveDuration = getEffectiveDuration();
       if (movieSlug && activeEpisodeSlug) {
+        markEpisodeAsWatched(movieSlug, activeEpisodeSlug);
         saveWatchProgress(
           movieSlug,
           currentEffectiveDuration > 0 ? currentEffectiveDuration : video.currentTime,
@@ -1390,31 +1484,45 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     const pendingSeek = pendingKeyboardSeekRef.current;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement;
-      const isInput =
-        target &&
-        ((target.tagName === "INPUT" && target.getAttribute("type") !== "range") ||
-          target.tagName === "TEXTAREA" ||
-          target.isContentEditable);
-
-      if (isInput) return;
-
-      // Bỏ qua nếu người dùng đang dùng tổ hợp phím hệ thống (Ctrl + C, Cmd + C, Ctrl + V, Alt + ...)
+      // 1. Bỏ qua nếu người dùng đang dùng tổ hợp phím hệ thống (Ctrl + C, Cmd + C, Ctrl + V, Alt + ...)
       if (e.ctrlKey || e.metaKey || e.altKey) {
         return;
       }
 
-      // Reset controls timeout on any player shortcut key
-      resetControlsTimeout();
+      const target = (e.target || document.activeElement) as HTMLElement | null;
+      const active = (document.activeElement || target) as HTMLElement | null;
 
-      // 1. Phím Escape: Đóng modal / Thoát toàn màn hình
-      if (e.key === "Escape") {
-        if (showShortcutModal) {
+      // 2. Bỏ qua phím tắt khi focus vào input, textarea, select, [contenteditable], role textbox/searchbox
+      const isInput = Boolean(
+        active &&
+        (active.tagName === "INPUT" ||
+          active.tagName === "TEXTAREA" ||
+          active.tagName === "SELECT" ||
+          active.isContentEditable ||
+          active.getAttribute("contenteditable") === "true" ||
+          active.getAttribute("role") === "textbox" ||
+          active.getAttribute("role") === "searchbox")
+      );
+      if (isInput) return;
+
+      // 3. Nếu đang mở modal / dialog bên ngoài player (ví dụ login modal, actor bio modal...):
+      // không can thiệp video
+      const isInsideDialog = Boolean(active?.closest('[role="dialog"], dialog, [aria-modal="true"]'));
+      if (isInsideDialog && !containerRef.current?.contains(active)) {
+        return;
+      }
+
+      // 4. Nếu showShortcutModal của player đang mở:
+      if (showShortcutModal) {
+        if (e.key === "Escape") {
           e.preventDefault();
           setShowShortcutModal(false);
-          return;
         }
+        return;
+      }
 
+      // 5. Phím Escape: Thoát toàn màn hình
+      if (e.key === "Escape") {
         if (isFullscreen) {
           e.preventDefault();
           toggleFullscreen();
@@ -1422,130 +1530,14 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
         }
       }
 
-      // 2. Phím Space / K: Phát / Tạm dừng
-      if (e.code === "Space" || e.key === " " || e.key === "k" || e.key === "K") {
-        const active = document.activeElement as HTMLElement | null;
-        if (active && (active.tagName === "BUTTON" || active.tagName === "A")) {
-          return;
-        }
-        e.preventDefault();
-        togglePlayPause();
-        return;
-      }
+      // 6. Kiểm tra xem focus có đang nằm trong menu/dropdown điều hướng (đặc biệt cho Arrow keys)
+      const isInsideMenu = Boolean(
+        active?.closest('[role="menu"], [role="listbox"]') ||
+        (containerRef.current && active && active.getAttribute("data-player-menu-item") === "true")
+      );
 
-      // 3. Phím tắt chức năng (F, M, T, L, P, N, ?)
-      if (e.key === "f" || e.key === "F") {
-        e.preventDefault();
-        toggleFullscreen();
-        return;
-      }
-      if (e.key === "m" || e.key === "M") {
-        e.preventDefault();
-        if (isNativeVideo && videoRef.current) {
-          videoRef.current.muted = !videoRef.current.muted;
-          setIsMuted(videoRef.current.muted);
-          showHud(<Zap className="w-5 h-5 text-rose-400" />, videoRef.current.muted ? "Đã tắt âm" : "Đã bật âm");
-        }
-        return;
-      }
-      if (e.key === "t" || e.key === "T") {
-        e.preventDefault();
-        setIsTheaterMode((prev) => !prev);
-        return;
-      }
-      if ((e.key === "p" || e.key === "P") && prevEpisode?.slug && switchEpisode) {
-        showHud(<SkipBack className="w-5 h-5 text-netflix-red" />, `Chuyển về ${prevEpisode.name}`);
-        switchEpisode(prevEpisode.slug);
-        return;
-      }
-      if ((e.key === "n" || e.key === "N") && effectiveNextEpisode?.slug && switchEpisode) {
-        showHud(<SkipForward className="w-5 h-5 text-netflix-red" />, `Chuyển sang ${effectiveNextEpisode.name}`);
-        switchEpisode(effectiveNextEpisode.slug);
-        return;
-      }
-      if (e.key === "?" || (e.key === "/" && !e.shiftKey)) {
-        setShowShortcutModal((prev) => !prev);
-        return;
-      }
-
-      // 4. Phím Tua video (← / →): Chỉ can thiệp khi focus nằm trong player hoặc đang fullscreen
-      if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
-        const active = document.activeElement as HTMLElement | null;
-        if (active && active.tagName === "INPUT" && active.getAttribute("type") === "range") {
-          return;
-        }
-
-        const isPlayerFocused = Boolean(
-          isFullscreen ||
-          (containerRef.current && (active === containerRef.current || containerRef.current.contains(active)))
-        );
-
-        if (!isPlayerFocused) {
-          return;
-        }
-
-        e.preventDefault();
-        if (isNativeVideo && videoRef.current) {
-          const delta = e.key === "ArrowRight" ? 10 : -10;
-          const v = videoRef.current;
-          const effectiveDuration = getEffectiveDuration();
-
-          const baseTime =
-            pendingKeyboardSeekRef.current.timer !== null
-              ? pendingKeyboardSeekRef.current.targetTime
-              : v.currentTime || 0;
-
-          const newTarget = Math.max(
-            0,
-            effectiveDuration > 0 ? Math.min(effectiveDuration, baseTime + delta) : baseTime + delta
-          );
-          const newTotalDelta =
-            (pendingKeyboardSeekRef.current.timer !== null
-              ? pendingKeyboardSeekRef.current.totalDelta
-              : 0) + delta;
-
-          pendingKeyboardSeekRef.current.targetTime = newTarget;
-          pendingKeyboardSeekRef.current.totalDelta = newTotalDelta;
-
-          if (newTotalDelta > 0) {
-            triggerDesktopFeedback("seek-right", `+${newTotalDelta}s`);
-          } else {
-            triggerDesktopFeedback("seek-left", `${newTotalDelta}s`);
-          }
-
-          if (pendingKeyboardSeekRef.current.timer) {
-            clearTimeout(pendingKeyboardSeekRef.current.timer);
-          }
-
-          pendingKeyboardSeekRef.current.timer = setTimeout(() => {
-            if (videoRef.current) {
-              videoRef.current.currentTime = pendingKeyboardSeekRef.current.targetTime;
-            }
-            pendingKeyboardSeekRef.current.timer = null;
-            pendingKeyboardSeekRef.current.totalDelta = 0;
-          }, 250);
-        }
-        resetControlsTimeout();
-        return;
-      }
-
-      // 5. Phím Tăng/Giảm âm lượng (↑ / ↓): Chỉ can thiệp khi focus nằm trong player hoặc đang fullscreen
-      if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-        const active = document.activeElement as HTMLElement | null;
-        if (active && active.tagName === "INPUT" && active.getAttribute("type") === "range") {
-          return;
-        }
-
-        const isPlayerFocused = Boolean(
-          isFullscreen ||
-          (containerRef.current && (active === containerRef.current || containerRef.current.contains(active)))
-        );
-
-        if (!isPlayerFocused) {
-          return;
-        }
-
-        // Điều hướng menu item nếu menu đang mở
+      // Nếu menu player đang mở và người dùng dùng ArrowUp/Down để di chuyển menu items:
+      if (isInsideMenu && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
         const menuItems = containerRef.current
           ? Array.from(containerRef.current.querySelectorAll<HTMLElement>('[data-player-menu-item="true"]'))
           : [];
@@ -1564,10 +1556,148 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
             return;
           }
         }
+        return;
+      }
+
+      // 7. PHÍM SPACE / K: Phát / Tạm dừng
+      if (e.code === "Space" || e.key === " " || e.key === "k" || e.key === "K") {
+        // Nếu active là một nút bấm hoặc link bên ngoài player (ví dụ nút chọn tập trong EpisodeList hoặc nút trên trang)
+        // và phím là Space: để sự kiện click tự nhiên cho nút đó hoạt động
+        if ((e.code === "Space" || e.key === " ") && active && (active.tagName === "BUTTON" || active.tagName === "A")) {
+          const isPlayerControlBtn = Boolean(containerRef.current?.contains(active));
+          if (!isPlayerControlBtn) {
+            return;
+          }
+        }
+        if (e.repeat) return;
+        e.preventDefault();
+        resetControlsTimeout();
+        togglePlayPause();
+        return;
+      }
+
+      // 8. PHÍM TẮT CHỨC NĂNG (F, M, T, P, N, ?)
+      if (e.key === "f" || e.key === "F") {
+        if (e.repeat) return;
+        e.preventDefault();
+        resetControlsTimeout();
+        toggleFullscreen();
+        return;
+      }
+
+      if (e.key === "m" || e.key === "M") {
+        if (e.repeat) return;
+        e.preventDefault();
+        resetControlsTimeout();
+        if (isNativeVideo && videoRef.current) {
+          const nextMuted = !videoRef.current.muted;
+          videoRef.current.muted = nextMuted;
+          setIsMuted(nextMuted);
+          triggerVolumeOsd(volume, nextMuted);
+        }
+        return;
+      }
+
+      if (e.key === "t" || e.key === "T") {
+        if (e.repeat) return;
+        e.preventDefault();
+        resetControlsTimeout();
+        setIsTheaterMode((prev) => !prev);
+        return;
+      }
+
+      if ((e.key === "p" || e.key === "P") && prevEpisode?.slug && switchEpisode) {
+        if (e.repeat) return;
+        e.preventDefault();
+        resetControlsTimeout();
+        showHud(<SkipBack className="w-5 h-5 text-netflix-red" />, `Chuyển về ${prevEpisode.name}`);
+        switchEpisode(prevEpisode.slug);
+        return;
+      }
+
+      if ((e.key === "n" || e.key === "N") && effectiveNextEpisode?.slug && switchEpisode) {
+        if (e.repeat) return;
+        e.preventDefault();
+        resetControlsTimeout();
+        showHud(<SkipForward className="w-5 h-5 text-netflix-red" />, `Chuyển sang ${effectiveNextEpisode.name}`);
+        switchEpisode(effectiveNextEpisode.slug);
+        return;
+      }
+
+      if (e.key === "?" || (e.key === "/" && !e.shiftKey)) {
+        if (e.repeat) return;
+        e.preventDefault();
+        resetControlsTimeout();
+        setShowShortcutModal((prev) => !prev);
+        return;
+      }
+
+      // 9. PHÍM TUA VIDEO (← / →): Tua lùi / tiến 10s
+      if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+        if (active && active.tagName === "INPUT" && active.getAttribute("type") === "range") {
+          return;
+        }
 
         e.preventDefault();
-        handleVolumeDelta(e.key === "ArrowUp" ? 0.05 : -0.05);
         resetControlsTimeout();
+
+        if (isNativeVideo && videoRef.current) {
+          const delta = e.key === "ArrowRight" ? 10 : -10;
+          const v = videoRef.current;
+          const effectiveDuration = getEffectiveDuration();
+
+          const isPending = pendingKeyboardSeekRef.current.timer !== null;
+          const originTime = isPending
+            ? pendingKeyboardSeekRef.current.originTime
+            : (v.currentTime || 0);
+
+          const baseTime = isPending
+            ? pendingKeyboardSeekRef.current.targetTime
+            : (v.currentTime || 0);
+
+          const rawTarget = baseTime + delta;
+          const newTarget = Math.max(
+            0,
+            effectiveDuration > 0 ? Math.min(effectiveDuration, rawTarget) : Math.max(0, rawTarget)
+          );
+
+          const actualTotalDelta = Math.round(newTarget - originTime);
+
+          pendingKeyboardSeekRef.current.targetTime = newTarget;
+          pendingKeyboardSeekRef.current.originTime = originTime;
+          pendingKeyboardSeekRef.current.totalDelta = actualTotalDelta;
+
+          if (actualTotalDelta >= 0) {
+            triggerDesktopFeedback("seek-right", `+${actualTotalDelta}s`, actualTotalDelta);
+          } else {
+            triggerDesktopFeedback("seek-left", `−${Math.abs(actualTotalDelta)}s`, actualTotalDelta);
+          }
+
+          if (pendingKeyboardSeekRef.current.timer) {
+            clearTimeout(pendingKeyboardSeekRef.current.timer);
+          }
+
+          pendingKeyboardSeekRef.current.timer = setTimeout(() => {
+            if (videoRef.current) {
+              videoRef.current.currentTime = pendingKeyboardSeekRef.current.targetTime;
+            }
+            pendingKeyboardSeekRef.current.timer = null;
+            pendingKeyboardSeekRef.current.totalDelta = 0;
+            pendingKeyboardSeekRef.current.originTime = 0;
+          }, 250);
+        }
+        return;
+      }
+
+      // 10. PHÍM TĂNG / GIẢM ÂM LƯỢNG (↑ / ↓): Thay đổi âm lượng ±5%
+      if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+        if (active && active.tagName === "INPUT" && active.getAttribute("type") === "range") {
+          return;
+        }
+
+        e.preventDefault();
+        resetControlsTimeout();
+        handleVolumeDelta(e.key === "ArrowUp" ? 0.05 : -0.05);
         return;
       }
     };
@@ -1593,7 +1723,9 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     togglePlayPause,
     toggleFullscreen,
     handleVolumeDelta,
+    triggerVolumeOsd,
     showHud,
+    volume,
     getEffectiveDuration,
     showShortcutModal,
     isFullscreen,
@@ -1747,7 +1879,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                     if (videoRef.current) {
                       videoRef.current.currentTime = Math.max(0, videoRef.current.currentTime - 10);
                     }
-                    showHud(<SeekBack10Icon className="w-5 h-5 text-netflix-red" />, "Tua lùi -10s");
                     setDoubleTapFeedback({ side: "left", delta: -10 });
                     if (doubleTapFeedbackTimerRef.current) clearTimeout(doubleTapFeedbackTimerRef.current);
                     doubleTapFeedbackTimerRef.current = setTimeout(() => {
@@ -1762,7 +1893,6 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                           ? Math.min(effectiveDuration, (videoRef.current.currentTime || 0) + 10)
                           : (videoRef.current.currentTime || 0) + 10;
                     }
-                    showHud(<SeekForward10Icon className="w-5 h-5 text-netflix-red" />, "Tua tới +10s");
                     setDoubleTapFeedback({ side: "right", delta: 10 });
                     if (doubleTapFeedbackTimerRef.current) clearTimeout(doubleTapFeedbackTimerRef.current);
                     doubleTapFeedbackTimerRef.current = setTimeout(() => {
@@ -1835,18 +1965,18 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
 
               {/* DOUBLE TAP RIPPLE EFFECT (YOUTUBE / NETFLIX STYLE) */}
               {doubleTapFeedback && doubleTapFeedback.side === "left" && (
-                <div className="absolute inset-y-0 left-0 w-[35%] flex flex-col items-center justify-center bg-white/5 rounded-r-full pointer-events-none z-30 animate-in fade-in zoom-in-95 duration-200 backdrop-blur-[1px]">
-                  <div className="p-2.5 rounded-full bg-black/65 border border-white/15 text-white shadow-xl flex flex-col items-center animate-pulse">
-                    <SeekBack10Icon className="w-5 h-5 text-white" />
-                    <span className="text-[10px] font-bold tracking-wider text-white mt-0.5">-10s</span>
+                <div className="absolute left-6 sm:left-12 top-1/2 -translate-y-1/2 pointer-events-none z-30 animate-in fade-in zoom-in-75 duration-200">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-black/75 backdrop-blur-md border border-white/15 text-white shadow-2xl flex flex-col items-center justify-center">
+                    <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                    <span className="text-[10px] sm:text-[11px] font-bold font-mono text-white mt-0.5">−10s</span>
                   </div>
                 </div>
               )}
               {doubleTapFeedback && doubleTapFeedback.side === "right" && (
-                <div className="absolute inset-y-0 right-0 w-[35%] flex flex-col items-center justify-center bg-white/5 rounded-l-full pointer-events-none z-30 animate-in fade-in zoom-in-95 duration-200 backdrop-blur-[1px]">
-                  <div className="p-2.5 rounded-full bg-black/65 border border-white/15 text-white shadow-xl flex flex-col items-center animate-pulse">
-                    <SeekForward10Icon className="w-5 h-5 text-white" />
-                    <span className="text-[10px] font-bold tracking-wider text-white mt-0.5">+10s</span>
+                <div className="absolute right-6 sm:right-12 top-1/2 -translate-y-1/2 pointer-events-none z-30 animate-in fade-in zoom-in-75 duration-200">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-black/75 backdrop-blur-md border border-white/15 text-white shadow-2xl flex flex-col items-center justify-center">
+                    <RotateCw className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                    <span className="text-[10px] sm:text-[11px] font-bold font-mono text-white mt-0.5">+10s</span>
                   </div>
                 </div>
               )}
@@ -1866,29 +1996,81 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                   </div>
                 </div>
               )}
+              {/* DESKTOP / KEYBOARD SEEK FEEDBACK (LEFT / RIGHT) */}
               {desktopFeedback && desktopFeedback.type === "seek-left" && (
                 <div
                   key={desktopFeedback.id}
-                  className="absolute inset-y-0 left-6 sm:left-12 flex items-center pointer-events-none z-20"
+                  role="status"
+                  aria-live="polite"
+                  className="absolute left-6 sm:left-12 top-1/2 -translate-y-1/2 pointer-events-none z-25 animate-in fade-in zoom-in-95 duration-150 motion-reduce:animate-none"
                 >
-                  <div className="px-3.5 py-2.5 rounded-2xl bg-black/65 backdrop-blur-sm border border-white/20 text-white flex items-center gap-2 shadow-2xl animate-in fade-in zoom-in-90 duration-200">
-                    <SeekBack10Icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                    <span className="text-xs sm:text-sm font-bold tracking-wide text-white">
-                      {desktopFeedback.text || "-10s"}
+                  <div className="px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-full bg-black/80 backdrop-blur-md border border-white/15 text-white flex items-center gap-2 shadow-2xl">
+                    <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5 text-white shrink-0" />
+                    <span className="text-xs sm:text-sm font-bold font-mono tracking-tight text-white tabular-nums">
+                      {desktopFeedback.text || "−10s"}
                     </span>
                   </div>
                 </div>
               )}
+
               {desktopFeedback && desktopFeedback.type === "seek-right" && (
                 <div
                   key={desktopFeedback.id}
-                  className="absolute inset-y-0 right-6 sm:right-12 flex items-center pointer-events-none z-20"
+                  role="status"
+                  aria-live="polite"
+                  className="absolute right-6 sm:right-12 top-1/2 -translate-y-1/2 pointer-events-none z-25 animate-in fade-in zoom-in-95 duration-150 motion-reduce:animate-none"
                 >
-                  <div className="px-3.5 py-2.5 rounded-2xl bg-black/65 backdrop-blur-sm border border-white/20 text-white flex items-center gap-2 shadow-2xl animate-in fade-in zoom-in-90 duration-200">
-                    <span className="text-xs sm:text-sm font-bold tracking-wide text-white">
+                  <div className="px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-full bg-black/80 backdrop-blur-md border border-white/15 text-white flex items-center gap-2 shadow-2xl">
+                    <span className="text-xs sm:text-sm font-bold font-mono tracking-tight text-white tabular-nums">
                       {desktopFeedback.text || "+10s"}
                     </span>
-                    <SeekForward10Icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                    <RotateCw className="w-4 h-4 sm:w-5 sm:h-5 text-white shrink-0" />
+                  </div>
+                </div>
+              )}
+
+              {/* PREMIUM YOUTUBE TOP PILL VOLUME OSD */}
+              {volumeOsd && volumeOsd.visible && (
+                <div
+                  role="status"
+                  aria-live="polite"
+                  className="absolute top-4 sm:top-6 left-1/2 -translate-x-1/2 z-30 pointer-events-none max-w-[calc(100%-32px)] animate-in fade-in slide-in-from-top-2 duration-200 motion-reduce:animate-none"
+                >
+                  <div className="flex items-center gap-2.5 sm:gap-3 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full bg-black/80 backdrop-blur-md border border-white/15 text-white shadow-2xl">
+                    {volumeOsd.isMuted || volumeOsd.volume === 0 ? (
+                      <VolumeX className="w-4 h-4 sm:w-5 sm:h-5 text-rose-400 shrink-0" />
+                    ) : volumeOsd.volume < 0.5 ? (
+                      <Volume1 className="w-4 h-4 sm:w-5 sm:h-5 text-white/90 shrink-0" />
+                    ) : (
+                      <Volume2 className="w-4 h-4 sm:w-5 sm:h-5 text-white/90 shrink-0" />
+                    )}
+
+                    <div className="w-16 sm:w-20 h-1.5 sm:h-2 rounded-full bg-white/20 overflow-hidden shrink-0">
+                      <div
+                        className="h-full bg-white rounded-full transition-all duration-150 ease-out"
+                        style={{
+                          width: `${volumeOsd.isMuted ? 0 : Math.round(volumeOsd.volume * 100)}%`,
+                        }}
+                      />
+                    </div>
+
+                    <span className="text-xs sm:text-sm font-bold font-mono tracking-tight tabular-nums text-white min-w-[32px] text-right">
+                      {volumeOsd.isMuted ? "Tắt tiếng" : `${Math.round(volumeOsd.volume * 100)}%`}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* GENERAL HUD PILL (SPEED, QUALITY, PIP, EPISODE) */}
+              {(!volumeOsd || !volumeOsd.visible) && hudNotification && (
+                <div
+                  role="status"
+                  aria-live="polite"
+                  className="absolute top-4 sm:top-6 left-1/2 -translate-x-1/2 z-30 pointer-events-none max-w-[calc(100%-32px)] animate-in fade-in slide-in-from-top-2 duration-200 motion-reduce:animate-none"
+                >
+                  <div className="flex items-center gap-2 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full bg-black/80 backdrop-blur-md border border-white/15 text-white text-xs sm:text-sm font-semibold shadow-2xl">
+                    {hudNotification.icon}
+                    <span>{hudNotification.text}</span>
                   </div>
                 </div>
               )}
@@ -1915,16 +2097,20 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                 onTogglePlayPause={togglePlayPause}
                 onSeekFeedback={(txt) => {
                   resetControlsTimeout();
+                  const clean = txt.replace(/[^0-9]/g, "");
+                  const num = clean ? parseInt(clean, 10) : 10;
                   if (txt.includes("-")) {
-                    triggerDesktopFeedback("seek-left", txt);
+                    triggerDesktopFeedback("seek-left", `−${num}s`, num);
                   } else if (txt.includes("+")) {
-                    triggerDesktopFeedback("seek-right", txt);
+                    triggerDesktopFeedback("seek-right", `+${num}s`, num);
                   }
                 }}
                 onToggleMute={() => {
                   if (videoRef.current) {
-                    videoRef.current.muted = !videoRef.current.muted;
-                    setIsMuted(videoRef.current.muted);
+                    const nextMuted = !videoRef.current.muted;
+                    videoRef.current.muted = nextMuted;
+                    setIsMuted(nextMuted);
+                    triggerVolumeOsd(volume, nextMuted);
                   }
                   resetControlsTimeout();
                 }}
@@ -1935,6 +2121,7 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
                     videoRef.current.muted = newVol === 0;
                     setIsMuted(newVol === 0);
                   }
+                  triggerVolumeOsd(newVol, newVol === 0);
                   resetControlsTimeout();
                 }}
                 onSpeedChange={(spd) => {

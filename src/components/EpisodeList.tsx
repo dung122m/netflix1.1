@@ -3,12 +3,11 @@
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { Check, Search, X } from "lucide-react";
-import {
-  getWatchedEpisodes,
-  markEpisodeAsWatched,
- } from "@/lib/episodeTracker";
+import { getWatchedEpisodes } from "@/lib/episodeTracker";
 import { getShortEpisodeLabel } from "@/lib/formatEpisode";
 import { useWatchController } from "./WatchController";
+import { ScrollablePillsRow } from "@/components/ui/ScrollablePillsRow";
+import { getMovieEpisodesProgress } from "@/lib/watchHistory";
 
 const CHUNK_SIZE = 25;
 
@@ -61,6 +60,9 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
   const switchEpisode = watchContext?.switchEpisode ?? onSelectEpisode;
 
   const [watchedList, setWatchedList] = useState<string[]>([]);
+  const [episodesProgress, setEpisodesProgress] = useState<
+    Record<string, { progressSeconds: number; durationSeconds?: number }>
+  >({});
   const [searchQuery, setSearchQuery] = useState("");
 
   // Tìm index của tập đang phát để tự động nhảy đúng tab dải tập
@@ -110,28 +112,25 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
   }, [activeEpisodeSlug, activeChunk]);
 
   useEffect(() => {
-    // Đọc danh sách tập đã xem của phim này
+    // Đọc danh sách tập đã xem và tiến trình từng tập
     setWatchedList(getWatchedEpisodes(movieSlug));
+    setEpisodesProgress(getMovieEpisodesProgress(movieSlug));
 
-    // ĐÁNH DẤU ĐÃ XEM KHI NGƯỜI DÙNG Ở LẠI TẬP NÀY TỐI THIỂU 60 GIÂY (1 PHÚT)
-    let watchTimer: NodeJS.Timeout | null = null;
-    if (activeEpisodeSlug) {
-      watchTimer = setTimeout(() => {
-        markEpisodeAsWatched(movieSlug, activeEpisodeSlug);
-        setWatchedList(getWatchedEpisodes(movieSlug));
-      }, 60000);
-    }
-
-    const handleUpdate = () => {
+    const handleWatchedUpdate = () => {
       setWatchedList(getWatchedEpisodes(movieSlug));
     };
 
-    window.addEventListener("watched-episodes-updated", handleUpdate);
-    return () => {
-      if (watchTimer) clearTimeout(watchTimer);
-      window.removeEventListener("watched-episodes-updated", handleUpdate);
+    const handleProgressUpdate = () => {
+      setEpisodesProgress(getMovieEpisodesProgress(movieSlug));
     };
-  }, [movieSlug, activeEpisodeSlug]);
+
+    window.addEventListener("watched-episodes-updated", handleWatchedUpdate);
+    window.addEventListener("watch-progress-updated", handleProgressUpdate);
+    return () => {
+      window.removeEventListener("watched-episodes-updated", handleWatchedUpdate);
+      window.removeEventListener("watch-progress-updated", handleProgressUpdate);
+    };
+  }, [movieSlug]);
 
   // Tạo các dải tập chuẩn xác theo số tập thực tế bắt đầu và kết thúc trong dải
   const totalChunks = Math.ceil(episodes.length / CHUNK_SIZE);
@@ -240,7 +239,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
 
       {/* DẢI TABS PHÂN NHÓM TẬP (Khi có trên 25 tập và không trong chế độ tìm kiếm) */}
       {!searchQuery.trim() && chunks.length > 1 && (
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+        <ScrollablePillsRow innerClassName="flex items-center gap-1.5 py-0.5 px-1">
           {chunks.map((chunk) => {
             const isSelected = activeChunk === chunk.index;
             return (
@@ -258,7 +257,7 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
               </button>
             );
           })}
-        </div>
+        </ScrollablePillsRow>
       )}
 
       {/* LƯỚI TẬP PHIM THIẾT KẾ MỚI: Bố cục thích ứng, nhãn trực quan, equalizer đang phát sống động */}
@@ -271,6 +270,26 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
             const isWatched = Boolean(tap.slug && watchedList.includes(tap.slug));
             const displayLabel = getFormattedEpisodeLabel(tapName, tapIdx + 1, isFewEpisodes);
 
+            // Tiến trình xem dở cho tập này (>= 10 giây và chưa hoàn thành)
+            const epProg = tap.slug ? episodesProgress[tap.slug] : undefined;
+            const progressSeconds = epProg?.progressSeconds || 0;
+            const durationSeconds = epProg?.durationSeconds || 0;
+            const isPartiallyWatched = !isActive && !isWatched && progressSeconds >= 10;
+            const progressPercent = isPartiallyWatched
+              ? durationSeconds > 0
+                ? Math.min(95, Math.max(8, Math.round((progressSeconds / durationSeconds) * 100)))
+                : 35
+              : 0;
+
+            const formatSec = (s: number) => {
+              const m = Math.floor(s / 60);
+              const sec = (s % 60).toString().padStart(2, "0");
+              return `${m}:${sec}`;
+            };
+            const itemTitle = isPartiallyWatched
+              ? `${tapName} • Đang xem dở (${formatSec(progressSeconds)}${durationSeconds > 0 ? ` / ${formatSec(durationSeconds)}` : ""})`
+              : tapName;
+
             return (
               <Link
                 key={`${tapSlug}-${tapIdx}`}
@@ -278,14 +297,14 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
                 href={`?ep=${tapSlug}`}
                 scroll={false}
                 tabIndex={0}
-                title={tapName}
+                title={itemTitle}
                 onClick={(e) => {
                   if (switchEpisode && tap.slug) {
                     e.preventDefault();
                     switchEpisode(tap.slug);
                   }
                 }}
-                className={`relative flex items-center justify-center text-center transition-all duration-200 group rounded-xl sm:rounded-2xl cursor-pointer select-none outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 focus-visible:scale-[1.04] focus-visible:z-20 ${
+                className={`relative flex items-center justify-center text-center transition-all duration-200 group rounded-xl sm:rounded-2xl cursor-pointer select-none outline-none overflow-hidden focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 focus-visible:scale-[1.04] focus-visible:z-20 ${
                   episodes.length === 1
                     ? "py-3 px-4 text-xs sm:text-sm"
                     : isFewEpisodes
@@ -330,6 +349,19 @@ export const EpisodeList: React.FC<EpisodeListProps> = React.memo(function Episo
                     </span>
                   )}
                 </div>
+
+                {/* Vạch tiến trình mini 2.5px ở đáy nút (Chuẩn Netflix) cho tập đang xem dở */}
+                {isPartiallyWatched && progressPercent > 0 && (
+                  <div
+                    className="absolute bottom-0 inset-x-0 h-[2.5px] bg-white/15 overflow-hidden pointer-events-none"
+                    aria-hidden="true"
+                  >
+                    <div
+                      className="h-full bg-netflix-red rounded-r-full transition-all duration-300"
+                      style={{ width: `${progressPercent}%` }}
+                    />
+                  </div>
+                )}
               </Link>
             );
           })}

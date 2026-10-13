@@ -92,7 +92,7 @@ export const ActorBioModal: React.FC<ActorBioModalProps> = ({ initialActorName }
         className="relative w-full max-w-xl md:max-w-2xl bg-zinc-950 rounded-3xl border border-white/15 shadow-2xl overflow-hidden transform-gpu will-change-[transform,opacity] animate-in zoom-in-95 duration-150 my-auto"
       >
         {/* TOP ACCENT GRADIENT */}
-        <div className="h-1 w-full bg-gradient-to-r from-amber-500 via-rose-500 to-netflix-red" />
+        <div className="h-1 w-full bg-gradient-to-r from-transparent via-netflix-red to-transparent opacity-90" />
 
         {/* HEADER BAR */}
         <div className="flex items-center justify-between px-3.5 sm:px-5 py-3 sm:py-3.5 border-b border-white/10 bg-zinc-900/80 gap-2">
@@ -164,13 +164,13 @@ export const ActorBioModal: React.FC<ActorBioModalProps> = ({ initialActorName }
               </div>
 
               {/* ACTIONS */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 pt-1">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
                 <Link
                   href={`/browse?actor=${encodeURIComponent(actorName)}`}
                   onClick={() => setIsOpen(false)}
-                  className="h-11 px-4 rounded-xl bg-netflix-red hover:bg-red-700 text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 transition shadow-lg shadow-red-950/40 active:scale-98 cursor-pointer flex-1 min-w-0 whitespace-nowrap"
+                  className="min-h-[48px] h-12 px-5 rounded-xl bg-netflix-red hover:brightness-110 text-white font-bold text-sm sm:text-base flex items-center justify-center gap-2.5 transition shadow-lg shadow-[var(--accent-glow,rgba(229,9,20,0.4))] hover:shadow-[var(--accent-glow,rgba(229,9,20,0.6))] active:scale-[0.99] cursor-pointer w-full sm:flex-1 shrink-0"
                 >
-                  <Film className="w-4 h-4 flex-none" />
+                  <Film className="w-5 h-5 flex-none" />
                   <span className="truncate">Xem phim của {actorName}</span>
                 </Link>
 
@@ -179,10 +179,10 @@ export const ActorBioModal: React.FC<ActorBioModalProps> = ({ initialActorName }
                     href={profile.wikiUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="h-11 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-gray-200 hover:text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition border border-white/15 cursor-pointer whitespace-nowrap flex-none sm:w-auto"
+                    className="min-h-[48px] h-12 px-5 rounded-xl bg-white/10 hover:bg-white/15 text-zinc-200 hover:text-white font-semibold text-sm flex items-center justify-center gap-2 transition border border-white/15 cursor-pointer whitespace-nowrap w-full sm:w-auto shrink-0"
                   >
                     <span>Wikipedia</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
+                    <ExternalLink className="w-4 h-4 text-zinc-400" />
                   </a>
                 )}
               </div>

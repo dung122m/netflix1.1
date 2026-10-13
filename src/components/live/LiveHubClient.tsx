@@ -124,7 +124,7 @@ export function LiveHubClient({ footballData, tvData }: LiveHubClientProps) {
             onClick={() => handleTabChange("sports")}
             className={`flex items-center justify-center gap-1.5 px-3 sm:px-5 py-2 rounded-lg text-xs font-black transition-all cursor-pointer outline-none shrink-0 focus-visible:ring-2 focus-visible:ring-netflix-red ${
               activeTab === "sports"
-                ? "bg-gradient-to-r from-netflix-red to-red-600 text-white shadow-lg shadow-red-950/60 scale-[1.01]"
+                ? "bg-gradient-to-r from-netflix-red to-netflix-red/85 text-white shadow-lg shadow-[var(--accent-glow,rgba(229,9,20,0.4))] scale-[1.01]"
                 : "text-gray-400 hover:text-white hover:bg-white/5"
             }`}
           >

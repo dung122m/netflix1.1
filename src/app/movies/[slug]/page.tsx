@@ -29,6 +29,7 @@ import { EpisodeList } from "@/components/EpisodeList";
 import { ResumeEpisodeBanner } from "@/components/ResumeEpisodeBanner";
 import { WatchController } from "@/components/WatchController";
 import { WatchStage } from "@/components/WatchStage";
+import { WatchSidebarTabs } from "@/components/WatchSidebarTabs";
 import { ServerSelector } from "@/components/ServerSelector";
 import { WatchlistButton } from "@/components/WatchlistButton";
 import { AddToCollectionButton } from "@/components/Collections/AddToCollectionButton";
@@ -708,7 +709,7 @@ export default async function MovieDetail({
                         </div>
                         <div className="w-full bg-zinc-800 h-2 rounded-full overflow-hidden">
                           <div
-                            className="bg-gradient-to-r from-netflix-red to-rose-500 h-full rounded-full transition-all duration-500 shadow-[0_0_10px_rgba(229,9,20,0.5)]"
+                            className="bg-gradient-to-r from-netflix-red to-netflix-red/80 h-full rounded-full transition-all duration-500 shadow-[0_0_10px_var(--accent-glow,rgba(229,9,20,0.5))]"
                             style={{ width: `${progressPercent}%` }}
                           />
                         </div>
@@ -929,46 +930,24 @@ export default async function MovieDetail({
                 </>
               }
               sidebar={
-                <>
-                  {/* KHỐI 1: NGUỒN PHÁT & DANH SÁCH TẬP PHIM (CHO PHIM BỘ) */}
-                  {!isSingleEpisode && (
-                    <div className="rounded-2xl sm:rounded-3xl border border-white/15 bg-gradient-to-b from-zinc-900/80 via-zinc-950/85 to-black/90 p-4 sm:p-5 shadow-2xl backdrop-blur-xl space-y-4">
-                      <ServerSelector
-                        servers={serverSummaries}
-                        initialServerIndex={currentServerIndex}
-                      />
-
-                      <div className="pt-3 border-t border-white/10">
-                        <div className="flex items-center justify-between mb-3 pb-2.5 border-b border-white/10">
-                          <h3 className="text-base font-bold flex items-center gap-2 text-white">
-                            <Film className="w-4 h-4 text-red-500 shrink-0" />
-                            <span>Danh sách tập</span>
-                          </h3>
-                          <EpisodeCountBadge initialCount={serverData.length} isTrailerOnly={isTrailerOnly} />
-                        </div>
-
-                        <div className="mt-3 max-h-[360px] xl:max-h-[400px] overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-zinc-700 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-zinc-500 pr-1">
-                          <EpisodeList
-                            movieSlug={movie.slug}
-                            activeEpisodeSlug={activeEpisode?.slug}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* KHỐI 2: NGUỒN PHÁT (CHO PHIM LẺ TRÊN SIDEBAR) */}
-                  {isSingleEpisode && (
-                    <div className="rounded-2xl border border-white/10 bg-zinc-950/70 p-3 sm:p-3.5 shadow-xl backdrop-blur-xl">
-                      <ServerSelector
-                        servers={serverSummaries}
-                        initialServerIndex={currentServerIndex}
-                      />
-                    </div>
-                  )}
-
-                  {/* KHỐI 3: PHIM ĐỀ XUẤT SIDEBAR (DESKTOP) */}
-                  <div className="rounded-2xl sm:rounded-3xl border border-white/10 bg-gradient-to-b from-zinc-900/80 via-zinc-950/85 to-black/90 p-3.5 sm:p-4 shadow-2xl backdrop-blur-xl">
+                <WatchSidebarTabs
+                  isSingleEpisode={isSingleEpisode}
+                  serverSelector={
+                    <ServerSelector
+                      servers={serverSummaries}
+                      initialServerIndex={currentServerIndex}
+                    />
+                  }
+                  episodeCountBadge={
+                    <EpisodeCountBadge initialCount={serverData.length} isTrailerOnly={isTrailerOnly} />
+                  }
+                  episodeList={
+                    <EpisodeList
+                      movieSlug={movie.slug}
+                      activeEpisodeSlug={activeEpisode?.slug}
+                    />
+                  }
+                  recommendations={
                     <MovieRecommendationsClient
                       currentMovieSlug={movie.slug}
                       currentMovieTitle={title}
@@ -983,8 +962,8 @@ export default async function MovieDetail({
                       contentText={movie.content || movie.description || ""}
                       variant="sidebar"
                     />
-                  </div>
-                </>
+                  }
+                />
               }
             />
           </div>

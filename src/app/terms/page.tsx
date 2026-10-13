@@ -151,7 +151,7 @@ export default function TermsPage() {
 
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight leading-[1.15]">
             Điều Khoản Dịch Vụ & <br className="hidden sm:inline" />
-            <span className="bg-gradient-to-r from-netflix-red via-rose-400 to-amber-400 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-netflix-red via-white to-zinc-300 bg-clip-text text-transparent">
               Chính Sách Bản Quyền DMCA
             </span>
           </h1>

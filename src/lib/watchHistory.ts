@@ -123,6 +123,18 @@ export const getEpisodeProgress = (movieSlug: string, episodeSlug: string): numb
   }
 };
 
+export const getMovieEpisodesProgress = (
+  movieSlug: string,
+): Record<string, { progressSeconds: number; durationSeconds?: number }> => {
+  if (typeof window === "undefined" || !movieSlug) return {};
+  try {
+    const all = getAllEpisodeProgress();
+    return all[movieSlug] || {};
+  } catch {
+    return {};
+  }
+};
+
 export const getWatchHistory = (): WatchHistoryItem[] => {
   if (typeof window === "undefined") return [];
   if (memoryWatchHistory !== null) {
@@ -172,6 +184,23 @@ export const saveWatchHistory = (
 
     const finalThumb = item.thumb || existing?.thumb;
 
+    const isDifferentEpisode = Boolean(
+      item.episodeSlug && existing?.episodeSlug && item.episodeSlug !== existing.episodeSlug
+    );
+    const resolvedProgressSeconds =
+      item.progressSeconds !== undefined
+        ? item.progressSeconds
+        : isDifferentEpisode
+        ? getEpisodeProgress(item.slug, item.episodeSlug!)
+        : existing?.progressSeconds;
+
+    const resolvedDurationSeconds =
+      item.durationSeconds !== undefined
+        ? item.durationSeconds
+        : isDifferentEpisode
+        ? undefined
+        : existing?.durationSeconds;
+
     const newItem: WatchHistoryItem = {
       ...existing,
       ...item,
@@ -182,8 +211,8 @@ export const saveWatchHistory = (
       country: item.country || existing?.country,
       category: item.category || existing?.category,
       type: item.type || existing?.type,
-      progressSeconds: item.progressSeconds ?? existing?.progressSeconds,
-      durationSeconds: item.durationSeconds ?? existing?.durationSeconds,
+      progressSeconds: resolvedProgressSeconds,
+      durationSeconds: resolvedDurationSeconds,
       updatedAt: item.updatedAt || Date.now(),
     };
 
@@ -476,8 +505,10 @@ export const getWatchProgress = (slug: string, episodeSlug?: string): number => 
     const list = getWatchHistory();
     const existing = list.find((i) => i.slug === slug);
     if (!existing) return 0;
-    if (episodeSlug && existing.episodeSlug && existing.episodeSlug !== episodeSlug) {
-      return 0;
+    if (episodeSlug) {
+      if (!existing.episodeSlug || existing.episodeSlug !== episodeSlug) {
+        return 0;
+      }
     }
     return existing.progressSeconds || 0;
   } catch {

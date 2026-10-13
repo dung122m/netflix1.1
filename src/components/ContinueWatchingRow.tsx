@@ -217,7 +217,7 @@ function ContinueWatchingRowInner() {
                     {/* THANH TIẾN ĐỘ THỰC TẾ ĐANG XEM DỞ */}
                     <div className="absolute bottom-0 left-0 right-0 h-1 bg-zinc-800/90">
                       <div
-                        className="h-full bg-gradient-to-r from-netflix-red to-rose-500 rounded-r-full shadow-sm shadow-red-500/50"
+                        className="h-full bg-gradient-to-r from-netflix-red to-netflix-red/80 rounded-r-full shadow-sm shadow-[var(--accent-glow,rgba(229,9,20,0.5))]"
                         style={{ width: `${progressPercent}%` }}
                       />
                     </div>

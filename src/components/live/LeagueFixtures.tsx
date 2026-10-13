@@ -554,9 +554,9 @@ export const LeagueFixtures: React.FC<LeagueFixturesProps> = ({
                   onClick={() => setSelectedDate(item.dateStr)}
                   className={`flex flex-col items-center justify-center min-w-[54px] sm:min-w-[62px] px-2 py-1.5 rounded-xl transition cursor-pointer shrink-0 ${
                     item.isSelected
-                      ? "bg-gradient-to-b from-netflix-red to-red-600 text-white font-black shadow-md shadow-red-950/60 scale-[1.03] ring-1 ring-red-400/50"
+                      ? "bg-gradient-to-b from-netflix-red to-netflix-red/85 text-white font-black shadow-md shadow-[var(--accent-glow,rgba(229,9,20,0.4))] scale-[1.03] ring-1 ring-netflix-red/50"
                       : item.isToday
-                        ? "bg-white/10 text-white hover:bg-white/15 border border-red-500/40"
+                        ? "bg-white/10 text-white hover:bg-white/15 border border-netflix-red/40"
                         : "bg-white/[0.03] text-gray-400 hover:text-white hover:bg-white/[0.08]"
                   }`}
                 >
@@ -565,7 +565,7 @@ export const LeagueFixtures: React.FC<LeagueFixturesProps> = ({
                       item.isSelected
                         ? "text-white"
                         : item.isToday
-                          ? "text-red-400 font-extrabold"
+                          ? "text-netflix-red font-extrabold"
                           : "text-gray-400"
                     }`}
                   >

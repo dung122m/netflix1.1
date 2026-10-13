@@ -225,29 +225,40 @@ export function RecommendationTabs({
 
   return (
     <div className={variant === "sidebar" ? "space-y-3" : "space-y-6"}>
-      {/* 1. THANH TABS ĐỀ XUẤT THÔNG MINH (KÉO CHUỘT / LĂN CHUỘT / NÚT MŨI TÊN TRÁI PHẢI) */}
-      <div className="relative border-b border-white/10 pb-2 w-full min-w-0">
+      {/* 1. THANH TABS ĐỀ XUẤT THÔNG MINH (KÉO CHUỘT / LĂN CHUỘT / NÚT MŨI TÊN TRÁI PHẢI HOVER) */}
+      <div className="relative border-b border-white/10 pb-2 w-full min-w-0 group/rec-tabs">
         <div className="flex items-center gap-1.5 w-full min-w-0">
-          
-          {/* NÚT CUỘN TRÁI (INLINE, KHÔNG ĐÈ LÊN NỘI DUNG TABS) */}
-          {canScrollLeft && (
-            <button
-              type="button"
-              onClick={() => scrollTabs("left")}
-              aria-label="Cuộn sang trái"
-              className="flex-none h-6 w-6 rounded-full bg-zinc-900/95 hover:bg-zinc-800 text-gray-300 hover:text-white border border-white/20 shadow-md flex items-center justify-center transition cursor-pointer active:scale-95 shrink-0 backdrop-blur-md"
-            >
-              <ChevronLeft className="w-3.5 h-3.5" />
-            </button>
-          )}
 
-          {/* DẢI TABS CUỘN NGANG VỚI KÉO CHUỘT + LĂN CHUỘT VÀ GRADIENT FADE */}
+          {/* DẢI TABS CUỘN NGANG VỚI KÉO CHUỘT + LĂN CHUỘT VÀ MŨI TÊN OVERLAY CHỈ HIỆN KHI HOVER */}
           <div className="relative flex-1 min-w-0 overflow-hidden">
+            {/* OVERLAY NÚT CUỘN TRÁI: Bình thường ẩn hoàn toàn không che chữ, chỉ hiện khi hover trên desktop */}
             {canScrollLeft && (
-              <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-5 bg-gradient-to-r from-zinc-950 via-zinc-950/60 to-transparent z-10" />
+              <div className="absolute left-0 top-0 bottom-0 z-20 flex items-center pr-2 pl-0.5 pointer-events-none md:opacity-0 md:group-hover/rec-tabs:opacity-100 transition-opacity duration-200">
+                <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/80 to-transparent pointer-events-none" />
+                <button
+                  type="button"
+                  onClick={() => scrollTabs("left")}
+                  aria-label="Cuộn sang trái"
+                  className="relative z-10 pointer-events-auto h-6 w-6 rounded-full bg-zinc-900/95 hover:bg-zinc-800 text-gray-200 hover:text-white border border-white/20 shadow-md flex items-center justify-center transition active:scale-95 cursor-pointer backdrop-blur-md"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                </button>
+              </div>
             )}
+
+            {/* OVERLAY NÚT CUỘN PHẢI: Bình thường ẩn hoàn toàn không che chữ, chỉ hiện khi hover trên desktop */}
             {canScrollRight && (
-              <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-zinc-950 via-zinc-950/60 to-transparent z-10" />
+              <div className="absolute right-0 top-0 bottom-0 z-20 flex items-center pl-2 pr-0.5 pointer-events-none md:opacity-0 md:group-hover/rec-tabs:opacity-100 transition-opacity duration-200">
+                <div className="absolute inset-0 bg-gradient-to-l from-zinc-950 via-zinc-950/80 to-transparent pointer-events-none opacity-40 md:opacity-100" />
+                <button
+                  type="button"
+                  onClick={() => scrollTabs("right")}
+                  aria-label="Cuộn sang phải"
+                  className="relative z-10 pointer-events-auto hidden md:flex h-6 w-6 rounded-full bg-zinc-900/95 hover:bg-zinc-800 text-gray-200 hover:text-white border border-white/20 shadow-md items-center justify-center transition active:scale-95 cursor-pointer backdrop-blur-md"
+                >
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
             )}
 
             <div
@@ -364,19 +375,8 @@ export function RecommendationTabs({
             </div>
           </div>
 
-          {/* CÁC NÚT ĐIỀU KHIỂN BÊN PHẢI (NÚT CUỘN PHẢI + NÚT SHUFFLE) */}
+          {/* CÁC NÚT ĐIỀU KHIỂN BÊN PHẢI (NÚT SHUFFLE ĐỘC LẬP) */}
           <div className="flex items-center gap-1 flex-shrink-0">
-            {canScrollRight && (
-              <button
-                type="button"
-                onClick={() => scrollTabs("right")}
-                aria-label="Cuộn sang phải"
-                className="h-7 w-7 rounded-full bg-zinc-900/95 hover:bg-zinc-800 text-gray-300 hover:text-white border border-white/20 shadow-md flex items-center justify-center transition cursor-pointer active:scale-95 shrink-0 backdrop-blur-md"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            )}
-
             {/* NÚT ĐỔI PHIM (SHUFFLE) */}
             <button
               type="button"
@@ -399,7 +399,7 @@ export function RecommendationTabs({
       {displayedMovies.length > 0 ? (
         variant === "sidebar" ? (
           <div className="space-y-3">
-            <div className="space-y-1.5 max-h-[600px] overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-zinc-700 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-zinc-500 pr-1">
+            <div className="space-y-1.5 pr-0.5">
               {displayedMovies.map((item, index) => {
                 const matchPercent =
                   typeof item.matchPercent === "number"
