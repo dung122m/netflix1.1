@@ -101,6 +101,51 @@ export const GENERIC_PLAYLIST_NAMES = new Set([
 ]);
 
 /**
+ * Danh sách tên môn thể thao chung (fallback tầng 4) KHÔNG được coi là giải đấu độc lập trong bộ lọc giải đấu.
+ */
+export const GENERIC_SPORT_NAMES = new Set([
+  "bóng đá",
+  "bong da",
+  "bóng rổ",
+  "bong ro",
+  "quần vợt",
+  "quan vot",
+  "tennis",
+  "bóng chuyền",
+  "bong chuyen",
+  "cầu lông",
+  "cau long",
+  "đua xe f1",
+  "đua xe",
+  "f1",
+  "võ thuật / quyền anh",
+  "võ thuật",
+  "quyền anh",
+  "boxing",
+  "bida / billiards",
+  "bida",
+  "billiards",
+  "thể thao điện tử",
+  "esports",
+  "esport",
+  "e-sports",
+  "thể thao khác",
+  "khác",
+  "giải đấu khác",
+  "môn khác",
+]);
+
+/**
+ * Kiểm tra xem tên giải đấu có phải là tên bộ môn thể thao chung hay không.
+ * Các giải đấu thực sự (như "Giải Bóng Rổ NBA", "VBA", "Ngoại Hạng Anh", "La Liga"...) sẽ trả về false.
+ */
+export function isGenericSportTournament(tournamentName: string): boolean {
+  if (!tournamentName) return true;
+  const lower = tournamentName.trim().toLowerCase();
+  return GENERIC_SPORT_NAMES.has(lower) || GENERIC_PLAYLIST_NAMES.has(lower);
+}
+
+/**
  * Hàm chuẩn hóa tên giải đấu trung tâm duy nhất cho toàn bộ hệ thống Nanaflix (thẻ trận, danh sách, bộ lọc)
  * Tuân thủ mô hình 4 tầng xác định:
  * Tầng 1: Metadata Ground Truth từ Livescore Event (leagueSlug) khi đã match thành công

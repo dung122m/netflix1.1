@@ -38,15 +38,18 @@ export const WatchPlayerHost: React.FC<WatchPlayerHostProps> = (props) => {
   );
   const [vsmovLoading, setVsmovLoading] = useState<boolean>(false);
   const [vsmovError, setVsmovError] = useState<string | null>(null);
+  const lastFetchedKeyRef = React.useRef<string | null>(null);
 
   // Fetch VSMOV embed URL when user selects Server VSMOV and not already present
   useEffect(() => {
     if (activeProvider !== "vsmov" || !movieSlug) return;
-    if (vsmovUrl && !currentEpSlug) return;
+    const fetchKey = `${movieSlug}_${currentEpSlug || "full"}`;
+    if (vsmovUrl && lastFetchedKeyRef.current === fetchKey) return;
 
     let isMounted = true;
     setVsmovLoading(true);
     setVsmovError(null);
+    lastFetchedKeyRef.current = fetchKey;
 
     const epParam = currentEpSlug ? `&ep=${encodeURIComponent(currentEpSlug)}` : "";
     fetch(`/api/movies/vsmov-embed?slug=${encodeURIComponent(movieSlug)}${epParam}`)

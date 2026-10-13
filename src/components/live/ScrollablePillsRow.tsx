@@ -122,9 +122,9 @@ export function ScrollablePillsRow({
 
   return (
     <div className={`relative group/scroll flex items-center min-w-0 ${className}`}>
-      {/* Nút cuộn trái */}
+      {/* Nút cuộn trái (chỉ hiện trên màn hình desktop/tablet có chuột, ẩn trên mobile để ưu tiên vuốt cảm ứng) */}
       {canScrollLeft && (
-        <div className="absolute left-0 top-0 bottom-0 z-10 flex items-center pr-2 bg-gradient-to-r from-zinc-950 via-zinc-950/80 to-transparent">
+        <div className="absolute left-0 top-0 bottom-0 z-10 hidden sm:flex items-center pr-2 bg-gradient-to-r from-zinc-950 via-zinc-950/80 to-transparent">
           <button
             type="button"
             onClick={() => handleScrollBy(-scrollAmount)}
@@ -152,9 +152,9 @@ export function ScrollablePillsRow({
         {children}
       </div>
 
-      {/* Nút cuộn phải */}
+      {/* Nút cuộn phải (chỉ hiện trên màn hình desktop/tablet có chuột, ẩn trên mobile để ưu tiên vuốt cảm ứng) */}
       {canScrollRight && (
-        <div className="absolute right-0 top-0 bottom-0 z-10 flex items-center pl-2 bg-gradient-to-l from-zinc-950 via-zinc-950/80 to-transparent">
+        <div className="absolute right-0 top-0 bottom-0 z-10 hidden sm:flex items-center pl-2 bg-gradient-to-l from-zinc-950 via-zinc-950/80 to-transparent">
           <button
             type="button"
             onClick={() => handleScrollBy(scrollAmount)}

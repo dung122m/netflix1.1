@@ -15,7 +15,9 @@ export interface TeamAsset {
 
 export function normalizeTeamTokens(name: string): string[] {
   if (!name) return [];
-  const clean = name
+  // Bảo toàn cụm đặc thù tránh nhầm lẫn giữa Barcelona SC và FC Barcelona
+  const preserveSpecial = name.replace(/\bbarcelona\s+sc\b/gi, "barcelonasc");
+  const clean = preserveSpecial
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -268,7 +270,7 @@ const CLUBS_DATA: Array<{ name: string; logo?: string; emoji?: string; aliases: 
   { name: "Manchester City", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/382.png", aliases: ["manchester city", "man city", "mcfc", "the citizens"] },
   { name: "Manchester United", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/360.png", aliases: ["manchester united", "man utd", "mu", "man united", "quy do", "red devils", "mufc"] },
   { name: "Tottenham Hotspur", logo: "https://a.espncdn.com/i/teamlogos/soccer/500-dark/367.png", aliases: ["tottenham hotspur", "tottenham", "spurs", "ga trong"] },
-  { name: "Newcastle United", logo: "https://a.espncdn.com/i/teamlogos/soccer/500-dark/361.png", aliases: ["newcastle united", "newcastle", "chich choe", "magpies"] },
+  { name: "Newcastle United", logo: "https://a.espncdn.com/i/teamlogos/soccer/500-dark/361.png", aliases: ["newcastle united", "chich choe", "magpies"] },
   { name: "Aston Villa", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/362.png", aliases: ["aston villa", "villa", "avfc"] },
   { name: "West Ham United", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/371.png", aliases: ["west ham united", "west ham", "the hammers"] },
   { name: "Brighton & Hove Albion", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/331.png", aliases: ["brighton", "brighton and hove albion", "brighton hov", "seagulls"] },
@@ -319,7 +321,7 @@ const CLUBS_DATA: Array<{ name: string; logo?: string; emoji?: string; aliases: 
   { name: "Sheffield Wednesday", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/393.png", aliases: ["sheffield wednesday", "sheff wed", "owls"] },
 
   // --- LA LIGA (TÂY BAN NHA) ---
-  { name: "Real Madrid", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/86.png", aliases: ["real madrid", "real", "ken ken trang", "los blancos", "merengues"] },
+  { name: "Real Madrid", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/86.png", aliases: ["real madrid", "ken ken trang", "los blancos", "merengues"] },
   { name: "Barcelona", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/83.png", aliases: ["barcelona", "barca", "blaugrana", "culers"] },
   { name: "Atletico Madrid", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/1068.png", aliases: ["atletico madrid", "atletico", "atm", "colchoneros"] },
   { name: "Sevilla", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/243.png", aliases: ["sevilla", "los hispalenses"] },
@@ -341,7 +343,7 @@ const CLUBS_DATA: Array<{ name: string; logo?: string; emoji?: string; aliases: 
   { name: "Real Valladolid", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/100.png", aliases: ["valladolid", "real valladolid"] },
 
   // --- SERIE A (Ý) ---
-  { name: "Inter Milan", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/110.png", aliases: ["inter milan", "inter", "internazionale", "nerazzurri"] },
+  { name: "Inter Milan", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/110.png", aliases: ["inter milan", "internazionale", "nerazzurri"] },
   { name: "AC Milan", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/103.png", aliases: ["ac milan", "milan", "rossoneri"] },
   { name: "Juventus", logo: "https://a.espncdn.com/i/teamlogos/soccer/500-dark/111.png", aliases: ["juventus", "juve", "ba dam gia", "bianconeri"] },
   { name: "Napoli", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/114.png", aliases: ["napoli", "ssc napoli", "partenopei"] },
@@ -382,7 +384,7 @@ const CLUBS_DATA: Array<{ name: string; logo?: string; emoji?: string; aliases: 
   { name: "Schalke 04", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/133.png", aliases: ["schalke", "schalke 04", "die knappen"] },
 
   // --- LIGUE 1 (PHÁP) ---
-  { name: "Paris Saint-Germain", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/160.png", aliases: ["paris saint germain", "psg", "paris", "les parisiens"] },
+  { name: "Paris Saint-Germain", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/160.png", aliases: ["paris saint germain", "psg", "les parisiens"] },
   { name: "AS Monaco", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/174.png", aliases: ["as monaco", "monaco", "les rouge et blanc"] },
   { name: "Olympique de Marseille", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/165.png", aliases: ["marseille", "olympique de marseille", "om", "les olympiens"] },
   { name: "Olympique Lyonnais", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/167.png", aliases: ["lyon", "olympique lyonnais", "ol", "les gones"] },
@@ -402,7 +404,7 @@ const CLUBS_DATA: Array<{ name: string; logo?: string; emoji?: string; aliases: 
   { name: "PSV Eindhoven", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/148.png", aliases: ["psv", "psv eindhoven", "boeren"] },
   { name: "Feyenoord Rotterdam", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/142.png", aliases: ["feyenoord", "feyenoord rotterdam", "de club van het volk"] },
   { name: "AZ Alkmaar", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/140.png", aliases: ["az", "az alkmaar"] },
-  { name: "Sporting CP", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/228.png", aliases: ["sporting cp", "sporting", "sporting lisbon", "leões"] },
+  { name: "Sporting CP", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/228.png", aliases: ["sporting cp", "sporting lisbon", "leões"] },
   { name: "SL Benfica", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/221.png", aliases: ["benfica", "sl benfica", "as aguias"] },
   { name: "FC Porto", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/437.png", aliases: ["porto", "fc porto", "dragoes"] },
   { name: "SC Braga", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/2994.png", aliases: ["braga", "sc braga", "os gverreiros do minho"] },
@@ -513,6 +515,13 @@ const CLUBS_DATA: Array<{ name: string; logo?: string; emoji?: string; aliases: 
   { name: "Club Tijuana", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/10125.png", aliases: ["tijuana", "xolos"] },
   { name: "Club Leon", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/228.png", aliases: ["leon", "la fiera"] },
   { name: "Club Puebla", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/231.png", aliases: ["puebla", "la franja"] },
+  // --- NON-PROMINENT CLUBS (TRÁNH NHẬN DIỆN NHẦM VỚI CÁC CLB LỚN CÓ TRÙNG TỪ KHÓA) ---
+  { name: "Newcastle Jets", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/1324.png", aliases: ["newcastle jets", "newcastle jets fc"] },
+  { name: "Real Salt Lake", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/189.png", aliases: ["real salt lake", "rsl"] },
+  { name: "Inter Turku", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/1247.png", aliases: ["inter turku", "fc inter turku"] },
+  { name: "Paris FC", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/3241.png", aliases: ["paris fc", "paris football club"] },
+  { name: "Barcelona SC", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/2281.png", aliases: ["barcelona sc", "barcelonasc", "barcelona sporting club", "barcelona guayaquil"] },
+  { name: "Sporting Kansas City", logo: "https://a.espncdn.com/i/teamlogos/soccer/500/186.png", aliases: ["sporting kansas city", "sporting kc"] },
 ];
 
 // Xây dựng bảng tra cứu O(1)
@@ -562,22 +571,8 @@ export function getTeamAsset(rawTeamName?: string | null): TeamAsset | null {
   const key = normalizeTeamKey(rawTeamName);
   if (!key) return null;
 
-  // 1. Exact match trên key đã chuẩn hóa
-  const exact = TEAM_ASSETS_MAP.get(key);
-  if (exact) return exact;
-
-  // 2. Token match cho các trường hợp đặc biệt (tách từng từ có độ dài >= 3)
-  const tokens = normalizeTeamTokens(rawTeamName);
-  if (tokens.length > 1) {
-    for (const t of tokens) {
-      if (t.length >= 3) {
-        const found = TEAM_ASSETS_MAP.get(t);
-        if (found) return found;
-      }
-    }
-  }
-
-  return null;
+  // 1. Exact match trên key đã chuẩn hóa O(1)
+  return TEAM_ASSETS_MAP.get(key) || null;
 }
 
 /**

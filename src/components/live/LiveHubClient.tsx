@@ -15,61 +15,37 @@ interface LiveHubClientProps {
 
 export function LiveHubClient({ footballData, tvData }: LiveHubClientProps) {
   const searchParams = useSearchParams();
-  const initialTab = searchParams.get("tab") === "tv" ? "tv" : "football";
-  const initialSportParam = searchParams.get("sport");
-  const initialSport: "all" | "football" | "basketball" =
-    initialSportParam === "basketball"
-      ? "basketball"
-      : initialSportParam === "football"
-      ? "football"
-      : "all";
+  const initialTabParam = searchParams.get("tab");
+  const initialTab: "sports" | "tv" = initialTabParam === "tv" ? "tv" : "sports";
+  const [activeTab, setActiveTab] = useState<"sports" | "tv">(initialTab);
 
-  const [activeTab, setActiveTab] = useState<"football" | "tv">(initialTab);
-  const [activeSport, setActiveSport] = useState<"all" | "football" | "basketball">(initialSport);
-
-  // Thống kê số lượng từng bộ môn thể thao
-  const footballOnlyCount = useMemo(() => {
-    return footballData.matches.filter(
-      (m) => m.sport !== "basketball",
-    ).length;
+  const initialValidCount = useMemo(() => {
+    const now = Date.now();
+    return footballData.matches.filter((m) => {
+      if (m.timeline === "finished" || m.realStatus === "finished" || m.sourceStatus === "finished") return false;
+      if (m.timestamp && now > m.timestamp + 140 * 60 * 1000) return false;
+      return true;
+    }).length;
   }, [footballData.matches]);
 
-  const basketballCount = useMemo(() => {
-    return footballData.matches.filter((m) => m.sport === "basketball").length;
-  }, [footballData.matches]);
+  const [sportsMatchesCount, setSportsMatchesCount] = useState<number>(initialValidCount);
 
-  // Sync tab và sport từ URL khi có external navigation (back/forward)
+  // Sync tab từ URL khi có external navigation (back/forward)
   useEffect(() => {
     const tabParam = searchParams.get("tab");
-    const sportParam = searchParams.get("sport");
-
     if (tabParam === "tv") {
       if (activeTab !== "tv") setActiveTab("tv");
     } else {
-      if (activeTab !== "football") setActiveTab("football");
-      if (sportParam === "basketball" && activeSport !== "basketball") {
-        setActiveSport("basketball");
-      } else if (sportParam === "football" && activeSport !== "football") {
-        setActiveSport("football");
-      } else if (!sportParam && activeSport !== "all" && activeSport !== "football") {
-        // Mặc định giữ nguyên nếu chưa chọn
-      }
+      if (activeTab !== "sports") setActiveTab("sports");
     }
   }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Xác định danh mục active hiện tại
-  const activeCategory: "football" | "basketball" | "tv" = useMemo(() => {
-    if (activeTab === "tv") return "tv";
-    if (activeSport === "basketball") return "basketball";
-    return "football";
-  }, [activeTab, activeSport]);
-
-  const handleCategoryChange = useCallback(
-    (category: "football" | "basketball" | "tv") => {
+  const handleTabChange = useCallback(
+    (tab: "sports" | "tv") => {
       try {
         const url = new URL(window.location.href);
 
-        if (category === "tv") {
+        if (tab === "tv") {
           setActiveTab("tv");
           url.searchParams.set("tab", "tv");
           url.searchParams.delete("sport");
@@ -83,17 +59,9 @@ export function LiveHubClient({ footballData, tvData }: LiveHubClientProps) {
             url.searchParams.set("channel", savedTvChannelId);
           }
         } else {
-          setActiveTab("football");
-          url.searchParams.set("tab", "football");
+          setActiveTab("sports");
+          url.searchParams.set("tab", "sports");
           url.searchParams.delete("channel");
-
-          if (category === "basketball") {
-            setActiveSport("basketball");
-            url.searchParams.set("sport", "basketball");
-          } else {
-            setActiveSport("football");
-            url.searchParams.delete("sport");
-          }
         }
 
         window.history.replaceState(null, "", url.toString());
@@ -102,7 +70,7 @@ export function LiveHubClient({ footballData, tvData }: LiveHubClientProps) {
     [],
   );
 
-  const liveFootballCount = useMemo(() => {
+  const liveSportsCount = useMemo(() => {
     return footballData.matches.filter((m) => m.timeline === "live").length;
   }, [footballData.matches]);
 
@@ -123,87 +91,61 @@ export function LiveHubClient({ footballData, tvData }: LiveHubClientProps) {
                 <Zap className="w-2.5 h-2.5 fill-current" />
                 <span>1080p Ultra-Low Latency</span>
               </span>
-              {liveFootballCount > 0 && (
+              {liveSportsCount > 0 && (
                 <span className="text-[9.5px] sm:text-[10px] font-bold text-rose-400 bg-red-500/15 px-2 py-0.5 rounded-md border border-red-500/30 flex items-center gap-1.5 animate-pulse shrink-0">
                   <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
-                  <span>{liveFootballCount} trực tiếp</span>
+                  <span>{liveSportsCount} trực tiếp</span>
                 </span>
               )}
             </div>
             <h1 className="text-sm sm:text-xl font-black text-white tracking-tight mt-0.5 truncate">
-              {activeCategory === "basketball"
-                ? "Trực Tiếp Bóng Rổ NBA & VBA"
-                : activeCategory === "football"
+              {activeTab === "sports"
                 ? "Trung Tâm Trực Tiếp Thể Thao"
                 : "Truyền Hình Trực Tuyến Live TV"}
             </h1>
           </div>
         </div>
 
-        {/* CỤM CHUYỂN ĐỔI DANH MỤC (BÓNG ĐÁ, BÓNG RỔ, TRUYỀN HÌNH) - 3 CỘT ĐỀU NHAU TRÊN MOBILE */}
-        <div className="grid grid-cols-3 gap-1 w-full md:flex md:w-auto p-1 rounded-xl bg-zinc-900 border border-white/10 shadow-inner">
-          {/* DANH MỤC 1: BÓNG ĐÁ */}
+        {/* CỤM CHUYỂN ĐỔI DANH MỤC (THỂ THAO, TRUYỀN HÌNH) - 2 CỘT ĐỀU NHAU TRÊN MOBILE */}
+        <div className="grid grid-cols-2 gap-1 w-full md:flex md:w-auto p-1 rounded-xl bg-zinc-900 border border-white/10 shadow-inner">
+          {/* DANH MỤC 1: THỂ THAO */}
           <button
             type="button"
-            onClick={() => handleCategoryChange("football")}
-            className={`flex items-center justify-center gap-1.5 px-2 sm:px-4 py-2 rounded-lg text-xs font-black transition-all cursor-pointer outline-none shrink-0 focus-visible:ring-2 focus-visible:ring-netflix-red ${
-              activeCategory === "football"
+            onClick={() => handleTabChange("sports")}
+            className={`flex items-center justify-center gap-1.5 px-3 sm:px-5 py-2 rounded-lg text-xs font-black transition-all cursor-pointer outline-none shrink-0 focus-visible:ring-2 focus-visible:ring-netflix-red ${
+              activeTab === "sports"
                 ? "bg-gradient-to-r from-netflix-red to-red-600 text-white shadow-lg shadow-red-950/60 scale-[1.01]"
                 : "text-gray-400 hover:text-white hover:bg-white/5"
             }`}
           >
             <Trophy className="w-3.5 h-3.5 shrink-0" />
-            <span>Bóng Đá</span>
+            <span>Thể Thao</span>
             <span
               className={`text-[9.5px] px-1.5 py-0.2 rounded-full font-black ${
-                activeCategory === "football"
+                activeTab === "sports"
                   ? "bg-black/50 text-white"
                   : "bg-white/10 text-gray-400"
               }`}
             >
-              {footballOnlyCount}
+              {sportsMatchesCount}
             </span>
           </button>
 
-          {/* DANH MỤC 2: BÓNG RỔ */}
+          {/* DANH MỤC 2: TRUYỀN HÌNH */}
           <button
             type="button"
-            onClick={() => handleCategoryChange("basketball")}
-            className={`flex items-center justify-center gap-1.5 px-2 sm:px-4 py-2 rounded-lg text-xs font-black transition-all cursor-pointer outline-none shrink-0 focus-visible:ring-2 focus-visible:ring-amber-500 ${
-              activeCategory === "basketball"
-                ? "bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-lg shadow-orange-950/60 scale-[1.01]"
-                : "text-gray-400 hover:text-white hover:bg-white/5"
-            }`}
-          >
-            <Activity className="w-3.5 h-3.5 shrink-0" />
-            <span>Bóng Rổ</span>
-            <span
-              className={`text-[9.5px] px-1.5 py-0.2 rounded-full font-black ${
-                activeCategory === "basketball"
-                  ? "bg-black/50 text-white"
-                  : "bg-white/10 text-gray-400"
-              }`}
-            >
-              {basketballCount}
-            </span>
-          </button>
-
-          {/* DANH MỤC 3: TRUYỀN HÌNH */}
-          <button
-            type="button"
-            onClick={() => handleCategoryChange("tv")}
-            className={`flex items-center justify-center gap-1.5 px-2 sm:px-4 py-2 rounded-lg text-xs font-black transition-all cursor-pointer outline-none shrink-0 focus-visible:ring-2 focus-visible:ring-sky-500 ${
-              activeCategory === "tv"
+            onClick={() => handleTabChange("tv")}
+            className={`flex items-center justify-center gap-1.5 px-3 sm:px-5 py-2 rounded-lg text-xs font-black transition-all cursor-pointer outline-none shrink-0 focus-visible:ring-2 focus-visible:ring-sky-500 ${
+              activeTab === "tv"
                 ? "bg-gradient-to-r from-sky-600 to-blue-600 text-white shadow-lg shadow-sky-950/60 scale-[1.01]"
                 : "text-gray-400 hover:text-white hover:bg-white/5"
             }`}
           >
-            <Tv className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${activeCategory === "tv" ? "text-sky-200 animate-pulse" : "text-gray-400"}`} />
-            <span className="sm:hidden">Live TV</span>
-            <span className="hidden sm:inline">Truyền Hình</span>
+            <Tv className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${activeTab === "tv" ? "text-sky-200 animate-pulse" : "text-gray-400"}`} />
+            <span>Truyền Hình</span>
             <span
               className={`text-[9.5px] px-1.5 py-0.2 rounded-full font-black ${
-                activeCategory === "tv"
+                activeTab === "tv"
                   ? "bg-black/50 text-white"
                   : "bg-white/10 text-gray-400"
               }`}
@@ -215,13 +157,12 @@ export function LiveHubClient({ footballData, tvData }: LiveHubClientProps) {
       </header>
 
       {/* 2. NỘI DUNG THEO TAB - Giữ cả hai component trong DOM để bảo toàn kênh/trận và không remount Player khi đổi tab */}
-      <div className={activeTab === "football" ? "block" : "hidden"}>
+      <div className={activeTab === "sports" ? "block" : "hidden"}>
         <LiveFootballClient
           initialData={footballData}
           hideHeader
-          isActive={activeTab === "football"}
-          selectedSport={activeSport}
-          onSportChange={setActiveSport}
+          isActive={activeTab === "sports"}
+          onMatchesCountChange={setSportsMatchesCount}
         />
       </div>
       <div className={activeTab === "tv" ? "block" : "hidden"}>

@@ -14,6 +14,8 @@ import {
 } from "@/services/live/football-score/liveStatus";
 import { resolveCanonicalTournament } from "@/services/live/football-score/canonicalLeagues";
 import { isFeaturedMatch } from "@/services/live/football/featuredMatch";
+import { toCanonicalSourceUrl } from "./LivePlayer";
+import { isOffensiveCommentatorName } from "@/services/live/football/service";
 
 interface MatchCardProps {
   match: FootballMatch;
@@ -264,6 +266,20 @@ function MatchCardInner({ match, isSelected, onSelect, score }: MatchCardProps) 
     });
   }, [match.tournament, match.title, match.sport, match.team1, match.team2, currentScore]);
 
+  const validUniqueServersCount = useMemo(() => {
+    if (!match.servers || !Array.isArray(match.servers)) return 0;
+    const uniqueUrls = new Set<string>();
+    for (const s of match.servers) {
+      if (s?.url) {
+        const canonical = toCanonicalSourceUrl(s.url);
+        if (canonical) {
+          uniqueUrls.add(canonical);
+        }
+      }
+    }
+    return uniqueUrls.size;
+  }, [match.servers]);
+
   const featured = useMemo(() => {
     return isFeaturedMatch({
       title: match.title,
@@ -272,8 +288,19 @@ function MatchCardInner({ match, isSelected, onSelect, score }: MatchCardProps) 
       team2: displayTeam2,
       sport: match.sport,
       score: currentScore,
+      validServersCount: validUniqueServersCount,
+      servers: match.servers,
     });
-  }, [match.title, tournamentName, displayTeam1, displayTeam2, match.sport, currentScore]);
+  }, [
+    match.title,
+    tournamentName,
+    displayTeam1,
+    displayTeam2,
+    match.sport,
+    currentScore,
+    validUniqueServersCount,
+    match.servers,
+  ]);
 
   return (
     <div
@@ -505,17 +532,24 @@ function MatchCardInner({ match, isSelected, onSelect, score }: MatchCardProps) 
                   const rawBlvs = match.blv
                     .split(",")
                     .map((b: string) => b.trim().replace(/^(?:blv|bình luận viên)\s+/i, ""))
-                    .filter(Boolean);
-                  if (rawBlvs.length === 0) return primaryGroup;
+                    .filter((b: string) => Boolean(b) && !isOffensiveCommentatorName(b));
+                  if (rawBlvs.length === 0) {
+                    const isTrusted = /^(?:TV360|FPT Play|VTVcab|SCTV|K\+|HTV|VTV)\b/i.test(primaryGroup);
+                    return isTrusted ? primaryGroup : "BLV";
+                  }
                   if (rawBlvs.length <= 2) return `BLV ${rawBlvs.join(", ")}`;
                   return `BLV ${rawBlvs.slice(0, 2).join(", ")} (+${rawBlvs.length - 2})`;
                 })()}
               </span>
             </span>
           ) : (
-            <span className="text-zinc-400 truncate flex items-center gap-1 font-medium">
-              <span>📡</span>
-              <span className="truncate">{primaryGroup}</span>
+            <span className="text-zinc-400 group-hover:text-zinc-300 font-medium truncate flex items-center gap-1">
+              <span className="shrink-0 text-amber-400/80">🎙️</span>
+              <span className="truncate">
+                {/^(?:TV360|FPT Play|VTVcab|SCTV|K\+|HTV|VTV)\b/i.test(primaryGroup)
+                  ? primaryGroup
+                  : "BLV"}
+              </span>
             </span>
           )}
         </div>

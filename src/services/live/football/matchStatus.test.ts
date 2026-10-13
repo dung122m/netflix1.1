@@ -19,8 +19,10 @@ import {
   NATIONAL_TEAM_CANONICAL_MAP,
   NATIONAL_TEAM_CANONICAL_KEYS,
   parseMatchTimeToTimestamp,
+  sanitizeCommentatorName,
+  isOffensiveCommentatorName,
 } from "./service";
-import { resolveCanonicalTournament } from "@/services/live/football-score/canonicalLeagues";
+import { resolveCanonicalTournament, isGenericSportTournament } from "@/services/live/football-score/canonicalLeagues";
 import { getTeamAsset, TOTAL_MAPPED_TEAMS } from "@/data/live/teamAssets";
 
 describe("Nanaflix Live Match Status & Timeline System", () => {
@@ -377,14 +379,14 @@ describe("Nanaflix Live Match Status & Timeline System", () => {
   it("21. Two identical F1 entries are merged into 1 card with merged servers", () => {
     const rawStreams = [
       {
-        rawTitle: "🏎️ F1 (BLV Ngu)",
+        rawTitle: "🏎️ F1 (BLV Hoàng Nam)",
         group: "THTT Live Sports",
         rawLogo: "",
         url: "https://stream.server1/f1.m3u8",
         effectiveUrl: "https://stream.server1/f1.m3u8",
       },
       {
-        rawTitle: "🏎️ F1 (BLV Ngu)",
+        rawTitle: "🏎️ F1 (BLV Hoàng Nam)",
         group: "THTT Live Sports Dự Phòng",
         rawLogo: "",
         url: "https://stream.server2/f1.m3u8",
@@ -397,7 +399,7 @@ describe("Nanaflix Live Match Status & Timeline System", () => {
     assert.equal(matches[0].sport, "f1");
     assert.equal(matches[0].tournament, "🏎️ F1 / Đua Xe Trực Tiếp");
     assert.equal(matches[0].servers.length, 2, "Merged F1 match card must retain both stream servers");
-    assert.equal(matches[0].blv, "Ngu", "Merged F1 match card must retain BLV name");
+    assert.equal(matches[0].blv, "Hoàng Nam", "Merged F1 match card must retain BLV name");
   });
 
   // 22. Cùng một trận từ 2 source khác nhau → 1 card + giữ 2 source
@@ -2391,4 +2393,47 @@ describe("Nanaflix Hotfix: Điều chỉnh phạm vi trận bóng đá trên /li
     assert.equal(tournamentPills.size, 1, "Must have exactly 1 unified tournament category for tennis");
     assert.ok(tournamentPills.has("Quần Vợt"), "Unified category must be 'Quần Vợt'");
   });
+
+  it("8. Làm sạch tên bình luận viên phản cảm/troll, giữ nguyên tên hợp lệ", () => {
+    // Tên phản cảm / troll
+    assert.equal(isOffensiveCommentatorName("BLV Ngu"), true);
+    assert.equal(isOffensiveCommentatorName("Mù"), true);
+    assert.equal(isOffensiveCommentatorName("BLV Chó"), true);
+    assert.equal(isOffensiveCommentatorName("ngáo"), true);
+
+    // sanitizeCommentatorName loại bỏ troll
+    assert.equal(sanitizeCommentatorName("BLV Ngu"), "");
+    assert.equal(sanitizeCommentatorName("Mù"), "");
+
+    // Tên hợp lệ vẫn giữ nguyên
+    assert.equal(isOffensiveCommentatorName("Lưu Bang, Chuối Kem"), false);
+    assert.equal(sanitizeCommentatorName("Lưu Bang, Chuối Kem"), "Lưu Bang, Chuối Kem");
+    assert.equal(sanitizeCommentatorName("Quang Huy"), "Quang Huy");
+    assert.equal(sanitizeCommentatorName("Hoàng Nam"), "Hoàng Nam");
+
+    // Không match nhầm các từ chứa chuỗi con nhưng vô hại (như họ 'Nguyễn' chứa 'ngu')
+    assert.equal(isOffensiveCommentatorName("Nguyễn"), false);
+    assert.equal(sanitizeCommentatorName("Nguyễn Văn A"), "Nguyễn Văn A");
+  });
+
+  it("9. Phân biệt giải đấu độc lập có ý nghĩa vs tên môn thể thao generic", () => {
+    // Các tên generic phải được nhận diện đúng để loại khỏi hàng giải đấu
+    assert.equal(isGenericSportTournament("Bóng Chuyền"), true);
+    assert.equal(isGenericSportTournament("Quần Vợt"), true);
+    assert.equal(isGenericSportTournament("Bóng Rổ"), true);
+    assert.equal(isGenericSportTournament("Esports"), true);
+    assert.equal(isGenericSportTournament("Đua Xe"), true);
+    assert.equal(isGenericSportTournament("Khác"), true);
+    assert.equal(isGenericSportTournament("Bóng Đá"), true);
+
+    // Các giải đấu thực sự hữu ích KHÔNG ĐƯỢC coi là generic
+    assert.equal(isGenericSportTournament("Ngoại Hạng Anh"), false);
+    assert.equal(isGenericSportTournament("Champions League"), false);
+    assert.equal(isGenericSportTournament("La Liga"), false);
+    assert.equal(isGenericSportTournament("Serie A"), false);
+    assert.equal(isGenericSportTournament("V-League"), false);
+    assert.equal(isGenericSportTournament("NBA"), false);
+    assert.equal(isGenericSportTournament("World Cup"), false);
+  });
 });
+
