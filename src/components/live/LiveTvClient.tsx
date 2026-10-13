@@ -1729,26 +1729,22 @@ export function LiveTvClient({
                     (() => {
                       const isForward = actionFeedback.text.startsWith("+");
                       return (
-                        <div className="flex flex-col items-center justify-center min-w-[130px] px-6 py-4 rounded-3xl bg-black/85 border border-white/20 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.8)] animate-in fade-in zoom-in-95 duration-150">
-                          <div className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center text-white mb-1 shadow-inner">
-                            {isForward ? (
-                              <RotateCw className="w-6 h-6 text-white" />
-                            ) : (
-                              <RotateCcw className="w-6 h-6 text-white" />
-                            )}
-                          </div>
-                          <span className="text-2xl font-black font-mono tracking-tight text-white">
+                        <div className="flex items-center gap-2 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full bg-black/80 border border-white/15 backdrop-blur-md text-white shadow-2xl animate-in fade-in zoom-in-95 duration-150 motion-reduce:animate-none">
+                          {!isForward && (
+                            <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5 text-white shrink-0" />
+                          )}
+                          <span className="text-xs sm:text-sm font-bold font-mono tracking-tight text-white tabular-nums">
                             {actionFeedback.text}
                           </span>
-                          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">
-                            {isForward ? "Tua tới" : "Tua lùi"}
-                          </span>
+                          {isForward && (
+                            <RotateCw className="w-4 h-4 sm:w-5 sm:h-5 text-white shrink-0" />
+                          )}
                         </div>
                       );
                     })()
                   ) : (
-                    <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-black/85 border border-white/20 backdrop-blur-2xl shadow-2xl animate-in fade-in zoom-in-95 duration-150 text-white">
-                      <Radio className="w-4 h-4 text-netflix-red animate-pulse" />
+                    <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/80 border border-white/15 backdrop-blur-md shadow-2xl animate-in fade-in zoom-in-95 duration-150 text-white">
+                      <Radio className="w-3.5 h-3.5 text-netflix-red animate-pulse" />
                       <span className="text-xs font-bold text-zinc-200 tracking-wide">
                         {actionFeedback.text || "Đang phát trực tiếp"}
                       </span>

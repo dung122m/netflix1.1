@@ -450,25 +450,13 @@ export function LiveFootballClient({
   const playerRef = useRef<HTMLDivElement>(null);
   const railContainerRef = useRef<HTMLDivElement>(null);
 
-  // Cân bằng chiều cao Side Panel chuẩn xác theo Video Container của LivePlayer trên Desktop (>=1024px)
+  // Cân bằng chiều cao Side Panel chuẩn xác theo khung Video Player trên Desktop (>=1024px)
   const [sidePanelHeight, setSidePanelHeight] = useState<number | undefined>(undefined);
 
   const handleVideoHeightChange = useCallback((height: number) => {
     if (typeof window !== "undefined" && window.innerWidth >= 1024 && height > 0) {
       setSidePanelHeight(height);
-    } else {
-      setSidePanelHeight(undefined);
     }
-  }, []);
-
-  useEffect(() => {
-    const handleResize = () => {
-      if (typeof window !== "undefined" && window.innerWidth < 1024) {
-        setSidePanelHeight(undefined);
-      }
-    };
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   const updateUrl = useCallback(
@@ -1214,11 +1202,6 @@ export function LiveFootballClient({
                     <span className="font-bold text-white text-xs sm:text-sm truncate">
                       {selectedMatch.title}
                     </span>
-                    {selectedMatch.blv && (
-                      <span className="text-[10px] sm:text-[11px] font-semibold text-amber-400 bg-amber-500/10 px-2 py-0.2 rounded border border-amber-500/20 shrink-0 hidden sm:inline-block">
-                        BLV {selectedMatch.blv}
-                      </span>
-                    )}
                   </div>
                 </div>
 
@@ -1230,9 +1213,9 @@ export function LiveFootballClient({
               </div>
 
               {/* BỐ CỤC THEATER STUDIO 2 CỘT (DESKTOP) / XẾP CHỒNG (MOBILE) */}
-              <div className="space-y-4 lg:space-y-0 lg:grid lg:grid-cols-12 lg:gap-6 items-start pb-8 sm:pb-6">
+              <div className="space-y-4 lg:space-y-0 lg:grid lg:grid-cols-12 lg:gap-6 items-start pb-2 sm:pb-3">
                 {/* CỘT TRÁI (COL 1-7/8 TRÊN DESKTOP): LIVE PLAYER */}
-                <div className="lg:col-span-7 xl:col-span-8 space-y-3">
+                <div className="lg:col-span-7 xl:col-span-8 space-y-3 flex flex-col justify-start">
                   <div ref={playerRef} className="space-y-3">
                     <LivePlayer
                       match={selectedMatch}
@@ -1260,15 +1243,7 @@ export function LiveFootballClient({
                         <div className="min-w-0 flex-1">
                           <span className="text-gray-300 truncate text-[11px] sm:text-xs block">
                             Đang phát: <strong className="text-white font-black">{selectedMatch.title}</strong>
-                            {selectedMatch.blv && (
-                              <span className="ml-1.5 text-orange-400 font-semibold hidden sm:inline">• BLV {selectedMatch.blv}</span>
-                            )}
                           </span>
-                          {selectedMatch.blv && (
-                            <span className="text-[10px] text-orange-400 font-medium truncate sm:hidden block">
-                              BLV: {selectedMatch.blv}
-                            </span>
-                          )}
                         </div>
                       </div>
 
@@ -1342,7 +1317,8 @@ export function LiveFootballClient({
                 {/* CỘT PHẢI (COL 8-12 TRÊN DESKTOP): SIDE PANEL VỚI MATCH CENTER & ĐỔI TRẬN */}
                 <div
                   style={{
-                    ...(sidePanelHeight ? { height: `${sidePanelHeight}px` } : {}),
+                    height: sidePanelHeight ? `${sidePanelHeight}px` : "min(560px, calc(100vh - 210px))",
+                    maxHeight: sidePanelHeight ? `${sidePanelHeight}px` : "min(560px, calc(100vh - 210px))",
                   }}
                   className="hidden lg:flex lg:col-span-5 xl:col-span-4 min-w-0 flex-col rounded-2xl border border-white/10 bg-zinc-950/90 backdrop-blur-xl shadow-2xl p-3 space-y-2.5 overflow-hidden"
                 >
@@ -1380,32 +1356,6 @@ export function LiveFootballClient({
                       className="flex-1 min-h-0 overflow-y-auto pr-0.5 space-y-2 scrollbar-thin"
                     >
                       <div className="space-y-2 pt-0.5">
-                        <div className="flex items-center justify-between border-b border-white/10 pb-2 px-0.5 gap-2">
-                          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
-                            {matchSummary ? (
-                              <Activity className="w-4 h-4 text-netflix-red shrink-0" />
-                            ) : (
-                              <Radio className="w-4 h-4 text-netflix-red animate-pulse shrink-0" />
-                            )}
-                            <h3 className="text-xs font-black uppercase tracking-wider text-white truncate">
-                              {matchSummary ? (
-                                <>
-                                  <span className="sm:hidden">Trung tâm trận đấu</span>
-                                  <span className="hidden sm:inline">Trung Tâm Trận Đấu & Diễn Biến</span>
-                                </>
-                              ) : (
-                                <>
-                                  <span className="sm:hidden">Chi tiết trận đấu</span>
-                                  <span className="hidden sm:inline">Thông Tin Trận Đấu & Luồng Phát</span>
-                                </>
-                              )}
-                            </h3>
-                          </div>
-                          <span className="text-[10px] text-gray-400 font-medium shrink-0 whitespace-nowrap">
-                            {matchSummary ? "Tự động đồng bộ" : "Tiếp sóng trực tiếp"}
-                          </span>
-                        </div>
-
                         <MatchCenter
                           leagueSlug={
                             (scoresMap[selectedMatch.id] || selectedMatch.score)?.leagueSlug

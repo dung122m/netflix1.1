@@ -79,10 +79,10 @@ export function LiveHubClient({ footballData, tvData }: LiveHubClientProps) {
 
   return (
     <div
-      className={`max-w-[1720px] w-full mx-auto px-3 sm:px-6 lg:px-8 pb-12 transition-all duration-200 ${
+      className={`max-w-[1720px] w-full mx-auto px-3 sm:px-6 lg:px-8 transition-all duration-200 ${
         isCinemaMode
-          ? "pt-16 sm:pt-[72px] space-y-2.5 sm:space-y-3"
-          : "pt-16 sm:pt-20 space-y-3 sm:space-y-4"
+          ? "pt-16 sm:pt-[72px] pb-3 sm:pb-4 space-y-2.5 sm:space-y-3"
+          : "pt-16 sm:pt-20 pb-12 space-y-3 sm:space-y-4"
       }`}
     >
       {/* 1. NANAFLIX LIVE STUDIO COMMAND BAR (Ẩn trong Cinema Mode để Player chiếm trọn tầm mắt) */}

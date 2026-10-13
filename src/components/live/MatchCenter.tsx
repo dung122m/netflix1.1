@@ -311,42 +311,35 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
 
   return (
     <div className="w-full rounded-3xl border border-white/10 bg-zinc-950/90 backdrop-blur-xl shadow-2xl overflow-hidden">
-      {/* 1. HEADER MATCH CENTER */}
+      {/* 1. HEADER MATCH CENTER (COMPACT) */}
       <div
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-between p-4 sm:p-5 cursor-pointer hover:bg-white/[0.03] transition-colors select-none border-b border-white/5"
+        className="flex items-center justify-between px-3.5 py-2.5 sm:px-4 sm:py-3 cursor-pointer hover:bg-white/[0.03] transition-colors select-none border-b border-white/5 gap-2"
       >
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="p-2.5 rounded-2xl bg-netflix-red/15 text-netflix-red border border-netflix-red/30 shrink-0">
-            {summary ? <Activity className="w-5 h-5" /> : <Radio className="w-5 h-5 text-netflix-red" />}
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="p-1.5 rounded-xl bg-netflix-red/15 text-netflix-red border border-netflix-red/30 shrink-0">
+            {summary ? <Activity className="w-4 h-4" /> : <Radio className="w-4 h-4 text-netflix-red" />}
           </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-sm sm:text-base md:text-lg font-black text-white tracking-tight line-clamp-2 leading-snug">
-                {displayTitle}
-              </h3>
-              {canonicalLeague && canonicalLeague !== "Giải Đấu Khác" && (
-                <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-white/10 text-zinc-300 border border-white/10 shrink-0 flex items-center gap-1">
-                  <span>🏆</span>
-                  <span>{canonicalLeague}</span>
-                </span>
-              )}
-              {isLive && (
-                <span className="flex items-center gap-1 text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-red-600/20 text-red-400 border border-red-500/30 animate-pulse shrink-0">
-                  <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
-                  <span>Trực Tiếp</span>
-                </span>
-              )}
-            </div>
-            <p className="text-[11px] sm:text-xs text-gray-400 mt-0.5 line-clamp-1">
-              {summary
-                ? "Diễn biến thời gian thực, đội hình, bình luận và thống kê chuyên sâu"
-                : "Thông tin trận đấu & trạng thái tiếp sóng trực tiếp"}
-            </p>
+          <div className="min-w-0 flex items-center gap-2 flex-wrap">
+            <h3 className="text-xs sm:text-sm font-black text-white tracking-tight line-clamp-1 leading-snug">
+              {displayTitle}
+            </h3>
+            {canonicalLeague && canonicalLeague !== "Giải Đấu Khác" && (
+              <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-white/10 text-zinc-300 border border-white/10 shrink-0 flex items-center gap-1">
+                <span>🏆</span>
+                <span className="truncate max-w-[140px] sm:max-w-none">{canonicalLeague}</span>
+              </span>
+            )}
+            {isLive && (
+              <span className="flex items-center gap-1 text-[9px] sm:text-[10px] font-black uppercase px-1.5 py-0.5 rounded-full bg-red-600/20 text-red-400 border border-red-500/30 animate-pulse shrink-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                <span>Trực Tiếp</span>
+              </span>
+            )}
           </div>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1.5 shrink-0">
           {isOpen && (
             <button
               type="button"
@@ -356,25 +349,25 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
               }}
               disabled={loading || isRefreshing}
               title="Làm mới dữ liệu"
-              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white transition disabled:opacity-50 cursor-pointer"
+              className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white transition disabled:opacity-50 cursor-pointer"
             >
               <RefreshCw
-                className={`w-4 h-4 ${
+                className={`w-3.5 h-3.5 ${
                   loading || isRefreshing ? "animate-spin text-netflix-red" : ""
                 }`}
               />
             </button>
           )}
 
-          <div className="p-2 rounded-xl bg-white/5 text-gray-400 border border-white/10">
-            {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          <div className="p-1.5 rounded-lg bg-white/5 text-gray-400 border border-white/10">
+            {isOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
           </div>
         </div>
       </div>
 
       {/* 2. NỘI DUNG MATCH CENTER */}
       {isOpen && (
-        <div className="p-3.5 sm:p-6 space-y-4">
+        <div className="p-3 sm:p-4 space-y-3 sm:space-y-3.5">
           {/* C. LOADING SKELETON */}
           {loading && !summary && (
             <div className="py-12 flex flex-col items-center justify-center gap-3 text-gray-400">
@@ -584,7 +577,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                       key={tab.id}
                       type="button"
                       onClick={() => setActiveTab(tab.id as TabType)}
-                      className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-extrabold transition-all cursor-pointer whitespace-nowrap ${
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                         isActive
                           ? "bg-gradient-to-r from-netflix-red to-netflix-red/85 text-white shadow-md shadow-[var(--accent-glow,rgba(229,9,20,0.4))] scale-[1.02]"
                           : "text-gray-400 hover:text-white hover:bg-white/5"

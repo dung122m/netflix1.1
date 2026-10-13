@@ -369,7 +369,7 @@ export function VectorJerseyToken({
   return (
     <svg
       viewBox="0 0 36 38"
-      className="w-7 h-7 sm:w-8.5 sm:h-8.5 drop-shadow-[0_2px_4px_rgba(0,0,0,0.65)] transition-transform duration-200 group-hover:scale-110"
+      className="w-[22px] h-[22px] sm:w-[24px] sm:h-[24px] drop-shadow-[0_1.5px_3px_rgba(0,0,0,0.65)] transition-transform duration-200 group-hover:scale-110"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
@@ -467,12 +467,12 @@ export function CircularBadgeToken({
 
   return (
     <div
-      className={`w-7 h-7 sm:w-8.5 sm:h-8.5 rounded-full flex items-center justify-center font-mono font-black text-xs sm:text-[13px] shadow-lg transition-transform duration-200 group-hover:scale-110 border-2 ${
+      className={`w-[22px] h-[22px] sm:w-[24px] sm:h-[24px] rounded-full flex items-center justify-center font-mono font-black text-[9px] sm:text-[10px] shadow-md transition-transform duration-200 group-hover:scale-110 border-[1.5px] ${
         isGK
-          ? "bg-gradient-to-b from-amber-300 via-amber-400 to-amber-600 text-zinc-950 border-white/90 ring-2 ring-amber-400/50 shadow-amber-950/60"
+          ? "bg-gradient-to-b from-amber-300 via-amber-400 to-amber-600 text-zinc-950 border-white/90 ring-1 ring-amber-400/50 shadow-amber-950/60"
           : isHome
-          ? "bg-gradient-to-b from-red-500 via-red-600 to-red-800 text-white border-white/90 ring-2 ring-red-500/50 shadow-red-950/60"
-          : "bg-gradient-to-b from-sky-400 via-sky-500 to-sky-700 text-white border-white/90 ring-2 ring-sky-400/50 shadow-sky-950/60"
+          ? "bg-gradient-to-b from-red-500 via-red-600 to-red-800 text-white border-white/90 ring-1 ring-red-500/50 shadow-red-950/60"
+          : "bg-gradient-to-b from-sky-400 via-sky-500 to-sky-700 text-white border-white/90 ring-1 ring-sky-400/50 shadow-sky-950/60"
       }`}
     >
       <span className="leading-none drop-shadow-sm">{displayNumber}</span>
@@ -498,7 +498,7 @@ export function PhotoToken({
 }) {
   return (
     <div
-      className={`w-7 h-7 sm:w-8.5 sm:h-8.5 rounded-full flex items-center justify-center overflow-hidden transition-all shadow-md ${
+      className={`w-[22px] h-[22px] sm:w-[24px] sm:h-[24px] rounded-full flex items-center justify-center overflow-hidden transition-all shadow-md ${
         isHome
           ? "bg-zinc-900 border-[1.5px] border-netflix-red shadow-red-950/60 ring-1 ring-netflix-red/30 group-hover:border-white group-hover:ring-white/50"
           : "bg-zinc-900 border-[1.5px] border-sky-400 shadow-sky-950/60 ring-1 ring-sky-400/30 group-hover:border-white group-hover:ring-white/50"
@@ -515,7 +515,7 @@ export function PhotoToken({
         />
       ) : (
         <div
-          className={`w-full h-full flex items-center justify-center font-mono font-black text-[10px] sm:text-xs ${
+          className={`w-full h-full flex items-center justify-center font-mono font-black text-[9px] sm:text-[10px] ${
             isHome
               ? "bg-gradient-to-b from-red-600 to-red-900 text-white"
               : "bg-gradient-to-b from-sky-500 to-sky-800 text-white"
@@ -545,6 +545,7 @@ interface TeamPitchColumnProps {
   imageErrors: Record<string, boolean>;
   onImageError: (id: string) => void;
   onSelectPlayer: (player: MatchRosterPlayer) => void;
+  showHeader?: boolean;
 }
 
 function TeamPitchColumn({
@@ -555,6 +556,7 @@ function TeamPitchColumn({
   imageErrors,
   onImageError,
   onSelectPlayer,
+  showHeader = true,
 }: TeamPitchColumnProps) {
   const positionedStarters = useMemo(() => {
     return calculateTacticalCoordinates(roster.starters, roster.formation);
@@ -563,33 +565,35 @@ function TeamPitchColumn({
   const hasStarters = roster.starters.length > 0;
 
   return (
-    <div className="flex flex-col space-y-3 min-w-0">
+    <div className="flex flex-col space-y-2.5 min-w-0">
       {/* KHỐI SÂN CỎ CHIẾN THUẬT */}
       <div className="rounded-2xl overflow-hidden border border-white/10 bg-zinc-950 shadow-xl flex flex-col">
-        {/* Header đội bóng & sơ đồ */}
-        <div className="flex items-center justify-between px-3.5 py-2.5 bg-zinc-900/90 border-b border-white/10 gap-2">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${isHome ? "bg-netflix-red shadow-sm shadow-red-500/50" : "bg-sky-400 shadow-sm shadow-sky-500/50"}`} />
-            <Shield className={`w-4 h-4 shrink-0 ${isHome ? "text-netflix-red" : "text-sky-400"}`} />
-            <span className="text-xs sm:text-sm md:text-base font-black text-white truncate">
-              {team.displayName}
-            </span>
-            <span className="text-[10px] sm:text-xs font-semibold text-zinc-400 shrink-0">
-              ({isHome ? "Chủ nhà" : "Đội khách"})
-            </span>
+        {/* Header đội bóng & sơ đồ (chỉ hiển thị khi xem song song 2 đội) */}
+        {showHeader && (
+          <div className="flex items-center justify-between px-3.5 py-2 bg-zinc-900/90 border-b border-white/10 gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${isHome ? "bg-netflix-red shadow-sm shadow-red-500/50" : "bg-sky-400 shadow-sm shadow-sky-500/50"}`} />
+              <Shield className={`w-4 h-4 shrink-0 ${isHome ? "text-netflix-red" : "text-sky-400"}`} />
+              <span className="text-xs sm:text-sm font-black text-white truncate">
+                {team.displayName}
+              </span>
+              <span className="text-[10px] sm:text-xs font-semibold text-zinc-400 shrink-0">
+                ({isHome ? "Chủ nhà" : "Đội khách"})
+              </span>
+            </div>
+            {roster.formation && (
+              <span
+                className={`text-xs font-mono font-bold px-2 py-0.5 rounded-md border shrink-0 whitespace-nowrap shadow-sm ${
+                  isHome
+                    ? "bg-red-500/15 text-red-300 border-red-500/30"
+                    : "bg-sky-500/15 text-sky-300 border-sky-500/30"
+                }`}
+              >
+                {roster.formation}
+              </span>
+            )}
           </div>
-          {roster.formation && (
-            <span
-              className={`text-xs font-mono font-bold px-2.5 py-0.5 rounded-md border shrink-0 whitespace-nowrap shadow-sm ${
-                isHome
-                  ? "bg-red-500/15 text-red-300 border-red-500/30"
-                  : "bg-sky-500/15 text-sky-300 border-sky-500/30"
-              }`}
-            >
-              {roster.formation}
-            </span>
-          )}
-        </div>
+        )}
 
         {/* Khung sân cỏ */}
         {!hasStarters ? (
@@ -597,7 +601,7 @@ function TeamPitchColumn({
             <p className="text-xs font-semibold text-zinc-400">Chưa có danh sách ra sân</p>
           </div>
         ) : (
-          <div className="relative w-full pb-[118%] sm:pb-[115%] select-none overflow-hidden bg-gradient-to-b from-[#0b1d12] via-[#0e2719] to-[#08170e]">
+          <div className="relative w-full pb-[84%] select-none overflow-hidden bg-gradient-to-b from-[#0b1d12] via-[#0e2719] to-[#08170e]">
             {/* Sọc cỏ cắt */}
             <div
               className="absolute inset-0 opacity-20 pointer-events-none"
@@ -724,7 +728,9 @@ function TeamPitchColumn({
                     left: `${x}%`,
                     top: `${y}%`,
                   }}
-                  className="absolute -translate-x-1/2 -translate-y-1/2 group flex flex-col items-center cursor-pointer transition-all hover:scale-115 active:scale-95 focus:outline-none z-20"
+                  className={`absolute -translate-x-1/2 ${
+                    isGK ? "-translate-y-[88%]" : "-translate-y-1/2"
+                  } group flex flex-col items-center cursor-pointer transition-all hover:scale-115 active:scale-95 focus:outline-none z-20`}
                 >
                   {/* Token cầu thủ trên sân */}
                   <div className="relative">
@@ -755,7 +761,7 @@ function TeamPitchColumn({
                     {/* Huy hiệu số áo góc dưới chỉ hiển thị khi ở chế độ xem ảnh mặt */}
                     {tokenDisplayMode === "photo" && player.jersey && (
                       <span
-                        className={`absolute -bottom-1 -right-1 font-mono text-[7px] sm:text-[8px] font-black px-1 py-0.2 rounded-full border shadow-sm leading-none ${
+                        className={`absolute -bottom-1 -right-1 font-mono text-[6.5px] sm:text-[7.5px] font-black px-1 py-0.2 rounded-full border shadow-sm leading-none ${
                           isHome
                             ? "bg-black text-white border-netflix-red/80"
                             : "bg-black text-white border-sky-400/80"
@@ -777,11 +783,11 @@ function TeamPitchColumn({
                   </div>
 
                   {/* Tên & vị trí */}
-                  <div className="mt-0.5 flex flex-col items-center max-w-[56px] sm:max-w-[72px] pointer-events-none">
-                    <span className="text-[8px] sm:text-[9.5px] font-bold text-white truncate w-full text-center drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)]">
+                  <div className="mt-0.5 flex flex-col items-center max-w-[48px] sm:max-w-[58px] pointer-events-none leading-none">
+                    <span className="text-[7.5px] sm:text-[8.5px] font-bold text-white truncate w-full text-center drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)] tracking-tight">
                       {shortName}
                     </span>
-                    <span className="text-[6.5px] sm:text-[7.5px] font-bold tracking-wider text-zinc-300 uppercase px-1 rounded bg-black/60 border border-white/10 leading-tight">
+                    <span className="text-[6px] sm:text-[6.5px] font-bold tracking-wider text-zinc-300 uppercase px-1 py-0.2 rounded bg-black/75 border border-white/15 leading-none mt-0.5 shadow-sm">
                       {roleAbbr}
                     </span>
                   </div>
@@ -796,13 +802,13 @@ function TeamPitchColumn({
       {roster.bench.length > 0 && (
         <div className="rounded-2xl bg-zinc-900/60 border border-white/10 p-3 sm:p-4 space-y-2.5">
           <div className="flex items-center justify-between pb-2 border-b border-white/10">
-            <div className="flex items-center gap-2">
-              <Users className="w-4 h-4 text-zinc-400" />
-              <h5 className="text-xs sm:text-sm font-bold text-white uppercase tracking-wider">
+            <div className="flex items-center gap-2 min-w-0">
+              <Users className="w-4 h-4 text-zinc-400 shrink-0" />
+              <h5 className="text-xs sm:text-sm font-bold text-white uppercase tracking-wider whitespace-nowrap truncate">
                 Cầu thủ dự bị ({roster.bench.length})
               </h5>
             </div>
-            <span className="text-[10px] text-zinc-400 font-medium">Bấm xem chỉ số</span>
+            <span className="text-[10px] text-zinc-400 font-medium shrink-0 whitespace-nowrap">Bấm xem chỉ số</span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[340px] overflow-y-auto pr-1 scrollbar-thin">
@@ -836,7 +842,7 @@ function TeamPitchColumn({
 
                     <div className="min-w-0 flex-1">
                       <p className="text-xs sm:text-[13px] font-bold text-zinc-100 group-hover:text-white truncate">
-                        {player.name}
+                        {player.displayName || player.name || "Cầu thủ"}
                       </p>
                       <p className="text-[10px] text-zinc-400 truncate">
                         {translatePosition(player.position)}
@@ -969,7 +975,7 @@ export function TacticalLineup({
   homeRoster,
   awayRoster,
 }: TacticalLineupProps) {
-  const [teamFilter, setTeamFilter] = useState<"home" | "away" | "both">("home");
+  const [teamFilter, setTeamFilter] = useState<"home" | "away">("home");
   const [viewMode, setViewMode] = useState<"pitch" | "list">("pitch");
   const [tokenDisplayMode, setTokenDisplayMode] = useState<TokenDisplayMode>("jersey");
   const [activePlayerModal, setActivePlayerModal] = useState<MatchRosterPlayer | null>(null);
@@ -1008,142 +1014,132 @@ export function TacticalLineup({
   };
 
   return (
-    <div className="space-y-3.5">
-      {/* 1. TABS CHỌN ĐỘI BÓNG: CHUẨN SOFASCORE & FOTMOB */}
-      <div className="space-y-2.5">
-        <div className="grid grid-cols-2 gap-2 p-1.5 rounded-2xl bg-zinc-900/80 border border-white/10 backdrop-blur-md">
-          <button
-            type="button"
-            onClick={() => setTeamFilter("home")}
-            className={`flex items-center justify-center gap-1.5 sm:gap-2.5 py-2.5 px-2.5 sm:px-4 rounded-xl transition-all cursor-pointer select-none ${
-              teamFilter === "home"
-                ? "bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg shadow-red-950/60 border border-red-500/60 font-black"
-                : "text-zinc-400 hover:text-white hover:bg-white/5 font-semibold border border-transparent"
-            }`}
-          >
-            <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${teamFilter === "home" ? "bg-white" : "bg-red-500"}`} />
-            <span className="text-xs sm:text-sm truncate font-bold">{homeTeam.displayName}</span>
-            {homeRoster.formation && (
-              <span
-                className={`text-[10px] sm:text-xs font-mono font-bold px-2 py-0.5 rounded-md shrink-0 whitespace-nowrap ${
-                  teamFilter === "home"
-                    ? "bg-black/40 text-red-100 border border-white/15"
-                    : "bg-white/5 text-zinc-400"
-                }`}
-              >
-                {homeRoster.formation}
-              </span>
-            )}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setTeamFilter("away")}
-            className={`flex items-center justify-center gap-1.5 sm:gap-2.5 py-2.5 px-2.5 sm:px-4 rounded-xl transition-all cursor-pointer select-none ${
-              teamFilter === "away"
-                ? "bg-gradient-to-r from-sky-600 to-sky-700 text-white shadow-lg shadow-sky-950/60 border border-sky-400/60 font-black"
-                : "text-zinc-400 hover:text-white hover:bg-white/5 font-semibold border border-transparent"
-            }`}
-          >
-            <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${teamFilter === "away" ? "bg-white" : "bg-sky-400"}`} />
-            <span className="text-xs sm:text-sm truncate font-bold">{awayTeam.displayName}</span>
-            {awayRoster.formation && (
-              <span
-                className={`text-[10px] sm:text-xs font-mono font-bold px-2 py-0.5 rounded-md shrink-0 whitespace-nowrap ${
-                  teamFilter === "away"
-                    ? "bg-black/40 text-sky-100 border border-white/15"
-                    : "bg-white/5 text-zinc-400"
-                }`}
-              >
-                {awayRoster.formation}
-              </span>
-            )}
-          </button>
-        </div>
-
-        {/* CỤM ĐIỀU KHIỂN PHỤ: HIỂN THỊ & CHẾ ĐỘ XEM */}
-        <div className="flex flex-wrap items-center justify-between gap-2 px-0.5">
-          {viewMode === "pitch" ? (
-            <div className="flex items-center gap-1 p-1 rounded-xl bg-zinc-900/70 border border-white/10">
-              <span className="text-[10px] font-bold text-zinc-400 px-1 hidden sm:inline">Hiển thị:</span>
-              <button
-                type="button"
-                onClick={() => setTokenDisplayMode("jersey")}
-                title="Hiện áo đấu vector & số áo tức thì"
-                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  tokenDisplayMode === "jersey"
-                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shadow-sm"
-                    : "text-zinc-400 hover:text-white"
-                }`}
-              >
-                <Shirt className="w-3.5 h-3.5" />
-                <span>Số áo</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setTokenDisplayMode("badge")}
-                title="Hiện huy hiệu số tròn"
-                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  tokenDisplayMode === "badge"
-                    ? "bg-sky-500/20 text-sky-300 border border-sky-500/30 shadow-sm"
-                    : "text-zinc-400 hover:text-white"
-                }`}
-              >
-                <Hash className="w-3.5 h-3.5" />
-                <span>Số tròn</span>
-              </button>
-            </div>
-          ) : <div />}
-
-          <div className="flex items-center gap-1.5 ml-auto">
-            {/* Toggle xem 2 đội song song (chỉ hiện trên màn hình lớn lg:) */}
-            <button
-              type="button"
-              onClick={() => setTeamFilter((prev) => (prev === "both" ? "home" : "both"))}
-              className={`hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
-                teamFilter === "both"
-                  ? "bg-white/15 text-white border-white/30"
-                  : "bg-zinc-900/70 text-zinc-400 border-white/10 hover:text-white"
+    <div className="space-y-2.5">
+      {/* 1. THANH CHỌN ĐỘI BÓNG: 50% - 50% FULL-WIDTH CÂN ĐỐI HOÀN HẢO */}
+      <div className="grid grid-cols-2 gap-1.5 p-1 rounded-2xl bg-zinc-900/80 border border-white/10 backdrop-blur-md">
+        <button
+          type="button"
+          onClick={() => setTeamFilter("home")}
+          title={`${homeTeam.displayName} (${homeRoster.formation || "Chưa rõ sơ đồ"})`}
+          className={`flex items-center justify-center gap-1.5 sm:gap-2 py-2 px-2 sm:px-3 rounded-xl text-xs font-bold transition-all cursor-pointer select-none truncate ${
+            teamFilter === "home"
+              ? "bg-gradient-to-r from-red-600 to-red-700 text-white shadow-md shadow-red-950/60 border border-red-500/60 font-black"
+              : "text-zinc-400 hover:text-white hover:bg-white/5 border border-transparent font-medium"
+          }`}
+        >
+          <div className={`w-2 h-2 rounded-full shrink-0 ${teamFilter === "home" ? "bg-white" : "bg-red-500"}`} />
+          <span className="truncate">{homeTeam.displayName}</span>
+          {homeRoster.formation && (
+            <span
+              className={`text-[10px] font-mono font-bold px-1.5 py-0.2 rounded shrink-0 whitespace-nowrap ${
+                teamFilter === "home"
+                  ? "bg-black/40 text-red-100 border border-white/15"
+                  : "bg-white/5 text-zinc-400"
               }`}
             >
-              <Users className="w-3.5 h-3.5" />
-              <span>Xem cả 2 đội</span>
+              {homeRoster.formation}
+            </span>
+          )}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setTeamFilter("away")}
+          title={`${awayTeam.displayName} (${awayRoster.formation || "Chưa rõ sơ đồ"})`}
+          className={`flex items-center justify-center gap-1.5 sm:gap-2 py-2 px-2 sm:px-3 rounded-xl text-xs font-bold transition-all cursor-pointer select-none truncate ${
+            teamFilter === "away"
+              ? "bg-gradient-to-r from-sky-600 to-sky-700 text-white shadow-md shadow-sky-950/60 border border-sky-400/60 font-black"
+              : "text-zinc-400 hover:text-white hover:bg-white/5 border border-transparent font-medium"
+          }`}
+        >
+          <div className={`w-2 h-2 rounded-full shrink-0 ${teamFilter === "away" ? "bg-white" : "bg-sky-400"}`} />
+          <span className="truncate">{awayTeam.displayName}</span>
+          {awayRoster.formation && (
+            <span
+              className={`text-[10px] font-mono font-bold px-1.5 py-0.2 rounded shrink-0 whitespace-nowrap ${
+                teamFilter === "away"
+                  ? "bg-black/40 text-sky-100 border border-white/15"
+                  : "bg-white/5 text-zinc-400"
+              }`}
+            >
+              {awayRoster.formation}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* 2. CỤM ĐIỀU KHIỂN CHẾ ĐỘ XEM & KIỂU SỐ (ĐỐI XỨNG 2 BÊN) */}
+      <div className="flex items-center justify-between gap-2 px-0.5">
+        {/* Bên trái: Toggle Số áo / Số tròn (chỉ khi xem Sân cỏ) */}
+        {viewMode === "pitch" ? (
+          <div className="flex items-center gap-1 p-0.5 rounded-xl bg-zinc-900/70 border border-white/10" role="group" aria-label="Kiểu hiển thị số áo trên sân">
+            <button
+              type="button"
+              onClick={() => setTokenDisplayMode("jersey")}
+              title="Hiện áo đấu vector & số áo"
+              aria-label="Hiện áo đấu vector & số áo"
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                tokenDisplayMode === "jersey"
+                  ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shadow-sm"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              <Shirt className="w-3.5 h-3.5" />
+              <span>Số áo</span>
             </button>
 
-            {/* Toggle Sân cỏ / Danh sách */}
-            <div className="flex items-center gap-1 p-1 rounded-xl bg-zinc-900/70 border border-white/10">
-              <button
-                type="button"
-                onClick={() => setViewMode("pitch")}
-                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  viewMode === "pitch"
-                    ? "bg-white/15 text-white shadow-sm"
-                    : "text-zinc-400 hover:text-white"
-                }`}
-              >
-                <Shirt className="w-3.5 h-3.5" />
-                <span>Sân cỏ</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setViewMode("list")}
-                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  viewMode === "list"
-                    ? "bg-white/15 text-white shadow-sm"
-                    : "text-zinc-400 hover:text-white"
-                }`}
-              >
-                <LayoutGrid className="w-3.5 h-3.5" />
-                <span>Danh sách</span>
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => setTokenDisplayMode("badge")}
+              title="Hiện huy hiệu số tròn"
+              aria-label="Hiện huy hiệu số tròn"
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                tokenDisplayMode === "badge"
+                  ? "bg-sky-500/20 text-sky-300 border border-sky-500/30 shadow-sm"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              <Hash className="w-3.5 h-3.5" />
+              <span>Số tròn</span>
+            </button>
           </div>
+        ) : <div />}
+
+        {/* Bên phải: Toggle Sân cỏ / Danh sách */}
+        <div className="flex items-center gap-1 p-0.5 rounded-xl bg-zinc-900/70 border border-white/10 ml-auto" role="group" aria-label="Chế độ hiển thị đội hình">
+          <button
+            type="button"
+            onClick={() => setViewMode("pitch")}
+            title="Xem sơ đồ sân cỏ"
+            aria-label="Xem sơ đồ sân cỏ"
+            className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              viewMode === "pitch"
+                ? "bg-white/15 text-white shadow-sm"
+                : "text-zinc-400 hover:text-white"
+            }`}
+          >
+            <Shirt className="w-3.5 h-3.5" />
+            <span>Sân cỏ</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setViewMode("list")}
+            title="Xem danh sách bảng"
+            aria-label="Xem danh sách bảng"
+            className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              viewMode === "list"
+                ? "bg-white/15 text-white shadow-sm"
+                : "text-zinc-400 hover:text-white"
+            }`}
+          >
+            <LayoutGrid className="w-3.5 h-3.5" />
+            <span>Danh sách</span>
+          </button>
         </div>
       </div>
 
-      {/* 2. KHU VỰC HIỂN THỊ CHÍNH (SÂN CỎ HOẶC DANH SÁCH) */}
+      {/* 3. KHU VỰC HIỂN THỊ CHÍNH (SÂN CỎ HOẶC DANH SÁCH) */}
       {!hasLineupData ? (
         <div className="rounded-3xl border border-white/10 bg-zinc-900/40 p-12 text-center space-y-3">
           <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mx-auto text-zinc-500">
@@ -1156,63 +1152,27 @@ export function TacticalLineup({
         </div>
       ) : viewMode === "pitch" ? (
         /* CHẾ ĐỘ 1: SÂN CỎ CHIẾN THUẬT (TACTICAL PITCH) */
-        <div
-          className={
-            teamFilter === "both"
-              ? "grid grid-cols-1 lg:grid-cols-2 gap-4"
-              : "max-w-2xl mx-auto w-full"
-          }
-        >
-          {(teamFilter === "both" || teamFilter === "home") && (
-            <TeamPitchColumn
-              team={homeTeam}
-              roster={homeRoster}
-              isHome={true}
-              tokenDisplayMode={tokenDisplayMode}
-              imageErrors={imageErrors}
-              onImageError={handleImageError}
-              onSelectPlayer={setActivePlayerModal}
-            />
-          )}
-
-          {(teamFilter === "both" || teamFilter === "away") && (
-            <TeamPitchColumn
-              team={awayTeam}
-              roster={awayRoster}
-              isHome={false}
-              tokenDisplayMode={tokenDisplayMode}
-              imageErrors={imageErrors}
-              onImageError={handleImageError}
-              onSelectPlayer={setActivePlayerModal}
-            />
-          )}
+        <div className="max-w-2xl mx-auto w-full">
+          <TeamPitchColumn
+            team={teamFilter === "home" ? homeTeam : awayTeam}
+            roster={teamFilter === "home" ? homeRoster : awayRoster}
+            isHome={teamFilter === "home"}
+            tokenDisplayMode={tokenDisplayMode}
+            imageErrors={imageErrors}
+            onImageError={handleImageError}
+            onSelectPlayer={setActivePlayerModal}
+            showHeader={false}
+          />
         </div>
       ) : (
         /* CHẾ ĐỘ 2: DANH SÁCH BẢNG TRUYỀN THỐNG (LIST VIEW) */
-        <div
-          className={
-            teamFilter === "both"
-              ? "grid grid-cols-1 md:grid-cols-2 gap-4"
-              : "max-w-xl mx-auto"
-          }
-        >
-          {(teamFilter === "both" || teamFilter === "home") && (
-            <TeamListColumn
-              team={homeTeam}
-              roster={homeRoster}
-              isHome={true}
-              onSelectPlayer={setActivePlayerModal}
-            />
-          )}
-
-          {(teamFilter === "both" || teamFilter === "away") && (
-            <TeamListColumn
-              team={awayTeam}
-              roster={awayRoster}
-              isHome={false}
-              onSelectPlayer={setActivePlayerModal}
-            />
-          )}
+        <div className="max-w-xl mx-auto">
+          <TeamListColumn
+            team={teamFilter === "home" ? homeTeam : awayTeam}
+            roster={teamFilter === "home" ? homeRoster : awayRoster}
+            isHome={teamFilter === "home"}
+            onSelectPlayer={setActivePlayerModal}
+          />
         </div>
       )}
 

@@ -28,6 +28,7 @@ import {
   Mic,
   MapPin,
   UserCheck,
+  LayoutGrid,
 } from "lucide-react";
 import { FootballMatch, StreamServer } from "@/services/liveFootballService";
 import { LiveMatchScore, NormalizedMatchSummary } from "@/services/live/football-score/types";
@@ -625,10 +626,27 @@ function LivePlayerInner({
   const [copied, setCopied] = useState(false);
   const [showControls, setShowControls] = useState(false);
   const [showAllServers, setShowAllServers] = useState(false);
+  const [isGridView, setIsGridView] = useState(true);
+  const chipsContainerRef = useRef<HTMLDivElement | null>(null);
+  const activeChipRef = useRef<HTMLButtonElement | null>(null);
   const [actionFeedback, setActionFeedback] = useState<{
     icon: "play" | "pause" | "volume" | "mute" | "server" | "match" | "seek";
     text?: string;
   } | null>(null);
+
+  // Cuộn mượt thanh chip đến nguồn đang chọn (chỉ cuộn bên trong chips container, không giật màn hình)
+  useEffect(() => {
+    if (!isGridView && chipsContainerRef.current && activeChipRef.current) {
+      const container = chipsContainerRef.current;
+      const chip = activeChipRef.current;
+      const targetScroll =
+        chip.offsetLeft - container.offsetWidth / 2 + chip.offsetWidth / 2;
+      container.scrollTo({
+        left: Math.max(0, targetScroll),
+        behavior: "smooth",
+      });
+    }
+  }, [selectedServerIndex, isGridView]);
 
   // Xác định trận đấu có đang trước giờ bóng lăn (kickoff) hay không
   const isPreKickoff = useMemo(() => {
@@ -741,6 +759,7 @@ function LivePlayerInner({
       setHasError(false);
       setErrorMessage("");
       setIsLoading(true);
+      setIsGridView(true);
 
       // Tự chọn source tốt nhất của trận mới theo FHD > HD > unknown
       const initialBestIdx = findBestInitialServerIndex(serversRef.current);
@@ -2636,13 +2655,13 @@ function LivePlayerInner({
     ) : null;
 
   const scoreboardMarkup = (
-    <div className="relative rounded-2xl sm:rounded-3xl border border-white/10 bg-gradient-to-b from-zinc-900/90 via-zinc-950/95 to-zinc-950 px-3.5 py-2.5 sm:px-4 sm:py-3 shadow-xl overflow-hidden w-full min-w-0 backdrop-blur-xl">
+    <div className="relative rounded-2xl sm:rounded-3xl border border-white/10 bg-gradient-to-b from-zinc-900/90 via-zinc-950/95 to-zinc-950 px-3 py-2 sm:px-4 sm:py-2.5 shadow-xl overflow-hidden w-full min-w-0 backdrop-blur-xl">
       {/* Glow hiệu ứng sân vận động 2 bên */}
       <div className="pointer-events-none absolute -top-24 left-1/4 w-96 h-96 bg-red-600/15 rounded-full blur-3xl" />
       <div className="pointer-events-none absolute -top-24 right-1/4 w-96 h-96 bg-sky-600/15 rounded-full blur-3xl" />
 
       {isEvent || !team1 || !team2 || team1.trim().toLowerCase() === team2.trim().toLowerCase() ? (
-        <div className="relative z-10 w-full flex flex-col items-center justify-center text-center py-2">
+        <div className="relative z-10 w-full flex flex-col items-center justify-center text-center py-1.5">
           <div className="flex items-center gap-2">
             <span className="text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] text-rose-400 bg-rose-500/15 border border-rose-500/30 px-2.5 py-0.5 rounded-full">
               Kênh / Sự kiện
@@ -2653,14 +2672,14 @@ function LivePlayerInner({
               </span>
             )}
           </div>
-          <h2 className="mt-1 text-lg sm:text-2xl font-black text-white tracking-wide">
+          <h2 className="mt-1 text-base sm:text-xl font-black text-white tracking-wide">
             {title}
           </h2>
         </div>
       ) : (
-        <div className="relative z-10 flex flex-col gap-2 sm:gap-2.5">
+        <div className="relative z-10 flex flex-col gap-1.5 sm:gap-2">
           {/* 1. TOP BAR: GIẢI ĐẤU & THỜI GIAN THI ĐẤU */}
-          <div className="flex items-center justify-between gap-2 border-b border-white/[0.08] pb-1.5">
+          <div className="flex items-center justify-between gap-2 border-b border-white/[0.08] pb-1">
             <div className="flex items-center gap-2 min-w-0 flex-1">
               {(() => {
                 const displayTournament = resolveCanonicalTournament({
@@ -2710,13 +2729,13 @@ function LivePlayerInner({
           </div>
 
           {/* 2. MATCH ARENA (SOFASCORE ARENA HERO - ĐỒNG BỘ 100% VỚI MATCH CENTER) */}
-          <div className="flex items-center justify-between gap-3 sm:gap-4 py-1 sm:py-2 w-full">
+          <div className="flex items-center justify-between gap-3 sm:gap-4 py-0.5 sm:py-1 w-full">
             {/* ĐỘI NHÀ */}
             <div className="flex-1 flex flex-col items-center sm:items-end text-center sm:text-right min-w-0">
-              <div className="w-12 h-12 sm:w-16 sm:h-16 mb-1.5 sm:mb-2 rounded-2xl bg-gradient-to-b from-zinc-700/80 via-zinc-800/95 to-zinc-900 border-2 border-white/20 p-1.5 sm:p-2 flex items-center justify-center shadow-lg relative overflow-hidden shrink-0 transition-all duration-300 hover:scale-105 hover:border-netflix-red/70">
+              <div className="w-11 h-11 sm:w-13 sm:h-13 mb-1 sm:mb-1.5 rounded-xl sm:rounded-2xl bg-gradient-to-b from-zinc-700/80 via-zinc-800/95 to-zinc-900 border-2 border-white/20 p-1.5 sm:p-2 flex items-center justify-center shadow-lg relative overflow-hidden shrink-0 transition-all duration-300 hover:scale-105 hover:border-netflix-red/70">
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.18)_0%,_transparent_75%)] pointer-events-none" />
                 {homeFlagEmoji ? (
-                  <CountryFlag emoji={homeFlagEmoji} className="w-7 h-7 sm:w-9 sm:h-9 relative z-10" />
+                  <CountryFlag emoji={homeFlagEmoji} className="w-6 h-6 sm:w-8 sm:h-8 relative z-10" />
                 ) : homeLogoSrc ? (
                   /* eslint-disable-next-line @next/next/no-img-element */
                   <img
@@ -2729,13 +2748,13 @@ function LivePlayerInner({
                   />
                 ) : (
                   <div className="flex flex-col items-center justify-center w-full h-full bg-rose-500/10 rounded-xl p-1 select-none">
-                    <span className="text-sm sm:text-base font-black text-rose-400 tracking-wider">
+                    <span className="text-xs sm:text-sm font-black text-rose-400 tracking-wider">
                       {getTeamInitials(team1)}
                     </span>
                   </div>
                 )}
               </div>
-              <h4 className="text-sm sm:text-base font-extrabold text-white tracking-tight truncate w-full" title={homeDisplayName}>
+              <h4 className="text-xs sm:text-sm font-extrabold text-white tracking-tight truncate w-full" title={homeDisplayName}>
                 {homeDisplayName}
               </h4>
               {homeFormation ? (
@@ -2765,26 +2784,26 @@ function LivePlayerInner({
                 match?.isLive === true;
 
               return (
-                <div className="flex flex-col items-center px-2 sm:px-6 py-1 shrink-0">
+                <div className="flex flex-col items-center px-2 sm:px-4 py-0.5 shrink-0">
                   {hasScore ? (
-                    <div className="flex items-center gap-2 sm:gap-4 font-mono text-3xl sm:text-5xl font-black text-white tracking-wider">
+                    <div className="flex items-center gap-2 sm:gap-3 font-mono text-2xl sm:text-4xl font-black text-white tracking-wider">
                       <span>{homeScoreVal}</span>
-                      <span className="text-gray-500 text-2xl sm:text-3xl font-light select-none">:</span>
+                      <span className="text-gray-500 text-xl sm:text-2xl font-light select-none">:</span>
                       <span>{awayScoreVal}</span>
                     </div>
                   ) : (
-                    <div className="my-0.5 sm:my-1 flex items-center justify-center">
-                      <div className="px-3 sm:px-3.5 py-0.5 rounded-lg bg-zinc-900/90 border border-white/15 shadow-sm">
-                        <span className="text-sm sm:text-base font-black uppercase tracking-[0.2em] text-zinc-200 select-none">
+                    <div className="my-0.5 flex items-center justify-center">
+                      <div className="px-2.5 sm:px-3 py-0.5 rounded-lg bg-zinc-900/90 border border-white/15 shadow-sm">
+                        <span className="text-xs sm:text-sm font-black uppercase tracking-[0.2em] text-zinc-200 select-none">
                           VS
                         </span>
                       </div>
                     </div>
                   )}
 
-                  <div className="mt-2 flex items-center gap-1.5 flex-wrap justify-center">
+                  <div className="mt-1 sm:mt-1.5 flex items-center gap-1.5 flex-wrap justify-center">
                     <span
-                      className={`inline-flex items-center gap-1.5 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full border tracking-wider ${
+                      className={`inline-flex items-center gap-1.5 text-[9.5px] sm:text-[10px] font-black uppercase px-2 sm:px-2.5 py-0.5 rounded-full border tracking-wider ${
                         isMatchLive
                           ? "bg-red-950/50 text-red-400 border-red-500/30 shadow-sm"
                           : isFinished
@@ -2827,10 +2846,10 @@ function LivePlayerInner({
 
             {/* ĐỘI KHÁCH */}
             <div className="flex-1 flex flex-col items-center sm:items-start text-center sm:text-left min-w-0">
-              <div className="w-12 h-12 sm:w-16 sm:h-16 mb-1.5 sm:mb-2 rounded-2xl bg-gradient-to-b from-zinc-700/80 via-zinc-800/95 to-zinc-900 border-2 border-white/20 p-1.5 sm:p-2 flex items-center justify-center shadow-lg relative overflow-hidden shrink-0 transition-all duration-300 hover:scale-105 hover:border-sky-500/70">
+              <div className="w-11 h-11 sm:w-13 sm:h-13 mb-1 sm:mb-1.5 rounded-xl sm:rounded-2xl bg-gradient-to-b from-zinc-700/80 via-zinc-800/95 to-zinc-900 border-2 border-white/20 p-1.5 sm:p-2 flex items-center justify-center shadow-lg relative overflow-hidden shrink-0 transition-all duration-300 hover:scale-105 hover:border-sky-500/70">
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.18)_0%,_transparent_75%)] pointer-events-none" />
                 {awayFlagEmoji ? (
-                  <CountryFlag emoji={awayFlagEmoji} className="w-7 h-7 sm:w-9 sm:h-9 relative z-10" />
+                  <CountryFlag emoji={awayFlagEmoji} className="w-6 h-6 sm:w-8 sm:h-8 relative z-10" />
                 ) : awayLogoSrc ? (
                   /* eslint-disable-next-line @next/next/no-img-element */
                   <img
@@ -2843,13 +2862,13 @@ function LivePlayerInner({
                   />
                 ) : (
                   <div className="flex flex-col items-center justify-center w-full h-full bg-sky-500/10 rounded-xl p-1 select-none">
-                    <span className="text-sm sm:text-base font-black text-sky-400 tracking-wider">
+                    <span className="text-xs sm:text-sm font-black text-sky-400 tracking-wider">
                       {getTeamInitials(team2)}
                     </span>
                   </div>
                 )}
               </div>
-              <h4 className="text-sm sm:text-base font-extrabold text-white tracking-tight truncate w-full" title={awayDisplayName}>
+              <h4 className="text-xs sm:text-sm font-extrabold text-white tracking-tight truncate w-full" title={awayDisplayName}>
                 {awayDisplayName}
               </h4>
               {awayFormation ? (
@@ -2866,7 +2885,7 @@ function LivePlayerInner({
 
           {/* THÔNG TIN SÂN & TRỌNG TÀI / GIẢI ĐẤU (ĐỒNG BỘ MATCH CENTER) */}
           {(venueName || refereeName || group || match?.tournament) && (
-            <div className="w-full mt-2 sm:mt-3 pt-2 sm:pt-2.5 border-t border-white/5 flex flex-wrap items-center justify-center gap-3 sm:gap-4 text-xs text-gray-400">
+            <div className="w-full mt-1.5 sm:mt-2 pt-1.5 sm:pt-2 border-t border-white/5 flex flex-wrap items-center justify-center gap-3 sm:gap-4 text-[11px] sm:text-xs text-gray-400">
               {venueName ? (
                 <div className="flex items-center gap-1.5">
                   <MapPin className="w-3.5 h-3.5 text-netflix-red shrink-0" />
@@ -2999,31 +3018,27 @@ function LivePlayerInner({
           <div className="absolute inset-0 flex items-center justify-center z-25 pointer-events-none">
             {actionFeedback.icon === "seek" ? (
               actionFeedback.text && /^[+-]?\d+s$/i.test(actionFeedback.text.trim()) ? (
-                // CINEMA SEEK HUD (±10s, ±20s, ...)
+                // CINEMA SEEK HUD (±10s, ±20s, ...) - Compact frosted pill
                 (() => {
                   const isForward = actionFeedback.text.startsWith("+");
                   return (
-                    <div className="flex flex-col items-center justify-center min-w-[130px] px-6 py-4 rounded-3xl bg-black/85 border border-white/20 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.8)] animate-in fade-in zoom-in-95 duration-150">
-                      <div className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center text-white mb-1 shadow-inner">
-                        {isForward ? (
-                          <RotateCw className="w-6 h-6 text-white" />
-                        ) : (
-                          <RotateCcw className="w-6 h-6 text-white" />
-                        )}
-                      </div>
-                      <span className="text-2xl font-black font-mono tracking-tight text-white">
+                    <div className="flex items-center gap-2 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full bg-black/80 border border-white/15 backdrop-blur-md text-white shadow-2xl animate-in fade-in zoom-in-95 duration-150 motion-reduce:animate-none">
+                      {!isForward && (
+                        <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5 text-white shrink-0" />
+                      )}
+                      <span className="text-xs sm:text-sm font-bold font-mono tracking-tight text-white tabular-nums">
                         {actionFeedback.text}
                       </span>
-                      <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">
-                        {isForward ? "Tua tới" : "Tua lùi"}
-                      </span>
+                      {isForward && (
+                        <RotateCw className="w-4 h-4 sm:w-5 sm:h-5 text-white shrink-0" />
+                      )}
                     </div>
                   );
                 })()
               ) : (
                 // Thông báo Live / không hỗ trợ DVR
-                <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-black/85 border border-white/20 backdrop-blur-2xl shadow-2xl animate-in fade-in zoom-in-95 duration-150 text-white">
-                  <Radio className="w-4 h-4 text-netflix-red animate-pulse" />
+                <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/80 border border-white/15 backdrop-blur-md shadow-2xl animate-in fade-in zoom-in-95 duration-150 text-white">
+                  <Radio className="w-3.5 h-3.5 text-netflix-red animate-pulse" />
                   <span className="text-xs font-bold text-zinc-200 tracking-wide">
                     {actionFeedback.text || "Đang phát trực tiếp"}
                   </span>
@@ -3247,39 +3262,36 @@ function LivePlayerInner({
       {/* 2. SCOREBOARD SÂN CỎ ĐỈNH CAO: AMBIENT GLOW & HUY HIỆU CLB SẮC NÉT (ĐẶT NGAY DƯỚI VIDEO THEO VIDEO-FIRST) */}
       {scoreboardMarkup}
 
-      {/* 3. DANH SÁCH MÁY CHỦ PHÁT SÓNG SẮC NÉT */}
-      <div className="keep-dark-cinema rounded-2xl sm:rounded-3xl border border-white/10 bg-zinc-900/95 p-3.5 sm:p-5 shadow-xl space-y-3 sm:space-y-4 w-full min-w-0">
-        <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-3">
+      {/* 3. DANH SÁCH MÁY CHỦ PHÁT SÓNG SẮC NÉT (MẶC ĐỊNH CHIP CUỘN NGANG GỌN GÀNG, HỖ TRỢ XEM LƯỚI) */}
+      <div className="keep-dark-cinema rounded-2xl sm:rounded-3xl border border-white/10 bg-zinc-900/95 p-3 sm:p-4 shadow-xl space-y-2.5 w-full min-w-0">
+        <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-2.5">
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <span className="flex items-center gap-1.5 text-gray-200 font-bold text-xs sm:text-sm">
-              <span>📡 Danh sách nguồn phát trực tiếp</span>
+              <span>📡 Nguồn phát</span>
               <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-white/10 text-gray-300 font-bold">
                 {availableServers.length}
               </span>
             </span>
-            {hasMoreServers && (
-              <span className="text-[11px] text-gray-400 hidden sm:inline">
-                ({showAllServers ? `Tất cả ${availableServers.length}` : `8/${availableServers.length}`})
-              </span>
-            )}
           </div>
 
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {hasMoreServers && (
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+            {availableServers.length > 1 && (
               <button
                 type="button"
-                onClick={() => setShowAllServers((prev) => !prev)}
-                className="flex items-center gap-1 text-[11px] font-bold text-netflix-red hover:text-red-400 transition cursor-pointer bg-white/5 hover:bg-white/10 px-2.5 py-1.5 rounded-xl border border-white/10"
+                onClick={() => setIsGridView((prev) => !prev)}
+                className="flex items-center gap-1 text-[11px] font-bold text-gray-300 hover:text-white bg-white/5 hover:bg-white/10 px-2.5 py-1.5 rounded-xl border border-white/10 transition cursor-pointer"
+                title={isGridView ? "Thu gọn dạng hàng" : "Mở rộng dạng lưới"}
               >
-                <span>
-                  {showAllServers
-                    ? "Thu gọn"
-                    : `+${availableServers.length - INITIAL_SERVER_LIMIT} nguồn khác`}
-                </span>
-                {showAllServers ? (
-                  <ChevronUp className="w-3 h-3" />
+                {isGridView ? (
+                  <>
+                    <ChevronUp className="w-3 h-3 text-netflix-red" />
+                    <span>Dạng hàng</span>
+                  </>
                 ) : (
-                  <ChevronDown className="w-3 h-3" />
+                  <>
+                    <LayoutGrid className="w-3 h-3 text-netflix-red" />
+                    <span>Lưới ({availableServers.length})</span>
+                  </>
                 )}
               </button>
             )}
@@ -3293,99 +3305,158 @@ function LivePlayerInner({
               {copied ? (
                 <>
                   <Check className="w-3.5 h-3.5 text-emerald-400" />
-                  <span className="text-emerald-400 hidden sm:inline">Đã chép link</span>
+                  <span className="text-emerald-400 hidden sm:inline">Đã chép</span>
                 </>
               ) : (
                 <>
                   <Copy className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Sao chép link</span>
+                  <span className="hidden sm:inline">Sao chép</span>
                 </>
               )}
             </button>
           </div>
         </div>
 
-        {/* DANH SÁCH MÁY CHỦ PHÁT SÓNG (GỌN GÀNG, TỐI GIẢN & RESPONSIVE GRID) */}
-        <div className="space-y-2.5 w-full min-w-0">
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5 sm:gap-2 w-full min-w-0 pt-0.5 px-1 py-1 max-h-72 overflow-y-auto">
-            {availableServers.length === 0 ? (
-              <div className="col-span-full py-4 px-3 text-center rounded-xl bg-red-950/20 border border-red-900/30 text-gray-400 text-xs flex flex-col items-center justify-center gap-2">
-                <AlertCircle className="w-5 h-5 text-red-500" />
-                <span>Không có nguồn phát khả dụng</span>
-              </div>
-            ) : (
-              displayedServers.map((s, idx) => {
-                const isSelected = currentServer?.url === s.url;
-                const qualityBadge = getSourceQuality(s);
-                const cleanName = parseServerDisplayLabel(s, idx);
-
-                return (
-                  <button
-                    key={`${toCanonicalSourceUrl(s.url) || "sv"}-${idx}`}
-                    type="button"
-                    onClick={() => {
-                      fallbackCountRef.current = 0;
-                      isStoppedRef.current = false;
-                      const origIdx = servers.findIndex(
-                        (srv) =>
-                          toCanonicalSourceUrl(srv.url) ===
-                          toCanonicalSourceUrl(s.url),
-                      );
-                      const targetIdx = origIdx !== -1 ? origIdx : 0;
-                      useProxyFallbackRef.current = false;
-                      setUseProxyFallback(false);
-                      lastLoadedUrlRef.current = "";
-                      setHasError(false);
-                      setErrorMessage("");
-                      setIsLoading(true);
-                      setSelectedServerIndex(targetIdx);
-                      setRetryNonce((prev) => prev + 1);
-                    }}
-                    className={`px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-between gap-2 cursor-pointer border text-left min-w-0 ${isSelected
-                        ? "bg-red-950/80 text-white border-red-500/80 shadow-md shadow-red-950/60 ring-2 ring-red-500/60"
-                        : "bg-black/60 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800/90"
-                      }`}
-                  >
-                    <div className="flex items-center gap-2 min-w-0 flex-1 truncate">
-                      <span
-                        className={`w-2 h-2 rounded-full shrink-0 ${isSelected ? "bg-red-400 ring-2 ring-red-500/40 animate-pulse" : "bg-emerald-400"
-                          }`}
-                      />
-                      <span className="truncate">{cleanName}</span>
-                    </div>
-
-                    {qualityBadge && (
-                      <span
-                        className={`shrink-0 px-1.5 py-0.5 text-[9px] font-black rounded tracking-wider border ${qualityBadge === "FHD"
-                            ? isSelected
-                              ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
-                              : "bg-amber-500/15 text-amber-300 border-amber-500/30"
-                            : isSelected
-                              ? "bg-sky-500/20 text-sky-300 border-sky-500/40"
-                              : "bg-sky-500/15 text-sky-300 border-sky-500/30"
-                          }`}
-                      >
-                        {qualityBadge}
-                      </span>
-                    )}
-                  </button>
-                );
-              })
-            )}
-
-            {hasMoreServers && !showAllServers && (
-              <button
-                type="button"
-                onClick={() => setShowAllServers(true)}
-                className="px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs font-medium transition-all flex items-center justify-center gap-1 cursor-pointer bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-dashed border-white/20 sm:col-span-2 lg:col-span-3"
-              >
-                <span>+{availableServers.length - INITIAL_SERVER_LIMIT} nguồn khác</span>
-                <ChevronDown className="w-3.5 h-3.5 text-netflix-red" />
-              </button>
-            )}
+        {/* NỘI DUNG NGUỒN PHÁT: MẶC ĐỊNH HÀNG CHIP CUỘN NGANG / KHI MỞ RỘNG LÀ LƯỚI */}
+        {availableServers.length === 0 ? (
+          <div className="py-4 px-3 text-center rounded-xl bg-red-950/20 border border-red-900/30 text-gray-400 text-xs flex flex-col items-center justify-center gap-2">
+            <AlertCircle className="w-5 h-5 text-red-500" />
+            <span>Không có nguồn phát khả dụng</span>
           </div>
-        </div>
+        ) : isGridView ? (
+          /* DẠNG LƯỚI MỞ RỘNG */
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5 sm:gap-2 w-full min-w-0 pt-0.5 px-0.5 max-h-72 overflow-y-auto">
+            {availableServers.map((s, idx) => {
+              const isSelected = currentServer?.url === s.url;
+              const qualityBadge = getSourceQuality(s);
+              const cleanName = parseServerDisplayLabel(s, idx);
+
+              return (
+                <button
+                  key={`${toCanonicalSourceUrl(s.url) || "sv"}-${idx}`}
+                  type="button"
+                  onClick={() => {
+                    fallbackCountRef.current = 0;
+                    isStoppedRef.current = false;
+                    const origIdx = servers.findIndex(
+                      (srv) =>
+                        toCanonicalSourceUrl(srv.url) ===
+                        toCanonicalSourceUrl(s.url),
+                    );
+                    const targetIdx = origIdx !== -1 ? origIdx : 0;
+                    useProxyFallbackRef.current = false;
+                    setUseProxyFallback(false);
+                    lastLoadedUrlRef.current = "";
+                    setHasError(false);
+                    setErrorMessage("");
+                    setIsLoading(true);
+                    setSelectedServerIndex(targetIdx);
+                    setRetryNonce((prev) => prev + 1);
+                  }}
+                  className={`px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-between gap-2 cursor-pointer border text-left min-w-0 ${
+                    isSelected
+                      ? "bg-red-950/80 text-white border-red-500/80 shadow-md shadow-red-950/60 ring-2 ring-red-500/60"
+                      : "bg-black/60 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800/90"
+                  }`}
+                >
+                  <div className="flex items-center gap-2 min-w-0 flex-1 truncate">
+                    <span
+                      className={`w-2 h-2 rounded-full shrink-0 ${
+                        isSelected
+                          ? "bg-red-400 ring-2 ring-red-500/40 animate-pulse"
+                          : "bg-emerald-400"
+                      }`}
+                    />
+                    <span className="truncate">{cleanName}</span>
+                  </div>
+
+                  {qualityBadge && (
+                    <span
+                      className={`shrink-0 px-1.5 py-0.5 text-[9px] font-black rounded tracking-wider border ${
+                        qualityBadge === "FHD"
+                          ? isSelected
+                            ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
+                            : "bg-amber-500/15 text-amber-300 border-amber-500/30"
+                          : isSelected
+                            ? "bg-sky-500/20 text-sky-300 border-sky-500/40"
+                            : "bg-sky-500/15 text-sky-300 border-sky-500/30"
+                      }`}
+                    >
+                      {qualityBadge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          /* DẠNG CHIP CUỘN NGANG (MẶC ĐỊNH - COMPACT 1 DÒNG, KHÔNG TRÀN TRANG MOBILE) */
+          <div
+            ref={chipsContainerRef}
+            className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none py-0.5 px-0.5 w-full min-w-0 touch-pan-x"
+          >
+            {availableServers.map((s, idx) => {
+              const isSelected = currentServer?.url === s.url;
+              const qualityBadge = getSourceQuality(s);
+              const cleanName = parseServerDisplayLabel(s, idx);
+
+              return (
+                <button
+                  key={`${toCanonicalSourceUrl(s.url) || "sv"}-${idx}`}
+                  ref={isSelected ? activeChipRef : null}
+                  type="button"
+                  onClick={() => {
+                    fallbackCountRef.current = 0;
+                    isStoppedRef.current = false;
+                    const origIdx = servers.findIndex(
+                      (srv) =>
+                        toCanonicalSourceUrl(srv.url) ===
+                        toCanonicalSourceUrl(s.url),
+                    );
+                    const targetIdx = origIdx !== -1 ? origIdx : 0;
+                    useProxyFallbackRef.current = false;
+                    setUseProxyFallback(false);
+                    lastLoadedUrlRef.current = "";
+                    setHasError(false);
+                    setErrorMessage("");
+                    setIsLoading(true);
+                    setSelectedServerIndex(targetIdx);
+                    setRetryNonce((prev) => prev + 1);
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap shrink-0 transition-all flex items-center gap-2 cursor-pointer border ${
+                    isSelected
+                      ? "bg-red-950/80 text-white border-red-500/80 shadow-md shadow-red-950/60 ring-1 ring-red-500/60"
+                      : "bg-black/60 text-gray-300 border-white/10 hover:border-white/25 hover:text-white hover:bg-zinc-800/90"
+                  }`}
+                >
+                  <span
+                    className={`w-2 h-2 rounded-full shrink-0 ${
+                      isSelected
+                        ? "bg-red-400 ring-2 ring-red-500/40 animate-pulse"
+                        : "bg-emerald-400"
+                    }`}
+                  />
+                  <span>{cleanName}</span>
+                  {qualityBadge && (
+                    <span
+                      className={`px-1.5 py-0.2 text-[9px] font-black rounded tracking-wider border ${
+                        qualityBadge === "FHD"
+                          ? isSelected
+                            ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
+                            : "bg-amber-500/15 text-amber-300 border-amber-500/30"
+                          : isSelected
+                            ? "bg-sky-500/20 text-sky-300 border-sky-500/40"
+                            : "bg-sky-500/15 text-sky-300 border-sky-500/30"
+                      }`}
+                    >
+                      {qualityBadge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
       <style>{`
         :fullscreen,
