@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { normalizeMovie } from "@/lib/movieMedia";
+import { normalizeMovie, formatGenreName } from "@/lib/movieMedia";
 import { movieApi } from "@/services/movieApi";
 import { cacheService } from "@/lib/cache";
 
@@ -913,9 +913,9 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // 9. GENRE HIỂN THỊ TRÊN CARD (GIỮ NGUYÊN METADATA THẬT CỦA CANDIDATE)
+      // 9. GENRE HIỂN THỊ TRÊN CARD (GIỮ NGUYÊN METADATA THẬT CỦA CANDIDATE, CHUẨN HOÁ TIẾNG VIỆT CÓ DẤU)
       // Tuyệt đối KHÔNG dùng displayGenreName = topGenre.name để ghi đè thể loại gốc
-      let displayGenreName = norm.genre || "Đề Xuất";
+      let displayGenreName = formatGenreName(norm.genre) || norm.type_name || "Đề Xuất";
       if (candidateFormat === "animation") {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const hasHoatHinhCat = norm.categories?.some((c: any) =>
@@ -1024,7 +1024,7 @@ export async function POST(req: NextRequest) {
             thumb_url: norm.thumbUrl || norm.posterUrl || "/default-hero.jpg",
             year: norm.year,
             quality: norm.quality || "Full HD",
-            category: [{ name: norm.genre || "Đề Xuất" }],
+            category: [{ name: formatGenreName(norm.genre) || norm.type_name || "Đề Xuất" }],
             matchPercentage: 88,
             matchReason: "Siêu phẩm thịnh hành được yêu thích nhất",
           });

@@ -107,46 +107,46 @@ export function LiveHubClient({ footballData, tvData }: LiveHubClientProps) {
   }, [footballData.matches]);
 
   return (
-    <div className="max-w-[1720px] w-full mx-auto px-3 sm:px-6 lg:px-8 pt-16 sm:pt-20 pb-12 space-y-4">
+    <div className="max-w-[1720px] w-full mx-auto px-3 sm:px-6 lg:px-8 pt-16 sm:pt-20 pb-12 space-y-3 sm:space-y-4">
       {/* 1. NANAFLIX LIVE STUDIO COMMAND BAR */}
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-3.5 sm:p-4 rounded-2xl bg-zinc-950/80 border border-white/10 backdrop-blur-2xl shadow-2xl">
-        <div className="flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-600 via-rose-600 to-amber-600 flex items-center justify-center text-white shadow-lg shadow-red-950/50 shrink-0">
-            <Radio className="w-5 h-5 animate-pulse" />
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 p-2.5 sm:p-4 rounded-2xl bg-zinc-950/80 border border-white/10 backdrop-blur-2xl shadow-2xl">
+        <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-red-600 via-rose-600 to-amber-600 flex items-center justify-center text-white shadow-lg shadow-red-950/50 shrink-0">
+            <Radio className="w-4 h-4 sm:w-5 sm:h-5 animate-pulse" />
           </div>
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[10px] font-black uppercase tracking-widest text-netflix-red bg-netflix-red/15 px-2 py-0.5 rounded-md border border-netflix-red/30">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+              <span className="text-[9.5px] sm:text-[10px] font-black uppercase tracking-wider text-netflix-red bg-netflix-red/15 px-2 py-0.5 rounded-md border border-netflix-red/30 shrink-0">
                 LIVE HUB
               </span>
-              <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20 flex items-center gap-1">
+              <span className="hidden sm:inline-flex text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20 items-center gap-1 shrink-0">
                 <Zap className="w-2.5 h-2.5 fill-current" />
                 <span>1080p Ultra-Low Latency</span>
               </span>
               {liveFootballCount > 0 && (
-                <span className="text-[10px] font-bold text-rose-400 bg-red-500/15 px-2 py-0.5 rounded-md border border-red-500/30 flex items-center gap-1.5 animate-pulse">
+                <span className="text-[9.5px] sm:text-[10px] font-bold text-rose-400 bg-red-500/15 px-2 py-0.5 rounded-md border border-red-500/30 flex items-center gap-1.5 animate-pulse shrink-0">
                   <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
-                  <span>{liveFootballCount} trận đang trực tiếp</span>
+                  <span>{liveFootballCount} trực tiếp</span>
                 </span>
               )}
             </div>
-            <h1 className="text-base sm:text-xl font-black text-white tracking-tight mt-0.5">
+            <h1 className="text-sm sm:text-xl font-black text-white tracking-tight mt-0.5 truncate">
               {activeCategory === "basketball"
                 ? "Trực Tiếp Bóng Rổ NBA & VBA"
                 : activeCategory === "football"
-                ? "Trung Tâm Trực Tiếp Bóng Đá & Thể Thao"
+                ? "Trung Tâm Trực Tiếp Thể Thao"
                 : "Truyền Hình Trực Tuyến Live TV"}
             </h1>
           </div>
         </div>
 
-        {/* CỤM CHUYỂN ĐỔI DANH MỤC (BÓNG ĐÁ, BÓNG RỔ, TRUYỀN HÌNH) - ICON KÈM CHỮ CHUYÊN NGHIỆP */}
-        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-zinc-900 border border-white/10 shadow-inner overflow-x-auto scrollbar-none max-w-full">
+        {/* CỤM CHUYỂN ĐỔI DANH MỤC (BÓNG ĐÁ, BÓNG RỔ, TRUYỀN HÌNH) - 3 CỘT ĐỀU NHAU TRÊN MOBILE */}
+        <div className="grid grid-cols-3 gap-1 w-full md:flex md:w-auto p-1 rounded-xl bg-zinc-900 border border-white/10 shadow-inner">
           {/* DANH MỤC 1: BÓNG ĐÁ */}
           <button
             type="button"
             onClick={() => handleCategoryChange("football")}
-            className={`flex items-center justify-center gap-2 px-3.5 sm:px-4 py-2 rounded-lg text-xs font-black transition-all cursor-pointer outline-none shrink-0 whitespace-nowrap focus-visible:ring-2 focus-visible:ring-netflix-red ${
+            className={`flex items-center justify-center gap-1.5 px-2 sm:px-4 py-2 rounded-lg text-xs font-black transition-all cursor-pointer outline-none shrink-0 focus-visible:ring-2 focus-visible:ring-netflix-red ${
               activeCategory === "football"
                 ? "bg-gradient-to-r from-netflix-red to-red-600 text-white shadow-lg shadow-red-950/60 scale-[1.01]"
                 : "text-gray-400 hover:text-white hover:bg-white/5"
@@ -169,7 +169,7 @@ export function LiveHubClient({ footballData, tvData }: LiveHubClientProps) {
           <button
             type="button"
             onClick={() => handleCategoryChange("basketball")}
-            className={`flex items-center justify-center gap-2 px-3.5 sm:px-4 py-2 rounded-lg text-xs font-black transition-all cursor-pointer outline-none shrink-0 whitespace-nowrap focus-visible:ring-2 focus-visible:ring-amber-500 ${
+            className={`flex items-center justify-center gap-1.5 px-2 sm:px-4 py-2 rounded-lg text-xs font-black transition-all cursor-pointer outline-none shrink-0 focus-visible:ring-2 focus-visible:ring-amber-500 ${
               activeCategory === "basketball"
                 ? "bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-lg shadow-orange-950/60 scale-[1.01]"
                 : "text-gray-400 hover:text-white hover:bg-white/5"
@@ -192,14 +192,15 @@ export function LiveHubClient({ footballData, tvData }: LiveHubClientProps) {
           <button
             type="button"
             onClick={() => handleCategoryChange("tv")}
-            className={`flex items-center justify-center gap-2 px-3.5 sm:px-4 py-2 rounded-lg text-xs font-black transition-all cursor-pointer outline-none shrink-0 whitespace-nowrap focus-visible:ring-2 focus-visible:ring-sky-500 ${
+            className={`flex items-center justify-center gap-1.5 px-2 sm:px-4 py-2 rounded-lg text-xs font-black transition-all cursor-pointer outline-none shrink-0 focus-visible:ring-2 focus-visible:ring-sky-500 ${
               activeCategory === "tv"
                 ? "bg-gradient-to-r from-sky-600 to-blue-600 text-white shadow-lg shadow-sky-950/60 scale-[1.01]"
                 : "text-gray-400 hover:text-white hover:bg-white/5"
             }`}
           >
-            <Tv className={`w-4 h-4 ${activeCategory === "tv" ? "text-sky-200 animate-pulse" : "text-gray-400"}`} />
-            <span>Truyền Hình</span>
+            <Tv className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${activeCategory === "tv" ? "text-sky-200 animate-pulse" : "text-gray-400"}`} />
+            <span className="sm:hidden">Live TV</span>
+            <span className="hidden sm:inline">Truyền Hình</span>
             <span
               className={`text-[9.5px] px-1.5 py-0.2 rounded-full font-black ${
                 activeCategory === "tv"

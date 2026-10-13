@@ -9,6 +9,7 @@ import {
   performVsmovCatalogIngestion,
 } from "@/services/providers/vsmov";
 import { normalizeForMatch } from "@/lib/stringUtils";
+import { formatGenreName } from "@/lib/movieMedia";
 
 const API_NGUONC = process.env.NEXT_PUBLIC_API_URL || "https://phim.nguonc.com/api";
 const API_PHIMAPI = process.env.NEXT_PUBLIC_API_URL_2 || "https://phimapi.com";
@@ -873,7 +874,7 @@ async function fetchSourceData(
         ...(Array.isArray(item.category) && item.category.length > 0
           ? { category: item.category }
           : params.category
-          ? { category: [{ name: params.category, slug: params.category }] }
+          ? { category: [{ name: formatGenreName(params.category) || params.category, slug: params.category }] }
           : {}),
         ...(Array.isArray(item.country) && item.country.length > 0
           ? { country: item.country }

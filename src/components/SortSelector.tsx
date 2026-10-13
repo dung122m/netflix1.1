@@ -53,7 +53,7 @@ export const SortSelector: React.FC = () => {
 
     startTransition(() => {
       const query = params.toString();
-      router.push(query ? `?${query}` : "?", { scroll: false });
+      router.push(query ? `/browse?${query}` : "/browse", { scroll: false });
     });
   };
 

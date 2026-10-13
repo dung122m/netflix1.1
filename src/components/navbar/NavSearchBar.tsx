@@ -312,6 +312,15 @@ export const NavSearchBar: React.FC<NavSearchBarProps> = React.memo(function Nav
     } else {
       inputRef.current?.focus();
     }
+
+    // Khi đang ở /browse và URL có keyword: Xóa keyword & page, giữ nguyên các bộ lọc khác
+    if (pathname === "/browse" && searchParams.has("keyword")) {
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("keyword");
+      params.delete("page");
+      const query = params.toString();
+      router.push(query ? `/browse?${query}` : "/browse");
+    }
   };
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {

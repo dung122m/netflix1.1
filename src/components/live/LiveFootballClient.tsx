@@ -898,20 +898,21 @@ export function LiveFootballClient({
       )}
 
       {/* THANH ĐIỀU HƯỚNG PHÂN VÙNG THỂ THAO (SPORTS HUB NAVIGATION) */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-1.5 rounded-2xl bg-zinc-950/80 border border-white/10 shadow-xl backdrop-blur-xl">
-        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-3 p-1 sm:p-1.5 rounded-2xl bg-zinc-950/80 border border-white/10 shadow-xl backdrop-blur-xl">
+        <div className="grid grid-cols-2 gap-1 w-full sm:flex sm:w-auto sm:items-center sm:gap-1.5 overflow-x-auto scrollbar-none">
           {/* Nút Sân Cỏ Trực Tiếp & Match Center */}
           <button
             type="button"
             onClick={() => setActiveSection("matches")}
-            className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs font-black whitespace-nowrap transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red shrink-0 ${
+            className={`flex items-center justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-2 rounded-xl text-xs font-black transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-netflix-red shrink-0 ${
               activeSection === "matches" || activeSection === "match-center"
                 ? "bg-gradient-to-r from-netflix-red to-red-600 text-white shadow-lg shadow-red-950/60 scale-[1.01]"
                 : "text-gray-400 hover:text-white hover:bg-white/5"
             }`}
           >
-            <Radio className="w-3.5 h-3.5" />
-            <span>Sân Cỏ Trực Tiếp & Match Center</span>
+            <Radio className="w-3.5 h-3.5 shrink-0" />
+            <span className="sm:hidden">Trận Đấu</span>
+            <span className="hidden sm:inline">Sân Cỏ Trực Tiếp & Match Center</span>
             <span
               className={`text-[9.5px] px-1.5 py-0.2 rounded-full font-black ${
                 activeSection === "matches" || activeSection === "match-center"
@@ -927,14 +928,15 @@ export function LiveFootballClient({
           <button
             type="button"
             onClick={() => setActiveSection("standings")}
-            className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs font-black whitespace-nowrap transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-amber-500 shrink-0 ${
+            className={`flex items-center justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-2 rounded-xl text-xs font-black transition cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-amber-500 shrink-0 ${
               activeSection === "standings"
                 ? "bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-lg shadow-amber-950/60 scale-[1.01]"
                 : "text-gray-400 hover:text-white hover:bg-white/5"
             }`}
           >
-            <Trophy className="w-3.5 h-3.5" />
-            <span>Bảng Xếp Hạng Giải Đấu</span>
+            <Trophy className="w-3.5 h-3.5 shrink-0" />
+            <span className="sm:hidden">Bảng Xếp Hạng</span>
+            <span className="hidden sm:inline">Bảng Xếp Hạng Giải Đấu</span>
             <span className="text-[9px] uppercase font-bold px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
               BXH
             </span>
@@ -1028,7 +1030,7 @@ export function LiveFootballClient({
                 </div>
 
                 {/* CỘT PHẢI (COL 8-12 TRÊN DESKTOP): SIDE PANEL VỚI MATCH CENTER & ĐỔI TRẬN */}
-                <div className="lg:col-span-5 xl:col-span-4 min-w-0 flex flex-col rounded-2xl border border-white/10 bg-zinc-950/90 backdrop-blur-xl shadow-2xl p-3 space-y-2.5 lg:sticky lg:top-20 lg:max-h-[calc(100vh-100px)] overflow-hidden">
+                <div className="lg:col-span-5 xl:col-span-4 min-w-0 flex flex-col rounded-2xl border border-white/10 bg-zinc-950/90 backdrop-blur-xl shadow-2xl p-3 space-y-2.5 lg:sticky lg:top-20 lg:max-h-[calc(100vh-100px)] lg:overflow-hidden">
                   {/* SUB-TABS TRÊN SIDE PANEL */}
                   <div className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-zinc-900 border border-white/10 shrink-0">
                     <button
@@ -1059,7 +1061,7 @@ export function LiveFootballClient({
 
                   {/* TAB 1: MATCH CENTER & DIỄN BIẾN THỜI GIAN THỰC */}
                   {sidePanelTab === "match-center" && (
-                    <div className="flex-1 min-h-0 overflow-y-auto pr-0.5 space-y-2 overscroll-y-contain [overscroll-behavior-y:contain] scrollbar-thin">
+                    <div className="flex-1 min-h-0 lg:overflow-y-auto pr-0.5 space-y-2 lg:overscroll-y-contain lg:[overscroll-behavior-y:contain] scrollbar-thin">
                       <div className="space-y-2 pt-0.5">
                         <div className="flex items-center justify-between border-b border-white/10 pb-2 px-0.5">
                           <div className="flex items-center gap-2 min-w-0">
@@ -1109,7 +1111,7 @@ export function LiveFootballClient({
 
                   {/* TAB 2: ĐỔI TRẬN ĐẤU - DANH SÁCH THU GỌN VỚI TÌM KIẾM */}
                   {sidePanelTab === "matches" && (
-                    <div className="flex-1 min-h-0 flex flex-col space-y-2.5 overflow-hidden">
+                    <div className="flex-1 min-h-0 flex flex-col space-y-2.5 lg:overflow-hidden">
                       {/* Ô tìm kiếm nhanh trong side panel */}
                       <div className="relative w-full">
                         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
@@ -1140,8 +1142,7 @@ export function LiveFootballClient({
                       {/* Danh sách thẻ trận cuộn dọc */}
                       <div
                         ref={railContainerRef}
-                        className="flex-1 min-h-0 overflow-y-auto space-y-1.5 px-0.5 py-0.5 pr-1 scrollbar-thin overscroll-y-contain [overscroll-behavior-y:contain] touch-pan-y"
-                        style={{ overscrollBehaviorY: "contain" }}
+                        className="flex-1 min-h-0 max-h-[380px] lg:max-h-none overflow-y-auto space-y-1.5 px-0.5 py-0.5 pr-1 scrollbar-thin lg:overscroll-y-contain lg:[overscroll-behavior-y:contain] touch-pan-y"
                       >
                         {filteredMatches.map((match) => (
                           <MatchCard
@@ -1196,22 +1197,22 @@ export function LiveFootballClient({
             /* ============================================================ */
             /* TRƯỜNG HỢP 2: KHI VỪA VÀO TRANG (MATCH DISCOVERY FIRST)      */
             /* ============================================================ */
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               {/* THANH BỘ LỌC TÌM KIẾM TOÀN DIỆN & TIỆN LỢI */}
-              <div className="rounded-2xl border border-white/10 bg-zinc-950/80 backdrop-blur-xl p-3.5 sm:p-5 space-y-3.5 shadow-2xl">
+              <div className="rounded-2xl border border-white/10 bg-zinc-950/80 backdrop-blur-xl p-2.5 sm:p-4 space-y-2.5 sm:space-y-3.5 shadow-2xl">
                 {/* Hàng 1: Ô tìm kiếm & Bộ lọc trạng thái */}
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 sm:gap-3">
                   {/* Ô tìm kiếm thông minh */}
                   <div className="relative w-full lg:max-w-md">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 sm:w-4 sm:h-4 text-zinc-400" />
                     <input
                       type="text"
                       value={searchQuery}
                       onChange={(e) => handleSearchChange(e.target.value)}
-                      placeholder="Tìm đội bóng (MU, Real, Arsenal...), giải đấu, BLV..."
-                      className="w-full pl-10 pr-16 py-2.5 rounded-xl bg-zinc-900 border border-white/15 text-xs sm:text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-netflix-red focus:ring-1 focus:ring-netflix-red/50 transition shadow-inner font-medium"
+                      placeholder="Tìm đội bóng, giải đấu, BLV..."
+                      className="w-full pl-9 pr-14 py-2 sm:py-2.5 rounded-xl bg-zinc-900 border border-white/15 text-xs sm:text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-netflix-red focus:ring-1 focus:ring-netflix-red/50 transition shadow-inner font-medium"
                     />
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                    <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 sm:gap-1.5">
                       {searchQuery && (
                         <button
                           type="button"
@@ -1229,11 +1230,11 @@ export function LiveFootballClient({
                   </div>
 
                   {/* Cụm nút lọc trạng thái trận đấu */}
-                  <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-0.5">
+                  <div className="flex items-center gap-1 sm:gap-1.5 overflow-x-auto scrollbar-none py-0.5 touch-pan-x">
                     <button
                       type="button"
                       onClick={() => handleStatusChange("all")}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition border shrink-0 cursor-pointer ${
+                      className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-bold whitespace-nowrap transition border shrink-0 cursor-pointer ${
                         selectedStatus === "all"
                           ? "bg-white text-black border-white shadow-sm font-extrabold"
                           : "bg-zinc-900 text-zinc-400 border-white/10 hover:text-white"
@@ -1245,21 +1246,22 @@ export function LiveFootballClient({
                       <button
                         type="button"
                         onClick={() => handleStatusChange("live")}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition border shrink-0 cursor-pointer ${
+                        className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-bold whitespace-nowrap transition border shrink-0 cursor-pointer ${
                           selectedStatus === "live"
                             ? "bg-red-600 text-white border-red-500 shadow-md shadow-red-950/50"
                             : "bg-zinc-900 text-rose-300 border-red-500/20 hover:text-white"
                         }`}
                       >
-                        <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                        <span>Đang diễn ra ({counts.live})</span>
+                        <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-red-500 animate-pulse" />
+                        <span className="sm:hidden">Đang đá ({counts.live})</span>
+                        <span className="hidden sm:inline">Đang diễn ra ({counts.live})</span>
                       </button>
                     )}
                     {counts.upcoming > 0 && (
                       <button
                         type="button"
                         onClick={() => handleStatusChange("upcoming")}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition border shrink-0 cursor-pointer ${
+                        className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-bold whitespace-nowrap transition border shrink-0 cursor-pointer ${
                           selectedStatus === "upcoming"
                             ? "bg-sky-600 text-white border-sky-500 shadow-sm"
                             : "bg-zinc-900 text-sky-300 border-white/10 hover:text-white"
@@ -1273,23 +1275,24 @@ export function LiveFootballClient({
                       <button
                         type="button"
                         onClick={() => handleStatusChange("finished")}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition border shrink-0 cursor-pointer ${
+                        className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-bold whitespace-nowrap transition border shrink-0 cursor-pointer ${
                           selectedStatus === "finished"
                             ? "bg-zinc-700 text-white border-zinc-600 shadow-sm"
                             : "bg-zinc-900 text-zinc-400 border-white/10 hover:text-white"
                         }`}
                       >
                         <Check className="w-3 h-3" />
-                        <span>Đã kết thúc ({counts.finished})</span>
+                        <span className="sm:hidden">Xong ({counts.finished})</span>
+                        <span className="hidden sm:inline">Đã kết thúc ({counts.finished})</span>
                       </button>
                     )}
 
-                    <div className="h-4 w-px bg-white/15 shrink-0 mx-0.5" />
+                    <div className="h-3.5 sm:h-4 w-px bg-white/15 shrink-0 mx-0.5" />
 
                     <button
                       type="button"
                       onClick={handleStreamToggle}
-                      className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition border shrink-0 cursor-pointer ${
+                      className={`flex items-center gap-1 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-bold whitespace-nowrap transition border shrink-0 cursor-pointer ${
                         onlyWithStream
                           ? "bg-emerald-600 text-white border-emerald-500 shadow-sm"
                           : "bg-zinc-900 text-emerald-400/90 border-white/10 hover:text-emerald-300"
@@ -1301,7 +1304,7 @@ export function LiveFootballClient({
                     <button
                       type="button"
                       onClick={handleFhdToggle}
-                      className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition border shrink-0 cursor-pointer ${
+                      className={`flex items-center gap-1 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-bold whitespace-nowrap transition border shrink-0 cursor-pointer ${
                         onlyFhd
                           ? "bg-emerald-600 text-white border-emerald-500 shadow-sm"
                           : "bg-zinc-900 text-zinc-400 border-white/10 hover:text-white"
@@ -1314,11 +1317,11 @@ export function LiveFootballClient({
 
                 {/* Hàng 2: Bộ lọc các giải đấu nổi bật dạng cuộn ngang */}
                 {availableTournaments.length > 0 && (
-                  <ScrollablePillsRow innerClassName="flex items-center gap-1.5 py-0.5">
+                  <ScrollablePillsRow innerClassName="flex items-center gap-1 sm:gap-1.5 py-0.5">
                     <button
                       type="button"
                       onClick={() => handleTournamentChange("all")}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition border cursor-pointer shrink-0 ${
+                      className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-bold whitespace-nowrap transition border cursor-pointer shrink-0 ${
                         selectedTournament === "all"
                           ? "bg-white/20 text-white border-white/30"
                           : "bg-zinc-900/80 text-zinc-400 border-white/5 hover:text-white"
@@ -1331,14 +1334,14 @@ export function LiveFootballClient({
                         key={t.name}
                         type="button"
                         onClick={() => handleTournamentChange(t.name)}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition border cursor-pointer shrink-0 ${
+                        className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-bold whitespace-nowrap transition border cursor-pointer shrink-0 ${
                           selectedTournament === t.name
                             ? "bg-netflix-red text-white border-netflix-red shadow-sm"
                             : "bg-zinc-900/80 text-zinc-400 border-white/5 hover:text-white"
                         }`}
                       >
                         <span>{t.name}</span>
-                        <span className="ml-1 opacity-70 text-[10px]">({t.count})</span>
+                        <span className="ml-1 opacity-70 text-[9.5px] sm:text-[10px]">({t.count})</span>
                       </button>
                     ))}
                   </ScrollablePillsRow>
@@ -1346,7 +1349,7 @@ export function LiveFootballClient({
 
                 {/* Thanh Reset filter khi có áp dụng */}
                 {hasActiveFilters && (
-                  <div className="flex items-center justify-between pt-2 border-t border-white/5 text-xs">
+                  <div className="flex items-center justify-between pt-1.5 sm:pt-2 border-t border-white/5 text-[11px] sm:text-xs">
                     <span className="text-zinc-400">
                       Hiển thị <strong className="text-white font-bold">{filteredMatches.length}</strong>/{counts.total} trận
                     </span>

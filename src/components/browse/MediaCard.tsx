@@ -4,14 +4,18 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  Play,
-  Plus,
   Check,
   Star,
   Film,
+  Bookmark,
 } from "lucide-react";
 import { isInWatchlist, toggleWatchlist, subscribeToWatchlist } from "@/lib/watchlist";
-import { detectMovieTypeName, toOptimizedCardPosterUrl, sanitizeImageUrl } from "@/lib/movieMedia";
+import {
+  detectMovieTypeName,
+  toOptimizedCardPosterUrl,
+  sanitizeImageUrl,
+  formatGenreName,
+} from "@/lib/movieMedia";
 import { TrailerModal } from "@/components/TrailerModal";
 import { extractYoutubeId } from "@/lib/trailerHelper";
 
@@ -193,6 +197,7 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   const baseCardRef = useRef<HTMLAnchorElement>(null);
   const [isNavigating, setIsNavigating] = useState(false);
   const navTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const hasPrefetchedRef = useRef(false);
 
   // Đồng bộ Watchlist qua 1 shared listener duy nhất
   useEffect(() => {
@@ -219,21 +224,45 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [showTrailerModal]);
 
-  const displayYear = year || "";
+  // Năm phát hành được lọc an toàn (loại bỏ năm lỗi như 1885)
+  const displayYear = (() => {
+    if (!year) return "";
+    const parsed = typeof year === "number" ? year : parseInt(String(year).trim(), 10);
+    const maxYear = new Date().getFullYear() + 2;
+    if (Number.isFinite(parsed) && parsed >= 1920 && parsed <= maxYear) {
+      return String(parsed);
+    }
+    return "";
+  })();
+
   const displayTime = time && typeof time === "string" && time.trim() && time.trim() !== "Đang cập nhật" && time.trim() !== "N/A" ? time.trim() : "";
 
-  // Thẻ thông tin phụ (Thể loại / Thời lượng / Ngôn ngữ) gọn gàng, không bị cắt xén
+  // Loại phim: Phim lẻ / Phim bộ / Hoạt hình / Phim rạp
+  const displayType = (() => {
+    if (initialTypeName && initialTypeName !== "Phim lẻ") {
+      return initialTypeName;
+    }
+    return detectMovieTypeName({
+      name: title,
+      title,
+      slug,
+      origin_name,
+      category: genre,
+      time,
+      chieurap,
+      sub_docquyen,
+      type: initialTypeName,
+    });
+  })();
+
+  // Thẻ thông tin phụ: Luôn hiển thị thể loại chuẩn hoá tiếng Việt có dấu (ví dụ "Hành Động", không hiển thị slug "hanh-dong").
+  // Nếu dữ liệu thiếu thể loại, tự động dùng loại phim (Phim lẻ / Phim bộ / Hoạt hình)
+  // để toàn bộ hàng thẻ luôn đồng nhất cấu trúc [Năm · Thể loại · Rating], tuyệt đối không hiển thị
+  // thời lượng ("70p", "41p") vào vị trí thể loại làm hàng thẻ bị "lạc quẻ".
   const displayTag = (() => {
-    if (genre && typeof genre === "string" && genre.trim() && genre.trim() !== "Đang cập nhật" && genre.trim() !== "N/A") {
-      const first = genre.split(/[,/]/)[0].trim();
-      if (first) return first;
-    }
-    if (displayTime) {
-      return displayTime.replace(/\s*phút.*$/i, "p");
-    }
-    if (lang && typeof lang === "string" && lang.trim()) {
-      return lang.trim();
-    }
+    const formatted = formatGenreName(genre);
+    if (formatted) return formatted;
+    if (displayType) return displayType;
     return "";
   })();
 
@@ -307,206 +336,195 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
     ? getYoutubeModalUrl(clientTrailerCache.get(slug)!)
     : null;
 
-  // Loại phim: Phim lẻ / Phim bộ / Hoạt hình / Phim rạp
-  const displayType = (() => {
-    if (initialTypeName && initialTypeName !== "Phim lẻ") {
-      return initialTypeName;
-    }
-    return detectMovieTypeName({
-      name: title,
-      title,
-      slug,
-      origin_name,
-      category: genre,
-      time,
-      chieurap,
-      sub_docquyen,
-      type: initialTypeName,
-    });
+  const validRating = (() => {
+    if (!rating || rating === "N/A") return 0;
+    const num = typeof rating === "number" ? rating : parseFloat(String(rating));
+    return Number.isFinite(num) && num > 0 && num <= 10 ? num : 0;
+  })();
+
+  // Chỉ hiển thị huy hiệu chất lượng cho các định dạng đặc biệt (4K, UHD, CAM).
+  // Tuyệt đối không hiển thị FHD/HD tràn lan trên mọi thẻ để tránh giao diện "web phim lậu".
+  const specialQualityBadge = (() => {
+    if (!quality || typeof quality !== "string") return "";
+    const clean = quality.trim().toUpperCase();
+    if (clean.includes("4K") || clean.includes("UHD")) return "4K";
+    if (clean.includes("CAM")) return "CAM";
+    return "";
   })();
 
   return (
     <div
-      className="group/card relative aspect-[2/3] w-full rounded-xl sm:rounded-2xl overflow-hidden bg-zinc-950 border border-white/[0.12] hover:border-white/35 transition-all duration-300 hover:scale-[1.025] hover:shadow-[0_16px_36px_rgba(0,0,0,0.85),0_0_20px_rgba(229,9,20,0.15)] select-none focus-within:ring-2 focus-within:ring-netflix-red"
+      className="group/card relative flex flex-col w-full select-none cursor-pointer group-hover/card:scale-[1.02] transition-transform duration-300 ease-out motion-reduce:transform-none"
       onMouseEnter={() => {
-        if (slug) {
+        if (slug && !hasPrefetchedRef.current) {
+          hasPrefetchedRef.current = true;
           router.prefetch(`/movies/${slug}`);
         }
       }}
     >
-      {/* 1. LIÊN KẾT CHÍNH PHỦ TOÀN THẺ (A11Y + KEYBOARD FOCUS + CLICK MỞ PHIM) */}
-      <Link
-        ref={baseCardRef}
-        href={`/movies/${slug}`}
-        onClick={handleCardClick}
-        tabIndex={0}
-        aria-label={`Xem phim ${title}`}
-        className={`block absolute inset-0 z-0 outline-none focus-visible:ring-4 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded-xl sm:rounded-2xl ${
-          isNavigating ? "movie-card-navigating" : ""
-        }`}
-      >
-        {/* Placeholder skeleton khi ảnh đang tải */}
-        {!hasError && !isImageLoaded && (
-          <div
-            className="absolute inset-0 bg-zinc-900 flex items-center justify-center pointer-events-none z-0 animate-pulse"
-            aria-hidden="true"
-          >
-            <div className="absolute inset-0 bg-gradient-to-br from-zinc-800/60 via-zinc-900 to-zinc-950" />
-            <Film className="w-8 h-8 text-zinc-700/50" />
-          </div>
-        )}
-
-        {hasError || !currentSrc ? (
-          <div
-            className="absolute inset-0 bg-gradient-to-br from-zinc-800/90 via-zinc-900 to-zinc-950 flex flex-col items-center justify-center p-3 select-none pointer-events-none"
-            aria-hidden="true"
-          >
-            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-1.5 shadow-inner">
-              <Film className="w-5 h-5 sm:w-5.5 sm:h-5.5 text-netflix-red" />
+      {/* ========================================================================= */}
+      {/* 1. KHỐI POSTER NGHỆ THUẬT (2:3 POSTER ARTWORK CANVAS - CLEAN & ELEVATED)   */}
+      {/* ========================================================================= */}
+      <div className="relative aspect-[2/3] w-full rounded-xl overflow-hidden bg-zinc-950 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950 ring-1 ring-white/10 group-hover/card:ring-netflix-red/60 shadow-[0_10px_25px_rgba(0,0,0,0.7)] group-hover/card:shadow-[0_18px_40px_rgba(229,9,20,0.35)] transition-all duration-300 ease-out focus-within:ring-2 focus-within:ring-white">
+        {/* LIÊN KẾT CHÍNH PHỦ TOÀN BỘ POSTER (A11Y + KEYBOARD FOCUS + CLICK MỞ PHIM) */}
+        <Link
+          ref={baseCardRef}
+          href={`/movies/${slug}`}
+          onClick={handleCardClick}
+          tabIndex={0}
+          aria-label={`Xem phim ${title}`}
+          className={`block absolute inset-0 z-0 outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded-xl ${
+            isNavigating ? "movie-card-navigating" : ""
+          }`}
+        >
+          {/* Placeholder skeleton khi ảnh đang tải */}
+          {!hasError && !isImageLoaded && (
+            <div
+              className="absolute inset-0 bg-zinc-900 flex items-center justify-center pointer-events-none z-0 animate-pulse"
+              aria-hidden="true"
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-zinc-800/60 via-zinc-900 to-zinc-950" />
+              <Film className="w-8 h-8 text-zinc-700/50" />
             </div>
-            <span className="text-[10px] sm:text-[11px] font-black tracking-widest text-white/50 uppercase">
-              NANAFLIX
-            </span>
-          </div>
-        ) : (
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img
-            ref={checkImageComplete}
-            src={currentSrc}
-            alt={title}
-            loading={priority ? "eager" : "lazy"}
-            decoding="async"
-            className={`w-full h-full object-cover object-center transition-transform duration-500 group-hover/card:scale-105 ${
-              isImageLoaded ? "opacity-100" : "opacity-0"
-            }`}
-            onLoad={() => setIsImageLoaded(true)}
-            onError={handleImageError}
-          />
-        )}
-      </Link>
-
-      {/* 2. CỤM HUY HIỆU ĐỈNH THẺ (HEADER 1 HÀNG, FROSTED GLASS CAO CẤP, TINH TẾ) */}
-      <div className="absolute top-1.5 sm:top-2 inset-x-1.5 sm:inset-x-2 z-10 flex items-center justify-between gap-1 pointer-events-none">
-        {/* Nhãn loại phim bên trái (Pill glassmorphism cao cấp, không icon thừa) */}
-        <div className="shrink-0 flex items-center">
-          {chieurap ? (
-            <span className="inline-flex items-center bg-black/75 backdrop-blur-md text-amber-300 font-semibold px-2 py-0.5 rounded-full text-[10px] sm:text-[10.5px] shadow-sm border border-amber-500/35 whitespace-nowrap select-none">
-              Phim Rạp
-            </span>
-          ) : sub_docquyen ? (
-            <span className="inline-flex items-center bg-black/75 backdrop-blur-md text-purple-300 font-semibold px-2 py-0.5 rounded-full text-[10px] sm:text-[10.5px] shadow-sm border border-purple-500/35 whitespace-nowrap select-none">
-              Độc Quyền
-            </span>
-          ) : displayType === "Phim bộ" ? (
-            <span className="inline-flex items-center bg-black/75 backdrop-blur-md text-sky-300 font-semibold px-2 py-0.5 rounded-full text-[10px] sm:text-[10.5px] shadow-sm border border-sky-500/35 whitespace-nowrap select-none">
-              Phim Bộ
-            </span>
-          ) : displayType === "Hoạt hình" ? (
-            <span className="inline-flex items-center bg-black/75 backdrop-blur-md text-fuchsia-300 font-semibold px-2 py-0.5 rounded-full text-[10px] sm:text-[10.5px] shadow-sm border border-fuchsia-500/35 whitespace-nowrap select-none">
-              Hoạt Hình
-            </span>
-          ) : displayType === "TV Shows" ? (
-            <span className="inline-flex items-center bg-black/75 backdrop-blur-md text-emerald-300 font-semibold px-2 py-0.5 rounded-full text-[10px] sm:text-[10.5px] shadow-sm border border-emerald-500/35 whitespace-nowrap select-none">
-              TV Shows
-            </span>
-          ) : (
-            <span className="inline-flex items-center bg-black/75 backdrop-blur-md text-zinc-300 font-semibold px-2 py-0.5 rounded-full text-[10px] sm:text-[10.5px] shadow-sm border border-white/20 whitespace-nowrap select-none">
-              Phim Lẻ
-            </span>
           )}
-        </div>
 
-        {/* Nhóm chất lượng + Watchlist trên cùng 1 hàng bên phải */}
-        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
-          <span
-            className={`border font-semibold text-[9.5px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-md shadow-sm backdrop-blur-md uppercase tracking-wider shrink-0 pointer-events-none ${
-              (quality || "FHD").toUpperCase().includes("CAM")
-                ? "bg-amber-950/90 border-amber-500/40 text-amber-300"
-                : "bg-black/80 border-white/20 text-zinc-200"
-            }`}
-          >
-            {quality || "FHD"}
-          </span>
+          {hasError || !currentSrc ? (
+            <div
+              className="absolute inset-0 bg-gradient-to-br from-zinc-800/90 via-zinc-900 to-zinc-950 flex flex-col items-center justify-center p-3 select-none pointer-events-none"
+              aria-hidden="true"
+            >
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-1.5 shadow-inner">
+                <Film className="w-5 h-5 sm:w-5.5 sm:h-5.5 text-zinc-400" />
+              </div>
+              <span className="text-[10px] sm:text-[11px] font-black tracking-widest text-white/40 uppercase">
+                NANAFLIX
+              </span>
+            </div>
+          ) : (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              ref={checkImageComplete}
+              src={currentSrc}
+              alt={title}
+              loading={priority ? "eager" : "lazy"}
+              decoding="async"
+              className={`w-full h-full object-cover object-center group-hover/card:scale-105 transition-transform duration-500 ease-out motion-reduce:transform-none ${
+                isImageLoaded ? "opacity-100" : "opacity-0"
+              }`}
+              onLoad={() => setIsImageLoaded(true)}
+              onError={handleImageError}
+            />
+          )}
+        </Link>
 
-          {/* Nút Thêm vào danh sách (Watchlist) */}
+        {/* HUY HIỆU ĐẶC BIỆT GÓC TRÊN TRÁI (TỐI ĐA 1 BADGE: CHIẾU RẠP HOẶC ĐỘC QUYỀN) */}
+        {(chieurap || sub_docquyen) && (
+          <div className="absolute top-2.5 left-2.5 z-20 pointer-events-none">
+            {chieurap ? (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-black/75 backdrop-blur-md text-zinc-100 text-[10px] font-medium tracking-wide shadow-md border border-white/15 select-none">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                Chiếu Rạp
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-black/75 backdrop-blur-md text-zinc-100 text-[10px] font-medium tracking-wide shadow-md border border-white/15 select-none">
+                <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />
+                Độc Quyền
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* NÚT LƯU DANH SÁCH (WATCHLIST) KHI HOVER TRÊN DESKTOP */}
+        <div className="absolute top-2.5 right-2.5 z-20 pointer-events-auto opacity-0 group-hover/card:opacity-100 focus-within:opacity-100 transition-opacity duration-200 hidden sm:flex">
           <button
             type="button"
             onClick={handleToggleList}
-            title={inList ? "Đã thêm vào danh sách của tôi" : "Thêm vào danh sách của tôi"}
-            aria-label={inList ? "Bỏ khỏi danh sách của tôi" : "Thêm vào danh sách của tôi"}
-            className={`w-5.5 h-5.5 sm:w-6 sm:h-6 flex items-center justify-center rounded-full backdrop-blur-md border transition-all cursor-pointer pointer-events-auto shadow-md active:scale-90 shrink-0 ${
+            title={inList ? "Bỏ lưu khỏi danh sách của tôi" : "Lưu vào danh sách của tôi"}
+            aria-label={inList ? `Bỏ lưu phim ${title}` : `Lưu phim ${title} vào danh sách`}
+            className={`w-7 h-7 rounded-full flex items-center justify-center border transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer shadow-md backdrop-blur-md outline-none focus-visible:ring-2 focus-visible:ring-white ${
               inList
-                ? "bg-white text-black border-white"
-                : "bg-black/80 text-zinc-300 border-white/20 hover:text-white hover:bg-black hover:scale-110"
+                ? "bg-netflix-red border-netflix-red text-white"
+                : "bg-black/75 hover:bg-white hover:text-zinc-950 border-white/20 text-white"
             }`}
           >
-            {inList ? <Check className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+            {inList ? <Check className="w-3.5 h-3.5 stroke-[2.5]" /> : <Bookmark className="w-3.5 h-3.5" />}
           </button>
         </div>
-      </div>
 
-      {/* 4. NÚT PLAY TRUNG TÂM NỔI BẬT KHI HOVER */}
-      <div className="absolute inset-0 z-10 flex items-center justify-center opacity-0 group-hover/card:opacity-100 transition-opacity duration-200 pointer-events-none">
-        <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-netflix-red text-white flex items-center justify-center shadow-2xl transform group-hover/card:scale-110 transition-transform">
-          <Play className="w-5 h-5 fill-white ml-0.5" />
-        </div>
-      </div>
-
-      {/* 5. LỚP PHỦ THÔNG TIN DƯỚI ĐÁY POSTER */}
-      <div className="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/95 via-black/60 to-transparent p-2 sm:p-2.5 md:p-3 pt-10 pointer-events-none flex flex-col justify-end">
-        {matchSnippet && (
-          <div className="mb-1 flex items-center gap-1 text-[11px] sm:text-xs text-amber-300 font-bold bg-amber-950/90 border border-amber-500/30 px-1.5 sm:px-2 py-0.5 rounded-md shadow-sm line-clamp-1">
-            <span className="flex-none font-bold text-amber-300">Khớp:</span>
-            <span className="font-normal italic text-amber-200/90 truncate">{matchSnippet}</span>
-          </div>
-        )}
-
-        <p className="text-white font-bold text-xs sm:text-[13px] md:text-sm line-clamp-1 truncate group-hover/card:text-rose-400 transition-colors drop-shadow leading-snug">
-          {title}
-        </p>
-
-        <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-zinc-400 mt-0.5 font-medium flex-nowrap overflow-hidden">
-          {rating && rating !== "N/A" && Number(rating) > 0 && (
-            <>
-              <span className="text-amber-400 font-semibold flex items-center gap-0.5 shrink-0">
-                <Star className="w-2.5 h-2.5 sm:w-3 sm:h-3 fill-amber-400 text-amber-400 inline" />
-                {typeof rating === "number" ? rating.toFixed(1) : rating}
-              </span>
-              <span className="text-zinc-600 shrink-0">•</span>
-            </>
-          )}
-          {displayYear && (
-            <span className="shrink-0">{displayYear}</span>
-          )}
-          {displayTag && (
-            <>
-              {(displayYear || (rating && rating !== "N/A" && Number(rating) > 0)) && (
-                <span className="text-zinc-600 shrink-0">•</span>
-              )}
-              <span className="text-zinc-300 truncate font-normal">{displayTag}</span>
-            </>
-          )}
-        </div>
-
-        {/* NÚT TRAILER CHÍNH THỨC (CHỈ HIỆN KHI PHIM CÓ TRAILER) */}
+        {/* NÚT TRAILER KÍNH MỜ GÓC DƯỚI TRÁI KHI HOVER (CHỈ HIỆN KHI CÓ TRAILER) */}
         {(trailerUrl || hasTrailerState || isTrailerOnly) && (
-          <div className="mt-1.5 sm:mt-2 pointer-events-auto flex items-center">
+          <div className="absolute bottom-2.5 left-2.5 z-20 pointer-events-auto opacity-0 group-hover/card:opacity-100 focus-within:opacity-100 transition-opacity duration-200 hidden sm:flex">
             <button
               type="button"
               onClick={handleTrailerClick}
               disabled={isLoadingTrailer}
               title="Xem Trailer chính thức"
               aria-label={`Xem Trailer phim ${title}`}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-netflix-red/50 bg-netflix-red/20 hover:bg-netflix-red text-white text-[10.5px] font-bold transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-sm backdrop-blur-sm"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-white/20 bg-black/75 hover:bg-white hover:text-zinc-950 text-white text-[10.5px] font-medium transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-md backdrop-blur-md outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
               <Film className="w-3 h-3 text-current" />
-              <span>{isLoadingTrailer ? "Đang tải..." : "Trailer"}</span>
+              <span>{isLoadingTrailer ? "..." : "Trailer"}</span>
             </button>
           </div>
         )}
       </div>
 
-      {/* 6. MODAL TRAILER MÀN ẢNH RỘNG */}
+      {/* ========================================================================= */}
+      {/* 2. KHỐI METADATA TÁCH BIỆT BÊN DƯỚI (UNDER-POSTER INFO STACK)              */}
+      {/* ========================================================================= */}
+      <div className="pt-2.5 sm:pt-3 px-0.5 flex flex-col gap-1 w-full">
+        {/* ĐOẠN KHỚP TÌM KIẾM (NẾU ĐƯỢC GỌI TỪ TRANG TÌM KIẾM) */}
+        {matchSnippet && (
+          <div className="flex items-center gap-1 text-[11px] text-amber-300 font-medium line-clamp-1">
+            <span className="font-bold text-amber-300 shrink-0">Khớp:</span>
+            <span className="italic text-amber-200/90 truncate">{matchSnippet}</span>
+          </div>
+        )}
+
+        {/* TIÊU ĐỀ PHIM: TỐI ĐA 2 DÒNG, CHIỀU CAO ĐỒNG BỘ GIỮA CÁC THẺ TRONG HÀNG */}
+        <Link
+          href={`/movies/${slug}`}
+          onClick={handleCardClick}
+          tabIndex={-1}
+          aria-hidden="true"
+          className="outline-none block"
+        >
+          <div className="min-h-[2.4rem] sm:min-h-[2.6rem] flex flex-col justify-start">
+            <h4 className="text-zinc-200 group-hover/card:text-red-400 font-medium sm:font-semibold text-[13px] sm:text-[14px] leading-snug line-clamp-2 transition-colors">
+              {title}
+            </h4>
+          </div>
+        </Link>
+
+        {/* DẢI MICRO-METADATA: NĂM · THỂ LOẠI · RATING (CHUẨN APPLE TV+ / MUBI) */}
+        <div className="flex items-center gap-1.5 text-[11px] sm:text-[12px] text-zinc-400 font-normal leading-none overflow-hidden">
+          {displayYear && (
+            <span className="text-zinc-300 shrink-0">{displayYear}</span>
+          )}
+          {displayYear && displayTag && (
+            <span className="text-zinc-600 font-light select-none shrink-0">·</span>
+          )}
+          {displayTag && (
+            <span className="text-zinc-400 truncate">{displayTag}</span>
+          )}
+          {(displayYear || displayTag) && validRating > 0 && (
+            <span className="text-zinc-600 font-light select-none shrink-0">·</span>
+          )}
+          {validRating > 0 && (
+            <span className="inline-flex items-center gap-0.5 text-amber-400/90 font-medium shrink-0">
+              <Star className="w-2.5 h-2.5 sm:w-3 sm:h-3 fill-amber-400 text-amber-400" />
+              <span>{validRating.toFixed(1)}</span>
+            </span>
+          )}
+          {specialQualityBadge && (
+            <span className="ml-auto shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-white/10 text-zinc-300 border border-white/15">
+              {specialQualityBadge}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* 3. MODAL TRAILER MÀN ẢNH RỘNG */}
       {showTrailerModal && (
         <TrailerModal
           isOpen={true}

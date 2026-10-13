@@ -599,18 +599,18 @@ export function isHeroEligibleEvent(event: VietnamEvent): boolean {
     return isFeaturedActor(event);
   }
 
-  // 3. Historical Events: Must satisfy strict Hero Eligibility Gate
-  const isHistorical =
-    event.category === "vietnam-history" ||
-    event.nature === "historical-anniversary" ||
+  // 3. Raw / Converted Historical Milestones (from historical chronicles): Must satisfy strict Hero Eligibility Gate
+  const isRawHistorical =
+    Boolean(event.isHistoricalOnly) ||
     Boolean(event.historicalEventId) ||
-    event.id.startsWith("hist-");
+    event.id.startsWith("hist-") ||
+    event.id.startsWith("he-");
 
-  if (isHistorical) {
+  if (isRawHistorical) {
     return isHeroEligibleHistoricalEvent(event);
   }
 
-  // 4. Cultural / Arts / International / Fun curated holidays from VIETNAM_EVENTS
+  // 4. Cultural / Arts / Commemorative / International / Fun curated holidays from VIETNAM_EVENTS
   return true;
 }
 

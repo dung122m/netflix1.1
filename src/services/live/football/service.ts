@@ -237,6 +237,7 @@ export function mergeSourceStatus(
 }
 
 export const MAX_MATCH_DURATION_MS = 140 * 60 * 1000; // 140 phút
+export const UPCOMING_DISPLAY_WINDOW_MS = 2 * 60 * 60 * 1000; // 2 giờ (120 phút)
 
 export function getMatchTimeline(
   timestamp?: number | null,
@@ -271,13 +272,9 @@ export function getMatchTimeline(
   // 3. XỬ LÝ TRẬN CÓ KICKOFF TIMESTAMP HỢP LỆ
   if (hasValidTimestamp) {
     // 3A. TRẬN CHƯA KICKOFF (now < timestamp)
+    // Vòng đời trận chưa bắt đầu luôn là UPCOMING (tuyệt đối không gán nhãn finished cho trận chưa đá)
     if (now < timestamp) {
-      // Upcoming chỉ là trận chưa kickoff và nằm trong cửa sổ 2 giờ (120 phút)
-      if (timestamp <= now + 2 * 60 * 60 * 1000) {
-        return "upcoming";
-      }
-      // Bắt đầu hơn 2 giờ tới -> không hiển thị trong SẮP PHÁT (finished/hidden)
-      return "finished";
+      return "upcoming";
     }
 
     // 3B. TRẬN TRONG KHUNG 140 PHÚT (kickoff <= now <= kickoff + 140 phút)
@@ -292,6 +289,35 @@ export function getMatchTimeline(
   }
 
   return "finished";
+}
+
+/**
+ * Xác định xem một trận có thuộc phạm vi hiển thị trên trang /live hay không:
+ * 1. ĐANG CHIẾU: timeline === "live"
+ * 2. SẮP CHIẾU: timeline === "upcoming" VÀ bắt đầu trong vòng cửa sổ hiển thị (mặc định 2 giờ = 120 phút)
+ * Trận đã kết thúc (finished) hoặc trận còn hơn 2 giờ (hoặc ngày mai) -> false (không hiển thị trên /live)
+ */
+export function isMatchInLiveWindow(
+  timeline: "live" | "upcoming" | "finished" | "today" = "finished",
+  timestamp?: number | null,
+  now: number = Date.now(),
+  windowMs: number = UPCOMING_DISPLAY_WINDOW_MS,
+): boolean {
+  if (timeline === "live") {
+    return true;
+  }
+  if (timeline === "upcoming") {
+    const hasValidTimestamp =
+      timestamp !== undefined &&
+      timestamp !== null &&
+      timestamp > 0 &&
+      timestamp !== Number.MAX_SAFE_INTEGER;
+    if (!hasValidTimestamp) {
+      return false;
+    }
+    return now < timestamp && timestamp <= now + windowMs;
+  }
+  return false;
 }
 
 function normalizeText(str: string): string {
@@ -2904,12 +2930,11 @@ export async function fetchHailabStreams(now: number = Date.now()): Promise<RawS
         sourceStatus = "upcoming";
       }
 
-      // QUY TẮC LỌC TRẬN ĐANG ĐÁ / SẮP ĐÁ <= 2 GIỜ (120 PHÚT)
-      // 1. Kickoff <= now <= kickoff + 140 phút -> live
-      // 2. now < kickoff <= now + 2 giờ -> upcoming
-      // 3. Kickoff > now + 2 giờ hoặc > 140 phút quá khứ -> finished (loại bỏ)
+      // QUY TẮC LỌC TRẬN HIỂN THỊ TRÊN /LIVE:
+      // 1. Vòng đời: timeline = getMatchTimeline (live / upcoming / finished)
+      // 2. Phạm vi hiển thị: isMatchInLiveWindow (ĐANG CHIẾU hoặc SẮP CHIẾU <= 2 giờ)
       const timeline = getMatchTimeline(timestamp, sourceStatus, "unknown", now);
-      if (timeline === "finished") {
+      if (!isMatchInLiveWindow(timeline, timestamp, now)) {
         continue;
       }
 
@@ -3225,8 +3250,11 @@ export const liveFootballService = {
           now,
         );
 
-        if (m.timeline === "finished") {
-          // Ẩn trận đã kết thúc
+        if (!isMatchInLiveWindow(m.timeline, m.timestamp, now)) {
+          // Chỉ hiển thị hai nhóm trận trên /live:
+          // 1. ĐANG CHIẾU: timeline === "live"
+          // 2. SẮP CHIẾU: timeline === "upcoming" trong cửa sổ <= 2 giờ (120 phút)
+          // Ẩn hoàn toàn trận đã kết thúc hoặc trận còn hơn 2 giờ tới
           continue;
         }
 
@@ -3287,17 +3315,15 @@ export const liveFootballService = {
             }
           }
         }
-        // Luôn chuẩn hóa giải đấu canonical duy nhất cho mọi trận bóng đá
-        if (!m.sport || m.sport === "football" || m.sport === "other") {
-          m.tournament = resolveCanonicalTournament({
-            tournament: m.tournament,
-            title: m.title,
-            sport: m.sport,
-            team1: m.team1,
-            team2: m.team2,
-            score: matchedScore,
-          });
-        }
+        // Luôn chuẩn hóa giải đấu canonical duy nhất cho mọi trận đấu (Bóng đá, Quần vợt, Bóng rổ...)
+        m.tournament = resolveCanonicalTournament({
+          tournament: m.tournament,
+          title: m.title,
+          sport: m.sport,
+          team1: m.team1,
+          team2: m.team2,
+          score: matchedScore,
+        });
       }
 
       const result: LiveFootballData = {

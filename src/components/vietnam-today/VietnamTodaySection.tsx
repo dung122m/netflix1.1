@@ -27,9 +27,9 @@ export function VietnamTodaySection() {
     const targetId = eventId || selectedEventId;
     const targetEvent = events.find((e) => e.id === targetId) || info.event;
     const isHistorical =
-      targetEvent.category === "vietnam-history" ||
-      Boolean(targetEvent.historicalEventId) ||
-      targetEvent.id.startsWith("hist-");
+      Boolean(targetEvent.isHistoricalOnly) ||
+      (targetEvent.id.startsWith("hist-") && !targetEvent.meaning && !targetEvent.bannerDescription) ||
+      (targetEvent.id.startsWith("he-") && !targetEvent.meaning);
 
     if (typeof window !== "undefined") {
       window.dispatchEvent(

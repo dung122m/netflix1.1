@@ -1672,12 +1672,12 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
           isFullscreen
             ? "fixed inset-0 z-[80] w-full h-full max-w-none p-0 m-0 bg-black flex flex-col justify-center overflow-hidden"
             : isMobileStickyActive
-            ? "fixed top-[56px] left-0 right-0 z-40 shadow-2xl border-b border-white/25 md:relative md:top-auto"
+            ? "fixed top-[51px] sm:top-[55px] left-0 right-0 z-40 shadow-2xl border-b border-white/25 md:relative md:top-auto"
             : "relative z-30"
         } ${isTheaterMode && !isFullscreen ? "max-w-none px-0 sm:px-0" : isFullscreen ? "" : "max-w-7xl"}`}
       >
         {isMobileStickyActive && (
-          <div className="md:hidden bg-gradient-to-r from-zinc-950 via-zinc-900 to-black px-3 py-1.5 flex items-center justify-between border-b border-white/10 text-xs">
+          <div className="md:hidden bg-gradient-to-r from-zinc-950 via-zinc-900 to-black px-3 h-8 flex items-center justify-between border-b border-white/10 text-xs">
             <div className="flex items-center gap-1.5 min-w-0 pr-2">
               <span className="w-2 h-2 rounded-full bg-netflix-red animate-pulse flex-shrink-0" />
               <span className="text-white font-bold text-[11px] truncate">

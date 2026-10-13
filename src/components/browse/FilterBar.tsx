@@ -41,7 +41,7 @@ const MOVIE_TYPES: MovieTypeOption[] = [
 ];
 
 const SORT_OPTIONS = [
-  { label: "Đánh giá cao", value: "rating", icon: Star, color: "text-amber-400" },
+  { label: "Điểm đánh giá cao", value: "rating", icon: Star, color: "text-amber-400" },
   { label: "Mới cập nhật", value: "latest", icon: Clock, color: "text-sky-400" },
   { label: "Xem nhiều nhất", value: "views", icon: Flame, color: "text-orange-500" },
   { label: "Năm mới nhất", value: "year", icon: Calendar, color: "text-emerald-400" },
@@ -231,7 +231,7 @@ export const FilterBar: React.FC = () => {
   const activeCountryName = activeCountryObj ? activeCountryObj.name : "Quốc gia";
 
   const activeSortObj = SORT_OPTIONS.find((s) => s.value === currentSort);
-  const activeSortName = activeSortObj ? activeSortObj.label : "Đánh giá cao";
+  const activeSortName = activeSortObj ? activeSortObj.label : "Điểm đánh giá cao";
 
   // Count active filters for badge
   const isCustomSort = Boolean(currentSort && currentSort !== "rating");
@@ -615,39 +615,6 @@ export const FilterBar: React.FC = () => {
               )}
             </button>
 
-            {/* DROPDOWN 5: SẮP XẾP */}
-            <button
-              ref={(el) => {
-                buttonRefs.current["sort"] = el;
-              }}
-              type="button"
-              onClick={() => toggleDropdown("sort")}
-              aria-expanded={activeDropdown === "sort"}
-              aria-haspopup="listbox"
-              aria-label="Sắp xếp danh sách phim"
-              className={`h-10 px-3.5 sm:px-4 rounded-xl border text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 cursor-pointer shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-netflix-red focus-visible:ring-offset-2 focus-visible:ring-offset-black flex-none ${
-                isCustomSort
-                  ? "bg-amber-950/70 border-amber-500/80 text-amber-200 ring-1 ring-amber-500/40 shadow-amber-950/50"
-                  : activeDropdown === "sort"
-                  ? "bg-zinc-800 text-white border-zinc-500"
-                  : "bg-zinc-950/70 text-gray-200 border-white/10 hover:bg-zinc-800/80 hover:text-white hover:border-white/25"
-              }`}
-            >
-              <ArrowUpDown className={`w-3.5 h-3.5 flex-none ${isCustomSort ? "text-amber-400" : "text-amber-400/80"}`} />
-              <span className="truncate max-w-[110px] sm:max-w-none">
-                {activeSortName}
-              </span>
-              {isPending && pendingGroup === "sort" ? (
-                <Loader2 className="w-3.5 h-3.5 text-amber-400 animate-spin flex-none" />
-              ) : (
-                <ChevronDown
-                  className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 flex-none ${
-                    activeDropdown === "sort" ? "rotate-180 text-white" : "rotate-0"
-                  }`}
-                />
-              )}
-            </button>
-
             {/* NÚT BỐC QUẺ NHANH (CTA TINH TẾ DARK GLASS) */}
             <button
               type="button"
@@ -906,39 +873,6 @@ export const FilterBar: React.FC = () => {
               </div>
             </div>
           )}
-
-          {/* POPUP 5: SẮP XẾP */}
-          {activeDropdown === "sort" && (
-            <div className="w-56 sm:w-60 rounded-2xl bg-zinc-950/98 border border-zinc-700/80 p-2.5 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
-              <div className="px-2 py-1 text-[11px] font-bold text-gray-400 uppercase tracking-wider border-b border-white/10 mb-1">
-                <span>Tiêu chí sắp xếp</span>
-              </div>
-              <div className="space-y-1">
-                {SORT_OPTIONS.map((opt) => {
-                  const isSelected = currentSort === opt.value;
-                  const Icon = opt.icon;
-                  return (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => updateQueryParam("sort", opt.value)}
-                      className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition cursor-pointer text-left ${
-                        isSelected
-                          ? "bg-netflix-red text-white font-bold shadow-md shadow-red-950/50"
-                          : "text-gray-300 hover:bg-zinc-800/80 hover:text-white"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Icon className={`w-3.5 h-3.5 ${isSelected ? "text-white" : opt.color}`} />
-                        <span>{opt.label}</span>
-                      </div>
-                      {isSelected && <Check className="w-3.5 h-3.5 text-white" />}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
         </div>
       )}
 
@@ -1003,7 +937,7 @@ export const FilterBar: React.FC = () => {
           )}
 
           {/* Sort tag */}
-          {currentSort && (
+          {isCustomSort && (
             <button
               type="button"
               onClick={() => handleClearKey("sort")}

@@ -147,7 +147,7 @@ export function ScrollablePillsRow({
         onMouseUp={handleMouseUpOrLeave}
         onMouseLeave={handleMouseUpOrLeave}
         onClickCapture={handleClickCapture}
-        className={`w-full overflow-x-auto scrollbar-none [&::-webkit-scrollbar]:hidden shrink-0 select-none cursor-grab active:cursor-grabbing ${innerClassName}`}
+        className={`w-full overflow-x-auto scrollbar-none [&::-webkit-scrollbar]:hidden shrink-0 select-none cursor-grab active:cursor-grabbing touch-pan-x ${innerClassName}`}
       >
         {children}
       </div>

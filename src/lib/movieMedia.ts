@@ -710,6 +710,140 @@ export function detectMovieTypeName(m: any): string {
   return "Phim lẻ";
 }
 
+// Bảng ánh xạ slug thể loại sang tiếng Việt có dấu chuẩn giao diện điện ảnh cao cấp
+export const GENRE_DISPLAY_MAP: Record<string, string> = {
+  "hanh-dong": "Hành Động",
+  "hanh dong": "Hành Động",
+  "action": "Hành Động",
+  "tinh-cam": "Tình Cảm",
+  "tinh cam": "Tình Cảm",
+  "romance": "Tình Cảm",
+  "kinh-di": "Kinh Dị",
+  "kinh di": "Kinh Dị",
+  "horror": "Kinh Dị",
+  "hai-huoc": "Hài Hước",
+  "hai huoc": "Hài Hước",
+  "comedy": "Hài Hước",
+  "vien-tuong": "Viễn Tưởng",
+  "vien tuong": "Viễn Tưởng",
+  "sci-fi": "Viễn Tưởng",
+  "co-trang": "Cổ Trang",
+  "co trang": "Cổ Trang",
+  "tam-ly": "Tâm Lý",
+  "tam ly": "Tâm Lý",
+  "drama": "Tâm Lý",
+  "vo-thuat": "Võ Thuật",
+  "vo thuat": "Võ Thuật",
+  "martial-arts": "Võ Thuật",
+  "trinh-tham": "Trinh Thám",
+  "trinh tham": "Trinh Thám",
+  "detective": "Trinh Thám",
+  "chien-tranh": "Chiến Tranh",
+  "chien tranh": "Chiến Tranh",
+  "war": "Chiến Tranh",
+  "phieu-luu": "Phiêu Lưu",
+  "phieu luu": "Phiêu Lưu",
+  "adventure": "Phiêu Lưu",
+  "am-nhac": "Âm Nhạc",
+  "am nhac": "Âm Nhạc",
+  "music": "Âm Nhạc",
+  "the-thao": "Thể Thao",
+  "the thao": "Thể Thao",
+  "sport": "Thể Thao",
+  "sports": "Thể Thao",
+  "tai-lieu": "Tài Liệu",
+  "tai lieu": "Tài Liệu",
+  "documentary": "Tài Liệu",
+  "bi-an": "Bí Ẩn",
+  "bi an": "Bí Ẩn",
+  "mystery": "Bí Ẩn",
+  "hoc-duong": "Học Đường",
+  "hoc duong": "Học Đường",
+  "school": "Học Đường",
+  "gia-dinh": "Gia Đình",
+  "gia dinh": "Gia Đình",
+  "family": "Gia Đình",
+  "khoa-hoc": "Khoa Học",
+  "khoa hoc": "Khoa Học",
+  "science": "Khoa Học",
+  "than-thoai": "Thần Thoại",
+  "than thoai": "Thần Thoại",
+  "mythology": "Thần Thoại",
+  "fantasy": "Thần Thoại",
+  "hoat-hinh": "Hoạt Hình",
+  "hoat hinh": "Hoạt Hình",
+  "animation": "Hoạt Hình",
+  "anime": "Hoạt Hình",
+  "hinh-su": "Hình Sự",
+  "hinh su": "Hình Sự",
+  "crime": "Hình Sự",
+  "chieu-rap": "Chiếu Rạp",
+  "chieu rap": "Chiếu Rạp",
+  "phim-chieu-rap": "Chiếu Rạp",
+  "chinh-kich": "Chính Kịch",
+  "chinh kich": "Chính Kịch",
+  "lang-man": "Lãng Mạn",
+  "lang man": "Lãng Mạn",
+  "giat-gan": "Giật Gân",
+  "giat gan": "Giật Gân",
+  "thriller": "Giật Gân",
+  "gay-can": "Gây Cấn",
+  "gay can": "Gây Cấn",
+  "phim-bo": "Phim Bộ",
+  "phim bo": "Phim Bộ",
+  "series": "Phim Bộ",
+  "phim-le": "Phim Lẻ",
+  "phim le": "Phim Lẻ",
+  "single": "Phim Lẻ",
+  "tv-shows": "TV Shows",
+  "tv shows": "TV Shows",
+};
+
+/**
+ * Chuẩn hóa tên thể loại từ slug hoặc chuỗi thô sang tiếng Việt có dấu, viết hoa đẹp mắt.
+ * Tự động loại bỏ các từ dịch thuật / chất lượng (vietsub, thuyết minh, cam).
+ */
+export function formatGenreName(raw?: unknown): string {
+  if (!raw || typeof raw !== "string") return "";
+  let clean = raw.trim();
+  if (!clean || clean === "N/A" || clean === "Đang cập nhật") return "";
+
+  // Bỏ các nhãn phát hành/dịch thuật vô nghĩa nếu bị nhét vào trường genre
+  const lower = clean.toLowerCase();
+  if (
+    lower.includes("vietsub") ||
+    lower.includes("thuyết minh") ||
+    lower.includes("lồng tiếng") ||
+    lower.includes("bản đẹp") ||
+    lower.includes("raw") ||
+    lower.includes("cam")
+  ) {
+    return "";
+  }
+
+  // Khử các ký tự phân tách nếu truyền chuỗi kép (vd: "hanh-dong, phieu-luu")
+  if (clean.includes(",") || clean.includes("/")) {
+    clean = clean.split(/[,/]/)[0].trim();
+  }
+
+  const lookupKey = clean.toLowerCase().replace(/_/g, "-");
+  if (GENRE_DISPLAY_MAP[lookupKey]) {
+    return GENRE_DISPLAY_MAP[lookupKey];
+  }
+
+  // Nếu là slug có dấu gạch nối (vd: "tam-ly-xa-hoi")
+  if (lookupKey.includes("-")) {
+    return lookupKey
+      .split("-")
+      .filter(Boolean)
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" ");
+  }
+
+  // Nếu đã viết hoa đẹp hoặc từ tiếng Việt chuẩn
+  return clean.charAt(0).toUpperCase() + clean.slice(1);
+}
+
 // Cache ổn định tham chiếu array diễn viên / đạo diễn theo từng movie object
 const movieArrayCache = new WeakMap<object, { actor?: string[]; director?: string[] }>();
 
@@ -726,7 +860,17 @@ export function normalizeMovie(m: any): NormalizedMovie {
   if (!posterUrl) posterUrl = "/default-poster.svg";
 
   const imageUrl = thumbUrl || posterUrl;
-  const year = m?.year ? String(m.year) : "";
+
+  // Chuẩn hóa và làm sạch năm phát hành: Loại bỏ năm vô lý (< 1920 hoặc > năm hiện tại + 2, ví dụ lỗi 1885)
+  let year = "";
+  if (m?.year) {
+    const parsedYear = typeof m.year === "number" ? m.year : parseInt(String(m.year).trim(), 10);
+    const maxYear = new Date().getFullYear() + 2;
+    if (Number.isFinite(parsedYear) && parsedYear >= 1920 && parsedYear <= maxYear) {
+      year = String(parsedYear);
+    }
+  }
+
   const quality = m?.quality || "FHD";
   const time = m?.time || m?.episode_current || undefined;
   const rawCats = Array.isArray(m?.category)
@@ -738,17 +882,33 @@ export function normalizeMovie(m: any): NormalizedMovie {
     : [];
   const categories: Array<{ name: string; slug?: string }> = rawCats
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .map((c: any) => ({
-      name: typeof c === "string" ? c.trim() : String(c?.name || "").trim(),
-      slug: typeof c === "object" && c?.slug ? String(c.slug).trim() : undefined,
-    }))
+    .map((c: any) => {
+      const rawName = typeof c === "string" ? c.trim() : String(c?.name || "").trim();
+      const slug = typeof c === "object" && c?.slug ? String(c.slug).trim() : undefined;
+      const formatted = formatGenreName(rawName) || (slug ? formatGenreName(slug) : "");
+      return {
+        name: formatted || rawName,
+        slug,
+      };
+    })
     .filter((c: { name: string }) => Boolean(c.name));
 
-  const genre =
+  const rawGenre =
     m?.category?.[0]?.name ||
     categories[0]?.name ||
     (Array.isArray(m?.genre) ? m.genre.join(", ") : m?.genre) ||
     "";
+
+  // Thể loại chính được chuẩn hoá tiếng Việt đẹp mắt
+  let genre = formatGenreName(rawGenre) || categories[0]?.name || "";
+
+  // Nếu dữ liệu upstream hoàn toàn không có thể loại, tự động gán loại phim (Phim lẻ / Phim bộ / Hoạt hình)
+  // để các thẻ luôn có danh mục nhất quán, không bị khuyết tạo cảm giác "lạc quẻ"
+  const type_name = detectMovieTypeName(m);
+  if (!genre) {
+    genre = type_name;
+  }
+
   const isTrailerOnly =
     m?.status === "trailer" || m?.episode_current === "Trailer";
 
@@ -764,8 +924,6 @@ export function normalizeMovie(m: any): NormalizedMovie {
       m?.sub_docquyen === 1 ||
       m?.doc_quyen === true
   );
-
-  const type_name = detectMovieTypeName(m);
 
   const { rating: normRating } = extractMovieRatingScore(m);
   const score = normRating > 0 ? normRating.toFixed(1) : "N/A";

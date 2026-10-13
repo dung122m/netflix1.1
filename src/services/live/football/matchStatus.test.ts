@@ -2,6 +2,8 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
   getMatchTimeline,
+  isMatchInLiveWindow,
+  UPCOMING_DISPLAY_WINDOW_MS,
   parseSourceStatus,
   mergeSourceStatus,
   isValidFootballTeamName,
@@ -16,7 +18,9 @@ import {
   areMatchFixturesMatching,
   NATIONAL_TEAM_CANONICAL_MAP,
   NATIONAL_TEAM_CANONICAL_KEYS,
+  parseMatchTimeToTimestamp,
 } from "./service";
+import { resolveCanonicalTournament } from "@/services/live/football-score/canonicalLeagues";
 import { getTeamAsset, TOTAL_MAPPED_TEAMS } from "@/data/live/teamAssets";
 
 describe("Nanaflix Live Match Status & Timeline System", () => {
@@ -53,13 +57,31 @@ describe("Nanaflix Live Match Status & Timeline System", () => {
     assert.equal(timeline, "upcoming", "Match starting in 30 minutes must be classified as UPCOMING");
   });
 
-  // 4. Match bắt đầu hơn 2 giờ (120 phút) tới → KHÔNG xuất hiện trong upcoming
-  it("4. Match bắt đầu hơn 2 giờ tới → KHÔNG xuất hiện trong upcoming", () => {
+  // 4. Match bắt đầu hơn 2 giờ (130 phút) tới → VÒNG ĐỜI là UPCOMING nhưng isMatchInLiveWindow = false (không hiển thị trên /live)
+  it("4. Match bắt đầu hơn 2 giờ tới → UPCOMING về vòng đời nhưng ngoài cửa sổ hiển thị /live", () => {
     const kickoffIn130m = baseNow + 130 * 60 * 1000; // 22:10
     const timeline = getMatchTimeline(kickoffIn130m, "unknown", "unknown", baseNow);
 
-    assert.notEqual(timeline, "upcoming", "Match starting >2 hours must NOT be upcoming");
-    assert.equal(timeline, "finished", "Match starting >120m must be finished/hidden from upcoming");
+    assert.equal(timeline, "upcoming", "Match starting in 130 minutes has upcoming lifecycle (never labeled finished)");
+    assert.equal(isMatchInLiveWindow(timeline, kickoffIn130m, baseNow), false, "Match > 2h must NOT be in live display window");
+  });
+
+  // 4B. Match bắt đầu ngày mai (24 giờ tới) → VẪN là UPCOMING về vòng đời nhưng ngoài cửa sổ hiển thị /live
+  it("4B. Match bắt đầu ngày mai (24 giờ tới) → UPCOMING về vòng đời nhưng ngoài cửa sổ hiển thị /live", () => {
+    const kickoffTomorrow = baseNow + 24 * 60 * 60 * 1000;
+    const timeline = getMatchTimeline(kickoffTomorrow, "unknown", "unknown", baseNow);
+
+    assert.equal(timeline, "upcoming", "Match starting tomorrow has upcoming lifecycle (never labeled finished)");
+    assert.equal(isMatchInLiveWindow(timeline, kickoffTomorrow, baseNow), false, "Match tomorrow must NOT be in live display window");
+  });
+
+  // 4C. Match xa hơn (40 giờ tới) → VẪN là UPCOMING về vòng đời (không bao giờ gán nhãn finished cho trận chưa đá)
+  it("4C. Match xa trong tương lai (40 giờ tới) → UPCOMING về vòng đời nhưng ngoài cửa sổ hiển thị /live", () => {
+    const kickoffFarFuture = baseNow + 40 * 60 * 60 * 1000; // 40 giờ tới
+    const timeline = getMatchTimeline(kickoffFarFuture, "unknown", "unknown", baseNow);
+
+    assert.equal(timeline, "upcoming", "Match in distant future must have UPCOMING lifecycle (never labeled finished)");
+    assert.equal(isMatchInLiveWindow(timeline, kickoffFarFuture, baseNow), false, "Match in far future must NOT be in live window");
   });
 
   // 5. Case 1 thực tế: 18:00 24/09 Hàn Quốc vs Ecuador tại now ~20:30 (elapsed: 150m > 140m) → finished, KHÔNG LIVE
@@ -136,11 +158,11 @@ describe("Nanaflix Live Match Status & Timeline System", () => {
     assert.equal(timeline, "upcoming", "Match 30 minutes in future must be upcoming");
   });
 
-  // 7H. Regression 8: Upcoming >2 giờ (120 phút) → không xuất hiện trong SẮP PHÁT (finished/hidden)
-  it("7H. Regression 8: Upcoming >2 giờ (130 phút trước kickoff) → finished/hidden", () => {
+  // 7H. Regression 8: Upcoming >2 giờ (130 phút trước kickoff) → vẫn là upcoming trong phạm vi lịch
+  it("7H. Regression 8: Upcoming >2 giờ (130 phút trước kickoff) → upcoming", () => {
     const kickoffIn130m = baseNow + 130 * 60 * 1000;
     const timeline = getMatchTimeline(kickoffIn130m, "unknown", "unknown", baseNow);
-    assert.equal(timeline, "finished", "Match >2 hours in future must not appear in upcoming (hidden)");
+    assert.equal(timeline, "upcoming", "Match >2 hours in future within schedule window must appear in upcoming");
   });
 
   // 7I. Playback HTTPS Fallback: direct HTTPS first, only fallback to proxy on network/CORS failure
@@ -1104,15 +1126,23 @@ describe("Nanaflix Live Match Status & Timeline System", () => {
     const tl1 = getMatchTimeline(playingKickoff, "live", "unknown", baseNow);
     assert.equal(tl1, "live", "Match within 140m window must be LIVE");
 
-    // Trận 2: Sắp đá trong 90 phút tới (trong khung 2 giờ) -> UPCOMING
+    // Trận 2: Sắp đá trong 90 phút tới (trong khung 2 giờ) -> UPCOMING & in live window
     const soonKickoff = baseNow + 90 * 60 * 1000;
     const tl2 = getMatchTimeline(soonKickoff, "upcoming", "unknown", baseNow);
     assert.equal(tl2, "upcoming", "Match within 2h (120m) future must be UPCOMING");
+    assert.equal(isMatchInLiveWindow(tl2, soonKickoff, baseNow), true, "Match within 2h must be in live window");
 
-    // Trận 3: Trận đá hơn 2 giờ tới (ví dụ 150m tới) -> FINISHED (ẩn)
+    // Trận 3: Trận đá hơn 2 giờ tới (ví dụ 150m tới) -> Vòng đời UPCOMING nhưng ngoài live window
     const farFutureKickoff = baseNow + 150 * 60 * 1000;
     const tl3 = getMatchTimeline(farFutureKickoff, "upcoming", "unknown", baseNow);
-    assert.equal(tl3, "finished", "Match >2h in future must be FINISHED (hidden)");
+    assert.equal(tl3, "upcoming", "Match >2h in future within schedule window must be UPCOMING");
+    assert.equal(isMatchInLiveWindow(tl3, farFutureKickoff, baseNow), false, "Match >2h must NOT be in live window");
+
+    // Trận 3B: Trận xa trong tương lai (>36h) -> Vòng đời UPCOMING (không gán finished) nhưng ngoài live window
+    const beyondWindowKickoff = baseNow + 40 * 60 * 60 * 1000;
+    const tl3b = getMatchTimeline(beyondWindowKickoff, "upcoming", "unknown", baseNow);
+    assert.equal(tl3b, "upcoming", "Match >36h in future must have UPCOMING lifecycle");
+    assert.equal(isMatchInLiveWindow(tl3b, beyondWindowKickoff, baseNow), false, "Match >36h must NOT be in live window");
 
     // Trận 4: Trận đã kết thúc quá 140 phút (ví dụ 160m trước) -> FINISHED (ẩn)
     const endedKickoff = baseNow - 160 * 60 * 1000;
@@ -2188,5 +2218,177 @@ describe("Generic Match Deduplication & Aggregation System", () => {
   });
 });
 
+describe("Đợt 4 Hotfix: Strict Regression Tests cho Match Timeline", () => {
+  const testNow = new Date("2026-10-13T11:00:00+07:00").getTime();
 
+  // 1. Trận bắt đầu sau 30 phút → upcoming
+  it("Case 1: Trận bắt đầu sau 30 phút → upcoming", () => {
+    const kickoff = testNow + 30 * 60 * 1000; // 11:30
+    const timeline = getMatchTimeline(kickoff, "unknown", "unknown", testNow);
+    assert.equal(timeline, "upcoming");
+  });
 
+  // 2. Trận bắt đầu sau 2 giờ → vòng đời upcoming, ngoài cửa sổ hiển thị /live
+  it("Case 2: Trận bắt đầu sau 2 giờ (ví dụ 14:45, sau 3h45m) → upcoming lifecycle, isMatchInLiveWindow = false", () => {
+    const kickoff = testNow + 225 * 60 * 1000; // 14:45 (3h45m tới)
+    const timeline = getMatchTimeline(kickoff, "unknown", "unknown", testNow);
+    assert.equal(timeline, "upcoming");
+    assert.equal(isMatchInLiveWindow(timeline, kickoff, testNow), false);
+  });
+
+  // 3. Trận bắt đầu ngày mai → vòng đời upcoming (tuyệt đối không gán finished), ngoài cửa sổ hiển thị /live
+  it("Case 3: Trận bắt đầu ngày mai (ví dụ 02:00 14/10 hoặc 14:30 14/10 hoặc 48h) → upcoming lifecycle, isMatchInLiveWindow = false", () => {
+    const kickoffTomorrowMidnight = new Date("2026-10-14T02:00:00+07:00").getTime(); // 15h tới
+    const tl1 = getMatchTimeline(kickoffTomorrowMidnight, "unknown", "unknown", testNow);
+    assert.equal(tl1, "upcoming");
+    assert.equal(isMatchInLiveWindow(tl1, kickoffTomorrowMidnight, testNow), false);
+
+    const kickoffTomorrowAfternoon = new Date("2026-10-14T14:30:00+07:00").getTime(); // 27.5h tới
+    const tl2 = getMatchTimeline(kickoffTomorrowAfternoon, "unknown", "unknown", testNow);
+    assert.equal(tl2, "upcoming");
+    assert.equal(isMatchInLiveWindow(tl2, kickoffTomorrowAfternoon, testNow), false);
+
+    // Xa trong tương lai (ví dụ 48h tới) -> Vẫn là UPCOMING về vòng đời, KHÔNG BAO GIỜ bị gán nhãn finished!
+    const kickoffDistantFuture = testNow + 48 * 60 * 60 * 1000;
+    const tl3 = getMatchTimeline(kickoffDistantFuture, "unknown", "unknown", testNow);
+    assert.equal(tl3, "upcoming");
+    assert.equal(isMatchInLiveWindow(tl3, kickoffDistantFuture, testNow), false);
+  });
+
+  // 4. Trận đang diễn ra → giữ trạng thái đang diễn ra
+  it("Case 4: Trận đang diễn ra (kickoff 45m trước) → live", () => {
+    const kickoffLive = testNow - 45 * 60 * 1000;
+    const timeline = getMatchTimeline(kickoffLive, "unknown", "unknown", testNow);
+    assert.equal(timeline, "live");
+  });
+
+  // 5. Trận đã kết thúc theo trạng thái nguồn đáng tin cậy → không bị hồi sinh thành upcoming
+  it("Case 5: Trận có sourceStatus='finished' hoặc [FT] → luôn finished, không hồi sinh thành upcoming", () => {
+    const kickoffFuture = testNow + 60 * 60 * 1000;
+    const tl1 = getMatchTimeline(kickoffFuture, "finished", "alive", testNow);
+    assert.equal(tl1, "finished");
+
+    const parsedFT = parseSourceStatus("14:45 [FT] Arsenal vs Chelsea");
+    const tl2 = getMatchTimeline(kickoffFuture, parsedFT, "alive", testNow);
+    assert.equal(tl2, "finished");
+  });
+
+  // 6. Trận thiếu timestamp hoặc có timestamp không hợp lệ → xử lý an toàn, không tự dựng giờ đá
+  it("Case 6: Trận thiếu timestamp hoặc không hợp lệ → an toàn, chỉ live khi có live marker rõ ràng", () => {
+    assert.equal(getMatchTimeline(undefined, "unknown", "unknown", testNow), "finished");
+    assert.equal(getMatchTimeline(null, "unknown", "unknown", testNow), "finished");
+    assert.equal(getMatchTimeline(0, "unknown", "unknown", testNow), "finished");
+    assert.equal(getMatchTimeline(Number.MAX_SAFE_INTEGER, "unknown", "unknown", testNow), "finished");
+
+    // Nếu có live marker rõ ràng từ nguồn thì mới là live
+    assert.equal(getMatchTimeline(undefined, "live", "alive", testNow), "live");
+  });
+
+  // 7. Kiểm tra ranh giới timezone và qua nửa đêm
+  it("Case 7: Ranh giới timezone Asia/Ho_Chi_Minh và qua nửa đêm", () => {
+    const parsedMidnight = parseMatchTimeToTimestamp("01:45 14/10");
+    assert.notEqual(parsedMidnight, Number.MAX_SAFE_INTEGER);
+
+    const tlMidnight = getMatchTimeline(parsedMidnight, "unknown", "unknown", testNow);
+    assert.equal(tlMidnight, "upcoming");
+  });
+});
+
+describe("Nanaflix Hotfix: Điều chỉnh phạm vi trận bóng đá trên /live & Chuẩn hóa Quần Vợt", () => {
+  const now = new Date("2026-10-13T11:30:00+07:00").getTime();
+
+  it("1. Trận đang diễn ra → xuất hiện trong ĐANG CHIẾU (timeline = 'live', inLiveWindow = true)", () => {
+    const kickoff30mAgo = now - 30 * 60 * 1000; // 11:00
+    const tl = getMatchTimeline(kickoff30mAgo, "unknown", "alive", now);
+    assert.equal(tl, "live", "Match 30m into playtime must be 'live'");
+    assert.equal(isMatchInLiveWindow(tl, kickoff30mAgo, now), true, "Live match must be shown in /live");
+  });
+
+  it("2. Trận còn 30 phút nữa đá → xuất hiện trong SẮP CHIẾU (timeline = 'upcoming', inLiveWindow = true)", () => {
+    const kickoffIn30m = now + 30 * 60 * 1000; // 12:00
+    const tl = getMatchTimeline(kickoffIn30m, "unknown", "unknown", now);
+    assert.equal(tl, "upcoming", "Match in 30m has upcoming lifecycle");
+    assert.equal(isMatchInLiveWindow(tl, kickoffIn30m, now), true, "Match in 30m is within upcoming display window");
+  });
+
+  it("3. Trận còn đúng 2 giờ (120 phút) → tuân thủ đúng cửa sổ hiển thị (timeline = 'upcoming', inLiveWindow = true)", () => {
+    const kickoffIn2h = now + UPCOMING_DISPLAY_WINDOW_MS; // 13:30 (đúng 120 phút)
+    const tl = getMatchTimeline(kickoffIn2h, "unknown", "unknown", now);
+    assert.equal(tl, "upcoming", "Match in 2h has upcoming lifecycle");
+    assert.equal(isMatchInLiveWindow(tl, kickoffIn2h, now), true, "Match at exactly 2h threshold is in upcoming window");
+  });
+
+  it("4. Trận còn 4 giờ hoặc ngày mai → KHÔNG xuất hiện trên /live (timeline = 'upcoming', inLiveWindow = false)", () => {
+    // 4 giờ tới (15:30)
+    const kickoffIn4h = now + 4 * 60 * 60 * 1000;
+    const tl4h = getMatchTimeline(kickoffIn4h, "unknown", "unknown", now);
+    assert.equal(tl4h, "upcoming", "Lifecycle is upcoming (never falsely labeled finished)");
+    assert.equal(isMatchInLiveWindow(tl4h, kickoffIn4h, now), false, "Match > 2h must NOT appear on /live");
+
+    // Ngày mai (02:00 14/10)
+    const kickoffTomorrow = new Date("2026-10-14T02:00:00+07:00").getTime();
+    const tlTomorrow = getMatchTimeline(kickoffTomorrow, "unknown", "unknown", now);
+    assert.equal(tlTomorrow, "upcoming", "Tomorrow's match lifecycle is upcoming");
+    assert.equal(isMatchInLiveWindow(tlTomorrow, kickoffTomorrow, now), false, "Tomorrow's match must NOT appear on /live");
+  });
+
+  it("5. Trận đã kết thúc → KHÔNG xuất hiện trong Đang Chiếu và Sắp Chiếu (timeline = 'finished', inLiveWindow = false)", () => {
+    // Quá 140 phút kể từ kickoff
+    const kickoffEnded = now - 150 * 60 * 1000;
+    const tlEnded = getMatchTimeline(kickoffEnded, "live", "alive", now);
+    assert.equal(tlEnded, "finished", "Match past 140m is finished");
+    assert.equal(isMatchInLiveWindow(tlEnded, kickoffEnded, now), false, "Finished match must NOT appear on /live");
+
+    // Explicit source status FT / Finished
+    const kickoffFutureFT = now + 30 * 60 * 1000;
+    const tlFT = getMatchTimeline(kickoffFutureFT, "finished", "alive", now);
+    assert.equal(tlFT, "finished", "Finished source status forces finished");
+    assert.equal(isMatchInLiveWindow(tlFT, kickoffFutureFT, now), false);
+  });
+
+  it("6. Qua nửa đêm và khác biệt múi giờ Asia/Ho_Chi_Minh → không phân loại sai", () => {
+    const lateNightNow = new Date("2026-10-13T23:30:00+07:00").getTime();
+
+    // Trận đá lúc 01:00 ngày 14/10 (còn 1 giờ 30 phút - nằm trong cửa sổ 2 giờ qua nửa đêm)
+    const midnightKickoff1 = new Date("2026-10-14T01:00:00+07:00").getTime();
+    const tlMidnight1 = getMatchTimeline(midnightKickoff1, "unknown", "unknown", lateNightNow);
+    assert.equal(tlMidnight1, "upcoming");
+    assert.equal(isMatchInLiveWindow(tlMidnight1, midnightKickoff1, lateNightNow), true, "Cross-midnight match in 90m must be shown");
+
+    // Trận đá lúc 03:00 ngày 14/10 (còn 3 giờ 30 phút - ngoài cửa sổ 2 giờ)
+    const midnightKickoff2 = new Date("2026-10-14T03:00:00+07:00").getTime();
+    const tlMidnight2 = getMatchTimeline(midnightKickoff2, "unknown", "unknown", lateNightNow);
+    assert.equal(tlMidnight2, "upcoming");
+    assert.equal(isMatchInLiveWindow(tlMidnight2, midnightKickoff2, lateNightNow), false, "Cross-midnight match in 3.5h must NOT be shown");
+  });
+
+  it("7. Chuẩn hóa giải đấu Tennis / Quần Vợt → gom về một nhãn duy nhất 'Quần Vợt'", () => {
+    // Trận 1: tournament = "Tennis Trực Tiếp", sport = "tennis"
+    const t1 = resolveCanonicalTournament({
+      tournament: "Tennis Trực Tiếp",
+      sport: "tennis",
+      title: "Alex de Minaur vs Karen Khachanov",
+    });
+    assert.equal(t1, "Quần Vợt", "Tennis Trực Tiếp must canonicalize to 'Quần Vợt'");
+
+    // Trận 2: tournament = "Quần Vợt", sport = "tennis"
+    const t2 = resolveCanonicalTournament({
+      tournament: "Quần Vợt",
+      sport: "tennis",
+      title: "Katerina Siniakova vs Liudmila Samsonova",
+    });
+    assert.equal(t2, "Quần Vợt", "Quần Vợt must canonicalize to 'Quần Vợt'");
+
+    // Trận 3: raw tournament có emoji và khoảng trắng "🎾 Tennis Trực Tiếp"
+    const t3 = resolveCanonicalTournament({
+      tournament: "🎾 Tennis Trực Tiếp",
+      title: "Novak Djokovic vs Rafael Nadal",
+    });
+    assert.equal(t3, "Quần Vợt", "🎾 Tennis Trực Tiếp must canonicalize to 'Quần Vợt'");
+
+    // Trận 4: cả 2 trận có giải đấu khác nhau ban đầu gom chung vào 1 danh mục
+    const tournamentPills = new Set([t1, t2, t3]);
+    assert.equal(tournamentPills.size, 1, "Must have exactly 1 unified tournament category for tennis");
+    assert.ok(tournamentPills.has("Quần Vợt"), "Unified category must be 'Quần Vợt'");
+  });
+});

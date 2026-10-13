@@ -8,6 +8,7 @@ import type { ActorBioModalProps } from "@/components/ActorBioModal";
 import type { UserProfileModalProps } from "@/components/UserProfileModal";
 import type { PublicUserProfileModalProps, PublicProfileDetail } from "@/components/PublicUserProfileModal";
 import { getVietnamTodayEvent, type VietnamTodayInfo } from "@/lib/vietnamCalendar";
+import { VIETNAM_EVENTS } from "@/data/vietnamEvents";
 
 // Dynamic import các modal nặng với ssr: false + loading shell tức thì (0ms perceived delay)
 const NanaAiStudioModal = dynamic(
@@ -135,14 +136,25 @@ export const ClientModals = React.memo(function ClientModals() {
     // 6. Vietnam Today Modal (Hôm nay tại Việt Nam & Ngày này trong lịch sử)
     const handleVietnamTodayTrigger = (e: Event) => {
       const customEvent = e as CustomEvent<{ tab?: "holiday" | "history"; eventId?: string }>;
-      setVietnamTodayTab(customEvent?.detail?.tab || "holiday");
       const currentInfo = getVietnamTodayEvent();
-      if (customEvent?.detail?.eventId && currentInfo.allEventsToday) {
-        const found = currentInfo.allEventsToday.find((x) => x.id === customEvent.detail.eventId);
-        if (found) {
-          currentInfo.event = found;
+      const targetId = customEvent?.detail?.eventId;
+
+      if (targetId) {
+        const foundInToday = currentInfo.allEventsToday?.find((x) => x.id === targetId);
+        if (foundInToday) {
+          currentInfo.event = foundInToday;
+        } else if (currentInfo.event?.id === targetId) {
+          // already info.event
+        } else {
+          const fromCatalog = VIETNAM_EVENTS.find((x) => x.id === targetId);
+          if (fromCatalog) {
+            currentInfo.event = fromCatalog;
+            currentInfo.allEventsToday = [fromCatalog, ...(currentInfo.allEventsToday || [])];
+          }
         }
       }
+
+      setVietnamTodayTab(customEvent?.detail?.tab || "holiday");
       setTodayInfo(currentInfo);
       setMountVietnamToday(true);
       setVietnamTodayOpen(true);

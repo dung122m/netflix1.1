@@ -555,7 +555,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
           {summary && (
             <>
               {/* B. THANH ĐIỀU HƯỚNG TAB CHỨC NĂNG */}
-              <div className="flex items-center gap-1 sm:gap-2 overflow-x-auto pb-1 scrollbar-none border-b border-white/10">
+              <div className="flex items-center gap-1 sm:gap-2 overflow-x-auto pb-1 scrollbar-none border-b border-white/10 touch-pan-x">
                 {[
                   { id: "overview", label: "Tổng quan", icon: Clock },
                   { id: "stats", label: "Thống kê", icon: BarChart2 },

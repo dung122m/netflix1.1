@@ -82,6 +82,22 @@ export const GENERIC_PLAYLIST_NAMES = new Set([
   "sao kê tv",
   "phao hoa tv",
   "pháo hoa tv",
+  "tennis trực tiếp",
+  "tennis truc tiep",
+  "quần vợt trực tiếp",
+  "quan vot truc tiep",
+  "tennis",
+  "quần vợt",
+  "quan vot",
+  "live tennis",
+  "bóng rổ trực tiếp",
+  "bong ro truc tiep",
+  "bóng chuyền trực tiếp",
+  "bong chuyen truc tiep",
+  "cầu lông trực tiếp",
+  "cau long truc tiep",
+  "esports trực tiếp",
+  "esport truc tiep",
 ]);
 
 /**
@@ -144,14 +160,14 @@ export function resolveCanonicalTournament(params: {
   }
 
   // 4. TẦNG 4: Phân loại bộ môn thể thao khác nếu có
-  if (sport === "basketball") return "Bóng Rổ";
-  if (sport === "tennis") return "Quần Vợt";
-  if (sport === "volleyball") return "Bóng Chuyền";
-  if (sport === "badminton") return "Cầu Lông";
-  if (sport === "f1" || sport === "motorsport") return "Đua Xe F1";
-  if (sport === "boxing") return "Võ Thuật / Quyền Anh";
-  if (sport === "billiards") return "Bida / Billiards";
-  if (sport === "esports") return "Thể Thao Điện Tử";
+  if (sport === "basketball" || /bóng\s*rổ|basketball/i.test(searchCorpus)) return "Bóng Rổ";
+  if (sport === "tennis" || /tennis|quần\s*vợt|quan\s*vot/i.test(searchCorpus)) return "Quần Vợt";
+  if (sport === "volleyball" || /bóng\s*chuyền|volleyball/i.test(searchCorpus)) return "Bóng Chuyền";
+  if (sport === "badminton" || /cầu\s*lông|badminton/i.test(searchCorpus)) return "Cầu Lông";
+  if (sport === "f1" || sport === "motorsport" || /formula|f1|motogp/i.test(searchCorpus)) return "Đua Xe F1";
+  if (sport === "boxing" || /boxing|quyền\s*anh|ufc|mma/i.test(searchCorpus)) return "Võ Thuật / Quyền Anh";
+  if (sport === "billiards" || /billiards|bida|snooker/i.test(searchCorpus)) return "Bida / Billiards";
+  if (sport === "esports" || /esports|esport|lck|lpl|vcs/i.test(searchCorpus)) return "Thể Thao Điện Tử";
 
   // Mặc định cho bóng đá khi không đủ căn cứ xác minh: gom vào "Giải Đấu Khác"
   return "Giải Đấu Khác";

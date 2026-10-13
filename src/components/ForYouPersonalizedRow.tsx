@@ -1,8 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import Link from "next/link";
-import Image from "next/image";
 import {
   Sparkles,
   ChevronLeft,
@@ -13,7 +11,8 @@ import { useAuth } from "@/context/AuthContext";
 import { subscribeUserProfile } from "@/services/userService";
 import { UserProfile } from "@/types/user";
 import { getWatchHistory } from "@/lib/watchHistory";
-import { pickBestMoviePoster, toOptimizedPhimimgUrl } from "@/lib/movieMedia";
+import { normalizeMovie, formatGenreName } from "@/lib/movieMedia";
+import MediaCard from "@/components/browse/MediaCard";
 
 export interface ForYouMovieItem {
   slug: string;
@@ -35,7 +34,7 @@ export interface ForYouPersonalizedRowProps {
   fallbackMovies?: any[];
 }
 
-const CACHE_KEY_NAME = "nanaflix_foryou_cache_v5";
+const CACHE_KEY_NAME = "nanaflix_foryou_cache_v6";
 const CACHE_TTL = 15 * 60 * 1000; // 15 phút
 
 // Danh sách fallback catalog siêu phẩm luôn sẵn sàng 0ms không cần API ngoài
@@ -176,9 +175,12 @@ function mapToForYouItems(rawItems: any[]): ForYouMovieItem[] {
         quality: m.quality || "Full HD",
         category: Array.isArray(m.category)
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          ? m.category.map((c: any) => ({ name: typeof c === "string" ? c : c?.name || "Đề Xuất" }))
+          ? m.category.map((c: any) => {
+              const raw = typeof c === "string" ? c : c?.name || "";
+              return { name: formatGenreName(raw) || "Đề Xuất" };
+            })
           : typeof m.category === "string"
-          ? [{ name: m.category }]
+          ? [{ name: formatGenreName(m.category) || "Đề Xuất" }]
           : [{ name: "Đề Xuất" }],
         matchPercentage: m.matchPercentage || getDeterministicMatchPercentage(m.slug || title),
         matchReason: m.matchReason || "Siêu phẩm thịnh hành được đánh giá cao nhất",
@@ -212,8 +214,14 @@ function getCachedData(expectedUid?: string): CachedPayload | null {
       if (expectedUid && parsed.uid && parsed.uid !== expectedUid) {
         return null;
       }
+      const sanitizedItems = parsed.items.map((it: ForYouMovieItem) => ({
+        ...it,
+        category: Array.isArray(it.category)
+          ? it.category.map((c) => ({ name: formatGenreName(c?.name) || "Đề Xuất" }))
+          : [{ name: "Đề Xuất" }],
+      }));
       memoryCachedData = {
-        items: parsed.items,
+        items: sanitizedItems,
         context: parsed.context,
         fingerprint: parsed.fingerprint,
         timestamp: parsed.timestamp || 0,
@@ -419,6 +427,14 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
 
   const displayName = profile?.displayName || user?.displayName || "Bạn";
 
+  const normalizedMovies = useMemo(() => {
+    return (movies || []).map((m) => {
+      const norm = normalizeMovie(m);
+      const bestThumb = norm.thumbUrl || norm.imageUrl;
+      return { norm, bestThumb };
+    });
+  }, [movies]);
+
   return (
     <section className="relative my-8 sm:my-12 select-none">
       {/* HEADER SECTION */}
@@ -515,73 +531,40 @@ function ForYouPersonalizedRowInner({ fallbackMovies }: ForYouPersonalizedRowPro
                 className="flex-none w-[140px] sm:w-[175px] md:w-[195px] aspect-[2/3] rounded-xl bg-zinc-900/80 animate-pulse border border-white/5"
               />
             ))
-          : movies.map((movie) => {
-              const categoryName = movie.category?.[0]?.name;
-
-              return (
-                <div
-                  key={movie.slug}
-                  className="flex-none w-[140px] sm:w-[175px] md:w-[195px] snap-start group select-none"
-                >
-                  <Link
-                    href={`/movies/${movie.slug}`}
-                    className="block relative rounded-xl overflow-hidden bg-zinc-950 border border-white/10 hover:border-emerald-500/40 shadow-[0_10px_30px_rgba(0,0,0,0.7)] hover:shadow-[0_12px_32px_rgba(16,185,129,0.2)] transition-all duration-300 hover:scale-[1.03]"
-                  >
-                    {/* POSTER IMAGE (Chuẩn tỷ lệ 2:3, ưu tiên poster dọc) */}
-                    <div className="relative aspect-[2/3] w-full overflow-hidden bg-zinc-900 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950">
-                      <Image
-                        src={toOptimizedPhimimgUrl(pickBestMoviePoster(movie, "/default-poster.jpg"), 320)}
-                        alt={movie.title || movie.name}
-                        fill
-                        unoptimized
-                        sizes="(max-width: 640px) 180px, (max-width: 1024px) 240px, 300px"
-                        className="object-cover group-hover:scale-105 transition-transform duration-500"
-                        loading="lazy"
-                        quality={85}
-                        onError={(e) => {
-                          const target = e.currentTarget as HTMLImageElement;
-                          if (target) {
-                            if (movie.thumb_url && typeof movie.thumb_url === "string" && movie.thumb_url.includes("-thumb.webp") && target.src !== movie.thumb_url) {
-                              target.src = movie.thumb_url;
-                            } else if (!target.src.includes("/default-poster.jpg")) {
-                              target.srcset = "";
-                              target.src = "/default-poster.jpg";
-                            }
-                          }
-                        }}
-                      />
-
-                      {/* QUALITY TAG GÓC TRÊN PHẢI */}
-                      {movie.quality && (
-                        <div
-                          className={`absolute top-2 right-2 px-2 py-0.5 rounded-md backdrop-blur-md text-[10.5px] font-bold border ${
-                            movie.quality.toUpperCase().includes("CAM")
-                              ? "bg-amber-950/90 text-amber-300 border-amber-500/40"
-                              : "bg-black/80 text-zinc-100 border-white/20"
-                          }`}
-                        >
-                          {movie.quality}
-                        </div>
-                      )}
-
-                      {/* BOTTOM INFO BAR */}
-                      <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/95 via-black/55 to-transparent p-2.5 sm:p-3 pt-8 sm:pt-10">
-                        <p className="text-white text-xs sm:text-[13px] font-bold line-clamp-1 truncate group-hover:text-emerald-300 transition-colors drop-shadow">
-                          {movie.title || movie.name}
-                        </p>
-                        <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-zinc-400 mt-0.5 font-medium">
-                          {movie.year && <span>{movie.year}</span>}
-                          {movie.year && categoryName && <span className="text-zinc-600">•</span>}
-                          {categoryName && (
-                            <span className="text-zinc-300 truncate">{categoryName}</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
-                </div>
-              );
-            })}
+          : normalizedMovies.map(({ norm, bestThumb }, idx) => (
+              <div
+                key={norm.slug || idx}
+                className="flex-none w-[140px] sm:w-[175px] md:w-[195px] snap-start select-none"
+              >
+                <MediaCard
+                  slug={norm.slug}
+                  title={norm.title}
+                  origin_name={norm.origin_name}
+                  imageUrl={bestThumb}
+                  posterUrl={norm.posterUrl}
+                  thumbUrl={norm.thumbUrl}
+                  genre={norm.genre}
+                  description={norm.description}
+                  time={norm.time}
+                  year={norm.year}
+                  rating={norm.score}
+                  quality={norm.quality}
+                  lang={norm.lang}
+                  chieurap={norm.chieurap}
+                  sub_docquyen={norm.sub_docquyen}
+                  actor={norm.actor}
+                  director={norm.director}
+                  country={norm.country}
+                  type_name={norm.type_name}
+                  hasTrailer={norm.hasTrailer}
+                  trailer_url={norm.trailer_url}
+                  isTrailerOnly={norm.isTrailerOnly}
+                  matchSnippet={norm.matchSnippet}
+                  matchType={norm.matchType}
+                  priority={idx < 4}
+                />
+              </div>
+            ))}
         </div>
       </div>
     </section>

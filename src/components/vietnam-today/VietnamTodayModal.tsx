@@ -58,9 +58,14 @@ export function VietnamTodayModal({
   const contentScrollRef = useRef<HTMLDivElement>(null);
 
   const events = React.useMemo(() => {
-    return info.allEventsToday && info.allEventsToday.length > 0
-      ? info.allEventsToday
-      : [info.event];
+    const list =
+      info.allEventsToday && info.allEventsToday.length > 0
+        ? [...info.allEventsToday]
+        : [];
+    if (info.event && !list.some((e) => e.id === info.event.id)) {
+      list.unshift(info.event);
+    }
+    return list.length > 0 ? list : [info.event];
   }, [info.allEventsToday, info.event]);
   const [activeId, setActiveId] = useState<string>(info.event.id);
 
@@ -69,10 +74,13 @@ export function VietnamTodayModal({
     [info.historicalEventsToday]
   );
   
-  // Non-duplicate cultural / national / social holidays
+  // Non-duplicate cultural / national / social holidays & curated commemorative events
   const holidayEvents = React.useMemo(() => {
     return events.filter(
-      (e) => !e.historicalEventId && e.category !== "vietnam-history" && !e.id.startsWith("hist-")
+      (e) =>
+        !e.isHistoricalOnly &&
+        (!e.id.startsWith("he-") || Boolean(e.meaning)) &&
+        (!e.id.startsWith("hist-") || Boolean(e.meaning) || Boolean(e.bannerDescription))
     );
   }, [events]);
 
@@ -95,24 +103,21 @@ export function VietnamTodayModal({
   useEffect(() => {
     if (initialTab) {
       setActiveTab(initialTab);
-    } else if (hasHistory && !hasHoliday) {
-      setActiveTab("history");
-    } else if (
-      info.event &&
-      (info.event.historicalEventId ||
-        info.event.category === "vietnam-history" ||
-        info.event.id.startsWith("hist-"))
-    ) {
+    } else if (hasHoliday) {
+      setActiveTab("holiday");
+    } else if (hasHistory) {
       setActiveTab("history");
     } else {
       setActiveTab("holiday");
     }
-  }, [initialTab, isOpen, info.event, hasHoliday, hasHistory]);
+  }, [initialTab, isOpen, hasHoliday, hasHistory]);
 
   useEffect(() => {
-    setActiveId(info.event.id);
-    setImageError(false);
-  }, [info.event.id]);
+    if (info.event?.id) {
+      setActiveId(info.event.id);
+      setImageError(false);
+    }
+  }, [info.event?.id]);
 
   useEffect(() => {
     if (historicalEvents.length > 0) {

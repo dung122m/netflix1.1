@@ -12,7 +12,7 @@ import {
   Crown,
   Globe,
 } from "lucide-react";
-import { pickBestMoviePoster, toOptimizedPhimimgUrl } from "@/lib/movieMedia";
+import { pickBestMoviePoster, toOptimizedPhimimgUrl, formatGenreName } from "@/lib/movieMedia";
 
 export interface TmdbTrendingCategoryItem {
   id?: string;
@@ -468,11 +468,12 @@ function TmdbTopTrendingInner() {
               const rank = index + 1;
               const movieSlug = movie.slug;
               const movieTitle = movie.name || movie.origin_name || "Phim";
-              const categoryText = Array.isArray(movie.category)
+              const rawCategory = Array.isArray(movie.category)
                 ? (typeof movie.category[0] === "object" ? movie.category[0]?.name : movie.category[0]) || ""
                 : typeof movie.category === "string"
                 ? movie.category
                 : "";
+              const categoryText = formatGenreName(rawCategory);
 
               return (
                 <div
@@ -512,7 +513,7 @@ function TmdbTopTrendingInner() {
                     </div>
 
                     {/* MOVIE POSTER CARD */}
-                    <div className="relative z-10 w-[140px] sm:w-[175px] md:w-[190px] aspect-[2/3] rounded-xl overflow-hidden bg-zinc-950 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950 border border-white/10 shadow-[0_15px_35px_rgba(0,0,0,0.8)] group-hover:border-amber-500/50 group-hover:shadow-[0_18px_40px_rgba(245,158,11,0.25)] transition-all duration-300">
+                    <div className="relative z-10 w-[140px] sm:w-[175px] md:w-[190px] aspect-[2/3] rounded-xl overflow-hidden bg-zinc-950 bg-gradient-to-br from-zinc-800/70 via-zinc-900 to-zinc-950 ring-1 ring-white/10 group-hover:ring-amber-500/60 shadow-[0_12px_30px_rgba(0,0,0,0.8)] group-hover:shadow-[0_18px_40px_rgba(245,158,11,0.25)] transition-all duration-300">
                       {(() => {
                         const rawPoster = pickBestMoviePoster(
                           {
@@ -556,23 +557,29 @@ function TmdbTopTrendingInner() {
                         );
                       })()}
 
-                      {/* QUALITY TAG GÓC TRÊN PHẢI */}
-                      {movie.quality && (
-                        <div className="absolute top-2 right-2 pointer-events-none z-10">
-                          <span
-                            className={`px-2 py-0.5 rounded-md text-[10.5px] font-bold backdrop-blur-md border ${
-                              movie.quality.toUpperCase().includes("CAM")
-                                ? "bg-amber-950/90 text-amber-300 border-amber-500/40"
-                                : "bg-black/80 text-zinc-100 border-white/20"
-                            }`}
-                          >
-                            {movie.quality}
-                          </span>
-                        </div>
-                      )}
+                      {/* CHỈ GIỮ BADGE ĐẶC BIỆT (CAM HOẶC 4K), LOẠI BỎ BADGE FHD/HD PHỔ THÔNG */}
+                      {(() => {
+                        const q = movie.quality?.toUpperCase() || "";
+                        const isCam = q.includes("CAM");
+                        const is4k = q.includes("4K") || q.includes("UHD");
+                        if (!isCam && !is4k) return null;
+                        return (
+                          <div className="absolute top-2 right-2 pointer-events-none z-10">
+                            <span
+                              className={`px-1.5 py-0.5 rounded text-[10px] font-bold backdrop-blur-md border ${
+                                isCam
+                                  ? "bg-amber-950/90 text-amber-300 border-amber-500/40"
+                                  : "bg-black/75 text-zinc-100 border-white/20"
+                              }`}
+                            >
+                              {isCam ? "CAM" : "4K"}
+                            </span>
+                          </div>
+                        );
+                      })()}
 
                       {/* FOOTER INFO BADGE */}
-                      <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/95 via-black/55 to-transparent p-2.5 sm:p-3 pt-8 sm:pt-10">
+                      <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-2.5 sm:p-3 pt-7 sm:pt-8">
                         <p className="text-white text-xs sm:text-[13px] font-bold line-clamp-1 truncate group-hover:text-amber-300 transition-colors drop-shadow">
                           {movieTitle}
                         </p>
