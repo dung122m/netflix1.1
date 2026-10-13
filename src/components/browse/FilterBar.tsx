@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useRef, useCallback, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
 import { movieApi, DEFAULT_GENRES, DEFAULT_COUNTRIES } from "@/services/movieApi";
 import {
@@ -108,8 +109,18 @@ export const FilterBar: React.FC = () => {
     };
   }, []);
 
-  // When searchParams updates, reset optimistic state and pending group
+  // Client-mount guard for createPortal
+  const [isMounted, setIsMounted] = useState(false);
   useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Track latest search params cumulatively to prevent race condition overwrites
+  const latestParamsRef = useRef<URLSearchParams>(new URLSearchParams(searchParams.toString()));
+
+  // When searchParams updates, sync ref, reset optimistic state and pending group
+  useEffect(() => {
+    latestParamsRef.current = new URLSearchParams(searchParams.toString());
     setOptimisticParams({});
     setPendingGroup(null);
   }, [searchParams]);
@@ -127,10 +138,15 @@ export const FilterBar: React.FC = () => {
   const updateQueryParam = useCallback((key: string, value: string) => {
     const groupKey = (key === "type" ? "type" : key === "category" ? "genre" : key === "country" ? "country" : key === "year" ? "year" : key === "sort" ? "sort" : null) as FilterGroup | null;
     
+    const params = new URLSearchParams(latestParamsRef.current.toString());
+    const currentValue = params.get(key) || "";
+    const isTogglingOff = !value || currentValue === value;
+    const nextValue = isTogglingOff ? "" : value;
+
     // 1. Cập nhật nhãn và trạng thái active ngay lập tức (0ms)
     setOptimisticParams((prev) => ({
       ...prev,
-      [key]: value === searchParams.get(key) ? "" : value,
+      [key]: nextValue,
     }));
     if (groupKey) {
       setPendingGroup(groupKey);
@@ -142,26 +158,28 @@ export const FilterBar: React.FC = () => {
       window.dispatchEvent(new Event("app:loading-start"));
     }
 
-    const params = new URLSearchParams(searchParams.toString());
     if (key === "sort") {
-      if (value === "rating" || !value) {
+      if (nextValue === "rating" || !nextValue) {
         params.delete("sort");
       } else {
-        params.set("sort", value);
+        params.set("sort", nextValue);
       }
-    } else if (!value || params.get(key) === value) {
+    } else if (!nextValue) {
       params.delete(key);
     } else {
-      params.set(key, value);
+      params.set(key, nextValue);
     }
     params.delete("page");
+
+    // Lưu vào ref ngay lập tức để các thao tác liên tiếp không bị ghi đè query
+    latestParamsRef.current = params;
     const query = params.toString();
 
     // 3. Thực hiện chuyển trang không chặn UI bằng useTransition
     startTransition(() => {
       router.push(query ? `/browse?${query}` : "/browse", { scroll: false });
     });
-  }, [searchParams, router]);
+  }, [router]);
 
   // Clear single key
   const handleClearKey = useCallback((key: string) => {
@@ -178,15 +196,16 @@ export const FilterBar: React.FC = () => {
       window.dispatchEvent(new Event("app:loading-start"));
     }
 
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(latestParamsRef.current.toString());
     params.delete(key);
     params.delete("page");
+    latestParamsRef.current = params;
     const query = params.toString();
 
     startTransition(() => {
       router.push(query ? `/browse?${query}` : "/browse", { scroll: false });
     });
-  }, [searchParams, router]);
+  }, [router]);
 
   // Clear all filters
   const handleClearAll = useCallback(() => {
@@ -204,7 +223,7 @@ export const FilterBar: React.FC = () => {
       window.dispatchEvent(new Event("app:loading-start"));
     }
 
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(latestParamsRef.current.toString());
     params.delete("type");
     params.delete("category");
     params.delete("country");
@@ -213,12 +232,13 @@ export const FilterBar: React.FC = () => {
     params.delete("actor");
     params.delete("keyword");
     params.delete("page");
+    latestParamsRef.current = params;
     const query = params.toString();
 
     startTransition(() => {
       router.push(query ? `/browse?${query}` : "/browse", { scroll: false });
     });
-  }, [searchParams, router]);
+  }, [router]);
 
   // Resolved display labels
   const activeTypeObj = MOVIE_TYPES.find((t) => t.slug === currentType);
@@ -259,18 +279,24 @@ export const FilterBar: React.FC = () => {
     setDraftCategory(currentCategory);
     setDraftCountry(currentCountry);
     setDraftYear(currentYear);
-    setDraftSort(currentSort);
+    setDraftSort(currentSort || "rating");
     setIsMobileDrawerOpen(true);
   }, [currentType, currentCategory, currentCountry, currentYear, currentSort]);
 
-  const handleApplyMobileDrawer = useCallback(() => {
-    setIsMobileDrawerOpen(false);
+  const handleResetMobileDraft = useCallback(() => {
+    setDraftType("");
+    setDraftCategory("");
+    setDraftCountry("");
+    setDraftYear("");
+    setDraftSort("rating");
+  }, []);
 
+  const handleApplyMobileDrawer = useCallback(() => {
     if (typeof window !== "undefined") {
       window.dispatchEvent(new Event("app:loading-start"));
     }
 
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(latestParamsRef.current.toString());
 
     if (draftType) params.set("type", draftType);
     else params.delete("type");
@@ -291,20 +317,15 @@ export const FilterBar: React.FC = () => {
     }
 
     params.delete("page");
+    latestParamsRef.current = params;
     const query = params.toString();
+
+    setIsMobileDrawerOpen(false);
 
     startTransition(() => {
       router.push(query ? `/browse?${query}` : "/browse", { scroll: false });
     });
-  }, [draftType, draftCategory, draftCountry, draftYear, draftSort, searchParams, router]);
-
-  const handleResetMobileDraft = useCallback(() => {
-    setDraftType("");
-    setDraftCategory("");
-    setDraftCountry("");
-    setDraftYear("");
-    setDraftSort("rating");
-  }, []);
+  }, [draftType, draftCategory, draftCountry, draftYear, draftSort, router]);
 
   const draftActiveCount = [
     Boolean(draftType),
@@ -987,8 +1008,8 @@ export const FilterBar: React.FC = () => {
       )}
 
       {/* 3. MOBILE FILTER DRAWER (BOTTOM SHEET - HIỂN THỊ TRÊN MOBILE < 640px) */}
-      {isMobileDrawerOpen && (
-        <div className="fixed inset-0 z-[60] sm:hidden select-none">
+      {isMobileDrawerOpen && isMounted && createPortal(
+        <div className="fixed inset-0 z-[9999] sm:hidden select-none">
           {/* Lớp nền mờ tối (Backdrop Overlay) */}
           <div
             className="fixed inset-0 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200 cursor-pointer"
@@ -1001,7 +1022,7 @@ export const FilterBar: React.FC = () => {
             role="dialog"
             aria-modal="true"
             aria-label="Bảng điều khiển bộ lọc phim"
-            className="fixed inset-x-0 bottom-0 z-[70] max-h-[85vh] flex flex-col rounded-t-3xl bg-zinc-950 border-t border-white/15 shadow-[0_-16px_50px_rgba(0,0,0,0.95)] animate-in slide-in-from-bottom duration-200"
+            className="fixed inset-x-0 bottom-0 z-[10000] max-h-[85vh] flex flex-col rounded-t-3xl bg-zinc-950 border-t border-white/15 shadow-[0_-16px_50px_rgba(0,0,0,0.95)] animate-in slide-in-from-bottom duration-200"
           >
             {/* Thanh nắm kéo (Grab Handle) */}
             <div className="w-12 h-1.5 rounded-full bg-zinc-700/80 mx-auto my-2.5 shrink-0" />
@@ -1027,8 +1048,8 @@ export const FilterBar: React.FC = () => {
               </button>
             </div>
 
-            {/* Danh sách các nhóm bộ lọc có thể cuộn */}
-            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {/* Danh sách các nhóm bộ lọc có thể cuộn (min-h-0 bảo đảm footer không bị đẩy tràn màn hình) */}
+            <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden overscroll-contain">
               {/* NHÓM 1: SẮP XẾP */}
               <div className="space-y-2">
                 <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
@@ -1124,7 +1145,7 @@ export const FilterBar: React.FC = () => {
                     </button>
                   )}
                 </div>
-                <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto pr-1">
+                <div className="flex flex-wrap gap-1.5">
                   <button
                     type="button"
                     onClick={() => setDraftCategory("")}
@@ -1206,11 +1227,11 @@ export const FilterBar: React.FC = () => {
               </div>
 
               {/* NHÓM 5: NĂM PHÁT HÀNH */}
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
                     <Calendar className="w-3.5 h-3.5 text-emerald-400" />
-                    Năm phát hành
+                    <span>Năm phát hành</span>
                   </span>
                   {draftYear && (
                     <button
@@ -1222,14 +1243,16 @@ export const FilterBar: React.FC = () => {
                     </button>
                   )}
                 </div>
-                <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto pr-1">
+
+                {/* Grid 5 cột cân xứng hoàn hảo trên mọi điện thoại - Không bị thanh cuộn lồng */}
+                <div className="grid grid-cols-5 gap-1.5">
                   <button
                     type="button"
                     onClick={() => setDraftYear("")}
-                    className={`py-1.5 px-3 rounded-xl border text-xs font-semibold transition active:scale-95 cursor-pointer ${
+                    className={`py-2 px-1 text-center rounded-xl border text-xs font-semibold transition active:scale-95 cursor-pointer ${
                       !draftYear
-                        ? "bg-emerald-600 text-white font-bold border-emerald-400"
-                        : "bg-zinc-900/90 border-white/10 text-zinc-300"
+                        ? "bg-emerald-600 text-white font-bold border-emerald-400 shadow-md shadow-emerald-950/40"
+                        : "bg-zinc-900/90 border-white/10 text-zinc-300 hover:bg-zinc-800"
                     }`}
                   >
                     Tất cả
@@ -1241,10 +1264,10 @@ export const FilterBar: React.FC = () => {
                         key={y}
                         type="button"
                         onClick={() => setDraftYear(isSelected ? "" : y)}
-                        className={`py-1.5 px-3 rounded-xl border text-xs font-semibold transition active:scale-95 cursor-pointer ${
+                        className={`py-2 px-1 text-center rounded-xl border text-xs font-semibold transition active:scale-95 cursor-pointer ${
                           isSelected
-                            ? "bg-emerald-600 text-white font-bold border-emerald-400 shadow-sm"
-                            : "bg-zinc-900/90 border-white/10 text-zinc-300"
+                            ? "bg-emerald-600 text-white font-bold border-emerald-400 shadow-md shadow-emerald-950/40"
+                            : "bg-zinc-900/90 border-white/10 text-zinc-300 hover:bg-zinc-800"
                         }`}
                       >
                         {y}
@@ -1255,26 +1278,31 @@ export const FilterBar: React.FC = () => {
               </div>
             </div>
 
-            {/* Chân Bottom Sheet dính cố định (Sticky Footer) */}
-            <div className="px-4 py-3 border-t border-white/10 bg-zinc-950/98 flex items-center gap-3 shrink-0 pb-[calc(env(safe-area-inset-bottom,0px)+16px)]">
+            {/* Chân Bottom Sheet dính cố định (Sticky Footer - Không bao giờ bị che khuất) */}
+            <div className="px-4 py-3 border-t border-white/10 bg-zinc-950/98 backdrop-blur-md flex items-center gap-3 shrink-0 pb-[max(0.75rem,calc(env(safe-area-inset-bottom,0px)+12px))] shadow-[0_-8px_20px_rgba(0,0,0,0.6)]">
               <button
                 type="button"
                 onClick={handleResetMobileDraft}
-                className="h-11 px-4 rounded-xl border border-white/15 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-bold text-xs active:scale-95 transition cursor-pointer"
+                className="h-12 px-4 rounded-xl border border-white/15 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-bold text-xs active:scale-95 transition cursor-pointer"
               >
                 Đặt lại
               </button>
               <button
                 type="button"
                 onClick={handleApplyMobileDrawer}
-                className="flex-1 h-11 rounded-xl bg-netflix-red hover:bg-red-700 text-white font-bold text-xs shadow-lg shadow-red-950/50 flex items-center justify-center gap-2 active:scale-95 transition cursor-pointer"
+                className="flex-1 h-12 rounded-xl bg-netflix-red hover:bg-red-700 text-white font-bold text-sm shadow-lg shadow-red-950/60 flex items-center justify-center gap-2 active:scale-95 transition cursor-pointer"
               >
                 <span>Áp dụng bộ lọc</span>
-                {draftActiveCount > 0 && <span>({draftActiveCount})</span>}
+                {draftActiveCount > 0 && (
+                  <span className="px-2 py-0.5 rounded-full bg-black/25 text-white text-xs font-extrabold">
+                    ({draftActiveCount})
+                  </span>
+                )}
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
