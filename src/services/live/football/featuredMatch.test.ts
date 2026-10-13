@@ -343,7 +343,21 @@ describe("Featured Match (Trận Cầu Tâm Điểm) Multi-Criteria Classificati
     assert.strictEqual(res.isFeatured, false);
   });
 
-  it("29. Ngưỡng nguồn phát: Đạt 20 nguồn hợp lệ -> Gắn nhãn chung TÂM ĐIỂM", () => {
+  // =========================================================================
+  // 5. LOẠI BỎ ĐIỀU KIỆN SỐ NGUỒN PHÁT (TRÁNH GẮN NHÃN BỪA BÃI CHO TRẬN THÔNG THƯỜNG)
+  // =========================================================================
+  it("28. Trận thông thường dù có 19 nguồn vẫn là isFeatured: false", () => {
+    const res = isFeaturedMatch({
+      title: "Fulham vs Brentford",
+      team1: "Fulham",
+      team2: "Brentford",
+      tournament: "Ngoại Hạng Anh",
+      validServersCount: 19,
+    });
+    assert.strictEqual(res.isFeatured, false);
+  });
+
+  it("29. Trận thông thường có 20 hoặc 23 nguồn KHÔNG tự động biến thành TÂM ĐIỂM", () => {
     const res = isFeaturedMatch({
       title: "Fulham vs Brentford",
       team1: "Fulham",
@@ -351,31 +365,42 @@ describe("Featured Match (Trận Cầu Tâm Điểm) Multi-Criteria Classificati
       tournament: "Ngoại Hạng Anh",
       validServersCount: 20,
     });
-    assert.strictEqual(res.isFeatured, true);
-    assert.strictEqual(res.badgeLabel, "TÂM ĐIỂM");
-    assert.strictEqual(res.reason, "high_demand_sources");
+    assert.strictEqual(res.isFeatured, false, "Fulham vs Brentford không phải marquee team/derby/cup final, dù 20 nguồn vẫn false");
   });
 
-  it("30. Ngưỡng nguồn phát: 21 nguồn -> Gắn nhãn chung TÂM ĐIỂM", () => {
-    const res = isFeaturedMatch({
-      title: "Fulham vs Brentford",
-      team1: "Fulham",
-      team2: "Brentford",
-      tournament: "Ngoại Hạng Anh",
-      validServersCount: 21,
+  it("30. Kiểm tra trực tiếp các trận giải châu Á có 20-23 nguồn (Pohang, Shanghai Port, Kyoto Sanga) -> isFeatured: false", () => {
+    const m1 = isFeaturedMatch({
+      title: "Pohang Steelers vs Johor Darul Ta'zim FC",
+      team1: "Pohang Steelers",
+      team2: "Johor Darul Ta'zim FC",
+      tournament: "Giải Đấu Khác",
+      validServersCount: 22,
     });
-    assert.strictEqual(res.isFeatured, true);
-    assert.strictEqual(res.badgeLabel, "TÂM ĐIỂM");
-    assert.strictEqual(res.reason, "high_demand_sources");
+    assert.strictEqual(m1.isFeatured, false);
+
+    const m2 = isFeaturedMatch({
+      title: "Shanghai Port vs Daejeon Hana Citizen",
+      team1: "Shanghai Port",
+      team2: "Daejeon Hana Citizen",
+      tournament: "Giải Đấu Khác",
+      validServersCount: 23,
+    });
+    assert.strictEqual(m2.isFeatured, false);
+
+    const m3 = isFeaturedMatch({
+      title: "Kyoto Sanga vs Ratchaburi",
+      team1: "Kyoto Sanga",
+      team2: "Ratchaburi",
+      tournament: "Giải Đấu Khác",
+      validServersCount: 20,
+    });
+    assert.strictEqual(m3.isFeatured, false);
   });
 
-  it("31. Deduplication: 25 bản ghi server nhưng chỉ có 19 URL khác nhau sau chuẩn hóa -> KHÔNG đạt 20 nguồn", () => {
-    // 19 base URLs khác nhau
+  it("31. Deduplication: Helper countUniqueServers đếm chuẩn xác URL unique sau khi lọc proxy", () => {
     const baseUrls = Array.from({ length: 19 }, (_, i) => `https://stream-cdn-${i + 1}.example.com/live/stream.m3u8`);
-    // Tạo 25 servers trong đó 6 server bị trùng URL (qua proxy unwrap hoặc query param)
     const servers: Array<{ url: string }> = [
       ...baseUrls.map((url) => ({ url })),
-      // 6 bản ghi trùng lặp:
       { url: `https://stream-cdn-1.example.com/live/stream.m3u8?token=xyz123` },
       { url: `/api/live-football/proxy?url=${encodeURIComponent("https://stream-cdn-2.example.com/live/stream.m3u8")}` },
       { url: `/api/live-football/proxy?url=${encodeURIComponent("https://stream-cdn-3.example.com/live/stream.m3u8?auth=abc")}` },
@@ -395,10 +420,10 @@ describe("Featured Match (Trận Cầu Tâm Điểm) Multi-Criteria Classificati
       tournament: "La Liga",
       servers,
     });
-    assert.strictEqual(res.isFeatured, false, "19 nguồn độc lập không được coi là đạt ngưỡng 20");
+    assert.strictEqual(res.isFeatured, false);
   });
 
-  it("32. Deduplication: 20 nguồn độc lập thực sự qua danh sách servers -> Đạt Tâm Điểm", () => {
+  it("32. Trận đấu bình thường dù có danh sách 20 server độc lập cũng KHÔNG thành Tâm Điểm", () => {
     const servers = Array.from({ length: 20 }, (_, i) => ({
       url: `https://source-${i + 1}.livecdn.net/hls/feed.m3u8`,
     }));
@@ -412,9 +437,7 @@ describe("Featured Match (Trận Cầu Tâm Điểm) Multi-Criteria Classificati
       tournament: "La Liga",
       servers,
     });
-    assert.strictEqual(res.isFeatured, true);
-    assert.strictEqual(res.badgeLabel, "TÂM ĐIỂM");
-    assert.strictEqual(res.reason, "high_demand_sources");
+    assert.strictEqual(res.isFeatured, false, "Getafe vs Osasuna không được gán Tâm Điểm chỉ vì có 20 link stream");
   });
 
   // =========================================================================
@@ -496,5 +519,32 @@ describe("Featured Match (Trận Cầu Tâm Điểm) Multi-Criteria Classificati
       tournament: "",
     });
     assert.strictEqual(res.isFeatured, false);
+  });
+
+  it("39. Youth & Reserve Guard: Trận đấu cấp độ trẻ (Arsenal U19 vs Tiểu U19) < 20 nguồn -> KHÔNG Tâm Điểm", () => {
+    const res = isFeaturedMatch({
+      title: "Arsenal U19 vs Tiểu U19",
+      team1: "Arsenal U19",
+      team2: "Tiểu U19",
+      tournament: "Giải Đấu Khác",
+      validServersCount: 2,
+    });
+    assert.strictEqual(res.isFeatured, false, "Trận U19 của CLB lớn không được tính là trận cầu tâm điểm đội 1");
+    assert.strictEqual(isProminentTeam("Arsenal U19"), false, "Arsenal U19 không phải là đội 1 marquee club");
+    assert.strictEqual(isProminentTeam("Chelsea U21"), false);
+    assert.strictEqual(isProminentTeam("Barcelona B"), false);
+  });
+
+  it("40. Senior Club: Trận đội 1 của Arsenal (Arsenal vs Ipswich) vẫn là TÂM ĐIỂM", () => {
+    const res = isFeaturedMatch({
+      title: "Arsenal vs Ipswich Town",
+      team1: "Arsenal",
+      team2: "Ipswich Town",
+      tournament: "Premier League",
+      validServersCount: 2,
+    });
+    assert.strictEqual(res.isFeatured, true);
+    assert.strictEqual(res.badgeLabel, "TÂM ĐIỂM");
+    assert.strictEqual(res.reason, "prominent_team");
   });
 });

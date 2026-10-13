@@ -42,6 +42,11 @@ export function getEventActionLabel(event: VietnamEvent): string {
     return event.relatedLabel;
   }
 
+  // Tôn vinh doanh nhân / ngày doanh nhân
+  if (titleLower.includes("doanh nhân") || idLower.includes("doanh-nhan")) {
+    return "Tôn vinh Doanh nhân Việt Nam";
+  }
+
   switch (event.nature) {
     case "official-holiday":
       return "Tìm hiểu ngày đại lễ";

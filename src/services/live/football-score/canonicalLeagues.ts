@@ -27,6 +27,7 @@ export const LEAGUE_CANONICAL_MAP: Record<string, string> = {
  * Danh sách các pattern từ khóa giải đấu trong tiêu đề trận đấu hoặc tên giải thô
  */
 const TITLE_TOURNAMENT_PATTERNS: Array<{ regex: RegExp; name: string }> = [
+  { regex: /\b(?:uefa\s*youth\s*league|youth\s*league|c1\s*u\s*19|ucl\s*u\s*19)\b/i, name: "UEFA Youth League" },
   { regex: /\b(?:champions\s*league|cúp\s*c1|cup\s*c1|\bucl\b)\b/i, name: "UEFA Champions League" },
   { regex: /\b(?:europa\s*league|cúp\s*c2|cup\s*c2|\buel\b)\b/i, name: "UEFA Europa League" },
   { regex: /\b(?:conference\s*league|cúp\s*c3|cup\s*c3|\buecl\b)\b/i, name: "UEFA Conference League" },
@@ -48,6 +49,12 @@ const TITLE_TOURNAMENT_PATTERNS: Array<{ regex: RegExp; name: string }> = [
   { regex: /\b(?:copa\s*del\s*rey)\b/i, name: "Copa del Rey" },
   { regex: /\b(?:nba)\b/i, name: "Giải Bóng Rổ NBA" },
   { regex: /\b(?:vba)\b/i, name: "Giải Bóng Rổ VBA" },
+  { regex: /\b(?:easl|east\s*asia\s*super\s*league)\b/i, name: "Giải Bóng Rổ EASL" },
+  { regex: /\b(?:pba|philippine\s*basketball)\b/i, name: "Giải Bóng Rổ PBA" },
+  { regex: /\b(?:kbl|korean\s*basketball)\b/i, name: "Giải Bóng Rổ KBL" },
+  { regex: /\b(?:mpbl)\b/i, name: "Giải Bóng Rổ MPBL" },
+  { regex: /\b(?:euroleague|euro\s*league)\b/i, name: "Giải Bóng Rổ EuroLeague" },
+  { regex: /\b(?:cba|chinese\s*basketball)\b/i, name: "Giải Bóng Rổ CBA" },
 ];
 
 /**
@@ -162,6 +169,18 @@ export function resolveCanonicalTournament(params: {
   score?: LiveMatchScore | null;
 }): string {
   const { tournament, title, sport, score } = params;
+  const searchCorpus = `${title || ""} ${tournament || ""}`;
+  const teamsCorpus = `${params.team1 || ""} ${params.team2 || ""}`;
+  const fullCorpus = `${searchCorpus} ${teamsCorpus}`.trim();
+
+  // Guard đặc biệt: Trận đấu trẻ (U17, U18, U19, U21) có yếu tố C1/UEFA -> luôn là UEFA Youth League
+  const isYouthSoccer = /\b(?:u\s*(?:17|18|19|20|21)|youth|academy)\b/i.test(fullCorpus);
+  if (
+    isYouthSoccer &&
+    (/\b(?:uefa|youth\s*league|champions|ucl|c1)\b/i.test(fullCorpus) || score?.leagueSlug === "uefa.champions")
+  ) {
+    return "UEFA Youth League";
+  }
 
   // 1. TẦNG 1: Ưu tiên số 1 - Metadata đã xác minh từ Scoreboard event (leagueSlug)
   if (score?.leagueSlug && LEAGUE_CANONICAL_MAP[score.leagueSlug]) {
@@ -169,7 +188,6 @@ export function resolveCanonicalTournament(params: {
   }
 
   // 2. TẦNG 2: Nhận diện từ Title hoặc Tournament string có từ khóa giải đấu rõ ràng
-  const searchCorpus = `${title || ""} ${tournament || ""}`;
   for (const pattern of TITLE_TOURNAMENT_PATTERNS) {
     if (pattern.regex.test(searchCorpus)) {
       return pattern.name;

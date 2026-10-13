@@ -129,16 +129,16 @@ const NavbarInner: React.FC = () => {
 
   return (
     <nav
-      className={`nanaflix-navbar fixed top-0 left-0 right-0 w-full z-50 transition-[background-color,border-color,box-shadow,padding-top,padding-bottom] duration-300 h-[52px] sm:h-[56px] md:h-auto flex items-center ${
+      className={`nanaflix-navbar fixed top-0 left-0 right-0 w-full z-50 transition-[background-color,border-color,box-shadow,padding-top,padding-bottom] duration-300 ${
         showBackground || isMobileMenuOpen
-          ? "bg-black/95 backdrop-blur-sm border-b border-white/10 shadow-lg py-2.5"
-          : "bg-black/80 backdrop-blur-md border-b border-white/10 sm:border-transparent sm:bg-gradient-to-b sm:from-black/90 sm:via-black/50 sm:to-transparent py-2.5 sm:py-3.5"
+          ? "bg-black/95 backdrop-blur-sm border-b border-white/10 shadow-lg py-1.5 sm:py-2"
+          : "bg-black/80 backdrop-blur-md border-b border-white/10 sm:border-transparent sm:bg-gradient-to-b sm:from-black/90 sm:via-black/50 sm:to-transparent py-1.5 sm:py-2.5"
       }`}
     >
       {/* CINEMATIC LIVING NAVBAR ATMOSPHERE (PHÍA SAU UI) */}
       <HolidayNavbarAtmosphere />
 
-      <div className="flex items-center justify-between px-3 sm:px-6 lg:px-8 max-w-[1700px] mx-auto gap-2 sm:gap-4 relative z-10 w-full">
+      <div className="flex items-center justify-between px-3 sm:px-6 lg:px-8 max-w-[1700px] mx-auto gap-2 sm:gap-4 relative z-10 w-full min-h-[44px] sm:min-h-[48px]">
         {/* LOGO & DESKTOP NAV */}
         <div className="flex items-center gap-3 sm:gap-6 lg:gap-7 flex-shrink-0 min-w-0">
           <Link

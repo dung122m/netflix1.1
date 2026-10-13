@@ -1244,19 +1244,22 @@ export const FilterBar: React.FC = () => {
                   )}
                 </div>
 
-                {/* Grid 5 cột cân xứng hoàn hảo trên mọi điện thoại - Không bị thanh cuộn lồng */}
-                <div className="grid grid-cols-5 gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => setDraftYear("")}
-                    className={`py-2 px-1 text-center rounded-xl border text-xs font-semibold transition active:scale-95 cursor-pointer ${
-                      !draftYear
-                        ? "bg-emerald-600 text-white font-bold border-emerald-400 shadow-md shadow-emerald-950/40"
-                        : "bg-zinc-900/90 border-white/10 text-zinc-300 hover:bg-zinc-800"
-                    }`}
-                  >
-                    Tất cả
-                  </button>
+                {/* Nút Tất cả các năm to rõ, nằm riêng ở trên */}
+                <button
+                  type="button"
+                  onClick={() => setDraftYear("")}
+                  className={`w-full py-2.5 px-3 rounded-xl border text-xs font-bold transition active:scale-[0.98] cursor-pointer flex items-center justify-between ${
+                    !draftYear
+                      ? "bg-emerald-600 text-white border-emerald-400 shadow-md shadow-emerald-950/40"
+                      : "bg-zinc-900/90 border-white/10 text-zinc-300 hover:bg-zinc-800"
+                  }`}
+                >
+                  <span>Tất cả các năm</span>
+                  {!draftYear && <Check className="w-3.5 h-3.5 text-white" />}
+                </button>
+
+                {/* Lưới 4 cột đối xứng tuyệt đối (đúng 6 hàng x 4 năm = 24 năm, thẳng tắp không lượn sóng) */}
+                <div className="grid grid-cols-4 gap-1.5">
                   {filters.years.slice(0, 24).map((y) => {
                     const isSelected = draftYear === y;
                     return (
@@ -1264,7 +1267,7 @@ export const FilterBar: React.FC = () => {
                         key={y}
                         type="button"
                         onClick={() => setDraftYear(isSelected ? "" : y)}
-                        className={`py-2 px-1 text-center rounded-xl border text-xs font-semibold transition active:scale-95 cursor-pointer ${
+                        className={`py-2 px-1 text-center rounded-xl border text-xs sm:text-sm font-semibold transition active:scale-95 cursor-pointer ${
                           isSelected
                             ? "bg-emerald-600 text-white font-bold border-emerald-400 shadow-md shadow-emerald-950/40"
                             : "bg-zinc-900/90 border-white/10 text-zinc-300 hover:bg-zinc-800"

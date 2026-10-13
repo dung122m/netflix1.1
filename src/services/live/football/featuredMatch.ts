@@ -177,6 +177,13 @@ const NON_PROMINENT_COLLISION_KEYS = new Set<string>([
 ]);
 
 /**
+ * Regex phát hiện các đội trẻ (U15, U17, U18, U19, U20, U21, U23...), đội B, đội dự bị (Castilla, Youth, Academy...)
+ * Tuyệt đối không nhận nhầm đội trẻ / đội dự bị thành đội 1 (Senior / First Team) của các CLB lớn.
+ */
+export const YOUTH_OR_RESERVE_TEAM_REGEX =
+  /\b(?:u\s*\d{1,2}|under[- ]?\d{1,2}|sub[- ]?\d{1,2}|youth|academy|reserves?|castilla|\bjong\b|\bii\b|\biii\b|\bb\b)\b/i;
+
+/**
  * Kiểm tra xem một đội bóng có thuộc danh sách CLB / ĐTQG nổi bật được quan tâm rộng rãi hay không.
  * Bảo vệ nghiêm ngặt chống nhận diện nhầm CLB thông qua tiền tố/hậu tố chung.
  */
@@ -186,6 +193,14 @@ export function isProminentTeam(name?: string): boolean {
   // 1. Tuyệt đối loại trừ các CLB bị trùng tiền tố/hậu tố chung với CLB lớn
   if (NON_PROMINENT_NAME_REGEX.test(name)) {
     return false;
+  }
+
+  // 2. Tuyệt đối loại trừ các đội trẻ, đội dự bị, đội B (U19, U21, Youth, Reserves...)
+  if (YOUTH_OR_RESERVE_TEAM_REGEX.test(name)) {
+    const isVietnamU23 = /\b(?:viet\s*nam|vn)\b/i.test(name) && /\bu\s*23\b/i.test(name);
+    if (!isVietnamU23) {
+      return false;
+    }
   }
 
   const logoKey = normalizeTeamKey(name);
@@ -278,8 +293,7 @@ export function countUniqueServers(
  * 1. Nhóm A - Vòng đấu đặc biệt: Chung kết, Siêu cúp, Bán kết, Tứ kết, Vòng 1/8.
  * 2. Nhóm B - Marquee Rivalries / Derbies: El Clásico, Derby Milano, Manchester Derby, Merseyside Derby...
  * 3. Nhóm C - Có ít nhất một đội nổi bật (Marquee Club / ĐTQG được quan tâm) -> Gắn nhãn "TÂM ĐIỂM".
- * 4. Nhóm D - Ngưỡng 20 nguồn phát độc lập hợp lệ (High Demand) -> Gắn nhãn chung "TÂM ĐIỂM".
- * 5. Nhóm E - Trận thông thường: isFeatured = false.
+ * 4. Nhóm D - Trận thông thường: isFeatured = false (không gán nhãn bừa bãi chỉ vì số lượng link phát kỹ thuật).
  */
 export function isFeaturedMatch(params: {
   title: string;
@@ -370,7 +384,13 @@ export function isFeaturedMatch(params: {
   }
 
   // 3. Nhóm C: Có ít nhất một đội nổi bật (CLB hoặc ĐTQG thuộc danh sách được quan tâm rộng rãi)
-  if (isProminentTeam(team1) || isProminentTeam(team2)) {
+  // Guard: Không áp dụng Nhóm C cho các trận đấu cấp độ trẻ / đội trẻ (U15 - U21, Youth League...)
+  const isYouthMatch =
+    YOUTH_OR_RESERVE_TEAM_REGEX.test(team1) ||
+    YOUTH_OR_RESERVE_TEAM_REGEX.test(team2) ||
+    /\b(?:u\s*\d{1,2}|youth\s*league|giai\s*tre)\b/i.test(titleCorpus);
+
+  if (!isYouthMatch && (isProminentTeam(team1) || isProminentTeam(team2))) {
     return {
       isFeatured: true,
       badgeLabel: "TÂM ĐIỂM",
@@ -378,21 +398,7 @@ export function isFeaturedMatch(params: {
     };
   }
 
-  // 4. Nhóm D: Tích hợp ngưỡng 20 nguồn phát độc lập hợp lệ (High Demand)
-  const uniqueServersCount =
-    typeof params.validServersCount === "number" && !isNaN(params.validServersCount)
-      ? Math.max(0, params.validServersCount)
-      : countUniqueServers(params.servers);
-
-  if (uniqueServersCount >= 20) {
-    return {
-      isFeatured: true,
-      badgeLabel: "TÂM ĐIỂM",
-      reason: "high_demand_sources",
-    };
-  }
-
-  // 5. Nhóm E: Trận đấu thông thường
+  // 4. Nhóm D: Trận đấu thông thường (không thỏa mãn các tiêu chí thực chất)
   return {
     isFeatured: false,
   };

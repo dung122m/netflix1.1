@@ -18,6 +18,15 @@ export function cleanRawTeamString(raw: string): string {
     .trim();
 }
 
+const YOUTH_AGE_GROUP_REGEX =
+  /\b(?:u\s*(\d{1,2})|under[- ]?(\d{1,2})|sub[- ]?(\d{1,2})|youth|academy|reserves?|castilla|\bjong\b|\bii\b|\biii\b|\bb\b)\b/i;
+
+function getTeamAgeCategory(name: string): string {
+  const m = name.match(YOUTH_AGE_GROUP_REGEX);
+  if (!m) return "senior";
+  return (m[1] || m[2] || m[3] || m[0]).toLowerCase();
+}
+
 /**
  * Kiểm tra xem hai tên đội bóng có đại diện cho cùng một đội hay không:
  * 1. Tra cứu qua từ điển tài sản đội bóng đã xác minh (teamAssets - ESPN canonical name)
@@ -29,6 +38,11 @@ export function isSameTeam(nameA: string, nameB: string): boolean {
   const cleanA = cleanRawTeamString(nameA);
   const cleanB = cleanRawTeamString(nameB);
   if (!cleanA || !cleanB) return false;
+
+  // 0. Guard tuyệt đối: Không bao giờ ghép đội trẻ / đội dự bị (U15 - U23, Youth...) với đội 1 Senior
+  if (getTeamAgeCategory(cleanA) !== getTeamAgeCategory(cleanB)) {
+    return false;
+  }
 
   // 1. So khớp qua Canonical Asset trong teamAssets
   const assetA = getTeamAsset(cleanA) || getTeamAsset(nameA);

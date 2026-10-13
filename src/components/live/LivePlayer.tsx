@@ -209,6 +209,7 @@ interface LivePlayerProps {
   onSelectMatch?: (match: FootballMatch) => void;
   score?: LiveMatchScore | null;
   summary?: NormalizedMatchSummary | null;
+  onVideoHeightChange?: (height: number) => void;
 }
 
 /**
@@ -498,6 +499,7 @@ function LivePlayerInner({
   onCloseMatchRail,
   score,
   summary,
+  onVideoHeightChange,
 }: LivePlayerProps) {
   const currentScore = score || match?.score || null;
   const displayStatus = useMemo(
@@ -529,6 +531,28 @@ function LivePlayerInner({
   const refereeName = summary?.gameInfo?.referee;
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Đồng bộ chiều cao video container sang Side Panel trên desktop để 2 cột luôn cân bằng chuẩn xác
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || !onVideoHeightChange) return;
+
+    const handleResize = () => {
+      if (typeof window !== "undefined" && window.innerWidth >= 1024) {
+        onVideoHeightChange(el.offsetHeight);
+      }
+    };
+
+    handleResize();
+    const ro = new ResizeObserver(handleResize);
+    ro.observe(el);
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [onVideoHeightChange, match?.id]);
   const hlsRef = useRef<Hls | null>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const actionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -2611,264 +2635,265 @@ function LivePlayerInner({
       </>
     ) : null;
 
-  return (
-    <div className="space-y-2.5 sm:space-y-3">
-      {/* 1. SCOREBOARD HEADER SÂN CỎ ĐỈNH CAO: AMBIENT GLOW & HUY HIỆU CLB SẮC NÉT */}
-      <div className="relative rounded-2xl sm:rounded-3xl border border-white/10 bg-gradient-to-b from-zinc-900/90 via-zinc-950/95 to-zinc-950 px-3.5 py-2.5 sm:px-4 sm:py-3 shadow-xl overflow-hidden w-full min-w-0 backdrop-blur-xl">
-        {/* Glow hiệu ứng sân vận động 2 bên */}
-        <div className="pointer-events-none absolute -top-24 left-1/4 w-96 h-96 bg-red-600/15 rounded-full blur-3xl" />
-        <div className="pointer-events-none absolute -top-24 right-1/4 w-96 h-96 bg-sky-600/15 rounded-full blur-3xl" />
+  const scoreboardMarkup = (
+    <div className="relative rounded-2xl sm:rounded-3xl border border-white/10 bg-gradient-to-b from-zinc-900/90 via-zinc-950/95 to-zinc-950 px-3.5 py-2.5 sm:px-4 sm:py-3 shadow-xl overflow-hidden w-full min-w-0 backdrop-blur-xl">
+      {/* Glow hiệu ứng sân vận động 2 bên */}
+      <div className="pointer-events-none absolute -top-24 left-1/4 w-96 h-96 bg-red-600/15 rounded-full blur-3xl" />
+      <div className="pointer-events-none absolute -top-24 right-1/4 w-96 h-96 bg-sky-600/15 rounded-full blur-3xl" />
 
-        {isEvent || !team1 || !team2 || team1.trim().toLowerCase() === team2.trim().toLowerCase() ? (
-          <div className="relative z-10 w-full flex flex-col items-center justify-center text-center py-2">
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] text-rose-400 bg-rose-500/15 border border-rose-500/30 px-2.5 py-0.5 rounded-full">
-                Kênh / Sự kiện
+      {isEvent || !team1 || !team2 || team1.trim().toLowerCase() === team2.trim().toLowerCase() ? (
+        <div className="relative z-10 w-full flex flex-col items-center justify-center text-center py-2">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] text-rose-400 bg-rose-500/15 border border-rose-500/30 px-2.5 py-0.5 rounded-full">
+              Kênh / Sự kiện
+            </span>
+            {time && time !== "Trực tiếp" && (
+              <span className="text-[10px] sm:text-xs font-bold text-gray-300 bg-white/10 px-2 py-0.5 rounded-full border border-white/10">
+                ⏰ {time}
               </span>
+            )}
+          </div>
+          <h2 className="mt-1 text-lg sm:text-2xl font-black text-white tracking-wide">
+            {title}
+          </h2>
+        </div>
+      ) : (
+        <div className="relative z-10 flex flex-col gap-2 sm:gap-2.5">
+          {/* 1. TOP BAR: GIẢI ĐẤU & THỜI GIAN THI ĐẤU */}
+          <div className="flex items-center justify-between gap-2 border-b border-white/[0.08] pb-1.5">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              {(() => {
+                const displayTournament = resolveCanonicalTournament({
+                  tournament: match?.tournament,
+                  title: title || match?.title,
+                  sport: match?.sport,
+                  team1: match?.team1,
+                  team2: match?.team2,
+                  score,
+                });
+                return (
+                  <span
+                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-white/5 border border-white/10 text-zinc-300 text-[10.5px] sm:text-xs font-semibold shadow-sm max-w-full truncate"
+                    title={displayTournament}
+                  >
+                    <span className="shrink-0 text-xs">🏆</span>
+                    <span className="truncate">{displayTournament}</span>
+                  </span>
+                );
+              })()}
               {time && time !== "Trực tiếp" && (
-                <span className="text-[10px] sm:text-xs font-bold text-gray-300 bg-white/10 px-2 py-0.5 rounded-full border border-white/10">
+                <span className="text-[10px] sm:text-xs font-bold text-gray-400 bg-white/5 px-2 py-0.5 rounded-md border border-white/10 hidden sm:inline-block shrink-0">
                   ⏰ {time}
                 </span>
               )}
             </div>
-            <h2 className="mt-1 text-lg sm:text-2xl font-black text-white tracking-wide">
-              {title}
-            </h2>
+
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+              {(blv || match?.blv) && (
+                <span
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-300 text-[10px] sm:text-xs font-medium shadow-sm max-w-[130px] sm:max-w-[200px] truncate"
+                  title={`BLV: ${blv || match?.blv}`}
+                >
+                  <span className="shrink-0 text-[11px]">🎙️</span>
+                  <span className="truncate">
+                    {(() => {
+                      const raw = (blv || match?.blv || "").replace(/^(?:blv|bình luận viên)\s+/i, "");
+                      const parts = raw.split(",").map((p) => p.trim()).filter(Boolean);
+                      if (parts.length === 0) return "BLV";
+                      if (parts.length <= 2) return `BLV ${parts.join(", ")}`;
+                      return `BLV ${parts.slice(0, 2).join(", ")} (+${parts.length - 2})`;
+                    })()}
+                  </span>
+                </span>
+              )}
+            </div>
           </div>
-        ) : (
-          <div className="relative z-10 flex flex-col gap-2 sm:gap-2.5">
-            {/* 1. TOP BAR: GIẢI ĐẤU, BLV & CHẤT LƯỢNG STREAM */}
-            <div className="flex items-center justify-between gap-2 border-b border-white/[0.08] pb-1.5">
-              <div className="flex items-center gap-2 min-w-0 flex-1">
-                {(() => {
-                  const displayTournament = resolveCanonicalTournament({
-                    tournament: match?.tournament,
-                    title: title || match?.title,
-                    sport: match?.sport,
-                    team1: match?.team1,
-                    team2: match?.team2,
-                    score,
-                  });
-                  return (
-                    <span
-                      className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-white/5 border border-white/10 text-zinc-300 text-[10.5px] sm:text-xs font-semibold shadow-sm max-w-full truncate"
-                      title={displayTournament}
-                    >
-                      <span className="shrink-0 text-xs">🏆</span>
-                      <span className="truncate">{displayTournament}</span>
-                    </span>
-                  );
-                })()}
-              </div>
 
-              <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-                {(blv || match?.blv) && (
-                  <span
-                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-300 text-[10px] sm:text-xs font-medium shadow-sm max-w-[130px] sm:max-w-[200px] truncate"
-                    title={`BLV: ${blv || match?.blv}`}
-                  >
-                    <span className="shrink-0 text-[11px]">🎙️</span>
-                    <span className="truncate">
-                      {(() => {
-                        const raw = (blv || match?.blv || "").replace(/^(?:blv|bình luận viên)\s+/i, "");
-                        const parts = raw.split(",").map((p) => p.trim()).filter(Boolean);
-                        if (parts.length === 0) return "BLV";
-                        if (parts.length <= 2) return `BLV ${parts.join(", ")}`;
-                        return `BLV ${parts.slice(0, 2).join(", ")} (+${parts.length - 2})`;
-                      })()}
+          {/* 2. MATCH ARENA (SOFASCORE ARENA HERO - ĐỒNG BỘ 100% VỚI MATCH CENTER) */}
+          <div className="flex items-center justify-between gap-3 sm:gap-4 py-1 sm:py-2 w-full">
+            {/* ĐỘI NHÀ */}
+            <div className="flex-1 flex flex-col items-center sm:items-end text-center sm:text-right min-w-0">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 mb-1.5 sm:mb-2 rounded-2xl bg-gradient-to-b from-zinc-700/80 via-zinc-800/95 to-zinc-900 border-2 border-white/20 p-1.5 sm:p-2 flex items-center justify-center shadow-lg relative overflow-hidden shrink-0 transition-all duration-300 hover:scale-105 hover:border-netflix-red/70">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.18)_0%,_transparent_75%)] pointer-events-none" />
+                {homeFlagEmoji ? (
+                  <CountryFlag emoji={homeFlagEmoji} className="w-7 h-7 sm:w-9 sm:h-9 relative z-10" />
+                ) : homeLogoSrc ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    key={homeLogoSrc}
+                    src={homeLogoSrc}
+                    alt={homeDisplayName}
+                    className="w-full h-full object-contain filter drop-shadow-[0_0_2px_rgba(255,255,255,0.7)] drop-shadow-[0_3px_6px_rgba(0,0,0,0.7)] relative z-10"
+                    onError={handleHomeImgError}
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center w-full h-full bg-rose-500/10 rounded-xl p-1 select-none">
+                    <span className="text-sm sm:text-base font-black text-rose-400 tracking-wider">
+                      {getTeamInitials(team1)}
                     </span>
-                  </span>
-                )}
-
-                {currentServer?.quality && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white/10 border border-white/15 text-white/90 text-[10px] sm:text-xs font-medium uppercase whitespace-nowrap">
-                    <Zap className="w-3 h-3 text-white/80 shrink-0" />
-                    <span>{currentServer.quality}</span>
-                  </span>
+                  </div>
                 )}
               </div>
+              <h4 className="text-sm sm:text-base font-extrabold text-white tracking-tight truncate w-full" title={homeDisplayName}>
+                {homeDisplayName}
+              </h4>
+              {homeFormation ? (
+                <span className="text-[10px] text-gray-400 font-medium mt-0.5">
+                  Sơ đồ: {homeFormation}
+                </span>
+              ) : (
+                <span className="text-[10px] text-gray-400 font-medium mt-0.5">
+                  Đội nhà
+                </span>
+              )}
             </div>
 
-            {/* 2. MATCH ARENA (SOFASCORE ARENA HERO - ĐỒNG BỘ 100% VỚI MATCH CENTER) */}
-            <div className="flex items-center justify-between gap-3 sm:gap-4 py-1 sm:py-2 w-full">
-              {/* ĐỘI NHÀ */}
-              <div className="flex-1 flex flex-col items-center sm:items-end text-center sm:text-right min-w-0">
-                <div className="w-12 h-12 sm:w-16 sm:h-16 mb-1.5 sm:mb-2 rounded-2xl bg-gradient-to-b from-zinc-700/80 via-zinc-800/95 to-zinc-900 border-2 border-white/20 p-1.5 sm:p-2 flex items-center justify-center shadow-lg relative overflow-hidden shrink-0 transition-all duration-300 hover:scale-105 hover:border-netflix-red/70">
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.18)_0%,_transparent_75%)] pointer-events-none" />
-                  {homeFlagEmoji ? (
-                    <CountryFlag emoji={homeFlagEmoji} className="w-7 h-7 sm:w-9 sm:h-9 relative z-10" />
-                  ) : homeLogoSrc ? (
-                    /* eslint-disable-next-line @next/next/no-img-element */
-                    <img
-                      key={homeLogoSrc}
-                      src={homeLogoSrc}
-                      alt={homeDisplayName}
-                      className="w-full h-full object-contain filter drop-shadow-[0_0_2px_rgba(255,255,255,0.7)] drop-shadow-[0_3px_6px_rgba(0,0,0,0.7)] relative z-10"
-                      onError={handleHomeImgError}
-                      referrerPolicy="no-referrer"
-                    />
+            {/* TỶ SỐ TRUNG TÂM & ĐỒNG HỒ / HOẶC HUY HIỆU VS HIỆN ĐẠI */}
+            {(() => {
+              const homeScoreVal = currentScore?.team1Score ?? summary?.homeTeam?.score;
+              const awayScoreVal = currentScore?.team2Score ?? summary?.awayTeam?.score;
+              const hasScore =
+                typeof homeScoreVal === "number" &&
+                typeof awayScoreVal === "number" &&
+                !isNaN(homeScoreVal) &&
+                !isNaN(awayScoreVal);
+              const isMatchLive =
+                isConfirmedLive ||
+                match?.timeline === "live" ||
+                time === "Trực tiếp" ||
+                match?.isLive === true;
+
+              return (
+                <div className="flex flex-col items-center px-2 sm:px-6 py-1 shrink-0">
+                  {hasScore ? (
+                    <div className="flex items-center gap-2 sm:gap-4 font-mono text-3xl sm:text-5xl font-black text-white tracking-wider">
+                      <span>{homeScoreVal}</span>
+                      <span className="text-gray-500 text-2xl sm:text-3xl font-light select-none">:</span>
+                      <span>{awayScoreVal}</span>
+                    </div>
                   ) : (
-                    <div className="flex flex-col items-center justify-center w-full h-full bg-rose-500/10 rounded-xl p-1 select-none">
-                      <span className="text-sm sm:text-base font-black text-rose-400 tracking-wider">
-                        {getTeamInitials(team1)}
-                      </span>
+                    <div className="my-0.5 sm:my-1 flex items-center justify-center">
+                      <div className="px-3 sm:px-3.5 py-0.5 rounded-lg bg-zinc-900/90 border border-white/15 shadow-sm">
+                        <span className="text-sm sm:text-base font-black uppercase tracking-[0.2em] text-zinc-200 select-none">
+                          VS
+                        </span>
+                      </div>
                     </div>
                   )}
-                </div>
-                <h4 className="text-sm sm:text-base font-extrabold text-white tracking-tight truncate w-full" title={homeDisplayName}>
-                  {homeDisplayName}
-                </h4>
-                {homeFormation ? (
-                  <span className="text-[10px] text-gray-400 font-medium mt-0.5">
-                    Sơ đồ: {homeFormation}
-                  </span>
-                ) : (
-                  <span className="text-[10px] text-gray-400 font-medium mt-0.5">
-                    Đội nhà
-                  </span>
-                )}
-              </div>
 
-              {/* TỶ SỐ TRUNG TÂM & ĐỒNG HỒ / HOẶC HUY HIỆU VS HIỆN ĐẠI */}
-              {(() => {
-                const homeScoreVal = currentScore?.team1Score ?? summary?.homeTeam?.score;
-                const awayScoreVal = currentScore?.team2Score ?? summary?.awayTeam?.score;
-                const hasScore =
-                  typeof homeScoreVal === "number" &&
-                  typeof awayScoreVal === "number" &&
-                  !isNaN(homeScoreVal) &&
-                  !isNaN(awayScoreVal);
-                const isMatchLive =
-                  isConfirmedLive ||
-                  match?.timeline === "live" ||
-                  time === "Trực tiếp" ||
-                  match?.isLive === true;
-
-                return (
-                  <div className="flex flex-col items-center px-2 sm:px-6 py-1 shrink-0">
-                    {hasScore ? (
-                      <div className="flex items-center gap-2 sm:gap-4 font-mono text-3xl sm:text-5xl font-black text-white tracking-wider">
-                        <span>{homeScoreVal}</span>
-                        <span className="text-gray-500 text-2xl sm:text-3xl font-light select-none">:</span>
-                        <span>{awayScoreVal}</span>
-                      </div>
-                    ) : (
-                      <div className="my-0.5 sm:my-1 flex items-center justify-center">
-                        <div className="px-3 sm:px-3.5 py-0.5 rounded-lg bg-zinc-900/90 border border-white/15 shadow-sm">
-                          <span className="text-sm sm:text-base font-black uppercase tracking-[0.2em] text-zinc-200 select-none">
-                            VS
-                          </span>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="mt-2 flex items-center gap-1.5 flex-wrap justify-center">
-                      <span
-                        className={`inline-flex items-center gap-1.5 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full border tracking-wider ${
-                          isMatchLive
-                            ? "bg-red-950/50 text-red-400 border-red-500/30 shadow-sm"
-                            : isFinished
-                              ? "bg-zinc-800 text-gray-300 border-white/10"
-                              : "bg-sky-500/20 text-sky-400 border-sky-500/30"
-                        }`}
-                      >
-                        {isMatchLive && (
-                          <span className="relative flex h-1.5 w-1.5 shrink-0">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500" />
-                          </span>
-                        )}
-                        <span>
-                          {isMatchLive
-                            ? (currentScore?.displayClock || summary?.displayClock || "TRỰC TIẾP")
-                            : isFinished
-                              ? "HẾT GIỜ (FT)"
-                              : (specialStatusLabel ||
-                                 summary?.displayClock ||
-                                 (summary?.statusText === "STATUS_SCHEDULED"
-                                   ? null
-                                   : summary?.statusText?.replace(/^STATUS_/i, "")) ||
-                                 displayStatus.kickoffTime ||
-                                 (time && time !== "Trực tiếp" ? `⏰ ${time}` : "TRỰC TIẾP"))}
-                        </span>
-                      </span>
-
-                      {isMatchLive && currentScore?.statusDetail &&
-                       currentScore.statusDetail !== currentScore.displayClock &&
-                       currentScore.statusDetail !== "In Progress" && (
-                        <span className="text-[9px] text-amber-300 font-bold bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20 whitespace-nowrap shadow-sm">
-                          {currentScore.statusDetail}
+                  <div className="mt-2 flex items-center gap-1.5 flex-wrap justify-center">
+                    <span
+                      className={`inline-flex items-center gap-1.5 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full border tracking-wider ${
+                        isMatchLive
+                          ? "bg-red-950/50 text-red-400 border-red-500/30 shadow-sm"
+                          : isFinished
+                            ? "bg-zinc-800 text-gray-300 border-white/10"
+                            : "bg-sky-500/20 text-sky-400 border-sky-500/30"
+                      }`}
+                    >
+                      {isMatchLive && (
+                        <span className="relative flex h-1.5 w-1.5 shrink-0">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500" />
                         </span>
                       )}
-                    </div>
-                  </div>
-                );
-              })()}
-
-              {/* ĐỘI KHÁCH */}
-              <div className="flex-1 flex flex-col items-center sm:items-start text-center sm:text-left min-w-0">
-                <div className="w-12 h-12 sm:w-16 sm:h-16 mb-1.5 sm:mb-2 rounded-2xl bg-gradient-to-b from-zinc-700/80 via-zinc-800/95 to-zinc-900 border-2 border-white/20 p-1.5 sm:p-2 flex items-center justify-center shadow-lg relative overflow-hidden shrink-0 transition-all duration-300 hover:scale-105 hover:border-sky-500/70">
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.18)_0%,_transparent_75%)] pointer-events-none" />
-                  {awayFlagEmoji ? (
-                    <CountryFlag emoji={awayFlagEmoji} className="w-7 h-7 sm:w-9 sm:h-9 relative z-10" />
-                  ) : awayLogoSrc ? (
-                    /* eslint-disable-next-line @next/next/no-img-element */
-                    <img
-                      key={awayLogoSrc}
-                      src={awayLogoSrc}
-                      alt={awayDisplayName}
-                      className="w-full h-full object-contain filter drop-shadow-[0_0_2px_rgba(255,255,255,0.7)] drop-shadow-[0_3px_6px_rgba(0,0,0,0.7)] relative z-10"
-                      onError={handleAwayImgError}
-                      referrerPolicy="no-referrer"
-                    />
-                  ) : (
-                    <div className="flex flex-col items-center justify-center w-full h-full bg-sky-500/10 rounded-xl p-1 select-none">
-                      <span className="text-sm sm:text-base font-black text-sky-400 tracking-wider">
-                        {getTeamInitials(team2)}
+                      <span>
+                        {isMatchLive
+                          ? (currentScore?.displayClock || summary?.displayClock || "TRỰC TIẾP")
+                          : isFinished
+                            ? "HẾT GIỜ (FT)"
+                            : (specialStatusLabel ||
+                               summary?.displayClock ||
+                               (summary?.statusText === "STATUS_SCHEDULED"
+                                 ? null
+                                 : summary?.statusText?.replace(/^STATUS_/i, "")) ||
+                               displayStatus.kickoffTime ||
+                               (time && time !== "Trực tiếp" ? `⏰ ${time}` : "TRỰC TIẾP"))}
                       </span>
-                    </div>
-                  )}
-                </div>
-                <h4 className="text-sm sm:text-base font-extrabold text-white tracking-tight truncate w-full" title={awayDisplayName}>
-                  {awayDisplayName}
-                </h4>
-                {awayFormation ? (
-                  <span className="text-[10px] text-gray-400 font-medium mt-0.5">
-                    Sơ đồ: {awayFormation}
-                  </span>
-                ) : (
-                  <span className="text-[10px] text-gray-400 font-medium mt-0.5">
-                    Đội khách
-                  </span>
-                )}
-              </div>
-            </div>
+                    </span>
 
-            {/* THÔNG TIN SÂN & TRỌNG TÀI / GIẢI ĐẤU (ĐỒNG BỘ MATCH CENTER) */}
-            {(venueName || refereeName || group || match?.tournament) && (
-              <div className="w-full mt-2 sm:mt-3 pt-2 sm:pt-2.5 border-t border-white/5 flex flex-wrap items-center justify-center gap-3 sm:gap-4 text-xs text-gray-400">
-                {venueName ? (
-                  <div className="flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5 text-netflix-red shrink-0" />
-                    <span>{venueName}</span>
+                    {isMatchLive && currentScore?.statusDetail &&
+                     currentScore.statusDetail !== currentScore.displayClock &&
+                     currentScore.statusDetail !== "In Progress" && (
+                      <span className="text-[9px] text-amber-300 font-bold bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20 whitespace-nowrap shadow-sm">
+                        {currentScore.statusDetail}
+                      </span>
+                    )}
                   </div>
-                ) : (group || match?.tournament) ? (
-                  <div className="flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5 text-netflix-red shrink-0" />
-                    <span>{group || match?.tournament}</span>
-                  </div>
-                ) : null}
-                {refereeName && (
-                  <div className="flex items-center gap-1.5">
-                    <UserCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                    <span>Trọng tài: {refereeName}</span>
+                </div>
+              );
+            })()}
+
+            {/* ĐỘI KHÁCH */}
+            <div className="flex-1 flex flex-col items-center sm:items-start text-center sm:text-left min-w-0">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 mb-1.5 sm:mb-2 rounded-2xl bg-gradient-to-b from-zinc-700/80 via-zinc-800/95 to-zinc-900 border-2 border-white/20 p-1.5 sm:p-2 flex items-center justify-center shadow-lg relative overflow-hidden shrink-0 transition-all duration-300 hover:scale-105 hover:border-sky-500/70">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.18)_0%,_transparent_75%)] pointer-events-none" />
+                {awayFlagEmoji ? (
+                  <CountryFlag emoji={awayFlagEmoji} className="w-7 h-7 sm:w-9 sm:h-9 relative z-10" />
+                ) : awayLogoSrc ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    key={awayLogoSrc}
+                    src={awayLogoSrc}
+                    alt={awayDisplayName}
+                    className="w-full h-full object-contain filter drop-shadow-[0_0_2px_rgba(255,255,255,0.7)] drop-shadow-[0_3px_6px_rgba(0,0,0,0.7)] relative z-10"
+                    onError={handleAwayImgError}
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center w-full h-full bg-sky-500/10 rounded-xl p-1 select-none">
+                    <span className="text-sm sm:text-base font-black text-sky-400 tracking-wider">
+                      {getTeamInitials(team2)}
+                    </span>
                   </div>
                 )}
               </div>
-            )}
+              <h4 className="text-sm sm:text-base font-extrabold text-white tracking-tight truncate w-full" title={awayDisplayName}>
+                {awayDisplayName}
+              </h4>
+              {awayFormation ? (
+                <span className="text-[10px] text-gray-400 font-medium mt-0.5">
+                  Sơ đồ: {awayFormation}
+                </span>
+              ) : (
+                <span className="text-[10px] text-gray-400 font-medium mt-0.5">
+                  Đội khách
+                </span>
+              )}
+            </div>
           </div>
-        )}
-      </div>
+
+          {/* THÔNG TIN SÂN & TRỌNG TÀI / GIẢI ĐẤU (ĐỒNG BỘ MATCH CENTER) */}
+          {(venueName || refereeName || group || match?.tournament) && (
+            <div className="w-full mt-2 sm:mt-3 pt-2 sm:pt-2.5 border-t border-white/5 flex flex-wrap items-center justify-center gap-3 sm:gap-4 text-xs text-gray-400">
+              {venueName ? (
+                <div className="flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-netflix-red shrink-0" />
+                  <span>{venueName}</span>
+                </div>
+              ) : (group || match?.tournament) ? (
+                <div className="flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-netflix-red shrink-0" />
+                  <span>{group || match?.tournament}</span>
+                </div>
+              ) : null}
+              {refereeName && (
+                <div className="flex items-center gap-1.5">
+                  <UserCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  <span>Trọng tài: {refereeName}</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="space-y-2.5 sm:space-y-3">
+      {/* 1. KHUNG PHÁT VIDEO CHÍNH (VIDEO-FIRST: ĐƯA LÊN ĐẦU TIÊN) */}
       <div
         ref={containerRef}
         tabIndex={0}
@@ -3219,7 +3244,10 @@ function LivePlayerInner({
         typeof document !== "undefined" &&
         createPortal(sourceDrawerMarkup, document.body)}
 
-      {/* 3. DANH SÁCH MÁY CHỦ PHÁT SÓNG SẮC NÉT (KHÔNG LẶP LẠI THÔNG TIN TRẬN ĐÃ CÓ Ở SCOREBOARD TRÊN) */}
+      {/* 2. SCOREBOARD SÂN CỎ ĐỈNH CAO: AMBIENT GLOW & HUY HIỆU CLB SẮC NÉT (ĐẶT NGAY DƯỚI VIDEO THEO VIDEO-FIRST) */}
+      {scoreboardMarkup}
+
+      {/* 3. DANH SÁCH MÁY CHỦ PHÁT SÓNG SẮC NÉT */}
       <div className="keep-dark-cinema rounded-2xl sm:rounded-3xl border border-white/10 bg-zinc-900/95 p-3.5 sm:p-5 shadow-xl space-y-3 sm:space-y-4 w-full min-w-0">
         <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-3">
           <div className="flex items-center gap-2 min-w-0 flex-1">

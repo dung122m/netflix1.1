@@ -322,7 +322,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-base sm:text-lg font-black text-white tracking-tight truncate">
+              <h3 className="text-sm sm:text-base md:text-lg font-black text-white tracking-tight line-clamp-2 leading-snug">
                 {displayTitle}
               </h3>
               {canonicalLeague && canonicalLeague !== "Giải Đấu Khác" && (
@@ -338,10 +338,10 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                 </span>
               )}
             </div>
-            <p className="text-xs text-gray-400 mt-0.5 truncate">
+            <p className="text-[11px] sm:text-xs text-gray-400 mt-0.5 line-clamp-1">
               {summary
                 ? "Diễn biến thời gian thực, đội hình, bình luận và thống kê chuyên sâu"
-                : "Thông tin trận đấu & trạng thái luồng phát trực tiếp"}
+                : "Thông tin trận đấu & trạng thái tiếp sóng trực tiếp"}
             </p>
           </div>
         </div>
@@ -427,7 +427,10 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                         </div>
                       )}
                     </div>
-                    <h4 className="text-sm sm:text-base font-extrabold text-white tracking-tight truncate w-full" title={homeDisplayName}>
+                    <h4
+                      className="text-xs sm:text-sm md:text-base font-extrabold text-white tracking-tight text-center sm:text-right line-clamp-2 break-words leading-tight w-full min-h-[2rem] sm:min-h-[2.5rem] flex items-center justify-center sm:justify-end"
+                      title={homeDisplayName}
+                    >
                       {homeDisplayName}
                     </h4>
                     <span className="text-[10px] text-gray-400 font-medium mt-0.5">Đội nhà</span>
@@ -479,7 +482,10 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                         </div>
                       )}
                     </div>
-                    <h4 className="text-sm sm:text-base font-extrabold text-white tracking-tight truncate w-full" title={awayDisplayName}>
+                    <h4
+                      className="text-xs sm:text-sm md:text-base font-extrabold text-white tracking-tight text-center sm:text-left line-clamp-2 break-words leading-tight w-full min-h-[2rem] sm:min-h-[2.5rem] flex items-center justify-center sm:justify-start"
+                      title={awayDisplayName}
+                    >
                       {awayDisplayName}
                     </h4>
                     <span className="text-[10px] text-gray-400 font-medium mt-0.5">Đội khách</span>
@@ -490,62 +496,70 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
               {/* Lưới thông tin luồng phát & Trận đấu */}
               <div className="grid grid-cols-2 gap-2 text-xs">
                 {/* Giải đấu */}
-                <div className="rounded-xl bg-white/[0.03] border border-white/10 p-3 flex flex-col gap-1">
+                <div className="rounded-xl bg-white/[0.03] border border-white/10 p-2.5 sm:p-3 flex flex-col gap-1 min-w-0">
                   <span className="text-[10px] uppercase font-bold text-gray-400 flex items-center gap-1">
                     <span>🏆</span>
                     <span>Giải đấu</span>
                   </span>
-                  <span className="font-extrabold text-white truncate" title={canonicalLeague || tournament || "Giải Đấu Khác"}>
+                  <span
+                    className="font-extrabold text-white text-[11px] sm:text-xs line-clamp-2 break-words leading-tight"
+                    title={canonicalLeague || tournament || "Giải Đấu Khác"}
+                  >
                     {canonicalLeague || tournament || "Giải Đấu Khác"}
                   </span>
                 </div>
 
                 {/* Bình luận viên */}
-                <div className="rounded-xl bg-white/[0.03] border border-white/10 p-3 flex flex-col gap-1">
+                <div className="rounded-xl bg-white/[0.03] border border-white/10 p-2.5 sm:p-3 flex flex-col gap-1 min-w-0">
                   <span className="text-[10px] uppercase font-bold text-gray-400 flex items-center gap-1">
                     <span>🎙️</span>
                     <span>Bình luận</span>
                   </span>
-                  <span className="font-extrabold text-white truncate" title={blv || "BLV Tiếng Việt"}>
+                  <span
+                    className="font-extrabold text-white text-[11px] sm:text-xs line-clamp-2 break-words leading-tight"
+                    title={blv || "BLV Tiếng Việt"}
+                  >
                     {blv || "BLV Tiếng Việt"}
                   </span>
                 </div>
 
                 {/* Kênh phát */}
-                <div className="rounded-xl bg-white/[0.03] border border-white/10 p-3 flex flex-col gap-1">
+                <div className="rounded-xl bg-white/[0.03] border border-white/10 p-2.5 sm:p-3 flex flex-col gap-1 min-w-0">
                   <span className="text-[10px] uppercase font-bold text-gray-400 flex items-center gap-1">
                     <span>📺</span>
                     <span>Kênh tiếp sóng</span>
                   </span>
-                  <span className="font-extrabold text-white truncate" title={group || "Kênh Thể Thao"}>
+                  <span
+                    className="font-extrabold text-white text-[11px] sm:text-xs line-clamp-2 break-words leading-tight"
+                    title={group || "Kênh Thể Thao"}
+                  >
                     {group || "Kênh Thể Thao"}
                   </span>
                 </div>
 
                 {/* Tín hiệu & Luồng */}
-                <div className="rounded-xl bg-white/[0.03] border border-white/10 p-3 flex flex-col gap-1">
+                <div className="rounded-xl bg-white/[0.03] border border-white/10 p-2.5 sm:p-3 flex flex-col gap-1 min-w-0">
                   <span className="text-[10px] uppercase font-bold text-gray-400 flex items-center gap-1">
                     <span>⚡</span>
                     <span>Chất lượng</span>
                   </span>
-                  <span className="font-extrabold text-emerald-400 truncate">
+                  <span className="font-extrabold text-emerald-400 text-[11px] sm:text-xs line-clamp-2 break-words leading-tight">
                     {quality || "HD Sắc Nét"} {serversCount ? `(${serversCount} nguồn)` : ""}
                   </span>
                 </div>
               </div>
 
-              {/* Thông báo tiếp sóng & giải thích dữ liệu */}
-              <div className="rounded-2xl bg-zinc-900/40 border border-white/5 p-4 flex items-start gap-3 text-xs text-gray-400">
-                <div className="p-2 rounded-xl bg-white/5 text-gray-300 border border-white/10 shrink-0 mt-0.5">
-                  <Radio className="w-4 h-4 text-netflix-red animate-pulse" />
+              {/* Thông báo tiếp sóng & giải thích dữ liệu tinh gọn */}
+              <div className="rounded-xl bg-zinc-900/60 border border-white/5 px-3 py-2.5 sm:p-3 flex items-center gap-2.5 text-xs text-gray-400">
+                <div className="p-1.5 rounded-lg bg-white/5 text-gray-300 border border-white/10 shrink-0">
+                  <Radio className="w-3.5 h-3.5 text-netflix-red animate-pulse" />
                 </div>
-                <div className="space-y-1">
-                  <p className="font-bold text-gray-200">
-                    Trận đấu đang được tiếp sóng trực tiếp
-                  </p>
-                  <p className="text-gray-400 leading-relaxed text-[11px] sm:text-xs">
-                    Dữ liệu phân tích chuyên sâu (sơ đồ chiến thuật, diễn biến từng phút) hiện chưa được ban tổ chức giải đấu này cung cấp qua hệ thống số liệu thời gian thực. Quý khán giả có thể theo dõi trọn vẹn trận đấu qua luồng video phát sóng phía trên.
-                  </p>
+                <div className="min-w-0 flex-1 text-[11px] sm:text-xs leading-relaxed text-gray-300">
+                  <span className="font-bold text-white">Đang tiếp sóng trực tiếp</span>
+                  <span className="text-gray-400 ml-1.5 hidden sm:inline">•</span>
+                  <span className="text-gray-400 block sm:inline mt-0.5 sm:mt-0 sm:ml-1.5">
+                    Trận đấu chưa có dữ liệu số liệu chuyên sâu từ ban tổ chức.
+                  </span>
                 </div>
               </div>
             </div>

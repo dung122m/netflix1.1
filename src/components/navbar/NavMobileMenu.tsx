@@ -112,7 +112,7 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
       />
       <div
         data-mobile-menu
-        className="relative z-50 lg:hidden border-t border-white/10 bg-black/98 backdrop-blur-2xl px-3.5 py-3 animate-in slide-in-from-top duration-200 overflow-y-auto shadow-2xl overscroll-contain max-h-[calc(100dvh-3.5rem-env(safe-area-inset-bottom,0px))] pb-20"
+        className="relative w-full z-50 lg:hidden border-t border-white/10 bg-black/98 backdrop-blur-2xl px-3.5 py-3 animate-in slide-in-from-top duration-200 overflow-y-auto shadow-2xl overscroll-contain max-h-[calc(100dvh-3.5rem-env(safe-area-inset-bottom,0px))] pb-20"
         style={{ WebkitOverflowScrolling: "touch" }}
       >
       <div className="flex flex-col gap-2">
@@ -328,30 +328,31 @@ export const NavMobileMenu: React.FC<NavMobileMenuProps> = React.memo(function N
           {navLinks.map((link) => {
             const active = isLinkActive(link.type);
             const IconComp = link.icon;
+            const displayName = link.name === "Danh sách của tôi" ? "Danh sách" : link.name;
             return (
               <Link
                 key={link.name}
                 href={link.href}
                 prefetch={true}
                 onClick={onClose}
-                className={`text-xs font-medium py-2 px-2.5 transition-all flex items-center gap-2 rounded-xl ${active
+                className={`text-xs font-semibold py-2.5 px-3 transition-all flex items-center gap-2 rounded-xl min-w-0 ${active
                     ? "text-white font-bold bg-netflix-red/30 border border-netflix-red/40 shadow-sm"
-                    : "text-gray-300 hover:text-white bg-white/[0.03] hover:bg-white/10 border border-white/5"
+                    : "text-gray-300 hover:text-white bg-white/[0.04] hover:bg-white/10 border border-white/5"
                   }`}
               >
                 <IconComp
-                  size={14}
-                  className={
+                  size={15}
+                  className={`shrink-0 ${
                     active
                       ? "text-netflix-red"
                       : link.isLive
                         ? "text-rose-400 animate-pulse"
                         : "text-gray-400"
-                  }
+                  }`}
                 />
-                <span className="truncate">{link.name}</span>
+                <span className="truncate whitespace-nowrap">{displayName}</span>
                 {link.isLive && (
-                  <span className="text-[8px] px-1 py-0.2 rounded bg-netflix-red text-white font-black uppercase ml-auto">
+                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-netflix-red text-white font-black uppercase ml-auto tracking-wide shrink-0">
                     LIVE
                   </span>
                 )}

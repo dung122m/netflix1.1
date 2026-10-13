@@ -29,6 +29,7 @@ export function LiveHubClient({ footballData, tvData }: LiveHubClientProps) {
   }, [footballData.matches]);
 
   const [sportsMatchesCount, setSportsMatchesCount] = useState<number>(initialValidCount);
+  const [hasActiveMatch, setHasActiveMatch] = useState<boolean>(false);
 
   // Sync tab từ URL khi có external navigation (back/forward)
   useEffect(() => {
@@ -74,10 +75,19 @@ export function LiveHubClient({ footballData, tvData }: LiveHubClientProps) {
     return footballData.matches.filter((m) => m.timeline === "live").length;
   }, [footballData.matches]);
 
+  const isCinemaMode = hasActiveMatch && activeTab === "sports";
+
   return (
-    <div className="max-w-[1720px] w-full mx-auto px-3 sm:px-6 lg:px-8 pt-16 sm:pt-20 pb-12 space-y-3 sm:space-y-4">
-      {/* 1. NANAFLIX LIVE STUDIO COMMAND BAR */}
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 p-2.5 sm:p-4 rounded-2xl bg-zinc-950/80 border border-white/10 backdrop-blur-2xl shadow-2xl">
+    <div
+      className={`max-w-[1720px] w-full mx-auto px-3 sm:px-6 lg:px-8 pb-12 transition-all duration-200 ${
+        isCinemaMode
+          ? "pt-16 sm:pt-[72px] space-y-2.5 sm:space-y-3"
+          : "pt-16 sm:pt-20 space-y-3 sm:space-y-4"
+      }`}
+    >
+      {/* 1. NANAFLIX LIVE STUDIO COMMAND BAR (Ẩn trong Cinema Mode để Player chiếm trọn tầm mắt) */}
+      {!isCinemaMode && (
+        <header className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 p-2.5 sm:p-4 rounded-2xl bg-zinc-950/80 border border-white/10 backdrop-blur-2xl shadow-2xl">
         <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
           <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-red-600 via-rose-600 to-amber-600 flex items-center justify-center text-white shadow-lg shadow-red-950/50 shrink-0">
             <Radio className="w-4 h-4 sm:w-5 sm:h-5 animate-pulse" />
@@ -155,6 +165,7 @@ export function LiveHubClient({ footballData, tvData }: LiveHubClientProps) {
           </button>
         </div>
       </header>
+      )}
 
       {/* 2. NỘI DUNG THEO TAB - Giữ cả hai component trong DOM để bảo toàn kênh/trận và không remount Player khi đổi tab */}
       <div className={activeTab === "sports" ? "block" : "hidden"}>
@@ -163,6 +174,7 @@ export function LiveHubClient({ footballData, tvData }: LiveHubClientProps) {
           hideHeader
           isActive={activeTab === "sports"}
           onMatchesCountChange={setSportsMatchesCount}
+          onMatchSelectedChange={setHasActiveMatch}
         />
       </div>
       <div className={activeTab === "tv" ? "block" : "hidden"}>

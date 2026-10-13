@@ -1414,6 +1414,13 @@ function detectTournament(title: string, team1: string, team2: string): string {
 
   // 2. Kiểm tra cúp & giải đấu Châu Âu
   if (
+    normTitle.includes("youth league") ||
+    (/\b(?:u\s*(?:17|18|19|20|21)|youth)\b/i.test(`${normTitle} ${normT1} ${normT2}`) &&
+      (normTitle.includes("champions league") || normTitle.includes("ucl") || normTitle.includes("cúp c1") || normTitle.includes("cup c1") || /\bc1\b/.test(normTitle)))
+  ) {
+    return "UEFA Youth League";
+  }
+  if (
     normTitle.includes("champions league") ||
     normTitle.includes("cup c1") ||
     normTitle.includes("cúp c1") ||
