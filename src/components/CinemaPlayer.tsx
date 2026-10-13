@@ -1640,6 +1640,18 @@ export const CinemaPlayer: React.FC<CinemaPlayerProps> = ({
     !isFullscreen &&
     Boolean(activeSrc || m3u8Link);
 
+  // Đồng bộ cờ playerSticky lên DOM để MobileMovieNav và layout mobile điều chỉnh tọa độ sticky
+  useEffect(() => {
+    if (isMobileStickyActive) {
+      document.documentElement.dataset.playerSticky = "true";
+    } else {
+      delete document.documentElement.dataset.playerSticky;
+    }
+    return () => {
+      delete document.documentElement.dataset.playerSticky;
+    };
+  }, [isMobileStickyActive]);
+
   return (
     <>
       {/* Sentinel for sticky intersection */}

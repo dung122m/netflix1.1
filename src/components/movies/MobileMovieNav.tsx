@@ -45,7 +45,8 @@ export function MobileMovieNav({ isSeries = true }: MobileMovieNavProps) {
     const handleScroll = () => {
       if (isClickScrollingRef.current) return;
 
-      const triggerOffset = 130; // Pixel threshold dưới sticky bar
+      const isPlayerSticky = typeof document !== "undefined" && document.documentElement.dataset.playerSticky === "true";
+      const triggerOffset = isPlayerSticky ? 360 : 130; // Pixel threshold dưới sticky bar
 
       // Sắp xếp các section theo vị trí top thực tế trên viewport
       const foundSections = sections
@@ -98,7 +99,7 @@ export function MobileMovieNav({ isSeries = true }: MobileMovieNavProps) {
     <div
       role="tablist"
       aria-label="Điều hướng nhanh nội dung phim"
-      className="lg:hidden sticky top-[52px] sm:top-[56px] z-30 -mx-2 sm:-mx-4 px-2 sm:px-4 py-2 bg-zinc-950/90 backdrop-blur-xl border-y border-white/10 shadow-lg transition-all"
+      className="mobile-movie-nav-sticky lg:hidden sticky top-[52px] sm:top-[56px] z-30 -mx-2 sm:-mx-4 px-2 sm:px-4 py-2 bg-zinc-950/90 backdrop-blur-xl border-y border-white/10 shadow-lg transition-all"
     >
       <div className="flex items-center justify-between gap-1 sm:gap-2">
         {sections.map(({ id, label, icon: Icon }) => {

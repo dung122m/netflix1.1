@@ -584,12 +584,15 @@
 @keyframes cinemaPageEnter {
   0% {
     opacity: 0.85;
-    transform: scale(0.992);
   }
   100% {
     opacity: 1;
-    transform: none;
   }
+}
+
+/* Điều chỉnh vị trí sticky của MobileMovieNav khi CinemaPlayer đang sticky trên mobile */
+[data-player-sticky="true"] .mobile-movie-nav-sticky {
+  top: calc(86px + min(56.25vw, 38vh));
 }
 
 @keyframes cinematic-shimmer {
