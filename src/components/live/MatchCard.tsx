@@ -156,7 +156,7 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
   const liveBadgeLabel =
     displayStatus.isConfirmedLive && displayStatus.badgeLabel && !displayStatus.badgeLabel.includes(":")
       ? displayStatus.badgeLabel
-      : (match.time && !match.time.includes(":") ? `${match.time}'` : "TRỰC TIẾP");
+      : (match.time && !match.time.includes(":") ? `${match.time}'` : "Trực tiếp");
 
   const [homeTriedAsset, setHomeTriedAsset] = useState(false);
   const [homeFailed, setHomeFailed] = useState(false);
@@ -531,11 +531,11 @@ function MatchCardInner({ match, isSelected, onSelect, score, compact }: MatchCa
             {/* Huy hiệu Tâm Điểm: Rực rỡ, cao cấp, nổi bật chuẩn Spotlight */}
             {featured.isFeatured && (
               <span
-                className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9.5px] font-black uppercase tracking-wider bg-gradient-to-r from-rose-600 to-red-600 text-white shadow-[0_2px_12px_rgba(225,29,72,0.5)] border border-rose-400/40 shrink-0"
+                className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9.5px] font-bold tracking-wider bg-gradient-to-r from-rose-600 to-red-600 text-white shadow-[0_2px_12px_rgba(225,29,72,0.5)] border border-rose-400/40 shrink-0"
                 title={featured.badgeLabel || "Trận cầu tâm điểm"}
               >
                 <Flame size={10} className="text-amber-200 shrink-0 fill-amber-300" />
-                <span>{featured.badgeLabel || "TÂM ĐIỂM"}</span>
+                <span>{featured.badgeLabel || "Tâm điểm"}</span>
               </span>
             )}
 

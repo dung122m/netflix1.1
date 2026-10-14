@@ -423,6 +423,7 @@ export async function getUserCollections(userId: string): Promise<MovieCollectio
   const tombstones = getTombstones(userId);
 
   let serverItems: MovieCollection[] | null = null;
+  let isReliableServerResponse = false;
 
   try {
     const headers = await getAuthHeaders();
@@ -437,38 +438,50 @@ export async function getUserCollections(userId: string): Promise<MovieCollectio
           serverItems = data.items
             .map(normalizeCollection)
             .filter((c: MovieCollection | null): c is MovieCollection => c !== null);
+          isReliableServerResponse = true;
         }
+      } else if (res.status === 401 || res.status === 403) {
+        // Token hết hạn hoặc không có quyền: Tuyệt đối không fallback public và không coi là mảng rỗng
+        console.warn(`[Collections] API trả về ${res.status}, bảo vệ an toàn LocalStorage.`);
       }
     }
   } catch (err) {
     console.warn("Lỗi fetch /api/user/collections:", err);
   }
 
-  // Supabase fallback nếu API không phản hồi
-  if (serverItems === null && isSupabaseConfigured()) {
+  // Supabase fallback CHỈ ĐƯỢC CHẠY khi chưa có serverItems và có thể xác thực
+  if (!isReliableServerResponse && isSupabaseConfigured()) {
     try {
-      const supaItems = await getUserCollectionsSupabase(userId);
-      if (Array.isArray(supaItems)) {
-        serverItems = supaItems
+      const supaResult = await getUserCollectionsSupabase(userId);
+      if (supaResult && supaResult.status === "success" && Array.isArray(supaResult.items)) {
+        serverItems = supaResult.items
           .map(normalizeCollection)
           .filter((c: MovieCollection | null): c is MovieCollection => c !== null);
+        isReliableServerResponse = true;
       }
     } catch (err) {
       console.warn("Lỗi fetch Supabase collections fallback:", err);
     }
   }
 
-  // Nếu lấy được dữ liệu từ Server/Supabase: Áp dụng Smart Merge
-  if (serverItems !== null) {
-    const merged = mergeCollections(localList, serverItems, userId, tombstones);
-    saveLocalCollections(userId, merged);
-    if (typeof window !== "undefined") {
-      processPendingSync(userId).catch(() => {});
+  // BẢO VỆ TUYỆT ĐỐI LOCALSTORAGE:
+  // Chỉ khi server phản hồi thành công và tin cậy (isReliableServerResponse === true)
+  // và xác nhận danh sách của chính tài khoản đã xác thực:
+  if (isReliableServerResponse && serverItems !== null) {
+    // Đảm bảo tại thời điểm lưu, user hiện tại vẫn khớp userId (chống race condition khi đổi tài khoản)
+    const activeUid = auth?.currentUser?.uid;
+    if (!activeUid || activeUid === userId) {
+      const merged = mergeCollections(localList, serverItems, userId, tombstones);
+      saveLocalCollections(userId, merged);
+      if (typeof window !== "undefined") {
+        processPendingSync(userId).catch(() => {});
+      }
+      return merged;
     }
-    return merged;
   }
 
-  // Trường hợp mạng lỗi, timeout hoặc chưa xác thực: Giữ nguyên dữ liệu LocalStorage an toàn
+  // Trường hợp mạng lỗi, timeout, 401/403 hoặc token chưa khôi phục:
+  // Giữ nguyên dữ liệu LocalStorage an toàn 100%, không ghi đè rỗng
   if (typeof window !== "undefined") {
     processPendingSync(userId).catch(() => {});
   }
@@ -487,6 +500,8 @@ export function subscribeUserCollections(
     return () => {};
   }
 
+  let isSubscribed = true;
+
   // 1. Trả ngay dữ liệu local trước để không bị trễ giao diện (0ms)
   const initialLocal = getLocalCollections(userId);
   callback(initialLocal);
@@ -494,21 +509,26 @@ export function subscribeUserCollections(
   // 2. Fetch mới nhất từ Server API / Supabase và Smart Merge
   getUserCollections(userId)
     .then((items) => {
+      if (!isSubscribed) return; // Đã unsubscribe hoặc đổi user, hủy callback
+      const activeUid = auth?.currentUser?.uid;
+      if (activeUid && activeUid !== userId) return; // Chống race condition khi đổi user
       callback(items);
     })
     .catch(() => {});
 
   // 3. Lắng nghe cập nhật local từ cùng tab hoặc các tab khác
   const handleLocalUpdate = (e: Event) => {
+    if (!isSubscribed) return;
     const customEvent = e as CustomEvent<{ userId: string; items: MovieCollection[] }>;
     if (customEvent.detail && customEvent.detail.userId === userId) {
       callback(customEvent.detail.items);
-    } else {
+    } else if (!customEvent.detail || customEvent.detail.userId === userId) {
       callback(getLocalCollections(userId));
     }
   };
 
   const handleStorageChange = (e: StorageEvent) => {
+    if (!isSubscribed) return;
     if (e.key === `${LOCAL_COLLECTIONS_KEY_PREFIX}${userId}`) {
       callback(getLocalCollections(userId));
     }
@@ -520,6 +540,7 @@ export function subscribeUserCollections(
   }
 
   return () => {
+    isSubscribed = false;
     if (typeof window !== "undefined") {
       window.removeEventListener("collections-updated", handleLocalUpdate);
       window.removeEventListener("storage", handleStorageChange);

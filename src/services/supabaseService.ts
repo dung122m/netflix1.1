@@ -626,37 +626,61 @@ export async function getWatchlistSupabase(userId: string): Promise<WatchlistIte
 // 4. BỘ SƯU TẬP (COLLECTIONS) & THÔNG BÁO (NOTIFICATIONS)
 // ============================================================================
 
-export async function getUserCollectionsSupabase(userId: string): Promise<MovieCollection[]> {
-  if (!userId) return [];
+export type SupabaseCollectionsResult =
+  | { status: "success"; items: MovieCollection[] }
+  | { status: "unauthorized" | "forbidden" | "network_error" | "server_error"; error?: string };
+
+export async function getUserCollectionsSupabase(userId: string): Promise<SupabaseCollectionsResult> {
+  if (!userId) {
+    return { status: "unauthorized", error: "Missing userId" };
+  }
   try {
     const { auth } = await import("@/lib/firebase");
     const token = await auth?.currentUser?.getIdToken().catch(() => null);
+    if (!token) {
+      // Bảo vệ riêng tư: Không có token xác thực tuyệt đối không gọi endpoint public ?userId=...
+      // vì server sẽ lọc mất các bộ sưu tập riêng tư của chính user này
+      return { status: "unauthorized", error: "No auth token available" };
+    }
+
     const baseUrl = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
     const res = await fetch(`${baseUrl}/api/user/collections?userId=${encodeURIComponent(userId)}`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      headers: { Authorization: `Bearer ${token}` },
       cache: "no-store",
     });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.success && Array.isArray(data.items)) {
-        return (data.items as Array<Record<string, unknown>>).map((d) => ({
-          id: String(d.id),
-          userId: String(d.user_id || d.userId || ""),
-          creatorName: String(d.user_name || d.creatorName || "Thành viên Nanaflix"),
-          creatorPhoto: d.user_avatar ? String(d.user_avatar) : (d.creatorPhoto ? String(d.creatorPhoto) : undefined),
-          name: String(d.name || ""),
-          description: String(d.description || ""),
-          isPublic: Boolean(d.is_public ?? d.isPublic ?? true),
-          movies: Array.isArray(d.movies) ? (d.movies as MovieCollection["movies"]) : [],
-          createdAt: Number(d.created_at || d.createdAt) || Date.now(),
-          updatedAt: Number(d.updated_at || d.updatedAt) || Date.now(),
-        }));
-      }
+
+    if (res.status === 401) {
+      return { status: "unauthorized", error: "Unauthorized 401" };
     }
-  } catch (err) {
-    console.warn("Lỗi lấy collections qua API:", err);
+    if (res.status === 403) {
+      return { status: "forbidden", error: "Forbidden 403" };
+    }
+    if (!res.ok) {
+      return { status: "server_error", error: `HTTP ${res.status}` };
+    }
+
+    const data = await res.json();
+    if (data.success && Array.isArray(data.items)) {
+      const items = (data.items as Array<Record<string, unknown>>).map((d) => ({
+        id: String(d.id),
+        userId: String(d.user_id || d.userId || ""),
+        creatorName: String(d.user_name || d.creatorName || "Thành viên Nanaflix"),
+        creatorPhoto: d.user_avatar ? String(d.user_avatar) : (d.creatorPhoto ? String(d.creatorPhoto) : undefined),
+        name: String(d.name || ""),
+        description: String(d.description || ""),
+        isPublic: Boolean(d.is_public ?? d.isPublic ?? true),
+        movies: Array.isArray(d.movies) ? (d.movies as MovieCollection["movies"]) : [],
+        createdAt: Number(d.created_at || d.createdAt) || Date.now(),
+        updatedAt: Number(d.updated_at || d.updatedAt) || Date.now(),
+      }));
+      return { status: "success", items };
+    }
+
+    return { status: "server_error", error: "Invalid response format" };
+  } catch (err: unknown) {
+    console.warn("Lỗi lấy collections qua API fallback:", err);
+    return { status: "network_error", error: err instanceof Error ? err.message : String(err) };
   }
-  return [];
 }
 
 export async function saveCollectionSupabase(col: MovieCollection): Promise<void> {

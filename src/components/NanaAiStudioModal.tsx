@@ -1193,8 +1193,8 @@ export const NanaAiStudioModal: React.FC<NanaAiStudioModalProps> = ({
                         <div className="flex items-center gap-2">
                           <span className="text-2xl animate-bounce">🎴</span>
                           <div>
-                            <h4 className="text-sm sm:text-base font-black text-amber-300 uppercase tracking-wider">
-                              QUẺ HÔM NAY CỦA BẠN
+                            <h4 className="text-sm sm:text-base font-black text-amber-300 tracking-wider">
+                              Quẻ hôm nay của bạn
                             </h4>
                             <p className="text-[11px] text-amber-200/80">
                               Định mệnh vừa kết duyên 5 yếu tố độc nhất cho bạn
@@ -1243,7 +1243,7 @@ export const NanaAiStudioModal: React.FC<NanaAiStudioModalProps> = ({
                           className="flex-1 min-w-[200px] py-3 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-600 to-rose-600 hover:from-amber-400 hover:to-rose-500 text-white font-black text-sm flex items-center justify-center gap-2 shadow-xl shadow-amber-950/50 active:scale-[0.99] transition cursor-pointer disabled:opacity-50 ring-2 ring-amber-400/40"
                         >
                           <Sparkles className="w-4 h-4" />
-                          <span>{isSpinning ? "Đang Khai Quẻ..." : "🔮 BỐC PHIM THEO QUẺ NÀY"}</span>
+                          <span>{isSpinning ? "Đang Khai Quẻ..." : "🔮 Bốc phim theo quẻ này"}</span>
                         </button>
                         <button
                           type="button"

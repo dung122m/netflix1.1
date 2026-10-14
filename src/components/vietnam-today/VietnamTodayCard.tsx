@@ -317,7 +317,7 @@ export function VietnamTodayCard({ info, selectedEventId, onOpenModal }: Vietnam
               >
                 <VietnamFlagIcon className="w-3.5 h-2.5 sm:w-4 sm:h-2.8 rounded-[1px] shadow-sm" />
                 <span className="tracking-wide">
-                  {isToday ? "ĐANG DIỄN RA" : "SẮP DIỄN RA"}
+                  {isToday ? "Đang diễn ra" : "Sắp diễn ra"}
                 </span>
               </span>
             </div>
@@ -382,7 +382,7 @@ export function VietnamTodayCard({ info, selectedEventId, onOpenModal }: Vietnam
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-[11px] uppercase tracking-wider font-bold text-amber-400/90 mb-1 flex items-center gap-1.5">
+                  <div className="text-[11px] tracking-wider font-bold text-amber-400/90 mb-1 flex items-center gap-1.5">
                     <Sparkles className="w-3 h-3" />
                     <span>Ý nghĩa & Thông điệp</span>
                   </div>

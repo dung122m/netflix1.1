@@ -278,10 +278,10 @@ export function VietnamTodayModal({
                   <VietnamFlagIcon className="w-4 h-2.8 rounded-[1px] shadow-sm" />
                   <span>
                     {isToday
-                      ? "HÔM NAY"
+                      ? "Hôm nay"
                       : daysUntil === 1
-                      ? "NGÀY MAI"
-                      : `CÒN ${daysUntil} NGÀY`}
+                      ? "Ngày mai"
+                      : `Còn ${daysUntil} ngày`}
                   </span>
                 </span>
 
@@ -361,7 +361,7 @@ export function VietnamTodayModal({
                   <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-amber-500/10 via-zinc-900/80 to-zinc-900/60 border border-amber-500/30 shadow-lg">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
                       <div>
-                        <div className="flex items-center gap-2 text-amber-400 text-xs font-bold uppercase tracking-wider mb-1">
+                        <div className="flex items-center gap-2 text-amber-400 text-xs font-bold tracking-wider mb-1">
                           <Sparkles className="w-3.5 h-3.5" />
                           <span>Gương mặt điện ảnh tiêu biểu</span>
                         </div>
@@ -528,7 +528,7 @@ export function VietnamTodayModal({
               {hasHistory && (
                 <div className="p-4 rounded-2xl bg-gradient-to-r from-zinc-900 via-zinc-900/90 to-zinc-900/80 border border-netflix-red/30 flex items-center justify-between gap-3 shadow-md">
                   <div className="space-y-1">
-                    <div className="flex items-center gap-2 text-xs font-bold text-netflix-red tracking-wide uppercase">
+                    <div className="flex items-center gap-2 text-xs font-bold text-netflix-red tracking-wide">
                       <History className="w-3.5 h-3.5 text-netflix-red" />
                       <span>Ngày này trong lịch sử Việt Nam</span>
                     </div>
@@ -665,7 +665,7 @@ export function VietnamTodayModal({
 
             {/* 1. ĐIỀU GÌ XẢY RA (SUMMARY) */}
             <div className="p-4 rounded-xl bg-white/[0.04] border border-white/10 space-y-1.5">
-              <div className="flex items-center gap-2 text-xs font-bold text-amber-400 uppercase tracking-wide">
+              <div className="flex items-center gap-2 text-xs font-bold text-amber-400 tracking-wide">
                 <BookOpen className="w-3.5 h-3.5 text-amber-400" />
                 <span>Diễn biến sự kiện</span>
               </div>
@@ -685,7 +685,7 @@ export function VietnamTodayModal({
                   {/* Bối cảnh (chỉ hiện khi có nội dung thực sự và không trùng lặp với diễn biến) */}
                   {hasDistinctContext && (
                     <div className="p-4 rounded-xl bg-zinc-900/60 border border-white/10 space-y-1.5">
-                      <div className="flex items-center gap-2 text-xs font-bold text-sky-400 uppercase tracking-wide">
+                      <div className="flex items-center gap-2 text-xs font-bold text-sky-400 tracking-wide">
                         <Compass className="w-3.5 h-3.5 text-sky-400" />
                         <span>Bối cảnh lịch sử</span>
                       </div>
@@ -701,7 +701,7 @@ export function VietnamTodayModal({
                       !hasDistinctContext ? "md:col-span-2" : ""
                     }`}
                   >
-                    <div className="flex items-center gap-2 text-xs font-bold text-rose-400 uppercase tracking-wide">
+                    <div className="flex items-center gap-2 text-xs font-bold text-rose-400 tracking-wide">
                       <Award className="w-3.5 h-3.5 text-rose-400" />
                       <span>Ý nghĩa lịch sử</span>
                     </div>
@@ -716,7 +716,7 @@ export function VietnamTodayModal({
             {/* 3. DỮ KIỆN & CON SỐ ĐÁNG CHÚ Ý */}
             {currentHist.keyFacts && currentHist.keyFacts.length > 0 && (
               <div className="p-4 rounded-xl bg-zinc-900/60 border border-white/10 space-y-2.5">
-                <div className="flex items-center gap-2 text-xs font-bold text-amber-300 uppercase tracking-wide">
+                <div className="flex items-center gap-2 text-xs font-bold text-amber-300 tracking-wide">
                   <CheckCircle2 className="w-3.5 h-3.5 text-amber-400" />
                   <span>Dữ kiện & Con số đáng nhớ</span>
                 </div>

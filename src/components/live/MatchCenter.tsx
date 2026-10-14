@@ -437,7 +437,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                       </span>
                     </div>
                     <span
-                      className={`mt-1.5 inline-flex items-center gap-1.5 text-[9.5px] font-black uppercase px-2.5 py-0.5 rounded-full border tracking-wider ${
+                      className={`mt-1.5 inline-flex items-center gap-1.5 text-[9.5px] font-bold px-2.5 py-0.5 rounded-full border tracking-wide ${
                         isLive
                           ? "bg-red-950/50 text-red-400 border-red-500/30 shadow-sm"
                           : "bg-zinc-900 text-sky-400 border-sky-500/20"
@@ -449,7 +449,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                           <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500" />
                         </span>
                       )}
-                      <span>{isLive ? "TRỰC TIẾP" : (time && time !== "Trực tiếp" ? `⏰ ${time}` : "TRỰC TIẾP")}</span>
+                      <span>{isLive ? "Trực tiếp" : (time && time !== "Trực tiếp" ? `⏰ ${time}` : "Trực tiếp")}</span>
                     </span>
                   </div>
 
@@ -712,7 +712,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                 <div className="rounded-2xl bg-zinc-900/50 border border-white/10 p-4 sm:p-6 space-y-4">
                   <div className="flex items-center justify-between text-xs pb-3 border-b border-white/10">
                     <span className="font-extrabold text-netflix-red">{summary.homeTeam.displayName}</span>
-                    <span className="text-gray-400 font-bold uppercase tracking-wider text-[11px]">Chỉ số so sánh</span>
+                    <span className="text-gray-400 font-bold tracking-wider text-[11px]">Chỉ số so sánh</span>
                     <span className="font-extrabold text-white">{summary.awayTeam.displayName}</span>
                   </div>
 

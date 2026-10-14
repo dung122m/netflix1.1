@@ -1864,7 +1864,7 @@ function LivePlayerInner({
     }
     setIsAtLiveEdge(true);
     setLiveLatency(0);
-    triggerActionFeedback("seek", "🔴 VỀ LIVE");
+    triggerActionFeedback("seek", "🔴 Về live");
   }, [triggerActionFeedback]);
 
   // Điều khiển Play / Pause - Chỉ bắt Live Edge khi unpause nếu stream đã rơi ra ngoài seekable window
@@ -2819,16 +2819,16 @@ function LivePlayerInner({
                       )}
                       <span>
                         {isMatchLive
-                          ? (currentScore?.displayClock || summary?.displayClock || "TRỰC TIẾP")
+                          ? (currentScore?.displayClock || summary?.displayClock || "Trực tiếp")
                           : isFinished
-                            ? "HẾT GIỜ (FT)"
+                            ? "Hết giờ (FT)"
                             : (specialStatusLabel ||
                                summary?.displayClock ||
                                (summary?.statusText === "STATUS_SCHEDULED"
                                  ? null
                                  : summary?.statusText?.replace(/^STATUS_/i, "")) ||
                                displayStatus.kickoffTime ||
-                               (time && time !== "Trực tiếp" ? `⏰ ${time}` : "TRỰC TIẾP"))}
+                               (time && time !== "Trực tiếp" ? `⏰ ${time}` : "Trực tiếp"))}
                       </span>
                     </span>
 
@@ -2993,7 +2993,7 @@ function LivePlayerInner({
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-netflix-red opacity-75" />
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-netflix-red" />
               </span>
-              <span className="font-semibold tracking-wider text-[10px] sm:text-[11px]">TRỰC TIẾP</span>
+              <span className="font-semibold tracking-wider text-[10px] sm:text-[11px]">Trực tiếp</span>
             </button>
           ) : (
             <button
@@ -3006,7 +3006,7 @@ function LivePlayerInner({
               className="group flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/70 hover:bg-black/85 text-amber-300 text-[10px] sm:text-[11px] font-medium tracking-wide shadow-lg border border-amber-500/30 backdrop-blur-md transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer select-none"
             >
               <RotateCcw className="w-3 h-3 group-hover:-rotate-90 transition-transform duration-300 text-amber-400" />
-              <span>VỀ LIVE</span>
+              <span>Về live</span>
             </button>
           )}
         </div>

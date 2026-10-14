@@ -1272,7 +1272,7 @@ function AdminDashboardContent() {
                           {item.isFlagged && (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-red-600/30 border border-red-500/50 text-[10px] text-red-300 font-bold animate-pulse">
                               <Flag size={11} className="fill-red-400 text-red-400" />
-                              <span>VI PHẠM</span>
+                              <span>Vi phạm</span>
                             </span>
                           )}
 

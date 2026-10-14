@@ -818,7 +818,7 @@ export function LiveTvClient({
       video.currentTime = hls.liveSyncPosition;
       setIsAtLiveEdge(true);
       setLiveLatency(0);
-      triggerActionFeedback("seek", "🔴 VỀ LIVE");
+      triggerActionFeedback("seek", "🔴 Về live");
       if (video.paused && !userPausedRef.current) {
         video.play().catch(() => {});
       }
@@ -826,7 +826,7 @@ export function LiveTvClient({
       video.currentTime = Math.max(0, video.seekable.end(video.seekable.length - 1) - 1);
       setIsAtLiveEdge(true);
       setLiveLatency(0);
-      triggerActionFeedback("seek", "🔴 VỀ LIVE");
+      triggerActionFeedback("seek", "🔴 Về live");
       if (video.paused && !userPausedRef.current) {
         video.play().catch(() => {});
       }
@@ -1560,7 +1560,7 @@ export function LiveTvClient({
                   <div className="flex items-center gap-1 sm:gap-1.5 mb-1 flex-wrap">
                     <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-netflix-red/20 border border-netflix-red/40 text-netflix-red text-[9.5px] sm:text-[10px] font-black animate-pulse whitespace-nowrap">
                       <Radio className="w-2.5 h-2.5" />
-                      <span>TRỰC TIẾP</span>
+                      <span>Trực tiếp</span>
                     </span>
                     <span className="px-2 py-0.5 rounded-full bg-white/10 border border-white/15 text-gray-300 text-[9.5px] sm:text-[10px] font-bold whitespace-nowrap">
                       {selectedTvChannel.category}
@@ -1666,13 +1666,13 @@ export function LiveTvClient({
                     goToLiveEdge();
                   }}
                   title="Đang phát trực tiếp (Bấm để đồng bộ)"
-                  className="group flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full bg-gradient-to-r from-red-600 via-rose-600 to-red-600 text-white text-[10px] sm:text-[11px] font-black uppercase tracking-wider shadow-[0_2px_12px_rgba(229,9,20,0.5)] border border-red-400/40 backdrop-blur-md transition hover:scale-105 active:scale-95 cursor-pointer select-none"
+                  className="group flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full bg-gradient-to-r from-red-600 via-rose-600 to-red-600 text-white text-[10px] sm:text-[11px] font-bold tracking-wider shadow-[0_2px_12px_rgba(229,9,20,0.5)] border border-red-400/40 backdrop-blur-md transition hover:scale-105 active:scale-95 cursor-pointer select-none"
                 >
                   <span className="relative flex h-2 w-2">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
                   </span>
-                  <span>TRỰC TIẾP</span>
+                  <span>Trực tiếp</span>
                 </button>
               ) : (
                 <button
@@ -1686,11 +1686,11 @@ export function LiveTvClient({
                       ? `Đang trễ ~${liveLatency}s so với trực tiếp. Bấm để quay về Live Edge`
                       : "Bấm để quay về Live Edge"
                   }
-                  className="group flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black text-[10px] sm:text-[11px] font-black uppercase tracking-wider shadow-[0_2px_12px_rgba(245,158,11,0.5)] border border-amber-300/60 backdrop-blur-md transition hover:scale-105 active:scale-95 cursor-pointer animate-pulse select-none"
+                  className="group flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black text-[10px] sm:text-[11px] font-bold tracking-wider shadow-[0_2px_12px_rgba(245,158,11,0.5)] border border-amber-300/60 backdrop-blur-md transition hover:scale-105 active:scale-95 cursor-pointer animate-pulse select-none"
                 >
                   <RotateCcw className="w-3 h-3 group-hover:-rotate-90 transition-transform duration-300" />
                   <span>
-                    {liveLatency > 0 ? `VỀ LIVE (-${liveLatency}s)` : "VỀ LIVE"}
+                    {liveLatency > 0 ? `Về live (-${liveLatency}s)` : "Về live"}
                   </span>
                 </button>
               )}
@@ -1715,7 +1715,7 @@ export function LiveTvClient({
                   className="flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-gradient-to-r from-red-600 via-rose-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white text-[11px] sm:text-xs font-black shadow-2xl border border-white/40 backdrop-blur-md transition-transform hover:scale-105 active:scale-95 cursor-pointer animate-bounce"
                 >
                   <Volume2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-pulse" />
-                  <span>BẬT TIẾNG</span>
+                  <span>Bật tiếng</span>
                 </button>
               </div>
             )}

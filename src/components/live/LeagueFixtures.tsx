@@ -561,7 +561,7 @@ export const LeagueFixtures: React.FC<LeagueFixturesProps> = ({
                   }`}
                 >
                   <span
-                    className={`text-[9.5px] uppercase font-bold tracking-tight ${
+                    className={`text-[9.5px] font-bold tracking-tight ${
                       item.isSelected
                         ? "text-white"
                         : item.isToday
@@ -569,7 +569,7 @@ export const LeagueFixtures: React.FC<LeagueFixturesProps> = ({
                           : "text-gray-400"
                     }`}
                   >
-                    {item.isToday ? "HÔM NAY" : item.shortWeekday}
+                    {item.isToday ? "Hôm nay" : item.shortWeekday}
                   </span>
                   <span className="text-xs sm:text-sm font-black mt-0.5">
                     {item.dayMonth}
@@ -972,7 +972,7 @@ export const LeagueFixtures: React.FC<LeagueFixturesProps> = ({
                                 <span className="truncate max-w-[200px]">
                                   {match.venue || "Chưa cập nhật sân"}
                                 </span>
-                                <span className="text-netflix-red group-hover:translate-x-0.5 transition-transform font-bold text-[10px] uppercase">
+                                <span className="text-netflix-red group-hover:translate-x-0.5 transition-transform font-bold text-[10px]">
                                   Chi tiết trận →
                                 </span>
                               </div>

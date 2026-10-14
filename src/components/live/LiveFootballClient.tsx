@@ -1106,7 +1106,7 @@ export function LiveFootballClient({
             <div className="flex items-center gap-2 mb-1.5">
               <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-netflix-red/20 border border-netflix-red/40 text-netflix-red text-xs font-bold animate-pulse">
                 <Radio className="w-3.5 h-3.5" />
-                <span>NANA SPORTS LIVE</span>
+                <span>Nana Sports Live</span>
               </span>
               <span className="text-xs text-emerald-400 font-medium bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
                 Full HD 1080p • Tốc độ cao
@@ -1334,7 +1334,7 @@ export function LiveFootballClient({
                       }`}
                     >
                       <Activity className="w-3.5 h-3.5" />
-                      <span className="truncate">CHI TIẾT TRẬN</span>
+                      <span className="truncate">Chi tiết trận</span>
                     </button>
                     <button
                       type="button"
@@ -1346,7 +1346,7 @@ export function LiveFootballClient({
                       }`}
                     >
                       <Clock className="w-3.5 h-3.5" />
-                      <span className="truncate">ĐỔI TRẬN ({filteredMatches.length})</span>
+                      <span className="truncate">Đổi trận ({filteredMatches.length})</span>
                     </button>
                   </div>
 

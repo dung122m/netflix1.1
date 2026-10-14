@@ -109,7 +109,7 @@ function MyListContent() {
   const [showCreateCollectionModal, setShowCreateCollectionModal] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const { user, isSyncing, syncNow } = useAuth();
+  const { user, loading, isSyncing, syncNow } = useAuth();
 
   useEffect(() => {
     setWatchlist(getWatchlist());
@@ -135,7 +135,13 @@ function MyListContent() {
   }, []);
 
   // Lắng nghe bộ sưu tập cá nhân theo thời gian thực khi đăng nhập
+  // P0 Fix: Chỉ quyết định trạng thái bộ sưu tập khi Auth đã khôi phục hoàn tất (loading === false)
   useEffect(() => {
+    if (loading) {
+      // Khi Auth đang khôi phục phiên (loading === true), không được vội vàng reset collections = []
+      return;
+    }
+
     if (!user?.uid) {
       setCollections([]);
       return;
@@ -146,7 +152,7 @@ function MyListContent() {
     });
 
     return () => unsub();
-  }, [user?.uid]);
+  }, [user?.uid, loading]);
 
   // Lắng nghe bình luận của người dùng theo thời gian thực
   useEffect(() => {
@@ -680,7 +686,23 @@ function MyListContent() {
       ) : activeTab === "collections" ? (
         /* TAB 3: CUSTOM COLLECTIONS & SMART COLLECTIONS */
         <div className="space-y-10">
-          {!user ? (
+          {loading ? (
+            /* SKELETON PLACEHOLDER KHI AUTH ĐANG KHÔI PHỤC PHIÊN */
+            <div className="space-y-4">
+              <div className="h-6 w-48 bg-zinc-800 rounded animate-pulse" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="h-64 rounded-2xl bg-zinc-900/60 border border-white/5 animate-pulse p-4 flex flex-col justify-between">
+                    <div className="aspect-[16/9] w-full bg-zinc-800 rounded-xl" />
+                    <div className="space-y-2 mt-3">
+                      <div className="h-4 w-3/4 bg-zinc-800 rounded" />
+                      <div className="h-3 w-1/2 bg-zinc-800/60 rounded" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : !user ? (
             <div className="flex flex-col items-center justify-center py-12 px-4 text-center max-w-lg mx-auto bg-zinc-900/30 rounded-2xl border border-white/5">
               <div className="h-16 w-16 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-center mb-4 text-gray-400">
                 <FolderHeart className="h-8 w-8 text-netflix-red" />

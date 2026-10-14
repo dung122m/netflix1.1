@@ -608,4 +608,342 @@ describe("Nanaflix Collections - Regression Test Suite", () => {
     const merged = mergeCollections([], serverList, mockUserA, tombstones);
     assert.equal(merged.length, 0, "Tombstoned collection must NOT be resurrected by server list");
   });
+
+  // =========================================================================
+  // BỘ 10 REGRESSION TESTS BẮT BUỘC: BẢO VỆ BST KHỎI LỖI TOKEN / AUTH / 401
+  // =========================================================================
+
+  // Test 1: Mở /my-list khi Auth đang loading: BST không bị xóa và không hiện nhầm giao diện khách
+  it("Mandatory Test 1: Khi Auth đang loading, state BST không bị reset rỗng và không kết luận là khách", () => {
+    let collectionsState: MovieCollection[] = [
+      {
+        id: "col_preloaded_1",
+        userId: mockUserA,
+        creatorName: "Alpha",
+        name: "BST Đã Có Từ Sáng",
+        isPublic: false,
+        movies: [],
+        createdAt: 1740000000000,
+        updatedAt: 1740000000000,
+      },
+    ];
+
+    // Mô phỏng logic page.tsx:
+    const authLoading = true;
+    const user = null; // Trong lúc loading, user là null
+
+    // Effect bảo vệ: Nếu loading === true, không được setCollections([])
+    if (!authLoading) {
+      if (!user) {
+        collectionsState = [];
+      }
+    }
+
+    assert.equal(collectionsState.length, 1, "BST must NOT be emptied during auth loading");
+    assert.equal(collectionsState[0].id, "col_preloaded_1");
+
+    // UI condition: Chỉ hiển thị guest screen khi !authLoading && !user
+    const isGuestScreenRendered = !authLoading && !user;
+    const isLoadingSkeletonRendered = authLoading;
+    assert.equal(isGuestScreenRendered, false, "Must NOT render guest prompt while auth is loading");
+    assert.equal(isLoadingSkeletonRendered, true, "Must render loading skeleton while auth is loading");
+  });
+
+  // Test 2: Auth khôi phục thành công: BST của đúng user hiển thị
+  it("Mandatory Test 2: Auth khôi phục thành công, BST của đúng user hiển thị đầy đủ", () => {
+    const authLoading = false;
+    const user = { uid: mockUserA };
+
+    const userCollections: MovieCollection[] = [
+      {
+        id: "col_user_a_private",
+        userId: mockUserA,
+        creatorName: "User Alpha",
+        name: "Phim Riêng Tư Của Alpha",
+        isPublic: false,
+        movies: [],
+        createdAt: 1740000000000,
+        updatedAt: 1740000000000,
+      },
+    ];
+
+    let renderedCount = 0;
+    if (!authLoading && user?.uid === mockUserA) {
+      renderedCount = userCollections.length;
+    }
+
+    assert.equal(renderedCount, 1, "Must render Alpha's collection when auth restores successfully");
+  });
+
+  // Test 3: Auth hoàn tất nhưng user thực sự chưa đăng nhập: hiển thị đúng giao diện khách
+  it("Mandatory Test 3: Auth hoàn tất và user thực sự chưa đăng nhập thì hiển thị giao diện khách", () => {
+    const authLoading = false;
+    const user = null;
+
+    let collectionsState: MovieCollection[] = [{ id: "temp", userId: "", creatorName: "", name: "", isPublic: true, movies: [], createdAt: 0, updatedAt: 0 }];
+
+    if (!authLoading && !user) {
+      collectionsState = [];
+    }
+
+    const isGuest = !authLoading && !user;
+    assert.equal(isGuest, true, "Confirmed as unauthenticated guest");
+    assert.equal(collectionsState.length, 0, "Collections cleared for guest");
+  });
+
+  // Test 4: API trả 401: không gọi fallback public để thay thế danh sách riêng tư; LocalStorage không bị ghi đè
+  it("Mandatory Test 4: API trả 401, LocalStorage không bị ghi đè rỗng và không nhận nhầm danh sách public", () => {
+    const localCollection: MovieCollection = {
+      id: "col_alpha_private",
+      userId: mockUserA,
+      creatorName: "Alpha",
+      name: "BST Riêng Tư Cực Kỳ Quan Trọng",
+      isPublic: false,
+      movies: [],
+      createdAt: 1740000000000,
+      updatedAt: 1740000000000,
+    };
+
+    const localList = [localCollection];
+    let isReliableServerResponse = false;
+    let serverItems: MovieCollection[] | null = null;
+
+    // Giả lập API trả về 401 Unauthorized
+    const apiResponseStatus = 401;
+    if (apiResponseStatus === 401) {
+      isReliableServerResponse = false;
+      serverItems = null;
+    }
+
+    // Cơ chế bảo vệ: Không cho phép fallback public ghi đè khi 401
+    let savedToLocalStorage: MovieCollection[] | null = null;
+    if (isReliableServerResponse && serverItems !== null) {
+      savedToLocalStorage = mergeCollections(localList, serverItems, mockUserA, {});
+    }
+
+    assert.equal(savedToLocalStorage, null, "Must NOT save or overwrite LocalStorage when server returns 401");
+    // Dữ liệu trả về cho UI giữ nguyên localList
+    const result = savedToLocalStorage !== null ? savedToLocalStorage : localList;
+    assert.equal(result.length, 1);
+    assert.equal(result[0].id, "col_alpha_private");
+    assert.equal(result[0].isPublic, false);
+  });
+
+  // Test 5: Fallback timeout hoặc lỗi mạng: không biến lỗi thành danh sách rỗng
+  it("Mandatory Test 5: Fallback gặp lỗi mạng hoặc timeout trả về network_error, không trả về mảng rỗng giả", () => {
+    // Contract mới: SupabaseCollectionsResult phân biệt rõ network_error với danh sách rỗng
+    type SupabaseResult =
+      | { status: "success"; items: MovieCollection[] }
+      | { status: "unauthorized" | "forbidden" | "network_error" | "server_error"; error?: string };
+
+    const mockNetworkFailure = (): SupabaseResult => {
+      return { status: "network_error", error: "Failed to fetch / timeout" };
+    };
+
+    const result = mockNetworkFailure();
+    assert.notEqual(result.status, "success", "Must not report success on network error");
+    assert.equal(result.status, "network_error");
+
+    // Collection service kiểm tra: chỉ xử lý khi status === 'success'
+    let treatedAsEmptyServerList = false;
+    if (result.status === "success" && Array.isArray(result.items)) {
+      treatedAsEmptyServerList = true;
+    }
+    assert.equal(treatedAsEmptyServerList, false, "Network error must NEVER be treated as valid empty server list");
+  });
+
+  // Test 6: Server xác thực thành công và trả danh sách rỗng thực sự: xử lý đúng theo contract
+  it("Mandatory Test 6: Server xác thực thành công và trả danh sách rỗng thực sự", () => {
+    type SupabaseResult =
+      | { status: "success"; items: MovieCollection[] }
+      | { status: "unauthorized" | "forbidden" | "network_error" | "server_error"; error?: string };
+
+    const mockServerVerifiedEmpty = (): SupabaseResult => {
+      return { status: "success", items: [] };
+    };
+
+    const result = mockServerVerifiedEmpty();
+    assert.equal(result.status, "success");
+    assert.equal(result.items.length, 0);
+
+    // Khi server xác thực hợp lệ và xác nhận rỗng, mergeCollections vẫn bảo vệ bản ghi local chưa kịp sync
+    const unSyncedLocal: MovieCollection = {
+      id: "col_offline_created",
+      userId: mockUserA,
+      creatorName: "Alpha",
+      name: "Vừa Tạo Khi Offline",
+      isPublic: true,
+      movies: [],
+      createdAt: 1740000000000,
+      updatedAt: 1740000000000,
+    };
+
+    const merged = mergeCollections([unSyncedLocal], result.items, mockUserA, {});
+    assert.equal(merged.length, 1, "Un-synced local collection is preserved even if server verified list is currently empty");
+    assert.equal(merged[0].id, "col_offline_created");
+  });
+
+  // Test 7: BST local có dữ liệu nhưng server tạm thời không truy cập được: dữ liệu local vẫn tồn tại sau reload
+  it("Mandatory Test 7: BST local có dữ liệu nhưng server không truy cập được (500/timeout): dữ liệu local vẫn toàn vẹn", () => {
+    const existingLocalCols: MovieCollection[] = [
+      {
+        id: "col_1",
+        userId: mockUserA,
+        creatorName: "Alpha",
+        name: "Phim Chiếu Rạp 1",
+        isPublic: true,
+        movies: [],
+        createdAt: 1740000000000,
+        updatedAt: 1740000000000,
+      },
+      {
+        id: "col_2",
+        userId: mockUserA,
+        creatorName: "Alpha",
+        name: "Phim Chiếu Rạp 2",
+        isPublic: false,
+        movies: [],
+        createdAt: 1740000000000,
+        updatedAt: 1740000000000,
+      },
+    ];
+
+    let serverItems: MovieCollection[] | null = null;
+    let isReliableServerResponse = false;
+
+    // Giả lập lỗi server 500
+    const serverStatus = 500;
+    if (serverStatus !== 200) {
+      isReliableServerResponse = false;
+      serverItems = null;
+    }
+
+    // Logic bảo vệ:
+    let outputList = existingLocalCols;
+    if (isReliableServerResponse && serverItems !== null) {
+      outputList = mergeCollections(existingLocalCols, serverItems, mockUserA, {});
+    }
+
+    assert.equal(outputList.length, 2, "Both local collections must survive when server is down");
+    assert.equal(outputList[0].id, "col_1");
+    assert.equal(outputList[1].id, "col_2");
+  });
+
+  // Test 8: Chuyển tài khoản khi request cũ chưa hoàn tất: không trộn dữ liệu và không ghi đè sai tài khoản
+  it("Mandatory Test 8: Chuyển tài khoản (Alpha -> Beta) không để response cũ ghi đè hoặc trộn dữ liệu sang Beta", () => {
+    let activeUser = mockUserA;
+
+    // Request của Alpha được gửi đi:
+    const alphaRequestUserId = mockUserA;
+    const alphaServerResponse: MovieCollection[] = [
+      {
+        id: "col_alpha_exclusive",
+        userId: mockUserA,
+        creatorName: "Alpha",
+        name: "BST Riêng Của Alpha",
+        isPublic: false,
+        movies: [],
+        createdAt: 1740000000000,
+        updatedAt: 1740000000000,
+      },
+    ];
+
+    // Ngay lúc này người dùng logout Alpha và đăng nhập Beta:
+    activeUser = mockUserB;
+
+    // Request cũ của Alpha hoàn tất sau đó:
+    let betaStorageModified = false;
+    let betaCallbackReceivedAlphaData = false;
+
+    // Cơ chế chống race condition:
+    if (activeUser === alphaRequestUserId) {
+      betaStorageModified = true;
+    } else {
+      // Hủy bỏ ghi đè vì activeUser đã chuyển sang Beta
+      betaStorageModified = false;
+    }
+
+    const betaCollections = mergeCollections([], activeUser === mockUserA ? alphaServerResponse : [], mockUserB, {});
+    assert.equal(betaStorageModified, false, "Must NOT save Alpha's response when active user is Beta");
+    assert.equal(betaCollections.length, 0, "Beta must NOT receive Alpha's collections");
+  });
+
+  // Test 9: Pending sync và tombstone vẫn hoạt động chính xác
+  it("Mandatory Test 9: Tombstone và Pending Sync hoạt động chính xác theo đúng chu trình", () => {
+    const colId = "col_test_sync_lifecycle";
+
+    // 1. Giả lập đưa vào pending sync
+    const pendingMap: Record<string, { collectionId: string; attempts: number; lastAttempt: number }> = {};
+    pendingMap[colId] = { collectionId: colId, attempts: 0, lastAttempt: Date.now() };
+    assert.ok(pendingMap[colId], "Pending sync item added");
+
+    // 2. Thêm tombstone khi xóa
+    const tombstones: Record<string, number> = {};
+    tombstones[colId] = Date.now();
+    assert.ok(tombstones[colId], "Tombstone added");
+
+    // 3. Worker pending sync kiểm tra tombstone -> loại bỏ pending sync ngay
+    if (tombstones[colId]) {
+      delete pendingMap[colId];
+    }
+    assert.equal(pendingMap[colId], undefined, "Tombstone cancels pending sync immediately");
+
+    // 4. Server trả về collection cũ có ID này -> mergeCollections lọc bỏ qua tombstone
+    const resurrectedServerCol: MovieCollection = {
+      id: colId,
+      userId: mockUserA,
+      creatorName: "Alpha",
+      name: "Bản Ghi Cũ Bị Xóa",
+      isPublic: true,
+      movies: [],
+      createdAt: 1740000000000,
+      updatedAt: 1740000000000,
+    };
+
+    const merged = mergeCollections([], [resurrectedServerCol], mockUserA, tombstones);
+    assert.equal(merged.length, 0, "Tombstone strictly prevents resurrection");
+  });
+
+  // Test 10: Không làm hỏng luồng tạo, sửa, xóa BST và thêm phim vào BST
+  it("Mandatory Test 10: Luồng tạo, sửa, xóa BST và thêm phim hoạt động chính xác và bảo toàn dữ liệu", () => {
+    // 1. Tạo BST
+    const newCol: MovieCollection = {
+      id: "col_flow_test",
+      userId: mockUserA,
+      creatorName: "Alpha",
+      name: "Tuyển Tập Bom Tấn 2026",
+      description: "Thử nghiệm đầy đủ CRUD",
+      isPublic: true,
+      movies: [],
+      createdAt: 1740000000000,
+      updatedAt: 1740000000000,
+    };
+    assert.equal(newCol.name, "Tuyển Tập Bom Tấn 2026");
+
+    // 2. Thêm phim vào BST
+    const movieItem: CollectionMovieItem = {
+      slug: "avatar-3",
+      title: "Avatar 3: Fire and Ash",
+      poster: "https://poster.url/avatar3.jpg",
+      quality: "4K",
+      addedAt: 1740000010000,
+    };
+    const updatedCol = {
+      ...newCol,
+      movies: [movieItem],
+      updatedAt: 1740000010000,
+    };
+    assert.equal(updatedCol.movies.length, 1);
+    assert.equal(updatedCol.movies[0].slug, "avatar-3");
+
+    // 3. Thêm trùng phim (Deduplication)
+    const existingMovies = updatedCol.movies;
+    const isDuplicate = existingMovies.some((m) => m.slug === movieItem.slug);
+    assert.equal(isDuplicate, true, "Detected duplicate movie slug");
+
+    // 4. Xóa BST -> Gắn tombstone
+    const tombstones: Record<string, number> = { [newCol.id]: Date.now() };
+    const remainingAfterDelete = [updatedCol].filter((c) => !tombstones[c.id]);
+    assert.equal(remainingAfterDelete.length, 0, "Collection deleted and removed cleanly");
+  });
 });

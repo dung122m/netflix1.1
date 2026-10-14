@@ -189,7 +189,7 @@ export function HistoryClient() {
 
           <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs sm:text-sm font-bold bg-gradient-to-r from-red-600/20 to-amber-600/20 border border-amber-500/30 text-amber-300 shadow-sm backdrop-blur-md">
             <Landmark className="w-4 h-4 text-amber-400" />
-            <span>BIÊN NIÊN SỬ VIỆT NAM</span>
+            <span>Biên niên sử Việt Nam</span>
           </div>
 
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight">
