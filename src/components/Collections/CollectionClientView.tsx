@@ -12,13 +12,16 @@ import {
   Check,
   Loader2,
   Sparkles,
+  Plus,
 } from "lucide-react";
 import { MediaCard } from "@/components/browse/MediaCard";
 import { getPublicCollection } from "@/services/collectionService";
-import { MovieCollection } from "@/types/collection";
+import { MovieCollection, CollectionMovieItem } from "@/types/collection";
 import { addToWatchlist } from "@/lib/watchlist";
 import { toast } from "@/components/Toast";
 import { UserAvatar } from "@/components/ui/UserAvatar";
+import { useAuth } from "@/context/AuthContext";
+import { AddMovieToCollectionModal } from "./AddMovieToCollectionModal";
 
 interface CollectionClientViewProps {
   id: string;
@@ -31,10 +34,16 @@ export function CollectionClientView({
   userId,
   initialData,
 }: CollectionClientViewProps) {
+  const { user } = useAuth();
   const [collection, setCollection] = useState<MovieCollection | null>(initialData ?? null);
   const [loading, setLoading] = useState<boolean>(!initialData);
   const [copied, setCopied] = useState(false);
   const [isAddingAll, setIsAddingAll] = useState(false);
+  const [showAddMovieModal, setShowAddMovieModal] = useState(false);
+
+  const isOwner = Boolean(
+    user?.uid && collection && (collection.userId === user.uid || (userId && userId === user.uid))
+  );
 
   useEffect(() => {
     // Nếu chưa có initialData từ server hoặc cần đồng bộ client
@@ -210,6 +219,17 @@ export function CollectionClientView({
 
               {/* CÁC NÚT HÀNH ĐỘNG */}
               <div className="flex flex-wrap items-center gap-3">
+                {isOwner && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAddMovieModal(true)}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-netflix-red hover:bg-rose-700 text-white text-xs sm:text-sm font-bold transition cursor-pointer active:scale-95 shadow-lg shadow-rose-950/50"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Thêm phim</span>
+                  </button>
+                )}
+
                 <button
                   type="button"
                   onClick={handleShare}
@@ -233,7 +253,7 @@ export function CollectionClientView({
                     type="button"
                     onClick={handleSaveAllToWatchlist}
                     disabled={isAddingAll}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-netflix-red hover:bg-rose-700 text-white text-xs sm:text-sm font-bold transition cursor-pointer active:scale-95 shadow-lg shadow-rose-950/50 disabled:opacity-50"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-white text-xs sm:text-sm font-bold transition cursor-pointer active:scale-95 shadow-md disabled:opacity-50"
                   >
                     {isAddingAll ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -249,14 +269,30 @@ export function CollectionClientView({
 
           {/* LƯỚI PHIM TRONG BỘ SƯU TẬP */}
           {collection.movies?.length === 0 ? (
-            <div className="py-20 text-center text-gray-400">
+            <div className="py-20 text-center text-gray-400 max-w-md mx-auto">
               <Film className="w-12 h-12 mx-auto text-gray-600 mb-3" />
               <p className="text-base font-semibold text-white">
                 Bộ sưu tập chưa có phim nào
               </p>
-              <p className="text-xs text-gray-400 mt-1">
-                Hãy bấm vào nút &quot;+ Bộ sưu tập&quot; ở các trang phim để thêm phim vào đây.
-              </p>
+              {isOwner ? (
+                <>
+                  <p className="text-xs text-gray-400 mt-1 mb-5">
+                    Bộ sưu tập của bạn đang trống. Hãy tìm kiếm và thêm các bộ phim yêu thích vào đây ngay.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddMovieModal(true)}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-netflix-red hover:bg-rose-700 text-white text-xs sm:text-sm font-bold transition shadow-lg shadow-rose-950/50 cursor-pointer active:scale-95"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Tìm & thêm phim ngay</span>
+                  </button>
+                </>
+              ) : (
+                <p className="text-xs text-gray-400 mt-1">
+                  Người tạo chưa thêm bộ phim nào vào bộ sưu tập này.
+                </p>
+              )}
             </div>
           ) : (
             <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-zinc-900/40 to-zinc-950/40 p-2.5 sm:p-4 md:p-5 overflow-visible">
@@ -275,6 +311,28 @@ export function CollectionClientView({
                 ))}
               </div>
             </div>
+          )}
+
+          {/* Modal tìm kiếm & thêm phim trực tiếp cho chủ sở hữu */}
+          {isOwner && (
+            <AddMovieToCollectionModal
+              isOpen={showAddMovieModal}
+              onClose={() => setShowAddMovieModal(false)}
+              collectionId={collection.id}
+              collectionName={collection.name}
+              existingMovieSlugs={(collection.movies || []).map((m) => m.slug)}
+              onMovieAdded={(newMovie) => {
+                setCollection((prev) =>
+                  prev
+                    ? {
+                        ...prev,
+                        movies: [newMovie, ...(prev.movies || []).filter((m) => m.slug !== newMovie.slug)],
+                        updatedAt: Date.now(),
+                      }
+                    : prev
+                );
+              }}
+            />
           )}
         </>
       )}

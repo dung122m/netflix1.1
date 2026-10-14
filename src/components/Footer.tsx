@@ -2,7 +2,6 @@
 
 import React from "react";
 import Link from "next/link";
-import Image from "next/image";
 import {
   Home,
   Tv,
@@ -383,13 +382,43 @@ export const Footer: React.FC = () => {
             href="/about"
             className="flex items-center gap-3 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl bg-zinc-950/80 hover:bg-zinc-900 border border-white/[0.08] sm:border-white/[0.1] hover:border-netflix-red/50 transition-all duration-300 group cursor-pointer shadow-lg w-full sm:w-auto justify-center sm:justify-start"
           >
-            <Image
-              src="/images/nana-footer.jpg"
-              alt="Dũng Trần"
-              width={36}
-              height={36}
-              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-cover border-2 border-zinc-700 group-hover:border-netflix-red group-hover:scale-105 transition-all duration-300 shadow-md shrink-0"
-            />
+            {/* Lá cờ Việt Nam */}
+            <div
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden border-2 border-zinc-700 group-hover:border-netflix-red group-hover:scale-105 transition-all duration-300 shadow-md shrink-0 flex items-center justify-center bg-[#DA251D] relative shadow-[0_0_10px_rgba(218,37,29,0.35)]"
+              title="Việt Nam"
+              aria-label="Cờ Việt Nam"
+            >
+              <svg
+                viewBox="0 0 512 512"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-full h-full object-cover"
+              >
+                <circle cx="256" cy="256" r="256" fill="#DA251D" />
+                <defs>
+                  <linearGradient id="footer-vn-flag-star" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor="#FFF775" />
+                    <stop offset="50%" stopColor="#FFDE00" />
+                    <stop offset="100%" stopColor="#E5A900" />
+                  </linearGradient>
+                </defs>
+                <polygon
+                  points="
+                    256, 110
+                    289.4, 213
+                    397.6, 213
+                    310.1, 276.5
+                    343.5, 379.5
+                    256, 316
+                    168.5, 379.5
+                    201.9, 276.5
+                    114.4, 213
+                    222.6, 213
+                  "
+                  fill="url(#footer-vn-flag-star)"
+                />
+              </svg>
+            </div>
             <div className="flex flex-col text-left">
               <span className="text-xs text-gray-300 font-medium">
                 Designed & Developed by{" "}

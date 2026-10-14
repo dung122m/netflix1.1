@@ -5,6 +5,93 @@ import { sanitizeSafeText } from "@/lib/security";
 
 export const dynamic = "force-dynamic";
 
+export interface SanitizedMovieItem {
+  slug: string;
+  title: string;
+  poster: string;
+  year?: string;
+  quality?: string;
+  category?: string;
+  addedAt: number;
+}
+
+/**
+ * Chuẩn hóa và loại bỏ phim trùng slug ở cấp độ Server API
+ * - Chuẩn hóa slug (trim, case-insensitive khi kiểm tra trùng)
+ * - Bảo tồn thứ tự phim xuất hiện ban đầu
+ * - Giữ trọn vẹn metadata hợp lệ (poster, year, quality, category, addedAt)
+ * - Loại bỏ các item rỗng hoặc thiếu slug/title
+ */
+export function sanitizeAndDeduplicateMovies(rawMovies: unknown): SanitizedMovieItem[] {
+  if (!Array.isArray(rawMovies)) return [];
+
+  const seenSlugs = new Set<string>();
+  const sanitized: SanitizedMovieItem[] = [];
+
+  for (const item of rawMovies) {
+    if (!item || typeof item !== "object") continue;
+    const m = item as Record<string, unknown>;
+
+    const slug = String(m.slug || "").trim();
+    const title = String(m.title || "").trim();
+    if (!slug || !title) continue;
+
+    const normalizedKey = slug.toLowerCase();
+    if (seenSlugs.has(normalizedKey)) {
+      continue; // Đã có trong danh sách, bỏ qua để chống trùng
+    }
+    seenSlugs.add(normalizedKey);
+
+    const poster = String(m.poster || m.posterUrl || m.poster_url || m.thumb_url || "/default-poster.jpg").trim();
+    const year = m.year !== undefined && m.year !== null ? String(m.year).trim() : undefined;
+    const quality = m.quality ? String(m.quality).trim() : undefined;
+    const category = m.category ? String(m.category).trim() : undefined;
+    const addedAt = Number(m.addedAt ?? m.added_at) || Date.now();
+
+    sanitized.push({
+      slug,
+      title: sanitizeSafeText(title, 200),
+      poster,
+      year: year || undefined,
+      quality: quality || undefined,
+      category: category || undefined,
+      addedAt,
+    });
+  }
+
+  return sanitized;
+}
+
+function formatCollectionResponse(row: Record<string, unknown>) {
+  const now = Date.now();
+  return {
+    id: String(row.id || ""),
+    userId: String(row.user_id || row.userId || ""),
+    user_id: String(row.user_id || row.userId || ""),
+    creatorName: String(row.user_name || row.creatorName || "Thành viên Nanaflix"),
+    user_name: String(row.user_name || row.creatorName || "Thành viên Nanaflix"),
+    creatorPhoto: row.user_avatar ? String(row.user_avatar) : (row.creatorPhoto ? String(row.creatorPhoto) : undefined),
+    user_avatar: row.user_avatar || null,
+    name: String(row.name || ""),
+    description: row.description ? String(row.description) : "",
+    isPublic: Boolean(row.is_public ?? row.isPublic ?? true),
+    is_public: Boolean(row.is_public ?? row.isPublic ?? true),
+    colorGradient: (row.color_gradient || row.colorGradient || null) as string | null,
+    color_gradient: (row.color_gradient || row.colorGradient || null) as string | null,
+    coverUrl: (row.cover_url || row.coverUrl || null) as string | null,
+    cover_url: (row.cover_url || row.coverUrl || null) as string | null,
+    movies: Array.isArray(row.movies) ? row.movies : [],
+    likesCount: Number(row.likes_count ?? row.likesCount ?? 0),
+    likes_count: Number(row.likes_count ?? row.likesCount ?? 0),
+    viewsCount: Number(row.views_count ?? row.viewsCount ?? 0),
+    views_count: Number(row.views_count ?? row.viewsCount ?? 0),
+    createdAt: Number(row.created_at ?? row.createdAt) || now,
+    created_at: Number(row.created_at ?? row.createdAt) || now,
+    updatedAt: Number(row.updated_at ?? row.updatedAt) || now,
+    updated_at: Number(row.updated_at ?? row.updatedAt) || now,
+  };
+}
+
 /**
  * GET /api/user/collections
  * - ?id=xxx: Lấy chi tiết bộ sưu tập (nếu public hoặc là owner/admin)
@@ -39,7 +126,7 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: "Forbidden: Bộ sưu tập riêng tư" }, { status: 403 });
       }
 
-      return NextResponse.json({ success: true, item: data });
+      return NextResponse.json({ success: true, item: formatCollectionResponse(data) });
     }
 
     if (searchParams.get("public") === "true") {
@@ -54,7 +141,8 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
       }
 
-      return NextResponse.json({ success: true, items: data || [] });
+      const items = (data || []).map(formatCollectionResponse);
+      return NextResponse.json({ success: true, items });
     }
 
     if (searchParams.get("all") === "true") {
@@ -70,7 +158,8 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
       }
 
-      return NextResponse.json({ success: true, items: data || [] });
+      const items = (data || []).map(formatCollectionResponse);
+      return NextResponse.json({ success: true, items });
     }
 
     const targetUserId = searchParams.get("userId");
@@ -85,7 +174,8 @@ export async function GET(req: NextRequest) {
       if (error) {
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
       }
-      return NextResponse.json({ success: true, items: data || [] });
+      const items = (data || []).map(formatCollectionResponse);
+      return NextResponse.json({ success: true, items });
     }
 
     // Lấy danh sách bộ sưu tập của chính user
@@ -103,7 +193,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, items: data || [] });
+    const items = (data || []).map(formatCollectionResponse);
+    return NextResponse.json({ success: true, items });
   } catch (err) {
     console.error("[Collections API GET] Error:", err);
     return NextResponse.json({ success: false, error: "Internal error" }, { status: 500 });
@@ -127,7 +218,14 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { id, name, description, isPublic, colorGradient, coverUrl, movies } = body;
+    const id = body.id;
+    const name = body.name;
+    const description = body.description;
+    const isPublic = body.isPublic !== undefined ? body.isPublic : (body.is_public !== undefined ? body.is_public : true);
+    const colorGradient = body.colorGradient || body.color_gradient || null;
+    const coverUrl = body.coverUrl || body.cover_url || null;
+    const movies = sanitizeAndDeduplicateMovies(body.movies);
+    const clientCreatedAt = body.createdAt || body.created_at;
 
     if (!name || typeof name !== "string") {
       return NextResponse.json({ error: "Tên bộ sưu tập không được để trống" }, { status: 400 });
@@ -137,13 +235,16 @@ export async function POST(req: NextRequest) {
     const now = Date.now();
     const collectionId = id || `col_${userId}_${now}`;
 
-    // Kiểm tra quyền sở hữu nếu là cập nhật bộ sưu tập đã có
+    // Kiểm tra bản ghi đã tồn tại trong DB
+    let existingRecord: { user_id: string; created_at?: number | string | null } | null = null;
     if (id) {
       const { data: existing } = await supabase
         .from("collections")
-        .select("user_id")
+        .select("user_id, created_at")
         .eq("id", id)
         .maybeSingle();
+
+      existingRecord = existing;
 
       if (existing && existing.user_id !== userId && !auth.isAdmin) {
         return NextResponse.json(
@@ -152,6 +253,11 @@ export async function POST(req: NextRequest) {
         );
       }
     }
+
+    // Bảo tồn created_at: Nếu đã tồn tại thì giữ nguyên, nếu tạo mới thì lấy clientCreatedAt hoặc now
+    const createdAt = existingRecord?.created_at
+      ? Number(existingRecord.created_at)
+      : (Number(clientCreatedAt) || now);
 
     const payload = {
       id: collectionId,
@@ -163,9 +269,9 @@ export async function POST(req: NextRequest) {
       is_public: Boolean(isPublic),
       color_gradient: colorGradient || null,
       cover_url: coverUrl || null,
-      movies: Array.isArray(movies) ? movies : [],
+      movies,
+      created_at: createdAt,
       updated_at: now,
-      created_at: id ? undefined : now,
     };
 
     const { error } = await supabase.from("collections").upsert(payload, { onConflict: "id" });
@@ -173,7 +279,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, id: collectionId, item: payload });
+    return NextResponse.json({ success: true, id: collectionId, item: formatCollectionResponse(payload) });
   } catch (err) {
     console.error("[Collections API POST] Error:", err);
     return NextResponse.json({ success: false, error: "Internal error" }, { status: 500 });

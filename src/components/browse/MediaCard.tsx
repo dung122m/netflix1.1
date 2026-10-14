@@ -8,6 +8,7 @@ import {
   Star,
   Film,
   Bookmark,
+  FolderPlus,
 } from "lucide-react";
 import { isInWatchlist, toggleWatchlist, subscribeToWatchlist } from "@/lib/watchlist";
 import {
@@ -18,6 +19,9 @@ import {
 } from "@/lib/movieMedia";
 import { TrailerModal } from "@/components/TrailerModal";
 import { extractYoutubeId } from "@/lib/trailerHelper";
+import { useAuth } from "@/context/AuthContext";
+import { AddToCollectionModal } from "@/components/Collections/AddToCollectionModal";
+import { AuthModal } from "@/components/AuthModal";
 
 export interface MovieExtraInfo {
   actor?: string[];
@@ -100,7 +104,20 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
   matchSnippet,
 }) => {
   const router = useRouter();
+  const { user } = useAuth();
   const [inList, setInList] = useState(false);
+  const [showCollectionModal, setShowCollectionModal] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+
+  const handleOpenCollectionModal = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+    setShowCollectionModal(true);
+  }, [user]);
 
   // Danh sách ảnh ứng viên cho Poster đứng 2:3: Ưu tiên posterUrl (ảnh dọc 2:3 chuẩn) -> imageUrl -> thumbUrl
   const imageCandidates = React.useMemo(() => {
@@ -434,8 +451,33 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           </div>
         )}
 
-        {/* NÚT LƯU DANH SÁCH (WATCHLIST) KHI HOVER TRÊN DESKTOP */}
-        <div className="absolute top-2.5 right-2.5 z-20 pointer-events-auto opacity-0 group-hover/card:opacity-100 focus-within:opacity-100 transition-opacity duration-200 hidden sm:flex">
+        {/* NÚT THÊM BỘ SƯU TẬP TRÊN MOBILE (KHÔNG PHỤ THUỘC HOVER) */}
+        <div className="absolute top-2 right-2 z-20 pointer-events-auto sm:hidden">
+          <button
+            type="button"
+            onClick={handleOpenCollectionModal}
+            title="Thêm vào bộ sưu tập"
+            aria-label={`Thêm phim ${title} vào bộ sưu tập`}
+            className="w-6 h-6 rounded-full flex items-center justify-center border border-white/20 bg-black/60 backdrop-blur-md text-amber-400 active:scale-90 transition cursor-pointer shadow-sm"
+          >
+            <FolderPlus className="w-3 h-3" />
+          </button>
+        </div>
+
+        {/* CỤM NÚT HÀNH ĐỘNG KHI HOVER TRÊN DESKTOP */}
+        <div className="absolute top-2.5 right-2.5 z-20 pointer-events-auto opacity-0 group-hover/card:opacity-100 focus-within:opacity-100 transition-opacity duration-200 hidden sm:flex items-center gap-1.5">
+          {/* Nút Bộ sưu tập */}
+          <button
+            type="button"
+            onClick={handleOpenCollectionModal}
+            title="Thêm vào bộ sưu tập"
+            aria-label={`Thêm phim ${title} vào bộ sưu tập`}
+            className="w-7 h-7 rounded-full flex items-center justify-center border transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer shadow-md backdrop-blur-md outline-none focus-visible:ring-2 focus-visible:ring-white bg-black/75 hover:bg-amber-400 hover:border-amber-400 hover:text-black border-white/20 text-white group/btn"
+          >
+            <FolderPlus className="w-3.5 h-3.5 text-amber-400 group-hover/btn:text-black transition-colors" />
+          </button>
+
+          {/* Nút Watchlist */}
           <button
             type="button"
             onClick={handleToggleList}
@@ -531,6 +573,30 @@ const MediaCardInner: React.FC<MediaCardProps> = ({
           onClose={() => setShowTrailerModal(false)}
           title={title}
           modalTrailerUrl={modalTrailerUrl}
+        />
+      )}
+
+      {/* 4. MODAL THÊM VÀO BỘ SƯU TẬP & MODAL ĐĂNG NHẬP */}
+      {showCollectionModal && (
+        <AddToCollectionModal
+          isOpen={true}
+          onClose={() => setShowCollectionModal(false)}
+          movie={{
+            slug,
+            title,
+            poster: currentSrc || imageUrl || posterUrl || thumbUrl || "/default-poster.jpg",
+            year,
+            quality,
+            category: genre,
+          }}
+        />
+      )}
+
+      {showAuthModal && (
+        <AuthModal
+          isOpen={true}
+          onClose={() => setShowAuthModal(false)}
+          customTitle="Đăng nhập để thêm phim vào bộ sưu tập"
         />
       )}
     </div>

@@ -9,6 +9,211 @@ import { movieApi } from "./movieApi";
 import { normalizeMovie } from "@/lib/movieMedia";
 
 const LOCAL_COLLECTIONS_KEY_PREFIX = "nanaflix_collections_";
+const TOMBSTONE_KEY_PREFIX = "nanaflix_col_tombstones_";
+const PENDING_SYNC_KEY_PREFIX = "nanaflix_col_pending_sync_";
+const TOMBSTONE_TTL_MS = 10 * 60 * 1000; // 10 phút
+const MAX_SYNC_ATTEMPTS = 5;
+
+/**
+ * Chuẩn hóa đối tượng bộ sưu tập từ bất kỳ nguồn nào (Database snake_case hoặc Frontend camelCase)
+ */
+export function normalizeCollection(raw: unknown): MovieCollection | null {
+  if (!raw || typeof raw !== "object") return null;
+  const d = raw as Record<string, unknown>;
+
+  const id = String(d.id || "").trim();
+  if (!id) return null;
+
+  const userId = String(d.userId || d.user_id || "").trim();
+  const creatorName = String(d.creatorName || d.user_name || "Thành viên Nanaflix").trim();
+  const creatorPhoto = d.creatorPhoto
+    ? String(d.creatorPhoto)
+    : (d.user_avatar ? String(d.user_avatar) : undefined);
+  const name = String(d.name || "").trim();
+  if (!name) return null;
+
+  const description = d.description ? String(d.description).trim() : "";
+  const isPublic = Boolean(d.isPublic ?? d.is_public ?? true);
+
+  const movies: CollectionMovieItem[] = [];
+  if (Array.isArray(d.movies)) {
+    for (const item of d.movies) {
+      if (item && typeof item === "object") {
+        const m = item as Record<string, unknown>;
+        const slug = String(m.slug || "").trim();
+        const title = String(m.title || "").trim();
+        if (slug && title) {
+          movies.push({
+            slug,
+            title,
+            poster: String(m.poster || m.poster_url || m.thumb_url || "/default-poster.jpg"),
+            year: m.year !== undefined ? String(m.year) : undefined,
+            quality: m.quality ? String(m.quality) : undefined,
+            category: m.category ? String(m.category) : undefined,
+            addedAt: Number(m.addedAt || m.added_at) || Date.now(),
+          });
+        }
+      }
+    }
+  }
+
+  const now = Date.now();
+  const createdAt = Number(d.createdAt ?? d.created_at) || now;
+  const updatedAt = Number(d.updatedAt ?? d.updated_at) || createdAt;
+
+  return {
+    id,
+    userId,
+    creatorName: creatorName || "Thành viên Nanaflix",
+    creatorPhoto,
+    name,
+    description,
+    isPublic,
+    movies,
+    createdAt,
+    updatedAt,
+  };
+}
+
+export interface PendingSyncItem {
+  collectionId: string;
+  attempts: number;
+  lastAttempt: number;
+}
+
+export function getPendingSync(userId: string): Record<string, PendingSyncItem> {
+  if (typeof window === "undefined" || !userId) return {};
+  try {
+    const raw = localStorage.getItem(`${PENDING_SYNC_KEY_PREFIX}${userId}`);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return {};
+    return parsed as Record<string, PendingSyncItem>;
+  } catch {
+    return {};
+  }
+}
+
+export function addPendingSync(userId: string, collectionId: string): void {
+  if (typeof window === "undefined" || !userId || !collectionId) return;
+  try {
+    const current = getPendingSync(userId);
+    const existing = current[collectionId];
+    current[collectionId] = {
+      collectionId,
+      attempts: existing ? existing.attempts : 0,
+      lastAttempt: Date.now(),
+    };
+    localStorage.setItem(`${PENDING_SYNC_KEY_PREFIX}${userId}`, JSON.stringify(current));
+  } catch {}
+}
+
+export function removePendingSync(userId: string, collectionId: string): void {
+  if (typeof window === "undefined" || !userId || !collectionId) return;
+  try {
+    const current = getPendingSync(userId);
+    if (current[collectionId]) {
+      delete current[collectionId];
+      localStorage.setItem(`${PENDING_SYNC_KEY_PREFIX}${userId}`, JSON.stringify(current));
+    }
+  } catch {}
+}
+
+export function clearPendingSync(userId: string): void {
+  if (typeof window === "undefined" || !userId) return;
+  try {
+    localStorage.removeItem(`${PENDING_SYNC_KEY_PREFIX}${userId}`);
+  } catch {}
+}
+
+export function getTombstones(userId: string): Record<string, number> {
+  if (typeof window === "undefined" || !userId) return {};
+  try {
+    const raw = localStorage.getItem(`${TOMBSTONE_KEY_PREFIX}${userId}`);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    const now = Date.now();
+    const valid: Record<string, number> = {};
+    for (const [id, ts] of Object.entries(parsed)) {
+      if (typeof ts === "number" && now - ts < TOMBSTONE_TTL_MS) {
+        valid[id] = ts;
+      }
+    }
+    return valid;
+  } catch {
+    return {};
+  }
+}
+
+export function addTombstone(userId: string, collectionId: string): void {
+  if (typeof window === "undefined" || !userId || !collectionId) return;
+  try {
+    const current = getTombstones(userId);
+    current[collectionId] = Date.now();
+    localStorage.setItem(`${TOMBSTONE_KEY_PREFIX}${userId}`, JSON.stringify(current));
+  } catch {}
+}
+
+export function clearTombstone(userId: string, collectionId: string): void {
+  if (typeof window === "undefined" || !userId || !collectionId) return;
+  try {
+    const current = getTombstones(userId);
+    if (current[collectionId]) {
+      delete current[collectionId];
+      localStorage.setItem(`${TOMBSTONE_KEY_PREFIX}${userId}`, JSON.stringify(current));
+    }
+  } catch {}
+}
+
+/**
+ * Thuật toán Smart Merge: Hợp nhất danh sách giữa LocalStorage và Server
+ * - Ưu tiên bản ghi có `updatedAt` lớn hơn khi cả hai nguồn đều có ID
+ * - Giữ các bản ghi cục bộ mới tạo mà server chưa kịp có
+ * - Tôn trọng tombstone để tránh hồi sinh bản ghi đã bị xóa
+ */
+export function mergeCollections(
+  localList: MovieCollection[],
+  serverList: MovieCollection[],
+  userId: string,
+  tombstones: Record<string, number> = {}
+): MovieCollection[] {
+  const collectionMap = new Map<string, MovieCollection>();
+
+  // 1. Nạp server list trước (đã lọc tombstone)
+  for (const rawServer of serverList) {
+    const s = normalizeCollection(rawServer);
+    if (!s) continue;
+    if (tombstones[s.id]) continue;
+    collectionMap.set(s.id, s);
+  }
+
+  // 2. Xét local list
+  for (const rawLocal of localList) {
+    const l = normalizeCollection(rawLocal);
+    if (!l) continue;
+    if (tombstones[l.id]) continue;
+
+    const existingServer = collectionMap.get(l.id);
+    if (!existingServer) {
+      // Local có nhưng server chưa có: giữ lại nếu thuộc về user này
+      if (!userId || l.userId === userId || !l.userId) {
+        collectionMap.set(l.id, l);
+      }
+    } else {
+      // Cả 2 đều có: so sánh updatedAt
+      if (l.updatedAt > existingServer.updatedAt) {
+        collectionMap.set(l.id, l);
+      } else {
+        collectionMap.set(l.id, existingServer);
+      }
+    }
+  }
+
+  // Sắp xếp theo updatedAt giảm dần (mới nhất lên đầu)
+  return Array.from(collectionMap.values()).sort(
+    (a, b) => (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0)
+  );
+}
 
 async function getAuthHeaders(): Promise<HeadersInit> {
   const headers: Record<string, string> = {
@@ -32,7 +237,10 @@ export function getLocalCollections(userId: string): MovieCollection[] {
     const raw = localStorage.getItem(`${LOCAL_COLLECTIONS_KEY_PREFIX}${userId}`);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map(normalizeCollection)
+      .filter((c: MovieCollection | null): c is MovieCollection => c !== null);
   } catch {
     return [];
   }
@@ -44,12 +252,16 @@ export function getLocalCollections(userId: string): MovieCollection[] {
 export function saveLocalCollections(userId: string, items: MovieCollection[]): void {
   if (typeof window === "undefined" || !userId) return;
   try {
+    const normalizedItems = items
+      .map(normalizeCollection)
+      .filter((c: MovieCollection | null): c is MovieCollection => c !== null);
+
     localStorage.setItem(
       `${LOCAL_COLLECTIONS_KEY_PREFIX}${userId}`,
-      JSON.stringify(items)
+      JSON.stringify(normalizedItems)
     );
     window.dispatchEvent(
-      new CustomEvent("collections-updated", { detail: { userId, items } })
+      new CustomEvent("collections-updated", { detail: { userId, items: normalizedItems } })
     );
   } catch (e) {
     console.warn("Lỗi lưu localStorage collections:", e);
@@ -58,20 +270,128 @@ export function saveLocalCollections(userId: string, items: MovieCollection[]): 
 
 /**
  * Lưu bộ sưu tập qua Server API
+ * Trả về true nếu server xác nhận thành công (status 200..299)
  */
-async function syncCollectionToServer(collection: MovieCollection): Promise<void> {
+export async function syncCollectionToServer(collection: MovieCollection): Promise<boolean> {
   try {
     const headers = await getAuthHeaders();
-    if (!headers["Authorization" as keyof typeof headers]) return;
+    if (!headers["Authorization" as keyof typeof headers]) return false;
 
-    await fetch("/api/user/collections", {
+    const res = await fetch("/api/user/collections", {
       method: "POST",
       headers,
       body: JSON.stringify(collection),
     });
+    return res.ok;
   } catch (err) {
     console.warn("Lỗi lưu collection qua API:", err);
+    return false;
   }
+}
+
+const activeSyncPromises = new Map<string, Promise<void>>();
+
+/**
+ * Tiến trình đồng bộ lại các bản ghi đang chờ (Pending Sync) lên Server:
+ * - Chống chạy đồng thời nhiều worker cho cùng 1 user (activeSyncPromises Lock)
+ * - Kiểm tra danh tính user trước khi gửi (không sync lẫn lộn tài khoản khi chuyển user/logout)
+ * - Tôn trọng Tombstone (không sync dữ liệu đã bị xóa)
+ * - Exponential backoff và giới hạn số lần thử (tối đa MAX_SYNC_ATTEMPTS)
+ * - Chỉ xóa khỏi hàng đợi khi Server xác nhận HTTP 200/201 hợp lệ
+ */
+export async function processPendingSync(userId: string): Promise<void> {
+  if (typeof window === "undefined" || !userId) return;
+
+  // Bảo vệ cô lập dữ liệu theo tài khoản: Nếu user hiện tại không khớp userId, dừng ngay
+  const currentUid = auth?.currentUser?.uid;
+  if (currentUid && currentUid !== userId) {
+    return;
+  }
+
+  // Khóa lock chống chạy đồng thời
+  const existingPromise = activeSyncPromises.get(userId);
+  if (existingPromise) {
+    return existingPromise;
+  }
+
+  const syncPromise = (async () => {
+    try {
+      const pendingMap = getPendingSync(userId);
+      const pendingIds = Object.keys(pendingMap);
+      if (pendingIds.length === 0) return;
+
+      const tombstones = getTombstones(userId);
+      const localCols = getLocalCollections(userId);
+      const now = Date.now();
+
+      for (const colId of pendingIds) {
+        // Kiểm tra an toàn trước mỗi item
+        const activeUid = auth?.currentUser?.uid;
+        if (activeUid && activeUid !== userId) {
+          break;
+        }
+
+        // 1. Tôn trọng Tombstone
+        if (tombstones[colId]) {
+          removePendingSync(userId, colId);
+          continue;
+        }
+
+        // 2. Kiểm tra bản ghi trong LocalStorage
+        const col = localCols.find((c) => c.id === colId);
+        if (!col) {
+          removePendingSync(userId, colId);
+          continue;
+        }
+
+        const item = pendingMap[colId];
+        if (!item) continue;
+
+        // 3. Giới hạn retry
+        if (item.attempts >= MAX_SYNC_ATTEMPTS) {
+          removePendingSync(userId, colId);
+          continue;
+        }
+
+        // 4. Exponential backoff (1s, 2s, 4s, 8s, 16s, max 30s)
+        const backoffMs = Math.min(1000 * Math.pow(2, item.attempts), 30000);
+        if (item.attempts > 0 && now - item.lastAttempt < backoffMs) {
+          continue;
+        }
+
+        // 5. Thử đồng bộ lên server
+        const success = await syncCollectionToServer(col);
+        if (success) {
+          removePendingSync(userId, colId);
+        } else {
+          item.attempts += 1;
+          item.lastAttempt = Date.now();
+          try {
+            const current = getPendingSync(userId);
+            current[colId] = item;
+            localStorage.setItem(`${PENDING_SYNC_KEY_PREFIX}${userId}`, JSON.stringify(current));
+          } catch {}
+        }
+      }
+    } catch (e) {
+      console.warn("[Collections] Lỗi processPendingSync:", e);
+    } finally {
+      activeSyncPromises.delete(userId);
+    }
+  })();
+
+  activeSyncPromises.set(userId, syncPromise);
+  return syncPromise;
+}
+
+// Tự động kích hoạt khi mạng phục hồi
+if (typeof window !== "undefined") {
+  window.addEventListener("online", () => {
+    const currentUid = auth?.currentUser?.uid;
+    if (currentUid) {
+      processPendingSync(currentUid).catch(() => {});
+    }
+  });
 }
 
 /**
@@ -95,10 +415,14 @@ async function deleteCollectionFromServer(collectionId: string): Promise<boolean
 
 /**
  * Lấy danh sách bộ sưu tập của người dùng (Server API + Supabase PostgreSQL + LocalStorage Cache)
+ * Áp dụng Smart Merge, không bao giờ để response rỗng hoặc lỗi tạm thời xóa trắng LocalStorage
  */
 export async function getUserCollections(userId: string): Promise<MovieCollection[]> {
   if (!userId) return [];
   const localList = getLocalCollections(userId);
+  const tombstones = getTombstones(userId);
+
+  let serverItems: MovieCollection[] | null = null;
 
   try {
     const headers = await getAuthHeaders();
@@ -110,23 +434,44 @@ export async function getUserCollections(userId: string): Promise<MovieCollectio
       if (res.ok) {
         const data = await res.json();
         if (data.success && Array.isArray(data.items)) {
-          saveLocalCollections(userId, data.items);
-          return data.items;
+          serverItems = data.items
+            .map(normalizeCollection)
+            .filter((c: MovieCollection | null): c is MovieCollection => c !== null);
         }
       }
     }
-  } catch {}
-
-  if (isSupabaseConfigured()) {
-    try {
-      const supaItems = await getUserCollectionsSupabase(userId);
-      if (supaItems && supaItems.length > 0) {
-        saveLocalCollections(userId, supaItems);
-        return supaItems;
-      }
-    } catch {}
+  } catch (err) {
+    console.warn("Lỗi fetch /api/user/collections:", err);
   }
 
+  // Supabase fallback nếu API không phản hồi
+  if (serverItems === null && isSupabaseConfigured()) {
+    try {
+      const supaItems = await getUserCollectionsSupabase(userId);
+      if (Array.isArray(supaItems)) {
+        serverItems = supaItems
+          .map(normalizeCollection)
+          .filter((c: MovieCollection | null): c is MovieCollection => c !== null);
+      }
+    } catch (err) {
+      console.warn("Lỗi fetch Supabase collections fallback:", err);
+    }
+  }
+
+  // Nếu lấy được dữ liệu từ Server/Supabase: Áp dụng Smart Merge
+  if (serverItems !== null) {
+    const merged = mergeCollections(localList, serverItems, userId, tombstones);
+    saveLocalCollections(userId, merged);
+    if (typeof window !== "undefined") {
+      processPendingSync(userId).catch(() => {});
+    }
+    return merged;
+  }
+
+  // Trường hợp mạng lỗi, timeout hoặc chưa xác thực: Giữ nguyên dữ liệu LocalStorage an toàn
+  if (typeof window !== "undefined") {
+    processPendingSync(userId).catch(() => {});
+  }
   return localList;
 }
 
@@ -146,13 +491,10 @@ export function subscribeUserCollections(
   const initialLocal = getLocalCollections(userId);
   callback(initialLocal);
 
-  // 2. Fetch mới nhất từ Server API / Supabase
+  // 2. Fetch mới nhất từ Server API / Supabase và Smart Merge
   getUserCollections(userId)
     .then((items) => {
-      if (items.length > 0) {
-        saveLocalCollections(userId, items);
-        callback(items);
-      }
+      callback(items);
     })
     .catch(() => {});
 
@@ -215,15 +557,25 @@ export async function createCollection(
       updatedAt: now,
     };
 
+    // Đảm bảo id mới không bị vướng tombstone
+    clearTombstone(userId, collectionId);
+
     // 1. Luôn lưu vào LocalStorage trước để đảm bảo tính năng phản hồi 0ms
     const currentLocal = getLocalCollections(userId);
     const updatedLocal = [collectionData, ...currentLocal.filter((c) => c.id !== collectionData.id)];
     saveLocalCollections(userId, updatedLocal);
 
-    // 2. Lưu qua Server API
-    syncCollectionToServer(collectionData).catch((err) => {
-      console.warn("Lỗi lưu API collection:", err);
-    });
+    // 2. Đưa vào pending queue và đồng bộ qua Server API
+    addPendingSync(userId, collectionId);
+    syncCollectionToServer(collectionData)
+      .then((success) => {
+        if (success) {
+          removePendingSync(userId, collectionId);
+        }
+      })
+      .catch((err) => {
+        console.warn("Lỗi lưu API collection:", err);
+      });
 
     return collectionData;
   } catch (err) {
@@ -242,12 +594,18 @@ export async function deleteCollection(
   if (!userId || !collectionId) return false;
 
   try {
-    // 1. Xóa khỏi LocalStorage
+    // 1. Đánh dấu tombstone để tránh server response cũ làm hồi sinh
+    addTombstone(userId, collectionId);
+
+    // 2. Hủy các yêu cầu pending sync của collection này
+    removePendingSync(userId, collectionId);
+
+    // 3. Xóa khỏi LocalStorage
     const currentLocal = getLocalCollections(userId);
     const updatedLocal = currentLocal.filter((c) => c.id !== collectionId);
     saveLocalCollections(userId, updatedLocal);
 
-    // 2. Xóa qua Server API
+    // 4. Xóa qua Server API
     deleteCollectionFromServer(collectionId).catch(() => {});
 
     return true;
@@ -295,8 +653,15 @@ export async function addMovieToCollection(
         currentLocal.map((c) => (c.id === collectionId ? targetCol! : c))
       );
 
-      // 2. Cập nhật Server API
-      syncCollectionToServer(targetCol).catch(() => {});
+      // 2. Đưa vào pending queue và đồng bộ qua Server API
+      addPendingSync(userId, collectionId);
+      syncCollectionToServer(targetCol)
+        .then((success) => {
+          if (success) {
+            removePendingSync(userId, collectionId);
+          }
+        })
+        .catch(() => {});
     }
 
     return true;
@@ -334,8 +699,15 @@ export async function removeMovieFromCollection(
         currentLocal.map((c) => (c.id === collectionId ? updatedCol : c))
       );
 
-      // 2. Cập nhật Server API
-      syncCollectionToServer(updatedCol).catch(() => {});
+      // 2. Đưa vào pending queue và đồng bộ qua Server API
+      addPendingSync(userId, collectionId);
+      syncCollectionToServer(updatedCol)
+        .then((success) => {
+          if (success) {
+            removePendingSync(userId, collectionId);
+          }
+        })
+        .catch(() => {});
     }
 
     return true;
@@ -372,8 +744,15 @@ export async function toggleCollectionPrivacy(
         currentLocal.map((c) => (c.id === collectionId ? updatedCol : c))
       );
 
-      // 2. Cập nhật Server API
-      syncCollectionToServer(updatedCol).catch(() => {});
+      // 2. Đưa vào pending queue và đồng bộ qua Server API
+      addPendingSync(userId, collectionId);
+      syncCollectionToServer(updatedCol)
+        .then((success) => {
+          if (success) {
+            removePendingSync(userId, collectionId);
+          }
+        })
+        .catch(() => {});
     }
 
     return true;
