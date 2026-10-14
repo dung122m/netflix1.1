@@ -245,14 +245,14 @@ export default function AboutPage() {
                   <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto rounded-full overflow-hidden border-2 border-netflix-red/70 shadow-2xl relative">
                     <Image
                       src="/images/nana-footer.jpg"
-                      alt="Dũng Trần"
+                      alt="DT"
                       width={96}
                       height={96}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                   </div>
                   <div>
-                    <h3 className="text-lg font-black text-white">Dũng Trần</h3>
+                    <h3 className="text-lg font-black text-white">DT</h3>
                     <p className="text-xs font-medium text-gray-400 mt-0.5">Creator & Full-stack Engineer</p>
                   </div>
                   <div className="text-[11px] text-gray-400 leading-normal border-t border-white/[0.06] pt-3">
