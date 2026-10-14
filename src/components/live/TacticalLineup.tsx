@@ -38,6 +38,7 @@ export interface TacticalLineupProps {
     starters: MatchRosterPlayer[];
     bench: MatchRosterPlayer[];
   };
+  matchStatus?: "live" | "finished" | "scheduled" | string;
 }
 
 interface PositionedPlayer {
@@ -363,13 +364,13 @@ export function VectorJerseyToken({
 }) {
   const rawNum = number && number.trim() ? number.trim() : "";
   const displayNumber = rawNum || roleAbbr;
-  const fontSize = displayNumber.length >= 3 ? "10" : displayNumber.length === 2 ? "12.5" : "14";
+  const fontSize = displayNumber.length >= 3 ? "11.5" : displayNumber.length === 2 ? "13.5" : "15.5";
   const gradId = isGK ? "jersey-grad-gk" : isHome ? "jersey-grad-home" : "jersey-grad-away";
 
   return (
     <svg
       viewBox="0 0 36 38"
-      className="w-[22px] h-[22px] sm:w-[24px] sm:h-[24px] drop-shadow-[0_1.5px_3px_rgba(0,0,0,0.65)] transition-transform duration-200 group-hover:scale-110"
+      className="w-[28px] h-[28px] sm:w-[32px] sm:h-[32px] md:w-[34px] md:h-[34px] drop-shadow-[0_2px_4px_rgba(0,0,0,0.7)] transition-transform duration-200 group-hover:scale-110"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
@@ -467,7 +468,7 @@ export function CircularBadgeToken({
 
   return (
     <div
-      className={`w-[22px] h-[22px] sm:w-[24px] sm:h-[24px] rounded-full flex items-center justify-center font-mono font-black text-[9px] sm:text-[10px] shadow-md transition-transform duration-200 group-hover:scale-110 border-[1.5px] ${
+      className={`w-[28px] h-[28px] sm:w-[32px] sm:h-[32px] md:w-[34px] md:h-[34px] rounded-full flex items-center justify-center font-mono font-black text-[10px] sm:text-[11.5px] md:text-xs shadow-md transition-transform duration-200 group-hover:scale-110 border-[1.5px] ${
         isGK
           ? "bg-gradient-to-b from-amber-300 via-amber-400 to-amber-600 text-zinc-950 border-white/90 ring-1 ring-amber-400/50 shadow-amber-950/60"
           : isHome
@@ -498,7 +499,7 @@ export function PhotoToken({
 }) {
   return (
     <div
-      className={`w-[22px] h-[22px] sm:w-[24px] sm:h-[24px] rounded-full flex items-center justify-center overflow-hidden transition-all shadow-md ${
+      className={`w-[28px] h-[28px] sm:w-[32px] sm:h-[32px] md:w-[34px] md:h-[34px] rounded-full flex items-center justify-center overflow-hidden transition-all shadow-md ${
         isHome
           ? "bg-zinc-900 border-[1.5px] border-netflix-red shadow-red-950/60 ring-1 ring-netflix-red/30 group-hover:border-white group-hover:ring-white/50"
           : "bg-zinc-900 border-[1.5px] border-sky-400 shadow-sky-950/60 ring-1 ring-sky-400/30 group-hover:border-white group-hover:ring-white/50"
@@ -515,7 +516,7 @@ export function PhotoToken({
         />
       ) : (
         <div
-          className={`w-full h-full flex items-center justify-center font-mono font-black text-[9px] sm:text-[10px] ${
+          className={`w-full h-full flex items-center justify-center font-mono font-black text-[10px] sm:text-[11.5px] md:text-xs ${
             isHome
               ? "bg-gradient-to-b from-red-600 to-red-900 text-white"
               : "bg-gradient-to-b from-sky-500 to-sky-800 text-white"
@@ -546,6 +547,7 @@ interface TeamPitchColumnProps {
   onImageError: (id: string) => void;
   onSelectPlayer: (player: MatchRosterPlayer) => void;
   showHeader?: boolean;
+  matchStatus?: "live" | "finished" | "scheduled" | string;
 }
 
 function TeamPitchColumn({
@@ -557,7 +559,9 @@ function TeamPitchColumn({
   onImageError,
   onSelectPlayer,
   showHeader = true,
+  matchStatus,
 }: TeamPitchColumnProps) {
+  const isMatchScheduled = matchStatus === "scheduled";
   const positionedStarters = useMemo(() => {
     return calculateTacticalCoordinates(roster.starters, roster.formation);
   }, [roster.starters, roster.formation]);
@@ -761,7 +765,7 @@ function TeamPitchColumn({
                     {/* Huy hiệu số áo góc dưới chỉ hiển thị khi ở chế độ xem ảnh mặt */}
                     {tokenDisplayMode === "photo" && player.jersey && (
                       <span
-                        className={`absolute -bottom-1 -right-1 font-mono text-[6.5px] sm:text-[7.5px] font-black px-1 py-0.2 rounded-full border shadow-sm leading-none ${
+                        className={`absolute -bottom-1 -right-1 font-mono text-[7.5px] sm:text-[8.5px] font-black px-1.5 py-0.2 rounded-full border shadow-sm leading-none ${
                           isHome
                             ? "bg-black text-white border-netflix-red/80"
                             : "bg-black text-white border-sky-400/80"
@@ -771,23 +775,23 @@ function TeamPitchColumn({
                       </span>
                     )}
 
-                    {/* Rời sân */}
-                    {player.subbedOut && (
+                    {/* Rời sân (chỉ hiển thị khi trận đang đá hoặc đã kết thúc) */}
+                    {!isMatchScheduled && player.subbedOut && (
                       <span
                         title={`Rời sân: ${player.subClock || ""}`}
-                        className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-red-600 text-white flex items-center justify-center text-[7px] shadow-md border border-white/40"
+                        className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-600 text-white flex items-center justify-center text-[7.5px] shadow-md border border-white/50 z-30"
                       >
-                        <ArrowDownLeft className="w-2 h-2" />
+                        <ArrowDownLeft className="w-2.5 h-2.5" />
                       </span>
                     )}
                   </div>
 
                   {/* Tên & vị trí */}
-                  <div className="mt-0.5 flex flex-col items-center max-w-[48px] sm:max-w-[58px] pointer-events-none leading-none">
-                    <span className="text-[7.5px] sm:text-[8.5px] font-bold text-white truncate w-full text-center drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)] tracking-tight">
+                  <div className="mt-1 flex flex-col items-center max-w-[68px] sm:max-w-[82px] md:max-w-[94px] pointer-events-none leading-none">
+                    <span className="text-[9px] sm:text-[10.5px] md:text-[11px] font-bold text-white truncate w-full text-center drop-shadow-[0_1.5px_4px_rgba(0,0,0,0.98)] tracking-normal">
                       {shortName}
                     </span>
-                    <span className="text-[6px] sm:text-[6.5px] font-bold tracking-wider text-zinc-300 uppercase px-1 py-0.2 rounded bg-black/75 border border-white/15 leading-none mt-0.5 shadow-sm">
+                    <span className="text-[7px] sm:text-[8px] md:text-[8.5px] font-extrabold tracking-wider text-zinc-200 uppercase px-1.5 py-0.5 rounded bg-black/85 border border-white/20 leading-none mt-0.5 shadow-sm">
                       {roleAbbr}
                     </span>
                   </div>
@@ -800,18 +804,18 @@ function TeamPitchColumn({
 
       {/* CẦU THỦ DỰ BỊ */}
       {roster.bench.length > 0 && (
-        <div className="rounded-2xl bg-zinc-900/60 border border-white/10 p-3 sm:p-4 space-y-2.5">
-          <div className="flex items-center justify-between pb-2 border-b border-white/10">
+        <div className="rounded-2xl bg-zinc-900/60 border border-white/10 p-3 sm:p-4 space-y-3">
+          <div className="flex items-center justify-between pb-2.5 border-b border-white/10">
             <div className="flex items-center gap-2 min-w-0">
-              <Users className="w-4 h-4 text-zinc-400 shrink-0" />
-              <h5 className="text-xs sm:text-sm font-bold text-white uppercase tracking-wider whitespace-nowrap truncate">
+              <Users className="w-4 h-4 text-zinc-300 shrink-0" />
+              <h5 className="text-xs sm:text-sm font-black text-white uppercase tracking-wider whitespace-nowrap truncate">
                 Cầu thủ dự bị ({roster.bench.length})
               </h5>
             </div>
-            <span className="text-[10px] text-zinc-400 font-medium shrink-0 whitespace-nowrap">Bấm xem chỉ số</span>
+            <span className="text-[11px] sm:text-xs text-zinc-400 font-medium shrink-0 whitespace-nowrap">Bấm xem chỉ số</span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[340px] overflow-y-auto pr-1 scrollbar-thin">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[380px] overflow-y-auto pr-1 scrollbar-thin">
             {roster.bench.map((player) => {
               const hasValidPhoto = Boolean(player.photoUrl && !imageErrors[player.id]);
 
@@ -820,10 +824,10 @@ function TeamPitchColumn({
                   key={player.id}
                   type="button"
                   onClick={() => onSelectPlayer(player)}
-                  className="flex items-center justify-between gap-2 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/5 hover:border-white/15 transition-all text-left cursor-pointer group"
+                  className="flex items-center justify-between gap-2.5 p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 hover:border-white/20 transition-all text-left cursor-pointer group"
                 >
                   <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                    <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-zinc-800 border border-white/15 overflow-hidden shrink-0 flex items-center justify-center font-mono text-[10px] sm:text-xs font-bold text-zinc-300">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-zinc-800 border border-white/20 overflow-hidden shrink-0 flex items-center justify-center font-mono text-xs sm:text-[13px] font-bold text-zinc-200 shadow-sm">
                       {tokenDisplayMode === "photo" && hasValidPhoto ? (
                         /* eslint-disable-next-line @next/next/no-img-element */
                         <img
@@ -841,25 +845,25 @@ function TeamPitchColumn({
                     </div>
 
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs sm:text-[13px] font-bold text-zinc-100 group-hover:text-white truncate">
+                      <p className="text-xs sm:text-sm font-bold text-zinc-100 group-hover:text-white truncate">
                         {player.displayName || player.name || "Cầu thủ"}
                       </p>
-                      <p className="text-[10px] text-zinc-400 truncate">
+                      <p className="text-[11px] sm:text-xs text-zinc-400 truncate mt-0.5">
                         {translatePosition(player.position)}
                       </p>
                     </div>
                   </div>
 
-                  {player.subbedIn ? (
+                  {!isMatchScheduled && player.subbedIn ? (
                     <span
                       title={`Vào sân thay người: ${player.subClock || ""}`}
-                      className="flex items-center gap-1 text-[9.5px] sm:text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded-md shrink-0"
+                      className="flex items-center gap-1 text-[10.5px] sm:text-xs font-bold text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-md shrink-0"
                     >
-                      <ArrowUpRight className="w-3 h-3" />
+                      <ArrowUpRight className="w-3.5 h-3.5" />
                       <span>{player.subClock || "Vào sân"}</span>
                     </span>
                   ) : (
-                    <span className="font-mono text-[11px] font-bold text-zinc-500 shrink-0 px-1">
+                    <span className="font-mono text-xs font-bold text-zinc-400 bg-white/5 border border-white/5 rounded-md px-1.5 py-0.5 shrink-0">
                       #{player.jersey || "-"}
                     </span>
                   )}
@@ -887,6 +891,7 @@ interface TeamListColumnProps {
   };
   isHome: boolean;
   onSelectPlayer: (player: MatchRosterPlayer) => void;
+  matchStatus?: "live" | "finished" | "scheduled" | string;
 }
 
 function TeamListColumn({
@@ -894,7 +899,10 @@ function TeamListColumn({
   roster,
   isHome,
   onSelectPlayer,
+  matchStatus,
 }: TeamListColumnProps) {
+  const isMatchScheduled = matchStatus === "scheduled";
+
   return (
     <div className="rounded-2xl bg-zinc-900/50 border border-white/10 p-4 space-y-3">
       <div className="flex items-center justify-between pb-2 border-b border-white/10">
@@ -903,61 +911,74 @@ function TeamListColumn({
           <h5 className="text-xs sm:text-sm font-black text-white truncate">
             {team.displayName}
           </h5>
-          <span className="text-[10px] font-medium text-zinc-400">
+          <span className="text-[10px] sm:text-xs font-medium text-zinc-400">
             ({isHome ? "Chủ nhà" : "Đội khách"})
           </span>
         </div>
         {roster.formation && (
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/10 text-gray-300">
+          <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-white/10 text-gray-300">
             {roster.formation}
           </span>
         )}
       </div>
 
       <div className="space-y-1.5">
-        <p className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider">
+        <p className="text-xs sm:text-[13px] font-extrabold text-gray-300 uppercase tracking-wider">
           Ra sân chính thức ({roster.starters.length})
         </p>
         {roster.starters.map((p, i) => (
           <div
             key={p.id || i}
             onClick={() => onSelectPlayer(p)}
-            className="flex items-center justify-between gap-2 py-1.5 px-2.5 rounded-lg bg-white/[0.02] hover:bg-white/[0.06] cursor-pointer text-xs transition"
+            className="flex items-center justify-between gap-2.5 py-2 px-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/5 cursor-pointer text-xs sm:text-sm transition"
           >
-            <div className="flex items-center gap-2 min-w-0 flex-1">
-              <span className="font-mono text-gray-400 min-w-[20px] font-bold">
-                {p.jersey || i + 1}
+            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+              <span className="font-mono text-zinc-400 min-w-[24px] font-bold text-xs sm:text-sm">
+                #{p.jersey || i + 1}
               </span>
-              <span className="text-white font-semibold truncate">{p.name}</span>
+              <span className="text-zinc-100 font-semibold truncate text-xs sm:text-sm">{p.displayName || p.name}</span>
             </div>
-            {p.position && (
-              <span className="text-[10px] text-gray-400 font-medium">
-                {translatePosition(p.position)}
-              </span>
-            )}
+            <div className="flex items-center gap-2 shrink-0">
+              {!isMatchScheduled && p.subbedOut && (
+                <span className="text-xs text-red-400 font-bold flex items-center gap-1 bg-red-500/10 px-1.5 py-0.5 rounded border border-red-500/20">
+                  <ArrowDownLeft className="w-3 h-3" />
+                  <span>{p.subClock || "Ra sân"}</span>
+                </span>
+              )}
+              {p.position && (
+                <span className="text-xs text-zinc-400 font-medium">
+                  {translatePosition(p.position)}
+                </span>
+              )}
+            </div>
           </div>
         ))}
       </div>
 
       {roster.bench.length > 0 && (
         <div className="space-y-1.5 pt-2 border-t border-white/5">
-          <p className="text-[11px] font-extrabold text-zinc-500 uppercase tracking-wider">
+          <p className="text-xs sm:text-[13px] font-extrabold text-zinc-400 uppercase tracking-wider">
             Dự bị ({roster.bench.length})
           </p>
-          <div className="max-h-[240px] overflow-y-auto pr-0.5 scrollbar-thin space-y-1">
+          <div className="max-h-[260px] overflow-y-auto pr-0.5 scrollbar-thin space-y-1">
             {roster.bench.map((p, i) => (
               <div
                 key={p.id || i}
                 onClick={() => onSelectPlayer(p)}
-                className="flex items-center justify-between gap-2 py-1 px-2.5 rounded-lg text-xs hover:bg-white/[0.04] cursor-pointer"
+                className="flex items-center justify-between gap-2.5 py-2 px-3 rounded-xl text-xs sm:text-sm hover:bg-white/[0.05] border border-transparent hover:border-white/5 cursor-pointer"
               >
-                <div className="flex items-center gap-2 min-w-0 flex-1">
-                  <span className="font-mono text-zinc-500 min-w-[20px]">{p.jersey || "-"}</span>
-                  <span className="text-zinc-300 truncate">{p.name}</span>
+                <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                  <span className="font-mono text-zinc-500 min-w-[24px] font-semibold text-xs sm:text-sm">#{p.jersey || "-"}</span>
+                  <span className="text-zinc-300 truncate text-xs sm:text-sm">{p.displayName || p.name}</span>
                 </div>
-                {p.subbedIn && (
-                  <span className="text-[9.5px] text-emerald-400">
-                    ↑ {p.subClock || "Vào sân"}
+                {!isMatchScheduled && p.subbedIn ? (
+                  <span className="text-xs text-emerald-400 font-bold flex items-center gap-1 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                    <ArrowUpRight className="w-3.5 h-3.5" />
+                    <span>{p.subClock || "Vào sân"}</span>
+                  </span>
+                ) : (
+                  <span className="text-xs text-zinc-500">
+                    {translatePosition(p.position)}
                   </span>
                 )}
               </div>
@@ -974,6 +995,7 @@ export function TacticalLineup({
   awayTeam,
   homeRoster,
   awayRoster,
+  matchStatus,
 }: TacticalLineupProps) {
   const [teamFilter, setTeamFilter] = useState<"home" | "away">("home");
   const [viewMode, setViewMode] = useState<"pitch" | "list">("pitch");
@@ -1162,6 +1184,7 @@ export function TacticalLineup({
             onImageError={handleImageError}
             onSelectPlayer={setActivePlayerModal}
             showHeader={false}
+            matchStatus={matchStatus}
           />
         </div>
       ) : (
@@ -1172,6 +1195,7 @@ export function TacticalLineup({
             roster={teamFilter === "home" ? homeRoster : awayRoster}
             isHome={teamFilter === "home"}
             onSelectPlayer={setActivePlayerModal}
+            matchStatus={matchStatus}
           />
         </div>
       )}
@@ -1238,18 +1262,18 @@ export function TacticalLineup({
                   </div>
                 </div>
 
-                {/* Thông tin thay người nếu có */}
-                {(activePlayerModal.subbedIn || activePlayerModal.subbedOut) && (
-                  <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5 text-xs space-y-1">
+                {/* Thông tin thay người nếu có (chỉ hiển thị khi trận đang đá hoặc đã kết thúc) */}
+                {matchStatus !== "scheduled" && (activePlayerModal.subbedIn || activePlayerModal.subbedOut) && (
+                  <div className="p-3 rounded-xl bg-white/[0.04] border border-white/10 text-xs sm:text-sm space-y-1.5">
                     {activePlayerModal.subbedIn && (
-                      <p className="text-emerald-400 flex items-center gap-1 font-medium">
-                        <ArrowUpRight className="w-3.5 h-3.5" />
+                      <p className="text-emerald-400 flex items-center gap-1.5 font-bold">
+                        <ArrowUpRight className="w-4 h-4" />
                         <span>Vào sân thay người: phút {activePlayerModal.subClock || "trong trận"}</span>
                       </p>
                     )}
                     {activePlayerModal.subbedOut && (
-                      <p className="text-red-400 flex items-center gap-1 font-medium">
-                        <ArrowDownLeft className="w-3.5 h-3.5" />
+                      <p className="text-red-400 flex items-center gap-1.5 font-bold">
+                        <ArrowDownLeft className="w-4 h-4" />
                         <span>Rời sân thay người: phút {activePlayerModal.subClock || "trong trận"}</span>
                       </p>
                     )}

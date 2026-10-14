@@ -10,6 +10,7 @@ import {
   translateStatName,
 } from "@/components/live/TacticalLineup";
 import { MatchRosterPlayer } from "./types";
+import { parseRawSummary } from "./service";
 
 function createMockPlayer(
   id: string,
@@ -256,5 +257,59 @@ describe("Tactical Lineup & Pitch Coordinate System", () => {
     assert.strictEqual(translateStatName("Unknown Metric"), "Unknown Metric");
     assert.strictEqual(translatePosition(""), "Cầu thủ");
     assert.strictEqual(translatePosition(undefined as unknown as string), "Cầu thủ");
+  });
+
+  it("11. parseRawSummary: Trận chưa đá (scheduled) hoặc API trả về object { didSub: false } không bị hiển thị nhầm vào/ra sân", () => {
+    const rawPreMatch = {
+      header: {
+        competitions: [
+          {
+            status: {
+              type: {
+                name: "STATUS_SCHEDULED",
+                state: "pre",
+                detail: "07:30",
+              },
+            },
+            competitors: [
+              { id: "1", homeAway: "home", team: { id: "1", displayName: "Inter Miami" } },
+              { id: "2", homeAway: "away", team: { id: "2", displayName: "NYCFC" } },
+            ],
+          },
+        ],
+      },
+      rosters: [
+        {
+          team: { id: "1" },
+          formation: "4-3-3",
+          roster: [
+            {
+              starter: true,
+              jersey: "10",
+              athlete: { id: "100", displayName: "Lionel Messi" },
+              position: { displayName: "Forward" },
+              subbedIn: { didSub: false },
+              subbedOut: { didSub: false },
+            },
+            {
+              starter: false,
+              jersey: "17",
+              athlete: { id: "101", displayName: "Ian Fray" },
+              position: { displayName: "Defender" },
+              subbedIn: { didSub: false },
+              subbedOut: { didSub: false },
+            },
+          ],
+        },
+      ],
+    };
+
+    const summary = parseRawSummary("usa.1", "761861", rawPreMatch);
+    assert.ok(summary);
+    assert.strictEqual(summary.status, "scheduled");
+    assert.strictEqual(summary.homeRoster.starters[0].subbedOut, false, "Cầu thủ đá chính trận chưa đá không thể có subbedOut = true");
+    assert.strictEqual(summary.homeRoster.starters[0].subbedIn, false);
+    assert.strictEqual(summary.homeRoster.bench[0].subbedIn, false, "Cầu thủ dự bị trận chưa đá không thể có subbedIn = true");
+    assert.strictEqual(summary.homeRoster.bench[0].subbedOut, false);
   });
 });

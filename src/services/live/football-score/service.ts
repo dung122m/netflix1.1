@@ -905,6 +905,41 @@ export function parseRawSummary(
               }))
           : undefined;
 
+        const isScheduled = statusParsed.status === "scheduled";
+
+        // Parse an toàn subbedIn / subbedOut vì ESPN trả về:
+        // - boolean: false | true
+        // - hoặc object: { didSub: false } | { didSub: true } (Boolean({ didSub: false }) === true trong JS)
+        // Khi trận chưa diễn ra (scheduled), tuyệt đối không có việc thay người
+        const parseDidSub = (val: any): boolean => {
+          if (isScheduled) return false;
+          if (typeof val === "boolean") return val;
+          if (val && typeof val === "object") {
+            if (typeof val.didSub === "boolean") return val.didSub;
+            if (typeof val.value === "boolean") return val.value;
+          }
+          return false;
+        };
+
+        const subbedIn = parseDidSub(p.subbedIn);
+        const subbedOut = parseDidSub(p.subbedOut);
+
+        let subClock: string | undefined = undefined;
+        if (!isScheduled && (subbedIn || subbedOut)) {
+          if (Array.isArray(p.plays)) {
+            const subPlay = p.plays.find((pl: any) => pl.substitution === true || pl.clock);
+            if (subPlay?.clock?.displayValue) {
+              subClock = subPlay.clock.displayValue;
+            }
+          }
+          if (!subClock && typeof p.subbedIn === "object" && p.subbedIn?.clock?.displayValue) {
+            subClock = p.subbedIn.clock.displayValue;
+          }
+          if (!subClock && typeof p.subbedOut === "object" && p.subbedOut?.clock?.displayValue) {
+            subClock = p.subbedOut.clock.displayValue;
+          }
+        }
+
         const item: MatchRosterPlayer = {
           id: String(p.athlete?.id || p.id || Math.random().toString()),
           name: p.athlete?.fullName || p.athlete?.displayName || "Cầu thủ",
@@ -914,9 +949,9 @@ export function parseRawSummary(
           position: p.position?.displayName || p.position?.name || p.position?.abbreviation || "",
           starter: Boolean(p.starter),
           formationPlace: p.formationPlace ? parseInt(p.formationPlace, 10) : undefined,
-          subbedIn: Boolean(p.subbedIn),
-          subbedOut: Boolean(p.subbedOut),
-          subClock: p.plays?.[0]?.clock?.displayValue,
+          subbedIn,
+          subbedOut,
+          subClock,
           photoUrl,
           jerseyImageUrl,
           stats: stats && stats.length > 0 ? stats : undefined,

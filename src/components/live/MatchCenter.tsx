@@ -809,6 +809,7 @@ export const MatchCenter: React.FC<MatchCenterProps> = ({
                   awayTeam={summary.awayTeam}
                   homeRoster={summary.homeRoster}
                   awayRoster={summary.awayRoster}
+                  matchStatus={summary.status}
                 />
               )}
 
